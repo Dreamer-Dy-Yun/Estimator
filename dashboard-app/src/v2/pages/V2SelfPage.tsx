@@ -5,6 +5,7 @@ import type { ProductDetail, SalesRow } from '../../types'
 import { c, pct, won } from '../../utils/format'
 import { ProductInsightDrawer } from '../components/ProductInsightDrawer'
 import styles from '../components/v2-common.module.css'
+import { PaginatedTable } from '../components/PaginatedTable'
 
 export const V2SelfPage = () => {
   const [rows, setRows] = useState<SalesRow[]>([])
@@ -19,13 +20,10 @@ export const V2SelfPage = () => {
   const kpi = useMemo(() => {
     const total = rows.reduce((acc, row) => acc + row.amount, 0)
     const avgRate = rows.length ? rows.reduce((acc, row) => acc + row.opMarginRate, 0) / rows.length : 0
-    return { total, avgRate, sku: rows.length }
+    return { total, avgRate }
   }, [rows])
 
-  const totalPages = Math.max(1, Math.ceil(rows.length / pageSize))
-  const currentPage = Math.min(page, totalPages)
-  const startIndex = (currentPage - 1) * pageSize
-  const pageRows = rows.slice(startIndex, startIndex + pageSize)
+  // totalPages는 PaginatedTable 내부에서 계산되므로 여기서는 유지 불필요
 
   return (
     <section className={styles.page}>
@@ -37,8 +35,6 @@ export const V2SelfPage = () => {
       <div className={styles.kpiGrid}>
         <div className={styles.kpi}><div className={styles.kpiLabel}>총 판매액</div><div className={styles.kpiValue}>{won(kpi.total)}</div></div>
         <div className={styles.kpi}><div className={styles.kpiLabel}>평균 영업이익율</div><div className={styles.kpiValue}>{pct(kpi.avgRate)}</div></div>
-        <div className={styles.kpi}><div className={styles.kpiLabel}>분석 SKU</div><div className={styles.kpiValue}>{c(kpi.sku)}</div></div>
-        <div className={styles.kpi}><div className={styles.kpiLabel}>Top SKU</div><div className={styles.kpiValue}>{rows[0]?.name ?? '-'}</div></div>
       </div>
 
       <div className={styles.twoCol}>
@@ -61,52 +57,24 @@ export const V2SelfPage = () => {
           </ResponsiveContainer>
         </div>
 
-        <div className={styles.tableWrap}>
-          <table className={styles.table}>
-            <thead>
-              <tr>
-                <th>순위</th>
-                <th>브랜드</th>
-                <th>상품명</th>
-                <th>평균판매가</th>
-                <th>판매량</th>
-                <th>총판매액</th>
-                <th>영업이익율</th>
-              </tr>
-            </thead>
-            <tbody>
-              {pageRows.map((row) => (
-                <tr key={row.id} className={styles.rowClickable} onClick={() => setSelectedId(row.id)}>
-                  <td>{row.rank}</td>
-                  <td>{row.brand}</td>
-                  <td>{row.name}</td>
-                  <td>{won(row.avgPrice)}</td>
-                  <td>{c(row.qty)}</td>
-                  <td>{won(row.amount)}</td>
-                  <td>{pct(row.opMarginRate)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          <div className={styles.pager}>
-            <div className={styles.pagerInfo}>
-              {rows.length ? `${startIndex + 1} - ${Math.min(startIndex + pageSize, rows.length)} / ${rows.length}` : '0 / 0'}
-            </div>
-            <div className={styles.pagerButtons}>
-              <button onClick={() => setPage(1)} disabled={currentPage === 1}>처음</button>
-              <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={currentPage === 1}>이전</button>
-              <span>{currentPage} / {totalPages}</span>
-              <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}>다음</button>
-              <button onClick={() => setPage(totalPages)} disabled={currentPage === totalPages}>마지막</button>
-              <select value={pageSize} onChange={(e) => { setPageSize(Number(e.target.value)); setPage(1) }}>
-                <option value={10}>10</option>
-                <option value={20}>20</option>
-                <option value={50}>50</option>
-                <option value={100}>100</option>
-              </select>
-            </div>
-          </div>
-        </div>
+        <PaginatedTable<SalesRow>
+          columns={[
+            { key: 'rank', header: '순위', cell: (r) => r.rank, align: 'center' },
+            { key: 'brand', header: '브랜드', cell: (r) => r.brand },
+            { key: 'category', header: '카테고리', cell: (r) => r.category },
+            { key: 'name', header: '상품명', cell: (r) => r.name },
+            { key: 'avgPrice', header: '평균판매가', cell: (r) => won(r.avgPrice), align: 'right' },
+            { key: 'qty', header: '판매량', cell: (r) => c(r.qty), align: 'right' },
+            { key: 'amount', header: '총판매액', cell: (r) => won(r.amount), align: 'right' },
+            { key: 'op', header: '영업이익율', cell: (r) => pct(r.opMarginRate), align: 'right' },
+          ]}
+          rows={rows}
+          page={page}
+          pageSize={pageSize}
+          onPageChange={(p) => setPage(p)}
+          onPageSizeChange={(s) => { setPageSize(s); setPage(1) }}
+          onRowClick={(row) => setSelectedId(row.id)}
+        />
       </div>
 
       <ProductInsightDrawer detail={detail} onClose={() => setSelectedId(null)} />

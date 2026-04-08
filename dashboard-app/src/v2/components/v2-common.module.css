@@ -52,7 +52,8 @@
   display: grid;
   grid-template-columns: 320px 1fr;
   gap: 12px;
-  min-height: 520px;
+  height: calc(100vh - 220px);
+  min-height: 0;
 }
 
 .card {
@@ -93,14 +94,22 @@
 .tableWrap {
   border: 1px solid #e2e8f0;
   border-radius: 12px;
-  overflow: auto;
   background: #fff;
+  display: grid;
+  grid-template-rows: 1fr auto; /* 테이블 스크롤 + 하단 고정 페이저 */
+  height: 100%;
+  min-height: 0;
 }
 
 .table {
   width: 100%;
   border-collapse: collapse;
   min-width: 980px;
+}
+
+.tableBody {
+  overflow: auto;
+  min-height: 0;
 }
 
 .table th,

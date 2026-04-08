@@ -4,6 +4,7 @@ import { api } from '../../api/mock'
 import type { OrderRow } from '../../types'
 import { c, won } from '../../utils/format'
 import styles from '../components/v2-common.module.css'
+import { PaginatedTable } from '../components/PaginatedTable'
 import { useState } from 'react'
 
 export const V2OrderPage = () => {
@@ -42,18 +43,20 @@ export const V2OrderPage = () => {
             </AreaChart>
           </ResponsiveContainer>
         </div>
-        <div className={styles.tableWrap}>
-          <table className={styles.table}>
-            <thead><tr><th>품번</th><th>추천 오더량</th><th>확정 오더량</th><th>오더액</th><th>기대 판매액</th></tr></thead>
-            <tbody>
-              {rows.map((r) => (
-                <tr key={r.id}>
-                  <td>{r.type}</td><td>{c(r.recommendedOrderQty)}</td><td>{c(r.confirmedOrderQty)}</td><td>{won(r.orderAmount)}</td><td>{won(r.expectedSales)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <PaginatedTable
+          columns={[
+            { key: 'type', header: '품번', cell: (r) => (r as any).type },
+            { key: 'rq', header: '추천 오더량', cell: (r) => c((r as any).recommendedOrderQty), align: 'right' },
+            { key: 'cq', header: '확정 오더량', cell: (r) => c((r as any).confirmedOrderQty), align: 'right' },
+            { key: 'oa', header: '오더액', cell: (r) => won((r as any).orderAmount), align: 'right' },
+            { key: 'es', header: '기대 판매액', cell: (r) => won((r as any).expectedSales), align: 'right' },
+          ]}
+          rows={rows}
+          page={1}
+          pageSize={20}
+          onPageChange={() => {}}
+          onPageSizeChange={() => {}}
+        />
       </div>
     </section>
   )
