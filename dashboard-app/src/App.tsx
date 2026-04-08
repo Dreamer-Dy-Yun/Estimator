@@ -7,7 +7,7 @@ import { V2DashboardLayout } from './v2/V2DashboardLayout'
 import { V2CompetitorPage } from './v2/pages/V2CompetitorPage'
 import { V2OrderPage } from './v2/pages/V2OrderPage'
 import { V2SelfPage } from './v2/pages/V2SelfPage'
-import styles from './App.module.css'
+import styles from './app.module.css'
 
 function AppRoutes() {
   const location = useLocation()
