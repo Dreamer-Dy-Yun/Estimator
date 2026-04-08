@@ -1,0 +1,32 @@
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #fff;
+}
+
+.table th,
+.table td {
+  border: 1px solid #25313f;
+  padding: 8px;
+}
+
+.table th {
+  background: var(--primary);
+  color: #fff;
+  width: 150px;
+  text-align: center;
+}
+
+.table td {
+  background: var(--input-bg);
+  text-align: center;
+}
+
+.mid {
+  width: 20px;
+  background: #fff !important;
+}
+
+.unit {
+  width: 44px;
+}

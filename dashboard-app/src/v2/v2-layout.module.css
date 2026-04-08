@@ -1,0 +1,33 @@
+.shell {
+  display: grid;
+  gap: 0;
+}
+
+.frame {
+  background: #0b1220;
+  border: 1px solid #0b1220;
+}
+
+.nav {
+  display: flex;
+  gap: 10px;
+  background: #0f172a;
+  padding: 10px 12px;
+}
+
+.tab {
+  color: #cbd5e1;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-weight: 700;
+}
+
+.active {
+  color: #fff;
+  background: #334155;
+}
+
+.content {
+  background: #0f172a;
+  padding: 12px; /* 본문 주변 약간의 마진(여백) 역할 */
+}

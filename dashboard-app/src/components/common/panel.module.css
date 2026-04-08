@@ -1,0 +1,30 @@
+.panel {
+  border: 1px solid #cfd5df;
+  background: var(--color-surface);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+}
+
+.header {
+  background: var(--color-primary);
+  color: var(--color-text-inverse);
+  padding: 10px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.header h2 {
+  margin: 0;
+  font-size: 22px;
+}
+
+.body {
+  padding: 12px;
+  flex: 1;
+  min-height: 0;
+}
