@@ -1,0 +1,15 @@
+.app {
+  min-height: 100vh;
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
+.main {
+  width: min(1600px, 100%);
+  margin: 0 auto;
+  padding: 16px;
+}
+
+.mainV2 {
+  padding-top: 0;
+}

@@ -5,6 +5,9 @@ import type { CompetitorRow, ProductDetail } from '../../types'
 import { c, won } from '../../utils/format'
 import { ProductInsightDrawer } from '../components/ProductInsightDrawer'
 import styles from '../components/v2-common.module.css'
+import { PaginatedTable } from '../components/PaginatedTable'
+import { V2ChartCard } from '../components/V2ChartCard'
+import { V2PageHeader } from '../components/V2PageHeader'
 
 export const V2CompetitorPage = () => {
   const [rows, setRows] = useState<CompetitorRow[]>([])
@@ -12,7 +15,13 @@ export const V2CompetitorPage = () => {
   const [selectedId, setSelectedId] = useState<string | null>(null)
 
   useEffect(() => { api.getCompetitorSales().then(setRows) }, [])
-  useEffect(() => { if (selectedId) api.getProductDetail(selectedId).then(setDetail) }, [selectedId])
+  useEffect(() => {
+    if (selectedId) {
+      api.getProductDetail(selectedId).then(setDetail)
+      return
+    }
+    setDetail(null)
+  }, [selectedId])
 
   const chart = useMemo(() => rows.slice(0, 8).map((r) => ({
     name: r.type,
@@ -22,13 +31,9 @@ export const V2CompetitorPage = () => {
 
   return (
     <section className={styles.page}>
-      <div className={styles.headline}>
-        <h1>경쟁사 분석 (리디자인)</h1>
-        <span className={styles.badge}>Gap Finder</span>
-      </div>
+      <V2PageHeader title="경쟁사 분석 (리디자인)" badge="Gap Finder" />
       <div className={styles.twoCol}>
-        <div className={styles.card}>
-          <div className={styles.cardTitle}>비교 차트</div>
+        <V2ChartCard title="비교 차트">
           <ResponsiveContainer width="100%" height={370}>
             <BarChart data={chart} layout="vertical">
               <CartesianGrid strokeDasharray="3 3" />
@@ -40,24 +45,33 @@ export const V2CompetitorPage = () => {
               <Bar dataKey="자사" fill="#f59e0b" />
             </BarChart>
           </ResponsiveContainer>
-        </div>
-        <div className={styles.tableWrap}>
-          <table className={styles.table}>
-            <thead><tr><th>순위</th><th>품번</th><th>상품명</th><th>크림 판매액</th><th>자사 판매액</th><th>차이</th></tr></thead>
-            <tbody>
-              {rows.map((r) => {
-                const gap = r.competitorAmount - (r.selfAmount ?? 0)
-                return (
-                  <tr key={r.id} className={styles.rowClickable} onClick={() => setSelectedId(r.id)}>
-                    <td>{r.rank}</td><td>{r.type}</td><td>{r.name}</td><td>{won(r.competitorAmount)}</td><td>{won(r.selfAmount)}</td><td>{gap > 0 ? `+${c(gap)}` : c(gap)}</td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
-        </div>
+        </V2ChartCard>
+        <PaginatedTable
+          columns={[
+            { key: 'rank', header: '순위', cell: (r) => r.rank, align: 'center', sortValue: (r) => r.rank },
+            { key: 'type', header: '품번', cell: (r) => r.type, sortValue: (r) => r.type },
+            { key: 'name', header: '상품명', cell: (r) => r.name, sortValue: (r) => r.name },
+            { key: 'compA', header: '크림 판매액', cell: (r) => won(r.competitorAmount), align: 'right', sortValue: (r) => r.competitorAmount },
+            { key: 'selfA', header: '자사 판매액', cell: (r) => won(r.selfAmount ?? 0), align: 'right', sortValue: (r) => r.selfAmount ?? 0 },
+            { key: 'gap', header: '차이', cell: (r) => {
+              const gap = r.competitorAmount - (r.selfAmount ?? 0)
+              return gap > 0 ? `+${c(gap)}` : c(gap)
+            }, align: 'right', sortValue: (r) => r.competitorAmount - (r.selfAmount ?? 0) },
+          ]}
+          rows={rows}
+          page={1}
+          pageSize={20}
+          onPageChange={() => {}}
+          onPageSizeChange={() => {}}
+          onRowClick={(row) => setSelectedId(row.id)}
+        />
       </div>
-      <ProductInsightDrawer detail={detail} onClose={() => setSelectedId(null)} />
+      <ProductInsightDrawer
+        detail={detail}
+        periodStart="2025.01.01"
+        periodEnd="2025.12.31"
+        onClose={() => { setSelectedId(null); setDetail(null) }}
+      />
     </section>
   )
 }

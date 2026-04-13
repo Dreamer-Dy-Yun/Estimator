@@ -4,8 +4,8 @@
 }
 
 .frame {
-  background: #0b1220;
-  border: 1px solid #0b1220;
+  background: transparent;
+  border: 0;
 }
 
 .nav {
@@ -28,6 +28,6 @@
 }
 
 .content {
-  background: #0f172a;
-  padding: 12px; /* 본문 주변 약간의 마진(여백) 역할 */
+  background: var(--bg);
+  padding: 0 ;
 }

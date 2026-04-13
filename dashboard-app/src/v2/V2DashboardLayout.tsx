@@ -2,10 +2,9 @@ import { NavLink, Outlet } from 'react-router-dom'
 import styles from './v2-layout.module.css'
 
 const tabs = [
-  { to: '/v2/self', label: 'V2 자사 분석' },
-  { to: '/v2/competitor', label: 'V2 경쟁사 분석' },
-  { to: '/v2/order-sim', label: 'V2 오더 시뮬레이션' },
-  { to: '/self', label: '기존 화면' },
+  { to: '/v2/self', label: '자사 분석' },
+  { to: '/v2/competitor', label: '경쟁사 분석' },
+  { to: '/v2/order-sim', label: '오더 시뮬레이션' },
 ]
 
 export const V2DashboardLayout = () => {

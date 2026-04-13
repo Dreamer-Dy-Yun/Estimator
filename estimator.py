@@ -15,9 +15,9 @@ class Estimator:
     def __init__(self, df_original: pd.DataFrame, col_ym: str = "year_month", col_qty: str = "quantity"):
         self.df_monthly_grouped: pd.DataFrame = self._build_monthly_grouped(df_original, col_ym, col_qty)
         self.df_monthly_grid: pd.DataFrame = self._build_monthly_grid(self.df_monthly_grouped, col_ym, col_qty)
-        self._seasonal_rate: pd.Series = self._get_seasonal_rate(self.df_monthly_grid, col_ym, col_qty)
-        self._assumed_grid: pd.DataFrame = self._assumed_grid(col_ym, col_qty)
-        self._df_yearly_quantities: pd.DataFrame = self._build_yearly_quantities(self._assumed_grid, col_ym, col_qty)
+        self._seasonal_rates: pd.Series = self._get_seasonal_rate(self.df_monthly_grid, col_ym, col_qty)
+        self._df_grid_assumed: pd.DataFrame = self._build_assumed_grid(col_ym, col_qty)
+        self._df_yearly_quantities: pd.DataFrame = self._build_yearly_quantities(self._df_grid_assumed, col_ym, col_qty)
 
     
 
@@ -33,14 +33,14 @@ class Estimator:
 
     @staticmethod
     def _build_yearly_quantities(df: pd.DataFrame, col_ym: str = "year_month", col_qty: str = "quantity") -> pd.DataFrame:
-        return df.groupby(col_ym.dt.year, as_index=False)[col_qty].sum()
+        return df.groupby(df[col_ym].dt.year, as_index=False)[col_qty].sum()
 
 
-    def _assumed_grid(self, col_ym: str = "year_month", col_qty: str = "quantity") -> pd.DataFrame:
+    def _build_assumed_grid(self, col_ym: str = "year_month", col_qty: str = "quantity") -> pd.DataFrame:
         '''데이터 외삽'''
         df_grid: pd.DataFrame = self.df_monthly_grid.copy()
         if df_grid.empty:
-            self._assumed_grid = df_grid
+            self._df_grid_assumed = df_grid
             return
 
         ym_first: pd.Period = df_grid[col_ym].iloc[0]
@@ -80,10 +80,10 @@ class Estimator:
 
         original_months: pd.Series = base[col_ym].dt.month
         original_sum: float = float(base[col_qty].sum())
-        original_rate_sum: float = float(self._seasonal_rate.loc[original_months].sum())
+        original_rate_sum: float = float(self._seasonal_rates.loc[original_months].sum())
         scale: float = 0.0 if original_rate_sum == 0.0 else (original_sum / original_rate_sum)
 
-        assuming = full["month"].map(self._seasonal_rate).astype(float) * scale
+        assuming = full["month"].map(self._seasonal_rates).astype(float) * scale
         full[col_qty] = full[col_qty].fillna(assuming)
         full.drop(columns=["month"], inplace=True)
         return full
@@ -122,15 +122,25 @@ class Estimator:
 
 
     @staticmethod
-    def _get_seasonal_rate(df_grid: pd.DataFrame, col_ym: str = "year_month", col_qty: str = "quantity") -> pd.Series:
-        df: pd.DataFrame = df_grid[[col_ym, col_qty]].copy()
+    def _get_seasonal_rate(df_grid: pd.DataFrame, col_ym: str = "year_month", col_qty: str = "quantity", exponential_weight_span: float | None = None) -> pd.Series:
+        # TODO : EMA 적용 고려. 현재는 판매 기간이 길지 않아 큰 의미가 없음.
+        df: pd.DataFrame = df_grid[[col_ym, col_qty]].copy().sort_values(col_ym)
 
         df["year"] = df[col_ym].dt.year
         df["month"] = df[col_ym].dt.month  # 1~12
 
-        # 연도별 총 판매량 -> 해당 월 비중(정규화)
-        total_quantity = df.groupby("year")[col_qty].transform("sum")
-        df["normalized"] = df[col_qty] / total_quantity.replace(0, pd.NA)
+        if exponential_weight_span is None:
+            # 연도별 총 판매량 -> 해당 월 비중(정규화)
+            total_quantity = df.groupby("year")[col_qty].transform("sum")
+            df["normalized"] = (df[col_qty] / total_quantity.replace(0, pd.NA)).fillna(0)
+        else:
+            total_quantity = df.groupby("month")[col_qty].transform(lambda x: x.ewm(span=exponential_weight_span, adjust=False).mean())
+
+
+
+
+            total_quantity = df.groupby("year")[col_qty].transform("sum")
+            df["normalized"] = df.groupby("month")[col_qty].transform(lambda x: x.ewm(span=exponential_weight_span, adjust=False).mean())
 
         # 동월 비율 평균(= 해당 month-of-year의 normalized 평균)
         monthly_normalized_mean = df.groupby("month")["normalized"].mean().reindex(range(1, 13))
@@ -140,4 +150,4 @@ class Estimator:
 if __name__ == "__main__":
     from data import df
     estimator = Estimator(df)
-    print(estimator.df_monthly_seasonal_rate)
+    print(estimator._seasonal_rates)

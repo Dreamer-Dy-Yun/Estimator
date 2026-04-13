@@ -1,11 +1,13 @@
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { api } from '../../api/mock'
 import type { OrderRow } from '../../types'
 import { c, won } from '../../utils/format'
 import styles from '../components/v2-common.module.css'
 import { PaginatedTable } from '../components/PaginatedTable'
-import { useState } from 'react'
+import { V2ChartCard } from '../components/V2ChartCard'
+import { V2KpiGrid } from '../components/V2KpiGrid'
+import { V2PageHeader } from '../components/V2PageHeader'
 
 export const V2OrderPage = () => {
   const [rows, setRows] = useState<OrderRow[]>([])
@@ -19,19 +21,20 @@ export const V2OrderPage = () => {
 
   return (
     <section className={styles.page}>
-      <div className={styles.headline}>
-        <h1>오더 시뮬레이션 (리디자인)</h1>
-        <span className={styles.badge}>What-if</span>
-      </div>
-      <div className={styles.kpiGrid}>
-        <div className={styles.kpi}><div className={styles.kpiLabel}>총 오더액</div><div className={styles.kpiValue}>{won(summary.orderAmount)}</div></div>
-        <div className={styles.kpi}><div className={styles.kpiLabel}>기대 판매액</div><div className={styles.kpiValue}>{won(summary.expected)}</div></div>
-        <div className={styles.kpi}><div className={styles.kpiLabel}>추천 SKU</div><div className={styles.kpiValue}>{c(rows.length)}</div></div>
-        <div className={styles.kpi}><div className={styles.kpiLabel}>평균 오더량</div><div className={styles.kpiValue}>{rows.length ? c(Math.round(rows.reduce((a, r) => a + r.recommendedOrderQty, 0) / rows.length)) : '-'}</div></div>
-      </div>
+      <V2PageHeader title="오더 시뮬레이션 (리디자인)" badge="What-if" />
+      <V2KpiGrid
+        items={[
+          { label: '총 오더액', value: won(summary.orderAmount) },
+          { label: '기대 판매액', value: won(summary.expected) },
+          { label: '추천 SKU', value: c(rows.length) },
+          {
+            label: '평균 오더량',
+            value: rows.length ? c(Math.round(rows.reduce((a, r) => a + r.recommendedOrderQty, 0) / rows.length)) : '-',
+          },
+        ]}
+      />
       <div className={styles.twoCol}>
-        <div className={styles.card}>
-          <div className={styles.cardTitle}>시뮬레이션 추이</div>
+        <V2ChartCard title="시뮬레이션 추이">
           <ResponsiveContainer width="100%" height={370}>
             <AreaChart data={rows.map((r) => ({ name: r.type, 판매액: Math.round(r.expectedSales / 1000000), 이익액: Math.round(r.expectedOpMargin / 1000000) }))}>
               <CartesianGrid strokeDasharray="3 3" />
@@ -42,14 +45,14 @@ export const V2OrderPage = () => {
               <Area type="monotone" dataKey="이익액" stroke="#16a34a" fill="#16a34a22" />
             </AreaChart>
           </ResponsiveContainer>
-        </div>
+        </V2ChartCard>
         <PaginatedTable
           columns={[
-            { key: 'type', header: '품번', cell: (r) => (r as any).type },
-            { key: 'rq', header: '추천 오더량', cell: (r) => c((r as any).recommendedOrderQty), align: 'right' },
-            { key: 'cq', header: '확정 오더량', cell: (r) => c((r as any).confirmedOrderQty), align: 'right' },
-            { key: 'oa', header: '오더액', cell: (r) => won((r as any).orderAmount), align: 'right' },
-            { key: 'es', header: '기대 판매액', cell: (r) => won((r as any).expectedSales), align: 'right' },
+            { key: 'type', header: '품번', cell: (r) => r.type, sortValue: (r) => r.type },
+            { key: 'rq', header: '추천 오더량', cell: (r) => c(r.recommendedOrderQty), align: 'right', sortValue: (r) => r.recommendedOrderQty },
+            { key: 'cq', header: '확정 오더량', cell: (r) => c(r.confirmedOrderQty), align: 'right', sortValue: (r) => r.confirmedOrderQty },
+            { key: 'oa', header: '오더액', cell: (r) => won(r.orderAmount), align: 'right', sortValue: (r) => r.orderAmount },
+            { key: 'es', header: '기대 판매액', cell: (r) => won(r.expectedSales), align: 'right', sortValue: (r) => r.expectedSales },
           ]}
           rows={rows}
           page={1}
