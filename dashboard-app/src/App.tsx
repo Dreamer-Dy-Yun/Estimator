@@ -1,23 +1,24 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
-import { V2DashboardLayout } from './v2/V2DashboardLayout'
-import { V2CompetitorPage } from './v2/pages/V2CompetitorPage'
-import { V2OrderPage } from './v2/pages/V2OrderPage'
-import { V2SelfPage } from './v2/pages/V2SelfPage'
+import { DashboardLayout } from './dashboard/DashboardLayout'
+import { CompetitorPage } from './dashboard/pages/CompetitorPage'
+import { OrderPage } from './dashboard/pages/OrderPage'
+import { SelfPage } from './dashboard/pages/SelfPage'
 import styles from './app.module.css'
 
 function AppRoutes() {
   return (
     <div className={styles.app}>
-      <main className={`${styles.main} ${styles.mainV2}`.trim()}>
+      <main className={`${styles.main} ${styles.mainShell}`.trim()}>
         <Routes>
-          <Route path="/" element={<Navigate to="/v2/self" replace />} />
-          <Route path="/v2" element={<V2DashboardLayout />}>
+          <Route path="/" element={<Navigate to="/dashboard/self" replace />} />
+          <Route path="/v2/*" element={<Navigate to="/dashboard/self" replace />} />
+          <Route path="/dashboard" element={<DashboardLayout />}>
             <Route index element={<Navigate to="self" replace />} />
-            <Route path="self" element={<V2SelfPage />} />
-            <Route path="competitor" element={<V2CompetitorPage />} />
-            <Route path="order-sim" element={<V2OrderPage />} />
+            <Route path="self" element={<SelfPage />} />
+            <Route path="competitor" element={<CompetitorPage />} />
+            <Route path="order-sim" element={<OrderPage />} />
           </Route>
-          <Route path="*" element={<Navigate to="/v2/self" replace />} />
+          <Route path="*" element={<Navigate to="/dashboard/self" replace />} />
         </Routes>
       </main>
     </div>

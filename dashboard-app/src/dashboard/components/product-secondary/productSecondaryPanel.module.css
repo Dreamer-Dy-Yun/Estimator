@@ -1,0 +1,467 @@
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+/**
+ * 3열: 판매 정보 | 재고·오더 | AI
+ */
+.salesStockAiRow {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  align-items: stretch;
+  min-width: 0;
+}
+
+/** 3열 그리드 칸을 세로로 채움 */
+.gridColumnCard {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+}
+
+.gridColumnCard > .sectionTitle,
+.gridColumnCard > .hint {
+  flex-shrink: 0;
+}
+
+.gridColumnCard .stockInputList {
+  flex-shrink: 0;
+}
+
+/** 표 블록이 남는 높이를 채우고 넘치면 스크롤 */
+.cardTableScroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  margin-top: 4px;
+}
+
+@media (max-width: 1100px) {
+  .salesStockAiRow {
+    grid-template-columns: 1fr;
+  }
+}
+
+.sectionTitle {
+  margin: 0 0 8px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.warn {
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: #fef3c7;
+  color: #92400e;
+  font-size: 13px;
+  margin-bottom: 8px;
+}
+
+/** 상품 메타 카드 | 검색·필터 카드 (좌우) */
+.metaFilterRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 12px;
+  align-items: stretch;
+  min-width: 0;
+}
+
+@media (max-width: 720px) {
+  .metaFilterRow {
+    grid-template-columns: 1fr;
+  }
+}
+
+.filterCard {
+  min-width: 0;
+}
+
+/** 오른쪽 필터 카드와 높이 맞출 때 메타 블록을 카드 안에서 세로 중앙 */
+.metaCard {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 0;
+}
+
+.metaGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px 14px;
+  min-width: 0;
+}
+
+@media (max-width: 520px) {
+  .metaGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.metaItem {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  min-width: 0;
+}
+
+.metaLabel {
+  font-size: 11px;
+  font-weight: 500;
+  color: #64748b;
+  line-height: 1.2;
+}
+
+.metaValue {
+  font-size: 16px;
+  font-weight: 700;
+  color: #0f172a;
+  line-height: 1.3;
+  min-width: 0;
+  word-break: break-word;
+}
+
+.controlsRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: flex-end;
+  justify-content: flex-start;
+  min-width: 0;
+}
+
+.filterCard .controlsRow {
+  margin-top: 0;
+  flex-wrap: nowrap;
+  gap: 10px;
+}
+
+.filterCard .control {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.filterCard .control input,
+.filterCard .control select {
+  min-width: 0;
+  width: 100%;
+  max-width: 160px;
+}
+
+.control {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  color: #475569;
+}
+
+.control input,
+.control select {
+  min-width: 120px;
+  padding: 6px 8px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  font: inherit;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  /** 판매·재고·사이즈 표 공통 (12px·11px 중간) */
+  font-size: 11.5px;
+}
+
+.table th,
+.table td {
+  border: 1px solid #e2e8f0;
+  padding: 6px 8px;
+  text-align: left;
+}
+
+.table th {
+  background: #f8fafc;
+  font-weight: 600;
+}
+
+.table td.num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/** 자사·경쟁사 사이즈별 비중 누적 막대 (표의 %와 동일 데이터) */
+.sizeMixStackBlock {
+  margin-bottom: 12px;
+}
+
+.sizeMixStackBlock + .sizeMixStackBlock {
+  margin-top: 10px;
+}
+
+.sizeMixStackTitle {
+  font-size: 12px;
+  font-weight: 600;
+  color: #475569;
+  margin: 0 0 6px;
+}
+
+.sizeMixStackTrack {
+  display: flex;
+  width: 100%;
+  min-height: 18px;
+  border-radius: 6px;
+  overflow: hidden;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+}
+
+.sizeMixStackSeg {
+  flex-shrink: 0;
+  flex-basis: 0;
+  min-width: 0;
+  height: 18px;
+  transition: flex-grow 0.15s ease;
+  cursor: default;
+}
+
+.sizeMixTooltip {
+  position: fixed;
+  z-index: 10000;
+  transform: translate(-50%, calc(-100% - 6px));
+  padding: 5px 8px;
+  border-radius: 6px;
+  background: #0f172a;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.25);
+  white-space: nowrap;
+}
+
+.sizeOrderTableWrap {
+  overflow-x: auto;
+  margin-top: 4px;
+  -webkit-overflow-scrolling: touch;
+}
+
+.sizeOrderTable {
+  width: max-content;
+  min-width: 100%;
+}
+
+.sizeOrderTable th:first-child,
+.sizeOrderTable td:first-child {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background: #fff;
+  box-shadow: 4px 0 8px -4px rgba(15, 23, 42, 0.12);
+}
+
+.sizeOrderTable thead th:first-child {
+  background: #f8fafc;
+  z-index: 2;
+}
+
+.stockInputList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+
+.inlineFieldRow {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-width: 0;
+}
+
+.inlineLabel {
+  flex: 1 1 auto;
+  font-size: 12px;
+  color: #475569;
+  line-height: 1.35;
+  text-align: left;
+  min-width: 0;
+}
+
+.inlineValue {
+  flex: 0 0 auto;
+  font-size: 12px;
+  font-weight: 600;
+  color: #0f172a;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.inlineFieldInput {
+  display: inline-flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+  flex: 0 0 auto;
+}
+
+.inlineFieldInput input {
+  width: 56px;
+  padding: 4px 6px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  font: inherit;
+  font-size: 12px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.inlineUnit {
+  font-size: 11px;
+  font-weight: 500;
+  color: #64748b;
+  white-space: nowrap;
+}
+
+.card {
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 10px 12px;
+  background: #fff;
+}
+
+.aiCardBody {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0;
+}
+
+.aiCardBody textarea {
+  width: 100%;
+  min-height: 72px;
+  resize: vertical;
+  padding: 8px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font: inherit;
+  font-size: 11.5px;
+  box-sizing: border-box;
+}
+
+.aiCardBody .btn {
+  align-self: flex-start;
+}
+
+.aiAnswer {
+  flex: 1 1 auto;
+  min-height: 48px;
+  padding: 8px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #f8fafc;
+  font-size: 11.5px;
+  white-space: pre-wrap;
+  overflow: auto;
+}
+
+.btn {
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: 1px solid #0f172a;
+  background: #0f172a;
+  color: #fff;
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.btnSecondary {
+  background: #fff;
+  color: #0f172a;
+}
+
+.sliderRow {
+  display: grid;
+  grid-template-columns: minmax(6.5rem, auto) 5.2rem minmax(10rem, 1fr) 5.2rem minmax(8.5rem, auto);
+  gap: 8px 10px;
+  align-items: center;
+  margin: 8px 0;
+  font-size: 13px;
+  min-width: 0;
+  max-width: 720px;
+}
+
+@media (max-width: 640px) {
+  .sliderRow {
+    grid-template-columns: 1fr;
+    max-width: none;
+  }
+}
+
+.sliderRowRange {
+  width: 100%;
+  min-width: 0;
+  max-width: none;
+}
+
+.sliderRowLabel {
+  min-width: 0;
+  font-size: 12px;
+  color: #475569;
+  line-height: 1.25;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sliderPctBox {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+}
+
+.sliderPctInput {
+  width: 4.4rem;
+  flex: 0 0 auto;
+  box-sizing: border-box;
+  padding: 4px 6px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  font: inherit;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.sliderPctSuffix {
+  flex: 0 0 auto;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  color: #64748b;
+}
+
+.hint {
+  font-size: 11px;
+  color: #64748b;
+  /** <p> 기본 마진 제거 — 위 공백은 padding만 사용(마진 병합 방지) */
+  margin: 0;
+  padding: 4px 0 0;
+}

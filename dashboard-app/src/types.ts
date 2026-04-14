@@ -1,10 +1,13 @@
-export type SalesRow = {
+/** One row in the self (own channel) sales analysis table. */
+export type SelfSalesRow = {
   id: string
   rank: number
-  percentile: number
+  /** Percentile rank among all SKUs. */
+  rankPercentile: number
   brand: string
   category: string
-  type: string
+  /** Style / product code. */
+  styleCode: string
   name: string
   avgPrice: number
   qty: number
@@ -16,13 +19,14 @@ export type SalesRow = {
   opMarginAmount: number
 }
 
-export type CompetitorRow = {
+/** One row in the competitor comparison sales table. */
+export type CompetitorSalesRow = {
   id: string
   rank: number
-  percentile: number
+  rankPercentile: number
   brand: string
   category: string
-  type: string
+  styleCode: string
   name: string
   competitorAvgPrice: number
   competitorQty: number
@@ -32,13 +36,14 @@ export type CompetitorRow = {
   selfAmount: number | null
 }
 
-export type OrderRow = {
+/** One row in the order simulation / plan result table. */
+export type OrderPlanRow = {
   id: string
   rank: number
-  percentile: number
+  rankPercentile: number
   brand: string
   category: string
-  type: string
+  styleCode: string
   name: string
   dailyQty: number
   predictedDailyQtyUntilInbound: number
@@ -58,39 +63,40 @@ export type OrderRow = {
   expectedOpMargin: number
 }
 
-export type ProductDetail = {
+/**
+ * Product summary for the primary drawer (charts, KPIs, size mix).
+ * Deeper detail for the secondary pane will use a separate type/API later.
+ */
+export type ProductSummary = {
   id: string
   name: string
   brand: string
   category: string
-  type: string
+  styleCode: string
   selfPrice: number
   competitorPrice: number
   selfQty: number
   competitorQty: number
-  /** 가용 재고(판매 가능 수량) */
+  /** Sellable on-hand quantity. */
   availableStock: number
   recommendedOrderQty: number
   salesTrend: Array<{ date: string; sales: number; isForecast: boolean }>
   /**
-   * 연간 계절성 비율 (Estimator `_seasonal_rates` 등과 동일 계열)
-   * month: 1~12, ratio: 해당 월 비중. 합은 1, 일부 월은 0일 수 있음.
+   * Seasonal mix by calendar month (e.g. estimator seasonal_rates).
+   * month 1–12, ratios sum to 1; some months may be 0.
    */
   seasonality: Array<{ month: number; ratio: number }>
   /**
-   * 사이즈별 믹스·오더 및 KPI 원천.
-   * `selfAvgPrice` / `selfQty` / `availableStock`는 API가 내려주는 사이즈 단위 값(목은 합계에 맞춰 생성).
+   * Size-level mix and order inputs for KPIs.
+   * Per-size selfAvgPrice / selfQty / availableStock come from the API (mock aligns to totals).
    */
   sizeMix: Array<{
     size: string
     selfRatio: number
     competitorRatio: number
     confirmedQty: number
-    /** 사이즈별 자사 평균 판매가 */
     selfAvgPrice: number
-    /** 사이즈별 기간 판매 수량 */
     selfQty: number
-    /** 사이즈별 가용 재고 */
     availableStock: number
   }>
 }
