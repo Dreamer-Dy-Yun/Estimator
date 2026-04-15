@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { CartesianGrid, ResponsiveContainer, Scatter, ScatterChart, Tooltip, XAxis, YAxis } from 'recharts'
 import { getSelfSales, getSelfSalesFilterMeta } from '../../api'
 import type { SelfSalesRow } from '../../types'
 import { dateToMonth, monthToEndDate, monthToStartDate } from '../../utils/date'
+import { clampForecastMonths, readForecastMonthsFromStorage, writeForecastMonthsToStorage } from '../../utils/forecastMonthsStorage'
 import { c, pct, won } from '../../utils/format'
 import { ProductSummaryDrawer } from '../components/ProductSummaryDrawer'
 import styles from '../components/common.module.css'
@@ -11,7 +12,7 @@ import { ChartCard } from '../components/ChartCard'
 import { FilterBar } from '../components/FilterBar'
 import { KpiGrid } from '../components/KpiGrid'
 import { PageHeader } from '../components/PageHeader'
-import { useProductSummaryBundle } from '../hooks/useProductSummaryBundle'
+import { useProductDrawerBundle } from '../hooks/useProductDrawerBundle'
 
 type ScatterPoint = {
   x: number
@@ -23,7 +24,14 @@ type ScatterPoint = {
 export const SelfPage = () => {
   const [rows, setRows] = useState<SelfSalesRow[]>([])
   const [selectedId, setSelectedId] = useState<string | null>(null)
-  const summaryBundle = useProductSummaryBundle(selectedId)
+  const [forecastMonths, setForecastMonths] = useState(() => readForecastMonthsFromStorage())
+  const summaryBundle = useProductDrawerBundle(selectedId, forecastMonths)
+
+  const onForecastMonthsChange = useCallback((n: number) => {
+    const v = clampForecastMonths(n)
+    setForecastMonths(v)
+    writeForecastMonthsToStorage(v)
+  }, [])
   const [brandOptions, setBrandOptions] = useState<string[]>(['전체'])
   const [brandFilter, setBrandFilter] = useState('전체')
   const [categoryOptions, setCategoryOptions] = useState<string[]>(['전체'])
@@ -250,6 +258,8 @@ export const SelfPage = () => {
         stockTrend={summaryBundle?.stockTrend ?? []}
         periodStart={periodStartDate}
         periodEnd={periodEndDate}
+        forecastMonths={forecastMonths}
+        onForecastMonthsChange={onForecastMonthsChange}
         onClose={() => setSelectedId(null)}
       />
     </section>

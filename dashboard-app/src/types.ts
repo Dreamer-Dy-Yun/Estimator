@@ -6,8 +6,8 @@ export type SelfSalesRow = {
   rankPercentile: number
   brand: string
   category: string
-  /** Style / product code. */
-  styleCode: string
+  /** Product code. */
+  productCode: string
   name: string
   avgPrice: number
   qty: number
@@ -26,7 +26,7 @@ export type CompetitorSalesRow = {
   rankPercentile: number
   brand: string
   category: string
-  styleCode: string
+  productCode: string
   name: string
   competitorAvgPrice: number
   competitorQty: number
@@ -43,7 +43,7 @@ export type OrderPlanRow = {
   rankPercentile: number
   brand: string
   category: string
-  styleCode: string
+  productCode: string
   name: string
   dailyQty: number
   predictedDailyQtyUntilInbound: number
@@ -63,40 +63,52 @@ export type OrderPlanRow = {
   expectedOpMargin: number
 }
 
-/**
- * Product summary for the primary drawer (charts, KPIs, size mix).
- * Deeper detail for the secondary pane will use a separate type/API later.
- */
-export type ProductSummary = {
+/** One month bucket from monthly summary / aggregate pipeline (not daily raw). */
+export type MonthlySalesPoint = {
+  date: string
+  sales: number
+  isForecast: boolean
+}
+
+/** 1차 드로어 사이즈 행 (비교 채널 없음 — 접두어 없음). */
+export type ProductSizeMixRow = {
+  size: string
+  ratio: number
+  confirmedQty: number
+  avgPrice: number
+  qty: number
+  availableStock: number
+}
+
+export type ProductPrimarySummary = {
   id: string
   name: string
   brand: string
   category: string
-  styleCode: string
-  selfPrice: number
-  competitorPrice: number
-  selfQty: number
-  competitorQty: number
+  productCode: string
+  /** Selling price (자사 채널). */
+  price: number
+  qty: number
   /** Sellable on-hand quantity. */
   availableStock: number
   recommendedOrderQty: number
-  salesTrend: Array<{ date: string; sales: number; isForecast: boolean }>
+  monthlySalesTrend: MonthlySalesPoint[]
   /**
    * Seasonal mix by calendar month (e.g. estimator seasonal_rates).
    * month 1–12, ratios sum to 1; some months may be 0.
    */
   seasonality: Array<{ month: number; ratio: number }>
-  /**
-   * Size-level mix and order inputs for KPIs.
-   * Per-size selfAvgPrice / selfQty / availableStock come from the API (mock aligns to totals).
-   */
-  sizeMix: Array<{
-    size: string
-    selfRatio: number
-    competitorRatio: number
-    confirmedQty: number
-    selfAvgPrice: number
-    selfQty: number
-    availableStock: number
-  }>
+  /** Per-size mix; 경쟁 비중은 `ProductSecondaryDetail`에서 별도 fetch. */
+  sizeMix: ProductSizeMixRow[]
 }
+
+/** 2차 패널 전용: 경쟁 베이스라인 + 사이즈별 경쟁 비중 — 별도 API. */
+export type ProductSecondaryDetail = {
+  id: string
+  competitorPrice: number
+  competitorQty: number
+  competitorRatioBySize: Record<string, number>
+}
+
+/** 2차 UI에서 1차 사이즈 행 + 경쟁 비중을 합친 행. */
+export type ProductSizeMixMergedRow = ProductSizeMixRow & { competitorRatio: number }

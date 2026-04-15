@@ -2,7 +2,7 @@
 export type CompetitorChannel = {
   id: string
   label: string
-  /** Multipliers vs summary.competitor* baseline */
+  /** Multipliers vs `ProductSecondaryDetail` competitor price/qty baseline */
   priceSkew: number
   qtySkew: number
 }

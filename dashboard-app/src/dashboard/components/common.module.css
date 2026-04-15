@@ -250,6 +250,105 @@
   margin-bottom: 10px;
 }
 
+.salesTrendTitleRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.salesTrendTitleRow .cardTitle {
+  margin-bottom: 0;
+}
+
+.forecastMonthsControl {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: #475569;
+}
+
+.forecastMonthsLabel {
+  white-space: nowrap;
+}
+
+.forecastComboWrap {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.forecastComboTrigger {
+  min-width: 2.75rem;
+  padding: 4px 8px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.2;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  background: #fff;
+  color: #0f172a;
+  cursor: pointer;
+  text-align: center;
+}
+
+.forecastComboTrigger:hover {
+  border-color: #94a3b8;
+}
+
+.forecastComboTrigger:focus {
+  outline: none;
+  border-color: #64748b;
+  box-shadow: 0 0 0 2px rgb(148 163 184 / 0.35);
+}
+
+/**
+ * 네이티브 select 목록 높이는 브라우저 고정이라, 열린 목록만 짧게(약 1/3) + 스크롤.
+ * 대략 5~6줄 분량 ≈ min(8rem, 28vh)
+ */
+.forecastComboList {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: 40;
+  margin: 0;
+  padding: 4px 0;
+  min-width: 100%;
+  list-style: none;
+  max-height: min(8rem, 28vh);
+  overflow-y: auto;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  background: #fff;
+  box-shadow: 0 8px 20px rgb(15 23 42 / 0.12);
+}
+
+.forecastComboOption {
+  display: block;
+  width: 100%;
+  padding: 5px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.25;
+  border: none;
+  background: transparent;
+  color: #0f172a;
+  text-align: center;
+  cursor: pointer;
+}
+
+.forecastComboOption:hover {
+  background: #f1f5f9;
+}
+
+.forecastComboOptionSelected {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
 .cardTitleWithHelp {
   display: flex;
   align-items: center;
@@ -316,7 +415,7 @@
 .chartClipWrap {
   position: relative;
   width: 100%;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .filter {
@@ -654,9 +753,15 @@
 }
 
 .drawerExpandPaneInner {
-  padding: 14px;
+  padding: 14px 14px 14px 28px;
   overflow: auto;
   flex: 1;
+}
+
+.drawerSecondaryLoading {
+  padding: 24px;
+  color: #64748b;
+  font-size: 14px;
 }
 
 .drawerExpandPaneCard {
@@ -811,4 +916,19 @@
   display: block;
   width: 100%;
   height: auto;
+}
+
+/* Recharts: 클릭 시 래퍼뿐 아니라 내부 g/path/레이어마다 포커스 링이 나오는 경우까지 제거 */
+:global(.recharts-responsive-container:focus),
+:global(.recharts-responsive-container:focus-visible),
+:global(.recharts-wrapper:focus),
+:global(.recharts-wrapper:focus-visible),
+:global(.recharts-surface:focus),
+:global(.recharts-surface:focus-visible),
+:global(.recharts-responsive-container *:focus),
+:global(.recharts-responsive-container *:focus-visible),
+:global(.recharts-wrapper *:focus),
+:global(.recharts-wrapper *:focus-visible) {
+  outline: none !important;
+  box-shadow: none !important;
 }

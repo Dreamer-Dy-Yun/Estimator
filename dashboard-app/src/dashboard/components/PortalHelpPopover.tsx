@@ -1,5 +1,5 @@
 import { createPortal } from 'react-dom'
-import type { ReactNode } from 'react'
+import { useLayoutEffect, useRef, type ReactNode } from 'react'
 import type { PortalHelpPlacement } from './portalHelpPopoverPosition'
 import { usePortalHelpPopover } from './usePortalHelpPopover'
 
@@ -54,11 +54,21 @@ export function PortalHelpPopoverLayer<T extends string>({
   getTooltipId,
   children,
 }: PortalHelpPopoverLayerProps<T>) {
-  const { activeId, position, scheduleClose, cancelClose } = help
+  const { activeId, position, updateMeasuredHeight, scheduleClose, cancelClose } = help
+  const popRef = useRef<HTMLDivElement | null>(null)
+
+  useLayoutEffect(() => {
+    if (activeId == null) return
+    const h = popRef.current?.offsetHeight
+    if (!h || h <= 0) return
+    updateMeasuredHeight(h)
+  }, [activeId, updateMeasuredHeight])
+
   if (activeId == null) return null
 
   return createPortal(
     <div
+      ref={popRef}
       id={getTooltipId(activeId)}
       role="tooltip"
       className={popoverClassName}

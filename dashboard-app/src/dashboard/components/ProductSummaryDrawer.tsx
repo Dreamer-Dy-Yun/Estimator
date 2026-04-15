@@ -1,40 +1,15 @@
-import { useEffect, useId, useMemo, useRef, useState, type WheelEvent } from 'react'
-import { Area, AreaChart, Bar, CartesianGrid, ComposedChart, Line, ReferenceArea, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
-import type { ProductStockTrendPoint } from '../../api'
-import type { ProductSummary } from '../../types'
+import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type WheelEvent } from 'react'
+import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
+import type { ProductSecondaryDetail, ProductStockTrendPoint } from '../../api'
+import { dashboardApi } from '../../api'
+import type { ProductPrimarySummary } from '../../types'
 import { c, pct, won } from '../../utils/format'
 import { PortalHelpMark, PortalHelpPopoverLayer } from './PortalHelpPopover'
+import { SalesTrendChart } from './SalesTrendChart'
+import { buildShadeRanges, normalizeMonthKey } from './trendRangeUtils'
 import { usePortalHelpPopover } from './usePortalHelpPopover'
 import { ProductSecondaryPanel } from './product-secondary/ProductSecondaryPanel'
 import styles from './common.module.css'
-
-/** YYYY-MM 형태로 맞춤 (슬래시·점 구분, findIndex 실패로 음영이 사라지는 것 방지) */
-const normalizeMonthKey = (value: string) => {
-  const s = value.trim().replace(/\//g, '-').replace(/\./g, '-')
-  const m = s.match(/^(\d{4})-(\d{1,2})/)
-  if (m) return `${m[1]}-${m[2].padStart(2, '0')}`
-  return s.slice(0, 7)
-}
-
-const findSeriesMonthIndex = (
-  series: Array<{ date: string }>,
-  monthKey: string,
-  kind: 'start' | 'end',
-) => {
-  if (series.length === 0) return 0
-  const exact = series.findIndex((p) => p.date === monthKey)
-  if (exact !== -1) return exact
-  const keys = series.map((p) => p.date)
-  if (kind === 'start') {
-    const i = keys.findIndex((k) => k >= monthKey)
-    return i === -1 ? series.length - 1 : i
-  }
-  let last = -1
-  for (let i = 0; i < keys.length; i += 1) {
-    if (keys[i] <= monthKey) last = i
-  }
-  return last === -1 ? 0 : last
-}
 
 const SEASON_MONTH_LABELS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'] as const
 
@@ -62,32 +37,94 @@ function ProductSummaryDrawerContent({
   onClose,
   periodStart,
   periodEnd,
+  forecastMonths,
+  onForecastMonthsChange,
 }: {
-  summary: ProductSummary
+  summary: ProductPrimarySummary
   stockTrend: ProductStockTrendPoint[]
   onClose: () => void
   periodStart?: string
   periodEnd?: string
+  forecastMonths: number
+  onForecastMonthsChange: (months: number) => void
 }) {
   const seasonalityHelpId = useId()
+  const forecastMonthsLabelId = useId()
   const kpiPriceHelpId = useId()
   const kpiQtyHelpId = useId()
   const kpiStockHelpId = useId()
   const portalHelp = usePortalHelpPopover<DrawerHelpId>()
   const { close: closePortalHelp } = portalHelp
 
+  const drawerRef = useRef<HTMLElement | null>(null)
+  const forecastComboRef = useRef<HTMLDivElement | null>(null)
+  const salesTrendChartClipRef = useRef<HTMLDivElement | null>(null)
+  const [forecastComboOpen, setForecastComboOpen] = useState(false)
+  const [salesTrendChartClipWidth, setSalesTrendChartClipWidth] = useState(320)
+  const kpiCloseTimerRef = useRef<number | null>(null)
+
   useEffect(() => {
     closePortalHelp()
   }, [summary.id, closePortalHelp])
 
-  const drawerRef = useRef<HTMLElement | null>(null)
-  const kpiCloseTimerRef = useRef<number | null>(null)
+  useEffect(() => {
+    if (!forecastComboOpen) return
+    const onDocDown = (e: MouseEvent) => {
+      const el = forecastComboRef.current
+      if (el && !el.contains(e.target as Node)) setForecastComboOpen(false)
+    }
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setForecastComboOpen(false)
+    }
+    document.addEventListener('mousedown', onDocDown)
+    document.addEventListener('keydown', onKey)
+    return () => {
+      document.removeEventListener('mousedown', onDocDown)
+      document.removeEventListener('keydown', onKey)
+    }
+  }, [forecastComboOpen])
+
+  useEffect(() => {
+    setForecastComboOpen(false)
+  }, [summary.id])
+
+  useLayoutEffect(() => {
+    const el = salesTrendChartClipRef.current
+    if (!el) return
+    if (typeof ResizeObserver === 'undefined') {
+      setSalesTrendChartClipWidth(Math.max(200, el.clientWidth))
+      return
+    }
+    const ro = new ResizeObserver((entries) => {
+      const w = entries[0]?.contentRect.width
+      if (w && w > 0) setSalesTrendChartClipWidth(w)
+    })
+    ro.observe(el)
+    setSalesTrendChartClipWidth(Math.max(200, el.clientWidth))
+    return () => ro.disconnect()
+  }, [summary.id])
+
   const [chartHovered, setChartHovered] = useState(false)
   const [kpiHovered, setKpiHovered] = useState(false)
   /** 'all' = 전체 상품 합계, 그 외 = 사이즈 코드(sizeMix.size) */
   const [selectedSizeKey, setSelectedSizeKey] = useState<'all' | string>('all')
   /** 왼쪽 확장 패널(추가 콘텐츠 영역) */
   const [expandPaneOpen, setExpandPaneOpen] = useState(false)
+  const [secondaryDetail, setSecondaryDetail] = useState<ProductSecondaryDetail | null>(null)
+
+  useEffect(() => {
+    if (!expandPaneOpen) {
+      setSecondaryDetail(null)
+      return
+    }
+    let alive = true
+    void dashboardApi.getProductSecondaryDetail(summary.id).then((d) => {
+      if (alive) setSecondaryDetail(d)
+    })
+    return () => {
+      alive = false
+    }
+  }, [expandPaneOpen, summary.id])
 
   const selectedStart = normalizeMonthKey(periodStart ?? '2025-01-01')
   const selectedEnd = normalizeMonthKey(periodEnd ?? '2025-12-31')
@@ -96,81 +133,75 @@ function ProductSummaryDrawerContent({
     () =>
       summary.sizeMix.map((item) => ({
         size: item.size,
-        price: item.selfAvgPrice,
-        qty: item.selfQty,
+        price: item.avgPrice,
+        qty: item.qty,
         stock: item.availableStock,
       })),
     [summary.sizeMix],
   )
 
   const displayKpi = useMemo(() => {
-    if (selectedSizeKey === 'all') {
-      return {
-        price: summary.selfPrice,
-        qty: summary.selfQty,
-        stock: summary.availableStock,
-      }
+    const base = {
+      price: summary.price,
+      qty: summary.qty,
+      stock: summary.availableStock,
     }
+    if (selectedSizeKey === 'all') return base
     const row = sizeBreakdown.find((r) => r.size === selectedSizeKey)
-    if (!row) {
-      return {
-        price: summary.selfPrice,
-        qty: summary.selfQty,
-        stock: summary.availableStock,
-      }
-    }
+    if (!row) return base
     return { price: row.price, qty: row.qty, stock: row.stock }
-  }, [summary.availableStock, summary.selfPrice, summary.selfQty, selectedSizeKey, sizeBreakdown])
+  }, [summary.availableStock, summary.price, summary.qty, selectedSizeKey, sizeBreakdown])
 
   /** 선택된 사이즈(전체=1)에 맞춰 월별 판매 추이 스케일 — 사이즈 판매량 ÷ 품번 합계 */
   const trendScale = useMemo(() => {
     if (selectedSizeKey === 'all') return 1
     const row = summary.sizeMix.find((s) => s.size === selectedSizeKey)
-    if (!row || summary.selfQty <= 0) return 1
-    return row.selfQty / summary.selfQty
-  }, [summary.selfQty, summary.sizeMix, selectedSizeKey])
+    if (!row || summary.qty <= 0) return 1
+    return row.qty / summary.qty
+  }, [summary.qty, summary.sizeMix, selectedSizeKey])
 
-  const salesSeries = useMemo(() => summary.salesTrend.map((point, idx) => ({
+  const salesSeries = useMemo(() => summary.monthlySalesTrend.map((point, idx) => ({
     ...point,
     idx,
     sales: Math.round(point.sales * trendScale),
-  })), [summary.salesTrend, trendScale])
+  })), [summary.monthlySalesTrend, trendScale])
 
-  const { periodStartIdx, periodEndIdx } = useMemo(() => {
-    let start = findSeriesMonthIndex(salesSeries, selectedStart, 'start')
-    let end = findSeriesMonthIndex(salesSeries, selectedEnd, 'end')
-    if (end < start) {
-      const t = start
-      start = end
-      end = t
-    }
-    return { periodStartIdx: start, periodEndIdx: end }
-  }, [salesSeries, selectedStart, selectedEnd])
-
-  /** 예측 구간(첫 isForecast ~ 시계열 끝) — 음영 x 범위 */
-  const forecastShade = useMemo(() => {
-    let first = -1
-    salesSeries.forEach((point, idx) => {
-      if (first === -1 && point.isForecast) first = idx
-    })
-    if (first === -1 || salesSeries.length === 0) return null
-    return { x1: first, x2: salesSeries.length - 1 }
-  }, [salesSeries])
+  const { periodStartIdx, periodEndIdx, periodShade, forecastShade } = useMemo(
+    () => buildShadeRanges(salesSeries, selectedStart, selectedEnd),
+    [salesSeries, selectedEnd, selectedStart],
+  )
 
   const periodLen = Math.max(1, periodEndIdx - periodStartIdx + 1)
-  const baseWindowSize = Math.min(salesSeries.length, Math.max(8, periodLen * 2))
+  const lastSeriesIdx = salesSeries.length - 1
+  /** 선택 기간 시작 ~ 시리즈 끝(포캐스트 끝)까지 한 화면에 넣기 위한 최소 폭 — 포캐스트가 길면 기존 periodLen*2(24)만으로는 2025 구간이 잘림 */
+  const requiredSpan =
+    periodStartIdx <= lastSeriesIdx ? lastSeriesIdx - periodStartIdx + 1 : salesSeries.length
+  const baseWindowSize = Math.min(
+    salesSeries.length,
+    Math.max(8, periodLen * 2, requiredSpan),
+  )
   const [windowSize, setWindowSize] = useState(baseWindowSize)
 
   useEffect(() => {
-    queueMicrotask(() => setWindowSize(baseWindowSize))
+    setWindowSize(baseWindowSize)
   }, [baseWindowSize, summary.id])
 
-  const center = (periodStartIdx + periodEndIdx) / 2
-  const half = Math.floor(windowSize / 2)
-  let viewStart = Math.max(0, Math.round(center) - half)
-  const viewEnd = Math.min(salesSeries.length - 1, viewStart + windowSize - 1)
-  if (viewEnd - viewStart + 1 < windowSize) {
+  const hasForecastInSeries = salesSeries.some((p) => p.isForecast)
+
+  let viewStart: number
+  let viewEnd: number
+  if (hasForecastInSeries) {
+    /** 데이터 요청은 전 구간이 오나, 창 너비는 windowSize — 오른쪽 끝(포캐스트 끝) 고정으로 맞추면 왼쪽(선택 기간)이 같이 들어가게 baseWindowSize를 키움 */
+    viewEnd = lastSeriesIdx
     viewStart = Math.max(0, viewEnd - windowSize + 1)
+  } else {
+    const center = (periodStartIdx + periodEndIdx) / 2
+    const half = Math.floor(windowSize / 2)
+    viewStart = Math.max(0, Math.round(center) - half)
+    viewEnd = Math.min(lastSeriesIdx, viewStart + windowSize - 1)
+    if (viewEnd - viewStart + 1 < windowSize) {
+      viewStart = Math.max(0, viewEnd - windowSize + 1)
+    }
   }
 
   const seasonChartData = useMemo(
@@ -184,10 +215,8 @@ function ProductSummaryDrawerContent({
   const chartData = useMemo(() => {
     const stockByDate = new Map(stockTrend.map((row) => [row.date, row.stock]))
     const inboundByDate = new Map(stockTrend.map((row) => [row.date, row.inboundExpected ?? 0]))
-    let firstForecastIdx = -1
-    salesSeries.forEach((point, idx) => {
-      if (firstForecastIdx === -1 && point.isForecast) firstForecastIdx = idx
-    })
+    const firstForecastIdx = salesSeries.findIndex((point) => point.isForecast)
+    const hasForecast = firstForecastIdx !== -1
 
     const out: Array<typeof salesSeries[number] & {
       actual: number | null
@@ -205,14 +234,15 @@ function ProductSummaryDrawerContent({
       const inboundMonthly = Math.round((inboundByDate.get(point.date) ?? 0) * trendScale)
       const baseStock = Math.round((stockByDate.get(point.date) ?? 0) * trendScale)
       let stockBar = baseStock
-      if (firstForecastIdx !== -1 && point.isForecast) {
+      if (hasForecast && point.isForecast) {
         if (idx === firstForecastIdx) {
+          const prevDate = salesSeries[idx - 1]?.date ?? point.date
           const currentStock = Math.round(
-            (stockByDate.get(salesSeries[Math.max(0, idx - 1)]?.date ?? point.date) ?? 0) * trendScale,
+            (stockByDate.get(prevDate) ?? 0) * trendScale,
           )
           forecastResidualStock = Math.max(0, Math.round(currentStock * 0.9))
           inboundAccum = Math.max(0, inboundMonthly)
-        } else if (idx > firstForecastIdx) {
+        } else {
           inboundAccum += inboundMonthly
           let remainDemand = Math.max(0, Math.round(point.sales))
           const consumeStock = Math.min(forecastResidualStock, remainDemand)
@@ -232,13 +262,49 @@ function ProductSummaryDrawerContent({
         forecast: point.isForecast ? point.sales : null,
         stockBar,
         inboundAccumBar: inboundAccum,
-        forecastLink: firstForecastIdx !== -1 && (idx === firstForecastIdx - 1 || idx >= firstForecastIdx)
+        forecastLink: hasForecast && (idx === firstForecastIdx - 1 || idx >= firstForecastIdx)
           ? point.sales
           : null,
       })
     }
     return out
   }, [salesSeries, stockTrend, trendScale])
+
+  const trendWindowData = useMemo(
+    () => chartData.slice(viewStart, viewEnd + 1).map((row, i) => ({ ...row, idx: i })),
+    [chartData, viewEnd, viewStart],
+  )
+
+  /** 월 포인트가 많을 때 가로축 라벨 밀도 상향 */
+  const salesTrendChartDense = trendWindowData.length >= 18
+
+  /** 차트 플롯 가로 폭 ÷ 보이는 막대(월) 수 — 뷰포트·줌에 맞춰 스택 막대 폭 자동 */
+  const trendStackBarSize = useMemo(() => {
+    const n = trendWindowData.length
+    if (n <= 0) return 10
+    const inner = Math.max(140, salesTrendChartClipWidth - 52)
+    const band = inner / n
+    const raw = Math.round(band * 0.62)
+    return Math.max(6, Math.min(18, raw))
+  }, [salesTrendChartClipWidth, trendWindowData.length])
+
+  const shiftedPeriodShade = useMemo(() => {
+    const min = -0.5
+    const max = Math.max(0, viewEnd - viewStart) + 0.5
+    const x1 = Math.max(min, periodShade.x1 - viewStart)
+    const x2 = Math.min(max, periodShade.x2 - viewStart)
+    return { x1, x2: Math.max(x1, x2) }
+  }, [periodShade.x1, periodShade.x2, viewEnd, viewStart])
+
+  const shiftedForecastShade = useMemo(() => {
+    if (!forecastShade) return null
+    const min = -0.5
+    const max = Math.max(0, viewEnd - viewStart) + 0.5
+    const x1 = Math.max(min, forecastShade.x1 - viewStart)
+    const x2 = Math.min(max, forecastShade.x2 - viewStart)
+    if (x2 < x1) return null
+    return { x1, x2 }
+  }, [forecastShade, viewEnd, viewStart])
 
   /** 현재 가로축에 보이는 구간만 반영해 Y축 상한을 데이터에 맞춤(Recharts 기본 nice tick이 6000 등으로 과하게 올라가는 것 방지) */
   const salesTrendYMax = useMemo(() => {
@@ -252,7 +318,7 @@ function ProductSummaryDrawerContent({
         m,
         row.sales,
         row.stockBar,
-          row.stockBar + (row.inboundAccumBar ?? 0),
+        row.stockBar + row.inboundAccumBar,
         row.actual ?? 0,
         row.forecastLink ?? 0,
       )
@@ -377,7 +443,7 @@ function ProductSummaryDrawerContent({
           <div className={styles.metaChips}>
             <span className={styles.metaChip}>{summary.brand}</span>
             <span className={styles.metaChip}>{summary.category}</span>
-            <span className={styles.metaChip}>{summary.styleCode}</span>
+            <span className={styles.metaChip}>{summary.productCode}</span>
             <span className={styles.metaChip}>{summary.name}</span>
           </div>
           <div className={styles.productImageWrap}>
@@ -455,8 +521,8 @@ function ProductSummaryDrawerContent({
                       onClick={() => setSelectedSizeKey('all')}
                     >
                       <td>전체</td>
-                      <td>{won(summary.selfPrice)}</td>
-                      <td>{c(summary.selfQty)}</td>
+                      <td>{won(summary.price)}</td>
+                      <td>{c(summary.qty)}</td>
                       <td>{c(summary.availableStock)}</td>
                     </tr>
                     {sizeBreakdown.map((row) => (
@@ -478,95 +544,110 @@ function ProductSummaryDrawerContent({
           )}
         </div>
         <div className={styles.card}>
-          <div className={styles.cardTitle}>
-            판매 추이
-            {selectedSizeKey !== 'all' && (
-              <span className={styles.trendSizeBadge}> · {selectedSizeKey}</span>
-            )}
+          <div className={styles.salesTrendTitleRow}>
+            <div className={styles.cardTitle}>
+              판매추이(월간)
+              {selectedSizeKey !== 'all' && (
+                <span className={styles.trendSizeBadge}> · {selectedSizeKey}</span>
+              )}
+            </div>
+            <div className={styles.forecastMonthsControl}>
+              <span className={styles.forecastMonthsLabel} id={forecastMonthsLabelId}>
+                예측 개월
+              </span>
+              <div className={styles.forecastComboWrap} ref={forecastComboRef}>
+                <button
+                  type="button"
+                  className={styles.forecastComboTrigger}
+                  aria-haspopup="listbox"
+                  aria-expanded={forecastComboOpen}
+                  aria-labelledby={forecastMonthsLabelId}
+                  aria-label={`판매추이 포캐스트 개월 수, 현재 ${forecastMonths}`}
+                  onClick={() => setForecastComboOpen((o) => !o)}
+                >
+                  {forecastMonths}
+                </button>
+                {forecastComboOpen && (
+                  <ul
+                    className={styles.forecastComboList}
+                    role="listbox"
+                    aria-labelledby={forecastMonthsLabelId}
+                    onWheel={(e) => e.stopPropagation()}
+                  >
+                    {Array.from({ length: 24 }, (_, i) => i + 1).map((n) => (
+                      <li key={n} role="presentation">
+                        <button
+                          type="button"
+                          role="option"
+                          aria-selected={n === forecastMonths}
+                          className={
+                            n === forecastMonths
+                              ? `${styles.forecastComboOption} ${styles.forecastComboOptionSelected}`
+                              : styles.forecastComboOption
+                          }
+                          onClick={() => {
+                            onForecastMonthsChange(n)
+                            setForecastComboOpen(false)
+                          }}
+                        >
+                          {n}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </div>
           </div>
           <div
             onMouseEnter={() => setChartHovered(true)}
             onMouseLeave={() => setChartHovered(false)}
             onWheel={onChartWheel}
           >
-            <div className={styles.chartClipWrap}>
-            <ResponsiveContainer width="100%" height={210}>
-              <ComposedChart
-                data={chartData}
-                margin={{ top: 4, right: 12, bottom: 4, left: 4 }}
-              >
-                <CartesianGrid strokeDasharray="3 3" />
-                {forecastShade && (
-                  <ReferenceArea
-                    xAxisId={0}
-                    yAxisId="sales"
-                    x1={forecastShade.x1}
-                    x2={forecastShade.x2}
-                    fill="#9eb0c9"
-                    fillOpacity={0.22}
-                    ifOverflow="hidden"
-                  />
-                )}
-                <ReferenceArea
-                  xAxisId={0}
-                  yAxisId="sales"
-                  x1={periodStartIdx}
-                  x2={periodEndIdx}
-                  fill="#64748b"
-                  fillOpacity={0.18}
-                  ifOverflow="hidden"
-                />
-                <XAxis
-                  type="number"
-                  dataKey="idx"
-                  domain={[viewStart, viewEnd]}
-                  tickFormatter={(value) => chartData[Math.round(value)]?.date ?? ''}
-                  tick={{ fontSize: 10 }}
-                  allowDataOverflow
-                />
-                <YAxis
-                  yAxisId="sales"
-                  domain={[0, salesTrendYMax]}
-                  tick={{ fontSize: 9 }}
-                  width={40}
-                  tickMargin={4}
-                />
-                <Tooltip
-                  allowEscapeViewBox={{ x: false, y: false }}
-                  offset={6}
-                  wrapperStyle={{ outline: 'none' }}
-                  contentStyle={{ whiteSpace: 'nowrap' }}
-                  formatter={(value, name) => {
-                    if (name === 'stockBar') return [c(Number(value)), '실재고']
-                    if (name === 'inboundAccumBar') return [c(Number(value)), '예상 재고']
-                    if (name === 'actual') return [c(Number(value)), '판매 실적']
-                    if (name === 'forecastLink') return [c(Number(value)), '판매 예측']
-                    return [c(Number(value)), String(name)]
-                  }}
-                  labelFormatter={(label) => chartData[Math.round(Number(label))]?.date ?? ''}
-                />
-                <Bar
-                  yAxisId="sales"
-                  dataKey="stockBar"
-                  name="실재고"
-                  stackId="stockInbound"
-                  fill="#149632"
-                  fillOpacity={0.58}
-                  barSize={10}
-                />
-                <Bar
-                  yAxisId="sales"
-                  dataKey="inboundAccumBar"
-                  name="예상 재고"
-                  stackId="stockInbound"
-                  fill="#ef4444"
-                  fillOpacity={0.42}
-                  barSize={10}
-                />
-                <Line yAxisId="sales" type="monotone" dataKey="actual" stroke="#0f172a" dot={false} />
-                <Line yAxisId="sales" type="monotone" dataKey="forecastLink" stroke="#2563eb" strokeDasharray="4 4" dot={false} />
-              </ComposedChart>
-            </ResponsiveContainer>
+            <div ref={salesTrendChartClipRef} className={styles.chartClipWrap}>
+              <SalesTrendChart
+                data={trendWindowData}
+                height={salesTrendChartDense ? 232 : 210}
+                yMax={salesTrendYMax}
+                allowEscapeViewBox={{ x: false, y: false }}
+                periodShade={shiftedPeriodShade}
+                forecastShade={shiftedForecastShade}
+                minTickGap={salesTrendChartDense ? 0 : 8}
+                interval={salesTrendChartDense ? 0 : 'preserveStartEnd'}
+                tickAngle={salesTrendChartDense ? -38 : 0}
+                tickHeight={salesTrendChartDense ? 42 : undefined}
+                bars={[
+                  {
+                    dataKey: 'stockBar',
+                    name: '실재고',
+                    stackId: 'stockInbound',
+                    fill: '#149632',
+                    fillOpacity: 0.58,
+                    barSize: trendStackBarSize,
+                  },
+                  {
+                    dataKey: 'inboundAccumBar',
+                    name: '예상 재고',
+                    stackId: 'stockInbound',
+                    fill: '#ef4444',
+                    fillOpacity: 0.42,
+                    barSize: trendStackBarSize,
+                  },
+                ]}
+                lines={[
+                  { dataKey: 'actual', stroke: '#0f172a' },
+                  { dataKey: 'forecastLink', stroke: '#2563eb', strokeDasharray: '4 4' },
+                ]}
+                tooltipValueFormatter={(value, name) => {
+                  if (name === 'stockBar') return [c(value), '실재고']
+                  if (name === 'inboundAccumBar') return [c(value), '예상 재고']
+                  if (name === 'actual') return [c(value), '판매 실적']
+                  if (name === 'forecastLink') return [c(value), '판매 예측']
+                  return [c(value), name]
+                }}
+                tooltipLabelFormatter={(row) => String(row.date ?? '')}
+                tickFormatter={(row) => String(row.date ?? '')}
+              />
             </div>
           </div>
         </div>
@@ -666,11 +747,16 @@ function ProductSummaryDrawerContent({
       >
         <div className={styles.drawerExpandPaneInner}>
           {expandPaneOpen && (
-            <ProductSecondaryPanel
-              summary={summary}
-              periodStart={selectedStart}
-              periodEnd={selectedEnd}
-            />
+            secondaryDetail === null ? (
+              <div className={styles.drawerSecondaryLoading}>2차 데이터를 불러오는 중…</div>
+            ) : (
+              <ProductSecondaryPanel
+                primary={summary}
+                secondary={secondaryDetail}
+                periodStart={selectedStart}
+                periodEnd={selectedEnd}
+              />
+            )
           )}
         </div>
       </div>
@@ -684,12 +770,16 @@ export const ProductSummaryDrawer = ({
   onClose,
   periodStart,
   periodEnd,
+  forecastMonths,
+  onForecastMonthsChange,
 }: {
-  summary: ProductSummary | null
+  summary: ProductPrimarySummary | null
   stockTrend: ProductStockTrendPoint[]
   onClose: () => void
   periodStart?: string
   periodEnd?: string
+  forecastMonths: number
+  onForecastMonthsChange: (months: number) => void
 }) => {
   if (!summary) return null
   return (
@@ -700,6 +790,8 @@ export const ProductSummaryDrawer = ({
       onClose={onClose}
       periodStart={periodStart}
       periodEnd={periodEnd}
+      forecastMonths={forecastMonths}
+      onForecastMonthsChange={onForecastMonthsChange}
     />
   )
 }

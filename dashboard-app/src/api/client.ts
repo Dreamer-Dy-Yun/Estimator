@@ -2,7 +2,17 @@ import type { CompetitorSalesRow, OrderPlanRow, SelfSalesRow } from '../types'
 import { mockDashboardApi } from './mock'
 import type {
   DashboardApi,
-  ProductSummaryBundle,
+  ProductDrawerBundle,
+  ProductDrawerBundleParams,
+  ProductSecondaryDetail,
+  SecondaryCompetitorChannel,
+  SecondaryStockOrderCalcParams,
+  SecondaryStockOrderCalcResult,
+  SecondaryDailyTrendParams,
+  SecondaryDailyTrendPoint,
+  SecondaryLlmAnswerParams,
+  SecondaryOrderSnapshotPayload,
+  CompetitorSalesParams,
   SelfSalesFilterMeta,
   SelfSalesParams,
 } from './types'
@@ -11,8 +21,8 @@ export async function getSelfSales(params?: SelfSalesParams): Promise<SelfSalesR
   return mockDashboardApi.getSelfSales(params)
 }
 
-export async function getCompetitorSales(): Promise<CompetitorSalesRow[]> {
-  return mockDashboardApi.getCompetitorSales()
+export async function getCompetitorSales(params?: CompetitorSalesParams): Promise<CompetitorSalesRow[]> {
+  return mockDashboardApi.getCompetitorSales(params)
 }
 
 export async function getOrderPlan(): Promise<OrderPlanRow[]> {
@@ -23,8 +33,41 @@ export async function getSelfSalesFilterMeta(): Promise<SelfSalesFilterMeta> {
   return mockDashboardApi.getSelfSalesFilterMeta()
 }
 
-export async function getProductSummaryBundle(id: string): Promise<ProductSummaryBundle> {
-  return mockDashboardApi.getProductSummaryBundle(id)
+export async function getProductDrawerBundle(
+  id: string,
+  params?: ProductDrawerBundleParams,
+): Promise<ProductDrawerBundle> {
+  return mockDashboardApi.getProductDrawerBundle(id, params)
+}
+
+export async function getProductSecondaryDetail(id: string): Promise<ProductSecondaryDetail> {
+  return mockDashboardApi.getProductSecondaryDetail(id)
+}
+
+export async function getSecondaryDailyTrend(
+  params: SecondaryDailyTrendParams,
+): Promise<SecondaryDailyTrendPoint[]> {
+  return mockDashboardApi.getSecondaryDailyTrend(params)
+}
+
+export async function getSecondaryCompetitorChannels(): Promise<SecondaryCompetitorChannel[]> {
+  return mockDashboardApi.getSecondaryCompetitorChannels()
+}
+
+export async function getSecondaryLlmAnswer(params: SecondaryLlmAnswerParams): Promise<string> {
+  return mockDashboardApi.getSecondaryLlmAnswer(params)
+}
+
+export async function saveSecondaryOrderSnapshot(
+  snapshot: SecondaryOrderSnapshotPayload,
+): Promise<void> {
+  return mockDashboardApi.saveSecondaryOrderSnapshot(snapshot)
+}
+
+export async function getSecondaryStockOrderCalc(
+  params: SecondaryStockOrderCalcParams,
+): Promise<SecondaryStockOrderCalcResult> {
+  return mockDashboardApi.getSecondaryStockOrderCalc(params)
 }
 
 /** 화면·훅에서 한 객체로 주입하거나 테스트 목으로 교체할 때 사용 */
@@ -33,5 +76,11 @@ export const dashboardApi: DashboardApi = {
   getCompetitorSales,
   getOrderPlan,
   getSelfSalesFilterMeta,
-  getProductSummaryBundle,
+  getProductDrawerBundle,
+  getProductSecondaryDetail,
+  getSecondaryDailyTrend,
+  getSecondaryCompetitorChannels,
+  getSecondaryLlmAnswer,
+  saveSecondaryOrderSnapshot,
+  getSecondaryStockOrderCalc,
 }

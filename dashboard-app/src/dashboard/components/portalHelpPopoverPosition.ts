@@ -13,7 +13,7 @@ export function computeHelpPopoverPosition(
   const pad = options?.pad ?? DEFAULT_PAD
   const estH = options?.estHeight ?? DEFAULT_EST_H
 
-  let left = anchorRect.right - width
+  let left = anchorRect.left + (anchorRect.width - width) / 2
   left = Math.max(pad, Math.min(left, window.innerWidth - width - pad))
 
   let top: number

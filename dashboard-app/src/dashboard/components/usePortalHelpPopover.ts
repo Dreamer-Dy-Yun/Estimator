@@ -16,6 +16,8 @@ export function usePortalHelpPopover<T extends string>(options?: PortalHelpPopov
   const closeDelayMs = options?.closeDelayMs ?? 180
 
   const [activeId, setActiveId] = useState<T | null>(null)
+  const [activePlacement, setActivePlacement] = useState<PortalHelpPlacement>('above')
+  const [activeAnchorRect, setActiveAnchorRect] = useState<DOMRect | null>(null)
   const [position, setPosition] = useState({ top: 0, left: 0 })
   const anchorsRef = useRef(new Map<T, HTMLElement>())
   const closeTimerRef = useRef<number | null>(null)
@@ -34,16 +36,34 @@ export function usePortalHelpPopover<T extends string>(options?: PortalHelpPopov
       }
       const el = anchorsRef.current.get(id)
       if (!el) return
+      const rect = el.getBoundingClientRect()
       setPosition(
-        computeHelpPopoverPosition(el.getBoundingClientRect(), placement, {
+        computeHelpPopoverPosition(rect, placement, {
           width,
           pad,
           estHeight: estH,
         }),
       )
+      setActivePlacement(placement)
+      setActiveAnchorRect(rect)
       setActiveId(id)
     },
     [estH, pad, width],
+  )
+
+  const updateMeasuredHeight = useCallback(
+    (measuredHeight: number) => {
+      if (!activeAnchorRect) return
+      const next = computeHelpPopoverPosition(activeAnchorRect, activePlacement, {
+        width,
+        pad,
+        estHeight: measuredHeight,
+      })
+      setPosition((prev) => (
+        prev.top === next.top && prev.left === next.left ? prev : next
+      ))
+    },
+    [activeAnchorRect, activePlacement, pad, width],
   )
 
   const scheduleClose = useCallback(() => {
@@ -75,9 +95,11 @@ export function usePortalHelpPopover<T extends string>(options?: PortalHelpPopov
 
   return {
     activeId,
+    activePlacement,
     position,
     setAnchor,
     open,
+    updateMeasuredHeight,
     scheduleClose,
     cancelClose,
     close,

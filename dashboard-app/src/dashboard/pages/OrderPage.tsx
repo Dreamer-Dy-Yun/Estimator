@@ -36,7 +36,7 @@ export const OrderPage = () => {
       <div className={styles.twoCol}>
         <ChartCard title="SKU별 기대 판매·이익 (요약)">
           <ResponsiveContainer width="100%" height={370}>
-            <AreaChart data={rows.map((r) => ({ name: r.styleCode, 판매액: Math.round(r.expectedSales / 1000000), 이익액: Math.round(r.expectedOpMargin / 1000000) }))}>
+            <AreaChart data={rows.map((r) => ({ name: r.productCode, 판매액: Math.round(r.expectedSales / 1000000), 이익액: Math.round(r.expectedOpMargin / 1000000) }))}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="name" />
               <YAxis />
@@ -48,7 +48,7 @@ export const OrderPage = () => {
         </ChartCard>
         <AnalysisList
           columns={[
-            { key: 'styleCode', header: '품번', cell: (r) => r.styleCode, sortValue: (r) => r.styleCode },
+            { key: 'productCode', header: '프로덕트 코드', cell: (r) => r.productCode, sortValue: (r) => r.productCode },
             { key: 'rq', header: '추천 오더량', cell: (r) => c(r.recommendedOrderQty), align: 'right', sortValue: (r) => r.recommendedOrderQty },
             { key: 'cq', header: '확정 오더량', cell: (r) => c(r.confirmedOrderQty), align: 'right', sortValue: (r) => r.confirmedOrderQty },
             { key: 'oa', header: '오더액', cell: (r) => won(r.orderAmount), align: 'right', sortValue: (r) => r.orderAmount },
