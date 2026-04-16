@@ -23,6 +23,50 @@ export type SalesKpiColumn = {
   costRatioPct: number
 }
 
+export type SecondaryHelpId =
+  | 'serviceLevel'
+  | 'leadTime'
+  | 'confirmOrder'
+  | 'safetyStockCalc'
+  | 'forecastQtyCalc'
+  | 'recOrderQty'
+
+export type SecondaryStockCalc = {
+  safetyStockCalc: {
+    safetyStock: number
+    recommendedOrderQty: number
+    expectedOrderAmount: number
+    expectedSalesAmount: number
+    expectedOpProfit: number
+  }
+  forecastQtyCalc: {
+    safetyStock: null
+    recommendedOrderQty: number
+    expectedOrderAmount: number
+    expectedSalesAmount: number
+    expectedOpProfit: number
+  }
+}
+
+export type SecondaryStockInputs = {
+  dailyMean: number
+  leadTimeStartDate: string
+  leadTimeEndDate: string
+  leadTimeDays: number
+  safetyStockMode: 'manual' | 'formula'
+  manualSafetyStock: number
+  sigma: number
+  serviceLevelPct: number
+}
+
+export type SecondaryStockDerived = {
+  safetyStock: number
+  recommendedOrderQty: number
+  expectedOrderAmount: number
+  expectedSalesAmount: number
+  expectedOpProfit: number
+}
+
 export type SecondaryOrderSnapshot = {
   snapshotId: string
   productId: string
@@ -33,19 +77,8 @@ export type SecondaryOrderSnapshot = {
   minOpMarginPct: number
   salesSelf: SalesKpiColumn
   salesCompetitor: SalesKpiColumn
-  stockInputs: {
-    dailyMean: number
-    sigma: number
-    serviceLevelPct: number
-    leadTimeDays: number
- }
-  stockDerived: {
-    safetyStock: number
-    recommendedOrderQty: number
-    expectedOrderAmount: number
-    expectedSalesAmount: number
-    expectedOpProfit: number
-  }
+  stockInputs: SecondaryStockInputs
+  stockDerived: SecondaryStockDerived
   llmPrompt: string
   llmAnswer: string
   selfWeightPct: number

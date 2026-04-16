@@ -112,3 +112,11 @@ export type ProductSecondaryDetail = {
 
 /** 2차 UI에서 1차 사이즈 행 + 경쟁 비중을 합친 행. */
 export type ProductSizeMixMergedRow = ProductSizeMixRow & { competitorRatio: number }
+
+/** API 단위 컴포넌트 에러 표시용 공통 정보 */
+export type ApiUnitErrorInfo = {
+  checkedAt: string
+  page: string
+  request: string
+  error: string
+}

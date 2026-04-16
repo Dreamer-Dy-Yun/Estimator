@@ -10,8 +10,11 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "jstat": "^1.9.6",
+    "katex": "^0.16.45",
     "react": "^19.2.5",
     "react-dom": "^19.2.5",
+    "react-katex": "^3.1.0",
     "react-router-dom": "^7.14.1",
     "recharts": "^3.8.1"
   },
@@ -20,6 +23,7 @@
     "@types/node": "^24.12.2",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
+    "@types/react-katex": "^3.0.4",
     "@vitejs/plugin-react": "^6.0.1",
     "eslint": "^9.39.4",
     "eslint-plugin-react-hooks": "^7.0.1",

@@ -1,8 +1,10 @@
 import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type WheelEvent } from 'react'
+import { ApiUnitErrorBadge } from '../../components/ApiUnitErrorBadge'
+import { ComponentErrorBoundary } from '../../components/ComponentErrorBoundary'
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import type { ProductSecondaryDetail, ProductStockTrendPoint } from '../../api'
 import { dashboardApi } from '../../api'
-import type { ProductPrimarySummary } from '../../types'
+import type { ApiUnitErrorInfo, ProductPrimarySummary } from '../../types'
 import { c, pct, won } from '../../utils/format'
 import { PortalHelpMark, PortalHelpPopoverLayer } from './PortalHelpPopover'
 import { SalesTrendChart } from './SalesTrendChart'
@@ -111,16 +113,37 @@ function ProductSummaryDrawerContent({
   /** 왼쪽 확장 패널(추가 콘텐츠 영역) */
   const [expandPaneOpen, setExpandPaneOpen] = useState(false)
   const [secondaryDetail, setSecondaryDetail] = useState<ProductSecondaryDetail | null>(null)
+  const [secondaryDetailError, setSecondaryDetailError] = useState<ApiUnitErrorInfo | null>(null)
+  const pageName = 'ProductSummaryDrawer'
+  const makeApiErrorInfo = (request: string, err: unknown): ApiUnitErrorInfo => ({
+    checkedAt: new Date().toISOString(),
+    page: pageName,
+    request,
+    error: err instanceof Error ? err.message : String(err),
+  })
 
   useEffect(() => {
     if (!expandPaneOpen) {
       setSecondaryDetail(null)
+      setSecondaryDetailError(null)
       return
     }
     let alive = true
-    void dashboardApi.getProductSecondaryDetail(summary.id).then((d) => {
-      if (alive) setSecondaryDetail(d)
-    })
+    void (async () => {
+      try {
+        const d = await dashboardApi.getProductSecondaryDetail(summary.id)
+        if (!alive) return
+        if (!d) throw new Error('2차 상세 데이터가 비어 있습니다.')
+        setSecondaryDetail(d)
+        setSecondaryDetailError(null)
+      } catch (err) {
+        if (!alive) return
+        setSecondaryDetail(null)
+        setSecondaryDetailError(
+          makeApiErrorInfo(`getProductSecondaryDetail(${JSON.stringify({ productId: summary.id })})`, err),
+        )
+      }
+    })()
     return () => {
       alive = false
     }
@@ -439,6 +462,7 @@ function ProductSummaryDrawerContent({
           <button type="button" className={styles.drawerClose} onClick={onClose}>X</button>
         </div>
         <div className={styles.drawerBody}>
+        <ComponentErrorBoundary page={pageName} unit="PrimaryProductSummaryCard">
         <div className={`${styles.card} ${styles.productSummaryCard}`}>
           <div className={styles.metaChips}>
             <span className={styles.metaChip}>{summary.brand}</span>
@@ -450,6 +474,8 @@ function ProductSummaryDrawerContent({
             <img className={styles.productImage} src={imageUrl} alt={summary.name} />
           </div>
         </div>
+        </ComponentErrorBoundary>
+        <ComponentErrorBoundary page={pageName} unit="PrimaryKpiCard">
         <div
           className={styles.kpiHoverZone}
           onMouseEnter={openKpiPanel}
@@ -543,6 +569,8 @@ function ProductSummaryDrawerContent({
             </div>
           )}
         </div>
+        </ComponentErrorBoundary>
+        <ComponentErrorBoundary page={pageName} unit="PrimarySalesTrendCard">
         <div className={styles.card}>
           <div className={styles.salesTrendTitleRow}>
             <div className={styles.cardTitle}>
@@ -651,6 +679,8 @@ function ProductSummaryDrawerContent({
             </div>
           </div>
         </div>
+        </ComponentErrorBoundary>
+        <ComponentErrorBoundary page={pageName} unit="PrimarySeasonalityCard">
         <div className={styles.card}>
           <div className={styles.trendHead}>
             <div className={`${styles.cardTitle} ${styles.cardTitleWithHelp}`}>
@@ -703,6 +733,7 @@ function ProductSummaryDrawerContent({
             </ResponsiveContainer>
           </div>
         </div>
+        </ComponentErrorBoundary>
       </div>
       <PortalHelpPopoverLayer
         help={portalHelp}
@@ -747,14 +778,22 @@ function ProductSummaryDrawerContent({
       >
         <div className={styles.drawerExpandPaneInner}>
           {expandPaneOpen && (
-            secondaryDetail === null ? (
-              <div className={styles.drawerSecondaryLoading}>2차 데이터를 불러오는 중…</div>
+            secondaryDetailError != null ? (
+              <div className={styles.drawerSecondaryLoading}>
+                2차 데이터를 불러오지 못했습니다.
+                <ApiUnitErrorBadge error={secondaryDetailError} />
+              </div>
+            ) : secondaryDetail === null ? (
+              <div className={styles.drawerSecondaryLoading}>
+                2차 데이터를 불러오는 중…
+              </div>
             ) : (
               <ProductSecondaryPanel
                 primary={summary}
                 secondary={secondaryDetail}
                 periodStart={selectedStart}
                 periodEnd={selectedEnd}
+                pageName="ProductSummaryDrawer > ProductSecondaryPanel"
               />
             )
           )}

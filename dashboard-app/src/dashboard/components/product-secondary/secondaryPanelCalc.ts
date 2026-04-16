@@ -1,3 +1,4 @@
+import jStat from 'jstat'
 import type { MonthlySalesPoint, ProductPrimarySummary, ProductSecondaryDetail, ProductSizeMixMergedRow } from '../../../types'
 import type { CompetitorChannel, SalesKpiColumn } from './secondaryPanelTypes'
 
@@ -12,14 +13,10 @@ export function mergePrimarySecondarySizeMix(
   }))
 }
 
-/** Crude z for service level (two-tail common values). */
-export function zFromServiceLevelPct(p: number): number {
-  if (p >= 99) return 2.33
-  if (p >= 98) return 2.05
-  if (p >= 95) return 1.65
-  if (p >= 90) return 1.28
-  if (p >= 85) return 1.04
-  return 0.84
+/** z = Φ⁻¹(p), p = 서비스 수준 확률(퍼센트 ÷ 100). 표준정규 역분포. */
+export function zFromServiceLevelPct(serviceLevelPct: number): number {
+  const p = Math.min(0.999999, Math.max(1e-6, serviceLevelPct / 100))
+  return jStat.normal.inv(p, 0, 1)
 }
 
 function hashRank(seed: string, mod: number): number {
