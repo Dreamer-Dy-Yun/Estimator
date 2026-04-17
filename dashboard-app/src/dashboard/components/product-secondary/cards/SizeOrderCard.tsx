@@ -1,6 +1,8 @@
 import { useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
+import { PortalHelpMark } from '../../PortalHelpPopover'
 import { c, pct2n } from '../../../../utils/format'
+import commonStyles from '../../common.module.css'
 import { KO } from '../ko'
 import styles from '../productSecondaryPanel.module.css'
 import type { SecondaryHelpId } from '../secondaryPanelTypes'
@@ -11,6 +13,7 @@ type SizeRow = {
   selfSharePct: number
   competitorSharePct: number
   blendedSharePct: number
+  forecastQty: number
   recommendedQty: number
   confirmQty: number
 }
@@ -19,12 +22,27 @@ type Props = {
   sizeOrder: {
     channelLabel: string
     selfWeightPct: number
+    currentOrderDate: string
+    nextOrderDate: string
+    bufferStock: number
     sizeRows: SizeRow[]
     confirmOrderHelpId: string
+    totalOrderBalanceHelpId: string
+    expectedInboundOrderBalanceHelpId: string
+    sizeRecQtyHelpId: string
+    currentStockQty: number
+    totalOrderBalanceQty: number
+    expectedInboundOrderBalanceQty: number
+    currentStockQtyBySize: number[]
+    totalOrderBalanceBySize: number[]
+    expectedInboundOrderBalanceBySize: number[]
     filterOk: boolean
   }
   actions: {
     onSelfWeightPctChange: (next: number) => void
+    onCurrentOrderDateChange: (next: string) => void
+    onNextOrderDateChange: (next: string) => void
+    onBufferStockChange: (next: number) => void
     onConfirmQtyChange: (size: string, next: number) => void
     onApplyRecommended: () => void
     onConfirmOrder: () => void
@@ -38,7 +56,25 @@ function clampWeightPct(v: number): number {
 }
 
 export function SizeOrderCard({ sizeOrder, actions, help }: Props) {
-  const { channelLabel, selfWeightPct, sizeRows, confirmOrderHelpId, filterOk } = sizeOrder
+  const {
+    channelLabel,
+    selfWeightPct,
+    currentOrderDate,
+    nextOrderDate,
+    bufferStock,
+    sizeRows,
+    confirmOrderHelpId,
+    totalOrderBalanceHelpId,
+    expectedInboundOrderBalanceHelpId,
+    sizeRecQtyHelpId,
+    currentStockQty,
+    totalOrderBalanceQty,
+    expectedInboundOrderBalanceQty,
+    currentStockQtyBySize,
+    totalOrderBalanceBySize,
+    expectedInboundOrderBalanceBySize,
+    filterOk,
+  } = sizeOrder
   const tableRef = useRef<HTMLTableElement | null>(null)
   const chartCellRef = useRef<HTMLTableCellElement | null>(null)
   const chartInnerRef = useRef<HTMLDivElement | null>(null)
@@ -111,47 +147,51 @@ export function SizeOrderCard({ sizeOrder, actions, help }: Props) {
   const columnTotals = useMemo(() => {
     let selfPct = 0
     let compPct = 0
+    let forecast = 0
     let rec = 0
     let confirm = 0
     for (const r of sizeRows) {
       selfPct += r.selfSharePct
       compPct += r.competitorSharePct
+      forecast += r.forecastQty
       rec += r.recommendedQty
       confirm += r.confirmQty
     }
-    return { selfPct, compPct, rec, confirm }
+    return { selfPct, compPct, forecast, rec, confirm }
   }, [sizeRows])
 
   return (
     <div className={styles.card}>
       <h3 className={styles.sectionTitle}>{KO.sectionSizeOrder}</h3>
       <div className={styles.sliderRow}>
-        <span className={styles.sliderRowLabel}>{KO.selfWeight}</span>
-        <div className={styles.sliderPctBox}>
-          <input
-            type="number"
-            className={styles.sliderPctInput}
-            min={0}
-            max={100}
-            step={0.01}
-            value={selfWeightPct}
-            onChange={(e) => {
-              const t = e.target.value.trim()
-              if (t === '') {
-                actions.onSelfWeightPctChange(0)
-                return
-              }
-              const n = Number(t)
-              if (!Number.isFinite(n)) return
-              actions.onSelfWeightPctChange(clampWeightPct(n))
-            }}
-            aria-label={KO.selfWeight}
-          />
-          <span className={styles.sliderPctSuffix}>%</span>
+        <div className={styles.sliderSelfGroup}>
+          <span className={styles.sliderRowLabel}>{KO.selfWeight}</span>
+          <div className={styles.sliderPctBox}>
+            <input
+              type="number"
+              className={styles.sliderPctInput}
+              min={0}
+              max={100}
+              step={0.01}
+              value={selfWeightPct}
+              onChange={(e) => {
+                const t = e.target.value.trim()
+                if (t === '') {
+                  actions.onSelfWeightPctChange(0)
+                  return
+                }
+                const n = Number(t)
+                if (!Number.isFinite(n)) return
+                actions.onSelfWeightPctChange(clampWeightPct(n))
+              }}
+              aria-label={KO.selfWeight}
+            />
+            <span className={styles.sliderPctSuffix}>%</span>
+          </div>
         </div>
         <input
           type="range"
-          className={styles.sliderRowRange}
+          className={`${styles.sliderRowRange} ${styles.sliderWeightRange}`}
           min={0}
           max={100}
           step={0.01}
@@ -159,34 +199,73 @@ export function SizeOrderCard({ sizeOrder, actions, help }: Props) {
           onChange={(e) => actions.onSelfWeightPctChange(clampWeightPct(Number(e.target.value)))}
           aria-label={KO.ariaWeightSlider}
         />
-        <div className={styles.sliderPctBox}>
-          <input
-            type="number"
-            className={styles.sliderPctInput}
-            min={0}
-            max={100}
-            step={0.01}
-            value={clampWeightPct(100 - selfWeightPct)}
-            onChange={(e) => {
-              const t = e.target.value.trim()
-              if (t === '') {
-                actions.onSelfWeightPctChange(100)
-                return
-              }
-              const n = Number(t)
-              if (!Number.isFinite(n)) return
-              actions.onSelfWeightPctChange(clampWeightPct(100 - clampWeightPct(n)))
-            }}
-            aria-label={`${channelLabel} ${KO.competitorWeightApprox}`}
-          />
-          <span className={styles.sliderPctSuffix}>%</span>
+        <div className={styles.sliderCompGroup}>
+          <div className={styles.sliderPctBox}>
+            <input
+              type="number"
+              className={styles.sliderPctInput}
+              min={0}
+              max={100}
+              step={0.01}
+              value={clampWeightPct(100 - selfWeightPct)}
+              onChange={(e) => {
+                const t = e.target.value.trim()
+                if (t === '') {
+                  actions.onSelfWeightPctChange(100)
+                  return
+                }
+                const n = Number(t)
+                if (!Number.isFinite(n)) return
+                actions.onSelfWeightPctChange(clampWeightPct(100 - clampWeightPct(n)))
+              }}
+              aria-label={`${channelLabel} ${KO.competitorWeightApprox}`}
+            />
+            <span className={styles.sliderPctSuffix}>%</span>
+          </div>
+          <span
+            className={styles.sliderRowLabel}
+            title={`${channelLabel} ${KO.competitorWeightApprox}`}
+          >
+            {channelLabel} {KO.competitorWeightApprox}
+          </span>
         </div>
-        <span
-          className={styles.sliderRowLabel}
-          title={`${channelLabel} ${KO.competitorWeightApprox}`}
-        >
-          {channelLabel} {KO.competitorWeightApprox}
-        </span>
+        <div className={styles.sliderDateStack}>
+          <div className={styles.sliderDateItem}>
+            <span className={styles.sliderDateLabel}>{KO.labelBufferStock}</span>
+            <span className={styles.sliderDateValueField}>
+              <input
+                type="number"
+                className={`${styles.stockNumberInput} ${styles.sliderDateInput}`}
+                min={0}
+                step={1}
+                value={bufferStock}
+                onChange={(e) => actions.onBufferStockChange(Math.max(0, Number(e.target.value) || 0))}
+                aria-label={KO.labelBufferStock}
+              />
+              <span className={styles.inlineUnit}>{KO.unitBufferStockDays}</span>
+            </span>
+          </div>
+          <div className={styles.sliderDateItem}>
+            <span className={styles.sliderDateLabel}>{KO.labelCurrentOrderDate}</span>
+            <input
+              type="date"
+              className={`${styles.stockDateInput} ${styles.sliderDateInput}`}
+              value={currentOrderDate}
+              onChange={(e) => actions.onCurrentOrderDateChange(e.target.value)}
+              aria-label={KO.labelCurrentOrderDate}
+            />
+          </div>
+          <div className={styles.sliderDateItem}>
+            <span className={styles.sliderDateLabel}>{KO.labelNextOrderDate}</span>
+            <input
+              type="date"
+              className={`${styles.stockDateInput} ${styles.sliderDateInput}`}
+              value={nextOrderDate}
+              onChange={(e) => actions.onNextOrderDateChange(e.target.value)}
+              aria-label={KO.labelNextOrderDate}
+            />
+          </div>
+        </div>
       </div>
 
       <div className={styles.sizeOrderTableWrap}>
@@ -207,11 +286,11 @@ export function SizeOrderCard({ sizeOrder, actions, help }: Props) {
                 <div className={styles.sizeOrderShareLegend} role="list" aria-label={KO.rowShareMixLineChart}>
                   <div className={styles.sizeOrderShareLegendRow} role="listitem">
                     <span className={styles.sizeOrderShareLegendSwatch} style={{ background: '#2563eb' }} aria-hidden />
-                    <span>{KO.thSelfPct}</span>
+                    <span>{KO.thSelf}</span>
                   </div>
                   <div className={styles.sizeOrderShareLegendRow} role="listitem">
                     <span className={styles.sizeOrderShareLegendSwatch} style={{ background: '#dc2626' }} aria-hidden />
-                    <span>{`${channelLabel} ${KO.thSharePctUnit}`}</span>
+                    <span>{channelLabel}</span>
                   </div>
                 </div>
               </td>
@@ -266,7 +345,68 @@ export function SizeOrderCard({ sizeOrder, actions, help }: Props) {
               ))}
             </tr>
             <tr>
-              <td>{KO.thRecQty}</td>
+              <td>{KO.rowCurrentStockQty}</td>
+              <td className={styles.num}>{c(currentStockQty)}</td>
+              {sizeRows.map((r, i) => (
+                <td key={r.size} className={styles.num}>{c(currentStockQtyBySize[i] ?? 0)}</td>
+              ))}
+            </tr>
+            <tr>
+              <td>
+                <span className={commonStyles.cardTitleWithHelp}>
+                  {KO.rowTotalOrderBalance}
+                  <PortalHelpMark
+                    helpId="totalOrderBalance"
+                    placement="above"
+                    labelId={totalOrderBalanceHelpId}
+                    markClassName={commonStyles.helpMark}
+                    help={help}
+                  />
+                </span>
+              </td>
+              <td className={styles.num}>{c(totalOrderBalanceQty)}</td>
+              {sizeRows.map((r, i) => (
+                <td key={r.size} className={styles.num}>{c(totalOrderBalanceBySize[i] ?? 0)}</td>
+              ))}
+            </tr>
+            <tr>
+              <td>
+                <span className={commonStyles.cardTitleWithHelp}>
+                  {KO.rowExpectedInboundOrderBalance}
+                  <PortalHelpMark
+                    helpId="expectedInboundOrderBalance"
+                    placement="above"
+                    labelId={expectedInboundOrderBalanceHelpId}
+                    markClassName={commonStyles.helpMark}
+                    help={help}
+                  />
+                </span>
+              </td>
+              <td className={styles.num}>{c(expectedInboundOrderBalanceQty)}</td>
+              {sizeRows.map((r, i) => (
+                <td key={r.size} className={styles.num}>{c(expectedInboundOrderBalanceBySize[i] ?? 0)}</td>
+              ))}
+            </tr>
+            <tr>
+              <td>{KO.rowSalesForecast}</td>
+              <td className={styles.num}>{c(columnTotals.forecast)}</td>
+              {sizeRows.map((r) => (
+                <td key={r.size} className={styles.num}>{c(r.forecastQty)}</td>
+              ))}
+            </tr>
+            <tr>
+              <td>
+                <span className={commonStyles.cardTitleWithHelp}>
+                  {KO.thRecQty}
+                  <PortalHelpMark
+                    helpId="sizeRecQty"
+                    placement="above"
+                    labelId={sizeRecQtyHelpId}
+                    markClassName={commonStyles.helpMark}
+                    help={help}
+                  />
+                </span>
+              </td>
               <td className={styles.num}>{c(columnTotals.rec)}</td>
               {sizeRows.map((r) => (
                 <td key={r.size} className={styles.num}>{c(r.recommendedQty)}</td>

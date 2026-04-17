@@ -54,15 +54,18 @@ export function PortalHelpPopoverLayer<T extends string>({
   getTooltipId,
   children,
 }: PortalHelpPopoverLayerProps<T>) {
-  const { activeId, position, updateMeasuredHeight, scheduleClose, cancelClose } = help
+  const { activeId, position, updateMeasuredBox, scheduleClose, cancelClose } = help
   const popRef = useRef<HTMLDivElement | null>(null)
 
   useLayoutEffect(() => {
     if (activeId == null) return
-    const h = popRef.current?.offsetHeight
+    const el = popRef.current
+    if (!el) return
+    const w = el.offsetWidth
+    const h = el.offsetHeight
     if (!h || h <= 0) return
-    updateMeasuredHeight(h)
-  }, [activeId, updateMeasuredHeight])
+    updateMeasuredBox(w, h)
+  }, [activeId, updateMeasuredBox])
 
   if (activeId == null) return null
 

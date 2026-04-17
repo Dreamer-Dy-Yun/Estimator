@@ -51,19 +51,21 @@ export function usePortalHelpPopover<T extends string>(options?: PortalHelpPopov
     [estH, pad, width],
   )
 
-  const updateMeasuredHeight = useCallback(
-    (measuredHeight: number) => {
+  const updateMeasuredBox = useCallback(
+    (measuredWidth: number, measuredHeight: number) => {
       if (!activeAnchorRect) return
+      const w = Number.isFinite(measuredWidth) && measuredWidth > 0 ? measuredWidth : width
+      const h = Number.isFinite(measuredHeight) && measuredHeight > 0 ? measuredHeight : estH
       const next = computeHelpPopoverPosition(activeAnchorRect, activePlacement, {
-        width,
+        width: w,
         pad,
-        estHeight: measuredHeight,
+        estHeight: h,
       })
       setPosition((prev) => (
         prev.top === next.top && prev.left === next.left ? prev : next
       ))
     },
-    [activeAnchorRect, activePlacement, pad, width],
+    [activeAnchorRect, activePlacement, estH, pad, width],
   )
 
   const scheduleClose = useCallback(() => {
@@ -99,7 +101,7 @@ export function usePortalHelpPopover<T extends string>(options?: PortalHelpPopov
     position,
     setAnchor,
     open,
-    updateMeasuredHeight,
+    updateMeasuredBox,
     scheduleClose,
     cancelClose,
     close,

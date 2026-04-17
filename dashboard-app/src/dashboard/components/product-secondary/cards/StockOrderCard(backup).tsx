@@ -34,6 +34,7 @@ type Props = {
       safetyStockCalc: string
       forecastQtyCalc: string
       recOrderQty: string
+      stockCalcColumn: string
     }
     portal: ReturnType<typeof usePortalHelpPopover<SecondaryHelpId>>
   }
@@ -47,7 +48,8 @@ type Props = {
   }
 }
 
-export function StockOrderCard({ stock, help, actions }: Props) {
+/** 백업본 — 복원 시 `StockOrderCard.tsx`로 내용을 옮기고 export 이름을 `StockOrderCard`로 맞춘다. */
+export function StockOrderCardBackup({ stock, help, actions }: Props) {
   const { inputs, derived, calc, error } = stock
   const { labelIds, portal } = help
 
@@ -173,7 +175,16 @@ export function StockOrderCard({ stock, help, actions }: Props) {
             <tr>
               <th>{KO.thMetric}</th>
               <th className={styles.num}>
-                {KO.thSafetyStockCalc}
+                <span className={commonStyles.cardTitleWithHelp}>
+                  {KO.thSafetyStockCalc}
+                  <PortalHelpMark
+                    helpId="stockCalcColumn"
+                    placement="above"
+                    labelId={labelIds.stockCalcColumn}
+                    markClassName={commonStyles.helpMark}
+                    help={portal}
+                  />
+                </span>
               </th>
               <th className={styles.num}>
                 <span className={commonStyles.cardTitleWithHelp}>

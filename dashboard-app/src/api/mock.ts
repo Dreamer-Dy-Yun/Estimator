@@ -227,9 +227,26 @@ const makeSizeMix = (
   productPrice: number,
   productAvailableStock: number,
   seed: number,
+  category: string,
 ) => {
   const sizes = ['235', '240', '245', '250', '255', '260', '265', '270', '275', '280']
-  const ratioWeights = [8, 10, 10, 8, 5, 12, 14, 13, 11, 9]
+  // 유니섹스: 중앙(260~270) 집중 + 양끝 완만 하락(정규분포 유사)
+  const ratioWeightsUnisex = [5, 7, 9, 11, 13, 14, 13, 11, 9, 7]
+  // 남성 치우침: 큰 사이즈로 갈수록 비중 상승
+  const ratioWeightsMale = [3, 4, 6, 8, 10, 12, 14, 15, 15, 13]
+  // 여성 치우침: 작은 사이즈로 갈수록 비중 상승
+  const ratioWeightsFemale = [14, 15, 15, 13, 11, 9, 7, 6, 5, 4]
+  const profile = (() => {
+    // 신발은 유니섹스 비율을 높이고, 그 외는 성별 치우침을 더 자주 보이게
+    if (category === '신발') return seed % 5 < 3 ? 'unisex' : (seed % 2 === 0 ? 'male' : 'female')
+    return seed % 3 === 0 ? 'unisex' : (seed % 2 === 0 ? 'male' : 'female')
+  })()
+  const ratioWeights =
+    profile === 'male'
+      ? ratioWeightsMale
+      : profile === 'female'
+        ? ratioWeightsFemale
+        : ratioWeightsUnisex
   const compShift = (seed % 5) - 2
   const mid = (sizes.length - 1) / 2
   const qtyAlloc = allocateByWeights(productQty, ratioWeights)
@@ -296,7 +313,7 @@ const { primary: productPrimaryById, secondary: productSecondaryById } = (() => 
     const recommendedOrderQty = o?.recommendedOrderQty ?? Math.round(productQty / 1.7)
     const availableStock = o?.availableStock ?? Math.round(productQty * 0.45)
 
-    const fullMix = makeSizeMix(recommendedOrderQty, productQty, price, availableStock, seed)
+    const fullMix = makeSizeMix(recommendedOrderQty, productQty, price, availableStock, seed, category)
     const { sizeMix, competitorRatioBySize } = splitPrimarySecondaryFromSizeMix(fullMix)
 
     primary[id] = {
@@ -650,13 +667,26 @@ export const mockDashboardApi = {
     periodEnd,
     serviceLevelPct,
     leadTimeDays,
+    safetyStockMode,
+    manualSafetyStock,
+    dailyMean: dailyMeanParam,
   }: SecondaryStockOrderCalcParams): Promise<SecondaryStockOrderCalcResult> => {
     await sleep(70)
     const primary = productPrimaryById[productId] ?? productPrimaryById[allKnownProductIds[0]]!
-    const { dailyMean, sigma } = dailyMeanSigma(primary.monthlySalesTrend, periodStart, periodEnd)
+    const fromTrend = dailyMeanSigma(primary.monthlySalesTrend, periodStart, periodEnd)
+    const trendDailyMean = Math.round(fromTrend.dailyMean * 10) / 10
+    const dailyMean =
+      dailyMeanParam !== undefined && Number.isFinite(dailyMeanParam)
+        ? Math.max(0, dailyMeanParam)
+        : fromTrend.dailyMean
+    const sigma = fromTrend.sigma
     const safeLead = Math.max(1, Math.round(leadTimeDays))
     const z = zFromServiceLevelPct(serviceLevelPct)
-    const safetyStock = Math.max(0, Math.round(z * sigma * Math.sqrt(safeLead) + dailyMean * safeLead))
+    const formulaSafetyStock = Math.max(0, Math.round(z * sigma * Math.sqrt(safeLead) + dailyMean * safeLead))
+    const safetyStock =
+      safetyStockMode === 'manual'
+        ? Math.max(0, Math.round(manualSafetyStock))
+        : formulaSafetyStock
     const safetyRecQty = Math.max(0, Math.round(safetyStock - primary.availableStock + dailyMean * safeLead))
     const forecastRecQty = Math.max(0, Math.round(dailyMean * safeLead * 1.05))
 
@@ -669,6 +699,17 @@ export const mockDashboardApi = {
     })
 
     return {
+      trendDailyMean,
+      dailyMean: Math.round(dailyMean * 10) / 10,
+      sigma,
+      display: {
+        currentStockQtyTotal: 1330,
+        totalOrderBalanceTotal: 520,
+        expectedInboundOrderBalanceTotal: 230,
+        currentStockQtyBySize: [95, 110, 120, 130, 125, 140, 160, 155, 150, 145],
+        totalOrderBalanceBySize: [28, 36, 42, 48, 52, 58, 66, 64, 63, 63],
+        expectedInboundOrderBalanceBySize: [10, 14, 18, 21, 23, 26, 31, 29, 29, 29],
+      },
       safetyStockCalc: {
         safetyStock,
         recommendedOrderQty: safetyRecQty,

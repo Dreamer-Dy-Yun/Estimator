@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
-import { BlockMath } from 'react-katex'
 import { dashboardApi, type SecondaryCompetitorChannel } from '../../../api'
 import { ComponentErrorBoundary } from '../../../components/ComponentErrorBoundary'
 import type { ApiUnitErrorInfo, ProductPrimarySummary, ProductSecondaryDetail } from '../../../types'
+import { daysInclusiveBetween } from '../../../utils/date'
 import { pct } from '../../../utils/format'
 import { PortalHelpPopoverLayer } from '../PortalHelpPopover'
 import commonStyles from '../common.module.css'
@@ -11,24 +11,19 @@ import { usePortalHelpPopover } from '../usePortalHelpPopover'
 import { AiMockCard } from './cards/AiMockCard'
 import { ProductFilterCard } from './cards/ProductFilterCard'
 import { ProductMetaCard } from './cards/ProductMetaCard'
+import { SalesForecastCard } from './cards/SalesForecastCard'
 import { SalesMetricsCard } from './cards/SalesMetricsCard'
 import { SalesTrendDailyCard } from './cards/SalesTrendDailyCard'
 import { SizeOrderCard } from './cards/SizeOrderCard'
-import { StockOrderCard } from './cards/StockOrderCard'
 import { KO } from './ko'
-import {
-  buildSalesKpiColumn,
-  dailyMeanAndSigmaFromTrend,
-  mergePrimarySecondarySizeMix,
-  zFromServiceLevelPct,
-} from './secondaryPanelCalc'
+import { buildSalesKpiColumn, mergePrimarySecondarySizeMix } from './secondaryPanelCalc'
 import styles from './productSecondaryPanel.module.css'
 import type {
+  SecondaryForecastCalc,
+  SecondaryForecastDerived,
+  SecondaryForecastInputs,
   SecondaryHelpId,
   SecondaryOrderSnapshot,
-  SecondaryStockCalc,
-  SecondaryStockDerived,
-  SecondaryStockInputs,
 } from './secondaryPanelTypes'
 
 type Props = {
@@ -55,41 +50,35 @@ function buildDefaultLeadTimeDates() {
   return { start, end }
 }
 
-function daysInclusiveBetween(start: string, end: string): number {
-  const s = new Date(`${start}T00:00:00`)
-  const e = new Date(`${end}T00:00:00`)
-  if (Number.isNaN(s.getTime()) || Number.isNaN(e.getTime())) return 1
-  const diffDays = Math.floor((e.getTime() - s.getTime()) / 86400000) + 1
-  return Math.max(1, diffDays)
-}
-
 export function ProductSecondaryPanel({ primary, secondary, periodStart, periodEnd, pageName = 'ProductSecondaryPanel' }: Props) {
   const defaultLeadTime = useMemo(() => buildDefaultLeadTimeDates(), [])
-  const serviceLevelHelpId = useId()
-  const leadTimeHelpId = useId()
   const confirmOrderHelpId = useId()
-  const safetyStockCalcHelpId = useId()
   const forecastQtyCalcHelpId = useId()
-  const recOrderQtyHelpId = useId()
+  const totalOrderBalanceHelpId = useId()
+  const expectedInboundOrderBalanceHelpId = useId()
+  const sizeRecQtyHelpId = useId()
+  const periodMeanColumnHelpId = useId()
   const portalHelp = usePortalHelpPopover<SecondaryHelpId>()
   const [competitorChannels, setCompetitorChannels] = useState<SecondaryCompetitorChannel[]>([])
   const [channelId, setChannelId] = useState('')
   const [minOpMarginPct, setMinOpMarginPct] = useState(0)
   const [safetyStockMode, setSafetyStockMode] = useState<'manual' | 'formula'>('formula')
   const [manualSafetyStock, setManualSafetyStock] = useState(0)
-  const [dailyMeanInput, setDailyMeanInput] = useState(0)
+  /** null: API(목) 트렌드 μ 사용. 숫자: 백업 UI에서 지정한 μ로 재요청 */
+  const [dailyMeanClient, setDailyMeanClient] = useState<number | null>(null)
   const [serviceLevelPct, setServiceLevelPct] = useState(95)
   const [leadTimeStartDate, setLeadTimeStartDate] = useState(defaultLeadTime.start)
   const [leadTimeEndDate, setLeadTimeEndDate] = useState(defaultLeadTime.end)
+  const [bufferStock, setBufferStock] = useState(0)
   const [llmPrompt, setLlmPrompt] = useState('')
   const [llmAnswer, setLlmAnswer] = useState('')
   const [llmLoading, setLlmLoading] = useState(false)
   const [selfWeightPct, setSelfWeightPct] = useState(50)
   const [confirmBySize, setConfirmBySize] = useState<Record<string, number>>({})
   const dailyTrendReqSeqRef = useRef(0)
-  const [stockCalc, setStockCalc] = useState<SecondaryStockCalc | null>(null)
+  const [forecastCalc, setForecastCalc] = useState<SecondaryForecastCalc | null>(null)
   const [channelsError, setChannelsError] = useState<ApiUnitErrorInfo | null>(null)
-  const [stockCalcError, setStockCalcError] = useState<ApiUnitErrorInfo | null>(null)
+  const [forecastCalcError, setForecastCalcError] = useState<ApiUnitErrorInfo | null>(null)
   const [dailyTrendError, setDailyTrendError] = useState<ApiUnitErrorInfo | null>(null)
   const [llmError, setLlmError] = useState<ApiUnitErrorInfo | null>(null)
 
@@ -137,41 +126,19 @@ export function ProductSecondaryPanel({ primary, secondary, periodStart, periodE
   const selectedStart = normalizeMonthKey(periodStart)
   const selectedEnd = normalizeMonthKey(periodEnd)
 
-  const trendSlice = useMemo(() => {
-    const a = selectedStart
-    const b = selectedEnd
-    const w = primary.monthlySalesTrend.filter((p) => {
-      const m = p.date
-      return m >= a && m <= b
-    })
-    return w.length ? w : primary.monthlySalesTrend.slice(-6)
-  }, [selectedEnd, selectedStart, primary.monthlySalesTrend])
-
-  const { dailyMean, sigma } = useMemo(
-    () => dailyMeanAndSigmaFromTrend(trendSlice, selectedStart, selectedEnd),
-    [selectedEnd, selectedStart, trendSlice],
-  )
   useEffect(() => {
-    setDailyMeanInput(Math.round(dailyMean * 10) / 10)
-  }, [dailyMean, primary.id, selectedEnd, selectedStart])
+    setDailyMeanClient(null)
+  }, [primary.id, selectedEnd, selectedStart])
+
   const leadTimeDays = useMemo(
     () => daysInclusiveBetween(leadTimeStartDate, leadTimeEndDate),
     [leadTimeEndDate, leadTimeStartDate],
   )
 
-  const z = zFromServiceLevelPct(serviceLevelPct)
-  const formulaSafetyStock = Math.max(0, Math.round(z * sigma * Math.sqrt(leadTimeDays)))
-  const safetyStock = safetyStockMode === 'formula' ? formulaSafetyStock : Math.max(0, Math.round(manualSafetyStock))
-  const recommendedOrderQty = Math.max(
-    0,
-    Math.round(safetyStock - primary.availableStock + dailyMeanInput * leadTimeDays),
-  )
-  const expectedOrderAmount = recommendedOrderQty * selfCol.avgCost
-  const expectedSalesAmount = recommendedOrderQty * selfCol.avgPrice
-  const expectedOpProfit = recommendedOrderQty * selfCol.opMarginPerUnit
-  const stockInputs: SecondaryStockInputs = {
-    dailyMean: dailyMeanInput,
-    sigma,
+  const forecastInputs: SecondaryForecastInputs = {
+    trendDailyMean: forecastCalc?.trendDailyMean ?? 0,
+    dailyMean: dailyMeanClient ?? forecastCalc?.dailyMean ?? 0,
+    sigma: forecastCalc?.sigma ?? 0,
     serviceLevelPct,
     leadTimeStartDate,
     leadTimeEndDate,
@@ -179,13 +146,25 @@ export function ProductSecondaryPanel({ primary, secondary, periodStart, periodE
     safetyStockMode,
     manualSafetyStock: Math.max(0, Math.round(manualSafetyStock)),
   }
-  const stockDerived: SecondaryStockDerived = {
-    safetyStock,
-    recommendedOrderQty,
-    expectedOrderAmount,
-    expectedSalesAmount,
-    expectedOpProfit,
-  }
+  const forecastDerived: SecondaryForecastDerived = forecastCalc
+    ? {
+        safetyStock: forecastCalc.safetyStockCalc.safetyStock,
+        recommendedOrderQty: forecastCalc.safetyStockCalc.recommendedOrderQty,
+        expectedOrderAmount: forecastCalc.safetyStockCalc.expectedOrderAmount,
+        expectedSalesAmount: forecastCalc.safetyStockCalc.expectedSalesAmount,
+        expectedOpProfit: forecastCalc.safetyStockCalc.expectedOpProfit,
+      }
+    : {
+        safetyStock: 0,
+        recommendedOrderQty: 0,
+        expectedOrderAmount: 0,
+        expectedSalesAmount: 0,
+        expectedOpProfit: 0,
+      }
+
+  const forecastOrderQtyTotal = forecastCalc?.forecastQtyCalc.recommendedOrderQty ?? 0
+  const currentStockBySize = forecastCalc?.display.currentStockQtyBySize ?? []
+  const expectedInboundBySize = forecastCalc?.display.expectedInboundOrderBalanceBySize ?? []
 
   useEffect(() => {
     let alive = true
@@ -197,17 +176,20 @@ export function ProductSecondaryPanel({ primary, secondary, periodStart, periodE
           periodEnd: selectedEnd,
           serviceLevelPct,
           leadTimeDays,
+          safetyStockMode,
+          manualSafetyStock: Math.max(0, Math.round(manualSafetyStock)),
+          ...(dailyMeanClient != null ? { dailyMean: dailyMeanClient } : {}),
         }
         const result = await dashboardApi.getSecondaryStockOrderCalc(params)
         if (!alive) return
-        setStockCalc(result)
-        setStockCalcError(null)
+        setForecastCalc(result)
+        setForecastCalcError(null)
       } catch (err) {
         if (!alive) return
-        setStockCalc(null)
-        setStockCalcError(
+        setForecastCalc(null)
+        setForecastCalcError(
           makeApiErrorInfo(
-            `getSecondaryStockOrderCalc(${JSON.stringify({ productId: primary.id, periodStart: selectedStart, periodEnd: selectedEnd, serviceLevelPct, leadTimeDays })})`,
+            `getSecondaryStockOrderCalc(${JSON.stringify({ productId: primary.id, periodStart: selectedStart, periodEnd: selectedEnd, serviceLevelPct, leadTimeDays, safetyStockMode, manualSafetyStock })})`,
             err,
           ),
         )
@@ -216,7 +198,17 @@ export function ProductSecondaryPanel({ primary, secondary, periodStart, periodE
     return () => {
       alive = false
     }
-  }, [leadTimeDays, makeApiErrorInfo, primary.id, selectedEnd, selectedStart, serviceLevelPct])
+  }, [
+    dailyMeanClient,
+    leadTimeDays,
+    makeApiErrorInfo,
+    manualSafetyStock,
+    primary.id,
+    safetyStockMode,
+    selectedEnd,
+    selectedStart,
+    serviceLevelPct,
+  ])
 
   const sizeAgg = useMemo(() => {
     const mix = mergePrimarySecondarySizeMix(primary, secondary)
@@ -240,12 +232,15 @@ export function ProductSecondaryPanel({ primary, secondary, periodStart, periodE
   }, [primary, secondary, selfWeightPct])
 
   const sizeRows = useMemo(() => {
-    return sizeAgg.map((row) => {
-      const recommendedQty = Math.round((recommendedOrderQty * row.blendedSharePct) / 100)
+    return sizeAgg.map((row, i) => {
+      const forecastQty = Math.round((forecastOrderQtyTotal * row.blendedSharePct) / 100)
+      const stock = currentStockBySize[i] ?? 0
+      const inbound = expectedInboundBySize[i] ?? 0
+      const recommendedQty = Math.max(0, Math.round(forecastQty - stock - inbound + bufferStock))
       const confirmQty = confirmBySize[row.size] ?? recommendedQty
-      return { ...row, recommendedQty, confirmQty }
+      return { ...row, forecastQty, recommendedQty, confirmQty }
     })
-  }, [sizeAgg, recommendedOrderQty, confirmBySize])
+  }, [sizeAgg, forecastOrderQtyTotal, currentStockBySize, expectedInboundBySize, bufferStock, confirmBySize])
 
   const [dailyTrendSeries, setDailyTrendSeries] = useState<Array<{
     idx: number
@@ -342,8 +337,8 @@ export function ProductSecondaryPanel({ primary, secondary, periodStart, periodE
       minOpMarginPct,
       salesSelf: selfCol,
       salesCompetitor: compCol,
-      stockInputs,
-      stockDerived,
+      stockInputs: forecastInputs,
+      stockDerived: forecastDerived,
       llmPrompt,
       llmAnswer,
       selfWeightPct,
@@ -352,6 +347,7 @@ export function ProductSecondaryPanel({ primary, secondary, periodStart, periodE
         selfSharePct: r.selfSharePct,
         competitorSharePct: r.competitorSharePct,
         blendedSharePct: r.blendedSharePct,
+        forecastQty: r.forecastQty,
         recommendedQty: r.recommendedQty,
         confirmQty: r.confirmQty,
       })),
@@ -366,8 +362,8 @@ export function ProductSecondaryPanel({ primary, secondary, periodStart, periodE
     minOpMarginPct,
     selfCol,
     compCol,
-    stockInputs,
-    stockDerived,
+    forecastInputs,
+    forecastDerived,
     llmPrompt,
     llmAnswer,
     selfWeightPct,
@@ -377,18 +373,22 @@ export function ProductSecondaryPanel({ primary, secondary, periodStart, periodE
   const warnMsg =
     `${KO.warnSelfMarginPrefix} ${pct(selfCol.opMarginRatePct)}${KO.warnSelfMarginMid}${pct(minOpMarginPct)}${KO.warnSelfMarginSuffix}`
 
-  const getHelpTooltipId = (id: SecondaryHelpId) =>
-    id === 'serviceLevel'
-      ? serviceLevelHelpId
-      : id === 'leadTime'
-        ? leadTimeHelpId
-        : id === 'confirmOrder'
-          ? confirmOrderHelpId
-          : id === 'safetyStockCalc'
-            ? safetyStockCalcHelpId
-            : id === 'forecastQtyCalc'
-              ? forecastQtyCalcHelpId
-              : recOrderQtyHelpId
+  const getHelpTooltipId = (id: SecondaryHelpId) => {
+    switch (id) {
+      case 'confirmOrder':
+        return confirmOrderHelpId
+      case 'forecastQtyCalc':
+        return forecastQtyCalcHelpId
+      case 'totalOrderBalance':
+        return totalOrderBalanceHelpId
+      case 'expectedInboundOrderBalance':
+        return expectedInboundOrderBalanceHelpId
+      case 'sizeRecQty':
+        return sizeRecQtyHelpId
+      case 'stockCalcColumn':
+        return periodMeanColumnHelpId
+    }
+  }
 
   return (
     <div className={styles.panel}>
@@ -425,34 +425,19 @@ export function ProductSecondaryPanel({ primary, secondary, periodStart, periodE
             }}
           />
         </ComponentErrorBoundary>
-        <ComponentErrorBoundary page={pageName} unit="StockOrderCard">
-          <StockOrderCard
-            stock={{
-              inputs: stockInputs,
-              derived: stockDerived,
-              calc: stockCalc,
-              error: stockCalcError,
+        <ComponentErrorBoundary page={pageName} unit="SalesForecastCard">
+          <SalesForecastCard
+            forecast={{
+              inputs: forecastInputs,
+              calc: forecastCalc,
+              error: forecastCalcError,
             }}
             help={{
               labelIds: {
-                serviceLevel: serviceLevelHelpId,
-                leadTime: leadTimeHelpId,
-                safetyStockCalc: safetyStockCalcHelpId,
+                periodMeanColumn: periodMeanColumnHelpId,
                 forecastQtyCalc: forecastQtyCalcHelpId,
-                recOrderQty: recOrderQtyHelpId,
               },
               portal: portalHelp,
-            }}
-            actions={{
-              onDailyMeanChange: setDailyMeanInput,
-              onSafetyStockModeChange: (next) => {
-                setSafetyStockMode(next)
-                if (next === 'manual') setManualSafetyStock(formulaSafetyStock)
-              },
-              onManualSafetyStockChange: setManualSafetyStock,
-              onLeadTimeStartDateChange: setLeadTimeStartDate,
-              onLeadTimeEndDateChange: setLeadTimeEndDate,
-              onServiceLevelPctChange: setServiceLevelPct,
             }}
           />
         </ComponentErrorBoundary>
@@ -489,12 +474,27 @@ export function ProductSecondaryPanel({ primary, secondary, periodStart, periodE
           sizeOrder={{
             channelLabel: channel.label,
             selfWeightPct,
+            currentOrderDate: leadTimeStartDate,
+            nextOrderDate: leadTimeEndDate,
+            bufferStock,
             sizeRows,
             confirmOrderHelpId,
+            totalOrderBalanceHelpId,
+            expectedInboundOrderBalanceHelpId,
+            sizeRecQtyHelpId,
+            currentStockQty: forecastCalc?.display.currentStockQtyTotal ?? 0,
+            totalOrderBalanceQty: forecastCalc?.display.totalOrderBalanceTotal ?? 0,
+            expectedInboundOrderBalanceQty: forecastCalc?.display.expectedInboundOrderBalanceTotal ?? 0,
+            currentStockQtyBySize: forecastCalc?.display.currentStockQtyBySize ?? [],
+            totalOrderBalanceBySize: forecastCalc?.display.totalOrderBalanceBySize ?? [],
+            expectedInboundOrderBalanceBySize: forecastCalc?.display.expectedInboundOrderBalanceBySize ?? [],
             filterOk,
           }}
           actions={{
             onSelfWeightPctChange: setSelfWeightPct,
+            onCurrentOrderDateChange: setLeadTimeStartDate,
+            onNextOrderDateChange: setLeadTimeEndDate,
+            onBufferStockChange: setBufferStock,
             onConfirmQtyChange: (size, next) => setConfirmBySize((prev) => ({
               ...prev,
               [size]: Math.max(0, Math.round(next || 0)),
@@ -512,31 +512,23 @@ export function ProductSecondaryPanel({ primary, secondary, periodStart, periodE
       >
         {(hid) => (
           <>
-            {hid === 'serviceLevel' && (
-              <>
-                <p>{KO.helpServiceLevel}</p>
-                <BlockMath math={KO.helpServiceLevelInverseFormulaLatex} />
-                <BlockMath math={KO.helpServiceLevelFormulaLatex} />
-                <p>{KO.helpServiceLevelVars}</p>
-              </>
-            )}
-            {hid === 'leadTime' && (
-              <p>{KO.helpLeadTime}</p>
-            )}
             {hid === 'confirmOrder' && (
               <p>{KO.hintSnapshot}</p>
-            )}
-            {hid === 'safetyStockCalc' && (
-              <>
-                <BlockMath math={KO.helpSafetyStockCalcFormulaLatex} />
-                <p>{KO.helpSafetyStockCalc}</p>
-              </>
             )}
             {hid === 'forecastQtyCalc' && (
               <p>{KO.helpForecastQtyCalc}</p>
             )}
-            {hid === 'recOrderQty' && (
-              <p>{KO.helpRecOrderQty}</p>
+            {hid === 'totalOrderBalance' && (
+              <p>{KO.helpTotalOrderBalance}</p>
+            )}
+            {hid === 'expectedInboundOrderBalance' && (
+              <p>{KO.helpExpectedInboundOrderBalance}</p>
+            )}
+            {hid === 'sizeRecQty' && (
+              <p>{KO.helpSizeRecQty}</p>
+            )}
+            {hid === 'stockCalcColumn' && (
+              <p>{KO.helpStockCalcColumn}</p>
             )}
           </>
         )}

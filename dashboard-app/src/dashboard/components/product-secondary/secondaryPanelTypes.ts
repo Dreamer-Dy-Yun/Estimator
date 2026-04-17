@@ -1,11 +1,7 @@
-/** Competitor channel option (mock; replace with API). */
-export type CompetitorChannel = {
-  id: string
-  label: string
-  /** Multipliers vs `ProductSecondaryDetail` competitor price/qty baseline */
-  priceSkew: number
-  qtySkew: number
-}
+import type { SecondaryCompetitorChannel, SecondaryStockOrderCalcResult } from '../../../api/types'
+
+/** API `SecondaryCompetitorChannel`과 동일(단일 소스). */
+export type CompetitorChannel = SecondaryCompetitorChannel
 
 /** One column of sales KPIs for self or competitor. */
 export type SalesKpiColumn = {
@@ -24,31 +20,19 @@ export type SalesKpiColumn = {
 }
 
 export type SecondaryHelpId =
-  | 'serviceLevel'
-  | 'leadTime'
   | 'confirmOrder'
-  | 'safetyStockCalc'
   | 'forecastQtyCalc'
-  | 'recOrderQty'
+  | 'totalOrderBalance'
+  | 'expectedInboundOrderBalance'
+  | 'sizeRecQty'
+  | 'stockCalcColumn'
 
-export type SecondaryStockCalc = {
-  safetyStockCalc: {
-    safetyStock: number
-    recommendedOrderQty: number
-    expectedOrderAmount: number
-    expectedSalesAmount: number
-    expectedOpProfit: number
-  }
-  forecastQtyCalc: {
-    safetyStock: null
-    recommendedOrderQty: number
-    expectedOrderAmount: number
-    expectedSalesAmount: number
-    expectedOpProfit: number
-  }
-}
+/** `getSecondaryStockOrderCalc` 응답과 동일(단일 소스: `api/types/secondary`). */
+export type SecondaryForecastCalc = SecondaryStockOrderCalcResult
 
-export type SecondaryStockInputs = {
+export type SecondaryForecastInputs = {
+  /** 판매추이 기간에서 산출한 일평균 판매량(μ, 표시·동기화 기준) */
+  trendDailyMean: number
   dailyMean: number
   leadTimeStartDate: string
   leadTimeEndDate: string
@@ -59,7 +43,7 @@ export type SecondaryStockInputs = {
   serviceLevelPct: number
 }
 
-export type SecondaryStockDerived = {
+export type SecondaryForecastDerived = {
   safetyStock: number
   recommendedOrderQty: number
   expectedOrderAmount: number
@@ -77,8 +61,8 @@ export type SecondaryOrderSnapshot = {
   minOpMarginPct: number
   salesSelf: SalesKpiColumn
   salesCompetitor: SalesKpiColumn
-  stockInputs: SecondaryStockInputs
-  stockDerived: SecondaryStockDerived
+  stockInputs: SecondaryForecastInputs
+  stockDerived: SecondaryForecastDerived
   llmPrompt: string
   llmAnswer: string
   selfWeightPct: number
@@ -87,7 +71,13 @@ export type SecondaryOrderSnapshot = {
     selfSharePct: number
     competitorSharePct: number
     blendedSharePct: number
+    forecastQty: number
     recommendedQty: number
     confirmQty: number
   }>
 }
+
+/** 호환 별칭(점진 정리용) */
+export type SecondaryStockCalc = SecondaryForecastCalc
+export type SecondaryStockInputs = SecondaryForecastInputs
+export type SecondaryStockDerived = SecondaryForecastDerived
