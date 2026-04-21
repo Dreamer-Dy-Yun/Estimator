@@ -5,6 +5,10 @@ export interface SecondaryDailyTrendPoint {
   sales: number
   stockBar: number
   inboundAccumBar: number
+  /** 0~1 정규화된 자사 판매 지표(금일 이후 구간은 null). */
+  selfSalesNorm: number | null
+  /** 0~1 정규화된 경쟁사 판매 지표(금일 이후 구간은 null). */
+  competitorSalesNorm: number | null
   isForecast: boolean
 }
 
@@ -26,23 +30,17 @@ export interface SecondaryLlmAnswerParams {
   prompt: string
 }
 
-export interface SecondaryOrderSnapshotPayload {
-  snapshotId: string
-  productId: string
-  savedAt: string
-  periodStart: string
-  periodEnd: string
-  competitorChannelId: string
-  minOpMarginPct: number
-  salesSelf: unknown
-  salesCompetitor: unknown
-  stockInputs: unknown
-  stockDerived: unknown
-  llmPrompt: string
-  llmAnswer: string
-  selfWeightPct: number
-  sizeRows: unknown[]
+/**
+ * 2차 상세(`getProductSecondaryDetail`) 조회 옵션.
+ * 예: 영업이익률 하한 — 값이 바뀌면 동일 품번이라도 패널에서 이 객체를 deps에 넣고 재요청.
+ * UI가 없을 때는 생략하거나 필드를 두지 않음.
+ */
+export interface ProductSecondaryDetailParams {
+  minOpMarginPct?: number | null
 }
+
+/** 통합 오더 스냅샷(JSON 한 문서). 구 스키마는 `schemaVersion`으로 구분 */
+export type { OrderSnapshotDocumentV1 as SecondaryOrderSnapshotPayload } from '../../snapshot/orderSnapshotTypes'
 
 export interface SecondaryStockOrderCalcParams {
   productId: string

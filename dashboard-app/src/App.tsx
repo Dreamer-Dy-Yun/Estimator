@@ -2,6 +2,7 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { DashboardLayout } from './dashboard/DashboardLayout'
 import { CompetitorPage } from './dashboard/pages/CompetitorPage'
 import { OrderPage } from './dashboard/pages/OrderPage'
+import { SnapshotConfirmPage } from './dashboard/pages/SnapshotConfirmPage'
 import { SelfPage } from './dashboard/pages/SelfPage'
 import styles from './app.module.css'
 
@@ -17,6 +18,7 @@ function AppRoutes() {
             <Route path="self" element={<SelfPage />} />
             <Route path="competitor" element={<CompetitorPage />} />
             <Route path="order-sim" element={<OrderPage />} />
+            <Route path="snapshot-confirm" element={<SnapshotConfirmPage />} />
           </Route>
           <Route path="*" element={<Navigate to="/dashboard/self" replace />} />
         </Routes>

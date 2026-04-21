@@ -7,19 +7,17 @@ import styles from '../productSecondaryPanel.module.css'
 type Props = {
   filter: {
     channelId: string
-    minOpMarginPct: number
     competitorChannels: SecondaryCompetitorChannel[]
     error: ApiUnitErrorInfo | null
   }
   actions: {
     onChannelChange: (next: string) => void
-    onMinOpMarginPctChange: (next: number) => void
   }
 }
 
 export function ProductFilterCard({ filter, actions }: Props) {
-  const { channelId, minOpMarginPct, competitorChannels, error } = filter
-  const { onChannelChange, onMinOpMarginPctChange } = actions
+  const { channelId, competitorChannels, error } = filter
+  const { onChannelChange } = actions
 
   return (
     <div className={`${styles.card} ${styles.filterCard}`}>
@@ -34,15 +32,6 @@ export function ProductFilterCard({ filter, actions }: Props) {
               <option key={ch.id} value={ch.id}>{ch.label}</option>
             ))}
           </select>
-        </label>
-        <label className={styles.control}>
-          {KO.labelMinOpMargin}
-          <input
-            type="number"
-            step={0.1}
-            value={minOpMarginPct}
-            onChange={(e) => onMinOpMarginPctChange(Number(e.target.value))}
-          />
         </label>
       </div>
     </div>

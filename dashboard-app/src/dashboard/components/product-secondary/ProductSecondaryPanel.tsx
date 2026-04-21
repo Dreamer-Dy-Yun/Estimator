@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
-import { dashboardApi, type SecondaryCompetitorChannel } from '../../../api'
+import { createPortal } from 'react-dom'
+import { dashboardApi, type ProductStockTrendPoint, type SecondaryCompetitorChannel } from '../../../api'
 import { ComponentErrorBoundary } from '../../../components/ComponentErrorBoundary'
 import type { ApiUnitErrorInfo, ProductPrimarySummary, ProductSecondaryDetail } from '../../../types'
-import { daysInclusiveBetween } from '../../../utils/date'
-import { pct } from '../../../utils/format'
+import { daysFromTodayThroughInclusive, daysInclusiveBetween } from '../../../utils/date'
 import { PortalHelpPopoverLayer } from '../PortalHelpPopover'
 import commonStyles from '../common.module.css'
-import { buildShadeRanges, normalizeMonthKey } from '../trendRangeUtils'
+import { buildShadeRanges, normalizeMonthKey } from '../trend/trendRangeUtils'
 import { usePortalHelpPopover } from '../usePortalHelpPopover'
 import { AiMockCard } from './cards/AiMockCard'
 import { ProductFilterCard } from './cards/ProductFilterCard'
@@ -15,22 +15,27 @@ import { SalesForecastCard } from './cards/SalesForecastCard'
 import { SalesMetricsCard } from './cards/SalesMetricsCard'
 import { SalesTrendDailyCard } from './cards/SalesTrendDailyCard'
 import { SizeOrderCard } from './cards/SizeOrderCard'
+import { computeClientStockOrder } from './model/clientStockOrderCompute'
 import { KO } from './ko'
-import { buildSalesKpiColumn, mergePrimarySecondarySizeMix } from './secondaryPanelCalc'
+import { buildSalesKpiColumn, mergePrimarySecondarySizeMix } from './model/secondaryPanelCalc'
 import styles from './productSecondaryPanel.module.css'
 import type {
   SecondaryForecastCalc,
   SecondaryForecastDerived,
   SecondaryForecastInputs,
   SecondaryHelpId,
-  SecondaryOrderSnapshot,
 } from './secondaryPanelTypes'
+import { ORDER_SNAPSHOT_SCHEMA_VERSION, type OrderSnapshotDocumentV1 } from '../../../snapshot/orderSnapshotTypes'
 
 type Props = {
   primary: ProductPrimarySummary
   secondary: ProductSecondaryDetail
   periodStart: string
   periodEnd: string
+  /** 오더 스냅샷용: 1차 드로워 재고 시계열 */
+  stockTrend: ProductStockTrendPoint[]
+  /** 오더 스냅샷용: 월간 포캐스트 개월 수 */
+  forecastMonths: number
   pageName?: string
 }
 
@@ -50,30 +55,43 @@ function buildDefaultLeadTimeDates() {
   return { start, end }
 }
 
-export function ProductSecondaryPanel({ primary, secondary, periodStart, periodEnd, pageName = 'ProductSecondaryPanel' }: Props) {
+export function ProductSecondaryPanel({
+  primary,
+  secondary,
+  periodStart,
+  periodEnd,
+  stockTrend,
+  forecastMonths,
+  pageName = 'ProductSecondaryPanel',
+}: Props) {
   const defaultLeadTime = useMemo(() => buildDefaultLeadTimeDates(), [])
   const confirmOrderHelpId = useId()
   const forecastQtyCalcHelpId = useId()
   const totalOrderBalanceHelpId = useId()
   const expectedInboundOrderBalanceHelpId = useId()
   const sizeRecQtyHelpId = useId()
-  const periodMeanColumnHelpId = useId()
+  const salesForecastSizeOrderHelpId = useId()
+  const snapshotTestTitleId = useId()
   const portalHelp = usePortalHelpPopover<SecondaryHelpId>()
   const [competitorChannels, setCompetitorChannels] = useState<SecondaryCompetitorChannel[]>([])
   const [channelId, setChannelId] = useState('')
-  const [minOpMarginPct, setMinOpMarginPct] = useState(0)
-  const [safetyStockMode, setSafetyStockMode] = useState<'manual' | 'formula'>('formula')
-  const [manualSafetyStock, setManualSafetyStock] = useState(0)
-  /** null: API(목) 트렌드 μ 사용. 숫자: 백업 UI에서 지정한 μ로 재요청 */
+  const [safetyStockMode] = useState<'manual' | 'formula'>('formula')
+  const [manualSafetyStock] = useState(0)
+  /** null: 예측 수량연산용 μ는 클라이언트 가중모형값. 숫자면 해당 값으로 덮어씀. */
   const [dailyMeanClient, setDailyMeanClient] = useState<number | null>(null)
-  const [serviceLevelPct, setServiceLevelPct] = useState(95)
+  const [serviceLevelPct] = useState(95)
   const [leadTimeStartDate, setLeadTimeStartDate] = useState(defaultLeadTime.start)
   const [leadTimeEndDate, setLeadTimeEndDate] = useState(defaultLeadTime.end)
   const [bufferStock, setBufferStock] = useState(0)
+  const [unitCostInput, setUnitCostInput] = useState(Math.max(0, Math.round(primary.price * 0.78)))
+  const [unitPriceInput, setUnitPriceInput] = useState(Math.max(0, Math.round(primary.price)))
+  const [expectedFeeRatePct, setExpectedFeeRatePct] = useState(13)
   const [llmPrompt, setLlmPrompt] = useState('')
   const [llmAnswer, setLlmAnswer] = useState('')
   const [llmLoading, setLlmLoading] = useState(false)
   const [selfWeightPct, setSelfWeightPct] = useState(50)
+  /** 사이즈별 오더 표의 판매 예측에 사용할 지표(판매 예측 표 헤더 라디오와 동기화). */
+  const [sizeForecastSource] = useState<'forecastQty'>('forecastQty')
   const [confirmBySize, setConfirmBySize] = useState<Record<string, number>>({})
   const dailyTrendReqSeqRef = useRef(0)
   const [forecastCalc, setForecastCalc] = useState<SecondaryForecastCalc | null>(null)
@@ -81,6 +99,17 @@ export function ProductSecondaryPanel({ primary, secondary, periodStart, periodE
   const [forecastCalcError, setForecastCalcError] = useState<ApiUnitErrorInfo | null>(null)
   const [dailyTrendError, setDailyTrendError] = useState<ApiUnitErrorInfo | null>(null)
   const [llmError, setLlmError] = useState<ApiUnitErrorInfo | null>(null)
+  /** [테스트] 오더 확정 시 저장 페이로드 JSON 미리보기 */
+  const [testSnapshotJson, setTestSnapshotJson] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (testSnapshotJson == null) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setTestSnapshotJson(null)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [testSnapshotJson])
 
   const makeApiErrorInfo = useCallback((request: string, err: unknown): ApiUnitErrorInfo => ({
     checkedAt: new Date().toISOString(),
@@ -88,6 +117,8 @@ export function ProductSecondaryPanel({ primary, secondary, periodStart, periodE
     request,
     error: err instanceof Error ? err.message : String(err),
   }), [pageName])
+
+  const minOrderDate = toIsoDateLocal(new Date())
 
   const channel = useMemo<SecondaryCompetitorChannel>(
     () =>
@@ -121,8 +152,6 @@ export function ProductSecondaryPanel({ primary, secondary, periodStart, periodE
   const selfCol = useMemo(() => buildSalesKpiColumn('self', primary, secondary, channel), [primary, secondary, channel])
   const compCol = useMemo(() => buildSalesKpiColumn('competitor', primary, secondary, channel), [primary, secondary, channel])
 
-  const filterOk = selfCol.opMarginRatePct >= minOpMarginPct
-
   const selectedStart = normalizeMonthKey(periodStart)
   const selectedEnd = normalizeMonthKey(periodEnd)
 
@@ -130,15 +159,66 @@ export function ProductSecondaryPanel({ primary, secondary, periodStart, periodE
     setDailyMeanClient(null)
   }, [primary.id, selectedEnd, selectedStart])
 
+  useEffect(() => {
+    setUnitCostInput(Math.max(0, Math.round(selfCol.avgCost)))
+    setUnitPriceInput(Math.max(0, Math.round(selfCol.avgPrice)))
+    setExpectedFeeRatePct(Math.max(0, Math.round(selfCol.feeRatePct * 10) / 10))
+  }, [primary.id, selfCol.avgCost, selfCol.avgPrice, selfCol.feeRatePct])
+
+  useEffect(() => {
+    setLeadTimeStartDate((s) => (s < minOrderDate ? minOrderDate : s))
+  }, [minOrderDate, primary.id])
+
+  useEffect(() => {
+    setLeadTimeEndDate((e) => (e < leadTimeStartDate ? leadTimeStartDate : e))
+  }, [leadTimeStartDate])
+
   const leadTimeDays = useMemo(
     () => daysInclusiveBetween(leadTimeStartDate, leadTimeEndDate),
     [leadTimeEndDate, leadTimeStartDate],
   )
 
+  /** 오늘 ~ 금번 오더 입고일(리드타임 시작일) 양끝 포함 일수(과거 입고일이면 0). */
+  const daysUntilCurrentOrderInbound = useMemo(
+    () => daysFromTodayThroughInclusive(leadTimeStartDate),
+    [leadTimeStartDate],
+  )
+
+  /** 사이즈별 판매예측(EA) 구간 일수: 오늘~금번 오더 입고일(양끝 포함). 차기 입고일은 쓰지 않음. */
+  const forecastSalesHorizonDays = daysUntilCurrentOrderInbound
+
+  const clientStock = useMemo(
+    () =>
+      computeClientStockOrder({
+        monthlySalesTrend: primary.monthlySalesTrend,
+        periodStart: selectedStart,
+        periodEnd: selectedEnd,
+        serviceLevelPct,
+        leadTimeDays,
+        safetyStockMode,
+        manualSafetyStock: Math.max(0, Math.round(manualSafetyStock)),
+        dailyMeanClient,
+        availableStock: primary.availableStock,
+        price: primary.price,
+      }),
+    [
+      primary.monthlySalesTrend,
+      primary.availableStock,
+      primary.price,
+      selectedStart,
+      selectedEnd,
+      serviceLevelPct,
+      leadTimeDays,
+      safetyStockMode,
+      manualSafetyStock,
+      dailyMeanClient,
+    ],
+  )
+
   const forecastInputs: SecondaryForecastInputs = {
-    trendDailyMean: forecastCalc?.trendDailyMean ?? 0,
-    dailyMean: dailyMeanClient ?? forecastCalc?.dailyMean ?? 0,
-    sigma: forecastCalc?.sigma ?? 0,
+    trendDailyMean: clientStock.trendDailyMean,
+    dailyMean: dailyMeanClient ?? clientStock.forecastDailyMean,
+    sigma: clientStock.sigma,
     serviceLevelPct,
     leadTimeStartDate,
     leadTimeEndDate,
@@ -146,26 +226,18 @@ export function ProductSecondaryPanel({ primary, secondary, periodStart, periodE
     safetyStockMode,
     manualSafetyStock: Math.max(0, Math.round(manualSafetyStock)),
   }
-  const forecastDerived: SecondaryForecastDerived = forecastCalc
-    ? {
-        safetyStock: forecastCalc.safetyStockCalc.safetyStock,
-        recommendedOrderQty: forecastCalc.safetyStockCalc.recommendedOrderQty,
-        expectedOrderAmount: forecastCalc.safetyStockCalc.expectedOrderAmount,
-        expectedSalesAmount: forecastCalc.safetyStockCalc.expectedSalesAmount,
-        expectedOpProfit: forecastCalc.safetyStockCalc.expectedOpProfit,
-      }
-    : {
-        safetyStock: 0,
-        recommendedOrderQty: 0,
-        expectedOrderAmount: 0,
-        expectedSalesAmount: 0,
-        expectedOpProfit: 0,
-      }
+  const forecastDerived: SecondaryForecastDerived = {
+    safetyStock: clientStock.safetyStock,
+    recommendedOrderQty: clientStock.safetyRecQty,
+    expectedOrderAmount: clientStock.safetyExpectedOrderAmount,
+    expectedSalesAmount: clientStock.safetyExpectedSalesAmount,
+    expectedOpProfit: clientStock.safetyExpectedOpProfit,
+  }
 
-  const forecastOrderQtyTotal = forecastCalc?.forecastQtyCalc.recommendedOrderQty ?? 0
   const currentStockBySize = forecastCalc?.display.currentStockQtyBySize ?? []
   const expectedInboundBySize = forecastCalc?.display.expectedInboundOrderBalanceBySize ?? []
 
+  /** 재고·오더잔량 등 `display`만 사용. 판매예측·추천수량·표 금액은 `clientStock` 연산. */
   useEffect(() => {
     let alive = true
     void (async () => {
@@ -220,7 +292,13 @@ export function ProductSecondaryPanel({ primary, secondary, periodStart, periodE
       const selfShare = sSum > 0 ? (r.ratio / sSum) * 100 : 0
       const compShare = cSum > 0 ? (r.competitorRatio / cSum) * 100 : 0
       const blended = selfShare * wSelf + compShare * wComp
-      return { size: r.size, selfSharePct: selfShare, competitorSharePct: compShare, blendedRaw: blended }
+      return {
+        size: r.size,
+        selfSharePct: selfShare,
+        competitorSharePct: compShare,
+        blendedRaw: blended,
+        avgPrice: r.avgPrice,
+      }
     })
     const blendSum = raw.reduce((a, r) => a + r.blendedRaw, 0) || 1
     return raw.map((r) => ({
@@ -228,19 +306,35 @@ export function ProductSecondaryPanel({ primary, secondary, periodStart, periodE
       selfSharePct: r.selfSharePct,
       competitorSharePct: r.competitorSharePct,
       blendedSharePct: (r.blendedRaw / blendSum) * 100,
+      avgPrice: r.avgPrice,
     }))
   }, [primary, secondary, selfWeightPct])
 
   const sizeRows = useMemo(() => {
+    const dailyMeanEa = dailyMeanClient ?? clientStock.forecastMuRaw
+    const totalQtyWindow = dailyMeanEa * forecastSalesHorizonDays
+
     return sizeAgg.map((row, i) => {
-      const forecastQty = Math.round((forecastOrderQtyTotal * row.blendedSharePct) / 100)
+      const forecastQty = Math.ceil((totalQtyWindow * row.blendedSharePct) / 100)
+      /** 여유재고는 일수(일분) — EA로 환산: 일평균 기대 × 일수 × 사이즈비중, 판매예측과 동일하게 ceil */
+      const bufferQtyEa = Math.ceil((dailyMeanEa * bufferStock * row.blendedSharePct) / 100)
       const stock = currentStockBySize[i] ?? 0
       const inbound = expectedInboundBySize[i] ?? 0
-      const recommendedQty = Math.max(0, Math.round(forecastQty - stock - inbound + bufferStock))
+      const recommendedQty = Math.max(0, Math.round(forecastQty - stock - inbound + bufferQtyEa))
       const confirmQty = confirmBySize[row.size] ?? recommendedQty
       return { ...row, forecastQty, recommendedQty, confirmQty }
     })
-  }, [sizeAgg, forecastOrderQtyTotal, currentStockBySize, expectedInboundBySize, bufferStock, confirmBySize])
+  }, [
+    sizeAgg,
+    clientStock.trendMuRaw,
+    clientStock.forecastMuRaw,
+    dailyMeanClient,
+    forecastSalesHorizonDays,
+    currentStockBySize,
+    expectedInboundBySize,
+    bufferStock,
+    confirmBySize,
+  ])
 
   const [dailyTrendSeries, setDailyTrendSeries] = useState<Array<{
     idx: number
@@ -249,6 +343,8 @@ export function ProductSecondaryPanel({ primary, secondary, periodStart, periodE
     sales: number
     stockBar: number
     inboundAccumBar: number
+    selfSalesNorm: number | null
+    competitorSalesNorm: number | null
     isForecast: boolean
   }>>([])
 
@@ -301,11 +397,17 @@ export function ProductSecondaryPanel({ primary, secondary, periodStart, periodE
     return ticks
   }, [dailyTrendSeries])
 
-  const applyRecommended = useCallback(() => {
-    const next: Record<string, number> = {}
-    for (const r of sizeRows) next[r.size] = r.recommendedQty
-    setConfirmBySize(next)
-  }, [sizeRows])
+  /** 일간 판매추이 사이즈 선택 — API는 상품 합계만 주고, 비중으로 스케일 */
+  const dailyTrendSizeOptions = useMemo(() => {
+    const mix = primary.sizeMix
+    if (!mix.length) return []
+    const sum = mix.reduce((a, r) => a + r.ratio, 0) || 1
+    return mix.map((r) => ({
+      id: r.size,
+      label: r.size,
+      share: r.ratio / sum,
+    }))
+  }, [primary.sizeMix])
 
   const sendLlm = useCallback(async () => {
     setLlmLoading(true)
@@ -326,40 +428,62 @@ export function ProductSecondaryPanel({ primary, secondary, periodStart, periodE
   }, [llmPrompt, makeApiErrorInfo, primary.id])
 
   const confirmOrder = useCallback(() => {
-    if (!filterOk) return
-    const snap: SecondaryOrderSnapshot = {
-      snapshotId: crypto.randomUUID(),
+    const snap: OrderSnapshotDocumentV1 = {
+      schemaVersion: ORDER_SNAPSHOT_SCHEMA_VERSION,
       productId: primary.id,
       savedAt: new Date().toISOString(),
-      periodStart,
-      periodEnd,
-      competitorChannelId: channelId,
-      minOpMarginPct,
-      salesSelf: selfCol,
-      salesCompetitor: compCol,
-      stockInputs: forecastInputs,
-      stockDerived: forecastDerived,
-      llmPrompt,
-      llmAnswer,
-      selfWeightPct,
-      sizeRows: sizeRows.map((r) => ({
-        size: r.size,
-        selfSharePct: r.selfSharePct,
-        competitorSharePct: r.competitorSharePct,
-        blendedSharePct: r.blendedSharePct,
-        forecastQty: r.forecastQty,
-        recommendedQty: r.recommendedQty,
-        confirmQty: r.confirmQty,
-      })),
+      context: {
+        periodStart,
+        periodEnd,
+        forecastMonths,
+      },
+      drawer1: {
+        summary: primary,
+        stockTrend,
+      },
+      drawer2: {
+        secondary,
+        competitorChannelId: channelId,
+        competitorChannelLabel: channel.label,
+        minOpMarginPct: null,
+        salesSelf: selfCol,
+        salesCompetitor: compCol,
+        stockInputs: forecastInputs,
+        stockDerived: forecastDerived,
+        selfWeightPct,
+        sizeForecastSource,
+        bufferStock,
+        llmPrompt,
+        llmAnswer,
+        sizeRows: sizeRows.map((r) => ({
+          size: r.size,
+          selfSharePct: r.selfSharePct,
+          competitorSharePct: r.competitorSharePct,
+          blendedSharePct: r.blendedSharePct,
+          forecastQty: r.forecastQty,
+          recommendedQty: r.recommendedQty,
+          confirmQty: r.confirmQty,
+        })),
+      },
+      dailyTrend: {
+        params: {
+          startMonth: selectedStart,
+          leadTimeDays,
+        },
+        series: dailyTrendSeries,
+      },
     }
     void dashboardApi.saveSecondaryOrderSnapshot(snap)
+    setTestSnapshotJson(JSON.stringify(snap, null, 2))
   }, [
-    filterOk,
-    primary.id,
+    primary,
+    stockTrend,
     periodStart,
     periodEnd,
+    forecastMonths,
+    secondary,
     channelId,
-    minOpMarginPct,
+    channel.label,
     selfCol,
     compCol,
     forecastInputs,
@@ -367,11 +491,29 @@ export function ProductSecondaryPanel({ primary, secondary, periodStart, periodE
     llmPrompt,
     llmAnswer,
     selfWeightPct,
+    sizeForecastSource,
+    bufferStock,
     sizeRows,
+    selectedStart,
+    leadTimeDays,
+    dailyTrendSeries,
   ])
 
-  const warnMsg =
-    `${KO.warnSelfMarginPrefix} ${pct(selfCol.opMarginRatePct)}${KO.warnSelfMarginMid}${pct(minOpMarginPct)}${KO.warnSelfMarginSuffix}`
+  const recommendedQtyTotal = useMemo(
+    () => sizeRows.reduce((acc, r) => acc + Math.max(0, Math.round(r.recommendedQty)), 0),
+    [sizeRows],
+  )
+  const confirmedQtyTotal = useMemo(
+    () => sizeRows.reduce((acc, r) => acc + Math.max(0, Math.round(r.confirmQty)), 0),
+    [sizeRows],
+  )
+  const perUnitFee = Math.round((unitPriceInput * expectedFeeRatePct) / 100)
+  const perUnitOpMargin = unitPriceInput - unitCostInput - perUnitFee
+  /** 예상 열 금액·이익은 추천 수량 합 × 카드 입력 단가·원가·수수료와 동일 규칙 */
+  const forecastExpectedSalesFromRec = recommendedQtyTotal * unitPriceInput
+  const forecastOpProfitFromRec = recommendedQtyTotal * perUnitOpMargin
+  const confirmedExpectedSales = confirmedQtyTotal * unitPriceInput
+  const confirmedExpectedOpProfit = confirmedQtyTotal * perUnitOpMargin
 
   const getHelpTooltipId = (id: SecondaryHelpId) => {
     switch (id) {
@@ -385,16 +527,13 @@ export function ProductSecondaryPanel({ primary, secondary, periodStart, periodE
         return expectedInboundOrderBalanceHelpId
       case 'sizeRecQty':
         return sizeRecQtyHelpId
-      case 'stockCalcColumn':
-        return periodMeanColumnHelpId
+      case 'salesForecastSizeOrder':
+        return salesForecastSizeOrderHelpId
     }
   }
 
   return (
     <div className={styles.panel}>
-      {!filterOk && (
-        <div className={styles.warn}>{warnMsg}</div>
-      )}
       <div className={styles.metaFilterRow}>
         <ComponentErrorBoundary page={pageName} unit="ProductMetaCard">
           <ProductMetaCard primary={primary} />
@@ -403,13 +542,11 @@ export function ProductSecondaryPanel({ primary, secondary, periodStart, periodE
           <ProductFilterCard
             filter={{
               channelId,
-              minOpMarginPct,
               competitorChannels,
               error: channelsError,
             }}
             actions={{
               onChannelChange: setChannelId,
-              onMinOpMarginPctChange: setMinOpMarginPct,
             }}
           />
         </ComponentErrorBoundary>
@@ -429,12 +566,43 @@ export function ProductSecondaryPanel({ primary, secondary, periodStart, periodE
           <SalesForecastCard
             forecast={{
               inputs: forecastInputs,
-              calc: forecastCalc,
               error: forecastCalcError,
+              computed: {
+                recommendedOrderQtyTotal: recommendedQtyTotal,
+                confirmedOrderQtyTotal: confirmedQtyTotal,
+                forecastExpectedSales: forecastExpectedSalesFromRec,
+                forecastOpProfit: forecastOpProfitFromRec,
+                confirmedExpectedSales,
+                confirmedOpProfit: confirmedExpectedOpProfit,
+              },
+            }}
+            orderSettings={{
+              currentOrderDate: leadTimeStartDate,
+              nextOrderDate: leadTimeEndDate,
+              minOrderDate,
+              bufferStock,
+              unitCost: unitCostInput,
+              unitPrice: unitPriceInput,
+              expectedFeeRatePct,
+            }}
+            actions={{
+              onCurrentOrderDateChange: (next) => {
+                const v = next < minOrderDate ? minOrderDate : next
+                setLeadTimeStartDate(v)
+                setLeadTimeEndDate((e) => (e < v ? v : e))
+              },
+              onNextOrderDateChange: (next) => {
+                let v = next < minOrderDate ? minOrderDate : next
+                if (v < leadTimeStartDate) v = leadTimeStartDate
+                setLeadTimeEndDate(v)
+              },
+              onBufferStockChange: setBufferStock,
+              onUnitCostChange: setUnitCostInput,
+              onUnitPriceChange: setUnitPriceInput,
+              onExpectedFeeRatePctChange: setExpectedFeeRatePct,
             }}
             help={{
               labelIds: {
-                periodMeanColumn: periodMeanColumnHelpId,
                 forecastQtyCalc: forecastQtyCalcHelpId,
               },
               portal: portalHelp,
@@ -459,6 +627,9 @@ export function ProductSecondaryPanel({ primary, secondary, periodStart, periodE
 
       <ComponentErrorBoundary page={pageName} unit="SalesTrendDailyCard">
         <SalesTrendDailyCard
+          productId={primary.id}
+          competitorChannelLabel={channel.label}
+          sizeOptions={dailyTrendSizeOptions}
           trend={{
             series: dailyTrendSeries,
             tickIndices: dailyTickIndices,
@@ -474,32 +645,26 @@ export function ProductSecondaryPanel({ primary, secondary, periodStart, periodE
           sizeOrder={{
             channelLabel: channel.label,
             selfWeightPct,
-            currentOrderDate: leadTimeStartDate,
-            nextOrderDate: leadTimeEndDate,
-            bufferStock,
             sizeRows,
             confirmOrderHelpId,
             totalOrderBalanceHelpId,
             expectedInboundOrderBalanceHelpId,
             sizeRecQtyHelpId,
+            salesForecastHelpId: salesForecastSizeOrderHelpId,
             currentStockQty: forecastCalc?.display.currentStockQtyTotal ?? 0,
             totalOrderBalanceQty: forecastCalc?.display.totalOrderBalanceTotal ?? 0,
             expectedInboundOrderBalanceQty: forecastCalc?.display.expectedInboundOrderBalanceTotal ?? 0,
             currentStockQtyBySize: forecastCalc?.display.currentStockQtyBySize ?? [],
             totalOrderBalanceBySize: forecastCalc?.display.totalOrderBalanceBySize ?? [],
             expectedInboundOrderBalanceBySize: forecastCalc?.display.expectedInboundOrderBalanceBySize ?? [],
-            filterOk,
           }}
           actions={{
             onSelfWeightPctChange: setSelfWeightPct,
-            onCurrentOrderDateChange: setLeadTimeStartDate,
-            onNextOrderDateChange: setLeadTimeEndDate,
-            onBufferStockChange: setBufferStock,
             onConfirmQtyChange: (size, next) => setConfirmBySize((prev) => ({
               ...prev,
               [size]: Math.max(0, Math.round(next || 0)),
             })),
-            onApplyRecommended: applyRecommended,
+            onApplyRecommended: setConfirmBySize,
             onConfirmOrder: confirmOrder,
           }}
           help={portalHelp}
@@ -527,12 +692,48 @@ export function ProductSecondaryPanel({ primary, secondary, periodStart, periodE
             {hid === 'sizeRecQty' && (
               <p>{KO.helpSizeRecQty}</p>
             )}
-            {hid === 'stockCalcColumn' && (
-              <p>{KO.helpStockCalcColumn}</p>
+            {hid === 'salesForecastSizeOrder' && (
+              <p>{KO.helpSalesForecastSizeOrder}</p>
             )}
           </>
         )}
       </PortalHelpPopoverLayer>
+      {testSnapshotJson != null &&
+        createPortal(
+          <div
+            className={styles.snapshotTestBackdrop}
+            role="presentation"
+            onClick={() => setTestSnapshotJson(null)}
+          >
+            <div
+              className={styles.snapshotTestDialog}
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby={snapshotTestTitleId}
+              tabIndex={-1}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className={styles.snapshotTestBadgeRow}>
+                <span className={styles.snapshotTestBadge}>{KO.snapshotTestBadge}</span>
+                <span className={styles.snapshotTestNote}>{KO.snapshotTestNote}</span>
+              </div>
+              <h4 id={snapshotTestTitleId} className={styles.snapshotTestTitle}>
+                {KO.snapshotTestTitle}
+              </h4>
+              <pre className={styles.snapshotTestPre}>{testSnapshotJson}</pre>
+              <div className={styles.snapshotTestActions}>
+                <button
+                  type="button"
+                  className={styles.btn}
+                  onClick={() => setTestSnapshotJson(null)}
+                >
+                  {KO.btnSnapshotTestOk}
+                </button>
+              </div>
+            </div>
+          </div>,
+          document.body,
+        )}
     </div>
   )
 }

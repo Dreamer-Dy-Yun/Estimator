@@ -22,29 +22,24 @@ type Props = {
   sizeOrder: {
     channelLabel: string
     selfWeightPct: number
-    currentOrderDate: string
-    nextOrderDate: string
-    bufferStock: number
     sizeRows: SizeRow[]
     confirmOrderHelpId: string
     totalOrderBalanceHelpId: string
     expectedInboundOrderBalanceHelpId: string
     sizeRecQtyHelpId: string
+    salesForecastHelpId: string
     currentStockQty: number
     totalOrderBalanceQty: number
     expectedInboundOrderBalanceQty: number
     currentStockQtyBySize: number[]
     totalOrderBalanceBySize: number[]
     expectedInboundOrderBalanceBySize: number[]
-    filterOk: boolean
   }
   actions: {
     onSelfWeightPctChange: (next: number) => void
-    onCurrentOrderDateChange: (next: string) => void
-    onNextOrderDateChange: (next: string) => void
-    onBufferStockChange: (next: number) => void
     onConfirmQtyChange: (size: string, next: number) => void
-    onApplyRecommended: () => void
+    /** 사이즈별 추천 수량을 확정 수량에 그대로 반영할 때 전달 */
+    onApplyRecommended: (recommendedBySize: Record<string, number>) => void
     onConfirmOrder: () => void
   }
   help: ReturnType<typeof usePortalHelpPopover<SecondaryHelpId>>
@@ -59,21 +54,18 @@ export function SizeOrderCard({ sizeOrder, actions, help }: Props) {
   const {
     channelLabel,
     selfWeightPct,
-    currentOrderDate,
-    nextOrderDate,
-    bufferStock,
     sizeRows,
     confirmOrderHelpId,
     totalOrderBalanceHelpId,
     expectedInboundOrderBalanceHelpId,
     sizeRecQtyHelpId,
+    salesForecastHelpId,
     currentStockQty,
     totalOrderBalanceQty,
     expectedInboundOrderBalanceQty,
     currentStockQtyBySize,
     totalOrderBalanceBySize,
     expectedInboundOrderBalanceBySize,
-    filterOk,
   } = sizeOrder
   const tableRef = useRef<HTMLTableElement | null>(null)
   const chartCellRef = useRef<HTMLTableCellElement | null>(null)
@@ -229,43 +221,6 @@ export function SizeOrderCard({ sizeOrder, actions, help }: Props) {
             {channelLabel} {KO.competitorWeightApprox}
           </span>
         </div>
-        <div className={styles.sliderDateStack}>
-          <div className={styles.sliderDateItem}>
-            <span className={styles.sliderDateLabel}>{KO.labelBufferStock}</span>
-            <span className={styles.sliderDateValueField}>
-              <input
-                type="number"
-                className={`${styles.stockNumberInput} ${styles.sliderDateInput}`}
-                min={0}
-                step={1}
-                value={bufferStock}
-                onChange={(e) => actions.onBufferStockChange(Math.max(0, Number(e.target.value) || 0))}
-                aria-label={KO.labelBufferStock}
-              />
-              <span className={styles.inlineUnit}>{KO.unitBufferStockDays}</span>
-            </span>
-          </div>
-          <div className={styles.sliderDateItem}>
-            <span className={styles.sliderDateLabel}>{KO.labelCurrentOrderDate}</span>
-            <input
-              type="date"
-              className={`${styles.stockDateInput} ${styles.sliderDateInput}`}
-              value={currentOrderDate}
-              onChange={(e) => actions.onCurrentOrderDateChange(e.target.value)}
-              aria-label={KO.labelCurrentOrderDate}
-            />
-          </div>
-          <div className={styles.sliderDateItem}>
-            <span className={styles.sliderDateLabel}>{KO.labelNextOrderDate}</span>
-            <input
-              type="date"
-              className={`${styles.stockDateInput} ${styles.sliderDateInput}`}
-              value={nextOrderDate}
-              onChange={(e) => actions.onNextOrderDateChange(e.target.value)}
-              aria-label={KO.labelNextOrderDate}
-            />
-          </div>
-        </div>
       </div>
 
       <div className={styles.sizeOrderTableWrap}>
@@ -388,7 +343,18 @@ export function SizeOrderCard({ sizeOrder, actions, help }: Props) {
               ))}
             </tr>
             <tr>
-              <td>{KO.rowSalesForecast}</td>
+              <td>
+                <span className={commonStyles.cardTitleWithHelp}>
+                  {KO.rowSalesForecast}
+                  <PortalHelpMark
+                    helpId="salesForecastSizeOrder"
+                    placement="above"
+                    labelId={salesForecastHelpId}
+                    markClassName={commonStyles.helpMark}
+                    help={help}
+                  />
+                </span>
+              </td>
               <td className={styles.num}>{c(columnTotals.forecast)}</td>
               {sizeRows.map((r) => (
                 <td key={r.size} className={styles.num}>{c(r.forecastQty)}</td>
@@ -433,7 +399,17 @@ export function SizeOrderCard({ sizeOrder, actions, help }: Props) {
       </div>
 
       <div style={{ marginTop: 8, display: 'flex', gap: 8 }}>
-        <button type="button" className={`${styles.btn} ${styles.btnSecondary}`} onClick={actions.onApplyRecommended}>
+        <button
+          type="button"
+          className={`${styles.btn} ${styles.btnSecondary}`}
+          onClick={() => {
+            const next: Record<string, number> = {}
+            for (const r of sizeRows) {
+              next[r.size] = Math.max(0, Math.round(r.recommendedQty))
+            }
+            actions.onApplyRecommended(next)
+          }}
+        >
           {KO.btnApplyRec}
         </button>
         <span
@@ -446,7 +422,6 @@ export function SizeOrderCard({ sizeOrder, actions, help }: Props) {
             type="button"
             className={styles.btn}
             onClick={actions.onConfirmOrder}
-            disabled={!filterOk}
             onFocus={() => help.open('confirmOrder', 'above')}
             onBlur={help.scheduleClose}
             aria-describedby={help.activeId === 'confirmOrder' ? confirmOrderHelpId : undefined}

@@ -15,10 +15,12 @@ import { KpiGrid } from '../components/KpiGrid'
 import { PageHeader } from '../components/PageHeader'
 import { useProductDrawerBundle } from '../hooks/useProductDrawerBundle'
 
-type ScatterPoint = {
+type QtyScatterPoint = {
   x: number
   y: number
   brand: string
+  category: string
+  productCode: string
   name: string
 }
 
@@ -131,6 +133,9 @@ export const CompetitorPage = () => {
     () => ['전체', ...channels.map((ch) => ch.label)],
     [channels],
   )
+  const competitorTooltipLabel = competitorChannelLabel === '전체'
+    ? '전체 경쟁사'
+    : competitorChannelLabel
 
   const kpi = useMemo(() => {
     const totalCompetitor = rows.reduce((acc, row) => acc + row.competitorAmount, 0)
@@ -144,22 +149,21 @@ export const CompetitorPage = () => {
     return { totalCompetitor, avgGapRate }
   }, [rows])
 
-  const scatterData: ScatterPoint[] = useMemo(
-    () => rows.map((r) => {
-      const gapPct = r.selfAmount != null
-        ? ((r.competitorAmount - r.selfAmount) / r.competitorAmount) * 100
-        : 100
-      return {
-        x: gapPct,
-        y: Math.round(r.competitorAmount / 1000000),
+  const qtyScatterData: QtyScatterPoint[] = useMemo(
+    () => rows
+      .filter((r) => r.selfQty != null)
+      .map((r) => ({
+        x: r.competitorQty,
+        y: r.selfQty ?? 0,
         brand: r.brand,
+        category: r.category,
+        productCode: r.productCode,
         name: r.name,
-      }
-    }),
+      })),
     [rows],
   )
 
-  const renderScatterTooltip = (props: { active?: boolean; payload?: ReadonlyArray<{ payload?: ScatterPoint }> }) => {
+  const renderQtyScatterTooltip = (props: { active?: boolean; payload?: ReadonlyArray<{ payload?: QtyScatterPoint }> }) => {
     const { active, payload } = props
     if (!active || !payload?.length) return null
     const point = payload[0]?.payload
@@ -168,9 +172,16 @@ export const CompetitorPage = () => {
     return (
       <div className={styles.chartTooltip}>
         <div className={styles.chartTooltipTitle}>{point.brand}</div>
-        <div className={styles.chartTooltipText}>{point.name}</div>
-        <div className={styles.chartTooltipText}>자사 대비 갭률: {pct(point.x)}</div>
-        <div className={styles.chartTooltipText}>경쟁 판매액: {point.y}백만</div>
+        <div className={styles.chartTooltipText}>{point.category} · {point.name}</div>
+        <div className={styles.chartTooltipText}>코드: {point.productCode}</div>
+        <div className={styles.chartTooltipText}>
+          {competitorTooltipLabel} 판매량:{' '}
+          <span style={{ color: '#ef4444', fontWeight: 600 }}>{c(point.x)} EA</span>
+        </div>
+        <div className={styles.chartTooltipText}>
+          자사 판매량:{' '}
+          <span style={{ color: '#2563eb', fontWeight: 600 }}>{c(point.y)} EA</span>
+        </div>
       </div>
     )
   }
@@ -245,21 +256,21 @@ export const CompetitorPage = () => {
             ]}
           />
 
-          <ChartCard title="경쟁 대비 갭" className={styles.selfChartCard}>
+          <ChartCard title="경쟁·자사 판매량 비교" className={styles.selfChartCard}>
             <div className={styles.selfChartBody}>
               <ResponsiveContainer width="100%" height="100%">
-                <ScatterChart data={scatterData}>
+                <ScatterChart data={qtyScatterData}>
                   <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis type="number" dataKey="x" name="갭률" unit="%" tick={{ fontSize: 10 }} />
+                  <XAxis type="number" dataKey="x" name="경쟁사 판매량(EA)" tick={{ fontSize: 10 }} />
                   <YAxis
                     type="number"
                     dataKey="y"
-                    name="경쟁 Net (백만)"
+                    name="자사 판매량(EA)"
                     tick={{ fontSize: 10 }}
                     width={30}
                     tickMargin={4}
                   />
-                  <Tooltip content={renderScatterTooltip} />
+                  <Tooltip content={renderQtyScatterTooltip} />
                   <Scatter fill="#3b82f6" />
                 </ScatterChart>
               </ResponsiveContainer>

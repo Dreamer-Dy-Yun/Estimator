@@ -9,6 +9,7 @@ export type TrendLineSeries = {
   dataKey: string
   stroke: string
   strokeDasharray?: string
+  connectNulls?: boolean
 }
 
 export type TrendBarSeries = {
@@ -184,6 +185,8 @@ export function SalesTrendChart({
             strokeDasharray={line.strokeDasharray}
             strokeWidth={1.5}
             dot={false}
+            connectNulls={line.connectNulls ?? false}
+            isAnimationActive={false}
           />
         ))}
       </ComposedChart>

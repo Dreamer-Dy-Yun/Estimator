@@ -11,6 +11,7 @@ import type {
   SecondaryDailyTrendParams,
   SecondaryDailyTrendPoint,
   SecondaryLlmAnswerParams,
+  ProductSecondaryDetailParams,
   SecondaryOrderSnapshotPayload,
   CompetitorSalesParams,
   SelfSalesFilterMeta,
@@ -40,8 +41,11 @@ export async function getProductDrawerBundle(
   return mockDashboardApi.getProductDrawerBundle(id, params)
 }
 
-export async function getProductSecondaryDetail(id: string): Promise<ProductSecondaryDetail> {
-  return mockDashboardApi.getProductSecondaryDetail(id)
+export async function getProductSecondaryDetail(
+  id: string,
+  params?: ProductSecondaryDetailParams,
+): Promise<ProductSecondaryDetail> {
+  return mockDashboardApi.getProductSecondaryDetail(id, params)
 }
 
 export async function getSecondaryDailyTrend(
@@ -64,6 +68,10 @@ export async function saveSecondaryOrderSnapshot(
   return mockDashboardApi.saveSecondaryOrderSnapshot(snapshot)
 }
 
+export async function getSecondaryOrderSnapshots(productId?: string): Promise<SecondaryOrderSnapshotPayload[]> {
+  return mockDashboardApi.getSecondaryOrderSnapshots(productId)
+}
+
 export async function getSecondaryStockOrderCalc(
   params: SecondaryStockOrderCalcParams,
 ): Promise<SecondaryStockOrderCalcResult> {
@@ -82,5 +90,6 @@ export const dashboardApi: DashboardApi = {
   getSecondaryCompetitorChannels,
   getSecondaryLlmAnswer,
   saveSecondaryOrderSnapshot,
+  getSecondaryOrderSnapshots,
   getSecondaryStockOrderCalc,
 }

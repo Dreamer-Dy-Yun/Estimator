@@ -4,6 +4,7 @@ export type {
   ProductDrawerBundle,
   ProductDrawerBundleParams,
   ProductSecondaryDetail,
+  ProductSecondaryDetailParams,
   SecondaryCompetitorChannel,
   SecondaryStockOrderCalcParams,
   SecondaryStockOrderCalcResult,
@@ -11,10 +12,13 @@ export type {
   SecondaryDailyTrendPoint,
   SecondaryLlmAnswerParams,
   SecondaryOrderSnapshotPayload,
+  OrderSnapshotDocumentV1,
   ProductStockTrendPoint,
   SelfSalesFilterMeta,
   SelfSalesParams,
 } from './types'
+export { ORDER_SNAPSHOT_SCHEMA_VERSION } from './types'
+export { DAILY_TREND_AS_OF_DATE } from './dailyTrendAsOf'
 export {
   dashboardApi,
   getCompetitorSales,
@@ -25,6 +29,7 @@ export {
   getSecondaryDailyTrend,
   getSecondaryStockOrderCalc,
   getSecondaryLlmAnswer,
+  getSecondaryOrderSnapshots,
   getSelfSales,
   getSelfSalesFilterMeta,
   saveSecondaryOrderSnapshot,

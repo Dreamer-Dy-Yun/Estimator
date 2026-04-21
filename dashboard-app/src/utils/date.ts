@@ -10,11 +10,32 @@ export const monthToEndDate = (month: string) => {
 
 export const dateToMonth = (date: string) => date.slice(0, 7)
 
-/** ISO 날짜 `YYYY-MM-DD` 양끝 포함 일수(유효하지 않으면 1). */
+/** `YYYY-MM` 달의 실제 일수(달력). */
+export function calendarDaysInMonth(yyyyMm: string): number {
+  const [y, m] = yyyyMm.split('-').map(Number)
+  if (!Number.isFinite(y) || !Number.isFinite(m)) return 30
+  return new Date(y, m, 0).getDate()
+}
+
+/** ISO 날짜 `YYYY-MM-DD` 양끝 포함 일수. 끝이 시작보다 이전이면 0. 파싱 실패 시 0. */
 export function daysInclusiveBetween(start: string, end: string): number {
   const s = new Date(`${start}T00:00:00`)
   const e = new Date(`${end}T00:00:00`)
-  if (Number.isNaN(s.getTime()) || Number.isNaN(e.getTime())) return 1
+  if (Number.isNaN(s.getTime()) || Number.isNaN(e.getTime())) return 0
   const diffDays = Math.floor((e.getTime() - s.getTime()) / 86400000) + 1
-  return Math.max(1, diffDays)
+  return Math.max(0, diffDays)
+}
+
+/**
+ * 오늘(로컬)부터 `endDate`까지 양끝 포함 일수.
+ * 입고일이 오늘 이전이면 0.
+ */
+export function daysFromTodayThroughInclusive(endDate: string): number {
+  const now = new Date()
+  const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+  const s = new Date(`${today}T00:00:00`)
+  const e = new Date(`${endDate}T00:00:00`)
+  if (Number.isNaN(s.getTime()) || Number.isNaN(e.getTime())) return 0
+  const diffDays = Math.floor((e.getTime() - s.getTime()) / 86400000) + 1
+  return Math.max(0, diffDays)
 }

@@ -7,8 +7,8 @@ import { dashboardApi } from '../../api'
 import type { ApiUnitErrorInfo, ProductPrimarySummary } from '../../types'
 import { c, pct, won } from '../../utils/format'
 import { PortalHelpMark, PortalHelpPopoverLayer } from './PortalHelpPopover'
-import { SalesTrendChart } from './SalesTrendChart'
-import { buildShadeRanges, normalizeMonthKey } from './trendRangeUtils'
+import { SalesTrendChart } from './trend/SalesTrendChart'
+import { buildShadeRanges, normalizeMonthKey } from './trend/trendRangeUtils'
 import { usePortalHelpPopover } from './usePortalHelpPopover'
 import { ProductSecondaryPanel } from './product-secondary/ProductSecondaryPanel'
 import styles from './common.module.css'
@@ -122,6 +122,7 @@ function ProductSummaryDrawerContent({
     error: err instanceof Error ? err.message : String(err),
   })
 
+  /** 2차 패널이 열릴 때만 로드. 필터(예: 영업이익률 하한)를 두면 `getProductSecondaryDetail` 두 번째 인자·이 effect deps에 포함해 재요청. */
   useEffect(() => {
     if (!expandPaneOpen) {
       setSecondaryDetail(null)
@@ -793,6 +794,8 @@ function ProductSummaryDrawerContent({
                 secondary={secondaryDetail}
                 periodStart={selectedStart}
                 periodEnd={selectedEnd}
+                stockTrend={stockTrend}
+                forecastMonths={forecastMonths}
                 pageName="ProductSummaryDrawer > ProductSecondaryPanel"
               />
             )

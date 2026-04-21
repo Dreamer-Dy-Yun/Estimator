@@ -25,7 +25,7 @@ export type SecondaryHelpId =
   | 'totalOrderBalance'
   | 'expectedInboundOrderBalance'
   | 'sizeRecQty'
-  | 'stockCalcColumn'
+  | 'salesForecastSizeOrder'
 
 /** `getSecondaryStockOrderCalc` 응답과 동일(단일 소스: `api/types/secondary`). */
 export type SecondaryForecastCalc = SecondaryStockOrderCalcResult
@@ -51,33 +51,3 @@ export type SecondaryForecastDerived = {
   expectedOpProfit: number
 }
 
-export type SecondaryOrderSnapshot = {
-  snapshotId: string
-  productId: string
-  savedAt: string
-  periodStart: string
-  periodEnd: string
-  competitorChannelId: string
-  minOpMarginPct: number
-  salesSelf: SalesKpiColumn
-  salesCompetitor: SalesKpiColumn
-  stockInputs: SecondaryForecastInputs
-  stockDerived: SecondaryForecastDerived
-  llmPrompt: string
-  llmAnswer: string
-  selfWeightPct: number
-  sizeRows: Array<{
-    size: string
-    selfSharePct: number
-    competitorSharePct: number
-    blendedSharePct: number
-    forecastQty: number
-    recommendedQty: number
-    confirmQty: number
-  }>
-}
-
-/** 호환 별칭(점진 정리용) */
-export type SecondaryStockCalc = SecondaryForecastCalc
-export type SecondaryStockInputs = SecondaryForecastInputs
-export type SecondaryStockDerived = SecondaryForecastDerived

@@ -48,7 +48,7 @@ export const OrderPage = () => {
         </ChartCard>
         <AnalysisList
           columns={[
-            { key: 'productCode', header: '프로덕트 코드', cell: (r) => r.productCode, sortValue: (r) => r.productCode },
+            { key: 'productCode', header: '상품 코드', cell: (r) => r.productCode, sortValue: (r) => r.productCode },
             { key: 'rq', header: '추천 오더량', cell: (r) => c(r.recommendedOrderQty), align: 'right', sortValue: (r) => r.recommendedOrderQty },
             { key: 'cq', header: '확정 오더량', cell: (r) => c(r.confirmedOrderQty), align: 'right', sortValue: (r) => r.confirmedOrderQty },
             { key: 'oa', header: '오더액', cell: (r) => won(r.orderAmount), align: 'right', sortValue: (r) => r.orderAmount },

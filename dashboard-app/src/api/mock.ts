@@ -9,6 +9,7 @@ import type {
 import type {
   CompetitorSalesParams,
   ProductDrawerBundleParams,
+  ProductSecondaryDetailParams,
   SecondaryCompetitorChannel,
   SecondaryStockOrderCalcParams,
   SecondaryStockOrderCalcResult,
@@ -17,6 +18,7 @@ import type {
   SecondaryLlmAnswerParams,
   SecondaryOrderSnapshotPayload,
 } from './types'
+import { DAILY_TREND_AS_OF_DATE } from './dailyTrendAsOf'
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
 const clamp = (v: number, min: number, max: number) => Math.max(min, Math.min(max, v))
@@ -340,7 +342,13 @@ const { primary: productPrimaryById, secondary: productSecondaryById } = (() => 
   return { primary, secondary }
 })()
 
-const stockTrendById: Record<string, Array<{ date: string; stock: number; inboundExpected: number; expectedInboundDate: string | null }>> = Object.fromEntries(allKnownProductIds.map((id) => {
+const stockTrendById: Record<string, Array<{
+  date: string
+  stock: number
+  inboundExpected: number
+  inboundQty: number
+  expectedInboundDate: string | null
+}>> = Object.fromEntries(allKnownProductIds.map((id) => {
   const d = productPrimaryById[id]
   const seed = id.charCodeAt(0)
   /** 이 SKU 기준 입고 주기(월): 3 또는 4 */
@@ -370,16 +378,25 @@ const stockTrendById: Record<string, Array<{ date: string; stock: number; inboun
       inbound = shortage > 0 ? Math.max(shortage, minInbound) : 0
       monthsUntilInbound = inboundCycleMonths
 
-      /** 입고 노출 데이터는 미래 구간에서만 제공 */
+      /** 1차 드로어: 미래 구간만 입고 예정 금액 노출 */
       if (point.isForecast && inbound > 0) {
         inboundForDisplay = inbound
+      }
+      if (inbound > 0) {
         const expectedDay = 5 + (seed % 18)
-        expectedInboundDate = `${point.date.slice(0, 8)}${String(expectedDay).padStart(2, '0')}`
+        const yyyymm = point.date.slice(0, 7)
+        expectedInboundDate = `${yyyymm}-${String(expectedDay).padStart(2, '0')}`
       }
     }
     monthsUntilInbound -= 1
     stock = Math.max(0, stock + inbound - sold)
-    return { date: point.date, stock, inboundExpected: inboundForDisplay, expectedInboundDate }
+    return {
+      date: point.date,
+      stock,
+      inboundExpected: inboundForDisplay,
+      inboundQty: inbound,
+      expectedInboundDate,
+    }
   })
   return [id, series]
 }))
@@ -436,8 +453,6 @@ const DAILY_PATTERN_BY_MONTH: Record<string, readonly number[]> = {
 }
 
 const DAILY_EXT_SALES_DELTA: readonly number[] = [0, -1, 1, 0, -1, 0, 1, -1, 0, 1]
-const DAILY_EXT_STOCK_DELTA: readonly number[] = [-2, -1, -2, -1, -1, -2, -1, -2, -1, -1]
-const DAILY_EXT_INBOUND_ADD: readonly number[] = [8, 9, 7, 10, 8, 9, 7, 10, 8, 9]
 
 const daysInMonth = (yyyymm: string) => {
   const [y, m] = yyyymm.split('-').map(Number)
@@ -465,6 +480,7 @@ const zFromServiceLevelPct = (p: number): number => {
   return 0.84
 }
 
+/** 조회 기간 내 월별 판매 단순 산술평균 → 일평균 판매량(EA/일). 기간 산술평균 컬럼의 μ. */
 const dailyMeanSigma = (
   trend: MonthlySalesPoint[],
   periodStart: string,
@@ -475,80 +491,209 @@ const dailyMeanSigma = (
   const inRange = trend.filter((p) => p.date >= a && p.date <= b)
   const slice = inRange.length ? inRange : trend.slice(-6)
   if (slice.length === 0) return { dailyMean: 0, sigma: 0 }
-  const sales = slice.map((p) => p.sales)
-  const mean = sales.reduce((x, y) => x + y, 0) / sales.length
-  const variance = sales.reduce((acc, s) => acc + (s - mean) ** 2, 0) / sales.length
-  return { dailyMean: mean / 30, sigma: Math.sqrt(variance) / 30 }
+  const dailyRates = slice.map((p) => p.sales / daysInMonth(p.date))
+  const mean = dailyRates.reduce((x, y) => x + y, 0) / dailyRates.length
+  const variance = dailyRates.reduce((acc, d) => acc + (d - mean) ** 2, 0) / dailyRates.length
+  return { dailyMean: mean, sigma: Math.sqrt(variance) }
 }
 
+/**
+ * 목업: 예측 수량연산 컬럼용 일평균(EA/일).
+ * 같은 구간이라도 최근 월에 더 큰 가중을 두어 기간 단순 산술평균과 값이 갈리도록 함.
+ */
+const forecastDailyMeanFromModel = (
+  trend: MonthlySalesPoint[],
+  periodStart: string,
+  periodEnd: string,
+): number => {
+  const a = periodStart.slice(0, 7)
+  const b = periodEnd.slice(0, 7)
+  const inRange = trend.filter((p) => p.date >= a && p.date <= b)
+  const slice = inRange.length ? inRange : trend.slice(-6)
+  if (slice.length === 0) return 0
+  let wsum = 0
+  let wtotal = 0
+  slice.forEach((p, i) => {
+    const w = (i + 1) ** 1.35
+    const daily = p.sales / daysInMonth(p.date)
+    wsum += daily * w
+    wtotal += w
+  })
+  return wtotal > 0 ? wsum / wtotal : 0
+}
+
+/** 월 총 판매량에 맞춰 일별 판매 배분(합 = monthTotal). */
+const dailySalesForMonth = (days: number, pattern: readonly number[], monthTotal: number): number[] => {
+  if (days <= 0) return []
+  const w = Array.from({ length: days }, (_, i) => pattern[i % pattern.length]!)
+  const sumW = w.reduce((a, b) => a + b, 0)
+  const out: number[] = []
+  let acc = 0
+  for (let i = 0; i < days - 1; i += 1) {
+    const s = sumW > 0 ? Math.floor((monthTotal * w[i]!) / sumW) : 0
+    out.push(s)
+    acc += s
+  }
+  out.push(Math.max(0, monthTotal - acc))
+  return out
+}
+
+/**
+ * 일간 판매추이 목업
+ * - 기준일(`DAILY_TREND_AS_OF_DATE`)까지: 실재고만(초기 재고 → 판매 차감 → 입고일에 충전). 예상 재고 막대는 0.
+ * - 기준일 이후: 실재고는 판매로만 감소(입고로는 늘리지 않음). 입고분·재고 증가는 전부 예상 재고(파이프라인).
+ *   판매는 실재고를 먼저 깐 뒤 예상 재고를 깜.
+ */
 const buildSecondaryDailyTrend = (
   monthlyTrend: MonthlySalesPoint[],
-  monthlyStockTrend: Array<{ date: string; stock: number; inboundExpected: number; expectedInboundDate: string | null }>,
+  monthlyStockTrend: Array<{
+    date: string
+    stock: number
+    inboundExpected: number
+    inboundQty?: number
+    expectedInboundDate: string | null
+  }>,
   startMonth: string,
   leadTimeDays: number,
 ): SecondaryDailyTrendPoint[] => {
   const full: SecondaryDailyTrendPoint[] = []
   let idx = 0
-  let inboundAccum = 0
   const stockByMonth = new Map(monthlyStockTrend.map((row) => [row.date, row]))
+  let physical = 0
+  let pipeline = 0
+  const asOf = DAILY_TREND_AS_OF_DATE
+
   monthlyTrend.forEach((m, monthIdx) => {
     const pattern = DAILY_PATTERN_BY_MONTH[m.date] ?? (m.isForecast ? DAILY_PATTERN_FORECAST : DAILY_PATTERN_STEADY)
     const days = daysInMonth(m.date)
-    const stockNow = stockByMonth.get(m.date)
-    const stockNext = stockByMonth.get(monthlyTrend[monthIdx + 1]?.date ?? '')
-    const monthStartStock = Math.max(0, Math.round(stockNow?.stock ?? stockNext?.stock ?? (m.isForecast ? 160 : 210)))
-    const monthEndStock = Math.max(0, Math.round(stockNext?.stock ?? stockNow?.stock ?? monthStartStock))
-    const inboundMonthly = Math.max(0, Math.round(stockNow?.inboundExpected ?? 0))
-    const inboundDayFromDate = (() => {
-      const d = stockNow?.expectedInboundDate
-      if (!d || d.slice(0, 7) !== m.date) return null
-      const day = Number(d.slice(8, 10))
-      if (!Number.isFinite(day)) return null
-      return Math.max(1, Math.min(days, Math.trunc(day)))
+    const stockRow = stockByMonth.get(m.date)
+    const prevRow = monthIdx > 0 ? stockByMonth.get(monthlyTrend[monthIdx - 1]!.date) : undefined
+    const inboundQ = Math.max(0, Math.round(stockRow?.inboundQty ?? stockRow?.inboundExpected ?? 0))
+    const endStock = Math.max(0, Math.round(stockRow?.stock ?? 0))
+    const monthTotalSales = prevRow
+      ? Math.max(0, Math.round(prevRow.stock + inboundQ - endStock))
+      : Math.max(0, Math.round(m.sales))
+
+    const inboundDay = (() => {
+      if (inboundQ <= 0) return 0
+      const d = stockRow?.expectedInboundDate
+      if (d && d.slice(0, 7) === m.date) {
+        const day = Number(d.slice(8, 10))
+        if (Number.isFinite(day)) return Math.max(1, Math.min(days, Math.trunc(day)))
+      }
+      return Math.max(2, Math.min(days, Math.round(days * 0.35)))
     })()
-    const inboundDay = inboundDayFromDate ?? Math.max(2, Math.min(days, Math.round(days * 0.35)))
+
+    if (monthIdx === 0) {
+      physical = Math.max(0, endStock - inboundQ + monthTotalSales)
+    }
+
+    const dailySales = dailySalesForMonth(days, pattern, monthTotalSales)
+    const snapMonthEnd = m.date <= asOf.slice(0, 7)
+
     for (let i = 0; i < days; i += 1) {
-      const sales = pattern[i % pattern.length]!
-      const t = days <= 1 ? 0 : i / (days - 1)
-      const baseStock = Math.round(monthStartStock + (monthEndStock - monthStartStock) * t)
-      const inboundToday = inboundMonthly > 0 && i + 1 === inboundDay ? inboundMonthly : 0
-      inboundAccum += inboundToday
-      const stockBar = Math.max(0, baseStock + (i + 1 >= inboundDay ? inboundMonthly : 0))
+      const dayNum = i + 1
+      const dateStr = `${m.date}-${String(dayNum).padStart(2, '0')}`
+      const isAfterAsOf = dateStr > asOf
+
+      if (inboundQ > 0 && inboundDay > 0 && dayNum === inboundDay) {
+        if (!isAfterAsOf) {
+          physical += inboundQ
+        } else {
+          pipeline += inboundQ
+        }
+      }
+
+      const sales = dailySales[i] ?? 0
+      if (!isAfterAsOf) {
+        physical = Math.max(0, physical - sales)
+      } else {
+        let need = sales
+        const fromPhys = Math.min(need, physical)
+        physical -= fromPhys
+        need -= fromPhys
+        const fromPipe = Math.min(need, pipeline)
+        pipeline -= fromPipe
+      }
+
       full.push({
         idx,
-        date: `${m.date}-${String(i + 1).padStart(2, '0')}`,
+        date: dateStr,
         month: m.date,
         sales,
-        stockBar,
-        inboundAccumBar: inboundAccum,
+        stockBar: Math.max(0, Math.round(physical)),
+        inboundAccumBar: isAfterAsOf ? Math.max(0, Math.round(pipeline)) : 0,
+        selfSalesNorm: null,
+        competitorSalesNorm: null,
         isForecast: m.isForecast,
       })
       idx += 1
     }
+
+    if (snapMonthEnd) {
+      physical = endStock
+      pipeline = 0
+    }
   })
+
   const startIdx = full.findIndex((p) => p.month >= startMonth)
   if (startIdx === -1) return []
   const out = full.slice(startIdx).map((row, i) => ({ ...row, idx: i }))
   const extendDays = Math.max(0, Math.round(leadTimeDays))
-  if (extendDays <= 0) return out
+  if (extendDays <= 0 || out.length === 0) return out
+
   let last = out[out.length - 1]!
   let date = parseIsoDateUtc(last.date)
+  let phys = last.stockBar
+  let pipe = last.inboundAccumBar
+
   for (let i = 0; i < extendDays; i += 1) {
     date = new Date(date.getTime() + 24 * 60 * 60 * 1000)
     const nextDate = formatIsoDateUtc(date)
+    const sales = Math.max(1, Math.round(last.sales + DAILY_EXT_SALES_DELTA[i % DAILY_EXT_SALES_DELTA.length]!))
+    let need = sales
+    const fromPhys = Math.min(need, phys)
+    phys -= fromPhys
+    need -= fromPhys
+    const fromPipe = Math.min(need, pipe)
+    pipe -= fromPipe
+    need -= fromPipe
+
     const next = {
-      ...last,
       idx: out.length,
       date: nextDate,
       month: nextDate.slice(0, 7),
-      sales: Math.max(1, last.sales + DAILY_EXT_SALES_DELTA[i % DAILY_EXT_SALES_DELTA.length]!),
-      stockBar: Math.max(0, last.stockBar + DAILY_EXT_STOCK_DELTA[i % DAILY_EXT_STOCK_DELTA.length]!),
-      inboundAccumBar: last.inboundAccumBar + DAILY_EXT_INBOUND_ADD[i % DAILY_EXT_INBOUND_ADD.length]!,
+      sales,
+      stockBar: Math.max(0, Math.round(phys)),
+      inboundAccumBar: Math.max(0, Math.round(pipe)),
+      selfSalesNorm: null,
+      competitorSalesNorm: null,
       isForecast: true,
     }
     out.push(next)
     last = next
   }
+
+  const observed = out.filter((p) => p.date <= DAILY_TREND_AS_OF_DATE)
+  const observedMaxSales = observed.reduce((mx, p) => Math.max(mx, p.sales), 0)
+  const selfDenom = observedMaxSales > 0 ? observedMaxSales : 1
+
+  const rawComp = observed.map((p, i) => {
+    const selfNorm = clamp(p.sales / selfDenom, 0, 1)
+    // 경쟁사 곡선이 자사와 패턴 차이가 나도록 위상/진폭을 따로 줌
+    const phaseA = ((i + 3) % 11) / 10
+    const phaseB = ((i + 7) % 17) / 16
+    const wave = (phaseA - 0.5) * 0.14 + (phaseB - 0.5) * 0.08
+    return clamp(selfNorm * 0.72 + 0.03 + wave, 0, 1)
+  })
+  const compDenom = rawComp.reduce((mx, v) => Math.max(mx, v), 0) || 1
+
+  observed.forEach((p, i) => {
+    const selfNorm = clamp(p.sales / selfDenom, 0, 1)
+    const compNorm = clamp(rawComp[i]! / compDenom, 0, 1)
+    p.selfSalesNorm = Number(selfNorm.toFixed(4))
+    p.competitorSalesNorm = Number(compNorm.toFixed(4))
+  })
   return out
 }
 
@@ -626,7 +771,7 @@ export const mockDashboardApi = {
     }
     return { summary, stockTrend }
   },
-  getProductSecondaryDetail: async (id: string) => {
+  getProductSecondaryDetail: async (id: string, _params?: ProductSecondaryDetailParams) => {
     await sleep(80)
     return productSecondaryById[id] ?? productSecondaryById[allKnownProductIds[0]]!
   },
@@ -661,6 +806,19 @@ export const mockDashboardApi = {
       /* ignore quota */
     }
   },
+  getSecondaryOrderSnapshots: async (productId?: string) => {
+    await sleep(40)
+    try {
+      const raw = localStorage.getItem(SNAPSHOT_STORAGE_KEY)
+      const all = (raw ? JSON.parse(raw) : {}) as Record<string, SecondaryOrderSnapshotPayload[]>
+      const list = productId
+        ? (all[productId] ?? [])
+        : Object.values(all).flat()
+      return [...list].sort((a, b) => String(b.savedAt).localeCompare(String(a.savedAt)))
+    } catch {
+      return []
+    }
+  },
   getSecondaryStockOrderCalc: async ({
     productId,
     periodStart,
@@ -674,21 +832,27 @@ export const mockDashboardApi = {
     await sleep(70)
     const primary = productPrimaryById[productId] ?? productPrimaryById[allKnownProductIds[0]]!
     const fromTrend = dailyMeanSigma(primary.monthlySalesTrend, periodStart, periodEnd)
-    const trendDailyMean = Math.round(fromTrend.dailyMean * 10) / 10
-    const dailyMean =
+    /** 기간 산술평균: 월 판매 단순 평균의 일환산(일평균 판매량). */
+    const trendMuRaw = fromTrend.dailyMean
+    const trendDailyMean = Math.round(trendMuRaw * 10) / 10
+
+    /** 예측 수량연산: 가중 일평균(또는 UI에서 넘긴 μ). */
+    const forecastMuRaw =
       dailyMeanParam !== undefined && Number.isFinite(dailyMeanParam)
         ? Math.max(0, dailyMeanParam)
-        : fromTrend.dailyMean
+        : forecastDailyMeanFromModel(primary.monthlySalesTrend, periodStart, periodEnd)
+    const dailyMeanRounded = Math.round(forecastMuRaw * 10) / 10
+
     const sigma = fromTrend.sigma
-    const safeLead = Math.max(1, Math.round(leadTimeDays))
+    const safeLead = Math.max(0, Math.round(leadTimeDays))
     const z = zFromServiceLevelPct(serviceLevelPct)
-    const formulaSafetyStock = Math.max(0, Math.round(z * sigma * Math.sqrt(safeLead) + dailyMean * safeLead))
+    const formulaSafetyStock = Math.max(0, Math.round(z * sigma * Math.sqrt(safeLead) + trendMuRaw * safeLead))
     const safetyStock =
       safetyStockMode === 'manual'
         ? Math.max(0, Math.round(manualSafetyStock))
         : formulaSafetyStock
-    const safetyRecQty = Math.max(0, Math.round(safetyStock - primary.availableStock + dailyMean * safeLead))
-    const forecastRecQty = Math.max(0, Math.round(dailyMean * safeLead * 1.05))
+    const safetyRecQty = Math.max(0, Math.round(safetyStock - primary.availableStock + trendMuRaw * safeLead))
+    const forecastRecQty = Math.max(0, Math.round(forecastMuRaw * safeLead * 1.05))
 
     const avgCost = Math.round(primary.price * 0.78)
     const opMarginPerUnit = primary.price - avgCost - Math.round(primary.price * 0.13)
@@ -700,7 +864,7 @@ export const mockDashboardApi = {
 
     return {
       trendDailyMean,
-      dailyMean: Math.round(dailyMean * 10) / 10,
+      dailyMean: dailyMeanRounded,
       sigma,
       display: {
         currentStockQtyTotal: 1330,

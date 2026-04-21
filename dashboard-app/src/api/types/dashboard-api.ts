@@ -7,6 +7,7 @@ import type {
 import type { ProductDrawerBundle, ProductDrawerBundleParams } from './drawer'
 import type { CompetitorSalesParams, SelfSalesFilterMeta, SelfSalesParams } from './sales'
 import type {
+  ProductSecondaryDetailParams,
   SecondaryCompetitorChannel,
   SecondaryDailyTrendParams,
   SecondaryDailyTrendPoint,
@@ -26,10 +27,14 @@ export interface DashboardApi {
   getOrderPlan(): Promise<OrderPlanRow[]>
   getSelfSalesFilterMeta(): Promise<SelfSalesFilterMeta>
   getProductDrawerBundle(id: string, params?: ProductDrawerBundleParams): Promise<ProductDrawerBundle>
-  getProductSecondaryDetail(id: string): Promise<ProductSecondaryDetail>
+  getProductSecondaryDetail(
+    id: string,
+    params?: ProductSecondaryDetailParams,
+  ): Promise<ProductSecondaryDetail>
   getSecondaryDailyTrend(params: SecondaryDailyTrendParams): Promise<SecondaryDailyTrendPoint[]>
   getSecondaryCompetitorChannels(): Promise<SecondaryCompetitorChannel[]>
   getSecondaryLlmAnswer(params: SecondaryLlmAnswerParams): Promise<string>
   saveSecondaryOrderSnapshot(snapshot: SecondaryOrderSnapshotPayload): Promise<void>
+  getSecondaryOrderSnapshots(productId?: string): Promise<SecondaryOrderSnapshotPayload[]>
   getSecondaryStockOrderCalc(params: SecondaryStockOrderCalcParams): Promise<SecondaryStockOrderCalcResult>
 }
