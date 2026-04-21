@@ -1,6 +1,4 @@
 import type { ProductPrimarySummary, ProductSecondaryDetail } from '../types'
-import type { ProductStockTrendPoint } from '../api/types/drawer'
-import type { SecondaryDailyTrendPoint } from '../api/types/secondary'
 import type {
   SalesKpiColumn,
   SecondaryForecastDerived,
@@ -8,7 +6,7 @@ import type {
 } from '../dashboard/components/product-secondary/secondaryPanelTypes'
 
 /** 오더 확정 시 저장하는 통합 스냅샷 스키마 버전 */
-export const ORDER_SNAPSHOT_SCHEMA_VERSION = 1 as const
+export const ORDER_SNAPSHOT_SCHEMA_VERSION = 2 as const
 
 export type OrderSnapshotSizeRowV1 = {
   size: string
@@ -20,10 +18,11 @@ export type OrderSnapshotSizeRowV1 = {
   confirmQty: number
 }
 
-/** 1차 드로워: 월간 판매추이 등은 `summary`에 포함, 재고 시계열만 별도 */
-export type OrderSnapshotDrawer1V1 = {
-  summary: ProductPrimarySummary
-  stockTrend: ProductStockTrendPoint[]
+/** 1차 요약(판매추이 월간·재고 시계열 제외 — `productId`+`context`로 번들 재요청) */
+export type OrderSnapshotPrimarySummaryV2 = Omit<ProductPrimarySummary, 'monthlySalesTrend'>
+
+export type OrderSnapshotDrawer1V2 = {
+  summary: OrderSnapshotPrimarySummaryV2
 }
 
 /**
@@ -48,14 +47,6 @@ export type OrderSnapshotDrawer2V1 = {
   sizeRows: OrderSnapshotSizeRowV1[]
 }
 
-export type OrderSnapshotDailyTrendV1 = {
-  params: {
-    startMonth: string
-    leadTimeDays: number
-  }
-  series: SecondaryDailyTrendPoint[]
-}
-
 /** DB·로컬 저장용 단일 JSON 문서. 행 PK용 UUID는 DB에서 자동 생성 — 프론트는 보내지 않음 */
 export type OrderSnapshotDocumentV1 = {
   schemaVersion: typeof ORDER_SNAPSHOT_SCHEMA_VERSION
@@ -65,8 +56,11 @@ export type OrderSnapshotDocumentV1 = {
     periodStart: string
     periodEnd: string
     forecastMonths: number
+    /** `getSecondaryDailyTrend` 재조회용 `startMonth` */
+    dailyTrendStartMonth: string
+    /** `getSecondaryDailyTrend` 재조회용 `leadTimeDays` */
+    dailyTrendLeadTimeDays: number
   }
-  drawer1: OrderSnapshotDrawer1V1
+  drawer1: OrderSnapshotDrawer1V2
   drawer2: OrderSnapshotDrawer2V1
-  dailyTrend: OrderSnapshotDailyTrendV1
 }

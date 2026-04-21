@@ -460,7 +460,12 @@ function ProductSummaryDrawerContent({
             <strong>상품 인사이트</strong>
             <span className={styles.periodMeta}>기간: {selectedStart} ~ {selectedEnd}</span>
           </div>
-          <button type="button" className={styles.drawerClose} onClick={onClose}>X</button>
+          <button
+            type="button"
+            className={`${styles.iconCloseButton} ${styles.drawerClose}`}
+            onClick={onClose}
+            aria-label="드로어 닫기"
+          />
         </div>
         <div className={styles.drawerBody}>
         <ComponentErrorBoundary page={pageName} unit="PrimaryProductSummaryCard">
@@ -794,7 +799,6 @@ function ProductSummaryDrawerContent({
                 secondary={secondaryDetail}
                 periodStart={selectedStart}
                 periodEnd={selectedEnd}
-                stockTrend={stockTrend}
                 forecastMonths={forecastMonths}
                 pageName="ProductSummaryDrawer > ProductSecondaryPanel"
               />

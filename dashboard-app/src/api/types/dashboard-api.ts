@@ -7,6 +7,10 @@ import type {
 import type { ProductDrawerBundle, ProductDrawerBundleParams } from './drawer'
 import type { CompetitorSalesParams, SelfSalesFilterMeta, SelfSalesParams } from './sales'
 import type {
+  AppendCandidateItemPayload,
+  CandidateItemSummary,
+  CandidateStashSummary,
+  CreateCandidateStashPayload,
   ProductSecondaryDetailParams,
   SecondaryCompetitorChannel,
   SecondaryDailyTrendParams,
@@ -36,5 +40,11 @@ export interface DashboardApi {
   getSecondaryLlmAnswer(params: SecondaryLlmAnswerParams): Promise<string>
   saveSecondaryOrderSnapshot(snapshot: SecondaryOrderSnapshotPayload): Promise<void>
   getSecondaryOrderSnapshots(productId?: string): Promise<SecondaryOrderSnapshotPayload[]>
+  deleteSecondaryOrderSnapshot(productId: string, savedAt: string): Promise<void>
+  getCandidateStashes(productId?: string): Promise<CandidateStashSummary[]>
+  getCandidateItemsByStash(stashUuid: string): Promise<CandidateItemSummary[]>
+  deleteCandidateStash(stashUuid: string): Promise<void>
+  createCandidateStash(payload: CreateCandidateStashPayload): Promise<CandidateStashSummary>
+  appendCandidateItem(payload: AppendCandidateItemPayload): Promise<void>
   getSecondaryStockOrderCalc(params: SecondaryStockOrderCalcParams): Promise<SecondaryStockOrderCalcResult>
 }

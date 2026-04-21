@@ -88,3 +88,37 @@ export interface SecondaryStockOrderCalcResult {
   safetyStockCalc: SecondaryStockSafetyCalcBlock
   forecastQtyCalc: SecondaryStockForecastQtyCalcBlock
 }
+
+export interface CandidateStashSummary {
+  uuid: string
+  name: string
+  note: string | null
+  productId: string
+  itemCount: number
+  dbCreatedAt: string
+  dbUpdatedAt: string
+}
+
+export interface CandidateItemSummary {
+  uuid: string
+  stashUuid: string
+  productId: string
+  brand: string
+  productCode: string
+  productName: string
+  qty: number
+  expectedSalesAmount: number
+  dbCreatedAt: string
+}
+
+export interface CreateCandidateStashPayload {
+  productId: string
+  name: string
+  note?: string | null
+}
+
+export interface AppendCandidateItemPayload {
+  stashUuid: string
+  productId: string
+  details: SecondaryOrderSnapshotPayload
+}

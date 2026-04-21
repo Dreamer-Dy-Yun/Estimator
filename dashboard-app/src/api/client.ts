@@ -1,6 +1,10 @@
 import type { CompetitorSalesRow, OrderPlanRow, SelfSalesRow } from '../types'
 import { mockDashboardApi } from './mock'
 import type {
+  AppendCandidateItemPayload,
+  CandidateItemSummary,
+  CandidateStashSummary,
+  CreateCandidateStashPayload,
   DashboardApi,
   ProductDrawerBundle,
   ProductDrawerBundleParams,
@@ -72,6 +76,34 @@ export async function getSecondaryOrderSnapshots(productId?: string): Promise<Se
   return mockDashboardApi.getSecondaryOrderSnapshots(productId)
 }
 
+export async function deleteSecondaryOrderSnapshot(productId: string, savedAt: string): Promise<void> {
+  return mockDashboardApi.deleteSecondaryOrderSnapshot(productId, savedAt)
+}
+
+export async function getCandidateStashes(productId?: string): Promise<CandidateStashSummary[]> {
+  return mockDashboardApi.getCandidateStashes(productId)
+}
+
+export async function getCandidateItemsByStash(stashUuid: string): Promise<CandidateItemSummary[]> {
+  return mockDashboardApi.getCandidateItemsByStash(stashUuid)
+}
+
+export async function deleteCandidateStash(stashUuid: string): Promise<void> {
+  return mockDashboardApi.deleteCandidateStash(stashUuid)
+}
+
+export async function createCandidateStash(
+  payload: CreateCandidateStashPayload,
+): Promise<CandidateStashSummary> {
+  return mockDashboardApi.createCandidateStash(payload)
+}
+
+export async function appendCandidateItem(
+  payload: AppendCandidateItemPayload,
+): Promise<void> {
+  return mockDashboardApi.appendCandidateItem(payload)
+}
+
 export async function getSecondaryStockOrderCalc(
   params: SecondaryStockOrderCalcParams,
 ): Promise<SecondaryStockOrderCalcResult> {
@@ -91,5 +123,11 @@ export const dashboardApi: DashboardApi = {
   getSecondaryLlmAnswer,
   saveSecondaryOrderSnapshot,
   getSecondaryOrderSnapshots,
+  deleteSecondaryOrderSnapshot,
+  getCandidateStashes,
+  getCandidateItemsByStash,
+  deleteCandidateStash,
+  createCandidateStash,
+  appendCandidateItem,
   getSecondaryStockOrderCalc,
 }

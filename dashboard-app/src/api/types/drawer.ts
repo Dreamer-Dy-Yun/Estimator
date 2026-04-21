@@ -8,7 +8,6 @@ export interface ProductStockTrendPoint {
   inboundExpected: number
   /** 해당 월 실제 입고 수량(일간 추이 시뮬 등). 없으면 `inboundExpected`로 대체 */
   inboundQty?: number
-  expectedInboundDate: string | null
 }
 
 /** 1차 드로어 번들 요청 옵션 — 판매추이(월간) 포캐스트 구간 길이. */

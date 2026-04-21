@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { dashboardApi, type ProductStockTrendPoint, type SecondaryCompetitorChannel } from '../../../api'
+import { dashboardApi, type SecondaryCompetitorChannel } from '../../../api'
 import { ComponentErrorBoundary } from '../../../components/ComponentErrorBoundary'
 import type { ApiUnitErrorInfo, ProductPrimarySummary, ProductSecondaryDetail } from '../../../types'
 import { daysFromTodayThroughInclusive, daysInclusiveBetween } from '../../../utils/date'
@@ -32,8 +32,6 @@ type Props = {
   secondary: ProductSecondaryDetail
   periodStart: string
   periodEnd: string
-  /** 오더 스냅샷용: 1차 드로워 재고 시계열 */
-  stockTrend: ProductStockTrendPoint[]
   /** 오더 스냅샷용: 월간 포캐스트 개월 수 */
   forecastMonths: number
   pageName?: string
@@ -55,12 +53,23 @@ function buildDefaultLeadTimeDates() {
   return { start, end }
 }
 
+function formatCandidateDateLabel(value: string): string {
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return value
+  return date.toLocaleString('ko-KR', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}
+
 export function ProductSecondaryPanel({
   primary,
   secondary,
   periodStart,
   periodEnd,
-  stockTrend,
   forecastMonths,
   pageName = 'ProductSecondaryPanel',
 }: Props) {
@@ -93,6 +102,8 @@ export function ProductSecondaryPanel({
   /** 사이즈별 오더 표의 판매 예측에 사용할 지표(판매 예측 표 헤더 라디오와 동기화). */
   const [sizeForecastSource] = useState<'forecastQty'>('forecastQty')
   const [confirmBySize, setConfirmBySize] = useState<Record<string, number>>({})
+  /** 확정 수량을 직접 수정한 사이즈만 표시 — 그 외에는 추천 수량을 그대로 확정으로 씀 */
+  const [manualConfirmBySize, setManualConfirmBySize] = useState<Record<string, true>>({})
   const dailyTrendReqSeqRef = useRef(0)
   const [forecastCalc, setForecastCalc] = useState<SecondaryForecastCalc | null>(null)
   const [channelsError, setChannelsError] = useState<ApiUnitErrorInfo | null>(null)
@@ -101,6 +112,22 @@ export function ProductSecondaryPanel({
   const [llmError, setLlmError] = useState<ApiUnitErrorInfo | null>(null)
   /** [테스트] 오더 확정 시 저장 페이로드 JSON 미리보기 */
   const [testSnapshotJson, setTestSnapshotJson] = useState<string | null>(null)
+  const [candidateActionLoading, setCandidateActionLoading] = useState(false)
+  const [candidateListOpen, setCandidateListOpen] = useState(false)
+  const [candidateStashes, setCandidateStashes] = useState<Array<{
+    uuid: string
+    name: string
+    note: string | null
+    dbCreatedAt: string
+  }>>([])
+  const [selectedCandidate, setSelectedCandidate] = useState<{
+    uuid: string
+    name: string
+    dbCreatedAt: string
+  } | null>(null)
+  const [candidateNameInput, setCandidateNameInput] = useState('')
+  const [candidateNoteInput, setCandidateNoteInput] = useState('')
+  const [candidateCreatedPopupText, setCandidateCreatedPopupText] = useState<string | null>(null)
 
   useEffect(() => {
     if (testSnapshotJson == null) return
@@ -110,6 +137,12 @@ export function ProductSecondaryPanel({
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [testSnapshotJson])
+
+  useEffect(() => {
+    setCandidateListOpen(false)
+    setCandidateStashes([])
+    setSelectedCandidate(null)
+  }, [primary.id])
 
   const makeApiErrorInfo = useCallback((request: string, err: unknown): ApiUnitErrorInfo => ({
     checkedAt: new Date().toISOString(),
@@ -282,6 +315,37 @@ export function ProductSecondaryPanel({
     serviceLevelPct,
   ])
 
+  const stockDisplayKey = useMemo(() => {
+    const d = forecastCalc?.display
+    if (!d) return ''
+    return [
+      d.currentStockQtyTotal,
+      d.totalOrderBalanceTotal,
+      d.expectedInboundOrderBalanceTotal,
+      ...d.currentStockQtyBySize,
+      ...d.totalOrderBalanceBySize,
+      ...d.expectedInboundOrderBalanceBySize,
+    ].join('|')
+  }, [forecastCalc])
+
+  useEffect(() => {
+    setConfirmBySize({})
+    setManualConfirmBySize({})
+  }, [
+    bufferStock,
+    dailyMeanClient,
+    leadTimeEndDate,
+    leadTimeStartDate,
+    manualSafetyStock,
+    primary.id,
+    safetyStockMode,
+    selectedEnd,
+    selectedStart,
+    selfWeightPct,
+    serviceLevelPct,
+    stockDisplayKey,
+  ])
+
   const sizeAgg = useMemo(() => {
     const mix = mergePrimarySecondarySizeMix(primary, secondary)
     const sSum = mix.reduce((a, r) => a + r.ratio, 0)
@@ -321,7 +385,9 @@ export function ProductSecondaryPanel({
       const stock = currentStockBySize[i] ?? 0
       const inbound = expectedInboundBySize[i] ?? 0
       const recommendedQty = Math.max(0, Math.round(forecastQty - stock - inbound + bufferQtyEa))
-      const confirmQty = confirmBySize[row.size] ?? recommendedQty
+      const confirmQty = manualConfirmBySize[row.size]
+        ? (confirmBySize[row.size] ?? recommendedQty)
+        : recommendedQty
       return { ...row, forecastQty, recommendedQty, confirmQty }
     })
   }, [
@@ -334,6 +400,7 @@ export function ProductSecondaryPanel({
     expectedInboundBySize,
     bufferStock,
     confirmBySize,
+    manualConfirmBySize,
   ])
 
   const [dailyTrendSeries, setDailyTrendSeries] = useState<Array<{
@@ -427,8 +494,7 @@ export function ProductSecondaryPanel({
     }
   }, [llmPrompt, makeApiErrorInfo, primary.id])
 
-  const confirmOrder = useCallback(() => {
-    const snap: OrderSnapshotDocumentV1 = {
+  const buildSnapshot = useCallback((): OrderSnapshotDocumentV1 => ({
       schemaVersion: ORDER_SNAPSHOT_SCHEMA_VERSION,
       productId: primary.id,
       savedAt: new Date().toISOString(),
@@ -436,10 +502,14 @@ export function ProductSecondaryPanel({
         periodStart,
         periodEnd,
         forecastMonths,
+        dailyTrendStartMonth: selectedStart,
+        dailyTrendLeadTimeDays: leadTimeDays,
       },
       drawer1: {
-        summary: primary,
-        stockTrend,
+        summary: (() => {
+          const { monthlySalesTrend: _m, ...rest } = primary
+          return rest
+        })(),
       },
       drawer2: {
         secondary,
@@ -465,19 +535,8 @@ export function ProductSecondaryPanel({
           confirmQty: r.confirmQty,
         })),
       },
-      dailyTrend: {
-        params: {
-          startMonth: selectedStart,
-          leadTimeDays,
-        },
-        series: dailyTrendSeries,
-      },
-    }
-    void dashboardApi.saveSecondaryOrderSnapshot(snap)
-    setTestSnapshotJson(JSON.stringify(snap, null, 2))
-  }, [
+    }), [
     primary,
-    stockTrend,
     periodStart,
     periodEnd,
     forecastMonths,
@@ -496,8 +555,77 @@ export function ProductSecondaryPanel({
     sizeRows,
     selectedStart,
     leadTimeDays,
-    dailyTrendSeries,
   ])
+
+  const refreshCandidates = useCallback(async () => {
+    const stashes = await dashboardApi.getCandidateStashes()
+    setCandidateStashes(stashes.map((s) => ({
+      uuid: s.uuid,
+      name: s.name,
+      note: s.note,
+      dbCreatedAt: s.dbCreatedAt,
+    })))
+    return stashes
+  }, [primary.id])
+
+  const confirmOrder = useCallback(async () => {
+    if (selectedCandidate == null) return
+    const snap = buildSnapshot()
+    setCandidateActionLoading(true)
+    try {
+      await dashboardApi.appendCandidateItem({
+        stashUuid: selectedCandidate.uuid,
+        productId: primary.id,
+        details: snap,
+      })
+      void dashboardApi.saveSecondaryOrderSnapshot(snap)
+      setTestSnapshotJson(JSON.stringify(snap, null, 2))
+    } finally {
+      setCandidateActionLoading(false)
+    }
+  }, [buildSnapshot, primary.id, selectedCandidate])
+
+  const createCandidate = useCallback(async () => {
+    setCandidateActionLoading(true)
+    try {
+      const created = await dashboardApi.createCandidateStash({
+        productId: primary.id,
+        name: candidateNameInput.trim(),
+        note: candidateNoteInput.trim(),
+      })
+      await refreshCandidates()
+      setSelectedCandidate({
+        uuid: created.uuid,
+        name: created.name,
+        dbCreatedAt: created.dbCreatedAt,
+      })
+      setCandidateCreatedPopupText(`${created.name}${KO.msgCandidateCreatedPopupSuffix}`)
+      setCandidateNameInput('')
+      setCandidateNoteInput('')
+    } finally {
+      setCandidateActionLoading(false)
+    }
+  }, [candidateNameInput, candidateNoteInput, primary.id, refreshCandidates])
+
+  const handleConfirmQtyChange = useCallback((size: string, next: number, recommendedQty: number) => {
+    const v = Math.max(0, Math.round(Number.isFinite(next) ? next : 0))
+    const rec = Math.max(0, Math.round(recommendedQty))
+    if (v === rec) {
+      setManualConfirmBySize((prev) => {
+        if (!prev[size]) return prev
+        const { [size]: _r, ...rest } = prev
+        return rest
+      })
+      setConfirmBySize((prev) => {
+        if (!(size in prev)) return prev
+        const { [size]: _r, ...rest } = prev
+        return rest
+      })
+      return
+    }
+    setManualConfirmBySize((prev) => ({ ...prev, [size]: true }))
+    setConfirmBySize((prev) => ({ ...prev, [size]: v }))
+  }, [])
 
   const recommendedQtyTotal = useMemo(
     () => sizeRows.reduce((acc, r) => acc + Math.max(0, Math.round(r.recommendedQty)), 0),
@@ -535,21 +663,73 @@ export function ProductSecondaryPanel({
   return (
     <div className={styles.panel}>
       <div className={styles.metaFilterRow}>
-        <ComponentErrorBoundary page={pageName} unit="ProductMetaCard">
-          <ProductMetaCard primary={primary} />
-        </ComponentErrorBoundary>
-        <ComponentErrorBoundary page={pageName} unit="ProductFilterCard">
-          <ProductFilterCard
-            filter={{
-              channelId,
-              competitorChannels,
-              error: channelsError,
-            }}
-            actions={{
-              onChannelChange: setChannelId,
-            }}
-          />
-        </ComponentErrorBoundary>
+        <div className={styles.metaFilterMetaBlock}>
+          <ComponentErrorBoundary page={pageName} unit="ProductMetaCard">
+            <ProductMetaCard primary={primary} />
+          </ComponentErrorBoundary>
+        </div>
+        <div className={styles.metaFilterFilterBlock}>
+          <ComponentErrorBoundary page={pageName} unit="ProductFilterCard">
+            <ProductFilterCard
+              filter={{
+                channelId,
+                competitorChannels,
+                error: channelsError,
+              }}
+              actions={{
+                onChannelChange: setChannelId,
+              }}
+            />
+          </ComponentErrorBoundary>
+        </div>
+        <div className={styles.metaFilterActionBlock}>
+          <div className={`${styles.card} ${styles.metaFilterActionCard}`}>
+            <div className={styles.metaFilterActionGrid}>
+              <div className={styles.metaFilterSelectedInfo}>
+                <span className={styles.metaFilterSelectedTitle}>
+                  {selectedCandidate?.name ?? '-'}
+                </span>
+                <span className={styles.metaFilterSelectedSub}>
+                  {selectedCandidate?.dbCreatedAt ?? '-'}
+                </span>
+              </div>
+              <button
+                type="button"
+                className={`${styles.btn} ${styles.btnSecondary}`}
+                onClick={async () => {
+                  setCandidateListOpen((prev) => !prev)
+                  setCandidateActionLoading(true)
+                  try {
+                    await refreshCandidates()
+                  } finally {
+                    setCandidateActionLoading(false)
+                  }
+                }}
+                disabled={candidateActionLoading}
+              >
+                {KO.btnSelectCandidate}
+              </button>
+              <span
+                ref={portalHelp.setAnchor('confirmOrder')}
+                className={styles.confirmOrderHelpAnchor}
+                onMouseEnter={() => portalHelp.open('confirmOrder', 'above')}
+                onMouseLeave={portalHelp.scheduleClose}
+              >
+                <button
+                  type="button"
+                  className={styles.btn}
+                  onClick={confirmOrder}
+                  disabled={candidateActionLoading}
+                  onFocus={() => portalHelp.open('confirmOrder', 'above')}
+                  onBlur={portalHelp.scheduleClose}
+                  aria-describedby={portalHelp.activeId === 'confirmOrder' ? confirmOrderHelpId : undefined}
+                >
+                  {KO.btnConfirmOrder}
+                </button>
+              </span>
+            </div>
+          </div>
+        </div>
       </div>
 
       <div className={styles.salesStockAiRow}>
@@ -646,7 +826,6 @@ export function ProductSecondaryPanel({
             channelLabel: channel.label,
             selfWeightPct,
             sizeRows,
-            confirmOrderHelpId,
             totalOrderBalanceHelpId,
             expectedInboundOrderBalanceHelpId,
             sizeRecQtyHelpId,
@@ -657,15 +836,11 @@ export function ProductSecondaryPanel({
             currentStockQtyBySize: forecastCalc?.display.currentStockQtyBySize ?? [],
             totalOrderBalanceBySize: forecastCalc?.display.totalOrderBalanceBySize ?? [],
             expectedInboundOrderBalanceBySize: forecastCalc?.display.expectedInboundOrderBalanceBySize ?? [],
+            manualConfirmBySize,
           }}
           actions={{
             onSelfWeightPctChange: setSelfWeightPct,
-            onConfirmQtyChange: (size, next) => setConfirmBySize((prev) => ({
-              ...prev,
-              [size]: Math.max(0, Math.round(next || 0)),
-            })),
-            onApplyRecommended: setConfirmBySize,
-            onConfirmOrder: confirmOrder,
+            onConfirmQtyChange: handleConfirmQtyChange,
           }}
           help={portalHelp}
         />
@@ -698,6 +873,107 @@ export function ProductSecondaryPanel({
           </>
         )}
       </PortalHelpPopoverLayer>
+      {candidateListOpen &&
+        createPortal(
+          <div
+            className={styles.candidateModalBackdrop}
+            role="presentation"
+            onClick={() => setCandidateListOpen(false)}
+          >
+            <div
+              className={styles.candidateModal}
+              role="dialog"
+              aria-modal="true"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className={styles.candidatePanel}>
+                <div className={styles.candidateModalHeader}>
+                  <h4 className={styles.candidateModalTitle}>{KO.btnSelectCandidate}</h4>
+                  <button
+                    type="button"
+                    className={`${commonStyles.iconCloseButton} ${styles.candidateModalClose}`}
+                    onClick={() => setCandidateListOpen(false)}
+                    aria-label="후보군 선택 닫기"
+                  />
+                </div>
+                <div className={styles.candidateCreateForm}>
+                  <div className={styles.candidateCreateField}>
+                    <label className={styles.candidateCreateLabel} htmlFor="candidate-name-input">
+                      {KO.labelCandidateName}
+                    </label>
+                    <input
+                      id="candidate-name-input"
+                      type="text"
+                      className={styles.candidateTextInput}
+                      placeholder={KO.labelCandidateName}
+                      value={candidateNameInput}
+                      onChange={(e) => setCandidateNameInput(e.target.value)}
+                    />
+                  </div>
+                  <div className={styles.candidateCreateField}>
+                    <label className={styles.candidateCreateLabel} htmlFor="candidate-note-input">
+                      {KO.labelCandidateNote}
+                    </label>
+                    <input
+                      id="candidate-note-input"
+                      type="text"
+                      className={styles.candidateTextInput}
+                      placeholder={KO.labelCandidateNote}
+                      value={candidateNoteInput}
+                      onChange={(e) => setCandidateNoteInput(e.target.value)}
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    className={`${styles.btn} ${styles.btnSecondary}`}
+                    onClick={createCandidate}
+                    disabled={candidateActionLoading}
+                  >
+                    {KO.btnCreateCandidateConfirm}
+                  </button>
+                </div>
+                <div className={styles.candidateList}>
+                  {candidateStashes.length === 0 ? (
+                    <div className={styles.candidateEmptyState}>
+                      <p className={styles.candidateEmptyTitle}>{KO.msgCandidateEmpty}</p>
+                      <p className={styles.metaFilterActionHint}>상단에서 이름과 비고를 입력해 후보군을 먼저 생성하세요.</p>
+                    </div>
+                  ) : (
+                    candidateStashes.map((row) => (
+                      <button
+                        key={row.uuid}
+                        type="button"
+                        className={`${styles.candidateListItem} ${selectedCandidate?.uuid === row.uuid ? styles.candidateListItemActive : ''}`}
+                        onClick={() => {
+                          setSelectedCandidate({
+                            uuid: row.uuid,
+                            name: row.name,
+                            dbCreatedAt: row.dbCreatedAt,
+                          })
+                          setCandidateListOpen(false)
+                        }}
+                      >
+                        <div className={styles.candidateListItemTop}>
+                          <span className={styles.candidateListItemName}>{row.name}</span>
+                          {selectedCandidate?.uuid === row.uuid && (
+                            <span className={styles.candidateListItemBadge}>선택됨</span>
+                          )}
+                        </div>
+                        <span className={styles.candidateListItemMeta}>
+                          생성일: {formatCandidateDateLabel(row.dbCreatedAt)}
+                        </span>
+                        <span className={styles.candidateListItemDesc}>
+                          {row.note?.trim() ? row.note : '비고 없음'}
+                        </span>
+                      </button>
+                    ))
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>,
+          document.body,
+        )}
       {testSnapshotJson != null &&
         createPortal(
           <div
@@ -726,6 +1002,34 @@ export function ProductSecondaryPanel({
                   type="button"
                   className={styles.btn}
                   onClick={() => setTestSnapshotJson(null)}
+                >
+                  {KO.btnSnapshotTestOk}
+                </button>
+              </div>
+            </div>
+          </div>,
+          document.body,
+        )}
+      {candidateCreatedPopupText != null &&
+        createPortal(
+          <div
+            className={styles.snapshotTestBackdrop}
+            role="presentation"
+            onClick={() => setCandidateCreatedPopupText(null)}
+          >
+            <div
+              className={styles.snapshotTestDialog}
+              role="dialog"
+              aria-modal="true"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h4 className={styles.snapshotTestTitle}>{candidateCreatedPopupText}</h4>
+              <p className={styles.candidateCreatedPopupDesc}>후보군 리스트에서 바로 선택해 사용할 수 있습니다.</p>
+              <div className={styles.snapshotTestActions}>
+                <button
+                  type="button"
+                  className={styles.btn}
+                  onClick={() => setCandidateCreatedPopupText(null)}
                 >
                   {KO.btnSnapshotTestOk}
                 </button>

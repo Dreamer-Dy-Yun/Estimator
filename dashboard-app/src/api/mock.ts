@@ -7,6 +7,10 @@ import type {
   SelfSalesRow,
 } from '../types'
 import type {
+  AppendCandidateItemPayload,
+  CandidateItemSummary,
+  CandidateStashSummary,
+  CreateCandidateStashPayload,
   CompetitorSalesParams,
   ProductDrawerBundleParams,
   ProductSecondaryDetailParams,
@@ -23,6 +27,137 @@ import { DAILY_TREND_AS_OF_DATE } from './dailyTrendAsOf'
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
 const clamp = (v: number, min: number, max: number) => Math.max(min, Math.min(max, v))
 const SNAPSHOT_STORAGE_KEY = 'dashboard.orderSnapshots.v1'
+const CANDIDATE_STASH_STORAGE_KEY = 'dashboard.candidateStashes.v1'
+const CANDIDATE_ITEM_STORAGE_KEY = 'dashboard.candidateItems.v1'
+
+type CandidateStashRecord = {
+  uuid: string
+  name: string
+  note: string | null
+  productId: string
+  dbCreatedAt: string
+  dbUpdatedAt: string
+}
+
+type CandidateItemRecord = {
+  uuid: string
+  stashUuid: string
+  skuUuid: string
+  details: SecondaryOrderSnapshotPayload
+  dbCreatedAt: string
+}
+
+const seededCandidateStashes: CandidateStashRecord[] = [
+  {
+    uuid: 'candidatestash00000000000000000001',
+    name: '기본 후보군 A',
+    note: '초기 목업 데이터',
+    productId: 'B',
+    dbCreatedAt: '2026-04-20T09:00:00.000Z',
+    dbUpdatedAt: '2026-04-20T09:00:00.000Z',
+  },
+  {
+    uuid: 'candidatestash00000000000000000002',
+    name: '봄 시즌 후보군',
+    note: '가격 민감도 높은 구성',
+    productId: 'B',
+    dbCreatedAt: '2026-04-20T10:30:00.000Z',
+    dbUpdatedAt: '2026-04-20T10:30:00.000Z',
+  },
+  {
+    uuid: 'candidatestash00000000000000000003',
+    name: '기본 후보군 D',
+    note: '의류 카테고리 기본안',
+    productId: 'D',
+    dbCreatedAt: '2026-04-20T11:00:00.000Z',
+    dbUpdatedAt: '2026-04-20T11:00:00.000Z',
+  },
+  {
+    uuid: 'candidatestash00000000000000000004',
+    name: '기본 후보군 H',
+    note: '신발 프리미엄 라인',
+    productId: 'H',
+    dbCreatedAt: '2026-04-20T11:20:00.000Z',
+    dbUpdatedAt: '2026-04-20T11:20:00.000Z',
+  },
+  ...Array.from({ length: 30 }, (_, i) => {
+    const idx = i + 1
+    const minute = String((i * 3) % 60).padStart(2, '0')
+    const hour = String(12 + Math.floor((i * 3) / 60)).padStart(2, '0')
+    const createdAt = `2026-04-21T${hour}:${minute}:00.000Z`
+    const updatedMinute = String((i * 3 + 2) % 60).padStart(2, '0')
+    const updatedHour = String(12 + Math.floor((i * 3 + 2) / 60)).padStart(2, '0')
+    const updatedAt = `2026-04-21T${updatedHour}:${updatedMinute}:00.000Z`
+    const products = ['B', 'D', 'H', 'J', 'F', 'K', 'L', 'M']
+    return {
+      uuid: `candidate-stash-seed-${String(idx).padStart(2, '0')}`,
+      name: `스크롤 테스트 후보군 ${String(idx).padStart(2, '0')}`,
+      note: idx % 3 === 0 ? '스크롤/정렬/검색 검증용 샘플' : '대량 후보군 UI 검증',
+      productId: products[i % products.length]!,
+      dbCreatedAt: createdAt,
+      dbUpdatedAt: updatedAt,
+    }
+  }),
+]
+
+const seededCandidateItems: CandidateItemRecord[] = [
+  {
+    uuid: 'candidateitem000000000000000000001',
+    stashUuid: 'candidatestash00000000000000000001',
+    skuUuid: 'B',
+    details: {} as SecondaryOrderSnapshotPayload,
+    dbCreatedAt: '2026-04-20T09:10:00.000Z',
+  },
+  {
+    uuid: 'candidateitem000000000000000000002',
+    stashUuid: 'candidatestash00000000000000000002',
+    skuUuid: 'B',
+    details: {} as SecondaryOrderSnapshotPayload,
+    dbCreatedAt: '2026-04-20T10:40:00.000Z',
+  },
+  {
+    uuid: 'candidateitem000000000000000000003',
+    stashUuid: 'candidatestash00000000000000000003',
+    skuUuid: 'D',
+    details: {} as SecondaryOrderSnapshotPayload,
+    dbCreatedAt: '2026-04-20T11:10:00.000Z',
+  },
+  {
+    uuid: 'candidateitem000000000000000000004',
+    stashUuid: 'candidatestash00000000000000000004',
+    skuUuid: 'H',
+    details: {} as SecondaryOrderSnapshotPayload,
+    dbCreatedAt: '2026-04-20T11:30:00.000Z',
+  },
+  ...Array.from({ length: 30 }, (_, i) => {
+    const idx = i + 1
+    const minute = String((i * 3 + 1) % 60).padStart(2, '0')
+    const hour = String(12 + Math.floor((i * 3 + 1) / 60)).padStart(2, '0')
+    const createdAt = `2026-04-21T${hour}:${minute}:00.000Z`
+    const products = ['B', 'D', 'H', 'J', 'F', 'K', 'L', 'M']
+    return {
+      uuid: `candidate-item-seed-${String(idx).padStart(2, '0')}`,
+      stashUuid: `candidate-stash-seed-${String(idx).padStart(2, '0')}`,
+      skuUuid: products[i % products.length]!,
+      details: {} as SecondaryOrderSnapshotPayload,
+      dbCreatedAt: createdAt,
+    }
+  }),
+]
+
+function makeUuid32(): string {
+  const chars = 'abcdef0123456789'
+  let out = ''
+  for (let i = 0; i < 32; i += 1) out += chars[Math.floor(Math.random() * chars.length)]!
+  return out
+}
+
+function ensureCandidateSeed() {
+  const stashRaw = localStorage.getItem(CANDIDATE_STASH_STORAGE_KEY)
+  const itemRaw = localStorage.getItem(CANDIDATE_ITEM_STORAGE_KEY)
+  if (stashRaw == null) localStorage.setItem(CANDIDATE_STASH_STORAGE_KEY, JSON.stringify(seededCandidateStashes))
+  if (itemRaw == null) localStorage.setItem(CANDIDATE_ITEM_STORAGE_KEY, JSON.stringify(seededCandidateItems))
+}
 
 const secondaryCompetitorChannels: SecondaryCompetitorChannel[] = [
   { id: 'kream', label: '크림', priceSkew: 1, qtySkew: 1 },
@@ -347,7 +482,6 @@ const stockTrendById: Record<string, Array<{
   stock: number
   inboundExpected: number
   inboundQty: number
-  expectedInboundDate: string | null
 }>> = Object.fromEntries(allKnownProductIds.map((id) => {
   const d = productPrimaryById[id]
   const seed = id.charCodeAt(0)
@@ -367,7 +501,6 @@ const stockTrendById: Record<string, Array<{
     const sold = Math.max(1, Math.round(point.sales * (0.88 + (seed % 3) * 0.02)))
     let inbound = 0
     let inboundForDisplay = 0
-    let expectedInboundDate: string | null = null
     if (monthsUntilInbound <= 0) {
       /** 기존 재고를 반영해 부족분만 보충: 목표 월말 재고 - (입고 없을 때 월말 재고) */
       const projectedEndStockWithoutInbound = Math.max(0, stock - sold)
@@ -382,11 +515,6 @@ const stockTrendById: Record<string, Array<{
       if (point.isForecast && inbound > 0) {
         inboundForDisplay = inbound
       }
-      if (inbound > 0) {
-        const expectedDay = 5 + (seed % 18)
-        const yyyymm = point.date.slice(0, 7)
-        expectedInboundDate = `${yyyymm}-${String(expectedDay).padStart(2, '0')}`
-      }
     }
     monthsUntilInbound -= 1
     stock = Math.max(0, stock + inbound - sold)
@@ -395,7 +523,6 @@ const stockTrendById: Record<string, Array<{
       stock,
       inboundExpected: inboundForDisplay,
       inboundQty: inbound,
-      expectedInboundDate,
     }
   })
   return [id, series]
@@ -551,7 +678,6 @@ const buildSecondaryDailyTrend = (
     stock: number
     inboundExpected: number
     inboundQty?: number
-    expectedInboundDate: string | null
   }>,
   startMonth: string,
   leadTimeDays: number,
@@ -574,14 +700,15 @@ const buildSecondaryDailyTrend = (
       ? Math.max(0, Math.round(prevRow.stock + inboundQ - endStock))
       : Math.max(0, Math.round(m.sales))
 
+    /** 월간 stockTrend와 무관: 일간 시뮬만 월키·월 인덱스로 입고일 결정 */
     const inboundDay = (() => {
       if (inboundQ <= 0) return 0
-      const d = stockRow?.expectedInboundDate
-      if (d && d.slice(0, 7) === m.date) {
-        const day = Number(d.slice(8, 10))
-        if (Number.isFinite(day)) return Math.max(1, Math.min(days, Math.trunc(day)))
+      let h = monthIdx * 13
+      for (let i = 0; i < m.date.length; i += 1) {
+        h = (h + m.date.charCodeAt(i) * (i + 3)) | 0
       }
-      return Math.max(2, Math.min(days, Math.round(days * 0.35)))
+      const span = Math.max(1, days - 2)
+      return Math.max(2, Math.min(days, 2 + (Math.abs(h) % span)))
     })()
 
     if (monthIdx === 0) {
@@ -817,6 +944,162 @@ export const mockDashboardApi = {
       return [...list].sort((a, b) => String(b.savedAt).localeCompare(String(a.savedAt)))
     } catch {
       return []
+    }
+  },
+  deleteSecondaryOrderSnapshot: async (productId: string, savedAt: string) => {
+    await sleep(40)
+    try {
+      const raw = localStorage.getItem(SNAPSHOT_STORAGE_KEY)
+      const all = (raw ? JSON.parse(raw) : {}) as Record<string, SecondaryOrderSnapshotPayload[]>
+      const list = all[productId] ?? []
+      all[productId] = list.filter((snap) => String(snap.savedAt) !== String(savedAt))
+      localStorage.setItem(SNAPSHOT_STORAGE_KEY, JSON.stringify(all))
+    } catch {
+      /* ignore quota */
+    }
+  },
+  getCandidateStashes: async (productId?: string): Promise<CandidateStashSummary[]> => {
+    await sleep(60)
+    try {
+      ensureCandidateSeed()
+      const rawStashes = localStorage.getItem(CANDIDATE_STASH_STORAGE_KEY)
+      const rawItems = localStorage.getItem(CANDIDATE_ITEM_STORAGE_KEY)
+      const stashes = (rawStashes ? JSON.parse(rawStashes) : []) as CandidateStashRecord[]
+      const items = (rawItems ? JSON.parse(rawItems) : []) as CandidateItemRecord[]
+      const filtered = productId ? stashes.filter((row) => row.productId === productId) : stashes
+      return filtered
+        .map((row) => {
+          const linkedItems = items.filter((it) => it.stashUuid === row.uuid)
+          const latestItemTs = linkedItems.reduce<string>(
+            (latest, it) => (String(it.dbCreatedAt) > latest ? String(it.dbCreatedAt) : latest),
+            '',
+          )
+          const recordUpdatedAt = row.dbUpdatedAt ?? row.dbCreatedAt
+          const dbUpdatedAt = latestItemTs && latestItemTs > recordUpdatedAt ? latestItemTs : recordUpdatedAt
+          return {
+            uuid: row.uuid,
+            name: row.name,
+            note: row.note ?? null,
+            productId: row.productId,
+            itemCount: linkedItems.length,
+            dbCreatedAt: row.dbCreatedAt,
+            dbUpdatedAt,
+          }
+        })
+        .sort((a, b) => String(b.dbCreatedAt).localeCompare(String(a.dbCreatedAt)))
+    } catch {
+      return []
+    }
+  },
+  getCandidateItemsByStash: async (stashUuid: string): Promise<CandidateItemSummary[]> => {
+    await sleep(60)
+    try {
+      ensureCandidateSeed()
+      const rawItems = localStorage.getItem(CANDIDATE_ITEM_STORAGE_KEY)
+      const items = (rawItems ? JSON.parse(rawItems) : []) as CandidateItemRecord[]
+      return items
+        .filter((row) => row.stashUuid === stashUuid)
+        .map((row) => {
+          const productId = row.skuUuid
+          const fromSnap = row.details?.drawer1?.summary
+          const sizeRows = row.details?.drawer2?.sizeRows ?? []
+          const confirmedQty = sizeRows.reduce((acc, r) => acc + Math.max(0, Math.round(r.confirmQty ?? 0)), 0)
+          const fallbackQty = Math.max(0, Math.round(row.details?.drawer2?.stockDerived?.recommendedOrderQty ?? 0))
+          const qty = confirmedQty > 0 ? confirmedQty : fallbackQty
+          const unitPrice = Math.max(0, Math.round(fromSnap?.price ?? 0))
+          const expectedSalesAmount = qty * unitPrice
+          return {
+            uuid: row.uuid,
+            stashUuid: row.stashUuid,
+            productId,
+            brand: fromSnap?.brand ?? '-',
+            productCode: fromSnap?.productCode ?? productId,
+            productName: fromSnap?.name ?? '(상품명 없음)',
+            qty,
+            expectedSalesAmount,
+            dbCreatedAt: row.dbCreatedAt,
+          }
+        })
+        .sort((a, b) => String(b.dbCreatedAt).localeCompare(String(a.dbCreatedAt)))
+    } catch {
+      return []
+    }
+  },
+  deleteCandidateStash: async (stashUuid: string): Promise<void> => {
+    await sleep(60)
+    try {
+      ensureCandidateSeed()
+      const rawStashes = localStorage.getItem(CANDIDATE_STASH_STORAGE_KEY)
+      const rawItems = localStorage.getItem(CANDIDATE_ITEM_STORAGE_KEY)
+      const stashes = (rawStashes ? JSON.parse(rawStashes) : []) as CandidateStashRecord[]
+      const items = (rawItems ? JSON.parse(rawItems) : []) as CandidateItemRecord[]
+      localStorage.setItem(
+        CANDIDATE_STASH_STORAGE_KEY,
+        JSON.stringify(stashes.filter((row) => row.uuid !== stashUuid)),
+      )
+      localStorage.setItem(
+        CANDIDATE_ITEM_STORAGE_KEY,
+        JSON.stringify(items.filter((row) => row.stashUuid !== stashUuid)),
+      )
+    } catch {
+      /* ignore */
+    }
+  },
+  createCandidateStash: async (payload: CreateCandidateStashPayload): Promise<CandidateStashSummary> => {
+    await sleep(90)
+    const now = new Date().toISOString()
+    const stash: CandidateStashRecord = {
+      uuid: makeUuid32(),
+      name: payload.name.trim() || `오더 후보군 ${now.slice(0, 10)}`,
+      note: payload.note?.trim() || null,
+      productId: payload.productId,
+      dbCreatedAt: now,
+      dbUpdatedAt: now,
+    }
+    try {
+      ensureCandidateSeed()
+      const rawStashes = localStorage.getItem(CANDIDATE_STASH_STORAGE_KEY)
+      const stashes = (rawStashes ? JSON.parse(rawStashes) : []) as CandidateStashRecord[]
+      stashes.push(stash)
+      localStorage.setItem(CANDIDATE_STASH_STORAGE_KEY, JSON.stringify(stashes))
+    } catch {
+      /* ignore quota */
+    }
+    return {
+      uuid: stash.uuid,
+      name: stash.name,
+      note: stash.note,
+      productId: stash.productId,
+      itemCount: 0,
+      dbCreatedAt: stash.dbCreatedAt,
+      dbUpdatedAt: stash.dbUpdatedAt,
+    }
+  },
+  appendCandidateItem: async (payload: AppendCandidateItemPayload): Promise<void> => {
+    await sleep(70)
+    const now = new Date().toISOString()
+    const item: CandidateItemRecord = {
+      uuid: makeUuid32(),
+      stashUuid: payload.stashUuid,
+      skuUuid: payload.productId,
+      details: payload.details,
+      dbCreatedAt: now,
+    }
+    try {
+      ensureCandidateSeed()
+      const rawStashes = localStorage.getItem(CANDIDATE_STASH_STORAGE_KEY)
+      const rawItems = localStorage.getItem(CANDIDATE_ITEM_STORAGE_KEY)
+      const stashes = (rawStashes ? JSON.parse(rawStashes) : []) as CandidateStashRecord[]
+      const items = (rawItems ? JSON.parse(rawItems) : []) as CandidateItemRecord[]
+      const dedup = items.filter((row) => !(row.stashUuid === payload.stashUuid && row.skuUuid === payload.productId))
+      dedup.push(item)
+      localStorage.setItem(CANDIDATE_ITEM_STORAGE_KEY, JSON.stringify(dedup))
+      const nextStashes = stashes.map((row) => (
+        row.uuid === payload.stashUuid ? { ...row, dbUpdatedAt: now } : row
+      ))
+      localStorage.setItem(CANDIDATE_STASH_STORAGE_KEY, JSON.stringify(nextStashes))
+    } catch {
+      /* ignore quota */
     }
   },
   getSecondaryStockOrderCalc: async ({

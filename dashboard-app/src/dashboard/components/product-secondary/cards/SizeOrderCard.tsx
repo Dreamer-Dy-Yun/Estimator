@@ -23,7 +23,6 @@ type Props = {
     channelLabel: string
     selfWeightPct: number
     sizeRows: SizeRow[]
-    confirmOrderHelpId: string
     totalOrderBalanceHelpId: string
     expectedInboundOrderBalanceHelpId: string
     sizeRecQtyHelpId: string
@@ -34,13 +33,13 @@ type Props = {
     currentStockQtyBySize: number[]
     totalOrderBalanceBySize: number[]
     expectedInboundOrderBalanceBySize: number[]
+    /** 직접 수정한 확정 수량 셀(강조 표시용) */
+    manualConfirmBySize: Readonly<Record<string, true>>
   }
   actions: {
     onSelfWeightPctChange: (next: number) => void
-    onConfirmQtyChange: (size: string, next: number) => void
-    /** 사이즈별 추천 수량을 확정 수량에 그대로 반영할 때 전달 */
-    onApplyRecommended: (recommendedBySize: Record<string, number>) => void
-    onConfirmOrder: () => void
+    /** recommendedQty: 추천과 같게 맞추면 수동 표시가 해제됨 */
+    onConfirmQtyChange: (size: string, next: number, recommendedQty: number) => void
   }
   help: ReturnType<typeof usePortalHelpPopover<SecondaryHelpId>>
 }
@@ -55,7 +54,6 @@ export function SizeOrderCard({ sizeOrder, actions, help }: Props) {
     channelLabel,
     selfWeightPct,
     sizeRows,
-    confirmOrderHelpId,
     totalOrderBalanceHelpId,
     expectedInboundOrderBalanceHelpId,
     sizeRecQtyHelpId,
@@ -66,6 +64,7 @@ export function SizeOrderCard({ sizeOrder, actions, help }: Props) {
     currentStockQtyBySize,
     totalOrderBalanceBySize,
     expectedInboundOrderBalanceBySize,
+    manualConfirmBySize,
   } = sizeOrder
   const tableRef = useRef<HTMLTableElement | null>(null)
   const chartCellRef = useRef<HTMLTableCellElement | null>(null)
@@ -381,54 +380,35 @@ export function SizeOrderCard({ sizeOrder, actions, help }: Props) {
             <tr>
               <td>{KO.thConfirmQty}</td>
               <td className={styles.num}>{c(columnTotals.confirm)}</td>
-              {sizeRows.map((r) => (
-                <td key={r.size} className={styles.num}>
-                  <input
-                    type="number"
-                    min={0}
-                    style={{ width: '64px', textAlign: 'right' }}
-                    value={r.confirmQty}
-                    onChange={(e) => actions.onConfirmQtyChange(r.size, Number(e.target.value))}
-                    aria-label={`${r.size} ${KO.thConfirmQty}`}
-                  />
-                </td>
-              ))}
+              {sizeRows.map((r) => {
+                const manual = Boolean(manualConfirmBySize[r.size])
+                return (
+                  <td
+                    key={r.size}
+                    className={`${styles.num} ${styles.confirmQtyCell} ${manual ? styles.confirmQtyCellManual : ''}`}
+                  >
+                    <span className={styles.confirmQtyInputWrap}>
+                      <input
+                        type="number"
+                        min={0}
+                        step={1}
+                        className={styles.stockNumberInput}
+                        value={r.confirmQty}
+                        onChange={(e) =>
+                          actions.onConfirmQtyChange(
+                            r.size,
+                            Math.max(0, Number(e.target.value) || 0),
+                            r.recommendedQty,
+                          )}
+                        aria-label={`${r.size} ${KO.thConfirmQty}`}
+                      />
+                    </span>
+                  </td>
+                )
+              })}
             </tr>
           </tbody>
         </table>
-      </div>
-
-      <div style={{ marginTop: 8, display: 'flex', gap: 8 }}>
-        <button
-          type="button"
-          className={`${styles.btn} ${styles.btnSecondary}`}
-          onClick={() => {
-            const next: Record<string, number> = {}
-            for (const r of sizeRows) {
-              next[r.size] = Math.max(0, Math.round(r.recommendedQty))
-            }
-            actions.onApplyRecommended(next)
-          }}
-        >
-          {KO.btnApplyRec}
-        </button>
-        <span
-          ref={help.setAnchor('confirmOrder')}
-          className={styles.confirmOrderHelpAnchor}
-          onMouseEnter={() => help.open('confirmOrder', 'above')}
-          onMouseLeave={help.scheduleClose}
-        >
-          <button
-            type="button"
-            className={styles.btn}
-            onClick={actions.onConfirmOrder}
-            onFocus={() => help.open('confirmOrder', 'above')}
-            onBlur={help.scheduleClose}
-            aria-describedby={help.activeId === 'confirmOrder' ? confirmOrderHelpId : undefined}
-          >
-            {KO.btnConfirmOrder}
-          </button>
-        </span>
       </div>
     </div>
   )
