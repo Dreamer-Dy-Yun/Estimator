@@ -22,6 +22,7 @@ export type SalesKpiColumn = {
 export type SecondaryHelpId =
   | 'confirmOrder'
   | 'forecastQtyCalc'
+  | 'expectedOpProfitRate'
   | 'totalOrderBalance'
   | 'expectedInboundOrderBalance'
   | 'sizeRecQty'

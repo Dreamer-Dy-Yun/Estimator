@@ -9,12 +9,16 @@ export type TableColumn<T> = {
   cell: (row: T) => ReactNode
   align?: 'left' | 'right' | 'center'
   sortValue?: (row: T) => SortValue
+  /** false: 헤더 클릭 정렬 비활성(액션 열 등) */
+  sortable?: boolean
 }
 
 type PaginatedTableBase<T> = {
   columns: Array<TableColumn<T>>
   rows: T[]
   onRowClick?: (row: T) => void
+  /** 루트 `.tableWrap`에 추가 클래스(페이지별 열 간격·밀도 등) */
+  wrapClassName?: string
   infiniteScroll?: {
     enabled: boolean
     batchSize?: number
@@ -35,7 +39,7 @@ export type PaginatedTableProps<T extends { id: string }> = PaginatedTableBase<T
 )
 
 export function PaginatedTable<T extends { id: string }>(props: PaginatedTableProps<T>) {
-  const { columns, rows, onRowClick, infiniteScroll } = props
+  const { columns, rows, onRowClick, infiniteScroll, wrapClassName } = props
   const plain = props.paginated === false
   const tableBodyRef = useRef<HTMLDivElement | null>(null)
   const loadMoreRef = useRef<HTMLDivElement | null>(null)
@@ -118,24 +122,27 @@ export function PaginatedTable<T extends { id: string }>(props: PaginatedTablePr
   }
 
   return (
-    <div className={styles.tableWrap} data-drawer-keep-open="true">
+    <div className={`${styles.tableWrap}${wrapClassName ? ` ${wrapClassName}` : ''}`} data-drawer-keep-open="true">
       <div ref={tableBodyRef} className={styles.tableBody}>
         <table className={styles.table}>
           <thead>
             <tr>
-              {columns.map((c) => (
-                <th
-                  key={c.key}
-                  style={{ textAlign: c.align ?? 'left' }}
-                  className={styles.sortableTh}
-                  onClick={() => onSort(c.key, true)}
-                >
-                  <span className={styles.thInner}>
-                    {c.header}
-                    {sort?.key === c.key && <span>{sort.dir === 'asc' ? '▲' : '▼'}</span>}
-                  </span>
-                </th>
-              ))}
+              {columns.map((c) => {
+                const canSort = c.sortable !== false
+                return (
+                  <th
+                    key={c.key}
+                    style={{ textAlign: c.align ?? 'left' }}
+                    className={canSort ? styles.sortableTh : undefined}
+                    onClick={canSort ? () => onSort(c.key, true) : undefined}
+                  >
+                    <span className={styles.thInner}>
+                      {c.header}
+                      {canSort && sort?.key === c.key && <span>{sort.dir === 'asc' ? '▲' : '▼'}</span>}
+                    </span>
+                  </th>
+                )
+              })}
             </tr>
           </thead>
           <tbody>

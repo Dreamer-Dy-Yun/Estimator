@@ -44,6 +44,13 @@ export type OrderSnapshotDrawer2V1 = {
   bufferStock: number
   llmPrompt: string
   llmAnswer: string
+  /** 저장 시점의 확정 합계(이너 후보 리스트 요약/열 표시용) */
+  confirmedTotals?: {
+    orderQty: number
+    expectedSalesAmount: number
+    expectedOpProfit: number
+    expectedOpProfitRatePct: number | null
+  }
   sizeRows: OrderSnapshotSizeRowV1[]
 }
 

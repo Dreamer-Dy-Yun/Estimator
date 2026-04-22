@@ -1,16 +1,18 @@
 import type {
   CompetitorSalesRow,
   MonthlySalesPoint,
-  OrderPlanRow,
   ProductPrimarySummary,
   ProductSecondaryDetail,
   SelfSalesRow,
 } from '../types'
 import type {
   AppendCandidateItemPayload,
+  UpdateCandidateItemPayload,
+  CandidateItemDetail,
   CandidateItemSummary,
   CandidateStashSummary,
   CreateCandidateStashPayload,
+  UpdateCandidateStashPayload,
   CompetitorSalesParams,
   ProductDrawerBundleParams,
   ProductSecondaryDetailParams,
@@ -23,12 +25,66 @@ import type {
   SecondaryOrderSnapshotPayload,
 } from './types'
 import { DAILY_TREND_AS_OF_DATE } from './dailyTrendAsOf'
+import { ORDER_SNAPSHOT_SCHEMA_VERSION } from '../snapshot/orderSnapshotTypes'
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
+
+const logApiCalled = (message: string) => {
+  if (typeof console === 'undefined') return
+  console.info(`[API CALLED] ${message}`)
+}
 const clamp = (v: number, min: number, max: number) => Math.max(min, Math.min(max, v))
 const SNAPSHOT_STORAGE_KEY = 'dashboard.orderSnapshots.v1'
 const CANDIDATE_STASH_STORAGE_KEY = 'dashboard.candidateStashes.v1'
-const CANDIDATE_ITEM_STORAGE_KEY = 'dashboard.candidateItems.v1'
+const CANDIDATE_ITEM_STORAGE_KEY = 'dashboard.candidateItems.v2'
+
+function hashRank(seed: string, mod: number): number {
+  let h = 0
+  for (let i = 0; i < seed.length; i += 1) h = (h * 31 + seed.charCodeAt(i)) >>> 0
+  return (h % mod) + 1
+}
+
+function buildMockSalesKpiColumn(
+  kind: 'self' | 'competitor',
+  primary: ProductPrimarySummary,
+  secondary: ProductSecondaryDetail,
+  channel: SecondaryCompetitorChannel,
+) {
+  const price =
+    kind === 'self'
+      ? primary.price
+      : Math.round(secondary.competitorPrice * channel.priceSkew)
+  const qty =
+    kind === 'self'
+      ? primary.qty
+      : Math.max(1, Math.round(secondary.competitorQty * channel.qtySkew))
+  const amount = Math.round(price * qty)
+  const avgCost = kind === 'self'
+    ? Math.round(price * 0.78)
+    : Math.round(price * 0.8)
+  const grossMarginPerUnit = price - avgCost
+  const feeRatePct = 13
+  const feePerUnit = Math.round(price * (feeRatePct / 100))
+  const opMarginPerUnit = grossMarginPerUnit - feePerUnit
+  const opMarginRatePct = price > 0 ? (opMarginPerUnit / price) * 100 : 0
+  const costRatioPct = price > 0 ? (avgCost / price) * 100 : 0
+  const qtyRank = hashRank(`${primary.id}-${kind}-qty`, 28)
+  const amountRank = hashRank(`${primary.id}-${kind}-amt`, 28)
+  return {
+    avgPrice: price,
+    qty,
+    amount,
+    avgCost,
+    grossMarginPerUnit,
+    feePerUnit,
+    feeRatePct,
+    opMarginPerUnit,
+    opMarginRatePct,
+    costRatioPct,
+    qtyRank,
+    amountRank,
+  }
+}
 
 type CandidateStashRecord = {
   uuid: string
@@ -45,6 +101,7 @@ type CandidateItemRecord = {
   skuUuid: string
   details: SecondaryOrderSnapshotPayload
   dbCreatedAt: string
+  dbUpdatedAt: string
 }
 
 const seededCandidateStashes: CandidateStashRecord[] = [
@@ -96,51 +153,6 @@ const seededCandidateStashes: CandidateStashRecord[] = [
       productId: products[i % products.length]!,
       dbCreatedAt: createdAt,
       dbUpdatedAt: updatedAt,
-    }
-  }),
-]
-
-const seededCandidateItems: CandidateItemRecord[] = [
-  {
-    uuid: 'candidateitem000000000000000000001',
-    stashUuid: 'candidatestash00000000000000000001',
-    skuUuid: 'B',
-    details: {} as SecondaryOrderSnapshotPayload,
-    dbCreatedAt: '2026-04-20T09:10:00.000Z',
-  },
-  {
-    uuid: 'candidateitem000000000000000000002',
-    stashUuid: 'candidatestash00000000000000000002',
-    skuUuid: 'B',
-    details: {} as SecondaryOrderSnapshotPayload,
-    dbCreatedAt: '2026-04-20T10:40:00.000Z',
-  },
-  {
-    uuid: 'candidateitem000000000000000000003',
-    stashUuid: 'candidatestash00000000000000000003',
-    skuUuid: 'D',
-    details: {} as SecondaryOrderSnapshotPayload,
-    dbCreatedAt: '2026-04-20T11:10:00.000Z',
-  },
-  {
-    uuid: 'candidateitem000000000000000000004',
-    stashUuid: 'candidatestash00000000000000000004',
-    skuUuid: 'H',
-    details: {} as SecondaryOrderSnapshotPayload,
-    dbCreatedAt: '2026-04-20T11:30:00.000Z',
-  },
-  ...Array.from({ length: 30 }, (_, i) => {
-    const idx = i + 1
-    const minute = String((i * 3 + 1) % 60).padStart(2, '0')
-    const hour = String(12 + Math.floor((i * 3 + 1) / 60)).padStart(2, '0')
-    const createdAt = `2026-04-21T${hour}:${minute}:00.000Z`
-    const products = ['B', 'D', 'H', 'J', 'F', 'K', 'L', 'M']
-    return {
-      uuid: `candidate-item-seed-${String(idx).padStart(2, '0')}`,
-      stashUuid: `candidate-stash-seed-${String(idx).padStart(2, '0')}`,
-      skuUuid: products[i % products.length]!,
-      details: {} as SecondaryOrderSnapshotPayload,
-      dbCreatedAt: createdAt,
     }
   }),
 ]
@@ -221,35 +233,8 @@ const competitorSalesRows: CompetitorSalesRow[] = [
   { id: 'AE', rank: 25, rankPercentile: 95.0, brand: '뉴발란스', category: '신발', productCode: 'AE', name: 'AEEEE', competitorAvgPrice: 145000, competitorQty: 2800, competitorAmount: 406000000, selfAvgPrice: 141000, selfQty: 3000, selfAmount: 423000000 },
 ]
 
-const orderPlanRows: OrderPlanRow[] = selfSalesRows.map((r) => ({
-  id: r.id,
-  rank: r.rank,
-  rankPercentile: r.rankPercentile,
-  brand: r.brand,
-  category: r.category,
-  productCode: r.productCode,
-  name: r.name,
-  dailyQty: Number((r.qty / 352).toFixed(1)),
-  predictedDailyQtyUntilInbound: Number((r.qty / 333).toFixed(1)),
-  predictedDailyQtyAfterInbound: Number((r.qty / 321).toFixed(1)),
-  availableStock: Math.round(r.qty / 2),
-  currentStock: Math.round(r.qty / 2.8),
-  inboundQty: Math.round(r.qty / 7),
-  safetyStock: 250,
-  stockCoverDays: 170,
-  safetyReachDays: 162,
-  recommendedOrderQty: Math.round(r.qty / 1.7),
-  confirmedOrderQty: Math.round(r.qty / 1.8),
-  orderCost: r.avgCost,
-  targetPrice: r.avgPrice,
-  orderAmount: Math.round((r.qty / 1.8) * r.avgCost),
-  expectedSales: Math.round((r.qty / 1.8) * r.avgPrice),
-  expectedOpMargin: Math.round((r.qty / 1.8) * (r.avgPrice - r.avgCost) * 0.75),
-}))
-
 const selfById = Object.fromEntries(selfSalesRows.map((row) => [row.id, row]))
 const competitorById = Object.fromEntries(competitorSalesRows.map((row) => [row.id, row]))
-const orderById = Object.fromEntries(orderPlanRows.map((row) => [row.id, row]))
 
 const SALES_MONTHS: string[] = (() => {
   const months: string[] = []
@@ -384,7 +369,19 @@ const makeSizeMix = (
       : profile === 'female'
         ? ratioWeightsFemale
         : ratioWeightsUnisex
-  const compShift = (seed % 5) - 2
+  // 경쟁사 비중은 자사와 유사하지 않도록 별도 프로파일을 선택
+  const competitorProfile = (() => {
+    if (profile === 'unisex') return seed % 2 === 0 ? 'male' : 'female'
+    if (profile === 'male') return seed % 3 === 0 ? 'unisex' : 'female'
+    return seed % 3 === 0 ? 'unisex' : 'male'
+  })()
+  const competitorRatioWeightsBase =
+    competitorProfile === 'male'
+      ? ratioWeightsMale
+      : competitorProfile === 'female'
+        ? ratioWeightsFemale
+        : ratioWeightsUnisex
+  const competitorTilt = (seed % 4) - 1.5
   const mid = (sizes.length - 1) / 2
   const qtyAlloc = allocateByWeights(productQty, ratioWeights)
   const stockAlloc = allocateByWeights(productAvailableStock, ratioWeights)
@@ -392,7 +389,12 @@ const makeSizeMix = (
   return sizes.map((size, idx) => ({
     size,
     ratio: ratioWeights[idx],
-    competitorRatio: Math.max(1, ratioWeights[idx]! + (idx % 2 === 0 ? compShift : -compShift)),
+    competitorRatio: Math.max(
+      1,
+      Math.round(
+        competitorRatioWeightsBase[idx]! * (1 + (idx - mid) * competitorTilt * 0.08),
+      ),
+    ),
     confirmedQty: orderAlloc[idx]!,
     avgPrice: Math.round(productPrice * (1 + (idx - mid) * 0.004)),
     qty: qtyAlloc[idx]!,
@@ -412,9 +414,9 @@ function splitPrimarySecondaryFromSizeMix(
   return { sizeMix, competitorRatioBySize }
 }
 
-const allKnownProductIds = Array.from(new Set([...selfSalesRows, ...competitorSalesRows, ...orderPlanRows].map((row) => row.id)))
-const brands = Array.from(new Set([...selfSalesRows, ...competitorSalesRows, ...orderPlanRows].map((row) => row.brand)))
-const categories = Array.from(new Set([...selfSalesRows, ...competitorSalesRows, ...orderPlanRows].map((row) => row.category)))
+const allKnownProductIds = Array.from(new Set([...selfSalesRows, ...competitorSalesRows].map((row) => row.id)))
+const brands = Array.from(new Set([...selfSalesRows, ...competitorSalesRows].map((row) => row.brand)))
+const categories = Array.from(new Set([...selfSalesRows, ...competitorSalesRows].map((row) => row.category)))
 const historicalMonths = SALES_MONTHS.filter((month) => month < '2026-01')
 
 const estimatePeriodWeight = (startDate?: string, endDate?: string) => {
@@ -435,20 +437,19 @@ const { primary: productPrimaryById, secondary: productSecondaryById } = (() => 
   for (const id of allKnownProductIds) {
     const s = selfById[id]
     const c = competitorById[id]
-    const o = orderById[id]
     const seed = id.charCodeAt(0)
 
-    const name = s?.name ?? c?.name ?? o?.name ?? `상품-${id}`
-    const brand = s?.brand ?? c?.brand ?? o?.brand ?? '나이키'
-    const category = s?.category ?? c?.category ?? o?.category ?? '신발'
-    const productCode = s?.productCode ?? c?.productCode ?? o?.productCode ?? id
+    const name = s?.name ?? c?.name ?? `상품-${id}`
+    const brand = s?.brand ?? c?.brand ?? '나이키'
+    const category = s?.category ?? c?.category ?? '신발'
+    const productCode = s?.productCode ?? c?.productCode ?? id
 
     const price = s?.avgPrice ?? c?.selfAvgPrice ?? Math.round((c?.competitorAvgPrice ?? 120000) * 0.96)
     const competitorPrice = c?.competitorAvgPrice ?? Math.round(price * 1.03)
     const productQty = s?.qty ?? c?.selfQty ?? Math.round((c?.competitorQty ?? 5000) * 0.85)
     const competitorQty = c?.competitorQty ?? Math.round(productQty * 0.9)
-    const recommendedOrderQty = o?.recommendedOrderQty ?? Math.round(productQty / 1.7)
-    const availableStock = o?.availableStock ?? Math.round(productQty * 0.45)
+    const recommendedOrderQty = Math.round(productQty / 1.7)
+    const availableStock = Math.round(productQty * 0.45)
 
     const fullMix = makeSizeMix(recommendedOrderQty, productQty, price, availableStock, seed, category)
     const { sizeMix, competitorRatioBySize } = splitPrimarySecondaryFromSizeMix(fullMix)
@@ -476,6 +477,164 @@ const { primary: productPrimaryById, secondary: productSecondaryById } = (() => 
   }
   return { primary, secondary }
 })()
+
+/** 후보군 목업: 품번별 요약·2차 스냅샷을 채워 브랜드 등이 리스트/드로어에 표시되도록 함 */
+function buildMockOrderSnapshotForCandidate(productId: string): SecondaryOrderSnapshotPayload {
+  const primary = productPrimaryById[productId] ?? productPrimaryById[allKnownProductIds[0]]!
+  const secondary = productSecondaryById[productId] ?? productSecondaryById[allKnownProductIds[0]]!
+  const channel = secondaryCompetitorChannels[0]!
+  const selfCol = buildMockSalesKpiColumn('self', primary, secondary, channel)
+  const compCol = buildMockSalesKpiColumn('competitor', primary, secondary, channel)
+  const { monthlySalesTrend: _m, ...summarySansTrend } = primary
+  const leadTimeDays = 30
+  const stockInputs = {
+    trendDailyMean: Math.max(0.1, Math.round((primary.qty / 365) * 10) / 10),
+    dailyMean: Math.max(0.1, Math.round((primary.qty / 365) * 10) / 10),
+    leadTimeStartDate: '2026-04-01',
+    leadTimeEndDate: '2026-05-01',
+    leadTimeDays,
+    safetyStockMode: 'formula' as const,
+    manualSafetyStock: 0,
+    sigma: 12,
+    serviceLevelPct: 95,
+  }
+  const unitPrice = Math.max(0, Math.round(summarySansTrend.price ?? primary.price))
+  const unitCost = Math.max(0, Math.round(selfCol.avgCost))
+  const feePerUnit = Math.max(0, Math.round(selfCol.feePerUnit))
+  const opMarginPerUnit = unitPrice - unitCost - feePerUnit
+  const stockDerived = {
+    safetyStock: Math.max(0, Math.round(primary.availableStock * 0.2)),
+    recommendedOrderQty: primary.recommendedOrderQty,
+    expectedOrderAmount: Math.round(primary.recommendedOrderQty * unitCost),
+    expectedSalesAmount: Math.round(primary.recommendedOrderQty * unitPrice),
+    expectedOpProfit: Math.round(primary.recommendedOrderQty * opMarginPerUnit),
+  }
+  const sizeRows = primary.sizeMix.map((row) => {
+    const rec = Math.max(1, row.confirmedQty)
+    const fq = Math.max(1, Math.round(row.qty * 0.12))
+    return {
+      size: row.size,
+      selfSharePct: 25,
+      competitorSharePct: 25,
+      blendedSharePct: 25,
+      forecastQty: fq,
+      recommendedQty: rec,
+      confirmQty: rec,
+    }
+  })
+  const savedAt = new Date().toISOString()
+  const confirmedOrderQty = sizeRows.reduce((acc, row) => acc + Math.max(0, Math.round(row.confirmQty ?? 0)), 0)
+  const confirmedExpectedSalesAmount = confirmedOrderQty * unitPrice
+  const confirmedExpectedOpProfit = confirmedOrderQty * opMarginPerUnit
+  return {
+    schemaVersion: ORDER_SNAPSHOT_SCHEMA_VERSION,
+    productId,
+    savedAt,
+    context: {
+      periodStart: '2025-01-01',
+      periodEnd: '2025-12-31',
+      forecastMonths: 8,
+      dailyTrendStartMonth: '2025-01',
+      dailyTrendLeadTimeDays: leadTimeDays,
+    },
+    drawer1: { summary: summarySansTrend },
+    drawer2: {
+      secondary,
+      competitorChannelId: channel.id,
+      competitorChannelLabel: channel.label,
+      minOpMarginPct: null,
+      salesSelf: selfCol,
+      salesCompetitor: compCol,
+      stockInputs,
+      stockDerived,
+      selfWeightPct: 50,
+      sizeForecastSource: 'forecastQty',
+      bufferStock: 0,
+      llmPrompt: '',
+      llmAnswer: '',
+      confirmedTotals: {
+        orderQty: confirmedOrderQty,
+        expectedSalesAmount: confirmedExpectedSalesAmount,
+        expectedOpProfit: confirmedExpectedOpProfit,
+        expectedOpProfitRatePct: confirmedExpectedSalesAmount > 0
+          ? (confirmedExpectedOpProfit / confirmedExpectedSalesAmount) * 100
+          : null,
+      },
+      sizeRows,
+    },
+  }
+}
+
+const seededCandidateItems: CandidateItemRecord[] = [
+  {
+    uuid: 'candidateitem000000000000000000001',
+    stashUuid: 'candidatestash00000000000000000001',
+    skuUuid: 'B',
+    details: buildMockOrderSnapshotForCandidate('B'),
+    dbCreatedAt: '2026-04-20T09:10:00.000Z',
+    dbUpdatedAt: '2026-04-20T09:10:00.000Z',
+  },
+  /** 기본 후보군 A — 목록·스크롤·정렬 확인용 추가 행 */
+  ...(
+    [
+      ['005', 'D', '09:12:00.000Z', '09:13:00.000Z'],
+      ['006', 'H', '09:14:00.000Z', '09:15:30.000Z'],
+      ['007', 'J', '09:16:00.000Z', '09:16:00.000Z'],
+      ['008', 'F', '09:18:00.000Z', '09:19:00.000Z'],
+      ['009', 'K', '09:20:00.000Z', '09:21:00.000Z'],
+      ['010', 'L', '09:22:00.000Z', '09:22:00.000Z'],
+      ['011', 'M', '09:24:00.000Z', '09:25:10.000Z'],
+      ['012', 'B', '09:26:00.000Z', '09:27:00.000Z'],
+    ] as const
+  ).map(([suffix, pid, created, updated]) => ({
+    uuid: `candidateitem000000000000000000${suffix}`,
+    stashUuid: 'candidatestash00000000000000000001',
+    skuUuid: pid,
+    details: buildMockOrderSnapshotForCandidate(pid),
+    dbCreatedAt: `2026-04-20T${created}`,
+    dbUpdatedAt: `2026-04-20T${updated}`,
+  })),
+  {
+    uuid: 'candidateitem000000000000000000002',
+    stashUuid: 'candidatestash00000000000000000002',
+    skuUuid: 'B',
+    details: buildMockOrderSnapshotForCandidate('B'),
+    dbCreatedAt: '2026-04-20T10:40:00.000Z',
+    dbUpdatedAt: '2026-04-20T10:40:00.000Z',
+  },
+  {
+    uuid: 'candidateitem000000000000000000003',
+    stashUuid: 'candidatestash00000000000000000003',
+    skuUuid: 'D',
+    details: buildMockOrderSnapshotForCandidate('D'),
+    dbCreatedAt: '2026-04-20T11:10:00.000Z',
+    dbUpdatedAt: '2026-04-20T11:10:00.000Z',
+  },
+  {
+    uuid: 'candidateitem000000000000000000004',
+    stashUuid: 'candidatestash00000000000000000004',
+    skuUuid: 'H',
+    details: buildMockOrderSnapshotForCandidate('H'),
+    dbCreatedAt: '2026-04-20T11:30:00.000Z',
+    dbUpdatedAt: '2026-04-20T11:30:00.000Z',
+  },
+  ...Array.from({ length: 30 }, (_, i) => {
+    const idx = i + 1
+    const minute = String((i * 3 + 1) % 60).padStart(2, '0')
+    const hour = String(12 + Math.floor((i * 3 + 1) / 60)).padStart(2, '0')
+    const createdAt = `2026-04-21T${hour}:${minute}:00.000Z`
+    const products = ['B', 'D', 'H', 'J', 'F', 'K', 'L', 'M'] as const
+    const pid = products[i % products.length]!
+    return {
+      uuid: `candidate-item-seed-${String(idx).padStart(2, '0')}`,
+      stashUuid: `candidate-stash-seed-${String(idx).padStart(2, '0')}`,
+      skuUuid: pid,
+      details: buildMockOrderSnapshotForCandidate(pid),
+      dbCreatedAt: createdAt,
+      dbUpdatedAt: createdAt,
+    }
+  }),
+]
 
 const stockTrendById: Record<string, Array<{
   date: string
@@ -750,8 +909,8 @@ const buildSecondaryDailyTrend = (
         sales,
         stockBar: Math.max(0, Math.round(physical)),
         inboundAccumBar: isAfterAsOf ? Math.max(0, Math.round(pipeline)) : 0,
-        selfSalesNorm: null,
-        competitorSalesNorm: null,
+        selfSales: null,
+        competitorSales: null,
         isForecast: m.isForecast,
       })
       idx += 1
@@ -793,33 +952,46 @@ const buildSecondaryDailyTrend = (
       sales,
       stockBar: Math.max(0, Math.round(phys)),
       inboundAccumBar: Math.max(0, Math.round(pipe)),
-      selfSalesNorm: null,
-      competitorSalesNorm: null,
+      selfSales: null,
+      competitorSales: null,
       isForecast: true,
     }
     out.push(next)
     last = next
   }
 
-  const observed = out.filter((p) => p.date <= DAILY_TREND_AS_OF_DATE)
-  const observedMaxSales = observed.reduce((mx, p) => Math.max(mx, p.sales), 0)
-  const selfDenom = observedMaxSales > 0 ? observedMaxSales : 1
+  let prevCompetitorSales = 0
+  out.forEach((p, i) => {
+    if (p.isForecast) {
+      p.selfSales = null
+      p.competitorSales = null
+      return
+    }
+    const selfSales = Math.max(0, Math.round(p.sales))
+    const lag3 = Math.max(0, Math.round(out[Math.max(0, i - 3)]?.sales ?? selfSales))
+    const lag8 = Math.max(0, Math.round(out[Math.max(0, i - 8)]?.sales ?? selfSales))
 
-  const rawComp = observed.map((p, i) => {
-    const selfNorm = clamp(p.sales / selfDenom, 0, 1)
-    // 경쟁사 곡선이 자사와 패턴 차이가 나도록 위상/진폭을 따로 줌
-    const phaseA = ((i + 3) % 11) / 10
-    const phaseB = ((i + 7) % 17) / 16
-    const wave = (phaseA - 0.5) * 0.14 + (phaseB - 0.5) * 0.08
-    return clamp(selfNorm * 0.72 + 0.03 + wave, 0, 1)
-  })
-  const compDenom = rawComp.reduce((mx, v) => Math.max(mx, v), 0) || 1
+    // 경쟁사(크림) 일간 트렌드: 규모는 크되(약 60배권), 자사와 다른 리듬으로 생성
+    const weekly = Math.sin((i + 2) * ((2 * Math.PI) / 7)) // 7일 주기
+    const biWeekly = Math.cos((i + 9) * ((2 * Math.PI) / 14)) // 14일 주기
+    const monthly = Math.sin((i + 4) * ((2 * Math.PI) / 29))
+    const daySeed = Number(p.date.slice(8, 10))
+    // 특정 날짜대에 경쟁사 프로모션 스파이크
+    const promoSpike = daySeed % 9 === 0 ? 0.32 : daySeed % 7 === 0 ? 0.18 : 0
+    const noise = (((daySeed * 11 + i * 5) % 23) / 23 - 0.5) * 0.08
 
-  observed.forEach((p, i) => {
-    const selfNorm = clamp(p.sales / selfDenom, 0, 1)
-    const compNorm = clamp(rawComp[i]! / compDenom, 0, 1)
-    p.selfSalesNorm = Number(selfNorm.toFixed(4))
-    p.competitorSalesNorm = Number(compNorm.toFixed(4))
+    const base = selfSales * 34 + lag3 * 17 + lag8 * 11
+    const rhythm = 1 + weekly * 0.24 + biWeekly * 0.15 + monthly * 0.1 + promoSpike + noise
+    const trendTarget = base * Math.max(0.55, rhythm)
+
+    const competitorSales =
+      prevCompetitorSales <= 0
+        ? Math.max(0, Math.round(trendTarget))
+        : Math.max(0, Math.round(prevCompetitorSales * 0.52 + trendTarget * 0.48))
+
+    p.selfSales = selfSales
+    p.competitorSales = competitorSales
+    prevCompetitorSales = competitorSales
   })
   return out
 }
@@ -876,7 +1048,6 @@ export const mockDashboardApi = {
         }
       })
   },
-  getOrderPlan: async () => { await sleep(80); return orderPlanRows },
   getSelfSalesFilterMeta: async () => {
     await sleep(60)
     return {
@@ -993,57 +1164,94 @@ export const mockDashboardApi = {
   },
   getCandidateItemsByStash: async (stashUuid: string): Promise<CandidateItemSummary[]> => {
     await sleep(60)
-    try {
-      ensureCandidateSeed()
-      const rawItems = localStorage.getItem(CANDIDATE_ITEM_STORAGE_KEY)
-      const items = (rawItems ? JSON.parse(rawItems) : []) as CandidateItemRecord[]
-      return items
-        .filter((row) => row.stashUuid === stashUuid)
-        .map((row) => {
-          const productId = row.skuUuid
-          const fromSnap = row.details?.drawer1?.summary
-          const sizeRows = row.details?.drawer2?.sizeRows ?? []
-          const confirmedQty = sizeRows.reduce((acc, r) => acc + Math.max(0, Math.round(r.confirmQty ?? 0)), 0)
-          const fallbackQty = Math.max(0, Math.round(row.details?.drawer2?.stockDerived?.recommendedOrderQty ?? 0))
-          const qty = confirmedQty > 0 ? confirmedQty : fallbackQty
-          const unitPrice = Math.max(0, Math.round(fromSnap?.price ?? 0))
-          const expectedSalesAmount = qty * unitPrice
-          return {
-            uuid: row.uuid,
-            stashUuid: row.stashUuid,
-            productId,
-            brand: fromSnap?.brand ?? '-',
-            productCode: fromSnap?.productCode ?? productId,
-            productName: fromSnap?.name ?? '(상품명 없음)',
-            qty,
-            expectedSalesAmount,
-            dbCreatedAt: row.dbCreatedAt,
-          }
-        })
-        .sort((a, b) => String(b.dbCreatedAt).localeCompare(String(a.dbCreatedAt)))
-    } catch {
-      return []
+    ensureCandidateSeed()
+    const rawItems = localStorage.getItem(CANDIDATE_ITEM_STORAGE_KEY)
+    const items = (rawItems ? JSON.parse(rawItems) : []) as CandidateItemRecord[]
+    return items
+      .filter((row) => row.stashUuid === stashUuid)
+      .map((row) => {
+        const productId = row.skuUuid
+        const summary = row.details?.drawer1?.summary
+        const drawer2 = row.details?.drawer2
+        if (!summary || !drawer2) {
+          throw new Error(`후보 스냅샷 누락: ${row.uuid}`)
+        }
+        const qty = drawer2.sizeRows.reduce((acc, r) => acc + Math.max(0, Math.round(r.confirmQty ?? 0)), 0)
+        const orderAmount = drawer2.stockDerived?.expectedOrderAmount
+        const expectedSalesAmount = drawer2.stockDerived?.expectedSalesAmount
+        const expectedOpProfit = drawer2.stockDerived?.expectedOpProfit
+        if (
+          typeof orderAmount !== 'number'
+          || typeof expectedSalesAmount !== 'number'
+          || typeof expectedOpProfit !== 'number'
+        ) {
+          throw new Error(`후보 스냅샷 수치 누락: ${row.uuid}`)
+        }
+        return {
+          uuid: row.uuid,
+          stashUuid: row.stashUuid,
+          productId,
+          brand: summary.brand,
+          productCode: summary.productCode,
+          productName: summary.name,
+          qty,
+          orderAmount,
+          expectedSalesAmount,
+          expectedOpProfit,
+          dbCreatedAt: row.dbCreatedAt,
+          dbUpdatedAt: row.dbUpdatedAt ?? row.dbCreatedAt,
+        }
+      })
+      .sort((a, b) => String(b.dbCreatedAt).localeCompare(String(a.dbCreatedAt)))
+  },
+  getCandidateItemByUuid: async (itemUuid: string): Promise<CandidateItemDetail | null> => {
+    await sleep(50)
+    ensureCandidateSeed()
+    const rawItems = localStorage.getItem(CANDIDATE_ITEM_STORAGE_KEY)
+    const items = (rawItems ? JSON.parse(rawItems) : []) as CandidateItemRecord[]
+    const row = items.find((it) => it.uuid === itemUuid)
+    if (!row) return null
+    if (!row.details) {
+      throw new Error(`후보 상세 스냅샷 누락: ${itemUuid}`)
+    }
+    return {
+      uuid: row.uuid,
+      stashUuid: row.stashUuid,
+      productId: row.skuUuid,
+      details: row.details,
+      dbCreatedAt: row.dbCreatedAt,
+      dbUpdatedAt: row.dbUpdatedAt ?? row.dbCreatedAt,
     }
   },
-  deleteCandidateStash: async (stashUuid: string): Promise<void> => {
+  deleteCandidateItem: async (itemUuid: string): Promise<void> => {
     await sleep(60)
+    logApiCalled('이너 후보 삭제 API가 호출되었습니다.')
     try {
       ensureCandidateSeed()
-      const rawStashes = localStorage.getItem(CANDIDATE_STASH_STORAGE_KEY)
       const rawItems = localStorage.getItem(CANDIDATE_ITEM_STORAGE_KEY)
-      const stashes = (rawStashes ? JSON.parse(rawStashes) : []) as CandidateStashRecord[]
+      const rawStashes = localStorage.getItem(CANDIDATE_STASH_STORAGE_KEY)
       const items = (rawItems ? JSON.parse(rawItems) : []) as CandidateItemRecord[]
-      localStorage.setItem(
-        CANDIDATE_STASH_STORAGE_KEY,
-        JSON.stringify(stashes.filter((row) => row.uuid !== stashUuid)),
+      const target = items.find((it) => it.uuid === itemUuid)
+      if (!target) return
+      const nextItems = items.filter((it) => it.uuid !== itemUuid)
+      localStorage.setItem(CANDIDATE_ITEM_STORAGE_KEY, JSON.stringify(nextItems))
+      const now = new Date().toISOString()
+      const stashes = (rawStashes ? JSON.parse(rawStashes) : []) as CandidateStashRecord[]
+      const nextStashes = stashes.map((s) =>
+        s.uuid === target.stashUuid ? { ...s, dbUpdatedAt: now } : s,
       )
-      localStorage.setItem(
-        CANDIDATE_ITEM_STORAGE_KEY,
-        JSON.stringify(items.filter((row) => row.stashUuid !== stashUuid)),
-      )
+      localStorage.setItem(CANDIDATE_STASH_STORAGE_KEY, JSON.stringify(nextStashes))
     } catch {
       /* ignore */
     }
+  },
+  /**
+   * 후보군 삭제 — 백엔드 연동 전 스텁. 네트워크 지연만 흉내 내며 저장/목록 변경 없음.
+   * 실제 구현 시 HTTP 호출 + DB 삭제 반영으로 교체.
+   */
+  deleteCandidateStash: async (_stashUuid: string): Promise<void> => {
+    await sleep(60)
+    logApiCalled('후보군 삭제 API가 호출되었습니다.')
   },
   createCandidateStash: async (payload: CreateCandidateStashPayload): Promise<CandidateStashSummary> => {
     await sleep(90)
@@ -1075,6 +1283,41 @@ export const mockDashboardApi = {
       dbUpdatedAt: stash.dbUpdatedAt,
     }
   },
+  /**
+   * 후보군 이름/비고 수정 — 백엔드 연동 전 스텁. 저장/목록 변경 없음.
+   * 실제 구현 시 HTTP 호출 + DB 갱신 후 최신 후보군 요약을 반환.
+   */
+  updateCandidateStash: async (payload: UpdateCandidateStashPayload): Promise<CandidateStashSummary> => {
+    await sleep(70)
+    logApiCalled('후보군 이름·비고 수정 API가 호출되었습니다.')
+    ensureCandidateSeed()
+    const rawStashes = localStorage.getItem(CANDIDATE_STASH_STORAGE_KEY)
+    const rawItems = localStorage.getItem(CANDIDATE_ITEM_STORAGE_KEY)
+    const stashes = (rawStashes ? JSON.parse(rawStashes) : []) as CandidateStashRecord[]
+    const items = (rawItems ? JSON.parse(rawItems) : []) as CandidateItemRecord[]
+    const target = stashes.find((s) => s.uuid === payload.stashUuid)
+    if (!target) {
+      throw new Error('후보군을 찾을 수 없습니다.')
+    }
+    const linkedItems = items.filter((it) => it.stashUuid === target.uuid)
+    return {
+      uuid: target.uuid,
+      name: target.name,
+      note: target.note ?? null,
+      productId: target.productId,
+      itemCount: linkedItems.length,
+      dbCreatedAt: target.dbCreatedAt,
+      dbUpdatedAt: target.dbUpdatedAt,
+    }
+  },
+  /**
+   * 후보군 복제 — 백엔드 연동 전 스텁. 네트워크 지연만 흉내 내며 저장/목록 변경 없음.
+   * 실제 구현 시 이 메서드만 HTTP 호출 + DB 반영으로 교체.
+   */
+  duplicateCandidateStash: async (_sourceStashUuid: string): Promise<void> => {
+    await sleep(90)
+    logApiCalled('후보군 복제 API가 호출되었습니다.')
+  },
   appendCandidateItem: async (payload: AppendCandidateItemPayload): Promise<void> => {
     await sleep(70)
     const now = new Date().toISOString()
@@ -1084,6 +1327,7 @@ export const mockDashboardApi = {
       skuUuid: payload.productId,
       details: payload.details,
       dbCreatedAt: now,
+      dbUpdatedAt: now,
     }
     try {
       ensureCandidateSeed()
@@ -1097,6 +1341,34 @@ export const mockDashboardApi = {
       const nextStashes = stashes.map((row) => (
         row.uuid === payload.stashUuid ? { ...row, dbUpdatedAt: now } : row
       ))
+      localStorage.setItem(CANDIDATE_STASH_STORAGE_KEY, JSON.stringify(nextStashes))
+    } catch {
+      /* ignore quota */
+    }
+  },
+  updateCandidateItem: async (payload: UpdateCandidateItemPayload): Promise<void> => {
+    await sleep(70)
+    logApiCalled('이너 후보 변경 저장 API가 호출되었습니다.')
+    const now = new Date().toISOString()
+    try {
+      ensureCandidateSeed()
+      const rawStashes = localStorage.getItem(CANDIDATE_STASH_STORAGE_KEY)
+      const rawItems = localStorage.getItem(CANDIDATE_ITEM_STORAGE_KEY)
+      const stashes = (rawStashes ? JSON.parse(rawStashes) : []) as CandidateStashRecord[]
+      const items = (rawItems ? JSON.parse(rawItems) : []) as CandidateItemRecord[]
+      const idx = items.findIndex((row) => row.uuid === payload.itemUuid)
+      if (idx === -1) return
+      const prev = items[idx]!
+      items[idx] = {
+        ...prev,
+        details: payload.details,
+        dbUpdatedAt: now,
+      }
+      localStorage.setItem(CANDIDATE_ITEM_STORAGE_KEY, JSON.stringify(items))
+      const stashUuid = prev.stashUuid
+      const nextStashes = stashes.map((row) =>
+        row.uuid === stashUuid ? { ...row, dbUpdatedAt: now } : row,
+      )
       localStorage.setItem(CANDIDATE_STASH_STORAGE_KEY, JSON.stringify(nextStashes))
     } catch {
       /* ignore quota */

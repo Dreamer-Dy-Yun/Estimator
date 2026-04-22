@@ -6,6 +6,7 @@ type AnalysisListProps<T extends { id: string }> = {
   rows: T[]
   onRowClick?: (row: T) => void
   batchSize?: number
+  wrapClassName?: string
 }
 
 export function AnalysisList<T extends { id: string }>({
@@ -13,6 +14,7 @@ export function AnalysisList<T extends { id: string }>({
   rows,
   onRowClick,
   batchSize = 30,
+  wrapClassName,
 }: AnalysisListProps<T>) {
   return (
     <PaginatedTable<T>
@@ -20,6 +22,7 @@ export function AnalysisList<T extends { id: string }>({
       columns={columns}
       rows={rows}
       onRowClick={onRowClick}
+      wrapClassName={wrapClassName}
       infiniteScroll={{ enabled: true, batchSize }}
     />
   )

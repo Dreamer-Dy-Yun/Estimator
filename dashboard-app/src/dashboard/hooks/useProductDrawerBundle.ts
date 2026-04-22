@@ -9,9 +9,14 @@ export function useProductDrawerBundle(selectedId: string | null, forecastMonths
     if (!selectedId) return
     let alive = true
     const fc = Math.max(1, Math.min(24, Math.round(forecastMonths)))
-    getProductDrawerBundle(selectedId, { forecastMonths: fc }).then((data) => {
-      if (alive) setCache({ id: selectedId, bundle: data })
-    })
+    getProductDrawerBundle(selectedId, { forecastMonths: fc })
+      .then((data) => {
+        if (alive) setCache({ id: selectedId, bundle: data })
+      })
+      .catch(() => {
+        // 네트워크/목업 실패 시 이전 품번 캐시 오염을 막기 위해 현재 선택 품번 캐시를 비운다.
+        if (alive) setCache((prev) => (prev?.id === selectedId ? null : prev))
+      })
     return () => {
       alive = false
     }

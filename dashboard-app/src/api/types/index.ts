@@ -2,10 +2,13 @@ export type { CompetitorSalesParams, SelfSalesFilterMeta, SelfSalesParams } from
 export type { ProductDrawerBundle, ProductDrawerBundleParams, ProductStockTrendPoint } from './drawer'
 export type {
   ProductSecondaryDetailParams,
+  CandidateItemDetail,
   CandidateItemSummary,
   CandidateStashSummary,
   CreateCandidateStashPayload,
+  UpdateCandidateStashPayload,
   AppendCandidateItemPayload,
+  UpdateCandidateItemPayload,
   SecondaryCompetitorChannel,
   SecondaryDailyTrendParams,
   SecondaryDailyTrendPoint,

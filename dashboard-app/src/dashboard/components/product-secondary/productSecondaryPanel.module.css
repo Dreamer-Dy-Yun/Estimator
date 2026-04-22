@@ -187,6 +187,25 @@
   width: 100%;
 }
 
+.innerCandidateDeleteBtn {
+  display: flex;
+  width: 100%;
+}
+
+.innerCandidateActionBtn {
+  height: 34px;
+  padding: 0 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.innerCandidateDeleteBtn :global(button) {
+  width: 100%;
+  height: 34px;
+  min-height: 34px;
+}
+
 .metaFilterSelectedInfo {
   display: flex;
   flex-direction: column;
@@ -673,13 +692,13 @@
 .stockInputList {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: 8px 16px;
+  gap: 8px 32px;
 }
 
 .stockInputCell {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  column-gap: 5px;
+  column-gap: 2px;
   align-items: center;
   min-width: 0;
 }

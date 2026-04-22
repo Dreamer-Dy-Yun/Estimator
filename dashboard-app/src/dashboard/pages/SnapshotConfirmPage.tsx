@@ -1,21 +1,19 @@
 import { useEffect, useMemo, useState } from 'react'
-import { deleteCandidateStash, getCandidateItemsByStash, getCandidateStashes, type CandidateItemSummary, type CandidateStashSummary } from '../../api'
+import {
+  deleteCandidateStash,
+  duplicateCandidateStash,
+  getCandidateStashes,
+  updateCandidateStash,
+  type CandidateStashSummary,
+} from '../../api'
+import { formatDateTimeMinute } from '../../utils/date'
 import styles from '../components/common.module.css'
+import { ConfirmModal } from '../components/ConfirmModal'
 import pageStyles from './SnapshotConfirmPage.module.css'
+import { CandidateStashDetailModal } from './CandidateStashDetailModal'
+import { DeleteButton } from '../components/DeleteButton'
 import { FilterBar } from '../components/FilterBar'
 import { PageHeader } from '../components/PageHeader'
-
-const fmtNumber = (v: number) => new Intl.NumberFormat('ko-KR').format(Math.max(0, Math.round(v)))
-const fmtDateTime = (iso: string) => {
-  const d = new Date(iso)
-  if (Number.isNaN(d.getTime())) return iso
-  const yy = d.getFullYear()
-  const mm = String(d.getMonth() + 1).padStart(2, '0')
-  const dd = String(d.getDate()).padStart(2, '0')
-  const hh = String(d.getHours()).padStart(2, '0')
-  const mi = String(d.getMinutes()).padStart(2, '0')
-  return `${yy}-${mm}-${dd} ${hh}:${mi}`
-}
 
 const toTime = (iso: string) => {
   const ts = new Date(iso).getTime()
@@ -24,18 +22,17 @@ const toTime = (iso: string) => {
 
 export const SnapshotConfirmPage = () => {
   const [stashes, setStashes] = useState<CandidateStashSummary[]>([])
-  const [itemsByStash, setItemsByStash] = useState<Record<string, CandidateItemSummary[]>>({})
-  const [detailTarget, setDetailTarget] = useState<CandidateStashSummary | null>(null)
-  const [detailLoading, setDetailLoading] = useState(false)
+  const [openDetailStashUuid, setOpenDetailStashUuid] = useState<string | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<CandidateStashSummary | null>(null)
   const [deleteBusy, setDeleteBusy] = useState(false)
+  const [duplicateBusyUuid, setDuplicateBusyUuid] = useState<string | null>(null)
+  const [editTarget, setEditTarget] = useState<CandidateStashSummary | null>(null)
+  const [editName, setEditName] = useState('')
+  const [editNote, setEditNote] = useState('')
+  const [editBusy, setEditBusy] = useState(false)
   const [stashNameQuery, setStashNameQuery] = useState('')
   const [stashNoteQuery, setStashNoteQuery] = useState('')
   const [stashSortKey, setStashSortKey] = useState<'createdDesc' | 'createdAsc' | 'updatedDesc' | 'updatedAsc'>('createdDesc')
-  const [brandQuery, setBrandQuery] = useState('')
-  const [productCodeQuery, setProductCodeQuery] = useState('')
-  const [productNameQuery, setProductNameQuery] = useState('')
-  const [sortKey, setSortKey] = useState<'qtyDesc' | 'qtyAsc' | 'salesDesc' | 'salesAsc'>('qtyDesc')
 
   const loadStashes = async () => {
     const list = await getCandidateStashes()
@@ -45,6 +42,7 @@ export const SnapshotConfirmPage = () => {
   useEffect(() => {
     void loadStashes()
   }, [])
+
 
   const filteredStashes = useMemo(() => {
     const nq = stashNameQuery.trim().toLowerCase()
@@ -117,17 +115,7 @@ export const SnapshotConfirmPage = () => {
                 <div className={pageStyles.stashCardRow}>
                   <button
                     type="button"
-                    onClick={async () => {
-                      setDetailTarget(stash)
-                      if (itemsByStash[stash.uuid] != null) return
-                      setDetailLoading(true)
-                      try {
-                        const rows = await getCandidateItemsByStash(stash.uuid)
-                        setItemsByStash((prev) => ({ ...prev, [stash.uuid]: rows }))
-                      } finally {
-                        setDetailLoading(false)
-                      }
-                    }}
+                    onClick={() => setOpenDetailStashUuid(stash.uuid)}
                     style={{
                       width: '100%',
                       border: 0,
@@ -145,25 +133,48 @@ export const SnapshotConfirmPage = () => {
                         <span className={pageStyles.stashMetaDot}>·</span>
                         <span className={pageStyles.stashMeta}>등록 상품 {stash.itemCount}건</span>
                       </div>
-                      <span className={pageStyles.stashMetaRight}>생성일: {fmtDateTime(stash.dbCreatedAt)}</span>
+                      <span className={pageStyles.stashMetaRight}>생성일: {formatDateTimeMinute(stash.dbCreatedAt)}</span>
                       <span className={pageStyles.stashNote}>{stash.note?.trim() ? stash.note : '-'}</span>
-                      <span className={pageStyles.stashMetaRight}>변경일: {fmtDateTime(stash.dbUpdatedAt)}</span>
+                      <span className={pageStyles.stashMetaRight}>변경일: {formatDateTimeMinute(stash.dbUpdatedAt)}</span>
                     </div>
                   </button>
-                  <button
-                    type="button"
-                    className={`${pageStyles.actionBtn} ${pageStyles.btnDelete}`}
-                    onClick={() => setDeleteTarget(stash)}
-                    aria-label={`${stash.name} 삭제`}
-                    title="삭제"
-                  >
-                    <span className={pageStyles.trashIcon} aria-hidden="true">
-                      <svg viewBox="0 0 24 24" focusable="false">
-                        <path d="M9 3.5h6a1 1 0 0 1 1 1V6h3a1 1 0 1 1 0 2h-1v11a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V8H5a1 1 0 1 1 0-2h3V4.5a1 1 0 0 1 1-1Zm1 2V6h4V5.5h-4ZM8 8v11h8V8H8Zm2 2a1 1 0 0 1 1 1v5a1 1 0 1 1-2 0v-5a1 1 0 0 1 1-1Zm4 0a1 1 0 0 1 1 1v5a1 1 0 1 1-2 0v-5a1 1 0 0 1 1-1Z" />
-                      </svg>
-                    </span>
-                    <span>삭제</span>
-                  </button>
+                  <div className={pageStyles.stashCardActions}>
+                    <button
+                      type="button"
+                      className={`${pageStyles.actionBtn} ${pageStyles.btnNeutral}`}
+                      aria-label={`${stash.name} 이름·비고 편집`}
+                      title="이름·비고 편집"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setEditTarget(stash)
+                        setEditName(stash.name)
+                        setEditNote(stash.note ?? '')
+                      }}
+                    >
+                      이름·비고 편집
+                    </button>
+                    <button
+                      type="button"
+                      className={`${pageStyles.actionBtn} ${pageStyles.btnNeutral}`}
+                      disabled={duplicateBusyUuid === stash.uuid}
+                      aria-label={`${stash.name} 복제`}
+                      title="복제"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        void (async () => {
+                          setDuplicateBusyUuid(stash.uuid)
+                          try {
+                            await duplicateCandidateStash(stash.uuid)
+                          } finally {
+                            setDuplicateBusyUuid(null)
+                          }
+                        })()
+                      }}
+                    >
+                      {duplicateBusyUuid === stash.uuid ? '복제 중…' : '복제'}
+                    </button>
+                    <DeleteButton aria-label={`${stash.name} 삭제`} title="삭제" onClick={() => setDeleteTarget(stash)} />
+                  </div>
                 </div>
               </div>
             )
@@ -171,204 +182,129 @@ export const SnapshotConfirmPage = () => {
         </div>
       )}
 
-      {detailTarget && (
+      {editTarget && (
         <div
-          onClick={() => {
-            setDetailTarget(null)
-            setBrandQuery('')
-            setProductCodeQuery('')
-            setProductNameQuery('')
-          }}
-          className={pageStyles.detailOverlay}
+          className={pageStyles.confirmModalBackdrop}
+          onClick={() => !editBusy && setEditTarget(null)}
         >
           <div
+            className={pageStyles.confirmModalPanel}
             onClick={(e) => e.stopPropagation()}
-            className={styles.card}
-            style={{ width: 'min(980px, 86vw)', height: 'min(760px, 78vh)', overflow: 'hidden' }}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="stash-edit-dialog-title"
           >
-            <div className={pageStyles.detailDialog}>
-              <div className={pageStyles.detailHeader}>
-                <div className={pageStyles.detailHeaderText}>
-                  <h3 className={pageStyles.detailTitle}>{detailTarget.name}</h3>
-                  <span className={pageStyles.detailSub}>
-                  생성일: {fmtDateTime(detailTarget.dbCreatedAt)} · 변경일: {fmtDateTime(detailTarget.dbUpdatedAt)} · 등록 상품 {detailTarget.itemCount}건
-                  </span>
-                </div>
-                <button
-                  type="button"
-                  className={`${pageStyles.actionBtn} ${pageStyles.btnNeutral}`}
-                  onClick={() => {
-                    setDetailTarget(null)
-                    setBrandQuery('')
-                    setProductCodeQuery('')
-                    setProductNameQuery('')
-                  }}
-                >
-                  닫기
-                </button>
+            <h3 id="stash-edit-dialog-title" className={pageStyles.confirmModalTitle}>
+              이름·비고 편집
+            </h3>
+            <p className={pageStyles.confirmModalText}>
+              후보군 표시용 이름과 비고만 바꿉니다. 등록 상품·스냅샷 데이터는 그대로입니다.
+            </p>
+            <div className={pageStyles.confirmModalForm}>
+              <div className={pageStyles.confirmModalField}>
+                <span className={pageStyles.confirmModalLabel}>후보군 UUID</span>
+                <p className={pageStyles.confirmModalUuid}>{editTarget.uuid}</p>
               </div>
-              {detailTarget.note && (
-                <div className={pageStyles.detailNote}>{detailTarget.note}</div>
-              )}
-              <div className={pageStyles.detailBody}>
-                <div className={pageStyles.filterBar}>
-                  <input
-                    type="text"
-                    className={styles.control}
-                    placeholder="브랜드 검색"
-                    value={brandQuery}
-                    onChange={(e) => setBrandQuery(e.target.value)}
-                    style={{ minHeight: 34 }}
-                  />
-                  <input
-                    type="text"
-                    className={styles.control}
-                    placeholder="상품코드 검색"
-                    value={productCodeQuery}
-                    onChange={(e) => setProductCodeQuery(e.target.value)}
-                    style={{ minHeight: 34 }}
-                  />
-                  <input
-                    type="text"
-                    className={styles.control}
-                    placeholder="상품명 검색"
-                    value={productNameQuery}
-                    onChange={(e) => setProductNameQuery(e.target.value)}
-                    style={{ minHeight: 34 }}
-                  />
-                  <select
-                    className={styles.control}
-                    value={sortKey}
-                    onChange={(e) => setSortKey(e.target.value as typeof sortKey)}
-                    style={{ minHeight: 34 }}
-                  >
-                    <option value="qtyDesc">수량 내림차순</option>
-                    <option value="qtyAsc">수량 오름차순</option>
-                    <option value="salesDesc">예상 매출 내림차순</option>
-                    <option value="salesAsc">예상 매출 오름차순</option>
-                  </select>
-                </div>
-                <div className={pageStyles.itemList}>
-                  {detailLoading ? (
-                    <div className={pageStyles.emptyState}>후보군 상품을 불러오는 중...</div>
-                  ) : (
-                    (() => {
-                      const filtered = (itemsByStash[detailTarget.uuid] ?? []).filter((item) => {
-                        const bq = brandQuery.trim().toLowerCase()
-                        const cq = productCodeQuery.trim().toLowerCase()
-                        const nq = productNameQuery.trim().toLowerCase()
-                        if (bq && !item.brand.toLowerCase().includes(bq)) return false
-                        if (cq && !item.productCode.toLowerCase().includes(cq)) return false
-                        if (nq && !item.productName.toLowerCase().includes(nq)) return false
-                        return true
-                      })
-                      const sorted = [...filtered].sort((a, b) => {
-                        if (sortKey === 'qtyDesc') return b.qty - a.qty
-                        if (sortKey === 'qtyAsc') return a.qty - b.qty
-                        if (sortKey === 'salesDesc') return b.expectedSalesAmount - a.expectedSalesAmount
-                        return a.expectedSalesAmount - b.expectedSalesAmount
-                      })
-                      if (!filtered.length) {
-                        return (
-                          <div className={pageStyles.emptyState}>
-                            {brandQuery.trim() || productCodeQuery.trim() || productNameQuery.trim()
-                              ? '검색 결과가 없습니다.'
-                              : '등록된 상품이 없습니다.'}
-                          </div>
-                        )
-                      }
-                      return sorted.map((item) => (
-                        <article key={item.uuid} className={pageStyles.itemCard}>
-                          <div className={pageStyles.itemTop}>
-                            <span className={pageStyles.itemBrand}>{item.brand}</span>
-                            <span className={pageStyles.itemDate}>등록: {fmtDateTime(item.dbCreatedAt)}</span>
-                          </div>
-                          <strong className={pageStyles.itemCode}>{item.productCode}</strong>
-                          <p className={pageStyles.itemName}>{item.productName}</p>
-                          <div className={pageStyles.itemMetrics}>
-                            <span>수량: {fmtNumber(item.qty)} EA</span>
-                            <span>예상 매출: {fmtNumber(item.expectedSalesAmount)} 원</span>
-                          </div>
-                        </article>
-                      ))
-                    })()
-                  )}
-                </div>
+              <div className={pageStyles.confirmModalField}>
+                <label className={pageStyles.confirmModalLabel} htmlFor="stash-edit-name">
+                  이름
+                </label>
+                <input
+                  id="stash-edit-name"
+                  type="text"
+                  className={pageStyles.confirmModalInput}
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  disabled={editBusy}
+                  autoComplete="off"
+                />
+              </div>
+              <div className={pageStyles.confirmModalField}>
+                <label className={pageStyles.confirmModalLabel} htmlFor="stash-edit-note">
+                  비고
+                </label>
+                <textarea
+                  id="stash-edit-note"
+                  className={`${pageStyles.confirmModalInput} ${pageStyles.confirmModalTextarea}`}
+                  value={editNote}
+                  onChange={(e) => setEditNote(e.target.value)}
+                  disabled={editBusy}
+                  rows={3}
+                />
               </div>
             </div>
-          </div>
-        </div>
-      )}
-
-      {deleteTarget && (
-        <div
-          onClick={() => !deleteBusy && setDeleteTarget(null)}
-          style={{
-            position: 'fixed',
-            inset: 0,
-            zIndex: 10000,
-            background: 'rgba(15,23,42,0.45)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: 16,
-          }}
-        >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            className={styles.card}
-            style={{ width: 'min(420px, 100%)', display: 'grid', gap: 10 }}
-          >
-            <h3 style={{ margin: 0, fontSize: 16 }}>삭제 확인</h3>
-            <p style={{ margin: 0, color: '#475569', fontSize: 13 }}>
-              <b>{deleteTarget.name}</b> 후보군을 삭제할까요?
-            </p>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+            <div className={pageStyles.confirmModalActions}>
               <button
                 type="button"
-                className={`${pageStyles.actionBtn} ${pageStyles.btnNeutral}`}
-                onClick={() => setDeleteTarget(null)}
-                disabled={deleteBusy}
+                className={`${pageStyles.confirmModalBtn} ${pageStyles.confirmModalBtnCancel}`}
+                onClick={() => setEditTarget(null)}
+                disabled={editBusy}
               >
                 취소
               </button>
               <button
                 type="button"
-                className={`${pageStyles.actionBtn} ${pageStyles.btnDangerSolid}`}
-                disabled={deleteBusy}
-                aria-label="후보군 삭제"
-                title="삭제"
+                className={`${pageStyles.confirmModalBtn} ${pageStyles.confirmModalBtnPrimary}`}
+                disabled={editBusy || !editName.trim()}
                 onClick={async () => {
-                  setDeleteBusy(true)
+                  setEditBusy(true)
                   try {
-                    await deleteCandidateStash(deleteTarget.uuid)
-                    setDeleteTarget(null)
-                    setDetailTarget((prev) => (prev?.uuid === deleteTarget.uuid ? null : prev))
-                    setItemsByStash((prev) => {
-                      const { [deleteTarget.uuid]: _removed, ...rest } = prev
-                      return rest
+                    await updateCandidateStash({
+                      stashUuid: editTarget.uuid,
+                      name: editName.trim(),
+                      note: editNote.trim() || null,
                     })
-                    await loadStashes()
+                    setEditTarget(null)
                   } finally {
-                    setDeleteBusy(false)
+                    setEditBusy(false)
                   }
                 }}
               >
-                {deleteBusy ? '삭제 중…' : (
-                  <>
-                    <span className={pageStyles.trashIcon} aria-hidden="true">
-                      <svg viewBox="0 0 24 24" focusable="false">
-                        <path d="M9 3.5h6a1 1 0 0 1 1 1V6h3a1 1 0 1 1 0 2h-1v11a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V8H5a1 1 0 1 1 0-2h3V4.5a1 1 0 0 1 1-1Zm1 2V6h4V5.5h-4ZM8 8v11h8V8H8Zm2 2a1 1 0 0 1 1 1v5a1 1 0 1 1-2 0v-5a1 1 0 0 1 1-1Zm4 0a1 1 0 0 1 1 1v5a1 1 0 1 1-2 0v-5a1 1 0 0 1 1-1Z" />
-                      </svg>
-                    </span>
-                    <span>삭제</span>
-                  </>
-                )}
+                {editBusy ? '저장 중…' : '저장'}
               </button>
             </div>
           </div>
         </div>
       )}
+
+      {openDetailStashUuid && (
+        <CandidateStashDetailModal
+          stashUuid={openDetailStashUuid}
+          onClose={() => setOpenDetailStashUuid(null)}
+          onStashesInvalidate={loadStashes}
+        />
+      )}
+
+      <ConfirmModal
+        open={Boolean(deleteTarget)}
+        busy={deleteBusy}
+        title="삭제 확인"
+        message={deleteTarget ? <><b>{deleteTarget.name}</b> 후보군을 삭제할까요?</> : null}
+        confirmText="삭제"
+        confirmingText="삭제 중…"
+        dialogTitleId="stash-list-delete-dialog-title"
+        classNames={{
+          backdrop: pageStyles.confirmModalBackdrop,
+          panel: pageStyles.confirmModalPanel,
+          title: pageStyles.confirmModalTitle,
+          text: pageStyles.confirmModalText,
+          actions: pageStyles.confirmModalActions,
+          button: pageStyles.confirmModalBtn,
+          cancelButton: pageStyles.confirmModalBtnCancel,
+          confirmButton: pageStyles.confirmModalBtnDanger,
+        }}
+        onCancel={() => setDeleteTarget(null)}
+        onConfirm={async () => {
+          if (!deleteTarget) return
+          setDeleteBusy(true)
+          try {
+            await deleteCandidateStash(deleteTarget.uuid)
+            setDeleteTarget(null)
+          } finally {
+            setDeleteBusy(false)
+          }
+        }}
+      />
     </section>
   )
 }

@@ -4,7 +4,6 @@ import styles from './layout.module.css'
 const tabs = [
   { to: '/dashboard/self', label: '자사 분석' },
   { to: '/dashboard/competitor', label: '경쟁사 분석' },
-  { to: '/dashboard/order-sim', label: '오더 시뮬레이션' },
   { to: '/dashboard/snapshot-confirm', label: '오더 후보군' },
 ]
 

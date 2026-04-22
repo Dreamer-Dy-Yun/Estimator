@@ -10,6 +10,7 @@ export type TrendLineSeries = {
   stroke: string
   strokeDasharray?: string
   connectNulls?: boolean
+  yAxisId?: 'primary' | 'secondary'
 }
 
 export type TrendBarSeries = {
@@ -68,9 +69,11 @@ export function SalesTrendChart({
   tooltipValueFormatter,
   tooltipLabelFormatter,
 }: Props) {
+  const hasSecondaryLine = lines.some((line) => line.yAxisId === 'secondary')
+  const needsSecondaryAxis = barsUseSecondaryAxis || hasSecondaryLine
   const resolvedSecondaryYMax = (() => {
     if (typeof secondaryYMax === 'number') return secondaryYMax
-    if (!barsUseSecondaryAxis) return undefined
+    if (!needsSecondaryAxis) return undefined
     const maxFromBars = bars.reduce((acc, bar) => {
       const m = data.reduce((rowMax, row) => {
         const v = Number(row[bar.dataKey])
@@ -78,9 +81,19 @@ export function SalesTrendChart({
       }, 0)
       return Math.max(acc, m)
     }, 0)
-    return maxFromBars <= 0 ? 10 : Math.ceil(maxFromBars * 1.08)
+    const maxFromSecondaryLines = lines
+      .filter((line) => line.yAxisId === 'secondary')
+      .reduce((acc, line) => {
+        const m = data.reduce((rowMax, row) => {
+          const v = Number(row[line.dataKey])
+          return Number.isFinite(v) ? Math.max(rowMax, v) : rowMax
+        }, 0)
+        return Math.max(acc, m)
+      }, 0)
+    const maxFromSecondary = Math.max(maxFromBars, maxFromSecondaryLines)
+    return maxFromSecondary <= 0 ? 10 : Math.ceil(maxFromSecondary * 1.08)
   })()
-  const hasSecondaryAxis = barsUseSecondaryAxis && typeof resolvedSecondaryYMax === 'number'
+  const hasSecondaryAxis = needsSecondaryAxis && typeof resolvedSecondaryYMax === 'number'
   const resolvedPrimaryYMax = (() => {
     if (typeof yMax === 'number') return yMax
     const maxFromLines = lines.reduce((acc, line) => {
@@ -178,7 +191,7 @@ export function SalesTrendChart({
         {lines.map((line) => (
           <Line
             key={line.dataKey}
-            yAxisId="primary"
+            yAxisId={line.yAxisId ?? 'primary'}
             type="monotone"
             dataKey={line.dataKey}
             stroke={line.stroke}

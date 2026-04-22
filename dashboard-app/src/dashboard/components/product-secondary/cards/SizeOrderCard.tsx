@@ -114,6 +114,7 @@ export function SizeOrderCard({ sizeOrder, actions, help }: Props) {
       size: r.size,
       selfPct: r.selfSharePct,
       compPct: r.competitorSharePct,
+      weightedPct: r.blendedSharePct,
     })),
     [sizeRows, xCenters],
   )
@@ -126,7 +127,7 @@ export function SizeOrderCard({ sizeOrder, actions, help }: Props) {
   const yDomain = useMemo<[number, number]>(() => {
     let mx = 0
     for (const r of sizeRows) {
-      mx = Math.max(mx, r.selfSharePct, r.competitorSharePct)
+      mx = Math.max(mx, r.selfSharePct, r.competitorSharePct, r.blendedSharePct)
     }
     if (mx <= 0) return [0, 10]
     const withHeadroom = mx * 1.12
@@ -136,20 +137,63 @@ export function SizeOrderCard({ sizeOrder, actions, help }: Props) {
   }, [sizeRows])
 
   const columnTotals = useMemo(() => {
-    let selfPct = 0
-    let compPct = 0
+    let weightedPct = 0
     let forecast = 0
     let rec = 0
     let confirm = 0
     for (const r of sizeRows) {
-      selfPct += r.selfSharePct
-      compPct += r.competitorSharePct
+      weightedPct += r.blendedSharePct
       forecast += r.forecastQty
       rec += r.recommendedQty
       confirm += r.confirmQty
     }
-    return { selfPct, compPct, forecast, rec, confirm }
+    return { weightedPct, forecast, rec, confirm }
   }, [sizeRows])
+
+  const renderShareTooltip = useMemo(
+    () =>
+      ({ active, payload }: any) => {
+        if (!active || !payload?.length) return null
+        const byKey = new Map((payload as Array<any>).map((p) => [String(p.dataKey ?? ''), p]))
+        const ordered = ['selfPct', 'compPct', 'weightedPct']
+          .map((k) => byKey.get(k))
+          .filter((p): p is NonNullable<typeof p> => Boolean(p))
+        const sizeLabel = String(payload[0]?.payload?.size ?? '-')
+        return (
+          <div
+            style={{
+              background: '#fff',
+              border: '1px solid #e2e8f0',
+              borderRadius: 8,
+              padding: '8px 10px',
+              fontSize: 12,
+              color: '#0f172a',
+            }}
+          >
+            <div style={{ marginBottom: 4, color: '#475569' }}>{KO.thSize}: {sizeLabel}</div>
+            {ordered.map((item) => {
+              const n = typeof item.value === 'number' ? item.value : Number(item.value)
+              return (
+                <div key={String(item.dataKey)} style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                  <span
+                    aria-hidden
+                    style={{
+                      width: 8,
+                      height: 8,
+                      borderRadius: 999,
+                      background: item.color ?? '#64748b',
+                      flexShrink: 0,
+                    }}
+                  />
+                  <span>{item.name}: {pct2n(Number.isFinite(n) ? n : 0)}%</span>
+                </div>
+              )
+            })}
+          </div>
+        )
+      },
+    [],
+  )
 
   return (
     <div className={styles.card}>
@@ -243,8 +287,16 @@ export function SizeOrderCard({ sizeOrder, actions, help }: Props) {
                     <span>{KO.thSelf}</span>
                   </div>
                   <div className={styles.sizeOrderShareLegendRow} role="listitem">
-                    <span className={styles.sizeOrderShareLegendSwatch} style={{ background: '#dc2626' }} aria-hidden />
+                    <span className={styles.sizeOrderShareLegendSwatch} style={{ background: '#e11d48' }} aria-hidden />
                     <span>{channelLabel}</span>
+                  </div>
+                  <div className={styles.sizeOrderShareLegendRow} role="listitem">
+                    <span
+                      className={styles.sizeOrderShareLegendSwatch}
+                      style={{ background: '#a78bfa' }}
+                      aria-hidden
+                    />
+                    <span>{KO.rowChartAdjustReflectedSharePct}</span>
                   </div>
                 </div>
               </td>
@@ -255,16 +307,12 @@ export function SizeOrderCard({ sizeOrder, actions, help }: Props) {
                       <XAxis type="number" dataKey="x" domain={xDomain} hide />
                       <YAxis domain={yDomain} hide />
                       <Tooltip
-                        formatter={(value, name) => {
-                          const n = typeof value === 'number' ? value : Number(value)
-                          return [`${pct2n(Number.isFinite(n) ? n : 0)}%`, String(name)]
-                        }}
-                        labelFormatter={(_, payload) => `${KO.thSize}: ${payload?.[0]?.payload?.size ?? '-'}`}
+                        content={renderShareTooltip}
                       />
                       <Line
                         type="monotone"
                         dataKey="selfPct"
-                        name={KO.thSelfPct}
+                        name={`${KO.thSelf} ${KO.thSharePctUnit}`}
                         stroke="#2563eb"
                         strokeWidth={2}
                         dot={{ r: 3 }}
@@ -274,9 +322,19 @@ export function SizeOrderCard({ sizeOrder, actions, help }: Props) {
                         type="monotone"
                         dataKey="compPct"
                         name={`${channelLabel} ${KO.thSharePctUnit}`}
-                        stroke="#dc2626"
+                        stroke="#e11d48"
                         strokeWidth={2}
                         dot={{ r: 3 }}
+                        isAnimationActive={false}
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey="weightedPct"
+                        name={KO.rowChartAdjustReflectedSharePct}
+                        stroke="#a78bfa"
+                        strokeDasharray="6 4"
+                        strokeWidth={2}
+                        dot={{ r: 2.5 }}
                         isAnimationActive={false}
                       />
                     </LineChart>
@@ -285,17 +343,12 @@ export function SizeOrderCard({ sizeOrder, actions, help }: Props) {
               </td>
             </tr>
             <tr data-chart-align-row="">
-              <td>{KO.thSelfPct}</td>
-              <td className={styles.num}>{pct2n(columnTotals.selfPct)}</td>
+              <td>{KO.rowMetricAdjustReflectedSizeSharePct}</td>
+              <td className={styles.num}>{pct2n(columnTotals.weightedPct)}</td>
               {sizeRows.map((r) => (
-                <td key={r.size} className={styles.num} data-chart-x="">{pct2n(r.selfSharePct)}</td>
-              ))}
-            </tr>
-            <tr>
-              <td>{channelLabel} {KO.thSharePctUnit}</td>
-              <td className={styles.num}>{pct2n(columnTotals.compPct)}</td>
-              {sizeRows.map((r) => (
-                <td key={r.size} className={styles.num}>{pct2n(r.competitorSharePct)}</td>
+                <td key={r.size} className={styles.num} data-chart-x="">
+                  {pct2n(r.blendedSharePct)}
+                </td>
               ))}
             </tr>
             <tr>

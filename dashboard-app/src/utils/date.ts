@@ -39,3 +39,15 @@ export function daysFromTodayThroughInclusive(endDate: string): number {
   const diffDays = Math.floor((e.getTime() - s.getTime()) / 86400000) + 1
   return Math.max(0, diffDays)
 }
+
+/** ISO datetime -> `YYYY-MM-DD HH:mm` (로컬 시간 기준) */
+export function formatDateTimeMinute(iso: string): string {
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return iso
+  const yy = d.getFullYear()
+  const mm = String(d.getMonth() + 1).padStart(2, '0')
+  const dd = String(d.getDate()).padStart(2, '0')
+  const hh = String(d.getHours()).padStart(2, '0')
+  const mi = String(d.getMinutes()).padStart(2, '0')
+  return `${yy}-${mm}-${dd} ${hh}:${mi}`
+}

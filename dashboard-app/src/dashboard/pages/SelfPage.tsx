@@ -1,8 +1,7 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { CartesianGrid, ResponsiveContainer, Scatter, ScatterChart, Tooltip, XAxis, YAxis } from 'recharts'
 import { getSelfSales, getSelfSalesFilterMeta } from '../../api'
 import type { SelfSalesRow } from '../../types'
-import { dateToMonth, monthToEndDate, monthToStartDate } from '../../utils/date'
 import { clampForecastMonths, readForecastMonthsFromStorage, writeForecastMonthsToStorage } from '../../utils/forecastMonthsStorage'
 import { c, pct, won } from '../../utils/format'
 import { ProductSummaryDrawer } from '../components/ProductSummaryDrawer'
@@ -11,8 +10,8 @@ import { AnalysisList } from '../components/AnalysisList'
 import { ChartCard } from '../components/ChartCard'
 import { FilterBar } from '../components/FilterBar'
 import { KpiGrid } from '../components/KpiGrid'
-import { PageHeader } from '../components/PageHeader'
 import { useProductDrawerBundle } from '../hooks/useProductDrawerBundle'
+import { usePeriodRangeFilter } from '../hooks/usePeriodRangeFilter'
 
 type ScatterPoint = {
   x: number
@@ -37,80 +36,55 @@ export const SelfPage = () => {
   const [categoryOptions, setCategoryOptions] = useState<string[]>(['전체'])
   const [categoryFilter, setCategoryFilter] = useState('전체')
   const [historicalMonths, setHistoricalMonths] = useState<string[]>([])
-  const [periodStartDate, setPeriodStartDate] = useState('2025-01-01')
-  const [periodEndDate, setPeriodEndDate] = useState('2025-12-31')
   const [showPeriodBar, setShowPeriodBar] = useState(false)
+  const salesReqSeqRef = useRef(0)
+  const metaReqSeqRef = useRef(0)
+  const {
+    periodStartDate,
+    periodEndDate,
+    periodStartIdx,
+    periodEndIdx,
+    startPct,
+    endPct,
+    setPresetMonths,
+    setWholeRange,
+    onStartDateChange,
+    onEndDateChange,
+    onPeriodBarStart,
+    onPeriodBarEnd,
+  } = usePeriodRangeFilter(historicalMonths)
 
   useEffect(() => {
-    getSelfSales({
+    let alive = true
+    const reqSeq = ++salesReqSeqRef.current
+    void getSelfSales({
       startDate: periodStartDate,
       endDate: periodEndDate,
       brand: brandFilter === '전체' ? undefined : brandFilter,
       category: categoryFilter === '전체' ? undefined : categoryFilter,
-    }).then(setRows)
+    }).then((data) => {
+      if (!alive) return
+      if (reqSeq !== salesReqSeqRef.current) return
+      setRows(data)
+    })
+    return () => {
+      alive = false
+    }
   }, [periodStartDate, periodEndDate, brandFilter, categoryFilter])
   useEffect(() => {
-    getSelfSalesFilterMeta().then(({ brands, categories, historicalMonths: months }) => {
+    let alive = true
+    const reqSeq = ++metaReqSeqRef.current
+    void getSelfSalesFilterMeta().then(({ brands, categories, historicalMonths: months }) => {
+      if (!alive) return
+      if (reqSeq !== metaReqSeqRef.current) return
       setBrandOptions(['전체', ...brands])
       setCategoryOptions(['전체', ...categories])
       setHistoricalMonths(months)
     })
+    return () => {
+      alive = false
+    }
   }, [])
-
-  const periodStartIdx = useMemo(() => {
-    const idx = historicalMonths.findIndex((month) => month === dateToMonth(periodStartDate))
-    return idx === -1 ? 0 : idx
-  }, [historicalMonths, periodStartDate])
-
-  const periodEndIdx = useMemo(() => {
-    const idx = historicalMonths.findIndex((month) => month === dateToMonth(periodEndDate))
-    return idx === -1 ? Math.max(0, historicalMonths.length - 1) : idx
-  }, [historicalMonths, periodEndDate])
-
-  const setPresetMonths = (months: number) => {
-    if (!historicalMonths.length) return
-    const endIdx = periodEndIdx
-    const startIdx = Math.max(0, endIdx - months + 1)
-    setPeriodStartDate(monthToStartDate(historicalMonths[startIdx]!))
-    setPeriodEndDate(monthToEndDate(historicalMonths[endIdx]!))
-  }
-
-  const setWholeRange = () => {
-    if (!historicalMonths.length) return
-    setPeriodStartDate(monthToStartDate(historicalMonths[0]!))
-    setPeriodEndDate(monthToEndDate(historicalMonths[historicalMonths.length - 1]!))
-  }
-
-  const onStartDateChange = (value: string) => {
-    if (value > periodEndDate) {
-      setPeriodEndDate(value)
-    }
-    setPeriodStartDate(value)
-  }
-
-  const onEndDateChange = (value: string) => {
-    if (value < periodStartDate) {
-      setPeriodStartDate(value)
-    }
-    setPeriodEndDate(value)
-  }
-
-  const onPeriodBarStart = (value: number) => {
-    const idx = Math.min(value, periodEndIdx)
-    const month = historicalMonths[idx]
-    if (!month) return
-    setPeriodStartDate(monthToStartDate(month))
-  }
-
-  const onPeriodBarEnd = (value: number) => {
-    const idx = Math.max(value, periodStartIdx)
-    const month = historicalMonths[idx]
-    if (!month) return
-    setPeriodEndDate(monthToEndDate(month))
-  }
-
-  const startPct = historicalMonths.length > 1 ? (periodStartIdx / (historicalMonths.length - 1)) * 100 : 0
-  const endPct = historicalMonths.length > 1 ? (periodEndIdx / (historicalMonths.length - 1)) * 100 : 100
 
   const kpi = useMemo(() => {
     const total = rows.reduce((acc, row) => acc + row.amount, 0)
@@ -146,8 +120,6 @@ export const SelfPage = () => {
 
   return (
     <section className={styles.page}>
-      <PageHeader title="" badge="" />
-
       <FilterBar
         title=""
         fields={[

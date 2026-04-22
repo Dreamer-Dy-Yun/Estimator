@@ -36,33 +36,6 @@ export type CompetitorSalesRow = {
   selfAmount: number | null
 }
 
-/** One row in the order simulation / plan result table. */
-export type OrderPlanRow = {
-  id: string
-  rank: number
-  rankPercentile: number
-  brand: string
-  category: string
-  productCode: string
-  name: string
-  dailyQty: number
-  predictedDailyQtyUntilInbound: number
-  predictedDailyQtyAfterInbound: number
-  availableStock: number
-  currentStock: number
-  inboundQty: number
-  safetyStock: number
-  stockCoverDays: number
-  safetyReachDays: number
-  recommendedOrderQty: number
-  confirmedOrderQty: number
-  orderCost: number
-  targetPrice: number
-  orderAmount: number
-  expectedSales: number
-  expectedOpMargin: number
-}
-
 /** One month bucket from monthly summary / aggregate pipeline (not daily raw). */
 export type MonthlySalesPoint = {
   date: string

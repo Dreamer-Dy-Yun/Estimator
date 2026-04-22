@@ -1,6 +1,5 @@
 import type {
   CompetitorSalesRow,
-  OrderPlanRow,
   ProductSecondaryDetail,
   SelfSalesRow,
 } from '../../types'
@@ -8,9 +7,12 @@ import type { ProductDrawerBundle, ProductDrawerBundleParams } from './drawer'
 import type { CompetitorSalesParams, SelfSalesFilterMeta, SelfSalesParams } from './sales'
 import type {
   AppendCandidateItemPayload,
+  UpdateCandidateItemPayload,
+  CandidateItemDetail,
   CandidateItemSummary,
   CandidateStashSummary,
   CreateCandidateStashPayload,
+  UpdateCandidateStashPayload,
   ProductSecondaryDetailParams,
   SecondaryCompetitorChannel,
   SecondaryDailyTrendParams,
@@ -28,7 +30,6 @@ import type {
 export interface DashboardApi {
   getSelfSales(params?: SelfSalesParams): Promise<SelfSalesRow[]>
   getCompetitorSales(params?: CompetitorSalesParams): Promise<CompetitorSalesRow[]>
-  getOrderPlan(): Promise<OrderPlanRow[]>
   getSelfSalesFilterMeta(): Promise<SelfSalesFilterMeta>
   getProductDrawerBundle(id: string, params?: ProductDrawerBundleParams): Promise<ProductDrawerBundle>
   getProductSecondaryDetail(
@@ -43,8 +44,13 @@ export interface DashboardApi {
   deleteSecondaryOrderSnapshot(productId: string, savedAt: string): Promise<void>
   getCandidateStashes(productId?: string): Promise<CandidateStashSummary[]>
   getCandidateItemsByStash(stashUuid: string): Promise<CandidateItemSummary[]>
+  getCandidateItemByUuid(itemUuid: string): Promise<CandidateItemDetail | null>
+  deleteCandidateItem(itemUuid: string): Promise<void>
   deleteCandidateStash(stashUuid: string): Promise<void>
   createCandidateStash(payload: CreateCandidateStashPayload): Promise<CandidateStashSummary>
+  updateCandidateStash(payload: UpdateCandidateStashPayload): Promise<CandidateStashSummary>
+  duplicateCandidateStash(stashUuid: string): Promise<void>
   appendCandidateItem(payload: AppendCandidateItemPayload): Promise<void>
+  updateCandidateItem(payload: UpdateCandidateItemPayload): Promise<void>
   getSecondaryStockOrderCalc(params: SecondaryStockOrderCalcParams): Promise<SecondaryStockOrderCalcResult>
 }

@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
+import { BlockMath } from 'react-katex'
 import { dashboardApi, type SecondaryCompetitorChannel } from '../../../api'
 import { ComponentErrorBoundary } from '../../../components/ComponentErrorBoundary'
 import type { ApiUnitErrorInfo, ProductPrimarySummary, ProductSecondaryDetail } from '../../../types'
-import { daysFromTodayThroughInclusive, daysInclusiveBetween } from '../../../utils/date'
+import { daysFromTodayThroughInclusive, daysInclusiveBetween, formatDateTimeMinute } from '../../../utils/date'
 import { PortalHelpPopoverLayer } from '../PortalHelpPopover'
 import commonStyles from '../common.module.css'
 import { buildShadeRanges, normalizeMonthKey } from '../trend/trendRangeUtils'
@@ -26,6 +27,13 @@ import type {
   SecondaryHelpId,
 } from './secondaryPanelTypes'
 import { ORDER_SNAPSHOT_SCHEMA_VERSION, type OrderSnapshotDocumentV1 } from '../../../snapshot/orderSnapshotTypes'
+import {
+  CandidateStashOrderActionCard,
+  InnerCandidateActionCard,
+  type CandidateItemPanelContext,
+} from './candidateActionCards'
+
+export type { CandidateItemPanelContext }
 
 type Props = {
   primary: ProductPrimarySummary
@@ -35,6 +43,9 @@ type Props = {
   /** 오더 스냅샷용: 월간 포캐스트 개월 수 */
   forecastMonths: number
   pageName?: string
+  /** 후보군 등에서 불러온 저장 스냅샷으로 폼·확정 수량 복원 */
+  prefillFromSnapshot?: OrderSnapshotDocumentV1 | null
+  candidateItemContext?: CandidateItemPanelContext | null
 }
 
 function toIsoDateLocal(d: Date): string {
@@ -53,18 +64,6 @@ function buildDefaultLeadTimeDates() {
   return { start, end }
 }
 
-function formatCandidateDateLabel(value: string): string {
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return value
-  return date.toLocaleString('ko-KR', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-  })
-}
-
 export function ProductSecondaryPanel({
   primary,
   secondary,
@@ -72,10 +71,13 @@ export function ProductSecondaryPanel({
   periodEnd,
   forecastMonths,
   pageName = 'ProductSecondaryPanel',
+  prefillFromSnapshot = null,
+  candidateItemContext = null,
 }: Props) {
   const defaultLeadTime = useMemo(() => buildDefaultLeadTimeDates(), [])
   const confirmOrderHelpId = useId()
   const forecastQtyCalcHelpId = useId()
+  const expectedOpProfitRateHelpId = useId()
   const totalOrderBalanceHelpId = useId()
   const expectedInboundOrderBalanceHelpId = useId()
   const sizeRecQtyHelpId = useId()
@@ -100,16 +102,16 @@ export function ProductSecondaryPanel({
   const [llmLoading, setLlmLoading] = useState(false)
   const [selfWeightPct, setSelfWeightPct] = useState(50)
   /** 사이즈별 오더 표의 판매 예측에 사용할 지표(판매 예측 표 헤더 라디오와 동기화). */
-  const [sizeForecastSource] = useState<'forecastQty'>('forecastQty')
+  const [sizeForecastSource, setSizeForecastSource] = useState<'periodMean' | 'forecastQty'>('forecastQty')
+  /** 사용자가 직접 덮어쓴 확정 수량만 — 스냅샷 값은 snapshotConfirmBySize에서 병합 */
   const [confirmBySize, setConfirmBySize] = useState<Record<string, number>>({})
-  /** 확정 수량을 직접 수정한 사이즈만 표시 — 그 외에는 추천 수량을 그대로 확정으로 씀 */
-  const [manualConfirmBySize, setManualConfirmBySize] = useState<Record<string, true>>({})
   const dailyTrendReqSeqRef = useRef(0)
   const [forecastCalc, setForecastCalc] = useState<SecondaryForecastCalc | null>(null)
   const [channelsError, setChannelsError] = useState<ApiUnitErrorInfo | null>(null)
   const [forecastCalcError, setForecastCalcError] = useState<ApiUnitErrorInfo | null>(null)
   const [dailyTrendError, setDailyTrendError] = useState<ApiUnitErrorInfo | null>(null)
   const [llmError, setLlmError] = useState<ApiUnitErrorInfo | null>(null)
+  const [prefillError, setPrefillError] = useState<string | null>(null)
   /** [테스트] 오더 확정 시 저장 페이로드 JSON 미리보기 */
   const [testSnapshotJson, setTestSnapshotJson] = useState<string | null>(null)
   const [candidateActionLoading, setCandidateActionLoading] = useState(false)
@@ -189,8 +191,9 @@ export function ProductSecondaryPanel({
   const selectedEnd = normalizeMonthKey(periodEnd)
 
   useEffect(() => {
+    if (prefillFromSnapshot != null) return
     setDailyMeanClient(null)
-  }, [primary.id, selectedEnd, selectedStart])
+  }, [primary.id, selectedEnd, selectedStart, prefillFromSnapshot])
 
   useEffect(() => {
     setUnitCostInput(Math.max(0, Math.round(selfCol.avgCost)))
@@ -328,16 +331,37 @@ export function ProductSecondaryPanel({
     ].join('|')
   }, [forecastCalc])
 
+  /** 스냅샷에 저장된 사이즈별 확정 수량 — 없으면 아래 연산 recommendedQty 사용 */
+  const snapshotConfirmBySize = useMemo((): Record<string, number> => {
+    if (prefillFromSnapshot == null) return {}
+    const rows = prefillFromSnapshot?.drawer2?.sizeRows
+    if (!rows?.length) {
+      throw new Error('스냅샷 sizeRows 누락')
+    }
+    const out: Record<string, number> = {}
+    for (const r of rows) {
+      if (typeof r.confirmQty !== 'number' || !Number.isFinite(r.confirmQty)) {
+        throw new Error(`스냅샷 confirmQty 누락: ${r.size}`)
+      }
+      out[r.size] = Math.max(0, Math.round(r.confirmQty))
+    }
+    return out
+  }, [prefillFromSnapshot])
+
   useEffect(() => {
     setConfirmBySize({})
-    setManualConfirmBySize({})
+  }, [primary.id, prefillFromSnapshot])
+
+  useEffect(() => {
+    if (prefillFromSnapshot != null) return
+    setConfirmBySize({})
   }, [
+    prefillFromSnapshot,
     bufferStock,
     dailyMeanClient,
     leadTimeEndDate,
     leadTimeStartDate,
     manualSafetyStock,
-    primary.id,
     safetyStockMode,
     selectedEnd,
     selectedStart,
@@ -345,6 +369,51 @@ export function ProductSecondaryPanel({
     serviceLevelPct,
     stockDisplayKey,
   ])
+
+  useEffect(() => {
+    const d2 = prefillFromSnapshot?.drawer2
+    if (!d2) {
+      setPrefillError(null)
+      return
+    }
+    if (!d2.competitorChannelId) {
+      setPrefillError('스냅샷 competitorChannelId 누락')
+      return
+    }
+    if (typeof d2.bufferStock !== 'number' || !Number.isFinite(d2.bufferStock)) {
+      setPrefillError('스냅샷 bufferStock 누락')
+      return
+    }
+    if (typeof d2.selfWeightPct !== 'number' || !Number.isFinite(d2.selfWeightPct)) {
+      setPrefillError('스냅샷 selfWeightPct 누락')
+      return
+    }
+    if (typeof d2.llmPrompt !== 'string' || typeof d2.llmAnswer !== 'string') {
+      setPrefillError('스냅샷 LLM 필드 누락')
+      return
+    }
+    const si = d2.stockInputs
+    if (
+      !si
+      || !si.leadTimeStartDate
+      || !si.leadTimeEndDate
+      || typeof si.dailyMean !== 'number'
+      || !Number.isFinite(si.dailyMean)
+    ) {
+      setPrefillError('스냅샷 stockInputs 누락')
+      return
+    }
+    setPrefillError(null)
+    setChannelId(d2.competitorChannelId)
+    setBufferStock(d2.bufferStock)
+    setSelfWeightPct(d2.selfWeightPct)
+    setLlmPrompt(d2.llmPrompt)
+    setLlmAnswer(d2.llmAnswer)
+    setSizeForecastSource(d2.sizeForecastSource === 'periodMean' ? 'periodMean' : 'forecastQty')
+    setLeadTimeStartDate(si.leadTimeStartDate)
+    setLeadTimeEndDate(si.leadTimeEndDate)
+    setDailyMeanClient(si.dailyMean)
+  }, [prefillFromSnapshot, primary.id, defaultLeadTime.start, defaultLeadTime.end])
 
   const sizeAgg = useMemo(() => {
     const mix = mergePrimarySecondarySizeMix(primary, secondary)
@@ -385,9 +454,8 @@ export function ProductSecondaryPanel({
       const stock = currentStockBySize[i] ?? 0
       const inbound = expectedInboundBySize[i] ?? 0
       const recommendedQty = Math.max(0, Math.round(forecastQty - stock - inbound + bufferQtyEa))
-      const confirmQty = manualConfirmBySize[row.size]
-        ? (confirmBySize[row.size] ?? recommendedQty)
-        : recommendedQty
+      const confirmQty =
+        confirmBySize[row.size] ?? snapshotConfirmBySize[row.size] ?? recommendedQty
       return { ...row, forecastQty, recommendedQty, confirmQty }
     })
   }, [
@@ -400,8 +468,17 @@ export function ProductSecondaryPanel({
     expectedInboundBySize,
     bufferStock,
     confirmBySize,
-    manualConfirmBySize,
+    snapshotConfirmBySize,
   ])
+
+  /** 사용자가 덮어쓴 사이즈만 확정 셀 강조 */
+  const manualConfirmDerived = useMemo(() => {
+    const o: Record<string, true> = {}
+    for (const k of Object.keys(confirmBySize)) {
+      o[k] = true
+    }
+    return o
+  }, [confirmBySize])
 
   const [dailyTrendSeries, setDailyTrendSeries] = useState<Array<{
     idx: number
@@ -410,8 +487,8 @@ export function ProductSecondaryPanel({
     sales: number
     stockBar: number
     inboundAccumBar: number
-    selfSalesNorm: number | null
-    competitorSalesNorm: number | null
+    selfSales: number | null
+    competitorSales: number | null
     isForecast: boolean
   }>>([])
 
@@ -525,6 +602,21 @@ export function ProductSecondaryPanel({
         bufferStock,
         llmPrompt,
         llmAnswer,
+        confirmedTotals: (() => {
+          const orderQty = sizeRows.reduce((acc, r) => acc + Math.max(0, Math.round(r.confirmQty)), 0)
+          const perUnitFee = Math.round((unitPriceInput * expectedFeeRatePct) / 100)
+          const perUnitOpMargin = unitPriceInput - unitCostInput - perUnitFee
+          const expectedSalesAmount = orderQty * unitPriceInput
+          const expectedOpProfit = orderQty * perUnitOpMargin
+          return {
+            orderQty,
+            expectedSalesAmount,
+            expectedOpProfit,
+            expectedOpProfitRatePct: expectedSalesAmount > 0
+              ? (expectedOpProfit / expectedSalesAmount) * 100
+              : null,
+          }
+        })(),
         sizeRows: sizeRows.map((r) => ({
           size: r.size,
           selfSharePct: r.selfSharePct,
@@ -552,6 +644,9 @@ export function ProductSecondaryPanel({
     selfWeightPct,
     sizeForecastSource,
     bufferStock,
+    unitPriceInput,
+    unitCostInput,
+    expectedFeeRatePct,
     sizeRows,
     selectedStart,
     leadTimeDays,
@@ -567,6 +662,10 @@ export function ProductSecondaryPanel({
     })))
     return stashes
   }, [primary.id])
+
+  if (prefillError) {
+    throw new Error(prefillError)
+  }
 
   const confirmOrder = useCallback(async () => {
     if (selectedCandidate == null) return
@@ -584,6 +683,22 @@ export function ProductSecondaryPanel({
       setCandidateActionLoading(false)
     }
   }, [buildSnapshot, primary.id, selectedCandidate])
+
+  const saveCandidateItemChanges = useCallback(async () => {
+    if (candidateItemContext == null) return
+    const snap = buildSnapshot()
+    setCandidateActionLoading(true)
+    try {
+      await dashboardApi.updateCandidateItem({
+        itemUuid: candidateItemContext.itemUuid,
+        details: snap,
+      })
+      void dashboardApi.saveSecondaryOrderSnapshot(snap)
+      candidateItemContext.onSaved?.()
+    } finally {
+      setCandidateActionLoading(false)
+    }
+  }, [buildSnapshot, candidateItemContext])
 
   const createCandidate = useCallback(async () => {
     setCandidateActionLoading(true)
@@ -610,12 +725,8 @@ export function ProductSecondaryPanel({
   const handleConfirmQtyChange = useCallback((size: string, next: number, recommendedQty: number) => {
     const v = Math.max(0, Math.round(Number.isFinite(next) ? next : 0))
     const rec = Math.max(0, Math.round(recommendedQty))
-    if (v === rec) {
-      setManualConfirmBySize((prev) => {
-        if (!prev[size]) return prev
-        const { [size]: _r, ...rest } = prev
-        return rest
-      })
+    const baseline = snapshotConfirmBySize[size] ?? rec
+    if (v === baseline) {
       setConfirmBySize((prev) => {
         if (!(size in prev)) return prev
         const { [size]: _r, ...rest } = prev
@@ -623,9 +734,8 @@ export function ProductSecondaryPanel({
       })
       return
     }
-    setManualConfirmBySize((prev) => ({ ...prev, [size]: true }))
     setConfirmBySize((prev) => ({ ...prev, [size]: v }))
-  }, [])
+  }, [snapshotConfirmBySize])
 
   const recommendedQtyTotal = useMemo(
     () => sizeRows.reduce((acc, r) => acc + Math.max(0, Math.round(r.recommendedQty)), 0),
@@ -649,6 +759,8 @@ export function ProductSecondaryPanel({
         return confirmOrderHelpId
       case 'forecastQtyCalc':
         return forecastQtyCalcHelpId
+      case 'expectedOpProfitRate':
+        return expectedOpProfitRateHelpId
       case 'totalOrderBalance':
         return totalOrderBalanceHelpId
       case 'expectedInboundOrderBalance':
@@ -685,48 +797,35 @@ export function ProductSecondaryPanel({
         <div className={styles.metaFilterActionBlock}>
           <div className={`${styles.card} ${styles.metaFilterActionCard}`}>
             <div className={styles.metaFilterActionGrid}>
-              <div className={styles.metaFilterSelectedInfo}>
-                <span className={styles.metaFilterSelectedTitle}>
-                  {selectedCandidate?.name ?? '-'}
-                </span>
-                <span className={styles.metaFilterSelectedSub}>
-                  {selectedCandidate?.dbCreatedAt ?? '-'}
-                </span>
-              </div>
-              <button
-                type="button"
-                className={`${styles.btn} ${styles.btnSecondary}`}
-                onClick={async () => {
-                  setCandidateListOpen((prev) => !prev)
-                  setCandidateActionLoading(true)
-                  try {
-                    await refreshCandidates()
-                  } finally {
-                    setCandidateActionLoading(false)
+              {candidateItemContext != null ? (
+                <InnerCandidateActionCard
+                  context={candidateItemContext}
+                  loading={candidateActionLoading}
+                  onSave={saveCandidateItemChanges}
+                />
+              ) : (
+                <CandidateStashOrderActionCard
+                  selectedTitle={selectedCandidate?.name ?? '-'}
+                  selectedSub={
+                    selectedCandidate?.dbCreatedAt
+                      ? formatDateTimeMinute(selectedCandidate.dbCreatedAt)
+                      : '-'
                   }
-                }}
-                disabled={candidateActionLoading}
-              >
-                {KO.btnSelectCandidate}
-              </button>
-              <span
-                ref={portalHelp.setAnchor('confirmOrder')}
-                className={styles.confirmOrderHelpAnchor}
-                onMouseEnter={() => portalHelp.open('confirmOrder', 'above')}
-                onMouseLeave={portalHelp.scheduleClose}
-              >
-                <button
-                  type="button"
-                  className={styles.btn}
-                  onClick={confirmOrder}
-                  disabled={candidateActionLoading}
-                  onFocus={() => portalHelp.open('confirmOrder', 'above')}
-                  onBlur={portalHelp.scheduleClose}
-                  aria-describedby={portalHelp.activeId === 'confirmOrder' ? confirmOrderHelpId : undefined}
-                >
-                  {KO.btnConfirmOrder}
-                </button>
-              </span>
+                  loading={candidateActionLoading}
+                  onOpenStashPicker={async () => {
+                    setCandidateListOpen((prev) => !prev)
+                    setCandidateActionLoading(true)
+                    try {
+                      await refreshCandidates()
+                    } finally {
+                      setCandidateActionLoading(false)
+                    }
+                  }}
+                  onConfirmOrder={confirmOrder}
+                  portalHelp={portalHelp}
+                  confirmOrderHelpId={confirmOrderHelpId}
+                />
+              )}
             </div>
           </div>
         </div>
@@ -784,6 +883,7 @@ export function ProductSecondaryPanel({
             help={{
               labelIds: {
                 forecastQtyCalc: forecastQtyCalcHelpId,
+                expectedOpProfitRate: expectedOpProfitRateHelpId,
               },
               portal: portalHelp,
             }}
@@ -836,7 +936,7 @@ export function ProductSecondaryPanel({
             currentStockQtyBySize: forecastCalc?.display.currentStockQtyBySize ?? [],
             totalOrderBalanceBySize: forecastCalc?.display.totalOrderBalanceBySize ?? [],
             expectedInboundOrderBalanceBySize: forecastCalc?.display.expectedInboundOrderBalanceBySize ?? [],
-            manualConfirmBySize,
+            manualConfirmBySize: manualConfirmDerived,
           }}
           actions={{
             onSelfWeightPctChange: setSelfWeightPct,
@@ -857,6 +957,9 @@ export function ProductSecondaryPanel({
             )}
             {hid === 'forecastQtyCalc' && (
               <p>{KO.helpForecastQtyCalc}</p>
+            )}
+            {hid === 'expectedOpProfitRate' && (
+              <BlockMath math={KO.helpExpectedOpProfitRateLatex} />
             )}
             {hid === 'totalOrderBalance' && (
               <p>{KO.helpTotalOrderBalance}</p>
@@ -960,10 +1063,10 @@ export function ProductSecondaryPanel({
                           )}
                         </div>
                         <span className={styles.candidateListItemMeta}>
-                          생성일: {formatCandidateDateLabel(row.dbCreatedAt)}
+                          생성일: {formatDateTimeMinute(row.dbCreatedAt)}
                         </span>
                         <span className={styles.candidateListItemDesc}>
-                          {row.note?.trim() ? row.note : '비고 없음'}
+                          {row.note?.trim() ? row.note : KO.msgNoNote}
                         </span>
                       </button>
                     ))

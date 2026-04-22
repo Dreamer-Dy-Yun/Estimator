@@ -15,8 +15,8 @@ type TrendPoint = {
   sales: number
   stockBar: number
   inboundAccumBar: number
-  selfSalesNorm: number | null
-  competitorSalesNorm: number | null
+  selfSales: number | null
+  competitorSales: number | null
   isForecast: boolean
 }
 
@@ -72,16 +72,27 @@ export function SalesTrendDailyCard({ productId, competitorChannelLabel, sizeOpt
     })
   }, [scaledSeries])
 
-  const normSeries = useMemo(
+  const salesCompareSeries = useMemo(
     () =>
       chartSeries.map((p) => ({
         idx: p.idx,
         date: p.date,
-        selfSalesNorm: p.selfSalesNorm,
-        competitorSalesNorm: p.competitorSalesNorm,
+        selfSales: p.selfSales,
+        competitorSales: p.competitorSales,
       })),
     [chartSeries],
   )
+
+  /** 하단 비교 그래프 축 최대값: 각 시리즈의 실제 데이터 최대치 기반 */
+  const selfSalesYMax = useMemo(() => {
+    const mx = salesCompareSeries.reduce((acc, p) => Math.max(acc, Number(p.selfSales ?? 0)), 0)
+    return mx <= 0 ? 1 : Math.ceil(mx * 1.05)
+  }, [salesCompareSeries])
+
+  const competitorSalesYMax = useMemo(() => {
+    const mx = salesCompareSeries.reduce((acc, p) => Math.max(acc, Number(p.competitorSales ?? 0)), 0)
+    return mx <= 0 ? 1 : Math.ceil(mx * 1.05)
+  }, [salesCompareSeries])
 
   const showSizeSelect = expanded && sizeOptions.length > 0
 
@@ -146,7 +157,7 @@ export function SalesTrendDailyCard({ productId, competitorChannelLabel, sizeOpt
             tickFormatter={() => ''}
             tickAngle={0}
             tickHeight={10}
-            xTicks={[]}
+            xTicks={trend.tickIndices}
             minTickGap={4}
             interval={0}
             tooltipValueFormatter={(value, name) => {
@@ -159,17 +170,16 @@ export function SalesTrendDailyCard({ productId, competitorChannelLabel, sizeOpt
             tooltipLabelFormatter={(row) => String(row.date ?? '')}
           />
           <SalesTrendChart
-            data={normSeries}
+            data={salesCompareSeries}
             height={130}
-            yMax={1}
-            secondaryYMax={1}
-            barsUseSecondaryAxis
+            yMax={selfSalesYMax}
+            secondaryYMax={competitorSalesYMax}
             allowEscapeViewBox={{ x: false, y: false }}
             periodShade={trend.periodShade}
             forecastShade={trend.forecastShade}
             lines={[
-              { dataKey: 'selfSalesNorm', stroke: '#2563eb' },
-              { dataKey: 'competitorSalesNorm', stroke: '#ef4444' },
+              { dataKey: 'selfSales', stroke: '#2563eb', yAxisId: 'primary' },
+              { dataKey: 'competitorSales', stroke: '#ef4444', yAxisId: 'secondary' },
             ]}
             tickFormatter={(row) => String(row.date ?? '')}
             tickAngle={-45}
@@ -178,9 +188,9 @@ export function SalesTrendDailyCard({ productId, competitorChannelLabel, sizeOpt
             minTickGap={4}
             interval={0}
             tooltipValueFormatter={(value, name) => {
-              if (name === 'selfSalesNorm') return [Number(value).toFixed(3), '자사 판매(정규화)']
-              if (name === 'competitorSalesNorm') return [Number(value).toFixed(3), `${competitorChannelLabel} 판매(정규화)`]
-              return [Number(value).toFixed(3), String(name)]
+              if (name === 'selfSales') return [c(value), '자사 판매량']
+              if (name === 'competitorSales') return [c(value), `${competitorChannelLabel} 판매량`]
+              return [c(value), String(name)]
             }}
             tooltipLabelFormatter={(row) => String(row.date ?? '')}
           />

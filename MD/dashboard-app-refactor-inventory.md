@@ -38,7 +38,6 @@
 |------|------|
 | `v2/pages/V2SelfPage.tsx` | 자사 분석 |
 | `v2/pages/V2CompetitorPage.tsx` | 경쟁사 |
-| `v2/pages/V2OrderPage.tsx` | 오더 시뮬 |
 
 ## v2 컴포넌트
 

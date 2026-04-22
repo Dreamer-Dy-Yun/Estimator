@@ -20,6 +20,13 @@
   align-items: center;
 }
 
+.stashCardActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
 .stashName {
   font-size: 15px;
   color: #0f172a;
@@ -158,35 +165,28 @@
   fill: currentColor;
 }
 
-.detailOverlay {
-  position: fixed;
-  inset: 0;
-  z-index: 9999;
-  background: rgba(15, 23, 42, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 16px;
+.detailPageCard {
+  margin-top: 2px;
 }
 
 .detailDialog {
-  height: 100%;
+  height: auto;
   display: grid;
   grid-template-rows: auto auto 1fr;
   gap: 10px;
 }
 
-.detailHeader {
-  display: flex;
-  justify-content: space-between;
+.detailHeaderGrid {
+  display: grid;
+  grid-template-columns: repeat(20, minmax(0, 1fr));
+  grid-template-rows: auto auto;
   align-items: center;
   gap: 10px;
 }
 
-.detailHeaderText {
+.detailHeaderTitleArea {
+  grid-column: 1 / span 16;
   min-width: 0;
-  display: grid;
-  gap: 3px;
 }
 
 .detailTitle {
@@ -200,6 +200,21 @@
   color: #64748b;
 }
 
+.detailMetaStack {
+  grid-column: 17 / span 2;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  font-size: 11px;
+  line-height: 1.25;
+  color: #64748b;
+}
+
+.detailMetaLine {
+  white-space: nowrap;
+}
+
 .detailNote {
   font-size: 12px;
   color: #334155;
@@ -207,6 +222,44 @@
   border: 1px solid #e2e8f0;
   border-radius: 8px;
   padding: 8px 10px;
+}
+
+.detailHeaderDeleteCell {
+  grid-column: 19 / span 1;
+  min-width: 0;
+  align-self: stretch;
+  display: flex;
+}
+
+.detailHeaderDeleteCell :global(button) {
+  width: 100%;
+  min-width: 0;
+  height: 100%;
+  min-height: 32px;
+}
+
+.detailHeaderCloseBtn {
+  grid-column: 20 / span 1;
+  min-width: 0;
+  width: 100%;
+  align-self: stretch;
+  padding: 0;
+  height: 100%;
+  min-height: 32px;
+  font-size: 18px;
+  line-height: 1;
+}
+
+.detailNoteGridCell {
+  grid-column: 1 / -1;
+  font-size: 12px;
+  color: #334155;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 8px 10px;
+  line-height: 1.35;
+  word-break: break-word;
 }
 
 .detailBody {
@@ -222,66 +275,129 @@
   gap: 8px;
 }
 
-.itemList {
-  overflow: auto;
-  min-height: 0;
+.innerSummaryGrid {
+  margin-top: 8px;
   display: grid;
-  grid-template-columns: 1fr;
-  gap: 10px;
-  align-content: start;
-  padding-right: 2px;
-}
-
-.itemCard {
-  border: 1px solid #dbe2ea;
-  border-radius: 10px;
-  background: #fff;
-  padding: 10px;
-  display: grid;
-  gap: 4px;
-  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.06);
-}
-
-.itemTop {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 8px;
 }
 
-.itemBrand {
-  font-size: 11px;
-  color: #475569;
-  font-weight: 700;
+.innerSummaryCard {
+  display: grid;
+  gap: 4px;
+  padding: 10px 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  background: #ffffff;
 }
 
-.itemDate {
+.innerSummaryLabel {
   font-size: 11px;
   color: #64748b;
-}
-
-.itemCode {
-  font-size: 13px;
-  color: #0f172a;
   line-height: 1.25;
 }
 
-.itemName {
-  margin: 0;
-  font-size: 12px;
-  color: #334155;
-  line-height: 1.35;
-  word-break: break-word;
+.innerSummaryValue {
+  font-size: 14px;
+  line-height: 1.3;
+  color: #0f172a;
 }
 
-.itemMetrics {
-  margin-top: 2px;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px 14px;
-  font-size: 12px;
-  color: #1e293b;
+.innerSummaryUnit {
+  color: #64748b;
   font-weight: 600;
+}
+
+/** 이너 후보 목록 블록 (AnalysisList 상단 여백) */
+.innerCandidateListBlock {
+  margin-top: 8px;
+}
+
+/**
+ * 이너 후보 테이블: 공통 포맷 유지 (패딩 10px 12px, 열 9개)
+ * 1 브랜드 2 코드 3 상품명 4 오더수량 5 오더금액 6 예상매출 7 예상영업이익 8 등록·변경 9 삭제
+ */
+.innerCandidateTableWrap :global(table) {
+  table-layout: fixed;
+  min-width: 72rem;
+}
+
+.innerCandidateTableWrap :global(th),
+.innerCandidateTableWrap :global(td) {
+  padding: 10px 12px;
+  vertical-align: middle;
+}
+
+/* 긴 한글 헤더(오더 금액·예상 매출 등) 줄바꿈 — 데이터 셀은 공통 .table 의 nowrap 유지 */
+.innerCandidateTableWrap :global(th) {
+  white-space: normal;
+  line-height: 1.25;
+}
+
+.innerCandidateTableWrap :global(th:nth-child(1)),
+.innerCandidateTableWrap :global(td:nth-child(1)) {
+  width: 10%;
+}
+
+.innerCandidateTableWrap :global(th:nth-child(2)),
+.innerCandidateTableWrap :global(td:nth-child(2)) {
+  width: 10%;
+}
+
+.innerCandidateTableWrap :global(th:nth-child(3)),
+.innerCandidateTableWrap :global(td:nth-child(3)) {
+  width: 20%;
+}
+
+.innerCandidateTableWrap :global(th:nth-child(4)),
+.innerCandidateTableWrap :global(td:nth-child(4)) {
+  width: 10%;
+}
+
+.innerCandidateTableWrap :global(th:nth-child(5)),
+.innerCandidateTableWrap :global(td:nth-child(5)) {
+  width: 10%;
+}
+
+.innerCandidateTableWrap :global(th:nth-child(6)),
+.innerCandidateTableWrap :global(td:nth-child(6)) {
+  width: 10%;
+}
+
+.innerCandidateTableWrap :global(th:nth-child(7)),
+.innerCandidateTableWrap :global(td:nth-child(7)) {
+  width: 10%;
+}
+
+/* 등록·변경 스택 + 삭제 버튼 */
+.innerCandidateTableWrap :global(th:nth-child(8)),
+.innerCandidateTableWrap :global(td:nth-child(8)) {
+  width: 10%;
+}
+
+.innerCandidateTableWrap :global(th:nth-child(9)),
+.innerCandidateTableWrap :global(td:nth-child(9)) {
+  width: 10%;
+}
+
+/** 등록·변경: 작은 글씨 세로 스택 — 숫자 열과 맞춰 셀 오른쪽 정렬 */
+.innerCandidateDateStack {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  font-size: 11px;
+  line-height: 1.25;
+  color: #64748b;
+}
+
+.innerCandidateDateLine {
+  white-space: nowrap;
+}
+
+.innerCandidateTableWrap :global(td:nth-child(3)) {
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .emptyState {
@@ -294,6 +410,212 @@
   padding: 14px 12px;
 }
 
+/**
+ * 삭제 확인 모달 — 후보군 목록·이너 후보 상세 공통 (배경·패널·버튼 크기 통일)
+ */
+.confirmModalBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  background: rgba(15, 23, 42, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+/** 카드 박스(너비·여백)는 유지 — 버튼만 `.confirmModalBtn`으로 별도 규격 */
+.confirmModalPanel {
+  width: min(420px, 100%);
+  margin: 0;
+  padding: 18px 20px;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  box-shadow: 0 20px 44px rgba(15, 23, 42, 0.16);
+  display: grid;
+  gap: 12px;
+}
+
+.confirmModalTitle {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: #0f172a;
+  line-height: 1.3;
+}
+
+.confirmModalText {
+  margin: 0;
+  font-size: 13px;
+  color: #475569;
+  line-height: 1.45;
+}
+
+.confirmModalActions {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 6px;
+  margin-top: 2px;
+}
+
+/** 모달 카드는 유지 — 액션 버튼만 약 20% 축소 */
+.confirmModalBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-width: 74px;
+  height: 29px;
+  padding: 0 11px;
+  box-sizing: border-box;
+  border-radius: 6px;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+  border: 1px solid;
+  transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
+}
+
+.confirmModalBtn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.confirmModalBtnCancel {
+  color: #334155;
+  border-color: #cbd5e1;
+  background: #ffffff;
+}
+
+.confirmModalBtnCancel:hover:not(:disabled) {
+  border-color: #94a3b8;
+  background: #f8fafc;
+}
+
+.confirmModalBtnCancel:focus-visible {
+  outline: 2px solid rgba(100, 116, 139, 0.35);
+  outline-offset: 1px;
+}
+
+.confirmModalBtnDanger {
+  color: #ffffff;
+  border-color: #b91c1c;
+  background: #dc2626;
+}
+
+.confirmModalBtnDanger:hover:not(:disabled) {
+  border-color: #991b1b;
+  background: #b91c1c;
+}
+
+.confirmModalBtnDanger:focus-visible {
+  outline: 2px solid rgba(239, 68, 68, 0.4);
+  outline-offset: 1px;
+}
+
+.confirmModalForm {
+  display: grid;
+  gap: 10px;
+}
+
+.confirmModalField {
+  display: grid;
+  gap: 4px;
+}
+
+.confirmModalLabel {
+  font-size: 11px;
+  font-weight: 600;
+  color: #64748b;
+}
+
+.confirmModalInput,
+.confirmModalTextarea {
+  padding: 8px 10px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font: inherit;
+  font-size: 13px;
+  color: #0f172a;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.confirmModalTextarea {
+  min-height: 72px;
+  resize: vertical;
+}
+
+.confirmModalUuid {
+  margin: 0;
+  font-family: ui-monospace, 'Cascadia Code', monospace;
+  font-size: 11px;
+  color: #475569;
+  word-break: break-all;
+  line-height: 1.35;
+}
+
+.confirmModalBtnPrimary {
+  color: #fff;
+  border-color: #0f172a;
+  background: #0f172a;
+}
+
+.confirmModalBtnPrimary:hover:not(:disabled) {
+  border-color: #334155;
+  background: #334155;
+}
+
+/** 이너 오더군(후보군) 상세 — 뷰포트의 90% (확인 모달은 z-index 10000) */
+.stashDetailModalBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 9000;
+  background: rgba(15, 23, 42, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  box-sizing: border-box;
+}
+
+.stashDetailModalPanel {
+  width: 90vw;
+  max-width: 90vw;
+  height: 90vh;
+  max-height: 90vh;
+  margin: 0;
+  padding: 16px 18px 18px;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+  background: #f1f5f9;
+  box-shadow: 0 24px 56px rgba(15, 23, 42, 0.22);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  box-sizing: border-box;
+}
+
+.stashDetailModalBody {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  -webkit-overflow-scrolling: touch;
+}
+
+.stashDetailModalFooterActions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 10px;
+}
+
 @media (max-width: 860px) {
   .stashFilterBar {
     grid-template-columns: 1fr;
@@ -301,6 +623,10 @@
 
   .filterBar {
     grid-template-columns: 1fr;
+  }
+
+  .innerSummaryGrid {
+    grid-template-columns: 1fr 1fr;
   }
 
   .stashInfoGrid {

@@ -1,7 +1,7 @@
 import { PortalHelpMark } from '../../PortalHelpPopover'
 import { ApiUnitErrorBadge } from '../../../../components/ApiUnitErrorBadge'
 import type { ApiUnitErrorInfo } from '../../../../types'
-import { c, won } from '../../../../utils/format'
+import { c, pct2n, won } from '../../../../utils/format'
 import commonStyles from '../../common.module.css'
 import { usePortalHelpPopover } from '../../usePortalHelpPopover'
 import { KO } from '../ko'
@@ -46,6 +46,7 @@ type Props = {
   help: {
     labelIds: {
       forecastQtyCalc: string
+      expectedOpProfitRate: string
     }
     portal: ReturnType<typeof usePortalHelpPopover<SecondaryHelpId>>
   }
@@ -63,6 +64,20 @@ export function SalesForecastCard({ forecast, orderSettings, actions, help }: Pr
     expectedFeeRatePct,
   } = orderSettings
   const { labelIds, portal } = help
+  const feeRate = Math.max(0, expectedFeeRatePct) / 100
+  const calcExpectedOpProfitRatePct = (expectedSales: number, expectedQty: number): number | null => {
+    if (!Number.isFinite(expectedSales) || expectedSales <= 0) return null
+    const opProfit = (expectedSales * (1 - feeRate)) - (unitCost * expectedQty)
+    return (opProfit / expectedSales) * 100
+  }
+  const forecastOpProfitRatePct = calcExpectedOpProfitRatePct(
+    computed.forecastExpectedSales,
+    computed.recommendedOrderQtyTotal,
+  )
+  const confirmedOpProfitRatePct = calcExpectedOpProfitRatePct(
+    computed.confirmedExpectedSales,
+    computed.confirmedOrderQtyTotal,
+  )
 
   return (
     <div className={`${styles.card} ${styles.gridColumnCard}`}>
@@ -126,6 +141,7 @@ export function SalesForecastCard({ forecast, orderSettings, actions, help }: Pr
               onChange={(e) => actions.onUnitCostChange(Math.max(0, Number(e.target.value) || 0))}
               aria-label={KO.labelUnitCost}
             />
+            <span className={styles.inlineUnit}>{KO.unitWonPerEa}</span>
           </span>
         </div>
         <div className={styles.stockInputCell}>
@@ -140,6 +156,7 @@ export function SalesForecastCard({ forecast, orderSettings, actions, help }: Pr
               onChange={(e) => actions.onUnitPriceChange(Math.max(0, Number(e.target.value) || 0))}
               aria-label={KO.labelUnitPrice}
             />
+            <span className={styles.inlineUnit}>{KO.unitWonPerEa}</span>
           </span>
         </div>
         <div className={styles.stockInputCell}>
@@ -216,6 +233,26 @@ export function SalesForecastCard({ forecast, orderSettings, actions, help }: Pr
               <td>{KO.rowExpectedOpProfit}</td>
               <td className={styles.num}>{won(computed.forecastOpProfit)}</td>
               <td className={styles.num}>{won(computed.confirmedOpProfit)}</td>
+            </tr>
+            <tr>
+              <td>
+                <span className={commonStyles.cardTitleWithHelp}>
+                  {KO.rowExpectedOpProfitRate}
+                  <PortalHelpMark
+                    helpId="expectedOpProfitRate"
+                    placement="above"
+                    labelId={labelIds.expectedOpProfitRate}
+                    markClassName={commonStyles.helpMark}
+                    help={portal}
+                  />
+                </span>
+              </td>
+              <td className={styles.num}>
+                {forecastOpProfitRatePct === null ? '-' : `${pct2n(forecastOpProfitRatePct)}%`}
+              </td>
+              <td className={styles.num}>
+                {confirmedOpProfitRatePct === null ? '-' : `${pct2n(confirmedOpProfitRatePct)}%`}
+              </td>
             </tr>
           </tbody>
         </table>

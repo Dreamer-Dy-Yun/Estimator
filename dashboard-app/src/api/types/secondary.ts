@@ -5,10 +5,10 @@ export interface SecondaryDailyTrendPoint {
   sales: number
   stockBar: number
   inboundAccumBar: number
-  /** 0~1 정규화된 자사 판매 지표(금일 이후 구간은 null). */
-  selfSalesNorm: number | null
-  /** 0~1 정규화된 경쟁사 판매 지표(금일 이후 구간은 null). */
-  competitorSalesNorm: number | null
+  /** 자사 실 판매량(EA) */
+  selfSales: number | null
+  /** 경쟁사 실 판매량(EA) */
+  competitorSales: number | null
   isForecast: boolean
 }
 
@@ -39,8 +39,10 @@ export interface ProductSecondaryDetailParams {
   minOpMarginPct?: number | null
 }
 
+import type { OrderSnapshotDocumentV1 } from '../../snapshot/orderSnapshotTypes'
+
 /** 통합 오더 스냅샷(JSON 한 문서). 구 스키마는 `schemaVersion`으로 구분 */
-export type { OrderSnapshotDocumentV1 as SecondaryOrderSnapshotPayload } from '../../snapshot/orderSnapshotTypes'
+export type SecondaryOrderSnapshotPayload = OrderSnapshotDocumentV1
 
 export interface SecondaryStockOrderCalcParams {
   productId: string
@@ -107,8 +109,23 @@ export interface CandidateItemSummary {
   productCode: string
   productName: string
   qty: number
+  /** 확정(또는 추천) 수량 기준 원가 합 — 스냅샷 `stockDerived` 비례 스케일 */
+  orderAmount: number
   expectedSalesAmount: number
+  /** 확정(또는 추천) 수량 기준 예상 영업이익 — 스냅샷 `stockDerived` 비례 스케일 */
+  expectedOpProfit: number
   dbCreatedAt: string
+  dbUpdatedAt: string
+}
+
+/** 후보군 단일 행 상세(스냅샷 JSON 포함) */
+export interface CandidateItemDetail {
+  uuid: string
+  stashUuid: string
+  productId: string
+  details: SecondaryOrderSnapshotPayload
+  dbCreatedAt: string
+  dbUpdatedAt: string
 }
 
 export interface CreateCandidateStashPayload {
@@ -117,8 +134,20 @@ export interface CreateCandidateStashPayload {
   note?: string | null
 }
 
+/** 후보군 메타(이름·비고)만 갱신 */
+export interface UpdateCandidateStashPayload {
+  stashUuid: string
+  name: string
+  note?: string | null
+}
+
 export interface AppendCandidateItemPayload {
   stashUuid: string
   productId: string
+  details: SecondaryOrderSnapshotPayload
+}
+
+export interface UpdateCandidateItemPayload {
+  itemUuid: string
   details: SecondaryOrderSnapshotPayload
 }

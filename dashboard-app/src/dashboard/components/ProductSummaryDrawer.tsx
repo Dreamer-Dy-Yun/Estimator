@@ -11,6 +11,8 @@ import { SalesTrendChart } from './trend/SalesTrendChart'
 import { buildShadeRanges, normalizeMonthKey } from './trend/trendRangeUtils'
 import { usePortalHelpPopover } from './usePortalHelpPopover'
 import { ProductSecondaryPanel } from './product-secondary/ProductSecondaryPanel'
+import type { CandidateItemPanelContext } from './product-secondary/candidateActionCards'
+import type { OrderSnapshotDocumentV1 } from '../../snapshot/orderSnapshotTypes'
 import styles from './common.module.css'
 
 const SEASON_MONTH_LABELS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'] as const
@@ -41,14 +43,20 @@ function ProductSummaryDrawerContent({
   periodEnd,
   forecastMonths,
   onForecastMonthsChange,
+  hydrateSnapshot,
+  initialExpandSecondary,
+  candidateItemContext,
 }: {
   summary: ProductPrimarySummary
   stockTrend: ProductStockTrendPoint[]
   onClose: () => void
-  periodStart?: string
-  periodEnd?: string
+  periodStart: string
+  periodEnd: string
   forecastMonths: number
   onForecastMonthsChange: (months: number) => void
+  hydrateSnapshot?: OrderSnapshotDocumentV1 | null
+  initialExpandSecondary?: boolean
+  candidateItemContext?: CandidateItemPanelContext | null
 }) {
   const seasonalityHelpId = useId()
   const forecastMonthsLabelId = useId()
@@ -111,7 +119,7 @@ function ProductSummaryDrawerContent({
   /** 'all' = 전체 상품 합계, 그 외 = 사이즈 코드(sizeMix.size) */
   const [selectedSizeKey, setSelectedSizeKey] = useState<'all' | string>('all')
   /** 왼쪽 확장 패널(추가 콘텐츠 영역) */
-  const [expandPaneOpen, setExpandPaneOpen] = useState(false)
+  const [expandPaneOpen, setExpandPaneOpen] = useState(!!initialExpandSecondary)
   const [secondaryDetail, setSecondaryDetail] = useState<ProductSecondaryDetail | null>(null)
   const [secondaryDetailError, setSecondaryDetailError] = useState<ApiUnitErrorInfo | null>(null)
   const pageName = 'ProductSummaryDrawer'
@@ -123,9 +131,23 @@ function ProductSummaryDrawerContent({
   })
 
   /** 2차 패널이 열릴 때만 로드. 필터(예: 영업이익률 하한)를 두면 `getProductSecondaryDetail` 두 번째 인자·이 effect deps에 포함해 재요청. */
+  const secondaryFromSnapshot =
+    hydrateSnapshot?.drawer2?.secondary != null && hydrateSnapshot.drawer2.secondary.id === summary.id
+      ? hydrateSnapshot.drawer2.secondary
+      : null
+
+  /** 스냅샷이 현재 상품이면 폼·확정 수량·AI 등 전부 복원 (2차 secondary는 스냅샷 또는 API) */
+  const hydrateForPanel =
+    hydrateSnapshot != null && hydrateSnapshot.productId === summary.id ? hydrateSnapshot : null
+
   useEffect(() => {
     if (!expandPaneOpen) {
       setSecondaryDetail(null)
+      setSecondaryDetailError(null)
+      return
+    }
+    if (secondaryFromSnapshot) {
+      setSecondaryDetail(secondaryFromSnapshot)
       setSecondaryDetailError(null)
       return
     }
@@ -148,10 +170,10 @@ function ProductSummaryDrawerContent({
     return () => {
       alive = false
     }
-  }, [expandPaneOpen, summary.id])
+  }, [expandPaneOpen, secondaryFromSnapshot, summary.id])
 
-  const selectedStart = normalizeMonthKey(periodStart ?? '2025-01-01')
-  const selectedEnd = normalizeMonthKey(periodEnd ?? '2025-12-31')
+  const selectedStart = normalizeMonthKey(periodStart)
+  const selectedEnd = normalizeMonthKey(periodEnd)
 
   const sizeBreakdown = useMemo(
     () =>
@@ -801,6 +823,8 @@ function ProductSummaryDrawerContent({
                 periodEnd={selectedEnd}
                 forecastMonths={forecastMonths}
                 pageName="ProductSummaryDrawer > ProductSecondaryPanel"
+                prefillFromSnapshot={hydrateForPanel}
+                candidateItemContext={candidateItemContext ?? null}
               />
             )
           )}
@@ -818,14 +842,20 @@ export const ProductSummaryDrawer = ({
   periodEnd,
   forecastMonths,
   onForecastMonthsChange,
+  hydrateSnapshot,
+  initialExpandSecondary,
+  candidateItemContext,
 }: {
   summary: ProductPrimarySummary | null
   stockTrend: ProductStockTrendPoint[]
   onClose: () => void
-  periodStart?: string
-  periodEnd?: string
+  periodStart: string
+  periodEnd: string
   forecastMonths: number
   onForecastMonthsChange: (months: number) => void
+  hydrateSnapshot?: OrderSnapshotDocumentV1 | null
+  initialExpandSecondary?: boolean
+  candidateItemContext?: CandidateItemPanelContext | null
 }) => {
   if (!summary) return null
   return (
@@ -838,6 +868,9 @@ export const ProductSummaryDrawer = ({
       periodEnd={periodEnd}
       forecastMonths={forecastMonths}
       onForecastMonthsChange={onForecastMonthsChange}
+      hydrateSnapshot={hydrateSnapshot}
+      initialExpandSecondary={initialExpandSecondary}
+      candidateItemContext={candidateItemContext}
     />
   )
 }
