@@ -61,7 +61,7 @@ export const SnapshotConfirmPage = () => {
   }, [stashNameQuery, stashNoteQuery, stashSortKey, stashes])
 
   return (
-    <section className={styles.page}>
+    <section className={`${styles.page} ${pageStyles.snapshotPage}`}>
       <PageHeader title="" badge="" />
 
       <FilterBar
@@ -270,6 +270,7 @@ export const SnapshotConfirmPage = () => {
       {openDetailStashUuid && (
         <CandidateStashDetailModal
           stashUuid={openDetailStashUuid}
+          stashSummary={stashes.find((s) => s.uuid === openDetailStashUuid)}
           onClose={() => setOpenDetailStashUuid(null)}
           onStashesInvalidate={loadStashes}
         />

@@ -1,9 +1,6 @@
 import type { ProductPrimarySummary, ProductSecondaryDetail } from '../types'
-import type {
-  SalesKpiColumn,
-  SecondaryForecastDerived,
-  SecondaryForecastInputs,
-} from '../dashboard/components/product-secondary/secondaryPanelTypes'
+import type { SecondaryForecastDerived, SecondaryForecastInputs } from '../dashboard/components/product-secondary/secondaryPanelTypes'
+import type { SalesKpiColumn } from '../utils/salesKpiColumn'
 
 /** 오더 확정 시 저장하는 통합 스냅샷 스키마 버전 */
 export const ORDER_SNAPSHOT_SCHEMA_VERSION = 2 as const

@@ -1,7 +1,7 @@
-import { useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useLayoutEffect, useMemo, useRef, useState, type ComponentProps } from 'react'
 import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { PortalHelpMark } from '../../PortalHelpPopover'
-import { c, pct2n } from '../../../../utils/format'
+import { formatGroupedNumber, formatRatioDecimalKo } from '../../../../utils/format'
 import commonStyles from '../../common.module.css'
 import { KO } from '../ko'
 import styles from '../productSecondaryPanel.module.css'
@@ -150,11 +150,10 @@ export function SizeOrderCard({ sizeOrder, actions, help }: Props) {
     return { weightedPct, forecast, rec, confirm }
   }, [sizeRows])
 
-  const renderShareTooltip = useMemo(
-    () =>
-      ({ active, payload }: any) => {
+  const renderShareTooltip = useMemo((): ComponentProps<typeof Tooltip>['content'] => {
+    const Body: NonNullable<ComponentProps<typeof Tooltip>['content']> = ({ active, payload }) => {
         if (!active || !payload?.length) return null
-        const byKey = new Map((payload as Array<any>).map((p) => [String(p.dataKey ?? ''), p]))
+        const byKey = new Map(payload.map((p) => [String(p.dataKey ?? ''), p]))
         const ordered = ['selfPct', 'compPct', 'weightedPct']
           .map((k) => byKey.get(k))
           .filter((p): p is NonNullable<typeof p> => Boolean(p))
@@ -185,15 +184,15 @@ export function SizeOrderCard({ sizeOrder, actions, help }: Props) {
                       flexShrink: 0,
                     }}
                   />
-                  <span>{item.name}: {pct2n(Number.isFinite(n) ? n : 0)}%</span>
+                  <span>{item.name}: {formatRatioDecimalKo(Number.isFinite(n) ? n : 0)}%</span>
                 </div>
               )
             })}
           </div>
         )
-      },
-    [],
-  )
+    }
+    return Body
+  }, [])
 
   return (
     <div className={styles.card}>
@@ -344,18 +343,18 @@ export function SizeOrderCard({ sizeOrder, actions, help }: Props) {
             </tr>
             <tr data-chart-align-row="">
               <td>{KO.rowMetricAdjustReflectedSizeSharePct}</td>
-              <td className={styles.num}>{pct2n(columnTotals.weightedPct)}</td>
+              <td className={styles.num}>{formatRatioDecimalKo(columnTotals.weightedPct)}</td>
               {sizeRows.map((r) => (
                 <td key={r.size} className={styles.num} data-chart-x="">
-                  {pct2n(r.blendedSharePct)}
+                  {formatRatioDecimalKo(r.blendedSharePct)}
                 </td>
               ))}
             </tr>
             <tr>
               <td>{KO.rowCurrentStockQty}</td>
-              <td className={styles.num}>{c(currentStockQty)}</td>
+              <td className={styles.num}>{formatGroupedNumber(currentStockQty)}</td>
               {sizeRows.map((r, i) => (
-                <td key={r.size} className={styles.num}>{c(currentStockQtyBySize[i] ?? 0)}</td>
+                <td key={r.size} className={styles.num}>{formatGroupedNumber(currentStockQtyBySize[i] ?? 0)}</td>
               ))}
             </tr>
             <tr>
@@ -371,9 +370,9 @@ export function SizeOrderCard({ sizeOrder, actions, help }: Props) {
                   />
                 </span>
               </td>
-              <td className={styles.num}>{c(totalOrderBalanceQty)}</td>
+              <td className={styles.num}>{formatGroupedNumber(totalOrderBalanceQty)}</td>
               {sizeRows.map((r, i) => (
-                <td key={r.size} className={styles.num}>{c(totalOrderBalanceBySize[i] ?? 0)}</td>
+                <td key={r.size} className={styles.num}>{formatGroupedNumber(totalOrderBalanceBySize[i] ?? 0)}</td>
               ))}
             </tr>
             <tr>
@@ -389,9 +388,9 @@ export function SizeOrderCard({ sizeOrder, actions, help }: Props) {
                   />
                 </span>
               </td>
-              <td className={styles.num}>{c(expectedInboundOrderBalanceQty)}</td>
+              <td className={styles.num}>{formatGroupedNumber(expectedInboundOrderBalanceQty)}</td>
               {sizeRows.map((r, i) => (
-                <td key={r.size} className={styles.num}>{c(expectedInboundOrderBalanceBySize[i] ?? 0)}</td>
+                <td key={r.size} className={styles.num}>{formatGroupedNumber(expectedInboundOrderBalanceBySize[i] ?? 0)}</td>
               ))}
             </tr>
             <tr>
@@ -407,9 +406,9 @@ export function SizeOrderCard({ sizeOrder, actions, help }: Props) {
                   />
                 </span>
               </td>
-              <td className={styles.num}>{c(columnTotals.forecast)}</td>
+              <td className={styles.num}>{formatGroupedNumber(columnTotals.forecast)}</td>
               {sizeRows.map((r) => (
-                <td key={r.size} className={styles.num}>{c(r.forecastQty)}</td>
+                <td key={r.size} className={styles.num}>{formatGroupedNumber(r.forecastQty)}</td>
               ))}
             </tr>
             <tr>
@@ -425,14 +424,14 @@ export function SizeOrderCard({ sizeOrder, actions, help }: Props) {
                   />
                 </span>
               </td>
-              <td className={styles.num}>{c(columnTotals.rec)}</td>
+              <td className={styles.num}>{formatGroupedNumber(columnTotals.rec)}</td>
               {sizeRows.map((r) => (
-                <td key={r.size} className={styles.num}>{c(r.recommendedQty)}</td>
+                <td key={r.size} className={styles.num}>{formatGroupedNumber(r.recommendedQty)}</td>
               ))}
             </tr>
             <tr>
               <td>{KO.thConfirmQty}</td>
-              <td className={styles.num}>{c(columnTotals.confirm)}</td>
+              <td className={styles.num}>{formatGroupedNumber(columnTotals.confirm)}</td>
               {sizeRows.map((r) => {
                 const manual = Boolean(manualConfirmBySize[r.size])
                 return (

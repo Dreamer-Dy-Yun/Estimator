@@ -4,7 +4,7 @@ import { ApiUnitErrorBadge } from '../../../../components/ApiUnitErrorBadge'
 import type { ApiUnitErrorInfo } from '../../../../types'
 import commonStyles from '../../common.module.css'
 import { DAILY_TREND_AS_OF_DATE } from '../../../../api'
-import { c } from '../../../../utils/format'
+import { formatGroupedNumber } from '../../../../utils/format'
 import { KO } from '../ko'
 import styles from '../productSecondaryPanel.module.css'
 
@@ -161,11 +161,11 @@ export function SalesTrendDailyCard({ productId, competitorChannelLabel, sizeOpt
             minTickGap={4}
             interval={0}
             tooltipValueFormatter={(value, name) => {
-              if (name === 'stockBar') return [c(value), '실재고']
-              if (name === 'inboundAccumBar') return [c(value), '예상 재고']
-              if (name === 'salesActual') return [c(value), '판매 실적']
-              if (name === 'salesForecast') return [c(value), '판매 예측']
-              return [c(value), String(name)]
+              if (name === 'stockBar') return [formatGroupedNumber(value), '실재고']
+              if (name === 'inboundAccumBar') return [formatGroupedNumber(value), '예상 재고']
+              if (name === 'salesActual') return [formatGroupedNumber(value), '판매 실적']
+              if (name === 'salesForecast') return [formatGroupedNumber(value), '판매 예측']
+              return [formatGroupedNumber(value), String(name)]
             }}
             tooltipLabelFormatter={(row) => String(row.date ?? '')}
           />
@@ -188,9 +188,9 @@ export function SalesTrendDailyCard({ productId, competitorChannelLabel, sizeOpt
             minTickGap={4}
             interval={0}
             tooltipValueFormatter={(value, name) => {
-              if (name === 'selfSales') return [c(value), '자사 판매량']
-              if (name === 'competitorSales') return [c(value), `${competitorChannelLabel} 판매량`]
-              return [c(value), String(name)]
+              if (name === 'selfSales') return [formatGroupedNumber(value), '자사 판매량']
+              if (name === 'competitorSales') return [formatGroupedNumber(value), `${competitorChannelLabel} 판매량`]
+              return [formatGroupedNumber(value), String(name)]
             }}
             tooltipLabelFormatter={(row) => String(row.date ?? '')}
           />

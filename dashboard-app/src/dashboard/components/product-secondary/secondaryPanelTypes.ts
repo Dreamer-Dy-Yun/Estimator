@@ -3,21 +3,7 @@ import type { SecondaryCompetitorChannel, SecondaryStockOrderCalcResult } from '
 /** API `SecondaryCompetitorChannel`과 동일(단일 소스). */
 export type CompetitorChannel = SecondaryCompetitorChannel
 
-/** One column of sales KPIs for self or competitor. */
-export type SalesKpiColumn = {
-  avgPrice: number
-  qty: number
-  amount: number
-  avgCost: number
-  grossMarginPerUnit: number
-  feePerUnit: number
-  feeRatePct: number
-  opMarginPerUnit: number
-  opMarginRatePct: number
-  qtyRank: number
-  amountRank: number
-  costRatioPct: number
-}
+export type { SalesKpiColumn } from '../../../utils/salesKpiColumn'
 
 export type SecondaryHelpId =
   | 'confirmOrder'

@@ -1,0 +1,136 @@
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  /** 판매·재고·사이즈 표 공통 (12px·11px 중간) */
+  font-size: 11.5px;
+}
+
+.table th,
+.table td {
+  border: 1px solid #e2e8f0;
+  padding: 4px 8px;
+  text-align: left;
+}
+
+.table th {
+  background: #f8fafc;
+  font-weight: 600;
+}
+
+.table td.num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/** 표 0행(헤더 첫 줄) 필드명만 가운데 — 본문 열 정렬은 건드리지 않음 */
+.panel .table thead tr:first-child th {
+  text-align: center;
+  vertical-align: middle;
+}
+
+.panel .table thead tr:first-child th > span {
+  display: inline-flex;
+  justify-content: center;
+  width: 100%;
+}
+
+.sizeOrderTableWrap {
+  overflow-x: auto;
+  margin-top: 4px;
+  -webkit-overflow-scrolling: touch;
+}
+
+.sizeOrderTable {
+  width: max-content;
+  min-width: 100%;
+}
+
+.sizeOrderTable th:first-child,
+.sizeOrderTable td:first-child {
+  width: 10rem;
+  min-width: 10rem;
+  white-space: nowrap;
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background: #fff;
+  box-shadow: 4px 0 8px -4px rgba(15, 23, 42, 0.12);
+}
+
+.sizeOrderTable thead th:first-child {
+  background: #f8fafc;
+  z-index: 2;
+}
+
+.sizeOrderShareChartCell {
+  padding: 8px 10px;
+  vertical-align: middle;
+}
+
+.sizeOrderShareChartInner {
+  width: 100%;
+  min-width: 240px;
+  height: 84px;
+}
+
+.sizeOrderShareLegendCell {
+  vertical-align: middle;
+  line-height: 1.35;
+  white-space: nowrap;
+}
+
+.sizeOrderShareLegend {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+.sizeOrderShareLegendRow {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.sizeOrderShareLegendSwatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+/**
+ * 확정 수량 셀: 표 안에서 우측 정렬·세로 가운데 유지 (input을 td에 직접 두면 레이아웃이 깨지기 쉬움)
+ */
+.sizeOrderTable .confirmQtyCell {
+  vertical-align: middle;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.confirmQtyInputWrap {
+  display: inline-flex;
+  justify-content: flex-end;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.confirmQtyInputWrap .stockNumberInput {
+  box-sizing: border-box;
+  width: 4.5rem;
+  max-width: 100%;
+  min-width: 0;
+  flex: 0 0 auto;
+}
+
+.confirmQtyCellManual .stockNumberInput {
+  background: rgba(254, 243, 199, 0.95);
+  border-color: #d97706;
+  color: #78350f;
+}
+
+.confirmQtyCellManual .stockNumberInput:focus-visible {
+  outline: 2px solid #d97706;
+  outline-offset: 0;
+}

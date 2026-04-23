@@ -109,10 +109,10 @@ export interface CandidateItemSummary {
   productCode: string
   productName: string
   qty: number
-  /** 확정(또는 추천) 수량 기준 원가 합 — 스냅샷 `stockDerived` 비례 스케일 */
-  orderAmount: number
+  /** 예상 발주 금액(원). 스냅샷 `drawer2.stockDerived.expectedOrderAmount`와 동일 */
+  expectedOrderAmount: number
   expectedSalesAmount: number
-  /** 확정(또는 추천) 수량 기준 예상 영업이익 — 스냅샷 `stockDerived` 비례 스케일 */
+  /** 예상 영업이익(원). 스냅샷 `drawer2.stockDerived.expectedOpProfit`와 동일 */
   expectedOpProfit: number
   dbCreatedAt: string
   dbUpdatedAt: string

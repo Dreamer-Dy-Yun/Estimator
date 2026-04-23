@@ -1,7 +1,7 @@
 import { PortalHelpMark } from '../../PortalHelpPopover'
 import { ApiUnitErrorBadge } from '../../../../components/ApiUnitErrorBadge'
 import type { ApiUnitErrorInfo } from '../../../../types'
-import { c, pct2n, won } from '../../../../utils/format'
+import { formatGroupedNumber, formatRatioDecimalKo } from '../../../../utils/format'
 import commonStyles from '../../common.module.css'
 import { usePortalHelpPopover } from '../../usePortalHelpPopover'
 import { KO } from '../ko'
@@ -179,7 +179,7 @@ export function SalesForecastCard({ forecast, orderSettings, actions, help }: Pr
           <span className={`${styles.inlineLabel} ${styles.stockCellLabel}`}>{KO.labelDailyMeanSales}</span>
           <span className={`${styles.inlineFieldInput} ${styles.stockCellInputWrap}`}>
             <span className={`${styles.stockComputedValue} ${styles.stockFillInput}`}>
-              {c(inputs.trendDailyMean)}
+              {formatGroupedNumber(inputs.trendDailyMean)}
             </span>
             <span className={styles.inlineUnit}>EA/일</span>
           </span>
@@ -188,7 +188,7 @@ export function SalesForecastCard({ forecast, orderSettings, actions, help }: Pr
           <span className={`${styles.inlineLabel} ${styles.stockCellLabel}`}>{KO.labelDailyMeanExpectedSales}</span>
           <span className={`${styles.inlineFieldInput} ${styles.stockCellInputWrap}`}>
             <span className={`${styles.stockComputedValue} ${styles.stockFillInput}`}>
-              {c(inputs.dailyMean)}
+              {formatGroupedNumber(inputs.dailyMean)}
             </span>
             <span className={styles.inlineUnit}>EA/일</span>
           </span>
@@ -221,18 +221,18 @@ export function SalesForecastCard({ forecast, orderSettings, actions, help }: Pr
           <tbody>
             <tr>
               <td>{KO.rowOrderQty}</td>
-              <td className={styles.num}>{c(computed.recommendedOrderQtyTotal)}</td>
-              <td className={styles.num}>{c(computed.confirmedOrderQtyTotal)}</td>
+              <td className={styles.num}>{formatGroupedNumber(computed.recommendedOrderQtyTotal)}</td>
+              <td className={styles.num}>{formatGroupedNumber(computed.confirmedOrderQtyTotal)}</td>
             </tr>
             <tr>
               <td>{KO.rowExpectedSales}</td>
-              <td className={styles.num}>{won(computed.forecastExpectedSales)}</td>
-              <td className={styles.num}>{won(computed.confirmedExpectedSales)}</td>
+              <td className={styles.num}>{formatGroupedNumber(computed.forecastExpectedSales)}</td>
+              <td className={styles.num}>{formatGroupedNumber(computed.confirmedExpectedSales)}</td>
             </tr>
             <tr>
               <td>{KO.rowExpectedOpProfit}</td>
-              <td className={styles.num}>{won(computed.forecastOpProfit)}</td>
-              <td className={styles.num}>{won(computed.confirmedOpProfit)}</td>
+              <td className={styles.num}>{formatGroupedNumber(computed.forecastOpProfit)}</td>
+              <td className={styles.num}>{formatGroupedNumber(computed.confirmedOpProfit)}</td>
             </tr>
             <tr>
               <td>
@@ -248,10 +248,10 @@ export function SalesForecastCard({ forecast, orderSettings, actions, help }: Pr
                 </span>
               </td>
               <td className={styles.num}>
-                {forecastOpProfitRatePct === null ? '-' : `${pct2n(forecastOpProfitRatePct)}%`}
+                {forecastOpProfitRatePct === null ? '-' : `${formatRatioDecimalKo(forecastOpProfitRatePct)}%`}
               </td>
               <td className={styles.num}>
-                {confirmedOpProfitRatePct === null ? '-' : `${pct2n(confirmedOpProfitRatePct)}%`}
+                {confirmedOpProfitRatePct === null ? '-' : `${formatRatioDecimalKo(confirmedOpProfitRatePct)}%`}
               </td>
             </tr>
           </tbody>

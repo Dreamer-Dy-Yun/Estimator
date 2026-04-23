@@ -1,0 +1,441 @@
+# Dashboard 백엔드 API 스펙 (구현용)
+
+| 항목 | 내용 |
+|------|------|
+| 작성일 | 2026-04-23 |
+| 변경일 | 2026-04-23 |
+| 지시 | Yun Daeyoung |
+
+이 문서는 프론트의 **`DashboardApi` TypeScript 계약**을 만족하는 REST API를 설계·구현하기 위한 참고 자료입니다. 필드명은 **camelCase**, JSON 직렬화를 가정합니다.
+
+---
+
+## 1. 공통 규칙
+
+### 1.1 날짜·시간
+
+- **API 문자열**: 가능하면 **ISO 8601** (`2026-04-23T12:34:56.789Z`). 프론트 목(mock)은 `YYYY-MM-DD` 형태도 혼용하므로, 백엔드는 일관된 형식을 선택해 문서화하면 됩니다.
+- **`historicalMonths` 등 월 축**: `"2024-01"` 같은 **연-월 문자열**이 등장합니다.
+- **`periodStart` / `periodEnd`**: 분석·예측 구간의 경계(포함 여부는 비즈니스 규칙으로 정하고 문서화).
+
+### 1.2 수량·금액·비율
+
+- **`qty` 등 수량**: 기본 단위 **EA(개)** 를 가정합니다(표기상 “오더 수량”).
+- **금액 필드** (`amount`, `expectedSalesAmount`, `expectedOrderAmount`, `avgPrice`, `opMarginAmount` 등 **원(KRW) 및 단가성 수치**):
+  - 실무에서 소수 원이 거의 안 나오더라도, **연산·반올림 과정에서 소수가 나올 수 있으므로 계약상 소수를 허용**합니다.
+  - **JSON**: `number` — 정수처럼 보이는 값(`12345`)과 소수(`12345.67`) 모두 허용.
+  - **Python 백엔드**: 필드 타입은 **`float`** 로 두는 것을 기본으로 합니다(Pydantic `float`, 내부 로직 동일).
+  - **DB**(PostgreSQL/MySQL 등): 해당 컬럼은 **`DOUBLE PRECISION`** 또는 **`FLOAT`** 로 두어 JSON·Python과 정합을 맞추는 것을 권장합니다. 금전 정확도를 극단적으로 요구하면 별도 정책으로 `NUMERIC`/`DECIMAL`을 선택할 수 있으며, 그 경우에도 API 응답은 여전히 JSON 숫자로 직렬화하면 됩니다.
+- **비율·퍼센트**:
+  - 이름에 `Pct`, `RatePct` 가 붙으면 **퍼센트 포인트 표기**(예: `15` = 15%).
+  - `ratio`, `feeRate`(자사 표 타입 일부) 등은 **0~1 소수**일 수 있음 — 각 필드 설명을 따르십시오.
+
+### 1.3 식별자
+
+- **`productId`**: 상품(SKU 단위 등) 식별자. 프론트와 동일 문자열을 사용해야 합니다.
+- **`uuid`**: 후보 스태시·후보 아이템 등 **서버 생성 UUID** 문자열.
+- 오더 스냅샷 삭제 키: **`productId` + `savedAt`** 조합(현 클라이언트 계약).
+
+### 1.4 인증·에러
+
+- 인증 방식은 미정일 수 있습니다. 모든 라우트에 동일 정책을 적용하고, 실패 시 **HTTP 401/403** 과 JSON 에러 바디를 권장합니다.
+- 클라이언트 계약에는 공통 에러 타입이 없습니다. 최소 `{ "message": string }` 형태를 권장합니다.
+
+---
+
+## 2. `DashboardApi` 메서드 ↔ REST 제안 매핑
+
+아래 경로는 **제안**입니다. 팀 규칙에 맞게 접두사(`/api/v1` 등)를 붙이면 됩니다.
+
+| 계약 메서드 | 제안 HTTP | 제안 경로·쿼리 |
+|-------------|-----------|----------------|
+| `getSelfSales(params?)` | GET | `/sales/self?startDate&endDate&brand&category` |
+| `getCompetitorSales(params?)` | GET | `/sales/competitor?…` + `competitorChannelId` |
+| `getSelfSalesFilterMeta()` | GET | `/sales/self/filter-meta` |
+| `getProductDrawerBundle(id, params?)` | GET | `/products/:id/drawer-bundle?forecastMonths` |
+| `getProductSecondaryDetail(id, params?)` | GET | `/products/:id/secondary-detail?minOpMarginPct` |
+| `getSecondaryDailyTrend(params)` | GET | `/products/:productId/secondary/daily-trend?startMonth&leadTimeDays` |
+| `getSecondaryCompetitorChannels()` | GET | `/secondary/competitor-channels` |
+| `getSecondaryLlmAnswer(params)` | POST 권장 | `/secondary/llm-answer` body: `{ productId, prompt }` |
+| `saveSecondaryOrderSnapshot(snapshot)` | PUT 또는 POST | `/products/:productId/order-snapshots` (body = 전체 문서) |
+| `getSecondaryOrderSnapshots(productId?)` | GET | `/products/:productId/order-snapshots` 또는 `/order-snapshots?productId` |
+| `deleteSecondaryOrderSnapshot(productId, savedAt)` | DELETE | `/products/:productId/order-snapshots/:savedAt` (savedAt URL 인코딩) |
+| `getCandidateStashes(productId?)` | GET | `/candidate-stashes?productId` |
+| `getCandidateItemsByStash(stashUuid)` | GET | `/candidate-stashes/:stashUuid/items` |
+| `getCandidateItemByUuid(itemUuid)` | GET | `/candidate-items/:itemUuid` |
+| `deleteCandidateItem(itemUuid)` | DELETE | `/candidate-items/:itemUuid` |
+| `deleteCandidateStash(stashUuid)` | DELETE | `/candidate-stashes/:stashUuid` |
+| `createCandidateStash(payload)` | POST | `/candidate-stashes` |
+| `updateCandidateStash(payload)` | PATCH | `/candidate-stashes/:stashUuid` |
+| `duplicateCandidateStash(stashUuid)` | POST | `/candidate-stashes/:stashUuid/duplicate` |
+| `appendCandidateItem(payload)` | POST | `/candidate-stashes/:stashUuid/items` |
+| `updateCandidateItem(payload)` | PATCH | `/candidate-items/:itemUuid` |
+| `getSecondaryStockOrderCalc(params)` | GET 또는 POST | 쿼리가 길면 POST `/secondary/stock-order-calc` body 권장 |
+
+---
+
+## 3. 엔드포인트별 계약 상세
+
+### 3.1 `getSelfSales` / `getCompetitorSales`
+
+**파라미터 (`SelfSalesParams` / `CompetitorSalesParams`)**
+
+| 필드 | 타입 | 의미 |
+|------|------|------|
+| `startDate` | string? | 필터 시작일(목업 관례에 맞춘 문자열) |
+| `endDate` | string? | 필터 종료일 |
+| `brand` | string? | 브랜드 필터 |
+| `category` | string? | 카테고리 필터 |
+| `competitorChannelId` | string? | **경쟁 API만**. 선택한 경쟁 채널(가격·수량 스큐 적용 대상) |
+
+**응답: `SelfSalesRow[]`**
+
+| 필드 | 의미 |
+|------|------|
+| `id` | 행 고유 id (목업용 문자열) |
+| `rank` | 순위 |
+| `rankPercentile` | 전체 SKU 대비 백분위 순위 |
+| `brand`, `category`, `productCode`, `name` | 상품 메타 |
+| `avgPrice` | 평균 판매 단가 |
+| `qty` | 판매 수량 |
+| `amount` | 매출액 |
+| `avgCost` | 평균 원가 |
+| `marginRate` | 마진율(타입상 소수 또는 % — 목 데이터 관례에 따름) |
+| `feeRate` | 수수료율 |
+| `opMarginRate` | 영업이익률 |
+| `opMarginAmount` | 영업이익 금액 |
+
+**응답: `CompetitorSalesRow[]`**
+
+| 필드 | 의미 |
+|------|------|
+| `competitorAvgPrice`, `competitorQty`, `competitorAmount` | 선택 경쟁 채널 기준 지표 |
+| `selfAvgPrice`, `selfQty`, `selfAmount` | 자사 채널 비교용(없으면 `null`) |
+
+### 3.2 `getSelfSalesFilterMeta`
+
+**응답 (`SelfSalesFilterMeta`)**
+
+| 필드 | 의미 |
+|------|------|
+| `brands` | 브랜드 목록 |
+| `categories` | 카테고리 목록 |
+| `historicalMonths` | **과거 실적** 월 축(슬라이더 등). 포캐스트 월과 구분 |
+
+### 3.3 `getProductDrawerBundle`
+
+**쿼리 (`ProductDrawerBundleParams`)**
+
+| 필드 | 의미 |
+|------|------|
+| `forecastMonths` | 월간 판매추이에 포함할 **포캐스트 월 수**(1~24). 생략 시 구현 기본값(예: 8). |
+
+**응답 (`ProductDrawerBundle`)**
+
+| 필드 | 의미 |
+|------|------|
+| `summary` | [`ProductPrimarySummary`](#51-productprimarysummary) |
+| `stockTrend` | [`ProductStockTrendPoint[]`](#52-productstocktrendpoint) |
+
+### 3.4 `getProductSecondaryDetail`
+
+**쿼리 (`ProductSecondaryDetailParams`)**
+
+| 필드 | 의미 |
+|------|------|
+| `minOpMarginPct` | 영업이익률 **하한 필터**(퍼센트 포인트). UI 없으면 생략/`null`(하한 없음). 값이 바뀌면 동일 품번이라도 패널이 재조회합니다. |
+
+**응답 (`ProductSecondaryDetail`)**
+
+| 필드 | 의미 |
+|------|------|
+| `id` | 상품 id |
+| `competitorPrice` | 경쟁 베이스라인 단가 |
+| `competitorQty` | 경쟁 추정 수량 |
+| `competitorRatioBySize` | 사이즈별 경쟁 비중 맵 (`size` 문자열 → 비율) |
+
+### 3.5 `getSecondaryDailyTrend`
+
+**파라미터 (`SecondaryDailyTrendParams`)**
+
+| 필드 | 의미 |
+|------|------|
+| `productId` | 상품 id |
+| `startMonth` | 일별 트렌드 시작 월 (`getSecondaryDailyTrend` 재조회와 스냅샷 `context.dailyTrendStartMonth` 와 동일 역할) |
+| `leadTimeDays` | 리드타임 일수 (스냅샷 `context.dailyTrendLeadTimeDays` 와 동일 역할) |
+
+**응답 (`SecondaryDailyTrendPoint[]`)**
+
+| 필드 | 의미 |
+|------|------|
+| `idx` | 시계열 인덱스 |
+| `date` | 일자 |
+| `month` | 소속 월 표시용 |
+| `sales` | 해당 일 판매(표시용 합성 값일 수 있음) |
+| `stockBar` | 재고 바 차트 값 |
+| `inboundAccumBar` | 입고 누적 바 값 |
+| `selfSales` | 자사 **실판매 수량(EA)**. 예측 구간 등에서는 `null` 가능 |
+| `competitorSales` | 경쟁 **실판매 수량(EA)**. 예측 구간 등에서는 `null` 가능 |
+| `isForecast` | 포캐스트 구간 여부 |
+
+### 3.6 `getSecondaryCompetitorChannels`
+
+**응답 (`SecondaryCompetitorChannel[]`)**
+
+| 필드 | 의미 |
+|------|------|
+| `id` | 채널 id (`getCompetitorSales`, 스냅샷 `competitorChannelId` 와 연결) |
+| `label` | 표시 이름 |
+| `priceSkew` | 가격 보정 계수(목업) |
+| `qtySkew` | 수량 보정 계수(목업) |
+
+현재 프론트 기준 유효 채널은 **`kream`, `musinsa`** 입니다(`naver` 제거됨).
+
+### 3.7 `getSecondaryLlmAnswer`
+
+**파라미터 (`SecondaryLlmAnswerParams`)**
+
+| 필드 | 의미 |
+|------|------|
+| `productId` | 상품 id |
+| `prompt` | 사용자·시스템이 조합한 프롬프트 |
+
+**응답**: `string` — LLM 답변 본문.
+
+### 3.8 오더 스냅샷 저장·조회·삭제
+
+- **`saveSecondaryOrderSnapshot`**: 요청 바디는 **`OrderSnapshotDocumentV1` 전체**. [`§5.4`](#54-ordersnapshotdocumentv1-v2-스키마) 참조.
+- **`getSecondaryOrderSnapshots(productId?)`**: 해당 상품의 스냅샷 배열. 전체 조회 시 쿼리 생략 가능(제안).
+- **`deleteSecondaryOrderSnapshot`**: `savedAt` 문자열이 문서 내 타임스탬프와 **정확히 일치**해야 삭제됩니다.
+
+### 3.9 후보군(Candidate stash / item)
+
+**`CandidateStashSummary`**
+
+| 필드 | 의미 |
+|------|------|
+| `uuid` | 스태시 PK |
+| `name`, `note` | 이름·비고 |
+| `productId` | 연결 상품 |
+| `itemCount` | 소속 후보 아이템 개수 |
+| `dbCreatedAt`, `dbUpdatedAt` | 생성·수정 시각(아이템 추가로 스태시 “갱신” 시각을 반영할지는 백엔드 정책) |
+
+**`CandidateItemSummary`** (목록 행)
+
+| 필드 | 의미 |
+|------|------|
+| `uuid` | 아이템 PK |
+| `stashUuid` | 소속 스태시 |
+| `productId` | 상품 id |
+| `brand`, `productCode`, `productName` | 스냅샷 1차 요약에서 복사 |
+| `qty` | 사이즈별 **`confirmQty` 합**(확정 수량 기준 EA) |
+| `expectedOrderAmount` | 예상 **발주 금액(원)** — 스냅샷 `drawer2.stockDerived.expectedOrderAmount` 와 동일 의미 |
+| `expectedSalesAmount` | 예상 매출 — `stockDerived.expectedSalesAmount` |
+| `expectedOpProfit` | 예상 영업이익 — `stockDerived.expectedOpProfit` |
+| `dbCreatedAt`, `dbUpdatedAt` | 생성·수정 시각 |
+
+**`CandidateItemDetail`**
+
+| 필드 | 의미 |
+|------|------|
+| `details` | 저장 시점의 **`SecondaryOrderSnapshotPayload` 전체 JSON** |
+
+**페이로드**
+
+- `CreateCandidateStashPayload`: `{ productId, name, note? }`
+- `UpdateCandidateStashPayload`: `{ stashUuid, name, note? }` — 메타만 갱신
+- `AppendCandidateItemPayload`: `{ stashUuid, productId, details }`
+- `UpdateCandidateItemPayload`: `{ itemUuid, details }`
+
+**동작 메모**
+
+- `duplicateCandidateStash`: 동일 스태시·아이템 복제(구현 세부는 백엔드 결정). 프론트는 완료만 기다립니다(`Promise<void>`).
+
+### 3.10 `getSecondaryStockOrderCalc`
+
+**요청 (`SecondaryStockOrderCalcParams`)**
+
+| 필드 | 의미 |
+|------|------|
+| `productId` | 상품 id |
+| `periodStart`, `periodEnd` | 분석 구간 |
+| `serviceLevelPct` | 재고·안전재고 계산용 **서비스 수준(%)** |
+| `leadTimeDays` | 리드타임 일수 |
+| `safetyStockMode` | `'manual'` \| `'formula'` |
+| `manualSafetyStock` | 수동 안전재고 수량 |
+| `dailyMean` | 선택. 비우면 백엔드가 기간 트렌드 등으로 **일평균 수요 μ** 산출 |
+
+**응답 (`SecondaryStockOrderCalcResult`)**
+
+| 필드 | 의미 |
+|------|------|
+| `trendDailyMean` | 표시용 일평균(소수 첫째 자리 등 포맷된 값) |
+| `dailyMean` | 연산에 사용된 μ |
+| `sigma` | 수요 변동성 지표 |
+| `display` | UI용 목 데이터 블록: 전체·사이즈별 재고/발주잔량/입고예정 등 **배열·합계** |
+| `safetyStockCalc` | 안전재고 모드 연산 결과(`safetyStock`, `recommendedOrderQty`, 기대 매출·이익 등) |
+| `forecastQtyCalc` | 포캐스트 수량 모드 결과 블록 — **`safetyStock`은 `null` 고정 타입**(수식 분기용) |
+
+---
+
+## 4. 보조 타입 (`secondaryPanelTypes.ts`, `utils/salesKpiColumn.ts`)
+
+### 4.1 `SalesKpiColumn`
+
+자사·경쟁 한 열의 KPI 묶음입니다.
+
+현재 단일 소스 타입 정의는 `dashboard-app/src/utils/salesKpiColumn.ts` 입니다.
+
+| 필드 | 의미 |
+|------|------|
+| `avgPrice`, `qty`, `amount` | 평균 단가·수량·금액 |
+| `avgCost` | 평균 원가 |
+| `grossMarginPerUnit` | 단위 매출총이익 |
+| `feePerUnit`, `feeRatePct` | 단위 수수료·수수료율(%) |
+| `opMarginPerUnit`, `opMarginRatePct` | 단위 영업이익·영업이익률(%) |
+| `qtyRank`, `amountRank` | 순위 |
+| `costRatioPct` | 원가 비중(%) |
+
+### 4.2 `SecondaryForecastInputs`
+
+재고·발주 시뮬 입력 상태입니다.
+
+| 필드 | 의미 |
+|------|------|
+| `trendDailyMean` | 트렌드 기반 일평균(표시·동기화) |
+| `dailyMean` | 연산 μ |
+| `leadTimeStartDate`, `leadTimeEndDate`, `leadTimeDays` | 리드타임 창 |
+| `safetyStockMode`, `manualSafetyStock` | 안전재고 모드 |
+| `sigma` | 표준편차 등 |
+| `serviceLevelPct` | 서비스 수준 |
+
+### 4.3 `SecondaryForecastDerived`
+
+입력으로부터 도출된 발주·매출·이익 요약입니다.
+
+| 필드 | 의미 |
+|------|------|
+| `safetyStock` | 안전재고 수량 |
+| `recommendedOrderQty` | 추천 발주 수량 |
+| `expectedOrderAmount` | 예상 발주 금액 |
+| `expectedSalesAmount` | 예상 매출 |
+| `expectedOpProfit` | 예상 영업이익 |
+
+---
+
+## 5. 주요 도메인 타입 참조
+
+### 5.1 `ProductPrimarySummary`
+
+| 필드 | 의미 |
+|------|------|
+| `id`, `name`, `brand`, `category`, `productCode` | 기본 메타 |
+| `price` | 자사 채널 판매가 |
+| `qty` | 판매 수량 등 요약 값 |
+| `availableStock` | 판매 가능 재고 |
+| `recommendedOrderQty` | 추천 발주 수량 |
+| `monthlySalesTrend` | 월별 [`MonthlySalesPoint`](#54-ordersnapshotdocumentv1-v2-스키마) |
+| `seasonality` | 1~12월 계절 비중 배열 (`ratio` 합 ≈ 1) |
+| `sizeMix` | 사이즈 믹스 행 [`ProductSizeMixRow`](#53-productsizemixrow) |
+
+### 5.2 `ProductStockTrendPoint`
+
+| 필드 | 의미 |
+|------|------|
+| `date` | 시점 |
+| `stock` | 재고 |
+| `inboundExpected` | 1차 드로어·포캐스트 표시용 기대 입고 |
+| `inboundQty` | 실제 입고 수량(없으면 표시 시 `inboundExpected` 대체 가능) |
+
+### 5.3 `ProductSizeMixRow`
+
+| 필드 | 의미 |
+|------|------|
+| `size` | 사이즈 코드 |
+| `ratio` | 구성비 |
+| `confirmedQty` | 확정 수량 |
+| `avgPrice` | 평균 단가 |
+| `qty` | 수량 |
+| `availableStock` | 가용 재고 |
+
+### 5.4 `OrderSnapshotDocumentV1` (v2 스키마)
+
+상수: `ORDER_SNAPSHOT_SCHEMA_VERSION = 2`.
+
+**최상위**
+
+| 필드 | 의미 |
+|------|------|
+| `schemaVersion` | 스키마 버전 (현재 `2`) |
+| `productId` | 상품 id |
+| `savedAt` | 저장 시각 문자열 — 스냅샷 목록·삭제 키 |
+| `context` | 재조회용 컨텍스트 |
+| `context.periodStart`, `periodEnd` | 분석 구간 |
+| `context.forecastMonths` | 포캐스트 월 수 |
+| `context.dailyTrendStartMonth` | 일간 트렌드 API의 `startMonth` 와 맞출 것 |
+| `context.dailyTrendLeadTimeDays` | 일간 트렌드 API의 `leadTimeDays` 와 맞출 것 |
+| `drawer1` | 1차 드로어 스냅샷 |
+| `drawer2` | 2차 패널 스냅샷 |
+
+**`drawer1` (`OrderSnapshotDrawer1V2`)**
+
+| 필드 | 의미 |
+|------|------|
+| `summary` | `ProductPrimarySummary`에서 **`monthlySalesTrend` 제외**한 요약(`OrderSnapshotPrimarySummaryV2`). 재조회 시 트렌드는 번들 API로 복원 |
+
+**`drawer2` (`OrderSnapshotDrawer2V1`)**
+
+| 필드 | 의미 |
+|------|------|
+| `secondary` | 당시 `ProductSecondaryDetail` 스냅샷 |
+| `competitorChannelId`, `competitorChannelLabel` | 선택 경쟁 채널 |
+| `minOpMarginPct` | 스냅샷 시점 영업이익률 하한; `null` = 하한 없음 |
+| `salesSelf`, `salesCompetitor` | [`SalesKpiColumn`](#41-saleskpicolumn) |
+| `stockInputs` | [`SecondaryForecastInputs`](#42-secondaryforecastinputs) |
+| `stockDerived` | [`SecondaryForecastDerived`](#43-secondaryforecastderived) |
+| `selfWeightPct` | 자사 가중(%) |
+| `sizeForecastSource` | `'periodMean'` \| `'forecastQty'` — 사이즈 예측 소스 |
+| `bufferStock` | 추가 버퍼 재고 |
+| `llmPrompt`, `llmAnswer` | LLM 컨텍스트 |
+| `confirmedTotals` | 저장 시점 확정 합계(선택): `orderQty`, `expectedSalesAmount`, `expectedOpProfit`, `expectedOpProfitRatePct` |
+| `sizeRows` | [`OrderSnapshotSizeRowV1[]`](#55-ordersnapshotsizerowv1) |
+
+### 5.5 `OrderSnapshotSizeRowV1`
+
+| 필드 | 의미 |
+|------|------|
+| `size` | 사이즈 |
+| `selfSharePct`, `competitorSharePct`, `blendedSharePct` | 자사/경쟁/블렌드 점유(%) |
+| `forecastQty` | 예측 수량 |
+| `recommendedQty` | 추천 수량 |
+| `confirmQty` | 사용자 확정 수량 |
+
+### 5.6 `MonthlySalesPoint`
+
+| 필드 | 의미 |
+|------|------|
+| `date` | 월 식별 |
+| `sales` | 매출 규모 |
+| `isForecast` | 포캐스트 여부 |
+
+---
+
+## 6. 구현 체크리스트
+
+1. OpenAPI 또는 JSON Schema로 위 타입을 Export 가능하면 프론트 codegen과 공유하기 쉽습니다.
+2. 스냅샷 저장 시 **`schemaVersion`** 과 **`context`** 필드를 클라이언트가 그대로 보내므로 검증 후 저장합니다.
+3. 후보 아이템 목록 집계 필드는 스냅샷 **`drawer2.stockDerived`** 및 **`sizeRows[].confirmQty`** 와 일관되게 계산해야 합니다.
+4. 필드 리네이밍 시 프론트 TypeScript와 동시 배포 또는 버전 분기 필요.
+
+---
+
+## 7. 참조 소스 파일
+
+- [`dashboard-app/src/api/types/dashboard-api.ts`](../../dashboard-app/src/api/types/dashboard-api.ts)
+- [`dashboard-app/src/api/types/secondary.ts`](../../dashboard-app/src/api/types/secondary.ts)
+- [`dashboard-app/src/api/types/sales.ts`](../../dashboard-app/src/api/types/sales.ts)
+- [`dashboard-app/src/api/types/drawer.ts`](../../dashboard-app/src/api/types/drawer.ts)
+- [`dashboard-app/src/types.ts`](../../dashboard-app/src/types.ts)
+- [`dashboard-app/src/snapshot/orderSnapshotTypes.ts`](../../dashboard-app/src/snapshot/orderSnapshotTypes.ts)
+- [`dashboard-app/src/dashboard/components/product-secondary/secondaryPanelTypes.ts`](../../dashboard-app/src/dashboard/components/product-secondary/secondaryPanelTypes.ts)
+- [`dashboard-app/src/utils/salesKpiColumn.ts`](../../dashboard-app/src/utils/salesKpiColumn.ts)

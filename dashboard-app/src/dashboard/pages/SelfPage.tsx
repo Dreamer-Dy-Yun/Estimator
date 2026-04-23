@@ -2,8 +2,10 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { CartesianGrid, ResponsiveContainer, Scatter, ScatterChart, Tooltip, XAxis, YAxis } from 'recharts'
 import { getSelfSales, getSelfSalesFilterMeta } from '../../api'
 import type { SelfSalesRow } from '../../types'
+import type { AdjacentDirection } from '../../utils/adjacentListNavigation'
+import { adjacentIdInOrder } from '../../utils/adjacentListNavigation'
 import { clampForecastMonths, readForecastMonthsFromStorage, writeForecastMonthsToStorage } from '../../utils/forecastMonthsStorage'
-import { c, pct, won } from '../../utils/format'
+import { formatGroupedNumber, formatPercent } from '../../utils/format'
 import { ProductSummaryDrawer } from '../components/ProductSummaryDrawer'
 import styles from '../components/common.module.css'
 import { AnalysisList } from '../components/AnalysisList'
@@ -102,6 +104,17 @@ export const SelfPage = () => {
     [rows],
   )
 
+  const navigationOrderIds = useMemo(() => rows.map((r) => r.id), [rows])
+
+  const onRequestNavigateAdjacent = useCallback(
+    (direction: AdjacentDirection) => {
+      if (!selectedId) return
+      const nextId = adjacentIdInOrder(navigationOrderIds, selectedId, direction)
+      if (nextId != null && nextId !== selectedId) setSelectedId(nextId)
+    },
+    [navigationOrderIds, selectedId],
+  )
+
   const renderScatterTooltip = (props: { active?: boolean; payload?: ReadonlyArray<{ payload?: ScatterPoint }> }) => {
     const { active, payload } = props
     if (!active || !payload?.length) return null
@@ -112,7 +125,7 @@ export const SelfPage = () => {
       <div className={styles.chartTooltip}>
         <div className={styles.chartTooltipTitle}>{point.brand}</div>
         <div className={styles.chartTooltipText}>{point.name}</div>
-        <div className={styles.chartTooltipText}>영업이익율: {pct(point.x)}</div>
+        <div className={styles.chartTooltipText}>영업이익율: {formatPercent(point.x)}</div>
         <div className={styles.chartTooltipText}>판매액: {point.y}백만</div>
       </div>
     )
@@ -180,8 +193,8 @@ export const SelfPage = () => {
           <KpiGrid
             stacked
             items={[
-              { label: '총 판매액', value: won(kpi.total) },
-              { label: '평균 영업이익율', value: pct(kpi.avgRate) },
+              { label: '총 판매액', value: formatGroupedNumber(kpi.total) },
+              { label: '평균 영업이익율', value: formatPercent(kpi.avgRate) },
             ]}
           />
 
@@ -213,12 +226,12 @@ export const SelfPage = () => {
             { key: 'brand', header: '브랜드', cell: (r) => r.brand, sortValue: (r) => r.brand },
             { key: 'category', header: '카테고리', cell: (r) => r.category, sortValue: (r) => r.category },
             { key: 'name', header: '상품명', cell: (r) => r.name, sortValue: (r) => r.name },
-            { key: 'avgPrice', header: '평균판매가', cell: (r) => won(r.avgPrice), align: 'right', sortValue: (r) => r.avgPrice },
-            { key: 'avgCost', header: '평균매입원가', cell: (r) => won(r.avgCost), align: 'right', sortValue: (r) => r.avgCost },
-            { key: 'qty', header: '판매량', cell: (r) => c(r.qty), align: 'right', sortValue: (r) => r.qty },
-            { key: 'amount', header: '총판매액', cell: (r) => won(r.amount), align: 'right', sortValue: (r) => r.amount },
-            { key: 'margin', header: '매출이익율', cell: (r) => pct(r.marginRate), align: 'right', sortValue: (r) => r.marginRate },
-            { key: 'op', header: '영업이익률', cell: (r) => pct(r.opMarginRate), align: 'right', sortValue: (r) => r.opMarginRate },
+            { key: 'avgPrice', header: '평균판매가', cell: (r) => formatGroupedNumber(r.avgPrice), align: 'right', sortValue: (r) => r.avgPrice },
+            { key: 'avgCost', header: '평균매입원가', cell: (r) => formatGroupedNumber(r.avgCost), align: 'right', sortValue: (r) => r.avgCost },
+            { key: 'qty', header: '판매량', cell: (r) => formatGroupedNumber(r.qty), align: 'right', sortValue: (r) => r.qty },
+            { key: 'amount', header: '총판매액', cell: (r) => formatGroupedNumber(r.amount), align: 'right', sortValue: (r) => r.amount },
+            { key: 'margin', header: '매출이익율', cell: (r) => formatPercent(r.marginRate), align: 'right', sortValue: (r) => r.marginRate },
+            { key: 'op', header: '영업이익률', cell: (r) => formatPercent(r.opMarginRate), align: 'right', sortValue: (r) => r.opMarginRate },
           ]}
           rows={rows}
           onRowClick={(row) => setSelectedId(row.id)}
@@ -233,6 +246,7 @@ export const SelfPage = () => {
         forecastMonths={forecastMonths}
         onForecastMonthsChange={onForecastMonthsChange}
         onClose={() => setSelectedId(null)}
+        onRequestNavigateAdjacent={onRequestNavigateAdjacent}
       />
     </section>
   )

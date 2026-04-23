@@ -1,177 +1,28 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
-import {
-  deleteCandidateItem,
-  deleteCandidateStash,
-  getCandidateItemByUuid,
-  getCandidateItemsByStash,
-  getCandidateStashes,
-  type CandidateItemSummary,
-  type CandidateStashSummary,
-} from '../../api'
-import type { ProductPrimarySummary } from '../../types'
+import type { CandidateStashSummary } from '../../api'
 import { formatDateTimeMinute } from '../../utils/date'
-import { c, pct2n, won } from '../../utils/format'
-import { clampForecastMonths } from '../../utils/forecastMonthsStorage'
-import { parseOrderSnapshot } from '../../snapshot/parseOrderSnapshot'
-import type { OrderSnapshotDocumentV1 } from '../../snapshot/orderSnapshotTypes'
+import { formatGroupedNumber, formatRatioDecimalKo } from '../../utils/format'
 import { AnalysisList } from '../components/AnalysisList'
 import { ConfirmModal } from '../components/ConfirmModal'
 import { DeleteButton } from '../components/DeleteButton'
 import { FilterBar } from '../components/FilterBar'
 import { ProductSummaryDrawer } from '../components/ProductSummaryDrawer'
-import { useProductDrawerBundle } from '../hooks/useProductDrawerBundle'
+import {
+  type InnerCandidateRow,
+  useCandidateStashDetailModal,
+} from '../hooks/useCandidateStashDetailModal'
 import styles from '../components/common.module.css'
 import pageStyles from './SnapshotConfirmPage.module.css'
 
-type InnerCandidateRow = CandidateItemSummary & { id: string }
-
 type Props = {
   stashUuid: string
+  /** 목록에서 열 때 전달하면 후보군 목록 API를 한 번 덜 호출함 */
+  stashSummary?: CandidateStashSummary | null
   onClose: () => void
   onStashesInvalidate?: () => void
 }
 
-export function CandidateStashDetailModal({ stashUuid, onClose, onStashesInvalidate }: Props) {
-  const [stashes, setStashes] = useState<CandidateStashSummary[]>([])
-  const [items, setItems] = useState<CandidateItemSummary[]>([])
-  const [detailLoading, setDetailLoading] = useState(false)
-  const [detailError, setDetailError] = useState<string | null>(null)
-  const [deleteBusy, setDeleteBusy] = useState(false)
-  const [deleteOpen, setDeleteOpen] = useState(false)
-  const [brandQuery, setBrandQuery] = useState('')
-  const [productCodeQuery, setProductCodeQuery] = useState('')
-  const [productNameQuery, setProductNameQuery] = useState('')
-
-  const [drawerOpen, setDrawerOpen] = useState(false)
-  const [drawerError, setDrawerError] = useState<string | null>(null)
-  const [drawerProductId, setDrawerProductId] = useState<string | null>(null)
-  const [openedItemUuid, setOpenedItemUuid] = useState<string | null>(null)
-  const [hydrateSnap, setHydrateSnap] = useState<OrderSnapshotDocumentV1 | null>(null)
-  const [drawerForecastMonths, setDrawerForecastMonths] = useState(8)
-
-  const [itemDeleteTarget, setItemDeleteTarget] = useState<CandidateItemSummary | null>(null)
-  const [itemDeleteBusy, setItemDeleteBusy] = useState(false)
-
-  useEffect(() => {
-    void (async () => {
-      const list = await getCandidateStashes()
-      setStashes(list)
-    })()
-  }, [])
-
-  const loadItems = useCallback(async () => {
-    if (!stashUuid) return
-    setDetailLoading(true)
-    setDetailError(null)
-    try {
-      const rows = await getCandidateItemsByStash(stashUuid)
-      setItems(rows)
-    } catch (err) {
-      const message = err instanceof Error ? err.message : '이너 후보 목록 스냅샷 데이터가 올바르지 않습니다.'
-      setItems([])
-      setDetailError(message)
-    } finally {
-      setDetailLoading(false)
-    }
-  }, [stashUuid])
-
-  useEffect(() => {
-    void loadItems()
-  }, [loadItems])
-
-  const detailTarget = useMemo(
-    () => (stashUuid ? stashes.find((s) => s.uuid === stashUuid) ?? null : null),
-    [stashUuid, stashes],
-  )
-
-  const filteredItems = useMemo(() => {
-    return items.filter((item) => {
-      const bq = brandQuery.trim().toLowerCase()
-      const cq = productCodeQuery.trim().toLowerCase()
-      const nq = productNameQuery.trim().toLowerCase()
-      if (bq && !item.brand.toLowerCase().includes(bq)) return false
-      if (cq && !item.productCode.toLowerCase().includes(cq)) return false
-      if (nq && !item.productName.toLowerCase().includes(nq)) return false
-      return true
-    })
-  }, [brandQuery, items, productCodeQuery, productNameQuery])
-
-  const tableRows = useMemo(
-    (): InnerCandidateRow[] => filteredItems.map((item) => ({ ...item, id: item.uuid })),
-    [filteredItems],
-  )
-
-  const totals = useMemo(() => {
-    return filteredItems.reduce(
-      (acc, item) => {
-        acc.qty += item.qty
-        acc.orderAmount += item.orderAmount
-        acc.expectedSalesAmount += item.expectedSalesAmount
-        acc.expectedOpProfit += item.expectedOpProfit
-        return acc
-      },
-      { qty: 0, orderAmount: 0, expectedSalesAmount: 0, expectedOpProfit: 0 },
-    )
-  }, [filteredItems])
-
-  const totalExpectedOpProfitRatePct = useMemo(() => {
-    if (totals.expectedSalesAmount <= 0) return null
-    return (totals.expectedOpProfit / totals.expectedSalesAmount) * 100
-  }, [totals.expectedOpProfit, totals.expectedSalesAmount])
-
-  const fc = clampForecastMonths(drawerForecastMonths)
-  const bundle = useProductDrawerBundle(drawerOpen ? drawerProductId : null, fc)
-
-  const mergedSummary = useMemo((): ProductPrimarySummary | null => {
-    if (!bundle || !drawerProductId) return null
-    const snap1 = hydrateSnap?.drawer1?.summary
-    if (!snap1) return bundle.summary
-    return {
-      ...bundle.summary,
-      ...snap1,
-      monthlySalesTrend: bundle.summary.monthlySalesTrend,
-    }
-  }, [bundle, drawerProductId, hydrateSnap])
-
-  const periodStart = hydrateSnap?.context.periodStart
-  const periodEnd = hydrateSnap?.context.periodEnd
-  if (drawerOpen && (!periodStart || !periodEnd)) {
-    throw new Error('후보 스냅샷 기간 정보 누락')
-  }
-
-  const openItemDrawer = async (row: InnerCandidateRow) => {
-    setDrawerError(null)
-    try {
-      const detail = await getCandidateItemByUuid(row.uuid)
-      if (!detail) throw new Error(`후보 상세 데이터 없음: ${row.uuid}`)
-      const snap = parseOrderSnapshot(detail.details)
-      setHydrateSnap(snap)
-      setDrawerForecastMonths(clampForecastMonths(snap.context.forecastMonths))
-      setDrawerProductId(row.productId)
-      setOpenedItemUuid(row.uuid)
-      setDrawerOpen(true)
-    } catch (err) {
-      const message = err instanceof Error ? err.message : '후보 상세 스냅샷 로드에 실패했습니다.'
-      setDrawerError(message)
-    }
-  }
-
-  const closeDrawer = () => {
-    setDrawerOpen(false)
-    setDrawerProductId(null)
-    setOpenedItemUuid(null)
-    setHydrateSnap(null)
-  }
-
-  const onDrawerForecastMonthsChange = useCallback((n: number) => {
-    setDrawerForecastMonths(clampForecastMonths(n))
-  }, [])
-
-  const refreshStashes = useCallback(async () => {
-    const list = await getCandidateStashes()
-    setStashes(list)
-    onStashesInvalidate?.()
-  }, [onStashesInvalidate])
+export function CandidateStashDetailModal({ stashUuid, stashSummary, onClose, onStashesInvalidate }: Props) {
+  const m = useCandidateStashDetailModal({ stashUuid, stashSummary, onClose, onStashesInvalidate })
 
   return (
     <>
@@ -188,7 +39,7 @@ export function CandidateStashDetailModal({ stashUuid, onClose, onStashesInvalid
           aria-labelledby="stash-detail-modal-title"
         >
           <div className={pageStyles.stashDetailModalBody}>
-            {!detailTarget ? (
+            {!m.detailTarget ? (
               <div className={styles.card}>
                 <div className={pageStyles.emptyState}>해당 후보군을 찾을 수 없습니다.</div>
                 <div className={pageStyles.stashDetailModalFooterActions}>
@@ -207,19 +58,19 @@ export function CandidateStashDetailModal({ stashUuid, onClose, onStashesInvalid
                   <div className={pageStyles.detailHeaderGrid}>
                     <div className={pageStyles.detailHeaderTitleArea}>
                       <h3 id="stash-detail-modal-title" className={pageStyles.detailTitle}>
-                        {detailTarget.name}
+                        {m.detailTarget.name}
                       </h3>
                     </div>
                     <div className={pageStyles.detailMetaStack}>
                       <span className={pageStyles.detailMetaLine}>
-                        생성 {formatDateTimeMinute(detailTarget.dbCreatedAt)}
+                        생성 {formatDateTimeMinute(m.detailTarget.dbCreatedAt)}
                       </span>
                       <span className={pageStyles.detailMetaLine}>
-                        변경 {formatDateTimeMinute(detailTarget.dbUpdatedAt)}
+                        변경 {formatDateTimeMinute(m.detailTarget.dbUpdatedAt)}
                       </span>
                     </div>
                     <div className={pageStyles.detailHeaderDeleteCell}>
-                      <DeleteButton onClick={() => setDeleteOpen(true)} aria-label="후보군 삭제" />
+                      <DeleteButton onClick={() => m.setDeleteOpen(true)} aria-label="후보군 삭제" />
                     </div>
                     <button
                       type="button"
@@ -230,8 +81,8 @@ export function CandidateStashDetailModal({ stashUuid, onClose, onStashesInvalid
                     >
                       ×
                     </button>
-                    {detailTarget.note && (
-                      <div className={pageStyles.detailNoteGridCell}>{detailTarget.note}</div>
+                    {m.detailTarget.note && (
+                      <div className={pageStyles.detailNoteGridCell}>{m.detailTarget.note}</div>
                     )}
                   </div>
                 </div>
@@ -241,24 +92,27 @@ export function CandidateStashDetailModal({ stashUuid, onClose, onStashesInvalid
                   fields={[
                     {
                       label: '브랜드',
-                      kind: 'input',
+                      kind: 'listCombo',
                       inputType: 'text',
-                      value: brandQuery,
-                      onChange: setBrandQuery,
+                      value: m.brandQuery,
+                      onChange: m.setBrandQuery,
+                      options: m.brandOptions,
                     },
                     {
                       label: '상품코드',
-                      kind: 'input',
+                      kind: 'listCombo',
                       inputType: 'text',
-                      value: productCodeQuery,
-                      onChange: setProductCodeQuery,
+                      value: m.productCodeQuery,
+                      onChange: m.setProductCodeQuery,
+                      options: m.productCodeOptions,
                     },
                     {
                       label: '상품명',
-                      kind: 'input',
+                      kind: 'listCombo',
                       inputType: 'text',
-                      value: productNameQuery,
-                      onChange: setProductNameQuery,
+                      value: m.productNameQuery,
+                      onChange: m.setProductNameQuery,
+                      options: m.productNameOptions,
                     },
                   ]}
                 />
@@ -267,54 +121,54 @@ export function CandidateStashDetailModal({ stashUuid, onClose, onStashesInvalid
                   <div className={pageStyles.innerSummaryCard}>
                     <span className={pageStyles.innerSummaryLabel}>합계 오더 수량</span>
                     <strong className={pageStyles.innerSummaryValue}>
-                      {c(totals.qty)} <span className={pageStyles.innerSummaryUnit}>EA</span>
+                      {formatGroupedNumber(m.totals.qty)} <span className={pageStyles.innerSummaryUnit}>EA</span>
                     </strong>
                   </div>
                   <div className={pageStyles.innerSummaryCard}>
                     <span className={pageStyles.innerSummaryLabel}>합계 오더 금액</span>
                     <strong className={pageStyles.innerSummaryValue}>
-                      {won(totals.orderAmount)} <span className={pageStyles.innerSummaryUnit}>원</span>
+                      {formatGroupedNumber(m.totals.expectedOrderAmount)} <span className={pageStyles.innerSummaryUnit}>원</span>
                     </strong>
                   </div>
                   <div className={pageStyles.innerSummaryCard}>
                     <span className={pageStyles.innerSummaryLabel}>합계 총 기대 매출</span>
                     <strong className={pageStyles.innerSummaryValue}>
-                      {won(totals.expectedSalesAmount)} <span className={pageStyles.innerSummaryUnit}>원</span>
+                      {formatGroupedNumber(m.totals.expectedSalesAmount)} <span className={pageStyles.innerSummaryUnit}>원</span>
                     </strong>
                   </div>
                   <div className={pageStyles.innerSummaryCard}>
                     <span className={pageStyles.innerSummaryLabel}>합계 총 기대 영업 이익</span>
                     <strong className={pageStyles.innerSummaryValue}>
-                      {won(totals.expectedOpProfit)} <span className={pageStyles.innerSummaryUnit}>원</span>
+                      {formatGroupedNumber(m.totals.expectedOpProfit)} <span className={pageStyles.innerSummaryUnit}>원</span>
                     </strong>
                   </div>
                   <div className={pageStyles.innerSummaryCard}>
                     <span className={pageStyles.innerSummaryLabel}>합계 총 기대 영업이익률</span>
                     <strong className={pageStyles.innerSummaryValue}>
-                      {totalExpectedOpProfitRatePct == null
+                      {m.totalExpectedOpProfitRatePct == null
                         ? '-'
-                        : `${pct2n(totalExpectedOpProfitRatePct)}`}
+                        : `${formatRatioDecimalKo(m.totalExpectedOpProfitRatePct)}`}
                       <span className={pageStyles.innerSummaryUnit}>%</span>
                     </strong>
                   </div>
                 </div>
 
                 <div className={pageStyles.innerCandidateListBlock}>
-                  {detailLoading ? (
+                  {m.detailLoading ? (
                     <div className={`${styles.card} ${pageStyles.emptyState}`}>
                       이너 후보 목록을 불러오는 중...
                     </div>
-                  ) : drawerError ? (
+                  ) : m.drawerError ? (
                     <div className={`${styles.card} ${pageStyles.emptyState}`}>
-                      이너 후보 상세 로드 실패: {drawerError}
+                      이너 후보 상세 로드 실패: {m.drawerError}
                     </div>
-                  ) : detailError ? (
+                  ) : m.detailError ? (
                     <div className={`${styles.card} ${pageStyles.emptyState}`}>
-                      이너 후보 목록 로드 실패: {detailError}
+                      이너 후보 목록 로드 실패: {m.detailError}
                     </div>
-                  ) : !tableRows.length ? (
+                  ) : !m.tableRows.length ? (
                     <div className={`${styles.card} ${pageStyles.emptyState}`}>
-                      {brandQuery.trim() || productCodeQuery.trim() || productNameQuery.trim()
+                      {m.brandQuery.trim() || m.productCodeQuery.trim() || m.productNameQuery.trim()
                         ? '검색 결과가 없습니다.'
                         : '등록된 이너 후보가 없습니다.'}
                     </div>
@@ -338,28 +192,28 @@ export function CandidateStashDetailModal({ stashUuid, onClose, onStashesInvalid
                         {
                           key: 'qty',
                           header: '오더 수량 (EA)',
-                          cell: (r) => c(r.qty),
+                          cell: (r) => formatGroupedNumber(r.qty),
                           align: 'right',
                           sortValue: (r) => r.qty,
                         },
                         {
-                          key: 'orderAmount',
+                          key: 'expectedOrderAmount',
                           header: '오더 금액 (원)',
-                          cell: (r) => won(r.orderAmount),
+                          cell: (r) => formatGroupedNumber(r.expectedOrderAmount),
                           align: 'right',
-                          sortValue: (r) => r.orderAmount,
+                          sortValue: (r) => r.expectedOrderAmount,
                         },
                         {
                           key: 'expectedSalesAmount',
                           header: '총 기대 매출 (원)',
-                          cell: (r) => won(r.expectedSalesAmount),
+                          cell: (r) => formatGroupedNumber(r.expectedSalesAmount),
                           align: 'right',
                           sortValue: (r) => r.expectedSalesAmount,
                         },
                         {
                           key: 'expectedOpProfit',
                           header: '총 기대 영업이익 (원)',
-                          cell: (r) => won(r.expectedOpProfit),
+                          cell: (r) => formatGroupedNumber(r.expectedOpProfit),
                           align: 'right',
                           sortValue: (r) => r.expectedOpProfit,
                         },
@@ -389,14 +243,14 @@ export function CandidateStashDetailModal({ stashUuid, onClose, onStashesInvalid
                               aria-label={`${r.productName} 이너 후보에서 삭제`}
                               onClick={(e) => {
                                 e.stopPropagation()
-                                setItemDeleteTarget(r)
+                                m.setItemDeleteTarget(r)
                               }}
                             />
                           ),
                         },
                       ]}
-                      rows={tableRows}
-                      onRowClick={(row) => void openItemDrawer(row)}
+                      rows={m.tableRows}
+                      onRowClick={(row) => void m.openItemDrawer(row)}
                     />
                   )}
                 </div>
@@ -407,28 +261,30 @@ export function CandidateStashDetailModal({ stashUuid, onClose, onStashesInvalid
       </div>
 
       <ProductSummaryDrawer
-        summary={mergedSummary}
-        stockTrend={bundle?.stockTrend ?? []}
-        onClose={closeDrawer}
-        periodStart={periodStart!}
-        periodEnd={periodEnd!}
-        forecastMonths={fc}
-        onForecastMonthsChange={onDrawerForecastMonthsChange}
-        hydrateSnapshot={hydrateSnap}
+        summary={m.mergedSummary}
+        stockTrend={m.bundle?.stockTrend ?? []}
+        onClose={m.closeDrawer}
+        periodStart={m.periodStart!}
+        periodEnd={m.periodEnd!}
+        forecastMonths={m.fc}
+        onForecastMonthsChange={m.onDrawerForecastMonthsChange}
+        hydrateSnapshot={m.hydrateSnap}
         initialExpandSecondary
+        onRequestNavigateAdjacent={m.onRequestNavigateAdjacent}
+        disableAdjacentNavigation={Boolean(m.deleteOpen || m.itemDeleteTarget)}
         candidateItemContext={
-          detailTarget && openedItemUuid
+          m.detailTarget && m.openedItemUuid
             ? {
-                stashName: detailTarget.name,
-                stashNote: detailTarget.note,
-                itemUuid: openedItemUuid,
+                stashName: m.detailTarget.name,
+                stashNote: m.detailTarget.note,
+                itemUuid: m.openedItemUuid,
                 onSaved: () => {
-                  void loadItems()
-                  void refreshStashes()
+                  void m.loadItems()
+                  void m.refreshStashes()
                 },
                 onRequestDeleteItem: () => {
-                  const row = items.find((i) => i.uuid === openedItemUuid)
-                  if (row) setItemDeleteTarget(row)
+                  const row = m.items.find((i) => i.uuid === m.openedItemUuid)
+                  if (row) m.setItemDeleteTarget(row)
                 },
               }
             : null
@@ -436,10 +292,10 @@ export function CandidateStashDetailModal({ stashUuid, onClose, onStashesInvalid
       />
 
       <ConfirmModal
-        open={Boolean(deleteOpen && detailTarget)}
-        busy={deleteBusy}
+        open={Boolean(m.deleteOpen && m.detailTarget)}
+        busy={m.deleteBusy}
         title="삭제 확인"
-        message={detailTarget ? <><b>{detailTarget.name}</b> 후보군을 삭제할까요?</> : null}
+        message={m.detailTarget ? <><b>{m.detailTarget.name}</b> 후보군을 삭제할까요?</> : null}
         confirmText="삭제"
         confirmingText="삭제 중…"
         dialogTitleId="stash-delete-dialog-title"
@@ -454,25 +310,17 @@ export function CandidateStashDetailModal({ stashUuid, onClose, onStashesInvalid
           cancelButton: pageStyles.confirmModalBtnCancel,
           confirmButton: pageStyles.confirmModalBtnDanger,
         }}
-        onCancel={() => setDeleteOpen(false)}
+        onCancel={() => m.setDeleteOpen(false)}
         onConfirm={async () => {
-          if (!detailTarget) return
-          setDeleteBusy(true)
-          try {
-            await deleteCandidateStash(detailTarget.uuid)
-            await refreshStashes()
-            onClose()
-          } finally {
-            setDeleteBusy(false)
-          }
+          await m.confirmDeleteStash()
         }}
       />
 
       <ConfirmModal
-        open={Boolean(itemDeleteTarget)}
-        busy={itemDeleteBusy}
+        open={Boolean(m.itemDeleteTarget)}
+        busy={m.itemDeleteBusy}
         title="상품 삭제"
-        message={itemDeleteTarget ? <><b>{itemDeleteTarget.productName}</b>을(를) 이너 후보에서 제거할까요?</> : null}
+        message={m.itemDeleteTarget ? <><b>{m.itemDeleteTarget.productName}</b>을(를) 이너 후보에서 제거할까요?</> : null}
         confirmText="삭제"
         confirmingText="삭제 중…"
         dialogTitleId="item-delete-dialog-title"
@@ -487,19 +335,9 @@ export function CandidateStashDetailModal({ stashUuid, onClose, onStashesInvalid
           cancelButton: pageStyles.confirmModalBtnCancel,
           confirmButton: pageStyles.confirmModalBtnDanger,
         }}
-        onCancel={() => setItemDeleteTarget(null)}
+        onCancel={() => m.setItemDeleteTarget(null)}
         onConfirm={async () => {
-          if (!itemDeleteTarget) return
-          setItemDeleteBusy(true)
-          try {
-            await deleteCandidateItem(itemDeleteTarget.uuid)
-            if (openedItemUuid === itemDeleteTarget.uuid) closeDrawer()
-            setItemDeleteTarget(null)
-            await loadItems()
-            await refreshStashes()
-          } finally {
-            setItemDeleteBusy(false)
-          }
+          await m.confirmDeleteItem()
         }}
       />
     </>

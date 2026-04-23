@@ -1,3 +1,11 @@
+.snapshotPage {
+  /** 필터/헤더는 고정, 후보군 목록만 내부 스크롤 */
+  height: calc(100dvh - 120px);
+  min-height: 440px;
+  overflow: hidden;
+  grid-template-rows: auto auto 1fr;
+}
+
 .stashFilterBar {
   display: grid;
   grid-template-columns: 1fr 1fr minmax(190px, auto);
@@ -7,6 +15,9 @@
 .stashList {
   display: grid;
   gap: 10px;
+  min-height: 0;
+  overflow: auto;
+  padding-right: 2px;
 }
 
 .stashCard {

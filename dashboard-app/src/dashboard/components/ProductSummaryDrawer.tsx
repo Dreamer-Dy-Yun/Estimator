@@ -5,7 +5,8 @@ import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YA
 import type { ProductSecondaryDetail, ProductStockTrendPoint } from '../../api'
 import { dashboardApi } from '../../api'
 import type { ApiUnitErrorInfo, ProductPrimarySummary } from '../../types'
-import { c, pct, won } from '../../utils/format'
+import type { AdjacentDirection } from '../../utils/adjacentListNavigation'
+import { formatGroupedNumber, formatPercent } from '../../utils/format'
 import { PortalHelpMark, PortalHelpPopoverLayer } from './PortalHelpPopover'
 import { SalesTrendChart } from './trend/SalesTrendChart'
 import { buildShadeRanges, normalizeMonthKey } from './trend/trendRangeUtils'
@@ -46,6 +47,8 @@ function ProductSummaryDrawerContent({
   hydrateSnapshot,
   initialExpandSecondary,
   candidateItemContext,
+  onRequestNavigateAdjacent,
+  disableAdjacentNavigation,
 }: {
   summary: ProductPrimarySummary
   stockTrend: ProductStockTrendPoint[]
@@ -57,6 +60,10 @@ function ProductSummaryDrawerContent({
   hydrateSnapshot?: OrderSnapshotDocumentV1 | null
   initialExpandSecondary?: boolean
   candidateItemContext?: CandidateItemPanelContext | null
+  /** 2차 패널 준비 완료 시 ←/→로 목록 이전·다음 요청(페이지에서 필터 순서 반영). */
+  onRequestNavigateAdjacent?: (direction: AdjacentDirection) => void | Promise<void>
+  /** 모달 등 열림 시 true — 방향키 네비 비활성. */
+  disableAdjacentNavigation?: boolean
 }) {
   const seasonalityHelpId = useId()
   const forecastMonthsLabelId = useId()
@@ -122,6 +129,13 @@ function ProductSummaryDrawerContent({
   const [expandPaneOpen, setExpandPaneOpen] = useState(!!initialExpandSecondary)
   const [secondaryDetail, setSecondaryDetail] = useState<ProductSecondaryDetail | null>(null)
   const [secondaryDetailError, setSecondaryDetailError] = useState<ApiUnitErrorInfo | null>(null)
+
+  useEffect(() => {
+    setChartHovered(false)
+    setKpiHovered(false)
+    setSelectedSizeKey('all')
+  }, [summary.id])
+
   const pageName = 'ProductSummaryDrawer'
   const makeApiErrorInfo = (request: string, err: unknown): ApiUnitErrorInfo => ({
     checkedAt: new Date().toISOString(),
@@ -393,6 +407,32 @@ function ProductSummaryDrawerContent({
   }, [onClose])
 
   useEffect(() => {
+    if (!onRequestNavigateAdjacent || disableAdjacentNavigation) return
+    const ready =
+      expandPaneOpen && secondaryDetail != null && secondaryDetailError == null
+    if (!ready) return
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return
+      const target = e.target as HTMLElement | null
+      if (target?.closest('input, textarea, select, [contenteditable="true"]')) return
+      if (target?.closest('[data-filter-combo-panel]')) return
+      e.preventDefault()
+      const direction: AdjacentDirection = e.key === 'ArrowRight' ? 'next' : 'prev'
+      void Promise.resolve(onRequestNavigateAdjacent(direction))
+    }
+
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [
+    disableAdjacentNavigation,
+    expandPaneOpen,
+    onRequestNavigateAdjacent,
+    secondaryDetail,
+    secondaryDetailError,
+  ])
+
+  useEffect(() => {
     return () => {
       if (kpiCloseTimerRef.current) {
         window.clearTimeout(kpiCloseTimerRef.current)
@@ -522,7 +562,7 @@ function ProductSummaryDrawerContent({
                   stopMouseDownPropagation
                 />
               </div>
-              <div className={styles.kpiValue}>{won(displayKpi.price)}</div>
+              <div className={styles.kpiValue}>{formatGroupedNumber(displayKpi.price)}</div>
             </div>
             <div className={styles.kpi}>
               <div className={`${styles.kpiLabel} ${styles.kpiLabelWithHelp}`}>
@@ -536,7 +576,7 @@ function ProductSummaryDrawerContent({
                   stopMouseDownPropagation
                 />
               </div>
-              <div className={styles.kpiValue}>{c(displayKpi.qty)}</div>
+              <div className={styles.kpiValue}>{formatGroupedNumber(displayKpi.qty)}</div>
             </div>
             <div className={styles.kpi}>
               <div className={`${styles.kpiLabel} ${styles.kpiLabelWithHelp}`}>
@@ -550,7 +590,7 @@ function ProductSummaryDrawerContent({
                   stopMouseDownPropagation
                 />
               </div>
-              <div className={styles.kpiValue}>{c(displayKpi.stock)}</div>
+              <div className={styles.kpiValue}>{formatGroupedNumber(displayKpi.stock)}</div>
             </div>
           </div>
           {kpiHovered && (
@@ -575,9 +615,9 @@ function ProductSummaryDrawerContent({
                       onClick={() => setSelectedSizeKey('all')}
                     >
                       <td>전체</td>
-                      <td>{won(summary.price)}</td>
-                      <td>{c(summary.qty)}</td>
-                      <td>{c(summary.availableStock)}</td>
+                      <td>{formatGroupedNumber(summary.price)}</td>
+                      <td>{formatGroupedNumber(summary.qty)}</td>
+                      <td>{formatGroupedNumber(summary.availableStock)}</td>
                     </tr>
                     {sizeBreakdown.map((row) => (
                       <tr
@@ -586,9 +626,9 @@ function ProductSummaryDrawerContent({
                         onClick={() => setSelectedSizeKey(row.size)}
                       >
                         <td>{row.size}</td>
-                        <td>{won(row.price)}</td>
-                        <td>{c(row.qty)}</td>
-                        <td>{c(row.stock)}</td>
+                        <td>{formatGroupedNumber(row.price)}</td>
+                        <td>{formatGroupedNumber(row.qty)}</td>
+                        <td>{formatGroupedNumber(row.stock)}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -695,11 +735,11 @@ function ProductSummaryDrawerContent({
                   { dataKey: 'forecastLink', stroke: '#2563eb', strokeDasharray: '4 4' },
                 ]}
                 tooltipValueFormatter={(value, name) => {
-                  if (name === 'stockBar') return [c(value), '실재고']
-                  if (name === 'inboundAccumBar') return [c(value), '예상 재고']
-                  if (name === 'actual') return [c(value), '판매 실적']
-                  if (name === 'forecastLink') return [c(value), '판매 예측']
-                  return [c(value), name]
+                  if (name === 'stockBar') return [formatGroupedNumber(value), '실재고']
+                  if (name === 'inboundAccumBar') return [formatGroupedNumber(value), '예상 재고']
+                  if (name === 'actual') return [formatGroupedNumber(value), '판매 실적']
+                  if (name === 'forecastLink') return [formatGroupedNumber(value), '판매 예측']
+                  return [formatGroupedNumber(value), name]
                 }}
                 tooltipLabelFormatter={(row) => String(row.date ?? '')}
                 tickFormatter={(row) => String(row.date ?? '')}
@@ -736,7 +776,7 @@ function ProductSummaryDrawerContent({
               />
               <YAxis
                 domain={[0, 'auto']}
-                tickFormatter={(v) => pct(v * 100)}
+                tickFormatter={(v) => formatPercent(v * 100)}
                 tick={{ fontSize: 9 }}
                 width={44}
                 tickMargin={4}
@@ -746,7 +786,7 @@ function ProductSummaryDrawerContent({
                 offset={6}
                 wrapperStyle={{ outline: 'none' }}
                 contentStyle={{ whiteSpace: 'nowrap' }}
-                formatter={(value) => pct(Number(value ?? 0) * 100)}
+                formatter={(value) => formatPercent(Number(value ?? 0) * 100)}
                 labelFormatter={formatSeasonMonthTooltipLabel}
               />
               <Area
@@ -845,6 +885,8 @@ export const ProductSummaryDrawer = ({
   hydrateSnapshot,
   initialExpandSecondary,
   candidateItemContext,
+  onRequestNavigateAdjacent,
+  disableAdjacentNavigation,
 }: {
   summary: ProductPrimarySummary | null
   stockTrend: ProductStockTrendPoint[]
@@ -856,11 +898,12 @@ export const ProductSummaryDrawer = ({
   hydrateSnapshot?: OrderSnapshotDocumentV1 | null
   initialExpandSecondary?: boolean
   candidateItemContext?: CandidateItemPanelContext | null
+  onRequestNavigateAdjacent?: (direction: AdjacentDirection) => void | Promise<void>
+  disableAdjacentNavigation?: boolean
 }) => {
   if (!summary) return null
   return (
     <ProductSummaryDrawerContent
-      key={summary.id}
       summary={summary}
       stockTrend={stockTrend}
       onClose={onClose}
@@ -871,6 +914,8 @@ export const ProductSummaryDrawer = ({
       hydrateSnapshot={hydrateSnapshot}
       initialExpandSecondary={initialExpandSecondary}
       candidateItemContext={candidateItemContext}
+      onRequestNavigateAdjacent={onRequestNavigateAdjacent}
+      disableAdjacentNavigation={disableAdjacentNavigation}
     />
   )
 }

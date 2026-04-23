@@ -1,0 +1,81 @@
+.sectionTitle {
+  margin: 0 0 8px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.dailyTrendTitleRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.dailyTrendTitleRowCollapsed {
+  margin-bottom: 0;
+}
+
+.dailyTrendTitleRow .sectionTitle {
+  margin-bottom: 0;
+}
+
+.dailyTrendTitleActions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.dailyTrendSizeSelect,
+.dailyTrendSizeToggle {
+  box-sizing: border-box;
+  min-height: 28px;
+  padding: 4px 8px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  background: #fff;
+  color: #334155;
+  font: inherit;
+  font-size: 11px;
+  line-height: 1.35;
+  cursor: pointer;
+}
+
+.dailyTrendSizeSelect {
+  min-width: 0;
+  max-width: 140px;
+}
+
+.dailyTrendSizeSelect:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 1px;
+}
+
+.dailyTrendSizeToggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dailyTrendSizeToggle:hover {
+  background: #f8fafc;
+}
+
+.stockTitleRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.stockTitleRow .sectionTitle {
+  margin: 0;
+}
+
+.forecastColumnHeaderWithRadio {
+  justify-content: flex-end;
+}

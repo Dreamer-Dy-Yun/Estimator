@@ -3,8 +3,10 @@ import { CartesianGrid, ResponsiveContainer, Scatter, ScatterChart, Tooltip, XAx
 import { getCompetitorSales, getSecondaryCompetitorChannels, getSelfSalesFilterMeta } from '../../api'
 import type { SecondaryCompetitorChannel } from '../../api/types'
 import type { CompetitorSalesRow } from '../../types'
+import type { AdjacentDirection } from '../../utils/adjacentListNavigation'
+import { adjacentIdInOrder } from '../../utils/adjacentListNavigation'
 import { clampForecastMonths, readForecastMonthsFromStorage, writeForecastMonthsToStorage } from '../../utils/forecastMonthsStorage'
-import { c, pct, won } from '../../utils/format'
+import { formatGroupedNumber, formatPercent } from '../../utils/format'
 import { ProductSummaryDrawer } from '../components/ProductSummaryDrawer'
 import styles from '../components/common.module.css'
 import { AnalysisList } from '../components/AnalysisList'
@@ -147,6 +149,17 @@ export const CompetitorPage = () => {
     [rows],
   )
 
+  const navigationOrderIds = useMemo(() => rows.map((r) => r.id), [rows])
+
+  const onRequestNavigateAdjacent = useCallback(
+    (direction: AdjacentDirection) => {
+      if (!selectedId) return
+      const nextId = adjacentIdInOrder(navigationOrderIds, selectedId, direction)
+      if (nextId != null && nextId !== selectedId) setSelectedId(nextId)
+    },
+    [navigationOrderIds, selectedId],
+  )
+
   const renderQtyScatterTooltip = (props: { active?: boolean; payload?: ReadonlyArray<{ payload?: QtyScatterPoint }> }) => {
     const { active, payload } = props
     if (!active || !payload?.length) return null
@@ -160,11 +173,11 @@ export const CompetitorPage = () => {
         <div className={styles.chartTooltipText}>코드: {point.productCode}</div>
         <div className={styles.chartTooltipText}>
           {competitorTooltipLabel} 판매량:{' '}
-          <span style={{ color: '#ef4444', fontWeight: 600 }}>{c(point.x)} EA</span>
+          <span style={{ color: '#ef4444', fontWeight: 600 }}>{formatGroupedNumber(point.x)} EA</span>
         </div>
         <div className={styles.chartTooltipText}>
           자사 판매량:{' '}
-          <span style={{ color: '#2563eb', fontWeight: 600 }}>{c(point.y)} EA</span>
+          <span style={{ color: '#2563eb', fontWeight: 600 }}>{formatGroupedNumber(point.y)} EA</span>
         </div>
       </div>
     )
@@ -233,8 +246,8 @@ export const CompetitorPage = () => {
           <KpiGrid
             stacked
             items={[
-              { label: '총 경쟁 판매액', value: won(kpi.totalCompetitor) },
-              { label: '자사 대비 평균 갭률', value: pct(kpi.avgGapRate * 100) },
+              { label: '총 경쟁 판매액', value: formatGroupedNumber(kpi.totalCompetitor) },
+              { label: '자사 대비 평균 갭률', value: formatPercent(kpi.avgGapRate * 100) },
             ]}
           />
 
@@ -267,13 +280,13 @@ export const CompetitorPage = () => {
             { key: 'category', header: '카테고리', cell: (r) => r.category, sortValue: (r) => r.category },
             { key: 'productCode', header: '코드', cell: (r) => r.productCode, sortValue: (r) => r.productCode },
             { key: 'name', header: '상품명', cell: (r) => r.name, sortValue: (r) => r.name },
-            { key: 'competitorAvgPrice', header: '경쟁 평균가', cell: (r) => won(r.competitorAvgPrice), align: 'right', sortValue: (r) => r.competitorAvgPrice },
-            { key: 'competitorQty', header: '경쟁 판매량', cell: (r) => c(r.competitorQty), align: 'right', sortValue: (r) => r.competitorQty },
-            { key: 'competitorAmount', header: '경쟁 판매액', cell: (r) => won(r.competitorAmount), align: 'right', sortValue: (r) => r.competitorAmount },
-            { key: 'selfAmount', header: '자사 판매액', cell: (r) => (r.selfAmount != null ? won(r.selfAmount) : '—'), align: 'right', sortValue: (r) => r.selfAmount ?? 0 },
+            { key: 'competitorAvgPrice', header: '경쟁 평균가', cell: (r) => formatGroupedNumber(r.competitorAvgPrice), align: 'right', sortValue: (r) => r.competitorAvgPrice },
+            { key: 'competitorQty', header: '경쟁 판매량', cell: (r) => formatGroupedNumber(r.competitorQty), align: 'right', sortValue: (r) => r.competitorQty },
+            { key: 'competitorAmount', header: '경쟁 판매액', cell: (r) => formatGroupedNumber(r.competitorAmount), align: 'right', sortValue: (r) => r.competitorAmount },
+            { key: 'selfAmount', header: '자사 판매액', cell: (r) => (r.selfAmount != null ? formatGroupedNumber(r.selfAmount) : '—'), align: 'right', sortValue: (r) => r.selfAmount ?? 0 },
             { key: 'gap', header: '갭(액)', cell: (r) => {
               const gap = r.competitorAmount - (r.selfAmount ?? 0)
-              return gap > 0 ? `+${c(gap)}` : c(gap)
+              return gap > 0 ? `+${formatGroupedNumber(gap)}` : formatGroupedNumber(gap)
             }, align: 'right', sortValue: (r) => r.competitorAmount - (r.selfAmount ?? 0) },
           ]}
           rows={rows}
@@ -289,6 +302,7 @@ export const CompetitorPage = () => {
         forecastMonths={forecastMonths}
         onForecastMonthsChange={onForecastMonthsChange}
         onClose={() => setSelectedId(null)}
+        onRequestNavigateAdjacent={onRequestNavigateAdjacent}
       />
     </section>
   )

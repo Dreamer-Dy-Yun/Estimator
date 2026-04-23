@@ -18,7 +18,8 @@ import { SalesTrendDailyCard } from './cards/SalesTrendDailyCard'
 import { SizeOrderCard } from './cards/SizeOrderCard'
 import { computeClientStockOrder } from './model/clientStockOrderCompute'
 import { KO } from './ko'
-import { buildSalesKpiColumn, mergePrimarySecondarySizeMix } from './model/secondaryPanelCalc'
+import { buildSalesKpiColumn } from '../../../utils/salesKpiColumn'
+import { mergePrimarySecondarySizeMix } from './model/secondaryPanelCalc'
 import styles from './productSecondaryPanel.module.css'
 import type {
   SecondaryForecastCalc,
@@ -584,7 +585,8 @@ export function ProductSecondaryPanel({
       },
       drawer1: {
         summary: (() => {
-          const { monthlySalesTrend: _m, ...rest } = primary
+          const { monthlySalesTrend, ...rest } = primary
+          void monthlySalesTrend
           return rest
         })(),
       },
@@ -729,7 +731,8 @@ export function ProductSecondaryPanel({
     if (v === baseline) {
       setConfirmBySize((prev) => {
         if (!(size in prev)) return prev
-        const { [size]: _r, ...rest } = prev
+        const { [size]: removed, ...rest } = prev
+        void removed
         return rest
       })
       return

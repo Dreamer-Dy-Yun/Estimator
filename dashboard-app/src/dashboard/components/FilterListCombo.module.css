@@ -1,0 +1,72 @@
+.wrap {
+  position: relative;
+  width: 100%;
+  min-width: 0;
+}
+
+.input {
+  width: 100%;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 6px 8px;
+  font-size: 12px;
+  line-height: 1.2;
+  height: 32px;
+  box-sizing: border-box;
+}
+
+.input:focus {
+  outline: none;
+  border-color: #94a3b8;
+  box-shadow: 0 0 0 2px rgba(148, 163, 184, 0.25);
+}
+
+/** 모달 `overflow: auto` 안에서도 잘리지 않도록 body 포털 + fixed */
+.panelFixed {
+  position: fixed;
+  z-index: 11000;
+  box-sizing: border-box;
+}
+
+.panelInner {
+  max-height: 220px;
+  overflow-y: auto;
+  margin: 0;
+  padding: 4px 0;
+  list-style: none;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  box-shadow:
+    0 10px 15px -3px rgb(15 23 42 / 14%),
+    0 4px 6px -4px rgb(15 23 42 / 12%);
+}
+
+.option {
+  display: block;
+  width: 100%;
+  margin: 0;
+  padding: 8px 10px;
+  border: none;
+  background: transparent;
+  text-align: left;
+  font-size: 12px;
+  line-height: 1.35;
+  color: #0f172a;
+  cursor: pointer;
+}
+
+.option:hover,
+.optionActive {
+  background: #f1f5f9;
+}
+
+.option:active {
+  background: #e2e8f0;
+}
+
+.emptyHint {
+  padding: 8px 10px;
+  font-size: 11px;
+  color: #64748b;
+}

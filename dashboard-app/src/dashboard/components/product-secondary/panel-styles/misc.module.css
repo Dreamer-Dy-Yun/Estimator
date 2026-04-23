@@ -1,0 +1,94 @@
+.dailyTrendClipWrap {
+  overflow: hidden;
+}
+
+.hint {
+  font-size: 11px;
+  color: #64748b;
+  /** <p> 기본 마진 제거 — 위 공백은 padding만 사용(마진 병합 방지) */
+  margin: 0;
+  padding: 4px 0 0;
+}
+
+/** [테스트] 오더 스냅샷 JSON 미리보기 — 배포 전 제거 권장 */
+.snapshotTestBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(15, 23, 42, 0.55);
+  box-sizing: border-box;
+}
+
+.snapshotTestDialog {
+  display: flex;
+  flex-direction: column;
+  max-width: min(920px, 100%);
+  max-height: min(85vh, 100%);
+  width: 100%;
+  padding: 14px 16px 16px;
+  border-radius: 10px;
+  background: #fff;
+  border: 2px solid #ea580c;
+  box-shadow: 0 20px 50px rgba(15, 23, 42, 0.35);
+  box-sizing: border-box;
+}
+
+.snapshotTestBadgeRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  margin-bottom: 8px;
+}
+
+.snapshotTestBadge {
+  flex-shrink: 0;
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #9a3412;
+  background: #ffedd5;
+  border: 1px solid #fdba74;
+}
+
+.snapshotTestNote {
+  font-size: 11px;
+  color: #64748b;
+  line-height: 1.35;
+}
+
+.snapshotTestTitle {
+  margin: 0 0 10px;
+  font-size: 15px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.snapshotTestPre {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  font-size: 11px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.snapshotTestActions {
+  flex-shrink: 0;
+  display: flex;
+  justify-content: flex-end;
+}

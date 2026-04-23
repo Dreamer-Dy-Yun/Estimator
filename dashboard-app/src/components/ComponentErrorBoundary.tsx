@@ -25,7 +25,9 @@ export class ComponentErrorBoundary extends Component<Props, State> {
     }
   }
 
-  public componentDidCatch(_error: Error, _errorInfo: ErrorInfo) {
+  public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    void error
+    void errorInfo
     // noop: 화면 격리를 우선하고 로깅은 추후 연결
   }
 
