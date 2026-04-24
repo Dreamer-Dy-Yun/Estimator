@@ -1,5 +1,7 @@
 .app {
-  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
   background: var(--color-bg);
   color: var(--color-text);
 }
@@ -8,8 +10,14 @@
   width: min(1600px, 100%);
   margin: 0 auto;
   padding: 16px;
+  box-sizing: border-box;
+  min-height: 100dvh;
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
 }
 
 .mainShell {
   padding-top: 0;
+  width: 100%;
 }

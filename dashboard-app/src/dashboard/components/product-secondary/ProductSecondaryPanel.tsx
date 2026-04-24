@@ -4,7 +4,13 @@ import { BlockMath } from 'react-katex'
 import { dashboardApi, type SecondaryCompetitorChannel } from '../../../api'
 import { ComponentErrorBoundary } from '../../../components/ComponentErrorBoundary'
 import type { ApiUnitErrorInfo, ProductPrimarySummary, ProductSecondaryDetail } from '../../../types'
-import { daysFromTodayThroughInclusive, daysInclusiveBetween, formatDateTimeMinute } from '../../../utils/date'
+import {
+  daysFromTodayThroughInclusive,
+  daysInclusiveBetween,
+  formatDateTimeMinute,
+  monthToEndDate,
+  monthToStartDate,
+} from '../../../utils/date'
 import { PortalHelpPopoverLayer } from '../PortalHelpPopover'
 import commonStyles from '../common.module.css'
 import { buildShadeRanges, normalizeMonthKey } from '../trend/trendRangeUtils'
@@ -190,6 +196,8 @@ export function ProductSecondaryPanel({
 
   const selectedStart = normalizeMonthKey(periodStart)
   const selectedEnd = normalizeMonthKey(periodEnd)
+  const salesMetricsPeriodStartDay = monthToStartDate(selectedStart)
+  const salesMetricsPeriodEndDay = monthToEndDate(selectedEnd)
 
   useEffect(() => {
     if (prefillFromSnapshot != null) return
@@ -197,9 +205,9 @@ export function ProductSecondaryPanel({
   }, [primary.id, selectedEnd, selectedStart, prefillFromSnapshot])
 
   useEffect(() => {
-    setUnitCostInput(Math.max(0, Math.round(selfCol.avgCost)))
+    setUnitCostInput(Math.max(0, Math.round(selfCol.avgCost ?? 0)))
     setUnitPriceInput(Math.max(0, Math.round(selfCol.avgPrice)))
-    setExpectedFeeRatePct(Math.max(0, Math.round(selfCol.feeRatePct * 10) / 10))
+    setExpectedFeeRatePct(Math.max(0, Math.round((selfCol.feeRatePct ?? 0) * 10) / 10))
   }, [primary.id, selfCol.avgCost, selfCol.avgPrice, selfCol.feeRatePct])
 
   useEffect(() => {
@@ -837,6 +845,10 @@ export function ProductSecondaryPanel({
       <div className={styles.salesStockAiRow}>
         <ComponentErrorBoundary page={pageName} unit="SalesMetricsCard">
           <SalesMetricsCard
+            targetPeriodDays={{
+              start: salesMetricsPeriodStartDay,
+              end: salesMetricsPeriodEndDay,
+            }}
             sales={{
               channelLabel: channel.label,
               self: selfCol,
@@ -1031,7 +1043,7 @@ export function ProductSecondaryPanel({
                   </div>
                   <button
                     type="button"
-                    className={`${styles.btn} ${styles.btnSecondary}`}
+                    className={`${styles.btn} ${styles.btnSecondary} ${styles.btnViewportAdaptive}`}
                     onClick={createCandidate}
                     disabled={candidateActionLoading}
                   >
@@ -1106,7 +1118,7 @@ export function ProductSecondaryPanel({
               <div className={styles.snapshotTestActions}>
                 <button
                   type="button"
-                  className={styles.btn}
+                  className={`${styles.btn} ${styles.btnViewportAdaptive}`}
                   onClick={() => setTestSnapshotJson(null)}
                 >
                   {KO.btnSnapshotTestOk}
@@ -1134,7 +1146,7 @@ export function ProductSecondaryPanel({
               <div className={styles.snapshotTestActions}>
                 <button
                   type="button"
-                  className={styles.btn}
+                  className={`${styles.btn} ${styles.btnViewportAdaptive}`}
                   onClick={() => setCandidateCreatedPopupText(null)}
                 >
                   {KO.btnSnapshotTestOk}

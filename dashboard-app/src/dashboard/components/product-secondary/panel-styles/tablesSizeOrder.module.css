@@ -5,6 +5,39 @@
   font-size: 11.5px;
 }
 
+/**
+ * 판매정보 카드 전용: 표 폭 증가는 피하고, 셀 밀도를 낮춰 줄바꿈을 완화.
+ */
+.salesMetricsTightTable {
+  font-size: 10.5px;
+}
+
+.salesMetricsTightTable th,
+.salesMetricsTightTable td {
+  padding: 3px 6px;
+}
+
+.salesMetricsTightTable td:first-child,
+.salesMetricsTightTable td.num {
+  white-space: nowrap;
+}
+
+/** 판매 정보: 대상 기간(일 단위 구간) */
+.salesMetricsPeriodLine {
+  margin: -2px 0 8px;
+  font-size: 11px;
+  font-weight: 500;
+  color: #64748b;
+  line-height: 1.35;
+}
+
+/** 경쟁사: 원가·마진·수수료·영업이익 미제공 셀 — 연한 회색 배경 */
+.salesMetricUnavailable {
+  color: #64748b;
+  font-weight: 500;
+  background: #f1f5f9;
+}
+
 .table th,
 .table td {
   border: 1px solid #e2e8f0;

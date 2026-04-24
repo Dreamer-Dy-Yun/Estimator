@@ -1,17 +1,19 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { CartesianGrid, ResponsiveContainer, Scatter, ScatterChart, Tooltip, XAxis, YAxis } from 'recharts'
+import { CartesianGrid, Scatter, ScatterChart, Tooltip, XAxis, YAxis } from 'recharts'
 import { getSelfSales, getSelfSalesFilterMeta } from '../../api'
 import type { SelfSalesRow } from '../../types'
 import type { AdjacentDirection } from '../../utils/adjacentListNavigation'
 import { adjacentIdInOrder } from '../../utils/adjacentListNavigation'
 import { clampForecastMonths, readForecastMonthsFromStorage, writeForecastMonthsToStorage } from '../../utils/forecastMonthsStorage'
 import { formatGroupedNumber, formatPercent } from '../../utils/format'
+import { CopyToastBanner, useCopyToastMessage } from '../components/CopyToastBanner'
 import { ProductSummaryDrawer } from '../components/ProductSummaryDrawer'
 import styles from '../components/common.module.css'
 import { AnalysisList } from '../components/AnalysisList'
 import { ChartCard } from '../components/ChartCard'
 import { FilterBar } from '../components/FilterBar'
 import { KpiGrid } from '../components/KpiGrid'
+import { useElementSize } from '../hooks/useElementSize'
 import { useProductDrawerBundle } from '../hooks/useProductDrawerBundle'
 import { usePeriodRangeFilter } from '../hooks/usePeriodRangeFilter'
 
@@ -20,13 +22,16 @@ type ScatterPoint = {
   y: number
   brand: string
   name: string
+  copyText: string
 }
 
 export const SelfPage = () => {
   const [rows, setRows] = useState<SelfSalesRow[]>([])
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  const { toastMessage, copyAndNotify } = useCopyToastMessage()
   const [forecastMonths, setForecastMonths] = useState(() => readForecastMonthsFromStorage())
   const summaryBundle = useProductDrawerBundle(selectedId, forecastMonths)
+  const { ref: chartBodyRef, width: chartWidth, height: chartHeight, ready: chartReady } = useElementSize<HTMLDivElement>()
 
   const onForecastMonthsChange = useCallback((n: number) => {
     const v = clampForecastMonths(n)
@@ -37,6 +42,8 @@ export const SelfPage = () => {
   const [brandFilter, setBrandFilter] = useState('전체')
   const [categoryOptions, setCategoryOptions] = useState<string[]>(['전체'])
   const [categoryFilter, setCategoryFilter] = useState('전체')
+  const [productNameOptions, setProductNameOptions] = useState<string[]>(['전체'])
+  const [productNameFilter, setProductNameFilter] = useState('전체')
   const [historicalMonths, setHistoricalMonths] = useState<string[]>([])
   const [showPeriodBar, setShowPeriodBar] = useState(false)
   const salesReqSeqRef = useRef(0)
@@ -64,6 +71,10 @@ export const SelfPage = () => {
       endDate: periodEndDate,
       brand: brandFilter === '전체' ? undefined : brandFilter,
       category: categoryFilter === '전체' ? undefined : categoryFilter,
+      nameQuery:
+        productNameFilter === '전체' || !productNameFilter.trim()
+          ? undefined
+          : productNameFilter.trim(),
     }).then((data) => {
       if (!alive) return
       if (reqSeq !== salesReqSeqRef.current) return
@@ -76,11 +87,12 @@ export const SelfPage = () => {
   useEffect(() => {
     let alive = true
     const reqSeq = ++metaReqSeqRef.current
-    void getSelfSalesFilterMeta().then(({ brands, categories, historicalMonths: months }) => {
+    void getSelfSalesFilterMeta().then(({ brands, categories, productNames, historicalMonths: months }) => {
       if (!alive) return
       if (reqSeq !== metaReqSeqRef.current) return
       setBrandOptions(['전체', ...brands])
       setCategoryOptions(['전체', ...categories])
+      setProductNameOptions(['전체', ...productNames])
       setHistoricalMonths(months)
     })
     return () => {
@@ -95,13 +107,33 @@ export const SelfPage = () => {
   }, [rows])
 
   const scatterData: ScatterPoint[] = useMemo(
-    () => rows.map((r) => ({
-      x: r.opMarginRate,
-      y: Math.round(r.amount / 1000000),
-      brand: r.brand,
-      name: r.name,
-    })),
-    [rows],
+    () => rows.map((r) => {
+      const yMillion = Math.round(r.amount / 1000000)
+      const copyText = [
+        '[자사 분석 · 포지셔닝]',
+        `기간: ${periodStartDate} ~ ${periodEndDate}`,
+        `브랜드: ${r.brand}`,
+        `카테고리: ${r.category}`,
+        `상품코드: ${r.productCode}`,
+        `상품명: ${r.name}`,
+        `평균판매가(원): ${formatGroupedNumber(r.avgPrice)}`,
+        `평균매입원가(원): ${formatGroupedNumber(r.avgCost)}`,
+        `판매량(EA): ${formatGroupedNumber(r.qty)}`,
+        `총판매액(원): ${formatGroupedNumber(r.amount)}`,
+        `매출이익율: ${formatPercent(r.marginRate)}`,
+        `영업이익율: ${formatPercent(r.opMarginRate)}`,
+        `차트 X(영업이익율): ${formatPercent(r.opMarginRate)}`,
+        `차트 Y(판매액): ${yMillion}백만`,
+      ].join('\n')
+      return {
+        x: r.opMarginRate,
+        y: yMillion,
+        brand: r.brand,
+        name: r.name,
+        copyText,
+      }
+    }),
+    [rows, periodStartDate, periodEndDate],
   )
 
   const navigationOrderIds = useMemo(() => rows.map((r) => r.id), [rows])
@@ -127,19 +159,47 @@ export const SelfPage = () => {
         <div className={styles.chartTooltipText}>{point.name}</div>
         <div className={styles.chartTooltipText}>영업이익율: {formatPercent(point.x)}</div>
         <div className={styles.chartTooltipText}>판매액: {point.y}백만</div>
+        <div className={styles.chartTooltipHint}>클릭 시 클립보드에 복사</div>
       </div>
     )
   }
 
+  const scatterShape = useCallback(
+    (props: { cx?: number; cy?: number; payload?: ScatterPoint }) => {
+      const { cx, cy, payload } = props
+      if (cx == null || cy == null || !payload) return null
+      return (
+        <circle
+          cx={cx}
+          cy={cy}
+          r={5}
+          fill="#3b82f6"
+          style={{ cursor: 'pointer' }}
+          onClick={(e) => {
+            e.stopPropagation()
+            void copyAndNotify(payload.copyText)
+          }}
+        />
+      )
+    },
+    [copyAndNotify],
+  )
+
+  const scatterChartWidth = Math.max(1, Math.floor(chartWidth))
+  const scatterChartHeight = Math.max(1, Math.floor(chartHeight))
+
   return (
     <section className={styles.page}>
+      <CopyToastBanner message={toastMessage} />
       <FilterBar
         title=""
+        filterClassName={styles.filterAnalysisGrid}
         fields={[
           { label: '시작일', kind: 'input', inputType: 'date', value: periodStartDate, onChange: onStartDateChange },
           { label: '종료일', kind: 'input', inputType: 'date', value: periodEndDate, onChange: onEndDateChange },
-          { label: '브랜드', kind: 'select', value: brandFilter, onChange: setBrandFilter, options: brandOptions },
-          { label: '카테고리', kind: 'select', value: categoryFilter, onChange: setCategoryFilter, options: categoryOptions },
+          { label: '브랜드', kind: 'listCombo', inputType: 'text', value: brandFilter, onChange: setBrandFilter, options: brandOptions },
+          { label: '카테고리', kind: 'listCombo', inputType: 'text', value: categoryFilter, onChange: setCategoryFilter, options: categoryOptions },
+          { label: '상품명', kind: 'listCombo', inputType: 'text', value: productNameFilter, onChange: setProductNameFilter, options: productNameOptions },
         ]}
         extraContent={(
           <div className={styles.periodTools}>
@@ -199,9 +259,9 @@ export const SelfPage = () => {
           />
 
           <ChartCard title="포지셔닝" className={styles.selfChartCard}>
-            <div className={styles.selfChartBody}>
-              <ResponsiveContainer width="100%" height="100%">
-                <ScatterChart data={scatterData}>
+            <div ref={chartBodyRef} className={styles.selfChartBody}>
+              {chartReady ? (
+                <ScatterChart width={scatterChartWidth} height={scatterChartHeight} data={scatterData}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis type="number" dataKey="x" name="%" unit="%" tickFormatter={(v) => `${v}`} tick={{ fontSize: 10 }} />
                   <YAxis
@@ -213,9 +273,9 @@ export const SelfPage = () => {
                     tickMargin={4}
                   />
                   <Tooltip content={renderScatterTooltip} />
-                  <Scatter fill="#3b82f6" />
+                  <Scatter fill="#3b82f6" shape={scatterShape} />
                 </ScatterChart>
-              </ResponsiveContainer>
+              ) : null}
             </div>
           </ChartCard>
         </div>

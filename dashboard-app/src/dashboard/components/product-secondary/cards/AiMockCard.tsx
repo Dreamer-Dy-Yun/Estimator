@@ -32,7 +32,12 @@ export function AiMockCard({ ai, actions }: Props) {
           placeholder={KO.placeholderPrompt}
           aria-label={KO.ariaLlmPrompt}
         />
-        <button type="button" className={styles.btn} onClick={onSend} disabled={loading}>
+        <button
+          type="button"
+          className={`${styles.btn} ${styles.btnViewportAdaptive}`}
+          onClick={onSend}
+          disabled={loading}
+        >
           {loading ? KO.btnGenerating : KO.btnAnswerGen}
         </button>
         <div className={styles.aiAnswer} aria-live="polite">

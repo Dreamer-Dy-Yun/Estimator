@@ -23,15 +23,17 @@ type FilterBarProps = {
   title?: string
   fields: FilterField[]
   extraContent?: ReactNode
+  /** 기본 `filterHorizontal` 대신 사용(예: 분석 페이지 그리드 레이아웃). */
+  filterClassName?: string
 }
 
-export function FilterBar({ title = '필터', fields, extraContent }: FilterBarProps) {
+export function FilterBar({ title = '필터', fields, extraContent, filterClassName }: FilterBarProps) {
   const barId = useId()
   return (
     <div className={styles.filterRow}>
       <div className={styles.card}>
         {title ? <div className={styles.cardTitle}>{title}</div> : null}
-        <div className={`${styles.filter} ${styles.filterHorizontal}`}>
+        <div className={`${styles.filter} ${filterClassName ?? styles.filterHorizontal}`}>
           {fields.map((field, index) => {
             const inputId = `${barId}-in-${index}`
             return (

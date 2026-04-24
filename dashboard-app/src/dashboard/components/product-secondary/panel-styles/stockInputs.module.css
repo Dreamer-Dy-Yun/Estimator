@@ -1,13 +1,17 @@
 .stockInputList {
+  --stock-grid-row-gap: clamp(6px, 0.3vw, 8px);
+  --stock-grid-col-gap: clamp(5px, 1vw, 30px);
+  --stock-cell-col-gap: clamp(1px, 0.1vw, 6px);
+  --stock-inline-gap: clamp(2px, 0.1vw, 4px);
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: 8px 32px;
+  gap: var(--stock-grid-row-gap) var(--stock-grid-col-gap);
 }
 
 .stockInputCell {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  column-gap: 2px;
+  grid-template-columns: minmax(0, 4.5fr) minmax(0, 5.5fr);
+  column-gap: var(--stock-cell-col-gap);
   align-items: center;
   min-width: 0;
 }
@@ -19,14 +23,14 @@
 @media (max-width: 960px) {
   .stockInputList {
     grid-template-columns: 1fr;
-    gap: 8px;
+    gap: var(--stock-grid-row-gap);
   }
 }
 .inlineLabel {
   align-self: center;
-  font-size: 12px;
+  font-size: 11px;
   color: #475569;
-  line-height: 1.35;
+  line-height: 1.25;
   text-align: left;
   min-width: 0;
 }
@@ -36,7 +40,7 @@
   flex-direction: row;
   align-items: center;
   justify-content: flex-start;
-  gap: 4px;
+  gap: var(--stock-inline-gap);
   align-self: center;
   justify-self: stretch;
   width: 100%;
@@ -44,8 +48,10 @@
 }
 
 .stockCellLabel {
-  overflow: hidden;
-  text-overflow: ellipsis;
+  overflow: visible;
+  text-overflow: clip;
+  font-size: 11px;
+  letter-spacing: -0.15px;
   white-space: nowrap;
 }
 
@@ -53,7 +59,7 @@
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  gap: 4px;
+  gap: var(--stock-inline-gap);
   width: 100%;
   min-width: 0;
 }
@@ -63,7 +69,7 @@
   border: 1px solid #cbd5e1;
   border-radius: 6px;
   font: inherit;
-  font-size: calc(12px * 0.9);
+  font-size: calc(11px * 0.9);
   line-height: 1.2;
   text-align: right;
   font-variant-numeric: tabular-nums;
@@ -74,7 +80,7 @@
   border: 1px solid #cbd5e1;
   border-radius: 6px;
   font: inherit;
-  font-size: calc(12px * 0.9);
+  font-size: calc(11px * 0.9);
   line-height: 1.2;
   text-align: left;
 }
@@ -98,7 +104,7 @@
 }
 
 .inlineUnit {
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 500;
   color: #64748b;
   white-space: nowrap;

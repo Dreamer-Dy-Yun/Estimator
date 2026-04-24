@@ -26,8 +26,8 @@ export function buildMockOrderSnapshotForCandidate(productId: string): Secondary
     serviceLevelPct: 95,
   }
   const unitPrice = Math.max(0, Math.round(summarySansTrend.price ?? primary.price))
-  const unitCost = Math.max(0, Math.round(selfCol.avgCost))
-  const feePerUnit = Math.max(0, Math.round(selfCol.feePerUnit))
+  const unitCost = Math.max(0, Math.round(selfCol.avgCost ?? 0))
+  const feePerUnit = Math.max(0, Math.round(selfCol.feePerUnit ?? 0))
   const opMarginPerUnit = unitPrice - unitCost - feePerUnit
   const stockDerived = {
     safetyStock: Math.max(0, Math.round(primary.availableStock * 0.2)),

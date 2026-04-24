@@ -531,8 +531,8 @@ function ProductSummaryDrawerContent({
         </div>
         <div className={styles.drawerBody}>
         <ComponentErrorBoundary page={pageName} unit="PrimaryProductSummaryCard">
-        <div className={`${styles.card} ${styles.productSummaryCard}`}>
-          <div className={styles.metaChips}>
+        <div className={`${styles.card} ${styles.productSummaryCard} ${expandPaneOpen ? styles.productSummaryCardMetaCollapsed : ''}`}>
+          <div className={`${styles.metaChips} ${expandPaneOpen ? styles.metaChipsCollapsed : ''}`}>
             <span className={styles.metaChip}>{summary.brand}</span>
             <span className={styles.metaChip}>{summary.category}</span>
             <span className={styles.metaChip}>{summary.productCode}</span>
@@ -545,7 +545,7 @@ function ProductSummaryDrawerContent({
         </ComponentErrorBoundary>
         <ComponentErrorBoundary page={pageName} unit="PrimaryKpiCard">
         <div
-          className={styles.kpiHoverZone}
+          className={`${styles.kpiHoverZone} ${styles.drawerKpiZone}`}
           onMouseEnter={openKpiPanel}
           onMouseLeave={closeKpiPanel}
         >
@@ -639,7 +639,7 @@ function ProductSummaryDrawerContent({
         </div>
         </ComponentErrorBoundary>
         <ComponentErrorBoundary page={pageName} unit="PrimarySalesTrendCard">
-        <div className={styles.card}>
+        <div className={`${styles.card} ${styles.drawerSalesTrendCard}`}>
           <div className={styles.salesTrendTitleRow}>
             <div className={styles.cardTitle}>
               판매추이(월간)
@@ -749,7 +749,7 @@ function ProductSummaryDrawerContent({
         </div>
         </ComponentErrorBoundary>
         <ComponentErrorBoundary page={pageName} unit="PrimarySeasonalityCard">
-        <div className={styles.card}>
+        <div className={`${styles.card} ${styles.drawerSeasonalityCard}`}>
           <div className={styles.trendHead}>
             <div className={`${styles.cardTitle} ${styles.cardTitleWithHelp}`}>
               계절성

@@ -62,7 +62,7 @@ describe('buildSalesKpiColumn', () => {
     expect(kpi.costRatioPct).toBeCloseTo(78, 6)
   })
 
-  it('builds competitor KPI with channel skew and min qty 1', () => {
+  it('builds competitor KPI with channel skew and min qty 1 (no cost/margin/fee mock)', () => {
     const tinyQtySecondary: ProductSecondaryDetail = {
       ...secondary,
       competitorQty: 0,
@@ -76,7 +76,11 @@ describe('buildSalesKpiColumn', () => {
     expect(kpi.avgPrice).toBe(138)
     expect(kpi.qty).toBe(1)
     expect(kpi.amount).toBe(138)
-    expect(kpi.avgCost).toBe(110)
+    expect(kpi.avgCost).toBeNull()
+    expect(kpi.grossMarginPerUnit).toBeNull()
+    expect(kpi.feePerUnit).toBeNull()
+    expect(kpi.opMarginPerUnit).toBeNull()
+    expect(kpi.costRatioPct).toBeNull()
   })
 
   it('produces stable rank range for same seed', () => {

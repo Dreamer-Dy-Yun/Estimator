@@ -43,7 +43,7 @@ export function CandidateStashOrderActionCard({
       </div>
       <button
         type="button"
-        className={`${styles.btn} ${styles.btnSecondary}`}
+        className={`${styles.btn} ${styles.btnSecondary} ${styles.btnViewportAdaptive}`}
         onClick={() => void onOpenStashPicker()}
         disabled={loading}
       >
@@ -57,7 +57,7 @@ export function CandidateStashOrderActionCard({
       >
         <button
           type="button"
-          className={styles.btn}
+          className={`${styles.btn} ${styles.btnViewportAdaptive}`}
           onClick={onConfirmOrder}
           disabled={loading}
           onFocus={() => portalHelp.open('confirmOrder', 'above')}
@@ -89,7 +89,7 @@ export function InnerCandidateActionCard({ context, loading, onSave }: InnerCand
       </div>
       <button
         type="button"
-        className={`${styles.btn} ${styles.innerCandidateActionBtn}`}
+        className={`${styles.btn} ${styles.innerCandidateActionBtn} ${styles.btnViewportAdaptive}`}
         onClick={() => void onSave()}
         disabled={loading}
       >

@@ -152,14 +152,19 @@ export function FilterListCombo({ inputId, value, onChange, options, inputType =
       </div>
     ) : null
 
+  const panelVisible = Boolean(showList || showNoMatch)
+
   return (
-    <div className={styles.wrap} ref={wrapRef}>
+    <div
+      className={`${styles.wrap} ${open && panelVisible ? styles.wrapOpen : ''}`}
+      ref={wrapRef}
+    >
       <input
         id={inputId}
         className={styles.input}
         type={inputType}
         autoComplete="off"
-        aria-expanded={open && (showList || showNoMatch)}
+        aria-expanded={open && panelVisible}
         aria-controls={showList ? `${inputId}-listbox` : undefined}
         aria-activedescendant={showList && activeIdx >= 0 ? `${inputId}-opt-${activeIdx}` : undefined}
         value={value}
@@ -174,6 +179,18 @@ export function FilterListCombo({ inputId, value, onChange, options, inputType =
         }}
         onKeyDown={onKeyDown}
       />
+      <span className={styles.comboChevron} aria-hidden>
+        <svg viewBox="0 0 12 12" width="12" height="12" focusable="false">
+          <path
+            d="M2.5 4.25L6 7.75L9.5 4.25"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.35"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      </span>
       {typeof document !== 'undefined' && panelNode ? createPortal(panelNode, document.body) : null}
     </div>
   )

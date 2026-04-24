@@ -7,15 +7,16 @@ export type SalesKpiColumn = {
   avgPrice: number
   qty: number
   amount: number
-  avgCost: number
-  grossMarginPerUnit: number
-  feePerUnit: number
-  feeRatePct: number
-  opMarginPerUnit: number
-  opMarginRatePct: number
+  /** 경쟁사 컬럼은 원가·마진·수수료·영업이익 미제공 → null */
+  avgCost: number | null
+  grossMarginPerUnit: number | null
+  feePerUnit: number | null
+  feeRatePct: number | null
+  opMarginPerUnit: number | null
+  opMarginRatePct: number | null
   qtyRank: number
   amountRank: number
-  costRatioPct: number
+  costRatioPct: number | null
 }
 
 export function buildSalesKpiColumn(
@@ -33,17 +34,33 @@ export function buildSalesKpiColumn(
       ? primary.qty
       : Math.max(1, Math.round(secondary.competitorQty * channel.qtySkew))
   const amount = Math.round(price * qty)
-  const avgCost = kind === 'self'
-    ? Math.round(price * 0.78)
-    : Math.round(price * 0.8)
+  const qtyRank = hashRank(`${primary.id}-${kind}-qty`, 28)
+  const amountRank = hashRank(`${primary.id}-${kind}-amt`, 28)
+
+  if (kind === 'competitor') {
+    return {
+      avgPrice: price,
+      qty,
+      amount,
+      avgCost: null,
+      grossMarginPerUnit: null,
+      feePerUnit: null,
+      feeRatePct: null,
+      opMarginPerUnit: null,
+      opMarginRatePct: null,
+      costRatioPct: null,
+      qtyRank,
+      amountRank,
+    }
+  }
+
+  const avgCost = Math.round(price * 0.78)
   const grossMarginPerUnit = price - avgCost
   const feeRatePct = 13
   const feePerUnit = Math.round(price * (feeRatePct / 100))
   const opMarginPerUnit = grossMarginPerUnit - feePerUnit
   const opMarginRatePct = price > 0 ? (opMarginPerUnit / price) * 100 : 0
   const costRatioPct = price > 0 ? (avgCost / price) * 100 : 0
-  const qtyRank = hashRank(`${primary.id}-${kind}-qty`, 28)
-  const amountRank = hashRank(`${primary.id}-${kind}-amt`, 28)
   return {
     avgPrice: price,
     qty,

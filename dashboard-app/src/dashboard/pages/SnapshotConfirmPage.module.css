@@ -3,7 +3,7 @@
   height: calc(100dvh - 120px);
   min-height: 440px;
   overflow: hidden;
-  grid-template-rows: auto auto 1fr;
+  grid-template-rows: auto 1fr;
 }
 
 .stashFilterBar {
@@ -189,14 +189,14 @@
 
 .detailHeaderGrid {
   display: grid;
-  grid-template-columns: repeat(20, minmax(0, 1fr));
+  grid-template-columns: repeat(40, minmax(0, 1fr));
   grid-template-rows: auto auto;
   align-items: center;
   gap: 10px;
 }
 
 .detailHeaderTitleArea {
-  grid-column: 1 / span 16;
+  grid-column: 1 / span 30;
   min-width: 0;
 }
 
@@ -212,7 +212,7 @@
 }
 
 .detailMetaStack {
-  grid-column: 17 / span 2;
+  grid-column: 31 / span 4;
   display: flex;
   flex-direction: column;
   align-items: flex-end;
@@ -236,7 +236,7 @@
 }
 
 .detailHeaderDeleteCell {
-  grid-column: 19 / span 1;
+  grid-column: 35 / span 3;
   min-width: 0;
   align-self: stretch;
   display: flex;
@@ -250,7 +250,7 @@
 }
 
 .detailHeaderCloseBtn {
-  grid-column: 20 / span 1;
+  grid-column: 38 / span 3;
   min-width: 0;
   width: 100%;
   align-self: stretch;

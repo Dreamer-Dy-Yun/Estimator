@@ -1,4 +1,5 @@
 import { NavLink, Outlet } from 'react-router-dom'
+import { PageHeader } from './components/PageHeader'
 import styles from './layout.module.css'
 
 const tabs = [
@@ -19,7 +20,10 @@ export const DashboardLayout = () => {
           ))}
         </div>
         <div className={styles.content}>
-          <Outlet />
+          <PageHeader title="" badge="" />
+          <div className={styles.pageContent}>
+            <Outlet />
+          </div>
         </div>
       </div>
     </section>

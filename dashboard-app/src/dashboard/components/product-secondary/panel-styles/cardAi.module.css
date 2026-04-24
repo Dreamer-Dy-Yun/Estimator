@@ -63,6 +63,13 @@
   color: #0f172a;
 }
 
+.btnViewportAdaptive {
+  padding: clamp(6px, 0.35vw + 4px, 8px) clamp(10px, 0.8vw + 8px, 14px);
+  font-size: clamp(11px, 0.22vw + 10px, 13px);
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
 .confirmOrderHelpAnchor {
   display: inline-flex;
 }

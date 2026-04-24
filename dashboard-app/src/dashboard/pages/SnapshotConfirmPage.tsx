@@ -13,7 +13,6 @@ import pageStyles from './SnapshotConfirmPage.module.css'
 import { CandidateStashDetailModal } from './CandidateStashDetailModal'
 import { DeleteButton } from '../components/DeleteButton'
 import { FilterBar } from '../components/FilterBar'
-import { PageHeader } from '../components/PageHeader'
 
 const toTime = (iso: string) => {
   const ts = new Date(iso).getTime()
@@ -62,10 +61,9 @@ export const SnapshotConfirmPage = () => {
 
   return (
     <section className={`${styles.page} ${pageStyles.snapshotPage}`}>
-      <PageHeader title="" badge="" />
-
       <FilterBar
         title=""
+        filterClassName={styles.filterAnalysisGrid}
         fields={[
           {
             label: '이름 검색',

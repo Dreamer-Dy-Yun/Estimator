@@ -8,11 +8,30 @@
   width: 100%;
   border: 1px solid #cbd5e1;
   border-radius: 8px;
-  padding: 6px 8px;
+  padding: 6px 28px 6px 8px;
   font-size: 12px;
   line-height: 1.2;
   height: 32px;
   box-sizing: border-box;
+}
+
+.comboChevron {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 12px;
+  height: 12px;
+  color: #64748b;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.15s ease;
+}
+
+.wrapOpen .comboChevron {
+  transform: translateY(-50%) rotate(180deg);
 }
 
 .input:focus {

@@ -48,15 +48,17 @@ import {
 } from './secondaryDailyTrend'
 
 export const mockDashboardApi = {
-  getSelfSales: async (params?: { startDate?: string; endDate?: string; brand?: string; category?: string }) => {
+  getSelfSales: async (params?: { startDate?: string; endDate?: string; brand?: string; category?: string; nameQuery?: string }) => {
     await sleep(80)
     const brand = params?.brand
     const category = params?.category
+    const nameQ = params?.nameQuery?.trim().toLowerCase()
     const weighted = estimatePeriodWeight(params?.startDate, params?.endDate)
 
     return selfSalesRows
       .filter((row) => (brand ? row.brand === brand : true))
       .filter((row) => (category ? row.category === category : true))
+      .filter((row) => (nameQ ? row.name.toLowerCase().includes(nameQ) : true))
       .map((row) => {
         const qty = Math.max(1, Math.round(row.qty * weighted))
         const amount = Math.max(1, Math.round(row.amount * weighted))
@@ -73,6 +75,7 @@ export const mockDashboardApi = {
     await sleep(80)
     const brand = params?.brand
     const category = params?.category
+    const nameQ = params?.nameQuery?.trim().toLowerCase()
     const weighted = estimatePeriodWeight(params?.startDate, params?.endDate)
     const channel = params?.competitorChannelId
       ? secondaryCompetitorChannels.find((c) => c.id === params.competitorChannelId)
@@ -83,6 +86,7 @@ export const mockDashboardApi = {
     return competitorSalesRows
       .filter((row) => (brand ? row.brand === brand : true))
       .filter((row) => (category ? row.category === category : true))
+      .filter((row) => (nameQ ? row.name.toLowerCase().includes(nameQ) : true))
       .map((row) => {
         const compQty = Math.max(1, Math.round(row.competitorQty * weighted * qtySkew))
         const compAvg = Math.max(1, Math.round(row.competitorAvgPrice * priceSkew))
@@ -101,9 +105,14 @@ export const mockDashboardApi = {
   },
   getSelfSalesFilterMeta: async () => {
     await sleep(60)
+    const nameSet = new Set<string>()
+    for (const r of selfSalesRows) nameSet.add(r.name)
+    for (const r of competitorSalesRows) nameSet.add(r.name)
+    const productNames = [...nameSet].sort((a, b) => a.localeCompare(b, 'ko'))
     return {
       brands,
       categories,
+      productNames,
       historicalMonths,
     }
   },
