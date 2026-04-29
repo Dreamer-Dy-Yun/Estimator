@@ -3,6 +3,7 @@ import { CartesianGrid, Scatter, ScatterChart, Tooltip, XAxis, YAxis } from 'rec
 import { getCompetitorSales, getSecondaryCompetitorChannels, getSelfSalesFilterMeta } from '../../api'
 import type { SecondaryCompetitorChannel } from '../../api/types'
 import type { CompetitorSalesRow } from '../../types'
+import { competitorGapRateWeightedByCompetitorAmount } from '../../utils/analysisKpiWeighted'
 import type { AdjacentDirection } from '../../utils/adjacentListNavigation'
 import { adjacentIdInOrder } from '../../utils/adjacentListNavigation'
 import { clampForecastMonths, readForecastMonthsFromStorage, writeForecastMonthsToStorage } from '../../utils/forecastMonthsStorage'
@@ -137,13 +138,7 @@ export const CompetitorPage = () => {
 
   const kpi = useMemo(() => {
     const totalCompetitor = rows.reduce((acc, row) => acc + row.competitorAmount, 0)
-    const withSelf = rows.filter((r) => r.selfAmount != null)
-    const avgGapRate = withSelf.length
-      ? withSelf.reduce((acc, r) => {
-        const s = r.selfAmount ?? 0
-        return acc + (r.competitorAmount - s) / r.competitorAmount
-      }, 0) / withSelf.length
-      : 0
+    const avgGapRate = competitorGapRateWeightedByCompetitorAmount(rows)
     return { totalCompetitor, avgGapRate }
   }, [rows])
 

@@ -1,3 +1,5 @@
+@import '../styles/primaryDrawerLayout.vars.css';
+
 .snapshotPage {
   /** 필터/헤더는 고정, 후보군 목록만 내부 스크롤 */
   height: calc(100dvh - 120px);
@@ -595,10 +597,10 @@
 }
 
 .stashDetailModalPanel {
-  width: 90vw;
-  max-width: 90vw;
-  height: 90vh;
-  max-height: 90vh;
+  width: 94vw;
+  max-width: 94vw;
+  height: 93vh;
+  max-height: 93vh;
   margin: 0;
   padding: 16px 18px 18px;
   border-radius: 10px;
@@ -609,6 +611,7 @@
   flex-direction: column;
   min-height: 0;
   box-sizing: border-box;
+  transition: width 0.28s ease, max-width 0.28s ease, height 0.28s ease, max-height 0.28s ease;
 }
 
 .stashDetailModalBody {
@@ -619,6 +622,16 @@
   flex-direction: column;
   gap: 10px;
   -webkit-overflow-scrolling: touch;
+}
+
+/** 이너 오더 모달만 드로어에 맞춰 축소 — 오더 후보군 본문(pageContent)은 건드리지 않음 */
+.stashDetailModalBackdrop[data-inner-drawer-open='true'] {
+  justify-content: flex-start;
+}
+
+.stashDetailModalBackdrop[data-inner-drawer-open='true'] .stashDetailModalPanel {
+  width: calc(100vw - var(--primary-drawer-modal-backdrop-reserve) + var(--primary-drawer-layout-trim));
+  max-width: calc(100vw - var(--primary-drawer-modal-backdrop-reserve) + var(--primary-drawer-layout-trim));
 }
 
 .stashDetailModalFooterActions {

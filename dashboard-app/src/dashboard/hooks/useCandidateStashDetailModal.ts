@@ -8,13 +8,13 @@ import {
   type CandidateItemSummary,
   type CandidateStashSummary,
 } from '../../api'
-import type { ProductPrimarySummary } from '../../types'
 import type { AdjacentDirection } from '../../utils/adjacentListNavigation'
 import { adjacentIdInOrder } from '../../utils/adjacentListNavigation'
 import { clampForecastMonths } from '../../utils/forecastMonthsStorage'
 import { parseOrderSnapshot } from '../../snapshot/parseOrderSnapshot'
 import type { OrderSnapshotDocumentV1 } from '../../snapshot/orderSnapshotTypes'
 import { uniqueSortedStrings } from '../../utils/uniqueSortedStrings'
+import { mergePrimarySummaryFromBundleAndSnapshot } from '../drawer/mergePrimarySummaryFromSnapshot'
 import { useProductDrawerBundle } from './useProductDrawerBundle'
 
 export type InnerCandidateRow = CandidateItemSummary & { id: string }
@@ -134,16 +134,10 @@ export function useCandidateStashDetailModal({
     allowStaleWhileRevalidate: false,
   })
 
-  const mergedSummary = useMemo((): ProductPrimarySummary | null => {
-    if (!bundle || !drawerProductId) return null
-    const snap1 = hydrateSnap?.drawer1?.summary
-    if (!snap1) return bundle.summary
-    return {
-      ...bundle.summary,
-      ...snap1,
-      monthlySalesTrend: bundle.summary.monthlySalesTrend,
-    }
-  }, [bundle, drawerProductId, hydrateSnap])
+  const mergedSummary = useMemo(
+    () => mergePrimarySummaryFromBundleAndSnapshot(drawerProductId, bundle, hydrateSnap),
+    [bundle, drawerProductId, hydrateSnap],
+  )
 
   const periodStart = hydrateSnap?.context.periodStart
   const periodEnd = hydrateSnap?.context.periodEnd
@@ -232,6 +226,7 @@ export function useCandidateStashDetailModal({
   }, [closeDrawer, itemDeleteTarget, loadItems, openedItemUuid, refreshStashes])
 
   return {
+    drawerOpen,
     items,
     detailLoading,
     detailError,

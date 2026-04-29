@@ -1,0 +1,15 @@
+/**
+ * 1차 상품 드로어 열림 시 본문·이너 모달 폭 보정.
+ * - `.drawer` 기준 폭은 common.module.css 의 width(460px)와 맞춤
+ * - modal reserve 는 드로어 + 여백·토글 돌출을 합친 경험값(레이아웃 깜빡임 최소화)
+ */
+:root {
+  --primary-drawer-column-width: 460px;
+  --primary-drawer-expand-toggle-width: 30px;
+  /** 평치기 토글 캡(반지름 ≈ 너비/2)의 절반만큼 레이아웃에서 되돌림 */
+  --primary-drawer-layout-trim: calc(var(--primary-drawer-expand-toggle-width) / 4);
+  --primary-drawer-page-shift-vw: 38vw;
+  --primary-drawer-page-shift-max: 480px;
+  /** 이너 후보 모달: 100vw − reserve + trim */
+  --primary-drawer-modal-backdrop-reserve: 520px;
+}

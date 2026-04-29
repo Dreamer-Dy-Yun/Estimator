@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { CartesianGrid, Scatter, ScatterChart, Tooltip, XAxis, YAxis } from 'recharts'
 import { getSelfSales, getSelfSalesFilterMeta } from '../../api'
 import type { SelfSalesRow } from '../../types'
+import { selfSalesWeightedOpMarginRate } from '../../utils/analysisKpiWeighted'
 import type { AdjacentDirection } from '../../utils/adjacentListNavigation'
 import { adjacentIdInOrder } from '../../utils/adjacentListNavigation'
 import { clampForecastMonths, readForecastMonthsFromStorage, writeForecastMonthsToStorage } from '../../utils/forecastMonthsStorage'
@@ -102,7 +103,7 @@ export const SelfPage = () => {
 
   const kpi = useMemo(() => {
     const total = rows.reduce((acc, row) => acc + row.amount, 0)
-    const avgRate = rows.length ? rows.reduce((acc, row) => acc + row.opMarginRate, 0) / rows.length : 0
+    const avgRate = selfSalesWeightedOpMarginRate(rows)
     return { total, avgRate }
   }, [rows])
 

@@ -1,3 +1,5 @@
+@import './styles/primaryDrawerLayout.vars.css';
+
 .shell {
   display: grid;
   gap: 0;
@@ -45,4 +47,14 @@
 .pageContent {
   min-height: 0;
   display: grid;
+  min-width: 0;
+  transition: padding-right 0.28s ease;
+}
+
+:global(body[data-primary-drawer-open='true']) .pageContent {
+  padding-right: clamp(
+    0px,
+    calc(var(--primary-drawer-page-shift-vw) - var(--primary-drawer-layout-trim)),
+    calc(var(--primary-drawer-page-shift-max) - var(--primary-drawer-layout-trim))
+  );
 }

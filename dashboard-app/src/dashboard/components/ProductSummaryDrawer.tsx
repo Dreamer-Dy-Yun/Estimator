@@ -14,6 +14,8 @@ import { usePortalHelpPopover } from './usePortalHelpPopover'
 import { ProductSecondaryPanel } from './product-secondary/ProductSecondaryPanel'
 import type { CandidateItemPanelContext } from './product-secondary/candidateActionCards'
 import type { OrderSnapshotDocumentV1 } from '../../snapshot/orderSnapshotTypes'
+import { DRAWER_KEEP_OPEN_SELECTOR } from '../drawer/drawerDom'
+import { setBodyPrimaryDrawerOpen } from '../drawer/primaryDrawerBody'
 import styles from './common.module.css'
 
 const SEASON_MONTH_LABELS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'] as const
@@ -49,6 +51,7 @@ function ProductSummaryDrawerContent({
   candidateItemContext,
   onRequestNavigateAdjacent,
   disableAdjacentNavigation,
+  suppressDocumentLayoutShift,
 }: {
   summary: ProductPrimarySummary
   stockTrend: ProductStockTrendPoint[]
@@ -64,6 +67,11 @@ function ProductSummaryDrawerContent({
   onRequestNavigateAdjacent?: (direction: AdjacentDirection) => void | Promise<void>
   /** 모달 등 열림 시 true — 방향키 네비 비활성. */
   disableAdjacentNavigation?: boolean
+  /**
+   * true: `body` 레이아웃(본문 padding 등)에 손대지 않음.
+   * 이너 오더 모달처럼 부모가 뷰포트만 조정할 때 사용.
+   */
+  suppressDocumentLayoutShift?: boolean
 }) {
   const seasonalityHelpId = useId()
   const forecastMonthsLabelId = useId()
@@ -83,6 +91,12 @@ function ProductSummaryDrawerContent({
   useEffect(() => {
     closePortalHelp()
   }, [summary.id, closePortalHelp])
+
+  useEffect(() => {
+    if (suppressDocumentLayoutShift) return
+    setBodyPrimaryDrawerOpen(true)
+    return () => setBodyPrimaryDrawerOpen(false)
+  }, [suppressDocumentLayoutShift])
 
   useEffect(() => {
     if (!forecastComboOpen) return
@@ -134,7 +148,8 @@ function ProductSummaryDrawerContent({
     setChartHovered(false)
     setKpiHovered(false)
     setSelectedSizeKey('all')
-  }, [summary.id])
+    setExpandPaneOpen(!!initialExpandSecondary)
+  }, [summary.id, initialExpandSecondary])
 
   const pageName = 'ProductSummaryDrawer'
   const makeApiErrorInfo = (request: string, err: unknown): ApiUnitErrorInfo => ({
@@ -395,7 +410,7 @@ function ProductSummaryDrawerContent({
 
       const clickedKeepOpenArea = path.some((node) => {
         if (!(node instanceof Element)) return false
-        return Boolean(node.closest('[data-drawer-keep-open="true"]'))
+        return Boolean(node.closest(DRAWER_KEEP_OPEN_SELECTOR))
       })
       if (clickedKeepOpenArea) return
 
@@ -887,6 +902,7 @@ export const ProductSummaryDrawer = ({
   candidateItemContext,
   onRequestNavigateAdjacent,
   disableAdjacentNavigation,
+  suppressDocumentLayoutShift,
 }: {
   summary: ProductPrimarySummary | null
   stockTrend: ProductStockTrendPoint[]
@@ -900,6 +916,7 @@ export const ProductSummaryDrawer = ({
   candidateItemContext?: CandidateItemPanelContext | null
   onRequestNavigateAdjacent?: (direction: AdjacentDirection) => void | Promise<void>
   disableAdjacentNavigation?: boolean
+  suppressDocumentLayoutShift?: boolean
 }) => {
   if (!summary) return null
   return (
@@ -916,6 +933,7 @@ export const ProductSummaryDrawer = ({
       candidateItemContext={candidateItemContext}
       onRequestNavigateAdjacent={onRequestNavigateAdjacent}
       disableAdjacentNavigation={disableAdjacentNavigation}
+      suppressDocumentLayoutShift={suppressDocumentLayoutShift}
     />
   )
 }

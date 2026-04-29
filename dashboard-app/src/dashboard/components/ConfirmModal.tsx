@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { drawerKeepOpenDataProps } from '../drawer/drawerDom'
 
 type ConfirmModalClassNames = {
   backdrop: string
@@ -43,7 +44,7 @@ export function ConfirmModal({
   if (!open) return null
   return (
     <div
-      {...(keepOpenAttr ? { 'data-drawer-keep-open': 'true' } : {})}
+      {...(keepOpenAttr ? drawerKeepOpenDataProps() : {})}
       className={classNames.backdrop}
       onClick={() => !busy && onCancel()}
     >

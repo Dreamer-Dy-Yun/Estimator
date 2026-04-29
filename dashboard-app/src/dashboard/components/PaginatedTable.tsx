@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { drawerKeepOpenDataProps } from '../drawer/drawerDom'
 import styles from './common.module.css'
 
 type SortValue = string | number
@@ -122,7 +123,7 @@ export function PaginatedTable<T extends { id: string }>(props: PaginatedTablePr
   }
 
   return (
-    <div className={`${styles.tableWrap}${wrapClassName ? ` ${wrapClassName}` : ''}`} data-drawer-keep-open="true">
+    <div className={`${styles.tableWrap}${wrapClassName ? ` ${wrapClassName}` : ''}`} {...drawerKeepOpenDataProps()}>
       <div ref={tableBodyRef} className={styles.tableBody}>
         <table className={styles.table}>
           <thead>

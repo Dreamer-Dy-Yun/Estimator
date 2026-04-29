@@ -6,6 +6,7 @@ import { ConfirmModal } from '../components/ConfirmModal'
 import { DeleteButton } from '../components/DeleteButton'
 import { FilterBar } from '../components/FilterBar'
 import { ProductSummaryDrawer } from '../components/ProductSummaryDrawer'
+import { stashDetailModalBackdropDataProps } from '../drawer/drawerDom'
 import {
   type InnerCandidateRow,
   useCandidateStashDetailModal,
@@ -30,6 +31,7 @@ export function CandidateStashDetailModal({ stashUuid, stashSummary, onClose, on
         className={pageStyles.stashDetailModalBackdrop}
         onClick={() => onClose()}
         role="presentation"
+        {...stashDetailModalBackdropDataProps(m.drawerOpen)}
       >
         <div
           className={pageStyles.stashDetailModalPanel}
@@ -117,142 +119,143 @@ export function CandidateStashDetailModal({ stashUuid, stashSummary, onClose, on
                   ]}
                 />
 
-                <div className={pageStyles.innerSummaryGrid}>
-                  <div className={pageStyles.innerSummaryCard}>
-                    <span className={pageStyles.innerSummaryLabel}>합계 오더 수량</span>
-                    <strong className={pageStyles.innerSummaryValue}>
-                      {formatGroupedNumber(m.totals.qty)} <span className={pageStyles.innerSummaryUnit}>EA</span>
-                    </strong>
-                  </div>
-                  <div className={pageStyles.innerSummaryCard}>
-                    <span className={pageStyles.innerSummaryLabel}>합계 오더 금액</span>
-                    <strong className={pageStyles.innerSummaryValue}>
-                      {formatGroupedNumber(m.totals.expectedOrderAmount)} <span className={pageStyles.innerSummaryUnit}>원</span>
-                    </strong>
-                  </div>
-                  <div className={pageStyles.innerSummaryCard}>
-                    <span className={pageStyles.innerSummaryLabel}>합계 총 기대 매출</span>
-                    <strong className={pageStyles.innerSummaryValue}>
-                      {formatGroupedNumber(m.totals.expectedSalesAmount)} <span className={pageStyles.innerSummaryUnit}>원</span>
-                    </strong>
-                  </div>
-                  <div className={pageStyles.innerSummaryCard}>
-                    <span className={pageStyles.innerSummaryLabel}>합계 총 기대 영업 이익</span>
-                    <strong className={pageStyles.innerSummaryValue}>
-                      {formatGroupedNumber(m.totals.expectedOpProfit)} <span className={pageStyles.innerSummaryUnit}>원</span>
-                    </strong>
-                  </div>
-                  <div className={pageStyles.innerSummaryCard}>
-                    <span className={pageStyles.innerSummaryLabel}>합계 총 기대 영업이익률</span>
-                    <strong className={pageStyles.innerSummaryValue}>
-                      {m.totalExpectedOpProfitRatePct == null
-                        ? '-'
-                        : `${formatRatioDecimalKo(m.totalExpectedOpProfitRatePct)}`}
-                      <span className={pageStyles.innerSummaryUnit}>%</span>
-                    </strong>
-                  </div>
-                </div>
-
-                <div className={pageStyles.innerCandidateListBlock}>
-                  {m.detailLoading ? (
-                    <div className={`${styles.card} ${pageStyles.emptyState}`}>
-                      이너 후보 목록을 불러오는 중...
+                <div className={pageStyles.innerDrawerAwareBody}>
+                  <div className={pageStyles.innerSummaryGrid}>
+                    <div className={pageStyles.innerSummaryCard}>
+                      <span className={pageStyles.innerSummaryLabel}>합계 오더 수량</span>
+                      <strong className={pageStyles.innerSummaryValue}>
+                        {formatGroupedNumber(m.totals.qty)} <span className={pageStyles.innerSummaryUnit}>EA</span>
+                      </strong>
                     </div>
-                  ) : m.drawerError ? (
-                    <div className={`${styles.card} ${pageStyles.emptyState}`}>
-                      이너 후보 상세 로드 실패: {m.drawerError}
+                    <div className={pageStyles.innerSummaryCard}>
+                      <span className={pageStyles.innerSummaryLabel}>합계 오더 금액</span>
+                      <strong className={pageStyles.innerSummaryValue}>
+                        {formatGroupedNumber(m.totals.expectedOrderAmount)} <span className={pageStyles.innerSummaryUnit}>원</span>
+                      </strong>
                     </div>
-                  ) : m.detailError ? (
-                    <div className={`${styles.card} ${pageStyles.emptyState}`}>
-                      이너 후보 목록 로드 실패: {m.detailError}
+                    <div className={pageStyles.innerSummaryCard}>
+                      <span className={pageStyles.innerSummaryLabel}>합계 총 기대 매출</span>
+                      <strong className={pageStyles.innerSummaryValue}>
+                        {formatGroupedNumber(m.totals.expectedSalesAmount)} <span className={pageStyles.innerSummaryUnit}>원</span>
+                      </strong>
                     </div>
-                  ) : !m.tableRows.length ? (
-                    <div className={`${styles.card} ${pageStyles.emptyState}`}>
-                      {m.brandQuery.trim() || m.productCodeQuery.trim() || m.productNameQuery.trim()
-                        ? '검색 결과가 없습니다.'
-                        : '등록된 이너 후보가 없습니다.'}
+                    <div className={pageStyles.innerSummaryCard}>
+                      <span className={pageStyles.innerSummaryLabel}>합계 총 기대 영업 이익</span>
+                      <strong className={pageStyles.innerSummaryValue}>
+                        {formatGroupedNumber(m.totals.expectedOpProfit)} <span className={pageStyles.innerSummaryUnit}>원</span>
+                      </strong>
                     </div>
-                  ) : (
-                    <AnalysisList<InnerCandidateRow>
-                      wrapClassName={pageStyles.innerCandidateTableWrap}
-                      columns={[
-                        { key: 'brand', header: '브랜드', cell: (r) => r.brand, sortValue: (r) => r.brand },
-                        {
-                          key: 'productCode',
-                          header: '상품코드',
-                          cell: (r) => r.productCode,
-                          sortValue: (r) => r.productCode,
-                        },
-                        {
-                          key: 'productName',
-                          header: '상품명',
-                          cell: (r) => r.productName,
-                          sortValue: (r) => r.productName,
-                        },
-                        {
-                          key: 'qty',
-                          header: '오더 수량 (EA)',
-                          cell: (r) => formatGroupedNumber(r.qty),
-                          align: 'right',
-                          sortValue: (r) => r.qty,
-                        },
-                        {
-                          key: 'expectedOrderAmount',
-                          header: '오더 금액 (원)',
-                          cell: (r) => formatGroupedNumber(r.expectedOrderAmount),
-                          align: 'right',
-                          sortValue: (r) => r.expectedOrderAmount,
-                        },
-                        {
-                          key: 'expectedSalesAmount',
-                          header: '총 기대 매출 (원)',
-                          cell: (r) => formatGroupedNumber(r.expectedSalesAmount),
-                          align: 'right',
-                          sortValue: (r) => r.expectedSalesAmount,
-                        },
-                        {
-                          key: 'expectedOpProfit',
-                          header: '총 기대 영업이익 (원)',
-                          cell: (r) => formatGroupedNumber(r.expectedOpProfit),
-                          align: 'right',
-                          sortValue: (r) => r.expectedOpProfit,
-                        },
-                        {
-                          key: 'datesMeta',
-                          header: '등록·변경',
-                          align: 'right',
-                          cell: (r) => (
-                            <div className={pageStyles.innerCandidateDateStack}>
-                              <span className={pageStyles.innerCandidateDateLine}>
-                                등록 {formatDateTimeMinute(r.dbCreatedAt)}
-                              </span>
-                              <span className={pageStyles.innerCandidateDateLine}>
-                                변경 {formatDateTimeMinute(r.dbUpdatedAt)}
-                              </span>
-                            </div>
-                          ),
-                          sortValue: (r) => r.dbUpdatedAt,
-                        },
-                        {
-                          key: 'delete',
-                          header: null,
-                          align: 'center',
-                          sortable: false,
-                          cell: (r) => (
-                            <DeleteButton
-                              aria-label={`${r.productName} 이너 후보에서 삭제`}
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                m.setItemDeleteTarget(r)
-                              }}
-                            />
-                          ),
-                        },
-                      ]}
-                      rows={m.tableRows}
-                      onRowClick={(row) => void m.openItemDrawer(row)}
-                    />
-                  )}
+                    <div className={pageStyles.innerSummaryCard}>
+                      <span className={pageStyles.innerSummaryLabel}>합계 총 기대 영업이익률</span>
+                      <strong className={pageStyles.innerSummaryValue}>
+                        {m.totalExpectedOpProfitRatePct == null
+                          ? '-'
+                          : `${formatRatioDecimalKo(m.totalExpectedOpProfitRatePct)}`}
+                        <span className={pageStyles.innerSummaryUnit}>%</span>
+                      </strong>
+                    </div>
+                  </div>
+                  <div className={pageStyles.innerCandidateListBlock}>
+                    {m.detailLoading ? (
+                      <div className={`${styles.card} ${pageStyles.emptyState}`}>
+                        이너 후보 목록을 불러오는 중...
+                      </div>
+                    ) : m.drawerError ? (
+                      <div className={`${styles.card} ${pageStyles.emptyState}`}>
+                        이너 후보 상세 로드 실패: {m.drawerError}
+                      </div>
+                    ) : m.detailError ? (
+                      <div className={`${styles.card} ${pageStyles.emptyState}`}>
+                        이너 후보 목록 로드 실패: {m.detailError}
+                      </div>
+                    ) : !m.tableRows.length ? (
+                      <div className={`${styles.card} ${pageStyles.emptyState}`}>
+                        {m.brandQuery.trim() || m.productCodeQuery.trim() || m.productNameQuery.trim()
+                          ? '검색 결과가 없습니다.'
+                          : '등록된 이너 후보가 없습니다.'}
+                      </div>
+                    ) : (
+                      <AnalysisList<InnerCandidateRow>
+                        wrapClassName={pageStyles.innerCandidateTableWrap}
+                        columns={[
+                          { key: 'brand', header: '브랜드', cell: (r) => r.brand, sortValue: (r) => r.brand },
+                          {
+                            key: 'productCode',
+                            header: '상품코드',
+                            cell: (r) => r.productCode,
+                            sortValue: (r) => r.productCode,
+                          },
+                          {
+                            key: 'productName',
+                            header: '상품명',
+                            cell: (r) => r.productName,
+                            sortValue: (r) => r.productName,
+                          },
+                          {
+                            key: 'qty',
+                            header: '오더 수량 (EA)',
+                            cell: (r) => formatGroupedNumber(r.qty),
+                            align: 'right',
+                            sortValue: (r) => r.qty,
+                          },
+                          {
+                            key: 'expectedOrderAmount',
+                            header: '오더 금액 (원)',
+                            cell: (r) => formatGroupedNumber(r.expectedOrderAmount),
+                            align: 'right',
+                            sortValue: (r) => r.expectedOrderAmount,
+                          },
+                          {
+                            key: 'expectedSalesAmount',
+                            header: '총 기대 매출 (원)',
+                            cell: (r) => formatGroupedNumber(r.expectedSalesAmount),
+                            align: 'right',
+                            sortValue: (r) => r.expectedSalesAmount,
+                          },
+                          {
+                            key: 'expectedOpProfit',
+                            header: '총 기대 영업이익 (원)',
+                            cell: (r) => formatGroupedNumber(r.expectedOpProfit),
+                            align: 'right',
+                            sortValue: (r) => r.expectedOpProfit,
+                          },
+                          {
+                            key: 'datesMeta',
+                            header: '등록·변경',
+                            align: 'right',
+                            cell: (r) => (
+                              <div className={pageStyles.innerCandidateDateStack}>
+                                <span className={pageStyles.innerCandidateDateLine}>
+                                  등록 {formatDateTimeMinute(r.dbCreatedAt)}
+                                </span>
+                                <span className={pageStyles.innerCandidateDateLine}>
+                                  변경 {formatDateTimeMinute(r.dbUpdatedAt)}
+                                </span>
+                              </div>
+                            ),
+                            sortValue: (r) => r.dbUpdatedAt,
+                          },
+                          {
+                            key: 'delete',
+                            header: null,
+                            align: 'center',
+                            sortable: false,
+                            cell: (r) => (
+                              <DeleteButton
+                                aria-label={`${r.productName} 이너 후보에서 삭제`}
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  m.setItemDeleteTarget(r)
+                                }}
+                              />
+                            ),
+                          },
+                        ]}
+                        rows={m.tableRows}
+                        onRowClick={(row) => void m.openItemDrawer(row)}
+                      />
+                    )}
+                  </div>
                 </div>
               </>
             )}
@@ -263,13 +266,13 @@ export function CandidateStashDetailModal({ stashUuid, stashSummary, onClose, on
       <ProductSummaryDrawer
         summary={m.mergedSummary}
         stockTrend={m.bundle?.stockTrend ?? []}
+        suppressDocumentLayoutShift
         onClose={m.closeDrawer}
         periodStart={m.periodStart!}
         periodEnd={m.periodEnd!}
         forecastMonths={m.fc}
         onForecastMonthsChange={m.onDrawerForecastMonthsChange}
         hydrateSnapshot={m.hydrateSnap}
-        initialExpandSecondary
         onRequestNavigateAdjacent={m.onRequestNavigateAdjacent}
         disableAdjacentNavigation={Boolean(m.deleteOpen || m.itemDeleteTarget)}
         candidateItemContext={
