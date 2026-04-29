@@ -170,8 +170,8 @@
 | `amount`, `amountRank` | 판매액과 순위 |
 | `avgCost`, `costRatioPct` | 평균 원가와 원가 비율. 경쟁 컬럼은 `null` 가능 |
 | `grossMarginPerUnit` | 개당 매출이익. 경쟁 컬럼은 `null` 가능 |
-| `feePerUnit`, `feeRatePct` | 평균 수수료와 수수료율. 경쟁 컬럼은 `null` 가능 |
-| `opMarginPerUnit`, `opMarginRatePct` | 영업이익과 이익률. 경쟁 컬럼은 `null` 가능 |
+| `feePerUnit`, `feeRatePct`, `feeRank` | 평균 수수료, 수수료율, 순위. 경쟁 컬럼은 `null` 가능 |
+| `opMarginPerUnit`, `opMarginRatePct`, `opMarginRank` | 영업이익, 이익률, 순위. 경쟁 컬럼은 `null` 가능 |
 
 백엔드는 고객사 집계 테이블을 우선 사용하고, 필요한 보조 값만 일간 데이터에서 보강하는 것을 권장합니다.
 

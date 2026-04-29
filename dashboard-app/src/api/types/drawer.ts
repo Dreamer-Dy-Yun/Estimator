@@ -40,6 +40,8 @@ export interface ProductSalesInsightColumn {
   opMarginRatePct: number | null
   qtyRank: number
   amountRank: number
+  feeRank: number | null
+  opMarginRank: number | null
   costRatioPct: number | null
 }
 

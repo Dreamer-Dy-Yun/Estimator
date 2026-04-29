@@ -24,6 +24,9 @@ type Props = {
 
 export function SalesMetricsCard({ targetPeriodDays, sales, channelFilter }: Props) {
   const { channelLabel, self: selfCol, competitor: compCol } = sales
+  const formatRateRank = (ratePct: number | null, rank: number | null) =>
+    ratePct === null || rank === null ? '-' : `${formatPercent(ratePct)}, ${rank}${KO.rankSuffix}`
+
   return (
     <div className={`${styles.card} ${styles.gridColumnCard}`}>
       <div className={styles.salesMetricsHeader}>
@@ -87,36 +90,29 @@ export function SalesMetricsCard({ targetPeriodDays, sales, channelFilter }: Pro
               </td>
             </tr>
             <tr>
-              <td>{KO.rowGrossMarginUnit}</td>
-              <td className={styles.num}>{formatGroupedNumber(selfCol.grossMarginPerUnit!)}</td>
-              <td
-                className={`${styles.num} ${compCol.grossMarginPerUnit === null ? styles.salesMetricUnavailable : ''}`}
-              >
-                {compCol.grossMarginPerUnit === null ? '-' : formatGroupedNumber(compCol.grossMarginPerUnit)}
-              </td>
-            </tr>
-            <tr>
               <td>{KO.rowFee}</td>
               <td className={styles.num}>
-                {formatGroupedNumber(selfCol.feePerUnit!)} ({formatPercent(selfCol.feeRatePct!)})
+                {formatGroupedNumber(selfCol.feePerUnit!)} ({formatRateRank(selfCol.feeRatePct, selfCol.feeRank)})
               </td>
               <td
                 className={`${styles.num} ${compCol.feePerUnit === null ? styles.salesMetricUnavailable : ''}`}
               >
-                {compCol.feePerUnit === null ? '-' : `${formatGroupedNumber(compCol.feePerUnit)} (${formatPercent(compCol.feeRatePct!)})`}
+                {compCol.feePerUnit === null
+                  ? '-'
+                  : `${formatGroupedNumber(compCol.feePerUnit)} (${formatRateRank(compCol.feeRatePct, compCol.feeRank)})`}
               </td>
             </tr>
             <tr>
               <td>{KO.rowOpMargin}</td>
               <td className={styles.num}>
-                {formatGroupedNumber(selfCol.opMarginPerUnit!)} ({formatPercent(selfCol.opMarginRatePct!)})
+                {formatGroupedNumber(selfCol.opMarginPerUnit!)} ({formatRateRank(selfCol.opMarginRatePct, selfCol.opMarginRank)})
               </td>
               <td
                 className={`${styles.num} ${compCol.opMarginPerUnit === null ? styles.salesMetricUnavailable : ''}`}
               >
                 {compCol.opMarginPerUnit === null
                   ? '-'
-                  : `${formatGroupedNumber(compCol.opMarginPerUnit)} (${formatPercent(compCol.opMarginRatePct!)})`}
+                  : `${formatGroupedNumber(compCol.opMarginPerUnit)} (${formatRateRank(compCol.opMarginRatePct, compCol.opMarginRank)})`}
               </td>
             </tr>
           </tbody>
