@@ -506,6 +506,12 @@ function ProductSummaryDrawerContent({
         <div className={styles.drawerBody}>
         <ComponentErrorBoundary page={pageName} unit="PrimaryProductSummaryCard">
         <div className={`${styles.card} ${styles.productSummaryCard} ${expandPaneOpen ? styles.productSummaryCardMetaCollapsed : ''}`}>
+          <div className={`${styles.metaChips} ${expandPaneOpen ? styles.metaChipsCollapsed : ''}`}>
+            <span className={styles.metaChip}>{summary.brand}</span>
+            <span className={styles.metaChip}>{summary.category}</span>
+            <span className={styles.metaChip}>{summary.productCode}</span>
+            <span className={styles.metaChip}>{summary.name}</span>
+          </div>
           <div className={styles.productImageWrap}>
             <img className={styles.productImage} src={imageUrl} alt={summary.name} />
           </div>
