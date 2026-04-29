@@ -18,6 +18,7 @@ export type SalesKpiColumn = {
   amountRank: number
   feeRank: number | null
   opMarginRank: number | null
+  rankTotal: number
   costRatioPct: number | null
 }
 
@@ -40,6 +41,7 @@ export function buildSalesKpiColumn(
   const amountRank = hashRank(`${primary.id}-${kind}-amt`, 28)
   const feeRank = kind === 'self' ? hashRank(`${primary.id}-${kind}-fee`, 28) : null
   const opMarginRank = kind === 'self' ? hashRank(`${primary.id}-${kind}-op-margin`, 28) : null
+  const rankTotal = 100
 
   if (kind === 'competitor') {
     return {
@@ -57,6 +59,7 @@ export function buildSalesKpiColumn(
       amountRank,
       feeRank,
       opMarginRank,
+      rankTotal,
     }
   }
 
@@ -82,5 +85,6 @@ export function buildSalesKpiColumn(
     amountRank,
     feeRank,
     opMarginRank,
+    rankTotal,
   }
 }

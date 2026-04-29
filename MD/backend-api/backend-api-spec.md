@@ -168,8 +168,9 @@
 | `avgPrice` | 평균 판매가 |
 | `qty`, `qtyRank` | 판매량과 순위 |
 | `amount`, `amountRank` | 판매액과 순위 |
+| `rankTotal` | 순위 모집단 수. UI는 `qtyRank/rankTotal위`처럼 표시 |
 | `avgCost`, `costRatioPct` | 평균 원가와 원가 비율. 경쟁 컬럼은 `null` 가능 |
-| `grossMarginPerUnit` | 개당 매출이익. 경쟁 컬럼은 `null` 가능 |
+| `grossMarginPerUnit` | 개당 매출이익. 경쟁 컬럼은 `null` 가능. 현재 1차 판매 정보 표에서는 표시하지 않음 |
 | `feePerUnit`, `feeRatePct`, `feeRank` | 평균 수수료, 수수료율, 순위. 경쟁 컬럼은 `null` 가능 |
 | `opMarginPerUnit`, `opMarginRatePct`, `opMarginRank` | 영업이익, 이익률, 순위. 경쟁 컬럼은 `null` 가능 |
 

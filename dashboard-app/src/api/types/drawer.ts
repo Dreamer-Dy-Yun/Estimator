@@ -42,6 +42,7 @@ export interface ProductSalesInsightColumn {
   amountRank: number
   feeRank: number | null
   opMarginRank: number | null
+  rankTotal: number
   costRatioPct: number | null
 }
 

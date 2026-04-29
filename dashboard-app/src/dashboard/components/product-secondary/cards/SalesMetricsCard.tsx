@@ -24,8 +24,10 @@ type Props = {
 
 export function SalesMetricsCard({ targetPeriodDays, sales, channelFilter }: Props) {
   const { channelLabel, self: selfCol, competitor: compCol } = sales
-  const formatRateRank = (ratePct: number | null, rank: number | null) =>
-    ratePct === null || rank === null ? '-' : `${formatPercent(ratePct)}, ${rank}${KO.rankSuffix}`
+  const formatRank = (rank: number | null, total: number) =>
+    rank === null ? '-' : `${rank}/${total}${KO.rankSuffix}`
+  const formatRateRank = (ratePct: number | null, rank: number | null, total: number) =>
+    ratePct === null || rank === null ? '-' : `${formatPercent(ratePct)}, ${formatRank(rank, total)}`
 
   return (
     <div className={`${styles.card} ${styles.gridColumnCard}`}>
@@ -38,11 +40,8 @@ export function SalesMetricsCard({ targetPeriodDays, sales, channelFilter }: Pro
         </div>
         {channelFilter && (
           <label className={styles.salesMetricsChannelControl}>
-            <span>
-              {KO.labelCompetitorChannel}
-              <ApiUnitErrorBadge error={channelFilter.error} />
-            </span>
             <select
+              aria-label={KO.labelCompetitorChannel}
               value={channelFilter.channelId}
               onChange={(e) => channelFilter.onChannelChange(e.target.value)}
             >
@@ -50,6 +49,7 @@ export function SalesMetricsCard({ targetPeriodDays, sales, channelFilter }: Pro
                 <option key={ch.id} value={ch.id}>{ch.label}</option>
               ))}
             </select>
+            <ApiUnitErrorBadge error={channelFilter.error} />
           </label>
         )}
       </div>
@@ -70,13 +70,13 @@ export function SalesMetricsCard({ targetPeriodDays, sales, channelFilter }: Pro
             </tr>
             <tr>
               <td>{KO.rowQtyRank}</td>
-              <td className={styles.num}>{formatGroupedNumber(selfCol.qty)} ({selfCol.qtyRank}{KO.rankSuffix})</td>
-              <td className={styles.num}>{formatGroupedNumber(compCol.qty)} ({compCol.qtyRank}{KO.rankSuffix})</td>
+              <td className={styles.num}>{formatGroupedNumber(selfCol.qty)} ({formatRank(selfCol.qtyRank, selfCol.rankTotal)})</td>
+              <td className={styles.num}>{formatGroupedNumber(compCol.qty)} ({formatRank(compCol.qtyRank, compCol.rankTotal)})</td>
             </tr>
             <tr>
               <td>{KO.rowAmountRank}</td>
-              <td className={styles.num}>{formatGroupedNumber(selfCol.amount)} ({selfCol.amountRank}{KO.rankSuffix})</td>
-              <td className={styles.num}>{formatGroupedNumber(compCol.amount)} ({compCol.amountRank}{KO.rankSuffix})</td>
+              <td className={styles.num}>{formatGroupedNumber(selfCol.amount)} ({formatRank(selfCol.amountRank, selfCol.rankTotal)})</td>
+              <td className={styles.num}>{formatGroupedNumber(compCol.amount)} ({formatRank(compCol.amountRank, compCol.rankTotal)})</td>
             </tr>
             <tr>
               <td>{KO.rowAvgCost}</td>
@@ -92,27 +92,27 @@ export function SalesMetricsCard({ targetPeriodDays, sales, channelFilter }: Pro
             <tr>
               <td>{KO.rowFee}</td>
               <td className={styles.num}>
-                {formatGroupedNumber(selfCol.feePerUnit!)} ({formatRateRank(selfCol.feeRatePct, selfCol.feeRank)})
+                {formatGroupedNumber(selfCol.feePerUnit!)} ({formatRateRank(selfCol.feeRatePct, selfCol.feeRank, selfCol.rankTotal)})
               </td>
               <td
                 className={`${styles.num} ${compCol.feePerUnit === null ? styles.salesMetricUnavailable : ''}`}
               >
                 {compCol.feePerUnit === null
                   ? '-'
-                  : `${formatGroupedNumber(compCol.feePerUnit)} (${formatRateRank(compCol.feeRatePct, compCol.feeRank)})`}
+                  : `${formatGroupedNumber(compCol.feePerUnit)} (${formatRateRank(compCol.feeRatePct, compCol.feeRank, compCol.rankTotal)})`}
               </td>
             </tr>
             <tr>
               <td>{KO.rowOpMargin}</td>
               <td className={styles.num}>
-                {formatGroupedNumber(selfCol.opMarginPerUnit!)} ({formatRateRank(selfCol.opMarginRatePct, selfCol.opMarginRank)})
+                {formatGroupedNumber(selfCol.opMarginPerUnit!)} ({formatRateRank(selfCol.opMarginRatePct, selfCol.opMarginRank, selfCol.rankTotal)})
               </td>
               <td
                 className={`${styles.num} ${compCol.opMarginPerUnit === null ? styles.salesMetricUnavailable : ''}`}
               >
                 {compCol.opMarginPerUnit === null
                   ? '-'
-                  : `${formatGroupedNumber(compCol.opMarginPerUnit)} (${formatRateRank(compCol.opMarginRatePct, compCol.opMarginRank)})`}
+                  : `${formatGroupedNumber(compCol.opMarginPerUnit)} (${formatRateRank(compCol.opMarginRatePct, compCol.opMarginRank, compCol.rankTotal)})`}
               </td>
             </tr>
           </tbody>
