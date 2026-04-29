@@ -11,6 +11,8 @@ import type {
   DashboardApi,
   ProductDrawerBundle,
   ProductDrawerBundleParams,
+  ProductSalesInsight,
+  ProductSalesInsightParams,
   ProductSecondaryDetail,
   SecondaryCompetitorChannel,
   SecondaryStockOrderCalcParams,
@@ -42,6 +44,13 @@ export async function getProductDrawerBundle(
   params?: ProductDrawerBundleParams,
 ): Promise<ProductDrawerBundle> {
   return mockDashboardApi.getProductDrawerBundle(id, params)
+}
+
+export async function getProductSalesInsight(
+  id: string,
+  params: ProductSalesInsightParams,
+): Promise<ProductSalesInsight> {
+  return mockDashboardApi.getProductSalesInsight(id, params)
 }
 
 export async function getProductSecondaryDetail(
@@ -137,6 +146,7 @@ export const dashboardApi: DashboardApi = {
   getCompetitorSales,
   getSelfSalesFilterMeta,
   getProductDrawerBundle,
+  getProductSalesInsight,
   getProductSecondaryDetail,
   getSecondaryDailyTrend,
   getSecondaryCompetitorChannels,

@@ -1,41 +1,26 @@
 import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type WheelEvent } from 'react'
 import { ApiUnitErrorBadge } from '../../components/ApiUnitErrorBadge'
 import { ComponentErrorBoundary } from '../../components/ComponentErrorBoundary'
-import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
-import type { ProductSecondaryDetail, ProductStockTrendPoint } from '../../api'
+import type {
+  ProductSalesInsight,
+  ProductSecondaryDetail,
+  ProductStockTrendPoint,
+  SecondaryCompetitorChannel,
+} from '../../api'
 import { dashboardApi } from '../../api'
 import type { ApiUnitErrorInfo, ProductPrimarySummary } from '../../types'
 import type { AdjacentDirection } from '../../utils/adjacentListNavigation'
-import { formatGroupedNumber, formatPercent } from '../../utils/format'
-import { PortalHelpMark, PortalHelpPopoverLayer } from './PortalHelpPopover'
+import { monthToEndDate, monthToStartDate } from '../../utils/date'
+import { formatGroupedNumber } from '../../utils/format'
 import { SalesTrendChart } from './trend/SalesTrendChart'
 import { buildShadeRanges, normalizeMonthKey } from './trend/trendRangeUtils'
-import { usePortalHelpPopover } from './usePortalHelpPopover'
 import { ProductSecondaryPanel } from './product-secondary/ProductSecondaryPanel'
+import { SalesMetricsCard } from './product-secondary/cards/SalesMetricsCard'
 import type { CandidateItemPanelContext } from './product-secondary/candidateActionCards'
 import type { OrderSnapshotDocumentV1 } from '../../snapshot/orderSnapshotTypes'
 import { DRAWER_KEEP_OPEN_SELECTOR } from '../drawer/drawerDom'
 import { setBodyPrimaryDrawerOpen } from '../drawer/primaryDrawerBody'
 import styles from './common.module.css'
-
-const SEASON_MONTH_LABELS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'] as const
-
-const formatSeasonMonthLabel = (m: unknown) => {
-  const n = typeof m === 'number' ? m : Number(m)
-  if (Number.isNaN(n)) return String(m ?? '')
-  const i = Math.trunc(n) - 1
-  return i >= 0 && i < 12 ? SEASON_MONTH_LABELS[i] : String(m)
-}
-
-/** 툴팁 전용 — 축은 JAN/FEB, 호버 시 1월·2월 */
-const formatSeasonMonthTooltipLabel = (m: unknown) => {
-  const n = typeof m === 'number' ? m : Number(m)
-  if (Number.isNaN(n)) return String(m ?? '')
-  const month = Math.trunc(n)
-  return month >= 1 && month <= 12 ? `${month}월` : String(m)
-}
-
-type DrawerHelpId = 'seasonality' | 'kpiPrice' | 'kpiQty' | 'kpiStock'
 
 /** `detail`이 있을 때만 마운트 — 바깥에서 `null` 반환 시 훅 개수가 달라지는 문제 방지 */
 function ProductSummaryDrawerContent({
@@ -73,24 +58,19 @@ function ProductSummaryDrawerContent({
    */
   suppressDocumentLayoutShift?: boolean
 }) {
-  const seasonalityHelpId = useId()
   const forecastMonthsLabelId = useId()
-  const kpiPriceHelpId = useId()
-  const kpiQtyHelpId = useId()
-  const kpiStockHelpId = useId()
-  const portalHelp = usePortalHelpPopover<DrawerHelpId>()
-  const { close: closePortalHelp } = portalHelp
 
   const drawerRef = useRef<HTMLElement | null>(null)
   const forecastComboRef = useRef<HTMLDivElement | null>(null)
   const salesTrendChartClipRef = useRef<HTMLDivElement | null>(null)
+  const salesInsightReqSeqRef = useRef(0)
   const [forecastComboOpen, setForecastComboOpen] = useState(false)
   const [salesTrendChartClipWidth, setSalesTrendChartClipWidth] = useState(320)
-  const kpiCloseTimerRef = useRef<number | null>(null)
-
-  useEffect(() => {
-    closePortalHelp()
-  }, [summary.id, closePortalHelp])
+  const [competitorChannels, setCompetitorChannels] = useState<SecondaryCompetitorChannel[]>([])
+  const [channelId, setChannelId] = useState('')
+  const [channelsError, setChannelsError] = useState<ApiUnitErrorInfo | null>(null)
+  const [salesInsight, setSalesInsight] = useState<ProductSalesInsight | null>(null)
+  const [salesInsightError, setSalesInsightError] = useState<ApiUnitErrorInfo | null>(null)
 
   useEffect(() => {
     if (suppressDocumentLayoutShift) return
@@ -136,9 +116,6 @@ function ProductSummaryDrawerContent({
   }, [summary.id])
 
   const [chartHovered, setChartHovered] = useState(false)
-  const [kpiHovered, setKpiHovered] = useState(false)
-  /** 'all' = 전체 상품 합계, 그 외 = 사이즈 코드(sizeMix.size) */
-  const [selectedSizeKey, setSelectedSizeKey] = useState<'all' | string>('all')
   /** 왼쪽 확장 패널(추가 콘텐츠 영역) */
   const [expandPaneOpen, setExpandPaneOpen] = useState(!!initialExpandSecondary)
   const [secondaryDetail, setSecondaryDetail] = useState<ProductSecondaryDetail | null>(null)
@@ -146,8 +123,6 @@ function ProductSummaryDrawerContent({
 
   useEffect(() => {
     setChartHovered(false)
-    setKpiHovered(false)
-    setSelectedSizeKey('all')
     setExpandPaneOpen(!!initialExpandSecondary)
   }, [summary.id, initialExpandSecondary])
 
@@ -158,6 +133,28 @@ function ProductSummaryDrawerContent({
     request,
     error: err instanceof Error ? err.message : String(err),
   })
+
+  useEffect(() => {
+    let alive = true
+    void (async () => {
+      try {
+        const rows = await dashboardApi.getSecondaryCompetitorChannels()
+        if (!alive) return
+        if (!rows.length) throw new Error('경쟁사 채널 데이터가 비어 있습니다.')
+        setCompetitorChannels(rows)
+        setChannelId((prev) => prev || rows[0]?.id || '')
+        setChannelsError(null)
+      } catch (err) {
+        if (!alive) return
+        setCompetitorChannels([])
+        setChannelId('')
+        setChannelsError(makeApiErrorInfo('getSecondaryCompetitorChannels()', err))
+      }
+    })()
+    return () => {
+      alive = false
+    }
+  }, [])
 
   /** 2차 패널이 열릴 때만 로드. 필터(예: 영업이익률 하한)를 두면 `getProductSecondaryDetail` 두 번째 인자·이 effect deps에 포함해 재요청. */
   const secondaryFromSnapshot =
@@ -203,43 +200,45 @@ function ProductSummaryDrawerContent({
 
   const selectedStart = normalizeMonthKey(periodStart)
   const selectedEnd = normalizeMonthKey(periodEnd)
+  const salesInsightStartDay = monthToStartDate(selectedStart)
+  const salesInsightEndDay = monthToEndDate(selectedEnd)
 
-  const sizeBreakdown = useMemo(
-    () =>
-      summary.sizeMix.map((item) => ({
-        size: item.size,
-        price: item.avgPrice,
-        qty: item.qty,
-        stock: item.availableStock,
-      })),
-    [summary.sizeMix],
-  )
-
-  const displayKpi = useMemo(() => {
-    const base = {
-      price: summary.price,
-      qty: summary.qty,
-      stock: summary.availableStock,
+  useEffect(() => {
+    if (!channelId) {
+      setSalesInsight(null)
+      return
     }
-    if (selectedSizeKey === 'all') return base
-    const row = sizeBreakdown.find((r) => r.size === selectedSizeKey)
-    if (!row) return base
-    return { price: row.price, qty: row.qty, stock: row.stock }
-  }, [summary.availableStock, summary.price, summary.qty, selectedSizeKey, sizeBreakdown])
+    const reqSeq = ++salesInsightReqSeqRef.current
+    void (async () => {
+      try {
+        const data = await dashboardApi.getProductSalesInsight(summary.id, {
+          startDate: salesInsightStartDay,
+          endDate: salesInsightEndDay,
+          competitorChannelId: channelId,
+        })
+        if (reqSeq !== salesInsightReqSeqRef.current) return
+        setSalesInsight(data)
+        setSalesInsightError(null)
+      } catch (err) {
+        if (reqSeq !== salesInsightReqSeqRef.current) return
+        setSalesInsight(null)
+        setSalesInsightError(
+          makeApiErrorInfo(
+            `getProductSalesInsight(${JSON.stringify({ productId: summary.id, startDate: salesInsightStartDay, endDate: salesInsightEndDay, competitorChannelId: channelId })})`,
+            err,
+          ),
+        )
+      }
+    })()
+  }, [channelId, salesInsightEndDay, salesInsightStartDay, summary.id])
 
-  /** 선택된 사이즈(전체=1)에 맞춰 월별 판매 추이 스케일 — 사이즈 판매량 ÷ 품번 합계 */
-  const trendScale = useMemo(() => {
-    if (selectedSizeKey === 'all') return 1
-    const row = summary.sizeMix.find((s) => s.size === selectedSizeKey)
-    if (!row || summary.qty <= 0) return 1
-    return row.qty / summary.qty
-  }, [summary.qty, summary.sizeMix, selectedSizeKey])
+  const trendScale = 1
 
   const salesSeries = useMemo(() => summary.monthlySalesTrend.map((point, idx) => ({
     ...point,
     idx,
     sales: Math.round(point.sales * trendScale),
-  })), [summary.monthlySalesTrend, trendScale])
+  })), [summary.monthlySalesTrend])
 
   const { periodStartIdx, periodEndIdx, periodShade, forecastShade } = useMemo(
     () => buildShadeRanges(salesSeries, selectedStart, selectedEnd),
@@ -278,14 +277,6 @@ function ProductSummaryDrawerContent({
       viewStart = Math.max(0, viewEnd - windowSize + 1)
     }
   }
-
-  const seasonChartData = useMemo(
-    () => summary.seasonality.map((row) => ({
-      month: row.month,
-      ratio: row.ratio,
-    })),
-    [summary.seasonality],
-  )
 
   const chartData = useMemo(() => {
     const stockByDate = new Map(stockTrend.map((row) => [row.date, row.stock]))
@@ -447,30 +438,6 @@ function ProductSummaryDrawerContent({
     secondaryDetailError,
   ])
 
-  useEffect(() => {
-    return () => {
-      if (kpiCloseTimerRef.current) {
-        window.clearTimeout(kpiCloseTimerRef.current)
-      }
-    }
-  }, [])
-
-  const openKpiPanel = () => {
-    if (kpiCloseTimerRef.current) {
-      window.clearTimeout(kpiCloseTimerRef.current)
-      kpiCloseTimerRef.current = null
-    }
-    setKpiHovered(true)
-  }
-
-  const closeKpiPanel = () => {
-    if (kpiCloseTimerRef.current) window.clearTimeout(kpiCloseTimerRef.current)
-    kpiCloseTimerRef.current = window.setTimeout(() => {
-      setKpiHovered(false)
-      kpiCloseTimerRef.current = null
-    }, 180)
-  }
-
   const onChartWheel = (event: WheelEvent<HTMLDivElement>) => {
     if (!chartHovered) return
     event.preventDefault()
@@ -479,16 +446,8 @@ function ProductSummaryDrawerContent({
     setWindowSize(Math.max(minWindow, Math.min(salesSeries.length, next)))
   }
 
-  const getDrawerHelpTooltipId = (id: DrawerHelpId) =>
-    id === 'seasonality'
-      ? seasonalityHelpId
-      : id === 'kpiPrice'
-        ? kpiPriceHelpId
-        : id === 'kpiQty'
-          ? kpiQtyHelpId
-          : kpiStockHelpId
-
   const imageUrl = `https://placehold.co/640x360?text=${encodeURIComponent(summary.name)}`
+  const salesMetricsError = salesInsightError ?? channelsError
 
   return (
     <aside
@@ -547,120 +506,47 @@ function ProductSummaryDrawerContent({
         <div className={styles.drawerBody}>
         <ComponentErrorBoundary page={pageName} unit="PrimaryProductSummaryCard">
         <div className={`${styles.card} ${styles.productSummaryCard} ${expandPaneOpen ? styles.productSummaryCardMetaCollapsed : ''}`}>
-          <div className={`${styles.metaChips} ${expandPaneOpen ? styles.metaChipsCollapsed : ''}`}>
-            <span className={styles.metaChip}>{summary.brand}</span>
-            <span className={styles.metaChip}>{summary.category}</span>
-            <span className={styles.metaChip}>{summary.productCode}</span>
-            <span className={styles.metaChip}>{summary.name}</span>
-          </div>
           <div className={styles.productImageWrap}>
             <img className={styles.productImage} src={imageUrl} alt={summary.name} />
           </div>
         </div>
         </ComponentErrorBoundary>
-        <ComponentErrorBoundary page={pageName} unit="PrimaryKpiCard">
-        <div
-          className={`${styles.kpiHoverZone} ${styles.drawerKpiZone}`}
-          onMouseEnter={openKpiPanel}
-          onMouseLeave={closeKpiPanel}
-        >
-          <div className={`${styles.kpiGrid} ${styles.kpiGrid3}`}>
-            <div className={styles.kpi}>
-              <div className={`${styles.kpiLabel} ${styles.kpiLabelWithHelp}`}>
-                판매가
-                <PortalHelpMark
-                  helpId="kpiPrice"
-                  placement="below"
-                  labelId={kpiPriceHelpId}
-                  markClassName={styles.helpMark}
-                  help={portalHelp}
-                  stopMouseDownPropagation
-                />
-              </div>
-              <div className={styles.kpiValue}>{formatGroupedNumber(displayKpi.price)}</div>
+        <ComponentErrorBoundary page={pageName} unit="PrimarySalesMetricsCard">
+        {salesMetricsError != null ? (
+          <div className={`${styles.card} ${styles.drawerSalesMetricsCard}`}>
+            <div className={styles.cardTitle}>
+              판매 정보
+              <ApiUnitErrorBadge error={salesMetricsError} />
             </div>
-            <div className={styles.kpi}>
-              <div className={`${styles.kpiLabel} ${styles.kpiLabelWithHelp}`}>
-                판매량
-                <PortalHelpMark
-                  helpId="kpiQty"
-                  placement="below"
-                  labelId={kpiQtyHelpId}
-                  markClassName={styles.helpMark}
-                  help={portalHelp}
-                  stopMouseDownPropagation
-                />
-              </div>
-              <div className={styles.kpiValue}>{formatGroupedNumber(displayKpi.qty)}</div>
-            </div>
-            <div className={styles.kpi}>
-              <div className={`${styles.kpiLabel} ${styles.kpiLabelWithHelp}`}>
-                재고
-                <PortalHelpMark
-                  helpId="kpiStock"
-                  placement="below"
-                  labelId={kpiStockHelpId}
-                  markClassName={styles.helpMark}
-                  help={portalHelp}
-                  stopMouseDownPropagation
-                />
-              </div>
-              <div className={styles.kpiValue}>{formatGroupedNumber(displayKpi.stock)}</div>
-            </div>
+            <p className={styles.drawerErrorText}>판매 정보를 불러오지 못했습니다.</p>
           </div>
-          {kpiHovered && (
-            <div
-              className={styles.sizeHoverPanel}
-              onMouseEnter={openKpiPanel}
-              onMouseLeave={closeKpiPanel}
-            >
-              <div className={styles.sizeHoverTableWrap}>
-                <table className={styles.sizeHoverTable}>
-                  <thead>
-                    <tr>
-                      <th>사이즈</th>
-                      <th>판매가(KRW)</th>
-                      <th>판매량(EA)</th>
-                      <th>재고(EA)</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr
-                      className={`${styles.sizeHoverRow} ${styles.sizeHoverRowAll} ${styles.sizeHoverRowPinned} ${selectedSizeKey === 'all' ? styles.sizeHoverRowSelected : ''}`}
-                      onClick={() => setSelectedSizeKey('all')}
-                    >
-                      <td>전체</td>
-                      <td>{formatGroupedNumber(summary.price)}</td>
-                      <td>{formatGroupedNumber(summary.qty)}</td>
-                      <td>{formatGroupedNumber(summary.availableStock)}</td>
-                    </tr>
-                    {sizeBreakdown.map((row) => (
-                      <tr
-                        key={row.size}
-                        className={`${styles.sizeHoverRow} ${selectedSizeKey === row.size ? styles.sizeHoverRowSelected : ''}`}
-                        onClick={() => setSelectedSizeKey(row.size)}
-                      >
-                        <td>{row.size}</td>
-                        <td>{formatGroupedNumber(row.price)}</td>
-                        <td>{formatGroupedNumber(row.qty)}</td>
-                        <td>{formatGroupedNumber(row.stock)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-        </div>
+        ) : salesInsight == null ? (
+          <div className={`${styles.card} ${styles.drawerSalesMetricsCard}`}>
+            <div className={styles.cardTitle}>판매 정보</div>
+            <p className={styles.drawerLoadingText}>판매 정보를 불러오는 중…</p>
+          </div>
+        ) : (
+          <SalesMetricsCard
+            targetPeriodDays={salesInsight.targetPeriodDays}
+            sales={{
+              channelLabel: salesInsight.competitorChannelLabel,
+              self: salesInsight.self,
+              competitor: salesInsight.competitor,
+            }}
+            channelFilter={{
+              channelId,
+              competitorChannels,
+              error: channelsError,
+              onChannelChange: setChannelId,
+            }}
+          />
+        )}
         </ComponentErrorBoundary>
         <ComponentErrorBoundary page={pageName} unit="PrimarySalesTrendCard">
         <div className={`${styles.card} ${styles.drawerSalesTrendCard}`}>
           <div className={styles.salesTrendTitleRow}>
             <div className={styles.cardTitle}>
               판매추이(월간)
-              {selectedSizeKey !== 'all' && (
-                <span className={styles.trendSizeBadge}> · {selectedSizeKey}</span>
-              )}
             </div>
             <div className={styles.forecastMonthsControl}>
               <span className={styles.forecastMonthsLabel} id={forecastMonthsLabelId}>
@@ -763,97 +649,7 @@ function ProductSummaryDrawerContent({
           </div>
         </div>
         </ComponentErrorBoundary>
-        <ComponentErrorBoundary page={pageName} unit="PrimarySeasonalityCard">
-        <div className={`${styles.card} ${styles.drawerSeasonalityCard}`}>
-          <div className={styles.trendHead}>
-            <div className={`${styles.cardTitle} ${styles.cardTitleWithHelp}`}>
-              계절성
-              <PortalHelpMark
-                helpId="seasonality"
-                placement="above"
-                labelId={seasonalityHelpId}
-                markClassName={styles.helpMark}
-                help={portalHelp}
-              />
-            </div>
-            <div className={styles.periodMeta}>연간 월별 비중 (합계 100%)</div>
-          </div>
-          <div className={styles.chartClipWrap}>
-            <ResponsiveContainer width="100%" height={100}>
-              <AreaChart data={seasonChartData} margin={{ top: 6, right: 12, bottom: 4, left: 4 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-              <XAxis
-                dataKey="month"
-                type="category"
-                ticks={[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]}
-                tickFormatter={formatSeasonMonthLabel}
-                tick={{ fontSize: 10 }}
-              />
-              <YAxis
-                domain={[0, 'auto']}
-                tickFormatter={(v) => formatPercent(v * 100)}
-                tick={{ fontSize: 9 }}
-                width={44}
-                tickMargin={4}
-              />
-              <Tooltip
-                allowEscapeViewBox={{ x: false, y: false }}
-                offset={6}
-                wrapperStyle={{ outline: 'none' }}
-                contentStyle={{ whiteSpace: 'nowrap' }}
-                formatter={(value) => formatPercent(Number(value ?? 0) * 100)}
-                labelFormatter={formatSeasonMonthTooltipLabel}
-              />
-              <Area
-                type="monotone"
-                dataKey="ratio"
-                stroke="#0f766e"
-                strokeWidth={1.5}
-                fill="#5eead4"
-                fillOpacity={0.35}
-              />
-            </AreaChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-        </ComponentErrorBoundary>
       </div>
-      <PortalHelpPopoverLayer
-        help={portalHelp}
-        popoverClassName={styles.helpPopoverPortal}
-        getTooltipId={getDrawerHelpTooltipId}
-      >
-        {(hid) => (
-          <>
-            {hid === 'seasonality' && (
-              <>
-                <p>각 연도의 <strong>동월</strong>(1월끼리, 2월끼리 …)을 </p>
-                <p>평균한 비율입니다.</p>
-                <p>데이터가 부족하면 표시되지 않을 수 있습니다.</p>
-                <p>※판매 전략이나 이벤트에 의해 오염될 수 있습니다.</p>
-              </>
-            )}
-            {hid === 'kpiPrice' && (
-              <>
-                <p>선택한 기간·사이즈 기준 <strong>평균 판매 단가</strong>입니다.</p>
-                <p>사이즈를 고르면 API가 내려주는 <strong>해당 사이즈 평균 단가</strong>를 보여 줍니다. 전체는 품번 단위 값입니다.</p>
-              </>
-            )}
-            {hid === 'kpiQty' && (
-              <>
-                <p>선택한 기간 동안의 <strong>판매 수량 합</strong>입니다.</p>
-                <p>사이즈를 고르면 API가 내려주는 <strong>해당 사이즈 판매량</strong>을 보여 줍니다. 전체는 품번 단위 합계입니다.</p>
-              </>
-            )}
-            {hid === 'kpiStock' && (
-              <>
-                <p><strong>현재 시점 가용 재고</strong> 수량입니다.</p>
-                <p>사이즈를 고르면 API가 내려주는 <strong>해당 사이즈 실재고</strong>를 보여 줍니다. 전체는 품번 단위 합계입니다.</p>
-              </>
-            )}
-          </>
-        )}
-      </PortalHelpPopoverLayer>
       </div>
       <div
         className={`${styles.drawerExpandPane} ${expandPaneOpen ? styles.drawerExpandPaneOpen : ''}`}
@@ -880,6 +676,11 @@ function ProductSummaryDrawerContent({
                 pageName="ProductSummaryDrawer > ProductSecondaryPanel"
                 prefillFromSnapshot={hydrateForPanel}
                 candidateItemContext={candidateItemContext ?? null}
+                channelState={{
+                  channelId,
+                  competitorChannels,
+                  onChannelChange: setChannelId,
+                }}
               />
             )
           )}

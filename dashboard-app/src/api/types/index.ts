@@ -1,5 +1,12 @@
 export type { CompetitorSalesParams, SelfSalesFilterMeta, SelfSalesParams } from './sales'
-export type { ProductDrawerBundle, ProductDrawerBundleParams, ProductStockTrendPoint } from './drawer'
+export type {
+  ProductDrawerBundle,
+  ProductDrawerBundleParams,
+  ProductSalesInsight,
+  ProductSalesInsightColumn,
+  ProductSalesInsightParams,
+  ProductStockTrendPoint,
+} from './drawer'
 export type {
   ProductSecondaryDetailParams,
   CandidateItemDetail,

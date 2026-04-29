@@ -1,3 +1,6 @@
+import { ApiUnitErrorBadge } from '../../../../components/ApiUnitErrorBadge'
+import type { SecondaryCompetitorChannel } from '../../../../api'
+import type { ApiUnitErrorInfo } from '../../../../types'
 import { formatGroupedNumber, formatPercent } from '../../../../utils/format'
 import { KO } from '../ko'
 import styles from '../productSecondaryPanel.module.css'
@@ -11,16 +14,42 @@ type Props = {
     self: SalesKpiColumn
     competitor: SalesKpiColumn
   }
+  channelFilter?: {
+    channelId: string
+    competitorChannels: SecondaryCompetitorChannel[]
+    error: ApiUnitErrorInfo | null
+    onChannelChange: (next: string) => void
+  }
 }
 
-export function SalesMetricsCard({ targetPeriodDays, sales }: Props) {
+export function SalesMetricsCard({ targetPeriodDays, sales, channelFilter }: Props) {
   const { channelLabel, self: selfCol, competitor: compCol } = sales
   return (
     <div className={`${styles.card} ${styles.gridColumnCard}`}>
-      <h3 className={styles.sectionTitle}>{KO.sectionSales}</h3>
-      <p className={styles.salesMetricsPeriodLine}>
-        {KO.salesMetricsTargetPeriod}: {targetPeriodDays.start} ~ {targetPeriodDays.end}
-      </p>
+      <div className={styles.salesMetricsHeader}>
+        <div>
+          <h3 className={styles.sectionTitle}>{KO.sectionSales}</h3>
+          <p className={styles.salesMetricsPeriodLine}>
+            {KO.salesMetricsTargetPeriod}: {targetPeriodDays.start} ~ {targetPeriodDays.end}
+          </p>
+        </div>
+        {channelFilter && (
+          <label className={styles.salesMetricsChannelControl}>
+            <span>
+              {KO.labelCompetitorChannel}
+              <ApiUnitErrorBadge error={channelFilter.error} />
+            </span>
+            <select
+              value={channelFilter.channelId}
+              onChange={(e) => channelFilter.onChannelChange(e.target.value)}
+            >
+              {channelFilter.competitorChannels.map((ch) => (
+                <option key={ch.id} value={ch.id}>{ch.label}</option>
+              ))}
+            </select>
+          </label>
+        )}
+      </div>
       <div className={styles.cardTableScroll}>
         <table className={`${styles.table} ${styles.salesMetricsTightTable}`}>
           <thead>

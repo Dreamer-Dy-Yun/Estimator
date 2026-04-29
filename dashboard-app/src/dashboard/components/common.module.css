@@ -760,8 +760,8 @@
 .drawer {
   position: fixed;
   top: 10px;
-  left: calc(100vw - 470px);
-  width: 460px;
+  left: calc(100vw - var(--primary-drawer-column-width) - 10px);
+  width: var(--primary-drawer-column-width);
   height: calc(100vh - 20px);
   background: #fff;
   border: 1px solid #dbe2ea;
@@ -793,8 +793,8 @@
 
 .drawerColumn {
   position: relative;
-  flex: 0 0 460px;
-  width: 460px;
+  flex: 0 0 var(--primary-drawer-column-width);
+  width: var(--primary-drawer-column-width);
   min-height: 0;
   min-width: 0;
   display: grid;
@@ -961,7 +961,7 @@
   display: grid;
   gap: 10px;
   align-content: stretch;
-  grid-template-rows: minmax(0, 1fr) auto auto auto;
+  grid-template-rows: minmax(240px, 0.95fr) auto auto;
   height: 100%;
   min-height: 0;
 }
@@ -984,7 +984,7 @@
   padding: 8px;
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
   gap: 10px;
   width: 100%;
   height: 100%;
@@ -1003,10 +1003,26 @@
   pointer-events: none;
 }
 
-.drawerKpiZone,
+.drawerSalesMetricsCard,
 .drawerSalesTrendCard,
 .drawerSeasonalityCard {
   min-height: 0;
+}
+
+.drawerSalesMetricsCard {
+  display: flex;
+  flex-direction: column;
+}
+
+.drawerLoadingText,
+.drawerErrorText {
+  margin: 0;
+  color: #64748b;
+  font-size: 12px;
+}
+
+.drawerErrorText {
+  color: #b91c1c;
 }
 
 .drawerSeasonalityCard {

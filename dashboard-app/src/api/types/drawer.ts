@@ -21,3 +21,36 @@ export interface ProductDrawerBundle {
   summary: ProductPrimarySummary
   stockTrend: ProductStockTrendPoint[]
 }
+
+export interface ProductSalesInsightParams {
+  startDate: string
+  endDate: string
+  competitorChannelId?: string
+}
+
+export interface ProductSalesInsightColumn {
+  avgPrice: number
+  qty: number
+  amount: number
+  avgCost: number | null
+  grossMarginPerUnit: number | null
+  feePerUnit: number | null
+  feeRatePct: number | null
+  opMarginPerUnit: number | null
+  opMarginRatePct: number | null
+  qtyRank: number
+  amountRank: number
+  costRatioPct: number | null
+}
+
+export interface ProductSalesInsight {
+  productId: string
+  targetPeriodDays: {
+    start: string
+    end: string
+  }
+  competitorChannelId: string
+  competitorChannelLabel: string
+  self: ProductSalesInsightColumn
+  competitor: ProductSalesInsightColumn
+}

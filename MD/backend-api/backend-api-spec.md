@@ -53,6 +53,7 @@
 | `getCompetitorSales(params?)` | GET | `/sales/competitor?…` + `competitorChannelId` |
 | `getSelfSalesFilterMeta()` | GET | `/sales/self/filter-meta` |
 | `getProductDrawerBundle(id, params?)` | GET | `/products/:id/drawer-bundle?forecastMonths` |
+| `getProductSalesInsight(id, params)` | GET | `/products/:id/sales-insight?startDate&endDate&competitorChannelId` |
 | `getProductSecondaryDetail(id, params?)` | GET | `/products/:id/secondary-detail?minOpMarginPct` |
 | `getSecondaryDailyTrend(params)` | GET | `/products/:productId/secondary/daily-trend?startMonth&leadTimeDays` |
 | `getSecondaryCompetitorChannels()` | GET | `/secondary/competitor-channels` |
@@ -137,7 +138,44 @@
 | `summary` | [`ProductPrimarySummary`](#51-productprimarysummary) |
 | `stockTrend` | [`ProductStockTrendPoint[]`](#52-productstocktrendpoint) |
 
-### 3.4 `getProductSecondaryDetail`
+### 3.4 `getProductSalesInsight`
+
+기간·경쟁 채널 조건에 따라 1차 드로어의 **판매 정보** 테이블을 구성합니다. 기존 `getProductDrawerBundle`은 월간 판매추이·재고·기본 요약용으로 유지하고, 일간/기간/채널 집계가 필요한 판매 정보는 이 계약으로 분리합니다.
+
+**쿼리 (`ProductSalesInsightParams`)**
+
+| 필드 | 의미 |
+|------|------|
+| `startDate` | 집계 시작일 (`YYYY-MM-DD` 권장) |
+| `endDate` | 집계 종료일 (`YYYY-MM-DD` 권장) |
+| `competitorChannelId` | 비교 경쟁 채널. 생략 시 구현체 기본 채널 |
+
+**응답 (`ProductSalesInsight`)**
+
+| 필드 | 의미 |
+|------|------|
+| `productId` | 상품 id |
+| `targetPeriodDays.start/end` | 실제 표시·집계 대상 기간 |
+| `competitorChannelId` | 응답에 적용된 경쟁 채널 id |
+| `competitorChannelLabel` | 응답에 적용된 경쟁 채널 표시명 |
+| `self` | 자사 판매 정보 컬럼 |
+| `competitor` | 경쟁 채널 판매 정보 컬럼 |
+
+**컬럼 (`ProductSalesInsightColumn`)**
+
+| 필드 | 의미 |
+|------|------|
+| `avgPrice` | 평균 판매가 |
+| `qty`, `qtyRank` | 판매량과 순위 |
+| `amount`, `amountRank` | 판매액과 순위 |
+| `avgCost`, `costRatioPct` | 평균 원가와 원가 비율. 경쟁 컬럼은 `null` 가능 |
+| `grossMarginPerUnit` | 개당 매출이익. 경쟁 컬럼은 `null` 가능 |
+| `feePerUnit`, `feeRatePct` | 평균 수수료와 수수료율. 경쟁 컬럼은 `null` 가능 |
+| `opMarginPerUnit`, `opMarginRatePct` | 영업이익과 이익률. 경쟁 컬럼은 `null` 가능 |
+
+백엔드는 고객사 집계 테이블을 우선 사용하고, 필요한 보조 값만 일간 데이터에서 보강하는 것을 권장합니다.
+
+### 3.5 `getProductSecondaryDetail`
 
 **쿼리 (`ProductSecondaryDetailParams`)**
 
@@ -154,7 +192,7 @@
 | `competitorQty` | 경쟁 추정 수량 |
 | `competitorRatioBySize` | 사이즈별 경쟁 비중 맵 (`size` 문자열 → 비율) |
 
-### 3.5 `getSecondaryDailyTrend`
+### 3.6 `getSecondaryDailyTrend`
 
 **파라미터 (`SecondaryDailyTrendParams`)**
 
@@ -178,7 +216,7 @@
 | `competitorSales` | 경쟁 **실판매 수량(EA)**. 예측 구간 등에서는 `null` 가능 |
 | `isForecast` | 포캐스트 구간 여부 |
 
-### 3.6 `getSecondaryCompetitorChannels`
+### 3.7 `getSecondaryCompetitorChannels`
 
 **응답 (`SecondaryCompetitorChannel[]`)**
 
@@ -191,7 +229,7 @@
 
 현재 프론트 기준 유효 채널은 **`kream`, `musinsa`** 입니다(`naver` 제거됨).
 
-### 3.7 `getSecondaryLlmAnswer`
+### 3.8 `getSecondaryLlmAnswer`
 
 **파라미터 (`SecondaryLlmAnswerParams`)**
 
@@ -202,13 +240,13 @@
 
 **응답**: `string` — LLM 답변 본문.
 
-### 3.8 오더 스냅샷 저장·조회·삭제
+### 3.9 오더 스냅샷 저장·조회·삭제
 
 - **`saveSecondaryOrderSnapshot`**: 요청 바디는 **`OrderSnapshotDocumentV1` 전체**. [`§5.4`](#54-ordersnapshotdocumentv1-v2-스키마) 참조.
 - **`getSecondaryOrderSnapshots(productId?)`**: 해당 상품의 스냅샷 배열. 전체 조회 시 쿼리 생략 가능(제안).
 - **`deleteSecondaryOrderSnapshot`**: `savedAt` 문자열이 문서 내 타임스탬프와 **정확히 일치**해야 삭제됩니다.
 
-### 3.9 후보군(Candidate stash / item)
+### 3.10 후보군(Candidate stash / item)
 
 **`CandidateStashSummary`**
 
@@ -251,7 +289,7 @@
 
 - `duplicateCandidateStash`: 동일 스태시·아이템 복제(구현 세부는 백엔드 결정). 프론트는 완료만 기다립니다(`Promise<void>`).
 
-### 3.10 `getSecondaryStockOrderCalc`
+### 3.11 `getSecondaryStockOrderCalc`
 
 **요청 (`SecondaryStockOrderCalcParams`)**
 

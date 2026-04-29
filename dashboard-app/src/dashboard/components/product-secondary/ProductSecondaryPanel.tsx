@@ -8,18 +8,14 @@ import {
   daysFromTodayThroughInclusive,
   daysInclusiveBetween,
   formatDateTimeMinute,
-  monthToEndDate,
-  monthToStartDate,
 } from '../../../utils/date'
 import { PortalHelpPopoverLayer } from '../PortalHelpPopover'
 import commonStyles from '../common.module.css'
 import { buildShadeRanges, normalizeMonthKey } from '../trend/trendRangeUtils'
 import { usePortalHelpPopover } from '../usePortalHelpPopover'
 import { AiMockCard } from './cards/AiMockCard'
-import { ProductFilterCard } from './cards/ProductFilterCard'
 import { ProductMetaCard } from './cards/ProductMetaCard'
 import { SalesForecastCard } from './cards/SalesForecastCard'
-import { SalesMetricsCard } from './cards/SalesMetricsCard'
 import { SalesTrendDailyCard } from './cards/SalesTrendDailyCard'
 import { SizeOrderCard } from './cards/SizeOrderCard'
 import { computeClientStockOrder } from './model/clientStockOrderCompute'
@@ -53,6 +49,11 @@ type Props = {
   /** 후보군 등에서 불러온 저장 스냅샷으로 폼·확정 수량 복원 */
   prefillFromSnapshot?: OrderSnapshotDocumentV1 | null
   candidateItemContext?: CandidateItemPanelContext | null
+  channelState: {
+    channelId: string
+    competitorChannels: SecondaryCompetitorChannel[]
+    onChannelChange: (next: string) => void
+  }
 }
 
 function toIsoDateLocal(d: Date): string {
@@ -80,8 +81,14 @@ export function ProductSecondaryPanel({
   pageName = 'ProductSecondaryPanel',
   prefillFromSnapshot = null,
   candidateItemContext = null,
+  channelState,
 }: Props) {
   const defaultLeadTime = useMemo(() => buildDefaultLeadTimeDates(), [])
+  const {
+    channelId,
+    competitorChannels,
+    onChannelChange,
+  } = channelState
   const confirmOrderHelpId = useId()
   const forecastQtyCalcHelpId = useId()
   const expectedOpProfitRateHelpId = useId()
@@ -91,8 +98,6 @@ export function ProductSecondaryPanel({
   const salesForecastSizeOrderHelpId = useId()
   const snapshotTestTitleId = useId()
   const portalHelp = usePortalHelpPopover<SecondaryHelpId>()
-  const [competitorChannels, setCompetitorChannels] = useState<SecondaryCompetitorChannel[]>([])
-  const [channelId, setChannelId] = useState('')
   const [safetyStockMode] = useState<'manual' | 'formula'>('formula')
   const [manualSafetyStock] = useState(0)
   /** null: 예측 수량연산용 μ는 클라이언트 가중모형값. 숫자면 해당 값으로 덮어씀. */
@@ -114,7 +119,6 @@ export function ProductSecondaryPanel({
   const [confirmBySize, setConfirmBySize] = useState<Record<string, number>>({})
   const dailyTrendReqSeqRef = useRef(0)
   const [forecastCalc, setForecastCalc] = useState<SecondaryForecastCalc | null>(null)
-  const [channelsError, setChannelsError] = useState<ApiUnitErrorInfo | null>(null)
   const [forecastCalcError, setForecastCalcError] = useState<ApiUnitErrorInfo | null>(null)
   const [dailyTrendError, setDailyTrendError] = useState<ApiUnitErrorInfo | null>(null)
   const [llmError, setLlmError] = useState<ApiUnitErrorInfo | null>(null)
@@ -170,35 +174,11 @@ export function ProductSecondaryPanel({
     [channelId, competitorChannels],
   )
 
-  useEffect(() => {
-    let alive = true
-    void (async () => {
-      try {
-        const rows = await dashboardApi.getSecondaryCompetitorChannels()
-        if (!alive) return
-        if (!rows.length) throw new Error('경쟁사 채널 데이터가 비어 있습니다.')
-        setCompetitorChannels(rows)
-        setChannelId((prev) => prev || rows[0]?.id || '')
-        setChannelsError(null)
-      } catch (err) {
-        if (!alive) return
-        setCompetitorChannels([])
-        setChannelsError(makeApiErrorInfo('getSecondaryCompetitorChannels()', err))
-      }
-    })()
-    return () => {
-      alive = false
-    }
-  }, [makeApiErrorInfo])
-
   const selfCol = useMemo(() => buildSalesKpiColumn('self', primary, secondary, channel), [primary, secondary, channel])
   const compCol = useMemo(() => buildSalesKpiColumn('competitor', primary, secondary, channel), [primary, secondary, channel])
 
   const selectedStart = normalizeMonthKey(periodStart)
   const selectedEnd = normalizeMonthKey(periodEnd)
-  const salesMetricsPeriodStartDay = monthToStartDate(selectedStart)
-  const salesMetricsPeriodEndDay = monthToEndDate(selectedEnd)
-
   useEffect(() => {
     if (prefillFromSnapshot != null) return
     setDailyMeanClient(null)
@@ -413,7 +393,7 @@ export function ProductSecondaryPanel({
       return
     }
     setPrefillError(null)
-    setChannelId(d2.competitorChannelId)
+        onChannelChange(d2.competitorChannelId)
     setBufferStock(d2.bufferStock)
     setSelfWeightPct(d2.selfWeightPct)
     setLlmPrompt(d2.llmPrompt)
@@ -422,7 +402,7 @@ export function ProductSecondaryPanel({
     setLeadTimeStartDate(si.leadTimeStartDate)
     setLeadTimeEndDate(si.leadTimeEndDate)
     setDailyMeanClient(si.dailyMean)
-  }, [prefillFromSnapshot, primary.id, defaultLeadTime.start, defaultLeadTime.end])
+  }, [prefillFromSnapshot, primary.id, defaultLeadTime.start, defaultLeadTime.end, onChannelChange])
 
   const sizeAgg = useMemo(() => {
     const mix = mergePrimarySecondarySizeMix(primary, secondary)
@@ -600,7 +580,7 @@ export function ProductSecondaryPanel({
       },
       drawer2: {
         secondary,
-        competitorChannelId: channelId,
+        competitorChannelId: channel.id,
         competitorChannelLabel: channel.label,
         minOpMarginPct: null,
         salesSelf: selfCol,
@@ -643,7 +623,7 @@ export function ProductSecondaryPanel({
     periodEnd,
     forecastMonths,
     secondary,
-    channelId,
+    channel.id,
     channel.label,
     selfCol,
     compCol,
@@ -791,20 +771,6 @@ export function ProductSecondaryPanel({
             <ProductMetaCard primary={primary} />
           </ComponentErrorBoundary>
         </div>
-        <div className={styles.metaFilterFilterBlock}>
-          <ComponentErrorBoundary page={pageName} unit="ProductFilterCard">
-            <ProductFilterCard
-              filter={{
-                channelId,
-                competitorChannels,
-                error: channelsError,
-              }}
-              actions={{
-                onChannelChange: setChannelId,
-              }}
-            />
-          </ComponentErrorBoundary>
-        </div>
         <div className={styles.metaFilterActionBlock}>
           <div className={`${styles.card} ${styles.metaFilterActionCard}`}>
             <div className={styles.metaFilterActionGrid}>
@@ -843,19 +809,6 @@ export function ProductSecondaryPanel({
       </div>
 
       <div className={styles.salesStockAiRow}>
-        <ComponentErrorBoundary page={pageName} unit="SalesMetricsCard">
-          <SalesMetricsCard
-            targetPeriodDays={{
-              start: salesMetricsPeriodStartDay,
-              end: salesMetricsPeriodEndDay,
-            }}
-            sales={{
-              channelLabel: channel.label,
-              self: selfCol,
-              competitor: compCol,
-            }}
-          />
-        </ComponentErrorBoundary>
         <ComponentErrorBoundary page={pageName} unit="SalesForecastCard">
           <SalesForecastCard
             forecast={{
@@ -916,6 +869,7 @@ export function ProductSecondaryPanel({
               onPromptChange: setLlmPrompt,
               onSend: sendLlm,
             }}
+            mode="answerOnly"
           />
         </ComponentErrorBoundary>
       </div>

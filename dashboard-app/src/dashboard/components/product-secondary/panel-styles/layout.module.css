@@ -5,12 +5,9 @@
   min-width: 0;
 }
 
-/**
- * 3열: 판매 정보 | 재고·오더 | AI
- */
 .salesStockAiRow {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 10px;
   align-items: stretch;
   min-width: 0;

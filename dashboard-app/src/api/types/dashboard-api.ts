@@ -3,7 +3,12 @@ import type {
   ProductSecondaryDetail,
   SelfSalesRow,
 } from '../../types'
-import type { ProductDrawerBundle, ProductDrawerBundleParams } from './drawer'
+import type {
+  ProductDrawerBundle,
+  ProductDrawerBundleParams,
+  ProductSalesInsight,
+  ProductSalesInsightParams,
+} from './drawer'
 import type { CompetitorSalesParams, SelfSalesFilterMeta, SelfSalesParams } from './sales'
 import type {
   AppendCandidateItemPayload,
@@ -32,6 +37,7 @@ export interface DashboardApi {
   getCompetitorSales(params?: CompetitorSalesParams): Promise<CompetitorSalesRow[]>
   getSelfSalesFilterMeta(): Promise<SelfSalesFilterMeta>
   getProductDrawerBundle(id: string, params?: ProductDrawerBundleParams): Promise<ProductDrawerBundle>
+  getProductSalesInsight(id: string, params: ProductSalesInsightParams): Promise<ProductSalesInsight>
   getProductSecondaryDetail(
     id: string,
     params?: ProductSecondaryDetailParams,

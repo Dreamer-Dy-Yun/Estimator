@@ -79,8 +79,8 @@
 
 ## 6. 제품 요약 드로어 (`ProductSummaryDrawer`)
 
-- **1차:** 월간 판매 추이(포캐스트 구간), 계절성, 사이즈 믹스, KPI, 재고 추이 등.
-- **2차 확장 패널:** [`ProductSecondaryPanel`](../../dashboard-app/src/dashboard/components/product-secondary/ProductSecondaryPanel.tsx) — 경쟁 메타, 판매 KPI, 일별 추이, 재고·발주 시뮬([`getSecondaryStockOrderCalc`](../../dashboard-app/src/api/types/dashboard-api.ts)), LLM 질의([`getSecondaryLlmAnswer`](../../dashboard-app/src/api/types/dashboard-api.ts)), 사이즈별 확정 수량, 후보군에 append/update 등.
+- **1차:** 상품 이미지, 기간·경쟁 채널 기준 판매 정보([`getProductSalesInsight`](../../dashboard-app/src/api/types/dashboard-api.ts)), 월간 판매 추이(포캐스트 구간) 등. 계절성 카드는 현재 화면에서 제외.
+- **2차 확장 패널:** [`ProductSecondaryPanel`](../../dashboard-app/src/dashboard/components/product-secondary/ProductSecondaryPanel.tsx) — 상품 메타, 후보군 저장/수정, 재고·발주 시뮬([`getSecondaryStockOrderCalc`](../../dashboard-app/src/api/types/dashboard-api.ts)), AI 답변 표시([`getSecondaryLlmAnswer`](../../dashboard-app/src/api/types/dashboard-api.ts)), 일별 추이, 사이즈별 확정 수량 등.
 - **스냅샷:** [`OrderSnapshotDocumentV1`](../../dashboard-app/src/snapshot/orderSnapshotTypes.ts) 스키마 v2, 파싱 [`parseOrderSnapshot`](../../dashboard-app/src/snapshot/parseOrderSnapshot.ts).
 - **키보드(2차가 열리고 2차 데이터 준비 완료 시):** `←` / `→`로 **현재 목록의 이전·다음 SKU**(또는 이너 후보의 uuid 순) 순환 — [`adjacentListNavigation`](../../dashboard-app/src/utils/adjacentListNavigation.ts). 입력·콤보 패널 포커스 시에는 무시.
 - **번들 로딩:** 자사/경쟁은 [`allowStaleWhileRevalidate`](../../dashboard-app/src/dashboard/hooks/useProductDrawerBundle.ts) 기본 `true`로 드로어 언마운트 방지(2차 접힘 방지). 이너 후보는 `false`로 스냅샷과 번들 id 정합 유지.

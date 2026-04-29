@@ -9,6 +9,8 @@ import type {
   UpdateCandidateStashPayload,
   CompetitorSalesParams,
   ProductDrawerBundleParams,
+  ProductSalesInsight,
+  ProductSalesInsightParams,
   ProductSecondaryDetailParams,
   SecondaryDailyTrendParams,
   SecondaryLlmAnswerParams,
@@ -46,6 +48,7 @@ import {
   forecastDailyMeanFromModel,
   zFromServiceLevelPct,
 } from './secondaryDailyTrend'
+import { buildSalesKpiColumn } from '../../utils/salesKpiColumn'
 
 export const mockDashboardApi = {
   getSelfSales: async (params?: { startDate?: string; endDate?: string; brand?: string; category?: string; nameQuery?: string }) => {
@@ -128,6 +131,28 @@ export const mockDashboardApi = {
       monthlySalesTrend: makeSalesTrend(base, seed, fc),
     }
     return { summary, stockTrend }
+  },
+  getProductSalesInsight: async (
+    id: string,
+    params: ProductSalesInsightParams,
+  ): Promise<ProductSalesInsight> => {
+    await sleep(80)
+    const primary = productPrimaryById[id] ?? productPrimaryById[allKnownProductIds[0]]!
+    const secondary = productSecondaryById[id] ?? productSecondaryById[allKnownProductIds[0]]!
+    const channel =
+      secondaryCompetitorChannels.find((ch) => ch.id === params.competitorChannelId)
+      ?? secondaryCompetitorChannels[0]!
+    return {
+      productId: primary.id,
+      targetPeriodDays: {
+        start: params.startDate,
+        end: params.endDate,
+      },
+      competitorChannelId: channel.id,
+      competitorChannelLabel: channel.label,
+      self: buildSalesKpiColumn('self', primary, secondary, channel),
+      competitor: buildSalesKpiColumn('competitor', primary, secondary, channel),
+    }
   },
   getProductSecondaryDetail: async (id: string, params?: ProductSecondaryDetailParams) => {
     void params

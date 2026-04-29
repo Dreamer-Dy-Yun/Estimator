@@ -14,9 +14,10 @@ type Props = {
     onPromptChange: (next: string) => void
     onSend: () => void
   }
+  mode?: 'editor' | 'answerOnly'
 }
 
-export function AiMockCard({ ai, actions }: Props) {
+export function AiMockCard({ ai, actions, mode = 'editor' }: Props) {
   const { prompt, answer, loading, error } = ai
   const { onPromptChange, onSend } = actions
   return (
@@ -26,20 +27,24 @@ export function AiMockCard({ ai, actions }: Props) {
         <ApiUnitErrorBadge error={error} />
       </h3>
       <div className={styles.aiCardBody}>
-        <textarea
-          value={prompt}
-          onChange={(e) => onPromptChange(e.target.value)}
-          placeholder={KO.placeholderPrompt}
-          aria-label={KO.ariaLlmPrompt}
-        />
-        <button
-          type="button"
-          className={`${styles.btn} ${styles.btnViewportAdaptive}`}
-          onClick={onSend}
-          disabled={loading}
-        >
-          {loading ? KO.btnGenerating : KO.btnAnswerGen}
-        </button>
+        {mode === 'editor' && (
+          <>
+            <textarea
+              value={prompt}
+              onChange={(e) => onPromptChange(e.target.value)}
+              placeholder={KO.placeholderPrompt}
+              aria-label={KO.ariaLlmPrompt}
+            />
+            <button
+              type="button"
+              className={`${styles.btn} ${styles.btnViewportAdaptive}`}
+              onClick={onSend}
+              disabled={loading}
+            >
+              {loading ? KO.btnGenerating : KO.btnAnswerGen}
+            </button>
+          </>
+        )}
         <div className={styles.aiAnswer} aria-live="polite">
           {answer || KO.answerEmpty}
         </div>
