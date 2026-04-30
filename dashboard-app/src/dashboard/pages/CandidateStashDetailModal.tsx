@@ -234,6 +234,16 @@ export function CandidateStashDetailModal({ stashUuid, stashSummary, onClose, on
                         변경 {formatDateTimeMinute(m.detailTarget.dbUpdatedAt)}
                       </span>
                     </div>
+                    <div className={pageStyles.detailHeaderAnalysisCell}>
+                      <button
+                        type="button"
+                        className={`${pageStyles.actionBtn} ${pageStyles.btnNeutral} ${pageStyles.detailHeaderAnalysisBtn}`}
+                        onClick={() => setAnalysisPopupDismissed(false)}
+                        disabled={!m.analysisProgress}
+                      >
+                        LLM 분석
+                      </button>
+                    </div>
                     <div className={pageStyles.detailHeaderDeleteCell}>
                       <DeleteButton
                         label="일괄삭제"
