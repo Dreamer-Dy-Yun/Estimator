@@ -1,26 +1,26 @@
 /** 상품 메타 카드 | 검색·필터 카드 (좌우) */
 .metaFilterRow {
   display: grid;
-  grid-template-columns: repeat(8, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
   gap: 10px;
   align-items: stretch;
   min-width: 0;
 }
 
 .metaFilterMetaBlock {
-  grid-column: 1 / span 5;
+  grid-column: auto;
   display: flex;
   min-width: 0;
 }
 
 .metaFilterFilterBlock {
-  grid-column: 5 / span 1;
+  grid-column: auto;
   display: flex;
   min-width: 0;
 }
 
 .metaFilterActionBlock {
-  grid-column: 6 / span 3;
+  grid-column: auto;
   display: flex;
   min-width: 0;
 }
@@ -315,26 +315,8 @@
   color: #475569;
 }
 
-@media (max-width: 980px) {
-  .metaFilterRow {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
-  .metaFilterMetaBlock {
-    grid-column: 1 / -1;
-  }
-  .metaFilterFilterBlock,
-  .metaFilterActionBlock {
-    grid-column: span 2;
-  }
-}
-
 @media (max-width: 720px) {
-  .metaFilterRow {
+  .metaFilterActionGrid {
     grid-template-columns: 1fr;
-  }
-  .metaFilterMetaBlock,
-  .metaFilterFilterBlock,
-  .metaFilterActionBlock {
-    grid-column: auto;
   }
 }
