@@ -133,7 +133,7 @@
 .salesMetricsChannelHeaderControl {
   display: inline-flex;
   align-items: center;
-  justify-content: flex-end;
+  justify-content: center;
   gap: 5px;
   width: 100%;
   min-width: 0;
@@ -154,6 +154,8 @@
   line-height: inherit;
   color: #0f172a;
   cursor: pointer;
+  text-align: center;
+  text-align-last: center;
 }
 
 .salesMetricsChannelHeaderControl select:focus-visible {

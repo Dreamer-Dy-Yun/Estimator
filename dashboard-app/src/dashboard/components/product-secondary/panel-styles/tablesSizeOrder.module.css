@@ -17,6 +17,11 @@
   padding: 3px 6px;
 }
 
+.salesMetricsTightTable thead th {
+  text-align: center;
+  vertical-align: middle;
+}
+
 .salesMetricsTightTable td:first-child,
 .salesMetricsTightTable td.num {
   white-space: nowrap;
