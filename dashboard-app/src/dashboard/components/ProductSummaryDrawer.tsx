@@ -586,7 +586,7 @@ function ProductSummaryDrawerContent({
                 data={trendWindowData}
                 height={salesTrendChartDense ? 232 : 210}
                 yScale={salesTrendScaleMode}
-                yMax={salesTrendYMax}
+                yMax={salesTrendScaleMode === 'linear' ? salesTrendYMax : undefined}
                 allowEscapeViewBox={{ x: false, y: false }}
                 periodShade={shiftedPeriodShade}
                 forecastShade={shiftedForecastShade}

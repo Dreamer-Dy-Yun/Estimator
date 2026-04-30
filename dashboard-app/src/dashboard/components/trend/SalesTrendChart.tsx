@@ -107,7 +107,8 @@ export function SalesTrendChart({
     }, 0)
     return maxFromLines <= 0 ? 10 : Math.ceil(maxFromLines * 1.12)
   })()
-  const primaryYMin = yScale === 'log' ? 1 : 0
+  const primaryYDomain: [number | 'auto', number | 'auto'] =
+    yScale === 'log' ? ['auto', 'auto'] : [0, resolvedPrimaryYMax]
   return (
     <ResponsiveContainer width="100%" height={height}>
       <ComposedChart data={data} margin={{ top: 4, right: hasSecondaryAxis ? 18 : 12, bottom: 4, left: 4 }}>
@@ -150,7 +151,7 @@ export function SalesTrendChart({
         />
         <YAxis
           yAxisId="primary"
-          domain={[primaryYMin, resolvedPrimaryYMax]}
+          domain={primaryYDomain}
           scale={yScale}
           tick={{ fontSize: 9 }}
           width={40}
