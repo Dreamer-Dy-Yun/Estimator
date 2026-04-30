@@ -47,6 +47,7 @@ export function CandidateStashDetailModal({ stashUuid, stashSummary, onClose, on
   const m = useCandidateStashDetailModal({ stashUuid, stashSummary, onClose, onStashesInvalidate })
   const [selectedItemUuids, setSelectedItemUuids] = useState<Set<string>>(() => new Set())
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false)
+  const [analysisPopupDismissed, setAnalysisPopupDismissed] = useState(false)
   const selectAllRef = useRef<HTMLInputElement | null>(null)
 
   const visibleItemUuids = useMemo(() => m.tableRows.map((row) => row.uuid), [m.tableRows])
@@ -83,6 +84,12 @@ export function CandidateStashDetailModal({ stashUuid, stashSummary, onClose, on
         return '대기'
     }
   })()
+  const analysisIsTerminal = m.analysisProgress?.status === 'completed' || m.analysisProgress?.status === 'failed'
+  const showAnalysisPopup = Boolean(m.analysisProgress && !analysisPopupDismissed)
+
+  useEffect(() => {
+    setAnalysisPopupDismissed(false)
+  }, [stashUuid, m.analysisProgress?.jobId])
 
   useEffect(() => {
     if (!selectAllRef.current) return
@@ -134,7 +141,7 @@ export function CandidateStashDetailModal({ stashUuid, stashSummary, onClose, on
         role="presentation"
         {...stashDetailModalBackdropDataProps(m.drawerOpen)}
       >
-        {m.analysisProgress && (
+        {showAnalysisPopup && m.analysisProgress && (
           <div
             className={`${pageStyles.analysisStatusCard} ${pageStyles.analysisStatusPopup} ${
               m.analysisError ? pageStyles.analysisStatusCardError : ''
@@ -145,7 +152,18 @@ export function CandidateStashDetailModal({ stashUuid, stashSummary, onClose, on
           >
             <div className={pageStyles.analysisStatusHead}>
               <strong>LLM 스냅샷 분석</strong>
-              <span className={pageStyles.analysisStatusBadge}>{analysisStatusLabel}</span>
+              <span className={pageStyles.analysisStatusHeadActions}>
+                <span className={pageStyles.analysisStatusBadge}>{analysisStatusLabel}</span>
+                {analysisIsTerminal && (
+                  <button
+                    type="button"
+                    className={pageStyles.analysisStatusDismissBtn}
+                    onClick={() => setAnalysisPopupDismissed(true)}
+                  >
+                    닫기
+                  </button>
+                )}
+              </span>
             </div>
             <div
               className={pageStyles.analysisStatusProgressTrack}
