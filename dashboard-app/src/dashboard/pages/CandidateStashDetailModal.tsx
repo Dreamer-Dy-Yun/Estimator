@@ -7,10 +7,7 @@ import { DeleteButton } from '../components/DeleteButton'
 import { FilterBar } from '../components/FilterBar'
 import { ProductSummaryDrawer } from '../components/ProductSummaryDrawer'
 import { stashDetailModalBackdropDataProps } from '../drawer/drawerDom'
-import {
-  type InnerCandidateRow,
-  useCandidateStashDetailModal,
-} from '../hooks/useCandidateStashDetailModal'
+import { useCandidateStashDetailModal } from '../hooks/useCandidateStashDetailModal'
 import styles from '../components/common.module.css'
 import pageStyles from './SnapshotConfirmPage.module.css'
 
@@ -22,27 +19,8 @@ type Props = {
   onStashesInvalidate?: () => void
 }
 
-function formatBadgePayloadValue(value: unknown) {
-  if (value == null) return '-'
-  if (typeof value === 'boolean') return value ? 'true' : 'false'
-  return String(value)
-}
-
 function buildBadgeTitle(badge: CandidateItemBadgeSummary) {
-  const payloadLines = Object.entries(badge.payload ?? {}).map(
-    ([key, value]) => `${key}: ${formatBadgePayloadValue(value)}`,
-  )
-
-  return [
-    badge.description,
-    `id: ${badge.id}`,
-    `name: ${badge.name}`,
-    badge.value == null ? null : `value: ${formatBadgePayloadValue(badge.value)}`,
-    badge.rankPercentile == null ? null : `rankPercentile: ${badge.rankPercentile}`,
-    badge.thresholdPercent == null ? null : `thresholdPercent: ${badge.thresholdPercent}`,
-    `color: ${badge.style.textColor} / ${badge.style.backgroundColor}`,
-    ...payloadLines,
-  ].filter(Boolean).join('\n')
+  return badge.description
 }
 
 function InnerOrderBadge({ badge }: { badge: CandidateItemBadgeSummary }) {
@@ -58,29 +36,6 @@ function InnerOrderBadge({ badge }: { badge: CandidateItemBadgeSummary }) {
     >
       <span>{badge.label}</span>
     </span>
-  )
-}
-
-function InnerOrderHoverPanel({ row }: { row: InnerCandidateRow }) {
-  const channel = row.insight.competitorChannelLabel
-  const metrics = [
-    { label: `${channel} 판매량`, value: row.insight.competitorQty == null ? '-' : `${formatGroupedNumber(row.insight.competitorQty)} EA` },
-    { label: `${channel} 판매액`, value: row.insight.competitorAmount == null ? '-' : `${formatGroupedNumber(row.insight.competitorAmount)} 원` },
-    { label: '자사 판매량', value: row.insight.selfQty == null ? '-' : `${formatGroupedNumber(row.insight.selfQty)} EA` },
-    { label: '자사 판매액', value: row.insight.selfAmount == null ? '-' : `${formatGroupedNumber(row.insight.selfAmount)} 원` },
-    { label: '총 기대 매출', value: `${formatGroupedNumber(row.insight.expectedSalesAmount)} 원` },
-    { label: '총 기대 영업이익', value: `${formatGroupedNumber(row.insight.expectedOpProfit)} 원` },
-  ]
-
-  return (
-    <div className={pageStyles.innerOrderHoverPanel} role="tooltip">
-      {metrics.map((metric) => (
-        <div key={metric.label} className={pageStyles.innerOrderHoverMetric}>
-          <span>{metric.label}</span>
-          <strong>{metric.value}</strong>
-        </div>
-      ))}
-    </div>
   )
 }
 
@@ -308,7 +263,6 @@ export function CandidateStashDetailModal({ stashUuid, stashSummary, onClose, on
                               <span className={pageStyles.innerOrderCellNum}>
                                 {formatGroupedNumber(row.expectedOrderAmount)} 원
                               </span>
-                              <InnerOrderHoverPanel row={row} />
                             </div>
                           )
                         })}

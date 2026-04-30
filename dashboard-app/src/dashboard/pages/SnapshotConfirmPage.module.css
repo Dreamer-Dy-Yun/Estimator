@@ -647,47 +647,6 @@
   line-height: 1;
 }
 
-.innerOrderHoverPanel {
-  position: absolute;
-  top: calc(100% + 6px);
-  right: 12px;
-  z-index: 20;
-  display: none;
-  width: min(480px, calc(100% - 24px));
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px 12px;
-  padding: 12px;
-  border: 1px solid #cbd5e1;
-  border-radius: 10px;
-  background: #ffffff;
-  box-shadow: 0 18px 38px rgba(15, 23, 42, 0.18);
-  cursor: default;
-}
-
-.innerOrderRow:hover .innerOrderHoverPanel,
-.innerOrderRow:focus-within .innerOrderHoverPanel {
-  display: grid;
-}
-
-.innerOrderHoverMetric {
-  display: grid;
-  gap: 3px;
-  min-width: 0;
-}
-
-.innerOrderHoverMetric span {
-  color: #64748b;
-  font-size: 11px;
-  line-height: 1.25;
-}
-
-.innerOrderHoverMetric strong {
-  color: #0f172a;
-  font-size: 13px;
-  line-height: 1.25;
-  white-space: nowrap;
-}
-
 /**
  * 이너 후보 테이블: 공통 포맷 유지 (패딩 10px 12px, 열 9개)
  * 1 브랜드 2 코드 3 상품명 4 오더수량 5 오더금액 6 예상매출 7 예상영업이익 8 등록·변경 9 삭제
@@ -1032,12 +991,6 @@
   .innerOrderCellNum {
     grid-column: span 2;
     text-align: left;
-  }
-
-  .innerOrderHoverPanel {
-    left: 12px;
-    right: auto;
-    grid-template-columns: 1fr;
   }
 
   .filterBar {
