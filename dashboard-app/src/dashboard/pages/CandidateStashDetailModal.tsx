@@ -57,9 +57,6 @@ function InnerOrderBadge({ badge }: { badge: CandidateItemBadgeSummary }) {
       }}
     >
       <span>{badge.label}</span>
-      {badge.value != null && (
-        <span className={pageStyles.innerOrderBadgeValue}>{formatBadgePayloadValue(badge.value)}</span>
-      )}
     </span>
   )
 }

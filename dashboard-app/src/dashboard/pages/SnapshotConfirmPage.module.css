@@ -629,12 +629,6 @@
   white-space: nowrap;
 }
 
-.innerOrderBadgeValue {
-  font-size: 10px;
-  font-weight: 700;
-  opacity: 0.76;
-}
-
 .innerOrderCellNum {
   min-width: 0;
   overflow: hidden;
