@@ -87,7 +87,7 @@ export function SalesForecastCard({ forecast, orderSettings, actions, help }: Pr
           <ApiUnitErrorBadge error={error} />
         </h3>
       </div>
-      <div className={styles.stockInputList}>
+      <div className={`${styles.stockInputList} ${styles.salesForecastInputList}`}>
         <div className={styles.stockInputCell}>
           <span className={`${styles.inlineLabel} ${styles.stockCellLabel}`}>{KO.labelCurrentOrderDate}</span>
           <span className={`${styles.inlineFieldInput} ${styles.stockCellInputWrap}`}>
@@ -195,7 +195,7 @@ export function SalesForecastCard({ forecast, orderSettings, actions, help }: Pr
         </div>
       </div>
       <div className={styles.cardTableScroll}>
-        <table className={styles.table}>
+        <table className={`${styles.table} ${styles.salesForecastTable}`}>
           <thead>
             <tr>
               <th>{KO.thMetric}</th>

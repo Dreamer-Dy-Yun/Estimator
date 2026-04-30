@@ -266,7 +266,7 @@ export function SizeOrderCard({ sizeOrder, actions, help }: Props) {
       </div>
 
       <div className={styles.sizeOrderTableWrap}>
-        <table ref={tableRef} className={`${styles.table} ${styles.sizeOrderTable}`}>
+        <table ref={tableRef} className={`${styles.table} ${styles.sizeOrderTable} ${styles.sizeOrderLargeTable}`}>
           <thead>
             <tr>
               <th>{KO.thMetric}</th>

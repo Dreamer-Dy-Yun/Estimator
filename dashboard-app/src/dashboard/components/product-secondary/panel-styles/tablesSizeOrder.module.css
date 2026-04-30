@@ -43,6 +43,11 @@
   background: #f1f5f9;
 }
 
+.salesForecastTable,
+.sizeOrderLargeTable {
+  font-size: 13.8px;
+}
+
 .table th,
 .table td {
   border: 1px solid #e2e8f0;
@@ -144,6 +149,10 @@
   vertical-align: middle;
   text-align: right;
   white-space: nowrap;
+}
+
+.sizeOrderLargeTable .stockNumberInput {
+  font-size: 11.9px;
 }
 
 .confirmQtyInputWrap {
