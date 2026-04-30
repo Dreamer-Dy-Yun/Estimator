@@ -15,6 +15,7 @@ const SALES_MONTHS: string[] = (() => {
 })()
 
 const FORECAST_START_MONTH = '2026-01'
+const KREAM_TO_SELF_QTY_RATIO = 10
 
 /** `2026-01`부터 연속 `count`개의 YYYY-MM 키 (예측 구간). */
 const monthKeysFrom = (year: number, month: number, count: number): string[] => {
@@ -211,7 +212,7 @@ export const { primary: productPrimaryById, secondary: productSecondaryById } = 
     const price = s?.avgPrice ?? c?.selfAvgPrice ?? Math.round((c?.competitorAvgPrice ?? 120000) * 0.96)
     const competitorPrice = c?.competitorAvgPrice ?? Math.round(price * 1.03)
     const productQty = s?.qty ?? c?.selfQty ?? Math.round((c?.competitorQty ?? 5000) * 0.85)
-    const competitorQty = c?.competitorQty ?? Math.round(productQty * 0.9)
+    const competitorQty = Math.max(1, Math.round(productQty * KREAM_TO_SELF_QTY_RATIO))
     const recommendedOrderQty = Math.round(productQty / 1.7)
     const availableStock = Math.round(productQty * 0.45)
 

@@ -54,6 +54,7 @@ const DAILY_PATTERN_BY_MONTH: Record<string, readonly number[]> = {
 }
 
 const DAILY_EXT_SALES_DELTA: readonly number[] = [0, -1, 1, 0, -1, 0, 1, -1, 0, 1]
+const KREAM_TO_SELF_DAILY_SALES_RATIO = 10
 
 const daysInMonth = (yyyymm: string) => {
   const [y, m] = yyyymm.split('-').map(Number)
@@ -286,17 +287,18 @@ export const buildSecondaryDailyTrend = (
     const lag3 = Math.max(0, Math.round(out[Math.max(0, i - 3)]?.sales ?? selfSales))
     const lag8 = Math.max(0, Math.round(out[Math.max(0, i - 8)]?.sales ?? selfSales))
 
-    // 경쟁사(크림) 일간 트렌드: 규모는 크되(약 60배권), 자사와 다른 리듬으로 생성
+    // 경쟁사(크림) 일간 트렌드: 평균적으로 자사 대비 10배 수준, 자사와 다른 리듬으로 생성
     const weekly = Math.sin((i + 2) * ((2 * Math.PI) / 7)) // 7일 주기
     const biWeekly = Math.cos((i + 9) * ((2 * Math.PI) / 14)) // 14일 주기
     const monthly = Math.sin((i + 4) * ((2 * Math.PI) / 29))
     const daySeed = Number(p.date.slice(8, 10))
     // 특정 날짜대에 경쟁사 프로모션 스파이크
-    const promoSpike = daySeed % 9 === 0 ? 0.32 : daySeed % 7 === 0 ? 0.18 : 0
-    const noise = (((daySeed * 11 + i * 5) % 23) / 23 - 0.5) * 0.08
+    const promoSpike = daySeed % 9 === 0 ? 0.12 : daySeed % 7 === 0 ? 0.06 : 0
+    const noise = (((daySeed * 11 + i * 5) % 23) / 23 - 0.5) * 0.04
 
-    const base = selfSales * 34 + lag3 * 17 + lag8 * 11
-    const rhythm = 1 + weekly * 0.24 + biWeekly * 0.15 + monthly * 0.1 + promoSpike + noise
+    const base =
+      (selfSales * 0.72 + lag3 * 0.18 + lag8 * 0.1) * KREAM_TO_SELF_DAILY_SALES_RATIO
+    const rhythm = 1 + weekly * 0.08 + biWeekly * 0.05 + monthly * 0.04 + promoSpike + noise
     const trendTarget = base * Math.max(0.55, rhythm)
 
     const competitorSales =
