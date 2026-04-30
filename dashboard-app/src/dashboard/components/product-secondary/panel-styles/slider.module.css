@@ -11,9 +11,9 @@
   max-width: none;
 }
 
-/* 좌측 블록 (1~7): 자사 가중치 라벨 + 입력 */
+/* 좌측 블록 (1~5): 자사 가중치 라벨 + 입력 */
 .sliderSelfGroup {
-  grid-column: 1 / span 7;
+  grid-column: 1 / span 5;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -21,14 +21,14 @@
   min-width: 0;
 }
 
-/* 중앙 블록 (8~15): 가중치 비율 바 */
+/* 중앙 블록 (6~13): 가중치 비율 바 */
 .sliderWeightRange {
-  grid-column: 8 / span 8;
+  grid-column: 6 / span 8;
 }
 
-/* 우측 블록 (16~22): 경쟁사 가중치 입력 + 라벨 */
+/* 우측 블록 (14~18): 경쟁사 가중치 입력 + 라벨 */
 .sliderCompGroup {
-  grid-column: 16 / span 7;
+  grid-column: 14 / span 5;
   display: flex;
   align-items: center;
   justify-content: space-between;
