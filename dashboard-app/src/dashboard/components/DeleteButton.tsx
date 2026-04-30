@@ -10,6 +10,7 @@ const TrashSvg = () => (
 type DeleteButtonProps = {
   onClick: (e: MouseEvent<HTMLButtonElement>) => void
   disabled?: boolean
+  label?: string
   'aria-label'?: string
   title?: string
   /** 목록 카드용: 휴지통 + 「삭제」 */
@@ -19,6 +20,7 @@ type DeleteButtonProps = {
 export function DeleteButton({
   onClick,
   disabled,
+  label = '삭제',
   'aria-label': ariaLabel,
   title,
   variant = 'list',
@@ -30,7 +32,7 @@ export function DeleteButton({
         className={`${styles.actionBtn} ${styles.btnDelete}`}
         onClick={onClick}
         disabled={disabled}
-        aria-label={ariaLabel ?? '삭제'}
+        aria-label={ariaLabel ?? label}
         title={title ?? ariaLabel}
       >
         <span className={styles.trashIcon} aria-hidden>
@@ -45,13 +47,13 @@ export function DeleteButton({
       className={`${styles.actionBtn} ${styles.btnDelete} ${styles.inline}`}
       onClick={onClick}
       disabled={disabled}
-      aria-label={ariaLabel ?? '삭제'}
+      aria-label={ariaLabel ?? label}
       title={title ?? ariaLabel}
     >
       <span className={styles.trashIcon} aria-hidden>
         <TrashSvg />
       </span>
-      <span>삭제</span>
+      <span>{label}</span>
     </button>
   )
 }

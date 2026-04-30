@@ -52,6 +52,7 @@ export function useCandidateStashDetailModal({
 
   const [itemDeleteTarget, setItemDeleteTarget] = useState<CandidateItemSummary | null>(null)
   const [itemDeleteBusy, setItemDeleteBusy] = useState(false)
+  const [bulkDeleteBusy, setBulkDeleteBusy] = useState(false)
   const innerNavLockRef = useRef(false)
 
   useEffect(() => {
@@ -225,6 +226,22 @@ export function useCandidateStashDetailModal({
     }
   }, [closeDrawer, itemDeleteTarget, loadItems, openedItemUuid, refreshStashes])
 
+  const confirmDeleteItems = useCallback(async (itemUuids: string[]) => {
+    const uniqueUuids = [...new Set(itemUuids)]
+    if (!uniqueUuids.length) return
+    setBulkDeleteBusy(true)
+    try {
+      for (const itemUuid of uniqueUuids) {
+        await deleteCandidateItem(itemUuid)
+      }
+      if (openedItemUuid && uniqueUuids.includes(openedItemUuid)) closeDrawer()
+      await loadItems()
+      await refreshStashes()
+    } finally {
+      setBulkDeleteBusy(false)
+    }
+  }, [closeDrawer, loadItems, openedItemUuid, refreshStashes])
+
   return {
     drawerOpen,
     items,
@@ -249,6 +266,7 @@ export function useCandidateStashDetailModal({
     periodEnd,
     itemDeleteTarget,
     itemDeleteBusy,
+    bulkDeleteBusy,
     setItemDeleteTarget,
     detailTarget,
     brandOptions,
@@ -265,5 +283,6 @@ export function useCandidateStashDetailModal({
     refreshStashes,
     confirmDeleteStash,
     confirmDeleteItem,
+    confirmDeleteItems,
   }
 }

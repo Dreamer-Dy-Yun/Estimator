@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type { CandidateItemBadgeSummary, CandidateStashSummary } from '../../api'
 import { formatDateTimeMinute } from '../../utils/date'
 import { formatGroupedNumber, formatRatioDecimalKo } from '../../utils/format'
@@ -42,12 +42,47 @@ function InnerOrderBadge({ badge }: { badge: CandidateItemBadgeSummary }) {
 export function CandidateStashDetailModal({ stashUuid, stashSummary, onClose, onStashesInvalidate }: Props) {
   const m = useCandidateStashDetailModal({ stashUuid, stashSummary, onClose, onStashesInvalidate })
   const [selectedItemUuids, setSelectedItemUuids] = useState<Set<string>>(() => new Set())
+  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false)
+  const selectAllRef = useRef<HTMLInputElement | null>(null)
+
+  const visibleItemUuids = useMemo(() => m.tableRows.map((row) => row.uuid), [m.tableRows])
+  const selectedVisibleCount = useMemo(
+    () => visibleItemUuids.filter((uuid) => selectedItemUuids.has(uuid)).length,
+    [selectedItemUuids, visibleItemUuids],
+  )
+  const allVisibleSelected = visibleItemUuids.length > 0 && selectedVisibleCount === visibleItemUuids.length
+  const partiallyVisibleSelected = selectedVisibleCount > 0 && selectedVisibleCount < visibleItemUuids.length
+
+  useEffect(() => {
+    if (!selectAllRef.current) return
+    selectAllRef.current.indeterminate = partiallyVisibleSelected
+  }, [partiallyVisibleSelected])
+
+  useEffect(() => {
+    setSelectedItemUuids((prev) => {
+      const visible = new Set(visibleItemUuids)
+      const next = new Set([...prev].filter((uuid) => visible.has(uuid)))
+      return next.size === prev.size ? prev : next
+    })
+  }, [visibleItemUuids])
 
   const toggleSelectedItem = (uuid: string) => {
     setSelectedItemUuids((prev) => {
       const next = new Set(prev)
       if (next.has(uuid)) next.delete(uuid)
       else next.add(uuid)
+      return next
+    })
+  }
+
+  const toggleAllVisibleItems = () => {
+    setSelectedItemUuids((prev) => {
+      const next = new Set(prev)
+      if (allVisibleSelected) {
+        for (const uuid of visibleItemUuids) next.delete(uuid)
+      } else {
+        for (const uuid of visibleItemUuids) next.add(uuid)
+      }
       return next
     })
   }
@@ -99,7 +134,17 @@ export function CandidateStashDetailModal({ stashUuid, stashSummary, onClose, on
                       </span>
                     </div>
                     <div className={pageStyles.detailHeaderDeleteCell}>
-                      <DeleteButton onClick={() => m.setDeleteOpen(true)} aria-label="후보군 삭제" />
+                      <DeleteButton
+                        label="일괄삭제"
+                        onClick={() => setBulkDeleteOpen(true)}
+                        disabled={selectedItemUuids.size === 0}
+                        aria-label="선택 이너 오더 일괄삭제"
+                        title={
+                          selectedItemUuids.size === 0
+                            ? '삭제할 이너 오더를 선택하세요.'
+                            : `선택된 이너 오더 ${selectedItemUuids.size}개 삭제`
+                        }
+                      />
                     </div>
                     <button
                       type="button"
@@ -204,7 +249,16 @@ export function CandidateStashDetailModal({ stashUuid, stashSummary, onClose, on
                     ) : (
                       <div className={pageStyles.innerOrderList} role="list">
                         <div className={pageStyles.innerOrderHeader} role="presentation">
-                          <span />
+                          <span className={pageStyles.innerOrderCheckCell}>
+                            <input
+                              ref={selectAllRef}
+                              type="checkbox"
+                              checked={allVisibleSelected}
+                              disabled={visibleItemUuids.length === 0}
+                              aria-label="전체 선택"
+                              onChange={toggleAllVisibleItems}
+                            />
+                          </span>
                           <span>브랜드</span>
                           <span>상품코드</span>
                           <span>상품명</span>
@@ -286,7 +340,7 @@ export function CandidateStashDetailModal({ stashUuid, stashSummary, onClose, on
         onForecastMonthsChange={m.onDrawerForecastMonthsChange}
         hydrateSnapshot={m.hydrateSnap}
         onRequestNavigateAdjacent={m.onRequestNavigateAdjacent}
-        disableAdjacentNavigation={Boolean(m.deleteOpen || m.itemDeleteTarget)}
+        disableAdjacentNavigation={Boolean(bulkDeleteOpen || m.itemDeleteTarget)}
         candidateItemContext={
           m.detailTarget && m.openedItemUuid
             ? {
@@ -307,13 +361,17 @@ export function CandidateStashDetailModal({ stashUuid, stashSummary, onClose, on
       />
 
       <ConfirmModal
-        open={Boolean(m.deleteOpen && m.detailTarget)}
-        busy={m.deleteBusy}
-        title="삭제 확인"
-        message={m.detailTarget ? <><b>{m.detailTarget.name}</b> 후보군을 삭제할까요?</> : null}
-        confirmText="삭제"
+        open={bulkDeleteOpen}
+        busy={m.bulkDeleteBusy}
+        title="일괄삭제 확인"
+        message={
+          selectedItemUuids.size > 0
+            ? <>선택된 이너 오더 <b>{selectedItemUuids.size}</b>개를 삭제할까요?</>
+            : '삭제할 이너 오더가 선택되지 않았습니다.'
+        }
+        confirmText="일괄삭제"
         confirmingText="삭제 중…"
-        dialogTitleId="stash-delete-dialog-title"
+        dialogTitleId="bulk-item-delete-dialog-title"
         keepOpenAttr
         classNames={{
           backdrop: pageStyles.confirmModalBackdrop,
@@ -325,9 +383,11 @@ export function CandidateStashDetailModal({ stashUuid, stashSummary, onClose, on
           cancelButton: pageStyles.confirmModalBtnCancel,
           confirmButton: pageStyles.confirmModalBtnDanger,
         }}
-        onCancel={() => m.setDeleteOpen(false)}
+        onCancel={() => setBulkDeleteOpen(false)}
         onConfirm={async () => {
-          await m.confirmDeleteStash()
+          await m.confirmDeleteItems([...selectedItemUuids])
+          setSelectedItemUuids(new Set())
+          setBulkDeleteOpen(false)
         }}
       />
 
