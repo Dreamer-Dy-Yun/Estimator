@@ -48,15 +48,31 @@ export function CandidateStashDetailModal({ stashUuid, stashSummary, onClose, on
   const [selectedItemUuids, setSelectedItemUuids] = useState<Set<string>>(() => new Set())
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false)
   const [analysisPopupDismissed, setAnalysisPopupDismissed] = useState(false)
+  const [recommendationOpen, setRecommendationOpen] = useState(false)
+  const [recommendationSelectedUuids, setRecommendationSelectedUuids] = useState<Set<string>>(() => new Set())
   const selectAllRef = useRef<HTMLInputElement | null>(null)
+  const recommendationSelectAllRef = useRef<HTMLInputElement | null>(null)
 
   const visibleItemUuids = useMemo(() => m.tableRows.map((row) => row.uuid), [m.tableRows])
+  const recommendationRows = useMemo(() => {
+    const signaledRows = m.tableRows.filter((row) => row.insight.rankTone === 'top' || row.insight.badges.length > 0)
+    return signaledRows.length ? signaledRows : m.tableRows
+  }, [m.tableRows])
+  const recommendationRowUuids = useMemo(() => recommendationRows.map((row) => row.uuid), [recommendationRows])
   const selectedVisibleCount = useMemo(
     () => visibleItemUuids.filter((uuid) => selectedItemUuids.has(uuid)).length,
     [selectedItemUuids, visibleItemUuids],
   )
+  const recommendationSelectedCount = useMemo(
+    () => recommendationRowUuids.filter((uuid) => recommendationSelectedUuids.has(uuid)).length,
+    [recommendationRowUuids, recommendationSelectedUuids],
+  )
   const allVisibleSelected = visibleItemUuids.length > 0 && selectedVisibleCount === visibleItemUuids.length
   const partiallyVisibleSelected = selectedVisibleCount > 0 && selectedVisibleCount < visibleItemUuids.length
+  const allRecommendationSelected =
+    recommendationRowUuids.length > 0 && recommendationSelectedCount === recommendationRowUuids.length
+  const partiallyRecommendationSelected =
+    recommendationSelectedCount > 0 && recommendationSelectedCount < recommendationRowUuids.length
   const competitorSalesQtyHeader = useMemo(() => {
     const labels = m.tableRows
       .map((row) => row.insight.competitorChannelLabel.trim())
@@ -105,12 +121,26 @@ export function CandidateStashDetailModal({ stashUuid, stashSummary, onClose, on
   }, [partiallyVisibleSelected])
 
   useEffect(() => {
+    if (!recommendationSelectAllRef.current) return
+    recommendationSelectAllRef.current.indeterminate = partiallyRecommendationSelected
+  }, [partiallyRecommendationSelected])
+
+  useEffect(() => {
     setSelectedItemUuids((prev) => {
       const visible = new Set(visibleItemUuids)
       const next = new Set([...prev].filter((uuid) => visible.has(uuid)))
       return next.size === prev.size ? prev : next
     })
   }, [visibleItemUuids])
+
+  useEffect(() => {
+    if (!recommendationOpen) return
+    setRecommendationSelectedUuids((prev) => {
+      const available = new Set(recommendationRowUuids)
+      const next = new Set([...prev].filter((uuid) => available.has(uuid)))
+      return next.size === prev.size ? prev : next
+    })
+  }, [recommendationOpen, recommendationRowUuids])
 
   const toggleSelectedItem = (uuid: string) => {
     setSelectedItemUuids((prev) => {
@@ -119,6 +149,32 @@ export function CandidateStashDetailModal({ stashUuid, stashSummary, onClose, on
       else next.add(uuid)
       return next
     })
+  }
+
+  const openRecommendationModal = () => {
+    setRecommendationSelectedUuids(new Set(recommendationRowUuids))
+    setRecommendationOpen(true)
+  }
+
+  const toggleRecommendationItem = (uuid: string) => {
+    setRecommendationSelectedUuids((prev) => {
+      const next = new Set(prev)
+      if (next.has(uuid)) next.delete(uuid)
+      else next.add(uuid)
+      return next
+    })
+  }
+
+  const toggleAllRecommendationItems = () => {
+    setRecommendationSelectedUuids(() => {
+      if (allRecommendationSelected) return new Set()
+      return new Set(recommendationRowUuids)
+    })
+  }
+
+  const applyRecommendations = () => {
+    setSelectedItemUuids(new Set(recommendationSelectedUuids))
+    setRecommendationOpen(false)
   }
 
   const toggleAllVisibleItems = () => {
@@ -238,8 +294,8 @@ export function CandidateStashDetailModal({ stashUuid, stashSummary, onClose, on
                       <button
                         type="button"
                         className={`${pageStyles.actionBtn} ${pageStyles.btnNeutral} ${pageStyles.detailHeaderAnalysisBtn}`}
-                        onClick={() => setAnalysisPopupDismissed(false)}
-                        disabled={!m.analysisProgress}
+                        onClick={openRecommendationModal}
+                        disabled={!recommendationRows.length}
                       >
                         추천 보기
                       </button>
@@ -448,6 +504,121 @@ export function CandidateStashDetailModal({ stashUuid, stashSummary, onClose, on
           </div>
         </div>
       </div>
+
+      {recommendationOpen && (
+        <div
+          className={pageStyles.recommendationModalBackdrop}
+          role="presentation"
+          onClick={() => setRecommendationOpen(false)}
+        >
+          <div
+            className={pageStyles.recommendationModalPanel}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="recommendation-modal-title"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className={pageStyles.recommendationModalHeader}>
+              <div>
+                <h3 id="recommendation-modal-title" className={pageStyles.recommendationModalTitle}>
+                  추천 보기
+                </h3>
+                <div className={pageStyles.recommendationModalMeta}>
+                  추천 {formatGroupedNumber(recommendationRows.length)}개 · 선택 {formatGroupedNumber(recommendationSelectedCount)}개
+                </div>
+              </div>
+              <button
+                type="button"
+                className={`${styles.iconCloseButton} ${pageStyles.recommendationModalClose}`}
+                onClick={() => setRecommendationOpen(false)}
+                aria-label="추천 보기 닫기"
+                title="닫기"
+              />
+            </div>
+
+            <div className={pageStyles.recommendationTableWrap}>
+              <div className={pageStyles.recommendationTable} role="table" aria-label="추천 후보 목록">
+                <div className={pageStyles.recommendationHeader} role="row">
+                  <span className={pageStyles.recommendationCheckCell}>
+                    <input
+                      ref={recommendationSelectAllRef}
+                      type="checkbox"
+                      checked={allRecommendationSelected}
+                      disabled={!recommendationRows.length}
+                      aria-label="추천 전체 선택"
+                      onChange={toggleAllRecommendationItems}
+                    />
+                  </span>
+                  <span>상품코드</span>
+                  <span>상품명</span>
+                  <span>배지</span>
+                  <span className={pageStyles.recommendationNum}>자사 기간 총 판매량</span>
+                  <span className={pageStyles.recommendationNum}>경쟁사 기간 총 판매량</span>
+                </div>
+                {recommendationRows.map((row) => {
+                  const selected = recommendationSelectedUuids.has(row.uuid)
+                  return (
+                    <label
+                      key={row.uuid}
+                      className={`${pageStyles.recommendationRow} ${
+                        selected ? pageStyles.recommendationRowSelected : ''
+                      }`}
+                    >
+                      <span className={pageStyles.recommendationCheckCell}>
+                        <input
+                          type="checkbox"
+                          checked={selected}
+                          aria-label={`${row.productName} 추천 선택`}
+                          onChange={() => toggleRecommendationItem(row.uuid)}
+                        />
+                      </span>
+                      <span className={pageStyles.recommendationCode}>{row.productCode}</span>
+                      <span className={pageStyles.recommendationName}>{row.productName}</span>
+                      <span className={pageStyles.recommendationBadgeList}>
+                        {row.insight.badges.length ? (
+                          row.insight.badges.map((badge) => (
+                            <InnerOrderBadge
+                              key={`${row.uuid}-recommendation-${badge.id}`}
+                              badge={badge}
+                            />
+                          ))
+                        ) : (
+                          <span className={pageStyles.innerOrderNoBadge}>-</span>
+                        )}
+                      </span>
+                      <span className={pageStyles.recommendationNum}>{formatSalesQty(row.insight.selfQty)}</span>
+                      <span className={pageStyles.recommendationNum}>{formatSalesQty(row.insight.competitorQty)}</span>
+                    </label>
+                  )
+                })}
+              </div>
+            </div>
+
+            <div className={pageStyles.recommendationModalFooter}>
+              <span className={pageStyles.recommendationApplyMeta}>
+                선택 {formatGroupedNumber(recommendationSelectedCount)}개
+              </span>
+              <div className={pageStyles.recommendationModalActions}>
+                <button
+                  type="button"
+                  className={`${pageStyles.actionBtn} ${pageStyles.btnNeutral}`}
+                  onClick={() => setRecommendationOpen(false)}
+                >
+                  취소
+                </button>
+                <button
+                  type="button"
+                  className={`${pageStyles.actionBtn} ${pageStyles.btnPrimary}`}
+                  onClick={applyRecommendations}
+                  disabled={recommendationSelectedCount === 0}
+                >
+                  추천 적용
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       <ProductSummaryDrawer
         summary={m.mergedSummary}
