@@ -9,7 +9,7 @@
  * 판매정보 카드 전용: 표 폭 증가는 피하고, 셀 밀도를 낮춰 줄바꿈을 완화.
  */
 .salesMetricsTightTable {
-  font-size: 10.5px;
+  font-size: 12.6px;
 }
 
 .salesMetricsTightTable th,
