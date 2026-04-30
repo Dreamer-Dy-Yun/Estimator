@@ -116,6 +116,8 @@ export interface CandidateItemSummary {
   /** 예상 영업이익(원). 스냅샷 `drawer2.stockDerived.expectedOpProfit`와 동일 */
   expectedOpProfit: number
   insight: CandidateItemInsightSummary
+  /** Whether the stored LLM recommendation/comment reflects the latest saved snapshot. */
+  latestLlmComment: boolean
   dbCreatedAt: string
   dbUpdatedAt: string
 }
@@ -168,6 +170,7 @@ export interface CandidateItemDetail {
   stashUuid: string
   productId: string
   details: SecondaryOrderSnapshotPayload
+  latestLlmComment: boolean
   dbCreatedAt: string
   dbUpdatedAt: string
 }
@@ -189,11 +192,13 @@ export interface AppendCandidateItemPayload {
   stashUuid: string
   productId: string
   details: SecondaryOrderSnapshotPayload
+  latestLlmComment?: boolean
 }
 
 export interface UpdateCandidateItemPayload {
   itemUuid: string
   details: SecondaryOrderSnapshotPayload
+  latestLlmComment: boolean
 }
 
 export interface CandidateStashExcelUploadResult {

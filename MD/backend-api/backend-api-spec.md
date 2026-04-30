@@ -274,6 +274,7 @@
 | `expectedOrderAmount` | 예상 **발주 금액(원)** — 스냅샷 `drawer2.stockDerived.expectedOrderAmount` 와 동일 의미 |
 | `expectedSalesAmount` | 예상 매출 — `stockDerived.expectedSalesAmount` |
 | `expectedOpProfit` | 예상 영업이익 — `stockDerived.expectedOpProfit` |
+| `latestLlmComment` | 현재 저장 스냅샷 기준 LLM 코멘트/추천이 최신인지 여부. DB 컬럼은 `latest_llm_comment` 권장 |
 | `dbCreatedAt`, `dbUpdatedAt` | 생성·수정 시각 |
 
 **`CandidateItemDetail`**
@@ -281,16 +282,18 @@
 | 필드 | 의미 |
 |------|------|
 | `details` | 저장 시점의 **`SecondaryOrderSnapshotPayload` 전체 JSON** |
+| `latestLlmComment` | 상세 스냅샷 기준 LLM 코멘트/추천 최신 여부 |
 
 **페이로드**
 
 - `CreateCandidateStashPayload`: `{ productId, name, note? }`
 - `UpdateCandidateStashPayload`: `{ stashUuid, name, note? }` — 메타만 갱신
-- `AppendCandidateItemPayload`: `{ stashUuid, productId, details }`
-- `UpdateCandidateItemPayload`: `{ itemUuid, details }`
+- `AppendCandidateItemPayload`: `{ stashUuid, productId, details, latestLlmComment? }` — 기본값은 `false` 권장
+- `UpdateCandidateItemPayload`: `{ itemUuid, details, latestLlmComment }`
 - `CandidateStashExcelUploadResult`: `{ stashUuid, stashName, itemCount, warnings: string[] }`
 - `CandidateStashAnalysisStartResult`: `{ jobId, stashUuid, itemCount }`
 - `CandidateStashAnalysisProgressEvent`: `{ jobId, stashUuid, status, totalItems, completedItems, currentItemUuid, currentProductName, message, error? }`
+- 2차 드로워에서 후보 아이템 스냅샷을 다시 저장할 때 프론트는 `updateCandidateItem`에 `latestLlmComment: false`를 보냅니다. 백엔드는 해당 아이템의 DB `latest_llm_comment`를 `false`로 저장해 기존 LLM 코멘트/추천이 최신 스냅샷 기준이 아님을 표시해야 합니다.
 
 **동작 메모**
 
@@ -313,6 +316,7 @@
 - SSE는 `Content-Type: text/event-stream`으로 제공하고, 각 `data:`는 `CandidateStashAnalysisProgressEvent` JSON입니다.
 - `status` 값은 `'queued' | 'running' | 'completed' | 'failed'` 중 하나입니다.
 - 진행 이벤트는 최소한 `totalItems`, `completedItems`, `message`를 포함해야 합니다. 특정 아이템 처리 중이면 `currentItemUuid`, `currentProductName`을 채웁니다.
+- 각 후보 아이템의 LLM 분석/코멘트 갱신이 완료되면 백엔드는 해당 아이템의 DB `latest_llm_comment`를 `true`로 갱신해야 합니다.
 - 실패 시 `status: 'failed'`와 `error` 메시지를 내려야 하며, 프론트는 진행 카드에 실패 상태를 표시합니다.
 - 프론트는 모달 닫힘/언마운트 또는 `completed`/`failed` 수신 시 SSE 연결을 닫습니다. 백엔드는 terminal 이벤트(`completed` 또는 `failed`) 전송 후 스트림을 종료하는 것을 권장합니다.
 - 브라우저가 SSE 연결을 끊어도 백엔드 작업 취소를 의미하지 않습니다. 별도 취소 API가 필요하면 독립 계약으로 추가합니다.
