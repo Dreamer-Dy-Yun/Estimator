@@ -683,7 +683,7 @@ export function ProductSecondaryPanel({
       await dashboardApi.updateCandidateItem({
         itemUuid: candidateItemContext.itemUuid,
         details: snap,
-        latestLlmComment: false,
+        isLatestLlmComment: false,
       })
       void dashboardApi.saveSecondaryOrderSnapshot(snap)
       candidateItemContext.onSaved?.()

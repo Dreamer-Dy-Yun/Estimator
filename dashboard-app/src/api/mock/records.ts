@@ -14,7 +14,7 @@ export type CandidateItemRecord = {
   stashUuid: string
   skuUuid: string
   details: SecondaryOrderSnapshotPayload
-  latestLlmComment?: boolean
+  isLatestLlmComment?: boolean
   dbCreatedAt: string
   dbUpdatedAt: string
 }

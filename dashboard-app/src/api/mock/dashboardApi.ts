@@ -70,7 +70,11 @@ function readCandidateItemsForStash(stashUuid: string): CandidateItemRecord[] {
   return items.filter((row) => row.stashUuid === stashUuid)
 }
 
-function updateCandidateItemLatestLlmComment(itemUuid: string, latestLlmComment: boolean) {
+function getCandidateItemIsLatestLlmComment(row: CandidateItemRecord) {
+  return row.isLatestLlmComment ?? true
+}
+
+function updateCandidateItemIsLatestLlmComment(itemUuid: string, isLatestLlmComment: boolean) {
   ensureCandidateSeed()
   const rawItems = localStorage.getItem(CANDIDATE_ITEM_STORAGE_KEY)
   const items = (rawItems ? JSON.parse(rawItems) : []) as CandidateItemRecord[]
@@ -79,7 +83,7 @@ function updateCandidateItemLatestLlmComment(itemUuid: string, latestLlmComment:
   const prev = items[idx]!
   items[idx] = {
     ...prev,
-    latestLlmComment,
+    isLatestLlmComment,
   }
   localStorage.setItem(CANDIDATE_ITEM_STORAGE_KEY, JSON.stringify(items))
 }
@@ -472,7 +476,7 @@ export const mockDashboardApi = {
           expectedSalesAmount,
           expectedOpProfit,
           insight: buildCandidateItemInsight(productId, qty, expectedSalesAmount, expectedOpProfit),
-          latestLlmComment: row.latestLlmComment ?? true,
+          isLatestLlmComment: getCandidateItemIsLatestLlmComment(row),
           dbCreatedAt: row.dbCreatedAt,
           dbUpdatedAt: row.dbUpdatedAt ?? row.dbCreatedAt,
         }
@@ -494,7 +498,7 @@ export const mockDashboardApi = {
       stashUuid: row.stashUuid,
       productId: row.skuUuid,
       details: row.details,
-      latestLlmComment: row.latestLlmComment ?? true,
+      isLatestLlmComment: getCandidateItemIsLatestLlmComment(row),
       dbCreatedAt: row.dbCreatedAt,
       dbUpdatedAt: row.dbUpdatedAt ?? row.dbCreatedAt,
     }
@@ -604,7 +608,7 @@ export const mockDashboardApi = {
       stashUuid: payload.stashUuid,
       skuUuid: payload.productId,
       details: payload.details,
-      latestLlmComment: payload.latestLlmComment ?? false,
+      isLatestLlmComment: payload.isLatestLlmComment ?? false,
       dbCreatedAt: now,
       dbUpdatedAt: now,
     }
@@ -641,7 +645,7 @@ export const mockDashboardApi = {
       items[idx] = {
         ...prev,
         details: payload.details,
-        latestLlmComment: payload.latestLlmComment,
+        isLatestLlmComment: payload.isLatestLlmComment,
         dbUpdatedAt: now,
       }
       localStorage.setItem(CANDIDATE_ITEM_STORAGE_KEY, JSON.stringify(items))
@@ -684,7 +688,7 @@ export const mockDashboardApi = {
       stashUuid,
       skuUuid: productId,
       details: buildMockOrderSnapshotForCandidate(productId),
-      latestLlmComment: false,
+      isLatestLlmComment: false,
       dbCreatedAt: now,
       dbUpdatedAt: now,
     }))
@@ -796,7 +800,7 @@ export const mockDashboardApi = {
           ))
         })
         queue(480 + (index * 420), () => {
-          updateCandidateItemLatestLlmComment(item.uuid, true)
+          updateCandidateItemIsLatestLlmComment(item.uuid, true)
           emit(buildCandidateAnalysisEvent(
             jobId,
             job.stashUuid,

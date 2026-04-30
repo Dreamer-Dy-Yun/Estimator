@@ -117,7 +117,7 @@ export interface CandidateItemSummary {
   expectedOpProfit: number
   insight: CandidateItemInsightSummary
   /** Whether the stored LLM recommendation/comment reflects the latest saved snapshot. */
-  latestLlmComment: boolean
+  isLatestLlmComment: boolean
   dbCreatedAt: string
   dbUpdatedAt: string
 }
@@ -170,7 +170,7 @@ export interface CandidateItemDetail {
   stashUuid: string
   productId: string
   details: SecondaryOrderSnapshotPayload
-  latestLlmComment: boolean
+  isLatestLlmComment: boolean
   dbCreatedAt: string
   dbUpdatedAt: string
 }
@@ -192,13 +192,13 @@ export interface AppendCandidateItemPayload {
   stashUuid: string
   productId: string
   details: SecondaryOrderSnapshotPayload
-  latestLlmComment?: boolean
+  isLatestLlmComment?: boolean
 }
 
 export interface UpdateCandidateItemPayload {
   itemUuid: string
   details: SecondaryOrderSnapshotPayload
-  latestLlmComment: boolean
+  isLatestLlmComment: boolean
 }
 
 export interface CandidateStashExcelUploadResult {
