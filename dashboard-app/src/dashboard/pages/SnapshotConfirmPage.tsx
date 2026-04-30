@@ -1,9 +1,11 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   deleteCandidateStash,
   duplicateCandidateStash,
   getCandidateStashes,
+  uploadCandidateStashExcel,
   updateCandidateStash,
+  type CandidateStashExcelUploadResult,
   type CandidateStashSummary,
 } from '../../api'
 import { formatDateTimeMinute } from '../../utils/date'
@@ -32,6 +34,11 @@ export const SnapshotConfirmPage = () => {
   const [stashNameQuery, setStashNameQuery] = useState('')
   const [stashNoteQuery, setStashNoteQuery] = useState('')
   const [stashSortKey, setStashSortKey] = useState<'createdDesc' | 'createdAsc' | 'updatedDesc' | 'updatedAsc'>('createdDesc')
+  const uploadInputRef = useRef<HTMLInputElement | null>(null)
+  const [uploadFile, setUploadFile] = useState<File | null>(null)
+  const [uploadBusy, setUploadBusy] = useState(false)
+  const [uploadError, setUploadError] = useState<string | null>(null)
+  const [uploadResult, setUploadResult] = useState<CandidateStashExcelUploadResult | null>(null)
 
   const loadStashes = async () => {
     const list = await getCandidateStashes()
@@ -42,6 +49,23 @@ export const SnapshotConfirmPage = () => {
     void loadStashes()
   }, [])
 
+  const handleExcelUpload = async () => {
+    if (!uploadFile) return
+    setUploadBusy(true)
+    setUploadError(null)
+    setUploadResult(null)
+    try {
+      const result = await uploadCandidateStashExcel(uploadFile)
+      setUploadResult(result)
+      setUploadFile(null)
+      if (uploadInputRef.current) uploadInputRef.current.value = ''
+      await loadStashes()
+    } catch (err) {
+      setUploadError(err instanceof Error ? err.message : '엑셀 업로드에 실패했습니다.')
+    } finally {
+      setUploadBusy(false)
+    }
+  }
 
   const filteredStashes = useMemo(() => {
     const nq = stashNameQuery.trim().toLowerCase()
@@ -100,6 +124,45 @@ export const SnapshotConfirmPage = () => {
           },
         ]}
       />
+
+      <div className={`${styles.card} ${pageStyles.uploadCard}`}>
+        <div className={pageStyles.uploadCopy}>
+          <strong className={pageStyles.uploadTitle}>엑셀 업로드</strong>
+          <p className={pageStyles.uploadDescription}>
+            엑셀 파일을 서버로 보내면 백엔드가 필수 컬럼과 보조 컬럼을 검증한 뒤 오더 후보군을 생성합니다.
+            프론트는 업로드 완료 후 후보군 목록을 다시 조회합니다.
+          </p>
+        </div>
+        <div className={pageStyles.uploadControls}>
+          <input
+            ref={uploadInputRef}
+            type="file"
+            accept=".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"
+            className={pageStyles.uploadInput}
+            disabled={uploadBusy}
+            onChange={(e) => {
+              setUploadFile(e.target.files?.[0] ?? null)
+              setUploadError(null)
+              setUploadResult(null)
+            }}
+          />
+          <button
+            type="button"
+            className={`${pageStyles.actionBtn} ${pageStyles.btnNeutral}`}
+            disabled={!uploadFile || uploadBusy}
+            onClick={handleExcelUpload}
+          >
+            {uploadBusy ? '업로드 중…' : '업로드'}
+          </button>
+        </div>
+        {(uploadError || uploadResult) && (
+          <div className={uploadError ? pageStyles.uploadError : pageStyles.uploadResult}>
+            {uploadError
+              ? uploadError
+              : `${uploadResult?.stashName ?? '후보군'} 생성 완료 · 등록 상품 ${uploadResult?.itemCount ?? 0}건`}
+          </div>
+        )}
+      </div>
 
       {!stashes.length ? (
         <div className={styles.card}>저장된 오더 후보군이 없습니다.</div>
@@ -307,4 +370,3 @@ export const SnapshotConfirmPage = () => {
     </section>
   )
 }
-

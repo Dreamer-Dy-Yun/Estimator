@@ -71,6 +71,7 @@
 | `duplicateCandidateStash(stashUuid)` | POST | `/candidate-stashes/:stashUuid/duplicate` |
 | `appendCandidateItem(payload)` | POST | `/candidate-stashes/:stashUuid/items` |
 | `updateCandidateItem(payload)` | PATCH | `/candidate-items/:itemUuid` |
+| `uploadCandidateStashExcel(file)` | POST multipart/form-data | `/candidate-stashes/import/excel` |
 | `getSecondaryStockOrderCalc(params)` | GET 또는 POST | 쿼리가 길면 POST `/secondary/stock-order-calc` body 권장 |
 
 ---
@@ -285,10 +286,20 @@
 - `UpdateCandidateStashPayload`: `{ stashUuid, name, note? }` — 메타만 갱신
 - `AppendCandidateItemPayload`: `{ stashUuid, productId, details }`
 - `UpdateCandidateItemPayload`: `{ itemUuid, details }`
+- `CandidateStashExcelUploadResult`: `{ stashUuid, stashName, itemCount, warnings: string[] }`
 
 **동작 메모**
 
 - `duplicateCandidateStash`: 동일 스태시·아이템 복제(구현 세부는 백엔드 결정). 프론트는 완료만 기다립니다(`Promise<void>`).
+- `uploadCandidateStashExcel`: 프론트는 파일을 파싱하지 않습니다. `multipart/form-data`의 `file` 필드로 엑셀 파일을 전송하고,
+  백엔드는 파일 내용을 검증한 뒤 DB 트랜잭션 안에서 후보군과 후보 아이템을 생성해야 합니다.
+  성공 후 프론트는 응답 객체를 목록에 직접 삽입하지 않고 `getCandidateStashes()`를 다시 호출해 DB 기준 목록과 동기화합니다.
+- 엑셀 업로드 검증 권장:
+  - 필수 컬럼 예: `productCode` 또는 `skuUuid`, `orderQty` 또는 사이즈별 확정 수량 컬럼.
+  - 보조 컬럼 예: `brand`, `productName`, `memo`, `expectedInboundDate`, `channel`, `unitPrice`, `unitCost`, `feeRate`, 사이즈 컬럼.
+  - 필수 컬럼 누락, 알 수 없는 상품 코드, 수량 파싱 실패, 중복 행, 음수 수량은 에러 또는 행 단위 경고로 명확히 반환합니다.
+  - 백엔드는 생성된 후보군 UUID, 등록 아이템 수, 무시/보정된 행 경고를 응답합니다.
+  - 검증 실패 시 후보군/아이템을 부분 저장하지 않는 것을 기본 정책으로 권장합니다.
 
 ### 3.11 `getSecondaryStockOrderCalc`
 

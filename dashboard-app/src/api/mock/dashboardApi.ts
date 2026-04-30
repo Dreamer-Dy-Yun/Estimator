@@ -3,6 +3,7 @@ import type {
   AppendCandidateItemPayload,
   CandidateItemDetail,
   CandidateItemSummary,
+  CandidateStashExcelUploadResult,
   CandidateStashSummary,
   CreateCandidateStashPayload,
   UpdateCandidateItemPayload,
@@ -26,6 +27,7 @@ import {
 import type { CandidateItemRecord, CandidateStashRecord } from './records'
 import { logApiCalled, makeUuid32, sleep } from './utils'
 import { ensureCandidateSeed } from './candidateSeeds'
+import { buildMockOrderSnapshotForCandidate } from './orderSnapshotForCandidate'
 import {
   allKnownProductIds,
   brands,
@@ -461,6 +463,62 @@ export const mockDashboardApi = {
       localStorage.setItem(CANDIDATE_STASH_STORAGE_KEY, JSON.stringify(nextStashes))
     } catch {
       /* ignore quota */
+    }
+  },
+  uploadCandidateStashExcel: async (file: File): Promise<CandidateStashExcelUploadResult> => {
+    await sleep(140)
+    logApiCalled('오더 후보군 엑셀 업로드 API가 호출되었습니다.')
+
+    const fileName = file.name.trim()
+    const isExcel = /\.(xlsx|xls)$/i.test(fileName)
+    if (!fileName || !isExcel) {
+      throw new Error('엑셀 파일(.xlsx, .xls)만 업로드할 수 있습니다.')
+    }
+    if (file.size <= 0) {
+      throw new Error('빈 엑셀 파일은 업로드할 수 없습니다.')
+    }
+
+    const now = new Date().toISOString()
+    const stashUuid = makeUuid32()
+    const sampleProductIds = ['B', 'H', 'T'].filter((id) => allKnownProductIds.includes(id))
+    const productIds = sampleProductIds.length ? sampleProductIds : allKnownProductIds.slice(0, 3)
+    const stash: CandidateStashRecord = {
+      uuid: stashUuid,
+      name: `엑셀 업로드 후보군 ${now.slice(0, 10)}`,
+      note: `업로드 파일: ${fileName}`,
+      productId: productIds[0] ?? allKnownProductIds[0]!,
+      dbCreatedAt: now,
+      dbUpdatedAt: now,
+    }
+    const uploadItems: CandidateItemRecord[] = productIds.map((productId) => ({
+      uuid: makeUuid32(),
+      stashUuid,
+      skuUuid: productId,
+      details: buildMockOrderSnapshotForCandidate(productId),
+      dbCreatedAt: now,
+      dbUpdatedAt: now,
+    }))
+
+    try {
+      ensureCandidateSeed()
+      const rawStashes = localStorage.getItem(CANDIDATE_STASH_STORAGE_KEY)
+      const rawItems = localStorage.getItem(CANDIDATE_ITEM_STORAGE_KEY)
+      const stashes = (rawStashes ? JSON.parse(rawStashes) : []) as CandidateStashRecord[]
+      const items = (rawItems ? JSON.parse(rawItems) : []) as CandidateItemRecord[]
+      localStorage.setItem(CANDIDATE_STASH_STORAGE_KEY, JSON.stringify([stash, ...stashes]))
+      localStorage.setItem(CANDIDATE_ITEM_STORAGE_KEY, JSON.stringify([...uploadItems, ...items]))
+    } catch {
+      throw new Error('업로드 결과 저장에 실패했습니다.')
+    }
+
+    return {
+      stashUuid,
+      stashName: stash.name,
+      itemCount: uploadItems.length,
+      warnings: [
+        '목 API는 파일 내용을 파싱하지 않고 업로드 성공 흐름만 모사합니다.',
+        '실제 백엔드는 필수 컬럼 검증 후 DB에 후보군과 후보 아이템을 저장해야 합니다.',
+      ],
     }
   },
   getSecondaryStockOrderCalc: async ({

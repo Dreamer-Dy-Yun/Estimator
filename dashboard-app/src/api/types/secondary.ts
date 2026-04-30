@@ -152,3 +152,10 @@ export interface UpdateCandidateItemPayload {
   itemUuid: string
   details: SecondaryOrderSnapshotPayload
 }
+
+export interface CandidateStashExcelUploadResult {
+  stashUuid: string
+  stashName: string
+  itemCount: number
+  warnings: string[]
+}
