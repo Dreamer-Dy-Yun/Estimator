@@ -241,7 +241,7 @@ export function CandidateStashDetailModal({ stashUuid, stashSummary, onClose, on
                         onClick={() => setAnalysisPopupDismissed(false)}
                         disabled={!m.analysisProgress}
                       >
-                        LLM 분석
+                        추천 보기
                       </button>
                     </div>
                     <div className={pageStyles.detailHeaderDeleteCell}>
