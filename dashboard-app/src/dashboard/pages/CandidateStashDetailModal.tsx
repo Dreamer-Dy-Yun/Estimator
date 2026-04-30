@@ -92,6 +92,14 @@ export function CandidateStashDetailModal({ stashUuid, stashSummary, onClose, on
   }, [stashUuid, m.analysisProgress?.jobId])
 
   useEffect(() => {
+    if (!analysisIsTerminal || analysisPopupDismissed) return
+    const timer = window.setTimeout(() => {
+      setAnalysisPopupDismissed(true)
+    }, 5000)
+    return () => window.clearTimeout(timer)
+  }, [analysisIsTerminal, analysisPopupDismissed, m.analysisProgress?.jobId])
+
+  useEffect(() => {
     if (!selectAllRef.current) return
     selectAllRef.current.indeterminate = partiallyVisibleSelected
   }, [partiallyVisibleSelected])
@@ -157,11 +165,11 @@ export function CandidateStashDetailModal({ stashUuid, stashSummary, onClose, on
                 {analysisIsTerminal && (
                   <button
                     type="button"
-                    className={pageStyles.analysisStatusDismissBtn}
+                    className={`${styles.iconCloseButton} ${pageStyles.analysisStatusDismissBtn}`}
                     onClick={() => setAnalysisPopupDismissed(true)}
-                  >
-                    닫기
-                  </button>
+                    aria-label="LLM 분석 팝업 즉시 닫기"
+                    title="즉시 닫기"
+                  />
                 )}
               </span>
             </div>
@@ -180,6 +188,11 @@ export function CandidateStashDetailModal({ stashUuid, stashSummary, onClose, on
                 {m.analysisProgress.completedItems}/{m.analysisProgress.totalItems}
               </span>
             </div>
+            {analysisIsTerminal && (
+              <div className={pageStyles.analysisStatusAutoDismissText}>
+                이 팝업은 5초 후에 닫힙니다.
+              </div>
+            )}
           </div>
         )}
 
