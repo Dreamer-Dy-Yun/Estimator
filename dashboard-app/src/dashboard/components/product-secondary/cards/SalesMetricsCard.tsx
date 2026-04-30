@@ -27,7 +27,7 @@ export function SalesMetricsCard({ targetPeriodDays, sales, channelFilter }: Pro
   const formatRank = (rank: number | null, total: number) =>
     rank === null ? '-' : `${rank}/${total}${KO.rankSuffix}`
   const formatRateRank = (ratePct: number | null, rank: number | null, total: number) =>
-    ratePct === null || rank === null ? '-' : `${formatPercent(ratePct)}, ${formatRank(rank, total)}`
+    ratePct === null || rank === null ? '-' : `${formatPercent(ratePct)} (${formatRank(rank, total)})`
   const isRateRankUnavailable = (ratePct: number | null, rank: number | null) =>
     ratePct === null || rank === null
 
