@@ -39,6 +39,10 @@ function InnerOrderBadge({ badge }: { badge: CandidateItemBadgeSummary }) {
   )
 }
 
+function formatSalesQty(qty: number | null) {
+  return qty == null ? '-' : `${formatGroupedNumber(qty)} EA`
+}
+
 export function CandidateStashDetailModal({ stashUuid, stashSummary, onClose, onStashesInvalidate }: Props) {
   const m = useCandidateStashDetailModal({ stashUuid, stashSummary, onClose, onStashesInvalidate })
   const [selectedItemUuids, setSelectedItemUuids] = useState<Set<string>>(() => new Set())
@@ -52,6 +56,13 @@ export function CandidateStashDetailModal({ stashUuid, stashSummary, onClose, on
   )
   const allVisibleSelected = visibleItemUuids.length > 0 && selectedVisibleCount === visibleItemUuids.length
   const partiallyVisibleSelected = selectedVisibleCount > 0 && selectedVisibleCount < visibleItemUuids.length
+  const competitorSalesQtyHeader = useMemo(() => {
+    const labels = m.tableRows
+      .map((row) => row.insight.competitorChannelLabel.trim())
+      .filter((label) => label.length > 0)
+    const uniqueLabels = [...new Set(labels)]
+    return uniqueLabels.length === 1 ? `${uniqueLabels[0]} 판매량` : '경쟁사 판매량'
+  }, [m.tableRows])
 
   useEffect(() => {
     if (!selectAllRef.current) return
@@ -262,6 +273,8 @@ export function CandidateStashDetailModal({ stashUuid, stashSummary, onClose, on
                           <span>브랜드</span>
                           <span>상품코드</span>
                           <span>상품명</span>
+                          <span className={pageStyles.innerOrderCellNum}>자사 판매량</span>
+                          <span className={pageStyles.innerOrderCellNum}>{competitorSalesQtyHeader}</span>
                           <span className={pageStyles.innerOrderCellNum}>총 예상 판매수량</span>
                           <span className={pageStyles.innerOrderCellNum}>총 예상 오더 금액</span>
                         </div>
@@ -298,6 +311,12 @@ export function CandidateStashDetailModal({ stashUuid, stashSummary, onClose, on
                               <span className={pageStyles.innerOrderBrand}>{row.brand}</span>
                               <span className={pageStyles.innerOrderCode}>{row.productCode}</span>
                               <span className={pageStyles.innerOrderName}>{row.productName}</span>
+                              <span className={pageStyles.innerOrderCellNum}>
+                                {formatSalesQty(row.insight.selfQty)}
+                              </span>
+                              <span className={pageStyles.innerOrderCellNum}>
+                                {formatSalesQty(row.insight.competitorQty)}
+                              </span>
                               <span className={pageStyles.innerOrderCellNum}>
                                 {formatGroupedNumber(row.insight.expectedSalesQty)} EA
                               </span>
