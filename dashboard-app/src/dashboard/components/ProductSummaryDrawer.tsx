@@ -594,10 +594,8 @@ function ProductSummaryDrawerContent({
                 interval={salesTrendChartDense ? 0 : 'preserveStartEnd'}
                 tickAngle={salesTrendChartDense ? -38 : 0}
                 tickHeight={salesTrendChartDense ? 42 : undefined}
-                areas={[
-                  { dataKey: 'actual', stroke: '#2563eb', fill: '#2563eb', fillOpacity: 0.12 },
-                ]}
                 lines={[
+                  { dataKey: 'actual', stroke: '#2563eb' },
                   { dataKey: 'competitorActual', stroke: '#e11d48' },
                   { dataKey: 'forecastLink', stroke: '#2563eb', strokeDasharray: '4 4' },
                 ]}

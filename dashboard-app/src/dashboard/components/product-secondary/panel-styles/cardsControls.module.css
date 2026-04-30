@@ -95,6 +95,14 @@
   margin-bottom: 8px;
 }
 
+.salesMetricsHeader > div {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
 .salesMetricsHeader .sectionTitle,
 .salesMetricsHeader .salesMetricsPeriodLine {
   margin-bottom: 0;
