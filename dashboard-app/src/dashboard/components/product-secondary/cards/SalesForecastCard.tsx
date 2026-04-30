@@ -220,7 +220,18 @@ export function SalesForecastCard({ forecast, orderSettings, actions, help }: Pr
           </thead>
           <tbody>
             <tr>
-              <td>{KO.rowOrderQty}</td>
+              <td>
+                <span className={commonStyles.cardTitleWithHelp}>
+                  {KO.rowOrderQty}
+                  <PortalHelpMark
+                    helpId="forecastQtyCalc"
+                    placement="above"
+                    labelId={labelIds.forecastQtyCalc}
+                    markClassName={commonStyles.helpMark}
+                    help={portal}
+                  />
+                </span>
+              </td>
               <td className={styles.num}>{formatGroupedNumber(computed.recommendedOrderQtyTotal)}</td>
               <td className={styles.num}>{formatGroupedNumber(computed.confirmedOrderQtyTotal)}</td>
             </tr>
