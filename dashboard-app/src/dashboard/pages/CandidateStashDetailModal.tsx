@@ -208,7 +208,6 @@ export function CandidateStashDetailModal({ stashUuid, stashSummary, onClose, on
                           <span>브랜드</span>
                           <span>상품코드</span>
                           <span>상품명</span>
-                          <span>배지</span>
                           <span className={pageStyles.innerOrderCellNum}>총 예상 판매수량</span>
                           <span className={pageStyles.innerOrderCellNum}>총 예상 오더 금액</span>
                         </div>
@@ -245,6 +244,12 @@ export function CandidateStashDetailModal({ stashUuid, stashSummary, onClose, on
                               <span className={pageStyles.innerOrderBrand}>{row.brand}</span>
                               <span className={pageStyles.innerOrderCode}>{row.productCode}</span>
                               <span className={pageStyles.innerOrderName}>{row.productName}</span>
+                              <span className={pageStyles.innerOrderCellNum}>
+                                {formatGroupedNumber(row.insight.expectedSalesQty)} EA
+                              </span>
+                              <span className={pageStyles.innerOrderCellNum}>
+                                {formatGroupedNumber(row.expectedOrderAmount)} 원
+                              </span>
                               <span className={pageStyles.innerOrderBadgeList}>
                                 {row.insight.badges.length ? (
                                   row.insight.badges.map((badge) => (
@@ -256,12 +261,6 @@ export function CandidateStashDetailModal({ stashUuid, stashSummary, onClose, on
                                 ) : (
                                   <span className={pageStyles.innerOrderNoBadge}>-</span>
                                 )}
-                              </span>
-                              <span className={pageStyles.innerOrderCellNum}>
-                                {formatGroupedNumber(row.insight.expectedSalesQty)} EA
-                              </span>
-                              <span className={pageStyles.innerOrderCellNum}>
-                                {formatGroupedNumber(row.expectedOrderAmount)} 원
                               </span>
                             </div>
                           )

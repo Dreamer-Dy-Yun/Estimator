@@ -506,8 +506,7 @@
     34px
     minmax(90px, 0.6fr)
     minmax(84px, 0.45fr)
-    minmax(164px, 1.25fr)
-    minmax(160px, 0.75fr)
+    minmax(260px, 1.7fr)
     minmax(130px, 0.7fr)
     minmax(150px, 0.85fr);
   align-items: center;
@@ -530,7 +529,7 @@
 .innerOrderRow {
   position: relative;
   width: 100%;
-  min-height: 54px;
+  min-height: 78px;
   padding: 10px 12px;
   border: 1px solid #dbe2ea;
   border-radius: 10px;
@@ -607,8 +606,10 @@
   display: flex;
   align-items: center;
   justify-content: flex-start;
+  grid-column: 2 / -1;
   gap: 6px;
   min-width: 0;
+  padding-top: 2px;
   flex-wrap: wrap;
 }
 
