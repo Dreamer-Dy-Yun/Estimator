@@ -13,6 +13,8 @@ import { CandidateInsightBadges } from './CandidateInsightBadges'
 import { CandidateRecommendationModal } from './CandidateRecommendationModal'
 import pageStyles from './SnapshotConfirmPage.module.css'
 
+const ANALYSIS_POPUP_AUTO_DISMISS_SECONDS = 5
+
 type Props = {
   stashUuid: string
   /** 목록에서 열 때 전달하면 후보군 목록 API를 한 번 덜 호출함 */
@@ -26,6 +28,9 @@ export function CandidateStashDetailModal({ stashUuid, stashSummary, onClose, on
   const [selectedItemUuids, setSelectedItemUuids] = useState<Set<string>>(() => new Set())
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false)
   const [analysisPopupDismissed, setAnalysisPopupDismissed] = useState(false)
+  const [analysisAutoDismissRemainingSec, setAnalysisAutoDismissRemainingSec] = useState(
+    ANALYSIS_POPUP_AUTO_DISMISS_SECONDS,
+  )
   const [recommendationOpen, setRecommendationOpen] = useState(false)
   const [recommendationSelectedUuids, setRecommendationSelectedUuids] = useState<Set<string>>(() => new Set())
   const selectAllRef = useRef<HTMLInputElement | null>(null)
@@ -82,14 +87,23 @@ export function CandidateStashDetailModal({ stashUuid, stashSummary, onClose, on
 
   useEffect(() => {
     setAnalysisPopupDismissed(false)
+    setAnalysisAutoDismissRemainingSec(ANALYSIS_POPUP_AUTO_DISMISS_SECONDS)
   }, [stashUuid, m.analysisProgress?.jobId])
 
   useEffect(() => {
     if (!analysisIsTerminal || analysisPopupDismissed) return
-    const timer = window.setTimeout(() => {
-      setAnalysisPopupDismissed(true)
-    }, 5000)
-    return () => window.clearTimeout(timer)
+    setAnalysisAutoDismissRemainingSec(ANALYSIS_POPUP_AUTO_DISMISS_SECONDS)
+    const timer = window.setInterval(() => {
+      setAnalysisAutoDismissRemainingSec((prev) => {
+        if (prev <= 1) {
+          window.clearInterval(timer)
+          setAnalysisPopupDismissed(true)
+          return 0
+        }
+        return prev - 1
+      })
+    }, 1000)
+    return () => window.clearInterval(timer)
   }, [analysisIsTerminal, analysisPopupDismissed, m.analysisProgress?.jobId])
 
   useEffect(() => {
@@ -218,7 +232,7 @@ export function CandidateStashDetailModal({ stashUuid, stashSummary, onClose, on
             </div>
             {analysisIsTerminal && (
               <div className={pageStyles.analysisStatusAutoDismissText}>
-                이 팝업은 5초 후에 닫힙니다.
+                이 팝업은 {analysisAutoDismissRemainingSec}초 후에 닫힙니다.
               </div>
             )}
           </div>
