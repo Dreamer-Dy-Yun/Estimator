@@ -1,7 +1,7 @@
+import { useState } from 'react'
 import type { CandidateStashSummary } from '../../api'
 import { formatDateTimeMinute } from '../../utils/date'
 import { formatGroupedNumber, formatRatioDecimalKo } from '../../utils/format'
-import { AnalysisList } from '../components/AnalysisList'
 import { ConfirmModal } from '../components/ConfirmModal'
 import { DeleteButton } from '../components/DeleteButton'
 import { FilterBar } from '../components/FilterBar'
@@ -22,8 +22,49 @@ type Props = {
   onStashesInvalidate?: () => void
 }
 
+function InnerOrderBadge({ label, description }: { label: string; description: string }) {
+  return (
+    <span className={pageStyles.innerOrderBadge} title={description}>
+      {label}
+    </span>
+  )
+}
+
+function InnerOrderHoverPanel({ row }: { row: InnerCandidateRow }) {
+  const channel = row.insight.competitorChannelLabel
+  const metrics = [
+    { label: `${channel} 판매량`, value: row.insight.competitorQty == null ? '-' : `${formatGroupedNumber(row.insight.competitorQty)} EA` },
+    { label: `${channel} 판매액`, value: row.insight.competitorAmount == null ? '-' : `${formatGroupedNumber(row.insight.competitorAmount)} 원` },
+    { label: '자사 판매량', value: row.insight.selfQty == null ? '-' : `${formatGroupedNumber(row.insight.selfQty)} EA` },
+    { label: '자사 판매액', value: row.insight.selfAmount == null ? '-' : `${formatGroupedNumber(row.insight.selfAmount)} 원` },
+    { label: '총 기대 매출', value: `${formatGroupedNumber(row.insight.expectedSalesAmount)} 원` },
+    { label: '총 기대 영업이익', value: `${formatGroupedNumber(row.insight.expectedOpProfit)} 원` },
+  ]
+
+  return (
+    <div className={pageStyles.innerOrderHoverPanel} role="tooltip">
+      {metrics.map((metric) => (
+        <div key={metric.label} className={pageStyles.innerOrderHoverMetric}>
+          <span>{metric.label}</span>
+          <strong>{metric.value}</strong>
+        </div>
+      ))}
+    </div>
+  )
+}
+
 export function CandidateStashDetailModal({ stashUuid, stashSummary, onClose, onStashesInvalidate }: Props) {
   const m = useCandidateStashDetailModal({ stashUuid, stashSummary, onClose, onStashesInvalidate })
+  const [selectedItemUuids, setSelectedItemUuids] = useState<Set<string>>(() => new Set())
+
+  const toggleSelectedItem = (uuid: string) => {
+    setSelectedItemUuids((prev) => {
+      const next = new Set(prev)
+      if (next.has(uuid)) next.delete(uuid)
+      else next.add(uuid)
+      return next
+    })
+  }
 
   return (
     <>
@@ -175,85 +216,57 @@ export function CandidateStashDetailModal({ stashUuid, stashSummary, onClose, on
                           : '등록된 이너 후보가 없습니다.'}
                       </div>
                     ) : (
-                      <AnalysisList<InnerCandidateRow>
-                        wrapClassName={pageStyles.innerCandidateTableWrap}
-                        columns={[
-                          { key: 'brand', header: '브랜드', cell: (r) => r.brand, sortValue: (r) => r.brand },
-                          {
-                            key: 'productCode',
-                            header: '상품코드',
-                            cell: (r) => r.productCode,
-                            sortValue: (r) => r.productCode,
-                          },
-                          {
-                            key: 'productName',
-                            header: '상품명',
-                            cell: (r) => r.productName,
-                            sortValue: (r) => r.productName,
-                          },
-                          {
-                            key: 'qty',
-                            header: '오더 수량 (EA)',
-                            cell: (r) => formatGroupedNumber(r.qty),
-                            align: 'right',
-                            sortValue: (r) => r.qty,
-                          },
-                          {
-                            key: 'expectedOrderAmount',
-                            header: '오더 금액 (원)',
-                            cell: (r) => formatGroupedNumber(r.expectedOrderAmount),
-                            align: 'right',
-                            sortValue: (r) => r.expectedOrderAmount,
-                          },
-                          {
-                            key: 'expectedSalesAmount',
-                            header: '총 기대 매출 (원)',
-                            cell: (r) => formatGroupedNumber(r.expectedSalesAmount),
-                            align: 'right',
-                            sortValue: (r) => r.expectedSalesAmount,
-                          },
-                          {
-                            key: 'expectedOpProfit',
-                            header: '총 기대 영업이익 (원)',
-                            cell: (r) => formatGroupedNumber(r.expectedOpProfit),
-                            align: 'right',
-                            sortValue: (r) => r.expectedOpProfit,
-                          },
-                          {
-                            key: 'datesMeta',
-                            header: '등록·변경',
-                            align: 'right',
-                            cell: (r) => (
-                              <div className={pageStyles.innerCandidateDateStack}>
-                                <span className={pageStyles.innerCandidateDateLine}>
-                                  등록 {formatDateTimeMinute(r.dbCreatedAt)}
-                                </span>
-                                <span className={pageStyles.innerCandidateDateLine}>
-                                  변경 {formatDateTimeMinute(r.dbUpdatedAt)}
-                                </span>
-                              </div>
-                            ),
-                            sortValue: (r) => r.dbUpdatedAt,
-                          },
-                          {
-                            key: 'delete',
-                            header: null,
-                            align: 'center',
-                            sortable: false,
-                            cell: (r) => (
-                              <DeleteButton
-                                aria-label={`${r.productName} 이너 후보에서 삭제`}
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  m.setItemDeleteTarget(r)
-                                }}
-                              />
-                            ),
-                          },
-                        ]}
-                        rows={m.tableRows}
-                        onRowClick={(row) => void m.openItemDrawer(row)}
-                      />
+                      <div className={pageStyles.innerOrderList} role="list">
+                        {m.tableRows.map((row) => {
+                          const selected = selectedItemUuids.has(row.uuid)
+                          return (
+                            <div
+                              key={row.uuid}
+                              className={`${pageStyles.innerOrderRow} ${
+                                row.insight.rankTone === 'top'
+                                  ? pageStyles.innerOrderRowTop
+                                  : row.insight.rankTone === 'bottom'
+                                    ? pageStyles.innerOrderRowBottom
+                                    : ''
+                              }`}
+                              onClick={() => void m.openItemDrawer(row)}
+                              onKeyDown={(e) => {
+                                if (e.key !== 'Enter' && e.key !== ' ') return
+                                e.preventDefault()
+                                void m.openItemDrawer(row)
+                              }}
+                              role="listitem"
+                              tabIndex={0}
+                            >
+                              <span className={pageStyles.innerOrderCheckCell}>
+                                <input
+                                  type="checkbox"
+                                  checked={selected}
+                                  aria-label={`${row.productName} 선택`}
+                                  onClick={(e) => e.stopPropagation()}
+                                  onChange={() => toggleSelectedItem(row.uuid)}
+                                />
+                              </span>
+                              <span className={pageStyles.innerOrderBrand}>{row.brand}</span>
+                              <span className={pageStyles.innerOrderName}>{row.productName}</span>
+                              <span className={pageStyles.innerOrderBadgeList}>
+                                {row.insight.badges.length ? (
+                                  row.insight.badges.map((badge) => (
+                                    <InnerOrderBadge
+                                      key={`${row.uuid}-${badge.kind}`}
+                                      label={badge.label}
+                                      description={badge.description}
+                                    />
+                                  ))
+                                ) : (
+                                  <span className={pageStyles.innerOrderNoBadge}>-</span>
+                                )}
+                              </span>
+                              <InnerOrderHoverPanel row={row} />
+                            </div>
+                          )
+                        })}
+                      </div>
                     )}
                   </div>
                 </div>

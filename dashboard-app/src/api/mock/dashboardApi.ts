@@ -32,8 +32,10 @@ import {
   allKnownProductIds,
   brands,
   categories,
+  competitorById,
   competitorSalesRows,
   secondaryCompetitorChannels,
+  selfById,
   selfSalesRows,
 } from './salesTables'
 import {
@@ -51,6 +53,74 @@ import {
   zFromServiceLevelPct,
 } from './secondaryDailyTrend'
 import { buildSalesKpiColumn } from '../../utils/salesKpiColumn'
+
+const INNER_ORDER_TOP_PERCENT_THRESHOLD = 10
+const INNER_ORDER_BOTTOM_PERCENT_THRESHOLD = 10
+
+function inTopPercent(rankPercentile: number | null | undefined) {
+  return typeof rankPercentile === 'number' && rankPercentile >= 100 - INNER_ORDER_TOP_PERCENT_THRESHOLD
+}
+
+function inBottomPercent(rankPercentile: number | null | undefined) {
+  return typeof rankPercentile === 'number' && rankPercentile <= INNER_ORDER_BOTTOM_PERCENT_THRESHOLD
+}
+
+function buildCandidateItemInsight(productId: string, expectedSalesAmount: number, expectedOpProfit: number) {
+  const competitor = competitorById[productId]
+  const self = selfById[productId]
+  const channelLabel = secondaryCompetitorChannels[0]?.label ?? '크림'
+  const badges = []
+
+  if (inTopPercent(competitor?.rankPercentile)) {
+    badges.push({
+      kind: 'competitorRevenue' as const,
+      label: `${channelLabel} 매출`,
+      description: `조회 기간 내 ${channelLabel}(경쟁사)의 매출상위 ${INNER_ORDER_TOP_PERCENT_THRESHOLD}% 이내에 드는 상품입니다.`,
+    })
+    badges.push({
+      kind: 'competitorSales' as const,
+      label: `${channelLabel} 판매`,
+      description: `조회 기간 내 ${channelLabel}(경쟁사)의 판매수량 상위 ${INNER_ORDER_TOP_PERCENT_THRESHOLD}% 이내에 드는 상품입니다.`,
+    })
+  }
+  if (inTopPercent(self?.rankPercentile)) {
+    badges.push({
+      kind: 'selfRevenue' as const,
+      label: '자사 매출',
+      description: `조회 기간 내 자사 매출상위 ${INNER_ORDER_TOP_PERCENT_THRESHOLD}% 이내에 드는 상품입니다.`,
+    })
+    badges.push({
+      kind: 'selfSales' as const,
+      label: '자사 판매',
+      description: `조회 기간 내 자사 판매수량 상위 ${INNER_ORDER_TOP_PERCENT_THRESHOLD}% 이내에 드는 상품입니다.`,
+    })
+  }
+  if (typeof self?.opMarginRate === 'number' && self.opMarginRate >= 9) {
+    badges.push({
+      kind: 'selfProfitRate' as const,
+      label: '자사 이율',
+      description: `조회 기간 내 자사 영업이익률이 ${self.opMarginRate.toFixed(1)}%인 상품입니다.`,
+    })
+  }
+
+  const top = inTopPercent(competitor?.rankPercentile) || inTopPercent(self?.rankPercentile)
+  const bottom = !top && (inBottomPercent(competitor?.rankPercentile) || inBottomPercent(self?.rankPercentile))
+
+  return {
+    competitorChannelLabel: channelLabel,
+    competitorQty: competitor?.competitorQty ?? null,
+    competitorAmount: competitor?.competitorAmount ?? null,
+    selfQty: self?.qty ?? competitor?.selfQty ?? null,
+    selfAmount: self?.amount ?? competitor?.selfAmount ?? null,
+    expectedSalesAmount,
+    expectedOpProfit,
+    selfOpProfitRatePct: self?.opMarginRate ?? null,
+    rankTone: top ? 'top' as const : bottom ? 'bottom' as const : 'neutral' as const,
+    topPercentThreshold: INNER_ORDER_TOP_PERCENT_THRESHOLD,
+    bottomPercentThreshold: INNER_ORDER_BOTTOM_PERCENT_THRESHOLD,
+    badges,
+  }
+}
 
 export const mockDashboardApi = {
   getSelfSales: async (params?: { startDate?: string; endDate?: string; brand?: string; category?: string; nameQuery?: string }) => {
@@ -287,6 +357,7 @@ export const mockDashboardApi = {
           expectedOrderAmount,
           expectedSalesAmount,
           expectedOpProfit,
+          insight: buildCandidateItemInsight(productId, expectedSalesAmount, expectedOpProfit),
           dbCreatedAt: row.dbCreatedAt,
           dbUpdatedAt: row.dbUpdatedAt ?? row.dbCreatedAt,
         }

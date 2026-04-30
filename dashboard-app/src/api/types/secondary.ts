@@ -115,8 +115,37 @@ export interface CandidateItemSummary {
   expectedSalesAmount: number
   /** 예상 영업이익(원). 스냅샷 `drawer2.stockDerived.expectedOpProfit`와 동일 */
   expectedOpProfit: number
+  insight: CandidateItemInsightSummary
   dbCreatedAt: string
   dbUpdatedAt: string
+}
+
+export type CandidateItemBadgeKind =
+  | 'competitorRevenue'
+  | 'selfRevenue'
+  | 'competitorSales'
+  | 'selfSales'
+  | 'selfProfitRate'
+
+export interface CandidateItemBadgeSummary {
+  kind: CandidateItemBadgeKind
+  label: string
+  description: string
+}
+
+export interface CandidateItemInsightSummary {
+  competitorChannelLabel: string
+  competitorQty: number | null
+  competitorAmount: number | null
+  selfQty: number | null
+  selfAmount: number | null
+  expectedSalesAmount: number
+  expectedOpProfit: number
+  selfOpProfitRatePct: number | null
+  rankTone: 'top' | 'bottom' | 'neutral'
+  topPercentThreshold: number
+  bottomPercentThreshold: number
+  badges: CandidateItemBadgeSummary[]
 }
 
 /** 후보군 단일 행 상세(스냅샷 JSON 포함) */
