@@ -135,6 +135,20 @@ export async function updateCandidateItem(payload: UpdateCandidateItemPayload): 
   return mockDashboardApi.updateCandidateItem(payload)
 }
 
+/**
+ * Backend integration note:
+ * - Send the Excel file as multipart/form-data using the field name `file`.
+ * - The frontend must not parse the Excel file or create candidate objects locally.
+ * - The backend validates required columns and optional helper columns, then creates the
+ *   candidate stash and items in a DB transaction.
+ * - On success, the UI reloads `getCandidateStashes()` instead of inserting the response
+ *   into local state, so the displayed list stays DB-synchronized.
+ * - Recommended validation:
+ *   required: productCode or skuUuid, orderQty or size-level confirmed quantity columns.
+ *   optional: brand, productName, memo, expectedInboundDate, channel, unitPrice, unitCost,
+ *   feeRate, size columns.
+ * - Validation failure should return a clear API error without partially saving stash/items.
+ */
 export async function uploadCandidateStashExcel(file: File): Promise<CandidateStashExcelUploadResult> {
   return mockDashboardApi.uploadCandidateStashExcel(file)
 }

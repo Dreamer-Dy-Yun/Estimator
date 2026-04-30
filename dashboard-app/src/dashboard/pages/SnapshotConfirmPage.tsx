@@ -136,17 +136,11 @@ export const SnapshotConfirmPage = () => {
         <div className={pageStyles.uploadCopy}>
           <div className={pageStyles.uploadTitleRow}>
             <strong className={pageStyles.uploadTitle}>엑셀 업로드</strong>
-            <span className={pageStyles.uploadBadge}>서버 검증</span>
+            <span className={pageStyles.uploadBadge}>후보군 추가</span>
           </div>
           <p className={pageStyles.uploadDescription}>
-            파일은 프론트에서 임시 후보군으로 만들지 않고 서버로 전송합니다. 백엔드가 컬럼 검증과 후보군 생성을
-            끝낸 뒤, 화면은 DB에 저장된 후보군 목록을 다시 조회합니다.
+            엑셀 파일을 끌어오거나 클릭해서 오더 후보군을 추가합니다.
           </p>
-          <div className={pageStyles.uploadGuideGrid} aria-label="엑셀 업로드 처리 기준">
-            <span className={pageStyles.uploadGuideItem}>필수 컬럼 확인</span>
-            <span className={pageStyles.uploadGuideItem}>보조 컬럼 매핑</span>
-            <span className={pageStyles.uploadGuideItem}>후보군 생성 후 재조회</span>
-          </div>
         </div>
         <div className={pageStyles.uploadControls}>
           <input

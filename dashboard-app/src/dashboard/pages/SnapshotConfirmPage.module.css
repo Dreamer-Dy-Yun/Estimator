@@ -24,8 +24,8 @@
 
 .uploadCard {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(360px, auto);
-  gap: 16px;
+  grid-template-columns: minmax(180px, 280px) minmax(360px, 1fr);
+  gap: 14px;
   align-items: center;
   border-color: #bfdbfe;
   background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
@@ -72,29 +72,6 @@
   font-size: 12px;
   line-height: 1.45;
   color: #475569;
-}
-
-.uploadGuideGrid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, auto));
-  justify-content: start;
-  gap: 6px;
-  min-width: 0;
-}
-
-.uploadGuideItem {
-  display: inline-flex;
-  align-items: center;
-  min-width: 0;
-  height: 26px;
-  padding: 0 9px;
-  border-radius: 8px;
-  background: #f1f5f9;
-  color: #334155;
-  font-size: 11px;
-  font-weight: 600;
-  line-height: 1;
-  white-space: nowrap;
 }
 
 .uploadControls {
@@ -840,10 +817,6 @@
 
   .uploadControls {
     grid-template-columns: minmax(0, 1fr) auto;
-  }
-
-  .uploadGuideGrid {
-    grid-template-columns: 1fr;
   }
 
   .filterBar {
