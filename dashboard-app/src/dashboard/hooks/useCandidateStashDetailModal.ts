@@ -96,6 +96,11 @@ export function useCandidateStashDetailModal({
   useEffect(() => {
     let alive = true
     let subscription: CandidateStashAnalysisSubscription | null = null
+    const closeSubscription = () => {
+      const current = subscription
+      subscription = null
+      current?.close()
+    }
     const requestSeq = analysisRequestSeqRef.current + 1
     analysisRequestSeqRef.current = requestSeq
     setAnalysisError(null)
@@ -133,6 +138,9 @@ export function useCandidateStashDetailModal({
             if (event.status === 'failed') {
               setAnalysisError(event.error ?? event.message)
             }
+            if (event.status === 'completed' || event.status === 'failed') {
+              closeSubscription()
+            }
           },
           onError: (err) => {
             if (!alive || analysisRequestSeqRef.current !== requestSeq) return
@@ -140,6 +148,11 @@ export function useCandidateStashDetailModal({
             setAnalysisProgress((prev) => prev
               ? { ...prev, status: 'failed', message: err.message, error: err.message }
               : null)
+            closeSubscription()
+          },
+          onClose: () => {
+            if (!alive || analysisRequestSeqRef.current !== requestSeq) return
+            closeSubscription()
           },
         })
       } catch (err) {
@@ -154,7 +167,7 @@ export function useCandidateStashDetailModal({
 
     return () => {
       alive = false
-      subscription?.close()
+      closeSubscription()
     }
   }, [stashUuid])
 

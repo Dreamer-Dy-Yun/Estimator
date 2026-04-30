@@ -2,7 +2,7 @@
 
 ## Goal
 
-오더 후보군 상세 모달이 열리는 즉시 백엔드에 후보 아이템 스냅샷 LLM 분석을 요청하고, 백엔드가 보내는 진행 이벤트를 화면에 표시한다.
+이너 오더 후보군 상세 모달이 열리면 백엔드에 후보 아이템 스냅샷 LLM 분석을 요청하고, 백엔드가 보내는 진행 이벤트를 화면에 표시한다.
 
 ## Scope
 
@@ -15,6 +15,8 @@
 
 - 화면은 mock을 직접 import하지 않고 `src/api` 계약만 호출한다.
 - 분석 대상 스냅샷 조회와 LLM 호출은 백엔드 책임으로 둔다.
+- SSE 연결은 후보군 상세 모달이 열려 있는 동안만 유지한다.
+- 모달 닫힘/언마운트 또는 terminal 이벤트(`completed`, `failed`) 수신 시 SSE 구독을 닫는다.
 - SSE 연결 종료는 백엔드 작업 취소를 의미하지 않는다.
 - 진행 상태는 stale 응답 방지를 위해 모달 인스턴스별 요청 시퀀스로 보호한다.
 
@@ -23,12 +25,13 @@
 1. `startCandidateStashAnalysis(stashUuid)`로 백엔드 작업을 시작한다.
 2. 시작 응답의 `jobId`로 `subscribeCandidateStashAnalysis(jobId, handlers)`를 호출한다.
 3. `queued`, `running`, `completed`, `failed` 이벤트를 모달 진행 카드에 반영한다.
-4. 모달 언마운트 시 SSE 구독만 닫는다.
+4. 모달 언마운트 또는 `completed`/`failed` 이벤트 수신 시 SSE 구독을 닫는다.
 
 ## Result
 
 - 후보군 상세 모달 진입 시 LLM 분석 진행 카드가 표시된다.
 - mock은 후보군 아이템 수만큼 진행 이벤트를 순차 발행한다.
+- terminal 이벤트 수신 후 프론트 SSE 구독이 닫힌다.
 - 실제 백엔드는 `MD/backend-api/backend-api-spec.md`의 SSE 계약을 구현하면 된다.
 
 ## Non-goals

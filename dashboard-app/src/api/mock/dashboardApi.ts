@@ -718,11 +718,17 @@ export const mockDashboardApi = {
     const emit = (event: CandidateStashAnalysisProgressEvent) => {
       if (!closed) handlers.onEvent(event)
     }
+    const closeFromServer = () => {
+      if (closed) return
+      closed = true
+      timers.forEach((timer) => clearTimeout(timer))
+      handlers.onClose?.()
+    }
 
     if (!job) {
       queue(0, () => {
         handlers.onError?.(new Error(`후보군 분석 작업을 찾을 수 없습니다: ${jobId}`))
-        handlers.onClose?.()
+        closeFromServer()
       })
       return {
         close: () => {
@@ -754,7 +760,7 @@ export const mockDashboardApi = {
           0,
           '분석할 후보 스냅샷이 없습니다.',
         ))
-        handlers.onClose?.()
+        closeFromServer()
       })
     } else {
       job.items.forEach((item, index) => {
@@ -791,7 +797,7 @@ export const mockDashboardApi = {
           totalItems,
           `후보 스냅샷 ${totalItems}건의 LLM 분석을 완료했습니다.`,
         ))
-        handlers.onClose?.()
+        closeFromServer()
       })
     }
 
