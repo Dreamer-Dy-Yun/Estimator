@@ -441,6 +441,85 @@
   word-break: break-word;
 }
 
+.analysisStatusCard {
+  display: grid;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid #bfdbfe;
+  border-radius: 10px;
+  background: #eff6ff;
+  color: #0f172a;
+}
+
+.analysisStatusCardError {
+  border-color: #fecaca;
+  background: #fff1f2;
+}
+
+.analysisStatusHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  line-height: 1.25;
+}
+
+.analysisStatusBadge {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 48px;
+  min-height: 22px;
+  padding: 0 8px;
+  border: 1px solid #93c5fd;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #1d4ed8;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.analysisStatusProgressTrack {
+  height: 6px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #dbeafe;
+}
+
+.analysisStatusProgressFill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: #2563eb;
+  transition: width 0.18s ease;
+}
+
+.analysisStatusMeta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  color: #475569;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.analysisStatusMeta span:first-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.analysisStatusMeta span:last-child {
+  flex-shrink: 0;
+  font-weight: 800;
+  color: #0f172a;
+}
+
 .detailBody {
   min-height: 0;
   display: grid;

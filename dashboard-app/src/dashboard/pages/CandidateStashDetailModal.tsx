@@ -63,6 +63,26 @@ export function CandidateStashDetailModal({ stashUuid, stashSummary, onClose, on
     const uniqueLabels = [...new Set(labels)]
     return uniqueLabels.length === 1 ? `${uniqueLabels[0]} 기간 총 판매량` : '경쟁사 기간 총 판매량'
   }, [m.tableRows])
+  const analysisProgressPct = useMemo(() => {
+    const progress = m.analysisProgress
+    if (!progress) return 0
+    if (progress.totalItems <= 0) return progress.status === 'completed' ? 100 : 0
+    return Math.max(0, Math.min(100, Math.round((progress.completedItems / progress.totalItems) * 100)))
+  }, [m.analysisProgress])
+  const analysisStatusLabel = (() => {
+    switch (m.analysisProgress?.status) {
+      case 'queued':
+        return '대기'
+      case 'running':
+        return '처리중'
+      case 'completed':
+        return '완료'
+      case 'failed':
+        return '실패'
+      default:
+        return '대기'
+    }
+  })()
 
   useEffect(() => {
     if (!selectAllRef.current) return
@@ -179,6 +199,36 @@ export function CandidateStashDetailModal({ stashUuid, stashSummary, onClose, on
                     )}
                   </div>
                 </div>
+
+                {m.analysisProgress && (
+                  <div
+                    className={`${pageStyles.analysisStatusCard} ${
+                      m.analysisError ? pageStyles.analysisStatusCardError : ''
+                    }`}
+                    role="status"
+                    aria-live="polite"
+                  >
+                    <div className={pageStyles.analysisStatusHead}>
+                      <strong>LLM 스냅샷 분석</strong>
+                      <span className={pageStyles.analysisStatusBadge}>{analysisStatusLabel}</span>
+                    </div>
+                    <div
+                      className={pageStyles.analysisStatusProgressTrack}
+                      aria-hidden="true"
+                    >
+                      <span
+                        className={pageStyles.analysisStatusProgressFill}
+                        style={{ width: `${analysisProgressPct}%` }}
+                      />
+                    </div>
+                    <div className={pageStyles.analysisStatusMeta}>
+                      <span>{m.analysisError ?? m.analysisProgress.message}</span>
+                      <span>
+                        {m.analysisProgress.completedItems}/{m.analysisProgress.totalItems}
+                      </span>
+                    </div>
+                  </div>
+                )}
 
                 <FilterBar
                   title=""

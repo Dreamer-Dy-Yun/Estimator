@@ -15,6 +15,9 @@ import type {
   UpdateCandidateItemPayload,
   CandidateItemDetail,
   CandidateItemSummary,
+  CandidateStashAnalysisHandlers,
+  CandidateStashAnalysisStartResult,
+  CandidateStashAnalysisSubscription,
   CandidateStashExcelUploadResult,
   CandidateStashSummary,
   CreateCandidateStashPayload,
@@ -60,5 +63,10 @@ export interface DashboardApi {
   appendCandidateItem(payload: AppendCandidateItemPayload): Promise<void>
   updateCandidateItem(payload: UpdateCandidateItemPayload): Promise<void>
   uploadCandidateStashExcel(file: File): Promise<CandidateStashExcelUploadResult>
+  startCandidateStashAnalysis(stashUuid: string): Promise<CandidateStashAnalysisStartResult>
+  subscribeCandidateStashAnalysis(
+    jobId: string,
+    handlers: CandidateStashAnalysisHandlers,
+  ): CandidateStashAnalysisSubscription
   getSecondaryStockOrderCalc(params: SecondaryStockOrderCalcParams): Promise<SecondaryStockOrderCalcResult>
 }

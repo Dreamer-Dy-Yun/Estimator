@@ -1,6 +1,8 @@
 import type { ProductPrimarySummary } from '../../types'
 import type {
   AppendCandidateItemPayload,
+  CandidateStashAnalysisHandlers,
+  CandidateStashAnalysisProgressEvent,
   CandidateItemDetail,
   CandidateItemSummary,
   CandidateStashExcelUploadResult,
@@ -53,6 +55,42 @@ import {
   zFromServiceLevelPct,
 } from './secondaryDailyTrend'
 import { buildSalesKpiColumn } from '../../utils/salesKpiColumn'
+
+type CandidateAnalysisJob = {
+  stashUuid: string
+  items: CandidateItemRecord[]
+}
+
+const candidateAnalysisJobs = new Map<string, CandidateAnalysisJob>()
+
+function readCandidateItemsForStash(stashUuid: string): CandidateItemRecord[] {
+  ensureCandidateSeed()
+  const rawItems = localStorage.getItem(CANDIDATE_ITEM_STORAGE_KEY)
+  const items = (rawItems ? JSON.parse(rawItems) : []) as CandidateItemRecord[]
+  return items.filter((row) => row.stashUuid === stashUuid)
+}
+
+function buildCandidateAnalysisEvent(
+  jobId: string,
+  stashUuid: string,
+  status: CandidateStashAnalysisProgressEvent['status'],
+  totalItems: number,
+  completedItems: number,
+  message: string,
+  item?: CandidateItemRecord | null,
+): CandidateStashAnalysisProgressEvent {
+  return {
+    jobId,
+    stashUuid,
+    status,
+    totalItems,
+    completedItems,
+    currentItemUuid: item?.uuid ?? null,
+    currentProductName: item?.details?.drawer1?.summary?.name ?? null,
+    message,
+    error: null,
+  }
+}
 
 const INNER_ORDER_TOP_PERCENT_THRESHOLD = 10
 const INNER_ORDER_BOTTOM_PERCENT_THRESHOLD = 10
@@ -652,6 +690,116 @@ export const mockDashboardApi = {
         '목 API는 파일 내용을 파싱하지 않고 업로드 성공 흐름만 모사합니다.',
         '실제 백엔드는 필수 컬럼 검증 후 DB에 후보군과 후보 아이템을 저장해야 합니다.',
       ],
+    }
+  },
+  startCandidateStashAnalysis: async (stashUuid: string) => {
+    await sleep(60)
+    logApiCalled('후보군 스냅샷 LLM 분석 시작 API가 호출되었습니다.')
+    const items = readCandidateItemsForStash(stashUuid)
+    const jobId = `candidate-analysis-${stashUuid}-${Date.now()}`
+    candidateAnalysisJobs.set(jobId, { stashUuid, items })
+    return {
+      jobId,
+      stashUuid,
+      itemCount: items.length,
+    }
+  },
+  subscribeCandidateStashAnalysis: (jobId: string, handlers: CandidateStashAnalysisHandlers) => {
+    logApiCalled('후보군 스냅샷 LLM 분석 SSE 구독이 시작되었습니다.')
+    const job = candidateAnalysisJobs.get(jobId)
+    let closed = false
+    const timers: Array<ReturnType<typeof setTimeout>> = []
+    const queue = (delayMs: number, fn: () => void) => {
+      const timer = setTimeout(() => {
+        if (!closed) fn()
+      }, delayMs)
+      timers.push(timer)
+    }
+    const emit = (event: CandidateStashAnalysisProgressEvent) => {
+      if (!closed) handlers.onEvent(event)
+    }
+
+    if (!job) {
+      queue(0, () => {
+        handlers.onError?.(new Error(`후보군 분석 작업을 찾을 수 없습니다: ${jobId}`))
+        handlers.onClose?.()
+      })
+      return {
+        close: () => {
+          closed = true
+          timers.forEach((timer) => clearTimeout(timer))
+        },
+      }
+    }
+
+    const totalItems = job.items.length
+    queue(0, () => {
+      emit(buildCandidateAnalysisEvent(
+        jobId,
+        job.stashUuid,
+        'queued',
+        totalItems,
+        0,
+        '백엔드가 후보군 스냅샷 LLM 분석 작업을 접수했습니다.',
+      ))
+    })
+
+    if (totalItems === 0) {
+      queue(260, () => {
+        emit(buildCandidateAnalysisEvent(
+          jobId,
+          job.stashUuid,
+          'completed',
+          0,
+          0,
+          '분석할 후보 스냅샷이 없습니다.',
+        ))
+        handlers.onClose?.()
+      })
+    } else {
+      job.items.forEach((item, index) => {
+        const productName = item.details?.drawer1?.summary?.name ?? item.skuUuid
+        queue(260 + (index * 420), () => {
+          emit(buildCandidateAnalysisEvent(
+            jobId,
+            job.stashUuid,
+            'running',
+            totalItems,
+            index,
+            `${productName} 스냅샷을 LLM으로 분석하는 중입니다.`,
+            item,
+          ))
+        })
+        queue(480 + (index * 420), () => {
+          emit(buildCandidateAnalysisEvent(
+            jobId,
+            job.stashUuid,
+            'running',
+            totalItems,
+            index + 1,
+            `${productName} 분석을 완료했습니다.`,
+            item,
+          ))
+        })
+      })
+      queue(700 + (totalItems * 420), () => {
+        emit(buildCandidateAnalysisEvent(
+          jobId,
+          job.stashUuid,
+          'completed',
+          totalItems,
+          totalItems,
+          `후보 스냅샷 ${totalItems}건의 LLM 분석을 완료했습니다.`,
+        ))
+        handlers.onClose?.()
+      })
+    }
+
+    return {
+      close: () => {
+        closed = true
+        timers.forEach((timer) => clearTimeout(timer))
+      },
     }
   },
   getSecondaryStockOrderCalc: async ({

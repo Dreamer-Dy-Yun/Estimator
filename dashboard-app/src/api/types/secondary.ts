@@ -202,3 +202,33 @@ export interface CandidateStashExcelUploadResult {
   itemCount: number
   warnings: string[]
 }
+
+export type CandidateStashAnalysisStatus = 'queued' | 'running' | 'completed' | 'failed'
+
+export interface CandidateStashAnalysisStartResult {
+  jobId: string
+  stashUuid: string
+  itemCount: number
+}
+
+export interface CandidateStashAnalysisProgressEvent {
+  jobId: string
+  stashUuid: string
+  status: CandidateStashAnalysisStatus
+  totalItems: number
+  completedItems: number
+  currentItemUuid: string | null
+  currentProductName: string | null
+  message: string
+  error?: string | null
+}
+
+export interface CandidateStashAnalysisHandlers {
+  onEvent: (event: CandidateStashAnalysisProgressEvent) => void
+  onError?: (error: Error) => void
+  onClose?: () => void
+}
+
+export interface CandidateStashAnalysisSubscription {
+  close: () => void
+}

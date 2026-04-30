@@ -5,6 +5,9 @@ import type {
   UpdateCandidateItemPayload,
   CandidateItemDetail,
   CandidateItemSummary,
+  CandidateStashAnalysisHandlers,
+  CandidateStashAnalysisStartResult,
+  CandidateStashAnalysisSubscription,
   CandidateStashExcelUploadResult,
   CandidateStashSummary,
   CreateCandidateStashPayload,
@@ -153,6 +156,17 @@ export async function uploadCandidateStashExcel(file: File): Promise<CandidateSt
   return mockDashboardApi.uploadCandidateStashExcel(file)
 }
 
+export async function startCandidateStashAnalysis(stashUuid: string): Promise<CandidateStashAnalysisStartResult> {
+  return mockDashboardApi.startCandidateStashAnalysis(stashUuid)
+}
+
+export function subscribeCandidateStashAnalysis(
+  jobId: string,
+  handlers: CandidateStashAnalysisHandlers,
+): CandidateStashAnalysisSubscription {
+  return mockDashboardApi.subscribeCandidateStashAnalysis(jobId, handlers)
+}
+
 export async function getSecondaryStockOrderCalc(
   params: SecondaryStockOrderCalcParams,
 ): Promise<SecondaryStockOrderCalcResult> {
@@ -184,5 +198,7 @@ export const dashboardApi: DashboardApi = {
   appendCandidateItem,
   updateCandidateItem,
   uploadCandidateStashExcel,
+  startCandidateStashAnalysis,
+  subscribeCandidateStashAnalysis,
   getSecondaryStockOrderCalc,
 }

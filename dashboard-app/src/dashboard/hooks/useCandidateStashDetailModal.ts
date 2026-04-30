@@ -5,6 +5,10 @@ import {
   getCandidateItemByUuid,
   getCandidateItemsByStash,
   getCandidateStashes,
+  startCandidateStashAnalysis,
+  subscribeCandidateStashAnalysis,
+  type CandidateStashAnalysisProgressEvent,
+  type CandidateStashAnalysisSubscription,
   type CandidateItemSummary,
   type CandidateStashSummary,
 } from '../../api'
@@ -53,7 +57,10 @@ export function useCandidateStashDetailModal({
   const [itemDeleteTarget, setItemDeleteTarget] = useState<CandidateItemSummary | null>(null)
   const [itemDeleteBusy, setItemDeleteBusy] = useState(false)
   const [bulkDeleteBusy, setBulkDeleteBusy] = useState(false)
+  const [analysisProgress, setAnalysisProgress] = useState<CandidateStashAnalysisProgressEvent | null>(null)
+  const [analysisError, setAnalysisError] = useState<string | null>(null)
   const innerNavLockRef = useRef(false)
+  const analysisRequestSeqRef = useRef(0)
 
   useEffect(() => {
     void (async () => {
@@ -85,6 +92,71 @@ export function useCandidateStashDetailModal({
   useEffect(() => {
     void loadItems()
   }, [loadItems])
+
+  useEffect(() => {
+    let alive = true
+    let subscription: CandidateStashAnalysisSubscription | null = null
+    const requestSeq = analysisRequestSeqRef.current + 1
+    analysisRequestSeqRef.current = requestSeq
+    setAnalysisError(null)
+    setAnalysisProgress({
+      jobId: '',
+      stashUuid,
+      status: 'queued',
+      totalItems: 0,
+      completedItems: 0,
+      currentItemUuid: null,
+      currentProductName: null,
+      message: '후보군 스냅샷 LLM 분석 요청을 백엔드에 전송하는 중입니다.',
+      error: null,
+    })
+
+    void (async () => {
+      try {
+        const started = await startCandidateStashAnalysis(stashUuid)
+        if (!alive || analysisRequestSeqRef.current !== requestSeq) return
+        setAnalysisProgress({
+          jobId: started.jobId,
+          stashUuid: started.stashUuid,
+          status: 'queued',
+          totalItems: started.itemCount,
+          completedItems: 0,
+          currentItemUuid: null,
+          currentProductName: null,
+          message: '백엔드가 LLM 분석 작업을 접수했습니다.',
+          error: null,
+        })
+        subscription = subscribeCandidateStashAnalysis(started.jobId, {
+          onEvent: (event) => {
+            if (!alive || analysisRequestSeqRef.current !== requestSeq) return
+            setAnalysisProgress(event)
+            if (event.status === 'failed') {
+              setAnalysisError(event.error ?? event.message)
+            }
+          },
+          onError: (err) => {
+            if (!alive || analysisRequestSeqRef.current !== requestSeq) return
+            setAnalysisError(err.message)
+            setAnalysisProgress((prev) => prev
+              ? { ...prev, status: 'failed', message: err.message, error: err.message }
+              : null)
+          },
+        })
+      } catch (err) {
+        if (!alive || analysisRequestSeqRef.current !== requestSeq) return
+        const message = err instanceof Error ? err.message : '후보군 LLM 분석 요청에 실패했습니다.'
+        setAnalysisError(message)
+        setAnalysisProgress((prev) => prev
+          ? { ...prev, status: 'failed', message, error: message }
+          : null)
+      }
+    })()
+
+    return () => {
+      alive = false
+      subscription?.close()
+    }
+  }, [stashUuid])
 
   const detailTarget = useMemo(
     () => (stashUuid ? stashes.find((s) => s.uuid === stashUuid) ?? null : null),
@@ -267,6 +339,8 @@ export function useCandidateStashDetailModal({
     itemDeleteTarget,
     itemDeleteBusy,
     bulkDeleteBusy,
+    analysisProgress,
+    analysisError,
     setItemDeleteTarget,
     detailTarget,
     brandOptions,

@@ -72,6 +72,8 @@
 | `appendCandidateItem(payload)` | POST | `/candidate-stashes/:stashUuid/items` |
 | `updateCandidateItem(payload)` | PATCH | `/candidate-items/:itemUuid` |
 | `uploadCandidateStashExcel(file)` | POST multipart/form-data | `/candidate-stashes/import/excel` |
+| `startCandidateStashAnalysis(stashUuid)` | POST | `/candidate-stashes/:stashUuid/analysis` |
+| `subscribeCandidateStashAnalysis(jobId, handlers)` | GET (SSE) | `/candidate-stash-analyses/:jobId/events` |
 | `getSecondaryStockOrderCalc(params)` | GET 또는 POST | 쿼리가 길면 POST `/secondary/stock-order-calc` body 권장 |
 
 ---
@@ -287,6 +289,8 @@
 - `AppendCandidateItemPayload`: `{ stashUuid, productId, details }`
 - `UpdateCandidateItemPayload`: `{ itemUuid, details }`
 - `CandidateStashExcelUploadResult`: `{ stashUuid, stashName, itemCount, warnings: string[] }`
+- `CandidateStashAnalysisStartResult`: `{ jobId, stashUuid, itemCount }`
+- `CandidateStashAnalysisProgressEvent`: `{ jobId, stashUuid, status, totalItems, completedItems, currentItemUuid, currentProductName, message, error? }`
 
 **동작 메모**
 
@@ -300,6 +304,18 @@
   - 필수 컬럼 누락, 알 수 없는 상품 코드, 수량 파싱 실패, 중복 행, 음수 수량은 에러 또는 행 단위 경고로 명확히 반환합니다.
   - 백엔드는 생성된 후보군 UUID, 등록 아이템 수, 무시/보정된 행 경고를 응답합니다.
   - 검증 실패 시 후보군/아이템을 부분 저장하지 않는 것을 기본 정책으로 권장합니다.
+
+**후보군 스냅샷 LLM 분석**
+
+- 후보군 상세 모달이 열리면 프론트는 `startCandidateStashAnalysis(stashUuid)`를 호출합니다.
+- 백엔드는 해당 `stashUuid`에 속한 후보 아이템의 저장 스냅샷(`CandidateItemDetail.details`)을 DB에서 읽고, 각 스냅샷을 LLM 분석 작업에 투입합니다.
+- 시작 응답은 `{ jobId, stashUuid, itemCount }`입니다. 프론트는 이 `jobId`로 SSE 스트림을 엽니다.
+- SSE는 `Content-Type: text/event-stream`으로 제공하고, 각 `data:`는 `CandidateStashAnalysisProgressEvent` JSON입니다.
+- `status` 값은 `'queued' | 'running' | 'completed' | 'failed'` 중 하나입니다.
+- 진행 이벤트는 최소한 `totalItems`, `completedItems`, `message`를 포함해야 합니다. 특정 아이템 처리 중이면 `currentItemUuid`, `currentProductName`을 채웁니다.
+- 실패 시 `status: 'failed'`와 `error` 메시지를 내려야 하며, 프론트는 진행 카드에 실패 상태를 표시합니다.
+- 브라우저가 SSE 연결을 끊어도 백엔드 작업 취소를 의미하지 않습니다. 별도 취소 API가 필요하면 독립 계약으로 추가합니다.
+- LLM 분석 결과를 후보 아이템·후보군에 저장할 경우, 저장 위치와 요약 필드는 별도 응답/조회 계약으로 추가해야 합니다. 현재 프론트 계약은 “요청 발생 + 진행 상태 표시”까지만 요구합니다.
 
 ### 3.11 `getSecondaryStockOrderCalc`
 
