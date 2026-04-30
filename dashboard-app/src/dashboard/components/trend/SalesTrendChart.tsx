@@ -1,4 +1,4 @@
-import { Bar, CartesianGrid, ComposedChart, Line, ReferenceArea, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
+import { Area, Bar, CartesianGrid, ComposedChart, Line, ReferenceArea, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 
 export type TrendShade = {
   x1: number
@@ -22,6 +22,14 @@ export type TrendBarSeries = {
   barSize?: number
 }
 
+export type TrendAreaSeries = {
+  dataKey: string
+  stroke: string
+  fill: string
+  fillOpacity?: number
+  connectNulls?: boolean
+}
+
 type TrendChartPoint = {
   idx: number
   date: string
@@ -37,6 +45,7 @@ type Props = {
   periodShade: TrendShade
   forecastShade: TrendShade | null
   lines: TrendLineSeries[]
+  areas?: TrendAreaSeries[]
   bars?: TrendBarSeries[]
   barsUseSecondaryAxis?: boolean
   xTicks?: number[]
@@ -59,6 +68,7 @@ export function SalesTrendChart({
   periodShade,
   forecastShade,
   lines,
+  areas = [],
   bars = [],
   barsUseSecondaryAxis = false,
   xTicks,
@@ -98,14 +108,14 @@ export function SalesTrendChart({
   const hasSecondaryAxis = needsSecondaryAxis && typeof resolvedSecondaryYMax === 'number'
   const resolvedPrimaryYMax = (() => {
     if (typeof yMax === 'number') return yMax
-    const maxFromLines = lines.reduce((acc, line) => {
+    const maxFromSeries = [...areas, ...lines].reduce((acc, series) => {
       const m = data.reduce((rowMax, row) => {
-        const v = Number(row[line.dataKey])
+        const v = Number(row[series.dataKey])
         return Number.isFinite(v) ? Math.max(rowMax, v) : rowMax
       }, 0)
       return Math.max(acc, m)
     }, 0)
-    return maxFromLines <= 0 ? 10 : Math.ceil(maxFromLines * 1.12)
+    return maxFromSeries <= 0 ? 10 : Math.ceil(maxFromSeries * 1.12)
   })()
   const primaryYDomain: [number | 'auto', number | 'auto'] =
     yScale === 'log' ? ['auto', 'auto'] : [0, resolvedPrimaryYMax]
@@ -198,6 +208,21 @@ export function SalesTrendChart({
             fill={bar.fill}
             fillOpacity={bar.fillOpacity ?? 0.55}
             barSize={bar.barSize ?? 10}
+          />
+        ))}
+        {areas.map((area) => (
+          <Area
+            key={area.dataKey}
+            yAxisId="primary"
+            type="monotone"
+            dataKey={area.dataKey}
+            stroke={area.stroke}
+            strokeWidth={1.7}
+            fill={area.fill}
+            fillOpacity={area.fillOpacity ?? 0.14}
+            dot={false}
+            connectNulls={area.connectNulls ?? false}
+            isAnimationActive={false}
           />
         ))}
         {lines.map((line) => (
