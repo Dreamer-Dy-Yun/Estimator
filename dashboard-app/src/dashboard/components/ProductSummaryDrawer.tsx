@@ -1,4 +1,4 @@
-import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type WheelEvent } from 'react'
+import { useEffect, useId, useMemo, useRef, useState, type WheelEvent } from 'react'
 import { ApiUnitErrorBadge } from '../../components/ApiUnitErrorBadge'
 import { ComponentErrorBoundary } from '../../components/ComponentErrorBoundary'
 import type {
@@ -16,6 +16,7 @@ import { SalesTrendChart } from './trend/SalesTrendChart'
 import { buildShadeRanges, normalizeMonthKey } from './trend/trendRangeUtils'
 import { ProductSecondaryPanel } from './product-secondary/ProductSecondaryPanel'
 import { SalesMetricsCard } from './product-secondary/cards/SalesMetricsCard'
+import { KO } from './product-secondary/ko'
 import type { CandidateItemPanelContext } from './product-secondary/candidateActionCards'
 import type { OrderSnapshotDocumentV1 } from '../../snapshot/orderSnapshotTypes'
 import { DRAWER_KEEP_OPEN_SELECTOR } from '../drawer/drawerDom'
@@ -58,6 +59,7 @@ function ProductSummaryDrawerContent({
    */
   suppressDocumentLayoutShift?: boolean
 }) {
+  void stockTrend
   const forecastMonthsLabelId = useId()
 
   const drawerRef = useRef<HTMLElement | null>(null)
@@ -65,12 +67,12 @@ function ProductSummaryDrawerContent({
   const salesTrendChartClipRef = useRef<HTMLDivElement | null>(null)
   const salesInsightReqSeqRef = useRef(0)
   const [forecastComboOpen, setForecastComboOpen] = useState(false)
-  const [salesTrendChartClipWidth, setSalesTrendChartClipWidth] = useState(320)
   const [competitorChannels, setCompetitorChannels] = useState<SecondaryCompetitorChannel[]>([])
   const [channelId, setChannelId] = useState('')
   const [channelsError, setChannelsError] = useState<ApiUnitErrorInfo | null>(null)
   const [salesInsight, setSalesInsight] = useState<ProductSalesInsight | null>(null)
   const [salesInsightError, setSalesInsightError] = useState<ApiUnitErrorInfo | null>(null)
+  const [salesTrendScaleMode, setSalesTrendScaleMode] = useState<'linear' | 'log'>('linear')
 
   useEffect(() => {
     if (suppressDocumentLayoutShift) return
@@ -97,22 +99,6 @@ function ProductSummaryDrawerContent({
 
   useEffect(() => {
     setForecastComboOpen(false)
-  }, [summary.id])
-
-  useLayoutEffect(() => {
-    const el = salesTrendChartClipRef.current
-    if (!el) return
-    if (typeof ResizeObserver === 'undefined') {
-      setSalesTrendChartClipWidth(Math.max(200, el.clientWidth))
-      return
-    }
-    const ro = new ResizeObserver((entries) => {
-      const w = entries[0]?.contentRect.width
-      if (w && w > 0) setSalesTrendChartClipWidth(w)
-    })
-    ro.observe(el)
-    setSalesTrendChartClipWidth(Math.max(200, el.clientWidth))
-    return () => ro.disconnect()
   }, [summary.id])
 
   const [chartHovered, setChartHovered] = useState(false)
@@ -233,12 +219,19 @@ function ProductSummaryDrawerContent({
   }, [channelId, salesInsightEndDay, salesInsightStartDay, summary.id])
 
   const trendScale = 1
+  const competitorSalesRatio =
+    salesInsight && salesInsight.self.qty > 0
+      ? Math.max(0, salesInsight.competitor.qty / salesInsight.self.qty)
+      : 1
 
   const salesSeries = useMemo(() => summary.monthlySalesTrend.map((point, idx) => ({
     ...point,
     idx,
     sales: Math.round(point.sales * trendScale),
-  })), [summary.monthlySalesTrend])
+    competitorSales: point.isForecast
+      ? null
+      : Math.max(1, Math.round(point.sales * trendScale * competitorSalesRatio)),
+  })), [competitorSalesRatio, summary.monthlySalesTrend])
 
   const { periodStartIdx, periodEndIdx, periodShade, forecastShade } = useMemo(
     () => buildShadeRanges(salesSeries, selectedStart, selectedEnd),
@@ -279,62 +272,28 @@ function ProductSummaryDrawerContent({
   }
 
   const chartData = useMemo(() => {
-    const stockByDate = new Map(stockTrend.map((row) => [row.date, row.stock]))
-    const inboundByDate = new Map(stockTrend.map((row) => [row.date, row.inboundExpected ?? 0]))
     const firstForecastIdx = salesSeries.findIndex((point) => point.isForecast)
     const hasForecast = firstForecastIdx !== -1
 
     const out: Array<typeof salesSeries[number] & {
       actual: number | null
-      forecast: number | null
-      stockBar: number
-      inboundAccumBar: number
+      competitorActual: number | null
       forecastLink: number | null
     }> = []
 
-    let inboundAccum = 0
-    let forecastResidualStock = 0
-
     for (let idx = 0; idx < salesSeries.length; idx += 1) {
       const point = salesSeries[idx]!
-      const inboundMonthly = Math.round((inboundByDate.get(point.date) ?? 0) * trendScale)
-      const baseStock = Math.round((stockByDate.get(point.date) ?? 0) * trendScale)
-      let stockBar = baseStock
-      if (hasForecast && point.isForecast) {
-        if (idx === firstForecastIdx) {
-          const prevDate = salesSeries[idx - 1]?.date ?? point.date
-          const currentStock = Math.round(
-            (stockByDate.get(prevDate) ?? 0) * trendScale,
-          )
-          forecastResidualStock = Math.max(0, Math.round(currentStock * 0.9))
-          inboundAccum = Math.max(0, inboundMonthly)
-        } else {
-          inboundAccum += inboundMonthly
-          let remainDemand = Math.max(0, Math.round(point.sales))
-          const consumeStock = Math.min(forecastResidualStock, remainDemand)
-          forecastResidualStock -= consumeStock
-          remainDemand -= consumeStock
-          if (remainDemand > 0) {
-            inboundAccum = Math.max(0, inboundAccum - remainDemand)
-          }
-        }
-        stockBar = forecastResidualStock
-      } else {
-        inboundAccum += inboundMonthly
-      }
       out.push({
         ...point,
         actual: point.isForecast ? null : point.sales,
-        forecast: point.isForecast ? point.sales : null,
-        stockBar,
-        inboundAccumBar: inboundAccum,
+        competitorActual: point.isForecast ? null : point.competitorSales,
         forecastLink: hasForecast && (idx === firstForecastIdx - 1 || idx >= firstForecastIdx)
           ? point.sales
           : null,
       })
     }
     return out
-  }, [salesSeries, stockTrend, trendScale])
+  }, [salesSeries])
 
   const trendWindowData = useMemo(
     () => chartData.slice(viewStart, viewEnd + 1).map((row, i) => ({ ...row, idx: i })),
@@ -343,16 +302,6 @@ function ProductSummaryDrawerContent({
 
   /** 월 포인트가 많을 때 가로축 라벨 밀도 상향 */
   const salesTrendChartDense = trendWindowData.length >= 18
-
-  /** 차트 플롯 가로 폭 ÷ 보이는 막대(월) 수 — 뷰포트·줌에 맞춰 스택 막대 폭 자동 */
-  const trendStackBarSize = useMemo(() => {
-    const n = trendWindowData.length
-    if (n <= 0) return 10
-    const inner = Math.max(140, salesTrendChartClipWidth - 52)
-    const band = inner / n
-    const raw = Math.round(band * 0.62)
-    return Math.max(6, Math.min(18, raw))
-  }, [salesTrendChartClipWidth, trendWindowData.length])
 
   const shiftedPeriodShade = useMemo(() => {
     const min = -0.5
@@ -383,9 +332,8 @@ function ProductSummaryDrawerContent({
       m = Math.max(
         m,
         row.sales,
-        row.stockBar,
-        row.stockBar + row.inboundAccumBar,
         row.actual ?? 0,
+        row.competitorActual ?? 0,
         row.forecastLink ?? 0,
       )
     }
@@ -554,51 +502,77 @@ function ProductSummaryDrawerContent({
             <div className={styles.cardTitle}>
               판매추이(월간)
             </div>
-            <div className={styles.forecastMonthsControl}>
-              <span className={styles.forecastMonthsLabel} id={forecastMonthsLabelId}>
-                예측 개월
-              </span>
-              <div className={styles.forecastComboWrap} ref={forecastComboRef}>
+            <div className={styles.salesTrendControls}>
+              <div className={styles.trendScaleToggle} aria-label="판매추이 축 모드">
                 <button
                   type="button"
-                  className={styles.forecastComboTrigger}
-                  aria-haspopup="listbox"
-                  aria-expanded={forecastComboOpen}
-                  aria-labelledby={forecastMonthsLabelId}
-                  aria-label={`판매추이 포캐스트 개월 수, 현재 ${forecastMonths}`}
-                  onClick={() => setForecastComboOpen((o) => !o)}
+                  className={
+                    salesTrendScaleMode === 'linear'
+                      ? `${styles.trendScaleButton} ${styles.trendScaleButtonSelected}`
+                      : styles.trendScaleButton
+                  }
+                  onClick={() => setSalesTrendScaleMode('linear')}
                 >
-                  {forecastMonths}
+                  선형
                 </button>
-                {forecastComboOpen && (
-                  <ul
-                    className={styles.forecastComboList}
-                    role="listbox"
+                <button
+                  type="button"
+                  className={
+                    salesTrendScaleMode === 'log'
+                      ? `${styles.trendScaleButton} ${styles.trendScaleButtonSelected}`
+                      : styles.trendScaleButton
+                  }
+                  onClick={() => setSalesTrendScaleMode('log')}
+                >
+                  로그
+                </button>
+              </div>
+              <div className={styles.forecastMonthsControl}>
+                <span className={styles.forecastMonthsLabel} id={forecastMonthsLabelId}>
+                  예측 개월
+                </span>
+                <div className={styles.forecastComboWrap} ref={forecastComboRef}>
+                  <button
+                    type="button"
+                    className={styles.forecastComboTrigger}
+                    aria-haspopup="listbox"
+                    aria-expanded={forecastComboOpen}
                     aria-labelledby={forecastMonthsLabelId}
-                    onWheel={(e) => e.stopPropagation()}
+                    aria-label={`판매추이 포캐스트 개월 수, 현재 ${forecastMonths}`}
+                    onClick={() => setForecastComboOpen((o) => !o)}
                   >
-                    {Array.from({ length: 24 }, (_, i) => i + 1).map((n) => (
-                      <li key={n} role="presentation">
-                        <button
-                          type="button"
-                          role="option"
-                          aria-selected={n === forecastMonths}
-                          className={
-                            n === forecastMonths
-                              ? `${styles.forecastComboOption} ${styles.forecastComboOptionSelected}`
-                              : styles.forecastComboOption
-                          }
-                          onClick={() => {
-                            onForecastMonthsChange(n)
-                            setForecastComboOpen(false)
-                          }}
-                        >
-                          {n}
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                )}
+                    {forecastMonths}
+                  </button>
+                  {forecastComboOpen && (
+                    <ul
+                      className={styles.forecastComboList}
+                      role="listbox"
+                      aria-labelledby={forecastMonthsLabelId}
+                      onWheel={(e) => e.stopPropagation()}
+                    >
+                      {Array.from({ length: 24 }, (_, i) => i + 1).map((n) => (
+                        <li key={n} role="presentation">
+                          <button
+                            type="button"
+                            role="option"
+                            aria-selected={n === forecastMonths}
+                            className={
+                              n === forecastMonths
+                                ? `${styles.forecastComboOption} ${styles.forecastComboOptionSelected}`
+                                : styles.forecastComboOption
+                            }
+                            onClick={() => {
+                              onForecastMonthsChange(n)
+                              setForecastComboOpen(false)
+                            }}
+                          >
+                            {n}
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
               </div>
             </div>
           </div>
@@ -611,6 +585,7 @@ function ProductSummaryDrawerContent({
               <SalesTrendChart
                 data={trendWindowData}
                 height={salesTrendChartDense ? 232 : 210}
+                yScale={salesTrendScaleMode}
                 yMax={salesTrendYMax}
                 allowEscapeViewBox={{ x: false, y: false }}
                 periodShade={shiftedPeriodShade}
@@ -619,32 +594,14 @@ function ProductSummaryDrawerContent({
                 interval={salesTrendChartDense ? 0 : 'preserveStartEnd'}
                 tickAngle={salesTrendChartDense ? -38 : 0}
                 tickHeight={salesTrendChartDense ? 42 : undefined}
-                bars={[
-                  {
-                    dataKey: 'stockBar',
-                    name: '실재고',
-                    stackId: 'stockInbound',
-                    fill: '#149632',
-                    fillOpacity: 0.58,
-                    barSize: trendStackBarSize,
-                  },
-                  {
-                    dataKey: 'inboundAccumBar',
-                    name: '예상 재고',
-                    stackId: 'stockInbound',
-                    fill: '#ef4444',
-                    fillOpacity: 0.42,
-                    barSize: trendStackBarSize,
-                  },
-                ]}
                 lines={[
-                  { dataKey: 'actual', stroke: '#0f172a' },
+                  { dataKey: 'actual', stroke: '#2563eb' },
+                  { dataKey: 'competitorActual', stroke: '#e11d48' },
                   { dataKey: 'forecastLink', stroke: '#2563eb', strokeDasharray: '4 4' },
                 ]}
                 tooltipValueFormatter={(value, name) => {
-                  if (name === 'stockBar') return [formatGroupedNumber(value), '실재고']
-                  if (name === 'inboundAccumBar') return [formatGroupedNumber(value), '예상 재고']
                   if (name === 'actual') return [formatGroupedNumber(value), '판매 실적']
+                  if (name === 'competitorActual') return [formatGroupedNumber(value), `${salesInsight?.competitorChannelLabel ?? KO.labelCompetitorChannel} 판매`]
                   if (name === 'forecastLink') return [formatGroupedNumber(value), '판매 예측']
                   return [formatGroupedNumber(value), name]
                 }}

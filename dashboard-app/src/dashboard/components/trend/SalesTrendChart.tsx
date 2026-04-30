@@ -31,6 +31,7 @@ type TrendChartPoint = {
 type Props = {
   data: TrendChartPoint[]
   height: number
+  yScale?: 'linear' | 'log'
   yMax?: number
   secondaryYMax?: number
   periodShade: TrendShade
@@ -52,6 +53,7 @@ type Props = {
 export function SalesTrendChart({
   data,
   height,
+  yScale = 'linear',
   yMax,
   secondaryYMax,
   periodShade,
@@ -105,6 +107,7 @@ export function SalesTrendChart({
     }, 0)
     return maxFromLines <= 0 ? 10 : Math.ceil(maxFromLines * 1.12)
   })()
+  const primaryYMin = yScale === 'log' ? 1 : 0
   return (
     <ResponsiveContainer width="100%" height={height}>
       <ComposedChart data={data} margin={{ top: 4, right: hasSecondaryAxis ? 18 : 12, bottom: 4, left: 4 }}>
@@ -145,7 +148,15 @@ export function SalesTrendChart({
           minTickGap={minTickGap}
           allowDataOverflow
         />
-        <YAxis yAxisId="primary" domain={[0, resolvedPrimaryYMax]} tick={{ fontSize: 9 }} width={40} tickMargin={4} />
+        <YAxis
+          yAxisId="primary"
+          domain={[primaryYMin, resolvedPrimaryYMax]}
+          scale={yScale}
+          tick={{ fontSize: 9 }}
+          width={40}
+          tickMargin={4}
+          allowDataOverflow={yScale === 'log'}
+        />
         {hasSecondaryAxis && (
           <YAxis
             yAxisId="secondary"
