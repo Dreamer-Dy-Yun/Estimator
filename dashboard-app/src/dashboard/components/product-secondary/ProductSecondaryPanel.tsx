@@ -5,7 +5,6 @@ import { dashboardApi, type SecondaryCompetitorChannel } from '../../../api'
 import { ComponentErrorBoundary } from '../../../components/ComponentErrorBoundary'
 import type { ApiUnitErrorInfo, ProductPrimarySummary, ProductSecondaryDetail } from '../../../types'
 import {
-  daysFromTodayThroughInclusive,
   daysInclusiveBetween,
   formatDateTimeMinute,
 } from '../../../utils/date'
@@ -65,9 +64,11 @@ function toIsoDateLocal(d: Date): string {
 
 function buildDefaultLeadTimeDates() {
   const today = new Date()
-  const start = toIsoDateLocal(today)
+  const startDate = new Date(today)
+  startDate.setMonth(startDate.getMonth() + 6)
+  const start = toIsoDateLocal(startDate)
   const endDate = new Date(today)
-  endDate.setMonth(endDate.getMonth() + 3)
+  endDate.setFullYear(endDate.getFullYear() + 1)
   const end = toIsoDateLocal(endDate)
   return { start, end }
 }
@@ -203,14 +204,10 @@ export function ProductSecondaryPanel({
     [leadTimeEndDate, leadTimeStartDate],
   )
 
-  /** 오늘 ~ 금번 오더 입고일(리드타임 시작일) 양끝 포함 일수(과거 입고일이면 0). */
-  const daysUntilCurrentOrderInbound = useMemo(
-    () => daysFromTodayThroughInclusive(leadTimeStartDate),
-    [leadTimeStartDate],
-  )
-
-  /** 사이즈별 판매예측(EA) 구간 일수: 오늘~금번 오더 입고일(양끝 포함). 차기 입고일은 쓰지 않음. */
-  const forecastSalesHorizonDays = daysUntilCurrentOrderInbound
+  /** 기대 일평균은 선택 시작월부터 차기 오더 입고월까지의 예측 구간 평균으로 산출. */
+  const forecastMeanPeriodEnd = leadTimeEndDate.slice(0, 7)
+  /** 사이즈별 판매예측(EA) 구간 일수: 금번 오더 입고일~차기 오더 입고일(양끝 포함). */
+  const forecastSalesHorizonDays = leadTimeDays
 
   const clientStock = useMemo(
     () =>
@@ -218,6 +215,7 @@ export function ProductSecondaryPanel({
         monthlySalesTrend: primary.monthlySalesTrend,
         periodStart: selectedStart,
         periodEnd: selectedEnd,
+        forecastPeriodEnd: forecastMeanPeriodEnd,
         serviceLevelPct,
         leadTimeDays,
         safetyStockMode,
@@ -232,6 +230,7 @@ export function ProductSecondaryPanel({
       primary.price,
       selectedStart,
       selectedEnd,
+      forecastMeanPeriodEnd,
       serviceLevelPct,
       leadTimeDays,
       safetyStockMode,
@@ -271,6 +270,7 @@ export function ProductSecondaryPanel({
           productId: primary.id,
           periodStart: selectedStart,
           periodEnd: selectedEnd,
+          forecastPeriodEnd: forecastMeanPeriodEnd,
           serviceLevelPct,
           leadTimeDays,
           safetyStockMode,
@@ -286,7 +286,7 @@ export function ProductSecondaryPanel({
         setForecastCalc(null)
         setForecastCalcError(
           makeApiErrorInfo(
-            `getSecondaryStockOrderCalc(${JSON.stringify({ productId: primary.id, periodStart: selectedStart, periodEnd: selectedEnd, serviceLevelPct, leadTimeDays, safetyStockMode, manualSafetyStock })})`,
+            `getSecondaryStockOrderCalc(${JSON.stringify({ productId: primary.id, periodStart: selectedStart, periodEnd: selectedEnd, forecastPeriodEnd: forecastMeanPeriodEnd, serviceLevelPct, leadTimeDays, safetyStockMode, manualSafetyStock })})`,
             err,
           ),
         )
@@ -304,6 +304,7 @@ export function ProductSecondaryPanel({
     safetyStockMode,
     selectedEnd,
     selectedStart,
+    forecastMeanPeriodEnd,
     serviceLevelPct,
   ])
 

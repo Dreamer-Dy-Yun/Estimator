@@ -55,6 +55,7 @@ export type ClientStockOrderComputeParams = {
   monthlySalesTrend: MonthlySalesPoint[]
   periodStart: string
   periodEnd: string
+  forecastPeriodEnd?: string
   serviceLevelPct: number
   leadTimeDays: number
   safetyStockMode: 'manual' | 'formula'
@@ -89,11 +90,12 @@ export function computeClientStockOrder(p: ClientStockOrderComputeParams): Clien
   const fromTrend = dailyMeanSigmaFromTrend(p.monthlySalesTrend, p.periodStart, p.periodEnd)
   const trendMuRaw = fromTrend.dailyMean
   const trendDailyMean = Math.round(trendMuRaw * 10) / 10
+  const forecastPeriodEnd = p.forecastPeriodEnd ?? p.periodEnd
 
   const forecastMuRaw =
     p.dailyMeanClient != null && Number.isFinite(p.dailyMeanClient)
       ? Math.max(0, p.dailyMeanClient)
-      : forecastDailyMeanFromModel(p.monthlySalesTrend, p.periodStart, p.periodEnd)
+      : forecastDailyMeanFromModel(p.monthlySalesTrend, p.periodStart, forecastPeriodEnd)
   const forecastDailyMean = Math.round(forecastMuRaw * 10) / 10
 
   const sigma = fromTrend.sigma

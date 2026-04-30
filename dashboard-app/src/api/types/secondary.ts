@@ -48,6 +48,7 @@ export interface SecondaryStockOrderCalcParams {
   productId: string
   periodStart: string
   periodEnd: string
+  forecastPeriodEnd?: string
   serviceLevelPct: number
   leadTimeDays: number
   safetyStockMode: 'manual' | 'formula'

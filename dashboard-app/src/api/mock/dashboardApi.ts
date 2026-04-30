@@ -467,6 +467,7 @@ export const mockDashboardApi = {
     productId,
     periodStart,
     periodEnd,
+    forecastPeriodEnd,
     serviceLevelPct,
     leadTimeDays,
     safetyStockMode,
@@ -484,7 +485,7 @@ export const mockDashboardApi = {
     const forecastMuRaw =
       dailyMeanParam !== undefined && Number.isFinite(dailyMeanParam)
         ? Math.max(0, dailyMeanParam)
-        : forecastDailyMeanFromModel(primary.monthlySalesTrend, periodStart, periodEnd)
+        : forecastDailyMeanFromModel(primary.monthlySalesTrend, periodStart, forecastPeriodEnd ?? periodEnd)
     const dailyMeanRounded = Math.round(forecastMuRaw * 10) / 10
 
     const sigma = fromTrend.sigma

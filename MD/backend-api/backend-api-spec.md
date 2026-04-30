@@ -298,6 +298,7 @@
 |------|------|
 | `productId` | 상품 id |
 | `periodStart`, `periodEnd` | 분석 구간 |
+| `forecastPeriodEnd` | 선택. 기대 일평균 산출용 예측 구간 종료 월/일. 비우면 `periodEnd` 사용 |
 | `serviceLevelPct` | 재고·안전재고 계산용 **서비스 수준(%)** |
 | `leadTimeDays` | 리드타임 일수 |
 | `safetyStockMode` | `'manual'` \| `'formula'` |
