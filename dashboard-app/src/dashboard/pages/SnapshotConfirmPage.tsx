@@ -39,6 +39,7 @@ export const SnapshotConfirmPage = () => {
   const [uploadBusy, setUploadBusy] = useState(false)
   const [uploadError, setUploadError] = useState<string | null>(null)
   const [uploadResult, setUploadResult] = useState<CandidateStashExcelUploadResult | null>(null)
+  const [uploadDragActive, setUploadDragActive] = useState(false)
 
   const loadStashes = async () => {
     const list = await getCandidateStashes()
@@ -48,6 +49,12 @@ export const SnapshotConfirmPage = () => {
   useEffect(() => {
     void loadStashes()
   }, [])
+
+  const selectUploadFile = (file: File | null) => {
+    setUploadFile(file)
+    setUploadError(null)
+    setUploadResult(null)
+  }
 
   const handleExcelUpload = async () => {
     if (!uploadFile) return
@@ -150,18 +157,43 @@ export const SnapshotConfirmPage = () => {
             className={pageStyles.uploadInput}
             disabled={uploadBusy}
             onChange={(e) => {
-              setUploadFile(e.target.files?.[0] ?? null)
-              setUploadError(null)
-              setUploadResult(null)
+              selectUploadFile(e.target.files?.[0] ?? null)
             }}
           />
-          <label
-            className={`${pageStyles.actionBtn} ${pageStyles.btnNeutral} ${pageStyles.uploadFileButton}`}
-            htmlFor="candidate-stash-excel-upload"
+          <button
+            type="button"
+            className={`${pageStyles.uploadDropzone} ${uploadDragActive ? pageStyles.uploadDropzoneActive : ''}`}
+            disabled={uploadBusy}
+            onClick={() => uploadInputRef.current?.click()}
+            onDragEnter={(e) => {
+              e.preventDefault()
+              e.stopPropagation()
+              if (!uploadBusy) setUploadDragActive(true)
+            }}
+            onDragOver={(e) => {
+              e.preventDefault()
+              e.stopPropagation()
+              if (!uploadBusy) setUploadDragActive(true)
+            }}
+            onDragLeave={(e) => {
+              e.preventDefault()
+              e.stopPropagation()
+              setUploadDragActive(false)
+            }}
+            onDrop={(e) => {
+              e.preventDefault()
+              e.stopPropagation()
+              setUploadDragActive(false)
+              if (uploadBusy) return
+              selectUploadFile(e.dataTransfer.files?.[0] ?? null)
+              if (uploadInputRef.current) uploadInputRef.current.value = ''
+            }}
           >
-            파일 선택
-          </label>
-          <span className={pageStyles.uploadFileName}>{uploadFile ? uploadFile.name : '선택된 파일 없음'}</span>
+            <span className={pageStyles.uploadDropzoneTitle}>
+              {uploadFile ? uploadFile.name : '엑셀 파일을 끌어오거나 클릭'}
+            </span>
+            <span className={pageStyles.uploadDropzoneSub}>.xlsx, .xls 파일만 업로드</span>
+          </button>
           <button
             type="button"
             className={`${pageStyles.actionBtn} ${pageStyles.btnPrimary}`}
