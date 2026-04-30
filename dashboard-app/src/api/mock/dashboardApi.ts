@@ -70,10 +70,6 @@ function readCandidateItemsForStash(stashUuid: string): CandidateItemRecord[] {
   return items.filter((row) => row.stashUuid === stashUuid)
 }
 
-function getCandidateItemIsLatestLlmComment(row: CandidateItemRecord) {
-  return row.isLatestLlmComment ?? true
-}
-
 function updateCandidateItemIsLatestLlmComment(itemUuid: string, isLatestLlmComment: boolean) {
   ensureCandidateSeed()
   const rawItems = localStorage.getItem(CANDIDATE_ITEM_STORAGE_KEY)
@@ -476,7 +472,7 @@ export const mockDashboardApi = {
           expectedSalesAmount,
           expectedOpProfit,
           insight: buildCandidateItemInsight(productId, qty, expectedSalesAmount, expectedOpProfit),
-          isLatestLlmComment: getCandidateItemIsLatestLlmComment(row),
+          isLatestLlmComment: row.isLatestLlmComment,
           dbCreatedAt: row.dbCreatedAt,
           dbUpdatedAt: row.dbUpdatedAt ?? row.dbCreatedAt,
         }
@@ -498,7 +494,7 @@ export const mockDashboardApi = {
       stashUuid: row.stashUuid,
       productId: row.skuUuid,
       details: row.details,
-      isLatestLlmComment: getCandidateItemIsLatestLlmComment(row),
+      isLatestLlmComment: row.isLatestLlmComment,
       dbCreatedAt: row.dbCreatedAt,
       dbUpdatedAt: row.dbUpdatedAt ?? row.dbCreatedAt,
     }
@@ -608,7 +604,7 @@ export const mockDashboardApi = {
       stashUuid: payload.stashUuid,
       skuUuid: payload.productId,
       details: payload.details,
-      isLatestLlmComment: payload.isLatestLlmComment ?? false,
+      isLatestLlmComment: payload.isLatestLlmComment,
       dbCreatedAt: now,
       dbUpdatedAt: now,
     }

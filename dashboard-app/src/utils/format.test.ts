@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   formatCurrency,
+  formatEaQuantity,
   formatGroupedNumber,
   formatNumber,
   formatPercent,
@@ -29,5 +30,10 @@ describe('format utils', () => {
   it('formats plain number and currency suffix helpers', () => {
     expect(formatNumber(1234567)).toBe('1,234,567')
     expect(formatCurrency(1234567)).toBe('1,234,567원')
+  })
+
+  it('formats nullable EA quantity helper', () => {
+    expect(formatEaQuantity(null)).toBe('-')
+    expect(formatEaQuantity(5000)).toBe('5,000 EA')
   })
 })

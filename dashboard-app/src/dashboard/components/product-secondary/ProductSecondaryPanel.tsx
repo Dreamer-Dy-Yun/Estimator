@@ -667,6 +667,7 @@ export function ProductSecondaryPanel({
         stashUuid: selectedCandidate.uuid,
         productId: primary.id,
         details: snap,
+        isLatestLlmComment: false,
       })
       void dashboardApi.saveSecondaryOrderSnapshot(snap)
       setTestSnapshotJson(JSON.stringify(snap, null, 2))

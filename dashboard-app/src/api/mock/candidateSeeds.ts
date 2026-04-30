@@ -54,7 +54,7 @@ const seededCandidateStashes: CandidateStashRecord[] = [
     }
   }),
 ]
-const seededCandidateItems: CandidateItemRecord[] = [
+const seededCandidateItemDrafts: Array<Omit<CandidateItemRecord, 'isLatestLlmComment'>> = [
   {
     uuid: 'candidateitem000000000000000000001',
     stashUuid: 'candidatestash00000000000000000001',
@@ -140,6 +140,10 @@ const seededCandidateItems: CandidateItemRecord[] = [
     }
   }),
 ]
+const seededCandidateItems: CandidateItemRecord[] = seededCandidateItemDrafts.map((item) => ({
+  ...item,
+  isLatestLlmComment: true,
+}))
 export function ensureCandidateSeed() {
   const stashRaw = localStorage.getItem(CANDIDATE_STASH_STORAGE_KEY)
   const itemRaw = localStorage.getItem(CANDIDATE_ITEM_STORAGE_KEY)

@@ -23,6 +23,10 @@ export function formatCurrency(value: number): string {
   return `${value.toLocaleString('ko-KR')}원`
 }
 
+export function formatEaQuantity(value: number | null): string {
+  return value == null ? '-' : `${formatGroupedNumber(value)} EA`
+}
+
 export function formatNumber(value: number): string {
   return value.toLocaleString('ko-KR')
 }

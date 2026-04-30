@@ -192,7 +192,7 @@ export interface AppendCandidateItemPayload {
   stashUuid: string
   productId: string
   details: SecondaryOrderSnapshotPayload
-  isLatestLlmComment?: boolean
+  isLatestLlmComment: boolean
 }
 
 export interface UpdateCandidateItemPayload {

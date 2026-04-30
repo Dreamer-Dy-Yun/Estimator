@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import type { CandidateItemBadgeSummary, CandidateStashSummary } from '../../api'
+import type { CandidateStashSummary } from '../../api'
 import { formatDateTimeMinute } from '../../utils/date'
-import { formatGroupedNumber, formatRatioDecimalKo } from '../../utils/format'
+import { formatEaQuantity, formatGroupedNumber, formatRatioDecimalKo } from '../../utils/format'
 import { ConfirmModal } from '../components/ConfirmModal'
 import { DeleteButton } from '../components/DeleteButton'
 import { FilterBar } from '../components/FilterBar'
@@ -9,6 +9,8 @@ import { ProductSummaryDrawer } from '../components/ProductSummaryDrawer'
 import { stashDetailModalBackdropDataProps } from '../drawer/drawerDom'
 import { useCandidateStashDetailModal, type InnerCandidateRow } from '../hooks/useCandidateStashDetailModal'
 import styles from '../components/common.module.css'
+import { CandidateInsightBadges } from './CandidateInsightBadges'
+import { CandidateRecommendationModal } from './CandidateRecommendationModal'
 import pageStyles from './SnapshotConfirmPage.module.css'
 
 type Props = {
@@ -19,30 +21,6 @@ type Props = {
   onStashesInvalidate?: () => void
 }
 
-function buildBadgeTitle(badge: CandidateItemBadgeSummary) {
-  return badge.description
-}
-
-function InnerOrderBadge({ badge }: { badge: CandidateItemBadgeSummary }) {
-  return (
-    <span
-      className={pageStyles.innerOrderBadge}
-      title={buildBadgeTitle(badge)}
-      style={{
-        color: badge.style.textColor,
-        backgroundColor: badge.style.backgroundColor,
-        borderColor: badge.style.borderColor,
-      }}
-    >
-      <span>{badge.label}</span>
-    </span>
-  )
-}
-
-function formatSalesQty(qty: number | null) {
-  return qty == null ? '-' : `${formatGroupedNumber(qty)} EA`
-}
-
 export function CandidateStashDetailModal({ stashUuid, stashSummary, onClose, onStashesInvalidate }: Props) {
   const m = useCandidateStashDetailModal({ stashUuid, stashSummary, onClose, onStashesInvalidate })
   const [selectedItemUuids, setSelectedItemUuids] = useState<Set<string>>(() => new Set())
@@ -51,7 +29,6 @@ export function CandidateStashDetailModal({ stashUuid, stashSummary, onClose, on
   const [recommendationOpen, setRecommendationOpen] = useState(false)
   const [recommendationSelectedUuids, setRecommendationSelectedUuids] = useState<Set<string>>(() => new Set())
   const selectAllRef = useRef<HTMLInputElement | null>(null)
-  const recommendationSelectAllRef = useRef<HTMLInputElement | null>(null)
 
   const visibleItemUuids = useMemo(() => m.tableRows.map((row) => row.uuid), [m.tableRows])
   const recommendationRows = useMemo(() => {
@@ -119,11 +96,6 @@ export function CandidateStashDetailModal({ stashUuid, stashSummary, onClose, on
     if (!selectAllRef.current) return
     selectAllRef.current.indeterminate = partiallyVisibleSelected
   }, [partiallyVisibleSelected])
-
-  useEffect(() => {
-    if (!recommendationSelectAllRef.current) return
-    recommendationSelectAllRef.current.indeterminate = partiallyRecommendationSelected
-  }, [partiallyRecommendationSelected])
 
   useEffect(() => {
     setSelectedItemUuids((prev) => {
@@ -290,10 +262,10 @@ export function CandidateStashDetailModal({ stashUuid, stashSummary, onClose, on
                         변경 {formatDateTimeMinute(m.detailTarget.dbUpdatedAt)}
                       </span>
                     </div>
-                    <div className={pageStyles.detailHeaderAnalysisCell}>
+                    <div className={pageStyles.detailHeaderRecommendationCell}>
                       <button
                         type="button"
-                        className={`${pageStyles.actionBtn} ${pageStyles.btnNeutral} ${pageStyles.detailHeaderAnalysisBtn}`}
+                        className={`${pageStyles.actionBtn} ${pageStyles.btnNeutral} ${pageStyles.detailHeaderRecommendationBtn}`}
                         onClick={openRecommendationModal}
                         disabled={!recommendationRows.length}
                       >
@@ -469,10 +441,10 @@ export function CandidateStashDetailModal({ stashUuid, stashSummary, onClose, on
                               <span className={pageStyles.innerOrderCode}>{row.productCode}</span>
                               <span className={pageStyles.innerOrderName}>{row.productName}</span>
                               <span className={pageStyles.innerOrderCellNum}>
-                                {formatSalesQty(row.insight.selfQty)}
+                                {formatEaQuantity(row.insight.selfQty)}
                               </span>
                               <span className={pageStyles.innerOrderCellNum}>
-                                {formatSalesQty(row.insight.competitorQty)}
+                                {formatEaQuantity(row.insight.competitorQty)}
                               </span>
                               <span className={pageStyles.innerOrderCellNum}>
                                 {formatGroupedNumber(row.insight.expectedSalesQty)} EA
@@ -481,16 +453,7 @@ export function CandidateStashDetailModal({ stashUuid, stashSummary, onClose, on
                                 {formatGroupedNumber(row.expectedOrderAmount)} 원
                               </span>
                               <span className={pageStyles.innerOrderBadgeList}>
-                                {row.insight.badges.length ? (
-                                  row.insight.badges.map((badge) => (
-                                    <InnerOrderBadge
-                                      key={`${row.uuid}-${badge.id}`}
-                                      badge={badge}
-                                    />
-                                  ))
-                                ) : (
-                                  <span className={pageStyles.innerOrderNoBadge}>-</span>
-                                )}
+                                <CandidateInsightBadges badges={row.insight.badges} />
                               </span>
                             </div>
                           )
@@ -506,118 +469,17 @@ export function CandidateStashDetailModal({ stashUuid, stashSummary, onClose, on
       </div>
 
       {recommendationOpen && (
-        <div
-          className={pageStyles.recommendationModalBackdrop}
-          role="presentation"
-          onClick={() => setRecommendationOpen(false)}
-        >
-          <div
-            className={pageStyles.recommendationModalPanel}
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="recommendation-modal-title"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className={pageStyles.recommendationModalHeader}>
-              <div>
-                <h3 id="recommendation-modal-title" className={pageStyles.recommendationModalTitle}>
-                  추천 보기
-                </h3>
-                <div className={pageStyles.recommendationModalMeta}>
-                  추천 {formatGroupedNumber(recommendationRows.length)}개 · 선택 {formatGroupedNumber(recommendationSelectedCount)}개
-                </div>
-              </div>
-              <button
-                type="button"
-                className={`${styles.iconCloseButton} ${pageStyles.recommendationModalClose}`}
-                onClick={() => setRecommendationOpen(false)}
-                aria-label="추천 보기 닫기"
-                title="닫기"
-              />
-            </div>
-
-            <div className={pageStyles.recommendationTableWrap}>
-              <div className={pageStyles.recommendationTable} role="table" aria-label="추천 후보 목록">
-                <div className={pageStyles.recommendationHeader} role="row">
-                  <span className={pageStyles.recommendationCheckCell}>
-                    <input
-                      ref={recommendationSelectAllRef}
-                      type="checkbox"
-                      checked={allRecommendationSelected}
-                      disabled={!recommendationRows.length}
-                      aria-label="추천 전체 선택"
-                      onChange={toggleAllRecommendationItems}
-                    />
-                  </span>
-                  <span>상품코드</span>
-                  <span>상품명</span>
-                  <span>배지</span>
-                  <span className={pageStyles.recommendationNum}>자사 기간 총 판매량</span>
-                  <span className={pageStyles.recommendationNum}>경쟁사 기간 총 판매량</span>
-                </div>
-                {recommendationRows.map((row) => {
-                  const selected = recommendationSelectedUuids.has(row.uuid)
-                  return (
-                    <label
-                      key={row.uuid}
-                      className={`${pageStyles.recommendationRow} ${
-                        selected ? pageStyles.recommendationRowSelected : ''
-                      }`}
-                    >
-                      <span className={pageStyles.recommendationCheckCell}>
-                        <input
-                          type="checkbox"
-                          checked={selected}
-                          aria-label={`${row.productName} 추천 선택`}
-                          onChange={() => toggleRecommendationItem(row.uuid)}
-                        />
-                      </span>
-                      <span className={pageStyles.recommendationCode}>{row.productCode}</span>
-                      <span className={pageStyles.recommendationName}>{row.productName}</span>
-                      <span className={pageStyles.recommendationBadgeList}>
-                        {row.insight.badges.length ? (
-                          row.insight.badges.map((badge) => (
-                            <InnerOrderBadge
-                              key={`${row.uuid}-recommendation-${badge.id}`}
-                              badge={badge}
-                            />
-                          ))
-                        ) : (
-                          <span className={pageStyles.innerOrderNoBadge}>-</span>
-                        )}
-                      </span>
-                      <span className={pageStyles.recommendationNum}>{formatSalesQty(row.insight.selfQty)}</span>
-                      <span className={pageStyles.recommendationNum}>{formatSalesQty(row.insight.competitorQty)}</span>
-                    </label>
-                  )
-                })}
-              </div>
-            </div>
-
-            <div className={pageStyles.recommendationModalFooter}>
-              <span className={pageStyles.recommendationApplyMeta}>
-                선택 {formatGroupedNumber(recommendationSelectedCount)}개
-              </span>
-              <div className={pageStyles.recommendationModalActions}>
-                <button
-                  type="button"
-                  className={`${pageStyles.actionBtn} ${pageStyles.btnNeutral}`}
-                  onClick={() => setRecommendationOpen(false)}
-                >
-                  취소
-                </button>
-                <button
-                  type="button"
-                  className={`${pageStyles.actionBtn} ${pageStyles.btnPrimary}`}
-                  onClick={applyRecommendations}
-                  disabled={recommendationSelectedCount === 0}
-                >
-                  추천 적용
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
+        <CandidateRecommendationModal
+          rows={recommendationRows}
+          selectedUuids={recommendationSelectedUuids}
+          selectedCount={recommendationSelectedCount}
+          allSelected={allRecommendationSelected}
+          partiallySelected={partiallyRecommendationSelected}
+          onClose={() => setRecommendationOpen(false)}
+          onToggleAll={toggleAllRecommendationItems}
+          onToggleItem={toggleRecommendationItem}
+          onApply={applyRecommendations}
+        />
       )}
 
       <ProductSummaryDrawer
