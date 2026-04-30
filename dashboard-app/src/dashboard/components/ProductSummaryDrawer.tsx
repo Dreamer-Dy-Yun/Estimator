@@ -503,30 +503,6 @@ function ProductSummaryDrawerContent({
               판매추이(월간)
             </div>
             <div className={styles.salesTrendControls}>
-              <div className={styles.trendScaleToggle} aria-label="판매추이 축 모드">
-                <button
-                  type="button"
-                  className={
-                    salesTrendScaleMode === 'linear'
-                      ? `${styles.trendScaleButton} ${styles.trendScaleButtonSelected}`
-                      : styles.trendScaleButton
-                  }
-                  onClick={() => setSalesTrendScaleMode('linear')}
-                >
-                  선형
-                </button>
-                <button
-                  type="button"
-                  className={
-                    salesTrendScaleMode === 'log'
-                      ? `${styles.trendScaleButton} ${styles.trendScaleButtonSelected}`
-                      : styles.trendScaleButton
-                  }
-                  onClick={() => setSalesTrendScaleMode('log')}
-                >
-                  로그
-                </button>
-              </div>
               <div className={styles.forecastMonthsControl}>
                 <span className={styles.forecastMonthsLabel} id={forecastMonthsLabelId}>
                   예측 개월
@@ -573,6 +549,30 @@ function ProductSummaryDrawerContent({
                     </ul>
                   )}
                 </div>
+              </div>
+              <div className={styles.trendScaleToggle} aria-label="판매추이 축 모드">
+                <button
+                  type="button"
+                  className={
+                    salesTrendScaleMode === 'linear'
+                      ? `${styles.trendScaleButton} ${styles.trendScaleButtonSelected}`
+                      : styles.trendScaleButton
+                  }
+                  onClick={() => setSalesTrendScaleMode('linear')}
+                >
+                  선형
+                </button>
+                <button
+                  type="button"
+                  className={
+                    salesTrendScaleMode === 'log'
+                      ? `${styles.trendScaleButton} ${styles.trendScaleButtonSelected}`
+                      : styles.trendScaleButton
+                  }
+                  onClick={() => setSalesTrendScaleMode('log')}
+                >
+                  로그
+                </button>
               </div>
             </div>
           </div>
