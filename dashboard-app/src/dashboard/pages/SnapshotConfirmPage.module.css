@@ -24,14 +24,24 @@
 
 .uploadCard {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 12px;
+  grid-template-columns: minmax(0, 1fr) minmax(360px, auto);
+  gap: 16px;
   align-items: center;
+  border-color: #bfdbfe;
+  background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
 }
 
 .uploadCopy {
-  display: grid;
-  gap: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.uploadTitleRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   min-width: 0;
 }
 
@@ -41,26 +51,101 @@
   line-height: 1.3;
 }
 
+.uploadBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 22px;
+  padding: 0 8px;
+  border-radius: 999px;
+  border: 1px solid #bfdbfe;
+  background: #eff6ff;
+  color: #1d4ed8;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
+}
+
 .uploadDescription {
   margin: 0;
   font-size: 12px;
   line-height: 1.45;
-  color: #64748b;
+  color: #475569;
 }
 
-.uploadControls {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 8px;
+.uploadGuideGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, auto));
+  justify-content: start;
+  gap: 6px;
   min-width: 0;
 }
 
-.uploadInput {
-  max-width: 280px;
-  font: inherit;
-  font-size: 12px;
+.uploadGuideItem {
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+  height: 26px;
+  padding: 0 9px;
+  border-radius: 8px;
+  background: #f1f5f9;
   color: #334155;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.uploadControls {
+  display: grid;
+  grid-template-columns: auto minmax(140px, 220px) auto;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid #dbe7ff;
+  border-radius: 12px;
+  background: #ffffff;
+}
+
+.uploadInput {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.uploadFileButton {
+  min-width: 92px;
+  text-align: center;
+}
+
+.uploadFileName {
+  min-width: 0;
+  color: #475569;
+  font-size: 12px;
+  line-height: 1.3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.btnPrimary {
+  color: #ffffff;
+  border-color: #0f172a;
+  background: #0f172a;
+  font-weight: 700;
+}
+
+.btnPrimary:hover:not(:disabled) {
+  border-color: #334155;
+  background: #334155;
 }
 
 .uploadError,
@@ -712,8 +797,11 @@
   }
 
   .uploadControls {
-    justify-content: flex-start;
-    flex-wrap: wrap;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+  }
+
+  .uploadGuideGrid {
+    grid-template-columns: 1fr;
   }
 
   .filterBar {
