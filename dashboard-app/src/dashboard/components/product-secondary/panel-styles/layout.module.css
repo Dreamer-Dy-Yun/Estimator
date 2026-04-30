@@ -21,8 +21,7 @@
   height: 100%;
 }
 
-.gridColumnCard > .sectionTitle,
-.gridColumnCard > .hint {
+.gridColumnCard > .sectionTitle {
   flex-shrink: 0;
 }
 

@@ -8,12 +8,6 @@
   grid-template-rows: auto 1fr;
 }
 
-.stashFilterBar {
-  display: grid;
-  grid-template-columns: 1fr 1fr minmax(190px, auto);
-  gap: 8px;
-}
-
 .stashList {
   display: grid;
   gap: 10px;
@@ -272,27 +266,6 @@
   cursor: not-allowed;
 }
 
-.btnDelete {
-  min-width: 64px;
-  height: 32px;
-  padding: 0 10px;
-  color: #991b1b;
-  border-color: #fecaca;
-  background: #fff1f2;
-  font-weight: 600;
-}
-
-.btnDelete:hover {
-  color: #7f1d1d;
-  border-color: #fca5a5;
-  background: #fee2e2;
-}
-
-.btnDelete:focus-visible {
-  outline: 2px solid rgba(239, 68, 68, 0.28);
-  outline-offset: 1px;
-}
-
 .btnNeutral {
   color: #334155;
   border-color: #cbd5e1;
@@ -302,57 +275,6 @@
 .btnNeutral:hover {
   border-color: #94a3b8;
   background: #f8fafc;
-}
-
-.btnDangerSolid {
-  min-width: 72px;
-  height: 32px;
-  padding: 0 10px;
-  color: #ffffff;
-  border-color: #b91c1c;
-  background: #dc2626;
-  font-weight: 700;
-}
-
-.btnDangerSolid:hover {
-  border-color: #991b1b;
-  background: #b91c1c;
-}
-
-.btnDangerSolid:focus-visible {
-  outline: 2px solid rgba(239, 68, 68, 0.35);
-  outline-offset: 1px;
-}
-
-.btnDangerSolid:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.trashIcon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 16px;
-  height: 16px;
-}
-
-.trashIcon svg {
-  width: 16px;
-  height: 16px;
-  display: block;
-  fill: currentColor;
-}
-
-.detailPageCard {
-  margin-top: 2px;
-}
-
-.detailDialog {
-  height: auto;
-  display: grid;
-  grid-template-rows: auto auto 1fr;
-  gap: 10px;
 }
 
 .detailHeaderGrid {
@@ -372,11 +294,6 @@
   margin: 0;
   font-size: 17px;
   color: #0f172a;
-}
-
-.detailSub {
-  font-size: 12px;
-  color: #64748b;
 }
 
 .detailMetaStack {
@@ -409,15 +326,6 @@
   padding-inline: 6px;
   font-size: 12px;
   white-space: nowrap;
-}
-
-.detailNote {
-  font-size: 12px;
-  color: #334155;
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  padding: 8px 10px;
 }
 
 .detailHeaderDeleteCell {
@@ -579,19 +487,6 @@
     opacity: 1;
     transform: translate(-50%, 0);
   }
-}
-
-.detailBody {
-  min-height: 0;
-  display: grid;
-  grid-template-rows: auto 1fr;
-  gap: 8px;
-}
-
-.filterBar {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr minmax(190px, auto);
-  gap: 8px;
 }
 
 .innerSummaryGrid {
@@ -771,93 +666,6 @@
   overflow: visible;
   text-overflow: clip;
   white-space: normal;
-}
-
-/**
- * 이너 후보 테이블: 공통 포맷 유지 (패딩 10px 12px, 열 9개)
- * 1 브랜드 2 코드 3 상품명 4 오더수량 5 오더금액 6 예상매출 7 예상영업이익 8 등록·변경 9 삭제
- */
-.innerCandidateTableWrap :global(table) {
-  table-layout: fixed;
-  min-width: 72rem;
-}
-
-.innerCandidateTableWrap :global(th),
-.innerCandidateTableWrap :global(td) {
-  padding: 10px 12px;
-  vertical-align: middle;
-}
-
-/* 긴 한글 헤더(오더 금액·예상 매출 등) 줄바꿈 — 데이터 셀은 공통 .table 의 nowrap 유지 */
-.innerCandidateTableWrap :global(th) {
-  white-space: normal;
-  line-height: 1.25;
-}
-
-.innerCandidateTableWrap :global(th:nth-child(1)),
-.innerCandidateTableWrap :global(td:nth-child(1)) {
-  width: 10%;
-}
-
-.innerCandidateTableWrap :global(th:nth-child(2)),
-.innerCandidateTableWrap :global(td:nth-child(2)) {
-  width: 10%;
-}
-
-.innerCandidateTableWrap :global(th:nth-child(3)),
-.innerCandidateTableWrap :global(td:nth-child(3)) {
-  width: 20%;
-}
-
-.innerCandidateTableWrap :global(th:nth-child(4)),
-.innerCandidateTableWrap :global(td:nth-child(4)) {
-  width: 10%;
-}
-
-.innerCandidateTableWrap :global(th:nth-child(5)),
-.innerCandidateTableWrap :global(td:nth-child(5)) {
-  width: 10%;
-}
-
-.innerCandidateTableWrap :global(th:nth-child(6)),
-.innerCandidateTableWrap :global(td:nth-child(6)) {
-  width: 10%;
-}
-
-.innerCandidateTableWrap :global(th:nth-child(7)),
-.innerCandidateTableWrap :global(td:nth-child(7)) {
-  width: 10%;
-}
-
-/* 등록·변경 스택 + 삭제 버튼 */
-.innerCandidateTableWrap :global(th:nth-child(8)),
-.innerCandidateTableWrap :global(td:nth-child(8)) {
-  width: 10%;
-}
-
-.innerCandidateTableWrap :global(th:nth-child(9)),
-.innerCandidateTableWrap :global(td:nth-child(9)) {
-  width: 10%;
-}
-
-/** 등록·변경: 작은 글씨 세로 스택 — 숫자 열과 맞춰 셀 오른쪽 정렬 */
-.innerCandidateDateStack {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 2px;
-  font-size: 11px;
-  line-height: 1.25;
-  color: #64748b;
-}
-
-.innerCandidateDateLine {
-  white-space: nowrap;
-}
-
-.innerCandidateTableWrap :global(td:nth-child(3)) {
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 .emptyState {
@@ -1088,10 +896,6 @@
 }
 
 @media (max-width: 860px) {
-  .stashFilterBar {
-    grid-template-columns: 1fr;
-  }
-
   .uploadCard {
     grid-template-columns: 1fr;
   }
@@ -1117,10 +921,6 @@
   .innerOrderCellNum {
     grid-column: span 2;
     text-align: left;
-  }
-
-  .filterBar {
-    grid-template-columns: 1fr;
   }
 
   .innerSummaryGrid {

@@ -2,14 +2,6 @@
   overflow: hidden;
 }
 
-.hint {
-  font-size: 11px;
-  color: #64748b;
-  /** <p> 기본 마진 제거 — 위 공백은 padding만 사용(마진 병합 방지) */
-  margin: 0;
-  padding: 4px 0 0;
-}
-
 /** [테스트] 오더 스냅샷 JSON 미리보기 — 배포 전 제거 권장 */
 .snapshotTestBackdrop {
   position: fixed;

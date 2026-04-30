@@ -1,11 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import {
-  formatCurrency,
   formatEaQuantity,
   formatGroupedNumber,
-  formatNumber,
   formatPercent,
-  formatPercentTwoDecimals,
   formatRatioDecimalKo,
 } from './format'
 
@@ -16,20 +13,14 @@ describe('format utils', () => {
     expect(formatGroupedNumber(67890)).toBe('67,890')
   })
 
-  it('formats percent with 1 and 2 decimal places', () => {
+  it('formats percent with 1 decimal place', () => {
     expect(formatPercent(12.34)).toBe('12.3%')
-    expect(formatPercentTwoDecimals(12.345)).toBe('12.35%')
     expect(formatPercent(9.99)).toBe('10.0%')
   })
 
   it('formats ratio decimal string with two fraction digits (no % suffix)', () => {
     expect(formatRatioDecimalKo(3.1)).toBe('3.10')
     expect(formatRatioDecimalKo(1234.567)).toBe('1,234.57')
-  })
-
-  it('formats plain number and currency suffix helpers', () => {
-    expect(formatNumber(1234567)).toBe('1,234,567')
-    expect(formatCurrency(1234567)).toBe('1,234,567원')
   })
 
   it('formats nullable EA quantity helper', () => {

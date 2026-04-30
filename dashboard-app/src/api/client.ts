@@ -61,7 +61,7 @@ export async function getProductDrawerBundle(
  * 상품 판매 인사이트.
  * 기간과 경쟁 채널에 따라 판매량·판매액·순위가 달라지는 무거운 계약이라 drawer bundle과 분리한다.
  */
-export async function getProductSalesInsight(
+async function getProductSalesInsight(
   id: string,
   params: ProductSalesInsightParams,
 ): Promise<ProductSalesInsight> {
@@ -69,7 +69,7 @@ export async function getProductSalesInsight(
 }
 
 /** 2차 드로어 기본 상세. 저장된 스냅샷이 있으면 화면은 스냅샷 값을 우선 존중한다. */
-export async function getProductSecondaryDetail(
+async function getProductSecondaryDetail(
   id: string,
   params?: ProductSecondaryDetailParams,
 ): Promise<ProductSecondaryDetail> {
@@ -77,7 +77,7 @@ export async function getProductSecondaryDetail(
 }
 
 /** 2차 판매 추이 차트 데이터. 기간/예측 개월 조건에 민감하므로 호출부에서 stale 응답을 방지해야 한다. */
-export async function getSecondaryDailyTrend(
+async function getSecondaryDailyTrend(
   params: SecondaryDailyTrendParams,
 ): Promise<SecondaryDailyTrendPoint[]> {
   return mockDashboardApi.getSecondaryDailyTrend(params)
@@ -89,7 +89,7 @@ export async function getSecondaryCompetitorChannels(): Promise<SecondaryCompeti
 }
 
 /** 2차 드로어 LLM 응답. 현재는 mock 텍스트지만 실제 연동 시 프롬프트와 상품 컨텍스트를 백엔드로 넘긴다. */
-export async function getSecondaryLlmAnswer(params: SecondaryLlmAnswerParams): Promise<string> {
+async function getSecondaryLlmAnswer(params: SecondaryLlmAnswerParams): Promise<string> {
   return mockDashboardApi.getSecondaryLlmAnswer(params)
 }
 
@@ -97,19 +97,19 @@ export async function getSecondaryLlmAnswer(params: SecondaryLlmAnswerParams): P
  * 2차 오더 스냅샷 저장.
  * 후보군과 별개로 브라우저 저장소에 남기는 확인용 스냅샷이며, 후보 아이템 최신성 플래그는 별도 API에서 명시한다.
  */
-export async function saveSecondaryOrderSnapshot(
+async function saveSecondaryOrderSnapshot(
   snapshot: SecondaryOrderSnapshotPayload,
 ): Promise<void> {
   return mockDashboardApi.saveSecondaryOrderSnapshot(snapshot)
 }
 
 /** 저장된 2차 오더 스냅샷 목록. productId가 있으면 해당 상품 스냅샷만 조회한다. */
-export async function getSecondaryOrderSnapshots(productId?: string): Promise<SecondaryOrderSnapshotPayload[]> {
+async function getSecondaryOrderSnapshots(productId?: string): Promise<SecondaryOrderSnapshotPayload[]> {
   return mockDashboardApi.getSecondaryOrderSnapshots(productId)
 }
 
 /** 저장된 2차 오더 스냅샷 삭제. productId와 savedAt 조합이 삭제 키다. */
-export async function deleteSecondaryOrderSnapshot(productId: string, savedAt: string): Promise<void> {
+async function deleteSecondaryOrderSnapshot(productId: string, savedAt: string): Promise<void> {
   return mockDashboardApi.deleteSecondaryOrderSnapshot(productId, savedAt)
 }
 
@@ -142,7 +142,7 @@ export async function deleteCandidateStash(stashUuid: string): Promise<void> {
 }
 
 /** 후보군 생성. 생성 후 화면은 응답을 낙관 삽입하지 않고 목록을 다시 조회하는 흐름을 우선한다. */
-export async function createCandidateStash(
+async function createCandidateStash(
   payload: CreateCandidateStashPayload,
 ): Promise<CandidateStashSummary> {
   return mockDashboardApi.createCandidateStash(payload)
@@ -164,7 +164,7 @@ export async function updateCandidateStash(
  * 후보군에 이너 오더 스냅샷 추가.
  * 새 스냅샷은 아직 LLM 코멘트가 최신이 아니므로 호출부가 isLatestLlmComment=false를 반드시 명시한다.
  */
-export async function appendCandidateItem(
+async function appendCandidateItem(
   payload: AppendCandidateItemPayload,
 ): Promise<void> {
   return mockDashboardApi.appendCandidateItem(payload)
@@ -174,7 +174,7 @@ export async function appendCandidateItem(
  * 후보 아이템 스냅샷 갱신.
  * 수치 저장으로 스냅샷이 바뀌면 기존 LLM 코멘트는 낡으므로 isLatestLlmComment=false를 함께 보낸다.
  */
-export async function updateCandidateItem(payload: UpdateCandidateItemPayload): Promise<void> {
+async function updateCandidateItem(payload: UpdateCandidateItemPayload): Promise<void> {
   return mockDashboardApi.updateCandidateItem(payload)
 }
 
@@ -216,7 +216,7 @@ export function subscribeCandidateStashAnalysis(
 }
 
 /** 2차 오더 계산. UI 입력값을 기반으로 한 파생 수치이며 저장된 스냅샷 값을 몰래 덮어쓰지 않는다. */
-export async function getSecondaryStockOrderCalc(
+async function getSecondaryStockOrderCalc(
   params: SecondaryStockOrderCalcParams,
 ): Promise<SecondaryStockOrderCalcResult> {
   return mockDashboardApi.getSecondaryStockOrderCalc(params)

@@ -26,20 +26,6 @@ export function daysInclusiveBetween(start: string, end: string): number {
   return Math.max(0, diffDays)
 }
 
-/**
- * 오늘(로컬)부터 `endDate`까지 양끝 포함 일수.
- * 입고일이 오늘 이전이면 0.
- */
-export function daysFromTodayThroughInclusive(endDate: string): number {
-  const now = new Date()
-  const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
-  const s = new Date(`${today}T00:00:00`)
-  const e = new Date(`${endDate}T00:00:00`)
-  if (Number.isNaN(s.getTime()) || Number.isNaN(e.getTime())) return 0
-  const diffDays = Math.floor((e.getTime() - s.getTime()) / 86400000) + 1
-  return Math.max(0, diffDays)
-}
-
 /** ISO datetime -> `YYYY-MM-DD HH:mm` (로컬 시간 기준) */
 export function formatDateTimeMinute(iso: string): string {
   const d = new Date(iso)

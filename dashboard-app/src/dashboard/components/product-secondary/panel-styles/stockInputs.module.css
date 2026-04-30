@@ -16,10 +16,6 @@
   min-width: 0;
 }
 
-.stockInputList > .stockInputCellSpan2 {
-  grid-column: 1 / -1;
-}
-
 @media (max-width: 960px) {
   .stockInputList {
     grid-template-columns: 1fr;

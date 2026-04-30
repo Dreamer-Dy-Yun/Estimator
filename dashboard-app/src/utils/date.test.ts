@@ -1,8 +1,7 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import {
   calendarDaysInMonth,
   dateToMonth,
-  daysFromTodayThroughInclusive,
   daysInclusiveBetween,
   formatDateTimeMinute,
   monthToEndDate,
@@ -10,10 +9,6 @@ import {
 } from './date'
 
 describe('date utils', () => {
-  afterEach(() => {
-    vi.useRealTimers()
-  })
-
   it('converts month to start and end dates', () => {
     expect(monthToStartDate('2026-02')).toBe('2026-02-01')
     expect(monthToEndDate('2026-02')).toBe('2026-02-28')
@@ -36,15 +31,6 @@ describe('date utils', () => {
     expect(daysInclusiveBetween('2026-01-01', '2026-01-31')).toBe(31)
     expect(daysInclusiveBetween('2026-01-31', '2026-01-01')).toBe(0)
     expect(daysInclusiveBetween('invalid', '2026-01-01')).toBe(0)
-  })
-
-  it('computes days from today through end date inclusively', () => {
-    vi.useFakeTimers()
-    vi.setSystemTime(new Date('2026-04-10T12:00:00'))
-    expect(daysFromTodayThroughInclusive('2026-04-10')).toBe(1)
-    expect(daysFromTodayThroughInclusive('2026-04-12')).toBe(3)
-    expect(daysFromTodayThroughInclusive('2026-04-09')).toBe(0)
-    expect(daysFromTodayThroughInclusive('invalid')).toBe(0)
   })
 
   it('formats ISO datetime to YYYY-MM-DD HH:mm or returns original string', () => {

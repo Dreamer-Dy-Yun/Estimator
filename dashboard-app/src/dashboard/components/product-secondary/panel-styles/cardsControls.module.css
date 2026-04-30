@@ -1,7 +1,3 @@
-.filterCard {
-  min-width: 0;
-}
-
 /** 오른쪽 필터 카드와 높이 맞출 때 메타 블록을 카드 안에서 세로 중앙 */
 .metaCard {
   display: flex;
@@ -47,50 +43,6 @@
   word-break: break-word;
 }
 
-.controlsRow {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  align-items: flex-end;
-  justify-content: flex-start;
-  min-width: 0;
-}
-
-.filterCard .controlsRow {
-  margin-top: 0;
-  flex-wrap: nowrap;
-  gap: 10px;
-}
-
-.filterCard .control {
-  flex: 1 1 0;
-  min-width: 0;
-}
-
-.filterCard .control input,
-.filterCard .control select {
-  min-width: 0;
-  width: 100%;
-  max-width: 160px;
-}
-
-.control {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  font-size: 12px;
-  color: #475569;
-}
-
-.control input,
-.control select {
-  min-width: 120px;
-  padding: 6px 8px;
-  border: 1px solid #cbd5e1;
-  border-radius: 6px;
-  font: inherit;
-}
-
 .salesMetricsHeader {
   margin-bottom: 8px;
 }
@@ -106,36 +58,6 @@
 .salesMetricsHeader .sectionTitle,
 .salesMetricsHeader .salesMetricsPeriodLine {
   margin-bottom: 0;
-}
-
-.salesMetricsChannelControl {
-  display: flex;
-  flex: 0 0 138px;
-  min-width: 0;
-  align-items: center;
-  gap: 5px;
-  font-size: 11px;
-  font-weight: 600;
-  color: #475569;
-}
-
-.salesMetricsChannelControl > span {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.salesMetricsChannelControl select {
-  width: 100%;
-  min-width: 0;
-  height: 32px;
-  padding: 6px 8px;
-  border: 1px solid #cbd5e1;
-  border-radius: 6px;
-  background: #fff;
-  font: inherit;
-  font-size: 12px;
-  color: #0f172a;
 }
 
 .salesMetricsChannelHeaderControl {

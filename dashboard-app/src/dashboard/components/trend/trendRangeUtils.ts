@@ -10,7 +10,7 @@ export const normalizeMonthKey = (value: string) => {
   return s.slice(0, 7)
 }
 
-export const findSeriesMonthIndex = (
+const findSeriesMonthIndex = (
   series: Array<{ date: string }>,
   monthKey: string,
   kind: 'start' | 'end',

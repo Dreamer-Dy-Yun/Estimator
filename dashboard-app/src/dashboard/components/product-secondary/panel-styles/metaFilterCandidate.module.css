@@ -13,12 +13,6 @@
   min-width: 0;
 }
 
-.metaFilterFilterBlock {
-  grid-column: auto;
-  display: flex;
-  min-width: 0;
-}
-
 .metaFilterActionBlock {
   grid-column: auto;
   display: flex;
@@ -26,7 +20,6 @@
 }
 
 .metaFilterMetaBlock > *,
-.metaFilterFilterBlock > *,
 .metaFilterActionBlock > * {
   width: 100%;
 }

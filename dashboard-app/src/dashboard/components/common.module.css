@@ -31,14 +31,6 @@
   gap: 10px;
 }
 
-.kpiGrid3 {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-}
-
-.kpiHoverZone {
-  position: relative;
-}
-
 .kpiStack {
   grid-template-columns: 1fr;
 }
@@ -59,146 +51,10 @@
   font-size: 12px;
 }
 
-.kpiLabelWithHelp {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.kpiLabelHint {
-  position: relative;
-  display: inline-block;
-  cursor: help;
-}
-
-.kpiLabelHint::after {
-  content: attr(data-help);
-  position: absolute;
-  left: 0;
-  bottom: calc(100% + 6px);
-  background: #0f172a;
-  color: #fff;
-  font-size: 11px;
-  line-height: 1.2;
-  padding: 4px 6px;
-  border-radius: 6px;
-  white-space: nowrap;
-  opacity: 0;
-  pointer-events: none;
-  transform: translateY(2px);
-  transition: opacity 120ms ease, transform 120ms ease;
-  z-index: 40;
-}
-
-.kpiLabelHint:hover::after {
-  opacity: 1;
-  transform: translateY(0);
-}
-
 .kpiValue {
   font-size: 20px;
   font-weight: 800;
   margin-top: 6px;
-}
-
-.sizeHoverPanel {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 100%;
-  top: auto;
-  border: 1px solid #cbd5e1;
-  border-radius: 10px;
-  background: #ffffff;
-  box-shadow: 0 -8px 24px rgba(15, 23, 42, 0.12);
-  z-index: 20;
-  padding: 8px;
-  margin-bottom: 4px;
-}
-
-.sizeHoverHead {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 10px;
-  font-size: 12px;
-  color: #475569;
-  margin-bottom: 8px;
-}
-
-.sizeHoverTableWrap {
-  max-height: 190px;
-  overflow: auto;
-}
-
-.sizeHoverTable {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.sizeHoverTable thead th {
-  position: sticky;
-  top: 0;
-  z-index: 6;
-  background: #f8fafc;
-}
-
-.sizeHoverTable th,
-.sizeHoverTable td {
-  padding: 6px 8px;
-  border-bottom: 1px solid #e2e8f0;
-  text-align: right;
-  font-size: 12px;
-  color: #0f172a;
-}
-
-.sizeHoverTable th:first-child,
-.sizeHoverTable td:first-child {
-  text-align: left;
-}
-
-.sizeHoverRow {
-  cursor: pointer;
-}
-
-.sizeHoverRow:hover {
-  background: #f1f5f9;
-}
-
-.sizeHoverRowSelected {
-  background: #e0f2fe;
-}
-
-.sizeHoverRowSelected:hover {
-  background: #dbeafe;
-}
-
-.sizeHoverRowAll {
-  background: #eef2f6;
-}
-
-.sizeHoverRowAll:hover:not(.sizeHoverRowSelected) {
-  background: #e2e8f0;
-}
-
-.sizeHoverRowAll.sizeHoverRowSelected {
-  background: #e0f2fe;
-}
-
-.sizeHoverRowAll.sizeHoverRowSelected:hover {
-  background: #dbeafe;
-}
-
-.sizeHoverRowPinned td {
-  position: sticky;
-  top: 32px;
-  z-index: 5;
-  background: inherit;
-}
-
-.trendSizeBadge {
-  font-weight: 600;
-  color: #2563eb;
 }
 
 .twoCol {
@@ -466,15 +322,6 @@
 
 .helpPopoverPortal p:first-of-type {
   margin-top: 0;
-}
-
-.helpPopoverPortal .katex-display {
-  margin: 6px 0 0;
-}
-
-.helpPopoverPortal .katex {
-  color: #f1f5f9;
-  font-size: 1.02em;
 }
 
 /** 공통 닫기(X) 아이콘 버튼 */
@@ -756,14 +603,6 @@
   color: #475569;
 }
 
-.trendHead {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 10px;
-  margin-bottom: 8px;
-}
-
 .rowClickable {
   cursor: pointer;
 }
@@ -893,21 +732,6 @@
   padding: 24px;
   color: #64748b;
   font-size: 14px;
-}
-
-.drawerExpandPaneCard {
-  background: #fff;
-  border: 1px solid #e2e8f0;
-  border-radius: 10px;
-  min-height: 100%;
-  padding: 14px;
-  box-shadow: none;
-}
-
-.drawerExpandPaneHint {
-  margin: 0;
-  color: #64748b;
-  font-size: 13px;
 }
 
 .drawerExpandToggle {
@@ -1047,8 +871,7 @@
 }
 
 .drawerSalesMetricsCard,
-.drawerSalesTrendCard,
-.drawerSeasonalityCard {
+.drawerSalesTrendCard {
   min-height: 0;
 }
 
@@ -1066,11 +889,6 @@
 
 .drawerErrorText {
   color: #b91c1c;
-}
-
-.drawerSeasonalityCard {
-  display: grid;
-  grid-template-rows: auto 1fr;
 }
 
 .metaChip {
