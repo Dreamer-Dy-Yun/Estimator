@@ -7,7 +7,7 @@ import { DeleteButton } from '../components/DeleteButton'
 import { FilterBar } from '../components/FilterBar'
 import { ProductSummaryDrawer } from '../components/ProductSummaryDrawer'
 import { stashDetailModalBackdropDataProps } from '../drawer/drawerDom'
-import { useCandidateStashDetailModal } from '../hooks/useCandidateStashDetailModal'
+import { useCandidateStashDetailModal, type InnerCandidateRow } from '../hooks/useCandidateStashDetailModal'
 import styles from '../components/common.module.css'
 import pageStyles from './SnapshotConfirmPage.module.css'
 
@@ -96,6 +96,14 @@ export function CandidateStashDetailModal({ stashUuid, stashSummary, onClose, on
       }
       return next
     })
+  }
+
+  const toggleItemDrawer = (row: InnerCandidateRow) => {
+    if (m.drawerOpen && m.openedItemUuid === row.uuid) {
+      m.closeDrawer()
+      return
+    }
+    void m.openItemDrawer(row)
   }
 
   return (
@@ -290,14 +298,15 @@ export function CandidateStashDetailModal({ stashUuid, stashSummary, onClose, on
                                     ? pageStyles.innerOrderRowBottom
                                     : ''
                               }`}
-                              onClick={() => void m.openItemDrawer(row)}
+                              onClick={() => toggleItemDrawer(row)}
                               onKeyDown={(e) => {
                                 if (e.key !== 'Enter' && e.key !== ' ') return
                                 e.preventDefault()
-                                void m.openItemDrawer(row)
+                                toggleItemDrawer(row)
                               }}
                               role="listitem"
                               tabIndex={0}
+                              aria-expanded={m.drawerOpen && m.openedItemUuid === row.uuid}
                             >
                               <span className={pageStyles.innerOrderCheckCell}>
                                 <input
