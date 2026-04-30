@@ -61,7 +61,7 @@ export function CandidateStashDetailModal({ stashUuid, stashSummary, onClose, on
       .map((row) => row.insight.competitorChannelLabel.trim())
       .filter((label) => label.length > 0)
     const uniqueLabels = [...new Set(labels)]
-    return uniqueLabels.length === 1 ? `${uniqueLabels[0]} 판매량` : '경쟁사 판매량'
+    return uniqueLabels.length === 1 ? `${uniqueLabels[0]} 기간 평균 판매량` : '경쟁사 기간 평균 판매량'
   }, [m.tableRows])
 
   useEffect(() => {
@@ -273,7 +273,7 @@ export function CandidateStashDetailModal({ stashUuid, stashSummary, onClose, on
                           <span>브랜드</span>
                           <span>상품코드</span>
                           <span>상품명</span>
-                          <span className={pageStyles.innerOrderCellNum}>자사 판매량</span>
+                          <span className={pageStyles.innerOrderCellNum}>자사 기간 평균 판매량</span>
                           <span className={pageStyles.innerOrderCellNum}>{competitorSalesQtyHeader}</span>
                           <span className={pageStyles.innerOrderCellNum}>총 예상 판매수량</span>
                           <span className={pageStyles.innerOrderCellNum}>총 예상 오더 금액</span>
