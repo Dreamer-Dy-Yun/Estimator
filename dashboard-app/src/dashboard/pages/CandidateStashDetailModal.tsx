@@ -134,6 +134,37 @@ export function CandidateStashDetailModal({ stashUuid, stashSummary, onClose, on
         role="presentation"
         {...stashDetailModalBackdropDataProps(m.drawerOpen)}
       >
+        {m.analysisProgress && (
+          <div
+            className={`${pageStyles.analysisStatusCard} ${pageStyles.analysisStatusPopup} ${
+              m.analysisError ? pageStyles.analysisStatusCardError : ''
+            }`}
+            role="status"
+            aria-live="polite"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className={pageStyles.analysisStatusHead}>
+              <strong>LLM 스냅샷 분석</strong>
+              <span className={pageStyles.analysisStatusBadge}>{analysisStatusLabel}</span>
+            </div>
+            <div
+              className={pageStyles.analysisStatusProgressTrack}
+              aria-hidden="true"
+            >
+              <span
+                className={pageStyles.analysisStatusProgressFill}
+                style={{ width: `${analysisProgressPct}%` }}
+              />
+            </div>
+            <div className={pageStyles.analysisStatusMeta}>
+              <span>{m.analysisError ?? m.analysisProgress.message}</span>
+              <span>
+                {m.analysisProgress.completedItems}/{m.analysisProgress.totalItems}
+              </span>
+            </div>
+          </div>
+        )}
+
         <div
           className={pageStyles.stashDetailModalPanel}
           onClick={(e) => e.stopPropagation()}
@@ -199,36 +230,6 @@ export function CandidateStashDetailModal({ stashUuid, stashSummary, onClose, on
                     )}
                   </div>
                 </div>
-
-                {m.analysisProgress && (
-                  <div
-                    className={`${pageStyles.analysisStatusCard} ${
-                      m.analysisError ? pageStyles.analysisStatusCardError : ''
-                    }`}
-                    role="status"
-                    aria-live="polite"
-                  >
-                    <div className={pageStyles.analysisStatusHead}>
-                      <strong>LLM 스냅샷 분석</strong>
-                      <span className={pageStyles.analysisStatusBadge}>{analysisStatusLabel}</span>
-                    </div>
-                    <div
-                      className={pageStyles.analysisStatusProgressTrack}
-                      aria-hidden="true"
-                    >
-                      <span
-                        className={pageStyles.analysisStatusProgressFill}
-                        style={{ width: `${analysisProgressPct}%` }}
-                      />
-                    </div>
-                    <div className={pageStyles.analysisStatusMeta}>
-                      <span>{m.analysisError ?? m.analysisProgress.message}</span>
-                      <span>
-                        {m.analysisProgress.completedItems}/{m.analysisProgress.totalItems}
-                      </span>
-                    </div>
-                  </div>
-                )}
 
                 <FilterBar
                   title=""
