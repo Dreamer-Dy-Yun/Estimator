@@ -10,6 +10,8 @@ export type {
 export type {
   ProductSecondaryDetailParams,
   CandidateItemDetail,
+  CandidateItemBadgeSummary,
+  CandidateItemBadgeStyle,
   CandidateItemSummary,
   CandidateStashExcelUploadResult,
   CandidateStashSummary,

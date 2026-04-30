@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import type { CandidateStashSummary } from '../../api'
+import type { CandidateItemBadgeSummary, CandidateStashSummary } from '../../api'
 import { formatDateTimeMinute } from '../../utils/date'
 import { formatGroupedNumber, formatRatioDecimalKo } from '../../utils/format'
 import { ConfirmModal } from '../components/ConfirmModal'
@@ -22,10 +22,44 @@ type Props = {
   onStashesInvalidate?: () => void
 }
 
-function InnerOrderBadge({ label, description }: { label: string; description: string }) {
+function formatBadgePayloadValue(value: unknown) {
+  if (value == null) return '-'
+  if (typeof value === 'boolean') return value ? 'true' : 'false'
+  return String(value)
+}
+
+function buildBadgeTitle(badge: CandidateItemBadgeSummary) {
+  const payloadLines = Object.entries(badge.payload ?? {}).map(
+    ([key, value]) => `${key}: ${formatBadgePayloadValue(value)}`,
+  )
+
+  return [
+    badge.description,
+    `id: ${badge.id}`,
+    `name: ${badge.name}`,
+    badge.value == null ? null : `value: ${formatBadgePayloadValue(badge.value)}`,
+    badge.rankPercentile == null ? null : `rankPercentile: ${badge.rankPercentile}`,
+    badge.thresholdPercent == null ? null : `thresholdPercent: ${badge.thresholdPercent}`,
+    `color: ${badge.style.textColor} / ${badge.style.backgroundColor}`,
+    ...payloadLines,
+  ].filter(Boolean).join('\n')
+}
+
+function InnerOrderBadge({ badge }: { badge: CandidateItemBadgeSummary }) {
   return (
-    <span className={pageStyles.innerOrderBadge} title={description}>
-      {label}
+    <span
+      className={pageStyles.innerOrderBadge}
+      title={buildBadgeTitle(badge)}
+      style={{
+        color: badge.style.textColor,
+        backgroundColor: badge.style.backgroundColor,
+        borderColor: badge.style.borderColor,
+      }}
+    >
+      <span>{badge.label}</span>
+      {badge.value != null && (
+        <span className={pageStyles.innerOrderBadgeValue}>{formatBadgePayloadValue(badge.value)}</span>
+      )}
     </span>
   )
 }
@@ -217,6 +251,15 @@ export function CandidateStashDetailModal({ stashUuid, stashSummary, onClose, on
                       </div>
                     ) : (
                       <div className={pageStyles.innerOrderList} role="list">
+                        <div className={pageStyles.innerOrderHeader} role="presentation">
+                          <span />
+                          <span>브랜드</span>
+                          <span>상품코드</span>
+                          <span>상품명</span>
+                          <span>배지</span>
+                          <span className={pageStyles.innerOrderCellNum}>총 예상 판매수량</span>
+                          <span className={pageStyles.innerOrderCellNum}>총 예상 오더 금액</span>
+                        </div>
                         {m.tableRows.map((row) => {
                           const selected = selectedItemUuids.has(row.uuid)
                           return (
@@ -248,19 +291,25 @@ export function CandidateStashDetailModal({ stashUuid, stashSummary, onClose, on
                                 />
                               </span>
                               <span className={pageStyles.innerOrderBrand}>{row.brand}</span>
+                              <span className={pageStyles.innerOrderCode}>{row.productCode}</span>
                               <span className={pageStyles.innerOrderName}>{row.productName}</span>
                               <span className={pageStyles.innerOrderBadgeList}>
                                 {row.insight.badges.length ? (
                                   row.insight.badges.map((badge) => (
                                     <InnerOrderBadge
-                                      key={`${row.uuid}-${badge.kind}`}
-                                      label={badge.label}
-                                      description={badge.description}
+                                      key={`${row.uuid}-${badge.id}`}
+                                      badge={badge}
                                     />
                                   ))
                                 ) : (
                                   <span className={pageStyles.innerOrderNoBadge}>-</span>
                                 )}
+                              </span>
+                              <span className={pageStyles.innerOrderCellNum}>
+                                {formatGroupedNumber(row.insight.expectedSalesQty)} EA
+                              </span>
+                              <span className={pageStyles.innerOrderCellNum}>
+                                {formatGroupedNumber(row.expectedOrderAmount)} 원
                               </span>
                               <InnerOrderHoverPanel row={row} />
                             </div>

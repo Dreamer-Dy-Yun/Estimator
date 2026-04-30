@@ -56,6 +56,35 @@ import { buildSalesKpiColumn } from '../../utils/salesKpiColumn'
 
 const INNER_ORDER_TOP_PERCENT_THRESHOLD = 10
 const INNER_ORDER_BOTTOM_PERCENT_THRESHOLD = 10
+const INNER_ORDER_BADGE_STYLES = {
+  competitorRevenue: {
+    textColor: '#1d4ed8',
+    backgroundColor: '#eff6ff',
+    borderColor: '#93c5fd',
+  },
+  competitorSales: {
+    textColor: '#0f766e',
+    backgroundColor: '#ecfdf5',
+    borderColor: '#99f6e4',
+  },
+  selfRevenue: {
+    textColor: '#6d28d9',
+    backgroundColor: '#f5f3ff',
+    borderColor: '#c4b5fd',
+  },
+  selfSales: {
+    textColor: '#c2410c',
+    backgroundColor: '#fff7ed',
+    borderColor: '#fdba74',
+  },
+  selfProfitRate: {
+    textColor: '#be123c',
+    backgroundColor: '#fff1f2',
+    borderColor: '#fda4af',
+  },
+}
+
+type InnerOrderBadgeId = keyof typeof INNER_ORDER_BADGE_STYLES
 
 function inTopPercent(rankPercentile: number | null | undefined) {
   return typeof rankPercentile === 'number' && rankPercentile >= 100 - INNER_ORDER_TOP_PERCENT_THRESHOLD
@@ -65,11 +94,16 @@ function inBottomPercent(rankPercentile: number | null | undefined) {
   return typeof rankPercentile === 'number' && rankPercentile <= INNER_ORDER_BOTTOM_PERCENT_THRESHOLD
 }
 
-function buildCandidateItemInsight(productId: string, expectedSalesAmount: number, expectedOpProfit: number) {
+function buildCandidateItemInsight(
+  productId: string,
+  expectedSalesQty: number,
+  expectedSalesAmount: number,
+  expectedOpProfit: number,
+) {
   const competitor = competitorById[productId]
   const self = selfById[productId]
   const channelLabel = secondaryCompetitorChannels[0]?.label ?? '크림'
-  const badges = []
+  const badges: Array<{ kind: InnerOrderBadgeId; label: string; description: string }> = []
 
   if (inTopPercent(competitor?.rankPercentile)) {
     badges.push({
@@ -112,13 +146,41 @@ function buildCandidateItemInsight(productId: string, expectedSalesAmount: numbe
     competitorAmount: competitor?.competitorAmount ?? null,
     selfQty: self?.qty ?? competitor?.selfQty ?? null,
     selfAmount: self?.amount ?? competitor?.selfAmount ?? null,
+    expectedSalesQty,
     expectedSalesAmount,
     expectedOpProfit,
     selfOpProfitRatePct: self?.opMarginRate ?? null,
     rankTone: top ? 'top' as const : bottom ? 'bottom' as const : 'neutral' as const,
     topPercentThreshold: INNER_ORDER_TOP_PERCENT_THRESHOLD,
     bottomPercentThreshold: INNER_ORDER_BOTTOM_PERCENT_THRESHOLD,
-    badges,
+    badges: badges.map((badge) => {
+      const isCompetitor = badge.kind === 'competitorRevenue' || badge.kind === 'competitorSales'
+      const isQty = badge.kind === 'competitorSales' || badge.kind === 'selfSales'
+      const isProfitRate = badge.kind === 'selfProfitRate'
+      const rankPercentile = isCompetitor ? competitor?.rankPercentile : self?.rankPercentile
+      const value = isProfitRate
+        ? (self?.opMarginRate ?? null)
+        : isQty
+          ? (isCompetitor ? competitor?.competitorQty : self?.qty) ?? null
+          : (isCompetitor ? competitor?.competitorAmount : self?.amount) ?? null
+
+      return {
+        id: badge.kind,
+        name: badge.label,
+        label: badge.label,
+        description: badge.description,
+        value,
+        rankPercentile: rankPercentile ?? null,
+        thresholdPercent: INNER_ORDER_TOP_PERCENT_THRESHOLD,
+        style: INNER_ORDER_BADGE_STYLES[badge.kind],
+        payload: {
+          metric: badge.kind,
+          competitorChannelLabel: isCompetitor ? channelLabel : null,
+          value,
+          rankPercentile: rankPercentile ?? null,
+        },
+      }
+    }),
   }
 }
 
@@ -357,7 +419,7 @@ export const mockDashboardApi = {
           expectedOrderAmount,
           expectedSalesAmount,
           expectedOpProfit,
-          insight: buildCandidateItemInsight(productId, expectedSalesAmount, expectedOpProfit),
+          insight: buildCandidateItemInsight(productId, qty, expectedSalesAmount, expectedOpProfit),
           dbCreatedAt: row.dbCreatedAt,
           dbUpdatedAt: row.dbUpdatedAt ?? row.dbCreatedAt,
         }

@@ -120,17 +120,30 @@ export interface CandidateItemSummary {
   dbUpdatedAt: string
 }
 
-export type CandidateItemBadgeKind =
-  | 'competitorRevenue'
-  | 'selfRevenue'
-  | 'competitorSales'
-  | 'selfSales'
-  | 'selfProfitRate'
+export type CandidateBadgePayloadValue = string | number | boolean | null
 
+export interface CandidateItemBadgeStyle {
+  textColor: string
+  backgroundColor: string
+  borderColor: string
+}
+
+/**
+ * Backend-driven inner order badge.
+ * The frontend renders every badge object returned by the API and only uses
+ * style fields for presentation. Business meaning and thresholds belong to
+ * backend/API data.
+ */
 export interface CandidateItemBadgeSummary {
-  kind: CandidateItemBadgeKind
+  id: string
+  name: string
   label: string
   description: string
+  value?: CandidateBadgePayloadValue
+  rankPercentile?: number | null
+  thresholdPercent?: number | null
+  style: CandidateItemBadgeStyle
+  payload?: Record<string, CandidateBadgePayloadValue>
 }
 
 export interface CandidateItemInsightSummary {
@@ -139,6 +152,7 @@ export interface CandidateItemInsightSummary {
   competitorAmount: number | null
   selfQty: number | null
   selfAmount: number | null
+  expectedSalesQty: number
   expectedSalesAmount: number
   expectedOpProfit: number
   selfOpProfitRatePct: number | null

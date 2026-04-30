@@ -23,6 +23,8 @@ export type {
   SecondaryOrderSnapshotPayload,
   OrderSnapshotDocumentV1,
   CandidateItemDetail,
+  CandidateItemBadgeSummary,
+  CandidateItemBadgeStyle,
   CandidateItemSummary,
   ProductStockTrendPoint,
   SelfSalesFilterMeta,
