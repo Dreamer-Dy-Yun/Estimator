@@ -38,20 +38,6 @@ export function SalesMetricsCard({ targetPeriodDays, sales, channelFilter }: Pro
             {KO.salesMetricsTargetPeriod}: {targetPeriodDays.start} ~ {targetPeriodDays.end}
           </p>
         </div>
-        {channelFilter && (
-          <label className={styles.salesMetricsChannelControl}>
-            <select
-              aria-label={KO.labelCompetitorChannel}
-              value={channelFilter.channelId}
-              onChange={(e) => channelFilter.onChannelChange(e.target.value)}
-            >
-              {channelFilter.competitorChannels.map((ch) => (
-                <option key={ch.id} value={ch.id}>{ch.label}</option>
-              ))}
-            </select>
-            <ApiUnitErrorBadge error={channelFilter.error} />
-          </label>
-        )}
       </div>
       <div className={styles.cardTableScroll}>
         <table className={`${styles.table} ${styles.salesMetricsTightTable}`}>
@@ -59,7 +45,22 @@ export function SalesMetricsCard({ targetPeriodDays, sales, channelFilter }: Pro
             <tr>
               <th>{KO.thMetric}</th>
               <th className={styles.num}>{KO.thSelf}</th>
-              <th className={styles.num}>{channelLabel}</th>
+              <th className={styles.num}>
+                {channelFilter ? (
+                  <span className={styles.salesMetricsChannelHeaderControl}>
+                    <select
+                      aria-label={KO.labelCompetitorChannel}
+                      value={channelFilter.channelId}
+                      onChange={(e) => channelFilter.onChannelChange(e.target.value)}
+                    >
+                      {channelFilter.competitorChannels.map((ch) => (
+                        <option key={ch.id} value={ch.id}>{ch.label}</option>
+                      ))}
+                    </select>
+                    <ApiUnitErrorBadge error={channelFilter.error} />
+                  </span>
+                ) : channelLabel}
+              </th>
             </tr>
           </thead>
           <tbody>
