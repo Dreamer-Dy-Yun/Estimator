@@ -1,9 +1,8 @@
 import { useEffect, useRef } from 'react'
-import { formatEaQuantity, formatGroupedNumber } from '../../utils/format'
-import styles from '../components/common.module.css'
-import type { InnerCandidateRow } from '../hooks/useCandidateStashDetailModal'
+import { formatEaQuantity, formatGroupedNumber } from '../../../utils/format'
+import styles from '../common.module.css'
+import type { InnerCandidateRow } from './useCandidateStashDetailModal'
 import { CandidateInsightBadges } from './CandidateInsightBadges'
-import pageStyles from './SnapshotConfirmPage.module.css'
 import modalStyles from './CandidateRecommendationModal.module.css'
 
 type Props = {
@@ -119,14 +118,14 @@ export function CandidateRecommendationModal({
           <div className={modalStyles.actions}>
             <button
               type="button"
-              className={`${pageStyles.actionBtn} ${pageStyles.btnNeutral}`}
+              className={`${modalStyles.actionBtn} ${modalStyles.btnNeutral}`}
               onClick={onClose}
             >
               취소
             </button>
             <button
               type="button"
-              className={`${pageStyles.actionBtn} ${pageStyles.btnPrimary}`}
+              className={`${modalStyles.actionBtn} ${modalStyles.btnPrimary}`}
               onClick={onApply}
               disabled={selectedCount === 0}
             >

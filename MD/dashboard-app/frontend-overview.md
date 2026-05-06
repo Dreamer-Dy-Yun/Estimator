@@ -104,15 +104,17 @@ HTTP 백엔드로 교체 시 클라이언트만 갈아끼우면 되도록 설계
 
 ```
 dashboard-app/src/
-  App.tsx                 # 라우트
+  App.tsx                 # 라우터
   api/                    # client, mock, types
   components/             # ApiUnitErrorBadge, ComponentErrorBoundary
   dashboard/
     DashboardLayout.tsx
-    components/           # FilterBar, ProductSummaryDrawer, AnalysisList, …
+    components/           # FilterBar, ProductSummaryDrawer, AnalysisList, feature components
+      candidate-stash/    # 후보군 상세/추천/배지 UI와 후보군 상세 훅
+      product-secondary/  # 2차 패널 UI/계산
     hooks/                # useProductDrawerBundle, usePeriodRangeFilter
-    pages/                # Self, Competitor, SnapshotConfirm, CandidateStashDetailModal
-  snapshot/               # 오더 스냅샷 타입·파서
+    pages/                # Self, Competitor, SnapshotConfirm route pages
+  snapshot/               # 오더 스냅샷 타입/파서
   utils/                  # format, date, forecastMonthsStorage, adjacentListNavigation
   types.ts
 ```

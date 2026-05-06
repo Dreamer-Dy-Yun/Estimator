@@ -12,7 +12,7 @@ import { formatDateTimeMinute } from '../../utils/date'
 import styles from '../components/common.module.css'
 import { ConfirmModal } from '../components/ConfirmModal'
 import pageStyles from './SnapshotConfirmPage.module.css'
-import { CandidateStashDetailModal } from './CandidateStashDetailModal'
+import { CandidateStashDetailModal } from '../components/candidate-stash/CandidateStashDetailModal'
 import { DeleteButton } from '../components/DeleteButton'
 import { FilterBar } from '../components/FilterBar'
 

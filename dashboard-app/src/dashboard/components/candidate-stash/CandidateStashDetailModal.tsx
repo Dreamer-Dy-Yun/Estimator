@@ -1,17 +1,17 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import type { CandidateStashSummary } from '../../api'
-import { formatDateTimeMinute } from '../../utils/date'
-import { formatEaQuantity, formatGroupedNumber, formatRatioDecimalKo } from '../../utils/format'
-import { ConfirmModal } from '../components/ConfirmModal'
-import { DeleteButton } from '../components/DeleteButton'
-import { FilterBar } from '../components/FilterBar'
-import { ProductSummaryDrawer } from '../components/ProductSummaryDrawer'
-import { stashDetailModalBackdropDataProps } from '../drawer/drawerDom'
-import { useCandidateStashDetailModal, type InnerCandidateRow } from '../hooks/useCandidateStashDetailModal'
-import styles from '../components/common.module.css'
+import type { CandidateStashSummary } from '../../../api'
+import { formatDateTimeMinute } from '../../../utils/date'
+import { formatEaQuantity, formatGroupedNumber, formatRatioDecimalKo } from '../../../utils/format'
+import { ConfirmModal } from '../ConfirmModal'
+import { DeleteButton } from '../DeleteButton'
+import { FilterBar } from '../FilterBar'
+import { ProductSummaryDrawer } from '../ProductSummaryDrawer'
+import { stashDetailModalBackdropDataProps } from '../../drawer/drawerDom'
+import { useCandidateStashDetailModal, type InnerCandidateRow } from './useCandidateStashDetailModal'
+import styles from '../common.module.css'
 import { CandidateInsightBadges } from './CandidateInsightBadges'
 import { CandidateRecommendationModal } from './CandidateRecommendationModal'
-import pageStyles from './SnapshotConfirmPage.module.css'
+import detailStyles from './CandidateStashDetailModal.module.css'
 
 const ANALYSIS_POPUP_AUTO_DISMISS_SECONDS = 5
 
@@ -186,28 +186,28 @@ export function CandidateStashDetailModal({ stashUuid, stashSummary, onClose, on
   return (
     <>
       <div
-        className={pageStyles.stashDetailModalBackdrop}
+        className={detailStyles.stashDetailModalBackdrop}
         onClick={() => onClose()}
         role="presentation"
         {...stashDetailModalBackdropDataProps(m.drawerOpen)}
       >
         {showAnalysisPopup && m.analysisProgress && (
           <div
-            className={`${pageStyles.analysisStatusCard} ${pageStyles.analysisStatusPopup} ${
-              m.analysisError ? pageStyles.analysisStatusCardError : ''
+            className={`${detailStyles.analysisStatusCard} ${detailStyles.analysisStatusPopup} ${
+              m.analysisError ? detailStyles.analysisStatusCardError : ''
             }`}
             role="status"
             aria-live="polite"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className={pageStyles.analysisStatusHead}>
+            <div className={detailStyles.analysisStatusHead}>
               <strong>LLM 스냅샷 분석</strong>
-              <span className={pageStyles.analysisStatusHeadActions}>
-                <span className={pageStyles.analysisStatusBadge}>{analysisStatusLabel}</span>
+              <span className={detailStyles.analysisStatusHeadActions}>
+                <span className={detailStyles.analysisStatusBadge}>{analysisStatusLabel}</span>
                 {analysisIsTerminal && (
                   <button
                     type="button"
-                    className={`${styles.iconCloseButton} ${pageStyles.analysisStatusDismissBtn}`}
+                    className={`${styles.iconCloseButton} ${detailStyles.analysisStatusDismissBtn}`}
                     onClick={() => setAnalysisPopupDismissed(true)}
                     aria-label="LLM 분석 팝업 즉시 닫기"
                     title="즉시 닫기"
@@ -216,22 +216,22 @@ export function CandidateStashDetailModal({ stashUuid, stashSummary, onClose, on
               </span>
             </div>
             <div
-              className={pageStyles.analysisStatusProgressTrack}
+              className={detailStyles.analysisStatusProgressTrack}
               aria-hidden="true"
             >
               <span
-                className={pageStyles.analysisStatusProgressFill}
+                className={detailStyles.analysisStatusProgressFill}
                 style={{ width: `${analysisProgressPct}%` }}
               />
             </div>
-            <div className={pageStyles.analysisStatusMeta}>
+            <div className={detailStyles.analysisStatusMeta}>
               <span>{m.analysisError ?? m.analysisProgress.message}</span>
               <span>
                 {m.analysisProgress.completedItems}/{m.analysisProgress.totalItems}
               </span>
             </div>
             {analysisIsTerminal && (
-              <div className={pageStyles.analysisStatusAutoDismissText}>
+              <div className={detailStyles.analysisStatusAutoDismissText}>
                 이 팝업은 {analysisAutoDismissRemainingSec}초 후에 닫힙니다.
               </div>
             )}
@@ -239,20 +239,20 @@ export function CandidateStashDetailModal({ stashUuid, stashSummary, onClose, on
         )}
 
         <div
-          className={pageStyles.stashDetailModalPanel}
+          className={detailStyles.stashDetailModalPanel}
           onClick={(e) => e.stopPropagation()}
           role="dialog"
           aria-modal="true"
           aria-labelledby="stash-detail-modal-title"
         >
-          <div className={pageStyles.stashDetailModalBody}>
+          <div className={detailStyles.stashDetailModalBody}>
             {!m.detailTarget ? (
               <div className={styles.card}>
-                <div className={pageStyles.emptyState}>해당 후보군을 찾을 수 없습니다.</div>
-                <div className={pageStyles.stashDetailModalFooterActions}>
+                <div className={detailStyles.emptyState}>해당 후보군을 찾을 수 없습니다.</div>
+                <div className={detailStyles.stashDetailModalFooterActions}>
                   <button
                     type="button"
-                    className={`${pageStyles.actionBtn} ${pageStyles.btnNeutral}`}
+                    className={`${detailStyles.actionBtn} ${detailStyles.btnNeutral}`}
                     onClick={onClose}
                   >
                     닫기
@@ -262,31 +262,31 @@ export function CandidateStashDetailModal({ stashUuid, stashSummary, onClose, on
             ) : (
               <>
                 <div className={styles.card}>
-                  <div className={pageStyles.detailHeaderGrid}>
-                    <div className={pageStyles.detailHeaderTitleArea}>
-                      <h3 id="stash-detail-modal-title" className={pageStyles.detailTitle}>
+                  <div className={detailStyles.detailHeaderGrid}>
+                    <div className={detailStyles.detailHeaderTitleArea}>
+                      <h3 id="stash-detail-modal-title" className={detailStyles.detailTitle}>
                         {m.detailTarget.name}
                       </h3>
                     </div>
-                    <div className={pageStyles.detailMetaStack}>
-                      <span className={pageStyles.detailMetaLine}>
+                    <div className={detailStyles.detailMetaStack}>
+                      <span className={detailStyles.detailMetaLine}>
                         생성 {formatDateTimeMinute(m.detailTarget.dbCreatedAt)}
                       </span>
-                      <span className={pageStyles.detailMetaLine}>
+                      <span className={detailStyles.detailMetaLine}>
                         변경 {formatDateTimeMinute(m.detailTarget.dbUpdatedAt)}
                       </span>
                     </div>
-                    <div className={pageStyles.detailHeaderRecommendationCell}>
+                    <div className={detailStyles.detailHeaderRecommendationCell}>
                       <button
                         type="button"
-                        className={`${pageStyles.actionBtn} ${pageStyles.btnNeutral} ${pageStyles.detailHeaderRecommendationBtn}`}
+                        className={`${detailStyles.actionBtn} ${detailStyles.btnNeutral} ${detailStyles.detailHeaderRecommendationBtn}`}
                         onClick={openRecommendationModal}
                         disabled={!recommendationRows.length}
                       >
                         추천 보기
                       </button>
                     </div>
-                    <div className={pageStyles.detailHeaderDeleteCell}>
+                    <div className={detailStyles.detailHeaderDeleteCell}>
                       <DeleteButton
                         label="일괄삭제"
                         onClick={() => setBulkDeleteOpen(true)}
@@ -301,7 +301,7 @@ export function CandidateStashDetailModal({ stashUuid, stashSummary, onClose, on
                     </div>
                     <button
                       type="button"
-                      className={`${pageStyles.actionBtn} ${pageStyles.btnNeutral} ${pageStyles.detailHeaderCloseBtn}`}
+                      className={`${detailStyles.actionBtn} ${detailStyles.btnNeutral} ${detailStyles.detailHeaderCloseBtn}`}
                       onClick={onClose}
                       aria-label="닫기"
                       title="닫기"
@@ -309,7 +309,7 @@ export function CandidateStashDetailModal({ stashUuid, stashSummary, onClose, on
                       ×
                     </button>
                     {m.detailTarget.note && (
-                      <div className={pageStyles.detailNoteGridCell}>{m.detailTarget.note}</div>
+                      <div className={detailStyles.detailNoteGridCell}>{m.detailTarget.note}</div>
                     )}
                   </div>
                 </div>
@@ -344,65 +344,65 @@ export function CandidateStashDetailModal({ stashUuid, stashSummary, onClose, on
                   ]}
                 />
 
-                <div className={pageStyles.innerDrawerAwareBody}>
-                  <div className={pageStyles.innerSummaryGrid}>
-                    <div className={pageStyles.innerSummaryCard}>
-                      <span className={pageStyles.innerSummaryLabel}>합계 오더 수량</span>
-                      <strong className={pageStyles.innerSummaryValue}>
-                        {formatGroupedNumber(m.totals.qty)} <span className={pageStyles.innerSummaryUnit}>EA</span>
+                <div className={detailStyles.innerDrawerAwareBody}>
+                  <div className={detailStyles.innerSummaryGrid}>
+                    <div className={detailStyles.innerSummaryCard}>
+                      <span className={detailStyles.innerSummaryLabel}>합계 오더 수량</span>
+                      <strong className={detailStyles.innerSummaryValue}>
+                        {formatGroupedNumber(m.totals.qty)} <span className={detailStyles.innerSummaryUnit}>EA</span>
                       </strong>
                     </div>
-                    <div className={pageStyles.innerSummaryCard}>
-                      <span className={pageStyles.innerSummaryLabel}>합계 오더 금액</span>
-                      <strong className={pageStyles.innerSummaryValue}>
-                        {formatGroupedNumber(m.totals.expectedOrderAmount)} <span className={pageStyles.innerSummaryUnit}>원</span>
+                    <div className={detailStyles.innerSummaryCard}>
+                      <span className={detailStyles.innerSummaryLabel}>합계 오더 금액</span>
+                      <strong className={detailStyles.innerSummaryValue}>
+                        {formatGroupedNumber(m.totals.expectedOrderAmount)} <span className={detailStyles.innerSummaryUnit}>원</span>
                       </strong>
                     </div>
-                    <div className={pageStyles.innerSummaryCard}>
-                      <span className={pageStyles.innerSummaryLabel}>합계 총 기대 매출</span>
-                      <strong className={pageStyles.innerSummaryValue}>
-                        {formatGroupedNumber(m.totals.expectedSalesAmount)} <span className={pageStyles.innerSummaryUnit}>원</span>
+                    <div className={detailStyles.innerSummaryCard}>
+                      <span className={detailStyles.innerSummaryLabel}>합계 총 기대 매출</span>
+                      <strong className={detailStyles.innerSummaryValue}>
+                        {formatGroupedNumber(m.totals.expectedSalesAmount)} <span className={detailStyles.innerSummaryUnit}>원</span>
                       </strong>
                     </div>
-                    <div className={pageStyles.innerSummaryCard}>
-                      <span className={pageStyles.innerSummaryLabel}>합계 총 기대 영업 이익</span>
-                      <strong className={pageStyles.innerSummaryValue}>
-                        {formatGroupedNumber(m.totals.expectedOpProfit)} <span className={pageStyles.innerSummaryUnit}>원</span>
+                    <div className={detailStyles.innerSummaryCard}>
+                      <span className={detailStyles.innerSummaryLabel}>합계 총 기대 영업 이익</span>
+                      <strong className={detailStyles.innerSummaryValue}>
+                        {formatGroupedNumber(m.totals.expectedOpProfit)} <span className={detailStyles.innerSummaryUnit}>원</span>
                       </strong>
                     </div>
-                    <div className={pageStyles.innerSummaryCard}>
-                      <span className={pageStyles.innerSummaryLabel}>합계 총 기대 영업이익률</span>
-                      <strong className={pageStyles.innerSummaryValue}>
+                    <div className={detailStyles.innerSummaryCard}>
+                      <span className={detailStyles.innerSummaryLabel}>합계 총 기대 영업이익률</span>
+                      <strong className={detailStyles.innerSummaryValue}>
                         {m.totalExpectedOpProfitRatePct == null
                           ? '-'
                           : `${formatRatioDecimalKo(m.totalExpectedOpProfitRatePct)}`}
-                        <span className={pageStyles.innerSummaryUnit}>%</span>
+                        <span className={detailStyles.innerSummaryUnit}>%</span>
                       </strong>
                     </div>
                   </div>
-                  <div className={pageStyles.innerCandidateListBlock}>
+                  <div className={detailStyles.innerCandidateListBlock}>
                     {m.detailLoading ? (
-                      <div className={`${styles.card} ${pageStyles.emptyState}`}>
+                      <div className={`${styles.card} ${detailStyles.emptyState}`}>
                         이너 후보 목록을 불러오는 중...
                       </div>
                     ) : m.drawerError ? (
-                      <div className={`${styles.card} ${pageStyles.emptyState}`}>
+                      <div className={`${styles.card} ${detailStyles.emptyState}`}>
                         이너 후보 상세 로드 실패: {m.drawerError}
                       </div>
                     ) : m.detailError ? (
-                      <div className={`${styles.card} ${pageStyles.emptyState}`}>
+                      <div className={`${styles.card} ${detailStyles.emptyState}`}>
                         이너 후보 목록 로드 실패: {m.detailError}
                       </div>
                     ) : !m.tableRows.length ? (
-                      <div className={`${styles.card} ${pageStyles.emptyState}`}>
+                      <div className={`${styles.card} ${detailStyles.emptyState}`}>
                         {m.brandQuery.trim() || m.productCodeQuery.trim() || m.productNameQuery.trim()
                           ? '검색 결과가 없습니다.'
                           : '등록된 이너 후보가 없습니다.'}
                       </div>
                     ) : (
-                      <div className={pageStyles.innerOrderList} role="list">
-                        <div className={pageStyles.innerOrderHeader} role="presentation">
-                          <span className={pageStyles.innerOrderCheckCell}>
+                      <div className={detailStyles.innerOrderList} role="list">
+                        <div className={detailStyles.innerOrderHeader} role="presentation">
+                          <span className={detailStyles.innerOrderCheckCell}>
                             <input
                               ref={selectAllRef}
                               type="checkbox"
@@ -415,21 +415,21 @@ export function CandidateStashDetailModal({ stashUuid, stashSummary, onClose, on
                           <span>브랜드</span>
                           <span>상품코드</span>
                           <span>상품명</span>
-                          <span className={pageStyles.innerOrderCellNum}>자사 기간 총 판매량</span>
-                          <span className={pageStyles.innerOrderCellNum}>{competitorSalesQtyHeader}</span>
-                          <span className={pageStyles.innerOrderCellNum}>총 예상 판매수량</span>
-                          <span className={pageStyles.innerOrderCellNum}>총 예상 오더 금액</span>
+                          <span className={detailStyles.innerOrderCellNum}>자사 기간 총 판매량</span>
+                          <span className={detailStyles.innerOrderCellNum}>{competitorSalesQtyHeader}</span>
+                          <span className={detailStyles.innerOrderCellNum}>총 예상 판매수량</span>
+                          <span className={detailStyles.innerOrderCellNum}>총 예상 오더 금액</span>
                         </div>
                         {m.tableRows.map((row) => {
                           const selected = selectedItemUuids.has(row.uuid)
                           return (
                             <div
                               key={row.uuid}
-                              className={`${pageStyles.innerOrderRow} ${
+                              className={`${detailStyles.innerOrderRow} ${
                                 row.insight.rankTone === 'top'
-                                  ? pageStyles.innerOrderRowTop
+                                  ? detailStyles.innerOrderRowTop
                                   : row.insight.rankTone === 'bottom'
-                                    ? pageStyles.innerOrderRowBottom
+                                    ? detailStyles.innerOrderRowBottom
                                     : ''
                               }`}
                               onClick={() => toggleItemDrawer(row)}
@@ -442,7 +442,7 @@ export function CandidateStashDetailModal({ stashUuid, stashSummary, onClose, on
                               tabIndex={0}
                               aria-expanded={m.drawerOpen && m.openedItemUuid === row.uuid}
                             >
-                              <span className={pageStyles.innerOrderCheckCell}>
+                              <span className={detailStyles.innerOrderCheckCell}>
                                 <input
                                   type="checkbox"
                                   checked={selected}
@@ -451,22 +451,22 @@ export function CandidateStashDetailModal({ stashUuid, stashSummary, onClose, on
                                   onChange={() => toggleSelectedItem(row.uuid)}
                                 />
                               </span>
-                              <span className={pageStyles.innerOrderBrand}>{row.brand}</span>
-                              <span className={pageStyles.innerOrderCode}>{row.productCode}</span>
-                              <span className={pageStyles.innerOrderName}>{row.productName}</span>
-                              <span className={pageStyles.innerOrderCellNum}>
+                              <span className={detailStyles.innerOrderBrand}>{row.brand}</span>
+                              <span className={detailStyles.innerOrderCode}>{row.productCode}</span>
+                              <span className={detailStyles.innerOrderName}>{row.productName}</span>
+                              <span className={detailStyles.innerOrderCellNum}>
                                 {formatEaQuantity(row.insight.selfQty)}
                               </span>
-                              <span className={pageStyles.innerOrderCellNum}>
+                              <span className={detailStyles.innerOrderCellNum}>
                                 {formatEaQuantity(row.insight.competitorQty)}
                               </span>
-                              <span className={pageStyles.innerOrderCellNum}>
+                              <span className={detailStyles.innerOrderCellNum}>
                                 {formatGroupedNumber(row.insight.expectedSalesQty)} EA
                               </span>
-                              <span className={pageStyles.innerOrderCellNum}>
+                              <span className={detailStyles.innerOrderCellNum}>
                                 {formatGroupedNumber(row.expectedOrderAmount)} 원
                               </span>
-                              <span className={pageStyles.innerOrderBadgeList}>
+                              <span className={detailStyles.innerOrderBadgeList}>
                                 <CandidateInsightBadges badges={row.insight.badges} />
                               </span>
                             </div>
@@ -541,14 +541,14 @@ export function CandidateStashDetailModal({ stashUuid, stashSummary, onClose, on
         dialogTitleId="bulk-item-delete-dialog-title"
         keepOpenAttr
         classNames={{
-          backdrop: pageStyles.confirmModalBackdrop,
-          panel: pageStyles.confirmModalPanel,
-          title: pageStyles.confirmModalTitle,
-          text: pageStyles.confirmModalText,
-          actions: pageStyles.confirmModalActions,
-          button: pageStyles.confirmModalBtn,
-          cancelButton: pageStyles.confirmModalBtnCancel,
-          confirmButton: pageStyles.confirmModalBtnDanger,
+          backdrop: detailStyles.confirmModalBackdrop,
+          panel: detailStyles.confirmModalPanel,
+          title: detailStyles.confirmModalTitle,
+          text: detailStyles.confirmModalText,
+          actions: detailStyles.confirmModalActions,
+          button: detailStyles.confirmModalBtn,
+          cancelButton: detailStyles.confirmModalBtnCancel,
+          confirmButton: detailStyles.confirmModalBtnDanger,
         }}
         onCancel={() => setBulkDeleteOpen(false)}
         onConfirm={async () => {
@@ -568,14 +568,14 @@ export function CandidateStashDetailModal({ stashUuid, stashSummary, onClose, on
         dialogTitleId="item-delete-dialog-title"
         keepOpenAttr
         classNames={{
-          backdrop: pageStyles.confirmModalBackdrop,
-          panel: pageStyles.confirmModalPanel,
-          title: pageStyles.confirmModalTitle,
-          text: pageStyles.confirmModalText,
-          actions: pageStyles.confirmModalActions,
-          button: pageStyles.confirmModalBtn,
-          cancelButton: pageStyles.confirmModalBtnCancel,
-          confirmButton: pageStyles.confirmModalBtnDanger,
+          backdrop: detailStyles.confirmModalBackdrop,
+          panel: detailStyles.confirmModalPanel,
+          title: detailStyles.confirmModalTitle,
+          text: detailStyles.confirmModalText,
+          actions: detailStyles.confirmModalActions,
+          button: detailStyles.confirmModalBtn,
+          cancelButton: detailStyles.confirmModalBtnCancel,
+          confirmButton: detailStyles.confirmModalBtnDanger,
         }}
         onCancel={() => m.setItemDeleteTarget(null)}
         onConfirm={async () => {

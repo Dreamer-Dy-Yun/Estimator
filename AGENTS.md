@@ -49,6 +49,7 @@
 ## Documentation
 
 - For larger changes, add or update an `MD` plan/result note.
+- When frontend feature behavior, source ownership, folder boundaries, API contracts, or major UI responsibilities change, update `MD/dashboard-app/source-boundary-map.md`.
 - Preferred note shape:
   - Goal
   - Scope

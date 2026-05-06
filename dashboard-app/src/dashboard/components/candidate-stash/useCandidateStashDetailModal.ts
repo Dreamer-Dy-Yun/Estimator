@@ -11,15 +11,15 @@ import {
   type CandidateStashAnalysisSubscription,
   type CandidateItemSummary,
   type CandidateStashSummary,
-} from '../../api'
-import type { AdjacentDirection } from '../../utils/adjacentListNavigation'
-import { adjacentIdInOrder } from '../../utils/adjacentListNavigation'
-import { clampForecastMonths } from '../../utils/forecastMonthsStorage'
-import { parseOrderSnapshot } from '../../snapshot/parseOrderSnapshot'
-import type { OrderSnapshotDocumentV1 } from '../../snapshot/orderSnapshotTypes'
-import { uniqueSortedStrings } from '../../utils/uniqueSortedStrings'
-import { mergePrimarySummaryFromBundleAndSnapshot } from '../drawer/mergePrimarySummaryFromSnapshot'
-import { useProductDrawerBundle } from './useProductDrawerBundle'
+} from '../../../api'
+import type { AdjacentDirection } from '../../../utils/adjacentListNavigation'
+import { adjacentIdInOrder } from '../../../utils/adjacentListNavigation'
+import { clampForecastMonths } from '../../../utils/forecastMonthsStorage'
+import { parseOrderSnapshot } from '../../../snapshot/parseOrderSnapshot'
+import type { OrderSnapshotDocumentV1 } from '../../../snapshot/orderSnapshotTypes'
+import { uniqueSortedStrings } from '../../../utils/uniqueSortedStrings'
+import { mergePrimarySummaryFromBundleAndSnapshot } from '../../drawer/mergePrimarySummaryFromSnapshot'
+import { useProductDrawerBundle } from '../../hooks/useProductDrawerBundle'
 
 export type InnerCandidateRow = CandidateItemSummary & { id: string }
 

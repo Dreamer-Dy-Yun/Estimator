@@ -10,7 +10,7 @@ export function drawerKeepOpenDataProps(): { [DRAWER_KEEP_OPEN_ATTR]: 'true' } {
   return { [DRAWER_KEEP_OPEN_ATTR]: 'true' }
 }
 
-/** 이너 오더 모달만 드로어에 맞춰 축소 — `SnapshotConfirmPage.module.css` */
+/** 이너 오더 모달만 드로어에 맞춰 축소한다. 스타일은 `CandidateStashDetailModal.module.css`가 소유한다. */
 const INNER_DRAWER_LAYOUT_SHIFT_ATTR = 'data-inner-drawer-open' as const
 
 export function stashDetailModalBackdropDataProps(drawerOpen: boolean): {

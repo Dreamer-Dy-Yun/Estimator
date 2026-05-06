@@ -1,4 +1,4 @@
-import type { CandidateItemBadgeSummary } from '../../api'
+import type { CandidateItemBadgeSummary } from '../../../api'
 import styles from './CandidateInsightBadges.module.css'
 
 type Props = {
