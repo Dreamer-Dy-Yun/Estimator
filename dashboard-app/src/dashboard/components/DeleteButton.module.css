@@ -57,4 +57,18 @@
   align-items: center;
   justify-content: center;
   gap: 6px;
+  flex-wrap: nowrap;
+}
+
+.label {
+  min-width: 0;
+  text-align: center;
+  line-height: 1.05;
+  white-space: normal;
+  word-break: keep-all;
+  overflow-wrap: normal;
+}
+
+.labelPart {
+  white-space: nowrap;
 }

@@ -1,4 +1,4 @@
-import type { MouseEvent } from 'react'
+import { Fragment, type MouseEvent } from 'react'
 import styles from './DeleteButton.module.css'
 
 const TrashSvg = () => (
@@ -17,6 +17,15 @@ type DeleteButtonProps = {
   variant?: 'list' | 'icon'
 }
 
+const splitLabelParts = (label: string) => {
+  const chars = Array.from(label)
+  const parts: string[] = []
+  for (let i = 0; i < chars.length; i += 2) {
+    parts.push(chars.slice(i, i + 2).join(''))
+  }
+  return parts
+}
+
 export function DeleteButton({
   onClick,
   disabled,
@@ -25,6 +34,8 @@ export function DeleteButton({
   title,
   variant = 'list',
 }: DeleteButtonProps) {
+  const labelParts = splitLabelParts(label)
+
   if (variant === 'icon') {
     return (
       <button
@@ -53,7 +64,14 @@ export function DeleteButton({
       <span className={styles.trashIcon} aria-hidden>
         <TrashSvg />
       </span>
-      <span>{label}</span>
+      <span className={styles.label}>
+        {labelParts.map((part, index) => (
+          <Fragment key={`${part}-${index}`}>
+            <span className={styles.labelPart}>{part}</span>
+            {index < labelParts.length - 1 ? <wbr /> : null}
+          </Fragment>
+        ))}
+      </span>
     </button>
   )
 }

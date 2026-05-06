@@ -329,7 +329,7 @@
 }
 
 .detailHeaderDeleteCell {
-  grid-column: 35 / span 3;
+  grid-column: 35 / span 4;
   min-width: 0;
   align-self: stretch;
   display: flex;
@@ -340,10 +340,12 @@
   min-width: 0;
   height: 100%;
   min-height: 32px;
+  gap: 4px;
+  padding-inline: 6px;
 }
 
 .detailHeaderCloseBtn {
-  grid-column: 38 / span 3;
+  grid-column: 39 / span 2;
   min-width: 0;
   width: 100%;
   align-self: stretch;
