@@ -1,5 +1,5 @@
-import { Suspense, lazy } from 'react'
-import { HashRouter, Navigate, Route, Routes } from 'react-router-dom'
+import { Suspense, lazy, type ReactNode } from 'react'
+import { BrowserRouter, HashRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { DashboardLayout } from './dashboard/DashboardLayout'
 import styles from './app.module.css'
 
@@ -10,6 +10,17 @@ const CompetitorPage = lazy(() =>
 const SnapshotConfirmPage = lazy(() =>
   import('./dashboard/pages/SnapshotConfirmPage').then((module) => ({ default: module.SnapshotConfirmPage })),
 )
+
+const routerMode = import.meta.env.VITE_ROUTER_MODE === 'hash' ? 'hash' : 'browser'
+const browserRouterBasename = (import.meta.env.VITE_ROUTER_BASENAME ?? import.meta.env.BASE_URL).replace(/\/$/, '') || '/'
+
+function AppRouter({ children }: { children: ReactNode }) {
+  if (routerMode === 'hash') {
+    return <HashRouter>{children}</HashRouter>
+  }
+
+  return <BrowserRouter basename={browserRouterBasename}>{children}</BrowserRouter>
+}
 
 function AppRoutes() {
   return (
@@ -36,9 +47,9 @@ function AppRoutes() {
 
 function App() {
   return (
-    <HashRouter>
+    <AppRouter>
       <AppRoutes />
-    </HashRouter>
+    </AppRouter>
   )
 }
 

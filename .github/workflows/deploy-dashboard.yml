@@ -45,6 +45,8 @@ jobs:
         run: npm run test:run
 
       - name: Build
+        env:
+          VITE_ROUTER_MODE: hash
         run: npm run build -- --base=/Estimator/
 
       - name: Copy SPA fallback
