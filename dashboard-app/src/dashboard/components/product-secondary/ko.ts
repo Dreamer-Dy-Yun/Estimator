@@ -38,8 +38,8 @@ export const KO = {
   "helpTotalOrderBalance": "기 오더 되었으나,\n현 시점까지 입고되지 않은 수량입니다.",
   "rowExpectedInboundOrderBalance": "현오더 입고전 미입고잔량(EA)",
   "helpExpectedInboundOrderBalance": "금번 오더 수량의 입고시까지의 오더 잔량입니다.",
-  "sectionAi": "AI (목업)",
-  "answerEmpty": "답변이 여기에 표시됩니다.",
+  "sectionAi": "AI 코멘트",
+  "answerEmpty": "AI 코멘트가 여기에 표시됩니다.",
   "sectionSizeOrder": "사이즈별 오더",
   "sectionSalesTrendDaily": "판매추이(일간)",
   "btnTrendSizeExpand": "펼치기",
@@ -69,6 +69,6 @@ export const KO = {
   "labelCandidateNote": "비고",
   "msgNoNote": "비고 없음",
   "msgCandidateEmpty": "후보군이 없습니다.",
-  "hintSnapshot": "확정 시 이 패널 전체 상태와 LLM 질의·답변이 선택한 후보군 이너 오더에 저장됩니다.",
+  "hintSnapshot": "확정 시 이 패널 전체 상태와 LLM 질의·AI 코멘트가 선택한 후보군 이너 오더에 저장됩니다.",
   "rankSuffix": "위"
 } as const

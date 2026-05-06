@@ -164,7 +164,7 @@
 
 ## dashboard/components/product-secondary
 
-상품 요약 drawer의 2차 상세 패널 feature다. 발주 계산, 사이즈별 수량, 저장된 LLM 답변 표시, 후보군 저장 액션을 포함한다.
+상품 요약 drawer의 2차 상세 패널 feature다. 발주 계산, 사이즈별 수량, 저장된 AI 코멘트 표시, 후보군 저장 액션을 포함한다.
 
 | 파일/폴더 | 역할 |
 |------|------|
