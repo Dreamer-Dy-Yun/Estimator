@@ -16,7 +16,7 @@
 
 .uploadCard {
   display: grid;
-  grid-template-columns: minmax(180px, 280px) minmax(360px, 1fr);
+  grid-template-columns: minmax(360px, 420px) minmax(420px, 1fr);
   gap: 14px;
   align-items: center;
   border-color: #bfdbfe;
@@ -61,9 +61,10 @@
 
 .uploadDescription {
   margin: 0;
-  font-size: 12px;
+  font-size: clamp(9px, 2.1vw, 12px);
   line-height: 1.45;
   color: #475569;
+  white-space: nowrap;
 }
 
 .uploadControls {
