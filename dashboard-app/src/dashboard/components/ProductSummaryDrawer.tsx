@@ -348,9 +348,7 @@ function ProductSummaryDrawerContent({
 
   const toggleSalesTrendSeries = (series: 'self' | 'competitor') => {
     setSalesTrendVisible((prev) => {
-      const nextValue = !prev[series]
-      if (!nextValue && (series === 'self' ? !prev.competitor : !prev.self)) return prev
-      return { ...prev, [series]: nextValue }
+      return { ...prev, [series]: !prev[series] }
     })
   }
 
