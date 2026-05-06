@@ -1,4 +1,4 @@
-import type { SecondaryOrderSnapshotPayload } from '../api/types/secondary'
+import type { SecondaryOrderSnapshotPayload } from '../api/types/snapshot'
 import { ORDER_SNAPSHOT_SCHEMA_VERSION, type OrderSnapshotDocumentV1 } from './orderSnapshotTypes'
 
 /** 후보군·저장 JSON을 엄격 파싱. 누락/구버전은 예외를 던진다. */

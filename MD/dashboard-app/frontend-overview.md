@@ -97,11 +97,11 @@
 | 구분 | 설명 |
 |------|------|
 | 계약 | [`DashboardApi`](../../dashboard-app/src/api/types/dashboard-api.ts) 인터페이스 |
-| 구현체 | [`mock.ts`](../../dashboard-app/src/api/mock.ts) — 후보군 localStorage와 mock 응답 |
+| 구현체 | [`mock.ts`](../../dashboard-app/src/api/mock.ts) — mock 구현 진입점. 후보군 localStorage 접근은 [`api/mock/candidateStorage.ts`](../../dashboard-app/src/api/mock/candidateStorage.ts)가 소유 |
 | 진입점 | [`client.ts`](../../dashboard-app/src/api/client.ts) `dashboardApi`, 개별 `getXxx` 함수 |
-| 타입 | [`api/types/*`](../../dashboard-app/src/api/types/), [`types.ts`](../../dashboard-app/src/types.ts), [`snapshot/*`](../../dashboard-app/src/snapshot/) |
+| 타입 | [`api/types/*`](../../dashboard-app/src/api/types/) — 후보군 계약은 [`candidate.ts`](../../dashboard-app/src/api/types/candidate.ts), 저장 스냅샷 계약은 [`snapshot.ts`](../../dashboard-app/src/api/types/snapshot.ts), 2차 패널 계약은 [`secondary.ts`](../../dashboard-app/src/api/types/secondary.ts) |
 
-HTTP 백엔드로 교체 시 클라이언트만 갈아끼우면 되도록 설계되어 있습니다. REST 스펙은 [backend-api-spec.md](../backend-api/backend-api-spec.md) 참고.
+HTTP 백엔드로 교체 시 `DashboardApi` 계약과 `client.ts`만 갈아끼우고, mock 전용 record/localStorage 구조는 `api/mock/*` 밖으로 새지 않게 유지합니다. REST 스펙은 [backend-api-spec.md](../backend-api/backend-api-spec.md) 참고.
 
 ---
 

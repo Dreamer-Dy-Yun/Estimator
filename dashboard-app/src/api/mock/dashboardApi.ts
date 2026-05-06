@@ -19,17 +19,19 @@ import type {
   SecondaryStockOrderCalcParams,
   SecondaryStockOrderCalcResult,
 } from '../types'
-import {
-  CANDIDATE_ITEM_STORAGE_KEY,
-  CANDIDATE_STASH_STORAGE_KEY,
-} from './constants'
 import type { CandidateItemRecord, CandidateStashRecord } from './records'
 import { logApiCalled, makeUuid32, sleep } from './utils'
-import { ensureCandidateSeed } from './candidateSeeds'
 import {
   buildMockOrderSnapshotForCandidate,
-  ensureMockAiCommentForSnapshot,
 } from './orderSnapshotForCandidate'
+import {
+  readCandidateItemRecords,
+  readCandidateItemsForStash,
+  readCandidateStashRecords,
+  setCandidateItemLlmCommentState,
+  writeCandidateItemRecords,
+  writeCandidateStashRecords,
+} from './candidateStorage'
 import {
   allKnownProductIds,
   brands,
@@ -62,28 +64,6 @@ type CandidateAnalysisJob = {
 }
 
 const candidateAnalysisJobs = new Map<string, CandidateAnalysisJob>()
-
-function readCandidateItemsForStash(stashUuid: string): CandidateItemRecord[] {
-  ensureCandidateSeed()
-  const rawItems = localStorage.getItem(CANDIDATE_ITEM_STORAGE_KEY)
-  const items = (rawItems ? JSON.parse(rawItems) : []) as CandidateItemRecord[]
-  return items.filter((row) => row.stashUuid === stashUuid)
-}
-
-function updateCandidateItemIsLatestLlmComment(itemUuid: string, isLatestLlmComment: boolean) {
-  ensureCandidateSeed()
-  const rawItems = localStorage.getItem(CANDIDATE_ITEM_STORAGE_KEY)
-  const items = (rawItems ? JSON.parse(rawItems) : []) as CandidateItemRecord[]
-  const idx = items.findIndex((row) => row.uuid === itemUuid)
-  if (idx === -1) return
-  const prev = items[idx]!
-  items[idx] = {
-    ...prev,
-    details: isLatestLlmComment ? ensureMockAiCommentForSnapshot(prev.details) : prev.details,
-    isLatestLlmComment,
-  }
-  localStorage.setItem(CANDIDATE_ITEM_STORAGE_KEY, JSON.stringify(items))
-}
 
 function buildCandidateAnalysisEvent(
   jobId: string,
@@ -359,11 +339,8 @@ export const mockDashboardApi = {
   getCandidateStashes: async (productId?: string): Promise<CandidateStashSummary[]> => {
     await sleep(60)
     try {
-      ensureCandidateSeed()
-      const rawStashes = localStorage.getItem(CANDIDATE_STASH_STORAGE_KEY)
-      const rawItems = localStorage.getItem(CANDIDATE_ITEM_STORAGE_KEY)
-      const stashes = (rawStashes ? JSON.parse(rawStashes) : []) as CandidateStashRecord[]
-      const items = (rawItems ? JSON.parse(rawItems) : []) as CandidateItemRecord[]
+      const stashes = readCandidateStashRecords()
+      const items = readCandidateItemRecords()
       const filtered = productId ? stashes.filter((row) => row.productId === productId) : stashes
       return filtered
         .map((row) => {
@@ -391,11 +368,7 @@ export const mockDashboardApi = {
   },
   getCandidateItemsByStash: async (stashUuid: string): Promise<CandidateItemSummary[]> => {
     await sleep(60)
-    ensureCandidateSeed()
-    const rawItems = localStorage.getItem(CANDIDATE_ITEM_STORAGE_KEY)
-    const items = (rawItems ? JSON.parse(rawItems) : []) as CandidateItemRecord[]
-    return items
-      .filter((row) => row.stashUuid === stashUuid)
+    return readCandidateItemsForStash(stashUuid)
       .map((row) => {
         const productId = row.skuUuid
         const summary = row.details?.drawer1?.summary
@@ -435,10 +408,7 @@ export const mockDashboardApi = {
   },
   getCandidateItemByUuid: async (itemUuid: string): Promise<CandidateItemDetail | null> => {
     await sleep(50)
-    ensureCandidateSeed()
-    const rawItems = localStorage.getItem(CANDIDATE_ITEM_STORAGE_KEY)
-    const items = (rawItems ? JSON.parse(rawItems) : []) as CandidateItemRecord[]
-    const row = items.find((it) => it.uuid === itemUuid)
+    const row = readCandidateItemRecords().find((it) => it.uuid === itemUuid)
     if (!row) return null
     if (!row.details) {
       throw new Error(`후보 상세 스냅샷 누락: ${itemUuid}`)
@@ -457,20 +427,17 @@ export const mockDashboardApi = {
     await sleep(60)
     logApiCalled('이너 후보 삭제 API가 호출되었습니다.')
     try {
-      ensureCandidateSeed()
-      const rawItems = localStorage.getItem(CANDIDATE_ITEM_STORAGE_KEY)
-      const rawStashes = localStorage.getItem(CANDIDATE_STASH_STORAGE_KEY)
-      const items = (rawItems ? JSON.parse(rawItems) : []) as CandidateItemRecord[]
+      const items = readCandidateItemRecords()
       const target = items.find((it) => it.uuid === itemUuid)
       if (!target) return
       const nextItems = items.filter((it) => it.uuid !== itemUuid)
-      localStorage.setItem(CANDIDATE_ITEM_STORAGE_KEY, JSON.stringify(nextItems))
+      writeCandidateItemRecords(nextItems)
       const now = new Date().toISOString()
-      const stashes = (rawStashes ? JSON.parse(rawStashes) : []) as CandidateStashRecord[]
+      const stashes = readCandidateStashRecords()
       const nextStashes = stashes.map((s) =>
         s.uuid === target.stashUuid ? { ...s, dbUpdatedAt: now } : s,
       )
-      localStorage.setItem(CANDIDATE_STASH_STORAGE_KEY, JSON.stringify(nextStashes))
+      writeCandidateStashRecords(nextStashes)
     } catch {
       /* ignore */
     }
@@ -478,19 +445,10 @@ export const mockDashboardApi = {
   deleteCandidateStash: async (stashUuid: string): Promise<void> => {
     await sleep(60)
     logApiCalled('후보군 삭제 API가 호출되었습니다.')
-    ensureCandidateSeed()
-    const rawStashes = localStorage.getItem(CANDIDATE_STASH_STORAGE_KEY)
-    const rawItems = localStorage.getItem(CANDIDATE_ITEM_STORAGE_KEY)
-    const stashes = (rawStashes ? JSON.parse(rawStashes) : []) as CandidateStashRecord[]
-    const items = (rawItems ? JSON.parse(rawItems) : []) as CandidateItemRecord[]
-    localStorage.setItem(
-      CANDIDATE_STASH_STORAGE_KEY,
-      JSON.stringify(stashes.filter((row) => row.uuid !== stashUuid)),
-    )
-    localStorage.setItem(
-      CANDIDATE_ITEM_STORAGE_KEY,
-      JSON.stringify(items.filter((row) => row.stashUuid !== stashUuid)),
-    )
+    const stashes = readCandidateStashRecords()
+    const items = readCandidateItemRecords()
+    writeCandidateStashRecords(stashes.filter((row) => row.uuid !== stashUuid))
+    writeCandidateItemRecords(items.filter((row) => row.stashUuid !== stashUuid))
   },
   createCandidateStash: async (payload: CreateCandidateStashPayload): Promise<CandidateStashSummary> => {
     await sleep(90)
@@ -504,11 +462,9 @@ export const mockDashboardApi = {
       dbUpdatedAt: now,
     }
     try {
-      ensureCandidateSeed()
-      const rawStashes = localStorage.getItem(CANDIDATE_STASH_STORAGE_KEY)
-      const stashes = (rawStashes ? JSON.parse(rawStashes) : []) as CandidateStashRecord[]
+      const stashes = readCandidateStashRecords()
       stashes.push(stash)
-      localStorage.setItem(CANDIDATE_STASH_STORAGE_KEY, JSON.stringify(stashes))
+      writeCandidateStashRecords(stashes)
     } catch {
       /* ignore quota */
     }
@@ -525,11 +481,8 @@ export const mockDashboardApi = {
   updateCandidateStash: async (payload: UpdateCandidateStashPayload): Promise<CandidateStashSummary> => {
     await sleep(70)
     logApiCalled('후보군 이름·비고 수정 API가 호출되었습니다.')
-    ensureCandidateSeed()
-    const rawStashes = localStorage.getItem(CANDIDATE_STASH_STORAGE_KEY)
-    const rawItems = localStorage.getItem(CANDIDATE_ITEM_STORAGE_KEY)
-    const stashes = (rawStashes ? JSON.parse(rawStashes) : []) as CandidateStashRecord[]
-    const items = (rawItems ? JSON.parse(rawItems) : []) as CandidateItemRecord[]
+    const stashes = readCandidateStashRecords()
+    const items = readCandidateItemRecords()
     const target = stashes.find((s) => s.uuid === payload.stashUuid)
     if (!target) {
       throw new Error('후보군을 찾을 수 없습니다.')
@@ -541,10 +494,7 @@ export const mockDashboardApi = {
       note: payload.note?.trim() || null,
       dbUpdatedAt: now,
     }
-    localStorage.setItem(
-      CANDIDATE_STASH_STORAGE_KEY,
-      JSON.stringify(stashes.map((row) => (row.uuid === payload.stashUuid ? updated : row))),
-    )
+    writeCandidateStashRecords(stashes.map((row) => (row.uuid === payload.stashUuid ? updated : row)))
     const linkedItems = items.filter((it) => it.stashUuid === target.uuid)
     return {
       uuid: updated.uuid,
@@ -559,11 +509,8 @@ export const mockDashboardApi = {
   duplicateCandidateStash: async (sourceStashUuid: string): Promise<void> => {
     await sleep(90)
     logApiCalled('후보군 복제 API가 호출되었습니다.')
-    ensureCandidateSeed()
-    const rawStashes = localStorage.getItem(CANDIDATE_STASH_STORAGE_KEY)
-    const rawItems = localStorage.getItem(CANDIDATE_ITEM_STORAGE_KEY)
-    const stashes = (rawStashes ? JSON.parse(rawStashes) : []) as CandidateStashRecord[]
-    const items = (rawItems ? JSON.parse(rawItems) : []) as CandidateItemRecord[]
+    const stashes = readCandidateStashRecords()
+    const items = readCandidateItemRecords()
     const source = stashes.find((row) => row.uuid === sourceStashUuid)
     if (!source) throw new Error('복제할 후보군을 찾을 수 없습니다.')
     const now = new Date().toISOString()
@@ -583,8 +530,8 @@ export const mockDashboardApi = {
         dbCreatedAt: now,
         dbUpdatedAt: now,
       }))
-    localStorage.setItem(CANDIDATE_STASH_STORAGE_KEY, JSON.stringify([...stashes, copiedStash]))
-    localStorage.setItem(CANDIDATE_ITEM_STORAGE_KEY, JSON.stringify([...items, ...copiedItems]))
+    writeCandidateStashRecords([...stashes, copiedStash])
+    writeCandidateItemRecords([...items, ...copiedItems])
   },
   appendCandidateItem: async (payload: AppendCandidateItemPayload): Promise<void> => {
     await sleep(70)
@@ -599,18 +546,15 @@ export const mockDashboardApi = {
       dbUpdatedAt: now,
     }
     try {
-      ensureCandidateSeed()
-      const rawStashes = localStorage.getItem(CANDIDATE_STASH_STORAGE_KEY)
-      const rawItems = localStorage.getItem(CANDIDATE_ITEM_STORAGE_KEY)
-      const stashes = (rawStashes ? JSON.parse(rawStashes) : []) as CandidateStashRecord[]
-      const items = (rawItems ? JSON.parse(rawItems) : []) as CandidateItemRecord[]
+      const stashes = readCandidateStashRecords()
+      const items = readCandidateItemRecords()
       const dedup = items.filter((row) => !(row.stashUuid === payload.stashUuid && row.skuUuid === payload.productId))
       dedup.push(item)
-      localStorage.setItem(CANDIDATE_ITEM_STORAGE_KEY, JSON.stringify(dedup))
+      writeCandidateItemRecords(dedup)
       const nextStashes = stashes.map((row) => (
         row.uuid === payload.stashUuid ? { ...row, dbUpdatedAt: now } : row
       ))
-      localStorage.setItem(CANDIDATE_STASH_STORAGE_KEY, JSON.stringify(nextStashes))
+      writeCandidateStashRecords(nextStashes)
     } catch {
       /* ignore quota */
     }
@@ -620,11 +564,8 @@ export const mockDashboardApi = {
     logApiCalled('이너 후보 변경 저장 API가 호출되었습니다.')
     const now = new Date().toISOString()
     try {
-      ensureCandidateSeed()
-      const rawStashes = localStorage.getItem(CANDIDATE_STASH_STORAGE_KEY)
-      const rawItems = localStorage.getItem(CANDIDATE_ITEM_STORAGE_KEY)
-      const stashes = (rawStashes ? JSON.parse(rawStashes) : []) as CandidateStashRecord[]
-      const items = (rawItems ? JSON.parse(rawItems) : []) as CandidateItemRecord[]
+      const stashes = readCandidateStashRecords()
+      const items = readCandidateItemRecords()
       const idx = items.findIndex((row) => row.uuid === payload.itemUuid)
       if (idx === -1) return
       const prev = items[idx]!
@@ -634,12 +575,12 @@ export const mockDashboardApi = {
         isLatestLlmComment: payload.isLatestLlmComment,
         dbUpdatedAt: now,
       }
-      localStorage.setItem(CANDIDATE_ITEM_STORAGE_KEY, JSON.stringify(items))
+      writeCandidateItemRecords(items)
       const stashUuid = prev.stashUuid
       const nextStashes = stashes.map((row) =>
         row.uuid === stashUuid ? { ...row, dbUpdatedAt: now } : row,
       )
-      localStorage.setItem(CANDIDATE_STASH_STORAGE_KEY, JSON.stringify(nextStashes))
+      writeCandidateStashRecords(nextStashes)
     } catch {
       /* ignore quota */
     }
@@ -680,13 +621,10 @@ export const mockDashboardApi = {
     }))
 
     try {
-      ensureCandidateSeed()
-      const rawStashes = localStorage.getItem(CANDIDATE_STASH_STORAGE_KEY)
-      const rawItems = localStorage.getItem(CANDIDATE_ITEM_STORAGE_KEY)
-      const stashes = (rawStashes ? JSON.parse(rawStashes) : []) as CandidateStashRecord[]
-      const items = (rawItems ? JSON.parse(rawItems) : []) as CandidateItemRecord[]
-      localStorage.setItem(CANDIDATE_STASH_STORAGE_KEY, JSON.stringify([stash, ...stashes]))
-      localStorage.setItem(CANDIDATE_ITEM_STORAGE_KEY, JSON.stringify([...uploadItems, ...items]))
+      const stashes = readCandidateStashRecords()
+      const items = readCandidateItemRecords()
+      writeCandidateStashRecords([stash, ...stashes])
+      writeCandidateItemRecords([...uploadItems, ...items])
     } catch {
       throw new Error('업로드 결과 저장에 실패했습니다.')
     }
@@ -786,7 +724,7 @@ export const mockDashboardApi = {
           ))
         })
         queue(480 + (index * 420), () => {
-          updateCandidateItemIsLatestLlmComment(item.uuid, true)
+          setCandidateItemLlmCommentState(item.uuid, true)
           emit(buildCandidateAnalysisEvent(
             jobId,
             job.stashUuid,

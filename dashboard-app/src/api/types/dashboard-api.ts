@@ -22,6 +22,8 @@ import type {
   CandidateStashSummary,
   CreateCandidateStashPayload,
   UpdateCandidateStashPayload,
+} from './candidate'
+import type {
   ProductSecondaryDetailParams,
   SecondaryCompetitorChannel,
   SecondaryDailyTrendParams,

@@ -1,0 +1,147 @@
+import type { SecondaryOrderSnapshotPayload } from './snapshot'
+
+export interface CandidateStashSummary {
+  uuid: string
+  name: string
+  note: string | null
+  productId: string
+  itemCount: number
+  dbCreatedAt: string
+  dbUpdatedAt: string
+}
+
+export interface CandidateItemSummary {
+  uuid: string
+  stashUuid: string
+  productId: string
+  brand: string
+  productCode: string
+  productName: string
+  qty: number
+  /** Expected order amount in KRW; same meaning as details.drawer2.stockDerived.expectedOrderAmount. */
+  expectedOrderAmount: number
+  expectedSalesAmount: number
+  /** Expected operating profit in KRW; same meaning as details.drawer2.stockDerived.expectedOpProfit. */
+  expectedOpProfit: number
+  insight: CandidateItemInsightSummary
+  /** Whether the stored LLM recommendation/comment reflects the latest saved snapshot. */
+  isLatestLlmComment: boolean
+  dbCreatedAt: string
+  dbUpdatedAt: string
+}
+
+export type CandidateBadgePayloadValue = string | number | boolean | null
+
+export interface CandidateItemBadgeStyle {
+  textColor: string
+  backgroundColor: string
+  borderColor: string
+}
+
+/**
+ * Backend-driven inner order badge.
+ * The frontend renders every badge object returned by the API and only uses
+ * style fields for presentation. Business meaning and thresholds belong to
+ * backend/API data.
+ */
+export interface CandidateItemBadgeSummary {
+  id: string
+  name: string
+  label: string
+  description: string
+  value?: CandidateBadgePayloadValue
+  rankPercentile?: number | null
+  thresholdPercent?: number | null
+  style: CandidateItemBadgeStyle
+  payload?: Record<string, CandidateBadgePayloadValue>
+}
+
+export interface CandidateItemInsightSummary {
+  competitorChannelLabel: string
+  competitorQty: number | null
+  competitorAmount: number | null
+  selfQty: number | null
+  selfAmount: number | null
+  expectedSalesQty: number
+  expectedSalesAmount: number
+  expectedOpProfit: number
+  selfOpProfitRatePct: number | null
+  rankTone: 'top' | 'bottom' | 'neutral'
+  topPercentThreshold: number
+  bottomPercentThreshold: number
+  badges: CandidateItemBadgeSummary[]
+}
+
+/** Candidate item detail response with the saved order snapshot JSON. */
+export interface CandidateItemDetail {
+  uuid: string
+  stashUuid: string
+  productId: string
+  details: SecondaryOrderSnapshotPayload
+  isLatestLlmComment: boolean
+  dbCreatedAt: string
+  dbUpdatedAt: string
+}
+
+export interface CreateCandidateStashPayload {
+  productId: string
+  name: string
+  note?: string | null
+}
+
+/** Updates only candidate stash metadata. */
+export interface UpdateCandidateStashPayload {
+  stashUuid: string
+  name: string
+  note?: string | null
+}
+
+export interface AppendCandidateItemPayload {
+  stashUuid: string
+  productId: string
+  details: SecondaryOrderSnapshotPayload
+  isLatestLlmComment: boolean
+}
+
+export interface UpdateCandidateItemPayload {
+  itemUuid: string
+  details: SecondaryOrderSnapshotPayload
+  isLatestLlmComment: boolean
+}
+
+export interface CandidateStashExcelUploadResult {
+  stashUuid: string
+  stashName: string
+  itemCount: number
+  warnings: string[]
+}
+
+export type CandidateStashAnalysisStatus = 'queued' | 'running' | 'completed' | 'failed'
+
+export interface CandidateStashAnalysisStartResult {
+  jobId: string
+  stashUuid: string
+  itemCount: number
+}
+
+export interface CandidateStashAnalysisProgressEvent {
+  jobId: string
+  stashUuid: string
+  status: CandidateStashAnalysisStatus
+  totalItems: number
+  completedItems: number
+  currentItemUuid: string | null
+  currentProductName: string | null
+  message: string
+  error?: string | null
+}
+
+export interface CandidateStashAnalysisHandlers {
+  onEvent: (event: CandidateStashAnalysisProgressEvent) => void
+  onError?: (error: Error) => void
+  onClose?: () => void
+}
+
+export interface CandidateStashAnalysisSubscription {
+  close: () => void
+}

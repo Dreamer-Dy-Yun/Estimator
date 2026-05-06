@@ -76,16 +76,29 @@
 | `api/index.ts` | API public export. | 외부에서 import할 API surface 변경 시 수정 |
 | `api/mock.ts` | mock API 진입 파일. | mock 구현 위치를 바꿀 때만 수정 |
 | `api/dailyTrendAsOf.ts` | 일간 트렌드 as-of 계산 보조 로직. | 일간 트렌드 기준일 규칙 변경 시 수정 |
-| `api/types/*` | 프론트-백엔드 계약 타입. | 요청/응답 구조가 바뀌면 먼저 수정 |
-| `api/mock/*` | 후보군 localStorage, seed, mock 계산, mock 응답 구현. | 데모 데이터나 mock 동작 변경 시 수정 |
+| `api/types/*` | 프론트-백엔드 계약 타입. 후보군 계약은 `candidate.ts`, 저장 스냅샷 계약은 `snapshot.ts`, 2차 패널 계약은 `secondary.ts`가 소유한다. | 요청/응답 구조가 바뀌면 먼저 수정 |
+| `api/mock/*` | 후보군 localStorage, seed, mock 계산, mock 응답 구현. 실제 API 계약 타입을 참조하되 mock record 구조를 밖으로 내보내지 않는다. | 데모 데이터나 mock 동작 변경 시 수정 |
+
+### api/types 하위 파일
+
+| 파일 | 역할 |
+|------|------|
+| `candidate.ts` | 후보군/이너 후보/후보군 분석 SSE 요청·응답 계약 |
+| `dashboard-api.ts` | 화면에서 쓰는 `DashboardApi` 인터페이스 |
+| `drawer.ts` | 1차 drawer bundle과 판매 인사이트 계약 |
+| `index.ts` | API public type export |
+| `sales.ts` | 자사/경쟁 판매 목록과 필터 계약 |
+| `secondary.ts` | 2차 상세, 일별 트렌드, 재고·발주 계산 계약 |
+| `snapshot.ts` | 후보 아이템 `details`에 저장되는 오더 스냅샷 payload 계약 |
 
 ### api/mock 하위 파일
 
 | 파일 | 역할 |
 |------|------|
 | `candidateSeeds.ts` | 후보군/후보 아이템 seed 데이터와 기존 목업 스냅샷의 빈 AI 코멘트 보강 |
+| `candidateStorage.ts` | 후보군 mock localStorage 읽기/쓰기와 목업 전용 record 보강 경계 |
 | `constants.ts` | mock 공용 상수 |
-| `dashboardApi.ts` | mock `DashboardApi` 구현체. 후보군 CRUD는 localStorage에 실제 반영한다 |
+| `dashboardApi.ts` | mock `DashboardApi` 구현체. public API 계약을 맞춰 응답하고 저장소 접근은 `candidateStorage.ts`에 위임한다 |
 | `orderSnapshotForCandidate.ts` | 후보 아이템용 오더 스냅샷 생성/복원 보조와 임시 목업 AI 코멘트 생성 |
 | `productCatalog.ts` | 상품 catalog seed와 조회 |
 | `records.ts` | mock 원천 record 묶음 |

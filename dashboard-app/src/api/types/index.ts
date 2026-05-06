@@ -9,6 +9,15 @@ export type {
 } from './drawer'
 export type {
   ProductSecondaryDetailParams,
+  SecondaryCompetitorChannel,
+  SecondaryDailyTrendParams,
+  SecondaryDailyTrendPoint,
+  SecondaryStockForecastQtyCalcBlock,
+  SecondaryStockOrderCalcParams,
+  SecondaryStockOrderCalcResult,
+  SecondaryStockSafetyCalcBlock,
+} from './secondary'
+export type {
   CandidateItemDetail,
   CandidateItemBadgeSummary,
   CandidateItemBadgeStyle,
@@ -24,15 +33,8 @@ export type {
   UpdateCandidateStashPayload,
   AppendCandidateItemPayload,
   UpdateCandidateItemPayload,
-  SecondaryCompetitorChannel,
-  SecondaryDailyTrendParams,
-  SecondaryDailyTrendPoint,
-  SecondaryOrderSnapshotPayload,
-  SecondaryStockForecastQtyCalcBlock,
-  SecondaryStockOrderCalcParams,
-  SecondaryStockOrderCalcResult,
-  SecondaryStockSafetyCalcBlock,
-} from './secondary'
+} from './candidate'
+export type { SecondaryOrderSnapshotPayload } from './snapshot'
 export type { DashboardApi } from './dashboard-api'
 
 export type { MonthlySalesPoint, ProductPrimarySummary, ProductSecondaryDetail } from '../../types'

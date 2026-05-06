@@ -1,4 +1,4 @@
-import type { SecondaryOrderSnapshotPayload } from '../types'
+import type { SecondaryOrderSnapshotPayload } from '../types/snapshot'
 
 export type CandidateStashRecord = {
   uuid: string

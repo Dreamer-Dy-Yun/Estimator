@@ -1,4 +1,4 @@
-import type { SecondaryOrderSnapshotPayload } from '../types'
+import type { SecondaryOrderSnapshotPayload } from '../types/snapshot'
 import { ORDER_SNAPSHOT_SCHEMA_VERSION } from '../../snapshot/orderSnapshotTypes'
 import { allKnownProductIds, secondaryCompetitorChannels } from './salesTables'
 import { productPrimaryById, productSecondaryById } from './productCatalog'
