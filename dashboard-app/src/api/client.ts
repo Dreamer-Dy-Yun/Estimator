@@ -1,7 +1,9 @@
 import type { CompetitorSalesRow, SelfSalesRow } from '../types'
-import { mockDashboardApi } from './mock'
+import { mockAuthApi, mockDashboardApi } from './mock'
 import type {
   AppendCandidateItemPayload,
+  AuthApi,
+  AuthSession,
   UpdateCandidateItemPayload,
   CandidateItemDetail,
   CandidateItemListResult,
@@ -25,9 +27,33 @@ import type {
   SecondaryDailyTrendPoint,
   ProductSecondaryDetailParams,
   CompetitorSalesParams,
+  LoginRequest,
+  LoginResult,
   SelfSalesFilterMeta,
   SelfSalesParams,
 } from './types'
+
+/** 현재 인증 세션 조회. 목 구현은 sessionStorage에 저장된 세션만 확인한다. */
+export async function getCurrentAuthSession(): Promise<AuthSession | null> {
+  return mockAuthApi.getCurrentSession()
+}
+
+/** 로그인. 목 구현은 입력값을 검증하지 않고 모든 요청을 승인한다. */
+export async function login(payload: LoginRequest): Promise<LoginResult> {
+  return mockAuthApi.login(payload)
+}
+
+/** 로그아웃. 목 구현은 현재 브라우저 탭의 세션만 제거한다. */
+export async function logout(): Promise<void> {
+  return mockAuthApi.logout()
+}
+
+/** 인증 API 진입 객체. 실제 HTTP 전환 시 이 객체의 구현만 교체한다. */
+export const authApi: AuthApi = {
+  getCurrentSession: getCurrentAuthSession,
+  login,
+  logout,
+}
 
 /** 자사 판매 원천 행. 화면에서 임의 재계산하지 말고 필터/정렬만 담당한다. */
 export async function getSelfSales(params?: SelfSalesParams): Promise<SelfSalesRow[]> {

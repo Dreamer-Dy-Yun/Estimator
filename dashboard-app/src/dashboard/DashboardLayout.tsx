@@ -1,4 +1,5 @@
-import { NavLink, Outlet } from 'react-router-dom'
+import { NavLink, Outlet, useNavigate } from 'react-router-dom'
+import { useAuth } from '../auth/AuthProvider'
 import { PageHeader } from './components/PageHeader'
 import styles from './layout.module.css'
 
@@ -9,15 +10,30 @@ const tabs = [
 ]
 
 export const DashboardLayout = () => {
+  const navigate = useNavigate()
+  const { session, logout } = useAuth()
+
+  const handleLogout = () => {
+    void logout().then(() => navigate('/login', { replace: true }))
+  }
+
   return (
     <section className={styles.shell}>
       <div className={styles.frame}>
         <div className={styles.nav}>
-          {tabs.map((tab) => (
-            <NavLink key={tab.to} to={tab.to} className={({ isActive }) => `${styles.tab} ${isActive ? styles.active : ''}`}>
-              {tab.label}
-            </NavLink>
-          ))}
+          <div className={styles.tabList}>
+            {tabs.map((tab) => (
+              <NavLink key={tab.to} to={tab.to} className={({ isActive }) => `${styles.tab} ${isActive ? styles.active : ''}`}>
+                {tab.label}
+              </NavLink>
+            ))}
+          </div>
+          <div className={styles.sessionControls}>
+            <span className={styles.userName}>{session?.user.name ?? '사용자'}</span>
+            <button className={styles.logoutButton} type="button" onClick={handleLogout}>
+              로그아웃
+            </button>
+          </div>
         </div>
         <div className={styles.content}>
           <PageHeader title="" badge="" />

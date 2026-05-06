@@ -1,0 +1,131 @@
+.loginPage {
+  width: 100%;
+  min-height: calc(100dvh - 32px);
+  display: grid;
+  place-items: center;
+  padding: 28px 16px;
+  background:
+    linear-gradient(0deg, rgba(35, 55, 80, 0.04), rgba(35, 55, 80, 0.04)),
+    #f6f8fc;
+}
+
+.loginPanel {
+  width: min(420px, 100%);
+  background: #ffffff;
+  border: 1px solid #d8e0ec;
+  border-radius: 8px;
+  box-shadow: 0 18px 48px rgba(15, 23, 42, 0.12);
+  padding: 28px;
+}
+
+.brandRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 26px;
+}
+
+.brandMark {
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  background: #233750;
+  color: #ffffff;
+  border-radius: 8px;
+  font-weight: 800;
+}
+
+.productName {
+  margin: 0 0 2px;
+  color: #64748b;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.title {
+  color: #111827;
+  font-size: 24px;
+  line-height: 1.2;
+}
+
+.form {
+  display: grid;
+  gap: 14px;
+}
+
+.field {
+  display: grid;
+  gap: 7px;
+  color: #334155;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.field input {
+  width: 100%;
+  height: 42px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  padding: 0 12px;
+  background: #ffffff;
+  color: #111827;
+  outline: none;
+}
+
+.field input:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.14);
+}
+
+.errorMessage {
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px solid #fecdd3;
+  border-radius: 6px;
+  background: #fff1f2;
+  color: #be123c;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.submitButton {
+  height: 44px;
+  border: 0;
+  border-radius: 6px;
+  background: #233750;
+  color: #ffffff;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.submitButton:hover:not(:disabled) {
+  background: #1d2e43;
+}
+
+.submitButton:disabled {
+  cursor: wait;
+  opacity: 0.68;
+}
+
+.environmentRow {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid #e2e8f0;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.environmentRow strong {
+  color: #0f766e;
+}
+
+@media (max-width: 520px) {
+  .loginPanel {
+    padding: 22px;
+  }
+}

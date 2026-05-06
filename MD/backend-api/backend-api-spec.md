@@ -6,7 +6,7 @@
 | 변경일 | 2026-05-06 |
 | 지시 | Yun Daeyoung |
 
-이 문서는 프론트의 **`DashboardApi` TypeScript 계약**을 만족하는 REST API를 설계·구현하기 위한 참고 자료입니다. 필드명은 **camelCase**, JSON 직렬화를 가정합니다.
+이 문서는 프론트의 **`AuthApi` / `DashboardApi` TypeScript 계약**을 만족하는 REST API를 설계·구현하기 위한 참고 자료입니다. 필드명은 **camelCase**, JSON 직렬화를 가정합니다.
 
 ---
 
@@ -38,8 +38,34 @@
 
 ### 1.4 인증·에러
 
-- 인증 방식은 미정일 수 있습니다. 모든 라우트에 동일 정책을 적용하고, 실패 시 **HTTP 401/403** 과 JSON 에러 바디를 권장합니다.
+- 프론트는 `/login`과 `/dashboard/*` 보호 라우트를 분리합니다. 인증 계약은 `src/api/types/auth.ts`의 `AuthApi`가 소유합니다.
+- 목 구현은 모든 로그인 요청을 성공 처리하고 `sessionStorage`에 세션을 저장합니다. 실제 백엔드에서는 가능하면 **HttpOnly cookie 기반 세션**을 권장합니다.
+- 모든 보호 API에 동일 정책을 적용하고, 실패 시 **HTTP 401/403** 과 JSON 에러 바디를 권장합니다.
 - 클라이언트 계약에는 공통 에러 타입이 없습니다. 최소 `{ "message": string }` 형태를 권장합니다.
+
+**`AuthApi` 제안 매핑**
+
+| 계약 메서드 | 제안 HTTP | 제안 경로 |
+|-------------|-----------|----------|
+| `login(payload)` | POST | `/auth/login` |
+| `getCurrentSession()` | GET | `/auth/session` |
+| `logout()` | POST | `/auth/logout` |
+
+**`LoginRequest`**
+
+| 필드 | 타입 | 설명 |
+|------|------|------|
+| `username` | string | 로그인 아이디. 목 구현은 빈 값도 허용 |
+| `password` | string | 비밀번호. 목 구현은 검증하지 않음 |
+
+**`AuthSession`**
+
+| 필드 | 타입 | 설명 |
+|------|------|------|
+| `user.id` | string | 사용자 식별자 |
+| `user.name` | string | 화면 표시 이름 |
+| `user.role` | `'admin' \| 'operator' \| 'viewer'` | 프론트 권한 분기용 역할 |
+| `expiresAt` | string | ISO 8601 세션 만료 시각 |
 
 ---
 
@@ -493,6 +519,7 @@
 ## 7. 참조 소스 파일
 
 - [`dashboard-app/src/api/types/dashboard-api.ts`](../../dashboard-app/src/api/types/dashboard-api.ts)
+- [`dashboard-app/src/api/types/auth.ts`](../../dashboard-app/src/api/types/auth.ts)
 - [`dashboard-app/src/api/types/candidate.ts`](../../dashboard-app/src/api/types/candidate.ts)
 - [`dashboard-app/src/api/types/snapshot.ts`](../../dashboard-app/src/api/types/snapshot.ts)
 - [`dashboard-app/src/api/types/secondary.ts`](../../dashboard-app/src/api/types/secondary.ts)

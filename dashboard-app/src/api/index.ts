@@ -1,6 +1,11 @@
 export type {
+  AuthApi,
+  AuthSession,
+  AuthUser,
   CompetitorSalesParams,
   DashboardApi,
+  LoginRequest,
+  LoginResult,
   ProductDrawerBundle,
   ProductSalesInsight,
   ProductSecondaryDetail,
@@ -20,7 +25,9 @@ export type {
 } from './types'
 export { DAILY_TREND_AS_OF_DATE } from './dailyTrendAsOf'
 export {
+  authApi,
   dashboardApi,
+  getCurrentAuthSession,
   getCompetitorSales,
   getProductDrawerBundle,
   getSecondaryCompetitorChannels,
@@ -36,4 +43,6 @@ export {
   subscribeCandidateStashAnalysis,
   getSelfSales,
   getSelfSalesFilterMeta,
+  login,
+  logout,
 } from './client'

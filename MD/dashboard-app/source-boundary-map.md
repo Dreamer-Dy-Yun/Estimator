@@ -28,6 +28,7 @@
 - vendor chunk는 `vite.config.ts`의 Rolldown `codeSplitting.groups`가 소유한다. Recharts 같은 내부 순서 의존 라이브러리는 `maxSize`로 강제 세분화하지 않는다.
 - 후보 아이템 목업 스냅샷은 `drawer2.llmAnswer`에 임시 AI 코멘트를 포함하고, 기존 localStorage 데이터도 빈 코멘트만 보강해 2차 드로어에서 바로 확인되게 한다.
 - 이너 후보 1차 드로어 닫힘은 `drawerClosing` 상태로 DOM과 모달 폭 보정 상태를 잠시 유지해, 열림의 역방향으로 모달 폭이 복원되게 한다.
+- 로그인 화면과 라우트 보호는 `src/auth`가 소유한다. 인증 API 계약과 목 세션 저장은 `src/api` 아래에 두어 실제 백엔드로 교체할 때 화면이 mock 구현을 직접 알지 않게 한다.
 
 ## 최상위 저장소
 
@@ -62,7 +63,7 @@
 | 경로 | 역할 | 변경 기준 |
 |------|------|-----------|
 | `src/main.tsx` | React root 생성, 전역 CSS와 KaTeX CSS 로드. | 전역 provider, 전역 스타일, 앱 mount 변경 시 수정 |
-| `src/App.tsx` | 배포 환경별 router 선택, 최상위 shell, 라우트 페이지 lazy import. 기본은 `BrowserRouter`, `VITE_ROUTER_MODE=hash`일 때만 `HashRouter`를 쓴다. | URL 라우팅, 주요 layout 진입점, 라우트 단위 chunk 경계, 배포 라우팅 방식 변경 시 수정 |
+| `src/App.tsx` | 배포 환경별 router 선택, 최상위 shell, 인증 provider 연결, 라우트 페이지 lazy import. 기본은 `BrowserRouter`, `VITE_ROUTER_MODE=hash`일 때만 `HashRouter`를 쓴다. | URL 라우팅, 주요 layout 진입점, 라우트 단위 chunk 경계, 배포 라우팅 방식 변경 시 수정 |
 | `src/app.module.css` | 최상위 앱 shell 크기와 main 영역 스타일. | 앱 전체 shell 레이아웃 변경 시 수정 |
 | `src/types.ts` | 아직 API 계약으로 승격되지 않은 공용 도메인 타입. | 여러 영역에서 공유되는 타입만 둔다 |
 
@@ -72,17 +73,18 @@
 
 | 경로 | 역할 | 변경 기준 |
 |------|------|-----------|
-| `api/client.ts` | 화면에서 호출하는 API 함수와 `dashboardApi` 객체를 노출한다. 현재 구현은 mock으로 위임한다. | API 함수 추가/삭제, mock에서 실제 HTTP로 전환 시 수정 |
+| `api/client.ts` | 화면에서 호출하는 API 함수와 `dashboardApi`, `authApi` 객체를 노출한다. 현재 구현은 mock으로 위임한다. | API 함수 추가/삭제, mock에서 실제 HTTP로 전환 시 수정 |
 | `api/index.ts` | API public export. | 외부에서 import할 API surface 변경 시 수정 |
 | `api/mock.ts` | mock API 진입 파일. | mock 구현 위치를 바꿀 때만 수정 |
 | `api/dailyTrendAsOf.ts` | 일간 트렌드 as-of 계산 보조 로직. | 일간 트렌드 기준일 규칙 변경 시 수정 |
-| `api/types/*` | 프론트-백엔드 계약 타입. 후보군 계약은 `candidate.ts`, 저장 스냅샷 계약은 `snapshot.ts`, 2차 패널 계약은 `secondary.ts`가 소유한다. | 요청/응답 구조가 바뀌면 먼저 수정 |
+| `api/types/*` | 프론트-백엔드 계약 타입. 인증 계약은 `auth.ts`, 후보군 계약은 `candidate.ts`, 저장 스냅샷 계약은 `snapshot.ts`, 2차 패널 계약은 `secondary.ts`가 소유한다. | 요청/응답 구조가 바뀌면 먼저 수정 |
 | `api/mock/*` | 후보군 localStorage, seed, mock 계산, mock 응답 구현. 실제 API 계약 타입을 참조하되 mock record 구조를 밖으로 내보내지 않는다. | 데모 데이터나 mock 동작 변경 시 수정 |
 
 ### api/types 하위 파일
 
 | 파일 | 역할 |
 |------|------|
+| `auth.ts` | 로그인 요청, 인증 사용자, 세션, 인증 API 계약 |
 | `candidate.ts` | 후보군/이너 후보/후보군 분석 SSE 요청·응답 계약 |
 | `dashboard-api.ts` | 화면에서 쓰는 `DashboardApi` 인터페이스 |
 | `drawer.ts` | 1차 drawer bundle과 판매 인사이트 계약 |
@@ -95,6 +97,7 @@
 
 | 파일 | 역할 |
 |------|------|
+| `authApi.ts` | mock 인증 API 구현과 sessionStorage 세션 저장/복원 |
 | `candidateSeeds.ts` | 후보군/후보 아이템 seed 데이터와 기존 목업 스냅샷의 빈 AI 코멘트 보강 |
 | `candidateStorage.ts` | 후보군 mock localStorage 읽기/쓰기와 목업 전용 record 보강 경계 |
 | `constants.ts` | mock 공용 상수 |
@@ -105,6 +108,18 @@
 | `salesTables.ts` | 자사/경쟁 판매 테이블 mock |
 | `secondaryDailyTrend.ts` | 2차 패널 일간 트렌드 mock |
 | `utils.ts` | mock 전용 유틸 |
+
+## src/auth
+
+로그인 화면, 세션 상태, 보호 라우트는 대시보드 도메인과 분리한다. 이 폴더는 `src/api`의 인증 계약만 호출하고 mock 파일을 직접 import하지 않는다.
+
+| 파일 | 역할 |
+|------|------|
+| `AuthProvider.tsx` | 앱 전역 인증 세션 로딩, 로그인, 로그아웃 상태 제공 |
+| `RequireAuth.tsx` | `/dashboard/*` 보호 라우트. 세션이 없으면 `/login`으로 보낸 뒤 원래 경로를 보존 |
+| `LoginPage.tsx` | 로그인 라우트 화면. 목 인증 단계에서는 어떤 입력도 성공 처리 |
+| `LoginPage.module.css` | 로그인 화면 전용 스타일 |
+| `authGate.module.css` | 보호 라우트의 세션 확인 상태 스타일 |
 
 ## src/components
 
@@ -255,11 +270,12 @@ React나 API 구현에 의존하지 않는 순수 보조 함수만 둔다.
 1. API 요청/응답 타입이면 `src/api/types`.
 2. API 호출 진입점이면 `src/api/client.ts`와 `src/api/index.ts`.
 3. mock 데이터/동작이면 `src/api/mock`.
-4. 라우트 페이지면 `src/dashboard/pages`.
-5. 특정 feature 전용 UI/훅/CSS면 `src/dashboard/components/<feature-name>`.
-6. 여러 dashboard 화면에서 쓰는 UI면 `src/dashboard/components`.
-7. 여러 feature에서 쓰는 순수 계산이면 `src/utils` 또는 더 도메인성이 강하면 해당 feature의 `model`.
-8. 저장 문서 schema나 파싱이면 `src/snapshot`.
+4. 인증 화면, 세션 provider, 보호 라우트면 `src/auth`.
+5. 대시보드 라우트 페이지면 `src/dashboard/pages`.
+6. 특정 feature 전용 UI/훅/CSS면 `src/dashboard/components/<feature-name>`.
+7. 여러 dashboard 화면에서 쓰는 UI면 `src/dashboard/components`.
+8. 여러 feature에서 쓰는 순수 계산이면 `src/utils` 또는 더 도메인성이 강하면 해당 feature의 `model`.
+9. 저장 문서 schema나 파싱이면 `src/snapshot`.
 
 ## 경계 점검 질문
 
