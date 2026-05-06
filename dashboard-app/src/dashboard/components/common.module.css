@@ -137,7 +137,7 @@
   flex-shrink: 0;
 }
 
-.trendScaleToggle {
+.trendSeriesToggle {
   display: inline-flex;
   align-items: center;
   height: 26px;
@@ -147,7 +147,7 @@
   background: #ffffff;
 }
 
-.trendScaleButton {
+.trendSeriesButton {
   height: 100%;
   min-width: 40px;
   padding: 0 8px;
@@ -160,11 +160,11 @@
   cursor: pointer;
 }
 
-.trendScaleButton:last-child {
+.trendSeriesButton:last-child {
   border-right: 0;
 }
 
-.trendScaleButtonSelected {
+.trendSeriesButtonSelected {
   background: #0f172a;
   color: #ffffff;
 }

@@ -74,7 +74,7 @@ function ProductSummaryDrawerContent({
   const [channelsError, setChannelsError] = useState<ApiUnitErrorInfo | null>(null)
   const [salesInsight, setSalesInsight] = useState<ProductSalesInsight | null>(null)
   const [salesInsightError, setSalesInsightError] = useState<ApiUnitErrorInfo | null>(null)
-  const [salesTrendScaleMode, setSalesTrendScaleMode] = useState<'linear' | 'log'>('linear')
+  const [salesTrendVisible, setSalesTrendVisible] = useState({ self: true, competitor: true })
 
   useEffect(() => {
     if (suppressDocumentLayoutShift) return
@@ -337,15 +337,22 @@ function ProductSummaryDrawerContent({
       if (!row) continue
       m = Math.max(
         m,
-        row.sales,
-        row.actual ?? 0,
-        row.competitorActual ?? 0,
-        row.forecastLink ?? 0,
+        salesTrendVisible.self ? row.actual ?? 0 : 0,
+        salesTrendVisible.self ? row.forecastLink ?? 0 : 0,
+        salesTrendVisible.competitor ? row.competitorActual ?? 0 : 0,
       )
     }
     if (m <= 0) return 100
     return Math.ceil(m * 1.06)
-  }, [chartData, viewStart, viewEnd])
+  }, [chartData, salesTrendVisible.competitor, salesTrendVisible.self, viewStart, viewEnd])
+
+  const toggleSalesTrendSeries = (series: 'self' | 'competitor') => {
+    setSalesTrendVisible((prev) => {
+      const nextValue = !prev[series]
+      if (!nextValue && (series === 'self' ? !prev.competitor : !prev.self)) return prev
+      return { ...prev, [series]: nextValue }
+    })
+  }
 
   useEffect(() => {
     const onDocumentMouseDown = (event: MouseEvent) => {
@@ -556,28 +563,30 @@ function ProductSummaryDrawerContent({
                   )}
                 </div>
               </div>
-              <div className={styles.trendScaleToggle} aria-label="판매추이 축 모드">
+              <div className={styles.trendSeriesToggle} aria-label="판매추이 표시 항목">
                 <button
                   type="button"
+                  aria-pressed={salesTrendVisible.self}
                   className={
-                    salesTrendScaleMode === 'linear'
-                      ? `${styles.trendScaleButton} ${styles.trendScaleButtonSelected}`
-                      : styles.trendScaleButton
+                    salesTrendVisible.self
+                      ? `${styles.trendSeriesButton} ${styles.trendSeriesButtonSelected}`
+                      : styles.trendSeriesButton
                   }
-                  onClick={() => setSalesTrendScaleMode('linear')}
+                  onClick={() => toggleSalesTrendSeries('self')}
                 >
-                  선형
+                  자사
                 </button>
                 <button
                   type="button"
+                  aria-pressed={salesTrendVisible.competitor}
                   className={
-                    salesTrendScaleMode === 'log'
-                      ? `${styles.trendScaleButton} ${styles.trendScaleButtonSelected}`
-                      : styles.trendScaleButton
+                    salesTrendVisible.competitor
+                      ? `${styles.trendSeriesButton} ${styles.trendSeriesButtonSelected}`
+                      : styles.trendSeriesButton
                   }
-                  onClick={() => setSalesTrendScaleMode('log')}
+                  onClick={() => toggleSalesTrendSeries('competitor')}
                 >
-                  로그
+                  {salesInsight?.competitorChannelLabel ?? KO.labelCompetitorChannel}
                 </button>
               </div>
             </div>
@@ -591,8 +600,7 @@ function ProductSummaryDrawerContent({
               <SalesTrendChart
                 data={trendWindowData}
                 height={salesTrendChartDense ? 232 : 210}
-                yScale={salesTrendScaleMode}
-                yMax={salesTrendScaleMode === 'linear' ? salesTrendYMax : undefined}
+                yMax={salesTrendYMax}
                 allowEscapeViewBox={{ x: false, y: false }}
                 periodShade={shiftedPeriodShade}
                 forecastShade={shiftedForecastShade}
@@ -601,9 +609,15 @@ function ProductSummaryDrawerContent({
                 tickAngle={salesTrendChartDense ? -38 : 0}
                 tickHeight={salesTrendChartDense ? 42 : undefined}
                 lines={[
-                  { dataKey: 'actual', stroke: '#2563eb' },
-                  { dataKey: 'competitorActual', stroke: '#e11d48' },
-                  { dataKey: 'forecastLink', stroke: '#2563eb', strokeDasharray: '4 4' },
+                  ...(salesTrendVisible.self
+                    ? [
+                        { dataKey: 'actual', stroke: '#2563eb' },
+                        { dataKey: 'forecastLink', stroke: '#2563eb', strokeDasharray: '4 4' },
+                      ]
+                    : []),
+                  ...(salesTrendVisible.competitor
+                    ? [{ dataKey: 'competitorActual', stroke: '#e11d48' }]
+                    : []),
                 ]}
                 tooltipValueFormatter={(value, name) => {
                   if (name === 'actual') return [formatGroupedNumber(value), '판매 실적']

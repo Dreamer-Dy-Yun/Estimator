@@ -84,7 +84,7 @@
 
 ## 6. 제품 요약 드로어 (`ProductSummaryDrawer`)
 
-- **1차:** 상품 이미지, 기간·경쟁 채널 기준 판매 정보([`getProductSalesInsight`](../../dashboard-app/src/api/types/dashboard-api.ts)), 월간 판매 추이(포캐스트 구간) 등. 계절성 카드는 현재 화면에서 제외.
+- **1차:** 상품 이미지, 기간·경쟁 채널 기준 판매 정보([`getProductSalesInsight`](../../dashboard-app/src/api/types/dashboard-api.ts)), 월간 판매 추이(포캐스트 구간) 등. 판매 추이 그래프는 선형 축으로 고정하고, 자사/선택 경쟁 채널(예: 크림·무신사) 표시를 각각 토글하되 최소 하나는 항상 남깁니다. 계절성 카드는 현재 화면에서 제외.
 - **2차 확장 패널:** [`ProductSecondaryPanel`](../../dashboard-app/src/dashboard/components/product-secondary/ProductSecondaryPanel.tsx) — 상품 메타, 후보군 저장/수정, 재고·발주 시뮬([`getSecondaryStockOrderCalc`](../../dashboard-app/src/api/types/dashboard-api.ts)), 저장된 AI 코멘트 표시(`drawer2.llmAnswer`), 일별 추이, 사이즈별 확정 수량 등.
 - **스냅샷:** [`OrderSnapshotDocumentV1`](../../dashboard-app/src/snapshot/orderSnapshotTypes.ts) 스키마 v2, 파싱 [`parseOrderSnapshot`](../../dashboard-app/src/snapshot/parseOrderSnapshot.ts). 독립 스냅샷 목록 API는 없고 후보 아이템 `details`가 저장·복원 경로입니다.
 - **키보드(2차가 열리고 2차 데이터 준비 완료 시):** `←` / `→`로 **현재 목록의 이전·다음 SKU**(또는 이너 후보의 uuid 순) 순환 — [`adjacentListNavigation`](../../dashboard-app/src/utils/adjacentListNavigation.ts). 입력·콤보 패널 포커스 시에는 무시.

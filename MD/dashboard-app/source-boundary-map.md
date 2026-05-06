@@ -157,7 +157,7 @@
 | `PageHeader.tsx` | 페이지 제목/header |
 | `PaginatedTable.tsx` | 정렬/페이지네이션 테이블 |
 | `PortalHelpPopover.tsx`, `usePortalHelpPopover.ts`, `portalHelpPopoverPosition.ts` | help popover와 위치 계산 |
-| `ProductSummaryDrawer.tsx` | 상품 1차 요약 drawer와 2차 패널 진입 shell. 닫힘 애니메이션 class를 받을 수 있다 |
+| `ProductSummaryDrawer.tsx` | 상품 1차 요약 drawer와 2차 패널 진입 shell. 1차 판매 정보의 경쟁 채널 선택을 판매 추이 그래프와 2차 패널에 공유하며, 닫힘 애니메이션 class를 받을 수 있다 |
 | `common.module.css` | 대시보드 공용 layout/card/button/icon 스타일 |
 | `trend/` | 판매 트렌드 차트와 차트 range 보조 |
 | `product-secondary/` | 상품 2차 상세 패널 feature |
