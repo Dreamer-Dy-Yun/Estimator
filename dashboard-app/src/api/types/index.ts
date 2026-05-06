@@ -1,4 +1,4 @@
-export type { AuthApi, AuthSession, AuthUser, LoginRequest, LoginResult } from './auth'
+export type { AuthApi, AuthSession, AuthUser, LoginRequest, LoginResult, UpdateAuthUserPayload } from './auth'
 export type { CompetitorSalesParams, SelfSalesFilterMeta, SelfSalesParams } from './sales'
 export type {
   ProductDrawerBundle,

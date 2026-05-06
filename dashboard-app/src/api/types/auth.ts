@@ -3,6 +3,10 @@ export interface LoginRequest {
   password: string
 }
 
+export interface UpdateAuthUserPayload {
+  name: string
+}
+
 export interface AuthUser {
   id: string
   name: string
@@ -21,5 +25,6 @@ export interface LoginResult {
 export interface AuthApi {
   getCurrentSession(): Promise<AuthSession | null>
   login(payload: LoginRequest): Promise<LoginResult>
+  updateCurrentUser(payload: UpdateAuthUserPayload): Promise<AuthSession>
   logout(): Promise<void>
 }

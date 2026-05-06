@@ -49,6 +49,7 @@
 |-------------|-----------|----------|
 | `login(payload)` | POST | `/auth/login` |
 | `getCurrentSession()` | GET | `/auth/session` |
+| `updateCurrentUser(payload)` | PATCH | `/auth/me` |
 | `logout()` | POST | `/auth/logout` |
 
 **`LoginRequest`**
@@ -66,6 +67,12 @@
 | `user.name` | string | 화면 표시 이름 |
 | `user.role` | `'admin' \| 'operator' \| 'viewer'` | 프론트 권한 분기용 역할 |
 | `expiresAt` | string | ISO 8601 세션 만료 시각 |
+
+**`UpdateAuthUserPayload`**
+
+| 필드 | 타입 | 설명 |
+|------|------|------|
+| `name` | string | 헤더와 사용자 정보 모달에 표시할 이름. 목 구현은 현재 세션의 이름만 갱신 |
 
 ---
 

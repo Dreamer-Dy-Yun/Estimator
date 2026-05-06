@@ -22,6 +22,7 @@ export type {
   ProductStockTrendPoint,
   SelfSalesFilterMeta,
   SelfSalesParams,
+  UpdateAuthUserPayload,
 } from './types'
 export { DAILY_TREND_AS_OF_DATE } from './dailyTrendAsOf'
 export {
@@ -45,4 +46,5 @@ export {
   getSelfSalesFilterMeta,
   login,
   logout,
+  updateCurrentUser,
 } from './client'

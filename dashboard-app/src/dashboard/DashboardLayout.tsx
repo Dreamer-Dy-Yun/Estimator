@@ -1,5 +1,7 @@
+import { useState } from 'react'
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/AuthProvider'
+import { UserProfileDialog } from '../auth/UserProfileDialog'
 import { PageHeader } from './components/PageHeader'
 import styles from './layout.module.css'
 
@@ -9,9 +11,16 @@ const tabs = [
   { to: '/dashboard/snapshot-confirm', label: '오더 후보군' },
 ]
 
+const roleLabels = {
+  admin: '관리자',
+  operator: '운영자',
+  viewer: '조회자',
+} as const
+
 export const DashboardLayout = () => {
   const navigate = useNavigate()
   const { session, logout } = useAuth()
+  const [isProfileOpen, setIsProfileOpen] = useState(false)
 
   const handleLogout = () => {
     void logout().then(() => navigate('/login', { replace: true }))
@@ -29,7 +38,10 @@ export const DashboardLayout = () => {
             ))}
           </div>
           <div className={styles.sessionControls}>
-            <span className={styles.userName}>{session?.user.name ?? '사용자'}</span>
+            <button className={styles.userButton} type="button" onClick={() => setIsProfileOpen(true)}>
+              <span className={styles.userName}>{session?.user.name ?? '사용자'}</span>
+              <span className={styles.roleBadge}>{session ? roleLabels[session.user.role] : '사용자'}</span>
+            </button>
             <button className={styles.logoutButton} type="button" onClick={handleLogout}>
               로그아웃
             </button>
@@ -42,6 +54,7 @@ export const DashboardLayout = () => {
           </div>
         </div>
       </div>
+      <UserProfileDialog open={isProfileOpen} onClose={() => setIsProfileOpen(false)} />
     </section>
   )
 }

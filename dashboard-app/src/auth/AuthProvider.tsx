@@ -7,13 +7,19 @@ import {
   useState,
   type ReactNode,
 } from 'react'
-import { getCurrentAuthSession, login as requestLogin, logout as requestLogout } from '../api'
-import type { AuthSession, LoginRequest } from '../api'
+import {
+  getCurrentAuthSession,
+  login as requestLogin,
+  logout as requestLogout,
+  updateCurrentUser,
+} from '../api'
+import type { AuthSession, LoginRequest, UpdateAuthUserPayload } from '../api'
 
 type AuthContextValue = {
   session: AuthSession | null
   isLoading: boolean
   login(payload: LoginRequest): Promise<AuthSession>
+  updateUser(payload: UpdateAuthUserPayload): Promise<AuthSession>
   logout(): Promise<void>
 }
 
@@ -52,14 +58,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setSession(null)
   }, [])
 
+  const updateUser = useCallback(async (payload: UpdateAuthUserPayload) => {
+    const nextSession = await updateCurrentUser(payload)
+    setSession(nextSession)
+    return nextSession
+  }, [])
+
   const value = useMemo(
     () => ({
       session,
       isLoading,
       login,
+      updateUser,
       logout,
     }),
-    [isLoading, login, logout, session],
+    [isLoading, login, logout, session, updateUser],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

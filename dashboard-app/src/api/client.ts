@@ -31,6 +31,7 @@ import type {
   LoginResult,
   SelfSalesFilterMeta,
   SelfSalesParams,
+  UpdateAuthUserPayload,
 } from './types'
 
 /** 현재 인증 세션 조회. 목 구현은 sessionStorage에 저장된 세션만 확인한다. */
@@ -43,6 +44,11 @@ export async function login(payload: LoginRequest): Promise<LoginResult> {
   return mockAuthApi.login(payload)
 }
 
+/** 현재 사용자 정보 변경. 목 구현은 표시 이름만 갱신한다. */
+export async function updateCurrentUser(payload: UpdateAuthUserPayload): Promise<AuthSession> {
+  return mockAuthApi.updateCurrentUser(payload)
+}
+
 /** 로그아웃. 목 구현은 현재 브라우저 탭의 세션만 제거한다. */
 export async function logout(): Promise<void> {
   return mockAuthApi.logout()
@@ -52,6 +58,7 @@ export async function logout(): Promise<void> {
 export const authApi: AuthApi = {
   getCurrentSession: getCurrentAuthSession,
   login,
+  updateCurrentUser,
   logout,
 }
 

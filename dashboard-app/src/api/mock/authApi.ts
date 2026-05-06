@@ -1,4 +1,4 @@
-import type { AuthApi, AuthSession, LoginRequest, LoginResult } from '../types'
+import type { AuthApi, AuthSession, LoginRequest, LoginResult, UpdateAuthUserPayload } from '../types'
 import { sleep } from './utils'
 
 const AUTH_SESSION_STORAGE_KEY = 'han-a-auth-session'
@@ -62,6 +62,28 @@ export const mockAuthApi: AuthApi = {
     const session = makeMockSession(payload.username)
     writeStoredSession(session)
     return { session }
+  },
+  updateCurrentUser: async (payload: UpdateAuthUserPayload): Promise<AuthSession> => {
+    await sleep(80)
+    const current = readStoredSession()
+    if (!current) {
+      throw new Error('로그인이 필요합니다.')
+    }
+
+    const name = payload.name.trim()
+    if (!name) {
+      throw new Error('표시 이름을 입력해 주세요.')
+    }
+
+    const nextSession = {
+      ...current,
+      user: {
+        ...current.user,
+        name,
+      },
+    }
+    writeStoredSession(nextSession)
+    return nextSession
   },
   logout: async () => {
     await sleep(40)

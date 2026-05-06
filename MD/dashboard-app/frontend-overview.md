@@ -58,8 +58,8 @@
 ### 4.1 인증
 
 - 인증 UI와 세션 상태는 [`src/auth`](../../dashboard-app/src/auth/)가 소유합니다.
-- 로그인/세션 확인/로그아웃 호출은 [`src/api/client.ts`](../../dashboard-app/src/api/client.ts)의 `authApi`와 개별 함수로만 접근합니다.
-- 현재 목 구현은 [`api/mock/authApi.ts`](../../dashboard-app/src/api/mock/authApi.ts)에서 어떤 로그인 입력도 성공 처리하고, 세션은 브라우저 `sessionStorage`에 저장합니다.
+- 로그인/세션 확인/사용자 정보 변경/로그아웃 호출은 [`src/api/client.ts`](../../dashboard-app/src/api/client.ts)의 `authApi`와 개별 함수로만 접근합니다.
+- 현재 목 구현은 [`api/mock/authApi.ts`](../../dashboard-app/src/api/mock/authApi.ts)에서 어떤 로그인 입력도 성공 처리하고, 세션은 브라우저 `sessionStorage`에 저장합니다. 헤더 우상단의 사용자 정보 버튼은 이름과 역할을 표시하고, 모달에서 표시 이름만 변경합니다.
 - 실제 백엔드 전환 시 우선 권장 형태는 HttpOnly cookie 기반 세션이며, 프론트 화면은 `AuthApi` 계약을 유지한 채 client 구현만 교체합니다.
 
 ---
