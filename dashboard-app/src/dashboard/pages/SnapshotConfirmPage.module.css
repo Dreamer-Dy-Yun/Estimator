@@ -17,14 +17,14 @@
 .uploadCard {
   display: grid;
   grid-template-columns: repeat(12, minmax(0, 1fr));
-  gap: 10px 14px;
+  gap: 14px;
   align-items: center;
   border-color: #bfdbfe;
   background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
 }
 
 .uploadCopy {
-  grid-column: 1 / -1;
+  grid-column: 1 / span 4;
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
   align-items: center;
@@ -73,13 +73,13 @@
 }
 
 .uploadControls {
-  grid-column: 1 / -1;
-  justify-self: end;
+  grid-column: 5 / -1;
+  justify-self: stretch;
   display: grid;
   grid-template-columns: minmax(260px, 1fr) auto;
   align-items: center;
   gap: 8px;
-  width: min(100%, 1248px);
+  width: 100%;
   min-width: 0;
   padding: 10px;
   border: 1px solid #dbe7ff;
@@ -445,6 +445,7 @@
   }
 
   .uploadCopy {
+    grid-column: 1 / -1;
     grid-template-columns: 1fr;
   }
 
@@ -453,6 +454,7 @@
   }
 
   .uploadControls {
+    grid-column: 1 / -1;
     justify-self: end;
     width: min(100%, 1248px);
     grid-template-columns: minmax(0, 1fr) auto;
