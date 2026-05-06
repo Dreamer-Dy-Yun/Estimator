@@ -37,7 +37,7 @@ export function CandidateStashDetailModal({ stashUuid, stashSummary, onClose, on
 
   const visibleItemUuids = useMemo(() => m.tableRows.map((row) => row.uuid), [m.tableRows])
   const recommendationRows = useMemo(() => {
-    const signaledRows = m.tableRows.filter((row) => row.insight.rankTone === 'top' || row.insight.badges.length > 0)
+    const signaledRows = m.tableRows.filter((row) => row.insight.rankTone === 'top' || row.insight.badgeNames.length > 0)
     return signaledRows.length ? signaledRows : m.tableRows
   }, [m.tableRows])
   const recommendationRowUuids = useMemo(() => recommendationRows.map((row) => row.uuid), [recommendationRows])
@@ -469,7 +469,10 @@ export function CandidateStashDetailModal({ stashUuid, stashSummary, onClose, on
                                 {formatGroupedNumber(row.expectedOrderAmount)} 원
                               </span>
                               <span className={detailStyles.innerOrderBadgeList}>
-                                <CandidateInsightBadges badges={row.insight.badges} />
+                                <CandidateInsightBadges
+                                  badgeNames={row.insight.badgeNames}
+                                  definitions={m.badgeDefinitions}
+                                />
                               </span>
                             </div>
                           )
@@ -487,6 +490,7 @@ export function CandidateStashDetailModal({ stashUuid, stashSummary, onClose, on
       {recommendationOpen && (
         <CandidateRecommendationModal
           rows={recommendationRows}
+          badgeDefinitions={m.badgeDefinitions}
           selectedUuids={recommendationSelectedUuids}
           selectedCount={recommendationSelectedCount}
           allSelected={allRecommendationSelected}

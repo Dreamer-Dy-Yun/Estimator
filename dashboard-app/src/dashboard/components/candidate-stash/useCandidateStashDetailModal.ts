@@ -8,6 +8,7 @@ import {
   subscribeCandidateStashAnalysis,
   type CandidateStashAnalysisProgressEvent,
   type CandidateStashAnalysisSubscription,
+  type CandidateBadgeDefinitionMap,
   type CandidateItemSummary,
   type CandidateStashSummary,
 } from '../../../api'
@@ -38,6 +39,7 @@ export function useCandidateStashDetailModal({
 }: Args) {
   const [stashes, setStashes] = useState<CandidateStashSummary[]>([])
   const [items, setItems] = useState<CandidateItemSummary[]>([])
+  const [badgeDefinitions, setBadgeDefinitions] = useState<CandidateBadgeDefinitionMap>({})
   const [detailLoading, setDetailLoading] = useState(false)
   const [detailError, setDetailError] = useState<string | null>(null)
   const [brandQuery, setBrandQuery] = useState('')
@@ -106,14 +108,16 @@ export function useCandidateStashDetailModal({
     setDetailLoading(true)
     setDetailError(null)
     try {
-      const rows = await getCandidateItemsByStash(stashUuid)
+      const result = await getCandidateItemsByStash(stashUuid)
       if (!mountedRef.current || itemLoadSeqRef.current !== seq) return
-      setItems(rows)
+      setItems(result.items)
+      setBadgeDefinitions(result.badgeDefinitions)
       setDetailLoading(false)
     } catch (err) {
       if (!mountedRef.current || itemLoadSeqRef.current !== seq) return
       const message = err instanceof Error ? err.message : '이너 후보 목록 스냅샷 데이터가 올바르지 않습니다.'
       setItems([])
+      setBadgeDefinitions({})
       setDetailError(message)
       setDetailLoading(false)
     }
@@ -374,6 +378,7 @@ export function useCandidateStashDetailModal({
     drawerOpen,
     drawerClosing,
     items,
+    badgeDefinitions,
     detailLoading,
     detailError,
     brandQuery,

@@ -30,31 +30,17 @@ export interface CandidateItemSummary {
   dbUpdatedAt: string
 }
 
-export type CandidateBadgePayloadValue = string | number | boolean | null
-
-export interface CandidateItemBadgeStyle {
-  textColor: string
-  backgroundColor: string
-  borderColor: string
-}
-
 /**
- * Backend-driven inner order badge.
- * The frontend renders every badge object returned by the API and only uses
- * style fields for presentation. Business meaning and thresholds belong to
- * backend/API data.
+ * Backend-driven badge definition map.
+ * The response owns badge color/tooltip metadata, while each item carries only
+ * badge names that reference this map.
  */
-export interface CandidateItemBadgeSummary {
-  id: string
-  name: string
-  label: string
-  description: string
-  value?: CandidateBadgePayloadValue
-  rankPercentile?: number | null
-  thresholdPercent?: number | null
-  style: CandidateItemBadgeStyle
-  payload?: Record<string, CandidateBadgePayloadValue>
+export interface CandidateBadgeDefinition {
+  color: string
+  tooltip: string
 }
+
+export type CandidateBadgeDefinitionMap = Record<string, CandidateBadgeDefinition>
 
 export interface CandidateItemInsightSummary {
   competitorChannelLabel: string
@@ -69,7 +55,12 @@ export interface CandidateItemInsightSummary {
   rankTone: 'top' | 'bottom' | 'neutral'
   topPercentThreshold: number
   bottomPercentThreshold: number
-  badges: CandidateItemBadgeSummary[]
+  badgeNames: string[]
+}
+
+export interface CandidateItemListResult {
+  items: CandidateItemSummary[]
+  badgeDefinitions: CandidateBadgeDefinitionMap
 }
 
 /** Candidate item detail response with the saved order snapshot JSON. */

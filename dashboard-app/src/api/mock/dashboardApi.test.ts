@@ -120,10 +120,26 @@ describe('api/mock dashboardApi candidate stash mutations', () => {
 
     await mockDashboardApi.deleteCandidateStash(target!.uuid)
     const after = await mockDashboardApi.getCandidateStashes()
-    const items = await mockDashboardApi.getCandidateItemsByStash(target!.uuid)
+    const result = await mockDashboardApi.getCandidateItemsByStash(target!.uuid)
 
     expect(after.some((row) => row.uuid === target!.uuid)).toBe(false)
-    expect(items).toEqual([])
+    expect(result.items).toEqual([])
+  })
+
+  it('returns candidate item badge names with shared badge definitions', async () => {
+    const stashes = await mockDashboardApi.getCandidateStashes()
+    const target = stashes.find((row) => row.itemCount > 0)
+    expect(target).toBeDefined()
+
+    const result = await mockDashboardApi.getCandidateItemsByStash(target!.uuid)
+    const definitionNames = Object.keys(result.badgeDefinitions).sort()
+    const itemBadgeNames = result.items.flatMap((item) => item.insight.badgeNames)
+
+    expect(definitionNames).toEqual(['자사이익', '자사판매', '크림판매'])
+    expect(itemBadgeNames.every((name) => name in result.badgeDefinitions)).toBe(true)
+    expect(itemBadgeNames).not.toContain('크림 매출')
+    expect(itemBadgeNames).not.toContain('자사 매출')
+    expect(itemBadgeNames).not.toContain('자사 이율')
   })
 
   it('backfills empty mock AI comments before hydrating candidate drawer snapshots', async () => {

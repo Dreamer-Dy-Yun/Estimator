@@ -241,6 +241,15 @@
 | `itemCount` | 소속 후보 아이템 개수 |
 | `dbCreatedAt`, `dbUpdatedAt` | 생성·수정 시각(아이템 추가로 스태시 “갱신” 시각을 반영할지는 백엔드 정책) |
 
+**`CandidateItemListResult`** (`getCandidateItemsByStash` 응답)
+
+| 필드 | 의미 |
+|------|------|
+| `items` | 후보 아이템 목록 |
+| `badgeDefinitions` | 배지 이름을 key로 하는 정의 맵. 값은 `{ color, tooltip }` 형태이며, 색상/툴팁은 백엔드가 결정 |
+
+배지 정의를 전역 랜딩 시점에 별도 호출로 받는 대신 후보군 아이템 응답에 같이 포함한다. 이렇게 하면 아이템의 `badgeNames`와 정의 맵의 버전이 같은 응답 안에서 맞아, 배지 이름만 있고 색상/툴팁이 없는 상태를 줄일 수 있다.
+
 **`CandidateItemSummary`** (목록 행)
 
 | 필드 | 의미 |
@@ -253,6 +262,7 @@
 | `expectedOrderAmount` | 예상 **발주 금액(원)** — 스냅샷 `drawer2.stockDerived.expectedOrderAmount` 와 동일 의미 |
 | `expectedSalesAmount` | 예상 매출 — `stockDerived.expectedSalesAmount` |
 | `expectedOpProfit` | 예상 영업이익 — `stockDerived.expectedOpProfit` |
+| `insight.badgeNames` | 이 아이템에 붙일 배지 이름 배열. 현재 목데이터 기준 허용 배지는 `크림판매`, `자사이익`, `자사판매` |
 | `isLatestLlmComment` | 현재 저장 스냅샷 기준 LLM 코멘트/추천이 최신인지 여부. DB 컬럼은 `is_latest_llm_comment` 권장 |
 | `dbCreatedAt`, `dbUpdatedAt` | 생성·수정 시각 |
 

@@ -1,4 +1,6 @@
 .badge {
+  --candidate-badge-color: #64748b;
+
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -6,9 +8,9 @@
   min-height: 20px;
   padding: 2px 7px;
   border-radius: 999px;
-  border: 1px solid #bfdbfe;
-  background: #eff6ff;
-  color: #1d4ed8;
+  border: 1px solid color-mix(in srgb, var(--candidate-badge-color) 42%, transparent);
+  background: color-mix(in srgb, var(--candidate-badge-color) 10%, white);
+  color: var(--candidate-badge-color);
   font-size: 10px;
   font-weight: 800;
   line-height: 1;

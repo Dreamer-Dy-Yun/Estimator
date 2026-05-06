@@ -1,10 +1,11 @@
 import type { ProductPrimarySummary } from '../../types'
 import type {
   AppendCandidateItemPayload,
+  CandidateBadgeDefinitionMap,
   CandidateStashAnalysisHandlers,
   CandidateStashAnalysisProgressEvent,
   CandidateItemDetail,
-  CandidateItemSummary,
+  CandidateItemListResult,
   CandidateStashExcelUploadResult,
   CandidateStashSummary,
   CreateCandidateStashPayload,
@@ -89,35 +90,24 @@ function buildCandidateAnalysisEvent(
 
 const INNER_ORDER_TOP_PERCENT_THRESHOLD = 10
 const INNER_ORDER_BOTTOM_PERCENT_THRESHOLD = 10
-const INNER_ORDER_BADGE_STYLES = {
-  competitorRevenue: {
-    textColor: '#1d4ed8',
-    backgroundColor: '#eff6ff',
-    borderColor: '#93c5fd',
+const CANDIDATE_BADGE_DEFINITIONS = {
+  크림판매: {
+    color: '#0f766e',
+    tooltip: `조회 기간 내 크림 경쟁사 판매수량 상위 ${INNER_ORDER_TOP_PERCENT_THRESHOLD}% 이내 후보입니다.`,
   },
-  competitorSales: {
-    textColor: '#0f766e',
-    backgroundColor: '#ecfdf5',
-    borderColor: '#99f6e4',
+  자사이익: {
+    color: '#be123c',
+    tooltip: '조회 기간 내 자사 영업이익률이 9% 이상인 후보입니다.',
   },
-  selfRevenue: {
-    textColor: '#6d28d9',
-    backgroundColor: '#f5f3ff',
-    borderColor: '#c4b5fd',
+  자사판매: {
+    color: '#c2410c',
+    tooltip: `조회 기간 내 자사 판매수량 상위 ${INNER_ORDER_TOP_PERCENT_THRESHOLD}% 이내 후보입니다.`,
   },
-  selfSales: {
-    textColor: '#c2410c',
-    backgroundColor: '#fff7ed',
-    borderColor: '#fdba74',
-  },
-  selfProfitRate: {
-    textColor: '#be123c',
-    backgroundColor: '#fff1f2',
-    borderColor: '#fda4af',
-  },
-}
+} satisfies CandidateBadgeDefinitionMap
 
-type InnerOrderBadgeId = keyof typeof INNER_ORDER_BADGE_STYLES
+function getCandidateBadgeDefinitions(): CandidateBadgeDefinitionMap {
+  return { ...CANDIDATE_BADGE_DEFINITIONS }
+}
 
 function inTopPercent(rankPercentile: number | null | undefined) {
   return typeof rankPercentile === 'number' && rankPercentile >= 100 - INNER_ORDER_TOP_PERCENT_THRESHOLD
@@ -136,41 +126,19 @@ function buildCandidateItemInsight(
   const competitor = competitorById[productId]
   const self = selfById[productId]
   const channelLabel = secondaryCompetitorChannels[0]?.label ?? '크림'
-  const badges: Array<{ kind: InnerOrderBadgeId; label: string; description: string }> = []
+  const badgeNames: string[] = []
 
   if (inTopPercent(competitor?.rankPercentile)) {
-    badges.push({
-      kind: 'competitorRevenue' as const,
-      label: `${channelLabel} 매출`,
-      description: `조회 기간 내 ${channelLabel}(경쟁사)의 매출상위 ${INNER_ORDER_TOP_PERCENT_THRESHOLD}% 이내에 드는 상품입니다.`,
-    })
-    badges.push({
-      kind: 'competitorSales' as const,
-      label: `${channelLabel} 판매`,
-      description: `조회 기간 내 ${channelLabel}(경쟁사)의 판매수량 상위 ${INNER_ORDER_TOP_PERCENT_THRESHOLD}% 이내에 드는 상품입니다.`,
-    })
-  }
-  if (inTopPercent(self?.rankPercentile)) {
-    badges.push({
-      kind: 'selfRevenue' as const,
-      label: '자사 매출',
-      description: `조회 기간 내 자사 매출상위 ${INNER_ORDER_TOP_PERCENT_THRESHOLD}% 이내에 드는 상품입니다.`,
-    })
-    badges.push({
-      kind: 'selfSales' as const,
-      label: '자사 판매',
-      description: `조회 기간 내 자사 판매수량 상위 ${INNER_ORDER_TOP_PERCENT_THRESHOLD}% 이내에 드는 상품입니다.`,
-    })
+    badgeNames.push(`${channelLabel}판매`)
   }
   if (typeof self?.opMarginRate === 'number' && self.opMarginRate >= 9) {
-    badges.push({
-      kind: 'selfProfitRate' as const,
-      label: '자사 이율',
-      description: `조회 기간 내 자사 영업이익률이 ${self.opMarginRate.toFixed(1)}%인 상품입니다.`,
-    })
+    badgeNames.push('자사이익')
+  }
+  if (inTopPercent(self?.rankPercentile)) {
+    badgeNames.push('자사판매')
   }
 
-  const top = inTopPercent(competitor?.rankPercentile) || inTopPercent(self?.rankPercentile)
+  const top = badgeNames.length > 0
   const bottom = !top && (inBottomPercent(competitor?.rankPercentile) || inBottomPercent(self?.rankPercentile))
 
   return {
@@ -186,34 +154,7 @@ function buildCandidateItemInsight(
     rankTone: top ? 'top' as const : bottom ? 'bottom' as const : 'neutral' as const,
     topPercentThreshold: INNER_ORDER_TOP_PERCENT_THRESHOLD,
     bottomPercentThreshold: INNER_ORDER_BOTTOM_PERCENT_THRESHOLD,
-    badges: badges.map((badge) => {
-      const isCompetitor = badge.kind === 'competitorRevenue' || badge.kind === 'competitorSales'
-      const isQty = badge.kind === 'competitorSales' || badge.kind === 'selfSales'
-      const isProfitRate = badge.kind === 'selfProfitRate'
-      const rankPercentile = isCompetitor ? competitor?.rankPercentile : self?.rankPercentile
-      const value = isProfitRate
-        ? (self?.opMarginRate ?? null)
-        : isQty
-          ? (isCompetitor ? competitor?.competitorQty : self?.qty) ?? null
-          : (isCompetitor ? competitor?.competitorAmount : self?.amount) ?? null
-
-      return {
-        id: badge.kind,
-        name: badge.label,
-        label: badge.label,
-        description: badge.description,
-        value,
-        rankPercentile: rankPercentile ?? null,
-        thresholdPercent: INNER_ORDER_TOP_PERCENT_THRESHOLD,
-        style: INNER_ORDER_BADGE_STYLES[badge.kind],
-        payload: {
-          metric: badge.kind,
-          competitorChannelLabel: isCompetitor ? channelLabel : null,
-          value,
-          rankPercentile: rankPercentile ?? null,
-        },
-      }
-    }),
+    badgeNames,
   }
 }
 
@@ -366,9 +307,9 @@ export const mockDashboardApi = {
       return []
     }
   },
-  getCandidateItemsByStash: async (stashUuid: string): Promise<CandidateItemSummary[]> => {
+  getCandidateItemsByStash: async (stashUuid: string): Promise<CandidateItemListResult> => {
     await sleep(60)
-    return readCandidateItemsForStash(stashUuid)
+    const items = readCandidateItemsForStash(stashUuid)
       .map((row) => {
         const productId = row.skuUuid
         const summary = row.details?.drawer1?.summary
@@ -405,6 +346,10 @@ export const mockDashboardApi = {
         }
       })
       .sort((a, b) => String(b.dbCreatedAt).localeCompare(String(a.dbCreatedAt)))
+    return {
+      items,
+      badgeDefinitions: getCandidateBadgeDefinitions(),
+    }
   },
   getCandidateItemByUuid: async (itemUuid: string): Promise<CandidateItemDetail | null> => {
     await sleep(50)

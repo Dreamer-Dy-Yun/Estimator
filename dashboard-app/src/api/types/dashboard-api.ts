@@ -14,7 +14,7 @@ import type {
   AppendCandidateItemPayload,
   UpdateCandidateItemPayload,
   CandidateItemDetail,
-  CandidateItemSummary,
+  CandidateItemListResult,
   CandidateStashAnalysisHandlers,
   CandidateStashAnalysisStartResult,
   CandidateStashAnalysisSubscription,
@@ -49,7 +49,7 @@ export interface DashboardApi {
   getSecondaryDailyTrend(params: SecondaryDailyTrendParams): Promise<SecondaryDailyTrendPoint[]>
   getSecondaryCompetitorChannels(): Promise<SecondaryCompetitorChannel[]>
   getCandidateStashes(productId?: string): Promise<CandidateStashSummary[]>
-  getCandidateItemsByStash(stashUuid: string): Promise<CandidateItemSummary[]>
+  getCandidateItemsByStash(stashUuid: string): Promise<CandidateItemListResult>
   getCandidateItemByUuid(itemUuid: string): Promise<CandidateItemDetail | null>
   deleteCandidateItem(itemUuid: string): Promise<void>
   deleteCandidateStash(stashUuid: string): Promise<void>

@@ -2,44 +2,42 @@
 
 ## Goal
 
-이너 오더 목록은 프론트에서 배지 종류를 하드코딩하지 않고, 백엔드가 내려주는 배지 JSON을 그대로 표시한다.
+이너 오더 목록은 프론트에서 배지 종류를 하드코딩하지 않고, 백엔드가 내려주는 배지 정의와 아이템별 배지 이름을 조합해 표시한다.
 
 ## Scope
 
 - 대상 화면: 오더 후보군 상세 모달의 이너 오더 목록
-- 대상 타입: `CandidateItemSummary.insight.badges`
+- 대상 타입: `CandidateItemListResult.badgeDefinitions`, `CandidateItemSummary.insight.badgeNames`
 
 ## Contract
 
-`CandidateItemSummary.insight`에는 목록 표시용 `expectedSalesQty`가 포함된다.
-
-`badges` 배열의 각 항목은 아래 형태를 따른다.
+`getCandidateItemsByStash(stashUuid)`는 아이템 배열과 배지 정의 맵을 함께 반환한다. 전역 랜딩 시점에 모든 배지 정의를 따로 받는 방식보다, 후보군 목록 응답에 정의를 함께 싣는 방식이 데이터와 정의 버전을 맞추기 쉽다.
 
 ```ts
-{
-  id: string
-  name: string
-  label: string
-  description: string
-  value?: string | number | boolean | null
-  rankPercentile?: number | null
-  thresholdPercent?: number | null
-  style: {
-    textColor: string
-    backgroundColor: string
-    borderColor: string
-  }
-  payload?: Record<string, string | number | boolean | null>
+interface CandidateItemListResult {
+  items: CandidateItemSummary[]
+  badgeDefinitions: Record<string, {
+    color: string
+    tooltip: string
+  }>
+}
+```
+
+`CandidateItemSummary.insight`에는 목록 표시용 `expectedSalesQty`와 배지 이름 배열이 포함된다.
+
+```ts
+interface CandidateItemInsightSummary {
+  badgeNames: string[]
 }
 ```
 
 ## Principles
 
-- 배지의 의미, 기준값, 색상은 백엔드가 결정한다.
-- 프론트는 받은 배지 객체를 모두 렌더링한다.
-- 배지의 `description`과 추가 필드는 hover title에 노출해 백엔드 연결 시 검증이 가능하게 한다.
+- 배지의 의미, 기준값, 색상, 툴팁은 백엔드/API 응답이 결정한다.
+- 프론트는 `badgeNames`에 들어온 이름을 `badgeDefinitions`에서 찾아 렌더링한다.
+- 알 수 없는 배지 이름은 회색 기본 배지와 이름 툴팁으로 표시해 API 누락을 화면에서 숨기지 않는다.
 - 상위 n%, 하위 m%에 따른 행 음영 기준도 백엔드/API 데이터와 맞춘다.
 
 ## Result
 
-이너 오더 목록 헤더를 복구하고, 행 컬럼을 `체크박스 / 브랜드 / 상품코드 / 상품명 / 배지 / 총 예상 판매수량 / 총 예상 오더 금액` 순서로 정렬했다.
+목데이터 기준 배지는 `크림판매`, `자사이익`, `자사판매` 3종만 사용한다. 각 아이템은 이 배지 이름만 가지고, 색상과 툴팁은 응답의 `badgeDefinitions`에서 가져온다.

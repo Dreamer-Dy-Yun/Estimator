@@ -18,9 +18,10 @@ export type {
   SecondaryStockSafetyCalcBlock,
 } from './secondary'
 export type {
+  CandidateBadgeDefinition,
+  CandidateBadgeDefinitionMap,
   CandidateItemDetail,
-  CandidateItemBadgeSummary,
-  CandidateItemBadgeStyle,
+  CandidateItemListResult,
   CandidateItemSummary,
   CandidateStashAnalysisHandlers,
   CandidateStashAnalysisProgressEvent,

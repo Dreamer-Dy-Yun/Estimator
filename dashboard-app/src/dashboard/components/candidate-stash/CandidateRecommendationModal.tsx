@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react'
+import type { CandidateBadgeDefinitionMap } from '../../../api'
 import { formatEaQuantity, formatGroupedNumber } from '../../../utils/format'
 import styles from '../common.module.css'
 import type { InnerCandidateRow } from './useCandidateStashDetailModal'
@@ -7,6 +8,7 @@ import modalStyles from './CandidateRecommendationModal.module.css'
 
 type Props = {
   rows: InnerCandidateRow[]
+  badgeDefinitions: CandidateBadgeDefinitionMap
   selectedUuids: Set<string>
   selectedCount: number
   allSelected: boolean
@@ -19,6 +21,7 @@ type Props = {
 
 export function CandidateRecommendationModal({
   rows,
+  badgeDefinitions,
   selectedUuids,
   selectedCount,
   allSelected,
@@ -103,7 +106,10 @@ export function CandidateRecommendationModal({
                   <span className={modalStyles.code}>{row.productCode}</span>
                   <span className={modalStyles.name}>{row.productName}</span>
                   <span className={modalStyles.badgeList}>
-                    <CandidateInsightBadges badges={row.insight.badges} />
+                    <CandidateInsightBadges
+                      badgeNames={row.insight.badgeNames}
+                      definitions={badgeDefinitions}
+                    />
                   </span>
                   <span className={modalStyles.num}>{formatEaQuantity(row.insight.selfQty)}</span>
                   <span className={modalStyles.num}>{formatEaQuantity(row.insight.competitorQty)}</span>

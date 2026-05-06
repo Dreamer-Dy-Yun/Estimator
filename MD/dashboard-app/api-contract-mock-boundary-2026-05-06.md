@@ -26,6 +26,7 @@
 ## Result
 
 - `CandidateStashSummary`, `CandidateItemSummary`, 후보군 분석/SSE 타입은 `candidate.ts`로 이동했다.
+- `getCandidateItemsByStash` 응답은 `CandidateItemListResult`로 확장해, item별 `badgeNames`와 응답 단위 `badgeDefinitions`를 분리했다.
 - `SecondaryOrderSnapshotPayload`는 `snapshot.ts`로 이동했다.
 - `secondary.ts`에서 후보군 타입을 제거해 2차 패널 API 계약만 남겼다.
 - `dashboardApi.ts`의 후보군 CRUD/업로드/분석 흐름은 `candidateStorage.ts`를 통해 localStorage에 접근한다.
@@ -33,5 +34,4 @@
 ## Non-goals
 
 - 실제 HTTP 클라이언트 구현은 추가하지 않았다.
-- 후보군 API 응답 필드 자체는 변경하지 않았다.
-- 목업 데이터 내용과 화면 동작은 변경하지 않았다.
+- 배지 계산 기준 자체는 실제 백엔드 로직으로 확정하지 않았다. 현재 목업은 `크림판매`, `자사이익`, `자사판매` 3종 표시용 계약 검증에 한정한다.

@@ -4,7 +4,7 @@ import type {
   AppendCandidateItemPayload,
   UpdateCandidateItemPayload,
   CandidateItemDetail,
-  CandidateItemSummary,
+  CandidateItemListResult,
   CandidateStashAnalysisHandlers,
   CandidateStashAnalysisStartResult,
   CandidateStashAnalysisSubscription,
@@ -95,7 +95,7 @@ export async function getCandidateStashes(productId?: string): Promise<Candidate
  * 후보군의 이너 오더 목록.
  * 반환 행은 저장된 스냅샷 기반이며 자사/경쟁사 기간 총 판매량과 추천 배지는 백엔드 계약 값으로 본다.
  */
-export async function getCandidateItemsByStash(stashUuid: string): Promise<CandidateItemSummary[]> {
+export async function getCandidateItemsByStash(stashUuid: string): Promise<CandidateItemListResult> {
   return mockDashboardApi.getCandidateItemsByStash(stashUuid)
 }
 
