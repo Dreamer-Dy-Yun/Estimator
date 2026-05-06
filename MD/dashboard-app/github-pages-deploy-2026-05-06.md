@@ -13,7 +13,7 @@ Deploy the `dashboard-app` Vite application from the existing GitHub repository.
 ## Principles
 
 - Validate with the existing test suite before publishing.
-- Use `npm ci` in CI to honor `package-lock.json`.
+- Use `npm install` in CI because the current lockfile is missing Linux optional peer entries that make `npm ci` fail on GitHub-hosted runners.
 - Keep deployment config separate from UI code.
 
 ## Plan
@@ -25,7 +25,7 @@ Deploy the `dashboard-app` Vite application from the existing GitHub repository.
 
 ## Result
 
-The project now has a GitHub Actions workflow that tests, builds, and deploys `dashboard-app/dist` to GitHub Pages.
+The project now has a GitHub Actions workflow that installs dependencies, tests, builds, and deploys `dashboard-app/dist` to GitHub Pages.
 
 ## Non-goals
 
