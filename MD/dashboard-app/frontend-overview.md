@@ -38,7 +38,7 @@
 
 테스트는 Vitest(`npm run test:run`)로 실행합니다.
 
-프로덕션 번들은 `src/App.tsx`의 라우트 lazy import와 `vite.config.ts`의 vendor code splitting으로 분리합니다. Vite의 500KB chunk 경고가 다시 나오면 우선 라우트가 정적 import로 되돌아가지 않았는지, 새 대형 라이브러리가 어느 vendor group에 들어가야 하는지 확인합니다.
+프로덕션 번들은 `src/App.tsx`의 라우트 lazy import와 `vite.config.ts`의 vendor code splitting으로 분리합니다. Vite의 500KB chunk 경고가 다시 나오면 우선 라우트가 정적 import로 되돌아가지 않았는지, 새 대형 라이브러리가 어느 vendor group에 들어가야 하는지 확인합니다. Recharts처럼 내부 모듈 순서에 민감한 라이브러리는 `maxSize`로 한 패키지 안을 강제 세분화하지 않습니다.
 
 ---
 
@@ -52,7 +52,7 @@
 
 레이아웃: [`dashboard-app/src/dashboard/DashboardLayout.tsx`](../../dashboard-app/src/dashboard/DashboardLayout.tsx) — 상단 탭 3개.
 
-라우트 화면(`SelfPage`, `CompetitorPage`, `SnapshotConfirmPage`)은 [`App.tsx`](../../dashboard-app/src/App.tsx)에서 lazy 로딩됩니다. 새 라우트를 추가할 때도 같은 방식으로 route chunk를 분리합니다.
+라우트 화면(`SelfPage`, `CompetitorPage`, `SnapshotConfirmPage`)은 [`App.tsx`](../../dashboard-app/src/App.tsx)에서 lazy 로딩됩니다. 새 라우트를 추가할 때도 같은 방식으로 route chunk를 분리합니다. GitHub Pages 배포에서는 정적 호스팅 새로고침 문제를 피하기 위해 `HashRouter`를 사용하므로 실제 배포 URL은 `/Estimator/#/dashboard/self` 형태입니다. workflow는 `404.html` fallback도 함께 배포합니다.
 
 ---
 

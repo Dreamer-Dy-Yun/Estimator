@@ -46,19 +46,16 @@ export default defineConfig({
                 fromNodePackage(moduleId, 'd3-timer') ||
                 fromNodePackage(moduleId, 'victory-vendor'),
               priority: 20,
-              maxSize: 450 * 1024,
             },
             {
               name: 'vendor-math',
               test: (moduleId) => fromNodePackage(moduleId, 'katex') || fromNodePackage(moduleId, 'react-katex'),
               priority: 20,
-              maxSize: 450 * 1024,
             },
             {
               name: 'vendor',
               test: 'node_modules',
               priority: 10,
-              maxSize: 450 * 1024,
             },
           ],
         },

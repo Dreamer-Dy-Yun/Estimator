@@ -24,13 +24,14 @@
 - 오더 스냅샷 독립 localStorage 저장/조회/삭제 API를 제거하고, 후보 아이템 `details`를 스냅샷 저장의 단일 경로로 둔다.
 - 후보군 생성 후 별도 확인 팝업을 띄우지 않고 생성된 후보군을 즉시 선택한 뒤 선택 모달을 닫는다.
 - 후보군 목록의 삭제·복제·편집 이벤트는 mock localStorage 변경 후 목록을 재조회하며, 상세/드로어 비동기 로딩은 stale 응답 가드를 둔다.
-- 라우트 페이지는 `src/App.tsx`에서 `React.lazy`로 분리하고, vendor chunk는 `vite.config.ts`의 Rolldown `codeSplitting.groups`가 소유한다.
+- 라우트 페이지는 `src/App.tsx`에서 `React.lazy`로 분리하고, GitHub Pages 정적 배포 라우팅은 `HashRouter`가 소유한다.
+- vendor chunk는 `vite.config.ts`의 Rolldown `codeSplitting.groups`가 소유한다. Recharts 같은 내부 순서 의존 라이브러리는 `maxSize`로 강제 세분화하지 않는다.
 
 ## 최상위 저장소
 
 | 경로 | 역할 | 변경 기준 |
 |------|------|-----------|
-| `.github/workflows/deploy-dashboard.yml` | `dashboard-app`을 테스트, 빌드, GitHub Pages에 배포한다. | 배포 방식, Node 버전, Pages 경로가 바뀔 때 수정 |
+| `.github/workflows/deploy-dashboard.yml` | `dashboard-app`을 테스트, `/Estimator/` base로 빌드, SPA fallback용 `404.html`을 포함해 GitHub Pages에 배포한다. | 배포 방식, Node 버전, Pages 경로, fallback 방식이 바뀔 때 수정 |
 | `AGENTS.md` | 작업자 지침. Git, 문서, 검증, 프론트엔드 경계 규칙을 둔다. | 프로젝트 운영 규칙이 바뀔 때 수정 |
 | `MD/` | 계획, 결과, API 계약, 구조 문서 보관소. | 기능/API/구조 변경 시 관련 문서 갱신 |
 | `dashboard-app/` | React/Vite 대시보드 앱. | 프론트엔드 작업의 주 대상 |
@@ -45,7 +46,7 @@
 |------|------|-----------|
 | `package.json` | 앱 스크립트와 의존성 선언. | 런타임/빌드/테스트 의존성 변경 시 수정 |
 | `package-lock.json` | npm 의존성 잠금. | `package.json` 변경 또는 설치 결과 변경 시 수정 |
-| `vite.config.ts` | Vite 설정. 프로덕션 빌드의 vendor chunk 분리는 Rolldown `codeSplitting.groups`에서 관리한다. | 빌드 옵션, base path, 플러그인, chunk 분리 기준 변경 시 수정 |
+| `vite.config.ts` | Vite 설정. 프로덕션 빌드의 vendor chunk 분리는 Rolldown `codeSplitting.groups`에서 관리한다. | 빌드 옵션, 플러그인, chunk 분리 기준 변경 시 수정 |
 | `tsconfig*.json` | TypeScript 컴파일 경계. | TS 대상, strictness, include 경계 변경 시 수정 |
 | `eslint.config.js` | 린트 규칙. 현재 전체 lint에는 기존 실패가 있을 수 있다. | 규칙이나 대상 변경 시 수정 |
 | `index.html` | Vite HTML 진입점. | 루트 마크업/메타/앱 mount 변경 시 수정 |
@@ -59,7 +60,7 @@
 | 경로 | 역할 | 변경 기준 |
 |------|------|-----------|
 | `src/main.tsx` | React root 생성, 전역 CSS와 KaTeX CSS 로드. | 전역 provider, 전역 스타일, 앱 mount 변경 시 수정 |
-| `src/App.tsx` | 라우터 구성, 최상위 shell, 라우트 페이지 lazy import. | URL 라우팅, 주요 layout 진입점, 라우트 단위 chunk 경계 변경 시 수정 |
+| `src/App.tsx` | `HashRouter` 라우터 구성, 최상위 shell, 라우트 페이지 lazy import. | URL 라우팅, 주요 layout 진입점, 라우트 단위 chunk 경계, 배포 라우팅 방식 변경 시 수정 |
 | `src/app.module.css` | 최상위 앱 shell 크기와 main 영역 스타일. | 앱 전체 shell 레이아웃 변경 시 수정 |
 | `src/types.ts` | 아직 API 계약으로 승격되지 않은 공용 도메인 타입. | 여러 영역에서 공유되는 타입만 둔다 |
 
