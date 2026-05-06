@@ -1,6 +1,9 @@
 import { CANDIDATE_ITEM_STORAGE_KEY, CANDIDATE_STASH_STORAGE_KEY } from './constants'
 import type { CandidateItemRecord, CandidateStashRecord } from './records'
-import { buildMockOrderSnapshotForCandidate } from './orderSnapshotForCandidate'
+import {
+  buildMockOrderSnapshotForCandidate,
+  ensureMockAiCommentForSnapshot,
+} from './orderSnapshotForCandidate'
 
 const seededCandidateStashes: CandidateStashRecord[] = [
   {
@@ -148,5 +151,24 @@ export function ensureCandidateSeed() {
   const stashRaw = localStorage.getItem(CANDIDATE_STASH_STORAGE_KEY)
   const itemRaw = localStorage.getItem(CANDIDATE_ITEM_STORAGE_KEY)
   if (stashRaw == null) localStorage.setItem(CANDIDATE_STASH_STORAGE_KEY, JSON.stringify(seededCandidateStashes))
-  if (itemRaw == null) localStorage.setItem(CANDIDATE_ITEM_STORAGE_KEY, JSON.stringify(seededCandidateItems))
+  if (itemRaw == null) {
+    localStorage.setItem(CANDIDATE_ITEM_STORAGE_KEY, JSON.stringify(seededCandidateItems))
+    return
+  }
+  try {
+    const items = JSON.parse(itemRaw) as CandidateItemRecord[]
+    let changed = false
+    const nextItems = items.map((item) => {
+      const nextDetails = ensureMockAiCommentForSnapshot(item.details)
+      if (nextDetails === item.details) return item
+      changed = true
+      return {
+        ...item,
+        details: nextDetails,
+      }
+    })
+    if (changed) localStorage.setItem(CANDIDATE_ITEM_STORAGE_KEY, JSON.stringify(nextItems))
+  } catch {
+    /* keep existing storage untouched if it cannot be parsed */
+  }
 }

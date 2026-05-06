@@ -1,5 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { mockDashboardApi } from './dashboardApi'
+import { CANDIDATE_ITEM_STORAGE_KEY, CANDIDATE_STASH_STORAGE_KEY } from './constants'
+import { buildMockOrderSnapshotForCandidate } from './orderSnapshotForCandidate'
+import type { CandidateItemRecord, CandidateStashRecord } from './records'
 
 function createMemoryStorage(): Storage {
   const store = new Map<string, string>()
@@ -121,5 +124,44 @@ describe('api/mock dashboardApi candidate stash mutations', () => {
 
     expect(after.some((row) => row.uuid === target!.uuid)).toBe(false)
     expect(items).toEqual([])
+  })
+
+  it('backfills empty mock AI comments before hydrating candidate drawer snapshots', async () => {
+    const now = '2026-05-06T09:00:00.000Z'
+    const details = buildMockOrderSnapshotForCandidate('B')
+    const staleDetails = {
+      ...details,
+      drawer2: {
+        ...details.drawer2,
+        llmPrompt: '',
+        llmAnswer: '',
+      },
+    }
+    const stash: CandidateStashRecord = {
+      uuid: 'stash-ai-comment-test',
+      name: 'AI 코멘트 테스트',
+      note: null,
+      productId: 'B',
+      dbCreatedAt: now,
+      dbUpdatedAt: now,
+    }
+    const item: CandidateItemRecord = {
+      uuid: 'item-ai-comment-test',
+      stashUuid: stash.uuid,
+      skuUuid: 'B',
+      details: staleDetails,
+      isLatestLlmComment: true,
+      dbCreatedAt: now,
+      dbUpdatedAt: now,
+    }
+    localStorage.setItem(CANDIDATE_STASH_STORAGE_KEY, JSON.stringify([stash]))
+    localStorage.setItem(CANDIDATE_ITEM_STORAGE_KEY, JSON.stringify([item]))
+
+    const hydrated = await mockDashboardApi.getCandidateItemByUuid(item.uuid)
+    const stored = JSON.parse(localStorage.getItem(CANDIDATE_ITEM_STORAGE_KEY) ?? '[]') as CandidateItemRecord[]
+
+    expect(hydrated?.details.drawer2.llmPrompt.trim()).not.toBe('')
+    expect(hydrated?.details.drawer2.llmAnswer.trim()).not.toBe('')
+    expect(stored[0]?.details.drawer2.llmAnswer.trim()).toBe(hydrated?.details.drawer2.llmAnswer.trim())
   })
 })

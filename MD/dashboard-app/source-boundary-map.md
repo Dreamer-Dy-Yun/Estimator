@@ -26,6 +26,7 @@
 - 후보군 목록의 삭제·복제·편집 이벤트는 mock localStorage 변경 후 목록을 재조회하며, 상세/드로어 비동기 로딩은 stale 응답 가드를 둔다.
 - 라우트 페이지는 `src/App.tsx`에서 `React.lazy`로 분리한다. 기본 라우팅은 일반 배포용 `BrowserRouter`이고, GitHub Pages workflow만 `VITE_ROUTER_MODE=hash`로 `HashRouter`를 켠다.
 - vendor chunk는 `vite.config.ts`의 Rolldown `codeSplitting.groups`가 소유한다. Recharts 같은 내부 순서 의존 라이브러리는 `maxSize`로 강제 세분화하지 않는다.
+- 후보 아이템 목업 스냅샷은 `drawer2.llmAnswer`에 임시 AI 코멘트를 포함하고, 기존 localStorage 데이터도 빈 코멘트만 보강해 2차 드로어에서 바로 확인되게 한다.
 
 ## 최상위 저장소
 
@@ -81,10 +82,10 @@
 
 | 파일 | 역할 |
 |------|------|
-| `candidateSeeds.ts` | 후보군/후보 아이템 seed 데이터 |
+| `candidateSeeds.ts` | 후보군/후보 아이템 seed 데이터와 기존 목업 스냅샷의 빈 AI 코멘트 보강 |
 | `constants.ts` | mock 공용 상수 |
 | `dashboardApi.ts` | mock `DashboardApi` 구현체. 후보군 CRUD는 localStorage에 실제 반영한다 |
-| `orderSnapshotForCandidate.ts` | 후보 아이템용 오더 스냅샷 생성/복원 보조 |
+| `orderSnapshotForCandidate.ts` | 후보 아이템용 오더 스냅샷 생성/복원 보조와 임시 목업 AI 코멘트 생성 |
 | `productCatalog.ts` | 상품 catalog seed와 조회 |
 | `records.ts` | mock 원천 record 묶음 |
 | `salesTables.ts` | 자사/경쟁 판매 테이블 mock |

@@ -26,7 +26,10 @@ import {
 import type { CandidateItemRecord, CandidateStashRecord } from './records'
 import { logApiCalled, makeUuid32, sleep } from './utils'
 import { ensureCandidateSeed } from './candidateSeeds'
-import { buildMockOrderSnapshotForCandidate } from './orderSnapshotForCandidate'
+import {
+  buildMockOrderSnapshotForCandidate,
+  ensureMockAiCommentForSnapshot,
+} from './orderSnapshotForCandidate'
 import {
   allKnownProductIds,
   brands,
@@ -76,6 +79,7 @@ function updateCandidateItemIsLatestLlmComment(itemUuid: string, isLatestLlmComm
   const prev = items[idx]!
   items[idx] = {
     ...prev,
+    details: isLatestLlmComment ? ensureMockAiCommentForSnapshot(prev.details) : prev.details,
     isLatestLlmComment,
   }
   localStorage.setItem(CANDIDATE_ITEM_STORAGE_KEY, JSON.stringify(items))
