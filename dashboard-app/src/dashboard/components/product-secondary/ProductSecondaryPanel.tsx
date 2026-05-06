@@ -97,7 +97,6 @@ export function ProductSecondaryPanel({
   const expectedInboundOrderBalanceHelpId = useId()
   const sizeRecQtyHelpId = useId()
   const salesForecastSizeOrderHelpId = useId()
-  const snapshotTestTitleId = useId()
   const portalHelp = usePortalHelpPopover<SecondaryHelpId>()
   const [safetyStockMode] = useState<'manual' | 'formula'>('formula')
   const [manualSafetyStock] = useState(0)
@@ -112,20 +111,14 @@ export function ProductSecondaryPanel({
   const [expectedFeeRatePct, setExpectedFeeRatePct] = useState(13)
   const [llmPrompt, setLlmPrompt] = useState('')
   const [llmAnswer, setLlmAnswer] = useState('')
-  const [llmLoading, setLlmLoading] = useState(false)
   const [selfWeightPct, setSelfWeightPct] = useState(50)
-  /** 사이즈별 오더 표의 판매 예측에 사용할 지표(판매 예측 표 헤더 라디오와 동기화). */
-  const [sizeForecastSource, setSizeForecastSource] = useState<'periodMean' | 'forecastQty'>('forecastQty')
   /** 사용자가 직접 덮어쓴 확정 수량만 — 스냅샷 값은 snapshotConfirmBySize에서 병합 */
   const [confirmBySize, setConfirmBySize] = useState<Record<string, number>>({})
   const dailyTrendReqSeqRef = useRef(0)
   const [forecastCalc, setForecastCalc] = useState<SecondaryForecastCalc | null>(null)
   const [forecastCalcError, setForecastCalcError] = useState<ApiUnitErrorInfo | null>(null)
   const [dailyTrendError, setDailyTrendError] = useState<ApiUnitErrorInfo | null>(null)
-  const [llmError, setLlmError] = useState<ApiUnitErrorInfo | null>(null)
   const [prefillError, setPrefillError] = useState<string | null>(null)
-  /** [테스트] 오더 확정 시 저장 페이로드 JSON 미리보기 */
-  const [testSnapshotJson, setTestSnapshotJson] = useState<string | null>(null)
   const [candidateActionLoading, setCandidateActionLoading] = useState(false)
   const [candidateListOpen, setCandidateListOpen] = useState(false)
   const [candidateStashes, setCandidateStashes] = useState<Array<{
@@ -141,16 +134,6 @@ export function ProductSecondaryPanel({
   } | null>(null)
   const [candidateNameInput, setCandidateNameInput] = useState('')
   const [candidateNoteInput, setCandidateNoteInput] = useState('')
-  const [candidateCreatedPopupText, setCandidateCreatedPopupText] = useState<string | null>(null)
-
-  useEffect(() => {
-    if (testSnapshotJson == null) return
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setTestSnapshotJson(null)
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [testSnapshotJson])
 
   useEffect(() => {
     setCandidateListOpen(false)
@@ -399,11 +382,10 @@ export function ProductSecondaryPanel({
     setSelfWeightPct(d2.selfWeightPct)
     setLlmPrompt(d2.llmPrompt)
     setLlmAnswer(d2.llmAnswer)
-    setSizeForecastSource(d2.sizeForecastSource === 'periodMean' ? 'periodMean' : 'forecastQty')
     setLeadTimeStartDate(si.leadTimeStartDate)
     setLeadTimeEndDate(si.leadTimeEndDate)
     setDailyMeanClient(si.dailyMean)
-  }, [prefillFromSnapshot, primary.id, defaultLeadTime.start, defaultLeadTime.end, onChannelChange])
+  }, [prefillFromSnapshot, primary.id, onChannelChange])
 
   const sizeAgg = useMemo(() => {
     const mix = mergePrimarySecondarySizeMix(primary, secondary)
@@ -450,7 +432,6 @@ export function ProductSecondaryPanel({
     })
   }, [
     sizeAgg,
-    clientStock.trendMuRaw,
     clientStock.forecastMuRaw,
     dailyMeanClient,
     forecastSalesHorizonDays,
@@ -543,24 +524,6 @@ export function ProductSecondaryPanel({
     }))
   }, [primary.sizeMix])
 
-  const sendLlm = useCallback(async () => {
-    setLlmLoading(true)
-    try {
-      const ans = await dashboardApi.getSecondaryLlmAnswer({ productId: primary.id, prompt: llmPrompt })
-      setLlmAnswer(ans)
-      setLlmError(null)
-    } catch (err) {
-      setLlmError(
-        makeApiErrorInfo(
-          `getSecondaryLlmAnswer(${JSON.stringify({ productId: primary.id, prompt: llmPrompt })})`,
-          err,
-        ),
-      )
-    } finally {
-      setLlmLoading(false)
-    }
-  }, [llmPrompt, makeApiErrorInfo, primary.id])
-
   const buildSnapshot = useCallback((): OrderSnapshotDocumentV1 => ({
       schemaVersion: ORDER_SNAPSHOT_SCHEMA_VERSION,
       productId: primary.id,
@@ -589,7 +552,7 @@ export function ProductSecondaryPanel({
         stockInputs: forecastInputs,
         stockDerived: forecastDerived,
         selfWeightPct,
-        sizeForecastSource,
+        sizeForecastSource: 'forecastQty',
         bufferStock,
         llmPrompt,
         llmAnswer,
@@ -633,7 +596,6 @@ export function ProductSecondaryPanel({
     llmPrompt,
     llmAnswer,
     selfWeightPct,
-    sizeForecastSource,
     bufferStock,
     unitPriceInput,
     unitCostInput,
@@ -669,8 +631,6 @@ export function ProductSecondaryPanel({
         details: snap,
         isLatestLlmComment: false,
       })
-      void dashboardApi.saveSecondaryOrderSnapshot(snap)
-      setTestSnapshotJson(JSON.stringify(snap, null, 2))
     } finally {
       setCandidateActionLoading(false)
     }
@@ -686,7 +646,6 @@ export function ProductSecondaryPanel({
         details: snap,
         isLatestLlmComment: false,
       })
-      void dashboardApi.saveSecondaryOrderSnapshot(snap)
       candidateItemContext.onSaved?.()
     } finally {
       setCandidateActionLoading(false)
@@ -707,9 +666,9 @@ export function ProductSecondaryPanel({
         name: created.name,
         dbCreatedAt: created.dbCreatedAt,
       })
-      setCandidateCreatedPopupText(`${created.name}${KO.msgCandidateCreatedPopupSuffix}`)
       setCandidateNameInput('')
       setCandidateNoteInput('')
+      setCandidateListOpen(false)
     } finally {
       setCandidateActionLoading(false)
     }
@@ -863,16 +822,8 @@ export function ProductSecondaryPanel({
         <ComponentErrorBoundary page={pageName} unit="AiMockCard">
           <AiMockCard
             ai={{
-              prompt: llmPrompt,
               answer: llmAnswer,
-              loading: llmLoading,
-              error: llmError,
             }}
-            actions={{
-              onPromptChange: setLlmPrompt,
-              onSend: sendLlm,
-            }}
-            mode="answerOnly"
           />
         </ComponentErrorBoundary>
       </div>
@@ -1044,70 +995,6 @@ export function ProductSecondaryPanel({
                     ))
                   )}
                 </div>
-              </div>
-            </div>
-          </div>,
-          document.body,
-        )}
-      {testSnapshotJson != null &&
-        createPortal(
-          <div
-            className={styles.snapshotTestBackdrop}
-            role="presentation"
-            onClick={() => setTestSnapshotJson(null)}
-          >
-            <div
-              className={styles.snapshotTestDialog}
-              role="dialog"
-              aria-modal="true"
-              aria-labelledby={snapshotTestTitleId}
-              tabIndex={-1}
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className={styles.snapshotTestBadgeRow}>
-                <span className={styles.snapshotTestBadge}>{KO.snapshotTestBadge}</span>
-                <span className={styles.snapshotTestNote}>{KO.snapshotTestNote}</span>
-              </div>
-              <h4 id={snapshotTestTitleId} className={styles.snapshotTestTitle}>
-                {KO.snapshotTestTitle}
-              </h4>
-              <pre className={styles.snapshotTestPre}>{testSnapshotJson}</pre>
-              <div className={styles.snapshotTestActions}>
-                <button
-                  type="button"
-                  className={`${styles.btn} ${styles.btnViewportAdaptive}`}
-                  onClick={() => setTestSnapshotJson(null)}
-                >
-                  {KO.btnSnapshotTestOk}
-                </button>
-              </div>
-            </div>
-          </div>,
-          document.body,
-        )}
-      {candidateCreatedPopupText != null &&
-        createPortal(
-          <div
-            className={styles.snapshotTestBackdrop}
-            role="presentation"
-            onClick={() => setCandidateCreatedPopupText(null)}
-          >
-            <div
-              className={styles.snapshotTestDialog}
-              role="dialog"
-              aria-modal="true"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <h4 className={styles.snapshotTestTitle}>{candidateCreatedPopupText}</h4>
-              <p className={styles.candidateCreatedPopupDesc}>후보군 리스트에서 바로 선택해 사용할 수 있습니다.</p>
-              <div className={styles.snapshotTestActions}>
-                <button
-                  type="button"
-                  className={`${styles.btn} ${styles.btnViewportAdaptive}`}
-                  onClick={() => setCandidateCreatedPopupText(null)}
-                >
-                  {KO.btnSnapshotTestOk}
-                </button>
               </div>
             </div>
           </div>,

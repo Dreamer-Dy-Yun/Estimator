@@ -23,9 +23,7 @@ import type {
   SecondaryStockOrderCalcResult,
   SecondaryDailyTrendParams,
   SecondaryDailyTrendPoint,
-  SecondaryLlmAnswerParams,
   ProductSecondaryDetailParams,
-  SecondaryOrderSnapshotPayload,
   CompetitorSalesParams,
   SelfSalesFilterMeta,
   SelfSalesParams,
@@ -86,31 +84,6 @@ async function getSecondaryDailyTrend(
 /** 2차 드로어 경쟁 채널 옵션. 현재 mock은 크림/무신사/네이버 채널 차이를 만들어 반환한다. */
 export async function getSecondaryCompetitorChannels(): Promise<SecondaryCompetitorChannel[]> {
   return mockDashboardApi.getSecondaryCompetitorChannels()
-}
-
-/** 2차 드로어 LLM 응답. 현재는 mock 텍스트지만 실제 연동 시 프롬프트와 상품 컨텍스트를 백엔드로 넘긴다. */
-async function getSecondaryLlmAnswer(params: SecondaryLlmAnswerParams): Promise<string> {
-  return mockDashboardApi.getSecondaryLlmAnswer(params)
-}
-
-/**
- * 2차 오더 스냅샷 저장.
- * 후보군과 별개로 브라우저 저장소에 남기는 확인용 스냅샷이며, 후보 아이템 최신성 플래그는 별도 API에서 명시한다.
- */
-async function saveSecondaryOrderSnapshot(
-  snapshot: SecondaryOrderSnapshotPayload,
-): Promise<void> {
-  return mockDashboardApi.saveSecondaryOrderSnapshot(snapshot)
-}
-
-/** 저장된 2차 오더 스냅샷 목록. productId가 있으면 해당 상품 스냅샷만 조회한다. */
-async function getSecondaryOrderSnapshots(productId?: string): Promise<SecondaryOrderSnapshotPayload[]> {
-  return mockDashboardApi.getSecondaryOrderSnapshots(productId)
-}
-
-/** 저장된 2차 오더 스냅샷 삭제. productId와 savedAt 조합이 삭제 키다. */
-async function deleteSecondaryOrderSnapshot(productId: string, savedAt: string): Promise<void> {
-  return mockDashboardApi.deleteSecondaryOrderSnapshot(productId, savedAt)
 }
 
 /** 후보군 목록. productId 필터가 있으면 해당 상품 기준 후보군만 반환한다. */
@@ -232,10 +205,6 @@ export const dashboardApi: DashboardApi = {
   getProductSecondaryDetail,
   getSecondaryDailyTrend,
   getSecondaryCompetitorChannels,
-  getSecondaryLlmAnswer,
-  saveSecondaryOrderSnapshot,
-  getSecondaryOrderSnapshots,
-  deleteSecondaryOrderSnapshot,
   getCandidateStashes,
   getCandidateItemsByStash,
   getCandidateItemByUuid,

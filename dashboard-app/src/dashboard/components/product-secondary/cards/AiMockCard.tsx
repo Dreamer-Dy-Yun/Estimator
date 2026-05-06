@@ -1,50 +1,20 @@
-import { ApiUnitErrorBadge } from '../../../../components/ApiUnitErrorBadge'
-import type { ApiUnitErrorInfo } from '../../../../types'
 import { KO } from '../ko'
 import styles from '../productSecondaryPanel.module.css'
 
 type Props = {
   ai: {
-    prompt: string
     answer: string
-    loading: boolean
-    error: ApiUnitErrorInfo | null
   }
-  actions: {
-    onPromptChange: (next: string) => void
-    onSend: () => void
-  }
-  mode?: 'editor' | 'answerOnly'
 }
 
-export function AiMockCard({ ai, actions, mode = 'editor' }: Props) {
-  const { prompt, answer, loading, error } = ai
-  const { onPromptChange, onSend } = actions
+export function AiMockCard({ ai }: Props) {
+  const { answer } = ai
   return (
     <div className={`${styles.card} ${styles.gridColumnCard}`}>
       <h3 className={styles.sectionTitle}>
         {KO.sectionAi}
-        <ApiUnitErrorBadge error={error} />
       </h3>
       <div className={styles.aiCardBody}>
-        {mode === 'editor' && (
-          <>
-            <textarea
-              value={prompt}
-              onChange={(e) => onPromptChange(e.target.value)}
-              placeholder={KO.placeholderPrompt}
-              aria-label={KO.ariaLlmPrompt}
-            />
-            <button
-              type="button"
-              className={`${styles.btn} ${styles.btnViewportAdaptive}`}
-              onClick={onSend}
-              disabled={loading}
-            >
-              {loading ? KO.btnGenerating : KO.btnAnswerGen}
-            </button>
-          </>
-        )}
         <div className={styles.aiAnswer} aria-live="polite">
           {answer || KO.answerEmpty}
         </div>

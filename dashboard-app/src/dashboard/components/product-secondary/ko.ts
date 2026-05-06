@@ -39,10 +39,6 @@ export const KO = {
   "rowExpectedInboundOrderBalance": "현오더 입고전 미입고잔량(EA)",
   "helpExpectedInboundOrderBalance": "금번 오더 수량의 입고시까지의 오더 잔량입니다.",
   "sectionAi": "AI (목업)",
-  "placeholderPrompt": "프롬프트를 입력하세요",
-  "ariaLlmPrompt": "LLM 질의",
-  "btnGenerating": "생성 중…",
-  "btnAnswerGen": "답변 생성",
   "answerEmpty": "답변이 여기에 표시됩니다.",
   "sectionSizeOrder": "사이즈별 오더",
   "sectionSalesTrendDaily": "판매추이(일간)",
@@ -73,11 +69,6 @@ export const KO = {
   "labelCandidateNote": "비고",
   "msgNoNote": "비고 없음",
   "msgCandidateEmpty": "후보군이 없습니다.",
-  "msgCandidateCreatedPopupSuffix": "가 생성되었습니다.",
-  "hintSnapshot": "확정 시 이 패널 전체 상태와 LLM 질의·답변이 브라우저 localStorage에 저장됩니다.",
-  "snapshotTestBadge": "테스트 전용",
-  "snapshotTestTitle": "오더 스냅샷 JSON",
-  "snapshotTestNote": "개발·확인용 미리보기입니다. 배포 전 제거하거나 플래그로 끄세요.",
-  "btnSnapshotTestOk": "확인",
+  "hintSnapshot": "확정 시 이 패널 전체 상태와 LLM 질의·답변이 선택한 후보군 이너 오더에 저장됩니다.",
   "rankSuffix": "위"
 } as const

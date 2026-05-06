@@ -19,7 +19,7 @@
 > **주의:** 공식 제품 비전·OKR 문서는 이 저장소에 없습니다. 아래는 **화면 명칭, 데이터 모델, 사용자 흐름**을 근거로 한 추정입니다. 조직에서 정의한 목적과 다르면 이 절을 수정해 주시면 됩니다.
 
 **추정 요약:**  
-브랜드·카테고리·기간·채널 조건으로 **자사 판매 실적**과 **경쟁 채널 대비 지표**를 보고, SKU 단위로 **1차 요약(가격·재고·월간 추이 등)**과 **2차 심화(경쟁 비중, 일별 추이, 안전재고·발주 시뮬, 사이즈별 확정 수량, LLM 보조)**를 한 화면 흐름에서 다룹니다. 확정한 시나리오는 **오더 스냅샷 JSON**으로 저장하고, **오더 후보군(스태시)**에 여러 SKU 후보를 모아 비교·관리할 수 있습니다.
+브랜드·카테고리·기간·채널 조건으로 **자사 판매 실적**과 **경쟁 채널 대비 지표**를 보고, SKU 단위로 **1차 요약(가격·재고·월간 추이 등)**과 **2차 심화(경쟁 비중, 일별 추이, 안전재고·발주 시뮬, 사이즈별 확정 수량, LLM 보조)**를 한 화면 흐름에서 다룹니다. 확정한 시나리오는 **오더 스냅샷 JSON**으로 후보군 아이템 `details`에 저장하고, **오더 후보군(스태시)**에 여러 SKU 후보를 모아 비교·관리할 수 있습니다.
 
 즉, **판매·재고 인사이트 + 발주 의사결정 보조 + 후보안 보관**을 엮은 **내부용 대시보드(프로토타입/목 중심)** 로 읽는 것이 타당합니다.
 
@@ -36,7 +36,7 @@
 | 수식 표시 | KaTeX / react-katex (2차 패널 등) |
 | 스타일 | CSS Modules (`.module.css`) |
 
-테스트 프레임워크는 저장소 기준으로 별도 구성이 없습니다.
+테스트는 Vitest(`npm run test:run`)로 실행합니다.
 
 ---
 
@@ -80,8 +80,8 @@
 ## 6. 제품 요약 드로어 (`ProductSummaryDrawer`)
 
 - **1차:** 상품 이미지, 기간·경쟁 채널 기준 판매 정보([`getProductSalesInsight`](../../dashboard-app/src/api/types/dashboard-api.ts)), 월간 판매 추이(포캐스트 구간) 등. 계절성 카드는 현재 화면에서 제외.
-- **2차 확장 패널:** [`ProductSecondaryPanel`](../../dashboard-app/src/dashboard/components/product-secondary/ProductSecondaryPanel.tsx) — 상품 메타, 후보군 저장/수정, 재고·발주 시뮬([`getSecondaryStockOrderCalc`](../../dashboard-app/src/api/types/dashboard-api.ts)), AI 답변 표시([`getSecondaryLlmAnswer`](../../dashboard-app/src/api/types/dashboard-api.ts)), 일별 추이, 사이즈별 확정 수량 등.
-- **스냅샷:** [`OrderSnapshotDocumentV1`](../../dashboard-app/src/snapshot/orderSnapshotTypes.ts) 스키마 v2, 파싱 [`parseOrderSnapshot`](../../dashboard-app/src/snapshot/parseOrderSnapshot.ts).
+- **2차 확장 패널:** [`ProductSecondaryPanel`](../../dashboard-app/src/dashboard/components/product-secondary/ProductSecondaryPanel.tsx) — 상품 메타, 후보군 저장/수정, 재고·발주 시뮬([`getSecondaryStockOrderCalc`](../../dashboard-app/src/api/types/dashboard-api.ts)), 저장된 AI 답변 표시, 일별 추이, 사이즈별 확정 수량 등.
+- **스냅샷:** [`OrderSnapshotDocumentV1`](../../dashboard-app/src/snapshot/orderSnapshotTypes.ts) 스키마 v2, 파싱 [`parseOrderSnapshot`](../../dashboard-app/src/snapshot/parseOrderSnapshot.ts). 독립 스냅샷 목록 API는 없고 후보 아이템 `details`가 저장·복원 경로입니다.
 - **키보드(2차가 열리고 2차 데이터 준비 완료 시):** `←` / `→`로 **현재 목록의 이전·다음 SKU**(또는 이너 후보의 uuid 순) 순환 — [`adjacentListNavigation`](../../dashboard-app/src/utils/adjacentListNavigation.ts). 입력·콤보 패널 포커스 시에는 무시.
 - **번들 로딩:** 자사/경쟁은 [`allowStaleWhileRevalidate`](../../dashboard-app/src/dashboard/hooks/useProductDrawerBundle.ts) 기본 `true`로 드로어 언마운트 방지(2차 접힘 방지). 이너 후보는 `false`로 스냅샷과 번들 id 정합 유지.
 
@@ -92,7 +92,7 @@
 | 구분 | 설명 |
 |------|------|
 | 계약 | [`DashboardApi`](../../dashboard-app/src/api/types/dashboard-api.ts) 인터페이스 |
-| 구현체 | [`mock.ts`](../../dashboard-app/src/api/mock.ts) — localStorage 일부(후보군·스냅샷 등) |
+| 구현체 | [`mock.ts`](../../dashboard-app/src/api/mock.ts) — 후보군 localStorage와 mock 응답 |
 | 진입점 | [`client.ts`](../../dashboard-app/src/api/client.ts) `dashboardApi`, 개별 `getXxx` 함수 |
 | 타입 | [`api/types/*`](../../dashboard-app/src/api/types/), [`types.ts`](../../dashboard-app/src/types.ts), [`snapshot/*`](../../dashboard-app/src/snapshot/) |
 

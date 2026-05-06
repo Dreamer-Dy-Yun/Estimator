@@ -25,11 +25,6 @@ export interface SecondaryCompetitorChannel {
   qtySkew: number
 }
 
-export interface SecondaryLlmAnswerParams {
-  productId: string
-  prompt: string
-}
-
 /**
  * 2차 상세(`getProductSecondaryDetail`) 조회 옵션.
  * 예: 영업이익률 하한 — 값이 바뀌면 동일 품번이라도 패널에서 이 객체를 deps에 넣고 재요청.

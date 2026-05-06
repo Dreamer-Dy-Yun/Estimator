@@ -3,7 +3,7 @@
 | 항목 | 내용 |
 |------|------|
 | 작성일 | 2026-04-23 |
-| 변경일 | 2026-04-23 |
+| 변경일 | 2026-05-06 |
 | 지시 | Yun Daeyoung |
 
 이 문서는 프론트의 **`DashboardApi` TypeScript 계약**을 만족하는 REST API를 설계·구현하기 위한 참고 자료입니다. 필드명은 **camelCase**, JSON 직렬화를 가정합니다.
@@ -34,7 +34,7 @@
 
 - **`productId`**: 상품(SKU 단위 등) 식별자. 프론트와 동일 문자열을 사용해야 합니다.
 - **`uuid`**: 후보 스태시·후보 아이템 등 **서버 생성 UUID** 문자열.
-- 오더 스냅샷 삭제 키: **`productId` + `savedAt`** 조합(현 클라이언트 계약).
+- 오더 스냅샷은 현재 독립 저장 API가 아니라 후보 아이템의 `details` JSON으로만 저장·복원합니다.
 
 ### 1.4 인증·에러
 
@@ -57,10 +57,6 @@
 | `getProductSecondaryDetail(id, params?)` | GET | `/products/:id/secondary-detail?minOpMarginPct` |
 | `getSecondaryDailyTrend(params)` | GET | `/products/:productId/secondary/daily-trend?startMonth&leadTimeDays` |
 | `getSecondaryCompetitorChannels()` | GET | `/secondary/competitor-channels` |
-| `getSecondaryLlmAnswer(params)` | POST 권장 | `/secondary/llm-answer` body: `{ productId, prompt }` |
-| `saveSecondaryOrderSnapshot(snapshot)` | PUT 또는 POST | `/products/:productId/order-snapshots` (body = 전체 문서) |
-| `getSecondaryOrderSnapshots(productId?)` | GET | `/products/:productId/order-snapshots` 또는 `/order-snapshots?productId` |
-| `deleteSecondaryOrderSnapshot(productId, savedAt)` | DELETE | `/products/:productId/order-snapshots/:savedAt` (savedAt URL 인코딩) |
 | `getCandidateStashes(productId?)` | GET | `/candidate-stashes?productId` |
 | `getCandidateItemsByStash(stashUuid)` | GET | `/candidate-stashes/:stashUuid/items` |
 | `getCandidateItemByUuid(itemUuid)` | GET | `/candidate-items/:itemUuid` |
@@ -233,24 +229,7 @@
 
 현재 프론트 기준 유효 채널은 **`kream`, `musinsa`** 입니다(`naver` 제거됨).
 
-### 3.8 `getSecondaryLlmAnswer`
-
-**파라미터 (`SecondaryLlmAnswerParams`)**
-
-| 필드 | 의미 |
-|------|------|
-| `productId` | 상품 id |
-| `prompt` | 사용자·시스템이 조합한 프롬프트 |
-
-**응답**: `string` — LLM 답변 본문.
-
-### 3.9 오더 스냅샷 저장·조회·삭제
-
-- **`saveSecondaryOrderSnapshot`**: 요청 바디는 **`OrderSnapshotDocumentV1` 전체**. [`§5.4`](#54-ordersnapshotdocumentv1-v2-스키마) 참조.
-- **`getSecondaryOrderSnapshots(productId?)`**: 해당 상품의 스냅샷 배열. 전체 조회 시 쿼리 생략 가능(제안).
-- **`deleteSecondaryOrderSnapshot`**: `savedAt` 문자열이 문서 내 타임스탬프와 **정확히 일치**해야 삭제됩니다.
-
-### 3.10 후보군(Candidate stash / item)
+### 3.8 후보군(Candidate stash / item)
 
 **`CandidateStashSummary`**
 
@@ -288,7 +267,7 @@
 
 - `CreateCandidateStashPayload`: `{ productId, name, note? }`
 - `UpdateCandidateStashPayload`: `{ stashUuid, name, note? }` — 메타만 갱신
-- `AppendCandidateItemPayload`: `{ stashUuid, productId, details, isLatestLlmComment? }` — 기본값은 `false` 권장
+- `AppendCandidateItemPayload`: `{ stashUuid, productId, details, isLatestLlmComment? }` — `details`가 오더 스냅샷 저장의 단일 경로이며, 기본값은 `false` 권장
 - `UpdateCandidateItemPayload`: `{ itemUuid, details, isLatestLlmComment }`
 - `CandidateStashExcelUploadResult`: `{ stashUuid, stashName, itemCount, warnings: string[] }`
 - `CandidateStashAnalysisStartResult`: `{ jobId, stashUuid, itemCount }`
@@ -322,7 +301,7 @@
 - 브라우저가 SSE 연결을 끊어도 백엔드 작업 취소를 의미하지 않습니다. 별도 취소 API가 필요하면 독립 계약으로 추가합니다.
 - LLM 분석 결과를 후보 아이템·후보군에 저장할 경우, 저장 위치와 요약 필드는 별도 응답/조회 계약으로 추가해야 합니다. 현재 프론트 계약은 “요청 발생 + 진행 상태 표시”까지만 요구합니다.
 
-### 3.11 `getSecondaryStockOrderCalc`
+### 3.9 `getSecondaryStockOrderCalc`
 
 **요청 (`SecondaryStockOrderCalcParams`)**
 
@@ -440,7 +419,7 @@
 |------|------|
 | `schemaVersion` | 스키마 버전 (현재 `2`) |
 | `productId` | 상품 id |
-| `savedAt` | 저장 시각 문자열 — 스냅샷 목록·삭제 키 |
+| `savedAt` | 후보 아이템 `details`에 저장되는 스냅샷 시각 |
 | `context` | 재조회용 컨텍스트 |
 | `context.periodStart`, `periodEnd` | 분석 구간 |
 | `context.forecastMonths` | 포캐스트 월 수 |
@@ -495,7 +474,7 @@
 ## 6. 구현 체크리스트
 
 1. OpenAPI 또는 JSON Schema로 위 타입을 Export 가능하면 프론트 codegen과 공유하기 쉽습니다.
-2. 스냅샷 저장 시 **`schemaVersion`** 과 **`context`** 필드를 클라이언트가 그대로 보내므로 검증 후 저장합니다.
+2. 후보 아이템 저장 시 **`schemaVersion`** 과 **`context`** 필드를 클라이언트가 그대로 보내므로 검증 후 저장합니다.
 3. 후보 아이템 목록 집계 필드는 스냅샷 **`drawer2.stockDerived`** 및 **`sizeRows[].confirmQty`** 와 일관되게 계산해야 합니다.
 4. 필드 리네이밍 시 프론트 TypeScript와 동시 배포 또는 버전 분기 필요.
 

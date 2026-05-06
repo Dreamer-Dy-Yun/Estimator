@@ -27,7 +27,6 @@ export type {
   SecondaryCompetitorChannel,
   SecondaryDailyTrendParams,
   SecondaryDailyTrendPoint,
-  SecondaryLlmAnswerParams,
   SecondaryOrderSnapshotPayload,
   SecondaryStockForecastQtyCalcBlock,
   SecondaryStockOrderCalcParams,

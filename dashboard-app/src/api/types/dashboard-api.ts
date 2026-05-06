@@ -26,8 +26,6 @@ import type {
   SecondaryCompetitorChannel,
   SecondaryDailyTrendParams,
   SecondaryDailyTrendPoint,
-  SecondaryLlmAnswerParams,
-  SecondaryOrderSnapshotPayload,
   SecondaryStockOrderCalcParams,
   SecondaryStockOrderCalcResult,
 } from './secondary'
@@ -48,10 +46,6 @@ export interface DashboardApi {
   ): Promise<ProductSecondaryDetail>
   getSecondaryDailyTrend(params: SecondaryDailyTrendParams): Promise<SecondaryDailyTrendPoint[]>
   getSecondaryCompetitorChannels(): Promise<SecondaryCompetitorChannel[]>
-  getSecondaryLlmAnswer(params: SecondaryLlmAnswerParams): Promise<string>
-  saveSecondaryOrderSnapshot(snapshot: SecondaryOrderSnapshotPayload): Promise<void>
-  getSecondaryOrderSnapshots(productId?: string): Promise<SecondaryOrderSnapshotPayload[]>
-  deleteSecondaryOrderSnapshot(productId: string, savedAt: string): Promise<void>
   getCandidateStashes(productId?: string): Promise<CandidateStashSummary[]>
   getCandidateItemsByStash(stashUuid: string): Promise<CandidateItemSummary[]>
   getCandidateItemByUuid(itemUuid: string): Promise<CandidateItemDetail | null>

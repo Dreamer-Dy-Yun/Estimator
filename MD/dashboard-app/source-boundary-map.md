@@ -20,6 +20,9 @@
 - 후보군 상세 모달, 추천 모달, 인사이트 배지, 후보군 상세 훅은 `dashboard/components/candidate-stash`로 이동했다.
 - 후보군 상세 모달 CSS는 `SnapshotConfirmPage.module.css`에서 분리해 `CandidateStashDetailModal.module.css`가 소유한다.
 - `SnapshotConfirmPage.module.css`는 후보군 목록/업로드/스냅샷 확인 페이지와 그 페이지의 확인 모달 스타일만 담당한다.
+- 2차 패널에서 화면에 노출되지 않는 LLM 프롬프트 생성 API와 배포 전 제거 대상이던 JSON 미리보기 모달을 제거했다.
+- 오더 스냅샷 독립 localStorage 저장/조회/삭제 API를 제거하고, 후보 아이템 `details`를 스냅샷 저장의 단일 경로로 둔다.
+- 후보군 생성 후 별도 확인 팝업을 띄우지 않고 생성된 후보군을 즉시 선택한 뒤 선택 모달을 닫는다.
 
 ## 최상위 저장소
 
@@ -69,7 +72,7 @@
 | `api/mock.ts` | mock API 진입 파일. | mock 구현 위치를 바꿀 때만 수정 |
 | `api/dailyTrendAsOf.ts` | 일간 트렌드 as-of 계산 보조 로직. | 일간 트렌드 기준일 규칙 변경 시 수정 |
 | `api/types/*` | 프론트-백엔드 계약 타입. | 요청/응답 구조가 바뀌면 먼저 수정 |
-| `api/mock/*` | localStorage, seed, mock 계산, mock 응답 구현. | 데모 데이터나 mock 동작 변경 시 수정 |
+| `api/mock/*` | 후보군 localStorage, seed, mock 계산, mock 응답 구현. | 데모 데이터나 mock 동작 변경 시 수정 |
 
 ### api/mock 하위 파일
 
@@ -158,7 +161,7 @@
 
 ## dashboard/components/product-secondary
 
-상품 요약 drawer의 2차 상세 패널 feature다. 발주 계산, 사이즈별 수량, LLM 답변, 후보군 저장 액션을 포함한다.
+상품 요약 drawer의 2차 상세 패널 feature다. 발주 계산, 사이즈별 수량, 저장된 LLM 답변 표시, 후보군 저장 액션을 포함한다.
 
 | 파일/폴더 | 역할 |
 |------|------|
@@ -168,7 +171,7 @@
 | `ko.ts` | product-secondary 영역의 한국어 텍스트 상수 |
 | `cards/*` | 2차 패널 카드 단위 UI |
 | `model/*` | 2차 패널 계산 로직. UI에서 직접 계산이 커지면 여기로 이동한다 |
-| `panel-styles/*` | 2차 패널 카드/컨트롤/표/입력 스타일 모듈 |
+| `panel-styles/*` | 2차 패널 카드/컨트롤/표/입력 스타일 모듈. 현재는 shell에서 실제 쓰는 조각만 import한다 |
 | `productSecondaryPanel.module.css` | 2차 패널 shell 스타일 |
 
 ## dashboard/hooks
@@ -193,7 +196,7 @@
 
 ## src/snapshot
 
-오더 스냅샷 저장 문서의 타입과 파서다. 후보군 item의 `details` 복원도 이 계약을 따른다.
+오더 스냅샷 저장 문서의 타입과 파서다. 후보군 item의 `details` 저장/복원이 이 계약을 따른다.
 
 | 파일 | 역할 |
 |------|------|

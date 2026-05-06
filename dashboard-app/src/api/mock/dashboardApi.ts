@@ -16,15 +16,12 @@ import type {
   ProductSalesInsightParams,
   ProductSecondaryDetailParams,
   SecondaryDailyTrendParams,
-  SecondaryLlmAnswerParams,
-  SecondaryOrderSnapshotPayload,
   SecondaryStockOrderCalcParams,
   SecondaryStockOrderCalcResult,
 } from '../types'
 import {
   CANDIDATE_ITEM_STORAGE_KEY,
   CANDIDATE_STASH_STORAGE_KEY,
-  SNAPSHOT_STORAGE_KEY,
 } from './constants'
 import type { CandidateItemRecord, CandidateStashRecord } from './records'
 import { logApiCalled, makeUuid32, sleep } from './utils'
@@ -354,53 +351,6 @@ export const mockDashboardApi = {
   getSecondaryCompetitorChannels: async () => {
     await sleep(40)
     return secondaryCompetitorChannels
-  },
-  getSecondaryLlmAnswer: async (params: SecondaryLlmAnswerParams) => {
-    void params
-    await sleep(180)
-    return [
-      '현재 설정 기준으로는 리드타임 동안 수요 변동을 감안한 안전재고 수준이 양호한 편입니다.',
-      '다만 시즌 전환 구간이 겹치면 완충재고를 한 단계 낮추고, 입고 주기를 짧게 가져가는 편이 유리해 보입니다.',
-      '경쟁 채널 가격이 자사 대비 높게 잡혀 있으니, 프로모션 없이도 단기 수요는 유지될 가능성이 큽니다.',
-    ].join('\n')
-  },
-  saveSecondaryOrderSnapshot: async (snapshot: SecondaryOrderSnapshotPayload) => {
-    await sleep(40)
-    try {
-      const raw = localStorage.getItem(SNAPSHOT_STORAGE_KEY)
-      const all = (raw ? JSON.parse(raw) : {}) as Record<string, SecondaryOrderSnapshotPayload[]>
-      const list = all[snapshot.productId] ?? []
-      list.push(snapshot)
-      all[snapshot.productId] = list
-      localStorage.setItem(SNAPSHOT_STORAGE_KEY, JSON.stringify(all))
-    } catch {
-      /* ignore quota */
-    }
-  },
-  getSecondaryOrderSnapshots: async (productId?: string) => {
-    await sleep(40)
-    try {
-      const raw = localStorage.getItem(SNAPSHOT_STORAGE_KEY)
-      const all = (raw ? JSON.parse(raw) : {}) as Record<string, SecondaryOrderSnapshotPayload[]>
-      const list = productId
-        ? (all[productId] ?? [])
-        : Object.values(all).flat()
-      return [...list].sort((a, b) => String(b.savedAt).localeCompare(String(a.savedAt)))
-    } catch {
-      return []
-    }
-  },
-  deleteSecondaryOrderSnapshot: async (productId: string, savedAt: string) => {
-    await sleep(40)
-    try {
-      const raw = localStorage.getItem(SNAPSHOT_STORAGE_KEY)
-      const all = (raw ? JSON.parse(raw) : {}) as Record<string, SecondaryOrderSnapshotPayload[]>
-      const list = all[productId] ?? []
-      all[productId] = list.filter((snap) => String(snap.savedAt) !== String(savedAt))
-      localStorage.setItem(SNAPSHOT_STORAGE_KEY, JSON.stringify(all))
-    } catch {
-      /* ignore quota */
-    }
   },
   getCandidateStashes: async (productId?: string): Promise<CandidateStashSummary[]> => {
     await sleep(60)
