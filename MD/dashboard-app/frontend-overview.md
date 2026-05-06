@@ -75,7 +75,7 @@
 
 ### 5.3 오더 후보군 (`SnapshotConfirmPage` + `CandidateStashDetailModal`)
 
-- **후보군(스태시) 목록:** 이름·비고 검색, 정렬, 엑셀 업로드, 생성·이름/비고 수정·삭제·복제. 목업도 localStorage에 실제 반영한 뒤 목록을 재조회합니다. 엑셀 업로드 카드는 같은 grid row에서 안내문과 드래그 영역을 나누며, 좁은 화면에서만 세로로 쌓습니다.
+- **후보군(스태시) 목록:** 이름·비고 검색, 정렬, 엑셀 업로드, 생성·이름/비고 수정·삭제·복제. 목업도 localStorage에 실제 반영한 뒤 목록을 재조회합니다. 엑셀 업로드 카드는 카드 자체가 `제목/안내문/드래그 영역/업로드 버튼` 4열 grid를 소유하며, 좁은 화면에서만 반응형으로 줄을 접습니다.
 - **상세 모달:** 한 스태시에 속한 **이너 후보** 목록 — 브랜드·상품코드·상품명 필터([`FilterBar`](../../dashboard-app/src/dashboard/components/FilterBar.tsx) + [`FilterListCombo`](../../dashboard-app/src/dashboard/components/FilterListCombo.tsx)).
 - **행 클릭:** 해당 아이템의 스냅샷을 불러와 드로어를 **2차까지 펼친 상태**로 표시(`initialExpandSecondary`), 스냅샷 병합·저장·삭제 등 [`candidateItemContext`](../../dashboard-app/src/dashboard/components/product-secondary/candidateActionCards.tsx) 연동. 드로어를 닫을 때는 닫힘 전환 동안 이너 후보 모달의 왼쪽 기준 폭 보정을 유지해, 열릴 때의 역방향으로 목록 영역이 다시 넓어집니다.
 - **AI 코멘트:** 목업 후보 아이템 스냅샷은 `drawer2.llmAnswer`에 임시 AI 코멘트를 포함합니다. 기존 localStorage 목업 데이터도 값이 비어 있으면 자동 보강되어 2차 드로어의 AI 코멘트 카드에 표시됩니다.
