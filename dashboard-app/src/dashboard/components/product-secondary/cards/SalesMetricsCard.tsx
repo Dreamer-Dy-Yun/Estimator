@@ -26,10 +26,32 @@ export function SalesMetricsCard({ targetPeriodDays, sales, channelFilter }: Pro
   const { channelLabel, self: selfCol, competitor: compCol } = sales
   const formatRank = (rank: number | null, total: number) =>
     rank === null ? '-' : `${rank}/${total}${KO.rankSuffix}`
-  const formatRateRank = (ratePct: number | null, rank: number | null, total: number) =>
-    ratePct === null || rank === null ? '-' : `${formatPercent(ratePct)} (${formatRank(rank, total)})`
   const isRateRankUnavailable = (ratePct: number | null, rank: number | null) =>
     ratePct === null || rank === null
+  const renderPrimaryValue = (value: string) => (
+    <span className={styles.salesMetricPrimaryValue}>{value}</span>
+  )
+  const renderRankMetric = (value: string, rank: number, total: number) => (
+    <>
+      {renderPrimaryValue(value)} ({formatRank(rank, total)})
+    </>
+  )
+  const renderRateRank = (ratePct: number | null, rank: number | null, total: number) => {
+    if (ratePct === null || rank === null) return '-'
+    return (
+      <>
+        {renderPrimaryValue(formatPercent(ratePct))} ({formatRank(rank, total)})
+      </>
+    )
+  }
+  const renderCostMetric = (avgCost: number | null, costRatioPct: number | null) => {
+    if (avgCost === null || costRatioPct === null) return '-'
+    return (
+      <>
+        {renderPrimaryValue(formatGroupedNumber(avgCost))} ({formatPercent(costRatioPct)})
+      </>
+    )
+  }
 
   return (
     <div className={`${styles.card} ${styles.gridColumnCard}`}>
@@ -68,54 +90,56 @@ export function SalesMetricsCard({ targetPeriodDays, sales, channelFilter }: Pro
           <tbody>
             <tr>
               <td>{KO.rowAvgPrice}</td>
-              <td className={styles.num}>{formatGroupedNumber(selfCol.avgPrice)}</td>
-              <td className={styles.num}>{formatGroupedNumber(compCol.avgPrice)}</td>
+              <td className={styles.num}>{renderPrimaryValue(formatGroupedNumber(selfCol.avgPrice))}</td>
+              <td className={styles.num}>{renderPrimaryValue(formatGroupedNumber(compCol.avgPrice))}</td>
             </tr>
             <tr>
               <td>{KO.rowQtyRank}</td>
-              <td className={styles.num}>{formatGroupedNumber(selfCol.qty)} ({formatRank(selfCol.qtyRank, selfCol.rankTotal)})</td>
-              <td className={styles.num}>{formatGroupedNumber(compCol.qty)} ({formatRank(compCol.qtyRank, compCol.rankTotal)})</td>
+              <td className={styles.num}>
+                {renderRankMetric(formatGroupedNumber(selfCol.qty), selfCol.qtyRank, selfCol.rankTotal)}
+              </td>
+              <td className={styles.num}>
+                {renderRankMetric(formatGroupedNumber(compCol.qty), compCol.qtyRank, compCol.rankTotal)}
+              </td>
             </tr>
             <tr>
               <td>{KO.rowAmountRank}</td>
-              <td className={styles.num}>{formatGroupedNumber(selfCol.amount)} ({formatRank(selfCol.amountRank, selfCol.rankTotal)})</td>
-              <td className={styles.num}>{formatGroupedNumber(compCol.amount)} ({formatRank(compCol.amountRank, compCol.rankTotal)})</td>
+              <td className={styles.num}>
+                {renderRankMetric(formatGroupedNumber(selfCol.amount), selfCol.amountRank, selfCol.rankTotal)}
+              </td>
+              <td className={styles.num}>
+                {renderRankMetric(formatGroupedNumber(compCol.amount), compCol.amountRank, compCol.rankTotal)}
+              </td>
             </tr>
             <tr>
               <td>{KO.rowAvgCost}</td>
-              <td className={styles.num}>
-                {formatGroupedNumber(selfCol.avgCost!)} ({formatPercent(selfCol.costRatioPct!)})
-              </td>
+              <td className={styles.num}>{renderCostMetric(selfCol.avgCost, selfCol.costRatioPct)}</td>
               <td
                 className={`${styles.num} ${compCol.avgCost === null ? styles.salesMetricUnavailable : ''}`}
               >
-                {compCol.avgCost === null ? '-' : `${formatGroupedNumber(compCol.avgCost)} (${formatPercent(compCol.costRatioPct!)})`}
+                {renderCostMetric(compCol.avgCost, compCol.costRatioPct)}
               </td>
             </tr>
             <tr>
               <td>{KO.rowFee}</td>
               <td className={styles.num}>
-                {formatRateRank(selfCol.feeRatePct, selfCol.feeRank, selfCol.rankTotal)}
+                {renderRateRank(selfCol.feeRatePct, selfCol.feeRank, selfCol.rankTotal)}
               </td>
               <td
                 className={`${styles.num} ${isRateRankUnavailable(compCol.feeRatePct, compCol.feeRank) ? styles.salesMetricUnavailable : ''}`}
               >
-                {isRateRankUnavailable(compCol.feeRatePct, compCol.feeRank)
-                  ? '-'
-                  : formatRateRank(compCol.feeRatePct, compCol.feeRank, compCol.rankTotal)}
+                {renderRateRank(compCol.feeRatePct, compCol.feeRank, compCol.rankTotal)}
               </td>
             </tr>
             <tr>
               <td>{KO.rowOpMargin}</td>
               <td className={styles.num}>
-                {formatRateRank(selfCol.opMarginRatePct, selfCol.opMarginRank, selfCol.rankTotal)}
+                {renderRateRank(selfCol.opMarginRatePct, selfCol.opMarginRank, selfCol.rankTotal)}
               </td>
               <td
                 className={`${styles.num} ${isRateRankUnavailable(compCol.opMarginRatePct, compCol.opMarginRank) ? styles.salesMetricUnavailable : ''}`}
               >
-                {isRateRankUnavailable(compCol.opMarginRatePct, compCol.opMarginRank)
-                  ? '-'
-                  : formatRateRank(compCol.opMarginRatePct, compCol.opMarginRank, compCol.rankTotal)}
+                {renderRateRank(compCol.opMarginRatePct, compCol.opMarginRank, compCol.rankTotal)}
               </td>
             </tr>
           </tbody>

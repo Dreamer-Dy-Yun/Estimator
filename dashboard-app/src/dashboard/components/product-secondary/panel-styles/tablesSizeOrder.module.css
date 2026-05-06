@@ -27,6 +27,10 @@
   white-space: nowrap;
 }
 
+.salesMetricPrimaryValue {
+  font-weight: 700;
+}
+
 /** 판매 정보: 대상 기간(일 단위 구간) */
 .salesMetricsPeriodLine {
   margin: -2px 0 8px;
