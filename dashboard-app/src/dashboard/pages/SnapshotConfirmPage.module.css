@@ -72,7 +72,7 @@
   grid-template-columns: minmax(260px, 1fr) auto;
   align-items: center;
   gap: 8px;
-  width: min(100%, 416px);
+  width: min(100%, 1248px);
   min-width: 0;
   padding: 10px;
   border: 1px solid #dbe7ff;
@@ -439,7 +439,7 @@
 
   .uploadControls {
     justify-self: end;
-    width: min(100%, 416px);
+    width: min(100%, 1248px);
     grid-template-columns: minmax(0, 1fr) auto;
   }
 
