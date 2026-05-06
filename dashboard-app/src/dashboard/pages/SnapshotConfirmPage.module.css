@@ -16,17 +16,19 @@
 
 .uploadCard {
   display: grid;
-  grid-template-columns: minmax(360px, 420px) minmax(420px, 1fr);
-  gap: 14px;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 10px 14px;
   align-items: center;
   border-color: #bfdbfe;
   background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
 }
 
 .uploadCopy {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 6px 12px;
   min-width: 0;
 }
 
@@ -60,14 +62,18 @@
 }
 
 .uploadDescription {
+  min-width: 0;
   margin: 0;
-  font-size: clamp(9px, 2.1vw, 12px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 12px;
   line-height: 1.45;
   color: #475569;
   white-space: nowrap;
 }
 
 .uploadControls {
+  grid-column: 1 / -1;
   justify-self: end;
   display: grid;
   grid-template-columns: minmax(260px, 1fr) auto;
@@ -435,7 +441,15 @@
 
 @media (max-width: 860px) {
   .uploadCard {
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+  }
+
+  .uploadCopy {
     grid-template-columns: 1fr;
+  }
+
+  .uploadDescription {
+    font-size: clamp(9px, 2.6vw, 12px);
   }
 
   .uploadControls {
