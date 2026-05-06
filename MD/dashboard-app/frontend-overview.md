@@ -47,19 +47,21 @@
 | 경로 | 화면 |
 |------|------|
 | `/login` | 로그인 |
+| `/admin` | 관리자 유저 정보 관리 |
 | `/`, `/dashboard`, `/dashboard/self` | 자사 분석 |
 | `/dashboard/competitor` | 경쟁사 분석 |
 | `/dashboard/snapshot-confirm` | 오더 후보군 |
 
-레이아웃: [`dashboard-app/src/dashboard/DashboardLayout.tsx`](../../dashboard-app/src/dashboard/DashboardLayout.tsx) — 상단 탭 3개와 로그아웃 버튼.
+레이아웃: [`dashboard-app/src/dashboard/DashboardLayout.tsx`](../../dashboard-app/src/dashboard/DashboardLayout.tsx) — 상단 탭 3개와 로그아웃 버튼. 관리자 권한 사용자는 우상단에 `/admin` 진입 버튼이 추가로 표시됩니다.
 
-라우트 화면(`LoginPage`, `SelfPage`, `CompetitorPage`, `SnapshotConfirmPage`)은 [`App.tsx`](../../dashboard-app/src/App.tsx)에서 lazy 로딩됩니다. 새 라우트를 추가할 때도 같은 방식으로 route chunk를 분리합니다. `/dashboard/*`는 [`RequireAuth`](../../dashboard-app/src/auth/RequireAuth.tsx)가 보호하며, 세션이 없으면 `/login`으로 이동한 뒤 로그인 성공 시 원래 경로로 복귀합니다. 기본 배포는 `BrowserRouter`를 쓰며, 서버가 SPA fallback을 제공하면 `/dashboard/self` 같은 일반 URL로 동작합니다. GitHub Pages workflow만 `VITE_ROUTER_MODE=hash`를 주입해 `/Estimator/#/dashboard/self` 형태를 사용하고, `404.html` fallback도 함께 배포합니다.
+라우트 화면(`LoginPage`, `AdminUsersPage`, `SelfPage`, `CompetitorPage`, `SnapshotConfirmPage`)은 [`App.tsx`](../../dashboard-app/src/App.tsx)에서 lazy 로딩됩니다. 새 라우트를 추가할 때도 같은 방식으로 route chunk를 분리합니다. `/dashboard/*`는 [`RequireAuth`](../../dashboard-app/src/auth/RequireAuth.tsx)가 보호하며, `/admin`은 [`RequireAdmin`](../../dashboard-app/src/auth/RequireAdmin.tsx)이 관리자 권한을 추가로 확인합니다. 세션이 없으면 `/login`으로 이동한 뒤 로그인 성공 시 원래 경로로 복귀합니다. 기본 배포는 `BrowserRouter`를 쓰며, 서버가 SPA fallback을 제공하면 `/dashboard/self` 같은 일반 URL로 동작합니다. GitHub Pages workflow만 `VITE_ROUTER_MODE=hash`를 주입해 `/Estimator/#/dashboard/self` 형태를 사용하고, `404.html` fallback도 함께 배포합니다.
 
 ### 4.1 인증
 
 - 인증 UI와 세션 상태는 [`src/auth`](../../dashboard-app/src/auth/)가 소유합니다.
-- 로그인/세션 확인/사용자 정보 변경/로그아웃 호출은 [`src/api/client.ts`](../../dashboard-app/src/api/client.ts)의 `authApi`와 개별 함수로만 접근합니다.
+- 로그인/세션 확인/사용자 정보 변경/관리자 유저 관리/로그아웃 호출은 [`src/api/client.ts`](../../dashboard-app/src/api/client.ts)의 `authApi`와 개별 함수로만 접근합니다.
 - 현재 목 구현은 [`api/mock/authApi.ts`](../../dashboard-app/src/api/mock/authApi.ts)에서 어떤 로그인 입력도 성공 처리하고, 세션은 브라우저 `sessionStorage`에 저장합니다. 헤더 우상단의 사용자 정보 버튼은 이름과 역할을 표시하고, 모달에서 표시 이름만 변경합니다.
+- 관리자 화면은 mock 유저 목록을 브라우저 `localStorage`에 저장하고, 이름/권한/활성 상태를 수정합니다. 현재 로그인한 관리자 자신의 권한 해제와 비활성화는 잠금 방지를 위해 막습니다.
 - 실제 백엔드 전환 시 우선 권장 형태는 HttpOnly cookie 기반 세션이며, 프론트 화면은 `AuthApi` 계약을 유지한 채 client 구현만 교체합니다.
 
 ---
@@ -119,6 +121,7 @@ HTTP 백엔드로 교체 시 `AuthApi` / `DashboardApi` 계약과 `client.ts`만
 ```
 dashboard-app/src/
   App.tsx                 # 라우터
+  admin/                  # 관리자 유저 관리 화면
   api/                    # client, mock, types
   auth/                   # 로그인 화면, 세션 provider, 보호 라우트
   components/             # ApiUnitErrorBadge, ComponentErrorBoundary

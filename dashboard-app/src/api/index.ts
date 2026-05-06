@@ -1,5 +1,7 @@
 export type {
+  AdminUserSummary,
   AuthApi,
+  AuthRole,
   AuthSession,
   AuthUser,
   CompetitorSalesParams,
@@ -22,12 +24,14 @@ export type {
   ProductStockTrendPoint,
   SelfSalesFilterMeta,
   SelfSalesParams,
+  UpdateAdminUserPayload,
   UpdateAuthUserPayload,
 } from './types'
 export { DAILY_TREND_AS_OF_DATE } from './dailyTrendAsOf'
 export {
   authApi,
   dashboardApi,
+  getAdminUsers,
   getCurrentAuthSession,
   getCompetitorSales,
   getProductDrawerBundle,
@@ -46,5 +50,6 @@ export {
   getSelfSalesFilterMeta,
   login,
   logout,
+  updateAdminUser,
   updateCurrentUser,
 } from './client'

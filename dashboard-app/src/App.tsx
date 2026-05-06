@@ -1,10 +1,12 @@
 import { Suspense, lazy, type ReactNode } from 'react'
 import { BrowserRouter, HashRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { AuthProvider } from './auth/AuthProvider'
+import { RequireAdmin } from './auth/RequireAdmin'
 import { RequireAuth } from './auth/RequireAuth'
 import { DashboardLayout } from './dashboard/DashboardLayout'
 import styles from './app.module.css'
 
+const AdminUsersPage = lazy(() => import('./admin/AdminUsersPage').then((module) => ({ default: module.AdminUsersPage })))
 const LoginPage = lazy(() => import('./auth/LoginPage').then((module) => ({ default: module.LoginPage })))
 const SelfPage = lazy(() => import('./dashboard/pages/SelfPage').then((module) => ({ default: module.SelfPage })))
 const CompetitorPage = lazy(() =>
@@ -42,6 +44,9 @@ function AppRoutes() {
                 <Route path="snapshot-confirm" element={<SnapshotConfirmPage />} />
                 <Route path="snapshot-confirm/:stashUuid" element={<Navigate to="/dashboard/snapshot-confirm" replace />} />
               </Route>
+            </Route>
+            <Route element={<RequireAdmin />}>
+              <Route path="/admin" element={<AdminUsersPage />} />
             </Route>
             <Route path="*" element={<Navigate to="/dashboard/self" replace />} />
           </Routes>

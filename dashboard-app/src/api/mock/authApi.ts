@@ -1,7 +1,17 @@
-import type { AuthApi, AuthSession, LoginRequest, LoginResult, UpdateAuthUserPayload } from '../types'
+import type {
+  AdminUserSummary,
+  AuthApi,
+  AuthSession,
+  LoginRequest,
+  LoginResult,
+  UpdateAdminUserPayload,
+  UpdateAuthUserPayload,
+} from '../types'
 import { sleep } from './utils'
 
 const AUTH_SESSION_STORAGE_KEY = 'han-a-auth-session'
+const AUTH_USERS_STORAGE_KEY = 'han-a-auth-users'
+const MOCK_UPDATED_AT = '2026-05-06T00:00:00.000Z'
 
 const MOCK_AUTH_USER = {
   id: 'mock-admin',
@@ -9,12 +19,72 @@ const MOCK_AUTH_USER = {
   role: 'admin',
 } as const
 
+const DEFAULT_AUTH_USERS: AdminUserSummary[] = [
+  {
+    id: 'mock-admin',
+    name: MOCK_AUTH_USER.name,
+    role: 'admin',
+    email: 'admin@han-a.local',
+    isActive: true,
+    dbUpdatedAt: MOCK_UPDATED_AT,
+  },
+  {
+    id: 'mock-operator',
+    name: 'Order Operator',
+    role: 'operator',
+    email: 'operator@han-a.local',
+    isActive: true,
+    dbUpdatedAt: MOCK_UPDATED_AT,
+  },
+  {
+    id: 'mock-viewer',
+    name: 'Sales Viewer',
+    role: 'viewer',
+    email: 'viewer@han-a.local',
+    isActive: true,
+    dbUpdatedAt: MOCK_UPDATED_AT,
+  },
+]
+
+function readStoredUsers(): AdminUserSummary[] {
+  if (typeof window === 'undefined') return DEFAULT_AUTH_USERS
+
+  try {
+    const raw = window.localStorage.getItem(AUTH_USERS_STORAGE_KEY)
+    if (!raw) {
+      window.localStorage.setItem(AUTH_USERS_STORAGE_KEY, JSON.stringify(DEFAULT_AUTH_USERS))
+      return DEFAULT_AUTH_USERS
+    }
+    const users = JSON.parse(raw) as AdminUserSummary[]
+    if (!Array.isArray(users)) throw new Error('invalid users')
+    return users
+  } catch {
+    window.localStorage.setItem(AUTH_USERS_STORAGE_KEY, JSON.stringify(DEFAULT_AUTH_USERS))
+    return DEFAULT_AUTH_USERS
+  }
+}
+
+function writeStoredUsers(users: AdminUserSummary[]) {
+  if (typeof window === 'undefined') return
+  window.localStorage.setItem(AUTH_USERS_STORAGE_KEY, JSON.stringify(users))
+}
+
 function makeMockSession(username: string): AuthSession {
+  const users = readStoredUsers()
+  const adminUser = users.find((user) => user.id === MOCK_AUTH_USER.id) ?? DEFAULT_AUTH_USERS[0]!
+  const name = username.trim() || adminUser.name
+  if (username.trim()) {
+    const now = new Date().toISOString()
+    writeStoredUsers(users.map((user) => (
+      user.id === adminUser.id ? { ...user, name, dbUpdatedAt: now } : user
+    )))
+  }
   const expiresAt = new Date(Date.now() + 1000 * 60 * 60 * 8).toISOString()
   return {
     user: {
-      ...MOCK_AUTH_USER,
-      name: username.trim() || MOCK_AUTH_USER.name,
+      id: adminUser.id,
+      name,
+      role: adminUser.role,
     },
     expiresAt,
   }
@@ -52,6 +122,17 @@ function clearStoredSession() {
   window.sessionStorage.removeItem(AUTH_SESSION_STORAGE_KEY)
 }
 
+function assertAdminSession() {
+  const session = readStoredSession()
+  if (!session) {
+    throw new Error('로그인이 필요합니다.')
+  }
+  if (session.user.role !== 'admin') {
+    throw new Error('관리자 권한이 필요합니다.')
+  }
+  return session
+}
+
 export const mockAuthApi: AuthApi = {
   getCurrentSession: async () => {
     await sleep(40)
@@ -83,7 +164,59 @@ export const mockAuthApi: AuthApi = {
       },
     }
     writeStoredSession(nextSession)
+    const users = readStoredUsers()
+    const now = new Date().toISOString()
+    writeStoredUsers(users.map((user) => (
+      user.id === current.user.id ? { ...user, name, dbUpdatedAt: now } : user
+    )))
     return nextSession
+  },
+  getAdminUsers: async (): Promise<AdminUserSummary[]> => {
+    await sleep(90)
+    assertAdminSession()
+    return readStoredUsers().sort((a, b) => a.id.localeCompare(b.id))
+  },
+  updateAdminUser: async (payload: UpdateAdminUserPayload): Promise<AdminUserSummary> => {
+    await sleep(110)
+    const session = assertAdminSession()
+    const users = readStoredUsers()
+    const target = users.find((user) => user.id === payload.userId)
+    if (!target) {
+      throw new Error('사용자를 찾을 수 없습니다.')
+    }
+
+    const name = payload.name.trim()
+    if (!name) {
+      throw new Error('표시 이름을 입력해 주세요.')
+    }
+    if (payload.userId === session.user.id && (!payload.isActive || payload.role !== 'admin')) {
+      throw new Error('현재 로그인한 관리자의 권한과 활성 상태는 이 화면에서 바꿀 수 없습니다.')
+    }
+
+    const now = new Date().toISOString()
+    const updated = {
+      ...target,
+      name,
+      role: payload.role,
+      isActive: payload.isActive,
+      dbUpdatedAt: now,
+    }
+    const nextUsers = users.map((user) => (user.id === payload.userId ? updated : user))
+    if (!nextUsers.some((user) => user.role === 'admin' && user.isActive)) {
+      throw new Error('활성 관리자 계정은 최소 1개 이상 필요합니다.')
+    }
+    writeStoredUsers(nextUsers)
+    if (updated.id === session.user.id) {
+      writeStoredSession({
+        ...session,
+        user: {
+          id: updated.id,
+          name: updated.name,
+          role: updated.role,
+        },
+      })
+    }
+    return updated
   },
   logout: async () => {
     await sleep(40)

@@ -29,6 +29,7 @@
 - 후보 아이템 목업 스냅샷은 `drawer2.llmAnswer`에 임시 AI 코멘트를 포함하고, 기존 localStorage 데이터도 빈 코멘트만 보강해 2차 드로어에서 바로 확인되게 한다.
 - 이너 후보 1차 드로어 닫힘은 `drawerClosing` 상태로 DOM과 모달 폭 보정 상태를 잠시 유지해, 열림의 역방향으로 모달 폭이 복원되게 한다.
 - 로그인 화면, 라우트 보호, 사용자 정보 변경 모달은 `src/auth`가 소유한다. 인증 API 계약과 목 세션 저장은 `src/api` 아래에 두어 실제 백엔드로 교체할 때 화면이 mock 구현을 직접 알지 않게 한다.
+- 관리자 유저 관리 화면은 `/admin` 별도 라우트와 `src/admin`이 소유한다. 대시보드 업무 탭에 끼우지 않고 관리자 권한 사용자에게만 헤더 진입 버튼을 보여준다.
 
 ## 최상위 저장소
 
@@ -63,7 +64,7 @@
 | 경로 | 역할 | 변경 기준 |
 |------|------|-----------|
 | `src/main.tsx` | React root 생성, 전역 CSS와 KaTeX CSS 로드. | 전역 provider, 전역 스타일, 앱 mount 변경 시 수정 |
-| `src/App.tsx` | 배포 환경별 router 선택, 최상위 shell, 인증 provider 연결, 라우트 페이지 lazy import. 기본은 `BrowserRouter`, `VITE_ROUTER_MODE=hash`일 때만 `HashRouter`를 쓴다. | URL 라우팅, 주요 layout 진입점, 라우트 단위 chunk 경계, 배포 라우팅 방식 변경 시 수정 |
+| `src/App.tsx` | 배포 환경별 router 선택, 최상위 shell, 인증 provider 연결, 대시보드/관리자 라우트 lazy import. 기본은 `BrowserRouter`, `VITE_ROUTER_MODE=hash`일 때만 `HashRouter`를 쓴다. | URL 라우팅, 주요 layout 진입점, 라우트 단위 chunk 경계, 배포 라우팅 방식 변경 시 수정 |
 | `src/app.module.css` | 최상위 앱 shell 크기와 main 영역 스타일. | 앱 전체 shell 레이아웃 변경 시 수정 |
 | `src/types.ts` | 아직 API 계약으로 승격되지 않은 공용 도메인 타입. | 여러 영역에서 공유되는 타입만 둔다 |
 
@@ -84,7 +85,7 @@
 
 | 파일 | 역할 |
 |------|------|
-| `auth.ts` | 로그인 요청, 인증 사용자, 사용자 정보 변경, 세션, 인증 API 계약 |
+| `auth.ts` | 로그인 요청, 인증 사용자, 사용자 정보 변경, 관리자 유저 관리, 세션, 인증 API 계약 |
 | `candidate.ts` | 후보군/이너 후보/후보군 분석 SSE 요청·응답 계약 |
 | `dashboard-api.ts` | 화면에서 쓰는 `DashboardApi` 인터페이스 |
 | `drawer.ts` | 1차 drawer bundle과 판매 인사이트 계약 |
@@ -97,7 +98,7 @@
 
 | 파일 | 역할 |
 |------|------|
-| `authApi.ts` | mock 인증 API 구현과 sessionStorage 세션 저장/복원 |
+| `authApi.ts` | mock 인증 API 구현, sessionStorage 세션 저장/복원, 관리자 유저 목록 localStorage 저장 |
 | `candidateSeeds.ts` | 후보군/후보 아이템 seed 데이터와 기존 목업 스냅샷의 빈 AI 코멘트 보강 |
 | `candidateStorage.ts` | 후보군 mock localStorage 읽기/쓰기와 목업 전용 record 보강 경계 |
 | `constants.ts` | mock 공용 상수 |
@@ -122,6 +123,15 @@
 | `UserProfileDialog.tsx` | 헤더 사용자 정보 확인과 표시 이름 변경 모달 |
 | `UserProfileDialog.module.css` | 사용자 정보 모달 전용 스타일 |
 | `authGate.module.css` | 보호 라우트의 세션 확인 상태 스타일 |
+
+## src/admin
+
+관리자 권한으로 접근하는 별도 업무 화면이다. 대시보드 탭 구조에 섞지 않고 `/admin` 라우트로 분리한다. 이 폴더는 `src/api`의 관리자 유저 관리 계약만 호출하고 mock 파일을 직접 import하지 않는다.
+
+| 파일 | 역할 |
+|------|------|
+| `AdminUsersPage.tsx` | 관리자 유저 목록 조회와 이름/권한/활성 상태 수정 화면 |
+| `AdminUsersPage.module.css` | 관리자 유저 관리 화면 전용 스타일 |
 
 ## src/components
 
@@ -273,11 +283,12 @@ React나 API 구현에 의존하지 않는 순수 보조 함수만 둔다.
 2. API 호출 진입점이면 `src/api/client.ts`와 `src/api/index.ts`.
 3. mock 데이터/동작이면 `src/api/mock`.
 4. 인증 화면, 세션 provider, 보호 라우트면 `src/auth`.
-5. 대시보드 라우트 페이지면 `src/dashboard/pages`.
-6. 특정 feature 전용 UI/훅/CSS면 `src/dashboard/components/<feature-name>`.
-7. 여러 dashboard 화면에서 쓰는 UI면 `src/dashboard/components`.
-8. 여러 feature에서 쓰는 순수 계산이면 `src/utils` 또는 더 도메인성이 강하면 해당 feature의 `model`.
-9. 저장 문서 schema나 파싱이면 `src/snapshot`.
+5. 관리자 화면이면 `src/admin`.
+6. 대시보드 라우트 페이지면 `src/dashboard/pages`.
+7. 특정 feature 전용 UI/훅/CSS면 `src/dashboard/components/<feature-name>`.
+8. 여러 dashboard 화면에서 쓰는 UI면 `src/dashboard/components`.
+9. 여러 feature에서 쓰는 순수 계산이면 `src/utils` 또는 더 도메인성이 강하면 해당 feature의 `model`.
+10. 저장 문서 schema나 파싱이면 `src/snapshot`.
 
 ## 경계 점검 질문
 

@@ -50,6 +50,8 @@
 | `login(payload)` | POST | `/auth/login` |
 | `getCurrentSession()` | GET | `/auth/session` |
 | `updateCurrentUser(payload)` | PATCH | `/auth/me` |
+| `getAdminUsers()` | GET | `/admin/users` |
+| `updateAdminUser(payload)` | PATCH | `/admin/users/:userId` |
 | `logout()` | POST | `/auth/logout` |
 
 **`LoginRequest`**
@@ -73,6 +75,28 @@
 | 필드 | 타입 | 설명 |
 |------|------|------|
 | `name` | string | 헤더와 사용자 정보 모달에 표시할 이름. 목 구현은 현재 세션의 이름만 갱신 |
+
+**`AdminUserSummary`**
+
+| 필드 | 타입 | 설명 |
+|------|------|------|
+| `id` | string | 사용자 식별자 |
+| `name` | string | 표시 이름 |
+| `role` | `'admin' \| 'operator' \| 'viewer'` | 사용자 권한 |
+| `email` | string | 계정 이메일 |
+| `isActive` | boolean | 활성 계정 여부 |
+| `dbUpdatedAt` | string | ISO 8601 최근 변경 시각 |
+
+**`UpdateAdminUserPayload`**
+
+| 필드 | 타입 | 설명 |
+|------|------|------|
+| `userId` | string | 변경 대상 사용자 ID |
+| `name` | string | 표시 이름 |
+| `role` | `'admin' \| 'operator' \| 'viewer'` | 변경할 권한 |
+| `isActive` | boolean | 활성 상태 |
+
+`/admin/users` 계열은 관리자 권한이 필요합니다. 실제 백엔드는 현재 로그인한 관리자 본인을 비활성화하거나 마지막 활성 관리자 권한을 제거하지 못하도록 검증하는 정책을 권장합니다.
 
 ---
 

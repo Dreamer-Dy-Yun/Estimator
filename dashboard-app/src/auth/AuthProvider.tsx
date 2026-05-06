@@ -18,6 +18,7 @@ import type { AuthSession, LoginRequest, UpdateAuthUserPayload } from '../api'
 type AuthContextValue = {
   session: AuthSession | null
   isLoading: boolean
+  refreshSession(): Promise<AuthSession | null>
   login(payload: LoginRequest): Promise<AuthSession>
   updateUser(payload: UpdateAuthUserPayload): Promise<AuthSession>
   logout(): Promise<void>
@@ -47,6 +48,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
+  const refreshSession = useCallback(async () => {
+    const nextSession = await getCurrentAuthSession()
+    setSession(nextSession)
+    return nextSession
+  }, [])
+
   const login = useCallback(async (payload: LoginRequest) => {
     const result = await requestLogin(payload)
     setSession(result.session)
@@ -68,11 +75,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     () => ({
       session,
       isLoading,
+      refreshSession,
       login,
       updateUser,
       logout,
     }),
-    [isLoading, login, logout, session, updateUser],
+    [isLoading, login, logout, refreshSession, session, updateUser],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

@@ -1,6 +1,7 @@
 import type { CompetitorSalesRow, SelfSalesRow } from '../types'
 import { mockAuthApi, mockDashboardApi } from './mock'
 import type {
+  AdminUserSummary,
   AppendCandidateItemPayload,
   AuthApi,
   AuthSession,
@@ -31,6 +32,7 @@ import type {
   LoginResult,
   SelfSalesFilterMeta,
   SelfSalesParams,
+  UpdateAdminUserPayload,
   UpdateAuthUserPayload,
 } from './types'
 
@@ -49,6 +51,16 @@ export async function updateCurrentUser(payload: UpdateAuthUserPayload): Promise
   return mockAuthApi.updateCurrentUser(payload)
 }
 
+/** 관리자용 사용자 목록 조회. 실제 HTTP 전환 시 관리자 권한 API로 분리된다. */
+export async function getAdminUsers(): Promise<AdminUserSummary[]> {
+  return mockAuthApi.getAdminUsers()
+}
+
+/** 관리자용 사용자 정보 변경. 목 구현은 이름/권한/활성 상태를 localStorage에 저장한다. */
+export async function updateAdminUser(payload: UpdateAdminUserPayload): Promise<AdminUserSummary> {
+  return mockAuthApi.updateAdminUser(payload)
+}
+
 /** 로그아웃. 목 구현은 현재 브라우저 탭의 세션만 제거한다. */
 export async function logout(): Promise<void> {
   return mockAuthApi.logout()
@@ -59,6 +71,8 @@ export const authApi: AuthApi = {
   getCurrentSession: getCurrentAuthSession,
   login,
   updateCurrentUser,
+  getAdminUsers,
+  updateAdminUser,
   logout,
 }
 
