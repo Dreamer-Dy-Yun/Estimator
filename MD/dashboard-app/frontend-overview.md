@@ -3,7 +3,7 @@
 | 항목 | 내용 |
 |------|------|
 | 작성일 | 2026-04-23 |
-| 변경일 | 2026-04-23 |
+| 변경일 | 2026-05-06 |
 | 지시 | Yun Daeyoung |
 
 ---
@@ -30,13 +30,15 @@
 | 영역 | 선택 |
 |------|------|
 | 런타임 | React 19, TypeScript |
-| 빌드 | Vite 8 |
+| 빌드 | Vite 8, Rolldown code splitting |
 | 라우팅 | react-router-dom 7 |
 | 차트 | Recharts 3 |
 | 수식 표시 | KaTeX / react-katex (2차 패널 등) |
 | 스타일 | CSS Modules (`.module.css`) |
 
 테스트는 Vitest(`npm run test:run`)로 실행합니다.
+
+프로덕션 번들은 `src/App.tsx`의 라우트 lazy import와 `vite.config.ts`의 vendor code splitting으로 분리합니다. Vite의 500KB chunk 경고가 다시 나오면 우선 라우트가 정적 import로 되돌아가지 않았는지, 새 대형 라이브러리가 어느 vendor group에 들어가야 하는지 확인합니다.
 
 ---
 
@@ -49,6 +51,8 @@
 | `/dashboard/snapshot-confirm` | 오더 후보군 |
 
 레이아웃: [`dashboard-app/src/dashboard/DashboardLayout.tsx`](../../dashboard-app/src/dashboard/DashboardLayout.tsx) — 상단 탭 3개.
+
+라우트 화면(`SelfPage`, `CompetitorPage`, `SnapshotConfirmPage`)은 [`App.tsx`](../../dashboard-app/src/App.tsx)에서 lazy 로딩됩니다. 새 라우트를 추가할 때도 같은 방식으로 route chunk를 분리합니다.
 
 ---
 
