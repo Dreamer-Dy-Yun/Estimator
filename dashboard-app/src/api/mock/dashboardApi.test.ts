@@ -1,5 +1,23 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { mockDashboardApi } from './dashboardApi'
+
+function createMemoryStorage(): Storage {
+  const store = new Map<string, string>()
+  return {
+    get length() {
+      return store.size
+    },
+    clear: () => store.clear(),
+    getItem: (key: string) => store.get(key) ?? null,
+    key: (index: number) => Array.from(store.keys())[index] ?? null,
+    removeItem: (key: string) => {
+      store.delete(key)
+    },
+    setItem: (key: string, value: string) => {
+      store.set(key, String(value))
+    },
+  }
+}
 
 describe('api/mock dashboardApi competitor channel behavior', () => {
   it('returns only kream/musinsa competitor channels', async () => {
@@ -48,5 +66,60 @@ describe('api/mock dashboardApi competitor channel behavior', () => {
     const base = await mockDashboardApi.getCompetitorSales()
     const naver = await mockDashboardApi.getCompetitorSales({ competitorChannelId: 'naver' })
     expect(naver).toEqual(base)
+  })
+})
+
+describe('api/mock dashboardApi candidate stash mutations', () => {
+  beforeEach(() => {
+    vi.stubGlobal('localStorage', createMemoryStorage())
+  })
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  it('updates candidate stash metadata in storage', async () => {
+    const created = await mockDashboardApi.createCandidateStash({
+      productId: 'B',
+      name: '수정 전',
+      note: 'old',
+    })
+
+    const updated = await mockDashboardApi.updateCandidateStash({
+      stashUuid: created.uuid,
+      name: '수정 후',
+      note: 'new',
+    })
+    const list = await mockDashboardApi.getCandidateStashes()
+
+    expect(updated.name).toBe('수정 후')
+    expect(updated.note).toBe('new')
+    expect(list.find((row) => row.uuid === created.uuid)?.name).toBe('수정 후')
+  })
+
+  it('duplicates candidate stash with its inner items', async () => {
+    const before = await mockDashboardApi.getCandidateStashes()
+    const source = before.find((row) => row.itemCount > 0)
+    expect(source).toBeDefined()
+
+    await mockDashboardApi.duplicateCandidateStash(source!.uuid)
+    const after = await mockDashboardApi.getCandidateStashes()
+    const copied = after.find((row) => row.name === `${source!.name} 복사본`)
+
+    expect(after).toHaveLength(before.length + 1)
+    expect(copied?.itemCount).toBe(source!.itemCount)
+  })
+
+  it('deletes candidate stash and cascades its inner items', async () => {
+    const before = await mockDashboardApi.getCandidateStashes()
+    const target = before.find((row) => row.itemCount > 0)
+    expect(target).toBeDefined()
+
+    await mockDashboardApi.deleteCandidateStash(target!.uuid)
+    const after = await mockDashboardApi.getCandidateStashes()
+    const items = await mockDashboardApi.getCandidateItemsByStash(target!.uuid)
+
+    expect(after.some((row) => row.uuid === target!.uuid)).toBe(false)
+    expect(items).toEqual([])
   })
 })

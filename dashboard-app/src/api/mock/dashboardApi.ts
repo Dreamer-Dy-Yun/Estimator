@@ -471,14 +471,22 @@ export const mockDashboardApi = {
       /* ignore */
     }
   },
-  /**
-   * 후보군 삭제 — 백엔드 연동 전 스텁. 네트워크 지연만 흉내 내며 저장/목록 변경 없음.
-   * 실제 구현 시 HTTP 호출 + DB 삭제 반영으로 교체.
-   */
   deleteCandidateStash: async (stashUuid: string): Promise<void> => {
-    void stashUuid
     await sleep(60)
     logApiCalled('후보군 삭제 API가 호출되었습니다.')
+    ensureCandidateSeed()
+    const rawStashes = localStorage.getItem(CANDIDATE_STASH_STORAGE_KEY)
+    const rawItems = localStorage.getItem(CANDIDATE_ITEM_STORAGE_KEY)
+    const stashes = (rawStashes ? JSON.parse(rawStashes) : []) as CandidateStashRecord[]
+    const items = (rawItems ? JSON.parse(rawItems) : []) as CandidateItemRecord[]
+    localStorage.setItem(
+      CANDIDATE_STASH_STORAGE_KEY,
+      JSON.stringify(stashes.filter((row) => row.uuid !== stashUuid)),
+    )
+    localStorage.setItem(
+      CANDIDATE_ITEM_STORAGE_KEY,
+      JSON.stringify(items.filter((row) => row.stashUuid !== stashUuid)),
+    )
   },
   createCandidateStash: async (payload: CreateCandidateStashPayload): Promise<CandidateStashSummary> => {
     await sleep(90)
@@ -510,10 +518,6 @@ export const mockDashboardApi = {
       dbUpdatedAt: stash.dbUpdatedAt,
     }
   },
-  /**
-   * 후보군 이름/비고 수정 — 백엔드 연동 전 스텁. 저장/목록 변경 없음.
-   * 실제 구현 시 HTTP 호출 + DB 갱신 후 최신 후보군 요약을 반환.
-   */
   updateCandidateStash: async (payload: UpdateCandidateStashPayload): Promise<CandidateStashSummary> => {
     await sleep(70)
     logApiCalled('후보군 이름·비고 수정 API가 호출되었습니다.')
@@ -526,25 +530,57 @@ export const mockDashboardApi = {
     if (!target) {
       throw new Error('후보군을 찾을 수 없습니다.')
     }
+    const now = new Date().toISOString()
+    const updated: CandidateStashRecord = {
+      ...target,
+      name: payload.name.trim() || target.name,
+      note: payload.note?.trim() || null,
+      dbUpdatedAt: now,
+    }
+    localStorage.setItem(
+      CANDIDATE_STASH_STORAGE_KEY,
+      JSON.stringify(stashes.map((row) => (row.uuid === payload.stashUuid ? updated : row))),
+    )
     const linkedItems = items.filter((it) => it.stashUuid === target.uuid)
     return {
-      uuid: target.uuid,
-      name: target.name,
-      note: target.note ?? null,
-      productId: target.productId,
+      uuid: updated.uuid,
+      name: updated.name,
+      note: updated.note ?? null,
+      productId: updated.productId,
       itemCount: linkedItems.length,
-      dbCreatedAt: target.dbCreatedAt,
-      dbUpdatedAt: target.dbUpdatedAt,
+      dbCreatedAt: updated.dbCreatedAt,
+      dbUpdatedAt: updated.dbUpdatedAt,
     }
   },
-  /**
-   * 후보군 복제 — 백엔드 연동 전 스텁. 네트워크 지연만 흉내 내며 저장/목록 변경 없음.
-   * 실제 구현 시 이 메서드만 HTTP 호출 + DB 반영으로 교체.
-   */
   duplicateCandidateStash: async (sourceStashUuid: string): Promise<void> => {
-    void sourceStashUuid
     await sleep(90)
     logApiCalled('후보군 복제 API가 호출되었습니다.')
+    ensureCandidateSeed()
+    const rawStashes = localStorage.getItem(CANDIDATE_STASH_STORAGE_KEY)
+    const rawItems = localStorage.getItem(CANDIDATE_ITEM_STORAGE_KEY)
+    const stashes = (rawStashes ? JSON.parse(rawStashes) : []) as CandidateStashRecord[]
+    const items = (rawItems ? JSON.parse(rawItems) : []) as CandidateItemRecord[]
+    const source = stashes.find((row) => row.uuid === sourceStashUuid)
+    if (!source) throw new Error('복제할 후보군을 찾을 수 없습니다.')
+    const now = new Date().toISOString()
+    const copiedStash: CandidateStashRecord = {
+      ...source,
+      uuid: makeUuid32(),
+      name: `${source.name} 복사본`,
+      dbCreatedAt: now,
+      dbUpdatedAt: now,
+    }
+    const copiedItems = items
+      .filter((row) => row.stashUuid === sourceStashUuid)
+      .map((row) => ({
+        ...row,
+        uuid: makeUuid32(),
+        stashUuid: copiedStash.uuid,
+        dbCreatedAt: now,
+        dbUpdatedAt: now,
+      }))
+    localStorage.setItem(CANDIDATE_STASH_STORAGE_KEY, JSON.stringify([...stashes, copiedStash]))
+    localStorage.setItem(CANDIDATE_ITEM_STORAGE_KEY, JSON.stringify([...items, ...copiedItems]))
   },
   appendCandidateItem: async (payload: AppendCandidateItemPayload): Promise<void> => {
     await sleep(70)

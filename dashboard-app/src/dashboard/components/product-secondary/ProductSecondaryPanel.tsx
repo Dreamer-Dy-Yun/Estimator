@@ -114,7 +114,9 @@ export function ProductSecondaryPanel({
   const [selfWeightPct, setSelfWeightPct] = useState(50)
   /** 사용자가 직접 덮어쓴 확정 수량만 — 스냅샷 값은 snapshotConfirmBySize에서 병합 */
   const [confirmBySize, setConfirmBySize] = useState<Record<string, number>>({})
+  const mountedRef = useRef(false)
   const dailyTrendReqSeqRef = useRef(0)
+  const candidateListReqSeqRef = useRef(0)
   const [forecastCalc, setForecastCalc] = useState<SecondaryForecastCalc | null>(null)
   const [forecastCalcError, setForecastCalcError] = useState<ApiUnitErrorInfo | null>(null)
   const [dailyTrendError, setDailyTrendError] = useState<ApiUnitErrorInfo | null>(null)
@@ -134,6 +136,15 @@ export function ProductSecondaryPanel({
   } | null>(null)
   const [candidateNameInput, setCandidateNameInput] = useState('')
   const [candidateNoteInput, setCandidateNoteInput] = useState('')
+
+  useEffect(() => {
+    mountedRef.current = true
+    return () => {
+      mountedRef.current = false
+      dailyTrendReqSeqRef.current += 1
+      candidateListReqSeqRef.current += 1
+    }
+  }, [])
 
   useEffect(() => {
     setCandidateListOpen(false)
@@ -464,6 +475,7 @@ export function ProductSecondaryPanel({
   }>>([])
 
   useEffect(() => {
+    let alive = true
     const reqSeq = dailyTrendReqSeqRef.current + 1
     dailyTrendReqSeqRef.current = reqSeq
     void (async () => {
@@ -474,12 +486,12 @@ export function ProductSecondaryPanel({
           leadTimeDays,
         }
         const series = await dashboardApi.getSecondaryDailyTrend(params)
-        if (dailyTrendReqSeqRef.current !== reqSeq) return
+        if (!alive || dailyTrendReqSeqRef.current !== reqSeq) return
         if (!series.length) throw new Error('일별 판매추이 데이터가 비어 있습니다.')
         setDailyTrendSeries(series)
         setDailyTrendError(null)
       } catch (err) {
-        if (dailyTrendReqSeqRef.current !== reqSeq) return
+        if (!alive || dailyTrendReqSeqRef.current !== reqSeq) return
         setDailyTrendSeries([])
         setDailyTrendError(
           makeApiErrorInfo(
@@ -489,6 +501,9 @@ export function ProductSecondaryPanel({
         )
       }
     })()
+    return () => {
+      alive = false
+    }
   }, [leadTimeDays, makeApiErrorInfo, selectedStart, primary.id])
 
   const { periodShade: dailyPeriodShade, forecastShade: dailyForecastShade } = useMemo(
@@ -606,7 +621,10 @@ export function ProductSecondaryPanel({
   ])
 
   const refreshCandidates = useCallback(async () => {
+    const reqSeq = candidateListReqSeqRef.current + 1
+    candidateListReqSeqRef.current = reqSeq
     const stashes = await dashboardApi.getCandidateStashes()
+    if (!mountedRef.current || candidateListReqSeqRef.current !== reqSeq) return stashes
     setCandidateStashes(stashes.map((s) => ({
       uuid: s.uuid,
       name: s.name,
@@ -632,7 +650,7 @@ export function ProductSecondaryPanel({
         isLatestLlmComment: false,
       })
     } finally {
-      setCandidateActionLoading(false)
+      if (mountedRef.current) setCandidateActionLoading(false)
     }
   }, [buildSnapshot, primary.id, selectedCandidate])
 
@@ -646,9 +664,10 @@ export function ProductSecondaryPanel({
         details: snap,
         isLatestLlmComment: false,
       })
+      if (!mountedRef.current) return
       candidateItemContext.onSaved?.()
     } finally {
-      setCandidateActionLoading(false)
+      if (mountedRef.current) setCandidateActionLoading(false)
     }
   }, [buildSnapshot, candidateItemContext])
 
@@ -661,6 +680,7 @@ export function ProductSecondaryPanel({
         note: candidateNoteInput.trim(),
       })
       await refreshCandidates()
+      if (!mountedRef.current) return
       setSelectedCandidate({
         uuid: created.uuid,
         name: created.name,
@@ -670,7 +690,7 @@ export function ProductSecondaryPanel({
       setCandidateNoteInput('')
       setCandidateListOpen(false)
     } finally {
-      setCandidateActionLoading(false)
+      if (mountedRef.current) setCandidateActionLoading(false)
     }
   }, [candidateNameInput, candidateNoteInput, primary.id, refreshCandidates])
 
@@ -751,13 +771,14 @@ export function ProductSecondaryPanel({
                       : '-'
                   }
                   loading={candidateActionLoading}
+                  confirmDisabled={selectedCandidate == null}
                   onOpenStashPicker={async () => {
                     setCandidateListOpen((prev) => !prev)
                     setCandidateActionLoading(true)
                     try {
                       await refreshCandidates()
                     } finally {
-                      setCandidateActionLoading(false)
+                      if (mountedRef.current) setCandidateActionLoading(false)
                     }
                   }}
                   onConfirmOrder={confirmOrder}

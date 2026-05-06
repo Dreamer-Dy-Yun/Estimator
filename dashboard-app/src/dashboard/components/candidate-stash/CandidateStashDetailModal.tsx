@@ -24,7 +24,7 @@ type Props = {
 }
 
 export function CandidateStashDetailModal({ stashUuid, stashSummary, onClose, onStashesInvalidate }: Props) {
-  const m = useCandidateStashDetailModal({ stashUuid, stashSummary, onClose, onStashesInvalidate })
+  const m = useCandidateStashDetailModal({ stashUuid, stashSummary, onStashesInvalidate })
   const [selectedItemUuids, setSelectedItemUuids] = useState<Set<string>>(() => new Set())
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false)
   const [analysisPopupDismissed, setAnalysisPopupDismissed] = useState(false)
@@ -434,6 +434,8 @@ export function CandidateStashDetailModal({ stashUuid, stashSummary, onClose, on
                               }`}
                               onClick={() => toggleItemDrawer(row)}
                               onKeyDown={(e) => {
+                                const target = e.target as HTMLElement | null
+                                if (target?.closest('input, button, a, select, textarea')) return
                                 if (e.key !== 'Enter' && e.key !== ' ') return
                                 e.preventDefault()
                                 toggleItemDrawer(row)

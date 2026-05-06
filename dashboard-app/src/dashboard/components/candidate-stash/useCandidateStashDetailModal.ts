@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   deleteCandidateItem,
-  deleteCandidateStash,
   getCandidateItemByUuid,
   getCandidateItemsByStash,
   getCandidateStashes,
@@ -27,22 +26,18 @@ type Args = {
   stashUuid: string
   /** 부모가 이미 알고 있으면 전달 — `getCandidateStashes()` 중복 호출 생략 */
   stashSummary?: CandidateStashSummary | null
-  onClose: () => void
   onStashesInvalidate?: () => void
 }
 
 export function useCandidateStashDetailModal({
   stashUuid,
   stashSummary: stashSummaryProp,
-  onClose,
   onStashesInvalidate,
 }: Args) {
   const [stashes, setStashes] = useState<CandidateStashSummary[]>([])
   const [items, setItems] = useState<CandidateItemSummary[]>([])
   const [detailLoading, setDetailLoading] = useState(false)
   const [detailError, setDetailError] = useState<string | null>(null)
-  const [deleteBusy, setDeleteBusy] = useState(false)
-  const [deleteOpen, setDeleteOpen] = useState(false)
   const [brandQuery, setBrandQuery] = useState('')
   const [productCodeQuery, setProductCodeQuery] = useState('')
   const [productNameQuery, setProductNameQuery] = useState('')
@@ -59,32 +54,59 @@ export function useCandidateStashDetailModal({
   const [bulkDeleteBusy, setBulkDeleteBusy] = useState(false)
   const [analysisProgress, setAnalysisProgress] = useState<CandidateStashAnalysisProgressEvent | null>(null)
   const [analysisError, setAnalysisError] = useState<string | null>(null)
+  const mountedRef = useRef(false)
+  const stashLoadSeqRef = useRef(0)
+  const itemLoadSeqRef = useRef(0)
+  const drawerRequestSeqRef = useRef(0)
   const innerNavLockRef = useRef(false)
   const analysisRequestSeqRef = useRef(0)
 
   useEffect(() => {
+    mountedRef.current = true
+    return () => {
+      mountedRef.current = false
+      stashLoadSeqRef.current += 1
+      itemLoadSeqRef.current += 1
+      drawerRequestSeqRef.current += 1
+    }
+  }, [])
+
+  useEffect(() => {
+    const seq = stashLoadSeqRef.current + 1
+    stashLoadSeqRef.current = seq
     void (async () => {
       if (stashSummaryProp && stashSummaryProp.uuid === stashUuid) {
+        if (!mountedRef.current || stashLoadSeqRef.current !== seq) return
         setStashes([stashSummaryProp])
         return
       }
-      const list = await getCandidateStashes()
-      setStashes(list)
+      try {
+        const list = await getCandidateStashes()
+        if (!mountedRef.current || stashLoadSeqRef.current !== seq) return
+        setStashes(list)
+      } catch {
+        if (!mountedRef.current || stashLoadSeqRef.current !== seq) return
+        setStashes([])
+      }
     })()
   }, [stashUuid, stashSummaryProp])
 
   const loadItems = useCallback(async () => {
     if (!stashUuid) return
+    const seq = itemLoadSeqRef.current + 1
+    itemLoadSeqRef.current = seq
     setDetailLoading(true)
     setDetailError(null)
     try {
       const rows = await getCandidateItemsByStash(stashUuid)
+      if (!mountedRef.current || itemLoadSeqRef.current !== seq) return
       setItems(rows)
+      setDetailLoading(false)
     } catch (err) {
+      if (!mountedRef.current || itemLoadSeqRef.current !== seq) return
       const message = err instanceof Error ? err.message : '이너 후보 목록 스냅샷 데이터가 올바르지 않습니다.'
       setItems([])
       setDetailError(message)
-    } finally {
       setDetailLoading(false)
     }
   }, [stashUuid])
@@ -232,17 +254,22 @@ export function useCandidateStashDetailModal({
   }
 
   const openItemDrawer = useCallback(async (row: InnerCandidateRow) => {
+    const seq = drawerRequestSeqRef.current + 1
+    drawerRequestSeqRef.current = seq
     setDrawerError(null)
     try {
       const detail = await getCandidateItemByUuid(row.uuid)
+      if (!mountedRef.current || drawerRequestSeqRef.current !== seq) return
       if (!detail) throw new Error(`후보 상세 데이터 없음: ${row.uuid}`)
       const snap = parseOrderSnapshot(detail.details)
+      if (!mountedRef.current || drawerRequestSeqRef.current !== seq) return
       setHydrateSnap(snap)
       setDrawerForecastMonths(clampForecastMonths(snap.context.forecastMonths))
       setDrawerProductId(row.productId)
       setOpenedItemUuid(row.uuid)
       setDrawerOpen(true)
     } catch (err) {
+      if (!mountedRef.current || drawerRequestSeqRef.current !== seq) return
       const message = err instanceof Error ? err.message : '후보 상세 스냅샷 로드에 실패했습니다.'
       setDrawerError(message)
     }
@@ -251,7 +278,7 @@ export function useCandidateStashDetailModal({
   const onRequestNavigateAdjacent = useCallback(
     async (direction: AdjacentDirection) => {
       if (!drawerOpen) return
-      if (deleteOpen || itemDeleteTarget) return
+      if (itemDeleteTarget) return
       if (innerNavLockRef.current) return
       const order = tableRows.map((r) => r.uuid)
       const nextUuid = adjacentIdInOrder(order, openedItemUuid, direction)
@@ -265,10 +292,11 @@ export function useCandidateStashDetailModal({
         innerNavLockRef.current = false
       }
     },
-    [deleteOpen, drawerOpen, itemDeleteTarget, openedItemUuid, openItemDrawer, tableRows],
+    [drawerOpen, itemDeleteTarget, openedItemUuid, openItemDrawer, tableRows],
   )
 
   const closeDrawer = useCallback(() => {
+    drawerRequestSeqRef.current += 1
     setDrawerOpen(false)
     setDrawerProductId(null)
     setOpenedItemUuid(null)
@@ -281,33 +309,23 @@ export function useCandidateStashDetailModal({
 
   const refreshStashes = useCallback(async () => {
     const list = await getCandidateStashes()
+    if (!mountedRef.current) return
     setStashes(list)
     onStashesInvalidate?.()
   }, [onStashesInvalidate])
-
-  const confirmDeleteStash = useCallback(async () => {
-    if (!detailTarget) return
-    setDeleteBusy(true)
-    try {
-      await deleteCandidateStash(detailTarget.uuid)
-      await refreshStashes()
-      onClose()
-    } finally {
-      setDeleteBusy(false)
-    }
-  }, [detailTarget, onClose, refreshStashes])
 
   const confirmDeleteItem = useCallback(async () => {
     if (!itemDeleteTarget) return
     setItemDeleteBusy(true)
     try {
       await deleteCandidateItem(itemDeleteTarget.uuid)
+      if (!mountedRef.current) return
       if (openedItemUuid === itemDeleteTarget.uuid) closeDrawer()
       setItemDeleteTarget(null)
       await loadItems()
       await refreshStashes()
     } finally {
-      setItemDeleteBusy(false)
+      if (mountedRef.current) setItemDeleteBusy(false)
     }
   }, [closeDrawer, itemDeleteTarget, loadItems, openedItemUuid, refreshStashes])
 
@@ -318,12 +336,13 @@ export function useCandidateStashDetailModal({
     try {
       for (const itemUuid of uniqueUuids) {
         await deleteCandidateItem(itemUuid)
+        if (!mountedRef.current) return
       }
       if (openedItemUuid && uniqueUuids.includes(openedItemUuid)) closeDrawer()
       await loadItems()
       await refreshStashes()
     } finally {
-      setBulkDeleteBusy(false)
+      if (mountedRef.current) setBulkDeleteBusy(false)
     }
   }, [closeDrawer, loadItems, openedItemUuid, refreshStashes])
 
@@ -332,9 +351,6 @@ export function useCandidateStashDetailModal({
     items,
     detailLoading,
     detailError,
-    deleteBusy,
-    deleteOpen,
-    setDeleteOpen,
     brandQuery,
     setBrandQuery,
     productCodeQuery,
@@ -368,7 +384,6 @@ export function useCandidateStashDetailModal({
     onDrawerForecastMonthsChange,
     loadItems,
     refreshStashes,
-    confirmDeleteStash,
     confirmDeleteItem,
     confirmDeleteItems,
   }

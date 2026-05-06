@@ -71,7 +71,7 @@
 
 ### 5.3 오더 후보군 (`SnapshotConfirmPage` + `CandidateStashDetailModal`)
 
-- **후보군(스태시) 목록:** 이름·비고 검색, 정렬, 생성·이름/비고 수정·삭제·복제(일부 API는 목업 스텁).
+- **후보군(스태시) 목록:** 이름·비고 검색, 정렬, 생성·이름/비고 수정·삭제·복제. 목업도 localStorage에 실제 반영한 뒤 목록을 재조회합니다.
 - **상세 모달:** 한 스태시에 속한 **이너 후보** 목록 — 브랜드·상품코드·상품명 필터([`FilterBar`](../../dashboard-app/src/dashboard/components/FilterBar.tsx) + [`FilterListCombo`](../../dashboard-app/src/dashboard/components/FilterListCombo.tsx)).
 - **행 클릭:** 해당 아이템의 스냅샷을 불러와 드로어를 **2차까지 펼친 상태**로 표시(`initialExpandSecondary`), 스냅샷 병합·저장·삭제 등 [`candidateItemContext`](../../dashboard-app/src/dashboard/components/product-secondary/candidateActionCards.tsx) 연동.
 

@@ -23,6 +23,7 @@
 - 2차 패널에서 화면에 노출되지 않는 LLM 프롬프트 생성 API와 배포 전 제거 대상이던 JSON 미리보기 모달을 제거했다.
 - 오더 스냅샷 독립 localStorage 저장/조회/삭제 API를 제거하고, 후보 아이템 `details`를 스냅샷 저장의 단일 경로로 둔다.
 - 후보군 생성 후 별도 확인 팝업을 띄우지 않고 생성된 후보군을 즉시 선택한 뒤 선택 모달을 닫는다.
+- 후보군 목록의 삭제·복제·편집 이벤트는 mock localStorage 변경 후 목록을 재조회하며, 상세/드로어 비동기 로딩은 stale 응답 가드를 둔다.
 
 ## 최상위 저장소
 
@@ -80,7 +81,7 @@
 |------|------|
 | `candidateSeeds.ts` | 후보군/후보 아이템 seed 데이터 |
 | `constants.ts` | mock 공용 상수 |
-| `dashboardApi.ts` | mock `DashboardApi` 구현체 |
+| `dashboardApi.ts` | mock `DashboardApi` 구현체. 후보군 CRUD는 localStorage에 실제 반영한다 |
 | `orderSnapshotForCandidate.ts` | 후보 아이템용 오더 스냅샷 생성/복원 보조 |
 | `productCatalog.ts` | 상품 catalog seed와 조회 |
 | `records.ts` | mock 원천 record 묶음 |
@@ -119,7 +120,7 @@
 |------|------|
 | `SelfPage.tsx` | 자사 판매 분석 라우트 |
 | `CompetitorPage.tsx` | 경쟁 판매 분석 라우트 |
-| `SnapshotConfirmPage.tsx` | 후보군 목록, 후보군 업로드, 후보군 생성/수정/삭제 라우트 |
+| `SnapshotConfirmPage.tsx` | 후보군 목록, 후보군 업로드, 후보군 생성/수정/삭제/복제 라우트 |
 | `SnapshotConfirmPage.module.css` | `SnapshotConfirmPage`와 해당 페이지 확인 모달 전용 스타일 |
 
 ## dashboard/components

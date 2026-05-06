@@ -276,7 +276,7 @@
 
 **동작 메모**
 
-- `duplicateCandidateStash`: 동일 스태시·아이템 복제(구현 세부는 백엔드 결정). 프론트는 완료만 기다립니다(`Promise<void>`).
+- `duplicateCandidateStash`: 동일 스태시·아이템 복제(구현 세부는 백엔드 결정). 프론트는 완료 후 `getCandidateStashes()`를 다시 호출해 목록을 동기화합니다.
 - `uploadCandidateStashExcel`: 프론트는 파일을 파싱하지 않습니다. `multipart/form-data`의 `file` 필드로 엑셀 파일을 전송하고,
   백엔드는 파일 내용을 검증한 뒤 DB 트랜잭션 안에서 후보군과 후보 아이템을 생성해야 합니다.
   성공 후 프론트는 응답 객체를 목록에 직접 삽입하지 않고 `getCandidateStashes()`를 다시 호출해 DB 기준 목록과 동기화합니다.

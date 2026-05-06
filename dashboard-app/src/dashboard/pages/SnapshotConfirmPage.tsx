@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   deleteCandidateStash,
   duplicateCandidateStash,
@@ -35,20 +35,30 @@ export const SnapshotConfirmPage = () => {
   const [stashNoteQuery, setStashNoteQuery] = useState('')
   const [stashSortKey, setStashSortKey] = useState<'createdDesc' | 'createdAsc' | 'updatedDesc' | 'updatedAsc'>('createdDesc')
   const uploadInputRef = useRef<HTMLInputElement | null>(null)
+  const mountedRef = useRef(false)
+  const loadStashesSeqRef = useRef(0)
   const [uploadFile, setUploadFile] = useState<File | null>(null)
   const [uploadBusy, setUploadBusy] = useState(false)
   const [uploadError, setUploadError] = useState<string | null>(null)
   const [uploadResult, setUploadResult] = useState<CandidateStashExcelUploadResult | null>(null)
   const [uploadDragActive, setUploadDragActive] = useState(false)
 
-  const loadStashes = async () => {
+  const loadStashes = useCallback(async () => {
+    const seq = loadStashesSeqRef.current + 1
+    loadStashesSeqRef.current = seq
     const list = await getCandidateStashes()
+    if (!mountedRef.current || loadStashesSeqRef.current !== seq) return
     setStashes(list)
-  }
+  }, [])
 
   useEffect(() => {
+    mountedRef.current = true
     void loadStashes()
-  }, [])
+    return () => {
+      mountedRef.current = false
+      loadStashesSeqRef.current += 1
+    }
+  }, [loadStashes])
 
   const selectUploadFile = (file: File | null) => {
     setUploadFile(file)
@@ -63,14 +73,16 @@ export const SnapshotConfirmPage = () => {
     setUploadResult(null)
     try {
       const result = await uploadCandidateStashExcel(uploadFile)
+      if (!mountedRef.current) return
       setUploadResult(result)
       setUploadFile(null)
       if (uploadInputRef.current) uploadInputRef.current.value = ''
       await loadStashes()
     } catch (err) {
+      if (!mountedRef.current) return
       setUploadError(err instanceof Error ? err.message : '엑셀 업로드에 실패했습니다.')
     } finally {
-      setUploadBusy(false)
+      if (mountedRef.current) setUploadBusy(false)
     }
   }
 
@@ -268,8 +280,9 @@ export const SnapshotConfirmPage = () => {
                           setDuplicateBusyUuid(stash.uuid)
                           try {
                             await duplicateCandidateStash(stash.uuid)
+                            await loadStashes()
                           } finally {
-                            setDuplicateBusyUuid(null)
+                            if (mountedRef.current) setDuplicateBusyUuid(null)
                           }
                         })()
                       }}
@@ -357,9 +370,11 @@ export const SnapshotConfirmPage = () => {
                       name: editName.trim(),
                       note: editNote.trim() || null,
                     })
+                    await loadStashes()
+                    if (!mountedRef.current) return
                     setEditTarget(null)
                   } finally {
-                    setEditBusy(false)
+                    if (mountedRef.current) setEditBusy(false)
                   }
                 }}
               >
@@ -403,9 +418,11 @@ export const SnapshotConfirmPage = () => {
           setDeleteBusy(true)
           try {
             await deleteCandidateStash(deleteTarget.uuid)
+            await loadStashes()
+            if (!mountedRef.current) return
             setDeleteTarget(null)
           } finally {
-            setDeleteBusy(false)
+            if (mountedRef.current) setDeleteBusy(false)
           }
         }}
       />

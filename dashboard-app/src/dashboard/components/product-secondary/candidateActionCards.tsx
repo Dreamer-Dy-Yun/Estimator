@@ -19,6 +19,7 @@ type CandidateStashOrderActionCardProps = {
   selectedTitle: string
   selectedSub: string
   loading: boolean
+  confirmDisabled?: boolean
   onOpenStashPicker: () => void | Promise<void>
   onConfirmOrder: () => void
   portalHelp: PortalHelpApi
@@ -30,6 +31,7 @@ export function CandidateStashOrderActionCard({
   selectedTitle,
   selectedSub,
   loading,
+  confirmDisabled = false,
   onOpenStashPicker,
   onConfirmOrder,
   portalHelp,
@@ -59,7 +61,7 @@ export function CandidateStashOrderActionCard({
           type="button"
           className={`${styles.btn} ${styles.btnViewportAdaptive}`}
           onClick={onConfirmOrder}
-          disabled={loading}
+          disabled={loading || confirmDisabled}
           onFocus={() => portalHelp.open('confirmOrder', 'above')}
           onBlur={portalHelp.scheduleClose}
           aria-describedby={portalHelp.activeId === 'confirmOrder' ? confirmOrderHelpId : undefined}

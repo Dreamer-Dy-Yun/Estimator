@@ -194,6 +194,7 @@ function ProductSummaryDrawerContent({
       setSalesInsight(null)
       return
     }
+    let alive = true
     const reqSeq = ++salesInsightReqSeqRef.current
     void (async () => {
       try {
@@ -202,11 +203,11 @@ function ProductSummaryDrawerContent({
           endDate: salesInsightEndDay,
           competitorChannelId: channelId,
         })
-        if (reqSeq !== salesInsightReqSeqRef.current) return
+        if (!alive || reqSeq !== salesInsightReqSeqRef.current) return
         setSalesInsight(data)
         setSalesInsightError(null)
       } catch (err) {
-        if (reqSeq !== salesInsightReqSeqRef.current) return
+        if (!alive || reqSeq !== salesInsightReqSeqRef.current) return
         setSalesInsight(null)
         setSalesInsightError(
           makeApiErrorInfo(
@@ -216,6 +217,9 @@ function ProductSummaryDrawerContent({
         )
       }
     })()
+    return () => {
+      alive = false
+    }
   }, [channelId, salesInsightEndDay, salesInsightStartDay, summary.id])
 
   const trendScale = 1
