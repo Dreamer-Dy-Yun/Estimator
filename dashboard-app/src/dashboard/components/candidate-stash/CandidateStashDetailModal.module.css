@@ -577,7 +577,8 @@
   -webkit-overflow-scrolling: touch;
 }
 
-.stashDetailModalBackdrop[data-inner-drawer-open='true'] {
+.stashDetailModalBackdrop[data-inner-drawer-open='true'],
+.stashDetailModalBackdrop[data-inner-drawer-closing='true'] {
   justify-content: flex-start;
 }
 

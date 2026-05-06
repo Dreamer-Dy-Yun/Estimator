@@ -656,9 +656,11 @@
   align-items: stretch;
   min-height: 0;
   animation: drawerSlideIn 220ms ease-out;
+  opacity: 1;
   transition:
     left 0.42s cubic-bezier(0.32, 0.72, 0, 1),
     width 0.42s cubic-bezier(0.32, 0.72, 0, 1),
+    opacity 0.2s ease,
     background 0.32s ease,
     box-shadow 0.32s ease,
     border-color 0.28s ease;
@@ -671,6 +673,12 @@
   background: transparent;
   border: none;
   box-shadow: none;
+}
+
+.drawerClosing {
+  left: calc(100vw + 10px);
+  opacity: 0;
+  pointer-events: none;
 }
 
 .drawerColumn {

@@ -27,6 +27,7 @@
 - 라우트 페이지는 `src/App.tsx`에서 `React.lazy`로 분리한다. 기본 라우팅은 일반 배포용 `BrowserRouter`이고, GitHub Pages workflow만 `VITE_ROUTER_MODE=hash`로 `HashRouter`를 켠다.
 - vendor chunk는 `vite.config.ts`의 Rolldown `codeSplitting.groups`가 소유한다. Recharts 같은 내부 순서 의존 라이브러리는 `maxSize`로 강제 세분화하지 않는다.
 - 후보 아이템 목업 스냅샷은 `drawer2.llmAnswer`에 임시 AI 코멘트를 포함하고, 기존 localStorage 데이터도 빈 코멘트만 보강해 2차 드로어에서 바로 확인되게 한다.
+- 이너 후보 1차 드로어 닫힘은 `drawerClosing` 상태로 DOM과 모달 폭 보정 상태를 잠시 유지해, 열림의 역방향으로 모달 폭이 복원되게 한다.
 
 ## 최상위 저장소
 
@@ -143,7 +144,7 @@
 | `PageHeader.tsx` | 페이지 제목/header |
 | `PaginatedTable.tsx` | 정렬/페이지네이션 테이블 |
 | `PortalHelpPopover.tsx`, `usePortalHelpPopover.ts`, `portalHelpPopoverPosition.ts` | help popover와 위치 계산 |
-| `ProductSummaryDrawer.tsx` | 상품 1차 요약 drawer와 2차 패널 진입 shell |
+| `ProductSummaryDrawer.tsx` | 상품 1차 요약 drawer와 2차 패널 진입 shell. 닫힘 애니메이션 class를 받을 수 있다 |
 | `common.module.css` | 대시보드 공용 layout/card/button/icon 스타일 |
 | `trend/` | 판매 트렌드 차트와 차트 range 보조 |
 | `product-secondary/` | 상품 2차 상세 패널 feature |
@@ -157,7 +158,7 @@
 |------|------|
 | `CandidateStashDetailModal.tsx` | 특정 후보군의 이너 후보 목록, 요약, 필터, drawer 연결, 일괄/개별 삭제 확인 흐름 |
 | `CandidateStashDetailModal.module.css` | 후보군 상세 모달 전용 스타일 |
-| `useCandidateStashDetailModal.ts` | 후보군 상세 모달의 API 호출, 필터, drawer hydration, SSE 분석 진행 상태 |
+| `useCandidateStashDetailModal.ts` | 후보군 상세 모달의 API 호출, 필터, drawer hydration, drawer 닫힘 전환, SSE 분석 진행 상태 |
 | `CandidateRecommendationModal.tsx` | 후보군 상세에서 추천 후보를 선택/적용하는 보조 모달 |
 | `CandidateRecommendationModal.module.css` | 추천 모달 전용 스타일 |
 | `CandidateInsightBadges.tsx` | 후보 아이템 인사이트 badge 렌더링 |

@@ -38,6 +38,7 @@ function ProductSummaryDrawerContent({
   onRequestNavigateAdjacent,
   disableAdjacentNavigation,
   suppressDocumentLayoutShift,
+  closing = false,
 }: {
   summary: ProductPrimarySummary
   stockTrend: ProductStockTrendPoint[]
@@ -58,6 +59,7 @@ function ProductSummaryDrawerContent({
    * 이너 오더 모달처럼 부모가 뷰포트만 조정할 때 사용.
    */
   suppressDocumentLayoutShift?: boolean
+  closing?: boolean
 }) {
   void stockTrend
   const forecastMonthsLabelId = useId()
@@ -404,7 +406,7 @@ function ProductSummaryDrawerContent({
   return (
     <aside
       ref={drawerRef}
-      className={`${styles.drawer} ${expandPaneOpen ? styles.drawerWithExpandPane : ''}`}
+      className={`${styles.drawer} ${expandPaneOpen ? styles.drawerWithExpandPane : ''} ${closing ? styles.drawerClosing : ''}`}
       onMouseDown={(e) => e.stopPropagation()}
       onClick={(e) => e.stopPropagation()}
     >
@@ -671,6 +673,7 @@ export const ProductSummaryDrawer = ({
   onRequestNavigateAdjacent,
   disableAdjacentNavigation,
   suppressDocumentLayoutShift,
+  closing,
 }: {
   summary: ProductPrimarySummary | null
   stockTrend: ProductStockTrendPoint[]
@@ -685,6 +688,7 @@ export const ProductSummaryDrawer = ({
   onRequestNavigateAdjacent?: (direction: AdjacentDirection) => void | Promise<void>
   disableAdjacentNavigation?: boolean
   suppressDocumentLayoutShift?: boolean
+  closing?: boolean
 }) => {
   if (!summary) return null
   return (
@@ -702,6 +706,7 @@ export const ProductSummaryDrawer = ({
       onRequestNavigateAdjacent={onRequestNavigateAdjacent}
       disableAdjacentNavigation={disableAdjacentNavigation}
       suppressDocumentLayoutShift={suppressDocumentLayoutShift}
+      closing={closing}
     />
   )
 }

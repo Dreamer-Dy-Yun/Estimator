@@ -20,6 +20,8 @@ import { uniqueSortedStrings } from '../../../utils/uniqueSortedStrings'
 import { mergePrimarySummaryFromBundleAndSnapshot } from '../../drawer/mergePrimarySummaryFromSnapshot'
 import { useProductDrawerBundle } from '../../hooks/useProductDrawerBundle'
 
+const INNER_DRAWER_CLOSE_LAYOUT_MS = 440
+
 export type InnerCandidateRow = CandidateItemSummary & { id: string }
 
 type Args = {
@@ -43,6 +45,7 @@ export function useCandidateStashDetailModal({
   const [productNameQuery, setProductNameQuery] = useState('')
 
   const [drawerOpen, setDrawerOpen] = useState(false)
+  const [drawerClosing, setDrawerClosing] = useState(false)
   const [drawerError, setDrawerError] = useState<string | null>(null)
   const [drawerProductId, setDrawerProductId] = useState<string | null>(null)
   const [openedItemUuid, setOpenedItemUuid] = useState<string | null>(null)
@@ -58,6 +61,7 @@ export function useCandidateStashDetailModal({
   const stashLoadSeqRef = useRef(0)
   const itemLoadSeqRef = useRef(0)
   const drawerRequestSeqRef = useRef(0)
+  const drawerCloseTimerRef = useRef<ReturnType<typeof window.setTimeout> | null>(null)
   const innerNavLockRef = useRef(false)
   const analysisRequestSeqRef = useRef(0)
 
@@ -68,6 +72,10 @@ export function useCandidateStashDetailModal({
       stashLoadSeqRef.current += 1
       itemLoadSeqRef.current += 1
       drawerRequestSeqRef.current += 1
+      if (drawerCloseTimerRef.current != null) {
+        window.clearTimeout(drawerCloseTimerRef.current)
+        drawerCloseTimerRef.current = null
+      }
     }
   }, [])
 
@@ -238,7 +246,7 @@ export function useCandidateStashDetailModal({
   }, [totals.expectedOpProfit, totals.expectedSalesAmount])
 
   const fc = clampForecastMonths(drawerForecastMonths)
-  const bundle = useProductDrawerBundle(drawerOpen ? drawerProductId : null, fc, {
+  const bundle = useProductDrawerBundle(drawerOpen || drawerClosing ? drawerProductId : null, fc, {
     allowStaleWhileRevalidate: false,
   })
 
@@ -256,6 +264,11 @@ export function useCandidateStashDetailModal({
   const openItemDrawer = useCallback(async (row: InnerCandidateRow) => {
     const seq = drawerRequestSeqRef.current + 1
     drawerRequestSeqRef.current = seq
+    if (drawerCloseTimerRef.current != null) {
+      window.clearTimeout(drawerCloseTimerRef.current)
+      drawerCloseTimerRef.current = null
+    }
+    setDrawerClosing(false)
     setDrawerError(null)
     try {
       const detail = await getCandidateItemByUuid(row.uuid)
@@ -297,11 +310,22 @@ export function useCandidateStashDetailModal({
 
   const closeDrawer = useCallback(() => {
     drawerRequestSeqRef.current += 1
+    if (!drawerOpen && !drawerClosing && drawerProductId == null) return
+    if (drawerCloseTimerRef.current != null) {
+      window.clearTimeout(drawerCloseTimerRef.current)
+      drawerCloseTimerRef.current = null
+    }
     setDrawerOpen(false)
-    setDrawerProductId(null)
-    setOpenedItemUuid(null)
-    setHydrateSnap(null)
-  }, [])
+    setDrawerClosing(true)
+    drawerCloseTimerRef.current = window.setTimeout(() => {
+      drawerCloseTimerRef.current = null
+      if (!mountedRef.current) return
+      setDrawerClosing(false)
+      setDrawerProductId(null)
+      setOpenedItemUuid(null)
+      setHydrateSnap(null)
+    }, INNER_DRAWER_CLOSE_LAYOUT_MS)
+  }, [drawerClosing, drawerOpen, drawerProductId])
 
   const onDrawerForecastMonthsChange = useCallback((n: number) => {
     setDrawerForecastMonths(clampForecastMonths(n))
@@ -348,6 +372,7 @@ export function useCandidateStashDetailModal({
 
   return {
     drawerOpen,
+    drawerClosing,
     items,
     detailLoading,
     detailError,

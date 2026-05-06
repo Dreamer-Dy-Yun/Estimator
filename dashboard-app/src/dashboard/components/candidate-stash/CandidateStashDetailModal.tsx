@@ -189,7 +189,7 @@ export function CandidateStashDetailModal({ stashUuid, stashSummary, onClose, on
         className={detailStyles.stashDetailModalBackdrop}
         onClick={() => onClose()}
         role="presentation"
-        {...stashDetailModalBackdropDataProps(m.drawerOpen)}
+        {...stashDetailModalBackdropDataProps(m.drawerOpen, m.drawerClosing)}
       >
         {showAnalysisPopup && m.analysisProgress && (
           <div
@@ -502,6 +502,7 @@ export function CandidateStashDetailModal({ stashUuid, stashSummary, onClose, on
         summary={m.mergedSummary}
         stockTrend={m.bundle?.stockTrend ?? []}
         suppressDocumentLayoutShift
+        closing={m.drawerClosing}
         onClose={m.closeDrawer}
         periodStart={m.periodStart!}
         periodEnd={m.periodEnd!}
