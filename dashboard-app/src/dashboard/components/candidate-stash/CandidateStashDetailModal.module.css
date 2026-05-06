@@ -244,11 +244,16 @@
 }
 
 .innerDrawerAwareBody {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
   min-width: 0;
+  min-height: 0;
 }
 
 .innerSummaryGrid {
   margin-top: 8px;
+  flex: none;
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 8px;
@@ -282,13 +287,21 @@
 
 .innerCandidateListBlock {
   margin-top: 8px;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .innerOrderList {
+  flex: 1;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   gap: 6px;
-  overflow-x: auto;
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding-right: 2px;
 }
 
 .innerOrderHeader,
@@ -309,6 +322,9 @@
 }
 
 .innerOrderHeader {
+  position: sticky;
+  top: 0;
+  z-index: 4;
   min-height: 38px;
   padding: 9px 12px;
   border: 1px solid #dbe2ea;
@@ -570,11 +586,15 @@
 .stashDetailModalBody {
   flex: 1;
   min-height: 0;
-  overflow: auto;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
   gap: 10px;
   -webkit-overflow-scrolling: touch;
+}
+
+.stashDetailModalBody > :not(.innerDrawerAwareBody) {
+  flex: none;
 }
 
 .stashDetailModalBackdrop[data-inner-drawer-open='true'],

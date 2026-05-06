@@ -157,7 +157,7 @@
 | 파일 | 역할 |
 |------|------|
 | `CandidateStashDetailModal.tsx` | 특정 후보군의 이너 후보 목록, 요약, 필터, drawer 연결, 일괄/개별 삭제 확인 흐름 |
-| `CandidateStashDetailModal.module.css` | 후보군 상세 모달 전용 스타일 |
+| `CandidateStashDetailModal.module.css` | 후보군 상세 모달 전용 스타일, 헤더 고정/이너 후보 리스트 내부 스크롤 경계 |
 | `useCandidateStashDetailModal.ts` | 후보군 상세 모달의 API 호출, 필터, drawer hydration, drawer 닫힘 전환, SSE 분석 진행 상태 |
 | `CandidateRecommendationModal.tsx` | 후보군 상세에서 추천 후보를 선택/적용하는 보조 모달 |
 | `CandidateRecommendationModal.module.css` | 추천 모달 전용 스타일 |
