@@ -2,7 +2,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { mockDashboardApi } from './dashboardApi'
 import { CANDIDATE_ITEM_STORAGE_KEY, CANDIDATE_STASH_STORAGE_KEY } from './constants'
 import { buildMockOrderSnapshotForCandidate } from './orderSnapshotForCandidate'
-import type { CandidateItemRecord, CandidateStashRecord } from './records'
+import {
+  DEFAULT_CANDIDATE_STASH_CONTEXT,
+  type CandidateItemRecord,
+  type CandidateStashRecord,
+} from './records'
 
 function createMemoryStorage(): Storage {
   const store = new Map<string, string>()
@@ -86,6 +90,7 @@ describe('api/mock dashboardApi candidate stash mutations', () => {
       productId: 'B',
       name: '수정 전',
       note: 'old',
+      ...DEFAULT_CANDIDATE_STASH_CONTEXT,
     })
 
     const updated = await mockDashboardApi.updateCandidateStash({
@@ -97,7 +102,28 @@ describe('api/mock dashboardApi candidate stash mutations', () => {
 
     expect(updated.name).toBe('수정 후')
     expect(updated.note).toBe('new')
+    expect(updated.periodStart).toBe(DEFAULT_CANDIDATE_STASH_CONTEXT.periodStart)
     expect(list.find((row) => row.uuid === created.uuid)?.name).toBe('수정 후')
+  })
+
+  it('backfills candidate stash period metadata for legacy storage rows', async () => {
+    const legacyStash = {
+      uuid: 'legacy-stash-without-period',
+      name: '예전 후보군',
+      note: null,
+      productId: 'B',
+      dbCreatedAt: '2026-04-20T09:00:00.000Z',
+      dbUpdatedAt: '2026-04-20T09:00:00.000Z',
+    }
+    localStorage.setItem(CANDIDATE_STASH_STORAGE_KEY, JSON.stringify([legacyStash]))
+    localStorage.setItem(CANDIDATE_ITEM_STORAGE_KEY, JSON.stringify([]))
+
+    const list = await mockDashboardApi.getCandidateStashes()
+
+    expect(list[0]).toMatchObject(DEFAULT_CANDIDATE_STASH_CONTEXT)
+    expect(JSON.parse(localStorage.getItem(CANDIDATE_STASH_STORAGE_KEY) ?? '[]')[0]).toMatchObject(
+      DEFAULT_CANDIDATE_STASH_CONTEXT,
+    )
   })
 
   it('duplicates candidate stash with its inner items', async () => {
@@ -158,6 +184,7 @@ describe('api/mock dashboardApi candidate stash mutations', () => {
       name: 'AI 코멘트 테스트',
       note: null,
       productId: 'B',
+      ...DEFAULT_CANDIDATE_STASH_CONTEXT,
       dbCreatedAt: now,
       dbUpdatedAt: now,
     }

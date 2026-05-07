@@ -1,5 +1,5 @@
 import { CANDIDATE_ITEM_STORAGE_KEY, CANDIDATE_STASH_STORAGE_KEY } from './constants'
-import type { CandidateItemRecord, CandidateStashRecord } from './records'
+import { DEFAULT_CANDIDATE_STASH_CONTEXT, type CandidateItemRecord, type CandidateStashRecord } from './records'
 import {
   buildMockOrderSnapshotForCandidate,
   ensureMockAiCommentForSnapshot,
@@ -11,6 +11,7 @@ const seededCandidateStashes: CandidateStashRecord[] = [
     name: '기본 후보군 A',
     note: '초기 목업 데이터',
     productId: 'B',
+    ...DEFAULT_CANDIDATE_STASH_CONTEXT,
     dbCreatedAt: '2026-04-20T09:00:00.000Z',
     dbUpdatedAt: '2026-04-20T09:00:00.000Z',
   },
@@ -19,6 +20,7 @@ const seededCandidateStashes: CandidateStashRecord[] = [
     name: '봄 시즌 후보군',
     note: '가격 민감도 높은 구성',
     productId: 'B',
+    ...DEFAULT_CANDIDATE_STASH_CONTEXT,
     dbCreatedAt: '2026-04-20T10:30:00.000Z',
     dbUpdatedAt: '2026-04-20T10:30:00.000Z',
   },
@@ -27,6 +29,7 @@ const seededCandidateStashes: CandidateStashRecord[] = [
     name: '기본 후보군 D',
     note: '의류 카테고리 기본안',
     productId: 'D',
+    ...DEFAULT_CANDIDATE_STASH_CONTEXT,
     dbCreatedAt: '2026-04-20T11:00:00.000Z',
     dbUpdatedAt: '2026-04-20T11:00:00.000Z',
   },
@@ -35,6 +38,7 @@ const seededCandidateStashes: CandidateStashRecord[] = [
     name: '기본 후보군 H',
     note: '신발 프리미엄 라인',
     productId: 'H',
+    ...DEFAULT_CANDIDATE_STASH_CONTEXT,
     dbCreatedAt: '2026-04-20T11:20:00.000Z',
     dbUpdatedAt: '2026-04-20T11:20:00.000Z',
   },
@@ -52,6 +56,7 @@ const seededCandidateStashes: CandidateStashRecord[] = [
       name: `스크롤 테스트 후보군 ${String(idx).padStart(2, '0')}`,
       note: idx % 3 === 0 ? '스크롤/정렬/검색 검증용 샘플' : '대량 후보군 UI 검증',
       productId: products[i % products.length]!,
+      ...DEFAULT_CANDIDATE_STASH_CONTEXT,
       dbCreatedAt: createdAt,
       dbUpdatedAt: updatedAt,
     }

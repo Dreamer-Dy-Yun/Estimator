@@ -86,7 +86,7 @@
 | 파일 | 역할 |
 |------|------|
 | `auth.ts` | 로그인 요청, 인증 사용자, 사용자 정보/비밀번호 변경, 관리자 유저 추가/제거/수정, 세션, 인증 API 계약 |
-| `candidate.ts` | 후보군/이너 후보/후보군 분석 SSE 요청·응답 계약 |
+| `candidate.ts` | 후보군/이너 후보/후보군 분석 SSE 요청·응답 계약. 후보군은 생성 당시 기간과 포캐스트 개월 수를 계약에 포함한다 |
 | `dashboard-api.ts` | 화면에서 쓰는 `DashboardApi` 인터페이스 |
 | `drawer.ts` | 1차 drawer bundle과 판매 인사이트 계약 |
 | `index.ts` | API public type export |
@@ -100,7 +100,7 @@
 |------|------|
 | `authApi.ts` | mock 인증 API 구현, sessionStorage 세션 저장/복원, 관리자 유저 목록 localStorage 저장과 추가/제거/수정 |
 | `candidateSeeds.ts` | 후보군/후보 아이템 seed 데이터와 기존 목업 스냅샷의 빈 AI 코멘트 보강 |
-| `candidateStorage.ts` | 후보군 mock localStorage 읽기/쓰기와 목업 전용 record 보강 경계 |
+| `candidateStorage.ts` | 후보군 mock localStorage 읽기/쓰기와 목업 전용 record 보강 경계. 예전 저장값에 누락된 후보군 기간/포캐스트 필드를 기본값으로 보강한다 |
 | `constants.ts` | mock 공용 상수 |
 | `dashboardApi.ts` | mock `DashboardApi` 구현체. public API 계약을 맞춰 응답하고 저장소 접근은 `candidateStorage.ts`에 위임한다 |
 | `orderSnapshotForCandidate.ts` | 후보 아이템용 오더 스냅샷 생성/복원 보조와 임시 목업 AI 코멘트 생성 |

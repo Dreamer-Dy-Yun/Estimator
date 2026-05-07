@@ -315,6 +315,8 @@
 | `uuid` | 스태시 PK |
 | `name`, `note` | 이름·비고 |
 | `productId` | 연결 상품 |
+| `periodStart`, `periodEnd` | 후보군 생성 당시의 분석 기간 |
+| `forecastMonths` | 후보군 생성 당시의 월간 판매추이 포캐스트 개월 수 |
 | `itemCount` | 소속 후보 아이템 개수 |
 | `dbCreatedAt`, `dbUpdatedAt` | 생성·수정 시각(아이템 추가로 스태시 “갱신” 시각을 반영할지는 백엔드 정책) |
 
@@ -352,7 +354,7 @@
 
 **페이로드**
 
-- `CreateCandidateStashPayload`: `{ productId, name, note? }`
+- `CreateCandidateStashPayload`: `{ productId, name, note?, periodStart, periodEnd, forecastMonths }`
 - `UpdateCandidateStashPayload`: `{ stashUuid, name, note? }` — 메타만 갱신
 - `AppendCandidateItemPayload`: `{ stashUuid, productId, details, isLatestLlmComment? }` — `details`가 오더 스냅샷 저장의 단일 경로이며, 기본값은 `false` 권장
 - `UpdateCandidateItemPayload`: `{ itemUuid, details, isLatestLlmComment }`

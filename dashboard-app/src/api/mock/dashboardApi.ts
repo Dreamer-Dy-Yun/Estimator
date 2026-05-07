@@ -20,7 +20,11 @@ import type {
   SecondaryStockOrderCalcParams,
   SecondaryStockOrderCalcResult,
 } from '../types'
-import type { CandidateItemRecord, CandidateStashRecord } from './records'
+import {
+  DEFAULT_CANDIDATE_STASH_CONTEXT,
+  type CandidateItemRecord,
+  type CandidateStashRecord,
+} from './records'
 import { logApiCalled, makeUuid32, sleep } from './utils'
 import {
   buildMockOrderSnapshotForCandidate,
@@ -107,6 +111,25 @@ const CANDIDATE_BADGE_DEFINITIONS = {
 
 function getCandidateBadgeDefinitions(): CandidateBadgeDefinitionMap {
   return { ...CANDIDATE_BADGE_DEFINITIONS }
+}
+
+function toCandidateStashSummary(
+  row: CandidateStashRecord,
+  itemCount: number,
+  dbUpdatedAt = row.dbUpdatedAt ?? row.dbCreatedAt,
+): CandidateStashSummary {
+  return {
+    uuid: row.uuid,
+    name: row.name,
+    note: row.note ?? null,
+    productId: row.productId,
+    periodStart: row.periodStart,
+    periodEnd: row.periodEnd,
+    forecastMonths: row.forecastMonths,
+    itemCount,
+    dbCreatedAt: row.dbCreatedAt,
+    dbUpdatedAt,
+  }
 }
 
 function inTopPercent(rankPercentile: number | null | undefined) {
@@ -292,15 +315,7 @@ export const mockDashboardApi = {
           )
           const recordUpdatedAt = row.dbUpdatedAt ?? row.dbCreatedAt
           const dbUpdatedAt = latestItemTs && latestItemTs > recordUpdatedAt ? latestItemTs : recordUpdatedAt
-          return {
-            uuid: row.uuid,
-            name: row.name,
-            note: row.note ?? null,
-            productId: row.productId,
-            itemCount: linkedItems.length,
-            dbCreatedAt: row.dbCreatedAt,
-            dbUpdatedAt,
-          }
+          return toCandidateStashSummary(row, linkedItems.length, dbUpdatedAt)
         })
         .sort((a, b) => String(b.dbCreatedAt).localeCompare(String(a.dbCreatedAt)))
     } catch {
@@ -403,6 +418,9 @@ export const mockDashboardApi = {
       name: payload.name.trim() || `오더 후보군 ${now.slice(0, 10)}`,
       note: payload.note?.trim() || null,
       productId: payload.productId,
+      periodStart: payload.periodStart,
+      periodEnd: payload.periodEnd,
+      forecastMonths: payload.forecastMonths,
       dbCreatedAt: now,
       dbUpdatedAt: now,
     }
@@ -413,15 +431,7 @@ export const mockDashboardApi = {
     } catch {
       /* ignore quota */
     }
-    return {
-      uuid: stash.uuid,
-      name: stash.name,
-      note: stash.note,
-      productId: stash.productId,
-      itemCount: 0,
-      dbCreatedAt: stash.dbCreatedAt,
-      dbUpdatedAt: stash.dbUpdatedAt,
-    }
+    return toCandidateStashSummary(stash, 0)
   },
   updateCandidateStash: async (payload: UpdateCandidateStashPayload): Promise<CandidateStashSummary> => {
     await sleep(70)
@@ -441,15 +451,7 @@ export const mockDashboardApi = {
     }
     writeCandidateStashRecords(stashes.map((row) => (row.uuid === payload.stashUuid ? updated : row)))
     const linkedItems = items.filter((it) => it.stashUuid === target.uuid)
-    return {
-      uuid: updated.uuid,
-      name: updated.name,
-      note: updated.note ?? null,
-      productId: updated.productId,
-      itemCount: linkedItems.length,
-      dbCreatedAt: updated.dbCreatedAt,
-      dbUpdatedAt: updated.dbUpdatedAt,
-    }
+    return toCandidateStashSummary(updated, linkedItems.length)
   },
   duplicateCandidateStash: async (sourceStashUuid: string): Promise<void> => {
     await sleep(90)
@@ -552,6 +554,7 @@ export const mockDashboardApi = {
       name: `엑셀 업로드 후보군 ${now.slice(0, 10)}`,
       note: `업로드 파일: ${fileName}`,
       productId: productIds[0] ?? allKnownProductIds[0]!,
+      ...DEFAULT_CANDIDATE_STASH_CONTEXT,
       dbCreatedAt: now,
       dbUpdatedAt: now,
     }

@@ -5,6 +5,9 @@ export interface CandidateStashSummary {
   name: string
   note: string | null
   productId: string
+  periodStart: string
+  periodEnd: string
+  forecastMonths: number
   itemCount: number
   dbCreatedAt: string
   dbUpdatedAt: string
@@ -78,6 +81,9 @@ export interface CreateCandidateStashPayload {
   productId: string
   name: string
   note?: string | null
+  periodStart: string
+  periodEnd: string
+  forecastMonths: number
 }
 
 /** Updates only candidate stash metadata. */

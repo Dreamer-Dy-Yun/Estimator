@@ -678,6 +678,9 @@ export function ProductSecondaryPanel({
         productId: primary.id,
         name: candidateNameInput.trim(),
         note: candidateNoteInput.trim(),
+        periodStart,
+        periodEnd,
+        forecastMonths,
       })
       await refreshCandidates()
       if (!mountedRef.current) return
@@ -692,7 +695,7 @@ export function ProductSecondaryPanel({
     } finally {
       if (mountedRef.current) setCandidateActionLoading(false)
     }
-  }, [candidateNameInput, candidateNoteInput, primary.id, refreshCandidates])
+  }, [candidateNameInput, candidateNoteInput, forecastMonths, periodEnd, periodStart, primary.id, refreshCandidates])
 
   const handleConfirmQtyChange = useCallback((size: string, next: number, recommendedQty: number) => {
     const v = Math.max(0, Math.round(Number.isFinite(next) ? next : 0))
