@@ -25,6 +25,7 @@ import type {
 import { type CandidateItemRecord, type CandidateStashRecord } from './records'
 import { makeUuid32, sleep } from './utils'
 import { seededCandidateItems, seededCandidateStashes } from './candidateSeeds'
+import { MOCK_ADMIN_USER_UUID } from './authApi'
 import {
   allKnownProductIds,
   brands,
@@ -62,11 +63,27 @@ function readCandidateStashRecords(): CandidateStashRecord[] {
   return seededCandidateStashes
 }
 
+function filterCandidateStashesForOwner(
+  rows: CandidateStashRecord[],
+  ownerUserUuid?: string,
+): CandidateStashRecord[] {
+  if (!ownerUserUuid) return rows
+  return rows.filter((row) => row.createdByUserUuid === ownerUserUuid)
+}
+
 function readCandidateItemRecords(): CandidateItemRecord[] {
   return seededCandidateItems
 }
 
-function readCandidateItemsForStash(stashUuid: string): CandidateItemRecord[] {
+function findCandidateStashForOwner(stashUuid: string, ownerUserUuid?: string): CandidateStashRecord | null {
+  const stash = readCandidateStashRecords().find((row) => row.uuid === stashUuid) ?? null
+  if (!stash) return null
+  if (ownerUserUuid && stash.createdByUserUuid !== ownerUserUuid) return null
+  return stash
+}
+
+function readCandidateItemsForStash(stashUuid: string, ownerUserUuid?: string): CandidateItemRecord[] {
+  if (!findCandidateStashForOwner(stashUuid, ownerUserUuid)) return []
   return readCandidateItemRecords().filter((row) => row.stashUuid === stashUuid)
 }
 
@@ -122,6 +139,7 @@ function toCandidateStashSummary(
     uuid: row.uuid,
     name: row.name,
     note: row.note ?? null,
+    createdByUserUuid: row.createdByUserUuid,
     productId: row.productId,
     periodStart: row.periodStart,
     periodEnd: row.periodEnd,
@@ -342,11 +360,12 @@ export const mockDashboardApi = {
     await sleep(40)
     return secondaryCompetitorChannels
   },
-  getCandidateStashes: async (productId?: string): Promise<CandidateStashSummary[]> => {
+  getCandidateStashes: async (productId?: string, ownerUserUuid?: string): Promise<CandidateStashSummary[]> => {
     await sleep(60)
     const stashes = readCandidateStashRecords()
     const items = readCandidateItemRecords()
-    const filtered = productId ? stashes.filter((row) => row.productId === productId) : stashes
+    const owned = filterCandidateStashesForOwner(stashes, ownerUserUuid)
+    const filtered = productId ? owned.filter((row) => row.productId === productId) : owned
     return filtered
       .map((row) => {
         const linkedItems = items.filter((it) => it.stashUuid === row.uuid)
@@ -360,9 +379,9 @@ export const mockDashboardApi = {
       })
       .sort((a, b) => String(b.dbCreatedAt).localeCompare(String(a.dbCreatedAt)))
   },
-  getCandidateItemsByStash: async (stashUuid: string): Promise<CandidateItemListResult> => {
+  getCandidateItemsByStash: async (stashUuid: string, ownerUserUuid?: string): Promise<CandidateItemListResult> => {
     await sleep(60)
-    const items = readCandidateItemsForStash(stashUuid)
+    const items = readCandidateItemsForStash(stashUuid, ownerUserUuid)
       .map((row) => {
         const productId = row.skuUuid
         const summary = row.details?.drawer1?.summary
@@ -404,10 +423,11 @@ export const mockDashboardApi = {
       badgeDefinitions: getCandidateBadgeDefinitions(),
     }
   },
-  getCandidateItemByUuid: async (itemUuid: string): Promise<CandidateItemDetail | null> => {
+  getCandidateItemByUuid: async (itemUuid: string, ownerUserUuid?: string): Promise<CandidateItemDetail | null> => {
     await sleep(50)
     const row = readCandidateItemRecords().find((it) => it.uuid === itemUuid)
     if (!row) return null
+    if (!findCandidateStashForOwner(row.stashUuid, ownerUserUuid)) return null
     if (!row.details) {
       throw new Error(`후보 상세 스냅샷 누락: ${itemUuid}`)
     }
@@ -421,21 +441,30 @@ export const mockDashboardApi = {
       dbUpdatedAt: row.dbUpdatedAt ?? row.dbCreatedAt,
     }
   },
-  deleteCandidateItem: async (itemUuid: string): Promise<void> => {
+  deleteCandidateItem: async (itemUuid: string, ownerUserUuid?: string): Promise<void> => {
     await sleep(60)
-    void itemUuid
+    const row = readCandidateItemRecords().find((it) => it.uuid === itemUuid)
+    if (row && !findCandidateStashForOwner(row.stashUuid, ownerUserUuid)) {
+      throw new Error('후보 아이템을 찾을 수 없습니다.')
+    }
   },
-  deleteCandidateStash: async (stashUuid: string): Promise<void> => {
+  deleteCandidateStash: async (stashUuid: string, ownerUserUuid?: string): Promise<void> => {
     await sleep(60)
-    void stashUuid
+    if (!findCandidateStashForOwner(stashUuid, ownerUserUuid)) {
+      throw new Error('후보군을 찾을 수 없습니다.')
+    }
   },
-  createCandidateStash: async (payload: CreateCandidateStashPayload): Promise<CandidateStashSummary> => {
+  createCandidateStash: async (
+    payload: CreateCandidateStashPayload,
+    ownerUserUuid = MOCK_ADMIN_USER_UUID,
+  ): Promise<CandidateStashSummary> => {
     await sleep(90)
     const now = new Date().toISOString()
     const stash: CandidateStashRecord = {
       uuid: makeUuid32(),
       name: payload.name.trim() || `오더 후보군 ${now.slice(0, 10)}`,
       note: payload.note?.trim() || null,
+      createdByUserUuid: ownerUserUuid,
       productId: payload.productId,
       periodStart: payload.periodStart,
       periodEnd: payload.periodEnd,
@@ -445,12 +474,15 @@ export const mockDashboardApi = {
     }
     return toCandidateStashSummary(stash, 0)
   },
-  updateCandidateStash: async (payload: UpdateCandidateStashPayload): Promise<CandidateStashSummary> => {
+  updateCandidateStash: async (
+    payload: UpdateCandidateStashPayload,
+    ownerUserUuid?: string,
+  ): Promise<CandidateStashSummary> => {
     await sleep(70)
     const stashes = readCandidateStashRecords()
     const items = readCandidateItemRecords()
     const target = stashes.find((s) => s.uuid === payload.stashUuid)
-    if (!target) {
+    if (!target || !findCandidateStashForOwner(target.uuid, ownerUserUuid)) {
       throw new Error('후보군을 찾을 수 없습니다.')
     }
     const now = new Date().toISOString()
@@ -463,18 +495,27 @@ export const mockDashboardApi = {
     const linkedItems = items.filter((it) => it.stashUuid === target.uuid)
     return toCandidateStashSummary(updated, linkedItems.length)
   },
-  duplicateCandidateStash: async (sourceStashUuid: string): Promise<void> => {
+  duplicateCandidateStash: async (sourceStashUuid: string, ownerUserUuid?: string): Promise<void> => {
     await sleep(90)
     const stashes = readCandidateStashRecords()
     const source = stashes.find((row) => row.uuid === sourceStashUuid)
-    if (!source) throw new Error('복제할 후보군을 찾을 수 없습니다.')
+    if (!source || !findCandidateStashForOwner(source.uuid, ownerUserUuid)) {
+      throw new Error('복제할 후보군을 찾을 수 없습니다.')
+    }
   },
-  appendCandidateItem: async (payload: AppendCandidateItemPayload): Promise<void> => {
+  appendCandidateItem: async (payload: AppendCandidateItemPayload, ownerUserUuid?: string): Promise<void> => {
     await sleep(70)
+    if (!findCandidateStashForOwner(payload.stashUuid, ownerUserUuid)) {
+      throw new Error('후보군을 찾을 수 없습니다.')
+    }
     void payload
   },
-  updateCandidateItem: async (payload: UpdateCandidateItemPayload): Promise<void> => {
+  updateCandidateItem: async (payload: UpdateCandidateItemPayload, ownerUserUuid?: string): Promise<void> => {
     await sleep(70)
+    const item = readCandidateItemRecords().find((row) => row.uuid === payload.itemUuid)
+    if (item && !findCandidateStashForOwner(item.stashUuid, ownerUserUuid)) {
+      throw new Error('후보 아이템을 찾을 수 없습니다.')
+    }
     void payload
   },
   uploadCandidateStashExcel: async (file: File): Promise<CandidateStashExcelUploadResult> => {
@@ -501,9 +542,12 @@ export const mockDashboardApi = {
       ],
     }
   },
-  startCandidateStashAnalysis: async (stashUuid: string) => {
+  startCandidateStashAnalysis: async (stashUuid: string, ownerUserUuid?: string) => {
     await sleep(60)
-    const items = readCandidateItemsForStash(stashUuid)
+    if (!findCandidateStashForOwner(stashUuid, ownerUserUuid)) {
+      throw new Error('후보군을 찾을 수 없습니다.')
+    }
+    const items = readCandidateItemsForStash(stashUuid, ownerUserUuid)
     const jobId = `candidate-analysis-${stashUuid}-${Date.now()}`
     candidateAnalysisJobs.set(jobId, { stashUuid, items })
     return {

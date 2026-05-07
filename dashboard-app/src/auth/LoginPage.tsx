@@ -7,6 +7,9 @@ type LoginLocationState = {
   redirectTo?: string
 }
 
+const DEFAULT_LOGIN_ID = 'mock-admin'
+const DEFAULT_PASSWORD = 'admin'
+
 function getErrorMessage(error: unknown) {
   return error instanceof Error ? error.message : '로그인 처리 중 오류가 발생했습니다.'
 }
@@ -22,8 +25,8 @@ export function LoginPage() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const { session, login } = useAuth()
-  const [loginId, setLoginId] = useState('')
-  const [password, setPassword] = useState('')
+  const [loginId, setLoginId] = useState(DEFAULT_LOGIN_ID)
+  const [password, setPassword] = useState(DEFAULT_PASSWORD)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const redirectTo = useMemo(
@@ -68,7 +71,7 @@ export function LoginPage() {
             <input
               value={loginId}
               onChange={(event) => setLoginId(event.target.value)}
-              placeholder="아이디"
+              placeholder={DEFAULT_LOGIN_ID}
               autoComplete="username"
             />
           </label>
@@ -78,7 +81,7 @@ export function LoginPage() {
             <input
               value={password}
               onChange={(event) => setPassword(event.target.value)}
-              placeholder="비밀번호"
+              placeholder={DEFAULT_PASSWORD}
               type="password"
               autoComplete="current-password"
             />
@@ -93,7 +96,7 @@ export function LoginPage() {
 
         <div className={styles.environmentRow}>
           <span>Mock 인증</span>
-          <strong>아무 ID/PW 가능</strong>
+          <strong>기본값으로 바로 로그인 가능</strong>
         </div>
       </div>
     </section>

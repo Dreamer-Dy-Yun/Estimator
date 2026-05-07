@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { mockDashboardApi } from './dashboardApi'
 import { DEFAULT_CANDIDATE_STASH_CONTEXT } from './records'
+import { MOCK_ADMIN_USER_UUID, MOCK_USER_UUID } from './authApi'
 
 describe('api/mock dashboardApi competitor channel behavior', () => {
   it('returns only kream/musinsa competitor channels', async () => {
@@ -89,6 +90,30 @@ describe('api/mock dashboardApi competitor channel behavior', () => {
 })
 
 describe('api/mock dashboardApi candidate stash contract stubs', () => {
+  it('filters candidate stashes by authenticated owner uuid', async () => {
+    const all = await mockDashboardApi.getCandidateStashes()
+    const adminOwned = await mockDashboardApi.getCandidateStashes(undefined, MOCK_ADMIN_USER_UUID)
+    const userOwned = await mockDashboardApi.getCandidateStashes(undefined, MOCK_USER_UUID)
+
+    expect(adminOwned.length).toBeGreaterThan(0)
+    expect(userOwned.length).toBeGreaterThan(0)
+    expect(adminOwned.every((row) => row.createdByUserUuid === MOCK_ADMIN_USER_UUID)).toBe(true)
+    expect(userOwned.every((row) => row.createdByUserUuid === MOCK_USER_UUID)).toBe(true)
+    expect(adminOwned.length + userOwned.length).toBe(all.length)
+  })
+
+  it('hides candidate items when stash belongs to another user', async () => {
+    const userOwned = await mockDashboardApi.getCandidateStashes(undefined, MOCK_USER_UUID)
+    const target = userOwned.find((row) => row.itemCount > 0)
+    expect(target).toBeDefined()
+
+    const visible = await mockDashboardApi.getCandidateItemsByStash(target!.uuid, MOCK_USER_UUID)
+    const hidden = await mockDashboardApi.getCandidateItemsByStash(target!.uuid, MOCK_ADMIN_USER_UUID)
+
+    expect(visible.items.length).toBeGreaterThan(0)
+    expect(hidden.items).toEqual([])
+  })
+
   it('returns candidate item badge names with shared badge definitions', async () => {
     const stashes = await mockDashboardApi.getCandidateStashes()
     const target = stashes.find((row) => row.itemCount > 0)

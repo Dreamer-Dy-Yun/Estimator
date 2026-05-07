@@ -14,6 +14,8 @@ import type {
 import { sleep } from './utils'
 
 const MOCK_UPDATED_AT = '2026-05-06T00:00:00.000Z'
+export const MOCK_ADMIN_USER_UUID = '00000000-0000-4000-8000-000000000001'
+export const MOCK_USER_UUID = '00000000-0000-4000-8000-000000000002'
 
 type StoredAuthUser = AdminUserSummary & {
   password: string
@@ -21,7 +23,7 @@ type StoredAuthUser = AdminUserSummary & {
 
 const DEFAULT_AUTH_USERS: StoredAuthUser[] = [
   {
-    uuid: '00000000-0000-4000-8000-000000000001',
+    uuid: MOCK_ADMIN_USER_UUID,
     loginId: 'mock-admin',
     password: 'admin',
     role: 'admin',
@@ -30,7 +32,7 @@ const DEFAULT_AUTH_USERS: StoredAuthUser[] = [
     dbUpdatedAt: MOCK_UPDATED_AT,
   },
   {
-    uuid: '00000000-0000-4000-8000-000000000002',
+    uuid: MOCK_USER_UUID,
     loginId: 'mock-user',
     password: 'user',
     role: 'user',

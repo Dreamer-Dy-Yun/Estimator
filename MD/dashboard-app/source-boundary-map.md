@@ -26,13 +26,14 @@
 - 2차 드로워에서 화면에 노출되지 않는 AI 프롬프트 생성 API와 배포 전 제거 대상이던 JSON 미리보기 모달을 제거했다.
 - 오더 스냅샷 독립 localStorage 저장/조회/삭제 API를 제거하고, 후보 아이템 `details`를 스냅샷 저장의 단일 경로로 둔다.
 - 후보군 생성/삭제/복제/편집 이벤트는 API 호출 후 목록을 재조회한다. mock은 응답 흐름만 모사하고 브라우저 저장소에 후보군/이너 후보를 만들거나 지우지 않는다.
+- 후보군 목록/상세/수정 계열 API는 현재 인증 세션의 `USER_ACCOUNT.uuid` 기준으로 소유자 데이터를 필터링한다. 화면은 사용자 UUID를 직접 파라미터로 보내지 않고 `src/api/client.ts`가 mock 세션을 읽어 mock 구현에만 전달한다.
 - 라우트 페이지는 `src/App.tsx`에서 `React.lazy`로 분리한다. 기본 라우팅은 일반 배포용 `BrowserRouter`이고, GitHub Pages workflow만 `VITE_ROUTER_MODE=hash`로 `HashRouter`를 켠다.
 - vendor chunk는 `vite.config.ts`의 Rolldown `codeSplitting.groups`가 소유한다. Recharts 같은 내부 순서 의존 라이브러리는 `maxSize`로 강제 세분화하지 않는다.
 - 후보 아이템 목업 스냅샷은 `drawer2.llmAnswer`에 임시 AI 코멘트를 포함해 2차 드로어에서 바로 확인되게 한다.
 - 이너 후보 1차 드로어 닫힘은 `drawerClosing` 상태로 DOM과 모달 폭 보정 상태를 잠시 유지해, 열림의 역방향으로 모달 폭이 복원되게 한다.
 - 후보군 AI 분석 SSE가 `completed`를 받으면 후보 아이템 목록과 후보군 메타를 다시 조회해, 백엔드가 갱신한 AI 코멘트/최신 상태를 화면에 반영한다.
 - 이너 후보 리스트 배지는 데스크톱에서 행 보조 라인으로 유지하고, 모바일 뷰포트에서는 행 상단으로 올려 좁은 화면에서도 먼저 보이게 한다.
-- 로그인 화면, 라우트 보호, 사용자 정보/비밀번호 변경 모달은 `src/auth`가 소유한다. 인증 API 계약과 목 세션 저장은 `src/api` 아래에 두어 실제 백엔드로 교체할 때 화면이 mock 구현을 직접 알지 않게 한다. 보호 라우트는 직접 URL 진입과 새로고침 복귀를 위해 `/login?redirect=...`를 남긴다.
+- 로그인 화면, 라우트 보호, 사용자 정보/비밀번호 변경 모달은 `src/auth`가 소유한다. 인증 API 계약과 목 세션 저장은 `src/api` 아래에 두어 실제 백엔드로 교체할 때 화면이 mock 구현을 직접 알지 않게 한다. 보호 라우트는 직접 URL 진입과 새로고침 복귀를 위해 `/login?redirect=...`를 남긴다. 목 로그인 화면은 `mock-admin` / `admin` 기본값을 미리 채워 수정 없이 로그인할 수 있게 한다.
 - 관리자 유저 관리 화면은 `/admin` 별도 라우트와 `src/admin`이 소유한다. 화면은 같은 `DashboardLayout` 안에서 렌더하며, 관리자 권한 사용자에게만 `오더 후보군` 뒤 관리자 전용 탭을 보여준다. 인증 권한은 `admin`과 `user` 두 단계만 둔다. 관리자 비밀번호 관리는 조회가 아니라 임시 비밀번호 재설정 API만 호출하고, 임시 비밀번호는 응답 직후 한 번만 표시한다.
 - 상품 drawer feature는 `dashboard/components/product-drawer`로 모았다. 루트 `ProductDrawer`는 overlay와 공유 상태만 조율하고, `primary`가 1차 드로워, `secondary`가 2차 드로워를 소유한다.
 - 경쟁 채널 상태는 1차 판매 정보와 2차 일별 추이가 공유하므로 `product-drawer/useCompetitorChannels.ts`가 소유한다. 2차 상세 조회는 `product-drawer/secondary/useSecondaryDrawerDetail.ts`가 소유한다.
@@ -77,7 +78,7 @@
 
 | 경로 | 역할 | 변경 기준 |
 |------|------|-----------|
-| `api/client.ts` | 화면에서 호출하는 API 함수와 `dashboardApi`, `authApi` 객체를 노출한다. 현재 구현은 mock으로 위임한다. | API 함수 추가/삭제, mock에서 실제 HTTP로 전환 시 수정 |
+| `api/client.ts` | 화면에서 호출하는 API 함수와 `dashboardApi`, `authApi` 객체를 노출한다. 현재 구현은 mock으로 위임한다. 후보군 API mock 호출 전 현재 세션 사용자 UUID를 확인한다. | API 함수 추가/삭제, mock에서 실제 HTTP로 전환 시 수정 |
 | `api/index.ts` | API public export. | 외부에서 import할 API surface 변경 시 수정 |
 | `api/mock.ts` | mock API 진입 파일. | mock 구현 위치를 바꿀 때만 수정 |
 | `api/dailyTrendAsOf.ts` | 일간 트렌드 as-of 계산 보조 로직. | 일간 트렌드 기준일 규칙 변경 시 수정 |
@@ -89,7 +90,7 @@
 | 파일 | 역할 |
 |------|------|
 | `auth.ts` | 로그인 요청, 인증 사용자, 사용자 정보/비밀번호 변경, 관리자 유저 추가/제거/수정/비밀번호 재설정, 세션, 인증 API 계약 |
-| `candidate.ts` | 후보군/이너 후보/후보군 분석 SSE 요청·응답 계약. 후보군은 생성 당시 기간과 포캐스트 개월 수를 계약에 포함한다 |
+| `candidate.ts` | 후보군/이너 후보/후보군 분석 SSE 요청·응답 계약. 후보군은 생성 사용자 UUID, 생성 당시 기간, 포캐스트 개월 수를 계약에 포함한다 |
 | `dashboard-api.ts` | 화면에서 쓰는 `DashboardApi` 인터페이스 |
 | `drawer.ts` | 1차 drawer bundle, 월간 판매 추이, 판매 인사이트 계약 |
 | `index.ts` | API public type export |
@@ -102,8 +103,8 @@
 | 파일 | 역할 |
 |------|------|
 | `authApi.ts` | mock 인증 API 구현. 로그인 입력값은 검증 없이 통과시키고, 사용자 목록은 정적 seed, 세션은 런타임 메모리에만 둔다. 관리자 비밀번호 재설정은 임시 비밀번호 1회 응답 흐름만 모사한다 |
-| `candidateSeeds.ts` | 후보군/후보 아이템 읽기 전용 seed 데이터와 목업 AI 코멘트 포함 스냅샷 |
-| `dashboardApi.ts` | mock `DashboardApi` 구현체. public API 계약을 맞춰 응답하되 후보군 mutation은 저장하지 않는 계약 stub이다 |
+| `candidateSeeds.ts` | 후보군/후보 아이템 읽기 전용 seed 데이터와 소유자 UUID, 목업 AI 코멘트 포함 스냅샷 |
+| `dashboardApi.ts` | mock `DashboardApi` 구현체. public API 계약을 맞춰 응답하되 후보군 mutation은 저장하지 않는 계약 stub이다. 후보군 조회/상세는 전달된 mock 세션 사용자 UUID로 소유자 필터링을 모사한다 |
 | `orderSnapshotForCandidate.ts` | 후보 아이템용 오더 스냅샷 생성/복원 보조와 임시 목업 AI 코멘트 생성 |
 | `productCatalog.ts` | 상품 catalog seed와 조회 |
 | `records.ts` | mock 원천 record 묶음 |

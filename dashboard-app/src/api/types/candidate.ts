@@ -4,6 +4,8 @@ export interface CandidateStashSummary {
   uuid: string
   name: string
   note: string | null
+  /** Owner USER_ACCOUNT.uuid. Backend resolves this from the authenticated session. */
+  createdByUserUuid: string
   productId: string
   periodStart: string
   periodEnd: string

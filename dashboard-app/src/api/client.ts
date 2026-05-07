@@ -80,6 +80,12 @@ export async function logout(): Promise<void> {
   return mockAuthApi.logout()
 }
 
+async function requireCurrentUserUuid(): Promise<string> {
+  const session = await mockAuthApi.getCurrentSession()
+  if (!session) throw new Error('로그인이 필요합니다.')
+  return session.user.uuid
+}
+
 export async function getSelfSales(params?: SelfSalesParams): Promise<SelfSalesRow[]> {
   return mockDashboardApi.getSelfSales(params)
 }
@@ -131,57 +137,58 @@ export async function getSecondaryCompetitorChannels(): Promise<SecondaryCompeti
 }
 
 export async function getCandidateStashes(productId?: string): Promise<CandidateStashSummary[]> {
-  return mockDashboardApi.getCandidateStashes(productId)
+  return mockDashboardApi.getCandidateStashes(productId, await requireCurrentUserUuid())
 }
 
 export async function getCandidateItemsByStash(stashUuid: string): Promise<CandidateItemListResult> {
-  return mockDashboardApi.getCandidateItemsByStash(stashUuid)
+  return mockDashboardApi.getCandidateItemsByStash(stashUuid, await requireCurrentUserUuid())
 }
 
 export async function getCandidateItemByUuid(itemUuid: string): Promise<CandidateItemDetail | null> {
-  return mockDashboardApi.getCandidateItemByUuid(itemUuid)
+  return mockDashboardApi.getCandidateItemByUuid(itemUuid, await requireCurrentUserUuid())
 }
 
 export async function deleteCandidateItem(itemUuid: string): Promise<void> {
-  return mockDashboardApi.deleteCandidateItem(itemUuid)
+  return mockDashboardApi.deleteCandidateItem(itemUuid, await requireCurrentUserUuid())
 }
 
 export async function deleteCandidateStash(stashUuid: string): Promise<void> {
-  return mockDashboardApi.deleteCandidateStash(stashUuid)
+  return mockDashboardApi.deleteCandidateStash(stashUuid, await requireCurrentUserUuid())
 }
 
 async function createCandidateStash(
   payload: CreateCandidateStashPayload,
 ): Promise<CandidateStashSummary> {
-  return mockDashboardApi.createCandidateStash(payload)
+  return mockDashboardApi.createCandidateStash(payload, await requireCurrentUserUuid())
 }
 
 export async function duplicateCandidateStash(stashUuid: string): Promise<void> {
-  return mockDashboardApi.duplicateCandidateStash(stashUuid)
+  return mockDashboardApi.duplicateCandidateStash(stashUuid, await requireCurrentUserUuid())
 }
 
 export async function updateCandidateStash(
   payload: UpdateCandidateStashPayload,
 ): Promise<CandidateStashSummary> {
-  return mockDashboardApi.updateCandidateStash(payload)
+  return mockDashboardApi.updateCandidateStash(payload, await requireCurrentUserUuid())
 }
 
 async function appendCandidateItem(
   payload: AppendCandidateItemPayload,
 ): Promise<void> {
-  return mockDashboardApi.appendCandidateItem(payload)
+  return mockDashboardApi.appendCandidateItem(payload, await requireCurrentUserUuid())
 }
 
 async function updateCandidateItem(payload: UpdateCandidateItemPayload): Promise<void> {
-  return mockDashboardApi.updateCandidateItem(payload)
+  return mockDashboardApi.updateCandidateItem(payload, await requireCurrentUserUuid())
 }
 
 export async function uploadCandidateStashExcel(file: File): Promise<CandidateStashExcelUploadResult> {
+  await requireCurrentUserUuid()
   return mockDashboardApi.uploadCandidateStashExcel(file)
 }
 
 export async function startCandidateStashAnalysis(stashUuid: string): Promise<CandidateStashAnalysisStartResult> {
-  return mockDashboardApi.startCandidateStashAnalysis(stashUuid)
+  return mockDashboardApi.startCandidateStashAnalysis(stashUuid, await requireCurrentUserUuid())
 }
 
 export function subscribeCandidateStashAnalysis(

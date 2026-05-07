@@ -10,6 +10,7 @@ export type CandidateStashRecord = {
   uuid: string
   name: string
   note: string | null
+  createdByUserUuid: string
   productId: string
   periodStart: string
   periodEnd: string

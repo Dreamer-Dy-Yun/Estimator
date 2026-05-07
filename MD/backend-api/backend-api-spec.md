@@ -43,6 +43,7 @@
 
 - 프론트는 `/login`과 `/dashboard/*` 보호 라우트를 분리합니다. 인증 계약은 `src/api/types/auth.ts`의 `AuthApi`가 소유합니다.
 - 목 구현은 동작 확인용으로 로그인 입력값을 검증하지 않고 통과시키며 세션은 런타임 메모리에만 둡니다. `mock-user` ID는 일반 사용자 권한 확인용이고, 그 외 입력은 관리자 권한으로 처리합니다. 사용자 목록/후보군 목록의 실제 변경은 백엔드 DB가 소유해야 하며, 프론트 mock은 mutation 응답 흐름만 모사합니다. 실제 백엔드에서는 가능하면 **HttpOnly cookie 기반 세션**을 권장합니다.
+- 프론트 mock 로그인 화면은 기본값 `mock-admin` / `admin`을 미리 채워 두어, 수정 없이 로그인하면 해당 관리자 세션으로 들어갑니다. 이 값은 동작 확인용이며 실제 백엔드 연결 시 제거/교체 대상입니다.
 - 모든 보호 API에 동일 정책을 적용하고, 실패 시 **HTTP 401/403** 과 JSON 에러 바디를 권장합니다.
 - 클라이언트 계약에는 공통 에러 타입이 없습니다. 최소 `{ "message": string }` 형태를 권장합니다.
 
@@ -133,6 +134,13 @@
 관리자 비밀번호 재설정은 비밀번호 **조회**가 아니라 새 임시 비밀번호 **발급**이다. 백엔드는 평문 비밀번호를 저장하지 않고 해시만 저장해야 하며, 재설정 수행 관리자 UUID, 대상 사용자 UUID, 시각, 요청 IP 등 감사 로그를 남기는 것을 권장한다.
 
 `/admin/users` 계열은 관리자 권한이 필요합니다. 실제 백엔드는 현재 로그인한 관리자 본인을 삭제/비활성화하거나 마지막 활성 관리자 권한을 제거하지 못하도록 검증하는 정책을 권장합니다.
+
+**`USER_ACCOUNT` 정합성 메모**
+
+- 계정 테이블은 `USER_ACCOUNT`를 기준으로 하며, 외부/API 사용자 식별자는 `USER_ACCOUNT.uuid`를 사용한다.
+- `login_id`, `password_hash`, `role`, `must_change_password`, `is_active`, `failed_login_count`, `uuid`는 프론트 인증 계약과 직접 맞물린다.
+- `role` 허용값은 `admin`, `user` 두 가지다. DB 표 양식상 CHECK 제약을 적기 어렵다면 백엔드 저장 검증 규칙으로 강제한다.
+- `is_active = false`는 관리자 비활성화 상태, `failed_login_count`/`locked_at`은 로그인 실패 잠금 상태, `must_change_password`는 로그인 후 비밀번호 변경 강제 상태다.
 
 ---
 
@@ -355,11 +363,14 @@
 |------|------|
 | `uuid` | 스태시 PK |
 | `name`, `note` | 이름·비고 |
+| `createdByUserUuid` | 후보군 생성 사용자 UUID. `USER_ACCOUNT.uuid`를 참조하며, 백엔드는 생성 시 현재 세션 사용자로 설정 |
 | `productId` | 연결 상품 |
 | `periodStart`, `periodEnd` | 후보군 생성 당시의 분석 기간. 프론트 상세 화면은 이 값을 조회 기준일 초기값으로 쓰며, 화면 내 변경값은 이너 후보 드로어를 열 때 기간 기준으로 적용 |
 | `forecastMonths` | 후보군 생성 당시의 월간 판매추이 포캐스트 개월 수 |
 | `itemCount` | 소속 후보 아이템 개수 |
 | `dbCreatedAt`, `dbUpdatedAt` | 생성·수정 시각(아이템 추가로 스태시 “갱신” 시각을 반영할지는 백엔드 정책) |
+
+`getCandidateStashes`, `getCandidateItemsByStash`, `getCandidateItemByUuid` 및 후보군 mutation 계열은 현재 인증 세션을 기준으로 동작한다. 프론트는 사용자 UUID를 요청 파라미터로 보내지 않으며, 백엔드는 세션의 `USER_ACCOUNT.uuid`와 후보군의 `createdByUserUuid`가 일치하는 데이터만 반환/수정해야 한다.
 
 **`CandidateItemListResult`** (`getCandidateItemsByStash` 응답)
 
