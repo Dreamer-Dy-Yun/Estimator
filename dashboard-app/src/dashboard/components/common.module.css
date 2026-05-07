@@ -641,10 +641,10 @@
 
 .drawer {
   position: fixed;
-  top: 10px;
-  left: calc(100vw - var(--primary-drawer-column-width) - 10px);
+  top: var(--primary-drawer-edge-inset);
+  left: calc(100vw - var(--primary-drawer-column-width) - var(--primary-drawer-edge-inset));
   width: var(--primary-drawer-column-width);
-  height: calc(100vh - 20px);
+  height: var(--primary-drawer-viewport-height);
   background: #fff;
   border: 1px solid #dbe2ea;
   border-radius: 12px;
@@ -667,16 +667,16 @@
 }
 
 .drawerWithExpandPane {
-  left: 10px;
-  width: calc(100vw - 20px);
-  max-width: calc(100vw - 20px);
+  left: var(--primary-drawer-edge-inset);
+  width: calc(100vw - (var(--primary-drawer-edge-inset) * 2));
+  max-width: calc(100vw - (var(--primary-drawer-edge-inset) * 2));
   background: transparent;
   border: none;
   box-shadow: none;
 }
 
 .drawerClosing {
-  left: calc(100vw + 10px);
+  left: calc(100vw + var(--primary-drawer-edge-inset));
   opacity: 0;
   pointer-events: none;
 }
