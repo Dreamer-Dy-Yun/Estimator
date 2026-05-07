@@ -8,6 +8,7 @@ export type {
   CreateAdminUserPayload,
   LoginRequest,
   LoginResult,
+  ResetAdminUserPasswordResult,
   UpdateAdminUserPayload,
   UpdateAuthUserPayload,
 } from './auth'

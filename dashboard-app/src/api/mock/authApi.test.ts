@@ -46,6 +46,12 @@ describe('api/mock authApi pass-through behavior', () => {
       role: 'admin',
       isActive: false,
     })
+    const reset = await mockAuthApi.resetAdminUserPassword('unknown-user')
+    expect(reset).toMatchObject({
+      mustChangePassword: true,
+      dbUpdatedAt: expect.any(String),
+    })
+    expect(reset.temporaryPassword).toMatch(/^Tmp-.{12}$/)
     await expect(mockAuthApi.deleteAdminUser('unknown-user')).resolves.toBeUndefined()
   })
 })

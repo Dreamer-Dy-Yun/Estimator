@@ -7,6 +7,7 @@ import type {
   CreateAdminUserPayload,
   LoginRequest,
   LoginResult,
+  ResetAdminUserPasswordResult,
   UpdateAdminUserPayload,
   UpdateAuthUserPayload,
 } from '../types'
@@ -24,6 +25,7 @@ const DEFAULT_AUTH_USERS: StoredAuthUser[] = [
     loginId: 'mock-admin',
     password: 'admin',
     role: 'admin',
+    mustChangePassword: false,
     isActive: true,
     dbUpdatedAt: MOCK_UPDATED_AT,
   },
@@ -32,6 +34,7 @@ const DEFAULT_AUTH_USERS: StoredAuthUser[] = [
     loginId: 'mock-user',
     password: 'user',
     role: 'user',
+    mustChangePassword: false,
     isActive: true,
     dbUpdatedAt: MOCK_UPDATED_AT,
   },
@@ -40,6 +43,17 @@ const DEFAULT_AUTH_USERS: StoredAuthUser[] = [
 let currentSession: AuthSession | null = null
 
 const createMockUuid = () => globalThis.crypto?.randomUUID?.() ?? `00000000-0000-4000-8000-${String(Date.now()).slice(-12).padStart(12, '0')}`
+
+function createTemporaryPassword() {
+  const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789'
+  const values = new Uint32Array(12)
+  globalThis.crypto?.getRandomValues?.(values)
+  const chars = Array.from(values, (value) => {
+    const n = value || Math.floor(Math.random() * alphabet.length)
+    return alphabet[n % alphabet.length]
+  }).join('')
+  return `Tmp-${chars}`
+}
 
 function normalizeLoginId(loginId: string) {
   return loginId.trim().toLowerCase()
@@ -55,6 +69,7 @@ function makeSessionUser(user: StoredAuthUser): AuthUser {
     uuid: user.uuid,
     loginId: user.loginId,
     role: user.role,
+    mustChangePassword: user.mustChangePassword,
   }
 }
 
@@ -148,6 +163,7 @@ export const mockAuthApi: AuthApi = {
       uuid: createMockUuid(),
       loginId,
       role: payload.role,
+      mustChangePassword: true,
       isActive: payload.isActive,
       dbUpdatedAt: new Date().toISOString(),
     }
@@ -163,7 +179,18 @@ export const mockAuthApi: AuthApi = {
       uuid: payload.uuid,
       loginId: payload.loginId.trim() || target?.loginId || 'mock-updated-user',
       role: payload.role,
+      mustChangePassword: base.mustChangePassword,
       isActive: payload.isActive,
+      dbUpdatedAt: new Date().toISOString(),
+    }
+  },
+  resetAdminUserPassword: async (userUuid: string): Promise<ResetAdminUserPasswordResult> => {
+    await sleep(100)
+    assertAdminSession()
+    void userUuid
+    return {
+      temporaryPassword: createTemporaryPassword(),
+      mustChangePassword: true,
       dbUpdatedAt: new Date().toISOString(),
     }
   },

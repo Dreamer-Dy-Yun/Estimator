@@ -9,6 +9,7 @@ export type {
   DashboardApi,
   LoginRequest,
   LoginResult,
+  ResetAdminUserPasswordResult,
   ProductDrawerBundle,
   ProductMonthlyTrend,
   ProductMonthlyTrendParams,
@@ -57,6 +58,7 @@ export {
   getSelfSalesFilterMeta,
   login,
   logout,
+  resetAdminUserPassword,
   updateAdminUser,
   updateCurrentUser,
 } from './client'

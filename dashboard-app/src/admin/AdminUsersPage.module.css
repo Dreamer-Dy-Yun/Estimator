@@ -40,8 +40,8 @@
 .panel {
   min-width: 0;
   min-height: 0;
-  display: grid;
-  grid-template-rows: auto auto auto 1fr;
+  display: flex;
+  flex-direction: column;
   border: 1px solid #d8e0ec;
   border-radius: 12px;
   background: #ffffff;
@@ -151,7 +151,7 @@
 .tableHeader,
 .userRow {
   display: grid;
-  grid-template-columns: minmax(180px, 0.7fr) minmax(220px, 1.3fr) 128px 92px 156px 150px;
+  grid-template-columns: minmax(160px, 0.5fr) minmax(180px, 1fr) 128px 92px 156px minmax(258px, auto);
   gap: 12px;
   align-items: center;
 }
@@ -166,6 +166,7 @@
 }
 
 .userList {
+  flex: 1;
   min-height: 0;
   overflow: auto;
 }
@@ -249,6 +250,7 @@
   display: flex;
   gap: 8px;
   justify-content: flex-end;
+  flex-wrap: wrap;
 }
 
 .actionCell button {
@@ -268,10 +270,62 @@
   opacity: 0.46;
 }
 
-.actionCell button + button {
+.actionCell .resetButton {
+  border: 1px solid #bfdbfe;
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.actionCell .deleteButton {
   border: 1px solid #fecdd3;
   background: #fff1f2;
   color: #be123c;
+}
+
+.resetNotice {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 12px;
+  align-items: center;
+  padding: 12px 18px;
+  border-bottom: 1px solid #dbeafe;
+  background: #eff6ff;
+  color: #1e3a8a;
+}
+
+.resetNotice strong {
+  display: block;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.resetNotice p {
+  margin: 4px 0 0;
+  color: #475569;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.resetNotice code {
+  padding: 7px 10px;
+  border: 1px solid #bfdbfe;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #0f172a;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.resetNotice button {
+  height: 32px;
+  border: 0;
+  border-radius: 6px;
+  padding: 0 12px;
+  background: #1d4ed8;
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 900;
+  cursor: pointer;
 }
 
 .rowError {
@@ -343,5 +397,15 @@
 
   .actionCell {
     justify-content: flex-start;
+  }
+
+  .resetNotice {
+    grid-template-columns: 1fr;
+    align-items: stretch;
+  }
+
+  .resetNotice code,
+  .resetNotice button {
+    width: 100%;
   }
 }

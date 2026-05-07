@@ -33,7 +33,7 @@
 - 후보군 AI 분석 SSE가 `completed`를 받으면 후보 아이템 목록과 후보군 메타를 다시 조회해, 백엔드가 갱신한 AI 코멘트/최신 상태를 화면에 반영한다.
 - 이너 후보 리스트 배지는 데스크톱에서 행 보조 라인으로 유지하고, 모바일 뷰포트에서는 행 상단으로 올려 좁은 화면에서도 먼저 보이게 한다.
 - 로그인 화면, 라우트 보호, 사용자 정보/비밀번호 변경 모달은 `src/auth`가 소유한다. 인증 API 계약과 목 세션 저장은 `src/api` 아래에 두어 실제 백엔드로 교체할 때 화면이 mock 구현을 직접 알지 않게 한다. 보호 라우트는 직접 URL 진입과 새로고침 복귀를 위해 `/login?redirect=...`를 남긴다.
-- 관리자 유저 관리 화면은 `/admin` 별도 라우트와 `src/admin`이 소유한다. 화면은 같은 `DashboardLayout` 안에서 렌더하며, 관리자 권한 사용자에게만 `오더 후보군` 뒤 관리자 전용 탭을 보여준다. 인증 권한은 `admin`과 `user` 두 단계만 둔다.
+- 관리자 유저 관리 화면은 `/admin` 별도 라우트와 `src/admin`이 소유한다. 화면은 같은 `DashboardLayout` 안에서 렌더하며, 관리자 권한 사용자에게만 `오더 후보군` 뒤 관리자 전용 탭을 보여준다. 인증 권한은 `admin`과 `user` 두 단계만 둔다. 관리자 비밀번호 관리는 조회가 아니라 임시 비밀번호 재설정 API만 호출하고, 임시 비밀번호는 응답 직후 한 번만 표시한다.
 - 상품 drawer feature는 `dashboard/components/product-drawer`로 모았다. 루트 `ProductDrawer`는 overlay와 공유 상태만 조율하고, `primary`가 1차 드로워, `secondary`가 2차 드로워를 소유한다.
 - 경쟁 채널 상태는 1차 판매 정보와 2차 일별 추이가 공유하므로 `product-drawer/useCompetitorChannels.ts`가 소유한다. 2차 상세 조회는 `product-drawer/secondary/useSecondaryDrawerDetail.ts`가 소유한다.
 
@@ -88,7 +88,7 @@
 
 | 파일 | 역할 |
 |------|------|
-| `auth.ts` | 로그인 요청, 인증 사용자, 사용자 정보/비밀번호 변경, 관리자 유저 추가/제거/수정, 세션, 인증 API 계약 |
+| `auth.ts` | 로그인 요청, 인증 사용자, 사용자 정보/비밀번호 변경, 관리자 유저 추가/제거/수정/비밀번호 재설정, 세션, 인증 API 계약 |
 | `candidate.ts` | 후보군/이너 후보/후보군 분석 SSE 요청·응답 계약. 후보군은 생성 당시 기간과 포캐스트 개월 수를 계약에 포함한다 |
 | `dashboard-api.ts` | 화면에서 쓰는 `DashboardApi` 인터페이스 |
 | `drawer.ts` | 1차 drawer bundle, 월간 판매 추이, 판매 인사이트 계약 |
@@ -101,7 +101,7 @@
 
 | 파일 | 역할 |
 |------|------|
-| `authApi.ts` | mock 인증 API 구현. 로그인 입력값은 검증 없이 통과시키고, 사용자 목록은 정적 seed, 세션은 런타임 메모리에만 둔다 |
+| `authApi.ts` | mock 인증 API 구현. 로그인 입력값은 검증 없이 통과시키고, 사용자 목록은 정적 seed, 세션은 런타임 메모리에만 둔다. 관리자 비밀번호 재설정은 임시 비밀번호 1회 응답 흐름만 모사한다 |
 | `candidateSeeds.ts` | 후보군/후보 아이템 읽기 전용 seed 데이터와 목업 AI 코멘트 포함 스냅샷 |
 | `dashboardApi.ts` | mock `DashboardApi` 구현체. public API 계약을 맞춰 응답하되 후보군 mutation은 저장하지 않는 계약 stub이다 |
 | `orderSnapshotForCandidate.ts` | 후보 아이템용 오더 스냅샷 생성/복원 보조와 임시 목업 AI 코멘트 생성 |
@@ -131,7 +131,7 @@
 
 | 파일 | 역할 |
 |------|------|
-| `AdminUsersPage.tsx` | 관리자 유저 목록 조회, 추가, UUID 기준 제거, 로그인 ID/권한/활성 상태 수정 화면 |
+| `AdminUsersPage.tsx` | 관리자 유저 목록 조회, 추가, UUID 기준 제거, 로그인 ID/권한/활성 상태 수정, 임시 비밀번호 재설정 화면 |
 | `AdminUsersPage.module.css` | 관리자 유저 관리 화면 전용 스타일 |
 
 ## src/components

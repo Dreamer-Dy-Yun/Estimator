@@ -33,6 +33,7 @@ import type {
   CompetitorSalesParams,
   LoginRequest,
   LoginResult,
+  ResetAdminUserPasswordResult,
   SelfSalesFilterMeta,
   SelfSalesParams,
   UpdateAdminUserPayload,
@@ -65,6 +66,10 @@ export async function createAdminUser(payload: CreateAdminUserPayload): Promise<
 
 export async function updateAdminUser(payload: UpdateAdminUserPayload): Promise<AdminUserSummary> {
   return mockAuthApi.updateAdminUser(payload)
+}
+
+export async function resetAdminUserPassword(userUuid: string): Promise<ResetAdminUserPasswordResult> {
+  return mockAuthApi.resetAdminUserPassword(userUuid)
 }
 
 export async function deleteAdminUser(userUuid: string): Promise<void> {

@@ -57,6 +57,7 @@
 | `getAdminUsers()` | GET | `/admin/users` |
 | `createAdminUser(payload)` | POST | `/admin/users` |
 | `updateAdminUser(payload)` | PATCH | `/admin/users/:userUuid` |
+| `resetAdminUserPassword(userUuid)` | POST | `/admin/users/:userUuid/password-reset` |
 | `deleteAdminUser(userUuid)` | DELETE | `/admin/users/:userUuid` |
 | `logout()` | POST | `/auth/logout` |
 
@@ -74,6 +75,7 @@
 | `user.uuid` | string | 서버 생성 사용자 UUID. 화면 수정/삭제의 식별자 |
 | `user.loginId` | string | 로그인 ID. 헤더와 사용자 정보 모달의 계정 표시값 |
 | `user.role` | `'admin' \| 'user'` | 프론트 권한 분기용 역할. 관리자는 관리자 화면 접근 가능, 사용자는 일반 대시보드 접근만 가능 |
+| `user.mustChangePassword` | boolean | 임시/초기 비밀번호로 로그인했거나 관리자 재설정 후 아직 직접 변경하지 않은 상태 |
 | `expiresAt` | string | ISO 8601 세션 만료 시각 |
 
 **`UpdateAuthUserPayload`**
@@ -98,6 +100,7 @@
 | `uuid` | string | 서버 생성 사용자 UUID. 화면 수정/삭제의 식별자 |
 | `loginId` | string | 로그인 ID |
 | `role` | `'admin' \| 'user'` | 사용자 권한 |
+| `mustChangePassword` | boolean | 다음 로그인 후 비밀번호 변경이 필요한지 여부. 관리자가 비밀번호를 조회하는 용도가 아니라 상태 표시/강제 변경 흐름용 |
 | `isActive` | boolean | 활성 계정 여부 |
 | `dbUpdatedAt` | string | ISO 8601 최근 변경 시각 |
 
@@ -118,6 +121,16 @@
 | `loginId` | string | 변경할 로그인 ID. UUID는 바뀌지 않음 |
 | `role` | `'admin' \| 'user'` | 변경할 권한 |
 | `isActive` | boolean | 활성 상태 |
+
+**`ResetAdminUserPasswordResult`**
+
+| 필드 | 타입 | 설명 |
+|------|------|------|
+| `temporaryPassword` | string | 백엔드가 생성한 임시 비밀번호. 응답 직후 관리자 화면에 한 번만 표시하며, 이후 조회 API로 다시 내려주지 않는다 |
+| `mustChangePassword` | boolean | 일반적으로 `true`. 사용자가 임시 비밀번호로 로그인한 뒤 직접 비밀번호를 바꿔야 함을 뜻한다 |
+| `dbUpdatedAt` | string | ISO 8601 최근 변경 시각 |
+
+관리자 비밀번호 재설정은 비밀번호 **조회**가 아니라 새 임시 비밀번호 **발급**이다. 백엔드는 평문 비밀번호를 저장하지 않고 해시만 저장해야 하며, 재설정 수행 관리자 UUID, 대상 사용자 UUID, 시각, 요청 IP 등 감사 로그를 남기는 것을 권장한다.
 
 `/admin/users` 계열은 관리자 권한이 필요합니다. 실제 백엔드는 현재 로그인한 관리자 본인을 삭제/비활성화하거나 마지막 활성 관리자 권한을 제거하지 못하도록 검증하는 정책을 권장합니다.
 

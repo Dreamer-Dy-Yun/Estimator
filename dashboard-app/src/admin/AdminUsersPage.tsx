@@ -1,6 +1,12 @@
 import { useEffect, useState, type FormEvent } from 'react'
-import { createAdminUser, deleteAdminUser, getAdminUsers, updateAdminUser } from '../api'
-import type { AdminUserSummary, AuthRole } from '../api'
+import {
+  createAdminUser,
+  deleteAdminUser,
+  getAdminUsers,
+  resetAdminUserPassword,
+  updateAdminUser,
+} from '../api'
+import type { AdminUserSummary, AuthRole, ResetAdminUserPasswordResult } from '../api'
 import { useAuth } from '../auth/AuthProvider'
 import commonStyles from '../dashboard/components/common.module.css'
 import styles from './AdminUsersPage.module.css'
@@ -28,11 +34,13 @@ function AdminUserRow({
   currentUserUuid,
   onSaved,
   onDeleted,
+  onPasswordReset,
 }: {
   user: AdminUserSummary
   currentUserUuid: string
   onSaved: () => Promise<void>
   onDeleted: () => Promise<void>
+  onPasswordReset: (user: AdminUserSummary) => Promise<void>
 }) {
   const [loginId, setLoginId] = useState(user.loginId)
   const [role, setRole] = useState<AuthRole>(user.role)
@@ -40,6 +48,7 @@ function AdminUserRow({
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [isSaving, setIsSaving] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
+  const [isResettingPassword, setIsResettingPassword] = useState(false)
   const isCurrentUser = user.uuid === currentUserUuid
   const isDirty = loginId !== user.loginId || role !== user.role || isActive !== user.isActive
 
@@ -50,6 +59,7 @@ function AdminUserRow({
     setErrorMessage(null)
     setIsSaving(false)
     setIsDeleting(false)
+    setIsResettingPassword(false)
   }, [user])
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -85,6 +95,21 @@ function AdminUserRow({
     } catch (error) {
       setErrorMessage(getErrorMessage(error))
       setIsDeleting(false)
+    }
+  }
+
+  const handlePasswordReset = async () => {
+    const ok = window.confirm(`${user.loginId} 계정의 임시 비밀번호를 발급할까요?`)
+    if (!ok) return
+
+    setErrorMessage(null)
+    setIsResettingPassword(true)
+    try {
+      await onPasswordReset(user)
+    } catch (error) {
+      setErrorMessage(getErrorMessage(error))
+    } finally {
+      setIsResettingPassword(false)
     }
   }
 
@@ -128,16 +153,33 @@ function AdminUserRow({
       </label>
       <div className={styles.updatedCell}>{formatUpdatedAt(user.dbUpdatedAt)}</div>
       <div className={styles.actionCell}>
-        <button type="submit" disabled={!isDirty || isSaving}>
+        <button className={styles.saveButton} type="submit" disabled={!isDirty || isSaving}>
           {isSaving ? '저장 중' : '저장'}
         </button>
-        <button type="button" onClick={handleDelete} disabled={isCurrentUser || isDeleting}>
+        <button
+          className={styles.resetButton}
+          type="button"
+          onClick={handlePasswordReset}
+          disabled={isResettingPassword}
+        >
+          {isResettingPassword ? '재설정 중' : '비밀번호 재설정'}
+        </button>
+        <button
+          className={styles.deleteButton}
+          type="button"
+          onClick={handleDelete}
+          disabled={isCurrentUser || isDeleting}
+        >
           {isDeleting ? '제거 중' : '제거'}
         </button>
       </div>
       {errorMessage ? <p className={styles.rowError}>{errorMessage}</p> : null}
     </form>
   )
+}
+
+type PasswordResetNotice = ResetAdminUserPasswordResult & {
+  loginId: string
 }
 
 export function AdminUsersPage() {
@@ -151,6 +193,7 @@ export function AdminUsersPage() {
   const [createErrorMessage, setCreateErrorMessage] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isCreating, setIsCreating] = useState(false)
+  const [passwordResetNotice, setPasswordResetNotice] = useState<PasswordResetNotice | null>(null)
 
   useEffect(() => {
     let alive = true
@@ -185,6 +228,25 @@ export function AdminUsersPage() {
     await reloadUsers()
   }
 
+  const handlePasswordReset = async (user: AdminUserSummary) => {
+    const result = await resetAdminUserPassword(user.uuid)
+    setUsers((currentUsers) =>
+      currentUsers.map((currentUser) =>
+        currentUser.uuid === user.uuid
+          ? {
+              ...currentUser,
+              mustChangePassword: result.mustChangePassword,
+              dbUpdatedAt: result.dbUpdatedAt,
+            }
+          : currentUser,
+      ),
+    )
+    setPasswordResetNotice({
+      loginId: user.loginId,
+      ...result,
+    })
+  }
+
   const handleCreate = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     setCreateErrorMessage(null)
@@ -216,7 +278,7 @@ export function AdminUsersPage() {
           <p className={styles.kicker}>관리자</p>
           <h1>사용자 정보 관리</h1>
         </div>
-        <p className={styles.headerMeta}>로그인 ID, 권한, 활성 상태를 관리합니다.</p>
+        <p className={styles.headerMeta}>로그인 ID, 권한, 활성 상태, 비밀번호 재설정을 관리합니다.</p>
       </header>
 
       <div className={styles.panel}>
@@ -272,6 +334,19 @@ export function AdminUsersPage() {
           {createErrorMessage ? <p className={styles.createError}>{createErrorMessage}</p> : null}
         </form>
 
+        {passwordResetNotice ? (
+          <div className={styles.resetNotice} role="status">
+            <div>
+              <strong>{passwordResetNotice.loginId} 임시 비밀번호</strong>
+              <p>아래 값은 지금 한 번만 표시됩니다. 사용자에게 전달한 뒤 비밀번호 변경을 안내하세요.</p>
+            </div>
+            <code>{passwordResetNotice.temporaryPassword}</code>
+            <button type="button" onClick={() => setPasswordResetNotice(null)}>
+              확인
+            </button>
+          </div>
+        ) : null}
+
         <div className={styles.tableHeader} aria-hidden="true">
           <span>UUID</span>
           <span>로그인 ID</span>
@@ -292,6 +367,7 @@ export function AdminUsersPage() {
                 currentUserUuid={session?.user.uuid ?? ''}
                 onSaved={handleSaved}
                 onDeleted={handleDeleted}
+                onPasswordReset={handlePasswordReset}
               />
             ))}
           </div>
