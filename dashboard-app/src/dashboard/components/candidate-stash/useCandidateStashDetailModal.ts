@@ -146,6 +146,13 @@ export function useCandidateStashDetailModal({
     void loadItems()
   }, [loadItems])
 
+  const refreshStashes = useCallback(async () => {
+    const list = await getCandidateStashes()
+    if (!mountedRef.current) return
+    setStashes(list)
+    onStashesInvalidate?.()
+  }, [onStashesInvalidate])
+
   useEffect(() => {
     let alive = true
     let subscription: CandidateStashAnalysisSubscription | null = null
@@ -191,7 +198,12 @@ export function useCandidateStashDetailModal({
             if (event.status === 'failed') {
               setAnalysisError(event.error ?? event.message)
             }
-            if (event.status === 'completed' || event.status === 'failed') {
+            if (event.status === 'completed') {
+              void loadItems()
+              void refreshStashes()
+              closeSubscription()
+            }
+            if (event.status === 'failed') {
               closeSubscription()
             }
           },
@@ -222,7 +234,7 @@ export function useCandidateStashDetailModal({
       alive = false
       closeSubscription()
     }
-  }, [stashUuid])
+  }, [loadItems, refreshStashes, stashUuid])
 
   const detailTarget = useMemo(
     () => (stashUuid ? stashes.find((s) => s.uuid === stashUuid) ?? null : null),
@@ -383,13 +395,6 @@ export function useCandidateStashDetailModal({
   const onDrawerForecastMonthsChange = useCallback((n: number) => {
     setDrawerForecastMonths(clampForecastMonths(n))
   }, [])
-
-  const refreshStashes = useCallback(async () => {
-    const list = await getCandidateStashes()
-    if (!mountedRef.current) return
-    setStashes(list)
-    onStashesInvalidate?.()
-  }, [onStashesInvalidate])
 
   const confirmDeleteItem = useCallback(async () => {
     if (!itemDeleteTarget) return

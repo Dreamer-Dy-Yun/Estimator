@@ -30,6 +30,8 @@
 - vendor chunk는 `vite.config.ts`의 Rolldown `codeSplitting.groups`가 소유한다. Recharts 같은 내부 순서 의존 라이브러리는 `maxSize`로 강제 세분화하지 않는다.
 - 후보 아이템 목업 스냅샷은 `drawer2.llmAnswer`에 임시 AI 코멘트를 포함해 2차 드로어에서 바로 확인되게 한다.
 - 이너 후보 1차 드로어 닫힘은 `drawerClosing` 상태로 DOM과 모달 폭 보정 상태를 잠시 유지해, 열림의 역방향으로 모달 폭이 복원되게 한다.
+- 후보군 AI 분석 SSE가 `completed`를 받으면 후보 아이템 목록과 후보군 메타를 다시 조회해, 백엔드가 갱신한 AI 코멘트/최신 상태를 화면에 반영한다.
+- 이너 후보 리스트 배지는 데스크톱에서 행 보조 라인으로 유지하고, 모바일 뷰포트에서는 행 상단으로 올려 좁은 화면에서도 먼저 보이게 한다.
 - 로그인 화면, 라우트 보호, 사용자 정보/비밀번호 변경 모달은 `src/auth`가 소유한다. 인증 API 계약과 목 세션 저장은 `src/api` 아래에 두어 실제 백엔드로 교체할 때 화면이 mock 구현을 직접 알지 않게 한다. 보호 라우트는 직접 URL 진입과 새로고침 복귀를 위해 `/login?redirect=...`를 남긴다.
 - 관리자 유저 관리 화면은 `/admin` 별도 라우트와 `src/admin`이 소유한다. 화면은 같은 `DashboardLayout` 안에서 렌더하며, 관리자 권한 사용자에게만 `오더 후보군` 뒤 관리자 전용 탭을 보여준다. 인증 권한은 `admin`과 `user` 두 단계만 둔다.
 - 상품 drawer feature는 `dashboard/components/product-drawer`로 모았다. 루트 `ProductDrawer`는 overlay와 공유 상태만 조율하고, `primary`가 1차 드로워, `secondary`가 2차 드로워를 소유한다.
@@ -265,7 +267,7 @@
 | 파일 | 역할 |
 |------|------|
 | `orderSnapshotTypes.ts` | 저장 문서 schema 타입 |
-| `parseOrderSnapshot.ts` | 저장 문서 파싱/검증 |
+| `parseOrderSnapshot.ts` | API 타입에 의존하지 않고 `unknown` 저장 문서를 파싱/검증 |
 
 ## src/styles
 
