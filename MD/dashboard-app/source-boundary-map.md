@@ -14,7 +14,7 @@
 
 ## 이번 경계 정리
 
-2026-05-06에 후보군 상세 UI 경계를 먼저 정리했다.
+2026-05-06~07에 후보군 상세 UI와 mock/API 저장 경계를 정리했다.
 
 - `dashboard/pages`에는 라우트 페이지 파일만 남겼다.
 - 후보군 상세 모달, 추천 모달, 인사이트 배지, 후보군 상세 훅은 `dashboard/components/candidate-stash`로 이동했다.
@@ -22,11 +22,10 @@
 - `SnapshotConfirmPage.module.css`는 후보군 목록/업로드/스냅샷 확인 페이지와 그 페이지의 확인 모달 스타일만 담당한다.
 - 2차 패널에서 화면에 노출되지 않는 LLM 프롬프트 생성 API와 배포 전 제거 대상이던 JSON 미리보기 모달을 제거했다.
 - 오더 스냅샷 독립 localStorage 저장/조회/삭제 API를 제거하고, 후보 아이템 `details`를 스냅샷 저장의 단일 경로로 둔다.
-- 후보군 생성 후 별도 확인 팝업을 띄우지 않고 생성된 후보군을 즉시 선택한 뒤 선택 모달을 닫는다.
-- 후보군 목록의 삭제·복제·편집 이벤트는 mock localStorage 변경 후 목록을 재조회하며, 상세/드로어 비동기 로딩은 stale 응답 가드를 둔다.
+- 후보군 생성/삭제/복제/편집 이벤트는 API 호출 후 목록을 재조회한다. mock은 응답 흐름만 모사하고 브라우저 저장소에 후보군/이너 후보를 만들거나 지우지 않는다.
 - 라우트 페이지는 `src/App.tsx`에서 `React.lazy`로 분리한다. 기본 라우팅은 일반 배포용 `BrowserRouter`이고, GitHub Pages workflow만 `VITE_ROUTER_MODE=hash`로 `HashRouter`를 켠다.
 - vendor chunk는 `vite.config.ts`의 Rolldown `codeSplitting.groups`가 소유한다. Recharts 같은 내부 순서 의존 라이브러리는 `maxSize`로 강제 세분화하지 않는다.
-- 후보 아이템 목업 스냅샷은 `drawer2.llmAnswer`에 임시 AI 코멘트를 포함하고, 기존 localStorage 데이터도 빈 코멘트만 보강해 2차 드로어에서 바로 확인되게 한다.
+- 후보 아이템 목업 스냅샷은 `drawer2.llmAnswer`에 임시 AI 코멘트를 포함해 2차 드로어에서 바로 확인되게 한다.
 - 이너 후보 1차 드로어 닫힘은 `drawerClosing` 상태로 DOM과 모달 폭 보정 상태를 잠시 유지해, 열림의 역방향으로 모달 폭이 복원되게 한다.
 - 로그인 화면, 라우트 보호, 사용자 정보/비밀번호 변경 모달은 `src/auth`가 소유한다. 인증 API 계약과 목 세션 저장은 `src/api` 아래에 두어 실제 백엔드로 교체할 때 화면이 mock 구현을 직접 알지 않게 한다. 보호 라우트는 직접 URL 진입과 새로고침 복귀를 위해 `/login?redirect=...`를 남긴다.
 - 관리자 유저 관리 화면은 `/admin` 별도 라우트와 `src/admin`이 소유한다. 화면은 같은 `DashboardLayout` 안에서 렌더하며, 관리자 권한 사용자에게만 `오더 후보군` 뒤 관리자 전용 탭을 보여준다. 인증 권한은 `admin`과 `user` 두 단계만 둔다.
@@ -39,10 +38,7 @@
 | `AGENTS.md` | 작업자 지침. Git, 문서, 검증, 프론트엔드 경계 규칙을 둔다. | 프로젝트 운영 규칙이 바뀔 때 수정 |
 | `MD/` | 계획, 결과, API 계약, 구조 문서 보관소. | 기능/API/구조 변경 시 관련 문서 갱신 |
 | `dashboard-app/` | React/Vite 대시보드 앱. | 프론트엔드 작업의 주 대상 |
-| `dashboard-app.zip` | 과거 앱 압축 산출물. 현재 소스 경계에는 관여하지 않는다. | 재생성 필요가 명확할 때만 교체 |
-| `data.py`, `estimator.py`, `plot_*.py` | 대시보드 이전 또는 보조 분석용 Python 스크립트. | 프론트 앱 기능과 분리해서 다룬다 |
-| `raw_monthly_quantity.png` | Python 분석 산출 이미지. | 분석 산출물 갱신 때만 교체 |
-| `.venv/`, `__pycache__/` | 로컬 Python 실행 산출물. | 소스 경계 문서 대상 아님 |
+| `.venv/` | 로컬 Python 실행 산출물. | 소스 경계 문서 대상 아님 |
 
 ## dashboard-app 루트
 
@@ -79,7 +75,7 @@
 | `api/mock.ts` | mock API 진입 파일. | mock 구현 위치를 바꿀 때만 수정 |
 | `api/dailyTrendAsOf.ts` | 일간 트렌드 as-of 계산 보조 로직. | 일간 트렌드 기준일 규칙 변경 시 수정 |
 | `api/types/*` | 프론트-백엔드 계약 타입. 인증 계약은 `auth.ts`, 후보군 계약은 `candidate.ts`, 저장 스냅샷 계약은 `snapshot.ts`, 2차 패널 계약은 `secondary.ts`가 소유한다. | 요청/응답 구조가 바뀌면 먼저 수정 |
-| `api/mock/*` | 후보군 localStorage, seed, mock 계산, mock 응답 구현. 실제 API 계약 타입을 참조하되 mock record 구조를 밖으로 내보내지 않는다. | 데모 데이터나 mock 동작 변경 시 수정 |
+| `api/mock/*` | 읽기 전용 seed, mock 계산, mock 응답 구현. mutation mock은 브라우저 저장소를 DB처럼 변경하지 않는다. | 데모 데이터나 mock 동작 변경 시 수정 |
 
 ### api/types 하위 파일
 
@@ -98,11 +94,9 @@
 
 | 파일 | 역할 |
 |------|------|
-| `authApi.ts` | mock 인증 API 구현, sessionStorage 세션 저장/복원, 관리자 유저 목록 localStorage 저장과 추가/제거/수정 |
-| `candidateSeeds.ts` | 후보군/후보 아이템 seed 데이터와 기존 목업 스냅샷의 빈 AI 코멘트 보강 |
-| `candidateStorage.ts` | 후보군 mock localStorage 읽기/쓰기와 목업 전용 record 보강 경계. 예전 저장값에 누락된 후보군 기간/포캐스트 필드를 기본값으로 보강한다 |
-| `constants.ts` | mock 공용 상수 |
-| `dashboardApi.ts` | mock `DashboardApi` 구현체. public API 계약을 맞춰 응답하고 저장소 접근은 `candidateStorage.ts`에 위임한다 |
+| `authApi.ts` | mock 인증 API 구현. 사용자 목록은 정적 seed이고 세션만 `sessionStorage`에 저장한다 |
+| `candidateSeeds.ts` | 후보군/후보 아이템 읽기 전용 seed 데이터와 목업 AI 코멘트 포함 스냅샷 |
+| `dashboardApi.ts` | mock `DashboardApi` 구현체. public API 계약을 맞춰 응답하되 후보군 mutation은 저장하지 않는 계약 stub이다 |
 | `orderSnapshotForCandidate.ts` | 후보 아이템용 오더 스냅샷 생성/복원 보조와 임시 목업 AI 코멘트 생성 |
 | `productCatalog.ts` | 상품 catalog seed와 조회 |
 | `records.ts` | mock 원천 record 묶음 |
@@ -216,7 +210,7 @@
 | `ko.ts` | product-secondary 영역의 한국어 텍스트 상수 |
 | `cards/*` | 2차 패널 카드 단위 UI |
 | `model/*` | 2차 패널 계산 로직. UI에서 직접 계산이 커지면 여기로 이동한다 |
-| `panel-styles/*` | 2차 패널 카드/컨트롤/표/입력 스타일 모듈. 현재는 shell에서 실제 쓰는 조각만 import한다 |
+| `panel-styles/*` | `productSecondaryPanel.module.css`가 CSS `@import`로 묶는 2차 패널 카드/컨트롤/표/입력 스타일 조각 |
 | `productSecondaryPanel.module.css` | 2차 패널 shell 스타일 |
 
 ## dashboard/hooks

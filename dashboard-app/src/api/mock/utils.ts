@@ -1,10 +1,5 @@
 export const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
 
-export const logApiCalled = (message: string) => {
-  if (typeof console === 'undefined') return
-  console.info(`[API CALLED] ${message}`)
-}
-
 export const clamp = (v: number, min: number, max: number) => Math.max(min, Math.min(max, v))
 
 export function makeUuid32(): string {

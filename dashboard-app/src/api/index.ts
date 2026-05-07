@@ -31,7 +31,6 @@ export type {
 } from './types'
 export { DAILY_TREND_AS_OF_DATE } from './dailyTrendAsOf'
 export {
-  authApi,
   changeCurrentUserPassword,
   createAdminUser,
   dashboardApi,

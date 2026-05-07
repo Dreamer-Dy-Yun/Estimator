@@ -3,7 +3,7 @@
 | 항목 | 내용 |
 |------|------|
 | 작성일 | 2026-04-23 |
-| 변경일 | 2026-04-23 |
+| 변경일 | 2026-05-07 |
 | 지시 | Yun Daeyoung |
 
 ## 목적
@@ -15,7 +15,6 @@
 | 파일 | 설명 |
 |------|------|
 | [backend-api-spec.md](./backend-api-spec.md) | REST 제안, 엔드포인트별 요청/응답, 모든 DTO·스냅샷 필드 의미 상세 |
-| [backend-implementation-grounds-2026-04-23.md](./backend-implementation-grounds-2026-04-23.md) | 백엔드 구현자가 바로 참고할 현재 구조/규칙/판단 기준 |
 
 ## 단일 소스 (코드)
 

@@ -20,23 +20,9 @@ import type {
   SecondaryStockOrderCalcParams,
   SecondaryStockOrderCalcResult,
 } from '../types'
-import {
-  DEFAULT_CANDIDATE_STASH_CONTEXT,
-  type CandidateItemRecord,
-  type CandidateStashRecord,
-} from './records'
-import { logApiCalled, makeUuid32, sleep } from './utils'
-import {
-  buildMockOrderSnapshotForCandidate,
-} from './orderSnapshotForCandidate'
-import {
-  readCandidateItemRecords,
-  readCandidateItemsForStash,
-  readCandidateStashRecords,
-  setCandidateItemLlmCommentState,
-  writeCandidateItemRecords,
-  writeCandidateStashRecords,
-} from './candidateStorage'
+import { type CandidateItemRecord, type CandidateStashRecord } from './records'
+import { makeUuid32, sleep } from './utils'
+import { seededCandidateItems, seededCandidateStashes } from './candidateSeeds'
 import {
   allKnownProductIds,
   brands,
@@ -69,6 +55,18 @@ type CandidateAnalysisJob = {
 }
 
 const candidateAnalysisJobs = new Map<string, CandidateAnalysisJob>()
+
+function readCandidateStashRecords(): CandidateStashRecord[] {
+  return seededCandidateStashes
+}
+
+function readCandidateItemRecords(): CandidateItemRecord[] {
+  return seededCandidateItems
+}
+
+function readCandidateItemsForStash(stashUuid: string): CandidateItemRecord[] {
+  return readCandidateItemRecords().filter((row) => row.stashUuid === stashUuid)
+}
 
 function buildCandidateAnalysisEvent(
   jobId: string,
@@ -302,25 +300,21 @@ export const mockDashboardApi = {
   },
   getCandidateStashes: async (productId?: string): Promise<CandidateStashSummary[]> => {
     await sleep(60)
-    try {
-      const stashes = readCandidateStashRecords()
-      const items = readCandidateItemRecords()
-      const filtered = productId ? stashes.filter((row) => row.productId === productId) : stashes
-      return filtered
-        .map((row) => {
-          const linkedItems = items.filter((it) => it.stashUuid === row.uuid)
-          const latestItemTs = linkedItems.reduce<string>(
-            (latest, it) => (String(it.dbCreatedAt) > latest ? String(it.dbCreatedAt) : latest),
-            '',
-          )
-          const recordUpdatedAt = row.dbUpdatedAt ?? row.dbCreatedAt
-          const dbUpdatedAt = latestItemTs && latestItemTs > recordUpdatedAt ? latestItemTs : recordUpdatedAt
-          return toCandidateStashSummary(row, linkedItems.length, dbUpdatedAt)
-        })
-        .sort((a, b) => String(b.dbCreatedAt).localeCompare(String(a.dbCreatedAt)))
-    } catch {
-      return []
-    }
+    const stashes = readCandidateStashRecords()
+    const items = readCandidateItemRecords()
+    const filtered = productId ? stashes.filter((row) => row.productId === productId) : stashes
+    return filtered
+      .map((row) => {
+        const linkedItems = items.filter((it) => it.stashUuid === row.uuid)
+        const latestItemTs = linkedItems.reduce<string>(
+          (latest, it) => (String(it.dbCreatedAt) > latest ? String(it.dbCreatedAt) : latest),
+          '',
+        )
+        const recordUpdatedAt = row.dbUpdatedAt ?? row.dbCreatedAt
+        const dbUpdatedAt = latestItemTs && latestItemTs > recordUpdatedAt ? latestItemTs : recordUpdatedAt
+        return toCandidateStashSummary(row, linkedItems.length, dbUpdatedAt)
+      })
+      .sort((a, b) => String(b.dbCreatedAt).localeCompare(String(a.dbCreatedAt)))
   },
   getCandidateItemsByStash: async (stashUuid: string): Promise<CandidateItemListResult> => {
     await sleep(60)
@@ -385,30 +379,11 @@ export const mockDashboardApi = {
   },
   deleteCandidateItem: async (itemUuid: string): Promise<void> => {
     await sleep(60)
-    logApiCalled('이너 후보 삭제 API가 호출되었습니다.')
-    try {
-      const items = readCandidateItemRecords()
-      const target = items.find((it) => it.uuid === itemUuid)
-      if (!target) return
-      const nextItems = items.filter((it) => it.uuid !== itemUuid)
-      writeCandidateItemRecords(nextItems)
-      const now = new Date().toISOString()
-      const stashes = readCandidateStashRecords()
-      const nextStashes = stashes.map((s) =>
-        s.uuid === target.stashUuid ? { ...s, dbUpdatedAt: now } : s,
-      )
-      writeCandidateStashRecords(nextStashes)
-    } catch {
-      /* ignore */
-    }
+    void itemUuid
   },
   deleteCandidateStash: async (stashUuid: string): Promise<void> => {
     await sleep(60)
-    logApiCalled('후보군 삭제 API가 호출되었습니다.')
-    const stashes = readCandidateStashRecords()
-    const items = readCandidateItemRecords()
-    writeCandidateStashRecords(stashes.filter((row) => row.uuid !== stashUuid))
-    writeCandidateItemRecords(items.filter((row) => row.stashUuid !== stashUuid))
+    void stashUuid
   },
   createCandidateStash: async (payload: CreateCandidateStashPayload): Promise<CandidateStashSummary> => {
     await sleep(90)
@@ -424,18 +399,10 @@ export const mockDashboardApi = {
       dbCreatedAt: now,
       dbUpdatedAt: now,
     }
-    try {
-      const stashes = readCandidateStashRecords()
-      stashes.push(stash)
-      writeCandidateStashRecords(stashes)
-    } catch {
-      /* ignore quota */
-    }
     return toCandidateStashSummary(stash, 0)
   },
   updateCandidateStash: async (payload: UpdateCandidateStashPayload): Promise<CandidateStashSummary> => {
     await sleep(70)
-    logApiCalled('후보군 이름·비고 수정 API가 호출되었습니다.')
     const stashes = readCandidateStashRecords()
     const items = readCandidateItemRecords()
     const target = stashes.find((s) => s.uuid === payload.stashUuid)
@@ -449,92 +416,25 @@ export const mockDashboardApi = {
       note: payload.note?.trim() || null,
       dbUpdatedAt: now,
     }
-    writeCandidateStashRecords(stashes.map((row) => (row.uuid === payload.stashUuid ? updated : row)))
     const linkedItems = items.filter((it) => it.stashUuid === target.uuid)
     return toCandidateStashSummary(updated, linkedItems.length)
   },
   duplicateCandidateStash: async (sourceStashUuid: string): Promise<void> => {
     await sleep(90)
-    logApiCalled('후보군 복제 API가 호출되었습니다.')
     const stashes = readCandidateStashRecords()
-    const items = readCandidateItemRecords()
     const source = stashes.find((row) => row.uuid === sourceStashUuid)
     if (!source) throw new Error('복제할 후보군을 찾을 수 없습니다.')
-    const now = new Date().toISOString()
-    const copiedStash: CandidateStashRecord = {
-      ...source,
-      uuid: makeUuid32(),
-      name: `${source.name} 복사본`,
-      dbCreatedAt: now,
-      dbUpdatedAt: now,
-    }
-    const copiedItems = items
-      .filter((row) => row.stashUuid === sourceStashUuid)
-      .map((row) => ({
-        ...row,
-        uuid: makeUuid32(),
-        stashUuid: copiedStash.uuid,
-        dbCreatedAt: now,
-        dbUpdatedAt: now,
-      }))
-    writeCandidateStashRecords([...stashes, copiedStash])
-    writeCandidateItemRecords([...items, ...copiedItems])
   },
   appendCandidateItem: async (payload: AppendCandidateItemPayload): Promise<void> => {
     await sleep(70)
-    const now = new Date().toISOString()
-    const item: CandidateItemRecord = {
-      uuid: makeUuid32(),
-      stashUuid: payload.stashUuid,
-      skuUuid: payload.productId,
-      details: payload.details,
-      isLatestLlmComment: payload.isLatestLlmComment,
-      dbCreatedAt: now,
-      dbUpdatedAt: now,
-    }
-    try {
-      const stashes = readCandidateStashRecords()
-      const items = readCandidateItemRecords()
-      const dedup = items.filter((row) => !(row.stashUuid === payload.stashUuid && row.skuUuid === payload.productId))
-      dedup.push(item)
-      writeCandidateItemRecords(dedup)
-      const nextStashes = stashes.map((row) => (
-        row.uuid === payload.stashUuid ? { ...row, dbUpdatedAt: now } : row
-      ))
-      writeCandidateStashRecords(nextStashes)
-    } catch {
-      /* ignore quota */
-    }
+    void payload
   },
   updateCandidateItem: async (payload: UpdateCandidateItemPayload): Promise<void> => {
     await sleep(70)
-    logApiCalled('이너 후보 변경 저장 API가 호출되었습니다.')
-    const now = new Date().toISOString()
-    try {
-      const stashes = readCandidateStashRecords()
-      const items = readCandidateItemRecords()
-      const idx = items.findIndex((row) => row.uuid === payload.itemUuid)
-      if (idx === -1) return
-      const prev = items[idx]!
-      items[idx] = {
-        ...prev,
-        details: payload.details,
-        isLatestLlmComment: payload.isLatestLlmComment,
-        dbUpdatedAt: now,
-      }
-      writeCandidateItemRecords(items)
-      const stashUuid = prev.stashUuid
-      const nextStashes = stashes.map((row) =>
-        row.uuid === stashUuid ? { ...row, dbUpdatedAt: now } : row,
-      )
-      writeCandidateStashRecords(nextStashes)
-    } catch {
-      /* ignore quota */
-    }
+    void payload
   },
   uploadCandidateStashExcel: async (file: File): Promise<CandidateStashExcelUploadResult> => {
     await sleep(140)
-    logApiCalled('오더 후보군 엑셀 업로드 API가 호출되었습니다.')
 
     const fileName = file.name.trim()
     const isExcel = /\.(xlsx|xls)$/i.test(fileName)
@@ -545,51 +445,20 @@ export const mockDashboardApi = {
       throw new Error('빈 엑셀 파일은 업로드할 수 없습니다.')
     }
 
-    const now = new Date().toISOString()
     const stashUuid = makeUuid32()
-    const sampleProductIds = ['B', 'H', 'T'].filter((id) => allKnownProductIds.includes(id))
-    const productIds = sampleProductIds.length ? sampleProductIds : allKnownProductIds.slice(0, 3)
-    const stash: CandidateStashRecord = {
-      uuid: stashUuid,
-      name: `엑셀 업로드 후보군 ${now.slice(0, 10)}`,
-      note: `업로드 파일: ${fileName}`,
-      productId: productIds[0] ?? allKnownProductIds[0]!,
-      ...DEFAULT_CANDIDATE_STASH_CONTEXT,
-      dbCreatedAt: now,
-      dbUpdatedAt: now,
-    }
-    const uploadItems: CandidateItemRecord[] = productIds.map((productId) => ({
-      uuid: makeUuid32(),
-      stashUuid,
-      skuUuid: productId,
-      details: buildMockOrderSnapshotForCandidate(productId),
-      isLatestLlmComment: false,
-      dbCreatedAt: now,
-      dbUpdatedAt: now,
-    }))
-
-    try {
-      const stashes = readCandidateStashRecords()
-      const items = readCandidateItemRecords()
-      writeCandidateStashRecords([stash, ...stashes])
-      writeCandidateItemRecords([...uploadItems, ...items])
-    } catch {
-      throw new Error('업로드 결과 저장에 실패했습니다.')
-    }
 
     return {
       stashUuid,
-      stashName: stash.name,
-      itemCount: uploadItems.length,
+      stashName: `엑셀 업로드 후보군 ${fileName}`,
+      itemCount: 0,
       warnings: [
-        '목 API는 파일 내용을 파싱하지 않고 업로드 성공 흐름만 모사합니다.',
+        '목 API는 파일 검증과 성공 응답만 모사하며 프론트 저장소에 후보군을 만들지 않습니다.',
         '실제 백엔드는 필수 컬럼 검증 후 DB에 후보군과 후보 아이템을 저장해야 합니다.',
       ],
     }
   },
   startCandidateStashAnalysis: async (stashUuid: string) => {
     await sleep(60)
-    logApiCalled('후보군 스냅샷 LLM 분석 시작 API가 호출되었습니다.')
     const items = readCandidateItemsForStash(stashUuid)
     const jobId = `candidate-analysis-${stashUuid}-${Date.now()}`
     candidateAnalysisJobs.set(jobId, { stashUuid, items })
@@ -600,7 +469,6 @@ export const mockDashboardApi = {
     }
   },
   subscribeCandidateStashAnalysis: (jobId: string, handlers: CandidateStashAnalysisHandlers) => {
-    logApiCalled('후보군 스냅샷 LLM 분석 SSE 구독이 시작되었습니다.')
     const job = candidateAnalysisJobs.get(jobId)
     let closed = false
     const timers: Array<ReturnType<typeof setTimeout>> = []
@@ -672,7 +540,6 @@ export const mockDashboardApi = {
           ))
         })
         queue(480 + (index * 420), () => {
-          setCandidateItemLlmCommentState(item.uuid, true)
           emit(buildCandidateAnalysisEvent(
             jobId,
             job.stashUuid,

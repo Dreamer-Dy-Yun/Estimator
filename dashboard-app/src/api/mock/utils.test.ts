@@ -1,5 +1,5 @@
-import { describe, expect, it, vi } from 'vitest'
-import { clamp, logApiCalled, makeUuid32 } from './utils'
+import { describe, expect, it } from 'vitest'
+import { clamp, makeUuid32 } from './utils'
 
 describe('api/mock utils', () => {
   it('clamps value into given range', () => {
@@ -11,12 +11,5 @@ describe('api/mock utils', () => {
   it('generates lowercase hex uuid with 32 chars', () => {
     const uuid = makeUuid32()
     expect(uuid).toMatch(/^[a-f0-9]{32}$/)
-  })
-
-  it('logs API called message with fixed prefix', () => {
-    const spy = vi.spyOn(console, 'info').mockImplementation(() => {})
-    logApiCalled('hello')
-    expect(spy).toHaveBeenCalledWith('[API CALLED] hello')
-    spy.mockRestore()
   })
 })

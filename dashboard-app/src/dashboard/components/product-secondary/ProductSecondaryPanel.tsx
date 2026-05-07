@@ -682,16 +682,19 @@ export function ProductSecondaryPanel({
         periodEnd,
         forecastMonths,
       })
-      await refreshCandidates()
+      const nextCandidates = await refreshCandidates()
       if (!mountedRef.current) return
-      setSelectedCandidate({
-        uuid: created.uuid,
-        name: created.name,
-        dbCreatedAt: created.dbCreatedAt,
-      })
-      setCandidateNameInput('')
-      setCandidateNoteInput('')
-      setCandidateListOpen(false)
+      const synced = nextCandidates.find((row) => row.uuid === created.uuid)
+      if (synced) {
+        setSelectedCandidate({
+          uuid: synced.uuid,
+          name: synced.name,
+          dbCreatedAt: synced.dbCreatedAt,
+        })
+        setCandidateNameInput('')
+        setCandidateNoteInput('')
+        setCandidateListOpen(false)
+      }
     } finally {
       if (mountedRef.current) setCandidateActionLoading(false)
     }

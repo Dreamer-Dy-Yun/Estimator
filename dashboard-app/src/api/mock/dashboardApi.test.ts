@@ -1,30 +1,6 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import { mockDashboardApi } from './dashboardApi'
-import { CANDIDATE_ITEM_STORAGE_KEY, CANDIDATE_STASH_STORAGE_KEY } from './constants'
-import { buildMockOrderSnapshotForCandidate } from './orderSnapshotForCandidate'
-import {
-  DEFAULT_CANDIDATE_STASH_CONTEXT,
-  type CandidateItemRecord,
-  type CandidateStashRecord,
-} from './records'
-
-function createMemoryStorage(): Storage {
-  const store = new Map<string, string>()
-  return {
-    get length() {
-      return store.size
-    },
-    clear: () => store.clear(),
-    getItem: (key: string) => store.get(key) ?? null,
-    key: (index: number) => Array.from(store.keys())[index] ?? null,
-    removeItem: (key: string) => {
-      store.delete(key)
-    },
-    setItem: (key: string, value: string) => {
-      store.set(key, String(value))
-    },
-  }
-}
+import { DEFAULT_CANDIDATE_STASH_CONTEXT } from './records'
 
 describe('api/mock dashboardApi competitor channel behavior', () => {
   it('returns only kream/musinsa competitor channels', async () => {
@@ -46,7 +22,6 @@ describe('api/mock dashboardApi competitor channel behavior', () => {
     expect(baseRow).toBeDefined()
     expect(musinsaRow).toBeDefined()
 
-    // musinsa: priceSkew 1.02, qtySkew 0.88
     expect(musinsaRow?.competitorAvgPrice).toBe(Math.max(1, Math.round((baseRow?.competitorAvgPrice ?? 0) * 1.02)))
     expect(musinsaRow?.competitorQty).toBe(Math.max(1, Math.round((baseRow?.competitorQty ?? 0) * 0.88)))
     expect(musinsaRow?.competitorAmount).toBe(
@@ -57,16 +32,7 @@ describe('api/mock dashboardApi competitor channel behavior', () => {
   it('falls back to default skew for unknown channel id', async () => {
     const base = await mockDashboardApi.getCompetitorSales()
     const unknown = await mockDashboardApi.getCompetitorSales({ competitorChannelId: 'unknown-channel' })
-    const byId = (rows: Awaited<ReturnType<typeof mockDashboardApi.getCompetitorSales>>) =>
-      Object.fromEntries(rows.map((row) => [row.id, row]))
-    const baseById = byId(base)
-    const unknownById = byId(unknown)
-    expect(Object.keys(unknownById)).toEqual(Object.keys(baseById))
-    for (const id of Object.keys(baseById)) {
-      expect(unknownById[id]?.competitorAvgPrice).toBe(baseById[id]?.competitorAvgPrice)
-      expect(unknownById[id]?.competitorQty).toBe(baseById[id]?.competitorQty)
-      expect(unknownById[id]?.competitorAmount).toBe(baseById[id]?.competitorAmount)
-    }
+    expect(unknown).toEqual(base)
   })
 
   it('treats removed naver channel id as fallback(default skew)', async () => {
@@ -76,82 +42,7 @@ describe('api/mock dashboardApi competitor channel behavior', () => {
   })
 })
 
-describe('api/mock dashboardApi candidate stash mutations', () => {
-  beforeEach(() => {
-    vi.stubGlobal('localStorage', createMemoryStorage())
-  })
-
-  afterEach(() => {
-    vi.unstubAllGlobals()
-  })
-
-  it('updates candidate stash metadata in storage', async () => {
-    const created = await mockDashboardApi.createCandidateStash({
-      productId: 'B',
-      name: '수정 전',
-      note: 'old',
-      ...DEFAULT_CANDIDATE_STASH_CONTEXT,
-    })
-
-    const updated = await mockDashboardApi.updateCandidateStash({
-      stashUuid: created.uuid,
-      name: '수정 후',
-      note: 'new',
-    })
-    const list = await mockDashboardApi.getCandidateStashes()
-
-    expect(updated.name).toBe('수정 후')
-    expect(updated.note).toBe('new')
-    expect(updated.periodStart).toBe(DEFAULT_CANDIDATE_STASH_CONTEXT.periodStart)
-    expect(list.find((row) => row.uuid === created.uuid)?.name).toBe('수정 후')
-  })
-
-  it('backfills candidate stash period metadata for legacy storage rows', async () => {
-    const legacyStash = {
-      uuid: 'legacy-stash-without-period',
-      name: '예전 후보군',
-      note: null,
-      productId: 'B',
-      dbCreatedAt: '2026-04-20T09:00:00.000Z',
-      dbUpdatedAt: '2026-04-20T09:00:00.000Z',
-    }
-    localStorage.setItem(CANDIDATE_STASH_STORAGE_KEY, JSON.stringify([legacyStash]))
-    localStorage.setItem(CANDIDATE_ITEM_STORAGE_KEY, JSON.stringify([]))
-
-    const list = await mockDashboardApi.getCandidateStashes()
-
-    expect(list[0]).toMatchObject(DEFAULT_CANDIDATE_STASH_CONTEXT)
-    expect(JSON.parse(localStorage.getItem(CANDIDATE_STASH_STORAGE_KEY) ?? '[]')[0]).toMatchObject(
-      DEFAULT_CANDIDATE_STASH_CONTEXT,
-    )
-  })
-
-  it('duplicates candidate stash with its inner items', async () => {
-    const before = await mockDashboardApi.getCandidateStashes()
-    const source = before.find((row) => row.itemCount > 0)
-    expect(source).toBeDefined()
-
-    await mockDashboardApi.duplicateCandidateStash(source!.uuid)
-    const after = await mockDashboardApi.getCandidateStashes()
-    const copied = after.find((row) => row.name === `${source!.name} 복사본`)
-
-    expect(after).toHaveLength(before.length + 1)
-    expect(copied?.itemCount).toBe(source!.itemCount)
-  })
-
-  it('deletes candidate stash and cascades its inner items', async () => {
-    const before = await mockDashboardApi.getCandidateStashes()
-    const target = before.find((row) => row.itemCount > 0)
-    expect(target).toBeDefined()
-
-    await mockDashboardApi.deleteCandidateStash(target!.uuid)
-    const after = await mockDashboardApi.getCandidateStashes()
-    const result = await mockDashboardApi.getCandidateItemsByStash(target!.uuid)
-
-    expect(after.some((row) => row.uuid === target!.uuid)).toBe(false)
-    expect(result.items).toEqual([])
-  })
-
+describe('api/mock dashboardApi candidate stash contract stubs', () => {
   it('returns candidate item badge names with shared badge definitions', async () => {
     const stashes = await mockDashboardApi.getCandidateStashes()
     const target = stashes.find((row) => row.itemCount > 0)
@@ -168,43 +59,67 @@ describe('api/mock dashboardApi candidate stash mutations', () => {
     expect(itemBadgeNames).not.toContain('자사 이율')
   })
 
-  it('backfills empty mock AI comments before hydrating candidate drawer snapshots', async () => {
-    const now = '2026-05-06T09:00:00.000Z'
-    const details = buildMockOrderSnapshotForCandidate('B')
-    const staleDetails = {
-      ...details,
-      drawer2: {
-        ...details.drawer2,
-        llmPrompt: '',
-        llmAnswer: '',
-      },
-    }
-    const stash: CandidateStashRecord = {
-      uuid: 'stash-ai-comment-test',
-      name: 'AI 코멘트 테스트',
-      note: null,
+  it('keeps candidate stash list read-only after mutation API calls', async () => {
+    const before = await mockDashboardApi.getCandidateStashes()
+    const source = before.find((row) => row.itemCount > 0)
+    expect(source).toBeDefined()
+
+    const created = await mockDashboardApi.createCandidateStash({
       productId: 'B',
+      name: '프론트 임시 후보군',
+      note: null,
       ...DEFAULT_CANDIDATE_STASH_CONTEXT,
-      dbCreatedAt: now,
-      dbUpdatedAt: now,
-    }
-    const item: CandidateItemRecord = {
-      uuid: 'item-ai-comment-test',
-      stashUuid: stash.uuid,
-      skuUuid: 'B',
-      details: staleDetails,
-      isLatestLlmComment: true,
-      dbCreatedAt: now,
-      dbUpdatedAt: now,
-    }
-    localStorage.setItem(CANDIDATE_STASH_STORAGE_KEY, JSON.stringify([stash]))
-    localStorage.setItem(CANDIDATE_ITEM_STORAGE_KEY, JSON.stringify([item]))
+    })
+    await mockDashboardApi.updateCandidateStash({
+      stashUuid: source!.uuid,
+      name: '프론트 수정',
+      note: '저장되면 안 됨',
+    })
+    await mockDashboardApi.duplicateCandidateStash(source!.uuid)
+    await mockDashboardApi.deleteCandidateStash(source!.uuid)
 
-    const hydrated = await mockDashboardApi.getCandidateItemByUuid(item.uuid)
-    const stored = JSON.parse(localStorage.getItem(CANDIDATE_ITEM_STORAGE_KEY) ?? '[]') as CandidateItemRecord[]
+    const after = await mockDashboardApi.getCandidateStashes()
+    expect(after).toEqual(before)
+    expect(after.some((row) => row.uuid === created.uuid)).toBe(false)
+  })
 
-    expect(hydrated?.details.drawer2.llmPrompt.trim()).not.toBe('')
-    expect(hydrated?.details.drawer2.llmAnswer.trim()).not.toBe('')
-    expect(stored[0]?.details.drawer2.llmAnswer.trim()).toBe(hydrated?.details.drawer2.llmAnswer.trim())
+  it('keeps candidate item list read-only after item mutation API calls', async () => {
+    const stashes = await mockDashboardApi.getCandidateStashes()
+    const source = stashes.find((row) => row.itemCount > 0)
+    expect(source).toBeDefined()
+
+    const before = await mockDashboardApi.getCandidateItemsByStash(source!.uuid)
+    const item = before.items[0]
+    expect(item).toBeDefined()
+    const detail = await mockDashboardApi.getCandidateItemByUuid(item!.uuid)
+    expect(detail).toBeDefined()
+
+    await mockDashboardApi.deleteCandidateItem(item!.uuid)
+    await mockDashboardApi.appendCandidateItem({
+      stashUuid: source!.uuid,
+      productId: item!.productId,
+      details: detail!.details,
+      isLatestLlmComment: false,
+    })
+    await mockDashboardApi.updateCandidateItem({
+      itemUuid: item!.uuid,
+      details: detail!.details,
+      isLatestLlmComment: false,
+    })
+
+    const after = await mockDashboardApi.getCandidateItemsByStash(source!.uuid)
+    expect(after).toEqual(before)
+  })
+
+  it('hydrates seeded candidate drawer snapshots with mock AI comments', async () => {
+    const stashes = await mockDashboardApi.getCandidateStashes()
+    const target = stashes.find((row) => row.itemCount > 0)
+    expect(target).toBeDefined()
+
+    const list = await mockDashboardApi.getCandidateItemsByStash(target!.uuid)
+    const detail = await mockDashboardApi.getCandidateItemByUuid(list.items[0]!.uuid)
+
+    expect(detail?.details.drawer2.llmPrompt.trim()).not.toBe('')
+    expect(detail?.details.drawer2.llmAnswer.trim()).not.toBe('')
   })
 })

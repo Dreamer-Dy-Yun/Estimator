@@ -23,10 +23,6 @@ function formatUpdatedAt(value: string) {
   }).format(date)
 }
 
-function sortUsers(users: AdminUserSummary[]) {
-  return [...users].sort((a, b) => a.loginId.localeCompare(b.loginId))
-}
-
 function AdminUserRow({
   user,
   currentUserUuid,
@@ -35,8 +31,8 @@ function AdminUserRow({
 }: {
   user: AdminUserSummary
   currentUserUuid: string
-  onSaved: (user: AdminUserSummary) => void
-  onDeleted: (userUuid: string) => void
+  onSaved: () => Promise<void>
+  onDeleted: () => Promise<void>
 }) {
   const [loginId, setLoginId] = useState(user.loginId)
   const [role, setRole] = useState<AuthRole>(user.role)
@@ -62,13 +58,13 @@ function AdminUserRow({
     setIsSaving(true)
 
     try {
-      const updated = await updateAdminUser({
+      await updateAdminUser({
         uuid: user.uuid,
         loginId,
         role,
         isActive,
       })
-      onSaved(updated)
+      await onSaved()
     } catch (error) {
       setErrorMessage(getErrorMessage(error))
     } finally {
@@ -85,7 +81,7 @@ function AdminUserRow({
     setIsDeleting(true)
     try {
       await deleteAdminUser(user.uuid)
-      onDeleted(user.uuid)
+      await onDeleted()
     } catch (error) {
       setErrorMessage(getErrorMessage(error))
       setIsDeleting(false)
@@ -175,15 +171,18 @@ export function AdminUsersPage() {
     }
   }, [])
 
-  const handleSaved = (updated: AdminUserSummary) => {
-    setUsers((prev) => sortUsers(prev.map((user) => (user.uuid === updated.uuid ? updated : user))))
-    if (updated.uuid === session?.user.uuid) {
-      void refreshSession()
-    }
+  const reloadUsers = async () => {
+    const nextUsers = await getAdminUsers()
+    setUsers(nextUsers)
   }
 
-  const handleDeleted = (userUuid: string) => {
-    setUsers((prev) => prev.filter((user) => user.uuid !== userUuid))
+  const handleSaved = async () => {
+    await reloadUsers()
+    await refreshSession()
+  }
+
+  const handleDeleted = async () => {
+    await reloadUsers()
   }
 
   const handleCreate = async (event: FormEvent<HTMLFormElement>) => {
@@ -192,13 +191,13 @@ export function AdminUsersPage() {
     setIsCreating(true)
 
     try {
-      const created = await createAdminUser({
+      await createAdminUser({
         loginId: newLoginId,
         password: newPassword,
         role: newRole,
         isActive: newIsActive,
       })
-      setUsers((prev) => sortUsers([...prev, created]))
+      await reloadUsers()
       setNewLoginId('')
       setNewPassword('')
       setNewRole('user')

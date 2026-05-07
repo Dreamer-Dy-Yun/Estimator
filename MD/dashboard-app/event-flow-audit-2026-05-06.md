@@ -15,19 +15,19 @@
 - `CandidateStashDetailModal` 이너 후보 선택·추천 적용·일괄/개별 삭제·드로어 오픈
 - `ProductSummaryDrawer` 판매 인사이트 로딩
 - `ProductSecondaryPanel` 후보군 선택, 오더 담기, 이너 후보 변경 저장
-- `api/mock/dashboardApi` 후보군 localStorage 동작
+- `api/mock/dashboardApi` 후보군 계약 stub 동작
 
 ## Principles
 
 - 화면 이벤트가 성공하면 해당 화면의 목록 상태도 반드시 최신화한다.
 - async 요청은 unmount 또는 뒤늦은 응답이 현재 상태를 덮지 않게 guard를 둔다.
 - 눌러도 아무 일도 하지 않는 버튼은 비활성화한다.
-- mock은 현재 프론트 계약을 검증할 수 있어야 하므로 성공한 척만 하는 스텁으로 두지 않는다.
+- mock은 DB 정합성을 해치지 않도록 브라우저 저장소를 목록 DB처럼 바꾸지 않는다.
 
 ## Plan
 
 1. 후보군 목록 CRUD 이벤트 후 `getCandidateStashes()` 재조회.
-2. mock 후보군 삭제·수정·복제를 localStorage 변경으로 구현.
+2. mock 후보군 삭제·수정·복제는 계약 호출만 모사하고 재조회 결과는 seed를 유지한다.
 3. 목록/상세/드로어/2차 패널 async 요청에 mounted 또는 request sequence guard 추가.
 4. 후보군 미선택 상태의 `오더 담기` 비활성화.
 5. 체크박스 키보드 조작이 행 드로어 토글로 번지지 않게 이벤트 경계 보강.
@@ -35,12 +35,12 @@
 
 ## Result
 
-- 후보군 목록 삭제·수정·복제 후 화면 목록이 즉시 최신화된다.
-- mock 후보군 CRUD가 localStorage에 실제 반영된다.
+- 후보군 목록 삭제·수정·복제 후 화면은 목록을 재조회한다.
+- mock 후보군 CRUD는 브라우저 저장소에 실제 반영되지 않는다.
 - 이너 후보 상세, 상품 드로어, 2차 패널의 늦은 async 응답이 닫힌 화면 상태를 덮지 않는다.
 - 후보군 선택 전 `오더 담기`는 비활성화된다.
 - 키보드로 이너 후보 체크박스를 조작해도 행 드로어가 같이 열리지 않는다.
-- Vitest에 후보군 mock CRUD 회귀 테스트를 추가했다.
+- Vitest에 후보군 mock mutation 후 재조회 목록이 변하지 않는 계약 테스트를 추가했다.
 
 ## Non-goals
 

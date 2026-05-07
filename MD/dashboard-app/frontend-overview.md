@@ -59,10 +59,10 @@
 ### 4.1 인증
 
 - 인증 UI와 세션 상태는 [`src/auth`](../../dashboard-app/src/auth/)가 소유합니다.
-- 로그인/세션 확인/사용자 정보 변경/비밀번호 변경/관리자 유저 관리/로그아웃 호출은 [`src/api/client.ts`](../../dashboard-app/src/api/client.ts)의 `authApi`와 개별 함수로만 접근합니다.
-- 현재 목 구현은 [`api/mock/authApi.ts`](../../dashboard-app/src/api/mock/authApi.ts)에서 `localStorage`의 mock 사용자 목록에 저장된 로그인 ID와 비밀번호를 확인하고, 세션은 브라우저 `sessionStorage`에 저장합니다. 헤더 우상단의 사용자 정보 버튼은 로그인 ID와 역할을 표시하고, 모달에서 로그인 ID와 비밀번호를 변경합니다.
+- 로그인/세션 확인/사용자 정보 변경/비밀번호 변경/관리자 유저 관리/로그아웃 호출은 [`src/api/client.ts`](../../dashboard-app/src/api/client.ts)의 개별 인증 함수로만 접근합니다.
+- 현재 목 구현은 [`api/mock/authApi.ts`](../../dashboard-app/src/api/mock/authApi.ts)의 정적 사용자 seed로 로그인 ID와 비밀번호를 확인하고, 세션만 브라우저 `sessionStorage`에 저장합니다. 헤더 우상단의 사용자 정보 버튼은 로그인 ID와 역할을 표시하고, 모달에서 로그인 ID와 비밀번호 변경 API를 호출합니다.
 - 권한은 `admin`과 `user`만 사용합니다. `admin`은 관리자 화면 접근이 가능하고, `user`는 일반 대시보드만 접근합니다.
-- 관리자 화면은 mock 유저 목록을 브라우저 `localStorage`에 저장하고, 로그인 ID와 초기 비밀번호 기반 유저 추가, UUID 기준 제거, 로그인 ID/권한/활성 상태 수정을 지원합니다. 이메일 초대 발송과 표시 이름 관리는 상정하지 않습니다. 현재 로그인한 관리자 자신의 제거, 권한 해제, 비활성화는 잠금 방지를 위해 막습니다.
+- 관리자 화면은 로그인 ID와 초기 비밀번호 기반 유저 추가, UUID 기준 제거, 로그인 ID/권한/활성 상태 수정 계약을 호출합니다. mock은 저장하지 않고 재조회 시 정적 seed를 돌려주며, 실제 반영은 백엔드 DB가 소유합니다. 이메일 초대 발송과 표시 이름 관리는 상정하지 않습니다.
 - 실제 백엔드 전환 시 우선 권장 형태는 HttpOnly cookie 기반 세션이며, 프론트 화면은 `AuthApi` 계약을 유지한 채 client 구현만 교체합니다.
 
 ---
@@ -86,10 +86,10 @@
 
 ### 5.3 오더 후보군 (`SnapshotConfirmPage` + `CandidateStashDetailModal`)
 
-- **후보군(스태시) 목록:** 이름·비고 검색, 정렬, 엑셀 업로드, 생성·이름/비고 수정·삭제·복제. 후보군은 생성 당시 `periodStart`, `periodEnd`, `forecastMonths`를 함께 저장합니다. 목업도 localStorage에 실제 반영한 뒤 목록을 재조회합니다. 엑셀 업로드 카드는 카드 자체가 `제목/안내문/드래그 영역/업로드 버튼` 4열 grid를 소유하며, 좁은 화면에서만 반응형으로 줄을 접습니다.
+- **후보군(스태시) 목록:** 이름·비고 검색, 정렬, 엑셀 업로드, 생성·이름/비고 수정·삭제·복제. 화면은 mutation 응답을 목록에 직접 삽입/제거하지 않고 항상 후보군 목록을 재조회합니다. mock은 브라우저 저장소에 후보군을 만들거나 지우지 않으며, 실제 반영은 백엔드 DB가 소유합니다. 엑셀 업로드 카드는 카드 자체가 `제목/안내문/드래그 영역/업로드 버튼` 4열 grid를 소유하며, 좁은 화면에서만 반응형으로 줄을 접습니다.
 - **상세 모달:** 한 스태시에 속한 **이너 후보** 목록 — 브랜드·상품코드·상품명 필터([`FilterBar`](../../dashboard-app/src/dashboard/components/FilterBar.tsx) + [`FilterListCombo`](../../dashboard-app/src/dashboard/components/FilterListCombo.tsx)). 상세 헤더/필터/요약은 모달에 고정하고, 이너 후보 리스트 영역만 내부 스크롤합니다. 리스트 컬럼 헤더는 스크롤 중에도 상단에 남습니다.
 - **행 클릭:** 해당 아이템의 스냅샷을 불러와 드로어를 **2차까지 펼친 상태**로 표시(`initialExpandSecondary`), 스냅샷 병합·저장·삭제 등 [`candidateItemContext`](../../dashboard-app/src/dashboard/components/product-secondary/candidateActionCards.tsx) 연동. 드로어를 닫을 때는 닫힘 전환 동안 이너 후보 모달의 왼쪽 기준 폭 보정을 유지해, 열릴 때의 역방향으로 목록 영역이 다시 넓어집니다.
-- **AI 코멘트:** 목업 후보 아이템 스냅샷은 `drawer2.llmAnswer`에 임시 AI 코멘트를 포함합니다. 기존 localStorage 목업 데이터도 값이 비어 있으면 자동 보강되어 2차 드로어의 AI 코멘트 카드에 표시됩니다.
+- **AI 코멘트:** 목업 후보 아이템 스냅샷은 `drawer2.llmAnswer`에 임시 AI 코멘트를 포함해 2차 드로어의 AI 코멘트 카드에 표시됩니다.
 
 ---
 
@@ -109,11 +109,11 @@
 |------|------|
 | 계약 | [`DashboardApi`](../../dashboard-app/src/api/types/dashboard-api.ts) 인터페이스 |
 | 인증 계약 | [`AuthApi`](../../dashboard-app/src/api/types/auth.ts) 인터페이스 |
-| 구현체 | [`mock.ts`](../../dashboard-app/src/api/mock.ts) — mock 구현 진입점. 인증 mock은 [`api/mock/authApi.ts`](../../dashboard-app/src/api/mock/authApi.ts), 후보군 localStorage 접근은 [`api/mock/candidateStorage.ts`](../../dashboard-app/src/api/mock/candidateStorage.ts)가 소유 |
+| 구현체 | [`mock.ts`](../../dashboard-app/src/api/mock.ts) — mock 구현 진입점. 인증 mock은 [`api/mock/authApi.ts`](../../dashboard-app/src/api/mock/authApi.ts), 후보군 seed와 계약 stub은 [`api/mock/candidateSeeds.ts`](../../dashboard-app/src/api/mock/candidateSeeds.ts)와 [`api/mock/dashboardApi.ts`](../../dashboard-app/src/api/mock/dashboardApi.ts)가 소유 |
 | 진입점 | [`client.ts`](../../dashboard-app/src/api/client.ts) `dashboardApi`, 개별 `getXxx` 함수 |
 | 타입 | [`api/types/*`](../../dashboard-app/src/api/types/) — 인증 계약은 [`auth.ts`](../../dashboard-app/src/api/types/auth.ts), 후보군 계약은 [`candidate.ts`](../../dashboard-app/src/api/types/candidate.ts), 저장 스냅샷 계약은 [`snapshot.ts`](../../dashboard-app/src/api/types/snapshot.ts), 2차 패널 계약은 [`secondary.ts`](../../dashboard-app/src/api/types/secondary.ts) |
 
-HTTP 백엔드로 교체 시 `AuthApi` / `DashboardApi` 계약과 `client.ts`만 갈아끼우고, mock 전용 record/localStorage 구조는 `api/mock/*` 밖으로 새지 않게 유지합니다. REST 스펙은 [backend-api-spec.md](../backend-api/backend-api-spec.md) 참고.
+HTTP 백엔드로 교체 시 `AuthApi` / `DashboardApi` 계약과 `client.ts`만 갈아끼우고, mock 전용 record 구조는 `api/mock/*` 밖으로 새지 않게 유지합니다. REST 스펙은 [backend-api-spec.md](../backend-api/backend-api-spec.md) 참고.
 
 ---
 
