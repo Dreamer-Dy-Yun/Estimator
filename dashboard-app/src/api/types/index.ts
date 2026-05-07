@@ -46,6 +46,7 @@ export type {
   CandidateStashAnalysisStatus,
   CandidateStashAnalysisSubscription,
   CandidateStashExcelUploadResult,
+  CandidateStashExcelTemplateDownload,
   CandidateStashSummary,
   CreateCandidateStashPayload,
   UpdateCandidateStashPayload,

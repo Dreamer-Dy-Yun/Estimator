@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   deleteCandidateStash,
   duplicateCandidateStash,
+  getCandidateStashExcelTemplateDownload,
   getCandidateStashes,
   uploadCandidateStashExcel,
   updateCandidateStash,
@@ -20,6 +21,8 @@ const toTime = (iso: string) => {
   const ts = new Date(iso).getTime()
   return Number.isNaN(ts) ? 0 : ts
 }
+
+const candidateStashTemplateDownload = getCandidateStashExcelTemplateDownload()
 
 export const SnapshotConfirmPage = () => {
   const [stashes, setStashes] = useState<CandidateStashSummary[]>([])
@@ -149,9 +152,13 @@ export const SnapshotConfirmPage = () => {
           <div className={pageStyles.uploadTitleRow}>
             <strong className={pageStyles.uploadTitle}>엑셀 업로드</strong>
             <span className={pageStyles.uploadBadge}>후보군 추가</span>
-            <button type="button" className={pageStyles.templateButton} disabled>
+            <a
+              className={pageStyles.templateButton}
+              href={candidateStashTemplateDownload.href}
+              download={candidateStashTemplateDownload.filename}
+            >
               템플릿 다운로드
-            </button>
+            </a>
           </div>
           <p className={pageStyles.uploadDescription}>
             엑셀 파일을 끌어오거나 클릭해서 오더 후보군을 추가합니다.

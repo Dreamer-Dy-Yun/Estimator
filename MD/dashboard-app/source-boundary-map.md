@@ -78,12 +78,13 @@
 
 | 경로 | 역할 | 변경 기준 |
 |------|------|-----------|
-| `api/client.ts` | 화면에서 호출하는 API 함수와 `dashboardApi`, `authApi` 객체를 노출한다. 현재 구현은 mock으로 위임한다. 후보군 API mock 호출 전 현재 세션 사용자 UUID를 확인한다. | API 함수 추가/삭제, mock에서 실제 HTTP로 전환 시 수정 |
+| `api/client.ts` | 화면에서 호출하는 API 함수와 `dashboardApi`, `authApi` 객체를 노출한다. 현재 구현은 mock으로 위임한다. 후보군 API mock 호출 전 현재 세션 사용자 UUID를 확인한다. 후보군 업로드 템플릿 다운로드 위치도 이 파일이 감싸며, 현재는 정적 파일 URL을 반환한다. | API 함수 추가/삭제, mock에서 실제 HTTP로 전환 시 수정 |
 | `api/index.ts` | API public export. | 외부에서 import할 API surface 변경 시 수정 |
 | `api/mock.ts` | mock API 진입 파일. | mock 구현 위치를 바꿀 때만 수정 |
 | `api/dailyTrendAsOf.ts` | 일간 트렌드 as-of 계산 보조 로직. | 일간 트렌드 기준일 규칙 변경 시 수정 |
 | `api/types/*` | 프론트-백엔드 계약 타입. 인증 계약은 `auth.ts`, 후보군 계약은 `candidate.ts`, 저장 스냅샷 계약은 `snapshot.ts`, 2차 드로워 계약은 `secondary.ts`가 소유한다. | 요청/응답 구조가 바뀌면 먼저 수정 |
 | `api/mock/*` | 읽기 전용 seed, mock 계산, mock 응답 구현. mutation mock은 브라우저 저장소를 DB처럼 변경하지 않는다. | 데모 데이터나 mock 동작 변경 시 수정 |
+| `dashboard-app/public/templates/*` | 현재 프론트가 정적으로 제공하는 후보군 업로드 템플릿 배포 파일. 원본 초안은 루트 `TEMPLATE/`에 둔다. | 템플릿 파일을 프론트 배포물로 교체할 때 수정. 백엔드 endpoint로 이전하면 제거 |
 
 ### api/types 하위 파일
 
@@ -166,7 +167,7 @@
 |------|------|
 | `SelfPage.tsx` | 자사 판매 분석 라우트 |
 | `CompetitorPage.tsx` | 경쟁 판매 분석 라우트 |
-| `SnapshotConfirmPage.tsx` | 후보군 목록, 후보군 업로드, 후보군 생성/수정/삭제/복제 라우트 |
+| `SnapshotConfirmPage.tsx` | 후보군 목록, 후보군 업로드, 업로드 템플릿 다운로드 링크, 후보군 생성/수정/삭제/복제 라우트 |
 | `SnapshotConfirmPage.module.css` | `SnapshotConfirmPage`의 후보군 목록, 업로드 카드 4열 grid 영역, 페이지 확인 모달 전용 스타일 |
 
 ## dashboard/components

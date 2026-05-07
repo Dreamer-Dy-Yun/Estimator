@@ -75,12 +75,16 @@
   font-size: 11px;
   font-weight: 800;
   line-height: 1;
+  text-decoration: none;
   white-space: nowrap;
+  transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
 }
 
-.templateButton:disabled {
-  opacity: 0.62;
-  cursor: not-allowed;
+.templateButton:hover,
+.templateButton:focus-visible {
+  border-color: #93c5fd;
+  background: #eff6ff;
+  color: #1e40af;
 }
 
 .uploadDescription {

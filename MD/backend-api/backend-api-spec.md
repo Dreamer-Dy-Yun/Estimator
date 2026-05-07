@@ -439,9 +439,11 @@ badgeDefinitions: {
 - `uploadCandidateStashExcel`: 프론트는 파일을 파싱하지 않습니다. `multipart/form-data`의 `file` 필드로 엑셀 파일을 전송하고,
   백엔드는 파일 내용을 검증한 뒤 DB 트랜잭션 안에서 후보군과 후보 아이템을 생성해야 합니다.
   성공 후 프론트는 응답 객체를 목록에 직접 삽입하지 않고 `getCandidateStashes()`를 다시 호출해 DB 기준 목록과 동기화합니다.
+- `getCandidateStashExcelTemplateDownload`: 현재 프론트는 정적 파일 URL을 반환하지만, 운영 백엔드 연결 시에는 같은 프론트 계약을 유지한 채 템플릿 다운로드 endpoint로 교체할 수 있습니다. 예: `GET /candidate-stashes/excel-template`.
 - 엑셀 업로드 검증 권장:
-  - 필수 컬럼 예: `productCode` 또는 `skuUuid`, `orderQty` 또는 사이즈별 확정 수량 컬럼.
-  - 보조 컬럼 예: `brand`, `productName`, `memo`, `expectedInboundDate`, `channel`, `unitPrice`, `unitCost`, `feeRate`, 사이즈 컬럼.
+  - 현재 템플릿 초안의 `DATA` 시트 필수 컬럼 예: `브랜드`, `상품 코드`, `오더 수량`, `금번 오더 입고일`, `차기 오더 입고일`.
+  - `오더 수량`은 사이즈별 입력이 아니라 총 발주 수량입니다. 사이즈별 오더 배분/조정은 시스템 내부 계산 흐름이 담당합니다.
+  - 보조 컬럼 예: `memo`, `channel`, `unitPrice`, `unitCost`, `feeRate`.
   - 필수 컬럼 누락, 알 수 없는 상품 코드, 수량 파싱 실패, 중복 행, 음수 수량은 에러 또는 행 단위 경고로 명확히 반환합니다.
   - 백엔드는 생성된 후보군 UUID, 등록 아이템 수, 무시/보정된 행 경고를 응답합니다.
   - 검증 실패 시 후보군/아이템을 부분 저장하지 않는 것을 기본 정책으로 권장합니다.

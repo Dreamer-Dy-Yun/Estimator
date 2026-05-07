@@ -115,6 +115,11 @@ export interface CandidateStashExcelUploadResult {
   warnings: string[]
 }
 
+export interface CandidateStashExcelTemplateDownload {
+  href: string
+  filename: string
+}
+
 export type CandidateStashAnalysisStatus = 'queued' | 'running' | 'completed' | 'failed'
 
 export interface CandidateStashAnalysisStartResult {

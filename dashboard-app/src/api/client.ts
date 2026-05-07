@@ -12,6 +12,7 @@ import type {
   CandidateStashAnalysisHandlers,
   CandidateStashAnalysisStartResult,
   CandidateStashAnalysisSubscription,
+  CandidateStashExcelTemplateDownload,
   CandidateStashExcelUploadResult,
   CandidateStashSummary,
   CreateCandidateStashPayload,
@@ -39,6 +40,14 @@ import type {
   UpdateAdminUserPayload,
   UpdateAuthUserPayload,
 } from './types'
+
+const candidateStashExcelTemplateAsset = 'templates/candidate-stash-upload-template-v0.0.0.xlsx'
+const candidateStashExcelTemplateFilename = '(Han.A)Template(ver.0.0.0).xlsx'
+
+function resolvePublicAssetUrl(path: string): string {
+  const baseUrl = import.meta.env.BASE_URL || '/'
+  return `${baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`}${path.replace(/^\/+/, '')}`
+}
 
 export async function getCurrentAuthSession(): Promise<AuthSession | null> {
   return mockAuthApi.getCurrentSession()
@@ -187,6 +196,13 @@ export async function uploadCandidateStashExcel(file: File): Promise<CandidateSt
   return mockDashboardApi.uploadCandidateStashExcel(file)
 }
 
+export function getCandidateStashExcelTemplateDownload(): CandidateStashExcelTemplateDownload {
+  return {
+    href: resolvePublicAssetUrl(candidateStashExcelTemplateAsset),
+    filename: candidateStashExcelTemplateFilename,
+  }
+}
+
 export async function startCandidateStashAnalysis(stashUuid: string): Promise<CandidateStashAnalysisStartResult> {
   return mockDashboardApi.startCandidateStashAnalysis(stashUuid, await requireCurrentUserUuid())
 }
@@ -224,6 +240,7 @@ export const dashboardApi: DashboardApi = {
   duplicateCandidateStash,
   appendCandidateItem,
   updateCandidateItem,
+  getCandidateStashExcelTemplateDownload,
   uploadCandidateStashExcel,
   startCandidateStashAnalysis,
   subscribeCandidateStashAnalysis,
