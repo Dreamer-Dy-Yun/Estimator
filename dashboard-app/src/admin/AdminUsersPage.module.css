@@ -189,11 +189,12 @@
 }
 
 .identityCell span {
+  display: none;
   min-width: 0;
   overflow: hidden;
   color: #64748b;
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 900;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -334,6 +335,10 @@
     color: #64748b;
     font-size: 12px;
     font-weight: 900;
+  }
+
+  .identityCell span {
+    display: block;
   }
 
   .actionCell {
