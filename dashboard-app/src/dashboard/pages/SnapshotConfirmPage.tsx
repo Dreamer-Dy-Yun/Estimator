@@ -266,7 +266,8 @@ export const SnapshotConfirmPage = () => {
                         setEditNote(stash.note ?? '')
                       }}
                     >
-                      이름·비고 편집
+                      <span className={pageStyles.editLabelFull}>이름·비고 편집</span>
+                      <span className={pageStyles.editLabelCompact}>편집</span>
                     </button>
                     <button
                       type="button"
