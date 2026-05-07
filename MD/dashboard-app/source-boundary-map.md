@@ -118,9 +118,9 @@
 |------|------|
 | `AuthProvider.tsx` | 앱 전역 인증 세션 로딩, 로그인, 로그아웃 상태 제공 |
 | `RequireAuth.tsx` | `/dashboard/*` 보호 라우트. 세션이 없으면 `/login`으로 보낸 뒤 원래 경로를 보존 |
-| `LoginPage.tsx` | 로그인 라우트 화면. 목 인증 단계에서는 어떤 입력도 성공 처리 |
+| `LoginPage.tsx` | 로그인 라우트 화면. 로그인 ID와 비밀번호를 인증 계약으로 전달 |
 | `LoginPage.module.css` | 로그인 화면 전용 스타일 |
-| `UserProfileDialog.tsx` | 헤더 사용자 정보 확인, 표시 이름 변경, 비밀번호 변경 모달 |
+| `UserProfileDialog.tsx` | 헤더 사용자 정보 확인, 로그인 ID 변경, 비밀번호 변경 모달 |
 | `UserProfileDialog.module.css` | 사용자 정보 모달 전용 스타일 |
 | `authGate.module.css` | 보호 라우트의 세션 확인 상태 스타일 |
 
@@ -130,7 +130,7 @@
 
 | 파일 | 역할 |
 |------|------|
-| `AdminUsersPage.tsx` | 관리자 유저 목록 조회, 추가, 제거, 이름/권한/활성 상태 수정 화면 |
+| `AdminUsersPage.tsx` | 관리자 유저 목록 조회, 추가, UUID 기준 제거, 로그인 ID/권한/활성 상태 수정 화면 |
 | `AdminUsersPage.module.css` | 관리자 유저 관리 화면 전용 스타일 |
 
 ## src/components

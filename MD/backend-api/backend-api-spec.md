@@ -39,7 +39,7 @@
 ### 1.4 인증·에러
 
 - 프론트는 `/login`과 `/dashboard/*` 보호 라우트를 분리합니다. 인증 계약은 `src/api/types/auth.ts`의 `AuthApi`가 소유합니다.
-- 목 구현은 모든 로그인 요청을 성공 처리하고 `sessionStorage`에 세션을 저장합니다. 실제 백엔드에서는 가능하면 **HttpOnly cookie 기반 세션**을 권장합니다.
+- 목 구현은 `localStorage`의 mock 사용자 목록에 저장된 `loginId/password`를 확인한 뒤 `sessionStorage`에 세션을 저장합니다. 실제 백엔드에서는 가능하면 **HttpOnly cookie 기반 세션**을 권장합니다.
 - 모든 보호 API에 동일 정책을 적용하고, 실패 시 **HTTP 401/403** 과 JSON 에러 바디를 권장합니다.
 - 클라이언트 계약에는 공통 에러 타입이 없습니다. 최소 `{ "message": string }` 형태를 권장합니다.
 
@@ -53,23 +53,23 @@
 | `changeCurrentUserPassword(payload)` | POST | `/auth/me/password` |
 | `getAdminUsers()` | GET | `/admin/users` |
 | `createAdminUser(payload)` | POST | `/admin/users` |
-| `updateAdminUser(payload)` | PATCH | `/admin/users/:userId` |
-| `deleteAdminUser(userId)` | DELETE | `/admin/users/:userId` |
+| `updateAdminUser(payload)` | PATCH | `/admin/users/:userUuid` |
+| `deleteAdminUser(userUuid)` | DELETE | `/admin/users/:userUuid` |
 | `logout()` | POST | `/auth/logout` |
 
 **`LoginRequest`**
 
 | 필드 | 타입 | 설명 |
 |------|------|------|
-| `username` | string | 로그인 아이디. 목 구현은 빈 값도 허용 |
-| `password` | string | 비밀번호. 목 구현은 검증하지 않음 |
+| `loginId` | string | 로그인 ID. 목 구현은 영문 소문자, 숫자, `.`, `_`, `-` 조합 3~32자를 허용 |
+| `password` | string | 비밀번호. 목 구현은 저장된 mock 비밀번호와 일치해야 함 |
 
 **`AuthSession`**
 
 | 필드 | 타입 | 설명 |
 |------|------|------|
-| `user.id` | string | 사용자 식별자 |
-| `user.name` | string | 화면 표시 이름 |
+| `user.uuid` | string | 서버 생성 사용자 UUID. 화면 수정/삭제의 식별자 |
+| `user.loginId` | string | 로그인 ID. 헤더와 사용자 정보 모달의 계정 표시값 |
 | `user.role` | `'admin' \| 'operator' \| 'viewer'` | 프론트 권한 분기용 역할 |
 | `expiresAt` | string | ISO 8601 세션 만료 시각 |
 
@@ -77,7 +77,7 @@
 
 | 필드 | 타입 | 설명 |
 |------|------|------|
-| `name` | string | 헤더와 사용자 정보 모달에 표시할 이름. 목 구현은 현재 세션의 이름만 갱신 |
+| `loginId` | string | 변경할 로그인 ID. UUID는 바뀌지 않음 |
 
 **`ChangePasswordPayload`**
 
@@ -86,14 +86,14 @@
 | `currentPassword` | string | 현재 비밀번호 |
 | `newPassword` | string | 새 비밀번호 |
 
-프론트는 새 비밀번호 확인 입력을 화면 내부에서 비교한 뒤 `newPassword`만 API로 보냅니다. 목 구현은 현재 비밀번호의 실제 일치 여부를 검증하지 않고 입력 여부와 새 비밀번호 길이만 확인합니다.
+프론트는 새 비밀번호 확인 입력을 화면 내부에서 비교한 뒤 `newPassword`만 API로 보냅니다. 목 구현은 현재 비밀번호 일치 여부와 새 비밀번호 길이를 확인합니다.
 
 **`AdminUserSummary`**
 
 | 필드 | 타입 | 설명 |
 |------|------|------|
-| `id` | string | 사용자 식별자 |
-| `name` | string | 표시 이름 |
+| `uuid` | string | 서버 생성 사용자 UUID. 화면 수정/삭제의 식별자 |
+| `loginId` | string | 로그인 ID |
 | `role` | `'admin' \| 'operator' \| 'viewer'` | 사용자 권한 |
 | `isActive` | boolean | 활성 계정 여부 |
 | `dbUpdatedAt` | string | ISO 8601 최근 변경 시각 |
@@ -102,9 +102,8 @@
 
 | 필드 | 타입 | 설명 |
 |------|------|------|
-| `userId` | string | 로그인 ID. 목 구현은 영문 소문자, 숫자, `.`, `_`, `-` 조합 3~32자를 허용 |
-| `name` | string | 표시 이름 |
-| `initialPassword` | string | 최초 로그인용 임시 비밀번호 |
+| `loginId` | string | 로그인 ID. 목 구현은 영문 소문자, 숫자, `.`, `_`, `-` 조합 3~32자를 허용 |
+| `password` | string | 최초 로그인용 비밀번호 |
 | `role` | `'admin' \| 'operator' \| 'viewer'` | 사용자 권한 |
 | `isActive` | boolean | 생성 시 활성 상태 |
 
@@ -112,8 +111,8 @@
 
 | 필드 | 타입 | 설명 |
 |------|------|------|
-| `userId` | string | 변경 대상 사용자 ID |
-| `name` | string | 표시 이름 |
+| `uuid` | string | 변경 대상 사용자 UUID |
+| `loginId` | string | 변경할 로그인 ID. UUID는 바뀌지 않음 |
 | `role` | `'admin' \| 'operator' \| 'viewer'` | 변경할 권한 |
 | `isActive` | boolean | 활성 상태 |
 

@@ -44,7 +44,7 @@ export const DashboardLayout = () => {
               </Link>
             ) : null}
             <button className={styles.userButton} type="button" onClick={() => setIsProfileOpen(true)}>
-              <span className={styles.userName}>{session?.user.name ?? '사용자'}</span>
+              <span className={styles.userName}>{session?.user.loginId ?? '사용자'}</span>
               <span className={styles.roleBadge}>{session ? roleLabels[session.user.role] : '사용자'}</span>
             </button>
             <button className={styles.logoutButton} type="button" onClick={handleLogout}>

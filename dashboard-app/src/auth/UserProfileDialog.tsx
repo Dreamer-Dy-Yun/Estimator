@@ -24,7 +24,7 @@ function getErrorMessage(error: unknown) {
 
 export function UserProfileDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { session, updateUser, changePassword } = useAuth()
-  const [name, setName] = useState('')
+  const [loginId, setLoginId] = useState('')
   const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
@@ -33,13 +33,13 @@ export function UserProfileDialog({ open, onClose }: { open: boolean; onClose: (
 
   useEffect(() => {
     if (!open) return
-    setName(session?.user.name ?? '')
+    setLoginId(session?.user.loginId ?? '')
     setCurrentPassword('')
     setNewPassword('')
     setConfirmPassword('')
     setErrorMessage(null)
     setIsSaving(false)
-  }, [open, session?.user.name])
+  }, [open, session?.user.loginId])
 
   if (!open || !session) return null
 
@@ -59,7 +59,7 @@ export function UserProfileDialog({ open, onClose }: { open: boolean; onClose: (
         }
       }
 
-      await updateUser({ name })
+      await updateUser({ loginId })
       if (wantsPasswordChange) {
         await changePassword({ currentPassword, newPassword })
       }
@@ -91,8 +91,8 @@ export function UserProfileDialog({ open, onClose }: { open: boolean; onClose: (
 
         <dl className={styles.metaList}>
           <div>
-            <dt>사용자 ID</dt>
-            <dd>{session.user.id}</dd>
+            <dt>UUID</dt>
+            <dd>{session.user.uuid}</dd>
           </div>
           <div>
             <dt>권한</dt>
@@ -106,12 +106,12 @@ export function UserProfileDialog({ open, onClose }: { open: boolean; onClose: (
 
         <form className={styles.form} onSubmit={handleSubmit}>
           <label className={styles.field}>
-            <span>표시 이름</span>
+            <span>로그인 ID</span>
             <input
-              value={name}
-              onChange={(event) => setName(event.target.value)}
-              autoComplete="name"
-              maxLength={40}
+              value={loginId}
+              onChange={(event) => setLoginId(event.target.value)}
+              autoComplete="username"
+              maxLength={32}
             />
           </label>
 

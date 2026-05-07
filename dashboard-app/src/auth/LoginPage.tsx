@@ -22,7 +22,7 @@ export function LoginPage() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const { session, login } = useAuth()
-  const [username, setUsername] = useState('')
+  const [loginId, setLoginId] = useState('')
   const [password, setPassword] = useState('')
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -41,7 +41,7 @@ export function LoginPage() {
     setIsSubmitting(true)
 
     try {
-      await login({ username, password })
+      await login({ loginId, password })
       navigate(redirectTo, { replace: true })
     } catch (error) {
       setErrorMessage(getErrorMessage(error))
@@ -66,8 +66,8 @@ export function LoginPage() {
           <label className={styles.field}>
             <span>아이디</span>
             <input
-              value={username}
-              onChange={(event) => setUsername(event.target.value)}
+              value={loginId}
+              onChange={(event) => setLoginId(event.target.value)}
               placeholder="아이디"
               autoComplete="username"
             />
@@ -93,7 +93,7 @@ export function LoginPage() {
 
         <div className={styles.environmentRow}>
           <span>Mock 인증</span>
-          <strong>활성</strong>
+          <strong>ID/PW</strong>
         </div>
       </div>
     </section>

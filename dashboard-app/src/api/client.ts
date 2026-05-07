@@ -48,7 +48,7 @@ export async function login(payload: LoginRequest): Promise<LoginResult> {
   return mockAuthApi.login(payload)
 }
 
-/** 현재 사용자 정보 변경. 목 구현은 표시 이름만 갱신한다. */
+/** 현재 사용자 정보 변경. 목 구현은 로그인 ID를 갱신한다. */
 export async function updateCurrentUser(payload: UpdateAuthUserPayload): Promise<AuthSession> {
   return mockAuthApi.updateCurrentUser(payload)
 }
@@ -74,8 +74,8 @@ export async function updateAdminUser(payload: UpdateAdminUserPayload): Promise<
 }
 
 /** 관리자용 사용자 제거. 목 구현은 현재 로그인한 관리자와 마지막 활성 관리자는 보호한다. */
-export async function deleteAdminUser(userId: string): Promise<void> {
-  return mockAuthApi.deleteAdminUser(userId)
+export async function deleteAdminUser(userUuid: string): Promise<void> {
+  return mockAuthApi.deleteAdminUser(userUuid)
 }
 
 /** 로그아웃. 목 구현은 현재 브라우저 탭의 세션만 제거한다. */

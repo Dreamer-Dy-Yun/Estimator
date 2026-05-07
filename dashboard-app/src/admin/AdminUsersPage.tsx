@@ -25,31 +25,31 @@ function formatUpdatedAt(value: string) {
 }
 
 function sortUsers(users: AdminUserSummary[]) {
-  return [...users].sort((a, b) => a.id.localeCompare(b.id))
+  return [...users].sort((a, b) => a.loginId.localeCompare(b.loginId))
 }
 
 function AdminUserRow({
   user,
-  currentUserId,
+  currentUserUuid,
   onSaved,
   onDeleted,
 }: {
   user: AdminUserSummary
-  currentUserId: string
+  currentUserUuid: string
   onSaved: (user: AdminUserSummary) => void
-  onDeleted: (userId: string) => void
+  onDeleted: (userUuid: string) => void
 }) {
-  const [name, setName] = useState(user.name)
+  const [loginId, setLoginId] = useState(user.loginId)
   const [role, setRole] = useState<AuthRole>(user.role)
   const [isActive, setIsActive] = useState(user.isActive)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [isSaving, setIsSaving] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
-  const isCurrentUser = user.id === currentUserId
-  const isDirty = name !== user.name || role !== user.role || isActive !== user.isActive
+  const isCurrentUser = user.uuid === currentUserUuid
+  const isDirty = loginId !== user.loginId || role !== user.role || isActive !== user.isActive
 
   useEffect(() => {
-    setName(user.name)
+    setLoginId(user.loginId)
     setRole(user.role)
     setIsActive(user.isActive)
     setErrorMessage(null)
@@ -64,8 +64,8 @@ function AdminUserRow({
 
     try {
       const updated = await updateAdminUser({
-        userId: user.id,
-        name,
+        uuid: user.uuid,
+        loginId,
         role,
         isActive,
       })
@@ -79,14 +79,14 @@ function AdminUserRow({
 
   const handleDelete = async () => {
     if (isCurrentUser) return
-    const ok = window.confirm(`${user.name} 사용자를 제거할까요?`)
+    const ok = window.confirm(`${user.loginId} 계정을 제거할까요?`)
     if (!ok) return
 
     setErrorMessage(null)
     setIsDeleting(true)
     try {
-      await deleteAdminUser(user.id)
-      onDeleted(user.id)
+      await deleteAdminUser(user.uuid)
+      onDeleted(user.uuid)
     } catch (error) {
       setErrorMessage(getErrorMessage(error))
       setIsDeleting(false)
@@ -96,11 +96,17 @@ function AdminUserRow({
   return (
     <form className={styles.userRow} onSubmit={handleSubmit}>
       <div className={styles.identityCell}>
-        <strong>{user.id}</strong>
+        <strong>{user.uuid}</strong>
+        <span>UUID</span>
       </div>
       <label className={styles.fieldCell}>
-        <span>이름</span>
-        <input value={name} onChange={(event) => setName(event.target.value)} maxLength={40} />
+        <span>로그인 ID</span>
+        <input
+          value={loginId}
+          onChange={(event) => setLoginId(event.target.value)}
+          autoComplete="username"
+          maxLength={32}
+        />
       </label>
       <label className={styles.fieldCell}>
         <span>권한</span>
@@ -143,9 +149,8 @@ export function AdminUsersPage() {
   const navigate = useNavigate()
   const { session, logout, refreshSession } = useAuth()
   const [users, setUsers] = useState<AdminUserSummary[]>([])
-  const [newUserId, setNewUserId] = useState('')
-  const [newName, setNewName] = useState('')
-  const [newInitialPassword, setNewInitialPassword] = useState('')
+  const [newLoginId, setNewLoginId] = useState('')
+  const [newPassword, setNewPassword] = useState('')
   const [newRole, setNewRole] = useState<AuthRole>('viewer')
   const [newIsActive, setNewIsActive] = useState(true)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
@@ -173,14 +178,14 @@ export function AdminUsersPage() {
   }, [])
 
   const handleSaved = (updated: AdminUserSummary) => {
-    setUsers((prev) => prev.map((user) => (user.id === updated.id ? updated : user)))
-    if (updated.id === session?.user.id) {
+    setUsers((prev) => sortUsers(prev.map((user) => (user.uuid === updated.uuid ? updated : user))))
+    if (updated.uuid === session?.user.uuid) {
       void refreshSession()
     }
   }
 
-  const handleDeleted = (userId: string) => {
-    setUsers((prev) => prev.filter((user) => user.id !== userId))
+  const handleDeleted = (userUuid: string) => {
+    setUsers((prev) => prev.filter((user) => user.uuid !== userUuid))
   }
 
   const handleCreate = async (event: FormEvent<HTMLFormElement>) => {
@@ -190,16 +195,14 @@ export function AdminUsersPage() {
 
     try {
       const created = await createAdminUser({
-        userId: newUserId,
-        name: newName,
-        initialPassword: newInitialPassword,
+        loginId: newLoginId,
+        password: newPassword,
         role: newRole,
         isActive: newIsActive,
       })
       setUsers((prev) => sortUsers([...prev, created]))
-      setNewUserId('')
-      setNewName('')
-      setNewInitialPassword('')
+      setNewLoginId('')
+      setNewPassword('')
       setNewRole('viewer')
       setNewIsActive(true)
     } catch (error) {
@@ -218,10 +221,10 @@ export function AdminUsersPage() {
       <header className={styles.header}>
         <div>
           <p className={styles.kicker}>관리자</p>
-          <h1>유저 정보 관리</h1>
+          <h1>사용자 정보 관리</h1>
         </div>
         <div className={styles.headerActions}>
-          <span className={styles.currentUser}>{session?.user.name ?? '관리자'}</span>
+          <span className={styles.currentUser}>{session?.user.loginId ?? '관리자'}</span>
           <Link className={styles.navButton} to="/dashboard/self">
             대시보드
           </Link>
@@ -243,27 +246,18 @@ export function AdminUsersPage() {
           <label className={styles.createField}>
             <span>로그인 ID</span>
             <input
-              value={newUserId}
-              onChange={(event) => setNewUserId(event.target.value)}
+              value={newLoginId}
+              onChange={(event) => setNewLoginId(event.target.value)}
               placeholder="login-id"
               autoComplete="username"
               maxLength={32}
             />
           </label>
           <label className={styles.createField}>
-            <span>이름</span>
+            <span>비밀번호</span>
             <input
-              value={newName}
-              onChange={(event) => setNewName(event.target.value)}
-              placeholder="표시 이름"
-              maxLength={40}
-            />
-          </label>
-          <label className={styles.createField}>
-            <span>임시 PW</span>
-            <input
-              value={newInitialPassword}
-              onChange={(event) => setNewInitialPassword(event.target.value)}
+              value={newPassword}
+              onChange={(event) => setNewPassword(event.target.value)}
               placeholder="초기 비밀번호"
               type="password"
               autoComplete="new-password"
@@ -288,14 +282,14 @@ export function AdminUsersPage() {
             <span>활성</span>
           </label>
           <button className={styles.createButton} type="submit" disabled={isCreating}>
-            {isCreating ? '추가 중' : '유저 추가'}
+            {isCreating ? '추가 중' : '사용자 추가'}
           </button>
           {createErrorMessage ? <p className={styles.createError}>{createErrorMessage}</p> : null}
         </form>
 
         <div className={styles.tableHeader} aria-hidden="true">
+          <span>UUID</span>
           <span>로그인 ID</span>
-          <span>이름</span>
           <span>권한</span>
           <span>상태</span>
           <span>변경일</span>
@@ -308,9 +302,9 @@ export function AdminUsersPage() {
           <div className={styles.userList}>
             {users.map((user) => (
               <AdminUserRow
-                key={user.id}
+                key={user.uuid}
                 user={user}
-                currentUserId={session?.user.id ?? ''}
+                currentUserUuid={session?.user.uuid ?? ''}
                 onSaved={handleSaved}
                 onDeleted={handleDeleted}
               />

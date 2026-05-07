@@ -1,12 +1,12 @@
 export interface LoginRequest {
-  username: string
+  loginId: string
   password: string
 }
 
 export type AuthRole = 'admin' | 'operator' | 'viewer'
 
 export interface UpdateAuthUserPayload {
-  name: string
+  loginId: string
 }
 
 export interface ChangePasswordPayload {
@@ -15,8 +15,8 @@ export interface ChangePasswordPayload {
 }
 
 export interface AuthUser {
-  id: string
-  name: string
+  uuid: string
+  loginId: string
   role: AuthRole
 }
 
@@ -26,16 +26,15 @@ export interface AdminUserSummary extends AuthUser {
 }
 
 export interface CreateAdminUserPayload {
-  userId: string
-  name: string
-  initialPassword: string
+  loginId: string
+  password: string
   role: AuthRole
   isActive: boolean
 }
 
 export interface UpdateAdminUserPayload {
-  userId: string
-  name: string
+  uuid: string
+  loginId: string
   role: AuthRole
   isActive: boolean
 }
@@ -57,6 +56,6 @@ export interface AuthApi {
   getAdminUsers(): Promise<AdminUserSummary[]>
   createAdminUser(payload: CreateAdminUserPayload): Promise<AdminUserSummary>
   updateAdminUser(payload: UpdateAdminUserPayload): Promise<AdminUserSummary>
-  deleteAdminUser(userId: string): Promise<void>
+  deleteAdminUser(userUuid: string): Promise<void>
   logout(): Promise<void>
 }
