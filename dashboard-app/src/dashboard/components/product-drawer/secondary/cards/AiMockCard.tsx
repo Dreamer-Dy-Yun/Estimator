@@ -1,5 +1,5 @@
-import { KO } from '../ko'
-import styles from '../productSecondaryPanel.module.css'
+import { KO } from '../../ko'
+import styles from '../productSecondaryDrawer.module.css'
 
 type Props = {
   ai: {

@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
-import { dashboardApi, type ProductSalesInsight, type SecondaryCompetitorChannel } from '../../../api'
-import { ApiUnitErrorBadge } from '../../../components/ApiUnitErrorBadge'
-import type { ApiUnitErrorInfo } from '../../../types'
-import { SalesMetricsCard } from '../product-secondary/cards/SalesMetricsCard'
-import styles from '../common.module.css'
-import { makeApiErrorInfo } from './apiErrorInfo'
+import { dashboardApi, type ProductSalesInsight, type SecondaryCompetitorChannel } from '../../../../api'
+import { ApiUnitErrorBadge } from '../../../../components/ApiUnitErrorBadge'
+import type { ApiUnitErrorInfo } from '../../../../types'
+import styles from '../../common.module.css'
+import { makeApiErrorInfo } from '../apiErrorInfo'
+import { SalesMetricsCard } from './cards/SalesMetricsCard'
 
 type Props = {
   productId: string

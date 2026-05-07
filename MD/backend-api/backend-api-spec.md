@@ -446,7 +446,7 @@
 
 ---
 
-## 4. 보조 타입 (`secondaryPanelTypes.ts`, `utils/salesKpiColumn.ts`)
+## 4. 보조 타입 (`secondaryDrawerTypes.ts`, `utils/salesKpiColumn.ts`)
 
 ### 4.1 `SalesKpiColumn`
 
@@ -617,5 +617,5 @@
 - [`dashboard-app/src/api/types/drawer.ts`](../../dashboard-app/src/api/types/drawer.ts)
 - [`dashboard-app/src/types.ts`](../../dashboard-app/src/types.ts)
 - [`dashboard-app/src/snapshot/orderSnapshotTypes.ts`](../../dashboard-app/src/snapshot/orderSnapshotTypes.ts)
-- [`dashboard-app/src/dashboard/components/product-secondary/secondaryPanelTypes.ts`](../../dashboard-app/src/dashboard/components/product-secondary/secondaryPanelTypes.ts)
+- [`dashboard-app/src/dashboard/components/product-drawer/secondary/secondaryDrawerTypes.ts`](../../dashboard-app/src/dashboard/components/product-drawer/secondary/secondaryDrawerTypes.ts)
 - [`dashboard-app/src/utils/salesKpiColumn.ts`](../../dashboard-app/src/utils/salesKpiColumn.ts)

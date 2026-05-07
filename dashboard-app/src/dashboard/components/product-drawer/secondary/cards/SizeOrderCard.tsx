@@ -1,12 +1,12 @@
 import { useLayoutEffect, useMemo, useRef, useState, type ComponentProps } from 'react'
 import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
-import { PortalHelpMark } from '../../PortalHelpPopover'
-import { formatGroupedNumber, formatRatioDecimalKo } from '../../../../utils/format'
-import commonStyles from '../../common.module.css'
-import { KO } from '../ko'
-import styles from '../productSecondaryPanel.module.css'
-import type { SecondaryHelpId } from '../secondaryPanelTypes'
-import { usePortalHelpPopover } from '../../usePortalHelpPopover'
+import { PortalHelpMark } from '../../../PortalHelpPopover'
+import { formatGroupedNumber, formatRatioDecimalKo } from '../../../../../utils/format'
+import commonStyles from '../../../common.module.css'
+import { KO } from '../../ko'
+import styles from '../productSecondaryDrawer.module.css'
+import type { SecondaryHelpId } from '../secondaryDrawerTypes'
+import { usePortalHelpPopover } from '../../../usePortalHelpPopover'
 
 type SizeRow = {
   size: string

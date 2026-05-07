@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
-import { dashboardApi } from '../../../api'
-import type { ApiUnitErrorInfo, ProductSecondaryDetail } from '../../../types'
-import type { OrderSnapshotDocumentV1 } from '../../../snapshot/orderSnapshotTypes'
-import { makeApiErrorInfo } from './apiErrorInfo'
+import { dashboardApi } from '../../../../api'
+import type { ApiUnitErrorInfo, ProductSecondaryDetail } from '../../../../types'
+import type { OrderSnapshotDocumentV1 } from '../../../../snapshot/orderSnapshotTypes'
+import { makeApiErrorInfo } from '../apiErrorInfo'
 
 type Params = {
   productId: string

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
-import { dashboardApi } from '../../../../api'
-import type { ApiUnitErrorInfo } from '../../../../types'
-import type { SecondaryForecastCalc } from '../secondaryPanelTypes'
+import { dashboardApi } from '../../../../../api'
+import type { ApiUnitErrorInfo } from '../../../../../types'
+import type { SecondaryForecastCalc } from '../secondaryDrawerTypes'
 
 type Params = {
   productId: string

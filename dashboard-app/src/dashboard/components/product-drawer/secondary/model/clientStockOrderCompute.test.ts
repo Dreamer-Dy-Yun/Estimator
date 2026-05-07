@@ -5,7 +5,7 @@ import {
   forecastDailyMeanFromModel,
   zFromServiceLevelPct,
 } from './clientStockOrderCompute'
-import type { MonthlySalesPoint } from '../../../../types'
+import type { MonthlySalesPoint } from '../../../../../types'
 
 function p(date: string, sales: number): MonthlySalesPoint {
   return { date, sales, isForecast: false }

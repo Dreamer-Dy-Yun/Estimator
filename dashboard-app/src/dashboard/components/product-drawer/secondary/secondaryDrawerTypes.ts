@@ -1,9 +1,9 @@
-import type { SecondaryCompetitorChannel, SecondaryStockOrderCalcResult } from '../../../api/types'
+import type { SecondaryCompetitorChannel, SecondaryStockOrderCalcResult } from '../../../../api/types'
 
 /** API `SecondaryCompetitorChannel`과 동일(단일 소스). */
 export type CompetitorChannel = SecondaryCompetitorChannel
 
-export type { SalesKpiColumn } from '../../../utils/salesKpiColumn'
+export type { SalesKpiColumn } from '../../../../utils/salesKpiColumn'
 
 export type SecondaryHelpId =
   | 'confirmOrder'
@@ -37,4 +37,3 @@ export type SecondaryForecastDerived = {
   expectedSalesAmount: number
   expectedOpProfit: number
 }
-

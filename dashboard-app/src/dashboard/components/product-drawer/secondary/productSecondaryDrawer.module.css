@@ -1,5 +1,5 @@
 /*
- * 2차 패널 공용 CSS 모듈 — TS/TSX에서는 이 파일만 import.
+ * 2차 드로워 공용 CSS 모듈 — TS/TSX에서는 이 파일만 import.
  * 조각은 ./panel-styles/ (직접 import 금지). 순서 변경 시 캐스케이드 주의.
  *
  * layout → headers → metaFilterCandidate → cardsControls → tablesSizeOrder

@@ -1,12 +1,12 @@
-import { PortalHelpMark } from '../../PortalHelpPopover'
-import { ApiUnitErrorBadge } from '../../../../components/ApiUnitErrorBadge'
-import type { ApiUnitErrorInfo } from '../../../../types'
-import { formatGroupedNumber, formatRatioDecimalKo } from '../../../../utils/format'
-import commonStyles from '../../common.module.css'
-import { usePortalHelpPopover } from '../../usePortalHelpPopover'
-import { KO } from '../ko'
-import styles from '../productSecondaryPanel.module.css'
-import type { SecondaryForecastInputs, SecondaryHelpId } from '../secondaryPanelTypes'
+import { PortalHelpMark } from '../../../PortalHelpPopover'
+import { ApiUnitErrorBadge } from '../../../../../components/ApiUnitErrorBadge'
+import type { ApiUnitErrorInfo } from '../../../../../types'
+import { formatGroupedNumber, formatRatioDecimalKo } from '../../../../../utils/format'
+import commonStyles from '../../../common.module.css'
+import { usePortalHelpPopover } from '../../../usePortalHelpPopover'
+import { KO } from '../../ko'
+import styles from '../productSecondaryDrawer.module.css'
+import type { SecondaryForecastInputs, SecondaryHelpId } from '../secondaryDrawerTypes'
 
 export type SalesForecastComputedTable = {
   /** 사이즈별 추천 수량 합 — 예상 열 */

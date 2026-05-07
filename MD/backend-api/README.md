@@ -31,5 +31,5 @@
 - 1차 드로어 번들: [`dashboard-app/src/api/types/drawer.ts`](../../dashboard-app/src/api/types/drawer.ts)
 - 공통 행 타입: [`dashboard-app/src/types.ts`](../../dashboard-app/src/types.ts)
 - 오더 스냅샷 문서: [`dashboard-app/src/snapshot/orderSnapshotTypes.ts`](../../dashboard-app/src/snapshot/orderSnapshotTypes.ts)
-- 2차 예측 입력 타입: [`dashboard-app/src/dashboard/components/product-secondary/secondaryPanelTypes.ts`](../../dashboard-app/src/dashboard/components/product-secondary/secondaryPanelTypes.ts)
+- 2차 예측 입력 타입: [`dashboard-app/src/dashboard/components/product-drawer/secondary/secondaryDrawerTypes.ts`](../../dashboard-app/src/dashboard/components/product-drawer/secondary/secondaryDrawerTypes.ts)
 - 2차 KPI 타입·계산 공통 유틸: [`dashboard-app/src/utils/salesKpiColumn.ts`](../../dashboard-app/src/utils/salesKpiColumn.ts)

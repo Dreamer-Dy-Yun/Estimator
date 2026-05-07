@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
-import { SalesTrendChart, type TrendShade } from '../../trend/SalesTrendChart'
-import { ApiUnitErrorBadge } from '../../../../components/ApiUnitErrorBadge'
-import type { ApiUnitErrorInfo } from '../../../../types'
-import commonStyles from '../../common.module.css'
-import { DAILY_TREND_AS_OF_DATE } from '../../../../api'
-import { formatGroupedNumber } from '../../../../utils/format'
-import { KO } from '../ko'
-import styles from '../productSecondaryPanel.module.css'
+import { SalesTrendChart, type TrendShade } from '../../../trend/SalesTrendChart'
+import { ApiUnitErrorBadge } from '../../../../../components/ApiUnitErrorBadge'
+import type { ApiUnitErrorInfo } from '../../../../../types'
+import commonStyles from '../../../common.module.css'
+import { DAILY_TREND_AS_OF_DATE } from '../../../../../api'
+import { formatGroupedNumber } from '../../../../../utils/format'
+import { KO } from '../../ko'
+import styles from '../productSecondaryDrawer.module.css'
 
 type TrendPoint = {
   idx: number

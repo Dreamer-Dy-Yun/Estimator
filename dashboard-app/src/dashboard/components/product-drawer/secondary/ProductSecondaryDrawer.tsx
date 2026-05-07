@@ -1,35 +1,35 @@
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { BlockMath } from 'react-katex'
-import { dashboardApi, type SecondaryCompetitorChannel } from '../../../api'
-import { ComponentErrorBoundary } from '../../../components/ComponentErrorBoundary'
-import type { ApiUnitErrorInfo, ProductPrimarySummary, ProductSecondaryDetail } from '../../../types'
+import { dashboardApi, type SecondaryCompetitorChannel } from '../../../../api'
+import { ComponentErrorBoundary } from '../../../../components/ComponentErrorBoundary'
+import type { ApiUnitErrorInfo, ProductPrimarySummary, ProductSecondaryDetail } from '../../../../types'
 import {
   daysInclusiveBetween,
   formatDateTimeMinute,
-} from '../../../utils/date'
-import { PortalHelpPopoverLayer } from '../PortalHelpPopover'
-import commonStyles from '../common.module.css'
-import { normalizeMonthKey } from '../trend/trendRangeUtils'
-import { usePortalHelpPopover } from '../usePortalHelpPopover'
+} from '../../../../utils/date'
+import { PortalHelpPopoverLayer } from '../../PortalHelpPopover'
+import commonStyles from '../../common.module.css'
+import { normalizeMonthKey } from '../../trend/trendRangeUtils'
+import { usePortalHelpPopover } from '../../usePortalHelpPopover'
 import { AiMockCard } from './cards/AiMockCard'
 import { ProductMetaCard } from './cards/ProductMetaCard'
 import { SalesForecastCard } from './cards/SalesForecastCard'
 import { SalesTrendDailyCard } from './cards/SalesTrendDailyCard'
 import { SizeOrderCard } from './cards/SizeOrderCard'
 import { computeClientStockOrder } from './model/clientStockOrderCompute'
-import { KO } from './ko'
-import { buildSalesKpiColumn } from '../../../utils/salesKpiColumn'
-import { mergePrimarySecondarySizeMix } from './model/secondaryPanelCalc'
-import styles from './productSecondaryPanel.module.css'
+import { KO } from '../ko'
+import { buildSalesKpiColumn } from '../../../../utils/salesKpiColumn'
+import { mergePrimarySecondarySizeMix } from './model/secondaryDrawerCalc'
+import styles from './productSecondaryDrawer.module.css'
 import type {
   SecondaryForecastDerived,
   SecondaryForecastInputs,
   SecondaryHelpId,
-} from './secondaryPanelTypes'
+} from './secondaryDrawerTypes'
 import { useSecondaryDailyTrend } from './hooks/useSecondaryDailyTrend'
 import { useSecondaryStockOrderCalc } from './hooks/useSecondaryStockOrderCalc'
-import { ORDER_SNAPSHOT_SCHEMA_VERSION, type OrderSnapshotDocumentV1 } from '../../../snapshot/orderSnapshotTypes'
+import { ORDER_SNAPSHOT_SCHEMA_VERSION, type OrderSnapshotDocumentV1 } from '../../../../snapshot/orderSnapshotTypes'
 import {
   CandidateStashOrderActionCard,
   InnerCandidateActionCard,
@@ -74,13 +74,13 @@ function buildDefaultLeadTimeDates() {
   return { start, end }
 }
 
-export function ProductSecondaryPanel({
+export function ProductSecondaryDrawer({
   primary,
   secondary,
   periodStart,
   periodEnd,
   forecastMonths,
-  pageName = 'ProductSecondaryPanel',
+  pageName = 'ProductSecondaryDrawer',
   prefillFromSnapshot = null,
   candidateItemContext = null,
   channelState,

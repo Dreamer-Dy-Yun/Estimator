@@ -36,7 +36,7 @@
 | 빌드 | Vite 8, Rolldown code splitting |
 | 라우팅 | react-router-dom 7 |
 | 차트 | Recharts 3 |
-| 수식 표시 | KaTeX / react-katex (2차 패널 등) |
+| 수식 표시 | KaTeX / react-katex (2차 드로워 등) |
 | 스타일 | CSS Modules (`.module.css`) |
 
 테스트는 Vitest(`npm run test:run`)로 실행합니다.
@@ -78,7 +78,7 @@
 - **KPI:** 총 판매액, 평균 영업이익률 등.
 - **차트:** 영업이익률–판매액 스캐터(포지셔닝).
 - **목록:** `AnalysisList` + 정렬 가능한 컬럼(내부 [`PaginatedTable`](../../dashboard-app/src/dashboard/components/PaginatedTable.tsx)).
-- **행 클릭:** [`ProductSummaryDrawer`](../../dashboard-app/src/dashboard/components/ProductSummaryDrawer.tsx) — 1차 기본 번들 [`useProductDrawerBundle`](../../dashboard-app/src/dashboard/hooks/useProductDrawerBundle.ts) ([`getProductDrawerBundle`](../../dashboard-app/src/api/types/dashboard-api.ts)). drawer 내부의 판매 정보/월간 추이/2차 상세는 기능 컨테이너가 각각 별도 API를 요청합니다.
+- **행 클릭:** [`ProductSummaryDrawer`](../../dashboard-app/src/dashboard/components/ProductSummaryDrawer.tsx) — 호환 export이며 실제 구현은 [`product-drawer/ProductDrawer`](../../dashboard-app/src/dashboard/components/product-drawer/ProductDrawer.tsx)입니다. 1차 기본 번들은 [`useProductDrawerBundle`](../../dashboard-app/src/dashboard/hooks/useProductDrawerBundle.ts)가 받고, drawer 내부의 판매 정보/월간 추이/2차 상세는 1차/2차 드로워 컨테이너가 각각 별도 API를 요청합니다.
 - **포캐스트 월 수:** 로컬 스토리지에 저장 ([`forecastMonthsStorage`](../../dashboard-app/src/utils/forecastMonthsStorage.ts)).
 
 ### 5.2 경쟁사 분석 (`CompetitorPage`)
@@ -91,15 +91,15 @@
 
 - **후보군(스태시) 목록:** 이름·비고 검색, 정렬, 엑셀 업로드, 생성·이름/비고 수정·삭제·복제. 화면은 mutation 응답을 목록에 직접 삽입/제거하지 않고 항상 후보군 목록을 재조회합니다. mock은 브라우저 저장소에 후보군을 만들거나 지우지 않으며, 실제 반영은 백엔드 DB가 소유합니다. 엑셀 업로드 카드는 카드 자체가 `제목/안내문/드래그 영역/업로드 버튼` 4열 grid를 소유하며, 좁은 화면에서만 반응형으로 줄을 접습니다.
 - **상세 모달:** 한 스태시에 속한 **이너 후보** 목록 — 브랜드·상품코드·상품명 필터([`FilterBar`](../../dashboard-app/src/dashboard/components/FilterBar.tsx) + [`FilterListCombo`](../../dashboard-app/src/dashboard/components/FilterListCombo.tsx)). 상세 헤더에는 후보군명과 조회 시작/종료일을 함께 두고, 조회 기간을 바꾸면 이후 여는 이너 후보 드로어의 1차 판매 정보와 2차 계산 기준에 즉시 적용합니다. 상세 헤더/필터/요약은 모달에 고정하고, 이너 후보 리스트 영역만 내부 스크롤합니다. 리스트 컬럼 헤더는 스크롤 중에도 상단에 남습니다.
-- **행 클릭:** 해당 아이템의 스냅샷을 불러와 드로어를 **2차까지 펼친 상태**로 표시(`initialExpandSecondary`), 스냅샷 병합·저장·삭제 등 [`candidateItemContext`](../../dashboard-app/src/dashboard/components/product-secondary/candidateActionCards.tsx) 연동. 드로어를 닫을 때는 닫힘 전환 동안 이너 후보 모달의 왼쪽 기준 폭 보정을 유지해, 열릴 때의 역방향으로 목록 영역이 다시 넓어집니다.
+- **행 클릭:** 해당 아이템의 스냅샷을 불러와 드로어를 **2차까지 펼친 상태**로 표시(`initialExpandSecondary`), 스냅샷 병합·저장·삭제 등 [`candidateItemContext`](../../dashboard-app/src/dashboard/components/product-drawer/secondary/candidateActionCards.tsx) 연동. 드로어를 닫을 때는 닫힘 전환 동안 이너 후보 모달의 왼쪽 기준 폭 보정을 유지해, 열릴 때의 역방향으로 목록 영역이 다시 넓어집니다.
 - **AI 코멘트:** 목업 후보 아이템 스냅샷은 `drawer2.llmAnswer`에 임시 AI 코멘트를 포함해 2차 드로어의 AI 코멘트 카드에 표시됩니다.
 
 ---
 
 ## 6. 제품 요약 드로어 (`ProductSummaryDrawer`)
 
-- **1차:** 상품 이미지, 기간·경쟁 채널 기준 판매 정보([`getProductSalesInsight`](../../dashboard-app/src/api/types/dashboard-api.ts)), 선택 경쟁 채널 기준으로 재조회되는 월간 판매 추이([`getProductMonthlyTrend`](../../dashboard-app/src/api/types/dashboard-api.ts)) 등. 판매 정보/월간 추이/경쟁 채널/2차 상세 요청은 [`product-summary`](../../dashboard-app/src/dashboard/components/product-summary/)의 기능 컨테이너와 hook이 소유합니다. 판매 정보 표의 주요 수치는 굵게 강조하고 기본 표 글자보다 10% 크게 표시합니다. 판매 추이 그래프는 선형 축으로 고정하고, 자사/선택 경쟁 채널(예: 크림·무신사) 표시를 각각 토글합니다. 계절성 카드는 현재 화면에서 제외.
-- **2차 확장 패널:** [`ProductSecondaryPanel`](../../dashboard-app/src/dashboard/components/product-secondary/ProductSecondaryPanel.tsx) — 상품 메타, 후보군 저장/수정, 저장된 AI 코멘트 표시(`drawer2.llmAnswer`, 본문 15px), 사이즈별 확정 수량 등. 재고·발주 시뮬([`getSecondaryStockOrderCalc`](../../dashboard-app/src/api/types/dashboard-api.ts))과 선택 경쟁 채널 기준 일별 추이([`getSecondaryDailyTrend`](../../dashboard-app/src/api/types/dashboard-api.ts)) 요청은 [`product-secondary/hooks`](../../dashboard-app/src/dashboard/components/product-secondary/hooks/)가 소유합니다.
+- **1차 드로워:** [`product-drawer/primary`](../../dashboard-app/src/dashboard/components/product-drawer/primary/)가 소유합니다. 상품 이미지, 기간·경쟁 채널 기준 판매 정보([`getProductSalesInsight`](../../dashboard-app/src/api/types/dashboard-api.ts)), 선택 경쟁 채널 기준 월간 판매 추이([`getProductMonthlyTrend`](../../dashboard-app/src/api/types/dashboard-api.ts))를 다룹니다. 판매 정보 표의 주요 수치는 굵게 강조하고 기본 표 글자보다 10% 크게 표시합니다. 판매 추이 그래프는 선형 축으로 고정하고, 자사/선택 경쟁 채널(예: 크림·무신사) 표시를 각각 토글합니다. 계절성 카드는 현재 화면에서 제외.
+- **2차 드로워:** [`product-drawer/secondary`](../../dashboard-app/src/dashboard/components/product-drawer/secondary/)가 소유합니다. 상품 메타, 후보군 저장/수정, 저장된 AI 코멘트 표시(`drawer2.llmAnswer`, 본문 15px), 사이즈별 확정 수량 등을 다룹니다. 2차 상세 조회([`getProductSecondaryDetail`](../../dashboard-app/src/api/types/dashboard-api.ts)), 재고·발주 시뮬([`getSecondaryStockOrderCalc`](../../dashboard-app/src/api/types/dashboard-api.ts)), 선택 경쟁 채널 기준 일별 추이([`getSecondaryDailyTrend`](../../dashboard-app/src/api/types/dashboard-api.ts))도 이 경계 안에 둡니다.
 - **스냅샷:** [`OrderSnapshotDocumentV1`](../../dashboard-app/src/snapshot/orderSnapshotTypes.ts) 스키마 v2, 파싱 [`parseOrderSnapshot`](../../dashboard-app/src/snapshot/parseOrderSnapshot.ts). 독립 스냅샷 목록 API는 없고 후보 아이템 `details`가 저장·복원 경로입니다.
 - **키보드(2차가 열리고 2차 데이터 준비 완료 시):** `←` / `→`로 **현재 목록의 이전·다음 SKU**(또는 이너 후보의 uuid 순) 순환 — [`adjacentListNavigation`](../../dashboard-app/src/utils/adjacentListNavigation.ts). 입력·콤보 패널 포커스 시에는 무시.
 - **번들 로딩:** 자사/경쟁은 [`allowStaleWhileRevalidate`](../../dashboard-app/src/dashboard/hooks/useProductDrawerBundle.ts) 기본 `true`로 드로어 언마운트 방지(2차 접힘 방지). 이너 후보는 `false`로 스냅샷과 번들 id 정합 유지.
@@ -114,7 +114,7 @@
 | 인증 계약 | [`AuthApi`](../../dashboard-app/src/api/types/auth.ts) 인터페이스 |
 | 구현체 | [`mock.ts`](../../dashboard-app/src/api/mock.ts) — mock 구현 진입점. 인증 mock은 [`api/mock/authApi.ts`](../../dashboard-app/src/api/mock/authApi.ts), 후보군 seed와 계약 stub은 [`api/mock/candidateSeeds.ts`](../../dashboard-app/src/api/mock/candidateSeeds.ts)와 [`api/mock/dashboardApi.ts`](../../dashboard-app/src/api/mock/dashboardApi.ts)가 소유 |
 | 진입점 | [`client.ts`](../../dashboard-app/src/api/client.ts) `dashboardApi`, 개별 `getXxx` 함수 |
-| 타입 | [`api/types/*`](../../dashboard-app/src/api/types/) — 인증 계약은 [`auth.ts`](../../dashboard-app/src/api/types/auth.ts), 후보군 계약은 [`candidate.ts`](../../dashboard-app/src/api/types/candidate.ts), 저장 스냅샷 계약은 [`snapshot.ts`](../../dashboard-app/src/api/types/snapshot.ts), 2차 패널 계약은 [`secondary.ts`](../../dashboard-app/src/api/types/secondary.ts) |
+| 타입 | [`api/types/*`](../../dashboard-app/src/api/types/) — 인증 계약은 [`auth.ts`](../../dashboard-app/src/api/types/auth.ts), 후보군 계약은 [`candidate.ts`](../../dashboard-app/src/api/types/candidate.ts), 저장 스냅샷 계약은 [`snapshot.ts`](../../dashboard-app/src/api/types/snapshot.ts), 2차 드로워 계약은 [`secondary.ts`](../../dashboard-app/src/api/types/secondary.ts) |
 
 HTTP 백엔드로 교체 시 `AuthApi` / `DashboardApi` 계약과 `client.ts`만 갈아끼우고, mock 전용 record 구조는 `api/mock/*` 밖으로 새지 않게 유지합니다. REST 스펙은 [backend-api-spec.md](../backend-api/backend-api-spec.md) 참고.
 
@@ -133,8 +133,7 @@ dashboard-app/src/
     DashboardLayout.tsx
     components/           # FilterBar, ProductSummaryDrawer, AnalysisList, feature components
       candidate-stash/    # 후보군 상세/추천/배지 UI와 후보군 상세 훅
-      product-summary/    # 1차 drawer 기능 컨테이너와 요청 훅
-      product-secondary/  # 2차 패널 UI/계산
+      product-drawer/     # 상품 drawer shell, primary/secondary 드로워
     hooks/                # useProductDrawerBundle, usePeriodRangeFilter
     pages/                # Self, Competitor, SnapshotConfirm route pages
   snapshot/               # 오더 스냅샷 타입/파서
@@ -142,7 +141,7 @@ dashboard-app/src/
   types.ts
 ```
 
-2차 패널 전용 UI·계산은 [`product-secondary/`](../../dashboard-app/src/dashboard/components/product-secondary/) 하위에 집중되어 있습니다.
+상품 drawer 전용 UI·요청·계산은 [`product-drawer/`](../../dashboard-app/src/dashboard/components/product-drawer/) 아래에서 `primary`와 `secondary`로 나뉩니다.
 
 ---
 

@@ -1,10 +1,10 @@
-import { ApiUnitErrorBadge } from '../../../../components/ApiUnitErrorBadge'
-import type { SecondaryCompetitorChannel } from '../../../../api'
-import type { ApiUnitErrorInfo } from '../../../../types'
-import { formatGroupedNumber, formatPercent } from '../../../../utils/format'
-import { KO } from '../ko'
-import styles from '../productSecondaryPanel.module.css'
-import type { SalesKpiColumn } from '../secondaryPanelTypes'
+import { ApiUnitErrorBadge } from '../../../../../components/ApiUnitErrorBadge'
+import type { SecondaryCompetitorChannel } from '../../../../../api'
+import type { ApiUnitErrorInfo } from '../../../../../types'
+import { formatGroupedNumber, formatPercent } from '../../../../../utils/format'
+import { KO } from '../../ko'
+import styles from '../../secondary/productSecondaryDrawer.module.css'
+import type { SalesKpiColumn } from '../../secondary/secondaryDrawerTypes'
 
 type Props = {
   /** 분석 구간 — 월 키를 해당 월 1일~말일(일 단위)로 표시 */

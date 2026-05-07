@@ -49,7 +49,7 @@
 3. **`src/dashboard/hooks/useProductDrawerBundle.ts`** (선택)  
    - 훅은 `renderHook`으로 상태 전이가 많음 → 2단계로 미루거나, **훅 내부 분기 최소화 + 순수 함수 추출** 후 그 함수만 테스트.
 
-4. **`src/dashboard/components/product-secondary/model/clientStockOrderCompute.ts`** / **`secondaryPanelCalc.ts`**  
+4. **`src/dashboard/components/product-drawer/secondary/model/clientStockOrderCompute.ts`** / **`secondaryDrawerCalc.ts`**
    - 입력 고정 시 출력 숫자 스냅샷 또는 허용 오차.
 
 5. **React 컴포넌트**  
@@ -78,7 +78,7 @@
 
 - 스크린샷·시각적 회귀.
 - 전 페이지 E2E (로그인·백엔드 없을 때 가치 제한적).
-- `ProductSecondaryPanel` 전체 렌더 (의존성·카드 수 많음).
+- `ProductSecondaryDrawer` 전체 렌더 (의존성·카드 수 많음).
 
 ---
 

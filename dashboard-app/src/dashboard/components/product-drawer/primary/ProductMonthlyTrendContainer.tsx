@@ -1,14 +1,15 @@
 import { useEffect, useId, useMemo, useRef, useState, type WheelEvent } from 'react'
-import { dashboardApi, type ProductMonthlyTrend } from '../../../api'
-import { ApiUnitErrorBadge } from '../../../components/ApiUnitErrorBadge'
-import type { ApiUnitErrorInfo, MonthlySalesPoint } from '../../../types'
-import { monthToEndDate, monthToStartDate } from '../../../utils/date'
-import { formatGroupedNumber } from '../../../utils/format'
-import styles from '../common.module.css'
-import { SalesTrendChart } from '../trend/SalesTrendChart'
-import { buildShadeRanges, normalizeMonthKey } from '../trend/trendRangeUtils'
-import { KO } from '../product-secondary/ko'
-import { makeApiErrorInfo } from './apiErrorInfo'
+import { dashboardApi, type ProductMonthlyTrend } from '../../../../api'
+import { ApiUnitErrorBadge } from '../../../../components/ApiUnitErrorBadge'
+import type { ApiUnitErrorInfo, MonthlySalesPoint } from '../../../../types'
+import { monthToEndDate, monthToStartDate } from '../../../../utils/date'
+import { formatGroupedNumber } from '../../../../utils/format'
+import styles from '../../common.module.css'
+import { SalesTrendChart } from '../../trend/SalesTrendChart'
+import { buildShadeRanges, normalizeMonthKey } from '../../trend/trendRangeUtils'
+import { makeApiErrorInfo } from '../apiErrorInfo'
+
+const COMPETITOR_CHANNEL_FALLBACK_LABEL = '경쟁사'
 
 type Props = {
   productId: string
@@ -128,7 +129,7 @@ export function ProductMonthlyTrendContainer({
   const competitorTrendLabel =
     monthlyTrend?.competitorChannelLabel
     ?? fallbackChannelLabel
-    ?? KO.labelCompetitorChannel
+    ?? COMPETITOR_CHANNEL_FALLBACK_LABEL
 
   const { periodStartIdx, periodEndIdx, periodShade, forecastShade } = useMemo(
     () => buildShadeRanges(salesSeries, selectedStart, selectedEnd),

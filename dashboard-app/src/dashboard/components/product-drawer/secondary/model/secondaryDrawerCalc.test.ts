@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import type { ProductPrimarySummary, ProductSecondaryDetail } from '../../../../types'
-import type { CompetitorChannel } from '../secondaryPanelTypes'
-import { buildSalesKpiColumn } from '../../../../utils/salesKpiColumn'
-import { mergePrimarySecondarySizeMix } from './secondaryPanelCalc'
+import type { ProductPrimarySummary, ProductSecondaryDetail } from '../../../../../types'
+import type { CompetitorChannel } from '../secondaryDrawerTypes'
+import { buildSalesKpiColumn } from '../../../../../utils/salesKpiColumn'
+import { mergePrimarySecondarySizeMix } from './secondaryDrawerCalc'
 
 const primary: ProductPrimarySummary = {
   id: 'B',

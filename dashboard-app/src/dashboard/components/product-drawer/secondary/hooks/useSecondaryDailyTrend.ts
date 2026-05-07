@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { dashboardApi } from '../../../../api'
-import type { SecondaryDailyTrendPoint } from '../../../../api/types'
-import type { ApiUnitErrorInfo } from '../../../../types'
-import { buildShadeRanges } from '../../trend/trendRangeUtils'
+import { dashboardApi } from '../../../../../api'
+import type { SecondaryDailyTrendPoint } from '../../../../../api/types'
+import type { ApiUnitErrorInfo } from '../../../../../types'
+import { buildShadeRanges } from '../../../trend/trendRangeUtils'
 
 type Params = {
   productId: string

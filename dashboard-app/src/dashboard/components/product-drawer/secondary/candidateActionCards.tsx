@@ -1,8 +1,8 @@
-import styles from './productSecondaryPanel.module.css'
-import { KO } from './ko'
-import type { SecondaryHelpId } from './secondaryPanelTypes'
-import type { usePortalHelpPopover } from '../usePortalHelpPopover'
-import { DeleteButton } from '../DeleteButton'
+import styles from './productSecondaryDrawer.module.css'
+import { KO } from '../ko'
+import type { SecondaryHelpId } from './secondaryDrawerTypes'
+import type { usePortalHelpPopover } from '../../usePortalHelpPopover'
+import { DeleteButton } from '../../DeleteButton'
 
 /** 이너 후보 상세에서 드로어 연 경우: 후보군 선택 대신 저장·삭제 */
 export type CandidateItemPanelContext = {
