@@ -52,9 +52,9 @@
 | `/dashboard/competitor` | 경쟁사 분석 |
 | `/dashboard/snapshot-confirm` | 오더 후보군 |
 
-레이아웃: [`dashboard-app/src/dashboard/DashboardLayout.tsx`](../../dashboard-app/src/dashboard/DashboardLayout.tsx) — 상단 탭 3개와 로그아웃 버튼. 관리자 권한 사용자는 우상단에 `/admin` 진입 버튼이 추가로 표시됩니다.
+레이아웃: [`dashboard-app/src/dashboard/DashboardLayout.tsx`](../../dashboard-app/src/dashboard/DashboardLayout.tsx) — 상단 업무 탭과 우상단 사용자 정보/로그아웃 버튼. 관리자 권한 사용자는 `오더 후보군` 뒤에 관리자 전용 탭이 표시되며, 일반 탭과 같은 형태지만 별도 색상으로 강조됩니다.
 
-라우트 화면(`LoginPage`, `AdminUsersPage`, `SelfPage`, `CompetitorPage`, `SnapshotConfirmPage`)은 [`App.tsx`](../../dashboard-app/src/App.tsx)에서 lazy 로딩됩니다. 새 라우트를 추가할 때도 같은 방식으로 route chunk를 분리합니다. `/dashboard/*`는 [`RequireAuth`](../../dashboard-app/src/auth/RequireAuth.tsx)가 보호하며, `/admin`은 [`RequireAdmin`](../../dashboard-app/src/auth/RequireAdmin.tsx)이 관리자 권한을 추가로 확인합니다. 세션이 없으면 `/login?redirect=...`으로 이동한 뒤 로그인 성공 시 원래 경로로 복귀합니다. 기본 배포는 `BrowserRouter`를 쓰며, 서버가 SPA fallback을 제공하면 `/dashboard/self` 같은 일반 URL로 동작합니다. GitHub Pages workflow만 `VITE_ROUTER_MODE=hash`를 주입해 `/Estimator/#/dashboard/self` 형태를 사용하고, `404.html` fallback도 함께 배포합니다.
+라우트 화면(`LoginPage`, `AdminUsersPage`, `SelfPage`, `CompetitorPage`, `SnapshotConfirmPage`)은 [`App.tsx`](../../dashboard-app/src/App.tsx)에서 lazy 로딩됩니다. 새 라우트를 추가할 때도 같은 방식으로 route chunk를 분리합니다. `/dashboard/*`는 [`RequireAuth`](../../dashboard-app/src/auth/RequireAuth.tsx)가 보호하며, `/admin`은 [`RequireAdmin`](../../dashboard-app/src/auth/RequireAdmin.tsx)이 관리자 권한을 추가로 확인한 뒤 같은 `DashboardLayout` 안에서 렌더됩니다. 세션이 없으면 `/login?redirect=...`으로 이동한 뒤 로그인 성공 시 원래 경로로 복귀합니다. 기본 배포는 `BrowserRouter`를 쓰며, 서버가 SPA fallback을 제공하면 `/dashboard/self` 같은 일반 URL로 동작합니다. GitHub Pages workflow만 `VITE_ROUTER_MODE=hash`를 주입해 `/Estimator/#/dashboard/self` 형태를 사용하고, `404.html` fallback도 함께 배포합니다.
 
 ### 4.1 인증
 

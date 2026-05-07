@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom'
+import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/AuthProvider'
 import { UserProfileDialog } from '../auth/UserProfileDialog'
 import { PageHeader } from './components/PageHeader'
@@ -35,13 +35,18 @@ export const DashboardLayout = () => {
                 {tab.label}
               </NavLink>
             ))}
+            {session?.user.role === 'admin' ? (
+              <NavLink
+                to="/admin"
+                className={({ isActive }) =>
+                  `${styles.tab} ${styles.adminTab} ${isActive ? `${styles.active} ${styles.adminActive}` : ''}`
+                }
+              >
+                관리자
+              </NavLink>
+            ) : null}
           </div>
           <div className={styles.sessionControls}>
-            {session?.user.role === 'admin' ? (
-              <Link className={styles.adminLink} to="/admin">
-                관리자
-              </Link>
-            ) : null}
             <button className={styles.userButton} type="button" onClick={() => setIsProfileOpen(true)}>
               <span className={styles.userName}>{session?.user.loginId ?? '사용자'}</span>
               <span className={styles.roleBadge}>{session ? roleLabels[session.user.role] : '사용자'}</span>

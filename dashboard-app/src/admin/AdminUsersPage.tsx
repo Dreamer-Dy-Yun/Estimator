@@ -1,8 +1,8 @@
 import { useEffect, useState, type FormEvent } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
 import { createAdminUser, deleteAdminUser, getAdminUsers, updateAdminUser } from '../api'
 import type { AdminUserSummary, AuthRole } from '../api'
 import { useAuth } from '../auth/AuthProvider'
+import commonStyles from '../dashboard/components/common.module.css'
 import styles from './AdminUsersPage.module.css'
 
 const ROLE_OPTIONS: Array<{ value: AuthRole; label: string }> = [
@@ -145,8 +145,7 @@ function AdminUserRow({
 }
 
 export function AdminUsersPage() {
-  const navigate = useNavigate()
-  const { session, logout, refreshSession } = useAuth()
+  const { session, refreshSession } = useAuth()
   const [users, setUsers] = useState<AdminUserSummary[]>([])
   const [newLoginId, setNewLoginId] = useState('')
   const [newPassword, setNewPassword] = useState('')
@@ -211,26 +210,14 @@ export function AdminUsersPage() {
     }
   }
 
-  const handleLogout = () => {
-    void logout().then(() => navigate('/login', { replace: true }))
-  }
-
   return (
-    <section className={styles.adminPage}>
+    <section className={`${commonStyles.page} ${styles.adminPage}`}>
       <header className={styles.header}>
         <div>
           <p className={styles.kicker}>관리자</p>
           <h1>사용자 정보 관리</h1>
         </div>
-        <div className={styles.headerActions}>
-          <span className={styles.currentUser}>{session?.user.loginId ?? '관리자'}</span>
-          <Link className={styles.navButton} to="/dashboard/self">
-            대시보드
-          </Link>
-          <button className={styles.logoutButton} type="button" onClick={handleLogout}>
-            로그아웃
-          </button>
-        </div>
+        <p className={styles.headerMeta}>로그인 ID, 권한, 활성 상태를 관리합니다.</p>
       </header>
 
       <div className={styles.panel}>

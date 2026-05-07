@@ -44,9 +44,11 @@ function AppRoutes() {
                 <Route path="snapshot-confirm" element={<SnapshotConfirmPage />} />
                 <Route path="snapshot-confirm/:stashUuid" element={<Navigate to="/dashboard/snapshot-confirm" replace />} />
               </Route>
-            </Route>
-            <Route element={<RequireAdmin />}>
-              <Route path="/admin" element={<AdminUsersPage />} />
+              <Route element={<RequireAdmin />}>
+                <Route element={<DashboardLayout />}>
+                  <Route path="/admin" element={<AdminUsersPage />} />
+                </Route>
+              </Route>
             </Route>
             <Route path="*" element={<Navigate to="/dashboard/self" replace />} />
           </Routes>
