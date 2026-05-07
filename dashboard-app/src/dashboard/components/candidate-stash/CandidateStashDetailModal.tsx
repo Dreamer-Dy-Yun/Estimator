@@ -269,22 +269,22 @@ export function CandidateStashDetailModal({ stashUuid, stashSummary, onClose, on
                       </h3>
                     </div>
                     <div className={detailStyles.detailHeaderPeriodCell} aria-label="조회 기준 기간">
-                      <label className={detailStyles.detailHeaderPeriodField}>
-                        <span>조회 시작일</span>
-                        <input
-                          type="date"
-                          value={m.queryPeriodStart}
-                          onChange={(event) => m.onQueryPeriodStartChange(event.target.value)}
-                        />
-                      </label>
-                      <label className={detailStyles.detailHeaderPeriodField}>
-                        <span>조회 종료일</span>
-                        <input
-                          type="date"
-                          value={m.queryPeriodEnd}
-                          onChange={(event) => m.onQueryPeriodEndChange(event.target.value)}
-                        />
-                      </label>
+                      <span className={detailStyles.detailHeaderPeriodLabel}>조회 기간 :</span>
+                      <input
+                        className={detailStyles.detailHeaderPeriodInput}
+                        type="date"
+                        aria-label="조회 시작일"
+                        value={m.queryPeriodStart}
+                        onChange={(event) => m.onQueryPeriodStartChange(event.target.value)}
+                      />
+                      <span className={detailStyles.detailHeaderPeriodSeparator}>~</span>
+                      <input
+                        className={detailStyles.detailHeaderPeriodInput}
+                        type="date"
+                        aria-label="조회 종료일"
+                        value={m.queryPeriodEnd}
+                        onChange={(event) => m.onQueryPeriodEndChange(event.target.value)}
+                      />
                     </div>
                     <div className={detailStyles.detailMetaStack}>
                       <span className={detailStyles.detailMetaLine}>
