@@ -1,5 +1,5 @@
 /**
- * ProductSummaryDrawer 바깥 클릭 시 닫지 않을 영역(테이블 랩·모달·확인창 등) 표시.
+ * ProductDrawer 바깥 클릭 시 닫지 않을 영역(테이블 랩·모달·확인창 등) 표시.
  * selector 는 `Element.closest` 용.
  */
 const DRAWER_KEEP_OPEN_ATTR = 'data-drawer-keep-open' as const

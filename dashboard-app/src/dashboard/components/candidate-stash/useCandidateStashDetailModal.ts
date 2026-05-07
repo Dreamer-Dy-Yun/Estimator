@@ -165,7 +165,7 @@ export function useCandidateStashDetailModal({
       completedItems: 0,
       currentItemUuid: null,
       currentProductName: null,
-      message: '후보군 스냅샷 LLM 분석 요청을 백엔드에 전송하는 중입니다.',
+      message: '후보군 스냅샷 AI 분석 요청을 백엔드에 전송하는 중입니다.',
       error: null,
     })
 
@@ -181,7 +181,7 @@ export function useCandidateStashDetailModal({
           completedItems: 0,
           currentItemUuid: null,
           currentProductName: null,
-          message: '백엔드가 LLM 분석 작업을 접수했습니다.',
+          message: '백엔드가 AI 분석 작업을 접수했습니다.',
           error: null,
         })
         subscription = subscribeCandidateStashAnalysis(started.jobId, {
@@ -210,7 +210,7 @@ export function useCandidateStashDetailModal({
         })
       } catch (err) {
         if (!alive || analysisRequestSeqRef.current !== requestSeq) return
-        const message = err instanceof Error ? err.message : '후보군 LLM 분석 요청에 실패했습니다.'
+        const message = err instanceof Error ? err.message : '후보군 AI 분석 요청에 실패했습니다.'
         setAnalysisError(message)
         setAnalysisProgress((prev) => prev
           ? { ...prev, status: 'failed', message, error: message }

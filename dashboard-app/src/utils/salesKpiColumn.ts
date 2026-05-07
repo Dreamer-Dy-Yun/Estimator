@@ -2,7 +2,7 @@ import type { ProductPrimarySummary, ProductSecondaryDetail } from '../types'
 import type { SecondaryCompetitorChannel } from '../api/types/secondary'
 import { hashRank } from './hashRank'
 
-/** 자사/경쟁 채널 한 컬럼의 판매·원가·수수료·순이익 지표 (2차 패널·스냅샷 공통). */
+/** 자사/경쟁 채널 한 컬럼의 판매·원가·수수료·순이익 지표 (2차 드로워·스냅샷 공통). */
 export type SalesKpiColumn = {
   avgPrice: number
   qty: number

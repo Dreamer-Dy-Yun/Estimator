@@ -23,7 +23,7 @@ export type OrderSnapshotDrawer1V2 = {
 }
 
 /**
- * 2차 패널: 경쟁 채널·판매예측 지표·확정 수량·LLM 등
+ * 2차 드로워: 경쟁 채널·판매예측 지표·확정 수량·AI 코멘트 등
  * `secondary`는 당시 경쟁사 베이스라인 스냅샷
  */
 export type OrderSnapshotDrawer2V1 = {

@@ -370,7 +370,7 @@
 | `expectedSalesAmount` | 예상 매출 — `stockDerived.expectedSalesAmount` |
 | `expectedOpProfit` | 예상 영업이익 — `stockDerived.expectedOpProfit` |
 | `insight.badgeNames` | 이 아이템에 붙일 배지 이름 배열. 현재 목데이터 기준 허용 배지는 `크림판매`, `자사이익`, `자사판매` |
-| `isLatestLlmComment` | 현재 저장 스냅샷 기준 LLM 코멘트/추천이 최신인지 여부. DB 컬럼은 `is_latest_llm_comment` 권장 |
+| `isLatestLlmComment` | 현재 저장 스냅샷 기준 AI 코멘트/추천이 최신인지 여부. DB 컬럼은 `is_latest_llm_comment` 권장 |
 | `dbCreatedAt`, `dbUpdatedAt` | 생성·수정 시각 |
 
 **`CandidateItemDetail`**
@@ -378,7 +378,7 @@
 | 필드 | 의미 |
 |------|------|
 | `details` | 저장 시점의 **`SecondaryOrderSnapshotPayload` 전체 JSON** |
-| `isLatestLlmComment` | 상세 스냅샷 기준 LLM 코멘트/추천 최신 여부 |
+| `isLatestLlmComment` | 상세 스냅샷 기준 AI 코멘트/추천 최신 여부 |
 
 **페이로드**
 
@@ -389,7 +389,7 @@
 - `CandidateStashExcelUploadResult`: `{ stashUuid, stashName, itemCount, warnings: string[] }`
 - `CandidateStashAnalysisStartResult`: `{ jobId, stashUuid, itemCount }`
 - `CandidateStashAnalysisProgressEvent`: `{ jobId, stashUuid, status, totalItems, completedItems, currentItemUuid, currentProductName, message, error? }`
-- 2차 드로워에서 후보 아이템 스냅샷을 다시 저장할 때 프론트는 `updateCandidateItem`에 `isLatestLlmComment: false`를 보냅니다. 백엔드는 해당 아이템의 DB `is_latest_llm_comment`를 `false`로 저장해 기존 LLM 코멘트/추천이 최신 스냅샷 기준이 아님을 표시해야 합니다.
+- 2차 드로워에서 후보 아이템 스냅샷을 다시 저장할 때 프론트는 `updateCandidateItem`에 `isLatestLlmComment: false`를 보냅니다. 백엔드는 해당 아이템의 DB `is_latest_llm_comment`를 `false`로 저장해 기존 AI 코멘트/추천이 최신 스냅샷 기준이 아님을 표시해야 합니다.
 
 **동작 메모**
 
@@ -404,19 +404,19 @@
   - 백엔드는 생성된 후보군 UUID, 등록 아이템 수, 무시/보정된 행 경고를 응답합니다.
   - 검증 실패 시 후보군/아이템을 부분 저장하지 않는 것을 기본 정책으로 권장합니다.
 
-**후보군 스냅샷 LLM 분석**
+**후보군 스냅샷 AI 분석**
 
 - 후보군 상세 모달이 열리면 프론트는 `startCandidateStashAnalysis(stashUuid)`를 호출합니다.
-- 백엔드는 해당 `stashUuid`에 속한 후보 아이템의 저장 스냅샷(`CandidateItemDetail.details`)을 DB에서 읽고, 각 스냅샷을 LLM 분석 작업에 투입합니다.
+- 백엔드는 해당 `stashUuid`에 속한 후보 아이템의 저장 스냅샷(`CandidateItemDetail.details`)을 DB에서 읽고, 각 스냅샷을 AI 분석 작업에 투입합니다.
 - 시작 응답은 `{ jobId, stashUuid, itemCount }`입니다. 프론트는 후보군 상세 모달이 열려 있는 동안만 이 `jobId`로 SSE 스트림을 엽니다.
 - SSE는 `Content-Type: text/event-stream`으로 제공하고, 각 `data:`는 `CandidateStashAnalysisProgressEvent` JSON입니다.
 - `status` 값은 `'queued' | 'running' | 'completed' | 'failed'` 중 하나입니다.
 - 진행 이벤트는 최소한 `totalItems`, `completedItems`, `message`를 포함해야 합니다. 특정 아이템 처리 중이면 `currentItemUuid`, `currentProductName`을 채웁니다.
-- 각 후보 아이템의 LLM 분석/코멘트 갱신이 완료되면 백엔드는 해당 아이템의 DB `is_latest_llm_comment`를 `true`로 갱신해야 합니다.
+- 각 후보 아이템의 AI 분석/코멘트 갱신이 완료되면 백엔드는 해당 아이템의 DB `is_latest_llm_comment`를 `true`로 갱신해야 합니다.
 - 실패 시 `status: 'failed'`와 `error` 메시지를 내려야 하며, 프론트는 진행 카드에 실패 상태를 표시합니다.
 - 프론트는 모달 닫힘/언마운트 또는 `completed`/`failed` 수신 시 SSE 연결을 닫습니다. 백엔드는 terminal 이벤트(`completed` 또는 `failed`) 전송 후 스트림을 종료하는 것을 권장합니다.
 - 브라우저가 SSE 연결을 끊어도 백엔드 작업 취소를 의미하지 않습니다. 별도 취소 API가 필요하면 독립 계약으로 추가합니다.
-- LLM 분석 결과를 후보 아이템·후보군에 저장할 경우, 저장 위치와 요약 필드는 별도 응답/조회 계약으로 추가해야 합니다. 현재 프론트 계약은 “요청 발생 + 진행 상태 표시”까지만 요구합니다.
+- AI 분석 결과를 후보 아이템·후보군에 저장할 경우, 저장 위치와 요약 필드는 별도 응답/조회 계약으로 추가해야 합니다. 현재 프론트 계약은 “요청 발생 + 진행 상태 표시”까지만 요구합니다.
 
 ### 3.10 `getSecondaryStockOrderCalc`
 
@@ -552,7 +552,7 @@
 | `context.dailyTrendStartMonth` | 일간 트렌드 API의 `startMonth` 와 맞출 것 |
 | `context.dailyTrendLeadTimeDays` | 일간 트렌드 API의 `leadTimeDays` 와 맞출 것 |
 | `drawer1` | 1차 드로어 스냅샷 |
-| `drawer2` | 2차 패널 스냅샷 |
+| `drawer2` | 2차 드로워 스냅샷 |
 
 **`drawer1` (`OrderSnapshotDrawer1V2`)**
 
@@ -573,7 +573,7 @@
 | `selfWeightPct` | 자사 가중(%) |
 | `sizeForecastSource` | `'periodMean'` \| `'forecastQty'` — 사이즈 예측 소스 |
 | `bufferStock` | 추가 버퍼 재고 |
-| `llmPrompt`, `llmAnswer` | LLM 컨텍스트 |
+| `llmPrompt`, `llmAnswer` | AI 코멘트 컨텍스트 |
 | `confirmedTotals` | 저장 시점 확정 합계(선택): `orderQty`, `expectedSalesAmount`, `expectedOpProfit`, `expectedOpProfitRatePct` |
 | `sizeRows` | [`OrderSnapshotSizeRowV1[]`](#56-ordersnapshotsizerowv1) |
 

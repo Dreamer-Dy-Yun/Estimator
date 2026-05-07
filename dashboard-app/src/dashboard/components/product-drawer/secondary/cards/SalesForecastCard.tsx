@@ -5,7 +5,7 @@ import { formatGroupedNumber, formatRatioDecimalKo } from '../../../../../utils/
 import commonStyles from '../../../common.module.css'
 import { usePortalHelpPopover } from '../../../usePortalHelpPopover'
 import { KO } from '../../ko'
-import styles from '../productSecondaryDrawer.module.css'
+import styles from '../secondaryDrawer.module.css'
 import type { SecondaryForecastInputs, SecondaryHelpId } from '../secondaryDrawerTypes'
 
 export type SalesForecastComputedTable = {

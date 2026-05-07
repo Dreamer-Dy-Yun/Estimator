@@ -4,7 +4,7 @@ import { PortalHelpMark } from '../../../PortalHelpPopover'
 import { formatGroupedNumber, formatRatioDecimalKo } from '../../../../../utils/format'
 import commonStyles from '../../../common.module.css'
 import { KO } from '../../ko'
-import styles from '../productSecondaryDrawer.module.css'
+import styles from '../secondaryDrawer.module.css'
 import type { SecondaryHelpId } from '../secondaryDrawerTypes'
 import { usePortalHelpPopover } from '../../../usePortalHelpPopover'
 

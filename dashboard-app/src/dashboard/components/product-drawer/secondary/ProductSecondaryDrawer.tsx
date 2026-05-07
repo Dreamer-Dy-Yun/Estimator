@@ -12,7 +12,7 @@ import { PortalHelpPopoverLayer } from '../../PortalHelpPopover'
 import commonStyles from '../../common.module.css'
 import { normalizeMonthKey } from '../../trend/trendRangeUtils'
 import { usePortalHelpPopover } from '../../usePortalHelpPopover'
-import { AiMockCard } from './cards/AiMockCard'
+import { AiCommentCard } from './cards/AiCommentCard'
 import { ProductMetaCard } from './cards/ProductMetaCard'
 import { SalesForecastCard } from './cards/SalesForecastCard'
 import { SalesTrendDailyCard } from './cards/SalesTrendDailyCard'
@@ -21,7 +21,7 @@ import { computeClientStockOrder } from './model/clientStockOrderCompute'
 import { KO } from '../ko'
 import { buildSalesKpiColumn } from '../../../../utils/salesKpiColumn'
 import { mergePrimarySecondarySizeMix } from './model/secondaryDrawerCalc'
-import styles from './productSecondaryDrawer.module.css'
+import styles from './secondaryDrawer.module.css'
 import type {
   SecondaryForecastDerived,
   SecondaryForecastInputs,
@@ -110,8 +110,8 @@ export function ProductSecondaryDrawer({
   const [unitCostInput, setUnitCostInput] = useState(Math.max(0, Math.round(primary.price * 0.78)))
   const [unitPriceInput, setUnitPriceInput] = useState(Math.max(0, Math.round(primary.price)))
   const [expectedFeeRatePct, setExpectedFeeRatePct] = useState(13)
-  const [llmPrompt, setLlmPrompt] = useState('')
-  const [llmAnswer, setLlmAnswer] = useState('')
+  const [aiPrompt, setAiPrompt] = useState('')
+  const [aiComment, setAiComment] = useState('')
   const [selfWeightPct, setSelfWeightPct] = useState(50)
   /** 사용자가 직접 덮어쓴 확정 수량만 — 스냅샷 값은 snapshotConfirmBySize에서 병합 */
   const [confirmBySize, setConfirmBySize] = useState<Record<string, number>>({})
@@ -335,7 +335,7 @@ export function ProductSecondaryDrawer({
       return
     }
     if (typeof d2.llmPrompt !== 'string' || typeof d2.llmAnswer !== 'string') {
-      setPrefillError('스냅샷 LLM 필드 누락')
+      setPrefillError('스냅샷 AI 코멘트 필드 누락')
       return
     }
     const si = d2.stockInputs
@@ -353,8 +353,8 @@ export function ProductSecondaryDrawer({
         onChannelChange(d2.competitorChannelId)
     setBufferStock(d2.bufferStock)
     setSelfWeightPct(d2.selfWeightPct)
-    setLlmPrompt(d2.llmPrompt)
-    setLlmAnswer(d2.llmAnswer)
+    setAiPrompt(d2.llmPrompt)
+    setAiComment(d2.llmAnswer)
     setLeadTimeStartDate(si.leadTimeStartDate)
     setLeadTimeEndDate(si.leadTimeEndDate)
     setDailyMeanClient(si.dailyMean)
@@ -481,8 +481,8 @@ export function ProductSecondaryDrawer({
         selfWeightPct,
         sizeForecastSource: 'forecastQty',
         bufferStock,
-        llmPrompt,
-        llmAnswer,
+        llmPrompt: aiPrompt,
+        llmAnswer: aiComment,
         confirmedTotals: (() => {
           const orderQty = sizeRows.reduce((acc, r) => acc + Math.max(0, Math.round(r.confirmQty)), 0)
           const perUnitFee = Math.round((unitPriceInput * expectedFeeRatePct) / 100)
@@ -520,8 +520,8 @@ export function ProductSecondaryDrawer({
     compCol,
     forecastInputs,
     forecastDerived,
-    llmPrompt,
-    llmAnswer,
+    aiPrompt,
+    aiComment,
     selfWeightPct,
     bufferStock,
     unitPriceInput,
@@ -758,11 +758,9 @@ export function ProductSecondaryDrawer({
             }}
           />
         </ComponentErrorBoundary>
-        <ComponentErrorBoundary page={pageName} unit="AiMockCard">
-          <AiMockCard
-            ai={{
-              answer: llmAnswer,
-            }}
+        <ComponentErrorBoundary page={pageName} unit="AiCommentCard">
+          <AiCommentCard
+            comment={aiComment}
           />
         </ComponentErrorBoundary>
       </div>

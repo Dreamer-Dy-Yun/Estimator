@@ -5,7 +5,7 @@ import { formatEaQuantity, formatGroupedNumber, formatRatioDecimalKo } from '../
 import { ConfirmModal } from '../ConfirmModal'
 import { DeleteButton } from '../DeleteButton'
 import { FilterBar } from '../FilterBar'
-import { ProductSummaryDrawer } from '../ProductSummaryDrawer'
+import { ProductDrawer } from '../product-drawer/ProductDrawer'
 import { stashDetailModalBackdropDataProps } from '../../drawer/drawerDom'
 import { useCandidateStashDetailModal, type InnerCandidateRow } from './useCandidateStashDetailModal'
 import styles from '../common.module.css'
@@ -201,7 +201,7 @@ export function CandidateStashDetailModal({ stashUuid, stashSummary, onClose, on
             onClick={(e) => e.stopPropagation()}
           >
             <div className={detailStyles.analysisStatusHead}>
-              <strong>LLM 스냅샷 분석</strong>
+              <strong>AI 스냅샷 분석</strong>
               <span className={detailStyles.analysisStatusHeadActions}>
                 <span className={detailStyles.analysisStatusBadge}>{analysisStatusLabel}</span>
                 {analysisIsTerminal && (
@@ -209,7 +209,7 @@ export function CandidateStashDetailModal({ stashUuid, stashSummary, onClose, on
                     type="button"
                     className={`${styles.iconCloseButton} ${detailStyles.analysisStatusDismissBtn}`}
                     onClick={() => setAnalysisPopupDismissed(true)}
-                    aria-label="LLM 분석 팝업 즉시 닫기"
+                    aria-label="AI 분석 팝업 즉시 닫기"
                     title="즉시 닫기"
                   />
                 )}
@@ -520,7 +520,7 @@ export function CandidateStashDetailModal({ stashUuid, stashSummary, onClose, on
         />
       )}
 
-      <ProductSummaryDrawer
+      <ProductDrawer
         summary={m.mergedSummary}
         stockTrend={m.bundle?.stockTrend ?? []}
         suppressDocumentLayoutShift

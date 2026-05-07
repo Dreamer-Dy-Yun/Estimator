@@ -11,7 +11,7 @@ type Params = {
   pageName: string
 }
 
-export function useProductSecondaryDetail({
+export function useSecondaryDrawerDetail({
   productId,
   expandPaneOpen,
   hydrateSnapshot = null,

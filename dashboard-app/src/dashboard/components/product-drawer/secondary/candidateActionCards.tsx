@@ -1,4 +1,4 @@
-import styles from './productSecondaryDrawer.module.css'
+import styles from './secondaryDrawer.module.css'
 import { KO } from '../ko'
 import type { SecondaryHelpId } from './secondaryDrawerTypes'
 import type { usePortalHelpPopover } from '../../usePortalHelpPopover'

@@ -553,7 +553,7 @@ export const mockDashboardApi = {
         'queued',
         totalItems,
         0,
-        '백엔드가 후보군 스냅샷 LLM 분석 작업을 접수했습니다.',
+        '백엔드가 후보군 스냅샷 AI 분석 작업을 접수했습니다.',
       ))
     })
 
@@ -579,7 +579,7 @@ export const mockDashboardApi = {
             'running',
             totalItems,
             index,
-            `${productName} 스냅샷을 LLM으로 분석하는 중입니다.`,
+            `${productName} 스냅샷을 AI로 분석하는 중입니다.`,
             item,
           ))
         })
@@ -602,7 +602,7 @@ export const mockDashboardApi = {
           'completed',
           totalItems,
           totalItems,
-          `후보 스냅샷 ${totalItems}건의 LLM 분석을 완료했습니다.`,
+          `후보 스냅샷 ${totalItems}건의 AI 분석을 완료했습니다.`,
         ))
         closeFromServer()
       })

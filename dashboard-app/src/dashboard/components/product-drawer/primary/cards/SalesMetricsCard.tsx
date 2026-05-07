@@ -3,7 +3,7 @@ import type { SecondaryCompetitorChannel } from '../../../../../api'
 import type { ApiUnitErrorInfo } from '../../../../../types'
 import { formatGroupedNumber, formatPercent } from '../../../../../utils/format'
 import { KO } from '../../ko'
-import styles from '../../secondary/productSecondaryDrawer.module.css'
+import styles from '../../secondary/secondaryDrawer.module.css'
 import type { SalesKpiColumn } from '../../secondary/secondaryDrawerTypes'
 
 type Props = {

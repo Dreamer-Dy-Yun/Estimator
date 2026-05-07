@@ -83,7 +83,7 @@ export type ClientStockOrderComputeResult = {
 }
 
 /**
- * 2차 패널·사이즈별 오더용 재고/예측 수치 — API가 아닌 동일 수식을 클라이언트에서 연산.
+ * 2차 드로워·사이즈별 오더용 재고/예측 수치 — API가 아닌 동일 수식을 클라이언트에서 연산.
  * (목 API `getSecondaryStockOrderCalc`와 로직 맞춤; 화면 표시는 항상 이 결과 사용.)
  */
 export function computeClientStockOrder(p: ClientStockOrderComputeParams): ClientStockOrderComputeResult {

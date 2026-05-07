@@ -6,7 +6,7 @@ import commonStyles from '../../../common.module.css'
 import { DAILY_TREND_AS_OF_DATE } from '../../../../../api'
 import { formatGroupedNumber } from '../../../../../utils/format'
 import { KO } from '../../ko'
-import styles from '../productSecondaryDrawer.module.css'
+import styles from '../secondaryDrawer.module.css'
 
 type TrendPoint = {
   idx: number

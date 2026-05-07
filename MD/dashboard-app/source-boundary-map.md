@@ -23,7 +23,7 @@
 - 후보군 상세 모달, 추천 모달, 인사이트 배지, 후보군 상세 훅은 `dashboard/components/candidate-stash`로 이동했다.
 - 후보군 상세 모달 CSS는 `SnapshotConfirmPage.module.css`에서 분리해 `CandidateStashDetailModal.module.css`가 소유한다.
 - `SnapshotConfirmPage.module.css`는 후보군 목록/업로드/스냅샷 확인 페이지와 그 페이지의 확인 모달 스타일만 담당한다.
-- 2차 패널에서 화면에 노출되지 않는 LLM 프롬프트 생성 API와 배포 전 제거 대상이던 JSON 미리보기 모달을 제거했다.
+- 2차 드로워에서 화면에 노출되지 않는 AI 프롬프트 생성 API와 배포 전 제거 대상이던 JSON 미리보기 모달을 제거했다.
 - 오더 스냅샷 독립 localStorage 저장/조회/삭제 API를 제거하고, 후보 아이템 `details`를 스냅샷 저장의 단일 경로로 둔다.
 - 후보군 생성/삭제/복제/편집 이벤트는 API 호출 후 목록을 재조회한다. mock은 응답 흐름만 모사하고 브라우저 저장소에 후보군/이너 후보를 만들거나 지우지 않는다.
 - 라우트 페이지는 `src/App.tsx`에서 `React.lazy`로 분리한다. 기본 라우팅은 일반 배포용 `BrowserRouter`이고, GitHub Pages workflow만 `VITE_ROUTER_MODE=hash`로 `HashRouter`를 켠다.
@@ -33,7 +33,7 @@
 - 로그인 화면, 라우트 보호, 사용자 정보/비밀번호 변경 모달은 `src/auth`가 소유한다. 인증 API 계약과 목 세션 저장은 `src/api` 아래에 두어 실제 백엔드로 교체할 때 화면이 mock 구현을 직접 알지 않게 한다. 보호 라우트는 직접 URL 진입과 새로고침 복귀를 위해 `/login?redirect=...`를 남긴다.
 - 관리자 유저 관리 화면은 `/admin` 별도 라우트와 `src/admin`이 소유한다. 화면은 같은 `DashboardLayout` 안에서 렌더하며, 관리자 권한 사용자에게만 `오더 후보군` 뒤 관리자 전용 탭을 보여준다. 인증 권한은 `admin`과 `user` 두 단계만 둔다.
 - 상품 drawer feature는 `dashboard/components/product-drawer`로 모았다. 루트 `ProductDrawer`는 overlay와 공유 상태만 조율하고, `primary`가 1차 드로워, `secondary`가 2차 드로워를 소유한다.
-- 경쟁 채널 상태는 1차 판매 정보와 2차 일별 추이가 공유하므로 `product-drawer/useCompetitorChannels.ts`가 소유한다. 2차 상세 조회는 `product-drawer/secondary/useProductSecondaryDetail.ts`가 소유한다.
+- 경쟁 채널 상태는 1차 판매 정보와 2차 일별 추이가 공유하므로 `product-drawer/useCompetitorChannels.ts`가 소유한다. 2차 상세 조회는 `product-drawer/secondary/useSecondaryDrawerDetail.ts`가 소유한다.
 
 ## 최상위 저장소
 
@@ -79,7 +79,7 @@
 | `api/index.ts` | API public export. | 외부에서 import할 API surface 변경 시 수정 |
 | `api/mock.ts` | mock API 진입 파일. | mock 구현 위치를 바꿀 때만 수정 |
 | `api/dailyTrendAsOf.ts` | 일간 트렌드 as-of 계산 보조 로직. | 일간 트렌드 기준일 규칙 변경 시 수정 |
-| `api/types/*` | 프론트-백엔드 계약 타입. 인증 계약은 `auth.ts`, 후보군 계약은 `candidate.ts`, 저장 스냅샷 계약은 `snapshot.ts`, 2차 패널 계약은 `secondary.ts`가 소유한다. | 요청/응답 구조가 바뀌면 먼저 수정 |
+| `api/types/*` | 프론트-백엔드 계약 타입. 인증 계약은 `auth.ts`, 후보군 계약은 `candidate.ts`, 저장 스냅샷 계약은 `snapshot.ts`, 2차 드로워 계약은 `secondary.ts`가 소유한다. | 요청/응답 구조가 바뀌면 먼저 수정 |
 | `api/mock/*` | 읽기 전용 seed, mock 계산, mock 응답 구현. mutation mock은 브라우저 저장소를 DB처럼 변경하지 않는다. | 데모 데이터나 mock 동작 변경 시 수정 |
 
 ### api/types 하위 파일
@@ -106,7 +106,7 @@
 | `productCatalog.ts` | 상품 catalog seed와 조회 |
 | `records.ts` | mock 원천 record 묶음 |
 | `salesTables.ts` | 자사/경쟁 판매 테이블 mock |
-| `secondaryDailyTrend.ts` | 2차 패널 일간 트렌드 mock. 선택 경쟁 채널의 수량 보정이 경쟁사 일별 판매량에 반영된다 |
+| `secondaryDailyTrend.ts` | 2차 드로워 일간 트렌드 mock. 선택 경쟁 채널의 수량 보정이 경쟁사 일별 판매량에 반영된다 |
 | `utils.ts` | mock 전용 유틸 |
 
 ## src/auth
@@ -183,7 +183,6 @@
 | `PageHeader.tsx` | 페이지 제목/header |
 | `PaginatedTable.tsx` | 정렬/페이지네이션 테이블 |
 | `PortalHelpPopover.tsx`, `usePortalHelpPopover.ts`, `portalHelpPopoverPosition.ts` | help popover와 위치 계산 |
-| `ProductSummaryDrawer.tsx` | 기존 import 경로를 위한 호환 export. 실제 구현은 `product-drawer/ProductDrawer.tsx`가 소유한다 |
 | `common.module.css` | 대시보드 공용 layout/card/button/icon 스타일 |
 | `trend/` | 판매 트렌드 차트와 차트 range 보조 |
 | `product-drawer/` | 상품 drawer feature. 1차/2차 드로워 구조, 공유 경쟁 채널 상태, 각 드로워 하위 컴포넌트와 요청 hook |
@@ -230,14 +229,14 @@
 | 파일/폴더 | 역할 |
 |------|------|
 | `ProductSecondaryDrawer.tsx` | 2차 드로워 content orchestration. 카드 배치, 스냅샷 생성, 후보군 저장/수정 사용자 액션을 소유한다 |
-| `useProductSecondaryDetail.ts` | 2차 드로워가 열릴 때의 상세 조회와 스냅샷 hydration fallback |
+| `useSecondaryDrawerDetail.ts` | 2차 드로워가 열릴 때의 상세 조회와 스냅샷 hydration fallback |
 | `secondaryDrawerTypes.ts` | 2차 드로워 내부 view-model 타입 |
 | `candidateActionCards.tsx` | 2차 드로워에서 후보군 저장/연결 액션 UI |
 | `cards/*` | 2차 드로워 카드 단위 UI |
 | `hooks/*` | 2차 드로워의 컨테이너 단위 API 요청. 재고·발주 계산과 선택 경쟁 채널 기준 일별 추이를 소유한다 |
 | `model/*` | 2차 드로워 계산 로직. UI에서 직접 계산이 커지면 여기로 이동한다 |
-| `panel-styles/*` | `productSecondaryDrawer.module.css`가 CSS `@import`로 묶는 2차 드로워 카드/컨트롤/표/입력 스타일 조각 |
-| `productSecondaryDrawer.module.css` | 2차 드로워 content 스타일 |
+| `style-parts/*` | `secondaryDrawer.module.css`가 CSS `@import`로 묶는 2차 드로워 카드/컨트롤/표/입력 스타일 조각 |
+| `secondaryDrawer.module.css` | 2차 드로워 content 스타일 |
 
 ## dashboard/hooks
 

@@ -8,7 +8,7 @@ import { ProductPrimaryDrawer } from './primary/ProductPrimaryDrawer'
 import { ProductSecondaryDrawer } from './secondary/ProductSecondaryDrawer'
 import type { CandidateItemPanelContext } from './secondary/candidateActionCards'
 import { useCompetitorChannels } from './useCompetitorChannels'
-import { useProductSecondaryDetail } from './secondary/useProductSecondaryDetail'
+import { useSecondaryDrawerDetail } from './secondary/useSecondaryDrawerDetail'
 import type { OrderSnapshotDocumentV1 } from '../../../snapshot/orderSnapshotTypes'
 import { DRAWER_KEEP_OPEN_SELECTOR } from '../../drawer/drawerDom'
 import { setBodyPrimaryDrawerOpen } from '../../drawer/primaryDrawerBody'
@@ -47,7 +47,7 @@ function ProductDrawerContent({
 }) {
   void stockTrend
 
-  const pageName = 'ProductSummaryDrawer'
+  const pageName = 'ProductDrawer'
   const drawerRef = useRef<HTMLElement | null>(null)
   const [expandPaneOpen, setExpandPaneOpen] = useState(!!initialExpandSecondary)
   const {
@@ -60,7 +60,7 @@ function ProductDrawerContent({
     secondaryDetail,
     secondaryDetailError,
     hydrateForPanel,
-  } = useProductSecondaryDetail({
+  } = useSecondaryDrawerDetail({
     productId: summary.id,
     expandPaneOpen,
     hydrateSnapshot,
@@ -191,7 +191,7 @@ function ProductDrawerContent({
   )
 }
 
-export const ProductSummaryDrawer = ({
+export const ProductDrawer = ({
   summary,
   stockTrend,
   onClose,

@@ -3,7 +3,7 @@ import { getProductDrawerBundle, type ProductDrawerBundle } from '../../api'
 
 export type UseProductDrawerBundleOptions = {
   /**
-   * `true`(기본): 새 품번 fetch 동안에도 **이전 번들**을 반환해 `summary`가 잠깐 `null`이 되지 않음 → 드로어가 언마운트되지 않아 2차 패널이 유지됨.
+   * `true`(기본): 새 품번 fetch 동안에도 **이전 번들**을 반환해 `summary`가 잠깐 `null`이 되지 않음 → 드로어가 언마운트되지 않아 2차 드로워가 유지됨.
    * `false`: 캐시 품번이 현재 선택과 일치할 때만 반환(이너 후보: 스냅샷·번들 id 불일치 방지).
    */
   allowStaleWhileRevalidate?: boolean

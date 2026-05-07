@@ -75,7 +75,7 @@ export type ProductPrimarySummary = {
   sizeMix: ProductSizeMixRow[]
 }
 
-/** 2차 패널 전용: 경쟁 베이스라인 + 사이즈별 경쟁 비중 — 별도 API. */
+/** 2차 드로워 전용: 경쟁 베이스라인 + 사이즈별 경쟁 비중 — 별도 API. */
 export type ProductSecondaryDetail = {
   id: string
   competitorPrice: number

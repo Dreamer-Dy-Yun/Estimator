@@ -8,7 +8,7 @@ import { adjacentIdInOrder } from '../../utils/adjacentListNavigation'
 import { clampForecastMonths, readForecastMonthsFromStorage, writeForecastMonthsToStorage } from '../../utils/forecastMonthsStorage'
 import { formatGroupedNumber, formatPercent } from '../../utils/format'
 import { CopyToastBanner, useCopyToastMessage } from '../components/CopyToastBanner'
-import { ProductSummaryDrawer } from '../components/ProductSummaryDrawer'
+import { ProductDrawer } from '../components/product-drawer/ProductDrawer'
 import styles from '../components/common.module.css'
 import { AnalysisList } from '../components/AnalysisList'
 import { ChartCard } from '../components/ChartCard'
@@ -299,7 +299,7 @@ export const SelfPage = () => {
         />
       </div>
 
-      <ProductSummaryDrawer
+      <ProductDrawer
         summary={summaryBundle?.summary ?? null}
         stockTrend={summaryBundle?.stockTrend ?? []}
         periodStart={periodStartDate}

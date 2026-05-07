@@ -22,7 +22,7 @@
 > **주의:** 공식 제품 비전·OKR 문서는 이 저장소에 없습니다. 아래는 **화면 명칭, 데이터 모델, 사용자 흐름**을 근거로 한 추정입니다. 조직에서 정의한 목적과 다르면 이 절을 수정해 주시면 됩니다.
 
 **추정 요약:**  
-브랜드·카테고리·기간·채널 조건으로 **자사 판매 실적**과 **경쟁 채널 대비 지표**를 보고, SKU 단위로 **1차 요약(가격·재고·월간 추이 등)**과 **2차 심화(경쟁 비중, 일별 추이, 안전재고·발주 시뮬, 사이즈별 확정 수량, LLM 보조)**를 한 화면 흐름에서 다룹니다. 확정한 시나리오는 **오더 스냅샷 JSON**으로 후보군 아이템 `details`에 저장하고, **오더 후보군(스태시)**에 여러 SKU 후보를 모아 비교·관리할 수 있습니다.
+브랜드·카테고리·기간·채널 조건으로 **자사 판매 실적**과 **경쟁 채널 대비 지표**를 보고, SKU 단위로 **1차 요약(가격·재고·월간 추이 등)**과 **2차 심화(경쟁 비중, 일별 추이, 안전재고·발주 시뮬, 사이즈별 확정 수량, AI 코멘트)**를 한 화면 흐름에서 다룹니다. 확정한 시나리오는 **오더 스냅샷 JSON**으로 후보군 아이템 `details`에 저장하고, **오더 후보군(스태시)**에 여러 SKU 후보를 모아 비교·관리할 수 있습니다.
 
 즉, **판매·재고 인사이트 + 발주 의사결정 보조 + 후보안 보관**을 엮은 **내부용 대시보드(프로토타입/목 중심)** 로 읽는 것이 타당합니다.
 
@@ -78,7 +78,7 @@
 - **KPI:** 총 판매액, 평균 영업이익률 등.
 - **차트:** 영업이익률–판매액 스캐터(포지셔닝).
 - **목록:** `AnalysisList` + 정렬 가능한 컬럼(내부 [`PaginatedTable`](../../dashboard-app/src/dashboard/components/PaginatedTable.tsx)).
-- **행 클릭:** [`ProductSummaryDrawer`](../../dashboard-app/src/dashboard/components/ProductSummaryDrawer.tsx) — 호환 export이며 실제 구현은 [`product-drawer/ProductDrawer`](../../dashboard-app/src/dashboard/components/product-drawer/ProductDrawer.tsx)입니다. 1차 기본 번들은 [`useProductDrawerBundle`](../../dashboard-app/src/dashboard/hooks/useProductDrawerBundle.ts)가 받고, drawer 내부의 판매 정보/월간 추이/2차 상세는 1차/2차 드로워 컨테이너가 각각 별도 API를 요청합니다.
+- **행 클릭:** [`ProductDrawer`](../../dashboard-app/src/dashboard/components/product-drawer/ProductDrawer.tsx) — 1차 기본 번들은 [`useProductDrawerBundle`](../../dashboard-app/src/dashboard/hooks/useProductDrawerBundle.ts)가 받고, drawer 내부의 판매 정보/월간 추이/2차 상세는 1차/2차 드로워 컨테이너가 각각 별도 API를 요청합니다.
 - **포캐스트 월 수:** 로컬 스토리지에 저장 ([`forecastMonthsStorage`](../../dashboard-app/src/utils/forecastMonthsStorage.ts)).
 
 ### 5.2 경쟁사 분석 (`CompetitorPage`)
@@ -96,7 +96,7 @@
 
 ---
 
-## 6. 제품 요약 드로어 (`ProductSummaryDrawer`)
+## 6. 상품 드로어 (`ProductDrawer`)
 
 - **1차 드로워:** [`product-drawer/primary`](../../dashboard-app/src/dashboard/components/product-drawer/primary/)가 소유합니다. 상품 이미지, 기간·경쟁 채널 기준 판매 정보([`getProductSalesInsight`](../../dashboard-app/src/api/types/dashboard-api.ts)), 선택 경쟁 채널 기준 월간 판매 추이([`getProductMonthlyTrend`](../../dashboard-app/src/api/types/dashboard-api.ts))를 다룹니다. 판매 정보 표의 주요 수치는 굵게 강조하고 기본 표 글자보다 10% 크게 표시합니다. 판매 추이 그래프는 선형 축으로 고정하고, 자사/선택 경쟁 채널(예: 크림·무신사) 표시를 각각 토글합니다. 계절성 카드는 현재 화면에서 제외.
 - **2차 드로워:** [`product-drawer/secondary`](../../dashboard-app/src/dashboard/components/product-drawer/secondary/)가 소유합니다. 상품 메타, 후보군 저장/수정, 저장된 AI 코멘트 표시(`drawer2.llmAnswer`, 본문 15px), 사이즈별 확정 수량 등을 다룹니다. 2차 상세 조회([`getProductSecondaryDetail`](../../dashboard-app/src/api/types/dashboard-api.ts)), 재고·발주 시뮬([`getSecondaryStockOrderCalc`](../../dashboard-app/src/api/types/dashboard-api.ts)), 선택 경쟁 채널 기준 일별 추이([`getSecondaryDailyTrend`](../../dashboard-app/src/api/types/dashboard-api.ts))도 이 경계 안에 둡니다.
@@ -131,7 +131,7 @@ dashboard-app/src/
   components/             # ApiUnitErrorBadge, ComponentErrorBoundary
   dashboard/
     DashboardLayout.tsx
-    components/           # FilterBar, ProductSummaryDrawer, AnalysisList, feature components
+    components/           # FilterBar, ProductDrawer, AnalysisList, feature components
       candidate-stash/    # 후보군 상세/추천/배지 UI와 후보군 상세 훅
       product-drawer/     # 상품 drawer shell, primary/secondary 드로워
     hooks/                # useProductDrawerBundle, usePeriodRangeFilter

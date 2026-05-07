@@ -1,6 +1,6 @@
 import type { ProductPrimarySummary } from '../../../../../types'
 import { KO } from '../../ko'
-import styles from '../productSecondaryDrawer.module.css'
+import styles from '../secondaryDrawer.module.css'
 
 type Props = {
   primary: ProductPrimarySummary

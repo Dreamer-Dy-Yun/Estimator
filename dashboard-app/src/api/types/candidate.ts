@@ -27,7 +27,7 @@ export interface CandidateItemSummary {
   /** Expected operating profit in KRW; same meaning as details.drawer2.stockDerived.expectedOpProfit. */
   expectedOpProfit: number
   insight: CandidateItemInsightSummary
-  /** Whether the stored LLM recommendation/comment reflects the latest saved snapshot. */
+  /** Whether the stored AI recommendation/comment reflects the latest saved snapshot. */
   isLatestLlmComment: boolean
   dbCreatedAt: string
   dbUpdatedAt: string
