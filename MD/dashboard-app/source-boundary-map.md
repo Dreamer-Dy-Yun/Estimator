@@ -28,7 +28,7 @@
 - vendor chunk는 `vite.config.ts`의 Rolldown `codeSplitting.groups`가 소유한다. Recharts 같은 내부 순서 의존 라이브러리는 `maxSize`로 강제 세분화하지 않는다.
 - 후보 아이템 목업 스냅샷은 `drawer2.llmAnswer`에 임시 AI 코멘트를 포함하고, 기존 localStorage 데이터도 빈 코멘트만 보강해 2차 드로어에서 바로 확인되게 한다.
 - 이너 후보 1차 드로어 닫힘은 `drawerClosing` 상태로 DOM과 모달 폭 보정 상태를 잠시 유지해, 열림의 역방향으로 모달 폭이 복원되게 한다.
-- 로그인 화면, 라우트 보호, 사용자 정보 변경 모달은 `src/auth`가 소유한다. 인증 API 계약과 목 세션 저장은 `src/api` 아래에 두어 실제 백엔드로 교체할 때 화면이 mock 구현을 직접 알지 않게 한다.
+- 로그인 화면, 라우트 보호, 사용자 정보/비밀번호 변경 모달은 `src/auth`가 소유한다. 인증 API 계약과 목 세션 저장은 `src/api` 아래에 두어 실제 백엔드로 교체할 때 화면이 mock 구현을 직접 알지 않게 한다. 보호 라우트는 직접 URL 진입과 새로고침 복귀를 위해 `/login?redirect=...`를 남긴다.
 - 관리자 유저 관리 화면은 `/admin` 별도 라우트와 `src/admin`이 소유한다. 대시보드 업무 탭에 끼우지 않고 관리자 권한 사용자에게만 헤더 진입 버튼을 보여준다.
 
 ## 최상위 저장소
@@ -85,7 +85,7 @@
 
 | 파일 | 역할 |
 |------|------|
-| `auth.ts` | 로그인 요청, 인증 사용자, 사용자 정보 변경, 관리자 유저 관리, 세션, 인증 API 계약 |
+| `auth.ts` | 로그인 요청, 인증 사용자, 사용자 정보/비밀번호 변경, 관리자 유저 관리, 세션, 인증 API 계약 |
 | `candidate.ts` | 후보군/이너 후보/후보군 분석 SSE 요청·응답 계약 |
 | `dashboard-api.ts` | 화면에서 쓰는 `DashboardApi` 인터페이스 |
 | `drawer.ts` | 1차 drawer bundle과 판매 인사이트 계약 |
@@ -120,7 +120,7 @@
 | `RequireAuth.tsx` | `/dashboard/*` 보호 라우트. 세션이 없으면 `/login`으로 보낸 뒤 원래 경로를 보존 |
 | `LoginPage.tsx` | 로그인 라우트 화면. 목 인증 단계에서는 어떤 입력도 성공 처리 |
 | `LoginPage.module.css` | 로그인 화면 전용 스타일 |
-| `UserProfileDialog.tsx` | 헤더 사용자 정보 확인과 표시 이름 변경 모달 |
+| `UserProfileDialog.tsx` | 헤더 사용자 정보 확인, 표시 이름 변경, 비밀번호 변경 모달 |
 | `UserProfileDialog.module.css` | 사용자 정보 모달 전용 스타일 |
 | `authGate.module.css` | 보호 라우트의 세션 확인 상태 스타일 |
 

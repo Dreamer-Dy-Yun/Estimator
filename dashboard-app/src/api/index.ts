@@ -4,6 +4,7 @@ export type {
   AuthRole,
   AuthSession,
   AuthUser,
+  ChangePasswordPayload,
   CompetitorSalesParams,
   DashboardApi,
   LoginRequest,
@@ -30,6 +31,7 @@ export type {
 export { DAILY_TREND_AS_OF_DATE } from './dailyTrendAsOf'
 export {
   authApi,
+  changeCurrentUserPassword,
   dashboardApi,
   getAdminUsers,
   getCurrentAuthSession,

@@ -2,6 +2,7 @@ import type {
   AdminUserSummary,
   AuthApi,
   AuthSession,
+  ChangePasswordPayload,
   LoginRequest,
   LoginResult,
   UpdateAdminUserPayload,
@@ -170,6 +171,19 @@ export const mockAuthApi: AuthApi = {
       user.id === current.user.id ? { ...user, name, dbUpdatedAt: now } : user
     )))
     return nextSession
+  },
+  changeCurrentUserPassword: async (payload: ChangePasswordPayload): Promise<void> => {
+    await sleep(90)
+    const current = readStoredSession()
+    if (!current) {
+      throw new Error('로그인이 필요합니다.')
+    }
+    if (!payload.currentPassword.trim()) {
+      throw new Error('현재 비밀번호를 입력해 주세요.')
+    }
+    if (payload.newPassword.length < 4) {
+      throw new Error('새 비밀번호는 4자 이상이어야 합니다.')
+    }
   },
   getAdminUsers: async (): Promise<AdminUserSummary[]> => {
     await sleep(90)

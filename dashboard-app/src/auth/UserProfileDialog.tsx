@@ -23,14 +23,20 @@ function getErrorMessage(error: unknown) {
 }
 
 export function UserProfileDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const { session, updateUser } = useAuth()
+  const { session, updateUser, changePassword } = useAuth()
   const [name, setName] = useState('')
+  const [currentPassword, setCurrentPassword] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [isSaving, setIsSaving] = useState(false)
 
   useEffect(() => {
     if (!open) return
     setName(session?.user.name ?? '')
+    setCurrentPassword('')
+    setNewPassword('')
+    setConfirmPassword('')
     setErrorMessage(null)
     setIsSaving(false)
   }, [open, session?.user.name])
@@ -43,7 +49,20 @@ export function UserProfileDialog({ open, onClose }: { open: boolean; onClose: (
     setIsSaving(true)
 
     try {
+      const wantsPasswordChange = Boolean(currentPassword || newPassword || confirmPassword)
+      if (wantsPasswordChange) {
+        if (!currentPassword || !newPassword || !confirmPassword) {
+          throw new Error('비밀번호 변경 항목을 모두 입력해 주세요.')
+        }
+        if (newPassword !== confirmPassword) {
+          throw new Error('새 비밀번호 확인이 일치하지 않습니다.')
+        }
+      }
+
       await updateUser({ name })
+      if (wantsPasswordChange) {
+        await changePassword({ currentPassword, newPassword })
+      }
       onClose()
     } catch (error) {
       setErrorMessage(getErrorMessage(error))
@@ -95,6 +114,39 @@ export function UserProfileDialog({ open, onClose }: { open: boolean; onClose: (
               maxLength={40}
             />
           </label>
+
+          <div className={styles.passwordGroup}>
+            <div className={styles.groupHeader}>
+              <h3>비밀번호 변경</h3>
+            </div>
+            <label className={styles.field}>
+              <span>현재 비밀번호</span>
+              <input
+                value={currentPassword}
+                onChange={(event) => setCurrentPassword(event.target.value)}
+                type="password"
+                autoComplete="current-password"
+              />
+            </label>
+            <label className={styles.field}>
+              <span>새 비밀번호</span>
+              <input
+                value={newPassword}
+                onChange={(event) => setNewPassword(event.target.value)}
+                type="password"
+                autoComplete="new-password"
+              />
+            </label>
+            <label className={styles.field}>
+              <span>새 비밀번호 확인</span>
+              <input
+                value={confirmPassword}
+                onChange={(event) => setConfirmPassword(event.target.value)}
+                type="password"
+                autoComplete="new-password"
+              />
+            </label>
+          </div>
 
           {errorMessage ? <p className={styles.errorMessage}>{errorMessage}</p> : null}
 

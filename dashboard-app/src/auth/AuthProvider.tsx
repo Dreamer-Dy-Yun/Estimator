@@ -8,12 +8,13 @@ import {
   type ReactNode,
 } from 'react'
 import {
+  changeCurrentUserPassword,
   getCurrentAuthSession,
   login as requestLogin,
   logout as requestLogout,
   updateCurrentUser,
 } from '../api'
-import type { AuthSession, LoginRequest, UpdateAuthUserPayload } from '../api'
+import type { AuthSession, ChangePasswordPayload, LoginRequest, UpdateAuthUserPayload } from '../api'
 
 type AuthContextValue = {
   session: AuthSession | null
@@ -21,6 +22,7 @@ type AuthContextValue = {
   refreshSession(): Promise<AuthSession | null>
   login(payload: LoginRequest): Promise<AuthSession>
   updateUser(payload: UpdateAuthUserPayload): Promise<AuthSession>
+  changePassword(payload: ChangePasswordPayload): Promise<void>
   logout(): Promise<void>
 }
 
@@ -71,6 +73,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return nextSession
   }, [])
 
+  const changePassword = useCallback(async (payload: ChangePasswordPayload) => {
+    await changeCurrentUserPassword(payload)
+  }, [])
+
   const value = useMemo(
     () => ({
       session,
@@ -78,9 +84,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       refreshSession,
       login,
       updateUser,
+      changePassword,
       logout,
     }),
-    [isLoading, login, logout, refreshSession, session, updateUser],
+    [changePassword, isLoading, login, logout, refreshSession, session, updateUser],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

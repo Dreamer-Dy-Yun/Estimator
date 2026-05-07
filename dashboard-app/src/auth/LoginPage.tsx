@@ -1,5 +1,5 @@
 import { useMemo, useState, type FormEvent } from 'react'
-import { Navigate, useLocation, useNavigate } from 'react-router-dom'
+import { Navigate, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from './AuthProvider'
 import styles from './LoginPage.module.css'
 
@@ -11,8 +11,8 @@ function getErrorMessage(error: unknown) {
   return error instanceof Error ? error.message : '로그인 처리 중 오류가 발생했습니다.'
 }
 
-function getRedirectTo(state: LoginLocationState | null) {
-  const redirectTo = state?.redirectTo
+function getRedirectTo(queryRedirect: string | null, state: LoginLocationState | null) {
+  const redirectTo = queryRedirect || state?.redirectTo
   if (!redirectTo || redirectTo.startsWith('/login')) return '/dashboard/self'
   return redirectTo
 }
@@ -20,12 +20,16 @@ function getRedirectTo(state: LoginLocationState | null) {
 export function LoginPage() {
   const location = useLocation()
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const { session, login } = useAuth()
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const redirectTo = useMemo(() => getRedirectTo(location.state as LoginLocationState | null), [location.state])
+  const redirectTo = useMemo(
+    () => getRedirectTo(searchParams.get('redirect'), location.state as LoginLocationState | null),
+    [location.state, searchParams],
+  )
 
   if (session) {
     return <Navigate to={redirectTo} replace />

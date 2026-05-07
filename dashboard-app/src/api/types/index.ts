@@ -4,6 +4,7 @@ export type {
   AuthRole,
   AuthSession,
   AuthUser,
+  ChangePasswordPayload,
   LoginRequest,
   LoginResult,
   UpdateAdminUserPayload,

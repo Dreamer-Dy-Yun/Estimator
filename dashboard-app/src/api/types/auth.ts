@@ -9,6 +9,11 @@ export interface UpdateAuthUserPayload {
   name: string
 }
 
+export interface ChangePasswordPayload {
+  currentPassword: string
+  newPassword: string
+}
+
 export interface AuthUser {
   id: string
   name: string
@@ -41,6 +46,7 @@ export interface AuthApi {
   getCurrentSession(): Promise<AuthSession | null>
   login(payload: LoginRequest): Promise<LoginResult>
   updateCurrentUser(payload: UpdateAuthUserPayload): Promise<AuthSession>
+  changeCurrentUserPassword(payload: ChangePasswordPayload): Promise<void>
   getAdminUsers(): Promise<AdminUserSummary[]>
   updateAdminUser(payload: UpdateAdminUserPayload): Promise<AdminUserSummary>
   logout(): Promise<void>

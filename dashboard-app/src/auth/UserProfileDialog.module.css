@@ -87,6 +87,20 @@
   gap: 14px;
 }
 
+.passwordGroup {
+  display: grid;
+  gap: 12px;
+  margin-top: 4px;
+  padding-top: 14px;
+  border-top: 1px solid #e2e8f0;
+}
+
+.groupHeader h3 {
+  color: #111827;
+  font-size: 15px;
+  line-height: 1.2;
+}
+
 .field {
   display: grid;
   gap: 7px;

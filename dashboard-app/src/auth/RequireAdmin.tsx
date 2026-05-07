@@ -12,7 +12,7 @@ export function RequireAdmin() {
 
   if (!session) {
     const redirectTo = `${location.pathname}${location.search}${location.hash}`
-    return <Navigate to="/login" replace state={{ redirectTo }} />
+    return <Navigate to={`/login?redirect=${encodeURIComponent(redirectTo)}`} replace state={{ redirectTo }} />
   }
 
   if (session.user.role !== 'admin') {

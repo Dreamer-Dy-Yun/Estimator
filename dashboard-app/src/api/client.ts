@@ -5,6 +5,7 @@ import type {
   AppendCandidateItemPayload,
   AuthApi,
   AuthSession,
+  ChangePasswordPayload,
   UpdateCandidateItemPayload,
   CandidateItemDetail,
   CandidateItemListResult,
@@ -51,6 +52,11 @@ export async function updateCurrentUser(payload: UpdateAuthUserPayload): Promise
   return mockAuthApi.updateCurrentUser(payload)
 }
 
+/** 현재 사용자 비밀번호 변경. 목 구현은 입력 검증만 수행한다. */
+export async function changeCurrentUserPassword(payload: ChangePasswordPayload): Promise<void> {
+  return mockAuthApi.changeCurrentUserPassword(payload)
+}
+
 /** 관리자용 사용자 목록 조회. 실제 HTTP 전환 시 관리자 권한 API로 분리된다. */
 export async function getAdminUsers(): Promise<AdminUserSummary[]> {
   return mockAuthApi.getAdminUsers()
@@ -71,6 +77,7 @@ export const authApi: AuthApi = {
   getCurrentSession: getCurrentAuthSession,
   login,
   updateCurrentUser,
+  changeCurrentUserPassword,
   getAdminUsers,
   updateAdminUser,
   logout,

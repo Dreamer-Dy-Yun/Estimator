@@ -50,6 +50,7 @@
 | `login(payload)` | POST | `/auth/login` |
 | `getCurrentSession()` | GET | `/auth/session` |
 | `updateCurrentUser(payload)` | PATCH | `/auth/me` |
+| `changeCurrentUserPassword(payload)` | POST | `/auth/me/password` |
 | `getAdminUsers()` | GET | `/admin/users` |
 | `updateAdminUser(payload)` | PATCH | `/admin/users/:userId` |
 | `logout()` | POST | `/auth/logout` |
@@ -75,6 +76,15 @@
 | 필드 | 타입 | 설명 |
 |------|------|------|
 | `name` | string | 헤더와 사용자 정보 모달에 표시할 이름. 목 구현은 현재 세션의 이름만 갱신 |
+
+**`ChangePasswordPayload`**
+
+| 필드 | 타입 | 설명 |
+|------|------|------|
+| `currentPassword` | string | 현재 비밀번호 |
+| `newPassword` | string | 새 비밀번호 |
+
+프론트는 새 비밀번호 확인 입력을 화면 내부에서 비교한 뒤 `newPassword`만 API로 보냅니다. 목 구현은 현재 비밀번호의 실제 일치 여부를 검증하지 않고 입력 여부와 새 비밀번호 길이만 확인합니다.
 
 **`AdminUserSummary`**
 
