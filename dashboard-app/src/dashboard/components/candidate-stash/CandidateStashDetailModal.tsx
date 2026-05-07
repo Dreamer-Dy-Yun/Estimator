@@ -268,6 +268,24 @@ export function CandidateStashDetailModal({ stashUuid, stashSummary, onClose, on
                         {m.detailTarget.name}
                       </h3>
                     </div>
+                    <div className={detailStyles.detailHeaderPeriodCell} aria-label="조회 기준 기간">
+                      <label className={detailStyles.detailHeaderPeriodField}>
+                        <span>조회 시작일</span>
+                        <input
+                          type="date"
+                          value={m.queryPeriodStart}
+                          onChange={(event) => m.onQueryPeriodStartChange(event.target.value)}
+                        />
+                      </label>
+                      <label className={detailStyles.detailHeaderPeriodField}>
+                        <span>조회 종료일</span>
+                        <input
+                          type="date"
+                          value={m.queryPeriodEnd}
+                          onChange={(event) => m.onQueryPeriodEndChange(event.target.value)}
+                        />
+                      </label>
+                    </div>
                     <div className={detailStyles.detailMetaStack}>
                       <span className={detailStyles.detailMetaLine}>
                         생성 {formatDateTimeMinute(m.detailTarget.dbCreatedAt)}

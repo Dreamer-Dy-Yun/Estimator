@@ -20,6 +20,7 @@ import type { OrderSnapshotDocumentV1 } from '../../../snapshot/orderSnapshotTyp
 import { uniqueSortedStrings } from '../../../utils/uniqueSortedStrings'
 import { mergePrimarySummaryFromBundleAndSnapshot } from '../../drawer/mergePrimarySummaryFromSnapshot'
 import { useProductDrawerBundle } from '../../hooks/useProductDrawerBundle'
+import { normalizeRangeOnEndInput, normalizeRangeOnStartInput } from '../../hooks/usePeriodRangeFilter'
 
 const INNER_DRAWER_CLOSE_LAYOUT_MS = 440
 
@@ -30,6 +31,22 @@ type Args = {
   /** 부모가 이미 알고 있으면 전달 — `getCandidateStashes()` 중복 호출 생략 */
   stashSummary?: CandidateStashSummary | null
   onStashesInvalidate?: () => void
+}
+
+function applySnapshotPeriod(
+  snap: OrderSnapshotDocumentV1,
+  periodStart: string,
+  periodEnd: string,
+): OrderSnapshotDocumentV1 {
+  return {
+    ...snap,
+    context: {
+      ...snap.context,
+      periodStart,
+      periodEnd,
+      dailyTrendStartMonth: periodStart.slice(0, 7),
+    },
+  }
 }
 
 export function useCandidateStashDetailModal({
@@ -45,6 +62,8 @@ export function useCandidateStashDetailModal({
   const [brandQuery, setBrandQuery] = useState('')
   const [productCodeQuery, setProductCodeQuery] = useState('')
   const [productNameQuery, setProductNameQuery] = useState('')
+  const [queryPeriodStart, setQueryPeriodStart] = useState('')
+  const [queryPeriodEnd, setQueryPeriodEnd] = useState('')
 
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [drawerClosing, setDrawerClosing] = useState(false)
@@ -210,6 +229,28 @@ export function useCandidateStashDetailModal({
     [stashUuid, stashes],
   )
 
+  useEffect(() => {
+    if (!detailTarget) {
+      setQueryPeriodStart('')
+      setQueryPeriodEnd('')
+      return
+    }
+    setQueryPeriodStart(detailTarget.periodStart)
+    setQueryPeriodEnd(detailTarget.periodEnd)
+  }, [detailTarget?.uuid])
+
+  const onQueryPeriodStartChange = useCallback((value: string) => {
+    if (!value) return
+    setQueryPeriodStart(value)
+    setQueryPeriodEnd((currentEnd) => normalizeRangeOnStartInput(value, currentEnd || value).endDate)
+  }, [])
+
+  const onQueryPeriodEndChange = useCallback((value: string) => {
+    if (!value) return
+    setQueryPeriodEnd(value)
+    setQueryPeriodStart((currentStart) => normalizeRangeOnEndInput(value, currentStart || value).startDate)
+  }, [])
+
   const brandOptions = useMemo(() => uniqueSortedStrings(items.map((i) => i.brand)), [items])
   const productCodeOptions = useMemo(() => uniqueSortedStrings(items.map((i) => i.productCode)), [items])
   const productNameOptions = useMemo(() => uniqueSortedStrings(items.map((i) => i.productName)), [items])
@@ -254,13 +295,21 @@ export function useCandidateStashDetailModal({
     allowStaleWhileRevalidate: false,
   })
 
+  const periodStart = queryPeriodStart || hydrateSnap?.context.periodStart
+  const periodEnd = queryPeriodEnd || hydrateSnap?.context.periodEnd
+  const drawerHydrateSnap = useMemo(
+    () => (
+      hydrateSnap && periodStart && periodEnd
+        ? applySnapshotPeriod(hydrateSnap, periodStart, periodEnd)
+        : hydrateSnap
+    ),
+    [hydrateSnap, periodEnd, periodStart],
+  )
   const mergedSummary = useMemo(
-    () => mergePrimarySummaryFromBundleAndSnapshot(drawerProductId, bundle, hydrateSnap),
-    [bundle, drawerProductId, hydrateSnap],
+    () => mergePrimarySummaryFromBundleAndSnapshot(drawerProductId, bundle, drawerHydrateSnap),
+    [bundle, drawerProductId, drawerHydrateSnap],
   )
 
-  const periodStart = hydrateSnap?.context.periodStart
-  const periodEnd = hydrateSnap?.context.periodEnd
   if (drawerOpen && (!periodStart || !periodEnd)) {
     throw new Error('후보 스냅샷 기간 정보 누락')
   }
@@ -389,7 +438,11 @@ export function useCandidateStashDetailModal({
     setProductNameQuery,
     drawerError,
     openedItemUuid,
-    hydrateSnap,
+    hydrateSnap: drawerHydrateSnap,
+    queryPeriodStart,
+    queryPeriodEnd,
+    onQueryPeriodStartChange,
+    onQueryPeriodEndChange,
     fc,
     bundle,
     mergedSummary,

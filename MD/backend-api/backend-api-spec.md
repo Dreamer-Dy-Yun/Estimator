@@ -318,7 +318,7 @@
 | `uuid` | 스태시 PK |
 | `name`, `note` | 이름·비고 |
 | `productId` | 연결 상품 |
-| `periodStart`, `periodEnd` | 후보군 생성 당시의 분석 기간 |
+| `periodStart`, `periodEnd` | 후보군 생성 당시의 분석 기간. 프론트 상세 화면은 이 값을 조회 기준일 초기값으로 쓰며, 화면 내 변경값은 이너 후보 드로어를 열 때 기간 기준으로 적용 |
 | `forecastMonths` | 후보군 생성 당시의 월간 판매추이 포캐스트 개월 수 |
 | `itemCount` | 소속 후보 아이템 개수 |
 | `dbCreatedAt`, `dbUpdatedAt` | 생성·수정 시각(아이템 추가로 스태시 “갱신” 시각을 반영할지는 백엔드 정책) |
