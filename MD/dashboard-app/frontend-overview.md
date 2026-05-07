@@ -61,6 +61,7 @@
 - 인증 UI와 세션 상태는 [`src/auth`](../../dashboard-app/src/auth/)가 소유합니다.
 - 로그인/세션 확인/사용자 정보 변경/비밀번호 변경/관리자 유저 관리/로그아웃 호출은 [`src/api/client.ts`](../../dashboard-app/src/api/client.ts)의 `authApi`와 개별 함수로만 접근합니다.
 - 현재 목 구현은 [`api/mock/authApi.ts`](../../dashboard-app/src/api/mock/authApi.ts)에서 `localStorage`의 mock 사용자 목록에 저장된 로그인 ID와 비밀번호를 확인하고, 세션은 브라우저 `sessionStorage`에 저장합니다. 헤더 우상단의 사용자 정보 버튼은 로그인 ID와 역할을 표시하고, 모달에서 로그인 ID와 비밀번호를 변경합니다.
+- 권한은 `admin`과 `user`만 사용합니다. `admin`은 관리자 화면 접근이 가능하고, `user`는 일반 대시보드만 접근합니다.
 - 관리자 화면은 mock 유저 목록을 브라우저 `localStorage`에 저장하고, 로그인 ID와 초기 비밀번호 기반 유저 추가, UUID 기준 제거, 로그인 ID/권한/활성 상태 수정을 지원합니다. 이메일 초대 발송과 표시 이름 관리는 상정하지 않습니다. 현재 로그인한 관리자 자신의 제거, 권한 해제, 비활성화는 잠금 방지를 위해 막습니다.
 - 실제 백엔드 전환 시 우선 권장 형태는 HttpOnly cookie 기반 세션이며, 프론트 화면은 `AuthApi` 계약을 유지한 채 client 구현만 교체합니다.
 

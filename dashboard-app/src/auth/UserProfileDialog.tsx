@@ -4,8 +4,7 @@ import styles from './UserProfileDialog.module.css'
 
 const ROLE_LABELS = {
   admin: '관리자',
-  operator: '운영자',
-  viewer: '조회자',
+  user: '사용자',
 } as const
 
 function formatExpiresAt(value: string) {

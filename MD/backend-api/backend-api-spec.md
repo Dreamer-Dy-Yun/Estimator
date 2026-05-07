@@ -70,7 +70,7 @@
 |------|------|------|
 | `user.uuid` | string | 서버 생성 사용자 UUID. 화면 수정/삭제의 식별자 |
 | `user.loginId` | string | 로그인 ID. 헤더와 사용자 정보 모달의 계정 표시값 |
-| `user.role` | `'admin' \| 'operator' \| 'viewer'` | 프론트 권한 분기용 역할 |
+| `user.role` | `'admin' \| 'user'` | 프론트 권한 분기용 역할. 관리자는 관리자 화면 접근 가능, 사용자는 일반 대시보드 접근만 가능 |
 | `expiresAt` | string | ISO 8601 세션 만료 시각 |
 
 **`UpdateAuthUserPayload`**
@@ -94,7 +94,7 @@
 |------|------|------|
 | `uuid` | string | 서버 생성 사용자 UUID. 화면 수정/삭제의 식별자 |
 | `loginId` | string | 로그인 ID |
-| `role` | `'admin' \| 'operator' \| 'viewer'` | 사용자 권한 |
+| `role` | `'admin' \| 'user'` | 사용자 권한 |
 | `isActive` | boolean | 활성 계정 여부 |
 | `dbUpdatedAt` | string | ISO 8601 최근 변경 시각 |
 
@@ -104,7 +104,7 @@
 |------|------|------|
 | `loginId` | string | 로그인 ID. 목 구현은 영문 소문자, 숫자, `.`, `_`, `-` 조합 3~32자를 허용 |
 | `password` | string | 최초 로그인용 비밀번호 |
-| `role` | `'admin' \| 'operator' \| 'viewer'` | 사용자 권한 |
+| `role` | `'admin' \| 'user'` | 사용자 권한 |
 | `isActive` | boolean | 생성 시 활성 상태 |
 
 **`UpdateAdminUserPayload`**
@@ -113,7 +113,7 @@
 |------|------|------|
 | `uuid` | string | 변경 대상 사용자 UUID |
 | `loginId` | string | 변경할 로그인 ID. UUID는 바뀌지 않음 |
-| `role` | `'admin' \| 'operator' \| 'viewer'` | 변경할 권한 |
+| `role` | `'admin' \| 'user'` | 변경할 권한 |
 | `isActive` | boolean | 활성 상태 |
 
 `/admin/users` 계열은 관리자 권한이 필요합니다. 실제 백엔드는 현재 로그인한 관리자 본인을 삭제/비활성화하거나 마지막 활성 관리자 권한을 제거하지 못하도록 검증하는 정책을 권장합니다.

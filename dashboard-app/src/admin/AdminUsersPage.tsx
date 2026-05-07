@@ -7,8 +7,7 @@ import styles from './AdminUsersPage.module.css'
 
 const ROLE_OPTIONS: Array<{ value: AuthRole; label: string }> = [
   { value: 'admin', label: '관리자' },
-  { value: 'operator', label: '운영자' },
-  { value: 'viewer', label: '조회자' },
+  { value: 'user', label: '사용자' },
 ]
 
 function getErrorMessage(error: unknown) {
@@ -151,7 +150,7 @@ export function AdminUsersPage() {
   const [users, setUsers] = useState<AdminUserSummary[]>([])
   const [newLoginId, setNewLoginId] = useState('')
   const [newPassword, setNewPassword] = useState('')
-  const [newRole, setNewRole] = useState<AuthRole>('viewer')
+  const [newRole, setNewRole] = useState<AuthRole>('user')
   const [newIsActive, setNewIsActive] = useState(true)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [createErrorMessage, setCreateErrorMessage] = useState<string | null>(null)
@@ -203,7 +202,7 @@ export function AdminUsersPage() {
       setUsers((prev) => sortUsers([...prev, created]))
       setNewLoginId('')
       setNewPassword('')
-      setNewRole('viewer')
+      setNewRole('user')
       setNewIsActive(true)
     } catch (error) {
       setCreateErrorMessage(getErrorMessage(error))

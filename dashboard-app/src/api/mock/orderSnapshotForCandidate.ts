@@ -30,7 +30,7 @@ function buildMockAiPrompt(snapshot: SecondaryOrderSnapshotPayload) {
   return [
     `${summary.brand} ${summary.name}의 오더 후보 스냅샷을 검토해 주세요.`,
     `기간 ${snapshot.context.periodStart}~${snapshot.context.periodEnd}, 경쟁 채널 ${d2.competitorChannelLabel}, 확정 오더 ${formatEa(d2.confirmedTotals?.orderQty)} 기준입니다.`,
-    '판매 흐름, 재고 여유, 사이즈별 확정 수량 기준으로 운영자가 바로 확인할 코멘트를 짧게 작성해 주세요.',
+    '판매 흐름, 재고 여유, 사이즈별 확정 수량 기준으로 사용자가 바로 확인할 코멘트를 짧게 작성해 주세요.',
   ].join('\n')
 }
 

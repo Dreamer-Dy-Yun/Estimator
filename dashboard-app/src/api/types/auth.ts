@@ -3,7 +3,7 @@ export interface LoginRequest {
   password: string
 }
 
-export type AuthRole = 'admin' | 'operator' | 'viewer'
+export type AuthRole = 'admin' | 'user'
 
 export interface UpdateAuthUserPayload {
   loginId: string

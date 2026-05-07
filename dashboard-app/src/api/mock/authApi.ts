@@ -27,6 +27,7 @@ type LegacyAuthUser = Partial<StoredAuthUser> & {
   userId?: string
   name?: string
   initialPassword?: string
+  role?: unknown
 }
 
 const MOCK_AUTH_USER: AuthUser = {
@@ -46,17 +47,9 @@ const DEFAULT_AUTH_USERS: StoredAuthUser[] = [
   },
   {
     uuid: '00000000-0000-4000-8000-000000000002',
-    loginId: 'mock-operator',
-    password: 'operator',
-    role: 'operator',
-    isActive: true,
-    dbUpdatedAt: MOCK_UPDATED_AT,
-  },
-  {
-    uuid: '00000000-0000-4000-8000-000000000003',
-    loginId: 'mock-viewer',
-    password: 'viewer',
-    role: 'viewer',
+    loginId: 'mock-user',
+    password: 'user',
+    role: 'user',
     isActive: true,
     dbUpdatedAt: MOCK_UPDATED_AT,
   },
@@ -81,7 +74,11 @@ function isValidLoginId(loginId: string) {
 }
 
 function isAuthRole(role: unknown): role is AuthRole {
-  return role === 'admin' || role === 'operator' || role === 'viewer'
+  return role === 'admin' || role === 'user'
+}
+
+function normalizeAuthRole(role: unknown): AuthRole {
+  return isAuthRole(role) ? role : 'user'
 }
 
 function getLegacyPasswordFallback(loginId: string) {
@@ -109,7 +106,7 @@ function normalizeStoredUser(user: LegacyAuthUser): StoredAuthUser | null {
         : typeof user.initialPassword === 'string' && user.initialPassword
           ? user.initialPassword
           : getLegacyPasswordFallback(loginId),
-    role: isAuthRole(user.role) ? user.role : 'viewer',
+    role: normalizeAuthRole(user.role),
     isActive: typeof user.isActive === 'boolean' ? user.isActive : true,
     dbUpdatedAt: typeof user.dbUpdatedAt === 'string' ? user.dbUpdatedAt : new Date().toISOString(),
   }
