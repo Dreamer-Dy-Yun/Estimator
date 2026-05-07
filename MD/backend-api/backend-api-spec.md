@@ -2,9 +2,12 @@
 
 | 항목 | 내용 |
 |------|------|
+| 작성 지시 | Yun Daeyoung |
+| 작성자 | Codex |
 | 작성일 | 2026-04-23 |
-| 변경일 | 2026-05-07 |
-| 지시 | Yun Daeyoung |
+| 최종 수정일 | 2026-05-07 |
+| 상태 | 유지 문서 |
+| 적용 범위 | `dashboard-app/src/api/types`, 백엔드 REST API 계약 |
 
 이 문서는 프론트의 **`AuthApi` / `DashboardApi` TypeScript 계약**을 만족하는 REST API를 설계·구현하기 위한 참고 자료입니다. 필드명은 **camelCase**, JSON 직렬화를 가정합니다.
 
@@ -61,8 +64,8 @@
 
 | 필드 | 타입 | 설명 |
 |------|------|------|
-| `loginId` | string | 로그인 ID. 목 구현은 영문 소문자, 숫자, `.`, `_`, `-` 조합 3~32자를 허용 |
-| `password` | string | 비밀번호. 목 구현은 저장된 mock 비밀번호와 일치해야 함 |
+| `loginId` | string | 로그인 ID. 실제 백엔드 검증 정책은 서버가 소유한다. 현재 mock은 동작 확인용으로 값을 검증하지 않고, `mock-user`만 일반 사용자 권한으로 처리한다 |
+| `password` | string | 비밀번호. 실제 백엔드는 서버에서 검증한다. 현재 mock은 값을 검증하지 않는다 |
 
 **`AuthSession`**
 
@@ -86,7 +89,7 @@
 | `currentPassword` | string | 현재 비밀번호 |
 | `newPassword` | string | 새 비밀번호 |
 
-프론트는 새 비밀번호 확인 입력을 화면 내부에서 비교한 뒤 `newPassword`만 API로 보냅니다. 목 구현은 현재 비밀번호 일치 여부와 새 비밀번호 길이를 확인합니다.
+프론트는 새 비밀번호 확인 입력을 화면 내부에서 비교한 뒤 `newPassword`만 API로 보냅니다. 실제 백엔드는 현재 비밀번호와 새 비밀번호 정책을 서버에서 검증합니다. 현재 mock은 동작 확인용으로 호출 성공만 모사합니다.
 
 **`AdminUserSummary`**
 
@@ -102,7 +105,7 @@
 
 | 필드 | 타입 | 설명 |
 |------|------|------|
-| `loginId` | string | 로그인 ID. 목 구현은 영문 소문자, 숫자, `.`, `_`, `-` 조합 3~32자를 허용 |
+| `loginId` | string | 로그인 ID. 실제 백엔드 검증 정책은 서버가 소유한다. 현재 mock은 값을 검증하지 않고 호출 성공만 모사한다 |
 | `password` | string | 최초 로그인용 비밀번호 |
 | `role` | `'admin' \| 'user'` | 사용자 권한 |
 | `isActive` | boolean | 생성 시 활성 상태 |
