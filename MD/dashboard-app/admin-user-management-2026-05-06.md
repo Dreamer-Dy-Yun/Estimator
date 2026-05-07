@@ -26,7 +26,7 @@
 
 ## Plan
 
-1. `src/api/types/auth.ts`에 관리자 유저 목록/수정 타입을 추가한다.
+1. `src/api/types/auth.ts`에 관리자 유저 목록/추가/제거/수정 타입을 추가한다.
 2. `api/mock/authApi.ts`에서 mock 유저 목록을 `localStorage`에 저장한다.
 3. `RequireAdmin`으로 `/admin` 접근을 관리자 세션에만 허용한다.
 4. `src/admin/AdminUsersPage.tsx`에서 유저 목록을 추가/제거/편집 가능하게 표시한다.
@@ -35,7 +35,7 @@
 
 ## Result
 
-관리자 계정은 대시보드 헤더에서 관리자 화면으로 이동할 수 있고, `/admin`에서 목 유저의 추가, 제거, 이름, 권한, 활성 상태를 관리할 수 있다. 변경 결과는 브라우저 `localStorage`에 유지된다.
+관리자 계정은 대시보드 헤더에서 관리자 화면으로 이동할 수 있고, `/admin`에서 로그인 ID와 임시 비밀번호로 목 유저를 추가하고, 제거, 이름, 권한, 활성 상태를 관리할 수 있다. 이메일 초대 발송은 현재 범위에 없다. 변경 결과는 브라우저 `localStorage`에 유지된다.
 
 ## Non-goals
 

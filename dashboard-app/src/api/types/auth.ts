@@ -21,14 +21,14 @@ export interface AuthUser {
 }
 
 export interface AdminUserSummary extends AuthUser {
-  email: string
   isActive: boolean
   dbUpdatedAt: string
 }
 
 export interface CreateAdminUserPayload {
+  userId: string
   name: string
-  email: string
+  initialPassword: string
   role: AuthRole
   isActive: boolean
 }

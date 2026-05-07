@@ -26,7 +26,6 @@ const DEFAULT_AUTH_USERS: AdminUserSummary[] = [
     id: 'mock-admin',
     name: MOCK_AUTH_USER.name,
     role: 'admin',
-    email: 'admin@han-a.local',
     isActive: true,
     dbUpdatedAt: MOCK_UPDATED_AT,
   },
@@ -34,7 +33,6 @@ const DEFAULT_AUTH_USERS: AdminUserSummary[] = [
     id: 'mock-operator',
     name: 'Order Operator',
     role: 'operator',
-    email: 'operator@han-a.local',
     isActive: true,
     dbUpdatedAt: MOCK_UPDATED_AT,
   },
@@ -42,7 +40,6 @@ const DEFAULT_AUTH_USERS: AdminUserSummary[] = [
     id: 'mock-viewer',
     name: 'Sales Viewer',
     role: 'viewer',
-    email: 'viewer@han-a.local',
     isActive: true,
     dbUpdatedAt: MOCK_UPDATED_AT,
   },
@@ -59,7 +56,13 @@ function readStoredUsers(): AdminUserSummary[] {
     }
     const users = JSON.parse(raw) as AdminUserSummary[]
     if (!Array.isArray(users)) throw new Error('invalid users')
-    return users
+    return users.map((user) => ({
+      id: user.id,
+      name: user.name,
+      role: user.role,
+      isActive: user.isActive,
+      dbUpdatedAt: user.dbUpdatedAt,
+    }))
   } catch {
     window.localStorage.setItem(AUTH_USERS_STORAGE_KEY, JSON.stringify(DEFAULT_AUTH_USERS))
     return DEFAULT_AUTH_USERS
@@ -71,39 +74,26 @@ function writeStoredUsers(users: AdminUserSummary[]) {
   window.localStorage.setItem(AUTH_USERS_STORAGE_KEY, JSON.stringify(users))
 }
 
-function makeUserId(email: string, existingUsers: AdminUserSummary[]) {
-  const localPart = email.split('@')[0]?.trim().toLowerCase() || 'user'
-  const base = localPart.replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'user'
-  let candidate = base
-  let suffix = 2
-  const existingIds = new Set(existingUsers.map((user) => user.id))
-  while (existingIds.has(candidate)) {
-    candidate = `${base}-${suffix}`
-    suffix += 1
-  }
-  return candidate
+function normalizeUserId(userId: string) {
+  return userId.trim().toLowerCase()
 }
 
-function isValidEmail(email: string) {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+function isValidUserId(userId: string) {
+  return /^[a-z0-9][a-z0-9._-]{2,31}$/.test(userId)
 }
 
 function makeMockSession(username: string): AuthSession {
   const users = readStoredUsers()
-  const adminUser = users.find((user) => user.id === MOCK_AUTH_USER.id) ?? DEFAULT_AUTH_USERS[0]!
-  const name = username.trim() || adminUser.name
-  if (username.trim()) {
-    const now = new Date().toISOString()
-    writeStoredUsers(users.map((user) => (
-      user.id === adminUser.id ? { ...user, name, dbUpdatedAt: now } : user
-    )))
-  }
+  const requestedId = normalizeUserId(username)
+  const requestedUser = users.find((user) => user.id === requestedId && user.isActive)
+  const adminUser = users.find((user) => user.id === MOCK_AUTH_USER.id && user.isActive) ?? DEFAULT_AUTH_USERS[0]!
+  const user = requestedUser ?? adminUser
   const expiresAt = new Date(Date.now() + 1000 * 60 * 60 * 8).toISOString()
   return {
     user: {
-      id: adminUser.id,
-      name,
-      role: adminUser.role,
+      id: user.id,
+      name: user.name,
+      role: user.role,
     },
     expiresAt,
   }
@@ -212,23 +202,25 @@ export const mockAuthApi: AuthApi = {
     await sleep(120)
     assertAdminSession()
     const users = readStoredUsers()
+    const userId = normalizeUserId(payload.userId)
     const name = payload.name.trim()
-    const email = payload.email.trim().toLowerCase()
     if (!name) {
       throw new Error('표시 이름을 입력해 주세요.')
     }
-    if (!isValidEmail(email)) {
-      throw new Error('이메일 형식이 올바르지 않습니다.')
+    if (!isValidUserId(userId)) {
+      throw new Error('로그인 ID는 영문 소문자, 숫자, ., _, - 조합 3~32자로 입력해 주세요.')
     }
-    if (users.some((user) => user.email.toLowerCase() === email)) {
-      throw new Error('이미 등록된 이메일입니다.')
+    if (users.some((user) => user.id === userId)) {
+      throw new Error('이미 등록된 로그인 ID입니다.')
+    }
+    if (payload.initialPassword.length < 4) {
+      throw new Error('임시 비밀번호는 4자 이상이어야 합니다.')
     }
 
     const now = new Date().toISOString()
     const user: AdminUserSummary = {
-      id: makeUserId(email, users),
+      id: userId,
       name,
-      email,
       role: payload.role,
       isActive: payload.isActive,
       dbUpdatedAt: now,

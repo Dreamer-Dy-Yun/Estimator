@@ -97,7 +97,6 @@ function AdminUserRow({
     <form className={styles.userRow} onSubmit={handleSubmit}>
       <div className={styles.identityCell}>
         <strong>{user.id}</strong>
-        <span>{user.email}</span>
       </div>
       <label className={styles.fieldCell}>
         <span>이름</span>
@@ -144,8 +143,9 @@ export function AdminUsersPage() {
   const navigate = useNavigate()
   const { session, logout, refreshSession } = useAuth()
   const [users, setUsers] = useState<AdminUserSummary[]>([])
+  const [newUserId, setNewUserId] = useState('')
   const [newName, setNewName] = useState('')
-  const [newEmail, setNewEmail] = useState('')
+  const [newInitialPassword, setNewInitialPassword] = useState('')
   const [newRole, setNewRole] = useState<AuthRole>('viewer')
   const [newIsActive, setNewIsActive] = useState(true)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
@@ -190,14 +190,16 @@ export function AdminUsersPage() {
 
     try {
       const created = await createAdminUser({
+        userId: newUserId,
         name: newName,
-        email: newEmail,
+        initialPassword: newInitialPassword,
         role: newRole,
         isActive: newIsActive,
       })
       setUsers((prev) => sortUsers([...prev, created]))
+      setNewUserId('')
       setNewName('')
-      setNewEmail('')
+      setNewInitialPassword('')
       setNewRole('viewer')
       setNewIsActive(true)
     } catch (error) {
@@ -239,6 +241,16 @@ export function AdminUsersPage() {
 
         <form className={styles.createForm} onSubmit={handleCreate}>
           <label className={styles.createField}>
+            <span>로그인 ID</span>
+            <input
+              value={newUserId}
+              onChange={(event) => setNewUserId(event.target.value)}
+              placeholder="login-id"
+              autoComplete="username"
+              maxLength={32}
+            />
+          </label>
+          <label className={styles.createField}>
             <span>이름</span>
             <input
               value={newName}
@@ -248,12 +260,13 @@ export function AdminUsersPage() {
             />
           </label>
           <label className={styles.createField}>
-            <span>이메일</span>
+            <span>임시 PW</span>
             <input
-              value={newEmail}
-              onChange={(event) => setNewEmail(event.target.value)}
-              placeholder="user@han-a.local"
-              type="email"
+              value={newInitialPassword}
+              onChange={(event) => setNewInitialPassword(event.target.value)}
+              placeholder="초기 비밀번호"
+              type="password"
+              autoComplete="new-password"
             />
           </label>
           <label className={styles.createField}>
@@ -281,7 +294,7 @@ export function AdminUsersPage() {
         </form>
 
         <div className={styles.tableHeader} aria-hidden="true">
-          <span>계정</span>
+          <span>로그인 ID</span>
           <span>이름</span>
           <span>권한</span>
           <span>상태</span>

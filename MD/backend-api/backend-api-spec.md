@@ -95,7 +95,6 @@
 | `id` | string | 사용자 식별자 |
 | `name` | string | 표시 이름 |
 | `role` | `'admin' \| 'operator' \| 'viewer'` | 사용자 권한 |
-| `email` | string | 계정 이메일 |
 | `isActive` | boolean | 활성 계정 여부 |
 | `dbUpdatedAt` | string | ISO 8601 최근 변경 시각 |
 
@@ -103,8 +102,9 @@
 
 | 필드 | 타입 | 설명 |
 |------|------|------|
+| `userId` | string | 로그인 ID. 목 구현은 영문 소문자, 숫자, `.`, `_`, `-` 조합 3~32자를 허용 |
 | `name` | string | 표시 이름 |
-| `email` | string | 계정 이메일. 백엔드는 중복을 막아야 함 |
+| `initialPassword` | string | 최초 로그인용 임시 비밀번호 |
 | `role` | `'admin' \| 'operator' \| 'viewer'` | 사용자 권한 |
 | `isActive` | boolean | 생성 시 활성 상태 |
 
