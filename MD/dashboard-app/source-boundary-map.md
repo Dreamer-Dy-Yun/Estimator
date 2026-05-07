@@ -32,6 +32,8 @@
 - 이너 후보 1차 드로어 닫힘은 `drawerClosing` 상태로 DOM과 모달 폭 보정 상태를 잠시 유지해, 열림의 역방향으로 모달 폭이 복원되게 한다.
 - 로그인 화면, 라우트 보호, 사용자 정보/비밀번호 변경 모달은 `src/auth`가 소유한다. 인증 API 계약과 목 세션 저장은 `src/api` 아래에 두어 실제 백엔드로 교체할 때 화면이 mock 구현을 직접 알지 않게 한다. 보호 라우트는 직접 URL 진입과 새로고침 복귀를 위해 `/login?redirect=...`를 남긴다.
 - 관리자 유저 관리 화면은 `/admin` 별도 라우트와 `src/admin`이 소유한다. 화면은 같은 `DashboardLayout` 안에서 렌더하며, 관리자 권한 사용자에게만 `오더 후보군` 뒤 관리자 전용 탭을 보여준다. 인증 권한은 `admin`과 `user` 두 단계만 둔다.
+- `ProductSummaryDrawer`는 1차 drawer shell과 2차 패널 진입만 조율하고, 1차 판매 정보/월간 추이/경쟁 채널/2차 상세 요청은 `dashboard/components/product-summary`의 기능 컨테이너와 hook이 소유한다.
+- `ProductSecondaryPanel`은 2차 패널 orchestration과 후보군 저장/수정 사용자 액션을 소유하고, 재고·발주 계산 요청과 일별 추이 요청은 `product-secondary/hooks`가 소유한다.
 
 ## 최상위 저장소
 
@@ -184,6 +186,7 @@
 | `ProductSummaryDrawer.tsx` | 상품 1차 요약 drawer와 2차 패널 진입 shell. 경쟁 채널 선택을 1차 판매 정보, 1차 월간 추이 API, 2차 패널에 공유하며, 닫힘 애니메이션 class를 받을 수 있다 |
 | `common.module.css` | 대시보드 공용 layout/card/button/icon 스타일 |
 | `trend/` | 판매 트렌드 차트와 차트 range 보조 |
+| `product-summary/` | 상품 1차 drawer의 판매 정보, 월간 추이, 경쟁 채널, 2차 상세 요청 컨테이너와 hook |
 | `product-secondary/` | 상품 2차 상세 패널 feature |
 | `candidate-stash/` | 후보군 상세 모달 feature |
 
@@ -201,17 +204,30 @@
 | `CandidateInsightBadges.tsx` | 후보 아이템 인사이트 badge 렌더링 |
 | `CandidateInsightBadges.module.css` | 후보 인사이트 badge 스타일 |
 
+## dashboard/components/product-summary
+
+상품 요약 drawer의 1차 기능 컨테이너와 요청 hook을 소유한다. `ProductSummaryDrawer`는 이 폴더의 컨테이너를 배치만 하고 API 상태를 직접 들지 않는다.
+
+| 파일 | 역할 |
+|------|------|
+| `apiErrorInfo.ts` | 상품 요약 drawer 하위 API 오류 정보를 같은 형식으로 만드는 helper |
+| `useCompetitorChannels.ts` | 1차/2차가 공유하는 경쟁 채널 목록 조회와 선택 채널 상태 |
+| `ProductSalesMetricsContainer.tsx` | 선택 상품·기간·경쟁 채널 기준 1차 판매 정보 조회와 `SalesMetricsCard` 연결 |
+| `ProductMonthlyTrendContainer.tsx` | 선택 상품·기간·포캐스트 개월·경쟁 채널 기준 월간 판매 추이 조회, 표시 토글, chart window 상태 |
+| `useProductSecondaryDetail.ts` | 2차 패널이 열릴 때의 상세 조회와 스냅샷 hydration fallback |
+
 ## dashboard/components/product-secondary
 
 상품 요약 drawer의 2차 상세 패널 feature다. 발주 계산, 사이즈별 수량, 저장된 AI 코멘트 표시, 후보군 저장 액션을 포함한다.
 
 | 파일/폴더 | 역할 |
 |------|------|
-| `ProductSecondaryPanel.tsx` | 2차 패널 orchestration. 선택 경쟁 채널을 일별 추이 API에 전달한다. 크므로 새 책임은 가능하면 하위 카드/모델로 분리한다 |
+| `ProductSecondaryPanel.tsx` | 2차 패널 orchestration. 카드 배치, 스냅샷 생성, 후보군 저장/수정 사용자 액션을 소유한다 |
 | `secondaryPanelTypes.ts` | 2차 패널 내부 view-model 타입 |
 | `candidateActionCards.tsx` | 2차 패널에서 후보군 저장/연결 액션 UI |
 | `ko.ts` | product-secondary 영역의 한국어 텍스트 상수 |
 | `cards/*` | 2차 패널 카드 단위 UI |
+| `hooks/*` | 2차 패널의 컨테이너 단위 API 요청. 재고·발주 계산과 선택 경쟁 채널 기준 일별 추이를 소유한다 |
 | `model/*` | 2차 패널 계산 로직. UI에서 직접 계산이 커지면 여기로 이동한다 |
 | `panel-styles/*` | `productSecondaryPanel.module.css`가 CSS `@import`로 묶는 2차 패널 카드/컨트롤/표/입력 스타일 조각 |
 | `productSecondaryPanel.module.css` | 2차 패널 shell 스타일 |

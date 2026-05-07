@@ -10,7 +10,7 @@ import {
 } from '../../../utils/date'
 import { PortalHelpPopoverLayer } from '../PortalHelpPopover'
 import commonStyles from '../common.module.css'
-import { buildShadeRanges, normalizeMonthKey } from '../trend/trendRangeUtils'
+import { normalizeMonthKey } from '../trend/trendRangeUtils'
 import { usePortalHelpPopover } from '../usePortalHelpPopover'
 import { AiMockCard } from './cards/AiMockCard'
 import { ProductMetaCard } from './cards/ProductMetaCard'
@@ -23,11 +23,12 @@ import { buildSalesKpiColumn } from '../../../utils/salesKpiColumn'
 import { mergePrimarySecondarySizeMix } from './model/secondaryPanelCalc'
 import styles from './productSecondaryPanel.module.css'
 import type {
-  SecondaryForecastCalc,
   SecondaryForecastDerived,
   SecondaryForecastInputs,
   SecondaryHelpId,
 } from './secondaryPanelTypes'
+import { useSecondaryDailyTrend } from './hooks/useSecondaryDailyTrend'
+import { useSecondaryStockOrderCalc } from './hooks/useSecondaryStockOrderCalc'
 import { ORDER_SNAPSHOT_SCHEMA_VERSION, type OrderSnapshotDocumentV1 } from '../../../snapshot/orderSnapshotTypes'
 import {
   CandidateStashOrderActionCard,
@@ -115,11 +116,7 @@ export function ProductSecondaryPanel({
   /** 사용자가 직접 덮어쓴 확정 수량만 — 스냅샷 값은 snapshotConfirmBySize에서 병합 */
   const [confirmBySize, setConfirmBySize] = useState<Record<string, number>>({})
   const mountedRef = useRef(false)
-  const dailyTrendReqSeqRef = useRef(0)
   const candidateListReqSeqRef = useRef(0)
-  const [forecastCalc, setForecastCalc] = useState<SecondaryForecastCalc | null>(null)
-  const [forecastCalcError, setForecastCalcError] = useState<ApiUnitErrorInfo | null>(null)
-  const [dailyTrendError, setDailyTrendError] = useState<ApiUnitErrorInfo | null>(null)
   const [prefillError, setPrefillError] = useState<string | null>(null)
   const [candidateActionLoading, setCandidateActionLoading] = useState(false)
   const [candidateListOpen, setCandidateListOpen] = useState(false)
@@ -141,7 +138,6 @@ export function ProductSecondaryPanel({
     mountedRef.current = true
     return () => {
       mountedRef.current = false
-      dailyTrendReqSeqRef.current += 1
       candidateListReqSeqRef.current += 1
     }
   }, [])
@@ -252,55 +248,21 @@ export function ProductSecondaryPanel({
     expectedOpProfit: clientStock.safetyExpectedOpProfit,
   }
 
-  const currentStockBySize = forecastCalc?.display.currentStockQtyBySize ?? []
-  const expectedInboundBySize = forecastCalc?.display.expectedInboundOrderBalanceBySize ?? []
-
-  /** 재고·오더잔량 등 `display`만 사용. 판매예측·추천수량·표 금액은 `clientStock` 연산. */
-  useEffect(() => {
-    let alive = true
-    void (async () => {
-      try {
-        const params = {
-          productId: primary.id,
-          periodStart: selectedStart,
-          periodEnd: selectedEnd,
-          forecastPeriodEnd: forecastMeanPeriodEnd,
-          serviceLevelPct,
-          leadTimeDays,
-          safetyStockMode,
-          manualSafetyStock: Math.max(0, Math.round(manualSafetyStock)),
-          ...(dailyMeanClient != null ? { dailyMean: dailyMeanClient } : {}),
-        }
-        const result = await dashboardApi.getSecondaryStockOrderCalc(params)
-        if (!alive) return
-        setForecastCalc(result)
-        setForecastCalcError(null)
-      } catch (err) {
-        if (!alive) return
-        setForecastCalc(null)
-        setForecastCalcError(
-          makeApiErrorInfo(
-            `getSecondaryStockOrderCalc(${JSON.stringify({ productId: primary.id, periodStart: selectedStart, periodEnd: selectedEnd, forecastPeriodEnd: forecastMeanPeriodEnd, serviceLevelPct, leadTimeDays, safetyStockMode, manualSafetyStock })})`,
-            err,
-          ),
-        )
-      }
-    })()
-    return () => {
-      alive = false
-    }
-  }, [
-    dailyMeanClient,
-    leadTimeDays,
-    makeApiErrorInfo,
-    manualSafetyStock,
-    primary.id,
-    safetyStockMode,
-    selectedEnd,
+  const { forecastCalc, forecastCalcError } = useSecondaryStockOrderCalc({
+    productId: primary.id,
     selectedStart,
+    selectedEnd,
     forecastMeanPeriodEnd,
     serviceLevelPct,
-  ])
+    leadTimeDays,
+    safetyStockMode,
+    manualSafetyStock,
+    dailyMeanClient,
+    makeApiErrorInfo,
+  })
+
+  const currentStockBySize = forecastCalc?.display.currentStockQtyBySize ?? []
+  const expectedInboundBySize = forecastCalc?.display.expectedInboundOrderBalanceBySize ?? []
 
   const stockDisplayKey = useMemo(() => {
     const d = forecastCalc?.display
@@ -462,71 +424,20 @@ export function ProductSecondaryPanel({
     return o
   }, [confirmBySize])
 
-  const [dailyTrendSeries, setDailyTrendSeries] = useState<Array<{
-    idx: number
-    date: string
-    month: string
-    sales: number
-    stockBar: number
-    inboundAccumBar: number
-    selfSales: number | null
-    competitorSales: number | null
-    isForecast: boolean
-  }>>([])
-
-  useEffect(() => {
-    let alive = true
-    const reqSeq = dailyTrendReqSeqRef.current + 1
-    dailyTrendReqSeqRef.current = reqSeq
-    void (async () => {
-      try {
-        const params = {
-          productId: primary.id,
-          startMonth: selectedStart,
-          leadTimeDays,
-          competitorChannelId: channel.id,
-        }
-        const series = await dashboardApi.getSecondaryDailyTrend(params)
-        if (!alive || dailyTrendReqSeqRef.current !== reqSeq) return
-        if (!series.length) throw new Error('일별 판매추이 데이터가 비어 있습니다.')
-        setDailyTrendSeries(series)
-        setDailyTrendError(null)
-      } catch (err) {
-        if (!alive || dailyTrendReqSeqRef.current !== reqSeq) return
-        setDailyTrendSeries([])
-        setDailyTrendError(
-          makeApiErrorInfo(
-            `getSecondaryDailyTrend(${JSON.stringify({ productId: primary.id, startMonth: selectedStart, leadTimeDays, competitorChannelId: channel.id })})`,
-            err,
-          ),
-        )
-      }
-    })()
-    return () => {
-      alive = false
-    }
-  }, [channel.id, leadTimeDays, makeApiErrorInfo, selectedStart, primary.id])
-
-  const { periodShade: dailyPeriodShade, forecastShade: dailyForecastShade } = useMemo(
-    () => buildShadeRanges(
-      dailyTrendSeries.map((p) => ({ date: p.month, isForecast: p.isForecast })),
-      selectedStart,
-      selectedEnd,
-    ),
-    [dailyTrendSeries, selectedEnd, selectedStart],
-  )
-
-  const dailyTickIndices = useMemo(() => {
-    const n = dailyTrendSeries.length
-    if (n === 0) return [] as number[]
-    const targetTicks = 26
-    const step = Math.max(1, Math.ceil(n / targetTicks))
-    const ticks: number[] = []
-    for (let i = 0; i < n; i += step) ticks.push(dailyTrendSeries[i]!.idx)
-    const last = dailyTrendSeries[n - 1]!.idx
-    if (ticks[ticks.length - 1] !== last) ticks.push(last)
-    return ticks
-  }, [dailyTrendSeries])
+  const {
+    dailyTrendSeries,
+    dailyTrendError,
+    dailyPeriodShade,
+    dailyForecastShade,
+    dailyTickIndices,
+  } = useSecondaryDailyTrend({
+    productId: primary.id,
+    selectedStart,
+    selectedEnd,
+    leadTimeDays,
+    competitorChannelId: channel.id,
+    makeApiErrorInfo,
+  })
 
   /** 일간 판매추이 사이즈 선택 — API는 상품 합계만 주고, 비중으로 스케일 */
   const dailyTrendSizeOptions = useMemo(() => {

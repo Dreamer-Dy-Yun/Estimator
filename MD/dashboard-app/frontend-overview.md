@@ -78,7 +78,7 @@
 - **KPI:** 총 판매액, 평균 영업이익률 등.
 - **차트:** 영업이익률–판매액 스캐터(포지셔닝).
 - **목록:** `AnalysisList` + 정렬 가능한 컬럼(내부 [`PaginatedTable`](../../dashboard-app/src/dashboard/components/PaginatedTable.tsx)).
-- **행 클릭:** [`ProductSummaryDrawer`](../../dashboard-app/src/dashboard/components/ProductSummaryDrawer.tsx) — 1차 번들 [`useProductDrawerBundle`](../../dashboard-app/src/dashboard/hooks/useProductDrawerBundle.ts) ([`getProductDrawerBundle`](../../dashboard-app/src/api/types/dashboard-api.ts)).
+- **행 클릭:** [`ProductSummaryDrawer`](../../dashboard-app/src/dashboard/components/ProductSummaryDrawer.tsx) — 1차 기본 번들 [`useProductDrawerBundle`](../../dashboard-app/src/dashboard/hooks/useProductDrawerBundle.ts) ([`getProductDrawerBundle`](../../dashboard-app/src/api/types/dashboard-api.ts)). drawer 내부의 판매 정보/월간 추이/2차 상세는 기능 컨테이너가 각각 별도 API를 요청합니다.
 - **포캐스트 월 수:** 로컬 스토리지에 저장 ([`forecastMonthsStorage`](../../dashboard-app/src/utils/forecastMonthsStorage.ts)).
 
 ### 5.2 경쟁사 분석 (`CompetitorPage`)
@@ -98,8 +98,8 @@
 
 ## 6. 제품 요약 드로어 (`ProductSummaryDrawer`)
 
-- **1차:** 상품 이미지, 기간·경쟁 채널 기준 판매 정보([`getProductSalesInsight`](../../dashboard-app/src/api/types/dashboard-api.ts)), 선택 경쟁 채널 기준으로 재조회되는 월간 판매 추이([`getProductMonthlyTrend`](../../dashboard-app/src/api/types/dashboard-api.ts)) 등. 판매 정보 표의 주요 수치는 굵게 강조하고 기본 표 글자보다 10% 크게 표시합니다. 판매 추이 그래프는 선형 축으로 고정하고, 자사/선택 경쟁 채널(예: 크림·무신사) 표시를 각각 토글합니다. 계절성 카드는 현재 화면에서 제외.
-- **2차 확장 패널:** [`ProductSecondaryPanel`](../../dashboard-app/src/dashboard/components/product-secondary/ProductSecondaryPanel.tsx) — 상품 메타, 후보군 저장/수정, 재고·발주 시뮬([`getSecondaryStockOrderCalc`](../../dashboard-app/src/api/types/dashboard-api.ts)), 저장된 AI 코멘트 표시(`drawer2.llmAnswer`, 본문 15px), 선택 경쟁 채널 기준으로 재조회되는 일별 추이([`getSecondaryDailyTrend`](../../dashboard-app/src/api/types/dashboard-api.ts)), 사이즈별 확정 수량 등.
+- **1차:** 상품 이미지, 기간·경쟁 채널 기준 판매 정보([`getProductSalesInsight`](../../dashboard-app/src/api/types/dashboard-api.ts)), 선택 경쟁 채널 기준으로 재조회되는 월간 판매 추이([`getProductMonthlyTrend`](../../dashboard-app/src/api/types/dashboard-api.ts)) 등. 판매 정보/월간 추이/경쟁 채널/2차 상세 요청은 [`product-summary`](../../dashboard-app/src/dashboard/components/product-summary/)의 기능 컨테이너와 hook이 소유합니다. 판매 정보 표의 주요 수치는 굵게 강조하고 기본 표 글자보다 10% 크게 표시합니다. 판매 추이 그래프는 선형 축으로 고정하고, 자사/선택 경쟁 채널(예: 크림·무신사) 표시를 각각 토글합니다. 계절성 카드는 현재 화면에서 제외.
+- **2차 확장 패널:** [`ProductSecondaryPanel`](../../dashboard-app/src/dashboard/components/product-secondary/ProductSecondaryPanel.tsx) — 상품 메타, 후보군 저장/수정, 저장된 AI 코멘트 표시(`drawer2.llmAnswer`, 본문 15px), 사이즈별 확정 수량 등. 재고·발주 시뮬([`getSecondaryStockOrderCalc`](../../dashboard-app/src/api/types/dashboard-api.ts))과 선택 경쟁 채널 기준 일별 추이([`getSecondaryDailyTrend`](../../dashboard-app/src/api/types/dashboard-api.ts)) 요청은 [`product-secondary/hooks`](../../dashboard-app/src/dashboard/components/product-secondary/hooks/)가 소유합니다.
 - **스냅샷:** [`OrderSnapshotDocumentV1`](../../dashboard-app/src/snapshot/orderSnapshotTypes.ts) 스키마 v2, 파싱 [`parseOrderSnapshot`](../../dashboard-app/src/snapshot/parseOrderSnapshot.ts). 독립 스냅샷 목록 API는 없고 후보 아이템 `details`가 저장·복원 경로입니다.
 - **키보드(2차가 열리고 2차 데이터 준비 완료 시):** `←` / `→`로 **현재 목록의 이전·다음 SKU**(또는 이너 후보의 uuid 순) 순환 — [`adjacentListNavigation`](../../dashboard-app/src/utils/adjacentListNavigation.ts). 입력·콤보 패널 포커스 시에는 무시.
 - **번들 로딩:** 자사/경쟁은 [`allowStaleWhileRevalidate`](../../dashboard-app/src/dashboard/hooks/useProductDrawerBundle.ts) 기본 `true`로 드로어 언마운트 방지(2차 접힘 방지). 이너 후보는 `false`로 스냅샷과 번들 id 정합 유지.
@@ -133,6 +133,7 @@ dashboard-app/src/
     DashboardLayout.tsx
     components/           # FilterBar, ProductSummaryDrawer, AnalysisList, feature components
       candidate-stash/    # 후보군 상세/추천/배지 UI와 후보군 상세 훅
+      product-summary/    # 1차 drawer 기능 컨테이너와 요청 훅
       product-secondary/  # 2차 패널 UI/계산
     hooks/                # useProductDrawerBundle, usePeriodRangeFilter
     pages/                # Self, Competitor, SnapshotConfirm route pages
