@@ -94,7 +94,7 @@
 
 | 파일 | 역할 |
 |------|------|
-| `authApi.ts` | mock 인증 API 구현. 사용자 목록은 정적 seed이고 세션만 `sessionStorage`에 저장한다 |
+| `authApi.ts` | mock 인증 API 구현. 사용자 목록은 정적 seed이고 세션은 런타임 메모리에만 둔다 |
 | `candidateSeeds.ts` | 후보군/후보 아이템 읽기 전용 seed 데이터와 목업 AI 코멘트 포함 스냅샷 |
 | `dashboardApi.ts` | mock `DashboardApi` 구현체. public API 계약을 맞춰 응답하되 후보군 mutation은 저장하지 않는 계약 stub이다 |
 | `orderSnapshotForCandidate.ts` | 후보 아이템용 오더 스냅샷 생성/복원 보조와 임시 목업 AI 코멘트 생성 |

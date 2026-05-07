@@ -12,7 +12,6 @@ import type {
 } from '../types'
 import { sleep } from './utils'
 
-const AUTH_SESSION_STORAGE_KEY = 'han-a-auth-session'
 const MOCK_UPDATED_AT = '2026-05-06T00:00:00.000Z'
 
 type StoredAuthUser = AdminUserSummary & {
@@ -37,6 +36,8 @@ const DEFAULT_AUTH_USERS: StoredAuthUser[] = [
     dbUpdatedAt: MOCK_UPDATED_AT,
   },
 ]
+
+let currentSession: AuthSession | null = null
 
 const createMockUuid = () => globalThis.crypto?.randomUUID?.() ?? `00000000-0000-4000-8000-${String(Date.now()).slice(-12).padStart(12, '0')}`
 
@@ -90,45 +91,33 @@ function makeMockSession(payload: LoginRequest): AuthSession {
   }
 }
 
-function readStoredSession(): AuthSession | null {
-  if (typeof window === 'undefined') return null
+function readCurrentSession(): AuthSession | null {
+  const session = currentSession
+  if (!session) return null
 
-  try {
-    const raw = window.sessionStorage.getItem(AUTH_SESSION_STORAGE_KEY)
-    if (!raw) return null
-    const session = JSON.parse(raw) as AuthSession
-    const user = session?.user?.uuid ? findUserByUuid(session.user.uuid) : null
-    if (!user || !user.isActive || new Date(session.expiresAt).getTime() <= Date.now()) {
-      window.sessionStorage.removeItem(AUTH_SESSION_STORAGE_KEY)
-      return null
-    }
-
-    const nextSession = {
-      ...session,
-      user: makeSessionUser(user),
-    }
-    if (JSON.stringify(nextSession) !== JSON.stringify(session)) {
-      writeStoredSession(nextSession)
-    }
-    return nextSession
-  } catch {
-    window.sessionStorage.removeItem(AUTH_SESSION_STORAGE_KEY)
+  const user = findUserByUuid(session.user.uuid)
+  if (!user || !user.isActive || new Date(session.expiresAt).getTime() <= Date.now()) {
+    currentSession = null
     return null
   }
+
+  currentSession = {
+    ...session,
+    user: makeSessionUser(user),
+  }
+  return currentSession
 }
 
-function writeStoredSession(session: AuthSession) {
-  if (typeof window === 'undefined') return
-  window.sessionStorage.setItem(AUTH_SESSION_STORAGE_KEY, JSON.stringify(session))
+const writeCurrentSession = (session: AuthSession) => {
+  currentSession = session
 }
 
-function clearStoredSession() {
-  if (typeof window === 'undefined') return
-  window.sessionStorage.removeItem(AUTH_SESSION_STORAGE_KEY)
+const clearCurrentSession = () => {
+  currentSession = null
 }
 
 function assertLoggedInSession() {
-  const session = readStoredSession()
+  const session = readCurrentSession()
   if (!session) throw new Error('로그인이 필요합니다.')
   return session
 }
@@ -144,12 +133,12 @@ function assertAdminSession() {
 export const mockAuthApi: AuthApi = {
   getCurrentSession: async () => {
     await sleep(40)
-    return readStoredSession()
+    return readCurrentSession()
   },
   login: async (payload: LoginRequest): Promise<LoginResult> => {
     await sleep(120)
     const session = makeMockSession(payload)
-    writeStoredSession(session)
+    writeCurrentSession(session)
     return { session }
   },
   updateCurrentUser: async (payload: UpdateAuthUserPayload): Promise<AuthSession> => {
@@ -227,6 +216,6 @@ export const mockAuthApi: AuthApi = {
   },
   logout: async () => {
     await sleep(40)
-    clearStoredSession()
+    clearCurrentSession()
   },
 }

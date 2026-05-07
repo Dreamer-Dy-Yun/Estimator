@@ -28,7 +28,7 @@
 ## Plan
 
 1. `src/api/types/auth.ts`에 `AuthApi`, `LoginRequest`, `AuthSession` 계약을 둔다.
-2. `src/api/mock/authApi.ts`에서 mock 사용자 목록의 로그인 ID/비밀번호를 확인하고 sessionStorage에 세션을 저장한다.
+2. `src/api/mock/authApi.ts`에서 mock 사용자 seed의 로그인 ID/비밀번호를 확인하고 세션은 런타임 메모리에만 둔다.
 3. `AuthProvider`, `RequireAuth`, `LoginPage`를 추가한다.
 4. `App.tsx`에서 `/login`과 보호 라우트를 분리한다.
 5. `DashboardLayout`에 로그아웃 동선을 추가한다.
@@ -36,7 +36,7 @@
 
 ## Result
 
-`/dashboard/*`와 `/admin` 접근 시 세션이 없으면 `/login?redirect=...`으로 이동하고, 로그인 성공 시 원래 경로로 복귀한다. 헤더 우상단에서는 로그인 ID와 역할을 보여주며, 사용자 정보 모달에서 로그인 ID와 비밀번호를 변경할 수 있다. 사용자 엔티티 식별자는 UUID이고, 로그인 ID는 인증용 계정 값이다. 로그아웃은 현재 탭의 mock 세션을 제거하고 `/login`으로 보낸다.
+`/dashboard/*`와 `/admin` 접근 시 세션이 없으면 `/login?redirect=...`으로 이동하고, 로그인 성공 시 원래 경로로 복귀한다. 헤더 우상단에서는 로그인 ID와 역할을 보여주며, 사용자 정보 모달에서 로그인 ID와 비밀번호 변경 API를 호출할 수 있다. 사용자 엔티티 식별자는 UUID이고, 로그인 ID는 인증용 계정 값이다. 로그아웃은 현재 런타임 mock 세션을 제거하고 `/login`으로 보낸다.
 
 ## Non-goals
 
