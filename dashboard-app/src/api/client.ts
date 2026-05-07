@@ -19,6 +19,8 @@ import type {
   DashboardApi,
   ProductDrawerBundle,
   ProductDrawerBundleParams,
+  ProductMonthlyTrend,
+  ProductMonthlyTrendParams,
   ProductSalesInsight,
   ProductSalesInsightParams,
   ProductSecondaryDetail,
@@ -90,6 +92,13 @@ export async function getProductDrawerBundle(
   params?: ProductDrawerBundleParams,
 ): Promise<ProductDrawerBundle> {
   return mockDashboardApi.getProductDrawerBundle(id, params)
+}
+
+export async function getProductMonthlyTrend(
+  id: string,
+  params: ProductMonthlyTrendParams,
+): Promise<ProductMonthlyTrend> {
+  return mockDashboardApi.getProductMonthlyTrend(id, params)
 }
 
 async function getProductSalesInsight(
@@ -188,6 +197,7 @@ export const dashboardApi: DashboardApi = {
   getCompetitorSales,
   getSelfSalesFilterMeta,
   getProductDrawerBundle,
+  getProductMonthlyTrend,
   getProductSalesInsight,
   getProductSecondaryDetail,
   getSecondaryDailyTrend,

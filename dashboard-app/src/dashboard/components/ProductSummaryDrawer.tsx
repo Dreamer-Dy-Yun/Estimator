@@ -3,6 +3,7 @@ import { ApiUnitErrorBadge } from '../../components/ApiUnitErrorBadge'
 import { ComponentErrorBoundary } from '../../components/ComponentErrorBoundary'
 import type {
   ProductSalesInsight,
+  ProductMonthlyTrend,
   ProductSecondaryDetail,
   ProductStockTrendPoint,
   SecondaryCompetitorChannel,
@@ -68,12 +69,15 @@ function ProductSummaryDrawerContent({
   const forecastComboRef = useRef<HTMLDivElement | null>(null)
   const salesTrendChartClipRef = useRef<HTMLDivElement | null>(null)
   const salesInsightReqSeqRef = useRef(0)
+  const monthlyTrendReqSeqRef = useRef(0)
   const [forecastComboOpen, setForecastComboOpen] = useState(false)
   const [competitorChannels, setCompetitorChannels] = useState<SecondaryCompetitorChannel[]>([])
   const [channelId, setChannelId] = useState('')
   const [channelsError, setChannelsError] = useState<ApiUnitErrorInfo | null>(null)
   const [salesInsight, setSalesInsight] = useState<ProductSalesInsight | null>(null)
   const [salesInsightError, setSalesInsightError] = useState<ApiUnitErrorInfo | null>(null)
+  const [monthlyTrend, setMonthlyTrend] = useState<ProductMonthlyTrend | null>(null)
+  const [monthlyTrendError, setMonthlyTrendError] = useState<ApiUnitErrorInfo | null>(null)
   const [salesTrendVisible, setSalesTrendVisible] = useState({ self: true, competitor: true })
 
   useEffect(() => {
@@ -224,20 +228,62 @@ function ProductSummaryDrawerContent({
     }
   }, [channelId, salesInsightEndDay, salesInsightStartDay, summary.id])
 
-  const trendScale = 1
-  const competitorSalesRatio =
-    salesInsight && salesInsight.self.qty > 0
-      ? Math.max(0, salesInsight.competitor.qty / salesInsight.self.qty)
-      : 1
+  useEffect(() => {
+    if (!channelId) {
+      setMonthlyTrend(null)
+      return
+    }
+    let alive = true
+    const reqSeq = ++monthlyTrendReqSeqRef.current
+    void (async () => {
+      try {
+        const data = await dashboardApi.getProductMonthlyTrend(summary.id, {
+          startDate: salesInsightStartDay,
+          endDate: salesInsightEndDay,
+          forecastMonths,
+          competitorChannelId: channelId,
+        })
+        if (!alive || reqSeq !== monthlyTrendReqSeqRef.current) return
+        setMonthlyTrend(data)
+        setMonthlyTrendError(null)
+      } catch (err) {
+        if (!alive || reqSeq !== monthlyTrendReqSeqRef.current) return
+        setMonthlyTrend(null)
+        setMonthlyTrendError(
+          makeApiErrorInfo(
+            `getProductMonthlyTrend(${JSON.stringify({ productId: summary.id, startDate: salesInsightStartDay, endDate: salesInsightEndDay, forecastMonths, competitorChannelId: channelId })})`,
+            err,
+          ),
+        )
+      }
+    })()
+    return () => {
+      alive = false
+    }
+  }, [channelId, forecastMonths, salesInsightEndDay, salesInsightStartDay, summary.id])
 
-  const salesSeries = useMemo(() => summary.monthlySalesTrend.map((point, idx) => ({
-    ...point,
-    idx,
-    sales: Math.round(point.sales * trendScale),
-    competitorSales: point.isForecast
-      ? null
-      : Math.max(1, Math.round(point.sales * trendScale * competitorSalesRatio)),
-  })), [competitorSalesRatio, summary.monthlySalesTrend])
+  const salesSeries = useMemo(() => {
+    if (monthlyTrend != null) {
+      return monthlyTrend.points.map((point, idx) => ({
+        date: point.date,
+        isForecast: point.isForecast,
+        idx,
+        sales: Math.round(point.selfSales),
+        competitorSales: point.competitorSales,
+      }))
+    }
+    return summary.monthlySalesTrend.map((point, idx) => ({
+      ...point,
+      idx,
+      sales: Math.round(point.sales),
+      competitorSales: null as number | null,
+    }))
+  }, [monthlyTrend, summary.monthlySalesTrend])
+
+  const competitorTrendLabel =
+    monthlyTrend?.competitorChannelLabel
+    ?? salesInsight?.competitorChannelLabel
+    ?? KO.labelCompetitorChannel
 
   const { periodStartIdx, periodEndIdx, periodShade, forecastShade } = useMemo(
     () => buildShadeRanges(salesSeries, selectedStart, selectedEnd),
@@ -512,6 +558,7 @@ function ProductSummaryDrawerContent({
           <div className={styles.salesTrendTitleRow}>
             <div className={styles.cardTitle}>
               판매추이(월간)
+              <ApiUnitErrorBadge error={monthlyTrendError} />
             </div>
             <div className={styles.salesTrendControls}>
               <div className={styles.forecastMonthsControl}>
@@ -584,7 +631,7 @@ function ProductSummaryDrawerContent({
                   }
                   onClick={() => toggleSalesTrendSeries('competitor')}
                 >
-                  {salesInsight?.competitorChannelLabel ?? KO.labelCompetitorChannel}
+                  {competitorTrendLabel}
                 </button>
               </div>
             </div>
@@ -619,7 +666,7 @@ function ProductSummaryDrawerContent({
                 ]}
                 tooltipValueFormatter={(value, name) => {
                   if (name === 'actual') return [formatGroupedNumber(value), '판매 실적']
-                  if (name === 'competitorActual') return [formatGroupedNumber(value), `${salesInsight?.competitorChannelLabel ?? KO.labelCompetitorChannel} 판매`]
+                  if (name === 'competitorActual') return [formatGroupedNumber(value), `${competitorTrendLabel} 판매`]
                   if (name === 'forecastLink') return [formatGroupedNumber(value), '판매 예측']
                   return [formatGroupedNumber(value), name]
                 }}

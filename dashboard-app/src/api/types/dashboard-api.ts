@@ -6,6 +6,8 @@ import type {
 import type {
   ProductDrawerBundle,
   ProductDrawerBundleParams,
+  ProductMonthlyTrend,
+  ProductMonthlyTrendParams,
   ProductSalesInsight,
   ProductSalesInsightParams,
 } from './drawer'
@@ -41,6 +43,7 @@ export interface DashboardApi {
   getCompetitorSales(params?: CompetitorSalesParams): Promise<CompetitorSalesRow[]>
   getSelfSalesFilterMeta(): Promise<SelfSalesFilterMeta>
   getProductDrawerBundle(id: string, params?: ProductDrawerBundleParams): Promise<ProductDrawerBundle>
+  getProductMonthlyTrend(id: string, params: ProductMonthlyTrendParams): Promise<ProductMonthlyTrend>
   getProductSalesInsight(id: string, params: ProductSalesInsightParams): Promise<ProductSalesInsight>
   getProductSecondaryDetail(
     id: string,

@@ -62,6 +62,30 @@ describe('api/mock dashboardApi competitor channel behavior', () => {
     expect(musinsa.length).toBe(kream.length)
     expect(sumCompetitorSales(musinsa)).toBeLessThan(sumCompetitorSales(kream))
   })
+
+  it('applies selected channel to product monthly competitor trend', async () => {
+    const params = {
+      startDate: '2025-01-01',
+      endDate: '2025-12-31',
+      forecastMonths: 8,
+    }
+    const kream = await mockDashboardApi.getProductMonthlyTrend('B', {
+      ...params,
+      competitorChannelId: 'kream',
+    })
+    const musinsa = await mockDashboardApi.getProductMonthlyTrend('B', {
+      ...params,
+      competitorChannelId: 'musinsa',
+    })
+
+    const sumCompetitorSales = (rows: typeof kream.points) =>
+      rows.reduce((sum, row) => sum + Math.max(0, row.competitorSales ?? 0), 0)
+
+    expect(kream.points.length).toBeGreaterThan(0)
+    expect(musinsa.points.length).toBe(kream.points.length)
+    expect(musinsa.competitorChannelId).toBe('musinsa')
+    expect(sumCompetitorSales(musinsa.points)).toBeLessThan(sumCompetitorSales(kream.points))
+  })
 })
 
 describe('api/mock dashboardApi candidate stash contract stubs', () => {

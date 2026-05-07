@@ -13,6 +13,8 @@ import type {
   UpdateCandidateStashPayload,
   CompetitorSalesParams,
   ProductDrawerBundleParams,
+  ProductMonthlyTrend,
+  ProductMonthlyTrendParams,
   ProductSalesInsight,
   ProductSalesInsightParams,
   ProductSecondaryDetailParams,
@@ -260,6 +262,40 @@ export const mockDashboardApi = {
       monthlySalesTrend: makeSalesTrend(base, seed, fc),
     }
     return { summary, stockTrend }
+  },
+  getProductMonthlyTrend: async (
+    id: string,
+    params: ProductMonthlyTrendParams,
+  ): Promise<ProductMonthlyTrend> => {
+    await sleep(80)
+    const primary = productPrimaryById[id] ?? productPrimaryById[allKnownProductIds[0]]!
+    const fc = Math.max(1, Math.min(24, Math.round(params.forecastMonths ?? 8)))
+    const seed = id.charCodeAt(0)
+    const base = Math.max(800, Math.round(primary.qty * 0.42))
+    const selfTrend = makeSalesTrend(base, seed, fc)
+    const channel =
+      secondaryCompetitorChannels.find((ch) => ch.id === params.competitorChannelId)
+      ?? secondaryCompetitorChannels[0]!
+    return {
+      productId: primary.id,
+      targetPeriodDays: {
+        start: params.startDate,
+        end: params.endDate,
+      },
+      competitorChannelId: channel.id,
+      competitorChannelLabel: channel.label,
+      points: selfTrend.map((point, idx) => {
+        const rhythm = 1 + Math.sin((idx + seed) * 0.47) * 0.06
+        return {
+          date: point.date,
+          selfSales: Math.max(0, Math.round(point.sales)),
+          competitorSales: point.isForecast
+            ? null
+            : Math.max(1, Math.round(point.sales * 10 * channel.qtySkew * rhythm)),
+          isForecast: point.isForecast,
+        }
+      }),
+    }
   },
   getProductSalesInsight: async (
     id: string,

@@ -133,6 +133,7 @@
 | `getCompetitorSales(params?)` | GET | `/sales/competitor?…` + `competitorChannelId` |
 | `getSelfSalesFilterMeta()` | GET | `/sales/self/filter-meta` |
 | `getProductDrawerBundle(id, params?)` | GET | `/products/:id/drawer-bundle?forecastMonths` |
+| `getProductMonthlyTrend(id, params)` | GET | `/products/:id/monthly-trend?startDate&endDate&forecastMonths&competitorChannelId` |
 | `getProductSalesInsight(id, params)` | GET | `/products/:id/sales-insight?startDate&endDate&competitorChannelId` |
 | `getProductSecondaryDetail(id, params?)` | GET | `/products/:id/secondary-detail?minOpMarginPct` |
 | `getSecondaryDailyTrend(params)` | GET | `/products/:productId/secondary/daily-trend?startMonth&leadTimeDays&competitorChannelId` |
@@ -217,7 +218,30 @@
 | `summary` | [`ProductPrimarySummary`](#51-productprimarysummary) |
 | `stockTrend` | [`ProductStockTrendPoint[]`](#52-productstocktrendpoint) |
 
-### 3.4 `getProductSalesInsight`
+### 3.4 `getProductMonthlyTrend`
+
+기간·경쟁 채널 조건에 따라 1차 드로어의 **월간 판매 추이 그래프**를 구성합니다. `getProductDrawerBundle`은 상품 요약·재고 번들로 유지하고, 선택 경쟁 채널별 월간 시계열은 이 계약으로 분리합니다.
+
+**쿼리 (`ProductMonthlyTrendParams`)**
+
+| 필드 | 의미 |
+|------|------|
+| `startDate` | 조회 기준 시작일 (`YYYY-MM-DD` 권장). UI의 기간 음영 기준과 동일 |
+| `endDate` | 조회 기준 종료일 (`YYYY-MM-DD` 권장). UI의 기간 음영 기준과 동일 |
+| `forecastMonths` | 월간 판매추이에 포함할 포캐스트 월 수(1~24) |
+| `competitorChannelId` | 경쟁사 월간 판매량 시리즈에 적용할 선택 경쟁 채널 id |
+
+**응답 (`ProductMonthlyTrend`)**
+
+| 필드 | 의미 |
+|------|------|
+| `productId` | 상품 id |
+| `targetPeriodDays.start/end` | 실제 표시·집계 대상 기간 |
+| `competitorChannelId` | 응답에 적용된 경쟁 채널 id |
+| `competitorChannelLabel` | 응답에 적용된 경쟁 채널 표시명 |
+| `points` | [`ProductMonthlyTrendPoint[]`](#54-productmonthlytrendpoint) |
+
+### 3.5 `getProductSalesInsight`
 
 기간·경쟁 채널 조건에 따라 1차 드로어의 **판매 정보** 테이블을 구성합니다. 기존 `getProductDrawerBundle`은 월간 판매추이·재고·기본 요약용으로 유지하고, 일간/기간/채널 집계가 필요한 판매 정보는 이 계약으로 분리합니다.
 
@@ -255,7 +279,7 @@
 
 백엔드는 고객사 집계 테이블을 우선 사용하고, 필요한 보조 값만 일간 데이터에서 보강하는 것을 권장합니다.
 
-### 3.5 `getProductSecondaryDetail`
+### 3.6 `getProductSecondaryDetail`
 
 **쿼리 (`ProductSecondaryDetailParams`)**
 
@@ -272,7 +296,7 @@
 | `competitorQty` | 경쟁 추정 수량 |
 | `competitorRatioBySize` | 사이즈별 경쟁 비중 맵 (`size` 문자열 → 비율) |
 
-### 3.6 `getSecondaryDailyTrend`
+### 3.7 `getSecondaryDailyTrend`
 
 **파라미터 (`SecondaryDailyTrendParams`)**
 
@@ -297,7 +321,7 @@
 | `competitorSales` | 경쟁 **실판매 수량(EA)**. 예측 구간 등에서는 `null` 가능 |
 | `isForecast` | 포캐스트 구간 여부 |
 
-### 3.7 `getSecondaryCompetitorChannels`
+### 3.8 `getSecondaryCompetitorChannels`
 
 **응답 (`SecondaryCompetitorChannel[]`)**
 
@@ -310,7 +334,7 @@
 
 현재 프론트 기준 유효 채널은 **`kream`, `musinsa`** 입니다(`naver` 제거됨).
 
-### 3.8 후보군(Candidate stash / item)
+### 3.9 후보군(Candidate stash / item)
 
 **`CandidateStashSummary`**
 
@@ -394,7 +418,7 @@
 - 브라우저가 SSE 연결을 끊어도 백엔드 작업 취소를 의미하지 않습니다. 별도 취소 API가 필요하면 독립 계약으로 추가합니다.
 - LLM 분석 결과를 후보 아이템·후보군에 저장할 경우, 저장 위치와 요약 필드는 별도 응답/조회 계약으로 추가해야 합니다. 현재 프론트 계약은 “요청 발생 + 진행 상태 표시”까지만 요구합니다.
 
-### 3.9 `getSecondaryStockOrderCalc`
+### 3.10 `getSecondaryStockOrderCalc`
 
 **요청 (`SecondaryStockOrderCalcParams`)**
 
@@ -478,7 +502,7 @@
 | `qty` | 판매 수량 등 요약 값 |
 | `availableStock` | 판매 가능 재고 |
 | `recommendedOrderQty` | 추천 발주 수량 |
-| `monthlySalesTrend` | 월별 [`MonthlySalesPoint`](#54-ordersnapshotdocumentv1-v2-스키마) |
+| `monthlySalesTrend` | 월별 [`MonthlySalesPoint`](#57-monthlysalespoint) |
 | `seasonality` | 1~12월 계절 비중 배열 (`ratio` 합 ≈ 1) |
 | `sizeMix` | 사이즈 믹스 행 [`ProductSizeMixRow`](#53-productsizemixrow) |
 
@@ -502,7 +526,16 @@
 | `qty` | 수량 |
 | `availableStock` | 가용 재고 |
 
-### 5.4 `OrderSnapshotDocumentV1` (v2 스키마)
+### 5.4 `ProductMonthlyTrendPoint`
+
+| 필드 | 의미 |
+|------|------|
+| `date` | 월 식별 |
+| `selfSales` | 자사 월간 판매량 |
+| `competitorSales` | 선택 경쟁 채널 월간 판매량. 포캐스트 구간 등 값이 없으면 `null` |
+| `isForecast` | 포캐스트 여부 |
+
+### 5.5 `OrderSnapshotDocumentV1` (v2 스키마)
 
 상수: `ORDER_SNAPSHOT_SCHEMA_VERSION = 2`.
 
@@ -542,9 +575,9 @@
 | `bufferStock` | 추가 버퍼 재고 |
 | `llmPrompt`, `llmAnswer` | LLM 컨텍스트 |
 | `confirmedTotals` | 저장 시점 확정 합계(선택): `orderQty`, `expectedSalesAmount`, `expectedOpProfit`, `expectedOpProfitRatePct` |
-| `sizeRows` | [`OrderSnapshotSizeRowV1[]`](#55-ordersnapshotsizerowv1) |
+| `sizeRows` | [`OrderSnapshotSizeRowV1[]`](#56-ordersnapshotsizerowv1) |
 
-### 5.5 `OrderSnapshotSizeRowV1`
+### 5.6 `OrderSnapshotSizeRowV1`
 
 | 필드 | 의미 |
 |------|------|
@@ -554,7 +587,7 @@
 | `recommendedQty` | 추천 수량 |
 | `confirmQty` | 사용자 확정 수량 |
 
-### 5.6 `MonthlySalesPoint`
+### 5.7 `MonthlySalesPoint`
 
 | 필드 | 의미 |
 |------|------|

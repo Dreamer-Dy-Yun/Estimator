@@ -15,6 +15,9 @@ export type { CompetitorSalesParams, SelfSalesFilterMeta, SelfSalesParams } from
 export type {
   ProductDrawerBundle,
   ProductDrawerBundleParams,
+  ProductMonthlyTrend,
+  ProductMonthlyTrendParams,
+  ProductMonthlyTrendPoint,
   ProductSalesInsight,
   ProductSalesInsightColumn,
   ProductSalesInsightParams,

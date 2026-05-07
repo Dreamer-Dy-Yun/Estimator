@@ -22,6 +22,31 @@ export interface ProductDrawerBundle {
   stockTrend: ProductStockTrendPoint[]
 }
 
+export interface ProductMonthlyTrendParams {
+  startDate: string
+  endDate: string
+  forecastMonths: number
+  competitorChannelId: string
+}
+
+export interface ProductMonthlyTrendPoint {
+  date: string
+  selfSales: number
+  competitorSales: number | null
+  isForecast: boolean
+}
+
+export interface ProductMonthlyTrend {
+  productId: string
+  targetPeriodDays: {
+    start: string
+    end: string
+  }
+  competitorChannelId: string
+  competitorChannelLabel: string
+  points: ProductMonthlyTrendPoint[]
+}
+
 export interface ProductSalesInsightParams {
   startDate: string
   endDate: string

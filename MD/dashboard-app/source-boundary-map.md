@@ -87,7 +87,7 @@
 | `auth.ts` | 로그인 요청, 인증 사용자, 사용자 정보/비밀번호 변경, 관리자 유저 추가/제거/수정, 세션, 인증 API 계약 |
 | `candidate.ts` | 후보군/이너 후보/후보군 분석 SSE 요청·응답 계약. 후보군은 생성 당시 기간과 포캐스트 개월 수를 계약에 포함한다 |
 | `dashboard-api.ts` | 화면에서 쓰는 `DashboardApi` 인터페이스 |
-| `drawer.ts` | 1차 drawer bundle과 판매 인사이트 계약 |
+| `drawer.ts` | 1차 drawer bundle, 월간 판매 추이, 판매 인사이트 계약 |
 | `index.ts` | API public type export |
 | `sales.ts` | 자사/경쟁 판매 목록과 필터 계약 |
 | `secondary.ts` | 2차 상세, 일별 트렌드, 재고·발주 계산 계약 |
@@ -181,7 +181,7 @@
 | `PageHeader.tsx` | 페이지 제목/header |
 | `PaginatedTable.tsx` | 정렬/페이지네이션 테이블 |
 | `PortalHelpPopover.tsx`, `usePortalHelpPopover.ts`, `portalHelpPopoverPosition.ts` | help popover와 위치 계산 |
-| `ProductSummaryDrawer.tsx` | 상품 1차 요약 drawer와 2차 패널 진입 shell. 1차 판매 정보의 경쟁 채널 선택을 판매 추이 그래프와 2차 패널에 공유하며, 닫힘 애니메이션 class를 받을 수 있다 |
+| `ProductSummaryDrawer.tsx` | 상품 1차 요약 drawer와 2차 패널 진입 shell. 경쟁 채널 선택을 1차 판매 정보, 1차 월간 추이 API, 2차 패널에 공유하며, 닫힘 애니메이션 class를 받을 수 있다 |
 | `common.module.css` | 대시보드 공용 layout/card/button/icon 스타일 |
 | `trend/` | 판매 트렌드 차트와 차트 range 보조 |
 | `product-secondary/` | 상품 2차 상세 패널 feature |
