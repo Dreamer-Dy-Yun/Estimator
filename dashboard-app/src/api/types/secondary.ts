@@ -16,6 +16,8 @@ export interface SecondaryDailyTrendParams {
   productId: string
   startMonth: string
   leadTimeDays: number
+  /** Competitor channel used for the competitor daily-sales series. */
+  competitorChannelId: string
 }
 
 export interface SecondaryCompetitorChannel {

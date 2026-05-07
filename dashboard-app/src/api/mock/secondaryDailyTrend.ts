@@ -156,6 +156,7 @@ export const buildSecondaryDailyTrend = (
   }>,
   startMonth: string,
   leadTimeDays: number,
+  competitorSalesScale = 1,
 ): SecondaryDailyTrendPoint[] => {
   const full: SecondaryDailyTrendPoint[] = []
   let idx = 0
@@ -163,6 +164,9 @@ export const buildSecondaryDailyTrend = (
   let physical = 0
   let pipeline = 0
   const asOf = DAILY_TREND_AS_OF_DATE
+  const competitorScale = Number.isFinite(competitorSalesScale)
+    ? Math.max(0, competitorSalesScale)
+    : 1
 
   monthlyTrend.forEach((m, monthIdx) => {
     const pattern = DAILY_PATTERN_BY_MONTH[m.date] ?? (m.isForecast ? DAILY_PATTERN_FORECAST : DAILY_PATTERN_STEADY)
@@ -242,38 +246,40 @@ export const buildSecondaryDailyTrend = (
   if (startIdx === -1) return []
   const out = full.slice(startIdx).map((row, i) => ({ ...row, idx: i }))
   const extendDays = Math.max(0, Math.round(leadTimeDays))
-  if (extendDays <= 0 || out.length === 0) return out
+  if (out.length === 0) return out
 
-  let last = out[out.length - 1]!
-  let date = parseIsoDateUtc(last.date)
-  let phys = last.stockBar
-  let pipe = last.inboundAccumBar
+  if (extendDays > 0) {
+    let last = out[out.length - 1]!
+    let date = parseIsoDateUtc(last.date)
+    let phys = last.stockBar
+    let pipe = last.inboundAccumBar
 
-  for (let i = 0; i < extendDays; i += 1) {
-    date = new Date(date.getTime() + 24 * 60 * 60 * 1000)
-    const nextDate = formatIsoDateUtc(date)
-    const sales = Math.max(1, Math.round(last.sales + DAILY_EXT_SALES_DELTA[i % DAILY_EXT_SALES_DELTA.length]!))
-    let need = sales
-    const fromPhys = Math.min(need, phys)
-    phys -= fromPhys
-    need -= fromPhys
-    const fromPipe = Math.min(need, pipe)
-    pipe -= fromPipe
-    need -= fromPipe
+    for (let i = 0; i < extendDays; i += 1) {
+      date = new Date(date.getTime() + 24 * 60 * 60 * 1000)
+      const nextDate = formatIsoDateUtc(date)
+      const sales = Math.max(1, Math.round(last.sales + DAILY_EXT_SALES_DELTA[i % DAILY_EXT_SALES_DELTA.length]!))
+      let need = sales
+      const fromPhys = Math.min(need, phys)
+      phys -= fromPhys
+      need -= fromPhys
+      const fromPipe = Math.min(need, pipe)
+      pipe -= fromPipe
+      need -= fromPipe
 
-    const next = {
-      idx: out.length,
-      date: nextDate,
-      month: nextDate.slice(0, 7),
-      sales,
-      stockBar: Math.max(0, Math.round(phys)),
-      inboundAccumBar: Math.max(0, Math.round(pipe)),
-      selfSales: null,
-      competitorSales: null,
-      isForecast: true,
+      const next = {
+        idx: out.length,
+        date: nextDate,
+        month: nextDate.slice(0, 7),
+        sales,
+        stockBar: Math.max(0, Math.round(phys)),
+        inboundAccumBar: Math.max(0, Math.round(pipe)),
+        selfSales: null,
+        competitorSales: null,
+        isForecast: true,
+      }
+      out.push(next)
+      last = next
     }
-    out.push(next)
-    last = next
   }
 
   let prevCompetitorSales = 0
@@ -297,7 +303,7 @@ export const buildSecondaryDailyTrend = (
     const noise = (((daySeed * 11 + i * 5) % 23) / 23 - 0.5) * 0.04
 
     const base =
-      (selfSales * 0.72 + lag3 * 0.18 + lag8 * 0.1) * KREAM_TO_SELF_DAILY_SALES_RATIO
+      (selfSales * 0.72 + lag3 * 0.18 + lag8 * 0.1) * KREAM_TO_SELF_DAILY_SALES_RATIO * competitorScale
     const rhythm = 1 + weekly * 0.08 + biWeekly * 0.05 + monthly * 0.04 + promoSpike + noise
     const trendTarget = base * Math.max(0.55, rhythm)
 

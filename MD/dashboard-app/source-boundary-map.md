@@ -104,7 +104,7 @@
 | `productCatalog.ts` | 상품 catalog seed와 조회 |
 | `records.ts` | mock 원천 record 묶음 |
 | `salesTables.ts` | 자사/경쟁 판매 테이블 mock |
-| `secondaryDailyTrend.ts` | 2차 패널 일간 트렌드 mock |
+| `secondaryDailyTrend.ts` | 2차 패널 일간 트렌드 mock. 선택 경쟁 채널의 수량 보정이 경쟁사 일별 판매량에 반영된다 |
 | `utils.ts` | mock 전용 유틸 |
 
 ## src/auth
@@ -207,7 +207,7 @@
 
 | 파일/폴더 | 역할 |
 |------|------|
-| `ProductSecondaryPanel.tsx` | 2차 패널 orchestration. 크므로 새 책임은 가능하면 하위 카드/모델로 분리한다 |
+| `ProductSecondaryPanel.tsx` | 2차 패널 orchestration. 선택 경쟁 채널을 일별 추이 API에 전달한다. 크므로 새 책임은 가능하면 하위 카드/모델로 분리한다 |
 | `secondaryPanelTypes.ts` | 2차 패널 내부 view-model 타입 |
 | `candidateActionCards.tsx` | 2차 패널에서 후보군 저장/연결 액션 UI |
 | `ko.ts` | product-secondary 영역의 한국어 텍스트 상수 |

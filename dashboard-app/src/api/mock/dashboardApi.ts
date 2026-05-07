@@ -288,11 +288,19 @@ export const mockDashboardApi = {
     await sleep(80)
     return productSecondaryById[id] ?? productSecondaryById[allKnownProductIds[0]]!
   },
-  getSecondaryDailyTrend: async ({ productId, startMonth, leadTimeDays }: SecondaryDailyTrendParams) => {
+  getSecondaryDailyTrend: async ({
+    productId,
+    startMonth,
+    leadTimeDays,
+    competitorChannelId,
+  }: SecondaryDailyTrendParams) => {
     await sleep(80)
     const primary = productPrimaryById[productId] ?? productPrimaryById[allKnownProductIds[0]]!
     const stockTrend = stockTrendById[productId] ?? stockTrendById[allKnownProductIds[0]]!
-    return buildSecondaryDailyTrend(primary.monthlySalesTrend, stockTrend, startMonth, leadTimeDays)
+    const channel =
+      secondaryCompetitorChannels.find((ch) => ch.id === competitorChannelId)
+      ?? secondaryCompetitorChannels[0]!
+    return buildSecondaryDailyTrend(primary.monthlySalesTrend, stockTrend, startMonth, leadTimeDays, channel.qtySkew)
   },
   getSecondaryCompetitorChannels: async () => {
     await sleep(40)

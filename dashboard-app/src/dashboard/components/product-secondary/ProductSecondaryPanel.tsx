@@ -484,6 +484,7 @@ export function ProductSecondaryPanel({
           productId: primary.id,
           startMonth: selectedStart,
           leadTimeDays,
+          competitorChannelId: channel.id,
         }
         const series = await dashboardApi.getSecondaryDailyTrend(params)
         if (!alive || dailyTrendReqSeqRef.current !== reqSeq) return
@@ -495,7 +496,7 @@ export function ProductSecondaryPanel({
         setDailyTrendSeries([])
         setDailyTrendError(
           makeApiErrorInfo(
-            `getSecondaryDailyTrend(${JSON.stringify({ productId: primary.id, startMonth: selectedStart, leadTimeDays })})`,
+            `getSecondaryDailyTrend(${JSON.stringify({ productId: primary.id, startMonth: selectedStart, leadTimeDays, competitorChannelId: channel.id })})`,
             err,
           ),
         )
@@ -504,7 +505,7 @@ export function ProductSecondaryPanel({
     return () => {
       alive = false
     }
-  }, [leadTimeDays, makeApiErrorInfo, selectedStart, primary.id])
+  }, [channel.id, leadTimeDays, makeApiErrorInfo, selectedStart, primary.id])
 
   const { periodShade: dailyPeriodShade, forecastShade: dailyForecastShade } = useMemo(
     () => buildShadeRanges(

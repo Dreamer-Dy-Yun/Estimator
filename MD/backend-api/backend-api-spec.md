@@ -135,7 +135,7 @@
 | `getProductDrawerBundle(id, params?)` | GET | `/products/:id/drawer-bundle?forecastMonths` |
 | `getProductSalesInsight(id, params)` | GET | `/products/:id/sales-insight?startDate&endDate&competitorChannelId` |
 | `getProductSecondaryDetail(id, params?)` | GET | `/products/:id/secondary-detail?minOpMarginPct` |
-| `getSecondaryDailyTrend(params)` | GET | `/products/:productId/secondary/daily-trend?startMonth&leadTimeDays` |
+| `getSecondaryDailyTrend(params)` | GET | `/products/:productId/secondary/daily-trend?startMonth&leadTimeDays&competitorChannelId` |
 | `getSecondaryCompetitorChannels()` | GET | `/secondary/competitor-channels` |
 | `getCandidateStashes(productId?)` | GET | `/candidate-stashes?productId` |
 | `getCandidateItemsByStash(stashUuid)` | GET | `/candidate-stashes/:stashUuid/items` |
@@ -281,6 +281,7 @@
 | `productId` | 상품 id |
 | `startMonth` | 일별 트렌드 시작 월 (`getSecondaryDailyTrend` 재조회와 스냅샷 `context.dailyTrendStartMonth` 와 동일 역할) |
 | `leadTimeDays` | 리드타임 일수 (스냅샷 `context.dailyTrendLeadTimeDays` 와 동일 역할) |
+| `competitorChannelId` | 경쟁사 일별 판매량 시리즈에 적용할 선택 경쟁 채널 id |
 
 **응답 (`SecondaryDailyTrendPoint[]`)**
 

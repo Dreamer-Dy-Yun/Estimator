@@ -40,6 +40,28 @@ describe('api/mock dashboardApi competitor channel behavior', () => {
     const naver = await mockDashboardApi.getCompetitorSales({ competitorChannelId: 'naver' })
     expect(naver).toEqual(base)
   })
+
+  it('applies selected channel to secondary daily competitor trend', async () => {
+    const kream = await mockDashboardApi.getSecondaryDailyTrend({
+      productId: 'B',
+      startMonth: '2025-01',
+      leadTimeDays: 0,
+      competitorChannelId: 'kream',
+    })
+    const musinsa = await mockDashboardApi.getSecondaryDailyTrend({
+      productId: 'B',
+      startMonth: '2025-01',
+      leadTimeDays: 0,
+      competitorChannelId: 'musinsa',
+    })
+
+    const sumCompetitorSales = (rows: typeof kream) =>
+      rows.reduce((sum, row) => sum + Math.max(0, row.competitorSales ?? 0), 0)
+
+    expect(kream.length).toBeGreaterThan(0)
+    expect(musinsa.length).toBe(kream.length)
+    expect(sumCompetitorSales(musinsa)).toBeLessThan(sumCompetitorSales(kream))
+  })
 })
 
 describe('api/mock dashboardApi candidate stash contract stubs', () => {
