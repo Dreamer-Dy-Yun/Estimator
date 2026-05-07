@@ -85,7 +85,7 @@
 
 | 파일 | 역할 |
 |------|------|
-| `auth.ts` | 로그인 요청, 인증 사용자, 사용자 정보/비밀번호 변경, 관리자 유저 관리, 세션, 인증 API 계약 |
+| `auth.ts` | 로그인 요청, 인증 사용자, 사용자 정보/비밀번호 변경, 관리자 유저 추가/제거/수정, 세션, 인증 API 계약 |
 | `candidate.ts` | 후보군/이너 후보/후보군 분석 SSE 요청·응답 계약 |
 | `dashboard-api.ts` | 화면에서 쓰는 `DashboardApi` 인터페이스 |
 | `drawer.ts` | 1차 drawer bundle과 판매 인사이트 계약 |
@@ -98,7 +98,7 @@
 
 | 파일 | 역할 |
 |------|------|
-| `authApi.ts` | mock 인증 API 구현, sessionStorage 세션 저장/복원, 관리자 유저 목록 localStorage 저장 |
+| `authApi.ts` | mock 인증 API 구현, sessionStorage 세션 저장/복원, 관리자 유저 목록 localStorage 저장과 추가/제거/수정 |
 | `candidateSeeds.ts` | 후보군/후보 아이템 seed 데이터와 기존 목업 스냅샷의 빈 AI 코멘트 보강 |
 | `candidateStorage.ts` | 후보군 mock localStorage 읽기/쓰기와 목업 전용 record 보강 경계 |
 | `constants.ts` | mock 공용 상수 |
@@ -130,7 +130,7 @@
 
 | 파일 | 역할 |
 |------|------|
-| `AdminUsersPage.tsx` | 관리자 유저 목록 조회와 이름/권한/활성 상태 수정 화면 |
+| `AdminUsersPage.tsx` | 관리자 유저 목록 조회, 추가, 제거, 이름/권한/활성 상태 수정 화면 |
 | `AdminUsersPage.module.css` | 관리자 유저 관리 화면 전용 스타일 |
 
 ## src/components

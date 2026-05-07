@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { getAdminUsers, updateAdminUser } from '../api'
+import { createAdminUser, deleteAdminUser, getAdminUsers, updateAdminUser } from '../api'
 import type { AdminUserSummary, AuthRole } from '../api'
 import { useAuth } from '../auth/AuthProvider'
 import styles from './AdminUsersPage.module.css'
@@ -24,20 +24,27 @@ function formatUpdatedAt(value: string) {
   }).format(date)
 }
 
+function sortUsers(users: AdminUserSummary[]) {
+  return [...users].sort((a, b) => a.id.localeCompare(b.id))
+}
+
 function AdminUserRow({
   user,
   currentUserId,
   onSaved,
+  onDeleted,
 }: {
   user: AdminUserSummary
   currentUserId: string
   onSaved: (user: AdminUserSummary) => void
+  onDeleted: (userId: string) => void
 }) {
   const [name, setName] = useState(user.name)
   const [role, setRole] = useState<AuthRole>(user.role)
   const [isActive, setIsActive] = useState(user.isActive)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [isSaving, setIsSaving] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
   const isCurrentUser = user.id === currentUserId
   const isDirty = name !== user.name || role !== user.role || isActive !== user.isActive
 
@@ -47,6 +54,7 @@ function AdminUserRow({
     setIsActive(user.isActive)
     setErrorMessage(null)
     setIsSaving(false)
+    setIsDeleting(false)
   }, [user])
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -66,6 +74,22 @@ function AdminUserRow({
       setErrorMessage(getErrorMessage(error))
     } finally {
       setIsSaving(false)
+    }
+  }
+
+  const handleDelete = async () => {
+    if (isCurrentUser) return
+    const ok = window.confirm(`${user.name} 사용자를 제거할까요?`)
+    if (!ok) return
+
+    setErrorMessage(null)
+    setIsDeleting(true)
+    try {
+      await deleteAdminUser(user.id)
+      onDeleted(user.id)
+    } catch (error) {
+      setErrorMessage(getErrorMessage(error))
+      setIsDeleting(false)
     }
   }
 
@@ -107,6 +131,9 @@ function AdminUserRow({
         <button type="submit" disabled={!isDirty || isSaving}>
           {isSaving ? '저장 중' : '저장'}
         </button>
+        <button type="button" onClick={handleDelete} disabled={isCurrentUser || isDeleting}>
+          {isDeleting ? '제거 중' : '제거'}
+        </button>
       </div>
       {errorMessage ? <p className={styles.rowError}>{errorMessage}</p> : null}
     </form>
@@ -117,8 +144,14 @@ export function AdminUsersPage() {
   const navigate = useNavigate()
   const { session, logout, refreshSession } = useAuth()
   const [users, setUsers] = useState<AdminUserSummary[]>([])
+  const [newName, setNewName] = useState('')
+  const [newEmail, setNewEmail] = useState('')
+  const [newRole, setNewRole] = useState<AuthRole>('viewer')
+  const [newIsActive, setNewIsActive] = useState(true)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [createErrorMessage, setCreateErrorMessage] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [isCreating, setIsCreating] = useState(false)
 
   useEffect(() => {
     let alive = true
@@ -143,6 +176,34 @@ export function AdminUsersPage() {
     setUsers((prev) => prev.map((user) => (user.id === updated.id ? updated : user)))
     if (updated.id === session?.user.id) {
       void refreshSession()
+    }
+  }
+
+  const handleDeleted = (userId: string) => {
+    setUsers((prev) => prev.filter((user) => user.id !== userId))
+  }
+
+  const handleCreate = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    setCreateErrorMessage(null)
+    setIsCreating(true)
+
+    try {
+      const created = await createAdminUser({
+        name: newName,
+        email: newEmail,
+        role: newRole,
+        isActive: newIsActive,
+      })
+      setUsers((prev) => sortUsers([...prev, created]))
+      setNewName('')
+      setNewEmail('')
+      setNewRole('viewer')
+      setNewIsActive(true)
+    } catch (error) {
+      setCreateErrorMessage(getErrorMessage(error))
+    } finally {
+      setIsCreating(false)
     }
   }
 
@@ -176,6 +237,49 @@ export function AdminUsersPage() {
           </div>
         </div>
 
+        <form className={styles.createForm} onSubmit={handleCreate}>
+          <label className={styles.createField}>
+            <span>이름</span>
+            <input
+              value={newName}
+              onChange={(event) => setNewName(event.target.value)}
+              placeholder="표시 이름"
+              maxLength={40}
+            />
+          </label>
+          <label className={styles.createField}>
+            <span>이메일</span>
+            <input
+              value={newEmail}
+              onChange={(event) => setNewEmail(event.target.value)}
+              placeholder="user@han-a.local"
+              type="email"
+            />
+          </label>
+          <label className={styles.createField}>
+            <span>권한</span>
+            <select value={newRole} onChange={(event) => setNewRole(event.target.value as AuthRole)}>
+              {ROLE_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className={styles.createActiveField}>
+            <input
+              type="checkbox"
+              checked={newIsActive}
+              onChange={(event) => setNewIsActive(event.target.checked)}
+            />
+            <span>활성</span>
+          </label>
+          <button className={styles.createButton} type="submit" disabled={isCreating}>
+            {isCreating ? '추가 중' : '유저 추가'}
+          </button>
+          {createErrorMessage ? <p className={styles.createError}>{createErrorMessage}</p> : null}
+        </form>
+
         <div className={styles.tableHeader} aria-hidden="true">
           <span>계정</span>
           <span>이름</span>
@@ -195,6 +299,7 @@ export function AdminUsersPage() {
                 user={user}
                 currentUserId={session?.user.id ?? ''}
                 onSaved={handleSaved}
+                onDeleted={handleDeleted}
               />
             ))}
           </div>

@@ -6,6 +6,7 @@ import type {
   AuthApi,
   AuthSession,
   ChangePasswordPayload,
+  CreateAdminUserPayload,
   UpdateCandidateItemPayload,
   CandidateItemDetail,
   CandidateItemListResult,
@@ -62,9 +63,19 @@ export async function getAdminUsers(): Promise<AdminUserSummary[]> {
   return mockAuthApi.getAdminUsers()
 }
 
+/** 관리자용 사용자 추가. 목 구현은 localStorage 유저 목록에 새 유저를 만든다. */
+export async function createAdminUser(payload: CreateAdminUserPayload): Promise<AdminUserSummary> {
+  return mockAuthApi.createAdminUser(payload)
+}
+
 /** 관리자용 사용자 정보 변경. 목 구현은 이름/권한/활성 상태를 localStorage에 저장한다. */
 export async function updateAdminUser(payload: UpdateAdminUserPayload): Promise<AdminUserSummary> {
   return mockAuthApi.updateAdminUser(payload)
+}
+
+/** 관리자용 사용자 제거. 목 구현은 현재 로그인한 관리자와 마지막 활성 관리자는 보호한다. */
+export async function deleteAdminUser(userId: string): Promise<void> {
+  return mockAuthApi.deleteAdminUser(userId)
 }
 
 /** 로그아웃. 목 구현은 현재 브라우저 탭의 세션만 제거한다. */
@@ -79,7 +90,9 @@ export const authApi: AuthApi = {
   updateCurrentUser,
   changeCurrentUserPassword,
   getAdminUsers,
+  createAdminUser,
   updateAdminUser,
+  deleteAdminUser,
   logout,
 }
 

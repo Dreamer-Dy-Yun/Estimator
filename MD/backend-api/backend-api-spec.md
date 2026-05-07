@@ -52,7 +52,9 @@
 | `updateCurrentUser(payload)` | PATCH | `/auth/me` |
 | `changeCurrentUserPassword(payload)` | POST | `/auth/me/password` |
 | `getAdminUsers()` | GET | `/admin/users` |
+| `createAdminUser(payload)` | POST | `/admin/users` |
 | `updateAdminUser(payload)` | PATCH | `/admin/users/:userId` |
+| `deleteAdminUser(userId)` | DELETE | `/admin/users/:userId` |
 | `logout()` | POST | `/auth/logout` |
 
 **`LoginRequest`**
@@ -97,6 +99,15 @@
 | `isActive` | boolean | 활성 계정 여부 |
 | `dbUpdatedAt` | string | ISO 8601 최근 변경 시각 |
 
+**`CreateAdminUserPayload`**
+
+| 필드 | 타입 | 설명 |
+|------|------|------|
+| `name` | string | 표시 이름 |
+| `email` | string | 계정 이메일. 백엔드는 중복을 막아야 함 |
+| `role` | `'admin' \| 'operator' \| 'viewer'` | 사용자 권한 |
+| `isActive` | boolean | 생성 시 활성 상태 |
+
 **`UpdateAdminUserPayload`**
 
 | 필드 | 타입 | 설명 |
@@ -106,7 +117,7 @@
 | `role` | `'admin' \| 'operator' \| 'viewer'` | 변경할 권한 |
 | `isActive` | boolean | 활성 상태 |
 
-`/admin/users` 계열은 관리자 권한이 필요합니다. 실제 백엔드는 현재 로그인한 관리자 본인을 비활성화하거나 마지막 활성 관리자 권한을 제거하지 못하도록 검증하는 정책을 권장합니다.
+`/admin/users` 계열은 관리자 권한이 필요합니다. 실제 백엔드는 현재 로그인한 관리자 본인을 삭제/비활성화하거나 마지막 활성 관리자 권한을 제거하지 못하도록 검증하는 정책을 권장합니다.
 
 ---
 

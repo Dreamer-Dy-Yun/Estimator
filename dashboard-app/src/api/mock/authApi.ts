@@ -3,6 +3,7 @@ import type {
   AuthApi,
   AuthSession,
   ChangePasswordPayload,
+  CreateAdminUserPayload,
   LoginRequest,
   LoginResult,
   UpdateAdminUserPayload,
@@ -68,6 +69,23 @@ function readStoredUsers(): AdminUserSummary[] {
 function writeStoredUsers(users: AdminUserSummary[]) {
   if (typeof window === 'undefined') return
   window.localStorage.setItem(AUTH_USERS_STORAGE_KEY, JSON.stringify(users))
+}
+
+function makeUserId(email: string, existingUsers: AdminUserSummary[]) {
+  const localPart = email.split('@')[0]?.trim().toLowerCase() || 'user'
+  const base = localPart.replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'user'
+  let candidate = base
+  let suffix = 2
+  const existingIds = new Set(existingUsers.map((user) => user.id))
+  while (existingIds.has(candidate)) {
+    candidate = `${base}-${suffix}`
+    suffix += 1
+  }
+  return candidate
+}
+
+function isValidEmail(email: string) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
 }
 
 function makeMockSession(username: string): AuthSession {
@@ -190,6 +208,34 @@ export const mockAuthApi: AuthApi = {
     assertAdminSession()
     return readStoredUsers().sort((a, b) => a.id.localeCompare(b.id))
   },
+  createAdminUser: async (payload: CreateAdminUserPayload): Promise<AdminUserSummary> => {
+    await sleep(120)
+    assertAdminSession()
+    const users = readStoredUsers()
+    const name = payload.name.trim()
+    const email = payload.email.trim().toLowerCase()
+    if (!name) {
+      throw new Error('표시 이름을 입력해 주세요.')
+    }
+    if (!isValidEmail(email)) {
+      throw new Error('이메일 형식이 올바르지 않습니다.')
+    }
+    if (users.some((user) => user.email.toLowerCase() === email)) {
+      throw new Error('이미 등록된 이메일입니다.')
+    }
+
+    const now = new Date().toISOString()
+    const user: AdminUserSummary = {
+      id: makeUserId(email, users),
+      name,
+      email,
+      role: payload.role,
+      isActive: payload.isActive,
+      dbUpdatedAt: now,
+    }
+    writeStoredUsers([...users, user])
+    return user
+  },
   updateAdminUser: async (payload: UpdateAdminUserPayload): Promise<AdminUserSummary> => {
     await sleep(110)
     const session = assertAdminSession()
@@ -231,6 +277,24 @@ export const mockAuthApi: AuthApi = {
       })
     }
     return updated
+  },
+  deleteAdminUser: async (userId: string): Promise<void> => {
+    await sleep(100)
+    const session = assertAdminSession()
+    const users = readStoredUsers()
+    const target = users.find((user) => user.id === userId)
+    if (!target) {
+      throw new Error('사용자를 찾을 수 없습니다.')
+    }
+    if (target.id === session.user.id) {
+      throw new Error('현재 로그인한 관리자는 제거할 수 없습니다.')
+    }
+
+    const nextUsers = users.filter((user) => user.id !== userId)
+    if (!nextUsers.some((user) => user.role === 'admin' && user.isActive)) {
+      throw new Error('활성 관리자 계정은 최소 1개 이상 필요합니다.')
+    }
+    writeStoredUsers(nextUsers)
   },
   logout: async () => {
     await sleep(40)

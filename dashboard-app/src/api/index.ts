@@ -23,6 +23,7 @@ export type {
   CandidateStashAnalysisProgressEvent,
   CandidateStashAnalysisSubscription,
   ProductStockTrendPoint,
+  CreateAdminUserPayload,
   SelfSalesFilterMeta,
   SelfSalesParams,
   UpdateAdminUserPayload,
@@ -32,7 +33,9 @@ export { DAILY_TREND_AS_OF_DATE } from './dailyTrendAsOf'
 export {
   authApi,
   changeCurrentUserPassword,
+  createAdminUser,
   dashboardApi,
+  deleteAdminUser,
   getAdminUsers,
   getCurrentAuthSession,
   getCompetitorSales,

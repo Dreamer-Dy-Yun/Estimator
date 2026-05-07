@@ -26,6 +26,13 @@ export interface AdminUserSummary extends AuthUser {
   dbUpdatedAt: string
 }
 
+export interface CreateAdminUserPayload {
+  name: string
+  email: string
+  role: AuthRole
+  isActive: boolean
+}
+
 export interface UpdateAdminUserPayload {
   userId: string
   name: string
@@ -48,6 +55,8 @@ export interface AuthApi {
   updateCurrentUser(payload: UpdateAuthUserPayload): Promise<AuthSession>
   changeCurrentUserPassword(payload: ChangePasswordPayload): Promise<void>
   getAdminUsers(): Promise<AdminUserSummary[]>
+  createAdminUser(payload: CreateAdminUserPayload): Promise<AdminUserSummary>
   updateAdminUser(payload: UpdateAdminUserPayload): Promise<AdminUserSummary>
+  deleteAdminUser(userId: string): Promise<void>
   logout(): Promise<void>
 }
