@@ -45,12 +45,6 @@ function normalizeLoginId(loginId: string) {
   return loginId.trim().toLowerCase()
 }
 
-function assertValidLoginId(loginId: string) {
-  if (!/^[a-z0-9][a-z0-9._-]{2,31}$/.test(loginId)) {
-    throw new Error('로그인 ID는 영문 소문자, 숫자, ., _, - 조합 3~32자로 입력해 주세요.')
-  }
-}
-
 function toAdminUserSummary(user: StoredAuthUser): AdminUserSummary {
   const { password: _password, ...summary } = user
   return summary
@@ -68,22 +62,9 @@ function findUserByUuid(uuid: string) {
   return DEFAULT_AUTH_USERS.find((user) => user.uuid === uuid) ?? null
 }
 
-function assertUniqueLoginId(loginId: string, currentUuid?: string) {
-  if (DEFAULT_AUTH_USERS.some((user) => user.loginId === loginId && user.uuid !== currentUuid)) {
-    throw new Error('이미 등록된 로그인 ID입니다.')
-  }
-}
-
 function makeMockSession(payload: LoginRequest): AuthSession {
   const loginId = normalizeLoginId(payload.loginId)
-  const password = payload.password
-  assertValidLoginId(loginId)
-  if (!password) throw new Error('아이디와 비밀번호를 확인해 주세요.')
-
-  const user = DEFAULT_AUTH_USERS.find((candidate) => candidate.loginId === loginId)
-  if (!user || !user.isActive || user.password !== password) {
-    throw new Error('아이디와 비밀번호를 확인해 주세요.')
-  }
+  const user = DEFAULT_AUTH_USERS.find((candidate) => candidate.loginId === loginId) ?? DEFAULT_AUTH_USERS[0]!
 
   return {
     user: makeSessionUser(user),
@@ -144,21 +125,13 @@ export const mockAuthApi: AuthApi = {
   updateCurrentUser: async (payload: UpdateAuthUserPayload): Promise<AuthSession> => {
     await sleep(80)
     const current = assertLoggedInSession()
-    const loginId = normalizeLoginId(payload.loginId)
-    assertValidLoginId(loginId)
-    assertUniqueLoginId(loginId, current.user.uuid)
+    void payload
     return current
   },
   changeCurrentUserPassword: async (payload: ChangePasswordPayload): Promise<void> => {
     await sleep(90)
-    const current = assertLoggedInSession()
-    const target = findUserByUuid(current.user.uuid)
-    if (!target || target.password !== payload.currentPassword) {
-      throw new Error('현재 비밀번호가 일치하지 않습니다.')
-    }
-    if (payload.newPassword.length < 4) {
-      throw new Error('새 비밀번호는 4자 이상이어야 합니다.')
-    }
+    assertLoggedInSession()
+    void payload
   },
   getAdminUsers: async (): Promise<AdminUserSummary[]> => {
     await sleep(90)
@@ -170,12 +143,7 @@ export const mockAuthApi: AuthApi = {
   createAdminUser: async (payload: CreateAdminUserPayload): Promise<AdminUserSummary> => {
     await sleep(120)
     assertAdminSession()
-    const loginId = normalizeLoginId(payload.loginId)
-    assertValidLoginId(loginId)
-    assertUniqueLoginId(loginId)
-    if (payload.password.length < 4) {
-      throw new Error('비밀번호는 4자 이상이어야 합니다.')
-    }
+    const loginId = payload.loginId.trim() || 'mock-created-user'
     return {
       uuid: createMockUuid(),
       loginId,
@@ -186,20 +154,14 @@ export const mockAuthApi: AuthApi = {
   },
   updateAdminUser: async (payload: UpdateAdminUserPayload): Promise<AdminUserSummary> => {
     await sleep(110)
-    const session = assertAdminSession()
+    assertAdminSession()
     const target = findUserByUuid(payload.uuid)
-    if (!target) throw new Error('사용자를 찾을 수 없습니다.')
-
-    const loginId = normalizeLoginId(payload.loginId)
-    assertValidLoginId(loginId)
-    assertUniqueLoginId(loginId, target.uuid)
-    if (target.uuid === session.user.uuid && (!payload.isActive || payload.role !== 'admin')) {
-      throw new Error('현재 로그인한 관리자 권한과 활성 상태는 이 화면에서 바꿀 수 없습니다.')
-    }
+    const base = target ? toAdminUserSummary(target) : toAdminUserSummary(DEFAULT_AUTH_USERS[0]!)
 
     return {
-      ...toAdminUserSummary(target),
-      loginId,
+      ...base,
+      uuid: payload.uuid,
+      loginId: payload.loginId.trim() || target?.loginId || 'mock-updated-user',
       role: payload.role,
       isActive: payload.isActive,
       dbUpdatedAt: new Date().toISOString(),
@@ -207,12 +169,8 @@ export const mockAuthApi: AuthApi = {
   },
   deleteAdminUser: async (userUuid: string): Promise<void> => {
     await sleep(100)
-    const session = assertAdminSession()
-    const target = findUserByUuid(userUuid)
-    if (!target) throw new Error('사용자를 찾을 수 없습니다.')
-    if (target.uuid === session.user.uuid) {
-      throw new Error('현재 로그인한 관리자는 제거할 수 없습니다.')
-    }
+    assertAdminSession()
+    void userUuid
   },
   logout: async () => {
     await sleep(40)

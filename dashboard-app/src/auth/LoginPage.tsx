@@ -93,7 +93,7 @@ export function LoginPage() {
 
         <div className={styles.environmentRow}>
           <span>Mock 인증</span>
-          <strong>ID/PW</strong>
+          <strong>아무 ID/PW 가능</strong>
         </div>
       </div>
     </section>
