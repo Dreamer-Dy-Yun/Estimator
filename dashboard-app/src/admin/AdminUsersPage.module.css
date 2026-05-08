@@ -160,7 +160,7 @@
 .userRow {
   display: grid;
   grid-template-columns:
-    minmax(96px, 0.3fr)
+    minmax(72px, 0.22fr)
     minmax(116px, 0.72fr)
     minmax(112px, 0.66fr)
     minmax(116px, 0.86fr)
@@ -202,7 +202,9 @@
 .identityCell strong {
   color: #111827;
   font-size: 13px;
-  overflow-wrap: anywhere;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .identityCell span {

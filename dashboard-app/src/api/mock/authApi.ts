@@ -66,8 +66,16 @@ function normalizeLoginId(loginId: string) {
 }
 
 function toAdminUserSummary(user: StoredAuthUser): AdminUserSummary {
-  const { password: _password, ...summary } = user
-  return summary
+  return {
+    uuid: user.uuid,
+    loginId: user.loginId,
+    name: user.name,
+    note: user.note,
+    role: user.role,
+    mustChangePassword: user.mustChangePassword,
+    isActive: user.isActive,
+    dbUpdatedAt: user.dbUpdatedAt,
+  }
 }
 
 function makeSessionUser(user: StoredAuthUser): AuthUser {

@@ -128,7 +128,7 @@ function AdminUserRow({
     <form className={styles.userRow} onSubmit={handleSubmit}>
       <div className={styles.identityCell}>
         <span>UUID</span>
-        <strong>{user.uuid}</strong>
+        <strong title={user.uuid}>{user.uuid}</strong>
       </div>
       <label className={styles.fieldCell}>
         <span>로그인 ID</span>
