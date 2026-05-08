@@ -13,6 +13,7 @@ type CandidateOrderExportInput = {
   items: CandidateOrderExportItem[]
 }
 
+const SIZE_NOT_APPLICABLE = 'N/A'
 const invalidFilenameChars = /[\\/:*?"<>|]+/g
 
 function safeFilenamePart(value: string): string {
@@ -128,7 +129,9 @@ function exportRow(
     numberOrDash(salesSelf.avgPrice),
     rateOrDash(salesSelf.feeRatePct),
     rateOrDash(salesSelf.opMarginRatePct),
-    ...sizeColumns.map((size) => (sizeQtyByName.has(size) ? (sizeQtyByName.get(size) ?? 0) : '-')),
+    ...sizeColumns.map((size) => (
+      sizeQtyByName.has(size) ? (sizeQtyByName.get(size) ?? 0) : SIZE_NOT_APPLICABLE
+    )),
   ]
 }
 
