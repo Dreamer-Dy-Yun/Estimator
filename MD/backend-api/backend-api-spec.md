@@ -169,6 +169,7 @@
 | `getSecondaryCompetitorChannels()` | GET | `/secondary/competitor-channels` |
 | `getCandidateStashes(productId?)` | GET | `/candidate-stashes?productId` |
 | `getCandidateItemsByStash(stashUuid)` | GET | `/candidate-stashes/:stashUuid/items` |
+| `getCandidateRecommendations(params)` | GET | `/candidate-stashes/:stashUuid/recommendations?dataReferencePeriodStart&dataReferencePeriodEnd` |
 | `getCandidateItemByUuid(itemUuid)` | GET | `/candidate-items/:itemUuid` |
 | 후보군 발주 엑셀 다운로드 | GET | `/candidate-stashes/:stashUuid/order-export.xlsx` |
 | `deleteCandidateItem(itemUuid)` | DELETE | `/candidate-items/:itemUuid` |
@@ -379,7 +380,7 @@
 | `itemCount` | 소속 후보 아이템 개수 |
 | `dbCreatedAt`, `dbUpdatedAt` | 생성·수정 시각(아이템 추가로 스태시 “갱신” 시각을 반영할지는 백엔드 정책) |
 
-`getCandidateStashes`, `getCandidateItemsByStash`, `getCandidateItemByUuid` 및 후보군 mutation 계열은 현재 인증 세션을 기준으로 동작한다. 프론트는 사용자 UUID를 요청 파라미터로 보내지 않으며, 백엔드는 세션의 `USER_ACCOUNT.uuid`와 후보군의 `createdByUserUuid`가 일치하는 데이터만 반환/수정해야 한다.
+`getCandidateStashes`, `getCandidateItemsByStash`, `getCandidateRecommendations`, `getCandidateItemByUuid` 및 후보군 mutation 계열은 현재 인증 세션을 기준으로 동작한다. 프론트는 사용자 UUID를 요청 파라미터로 보내지 않으며, 백엔드는 세션의 `USER_ACCOUNT.uuid`와 후보군의 `createdByUserUuid`가 일치하는 데이터만 반환/수정해야 한다.
 
 **`CandidateItemListResult`** (`getCandidateItemsByStash` 응답)
 
@@ -407,6 +408,18 @@ badgeDefinitions: {
   },
 }
 ```
+
+**`CandidateRecommendationParams`** (`getCandidateRecommendations` 요청)
+
+| 필드 | 의미 |
+|------|------|
+| `stashUuid` | 추천을 조회할 후보군 UUID. REST 경로의 `:stashUuid`와 동일 |
+| `dataReferencePeriodStart` | 추천 판단에 사용할 데이터 참조 시작일 (`YYYY-MM-DD`) |
+| `dataReferencePeriodEnd` | 추천 판단에 사용할 데이터 참조 종료일 (`YYYY-MM-DD`) |
+
+**`CandidateRecommendationResult`**
+
+`CandidateItemListResult`와 같은 `{ items, badgeDefinitions }` 구조를 쓴다. 단, `items`는 백엔드가 `dataReferencePeriodStart`~`dataReferencePeriodEnd` 기간의 판매/이익/배지 조건을 기준으로 추천한 후보만 내려준다. 추천이 비어 있을 때 전체 후보를 내려줄지, 빈 배열을 내려줄지는 백엔드 정책으로 확정해야 하며, 현재 mock은 화면 확인을 위해 추천 조건이 없으면 전체 후보를 반환한다.
 
 **`CandidateItemSummary`** (목록 행)
 

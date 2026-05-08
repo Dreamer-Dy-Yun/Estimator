@@ -68,6 +68,14 @@ export interface CandidateItemListResult {
   badgeDefinitions: CandidateBadgeDefinitionMap
 }
 
+export interface CandidateRecommendationParams {
+  stashUuid: string
+  dataReferencePeriodStart: string
+  dataReferencePeriodEnd: string
+}
+
+export type CandidateRecommendationResult = CandidateItemListResult
+
 /** Candidate item detail response with the saved order snapshot JSON. */
 export interface CandidateItemDetail {
   uuid: string

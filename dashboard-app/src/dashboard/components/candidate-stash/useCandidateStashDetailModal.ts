@@ -3,6 +3,7 @@ import {
   deleteCandidateItem,
   getCandidateItemByUuid,
   getCandidateItemsByStash,
+  getCandidateRecommendations,
   getCandidateStashes,
   startCandidateStashAnalysis,
   subscribeCandidateStashAnalysis,
@@ -87,6 +88,9 @@ export function useCandidateStashDetailModal({
 }: Args) {
   const [stashes, setStashes] = useState<CandidateStashSummary[]>([])
   const [items, setItems] = useState<CandidateItemSummary[]>([])
+  const [recommendationItems, setRecommendationItems] = useState<CandidateItemSummary[]>([])
+  const [recommendationLoading, setRecommendationLoading] = useState(false)
+  const [recommendationError, setRecommendationError] = useState<string | null>(null)
   const [badgeDefinitions, setBadgeDefinitions] = useState<CandidateBadgeDefinitionMap>({})
   const [detailLoading, setDetailLoading] = useState(false)
   const [detailError, setDetailError] = useState<string | null>(null)
@@ -115,6 +119,7 @@ export function useCandidateStashDetailModal({
   const mountedRef = useRef(false)
   const stashLoadSeqRef = useRef(0)
   const itemLoadSeqRef = useRef(0)
+  const recommendationLoadSeqRef = useRef(0)
   const drawerRequestSeqRef = useRef(0)
   const drawerCloseTimerRef = useRef<ReturnType<typeof window.setTimeout> | null>(null)
   const innerNavLockRef = useRef(false)
@@ -127,6 +132,7 @@ export function useCandidateStashDetailModal({
       mountedRef.current = false
       stashLoadSeqRef.current += 1
       itemLoadSeqRef.current += 1
+      recommendationLoadSeqRef.current += 1
       drawerRequestSeqRef.current += 1
       if (drawerCloseTimerRef.current != null) {
         window.clearTimeout(drawerCloseTimerRef.current)
@@ -361,6 +367,40 @@ export function useCandidateStashDetailModal({
 
   const dataReferenceStart = dataReferencePeriodStart || hydrateSnap?.context.periodStart
   const dataReferenceEnd = dataReferencePeriodEnd || hydrateSnap?.context.periodEnd
+  useEffect(() => {
+    recommendationLoadSeqRef.current += 1
+    setRecommendationItems([])
+    setRecommendationError(null)
+    setRecommendationLoading(false)
+  }, [dataReferenceEnd, dataReferenceStart, stashUuid])
+
+  const loadRecommendations = useCallback(async (): Promise<CandidateItemSummary[]> => {
+    if (!stashUuid || !dataReferenceStart || !dataReferenceEnd) return []
+    const seq = recommendationLoadSeqRef.current + 1
+    recommendationLoadSeqRef.current = seq
+    setRecommendationLoading(true)
+    setRecommendationError(null)
+    try {
+      const result = await getCandidateRecommendations({
+        stashUuid,
+        dataReferencePeriodStart: dataReferenceStart,
+        dataReferencePeriodEnd: dataReferenceEnd,
+      })
+      if (!mountedRef.current || recommendationLoadSeqRef.current !== seq) return []
+      setRecommendationItems(result.items)
+      setBadgeDefinitions(result.badgeDefinitions)
+      setRecommendationLoading(false)
+      return result.items
+    } catch (err) {
+      if (!mountedRef.current || recommendationLoadSeqRef.current !== seq) return []
+      const message = err instanceof Error ? err.message : '추천 후보 조회에 실패했습니다.'
+      setRecommendationItems([])
+      setRecommendationError(message)
+      setRecommendationLoading(false)
+      return []
+    }
+  }, [dataReferenceEnd, dataReferenceStart, stashUuid])
+
   const drawerHydrateSnap = useMemo(
     () => (
       hydrateSnap && dataReferenceStart && dataReferenceEnd
@@ -517,6 +557,9 @@ export function useCandidateStashDetailModal({
     drawerOpen,
     drawerClosing,
     items,
+    recommendationItems,
+    recommendationLoading,
+    recommendationError,
     badgeDefinitions,
     detailLoading,
     detailError,
@@ -564,5 +607,6 @@ export function useCandidateStashDetailModal({
     confirmDeleteItem,
     confirmDeleteItems,
     downloadOrderExcel,
+    loadRecommendations,
   }
 }

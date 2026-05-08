@@ -40,6 +40,8 @@ export type {
   CandidateItemDetail,
   CandidateItemListResult,
   CandidateItemSummary,
+  CandidateRecommendationParams,
+  CandidateRecommendationResult,
   CandidateStashAnalysisHandlers,
   CandidateStashAnalysisProgressEvent,
   CandidateStashAnalysisStartResult,

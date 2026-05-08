@@ -206,9 +206,9 @@
 
 | 파일 | 역할 |
 |------|------|
-| `CandidateStashDetailModal.tsx` | 특정 후보군의 이너 후보 목록, 표시 순서 인덱스, 정렬 헤더, 조회 기간 입력, 요약, 필터, 필터 카드 발주 엑셀 다운로드 액션, drawer 연결, 일괄/개별 삭제 확인 흐름 |
-| `CandidateStashDetailModal.module.css` | 후보군 상세 모달 전용 스타일, 헤더 조회 기간 인라인 grid, 필터 카드 액션 grid, 엑셀 다운로드 버튼, 1차 드로어 열림 시 전용 span을 쓰는 40칸 헤더 grid, 헤더 고정/이너 후보 리스트 내부 스크롤 경계 |
-| `useCandidateStashDetailModal.ts` | 후보군 상세 모달의 API 호출, 필터, 리스트 정렬 상태, 조회 기간 override, 발주 엑셀 생성 요청 상태, drawer hydration, drawer 닫힘 전환, SSE 분석 진행 상태 |
+| `CandidateStashDetailModal.tsx` | 특정 후보군의 이너 후보 목록, 표시 순서 인덱스, 정렬 헤더, 데이터 참조기간 입력, 요약, 필터, 필터 카드 발주 엑셀 다운로드 액션, 추천 보기 호출/적용, drawer 연결, 일괄/개별 삭제 확인 흐름 |
+| `CandidateStashDetailModal.module.css` | 후보군 상세 모달 전용 스타일, 헤더 데이터 참조기간 인라인 grid, 필터 카드 액션 grid, 엑셀 다운로드 버튼, 1차 드로어 열림 시 전용 span을 쓰는 40칸 헤더 grid, 헤더 고정/이너 후보 리스트 내부 스크롤 경계 |
+| `useCandidateStashDetailModal.ts` | 후보군 상세 모달의 API 호출, 필터, 리스트 정렬 상태, 데이터 참조기간 override, 추천 후보 조회 상태, 발주 엑셀 생성 요청 상태, drawer hydration, drawer 닫힘 전환, SSE 분석 진행 상태 |
 | `candidateOrderExcelExport.ts` | 후보군 아이템 스냅샷을 발주용 XLSX 데이터로 변환하고 다운로드 파일명을 만든다 |
 | `CandidateRecommendationModal.tsx` | 후보군 상세에서 추천 후보를 선택/적용하는 보조 모달 |
 | `CandidateRecommendationModal.module.css` | 추천 모달 전용 스타일 |

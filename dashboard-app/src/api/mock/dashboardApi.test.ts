@@ -130,6 +130,23 @@ describe('api/mock dashboardApi candidate stash contract stubs', () => {
     expect(itemBadgeNames).not.toContain('자사 이율')
   })
 
+  it('returns candidate recommendations for a requested data reference period', async () => {
+    const result = await mockDashboardApi.getCandidateRecommendations(
+      {
+        stashUuid: 'candidatestash00000000000000000001',
+        dataReferencePeriodStart: '2025-01-01',
+        dataReferencePeriodEnd: '2025-12-31',
+      },
+      MOCK_ADMIN_USER_UUID,
+    )
+
+    expect(result.items.length).toBeGreaterThan(0)
+    expect(
+      result.items.every((item) => item.insight.rankTone === 'top' || item.insight.badgeNames.length > 0),
+    ).toBe(true)
+    expect(Object.keys(result.badgeDefinitions).length).toBeGreaterThan(0)
+  })
+
   it('seeds mixed test top and test shoe products in the default candidate stash', async () => {
     const result = await mockDashboardApi.getCandidateItemsByStash(
       'candidatestash00000000000000000001',

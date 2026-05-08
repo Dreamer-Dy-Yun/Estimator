@@ -9,6 +9,8 @@ import type {
   UpdateCandidateItemPayload,
   CandidateItemDetail,
   CandidateItemListResult,
+  CandidateRecommendationParams,
+  CandidateRecommendationResult,
   CandidateStashAnalysisHandlers,
   CandidateStashAnalysisStartResult,
   CandidateStashAnalysisSubscription,
@@ -153,6 +155,12 @@ export async function getCandidateItemsByStash(stashUuid: string): Promise<Candi
   return mockDashboardApi.getCandidateItemsByStash(stashUuid, await requireCurrentUserUuid())
 }
 
+export async function getCandidateRecommendations(
+  params: CandidateRecommendationParams,
+): Promise<CandidateRecommendationResult> {
+  return mockDashboardApi.getCandidateRecommendations(params, await requireCurrentUserUuid())
+}
+
 export async function getCandidateItemByUuid(itemUuid: string): Promise<CandidateItemDetail | null> {
   return mockDashboardApi.getCandidateItemByUuid(itemUuid, await requireCurrentUserUuid())
 }
@@ -232,6 +240,7 @@ export const dashboardApi: DashboardApi = {
   getSecondaryCompetitorChannels,
   getCandidateStashes,
   getCandidateItemsByStash,
+  getCandidateRecommendations,
   getCandidateItemByUuid,
   deleteCandidateItem,
   deleteCandidateStash,

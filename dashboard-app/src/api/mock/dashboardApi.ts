@@ -6,6 +6,9 @@ import type {
   CandidateStashAnalysisProgressEvent,
   CandidateItemDetail,
   CandidateItemListResult,
+  CandidateItemSummary,
+  CandidateRecommendationParams,
+  CandidateRecommendationResult,
   CandidateStashExcelUploadResult,
   CandidateStashSummary,
   CreateCandidateStashPayload,
@@ -164,11 +167,17 @@ function buildCandidateItemInsight(
   expectedSalesQty: number,
   expectedSalesAmount: number,
   expectedOpProfit: number,
+  dataReferencePeriod?: { start: string; end: string },
 ) {
   const competitor = competitorById[productId]
   const self = selfById[productId]
   const channelLabel = secondaryCompetitorChannels[0]?.label ?? '크림'
   const badgeNames: string[] = []
+  const periodWeight = dataReferencePeriod
+    ? estimatePeriodWeight(dataReferencePeriod.start, dataReferencePeriod.end)
+    : 1
+  const weightedNumber = (value: number | null | undefined) =>
+    typeof value === 'number' ? Math.max(1, Math.round(value * periodWeight)) : null
 
   if (inTopPercent(competitor?.rankPercentile)) {
     badgeNames.push(`${channelLabel}판매`)
@@ -185,10 +194,10 @@ function buildCandidateItemInsight(
 
   return {
     competitorChannelLabel: channelLabel,
-    competitorQty: competitor?.competitorQty ?? null,
-    competitorAmount: competitor?.competitorAmount ?? null,
-    selfQty: self?.qty ?? competitor?.selfQty ?? null,
-    selfAmount: self?.amount ?? competitor?.selfAmount ?? null,
+    competitorQty: weightedNumber(competitor?.competitorQty),
+    competitorAmount: weightedNumber(competitor?.competitorAmount),
+    selfQty: weightedNumber(self?.qty ?? competitor?.selfQty),
+    selfAmount: weightedNumber(self?.amount ?? competitor?.selfAmount),
     expectedSalesQty,
     expectedSalesAmount,
     expectedOpProfit,
@@ -198,6 +207,56 @@ function buildCandidateItemInsight(
     bottomPercentThreshold: INNER_ORDER_BOTTOM_PERCENT_THRESHOLD,
     badgeNames,
   }
+}
+
+function buildCandidateItemSummariesForStash(
+  stashUuid: string,
+  ownerUserUuid?: string,
+  dataReferencePeriod?: { start: string; end: string },
+): CandidateItemSummary[] {
+  return readCandidateItemsForStash(stashUuid, ownerUserUuid)
+    .map((row) => {
+      const productId = row.skuUuid
+      const summary = row.details?.drawer1?.summary
+      const drawer2 = row.details?.drawer2
+      if (!summary || !drawer2) {
+        throw new Error(`후보 아이템 스냅샷 누락: ${row.uuid}`)
+      }
+      const qty = drawer2.sizeRows.reduce((acc, r) => acc + Math.max(0, Math.round(r.confirmQty ?? 0)), 0)
+      const expectedOrderAmount = drawer2.stockDerived?.expectedOrderAmount
+      const expectedSalesAmount = drawer2.stockDerived?.expectedSalesAmount
+      const expectedOpProfit = drawer2.stockDerived?.expectedOpProfit
+      if (
+        typeof expectedOrderAmount !== 'number'
+        || typeof expectedSalesAmount !== 'number'
+        || typeof expectedOpProfit !== 'number'
+      ) {
+        throw new Error(`후보 아이템 집계 수치 누락: ${row.uuid}`)
+      }
+      return {
+        uuid: row.uuid,
+        stashUuid: row.stashUuid,
+        productId,
+        brand: summary.brand,
+        productCode: summary.productCode,
+        productName: summary.name,
+        qty,
+        expectedOrderAmount,
+        expectedSalesAmount,
+        expectedOpProfit,
+        insight: buildCandidateItemInsight(
+          productId,
+          qty,
+          expectedSalesAmount,
+          expectedOpProfit,
+          dataReferencePeriod,
+        ),
+        isLatestLlmComment: row.isLatestLlmComment,
+        dbCreatedAt: row.dbCreatedAt,
+        dbUpdatedAt: row.dbUpdatedAt ?? row.dbCreatedAt,
+      }
+    })
+    .sort((a, b) => String(b.dbCreatedAt).localeCompare(String(a.dbCreatedAt)))
 }
 
 export const mockDashboardApi = {
@@ -382,45 +441,30 @@ export const mockDashboardApi = {
   },
   getCandidateItemsByStash: async (stashUuid: string, ownerUserUuid?: string): Promise<CandidateItemListResult> => {
     await sleep(60)
-    const items = readCandidateItemsForStash(stashUuid, ownerUserUuid)
-      .map((row) => {
-        const productId = row.skuUuid
-        const summary = row.details?.drawer1?.summary
-        const drawer2 = row.details?.drawer2
-        if (!summary || !drawer2) {
-          throw new Error(`후보 스냅샷 누락: ${row.uuid}`)
-        }
-        const qty = drawer2.sizeRows.reduce((acc, r) => acc + Math.max(0, Math.round(r.confirmQty ?? 0)), 0)
-        const expectedOrderAmount = drawer2.stockDerived?.expectedOrderAmount
-        const expectedSalesAmount = drawer2.stockDerived?.expectedSalesAmount
-        const expectedOpProfit = drawer2.stockDerived?.expectedOpProfit
-        if (
-          typeof expectedOrderAmount !== 'number'
-          || typeof expectedSalesAmount !== 'number'
-          || typeof expectedOpProfit !== 'number'
-        ) {
-          throw new Error(`후보 스냅샷 수치 누락: ${row.uuid}`)
-        }
-        return {
-          uuid: row.uuid,
-          stashUuid: row.stashUuid,
-          productId,
-          brand: summary.brand,
-          productCode: summary.productCode,
-          productName: summary.name,
-          qty,
-          expectedOrderAmount,
-          expectedSalesAmount,
-          expectedOpProfit,
-          insight: buildCandidateItemInsight(productId, qty, expectedSalesAmount, expectedOpProfit),
-          isLatestLlmComment: row.isLatestLlmComment,
-          dbCreatedAt: row.dbCreatedAt,
-          dbUpdatedAt: row.dbUpdatedAt ?? row.dbCreatedAt,
-        }
-      })
-      .sort((a, b) => String(b.dbCreatedAt).localeCompare(String(a.dbCreatedAt)))
+    const items = buildCandidateItemSummariesForStash(stashUuid, ownerUserUuid)
     return {
       items,
+      badgeDefinitions: getCandidateBadgeDefinitions(),
+    }
+  },
+  getCandidateRecommendations: async (
+    {
+      stashUuid,
+      dataReferencePeriodStart,
+      dataReferencePeriodEnd,
+    }: CandidateRecommendationParams,
+    ownerUserUuid?: string,
+  ): Promise<CandidateRecommendationResult> => {
+    await sleep(70)
+    const items = buildCandidateItemSummariesForStash(stashUuid, ownerUserUuid, {
+      start: dataReferencePeriodStart,
+      end: dataReferencePeriodEnd,
+    })
+    const recommendedItems = items.filter(
+      (item) => item.insight.rankTone === 'top' || item.insight.badgeNames.length > 0,
+    )
+    return {
+      items: recommendedItems.length ? recommendedItems : items,
       badgeDefinitions: getCandidateBadgeDefinitions(),
     }
   },

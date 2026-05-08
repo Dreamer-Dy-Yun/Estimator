@@ -17,6 +17,8 @@ import type {
   UpdateCandidateItemPayload,
   CandidateItemDetail,
   CandidateItemListResult,
+  CandidateRecommendationParams,
+  CandidateRecommendationResult,
   CandidateStashAnalysisHandlers,
   CandidateStashAnalysisStartResult,
   CandidateStashAnalysisSubscription,
@@ -54,6 +56,7 @@ export interface DashboardApi {
   getSecondaryCompetitorChannels(): Promise<SecondaryCompetitorChannel[]>
   getCandidateStashes(productId?: string): Promise<CandidateStashSummary[]>
   getCandidateItemsByStash(stashUuid: string): Promise<CandidateItemListResult>
+  getCandidateRecommendations(params: CandidateRecommendationParams): Promise<CandidateRecommendationResult>
   getCandidateItemByUuid(itemUuid: string): Promise<CandidateItemDetail | null>
   deleteCandidateItem(itemUuid: string): Promise<void>
   deleteCandidateStash(stashUuid: string): Promise<void>

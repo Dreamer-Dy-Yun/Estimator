@@ -71,10 +71,10 @@ export function CandidateStashDetailModal({ stashUuid, stashSummary, onClose, on
   const selectAllRef = useRef<HTMLInputElement | null>(null)
 
   const visibleItemUuids = useMemo(() => m.tableRows.map((row) => row.uuid), [m.tableRows])
-  const recommendationRows = useMemo(() => {
-    const signaledRows = m.tableRows.filter((row) => row.insight.rankTone === 'top' || row.insight.badgeNames.length > 0)
-    return signaledRows.length ? signaledRows : m.tableRows
-  }, [m.tableRows])
+  const recommendationRows = useMemo<InnerCandidateRow[]>(
+    () => m.recommendationItems.map((item) => ({ ...item, id: item.uuid })),
+    [m.recommendationItems],
+  )
   const recommendationRowUuids = useMemo(() => recommendationRows.map((row) => row.uuid), [recommendationRows])
   const selectedVisibleCount = useMemo(
     () => visibleItemUuids.filter((uuid) => selectedItemUuids.has(uuid)).length,
@@ -175,8 +175,12 @@ export function CandidateStashDetailModal({ stashUuid, stashSummary, onClose, on
   }
 
   const openRecommendationModal = () => {
-    setRecommendationSelectedUuids(new Set(recommendationRowUuids))
-    setRecommendationOpen(true)
+    void (async () => {
+      const rows = await m.loadRecommendations()
+      if (!rows.length) return
+      setRecommendationSelectedUuids(new Set(rows.map((row) => row.uuid)))
+      setRecommendationOpen(true)
+    })()
   }
 
   const toggleRecommendationItem = (uuid: string) => {
@@ -336,9 +340,9 @@ export function CandidateStashDetailModal({ stashUuid, stashSummary, onClose, on
                         type="button"
                         className={`${styles.actionBtn} ${styles.btnNeutral} ${detailStyles.detailHeaderRecommendationBtn}`}
                         onClick={openRecommendationModal}
-                        disabled={!recommendationRows.length}
+                        disabled={m.recommendationLoading || !m.tableRows.length || !m.periodStart || !m.periodEnd}
                       >
-                        추천 보기
+                        {m.recommendationLoading ? '추천 조회 중' : '추천 보기'}
                       </button>
                     </div>
                     <div className={detailStyles.detailHeaderDeleteCell}>
@@ -368,6 +372,12 @@ export function CandidateStashDetailModal({ stashUuid, stashSummary, onClose, on
                     )}
                   </div>
                 </div>
+
+                {m.recommendationError && (
+                  <div className={detailStyles.orderExportError} role="alert">
+                    추천 후보 조회 실패: {m.recommendationError}
+                  </div>
+                )}
 
                 <FilterBar
                   title=""
