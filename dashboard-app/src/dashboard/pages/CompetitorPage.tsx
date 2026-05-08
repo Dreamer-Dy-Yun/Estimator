@@ -111,7 +111,7 @@ export const CompetitorPage = () => {
     return () => {
       alive = false
     }
-  }, [periodStartDate, periodEndDate, brandFilter, categoryFilter, competitorChannelId])
+  }, [periodStartDate, periodEndDate, brandFilter, categoryFilter, productNameFilter, competitorChannelId])
 
   useEffect(() => {
     let alive = true
@@ -148,7 +148,6 @@ export const CompetitorPage = () => {
       .filter((r) => r.selfQty != null)
       .map((r) => {
         const selfQty = r.selfQty ?? 0
-        const gapAmt = r.competitorAmount - (r.selfAmount ?? 0)
         const copyText = [
           '[경쟁사 분석 · 경쟁·자사 판매량 비교]',
           `기간: ${periodStartDate} ~ ${periodEndDate}`,
@@ -163,7 +162,6 @@ export const CompetitorPage = () => {
           `자사 평균가(원): ${r.selfAvgPrice != null ? formatGroupedNumber(r.selfAvgPrice) : '—'}`,
           `자사 판매량(EA): ${formatGroupedNumber(selfQty)}`,
           `자사 판매액(원): ${r.selfAmount != null ? formatGroupedNumber(r.selfAmount) : '—'}`,
-          `갭(경쟁−자사, 원): ${gapAmt > 0 ? '+' : ''}${formatGroupedNumber(gapAmt)}`,
           `차트 X(경쟁 판매량 EA): ${formatGroupedNumber(r.competitorQty)}`,
           `차트 Y(자사 판매량 EA): ${formatGroupedNumber(selfQty)}`,
         ].join('\n')
@@ -340,13 +338,11 @@ export const CompetitorPage = () => {
             { key: 'productCode', header: '코드', cell: (r) => r.productCode, sortValue: (r) => r.productCode },
             { key: 'name', header: '상품명', cell: (r) => r.name, sortValue: (r) => r.name },
             { key: 'competitorAvgPrice', header: '경쟁 평균가', cell: (r) => formatGroupedNumber(r.competitorAvgPrice), align: 'right', sortValue: (r) => r.competitorAvgPrice },
+            { key: 'selfAvgPrice', header: '자사 평균가', cell: (r) => (r.selfAvgPrice != null ? formatGroupedNumber(r.selfAvgPrice) : '—'), align: 'right', sortValue: (r) => r.selfAvgPrice ?? 0 },
             { key: 'competitorQty', header: '경쟁 판매량', cell: (r) => formatGroupedNumber(r.competitorQty), align: 'right', sortValue: (r) => r.competitorQty },
+            { key: 'selfQty', header: '자사 판매량', cell: (r) => (r.selfQty != null ? formatGroupedNumber(r.selfQty) : '—'), align: 'right', sortValue: (r) => r.selfQty ?? 0 },
             { key: 'competitorAmount', header: '경쟁 판매액', cell: (r) => formatGroupedNumber(r.competitorAmount), align: 'right', sortValue: (r) => r.competitorAmount },
             { key: 'selfAmount', header: '자사 판매액', cell: (r) => (r.selfAmount != null ? formatGroupedNumber(r.selfAmount) : '—'), align: 'right', sortValue: (r) => r.selfAmount ?? 0 },
-            { key: 'gap', header: '갭(액)', cell: (r) => {
-              const gap = r.competitorAmount - (r.selfAmount ?? 0)
-              return gap > 0 ? `+${formatGroupedNumber(gap)}` : formatGroupedNumber(gap)
-            }, align: 'right', sortValue: (r) => r.competitorAmount - (r.selfAmount ?? 0) },
           ]}
           rows={rows}
           onRowClick={(row) => setSelectedId(row.id)}

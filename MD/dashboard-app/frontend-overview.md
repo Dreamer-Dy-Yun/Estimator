@@ -84,7 +84,7 @@
 ### 5.2 경쟁사 분석 (`CompetitorPage`)
 
 - 자사와 동일한 기간·브랜드·카테고리 + **경쟁 채널** 선택 — [`getCompetitorSales`](../../dashboard-app/src/api/types/dashboard-api.ts), 채널 목록 [`getSecondaryCompetitorChannels`](../../dashboard-app/src/api/types/dashboard-api.ts).
-- KPI·차트·목록은 경쟁/자사 갭 중심으로 구성.
+- KPI·차트·목록은 경쟁/자사 판매 비교 중심으로 구성.
 - 드로어·번들 흐름은 자사와 동일.
 
 ### 5.3 오더 후보군 (`SnapshotConfirmPage` + `CandidateStashDetailModal`)
