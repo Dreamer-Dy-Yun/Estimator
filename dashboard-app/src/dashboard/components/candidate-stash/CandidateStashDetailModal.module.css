@@ -38,7 +38,7 @@
 }
 
 .detailHeaderTitleArea {
-  grid-column: 1 / span 14;
+  grid-column: 1 / span 12;
   min-width: 0;
 }
 
@@ -63,10 +63,10 @@
 }
 
 .detailHeaderPeriodCell {
-  grid-column: 15 / span 10;
+  grid-column: 13 / span 8;
   min-width: 0;
   display: grid;
-  grid-template-columns: auto minmax(74px, 92px) auto minmax(74px, 92px);
+  grid-template-columns: auto minmax(111px, 138px) auto minmax(111px, 138px);
   align-items: center;
   justify-content: start;
   gap: 6px;
@@ -715,15 +715,15 @@
 
 .stashDetailModalBackdrop[data-inner-drawer-open='true'] .detailHeaderTitleArea,
 .stashDetailModalBackdrop[data-inner-drawer-closing='true'] .detailHeaderTitleArea {
-  grid-column: 1 / span 4;
+  grid-column: 1 / span 2;
   grid-row: 1;
 }
 
 .stashDetailModalBackdrop[data-inner-drawer-open='true'] .detailHeaderPeriodCell,
 .stashDetailModalBackdrop[data-inner-drawer-closing='true'] .detailHeaderPeriodCell {
-  grid-column: 5 / span 22;
+  grid-column: 3 / span 20;
   grid-row: 1;
-  grid-template-columns: auto minmax(88px, 1fr) auto minmax(88px, 1fr);
+  grid-template-columns: auto minmax(132px, 1fr) auto minmax(132px, 1fr);
   gap: 4px;
 }
 
