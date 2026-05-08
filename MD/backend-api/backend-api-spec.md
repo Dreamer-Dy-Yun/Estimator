@@ -161,7 +161,7 @@
 | `getSelfSales(params?)` | GET | `/sales/self?startDate&endDate&brand&category` |
 | `getCompetitorSales(params?)` | GET | `/sales/competitor?…` + `competitorChannelId` |
 | `getSelfSalesFilterMeta()` | GET | `/sales/self/filter-meta` |
-| `getProductDrawerBundle(id, params?)` | GET | `/products/:id/drawer-bundle?forecastMonths` |
+| `getProductDrawerBundle(id)` | GET | `/products/:id/drawer-bundle` |
 | `getProductMonthlyTrend(id, params)` | GET | `/products/:id/monthly-trend?startDate&endDate&forecastMonths&competitorChannelId` |
 | `getProductSalesInsight(id, params)` | GET | `/products/:id/sales-insight?startDate&endDate&competitorChannelId` |
 | `getProductSecondaryDetail(id, params?)` | GET | `/products/:id/secondary-detail?minOpMarginPct` |
@@ -173,6 +173,7 @@
 | `getCandidateItemByUuid(itemUuid)` | GET | `/candidate-items/:itemUuid` |
 | 후보군 발주 엑셀 다운로드 | GET | `/candidate-stashes/:stashUuid/order-export.xlsx` |
 | `deleteCandidateItem(itemUuid)` | DELETE | `/candidate-items/:itemUuid` |
+| `deleteCandidateItems(stashUuid, itemUuids)` | DELETE | `/candidate-stashes/:stashUuid/items` body `{ itemUuids }` |
 | `deleteCandidateStash(stashUuid)` | DELETE | `/candidate-stashes/:stashUuid` |
 | `createCandidateStash(payload)` | POST | `/candidate-stashes` |
 | `updateCandidateStash(payload)` | PATCH | `/candidate-stashes/:stashUuid` |
@@ -236,22 +237,15 @@
 
 ### 3.3 `getProductDrawerBundle`
 
-**쿼리 (`ProductDrawerBundleParams`)**
-
-| 필드 | 의미 |
-|------|------|
-| `forecastMonths` | 월간 판매추이에 포함할 **포캐스트 월 수**(1~24). 생략 시 구현 기본값(예: 8). |
-
 **응답 (`ProductDrawerBundle`)**
 
 | 필드 | 의미 |
 |------|------|
 | `summary` | [`ProductPrimarySummary`](#51-productprimarysummary) |
-| `stockTrend` | [`ProductStockTrendPoint[]`](#52-productstocktrendpoint) |
 
 ### 3.4 `getProductMonthlyTrend`
 
-기간·경쟁 채널 조건에 따라 1차 드로어의 **월간 판매 추이 그래프**를 구성합니다. `getProductDrawerBundle`은 상품 요약·재고 번들로 유지하고, 선택 경쟁 채널별 월간 시계열은 이 계약으로 분리합니다.
+기간·경쟁 채널 조건에 따라 1차 드로어의 **월간 판매 추이 그래프**를 구성합니다. `getProductDrawerBundle`은 상품 요약만 유지하고, 선택 경쟁 채널별 월간 시계열은 이 계약으로 분리합니다.
 
 **쿼리 (`ProductMonthlyTrendParams`)**
 
@@ -274,7 +268,7 @@
 
 ### 3.5 `getProductSalesInsight`
 
-기간·경쟁 채널 조건에 따라 1차 드로어의 **판매 정보** 테이블을 구성합니다. 기존 `getProductDrawerBundle`은 월간 판매추이·재고·기본 요약용으로 유지하고, 일간/기간/채널 집계가 필요한 판매 정보는 이 계약으로 분리합니다.
+기간·경쟁 채널 조건에 따라 1차 드로어의 **판매 정보** 테이블을 구성합니다. `getProductDrawerBundle`은 기본 요약용으로 유지하고, 일간/기간/채널 집계가 필요한 판매 정보는 이 계약으로 분리합니다.
 
 **쿼리 (`ProductSalesInsightParams`)**
 
@@ -360,8 +354,8 @@
 |------|------|
 | `id` | 채널 id (`getCompetitorSales`, 스냅샷 `competitorChannelId` 와 연결) |
 | `label` | 표시 이름 |
-| `priceSkew` | 가격 보정 계수(목업) |
-| `qtySkew` | 수량 보정 계수(목업) |
+
+`priceSkew`, `qtySkew` 같은 목업 보정 계수는 운영 API 응답에 포함하지 않는다. 목업 데이터 생성에만 필요한 값은 `src/api/mock` 내부 모델에 둔다.
 
 현재 프론트 기준 유효 채널은 **`kream`, `musinsa`** 입니다(`naver` 제거됨).
 
@@ -373,7 +367,6 @@
 |------|------|
 | `uuid` | 스태시 PK |
 | `name`, `note` | 이름·비고 |
-| `createdByUserUuid` | 후보군 생성 사용자 UUID. `USER_ACCOUNT.uuid`를 참조하며, 백엔드는 생성 시 현재 세션 사용자로 설정 |
 | `productId` | 연결 상품 |
 | `periodStart`, `periodEnd` | 후보군 생성 당시의 분석 기간. 프론트 상세 화면은 이 값을 조회 기준일 초기값으로 쓰며, 화면 내 변경값은 이너 후보 드로어를 열 때 기간 기준으로 적용 |
 | `forecastMonths` | 후보군 생성 당시의 월간 판매추이 포캐스트 개월 수 |
@@ -462,7 +455,7 @@ badgeDefinitions: {
   백엔드는 파일 내용을 검증한 뒤 DB 트랜잭션 안에서 후보군과 후보 아이템을 생성해야 합니다.
   성공 후 프론트는 응답 객체를 목록에 직접 삽입하지 않고 `getCandidateStashes()`를 다시 호출해 DB 기준 목록과 동기화합니다.
 - `getCandidateStashExcelTemplateDownload`: 현재 프론트는 정적 파일 URL을 반환하지만, 운영 백엔드 연결 시에는 같은 프론트 계약을 유지한 채 템플릿 다운로드 endpoint로 교체할 수 있습니다. 예: `GET /candidate-stashes/excel-template`.
-- 후보군 발주 엑셀 다운로드: 현재 프론트 프로토타입은 이미 조회 가능한 후보 아이템 `details` 스냅샷으로 XLSX를 생성합니다. 운영 백엔드에서는 DB 기준 최신 권한/데이터를 보장하기 위해 `GET /candidate-stashes/:stashUuid/order-export.xlsx` 같은 endpoint로 이전하는 것을 권장합니다. 주 데이터 시트는 후보 아이템 1개를 1행으로 두며, 기본 컬럼은 `브랜드`, `상품코드`, `상품명`, `배지`, `자사 기간 총 판매량`, `{선택 경쟁사} 기간 총 판매량`, `총 오더량`, `총 오더 금액`, `평균 원가`, `평균 판매가`, `평균 수수료율`, `평균 영업이익율`입니다. `배지`가 복수인 경우 한 셀 안에서 줄바꿈으로 구분합니다. 그 뒤에는 해당 후보군 전체에서 등장한 모든 사이즈를 동적 컬럼으로 추가하고, 각 제품의 사이즈별 오더량을 기재합니다. 제품에 존재하지 않는 사이즈 컬럼은 `N/A`로 표시해 실제 오더량 `0`과 구분합니다. 메타 시트는 `오더 입고 예정일`, `이름`을 포함합니다. `이름`은 현재 세션의 `USER_ACCOUNT.name` 또는 운영에서 정한 사용자 표시명을 사용합니다.
+- 후보군 발주 엑셀 다운로드: 프론트 호출 계약은 `GET /candidate-stashes/:stashUuid/order-export.xlsx` 단일 endpoint를 기준으로 둡니다. 현재 mock은 같은 API 경계 안에서 후보 아이템 `details` 스냅샷으로 XLSX Blob을 생성하지만, UI 컴포넌트는 후보별 상세를 N회 조회하지 않습니다. 주 데이터 시트는 후보 아이템 1개를 1행으로 두며, 기본 컬럼은 `브랜드`, `상품코드`, `상품명`, `배지`, `자사 기간 총 판매량`, `{선택 경쟁사} 기간 총 판매량`, `총 오더량`, `총 오더 금액`, `평균 원가`, `평균 판매가`, `평균 수수료율`, `평균 영업이익율`입니다. `배지`가 복수인 경우 한 셀 안에서 줄바꿈으로 구분합니다. 그 뒤에는 해당 후보군 전체에서 등장한 모든 사이즈를 동적 컬럼으로 추가하고, 각 제품의 사이즈별 오더량을 기재합니다. 제품에 존재하지 않는 사이즈 컬럼은 `N/A`로 표시해 실제 오더량 `0`과 구분합니다. 메타 시트는 `오더 입고 예정일`, `이름`을 포함합니다. `이름`은 현재 세션의 `USER_ACCOUNT.name` 또는 운영에서 정한 사용자 표시명을 사용합니다.
 - 엑셀 업로드 검증 권장:
   - 현재 템플릿 초안의 `DATA` 시트 필수 컬럼 예: `브랜드`, `상품 코드`, `오더 수량`, `금번 오더 입고일`, `차기 오더 입고일`.
   - `오더 수량`은 사이즈별 입력이 아니라 총 발주 수량입니다. 사이즈별 오더 배분/조정은 시스템 내부 계산 흐름이 담당합니다.
@@ -569,20 +562,10 @@ badgeDefinitions: {
 | `qty` | 판매 수량 등 요약 값 |
 | `availableStock` | 판매 가능 재고 |
 | `recommendedOrderQty` | 추천 발주 수량 |
-| `monthlySalesTrend` | 월별 [`MonthlySalesPoint`](#57-monthlysalespoint) |
 | `seasonality` | 1~12월 계절 비중 배열 (`ratio` 합 ≈ 1) |
 | `sizeMix` | 사이즈 믹스 행 [`ProductSizeMixRow`](#53-productsizemixrow) |
 
-### 5.2 `ProductStockTrendPoint`
-
-| 필드 | 의미 |
-|------|------|
-| `date` | 시점 |
-| `stock` | 재고 |
-| `inboundExpected` | 1차 드로어·포캐스트 표시용 기대 입고 |
-| `inboundQty` | 실제 입고 수량(없으면 표시 시 `inboundExpected` 대체 가능) |
-
-### 5.3 `ProductSizeMixRow`
+### 5.2 `ProductSizeMixRow`
 
 | 필드 | 의미 |
 |------|------|
@@ -625,7 +608,7 @@ badgeDefinitions: {
 
 | 필드 | 의미 |
 |------|------|
-| `summary` | `ProductPrimarySummary`에서 **`monthlySalesTrend` 제외**한 요약(`OrderSnapshotPrimarySummaryV2`). 재조회 시 트렌드는 번들 API로 복원 |
+| `summary` | `ProductPrimarySummary`에서 **`monthlySalesTrend` 제외**한 요약(`OrderSnapshotPrimarySummaryV2`). 재조회 시 트렌드는 `getProductMonthlyTrend` / `getSecondaryDailyTrend` 계열 API로 복원 |
 
 **`drawer2` (`OrderSnapshotDrawer2V1`)**
 

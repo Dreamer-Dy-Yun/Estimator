@@ -97,8 +97,8 @@ describe('api/mock dashboardApi candidate stash contract stubs', () => {
 
     expect(adminOwned.length).toBeGreaterThan(0)
     expect(userOwned.length).toBeGreaterThan(0)
-    expect(adminOwned.every((row) => row.createdByUserUuid === MOCK_ADMIN_USER_UUID)).toBe(true)
-    expect(userOwned.every((row) => row.createdByUserUuid === MOCK_USER_UUID)).toBe(true)
+    const adminUuids = new Set(adminOwned.map((row) => row.uuid))
+    expect(userOwned.every((row) => !adminUuids.has(row.uuid))).toBe(true)
     expect(adminOwned.length + userOwned.length).toBe(all.length)
   })
 

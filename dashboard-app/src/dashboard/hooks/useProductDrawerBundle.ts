@@ -26,10 +26,9 @@ export function pickProductDrawerBundleFromCache(
   return cache.bundle
 }
 
-/** 1차 드로어: 품번 선택 시 자사 요약·재고 번들만 로드. id 없으면 null. `forecastMonths`는 판매추이(월간) 포캐스트 개월 수. */
+/** 1차 드로어: 품번 선택 시 자사 요약 번들만 로드. id 없으면 null. */
 export function useProductDrawerBundle(
   selectedId: string | null,
-  forecastMonths: number,
   options?: UseProductDrawerBundleOptions,
 ) {
   const allowStale = options?.allowStaleWhileRevalidate !== false
@@ -41,8 +40,7 @@ export function useProductDrawerBundle(
       return
     }
     let alive = true
-    const fc = Math.max(1, Math.min(24, Math.round(forecastMonths)))
-    getProductDrawerBundle(selectedId, { forecastMonths: fc })
+    getProductDrawerBundle(selectedId)
       .then((data) => {
         if (alive) setCache({ id: selectedId, bundle: data })
       })
@@ -53,7 +51,7 @@ export function useProductDrawerBundle(
     return () => {
       alive = false
     }
-  }, [selectedId, forecastMonths])
+  }, [selectedId])
 
   return pickProductDrawerBundleFromCache(selectedId, cache, allowStale)
 }

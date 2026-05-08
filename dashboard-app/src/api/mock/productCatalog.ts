@@ -261,7 +261,8 @@ export const stockTrendById: Record<string, Array<{
   const seed = id.charCodeAt(0)
   /** 이 SKU 기준 입고 주기(월): 3 또는 4 */
   const inboundCycleMonths = 3 + (seed % 2)
-  const warm = d.monthlySalesTrend.slice(0, Math.min(24, d.monthlySalesTrend.length))
+  const monthlySalesTrend = d.monthlySalesTrend ?? []
+  const warm = monthlySalesTrend.slice(0, Math.min(24, monthlySalesTrend.length))
   const avgMonthlySales = warm.reduce((a, p) => a + p.sales, 0) / Math.max(1, warm.length)
   /** 전기간 재고 계산용 입고 사이클(표시 노출은 미래 구간만) */
   let monthsUntilInbound = (seed * 5 + id.length) % inboundCycleMonths
@@ -271,7 +272,7 @@ export const stockTrendById: Record<string, Array<{
     Math.round(avgMonthlySales * (0.9 + (seed % 6) * 0.12)),
   )
 
-  const series = d.monthlySalesTrend.map((point) => {
+  const series = monthlySalesTrend.map((point) => {
     const sold = Math.max(1, Math.round(point.sales * (0.88 + (seed % 3) * 0.02)))
     let inbound = 0
     let inboundForDisplay = 0

@@ -1,12 +1,14 @@
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { BlockMath } from 'react-katex'
-import { dashboardApi, type SecondaryCompetitorChannel } from '../../../../api'
+import { dashboardApi, type ProductSalesInsight, type SecondaryCompetitorChannel } from '../../../../api'
 import { ComponentErrorBoundary } from '../../../../components/ComponentErrorBoundary'
 import type { ApiUnitErrorInfo, ProductPrimarySummary, ProductSecondaryDetail } from '../../../../types'
 import {
   daysInclusiveBetween,
   formatDateTimeMinute,
+  monthToEndDate,
+  monthToStartDate,
 } from '../../../../utils/date'
 import { PortalHelpPopoverLayer } from '../../PortalHelpPopover'
 import commonStyles from '../../common.module.css'
@@ -117,6 +119,7 @@ export function ProductSecondaryDrawer({
   const [confirmBySize, setConfirmBySize] = useState<Record<string, number>>({})
   const mountedRef = useRef(false)
   const candidateListReqSeqRef = useRef(0)
+  const salesInsightReqSeqRef = useRef(0)
   const [candidateActionLoading, setCandidateActionLoading] = useState(false)
   const [candidateListOpen, setCandidateListOpen] = useState(false)
   const [candidateStashes, setCandidateStashes] = useState<Array<{
@@ -132,12 +135,15 @@ export function ProductSecondaryDrawer({
   } | null>(null)
   const [candidateNameInput, setCandidateNameInput] = useState('')
   const [candidateNoteInput, setCandidateNoteInput] = useState('')
+  const [salesInsight, setSalesInsight] = useState<ProductSalesInsight | null>(null)
+  const [salesInsightError, setSalesInsightError] = useState<ApiUnitErrorInfo | null>(null)
 
   useEffect(() => {
     mountedRef.current = true
     return () => {
       mountedRef.current = false
       candidateListReqSeqRef.current += 1
+      salesInsightReqSeqRef.current += 1
     }
   }, [])
 
@@ -155,17 +161,61 @@ export function ProductSecondaryDrawer({
   }), [pageName])
 
   const minOrderDate = toIsoDateLocal(new Date())
+  const selectedStart = normalizeMonthKey(periodStart)
+  const selectedEnd = normalizeMonthKey(periodEnd)
+  const monthlySalesTrend = useMemo(() => primary.monthlySalesTrend ?? [], [primary.monthlySalesTrend])
 
   const channel = useMemo<SecondaryCompetitorChannel>(
     () => competitorChannels.find((ch) => ch.id === channelId)!,
     [channelId, competitorChannels],
   )
 
-  const selfCol = useMemo(() => buildSalesKpiColumn('self', primary, secondary, channel), [primary, secondary, channel])
-  const compCol = useMemo(() => buildSalesKpiColumn('competitor', primary, secondary, channel), [primary, secondary, channel])
+  useEffect(() => {
+    let alive = true
+    const reqSeq = salesInsightReqSeqRef.current + 1
+    salesInsightReqSeqRef.current = reqSeq
+    void (async () => {
+      try {
+        const result = await dashboardApi.getProductSalesInsight(primary.id, {
+          startDate: monthToStartDate(selectedStart),
+          endDate: monthToEndDate(selectedEnd),
+          competitorChannelId: channel.id,
+        })
+        if (!alive || salesInsightReqSeqRef.current !== reqSeq) return
+        setSalesInsight(result)
+        setSalesInsightError(null)
+      } catch (err) {
+        if (!alive || salesInsightReqSeqRef.current !== reqSeq) return
+        setSalesInsight(null)
+        setSalesInsightError(
+          makeApiErrorInfo(
+            `getProductSalesInsight(${JSON.stringify({
+              productId: primary.id,
+              startDate: monthToStartDate(selectedStart),
+              endDate: monthToEndDate(selectedEnd),
+              competitorChannelId: channel.id,
+            })})`,
+            err,
+          ),
+        )
+      }
+    })()
+    return () => {
+      alive = false
+    }
+  }, [channel.id, makeApiErrorInfo, primary.id, selectedEnd, selectedStart])
 
-  const selectedStart = normalizeMonthKey(periodStart)
-  const selectedEnd = normalizeMonthKey(periodEnd)
+  const fallbackSelfCol = useMemo(
+    () => buildSalesKpiColumn('self', primary, secondary, channel),
+    [primary, secondary, channel],
+  )
+  const fallbackCompCol = useMemo(
+    () => buildSalesKpiColumn('competitor', primary, secondary, channel),
+    [primary, secondary, channel],
+  )
+  const selfCol = salesInsight?.self ?? fallbackSelfCol
+  const compCol = salesInsight?.competitor ?? fallbackCompCol
+
   useEffect(() => {
     if (prefillFromSnapshot != null) return
     setDailyMeanClient(null)
@@ -198,7 +248,7 @@ export function ProductSecondaryDrawer({
   const clientStock = useMemo(
     () =>
       computeClientStockOrder({
-        monthlySalesTrend: primary.monthlySalesTrend,
+        monthlySalesTrend,
         periodStart: selectedStart,
         periodEnd: selectedEnd,
         forecastPeriodEnd: forecastMeanPeriodEnd,
@@ -211,7 +261,7 @@ export function ProductSecondaryDrawer({
         price: primary.price,
       }),
     [
-      primary.monthlySalesTrend,
+      monthlySalesTrend,
       primary.availableStock,
       primary.price,
       selectedStart,
@@ -225,42 +275,6 @@ export function ProductSecondaryDrawer({
     ],
   )
 
-  const forecastInputs: SecondaryForecastInputs = useMemo(() => ({
-    trendDailyMean: clientStock.trendDailyMean,
-    dailyMean: dailyMeanClient ?? clientStock.forecastDailyMean,
-    sigma: clientStock.sigma,
-    serviceLevelPct,
-    leadTimeStartDate,
-    leadTimeEndDate,
-    leadTimeDays,
-    safetyStockMode,
-    manualSafetyStock: Math.max(0, Math.round(manualSafetyStock)),
-  }), [
-    clientStock.forecastDailyMean,
-    clientStock.sigma,
-    clientStock.trendDailyMean,
-    dailyMeanClient,
-    leadTimeDays,
-    leadTimeEndDate,
-    leadTimeStartDate,
-    manualSafetyStock,
-    safetyStockMode,
-    serviceLevelPct,
-  ])
-  const forecastDerived: SecondaryForecastDerived = useMemo(() => ({
-    safetyStock: clientStock.safetyStock,
-    recommendedOrderQty: clientStock.safetyRecQty,
-    expectedOrderAmount: clientStock.safetyExpectedOrderAmount,
-    expectedSalesAmount: clientStock.safetyExpectedSalesAmount,
-    expectedOpProfit: clientStock.safetyExpectedOpProfit,
-  }), [
-    clientStock.safetyExpectedOpProfit,
-    clientStock.safetyExpectedOrderAmount,
-    clientStock.safetyExpectedSalesAmount,
-    clientStock.safetyRecQty,
-    clientStock.safetyStock,
-  ])
-
   const { forecastCalc, forecastCalcError } = useSecondaryStockOrderCalc({
     productId: primary.id,
     selectedStart,
@@ -273,6 +287,50 @@ export function ProductSecondaryDrawer({
     dailyMeanClient,
     makeApiErrorInfo,
   })
+
+  const forecastInputs: SecondaryForecastInputs = useMemo(() => ({
+    trendDailyMean: forecastCalc?.trendDailyMean ?? clientStock.trendDailyMean,
+    dailyMean: dailyMeanClient ?? forecastCalc?.dailyMean ?? clientStock.forecastDailyMean,
+    sigma: forecastCalc?.sigma ?? clientStock.sigma,
+    serviceLevelPct,
+    leadTimeStartDate,
+    leadTimeEndDate,
+    leadTimeDays,
+    safetyStockMode,
+    manualSafetyStock: Math.max(0, Math.round(manualSafetyStock)),
+  }), [
+    forecastCalc?.dailyMean,
+    forecastCalc?.sigma,
+    forecastCalc?.trendDailyMean,
+    clientStock.forecastDailyMean,
+    clientStock.sigma,
+    clientStock.trendDailyMean,
+    dailyMeanClient,
+    leadTimeDays,
+    leadTimeEndDate,
+    leadTimeStartDate,
+    manualSafetyStock,
+    safetyStockMode,
+    serviceLevelPct,
+  ])
+  const forecastDerived: SecondaryForecastDerived = useMemo(() => ({
+    safetyStock: forecastCalc?.safetyStockCalc.safetyStock ?? clientStock.safetyStock,
+    recommendedOrderQty: forecastCalc?.safetyStockCalc.recommendedOrderQty ?? clientStock.safetyRecQty,
+    expectedOrderAmount: forecastCalc?.safetyStockCalc.expectedOrderAmount ?? clientStock.safetyExpectedOrderAmount,
+    expectedSalesAmount: forecastCalc?.safetyStockCalc.expectedSalesAmount ?? clientStock.safetyExpectedSalesAmount,
+    expectedOpProfit: forecastCalc?.safetyStockCalc.expectedOpProfit ?? clientStock.safetyExpectedOpProfit,
+  }), [
+    forecastCalc?.safetyStockCalc.expectedOpProfit,
+    forecastCalc?.safetyStockCalc.expectedOrderAmount,
+    forecastCalc?.safetyStockCalc.expectedSalesAmount,
+    forecastCalc?.safetyStockCalc.recommendedOrderQty,
+    forecastCalc?.safetyStockCalc.safetyStock,
+    clientStock.safetyExpectedOpProfit,
+    clientStock.safetyExpectedOrderAmount,
+    clientStock.safetyExpectedSalesAmount,
+    clientStock.safetyRecQty,
+    clientStock.safetyStock,
+  ])
 
   const currentStockBySize = useMemo(
     () => forecastCalc?.display.currentStockQtyBySize ?? [],
@@ -369,7 +427,7 @@ export function ProductSecondaryDrawer({
   }, [primary, secondary, selfWeightPct])
 
   const sizeRows = useMemo(() => {
-    const dailyMeanEa = dailyMeanClient ?? clientStock.forecastMuRaw
+    const dailyMeanEa = dailyMeanClient ?? forecastCalc?.dailyMean ?? clientStock.forecastMuRaw
     const totalQtyWindow = dailyMeanEa * forecastSalesHorizonDays
 
     return sizeAgg.map((row, i) => {
@@ -387,6 +445,7 @@ export function ProductSecondaryDrawer({
     sizeAgg,
     clientStock.forecastMuRaw,
     dailyMeanClient,
+    forecastCalc?.dailyMean,
     forecastSalesHorizonDays,
     currentStockBySize,
     expectedInboundBySize,
@@ -690,7 +749,7 @@ export function ProductSecondaryDrawer({
           <SalesForecastCard
             forecast={{
               inputs: forecastInputs,
-              error: forecastCalcError,
+              error: salesInsightError ?? forecastCalcError,
               computed: {
                 recommendedOrderQtyTotal: recommendedQtyTotal,
                 confirmedOrderQtyTotal: confirmedQtyTotal,

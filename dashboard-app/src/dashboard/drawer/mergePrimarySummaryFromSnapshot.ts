@@ -21,7 +21,7 @@ export function mergePrimarySummaryFromBundleAndSnapshot(
     return {
       ...bundle.summary,
       ...snap1,
-      monthlySalesTrend: bundle.summary.monthlySalesTrend,
+      monthlySalesTrend: bundle.summary.monthlySalesTrend ?? [],
     }
   }
 

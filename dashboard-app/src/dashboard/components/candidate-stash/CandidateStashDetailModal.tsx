@@ -635,7 +635,6 @@ export function CandidateStashDetailModal({ stashUuid, stashSummary, onClose, on
 
       <ProductDrawer
         summary={m.mergedSummary}
-        stockTrend={m.bundle?.stockTrend ?? []}
         suppressDocumentLayoutShift
         closing={m.drawerClosing}
         onClose={m.closeDrawer}

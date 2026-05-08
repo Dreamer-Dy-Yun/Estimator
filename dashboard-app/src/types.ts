@@ -65,7 +65,7 @@ export type ProductPrimarySummary = {
   /** Sellable on-hand quantity. */
   availableStock: number
   recommendedOrderQty: number
-  monthlySalesTrend: MonthlySalesPoint[]
+  monthlySalesTrend?: MonthlySalesPoint[]
   /**
    * Seasonal mix by calendar month (e.g. estimator seasonal_rates).
    * month 1–12, ratios sum to 1; some months may be 0.

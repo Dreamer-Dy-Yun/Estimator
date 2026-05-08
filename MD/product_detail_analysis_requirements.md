@@ -173,7 +173,7 @@ type ProductDetailAnalysis = {
     selfForecast?: number
     competitorForecast?: number
   }>
-  stockTrend: Array<{ date: string; stock: number; safetyLine: number }>
+  dailyInventoryTrend: Array<{ date: string; stock: number; safetyLine: number }> // separate period-sensitive API, not drawer bundle
   sizeMix: Array<{
     size: string
     selfRatio: number

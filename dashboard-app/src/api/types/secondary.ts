@@ -23,8 +23,6 @@ export interface SecondaryDailyTrendParams {
 export interface SecondaryCompetitorChannel {
   id: string
   label: string
-  priceSkew: number
-  qtySkew: number
 }
 
 /**

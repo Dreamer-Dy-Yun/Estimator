@@ -1,5 +1,4 @@
 import type { ProductPrimarySummary, ProductSecondaryDetail } from '../types'
-import type { SecondaryCompetitorChannel } from '../api/types/secondary'
 import { hashRank } from './hashRank'
 
 /** 자사/경쟁 채널 한 컬럼의 판매·원가·수수료·순이익 지표 (2차 드로워·스냅샷 공통). */
@@ -22,20 +21,29 @@ export type SalesKpiColumn = {
   costRatioPct: number | null
 }
 
+type SalesKpiChannel = {
+  id: string
+  label: string
+  priceSkew?: number
+  qtySkew?: number
+}
+
 export function buildSalesKpiColumn(
   kind: 'self' | 'competitor',
   primary: ProductPrimarySummary,
   secondary: ProductSecondaryDetail,
-  channel: SecondaryCompetitorChannel,
+  channel: SalesKpiChannel,
 ): SalesKpiColumn {
+  const priceSkew = channel.priceSkew ?? 1
+  const qtySkew = channel.qtySkew ?? 1
   const price =
     kind === 'self'
       ? primary.price
-      : Math.round(secondary.competitorPrice * channel.priceSkew)
+      : Math.round(secondary.competitorPrice * priceSkew)
   const qty =
     kind === 'self'
       ? primary.qty
-      : Math.max(1, Math.round(secondary.competitorQty * channel.qtySkew))
+      : Math.max(1, Math.round(secondary.competitorQty * qtySkew))
   const amount = Math.round(price * qty)
   const qtyRank = hashRank(`${primary.id}-${kind}-qty`, 28)
   const amountRank = hashRank(`${primary.id}-${kind}-amt`, 28)

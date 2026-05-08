@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   deleteCandidateItem,
+  deleteCandidateItems,
+  downloadCandidateStashOrderExcel,
   getCandidateItemByUuid,
   getCandidateItemsByStash,
   getCandidateRecommendations,
@@ -23,7 +25,7 @@ import { uniqueSortedStrings } from '../../../utils/uniqueSortedStrings'
 import { mergePrimarySummaryFromBundleAndSnapshot } from '../../drawer/mergePrimarySummaryFromSnapshot'
 import { useProductDrawerBundle } from '../../hooks/useProductDrawerBundle'
 import { normalizeRangeOnEndInput, normalizeRangeOnStartInput } from '../../hooks/usePeriodRangeFilter'
-import { createCandidateOrderExcelExport, downloadBlob } from './candidateOrderExcelExport'
+import { downloadBlob } from '../../../utils/candidateOrderExcelExport'
 
 const INNER_DRAWER_CLOSE_LAYOUT_MS = 440
 
@@ -361,7 +363,7 @@ export function useCandidateStashDetailModal({
   }, [totals.expectedOpProfit, totals.expectedSalesAmount])
 
   const fc = clampForecastMonths(drawerForecastMonths)
-  const bundle = useProductDrawerBundle(drawerOpen || drawerClosing ? drawerProductId : null, fc, {
+  const bundle = useProductDrawerBundle(drawerOpen || drawerClosing ? drawerProductId : null, {
     allowStaleWhileRevalidate: false,
   })
 
@@ -508,41 +510,24 @@ export function useCandidateStashDetailModal({
     if (!uniqueUuids.length) return
     setBulkDeleteBusy(true)
     try {
-      for (const itemUuid of uniqueUuids) {
-        await deleteCandidateItem(itemUuid)
-        if (!mountedRef.current) return
-      }
+      await deleteCandidateItems(stashUuid, uniqueUuids)
+      if (!mountedRef.current) return
       if (openedItemUuid && uniqueUuids.includes(openedItemUuid)) closeDrawer()
       await loadItems()
       await refreshStashes()
     } finally {
       if (mountedRef.current) setBulkDeleteBusy(false)
     }
-  }, [closeDrawer, loadItems, openedItemUuid, refreshStashes])
+  }, [closeDrawer, loadItems, openedItemUuid, refreshStashes, stashUuid])
 
   const downloadOrderExcel = useCallback(async (userName: string) => {
     if (!detailTarget) return
-    const exportItems = items
-    if (!exportItems.length) return
+    if (!items.length) return
     setOrderExportBusy(true)
     setOrderExportError(null)
     try {
-      const detailedItems = await Promise.all(
-        exportItems.map(async (item) => {
-          const detail = await getCandidateItemByUuid(item.uuid)
-          if (!detail) throw new Error(`후보 상세 데이터 없음: ${item.productName}`)
-          return {
-            summary: item,
-            snapshot: parseOrderSnapshot(detail.details),
-          }
-        }),
-      )
+      const { blob, filename } = await downloadCandidateStashOrderExcel(detailTarget.uuid, userName)
       if (!mountedRef.current) return
-      const { blob, filename } = createCandidateOrderExcelExport({
-        stashName: detailTarget.name,
-        userName,
-        items: detailedItems,
-      })
       downloadBlob(blob, filename)
     } catch (err) {
       if (!mountedRef.current) return

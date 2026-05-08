@@ -19,7 +19,6 @@ const bundleA = {
     seasonality: [],
     sizeMix: [],
   },
-  stockTrend: [],
 }
 
 describe('pickProductDrawerBundleFromCache', () => {

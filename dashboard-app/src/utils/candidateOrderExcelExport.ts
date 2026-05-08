@@ -1,6 +1,6 @@
-import type { CandidateItemSummary } from '../../../api'
-import type { OrderSnapshotDocumentV1 } from '../../../snapshot/orderSnapshotTypes'
-import { createXlsxWorkbookBlob, type XlsxCellValue } from '../../../utils/xlsxWorkbook'
+import type { CandidateItemSummary } from '../api/types/candidate'
+import type { OrderSnapshotDocumentV1 } from '../snapshot/orderSnapshotTypes'
+import { createXlsxWorkbookBlob, type XlsxCellValue } from './xlsxWorkbook'
 
 type CandidateOrderExportItem = {
   summary: CandidateItemSummary

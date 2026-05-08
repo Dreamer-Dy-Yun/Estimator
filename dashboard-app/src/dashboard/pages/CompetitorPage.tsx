@@ -35,7 +35,7 @@ export const CompetitorPage = () => {
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const { toastMessage, copyAndNotify } = useCopyToastMessage()
   const [forecastMonths, setForecastMonths] = useState(() => readForecastMonthsFromStorage())
-  const summaryBundle = useProductDrawerBundle(selectedId, forecastMonths)
+  const summaryBundle = useProductDrawerBundle(selectedId)
   const { ref: chartBodyRef, width: chartWidth, height: chartHeight, ready: chartReady } = useElementSize<HTMLDivElement>()
 
   const onForecastMonthsChange = useCallback((n: number) => {
@@ -351,7 +351,6 @@ export const CompetitorPage = () => {
 
       <ProductDrawer
         summary={summaryBundle?.summary ?? null}
-        stockTrend={summaryBundle?.stockTrend ?? []}
         periodStart={periodStartDate}
         periodEnd={periodEndDate}
         forecastMonths={forecastMonths}

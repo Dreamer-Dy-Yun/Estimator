@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest'
 import type { ProductPrimarySummary, ProductSecondaryDetail } from '../../../../../types'
-import type { CompetitorChannel } from '../secondaryDrawerTypes'
 import { buildSalesKpiColumn } from '../../../../../utils/salesKpiColumn'
 import { mergePrimarySecondarySizeMix } from './secondaryDrawerCalc'
 
@@ -29,7 +28,7 @@ const secondary: ProductSecondaryDetail = {
   competitorRatioBySize: { '250': 0.7 },
 }
 
-const channel: CompetitorChannel = {
+const channel = {
   id: 'kream',
   label: '크림',
   priceSkew: 1.1,
@@ -67,7 +66,7 @@ describe('buildSalesKpiColumn', () => {
       ...secondary,
       competitorQty: 0,
     }
-    const tinyChannel: CompetitorChannel = {
+    const tinyChannel = {
       ...channel,
       qtySkew: 0,
       priceSkew: 1.25,

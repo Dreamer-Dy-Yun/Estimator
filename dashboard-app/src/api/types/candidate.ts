@@ -4,8 +4,6 @@ export interface CandidateStashSummary {
   uuid: string
   name: string
   note: string | null
-  /** Owner USER_ACCOUNT.uuid. Backend resolves this from the authenticated session. */
-  createdByUserUuid: string
   productId: string
   periodStart: string
   periodEnd: string
@@ -125,6 +123,11 @@ export interface CandidateStashExcelUploadResult {
 
 export interface CandidateStashExcelTemplateDownload {
   href: string
+  filename: string
+}
+
+export interface CandidateStashOrderExcelDownload {
+  blob: Blob
   filename: string
 }
 

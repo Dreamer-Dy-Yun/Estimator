@@ -9,13 +9,13 @@ import type {
   CandidateItemSummary,
   CandidateRecommendationParams,
   CandidateRecommendationResult,
+  CandidateStashOrderExcelDownload,
   CandidateStashExcelUploadResult,
   CandidateStashSummary,
   CreateCandidateStashPayload,
   UpdateCandidateItemPayload,
   UpdateCandidateStashPayload,
   CompetitorSalesParams,
-  ProductDrawerBundleParams,
   ProductMonthlyTrend,
   ProductMonthlyTrendParams,
   ProductSalesInsight,
@@ -35,6 +35,7 @@ import {
   categories,
   competitorById,
   competitorSalesRows,
+  getMockSecondaryCompetitorChannel,
   secondaryCompetitorChannels,
   selfById,
   selfSalesRows,
@@ -54,6 +55,7 @@ import {
   zFromServiceLevelPct,
 } from './secondaryDailyTrend'
 import { buildSalesKpiColumn } from '../../utils/salesKpiColumn'
+import { createCandidateOrderExcelExport } from '../../utils/candidateOrderExcelExport'
 import { uniqueSortedStrings } from '../../utils/uniqueSortedStrings'
 
 type CandidateAnalysisJob = {
@@ -143,7 +145,6 @@ function toCandidateStashSummary(
     uuid: row.uuid,
     name: row.name,
     note: row.note ?? null,
-    createdByUserUuid: row.createdByUserUuid,
     productId: row.productId,
     periodStart: row.periodStart,
     periodEnd: row.periodEnd,
@@ -289,11 +290,9 @@ export const mockDashboardApi = {
     const category = params?.category
     const nameQ = params?.nameQuery?.trim().toLowerCase()
     const weighted = estimatePeriodWeight(params?.startDate, params?.endDate)
-    const channel = params?.competitorChannelId
-      ? secondaryCompetitorChannels.find((c) => c.id === params.competitorChannelId)
-      : undefined
-    const priceSkew = channel?.priceSkew ?? 1
-    const qtySkew = channel?.qtySkew ?? 1
+    const channel = getMockSecondaryCompetitorChannel(params?.competitorChannelId)
+    const priceSkew = channel.priceSkew
+    const qtySkew = channel.qtySkew
 
     return competitorSalesRows
       .filter((row) => (brand ? row.brand === brand : true))
@@ -328,18 +327,15 @@ export const mockDashboardApi = {
       historicalMonths,
     }
   },
-  getProductDrawerBundle: async (id: string, params?: ProductDrawerBundleParams) => {
+  getProductDrawerBundle: async (id: string) => {
     await sleep(80)
     const primary = productPrimaryById[id] ?? productPrimaryById[allKnownProductIds[0]]!
-    const stockTrend = stockTrendById[id] ?? stockTrendById[allKnownProductIds[0]]!
-    const fc = Math.max(1, Math.min(24, Math.round(params?.forecastMonths ?? 8)))
-    const seed = id.charCodeAt(0)
-    const base = Math.max(800, Math.round(primary.qty * 0.42))
+    const { monthlySalesTrend, ...summaryBase } = primary
+    void monthlySalesTrend
     const summary: ProductPrimarySummary = {
-      ...primary,
-      monthlySalesTrend: makeSalesTrend(base, seed, fc),
+      ...summaryBase,
     }
-    return { summary, stockTrend }
+    return { summary }
   },
   getProductMonthlyTrend: async (
     id: string,
@@ -351,9 +347,7 @@ export const mockDashboardApi = {
     const seed = id.charCodeAt(0)
     const base = Math.max(800, Math.round(primary.qty * 0.42))
     const selfTrend = makeSalesTrend(base, seed, fc)
-    const channel =
-      secondaryCompetitorChannels.find((ch) => ch.id === params.competitorChannelId)
-      ?? secondaryCompetitorChannels[0]!
+    const channel = getMockSecondaryCompetitorChannel(params.competitorChannelId)
     return {
       productId: primary.id,
       targetPeriodDays: {
@@ -382,9 +376,7 @@ export const mockDashboardApi = {
     await sleep(80)
     const primary = productPrimaryById[id] ?? productPrimaryById[allKnownProductIds[0]]!
     const secondary = productSecondaryById[id] ?? productSecondaryById[allKnownProductIds[0]]!
-    const channel =
-      secondaryCompetitorChannels.find((ch) => ch.id === params.competitorChannelId)
-      ?? secondaryCompetitorChannels[0]!
+    const channel = getMockSecondaryCompetitorChannel(params.competitorChannelId)
     return {
       productId: primary.id,
       targetPeriodDays: {
@@ -411,10 +403,8 @@ export const mockDashboardApi = {
     await sleep(80)
     const primary = productPrimaryById[productId] ?? productPrimaryById[allKnownProductIds[0]]!
     const stockTrend = stockTrendById[productId] ?? stockTrendById[allKnownProductIds[0]]!
-    const channel =
-      secondaryCompetitorChannels.find((ch) => ch.id === competitorChannelId)
-      ?? secondaryCompetitorChannels[0]!
-    return buildSecondaryDailyTrend(primary.monthlySalesTrend, stockTrend, startMonth, leadTimeDays, channel.qtySkew)
+    const channel = getMockSecondaryCompetitorChannel(competitorChannelId)
+    return buildSecondaryDailyTrend(primary.monthlySalesTrend ?? [], stockTrend, startMonth, leadTimeDays, channel.qtySkew)
   },
   getSecondaryCompetitorChannels: async () => {
     await sleep(40)
@@ -493,6 +483,23 @@ export const mockDashboardApi = {
       throw new Error('후보 아이템을 찾을 수 없습니다.')
     }
   },
+  deleteCandidateItems: async (
+    stashUuid: string,
+    itemUuids: string[],
+    ownerUserUuid?: string,
+  ): Promise<void> => {
+    await sleep(80)
+    if (!findCandidateStashForOwner(stashUuid, ownerUserUuid)) {
+      throw new Error('후보군을 찾을 수 없습니다.')
+    }
+    const uuidSet = new Set(itemUuids)
+    const invalidItem = readCandidateItemRecords().find(
+      (item) => uuidSet.has(item.uuid) && item.stashUuid !== stashUuid,
+    )
+    if (invalidItem) {
+      throw new Error('후보군에 포함되지 않은 아이템이 있습니다.')
+    }
+  },
   deleteCandidateStash: async (stashUuid: string, ownerUserUuid?: string): Promise<void> => {
     await sleep(60)
     if (!findCandidateStashForOwner(stashUuid, ownerUserUuid)) {
@@ -562,6 +569,34 @@ export const mockDashboardApi = {
       throw new Error('후보 아이템을 찾을 수 없습니다.')
     }
     void payload
+  },
+  downloadCandidateStashOrderExcel: async (
+    stashUuid: string,
+    userName: string,
+    ownerUserUuid?: string,
+  ): Promise<CandidateStashOrderExcelDownload> => {
+    await sleep(120)
+    const stash = findCandidateStashForOwner(stashUuid, ownerUserUuid)
+    if (!stash) {
+      throw new Error('후보군을 찾을 수 없습니다.')
+    }
+    const summaries = buildCandidateItemSummariesForStash(stashUuid, ownerUserUuid)
+    const recordsByUuid = new Map(readCandidateItemsForStash(stashUuid, ownerUserUuid).map((item) => [item.uuid, item]))
+    const items = summaries.map((summary) => {
+      const record = recordsByUuid.get(summary.uuid)
+      if (!record?.details) {
+        throw new Error(`후보 상세 데이터 없음: ${summary.productName}`)
+      }
+      return {
+        summary,
+        snapshot: record.details,
+      }
+    })
+    return createCandidateOrderExcelExport({
+      stashName: stash.name,
+      userName,
+      items,
+    })
   },
   uploadCandidateStashExcel: async (file: File): Promise<CandidateStashExcelUploadResult> => {
     await sleep(140)
@@ -717,7 +752,7 @@ export const mockDashboardApi = {
   }: SecondaryStockOrderCalcParams): Promise<SecondaryStockOrderCalcResult> => {
     await sleep(70)
     const primary = productPrimaryById[productId] ?? productPrimaryById[allKnownProductIds[0]]!
-    const fromTrend = dailyMeanSigma(primary.monthlySalesTrend, periodStart, periodEnd)
+    const fromTrend = dailyMeanSigma(primary.monthlySalesTrend ?? [], periodStart, periodEnd)
     /** 기간 산술평균: 월 판매 단순 평균의 일환산(일평균 판매량). */
     const trendMuRaw = fromTrend.dailyMean
     const trendDailyMean = Math.round(trendMuRaw * 10) / 10
@@ -726,7 +761,7 @@ export const mockDashboardApi = {
     const forecastMuRaw =
       dailyMeanParam !== undefined && Number.isFinite(dailyMeanParam)
         ? Math.max(0, dailyMeanParam)
-        : forecastDailyMeanFromModel(primary.monthlySalesTrend, periodStart, forecastPeriodEnd ?? periodEnd)
+        : forecastDailyMeanFromModel(primary.monthlySalesTrend ?? [], periodStart, forecastPeriodEnd ?? periodEnd)
     const dailyMeanRounded = Math.round(forecastMuRaw * 10) / 10
 
     const sigma = fromTrend.sigma

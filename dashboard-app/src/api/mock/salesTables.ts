@@ -1,10 +1,25 @@
 import type { CompetitorSalesRow, SelfSalesRow } from '../../types'
 import type { SecondaryCompetitorChannel } from '../types'
 
-export const secondaryCompetitorChannels: SecondaryCompetitorChannel[] = [
+export type MockSecondaryCompetitorChannel = SecondaryCompetitorChannel & {
+  priceSkew: number
+  qtySkew: number
+}
+
+const mockSecondaryCompetitorChannels: MockSecondaryCompetitorChannel[] = [
   { id: 'kream', label: '크림', priceSkew: 1, qtySkew: 1 },
   { id: 'musinsa', label: '무신사', priceSkew: 1.02, qtySkew: 0.88 },
 ]
+
+export const secondaryCompetitorChannels: SecondaryCompetitorChannel[] =
+  mockSecondaryCompetitorChannels.map(({ id, label }) => ({ id, label }))
+
+export function getMockSecondaryCompetitorChannel(id?: string): MockSecondaryCompetitorChannel {
+  return (
+    mockSecondaryCompetitorChannels.find((channel) => channel.id === id)
+    ?? mockSecondaryCompetitorChannels[0]!
+  )
+}
 
 export const selfSalesRows: SelfSalesRow[] = [
   { id: 'B', rank: 1, rankPercentile: 99.8, brand: '나이키', category: '신발', productCode: 'B', name: 'BBBBB', avgPrice: 119000, qty: 11000, amount: 1309000000, avgCost: 97000, marginRate: 18.5, feeRate: 13, opMarginRate: 5.5, opMarginAmount: 71830000 },

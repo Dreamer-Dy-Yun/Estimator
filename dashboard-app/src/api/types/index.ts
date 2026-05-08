@@ -15,14 +15,12 @@ export type {
 export type { CompetitorSalesParams, SelfSalesFilterMeta, SelfSalesParams } from './sales'
 export type {
   ProductDrawerBundle,
-  ProductDrawerBundleParams,
   ProductMonthlyTrend,
   ProductMonthlyTrendParams,
   ProductMonthlyTrendPoint,
   ProductSalesInsight,
   ProductSalesInsightColumn,
   ProductSalesInsightParams,
-  ProductStockTrendPoint,
 } from './drawer'
 export type {
   ProductSecondaryDetailParams,
@@ -47,6 +45,7 @@ export type {
   CandidateStashAnalysisStartResult,
   CandidateStashAnalysisStatus,
   CandidateStashAnalysisSubscription,
+  CandidateStashOrderExcelDownload,
   CandidateStashExcelUploadResult,
   CandidateStashExcelTemplateDownload,
   CandidateStashSummary,

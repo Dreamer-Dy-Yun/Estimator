@@ -1,6 +1,5 @@
 import { type SetStateAction, useCallback, useEffect, useRef, useState } from 'react'
 import { ApiUnitErrorBadge } from '../../../components/ApiUnitErrorBadge'
-import type { ProductStockTrendPoint } from '../../../api'
 import type { ProductPrimarySummary } from '../../../types'
 import type { AdjacentDirection } from '../../../utils/adjacentListNavigation'
 import { normalizeMonthKey } from '../trend/trendRangeUtils'
@@ -16,7 +15,6 @@ import styles from '../common.module.css'
 
 function ProductDrawerContent({
   summary,
-  stockTrend,
   onClose,
   periodStart,
   periodEnd,
@@ -31,7 +29,6 @@ function ProductDrawerContent({
   closing = false,
 }: {
   summary: ProductPrimarySummary
-  stockTrend: ProductStockTrendPoint[]
   onClose: () => void
   periodStart: string
   periodEnd: string
@@ -45,8 +42,6 @@ function ProductDrawerContent({
   suppressDocumentLayoutShift?: boolean
   closing?: boolean
 }) {
-  void stockTrend
-
   const pageName = 'ProductDrawer'
   const drawerRef = useRef<HTMLElement | null>(null)
   const [expandPaneState, setExpandPaneState] = useState(() => ({
@@ -227,7 +222,6 @@ function ProductDrawerContent({
 
 export const ProductDrawer = ({
   summary,
-  stockTrend,
   onClose,
   periodStart,
   periodEnd,
@@ -242,7 +236,6 @@ export const ProductDrawer = ({
   closing,
 }: {
   summary: ProductPrimarySummary | null
-  stockTrend: ProductStockTrendPoint[]
   onClose: () => void
   periodStart: string
   periodEnd: string
@@ -260,7 +253,6 @@ export const ProductDrawer = ({
   return (
     <ProductDrawerContent
       summary={summary}
-      stockTrend={stockTrend}
       onClose={onClose}
       periodStart={periodStart}
       periodEnd={periodEnd}

@@ -14,6 +14,7 @@ import type {
   CandidateStashAnalysisHandlers,
   CandidateStashAnalysisStartResult,
   CandidateStashAnalysisSubscription,
+  CandidateStashOrderExcelDownload,
   CandidateStashExcelTemplateDownload,
   CandidateStashExcelUploadResult,
   CandidateStashSummary,
@@ -21,7 +22,6 @@ import type {
   UpdateCandidateStashPayload,
   DashboardApi,
   ProductDrawerBundle,
-  ProductDrawerBundleParams,
   ProductMonthlyTrend,
   ProductMonthlyTrendParams,
   ProductSalesInsight,
@@ -109,11 +109,8 @@ export async function getSelfSalesFilterMeta(): Promise<SelfSalesFilterMeta> {
   return mockDashboardApi.getSelfSalesFilterMeta()
 }
 
-export async function getProductDrawerBundle(
-  id: string,
-  params?: ProductDrawerBundleParams,
-): Promise<ProductDrawerBundle> {
-  return mockDashboardApi.getProductDrawerBundle(id, params)
+export async function getProductDrawerBundle(id: string): Promise<ProductDrawerBundle> {
+  return mockDashboardApi.getProductDrawerBundle(id)
 }
 
 async function getProductMonthlyTrend(
@@ -169,6 +166,10 @@ export async function deleteCandidateItem(itemUuid: string): Promise<void> {
   return mockDashboardApi.deleteCandidateItem(itemUuid, await requireCurrentUserUuid())
 }
 
+export async function deleteCandidateItems(stashUuid: string, itemUuids: string[]): Promise<void> {
+  return mockDashboardApi.deleteCandidateItems(stashUuid, itemUuids, await requireCurrentUserUuid())
+}
+
 export async function deleteCandidateStash(stashUuid: string): Promise<void> {
   return mockDashboardApi.deleteCandidateStash(stashUuid, await requireCurrentUserUuid())
 }
@@ -211,6 +212,17 @@ export function getCandidateStashExcelTemplateDownload(): CandidateStashExcelTem
   }
 }
 
+export async function downloadCandidateStashOrderExcel(
+  stashUuid: string,
+  userName: string,
+): Promise<CandidateStashOrderExcelDownload> {
+  return mockDashboardApi.downloadCandidateStashOrderExcel(
+    stashUuid,
+    userName,
+    await requireCurrentUserUuid(),
+  )
+}
+
 export async function startCandidateStashAnalysis(stashUuid: string): Promise<CandidateStashAnalysisStartResult> {
   return mockDashboardApi.startCandidateStashAnalysis(stashUuid, await requireCurrentUserUuid())
 }
@@ -243,6 +255,7 @@ export const dashboardApi: DashboardApi = {
   getCandidateRecommendations,
   getCandidateItemByUuid,
   deleteCandidateItem,
+  deleteCandidateItems,
   deleteCandidateStash,
   createCandidateStash,
   updateCandidateStash,
@@ -250,6 +263,7 @@ export const dashboardApi: DashboardApi = {
   appendCandidateItem,
   updateCandidateItem,
   getCandidateStashExcelTemplateDownload,
+  downloadCandidateStashOrderExcel,
   uploadCandidateStashExcel,
   startCandidateStashAnalysis,
   subscribeCandidateStashAnalysis,

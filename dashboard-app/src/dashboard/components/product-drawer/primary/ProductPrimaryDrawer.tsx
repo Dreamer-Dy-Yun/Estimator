@@ -125,7 +125,7 @@ export function ProductPrimaryDrawer({
         <ComponentErrorBoundary page={pageName} unit="PrimarySalesTrendCard">
           <ProductMonthlyTrendContainer
             productId={summary.id}
-            fallbackTrend={summary.monthlySalesTrend}
+            fallbackTrend={summary.monthlySalesTrend ?? []}
             periodStart={periodStart}
             periodEnd={periodEnd}
             forecastMonths={forecastMonths}
