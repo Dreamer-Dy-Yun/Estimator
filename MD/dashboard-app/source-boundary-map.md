@@ -38,6 +38,8 @@
 - 관리자 유저 관리 화면은 `/admin` 별도 라우트와 `src/admin`이 소유한다. 화면은 같은 `DashboardLayout` 안에서 렌더하며, 관리자 권한 사용자에게만 `오더 후보군` 뒤 관리자 전용 탭을 보여준다. 인증 권한은 `admin`과 `user` 두 단계만 둔다. 관리자 비밀번호 관리는 조회가 아니라 임시 비밀번호 재설정 API만 호출하고, 임시 비밀번호는 응답 직후 한 번만 표시한다.
 - 상품 drawer feature는 `dashboard/components/product-drawer`로 모았다. 루트 `ProductDrawer`는 overlay와 공유 상태만 조율하고, `primary`가 1차 드로워, `secondary`가 2차 드로워를 소유한다.
 - 경쟁 채널 상태는 1차 판매 정보와 2차 일별 추이가 공유하므로 `product-drawer/useCompetitorChannels.ts`가 소유한다. 2차 상세 조회는 `product-drawer/secondary/useSecondaryDrawerDetail.ts`가 소유한다.
+- 인증 context와 `useAuth`는 `AuthContext.ts`가 소유하고, `AuthProvider.tsx`는 세션 로딩과 API 호출 orchestration만 담당한다.
+- 복사 완료 toast는 표시 컴포넌트와 복사/타이머 hook을 분리해, `CopyToastBanner.tsx`는 렌더링만, `useCopyToastMessage.ts`는 클립보드 복사와 toast 상태만 담당한다.
 
 ## 최상위 저장소
 
@@ -120,7 +122,8 @@
 
 | 파일 | 역할 |
 |------|------|
-| `AuthProvider.tsx` | 앱 전역 인증 세션 로딩, 로그인, 로그아웃 상태 제공 |
+| `AuthContext.ts` | 인증 context 타입, `AuthContext`, `useAuth` hook |
+| `AuthProvider.tsx` | 앱 전역 인증 세션 로딩, 로그인, 로그아웃 API 호출을 `AuthContext`로 제공 |
 | `RequireAuth.tsx` | `/dashboard/*` 보호 라우트. 세션이 없으면 `/login`으로 보낸 뒤 원래 경로를 보존 |
 | `LoginPage.tsx` | 로그인 라우트 화면. 로그인 ID와 비밀번호를 인증 계약으로 전달 |
 | `LoginPage.module.css` | 로그인 화면 전용 스타일 |
@@ -180,7 +183,8 @@
 | `AnalysisList.tsx` | 판매 분석 목록 wrapper |
 | `ChartCard.tsx` | 차트 카드 wrapper |
 | `ConfirmModal.tsx` | 확인 모달 shell. 스타일은 호출자가 classNames로 주입한다 |
-| `CopyToastBanner.*` | 복사 완료 toast |
+| `CopyToastBanner.*` | 복사 완료 toast 표시 컴포넌트 |
+| `useCopyToastMessage.ts` | 클립보드 복사, 복사 완료 toast 메시지, 자동 닫힘 타이머 hook |
 | `DeleteButton.*` | 삭제 버튼 공용 구현 |
 | `FilterBar.tsx` | 페이지 상단 필터 조합. `filterEndContent`로 필터 grid 끝의 버튼/액션 칸을 받을 수 있다 |
 | `FilterListCombo.*` | 목록 기반 검색/선택 필터 |

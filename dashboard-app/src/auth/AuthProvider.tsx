@@ -1,7 +1,5 @@
 import {
-  createContext,
   useCallback,
-  useContext,
   useEffect,
   useMemo,
   useState,
@@ -14,19 +12,13 @@ import {
   logout as requestLogout,
   updateCurrentUser,
 } from '../api'
-import type { AuthSession, ChangePasswordPayload, LoginRequest, UpdateAuthUserPayload } from '../api'
-
-type AuthContextValue = {
-  session: AuthSession | null
-  isLoading: boolean
-  refreshSession(): Promise<AuthSession | null>
-  login(payload: LoginRequest): Promise<AuthSession>
-  updateUser(payload: UpdateAuthUserPayload): Promise<AuthSession>
-  changePassword(payload: ChangePasswordPayload): Promise<void>
-  logout(): Promise<void>
-}
-
-const AuthContext = createContext<AuthContextValue | null>(null)
+import type {
+  AuthSession,
+  ChangePasswordPayload,
+  LoginRequest,
+  UpdateAuthUserPayload,
+} from '../api'
+import { AuthContext } from './AuthContext'
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<AuthSession | null>(null)
@@ -91,12 +83,4 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
-}
-
-export function useAuth() {
-  const value = useContext(AuthContext)
-  if (!value) {
-    throw new Error('useAuth must be used inside AuthProvider.')
-  }
-  return value
 }

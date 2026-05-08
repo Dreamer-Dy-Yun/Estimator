@@ -7,7 +7,7 @@ import {
   updateAdminUser,
 } from '../api'
 import type { AdminUserSummary, AuthRole, ResetAdminUserPasswordResult } from '../api'
-import { useAuth } from '../auth/AuthProvider'
+import { useAuth } from '../auth/AuthContext'
 import commonStyles from '../dashboard/components/common.module.css'
 import styles from './AdminUsersPage.module.css'
 

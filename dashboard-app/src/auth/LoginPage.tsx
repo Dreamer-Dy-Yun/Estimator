@@ -1,6 +1,6 @@
 import { useMemo, useState, type FormEvent } from 'react'
 import { Navigate, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
-import { useAuth } from './AuthProvider'
+import { useAuth } from './AuthContext'
 import styles from './LoginPage.module.css'
 
 type LoginLocationState = {

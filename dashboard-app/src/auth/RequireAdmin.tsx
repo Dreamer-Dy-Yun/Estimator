@@ -1,5 +1,5 @@
 import { Navigate, Outlet, useLocation } from 'react-router-dom'
-import { useAuth } from './AuthProvider'
+import { useAuth } from './AuthContext'
 import styles from './authGate.module.css'
 
 export function RequireAdmin() {

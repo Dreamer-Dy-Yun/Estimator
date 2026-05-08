@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react'
-import { useAuth } from './AuthProvider'
+import { useAuth } from './AuthContext'
 import styles from './UserProfileDialog.module.css'
 
 const ROLE_LABELS = {
