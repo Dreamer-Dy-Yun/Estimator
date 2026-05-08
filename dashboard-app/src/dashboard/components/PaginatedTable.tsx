@@ -9,6 +9,7 @@ export type TableColumn<T> = {
   header: ReactNode
   cell: (row: T) => ReactNode
   align?: 'left' | 'right' | 'center'
+  width?: string | number
   sortValue?: (row: T) => SortValue
   /** false: 헤더 클릭 정렬 비활성(액션 열 등) */
   sortable?: boolean
@@ -130,10 +131,11 @@ export function PaginatedTable<T extends { id: string }>(props: PaginatedTablePr
             <tr>
               {columns.map((c) => {
                 const canSort = c.sortable !== false
+                const cellStyle = { textAlign: c.align ?? 'left', width: c.width }
                 return (
                   <th
                     key={c.key}
-                    style={{ textAlign: c.align ?? 'left' }}
+                    style={cellStyle}
                     className={canSort ? styles.sortableTh : undefined}
                     onClick={canSort ? () => onSort(c.key, true) : undefined}
                   >
@@ -154,7 +156,7 @@ export function PaginatedTable<T extends { id: string }>(props: PaginatedTablePr
                 onClick={() => onRowClick?.(row)}
               >
                 {columns.map((c) => (
-                  <td key={c.key} style={{ textAlign: c.align ?? 'left' }}>{c.cell(row)}</td>
+                  <td key={c.key} style={{ textAlign: c.align ?? 'left', width: c.width }}>{c.cell(row)}</td>
                 ))}
               </tr>
             ))}

@@ -85,7 +85,7 @@ export const SelfPage = () => {
     return () => {
       alive = false
     }
-  }, [periodStartDate, periodEndDate, brandFilter, categoryFilter])
+  }, [periodStartDate, periodEndDate, brandFilter, categoryFilter, productNameFilter])
   useEffect(() => {
     let alive = true
     const reqSeq = ++metaReqSeqRef.current
@@ -285,7 +285,7 @@ export const SelfPage = () => {
         <AnalysisList<SelfSalesRow>
           columns={[
             { key: 'rank', header: '순위', cell: (r) => r.rank, align: 'center', sortValue: (r) => r.rank },
-            { key: 'brand', header: '브랜드', cell: (r) => r.brand, sortValue: (r) => r.brand },
+            { key: 'brand', header: '브랜드', cell: (r) => r.brand, width: '8.5%', sortValue: (r) => r.brand },
             { key: 'category', header: '카테고리', cell: (r) => r.category, sortValue: (r) => r.category },
             { key: 'name', header: '상품명', cell: (r) => r.name, sortValue: (r) => r.name },
             { key: 'avgPrice', header: '평균판매가', cell: (r) => formatGroupedNumber(r.avgPrice), align: 'right', sortValue: (r) => r.avgPrice },

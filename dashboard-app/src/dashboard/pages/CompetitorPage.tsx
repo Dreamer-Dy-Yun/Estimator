@@ -333,7 +333,7 @@ export const CompetitorPage = () => {
         <AnalysisList<CompetitorSalesRow>
           columns={[
             { key: 'rank', header: '순위', cell: (r) => r.rank, align: 'center', sortValue: (r) => r.rank },
-            { key: 'brand', header: '브랜드', cell: (r) => r.brand, sortValue: (r) => r.brand },
+            { key: 'brand', header: '브랜드', cell: (r) => r.brand, width: '8.5%', sortValue: (r) => r.brand },
             { key: 'category', header: '카테고리', cell: (r) => r.category, sortValue: (r) => r.category },
             { key: 'productCode', header: '코드', cell: (r) => r.productCode, sortValue: (r) => r.productCode },
             { key: 'name', header: '상품명', cell: (r) => r.name, sortValue: (r) => r.name },
