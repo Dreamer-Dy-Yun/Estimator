@@ -43,7 +43,6 @@ export {
   getCurrentAuthSession,
   getCompetitorSales,
   getProductDrawerBundle,
-  getProductMonthlyTrend,
   getSecondaryCompetitorChannels,
   getCandidateStashes,
   getCandidateItemsByStash,

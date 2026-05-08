@@ -1,15 +1,16 @@
 import type { ReactNode } from 'react'
 import { drawerKeepOpenDataProps } from '../drawer/drawerDom'
+import styles from './ConfirmModal.module.css'
 
 type ConfirmModalClassNames = {
-  backdrop: string
-  panel: string
-  title: string
-  text: string
-  actions: string
-  button: string
-  cancelButton: string
-  confirmButton: string
+  backdrop?: string
+  panel?: string
+  title?: string
+  text?: string
+  actions?: string
+  button?: string
+  cancelButton?: string
+  confirmButton?: string
 }
 
 type ConfirmModalProps = {
@@ -21,7 +22,7 @@ type ConfirmModalProps = {
   confirmText?: string
   confirmingText?: string
   dialogTitleId: string
-  classNames: ConfirmModalClassNames
+  classNames?: ConfirmModalClassNames
   onCancel: () => void
   onConfirm: () => void | Promise<void>
   keepOpenAttr?: boolean
@@ -42,27 +43,37 @@ export function ConfirmModal({
   keepOpenAttr = false,
 }: ConfirmModalProps) {
   if (!open) return null
+  const modalClassNames = {
+    backdrop: classNames?.backdrop ?? styles.backdrop,
+    panel: classNames?.panel ?? styles.panel,
+    title: classNames?.title ?? styles.title,
+    text: classNames?.text ?? styles.text,
+    actions: classNames?.actions ?? styles.actions,
+    button: classNames?.button ?? styles.button,
+    cancelButton: classNames?.cancelButton ?? styles.cancelButton,
+    confirmButton: classNames?.confirmButton ?? styles.dangerButton,
+  }
   return (
     <div
       {...(keepOpenAttr ? drawerKeepOpenDataProps() : {})}
-      className={classNames.backdrop}
+      className={modalClassNames.backdrop}
       onClick={() => !busy && onCancel()}
     >
       <div
-        className={classNames.panel}
+        className={modalClassNames.panel}
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
         aria-labelledby={dialogTitleId}
       >
-        <h3 id={dialogTitleId} className={classNames.title}>
+        <h3 id={dialogTitleId} className={modalClassNames.title}>
           {title}
         </h3>
-        <p className={classNames.text}>{message}</p>
-        <div className={classNames.actions}>
+        <p className={modalClassNames.text}>{message}</p>
+        <div className={modalClassNames.actions}>
           <button
             type="button"
-            className={`${classNames.button} ${classNames.cancelButton}`}
+            className={`${modalClassNames.button} ${modalClassNames.cancelButton}`}
             onClick={onCancel}
             disabled={busy}
           >
@@ -70,7 +81,7 @@ export function ConfirmModal({
           </button>
           <button
             type="button"
-            className={`${classNames.button} ${classNames.confirmButton}`}
+            className={`${modalClassNames.button} ${modalClassNames.confirmButton}`}
             disabled={busy}
             onClick={() => void onConfirm()}
           >
@@ -81,4 +92,3 @@ export function ConfirmModal({
     </div>
   )
 }
-

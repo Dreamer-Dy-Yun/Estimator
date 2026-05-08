@@ -23,7 +23,7 @@
 - `dashboard/pages`에는 라우트 페이지 파일만 남겼다.
 - 후보군 상세 모달, 추천 모달, 인사이트 배지, 후보군 상세 훅은 `dashboard/components/candidate-stash`로 이동했다.
 - 후보군 상세 모달 CSS는 `SnapshotConfirmPage.module.css`에서 분리해 `CandidateStashDetailModal.module.css`가 소유한다.
-- `SnapshotConfirmPage.module.css`는 후보군 목록/업로드/스냅샷 확인 페이지와 그 페이지의 확인 모달 스타일만 담당한다.
+- 확인 모달 shell 스타일은 `ConfirmModal.module.css`가 소유하고, 각 화면 CSS는 자기 화면의 form/input 같은 전용 스타일만 담당한다.
 - 2차 드로워에서 화면에 노출되지 않는 AI 프롬프트 생성 API와 배포 전 제거 대상이던 JSON 미리보기 모달을 제거했다.
 - 오더 스냅샷 독립 localStorage 저장/조회/삭제 API를 제거하고, 후보 아이템 `details`를 스냅샷 저장의 단일 경로로 둔다.
 - 후보군 생성/삭제/복제/편집 이벤트는 API 호출 후 목록을 재조회한다. mock은 응답 흐름만 모사하고 브라우저 저장소에 후보군/이너 후보를 만들거나 지우지 않는다.
@@ -174,7 +174,7 @@
 | `SelfPage.tsx` | 자사 판매 분석 라우트 |
 | `CompetitorPage.tsx` | 경쟁 판매 분석 라우트 |
 | `SnapshotConfirmPage.tsx` | 후보군 목록, 후보군 업로드, 업로드 템플릿 다운로드 링크, 후보군 생성/수정/삭제/복제 라우트 |
-| `SnapshotConfirmPage.module.css` | `SnapshotConfirmPage`의 후보군 목록, 업로드 카드 2행 grid 영역, 페이지 확인 모달 전용 스타일 |
+| `SnapshotConfirmPage.module.css` | `SnapshotConfirmPage`의 후보군 목록, 업로드 카드 2행 grid 영역, 이름·비고 편집 모달의 form/input 전용 스타일 |
 
 ## dashboard/components
 
@@ -184,7 +184,8 @@
 |------|------|
 | `AnalysisList.tsx` | 판매 분석 목록 wrapper |
 | `ChartCard.tsx` | 차트 카드 wrapper |
-| `ConfirmModal.tsx` | 확인 모달 shell. 스타일은 호출자가 classNames로 주입한다 |
+| `ConfirmModal.tsx` | 확인 모달 shell. 기본 shell 스타일을 갖고, 특수 화면은 필요한 classNames만 선택적으로 주입한다 |
+| `ConfirmModal.module.css` | 확인 모달 공통 backdrop/panel/title/text/action/button 스타일 |
 | `CopyToastBanner.*` | 복사 완료 toast 표시 컴포넌트 |
 | `useCopyToastMessage.ts` | 클립보드 복사, 복사 완료 toast 메시지, 자동 닫힘 타이머 hook |
 | `DeleteButton.*` | 삭제 버튼 공용 구현 |

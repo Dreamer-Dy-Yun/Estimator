@@ -289,7 +289,7 @@ export function CandidateStashDetailModal({ stashUuid, stashSummary, onClose, on
                 <div className={detailStyles.stashDetailModalFooterActions}>
                   <button
                     type="button"
-                    className={`${detailStyles.actionBtn} ${detailStyles.btnNeutral}`}
+                    className={`${styles.actionBtn} ${styles.btnNeutral}`}
                     onClick={onClose}
                   >
                     닫기
@@ -334,7 +334,7 @@ export function CandidateStashDetailModal({ stashUuid, stashSummary, onClose, on
                     <div className={detailStyles.detailHeaderRecommendationCell}>
                       <button
                         type="button"
-                        className={`${detailStyles.actionBtn} ${detailStyles.btnNeutral} ${detailStyles.detailHeaderRecommendationBtn}`}
+                        className={`${styles.actionBtn} ${styles.btnNeutral} ${detailStyles.detailHeaderRecommendationBtn}`}
                         onClick={openRecommendationModal}
                         disabled={!recommendationRows.length}
                       >
@@ -356,7 +356,7 @@ export function CandidateStashDetailModal({ stashUuid, stashSummary, onClose, on
                     </div>
                     <button
                       type="button"
-                      className={`${detailStyles.actionBtn} ${detailStyles.btnNeutral} ${detailStyles.detailHeaderCloseBtn}`}
+                      className={`${styles.actionBtn} ${styles.btnNeutral} ${detailStyles.detailHeaderCloseBtn}`}
                       onClick={onClose}
                       aria-label="닫기"
                       title="닫기"
@@ -668,16 +668,6 @@ export function CandidateStashDetailModal({ stashUuid, stashSummary, onClose, on
         confirmingText="삭제 중…"
         dialogTitleId="bulk-item-delete-dialog-title"
         keepOpenAttr
-        classNames={{
-          backdrop: detailStyles.confirmModalBackdrop,
-          panel: detailStyles.confirmModalPanel,
-          title: detailStyles.confirmModalTitle,
-          text: detailStyles.confirmModalText,
-          actions: detailStyles.confirmModalActions,
-          button: detailStyles.confirmModalBtn,
-          cancelButton: detailStyles.confirmModalBtnCancel,
-          confirmButton: detailStyles.confirmModalBtnDanger,
-        }}
         onCancel={() => setBulkDeleteOpen(false)}
         onConfirm={async () => {
           await m.confirmDeleteItems([...selectedItemUuids])
@@ -695,16 +685,6 @@ export function CandidateStashDetailModal({ stashUuid, stashSummary, onClose, on
         confirmingText="삭제 중…"
         dialogTitleId="item-delete-dialog-title"
         keepOpenAttr
-        classNames={{
-          backdrop: detailStyles.confirmModalBackdrop,
-          panel: detailStyles.confirmModalPanel,
-          title: detailStyles.confirmModalTitle,
-          text: detailStyles.confirmModalText,
-          actions: detailStyles.confirmModalActions,
-          button: detailStyles.confirmModalBtn,
-          cancelButton: detailStyles.confirmModalBtnCancel,
-          confirmButton: detailStyles.confirmModalBtnDanger,
-        }}
         onCancel={() => m.setItemDeleteTarget(null)}
         onConfirm={async () => {
           await m.confirmDeleteItem()

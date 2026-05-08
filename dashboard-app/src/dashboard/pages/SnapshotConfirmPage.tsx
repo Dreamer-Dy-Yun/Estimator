@@ -12,6 +12,7 @@ import {
 import { formatDateTimeMinute } from '../../utils/date'
 import styles from '../components/common.module.css'
 import { ConfirmModal } from '../components/ConfirmModal'
+import confirmStyles from '../components/ConfirmModal.module.css'
 import pageStyles from './SnapshotConfirmPage.module.css'
 import { CandidateStashDetailModal } from '../components/candidate-stash/CandidateStashDetailModal'
 import { DeleteButton } from '../components/DeleteButton'
@@ -313,20 +314,20 @@ export const SnapshotConfirmPage = () => {
 
       {editTarget && (
         <div
-          className={pageStyles.confirmModalBackdrop}
+          className={confirmStyles.backdrop}
           onClick={() => !editBusy && setEditTarget(null)}
         >
           <div
-            className={pageStyles.confirmModalPanel}
+            className={confirmStyles.panel}
             onClick={(e) => e.stopPropagation()}
             role="dialog"
             aria-modal="true"
             aria-labelledby="stash-edit-dialog-title"
           >
-            <h3 id="stash-edit-dialog-title" className={pageStyles.confirmModalTitle}>
+            <h3 id="stash-edit-dialog-title" className={confirmStyles.title}>
               이름·비고 편집
             </h3>
-            <p className={pageStyles.confirmModalText}>
+            <p className={confirmStyles.text}>
               후보군 표시용 이름과 비고만 바꿉니다. 등록 상품·스냅샷 데이터는 그대로입니다.
             </p>
             <div className={pageStyles.confirmModalForm}>
@@ -362,10 +363,10 @@ export const SnapshotConfirmPage = () => {
                 />
               </div>
             </div>
-            <div className={pageStyles.confirmModalActions}>
+            <div className={confirmStyles.actions}>
               <button
                 type="button"
-                className={`${pageStyles.confirmModalBtn} ${pageStyles.confirmModalBtnCancel}`}
+                className={`${confirmStyles.button} ${confirmStyles.cancelButton}`}
                 onClick={() => setEditTarget(null)}
                 disabled={editBusy}
               >
@@ -373,7 +374,7 @@ export const SnapshotConfirmPage = () => {
               </button>
               <button
                 type="button"
-                className={`${pageStyles.confirmModalBtn} ${pageStyles.confirmModalBtnPrimary}`}
+                className={`${confirmStyles.button} ${confirmStyles.primaryButton}`}
                 disabled={editBusy || !editName.trim()}
                 onClick={async () => {
                   setEditBusy(true)
@@ -415,16 +416,6 @@ export const SnapshotConfirmPage = () => {
         confirmText="삭제"
         confirmingText="삭제 중…"
         dialogTitleId="stash-list-delete-dialog-title"
-        classNames={{
-          backdrop: pageStyles.confirmModalBackdrop,
-          panel: pageStyles.confirmModalPanel,
-          title: pageStyles.confirmModalTitle,
-          text: pageStyles.confirmModalText,
-          actions: pageStyles.confirmModalActions,
-          button: pageStyles.confirmModalBtn,
-          cancelButton: pageStyles.confirmModalBtnCancel,
-          confirmButton: pageStyles.confirmModalBtnDanger,
-        }}
         onCancel={() => setDeleteTarget(null)}
         onConfirm={async () => {
           if (!deleteTarget) return

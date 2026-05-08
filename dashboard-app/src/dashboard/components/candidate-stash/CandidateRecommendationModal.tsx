@@ -124,14 +124,14 @@ export function CandidateRecommendationModal({
           <div className={modalStyles.actions}>
             <button
               type="button"
-              className={`${modalStyles.actionBtn} ${modalStyles.btnNeutral}`}
+              className={`${styles.actionBtn} ${styles.btnNeutral}`}
               onClick={onClose}
             >
               취소
             </button>
             <button
               type="button"
-              className={`${modalStyles.actionBtn} ${modalStyles.btnPrimary}`}
+              className={`${styles.actionBtn} ${styles.btnPrimary}`}
               onClick={onApply}
               disabled={selectedCount === 0}
             >

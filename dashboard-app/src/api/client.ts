@@ -114,7 +114,7 @@ export async function getProductDrawerBundle(
   return mockDashboardApi.getProductDrawerBundle(id, params)
 }
 
-export async function getProductMonthlyTrend(
+async function getProductMonthlyTrend(
   id: string,
   params: ProductMonthlyTrendParams,
 ): Promise<ProductMonthlyTrend> {
