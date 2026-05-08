@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { type SetStateAction, useCallback, useEffect, useRef, useState } from 'react'
 import { ApiUnitErrorBadge } from '../../../components/ApiUnitErrorBadge'
 import type { ProductStockTrendPoint } from '../../../api'
 import type { ProductPrimarySummary } from '../../../types'
@@ -49,7 +49,30 @@ function ProductDrawerContent({
 
   const pageName = 'ProductDrawer'
   const drawerRef = useRef<HTMLElement | null>(null)
-  const [expandPaneOpen, setExpandPaneOpen] = useState(!!initialExpandSecondary)
+  const [expandPaneState, setExpandPaneState] = useState(() => ({
+    productId: summary.id,
+    initialExpandSecondary: !!initialExpandSecondary,
+    open: !!initialExpandSecondary,
+  }))
+  const expandPaneOpen =
+    expandPaneState.productId === summary.id
+    && expandPaneState.initialExpandSecondary === !!initialExpandSecondary
+      ? expandPaneState.open
+      : !!initialExpandSecondary
+  const setExpandPaneOpen = useCallback((next: SetStateAction<boolean>) => {
+    setExpandPaneState((prev) => {
+      const previousOpen =
+        prev.productId === summary.id
+        && prev.initialExpandSecondary === !!initialExpandSecondary
+          ? prev.open
+          : !!initialExpandSecondary
+      return {
+        productId: summary.id,
+        initialExpandSecondary: !!initialExpandSecondary,
+        open: typeof next === 'function' ? next(previousOpen) : next,
+      }
+    })
+  }, [initialExpandSecondary, summary.id])
   const {
     competitorChannels,
     channelId,
@@ -74,10 +97,6 @@ function ProductDrawerContent({
   }, [suppressDocumentLayoutShift])
 
   useEffect(() => {
-    setExpandPaneOpen(!!initialExpandSecondary)
-  }, [summary.id, initialExpandSecondary])
-
-  useEffect(() => {
     const onDocumentMouseDown = (event: MouseEvent) => {
       const path = event.composedPath()
       const clickedInsideDrawer = drawerRef.current ? path.includes(drawerRef.current) : false
@@ -96,10 +115,13 @@ function ProductDrawerContent({
     return () => document.removeEventListener('mousedown', onDocumentMouseDown)
   }, [onClose])
 
+  const selectedChannelReady = competitorChannels.some((channel) => channel.id === channelId)
+  const selectedChannelMissing = channelId !== '' && !selectedChannelReady
+
   useEffect(() => {
     if (!onRequestNavigateAdjacent || disableAdjacentNavigation) return
     const ready =
-      expandPaneOpen && secondaryDetail != null && secondaryDetailError == null
+      expandPaneOpen && selectedChannelReady && secondaryDetail != null && secondaryDetailError == null
     if (!ready) return
 
     const onKeyDown = (e: KeyboardEvent) => {
@@ -120,6 +142,7 @@ function ProductDrawerContent({
     onRequestNavigateAdjacent,
     secondaryDetail,
     secondaryDetailError,
+    selectedChannelReady,
   ])
 
   const selectedStart = normalizeMonthKey(periodStart)
@@ -158,7 +181,18 @@ function ProductDrawerContent({
       >
         <div className={styles.drawerExpandPaneInner}>
           {expandPaneOpen && (
-            secondaryDetailError != null ? (
+            channelsError != null ? (
+              <div className={styles.drawerSecondaryLoading}>
+                경쟁 채널 데이터를 불러오지 못했습니다.
+                <ApiUnitErrorBadge error={channelsError} />
+              </div>
+            ) : !selectedChannelReady ? (
+              <div className={styles.drawerSecondaryLoading}>
+                {selectedChannelMissing
+                  ? '선택된 경쟁 채널이 현재 채널 목록에 없습니다.'
+                  : '경쟁 채널 데이터를 불러오는 중...'}
+              </div>
+            ) : secondaryDetailError != null ? (
               <div className={styles.drawerSecondaryLoading}>
                 2차 데이터를 불러오지 못했습니다.
                 <ApiUnitErrorBadge error={secondaryDetailError} />

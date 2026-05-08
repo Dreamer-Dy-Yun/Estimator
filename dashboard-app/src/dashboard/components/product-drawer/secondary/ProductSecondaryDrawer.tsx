@@ -117,7 +117,6 @@ export function ProductSecondaryDrawer({
   const [confirmBySize, setConfirmBySize] = useState<Record<string, number>>({})
   const mountedRef = useRef(false)
   const candidateListReqSeqRef = useRef(0)
-  const [prefillError, setPrefillError] = useState<string | null>(null)
   const [candidateActionLoading, setCandidateActionLoading] = useState(false)
   const [candidateListOpen, setCandidateListOpen] = useState(false)
   const [candidateStashes, setCandidateStashes] = useState<Array<{
@@ -158,10 +157,7 @@ export function ProductSecondaryDrawer({
   const minOrderDate = toIsoDateLocal(new Date())
 
   const channel = useMemo<SecondaryCompetitorChannel>(
-    () =>
-      competitorChannels.find((ch) => ch.id === channelId)
-      ?? competitorChannels[0]
-      ?? { id: '', label: '경쟁사', priceSkew: 1, qtySkew: 1 },
+    () => competitorChannels.find((ch) => ch.id === channelId)!,
     [channelId, competitorChannels],
   )
 
@@ -229,7 +225,7 @@ export function ProductSecondaryDrawer({
     ],
   )
 
-  const forecastInputs: SecondaryForecastInputs = {
+  const forecastInputs: SecondaryForecastInputs = useMemo(() => ({
     trendDailyMean: clientStock.trendDailyMean,
     dailyMean: dailyMeanClient ?? clientStock.forecastDailyMean,
     sigma: clientStock.sigma,
@@ -239,14 +235,31 @@ export function ProductSecondaryDrawer({
     leadTimeDays,
     safetyStockMode,
     manualSafetyStock: Math.max(0, Math.round(manualSafetyStock)),
-  }
-  const forecastDerived: SecondaryForecastDerived = {
+  }), [
+    clientStock.forecastDailyMean,
+    clientStock.sigma,
+    clientStock.trendDailyMean,
+    dailyMeanClient,
+    leadTimeDays,
+    leadTimeEndDate,
+    leadTimeStartDate,
+    manualSafetyStock,
+    safetyStockMode,
+    serviceLevelPct,
+  ])
+  const forecastDerived: SecondaryForecastDerived = useMemo(() => ({
     safetyStock: clientStock.safetyStock,
     recommendedOrderQty: clientStock.safetyRecQty,
     expectedOrderAmount: clientStock.safetyExpectedOrderAmount,
     expectedSalesAmount: clientStock.safetyExpectedSalesAmount,
     expectedOpProfit: clientStock.safetyExpectedOpProfit,
-  }
+  }), [
+    clientStock.safetyExpectedOpProfit,
+    clientStock.safetyExpectedOrderAmount,
+    clientStock.safetyExpectedSalesAmount,
+    clientStock.safetyRecQty,
+    clientStock.safetyStock,
+  ])
 
   const { forecastCalc, forecastCalcError } = useSecondaryStockOrderCalc({
     productId: primary.id,
@@ -261,8 +274,14 @@ export function ProductSecondaryDrawer({
     makeApiErrorInfo,
   })
 
-  const currentStockBySize = forecastCalc?.display.currentStockQtyBySize ?? []
-  const expectedInboundBySize = forecastCalc?.display.expectedInboundOrderBalanceBySize ?? []
+  const currentStockBySize = useMemo(
+    () => forecastCalc?.display.currentStockQtyBySize ?? [],
+    [forecastCalc],
+  )
+  const expectedInboundBySize = useMemo(
+    () => forecastCalc?.display.expectedInboundOrderBalanceBySize ?? [],
+    [forecastCalc],
+  )
 
   const stockDisplayKey = useMemo(() => {
     const d = forecastCalc?.display
@@ -280,18 +299,9 @@ export function ProductSecondaryDrawer({
   /** 스냅샷에 저장된 사이즈별 확정 수량 — 없으면 아래 연산 recommendedQty 사용 */
   const snapshotConfirmBySize = useMemo((): Record<string, number> => {
     if (prefillFromSnapshot == null) return {}
-    const rows = prefillFromSnapshot?.drawer2?.sizeRows
-    if (!rows?.length) {
-      throw new Error('스냅샷 sizeRows 누락')
-    }
-    const out: Record<string, number> = {}
-    for (const r of rows) {
-      if (typeof r.confirmQty !== 'number' || !Number.isFinite(r.confirmQty)) {
-        throw new Error(`스냅샷 confirmQty 누락: ${r.size}`)
-      }
-      out[r.size] = Math.max(0, Math.round(r.confirmQty))
-    }
-    return out
+    return Object.fromEntries(
+      prefillFromSnapshot.drawer2.sizeRows.map((row) => [row.size, row.confirmQty]),
+    )
   }, [prefillFromSnapshot])
 
   useEffect(() => {
@@ -317,40 +327,10 @@ export function ProductSecondaryDrawer({
   ])
 
   useEffect(() => {
-    const d2 = prefillFromSnapshot?.drawer2
-    if (!d2) {
-      setPrefillError(null)
-      return
-    }
-    if (!d2.competitorChannelId) {
-      setPrefillError('스냅샷 competitorChannelId 누락')
-      return
-    }
-    if (typeof d2.bufferStock !== 'number' || !Number.isFinite(d2.bufferStock)) {
-      setPrefillError('스냅샷 bufferStock 누락')
-      return
-    }
-    if (typeof d2.selfWeightPct !== 'number' || !Number.isFinite(d2.selfWeightPct)) {
-      setPrefillError('스냅샷 selfWeightPct 누락')
-      return
-    }
-    if (typeof d2.llmPrompt !== 'string' || typeof d2.llmAnswer !== 'string') {
-      setPrefillError('스냅샷 AI 코멘트 필드 누락')
-      return
-    }
+    if (prefillFromSnapshot == null) return
+    const d2 = prefillFromSnapshot.drawer2
     const si = d2.stockInputs
-    if (
-      !si
-      || !si.leadTimeStartDate
-      || !si.leadTimeEndDate
-      || typeof si.dailyMean !== 'number'
-      || !Number.isFinite(si.dailyMean)
-    ) {
-      setPrefillError('스냅샷 stockInputs 누락')
-      return
-    }
-    setPrefillError(null)
-        onChannelChange(d2.competitorChannelId)
+    onChannelChange(d2.competitorChannelId)
     setBufferStock(d2.bufferStock)
     setSelfWeightPct(d2.selfWeightPct)
     setAiPrompt(d2.llmPrompt)
@@ -544,11 +524,7 @@ export function ProductSecondaryDrawer({
       dbCreatedAt: s.dbCreatedAt,
     })))
     return stashes
-  }, [primary.id])
-
-  if (prefillError) {
-    throw new Error(prefillError)
-  }
+  }, [])
 
   const confirmOrder = useCallback(async () => {
     if (selectedCandidate == null) return

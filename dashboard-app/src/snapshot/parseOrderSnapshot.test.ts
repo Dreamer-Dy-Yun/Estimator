@@ -14,7 +14,23 @@ const validSnapshot = {
     dailyTrendLeadTimeDays: 30,
   },
   drawer1: { summary: {} },
-  drawer2: {},
+  drawer2: {
+    secondary: {},
+    competitorChannelId: 'cream',
+    competitorChannelLabel: '크림',
+    bufferStock: 0,
+    selfWeightPct: 50,
+    llmPrompt: 'prompt',
+    llmAnswer: 'comment',
+    stockInputs: {
+      leadTimeStartDate: '2026-02-01',
+      leadTimeEndDate: '2026-02-28',
+      dailyMean: 10,
+    },
+    sizeRows: [
+      { size: '250', confirmQty: 12 },
+    ],
+  },
 } as const
 
 describe('parseOrderSnapshot', () => {
@@ -78,5 +94,27 @@ describe('parseOrderSnapshot', () => {
   it('throws when productId is not a string', () => {
     const numericProductId = { ...validSnapshot, productId: 1234 }
     expect(() => parseOrderSnapshot(numericProductId)).toThrow(/productId/)
+  })
+
+  it('throws when drawer2 stock inputs are incomplete', () => {
+    const broken = {
+      ...validSnapshot,
+      drawer2: {
+        ...validSnapshot.drawer2,
+        stockInputs: { ...validSnapshot.drawer2.stockInputs, dailyMean: null },
+      },
+    }
+    expect(() => parseOrderSnapshot(broken)).toThrow(/stockInputs\.dailyMean/)
+  })
+
+  it('throws when drawer2 size rows do not have confirmed quantities', () => {
+    const broken = {
+      ...validSnapshot,
+      drawer2: {
+        ...validSnapshot.drawer2,
+        sizeRows: [{ size: '250', confirmQty: -1 }],
+      },
+    }
+    expect(() => parseOrderSnapshot(broken)).toThrow(/confirmQty/)
   })
 })

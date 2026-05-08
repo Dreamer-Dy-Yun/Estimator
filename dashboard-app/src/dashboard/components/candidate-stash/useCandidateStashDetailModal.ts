@@ -332,7 +332,7 @@ export function useCandidateStashDetailModal({
         candidateSortValue(b, tableSort.key),
       )
       if (compared !== 0) return tableSort.dir === 'asc' ? compared : -compared
-      return (originalIndex.get(a.uuid) ?? 0) - (originalIndex.get(b.uuid) ?? 0)
+      return originalIndex.get(a.uuid)! - originalIndex.get(b.uuid)!
     })
   }, [filteredItems, tableSort])
 

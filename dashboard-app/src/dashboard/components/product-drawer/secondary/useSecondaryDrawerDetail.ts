@@ -22,7 +22,7 @@ export function useSecondaryDrawerDetail({
 
   const secondaryFromSnapshot = useMemo(
     () =>
-      hydrateSnapshot?.drawer2?.secondary != null && hydrateSnapshot.drawer2.secondary.id === productId
+      hydrateSnapshot != null && hydrateSnapshot.drawer2.secondary.id === productId
         ? hydrateSnapshot.drawer2.secondary
         : null,
     [hydrateSnapshot, productId],

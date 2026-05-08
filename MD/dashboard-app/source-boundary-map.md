@@ -19,6 +19,7 @@
 
 2026-05-06~07에 후보군 상세 UI와 mock/API 저장 경계를 정리했다.
 
+- 불필요한 검증 기준은 API/파일/사용자 입력처럼 신뢰 경계가 바뀌는 지점에서 한 번 검증하고, 이후 내부 컴포넌트와 훅이 이미 보장된 타입을 다시 방어하거나 임의 기본값을 만들어 비즈니스 데이터를 조용히 대체하지 않는 것이다. 로딩/오류처럼 실제 UI 상태를 구분하는 분기는 유지한다.
 - `dashboard/pages`에는 라우트 페이지 파일만 남겼다.
 - 후보군 상세 모달, 추천 모달, 인사이트 배지, 후보군 상세 훅은 `dashboard/components/candidate-stash`로 이동했다.
 - 후보군 상세 모달 CSS는 `SnapshotConfirmPage.module.css`에서 분리해 `CandidateStashDetailModal.module.css`가 소유한다.
@@ -219,10 +220,10 @@
 
 | 파일/폴더 | 역할 |
 |------|------|
-| `ProductDrawer.tsx` | 상품 drawer overlay shell. 닫기, body layout shift, 2차 드로워 열림 상태, 방향키 이동, 공유 경쟁 채널 상태를 조율한다 |
+| `ProductDrawer.tsx` | 상품 drawer overlay shell. 닫기, body layout shift, 2차 드로워 열림 상태, 방향키 이동, 공유 경쟁 채널 상태를 조율한다. 2차 드로워는 경쟁 채널 목록과 선택값이 준비된 뒤 렌더한다 |
 | `apiErrorInfo.ts` | 상품 drawer 하위 API 오류 정보를 같은 형식으로 만드는 helper |
 | `ko.ts` | 상품 drawer feature에서 공유하는 한국어 텍스트 상수 |
-| `useCompetitorChannels.ts` | 1차 판매 정보/월간 추이와 2차 일별 추이가 공유하는 경쟁 채널 목록 조회와 선택 상태 |
+| `useCompetitorChannels.ts` | 1차 판매 정보/월간 추이와 2차 일별 추이가 공유하는 경쟁 채널 목록 조회와 선택 상태. 빈 채널 목록은 API 오류로 처리하고 임의 채널 객체를 만들지 않는다 |
 | `primary/` | 1차 드로워. 상품 요약 카드, 판매 정보 컨테이너, 월간 추이 컨테이너와 1차 전용 카드 |
 | `secondary/` | 2차 드로워. 2차 상세 조회, 상품 메타, 후보군 저장/수정 액션, 재고·발주 계산, 일별 추이, 사이즈별 수량, AI 코멘트 |
 
@@ -239,8 +240,8 @@
 
 | 파일/폴더 | 역할 |
 |------|------|
-| `ProductSecondaryDrawer.tsx` | 2차 드로워 content orchestration. 카드 배치, 스냅샷 생성, 후보군 저장/수정 사용자 액션을 소유한다 |
-| `useSecondaryDrawerDetail.ts` | 2차 드로워가 열릴 때의 상세 조회와 스냅샷 hydration fallback |
+| `ProductSecondaryDrawer.tsx` | 2차 드로워 content orchestration. 카드 배치, 스냅샷 생성, 후보군 저장/수정 사용자 액션을 소유한다. 저장 스냅샷 필드 검증은 `parseOrderSnapshot`에 맡기고 이 컴포넌트는 검증된 계약을 사용한다 |
+| `useSecondaryDrawerDetail.ts` | 2차 드로워가 열릴 때의 상세 조회와 검증된 스냅샷 hydration |
 | `secondaryDrawerTypes.ts` | 2차 드로워 내부 view-model 타입 |
 | `candidateActionCards.tsx` | 2차 드로워에서 후보군 저장/연결 액션 UI |
 | `cards/*` | 2차 드로워 카드 단위 UI |
@@ -276,7 +277,7 @@
 | 파일 | 역할 |
 |------|------|
 | `orderSnapshotTypes.ts` | 저장 문서 schema 타입 |
-| `parseOrderSnapshot.ts` | API 타입에 의존하지 않고 `unknown` 저장 문서를 파싱/검증 |
+| `parseOrderSnapshot.ts` | API 타입에 의존하지 않고 `unknown` 저장 문서를 파싱/검증. 2차 드로워 hydration에 필요한 경쟁 채널, 재고 입력, AI 코멘트, 사이즈별 확정 수량 필드는 여기서 검증한다 |
 
 ## src/styles
 

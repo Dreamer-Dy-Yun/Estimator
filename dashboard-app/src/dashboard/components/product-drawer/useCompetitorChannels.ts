@@ -16,7 +16,7 @@ export function useCompetitorChannels(pageName: string) {
         if (!alive) return
         if (!rows.length) throw new Error('경쟁사 채널 데이터가 비어 있습니다.')
         setCompetitorChannels(rows)
-        setChannelId((prev) => prev || rows[0]?.id || '')
+        setChannelId((prev) => prev || rows[0]!.id)
         setChannelsError(null)
       } catch (err) {
         if (!alive) return
