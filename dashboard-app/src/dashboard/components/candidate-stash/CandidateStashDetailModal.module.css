@@ -38,7 +38,8 @@
 }
 
 .detailHeaderTitleArea {
-  grid-column: 1 / span 12;
+  grid-column: 1 / span 16;
+  grid-row: 1;
   min-width: 0;
 }
 
@@ -52,7 +53,8 @@
 }
 
 .detailMetaStack {
-  grid-column: 25 / span 5;
+  grid-column: 26 / span 5;
+  grid-row: 1;
   display: flex;
   flex-direction: column;
   align-items: flex-end;
@@ -63,7 +65,8 @@
 }
 
 .detailHeaderPeriodCell {
-  grid-column: 13 / span 8;
+  grid-column: 17 / span 9;
+  grid-row: 1;
   min-width: 0;
   display: grid;
   grid-template-columns: auto minmax(111px, 138px) auto minmax(111px, 138px);
@@ -109,7 +112,8 @@
 }
 
 .detailHeaderRecommendationCell {
-  grid-column: 30 / span 4;
+  grid-column: 31 / span 4;
+  grid-row: 1;
   min-width: 0;
   align-self: stretch;
   display: flex;
@@ -126,7 +130,8 @@
 }
 
 .detailHeaderDeleteCell {
-  grid-column: 34 / span 5;
+  grid-column: 35 / span 4;
+  grid-row: 1;
   min-width: 0;
   align-self: stretch;
   display: flex;
@@ -143,6 +148,7 @@
 
 .detailHeaderCloseBtn {
   grid-column: 39 / span 2;
+  grid-row: 1;
   min-width: 0;
   width: 100%;
   align-self: stretch;
@@ -716,13 +722,13 @@
 
 .stashDetailModalBackdrop[data-inner-drawer-open='true'] .detailHeaderTitleArea,
 .stashDetailModalBackdrop[data-inner-drawer-closing='true'] .detailHeaderTitleArea {
-  grid-column: 1 / span 2;
+  grid-column: 1 / span 16;
   grid-row: 1;
 }
 
 .stashDetailModalBackdrop[data-inner-drawer-open='true'] .detailHeaderPeriodCell,
 .stashDetailModalBackdrop[data-inner-drawer-closing='true'] .detailHeaderPeriodCell {
-  grid-column: 13 / span 8;
+  grid-column: 17 / span 9;
   grid-row: 1;
   grid-template-columns: auto minmax(111px, 138px) auto minmax(111px, 138px);
   gap: 6px;
@@ -730,24 +736,26 @@
 
 .stashDetailModalBackdrop[data-inner-drawer-open='true'] .detailMetaStack,
 .stashDetailModalBackdrop[data-inner-drawer-closing='true'] .detailMetaStack {
-  display: none;
+  grid-column: 26 / span 5;
+  grid-row: 1;
+  display: flex;
 }
 
 .stashDetailModalBackdrop[data-inner-drawer-open='true'] .detailHeaderRecommendationCell,
 .stashDetailModalBackdrop[data-inner-drawer-closing='true'] .detailHeaderRecommendationCell {
-  grid-column: 27 / span 5;
+  grid-column: 31 / span 4;
   grid-row: 1;
 }
 
 .stashDetailModalBackdrop[data-inner-drawer-open='true'] .detailHeaderDeleteCell,
 .stashDetailModalBackdrop[data-inner-drawer-closing='true'] .detailHeaderDeleteCell {
-  grid-column: 32 / span 6;
+  grid-column: 35 / span 4;
   grid-row: 1;
 }
 
 .stashDetailModalBackdrop[data-inner-drawer-open='true'] .detailHeaderCloseBtn,
 .stashDetailModalBackdrop[data-inner-drawer-closing='true'] .detailHeaderCloseBtn {
-  grid-column: 38 / span 3;
+  grid-column: 39 / span 2;
   grid-row: 1;
 }
 
