@@ -277,6 +277,10 @@ export function AdminUsersPage() {
     })
   }
 
+  const closePasswordResetNotice = () => {
+    setPasswordResetNotice(null)
+  }
+
   const handleCreate = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     setCreateErrorMessage(null)
@@ -387,19 +391,6 @@ export function AdminUsersPage() {
           {createErrorMessage ? <p className={styles.createError}>{createErrorMessage}</p> : null}
         </form>
 
-        {passwordResetNotice ? (
-          <div className={styles.resetNotice} role="status">
-            <div>
-              <strong>{passwordResetNotice.loginId} 임시 비밀번호</strong>
-              <p>아래 값은 지금 한 번만 표시됩니다. 사용자에게 전달한 뒤 비밀번호 변경을 안내하세요.</p>
-            </div>
-            <code>{passwordResetNotice.temporaryPassword}</code>
-            <button type="button" onClick={() => setPasswordResetNotice(null)}>
-              확인
-            </button>
-          </div>
-        ) : null}
-
         <div className={styles.tableHeader} aria-hidden="true">
           <span>UUID</span>
           <span>로그인 ID</span>
@@ -428,6 +419,42 @@ export function AdminUsersPage() {
           </div>
         ) : null}
       </div>
+
+      {passwordResetNotice ? (
+        <div
+          className={styles.resetNoticeBackdrop}
+          role="presentation"
+          onClick={closePasswordResetNotice}
+        >
+          <div
+            className={styles.resetNoticeDialog}
+            role="dialog"
+            aria-modal="true"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className={styles.resetNoticeDialogHeader}>
+              <strong className={styles.resetNoticeTitle}>
+                {passwordResetNotice.loginId} 임시 비밀번호
+              </strong>
+              <button
+                type="button"
+                className={styles.resetNoticeCloseButton}
+                onClick={closePasswordResetNotice}
+                aria-label="닫기"
+              >
+                ✕
+              </button>
+            </div>
+            <p>로그인 사용자에게 다음 임시 비밀번호를 안내해주세요.</p>
+            <code>{passwordResetNotice.temporaryPassword}</code>
+            <div className={styles.resetNoticeActions}>
+              <button type="button" onClick={closePasswordResetNotice}>
+                닫기
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </section>
   )
 }

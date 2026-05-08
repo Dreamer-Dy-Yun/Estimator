@@ -301,31 +301,62 @@
   color: #be123c;
 }
 
-.resetNotice {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto auto;
-  gap: 12px;
+.resetNoticeBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 140;
+  display: flex;
   align-items: center;
-  padding: 12px 18px;
-  border-bottom: 1px solid #dbeafe;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(15, 23, 42, 0.28);
+}
+
+.resetNoticeDialog {
+  width: min(560px, calc(100vw - 32px));
+  display: grid;
+  gap: 10px;
+  padding: 14px 16px;
+  border: 1px solid #dbeafe;
+  border-radius: 12px;
   background: #eff6ff;
   color: #1e3a8a;
 }
 
-.resetNotice strong {
+.resetNoticeDialogHeader {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.resetNoticeTitle {
   display: block;
   font-size: 13px;
   font-weight: 900;
 }
 
-.resetNotice p {
-  margin: 4px 0 0;
+.resetNoticeCloseButton {
+  width: 26px;
+  height: 26px;
+  border: 1px solid #bfdbfe;
+  border-radius: 50%;
+  padding: 0;
+  background: #ffffff;
+  color: #1d4ed8;
+  font-size: 12px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.resetNoticeDialog p {
+  margin: 0;
   color: #475569;
   font-size: 12px;
   font-weight: 800;
 }
 
-.resetNotice code {
+.resetNoticeDialog code {
   padding: 7px 10px;
   border: 1px solid #bfdbfe;
   border-radius: 6px;
@@ -335,9 +366,14 @@
   font-weight: 900;
 }
 
-.resetNotice button {
+.resetNoticeActions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.resetNoticeActions button {
   height: 32px;
-  border: 0;
+  border: 1px solid #dbeafe;
   border-radius: 6px;
   padding: 0 12px;
   background: #1d4ed8;
@@ -418,13 +454,11 @@
     justify-content: flex-start;
   }
 
-  .resetNotice {
-    grid-template-columns: 1fr;
-    align-items: stretch;
+  .resetNoticeDialog {
+    width: min(560px, 100vw - 24px);
   }
 
-  .resetNotice code,
-  .resetNotice button {
+  .resetNoticeActions button {
     width: 100%;
   }
 }
