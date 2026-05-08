@@ -17,6 +17,7 @@ import { adjacentIdInOrder } from '../../../utils/adjacentListNavigation'
 import { clampForecastMonths } from '../../../utils/forecastMonthsStorage'
 import { parseOrderSnapshot } from '../../../snapshot/parseOrderSnapshot'
 import type { OrderSnapshotDocumentV1 } from '../../../snapshot/orderSnapshotTypes'
+import { compareSortValues, nextSortState, type SortState, type SortValue } from '../../../utils/sort'
 import { uniqueSortedStrings } from '../../../utils/uniqueSortedStrings'
 import { mergePrimarySummaryFromBundleAndSnapshot } from '../../drawer/mergePrimarySummaryFromSnapshot'
 import { useProductDrawerBundle } from '../../hooks/useProductDrawerBundle'
@@ -35,10 +36,7 @@ export type InnerCandidateSortKey =
   | 'expectedSalesQty'
   | 'expectedOrderAmount'
 
-export type InnerCandidateSortState = {
-  key: InnerCandidateSortKey
-  dir: 'asc' | 'desc'
-}
+type InnerCandidateSortState = SortState<InnerCandidateSortKey>
 
 type Args = {
   stashUuid: string
@@ -47,7 +45,7 @@ type Args = {
   onStashesInvalidate?: () => void
 }
 
-function candidateSortValue(row: InnerCandidateRow, key: InnerCandidateSortKey): string | number | null {
+function candidateSortValue(row: InnerCandidateRow, key: InnerCandidateSortKey): SortValue {
   switch (key) {
     case 'brand':
       return row.brand
@@ -64,14 +62,6 @@ function candidateSortValue(row: InnerCandidateRow, key: InnerCandidateSortKey):
     case 'expectedOrderAmount':
       return row.expectedOrderAmount
   }
-}
-
-function compareCandidateSortValue(a: string | number | null, b: string | number | null): number {
-  if (a == null && b == null) return 0
-  if (a == null) return 1
-  if (b == null) return -1
-  if (typeof a === 'number' && typeof b === 'number') return a - b
-  return String(a).localeCompare(String(b), 'ko')
 }
 
 function applySnapshotPeriod(
@@ -129,6 +119,7 @@ export function useCandidateStashDetailModal({
   const drawerCloseTimerRef = useRef<ReturnType<typeof window.setTimeout> | null>(null)
   const innerNavLockRef = useRef(false)
   const analysisRequestSeqRef = useRef(0)
+  const initializedDetailTargetUuidRef = useRef<string | null>(null)
 
   useEffect(() => {
     mountedRef.current = true
@@ -286,6 +277,10 @@ export function useCandidateStashDetailModal({
   )
 
   useEffect(() => {
+    const nextUuid = detailTarget?.uuid ?? null
+    if (initializedDetailTargetUuidRef.current === nextUuid) return
+    initializedDetailTargetUuidRef.current = nextUuid
+
     if (!detailTarget) {
       setQueryPeriodStart('')
       setQueryPeriodEnd('')
@@ -293,7 +288,7 @@ export function useCandidateStashDetailModal({
     }
     setQueryPeriodStart(detailTarget.periodStart)
     setQueryPeriodEnd(detailTarget.periodEnd)
-  }, [detailTarget?.uuid])
+  }, [detailTarget])
 
   const onQueryPeriodStartChange = useCallback((value: string) => {
     if (!value) return
@@ -308,11 +303,7 @@ export function useCandidateStashDetailModal({
   }, [])
 
   const toggleTableSort = useCallback((key: InnerCandidateSortKey) => {
-    setTableSort((current) => {
-      if (!current || current.key !== key) return { key, dir: 'asc' }
-      if (current.dir === 'asc') return { key, dir: 'desc' }
-      return null
-    })
+    setTableSort((current) => nextSortState(current, key))
   }, [])
 
   const brandOptions = useMemo(() => uniqueSortedStrings(items.map((i) => i.brand)), [items])
@@ -336,7 +327,7 @@ export function useCandidateStashDetailModal({
     if (!tableSort) return rows
     const originalIndex = new Map(rows.map((row, index) => [row.uuid, index]))
     return [...rows].sort((a, b) => {
-      const compared = compareCandidateSortValue(
+      const compared = compareSortValues(
         candidateSortValue(a, tableSort.key),
         candidateSortValue(b, tableSort.key),
       )

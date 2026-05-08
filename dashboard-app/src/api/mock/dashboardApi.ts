@@ -51,6 +51,7 @@ import {
   zFromServiceLevelPct,
 } from './secondaryDailyTrend'
 import { buildSalesKpiColumn } from '../../utils/salesKpiColumn'
+import { uniqueSortedStrings } from '../../utils/uniqueSortedStrings'
 
 type CandidateAnalysisJob = {
   stashUuid: string
@@ -260,7 +261,7 @@ export const mockDashboardApi = {
     const nameSet = new Set<string>()
     for (const r of selfSalesRows) nameSet.add(r.name)
     for (const r of competitorSalesRows) nameSet.add(r.name)
-    const productNames = [...nameSet].sort((a, b) => a.localeCompare(b, 'ko'))
+    const productNames = uniqueSortedStrings(nameSet)
     return {
       brands,
       categories,

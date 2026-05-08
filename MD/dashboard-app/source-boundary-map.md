@@ -301,6 +301,7 @@ React나 API 구현에 의존하지 않는 순수 보조 함수만 둔다.
 | `format.ts` | 숫자/비율/EA 표시 format |
 | `hashRank.ts` | hash 기반 rank 보조 |
 | `salesKpiColumn.ts` | 판매 KPI column view-model helper |
+| `sort.ts` | 정렬 방향/상태/값 타입과 한국어 문자열·숫자·빈 값 비교 helper |
 | `uniqueSortedStrings.ts` | 문자열 option 정렬/중복 제거 |
 | `xlsxWorkbook.ts` | 의존성 없이 간단한 2시트 XLSX Blob을 생성하는 export helper |
 

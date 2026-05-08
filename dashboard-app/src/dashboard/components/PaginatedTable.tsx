@@ -1,15 +1,14 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react'
+import { compareSortValues, nextSortState, type SortState, type SortValue } from '../../utils/sort'
 import { drawerKeepOpenDataProps } from '../drawer/drawerDom'
 import styles from './common.module.css'
-
-type SortValue = string | number
 
 export type TableColumn<T> = {
   key: string
   header: ReactNode
   cell: (row: T) => ReactNode
   align?: 'left' | 'right' | 'center'
-  width?: string | number
+  width?: CSSProperties['width']
   sortValue?: (row: T) => SortValue
   /** false: 헤더 클릭 정렬 비활성(액션 열 등) */
   sortable?: boolean
@@ -46,7 +45,7 @@ export function PaginatedTable<T extends { id: string }>(props: PaginatedTablePr
   const tableBodyRef = useRef<HTMLDivElement | null>(null)
   const loadMoreRef = useRef<HTMLDivElement | null>(null)
 
-  const [sort, setSort] = useState<{ key: string; dir: 'asc' | 'desc' } | null>(null)
+  const [sort, setSort] = useState<SortState | null>(null)
   const batchSize = Math.max(1, infiniteScroll?.batchSize ?? 30)
   const infiniteEnabled = plain && Boolean(infiniteScroll?.enabled)
   const [visibleCount, setVisibleCount] = useState(batchSize)
@@ -64,10 +63,7 @@ export function PaginatedTable<T extends { id: string }>(props: PaginatedTablePr
     list.sort((a, b) => {
       const av = col?.sortValue ? col.sortValue(a) : getDefaultSortValue(a, sort.key)
       const bv = col?.sortValue ? col.sortValue(b) : getDefaultSortValue(b, sort.key)
-      if (av === null || bv === null) return 0
-      const cmp = typeof av === 'number' && typeof bv === 'number'
-        ? av - bv
-        : String(av).localeCompare(String(bv), 'ko')
+      const cmp = compareSortValues(av, bv)
       return sort.dir === 'asc' ? cmp : -cmp
     })
     return list
@@ -109,17 +105,7 @@ export function PaginatedTable<T extends { id: string }>(props: PaginatedTablePr
 
   const onSort = (key: string, sortable: boolean) => {
     if (!sortable) return
-    if (!sort || sort.key !== key) {
-      setSort({ key, dir: 'asc' })
-      onPageChange(1)
-      return
-    }
-    if (sort.dir === 'asc') {
-      setSort({ key, dir: 'desc' })
-      onPageChange(1)
-      return
-    }
-    setSort(null)
+    setSort((current) => nextSortState(current, key))
     onPageChange(1)
   }
 
