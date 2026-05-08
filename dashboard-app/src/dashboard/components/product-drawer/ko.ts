@@ -13,7 +13,7 @@ export const KO = {
   "rowAmountRank": "판매액",
   "rowAvgCost": "평균 원가",
   "rowFee": "평균 수수료율",
-  "rowOpMargin": "영업이익율",
+  "rowOpMargin": "평균 영업 이익율",
   "sectionSalesForecastIntegrated": "통합 오더 설정",
   "labelCurrentOrderDate": "금번 오더 입고일",
   "labelNextOrderDate": "차기 오더 입고일",
