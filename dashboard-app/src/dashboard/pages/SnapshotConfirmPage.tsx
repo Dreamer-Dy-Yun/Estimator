@@ -152,6 +152,9 @@ export const SnapshotConfirmPage = () => {
           <div className={pageStyles.uploadTitleRow}>
             <strong className={pageStyles.uploadTitle}>엑셀 업로드</strong>
             <span className={pageStyles.uploadBadge}>후보군 추가</span>
+            <p className={pageStyles.uploadDescription}>
+              엑셀 파일을 끌어오거나 클릭해서 오더 후보군을 추가합니다.
+            </p>
           </div>
           <div className={pageStyles.uploadTemplateCell}>
             <a
@@ -162,9 +165,6 @@ export const SnapshotConfirmPage = () => {
               템플릿 다운로드
             </a>
           </div>
-          <p className={pageStyles.uploadDescription}>
-            엑셀 파일을 끌어오거나 클릭해서 오더 후보군을 추가합니다.
-          </p>
         </div>
         <div className={pageStyles.uploadControls}>
           <input
