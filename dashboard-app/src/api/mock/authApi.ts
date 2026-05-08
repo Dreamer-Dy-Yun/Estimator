@@ -70,6 +70,7 @@ function makeSessionUser(user: StoredAuthUser): AuthUser {
   return {
     uuid: user.uuid,
     loginId: user.loginId,
+    name: user.loginId,
     role: user.role,
     mustChangePassword: user.mustChangePassword,
   }

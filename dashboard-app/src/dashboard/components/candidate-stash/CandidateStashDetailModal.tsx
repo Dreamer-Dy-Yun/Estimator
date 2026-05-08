@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import type { CandidateStashSummary } from '../../../api'
 import { formatDateTimeMinute } from '../../../utils/date'
 import { formatEaQuantity, formatGroupedNumber, formatRatioDecimalKo } from '../../../utils/format'
+import { useAuth } from '../../../auth/AuthProvider'
 import { ConfirmModal } from '../ConfirmModal'
 import { DeleteButton } from '../DeleteButton'
 import { FilterBar } from '../FilterBar'
@@ -25,6 +26,7 @@ type Props = {
 
 export function CandidateStashDetailModal({ stashUuid, stashSummary, onClose, onStashesInvalidate }: Props) {
   const m = useCandidateStashDetailModal({ stashUuid, stashSummary, onStashesInvalidate })
+  const { session } = useAuth()
   const [selectedItemUuids, setSelectedItemUuids] = useState<Set<string>>(() => new Set())
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false)
   const [analysisPopupDismissed, setAnalysisPopupDismissed] = useState(false)
@@ -334,6 +336,7 @@ export function CandidateStashDetailModal({ stashUuid, stashSummary, onClose, on
 
                 <FilterBar
                   title=""
+                  filterClassName={detailStyles.detailFilterGrid}
                   fields={[
                     {
                       label: '브랜드',
@@ -360,7 +363,24 @@ export function CandidateStashDetailModal({ stashUuid, stashSummary, onClose, on
                       options: m.productNameOptions,
                     },
                   ]}
+                  filterEndContent={
+                    <div className={detailStyles.detailFilterActionCell}>
+                      <button
+                        type="button"
+                        className={detailStyles.orderExcelDownloadBtn}
+                        onClick={() => void m.downloadOrderExcel(session?.user.name ?? session?.user.loginId ?? '사용자')}
+                        disabled={m.detailLoading || m.orderExportBusy || m.items.length === 0}
+                      >
+                        {m.orderExportBusy ? '생성 중' : '엑셀 다운로드'}
+                      </button>
+                    </div>
+                  }
                 />
+                {m.orderExportError && (
+                  <div className={detailStyles.orderExportError} role="alert">
+                    엑셀 다운로드 실패: {m.orderExportError}
+                  </div>
+                )}
 
                 <div className={detailStyles.innerDrawerAwareBody}>
                   <div className={detailStyles.innerSummaryGrid}>

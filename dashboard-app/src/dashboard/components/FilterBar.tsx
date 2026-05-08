@@ -20,12 +20,19 @@ type FilterField = {
 type FilterBarProps = {
   title?: string
   fields: FilterField[]
+  filterEndContent?: ReactNode
   extraContent?: ReactNode
   /** 기본 `filterHorizontal` 대신 사용(예: 분석 페이지 그리드 레이아웃). */
   filterClassName?: string
 }
 
-export function FilterBar({ title = '필터', fields, extraContent, filterClassName }: FilterBarProps) {
+export function FilterBar({
+  title = '필터',
+  fields,
+  filterEndContent,
+  extraContent,
+  filterClassName,
+}: FilterBarProps) {
   const barId = useId()
   return (
     <div className={styles.filterRow}>
@@ -68,6 +75,7 @@ export function FilterBar({ title = '필터', fields, extraContent, filterClassN
               </div>
             )
           })}
+          {filterEndContent}
         </div>
         {extraContent}
       </div>

@@ -5,7 +5,7 @@
 | 작성 지시 | Yun Daeyoung |
 | 작성자 | Codex |
 | 작성일 | 2026-04-23 |
-| 최종 수정일 | 2026-05-07 |
+| 최종 수정일 | 2026-05-08 |
 | 상태 | 유지 문서 |
 | 적용 범위 | `dashboard-app/src/api/types`, 백엔드 REST API 계약 |
 
@@ -75,6 +75,7 @@
 |------|------|------|
 | `user.uuid` | string | 서버 생성 사용자 UUID. 화면 수정/삭제의 식별자 |
 | `user.loginId` | string | 로그인 ID. 헤더와 사용자 정보 모달의 계정 표시값 |
+| `user.name` | string? | 사용자 표시명. 발주 엑셀 메타 시트의 `이름`처럼 사람 이름이 필요한 곳에서 사용하며, 없으면 프론트는 `loginId`를 대체 표시값으로 쓴다 |
 | `user.role` | `'admin' \| 'user'` | 프론트 권한 분기용 역할. 관리자는 관리자 화면 접근 가능, 사용자는 일반 대시보드 접근만 가능 |
 | `user.mustChangePassword` | boolean | 임시/초기 비밀번호로 로그인했거나 관리자 재설정 후 아직 직접 변경하지 않은 상태 |
 | `expiresAt` | string | ISO 8601 세션 만료 시각 |
@@ -162,6 +163,7 @@
 | `getCandidateStashes(productId?)` | GET | `/candidate-stashes?productId` |
 | `getCandidateItemsByStash(stashUuid)` | GET | `/candidate-stashes/:stashUuid/items` |
 | `getCandidateItemByUuid(itemUuid)` | GET | `/candidate-items/:itemUuid` |
+| 후보군 발주 엑셀 다운로드 | GET | `/candidate-stashes/:stashUuid/order-export.xlsx` |
 | `deleteCandidateItem(itemUuid)` | DELETE | `/candidate-items/:itemUuid` |
 | `deleteCandidateStash(stashUuid)` | DELETE | `/candidate-stashes/:stashUuid` |
 | `createCandidateStash(payload)` | POST | `/candidate-stashes` |
@@ -440,6 +442,7 @@ badgeDefinitions: {
   백엔드는 파일 내용을 검증한 뒤 DB 트랜잭션 안에서 후보군과 후보 아이템을 생성해야 합니다.
   성공 후 프론트는 응답 객체를 목록에 직접 삽입하지 않고 `getCandidateStashes()`를 다시 호출해 DB 기준 목록과 동기화합니다.
 - `getCandidateStashExcelTemplateDownload`: 현재 프론트는 정적 파일 URL을 반환하지만, 운영 백엔드 연결 시에는 같은 프론트 계약을 유지한 채 템플릿 다운로드 endpoint로 교체할 수 있습니다. 예: `GET /candidate-stashes/excel-template`.
+- 후보군 발주 엑셀 다운로드: 현재 프론트 프로토타입은 이미 조회 가능한 후보 아이템 `details` 스냅샷으로 XLSX를 생성합니다. 운영 백엔드에서는 DB 기준 최신 권한/데이터를 보장하기 위해 `GET /candidate-stashes/:stashUuid/order-export.xlsx` 같은 endpoint로 이전하는 것을 권장합니다. 주 데이터 시트는 `브랜드`, `상품코드`, `상품명`, `사이즈`, `오더량`을 포함하고, 메타 시트는 `오더 입고 예정일`, `이름`을 포함합니다. `이름`은 현재 세션의 `USER_ACCOUNT.name` 또는 운영에서 정한 사용자 표시명을 사용합니다.
 - 엑셀 업로드 검증 권장:
   - 현재 템플릿 초안의 `DATA` 시트 필수 컬럼 예: `브랜드`, `상품 코드`, `오더 수량`, `금번 오더 입고일`, `차기 오더 입고일`.
   - `오더 수량`은 사이즈별 입력이 아니라 총 발주 수량입니다. 사이즈별 오더 배분/조정은 시스템 내부 계산 흐름이 담당합니다.

@@ -5,7 +5,7 @@
 | 작성 지시 | Yun Daeyoung |
 | 작성자 | Codex |
 | 작성일 | 2026-05-06 |
-| 최종 수정일 | 2026-05-07 |
+| 최종 수정일 | 2026-05-08 |
 | 상태 | 유지 문서 |
 | 적용 범위 | `dashboard-app`, 프론트엔드 소스, 관련 배포/문서 경계 |
 
@@ -27,6 +27,7 @@
 - 오더 스냅샷 독립 localStorage 저장/조회/삭제 API를 제거하고, 후보 아이템 `details`를 스냅샷 저장의 단일 경로로 둔다.
 - 후보군 생성/삭제/복제/편집 이벤트는 API 호출 후 목록을 재조회한다. mock은 응답 흐름만 모사하고 브라우저 저장소에 후보군/이너 후보를 만들거나 지우지 않는다.
 - 후보군 목록/상세/수정 계열 API는 현재 인증 세션의 `USER_ACCOUNT.uuid` 기준으로 소유자 데이터를 필터링한다. 화면은 사용자 UUID를 직접 파라미터로 보내지 않고 `src/api/client.ts`가 mock 세션을 읽어 mock 구현에만 전달한다.
+- 후보군 상세 필터 카드에는 발주 엑셀 다운로드 액션을 둔다. 현재 프론트는 후보군 아이템 `details` 스냅샷에서 브랜드, 상품코드, 상품명, 사이즈, 오더량과 메타 시트(오더 입고 예정일, 사용자 이름)를 생성한다. 추후 백엔드 다운로드 endpoint로 이전할 수 있도록 XLSX 생성은 `candidate-stash` feature와 `utils/xlsxWorkbook.ts`로 분리한다.
 - 라우트 페이지는 `src/App.tsx`에서 `React.lazy`로 분리한다. 기본 라우팅은 일반 배포용 `BrowserRouter`이고, GitHub Pages workflow만 `VITE_ROUTER_MODE=hash`로 `HashRouter`를 켠다.
 - vendor chunk는 `vite.config.ts`의 Rolldown `codeSplitting.groups`가 소유한다. Recharts 같은 내부 순서 의존 라이브러리는 `maxSize`로 강제 세분화하지 않는다.
 - 후보 아이템 목업 스냅샷은 `drawer2.llmAnswer`에 임시 AI 코멘트를 포함해 2차 드로어에서 바로 확인되게 한다.
@@ -181,7 +182,7 @@
 | `ConfirmModal.tsx` | 확인 모달 shell. 스타일은 호출자가 classNames로 주입한다 |
 | `CopyToastBanner.*` | 복사 완료 toast |
 | `DeleteButton.*` | 삭제 버튼 공용 구현 |
-| `FilterBar.tsx` | 페이지 상단 필터 조합 |
+| `FilterBar.tsx` | 페이지 상단 필터 조합. `filterEndContent`로 필터 grid 끝의 버튼/액션 칸을 받을 수 있다 |
 | `FilterListCombo.*` | 목록 기반 검색/선택 필터 |
 | `KpiGrid.tsx` | KPI 카드 grid |
 | `PageHeader.tsx` | 페이지 제목/header |
@@ -198,9 +199,10 @@
 
 | 파일 | 역할 |
 |------|------|
-| `CandidateStashDetailModal.tsx` | 특정 후보군의 이너 후보 목록, 조회 기간 입력, 요약, 필터, drawer 연결, 일괄/개별 삭제 확인 흐름 |
-| `CandidateStashDetailModal.module.css` | 후보군 상세 모달 전용 스타일, 헤더 조회 기간 인라인 grid, 1차 드로어 열림 시 compact 헤더 grid, 헤더 고정/이너 후보 리스트 내부 스크롤 경계 |
-| `useCandidateStashDetailModal.ts` | 후보군 상세 모달의 API 호출, 필터, 조회 기간 override, drawer hydration, drawer 닫힘 전환, SSE 분석 진행 상태 |
+| `CandidateStashDetailModal.tsx` | 특정 후보군의 이너 후보 목록, 조회 기간 입력, 요약, 필터, 필터 카드 발주 엑셀 다운로드 액션, drawer 연결, 일괄/개별 삭제 확인 흐름 |
+| `CandidateStashDetailModal.module.css` | 후보군 상세 모달 전용 스타일, 헤더 조회 기간 인라인 grid, 필터 카드 액션 grid, 엑셀 다운로드 버튼, 1차 드로어 열림 시 compact 헤더 grid, 헤더 고정/이너 후보 리스트 내부 스크롤 경계 |
+| `useCandidateStashDetailModal.ts` | 후보군 상세 모달의 API 호출, 필터, 조회 기간 override, 발주 엑셀 생성 요청 상태, drawer hydration, drawer 닫힘 전환, SSE 분석 진행 상태 |
+| `candidateOrderExcelExport.ts` | 후보군 아이템 스냅샷을 발주용 XLSX 데이터로 변환하고 다운로드 파일명을 만든다 |
 | `CandidateRecommendationModal.tsx` | 후보군 상세에서 추천 후보를 선택/적용하는 보조 모달 |
 | `CandidateRecommendationModal.module.css` | 추천 모달 전용 스타일 |
 | `CandidateInsightBadges.tsx` | 후보 아이템 인사이트 badge 렌더링 |
@@ -295,6 +297,7 @@ React나 API 구현에 의존하지 않는 순수 보조 함수만 둔다.
 | `hashRank.ts` | hash 기반 rank 보조 |
 | `salesKpiColumn.ts` | 판매 KPI column view-model helper |
 | `uniqueSortedStrings.ts` | 문자열 option 정렬/중복 제거 |
+| `xlsxWorkbook.ts` | 의존성 없이 간단한 2시트 XLSX Blob을 생성하는 export helper |
 
 ## 테스트 파일 규칙
 

@@ -21,6 +21,7 @@ import { uniqueSortedStrings } from '../../../utils/uniqueSortedStrings'
 import { mergePrimarySummaryFromBundleAndSnapshot } from '../../drawer/mergePrimarySummaryFromSnapshot'
 import { useProductDrawerBundle } from '../../hooks/useProductDrawerBundle'
 import { normalizeRangeOnEndInput, normalizeRangeOnStartInput } from '../../hooks/usePeriodRangeFilter'
+import { createCandidateOrderExcelExport, downloadBlob } from './candidateOrderExcelExport'
 
 const INNER_DRAWER_CLOSE_LAYOUT_MS = 440
 
@@ -76,6 +77,8 @@ export function useCandidateStashDetailModal({
   const [itemDeleteTarget, setItemDeleteTarget] = useState<CandidateItemSummary | null>(null)
   const [itemDeleteBusy, setItemDeleteBusy] = useState(false)
   const [bulkDeleteBusy, setBulkDeleteBusy] = useState(false)
+  const [orderExportBusy, setOrderExportBusy] = useState(false)
+  const [orderExportError, setOrderExportError] = useState<string | null>(null)
   const [analysisProgress, setAnalysisProgress] = useState<CandidateStashAnalysisProgressEvent | null>(null)
   const [analysisError, setAnalysisError] = useState<string | null>(null)
   const mountedRef = useRef(false)
@@ -428,6 +431,39 @@ export function useCandidateStashDetailModal({
     }
   }, [closeDrawer, loadItems, openedItemUuid, refreshStashes])
 
+  const downloadOrderExcel = useCallback(async (userName: string) => {
+    if (!detailTarget) return
+    const exportItems = items
+    if (!exportItems.length) return
+    setOrderExportBusy(true)
+    setOrderExportError(null)
+    try {
+      const detailedItems = await Promise.all(
+        exportItems.map(async (item) => {
+          const detail = await getCandidateItemByUuid(item.uuid)
+          if (!detail) throw new Error(`후보 상세 데이터 없음: ${item.productName}`)
+          return {
+            summary: item,
+            snapshot: parseOrderSnapshot(detail.details),
+          }
+        }),
+      )
+      if (!mountedRef.current) return
+      const { blob, filename } = createCandidateOrderExcelExport({
+        stashName: detailTarget.name,
+        userName,
+        items: detailedItems,
+      })
+      downloadBlob(blob, filename)
+    } catch (err) {
+      if (!mountedRef.current) return
+      const message = err instanceof Error ? err.message : '엑셀 다운로드 파일 생성에 실패했습니다.'
+      setOrderExportError(message)
+    } finally {
+      if (mountedRef.current) setOrderExportBusy(false)
+    }
+  }, [detailTarget, items])
+
   return {
     drawerOpen,
     drawerClosing,
@@ -456,6 +492,8 @@ export function useCandidateStashDetailModal({
     itemDeleteTarget,
     itemDeleteBusy,
     bulkDeleteBusy,
+    orderExportBusy,
+    orderExportError,
     analysisProgress,
     analysisError,
     setItemDeleteTarget,
@@ -474,5 +512,6 @@ export function useCandidateStashDetailModal({
     refreshStashes,
     confirmDeleteItem,
     confirmDeleteItems,
+    downloadOrderExcel,
   }
 }

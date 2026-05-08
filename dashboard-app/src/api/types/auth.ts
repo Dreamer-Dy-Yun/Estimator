@@ -17,6 +17,7 @@ export interface ChangePasswordPayload {
 export interface AuthUser {
   uuid: string
   loginId: string
+  name?: string
   role: AuthRole
   mustChangePassword: boolean
 }
