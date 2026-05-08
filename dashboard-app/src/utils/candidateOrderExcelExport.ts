@@ -1,5 +1,4 @@
 import type { CandidateItemSummary } from '../api/types/candidate'
-import { createXlsxWorkbookBlob, type XlsxCellValue } from './xlsxWorkbook'
 
 type CandidateOrderExportInput = {
   stashName: string
@@ -7,7 +6,10 @@ type CandidateOrderExportInput = {
   items: CandidateItemSummary[]
 }
 
+type ExcelCellValue = string | number
+
 const SIZE_NOT_APPLICABLE = 'N/A'
+const excelMimeType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
 const invalidFilenameChars = /[\\/:*?"<>|]+/g
 
 function safeFilenamePart(value: string): string {
@@ -98,7 +100,7 @@ function badgeCell(summary: CandidateItemSummary): string {
 function exportRow(
   item: CandidateItemSummary,
   sizeColumns: string[],
-): XlsxCellValue[] {
+): ExcelCellValue[] {
   const sizeQtyByName = sizeOrderMap(item)
   const orderExport = item.orderExport
 
@@ -121,7 +123,23 @@ function exportRow(
   ]
 }
 
-export function createCandidateOrderExcelExport({ stashName, userName, items }: CandidateOrderExportInput) {
+function columnName(index: number): string {
+  let n = index + 1
+  let name = ''
+  while (n > 0) {
+    const rem = (n - 1) % 26
+    name = String.fromCharCode(65 + rem) + name
+    n = Math.floor((n - 1) / 26)
+  }
+  return name
+}
+
+export async function createCandidateOrderExcelExport({ stashName, userName, items }: CandidateOrderExportInput) {
+  const ExcelJS = await import('exceljs')
+  const workbook = new ExcelJS.Workbook()
+  workbook.creator = 'HAN.A'
+  workbook.created = new Date()
+
   const sizeColumns = collectSizeColumns(items)
   const mainHeader = [
     '브랜드',
@@ -147,32 +165,74 @@ export function createCandidateOrderExcelExport({ stashName, userName, items }: 
     ['오더 입고 예정일', getInboundExpectedDate(items)],
     ['이름', userName.trim() || '사용자'],
   ]
-  const blob = createXlsxWorkbookBlob([
-    {
-      name: '주 데이터',
-      rows: mainRows,
-      columnWidths: [
-        18,
-        18,
-        34,
-        18,
-        18,
-        18,
-        18,
-        18,
-        14,
-        14,
-        14,
-        16,
-        ...sizeColumns.map(() => 10),
-      ],
-    },
-    {
-      name: '메타',
-      rows: metaRows,
-      columnWidths: [20, 28],
-    },
-  ])
+  const mainColumnWidths = [
+    18,
+    18,
+    34,
+    18,
+    18,
+    18,
+    18,
+    18,
+    14,
+    14,
+    14,
+    16,
+    ...sizeColumns.map(() => 10),
+  ]
+
+  const mainSheet = workbook.addWorksheet('주 데이터', {
+    views: [{ state: 'frozen', ySplit: 1 }],
+  })
+  mainSheet.columns = mainColumnWidths.map((width) => ({ width }))
+  mainSheet.addRows(mainRows)
+  mainSheet.autoFilter = {
+    from: 'A1',
+    to: `${columnName(mainHeader.length - 1)}1`,
+  }
+
+  const headerRow = mainSheet.getRow(1)
+  headerRow.height = 24
+  headerRow.eachCell((cell) => {
+    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF000000' } }
+    cell.font = { color: { argb: 'FFFFFFFF' }, bold: true }
+    cell.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true }
+    cell.border = {
+      top: { style: 'thin', color: { argb: 'FF111827' } },
+      left: { style: 'thin', color: { argb: 'FF111827' } },
+      bottom: { style: 'thin', color: { argb: 'FF111827' } },
+      right: { style: 'thin', color: { argb: 'FF111827' } },
+    }
+  })
+
+  mainSheet.eachRow((row, rowNumber) => {
+    if (rowNumber === 1) return
+    let hasLineBreak = false
+    row.eachCell((cell) => {
+      if (typeof cell.value === 'string' && cell.value.includes('\n')) {
+        hasLineBreak = true
+      }
+      cell.alignment = { vertical: 'middle', wrapText: true }
+      cell.border = {
+        top: { style: 'thin', color: { argb: 'FFE5E7EB' } },
+        left: { style: 'thin', color: { argb: 'FFE5E7EB' } },
+        bottom: { style: 'thin', color: { argb: 'FFE5E7EB' } },
+        right: { style: 'thin', color: { argb: 'FFE5E7EB' } },
+      }
+      if (cell.value === SIZE_NOT_APPLICABLE) {
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF3F4F6' } }
+        cell.font = { color: { argb: 'FF6B7280' } }
+      }
+    })
+    row.height = hasLineBreak ? 30 : 21
+  })
+
+  const metaSheet = workbook.addWorksheet('메타')
+  metaSheet.columns = [{ width: 20 }, { width: 28 }]
+  metaSheet.addRows(metaRows)
+
+  const workbookBuffer = await workbook.xlsx.writeBuffer()
+  const blob = new Blob([workbookBuffer as BlobPart], { type: excelMimeType })
   return {
     blob,
     filename: `${safeFilenamePart(stashName)}_발주_${todayCompact()}.xlsx`,

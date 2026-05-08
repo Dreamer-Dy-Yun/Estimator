@@ -12,6 +12,7 @@
     "test:run": "vitest --run"
   },
   "dependencies": {
+    "exceljs": "^4.4.0",
     "katex": "^0.16.45",
     "react": "^19.2.5",
     "react-dom": "^19.2.5",

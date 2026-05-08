@@ -53,6 +53,11 @@ export default defineConfig({
               priority: 20,
             },
             {
+              name: 'vendor-excel',
+              test: (moduleId) => fromNodePackage(moduleId, 'exceljs'),
+              priority: 20,
+            },
+            {
               name: 'vendor',
               test: 'node_modules',
               priority: 10,
@@ -61,5 +66,7 @@ export default defineConfig({
         },
       },
     },
+    // ExcelJS is a lazy download-only chunk; keep this warning focused on non-feature chunks.
+    chunkSizeWarningLimit: 1000,
   },
 })

@@ -525,7 +525,7 @@ export function useCandidateStashDetailModal({
     setOrderExportBusy(true)
     setOrderExportError(null)
     try {
-      const { blob, filename } = createCandidateOrderExcelExport({
+      const { blob, filename } = await createCandidateOrderExcelExport({
         stashName: detailTarget.name,
         userName,
         items,

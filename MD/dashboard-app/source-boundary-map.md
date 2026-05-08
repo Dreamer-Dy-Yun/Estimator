@@ -301,11 +301,10 @@ React나 API 구현에 의존하지 않는 순수 보조 함수만 둔다.
 | `forecastMonthsStorage.ts` | forecast month localStorage 저장 |
 | `format.ts` | 숫자/비율/EA 표시 format |
 | `hashRank.ts` | hash 기반 rank 보조 |
-| `candidateOrderExcelExport.ts` | 후보군 아이템 스냅샷을 발주용 XLSX 데이터로 변환하고 다운로드 파일명을 만든다. UI는 이 유틸을 직접 조립하지 않고 API mock/export 구현 또는 다운로드 Blob 처리에만 사용한다 |
+| `candidateOrderExcelExport.ts` | 이미 조회한 후보군 아이템의 `orderExport` DTO를 발주용 XLSX로 변환하고 다운로드 파일명을 만든다. `exceljs`는 다운로드 시점에 동적 import하며, 주 데이터 헤더/`N/A` 셀 스타일을 적용한다 |
 | `salesKpiColumn.ts` | 판매 KPI column view-model helper |
 | `sort.ts` | 정렬 방향/상태/값 타입과 한국어 문자열·숫자·빈 값 비교 helper |
 | `uniqueSortedStrings.ts` | 문자열 option 정렬/중복 제거 |
-| `xlsxWorkbook.ts` | 의존성 없이 간단한 2시트 XLSX Blob을 생성하는 export helper |
 
 ## 테스트 파일 규칙
 
