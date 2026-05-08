@@ -27,7 +27,7 @@
 - 오더 스냅샷 독립 localStorage 저장/조회/삭제 API를 제거하고, 후보 아이템 `details`를 스냅샷 저장의 단일 경로로 둔다.
 - 후보군 생성/삭제/복제/편집 이벤트는 API 호출 후 목록을 재조회한다. mock은 응답 흐름만 모사하고 브라우저 저장소에 후보군/이너 후보를 만들거나 지우지 않는다.
 - 후보군 목록/상세/수정 계열 API는 현재 인증 세션의 `USER_ACCOUNT.uuid` 기준으로 소유자 데이터를 필터링한다. 화면은 사용자 UUID를 직접 파라미터로 보내지 않고 `src/api/client.ts`가 mock 세션을 읽어 mock 구현에만 전달한다.
-- 후보군 상세 필터 카드에는 발주 엑셀 다운로드 액션을 둔다. 현재 프론트는 후보군 아이템 `details` 스냅샷에서 브랜드, 상품코드, 상품명, 사이즈, 오더량과 메타 시트(오더 입고 예정일, 사용자 이름)를 생성한다. 추후 백엔드 다운로드 endpoint로 이전할 수 있도록 XLSX 생성은 `candidate-stash` feature와 `utils/xlsxWorkbook.ts`로 분리한다.
+- 후보군 상세 필터 카드에는 발주 엑셀 다운로드 액션을 둔다. 현재 프론트는 후보군 아이템 `details` 스냅샷에서 제품 1개당 1행의 발주 데이터를 생성한다. 주 데이터 시트는 기본 식별/오더/판매 지표 컬럼 뒤에 후보군 전체 사이즈를 동적 컬럼으로 붙이고, 제품에 없는 사이즈는 `-`로 표시한다. 메타 시트에는 오더 입고 예정일과 사용자 이름을 둔다. 추후 백엔드 다운로드 endpoint로 이전할 수 있도록 XLSX 생성은 `candidate-stash` feature와 `utils/xlsxWorkbook.ts`로 분리한다.
 - 라우트 페이지는 `src/App.tsx`에서 `React.lazy`로 분리한다. 기본 라우팅은 일반 배포용 `BrowserRouter`이고, GitHub Pages workflow만 `VITE_ROUTER_MODE=hash`로 `HashRouter`를 켠다.
 - vendor chunk는 `vite.config.ts`의 Rolldown `codeSplitting.groups`가 소유한다. Recharts 같은 내부 순서 의존 라이브러리는 `maxSize`로 강제 세분화하지 않는다.
 - 후보 아이템 목업 스냅샷은 `drawer2.llmAnswer`에 임시 AI 코멘트를 포함해 2차 드로어에서 바로 확인되게 한다.
