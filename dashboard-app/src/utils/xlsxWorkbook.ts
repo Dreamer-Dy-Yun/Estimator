@@ -227,6 +227,9 @@ function createZip(files: ZipFile[]): Uint8Array {
   return concatBytes(chunks)
 }
 
+// This is a narrow prototype writer for the current order export only.
+// If Excel output needs formulas, styles, merged cells, or more sheet shapes,
+// replace this with xlsx/exceljs or a backend-generated download endpoint.
 export function createXlsxWorkbookBlob(sheets: [XlsxWorksheet, XlsxWorksheet]): Blob {
   const files: ZipFile[] = [
     { name: '[Content_Types].xml', data: textEncoder.encode(contentTypesXml) },
