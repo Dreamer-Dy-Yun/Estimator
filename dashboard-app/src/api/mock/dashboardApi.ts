@@ -9,7 +9,6 @@ import type {
   CandidateItemSummary,
   CandidateRecommendationParams,
   CandidateRecommendationResult,
-  CandidateStashOrderExcelDownload,
   CandidateStashExcelUploadResult,
   CandidateStashSummary,
   CreateCandidateStashPayload,
@@ -55,7 +54,6 @@ import {
   zFromServiceLevelPct,
 } from './secondaryDailyTrend'
 import { buildSalesKpiColumn } from '../../utils/salesKpiColumn'
-import { createCandidateOrderExcelExport } from '../../utils/candidateOrderExcelExport'
 import { uniqueSortedStrings } from '../../utils/uniqueSortedStrings'
 
 type CandidateAnalysisJob = {
@@ -234,6 +232,13 @@ function buildCandidateItemSummariesForStash(
       ) {
         throw new Error(`후보 아이템 집계 수치 누락: ${row.uuid}`)
       }
+      const insight = buildCandidateItemInsight(
+        productId,
+        qty,
+        expectedSalesAmount,
+        expectedOpProfit,
+        dataReferencePeriod,
+      )
       return {
         uuid: row.uuid,
         stashUuid: row.stashUuid,
@@ -245,14 +250,24 @@ function buildCandidateItemSummariesForStash(
         expectedOrderAmount,
         expectedSalesAmount,
         expectedOpProfit,
-        insight: buildCandidateItemInsight(
-          productId,
-          qty,
-          expectedSalesAmount,
-          expectedOpProfit,
-          dataReferencePeriod,
-        ),
+        insight,
         isLatestLlmComment: row.isLatestLlmComment,
+        orderExport: {
+          competitorChannelLabel: drawer2.competitorChannelLabel,
+          selfQty: drawer2.salesSelf.qty,
+          competitorQty: drawer2.salesCompetitor.qty,
+          expectedSalesQty: qty,
+          expectedOrderAmount,
+          avgCost: drawer2.salesSelf.avgCost,
+          avgPrice: drawer2.salesSelf.avgPrice,
+          feeRatePct: drawer2.salesSelf.feeRatePct,
+          opMarginRatePct: drawer2.salesSelf.opMarginRatePct,
+          inboundExpectedDate: drawer2.stockInputs.leadTimeEndDate,
+          sizeOrderQty: drawer2.sizeRows.map((sizeRow) => ({
+            size: sizeRow.size,
+            orderQty: Math.max(0, Math.round(sizeRow.confirmQty)),
+          })),
+        },
         dbCreatedAt: row.dbCreatedAt,
         dbUpdatedAt: row.dbUpdatedAt ?? row.dbCreatedAt,
       }
@@ -569,34 +584,6 @@ export const mockDashboardApi = {
       throw new Error('후보 아이템을 찾을 수 없습니다.')
     }
     void payload
-  },
-  downloadCandidateStashOrderExcel: async (
-    stashUuid: string,
-    userName: string,
-    ownerUserUuid?: string,
-  ): Promise<CandidateStashOrderExcelDownload> => {
-    await sleep(120)
-    const stash = findCandidateStashForOwner(stashUuid, ownerUserUuid)
-    if (!stash) {
-      throw new Error('후보군을 찾을 수 없습니다.')
-    }
-    const summaries = buildCandidateItemSummariesForStash(stashUuid, ownerUserUuid)
-    const recordsByUuid = new Map(readCandidateItemsForStash(stashUuid, ownerUserUuid).map((item) => [item.uuid, item]))
-    const items = summaries.map((summary) => {
-      const record = recordsByUuid.get(summary.uuid)
-      if (!record?.details) {
-        throw new Error(`후보 상세 데이터 없음: ${summary.productName}`)
-      }
-      return {
-        summary,
-        snapshot: record.details,
-      }
-    })
-    return createCandidateOrderExcelExport({
-      stashName: stash.name,
-      userName,
-      items,
-    })
   },
   uploadCandidateStashExcel: async (file: File): Promise<CandidateStashExcelUploadResult> => {
     await sleep(140)

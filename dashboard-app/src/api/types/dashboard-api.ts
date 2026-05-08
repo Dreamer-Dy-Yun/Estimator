@@ -21,7 +21,6 @@ import type {
   CandidateStashAnalysisHandlers,
   CandidateStashAnalysisStartResult,
   CandidateStashAnalysisSubscription,
-  CandidateStashOrderExcelDownload,
   CandidateStashExcelTemplateDownload,
   CandidateStashExcelUploadResult,
   CandidateStashSummary,
@@ -67,7 +66,6 @@ export interface DashboardApi {
   appendCandidateItem(payload: AppendCandidateItemPayload): Promise<void>
   updateCandidateItem(payload: UpdateCandidateItemPayload): Promise<void>
   getCandidateStashExcelTemplateDownload(): CandidateStashExcelTemplateDownload
-  downloadCandidateStashOrderExcel(stashUuid: string, userName: string): Promise<CandidateStashOrderExcelDownload>
   uploadCandidateStashExcel(file: File): Promise<CandidateStashExcelUploadResult>
   startCandidateStashAnalysis(stashUuid: string): Promise<CandidateStashAnalysisStartResult>
   subscribeCandidateStashAnalysis(

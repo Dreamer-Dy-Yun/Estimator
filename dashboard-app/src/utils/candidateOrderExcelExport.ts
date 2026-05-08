@@ -1,16 +1,10 @@
 import type { CandidateItemSummary } from '../api/types/candidate'
-import type { OrderSnapshotDocumentV1 } from '../snapshot/orderSnapshotTypes'
 import { createXlsxWorkbookBlob, type XlsxCellValue } from './xlsxWorkbook'
-
-type CandidateOrderExportItem = {
-  summary: CandidateItemSummary
-  snapshot: OrderSnapshotDocumentV1
-}
 
 type CandidateOrderExportInput = {
   stashName: string
   userName: string
-  items: CandidateOrderExportItem[]
+  items: CandidateItemSummary[]
 }
 
 const SIZE_NOT_APPLICABLE = 'N/A'
@@ -28,11 +22,11 @@ function todayCompact(): string {
   return `${y}${m}${d}`
 }
 
-function getInboundExpectedDate(items: CandidateOrderExportItem[]): string {
+function getInboundExpectedDate(items: CandidateItemSummary[]): string {
   const dates = [
     ...new Set(
       items
-        .map(({ snapshot }) => snapshot.drawer2.stockInputs.leadTimeEndDate?.trim())
+        .map((item) => item.orderExport.inboundExpectedDate?.trim())
         .filter((date): date is string => Boolean(date)),
     ),
   ]
@@ -55,12 +49,12 @@ function normalizeSize(size: string): string {
   return size.trim()
 }
 
-function collectSizeColumns(items: CandidateOrderExportItem[]): string[] {
+function collectSizeColumns(items: CandidateItemSummary[]): string[] {
   const seen = new Set<string>()
   const sizes: string[] = []
 
-  for (const { snapshot } of items) {
-    for (const sizeRow of snapshot.drawer2.sizeRows) {
+  for (const item of items) {
+    for (const sizeRow of item.orderExport.sizeOrderQty) {
       const size = normalizeSize(sizeRow.size)
       if (!size || seen.has(size)) continue
       seen.add(size)
@@ -71,12 +65,12 @@ function collectSizeColumns(items: CandidateOrderExportItem[]): string[] {
   return sizes
 }
 
-function getCompetitorQtyHeader(items: CandidateOrderExportItem[]): string {
+function getCompetitorQtyHeader(items: CandidateItemSummary[]): string {
   const labels = [
     ...new Set(
       items
-        .map(({ summary, snapshot }) => (
-          summary.insight.competitorChannelLabel || snapshot.drawer2.competitorChannelLabel
+        .map((item) => (
+          item.orderExport.competitorChannelLabel || item.insight.competitorChannelLabel
         ).trim())
         .filter(Boolean),
     ),
@@ -84,12 +78,12 @@ function getCompetitorQtyHeader(items: CandidateOrderExportItem[]): string {
   return labels.length === 1 ? `${labels[0]} 기간 총 판매량` : '경쟁사 기간 총 판매량'
 }
 
-function sizeOrderMap(snapshot: OrderSnapshotDocumentV1): Map<string, number> {
+function sizeOrderMap(item: CandidateItemSummary): Map<string, number> {
   const map = new Map<string, number>()
-  for (const sizeRow of snapshot.drawer2.sizeRows) {
+  for (const sizeRow of item.orderExport.sizeOrderQty) {
     const size = normalizeSize(sizeRow.size)
     if (!size) continue
-    map.set(size, (map.get(size) ?? 0) + roundedNonNegative(sizeRow.confirmQty))
+    map.set(size, (map.get(size) ?? 0) + roundedNonNegative(sizeRow.orderQty))
   }
   return map
 }
@@ -102,26 +96,25 @@ function badgeCell(summary: CandidateItemSummary): string {
 }
 
 function exportRow(
-  item: CandidateOrderExportItem,
+  item: CandidateItemSummary,
   sizeColumns: string[],
 ): XlsxCellValue[] {
-  const { summary, snapshot } = item
-  const sizeQtyByName = sizeOrderMap(snapshot)
-  const salesSelf = snapshot.drawer2.salesSelf
+  const sizeQtyByName = sizeOrderMap(item)
+  const orderExport = item.orderExport
 
   return [
-    summary.brand,
-    summary.productCode,
-    summary.productName,
-    badgeCell(summary),
-    numberOrDash(summary.insight.selfQty ?? salesSelf.qty),
-    numberOrDash(summary.insight.competitorQty ?? snapshot.drawer2.salesCompetitor.qty),
-    numberOrDash(summary.insight.expectedSalesQty),
-    numberOrDash(summary.expectedOrderAmount ?? snapshot.drawer2.stockDerived.expectedOrderAmount),
-    numberOrDash(salesSelf.avgCost),
-    numberOrDash(salesSelf.avgPrice),
-    rateOrDash(salesSelf.feeRatePct),
-    rateOrDash(salesSelf.opMarginRatePct),
+    item.brand,
+    item.productCode,
+    item.productName,
+    badgeCell(item),
+    numberOrDash(orderExport.selfQty),
+    numberOrDash(orderExport.competitorQty),
+    numberOrDash(orderExport.expectedSalesQty),
+    numberOrDash(orderExport.expectedOrderAmount),
+    numberOrDash(orderExport.avgCost),
+    numberOrDash(orderExport.avgPrice),
+    rateOrDash(orderExport.feeRatePct),
+    rateOrDash(orderExport.opMarginRatePct),
     ...sizeColumns.map((size) => (
       sizeQtyByName.has(size) ? (sizeQtyByName.get(size) ?? 0) : SIZE_NOT_APPLICABLE
     )),

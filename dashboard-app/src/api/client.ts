@@ -14,7 +14,6 @@ import type {
   CandidateStashAnalysisHandlers,
   CandidateStashAnalysisStartResult,
   CandidateStashAnalysisSubscription,
-  CandidateStashOrderExcelDownload,
   CandidateStashExcelTemplateDownload,
   CandidateStashExcelUploadResult,
   CandidateStashSummary,
@@ -212,17 +211,6 @@ export function getCandidateStashExcelTemplateDownload(): CandidateStashExcelTem
   }
 }
 
-export async function downloadCandidateStashOrderExcel(
-  stashUuid: string,
-  userName: string,
-): Promise<CandidateStashOrderExcelDownload> {
-  return mockDashboardApi.downloadCandidateStashOrderExcel(
-    stashUuid,
-    userName,
-    await requireCurrentUserUuid(),
-  )
-}
-
 export async function startCandidateStashAnalysis(stashUuid: string): Promise<CandidateStashAnalysisStartResult> {
   return mockDashboardApi.startCandidateStashAnalysis(stashUuid, await requireCurrentUserUuid())
 }
@@ -263,7 +251,6 @@ export const dashboardApi: DashboardApi = {
   appendCandidateItem,
   updateCandidateItem,
   getCandidateStashExcelTemplateDownload,
-  downloadCandidateStashOrderExcel,
   uploadCandidateStashExcel,
   startCandidateStashAnalysis,
   subscribeCandidateStashAnalysis,

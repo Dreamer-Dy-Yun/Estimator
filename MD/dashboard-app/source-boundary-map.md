@@ -28,7 +28,7 @@
 - 오더 스냅샷 독립 localStorage 저장/조회/삭제 API를 제거하고, 후보 아이템 `details`를 스냅샷 저장의 단일 경로로 둔다.
 - 후보군 생성/삭제/복제/편집 이벤트는 API 호출 후 목록을 재조회한다. mock은 응답 흐름만 모사하고 브라우저 저장소에 후보군/이너 후보를 만들거나 지우지 않는다.
 - 후보군 목록/상세/수정 계열 API는 현재 인증 세션의 `USER_ACCOUNT.uuid` 기준으로 소유자 데이터를 필터링한다. 화면은 사용자 UUID를 직접 파라미터로 보내지 않고 `src/api/client.ts`가 mock 세션을 읽어 mock 구현에만 전달한다.
-- 후보군 상세 필터 카드에는 발주 엑셀 다운로드 액션을 둔다. 화면은 후보별 상세를 N회 조회하지 않고 `downloadCandidateStashOrderExcel(stashUuid, userName)` 단일 API 계약만 호출한다. 현재 mock은 후보군 아이템 `details` 스냅샷에서 제품 1개당 1행의 발주 데이터를 생성한다. 주 데이터 시트는 기본 식별/배지/판매 지표/총 오더 지표 컬럼 뒤에 후보군 전체 사이즈를 동적 컬럼으로 붙이고, 제품에 없는 사이즈는 `N/A`로 표시한다. 복수 배지는 한 셀 안에서 줄바꿈한다. 메타 시트에는 오더 입고 예정일과 사용자 이름을 둔다. 운영 백엔드에서는 같은 API 경계를 `/candidate-stashes/:stashUuid/order-export.xlsx` endpoint로 교체한다.
+- 후보군 상세 필터 카드에는 발주 엑셀 다운로드 액션을 둔다. 화면은 다운로드 클릭 시 백엔드를 다시 호출하지 않고, 이미 받은 `CandidateItemSummary.orderExport` 최소 DTO로 브라우저에서 XLSX를 생성한다. 주 데이터 시트는 기본 식별/배지/판매 지표/총 오더 지표 컬럼 뒤에 후보군 전체 사이즈를 동적 컬럼으로 붙이고, 제품에 없는 사이즈는 `N/A`로 표시한다. 복수 배지는 한 셀 안에서 줄바꿈한다. 메타 시트에는 오더 입고 예정일과 사용자 이름을 둔다.
 - 라우트 페이지는 `src/App.tsx`에서 `React.lazy`로 분리한다. 기본 라우팅은 일반 배포용 `BrowserRouter`이고, GitHub Pages workflow만 `VITE_ROUTER_MODE=hash`로 `HashRouter`를 켠다.
 - vendor chunk는 `vite.config.ts`의 Rolldown `codeSplitting.groups`가 소유한다. Recharts 같은 내부 순서 의존 라이브러리는 `maxSize`로 강제 세분화하지 않는다.
 - 후보 아이템 목업 스냅샷은 `drawer2.llmAnswer`에 임시 AI 코멘트를 포함해 2차 드로어에서 바로 확인되게 한다.
@@ -208,7 +208,7 @@
 |------|------|
 | `CandidateStashDetailModal.tsx` | 특정 후보군의 이너 후보 목록, 표시 순서 인덱스, 정렬 헤더, 데이터 참조기간 입력, 요약, 필터, 필터 카드 발주 엑셀 다운로드 액션, 추천 보기 호출/적용, drawer 연결, 일괄/개별 삭제 확인 흐름 |
 | `CandidateStashDetailModal.module.css` | 후보군 상세 모달 전용 스타일, 헤더 데이터 참조기간 인라인 grid, 필터 카드 액션 grid, 엑셀 다운로드 버튼, 1차 드로어 열림 시 전용 span을 쓰는 40칸 헤더 grid, 헤더 고정/이너 후보 리스트 내부 스크롤 경계 |
-| `useCandidateStashDetailModal.ts` | 후보군 상세 모달의 API 호출, 필터, 리스트 정렬 상태, 데이터 참조기간 override, 추천 후보 조회 상태, 발주 엑셀 생성 요청 상태, drawer hydration, drawer 닫힘 전환, SSE 분석 진행 상태 |
+| `useCandidateStashDetailModal.ts` | 후보군 상세 모달의 API 호출, 필터, 리스트 정렬 상태, 데이터 참조기간 override, 추천 후보 조회 상태, 프론트 발주 엑셀 생성 상태, drawer hydration, drawer 닫힘 전환, SSE 분석 진행 상태 |
 | `CandidateRecommendationModal.tsx` | 후보군 상세에서 추천 후보를 선택/적용하는 보조 모달 |
 | `CandidateRecommendationModal.module.css` | 추천 모달 전용 스타일 |
 | `CandidateInsightBadges.tsx` | 후보 아이템 인사이트 badge 렌더링 |

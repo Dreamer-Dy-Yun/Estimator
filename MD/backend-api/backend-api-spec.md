@@ -171,7 +171,6 @@
 | `getCandidateItemsByStash(stashUuid)` | GET | `/candidate-stashes/:stashUuid/items` |
 | `getCandidateRecommendations(params)` | GET | `/candidate-stashes/:stashUuid/recommendations?dataReferencePeriodStart&dataReferencePeriodEnd` |
 | `getCandidateItemByUuid(itemUuid)` | GET | `/candidate-items/:itemUuid` |
-| 후보군 발주 엑셀 다운로드 | GET | `/candidate-stashes/:stashUuid/order-export.xlsx` |
 | `deleteCandidateItem(itemUuid)` | DELETE | `/candidate-items/:itemUuid` |
 | `deleteCandidateItems(stashUuid, itemUuids)` | DELETE | `/candidate-stashes/:stashUuid/items` body `{ itemUuids }` |
 | `deleteCandidateStash(stashUuid)` | DELETE | `/candidate-stashes/:stashUuid` |
@@ -427,6 +426,7 @@ badgeDefinitions: {
 | `expectedSalesAmount` | 예상 매출 — `stockDerived.expectedSalesAmount` |
 | `expectedOpProfit` | 예상 영업이익 — `stockDerived.expectedOpProfit` |
 | `insight.badgeNames` | 이 아이템에 붙일 배지 이름 배열. 현재 목데이터 기준 허용 배지는 `크림판매`, `자사이익`, `자사판매` |
+| `orderExport` | 발주 엑셀을 프론트에서 즉시 생성하기 위한 최소 DTO. 전체 `details` 스냅샷을 다시 받지 않도록 `competitorChannelLabel`, 자사/경쟁 기간 판매량, 총 오더량/금액, 평균 원가/판매가/수수료율/영업이익율, 오더 입고 예정일, 사이즈별 오더량만 포함 |
 | `isLatestLlmComment` | 현재 저장 스냅샷 기준 AI 코멘트/추천이 최신인지 여부. DB 컬럼은 `is_latest_llm_comment` 권장 |
 | `dbCreatedAt`, `dbUpdatedAt` | 생성·수정 시각 |
 
@@ -455,7 +455,7 @@ badgeDefinitions: {
   백엔드는 파일 내용을 검증한 뒤 DB 트랜잭션 안에서 후보군과 후보 아이템을 생성해야 합니다.
   성공 후 프론트는 응답 객체를 목록에 직접 삽입하지 않고 `getCandidateStashes()`를 다시 호출해 DB 기준 목록과 동기화합니다.
 - `getCandidateStashExcelTemplateDownload`: 현재 프론트는 정적 파일 URL을 반환하지만, 운영 백엔드 연결 시에는 같은 프론트 계약을 유지한 채 템플릿 다운로드 endpoint로 교체할 수 있습니다. 예: `GET /candidate-stashes/excel-template`.
-- 후보군 발주 엑셀 다운로드: 프론트 호출 계약은 `GET /candidate-stashes/:stashUuid/order-export.xlsx` 단일 endpoint를 기준으로 둡니다. 현재 mock은 같은 API 경계 안에서 후보 아이템 `details` 스냅샷으로 XLSX Blob을 생성하지만, UI 컴포넌트는 후보별 상세를 N회 조회하지 않습니다. 주 데이터 시트는 후보 아이템 1개를 1행으로 두며, 기본 컬럼은 `브랜드`, `상품코드`, `상품명`, `배지`, `자사 기간 총 판매량`, `{선택 경쟁사} 기간 총 판매량`, `총 오더량`, `총 오더 금액`, `평균 원가`, `평균 판매가`, `평균 수수료율`, `평균 영업이익율`입니다. `배지`가 복수인 경우 한 셀 안에서 줄바꿈으로 구분합니다. 그 뒤에는 해당 후보군 전체에서 등장한 모든 사이즈를 동적 컬럼으로 추가하고, 각 제품의 사이즈별 오더량을 기재합니다. 제품에 존재하지 않는 사이즈 컬럼은 `N/A`로 표시해 실제 오더량 `0`과 구분합니다. 메타 시트는 `오더 입고 예정일`, `이름`을 포함합니다. `이름`은 현재 세션의 `USER_ACCOUNT.name` 또는 운영에서 정한 사용자 표시명을 사용합니다.
+- 후보군 발주 엑셀 다운로드: 별도 백엔드 다운로드 endpoint를 두지 않습니다. 프론트는 이미 `getCandidateItemsByStash` 응답으로 받은 `CandidateItemSummary.orderExport` 최소 DTO를 사용해 브라우저에서 XLSX를 생성합니다. 주 데이터 시트는 후보 아이템 1개를 1행으로 두며, 기본 컬럼은 `브랜드`, `상품코드`, `상품명`, `배지`, `자사 기간 총 판매량`, `{선택 경쟁사} 기간 총 판매량`, `총 오더량`, `총 오더 금액`, `평균 원가`, `평균 판매가`, `평균 수수료율`, `평균 영업이익율`입니다. `배지`가 복수인 경우 한 셀 안에서 줄바꿈으로 구분합니다. 그 뒤에는 해당 후보군 전체에서 등장한 모든 사이즈를 동적 컬럼으로 추가하고, 각 제품의 사이즈별 오더량을 기재합니다. 제품에 존재하지 않는 사이즈 컬럼은 `N/A`로 표시해 실제 오더량 `0`과 구분합니다. 메타 시트는 `오더 입고 예정일`, `이름`을 포함합니다. `이름`은 현재 세션의 `USER_ACCOUNT.name` 또는 운영에서 정한 사용자 표시명을 사용합니다.
 - 엑셀 업로드 검증 권장:
   - 현재 템플릿 초안의 `DATA` 시트 필수 컬럼 예: `브랜드`, `상품 코드`, `오더 수량`, `금번 오더 입고일`, `차기 오더 입고일`.
   - `오더 수량`은 사이즈별 입력이 아니라 총 발주 수량입니다. 사이즈별 오더 배분/조정은 시스템 내부 계산 흐름이 담당합니다.

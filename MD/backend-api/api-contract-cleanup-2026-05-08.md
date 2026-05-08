@@ -10,7 +10,7 @@
 ## Scope
 
 - 상품 drawer 기본 번들에서 사용하지 않는 재고 시계열과 월간 판매추이 의존을 제거한다.
-- 후보군 발주 엑셀 다운로드를 후보별 상세 N회 조회가 아닌 단일 API 계약으로 이동한다.
+- 후보군 발주 엑셀 다운로드가 클릭 시 백엔드를 다시 호출하지 않도록, 목록 응답의 최소 DTO로 프론트에서 생성한다.
 - 후보군 일괄 삭제를 개별 DELETE 반복이 아닌 bulk API 계약으로 이동한다.
 - 운영 API 응답에 들어가면 안 되는 mock 전용 경쟁채널 보정값을 mock 내부 모델로 숨긴다.
 
@@ -24,7 +24,7 @@
 
 - `getProductDrawerBundle(id)`는 상품 요약만 반환한다. `forecastMonths`, `stockTrend`, bundle 내 월간 추이 데이터는 제거했다.
 - `getProductMonthlyTrend`, `getProductSalesInsight`, `getSecondaryDailyTrend`, `getSecondaryStockOrderCalc`가 기간/채널/계산성 데이터를 담당한다.
-- `downloadCandidateStashOrderExcel(stashUuid, userName)`을 추가해 UI의 후보별 상세 N회 조회를 제거했다.
+- `CandidateItemSummary.orderExport`를 추가해 UI가 이미 받은 목록 데이터로 XLSX를 생성하도록 했다. 별도 `order-export.xlsx` endpoint와 후보별 상세 N회 조회는 두지 않는다.
 - `deleteCandidateItems(stashUuid, itemUuids)`를 추가해 일괄 삭제 API 경계를 만들었다.
 - `SecondaryCompetitorChannel` public 타입은 `{ id, label }`만 가진다. `priceSkew`, `qtySkew`는 `src/api/mock` 내부 타입으로 분리했다.
 - `CandidateStashSummary` public 응답에서 `createdByUserUuid`를 제거했다. 소유자 필터링은 세션 기반 백엔드 책임이고, 일반 목록 화면에는 owner UUID가 필요 없다.

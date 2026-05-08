@@ -2,7 +2,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   deleteCandidateItem,
   deleteCandidateItems,
-  downloadCandidateStashOrderExcel,
   getCandidateItemByUuid,
   getCandidateItemsByStash,
   getCandidateRecommendations,
@@ -25,7 +24,7 @@ import { uniqueSortedStrings } from '../../../utils/uniqueSortedStrings'
 import { mergePrimarySummaryFromBundleAndSnapshot } from '../../drawer/mergePrimarySummaryFromSnapshot'
 import { useProductDrawerBundle } from '../../hooks/useProductDrawerBundle'
 import { normalizeRangeOnEndInput, normalizeRangeOnStartInput } from '../../hooks/usePeriodRangeFilter'
-import { downloadBlob } from '../../../utils/candidateOrderExcelExport'
+import { createCandidateOrderExcelExport, downloadBlob } from '../../../utils/candidateOrderExcelExport'
 
 const INNER_DRAWER_CLOSE_LAYOUT_MS = 440
 
@@ -526,7 +525,11 @@ export function useCandidateStashDetailModal({
     setOrderExportBusy(true)
     setOrderExportError(null)
     try {
-      const { blob, filename } = await downloadCandidateStashOrderExcel(detailTarget.uuid, userName)
+      const { blob, filename } = createCandidateOrderExcelExport({
+        stashName: detailTarget.name,
+        userName,
+        items,
+      })
       if (!mountedRef.current) return
       downloadBlob(blob, filename)
     } catch (err) {

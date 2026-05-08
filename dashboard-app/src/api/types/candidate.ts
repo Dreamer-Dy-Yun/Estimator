@@ -13,6 +13,25 @@ export interface CandidateStashSummary {
   dbUpdatedAt: string
 }
 
+export interface CandidateItemOrderExportSizeQty {
+  size: string
+  orderQty: number
+}
+
+export interface CandidateItemOrderExport {
+  competitorChannelLabel: string
+  selfQty: number | null
+  competitorQty: number | null
+  expectedSalesQty: number
+  expectedOrderAmount: number
+  avgCost: number | null
+  avgPrice: number | null
+  feeRatePct: number | null
+  opMarginRatePct: number | null
+  inboundExpectedDate: string | null
+  sizeOrderQty: CandidateItemOrderExportSizeQty[]
+}
+
 export interface CandidateItemSummary {
   uuid: string
   stashUuid: string
@@ -29,6 +48,8 @@ export interface CandidateItemSummary {
   insight: CandidateItemInsightSummary
   /** Whether the stored AI recommendation/comment reflects the latest saved snapshot. */
   isLatestLlmComment: boolean
+  /** Minimal data already loaded with the list so Excel export does not call the backend again. */
+  orderExport: CandidateItemOrderExport
   dbCreatedAt: string
   dbUpdatedAt: string
 }
@@ -123,11 +144,6 @@ export interface CandidateStashExcelUploadResult {
 
 export interface CandidateStashExcelTemplateDownload {
   href: string
-  filename: string
-}
-
-export interface CandidateStashOrderExcelDownload {
-  blob: Blob
   filename: string
 }
 
