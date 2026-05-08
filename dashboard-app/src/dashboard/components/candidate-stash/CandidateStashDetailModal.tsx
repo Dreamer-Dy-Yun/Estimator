@@ -455,8 +455,8 @@ export function CandidateStashDetailModal({ stashUuid, stashSummary, onClose, on
                           <span>상품명</span>
                           <span className={detailStyles.innerOrderCellNum}>자사 기간 총 판매량</span>
                           <span className={detailStyles.innerOrderCellNum}>{competitorSalesQtyHeader}</span>
-                          <span className={detailStyles.innerOrderCellNum}>총 예상 판매수량</span>
-                          <span className={detailStyles.innerOrderCellNum}>총 예상 오더 금액</span>
+                          <span className={detailStyles.innerOrderCellNum}>총 오더수량</span>
+                          <span className={detailStyles.innerOrderCellNum}>총 오더 금액</span>
                         </div>
                         {m.tableRows.map((row) => {
                           const selected = selectedItemUuids.has(row.uuid)
