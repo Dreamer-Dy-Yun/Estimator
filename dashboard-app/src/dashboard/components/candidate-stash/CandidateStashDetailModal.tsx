@@ -305,22 +305,22 @@ export function CandidateStashDetailModal({ stashUuid, stashSummary, onClose, on
                         {m.detailTarget.name}
                       </h3>
                     </div>
-                    <div className={detailStyles.detailHeaderPeriodCell} aria-label="데이터 참조 기간">
-                      <span className={detailStyles.detailHeaderPeriodLabel}>데이터 참조 기간 :</span>
+                    <div className={detailStyles.detailHeaderDataReferencePeriodCell} aria-label="데이터 참조 기간">
+                      <span className={detailStyles.detailHeaderDataReferencePeriodLabel}>데이터 참조 기간 :</span>
                       <input
-                        className={detailStyles.detailHeaderPeriodInput}
+                        className={detailStyles.detailHeaderDataReferencePeriodInput}
                         type="date"
-                        aria-label="조회 시작일"
-                        value={m.queryPeriodStart}
-                        onChange={(event) => m.onQueryPeriodStartChange(event.target.value)}
+                        aria-label="데이터 참조 시작일"
+                        value={m.dataReferencePeriodStart}
+                        onChange={(event) => m.onDataReferencePeriodStartChange(event.target.value)}
                       />
-                      <span className={detailStyles.detailHeaderPeriodSeparator}>~</span>
+                      <span className={detailStyles.detailHeaderDataReferencePeriodSeparator}>~</span>
                       <input
-                        className={detailStyles.detailHeaderPeriodInput}
+                        className={detailStyles.detailHeaderDataReferencePeriodInput}
                         type="date"
-                        aria-label="조회 종료일"
-                        value={m.queryPeriodEnd}
-                        onChange={(event) => m.onQueryPeriodEndChange(event.target.value)}
+                        aria-label="데이터 참조 종료일"
+                        value={m.dataReferencePeriodEnd}
+                        onChange={(event) => m.onDataReferencePeriodEndChange(event.target.value)}
                       />
                     </div>
                     <div className={detailStyles.detailMetaStack}>

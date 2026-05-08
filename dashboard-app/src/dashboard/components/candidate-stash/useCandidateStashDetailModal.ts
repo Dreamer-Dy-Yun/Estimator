@@ -64,18 +64,18 @@ function candidateSortValue(row: InnerCandidateRow, key: InnerCandidateSortKey):
   }
 }
 
-function applySnapshotPeriod(
+function applySnapshotDataReferencePeriod(
   snap: OrderSnapshotDocumentV1,
-  periodStart: string,
-  periodEnd: string,
+  dataReferencePeriodStart: string,
+  dataReferencePeriodEnd: string,
 ): OrderSnapshotDocumentV1 {
   return {
     ...snap,
     context: {
       ...snap.context,
-      periodStart,
-      periodEnd,
-      dailyTrendStartMonth: periodStart.slice(0, 7),
+      periodStart: dataReferencePeriodStart,
+      periodEnd: dataReferencePeriodEnd,
+      dailyTrendStartMonth: dataReferencePeriodStart.slice(0, 7),
     },
   }
 }
@@ -94,8 +94,8 @@ export function useCandidateStashDetailModal({
   const [productCodeQuery, setProductCodeQuery] = useState('')
   const [productNameQuery, setProductNameQuery] = useState('')
   const [tableSort, setTableSort] = useState<InnerCandidateSortState | null>(null)
-  const [queryPeriodStart, setQueryPeriodStart] = useState('')
-  const [queryPeriodEnd, setQueryPeriodEnd] = useState('')
+  const [dataReferencePeriodStart, setDataReferencePeriodStart] = useState('')
+  const [dataReferencePeriodEnd, setDataReferencePeriodEnd] = useState('')
 
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [drawerClosing, setDrawerClosing] = useState(false)
@@ -282,24 +282,24 @@ export function useCandidateStashDetailModal({
     initializedDetailTargetUuidRef.current = nextUuid
 
     if (!detailTarget) {
-      setQueryPeriodStart('')
-      setQueryPeriodEnd('')
+      setDataReferencePeriodStart('')
+      setDataReferencePeriodEnd('')
       return
     }
-    setQueryPeriodStart(detailTarget.periodStart)
-    setQueryPeriodEnd(detailTarget.periodEnd)
+    setDataReferencePeriodStart(detailTarget.periodStart)
+    setDataReferencePeriodEnd(detailTarget.periodEnd)
   }, [detailTarget])
 
-  const onQueryPeriodStartChange = useCallback((value: string) => {
+  const onDataReferencePeriodStartChange = useCallback((value: string) => {
     if (!value) return
-    setQueryPeriodStart(value)
-    setQueryPeriodEnd((currentEnd) => normalizeRangeOnStartInput(value, currentEnd || value).endDate)
+    setDataReferencePeriodStart(value)
+    setDataReferencePeriodEnd((currentEnd) => normalizeRangeOnStartInput(value, currentEnd || value).endDate)
   }, [])
 
-  const onQueryPeriodEndChange = useCallback((value: string) => {
+  const onDataReferencePeriodEndChange = useCallback((value: string) => {
     if (!value) return
-    setQueryPeriodEnd(value)
-    setQueryPeriodStart((currentStart) => normalizeRangeOnEndInput(value, currentStart || value).startDate)
+    setDataReferencePeriodEnd(value)
+    setDataReferencePeriodStart((currentStart) => normalizeRangeOnEndInput(value, currentStart || value).startDate)
   }, [])
 
   const toggleTableSort = useCallback((key: InnerCandidateSortKey) => {
@@ -359,22 +359,22 @@ export function useCandidateStashDetailModal({
     allowStaleWhileRevalidate: false,
   })
 
-  const periodStart = queryPeriodStart || hydrateSnap?.context.periodStart
-  const periodEnd = queryPeriodEnd || hydrateSnap?.context.periodEnd
+  const dataReferenceStart = dataReferencePeriodStart || hydrateSnap?.context.periodStart
+  const dataReferenceEnd = dataReferencePeriodEnd || hydrateSnap?.context.periodEnd
   const drawerHydrateSnap = useMemo(
     () => (
-      hydrateSnap && periodStart && periodEnd
-        ? applySnapshotPeriod(hydrateSnap, periodStart, periodEnd)
+      hydrateSnap && dataReferenceStart && dataReferenceEnd
+        ? applySnapshotDataReferencePeriod(hydrateSnap, dataReferenceStart, dataReferenceEnd)
         : hydrateSnap
     ),
-    [hydrateSnap, periodEnd, periodStart],
+    [dataReferenceEnd, dataReferenceStart, hydrateSnap],
   )
   const mergedSummary = useMemo(
     () => mergePrimarySummaryFromBundleAndSnapshot(drawerProductId, bundle, drawerHydrateSnap),
     [bundle, drawerProductId, drawerHydrateSnap],
   )
 
-  if (drawerOpen && (!periodStart || !periodEnd)) {
+  if (drawerOpen && (!dataReferenceStart || !dataReferenceEnd)) {
     throw new Error('후보 스냅샷 기간 정보 누락')
   }
 
@@ -531,15 +531,15 @@ export function useCandidateStashDetailModal({
     drawerError,
     openedItemUuid,
     hydrateSnap: drawerHydrateSnap,
-    queryPeriodStart,
-    queryPeriodEnd,
-    onQueryPeriodStartChange,
-    onQueryPeriodEndChange,
+    dataReferencePeriodStart,
+    dataReferencePeriodEnd,
+    onDataReferencePeriodStartChange,
+    onDataReferencePeriodEndChange,
     fc,
     bundle,
     mergedSummary,
-    periodStart,
-    periodEnd,
+    periodStart: dataReferenceStart,
+    periodEnd: dataReferenceEnd,
     itemDeleteTarget,
     itemDeleteBusy,
     bulkDeleteBusy,

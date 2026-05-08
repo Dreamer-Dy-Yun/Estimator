@@ -35,7 +35,7 @@
   color: #64748b;
 }
 
-.detailHeaderPeriodCell {
+.detailHeaderDataReferencePeriodCell {
   grid-column: 17 / span 9;
   grid-row: 1;
   min-width: 0;
@@ -47,8 +47,8 @@
   gap: 6px;
 }
 
-.detailHeaderPeriodLabel,
-.detailHeaderPeriodSeparator {
+.detailHeaderDataReferencePeriodLabel,
+.detailHeaderDataReferencePeriodSeparator {
   min-width: 0;
   color: #64748b;
   font-size: 11px;
@@ -57,7 +57,7 @@
   white-space: nowrap;
 }
 
-.detailHeaderPeriodInput {
+.detailHeaderDataReferencePeriodInput {
   width: 100%;
   min-width: 0;
   height: 32px;
@@ -68,12 +68,12 @@
   background: transparent;
   color: #0f172a;
   font: inherit;
-  font-size: 12px;
+  font-size: 18px;
   font-weight: 700;
   outline: none;
 }
 
-.detailHeaderPeriodInput:focus {
+.detailHeaderDataReferencePeriodInput:focus {
   background: #f8fafc;
   box-shadow: none;
 }
@@ -655,8 +655,8 @@
   grid-row: 1;
 }
 
-.stashDetailModalBackdrop[data-inner-drawer-open='true'] .detailHeaderPeriodCell,
-.stashDetailModalBackdrop[data-inner-drawer-closing='true'] .detailHeaderPeriodCell {
+.stashDetailModalBackdrop[data-inner-drawer-open='true'] .detailHeaderDataReferencePeriodCell,
+.stashDetailModalBackdrop[data-inner-drawer-closing='true'] .detailHeaderDataReferencePeriodCell {
   grid-column: 15 / span 11;
   grid-row: 1;
   grid-template-columns: auto minmax(100px, 124px) auto minmax(100px, 124px);
@@ -712,7 +712,7 @@
   }
 
   .detailHeaderTitleArea,
-  .detailHeaderPeriodCell {
+  .detailHeaderDataReferencePeriodCell {
     grid-column: 1 / -1;
   }
 
