@@ -415,6 +415,7 @@
 .innerOrderRow {
   display: grid;
   grid-template-columns:
+    32px
     34px
     minmax(90px, 0.6fr)
     minmax(84px, 0.45fr)
@@ -425,7 +426,7 @@
     minmax(150px, 0.85fr);
   align-items: center;
   gap: 10px;
-  min-width: 1240px;
+  min-width: 1280px;
 }
 
 .innerOrderHeader {
@@ -487,6 +488,18 @@
   justify-content: center;
 }
 
+.innerOrderIndexCell {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
 .innerOrderCheckCell input {
   width: 16px;
   height: 16px;
@@ -523,7 +536,7 @@
   display: flex;
   align-items: center;
   justify-content: flex-start;
-  grid-column: 2 / -1;
+  grid-column: 3 / -1;
   gap: 4px;
   min-width: 0;
   margin-top: -4px;
@@ -546,6 +559,53 @@
   overflow: visible;
   text-overflow: clip;
   white-space: normal;
+}
+
+.innerOrderSortHeader {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 4px;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.25;
+  text-align: left;
+  cursor: pointer;
+}
+
+.innerOrderSortHeader:hover,
+.innerOrderSortHeader:focus-visible,
+.innerOrderSortHeader[aria-pressed='true'] {
+  color: #1d4ed8;
+}
+
+.innerOrderSortHeader:focus-visible {
+  outline: 2px solid rgba(37, 99, 235, 0.25);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.innerOrderSortHeaderNum {
+  justify-content: flex-end;
+  text-align: right;
+  white-space: normal;
+}
+
+.innerOrderSortIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 10px;
+  min-width: 10px;
+  color: #2563eb;
+  font-size: 10px;
+  line-height: 1;
 }
 
 .emptyState {
@@ -805,7 +865,7 @@
   }
 
   .innerOrderRow {
-    grid-template-columns: 28px minmax(80px, 0.5fr) minmax(78px, 0.5fr) minmax(120px, 1fr);
+    grid-template-columns: 28px 28px minmax(80px, 0.5fr) minmax(78px, 0.5fr) minmax(120px, 1fr);
     min-width: 0;
   }
 

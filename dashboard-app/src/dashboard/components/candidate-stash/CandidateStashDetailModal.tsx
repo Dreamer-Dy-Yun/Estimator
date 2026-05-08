@@ -8,13 +8,46 @@ import { DeleteButton } from '../DeleteButton'
 import { FilterBar } from '../FilterBar'
 import { ProductDrawer } from '../product-drawer/ProductDrawer'
 import { stashDetailModalBackdropDataProps } from '../../drawer/drawerDom'
-import { useCandidateStashDetailModal, type InnerCandidateRow } from './useCandidateStashDetailModal'
+import {
+  useCandidateStashDetailModal,
+  type InnerCandidateRow,
+  type InnerCandidateSortKey,
+} from './useCandidateStashDetailModal'
 import styles from '../common.module.css'
 import { CandidateInsightBadges } from './CandidateInsightBadges'
 import { CandidateRecommendationModal } from './CandidateRecommendationModal'
 import detailStyles from './CandidateStashDetailModal.module.css'
 
 const ANALYSIS_POPUP_AUTO_DISMISS_SECONDS = 5
+
+type SortHeaderProps = {
+  label: string
+  sortKey: InnerCandidateSortKey
+  activeKey: InnerCandidateSortKey | null
+  activeDir: 'asc' | 'desc' | null
+  align?: 'left' | 'right'
+  onSort: (key: InnerCandidateSortKey) => void
+}
+
+function InnerOrderSortHeader({ label, sortKey, activeKey, activeDir, align = 'left', onSort }: SortHeaderProps) {
+  const active = activeKey === sortKey
+  const sortMark = active ? (activeDir === 'asc' ? '▲' : '▼') : ''
+
+  return (
+    <button
+      type="button"
+      className={`${detailStyles.innerOrderSortHeader} ${
+        align === 'right' ? detailStyles.innerOrderSortHeaderNum : ''
+      }`}
+      onClick={() => onSort(sortKey)}
+      aria-label={`${label} 정렬`}
+      aria-pressed={active}
+    >
+      <span>{label}</span>
+      <span className={detailStyles.innerOrderSortIcon} aria-hidden="true">{sortMark}</span>
+    </button>
+  )
+}
 
 type Props = {
   stashUuid: string
@@ -64,6 +97,8 @@ export function CandidateStashDetailModal({ stashUuid, stashSummary, onClose, on
     const uniqueLabels = [...new Set(labels)]
     return uniqueLabels.length === 1 ? `${uniqueLabels[0]} 기간 총 판매량` : '경쟁사 기간 총 판매량'
   }, [m.tableRows])
+  const activeSortKey = m.tableSort?.key ?? null
+  const activeSortDir = m.tableSort?.dir ?? null
   const analysisProgressPct = useMemo(() => {
     const progress = m.analysisProgress
     if (!progress) return 0
@@ -440,6 +475,7 @@ export function CandidateStashDetailModal({ stashUuid, stashSummary, onClose, on
                     ) : (
                       <div className={detailStyles.innerOrderList} role="list">
                         <div className={detailStyles.innerOrderHeader} role="presentation">
+                          <span className={detailStyles.innerOrderIndexCell} aria-hidden="true" />
                           <span className={detailStyles.innerOrderCheckCell}>
                             <input
                               ref={selectAllRef}
@@ -450,15 +486,61 @@ export function CandidateStashDetailModal({ stashUuid, stashSummary, onClose, on
                               onChange={toggleAllVisibleItems}
                             />
                           </span>
-                          <span>브랜드</span>
-                          <span>상품코드</span>
-                          <span>상품명</span>
-                          <span className={detailStyles.innerOrderCellNum}>자사 기간 총 판매량</span>
-                          <span className={detailStyles.innerOrderCellNum}>{competitorSalesQtyHeader}</span>
-                          <span className={detailStyles.innerOrderCellNum}>총 오더 수량</span>
-                          <span className={detailStyles.innerOrderCellNum}>총 오더 금액</span>
+                          <InnerOrderSortHeader
+                            label="브랜드"
+                            sortKey="brand"
+                            activeKey={activeSortKey}
+                            activeDir={activeSortDir}
+                            onSort={m.toggleTableSort}
+                          />
+                          <InnerOrderSortHeader
+                            label="상품코드"
+                            sortKey="productCode"
+                            activeKey={activeSortKey}
+                            activeDir={activeSortDir}
+                            onSort={m.toggleTableSort}
+                          />
+                          <InnerOrderSortHeader
+                            label="상품명"
+                            sortKey="productName"
+                            activeKey={activeSortKey}
+                            activeDir={activeSortDir}
+                            onSort={m.toggleTableSort}
+                          />
+                          <InnerOrderSortHeader
+                            label="자사 기간 총 판매량"
+                            sortKey="selfQty"
+                            activeKey={activeSortKey}
+                            activeDir={activeSortDir}
+                            align="right"
+                            onSort={m.toggleTableSort}
+                          />
+                          <InnerOrderSortHeader
+                            label={competitorSalesQtyHeader}
+                            sortKey="competitorQty"
+                            activeKey={activeSortKey}
+                            activeDir={activeSortDir}
+                            align="right"
+                            onSort={m.toggleTableSort}
+                          />
+                          <InnerOrderSortHeader
+                            label="총 오더 수량"
+                            sortKey="expectedSalesQty"
+                            activeKey={activeSortKey}
+                            activeDir={activeSortDir}
+                            align="right"
+                            onSort={m.toggleTableSort}
+                          />
+                          <InnerOrderSortHeader
+                            label="총 오더 금액"
+                            sortKey="expectedOrderAmount"
+                            activeKey={activeSortKey}
+                            activeDir={activeSortDir}
+                            align="right"
+                            onSort={m.toggleTableSort}
+                          />
                         </div>
-                        {m.tableRows.map((row) => {
+                        {m.tableRows.map((row, index) => {
                           const selected = selectedItemUuids.has(row.uuid)
                           return (
                             <div
@@ -482,6 +564,7 @@ export function CandidateStashDetailModal({ stashUuid, stashSummary, onClose, on
                               tabIndex={0}
                               aria-expanded={m.drawerOpen && m.openedItemUuid === row.uuid}
                             >
+                              <span className={detailStyles.innerOrderIndexCell}>{index + 1}</span>
                               <span className={detailStyles.innerOrderCheckCell}>
                                 <input
                                   type="checkbox"

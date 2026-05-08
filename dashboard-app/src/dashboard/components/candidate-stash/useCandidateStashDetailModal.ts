@@ -26,12 +26,52 @@ import { createCandidateOrderExcelExport, downloadBlob } from './candidateOrderE
 const INNER_DRAWER_CLOSE_LAYOUT_MS = 440
 
 export type InnerCandidateRow = CandidateItemSummary & { id: string }
+export type InnerCandidateSortKey =
+  | 'brand'
+  | 'productCode'
+  | 'productName'
+  | 'selfQty'
+  | 'competitorQty'
+  | 'expectedSalesQty'
+  | 'expectedOrderAmount'
+
+export type InnerCandidateSortState = {
+  key: InnerCandidateSortKey
+  dir: 'asc' | 'desc'
+}
 
 type Args = {
   stashUuid: string
   /** 부모가 이미 알고 있으면 전달 — `getCandidateStashes()` 중복 호출 생략 */
   stashSummary?: CandidateStashSummary | null
   onStashesInvalidate?: () => void
+}
+
+function candidateSortValue(row: InnerCandidateRow, key: InnerCandidateSortKey): string | number | null {
+  switch (key) {
+    case 'brand':
+      return row.brand
+    case 'productCode':
+      return row.productCode
+    case 'productName':
+      return row.productName
+    case 'selfQty':
+      return row.insight.selfQty
+    case 'competitorQty':
+      return row.insight.competitorQty
+    case 'expectedSalesQty':
+      return row.insight.expectedSalesQty
+    case 'expectedOrderAmount':
+      return row.expectedOrderAmount
+  }
+}
+
+function compareCandidateSortValue(a: string | number | null, b: string | number | null): number {
+  if (a == null && b == null) return 0
+  if (a == null) return 1
+  if (b == null) return -1
+  if (typeof a === 'number' && typeof b === 'number') return a - b
+  return String(a).localeCompare(String(b), 'ko')
 }
 
 function applySnapshotPeriod(
@@ -63,6 +103,7 @@ export function useCandidateStashDetailModal({
   const [brandQuery, setBrandQuery] = useState('')
   const [productCodeQuery, setProductCodeQuery] = useState('')
   const [productNameQuery, setProductNameQuery] = useState('')
+  const [tableSort, setTableSort] = useState<InnerCandidateSortState | null>(null)
   const [queryPeriodStart, setQueryPeriodStart] = useState('')
   const [queryPeriodEnd, setQueryPeriodEnd] = useState('')
 
@@ -266,6 +307,14 @@ export function useCandidateStashDetailModal({
     setQueryPeriodStart((currentStart) => normalizeRangeOnEndInput(value, currentStart || value).startDate)
   }, [])
 
+  const toggleTableSort = useCallback((key: InnerCandidateSortKey) => {
+    setTableSort((current) => {
+      if (!current || current.key !== key) return { key, dir: 'asc' }
+      if (current.dir === 'asc') return { key, dir: 'desc' }
+      return null
+    })
+  }, [])
+
   const brandOptions = useMemo(() => uniqueSortedStrings(items.map((i) => i.brand)), [items])
   const productCodeOptions = useMemo(() => uniqueSortedStrings(items.map((i) => i.productCode)), [items])
   const productNameOptions = useMemo(() => uniqueSortedStrings(items.map((i) => i.productName)), [items])
@@ -282,10 +331,19 @@ export function useCandidateStashDetailModal({
     })
   }, [brandQuery, items, productCodeQuery, productNameQuery])
 
-  const tableRows = useMemo(
-    (): InnerCandidateRow[] => filteredItems.map((item) => ({ ...item, id: item.uuid })),
-    [filteredItems],
-  )
+  const tableRows = useMemo((): InnerCandidateRow[] => {
+    const rows = filteredItems.map((item) => ({ ...item, id: item.uuid }))
+    if (!tableSort) return rows
+    const originalIndex = new Map(rows.map((row, index) => [row.uuid, index]))
+    return [...rows].sort((a, b) => {
+      const compared = compareCandidateSortValue(
+        candidateSortValue(a, tableSort.key),
+        candidateSortValue(b, tableSort.key),
+      )
+      if (compared !== 0) return tableSort.dir === 'asc' ? compared : -compared
+      return (originalIndex.get(a.uuid) ?? 0) - (originalIndex.get(b.uuid) ?? 0)
+    })
+  }, [filteredItems, tableSort])
 
   const totals = useMemo(() => {
     return filteredItems.reduce(
@@ -477,6 +535,8 @@ export function useCandidateStashDetailModal({
     setProductCodeQuery,
     productNameQuery,
     setProductNameQuery,
+    tableSort,
+    toggleTableSort,
     drawerError,
     openedItemUuid,
     hydrateSnap: drawerHydrateSnap,
