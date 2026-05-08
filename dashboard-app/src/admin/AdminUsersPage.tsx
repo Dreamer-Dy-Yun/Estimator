@@ -224,6 +224,7 @@ export function AdminUsersPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [isCreating, setIsCreating] = useState(false)
   const [passwordResetNotice, setPasswordResetNotice] = useState<PasswordResetNotice | null>(null)
+  const [passwordCopyMessage, setPasswordCopyMessage] = useState<string | null>(null)
 
   useEffect(() => {
     let alive = true
@@ -275,10 +276,22 @@ export function AdminUsersPage() {
       loginId: user.loginId,
       ...result,
     })
+    setPasswordCopyMessage(null)
   }
 
   const closePasswordResetNotice = () => {
     setPasswordResetNotice(null)
+    setPasswordCopyMessage(null)
+  }
+
+  const copyTemporaryPassword = async () => {
+    if (!passwordResetNotice) return
+    try {
+      await window.navigator.clipboard.writeText(passwordResetNotice.temporaryPassword)
+      setPasswordCopyMessage('복사됨')
+    } catch {
+      setPasswordCopyMessage('복사 실패')
+    }
   }
 
   const handleCreate = async (event: FormEvent<HTMLFormElement>) => {
@@ -445,8 +458,20 @@ export function AdminUsersPage() {
                 ✕
               </button>
             </div>
-            <p>로그인 사용자에게 다음 임시 비밀번호를 안내해주세요.</p>
-            <code>{passwordResetNotice.temporaryPassword}</code>
+            <p>로그인 사용자에게 다음 임시 비밀번호를 안내해주세요. 비밀번호를 클릭하면 복사됩니다.</p>
+            <button
+              type="button"
+              className={styles.resetNoticePasswordButton}
+              onClick={copyTemporaryPassword}
+              aria-label={`${passwordResetNotice.loginId} 임시 비밀번호 복사`}
+            >
+              <code>{passwordResetNotice.temporaryPassword}</code>
+            </button>
+            {passwordCopyMessage ? (
+              <span className={styles.resetNoticeCopyState} role="status">
+                {passwordCopyMessage}
+              </span>
+            ) : null}
             <div className={styles.resetNoticeActions}>
               <button type="button" onClick={closePasswordResetNotice}>
                 닫기
