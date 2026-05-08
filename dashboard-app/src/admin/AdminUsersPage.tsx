@@ -182,7 +182,7 @@ function AdminUserRow({
       <div className={styles.updatedCell}>{formatUpdatedAt(user.dbUpdatedAt)}</div>
       <div className={styles.actionCell}>
         <button className={styles.saveButton} type="submit" disabled={!isDirty || isSaving}>
-          {isSaving ? '저장 중' : '저장'}
+          {isSaving ? '변경 중' : '변경'}
         </button>
         <button
           className={styles.resetButton}
