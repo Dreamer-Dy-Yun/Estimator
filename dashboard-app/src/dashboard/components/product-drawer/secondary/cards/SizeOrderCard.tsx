@@ -49,6 +49,10 @@ function clampWeightPct(v: number): number {
   return Math.max(0, Math.min(100, Math.round(v * 100) / 100))
 }
 
+function formatOptionalGroupedNumber(value: number | undefined): string {
+  return value == null ? '-' : formatGroupedNumber(value)
+}
+
 export function SizeOrderCard({ sizeOrder, actions, help }: Props) {
   const {
     channelLabel,
@@ -172,6 +176,7 @@ export function SizeOrderCard({ sizeOrder, actions, help }: Props) {
             <div style={{ marginBottom: 4, color: '#475569' }}>{KO.thSize}: {sizeLabel}</div>
             {ordered.map((item) => {
               const n = typeof item.value === 'number' ? item.value : Number(item.value)
+              const valueText = Number.isFinite(n) ? `${formatRatioDecimalKo(n)}%` : String(item.value ?? '-')
               return (
                 <div key={String(item.dataKey)} style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
                   <span
@@ -184,7 +189,7 @@ export function SizeOrderCard({ sizeOrder, actions, help }: Props) {
                       flexShrink: 0,
                     }}
                   />
-                  <span>{item.name}: {formatRatioDecimalKo(Number.isFinite(n) ? n : 0)}%</span>
+                  <span>{item.name}: {valueText}</span>
                 </div>
               )
             })}
@@ -354,7 +359,7 @@ export function SizeOrderCard({ sizeOrder, actions, help }: Props) {
               <td>{KO.rowCurrentStockQty}</td>
               <td className={styles.num}>{formatGroupedNumber(currentStockQty)}</td>
               {sizeRows.map((r, i) => (
-                <td key={r.size} className={styles.num}>{formatGroupedNumber(currentStockQtyBySize[i] ?? 0)}</td>
+                <td key={r.size} className={styles.num}>{formatOptionalGroupedNumber(currentStockQtyBySize[i])}</td>
               ))}
             </tr>
             <tr>
@@ -372,7 +377,7 @@ export function SizeOrderCard({ sizeOrder, actions, help }: Props) {
               </td>
               <td className={styles.num}>{formatGroupedNumber(totalOrderBalanceQty)}</td>
               {sizeRows.map((r, i) => (
-                <td key={r.size} className={styles.num}>{formatGroupedNumber(totalOrderBalanceBySize[i] ?? 0)}</td>
+                <td key={r.size} className={styles.num}>{formatOptionalGroupedNumber(totalOrderBalanceBySize[i])}</td>
               ))}
             </tr>
             <tr>
@@ -390,7 +395,9 @@ export function SizeOrderCard({ sizeOrder, actions, help }: Props) {
               </td>
               <td className={styles.num}>{formatGroupedNumber(expectedInboundOrderBalanceQty)}</td>
               {sizeRows.map((r, i) => (
-                <td key={r.size} className={styles.num}>{formatGroupedNumber(expectedInboundOrderBalanceBySize[i] ?? 0)}</td>
+                <td key={r.size} className={styles.num}>
+                  {formatOptionalGroupedNumber(expectedInboundOrderBalanceBySize[i])}
+                </td>
               ))}
             </tr>
             <tr>

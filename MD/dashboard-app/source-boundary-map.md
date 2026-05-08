@@ -241,7 +241,7 @@
 
 | 파일/폴더 | 역할 |
 |------|------|
-| `ProductSecondaryDrawer.tsx` | 2차 드로워 content orchestration. 카드 배치, 스냅샷 생성, 후보군 저장/수정 사용자 액션을 소유한다. 저장 스냅샷 필드 검증은 `parseOrderSnapshot`에 맡기고 이 컴포넌트는 검증된 계약을 사용한다 |
+| `ProductSecondaryDrawer.tsx` | 2차 드로워 content orchestration. 카드 배치, 스냅샷 생성, 후보군 저장/수정 사용자 액션을 소유한다. 저장 스냅샷의 큰 구조는 `parseOrderSnapshot`에 맡기고 이 컴포넌트는 계약된 내부 값을 다시 보정하지 않는다 |
 | `useSecondaryDrawerDetail.ts` | 2차 드로워가 열릴 때의 상세 조회와 검증된 스냅샷 hydration |
 | `secondaryDrawerTypes.ts` | 2차 드로워 내부 view-model 타입 |
 | `candidateActionCards.tsx` | 2차 드로워에서 후보군 저장/연결 액션 UI |
@@ -278,7 +278,7 @@
 | 파일 | 역할 |
 |------|------|
 | `orderSnapshotTypes.ts` | 저장 문서 schema 타입 |
-| `parseOrderSnapshot.ts` | API 타입에 의존하지 않고 `unknown` 저장 문서를 파싱/검증. 2차 드로워 hydration에 필요한 경쟁 채널, 재고 입력, AI 코멘트, 사이즈별 확정 수량 필드는 여기서 검증한다 |
+| `parseOrderSnapshot.ts` | API 타입에 의존하지 않고 `unknown` 저장 문서의 schemaVersion, productId, drawer/context 주요 블록, sizeRows 배열 구조만 검증한다. 내부 숫자/문자 비즈니스 값은 백엔드 계약을 신뢰하고 화면/export에서 드러나게 둔다 |
 
 ## src/styles
 

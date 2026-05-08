@@ -27,6 +27,9 @@ const validSnapshot = {
       leadTimeEndDate: '2026-02-28',
       dailyMean: 10,
     },
+    stockDerived: {},
+    salesSelf: {},
+    salesCompetitor: {},
     sizeRows: [
       { size: '250', confirmQty: 12 },
     ],
@@ -96,25 +99,26 @@ describe('parseOrderSnapshot', () => {
     expect(() => parseOrderSnapshot(numericProductId)).toThrow(/productId/)
   })
 
-  it('throws when drawer2 stock inputs are incomplete', () => {
+  it('throws when snapshot structure blocks are missing', () => {
     const broken = {
+      ...validSnapshot,
+      drawer2: {
+        ...validSnapshot.drawer2,
+        stockInputs: null,
+      },
+    }
+    expect(() => parseOrderSnapshot(broken)).toThrow(/stockInputs/)
+  })
+
+  it('preserves internally odd business values for the screen to surface', () => {
+    const internallyOdd = {
       ...validSnapshot,
       drawer2: {
         ...validSnapshot.drawer2,
         stockInputs: { ...validSnapshot.drawer2.stockInputs, dailyMean: null },
-      },
-    }
-    expect(() => parseOrderSnapshot(broken)).toThrow(/stockInputs\.dailyMean/)
-  })
-
-  it('throws when drawer2 size rows do not have confirmed quantities', () => {
-    const broken = {
-      ...validSnapshot,
-      drawer2: {
-        ...validSnapshot.drawer2,
         sizeRows: [{ size: '250', confirmQty: -1 }],
       },
     }
-    expect(() => parseOrderSnapshot(broken)).toThrow(/confirmQty/)
+    expect(parseOrderSnapshot(internallyOdd)).toBe(internallyOdd)
   })
 })

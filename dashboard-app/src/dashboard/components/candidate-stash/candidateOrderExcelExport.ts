@@ -39,23 +39,16 @@ function getInboundExpectedDate(items: CandidateOrderExportItem[]): string {
   return dates.join(' / ')
 }
 
-function validNumber(value: number | null | undefined): number | null {
-  return typeof value === 'number' && Number.isFinite(value) ? value : null
-}
-
 function numberOrDash(value: number | null | undefined): number | '-' {
-  const num = validNumber(value)
-  return num == null ? '-' : num
+  return value == null ? '-' : value
 }
 
-function roundedNonNegative(value: number | null | undefined): number {
-  const num = validNumber(value)
-  return num == null ? 0 : Math.max(0, Math.round(num))
+function roundedNonNegative(value: number): number {
+  return Math.max(0, Math.round(value))
 }
 
 function rateOrDash(value: number | null | undefined): string {
-  const num = validNumber(value)
-  return num == null ? '-' : `${num.toFixed(1)}%`
+  return value == null ? '-' : `${value.toFixed(1)}%`
 }
 
 function normalizeSize(size: string): string {
