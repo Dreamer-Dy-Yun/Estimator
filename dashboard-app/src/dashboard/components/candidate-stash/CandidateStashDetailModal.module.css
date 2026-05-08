@@ -69,7 +69,7 @@
   grid-row: 1;
   min-width: 0;
   display: grid;
-  grid-template-columns: auto minmax(111px, 138px) auto minmax(111px, 138px);
+  grid-template-columns: auto minmax(100px, 124px) auto minmax(100px, 124px);
   align-items: center;
   justify-self: start;
   justify-content: start;
@@ -730,7 +730,7 @@
 .stashDetailModalBackdrop[data-inner-drawer-closing='true'] .detailHeaderPeriodCell {
   grid-column: 16 / span 10;
   grid-row: 1;
-  grid-template-columns: auto minmax(111px, 138px) auto minmax(111px, 138px);
+  grid-template-columns: auto minmax(100px, 124px) auto minmax(100px, 124px);
   gap: 6px;
 }
 
