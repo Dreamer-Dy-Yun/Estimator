@@ -305,8 +305,8 @@ export function CandidateStashDetailModal({ stashUuid, stashSummary, onClose, on
                         {m.detailTarget.name}
                       </h3>
                     </div>
-                    <div className={detailStyles.detailHeaderPeriodCell} aria-label="조회 기준 기간">
-                      <span className={detailStyles.detailHeaderPeriodLabel}>조회 기간 :</span>
+                    <div className={detailStyles.detailHeaderPeriodCell} aria-label="데이터 참조 기간">
+                      <span className={detailStyles.detailHeaderPeriodLabel}>데이터 참조 기간 :</span>
                       <input
                         className={detailStyles.detailHeaderPeriodInput}
                         type="date"
