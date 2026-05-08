@@ -68,6 +68,7 @@
   display: grid;
   grid-template-columns: auto minmax(111px, 138px) auto minmax(111px, 138px);
   align-items: center;
+  justify-self: start;
   justify-content: start;
   gap: 6px;
 }
@@ -721,10 +722,10 @@
 
 .stashDetailModalBackdrop[data-inner-drawer-open='true'] .detailHeaderPeriodCell,
 .stashDetailModalBackdrop[data-inner-drawer-closing='true'] .detailHeaderPeriodCell {
-  grid-column: 3 / span 20;
+  grid-column: 13 / span 8;
   grid-row: 1;
-  grid-template-columns: auto minmax(132px, 1fr) auto minmax(132px, 1fr);
-  gap: 4px;
+  grid-template-columns: auto minmax(111px, 138px) auto minmax(111px, 138px);
+  gap: 6px;
 }
 
 .stashDetailModalBackdrop[data-inner-drawer-open='true'] .detailMetaStack,
@@ -748,12 +749,6 @@
 .stashDetailModalBackdrop[data-inner-drawer-closing='true'] .detailHeaderCloseBtn {
   grid-column: 38 / span 3;
   grid-row: 1;
-}
-
-.stashDetailModalBackdrop[data-inner-drawer-open='true'] .detailHeaderPeriodInput,
-.stashDetailModalBackdrop[data-inner-drawer-closing='true'] .detailHeaderPeriodInput {
-  padding-inline: 5px;
-  font-size: 11px;
 }
 
 .stashDetailModalBackdrop[data-inner-drawer-open='true'] .detailHeaderRecommendationBtn,
