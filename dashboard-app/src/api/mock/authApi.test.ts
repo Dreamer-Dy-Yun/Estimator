@@ -28,21 +28,29 @@ describe('api/mock authApi pass-through behavior', () => {
     await expect(mockAuthApi.createAdminUser({
       loginId: '',
       password: '',
+      name: '생성 사용자',
+      note: '생성 메모',
       role: 'user',
       isActive: true,
     })).resolves.toMatchObject({
       loginId: 'mock-created-user',
+      name: '생성 사용자',
+      note: '생성 메모',
       role: 'user',
       isActive: true,
     })
     await expect(mockAuthApi.updateAdminUser({
       uuid: 'unknown-user',
       loginId: '',
+      name: '수정 사용자',
+      note: '수정 메모',
       role: 'admin',
       isActive: false,
     })).resolves.toMatchObject({
       uuid: 'unknown-user',
       loginId: 'mock-updated-user',
+      name: '수정 사용자',
+      note: '수정 메모',
       role: 'admin',
       isActive: false,
     })

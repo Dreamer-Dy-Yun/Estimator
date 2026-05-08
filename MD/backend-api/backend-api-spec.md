@@ -75,7 +75,7 @@
 |------|------|------|
 | `user.uuid` | string | 서버 생성 사용자 UUID. 화면 수정/삭제의 식별자 |
 | `user.loginId` | string | 로그인 ID. 헤더와 사용자 정보 모달의 계정 표시값 |
-| `user.name` | string? | 사용자 표시명. 발주 엑셀 메타 시트의 `이름`처럼 사람 이름이 필요한 곳에서 사용하며, 없으면 프론트는 `loginId`를 대체 표시값으로 쓴다 |
+| `user.name` | string | 사용자 표시명. 발주 엑셀 메타 시트의 `이름`처럼 사람 이름이 필요한 곳에서 사용한다 |
 | `user.role` | `'admin' \| 'user'` | 프론트 권한 분기용 역할. 관리자는 관리자 화면 접근 가능, 사용자는 일반 대시보드 접근만 가능 |
 | `user.mustChangePassword` | boolean | 임시/초기 비밀번호로 로그인했거나 관리자 재설정 후 아직 직접 변경하지 않은 상태 |
 | `expiresAt` | string | ISO 8601 세션 만료 시각 |
@@ -101,6 +101,8 @@
 |------|------|------|
 | `uuid` | string | 서버 생성 사용자 UUID. 화면 수정/삭제의 식별자 |
 | `loginId` | string | 로그인 ID |
+| `name` | string | 사용자 이름. `USER_ACCOUNT.name`과 대응하며 관리자 생성/수정 화면에서 편집한다 |
+| `note` | string \| null | 직책, 부서 등 내부 관리 메모. 인증 판단에는 쓰지 않는다 |
 | `role` | `'admin' \| 'user'` | 사용자 권한 |
 | `mustChangePassword` | boolean | 다음 로그인 후 비밀번호 변경이 필요한지 여부. 관리자가 비밀번호를 조회하는 용도가 아니라 상태 표시/강제 변경 흐름용 |
 | `isActive` | boolean | 활성 계정 여부 |
@@ -112,6 +114,8 @@
 |------|------|------|
 | `loginId` | string | 로그인 ID. 실제 백엔드 검증 정책은 서버가 소유한다. 현재 mock은 값을 검증하지 않고 호출 성공만 모사한다 |
 | `password` | string | 최초 로그인용 비밀번호 |
+| `name` | string | 사용자 이름 |
+| `note` | string \| null | 직책, 부서 등 내부 관리 메모 |
 | `role` | `'admin' \| 'user'` | 사용자 권한 |
 | `isActive` | boolean | 생성 시 활성 상태 |
 
@@ -121,6 +125,8 @@
 |------|------|------|
 | `uuid` | string | 변경 대상 사용자 UUID |
 | `loginId` | string | 변경할 로그인 ID. UUID는 바뀌지 않음 |
+| `name` | string | 변경할 사용자 이름 |
+| `note` | string \| null | 변경할 내부 관리 메모 |
 | `role` | `'admin' \| 'user'` | 변경할 권한 |
 | `isActive` | boolean | 활성 상태 |
 
@@ -139,8 +145,9 @@
 **`USER_ACCOUNT` 정합성 메모**
 
 - 계정 테이블은 `USER_ACCOUNT`를 기준으로 하며, 외부/API 사용자 식별자는 `USER_ACCOUNT.uuid`를 사용한다.
-- `login_id`, `password_hash`, `role`, `must_change_password`, `is_active`, `failed_login_count`, `uuid`는 프론트 인증 계약과 직접 맞물린다.
+- `login_id`, `password_hash`, `name`, `note`, `role`, `must_change_password`, `is_active`, `failed_login_count`, `uuid`는 프론트 인증 계약과 직접 맞물린다.
 - `role` 허용값은 `admin`, `user` 두 가지다. DB 표 양식상 CHECK 제약을 적기 어렵다면 백엔드 저장 검증 규칙으로 강제한다.
+- `must_change_password`는 사용자 추가/비밀번호 재설정 시 백엔드가 `true`로 세팅하는 상태값이다. 관리자 추가 화면의 직접 입력값으로 두지 않는다.
 - `is_active = false`는 관리자 비활성화 상태, `failed_login_count`/`locked_at`은 로그인 실패 잠금 상태, `must_change_password`는 로그인 후 비밀번호 변경 강제 상태다.
 
 ---

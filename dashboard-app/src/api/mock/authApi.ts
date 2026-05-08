@@ -25,6 +25,8 @@ const DEFAULT_AUTH_USERS: StoredAuthUser[] = [
   {
     uuid: MOCK_ADMIN_USER_UUID,
     loginId: 'mock-admin',
+    name: '관리자',
+    note: '목업 관리자 계정',
     password: 'admin',
     role: 'admin',
     mustChangePassword: false,
@@ -34,6 +36,8 @@ const DEFAULT_AUTH_USERS: StoredAuthUser[] = [
   {
     uuid: MOCK_USER_UUID,
     loginId: 'mock-user',
+    name: '사용자',
+    note: '목업 일반 사용자 계정',
     password: 'user',
     role: 'user',
     mustChangePassword: false,
@@ -70,7 +74,7 @@ function makeSessionUser(user: StoredAuthUser): AuthUser {
   return {
     uuid: user.uuid,
     loginId: user.loginId,
-    name: user.loginId,
+    name: user.name,
     role: user.role,
     mustChangePassword: user.mustChangePassword,
   }
@@ -162,9 +166,12 @@ export const mockAuthApi: AuthApi = {
     await sleep(120)
     assertAdminSession()
     const loginId = payload.loginId.trim() || 'mock-created-user'
+    const name = payload.name.trim() || loginId
     return {
       uuid: createMockUuid(),
       loginId,
+      name,
+      note: payload.note?.trim() || null,
       role: payload.role,
       mustChangePassword: true,
       isActive: payload.isActive,
@@ -181,6 +188,8 @@ export const mockAuthApi: AuthApi = {
       ...base,
       uuid: payload.uuid,
       loginId: payload.loginId.trim() || target?.loginId || 'mock-updated-user',
+      name: payload.name.trim() || target?.name || payload.loginId.trim() || 'mock-updated-user',
+      note: payload.note?.trim() || null,
       role: payload.role,
       mustChangePassword: base.mustChangePassword,
       isActive: payload.isActive,

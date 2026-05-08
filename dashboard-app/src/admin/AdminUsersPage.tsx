@@ -43,6 +43,8 @@ function AdminUserRow({
   onPasswordReset: (user: AdminUserSummary) => Promise<void>
 }) {
   const [loginId, setLoginId] = useState(user.loginId)
+  const [name, setName] = useState(user.name)
+  const [note, setNote] = useState(user.note ?? '')
   const [role, setRole] = useState<AuthRole>(user.role)
   const [isActive, setIsActive] = useState(user.isActive)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
@@ -50,10 +52,17 @@ function AdminUserRow({
   const [isDeleting, setIsDeleting] = useState(false)
   const [isResettingPassword, setIsResettingPassword] = useState(false)
   const isCurrentUser = user.uuid === currentUserUuid
-  const isDirty = loginId !== user.loginId || role !== user.role || isActive !== user.isActive
+  const isDirty =
+    loginId !== user.loginId ||
+    name !== user.name ||
+    note !== (user.note ?? '') ||
+    role !== user.role ||
+    isActive !== user.isActive
 
   useEffect(() => {
     setLoginId(user.loginId)
+    setName(user.name)
+    setNote(user.note ?? '')
     setRole(user.role)
     setIsActive(user.isActive)
     setErrorMessage(null)
@@ -71,6 +80,8 @@ function AdminUserRow({
       await updateAdminUser({
         uuid: user.uuid,
         loginId,
+        name,
+        note,
         role,
         isActive,
       })
@@ -126,6 +137,23 @@ function AdminUserRow({
           onChange={(event) => setLoginId(event.target.value)}
           autoComplete="username"
           maxLength={32}
+        />
+      </label>
+      <label className={styles.fieldCell}>
+        <span>이름</span>
+        <input
+          value={name}
+          onChange={(event) => setName(event.target.value)}
+          autoComplete="name"
+          maxLength={80}
+        />
+      </label>
+      <label className={styles.fieldCell}>
+        <span>비고</span>
+        <input
+          value={note}
+          onChange={(event) => setNote(event.target.value)}
+          maxLength={200}
         />
       </label>
       <label className={styles.fieldCell}>
@@ -187,6 +215,8 @@ export function AdminUsersPage() {
   const [users, setUsers] = useState<AdminUserSummary[]>([])
   const [newLoginId, setNewLoginId] = useState('')
   const [newPassword, setNewPassword] = useState('')
+  const [newName, setNewName] = useState('')
+  const [newNote, setNewNote] = useState('')
   const [newRole, setNewRole] = useState<AuthRole>('user')
   const [newIsActive, setNewIsActive] = useState(true)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
@@ -256,12 +286,16 @@ export function AdminUsersPage() {
       await createAdminUser({
         loginId: newLoginId,
         password: newPassword,
+        name: newName,
+        note: newNote,
         role: newRole,
         isActive: newIsActive,
       })
       await reloadUsers()
       setNewLoginId('')
       setNewPassword('')
+      setNewName('')
+      setNewNote('')
       setNewRole('user')
       setNewIsActive(true)
     } catch (error) {
@@ -278,7 +312,7 @@ export function AdminUsersPage() {
           <p className={styles.kicker}>관리자</p>
           <h1>사용자 정보 관리</h1>
         </div>
-        <p className={styles.headerMeta}>로그인 ID, 권한, 활성 상태, 비밀번호 재설정을 관리합니다.</p>
+        <p className={styles.headerMeta}>로그인 ID, 이름, 비고, 권한, 활성 상태, 비밀번호 재설정을 관리합니다.</p>
       </header>
 
       <div className={styles.panel}>
@@ -308,6 +342,25 @@ export function AdminUsersPage() {
               placeholder="초기 비밀번호"
               type="password"
               autoComplete="new-password"
+            />
+          </label>
+          <label className={styles.createField}>
+            <span>이름</span>
+            <input
+              value={newName}
+              onChange={(event) => setNewName(event.target.value)}
+              placeholder="사용자 이름"
+              autoComplete="name"
+              maxLength={80}
+            />
+          </label>
+          <label className={styles.createField}>
+            <span>비고</span>
+            <input
+              value={newNote}
+              onChange={(event) => setNewNote(event.target.value)}
+              placeholder="직책, 부서 등"
+              maxLength={200}
             />
           </label>
           <label className={styles.createField}>
@@ -350,6 +403,8 @@ export function AdminUsersPage() {
         <div className={styles.tableHeader} aria-hidden="true">
           <span>UUID</span>
           <span>로그인 ID</span>
+          <span>이름</span>
+          <span>비고</span>
           <span>권한</span>
           <span>상태</span>
           <span>변경일</span>

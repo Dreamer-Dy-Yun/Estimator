@@ -17,12 +17,13 @@ export interface ChangePasswordPayload {
 export interface AuthUser {
   uuid: string
   loginId: string
-  name?: string
+  name: string
   role: AuthRole
   mustChangePassword: boolean
 }
 
 export interface AdminUserSummary extends AuthUser {
+  note: string | null
   isActive: boolean
   dbUpdatedAt: string
 }
@@ -30,6 +31,8 @@ export interface AdminUserSummary extends AuthUser {
 export interface CreateAdminUserPayload {
   loginId: string
   password: string
+  name: string
+  note: string | null
   role: AuthRole
   isActive: boolean
 }
@@ -37,6 +40,8 @@ export interface CreateAdminUserPayload {
 export interface UpdateAdminUserPayload {
   uuid: string
   loginId: string
+  name: string
+  note: string | null
   role: AuthRole
   isActive: boolean
 }

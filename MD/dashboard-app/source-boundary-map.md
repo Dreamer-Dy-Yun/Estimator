@@ -134,7 +134,7 @@
 
 | 파일 | 역할 |
 |------|------|
-| `AdminUsersPage.tsx` | 관리자 유저 목록 조회, 추가, UUID 기준 제거, 로그인 ID/권한/활성 상태 수정, 임시 비밀번호 재설정 화면 |
+| `AdminUsersPage.tsx` | 관리자 유저 목록 조회, 추가, UUID 기준 제거, 로그인 ID/이름/비고/권한/활성 상태 수정, 임시 비밀번호 재설정 화면 |
 | `AdminUsersPage.module.css` | 관리자 유저 관리 화면 전용 스타일 |
 
 ## src/components

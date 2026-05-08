@@ -71,8 +71,15 @@
 
 .createForm {
   display: grid;
-  grid-template-columns: minmax(150px, 1fr) minmax(150px, 1fr) 128px 92px 104px;
-  gap: 10px;
+  grid-template-columns:
+    minmax(124px, 0.9fr)
+    minmax(124px, 0.9fr)
+    minmax(120px, 0.8fr)
+    minmax(140px, 1fr)
+    112px
+    78px
+    104px;
+  gap: 8px;
   align-items: end;
   padding: 14px 18px;
   border-bottom: 1px solid #e2e8f0;
@@ -80,6 +87,7 @@
 }
 
 .createField {
+  min-width: 0;
   display: grid;
   gap: 5px;
   color: #64748b;
@@ -151,8 +159,16 @@
 .tableHeader,
 .userRow {
   display: grid;
-  grid-template-columns: minmax(160px, 0.5fr) minmax(180px, 1fr) 128px 92px 156px minmax(258px, auto);
-  gap: 12px;
+  grid-template-columns:
+    minmax(96px, 0.3fr)
+    minmax(116px, 0.72fr)
+    minmax(112px, 0.66fr)
+    minmax(116px, 0.86fr)
+    96px
+    64px
+    118px
+    minmax(210px, auto);
+  gap: 8px;
   align-items: center;
 }
 
@@ -201,6 +217,7 @@
 }
 
 .fieldCell {
+  min-width: 0;
   display: grid;
   gap: 4px;
 }
@@ -248,7 +265,7 @@
 
 .actionCell {
   display: flex;
-  gap: 8px;
+  gap: 6px;
   justify-content: flex-end;
   flex-wrap: wrap;
 }
@@ -257,7 +274,7 @@
   height: 34px;
   border: 0;
   border-radius: 6px;
-  padding: 0 12px;
+  padding: 0 10px;
   background: #233750;
   color: #ffffff;
   font-size: 13px;
