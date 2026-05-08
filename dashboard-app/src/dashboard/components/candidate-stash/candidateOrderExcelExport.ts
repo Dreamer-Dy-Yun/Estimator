@@ -100,18 +100,6 @@ function sizeOrderMap(snapshot: OrderSnapshotDocumentV1): Map<string, number> {
   return map
 }
 
-function sizeSummary(snapshot: OrderSnapshotDocumentV1): string {
-  const positiveSizes = snapshot.drawer2.sizeRows
-    .filter((sizeRow) => roundedNonNegative(sizeRow.confirmQty) > 0)
-    .map((sizeRow) => normalizeSize(sizeRow.size))
-    .filter(Boolean)
-  const fallbackSizes = snapshot.drawer2.sizeRows
-    .map((sizeRow) => normalizeSize(sizeRow.size))
-    .filter(Boolean)
-
-  return (positiveSizes.length ? positiveSizes : fallbackSizes).join(' / ') || '-'
-}
-
 function totalOrderQty(snapshot: OrderSnapshotDocumentV1): number {
   const confirmedTotal = validNumber(snapshot.drawer2.confirmedTotals?.orderQty)
   if (confirmedTotal != null) return roundedNonNegative(confirmedTotal)
@@ -138,7 +126,6 @@ function exportRow(
     summary.productCode,
     summary.productName,
     badgeCell(summary),
-    sizeSummary(snapshot),
     totalOrderQty(snapshot),
     numberOrDash(summary.insight.selfQty ?? salesSelf.qty),
     numberOrDash(summary.insight.competitorQty ?? snapshot.drawer2.salesCompetitor.qty),
@@ -159,7 +146,6 @@ export function createCandidateOrderExcelExport({ stashName, userName, items }: 
     '상품코드',
     '상품명',
     '배지',
-    '사이즈',
     '오더량',
     '자사 기간 총 판매량',
     getCompetitorQtyHeader(items),
@@ -189,7 +175,6 @@ export function createCandidateOrderExcelExport({ stashName, userName, items }: 
         18,
         34,
         18,
-        22,
         12,
         18,
         18,
