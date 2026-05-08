@@ -76,7 +76,7 @@ const seededCandidateItemDrafts: Array<Omit<CandidateItemRecord, 'isLatestLlmCom
     dbCreatedAt: '2026-04-20T09:10:00.000Z',
     dbUpdatedAt: '2026-04-20T09:10:00.000Z',
   },
-  /** 기본 후보군 A(01) — 이너 9건: 목록·필터·스크롤·정렬 */
+  /** 기본 후보군 A(01) — 이너 11건: 목록·필터·스크롤·정렬·상이한 사이즈 체계 */
   ...(
     [
       ['005', 'D', '09:12:00.000Z', '09:13:00.000Z'],
@@ -87,6 +87,8 @@ const seededCandidateItemDrafts: Array<Omit<CandidateItemRecord, 'isLatestLlmCom
       ['010', 'L', '09:22:00.000Z', '09:22:00.000Z'],
       ['011', 'M', '09:24:00.000Z', '09:25:10.000Z'],
       ['012', 'B', '09:26:00.000Z', '09:27:00.000Z'],
+      ['013', 'TEST_SHOE', '09:28:00.000Z', '09:28:30.000Z'],
+      ['014', 'TEST_TOP', '09:29:00.000Z', '09:29:30.000Z'],
     ] as const
   ).map(([suffix, pid, created, updated]) => ({
     uuid: `candidateitem000000000000000000${suffix}`,

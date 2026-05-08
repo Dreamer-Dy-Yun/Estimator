@@ -118,13 +118,22 @@ const makeSizeMix = (
   seed: number,
   category: string,
 ) => {
-  const sizes = ['235', '240', '245', '250', '255', '260', '265', '270', '275', '280']
-  // 유니섹스: 중앙(260~270) 집중 + 양끝 완만 하락(정규분포 유사)
-  const ratioWeightsUnisex = [5, 7, 9, 11, 13, 14, 13, 11, 9, 7]
+  const isApparel = category === '의류'
+  const sizes = isApparel
+    ? ['S', 'M', 'L', 'XL', 'XXL']
+    : ['235', '240', '245', '250', '255', '260', '265', '270', '275', '280']
+  // 유니섹스: 중앙 사이즈 집중 + 양끝 완만 하락(정규분포 유사)
+  const ratioWeightsUnisex = isApparel
+    ? [7, 12, 15, 13, 8]
+    : [5, 7, 9, 11, 13, 14, 13, 11, 9, 7]
   // 남성 치우침: 큰 사이즈로 갈수록 비중 상승
-  const ratioWeightsMale = [3, 4, 6, 8, 10, 12, 14, 15, 15, 13]
+  const ratioWeightsMale = isApparel
+    ? [4, 9, 13, 16, 14]
+    : [3, 4, 6, 8, 10, 12, 14, 15, 15, 13]
   // 여성 치우침: 작은 사이즈로 갈수록 비중 상승
-  const ratioWeightsFemale = [14, 15, 15, 13, 11, 9, 7, 6, 5, 4]
+  const ratioWeightsFemale = isApparel
+    ? [15, 16, 13, 9, 4]
+    : [14, 15, 15, 13, 11, 9, 7, 6, 5, 4]
   const profile = (() => {
     // 신발은 유니섹스 비율을 높이고, 그 외는 성별 치우침을 더 자주 보이게
     if (category === '신발') return seed % 5 < 3 ? 'unisex' : (seed % 2 === 0 ? 'male' : 'female')

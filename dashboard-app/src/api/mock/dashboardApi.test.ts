@@ -130,6 +130,18 @@ describe('api/mock dashboardApi candidate stash contract stubs', () => {
     expect(itemBadgeNames).not.toContain('자사 이율')
   })
 
+  it('seeds mixed test top and test shoe products in the default candidate stash', async () => {
+    const result = await mockDashboardApi.getCandidateItemsByStash(
+      'candidatestash00000000000000000001',
+      MOCK_ADMIN_USER_UUID,
+    )
+    const names = result.items.map((item) => item.productName)
+
+    expect(names).toContain('테스트 상의')
+    expect(names).toContain('테스트 신발')
+    expect(names.some((name) => name !== '테스트 상의' && name !== '테스트 신발')).toBe(true)
+  })
+
   it('keeps candidate stash list read-only after mutation API calls', async () => {
     const before = await mockDashboardApi.getCandidateStashes()
     const source = before.find((row) => row.itemCount > 0)

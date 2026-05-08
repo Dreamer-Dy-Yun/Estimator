@@ -1,5 +1,5 @@
 ﻿import { describe, expect, it } from 'vitest'
-import { estimatePeriodWeight, historicalMonths, makeSalesTrend } from './productCatalog'
+import { estimatePeriodWeight, historicalMonths, makeSalesTrend, productPrimaryById } from './productCatalog'
 
 describe('api/mock productCatalog', () => {
   it('exposes historical month bounds as 2024-07..2025-12', () => {
@@ -29,6 +29,24 @@ describe('api/mock productCatalog', () => {
   it('keeps generated sales above minimum floor', () => {
     const trend = makeSalesTrend(1, 1, 8)
     expect(Math.min(...trend.map((p) => p.sales))).toBeGreaterThanOrEqual(80)
+  })
+
+  it('uses apparel sizes for test top and shoe sizes for test shoe', () => {
+    expect(productPrimaryById.TEST_TOP?.name).toBe('테스트 상의')
+    expect(productPrimaryById.TEST_TOP?.sizeMix.map((row) => row.size)).toEqual(['S', 'M', 'L', 'XL', 'XXL'])
+    expect(productPrimaryById.TEST_SHOE?.name).toBe('테스트 신발')
+    expect(productPrimaryById.TEST_SHOE?.sizeMix.map((row) => row.size)).toEqual([
+      '235',
+      '240',
+      '245',
+      '250',
+      '255',
+      '260',
+      '265',
+      '270',
+      '275',
+      '280',
+    ])
   })
 
   it('computes period weight with 0.2~1.8 clamp', () => {

@@ -32,6 +32,8 @@ export const selfSalesRows: SelfSalesRow[] = [
   { id: 'AC', rank: 23, rankPercentile: 95.4, brand: '푸마', category: '의류', productCode: 'AC', name: 'ACCCC', avgPrice: 93000, qty: 5600, amount: 520800000, avgCost: 72000, marginRate: 22.6, feeRate: 13, opMarginRate: 9.6, opMarginAmount: 49996800 },
   { id: 'AD', rank: 24, rankPercentile: 95.2, brand: '아디다스', category: '가방', productCode: 'AD', name: 'ADDDD', avgPrice: 116000, qty: 4400, amount: 510400000, avgCost: 90000, marginRate: 22.4, feeRate: 13, opMarginRate: 9.4, opMarginAmount: 47977600 },
   { id: 'AE', rank: 25, rankPercentile: 95.0, brand: '뉴발란스', category: '신발', productCode: 'AE', name: 'AEEEE', avgPrice: 141000, qty: 3000, amount: 423000000, avgCost: 110000, marginRate: 22.0, feeRate: 13, opMarginRate: 9.0, opMarginAmount: 38070000 },
+  { id: 'TEST_TOP', rank: 26, rankPercentile: 94.8, brand: '테스트브랜드', category: '의류', productCode: 'TEST-TOP', name: '테스트 상의', avgPrice: 79000, qty: 4200, amount: 331800000, avgCost: 57000, marginRate: 27.8, feeRate: 13, opMarginRate: 14.8, opMarginAmount: 49106400 },
+  { id: 'TEST_SHOE', rank: 27, rankPercentile: 94.6, brand: '테스트브랜드', category: '신발', productCode: 'TEST-SHOE', name: '테스트 신발', avgPrice: 129000, qty: 3600, amount: 464400000, avgCost: 99000, marginRate: 23.3, feeRate: 13, opMarginRate: 10.3, opMarginAmount: 47833200 },
 ]
 
 export const competitorSalesRows: CompetitorSalesRow[] = [
@@ -60,6 +62,8 @@ export const competitorSalesRows: CompetitorSalesRow[] = [
   { id: 'AC', rank: 23, rankPercentile: 95.4, brand: '푸마', category: '의류', productCode: 'AC', name: 'ACCCC', competitorAvgPrice: 96000, competitorQty: 5400, competitorAmount: 518400000, selfAvgPrice: 93000, selfQty: 5600, selfAmount: 520800000 },
   { id: 'AD', rank: 24, rankPercentile: 95.2, brand: '아디다스', category: '가방', productCode: 'AD', name: 'ADDDD', competitorAvgPrice: 119000, competitorQty: 4200, competitorAmount: 499800000, selfAvgPrice: 116000, selfQty: 4400, selfAmount: 510400000 },
   { id: 'AE', rank: 25, rankPercentile: 95.0, brand: '뉴발란스', category: '신발', productCode: 'AE', name: 'AEEEE', competitorAvgPrice: 145000, competitorQty: 2800, competitorAmount: 406000000, selfAvgPrice: 141000, selfQty: 3000, selfAmount: 423000000 },
+  { id: 'TEST_TOP', rank: 26, rankPercentile: 94.8, brand: '테스트브랜드', category: '의류', productCode: 'TEST-TOP', name: '테스트 상의', competitorAvgPrice: 82000, competitorQty: 3900, competitorAmount: 319800000, selfAvgPrice: 79000, selfQty: 4200, selfAmount: 331800000 },
+  { id: 'TEST_SHOE', rank: 27, rankPercentile: 94.6, brand: '테스트브랜드', category: '신발', productCode: 'TEST-SHOE', name: '테스트 신발', competitorAvgPrice: 133000, competitorQty: 3400, competitorAmount: 452200000, selfAvgPrice: 129000, selfQty: 3600, selfAmount: 464400000 },
 ]
 
 export const selfById = Object.fromEntries(selfSalesRows.map((row) => [row.id, row]))
