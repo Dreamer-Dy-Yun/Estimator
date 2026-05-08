@@ -160,9 +160,9 @@
 .userRow {
   display: grid;
   grid-template-columns:
-    minmax(72px, 0.22fr)
-    minmax(116px, 0.72fr)
-    minmax(112px, 0.66fr)
+    minmax(280px, 0.8fr)
+    minmax(58px, 0.36fr)
+    minmax(56px, 0.33fr)
     minmax(116px, 0.86fr)
     96px
     64px
