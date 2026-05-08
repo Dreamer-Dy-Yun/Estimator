@@ -152,6 +152,8 @@ export const SnapshotConfirmPage = () => {
           <div className={pageStyles.uploadTitleRow}>
             <strong className={pageStyles.uploadTitle}>엑셀 업로드</strong>
             <span className={pageStyles.uploadBadge}>후보군 추가</span>
+          </div>
+          <div className={pageStyles.uploadTemplateCell}>
             <a
               className={pageStyles.templateButton}
               href={candidateStashTemplateDownload.href}

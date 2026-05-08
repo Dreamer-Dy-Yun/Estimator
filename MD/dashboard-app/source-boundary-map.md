@@ -169,7 +169,7 @@
 | `SelfPage.tsx` | 자사 판매 분석 라우트 |
 | `CompetitorPage.tsx` | 경쟁 판매 분석 라우트 |
 | `SnapshotConfirmPage.tsx` | 후보군 목록, 후보군 업로드, 업로드 템플릿 다운로드 링크, 후보군 생성/수정/삭제/복제 라우트 |
-| `SnapshotConfirmPage.module.css` | `SnapshotConfirmPage`의 후보군 목록, 업로드 카드 4열 grid 영역, 페이지 확인 모달 전용 스타일 |
+| `SnapshotConfirmPage.module.css` | `SnapshotConfirmPage`의 후보군 목록, 업로드 카드 2행 grid 영역, 페이지 확인 모달 전용 스타일 |
 
 ## dashboard/components
 
