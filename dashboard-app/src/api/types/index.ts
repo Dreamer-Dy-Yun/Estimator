@@ -1,4 +1,15 @@
 export type {
+  AdminApi,
+  AdminApiKeyProvider,
+  AdminApiKeyPurpose,
+  AdminApiKeySummary,
+  AdminApiKeyTestResult,
+  AdminApiKeyTestStatus,
+  CreateAdminApiKeyPayload,
+  RotateAdminApiKeyPayload,
+  UpdateAdminApiKeyPayload,
+} from './admin'
+export type {
   AdminUserSummary,
   AuthApi,
   AuthRole,

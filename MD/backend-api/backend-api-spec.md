@@ -5,7 +5,7 @@
 | 작성 지시 | Yun Daeyoung |
 | 작성자 | Codex |
 | 작성일 | 2026-04-23 |
-| 최종 수정일 | 2026-05-08 |
+| 최종 수정일 | 2026-05-09 |
 | 상태 | 유지 문서 |
 | 적용 범위 | `dashboard-app/src/api/types`, 백엔드 REST API 계약 |
 
@@ -61,6 +61,18 @@
 | `resetAdminUserPassword(userUuid)` | POST | `/admin/users/:userUuid/password-reset` |
 | `deleteAdminUser(userUuid)` | DELETE | `/admin/users/:userUuid` |
 | `logout()` | POST | `/auth/logout` |
+
+**`AdminApi` 제안 매핑**
+
+관리자 API 키는 사용자 인증과 별도 계약(`src/api/types/admin.ts`)으로 둔다. 모든 경로는 관리자 권한이 필요하다.
+
+| 계약 메서드 | 제안 HTTP | 제안 경로 |
+|-------------|-----------|----------|
+| `getAdminApiKeys()` | GET | `/admin/api-keys` |
+| `createAdminApiKey(payload)` | POST | `/admin/api-keys` |
+| `updateAdminApiKey(payload)` | PATCH | `/admin/api-keys/:keyUuid` |
+| `rotateAdminApiKey(payload)` | POST | `/admin/api-keys/:keyUuid/rotate` |
+| `testAdminApiKey(keyUuid)` | POST | `/admin/api-keys/:keyUuid/test` |
 
 **`LoginRequest`**
 
@@ -141,6 +153,62 @@
 관리자 비밀번호 재설정은 비밀번호 **조회**가 아니라 새 임시 비밀번호 **발급**이다. 백엔드는 평문 비밀번호를 저장하지 않고 해시만 저장해야 하며, 재설정 수행 관리자 UUID, 대상 사용자 UUID, 시각, 요청 IP 등 감사 로그를 남기는 것을 권장한다.
 
 `/admin/users` 계열은 관리자 권한이 필요합니다. 실제 백엔드는 현재 로그인한 관리자 본인을 삭제/비활성화하거나 마지막 활성 관리자 권한을 제거하지 못하도록 검증하는 정책을 권장합니다.
+
+**`AdminApiKeySummary`**
+
+| 필드 | 타입 | 설명 |
+|------|------|------|
+| `uuid` | string | 서버 생성 API 키 UUID. 수정/교체/테스트 식별자 |
+| `name` | string | 관리자 화면 표시 이름 |
+| `provider` | `'openai' \| 'anthropic' \| 'gemini' \| 'azure-openai' \| 'openai-compatible'` | 외부 API 공급자 |
+| `purpose` | `'ai-comment' \| 'candidate-recommendation' \| 'test' \| 'all'` | 사용 범위. 백엔드는 실제 호출 지점에서 이 범위를 적용한다 |
+| `model` | string | 기본 모델명 |
+| `maskedKey` | string | 목록/조회 화면 표시용 마스킹 키. 프론트 목록 응답은 원문 키를 받지 않는다 |
+| `isActive` | boolean | 활성 여부 |
+| `baseUrl` | string \| null | OpenAI 호환/사내 gateway 등 기본 endpoint override |
+| `projectId` | string \| null | provider의 project/organization 식별자 |
+| `note` | string \| null | 내부 메모 |
+| `lastUsedAt` | string \| null | 마지막 사용 시각 |
+| `lastTestedAt` | string \| null | 마지막 연결 테스트 시각 |
+| `lastTestStatus` | `'untested' \| 'success' \| 'failed'` | 마지막 연결 테스트 상태 |
+| `dbUpdatedAt` | string | ISO 8601 최근 변경 시각 |
+
+**`CreateAdminApiKeyPayload`**
+
+| 필드 | 타입 | 설명 |
+|------|------|------|
+| `name` | string | 표시 이름 |
+| `provider` | AdminApiKeySummary.provider | 공급자 |
+| `purpose` | AdminApiKeySummary.purpose | 사용 범위 |
+| `model` | string | 기본 모델명 |
+| `plainKey` | string | 관리자가 입력한 원문 API 키. 프론트는 이 값을 저장하지 않고 요청에만 담는다 |
+| `isActive` | boolean | 생성 시 활성 여부 |
+| `baseUrl`, `projectId`, `note` | string \| null | 선택 메타 |
+
+**`UpdateAdminApiKeyPayload`**
+
+| 필드 | 타입 | 설명 |
+|------|------|------|
+| `uuid` | string | 변경 대상 API 키 UUID |
+| `name`, `provider`, `purpose`, `model`, `isActive`, `baseUrl`, `projectId`, `note` | 위와 동일 | 원문 키를 제외한 메타데이터 변경 |
+
+**`RotateAdminApiKeyPayload`**
+
+| 필드 | 타입 | 설명 |
+|------|------|------|
+| `uuid` | string | 교체 대상 API 키 UUID |
+| `plainKey` | string | 새 원문 API 키. 프론트는 요청 후 입력값을 비운다 |
+
+**`AdminApiKeyTestResult`**
+
+| 필드 | 타입 | 설명 |
+|------|------|------|
+| `uuid` | string | 테스트 대상 API 키 UUID |
+| `status` | `'untested' \| 'success' \| 'failed'` | 테스트 결과 |
+| `message` | string | 관리자 화면에 표시할 결과 메시지 |
+| `testedAt` | string | ISO 8601 테스트 시각 |
+
+운영 DB는 `plainKey`를 저장할 수 있지만, 프론트 응답 DTO는 기본적으로 `maskedKey`만 내려주는 방식을 권장한다. 키 생성/교체/테스트/비활성화는 수행 관리자 UUID, 대상 키 UUID, 시각, 요청 IP를 감사 로그로 남기는 것이 좋다.
 
 **`USER_ACCOUNT` 정합성 메모**
 

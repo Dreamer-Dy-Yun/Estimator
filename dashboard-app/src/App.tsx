@@ -6,7 +6,7 @@ import { RequireAuth } from './auth/RequireAuth'
 import { DashboardLayout } from './dashboard/DashboardLayout'
 import styles from './app.module.css'
 
-const AdminUsersPage = lazy(() => import('./admin/AdminUsersPage').then((module) => ({ default: module.AdminUsersPage })))
+const AdminPage = lazy(() => import('./admin/AdminPage').then((module) => ({ default: module.AdminPage })))
 const LoginPage = lazy(() => import('./auth/LoginPage').then((module) => ({ default: module.LoginPage })))
 const SelfPage = lazy(() => import('./dashboard/pages/SelfPage').then((module) => ({ default: module.SelfPage })))
 const CompetitorPage = lazy(() =>
@@ -46,7 +46,7 @@ function AppRoutes() {
               </Route>
               <Route element={<RequireAdmin />}>
                 <Route element={<DashboardLayout />}>
-                  <Route path="/admin" element={<AdminUsersPage />} />
+                  <Route path="/admin" element={<AdminPage />} />
                 </Route>
               </Route>
             </Route>

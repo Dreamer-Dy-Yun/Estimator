@@ -1,6 +1,8 @@
 import type { CompetitorSalesRow, SelfSalesRow } from '../types'
-import { mockAuthApi, mockDashboardApi } from './mock'
+import { mockAdminApi, mockAuthApi, mockDashboardApi } from './mock'
 import type {
+  AdminApiKeySummary,
+  AdminApiKeyTestResult,
   AdminUserSummary,
   AppendCandidateItemPayload,
   AuthSession,
@@ -33,11 +35,14 @@ import type {
   SecondaryDailyTrendPoint,
   ProductSecondaryDetailParams,
   CompetitorSalesParams,
+  CreateAdminApiKeyPayload,
   LoginRequest,
   LoginResult,
   ResetAdminUserPasswordResult,
+  RotateAdminApiKeyPayload,
   SelfSalesFilterMeta,
   SelfSalesParams,
+  UpdateAdminApiKeyPayload,
   UpdateAdminUserPayload,
   UpdateAuthUserPayload,
 } from './types'
@@ -84,6 +89,26 @@ export async function resetAdminUserPassword(userUuid: string): Promise<ResetAdm
 
 export async function deleteAdminUser(userUuid: string): Promise<void> {
   return mockAuthApi.deleteAdminUser(userUuid)
+}
+
+export async function getAdminApiKeys(): Promise<AdminApiKeySummary[]> {
+  return mockAdminApi.getAdminApiKeys()
+}
+
+export async function createAdminApiKey(payload: CreateAdminApiKeyPayload): Promise<AdminApiKeySummary> {
+  return mockAdminApi.createAdminApiKey(payload)
+}
+
+export async function updateAdminApiKey(payload: UpdateAdminApiKeyPayload): Promise<AdminApiKeySummary> {
+  return mockAdminApi.updateAdminApiKey(payload)
+}
+
+export async function rotateAdminApiKey(payload: RotateAdminApiKeyPayload): Promise<AdminApiKeySummary> {
+  return mockAdminApi.rotateAdminApiKey(payload)
+}
+
+export async function testAdminApiKey(keyUuid: string): Promise<AdminApiKeyTestResult> {
+  return mockAdminApi.testAdminApiKey(keyUuid)
 }
 
 export async function logout(): Promise<void> {

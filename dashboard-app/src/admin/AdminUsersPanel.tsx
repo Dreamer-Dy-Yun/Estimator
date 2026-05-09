@@ -8,26 +8,8 @@ import {
 } from '../api'
 import type { AdminUserSummary, AuthRole, ResetAdminUserPasswordResult } from '../api'
 import { useAuth } from '../auth/AuthContext'
-import commonStyles from '../dashboard/components/common.module.css'
-import styles from './AdminUsersPage.module.css'
-
-const ROLE_OPTIONS: Array<{ value: AuthRole; label: string }> = [
-  { value: 'admin', label: '관리자' },
-  { value: 'user', label: '사용자' },
-]
-
-function getErrorMessage(error: unknown) {
-  return error instanceof Error ? error.message : '사용자 정보를 처리하는 중 오류가 발생했습니다.'
-}
-
-function formatUpdatedAt(value: string) {
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return '-'
-  return new Intl.DateTimeFormat('ko-KR', {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-  }).format(date)
-}
+import { formatUpdatedAt, getErrorMessage, ROLE_OPTIONS } from './adminHelpers'
+import styles from './AdminPage.module.css'
 
 function AdminUserRow({
   user,
@@ -150,11 +132,7 @@ function AdminUserRow({
       </label>
       <label className={styles.fieldCell}>
         <span>비고</span>
-        <input
-          value={note}
-          onChange={(event) => setNote(event.target.value)}
-          maxLength={200}
-        />
+        <input value={note} onChange={(event) => setNote(event.target.value)} maxLength={200} />
       </label>
       <label className={styles.fieldCell}>
         <span>권한</span>
@@ -210,7 +188,7 @@ type PasswordResetNotice = ResetAdminUserPasswordResult & {
   loginId: string
 }
 
-export function AdminUsersPage() {
+export function AdminUsersPanel() {
   const { session, refreshSession } = useAuth()
   const [users, setUsers] = useState<AdminUserSummary[]>([])
   const [newLoginId, setNewLoginId] = useState('')
@@ -253,10 +231,6 @@ export function AdminUsersPage() {
   const handleSaved = async () => {
     await reloadUsers()
     await refreshSession()
-  }
-
-  const handleDeleted = async () => {
-    await reloadUsers()
   }
 
   const handlePasswordReset = async (user: AdminUserSummary) => {
@@ -323,15 +297,7 @@ export function AdminUsersPage() {
   }
 
   return (
-    <section className={`${commonStyles.page} ${styles.adminPage}`}>
-      <header className={styles.header}>
-        <div>
-          <p className={styles.kicker}>관리자</p>
-          <h1>사용자 정보 관리</h1>
-        </div>
-        <p className={styles.headerMeta}>로그인 ID, 이름, 비고, 권한, 활성 상태, 비밀번호 재설정을 관리합니다.</p>
-      </header>
-
+    <>
       <div className={styles.panel}>
         <div className={styles.panelHeader}>
           <div>
@@ -425,7 +391,7 @@ export function AdminUsersPage() {
                 user={user}
                 currentUserUuid={session?.user.uuid ?? ''}
                 onSaved={handleSaved}
-                onDeleted={handleDeleted}
+                onDeleted={reloadUsers}
                 onPasswordReset={handlePasswordReset}
               />
             ))}
@@ -455,7 +421,7 @@ export function AdminUsersPage() {
                 onClick={closePasswordResetNotice}
                 aria-label="닫기"
               >
-                ✕
+                x
               </button>
             </div>
             <p>로그인 사용자에게 다음 임시 비밀번호를 안내해주세요. 비밀번호를 클릭하면 복사됩니다.</p>
@@ -480,6 +446,6 @@ export function AdminUsersPage() {
           </div>
         </div>
       ) : null}
-    </section>
+    </>
   )
 }

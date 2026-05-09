@@ -133,7 +133,7 @@ function assertLoggedInSession() {
   return session
 }
 
-function assertAdminSession() {
+export function assertMockAdminSession() {
   const session = assertLoggedInSession()
   if (session.user.role !== 'admin') {
     throw new Error('관리자 권한이 필요합니다.')
@@ -165,14 +165,14 @@ export const mockAuthApi: AuthApi = {
   },
   getAdminUsers: async (): Promise<AdminUserSummary[]> => {
     await sleep(90)
-    assertAdminSession()
+    assertMockAdminSession()
     return DEFAULT_AUTH_USERS
       .map(toAdminUserSummary)
       .sort((a, b) => a.loginId.localeCompare(b.loginId))
   },
   createAdminUser: async (payload: CreateAdminUserPayload): Promise<AdminUserSummary> => {
     await sleep(120)
-    assertAdminSession()
+    assertMockAdminSession()
     const loginId = payload.loginId.trim() || 'mock-created-user'
     const name = payload.name.trim() || loginId
     return {
@@ -188,7 +188,7 @@ export const mockAuthApi: AuthApi = {
   },
   updateAdminUser: async (payload: UpdateAdminUserPayload): Promise<AdminUserSummary> => {
     await sleep(110)
-    assertAdminSession()
+    assertMockAdminSession()
     const target = findUserByUuid(payload.uuid)
     const base = target ? toAdminUserSummary(target) : toAdminUserSummary(DEFAULT_AUTH_USERS[0]!)
 
@@ -206,7 +206,7 @@ export const mockAuthApi: AuthApi = {
   },
   resetAdminUserPassword: async (userUuid: string): Promise<ResetAdminUserPasswordResult> => {
     await sleep(100)
-    assertAdminSession()
+    assertMockAdminSession()
     void userUuid
     return {
       temporaryPassword: createTemporaryPassword(),
@@ -216,7 +216,7 @@ export const mockAuthApi: AuthApi = {
   },
   deleteAdminUser: async (userUuid: string): Promise<void> => {
     await sleep(100)
-    assertAdminSession()
+    assertMockAdminSession()
     void userUuid
   },
   logout: async () => {

@@ -1,7 +1,7 @@
 .adminPage {
   height: calc(100dvh - 120px);
   min-height: 440px;
-  grid-template-rows: auto 1fr;
+  grid-template-rows: auto auto 1fr;
   overflow: hidden;
 }
 
@@ -35,6 +35,42 @@
   color: #64748b;
   font-size: 13px;
   font-weight: 800;
+}
+
+.tabBar {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  min-width: 0;
+}
+
+.tabButton {
+  height: 36px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 0 14px;
+  background: #ffffff;
+  color: #334155;
+  font-size: 13px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.tabButton:hover,
+.tabButton:focus-visible {
+  border-color: #f59e0b;
+  color: #d97706;
+}
+
+.tabButtonSelected {
+  border-color: #f59e0b;
+  background: #f59e0b;
+  color: #111827;
+}
+
+.tabButtonSelected:hover,
+.tabButtonSelected:focus-visible {
+  color: #111827;
 }
 
 .panel {
@@ -96,7 +132,8 @@
 }
 
 .createField input,
-.createField select {
+.createField select,
+.fieldCell textarea {
   width: 100%;
   height: 34px;
   border: 1px solid #cbd5e1;
@@ -107,7 +144,8 @@
 }
 
 .createField input:focus,
-.createField select:focus {
+.createField select:focus,
+.fieldCell textarea:focus {
   border-color: #2563eb;
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
 }
@@ -144,6 +182,21 @@
   opacity: 0.64;
 }
 
+.apiKeyCreateForm {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+  align-items: end;
+  padding: 14px 18px;
+  border-bottom: 1px solid #e2e8f0;
+  background: #fbfdff;
+}
+
+.apiKeyCreateNote {
+  grid-column: span 3;
+  min-width: 0;
+}
+
 .createError {
   grid-column: 1 / -1;
   margin: 0;
@@ -157,7 +210,9 @@
 }
 
 .tableHeader,
-.userRow {
+.userRow,
+.apiKeyTableHeader,
+.apiKeyRow {
   display: grid;
   grid-template-columns:
     minmax(224px, 0.64fr)
@@ -172,7 +227,29 @@
   align-items: center;
 }
 
+.apiKeyTableHeader,
+.apiKeyRow {
+  grid-template-columns:
+    minmax(112px, 1fr)
+    minmax(92px, 0.6fr)
+    minmax(104px, 0.68fr)
+    minmax(112px, 0.88fr)
+    minmax(116px, 0.82fr)
+    64px
+    minmax(112px, 0.74fr)
+    118px;
+}
+
 .tableHeader {
+  padding: 10px 18px;
+  border-bottom: 1px solid #e2e8f0;
+  background: #f8fafc;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.apiKeyTableHeader {
   padding: 10px 18px;
   border-bottom: 1px solid #e2e8f0;
   background: #f8fafc;
@@ -190,6 +267,12 @@
 .userRow {
   position: relative;
   padding: 14px 18px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.apiKeyRow {
+  position: relative;
+  padding: 12px 18px;
   border-bottom: 1px solid #e2e8f0;
 }
 
@@ -228,8 +311,16 @@
   display: none;
 }
 
+.apiKeySubField span {
+  display: block;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 900;
+}
+
 .fieldCell input,
-.fieldCell select {
+.fieldCell select,
+.fieldCell textarea {
   width: 100%;
   height: 34px;
   border: 1px solid #cbd5e1;
@@ -240,9 +331,15 @@
 }
 
 .fieldCell input:focus,
-.fieldCell select:focus {
+.fieldCell select:focus,
+.fieldCell textarea:focus {
   border-color: #2563eb;
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+.noteCell {
+  grid-column: span 2;
+  min-width: 0;
 }
 
 .activeCell {
@@ -263,6 +360,60 @@
   color: #64748b;
   font-size: 12px;
   font-weight: 800;
+}
+
+.statusCell {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.statusCell small {
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 800;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.statusPill {
+  width: fit-content;
+  border: 1px solid #cbd5e1;
+  border-radius: 999px;
+  padding: 3px 7px;
+  background: #f8fafc;
+  color: #475569;
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.status_success {
+  border-color: #86efac;
+  background: #dcfce7;
+  color: #166534;
+}
+
+.status_failed {
+  border-color: #fecdd3;
+  background: #fff1f2;
+  color: #be123c;
+}
+
+.status_untested {
+  border-color: #cbd5e1;
+  background: #f8fafc;
+  color: #475569;
+}
+
+.panelNotice {
+  border: 1px solid #bfdbfe;
+  border-radius: 999px;
+  padding: 5px 9px;
+  background: #eff6ff;
+  color: #1d4ed8;
+  font-size: 12px;
+  font-weight: 900;
 }
 
 .actionCell {
@@ -299,6 +450,48 @@
   border: 1px solid #fecdd3;
   background: #fff1f2;
   color: #be123c;
+}
+
+.apiKeyActionCell {
+  grid-column: 4 / -1;
+  min-width: 0;
+  display: flex;
+  gap: 6px;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
+.apiKeyActionCell input {
+  flex: 1 1 86px;
+  min-width: 86px;
+  height: 34px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  padding: 0 9px;
+  color: #111827;
+  outline: none;
+}
+
+.apiKeyActionCell input:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+.apiKeyActionCell button {
+  height: 34px;
+  border: 0;
+  border-radius: 6px;
+  padding: 0 10px;
+  background: #233750;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.apiKeyActionCell button:disabled {
+  cursor: default;
+  opacity: 0.46;
 }
 
 .resetNoticeBackdrop {
@@ -416,6 +609,18 @@
   font-weight: 800;
 }
 
+.rowMessage {
+  grid-column: 1 / -1;
+  margin: 0;
+  padding: 9px 10px;
+  border: 1px solid #bfdbfe;
+  border-radius: 6px;
+  background: #eff6ff;
+  color: #1d4ed8;
+  font-size: 13px;
+  font-weight: 800;
+}
+
 .emptyState,
 .errorState {
   margin: 18px;
@@ -446,6 +651,10 @@
     display: none;
   }
 
+  .apiKeyTableHeader {
+    display: none;
+  }
+
   .panel {
     display: block;
   }
@@ -455,9 +664,21 @@
     gap: 10px;
   }
 
-  .createForm {
+  .apiKeyRow {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .createForm,
+  .apiKeyCreateForm {
     grid-template-columns: 1fr;
     align-items: stretch;
+  }
+
+  .apiKeyCreateNote,
+  .noteCell,
+  .apiKeyActionCell {
+    grid-column: 1 / -1;
   }
 
   .fieldCell span {
@@ -472,6 +693,10 @@
   }
 
   .actionCell {
+    justify-content: flex-start;
+  }
+
+  .apiKeyActionCell {
     justify-content: flex-start;
   }
 
