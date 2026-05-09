@@ -8,12 +8,12 @@ type AdminTab = 'users' | 'api-keys'
 
 const ADMIN_TABS: Array<{ value: AdminTab; label: string }> = [
   { value: 'users', label: '사용자 관리' },
-  { value: 'api-keys', label: 'API 키 관리' },
+  { value: 'api-keys', label: 'GPT 키 관리' },
 ]
 
 const HEADER_META: Record<AdminTab, string> = {
   users: '로그인 ID, 이름, 비고, 권한, 활성 상태, 비밀번호 재설정을 관리합니다.',
-  'api-keys': 'AI 코멘트와 추천 등에 사용할 외부 API 키의 공급자, 모델, 용도, 활성 상태를 관리합니다.',
+  'api-keys': 'AI 코멘트와 추천 등에 사용할 GPT 키의 모델, 용도, 활성 상태를 관리합니다.',
 }
 
 export function AdminPage() {

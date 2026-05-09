@@ -1,5 +1,3 @@
-export type AdminApiKeyProvider = 'openai' | 'anthropic' | 'gemini' | 'azure-openai' | 'openai-compatible'
-
 export type AdminApiKeyPurpose = 'ai-comment' | 'candidate-recommendation' | 'test' | 'all'
 
 export type AdminApiKeyTestStatus = 'untested' | 'success' | 'failed'
@@ -7,13 +5,10 @@ export type AdminApiKeyTestStatus = 'untested' | 'success' | 'failed'
 export interface AdminApiKeySummary {
   uuid: string
   name: string
-  provider: AdminApiKeyProvider
   purpose: AdminApiKeyPurpose
   model: string
   maskedKey: string
   isActive: boolean
-  baseUrl: string | null
-  projectId: string | null
   note: string | null
   lastUsedAt: string | null
   lastTestedAt: string | null
@@ -23,25 +18,19 @@ export interface AdminApiKeySummary {
 
 export interface CreateAdminApiKeyPayload {
   name: string
-  provider: AdminApiKeyProvider
   purpose: AdminApiKeyPurpose
   model: string
   plainKey: string
   isActive: boolean
-  baseUrl: string | null
-  projectId: string | null
   note: string | null
 }
 
 export interface UpdateAdminApiKeyPayload {
   uuid: string
   name: string
-  provider: AdminApiKeyProvider
   purpose: AdminApiKeyPurpose
   model: string
   isActive: boolean
-  baseUrl: string | null
-  projectId: string | null
   note: string | null
 }
 

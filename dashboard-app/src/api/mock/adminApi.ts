@@ -15,13 +15,10 @@ let mockAdminApiKeys: AdminApiKeySummary[] = [
   {
     uuid: '00000000-0000-4000-8000-100000000001',
     name: 'GPT AI 코멘트',
-    provider: 'openai',
     purpose: 'ai-comment',
     model: 'gpt-4.1-mini',
     maskedKey: 'sk-...mock',
     isActive: true,
-    baseUrl: null,
-    projectId: 'proj_mock',
     note: '후보군 AI 코멘트용 목업 키',
     lastUsedAt: '2026-05-08T09:30:00.000Z',
     lastTestedAt: MOCK_UPDATED_AT,
@@ -34,17 +31,16 @@ function createMockUuid() {
   return globalThis.crypto?.randomUUID?.() ?? `00000000-0000-4000-8000-${String(Date.now()).slice(-12).padStart(12, '0')}`
 }
 
-function cleanText(value: string | null | undefined) {
-  const text = value?.trim()
-  return text ? text : null
-}
-
 function maskPlainKey(plainKey: string) {
   const clean = plainKey.trim()
   if (!clean) return 'key-...empty'
   const prefix = clean.includes('-') ? clean.slice(0, clean.indexOf('-')) : 'key'
   const last4 = clean.slice(-4)
   return `${prefix}-...${last4}`
+}
+
+function cleanNote(note: string | null) {
+  return note?.trim() || null
 }
 
 function findApiKey(uuid: string) {
@@ -67,15 +63,12 @@ export const mockAdminApi: AdminApi = {
     const now = new Date().toISOString()
     const apiKey: AdminApiKeySummary = {
       uuid: createMockUuid(),
-      name: payload.name.trim() || '새 API 키',
-      provider: payload.provider,
+      name: payload.name.trim() || '새 GPT 키',
       purpose: payload.purpose,
       model: payload.model.trim() || 'default-model',
       maskedKey: maskPlainKey(payload.plainKey),
       isActive: payload.isActive,
-      baseUrl: cleanText(payload.baseUrl),
-      projectId: cleanText(payload.projectId),
-      note: cleanText(payload.note),
+      note: cleanNote(payload.note),
       lastUsedAt: null,
       lastTestedAt: null,
       lastTestStatus: 'untested',
@@ -93,13 +86,10 @@ export const mockAdminApi: AdminApi = {
     const nextApiKey: AdminApiKeySummary = {
       ...target,
       name: payload.name.trim() || target.name,
-      provider: payload.provider,
       purpose: payload.purpose,
       model: payload.model.trim() || target.model,
       isActive: payload.isActive,
-      baseUrl: cleanText(payload.baseUrl),
-      projectId: cleanText(payload.projectId),
-      note: cleanText(payload.note),
+      note: cleanNote(payload.note),
       dbUpdatedAt: new Date().toISOString(),
     }
     mockAdminApiKeys = mockAdminApiKeys.map((apiKey) => (apiKey.uuid === payload.uuid ? nextApiKey : apiKey))

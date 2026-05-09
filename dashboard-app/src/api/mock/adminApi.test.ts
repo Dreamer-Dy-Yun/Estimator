@@ -12,13 +12,10 @@ describe('api/mock adminApi behavior', () => {
 
     const created = await mockAdminApi.createAdminApiKey({
       name: '테스트 키',
-      provider: 'openai',
       purpose: 'ai-comment',
       model: 'gpt-test',
       plainKey: 'sk-secret-value-1234',
       isActive: true,
-      baseUrl: null,
-      projectId: 'proj_test',
       note: '테스트',
     })
 
@@ -34,24 +31,18 @@ describe('api/mock adminApi behavior', () => {
 
     const created = await mockAdminApi.createAdminApiKey({
       name: '교체 대상',
-      provider: 'openai',
       purpose: 'all',
       model: 'gpt-old',
       plainKey: 'sk-old-0000',
       isActive: true,
-      baseUrl: null,
-      projectId: null,
       note: null,
     })
     const updated = await mockAdminApi.updateAdminApiKey({
       uuid: created.uuid,
       name: '변경 대상',
-      provider: 'anthropic',
       purpose: 'test',
-      model: 'claude-test',
+      model: 'gpt-test',
       isActive: true,
-      baseUrl: 'https://api.example.test',
-      projectId: 'project-a',
       note: '메모',
     })
     const rotated = await mockAdminApi.rotateAdminApiKey({
@@ -62,11 +53,8 @@ describe('api/mock adminApi behavior', () => {
 
     expect(updated).toMatchObject({
       name: '변경 대상',
-      provider: 'anthropic',
       purpose: 'test',
-      model: 'claude-test',
-      baseUrl: 'https://api.example.test',
-      projectId: 'project-a',
+      model: 'gpt-test',
       note: '메모',
     })
     expect(rotated.maskedKey).toBe('sk-...9999')

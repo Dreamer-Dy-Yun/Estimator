@@ -1,5 +1,4 @@
 import type {
-  AdminApiKeyProvider,
   AdminApiKeyPurpose,
   AdminApiKeyTestStatus,
   AuthRole,
@@ -8,14 +7,6 @@ import type {
 export const ROLE_OPTIONS: Array<{ value: AuthRole; label: string }> = [
   { value: 'admin', label: '관리자' },
   { value: 'user', label: '사용자' },
-]
-
-export const API_KEY_PROVIDER_OPTIONS: Array<{ value: AdminApiKeyProvider; label: string }> = [
-  { value: 'openai', label: 'OpenAI' },
-  { value: 'anthropic', label: 'Anthropic' },
-  { value: 'gemini', label: 'Gemini' },
-  { value: 'azure-openai', label: 'Azure OpenAI' },
-  { value: 'openai-compatible', label: 'OpenAI 호환' },
 ]
 
 export const API_KEY_PURPOSE_OPTIONS: Array<{ value: AdminApiKeyPurpose; label: string }> = [

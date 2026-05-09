@@ -1,6 +1,5 @@
 export type {
   AdminApi,
-  AdminApiKeyProvider,
   AdminApiKeyPurpose,
   AdminApiKeySummary,
   AdminApiKeyTestResult,

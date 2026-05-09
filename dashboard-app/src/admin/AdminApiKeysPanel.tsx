@@ -7,13 +7,11 @@ import {
   updateAdminApiKey,
 } from '../api'
 import type {
-  AdminApiKeyProvider,
   AdminApiKeyPurpose,
   AdminApiKeySummary,
   AdminApiKeyTestResult,
 } from '../api'
 import {
-  API_KEY_PROVIDER_OPTIONS,
   API_KEY_PURPOSE_OPTIONS,
   apiKeyTestStatusLabels,
   formatUpdatedAt,
@@ -31,11 +29,8 @@ function AdminApiKeyRow({
   onTested: (result: AdminApiKeyTestResult) => void
 }) {
   const [name, setName] = useState(apiKey.name)
-  const [provider, setProvider] = useState<AdminApiKeyProvider>(apiKey.provider)
   const [purpose, setPurpose] = useState<AdminApiKeyPurpose>(apiKey.purpose)
   const [model, setModel] = useState(apiKey.model)
-  const [baseUrl, setBaseUrl] = useState(apiKey.baseUrl ?? '')
-  const [projectId, setProjectId] = useState(apiKey.projectId ?? '')
   const [note, setNote] = useState(apiKey.note ?? '')
   const [isActive, setIsActive] = useState(apiKey.isActive)
   const [rotateKey, setRotateKey] = useState('')
@@ -46,21 +41,15 @@ function AdminApiKeyRow({
   const [isTesting, setIsTesting] = useState(false)
   const isDirty =
     name !== apiKey.name ||
-    provider !== apiKey.provider ||
     purpose !== apiKey.purpose ||
     model !== apiKey.model ||
-    baseUrl !== (apiKey.baseUrl ?? '') ||
-    projectId !== (apiKey.projectId ?? '') ||
     note !== (apiKey.note ?? '') ||
     isActive !== apiKey.isActive
 
   useEffect(() => {
     setName(apiKey.name)
-    setProvider(apiKey.provider)
     setPurpose(apiKey.purpose)
     setModel(apiKey.model)
-    setBaseUrl(apiKey.baseUrl ?? '')
-    setProjectId(apiKey.projectId ?? '')
     setNote(apiKey.note ?? '')
     setIsActive(apiKey.isActive)
     setRotateKey('')
@@ -81,12 +70,9 @@ function AdminApiKeyRow({
       await updateAdminApiKey({
         uuid: apiKey.uuid,
         name,
-        provider,
         purpose,
         model,
         isActive,
-        baseUrl,
-        projectId,
         note,
       })
       await onChanged()
@@ -138,19 +124,6 @@ function AdminApiKeyRow({
         <input value={name} onChange={(event) => setName(event.target.value)} maxLength={80} />
       </label>
       <label className={styles.fieldCell}>
-        <span>공급자</span>
-        <select
-          value={provider}
-          onChange={(event) => setProvider(event.target.value as AdminApiKeyProvider)}
-        >
-          {API_KEY_PROVIDER_OPTIONS.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </select>
-      </label>
-      <label className={styles.fieldCell}>
         <span>용도</span>
         <select value={purpose} onChange={(event) => setPurpose(event.target.value as AdminApiKeyPurpose)}>
           {API_KEY_PURPOSE_OPTIONS.map((option) => (
@@ -179,24 +152,6 @@ function AdminApiKeyRow({
         <small>{formatUpdatedAt(apiKey.lastTestedAt)}</small>
       </div>
       <div className={styles.updatedCell}>{formatUpdatedAt(apiKey.dbUpdatedAt)}</div>
-      <label className={`${styles.fieldCell} ${styles.apiKeySubField}`}>
-        <span>Base URL</span>
-        <input
-          value={baseUrl}
-          onChange={(event) => setBaseUrl(event.target.value)}
-          placeholder="기본값"
-          maxLength={200}
-        />
-      </label>
-      <label className={`${styles.fieldCell} ${styles.apiKeySubField}`}>
-        <span>Project ID</span>
-        <input
-          value={projectId}
-          onChange={(event) => setProjectId(event.target.value)}
-          placeholder="선택"
-          maxLength={120}
-        />
-      </label>
       <label className={`${styles.fieldCell} ${styles.apiKeySubField} ${styles.noteCell}`}>
         <span>메모</span>
         <input value={note} onChange={(event) => setNote(event.target.value)} maxLength={200} />
@@ -227,12 +182,9 @@ function AdminApiKeyRow({
 export function AdminApiKeysPanel() {
   const [apiKeys, setApiKeys] = useState<AdminApiKeySummary[]>([])
   const [newName, setNewName] = useState('')
-  const [newProvider, setNewProvider] = useState<AdminApiKeyProvider>('openai')
   const [newPurpose, setNewPurpose] = useState<AdminApiKeyPurpose>('ai-comment')
   const [newModel, setNewModel] = useState('gpt-4.1-mini')
   const [newPlainKey, setNewPlainKey] = useState('')
-  const [newBaseUrl, setNewBaseUrl] = useState('')
-  const [newProjectId, setNewProjectId] = useState('')
   const [newNote, setNewNote] = useState('')
   const [newIsActive, setNewIsActive] = useState(true)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
@@ -274,20 +226,15 @@ export function AdminApiKeysPanel() {
     try {
       await createAdminApiKey({
         name: newName,
-        provider: newProvider,
         purpose: newPurpose,
         model: newModel,
         plainKey: newPlainKey,
         isActive: newIsActive,
-        baseUrl: newBaseUrl,
-        projectId: newProjectId,
         note: newNote,
       })
       await reloadApiKeys()
       setNewName('')
       setNewPlainKey('')
-      setNewBaseUrl('')
-      setNewProjectId('')
       setNewNote('')
       setNewIsActive(true)
     } catch (error) {
@@ -317,7 +264,7 @@ export function AdminApiKeysPanel() {
     <div className={styles.panel}>
       <div className={styles.panelHeader}>
         <div>
-          <h2>API 키</h2>
+          <h2>GPT 키</h2>
           <p>{apiKeys.length}개</p>
         </div>
         {testMessage ? <span className={styles.panelNotice}>{testMessage}</span> : null}
@@ -332,19 +279,6 @@ export function AdminApiKeysPanel() {
             placeholder="GPT AI 코멘트"
             maxLength={80}
           />
-        </label>
-        <label className={styles.createField}>
-          <span>공급자</span>
-          <select
-            value={newProvider}
-            onChange={(event) => setNewProvider(event.target.value as AdminApiKeyProvider)}
-          >
-            {API_KEY_PROVIDER_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
         </label>
         <label className={styles.createField}>
           <span>용도</span>
@@ -369,24 +303,6 @@ export function AdminApiKeysPanel() {
             autoComplete="off"
           />
         </label>
-        <label className={styles.createField}>
-          <span>Base URL</span>
-          <input
-            value={newBaseUrl}
-            onChange={(event) => setNewBaseUrl(event.target.value)}
-            placeholder="선택"
-            maxLength={200}
-          />
-        </label>
-        <label className={styles.createField}>
-          <span>Project ID</span>
-          <input
-            value={newProjectId}
-            onChange={(event) => setNewProjectId(event.target.value)}
-            placeholder="선택"
-            maxLength={120}
-          />
-        </label>
         <label className={styles.createActiveField}>
           <input
             type="checkbox"
@@ -405,14 +321,13 @@ export function AdminApiKeysPanel() {
           />
         </label>
         <button className={styles.createButton} type="submit" disabled={isCreating}>
-          {isCreating ? '추가 중' : 'API 키 추가'}
+          {isCreating ? '추가 중' : 'GPT 키 추가'}
         </button>
         {createErrorMessage ? <p className={styles.createError}>{createErrorMessage}</p> : null}
       </form>
 
       <div className={styles.apiKeyTableHeader} aria-hidden="true">
         <span>이름</span>
-        <span>공급자</span>
         <span>용도</span>
         <span>모델</span>
         <span>키</span>
@@ -421,7 +336,7 @@ export function AdminApiKeysPanel() {
         <span>변경일</span>
       </div>
 
-      {isLoading ? <div className={styles.emptyState}>API 키 목록 로딩 중</div> : null}
+      {isLoading ? <div className={styles.emptyState}>GPT 키 목록 로딩 중</div> : null}
       {errorMessage ? <div className={styles.errorState}>{errorMessage}</div> : null}
       {!isLoading && !errorMessage ? (
         <div className={styles.userList}>

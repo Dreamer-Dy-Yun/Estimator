@@ -178,7 +178,7 @@
 
 .apiKeyCreateForm {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr)) 80px minmax(160px, 1.2fr) 112px;
   gap: 8px;
   align-items: end;
   padding: 14px 18px;
@@ -187,7 +187,6 @@
 }
 
 .apiKeyCreateNote {
-  grid-column: span 3;
   min-width: 0;
 }
 
@@ -225,7 +224,6 @@
 .apiKeyRow {
   grid-template-columns:
     minmax(112px, 1fr)
-    minmax(92px, 0.6fr)
     minmax(104px, 0.68fr)
     minmax(112px, 0.88fr)
     minmax(116px, 0.82fr)
@@ -447,7 +445,7 @@
 }
 
 .apiKeyActionCell {
-  grid-column: 4 / -1;
+  grid-column: 3 / -1;
   min-width: 0;
   display: flex;
   gap: 6px;
