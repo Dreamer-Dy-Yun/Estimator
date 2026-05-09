@@ -49,7 +49,7 @@ function candidateItem(uuid: string, size: string): CandidateItemSummary {
 }
 
 describe('createCandidateOrderExcelExport', () => {
-  it('applies main header and N/A cell styles', async () => {
+  it('applies sheet header and N/A cell styles', async () => {
     const ExcelJS = await import('exceljs')
     const { blob } = await createCandidateOrderExcelExport({
       stashName: '스타일 테스트',
@@ -68,6 +68,12 @@ describe('createCandidateOrderExcelExport', () => {
 
     const missingSizeCell = mainSheet!.getCell('N2')
     expect(missingSizeCell.value).toBe('N/A')
-    expect((missingSizeCell.fill as { fgColor?: { argb?: string } }).fgColor?.argb).toBe('FFF3F4F6')
+    expect((missingSizeCell.fill as { fgColor?: { argb?: string } }).fgColor?.argb).toBe('FFFFE4E6')
+
+    const metaSheet = workbook.getWorksheet('메타')
+    expect(metaSheet).toBeDefined()
+    const metaHeader = metaSheet!.getCell('A1')
+    expect((metaHeader.fill as { fgColor?: { argb?: string } }).fgColor?.argb).toBe('FF000000')
+    expect(metaHeader.font.color?.argb).toBe('FFFFFFFF')
   }, 15000)
 })

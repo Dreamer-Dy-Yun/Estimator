@@ -1,4 +1,5 @@
 import type { CandidateItemSummary } from '../api/types/candidate'
+import type { Cell, Row, Worksheet } from 'exceljs'
 
 type CandidateOrderExportInput = {
   stashName: string
@@ -12,6 +13,12 @@ type ExcelJsModule = typeof import('exceljs')
 const SIZE_NOT_APPLICABLE = 'N/A'
 const excelMimeType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
 const invalidFilenameChars = /[\\/:*?"<>|]+/g
+const headerFillArgb = 'FF000000'
+const headerFontArgb = 'FFFFFFFF'
+const headerBorderArgb = 'FF111827'
+const bodyBorderArgb = 'FFE5E7EB'
+const notApplicableFillArgb = 'FFFFE4E6'
+const notApplicableFontArgb = 'FFB91C1C'
 let excelJsModulePromise: Promise<ExcelJsModule> | null = null
 
 function loadExcelJs(): Promise<ExcelJsModule> {
@@ -148,6 +155,60 @@ function columnName(index: number): string {
   return name
 }
 
+function thinBorder(argb: string) {
+  return {
+    top: { style: 'thin' as const, color: { argb } },
+    left: { style: 'thin' as const, color: { argb } },
+    bottom: { style: 'thin' as const, color: { argb } },
+    right: { style: 'thin' as const, color: { argb } },
+  }
+}
+
+function applyHeaderCellStyle(cell: Cell) {
+  cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: headerFillArgb } }
+  cell.font = { color: { argb: headerFontArgb }, bold: true }
+  cell.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true }
+  cell.border = thinBorder(headerBorderArgb)
+}
+
+function applyHeaderRowStyle(row: Row) {
+  row.height = 24
+  row.eachCell(applyHeaderCellStyle)
+}
+
+function applyBodyCellStyle(cell: Cell) {
+  cell.alignment = { vertical: 'middle', wrapText: true }
+  cell.border = thinBorder(bodyBorderArgb)
+  if (cell.value === SIZE_NOT_APPLICABLE) {
+    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: notApplicableFillArgb } }
+    cell.font = { color: { argb: notApplicableFontArgb } }
+  }
+}
+
+function applyBodyRowsStyle(sheet: Worksheet) {
+  sheet.eachRow((row, rowNumber) => {
+    if (rowNumber === 1) return
+    let hasLineBreak = false
+    row.eachCell((cell) => {
+      if (typeof cell.value === 'string' && cell.value.includes('\n')) {
+        hasLineBreak = true
+      }
+      applyBodyCellStyle(cell)
+    })
+    row.height = hasLineBreak ? 30 : 21
+  })
+}
+
+function applyMainSheetStyle(sheet: Worksheet) {
+  applyHeaderRowStyle(sheet.getRow(1))
+  applyBodyRowsStyle(sheet)
+}
+
+function applyMetaSheetStyle(sheet: Worksheet) {
+  applyHeaderRowStyle(sheet.getRow(1))
+  applyBodyRowsStyle(sheet)
+}
+
 export async function createCandidateOrderExcelExport({ stashName, userName, items }: CandidateOrderExportInput) {
   const ExcelJS = await loadExcelJs()
   const workbook = new ExcelJS.Workbook()
@@ -204,46 +265,12 @@ export async function createCandidateOrderExcelExport({ stashName, userName, ite
     from: 'A1',
     to: `${columnName(mainHeader.length - 1)}1`,
   }
-
-  const headerRow = mainSheet.getRow(1)
-  headerRow.height = 24
-  headerRow.eachCell((cell) => {
-    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF000000' } }
-    cell.font = { color: { argb: 'FFFFFFFF' }, bold: true }
-    cell.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true }
-    cell.border = {
-      top: { style: 'thin', color: { argb: 'FF111827' } },
-      left: { style: 'thin', color: { argb: 'FF111827' } },
-      bottom: { style: 'thin', color: { argb: 'FF111827' } },
-      right: { style: 'thin', color: { argb: 'FF111827' } },
-    }
-  })
-
-  mainSheet.eachRow((row, rowNumber) => {
-    if (rowNumber === 1) return
-    let hasLineBreak = false
-    row.eachCell((cell) => {
-      if (typeof cell.value === 'string' && cell.value.includes('\n')) {
-        hasLineBreak = true
-      }
-      cell.alignment = { vertical: 'middle', wrapText: true }
-      cell.border = {
-        top: { style: 'thin', color: { argb: 'FFE5E7EB' } },
-        left: { style: 'thin', color: { argb: 'FFE5E7EB' } },
-        bottom: { style: 'thin', color: { argb: 'FFE5E7EB' } },
-        right: { style: 'thin', color: { argb: 'FFE5E7EB' } },
-      }
-      if (cell.value === SIZE_NOT_APPLICABLE) {
-        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF3F4F6' } }
-        cell.font = { color: { argb: 'FF6B7280' } }
-      }
-    })
-    row.height = hasLineBreak ? 30 : 21
-  })
+  applyMainSheetStyle(mainSheet)
 
   const metaSheet = workbook.addWorksheet('메타')
   metaSheet.columns = [{ width: 20 }, { width: 28 }]
   metaSheet.addRows(metaRows)
+  applyMetaSheetStyle(metaSheet)
 
   const workbookBuffer = await workbook.xlsx.writeBuffer()
   const blob = new Blob([workbookBuffer as BlobPart], { type: excelMimeType })
