@@ -1,7 +1,7 @@
 .adminPage {
   height: calc(100dvh - 120px);
   min-height: 440px;
-  grid-template-rows: auto auto 1fr;
+  grid-template-rows: auto 1fr;
   overflow: hidden;
 }
 
@@ -17,14 +17,15 @@
   background: #ffffff;
 }
 
-.kicker {
-  margin: 0 0 4px;
-  color: #64748b;
-  font-size: 12px;
-  font-weight: 900;
+.headerTitleRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
 }
 
-.header h1 {
+.headerTitleRow h1 {
+  flex-shrink: 0;
   color: #111827;
   font-size: 18px;
   line-height: 1.2;
@@ -645,6 +646,16 @@
   .header {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .headerTitleRow {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .tabBar {
+    flex-wrap: wrap;
   }
 
   .tableHeader {

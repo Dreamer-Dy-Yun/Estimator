@@ -142,7 +142,7 @@
 
 | 파일 | 역할 |
 |------|------|
-| `AdminPage.tsx` | 관리자 라우트 shell. 사용자 관리/API 키 관리 탭과 공통 헤더를 소유한다 |
+| `AdminPage.tsx` | 관리자 라우트 shell. 공통 헤더의 제목 줄에 사용자 관리/API 키 관리 탭을 함께 배치한다 |
 | `AdminUsersPanel.tsx` | 관리자 유저 목록 조회, 추가, UUID 기준 제거, 로그인 ID/이름/비고/권한/활성 상태 수정, 임시 비밀번호 재설정 화면과 임시 비밀번호 클릭 복사 |
 | `AdminApiKeysPanel.tsx` | 관리자 API 키 목록 조회, 추가, 메타 변경, 키 교체, 연결 테스트 화면. 원문 키는 생성/교체 form state와 API 요청에만 존재한다 |
 | `AdminPage.module.css` | 관리자 화면 공통 shell, 탭, 사용자/키 관리 패널 스타일 |

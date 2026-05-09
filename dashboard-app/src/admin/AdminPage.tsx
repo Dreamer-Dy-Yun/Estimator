@@ -30,25 +30,25 @@ export function AdminPage() {
     <section className={`${commonStyles.page} ${styles.adminPage}`}>
       <header className={styles.header}>
         <div>
-          <p className={styles.kicker}>관리자</p>
-          <h1>{header.title}</h1>
+          <div className={styles.headerTitleRow}>
+            <h1>{header.title}</h1>
+            <nav className={styles.tabBar} aria-label="관리자 메뉴">
+              {ADMIN_TABS.map((tab) => (
+                <button
+                  key={tab.value}
+                  type="button"
+                  className={`${styles.tabButton} ${activeTab === tab.value ? styles.tabButtonSelected : ''}`.trim()}
+                  aria-current={activeTab === tab.value ? 'page' : undefined}
+                  onClick={() => setActiveTab(tab.value)}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </nav>
+          </div>
         </div>
         <p className={styles.headerMeta}>{header.meta}</p>
       </header>
-
-      <nav className={styles.tabBar} aria-label="관리자 메뉴">
-        {ADMIN_TABS.map((tab) => (
-          <button
-            key={tab.value}
-            type="button"
-            className={`${styles.tabButton} ${activeTab === tab.value ? styles.tabButtonSelected : ''}`.trim()}
-            aria-current={activeTab === tab.value ? 'page' : undefined}
-            onClick={() => setActiveTab(tab.value)}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </nav>
 
       {activeTab === 'users' ? <AdminUsersPanel /> : <AdminApiKeysPanel />}
     </section>
