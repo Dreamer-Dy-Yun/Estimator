@@ -7,10 +7,24 @@ type CandidateOrderExportInput = {
 }
 
 type ExcelCellValue = string | number
+type ExcelJsModule = typeof import('exceljs')
 
 const SIZE_NOT_APPLICABLE = 'N/A'
 const excelMimeType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
 const invalidFilenameChars = /[\\/:*?"<>|]+/g
+let excelJsModulePromise: Promise<ExcelJsModule> | null = null
+
+function loadExcelJs(): Promise<ExcelJsModule> {
+  excelJsModulePromise ??= import('exceljs').catch((err) => {
+    excelJsModulePromise = null
+    throw err
+  })
+  return excelJsModulePromise
+}
+
+export function preloadCandidateOrderExcelExport(): Promise<ExcelJsModule> {
+  return loadExcelJs()
+}
 
 function safeFilenamePart(value: string): string {
   return value.trim().replace(invalidFilenameChars, '_').replace(/\s+/g, '_') || 'candidate-stash'
@@ -135,7 +149,7 @@ function columnName(index: number): string {
 }
 
 export async function createCandidateOrderExcelExport({ stashName, userName, items }: CandidateOrderExportInput) {
-  const ExcelJS = await import('exceljs')
+  const ExcelJS = await loadExcelJs()
   const workbook = new ExcelJS.Workbook()
   workbook.creator = 'HAN.A'
   workbook.created = new Date()

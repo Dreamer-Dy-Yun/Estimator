@@ -24,7 +24,11 @@ import { uniqueSortedStrings } from '../../../utils/uniqueSortedStrings'
 import { mergePrimarySummaryFromBundleAndSnapshot } from '../../drawer/mergePrimarySummaryFromSnapshot'
 import { useProductDrawerBundle } from '../../hooks/useProductDrawerBundle'
 import { normalizeRangeOnEndInput, normalizeRangeOnStartInput } from '../../hooks/usePeriodRangeFilter'
-import { createCandidateOrderExcelExport, downloadBlob } from '../../../utils/candidateOrderExcelExport'
+import {
+  createCandidateOrderExcelExport,
+  downloadBlob,
+  preloadCandidateOrderExcelExport,
+} from '../../../utils/candidateOrderExcelExport'
 
 const INNER_DRAWER_CLOSE_LAYOUT_MS = 440
 
@@ -187,6 +191,11 @@ export function useCandidateStashDetailModal({
   useEffect(() => {
     void loadItems()
   }, [loadItems])
+
+  useEffect(() => {
+    if (!items.length) return
+    void preloadCandidateOrderExcelExport().catch(() => undefined)
+  }, [items.length, stashUuid])
 
   const refreshStashes = useCallback(async () => {
     const list = await getCandidateStashes()
