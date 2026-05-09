@@ -7,9 +7,23 @@
 | 작성일 | 2026-04-23 |
 | 최종 수정일 | 2026-05-09 |
 | 상태 | 유지 문서 |
-| 적용 범위 | `dashboard-app/src/api/types`, 백엔드 REST API 계약 |
+| 적용 범위 | `dashboard-app/src/api/types`, `dashboard-app/src/api/requests`, 백엔드 REST API 계약 |
 
 이 문서는 프론트의 **`AuthApi` / `DashboardApi` TypeScript 계약**을 만족하는 REST API를 설계·구현하기 위한 참고 자료입니다. 필드명은 **camelCase**, JSON 직렬화를 가정합니다.
+
+현재 백엔드 엔드포인트는 아직 작성되지 않았다. 따라서 프론트의 실제 요청 교체 지점은 `dashboard-app/src/api/requests/*`이며, 백엔드는 `src/api/types/*` 계약과 이 문서를 기준으로 엔드포인트를 구성한다. 지금 `requests` 파일은 mock API를 호출하지만, 백엔드 연결 시 화면/훅을 건드리지 않고 해당 파일 내부만 HTTP 요청으로 교체하는 것을 기본 원칙으로 한다.
+
+---
+
+## 0. 프론트 요청 adapter 경계
+
+| 파일 | 기능 범위 | 백엔드 구현 시 주의점 |
+|------|-----------|----------------------|
+| `src/api/requests/authRequests.ts` | 로그인, 세션, 사용자 정보 변경, 관리자 사용자 관리 | HttpOnly cookie 기반 세션 권장. 비밀번호/임시 비밀번호는 요청 또는 1회 응답에만 존재해야 하며 목록·세션 응답에 포함하지 않는다 |
+| `src/api/requests/adminGptKeyRequests.ts` | 관리자 GPT 키 목록, 생성, 메타 변경, 키 교체, 연결 테스트 | GPT 전용 계약이다. 생성/교체 요청만 `plainKey`를 담고, 응답은 `maskedKey`만 내려준다. 키 저장/암호화/감사 로그는 백엔드 책임이다 |
+| `src/api/requests/dashboardRequests.ts` | 자사/경쟁 판매, 상품 드로워, 후보군, 분석 SSE, 엑셀 업로드 템플릿 | 후보군 계열 요청은 현재 사용자 `USER_ACCOUNT.uuid` 기준으로 소유자 필터를 강제한다. 프론트 UI는 사용자 UUID를 들고 다니지 않고 request adapter에서만 붙인다. 세션 기반 백엔드라면 요청값보다 서버 세션을 우선한다 |
+
+`src/api/client.ts`는 public export facade다. 화면에서 import하는 이름을 안정적으로 유지하기 위한 파일이며, mock과 실제 HTTP를 선택하는 책임은 갖지 않는다.
 
 ---
 
@@ -231,18 +245,18 @@
 | `getProductSecondaryDetail(id, params?)` | GET | `/products/:id/secondary-detail?minOpMarginPct` |
 | `getSecondaryDailyTrend(params)` | GET | `/products/:productId/secondary/daily-trend?startMonth&leadTimeDays&competitorChannelId` |
 | `getSecondaryCompetitorChannels()` | GET | `/secondary/competitor-channels` |
-| `getCandidateStashes(productId?)` | GET | `/candidate-stashes?productId` |
-| `getCandidateItemsByStash(stashUuid)` | GET | `/candidate-stashes/:stashUuid/items` |
-| `getCandidateRecommendations(params)` | GET | `/candidate-stashes/:stashUuid/recommendations?dataReferencePeriodStart&dataReferencePeriodEnd` |
-| `getCandidateItemByUuid(itemUuid)` | GET | `/candidate-items/:itemUuid` |
-| `deleteCandidateItem(itemUuid)` | DELETE | `/candidate-items/:itemUuid` |
-| `deleteCandidateItems(stashUuid, itemUuids)` | DELETE | `/candidate-stashes/:stashUuid/items` body `{ itemUuids }` |
-| `deleteCandidateStash(stashUuid)` | DELETE | `/candidate-stashes/:stashUuid` |
-| `createCandidateStash(payload)` | POST | `/candidate-stashes` |
-| `updateCandidateStash(payload)` | PATCH | `/candidate-stashes/:stashUuid` |
-| `duplicateCandidateStash(stashUuid)` | POST | `/candidate-stashes/:stashUuid/duplicate` |
-| `appendCandidateItem(payload)` | POST | `/candidate-stashes/:stashUuid/items` |
-| `updateCandidateItem(payload)` | PATCH | `/candidate-items/:itemUuid` |
+| `getCandidateStashes(productId?)` | GET | `/candidate-stashes?ownerUserUuid&productId` |
+| `getCandidateItemsByStash(stashUuid)` | GET | `/candidate-stashes/:stashUuid/items?ownerUserUuid` |
+| `getCandidateRecommendations(params)` | GET | `/candidate-stashes/:stashUuid/recommendations?ownerUserUuid&dataReferencePeriodStart&dataReferencePeriodEnd` |
+| `getCandidateItemByUuid(itemUuid)` | GET | `/candidate-items/:itemUuid?ownerUserUuid` |
+| `deleteCandidateItem(itemUuid)` | DELETE | `/candidate-items/:itemUuid` body `{ ownerUserUuid }` 또는 세션 기준 |
+| `deleteCandidateItems(stashUuid, itemUuids)` | DELETE | `/candidate-stashes/:stashUuid/items` body `{ ownerUserUuid, itemUuids }` |
+| `deleteCandidateStash(stashUuid)` | DELETE | `/candidate-stashes/:stashUuid` body `{ ownerUserUuid }` 또는 세션 기준 |
+| `createCandidateStash(payload)` | POST | `/candidate-stashes` body `{ ...payload, ownerUserUuid }` |
+| `updateCandidateStash(payload)` | PATCH | `/candidate-stashes/:stashUuid` body `{ ...payload, ownerUserUuid }` |
+| `duplicateCandidateStash(stashUuid)` | POST | `/candidate-stashes/:stashUuid/duplicate` body `{ ownerUserUuid }` |
+| `appendCandidateItem(payload)` | POST | `/candidate-stashes/:stashUuid/items` body `{ ...payload, ownerUserUuid }` |
+| `updateCandidateItem(payload)` | PATCH | `/candidate-items/:itemUuid` body `{ ...payload, ownerUserUuid }` |
 | `uploadCandidateStashExcel(file)` | POST multipart/form-data | `/candidate-stashes/import/excel` |
 | `startCandidateStashAnalysis(stashUuid)` | POST | `/candidate-stashes/:stashUuid/analysis` |
 | `subscribeCandidateStashAnalysis(jobId, handlers)` | GET (SSE) | `/candidate-stash-analyses/:jobId/events` |

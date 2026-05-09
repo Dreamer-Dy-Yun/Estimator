@@ -27,7 +27,7 @@
 - 2차 드로워에서 화면에 노출되지 않는 AI 프롬프트 생성 API와 배포 전 제거 대상이던 JSON 미리보기 모달을 제거했다.
 - 오더 스냅샷 독립 localStorage 저장/조회/삭제 API를 제거하고, 후보 아이템 `details`를 스냅샷 저장의 단일 경로로 둔다.
 - 후보군 생성/삭제/복제/편집 이벤트는 API 호출 후 목록을 재조회한다. mock은 응답 흐름만 모사하고 브라우저 저장소에 후보군/이너 후보를 만들거나 지우지 않는다.
-- 후보군 목록/상세/수정 계열 API는 현재 인증 세션의 `USER_ACCOUNT.uuid` 기준으로 소유자 데이터를 필터링한다. 화면은 사용자 UUID를 직접 파라미터로 보내지 않고 `src/api/client.ts`가 mock 세션을 읽어 mock 구현에만 전달한다.
+- 후보군 목록/상세/수정 계열 API는 현재 인증 세션의 `USER_ACCOUNT.uuid` 기준으로 소유자 데이터를 필터링한다. 화면은 사용자 UUID를 직접 파라미터로 보내지 않고 `src/api/requests/dashboardRequests.ts`가 request boundary에서만 세션 UUID를 읽어 mock/향후 HTTP 요청에 붙인다.
 - 후보군 상세 필터 카드에는 발주 엑셀 다운로드 액션을 둔다. 화면은 다운로드 클릭 시 백엔드를 다시 호출하지 않고, 이미 받은 `CandidateItemSummary.orderExport` 최소 DTO로 브라우저에서 XLSX를 생성한다. 주 데이터 시트는 기본 식별/배지/판매 지표/총 오더 지표 컬럼 뒤에 후보군 전체 사이즈를 동적 컬럼으로 붙이고, 제품에 없는 사이즈는 `N/A`로 표시한다. 복수 배지는 한 셀 안에서 줄바꿈한다. 메타 시트에는 오더 입고 예정일과 사용자 이름을 둔다.
 - 라우트 페이지는 `src/App.tsx`에서 `React.lazy`로 분리한다. 기본 라우팅은 일반 배포용 `BrowserRouter`이고, GitHub Pages workflow만 `VITE_ROUTER_MODE=hash`로 `HashRouter`를 켠다.
 - vendor chunk는 `vite.config.ts`의 Rolldown `codeSplitting.groups`가 소유한다. Recharts 같은 내부 순서 의존 라이브러리는 `maxSize`로 강제 세분화하지 않는다.
@@ -39,6 +39,7 @@
 - 로그인 화면, 라우트 보호, 사용자 정보/비밀번호 변경 모달은 `src/auth`가 소유한다. 인증 API 계약과 목 세션 저장은 `src/api` 아래에 두어 실제 백엔드로 교체할 때 화면이 mock 구현을 직접 알지 않게 한다. 보호 라우트는 직접 URL 진입과 새로고침 복귀를 위해 `/login?redirect=...`를 남긴다. 목 로그인 화면은 `mock-admin` / `admin` 기본값을 미리 채워 수정 없이 로그인할 수 있게 한다.
 - 관리자 화면은 `/admin` 별도 라우트와 `src/admin`이 소유한다. 화면은 같은 `DashboardLayout` 안에서 렌더하며, 관리자 권한 사용자에게만 `오더 후보군` 뒤 관리자 전용 탭을 보여준다. 인증 권한은 `admin`과 `user` 두 단계만 둔다. 사용자 관리는 관리자 화면 안의 탭/패널로 분리한다. 관리자 비밀번호 관리는 조회가 아니라 임시 비밀번호 재설정 API만 호출하고, 임시 비밀번호는 응답 직후 한 번만 표시한다.
 - 관리자 GPT 키 관리는 `src/api/types/admin-gpt-key.ts` 계약과 `src/api/mock/adminGptKeyApi.ts` mock을 통해서만 접근한다. 화면은 GPT 키 원문을 입력/교체 요청에만 담고, 목록 응답은 `maskedKey`만 표시한다. 현재 mock은 DB 대체 저장소가 아니라 런타임 메모리에서 마스킹 값과 메타데이터만 보관한다.
+- API 요청 교체 지점은 `src/api/requests/*`로 분리한다. 화면/훅/페이지는 mock을 알 수 없고, `src/api/client.ts`는 public export facade만 맡는다. 실제 백엔드가 생기면 `requests` 파일 안의 mock 위임을 HTTP 요청으로 바꾸는 것을 기본 원칙으로 한다.
 - 상품 drawer feature는 `dashboard/components/product-drawer`로 모았다. 루트 `ProductDrawer`는 overlay와 공유 상태만 조율하고, `primary`가 1차 드로워, `secondary`가 2차 드로워를 소유한다.
 - 경쟁 채널 상태는 1차 판매 정보와 2차 일별 추이가 공유하므로 `product-drawer/useCompetitorChannels.ts`가 소유한다. 2차 상세 조회는 `product-drawer/secondary/useSecondaryDrawerDetail.ts`가 소유한다.
 - 인증 context와 `useAuth`는 `AuthContext.ts`가 소유하고, `AuthProvider.tsx`는 세션 로딩과 API 호출 orchestration만 담당한다.
@@ -84,9 +85,10 @@
 
 | 경로 | 역할 | 변경 기준 |
 |------|------|-----------|
-| `api/client.ts` | 화면에서 호출하는 API 함수와 `dashboardApi`, `authApi` 객체를 노출한다. 현재 구현은 mock으로 위임한다. 후보군 API mock 호출 전 현재 세션 사용자 UUID를 확인한다. 후보군 업로드 템플릿 다운로드 위치도 이 파일이 감싸며, 현재는 정적 파일 URL을 반환한다. | API 함수 추가/삭제, mock에서 실제 HTTP로 전환 시 수정 |
+| `api/client.ts` | 화면에서 호출하는 API 함수와 `dashboardApi` 객체를 노출하는 public facade. mock이나 HTTP 세부 구현은 알지 않는다. | API public surface 추가/삭제 시 수정 |
+| `api/requests/*` | 실제 API 요청 교체 지점. 현재는 mock API를 호출하지만, 백엔드 엔드포인트가 생기면 이 폴더 안에서 HTTP 요청으로 바꾼다. 각 파일에는 기능 범위와 백엔드 구현 주의점을 짧은 주석으로 둔다. | mock 위임을 실제 API 요청으로 교체하거나 요청 정책이 바뀔 때 수정 |
 | `api/index.ts` | API public export. | 외부에서 import할 API surface 변경 시 수정 |
-| `api/mock.ts` | mock API 진입 파일. | mock 구현 위치를 바꿀 때만 수정 |
+| `api/mock.ts` | request adapter가 사용하는 mock API 진입 파일. 화면과 훅은 import하지 않는다. | mock 구현 위치를 바꿀 때만 수정 |
 | `api/dailyTrendAsOf.ts` | 일간 트렌드 as-of 계산 보조 로직. | 일간 트렌드 기준일 규칙 변경 시 수정 |
 | `api/types/*` | 프론트-백엔드 계약 타입. 관리자 GPT 키 계약은 `admin-gpt-key.ts`, 인증 계약은 `auth.ts`, 후보군 계약은 `candidate.ts`, 저장 스냅샷 계약은 `snapshot.ts`, 2차 드로워 계약은 `secondary.ts`가 소유한다. | 요청/응답 구조가 바뀌면 먼저 수정 |
 | `api/mock/*` | 읽기 전용 seed, mock 계산, mock 응답 구현. mutation mock은 브라우저 저장소를 DB처럼 변경하지 않는다. | 데모 데이터나 mock 동작 변경 시 수정 |
@@ -120,6 +122,15 @@
 | `salesTables.ts` | 자사/경쟁 판매 테이블 mock |
 | `secondaryDailyTrend.ts` | 2차 드로워 일간 트렌드 mock. 선택 경쟁 채널의 수량 보정이 경쟁사 일별 판매량에 반영된다 |
 | `utils.ts` | mock 전용 유틸 |
+
+### api/requests 하위 파일
+
+| 파일 | 역할 |
+|------|------|
+| `authRequests.ts` | 로그인, 세션, 사용자 정보, 관리자 사용자 관리 요청 adapter. 실제 백엔드 전환 시 HttpOnly 세션, 비밀번호/임시 비밀번호 일회성 응답, 관리자 보호 정책을 이 파일에서 HTTP 요청으로 연결한다 |
+| `adminGptKeyRequests.ts` | 관리자 GPT 키 관리 요청 adapter. GPT 전용 계약이며 원문 키는 생성/교체 요청에만 싣고 목록/수정/테스트 응답은 `maskedKey`만 받는 흐름을 유지한다 |
+| `dashboardRequests.ts` | 자사/경쟁 판매, 상품 드로워, 후보군, 분석 SSE, 엑셀 업로드 템플릿 요청 adapter. 후보군 계열은 현재 세션의 `USER_ACCOUNT.uuid`를 request boundary에서만 붙이고, 화면 내부로 사용자 UUID를 흘리지 않는다 |
+| `index.ts` | request adapter export 진입 파일 |
 
 ## src/auth
 
@@ -319,7 +330,7 @@ React나 API 구현에 의존하지 않는 순수 보조 함수만 둔다.
 ## 새 파일 배치 규칙
 
 1. API 요청/응답 타입이면 `src/api/types`.
-2. API 호출 진입점이면 `src/api/client.ts`와 `src/api/index.ts`.
+2. API 호출 진입점이면 `src/api/client.ts`, `src/api/requests/*`, `src/api/index.ts`.
 3. mock 데이터/동작이면 `src/api/mock`.
 4. 인증 화면, 세션 provider, 보호 라우트면 `src/auth`.
 5. 관리자 화면이면 `src/admin`.

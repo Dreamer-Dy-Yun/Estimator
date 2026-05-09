@@ -1,283 +1,39 @@
-import type { CompetitorSalesRow, SelfSalesRow } from '../types'
-import { mockAdminGptKeyApi, mockAuthApi, mockDashboardApi } from './mock'
-import type {
-  AdminGptKeySummary,
-  AdminGptKeyTestResult,
-  AdminUserSummary,
-  AppendCandidateItemPayload,
-  AuthSession,
-  ChangePasswordPayload,
-  CreateAdminUserPayload,
-  UpdateCandidateItemPayload,
-  CandidateItemDetail,
-  CandidateItemListResult,
-  CandidateRecommendationParams,
-  CandidateRecommendationResult,
-  CandidateStashAnalysisHandlers,
-  CandidateStashAnalysisStartResult,
-  CandidateStashAnalysisSubscription,
-  CandidateStashExcelTemplateDownload,
-  CandidateStashExcelUploadResult,
-  CandidateStashSummary,
-  CreateCandidateStashPayload,
-  UpdateCandidateStashPayload,
-  DashboardApi,
-  ProductDrawerBundle,
-  ProductMonthlyTrend,
-  ProductMonthlyTrendParams,
-  ProductSalesInsight,
-  ProductSalesInsightParams,
-  ProductSecondaryDetail,
-  SecondaryCompetitorChannel,
-  SecondaryStockOrderCalcParams,
-  SecondaryStockOrderCalcResult,
-  SecondaryDailyTrendParams,
-  SecondaryDailyTrendPoint,
-  ProductSecondaryDetailParams,
-  CompetitorSalesParams,
-  CreateAdminGptKeyPayload,
-  LoginRequest,
-  LoginResult,
-  ResetAdminUserPasswordResult,
-  RotateAdminGptKeyPayload,
-  SelfSalesFilterMeta,
-  SelfSalesParams,
-  UpdateAdminGptKeyPayload,
-  UpdateAdminUserPayload,
-  UpdateAuthUserPayload,
-} from './types'
+import { adminGptKeyRequests, authRequests, dashboardRequests } from './requests'
 
-const candidateStashExcelTemplateAsset = 'templates/candidate-stash-upload-template-v0.0.0.xlsx'
-const candidateStashExcelTemplateFilename = '(Han.A)Template(ver.0.0.0).xlsx'
+export const getCurrentAuthSession = authRequests.getCurrentSession
+export const login = authRequests.login
+export const updateCurrentUser = authRequests.updateCurrentUser
+export const changeCurrentUserPassword = authRequests.changeCurrentUserPassword
+export const getAdminUsers = authRequests.getAdminUsers
+export const createAdminUser = authRequests.createAdminUser
+export const updateAdminUser = authRequests.updateAdminUser
+export const resetAdminUserPassword = authRequests.resetAdminUserPassword
+export const deleteAdminUser = authRequests.deleteAdminUser
+export const logout = authRequests.logout
 
-function resolvePublicAssetUrl(path: string): string {
-  const baseUrl = import.meta.env.BASE_URL || '/'
-  return `${baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`}${path.replace(/^\/+/, '')}`
-}
+export const getAdminGptKeys = adminGptKeyRequests.getAdminGptKeys
+export const createAdminGptKey = adminGptKeyRequests.createAdminGptKey
+export const updateAdminGptKey = adminGptKeyRequests.updateAdminGptKey
+export const rotateAdminGptKey = adminGptKeyRequests.rotateAdminGptKey
+export const testAdminGptKey = adminGptKeyRequests.testAdminGptKey
 
-export async function getCurrentAuthSession(): Promise<AuthSession | null> {
-  return mockAuthApi.getCurrentSession()
-}
+export const getSelfSales = dashboardRequests.getSelfSales
+export const getCompetitorSales = dashboardRequests.getCompetitorSales
+export const getSelfSalesFilterMeta = dashboardRequests.getSelfSalesFilterMeta
+export const getProductDrawerBundle = dashboardRequests.getProductDrawerBundle
+export const getSecondaryCompetitorChannels = dashboardRequests.getSecondaryCompetitorChannels
+export const getCandidateStashes = dashboardRequests.getCandidateStashes
+export const getCandidateItemsByStash = dashboardRequests.getCandidateItemsByStash
+export const getCandidateRecommendations = dashboardRequests.getCandidateRecommendations
+export const getCandidateItemByUuid = dashboardRequests.getCandidateItemByUuid
+export const deleteCandidateItem = dashboardRequests.deleteCandidateItem
+export const deleteCandidateItems = dashboardRequests.deleteCandidateItems
+export const deleteCandidateStash = dashboardRequests.deleteCandidateStash
+export const duplicateCandidateStash = dashboardRequests.duplicateCandidateStash
+export const updateCandidateStash = dashboardRequests.updateCandidateStash
+export const getCandidateStashExcelTemplateDownload = dashboardRequests.getCandidateStashExcelTemplateDownload
+export const uploadCandidateStashExcel = dashboardRequests.uploadCandidateStashExcel
+export const startCandidateStashAnalysis = dashboardRequests.startCandidateStashAnalysis
+export const subscribeCandidateStashAnalysis = dashboardRequests.subscribeCandidateStashAnalysis
 
-export async function login(payload: LoginRequest): Promise<LoginResult> {
-  return mockAuthApi.login(payload)
-}
-
-export async function updateCurrentUser(payload: UpdateAuthUserPayload): Promise<AuthSession> {
-  return mockAuthApi.updateCurrentUser(payload)
-}
-
-export async function changeCurrentUserPassword(payload: ChangePasswordPayload): Promise<void> {
-  return mockAuthApi.changeCurrentUserPassword(payload)
-}
-
-export async function getAdminUsers(): Promise<AdminUserSummary[]> {
-  return mockAuthApi.getAdminUsers()
-}
-
-export async function createAdminUser(payload: CreateAdminUserPayload): Promise<AdminUserSummary> {
-  return mockAuthApi.createAdminUser(payload)
-}
-
-export async function updateAdminUser(payload: UpdateAdminUserPayload): Promise<AdminUserSummary> {
-  return mockAuthApi.updateAdminUser(payload)
-}
-
-export async function resetAdminUserPassword(userUuid: string): Promise<ResetAdminUserPasswordResult> {
-  return mockAuthApi.resetAdminUserPassword(userUuid)
-}
-
-export async function deleteAdminUser(userUuid: string): Promise<void> {
-  return mockAuthApi.deleteAdminUser(userUuid)
-}
-
-export async function getAdminGptKeys(): Promise<AdminGptKeySummary[]> {
-  return mockAdminGptKeyApi.getAdminGptKeys()
-}
-
-export async function createAdminGptKey(payload: CreateAdminGptKeyPayload): Promise<AdminGptKeySummary> {
-  return mockAdminGptKeyApi.createAdminGptKey(payload)
-}
-
-export async function updateAdminGptKey(payload: UpdateAdminGptKeyPayload): Promise<AdminGptKeySummary> {
-  return mockAdminGptKeyApi.updateAdminGptKey(payload)
-}
-
-export async function rotateAdminGptKey(payload: RotateAdminGptKeyPayload): Promise<AdminGptKeySummary> {
-  return mockAdminGptKeyApi.rotateAdminGptKey(payload)
-}
-
-export async function testAdminGptKey(keyUuid: string): Promise<AdminGptKeyTestResult> {
-  return mockAdminGptKeyApi.testAdminGptKey(keyUuid)
-}
-
-export async function logout(): Promise<void> {
-  return mockAuthApi.logout()
-}
-
-async function requireCurrentUserUuid(): Promise<string> {
-  const session = await mockAuthApi.getCurrentSession()
-  if (!session) throw new Error('로그인이 필요합니다.')
-  return session.user.uuid
-}
-
-export async function getSelfSales(params?: SelfSalesParams): Promise<SelfSalesRow[]> {
-  return mockDashboardApi.getSelfSales(params)
-}
-
-export async function getCompetitorSales(params?: CompetitorSalesParams): Promise<CompetitorSalesRow[]> {
-  return mockDashboardApi.getCompetitorSales(params)
-}
-
-export async function getSelfSalesFilterMeta(): Promise<SelfSalesFilterMeta> {
-  return mockDashboardApi.getSelfSalesFilterMeta()
-}
-
-export async function getProductDrawerBundle(id: string): Promise<ProductDrawerBundle> {
-  return mockDashboardApi.getProductDrawerBundle(id)
-}
-
-async function getProductMonthlyTrend(
-  id: string,
-  params: ProductMonthlyTrendParams,
-): Promise<ProductMonthlyTrend> {
-  return mockDashboardApi.getProductMonthlyTrend(id, params)
-}
-
-async function getProductSalesInsight(
-  id: string,
-  params: ProductSalesInsightParams,
-): Promise<ProductSalesInsight> {
-  return mockDashboardApi.getProductSalesInsight(id, params)
-}
-
-async function getProductSecondaryDetail(
-  id: string,
-  params?: ProductSecondaryDetailParams,
-): Promise<ProductSecondaryDetail> {
-  return mockDashboardApi.getProductSecondaryDetail(id, params)
-}
-
-async function getSecondaryDailyTrend(
-  params: SecondaryDailyTrendParams,
-): Promise<SecondaryDailyTrendPoint[]> {
-  return mockDashboardApi.getSecondaryDailyTrend(params)
-}
-
-export async function getSecondaryCompetitorChannels(): Promise<SecondaryCompetitorChannel[]> {
-  return mockDashboardApi.getSecondaryCompetitorChannels()
-}
-
-export async function getCandidateStashes(productId?: string): Promise<CandidateStashSummary[]> {
-  return mockDashboardApi.getCandidateStashes(productId, await requireCurrentUserUuid())
-}
-
-export async function getCandidateItemsByStash(stashUuid: string): Promise<CandidateItemListResult> {
-  return mockDashboardApi.getCandidateItemsByStash(stashUuid, await requireCurrentUserUuid())
-}
-
-export async function getCandidateRecommendations(
-  params: CandidateRecommendationParams,
-): Promise<CandidateRecommendationResult> {
-  return mockDashboardApi.getCandidateRecommendations(params, await requireCurrentUserUuid())
-}
-
-export async function getCandidateItemByUuid(itemUuid: string): Promise<CandidateItemDetail | null> {
-  return mockDashboardApi.getCandidateItemByUuid(itemUuid, await requireCurrentUserUuid())
-}
-
-export async function deleteCandidateItem(itemUuid: string): Promise<void> {
-  return mockDashboardApi.deleteCandidateItem(itemUuid, await requireCurrentUserUuid())
-}
-
-export async function deleteCandidateItems(stashUuid: string, itemUuids: string[]): Promise<void> {
-  return mockDashboardApi.deleteCandidateItems(stashUuid, itemUuids, await requireCurrentUserUuid())
-}
-
-export async function deleteCandidateStash(stashUuid: string): Promise<void> {
-  return mockDashboardApi.deleteCandidateStash(stashUuid, await requireCurrentUserUuid())
-}
-
-async function createCandidateStash(
-  payload: CreateCandidateStashPayload,
-): Promise<CandidateStashSummary> {
-  return mockDashboardApi.createCandidateStash(payload, await requireCurrentUserUuid())
-}
-
-export async function duplicateCandidateStash(stashUuid: string): Promise<void> {
-  return mockDashboardApi.duplicateCandidateStash(stashUuid, await requireCurrentUserUuid())
-}
-
-export async function updateCandidateStash(
-  payload: UpdateCandidateStashPayload,
-): Promise<CandidateStashSummary> {
-  return mockDashboardApi.updateCandidateStash(payload, await requireCurrentUserUuid())
-}
-
-async function appendCandidateItem(
-  payload: AppendCandidateItemPayload,
-): Promise<void> {
-  return mockDashboardApi.appendCandidateItem(payload, await requireCurrentUserUuid())
-}
-
-async function updateCandidateItem(payload: UpdateCandidateItemPayload): Promise<void> {
-  return mockDashboardApi.updateCandidateItem(payload, await requireCurrentUserUuid())
-}
-
-export async function uploadCandidateStashExcel(file: File): Promise<CandidateStashExcelUploadResult> {
-  await requireCurrentUserUuid()
-  return mockDashboardApi.uploadCandidateStashExcel(file)
-}
-
-export function getCandidateStashExcelTemplateDownload(): CandidateStashExcelTemplateDownload {
-  return {
-    href: resolvePublicAssetUrl(candidateStashExcelTemplateAsset),
-    filename: candidateStashExcelTemplateFilename,
-  }
-}
-
-export async function startCandidateStashAnalysis(stashUuid: string): Promise<CandidateStashAnalysisStartResult> {
-  return mockDashboardApi.startCandidateStashAnalysis(stashUuid, await requireCurrentUserUuid())
-}
-
-export function subscribeCandidateStashAnalysis(
-  jobId: string,
-  handlers: CandidateStashAnalysisHandlers,
-): CandidateStashAnalysisSubscription {
-  return mockDashboardApi.subscribeCandidateStashAnalysis(jobId, handlers)
-}
-
-async function getSecondaryStockOrderCalc(
-  params: SecondaryStockOrderCalcParams,
-): Promise<SecondaryStockOrderCalcResult> {
-  return mockDashboardApi.getSecondaryStockOrderCalc(params)
-}
-
-export const dashboardApi: DashboardApi = {
-  getSelfSales,
-  getCompetitorSales,
-  getSelfSalesFilterMeta,
-  getProductDrawerBundle,
-  getProductMonthlyTrend,
-  getProductSalesInsight,
-  getProductSecondaryDetail,
-  getSecondaryDailyTrend,
-  getSecondaryCompetitorChannels,
-  getCandidateStashes,
-  getCandidateItemsByStash,
-  getCandidateRecommendations,
-  getCandidateItemByUuid,
-  deleteCandidateItem,
-  deleteCandidateItems,
-  deleteCandidateStash,
-  createCandidateStash,
-  updateCandidateStash,
-  duplicateCandidateStash,
-  appendCandidateItem,
-  updateCandidateItem,
-  getCandidateStashExcelTemplateDownload,
-  uploadCandidateStashExcel,
-  startCandidateStashAnalysis,
-  subscribeCandidateStashAnalysis,
-  getSecondaryStockOrderCalc,
-}
+export const dashboardApi = dashboardRequests
