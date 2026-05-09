@@ -550,7 +550,7 @@
 
 .gptKeyDialogMeta {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 8px;
 }
 
@@ -854,10 +854,13 @@
     padding: 12px;
   }
 
-  .gptKeyDialogMeta,
   .gptKeyDialogForm,
   .gptKeyDialogRotate {
     grid-template-columns: 1fr;
+  }
+
+  .gptKeyDialogMeta {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .gptKeyDialogNote {
@@ -879,5 +882,11 @@
 
   .resetNoticeActions button {
     width: 100%;
+  }
+}
+
+@media (max-width: 560px) {
+  .gptKeyDialogMeta {
+    grid-template-columns: 1fr;
   }
 }

@@ -188,7 +188,7 @@ function AdminGptKeyDialog({
         <header className={styles.gptKeyDialogHeader}>
           <div>
             <span>GPT 키 관리</span>
-            <h3 id="admin-gpt-key-dialog-title">{gptKey.name}</h3>
+            <h3 id="admin-gpt-key-dialog-title">상세 설정</h3>
           </div>
           <button className={styles.gptKeyDialogCloseButton} type="button" onClick={onClose} aria-label="닫기">
             x
@@ -196,10 +196,6 @@ function AdminGptKeyDialog({
         </header>
 
         <div className={styles.gptKeyDialogMeta}>
-          <div>
-            <span>UUID</span>
-            <strong>{gptKey.uuid}</strong>
-          </div>
           <div>
             <span>키</span>
             <strong>{gptKey.maskedKey}</strong>
