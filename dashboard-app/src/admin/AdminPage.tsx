@@ -11,27 +11,20 @@ const ADMIN_TABS: Array<{ value: AdminTab; label: string }> = [
   { value: 'api-keys', label: 'API 키 관리' },
 ]
 
-const HEADER_TEXT: Record<AdminTab, { title: string; meta: string }> = {
-  users: {
-    title: '사용자 정보 관리',
-    meta: '로그인 ID, 이름, 비고, 권한, 활성 상태, 비밀번호 재설정을 관리합니다.',
-  },
-  'api-keys': {
-    title: 'API 키 관리',
-    meta: 'AI 코멘트와 추천 등에 사용할 외부 API 키의 공급자, 모델, 용도, 활성 상태를 관리합니다.',
-  },
+const HEADER_META: Record<AdminTab, string> = {
+  users: '로그인 ID, 이름, 비고, 권한, 활성 상태, 비밀번호 재설정을 관리합니다.',
+  'api-keys': 'AI 코멘트와 추천 등에 사용할 외부 API 키의 공급자, 모델, 용도, 활성 상태를 관리합니다.',
 }
 
 export function AdminPage() {
   const [activeTab, setActiveTab] = useState<AdminTab>('users')
-  const header = HEADER_TEXT[activeTab]
+  const headerMeta = HEADER_META[activeTab]
 
   return (
     <section className={`${commonStyles.page} ${styles.adminPage}`}>
       <header className={styles.header}>
         <div>
-          <div className={styles.headerTitleRow}>
-            <h1>{header.title}</h1>
+          <div className={styles.headerActionRow}>
             <nav className={styles.tabBar} aria-label="관리자 메뉴">
               {ADMIN_TABS.map((tab) => (
                 <button
@@ -47,7 +40,7 @@ export function AdminPage() {
             </nav>
           </div>
         </div>
-        <p className={styles.headerMeta}>{header.meta}</p>
+        <p className={styles.headerMeta}>{headerMeta}</p>
       </header>
 
       {activeTab === 'users' ? <AdminUsersPanel /> : <AdminApiKeysPanel />}

@@ -17,18 +17,11 @@
   background: #ffffff;
 }
 
-.headerTitleRow {
+.headerActionRow {
   display: flex;
   align-items: center;
   gap: 12px;
   min-width: 0;
-}
-
-.headerTitleRow h1 {
-  flex-shrink: 0;
-  color: #111827;
-  font-size: 18px;
-  line-height: 1.2;
 }
 
 .headerMeta {
@@ -648,7 +641,7 @@
     flex-direction: column;
   }
 
-  .headerTitleRow {
+  .headerActionRow {
     align-items: flex-start;
     flex-direction: column;
     gap: 10px;
