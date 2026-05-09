@@ -15,7 +15,6 @@ import type {
 import {
   GPT_KEY_PURPOSE_OPTIONS,
   gptKeyTestStatusLabels,
-  formatUpdatedAt,
   getErrorMessage,
 } from './adminHelpers'
 import styles from './AdminPage.module.css'
@@ -194,26 +193,6 @@ function AdminGptKeyDialog({
             x
           </button>
         </header>
-
-        <div className={styles.gptKeyDialogMeta}>
-          <div>
-            <span>키</span>
-            <strong>{gptKey.maskedKey}</strong>
-          </div>
-          <div>
-            <span>테스트</span>
-            <strong>{gptKeyTestStatusLabels[gptKey.lastTestStatus]}</strong>
-            <small>{formatUpdatedAt(gptKey.lastTestedAt)}</small>
-          </div>
-          <div>
-            <span>마지막 사용</span>
-            <strong>{formatUpdatedAt(gptKey.lastUsedAt)}</strong>
-          </div>
-          <div>
-            <span>변경일</span>
-            <strong>{formatUpdatedAt(gptKey.dbUpdatedAt)}</strong>
-          </div>
-        </div>
 
         <form className={styles.gptKeyDialogForm} onSubmit={handleSubmit}>
           <label className={styles.createField}>

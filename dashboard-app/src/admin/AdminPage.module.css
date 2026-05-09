@@ -548,41 +548,6 @@
   cursor: pointer;
 }
 
-.gptKeyDialogMeta {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 8px;
-}
-
-.gptKeyDialogMeta div {
-  min-width: 0;
-  display: grid;
-  gap: 3px;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  padding: 9px 10px;
-  background: #f8fafc;
-}
-
-.gptKeyDialogMeta span,
-.gptKeyDialogMeta small {
-  overflow: hidden;
-  color: #64748b;
-  font-size: 11px;
-  font-weight: 900;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.gptKeyDialogMeta strong {
-  overflow: hidden;
-  color: #111827;
-  font-size: 13px;
-  font-weight: 900;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
 .gptKeyDialogForm,
 .gptKeyDialogRotate {
   display: grid;
@@ -859,10 +824,6 @@
     grid-template-columns: 1fr;
   }
 
-  .gptKeyDialogMeta {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
   .gptKeyDialogNote {
     grid-column: 1 / -1;
   }
@@ -882,11 +843,5 @@
 
   .resetNoticeActions button {
     width: 100%;
-  }
-}
-
-@media (max-width: 560px) {
-  .gptKeyDialogMeta {
-    grid-template-columns: 1fr;
   }
 }
