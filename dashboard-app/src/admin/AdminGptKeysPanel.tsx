@@ -1,38 +1,38 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import {
-  createAdminApiKey,
-  getAdminApiKeys,
-  rotateAdminApiKey,
-  testAdminApiKey,
-  updateAdminApiKey,
+  createAdminGptKey,
+  getAdminGptKeys,
+  rotateAdminGptKey,
+  testAdminGptKey,
+  updateAdminGptKey,
 } from '../api'
 import type {
-  AdminApiKeyPurpose,
-  AdminApiKeySummary,
-  AdminApiKeyTestResult,
+  AdminGptKeyPurpose,
+  AdminGptKeySummary,
+  AdminGptKeyTestResult,
 } from '../api'
 import {
-  API_KEY_PURPOSE_OPTIONS,
-  apiKeyTestStatusLabels,
+  GPT_KEY_PURPOSE_OPTIONS,
+  gptKeyTestStatusLabels,
   formatUpdatedAt,
   getErrorMessage,
 } from './adminHelpers'
 import styles from './AdminPage.module.css'
 
-function AdminApiKeyRow({
-  apiKey,
+function AdminGptKeyRow({
+  gptKey,
   onChanged,
   onTested,
 }: {
-  apiKey: AdminApiKeySummary
+  gptKey: AdminGptKeySummary
   onChanged: () => Promise<void>
-  onTested: (result: AdminApiKeyTestResult) => void
+  onTested: (result: AdminGptKeyTestResult) => void
 }) {
-  const [name, setName] = useState(apiKey.name)
-  const [purpose, setPurpose] = useState<AdminApiKeyPurpose>(apiKey.purpose)
-  const [model, setModel] = useState(apiKey.model)
-  const [note, setNote] = useState(apiKey.note ?? '')
-  const [isActive, setIsActive] = useState(apiKey.isActive)
+  const [name, setName] = useState(gptKey.name)
+  const [purpose, setPurpose] = useState<AdminGptKeyPurpose>(gptKey.purpose)
+  const [model, setModel] = useState(gptKey.model)
+  const [note, setNote] = useState(gptKey.note ?? '')
+  const [isActive, setIsActive] = useState(gptKey.isActive)
   const [rotateKey, setRotateKey] = useState('')
   const [rowMessage, setRowMessage] = useState<string | null>(null)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
@@ -40,25 +40,25 @@ function AdminApiKeyRow({
   const [isRotating, setIsRotating] = useState(false)
   const [isTesting, setIsTesting] = useState(false)
   const isDirty =
-    name !== apiKey.name ||
-    purpose !== apiKey.purpose ||
-    model !== apiKey.model ||
-    note !== (apiKey.note ?? '') ||
-    isActive !== apiKey.isActive
+    name !== gptKey.name ||
+    purpose !== gptKey.purpose ||
+    model !== gptKey.model ||
+    note !== (gptKey.note ?? '') ||
+    isActive !== gptKey.isActive
 
   useEffect(() => {
-    setName(apiKey.name)
-    setPurpose(apiKey.purpose)
-    setModel(apiKey.model)
-    setNote(apiKey.note ?? '')
-    setIsActive(apiKey.isActive)
+    setName(gptKey.name)
+    setPurpose(gptKey.purpose)
+    setModel(gptKey.model)
+    setNote(gptKey.note ?? '')
+    setIsActive(gptKey.isActive)
     setRotateKey('')
     setRowMessage(null)
     setErrorMessage(null)
     setIsSaving(false)
     setIsRotating(false)
     setIsTesting(false)
-  }, [apiKey])
+  }, [gptKey])
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -67,8 +67,8 @@ function AdminApiKeyRow({
     setIsSaving(true)
 
     try {
-      await updateAdminApiKey({
-        uuid: apiKey.uuid,
+      await updateAdminGptKey({
+        uuid: gptKey.uuid,
         name,
         purpose,
         model,
@@ -90,7 +90,7 @@ function AdminApiKeyRow({
     setIsRotating(true)
 
     try {
-      await rotateAdminApiKey({ uuid: apiKey.uuid, plainKey: rotateKey })
+      await rotateAdminGptKey({ uuid: gptKey.uuid, plainKey: rotateKey })
       setRotateKey('')
       await onChanged()
       setRowMessage('키 교체됨')
@@ -107,7 +107,7 @@ function AdminApiKeyRow({
     setIsTesting(true)
 
     try {
-      const result = await testAdminApiKey(apiKey.uuid)
+      const result = await testAdminGptKey(gptKey.uuid)
       onTested(result)
       setRowMessage(result.message)
     } catch (error) {
@@ -118,15 +118,15 @@ function AdminApiKeyRow({
   }
 
   return (
-    <form className={styles.apiKeyRow} onSubmit={handleSubmit}>
+    <form className={styles.gptKeyRow} onSubmit={handleSubmit}>
       <label className={styles.fieldCell}>
         <span>이름</span>
         <input value={name} onChange={(event) => setName(event.target.value)} maxLength={80} />
       </label>
       <label className={styles.fieldCell}>
         <span>용도</span>
-        <select value={purpose} onChange={(event) => setPurpose(event.target.value as AdminApiKeyPurpose)}>
-          {API_KEY_PURPOSE_OPTIONS.map((option) => (
+        <select value={purpose} onChange={(event) => setPurpose(event.target.value as AdminGptKeyPurpose)}>
+          {GPT_KEY_PURPOSE_OPTIONS.map((option) => (
             <option key={option.value} value={option.value}>
               {option.label}
             </option>
@@ -139,24 +139,24 @@ function AdminApiKeyRow({
       </label>
       <div className={styles.identityCell}>
         <span>키</span>
-        <strong>{apiKey.maskedKey}</strong>
+        <strong>{gptKey.maskedKey}</strong>
       </div>
       <label className={styles.activeCell}>
         <input type="checkbox" checked={isActive} onChange={(event) => setIsActive(event.target.checked)} />
         <span>활성</span>
       </label>
       <div className={styles.statusCell}>
-        <span className={`${styles.statusPill} ${styles[`status_${apiKey.lastTestStatus}`]}`}>
-          {apiKeyTestStatusLabels[apiKey.lastTestStatus]}
+        <span className={`${styles.statusPill} ${styles[`status_${gptKey.lastTestStatus}`]}`}>
+          {gptKeyTestStatusLabels[gptKey.lastTestStatus]}
         </span>
-        <small>{formatUpdatedAt(apiKey.lastTestedAt)}</small>
+        <small>{formatUpdatedAt(gptKey.lastTestedAt)}</small>
       </div>
-      <div className={styles.updatedCell}>{formatUpdatedAt(apiKey.dbUpdatedAt)}</div>
-      <label className={`${styles.fieldCell} ${styles.apiKeySubField} ${styles.noteCell}`}>
+      <div className={styles.updatedCell}>{formatUpdatedAt(gptKey.dbUpdatedAt)}</div>
+      <label className={`${styles.fieldCell} ${styles.gptKeySubField} ${styles.noteCell}`}>
         <span>메모</span>
         <input value={note} onChange={(event) => setNote(event.target.value)} maxLength={200} />
       </label>
-      <div className={styles.apiKeyActionCell}>
+      <div className={styles.gptKeyActionCell}>
         <input
           value={rotateKey}
           onChange={(event) => setRotateKey(event.target.value)}
@@ -179,10 +179,10 @@ function AdminApiKeyRow({
   )
 }
 
-export function AdminApiKeysPanel() {
-  const [apiKeys, setApiKeys] = useState<AdminApiKeySummary[]>([])
+export function AdminGptKeysPanel() {
+  const [gptKeys, setGptKeys] = useState<AdminGptKeySummary[]>([])
   const [newName, setNewName] = useState('')
-  const [newPurpose, setNewPurpose] = useState<AdminApiKeyPurpose>('ai-comment')
+  const [newPurpose, setNewPurpose] = useState<AdminGptKeyPurpose>('ai-comment')
   const [newModel, setNewModel] = useState('gpt-4.1-mini')
   const [newPlainKey, setNewPlainKey] = useState('')
   const [newNote, setNewNote] = useState('')
@@ -196,9 +196,9 @@ export function AdminApiKeysPanel() {
   useEffect(() => {
     let alive = true
     setIsLoading(true)
-    getAdminApiKeys()
-      .then((nextApiKeys) => {
-        if (alive) setApiKeys(nextApiKeys)
+    getAdminGptKeys()
+      .then((nextGptKeys) => {
+        if (alive) setGptKeys(nextGptKeys)
       })
       .catch((error) => {
         if (alive) setErrorMessage(getErrorMessage(error))
@@ -212,9 +212,9 @@ export function AdminApiKeysPanel() {
     }
   }, [])
 
-  const reloadApiKeys = async () => {
-    const nextApiKeys = await getAdminApiKeys()
-    setApiKeys(nextApiKeys)
+  const reloadGptKeys = async () => {
+    const nextGptKeys = await getAdminGptKeys()
+    setGptKeys(nextGptKeys)
   }
 
   const handleCreate = async (event: FormEvent<HTMLFormElement>) => {
@@ -224,7 +224,7 @@ export function AdminApiKeysPanel() {
     setIsCreating(true)
 
     try {
-      await createAdminApiKey({
+      await createAdminGptKey({
         name: newName,
         purpose: newPurpose,
         model: newModel,
@@ -232,7 +232,7 @@ export function AdminApiKeysPanel() {
         isActive: newIsActive,
         note: newNote,
       })
-      await reloadApiKeys()
+      await reloadGptKeys()
       setNewName('')
       setNewPlainKey('')
       setNewNote('')
@@ -244,17 +244,17 @@ export function AdminApiKeysPanel() {
     }
   }
 
-  const handleTested = (result: AdminApiKeyTestResult) => {
-    setApiKeys((currentApiKeys) =>
-      currentApiKeys.map((apiKey) =>
-        apiKey.uuid === result.uuid
+  const handleTested = (result: AdminGptKeyTestResult) => {
+    setGptKeys((currentGptKeys) =>
+      currentGptKeys.map((gptKey) =>
+        gptKey.uuid === result.uuid
           ? {
-              ...apiKey,
+              ...gptKey,
               lastTestStatus: result.status,
               lastTestedAt: result.testedAt,
               dbUpdatedAt: result.testedAt,
             }
-          : apiKey,
+          : gptKey,
       ),
     )
     setTestMessage(result.message)
@@ -265,12 +265,12 @@ export function AdminApiKeysPanel() {
       <div className={styles.panelHeader}>
         <div>
           <h2>GPT 키</h2>
-          <p>{apiKeys.length}개</p>
+          <p>{gptKeys.length}개</p>
         </div>
         {testMessage ? <span className={styles.panelNotice}>{testMessage}</span> : null}
       </div>
 
-      <form className={styles.apiKeyCreateForm} onSubmit={handleCreate}>
+      <form className={styles.gptKeyCreateForm} onSubmit={handleCreate}>
         <label className={styles.createField}>
           <span>이름</span>
           <input
@@ -282,8 +282,8 @@ export function AdminApiKeysPanel() {
         </label>
         <label className={styles.createField}>
           <span>용도</span>
-          <select value={newPurpose} onChange={(event) => setNewPurpose(event.target.value as AdminApiKeyPurpose)}>
-            {API_KEY_PURPOSE_OPTIONS.map((option) => (
+          <select value={newPurpose} onChange={(event) => setNewPurpose(event.target.value as AdminGptKeyPurpose)}>
+            {GPT_KEY_PURPOSE_OPTIONS.map((option) => (
               <option key={option.value} value={option.value}>
                 {option.label}
               </option>
@@ -295,7 +295,7 @@ export function AdminApiKeysPanel() {
           <input value={newModel} onChange={(event) => setNewModel(event.target.value)} maxLength={80} />
         </label>
         <label className={styles.createField}>
-          <span>API 키</span>
+          <span>GPT API 키</span>
           <input
             value={newPlainKey}
             onChange={(event) => setNewPlainKey(event.target.value)}
@@ -311,7 +311,7 @@ export function AdminApiKeysPanel() {
           />
           <span>활성</span>
         </label>
-        <label className={`${styles.createField} ${styles.apiKeyCreateNote}`}>
+        <label className={`${styles.createField} ${styles.gptKeyCreateNote}`}>
           <span>메모</span>
           <input
             value={newNote}
@@ -326,7 +326,7 @@ export function AdminApiKeysPanel() {
         {createErrorMessage ? <p className={styles.createError}>{createErrorMessage}</p> : null}
       </form>
 
-      <div className={styles.apiKeyTableHeader} aria-hidden="true">
+      <div className={styles.gptKeyTableHeader} aria-hidden="true">
         <span>이름</span>
         <span>용도</span>
         <span>모델</span>
@@ -340,11 +340,11 @@ export function AdminApiKeysPanel() {
       {errorMessage ? <div className={styles.errorState}>{errorMessage}</div> : null}
       {!isLoading && !errorMessage ? (
         <div className={styles.userList}>
-          {apiKeys.map((apiKey) => (
-            <AdminApiKeyRow
-              key={apiKey.uuid}
-              apiKey={apiKey}
-              onChanged={reloadApiKeys}
+          {gptKeys.map((gptKey) => (
+            <AdminGptKeyRow
+              key={gptKey.uuid}
+              gptKey={gptKey}
+              onChanged={reloadGptKeys}
               onTested={handleTested}
             />
           ))}

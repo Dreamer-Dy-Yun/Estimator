@@ -1,16 +1,16 @@
 import { afterEach, describe, expect, it } from 'vitest'
-import { mockAdminApi } from './adminApi'
+import { mockAdminGptKeyApi } from './adminGptKeyApi'
 import { mockAuthApi } from './authApi'
 
-describe('api/mock adminApi behavior', () => {
+describe('api/mock adminGptKeyApi behavior', () => {
   afterEach(async () => {
     await mockAuthApi.logout()
   })
 
-  it('keeps raw API keys out of returned admin key summaries', async () => {
+  it('keeps raw GPT keys out of returned admin GPT key summaries', async () => {
     await mockAuthApi.login({ loginId: 'mock-admin', password: 'admin' })
 
-    const created = await mockAdminApi.createAdminApiKey({
+    const created = await mockAdminGptKeyApi.createAdminGptKey({
       name: '테스트 키',
       purpose: 'ai-comment',
       model: 'gpt-test',
@@ -22,14 +22,14 @@ describe('api/mock adminApi behavior', () => {
     expect(created.maskedKey).toBe('sk-...1234')
     expect(JSON.stringify(created)).not.toContain('secret-value')
 
-    const apiKeys = await mockAdminApi.getAdminApiKeys()
-    expect(JSON.stringify(apiKeys)).not.toContain('secret-value')
+    const gptKeys = await mockAdminGptKeyApi.getAdminGptKeys()
+    expect(JSON.stringify(gptKeys)).not.toContain('secret-value')
   })
 
   it('updates metadata, rotates the key preview, and records test status', async () => {
     await mockAuthApi.login({ loginId: 'mock-admin', password: 'admin' })
 
-    const created = await mockAdminApi.createAdminApiKey({
+    const created = await mockAdminGptKeyApi.createAdminGptKey({
       name: '교체 대상',
       purpose: 'all',
       model: 'gpt-old',
@@ -37,7 +37,7 @@ describe('api/mock adminApi behavior', () => {
       isActive: true,
       note: null,
     })
-    const updated = await mockAdminApi.updateAdminApiKey({
+    const updated = await mockAdminGptKeyApi.updateAdminGptKey({
       uuid: created.uuid,
       name: '변경 대상',
       purpose: 'test',
@@ -45,11 +45,11 @@ describe('api/mock adminApi behavior', () => {
       isActive: true,
       note: '메모',
     })
-    const rotated = await mockAdminApi.rotateAdminApiKey({
+    const rotated = await mockAdminGptKeyApi.rotateAdminGptKey({
       uuid: created.uuid,
       plainKey: 'sk-new-9999',
     })
-    const result = await mockAdminApi.testAdminApiKey(created.uuid)
+    const result = await mockAdminGptKeyApi.testAdminGptKey(created.uuid)
 
     expect(updated).toMatchObject({
       name: '변경 대상',

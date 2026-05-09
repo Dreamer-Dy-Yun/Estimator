@@ -1,8 +1,8 @@
 import type { CompetitorSalesRow, SelfSalesRow } from '../types'
-import { mockAdminApi, mockAuthApi, mockDashboardApi } from './mock'
+import { mockAdminGptKeyApi, mockAuthApi, mockDashboardApi } from './mock'
 import type {
-  AdminApiKeySummary,
-  AdminApiKeyTestResult,
+  AdminGptKeySummary,
+  AdminGptKeyTestResult,
   AdminUserSummary,
   AppendCandidateItemPayload,
   AuthSession,
@@ -35,14 +35,14 @@ import type {
   SecondaryDailyTrendPoint,
   ProductSecondaryDetailParams,
   CompetitorSalesParams,
-  CreateAdminApiKeyPayload,
+  CreateAdminGptKeyPayload,
   LoginRequest,
   LoginResult,
   ResetAdminUserPasswordResult,
-  RotateAdminApiKeyPayload,
+  RotateAdminGptKeyPayload,
   SelfSalesFilterMeta,
   SelfSalesParams,
-  UpdateAdminApiKeyPayload,
+  UpdateAdminGptKeyPayload,
   UpdateAdminUserPayload,
   UpdateAuthUserPayload,
 } from './types'
@@ -91,24 +91,24 @@ export async function deleteAdminUser(userUuid: string): Promise<void> {
   return mockAuthApi.deleteAdminUser(userUuid)
 }
 
-export async function getAdminApiKeys(): Promise<AdminApiKeySummary[]> {
-  return mockAdminApi.getAdminApiKeys()
+export async function getAdminGptKeys(): Promise<AdminGptKeySummary[]> {
+  return mockAdminGptKeyApi.getAdminGptKeys()
 }
 
-export async function createAdminApiKey(payload: CreateAdminApiKeyPayload): Promise<AdminApiKeySummary> {
-  return mockAdminApi.createAdminApiKey(payload)
+export async function createAdminGptKey(payload: CreateAdminGptKeyPayload): Promise<AdminGptKeySummary> {
+  return mockAdminGptKeyApi.createAdminGptKey(payload)
 }
 
-export async function updateAdminApiKey(payload: UpdateAdminApiKeyPayload): Promise<AdminApiKeySummary> {
-  return mockAdminApi.updateAdminApiKey(payload)
+export async function updateAdminGptKey(payload: UpdateAdminGptKeyPayload): Promise<AdminGptKeySummary> {
+  return mockAdminGptKeyApi.updateAdminGptKey(payload)
 }
 
-export async function rotateAdminApiKey(payload: RotateAdminApiKeyPayload): Promise<AdminApiKeySummary> {
-  return mockAdminApi.rotateAdminApiKey(payload)
+export async function rotateAdminGptKey(payload: RotateAdminGptKeyPayload): Promise<AdminGptKeySummary> {
+  return mockAdminGptKeyApi.rotateAdminGptKey(payload)
 }
 
-export async function testAdminApiKey(keyUuid: string): Promise<AdminApiKeyTestResult> {
-  return mockAdminApi.testAdminApiKey(keyUuid)
+export async function testAdminGptKey(keyUuid: string): Promise<AdminGptKeyTestResult> {
+  return mockAdminGptKeyApi.testAdminGptKey(keyUuid)
 }
 
 export async function logout(): Promise<void> {

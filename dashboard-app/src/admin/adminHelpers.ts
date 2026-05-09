@@ -1,6 +1,6 @@
 import type {
-  AdminApiKeyPurpose,
-  AdminApiKeyTestStatus,
+  AdminGptKeyPurpose,
+  AdminGptKeyTestStatus,
   AuthRole,
 } from '../api'
 
@@ -9,14 +9,14 @@ export const ROLE_OPTIONS: Array<{ value: AuthRole; label: string }> = [
   { value: 'user', label: '사용자' },
 ]
 
-export const API_KEY_PURPOSE_OPTIONS: Array<{ value: AdminApiKeyPurpose; label: string }> = [
+export const GPT_KEY_PURPOSE_OPTIONS: Array<{ value: AdminGptKeyPurpose; label: string }> = [
   { value: 'ai-comment', label: 'AI 코멘트' },
   { value: 'candidate-recommendation', label: '후보 추천' },
   { value: 'test', label: '연결 테스트' },
   { value: 'all', label: '전체' },
 ]
 
-export const apiKeyTestStatusLabels: Record<AdminApiKeyTestStatus, string> = {
+export const gptKeyTestStatusLabels: Record<AdminGptKeyTestStatus, string> = {
   untested: '미테스트',
   success: '성공',
   failed: '실패',

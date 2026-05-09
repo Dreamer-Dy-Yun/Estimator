@@ -62,17 +62,17 @@
 | `deleteAdminUser(userUuid)` | DELETE | `/admin/users/:userUuid` |
 | `logout()` | POST | `/auth/logout` |
 
-**`AdminApi` 제안 매핑**
+**`AdminGptKeyApi` 제안 매핑**
 
-관리자 GPT 키는 사용자 인증과 별도 계약(`src/api/types/admin.ts`)으로 둔다. 현재 운영 전제는 GPT만 사용하므로 공급자, Base URL, Project ID를 API 계약에서 제외한다. 모든 경로는 관리자 권한이 필요하다.
+관리자 GPT 키는 사용자 인증과 별도 계약(`src/api/types/admin-gpt-key.ts`)으로 둔다. 현재 운영 전제는 GPT만 사용하므로 공급자, Base URL, Project ID를 API 계약에서 제외한다. 모든 경로는 관리자 권한이 필요하다.
 
 | 계약 메서드 | 제안 HTTP | 제안 경로 |
 |-------------|-----------|----------|
-| `getAdminApiKeys()` | GET | `/admin/api-keys` |
-| `createAdminApiKey(payload)` | POST | `/admin/api-keys` |
-| `updateAdminApiKey(payload)` | PATCH | `/admin/api-keys/:keyUuid` |
-| `rotateAdminApiKey(payload)` | POST | `/admin/api-keys/:keyUuid/rotate` |
-| `testAdminApiKey(keyUuid)` | POST | `/admin/api-keys/:keyUuid/test` |
+| `getAdminGptKeys()` | GET | `/admin/gpt-keys` |
+| `createAdminGptKey(payload)` | POST | `/admin/gpt-keys` |
+| `updateAdminGptKey(payload)` | PATCH | `/admin/gpt-keys/:keyUuid` |
+| `rotateAdminGptKey(payload)` | POST | `/admin/gpt-keys/:keyUuid/rotate` |
+| `testAdminGptKey(keyUuid)` | POST | `/admin/gpt-keys/:keyUuid/test` |
 
 **`LoginRequest`**
 
@@ -154,7 +154,7 @@
 
 `/admin/users` 계열은 관리자 권한이 필요합니다. 실제 백엔드는 현재 로그인한 관리자 본인을 삭제/비활성화하거나 마지막 활성 관리자 권한을 제거하지 못하도록 검증하는 정책을 권장합니다.
 
-**`AdminApiKeySummary`**
+**`AdminGptKeySummary`**
 
 | 필드 | 타입 | 설명 |
 |------|------|------|
@@ -170,36 +170,36 @@
 | `lastTestStatus` | `'untested' \| 'success' \| 'failed'` | 마지막 연결 테스트 상태 |
 | `dbUpdatedAt` | string | ISO 8601 최근 변경 시각 |
 
-**`CreateAdminApiKeyPayload`**
+**`CreateAdminGptKeyPayload`**
 
 | 필드 | 타입 | 설명 |
 |------|------|------|
 | `name` | string | 표시 이름 |
-| `purpose` | AdminApiKeySummary.purpose | 사용 범위 |
+| `purpose` | AdminGptKeySummary.purpose | 사용 범위 |
 | `model` | string | GPT 모델명 |
 | `plainKey` | string | 관리자가 입력한 원문 GPT API 키. 프론트는 이 값을 저장하지 않고 요청에만 담는다 |
 | `isActive` | boolean | 생성 시 활성 여부 |
 | `note` | string \| null | 내부 메모 |
 
-**`UpdateAdminApiKeyPayload`**
+**`UpdateAdminGptKeyPayload`**
 
 | 필드 | 타입 | 설명 |
 |------|------|------|
 | `uuid` | string | 변경 대상 GPT 키 UUID |
 | `name`, `purpose`, `model`, `isActive`, `note` | 위와 동일 | 원문 키를 제외한 메타데이터 변경 |
 
-**`RotateAdminApiKeyPayload`**
+**`RotateAdminGptKeyPayload`**
 
 | 필드 | 타입 | 설명 |
 |------|------|------|
-| `uuid` | string | 교체 대상 API 키 UUID |
-| `plainKey` | string | 새 원문 API 키. 프론트는 요청 후 입력값을 비운다 |
+| `uuid` | string | 교체 대상 GPT 키 UUID |
+| `plainKey` | string | 새 원문 GPT 키. 프론트는 요청 후 입력값을 비운다 |
 
-**`AdminApiKeyTestResult`**
+**`AdminGptKeyTestResult`**
 
 | 필드 | 타입 | 설명 |
 |------|------|------|
-| `uuid` | string | 테스트 대상 API 키 UUID |
+| `uuid` | string | 테스트 대상 GPT 키 UUID |
 | `status` | `'untested' \| 'success' \| 'failed'` | 테스트 결과 |
 | `message` | string | 관리자 화면에 표시할 결과 메시지 |
 | `testedAt` | string | ISO 8601 테스트 시각 |

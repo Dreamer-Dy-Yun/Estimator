@@ -1,13 +1,13 @@
 export type {
-  AdminApi,
-  AdminApiKeyPurpose,
-  AdminApiKeySummary,
-  AdminApiKeyTestResult,
-  AdminApiKeyTestStatus,
-  CreateAdminApiKeyPayload,
-  RotateAdminApiKeyPayload,
-  UpdateAdminApiKeyPayload,
-} from './admin'
+  AdminGptKeyApi,
+  AdminGptKeyPurpose,
+  AdminGptKeySummary,
+  AdminGptKeyTestResult,
+  AdminGptKeyTestStatus,
+  CreateAdminGptKeyPayload,
+  RotateAdminGptKeyPayload,
+  UpdateAdminGptKeyPayload,
+} from './admin-gpt-key'
 export type {
   AdminUserSummary,
   AuthApi,
