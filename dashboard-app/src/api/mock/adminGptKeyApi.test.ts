@@ -50,6 +50,8 @@ describe('api/mock adminGptKeyApi behavior', () => {
       plainKey: 'sk-new-9999',
     })
     const result = await mockAdminGptKeyApi.testAdminGptKey(created.uuid)
+    await mockAdminGptKeyApi.deleteAdminGptKey(created.uuid)
+    const gptKeys = await mockAdminGptKeyApi.getAdminGptKeys()
 
     expect(updated).toMatchObject({
       name: '변경 대상',
@@ -59,5 +61,6 @@ describe('api/mock adminGptKeyApi behavior', () => {
     })
     expect(rotated.maskedKey).toBe('sk-...9999')
     expect(result.status).toBe('success')
+    expect(gptKeys.some((gptKey) => gptKey.uuid === created.uuid)).toBe(false)
   })
 })

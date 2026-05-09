@@ -38,7 +38,7 @@
 - 이너 후보 리스트의 표시 순서 인덱스와 헤더 정렬 상태는 후보군 상세 모달 UI 상태다. 인덱스는 레코드 값이 아니라 현재 정렬된 화면 순서에서 1부터 다시 계산한다.
 - 로그인 화면, 라우트 보호, 사용자 정보/비밀번호 변경 모달은 `src/auth`가 소유한다. 인증 API 계약과 목 세션 저장은 `src/api` 아래에 두어 실제 백엔드로 교체할 때 화면이 mock 구현을 직접 알지 않게 한다. 보호 라우트는 직접 URL 진입과 새로고침 복귀를 위해 `/login?redirect=...`를 남긴다. 목 로그인 화면은 `mock-admin` / `admin` 기본값을 미리 채워 수정 없이 로그인할 수 있게 한다.
 - 관리자 화면은 `/admin` 별도 라우트와 `src/admin`이 소유한다. 화면은 같은 `DashboardLayout` 안에서 렌더하며, 관리자 권한 사용자에게만 `오더 후보군` 뒤 관리자 전용 탭을 보여준다. 인증 권한은 `admin`과 `user` 두 단계만 둔다. 사용자 관리는 관리자 화면 안의 탭/패널로 분리한다. 관리자 비밀번호 관리는 조회가 아니라 임시 비밀번호 재설정 API만 호출하고, 임시 비밀번호는 응답 직후 한 번만 표시한다.
-- 관리자 GPT 키 관리는 `src/api/types/admin-gpt-key.ts` 계약과 `src/api/mock/adminGptKeyApi.ts` mock을 통해서만 접근한다. 화면은 GPT 키 원문을 입력/교체 요청에만 담고, 목록 응답은 `maskedKey`만 표시한다. 현재 mock은 DB 대체 저장소가 아니라 런타임 메모리에서 마스킹 값과 메타데이터만 보관한다.
+- 관리자 GPT 키 관리는 `src/api/types/admin-gpt-key.ts` 계약과 `src/api/mock/adminGptKeyApi.ts` mock을 통해서만 접근한다. 화면은 GPT 키 원문을 입력/교체 요청에만 담고, 목록 응답은 `maskedKey`만 표시한다. 목록은 식별용 요약 정보만 노출하고, 메타 변경/키 교체/연결 테스트/삭제는 행 클릭 후 열리는 모달이 소유한다. 현재 mock은 DB 대체 저장소가 아니라 런타임 메모리에서 마스킹 값과 메타데이터만 보관한다.
 - API 요청 교체 지점은 `src/api/requests/*`로 분리한다. 화면/훅/페이지는 mock을 알 수 없고, `src/api/client.ts`는 public export facade만 맡는다. 실제 백엔드가 생기면 `requests` 파일 안의 mock 위임을 HTTP 요청으로 바꾸는 것을 기본 원칙으로 한다.
 - 상품 drawer feature는 `dashboard/components/product-drawer`로 모았다. 루트 `ProductDrawer`는 overlay와 공유 상태만 조율하고, `primary`가 1차 드로워, `secondary`가 2차 드로워를 소유한다.
 - 경쟁 채널 상태는 1차 판매 정보와 2차 일별 추이가 공유하므로 `product-drawer/useCompetitorChannels.ts`가 소유한다. 2차 상세 조회는 `product-drawer/secondary/useSecondaryDrawerDetail.ts`가 소유한다.
@@ -98,7 +98,7 @@
 
 | 파일 | 역할 |
 |------|------|
-| `admin-gpt-key.ts` | 관리자 GPT 키 목록/추가/메타 변경/키 교체/연결 테스트 계약. GPT만 사용하므로 공급자/Base URL/Project ID는 계약에서 제외하고, 요청 payload에는 `plainKey`, 목록 응답에는 `maskedKey`만 포함한다 |
+| `admin-gpt-key.ts` | 관리자 GPT 키 목록/추가/메타 변경/키 교체/연결 테스트/삭제 계약. GPT만 사용하므로 공급자/Base URL/Project ID는 계약에서 제외하고, 요청 payload에는 `plainKey`, 목록 응답에는 `maskedKey`만 포함한다 |
 | `auth.ts` | 로그인 요청, 인증 사용자, 사용자 정보/비밀번호 변경, 관리자 유저 추가/제거/수정/비밀번호 재설정, 세션, 인증 API 계약 |
 | `candidate.ts` | 후보군/이너 후보/후보군 분석 SSE 요청·응답 계약. 후보군은 생성 사용자 UUID, 생성 당시 기간, 포캐스트 개월 수를 계약에 포함한다 |
 | `dashboard-api.ts` | 화면에서 쓰는 `DashboardApi` 인터페이스 |
@@ -128,7 +128,7 @@
 | 파일 | 역할 |
 |------|------|
 | `authRequests.ts` | 로그인, 세션, 사용자 정보, 관리자 사용자 관리 요청 adapter. 실제 백엔드 전환 시 HttpOnly 세션, 비밀번호/임시 비밀번호 일회성 응답, 관리자 보호 정책을 이 파일에서 HTTP 요청으로 연결한다 |
-| `adminGptKeyRequests.ts` | 관리자 GPT 키 관리 요청 adapter. GPT 전용 계약이며 원문 키는 생성/교체 요청에만 싣고 목록/수정/테스트 응답은 `maskedKey`만 받는 흐름을 유지한다 |
+| `adminGptKeyRequests.ts` | 관리자 GPT 키 관리 요청 adapter. GPT 전용 계약이며 원문 키는 생성/교체 요청에만 싣고 목록/수정/테스트/삭제 응답은 원문 키를 받지 않는 흐름을 유지한다 |
 | `dashboardRequests.ts` | 자사/경쟁 판매, 상품 드로워, 후보군, 분석 SSE, 엑셀 업로드 템플릿 요청 adapter. 후보군 계열은 현재 세션의 `USER_ACCOUNT.uuid`를 request boundary에서만 붙이고, 화면 내부로 사용자 UUID를 흘리지 않는다 |
 | `index.ts` | request adapter export 진입 파일 |
 
@@ -155,7 +155,7 @@
 |------|------|
 | `AdminPage.tsx` | 관리자 라우트 shell. 공통 헤더 안에 사용자 관리/GPT 키 관리 탭과 현재 탭 설명을 배치한다 |
 | `AdminUsersPanel.tsx` | 관리자 유저 목록 조회, 추가, UUID 기준 제거, 로그인 ID/이름/비고/권한/활성 상태 수정, 임시 비밀번호 재설정 화면과 임시 비밀번호 클릭 복사 |
-| `AdminGptKeysPanel.tsx` | 관리자 GPT 키 목록 조회, 추가, 메타 변경, 키 교체, 연결 테스트 화면. 원문 키는 생성/교체 form state와 API 요청에만 존재한다 |
+| `AdminGptKeysPanel.tsx` | 관리자 GPT 키 목록 조회, 추가, 요약 행, 상세 관리 모달. 목록은 이름/용도/모델/마스킹 키/활성 상태만 보여주고, 메타 변경/키 교체/연결 테스트/삭제는 모달에서 수행한다. 원문 키는 생성/교체 form state와 API 요청에만 존재한다 |
 | `AdminPage.module.css` | 관리자 화면 공통 shell, 탭, 사용자/키 관리 패널 스타일 |
 | `adminHelpers.ts` | 관리자 화면의 역할/GPT 키 용도 option, 테스트 상태 label, 공통 날짜/오류 표시 helper |
 

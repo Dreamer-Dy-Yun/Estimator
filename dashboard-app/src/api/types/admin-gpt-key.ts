@@ -52,4 +52,5 @@ export interface AdminGptKeyApi {
   updateAdminGptKey(payload: UpdateAdminGptKeyPayload): Promise<AdminGptKeySummary>
   rotateAdminGptKey(payload: RotateAdminGptKeyPayload): Promise<AdminGptKeySummary>
   testAdminGptKey(keyUuid: string): Promise<AdminGptKeyTestResult>
+  deleteAdminGptKey(keyUuid: string): Promise<void>
 }

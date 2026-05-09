@@ -137,4 +137,11 @@ export const mockAdminGptKeyApi: AdminGptKeyApi = {
     )
     return result
   },
+  deleteAdminGptKey: async (keyUuid: string): Promise<void> => {
+    await sleep(110)
+    assertMockAdminSession()
+    const target = findGptKey(keyUuid)
+    if (!target) throw new Error('GPT 키를 찾을 수 없습니다.')
+    mockAdminGptKeys = mockAdminGptKeys.filter((gptKey) => gptKey.uuid !== keyUuid)
+  },
 }

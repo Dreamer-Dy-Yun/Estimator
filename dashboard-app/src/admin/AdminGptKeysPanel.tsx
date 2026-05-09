@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import {
   createAdminGptKey,
+  deleteAdminGptKey,
   getAdminGptKeys,
   rotateAdminGptKey,
   testAdminGptKey,
@@ -21,11 +22,41 @@ import styles from './AdminPage.module.css'
 
 function AdminGptKeyRow({
   gptKey,
+  onOpen,
+}: {
+  gptKey: AdminGptKeySummary
+  onOpen: (gptKey: AdminGptKeySummary) => void
+}) {
+  return (
+    <button className={styles.gptKeyListRow} type="button" onClick={() => onOpen(gptKey)}>
+      <span className={styles.gptKeyNameCell}>
+        <strong>{gptKey.name}</strong>
+        <small>{gptKey.uuid}</small>
+      </span>
+      <span>{GPT_KEY_PURPOSE_OPTIONS.find((option) => option.value === gptKey.purpose)?.label ?? gptKey.purpose}</span>
+      <span>{gptKey.model}</span>
+      <span>{gptKey.maskedKey}</span>
+      <span className={styles.gptKeyStatusSummary}>
+        <span className={`${styles.statusPill} ${gptKey.isActive ? styles.status_success : styles.status_failed}`}>
+          {gptKey.isActive ? '활성' : '비활성'}
+        </span>
+        <small>{gptKeyTestStatusLabels[gptKey.lastTestStatus]}</small>
+      </span>
+    </button>
+  )
+}
+
+function AdminGptKeyDialog({
+  gptKey,
+  onClose,
   onChanged,
+  onDeleted,
   onTested,
 }: {
   gptKey: AdminGptKeySummary
-  onChanged: () => Promise<void>
+  onClose: () => void
+  onChanged: () => Promise<unknown>
+  onDeleted: () => Promise<void>
   onTested: (result: AdminGptKeyTestResult) => void
 }) {
   const [name, setName] = useState(gptKey.name)
@@ -39,6 +70,8 @@ function AdminGptKeyRow({
   const [isSaving, setIsSaving] = useState(false)
   const [isRotating, setIsRotating] = useState(false)
   const [isTesting, setIsTesting] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
+  const [deleteConfirm, setDeleteConfirm] = useState(false)
   const isDirty =
     name !== gptKey.name ||
     purpose !== gptKey.purpose ||
@@ -58,7 +91,9 @@ function AdminGptKeyRow({
     setIsSaving(false)
     setIsRotating(false)
     setIsTesting(false)
-  }, [gptKey])
+    setIsDeleting(false)
+    setDeleteConfirm(false)
+  }, [gptKey.uuid])
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -77,6 +112,7 @@ function AdminGptKeyRow({
       })
       await onChanged()
       setRowMessage('변경됨')
+      setDeleteConfirm(false)
     } catch (error) {
       setErrorMessage(getErrorMessage(error))
     } finally {
@@ -94,6 +130,7 @@ function AdminGptKeyRow({
       setRotateKey('')
       await onChanged()
       setRowMessage('키 교체됨')
+      setDeleteConfirm(false)
     } catch (error) {
       setErrorMessage(getErrorMessage(error))
     } finally {
@@ -110,6 +147,7 @@ function AdminGptKeyRow({
       const result = await testAdminGptKey(gptKey.uuid)
       onTested(result)
       setRowMessage(result.message)
+      setDeleteConfirm(false)
     } catch (error) {
       setErrorMessage(getErrorMessage(error))
     } finally {
@@ -117,65 +155,133 @@ function AdminGptKeyRow({
     }
   }
 
+  const handleDelete = async () => {
+    setErrorMessage(null)
+    setRowMessage(null)
+
+    if (!deleteConfirm) {
+      setDeleteConfirm(true)
+      setRowMessage('삭제 버튼을 한 번 더 누르면 GPT 키가 삭제됩니다.')
+      return
+    }
+
+    setIsDeleting(true)
+    try {
+      await deleteAdminGptKey(gptKey.uuid)
+      await onDeleted()
+    } catch (error) {
+      setErrorMessage(getErrorMessage(error))
+      setIsDeleting(false)
+      setDeleteConfirm(false)
+    }
+  }
+
   return (
-    <form className={styles.gptKeyRow} onSubmit={handleSubmit}>
-      <label className={styles.fieldCell}>
-        <span>이름</span>
-        <input value={name} onChange={(event) => setName(event.target.value)} maxLength={80} />
-      </label>
-      <label className={styles.fieldCell}>
-        <span>용도</span>
-        <select value={purpose} onChange={(event) => setPurpose(event.target.value as AdminGptKeyPurpose)}>
-          {GPT_KEY_PURPOSE_OPTIONS.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </select>
-      </label>
-      <label className={styles.fieldCell}>
-        <span>모델</span>
-        <input value={model} onChange={(event) => setModel(event.target.value)} maxLength={80} />
-      </label>
-      <div className={styles.identityCell}>
-        <span>키</span>
-        <strong>{gptKey.maskedKey}</strong>
-      </div>
-      <label className={styles.activeCell}>
-        <input type="checkbox" checked={isActive} onChange={(event) => setIsActive(event.target.checked)} />
-        <span>활성</span>
-      </label>
-      <div className={styles.statusCell}>
-        <span className={`${styles.statusPill} ${styles[`status_${gptKey.lastTestStatus}`]}`}>
-          {gptKeyTestStatusLabels[gptKey.lastTestStatus]}
-        </span>
-        <small>{formatUpdatedAt(gptKey.lastTestedAt)}</small>
-      </div>
-      <div className={styles.updatedCell}>{formatUpdatedAt(gptKey.dbUpdatedAt)}</div>
-      <label className={`${styles.fieldCell} ${styles.gptKeySubField} ${styles.noteCell}`}>
-        <span>메모</span>
-        <input value={note} onChange={(event) => setNote(event.target.value)} maxLength={200} />
-      </label>
-      <div className={styles.gptKeyActionCell}>
-        <input
-          value={rotateKey}
-          onChange={(event) => setRotateKey(event.target.value)}
-          placeholder="새 키"
-          autoComplete="off"
-        />
-        <button type="button" onClick={handleRotate} disabled={isRotating}>
-          {isRotating ? '교체 중' : '키 교체'}
-        </button>
-        <button type="button" onClick={handleTest} disabled={isTesting}>
-          {isTesting ? '테스트 중' : '연결 테스트'}
-        </button>
-        <button className={styles.saveButton} type="submit" disabled={!isDirty || isSaving}>
-          {isSaving ? '변경 중' : '변경'}
-        </button>
-      </div>
-      {rowMessage ? <p className={styles.rowMessage}>{rowMessage}</p> : null}
-      {errorMessage ? <p className={styles.rowError}>{errorMessage}</p> : null}
-    </form>
+    <div className={styles.gptKeyDialogBackdrop} role="presentation" onMouseDown={onClose}>
+      <section
+        className={styles.gptKeyDialog}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="admin-gpt-key-dialog-title"
+        onMouseDown={(event) => event.stopPropagation()}
+      >
+        <header className={styles.gptKeyDialogHeader}>
+          <div>
+            <span>GPT 키 관리</span>
+            <h3 id="admin-gpt-key-dialog-title">{gptKey.name}</h3>
+          </div>
+          <button className={styles.gptKeyDialogCloseButton} type="button" onClick={onClose} aria-label="닫기">
+            x
+          </button>
+        </header>
+
+        <div className={styles.gptKeyDialogMeta}>
+          <div>
+            <span>UUID</span>
+            <strong>{gptKey.uuid}</strong>
+          </div>
+          <div>
+            <span>키</span>
+            <strong>{gptKey.maskedKey}</strong>
+          </div>
+          <div>
+            <span>테스트</span>
+            <strong>{gptKeyTestStatusLabels[gptKey.lastTestStatus]}</strong>
+            <small>{formatUpdatedAt(gptKey.lastTestedAt)}</small>
+          </div>
+          <div>
+            <span>마지막 사용</span>
+            <strong>{formatUpdatedAt(gptKey.lastUsedAt)}</strong>
+          </div>
+          <div>
+            <span>변경일</span>
+            <strong>{formatUpdatedAt(gptKey.dbUpdatedAt)}</strong>
+          </div>
+        </div>
+
+        <form className={styles.gptKeyDialogForm} onSubmit={handleSubmit}>
+          <label className={styles.createField}>
+            <span>이름</span>
+            <input value={name} onChange={(event) => setName(event.target.value)} maxLength={80} />
+          </label>
+          <label className={styles.createField}>
+            <span>용도</span>
+            <select value={purpose} onChange={(event) => setPurpose(event.target.value as AdminGptKeyPurpose)}>
+              {GPT_KEY_PURPOSE_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className={styles.createField}>
+            <span>모델</span>
+            <input value={model} onChange={(event) => setModel(event.target.value)} maxLength={80} />
+          </label>
+          <label className={styles.createActiveField}>
+            <input type="checkbox" checked={isActive} onChange={(event) => setIsActive(event.target.checked)} />
+            <span>활성</span>
+          </label>
+          <label className={`${styles.createField} ${styles.gptKeyDialogNote}`}>
+            <span>메모</span>
+            <input value={note} onChange={(event) => setNote(event.target.value)} maxLength={200} />
+          </label>
+          <button className={styles.createButton} type="submit" disabled={!isDirty || isSaving}>
+            {isSaving ? '변경 중' : '변경'}
+          </button>
+        </form>
+
+        <div className={styles.gptKeyDialogRotate}>
+          <label className={styles.createField}>
+            <span>새 GPT API 키</span>
+            <input
+              value={rotateKey}
+              onChange={(event) => setRotateKey(event.target.value)}
+              placeholder="sk-..."
+              autoComplete="off"
+            />
+          </label>
+          <button className={styles.secondaryButton} type="button" onClick={handleRotate} disabled={isRotating}>
+            {isRotating ? '교체 중' : '키 교체'}
+          </button>
+          <button className={styles.secondaryButton} type="button" onClick={handleTest} disabled={isTesting}>
+            {isTesting ? '테스트 중' : '연결 테스트'}
+          </button>
+        </div>
+
+        {rowMessage ? <p className={styles.rowMessage}>{rowMessage}</p> : null}
+        {errorMessage ? <p className={styles.rowError}>{errorMessage}</p> : null}
+
+        <div className={styles.gptKeyDialogActions}>
+          <button className={styles.dangerButton} type="button" onClick={handleDelete} disabled={isDeleting}>
+            {isDeleting ? '삭제 중' : deleteConfirm ? '삭제 확인' : '삭제'}
+          </button>
+          <button className={styles.secondaryButton} type="button" onClick={onClose}>
+            닫기
+          </button>
+        </div>
+      </section>
+    </div>
   )
 }
 
@@ -192,6 +298,8 @@ export function AdminGptKeysPanel() {
   const [testMessage, setTestMessage] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isCreating, setIsCreating] = useState(false)
+  const [selectedGptKeyUuid, setSelectedGptKeyUuid] = useState<string | null>(null)
+  const selectedGptKey = gptKeys.find((gptKey) => gptKey.uuid === selectedGptKeyUuid) ?? null
 
   useEffect(() => {
     let alive = true
@@ -215,6 +323,7 @@ export function AdminGptKeysPanel() {
   const reloadGptKeys = async () => {
     const nextGptKeys = await getAdminGptKeys()
     setGptKeys(nextGptKeys)
+    return nextGptKeys
   }
 
   const handleCreate = async (event: FormEvent<HTMLFormElement>) => {
@@ -258,6 +367,12 @@ export function AdminGptKeysPanel() {
       ),
     )
     setTestMessage(result.message)
+  }
+
+  const handleDeleted = async () => {
+    await reloadGptKeys()
+    setSelectedGptKeyUuid(null)
+    setTestMessage('GPT 키가 삭제되었습니다.')
   }
 
   return (
@@ -332,8 +447,6 @@ export function AdminGptKeysPanel() {
         <span>모델</span>
         <span>키</span>
         <span>상태</span>
-        <span>테스트</span>
-        <span>변경일</span>
       </div>
 
       {isLoading ? <div className={styles.emptyState}>GPT 키 목록 로딩 중</div> : null}
@@ -344,11 +457,20 @@ export function AdminGptKeysPanel() {
             <AdminGptKeyRow
               key={gptKey.uuid}
               gptKey={gptKey}
-              onChanged={reloadGptKeys}
-              onTested={handleTested}
+              onOpen={(nextGptKey) => setSelectedGptKeyUuid(nextGptKey.uuid)}
             />
           ))}
         </div>
+      ) : null}
+
+      {selectedGptKey ? (
+        <AdminGptKeyDialog
+          gptKey={selectedGptKey}
+          onClose={() => setSelectedGptKeyUuid(null)}
+          onChanged={reloadGptKeys}
+          onDeleted={handleDeleted}
+          onTested={handleTested}
+        />
       ) : null}
     </div>
   )

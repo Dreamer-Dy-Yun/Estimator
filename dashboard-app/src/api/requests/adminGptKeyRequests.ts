@@ -9,8 +9,8 @@ import type { AdminGptKeyApi } from '../types'
  * projectId fields unless the product scope changes.
  *
  * Watch points for the backend:
- * - create/rotate requests may contain plainKey, but list/update/test responses
- *   must return maskedKey only.
+ * - create/rotate requests may contain plainKey, but list/update/test/delete
+ *   responses must never return the raw key.
  * - Key storage, encryption, validation, and audit logs are backend concerns.
  * - All endpoints require an admin session.
  */
@@ -20,4 +20,5 @@ export const adminGptKeyRequests: AdminGptKeyApi = {
   updateAdminGptKey: (payload) => mockAdminGptKeyApi.updateAdminGptKey(payload),
   rotateAdminGptKey: (payload) => mockAdminGptKeyApi.rotateAdminGptKey(payload),
   testAdminGptKey: (keyUuid) => mockAdminGptKeyApi.testAdminGptKey(keyUuid),
+  deleteAdminGptKey: (keyUuid) => mockAdminGptKeyApi.deleteAdminGptKey(keyUuid),
 }

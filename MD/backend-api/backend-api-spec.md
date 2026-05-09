@@ -20,7 +20,7 @@
 | 파일 | 기능 범위 | 백엔드 구현 시 주의점 |
 |------|-----------|----------------------|
 | `src/api/requests/authRequests.ts` | 로그인, 세션, 사용자 정보 변경, 관리자 사용자 관리 | HttpOnly cookie 기반 세션 권장. 비밀번호/임시 비밀번호는 요청 또는 1회 응답에만 존재해야 하며 목록·세션 응답에 포함하지 않는다 |
-| `src/api/requests/adminGptKeyRequests.ts` | 관리자 GPT 키 목록, 생성, 메타 변경, 키 교체, 연결 테스트 | GPT 전용 계약이다. 생성/교체 요청만 `plainKey`를 담고, 응답은 `maskedKey`만 내려준다. 키 저장/암호화/감사 로그는 백엔드 책임이다 |
+| `src/api/requests/adminGptKeyRequests.ts` | 관리자 GPT 키 목록, 생성, 메타 변경, 키 교체, 연결 테스트, 삭제 | GPT 전용 계약이다. 생성/교체 요청만 `plainKey`를 담고, 응답은 `maskedKey`만 내려준다. 키 저장/암호화/감사 로그는 백엔드 책임이다 |
 | `src/api/requests/dashboardRequests.ts` | 자사/경쟁 판매, 상품 드로워, 후보군, 분석 SSE, 엑셀 업로드 템플릿 | 후보군 계열 요청은 현재 사용자 `USER_ACCOUNT.uuid` 기준으로 소유자 필터를 강제한다. 프론트 UI는 사용자 UUID를 들고 다니지 않고 request adapter에서만 붙인다. 세션 기반 백엔드라면 요청값보다 서버 세션을 우선한다 |
 
 `src/api/client.ts`는 public export facade다. 화면에서 import하는 이름을 안정적으로 유지하기 위한 파일이며, mock과 실제 HTTP를 선택하는 책임은 갖지 않는다.
@@ -87,6 +87,7 @@
 | `updateAdminGptKey(payload)` | PATCH | `/admin/gpt-keys/:keyUuid` |
 | `rotateAdminGptKey(payload)` | POST | `/admin/gpt-keys/:keyUuid/rotate` |
 | `testAdminGptKey(keyUuid)` | POST | `/admin/gpt-keys/:keyUuid/test` |
+| `deleteAdminGptKey(keyUuid)` | DELETE | `/admin/gpt-keys/:keyUuid` |
 
 **`LoginRequest`**
 
@@ -172,7 +173,7 @@
 
 | 필드 | 타입 | 설명 |
 |------|------|------|
-| `uuid` | string | 서버 생성 GPT 키 UUID. 수정/교체/테스트 식별자 |
+| `uuid` | string | 서버 생성 GPT 키 UUID. 수정/교체/테스트/삭제 식별자 |
 | `name` | string | 관리자 화면 표시 이름 |
 | `purpose` | `'ai-comment' \| 'candidate-recommendation' \| 'test' \| 'all'` | 사용 범위. 백엔드는 실제 호출 지점에서 이 범위를 적용한다 |
 | `model` | string | GPT 모델명 |

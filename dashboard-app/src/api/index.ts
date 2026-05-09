@@ -50,6 +50,7 @@ export {
   createAdminGptKey,
   createAdminUser,
   dashboardApi,
+  deleteAdminGptKey,
   deleteAdminUser,
   getAdminGptKeys,
   getAdminUsers,

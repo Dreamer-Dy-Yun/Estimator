@@ -16,6 +16,7 @@ export const createAdminGptKey = adminGptKeyRequests.createAdminGptKey
 export const updateAdminGptKey = adminGptKeyRequests.updateAdminGptKey
 export const rotateAdminGptKey = adminGptKeyRequests.rotateAdminGptKey
 export const testAdminGptKey = adminGptKeyRequests.testAdminGptKey
+export const deleteAdminGptKey = adminGptKeyRequests.deleteAdminGptKey
 
 export const getSelfSales = dashboardRequests.getSelfSales
 export const getCompetitorSales = dashboardRequests.getCompetitorSales
