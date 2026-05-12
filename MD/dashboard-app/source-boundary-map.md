@@ -207,7 +207,7 @@
 | `useCopyToastMessage.ts` | 클립보드 복사, 복사 완료 toast 메시지, 자동 닫힘 타이머 hook |
 | `DeleteButton.*` | 삭제 버튼 공용 구현 |
 | `FilterBar.tsx` | 페이지 상단 필터 조합. `filterEndContent`로 필터 grid 끝의 버튼/액션 칸을 받을 수 있다 |
-| `FilterListCombo.*` | 목록 기반 검색/선택 필터 |
+| `FilterListCombo.*` | 목록 기반 검색/선택 필터. 값이 `전체`인 필드는 전체 옵션 목록을 열어 보여준다 |
 | `KpiGrid.tsx` | KPI 카드 grid |
 | `PageHeader.tsx` | 페이지 제목/header |
 | `PaginatedTable.tsx` | 정렬/페이지네이션 테이블 |

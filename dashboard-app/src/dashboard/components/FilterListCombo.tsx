@@ -11,6 +11,7 @@ import { createPortal } from 'react-dom'
 import styles from './FilterListCombo.module.css'
 
 type PanelRect = { top: number; left: number; width: number }
+const ALL_OPTION_LABEL = '전체'
 
 type Props = {
   /** 바깥 `<label htmlFor>`와 동일 id */
@@ -30,7 +31,7 @@ export function FilterListCombo({ inputId, value, onChange, options, inputType =
 
   const filtered = useMemo(() => {
     const q = value.trim().toLowerCase()
-    if (!q) return options
+    if (!q || q === ALL_OPTION_LABEL.toLowerCase()) return options
     return options.filter((o) => o.toLowerCase().includes(q))
   }, [options, value])
 
@@ -115,7 +116,12 @@ export function FilterListCombo({ inputId, value, onChange, options, inputType =
   }
 
   const showList = open && options.length > 0 && filtered.length > 0
-  const showNoMatch = open && options.length > 0 && filtered.length === 0 && value.trim() !== ''
+  const showNoMatch =
+    open &&
+    options.length > 0 &&
+    filtered.length === 0 &&
+    value.trim() !== '' &&
+    value.trim().toLowerCase() !== ALL_OPTION_LABEL.toLowerCase()
 
   const panelNode =
     panelRect && (showList || showNoMatch) ? (
