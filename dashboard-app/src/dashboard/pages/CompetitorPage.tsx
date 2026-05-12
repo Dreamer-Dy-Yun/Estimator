@@ -118,6 +118,9 @@ export const CompetitorPage = () => {
   const competitorTooltipLabel = competitorChannelLabel === '전체'
     ? '전체 경쟁사'
     : competitorChannelLabel
+  const competitorAxisLabel = competitorChannelLabel === '전체'
+    ? channels[0]?.label ?? '경쟁사'
+    : competitorChannelLabel
 
   const visibleRows = useMemo(
     () => (showRowsWithSelfSalesOnly ? rows.filter((row) => row.selfQty != null) : rows),
@@ -275,16 +278,39 @@ export const CompetitorPage = () => {
           <ChartCard title="경쟁·자사 판매량 비교" className={styles.selfChartCard}>
             <div ref={chartBodyRef} className={styles.selfChartBody}>
               {chartReady ? (
-                <ScatterChart width={scatterChartWidth} height={scatterChartHeight} data={qtyScatterData}>
+                <ScatterChart
+                  width={scatterChartWidth}
+                  height={scatterChartHeight}
+                  data={qtyScatterData}
+                  margin={{ top: 8, right: 8, bottom: 22, left: 8 }}
+                >
                   <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis type="number" dataKey="x" name="자사 판매량(EA)" tick={{ fontSize: 10 }} />
+                  <XAxis
+                    type="number"
+                    dataKey="x"
+                    name="자사 판매량(EA)"
+                    tick={{ fontSize: 10 }}
+                    label={{
+                      value: '자사',
+                      position: 'insideBottom',
+                      offset: -10,
+                      style: { fill: '#2563eb', fontSize: 11, fontWeight: 600 },
+                    }}
+                  />
                   <YAxis
                     type="number"
                     dataKey="y"
-                    name="경쟁사 판매량(EA)"
+                    name={`${competitorAxisLabel} 판매량(EA)`}
                     tick={{ fontSize: 10 }}
-                    width={30}
+                    width={38}
                     tickMargin={4}
+                    label={{
+                      value: competitorAxisLabel,
+                      angle: -90,
+                      position: 'insideLeft',
+                      offset: 0,
+                      style: { fill: '#ef4444', fontSize: 11, fontWeight: 600 },
+                    }}
                   />
                   <Tooltip content={renderQtyScatterTooltip} />
                   <Scatter fill="#3b82f6" shape={qtyScatterShape} />
