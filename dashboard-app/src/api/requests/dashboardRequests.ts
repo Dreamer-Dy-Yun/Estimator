@@ -89,7 +89,7 @@ async function getSecondaryStockOrderCalc(
 export const dashboardRequests: DashboardApi = {
   getSelfSales: (params): Promise<SelfSalesRow[]> => mockDashboardApi.getSelfSales(params),
   getCompetitorSales: (params): Promise<CompetitorSalesRow[]> => mockDashboardApi.getCompetitorSales(params),
-  getSelfSalesFilterMeta: () => mockDashboardApi.getSelfSalesFilterMeta(),
+  getSalesFilterMeta: () => mockDashboardApi.getSalesFilterMeta(),
   getProductDrawerBundle: (id) => mockDashboardApi.getProductDrawerBundle(id),
   getProductMonthlyTrend,
   getProductSalesInsight,

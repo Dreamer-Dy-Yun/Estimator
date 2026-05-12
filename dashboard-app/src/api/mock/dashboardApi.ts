@@ -334,7 +334,7 @@ export const mockDashboardApi = {
         }
       })
   },
-  getSelfSalesFilterMeta: async () => {
+  getSalesFilterMeta: async () => {
     await sleep(60)
     const codeSet = new Set<string>()
     const nameSet = new Set<string>()

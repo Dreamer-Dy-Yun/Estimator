@@ -188,8 +188,8 @@
 
 | 파일 | 역할 |
 |------|------|
-| `SelfPage.tsx` | 자사 판매 분석 라우트. 브랜드/카테고리/품번/상품명 필터는 공통 `FilterBar` listCombo를 쓰며, 분석 필터 grid는 1차 드로워가 열린 데스크톱 폭에서도 한 줄 유지를 우선한다. KPI는 필터링된 행의 총 판매액·판매량과 판매액 가중 평균 매출/영업이익율을 보여준다. 기본 목록 정렬은 판매량 내림차순이다 |
-| `CompetitorPage.tsx` | 경쟁 판매 분석 라우트. 브랜드/카테고리/품번/상품명/경쟁 채널 필터는 공통 `FilterBar`를 쓰며, 분석 필터 grid는 1차 드로워가 열린 데스크톱 폭에서도 한 줄 유지를 우선한다. 기간 버튼 줄 오른쪽에는 자사판매량 존재 행만 보는 토글을 둔다. KPI는 필터링된 행의 경쟁사/자사 판매액·판매량 합계를 보여준다. 기본 목록 정렬은 경쟁 판매량 내림차순이고 경쟁·자사 판매량 비교 차트는 X축 자사 판매량, Y축 경쟁사 판매량을 사용한다 |
+| `SelfPage.tsx` | 자사 판매 분석 라우트. 공통 분석 필터/기간 상태는 `useAnalysisSalesFilters`가 소유하고, 페이지는 자사 KPI·포지셔닝 차트·목록 컬럼을 소유한다. KPI는 필터링된 행의 총 판매액·판매량과 판매액 가중 평균 매출/영업이익율을 보여준다. 기본 목록 정렬은 판매량 내림차순이다 |
+| `CompetitorPage.tsx` | 경쟁 판매 분석 라우트. 공통 분석 필터/기간 상태는 `useAnalysisSalesFilters`가 소유하고, 페이지는 경쟁 채널 필터, 자사판매량 존재 행 토글, 경쟁 KPI·판매량 비교 차트·목록 컬럼을 소유한다. KPI는 필터링된 행의 경쟁사/자사 판매액·판매량 합계를 보여준다. 기본 목록 정렬은 경쟁 판매량 내림차순이고 경쟁·자사 판매량 비교 차트는 X축 자사 판매량, Y축 경쟁사 판매량을 사용한다 |
 | `SnapshotConfirmPage.tsx` | 후보군 목록, 후보군 업로드, 업로드 템플릿 다운로드 링크, 후보군 생성/수정/삭제/복제 라우트 |
 | `SnapshotConfirmPage.module.css` | `SnapshotConfirmPage`의 후보군 목록, 업로드 카드 2행 grid 영역, 이름·비고 편집 모달의 form/input 전용 스타일 |
 
@@ -200,6 +200,7 @@
 | 파일/폴더 | 역할 |
 |------|------|
 | `AnalysisList.tsx` | 판매 분석 목록 wrapper |
+| `AnalysisPeriodTools.tsx` | 자사/경쟁 분석 공통 기간 preset 버튼, 기간 bar 토글, dual range UI |
 | `ChartCard.tsx` | 차트 카드 wrapper |
 | `ConfirmModal.tsx` | 확인 모달 shell. 기본 shell 스타일을 갖고, 특수 화면은 필요한 classNames만 선택적으로 주입한다 |
 | `ConfirmModal.module.css` | 확인 모달 공통 backdrop/panel/title/text/action/button 스타일 |
@@ -274,6 +275,7 @@
 | 파일 | 역할 |
 |------|------|
 | `useElementSize.ts` | element resize 측정 |
+| `useAnalysisSalesFilters.ts` | 자사/경쟁 분석 공통 기간·브랜드·카테고리·품번·상품명 필터 상태와 filter meta API 요청 |
 | `usePeriodRangeFilter.ts` | 판매 분석 기간 필터 상태 |
 | `useProductDrawerBundle.ts` | 상품 drawer bundle 로딩, stale cache, snapshot fallback 보호 |
 

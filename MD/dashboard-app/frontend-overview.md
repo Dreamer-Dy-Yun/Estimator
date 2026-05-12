@@ -74,7 +74,7 @@
 
 ### 5.1 자사 분석 (`SelfPage`)
 
-- **필터:** 기간(날짜·프리셋·이중 범위 슬라이더), 브랜드, 카테고리 — API [`getSelfSales`](../../dashboard-app/src/api/types/dashboard-api.ts), [`getSelfSalesFilterMeta`](../../dashboard-app/src/api/types/dashboard-api.ts).
+- **필터:** 기간(날짜·프리셋·이중 범위 슬라이더), 브랜드, 카테고리 — API [`getSelfSales`](../../dashboard-app/src/api/types/dashboard-api.ts), [`getSalesFilterMeta`](../../dashboard-app/src/api/types/dashboard-api.ts).
 - **KPI:** 총 판매액, 평균 영업이익률 등.
 - **차트:** 영업이익률–판매액 스캐터(포지셔닝).
 - **목록:** `AnalysisList` + 정렬 가능한 컬럼(내부 [`PaginatedTable`](../../dashboard-app/src/dashboard/components/PaginatedTable.tsx)).

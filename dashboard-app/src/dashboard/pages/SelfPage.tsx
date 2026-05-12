@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { CartesianGrid, Scatter, ScatterChart, Tooltip, XAxis, YAxis } from 'recharts'
-import { getSelfSales, getSelfSalesFilterMeta } from '../../api'
+import { getSelfSales } from '../../api'
 import type { SelfSalesRow } from '../../types'
 import { selfSalesWeightedMarginRate, selfSalesWeightedOpMarginRate } from '../../utils/analysisKpiWeighted'
 import type { AdjacentDirection } from '../../utils/adjacentListNavigation'
@@ -12,12 +12,13 @@ import { useCopyToastMessage } from '../components/useCopyToastMessage'
 import { ProductDrawer } from '../components/product-drawer/ProductDrawer'
 import styles from '../components/common.module.css'
 import { AnalysisList } from '../components/AnalysisList'
+import { AnalysisPeriodTools } from '../components/AnalysisPeriodTools'
 import { ChartCard } from '../components/ChartCard'
 import { FilterBar } from '../components/FilterBar'
 import { KpiGrid } from '../components/KpiGrid'
 import { useElementSize } from '../hooks/useElementSize'
+import { useAnalysisSalesFilters } from '../hooks/useAnalysisSalesFilters'
 import { useProductDrawerBundle } from '../hooks/useProductDrawerBundle'
-import { usePeriodRangeFilter } from '../hooks/usePeriodRangeFilter'
 
 type ScatterPoint = {
   x: number
@@ -40,19 +41,13 @@ export const SelfPage = () => {
     setForecastMonths(v)
     writeForecastMonthsToStorage(v)
   }, [])
-  const [brandOptions, setBrandOptions] = useState<string[]>(['전체'])
-  const [brandFilter, setBrandFilter] = useState('전체')
-  const [categoryOptions, setCategoryOptions] = useState<string[]>(['전체'])
-  const [categoryFilter, setCategoryFilter] = useState('전체')
-  const [productCodeOptions, setProductCodeOptions] = useState<string[]>(['전체'])
-  const [productCodeFilter, setProductCodeFilter] = useState('전체')
-  const [productNameOptions, setProductNameOptions] = useState<string[]>(['전체'])
-  const [productNameFilter, setProductNameFilter] = useState('전체')
-  const [historicalMonths, setHistoricalMonths] = useState<string[]>([])
-  const [showPeriodBar, setShowPeriodBar] = useState(false)
   const salesReqSeqRef = useRef(0)
-  const metaReqSeqRef = useRef(0)
   const {
+    filterFields,
+    historicalMonths,
+    salesParams,
+    showPeriodBar,
+    setShowPeriodBar,
     periodStartDate,
     periodEndDate,
     periodStartIdx,
@@ -61,29 +56,14 @@ export const SelfPage = () => {
     endPct,
     setPresetMonths,
     setWholeRange,
-    onStartDateChange,
-    onEndDateChange,
     onPeriodBarStart,
     onPeriodBarEnd,
-  } = usePeriodRangeFilter(historicalMonths)
+  } = useAnalysisSalesFilters()
 
   useEffect(() => {
     let alive = true
     const reqSeq = ++salesReqSeqRef.current
-    void getSelfSales({
-      startDate: periodStartDate,
-      endDate: periodEndDate,
-      brand: brandFilter === '전체' ? undefined : brandFilter,
-      category: categoryFilter === '전체' ? undefined : categoryFilter,
-      productCodeQuery:
-        productCodeFilter === '전체' || !productCodeFilter.trim()
-          ? undefined
-          : productCodeFilter.trim(),
-      nameQuery:
-        productNameFilter === '전체' || !productNameFilter.trim()
-          ? undefined
-          : productNameFilter.trim(),
-    }).then((data) => {
+    void getSelfSales(salesParams).then((data) => {
       if (!alive) return
       if (reqSeq !== salesReqSeqRef.current) return
       setRows(data)
@@ -91,23 +71,7 @@ export const SelfPage = () => {
     return () => {
       alive = false
     }
-  }, [periodStartDate, periodEndDate, brandFilter, categoryFilter, productCodeFilter, productNameFilter])
-  useEffect(() => {
-    let alive = true
-    const reqSeq = ++metaReqSeqRef.current
-    void getSelfSalesFilterMeta().then(({ brands, categories, productCodes, productNames, historicalMonths: months }) => {
-      if (!alive) return
-      if (reqSeq !== metaReqSeqRef.current) return
-      setBrandOptions(['전체', ...brands])
-      setCategoryOptions(['전체', ...categories])
-      setProductCodeOptions(['전체', ...productCodes])
-      setProductNameOptions(['전체', ...productNames])
-      setHistoricalMonths(months)
-    })
-    return () => {
-      alive = false
-    }
-  }, [])
+  }, [salesParams])
 
   const kpi = useMemo(() => {
     const totalAmount = rows.reduce((acc, row) => acc + row.amount, 0)
@@ -205,58 +169,21 @@ export const SelfPage = () => {
       <FilterBar
         title=""
         filterClassName={styles.filterAnalysisGrid}
-        fields={[
-          { label: '시작일', kind: 'input', inputType: 'date', value: periodStartDate, onChange: onStartDateChange },
-          { label: '종료일', kind: 'input', inputType: 'date', value: periodEndDate, onChange: onEndDateChange },
-          { label: '브랜드', kind: 'listCombo', inputType: 'text', value: brandFilter, onChange: setBrandFilter, options: brandOptions },
-          { label: '카테고리', kind: 'listCombo', inputType: 'text', value: categoryFilter, onChange: setCategoryFilter, options: categoryOptions },
-          { label: '품번', kind: 'listCombo', inputType: 'text', value: productCodeFilter, onChange: setProductCodeFilter, options: productCodeOptions },
-          { label: '상품명', kind: 'listCombo', inputType: 'text', value: productNameFilter, onChange: setProductNameFilter, options: productNameOptions },
-        ]}
+        fields={filterFields}
         extraContent={(
-          <div className={styles.periodTools}>
-            <div className={styles.periodPresetRow}>
-              <button type="button" onClick={() => setPresetMonths(1)}>최근 1개월</button>
-              <button type="button" onClick={() => setPresetMonths(3)}>최근 3개월</button>
-              <button type="button" onClick={() => setPresetMonths(6)}>최근 6개월</button>
-              <button type="button" onClick={() => setPresetMonths(12)}>최근 1년</button>
-              <button type="button" onClick={setWholeRange}>전체</button>
-              <button type="button" onClick={() => setShowPeriodBar((prev) => !prev)}>
-                {showPeriodBar ? '기간 바 닫기' : '기간 바 열기'}
-              </button>
-            </div>
-            {showPeriodBar && historicalMonths.length > 1 && (
-              <div className={styles.periodBarWrap}>
-                <div className={styles.periodBarLabel}>
-                  <span>{historicalMonths[0]}</span>
-                  <span>{historicalMonths[historicalMonths.length - 1]}</span>
-                </div>
-                <div className={styles.periodDualRange}>
-                  <div className={styles.periodTrack} />
-                  <div
-                    className={styles.periodSelected}
-                    style={{ left: `${startPct}%`, width: `${Math.max(0, endPct - startPct)}%` }}
-                  />
-                  <input
-                    className={`${styles.periodRange} ${styles.periodRangeStart}`}
-                    type="range"
-                    min={0}
-                    max={historicalMonths.length - 1}
-                    value={periodStartIdx}
-                    onChange={(e) => onPeriodBarStart(Number(e.target.value))}
-                  />
-                  <input
-                    className={`${styles.periodRange} ${styles.periodRangeEnd}`}
-                    type="range"
-                    min={0}
-                    max={historicalMonths.length - 1}
-                    value={periodEndIdx}
-                    onChange={(e) => onPeriodBarEnd(Number(e.target.value))}
-                  />
-                </div>
-              </div>
-            )}
-          </div>
+          <AnalysisPeriodTools
+            showPeriodBar={showPeriodBar}
+            historicalMonths={historicalMonths}
+            periodStartIdx={periodStartIdx}
+            periodEndIdx={periodEndIdx}
+            startPct={startPct}
+            endPct={endPct}
+            setPresetMonths={setPresetMonths}
+            setWholeRange={setWholeRange}
+            onTogglePeriodBar={() => setShowPeriodBar((prev) => !prev)}
+            onPeriodBarStart={onPeriodBarStart}
+            onPeriodBarEnd={onPeriodBarEnd}
+          />
         )}
       />
 

@@ -15,8 +15,8 @@ export interface CompetitorSalesParams extends SelfSalesParams {
   competitorChannelId?: string
 }
 
-/** Filter and period UI metadata for self analysis (single fetch). */
-export interface SelfSalesFilterMeta {
+/** Filter and period UI metadata shared by self and competitor sales analysis. */
+export interface SalesFilterMeta {
   brands: string[]
   categories: string[]
   /** 목록 콤보 제안용 고유 품번/상품코드(자사·경쟁 데이터 합집합). */

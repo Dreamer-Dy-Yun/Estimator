@@ -51,7 +51,7 @@ describe('api/mock dashboardApi competitor channel behavior', () => {
   })
 
   it('returns product code suggestions for analysis filters', async () => {
-    const meta = await mockDashboardApi.getSelfSalesFilterMeta()
+    const meta = await mockDashboardApi.getSalesFilterMeta()
     expect(meta.productCodes).toContain('TEST-SHOE')
     expect(meta.productCodes).toContain('B')
   })

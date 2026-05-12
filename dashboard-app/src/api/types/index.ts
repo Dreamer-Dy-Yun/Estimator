@@ -22,7 +22,7 @@ export type {
   UpdateAdminUserPayload,
   UpdateAuthUserPayload,
 } from './auth'
-export type { CompetitorSalesParams, SelfSalesFilterMeta, SelfSalesParams } from './sales'
+export type { CompetitorSalesParams, SalesFilterMeta, SelfSalesParams } from './sales'
 export type {
   ProductDrawerBundle,
   ProductMonthlyTrend,

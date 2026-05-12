@@ -20,7 +20,7 @@ export const deleteAdminGptKey = adminGptKeyRequests.deleteAdminGptKey
 
 export const getSelfSales = dashboardRequests.getSelfSales
 export const getCompetitorSales = dashboardRequests.getCompetitorSales
-export const getSelfSalesFilterMeta = dashboardRequests.getSelfSalesFilterMeta
+export const getSalesFilterMeta = dashboardRequests.getSalesFilterMeta
 export const getProductDrawerBundle = dashboardRequests.getProductDrawerBundle
 export const getSecondaryCompetitorChannels = dashboardRequests.getSecondaryCompetitorChannels
 export const getCandidateStashes = dashboardRequests.getCandidateStashes

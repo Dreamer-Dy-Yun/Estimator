@@ -239,7 +239,7 @@
 |-------------|-----------|----------------|
 | `getSelfSales(params?)` | GET | `/sales/self?startDate&endDate&brand&category&productCodeQuery&nameQuery` |
 | `getCompetitorSales(params?)` | GET | `/sales/competitor?startDate&endDate&brand&category&productCodeQuery&nameQuery&competitorChannelId` |
-| `getSelfSalesFilterMeta()` | GET | `/sales/self/filter-meta` |
+| `getSalesFilterMeta()` | GET | `/sales/filter-meta` |
 | `getProductDrawerBundle(id)` | GET | `/products/:id/drawer-bundle` |
 | `getProductMonthlyTrend(id, params)` | GET | `/products/:id/monthly-trend?startDate&endDate&forecastMonths&competitorChannelId` |
 | `getProductSalesInsight(id, params)` | GET | `/products/:id/sales-insight?startDate&endDate&competitorChannelId` |
@@ -305,9 +305,9 @@
 | `competitorAvgPrice`, `competitorQty`, `competitorAmount` | 선택 경쟁 채널 기준 지표 |
 | `selfAvgPrice`, `selfQty`, `selfAmount` | 자사 채널 비교용(없으면 `null`) |
 
-### 3.2 `getSelfSalesFilterMeta`
+### 3.2 `getSalesFilterMeta`
 
-**응답 (`SelfSalesFilterMeta`)**
+**응답 (`SalesFilterMeta`)**
 
 | 필드 | 의미 |
 |------|------|

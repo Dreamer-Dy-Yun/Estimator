@@ -5,7 +5,7 @@ import { useId, type ReactNode } from 'react'
 import { FilterListCombo } from './FilterListCombo'
 import styles from './common.module.css'
 
-type FilterField = {
+export type FilterField = {
   label: string
   /** `listCombo`: 자유 입력 + `options` 제안 — 내부적으로 `FilterListCombo` 단일 구현 사용. */
   kind: 'input' | 'select' | 'listCombo'
