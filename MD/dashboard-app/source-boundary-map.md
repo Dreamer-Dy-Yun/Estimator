@@ -261,7 +261,7 @@
 | `useSecondaryDrawerDetail.ts` | 2차 드로워가 열릴 때의 상세 조회와 검증된 스냅샷 hydration |
 | `secondaryDrawerTypes.ts` | 2차 드로워 내부 view-model 타입 |
 | `candidateActionCards.tsx` | 2차 드로워에서 후보군 저장/연결 액션 UI |
-| `cards/*` | 2차 드로워 카드 단위 UI |
+| `cards/*` | 2차 드로워 카드 단위 UI. `SizeOrderCard`의 가중치 조절막대는 왼쪽 자사/오른쪽 경쟁사 시각 방향을 따르며, 내부 상태는 스냅샷 계약에 맞춰 `selfWeightPct`로 저장한다 |
 | `hooks/*` | 2차 드로워의 컨테이너 단위 API 요청. 재고·발주 계산과 선택 경쟁 채널 기준 일별 추이를 소유한다 |
 | `model/*` | 2차 드로워 계산 로직. UI에서 직접 계산이 커지면 여기로 이동한다 |
 | `style-parts/*` | `secondaryDrawer.module.css`가 CSS `@import`로 묶는 2차 드로워 카드/컨트롤/표/입력 스타일 조각 |

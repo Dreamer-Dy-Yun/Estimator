@@ -75,6 +75,7 @@ export function SizeOrderCard({ sizeOrder, actions, help }: Props) {
   const chartInnerRef = useRef<HTMLDivElement | null>(null)
   const [xCenters, setXCenters] = useState<number[]>([])
   const [chartWidth, setChartWidth] = useState(0)
+  const competitorWeightPct = clampWeightPct(100 - selfWeightPct)
 
   useLayoutEffect(() => {
     const table = tableRef.current
@@ -234,8 +235,11 @@ export function SizeOrderCard({ sizeOrder, actions, help }: Props) {
           min={0}
           max={100}
           step={0.01}
-          value={selfWeightPct}
-          onChange={(e) => actions.onSelfWeightPctChange(clampWeightPct(Number(e.target.value)))}
+          value={competitorWeightPct}
+          onChange={(e) => {
+            const competitorWeight = clampWeightPct(Number(e.target.value))
+            actions.onSelfWeightPctChange(clampWeightPct(100 - competitorWeight))
+          }}
           aria-label={KO.ariaWeightSlider}
         />
         <div className={styles.sliderCompGroup}>
@@ -246,7 +250,7 @@ export function SizeOrderCard({ sizeOrder, actions, help }: Props) {
               min={0}
               max={100}
               step={0.01}
-              value={clampWeightPct(100 - selfWeightPct)}
+              value={competitorWeightPct}
               onChange={(e) => {
                 const t = e.target.value.trim()
                 if (t === '') {
