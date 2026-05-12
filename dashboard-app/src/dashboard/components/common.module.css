@@ -502,6 +502,7 @@
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
+  align-items: center;
 }
 
 .periodPresetRow button {
@@ -512,6 +513,40 @@
   font-size: 12px;
   line-height: 1.2;
   cursor: pointer;
+}
+
+.periodPresetRowToggle {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 30px;
+  padding: 5px 8px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #fff;
+  color: #475569;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.2;
+  cursor: pointer;
+}
+
+.periodPresetRowToggle input {
+  width: 14px;
+  height: 14px;
+  margin: 0;
+  accent-color: #2563eb;
+}
+
+.periodPresetRowToggle span {
+  white-space: nowrap;
+}
+
+@media (max-width: 720px) {
+  .periodPresetRowToggle {
+    margin-left: 0;
+  }
 }
 
 .periodBarWrap {

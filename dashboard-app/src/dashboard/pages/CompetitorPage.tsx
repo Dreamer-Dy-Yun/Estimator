@@ -56,6 +56,7 @@ export const CompetitorPage = () => {
   const [productNameFilter, setProductNameFilter] = useState('전체')
   const [historicalMonths, setHistoricalMonths] = useState<string[]>([])
   const [showPeriodBar, setShowPeriodBar] = useState(false)
+  const [showRowsWithSelfSalesOnly, setShowRowsWithSelfSalesOnly] = useState(false)
   const channelsReqSeqRef = useRef(0)
   const salesReqSeqRef = useRef(0)
   const metaReqSeqRef = useRef(0)
@@ -144,14 +145,19 @@ export const CompetitorPage = () => {
     ? '전체 경쟁사'
     : competitorChannelLabel
 
+  const visibleRows = useMemo(
+    () => (showRowsWithSelfSalesOnly ? rows.filter((row) => row.selfQty != null) : rows),
+    [rows, showRowsWithSelfSalesOnly],
+  )
+
   const kpi = useMemo(() => {
-    const totalCompetitor = rows.reduce((acc, row) => acc + row.competitorAmount, 0)
-    const avgGapRate = competitorGapRateWeightedByCompetitorAmount(rows)
+    const totalCompetitor = visibleRows.reduce((acc, row) => acc + row.competitorAmount, 0)
+    const avgGapRate = competitorGapRateWeightedByCompetitorAmount(visibleRows)
     return { totalCompetitor, avgGapRate }
-  }, [rows])
+  }, [visibleRows])
 
   const qtyScatterData: QtyScatterPoint[] = useMemo(
-    () => rows
+    () => visibleRows
       .filter((r) => r.selfQty != null)
       .map((r) => {
         const selfQty = r.selfQty ?? 0
@@ -182,10 +188,10 @@ export const CompetitorPage = () => {
           copyText,
         }
       }),
-    [rows, periodStartDate, periodEndDate, competitorTooltipLabel],
+    [visibleRows, periodStartDate, periodEndDate, competitorTooltipLabel],
   )
 
-  const navigationOrderIds = useMemo(() => rows.map((r) => r.id), [rows])
+  const navigationOrderIds = useMemo(() => visibleRows.map((r) => r.id), [visibleRows])
 
   const onRequestNavigateAdjacent = useCallback(
     (direction: AdjacentDirection) => {
@@ -270,6 +276,14 @@ export const CompetitorPage = () => {
               <button type="button" onClick={() => setShowPeriodBar((prev) => !prev)}>
                 {showPeriodBar ? '기간 바 닫기' : '기간 바 열기'}
               </button>
+              <label className={styles.periodPresetRowToggle}>
+                <input
+                  type="checkbox"
+                  checked={showRowsWithSelfSalesOnly}
+                  onChange={(event) => setShowRowsWithSelfSalesOnly(event.target.checked)}
+                />
+                <span>자사판매량이 존재하는 경우만 보기</span>
+              </label>
             </div>
             {showPeriodBar && historicalMonths.length > 1 && (
               <div className={styles.periodBarWrap}>
@@ -352,7 +366,7 @@ export const CompetitorPage = () => {
             { key: 'competitorAmount', header: '경쟁 판매액', cell: (r) => formatGroupedNumber(r.competitorAmount), align: 'right', sortValue: (r) => r.competitorAmount },
             { key: 'selfAmount', header: '자사 판매액', cell: (r) => (r.selfAmount != null ? formatGroupedNumber(r.selfAmount) : '—'), align: 'right', sortValue: (r) => r.selfAmount ?? 0 },
           ]}
-          rows={rows}
+          rows={visibleRows}
           defaultSort={{ key: 'competitorQty', dir: 'desc' }}
           onRowClick={(row) => setSelectedId(row.id)}
         />
