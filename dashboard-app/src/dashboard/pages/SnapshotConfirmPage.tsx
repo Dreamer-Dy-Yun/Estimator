@@ -232,9 +232,9 @@ export const SnapshotConfirmPage = () => {
       </div>
 
       {!stashes.length ? (
-        <div className={styles.card}>저장된 오더 후보군이 없습니다.</div>
+        <div className={`${styles.card} ${pageStyles.emptyStateCard}`}>저장된 오더 후보군이 없습니다.</div>
       ) : !filteredStashes.length ? (
-        <div className={styles.card}>검색 조건에 맞는 후보군이 없습니다.</div>
+        <div className={`${styles.card} ${pageStyles.emptyStateCard}`}>검색 조건에 맞는 후보군이 없습니다.</div>
       ) : (
         <div className={pageStyles.stashList}>
           {filteredStashes.map((stash) => {

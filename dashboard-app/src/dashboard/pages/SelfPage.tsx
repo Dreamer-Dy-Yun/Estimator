@@ -85,7 +85,7 @@ export const SelfPage = () => {
     () => rows.map((r) => {
       const yMillion = Math.round(r.amount / 1000000)
       const copyText = [
-        '[자사 분석 · 포지셔닝]',
+        '[자사 분석 · 판매액/영업이익률 분석]',
         `기간: ${periodStartDate} ~ ${periodEndDate}`,
         `브랜드: ${r.brand}`,
         `카테고리: ${r.category}`,
@@ -199,19 +199,44 @@ export const SelfPage = () => {
             ]}
           />
 
-          <ChartCard title="포지셔닝" className={styles.selfChartCard}>
+          <ChartCard title="판매액/영업이익률 분석" className={styles.selfChartCard}>
             <div ref={chartBodyRef} className={styles.selfChartBody}>
               {chartReady ? (
-                <ScatterChart width={scatterChartWidth} height={scatterChartHeight} data={scatterData}>
+                <ScatterChart
+                  width={scatterChartWidth}
+                  height={scatterChartHeight}
+                  data={scatterData}
+                  margin={{ top: 8, right: 8, bottom: 22, left: 8 }}
+                >
                   <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis type="number" dataKey="x" name="%" unit="%" tickFormatter={(v) => `${v}`} tick={{ fontSize: 10 }} />
+                  <XAxis
+                    type="number"
+                    dataKey="x"
+                    name="영업이익률"
+                    unit="%"
+                    tickFormatter={(v) => `${v}`}
+                    tick={{ fontSize: 10 }}
+                    label={{
+                      value: '영업이익률',
+                      position: 'insideBottom',
+                      offset: -10,
+                      style: { fill: '#475569', fontSize: 11, fontWeight: 600 },
+                    }}
+                  />
                   <YAxis
                     type="number"
                     dataKey="y"
-                    name="Net Sales (백만)"
+                    name="판매액(백만 원)"
                     tick={{ fontSize: 10 }}
-                    width={30}
+                    width={42}
                     tickMargin={4}
+                    label={{
+                      value: '판매액(백만 원)',
+                      angle: -90,
+                      position: 'insideLeft',
+                      offset: 0,
+                      style: { fill: '#475569', fontSize: 11, fontWeight: 600 },
+                    }}
                   />
                   <Tooltip content={renderScatterTooltip} />
                   <Scatter fill="#3b82f6" shape={scatterShape} />
