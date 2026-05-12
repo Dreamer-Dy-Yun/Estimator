@@ -169,6 +169,14 @@
   color: #ffffff;
 }
 
+.trendSeriesButtonSelfSelected {
+  background: #2563eb;
+}
+
+.trendSeriesButtonCompetitorSelected {
+  background: #e11d48;
+}
+
 .forecastMonthsControl {
   display: inline-flex;
   align-items: center;

@@ -307,7 +307,7 @@ export function ProductMonthlyTrendContainer({
               aria-pressed={salesTrendVisible.self}
               className={
                 salesTrendVisible.self
-                  ? `${styles.trendSeriesButton} ${styles.trendSeriesButtonSelected}`
+                  ? `${styles.trendSeriesButton} ${styles.trendSeriesButtonSelected} ${styles.trendSeriesButtonSelfSelected}`
                   : styles.trendSeriesButton
               }
               onClick={() => toggleSalesTrendSeries('self')}
@@ -319,7 +319,7 @@ export function ProductMonthlyTrendContainer({
               aria-pressed={salesTrendVisible.competitor}
               className={
                 salesTrendVisible.competitor
-                  ? `${styles.trendSeriesButton} ${styles.trendSeriesButtonSelected}`
+                  ? `${styles.trendSeriesButton} ${styles.trendSeriesButtonSelected} ${styles.trendSeriesButtonCompetitorSelected}`
                   : styles.trendSeriesButton
               }
               onClick={() => toggleSalesTrendSeries('competitor')}

@@ -250,7 +250,7 @@
 |------|------|
 | `ProductPrimaryDrawer.tsx` | 1차 드로워 column. 헤더, 상품 요약 카드, 1차 기능 컨테이너 배치를 소유한다 |
 | `ProductSalesMetricsContainer.tsx` | 선택 상품·기간·경쟁 채널 기준 1차 판매 정보 조회와 `SalesMetricsCard` 연결 |
-| `ProductMonthlyTrendContainer.tsx` | 선택 상품·기간·포캐스트 개월·경쟁 채널 기준 월간 판매 추이 조회, 표시 토글, chart window 상태 |
+| `ProductMonthlyTrendContainer.tsx` | 선택 상품·기간·포캐스트 개월·경쟁 채널 기준 월간 판매 추이 조회, 표시 토글, chart window 상태. 판매추이 표시 토글의 활성 배경색은 차트 선 색상과 맞춘다 |
 | `cards/SalesMetricsCard.tsx` | 1차 판매 정보 표 UI |
 
 ### product-drawer/secondary
