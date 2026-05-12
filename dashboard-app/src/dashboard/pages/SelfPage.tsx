@@ -6,7 +6,7 @@ import { selfSalesWeightedMarginRate, selfSalesWeightedOpMarginRate } from '../.
 import type { AdjacentDirection } from '../../utils/adjacentListNavigation'
 import { adjacentIdInOrder } from '../../utils/adjacentListNavigation'
 import { clampForecastMonths, readForecastMonthsFromStorage, writeForecastMonthsToStorage } from '../../utils/forecastMonthsStorage'
-import { formatGroupedNumber, formatPercent, formatWonAmount } from '../../utils/format'
+import { formatGroupedNumber, formatPercent } from '../../utils/format'
 import { CopyToastBanner } from '../components/CopyToastBanner'
 import { useCopyToastMessage } from '../components/useCopyToastMessage'
 import { ProductDrawer } from '../components/product-drawer/ProductDrawer'
@@ -265,10 +265,10 @@ export const SelfPage = () => {
           <KpiGrid
             stacked
             items={[
-              { label: '총 판매액', value: formatWonAmount(kpi.totalAmount) },
-              { label: '총 판매량', value: `${formatGroupedNumber(kpi.totalQty)} EA` },
-              { label: '평균 매출 이익율', value: formatPercent(kpi.avgMarginRate) },
-              { label: '평균 영업이익율', value: formatPercent(kpi.avgOpMarginRate) },
+              { label: '총 판매액', value: formatGroupedNumber(kpi.totalAmount), unit: '원' },
+              { label: '총 판매량', value: formatGroupedNumber(kpi.totalQty), unit: 'EA' },
+              { label: '평균 매출 이익율', value: kpi.avgMarginRate.toFixed(1), unit: '%' },
+              { label: '평균 영업이익율', value: kpi.avgOpMarginRate.toFixed(1), unit: '%' },
             ]}
           />
 

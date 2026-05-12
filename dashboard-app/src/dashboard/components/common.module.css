@@ -43,7 +43,7 @@
 }
 
 .kpiMetricCard .kpiValue {
-  text-align: right;
+  justify-content: flex-end;
 }
 
 .kpiLabel {
@@ -53,10 +53,22 @@
 }
 
 .kpiValue {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
   font-size: 17px;
-  font-weight: 800;
   line-height: 1.15;
   margin-top: 4px;
+}
+
+.kpiValueMain {
+  font-weight: 800;
+}
+
+.kpiUnit {
+  color: #64748b;
+  font-size: 0.82em;
+  font-weight: 400;
 }
 
 .twoCol {

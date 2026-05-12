@@ -6,7 +6,7 @@ import type { CompetitorSalesRow } from '../../types'
 import type { AdjacentDirection } from '../../utils/adjacentListNavigation'
 import { adjacentIdInOrder } from '../../utils/adjacentListNavigation'
 import { clampForecastMonths, readForecastMonthsFromStorage, writeForecastMonthsToStorage } from '../../utils/forecastMonthsStorage'
-import { formatGroupedNumber, formatWonAmount } from '../../utils/format'
+import { formatGroupedNumber } from '../../utils/format'
 import { CopyToastBanner } from '../components/CopyToastBanner'
 import { useCopyToastMessage } from '../components/useCopyToastMessage'
 import { ProductDrawer } from '../components/product-drawer/ProductDrawer'
@@ -326,10 +326,10 @@ export const CompetitorPage = () => {
           <KpiGrid
             stacked
             items={[
-              { label: '총 경쟁사 판매액', value: formatWonAmount(kpi.totalCompetitorAmount) },
-              { label: '총 자사 판매액', value: formatWonAmount(kpi.totalSelfAmount) },
-              { label: '총 경쟁사 판매량', value: `${formatGroupedNumber(kpi.totalCompetitorQty)} EA` },
-              { label: '총 자사 판매량', value: `${formatGroupedNumber(kpi.totalSelfQty)} EA` },
+              { label: '총 경쟁사 판매액', value: formatGroupedNumber(kpi.totalCompetitorAmount), unit: '원' },
+              { label: '총 자사 판매액', value: formatGroupedNumber(kpi.totalSelfAmount), unit: '원' },
+              { label: '총 경쟁사 판매량', value: formatGroupedNumber(kpi.totalCompetitorQty), unit: 'EA' },
+              { label: '총 자사 판매량', value: formatGroupedNumber(kpi.totalSelfQty), unit: 'EA' },
             ]}
           />
 

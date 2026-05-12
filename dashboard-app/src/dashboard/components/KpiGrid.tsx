@@ -4,6 +4,7 @@ import styles from './common.module.css'
 type KpiItem = {
   label: string
   value: ReactNode
+  unit?: ReactNode
 }
 
 type KpiGridProps = {
@@ -17,7 +18,10 @@ export function KpiGrid({ items, stacked = false }: KpiGridProps) {
       {items.map((item) => (
         <div key={item.label} className={`${styles.kpi} ${styles.kpiMetricCard}`.trim()}>
           <div className={styles.kpiLabel}>{item.label}</div>
-          <div className={styles.kpiValue}>{item.value}</div>
+          <div className={styles.kpiValue}>
+            <span className={styles.kpiValueMain}>{item.value}</span>
+            {item.unit ? <span className={styles.kpiUnit}>{item.unit}</span> : null}
+          </div>
         </div>
       ))}
     </div>
