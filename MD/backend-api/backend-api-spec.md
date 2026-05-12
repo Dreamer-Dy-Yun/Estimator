@@ -237,8 +237,8 @@
 
 | 계약 메서드 | 제안 HTTP | 제안 경로·쿼리 |
 |-------------|-----------|----------------|
-| `getSelfSales(params?)` | GET | `/sales/self?startDate&endDate&brand&category` |
-| `getCompetitorSales(params?)` | GET | `/sales/competitor?…` + `competitorChannelId` |
+| `getSelfSales(params?)` | GET | `/sales/self?startDate&endDate&brand&category&productCodeQuery&nameQuery` |
+| `getCompetitorSales(params?)` | GET | `/sales/competitor?startDate&endDate&brand&category&productCodeQuery&nameQuery&competitorChannelId` |
 | `getSelfSalesFilterMeta()` | GET | `/sales/self/filter-meta` |
 | `getProductDrawerBundle(id)` | GET | `/products/:id/drawer-bundle` |
 | `getProductMonthlyTrend(id, params)` | GET | `/products/:id/monthly-trend?startDate&endDate&forecastMonths&competitorChannelId` |
@@ -277,6 +277,8 @@
 | `endDate` | string? | 필터 종료일 |
 | `brand` | string? | 브랜드 필터 |
 | `category` | string? | 카테고리 필터 |
+| `productCodeQuery` | string? | 품번/상품코드 부분 일치 필터 |
+| `nameQuery` | string? | 상품명 부분 일치 필터 |
 | `competitorChannelId` | string? | **경쟁 API만**. 선택한 경쟁 채널(가격·수량 스큐 적용 대상) |
 
 **응답: `SelfSalesRow[]`**
@@ -311,6 +313,8 @@
 |------|------|
 | `brands` | 브랜드 목록 |
 | `categories` | 카테고리 목록 |
+| `productCodes` | 자사·경쟁 분석 필터 제안용 품번/상품코드 목록 |
+| `productNames` | 자사·경쟁 분석 필터 제안용 상품명 목록 |
 | `historicalMonths` | **과거 실적** 월 축(슬라이더 등). 포캐스트 월과 구분 |
 
 ### 3.3 `getProductDrawerBundle`

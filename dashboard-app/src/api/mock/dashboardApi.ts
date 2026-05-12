@@ -23,6 +23,7 @@ import type {
   SecondaryDailyTrendParams,
   SecondaryStockOrderCalcParams,
   SecondaryStockOrderCalcResult,
+  SelfSalesParams,
 } from '../types'
 import { type CandidateItemRecord, type CandidateStashRecord } from './records'
 import { makeUuid32, sleep } from './utils'
@@ -276,16 +277,18 @@ function buildCandidateItemSummariesForStash(
 }
 
 export const mockDashboardApi = {
-  getSelfSales: async (params?: { startDate?: string; endDate?: string; brand?: string; category?: string; nameQuery?: string }) => {
+  getSelfSales: async (params?: SelfSalesParams) => {
     await sleep(80)
     const brand = params?.brand
     const category = params?.category
+    const codeQ = params?.productCodeQuery?.trim().toLowerCase()
     const nameQ = params?.nameQuery?.trim().toLowerCase()
     const weighted = estimatePeriodWeight(params?.startDate, params?.endDate)
 
     return selfSalesRows
       .filter((row) => (brand ? row.brand === brand : true))
       .filter((row) => (category ? row.category === category : true))
+      .filter((row) => (codeQ ? row.productCode.toLowerCase().includes(codeQ) : true))
       .filter((row) => (nameQ ? row.name.toLowerCase().includes(nameQ) : true))
       .map((row) => {
         const qty = Math.max(1, Math.round(row.qty * weighted))
@@ -303,6 +306,7 @@ export const mockDashboardApi = {
     await sleep(80)
     const brand = params?.brand
     const category = params?.category
+    const codeQ = params?.productCodeQuery?.trim().toLowerCase()
     const nameQ = params?.nameQuery?.trim().toLowerCase()
     const weighted = estimatePeriodWeight(params?.startDate, params?.endDate)
     const channel = getMockSecondaryCompetitorChannel(params?.competitorChannelId)
@@ -312,6 +316,7 @@ export const mockDashboardApi = {
     return competitorSalesRows
       .filter((row) => (brand ? row.brand === brand : true))
       .filter((row) => (category ? row.category === category : true))
+      .filter((row) => (codeQ ? row.productCode.toLowerCase().includes(codeQ) : true))
       .filter((row) => (nameQ ? row.name.toLowerCase().includes(nameQ) : true))
       .map((row) => {
         const compQty = Math.max(1, Math.round(row.competitorQty * weighted * qtySkew))
@@ -331,13 +336,22 @@ export const mockDashboardApi = {
   },
   getSelfSalesFilterMeta: async () => {
     await sleep(60)
+    const codeSet = new Set<string>()
     const nameSet = new Set<string>()
-    for (const r of selfSalesRows) nameSet.add(r.name)
-    for (const r of competitorSalesRows) nameSet.add(r.name)
+    for (const r of selfSalesRows) {
+      codeSet.add(r.productCode)
+      nameSet.add(r.name)
+    }
+    for (const r of competitorSalesRows) {
+      codeSet.add(r.productCode)
+      nameSet.add(r.name)
+    }
+    const productCodes = uniqueSortedStrings(codeSet)
     const productNames = uniqueSortedStrings(nameSet)
     return {
       brands,
       categories,
+      productCodes,
       productNames,
       historicalMonths,
     }

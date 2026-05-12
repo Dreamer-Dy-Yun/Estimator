@@ -44,6 +44,8 @@ export const SelfPage = () => {
   const [brandFilter, setBrandFilter] = useState('전체')
   const [categoryOptions, setCategoryOptions] = useState<string[]>(['전체'])
   const [categoryFilter, setCategoryFilter] = useState('전체')
+  const [productCodeOptions, setProductCodeOptions] = useState<string[]>(['전체'])
+  const [productCodeFilter, setProductCodeFilter] = useState('전체')
   const [productNameOptions, setProductNameOptions] = useState<string[]>(['전체'])
   const [productNameFilter, setProductNameFilter] = useState('전체')
   const [historicalMonths, setHistoricalMonths] = useState<string[]>([])
@@ -73,6 +75,10 @@ export const SelfPage = () => {
       endDate: periodEndDate,
       brand: brandFilter === '전체' ? undefined : brandFilter,
       category: categoryFilter === '전체' ? undefined : categoryFilter,
+      productCodeQuery:
+        productCodeFilter === '전체' || !productCodeFilter.trim()
+          ? undefined
+          : productCodeFilter.trim(),
       nameQuery:
         productNameFilter === '전체' || !productNameFilter.trim()
           ? undefined
@@ -85,15 +91,16 @@ export const SelfPage = () => {
     return () => {
       alive = false
     }
-  }, [periodStartDate, periodEndDate, brandFilter, categoryFilter, productNameFilter])
+  }, [periodStartDate, periodEndDate, brandFilter, categoryFilter, productCodeFilter, productNameFilter])
   useEffect(() => {
     let alive = true
     const reqSeq = ++metaReqSeqRef.current
-    void getSelfSalesFilterMeta().then(({ brands, categories, productNames, historicalMonths: months }) => {
+    void getSelfSalesFilterMeta().then(({ brands, categories, productCodes, productNames, historicalMonths: months }) => {
       if (!alive) return
       if (reqSeq !== metaReqSeqRef.current) return
       setBrandOptions(['전체', ...brands])
       setCategoryOptions(['전체', ...categories])
+      setProductCodeOptions(['전체', ...productCodes])
       setProductNameOptions(['전체', ...productNames])
       setHistoricalMonths(months)
     })
@@ -201,6 +208,7 @@ export const SelfPage = () => {
           { label: '종료일', kind: 'input', inputType: 'date', value: periodEndDate, onChange: onEndDateChange },
           { label: '브랜드', kind: 'listCombo', inputType: 'text', value: brandFilter, onChange: setBrandFilter, options: brandOptions },
           { label: '카테고리', kind: 'listCombo', inputType: 'text', value: categoryFilter, onChange: setCategoryFilter, options: categoryOptions },
+          { label: '품번', kind: 'listCombo', inputType: 'text', value: productCodeFilter, onChange: setProductCodeFilter, options: productCodeOptions },
           { label: '상품명', kind: 'listCombo', inputType: 'text', value: productNameFilter, onChange: setProductNameFilter, options: productNameOptions },
         ]}
         extraContent={(

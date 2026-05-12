@@ -42,6 +42,20 @@ describe('api/mock dashboardApi competitor channel behavior', () => {
     expect(naver).toEqual(base)
   })
 
+  it('filters self and competitor sales by product code query', async () => {
+    const self = await mockDashboardApi.getSelfSales({ productCodeQuery: 'test-shoe' })
+    const competitor = await mockDashboardApi.getCompetitorSales({ productCodeQuery: 'test-shoe' })
+
+    expect(self.map((row) => row.productCode)).toEqual(['TEST-SHOE'])
+    expect(competitor.map((row) => row.productCode)).toEqual(['TEST-SHOE'])
+  })
+
+  it('returns product code suggestions for analysis filters', async () => {
+    const meta = await mockDashboardApi.getSelfSalesFilterMeta()
+    expect(meta.productCodes).toContain('TEST-SHOE')
+    expect(meta.productCodes).toContain('B')
+  })
+
   it('applies selected channel to secondary daily competitor trend', async () => {
     const kream = await mockDashboardApi.getSecondaryDailyTrend({
       productId: 'B',

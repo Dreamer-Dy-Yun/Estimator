@@ -188,8 +188,8 @@
 
 | 파일 | 역할 |
 |------|------|
-| `SelfPage.tsx` | 자사 판매 분석 라우트. 기본 목록 정렬은 판매량 내림차순이다 |
-| `CompetitorPage.tsx` | 경쟁 판매 분석 라우트. 기본 목록 정렬은 경쟁 판매량 내림차순이며, 경쟁·자사 판매량 비교 차트는 X축 자사 판매량, Y축 경쟁사 판매량을 사용한다 |
+| `SelfPage.tsx` | 자사 판매 분석 라우트. 브랜드/카테고리/품번/상품명 필터는 공통 `FilterBar` listCombo를 쓰며, 기본 목록 정렬은 판매량 내림차순이다 |
+| `CompetitorPage.tsx` | 경쟁 판매 분석 라우트. 브랜드/카테고리/품번/상품명 필터는 공통 `FilterBar` listCombo를 쓰며, 기본 목록 정렬은 경쟁 판매량 내림차순이고 경쟁·자사 판매량 비교 차트는 X축 자사 판매량, Y축 경쟁사 판매량을 사용한다 |
 | `SnapshotConfirmPage.tsx` | 후보군 목록, 후보군 업로드, 업로드 템플릿 다운로드 링크, 후보군 생성/수정/삭제/복제 라우트 |
 | `SnapshotConfirmPage.module.css` | `SnapshotConfirmPage`의 후보군 목록, 업로드 카드 2행 grid 영역, 이름·비고 편집 모달의 form/input 전용 스타일 |
 
