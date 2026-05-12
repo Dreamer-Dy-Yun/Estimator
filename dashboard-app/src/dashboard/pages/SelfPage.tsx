@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { CartesianGrid, Scatter, ScatterChart, Tooltip, XAxis, YAxis } from 'recharts'
 import { getSelfSales, getSelfSalesFilterMeta } from '../../api'
 import type { SelfSalesRow } from '../../types'
-import { selfSalesWeightedOpMarginRate } from '../../utils/analysisKpiWeighted'
+import { selfSalesWeightedMarginRate, selfSalesWeightedOpMarginRate } from '../../utils/analysisKpiWeighted'
 import type { AdjacentDirection } from '../../utils/adjacentListNavigation'
 import { adjacentIdInOrder } from '../../utils/adjacentListNavigation'
 import { clampForecastMonths, readForecastMonthsFromStorage, writeForecastMonthsToStorage } from '../../utils/forecastMonthsStorage'
@@ -110,9 +110,11 @@ export const SelfPage = () => {
   }, [])
 
   const kpi = useMemo(() => {
-    const total = rows.reduce((acc, row) => acc + row.amount, 0)
-    const avgRate = selfSalesWeightedOpMarginRate(rows)
-    return { total, avgRate }
+    const totalAmount = rows.reduce((acc, row) => acc + row.amount, 0)
+    const totalQty = rows.reduce((acc, row) => acc + row.qty, 0)
+    const avgMarginRate = selfSalesWeightedMarginRate(rows)
+    const avgOpMarginRate = selfSalesWeightedOpMarginRate(rows)
+    return { totalAmount, totalQty, avgMarginRate, avgOpMarginRate }
   }, [rows])
 
   const scatterData: ScatterPoint[] = useMemo(
@@ -263,8 +265,10 @@ export const SelfPage = () => {
           <KpiGrid
             stacked
             items={[
-              { label: '총 판매액', value: formatGroupedNumber(kpi.total) },
-              { label: '평균 영업이익율', value: formatPercent(kpi.avgRate) },
+              { label: '총 판매액', value: formatGroupedNumber(kpi.totalAmount) },
+              { label: '총 판매량', value: `${formatGroupedNumber(kpi.totalQty)} EA` },
+              { label: '평균 매출 이익율', value: formatPercent(kpi.avgMarginRate) },
+              { label: '평균 영업이익율', value: formatPercent(kpi.avgOpMarginRate) },
             ]}
           />
 

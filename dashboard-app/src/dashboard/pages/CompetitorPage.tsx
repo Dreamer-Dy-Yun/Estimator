@@ -3,11 +3,10 @@ import { CartesianGrid, Scatter, ScatterChart, Tooltip, XAxis, YAxis } from 'rec
 import { getCompetitorSales, getSecondaryCompetitorChannels, getSelfSalesFilterMeta } from '../../api'
 import type { SecondaryCompetitorChannel } from '../../api/types'
 import type { CompetitorSalesRow } from '../../types'
-import { competitorGapRateWeightedByCompetitorAmount } from '../../utils/analysisKpiWeighted'
 import type { AdjacentDirection } from '../../utils/adjacentListNavigation'
 import { adjacentIdInOrder } from '../../utils/adjacentListNavigation'
 import { clampForecastMonths, readForecastMonthsFromStorage, writeForecastMonthsToStorage } from '../../utils/forecastMonthsStorage'
-import { formatGroupedNumber, formatPercent } from '../../utils/format'
+import { formatGroupedNumber } from '../../utils/format'
 import { CopyToastBanner } from '../components/CopyToastBanner'
 import { useCopyToastMessage } from '../components/useCopyToastMessage'
 import { ProductDrawer } from '../components/product-drawer/ProductDrawer'
@@ -151,9 +150,11 @@ export const CompetitorPage = () => {
   )
 
   const kpi = useMemo(() => {
-    const totalCompetitor = visibleRows.reduce((acc, row) => acc + row.competitorAmount, 0)
-    const avgGapRate = competitorGapRateWeightedByCompetitorAmount(visibleRows)
-    return { totalCompetitor, avgGapRate }
+    const totalCompetitorAmount = visibleRows.reduce((acc, row) => acc + row.competitorAmount, 0)
+    const totalSelfAmount = visibleRows.reduce((acc, row) => acc + (row.selfAmount ?? 0), 0)
+    const totalCompetitorQty = visibleRows.reduce((acc, row) => acc + row.competitorQty, 0)
+    const totalSelfQty = visibleRows.reduce((acc, row) => acc + (row.selfQty ?? 0), 0)
+    return { totalCompetitorAmount, totalSelfAmount, totalCompetitorQty, totalSelfQty }
   }, [visibleRows])
 
   const qtyScatterData: QtyScatterPoint[] = useMemo(
@@ -325,8 +326,10 @@ export const CompetitorPage = () => {
           <KpiGrid
             stacked
             items={[
-              { label: '총 경쟁 판매액', value: formatGroupedNumber(kpi.totalCompetitor) },
-              { label: '자사 대비 평균 갭률', value: formatPercent(kpi.avgGapRate * 100) },
+              { label: '총 경쟁사 판매액', value: formatGroupedNumber(kpi.totalCompetitorAmount) },
+              { label: '총 자사 판매액', value: formatGroupedNumber(kpi.totalSelfAmount) },
+              { label: '총 경쟁사 판매량', value: `${formatGroupedNumber(kpi.totalCompetitorQty)} EA` },
+              { label: '총 자사 판매량', value: `${formatGroupedNumber(kpi.totalSelfQty)} EA` },
             ]}
           />
 
