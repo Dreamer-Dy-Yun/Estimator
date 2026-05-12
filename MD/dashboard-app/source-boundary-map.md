@@ -238,7 +238,7 @@
 
 | 파일/폴더 | 역할 |
 |------|------|
-| `ProductDrawer.tsx` | 상품 drawer overlay shell. 닫기, body layout shift, 2차 드로워 열림 상태, 방향키 이동, 공유 경쟁 채널 상태를 조율한다. 2차 드로워가 열린 상태에서 이전/다음 상품으로 이동해도 2차 드로워 상태를 유지하고, 2차 드로워는 경쟁 채널 목록과 선택값이 준비된 뒤 렌더한다 |
+| `ProductDrawer.tsx` | 상품 drawer overlay shell. 닫기, body layout shift, 2차 드로워 열림 상태, 방향키 이동, ESC 단계 닫기, 공유 경쟁 채널 상태를 조율한다. 2차 드로워가 열린 상태에서 이전/다음 상품으로 이동해도 2차 드로워 상태를 유지하고, 2차 드로워는 경쟁 채널 목록과 선택값이 준비된 뒤 렌더한다 |
 | `apiErrorInfo.ts` | 상품 drawer 하위 API 오류 정보를 같은 형식으로 만드는 helper |
 | `ko.ts` | 상품 drawer feature에서 공유하는 한국어 텍스트 상수 |
 | `useCompetitorChannels.ts` | 1차 판매 정보/월간 추이와 2차 일별 추이가 공유하는 경쟁 채널 목록 조회와 선택 상태. 빈 채널 목록은 API 오류로 처리하고 임의 채널 객체를 만들지 않는다 |

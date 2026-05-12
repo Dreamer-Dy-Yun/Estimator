@@ -50,7 +50,10 @@ export function ProductMonthlyTrendContainer({
       if (el && !el.contains(e.target as Node)) setForecastComboOpen(false)
     }
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setForecastComboOpen(false)
+      if (e.key !== 'Escape') return
+      e.preventDefault()
+      e.stopPropagation()
+      setForecastComboOpen(false)
     }
     document.addEventListener('mousedown', onDocDown)
     document.addEventListener('keydown', onKey)

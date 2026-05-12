@@ -126,6 +126,25 @@ function ProductDrawerContent({
     onRequestNavigateAdjacent,
   ])
 
+  useEffect(() => {
+    if (closing) return
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return
+      if (e.defaultPrevented || e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return
+      e.preventDefault()
+      e.stopPropagation()
+      if (expandPaneOpen) {
+        setExpandPaneOpen(false)
+        return
+      }
+      onClose()
+    }
+
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [closing, expandPaneOpen, onClose])
+
   const selectedStart = normalizeMonthKey(periodStart)
   const selectedEnd = normalizeMonthKey(periodEnd)
 
