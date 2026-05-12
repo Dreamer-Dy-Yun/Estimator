@@ -208,7 +208,7 @@
 | `DeleteButton.*` | 삭제 버튼 공용 구현 |
 | `FilterBar.tsx` | 페이지 상단 필터 조합. `filterEndContent`로 필터 grid 끝의 버튼/액션 칸을 받을 수 있다 |
 | `FilterListCombo.*` | 목록 기반 검색/선택 필터. 값이 `전체`인 필드는 전체 옵션 목록을 열어 보여준다 |
-| `KpiGrid.tsx` | KPI 카드 grid |
+| `KpiGrid.tsx` | KPI 카드 grid. 자사/경쟁사 분석 좌측 KPI stack의 compact card density는 공통 CSS가 소유한다 |
 | `PageHeader.tsx` | 페이지 제목/header |
 | `PaginatedTable.tsx` | 정렬/페이지네이션 테이블 |
 | `PortalHelpPopover.tsx`, `usePortalHelpPopover.ts`, `portalHelpPopoverPosition.ts` | help popover와 위치 계산 |

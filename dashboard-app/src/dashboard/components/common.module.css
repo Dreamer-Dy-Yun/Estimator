@@ -39,7 +39,7 @@
   background: #ffffff;
   border: 1px solid #e2e8f0;
   border-radius: 8px;
-  padding: 8px;
+  padding: 7px 8px;
 }
 
 .kpiMetricCard .kpiValue {
@@ -48,13 +48,15 @@
 
 .kpiLabel {
   color: #64748b;
-  font-size: 12px;
+  font-size: 11px;
+  line-height: 1.2;
 }
 
 .kpiValue {
-  font-size: 20px;
+  font-size: 17px;
   font-weight: 800;
-  margin-top: 6px;
+  line-height: 1.15;
+  margin-top: 4px;
 }
 
 .twoCol {
