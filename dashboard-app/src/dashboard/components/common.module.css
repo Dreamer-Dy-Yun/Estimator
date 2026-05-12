@@ -443,13 +443,30 @@
 /** 자사·경쟁 분석: 필터 필드 수가 많을 때 균등 열 그리드 */
 .filterAnalysisGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 100px), 1fr));
+  gap: 6px;
   align-items: flex-end;
 }
 
 .filterAnalysisGrid .field {
   flex: unset;
   min-width: 0;
+}
+
+.filterAnalysisGrid .field label {
+  font-size: 11px;
+}
+
+.filterAnalysisGrid .field input,
+.filterAnalysisGrid .field select {
+  height: 30px;
+  padding: 4px 6px;
+  border-radius: 6px;
+  font-size: 11.5px;
+}
+
+.filterAnalysisGrid .field input {
+  padding-right: 24px;
 }
 
 .field {
