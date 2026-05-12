@@ -68,8 +68,8 @@ export function SalesMetricsCard({ targetPeriodDays, sales, channelFilter }: Pro
           <thead>
             <tr>
               <th>{KO.thMetric}</th>
-              <th className={styles.num}>{KO.thSelf}</th>
-              <th className={styles.num}>
+              <th className={`${styles.num} ${styles.salesMetricsSelfHeader}`}>{KO.thSelf}</th>
+              <th className={`${styles.num} ${styles.salesMetricsCompetitorHeader}`}>
                 {channelFilter ? (
                   <span className={styles.salesMetricsChannelHeaderControl}>
                     <select

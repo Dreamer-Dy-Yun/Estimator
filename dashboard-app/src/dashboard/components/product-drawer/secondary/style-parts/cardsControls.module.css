@@ -82,10 +82,15 @@
   font-size: inherit;
   font-weight: inherit;
   line-height: inherit;
-  color: #0f172a;
+  color: inherit;
   cursor: pointer;
   text-align: center;
   text-align-last: center;
+}
+
+.salesMetricsChannelHeaderControl select option {
+  color: #0f172a;
+  background: #ffffff;
 }
 
 .salesMetricsChannelHeaderControl select:focus-visible {

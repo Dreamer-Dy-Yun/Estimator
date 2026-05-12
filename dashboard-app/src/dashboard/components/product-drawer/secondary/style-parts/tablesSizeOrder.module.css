@@ -22,6 +22,16 @@
   vertical-align: middle;
 }
 
+.salesMetricsTightTable thead th.salesMetricsSelfHeader {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.salesMetricsTightTable thead th.salesMetricsCompetitorHeader {
+  background: #ffe4e6;
+  color: #be123c;
+}
+
 .salesMetricsTightTable td:first-child,
 .salesMetricsTightTable td.num {
   white-space: nowrap;
