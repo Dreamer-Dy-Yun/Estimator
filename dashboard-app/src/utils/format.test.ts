@@ -4,6 +4,7 @@ import {
   formatGroupedNumber,
   formatPercent,
   formatRatioDecimalKo,
+  formatWonAmount,
 } from './format'
 
 describe('format utils', () => {
@@ -26,5 +27,10 @@ describe('format utils', () => {
   it('formats nullable EA quantity helper', () => {
     expect(formatEaQuantity(null)).toBe('-')
     expect(formatEaQuantity(5000)).toBe('5,000 EA')
+  })
+
+  it('formats nullable won amount helper', () => {
+    expect(formatWonAmount(null)).toBe('-')
+    expect(formatWonAmount(15878900000)).toBe('15,878,900,000 원')
   })
 })

@@ -17,3 +17,7 @@ export function formatRatioDecimalKo(value: number): string {
 export function formatEaQuantity(value: number | null): string {
   return value == null ? '-' : `${formatGroupedNumber(value)} EA`
 }
+
+export function formatWonAmount(value: number | null): string {
+  return value == null ? '-' : `${formatGroupedNumber(value)} 원`
+}
