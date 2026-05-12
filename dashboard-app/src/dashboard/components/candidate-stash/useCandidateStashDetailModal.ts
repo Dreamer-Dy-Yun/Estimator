@@ -35,8 +35,9 @@ const INNER_DRAWER_CLOSE_LAYOUT_MS = 440
 export type InnerCandidateRow = CandidateItemSummary & { id: string }
 export type InnerCandidateSortKey =
   | 'brand'
-  | 'productCode'
+  | 'code'
   | 'productName'
+  | 'colorCode'
   | 'selfQty'
   | 'competitorQty'
   | 'expectedSalesQty'
@@ -55,10 +56,12 @@ function candidateSortValue(row: InnerCandidateRow, key: InnerCandidateSortKey):
   switch (key) {
     case 'brand':
       return row.brand
-    case 'productCode':
-      return row.productCode
+    case 'code':
+      return row.code
     case 'productName':
       return row.productName
+    case 'colorCode':
+      return row.colorCode
     case 'selfQty':
       return row.insight.selfQty
     case 'competitorQty':
@@ -100,7 +103,7 @@ export function useCandidateStashDetailModal({
   const [detailLoading, setDetailLoading] = useState(false)
   const [detailError, setDetailError] = useState<string | null>(null)
   const [brandQuery, setBrandQuery] = useState('')
-  const [productCodeQuery, setProductCodeQuery] = useState('')
+  const [codeQuery, setCodeQuery] = useState('')
   const [productNameQuery, setProductNameQuery] = useState('')
   const [tableSort, setTableSort] = useState<InnerCandidateSortState | null>(null)
   const [dataReferencePeriodStart, setDataReferencePeriodStart] = useState('')
@@ -323,20 +326,20 @@ export function useCandidateStashDetailModal({
   }, [])
 
   const brandOptions = useMemo(() => uniqueSortedStrings(items.map((i) => i.brand)), [items])
-  const productCodeOptions = useMemo(() => uniqueSortedStrings(items.map((i) => i.productCode)), [items])
+  const codeOptions = useMemo(() => uniqueSortedStrings(items.map((i) => i.code)), [items])
   const productNameOptions = useMemo(() => uniqueSortedStrings(items.map((i) => i.productName)), [items])
 
   const filteredItems = useMemo(() => {
     return items.filter((item) => {
       const bq = brandQuery.trim().toLowerCase()
-      const cq = productCodeQuery.trim().toLowerCase()
+      const cq = codeQuery.trim().toLowerCase()
       const nq = productNameQuery.trim().toLowerCase()
       if (bq && !item.brand.toLowerCase().includes(bq)) return false
-      if (cq && !item.productCode.toLowerCase().includes(cq)) return false
+      if (cq && !item.code.toLowerCase().includes(cq)) return false
       if (nq && !item.productName.toLowerCase().includes(nq)) return false
       return true
     })
-  }, [brandQuery, items, productCodeQuery, productNameQuery])
+  }, [brandQuery, items, codeQuery, productNameQuery])
 
   const tableRows = useMemo((): InnerCandidateRow[] => {
     const rows = filteredItems.map((item) => ({ ...item, id: item.uuid }))
@@ -562,8 +565,8 @@ export function useCandidateStashDetailModal({
     detailError,
     brandQuery,
     setBrandQuery,
-    productCodeQuery,
-    setProductCodeQuery,
+    codeQuery,
+    setCodeQuery,
     productNameQuery,
     setProductNameQuery,
     tableSort,
@@ -590,7 +593,7 @@ export function useCandidateStashDetailModal({
     setItemDeleteTarget,
     detailTarget,
     brandOptions,
-    productCodeOptions,
+    codeOptions,
     productNameOptions,
     tableRows,
     totals,

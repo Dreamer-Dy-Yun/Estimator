@@ -44,7 +44,7 @@ export function ProductPrimaryDrawer({
     () => channelState.competitorChannels.find((ch) => ch.id === channelState.channelId)?.label ?? '',
     [channelState.channelId, channelState.competitorChannels],
   )
-  const imageUrl = `https://placehold.co/640x360?text=${encodeURIComponent(summary.name)}`
+  const imageUrl = `https://placehold.co/640x360?text=${encodeURIComponent(summary.productName)}`
 
   return (
     <div className={styles.drawerColumn}>
@@ -100,11 +100,12 @@ export function ProductPrimaryDrawer({
             <div className={`${styles.metaChips} ${expandPaneOpen ? styles.metaChipsCollapsed : ''}`}>
               <span className={styles.metaChip}>{summary.brand}</span>
               <span className={styles.metaChip}>{summary.category}</span>
-              <span className={styles.metaChip}>{summary.productCode}</span>
-              <span className={styles.metaChip}>{summary.name}</span>
+              <span className={styles.metaChip}>{summary.code}</span>
+              <span className={styles.metaChip}>색상 {summary.colorCode}</span>
+              <span className={styles.metaChip}>{summary.productName}</span>
             </div>
             <div className={styles.productImageWrap}>
-              <img className={styles.productImage} src={imageUrl} alt={summary.name} />
+              <img className={styles.productImage} src={imageUrl} alt={summary.productName} />
             </div>
           </div>
         </ComponentErrorBoundary>

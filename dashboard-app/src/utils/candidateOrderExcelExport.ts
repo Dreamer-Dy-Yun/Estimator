@@ -127,8 +127,9 @@ function exportRow(
 
   return [
     item.brand,
-    item.productCode,
+    item.code,
     item.productName,
+    item.colorCode,
     badgeCell(item),
     numberOrDash(orderExport.selfQty),
     numberOrDash(orderExport.competitorQty),
@@ -218,8 +219,9 @@ export async function createCandidateOrderExcelExport({ stashName, userName, ite
   const sizeColumns = collectSizeColumns(items)
   const mainHeader = [
     '브랜드',
-    '상품코드',
+    '품번',
     '상품명',
+    '색상',
     '배지',
     '자사 기간 총 판매량',
     getCompetitorQtyHeader(items),
@@ -244,6 +246,7 @@ export async function createCandidateOrderExcelExport({ stashName, userName, ite
     18,
     18,
     34,
+    12,
     18,
     18,
     18,

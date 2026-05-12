@@ -32,9 +32,9 @@ describe('api/mock productCatalog', () => {
   })
 
   it('uses apparel sizes for test top and shoe sizes for test shoe', () => {
-    expect(productPrimaryById.TEST_TOP?.name).toBe('테스트 상의')
+    expect(productPrimaryById.TEST_TOP?.productName).toBe('테스트 상의')
     expect(productPrimaryById.TEST_TOP?.sizeMix.map((row) => row.size)).toEqual(['S', 'M', 'L', 'XL', 'XXL'])
-    expect(productPrimaryById.TEST_SHOE?.name).toBe('테스트 신발')
+    expect(productPrimaryById.TEST_SHOE?.productName).toBe('테스트 신발')
     expect(productPrimaryById.TEST_SHOE?.sizeMix.map((row) => row.size)).toEqual([
       '235',
       '240',

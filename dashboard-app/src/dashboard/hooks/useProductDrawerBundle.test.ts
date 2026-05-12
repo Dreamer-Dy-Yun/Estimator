@@ -7,10 +7,11 @@ import {
 const bundleA = {
   summary: {
     id: 'A',
-    name: 'A',
+    productName: 'A',
     brand: 'x',
     category: 'c',
-    productCode: 'A',
+    code: 'A',
+    colorCode: '010',
     price: 100,
     qty: 10,
     availableStock: 5,

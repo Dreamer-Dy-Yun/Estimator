@@ -24,7 +24,9 @@ type ScatterPoint = {
   x: number
   y: number
   brand: string
-  name: string
+  code: string
+  productName: string
+  colorCode: string
   copyText: string
 }
 
@@ -89,8 +91,9 @@ export const SelfPage = () => {
         `기간: ${periodStartDate} ~ ${periodEndDate}`,
         `브랜드: ${r.brand}`,
         `카테고리: ${r.category}`,
-        `상품코드: ${r.productCode}`,
-        `상품명: ${r.name}`,
+        `품번: ${r.code}`,
+        `상품명: ${r.productName}`,
+        `색상: ${r.colorCode}`,
         `평균판매가(원): ${formatGroupedNumber(r.avgPrice)}`,
         `평균매입원가(원): ${formatGroupedNumber(r.avgCost)}`,
         `판매량(EA): ${formatGroupedNumber(r.qty)}`,
@@ -104,7 +107,9 @@ export const SelfPage = () => {
         x: r.opMarginRate,
         y: yMillion,
         brand: r.brand,
-        name: r.name,
+        code: r.code,
+        productName: r.productName,
+        colorCode: r.colorCode,
         copyText,
       }
     }),
@@ -131,7 +136,9 @@ export const SelfPage = () => {
     return (
       <div className={styles.chartTooltip}>
         <div className={styles.chartTooltipTitle}>{point.brand}</div>
-        <div className={styles.chartTooltipText}>{point.name}</div>
+        <div className={styles.chartTooltipText}>{point.productName}</div>
+        <div className={styles.chartTooltipText}>품번: {point.code}</div>
+        <div className={styles.chartTooltipText}>색상: {point.colorCode}</div>
         <div className={styles.chartTooltipText}>영업이익율: {formatPercent(point.x)}</div>
         <div className={styles.chartTooltipText}>판매액: {point.y}백만</div>
         <div className={styles.chartTooltipHint}>클릭 시 클립보드에 복사</div>
@@ -251,7 +258,9 @@ export const SelfPage = () => {
             { key: 'rank', header: '순위', cell: (r) => r.rank, align: 'center', sortValue: (r) => r.rank },
             { key: 'brand', header: '브랜드', cell: (r) => r.brand, width: '8.5%', sortValue: (r) => r.brand },
             { key: 'category', header: '카테고리', cell: (r) => r.category, sortValue: (r) => r.category },
-            { key: 'name', header: '상품명', cell: (r) => r.name, sortValue: (r) => r.name },
+            { key: 'code', header: '품번', cell: (r) => r.code, sortValue: (r) => r.code },
+            { key: 'productName', header: '상품명', cell: (r) => r.productName, sortValue: (r) => r.productName },
+            { key: 'colorCode', header: '색상', cell: (r) => r.colorCode, sortValue: (r) => r.colorCode },
             { key: 'avgPrice', header: '평균판매가', cell: (r) => formatGroupedNumber(r.avgPrice), align: 'right', sortValue: (r) => r.avgPrice },
             { key: 'avgCost', header: '평균매입원가', cell: (r) => formatGroupedNumber(r.avgCost), align: 'right', sortValue: (r) => r.avgCost },
             { key: 'qty', header: '판매량', cell: (r) => formatGroupedNumber(r.qty), align: 'right', sortValue: (r) => r.qty },

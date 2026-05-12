@@ -37,8 +37,9 @@ export interface CandidateItemSummary {
   stashUuid: string
   productId: string
   brand: string
-  productCode: string
+  code: string
   productName: string
+  colorCode: string
   qty: number
   /** Expected order amount in KRW; same meaning as details.drawer2.stockDerived.expectedOrderAmount. */
   expectedOrderAmount: number

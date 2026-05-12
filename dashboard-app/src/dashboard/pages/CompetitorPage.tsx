@@ -25,8 +25,9 @@ type QtyScatterPoint = {
   y: number
   brand: string
   category: string
-  productCode: string
-  name: string
+  code: string
+  productName: string
+  colorCode: string
   copyText: string
 }
 
@@ -146,8 +147,9 @@ export const CompetitorPage = () => {
           `경쟁 채널: ${competitorTooltipLabel}`,
           `브랜드: ${r.brand}`,
           `카테고리: ${r.category}`,
-          `상품코드: ${r.productCode}`,
-          `상품명: ${r.name}`,
+          `품번: ${r.code}`,
+          `상품명: ${r.productName}`,
+          `색상: ${r.colorCode}`,
           `경쟁 평균가(원): ${formatGroupedNumber(r.competitorAvgPrice)}`,
           `경쟁 판매량(EA): ${formatGroupedNumber(r.competitorQty)}`,
           `경쟁 판매액(원): ${formatGroupedNumber(r.competitorAmount)}`,
@@ -162,8 +164,9 @@ export const CompetitorPage = () => {
           y: r.competitorQty,
           brand: r.brand,
           category: r.category,
-          productCode: r.productCode,
-          name: r.name,
+          code: r.code,
+          productName: r.productName,
+          colorCode: r.colorCode,
           copyText,
         }
       }),
@@ -190,8 +193,9 @@ export const CompetitorPage = () => {
     return (
       <div className={styles.chartTooltip}>
         <div className={styles.chartTooltipTitle}>{point.brand}</div>
-        <div className={styles.chartTooltipText}>{point.category} · {point.name}</div>
-        <div className={styles.chartTooltipText}>코드: {point.productCode}</div>
+        <div className={styles.chartTooltipText}>{point.category} · {point.productName}</div>
+        <div className={styles.chartTooltipText}>품번: {point.code}</div>
+        <div className={styles.chartTooltipText}>색상: {point.colorCode}</div>
         <div className={styles.chartTooltipText}>
           자사 판매량:{' '}
           <span style={{ color: '#2563eb', fontWeight: 600 }}>{formatGroupedNumber(point.x)} EA</span>
@@ -325,8 +329,9 @@ export const CompetitorPage = () => {
             { key: 'rank', header: '순위', cell: (r) => r.rank, align: 'center', sortValue: (r) => r.rank },
             { key: 'brand', header: '브랜드', cell: (r) => r.brand, width: '8.5%', sortValue: (r) => r.brand },
             { key: 'category', header: '카테고리', cell: (r) => r.category, sortValue: (r) => r.category },
-            { key: 'productCode', header: '코드', cell: (r) => r.productCode, sortValue: (r) => r.productCode },
-            { key: 'name', header: '상품명', cell: (r) => r.name, sortValue: (r) => r.name },
+            { key: 'code', header: '품번', cell: (r) => r.code, sortValue: (r) => r.code },
+            { key: 'productName', header: '상품명', cell: (r) => r.productName, sortValue: (r) => r.productName },
+            { key: 'colorCode', header: '색상', cell: (r) => r.colorCode, sortValue: (r) => r.colorCode },
             { key: 'competitorAvgPrice', header: '경쟁 평균가', cell: (r) => formatGroupedNumber(r.competitorAvgPrice), align: 'right', sortValue: (r) => r.competitorAvgPrice },
             { key: 'selfAvgPrice', header: '자사 평균가', cell: (r) => (r.selfAvgPrice != null ? formatGroupedNumber(r.selfAvgPrice) : '—'), align: 'right', sortValue: (r) => r.selfAvgPrice ?? 0 },
             { key: 'competitorQty', header: '경쟁 판매량', cell: (r) => formatGroupedNumber(r.competitorQty), align: 'right', sortValue: (r) => r.competitorQty },

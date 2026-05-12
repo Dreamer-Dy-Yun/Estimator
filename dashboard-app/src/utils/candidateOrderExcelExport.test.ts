@@ -8,8 +8,9 @@ function candidateItem(uuid: string, size: string): CandidateItemSummary {
     stashUuid: 'stash-1',
     productId: `product-${uuid}`,
     brand: '나이키',
-    productCode: `SKU-${uuid}`,
+    code: `SKU-${uuid}`,
     productName: `테스트 상품 ${uuid}`,
+    colorCode: '010',
     qty: 10,
     expectedOrderAmount: 100000,
     expectedSalesAmount: 150000,
@@ -66,7 +67,7 @@ describe('createCandidateOrderExcelExport', () => {
     expect((header.fill as { fgColor?: { argb?: string } }).fgColor?.argb).toBe('FF000000')
     expect(header.font.color?.argb).toBe('FFFFFFFF')
 
-    const missingSizeCell = mainSheet!.getCell('N2')
+    const missingSizeCell = mainSheet!.getCell('O2')
     expect(missingSizeCell.value).toBe('N/A')
     expect((missingSizeCell.fill as { fgColor?: { argb?: string } }).fgColor?.argb).toBe('FFFFE4E6')
 

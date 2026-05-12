@@ -1,7 +1,8 @@
 export const KO = {
   "labelBrand": "브랜드",
   "labelCategory": "카테고리",
-  "labelProductCode": "상품 코드",
+  "labelCode": "품번",
+  "labelColorCode": "색상",
   "labelProductName": "상품명",
   "labelCompetitorChannel": "경쟁사 채널",
   "sectionSales": "판매 정보",

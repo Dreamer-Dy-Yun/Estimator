@@ -43,17 +43,17 @@ describe('api/mock dashboardApi competitor channel behavior', () => {
   })
 
   it('filters self and competitor sales by product code query', async () => {
-    const self = await mockDashboardApi.getSelfSales({ productCodeQuery: 'test-shoe' })
-    const competitor = await mockDashboardApi.getCompetitorSales({ productCodeQuery: 'test-shoe' })
+    const self = await mockDashboardApi.getSelfSales({ codeQuery: 'test-shoe' })
+    const competitor = await mockDashboardApi.getCompetitorSales({ codeQuery: 'test-shoe' })
 
-    expect(self.map((row) => row.productCode)).toEqual(['TEST-SHOE'])
-    expect(competitor.map((row) => row.productCode)).toEqual(['TEST-SHOE'])
+    expect(self.map((row) => row.code)).toEqual(['TEST-SHOE'])
+    expect(competitor.map((row) => row.code)).toEqual(['TEST-SHOE'])
   })
 
   it('returns product code suggestions for analysis filters', async () => {
     const meta = await mockDashboardApi.getSalesFilterMeta()
-    expect(meta.productCodes).toContain('TEST-SHOE')
-    expect(meta.productCodes).toContain('B')
+    expect(meta.codes).toContain('TEST-SHOE')
+    expect(meta.codes).toContain('B')
   })
 
   it('applies selected channel to secondary daily competitor trend', async () => {

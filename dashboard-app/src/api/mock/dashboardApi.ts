@@ -108,7 +108,7 @@ function buildCandidateAnalysisEvent(
     totalItems,
     completedItems,
     currentItemUuid: item?.uuid ?? null,
-    currentProductName: item?.details?.drawer1?.summary?.name ?? null,
+    currentProductName: item?.details?.drawer1?.summary?.productName ?? null,
     message,
     error: null,
   }
@@ -245,8 +245,9 @@ function buildCandidateItemSummariesForStash(
         stashUuid: row.stashUuid,
         productId,
         brand: summary.brand,
-        productCode: summary.productCode,
-        productName: summary.name,
+        code: summary.code,
+        productName: summary.productName,
+        colorCode: summary.colorCode,
         qty,
         expectedOrderAmount,
         expectedSalesAmount,
@@ -281,15 +282,15 @@ export const mockDashboardApi = {
     await sleep(80)
     const brand = params?.brand
     const category = params?.category
-    const codeQ = params?.productCodeQuery?.trim().toLowerCase()
+    const codeQ = params?.codeQuery?.trim().toLowerCase()
     const nameQ = params?.nameQuery?.trim().toLowerCase()
     const weighted = estimatePeriodWeight(params?.startDate, params?.endDate)
 
     return selfSalesRows
       .filter((row) => (brand ? row.brand === brand : true))
       .filter((row) => (category ? row.category === category : true))
-      .filter((row) => (codeQ ? row.productCode.toLowerCase().includes(codeQ) : true))
-      .filter((row) => (nameQ ? row.name.toLowerCase().includes(nameQ) : true))
+      .filter((row) => (codeQ ? row.code.toLowerCase().includes(codeQ) : true))
+      .filter((row) => (nameQ ? row.productName.toLowerCase().includes(nameQ) : true))
       .map((row) => {
         const qty = Math.max(1, Math.round(row.qty * weighted))
         const amount = Math.max(1, Math.round(row.amount * weighted))
@@ -306,7 +307,7 @@ export const mockDashboardApi = {
     await sleep(80)
     const brand = params?.brand
     const category = params?.category
-    const codeQ = params?.productCodeQuery?.trim().toLowerCase()
+    const codeQ = params?.codeQuery?.trim().toLowerCase()
     const nameQ = params?.nameQuery?.trim().toLowerCase()
     const weighted = estimatePeriodWeight(params?.startDate, params?.endDate)
     const channel = getMockSecondaryCompetitorChannel(params?.competitorChannelId)
@@ -316,8 +317,8 @@ export const mockDashboardApi = {
     return competitorSalesRows
       .filter((row) => (brand ? row.brand === brand : true))
       .filter((row) => (category ? row.category === category : true))
-      .filter((row) => (codeQ ? row.productCode.toLowerCase().includes(codeQ) : true))
-      .filter((row) => (nameQ ? row.name.toLowerCase().includes(nameQ) : true))
+      .filter((row) => (codeQ ? row.code.toLowerCase().includes(codeQ) : true))
+      .filter((row) => (nameQ ? row.productName.toLowerCase().includes(nameQ) : true))
       .map((row) => {
         const compQty = Math.max(1, Math.round(row.competitorQty * weighted * qtySkew))
         const compAvg = Math.max(1, Math.round(row.competitorAvgPrice * priceSkew))
@@ -339,19 +340,19 @@ export const mockDashboardApi = {
     const codeSet = new Set<string>()
     const nameSet = new Set<string>()
     for (const r of selfSalesRows) {
-      codeSet.add(r.productCode)
-      nameSet.add(r.name)
+      codeSet.add(r.code)
+      nameSet.add(r.productName)
     }
     for (const r of competitorSalesRows) {
-      codeSet.add(r.productCode)
-      nameSet.add(r.name)
+      codeSet.add(r.code)
+      nameSet.add(r.productName)
     }
-    const productCodes = uniqueSortedStrings(codeSet)
+    const codes = uniqueSortedStrings(codeSet)
     const productNames = uniqueSortedStrings(nameSet)
     return {
       brands,
       categories,
-      productCodes,
+      codes,
       productNames,
       historicalMonths,
     }
@@ -696,7 +697,7 @@ export const mockDashboardApi = {
       })
     } else {
       job.items.forEach((item, index) => {
-        const productName = item.details?.drawer1?.summary?.name ?? item.skuUuid
+        const productName = item.details?.drawer1?.summary?.productName ?? item.skuUuid
         queue(260 + (index * 420), () => {
           emit(buildCandidateAnalysisEvent(
             jobId,

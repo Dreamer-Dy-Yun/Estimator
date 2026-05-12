@@ -392,12 +392,12 @@ export function CandidateStashDetailModal({ stashUuid, stashSummary, onClose, on
                       options: m.brandOptions,
                     },
                     {
-                      label: '상품코드',
+                      label: '품번',
                       kind: 'listCombo',
                       inputType: 'text',
-                      value: m.productCodeQuery,
-                      onChange: m.setProductCodeQuery,
-                      options: m.productCodeOptions,
+                      value: m.codeQuery,
+                      onChange: m.setCodeQuery,
+                      options: m.codeOptions,
                     },
                     {
                       label: '상품명',
@@ -478,7 +478,7 @@ export function CandidateStashDetailModal({ stashUuid, stashSummary, onClose, on
                       </div>
                     ) : !m.tableRows.length ? (
                       <div className={`${styles.card} ${detailStyles.emptyState}`}>
-                        {m.brandQuery.trim() || m.productCodeQuery.trim() || m.productNameQuery.trim()
+                        {m.brandQuery.trim() || m.codeQuery.trim() || m.productNameQuery.trim()
                           ? '검색 결과가 없습니다.'
                           : '등록된 이너 후보가 없습니다.'}
                       </div>
@@ -504,8 +504,8 @@ export function CandidateStashDetailModal({ stashUuid, stashSummary, onClose, on
                             onSort={m.toggleTableSort}
                           />
                           <InnerOrderSortHeader
-                            label="상품코드"
-                            sortKey="productCode"
+                            label="품번"
+                            sortKey="code"
                             activeKey={activeSortKey}
                             activeDir={activeSortDir}
                             onSort={m.toggleTableSort}
@@ -513,6 +513,13 @@ export function CandidateStashDetailModal({ stashUuid, stashSummary, onClose, on
                           <InnerOrderSortHeader
                             label="상품명"
                             sortKey="productName"
+                            activeKey={activeSortKey}
+                            activeDir={activeSortDir}
+                            onSort={m.toggleTableSort}
+                          />
+                          <InnerOrderSortHeader
+                            label="색상"
+                            sortKey="colorCode"
                             activeKey={activeSortKey}
                             activeDir={activeSortDir}
                             onSort={m.toggleTableSort}
@@ -585,8 +592,9 @@ export function CandidateStashDetailModal({ stashUuid, stashSummary, onClose, on
                                 />
                               </span>
                               <span className={detailStyles.innerOrderBrand}>{row.brand}</span>
-                              <span className={detailStyles.innerOrderCode}>{row.productCode}</span>
+                              <span className={detailStyles.innerOrderCode}>{row.code}</span>
                               <span className={detailStyles.innerOrderName}>{row.productName}</span>
+                              <span className={detailStyles.innerOrderColor}>{row.colorCode}</span>
                               <span className={detailStyles.innerOrderCellNum}>
                                 {formatEaQuantity(row.insight.selfQty)}
                               </span>

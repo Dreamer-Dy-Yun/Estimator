@@ -82,8 +82,9 @@ export function CandidateRecommendationModal({
                   onChange={onToggleAll}
                 />
               </span>
-              <span>상품코드</span>
+              <span>품번</span>
               <span>상품명</span>
+              <span>색상</span>
               <span>배지</span>
               <span className={modalStyles.num}>자사 기간 총 판매량</span>
               <span className={modalStyles.num}>경쟁사 기간 총 판매량</span>
@@ -103,8 +104,9 @@ export function CandidateRecommendationModal({
                       onChange={() => onToggleItem(row.uuid)}
                     />
                   </span>
-                  <span className={modalStyles.code}>{row.productCode}</span>
+                  <span className={modalStyles.code}>{row.code}</span>
                   <span className={modalStyles.name}>{row.productName}</span>
+                  <span className={modalStyles.colorCode}>{row.colorCode}</span>
                   <span className={modalStyles.badgeList}>
                     <CandidateInsightBadges
                       badgeNames={row.insight.badgeNames}

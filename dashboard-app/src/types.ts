@@ -6,9 +6,12 @@ export type SelfSalesRow = {
   rankPercentile: number
   brand: string
   category: string
-  /** Product code. */
-  productCode: string
-  name: string
+  /** SKU.code: product item code without size/color. */
+  code: string
+  /** SKU.product_name. */
+  productName: string
+  /** SKU.color_code. */
+  colorCode: string
   avgPrice: number
   qty: number
   amount: number
@@ -26,8 +29,9 @@ export type CompetitorSalesRow = {
   rankPercentile: number
   brand: string
   category: string
-  productCode: string
-  name: string
+  code: string
+  productName: string
+  colorCode: string
   competitorAvgPrice: number
   competitorQty: number
   competitorAmount: number
@@ -55,10 +59,11 @@ export type ProductSizeMixRow = {
 
 export type ProductPrimarySummary = {
   id: string
-  name: string
+  productName: string
   brand: string
   category: string
-  productCode: string
+  code: string
+  colorCode: string
   /** Selling price (자사 채널). */
   price: number
   qty: number

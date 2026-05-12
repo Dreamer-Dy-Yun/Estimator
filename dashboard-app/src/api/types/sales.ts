@@ -4,8 +4,8 @@ export interface SelfSalesParams {
   endDate?: string
   brand?: string
   category?: string
-  /** 품번/상품코드 부분 일치(대소문자 무시). */
-  productCodeQuery?: string
+  /** SKU.code 품번 부분 일치(대소문자 무시). */
+  codeQuery?: string
   /** 상품명 부분 일치(대소문자 무시). */
   nameQuery?: string
 }
@@ -19,8 +19,8 @@ export interface CompetitorSalesParams extends SelfSalesParams {
 export interface SalesFilterMeta {
   brands: string[]
   categories: string[]
-  /** 목록 콤보 제안용 고유 품번/상품코드(자사·경쟁 데이터 합집합). */
-  productCodes: string[]
+  /** 목록 콤보 제안용 고유 SKU.code(자사·경쟁 데이터 합집합). */
+  codes: string[]
   /** 목록 콤보 제안용 고유 상품명(자사·경쟁 데이터 합집합). */
   productNames: string[]
   /** Closed historical months axis (vs forecast months), e.g. period sliders. */

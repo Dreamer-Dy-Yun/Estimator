@@ -213,10 +213,11 @@ export const { primary: productPrimaryById, secondary: productSecondaryById } = 
     const c = competitorById[id]
     const seed = id.charCodeAt(0)
 
-    const name = s?.name ?? c?.name ?? `상품-${id}`
+    const productName = s?.productName ?? c?.productName ?? `상품-${id}`
     const brand = s?.brand ?? c?.brand ?? '나이키'
     const category = s?.category ?? c?.category ?? '신발'
-    const productCode = s?.productCode ?? c?.productCode ?? id
+    const code = s?.code ?? c?.code ?? id
+    const colorCode = s?.colorCode ?? c?.colorCode ?? '000'
 
     const price = s?.avgPrice ?? c?.selfAvgPrice ?? Math.round((c?.competitorAvgPrice ?? 120000) * 0.96)
     const competitorPrice = c?.competitorAvgPrice ?? Math.round(price * 1.03)
@@ -230,10 +231,11 @@ export const { primary: productPrimaryById, secondary: productSecondaryById } = 
 
     primary[id] = {
       id,
-      name,
+      productName,
       brand,
       category,
-      productCode,
+      code,
+      colorCode,
       price,
       qty: productQty,
       availableStock,

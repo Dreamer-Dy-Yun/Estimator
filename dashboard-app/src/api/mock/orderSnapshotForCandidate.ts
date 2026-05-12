@@ -28,7 +28,7 @@ function buildMockAiPrompt(snapshot: SecondaryOrderSnapshotPayload) {
   const summary = snapshot.drawer1.summary
   const d2 = snapshot.drawer2
   return [
-    `${summary.brand} ${summary.name}의 오더 후보 스냅샷을 검토해 주세요.`,
+    `${summary.brand} ${summary.productName}의 오더 후보 스냅샷을 검토해 주세요.`,
     `기간 ${snapshot.context.periodStart}~${snapshot.context.periodEnd}, 경쟁 채널 ${d2.competitorChannelLabel}, 확정 오더 ${formatEa(d2.confirmedTotals?.orderQty)} 기준입니다.`,
     '판매 흐름, 재고 여유, 사이즈별 확정 수량 기준으로 사용자가 바로 확인할 코멘트를 짧게 작성해 주세요.',
   ].join('\n')
@@ -48,7 +48,7 @@ function buildMockAiAnswer(snapshot: SecondaryOrderSnapshotPayload) {
     : '사이즈별 확정 수량이 비어 있어, 최종 오더 전 사이즈 배분을 다시 확인하세요.'
 
   return [
-    `${summary.name}은(는) ${d2.competitorChannelLabel} 기준 판매 흐름을 같이 볼 후보입니다.`,
+    `${summary.productName}은(는) ${d2.competitorChannelLabel} 기준 판매 흐름을 같이 볼 후보입니다.`,
     `현재 스냅샷은 확정 오더 ${formatEa(totals?.orderQty)}, 예상 매출 ${formatWon(totals?.expectedSalesAmount)}, 예상 영업이익률 ${marginLabel}로 잡혀 있습니다.`,
     stockGap > 0
       ? `추천 수량 대비 가용 재고가 약 ${formatEa(stockGap)} 부족하므로 리드타임 전 판매 속도와 미입고 잔량을 우선 점검하세요.`

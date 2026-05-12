@@ -5,10 +5,11 @@ import { mergePrimarySecondarySizeMix } from './secondaryDrawerCalc'
 
 const primary: ProductPrimarySummary = {
   id: 'B',
-  name: 'BBBBB',
+  productName: 'BBBBB',
   brand: '나이키',
   category: '신발',
-  productCode: 'B',
+  code: 'B',
+  colorCode: '010',
   price: 100,
   qty: 200,
   availableStock: 80,
