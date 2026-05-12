@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { dateToMonth, monthToEndDate, monthToStartDate } from '../../utils/date'
+import { dateToMonth, formatIsoDateLocal, monthToEndDate, monthToStartDate } from '../../utils/date'
 
 type PeriodRangeFilter = {
   periodStartDate: string
@@ -93,9 +93,26 @@ export function clampPeriodBarEndIdx(nextIdx: number, currentStartIdx: number): 
   return Math.max(nextIdx, currentStartIdx)
 }
 
+function daysInMonth(year: number, monthIndex: number): number {
+  return new Date(year, monthIndex + 1, 0).getDate()
+}
+
+export function buildDefaultPeriodRange(today = new Date()): { startDate: string; endDate: string } {
+  const end = new Date(today.getFullYear(), today.getMonth(), today.getDate())
+  const startYear = end.getFullYear() - 1
+  const startMonth = end.getMonth()
+  const startDay = Math.min(end.getDate(), daysInMonth(startYear, startMonth))
+  const start = new Date(startYear, startMonth, startDay)
+  return {
+    startDate: formatIsoDateLocal(start),
+    endDate: formatIsoDateLocal(end),
+  }
+}
+
 export function usePeriodRangeFilter(historicalMonths: string[]): PeriodRangeFilter {
-  const [periodStartDate, setPeriodStartDate] = useState('2025-01-01')
-  const [periodEndDate, setPeriodEndDate] = useState('2025-12-31')
+  const [defaultPeriod] = useState(() => buildDefaultPeriodRange())
+  const [periodStartDate, setPeriodStartDate] = useState(defaultPeriod.startDate)
+  const [periodEndDate, setPeriodEndDate] = useState(defaultPeriod.endDate)
 
   const periodStartIdx = useMemo(() => {
     return findPeriodStartIdx(historicalMonths, periodStartDate)
@@ -164,4 +181,3 @@ export function usePeriodRangeFilter(historicalMonths: string[]): PeriodRangeFil
     onPeriodBarEnd,
   }
 }
-

@@ -6,6 +6,7 @@ import { ComponentErrorBoundary } from '../../../../components/ComponentErrorBou
 import type { ApiUnitErrorInfo, ProductPrimarySummary, ProductSecondaryDetail } from '../../../../types'
 import {
   daysInclusiveBetween,
+  formatIsoDateLocal,
   formatDateTimeMinute,
   monthToEndDate,
   monthToStartDate,
@@ -58,21 +59,14 @@ type Props = {
   }
 }
 
-function toIsoDateLocal(d: Date): string {
-  const y = d.getFullYear()
-  const m = String(d.getMonth() + 1).padStart(2, '0')
-  const day = String(d.getDate()).padStart(2, '0')
-  return `${y}-${m}-${day}`
-}
-
 function buildDefaultLeadTimeDates() {
   const today = new Date()
   const startDate = new Date(today)
   startDate.setMonth(startDate.getMonth() + 6)
-  const start = toIsoDateLocal(startDate)
+  const start = formatIsoDateLocal(startDate)
   const endDate = new Date(today)
   endDate.setFullYear(endDate.getFullYear() + 1)
-  const end = toIsoDateLocal(endDate)
+  const end = formatIsoDateLocal(endDate)
   return { start, end }
 }
 
@@ -160,7 +154,7 @@ export function ProductSecondaryDrawer({
     error: err instanceof Error ? err.message : String(err),
   }), [pageName])
 
-  const minOrderDate = toIsoDateLocal(new Date())
+  const minOrderDate = formatIsoDateLocal(new Date())
   const selectedStart = normalizeMonthKey(periodStart)
   const selectedEnd = normalizeMonthKey(periodEnd)
   const monthlySalesTrend = useMemo(() => primary.monthlySalesTrend ?? [], [primary.monthlySalesTrend])

@@ -10,6 +10,13 @@ export const monthToEndDate = (month: string) => {
 
 export const dateToMonth = (date: string) => date.slice(0, 7)
 
+export function formatIsoDateLocal(date: Date): string {
+  const y = date.getFullYear()
+  const m = String(date.getMonth() + 1).padStart(2, '0')
+  const d = String(date.getDate()).padStart(2, '0')
+  return `${y}-${m}-${d}`
+}
+
 /** `YYYY-MM` 달의 실제 일수(달력). */
 export function calendarDaysInMonth(yyyyMm: string): number {
   const [y, m] = yyyyMm.split('-').map(Number)

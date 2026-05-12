@@ -1,5 +1,6 @@
 ﻿import { describe, expect, it } from 'vitest'
 import {
+  buildDefaultPeriodRange,
   clampPeriodBarEndIdx,
   clampPeriodBarStartIdx,
   computePresetPeriodDates,
@@ -13,6 +14,20 @@ import {
 
 describe('usePeriodRangeFilter helpers', () => {
   const months = ['2025-01', '2025-02', '2025-03', '2025-04']
+
+  it('builds the default period from today to one year before today', () => {
+    expect(buildDefaultPeriodRange(new Date(2026, 4, 12))).toEqual({
+      startDate: '2025-05-12',
+      endDate: '2026-05-12',
+    })
+  })
+
+  it('clamps default period start date when the previous year has no same day', () => {
+    expect(buildDefaultPeriodRange(new Date(2024, 1, 29))).toEqual({
+      startDate: '2023-02-28',
+      endDate: '2024-02-29',
+    })
+  })
 
   it('finds start index from period start date month', () => {
     expect(findPeriodStartIdx(months, '2025-03-10')).toBe(2)
