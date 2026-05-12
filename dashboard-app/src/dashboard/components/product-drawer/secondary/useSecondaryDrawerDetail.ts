@@ -42,6 +42,8 @@ export function useSecondaryDrawerDetail({
       setSecondaryDetailError(null)
       return
     }
+    setSecondaryDetail(null)
+    setSecondaryDetailError(null)
     let alive = true
     void (async () => {
       try {

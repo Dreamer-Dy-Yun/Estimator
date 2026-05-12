@@ -1,4 +1,4 @@
-import { type SetStateAction, useCallback, useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { ApiUnitErrorBadge } from '../../../components/ApiUnitErrorBadge'
 import type { ProductPrimarySummary } from '../../../types'
 import type { AdjacentDirection } from '../../../utils/adjacentListNavigation'
@@ -12,6 +12,17 @@ import type { OrderSnapshotDocumentV1 } from '../../../snapshot/orderSnapshotTyp
 import { DRAWER_KEEP_OPEN_SELECTOR } from '../../drawer/drawerDom'
 import { setBodyPrimaryDrawerOpen } from '../../drawer/primaryDrawerBody'
 import styles from '../common.module.css'
+
+function getEventTargetElement(target: EventTarget | null): Element | null {
+  if (target instanceof Element) return target
+  if (target instanceof Node) return target.parentElement
+  return null
+}
+
+function blocksAdjacentKeyNavigation(target: EventTarget | null): boolean {
+  const el = getEventTargetElement(target)
+  return Boolean(el?.closest('input, textarea, select, [contenteditable="true"], [data-filter-combo-panel]'))
+}
 
 function ProductDrawerContent({
   summary,
@@ -44,30 +55,7 @@ function ProductDrawerContent({
 }) {
   const pageName = 'ProductDrawer'
   const drawerRef = useRef<HTMLElement | null>(null)
-  const [expandPaneState, setExpandPaneState] = useState(() => ({
-    productId: summary.id,
-    initialExpandSecondary: !!initialExpandSecondary,
-    open: !!initialExpandSecondary,
-  }))
-  const expandPaneOpen =
-    expandPaneState.productId === summary.id
-    && expandPaneState.initialExpandSecondary === !!initialExpandSecondary
-      ? expandPaneState.open
-      : !!initialExpandSecondary
-  const setExpandPaneOpen = useCallback((next: SetStateAction<boolean>) => {
-    setExpandPaneState((prev) => {
-      const previousOpen =
-        prev.productId === summary.id
-        && prev.initialExpandSecondary === !!initialExpandSecondary
-          ? prev.open
-          : !!initialExpandSecondary
-      return {
-        productId: summary.id,
-        initialExpandSecondary: !!initialExpandSecondary,
-        open: typeof next === 'function' ? next(previousOpen) : next,
-      }
-    })
-  }, [initialExpandSecondary, summary.id])
+  const [expandPaneOpen, setExpandPaneOpen] = useState(() => !!initialExpandSecondary)
   const {
     competitorChannels,
     channelId,
@@ -84,6 +72,10 @@ function ProductDrawerContent({
     hydrateSnapshot,
     pageName,
   })
+
+  useEffect(() => {
+    if (initialExpandSecondary) setExpandPaneOpen(true)
+  }, [initialExpandSecondary])
 
   useEffect(() => {
     if (suppressDocumentLayoutShift) return
@@ -115,29 +107,23 @@ function ProductDrawerContent({
 
   useEffect(() => {
     if (!onRequestNavigateAdjacent || disableAdjacentNavigation) return
-    const ready =
-      expandPaneOpen && selectedChannelReady && secondaryDetail != null && secondaryDetailError == null
-    if (!ready) return
+    if (!expandPaneOpen) return
 
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return
-      const target = e.target as HTMLElement | null
-      if (target?.closest('input, textarea, select, [contenteditable="true"]')) return
-      if (target?.closest('[data-filter-combo-panel]')) return
+      if (e.defaultPrevented || e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return
+      if (blocksAdjacentKeyNavigation(e.target)) return
       e.preventDefault()
       const direction: AdjacentDirection = e.key === 'ArrowRight' ? 'next' : 'prev'
       void Promise.resolve(onRequestNavigateAdjacent(direction))
     }
 
-    window.addEventListener('keydown', onKeyDown)
-    return () => window.removeEventListener('keydown', onKeyDown)
+    window.addEventListener('keydown', onKeyDown, true)
+    return () => window.removeEventListener('keydown', onKeyDown, true)
   }, [
     disableAdjacentNavigation,
     expandPaneOpen,
     onRequestNavigateAdjacent,
-    secondaryDetail,
-    secondaryDetailError,
-    selectedChannelReady,
   ])
 
   const selectedStart = normalizeMonthKey(periodStart)
