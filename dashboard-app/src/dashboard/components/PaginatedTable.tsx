@@ -18,6 +18,7 @@ type PaginatedTableBase<T> = {
   columns: Array<TableColumn<T>>
   rows: T[]
   onRowClick?: (row: T) => void
+  defaultSort?: SortState
   /** 루트 `.tableWrap`에 추가 클래스(페이지별 열 간격·밀도 등) */
   wrapClassName?: string
   infiniteScroll?: {
@@ -40,12 +41,12 @@ export type PaginatedTableProps<T extends { id: string }> = PaginatedTableBase<T
 )
 
 export function PaginatedTable<T extends { id: string }>(props: PaginatedTableProps<T>) {
-  const { columns, rows, onRowClick, infiniteScroll, wrapClassName } = props
+  const { columns, rows, onRowClick, defaultSort, infiniteScroll, wrapClassName } = props
   const plain = props.paginated === false
   const tableBodyRef = useRef<HTMLDivElement | null>(null)
   const loadMoreRef = useRef<HTMLDivElement | null>(null)
 
-  const [sort, setSort] = useState<SortState | null>(null)
+  const [sort, setSort] = useState<SortState | null>(defaultSort ?? null)
   const batchSize = Math.max(1, infiniteScroll?.batchSize ?? 30)
   const infiniteEnabled = plain && Boolean(infiniteScroll?.enabled)
   const [visibleCount, setVisibleCount] = useState(batchSize)

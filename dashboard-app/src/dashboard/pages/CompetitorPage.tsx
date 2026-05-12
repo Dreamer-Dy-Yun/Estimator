@@ -162,12 +162,12 @@ export const CompetitorPage = () => {
           `자사 평균가(원): ${r.selfAvgPrice != null ? formatGroupedNumber(r.selfAvgPrice) : '—'}`,
           `자사 판매량(EA): ${formatGroupedNumber(selfQty)}`,
           `자사 판매액(원): ${r.selfAmount != null ? formatGroupedNumber(r.selfAmount) : '—'}`,
-          `차트 X(경쟁 판매량 EA): ${formatGroupedNumber(r.competitorQty)}`,
-          `차트 Y(자사 판매량 EA): ${formatGroupedNumber(selfQty)}`,
+          `차트 X(자사 판매량 EA): ${formatGroupedNumber(selfQty)}`,
+          `차트 Y(경쟁 판매량 EA): ${formatGroupedNumber(r.competitorQty)}`,
         ].join('\n')
         return {
-          x: r.competitorQty,
-          y: selfQty,
+          x: selfQty,
+          y: r.competitorQty,
           brand: r.brand,
           category: r.category,
           productCode: r.productCode,
@@ -201,12 +201,12 @@ export const CompetitorPage = () => {
         <div className={styles.chartTooltipText}>{point.category} · {point.name}</div>
         <div className={styles.chartTooltipText}>코드: {point.productCode}</div>
         <div className={styles.chartTooltipText}>
-          {competitorTooltipLabel} 판매량:{' '}
-          <span style={{ color: '#ef4444', fontWeight: 600 }}>{formatGroupedNumber(point.x)} EA</span>
+          자사 판매량:{' '}
+          <span style={{ color: '#2563eb', fontWeight: 600 }}>{formatGroupedNumber(point.x)} EA</span>
         </div>
         <div className={styles.chartTooltipText}>
-          자사 판매량:{' '}
-          <span style={{ color: '#2563eb', fontWeight: 600 }}>{formatGroupedNumber(point.y)} EA</span>
+          {competitorTooltipLabel} 판매량:{' '}
+          <span style={{ color: '#ef4444', fontWeight: 600 }}>{formatGroupedNumber(point.y)} EA</span>
         </div>
         <div className={styles.chartTooltipHint}>클릭 시 클립보드에 복사</div>
       </div>
@@ -313,11 +313,11 @@ export const CompetitorPage = () => {
               {chartReady ? (
                 <ScatterChart width={scatterChartWidth} height={scatterChartHeight} data={qtyScatterData}>
                   <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis type="number" dataKey="x" name="경쟁사 판매량(EA)" tick={{ fontSize: 10 }} />
+                  <XAxis type="number" dataKey="x" name="자사 판매량(EA)" tick={{ fontSize: 10 }} />
                   <YAxis
                     type="number"
                     dataKey="y"
-                    name="자사 판매량(EA)"
+                    name="경쟁사 판매량(EA)"
                     tick={{ fontSize: 10 }}
                     width={30}
                     tickMargin={4}
@@ -345,6 +345,7 @@ export const CompetitorPage = () => {
             { key: 'selfAmount', header: '자사 판매액', cell: (r) => (r.selfAmount != null ? formatGroupedNumber(r.selfAmount) : '—'), align: 'right', sortValue: (r) => r.selfAmount ?? 0 },
           ]}
           rows={rows}
+          defaultSort={{ key: 'competitorQty', dir: 'desc' }}
           onRowClick={(row) => setSelectedId(row.id)}
         />
       </div>
