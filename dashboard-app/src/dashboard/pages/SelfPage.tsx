@@ -296,6 +296,7 @@ export const SelfPage = () => {
             { key: 'op', header: '영업이익률', cell: (r) => formatPercent(r.opMarginRate), align: 'right', sortValue: (r) => r.opMarginRate },
           ]}
           rows={rows}
+          defaultSort={{ key: 'qty', dir: 'desc' }}
           onRowClick={(row) => setSelectedId(row.id)}
         />
       </div>
