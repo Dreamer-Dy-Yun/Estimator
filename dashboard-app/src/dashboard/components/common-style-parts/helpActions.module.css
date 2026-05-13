@@ -1,0 +1,156 @@
+.cardTitleWithHelp {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/** 제목 줄 원형 물음표 — 호버 시 Estimator 설명 팝오버 */
+.helpMark {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  border: 1px solid #94a3b8;
+  border-radius: 50%;
+  color: #64748b;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1;
+  cursor: help;
+  outline: none;
+}
+
+.helpMark:hover,
+.helpMark:focus-visible {
+  border-color: #64748b;
+  color: #334155;
+}
+
+/** 포털(body) — 드로어 overflow에 잘리지 않음 */
+.helpPopoverPortal {
+  position: fixed;
+  /* drawer(9500) 위, 확인 모달(10000) 아래에서 안정적으로 노출 */
+  z-index: 9800;
+  box-sizing: border-box;
+  width: max-content;
+  max-width: calc(100vw - 16px);
+  padding: 10px 12px;
+  background: #0f172a;
+  color: #f1f5f9;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.45;
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.22);
+  pointer-events: auto;
+}
+
+.helpPopoverPortal strong {
+  font-weight: 700;
+  color: #fff;
+}
+
+.helpPopoverPortal p {
+  margin: 6px 0 0;
+  white-space: pre-line;
+}
+
+.helpPopoverPortal p:first-of-type {
+  margin-top: 0;
+}
+
+/** 공통 닫기(X) 아이콘 버튼 */
+.iconCloseButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid #cbd5e1;
+  border-radius: 999px;
+  background: #fff;
+  color: #334155;
+  cursor: pointer;
+}
+
+.iconCloseButton::before,
+.iconCloseButton::after {
+  content: '';
+  position: absolute;
+  width: 12px;
+  height: 1.5px;
+  background: currentColor;
+  border-radius: 999px;
+}
+
+.iconCloseButton::before {
+  transform: rotate(45deg);
+}
+
+.iconCloseButton::after {
+  transform: rotate(-45deg);
+}
+
+.iconCloseButton:hover {
+  border-color: #94a3b8;
+  color: #0f172a;
+}
+
+.iconCloseButton:focus-visible {
+  outline: 2px solid rgba(37, 99, 235, 0.28);
+  outline-offset: 1px;
+}
+
+/** Recharts 영역: 툴팁·커서가 밖으로 나가 드로어 가로 스크롤이 생기지 않도록 */
+.actionBtn {
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  color: #334155;
+  font: inherit;
+  font-size: 12px;
+  line-height: 1.2;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
+}
+
+.actionBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btnNeutral {
+  color: #334155;
+  border-color: #cbd5e1;
+  background: #ffffff;
+}
+
+.btnNeutral:hover {
+  border-color: #94a3b8;
+  background: #f8fafc;
+}
+
+.btnPrimary {
+  color: #ffffff;
+  border-color: #0f172a;
+  background: #0f172a;
+  font-weight: 700;
+}
+
+.btnPrimary:hover:not(:disabled) {
+  border-color: #334155;
+  background: #334155;
+}
+
+.chartClipWrap {
+  position: relative;
+  width: 100%;
+  overflow: visible;
+}
+

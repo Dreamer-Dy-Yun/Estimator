@@ -1,0 +1,102 @@
+.createForm {
+  display: grid;
+  grid-template-columns:
+    minmax(124px, 0.9fr)
+    minmax(124px, 0.9fr)
+    minmax(120px, 0.8fr)
+    minmax(140px, 1fr)
+    112px
+    78px
+    104px;
+  gap: 8px;
+  align-items: end;
+  padding: 14px 18px;
+  border-bottom: 1px solid #e2e8f0;
+  background: #fbfdff;
+}
+
+.createField {
+  min-width: 0;
+  display: grid;
+  gap: 5px;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.createField input,
+.createField select,
+.fieldCell textarea {
+  width: 100%;
+  height: 34px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  padding: 0 9px;
+  color: #111827;
+  outline: none;
+}
+
+.createField input:focus,
+.createField select:focus,
+.fieldCell textarea:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+.createActiveField {
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: #334155;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.createActiveField input {
+  width: 16px;
+  height: 16px;
+}
+
+.createButton {
+  height: 34px;
+  border: 0;
+  border-radius: 6px;
+  padding: 0 12px;
+  background: #0f766e;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.createButton:disabled {
+  cursor: wait;
+  opacity: 0.64;
+}
+
+.gptKeyCreateForm {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr)) 80px minmax(160px, 1.2fr) 112px;
+  gap: 8px;
+  align-items: end;
+  padding: 14px 18px;
+  border-bottom: 1px solid #e2e8f0;
+  background: #fbfdff;
+}
+
+.gptKeyCreateNote {
+  min-width: 0;
+}
+
+.createError {
+  grid-column: 1 / -1;
+  margin: 0;
+  padding: 9px 10px;
+  border: 1px solid #fecdd3;
+  border-radius: 6px;
+  background: #fff1f2;
+  color: #be123c;
+  font-size: 13px;
+  font-weight: 800;
+}

@@ -1,0 +1,306 @@
+.drawer {
+  position: fixed;
+  top: var(--primary-drawer-edge-inset);
+  left: calc(100vw - var(--primary-drawer-column-width) - var(--primary-drawer-edge-inset));
+  width: var(--primary-drawer-column-width);
+  height: var(--primary-drawer-viewport-height);
+  background: #fff;
+  border: 1px solid #dbe2ea;
+  border-radius: 12px;
+  /* 이너 후보 모달(z-index 9000) 위에 오되, 확인 모달(10000) 아래 */
+  z-index: 9500;
+  box-shadow: 0 16px 50px rgba(2, 6, 23, 0.2);
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  min-height: 0;
+  animation: drawerSlideIn 220ms ease-out;
+  opacity: 1;
+  transition:
+    left 0.42s cubic-bezier(0.32, 0.72, 0, 1),
+    width 0.42s cubic-bezier(0.32, 0.72, 0, 1),
+    opacity 0.2s ease,
+    background 0.32s ease,
+    box-shadow 0.32s ease,
+    border-color 0.28s ease;
+}
+
+.drawerWithExpandPane {
+  left: var(--primary-drawer-edge-inset);
+  width: calc(100vw - (var(--primary-drawer-edge-inset) * 2));
+  max-width: calc(100vw - (var(--primary-drawer-edge-inset) * 2));
+  background: transparent;
+  border: none;
+  box-shadow: none;
+}
+
+.drawerClosing {
+  left: calc(100vw + var(--primary-drawer-edge-inset));
+  opacity: 0;
+  pointer-events: none;
+}
+
+.drawerColumn {
+  position: relative;
+  flex: 0 0 var(--primary-drawer-column-width);
+  width: var(--primary-drawer-column-width);
+  min-height: 0;
+  min-width: 0;
+  display: grid;
+  grid-template-rows: auto 1fr;
+  border-radius: inherit;
+}
+
+.drawerWithExpandPane .drawerColumn {
+  background: #fff;
+  border: 1px solid #dbe2ea;
+  border-radius: 12px 0 0 12px;
+  /* 확장 영역 내부(오른쪽)로 그림자가 번지지 않도록 왼쪽 위주 그림자만 유지 */
+  box-shadow: -12px 16px 36px rgba(2, 6, 23, 0.18);
+}
+
+.drawerExpandPane {
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  background: #ffffff;
+  border: 1px solid #dbe2ea;
+  border-left: none;
+  border-radius: 0 12px 12px 0;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.28s ease 0.06s;
+}
+
+.drawerExpandPaneOpen {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .drawer {
+    transition: none;
+  }
+
+  .drawerExpandPane {
+    transition: none;
+  }
+}
+
+.drawerExpandPaneInner {
+  padding: 10px 14px 10px 28px;
+  overflow: auto;
+  flex: 1;
+}
+
+.drawerSecondaryLoading {
+  padding: 24px;
+  color: #64748b;
+  font-size: 14px;
+}
+
+.drawerExpandToggle {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  z-index: 10;
+  transform: translate(-100%, -50%);
+  width: 30px;
+  height: 58px;
+  padding: 0;
+  border: 1px solid #0f172a;
+  border-right: none;
+  border-radius: 999px 0 0 999px;
+  background: #0f172a;
+  box-shadow: -2px 0 8px rgba(15, 23, 42, 0.2);
+  cursor: pointer;
+  color: #fff;
+  line-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.drawerExpandToggleIcon {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  display: block;
+}
+
+.drawerExpandToggle:hover {
+  color: #fff;
+  background: #1e293b;
+  border-color: #1e293b;
+}
+
+.drawerExpandToggle:focus-visible {
+  outline: 2px solid #0ea5e9;
+  outline-offset: 2px;
+}
+
+/* 확장 시 드로어는 왼쪽 — 토글은 오른쪽 가장자리(추가 영역과의 경계) */
+.drawerWithExpandPane .drawerExpandToggle {
+  left: auto;
+  right: 0;
+  transform: translate(100%, -50%);
+  border-left: none;
+  border-right: 1px solid #0f172a;
+  border-radius: 0 999px 999px 0;
+  box-shadow: 2px 0 8px rgba(15, 23, 42, 0.2);
+}
+
+@keyframes drawerSlideIn {
+  from {
+    transform: translateX(24px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.drawerHead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.drawerHeadTitle {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px 12px;
+  min-width: 0;
+  flex: 1;
+}
+
+.drawerHeadTitle .periodMeta {
+  font-weight: 400;
+}
+
+.drawerClose {
+  flex-shrink: 0;
+}
+
+.drawerBody {
+  padding: 12px;
+  overflow: hidden;
+  display: grid;
+  gap: 10px;
+  align-content: stretch;
+  grid-template-rows: minmax(240px, 0.95fr) auto auto;
+  height: 100%;
+  min-height: 0;
+}
+
+.metaChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-content: flex-start;
+  height: fit-content;
+  overflow: hidden;
+  max-height: 140px;
+  opacity: 1;
+  transition:
+    max-height 220ms ease,
+    opacity 180ms ease;
+}
+
+.productSummaryCard {
+  padding: 8px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 10px;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  align-items: start;
+  transition: gap 220ms ease;
+}
+
+.productSummaryCardMetaCollapsed {
+  gap: 0;
+}
+
+.metaChipsCollapsed {
+  max-height: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.drawerSalesMetricsCard,
+.drawerSalesTrendCard {
+  min-height: 0;
+}
+
+.drawerSalesMetricsCard {
+  display: flex;
+  flex-direction: column;
+}
+
+.drawerLoadingText,
+.drawerErrorText {
+  margin: 0;
+  color: #64748b;
+  font-size: 12px;
+}
+
+.drawerErrorText {
+  color: #b91c1c;
+}
+
+.metaChip {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 10px;
+  border: 1px solid #cbd5e1;
+  border-radius: 999px;
+  background: #f8fafc;
+  color: #334155;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.productImageWrap {
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #f8fafc;
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  align-self: stretch;
+  justify-self: stretch;
+  display: flex;
+}
+
+.productImage {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Recharts: 클릭 시 래퍼뿐 아니라 내부 g/path/레이어마다 포커스 링이 나오는 경우까지 제거 */
+:global(.recharts-responsive-container:focus),
+:global(.recharts-responsive-container:focus-visible),
+:global(.recharts-wrapper:focus),
+:global(.recharts-wrapper:focus-visible),
+:global(.recharts-surface:focus),
+:global(.recharts-surface:focus-visible),
+:global(.recharts-responsive-container *:focus),
+:global(.recharts-responsive-container *:focus-visible),
+:global(.recharts-wrapper *:focus),
+:global(.recharts-wrapper *:focus-visible) {
+  outline: none !important;
+  box-shadow: none !important;
+}

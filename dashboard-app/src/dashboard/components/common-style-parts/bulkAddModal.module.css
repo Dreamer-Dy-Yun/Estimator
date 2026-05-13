@@ -1,0 +1,128 @@
+.modalBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 9900;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 18px;
+  background: rgba(15, 23, 42, 0.45);
+  box-sizing: border-box;
+}
+
+.modalPanel {
+  width: min(620px, 100%);
+  max-height: min(82vh, 100%);
+  overflow: auto;
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid #dbe2ea;
+  border-radius: 12px;
+  background: #ffffff;
+  box-shadow: 0 24px 56px rgba(15, 23, 42, 0.22);
+}
+
+.modalHeader,
+.modalActions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.modalHeader h3 {
+  margin: 0;
+  font-size: 18px;
+  line-height: 1.25;
+  color: #0f172a;
+}
+
+.modalActions {
+  justify-content: flex-end;
+}
+
+.modalError {
+  padding: 8px 10px;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  background: #fff1f2;
+  color: #991b1b;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.analysisBulkMeta {
+  color: #475569;
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.analysisBulkCreateGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(96px, auto);
+  gap: 8px;
+  align-items: end;
+}
+
+.analysisBulkStashList {
+  max-height: 280px;
+  overflow: auto;
+  display: grid;
+  gap: 8px;
+}
+
+.analysisBulkStashItem {
+  width: 100%;
+  display: grid;
+  gap: 4px;
+  padding: 10px 12px;
+  border: 1px solid #dbe2ea;
+  border-radius: 10px;
+  background: #ffffff;
+  color: #0f172a;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.analysisBulkStashItem:hover,
+.analysisBulkStashItemSelected {
+  border-color: #2563eb;
+  background: #eff6ff;
+}
+
+.analysisBulkStashItem span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.analysisBulkStashItem small {
+  color: #64748b;
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.analysisBulkEmpty {
+  padding: 12px;
+  border: 1px dashed #cbd5e1;
+  border-radius: 10px;
+  background: #f8fafc;
+  color: #64748b;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+@media (max-width: 640px) {
+  .analysisBulkAddButton {
+    flex: 1;
+  }
+
+  .analysisBulkCreateGrid {
+    grid-template-columns: 1fr;
+  }
+}

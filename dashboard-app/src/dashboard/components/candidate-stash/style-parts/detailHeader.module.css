@@ -1,0 +1,141 @@
+.detailHeaderGrid {
+  display: grid;
+  grid-template-columns: repeat(40, minmax(0, 1fr));
+  grid-template-rows: auto auto;
+  align-items: center;
+  gap: 10px;
+}
+
+.detailHeaderTitleArea {
+  grid-column: 1 / span 16;
+  grid-row: 1;
+  min-width: 0;
+}
+
+.detailTitle {
+  margin: 0;
+  font-size: 17px;
+  color: #0f172a;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.detailMetaStack {
+  grid-column: 26 / span 5;
+  grid-row: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  font-size: 11px;
+  line-height: 1.25;
+  color: #64748b;
+}
+
+.detailHeaderDataReferencePeriodCell {
+  grid-column: 17 / span 9;
+  grid-row: 1;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: auto minmax(100px, 124px) auto minmax(100px, 124px);
+  align-items: center;
+  justify-self: start;
+  justify-content: start;
+  gap: 6px;
+}
+
+.detailHeaderDataReferencePeriodLabel,
+.detailHeaderDataReferencePeriodSeparator {
+  min-width: 0;
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.detailHeaderDataReferencePeriodInput {
+  width: 100%;
+  min-width: 0;
+  height: 32px;
+  border: 0;
+  border-radius: 6px;
+  padding: 0 6px;
+  box-sizing: border-box;
+  background: transparent;
+  color: #0f172a;
+  font: inherit;
+  font-size: 14.4px;
+  font-weight: 700;
+  outline: none;
+}
+
+.detailHeaderDataReferencePeriodInput:focus {
+  background: #f8fafc;
+  box-shadow: none;
+}
+
+.detailMetaLine {
+  white-space: nowrap;
+}
+
+.detailHeaderRecommendationCell {
+  grid-column: 31 / span 4;
+  grid-row: 1;
+  min-width: 0;
+  align-self: stretch;
+  display: flex;
+}
+
+.detailHeaderRecommendationBtn {
+  width: 100%;
+  min-width: 0;
+  height: 100%;
+  min-height: 32px;
+  padding-inline: 6px;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.detailHeaderDeleteCell {
+  grid-column: 35 / span 4;
+  grid-row: 1;
+  min-width: 0;
+  align-self: stretch;
+  display: flex;
+}
+
+.detailHeaderDeleteCell :global(button) {
+  width: 100%;
+  min-width: 0;
+  height: 100%;
+  min-height: 32px;
+  gap: 4px;
+  padding-inline: 6px;
+}
+
+.detailHeaderCloseBtn {
+  grid-column: 39 / span 2;
+  grid-row: 1;
+  min-width: 0;
+  width: 100%;
+  align-self: stretch;
+  padding: 0;
+  height: 100%;
+  min-height: 32px;
+  font-size: 18px;
+  line-height: 1;
+}
+
+.detailNoteGridCell {
+  grid-column: 1 / -1;
+  font-size: 12px;
+  color: #334155;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 8px 10px;
+  line-height: 1.35;
+  word-break: break-word;
+}

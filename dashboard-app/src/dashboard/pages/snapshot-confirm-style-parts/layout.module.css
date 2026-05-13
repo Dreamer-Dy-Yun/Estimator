@@ -1,0 +1,18 @@
+.snapshotPage {
+  /** 필터/헤더는 고정, 후보군 목록만 내부 스크롤 */
+  height: calc(100dvh - 120px);
+  min-height: 440px;
+  overflow: hidden;
+  grid-template-rows: auto 90px minmax(0, 1fr);
+}
+
+.stashList {
+  display: grid;
+  grid-auto-rows: max-content;
+  gap: 10px;
+  align-content: start;
+  align-items: start;
+  min-height: 0;
+  overflow: auto;
+  padding-right: 2px;
+}

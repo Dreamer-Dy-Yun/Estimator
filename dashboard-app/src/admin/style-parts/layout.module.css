@@ -1,0 +1,100 @@
+.adminPage {
+  height: calc(100dvh - 120px);
+  min-height: 440px;
+  grid-template-rows: auto 1fr;
+  overflow: hidden;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-width: 0;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 10px;
+  background: #ffffff;
+}
+
+.headerActionRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.headerMeta {
+  margin: 0;
+  color: #64748b;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.tabBar {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  min-width: 0;
+}
+
+.tabButton {
+  height: 36px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 0 14px;
+  background: #ffffff;
+  color: #334155;
+  font-size: 13px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.tabButton:hover,
+.tabButton:focus-visible {
+  border-color: #f59e0b;
+  color: #d97706;
+}
+
+.tabButtonSelected {
+  border-color: #f59e0b;
+  background: #f59e0b;
+  color: #111827;
+}
+
+.tabButtonSelected:hover,
+.tabButtonSelected:focus-visible {
+  color: #111827;
+}
+
+.panel {
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid #d8e0ec;
+  border-radius: 12px;
+  background: #ffffff;
+  overflow: hidden;
+}
+
+.panelHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 18px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.panelHeader h2 {
+  color: #111827;
+  font-size: 18px;
+}
+
+.panelHeader p {
+  margin: 4px 0 0;
+  color: #64748b;
+  font-size: 13px;
+  font-weight: 800;
+}

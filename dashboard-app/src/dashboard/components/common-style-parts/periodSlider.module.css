@@ -1,0 +1,64 @@
+.periodBarLabel {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: #64748b;
+}
+
+.periodDualRange {
+  position: relative;
+  height: 24px;
+}
+
+.periodTrack {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 10px;
+  height: 4px;
+  background: #dbe2ea;
+  border-radius: 999px;
+}
+
+.periodSelected {
+  position: absolute;
+  top: 10px;
+  height: 4px;
+  background: #2563eb;
+  border-radius: 999px;
+}
+
+.periodRange {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 24px;
+  margin: 0;
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  pointer-events: none;
+}
+
+.periodRange::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 1px solid #1d4ed8;
+  background: #fff;
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.periodRange::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 1px solid #1d4ed8;
+  background: #fff;
+  cursor: pointer;
+  pointer-events: auto;
+}

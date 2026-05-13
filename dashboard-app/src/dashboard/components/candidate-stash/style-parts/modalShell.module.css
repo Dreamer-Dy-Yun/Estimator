@@ -1,0 +1,123 @@
+.emptyState {
+  grid-column: 1 / -1;
+  border: 1px dashed #cbd5e1;
+  border-radius: 10px;
+  background: #f8fafc;
+  color: #64748b;
+  font-size: 12px;
+  padding: 14px 12px;
+}
+
+.stashDetailModalBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 9000;
+  background: rgba(15, 23, 42, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--primary-drawer-edge-inset) 16px;
+  box-sizing: border-box;
+}
+
+.stashDetailModalPanel {
+  width: 94vw;
+  max-width: 94vw;
+  height: var(--primary-drawer-viewport-height);
+  max-height: var(--primary-drawer-viewport-height);
+  margin: 0;
+  padding: 16px 18px 18px;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+  background: #f1f5f9;
+  box-shadow: 0 24px 56px rgba(15, 23, 42, 0.22);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  box-sizing: border-box;
+  transition: width 0.28s ease, max-width 0.28s ease, height 0.28s ease, max-height 0.28s ease;
+}
+
+.stashDetailModalBody {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  -webkit-overflow-scrolling: touch;
+}
+
+.stashDetailModalBody > :not(.innerDrawerAwareBody) {
+  flex: none;
+}
+
+.stashDetailModalBackdrop[data-inner-drawer-open='true'],
+.stashDetailModalBackdrop[data-inner-drawer-closing='true'] {
+  justify-content: flex-start;
+}
+
+.stashDetailModalBackdrop[data-inner-drawer-open='true'] .stashDetailModalPanel {
+  width: calc(100vw - var(--primary-drawer-modal-backdrop-reserve) + var(--primary-drawer-layout-trim));
+  max-width: calc(100vw - var(--primary-drawer-modal-backdrop-reserve) + var(--primary-drawer-layout-trim));
+}
+
+.stashDetailModalBackdrop[data-inner-drawer-open='true'] .detailHeaderGrid,
+.stashDetailModalBackdrop[data-inner-drawer-closing='true'] .detailHeaderGrid {
+  grid-template-columns: repeat(40, minmax(0, 1fr));
+  gap: 4px;
+}
+
+.stashDetailModalBackdrop[data-inner-drawer-open='true'] .detailHeaderTitleArea,
+.stashDetailModalBackdrop[data-inner-drawer-closing='true'] .detailHeaderTitleArea {
+  grid-column: 1 / span 14;
+  grid-row: 1;
+}
+
+.stashDetailModalBackdrop[data-inner-drawer-open='true'] .detailHeaderDataReferencePeriodCell,
+.stashDetailModalBackdrop[data-inner-drawer-closing='true'] .detailHeaderDataReferencePeriodCell {
+  grid-column: 15 / span 11;
+  grid-row: 1;
+  grid-template-columns: auto minmax(100px, 124px) auto minmax(100px, 124px);
+  gap: 6px;
+}
+
+.stashDetailModalBackdrop[data-inner-drawer-open='true'] .detailMetaStack,
+.stashDetailModalBackdrop[data-inner-drawer-closing='true'] .detailMetaStack {
+  grid-column: 26 / span 5;
+  grid-row: 1;
+  display: flex;
+}
+
+.stashDetailModalBackdrop[data-inner-drawer-open='true'] .detailHeaderRecommendationCell,
+.stashDetailModalBackdrop[data-inner-drawer-closing='true'] .detailHeaderRecommendationCell {
+  grid-column: 31 / span 4;
+  grid-row: 1;
+}
+
+.stashDetailModalBackdrop[data-inner-drawer-open='true'] .detailHeaderDeleteCell,
+.stashDetailModalBackdrop[data-inner-drawer-closing='true'] .detailHeaderDeleteCell {
+  grid-column: 35 / span 4;
+  grid-row: 1;
+}
+
+.stashDetailModalBackdrop[data-inner-drawer-open='true'] .detailHeaderCloseBtn,
+.stashDetailModalBackdrop[data-inner-drawer-closing='true'] .detailHeaderCloseBtn {
+  grid-column: 39 / span 2;
+  grid-row: 1;
+}
+
+.stashDetailModalBackdrop[data-inner-drawer-open='true'] .detailHeaderRecommendationBtn,
+.stashDetailModalBackdrop[data-inner-drawer-closing='true'] .detailHeaderRecommendationBtn,
+.stashDetailModalBackdrop[data-inner-drawer-open='true'] .detailHeaderDeleteCell :global(button),
+.stashDetailModalBackdrop[data-inner-drawer-closing='true'] .detailHeaderDeleteCell :global(button) {
+  padding-inline: 4px;
+  font-size: 11px;
+}
+
+.stashDetailModalFooterActions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 10px;
+}
+

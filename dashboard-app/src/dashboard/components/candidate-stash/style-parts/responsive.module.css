@@ -1,0 +1,56 @@
+@media (max-width: 860px) {
+  .detailHeaderGrid {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+
+  .detailFilterGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .detailHeaderTitleArea,
+  .detailHeaderDataReferencePeriodCell {
+    grid-column: 1 / -1;
+  }
+
+  .detailMetaStack {
+    grid-column: 1 / span 3;
+    align-items: flex-start;
+  }
+
+  .detailHeaderRecommendationCell {
+    grid-column: 4;
+  }
+
+  .detailHeaderDeleteCell {
+    grid-column: 5;
+  }
+
+  .detailHeaderCloseBtn {
+    grid-column: 6;
+  }
+
+  .innerOrderRow {
+    grid-template-columns: 28px 28px minmax(72px, 0.45fr) minmax(70px, 0.45fr) minmax(110px, 1fr) minmax(60px, 0.35fr) minmax(70px, 0.45fr);
+    min-width: 0;
+  }
+
+  .innerOrderHeader {
+    display: none;
+  }
+
+  .innerOrderBadgeList {
+    grid-column: 1 / -1;
+    grid-row: 1;
+    justify-content: flex-start;
+    margin-top: 0;
+  }
+
+  .innerOrderCellNum {
+    grid-column: span 2;
+    text-align: left;
+  }
+
+  .innerSummaryGrid {
+    grid-template-columns: 1fr 1fr;
+  }
+}

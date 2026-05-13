@@ -1,0 +1,151 @@
+.page {
+  display: grid;
+  gap: 14px;
+  min-height: 0;
+}
+
+.kpiGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.kpiStack {
+  grid-template-columns: 1fr;
+}
+
+.kpi {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 7px 8px;
+}
+
+.kpiMetricCard .kpiValue {
+  justify-content: flex-end;
+}
+
+.kpiLabel {
+  color: #64748b;
+  font-size: 11px;
+  line-height: 1.2;
+}
+
+.kpiValue {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  font-size: 17px;
+  line-height: 1.15;
+  margin-top: 4px;
+}
+
+.kpiValueMain {
+  font-weight: 800;
+}
+
+.kpiUnit {
+  color: #64748b;
+  font-size: 0.82em;
+  font-weight: 400;
+}
+
+.twoCol {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.selfTwoCol {
+  height: calc(100dvh - 260px);
+  min-height: 420px;
+  align-items: stretch;
+  overflow: hidden;
+}
+
+.filterRow {
+  display: grid;
+  grid-template-columns: 1fr;
+  align-items: flex-start;
+}
+
+.leftCol {
+  display: grid;
+  grid-template-rows: auto auto;
+  gap: 10px;
+  min-height: 0;
+  min-width: 0;
+}
+
+.selfLeftCol {
+  grid-template-rows: auto 1fr;
+  min-height: 0;
+  min-width: 0;
+}
+
+.selfChartCard {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  min-height: 0;
+  min-width: 0;
+}
+
+.selfChartBody {
+  display: grid;
+  height: 100%;
+  min-height: 0;
+  min-width: 0;
+}
+
+.card {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 10px;
+}
+
+.cardTitle {
+  font-size: 14px;
+  font-weight: 700;
+  margin-bottom: 10px;
+}
+
+.chartCardTitleRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.chartCardTitleRow .cardTitle {
+  margin-bottom: 0;
+}
+
+.chartClearSelectionButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 24px;
+  padding: 0 9px;
+  border-color: #d8e1ee;
+  border-radius: 999px;
+  background: #f8fafc;
+  color: #475569;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.chartClearSelectionButton:hover:not(:disabled) {
+  border-color: #94a3b8;
+  background: #eef4fb;
+  color: #0f172a;
+}
+
+.chartActionHidden {
+  visibility: hidden;
+  pointer-events: none;
+}

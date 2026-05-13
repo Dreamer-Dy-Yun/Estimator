@@ -1,0 +1,290 @@
+.tableHeader,
+.userRow,
+.gptKeyTableHeader,
+.gptKeyListRow {
+  display: grid;
+  grid-template-columns:
+    minmax(224px, 0.64fr)
+    minmax(58px, 0.36fr)
+    minmax(56px, 0.33fr)
+    minmax(116px, 0.86fr)
+    96px
+    64px
+    118px
+    minmax(210px, auto);
+  gap: 8px;
+  align-items: center;
+}
+
+.gptKeyTableHeader,
+.gptKeyListRow {
+  grid-template-columns:
+    minmax(180px, 1.2fr)
+    minmax(108px, 0.72fr)
+    minmax(120px, 0.82fr)
+    minmax(128px, 0.82fr)
+    minmax(92px, 0.54fr);
+}
+
+.tableHeader {
+  padding: 10px 18px;
+  border-bottom: 1px solid #e2e8f0;
+  background: #f8fafc;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.gptKeyTableHeader {
+  padding: 10px 18px;
+  border-bottom: 1px solid #e2e8f0;
+  background: #f8fafc;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.userList {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+.userRow {
+  position: relative;
+  padding: 14px 18px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.gptKeyListRow {
+  position: relative;
+  width: 100%;
+  padding: 12px 18px;
+  border: 0;
+  border-bottom: 1px solid #e2e8f0;
+  background: #ffffff;
+  color: #111827;
+  text-align: left;
+  cursor: pointer;
+}
+
+.gptKeyListRow:hover,
+.gptKeyListRow:focus-visible {
+  background: #f8fafc;
+  outline: none;
+}
+
+.gptKeyNameCell {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.gptKeyNameCell strong {
+  overflow: hidden;
+  color: #111827;
+  font-size: 13px;
+  font-weight: 900;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gptKeyNameCell small {
+  overflow: hidden;
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gptKeyListRow > span {
+  min-width: 0;
+  overflow: hidden;
+  font-size: 13px;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gptKeyStatusSummary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.gptKeyStatusSummary small {
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.identityCell {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.identityCell strong {
+  color: #111827;
+  font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.identityCell span {
+  display: none;
+  min-width: 0;
+  overflow: hidden;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 900;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fieldCell {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.fieldCell span {
+  display: none;
+}
+
+.fieldCell input,
+.fieldCell select,
+.fieldCell textarea {
+  width: 100%;
+  height: 34px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  padding: 0 9px;
+  color: #111827;
+  outline: none;
+}
+
+.fieldCell input:focus,
+.fieldCell select:focus,
+.fieldCell textarea:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+.noteCell {
+  grid-column: span 2;
+  min-width: 0;
+}
+
+.activeCell {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: #334155;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.activeCell input {
+  width: 16px;
+  height: 16px;
+}
+
+.updatedCell {
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.statusCell {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.statusCell small {
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 800;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.statusPill {
+  width: fit-content;
+  border: 1px solid #cbd5e1;
+  border-radius: 999px;
+  padding: 3px 7px;
+  background: #f8fafc;
+  color: #475569;
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.status_success {
+  border-color: #86efac;
+  background: #dcfce7;
+  color: #166534;
+}
+
+.status_failed {
+  border-color: #fecdd3;
+  background: #fff1f2;
+  color: #be123c;
+}
+
+.status_untested {
+  border-color: #cbd5e1;
+  background: #f8fafc;
+  color: #475569;
+}
+
+.panelNotice {
+  border: 1px solid #bfdbfe;
+  border-radius: 999px;
+  padding: 5px 9px;
+  background: #eff6ff;
+  color: #1d4ed8;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.actionCell {
+  display: flex;
+  gap: 6px;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
+.actionCell button {
+  height: 34px;
+  border: 0;
+  border-radius: 6px;
+  padding: 0 10px;
+  background: #233750;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.actionCell button:disabled {
+  cursor: default;
+  opacity: 0.46;
+}
+
+.actionCell .resetButton {
+  border: 1px solid #bfdbfe;
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.actionCell .deleteButton {
+  border: 1px solid #fecdd3;
+  background: #fff1f2;
+  color: #be123c;
+}
+

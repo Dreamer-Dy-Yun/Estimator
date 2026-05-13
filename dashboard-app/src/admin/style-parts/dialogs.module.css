@@ -1,0 +1,256 @@
+.gptKeyDialogBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 140;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 18px;
+  background: rgba(15, 23, 42, 0.34);
+}
+
+.gptKeyDialog {
+  width: min(760px, calc(100vw - 36px));
+  max-height: calc(100dvh - 36px);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow: auto;
+  border: 1px solid #d8e0ec;
+  border-radius: 12px;
+  padding: 16px;
+  background: #ffffff;
+  box-shadow: 0 18px 50px rgba(15, 23, 42, 0.24);
+}
+
+.gptKeyDialogHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.gptKeyDialogHeader span {
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.gptKeyDialogHeader h3 {
+  margin: 3px 0 0;
+  color: #111827;
+  font-size: 20px;
+}
+
+.gptKeyDialogCloseButton {
+  width: 34px;
+  height: 34px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #334155;
+  font-size: 16px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.gptKeyDialogForm,
+.gptKeyDialogRotate {
+  display: grid;
+  grid-template-columns: minmax(120px, 1fr) minmax(120px, 0.9fr) minmax(120px, 0.9fr) 84px 98px;
+  gap: 8px;
+  align-items: end;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 12px;
+  background: #fbfdff;
+}
+
+.gptKeyDialogNote {
+  grid-column: 1 / span 4;
+}
+
+.gptKeyDialogRotate {
+  grid-template-columns: minmax(220px, 1fr) 102px 112px;
+}
+
+.gptKeyDialogActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.secondaryButton,
+.dangerButton {
+  height: 34px;
+  border-radius: 6px;
+  padding: 0 12px;
+  font-size: 13px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.secondaryButton {
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  color: #334155;
+}
+
+.dangerButton {
+  border: 1px solid #fecdd3;
+  background: #fff1f2;
+  color: #be123c;
+}
+
+.secondaryButton:disabled,
+.dangerButton:disabled {
+  cursor: default;
+  opacity: 0.52;
+}
+
+.resetNoticeBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 140;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(15, 23, 42, 0.28);
+}
+
+.resetNoticeDialog {
+  width: min(560px, calc(100vw - 32px));
+  display: grid;
+  gap: 10px;
+  padding: 14px 16px;
+  border: 1px solid #dbeafe;
+  border-radius: 12px;
+  background: #eff6ff;
+  color: #1e3a8a;
+}
+
+.resetNoticeDialogHeader {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.resetNoticeTitle {
+  display: block;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.resetNoticeCloseButton {
+  width: 26px;
+  height: 26px;
+  border: 1px solid #bfdbfe;
+  border-radius: 50%;
+  padding: 0;
+  background: #ffffff;
+  color: #1d4ed8;
+  font-size: 12px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.resetNoticeDialog p {
+  margin: 0;
+  color: #475569;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.resetNoticePasswordButton {
+  border: 0;
+  padding: 0;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+
+.resetNoticePasswordButton code {
+  display: block;
+  padding: 7px 10px;
+  border: 1px solid #bfdbfe;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #0f172a;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.resetNoticePasswordButton:hover code,
+.resetNoticePasswordButton:focus-visible code {
+  border-color: #60a5fa;
+  box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.24);
+}
+
+.resetNoticeCopyState {
+  color: #1d4ed8;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.resetNoticeActions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.resetNoticeActions button {
+  height: 32px;
+  border: 1px solid #dbeafe;
+  border-radius: 6px;
+  padding: 0 12px;
+  background: #1d4ed8;
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.rowError {
+  grid-column: 1 / -1;
+  margin: 0;
+  padding: 9px 10px;
+  border: 1px solid #fecdd3;
+  border-radius: 6px;
+  background: #fff1f2;
+  color: #be123c;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.rowMessage {
+  grid-column: 1 / -1;
+  margin: 0;
+  padding: 9px 10px;
+  border: 1px solid #bfdbfe;
+  border-radius: 6px;
+  background: #eff6ff;
+  color: #1d4ed8;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.emptyState,
+.errorState {
+  margin: 18px;
+  padding: 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.emptyState {
+  background: #f8fafc;
+  color: #64748b;
+}
+
+.errorState {
+  border: 1px solid #fecdd3;
+  background: #fff1f2;
+  color: #be123c;
+}

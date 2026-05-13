@@ -1,0 +1,96 @@
+@media (max-width: 980px) {
+  .header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .headerActionRow {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .tabBar {
+    flex-wrap: wrap;
+  }
+
+  .tableHeader {
+    display: none;
+  }
+
+  .gptKeyTableHeader {
+    display: none;
+  }
+
+  .panel {
+    display: block;
+  }
+
+  .userRow {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .gptKeyListRow {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .createForm,
+  .gptKeyCreateForm {
+    grid-template-columns: 1fr;
+    align-items: stretch;
+  }
+
+  .gptKeyCreateNote,
+  .noteCell {
+    grid-column: 1 / -1;
+  }
+
+  .fieldCell span {
+    display: block;
+    color: #64748b;
+    font-size: 12px;
+    font-weight: 900;
+  }
+
+  .identityCell span {
+    display: block;
+  }
+
+  .actionCell {
+    justify-content: flex-start;
+  }
+
+  .gptKeyDialog {
+    width: min(760px, 100vw - 24px);
+    max-height: calc(100dvh - 24px);
+    padding: 12px;
+  }
+
+  .gptKeyDialogForm,
+  .gptKeyDialogRotate {
+    grid-template-columns: 1fr;
+  }
+
+  .gptKeyDialogNote {
+    grid-column: 1 / -1;
+  }
+
+  .gptKeyDialogActions {
+    flex-direction: column;
+  }
+
+  .gptKeyDialogActions button,
+  .gptKeyDialogRotate button {
+    width: 100%;
+  }
+
+  .resetNoticeDialog {
+    width: min(560px, 100vw - 24px);
+  }
+
+  .resetNoticeActions button {
+    width: 100%;
+  }
+}
