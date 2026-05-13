@@ -1,7 +1,6 @@
-import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
-import { createPortal } from 'react-dom'
+﻿import { useCallback, useEffect, useId, useMemo, useState } from 'react'
 import { BlockMath } from 'react-katex'
-import { dashboardApi, type ProductSalesInsight, type SecondaryCompetitorChannel } from '../../../../api'
+import type { SecondaryCompetitorChannel } from '../../../../api'
 import { ComponentErrorBoundary } from '../../../../components/ComponentErrorBoundary'
 import { useAppToast } from '../../../../components/AppToastContext'
 import type { ApiUnitErrorInfo, ProductPrimarySummary, ProductSecondaryDetail } from '../../../../types'
@@ -9,8 +8,6 @@ import {
   daysInclusiveBetween,
   formatIsoDateLocal,
   formatDateTimeMinute,
-  monthToEndDate,
-  monthToStartDate,
 } from '../../../../utils/date'
 import { PortalHelpPopoverLayer } from '../../PortalHelpPopover'
 import commonStyles from '../../common.module.css'
@@ -23,9 +20,12 @@ import { SalesTrendDailyCard } from './cards/SalesTrendDailyCard'
 import { SizeOrderCard } from './cards/SizeOrderCard'
 import { computeClientStockOrder } from './model/clientStockOrderCompute'
 import { KO } from '../ko'
-import { buildSalesKpiColumn } from '../../../../utils/salesKpiColumn'
-import { mergePrimarySecondarySizeMix } from './model/secondaryDrawerCalc'
 import { SecondaryOrderDraft } from './model/SecondaryOrderDraft'
+import {
+  buildDailyTrendSizeOptions,
+  buildSecondarySizeOrderRows,
+  buildSecondarySizeShares,
+} from './model/secondarySizeOrderRows'
 import styles from './secondaryDrawer.module.css'
 import type {
   SecondaryForecastDerived,
@@ -34,12 +34,16 @@ import type {
 } from './secondaryDrawerTypes'
 import { useSecondaryDailyTrend } from './hooks/useSecondaryDailyTrend'
 import { useSecondaryStockOrderCalc } from './hooks/useSecondaryStockOrderCalc'
-import { ORDER_SNAPSHOT_SCHEMA_VERSION, type OrderSnapshotDocumentV1 } from '../../../../snapshot/orderSnapshotTypes'
+import { useSecondarySalesInsight } from './hooks/useSecondarySalesInsight'
+import type { OrderSnapshotDocumentV1 } from '../../../../snapshot/orderSnapshotTypes'
 import {
   CandidateStashOrderActionCard,
   InnerCandidateActionCard,
   type CandidateItemPanelContext,
 } from './candidateActionCards'
+import { buildSecondaryOrderSnapshot } from './secondarySnapshot'
+import { CandidateStashPickerModal } from './CandidateStashPickerModal'
+import { useSecondaryCandidateActions } from './hooks/useSecondaryCandidateActions'
 
 export type { CandidateItemPanelContext }
 
@@ -98,11 +102,11 @@ export function ProductSecondaryDrawer({
   const salesForecastSizeOrderHelpId = useId()
   const portalHelp = usePortalHelpPopover<SecondaryHelpId>()
   const { showToast } = useAppToast()
-  const [safetyStockMode] = useState<'manual' | 'formula'>('formula')
-  const [manualSafetyStock] = useState(0)
+  const safetyStockMode: 'manual' | 'formula' = 'formula'
+  const manualSafetyStock = 0
   /** null: 예측 수량연산용 μ는 클라이언트 가중모형값. 숫자면 해당 값으로 덮어씀. */
   const [dailyMeanClient, setDailyMeanClient] = useState<number | null>(null)
-  const [serviceLevelPct] = useState(95)
+  const serviceLevelPct = 95
   const [leadTimeStartDate, setLeadTimeStartDate] = useState(defaultLeadTime.start)
   const [leadTimeEndDate, setLeadTimeEndDate] = useState(defaultLeadTime.end)
   const [bufferStock, setBufferStock] = useState(0)
@@ -114,42 +118,7 @@ export function ProductSecondaryDrawer({
   const [selfWeightPct, setSelfWeightPct] = useState(50)
   /** 사용자가 직접 덮어쓴 확정 수량만. live/snapshot baseline은 SecondaryOrderDraft가 정한다. */
   const [confirmBySize, setConfirmBySize] = useState<Record<string, number>>({})
-  const mountedRef = useRef(false)
-  const candidateListReqSeqRef = useRef(0)
-  const salesInsightReqSeqRef = useRef(0)
-  const [candidateActionLoading, setCandidateActionLoading] = useState(false)
-  const [candidateListOpen, setCandidateListOpen] = useState(false)
-  const [candidateStashes, setCandidateStashes] = useState<Array<{
-    uuid: string
-    name: string
-    note: string | null
-    dbCreatedAt: string
-  }>>([])
-  const [selectedCandidate, setSelectedCandidate] = useState<{
-    uuid: string
-    name: string
-    dbCreatedAt: string
-  } | null>(null)
-  const [candidateNameInput, setCandidateNameInput] = useState('')
-  const [candidateNoteInput, setCandidateNoteInput] = useState('')
-  const [salesInsight, setSalesInsight] = useState<ProductSalesInsight | null>(null)
-  const [salesInsightError, setSalesInsightError] = useState<ApiUnitErrorInfo | null>(null)
   const [showSnapshotInfo, setShowSnapshotInfo] = useState(false)
-
-  useEffect(() => {
-    mountedRef.current = true
-    return () => {
-      mountedRef.current = false
-      candidateListReqSeqRef.current += 1
-      salesInsightReqSeqRef.current += 1
-    }
-  }, [])
-
-  useEffect(() => {
-    setCandidateListOpen(false)
-    setCandidateStashes([])
-    setSelectedCandidate(null)
-  }, [primary.skuGroupKey])
 
   const makeApiErrorInfo = useCallback((request: string, err: unknown): ApiUnitErrorInfo => ({
     checkedAt: new Date().toISOString(),
@@ -168,77 +137,71 @@ export function ProductSecondaryDrawer({
   const monthlySalesTrend = useMemo(() => primary.monthlySalesTrend ?? [], [primary.monthlySalesTrend])
 
   useEffect(() => {
-    if (!hasSavedSnapshot) setShowSnapshotInfo(false)
+    if (hasSavedSnapshot) return
+    let alive = true
+    queueMicrotask(() => {
+      if (alive) setShowSnapshotInfo(false)
+    })
+    return () => {
+      alive = false
+    }
   }, [hasSavedSnapshot, primary.skuGroupKey])
 
   const channel = useMemo<SecondaryCompetitorChannel>(
     () => competitorChannels.find((ch) => ch.id === channelId)!,
     [channelId, competitorChannels],
   )
-
-  useEffect(() => {
-    let alive = true
-    const reqSeq = salesInsightReqSeqRef.current + 1
-    salesInsightReqSeqRef.current = reqSeq
-    void (async () => {
-      try {
-        const result = await dashboardApi.getProductSalesInsight(primary.skuGroupKey, {
-          startDate: monthToStartDate(selectedStart),
-          endDate: monthToEndDate(selectedEnd),
-          competitorChannelId: channel.id,
-        })
-        if (!alive || salesInsightReqSeqRef.current !== reqSeq) return
-        setSalesInsight(result)
-        setSalesInsightError(null)
-      } catch (err) {
-        if (!alive || salesInsightReqSeqRef.current !== reqSeq) return
-        setSalesInsight(null)
-        setSalesInsightError(
-          makeApiErrorInfo(
-            `getProductSalesInsight(${JSON.stringify({
-              skuGroupKey: primary.skuGroupKey,
-              startDate: monthToStartDate(selectedStart),
-              endDate: monthToEndDate(selectedEnd),
-              competitorChannelId: channel.id,
-            })})`,
-            err,
-          ),
-        )
-      }
-    })()
-    return () => {
-      alive = false
-    }
-  }, [channel.id, makeApiErrorInfo, primary.skuGroupKey, selectedEnd, selectedStart])
-
-  const fallbackSelfCol = useMemo(
-    () => buildSalesKpiColumn('self', primary, secondary, channel),
-    [primary, secondary, channel],
-  )
-  const fallbackCompCol = useMemo(
-    () => buildSalesKpiColumn('competitor', primary, secondary, channel),
-    [primary, secondary, channel],
-  )
-  const selfCol = salesInsight?.self ?? fallbackSelfCol
-  const compCol = salesInsight?.competitor ?? fallbackCompCol
+  const { selfCol, compCol, salesInsightError } = useSecondarySalesInsight({
+    primary,
+    secondary,
+    channel,
+    selectedStart,
+    selectedEnd,
+    makeApiErrorInfo,
+  })
 
   useEffect(() => {
     if (prefillFromSnapshot != null) return
-    setDailyMeanClient(null)
+    let alive = true
+    queueMicrotask(() => {
+      if (alive) setDailyMeanClient(null)
+    })
+    return () => {
+      alive = false
+    }
   }, [primary.skuGroupKey, selectedEnd, selectedStart, prefillFromSnapshot])
 
   useEffect(() => {
-    setUnitCostInput(Math.max(0, Math.round(selfCol.avgCost ?? 0)))
-    setUnitPriceInput(Math.max(0, Math.round(selfCol.avgPrice)))
-    setExpectedFeeRatePct(Math.max(0, Math.round((selfCol.feeRatePct ?? 0) * 10) / 10))
+    let alive = true
+    queueMicrotask(() => {
+      if (!alive) return
+      setUnitCostInput(Math.max(0, Math.round(selfCol.avgCost ?? 0)))
+      setUnitPriceInput(Math.max(0, Math.round(selfCol.avgPrice)))
+      setExpectedFeeRatePct(Math.max(0, Math.round((selfCol.feeRatePct ?? 0) * 10) / 10))
+    })
+    return () => {
+      alive = false
+    }
   }, [primary.skuGroupKey, selfCol.avgCost, selfCol.avgPrice, selfCol.feeRatePct])
 
   useEffect(() => {
-    setLeadTimeStartDate((s) => (s < minOrderDate ? minOrderDate : s))
+    let alive = true
+    queueMicrotask(() => {
+      if (alive) setLeadTimeStartDate((s) => (s < minOrderDate ? minOrderDate : s))
+    })
+    return () => {
+      alive = false
+    }
   }, [minOrderDate, primary.skuGroupKey])
 
   useEffect(() => {
-    setLeadTimeEndDate((e) => (e < leadTimeStartDate ? leadTimeStartDate : e))
+    let alive = true
+    queueMicrotask(() => {
+      if (alive) setLeadTimeEndDate((e) => (e < leadTimeStartDate ? leadTimeStartDate : e))
+    })
+    return () => {
+      alive = false
+    }
   }, [leadTimeStartDate])
 
   const leadTimeDays = useMemo(
@@ -378,12 +341,24 @@ export function ProductSecondaryDrawer({
   )
 
   useEffect(() => {
-    setConfirmBySize({})
+    let alive = true
+    queueMicrotask(() => {
+      if (alive) setConfirmBySize({})
+    })
+    return () => {
+      alive = false
+    }
   }, [primary.skuGroupKey, prefillFromSnapshot])
 
   useEffect(() => {
     if (snapshotInfoMode) return
-    setConfirmBySize({})
+    let alive = true
+    queueMicrotask(() => {
+      if (alive) setConfirmBySize({})
+    })
+    return () => {
+      alive = false
+    }
   }, [
     snapshotInfoMode,
     bufferStock,
@@ -403,57 +378,38 @@ export function ProductSecondaryDrawer({
     if (prefillFromSnapshot == null) return
     const d2 = prefillFromSnapshot.drawer2
     const si = d2.stockInputs
-    onChannelChange(d2.competitorChannelId)
-    setBufferStock(d2.bufferStock)
-    setSelfWeightPct(d2.selfWeightPct)
-    setAiPrompt(d2.llmPrompt)
-    setAiComment(d2.llmAnswer)
-    setLeadTimeStartDate(si.leadTimeStartDate)
-    setLeadTimeEndDate(si.leadTimeEndDate)
-    setDailyMeanClient(si.dailyMean)
+    let alive = true
+    queueMicrotask(() => {
+      if (!alive) return
+      onChannelChange(d2.competitorChannelId)
+      setBufferStock(d2.bufferStock)
+      setSelfWeightPct(d2.selfWeightPct)
+      setAiPrompt(d2.llmPrompt)
+      setAiComment(d2.llmAnswer)
+      setLeadTimeStartDate(si.leadTimeStartDate)
+      setLeadTimeEndDate(si.leadTimeEndDate)
+      setDailyMeanClient(si.dailyMean)
+    })
+    return () => {
+      alive = false
+    }
   }, [prefillFromSnapshot, primary.skuGroupKey, onChannelChange])
 
-  const sizeAgg = useMemo(() => {
-    const mix = mergePrimarySecondarySizeMix(primary, secondary)
-    const sSum = mix.reduce((a, r) => a + r.ratio, 0)
-    const cSum = mix.reduce((a, r) => a + r.competitorRatio, 0)
-    const wSelf = selfWeightPct / 100
-    const wComp = 1 - wSelf
-    const raw = mix.map((r) => {
-      const selfShare = sSum > 0 ? (r.ratio / sSum) * 100 : 0
-      const compShare = cSum > 0 ? (r.competitorRatio / cSum) * 100 : 0
-      const blended = selfShare * wSelf + compShare * wComp
-      return {
-        size: r.size,
-        selfSharePct: selfShare,
-        competitorSharePct: compShare,
-        blendedRaw: blended,
-        avgPrice: r.avgPrice,
-      }
-    })
-    const blendSum = raw.reduce((a, r) => a + r.blendedRaw, 0) || 1
-    return raw.map((r) => ({
-      size: r.size,
-      selfSharePct: r.selfSharePct,
-      competitorSharePct: r.competitorSharePct,
-      blendedSharePct: (r.blendedRaw / blendSum) * 100,
-      avgPrice: r.avgPrice,
-    }))
-  }, [primary, secondary, selfWeightPct])
+  const sizeAgg = useMemo(
+    () => buildSecondarySizeShares(primary, secondary, selfWeightPct),
+    [primary, secondary, selfWeightPct],
+  )
 
   const sizeRows = useMemo(() => {
     const dailyMeanEa = dailyMeanClient ?? forecastCalc?.dailyMean ?? clientStock.forecastMuRaw
-    const totalQtyWindow = dailyMeanEa * forecastSalesHorizonDays
-
-    return sizeAgg.map((row, i) => {
-      const forecastQty = Math.ceil((totalQtyWindow * row.blendedSharePct) / 100)
-      /** 여유재고는 일수(일분) — EA로 환산: 일평균 기대 × 일수 × 사이즈비중, 판매예측과 동일하게 ceil */
-      const bufferQtyEa = Math.ceil((dailyMeanEa * bufferStock * row.blendedSharePct) / 100)
-      const stock = currentStockBySize[i] ?? 0
-      const inbound = expectedInboundBySize[i] ?? 0
-      const recommendedQty = Math.max(0, Math.round(forecastQty - stock - inbound + bufferQtyEa))
-      const confirmQty = orderDraft.confirmQty(row.size, recommendedQty)
-      return { ...row, forecastQty, recommendedQty, confirmQty }
+    return buildSecondarySizeOrderRows({
+      shares: sizeAgg,
+      dailyMeanEa,
+      forecastSalesHorizonDays,
+      currentStockBySize,
+      expectedInboundBySize,
+      bufferStock,
+      orderDraft,
     })
   }, [
     sizeAgg,
@@ -486,75 +442,31 @@ export function ProductSecondaryDrawer({
   })
 
   /** 일간 판매추이 사이즈 선택 — API는 상품 합계만 주고, 비중으로 스케일 */
-  const dailyTrendSizeOptions = useMemo(() => {
-    const mix = primary.sizeMix
-    if (!mix.length) return []
-    const sum = mix.reduce((a, r) => a + r.ratio, 0) || 1
-    return mix.map((r) => ({
-      id: r.size,
-      label: r.size,
-      share: r.ratio / sum,
-    }))
-  }, [primary.sizeMix])
+  const dailyTrendSizeOptions = useMemo(() => buildDailyTrendSizeOptions(primary.sizeMix), [primary.sizeMix])
 
-  const buildSnapshot = useCallback((): OrderSnapshotDocumentV1 => ({
-      schemaVersion: ORDER_SNAPSHOT_SCHEMA_VERSION,
-      skuGroupKey: primary.skuGroupKey,
-      savedAt: new Date().toISOString(),
-      context: {
-        periodStart: viewPeriodStart,
-        periodEnd: viewPeriodEnd,
-        forecastMonths,
-        dailyTrendStartMonth: selectedStart,
-        dailyTrendLeadTimeDays: leadTimeDays,
-      },
-      drawer1: {
-        summary: (() => {
-          const { monthlySalesTrend, ...rest } = primary
-          void monthlySalesTrend
-          return rest
-        })(),
-      },
-      drawer2: {
-        secondary,
-        competitorChannelId: channel.id,
-        competitorChannelLabel: channel.label,
-        minOpMarginPct: null,
-        salesSelf: selfCol,
-        salesCompetitor: compCol,
-        stockInputs: forecastInputs,
-        stockDerived: forecastDerived,
-        selfWeightPct,
-        sizeForecastSource: 'forecastQty',
-        bufferStock,
-        llmPrompt: aiPrompt,
-        llmAnswer: aiComment,
-        confirmedTotals: (() => {
-          const orderQty = sizeRows.reduce((acc, r) => acc + Math.max(0, Math.round(r.confirmQty)), 0)
-          const perUnitFee = Math.round((unitPriceInput * expectedFeeRatePct) / 100)
-          const perUnitOpMargin = unitPriceInput - unitCostInput - perUnitFee
-          const expectedSalesAmount = orderQty * unitPriceInput
-          const expectedOpProfit = orderQty * perUnitOpMargin
-          return {
-            orderQty,
-            expectedSalesAmount,
-            expectedOpProfit,
-            expectedOpProfitRatePct: expectedSalesAmount > 0
-              ? (expectedOpProfit / expectedSalesAmount) * 100
-              : null,
-          }
-        })(),
-        sizeRows: sizeRows.map((r) => ({
-          size: r.size,
-          selfSharePct: r.selfSharePct,
-          competitorSharePct: r.competitorSharePct,
-          blendedSharePct: r.blendedSharePct,
-          forecastQty: r.forecastQty,
-          recommendedQty: r.recommendedQty,
-          confirmQty: r.confirmQty,
-        })),
-      },
-    }), [
+  const buildSnapshot = useCallback((): OrderSnapshotDocumentV1 => buildSecondaryOrderSnapshot({
+    primary,
+    secondary,
+    periodStart: viewPeriodStart,
+    periodEnd: viewPeriodEnd,
+    forecastMonths,
+    selectedStart,
+    leadTimeDays,
+    competitorChannelId: channel.id,
+    competitorChannelLabel: channel.label,
+    selfCol,
+    compCol,
+    forecastInputs,
+    forecastDerived,
+    selfWeightPct,
+    bufferStock,
+    aiPrompt,
+    aiComment,
+    unitPrice: unitPriceInput,
+    unitCost: unitCostInput,
+    expectedFeeRatePct,
+    sizeRows,
+  }), [
     primary,
     viewPeriodStart,
     viewPeriodEnd,
@@ -578,84 +490,16 @@ export function ProductSecondaryDrawer({
     leadTimeDays,
   ])
 
-  const refreshCandidates = useCallback(async () => {
-    const reqSeq = candidateListReqSeqRef.current + 1
-    candidateListReqSeqRef.current = reqSeq
-    const stashes = await dashboardApi.getCandidateStashes()
-    if (!mountedRef.current || candidateListReqSeqRef.current !== reqSeq) return stashes
-    setCandidateStashes(stashes.map((s) => ({
-      uuid: s.uuid,
-      name: s.name,
-      note: s.note,
-      dbCreatedAt: s.dbCreatedAt,
-    })))
-    return stashes
-  }, [])
-
-  const confirmOrder = useCallback(async () => {
-    if (selectedCandidate == null) return
-    const snap = buildSnapshot()
-    setCandidateActionLoading(true)
-    try {
-      await dashboardApi.appendCandidateItem({
-        stashUuid: selectedCandidate.uuid,
-        skuGroupKey: primary.skuGroupKey,
-        details: snap,
-        isLatestLlmComment: false,
-      })
-      showToast('후보군에 스냅샷을 저장했습니다.')
-    } finally {
-      if (mountedRef.current) setCandidateActionLoading(false)
-    }
-  }, [buildSnapshot, primary.skuGroupKey, selectedCandidate, showToast])
-
-  const saveCandidateItemChanges = useCallback(async () => {
-    if (candidateItemContext == null) return
-    const snap = buildSnapshot()
-    setCandidateActionLoading(true)
-    try {
-      await dashboardApi.updateCandidateItem({
-        itemUuid: candidateItemContext.itemUuid,
-        details: snap,
-        isLatestLlmComment: false,
-      })
-      if (!mountedRef.current) return
-      candidateItemContext.onSaved?.()
-      showToast(hasSavedSnapshot ? '후보 상세 스냅샷을 수정했습니다.' : '후보 상세 스냅샷을 저장했습니다.')
-    } finally {
-      if (mountedRef.current) setCandidateActionLoading(false)
-    }
-  }, [buildSnapshot, candidateItemContext, hasSavedSnapshot, showToast])
-
-  const createCandidate = useCallback(async () => {
-    setCandidateActionLoading(true)
-    try {
-      const created = await dashboardApi.createCandidateStash({
-        name: candidateNameInput.trim(),
-        note: candidateNoteInput.trim(),
-        periodStart,
-        periodEnd,
-        forecastMonths,
-      })
-      const nextCandidates = await refreshCandidates()
-      if (!mountedRef.current) return
-      const synced = nextCandidates.find((row) => row.uuid === created.uuid)
-      if (synced) {
-        setSelectedCandidate({
-          uuid: synced.uuid,
-          name: synced.name,
-          dbCreatedAt: synced.dbCreatedAt,
-        })
-        setCandidateNameInput('')
-        setCandidateNoteInput('')
-        setCandidateListOpen(false)
-        showToast('후보군을 생성했습니다.')
-      }
-    } finally {
-      if (mountedRef.current) setCandidateActionLoading(false)
-    }
-  }, [candidateNameInput, candidateNoteInput, forecastMonths, periodEnd, periodStart, refreshCandidates, showToast])
-
+  const candidateActions = useSecondaryCandidateActions({
+    skuGroupKey: primary.skuGroupKey,
+    periodStart,
+    periodEnd,
+    forecastMonths,
+    hasSavedSnapshot,
+    candidateItemContext,
+    buildSnapshot,
+    showToast,
+  })
   const handleConfirmQtyChange = useCallback((size: string, next: number, recommendedQty: number) => {
     setConfirmBySize((prev) => new SecondaryOrderDraft({
       mode: snapshotInfoMode ? 'snapshot' : 'live',
@@ -747,33 +591,25 @@ export function ProductSecondaryDrawer({
               {candidateItemContext != null ? (
                 <InnerCandidateActionCard
                   context={candidateItemContext}
-                  loading={candidateActionLoading}
+                  loading={candidateActions.loading}
                   saveLabel={hasSavedSnapshot ? '수정' : '저장'}
                   hasSnapshot={hasSavedSnapshot}
                   showSnapshotInfo={showSnapshotInfo}
                   onShowSnapshotInfoChange={setShowSnapshotInfo}
-                  onSave={saveCandidateItemChanges}
+                  onSave={candidateActions.saveCandidateItemChanges}
                 />
               ) : (
                 <CandidateStashOrderActionCard
-                  selectedTitle={selectedCandidate?.name ?? '-'}
+                  selectedTitle={candidateActions.selectedCandidate?.name ?? '-'}
                   selectedSub={
-                    selectedCandidate?.dbCreatedAt
-                      ? formatDateTimeMinute(selectedCandidate.dbCreatedAt)
+                    candidateActions.selectedCandidate?.dbCreatedAt
+                      ? formatDateTimeMinute(candidateActions.selectedCandidate.dbCreatedAt)
                       : '-'
                   }
-                  loading={candidateActionLoading}
-                  confirmDisabled={selectedCandidate == null}
-                  onOpenStashPicker={async () => {
-                    setCandidateListOpen((prev) => !prev)
-                    setCandidateActionLoading(true)
-                    try {
-                      await refreshCandidates()
-                    } finally {
-                      if (mountedRef.current) setCandidateActionLoading(false)
-                    }
-                  }}
-                  onConfirmOrder={confirmOrder}
+                  loading={candidateActions.loading}
+                  confirmDisabled={candidateActions.selectedCandidate == null}
+                  onOpenStashPicker={candidateActions.openPicker}
+                  onConfirmOrder={candidateActions.confirmOrder}
                   portalHelp={portalHelp}
                   confirmOrderHelpId={confirmOrderHelpId}
                 />
@@ -891,107 +727,20 @@ export function ProductSecondaryDrawer({
           </>
         )}
       </PortalHelpPopoverLayer>
-      {candidateListOpen &&
-        createPortal(
-          <div
-            className={styles.candidateModalBackdrop}
-            role="presentation"
-            onClick={() => setCandidateListOpen(false)}
-          >
-            <div
-              className={styles.candidateModal}
-              role="dialog"
-              aria-modal="true"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className={styles.candidatePanel}>
-                <div className={styles.candidateModalHeader}>
-                  <h4 className={styles.candidateModalTitle}>{KO.btnSelectCandidate}</h4>
-                  <button
-                    type="button"
-                    className={`${commonStyles.iconCloseButton} ${styles.candidateModalClose}`}
-                    onClick={() => setCandidateListOpen(false)}
-                    aria-label="후보군 선택 닫기"
-                  />
-                </div>
-                <div className={styles.candidateCreateForm}>
-                  <div className={styles.candidateCreateField}>
-                    <label className={styles.candidateCreateLabel} htmlFor="candidate-name-input">
-                      {KO.labelCandidateName}
-                    </label>
-                    <input
-                      id="candidate-name-input"
-                      type="text"
-                      className={styles.candidateTextInput}
-                      placeholder={KO.labelCandidateName}
-                      value={candidateNameInput}
-                      onChange={(e) => setCandidateNameInput(e.target.value)}
-                    />
-                  </div>
-                  <div className={styles.candidateCreateField}>
-                    <label className={styles.candidateCreateLabel} htmlFor="candidate-note-input">
-                      {KO.labelCandidateNote}
-                    </label>
-                    <input
-                      id="candidate-note-input"
-                      type="text"
-                      className={styles.candidateTextInput}
-                      placeholder={KO.labelCandidateNote}
-                      value={candidateNoteInput}
-                      onChange={(e) => setCandidateNoteInput(e.target.value)}
-                    />
-                  </div>
-                  <button
-                    type="button"
-                    className={`${styles.btn} ${styles.btnSecondary} ${styles.btnViewportAdaptive}`}
-                    onClick={createCandidate}
-                    disabled={candidateActionLoading}
-                  >
-                    {KO.btnCreateCandidateConfirm}
-                  </button>
-                </div>
-                <div className={styles.candidateList}>
-                  {candidateStashes.length === 0 ? (
-                    <div className={styles.candidateEmptyState}>
-                      <p className={styles.candidateEmptyTitle}>{KO.msgCandidateEmpty}</p>
-                      <p className={styles.metaFilterActionHint}>상단에서 이름과 비고를 입력해 후보군을 먼저 생성하세요.</p>
-                    </div>
-                  ) : (
-                    candidateStashes.map((row) => (
-                      <button
-                        key={row.uuid}
-                        type="button"
-                        className={`${styles.candidateListItem} ${selectedCandidate?.uuid === row.uuid ? styles.candidateListItemActive : ''}`}
-                        onClick={() => {
-                          setSelectedCandidate({
-                            uuid: row.uuid,
-                            name: row.name,
-                            dbCreatedAt: row.dbCreatedAt,
-                          })
-                          setCandidateListOpen(false)
-                        }}
-                      >
-                        <div className={styles.candidateListItemTop}>
-                          <span className={styles.candidateListItemName}>{row.name}</span>
-                          {selectedCandidate?.uuid === row.uuid && (
-                            <span className={styles.candidateListItemBadge}>선택됨</span>
-                          )}
-                        </div>
-                        <span className={styles.candidateListItemMeta}>
-                          생성일: {formatDateTimeMinute(row.dbCreatedAt)}
-                        </span>
-                        <span className={styles.candidateListItemDesc}>
-                          {row.note?.trim() ? row.note : KO.msgNoNote}
-                        </span>
-                      </button>
-                    ))
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>,
-          document.body,
-        )}
+      {candidateActions.listOpen && (
+        <CandidateStashPickerModal
+          options={candidateActions.stashes}
+          selectedUuid={candidateActions.selectedCandidate?.uuid ?? null}
+          nameInput={candidateActions.nameInput}
+          noteInput={candidateActions.noteInput}
+          loading={candidateActions.loading}
+          onNameInputChange={candidateActions.setNameInput}
+          onNoteInputChange={candidateActions.setNoteInput}
+          onCreate={candidateActions.createCandidate}
+          onClose={() => candidateActions.setListOpen(false)}
+          onSelect={candidateActions.selectCandidate}
+        />
+      )}
     </div>
   )
 }

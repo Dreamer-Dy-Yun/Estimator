@@ -5,7 +5,7 @@
 | 작성 지시 | Yun Daeyoung |
 | 작성자 | Codex |
 | 작성일 | 2026-04-23 |
-| 최종 수정일 | 2026-05-08 |
+| 최종 수정일 | 2026-05-13 |
 | 상태 | 유지 문서 |
 | 적용 범위 | `dashboard-app` 화면, 라우팅, 데이터 흐름 |
 
@@ -112,7 +112,7 @@
 |------|------|
 | 계약 | [`DashboardApi`](../../dashboard-app/src/api/types/dashboard-api.ts) 인터페이스 |
 | 인증 계약 | [`AuthApi`](../../dashboard-app/src/api/types/auth.ts) 인터페이스 |
-| 구현체 | [`mock.ts`](../../dashboard-app/src/api/mock.ts) — mock 구현 진입점. 인증 mock은 [`api/mock/authApi.ts`](../../dashboard-app/src/api/mock/authApi.ts), 후보군 seed와 계약 stub은 [`api/mock/candidateSeeds.ts`](../../dashboard-app/src/api/mock/candidateSeeds.ts)와 [`api/mock/dashboardApi.ts`](../../dashboard-app/src/api/mock/dashboardApi.ts)가 소유 |
+| 구현체 | [`mock.ts`](../../dashboard-app/src/api/mock.ts) — mock 구현 진입점. 인증 mock은 [`api/mock/authApi.ts`](../../dashboard-app/src/api/mock/authApi.ts), 후보군 seed는 [`api/mock/candidateSeeds.ts`](../../dashboard-app/src/api/mock/candidateSeeds.ts), 후보군 계약 stub은 [`api/mock/candidateMockApi.ts`](../../dashboard-app/src/api/mock/candidateMockApi.ts), 판매/드로어 mock은 [`api/mock/dashboardApi.ts`](../../dashboard-app/src/api/mock/dashboardApi.ts)가 소유 |
 | 진입점 | [`client.ts`](../../dashboard-app/src/api/client.ts) `dashboardApi`, 개별 `getXxx` 함수 |
 | 타입 | [`api/types/*`](../../dashboard-app/src/api/types/) — 인증 계약은 [`auth.ts`](../../dashboard-app/src/api/types/auth.ts), 후보군 계약은 [`candidate.ts`](../../dashboard-app/src/api/types/candidate.ts), 저장 스냅샷 계약은 [`snapshot.ts`](../../dashboard-app/src/api/types/snapshot.ts), 2차 드로워 계약은 [`secondary.ts`](../../dashboard-app/src/api/types/secondary.ts) |
 

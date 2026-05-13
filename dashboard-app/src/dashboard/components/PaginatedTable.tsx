@@ -1,18 +1,28 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent, type ReactNode } from 'react'
 import { compareSortValues, nextSortState, type SortState, type SortValue } from '../../utils/sort'
 import { drawerKeepOpenDataProps } from '../drawer/drawerDom'
 import styles from './common.module.css'
 
-export type TableColumn<T> = {
+type TableColumnBase<T> = {
   key: string
   header: ReactNode
   cell: (row: T) => ReactNode
   align?: 'left' | 'right' | 'center'
   width?: CSSProperties['width']
-  sortValue?: (row: T) => SortValue
-  /** false: 헤더 클릭 정렬 비활성(액션 열 등) */
-  sortable?: boolean
 }
+
+type SortableTableColumn<T> = TableColumnBase<T> & {
+  sortValue: (row: T) => SortValue
+  sortable?: true
+}
+
+type StaticTableColumn<T> = TableColumnBase<T> & {
+  /** false: 헤더 클릭 정렬 비활성(액션 열 등) */
+  sortable: false
+  sortValue?: never
+}
+
+export type TableColumn<T> = SortableTableColumn<T> | StaticTableColumn<T>
 
 type PaginatedTableBase<T> = {
   columns: Array<TableColumn<T>>
@@ -51,11 +61,6 @@ export function PaginatedTable<T extends { id: string }>(props: PaginatedTablePr
   const batchSize = Math.max(1, infiniteScroll?.batchSize ?? 30)
   const infiniteEnabled = plain && Boolean(infiniteScroll?.enabled)
   const [visibleCount, setVisibleCount] = useState(batchSize)
-  const getDefaultSortValue = useCallback((row: T, key: string): SortValue | null => {
-    const value = (row as Record<string, unknown>)[key]
-    if (typeof value === 'number' || typeof value === 'string') return value
-    return null
-  }, [])
 
   const sortedRows = useMemo(() => {
     if (!sort) return rows
@@ -63,13 +68,13 @@ export function PaginatedTable<T extends { id: string }>(props: PaginatedTablePr
 
     const list = [...rows]
     list.sort((a, b) => {
-      const av = col?.sortValue ? col.sortValue(a) : getDefaultSortValue(a, sort.key)
-      const bv = col?.sortValue ? col.sortValue(b) : getDefaultSortValue(b, sort.key)
+      const av = col?.sortValue ? col.sortValue(a) : null
+      const bv = col?.sortValue ? col.sortValue(b) : null
       const cmp = compareSortValues(av, bv)
       return sort.dir === 'asc' ? cmp : -cmp
     })
     return list
-  }, [rows, columns, sort, getDefaultSortValue])
+  }, [rows, columns, sort])
 
   const page = plain ? 1 : props.page
   const pageSize = plain ? Math.max(1, sortedRows.length) : props.pageSize

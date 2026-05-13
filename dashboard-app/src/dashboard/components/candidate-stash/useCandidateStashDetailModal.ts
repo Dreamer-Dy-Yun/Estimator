@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+﻿import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   deleteCandidateItem,
   deleteCandidateItems,
@@ -6,10 +6,6 @@ import {
   getCandidateItemsByStash,
   getCandidateRecommendations,
   getCandidateStashes,
-  startCandidateStashAnalysis,
-  subscribeCandidateStashAnalysis,
-  type CandidateStashAnalysisProgressEvent,
-  type CandidateStashAnalysisSubscription,
   type CandidateItemSummary,
   type CandidateStashSummary,
 } from '../../../api'
@@ -29,6 +25,7 @@ import {
   preloadCandidateOrderExcelExport,
 } from '../../../utils/candidateOrderExcelExport'
 import { useAppToast } from '../../../components/AppToastContext'
+import { useCandidateStashAnalysisProgress } from './useCandidateStashAnalysisProgress'
 
 const INNER_DRAWER_CLOSE_LAYOUT_MS = 440
 
@@ -108,8 +105,6 @@ export function useCandidateStashDetailModal({
   const [bulkDeleteBusy, setBulkDeleteBusy] = useState(false)
   const [orderExportBusy, setOrderExportBusy] = useState(false)
   const [orderExportError, setOrderExportError] = useState<string | null>(null)
-  const [analysisProgress, setAnalysisProgress] = useState<CandidateStashAnalysisProgressEvent | null>(null)
-  const [analysisError, setAnalysisError] = useState<string | null>(null)
   const { showToast } = useAppToast()
   const mountedRef = useRef(false)
   const stashLoadSeqRef = useRef(0)
@@ -118,7 +113,6 @@ export function useCandidateStashDetailModal({
   const drawerRequestSeqRef = useRef(0)
   const drawerCloseTimerRef = useRef<ReturnType<typeof window.setTimeout> | null>(null)
   const innerNavLockRef = useRef(false)
-  const analysisRequestSeqRef = useRef(0)
   const initializedDetailTargetUuidRef = useRef<string | null>(null)
 
   useEffect(() => {
@@ -196,89 +190,15 @@ export function useCandidateStashDetailModal({
     onStashesInvalidate?.()
   }, [onStashesInvalidate])
 
-  useEffect(() => {
-    let alive = true
-    let subscription: CandidateStashAnalysisSubscription | null = null
-    const closeSubscription = () => {
-      const current = subscription
-      subscription = null
-      current?.close()
-    }
-    const requestSeq = analysisRequestSeqRef.current + 1
-    analysisRequestSeqRef.current = requestSeq
-    setAnalysisError(null)
-    setAnalysisProgress({
-      jobId: '',
-      stashUuid,
-      status: 'queued',
-      totalItems: 0,
-      completedItems: 0,
-      currentItemUuid: null,
-      currentProductName: null,
-      message: '후보군 스냅샷 AI 분석 요청을 백엔드에 전송하는 중입니다.',
-      error: null,
-    })
-
-    void (async () => {
-      try {
-        const started = await startCandidateStashAnalysis(stashUuid)
-        if (!alive || analysisRequestSeqRef.current !== requestSeq) return
-        setAnalysisProgress({
-          jobId: started.jobId,
-          stashUuid: started.stashUuid,
-          status: 'queued',
-          totalItems: started.itemCount,
-          completedItems: 0,
-          currentItemUuid: null,
-          currentProductName: null,
-          message: '백엔드가 AI 분석 작업을 접수했습니다.',
-          error: null,
-        })
-        subscription = subscribeCandidateStashAnalysis(started.jobId, {
-          onEvent: (event) => {
-            if (!alive || analysisRequestSeqRef.current !== requestSeq) return
-            setAnalysisProgress(event)
-            if (event.status === 'failed') {
-              setAnalysisError(event.error ?? event.message)
-            }
-            if (event.status === 'completed') {
-              void loadItems()
-              void refreshStashes()
-              showToast('후보군 AI 분석이 완료되었습니다.')
-              closeSubscription()
-            }
-            if (event.status === 'failed') {
-              closeSubscription()
-            }
-          },
-          onError: (err) => {
-            if (!alive || analysisRequestSeqRef.current !== requestSeq) return
-            setAnalysisError(err.message)
-            setAnalysisProgress((prev) => prev
-              ? { ...prev, status: 'failed', message: err.message, error: err.message }
-              : null)
-            closeSubscription()
-          },
-          onClose: () => {
-            if (!alive || analysisRequestSeqRef.current !== requestSeq) return
-            closeSubscription()
-          },
-        })
-      } catch (err) {
-        if (!alive || analysisRequestSeqRef.current !== requestSeq) return
-        const message = err instanceof Error ? err.message : '후보군 AI 분석 요청에 실패했습니다.'
-        setAnalysisError(message)
-        setAnalysisProgress((prev) => prev
-          ? { ...prev, status: 'failed', message, error: message }
-          : null)
-      }
-    })()
-
-    return () => {
-      alive = false
-      closeSubscription()
-    }
-  }, [loadItems, refreshStashes, showToast, stashUuid])
+  const handleAnalysisCompleted = useCallback(() => {
+    void loadItems()
+    void refreshStashes()
+    showToast('후보군 AI 분석이 완료되었습니다.')
+  }, [loadItems, refreshStashes, showToast])
+  const { analysisProgress, analysisError } = useCandidateStashAnalysisProgress({
+    stashUuid,
+    onCompleted: handleAnalysisCompleted,
+  })
 
   const detailTarget = useMemo(
     () => (stashUuid ? stashes.find((s) => s.uuid === stashUuid) ?? null : null),

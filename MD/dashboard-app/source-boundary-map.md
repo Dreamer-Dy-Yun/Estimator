@@ -125,7 +125,9 @@
 | `adminGptKeyApi.ts` | mock 관리자 GPT 키 관리 구현. 관리자 세션만 허용하고, 키 원문은 응답/목록 상태에 남기지 않는다 |
 | `authApi.ts` | mock 인증 API 구현. 로그인 입력값은 검증 없이 통과시키고, 사용자 목록은 정적 seed, 세션은 런타임 메모리에만 둔다. 관리자 비밀번호 재설정은 임시 비밀번호 1회 응답 흐름만 모사한다 |
 | `candidateSeeds.ts` | 후보군/후보 아이템 읽기 전용 seed 데이터와 소유자 UUID, 목업 AI 코멘트 포함 스냅샷. 기본 후보군 A에는 신발/의류/테스트 상품을 섞어 엑셀 동적 사이즈 컬럼을 검증한다 |
-| `dashboardApi.ts` | mock `DashboardApi` 구현체. public API 계약을 맞춰 응답하되 후보군 mutation은 저장하지 않는 계약 stub이다. 후보군 조회/상세는 전달된 mock 세션 사용자 UUID로 소유자 필터링을 모사하고, 이너 후보군 리스트는 데이터 참조기간 기준 live 수치와 배지를 계산해 반환한다 |
+| `candidateMockApi.ts` | 후보군/이너후보군 mock API 구현. 후보군 소유자 필터링, 데이터 참조기간 기준 live 수치·배지 계산, 후보군 mutation 계약 stub, 엑셀 업로드 mock 응답을 소유한다 |
+| `candidateAnalysisMock.ts` | 후보군 AI 분석 SSE mock. 작업 등록, 진행 이벤트, close/error 핸들러 호출만 소유하고 후보군 데이터 조회는 `candidateMockApi.ts`에서 주입받는다 |
+| `dashboardApi.ts` | 판매 분석, 산점도, 상품 드로어, 2차 계산 등 후보군을 제외한 mock `DashboardApi` 구현체. 후보군 API는 `candidateMockApi.ts`를 spread해 public 계약만 합친다 |
 | `orderSnapshotForCandidate.ts` | 후보 아이템용 오더 스냅샷 생성/복원 보조와 임시 목업 AI 코멘트 생성 |
 | `productCatalog.ts` | 상품 catalog seed와 조회. 의류는 S/M/L/XL/XXL, 신발은 235~280 사이즈 체계를 생성한다 |
 | `records.ts` | mock 원천 record 묶음 |
@@ -235,9 +237,11 @@
 
 | 파일 | 역할 |
 |------|------|
-| `CandidateStashDetailModal.tsx` | 특정 후보군의 이너 후보 목록, 표시 순서 인덱스, 정렬 헤더, 데이터 참조기간 입력, 상세확정 컬럼, 요약, 필터, 필터 카드 발주 엑셀 다운로드 액션, 추천 보기 호출/적용, drawer 연결, 일괄/개별 삭제 확인 흐름 |
+| `CandidateStashDetailModal.tsx` | 특정 후보군 상세 모달의 화면 조립. 데이터 참조기간 입력, 요약, 필터, 엑셀 다운로드 액션, 추천 보기 호출/적용, drawer 연결, 일괄/개별 삭제 확인 흐름을 소유한다 |
 | `CandidateStashDetailModal.module.css` | 후보군 상세 모달 전용 스타일, 헤더 데이터 참조기간 인라인 grid, 필터 카드 액션 grid, 엑셀 다운로드 버튼, 1차 드로어 열림 시 전용 span을 쓰는 40칸 헤더 grid, 헤더 고정/이너 후보 리스트 내부 스크롤 경계 |
-| `useCandidateStashDetailModal.ts` | 후보군 상세 모달의 API 호출, 필터, 리스트 정렬 상태, 데이터 참조기간 override, 기간 기반 후보 아이템 조회, 추천 후보 조회 상태, 프론트 발주 엑셀 생성 상태, drawer hydration, drawer 닫힘 전환, SSE 분석 진행 상태 |
+| `useCandidateStashDetailModal.ts` | 후보군 상세 모달의 API 호출, 필터, 리스트 정렬 상태, 데이터 참조기간 override, 기간 기반 후보 아이템 조회, 추천 후보 조회 상태, 프론트 발주 엑셀 생성 상태, drawer hydration, drawer 닫힘 전환 상태 |
+| `useCandidateStashAnalysisProgress.ts` | 후보군 AI 분석 SSE 구독 hook. 작업 시작, 진행/실패/완료 상태, 완료 후 새로고침 콜백 호출을 소유한다 |
+| `InnerCandidateOrderList.tsx` | 이너 후보 리스트 표면 UI. 표시 순서 인덱스, 정렬 헤더, 상세확정 컬럼, 선택 체크박스, badge 렌더링을 소유한다 |
 | `AnalysisCandidateBulkAddModal.tsx` | 자사/경쟁사 분석 리스트에서 선택한 상품을 기존 후보군에 담거나 새 후보군을 만든 뒤 담는 모달. 스냅샷을 만들지 않고 `appendCandidateItems`만 호출한다 |
 | `CandidateRecommendationModal.tsx` | 후보군 상세에서 추천 후보를 선택/적용하는 보조 모달 |
 | `CandidateRecommendationModal.module.css` | 추천 모달 전용 스타일 |
@@ -270,13 +274,15 @@
 
 | 파일/폴더 | 역할 |
 |------|------|
-| `ProductSecondaryDrawer.tsx` | 2차 드로워 content orchestration. 카드 배치, 스냅샷 생성, 후보군 저장/수정 사용자 액션, 이너후보군 live compact 표시, 스냅샷 기준 보기 토글을 소유한다. 저장 스냅샷의 큰 구조는 `parseOrderSnapshot`에 맡기고, live 모드는 AI 코멘트와 사이즈별 오더량 중심으로 보이며, 스냅샷 기준 보기에서는 저장 당시 기간과 전체 값을 복원한다 |
+| `ProductSecondaryDrawer.tsx` | 2차 드로워 content orchestration. 카드 배치, 이너후보군 live compact 표시, 스냅샷 기준 보기 토글을 소유한다. 저장 스냅샷의 큰 구조는 `parseOrderSnapshot`에 맡기고, live 모드는 AI 코멘트와 사이즈별 오더량 중심으로 보이며, 스냅샷 기준 보기에서는 저장 당시 기간과 전체 값을 복원한다 |
 | `useSecondaryDrawerDetail.ts` | 2차 드로워가 열릴 때의 상세 조회와 검증된 스냅샷 hydration |
 | `secondaryDrawerTypes.ts` | 2차 드로워 내부 view-model 타입 |
 | `candidateActionCards.tsx` | 2차 드로워에서 후보군 저장/연결 액션 UI |
+| `CandidateStashPickerModal.tsx` | 2차 드로워 후보군 선택/생성 portal 모달. 후보군 옵션 표시와 선택 이벤트만 소유한다 |
+| `secondarySnapshot.ts` | 2차 드로워의 오더 스냅샷 문서 생성. 저장 범위와 `OrderSnapshotDocumentV1` 필드 매핑을 UI 본문에서 분리한다 |
 | `cards/*` | 2차 드로워 카드 단위 UI. `SizeOrderCard`의 가중치 조절막대는 왼쪽 자사/오른쪽 경쟁사 시각 방향을 따르며, 내부 상태는 스냅샷 계약에 맞춰 `selfWeightPct`로 저장한다 |
-| `hooks/*` | 2차 드로워의 컨테이너 단위 API 요청. 재고·발주 계산과 선택 경쟁 채널 기준 일별 추이를 소유한다 |
-| `model/*` | 2차 드로워 계산 로직. `SecondaryOrderDraft`는 live/snapshot 모드별 사이즈 확정 수량 baseline과 사용자 override 책임을 묶은 작은 클래스다. UI에서 직접 계산이 커지면 여기로 이동한다 |
+| `hooks/*` | 2차 드로워의 컨테이너 단위 API 요청/액션 상태. 판매 정보, 재고·발주 계산, 선택 경쟁 채널 기준 일별 추이, 후보군 선택/저장 액션 상태를 소유한다 |
+| `model/*` | 2차 드로워 계산 로직. `SecondaryOrderDraft`는 live/snapshot 모드별 사이즈 확정 수량 baseline과 사용자 override 책임을 묶은 작은 클래스다. `secondarySizeOrderRows.ts`는 사이즈 비중, 추천 수량, 확정 수량 view-model 생성을 소유한다 |
 | `style-parts/*` | `secondaryDrawer.module.css`가 CSS `@import`로 묶는 2차 드로워 카드/컨트롤/표/입력 스타일 조각 |
 | `secondaryDrawer.module.css` | 2차 드로워 content 스타일 |
 

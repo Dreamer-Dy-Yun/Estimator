@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+﻿import { useEffect, useMemo, useRef, useState } from 'react'
 import type { CandidateStashSummary } from '../../../api'
 import { formatDateTimeMinute } from '../../../utils/date'
-import { formatEaQuantity, formatGroupedNumber, formatRatioDecimalKo } from '../../../utils/format'
+import { formatGroupedNumber, formatRatioDecimalKo } from '../../../utils/format'
 import { useAuth } from '../../../auth/AuthContext'
 import { ConfirmModal } from '../ConfirmModal'
 import { DeleteButton } from '../DeleteButton'
@@ -11,43 +11,13 @@ import { stashDetailModalBackdropDataProps } from '../../drawer/drawerDom'
 import {
   useCandidateStashDetailModal,
   type InnerCandidateRow,
-  type InnerCandidateSortKey,
 } from './useCandidateStashDetailModal'
 import styles from '../common.module.css'
-import { CandidateInsightBadges } from './CandidateInsightBadges'
 import { CandidateRecommendationModal } from './CandidateRecommendationModal'
+import { InnerCandidateOrderEmptyState, InnerCandidateOrderList } from './InnerCandidateOrderList'
 import detailStyles from './CandidateStashDetailModal.module.css'
 
 const ANALYSIS_POPUP_AUTO_DISMISS_SECONDS = 5
-
-type SortHeaderProps = {
-  label: string
-  sortKey: InnerCandidateSortKey
-  activeKey: InnerCandidateSortKey | null
-  activeDir: 'asc' | 'desc' | null
-  align?: 'left' | 'right'
-  onSort: (key: InnerCandidateSortKey) => void
-}
-
-function InnerOrderSortHeader({ label, sortKey, activeKey, activeDir, align = 'left', onSort }: SortHeaderProps) {
-  const active = activeKey === sortKey
-  const sortMark = active ? (activeDir === 'asc' ? '▲' : '▼') : ''
-
-  return (
-    <button
-      type="button"
-      className={`${detailStyles.innerOrderSortHeader} ${
-        align === 'right' ? detailStyles.innerOrderSortHeaderNum : ''
-      }`}
-      onClick={() => onSort(sortKey)}
-      aria-label={`${label} 정렬`}
-      aria-pressed={active}
-    >
-      <span>{label}</span>
-      <span className={detailStyles.innerOrderSortIcon} aria-hidden="true">{sortMark}</span>
-    </button>
-  )
-}
 
 type Props = {
   stashUuid: string
@@ -459,170 +429,40 @@ export function CandidateStashDetailModal({ stashUuid, stashSummary, onClose, on
                   </div>
                   <div className={detailStyles.innerCandidateListBlock}>
                     {m.detailLoading ? (
-                      <div className={`${styles.card} ${detailStyles.emptyState}`}>
+                      <InnerCandidateOrderEmptyState>
                         이너 후보 목록을 불러오는 중...
-                      </div>
+                      </InnerCandidateOrderEmptyState>
                     ) : m.drawerError ? (
-                      <div className={`${styles.card} ${detailStyles.emptyState}`}>
+                      <InnerCandidateOrderEmptyState>
                         이너 후보 상세 로드 실패: {m.drawerError}
-                      </div>
+                      </InnerCandidateOrderEmptyState>
                     ) : m.detailError ? (
-                      <div className={`${styles.card} ${detailStyles.emptyState}`}>
+                      <InnerCandidateOrderEmptyState>
                         이너 후보 목록 로드 실패: {m.detailError}
-                      </div>
+                      </InnerCandidateOrderEmptyState>
                     ) : !m.tableRows.length ? (
-                      <div className={`${styles.card} ${detailStyles.emptyState}`}>
+                      <InnerCandidateOrderEmptyState>
                         {m.brandQuery.trim() || m.codeQuery.trim() || m.productNameQuery.trim()
                           ? '검색 결과가 없습니다.'
                           : '등록된 이너 후보가 없습니다.'}
-                      </div>
+                      </InnerCandidateOrderEmptyState>
                     ) : (
-                      <div className={detailStyles.innerOrderList} role="list">
-                        <div className={detailStyles.innerOrderHeader} role="presentation">
-                          <span className={detailStyles.innerOrderIndexCell} aria-hidden="true" />
-                          <span className={detailStyles.innerOrderCheckCell}>
-                            <input
-                              ref={selectAllRef}
-                              type="checkbox"
-                              checked={allVisibleSelected}
-                              disabled={visibleItemUuids.length === 0}
-                              aria-label="전체 선택"
-                              onChange={toggleAllVisibleItems}
-                            />
-                          </span>
-                          <InnerOrderSortHeader
-                            label="브랜드"
-                            sortKey="brand"
-                            activeKey={activeSortKey}
-                            activeDir={activeSortDir}
-                            onSort={m.toggleTableSort}
-                          />
-                          <InnerOrderSortHeader
-                            label="품번"
-                            sortKey="code"
-                            activeKey={activeSortKey}
-                            activeDir={activeSortDir}
-                            onSort={m.toggleTableSort}
-                          />
-                          <InnerOrderSortHeader
-                            label="상품명"
-                            sortKey="productName"
-                            activeKey={activeSortKey}
-                            activeDir={activeSortDir}
-                            onSort={m.toggleTableSort}
-                          />
-                          <InnerOrderSortHeader
-                            label="색상"
-                            sortKey="colorCode"
-                            activeKey={activeSortKey}
-                            activeDir={activeSortDir}
-                            onSort={m.toggleTableSort}
-                          />
-                          <InnerOrderSortHeader
-                            label="상세확정"
-                            sortKey="isDetailConfirmed"
-                            activeKey={activeSortKey}
-                            activeDir={activeSortDir}
-                            onSort={m.toggleTableSort}
-                          />
-                          <InnerOrderSortHeader
-                            label="자사 기간 총 판매량"
-                            sortKey="selfQty"
-                            activeKey={activeSortKey}
-                            activeDir={activeSortDir}
-                            align="right"
-                            onSort={m.toggleTableSort}
-                          />
-                          <InnerOrderSortHeader
-                            label={competitorSalesQtyHeader}
-                            sortKey="competitorQty"
-                            activeKey={activeSortKey}
-                            activeDir={activeSortDir}
-                            align="right"
-                            onSort={m.toggleTableSort}
-                          />
-                          <InnerOrderSortHeader
-                            label="총 오더 수량"
-                            sortKey="expectedSalesQty"
-                            activeKey={activeSortKey}
-                            activeDir={activeSortDir}
-                            align="right"
-                            onSort={m.toggleTableSort}
-                          />
-                          <InnerOrderSortHeader
-                            label="총 오더 금액"
-                            sortKey="expectedOrderAmount"
-                            activeKey={activeSortKey}
-                            activeDir={activeSortDir}
-                            align="right"
-                            onSort={m.toggleTableSort}
-                          />
-                        </div>
-                        {m.tableRows.map((row, index) => {
-                          const selected = selectedVisibleItemUuidSet.has(row.uuid)
-                          return (
-                            <div
-                              key={row.uuid}
-                              className={`${detailStyles.innerOrderRow} ${
-                                row.insight.rankTone === 'top'
-                                  ? detailStyles.innerOrderRowTop
-                                  : row.insight.rankTone === 'bottom'
-                                    ? detailStyles.innerOrderRowBottom
-                                    : ''
-                              }`}
-                              onClick={() => toggleItemDrawer(row)}
-                              onKeyDown={(e) => {
-                                const target = e.target as HTMLElement | null
-                                if (target?.closest('input, button, a, select, textarea')) return
-                                if (e.key === 'ArrowLeft') {
-                                  e.preventDefault()
-                                  toggleItemDrawer(row)
-                                  return
-                                }
-                                if (e.key !== 'Enter' && e.key !== ' ') return
-                                e.preventDefault()
-                                toggleItemDrawer(row)
-                              }}
-                              role="listitem"
-                              tabIndex={0}
-                              aria-expanded={m.drawerOpen && m.openedItemUuid === row.uuid}
-                            >
-                              <span className={detailStyles.innerOrderIndexCell}>{index + 1}</span>
-                              <span className={detailStyles.innerOrderCheckCell}>
-                                <input
-                                  type="checkbox"
-                                  checked={selected}
-                                  aria-label={`${row.productName} 선택`}
-                                  onClick={(e) => e.stopPropagation()}
-                                  onChange={() => toggleSelectedItem(row.uuid)}
-                                />
-                              </span>
-                              <span className={detailStyles.innerOrderBrand}>{row.brand}</span>
-                              <span className={detailStyles.innerOrderCode}>{row.code}</span>
-                              <span className={detailStyles.innerOrderName}>{row.productName}</span>
-                              <span className={detailStyles.innerOrderColor}>{row.colorCode}</span>
-                              <span className={detailStyles.innerOrderConfirmState}>
-                                {row.isDetailConfirmed ? '확정' : '미확정'}
-                              </span>
-                              <span className={detailStyles.innerOrderCellNum}>
-                                {formatEaQuantity(row.insight.selfQty)}
-                              </span>
-                              <span className={detailStyles.innerOrderCellNum}>
-                                {formatEaQuantity(row.insight.competitorQty)}
-                              </span>
-                              <span className={detailStyles.innerOrderCellNum}>
-                                {formatGroupedNumber(row.insight.expectedSalesQty)} EA
-                              </span>
-                              <span className={detailStyles.innerOrderCellNum}>
-                                {formatGroupedNumber(row.expectedOrderAmount)} 원
-                              </span>
-                              <span className={detailStyles.innerOrderBadgeList}>
-                                <CandidateInsightBadges badges={row.insight.badges} />
-                              </span>
-                            </div>
-                          )
-                        })}
-                      </div>
+                      <InnerCandidateOrderList
+                        rows={m.tableRows}
+                        visibleItemUuids={visibleItemUuids}
+                        selectedUuidSet={selectedVisibleItemUuidSet}
+                        allVisibleSelected={allVisibleSelected}
+                        selectAllRef={selectAllRef}
+                        competitorSalesQtyHeader={competitorSalesQtyHeader}
+                        activeSortKey={activeSortKey}
+                        activeSortDir={activeSortDir}
+                        drawerOpen={m.drawerOpen}
+                        openedItemUuid={m.openedItemUuid}
+                        onToggleAllVisibleItems={toggleAllVisibleItems}
+                        onToggleSelectedItem={toggleSelectedItem}
+                        onToggleItemDrawer={toggleItemDrawer}
+                        onSort={m.toggleTableSort}
+                      />
                     )}
                   </div>
                 </div>

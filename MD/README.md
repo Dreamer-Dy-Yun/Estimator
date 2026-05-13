@@ -5,12 +5,12 @@
 | 작성 지시 | Yun Daeyoung |
 | 작성자 | Codex |
 | 작성일 | 2026-05-07 |
-| 최종 수정일 | 2026-05-07 |
+| 최종 수정일 | 2026-05-13 |
 | 상태 | 유지 문서 |
 
 ## 목적
 
-이 폴더는 프로젝트를 다시 파악할 때 필요한 현재 기준 문서만 남기고, 특정 작업의 일회성 이력 문서는 정리한다. 문서는 코드와 API 계약을 설명하는 보조 자료이므로, 기능 변경·계약 변경·폴더 경계 변경이 생기면 코드 변경과 같은 커밋에서 함께 갱신한다.
+이 폴더는 프로젝트를 다시 파악할 때 필요한 현재 기준 문서만 남기고, 특정 작업의 일회성 이력 문서는 `HISTORY`로 보낸다. 문서는 코드와 API 계약을 설명하는 보조 자료이므로, 기능 변경·계약 변경·폴더 경계 변경이 생기면 코드 변경과 같은 커밋에서 함께 갱신한다.
 
 ## 작성 기준
 
@@ -36,7 +36,7 @@
 - 백엔드 API 계약처럼 코드와 DB 구현의 기준이 되는 문서
 - 새 기능 개발 전에 아직 코드로 흡수되지 않은 설계 문서
 
-삭제 대상은 다음과 같다.
+`HISTORY` 이동 대상은 다음과 같다.
 
 - 특정 날짜의 작업 결과만 남긴 이력 문서
 - 같은 내용이 `frontend-overview.md`, `source-boundary-map.md`, `backend-api-spec.md` 같은 유지 문서에 이미 흡수된 문서
@@ -52,11 +52,4 @@
 | [dashboard-app/test-strategy.md](./dashboard-app/test-strategy.md) | 테스트 전략 |
 | [backend-api/README.md](./backend-api/README.md) | 백엔드 API 문서 입구 |
 | [backend-api/backend-api-spec.md](./backend-api/backend-api-spec.md) | 백엔드 API 계약 상세 |
-
-## 요구사항 문서
-
-| 문서 | 역할 |
-|------|------|
-| [self_sales_page_requirements.md](./self_sales_page_requirements.md) | 자사 판매 분석 화면 요구사항 |
-| [competitor_sales_page_requirements.md](./competitor_sales_page_requirements.md) | 경쟁사 판매 분석 화면 요구사항 |
-| [product_detail_analysis_requirements.md](./product_detail_analysis_requirements.md) | 상품 상세 분석 모달 요구사항 |
+| [HISTORY/README.md](./HISTORY/README.md) | 날짜별 계획·완료·과거 요구사항 이력 보관 기준 |
