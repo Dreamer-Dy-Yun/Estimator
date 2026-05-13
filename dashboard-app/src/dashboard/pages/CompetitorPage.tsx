@@ -283,29 +283,28 @@ export const CompetitorPage = () => {
             onPeriodBarStart={onPeriodBarStart}
             onPeriodBarEnd={onPeriodBarEnd}
             endControl={(
-              <label className={styles.periodPresetRowToggle}>
-                <input
-                  type="checkbox"
-                  checked={showRowsWithSelfSalesOnly}
-                  onChange={(event) => setShowRowsWithSelfSalesOnly(event.target.checked)}
-                />
-                <span>자사판매량이 존재하는 경우만 보기</span>
-              </label>
+              <div className={styles.periodPresetRowEndGroup}>
+                <label className={styles.periodPresetRowToggle}>
+                  <input
+                    type="checkbox"
+                    checked={showRowsWithSelfSalesOnly}
+                    onChange={(event) => setShowRowsWithSelfSalesOnly(event.target.checked)}
+                  />
+                  <span>자사판매량이 존재하는 경우만 보기</span>
+                </label>
+                <button
+                  type="button"
+                  className={`${styles.actionBtn} ${styles.btnPrimary} ${styles.analysisBulkAddButton}`}
+                  onClick={() => setBulkAddOpen(true)}
+                  disabled={bulkSelectedCount === 0}
+                >
+                  선택한 물품을 후보군으로
+                </button>
+              </div>
             )}
           />
         )}
       />
-      <div className={styles.analysisBulkActionBar}>
-        <span className={styles.analysisSelectionCount}>선택 {bulkSelectedCount}개</span>
-        <button
-          type="button"
-          className={`${styles.actionBtn} ${styles.btnPrimary} ${styles.analysisBulkAddButton}`}
-          onClick={() => setBulkAddOpen(true)}
-          disabled={bulkSelectedCount === 0}
-        >
-          선택한 물품을 후보군으로
-        </button>
-      </div>
 
       <div className={`${styles.twoCol} ${styles.selfTwoCol}`}>
         <div className={`${styles.leftCol} ${styles.selfLeftCol}`}>

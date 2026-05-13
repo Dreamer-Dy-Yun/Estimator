@@ -529,12 +529,19 @@
   cursor: pointer;
 }
 
-.periodPresetRowToggle {
+.periodPresetRowEndGroup {
   margin-left: auto;
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  min-height: 30px;
+  min-width: 0;
+}
+
+.periodPresetRowToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
   padding: 5px 8px;
   border: 1px solid #cbd5e1;
   border-radius: 8px;
@@ -544,6 +551,7 @@
   font-weight: 600;
   line-height: 1.2;
   cursor: pointer;
+  box-sizing: border-box;
 }
 
 .periodPresetRowToggle input {
@@ -558,8 +566,13 @@
 }
 
 @media (max-width: 720px) {
-  .periodPresetRowToggle {
+  .periodPresetRowEndGroup {
     margin-left: 0;
+    width: 100%;
+  }
+
+  .periodPresetRowToggle {
+    flex: 1;
   }
 }
 
@@ -572,24 +585,18 @@
   gap: 6px;
 }
 
-.analysisBulkActionBar {
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
-  gap: 8px;
-  min-width: 0;
-}
-
-.analysisSelectionCount {
-  color: #475569;
-  font-size: 12px;
-  font-weight: 700;
-  line-height: 1.2;
-}
-
 .analysisBulkAddButton {
-  min-height: 32px;
-  padding-inline: 14px;
+  height: 32px;
+  padding: 5px 12px;
+  box-sizing: border-box;
+  white-space: nowrap;
+}
+
+.periodPresetRow .analysisBulkAddButton {
+  border-color: #0f172a;
+  background: #0f172a;
+  color: #ffffff;
+  font-weight: 700;
 }
 
 .modalBackdrop {
@@ -712,10 +719,6 @@
 }
 
 @media (max-width: 640px) {
-  .analysisBulkActionBar {
-    justify-content: stretch;
-  }
-
   .analysisBulkAddButton {
     flex: 1;
   }

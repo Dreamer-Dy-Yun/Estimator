@@ -217,20 +217,21 @@ export const SelfPage = () => {
             onTogglePeriodBar={() => setShowPeriodBar((prev) => !prev)}
             onPeriodBarStart={onPeriodBarStart}
             onPeriodBarEnd={onPeriodBarEnd}
+            endControl={(
+              <div className={styles.periodPresetRowEndGroup}>
+                <button
+                  type="button"
+                  className={`${styles.actionBtn} ${styles.btnPrimary} ${styles.analysisBulkAddButton}`}
+                  onClick={() => setBulkAddOpen(true)}
+                  disabled={bulkSelectedCount === 0}
+                >
+                  선택한 물품을 후보군으로
+                </button>
+              </div>
+            )}
           />
         )}
       />
-      <div className={styles.analysisBulkActionBar}>
-        <span className={styles.analysisSelectionCount}>선택 {bulkSelectedCount}개</span>
-        <button
-          type="button"
-          className={`${styles.actionBtn} ${styles.btnPrimary} ${styles.analysisBulkAddButton}`}
-          onClick={() => setBulkAddOpen(true)}
-          disabled={bulkSelectedCount === 0}
-        >
-          선택한 물품을 후보군으로
-        </button>
-      </div>
 
       <div className={`${styles.twoCol} ${styles.selfTwoCol}`}>
         <div className={`${styles.leftCol} ${styles.selfLeftCol}`}>
