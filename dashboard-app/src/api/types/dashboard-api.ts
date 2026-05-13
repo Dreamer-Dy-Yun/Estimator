@@ -55,7 +55,7 @@ export interface DashboardApi {
   ): Promise<ProductSecondaryDetail>
   getSecondaryDailyTrend(params: SecondaryDailyTrendParams): Promise<SecondaryDailyTrendPoint[]>
   getSecondaryCompetitorChannels(): Promise<SecondaryCompetitorChannel[]>
-  getCandidateStashes(productId?: string): Promise<CandidateStashSummary[]>
+  getCandidateStashes(): Promise<CandidateStashSummary[]>
   getCandidateItemsByStash(params: CandidateItemListParams): Promise<CandidateItemListResult>
   getCandidateRecommendations(params: CandidateRecommendationParams): Promise<CandidateRecommendationResult>
   getCandidateItemByUuid(itemUuid: string): Promise<CandidateItemDetail | null>

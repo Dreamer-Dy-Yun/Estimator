@@ -5,6 +5,7 @@ import {
   getCandidateStashes,
   type CandidateStashSummary,
 } from '../../../api'
+import { useAppToast } from '../../../components/AppToast'
 import { formatDateTimeMinute } from '../../../utils/date'
 import styles from '../common.module.css'
 
@@ -34,6 +35,7 @@ export function AnalysisCandidateBulkAddModal({
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const requestSeqRef = useRef(0)
+  const { showToast } = useAppToast()
   const uniqueProductIds = useMemo(() => [...new Set(productIds)], [productIds])
 
   useEffect(() => {
@@ -64,7 +66,6 @@ export function AnalysisCandidateBulkAddModal({
     setError(null)
     try {
       const created = await createCandidateStash({
-        productId: uniqueProductIds[0] ?? '',
         name: nameInput.trim(),
         note: noteInput.trim(),
         periodStart,
@@ -75,6 +76,7 @@ export function AnalysisCandidateBulkAddModal({
       setSelectedStashUuid(created.uuid)
       setNameInput('')
       setNoteInput('')
+      showToast('후보군을 생성했습니다.')
     } catch (err) {
       setError(err instanceof Error ? err.message : '후보군 생성에 실패했습니다.')
     } finally {
@@ -91,6 +93,7 @@ export function AnalysisCandidateBulkAddModal({
         stashUuid: selectedStashUuid,
         productIds: uniqueProductIds,
       })
+      showToast('선택한 상품을 후보군에 담았습니다.')
       onDone()
     } catch (err) {
       setError(err instanceof Error ? err.message : '선택 상품을 후보군에 담지 못했습니다.')

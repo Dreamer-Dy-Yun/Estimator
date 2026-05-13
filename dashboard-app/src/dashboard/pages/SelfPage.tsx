@@ -33,12 +33,12 @@ type ScatterPoint = {
 
 export const SelfPage = () => {
   const [rows, setRows] = useState<SelfSalesRow[]>([])
-  const [selectedId, setSelectedId] = useState<string | null>(null)
-  const [bulkSelectedIds, setBulkSelectedIds] = useState<Set<string>>(() => new Set())
+  const [selectedProductId, setSelectedProductId] = useState<string | null>(null)
+  const [bulkSelectedProductIds, setBulkSelectedProductIds] = useState<Set<string>>(() => new Set())
   const [bulkAddOpen, setBulkAddOpen] = useState(false)
   const { toastMessage, copyAndNotify } = useCopyToastMessage()
   const [forecastMonths, setForecastMonths] = useState(() => readForecastMonthsFromStorage())
-  const summaryBundle = useProductDrawerBundle(selectedId)
+  const summaryBundle = useProductDrawerBundle(selectedProductId)
   const { ref: chartBodyRef, width: chartWidth, height: chartHeight, ready: chartReady } = useElementSize<HTMLDivElement>()
 
   const onForecastMonthsChange = useCallback((n: number) => {
@@ -119,14 +119,14 @@ export const SelfPage = () => {
     [rows, periodStartDate, periodEndDate],
   )
 
-  const navigationOrderIds = useMemo(() => rows.map((r) => r.id), [rows])
-  const bulkSelectedCount = bulkSelectedIds.size
+  const navigationOrderIds = useMemo(() => rows.map((r) => r.productId), [rows])
+  const bulkSelectedCount = bulkSelectedProductIds.size
   const allRowsSelected = rows.length > 0 && bulkSelectedCount === rows.length
-  const selectedProductIds = useMemo(() => [...bulkSelectedIds], [bulkSelectedIds])
+  const selectedProductIds = useMemo(() => [...bulkSelectedProductIds], [bulkSelectedProductIds])
 
   useEffect(() => {
-    setBulkSelectedIds((prev) => {
-      const available = new Set(rows.map((row) => row.id))
+    setBulkSelectedProductIds((prev) => {
+      const available = new Set(rows.map((row) => row.productId))
       const next = new Set([...prev].filter((id) => available.has(id)))
       return next.size === prev.size ? prev : next
     })
@@ -134,11 +134,11 @@ export const SelfPage = () => {
 
   const onRequestNavigateAdjacent = useCallback(
     (direction: AdjacentDirection) => {
-      if (!selectedId) return
-      const nextId = adjacentIdInOrder(navigationOrderIds, selectedId, direction)
-      if (nextId != null && nextId !== selectedId) setSelectedId(nextId)
+      if (!selectedProductId) return
+      const nextId = adjacentIdInOrder(navigationOrderIds, selectedProductId, direction)
+      if (nextId != null && nextId !== selectedProductId) setSelectedProductId(nextId)
     },
-    [navigationOrderIds, selectedId],
+    [navigationOrderIds, selectedProductId],
   )
 
   const renderScatterTooltip = (props: { active?: boolean; payload?: ReadonlyArray<{ payload?: ScatterPoint }> }) => {
@@ -161,7 +161,7 @@ export const SelfPage = () => {
   }
 
   const toggleBulkRow = (id: string) => {
-    setBulkSelectedIds((prev) => {
+    setBulkSelectedProductIds((prev) => {
       const next = new Set(prev)
       if (next.has(id)) next.delete(id)
       else next.add(id)
@@ -170,7 +170,7 @@ export const SelfPage = () => {
   }
 
   const toggleAllRows = () => {
-    setBulkSelectedIds(() => (allRowsSelected ? new Set() : new Set(rows.map((row) => row.id))))
+    setBulkSelectedProductIds(() => (allRowsSelected ? new Set() : new Set(rows.map((row) => row.productId))))
   }
 
   const scatterShape = useCallback(
@@ -307,10 +307,10 @@ export const SelfPage = () => {
               cell: (r) => (
                 <input
                   type="checkbox"
-                  checked={bulkSelectedIds.has(r.id)}
+                  checked={bulkSelectedProductIds.has(r.productId)}
                   aria-label={`${r.productName} 선택`}
                   onClick={(event) => event.stopPropagation()}
-                  onChange={() => toggleBulkRow(r.id)}
+                  onChange={() => toggleBulkRow(r.productId)}
                 />
               ),
               align: 'center',
@@ -332,11 +332,11 @@ export const SelfPage = () => {
           ]}
           rows={rows}
           defaultSort={{ key: 'qty', dir: 'desc' }}
-          onRowClick={(row) => setSelectedId(row.id)}
+          onRowClick={(row) => setSelectedProductId(row.productId)}
           onRowKeyDown={(row, event) => {
             if (event.key !== 'ArrowLeft') return
             event.preventDefault()
-            setSelectedId(row.id)
+            setSelectedProductId(row.productId)
           }}
         />
       </div>
@@ -347,7 +347,7 @@ export const SelfPage = () => {
         periodEnd={periodEndDate}
         forecastMonths={forecastMonths}
         onForecastMonthsChange={onForecastMonthsChange}
-        onClose={() => setSelectedId(null)}
+        onClose={() => setSelectedProductId(null)}
         onRequestNavigateAdjacent={onRequestNavigateAdjacent}
         secondaryEnabled={false}
       />
@@ -361,7 +361,7 @@ export const SelfPage = () => {
         onClose={() => setBulkAddOpen(false)}
         onDone={() => {
           setBulkAddOpen(false)
-          setBulkSelectedIds(new Set())
+          setBulkSelectedProductIds(new Set())
         }}
       />
     </section>

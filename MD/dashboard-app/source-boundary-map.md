@@ -27,8 +27,9 @@
 - 2차 드로워에서 화면에 노출되지 않는 AI 프롬프트 생성 API와 배포 전 제거 대상이던 JSON 미리보기 모달을 제거했다.
 - 오더 스냅샷 독립 localStorage 저장/조회/삭제 API를 제거하고, 후보 아이템 `details`를 스냅샷 저장의 단일 경로로 둔다.
 - 후보군 생성/삭제/복제/편집 이벤트는 API 호출 후 목록을 재조회한다. mock은 응답 흐름만 모사하고 브라우저 저장소에 후보군/이너 후보를 만들거나 지우지 않는다.
+- 후보군/관리자/드로워 저장처럼 백엔드 mutation 요청이 성공한 경우 `AppToastProvider`의 상단 자동 닫힘 toast로 완료 상태를 알린다. toast는 클릭 없이 2~3초 뒤 사라지고, 중요한 작업 영역을 가리지 않도록 화면 상단 중앙에 고정한다.
 - 후보군 목록/상세/수정 계열 API는 현재 인증 세션의 `USER_ACCOUNT.uuid` 기준으로 소유자 데이터를 필터링한다. 화면은 사용자 UUID를 직접 파라미터로 보내지 않고 `src/api/requests/dashboardRequests.ts`가 request boundary에서만 세션 UUID를 읽어 mock/향후 HTTP 요청에 붙인다.
-- 자사/경쟁사 분석 탭은 후보군에 상품을 담는 입구다. 분석 리스트의 체크박스와 `선택한 물품을 후보군으로` 모달은 스냅샷 없이 `stashUuid + productIds`만 API에 전달한다. 현재 `productId`는 `SKU.code + SKU.color_code` 상품 단위에 대응하고, AI 코멘트/사이즈별 확정 오더량은 이너후보군 2차 드로워에서 저장하기 전까지 미확정이다.
+- 자사/경쟁사 분석 탭은 후보군에 상품을 담는 입구다. 분석 리스트의 체크박스와 `선택한 물품을 후보군으로` 모달은 스냅샷 없이 `stashUuid + productIds`만 API에 전달한다. `row.id`는 화면 행 식별자이고, `productId`는 `SKU.code + SKU.color_code` 상품 단위에 대응한다. AI 코멘트/사이즈별 확정 오더량은 이너후보군 2차 드로워에서 저장하기 전까지 미확정이다.
 - 자사/경쟁사 분석 탭에서는 `ProductDrawer.secondaryEnabled={false}`로 2차 드로워를 열지 않는다. 2차 드로워 코드는 유지하되, 반원 버튼과 키보드 2차 진입은 이너후보군에서만 허용한다.
 - 이너후보군 리스트 조회는 `dataReferencePeriodStart`/`dataReferencePeriodEnd`를 API에 전달한다. 백엔드는 해당 기간의 전체 상품 분포를 먼저 계산해 배지를 부여한 뒤 후보군에 담긴 상품만 반환해야 하며, 요청 adapter 주석과 API 스펙에 이 부하 지점을 기록한다.
 - 이너후보군의 상세확정 여부는 후보 아이템 `details` 스냅샷 존재 여부다. 리스트 기본값은 데이터 참조기간 기준 live 계산값이고, 2차 드로워의 스냅샷 기준 보기에서는 저장 당시 전체 값과 기간을 복원하되 그래프는 그 기간으로 다시 조회한다.
@@ -49,7 +50,7 @@
 - 상품 drawer feature는 `dashboard/components/product-drawer`로 모았다. 루트 `ProductDrawer`는 overlay와 공유 상태만 조율하고, `primary`가 1차 드로워, `secondary`가 2차 드로워를 소유한다.
 - 경쟁 채널 상태는 1차 판매 정보와 2차 일별 추이가 공유하므로 `product-drawer/useCompetitorChannels.ts`가 소유한다. 2차 상세 조회는 `product-drawer/secondary/useSecondaryDrawerDetail.ts`가 소유한다.
 - 인증 context와 `useAuth`는 `AuthContext.ts`가 소유하고, `AuthProvider.tsx`는 세션 로딩과 API 호출 orchestration만 담당한다.
-- 복사 완료 toast는 표시 컴포넌트와 복사/타이머 hook을 분리해, `CopyToastBanner.tsx`는 렌더링만, `useCopyToastMessage.ts`는 클립보드 복사와 toast 상태만 담당한다.
+- 앱 전역 mutation 완료 toast는 `src/components/AppToast.tsx`가 소유한다. 복사 완료 toast는 기존 화면별 흐름을 유지하되, 백엔드 요청 완료 알림과 UI 위치 원칙을 맞춘다.
 
 ## 최상위 저장소
 
@@ -81,7 +82,7 @@
 | 경로 | 역할 | 변경 기준 |
 |------|------|-----------|
 | `src/main.tsx` | React root 생성, 전역 CSS와 KaTeX CSS 로드. | 전역 provider, 전역 스타일, 앱 mount 변경 시 수정 |
-| `src/App.tsx` | 배포 환경별 router 선택, 최상위 shell, 인증 provider 연결, 대시보드/관리자 라우트 lazy import. 기본은 `BrowserRouter`, `VITE_ROUTER_MODE=hash`일 때만 `HashRouter`를 쓴다. | URL 라우팅, 주요 layout 진입점, 라우트 단위 chunk 경계, 배포 라우팅 방식 변경 시 수정 |
+| `src/App.tsx` | 배포 환경별 router 선택, 최상위 shell, 전역 toast/auth provider 연결, 대시보드/관리자 라우트 lazy import. 기본은 `BrowserRouter`, `VITE_ROUTER_MODE=hash`일 때만 `HashRouter`를 쓴다. | URL 라우팅, 주요 layout 진입점, 라우트 단위 chunk 경계, 배포 라우팅 방식 변경 시 수정 |
 | `src/app.module.css` | 최상위 앱 shell 크기와 main 영역 스타일. | 앱 전체 shell 레이아웃 변경 시 수정 |
 | `src/types.ts` | 아직 API 계약으로 승격되지 않은 공용 도메인 타입. | 여러 영역에서 공유되는 타입만 둔다 |
 
@@ -172,6 +173,7 @@
 | 파일 | 역할 |
 |------|------|
 | `ApiUnitErrorBadge.tsx` | API 단위 오류를 표시하는 공용 badge |
+| `AppToast.tsx`, `AppToast.module.css` | 앱 전역 성공/정보/오류 toast provider와 상단 자동 닫힘 표시 |
 | `ComponentErrorBoundary.tsx` | 컴포넌트 단위 오류 격리 boundary |
 
 ## src/dashboard
@@ -271,7 +273,7 @@
 | `candidateActionCards.tsx` | 2차 드로워에서 후보군 저장/연결 액션 UI |
 | `cards/*` | 2차 드로워 카드 단위 UI. `SizeOrderCard`의 가중치 조절막대는 왼쪽 자사/오른쪽 경쟁사 시각 방향을 따르며, 내부 상태는 스냅샷 계약에 맞춰 `selfWeightPct`로 저장한다 |
 | `hooks/*` | 2차 드로워의 컨테이너 단위 API 요청. 재고·발주 계산과 선택 경쟁 채널 기준 일별 추이를 소유한다 |
-| `model/*` | 2차 드로워 계산 로직. UI에서 직접 계산이 커지면 여기로 이동한다 |
+| `model/*` | 2차 드로워 계산 로직. `SecondaryOrderDraft`는 live/snapshot 모드별 사이즈 확정 수량 baseline과 사용자 override 책임을 묶은 작은 클래스다. UI에서 직접 계산이 커지면 여기로 이동한다 |
 | `style-parts/*` | `secondaryDrawer.module.css`가 CSS `@import`로 묶는 2차 드로워 카드/컨트롤/표/입력 스타일 조각 |
 | `secondaryDrawer.module.css` | 2차 드로워 content 스타일 |
 

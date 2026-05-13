@@ -1,6 +1,8 @@
 /** One row in the self (own channel) sales analysis table. */
 export type SelfSalesRow = {
   id: string
+  /** Backend product identifier for a code + color group. UI row id is separate. */
+  productId: string
   rank: number
   /** Percentile rank among all SKUs. */
   rankPercentile: number
@@ -25,6 +27,8 @@ export type SelfSalesRow = {
 /** One row in the competitor comparison sales table. */
 export type CompetitorSalesRow = {
   id: string
+  /** Backend product identifier for a code + color group. UI row id is separate. */
+  productId: string
   rank: number
   rankPercentile: number
   brand: string
@@ -58,6 +62,7 @@ export type ProductSizeMixRow = {
 }
 
 export type ProductPrimarySummary = {
+  /** Backend product identifier for a code + color group. */
   id: string
   productName: string
   brand: string

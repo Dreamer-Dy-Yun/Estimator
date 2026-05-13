@@ -1,6 +1,7 @@
 import { Suspense, lazy, type ReactNode } from 'react'
 import { BrowserRouter, HashRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { AuthProvider } from './auth/AuthProvider'
+import { AppToastProvider } from './components/AppToast'
 import { RequireAdmin } from './auth/RequireAdmin'
 import { RequireAuth } from './auth/RequireAuth'
 import { DashboardLayout } from './dashboard/DashboardLayout'
@@ -61,9 +62,11 @@ function AppRoutes() {
 function App() {
   return (
     <AppRouter>
-      <AuthProvider>
-        <AppRoutes />
-      </AuthProvider>
+      <AppToastProvider>
+        <AuthProvider>
+          <AppRoutes />
+        </AuthProvider>
+      </AppToastProvider>
     </AppRouter>
   )
 }

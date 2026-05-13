@@ -4,7 +4,6 @@ export interface CandidateStashSummary {
   uuid: string
   name: string
   note: string | null
-  productId: string
   periodStart: string
   periodEnd: string
   forecastMonths: number
@@ -117,7 +116,6 @@ export interface CandidateItemDetail {
 }
 
 export interface CreateCandidateStashPayload {
-  productId: string
   name: string
   note?: string | null
   periodStart: string
@@ -142,6 +140,7 @@ export interface AppendCandidateItemPayload {
 /** Adds SKU candidates from analysis lists without saving an order snapshot. */
 export interface AppendCandidateItemsPayload {
   stashUuid: string
+  /** Product identifiers for code + color groups. No order snapshot is saved here. */
   productIds: string[]
 }
 

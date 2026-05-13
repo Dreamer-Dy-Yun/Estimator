@@ -111,7 +111,7 @@ function buildCandidateAnalysisEvent(
     totalItems,
     completedItems,
     currentItemUuid: item?.uuid ?? null,
-    currentProductName: item ? (item.details?.drawer1?.summary?.productName ?? productPrimaryById[item.skuUuid]?.productName ?? null) : null,
+    currentProductName: item ? (item.details?.drawer1?.summary?.productName ?? productPrimaryById[item.productId]?.productName ?? null) : null,
     message,
     error: null,
   }
@@ -147,7 +147,6 @@ function toCandidateStashSummary(
     uuid: row.uuid,
     name: row.name,
     note: row.note ?? null,
-    productId: row.productId,
     periodStart: row.periodStart,
     periodEnd: row.periodEnd,
     forecastMonths: row.forecastMonths,
@@ -223,7 +222,7 @@ function buildCandidateItemSummariesForStash(
 
   return readCandidateItemsForStash(stashUuid, ownerUserUuid)
     .map((row) => {
-      const productId = row.skuUuid
+      const productId = row.productId
       const primary = productPrimaryById[productId] ?? productPrimaryById[allKnownProductIds[0]]!
       const self = selfById[productId]
       const competitor = competitorById[productId]
@@ -455,13 +454,12 @@ export const mockDashboardApi = {
     await sleep(40)
     return secondaryCompetitorChannels
   },
-  getCandidateStashes: async (productId?: string, ownerUserUuid?: string): Promise<CandidateStashSummary[]> => {
+  getCandidateStashes: async (ownerUserUuid?: string): Promise<CandidateStashSummary[]> => {
     await sleep(60)
     const stashes = readCandidateStashRecords()
     const items = readCandidateItemRecords()
     const owned = filterCandidateStashesForOwner(stashes, ownerUserUuid)
-    const filtered = productId ? owned.filter((row) => row.productId === productId) : owned
-    return filtered
+    return owned
       .map((row) => {
         const linkedItems = items.filter((it) => it.stashUuid === row.uuid)
         const latestItemTs = linkedItems.reduce<string>(
@@ -521,7 +519,7 @@ export const mockDashboardApi = {
     return {
       uuid: row.uuid,
       stashUuid: row.stashUuid,
-      productId: row.skuUuid,
+      productId: row.productId,
       details: row.details,
       isLatestLlmComment: row.isLatestLlmComment,
       dbCreatedAt: row.dbCreatedAt,
@@ -569,7 +567,6 @@ export const mockDashboardApi = {
       name: payload.name.trim() || `오더 후보군 ${now.slice(0, 10)}`,
       note: payload.note?.trim() || null,
       createdByUserUuid: ownerUserUuid,
-      productId: payload.productId,
       periodStart: payload.periodStart,
       periodEnd: payload.periodEnd,
       forecastMonths: payload.forecastMonths,
@@ -729,7 +726,7 @@ export const mockDashboardApi = {
       })
     } else {
       job.items.forEach((item, index) => {
-        const productName = item.details?.drawer1?.summary?.productName ?? item.skuUuid
+        const productName = item.details?.drawer1?.summary?.productName ?? item.productId
         queue(260 + (index * 420), () => {
           emit(buildCandidateAnalysisEvent(
             jobId,

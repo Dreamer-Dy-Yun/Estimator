@@ -29,6 +29,7 @@ import {
   downloadBlob,
   preloadCandidateOrderExcelExport,
 } from '../../../utils/candidateOrderExcelExport'
+import { useAppToast } from '../../../components/AppToast'
 
 const INNER_DRAWER_CLOSE_LAYOUT_MS = 440
 
@@ -111,6 +112,7 @@ export function useCandidateStashDetailModal({
   const [orderExportError, setOrderExportError] = useState<string | null>(null)
   const [analysisProgress, setAnalysisProgress] = useState<CandidateStashAnalysisProgressEvent | null>(null)
   const [analysisError, setAnalysisError] = useState<string | null>(null)
+  const { showToast } = useAppToast()
   const mountedRef = useRef(false)
   const stashLoadSeqRef = useRef(0)
   const itemLoadSeqRef = useRef(0)
@@ -246,6 +248,7 @@ export function useCandidateStashDetailModal({
             if (event.status === 'completed') {
               void loadItems()
               void refreshStashes()
+              showToast('후보군 AI 분석이 완료되었습니다.')
               closeSubscription()
             }
             if (event.status === 'failed') {
@@ -279,7 +282,7 @@ export function useCandidateStashDetailModal({
       alive = false
       closeSubscription()
     }
-  }, [loadItems, refreshStashes, stashUuid])
+  }, [loadItems, refreshStashes, showToast, stashUuid])
 
   const detailTarget = useMemo(
     () => (stashUuid ? stashes.find((s) => s.uuid === stashUuid) ?? null : null),
@@ -494,10 +497,11 @@ export function useCandidateStashDetailModal({
       setItemDeleteTarget(null)
       await loadItems()
       await refreshStashes()
+      showToast('후보를 삭제했습니다.')
     } finally {
       if (mountedRef.current) setItemDeleteBusy(false)
     }
-  }, [closeDrawer, itemDeleteTarget, loadItems, openedItemUuid, refreshStashes])
+  }, [closeDrawer, itemDeleteTarget, loadItems, openedItemUuid, refreshStashes, showToast])
 
   const confirmDeleteItems = useCallback(async (itemUuids: string[]) => {
     const uniqueUuids = [...new Set(itemUuids)]
@@ -509,10 +513,11 @@ export function useCandidateStashDetailModal({
       if (openedItemUuid && uniqueUuids.includes(openedItemUuid)) closeDrawer()
       await loadItems()
       await refreshStashes()
+      showToast('선택한 후보를 삭제했습니다.')
     } finally {
       if (mountedRef.current) setBulkDeleteBusy(false)
     }
-  }, [closeDrawer, loadItems, openedItemUuid, refreshStashes, stashUuid])
+  }, [closeDrawer, loadItems, openedItemUuid, refreshStashes, showToast, stashUuid])
 
   const downloadOrderExcel = useCallback(async (userName: string) => {
     if (!detailTarget) return
@@ -527,6 +532,7 @@ export function useCandidateStashDetailModal({
       })
       if (!mountedRef.current) return
       downloadBlob(blob, filename)
+      showToast('엑셀 다운로드 파일을 생성했습니다.')
     } catch (err) {
       if (!mountedRef.current) return
       const message = err instanceof Error ? err.message : '엑셀 다운로드 파일 생성에 실패했습니다.'
@@ -534,7 +540,7 @@ export function useCandidateStashDetailModal({
     } finally {
       if (mountedRef.current) setOrderExportBusy(false)
     }
-  }, [detailTarget, items])
+  }, [detailTarget, items, showToast])
 
   return {
     drawerOpen,

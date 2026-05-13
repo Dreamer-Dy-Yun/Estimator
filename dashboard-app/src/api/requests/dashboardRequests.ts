@@ -101,8 +101,8 @@ export const dashboardRequests: DashboardApi = {
   getProductSecondaryDetail,
   getSecondaryDailyTrend,
   getSecondaryCompetitorChannels: () => mockDashboardApi.getSecondaryCompetitorChannels(),
-  getCandidateStashes: async (productId) =>
-    mockDashboardApi.getCandidateStashes(productId, await requireCurrentUserUuid()),
+  getCandidateStashes: async () =>
+    mockDashboardApi.getCandidateStashes(await requireCurrentUserUuid()),
   getCandidateItemsByStash: async (params) =>
     mockDashboardApi.getCandidateItemsByStash(params, await requireCurrentUserUuid()),
   getCandidateRecommendations: async (params) =>

@@ -4,6 +4,9 @@ import {
   ensureMockAiCommentForSnapshot,
 } from './orderSnapshotForCandidate'
 import { MOCK_ADMIN_USER_UUID, MOCK_USER_UUID } from './authApi'
+import { productIdByLegacyId } from './salesTables'
+
+const productId = (legacyId: string) => productIdByLegacyId[legacyId] ?? legacyId
 
 export const seededCandidateStashes: CandidateStashRecord[] = [
   {
@@ -11,7 +14,6 @@ export const seededCandidateStashes: CandidateStashRecord[] = [
     name: '기본 후보군 A',
     note: '초기 목업 데이터',
     createdByUserUuid: MOCK_ADMIN_USER_UUID,
-    productId: 'B',
     ...DEFAULT_CANDIDATE_STASH_CONTEXT,
     dbCreatedAt: '2026-04-20T09:00:00.000Z',
     dbUpdatedAt: '2026-04-20T09:00:00.000Z',
@@ -21,7 +23,6 @@ export const seededCandidateStashes: CandidateStashRecord[] = [
     name: '봄 시즌 후보군',
     note: '가격 민감도 높은 구성',
     createdByUserUuid: MOCK_ADMIN_USER_UUID,
-    productId: 'B',
     ...DEFAULT_CANDIDATE_STASH_CONTEXT,
     dbCreatedAt: '2026-04-20T10:30:00.000Z',
     dbUpdatedAt: '2026-04-20T10:30:00.000Z',
@@ -31,7 +32,6 @@ export const seededCandidateStashes: CandidateStashRecord[] = [
     name: '기본 후보군 D',
     note: '의류 카테고리 기본안',
     createdByUserUuid: MOCK_USER_UUID,
-    productId: 'D',
     ...DEFAULT_CANDIDATE_STASH_CONTEXT,
     dbCreatedAt: '2026-04-20T11:00:00.000Z',
     dbUpdatedAt: '2026-04-20T11:00:00.000Z',
@@ -41,7 +41,6 @@ export const seededCandidateStashes: CandidateStashRecord[] = [
     name: '기본 후보군 H',
     note: '신발 프리미엄 라인',
     createdByUserUuid: MOCK_USER_UUID,
-    productId: 'H',
     ...DEFAULT_CANDIDATE_STASH_CONTEXT,
     dbCreatedAt: '2026-04-20T11:20:00.000Z',
     dbUpdatedAt: '2026-04-20T11:20:00.000Z',
@@ -54,13 +53,11 @@ export const seededCandidateStashes: CandidateStashRecord[] = [
     const updatedMinute = String((i * 3 + 2) % 60).padStart(2, '0')
     const updatedHour = String(12 + Math.floor((i * 3 + 2) / 60)).padStart(2, '0')
     const updatedAt = `2026-04-21T${updatedHour}:${updatedMinute}:00.000Z`
-    const products = ['B', 'D', 'H', 'J', 'F', 'K', 'L', 'M']
     return {
       uuid: `candidate-stash-seed-${String(idx).padStart(2, '0')}`,
       name: `스크롤 테스트 후보군 ${String(idx).padStart(2, '0')}`,
       note: idx % 3 === 0 ? '스크롤/정렬/검색 검증용 샘플' : '대량 후보군 UI 검증',
       createdByUserUuid: idx % 5 === 0 ? MOCK_USER_UUID : MOCK_ADMIN_USER_UUID,
-      productId: products[i % products.length]!,
       ...DEFAULT_CANDIDATE_STASH_CONTEXT,
       dbCreatedAt: createdAt,
       dbUpdatedAt: updatedAt,
@@ -71,8 +68,8 @@ const seededCandidateItemDrafts: Array<Omit<CandidateItemRecord, 'isLatestLlmCom
   {
     uuid: 'candidateitem000000000000000000001',
     stashUuid: 'candidatestash00000000000000000001',
-    skuUuid: 'B',
-    details: buildMockOrderSnapshotForCandidate('B'),
+    productId: productId('B'),
+    details: buildMockOrderSnapshotForCandidate(productId('B')),
     dbCreatedAt: '2026-04-20T09:10:00.000Z',
     dbUpdatedAt: '2026-04-20T09:10:00.000Z',
   },
@@ -93,16 +90,16 @@ const seededCandidateItemDrafts: Array<Omit<CandidateItemRecord, 'isLatestLlmCom
   ).map(([suffix, pid, created, updated]) => ({
     uuid: `candidateitem000000000000000000${suffix}`,
     stashUuid: 'candidatestash00000000000000000001',
-    skuUuid: pid,
-    details: buildMockOrderSnapshotForCandidate(pid),
+    productId: productId(pid),
+    details: buildMockOrderSnapshotForCandidate(productId(pid)),
     dbCreatedAt: `2026-04-20T${created}`,
     dbUpdatedAt: `2026-04-20T${updated}`,
   })),
   {
     uuid: 'candidateitem000000000000000000002',
     stashUuid: 'candidatestash00000000000000000002',
-    skuUuid: 'B',
-    details: buildMockOrderSnapshotForCandidate('B'),
+    productId: productId('B'),
+    details: buildMockOrderSnapshotForCandidate(productId('B')),
     dbCreatedAt: '2026-04-20T10:40:00.000Z',
     dbUpdatedAt: '2026-04-20T10:40:00.000Z',
   },
@@ -117,24 +114,24 @@ const seededCandidateItemDrafts: Array<Omit<CandidateItemRecord, 'isLatestLlmCom
   ).map(([uuid, pid, created, updated]) => ({
     uuid,
     stashUuid: 'candidatestash00000000000000000002',
-    skuUuid: pid,
-    details: buildMockOrderSnapshotForCandidate(pid),
+    productId: productId(pid),
+    details: buildMockOrderSnapshotForCandidate(productId(pid)),
     dbCreatedAt: `2026-04-20T${created}`,
     dbUpdatedAt: `2026-04-20T${updated}`,
   })),
   {
     uuid: 'candidateitem000000000000000000003',
     stashUuid: 'candidatestash00000000000000000003',
-    skuUuid: 'D',
-    details: buildMockOrderSnapshotForCandidate('D'),
+    productId: productId('D'),
+    details: buildMockOrderSnapshotForCandidate(productId('D')),
     dbCreatedAt: '2026-04-20T11:10:00.000Z',
     dbUpdatedAt: '2026-04-20T11:10:00.000Z',
   },
   {
     uuid: 'candidateitem000000000000000000004',
     stashUuid: 'candidatestash00000000000000000004',
-    skuUuid: 'H',
-    details: buildMockOrderSnapshotForCandidate('H'),
+    productId: productId('H'),
+    details: buildMockOrderSnapshotForCandidate(productId('H')),
     dbCreatedAt: '2026-04-20T11:30:00.000Z',
     dbUpdatedAt: '2026-04-20T11:30:00.000Z',
   },
@@ -148,8 +145,8 @@ const seededCandidateItemDrafts: Array<Omit<CandidateItemRecord, 'isLatestLlmCom
     return {
       uuid: `candidate-item-seed-${String(idx).padStart(2, '0')}`,
       stashUuid: `candidate-stash-seed-${String(idx).padStart(2, '0')}`,
-      skuUuid: pid,
-      details: buildMockOrderSnapshotForCandidate(pid),
+      productId: productId(pid),
+      details: buildMockOrderSnapshotForCandidate(productId(pid)),
       dbCreatedAt: createdAt,
       dbUpdatedAt: createdAt,
     }

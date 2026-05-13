@@ -2,6 +2,9 @@ import { describe, expect, it } from 'vitest'
 import { mockDashboardApi } from './dashboardApi'
 import { DEFAULT_CANDIDATE_STASH_CONTEXT } from './records'
 import { MOCK_ADMIN_USER_UUID, MOCK_USER_UUID } from './authApi'
+import { productIdByLegacyId } from './salesTables'
+
+const productId = (legacyId: string) => productIdByLegacyId[legacyId] ?? legacyId
 
 const defaultCandidateItemListParams = (stashUuid: string) => ({
   stashUuid,
@@ -64,13 +67,13 @@ describe('api/mock dashboardApi competitor channel behavior', () => {
 
   it('applies selected channel to secondary daily competitor trend', async () => {
     const kream = await mockDashboardApi.getSecondaryDailyTrend({
-      productId: 'B',
+      productId: productId('B'),
       startMonth: '2025-01',
       leadTimeDays: 0,
       competitorChannelId: 'kream',
     })
     const musinsa = await mockDashboardApi.getSecondaryDailyTrend({
-      productId: 'B',
+      productId: productId('B'),
       startMonth: '2025-01',
       leadTimeDays: 0,
       competitorChannelId: 'musinsa',
@@ -90,11 +93,11 @@ describe('api/mock dashboardApi competitor channel behavior', () => {
       endDate: '2025-12-31',
       forecastMonths: 8,
     }
-    const kream = await mockDashboardApi.getProductMonthlyTrend('B', {
+    const kream = await mockDashboardApi.getProductMonthlyTrend(productId('B'), {
       ...params,
       competitorChannelId: 'kream',
     })
-    const musinsa = await mockDashboardApi.getProductMonthlyTrend('B', {
+    const musinsa = await mockDashboardApi.getProductMonthlyTrend(productId('B'), {
       ...params,
       competitorChannelId: 'musinsa',
     })
@@ -112,8 +115,8 @@ describe('api/mock dashboardApi competitor channel behavior', () => {
 describe('api/mock dashboardApi candidate stash contract stubs', () => {
   it('filters candidate stashes by authenticated owner uuid', async () => {
     const all = await mockDashboardApi.getCandidateStashes()
-    const adminOwned = await mockDashboardApi.getCandidateStashes(undefined, MOCK_ADMIN_USER_UUID)
-    const userOwned = await mockDashboardApi.getCandidateStashes(undefined, MOCK_USER_UUID)
+    const adminOwned = await mockDashboardApi.getCandidateStashes(MOCK_ADMIN_USER_UUID)
+    const userOwned = await mockDashboardApi.getCandidateStashes(MOCK_USER_UUID)
 
     expect(adminOwned.length).toBeGreaterThan(0)
     expect(userOwned.length).toBeGreaterThan(0)
@@ -123,7 +126,7 @@ describe('api/mock dashboardApi candidate stash contract stubs', () => {
   })
 
   it('hides candidate items when stash belongs to another user', async () => {
-    const userOwned = await mockDashboardApi.getCandidateStashes(undefined, MOCK_USER_UUID)
+    const userOwned = await mockDashboardApi.getCandidateStashes(MOCK_USER_UUID)
     const target = userOwned.find((row) => row.itemCount > 0)
     expect(target).toBeDefined()
 
@@ -185,7 +188,6 @@ describe('api/mock dashboardApi candidate stash contract stubs', () => {
     expect(source).toBeDefined()
 
     const created = await mockDashboardApi.createCandidateStash({
-      productId: 'B',
       name: '프론트 임시 후보군',
       note: null,
       ...DEFAULT_CANDIDATE_STASH_CONTEXT,

@@ -9,6 +9,7 @@ import {
   type CandidateStashExcelUploadResult,
   type CandidateStashSummary,
 } from '../../api'
+import { useAppToast } from '../../components/AppToast'
 import { formatDateTimeMinute } from '../../utils/date'
 import styles from '../components/common.module.css'
 import { ConfirmModal } from '../components/ConfirmModal'
@@ -26,6 +27,7 @@ const toTime = (iso: string) => {
 const candidateStashTemplateDownload = getCandidateStashExcelTemplateDownload()
 
 export const SnapshotConfirmPage = () => {
+  const { showToast } = useAppToast()
   const [stashes, setStashes] = useState<CandidateStashSummary[]>([])
   const [openDetailStashUuid, setOpenDetailStashUuid] = useState<string | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<CandidateStashSummary | null>(null)
@@ -82,6 +84,7 @@ export const SnapshotConfirmPage = () => {
       setUploadFile(null)
       if (uploadInputRef.current) uploadInputRef.current.value = ''
       await loadStashes()
+      showToast('엑셀 업로드 요청이 완료되었습니다.')
     } catch (err) {
       if (!mountedRef.current) return
       setUploadError(err instanceof Error ? err.message : '엑셀 업로드에 실패했습니다.')
@@ -295,6 +298,7 @@ export const SnapshotConfirmPage = () => {
                           try {
                             await duplicateCandidateStash(stash.uuid)
                             await loadStashes()
+                            showToast('후보군 복제 요청이 완료되었습니다.')
                           } finally {
                             if (mountedRef.current) setDuplicateBusyUuid(null)
                           }
@@ -387,6 +391,7 @@ export const SnapshotConfirmPage = () => {
                     await loadStashes()
                     if (!mountedRef.current) return
                     setEditTarget(null)
+                    showToast('후보군 이름·비고를 변경했습니다.')
                   } finally {
                     if (mountedRef.current) setEditBusy(false)
                   }
@@ -425,6 +430,7 @@ export const SnapshotConfirmPage = () => {
             await loadStashes()
             if (!mountedRef.current) return
             setDeleteTarget(null)
+            showToast('후보군을 삭제했습니다.')
           } finally {
             if (mountedRef.current) setDeleteBusy(false)
           }

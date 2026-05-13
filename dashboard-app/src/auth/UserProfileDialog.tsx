@@ -1,5 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { useAuth } from './AuthContext'
+import { useAppToast } from '../components/AppToast'
 import styles from './UserProfileDialog.module.css'
 
 const ROLE_LABELS = {
@@ -23,6 +24,7 @@ function getErrorMessage(error: unknown) {
 
 export function UserProfileDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { session, updateUser, changePassword } = useAuth()
+  const { showToast } = useAppToast()
   const [loginId, setLoginId] = useState('')
   const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
@@ -63,6 +65,7 @@ export function UserProfileDialog({ open, onClose }: { open: boolean; onClose: (
         await changePassword({ currentPassword, newPassword })
       }
       onClose()
+      showToast(wantsPasswordChange ? '사용자 정보와 비밀번호를 변경했습니다.' : '사용자 정보를 변경했습니다.')
     } catch (error) {
       setErrorMessage(getErrorMessage(error))
       setIsSaving(false)

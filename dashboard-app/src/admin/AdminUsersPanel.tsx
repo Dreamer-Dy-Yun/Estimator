@@ -8,6 +8,7 @@ import {
 } from '../api'
 import type { AdminUserSummary, AuthRole, ResetAdminUserPasswordResult } from '../api'
 import { useAuth } from '../auth/AuthContext'
+import { useAppToast } from '../components/AppToast'
 import { formatUpdatedAt, getErrorMessage, ROLE_OPTIONS } from './adminHelpers'
 import styles from './AdminPage.module.css'
 
@@ -190,6 +191,7 @@ type PasswordResetNotice = ResetAdminUserPasswordResult & {
 
 export function AdminUsersPanel() {
   const { session, refreshSession } = useAuth()
+  const { showToast } = useAppToast()
   const [users, setUsers] = useState<AdminUserSummary[]>([])
   const [newLoginId, setNewLoginId] = useState('')
   const [newPassword, setNewPassword] = useState('')
@@ -231,6 +233,12 @@ export function AdminUsersPanel() {
   const handleSaved = async () => {
     await reloadUsers()
     await refreshSession()
+    showToast('사용자 정보를 변경했습니다.')
+  }
+
+  const handleDeleted = async () => {
+    await reloadUsers()
+    showToast('사용자를 제거했습니다.')
   }
 
   const handlePasswordReset = async (user: AdminUserSummary) => {
@@ -251,6 +259,7 @@ export function AdminUsersPanel() {
       ...result,
     })
     setPasswordCopyMessage(null)
+    showToast('임시 비밀번호를 발급했습니다.')
   }
 
   const closePasswordResetNotice = () => {
@@ -263,6 +272,7 @@ export function AdminUsersPanel() {
     try {
       await window.navigator.clipboard.writeText(passwordResetNotice.temporaryPassword)
       setPasswordCopyMessage('복사됨')
+      showToast('임시 비밀번호를 복사했습니다.')
     } catch {
       setPasswordCopyMessage('복사 실패')
     }
@@ -289,6 +299,7 @@ export function AdminUsersPanel() {
       setNewNote('')
       setNewRole('user')
       setNewIsActive(true)
+      showToast('사용자를 추가했습니다.')
     } catch (error) {
       setCreateErrorMessage(getErrorMessage(error))
     } finally {
@@ -391,7 +402,7 @@ export function AdminUsersPanel() {
                 user={user}
                 currentUserUuid={session?.user.uuid ?? ''}
                 onSaved={handleSaved}
-                onDeleted={reloadUsers}
+                onDeleted={handleDeleted}
                 onPasswordReset={handlePasswordReset}
               />
             ))}

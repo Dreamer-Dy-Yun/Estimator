@@ -7,6 +7,7 @@ import {
   testAdminGptKey,
   updateAdminGptKey,
 } from '../api'
+import { useAppToast } from '../components/AppToast'
 import type {
   AdminGptKeyPurpose,
   AdminGptKeySummary,
@@ -58,6 +59,7 @@ function AdminGptKeyDialog({
   onDeleted: () => Promise<void>
   onTested: (result: AdminGptKeyTestResult) => void
 }) {
+  const { showToast } = useAppToast()
   const [name, setName] = useState(gptKey.name)
   const [purpose, setPurpose] = useState<AdminGptKeyPurpose>(gptKey.purpose)
   const [model, setModel] = useState(gptKey.model)
@@ -111,6 +113,7 @@ function AdminGptKeyDialog({
       })
       await onChanged()
       setRowMessage('변경됨')
+      showToast('GPT 키 정보를 변경했습니다.')
       setDeleteConfirm(false)
     } catch (error) {
       setErrorMessage(getErrorMessage(error))
@@ -129,6 +132,7 @@ function AdminGptKeyDialog({
       setRotateKey('')
       await onChanged()
       setRowMessage('키 교체됨')
+      showToast('GPT API 키를 교체했습니다.')
       setDeleteConfirm(false)
     } catch (error) {
       setErrorMessage(getErrorMessage(error))
@@ -146,6 +150,7 @@ function AdminGptKeyDialog({
       const result = await testAdminGptKey(gptKey.uuid)
       onTested(result)
       setRowMessage(result.message)
+      showToast(result.message, { variant: result.status === 'success' ? 'success' : 'error' })
       setDeleteConfirm(false)
     } catch (error) {
       setErrorMessage(getErrorMessage(error))
@@ -261,6 +266,7 @@ function AdminGptKeyDialog({
 }
 
 export function AdminGptKeysPanel() {
+  const { showToast } = useAppToast()
   const [gptKeys, setGptKeys] = useState<AdminGptKeySummary[]>([])
   const [newName, setNewName] = useState('')
   const [newPurpose, setNewPurpose] = useState<AdminGptKeyPurpose>('ai-comment')
@@ -321,6 +327,7 @@ export function AdminGptKeysPanel() {
       setNewPlainKey('')
       setNewNote('')
       setNewIsActive(true)
+      showToast('GPT 키를 추가했습니다.')
     } catch (error) {
       setCreateErrorMessage(getErrorMessage(error))
     } finally {
@@ -348,6 +355,7 @@ export function AdminGptKeysPanel() {
     await reloadGptKeys()
     setSelectedGptKeyUuid(null)
     setTestMessage('GPT 키가 삭제되었습니다.')
+    showToast('GPT 키를 삭제했습니다.')
   }
 
   return (

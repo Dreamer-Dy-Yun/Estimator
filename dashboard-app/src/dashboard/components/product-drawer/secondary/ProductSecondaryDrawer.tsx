@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import { BlockMath } from 'react-katex'
 import { dashboardApi, type ProductSalesInsight, type SecondaryCompetitorChannel } from '../../../../api'
 import { ComponentErrorBoundary } from '../../../../components/ComponentErrorBoundary'
+import { useAppToast } from '../../../../components/AppToast'
 import type { ApiUnitErrorInfo, ProductPrimarySummary, ProductSecondaryDetail } from '../../../../types'
 import {
   daysInclusiveBetween,
@@ -24,6 +25,7 @@ import { computeClientStockOrder } from './model/clientStockOrderCompute'
 import { KO } from '../ko'
 import { buildSalesKpiColumn } from '../../../../utils/salesKpiColumn'
 import { mergePrimarySecondarySizeMix } from './model/secondaryDrawerCalc'
+import { SecondaryOrderDraft } from './model/SecondaryOrderDraft'
 import styles from './secondaryDrawer.module.css'
 import type {
   SecondaryForecastDerived,
@@ -95,6 +97,7 @@ export function ProductSecondaryDrawer({
   const sizeRecQtyHelpId = useId()
   const salesForecastSizeOrderHelpId = useId()
   const portalHelp = usePortalHelpPopover<SecondaryHelpId>()
+  const { showToast } = useAppToast()
   const [safetyStockMode] = useState<'manual' | 'formula'>('formula')
   const [manualSafetyStock] = useState(0)
   /** null: 예측 수량연산용 μ는 클라이언트 가중모형값. 숫자면 해당 값으로 덮어씀. */
@@ -109,7 +112,7 @@ export function ProductSecondaryDrawer({
   const [aiPrompt, setAiPrompt] = useState('')
   const [aiComment, setAiComment] = useState('')
   const [selfWeightPct, setSelfWeightPct] = useState(50)
-  /** 사용자가 직접 덮어쓴 확정 수량만 — 스냅샷 값은 snapshotConfirmBySize에서 병합 */
+  /** 사용자가 직접 덮어쓴 확정 수량만. live/snapshot baseline은 SecondaryOrderDraft가 정한다. */
   const [confirmBySize, setConfirmBySize] = useState<Record<string, number>>({})
   const mountedRef = useRef(false)
   const candidateListReqSeqRef = useRef(0)
@@ -357,23 +360,32 @@ export function ProductSecondaryDrawer({
     ].join('|')
   }, [forecastCalc])
 
-  /** 스냅샷에 저장된 사이즈별 확정 수량 — 없으면 아래 연산 recommendedQty 사용 */
-  const snapshotConfirmBySize = useMemo((): Record<string, number> => {
+  /** 스냅샷에 저장된 사이즈별 확정 수량. live 모드에서는 baseline으로 쓰지 않는다. */
+  const savedSnapshotConfirmBySize = useMemo((): Record<string, number> => {
     if (prefillFromSnapshot == null) return {}
     return Object.fromEntries(
       prefillFromSnapshot.drawer2.sizeRows.map((row) => [row.size, row.confirmQty]),
     )
   }, [prefillFromSnapshot])
 
+  const orderDraft = useMemo(
+    () => new SecondaryOrderDraft({
+      mode: snapshotInfoMode ? 'snapshot' : 'live',
+      manualConfirmBySize: confirmBySize,
+      snapshotConfirmBySize: savedSnapshotConfirmBySize,
+    }),
+    [confirmBySize, savedSnapshotConfirmBySize, snapshotInfoMode],
+  )
+
   useEffect(() => {
     setConfirmBySize({})
   }, [primary.id, prefillFromSnapshot])
 
   useEffect(() => {
-    if (prefillFromSnapshot != null) return
+    if (snapshotInfoMode) return
     setConfirmBySize({})
   }, [
-    prefillFromSnapshot,
+    snapshotInfoMode,
     bufferStock,
     dailyMeanClient,
     leadTimeEndDate,
@@ -440,8 +452,7 @@ export function ProductSecondaryDrawer({
       const stock = currentStockBySize[i] ?? 0
       const inbound = expectedInboundBySize[i] ?? 0
       const recommendedQty = Math.max(0, Math.round(forecastQty - stock - inbound + bufferQtyEa))
-      const confirmQty =
-        confirmBySize[row.size] ?? snapshotConfirmBySize[row.size] ?? recommendedQty
+      const confirmQty = orderDraft.confirmQty(row.size, recommendedQty)
       return { ...row, forecastQty, recommendedQty, confirmQty }
     })
   }, [
@@ -453,18 +464,11 @@ export function ProductSecondaryDrawer({
     currentStockBySize,
     expectedInboundBySize,
     bufferStock,
-    confirmBySize,
-    snapshotConfirmBySize,
+    orderDraft,
   ])
 
   /** 사용자가 덮어쓴 사이즈만 확정 셀 강조 */
-  const manualConfirmDerived = useMemo(() => {
-    const o: Record<string, true> = {}
-    for (const k of Object.keys(confirmBySize)) {
-      o[k] = true
-    }
-    return o
-  }, [confirmBySize])
+  const manualConfirmDerived = useMemo(() => orderDraft.manualFlags(), [orderDraft])
 
   const {
     dailyTrendSeries,
@@ -599,10 +603,11 @@ export function ProductSecondaryDrawer({
         details: snap,
         isLatestLlmComment: false,
       })
+      showToast('후보군에 스냅샷을 저장했습니다.')
     } finally {
       if (mountedRef.current) setCandidateActionLoading(false)
     }
-  }, [buildSnapshot, primary.id, selectedCandidate])
+  }, [buildSnapshot, primary.id, selectedCandidate, showToast])
 
   const saveCandidateItemChanges = useCallback(async () => {
     if (candidateItemContext == null) return
@@ -616,16 +621,16 @@ export function ProductSecondaryDrawer({
       })
       if (!mountedRef.current) return
       candidateItemContext.onSaved?.()
+      showToast(hasSavedSnapshot ? '후보 상세 스냅샷을 수정했습니다.' : '후보 상세 스냅샷을 저장했습니다.')
     } finally {
       if (mountedRef.current) setCandidateActionLoading(false)
     }
-  }, [buildSnapshot, candidateItemContext])
+  }, [buildSnapshot, candidateItemContext, hasSavedSnapshot, showToast])
 
   const createCandidate = useCallback(async () => {
     setCandidateActionLoading(true)
     try {
       const created = await dashboardApi.createCandidateStash({
-        productId: primary.id,
         name: candidateNameInput.trim(),
         note: candidateNoteInput.trim(),
         periodStart,
@@ -644,27 +649,20 @@ export function ProductSecondaryDrawer({
         setCandidateNameInput('')
         setCandidateNoteInput('')
         setCandidateListOpen(false)
+        showToast('후보군을 생성했습니다.')
       }
     } finally {
       if (mountedRef.current) setCandidateActionLoading(false)
     }
-  }, [candidateNameInput, candidateNoteInput, forecastMonths, periodEnd, periodStart, primary.id, refreshCandidates])
+  }, [candidateNameInput, candidateNoteInput, forecastMonths, periodEnd, periodStart, refreshCandidates, showToast])
 
   const handleConfirmQtyChange = useCallback((size: string, next: number, recommendedQty: number) => {
-    const v = Math.max(0, Math.round(Number.isFinite(next) ? next : 0))
-    const rec = Math.max(0, Math.round(recommendedQty))
-    const baseline = snapshotConfirmBySize[size] ?? rec
-    if (v === baseline) {
-      setConfirmBySize((prev) => {
-        if (!(size in prev)) return prev
-        const { [size]: removed, ...rest } = prev
-        void removed
-        return rest
-      })
-      return
-    }
-    setConfirmBySize((prev) => ({ ...prev, [size]: v }))
-  }, [snapshotConfirmBySize])
+    setConfirmBySize((prev) => new SecondaryOrderDraft({
+      mode: snapshotInfoMode ? 'snapshot' : 'live',
+      manualConfirmBySize: prev,
+      snapshotConfirmBySize: savedSnapshotConfirmBySize,
+    }).nextManualConfirmBySize(size, next, recommendedQty))
+  }, [savedSnapshotConfirmBySize, snapshotInfoMode])
 
   const recommendedQtyTotal = useMemo(
     () => sizeRows.reduce((acc, r) => acc + Math.max(0, Math.round(r.recommendedQty)), 0),

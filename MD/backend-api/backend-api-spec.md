@@ -49,7 +49,7 @@
 
 ### 1.3 식별자
 
-- **`productId`**: 상품(SKU 단위 등) 식별자. 프론트와 동일 문자열을 사용해야 합니다.
+- **`productId`**: 상품 코드와 색상 코드가 묶인 상품 단위 식별자. 현재 프론트 계약에서는 `SKU.code + SKU.color_code`에 대응하며, 사이즈는 2차 드로워/스냅샷의 사이즈별 행에서 다룹니다. UI 행 id와 혼용하지 않습니다.
 - **`uuid`**: 후보 스태시·후보 아이템 등 **서버 생성 UUID** 문자열.
 - 오더 스냅샷은 현재 독립 저장 API가 아니라 후보 아이템의 `details` JSON으로만 저장·복원합니다.
 
@@ -246,14 +246,14 @@
 | `getProductSecondaryDetail(id, params?)` | GET | `/products/:id/secondary-detail?minOpMarginPct` |
 | `getSecondaryDailyTrend(params)` | GET | `/products/:productId/secondary/daily-trend?startMonth&leadTimeDays&competitorChannelId` |
 | `getSecondaryCompetitorChannels()` | GET | `/secondary/competitor-channels` |
-| `getCandidateStashes(productId?)` | GET | `/candidate-stashes?productId` |
+| `getCandidateStashes()` | GET | `/candidate-stashes` 세션 소유자 기준 |
 | `getCandidateItemsByStash(params)` | GET | `/candidate-stashes/:stashUuid/items?dataReferencePeriodStart&dataReferencePeriodEnd` |
 | `getCandidateRecommendations(params)` | GET | `/candidate-stashes/:stashUuid/recommendations?dataReferencePeriodStart&dataReferencePeriodEnd` |
 | `getCandidateItemByUuid(itemUuid)` | GET | `/candidate-items/:itemUuid` |
 | `deleteCandidateItem(itemUuid)` | DELETE | `/candidate-items/:itemUuid` 세션 소유자 기준 |
 | `deleteCandidateItems(stashUuid, itemUuids)` | DELETE | `/candidate-stashes/:stashUuid/items` body `{ itemUuids }`, 세션 소유자 기준 |
 | `deleteCandidateStash(stashUuid)` | DELETE | `/candidate-stashes/:stashUuid` 세션 소유자 기준 |
-| `createCandidateStash(payload)` | POST | `/candidate-stashes` body `{ productId, name, note?, periodStart, periodEnd, forecastMonths }`, 생성자는 세션 기준 |
+| `createCandidateStash(payload)` | POST | `/candidate-stashes` body `{ name, note?, periodStart, periodEnd, forecastMonths }`, 생성자는 세션 기준 |
 | `updateCandidateStash(payload)` | PATCH | `/candidate-stashes/:stashUuid` body `{ name, note? }`, 세션 소유자 기준 |
 | `duplicateCandidateStash(stashUuid)` | POST | `/candidate-stashes/:stashUuid/duplicate` 세션 소유자 기준 |
 | `appendCandidateItem(payload)` | POST | `/candidate-stashes/:stashUuid/items` body `{ productId, details, isLatestLlmComment }`, 세션 소유자 기준 |
@@ -288,6 +288,7 @@
 | 필드 | 의미 |
 |------|------|
 | `id` | 행 고유 id (목업용 문자열) |
+| `productId` | 후보군 담기와 상품 드로워 조회에 쓰는 상품 단위 식별자. `code + colorCode` 상품 단위이며 UI 행 id와 별개 |
 | `rank` | 순위 |
 | `rankPercentile` | 전체 SKU 대비 백분위 순위 |
 | `brand`, `category`, `code`, `productName`, `colorCode` | SKU 메타. `code + colorCode + size` 조합을 실제 SKU 식별 기준으로 본다. |
@@ -452,7 +453,6 @@
 |------|------|
 | `uuid` | 스태시 PK |
 | `name`, `note` | 이름·비고 |
-| `productId` | 후보군 생성/필터 대상 상품 단위 식별자. 현재 프론트 계약에서는 `SKU.code + SKU.color_code`에 대응한다 |
 | `periodStart`, `periodEnd` | 후보군 생성 당시의 데이터 참조 기간. 프론트 상세 화면은 이 값을 초기값으로 쓰며, 이후 사용자가 바꾼 `dataReferencePeriodStart`/`dataReferencePeriodEnd`가 후보군 리스트 재계산과 추천 판단에 적용된다 |
 | `forecastMonths` | 후보군 생성 당시의 월간 판매추이 포캐스트 개월 수 |
 | `itemCount` | 소속 후보 아이템 개수 |
@@ -536,7 +536,7 @@ badgeDefinitions: {
 
 **페이로드**
 
-- `CreateCandidateStashPayload`: `{ productId, name, note?, periodStart, periodEnd, forecastMonths }`
+- `CreateCandidateStashPayload`: `{ name, note?, periodStart, periodEnd, forecastMonths }` — 후보군은 컨테이너이며 단일 상품을 소유하지 않는다
 - `UpdateCandidateStashPayload`: `{ stashUuid, name, note? }` — 메타만 갱신
 - `AppendCandidateItemsPayload`: `{ stashUuid, productIds }` — 자사/경쟁사 분석 리스트에서 선택한 상품들을 스냅샷 없이 후보군에 추가한다. 현재 프론트의 `productId`는 내부적으로 `SKU.code + SKU.color_code` 상품 단위에 대응하며, 사이즈별 확정 오더량과 AI 코멘트는 이너후보군 2차 드로워에서 저장하기 전까지 비어 있거나 미확정 상태다
 - `AppendCandidateItemPayload`: `{ stashUuid, productId, details, isLatestLlmComment? }` — `details`가 오더 스냅샷 저장의 단일 경로이며, 기본값은 `false` 권장
