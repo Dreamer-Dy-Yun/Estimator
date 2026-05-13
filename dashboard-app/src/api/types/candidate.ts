@@ -19,6 +19,7 @@ export interface CandidateItemOrderExportSizeQty {
 }
 
 export interface CandidateItemOrderExport {
+  /** Label for the selected competitor channel used to calculate competitorQty. */
   competitorChannelLabel: string
   selfQty: number | null
   competitorQty: number | null
@@ -41,17 +42,17 @@ export interface CandidateItemSummary {
   productName: string
   colorCode: string
   qty: number
-  /** Expected order amount in KRW; same meaning as details.drawer2.stockDerived.expectedOrderAmount. */
+  /** Live expected order amount in KRW for the requested data reference period. */
   expectedOrderAmount: number
   expectedSalesAmount: number
-  /** Expected operating profit in KRW; same meaning as details.drawer2.stockDerived.expectedOpProfit. */
+  /** Live expected operating profit in KRW for the requested data reference period. */
   expectedOpProfit: number
   insight: CandidateItemInsightSummary
-  /** Whether the stored AI recommendation/comment reflects the latest saved snapshot. */
+  /** Whether the stored AI recommendation/comment reflects the latest saved secondary-drawer snapshot. */
   isLatestLlmComment: boolean
   /** True when this candidate item has a saved order snapshot from the secondary drawer. */
   isDetailConfirmed: boolean
-  /** Minimal data already loaded with the list so Excel export does not call the backend again. */
+  /** Download DTO already loaded with the list so Excel export does not call the backend again. */
   orderExport: CandidateItemOrderExport
   dbCreatedAt: string
   dbUpdatedAt: string
@@ -104,7 +105,7 @@ export interface CandidateRecommendationParams {
 
 export type CandidateRecommendationResult = CandidateItemListResult
 
-/** Candidate item detail response with the saved order snapshot JSON. */
+/** Candidate item detail response. `details` is null until the inner secondary drawer saves a snapshot. */
 export interface CandidateItemDetail {
   uuid: string
   stashUuid: string

@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import type { CandidateItemSummary } from '../api/types'
-import { createCandidateOrderExcelExport } from './candidateOrderExcelExport'
+import {
+  CandidateOrderWorkbookBuilder,
+  createCandidateOrderExcelExport,
+} from './candidateOrderExcelExport'
 
 function candidateItem(uuid: string, size: string): CandidateItemSummary {
   return {
@@ -51,6 +54,22 @@ function candidateItem(uuid: string, size: string): CandidateItemSummary {
 }
 
 describe('createCandidateOrderExcelExport', () => {
+  it('uses injected clock when building the download filename', async () => {
+    const ExcelJS = await import('exceljs')
+    const builder = new CandidateOrderWorkbookBuilder({
+      excelJs: ExcelJS,
+      now: () => new Date(2026, 4, 13),
+    })
+
+    const { filename } = await builder.build({
+      stashName: '정리 테스트',
+      userName: 'mock-admin',
+      items: [candidateItem('1', 'M')],
+    })
+
+    expect(filename).toBe('정리_테스트_발주_20260513.xlsx')
+  }, 15000)
+
   it('applies sheet header and N/A cell styles', async () => {
     const ExcelJS = await import('exceljs')
     const { blob } = await createCandidateOrderExcelExport({

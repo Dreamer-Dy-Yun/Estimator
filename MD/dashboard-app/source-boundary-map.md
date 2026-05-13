@@ -327,7 +327,7 @@ React나 API 구현에 의존하지 않는 순수 보조 함수만 둔다.
 | `forecastMonthsStorage.ts` | forecast month localStorage 저장 |
 | `format.ts` | 숫자/비율/EA 표시 format |
 | `hashRank.ts` | hash 기반 rank 보조 |
-| `candidateOrderExcelExport.ts` | 이미 조회한 후보군 아이템의 `orderExport` DTO를 발주용 XLSX로 변환하고 다운로드 파일명을 만든다. 데이터 행 생성 함수와 시트 스타일 적용 함수를 분리해 두며, `exceljs`는 후보군 상세 목록 로딩 후 미리 로드하고 다운로드 시 같은 promise를 재사용한다. 주 데이터/메타 시트 헤더와 `N/A` 셀 스타일을 적용한다 |
+| `candidateOrderExcelExport.ts` | 이미 조회한 후보군 아이템의 `orderExport` DTO를 발주용 XLSX로 변환하고 다운로드 파일명을 만든다. `CandidateOrderWorkbookBuilder`가 ExcelJS 모듈, clock, 스타일 정책을 주입받아 통합 문서 생성 책임을 가진다. `exceljs`는 후보군 상세 목록 로딩 후 미리 로드하고 다운로드 시 같은 promise를 재사용한다. 주 데이터/메타 시트 헤더와 `N/A` 셀 스타일을 적용한다 |
 | `salesKpiColumn.ts` | 판매 KPI column view-model helper |
 | `sort.ts` | 정렬 방향/상태/값 타입과 한국어 문자열·숫자·빈 값 비교 helper |
 | `uniqueSortedStrings.ts` | 문자열 option 정렬/중복 제거 |

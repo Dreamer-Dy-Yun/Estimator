@@ -1,7 +1,7 @@
 import type { CandidateItemSummary } from '../api/types/candidate'
 import type { Cell, Row, Worksheet } from 'exceljs'
 
-type CandidateOrderExportInput = {
+export type CandidateOrderExportInput = {
   stashName: string
   userName: string
   items: CandidateItemSummary[]
@@ -9,16 +9,32 @@ type CandidateOrderExportInput = {
 
 type ExcelCellValue = string | number
 type ExcelJsModule = typeof import('exceljs')
+type CandidateOrderExcelStyle = {
+  headerFillArgb: string
+  headerFontArgb: string
+  headerBorderArgb: string
+  bodyBorderArgb: string
+  notApplicableFillArgb: string
+  notApplicableFontArgb: string
+}
+
+type CandidateOrderWorkbookBuilderDeps = {
+  excelJs: ExcelJsModule
+  now?: () => Date
+  style?: CandidateOrderExcelStyle
+}
 
 const SIZE_NOT_APPLICABLE = 'N/A'
 const excelMimeType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
 const invalidFilenameChars = /[\\/:*?"<>|]+/g
-const headerFillArgb = 'FF000000'
-const headerFontArgb = 'FFFFFFFF'
-const headerBorderArgb = 'FF111827'
-const bodyBorderArgb = 'FFE5E7EB'
-const notApplicableFillArgb = 'FFFFE4E6'
-const notApplicableFontArgb = 'FFB91C1C'
+const defaultCandidateOrderExcelStyle: CandidateOrderExcelStyle = {
+  headerFillArgb: 'FF000000',
+  headerFontArgb: 'FFFFFFFF',
+  headerBorderArgb: 'FF111827',
+  bodyBorderArgb: 'FFE5E7EB',
+  notApplicableFillArgb: 'FFFFE4E6',
+  notApplicableFontArgb: 'FFB91C1C',
+}
 let excelJsModulePromise: Promise<ExcelJsModule> | null = null
 
 function loadExcelJs(): Promise<ExcelJsModule> {
@@ -37,11 +53,10 @@ function safeFilenamePart(value: string): string {
   return value.trim().replace(invalidFilenameChars, '_').replace(/\s+/g, '_') || 'candidate-stash'
 }
 
-function todayCompact(): string {
-  const now = new Date()
-  const y = now.getFullYear()
-  const m = String(now.getMonth() + 1).padStart(2, '0')
-  const d = String(now.getDate()).padStart(2, '0')
+function compactDate(date: Date): string {
+  const y = date.getFullYear()
+  const m = String(date.getMonth() + 1).padStart(2, '0')
+  const d = String(date.getDate()).padStart(2, '0')
   return `${y}${m}${d}`
 }
 
@@ -165,122 +180,148 @@ function thinBorder(argb: string) {
   }
 }
 
-function applyHeaderCellStyle(cell: Cell) {
-  cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: headerFillArgb } }
-  cell.font = { color: { argb: headerFontArgb }, bold: true }
-  cell.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true }
-  cell.border = thinBorder(headerBorderArgb)
-}
+export class CandidateOrderWorkbookBuilder {
+  private readonly excelJs: ExcelJsModule
+  private readonly now: () => Date
+  private readonly style: CandidateOrderExcelStyle
 
-function applyHeaderRowStyle(row: Row) {
-  row.height = 24
-  row.eachCell(applyHeaderCellStyle)
-}
-
-function applyBodyCellStyle(cell: Cell) {
-  cell.alignment = { vertical: 'middle', wrapText: true }
-  cell.border = thinBorder(bodyBorderArgb)
-  if (cell.value === SIZE_NOT_APPLICABLE) {
-    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: notApplicableFillArgb } }
-    cell.font = { color: { argb: notApplicableFontArgb } }
+  constructor({
+    excelJs,
+    now = () => new Date(),
+    style = defaultCandidateOrderExcelStyle,
+  }: CandidateOrderWorkbookBuilderDeps) {
+    this.excelJs = excelJs
+    this.now = now
+    this.style = style
   }
-}
 
-function applyBodyRowsStyle(sheet: Worksheet) {
-  sheet.eachRow((row, rowNumber) => {
-    if (rowNumber === 1) return
-    let hasLineBreak = false
-    row.eachCell((cell) => {
-      if (typeof cell.value === 'string' && cell.value.includes('\n')) {
-        hasLineBreak = true
-      }
-      applyBodyCellStyle(cell)
+  async build({ stashName, userName, items }: CandidateOrderExportInput) {
+    const createdAt = this.now()
+    const workbook = new this.excelJs.Workbook()
+    workbook.creator = 'HAN.A'
+    workbook.created = createdAt
+
+    const sizeColumns = collectSizeColumns(items)
+    const mainHeader = this.createMainHeader(items, sizeColumns)
+    const mainRows = [
+      mainHeader,
+      ...items.map((item) => exportRow(item, sizeColumns)),
+    ]
+
+    const mainSheet = workbook.addWorksheet('주 데이터', {
+      views: [{ state: 'frozen', ySplit: 1 }],
     })
-    row.height = hasLineBreak ? 30 : 21
-  })
-}
+    mainSheet.columns = this.createMainColumnWidths(sizeColumns).map((width) => ({ width }))
+    mainSheet.addRows(mainRows)
+    mainSheet.autoFilter = {
+      from: 'A1',
+      to: `${columnName(mainHeader.length - 1)}1`,
+    }
+    this.applySheetStyle(mainSheet)
 
-function applyMainSheetStyle(sheet: Worksheet) {
-  applyHeaderRowStyle(sheet.getRow(1))
-  applyBodyRowsStyle(sheet)
-}
+    const metaSheet = workbook.addWorksheet('메타')
+    metaSheet.columns = [{ width: 20 }, { width: 28 }]
+    metaSheet.addRows(this.createMetaRows(userName, items))
+    this.applySheetStyle(metaSheet)
 
-function applyMetaSheetStyle(sheet: Worksheet) {
-  applyHeaderRowStyle(sheet.getRow(1))
-  applyBodyRowsStyle(sheet)
-}
-
-export async function createCandidateOrderExcelExport({ stashName, userName, items }: CandidateOrderExportInput) {
-  const ExcelJS = await loadExcelJs()
-  const workbook = new ExcelJS.Workbook()
-  workbook.creator = 'HAN.A'
-  workbook.created = new Date()
-
-  const sizeColumns = collectSizeColumns(items)
-  const mainHeader = [
-    '브랜드',
-    '품번',
-    '상품명',
-    '색상',
-    '배지',
-    '자사 기간 총 판매량',
-    getCompetitorQtyHeader(items),
-    '총 오더량',
-    '총 오더 금액',
-    '평균 원가',
-    '평균 판매가',
-    '평균 수수료율',
-    '평균 영업이익율',
-    ...sizeColumns,
-  ]
-  const mainRows = [
-    mainHeader,
-    ...items.map((item) => exportRow(item, sizeColumns)),
-  ]
-  const metaRows = [
-    ['항목', '값'],
-    ['오더 입고 예정일', getInboundExpectedDate(items)],
-    ['이름', userName.trim() || '사용자'],
-  ]
-  const mainColumnWidths = [
-    18,
-    18,
-    34,
-    12,
-    18,
-    18,
-    18,
-    18,
-    18,
-    14,
-    14,
-    14,
-    16,
-    ...sizeColumns.map(() => 10),
-  ]
-
-  const mainSheet = workbook.addWorksheet('주 데이터', {
-    views: [{ state: 'frozen', ySplit: 1 }],
-  })
-  mainSheet.columns = mainColumnWidths.map((width) => ({ width }))
-  mainSheet.addRows(mainRows)
-  mainSheet.autoFilter = {
-    from: 'A1',
-    to: `${columnName(mainHeader.length - 1)}1`,
+    const workbookBuffer = await workbook.xlsx.writeBuffer()
+    const blob = new Blob([workbookBuffer as BlobPart], { type: excelMimeType })
+    return {
+      blob,
+      filename: `${safeFilenamePart(stashName)}_발주_${compactDate(createdAt)}.xlsx`,
+    }
   }
-  applyMainSheetStyle(mainSheet)
 
-  const metaSheet = workbook.addWorksheet('메타')
-  metaSheet.columns = [{ width: 20 }, { width: 28 }]
-  metaSheet.addRows(metaRows)
-  applyMetaSheetStyle(metaSheet)
-
-  const workbookBuffer = await workbook.xlsx.writeBuffer()
-  const blob = new Blob([workbookBuffer as BlobPart], { type: excelMimeType })
-  return {
-    blob,
-    filename: `${safeFilenamePart(stashName)}_발주_${todayCompact()}.xlsx`,
+  private createMainHeader(items: CandidateItemSummary[], sizeColumns: string[]): string[] {
+    return [
+      '브랜드',
+      '품번',
+      '상품명',
+      '색상',
+      '배지',
+      '자사 기간 총 판매량',
+      getCompetitorQtyHeader(items),
+      '총 오더량',
+      '총 오더 금액',
+      '평균 원가',
+      '평균 판매가',
+      '평균 수수료율',
+      '평균 영업이익율',
+      ...sizeColumns,
+    ]
   }
+
+  private createMetaRows(userName: string, items: CandidateItemSummary[]): ExcelCellValue[][] {
+    return [
+      ['항목', '값'],
+      ['오더 입고 예정일', getInboundExpectedDate(items)],
+      ['이름', userName.trim() || '사용자'],
+    ]
+  }
+
+  private createMainColumnWidths(sizeColumns: string[]): number[] {
+    return [
+      18,
+      18,
+      34,
+      12,
+      18,
+      18,
+      18,
+      18,
+      18,
+      14,
+      14,
+      14,
+      16,
+      ...sizeColumns.map(() => 10),
+    ]
+  }
+
+  private applySheetStyle(sheet: Worksheet) {
+    this.applyHeaderRowStyle(sheet.getRow(1))
+    this.applyBodyRowsStyle(sheet)
+  }
+
+  private applyHeaderRowStyle(row: Row) {
+    row.height = 24
+    row.eachCell((cell) => this.applyHeaderCellStyle(cell))
+  }
+
+  private applyHeaderCellStyle(cell: Cell) {
+    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: this.style.headerFillArgb } }
+    cell.font = { color: { argb: this.style.headerFontArgb }, bold: true }
+    cell.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true }
+    cell.border = thinBorder(this.style.headerBorderArgb)
+  }
+
+  private applyBodyRowsStyle(sheet: Worksheet) {
+    sheet.eachRow((row, rowNumber) => {
+      if (rowNumber === 1) return
+      let hasLineBreak = false
+      row.eachCell((cell) => {
+        if (typeof cell.value === 'string' && cell.value.includes('\n')) {
+          hasLineBreak = true
+        }
+        this.applyBodyCellStyle(cell)
+      })
+      row.height = hasLineBreak ? 30 : 21
+    })
+  }
+
+  private applyBodyCellStyle(cell: Cell) {
+    cell.alignment = { vertical: 'middle', wrapText: true }
+    cell.border = thinBorder(this.style.bodyBorderArgb)
+    if (cell.value === SIZE_NOT_APPLICABLE) {
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: this.style.notApplicableFillArgb } }
+      cell.font = { color: { argb: this.style.notApplicableFontArgb } }
+    }
+  }
+}
+
+export async function createCandidateOrderExcelExport(input: CandidateOrderExportInput) {
+  const excelJs = await loadExcelJs()
+  return new CandidateOrderWorkbookBuilder({ excelJs }).build(input)
 }
 
 export function downloadBlob(blob: Blob, filename: string) {

@@ -250,15 +250,15 @@
 | `getCandidateItemsByStash(params)` | GET | `/candidate-stashes/:stashUuid/items?dataReferencePeriodStart&dataReferencePeriodEnd` |
 | `getCandidateRecommendations(params)` | GET | `/candidate-stashes/:stashUuid/recommendations?dataReferencePeriodStart&dataReferencePeriodEnd` |
 | `getCandidateItemByUuid(itemUuid)` | GET | `/candidate-items/:itemUuid` |
-| `deleteCandidateItem(itemUuid)` | DELETE | `/candidate-items/:itemUuid` body `{ ownerUserUuid }` 또는 세션 기준 |
-| `deleteCandidateItems(stashUuid, itemUuids)` | DELETE | `/candidate-stashes/:stashUuid/items` body `{ ownerUserUuid, itemUuids }` |
-| `deleteCandidateStash(stashUuid)` | DELETE | `/candidate-stashes/:stashUuid` body `{ ownerUserUuid }` 또는 세션 기준 |
-| `createCandidateStash(payload)` | POST | `/candidate-stashes` body `{ ...payload, ownerUserUuid }` |
-| `updateCandidateStash(payload)` | PATCH | `/candidate-stashes/:stashUuid` body `{ ...payload, ownerUserUuid }` |
-| `duplicateCandidateStash(stashUuid)` | POST | `/candidate-stashes/:stashUuid/duplicate` body `{ ownerUserUuid }` |
-| `appendCandidateItem(payload)` | POST | `/candidate-stashes/:stashUuid/items` body `{ ...payload, ownerUserUuid }` |
-| `appendCandidateItems(payload)` | POST | `/candidate-stashes/:stashUuid/items/bulk` body `{ productIds }` |
-| `updateCandidateItem(payload)` | PATCH | `/candidate-items/:itemUuid` body `{ ...payload, ownerUserUuid }` |
+| `deleteCandidateItem(itemUuid)` | DELETE | `/candidate-items/:itemUuid` 세션 소유자 기준 |
+| `deleteCandidateItems(stashUuid, itemUuids)` | DELETE | `/candidate-stashes/:stashUuid/items` body `{ itemUuids }`, 세션 소유자 기준 |
+| `deleteCandidateStash(stashUuid)` | DELETE | `/candidate-stashes/:stashUuid` 세션 소유자 기준 |
+| `createCandidateStash(payload)` | POST | `/candidate-stashes` body `{ productId, name, note?, periodStart, periodEnd, forecastMonths }`, 생성자는 세션 기준 |
+| `updateCandidateStash(payload)` | PATCH | `/candidate-stashes/:stashUuid` body `{ name, note? }`, 세션 소유자 기준 |
+| `duplicateCandidateStash(stashUuid)` | POST | `/candidate-stashes/:stashUuid/duplicate` 세션 소유자 기준 |
+| `appendCandidateItem(payload)` | POST | `/candidate-stashes/:stashUuid/items` body `{ productId, details, isLatestLlmComment }`, 세션 소유자 기준 |
+| `appendCandidateItems(payload)` | POST | `/candidate-stashes/:stashUuid/items/bulk` body `{ productIds }`, 세션 소유자 기준 |
+| `updateCandidateItem(payload)` | PATCH | `/candidate-items/:itemUuid` body `{ details, isLatestLlmComment }`, 세션 소유자 기준 |
 | `uploadCandidateStashExcel(file)` | POST multipart/form-data | `/candidate-stashes/import/excel` |
 | `startCandidateStashAnalysis(stashUuid)` | POST | `/candidate-stashes/:stashUuid/analysis` |
 | `subscribeCandidateStashAnalysis(jobId, handlers)` | GET (SSE) | `/candidate-stash-analyses/:jobId/events` |
@@ -452,7 +452,7 @@
 |------|------|
 | `uuid` | 스태시 PK |
 | `name`, `note` | 이름·비고 |
-| `productId` | 연결 상품 |
+| `productId` | 후보군 생성/필터 대상 상품 단위 식별자. 현재 프론트 계약에서는 `SKU.code + SKU.color_code`에 대응한다 |
 | `periodStart`, `periodEnd` | 후보군 생성 당시의 데이터 참조 기간. 프론트 상세 화면은 이 값을 초기값으로 쓰며, 이후 사용자가 바꾼 `dataReferencePeriodStart`/`dataReferencePeriodEnd`가 후보군 리스트 재계산과 추천 판단에 적용된다 |
 | `forecastMonths` | 후보군 생성 당시의 월간 판매추이 포캐스트 개월 수 |
 | `itemCount` | 소속 후보 아이템 개수 |
@@ -515,14 +515,14 @@ badgeDefinitions: {
 |------|------|
 | `uuid` | 아이템 PK |
 | `stashUuid` | 소속 스태시 |
-| `productId` | 상품 id |
+| `productId` | 상품 단위 식별자. 현재 프론트 계약에서는 `SKU.code + SKU.color_code`에 대응하며, 사이즈는 2차 드로워/스냅샷의 사이즈별 행에서 다룬다 |
 | `brand`, `code`, `productName`, `colorCode` | 현재 상품 마스터와 기간 집계 결과의 SKU 메타. 색상은 SKU 식별 메타이므로 목록·엑셀에 함께 노출한다. |
 | `qty` | 데이터 참조 기간 기준 추천/예상 오더 수량 합계(EA). 저장 스냅샷이 있더라도 리스트 기본값은 현재 기간 live 계산값이다 |
 | `expectedOrderAmount` | 데이터 참조 기간 기준 예상 **발주 금액(원)** |
 | `expectedSalesAmount` | 데이터 참조 기간 기준 예상 매출 |
 | `expectedOpProfit` | 데이터 참조 기간 기준 예상 영업이익 |
 | `insight.badgeNames` | 이 아이템에 붙일 배지 이름 배열. 현재 목데이터 기준 허용 배지는 `크림판매`, `자사이익`, `자사판매` |
-| `orderExport` | 발주 엑셀을 프론트에서 즉시 생성하기 위한 다운로드 DTO. 전체 `details` 스냅샷을 다시 받지 않도록 `competitorChannelLabel`, 자사/경쟁 기간 판매량, 총 오더량/금액, 평균 원가/판매가/수수료율/영업이익율, 오더 입고 예정일, 사이즈별 오더량만 포함 |
+| `orderExport` | 발주 엑셀을 프론트에서 즉시 생성하기 위한 요청 기간 기준 다운로드 DTO. 전체 `details` 스냅샷을 다시 받지 않도록 `competitorChannelLabel`, 자사/경쟁 기간 판매량, 총 오더량/금액, 평균 원가/판매가/수수료율/영업이익율, 오더 입고 예정일, 사이즈별 오더량만 포함 |
 | `isLatestLlmComment` | 현재 저장 스냅샷 기준 AI 코멘트/추천이 최신인지 여부. DB 컬럼은 `is_latest_llm_comment` 권장 |
 | `isDetailConfirmed` | 이너후보군 2차 드로워에서 저장한 스냅샷이 있으면 `true`. 리스트의 상세확정 컬럼은 이 값을 표시한다 |
 | `dbCreatedAt`, `dbUpdatedAt` | 생성·수정 시각 |
