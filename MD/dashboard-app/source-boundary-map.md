@@ -59,7 +59,7 @@
 
 | 경로 | 역할 | 변경 기준 |
 |------|------|-----------|
-| `.github/workflows/deploy-dashboard.yml` | `dashboard-app`을 테스트, `/Estimator/` base와 `VITE_ROUTER_MODE=hash`로 빌드, SPA fallback용 `404.html`을 포함해 GitHub Pages에 배포한다. | 배포 방식, Node 버전, Pages 경로, fallback/라우터 모드가 바뀔 때 수정 |
+| `.github/workflows/deploy-dashboard.yml` | `dashboard-app`을 lint/test 후 `/Estimator/` base와 `VITE_ROUTER_MODE=hash`로 빌드, SPA fallback용 `404.html`을 포함해 GitHub Pages에 배포한다. | 배포 방식, Node 버전, Pages 경로, fallback/라우터 모드, CI 품질 gate가 바뀔 때 수정 |
 | `AGENTS.md` | 작업자 지침. Git, 문서, 검증, 프론트엔드 경계 규칙을 둔다. | 프로젝트 운영 규칙이 바뀔 때 수정 |
 | `MD/` | 요구사항, API 계약, 구조 문서 보관소. 문서 작성·보존 기준은 `MD/README.md`가 소유하고, 날짜별 작업 이력은 유지 문서에 흡수되면 삭제한다. | 기능/API/구조/문서 운영 기준 변경 시 관련 문서 갱신 |
 | `dashboard-app/` | React/Vite 대시보드 앱. | 프론트엔드 작업의 주 대상 |

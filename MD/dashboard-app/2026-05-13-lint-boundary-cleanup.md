@@ -36,6 +36,7 @@
 ## Result
 
 - 전체 `npm run lint` 통과 상태로 정리했다.
+- GitHub Pages 배포 workflow에 `npm run lint` 단계를 추가해 lint를 CI gate로 올렸다.
 - `AppToastContext.ts`를 추가해 hook/context export와 provider component fast-refresh 경계를 분리했다.
 - `FilterListCombo`, 후보군 상세 모달, 상품 drawer, 1차 판매/월간 추이 컨테이너, 2차 일간 추이 카드, 자사/경쟁 분석 페이지의 Hooks lint 오류를 상태 파생 방식으로 수정했다.
 - `useAnalysisVisibleSelection.ts`를 추가해 자사/경쟁 분석의 격자 셀 선택, 현재 화면 기준 drawer 선택, 후보군 일괄 담기 선택 상태를 공통화했다.
@@ -48,4 +49,3 @@
 
 - 실제 HTTP adapter 전환은 백엔드 엔드포인트가 아직 없으므로 이번 범위에서 제외한다.
 - 대형 컴포넌트 전면 분해는 기능 회귀 위험이 커서, 이번에는 반복 상태/계산 경계처럼 책임이 명확한 부분부터 분리했다.
-- CI lint gate 추가는 이번 변경의 검증 후 별도 운영 결정으로 둔다.
