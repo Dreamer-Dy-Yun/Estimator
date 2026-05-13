@@ -1,11 +1,19 @@
 import { useEffect, useMemo, useState } from 'react'
 import { getSalesFilterMeta } from '../../api'
 import type { SelfSalesParams } from '../../api/types'
-import type { FilterField } from '../components/FilterBar'
+import type { FilterField } from '../model/filterField'
 import { usePeriodRangeFilter } from './usePeriodRangeFilter'
 
 const ALL_OPTION = '전체'
 const EMPTY_OPTIONS = [ALL_OPTION]
+
+export function maskNonPeriodAnalysisFilterFields(fields: FilterField[]): FilterField[] {
+  return fields.map((field) => (
+    field.inputType === 'date'
+      ? field
+      : { ...field, displayValue: '', disabled: true }
+  ))
+}
 
 function filterParam(value: string): string | undefined {
   const trimmed = value.trim()

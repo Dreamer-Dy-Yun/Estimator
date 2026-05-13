@@ -83,11 +83,12 @@ type ScatterGridBucket = {
 }
 
 const DEFAULT_SCATTER_BUCKET_COUNT = 12
+const DEFAULT_SCATTER_BUCKET_SIZE_RATIO = 0.7
 
 function resolveBucketSize(span: number, requested: number | undefined): number {
   if (requested !== undefined && Number.isFinite(requested) && requested > 0) return requested
   if (!Number.isFinite(span) || span <= 0) return 1
-  return span / DEFAULT_SCATTER_BUCKET_COUNT
+  return (span / DEFAULT_SCATTER_BUCKET_COUNT) * DEFAULT_SCATTER_BUCKET_SIZE_RATIO
 }
 
 function clampIndex(value: number, start: number, bucketSize: number, bucketCount: number): number {
@@ -456,7 +457,7 @@ export const mockDashboardApi = {
     const grouped = rows.map((row) => ({
       skuGroupKey: row.skuGroupKey,
       x: row.opMarginRate,
-      y: Math.round(row.amount / 1_000_000),
+      y: row.qty,
     }))
     return buildScatterGridCells(grouped, params?.xBucketSize, params?.yBucketSize, params?.maxSkuIdsPerCell)
   },

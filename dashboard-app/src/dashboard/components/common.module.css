@@ -111,6 +111,24 @@
   margin-bottom: 10px;
 }
 
+.chartCardTitleRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.chartCardTitleRow .cardTitle {
+  margin-bottom: 0;
+}
+
+.chartClearSelectionButton {
+  height: 26px;
+  padding: 4px 8px;
+  white-space: nowrap;
+}
+
 .salesTrendTitleRow {
   display: flex;
   align-items: center;
@@ -483,6 +501,19 @@
   line-height: 1.2;
   height: 32px;
   box-sizing: border-box;
+}
+
+.fieldDisabled label {
+  color: #94a3b8;
+}
+
+.field input:disabled,
+.field select:disabled {
+  border-color: #dbe4ef;
+  border-style: dashed;
+  background: #f8fafc;
+  color: transparent;
+  cursor: not-allowed;
 }
 
 .periodTools {

@@ -37,6 +37,11 @@ const candidateStashExcelTemplateFilename = '(Han.A)Template(ver.0.0.0).xlsx'
  * - Analysis list filters are query conditions, not local-only UI filters. The
  *   backend should apply date/brand/category/code/color/name/channel conditions
  *   before ranking, KPI, and chart values are returned.
+ * - Scatter grid endpoints should be server-side aggregations for large result
+ *   sets. Tens of thousands of raw rows should not be fetched only so the
+ *   browser can bin them. The frontend may request xBucketSize/yBucketSize when
+ *   it wants a specific data-unit grid density, but point radius is client-only:
+ *   it is derived from response meta.bucketSize and the rendered chart size.
  * - getCompetitorSales treats an omitted competitorChannelId as "all competitor
  *   channels". Backend aggregation must sum channel sales qty/amount once per
  *   skuGroupKey and keep self sales unduplicated.
@@ -119,6 +124,65 @@ async function getSecondaryStockOrderCalc(
   return mockDashboardApi.getSecondaryStockOrderCalc(params)
 }
 
+/**
+ * Scatter-grid request for self-sales analysis.
+ *
+ * Python backend implementation direction:
+ * - Do this as a server-side aggregation endpoint. Do not return tens of
+ *   thousands of raw sales rows to the browser just so the frontend can bin
+ *   points.
+ * - Reuse the same SQLAlchemy/query-builder filters as getSelfSales:
+ *   startDate/endDate, brand, category, codeQuery, colorCode, nameQuery.
+ * - Aggregate to one row per skuGroupKey first. skuGroupKey means
+ *   SKU.code + SKU.color_code; size-level SKU rows should be folded into this
+ *   product-color group before chart binning.
+ * - Self chart axes:
+ *   x = weighted/period operating margin rate (%)
+ *   y = filtered period self sales quantity (EA)
+ * - If xBucketSize/yBucketSize are absent, backend should derive bucket sizes
+ *   from the filtered min/max range. Current mock default is roughly 70% of
+ *   a 12-division bucket so cells are a bit denser than a plain 12x12 grid.
+ * - Return only ScatterSalesGridResponse: cells + meta. The frontend derives
+ *   marker color and rendered radius from count/meta/chart size.
+ * - Cell skuIds currently contain skuGroupKey values used for client-side
+ *   drill-down. Because point click must not issue another backend request,
+ *   do not truncate those ids unless UX intentionally accepts partial lists.
+ */
+async function getSelfSalesScatterGrid(
+  params: SelfSalesGridParams,
+): Promise<ScatterSalesGridResponse> {
+  return mockDashboardApi.getSelfSalesScatterGrid(params)
+}
+
+/**
+ * Scatter-grid request for competitor-sales analysis.
+ *
+ * Python backend implementation direction:
+ * - Same server-side binning rule as self scatter: filters and channel
+ *   aggregation happen in Python/SQL, not in the browser.
+ * - Reuse getCompetitorSales filter semantics. Omitted competitorChannelId
+ *   means "all competitor channels"; competitor qty/amount must be summed
+ *   across selected channels while self qty/amount is not duplicated.
+ * - Aggregate to one row per skuGroupKey (SKU.code + SKU.color_code) before
+ *   computing the point.
+ * - Competitor chart axes:
+ *   x = self sales quantity (EA)
+ *   y = selected competitor-channel sales quantity (EA)
+ * - Rows without self sales quantity are excluded from this scatter because
+ *   they cannot be placed on the x-axis.
+ * - Response cells must include the skuGroupKey list for each cell so point
+ *   click can filter the already-loaded list without a second backend call.
+ * - For large datasets, prefer database GROUP BY/window calculations for the
+ *   per-skuGroupKey base rows, then bin either in SQL or Python. The response
+ *   size should be proportional to number of occupied cells plus their keys,
+ *   not raw transaction row count.
+ */
+async function getCompetitorSalesScatterGrid(
+  params: CompetitorSalesGridParams,
+): Promise<ScatterSalesGridResponse> {
+  return mockDashboardApi.getCompetitorSalesScatterGrid(params)
+}
+
 export const dashboardRequests: DashboardApi = {
   /**
    * Analysis list contracts.
@@ -129,11 +193,8 @@ export const dashboardRequests: DashboardApi = {
    */
   getSelfSales: (params): Promise<SelfSalesRow[]> => mockDashboardApi.getSelfSales(params),
   getCompetitorSales: (params): Promise<CompetitorSalesRow[]> => mockDashboardApi.getCompetitorSales(params),
-  getSelfSalesScatterGrid: (params: SelfSalesGridParams): Promise<ScatterSalesGridResponse> =>
-    mockDashboardApi.getSelfSalesScatterGrid(params),
-  getCompetitorSalesScatterGrid: (
-    params: CompetitorSalesGridParams,
-  ): Promise<ScatterSalesGridResponse> => mockDashboardApi.getCompetitorSalesScatterGrid(params),
+  getSelfSalesScatterGrid,
+  getCompetitorSalesScatterGrid,
   getSalesFilterMeta: () => mockDashboardApi.getSalesFilterMeta(),
 
   /**

@@ -31,9 +31,16 @@ export interface SalesFilterMeta {
 }
 
 export interface ScatterGridBinParams {
-  /** Requested bucket size for X axis. If omitted, backend chooses a derived value. */
+  /**
+   * Requested bucket size for X axis in data units.
+   * If omitted, backend chooses a derived value and returns the actual value in meta.
+   * Backend is Python and should use this only for server-side binning.
+   */
   xBucketSize?: number
-  /** Requested bucket size for Y axis. If omitted, backend chooses a derived value. */
+  /**
+   * Requested bucket size for Y axis in data units.
+   * This controls server-side binning only; rendered point radius is frontend-only.
+   */
   yBucketSize?: number
   /** Optional max number of ids returned per cell. */
   maxSkuIdsPerCell?: number
@@ -54,20 +61,33 @@ export interface ScatterSalesGridMeta {
 }
 
 export interface ScatterGridCell {
+  /** Stable cell id built from x/y bucket range. Used only for UI selection. */
   cellKey: string
+  /** Number of skuGroupKey rows in this occupied cell. */
   count: number
+  /**
+   * Current field name is legacy. Values are skuGroupKey strings
+   * (SKU.code + SKU.color_code grouping), not physical SKU.uuid values.
+   * Point click filters the already-loaded list with these keys and must not
+   * call the backend again.
+   */
   skuIds: string[]
+  /** True only if skuIds was intentionally truncated by maxSkuIdsPerCell. */
   hasMoreSkuIds: boolean
+  /** Inclusive/exclusive-ish bucket display range; use consistently in tooltip. */
   xStart: number
   xEnd: number
   yStart: number
   yEnd: number
+  /** Center point of the bucket used by Recharts Scatter. */
   representativeX: number
   representativeY: number
 }
 
 export interface ScatterSalesGridResponse {
+  /** Occupied cells only; empty cells are omitted. */
   cells: ScatterGridCell[]
+  /** Actual axis ranges and bucket sizes used by the backend. */
   meta: ScatterSalesGridMeta
 }
 

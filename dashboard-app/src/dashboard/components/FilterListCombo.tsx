@@ -21,19 +21,21 @@ type Props = {
   /** 리스트에서만 온 고유값(부분 일치로 필터해 표시) */
   options: string[]
   inputType?: 'text' | 'date'
+  disabled?: boolean
 }
 
-export function FilterListCombo({ inputId, value, onChange, options, inputType = 'text' }: Props) {
+export function FilterListCombo({ inputId, value, onChange, options, inputType = 'text', disabled = false }: Props) {
   const wrapRef = useRef<HTMLDivElement | null>(null)
   const [open, setOpen] = useState(false)
   const [activeIdx, setActiveIdx] = useState(-1)
   const [panelRect, setPanelRect] = useState<PanelRect | null>(null)
 
   const filtered = useMemo(() => {
+    if (disabled) return []
     const q = value.trim().toLowerCase()
     if (!q || q === ALL_OPTION_LABEL.toLowerCase()) return options
     return options.filter((o) => o.toLowerCase().includes(q))
-  }, [options, value])
+  }, [disabled, options, value])
 
   const updatePanelRect = useCallback(() => {
     const el = wrapRef.current
@@ -43,6 +45,11 @@ export function FilterListCombo({ inputId, value, onChange, options, inputType =
   }, [])
 
   useLayoutEffect(() => {
+    if (disabled) {
+      setOpen(false)
+      setPanelRect(null)
+      return
+    }
     if (!open) {
       setPanelRect(null)
       return
@@ -55,7 +62,7 @@ export function FilterListCombo({ inputId, value, onChange, options, inputType =
       window.removeEventListener('resize', onReposition)
       window.removeEventListener('scroll', onReposition, true)
     }
-  }, [open, updatePanelRect, filtered.length, value])
+  }, [disabled, open, updatePanelRect, filtered.length, value])
 
   const close = useCallback(() => {
     setOpen(false)
@@ -85,6 +92,7 @@ export function FilterListCombo({ inputId, value, onChange, options, inputType =
   )
 
   const onKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (disabled) return
     if (!open && (e.key === 'ArrowDown' || e.key === 'ArrowUp') && filtered.length > 0) {
       setOpen(true)
       setActiveIdx(e.key === 'ArrowUp' ? filtered.length - 1 : 0)
@@ -174,12 +182,15 @@ export function FilterListCombo({ inputId, value, onChange, options, inputType =
         aria-controls={showList ? `${inputId}-listbox` : undefined}
         aria-activedescendant={showList && activeIdx >= 0 ? `${inputId}-opt-${activeIdx}` : undefined}
         value={value}
+        disabled={disabled}
         onChange={(e) => {
+          if (disabled) return
           onChange(e.target.value)
           setActiveIdx(-1)
           if (options.length > 0) setOpen(true)
         }}
         onFocus={() => {
+          if (disabled) return
           if (options.length > 0) setOpen(true)
           setActiveIdx(-1)
         }}

@@ -25,7 +25,7 @@
   - `dashboard-app/src/api/client.ts`
   - `dashboard-app/src/api/requests/dashboardRequests.ts`
   - `dashboard-app/src/api/mock/dashboardApi.ts`
-  - `MD/dashboard-app/backend-api-spec.md` (필요 시 신규 엔드포인트/응답 반영)
+  - `MD/backend-api/backend-api-spec.md` (필요 시 신규 엔드포인트/응답 반영)
   - `MD/dashboard-app/source-boundary-map.md` (큰 변경 시 최신화)
 
 - 비범위
@@ -45,15 +45,14 @@
 ### 4.1 요청
 
 - Self(자사) 격자
-  - `getSelfSalesScatterGrid(params: SelfSalesGridParams): Promise<SelfSalesScatterGridResponse>`
-- Competitor(고객사) 격자
- - `getCompetitorSalesScatterGrid(params: CompetitorSalesGridParams): Promise<CompetitorSalesScatterGridResponse>`
+  - `getSelfSalesScatterGrid(params: SelfSalesGridParams): Promise<ScatterSalesGridResponse>`
+- Competitor(경쟁사) 격자
+ - `getCompetitorSalesScatterGrid(params: CompetitorSalesGridParams): Promise<ScatterSalesGridResponse>`
 
 공통 쿼리/요청 항목
 
-- `bucketSizeX`: X축(수량/매출/기준값) 격자 간격
-- `bucketSizeY`: Y축 격자 간격
-- `pointRadius` 또는 `pointDisplayMode`: 렌더링용(선택), 서버 기본값 fallback 가능
+- `xBucketSize`: X축 데이터 단위 격자 간격. 없으면 백엔드가 필터링된 결과 범위에서 파생한다.
+- `yBucketSize`: Y축 데이터 단위 격자 간격. 없으면 백엔드가 필터링된 결과 범위에서 파생한다.
 - 기존 검색/기간/필터 필드 유지
 
 ### 4.2 응답 제안
@@ -70,14 +69,15 @@
 - `xBinStart`, `xBinEnd`, `yBinStart`, `yBinEnd`
 - `xIndex`, `yIndex`(또는 셀 좌표키)
 - `count`
-- `skuIds: string[]` (해당 셀 구성 항목 식별자)
+- `skuIds: string[]` (legacy field name. 실제 값은 `SKU.code + SKU.color_code` 기준 `skuGroupKey`)
 - `hasMoreSkuIds?` (대량일 경우 truncated 처리)
 - `representativeX`, `representativeY` (차트 표시용 좌표)
 
 추가 필드(추천)
 
 - `cellKey`: `"x:y"` 형태
-- `displayColor`: 셀 강조색(필요 시). 현재 프론트 구현은 백엔드에서 색을 받지 않고, 응답 `cells[].count`와 현재 응답의 최대 count를 기준으로 민트 → 라임 → 노랑 → 앰버 색 stop 사이를 연속 보간한다. count 1은 최저 밀도로 두고, 그 이상은 큰 셀 쏠림을 줄이기 위해 `sqrt((count - 1) / (maxCount - 1))` 비율을 사용한다.
+- `displayColor`: 셀 강조색(필요 시). 현재 프론트 구현은 백엔드에서 색을 받지 않고, 응답 `cells[].count`와 현재 응답의 최대 count를 기준으로 원래 파랑 hue/saturation을 유지한 채 명도만 연속 보간한다. count 1은 밝은 저밀도 색으로 두고, 그 이상은 큰 셀 쏠림을 줄이기 위해 `sqrt((count - 1) / (maxCount - 1))` 비율을 사용한다.
+- `displayRadius`: 응답 필드가 아니다. 셀 표시 반지름은 프론트 전용이며, 백엔드가 내려준 `meta.xAxis/yAxis.bucketSize`와 실제 차트 크기를 기준으로 프론트가 계산한다. 백엔드는 원본 행을 내려주지 말고, 수만 행 규모에서도 필터/기간/채널 조건을 적용한 뒤 격자 집계 결과만 내려준다.
 
 ## 5) 구현 단계 (우선순위)
 
@@ -85,7 +85,7 @@
 
 1. `dashboard-app/src/api/types/dashboard-api.ts`
    - `SelfSalesGridParams`, `CompetitorSalesGridParams`
-   - `ScatterGridCell`, `ScatterSalesGridResponse`, `SelfSalesGridResponse`, `CompetitorSalesGridResponse` 추가
+   - `ScatterGridCell`, `ScatterSalesGridResponse` 추가
    - 기존 `SalesApiContract` 인터페이스 메서드에 격자 API 추가
 
 2. `dashboard-app/src/api/types/sales.ts`
@@ -97,7 +97,7 @@
 
 ### 2단계: 문서 반영
 
-4. `MD/dashboard-app/backend-api-spec.md`
+4. `MD/backend-api/backend-api-spec.md`
    - 새 endpoint 정의:
      - `GET /dashboard/self/sales/grid`
      - `GET /dashboard/competitor/sales/grid`
@@ -110,6 +110,7 @@
 
 6. `dashboard-app/src/api/mock/dashboardApi.ts`
    - 기존 `getSelfSales`, `getCompetitorSales` 결과를 재사용해 bucket 집계를 수행하는 공통 헬퍼 추가
+   - 기본 bucket size는 최초 기본값의 70% 수준으로 잡아 셀을 더 촘촘하게 만든다. 명시적 `xBucketSize`/`yBucketSize`가 들어오면 요청값을 우선한다.
    - `skuIds` 반환 방식
      - 단일 셀 제한 시 `skuIds` 상한선(`maxIdsPerCell`) 적용
      - `hasMoreSkuIds`로 truncation 표시
@@ -126,7 +127,8 @@
    - 차트:
      - hover → 커스텀 tooltip에 `x/y 범위, count`
      - click → `activeGridCellKey`와 `activeGridSkuIds` 갱신
-    - 기존 `Scatter` 점 색상은 셀 count 기반 연속 그라데이션으로 조정
+     - 기존 `Scatter` 점 색상은 원래 파랑 계열에서 셀 count 기반 명도 그라데이션으로 조정
+     - 점 반지름은 고정값이 아니라 응답 `meta.bucketSize`와 차트 크기를 기준으로 동적 계산
    - 리스트/상세 영역:
      - 기존 `rows`에서 `activeGridSkuIds`가 존재하면 해당 SKU만 표시
      - `activeGridSkuIds` 빈 값이면 기존 동작 유지

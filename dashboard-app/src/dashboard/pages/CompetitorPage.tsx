@@ -7,17 +7,18 @@ import type { AdjacentDirection } from '../../utils/adjacentListNavigation'
 import { adjacentIdInOrder } from '../../utils/adjacentListNavigation'
 import { clampForecastMonths, readForecastMonthsFromStorage, writeForecastMonthsToStorage } from '../../utils/forecastMonthsStorage'
 import { formatGroupedNumber } from '../../utils/format'
-import { getScatterGridCellColor } from '../../utils/scatterGridColor'
+import { getScatterGridCellColor, getScatterGridCellPointRadius } from '../../utils/scatterGridDisplay'
 import { AnalysisCandidateBulkAddModal } from '../components/candidate-stash/AnalysisCandidateBulkAddModal'
 import { ProductDrawer } from '../components/product-drawer/ProductDrawer'
 import styles from '../components/common.module.css'
 import { AnalysisList } from '../components/AnalysisList'
 import { AnalysisPeriodTools } from '../components/AnalysisPeriodTools'
 import { ChartCard } from '../components/ChartCard'
-import { FilterBar, type FilterField } from '../components/FilterBar'
+import { FilterBar } from '../components/FilterBar'
 import { KpiGrid } from '../components/KpiGrid'
 import { useElementSize } from '../hooks/useElementSize'
-import { useAnalysisSalesFilters } from '../hooks/useAnalysisSalesFilters'
+import { maskNonPeriodAnalysisFilterFields, useAnalysisSalesFilters } from '../hooks/useAnalysisSalesFilters'
+import type { FilterField } from '../model/filterField'
 import { useProductDrawerBundle } from '../hooks/useProductDrawerBundle'
 import type { ScatterSalesGridResponse } from '../../api/types'
 
@@ -140,6 +141,10 @@ export const CompetitorPage = () => {
       options: channelOptions,
     },
   ], [filterFields, competitorChannelLabel, channelOptions])
+  const displayedCompetitorFilterFields = useMemo(
+    () => (activeGridCellKey ? maskNonPeriodAnalysisFilterFields(competitorFilterFields) : competitorFilterFields),
+    [activeGridCellKey, competitorFilterFields],
+  )
 
   const competitorTooltipLabel = competitorChannelLabel === '전체'
     ? '전체 경쟁사'
@@ -278,6 +283,10 @@ export const CompetitorPage = () => {
     ))
   }
 
+  const scatterChartWidth = Math.max(1, Math.floor(chartWidth))
+  const scatterChartHeight = Math.max(1, Math.floor(chartHeight))
+  const scatterPointRadius = getScatterGridCellPointRadius(scatterGrid?.meta, scatterChartWidth, scatterChartHeight)
+
   const qtyScatterShape = useCallback(
     (props: { cx?: number; cy?: number; payload?: CompetitorScatterGridPoint }) => {
       const { cx, cy, payload } = props
@@ -287,7 +296,7 @@ export const CompetitorPage = () => {
         <circle
           cx={cx}
           cy={cy}
-          r={6}
+          r={scatterPointRadius}
           fill={payload.color}
           stroke={isActive ? '#0f172a' : '#ffffff'}
           strokeWidth={isActive ? 1.75 : 0.75}
@@ -299,18 +308,15 @@ export const CompetitorPage = () => {
         />
       )
     },
-    [activeGridCellKey, onScatterCellClick],
+    [activeGridCellKey, onScatterCellClick, scatterPointRadius],
   )
-
-  const scatterChartWidth = Math.max(1, Math.floor(chartWidth))
-  const scatterChartHeight = Math.max(1, Math.floor(chartHeight))
 
   return (
     <section className={styles.page}>
       <FilterBar
         title=""
         filterClassName={styles.filterAnalysisGrid}
-        fields={competitorFilterFields}
+        fields={displayedCompetitorFilterFields}
         extraContent={(
           <AnalysisPeriodTools
             showPeriodBar={showPeriodBar}
@@ -360,7 +366,19 @@ export const CompetitorPage = () => {
             ]}
           />
 
-          <ChartCard title="경쟁·자사 판매량 비교" className={styles.selfChartCard}>
+          <ChartCard
+            title="경쟁·자사 판매량 비교"
+            className={styles.selfChartCard}
+            titleAction={activeGridCellKey ? (
+              <button
+                type="button"
+                className={`${styles.actionBtn} ${styles.btnNeutral} ${styles.chartClearSelectionButton}`}
+                onClick={() => setActiveGridCellKey(null)}
+              >
+                격자 선택 해제
+              </button>
+            ) : null}
+          >
             <div ref={chartBodyRef} className={styles.selfChartBody}>
               {chartReady ? (
                 <ScatterChart

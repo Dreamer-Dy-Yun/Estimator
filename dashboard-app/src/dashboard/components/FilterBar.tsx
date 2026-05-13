@@ -2,20 +2,9 @@
  * 필터 한 줄 UI. `kind: 'listCombo'`는 공통 `FilterListCombo`로만 렌더링(중복 구현 없음).
  */
 import { useId, type ReactNode } from 'react'
+import type { FilterField } from '../model/filterField'
 import { FilterListCombo } from './FilterListCombo'
 import styles from './common.module.css'
-
-export type FilterField = {
-  label: string
-  /** `listCombo`: 자유 입력 + `options` 제안 — 내부적으로 `FilterListCombo` 단일 구현 사용. */
-  kind: 'input' | 'select' | 'listCombo'
-  inputType?: 'text' | 'date'
-  defaultValue?: string
-  value?: string
-  onChange?: (value: string) => void
-  /** `select`: 선택지. `listCombo`: 제안 목록(부분 일치 필터). */
-  options?: string[]
-}
 
 type FilterBarProps = {
   title?: string
@@ -41,16 +30,20 @@ export function FilterBar({
         <div className={`${styles.filter} ${filterClassName ?? styles.filterHorizontal}`}>
           {fields.map((field, index) => {
             const inputId = `${barId}-in-${index}`
+            const value = field.displayValue ?? field.value ?? field.defaultValue ?? ''
+            const options = field.options ?? [field.defaultValue ?? '']
+            const selectOptions = value !== '' || options.includes('') ? options : ['', ...options]
             return (
-              <div key={field.label} className={styles.field}>
+              <div key={field.label} className={`${styles.field} ${field.disabled ? styles.fieldDisabled : ''}`}>
                 <label htmlFor={inputId}>{field.label}</label>
                 {field.kind === 'select' ? (
                   <select
                     id={inputId}
-                    value={field.value ?? field.defaultValue ?? ''}
+                    value={value}
+                    disabled={field.disabled}
                     onChange={(e) => field.onChange?.(e.target.value)}
                   >
-                    {(field.options ?? [field.defaultValue ?? '']).map((option) => (
+                    {selectOptions.map((option) => (
                       <option key={option} value={option}>
                         {option}
                       </option>
@@ -59,16 +52,18 @@ export function FilterBar({
                 ) : field.kind === 'listCombo' ? (
                   <FilterListCombo
                     inputId={inputId}
-                    value={field.value ?? field.defaultValue ?? ''}
+                    value={value}
                     onChange={(v) => field.onChange?.(v)}
                     options={field.options ?? []}
                     inputType={field.inputType ?? 'text'}
+                    disabled={field.disabled}
                   />
                 ) : (
                   <input
                     id={inputId}
                     type={field.inputType ?? 'text'}
-                    value={field.value ?? field.defaultValue ?? ''}
+                    value={value}
+                    disabled={field.disabled}
                     onChange={(e) => field.onChange?.(e.target.value)}
                   />
                 )}

@@ -7,7 +7,7 @@ import type { AdjacentDirection } from '../../utils/adjacentListNavigation'
 import { adjacentIdInOrder } from '../../utils/adjacentListNavigation'
 import { clampForecastMonths, readForecastMonthsFromStorage, writeForecastMonthsToStorage } from '../../utils/forecastMonthsStorage'
 import { formatGroupedNumber, formatPercent } from '../../utils/format'
-import { getScatterGridCellColor } from '../../utils/scatterGridColor'
+import { getScatterGridCellColor, getScatterGridCellPointRadius } from '../../utils/scatterGridDisplay'
 import type { ScatterSalesGridResponse } from '../../api/types'
 import { AnalysisCandidateBulkAddModal } from '../components/candidate-stash/AnalysisCandidateBulkAddModal'
 import { ProductDrawer } from '../components/product-drawer/ProductDrawer'
@@ -18,7 +18,7 @@ import { ChartCard } from '../components/ChartCard'
 import { FilterBar } from '../components/FilterBar'
 import { KpiGrid } from '../components/KpiGrid'
 import { useElementSize } from '../hooks/useElementSize'
-import { useAnalysisSalesFilters } from '../hooks/useAnalysisSalesFilters'
+import { maskNonPeriodAnalysisFilterFields, useAnalysisSalesFilters } from '../hooks/useAnalysisSalesFilters'
 import { useProductDrawerBundle } from '../hooks/useProductDrawerBundle'
 
 type ScatterGridPoint = {
@@ -158,6 +158,10 @@ export const SelfPage = () => {
   const bulkSelectedCount = bulkSelectedSkuGroupKeys.size
   const allRowsSelected = visibleRows.length > 0 && bulkSelectedCount === visibleRows.length
   const selectedSkuGroupKeys = useMemo(() => [...bulkSelectedSkuGroupKeys], [bulkSelectedSkuGroupKeys])
+  const displayedFilterFields = useMemo(
+    () => (activeGridCellKey ? maskNonPeriodAnalysisFilterFields(filterFields) : filterFields),
+    [activeGridCellKey, filterFields],
+  )
 
   useEffect(() => {
     setBulkSelectedSkuGroupKeys((prev) => {
@@ -189,7 +193,7 @@ export const SelfPage = () => {
           영업이익률: {formatPercent(point.xStart)} ~ {formatPercent(point.xEnd)}
         </div>
         <div className={styles.chartTooltipText}>
-          판매액(백만): {formatGroupedNumber(point.yStart)} ~ {formatGroupedNumber(point.yEnd)}
+          판매량: {formatGroupedNumber(point.yStart)} ~ {formatGroupedNumber(point.yEnd)}
         </div>
         <div className={styles.chartTooltipText}>건수: {formatGroupedNumber(point.count)} EA</div>
         {point.hasMoreSkuIds ? (
@@ -219,6 +223,10 @@ export const SelfPage = () => {
     setBulkSelectedSkuGroupKeys(() => (allRowsSelected ? new Set() : new Set(visibleRows.map((row) => row.skuGroupKey))))
   }
 
+  const scatterChartWidth = Math.max(1, Math.floor(chartWidth))
+  const scatterChartHeight = Math.max(1, Math.floor(chartHeight))
+  const scatterPointRadius = getScatterGridCellPointRadius(scatterGrid?.meta, scatterChartWidth, scatterChartHeight)
+
   const scatterShape = useCallback(
     (props: { cx?: number; cy?: number; payload?: ScatterGridPoint }) => {
       const { cx, cy, payload } = props
@@ -228,7 +236,7 @@ export const SelfPage = () => {
         <circle
           cx={cx}
           cy={cy}
-          r={6}
+          r={scatterPointRadius}
           fill={payload.color}
           stroke={isActive ? '#0f172a' : '#ffffff'}
           strokeWidth={isActive ? 1.75 : 0.75}
@@ -240,18 +248,15 @@ export const SelfPage = () => {
         />
       )
     },
-    [activeGridCellKey, onScatterCellClick],
+    [activeGridCellKey, onScatterCellClick, scatterPointRadius],
   )
-
-  const scatterChartWidth = Math.max(1, Math.floor(chartWidth))
-  const scatterChartHeight = Math.max(1, Math.floor(chartHeight))
 
   return (
     <section className={styles.page}>
       <FilterBar
         title=""
         filterClassName={styles.filterAnalysisGrid}
-        fields={filterFields}
+        fields={displayedFilterFields}
         extraContent={(
           <AnalysisPeriodTools
             showPeriodBar={showPeriodBar}
@@ -293,7 +298,19 @@ export const SelfPage = () => {
             ]}
           />
 
-          <ChartCard title="판매액/영업이익률 분석" className={styles.selfChartCard}>
+          <ChartCard
+            title="판매량/영업 이익률 분석"
+            className={styles.selfChartCard}
+            titleAction={activeGridCellKey ? (
+              <button
+                type="button"
+                className={`${styles.actionBtn} ${styles.btnNeutral} ${styles.chartClearSelectionButton}`}
+                onClick={() => setActiveGridCellKey(null)}
+              >
+                격자 선택 해제
+              </button>
+            ) : null}
+          >
             <div ref={chartBodyRef} className={styles.selfChartBody}>
               {chartReady ? (
                 <ScatterChart
@@ -320,12 +337,12 @@ export const SelfPage = () => {
                   <YAxis
                     type="number"
                     dataKey="y"
-                    name="판매액(백만 원)"
+                    name="판매량(EA)"
                     tick={{ fontSize: 10 }}
                     width={42}
                     tickMargin={4}
                     label={{
-                      value: '판매액(백만 원)',
+                      value: '판매량(EA)',
                       angle: -90,
                       position: 'insideLeft',
                       offset: 0,

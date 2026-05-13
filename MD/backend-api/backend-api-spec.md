@@ -787,3 +787,47 @@ badges: [
   - `GET /sales/competitor/scatter-grid`
   - Query params: `startDate`, `endDate`, `brand`, `category`, `codeQuery`, `colorCode`, `nameQuery`, `competitorChannelId`, `xBucketSize`, `yBucketSize`, `maxSkuIdsPerCell`
   - Response: `ScatterSalesGridResponse` (`cells` + `meta`)
+
+### 2.1.2 Python backend implementation notes
+
+산점도 API는 반드시 백엔드 집계 API로 구현한다. 수만 행의 원천 판매 row를 프론트로 내려서 브라우저에서 격자화하지 않는다.
+
+공통 구현 방향:
+
+- FastAPI/SQLAlchemy 기준으로는 목록 API와 동일한 filter builder를 공유한다.
+- `startDate`, `endDate`, `brand`, `category`, `codeQuery`, `colorCode`, `nameQuery`, `competitorChannelId` 조건은 DB/서버에서 먼저 적용한다.
+- SKU 원천 row는 `SKU.code + SKU.color_code` 단위의 `skuGroupKey`로 먼저 집계한다. `SKU.size` 단위 row는 산점도 기준에서는 하나의 product-color 그룹으로 접는다.
+- bucket size는 요청의 `xBucketSize`, `yBucketSize`가 있으면 그대로 쓰고, 없으면 필터링된 결과의 min/max 범위에서 파생한다.
+- 현재 기본 정책은 최초 12분할 bucket의 약 70% 크기를 사용해, 12x12보다 조금 더 촘촘한 격자를 만든다.
+- 응답은 occupied cell만 내려준다. 빈 cell을 전부 채워 보내지 않는다.
+- 점 색상과 화면 반지름은 프론트 표시 문제다. 백엔드는 색상이나 pixel radius를 계산하지 않고, `count`와 `meta`만 정확히 내려준다.
+- 점 클릭은 백엔드 재요청 없이 이미 받은 목록을 좁히는 동작이다. 따라서 `cells[].skuIds`에는 현재 legacy 이름과 달리 `skuGroupKey` 값들을 넣는다. 계약명을 정리할 수 있는 시점에는 `skuGroupKeys`로 바꾸는 것이 더 정확하다.
+- `maxSkuIdsPerCell`을 적용하면 점 클릭 결과가 일부만 보일 수 있다. 현재 UX는 "초기 리스트 안에서 해당 점의 항목을 모두 표시"가 원칙이므로 기본적으로 truncate하지 않는다.
+
+자사 분석 산점도:
+
+- `GET /sales/self/scatter-grid`
+- X축: 기간 가중 영업이익률 `%`
+- Y축: 기간 내 자사 판매량 `EA`
+- 목록 API(`GET /sales/self`)와 같은 기간/브랜드/카테고리/품번/색상/상품명 필터를 적용한 뒤 집계한다.
+
+경쟁사 분석 산점도:
+
+- `GET /sales/competitor/scatter-grid`
+- X축: 자사 판매량 `EA`
+- Y축: 선택 경쟁 채널 판매량 `EA`
+- `competitorChannelId`가 없으면 전체 경쟁 채널 합계다.
+- 경쟁 채널을 합산할 때 자사 판매량/판매액을 채널 수만큼 중복 합산하지 않는다.
+- 자사 판매량이 없는 row는 X축 좌표가 없으므로 산점도 cell 집계에서는 제외한다.
+
+권장 Python 처리 흐름:
+
+1. 필터 조건을 적용한 base query를 만든다.
+2. `skuGroupKey = code + color_code` 기준으로 판매량/판매액/마진 계산에 필요한 값을 집계한다.
+3. 산점도 축 값 `x`, `y`를 계산한다.
+4. `min/max`와 `bucketSize`를 구한다.
+5. `floor((value - min) / bucketSize)`로 bucket index를 구하고 마지막 bucket은 max 값 포함 처리한다.
+6. `(xIndex, yIndex)` 또는 range 기반 key로 group by 하여 `count`, `skuGroupKey[]`, range, representative point를 만든다.
+7. `cells`는 count 내림차순 등 안정적인 순서로 반환하고, `meta.xAxis/yAxis`에는 실제 사용한 min/max/bucketSize를 넣는다.
+
+기본 bucket size는 최초 12분할 기준 bucket의 약 70%로 잡아 더 촘촘한 격자를 만든다. 프론트가 `xBucketSize`/`yBucketSize`를 명시하면 백엔드는 요청값을 우선하고, 응답 `meta.xAxis.bucketSize`/`meta.yAxis.bucketSize`에 실제 사용값을 내려준다. 산점도 격자 집계는 백엔드 책임이다. 수만 행 규모의 원본 행을 프론트로 내려서 브라우저에서 binning하지 않는다. 셀 색상과 표시 반지름은 백엔드가 주지 않고, 프론트가 `count`, 현재 응답의 최대 count, 응답 `meta`, 실제 차트 크기로 계산한다.
