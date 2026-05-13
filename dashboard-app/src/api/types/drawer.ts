@@ -32,7 +32,7 @@ export interface ProductMonthlyTrend {
 export interface ProductSalesInsightParams {
   startDate: string
   endDate: string
-  competitorChannelId?: string
+  competitorChannelId: string
 }
 
 export interface ProductSalesInsightColumn {

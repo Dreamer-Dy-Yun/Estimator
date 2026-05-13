@@ -8,9 +8,12 @@ import type { AdminGptKeyApi } from '../types'
  * This contract is intentionally GPT-only. Do not reintroduce provider/baseUrl/
  * projectId fields unless the product scope changes.
  *
- * Watch points for the backend:
+ * Contract watch points for the backend:
+ * - This file is the only GPT-key API switch point. Admin screens receive only
+ *   AdminGptKeySummary DTOs and should never hold raw keys after submit.
  * - create/rotate requests may contain plainKey, but list/update/test/delete
  *   responses must never return the raw key.
+ * - GPT key "수정" changes metadata only. Key material is replaced through rotate.
  * - Key storage, encryption, validation, and audit logs are backend concerns.
  * - All endpoints require an admin session.
  */

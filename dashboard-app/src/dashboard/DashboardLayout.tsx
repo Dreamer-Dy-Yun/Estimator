@@ -2,7 +2,6 @@ import { useState } from 'react'
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext'
 import { UserProfileDialog } from '../auth/UserProfileDialog'
-import { PageHeader } from './components/PageHeader'
 import styles from './layout.module.css'
 
 const tabs = [
@@ -57,7 +56,6 @@ export const DashboardLayout = () => {
           </div>
         </div>
         <div className={styles.content}>
-          <PageHeader title="" badge="" />
           <div className={styles.pageContent}>
             <Outlet />
           </div>

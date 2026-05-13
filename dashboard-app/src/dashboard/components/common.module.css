@@ -4,27 +4,6 @@
   min-height: 0;
 }
 
-.headline {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.headline h1 {
-  font-size: 28px;
-  margin: 0;
-}
-
-.badge {
-  background: #dcfce7;
-  color: #166534;
-  border: 1px solid #86efac;
-  padding: 4px 8px;
-  border-radius: 999px;
-  font-size: 12px;
-  font-weight: 700;
-}
-
 .kpiGrid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));

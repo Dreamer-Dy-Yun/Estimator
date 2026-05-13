@@ -636,8 +636,12 @@ export const mockDashboardApi = {
     }
     void payload
   },
-  uploadCandidateStashExcel: async (file: File): Promise<CandidateStashExcelUploadResult> => {
+  uploadCandidateStashExcel: async (
+    file: File,
+    ownerUserUuid?: string,
+  ): Promise<CandidateStashExcelUploadResult> => {
     await sleep(140)
+    void ownerUserUuid
 
     const fileName = file.name.trim()
     const isExcel = /\.(xlsx|xls)$/i.test(fileName)
