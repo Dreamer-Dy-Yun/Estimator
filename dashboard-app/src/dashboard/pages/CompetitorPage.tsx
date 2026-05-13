@@ -123,7 +123,7 @@ export const CompetitorPage = () => {
     ? '전체 경쟁사'
     : competitorChannelLabel
   const competitorAxisLabel = competitorChannelLabel === '전체'
-    ? channels[0]?.label ?? '경쟁사'
+    ? '전체 경쟁사'
     : competitorChannelLabel
 
   const visibleRows = useMemo(

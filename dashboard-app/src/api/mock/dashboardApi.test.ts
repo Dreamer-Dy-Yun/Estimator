@@ -20,7 +20,7 @@ describe('api/mock dashboardApi competitor channel behavior', () => {
   })
 
   it('applies musinsa skew to competitor sales rows', async () => {
-    const base = await mockDashboardApi.getCompetitorSales()
+    const base = await mockDashboardApi.getCompetitorSales({ competitorChannelId: 'kream' })
     const musinsa = await mockDashboardApi.getCompetitorSales({ competitorChannelId: 'musinsa' })
 
     expect(base.length).toBeGreaterThan(0)
@@ -39,14 +39,35 @@ describe('api/mock dashboardApi competitor channel behavior', () => {
     )
   })
 
+  it('aggregates all competitor channels when no channel is selected', async () => {
+    const all = await mockDashboardApi.getCompetitorSales()
+    const kream = await mockDashboardApi.getCompetitorSales({ competitorChannelId: 'kream' })
+    const musinsa = await mockDashboardApi.getCompetitorSales({ competitorChannelId: 'musinsa' })
+
+    const allRow = all.find((row) => row.id === 'B')
+    const kreamRow = kream.find((row) => row.id === allRow?.id)
+    const musinsaRow = musinsa.find((row) => row.id === allRow?.id)
+
+    expect(allRow).toBeDefined()
+    expect(kreamRow).toBeDefined()
+    expect(musinsaRow).toBeDefined()
+    expect(allRow?.competitorQty).toBe((kreamRow?.competitorQty ?? 0) + (musinsaRow?.competitorQty ?? 0))
+    expect(allRow?.competitorAmount).toBe((kreamRow?.competitorAmount ?? 0) + (musinsaRow?.competitorAmount ?? 0))
+    expect(allRow?.competitorAvgPrice).toBe(
+      Math.max(1, Math.round((allRow?.competitorAmount ?? 0) / Math.max(1, allRow?.competitorQty ?? 0))),
+    )
+    expect(allRow?.selfQty).toBe(kreamRow?.selfQty)
+    expect(allRow?.selfAmount).toBe(kreamRow?.selfAmount)
+  })
+
   it('falls back to default skew for unknown channel id', async () => {
-    const base = await mockDashboardApi.getCompetitorSales()
+    const base = await mockDashboardApi.getCompetitorSales({ competitorChannelId: 'kream' })
     const unknown = await mockDashboardApi.getCompetitorSales({ competitorChannelId: 'unknown-channel' })
     expect(unknown).toEqual(base)
   })
 
   it('treats removed naver channel id as fallback(default skew)', async () => {
-    const base = await mockDashboardApi.getCompetitorSales()
+    const base = await mockDashboardApi.getCompetitorSales({ competitorChannelId: 'kream' })
     const naver = await mockDashboardApi.getCompetitorSales({ competitorChannelId: 'naver' })
     expect(naver).toEqual(base)
   })

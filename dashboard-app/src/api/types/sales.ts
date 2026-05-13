@@ -11,8 +11,9 @@ export interface SelfSalesParams {
   nameQuery?: string
 }
 
-/** 경쟁 분석 목록 — 자사 필터 + 선택 경쟁 채널(목업은 스큐 반영). */
+/** 경쟁 분석 목록 — 자사 필터 + 선택 경쟁 채널. competitorChannelId 생략은 전체 경쟁 채널 합계. */
 export interface CompetitorSalesParams extends SelfSalesParams {
+  /** 특정 경쟁 채널 id. 생략하면 모든 경쟁 채널을 합산해 반환한다. */
   competitorChannelId?: string
 }
 

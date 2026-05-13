@@ -281,7 +281,7 @@
 | `codeQuery` | string? | SKU.`code` 품번 부분 일치 필터 |
 | `colorCode` | string? | SKU.`color_code` 색상 코드 필터 |
 | `nameQuery` | string? | 상품명 부분 일치 필터 |
-| `competitorChannelId` | string? | **경쟁 API만**. 선택한 경쟁 채널(가격·수량 스큐 적용 대상) |
+| `competitorChannelId` | string? | **경쟁 API만**. 선택한 경쟁 채널 id. 생략하면 경쟁 채널 전체 합계로 집계한다 |
 
 **응답: `SelfSalesRow[]`**
 
@@ -305,8 +305,10 @@
 
 | 필드 | 의미 |
 |------|------|
-| `competitorAvgPrice`, `competitorQty`, `competitorAmount` | 선택 경쟁 채널 기준 지표 |
+| `competitorAvgPrice`, `competitorQty`, `competitorAmount` | 선택 경쟁 채널 기준 지표. `competitorChannelId`가 없으면 전체 경쟁 채널의 판매수량·판매액 합계와 수량 가중 평균가 |
 | `selfAvgPrice`, `selfQty`, `selfAmount` | 자사 채널 비교용(없으면 `null`) |
+
+경쟁사 분석 화면에서 경쟁 채널 필터가 `전체`이면 프론트는 `competitorChannelId`를 보내지 않습니다. 이때 백엔드는 `skuGroupKey`별로 모든 경쟁 채널의 `competitorQty`와 `competitorAmount`를 합산하고, `competitorAvgPrice = competitorAmount / competitorQty`의 수량 가중 평균으로 내려줍니다. 자사 수량·금액은 경쟁 채널 수만큼 중복 합산하지 않습니다. 특정 채널 id가 들어오면 해당 채널 데이터만 반환합니다.
 
 ### 3.2 `getSalesFilterMeta`
 

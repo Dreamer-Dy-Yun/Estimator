@@ -43,6 +43,9 @@ const candidateStashExcelTemplateFilename = '(Han.A)Template(ver.0.0.0).xlsx'
  *   this becomes expensive.
  * - Period/channel-sensitive drawer data should remain separate API calls rather
  *   than being merged back into a single oversized bundle.
+ * - getCompetitorSales treats an omitted competitorChannelId as "all competitor
+ *   channels". Backend aggregation must sum channel sales qty/amount once per
+ *   skuGroupKey and keep self sales unduplicated.
  */
 async function requireCurrentUserUuid(): Promise<string> {
   const session = await mockAuthApi.getCurrentSession()

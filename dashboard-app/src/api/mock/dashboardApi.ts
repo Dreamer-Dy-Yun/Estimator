@@ -38,6 +38,7 @@ import {
   colorCodeOrder,
   competitorBySkuGroupKey,
   competitorSalesRows,
+  getMockCompetitorSalesChannels,
   getMockSecondaryCompetitorChannel,
   secondaryCompetitorChannels,
   selfBySkuGroupKey,
@@ -324,9 +325,7 @@ export const mockDashboardApi = {
     const colorCode = params?.colorCode
     const nameQ = params?.nameQuery?.trim().toLowerCase()
     const weighted = estimatePeriodWeight(params?.startDate, params?.endDate)
-    const channel = getMockSecondaryCompetitorChannel(params?.competitorChannelId)
-    const priceSkew = channel.priceSkew
-    const qtySkew = channel.qtySkew
+    const channels = getMockCompetitorSalesChannels(params?.competitorChannelId)
 
     return competitorSalesRows
       .filter((row) => (brand ? row.brand === brand : true))
@@ -335,15 +334,23 @@ export const mockDashboardApi = {
       .filter((row) => (colorCode ? row.colorCode === colorCode : true))
       .filter((row) => (nameQ ? row.productName.toLowerCase().includes(nameQ) : true))
       .map((row) => {
-        const compQty = Math.max(1, Math.round(row.competitorQty * weighted * qtySkew))
-        const compAvg = Math.max(1, Math.round(row.competitorAvgPrice * priceSkew))
-        const competitorAmount = Math.max(1, Math.round(compQty * compAvg))
+        const channelMetrics = channels.map((channel) => {
+          const qty = Math.max(1, Math.round(row.competitorQty * weighted * channel.qtySkew))
+          const avgPrice = Math.max(1, Math.round(row.competitorAvgPrice * channel.priceSkew))
+          return {
+            qty,
+            amount: Math.max(1, Math.round(qty * avgPrice)),
+          }
+        })
+        const competitorQty = channelMetrics.reduce((sum, metric) => sum + metric.qty, 0)
+        const competitorAmount = channelMetrics.reduce((sum, metric) => sum + metric.amount, 0)
+        const competitorAvgPrice = Math.max(1, Math.round(competitorAmount / Math.max(1, competitorQty)))
         const selfQty = row.selfQty != null ? Math.max(1, Math.round(row.selfQty * weighted)) : null
         const selfAmount = row.selfAmount != null ? Math.max(1, Math.round(row.selfAmount * weighted)) : null
         return {
           ...row,
-          competitorQty: compQty,
-          competitorAvgPrice: compAvg,
+          competitorQty,
+          competitorAvgPrice,
           competitorAmount,
           selfQty,
           selfAmount,

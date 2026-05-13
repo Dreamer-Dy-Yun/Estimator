@@ -21,6 +21,11 @@ export function getMockSecondaryCompetitorChannel(id?: string): MockSecondaryCom
   )
 }
 
+export function getMockCompetitorSalesChannels(id?: string): MockSecondaryCompetitorChannel[] {
+  if (!id) return mockSecondaryCompetitorChannels
+  return [getMockSecondaryCompetitorChannel(id)]
+}
+
 type SalesRowWithSkuGroupKey = {
   id: string
   code: string
