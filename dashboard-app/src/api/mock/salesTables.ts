@@ -21,16 +21,16 @@ export function getMockSecondaryCompetitorChannel(id?: string): MockSecondaryCom
   )
 }
 
-type SalesRowWithProductId = {
+type SalesRowWithSkuGroupKey = {
   id: string
   code: string
   colorCode: string
-  productId: string
+  skuGroupKey: string
 }
 
 export const colorCodeOrder = ['010', '020', '030', '100', '110', '200', '210', '300']
 
-export function buildMockProductId(code: string, colorCode: string): string {
+export function buildMockSkuGroupKey(code: string, colorCode: string): string {
   return `${code}__${colorCode}`
 }
 
@@ -39,13 +39,13 @@ function colorCodeForMockSku(id: string): string {
   return colorCodeOrder[seed % colorCodeOrder.length]!
 }
 
-function withSkuColor<T extends SalesRowWithProductId>(rows: Array<Omit<T, 'colorCode' | 'productId'>>): T[] {
+function withSkuColor<T extends SalesRowWithSkuGroupKey>(rows: Array<Omit<T, 'colorCode' | 'skuGroupKey'>>): T[] {
   return rows.map((row) => {
     const colorCode = colorCodeForMockSku(row.id)
     return {
       ...row,
       colorCode,
-      productId: buildMockProductId(row.code, colorCode),
+      skuGroupKey: buildMockSkuGroupKey(row.code, colorCode),
     } as T
   })
 }
@@ -110,11 +110,11 @@ export const competitorSalesRows: CompetitorSalesRow[] = withSkuColor<Competitor
   { id: 'TEST_SHOE', rank: 27, rankPercentile: 94.6, brand: '테스트브랜드', category: '신발', code: 'TEST-SHOE', productName: '테스트 신발', competitorAvgPrice: 133000, competitorQty: 3400, competitorAmount: 452200000, selfAvgPrice: 129000, selfQty: 3600, selfAmount: 464400000 },
 ])
 
-export const productIdByLegacyId = Object.fromEntries(
-  [...selfSalesRows, ...competitorSalesRows].map((row) => [row.id, row.productId]),
+export const skuGroupKeyByLegacyId = Object.fromEntries(
+  [...selfSalesRows, ...competitorSalesRows].map((row) => [row.id, row.skuGroupKey]),
 )
-export const selfById = Object.fromEntries(selfSalesRows.map((row) => [row.productId, row]))
-export const competitorById = Object.fromEntries(competitorSalesRows.map((row) => [row.productId, row]))
-export const allKnownProductIds = Array.from(new Set([...selfSalesRows, ...competitorSalesRows].map((row) => row.productId)))
+export const selfBySkuGroupKey = Object.fromEntries(selfSalesRows.map((row) => [row.skuGroupKey, row]))
+export const competitorBySkuGroupKey = Object.fromEntries(competitorSalesRows.map((row) => [row.skuGroupKey, row]))
+export const allKnownSkuGroupKeys = Array.from(new Set([...selfSalesRows, ...competitorSalesRows].map((row) => row.skuGroupKey)))
 export const brands = Array.from(new Set([...selfSalesRows, ...competitorSalesRows].map((row) => row.brand)))
 export const categories = Array.from(new Set([...selfSalesRows, ...competitorSalesRows].map((row) => row.category)))

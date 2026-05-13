@@ -9,7 +9,7 @@ function candidateItem(uuid: string, size: string): CandidateItemSummary {
   return {
     uuid,
     stashUuid: 'stash-1',
-    productId: `product-${uuid}`,
+    skuGroupKey: `product-${uuid}`,
     brand: '나이키',
     code: `SKU-${uuid}`,
     productName: `테스트 상품 ${uuid}`,
@@ -31,7 +31,11 @@ function candidateItem(uuid: string, size: string): CandidateItemSummary {
       rankTone: 'top',
       topPercentThreshold: 10,
       bottomPercentThreshold: 10,
-      badgeNames: ['크림판매'],
+      badges: [{
+        name: '크림판매',
+        color: '#0f766e',
+        tooltip: '조회 기간 내 크림 경쟁사 판매수량 상위 후보입니다.',
+      }],
     },
     isLatestLlmComment: true,
     isDetailConfirmed: true,

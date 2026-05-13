@@ -45,10 +45,10 @@ export function buildSalesKpiColumn(
       ? primary.qty
       : Math.max(1, Math.round(secondary.competitorQty * qtySkew))
   const amount = Math.round(price * qty)
-  const qtyRank = hashRank(`${primary.id}-${kind}-qty`, 28)
-  const amountRank = hashRank(`${primary.id}-${kind}-amt`, 28)
-  const feeRank = kind === 'self' ? hashRank(`${primary.id}-${kind}-fee`, 28) : null
-  const opMarginRank = kind === 'self' ? hashRank(`${primary.id}-${kind}-op-margin`, 28) : null
+  const qtyRank = hashRank(`${primary.skuGroupKey}-${kind}-qty`, 28)
+  const amountRank = hashRank(`${primary.skuGroupKey}-${kind}-amt`, 28)
+  const feeRank = kind === 'self' ? hashRank(`${primary.skuGroupKey}-${kind}-fee`, 28) : null
+  const opMarginRank = kind === 'self' ? hashRank(`${primary.skuGroupKey}-${kind}-op-margin`, 28) : null
   const rankTotal = 100
 
   if (kind === 'competitor') {

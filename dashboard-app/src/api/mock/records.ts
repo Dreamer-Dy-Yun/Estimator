@@ -10,7 +10,7 @@ export type CandidateStashRecord = {
   uuid: string
   name: string
   note: string | null
-  createdByUserUuid: string
+  userUuid: string
   periodStart: string
   periodEnd: string
   forecastMonths: number
@@ -21,7 +21,7 @@ export type CandidateStashRecord = {
 export type CandidateItemRecord = {
   uuid: string
   stashUuid: string
-  productId: string
+  skuGroupKey: string
   details: SecondaryOrderSnapshotPayload | null
   isLatestLlmComment: boolean
   dbCreatedAt: string

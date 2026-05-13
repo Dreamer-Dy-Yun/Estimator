@@ -8,13 +8,13 @@ import type { ProductPrimarySummary } from '../../types'
  * 스냅만으로 1차 요약을 유지해 드로어 언마운트·뷰포트 깜빡임을 막는다.
  */
 export function mergePrimarySummaryFromBundleAndSnapshot(
-  drawerProductId: string | null,
+  drawerSkuGroupKey: string | null,
   bundle: ProductDrawerBundle | null,
   hydrateSnap: OrderSnapshotDocumentV1 | null,
 ): ProductPrimarySummary | null {
-  if (!drawerProductId) return null
+  if (!drawerSkuGroupKey) return null
   const snap1 = hydrateSnap?.drawer1?.summary
-  const snapMatches = hydrateSnap?.productId === drawerProductId
+  const snapMatches = hydrateSnap?.skuGroupKey === drawerSkuGroupKey
 
   if (bundle) {
     if (!snap1 || !snapMatches) return bundle.summary

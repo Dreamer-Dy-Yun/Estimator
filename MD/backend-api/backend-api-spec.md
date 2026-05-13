@@ -49,7 +49,7 @@
 
 ### 1.3 식별자
 
-- **`productId`**: 상품 코드와 색상 코드가 묶인 상품 단위 식별자. 현재 프론트 계약에서는 `SKU.code + SKU.color_code`에 대응하며, 사이즈는 2차 드로워/스냅샷의 사이즈별 행에서 다룹니다. UI 행 id와 혼용하지 않습니다.
+- **`skuGroupKey`**: 상품 코드와 색상 코드가 묶인 상품 단위 식별자. 현재 프론트 계약에서는 `SKU.code + SKU.color_code`에 대응하며, 사이즈는 2차 드로워/스냅샷의 사이즈별 행에서 다룹니다. UI 행 id와 혼용하지 않습니다.
 - **`uuid`**: 후보 스태시·후보 아이템 등 **서버 생성 UUID** 문자열.
 - 오더 스냅샷은 현재 독립 저장 API가 아니라 후보 아이템의 `details` JSON으로만 저장·복원합니다.
 
@@ -240,11 +240,11 @@
 | `getSelfSales(params?)` | GET | `/sales/self?startDate&endDate&brand&category&codeQuery&colorCode&nameQuery` |
 | `getCompetitorSales(params?)` | GET | `/sales/competitor?startDate&endDate&brand&category&codeQuery&colorCode&nameQuery&competitorChannelId` |
 | `getSalesFilterMeta()` | GET | `/sales/filter-meta` |
-| `getProductDrawerBundle(id)` | GET | `/products/:id/drawer-bundle` |
-| `getProductMonthlyTrend(id, params)` | GET | `/products/:id/monthly-trend?startDate&endDate&forecastMonths&competitorChannelId` |
-| `getProductSalesInsight(id, params)` | GET | `/products/:id/sales-insight?startDate&endDate&competitorChannelId` |
-| `getProductSecondaryDetail(id, params?)` | GET | `/products/:id/secondary-detail?minOpMarginPct` |
-| `getSecondaryDailyTrend(params)` | GET | `/products/:productId/secondary/daily-trend?startMonth&leadTimeDays&competitorChannelId` |
+| `getProductDrawerBundle(skuGroupKey)` | GET | `/products/:skuGroupKey/drawer-bundle` |
+| `getProductMonthlyTrend(skuGroupKey, params)` | GET | `/products/:skuGroupKey/monthly-trend?startDate&endDate&forecastMonths&competitorChannelId` |
+| `getProductSalesInsight(skuGroupKey, params)` | GET | `/products/:skuGroupKey/sales-insight?startDate&endDate&competitorChannelId` |
+| `getProductSecondaryDetail(skuGroupKey, params?)` | GET | `/products/:skuGroupKey/secondary-detail?minOpMarginPct` |
+| `getSecondaryDailyTrend(params)` | GET | `/products/:skuGroupKey/secondary/daily-trend?startMonth&leadTimeDays&competitorChannelId` |
 | `getSecondaryCompetitorChannels()` | GET | `/secondary/competitor-channels` |
 | `getCandidateStashes()` | GET | `/candidate-stashes` 세션 소유자 기준 |
 | `getCandidateItemsByStash(params)` | GET | `/candidate-stashes/:stashUuid/items?dataReferencePeriodStart&dataReferencePeriodEnd` |
@@ -256,8 +256,8 @@
 | `createCandidateStash(payload)` | POST | `/candidate-stashes` body `{ name, note?, periodStart, periodEnd, forecastMonths }`, 생성자는 세션 기준 |
 | `updateCandidateStash(payload)` | PATCH | `/candidate-stashes/:stashUuid` body `{ name, note? }`, 세션 소유자 기준 |
 | `duplicateCandidateStash(stashUuid)` | POST | `/candidate-stashes/:stashUuid/duplicate` 세션 소유자 기준 |
-| `appendCandidateItem(payload)` | POST | `/candidate-stashes/:stashUuid/items` body `{ productId, details, isLatestLlmComment }`, 세션 소유자 기준 |
-| `appendCandidateItems(payload)` | POST | `/candidate-stashes/:stashUuid/items/bulk` body `{ productIds }`, 세션 소유자 기준 |
+| `appendCandidateItem(payload)` | POST | `/candidate-stashes/:stashUuid/items` body `{ skuGroupKey, details, isLatestLlmComment }`, 세션 소유자 기준 |
+| `appendCandidateItems(payload)` | POST | `/candidate-stashes/:stashUuid/items/bulk` body `{ skuGroupKeys }`, 세션 소유자 기준 |
 | `updateCandidateItem(payload)` | PATCH | `/candidate-items/:itemUuid` body `{ details, isLatestLlmComment }`, 세션 소유자 기준 |
 | `uploadCandidateStashExcel(file)` | POST multipart/form-data | `/candidate-stashes/import/excel` |
 | `startCandidateStashAnalysis(stashUuid)` | POST | `/candidate-stashes/:stashUuid/analysis` |
@@ -288,7 +288,7 @@
 | 필드 | 의미 |
 |------|------|
 | `id` | 행 고유 id (목업용 문자열) |
-| `productId` | 후보군 담기와 상품 드로워 조회에 쓰는 상품 단위 식별자. `code + colorCode` 상품 단위이며 UI 행 id와 별개 |
+| `skuGroupKey` | 후보군 담기와 상품 드로워 조회에 쓰는 상품 단위 식별자. `code + colorCode` 상품 단위이며 UI 행 id와 별개 |
 | `rank` | 순위 |
 | `rankPercentile` | 전체 SKU 대비 백분위 순위 |
 | `brand`, `category`, `code`, `productName`, `colorCode` | SKU 메타. `code + colorCode + size` 조합을 실제 SKU 식별 기준으로 본다. |
@@ -346,7 +346,7 @@
 
 | 필드 | 의미 |
 |------|------|
-| `productId` | 상품 id |
+| `skuGroupKey` | 상품 단위 묶음 키. `SKU.code + SKU.color_code`에 대응하며 DB `SKU.uuid`가 아니다 |
 | `targetPeriodDays.start/end` | 실제 표시·집계 대상 기간 |
 | `competitorChannelId` | 응답에 적용된 경쟁 채널 id |
 | `competitorChannelLabel` | 응답에 적용된 경쟁 채널 표시명 |
@@ -368,7 +368,7 @@
 
 | 필드 | 의미 |
 |------|------|
-| `productId` | 상품 id |
+| `skuGroupKey` | 상품 단위 묶음 키. `SKU.code + SKU.color_code`에 대응하며 DB `SKU.uuid`가 아니다 |
 | `targetPeriodDays.start/end` | 실제 표시·집계 대상 기간 |
 | `competitorChannelId` | 응답에 적용된 경쟁 채널 id |
 | `competitorChannelLabel` | 응답에 적용된 경쟁 채널 표시명 |
@@ -402,7 +402,7 @@
 
 | 필드 | 의미 |
 |------|------|
-| `id` | 상품 id |
+| `skuGroupKey` | 상품 단위 묶음 키. `SKU.code + SKU.color_code`에 대응하며 DB `SKU.uuid`가 아니다 |
 | `competitorPrice` | 경쟁 베이스라인 단가 |
 | `competitorQty` | 경쟁 추정 수량 |
 | `competitorRatioBySize` | 사이즈별 경쟁 비중 맵 (`size` 문자열 → 비율) |
@@ -413,7 +413,7 @@
 
 | 필드 | 의미 |
 |------|------|
-| `productId` | 상품 id |
+| `skuGroupKey` | 상품 단위 묶음 키. `SKU.code + SKU.color_code`에 대응하며 DB `SKU.uuid`가 아니다 |
 | `startMonth` | 일별 트렌드 시작 월 (`getSecondaryDailyTrend` 재조회와 스냅샷 `context.dailyTrendStartMonth` 와 동일 역할) |
 | `leadTimeDays` | 리드타임 일수 (스냅샷 `context.dailyTrendLeadTimeDays` 와 동일 역할) |
 | `competitorChannelId` | 경쟁사 일별 판매량 시리즈에 적용할 선택 경쟁 채널 id |
@@ -458,7 +458,7 @@
 | `itemCount` | 소속 후보 아이템 개수 |
 | `dbCreatedAt`, `dbUpdatedAt` | 생성·수정 시각(아이템 추가로 스태시 “갱신” 시각을 반영할지는 백엔드 정책) |
 
-`getCandidateStashes`, `getCandidateItemsByStash`, `getCandidateRecommendations`, `getCandidateItemByUuid` 및 후보군 mutation 계열은 현재 인증 세션을 기준으로 동작한다. 프론트는 사용자 UUID를 요청 파라미터로 보내지 않으며, 백엔드는 세션의 `USER_ACCOUNT.uuid`와 후보군의 `createdByUserUuid`가 일치하는 데이터만 반환/수정해야 한다.
+`getCandidateStashes`, `getCandidateItemsByStash`, `getCandidateRecommendations`, `getCandidateItemByUuid` 및 후보군 mutation 계열은 현재 인증 세션을 기준으로 동작한다. 프론트는 사용자 UUID를 요청 파라미터로 보내지 않으며, 백엔드는 세션의 `USER_ACCOUNT.uuid`와 후보군의 `userUuid`가 일치하는 데이터만 반환/수정해야 한다.
 
 **`CandidateItemListParams`** (`getCandidateItemsByStash` 요청)
 
@@ -474,27 +474,28 @@
 
 | 필드 | 의미 |
 |------|------|
-| `items` | 후보 아이템 목록 |
-| `badgeDefinitions` | 배지 이름을 key로 하는 정의 맵. 값은 `{ color, tooltip }` 형태이며, 색상/툴팁은 백엔드가 결정 |
+| `items` | 후보 아이템 목록. 각 아이템의 `insight.badges`가 `CANDIDATE_ITEM.badge` JSON 배열과 같은 `{ name, color, tooltip }[]` 형태를 가진다 |
 
-배지 정의를 전역 랜딩 시점에 별도 호출로 받는 대신 후보군 아이템 응답에 같이 포함한다. 이렇게 하면 아이템의 `badgeNames`와 정의 맵의 버전이 같은 응답 안에서 맞아, 배지 이름만 있고 색상/툴팁이 없는 상태를 줄일 수 있다.
-DB 내부 저장 형태가 `{ name, color, tooltip }` row 배열이어도 API 응답 DTO는 아래처럼 map으로 변환해서 내려준다.
+배지는 DB 테이블 정의의 `CANDIDATE_ITEM.badge`처럼 아이템별 JSON 배열로 내려준다. 같은 배지명이 여러 아이템에 반복되어도 후보군 상세 응답 규모에서는 중복 비용보다 계약 단순성이 더 중요하다. 색상/툴팁은 백엔드가 기간 기준 계산과 함께 확정해 내려주며, 프론트는 별도 배지 정의 호출이나 이름-정의 조인을 하지 않는다.
 
 ```ts
-badgeDefinitions: {
-  크림판매: {
+badges: [
+  {
+    name: '크림판매',
     color: '#0f766e',
     tooltip: '조회 기간 내 크림 경쟁사 판매수량 상위 10% 이내 후보입니다.',
   },
-  자사이익: {
+  {
+    name: '자사이익',
     color: '#be123c',
     tooltip: '조회 기간 내 자사 영업이익률이 9% 이상인 후보입니다.',
   },
-  자사판매: {
+  {
+    name: '자사판매',
     color: '#c2410c',
     tooltip: '조회 기간 내 자사 판매수량 상위 10% 이내 후보입니다.',
   },
-}
+]
 ```
 
 **`CandidateRecommendationParams`** (`getCandidateRecommendations` 요청)
@@ -507,7 +508,7 @@ badgeDefinitions: {
 
 **`CandidateRecommendationResult`**
 
-`CandidateItemListResult`와 같은 `{ items, badgeDefinitions }` 구조를 쓴다. 단, `items`는 백엔드가 `dataReferencePeriodStart`~`dataReferencePeriodEnd` 기간의 판매/이익/배지 조건을 기준으로 추천한 후보만 내려준다. 추천이 비어 있을 때 전체 후보를 내려줄지, 빈 배열을 내려줄지는 백엔드 정책으로 확정해야 하며, 현재 mock은 화면 확인을 위해 추천 조건이 없으면 전체 후보를 반환한다.
+`CandidateItemListResult`와 같은 `{ items }` 구조를 쓴다. 단, `items`는 백엔드가 `dataReferencePeriodStart`~`dataReferencePeriodEnd` 기간의 판매/이익/배지 조건을 기준으로 추천한 후보만 내려준다. 추천이 비어 있을 때 전체 후보를 내려줄지, 빈 배열을 내려줄지는 백엔드 정책으로 확정해야 하며, 현재 mock은 화면 확인을 위해 추천 조건이 없으면 전체 후보를 반환한다.
 
 **`CandidateItemSummary`** (목록 행)
 
@@ -515,13 +516,13 @@ badgeDefinitions: {
 |------|------|
 | `uuid` | 아이템 PK |
 | `stashUuid` | 소속 스태시 |
-| `productId` | 상품 단위 식별자. 현재 프론트 계약에서는 `SKU.code + SKU.color_code`에 대응하며, 사이즈는 2차 드로워/스냅샷의 사이즈별 행에서 다룬다 |
+| `skuGroupKey` | 상품 단위 식별자. 현재 프론트 계약에서는 `SKU.code + SKU.color_code`에 대응하며, 사이즈는 2차 드로워/스냅샷의 사이즈별 행에서 다룬다 |
 | `brand`, `code`, `productName`, `colorCode` | 현재 상품 마스터와 기간 집계 결과의 SKU 메타. 색상은 SKU 식별 메타이므로 목록·엑셀에 함께 노출한다. |
 | `qty` | 데이터 참조 기간 기준 추천/예상 오더 수량 합계(EA). 저장 스냅샷이 있더라도 리스트 기본값은 현재 기간 live 계산값이다 |
 | `expectedOrderAmount` | 데이터 참조 기간 기준 예상 **발주 금액(원)** |
 | `expectedSalesAmount` | 데이터 참조 기간 기준 예상 매출 |
 | `expectedOpProfit` | 데이터 참조 기간 기준 예상 영업이익 |
-| `insight.badgeNames` | 이 아이템에 붙일 배지 이름 배열. 현재 목데이터 기준 허용 배지는 `크림판매`, `자사이익`, `자사판매` |
+| `insight.badges` | 이 아이템에 붙일 배지 배열. 각 값은 `{ name, color, tooltip }`이며 현재 목데이터 기준 허용 배지는 `크림판매`, `자사이익`, `자사판매` |
 | `orderExport` | 발주 엑셀을 프론트에서 즉시 생성하기 위한 요청 기간 기준 다운로드 DTO. 전체 `details` 스냅샷을 다시 받지 않도록 `competitorChannelLabel`, 자사/경쟁 기간 판매량, 총 오더량/금액, 평균 원가/판매가/수수료율/영업이익율, 오더 입고 예정일, 사이즈별 오더량만 포함 |
 | `isLatestLlmComment` | 현재 저장 스냅샷 기준 AI 코멘트/추천이 최신인지 여부. DB 컬럼은 `is_latest_llm_comment` 권장 |
 | `isDetailConfirmed` | 이너후보군 2차 드로워에서 저장한 스냅샷이 있으면 `true`. 리스트의 상세확정 컬럼은 이 값을 표시한다 |
@@ -538,8 +539,8 @@ badgeDefinitions: {
 
 - `CreateCandidateStashPayload`: `{ name, note?, periodStart, periodEnd, forecastMonths }` — 후보군은 컨테이너이며 단일 상품을 소유하지 않는다
 - `UpdateCandidateStashPayload`: `{ stashUuid, name, note? }` — 메타만 갱신
-- `AppendCandidateItemsPayload`: `{ stashUuid, productIds }` — 자사/경쟁사 분석 리스트에서 선택한 상품들을 스냅샷 없이 후보군에 추가한다. 현재 프론트의 `productId`는 내부적으로 `SKU.code + SKU.color_code` 상품 단위에 대응하며, 사이즈별 확정 오더량과 AI 코멘트는 이너후보군 2차 드로워에서 저장하기 전까지 비어 있거나 미확정 상태다
-- `AppendCandidateItemPayload`: `{ stashUuid, productId, details, isLatestLlmComment? }` — `details`가 오더 스냅샷 저장의 단일 경로이며, 기본값은 `false` 권장
+- `AppendCandidateItemsPayload`: `{ stashUuid, skuGroupKeys }` — 자사/경쟁사 분석 리스트에서 선택한 상품들을 스냅샷 없이 후보군에 추가한다. 현재 프론트의 `skuGroupKey`는 내부적으로 `SKU.code + SKU.color_code` 상품 단위에 대응하며, 사이즈별 확정 오더량과 AI 코멘트는 이너후보군 2차 드로워에서 저장하기 전까지 비어 있거나 미확정 상태다
+- `AppendCandidateItemPayload`: `{ stashUuid, skuGroupKey, details, isLatestLlmComment? }` — `details`가 오더 스냅샷 저장의 단일 경로이며, 기본값은 `false` 권장
 - `UpdateCandidateItemPayload`: `{ itemUuid, details, isLatestLlmComment }`
 - `CandidateStashExcelUploadResult`: `{ stashUuid, stashName, itemCount, warnings: string[] }`
 - `CandidateStashAnalysisStartResult`: `{ jobId, stashUuid, itemCount }`
@@ -584,7 +585,7 @@ badgeDefinitions: {
 
 | 필드 | 의미 |
 |------|------|
-| `productId` | 상품 id |
+| `skuGroupKey` | 상품 단위 묶음 키. `SKU.code + SKU.color_code`에 대응하며 DB `SKU.uuid`가 아니다 |
 | `periodStart`, `periodEnd` | 분석 구간 |
 | `forecastPeriodEnd` | 선택. 기대 일평균 산출용 예측 구간 종료 월/일. 비우면 `periodEnd` 사용 |
 | `serviceLevelPct` | 재고·안전재고 계산용 **서비스 수준(%)** |
@@ -657,7 +658,7 @@ badgeDefinitions: {
 
 | 필드 | 의미 |
 |------|------|
-| `id`, `productName`, `brand`, `category`, `code`, `colorCode` | 기본 SKU 메타 |
+| `skuGroupKey`, `productName`, `brand`, `category`, `code`, `colorCode` | 상품 단위 메타. `skuGroupKey`는 `SKU.code + SKU.color_code` 묶음이고, 실제 SKU 유일성은 `code + colorCode + size` 조합이다 |
 | `price` | 자사 채널 판매가 |
 | `qty` | 판매 수량 등 요약 값 |
 | `availableStock` | 판매 가능 재고 |
@@ -694,7 +695,7 @@ badgeDefinitions: {
 | 필드 | 의미 |
 |------|------|
 | `schemaVersion` | 스키마 버전 (현재 `2`) |
-| `productId` | 상품 id |
+| `skuGroupKey` | 상품 단위 묶음 키. `SKU.code + SKU.color_code`에 대응하며 DB `SKU.uuid`가 아니다 |
 | `savedAt` | 후보 아이템 `details`에 저장되는 스냅샷 시각 |
 | `context` | 재조회용 컨텍스트 |
 | `context.periodStart`, `periodEnd` | 분석 구간 |

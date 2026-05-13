@@ -2,9 +2,9 @@ import { describe, expect, it } from 'vitest'
 import { mockDashboardApi } from './dashboardApi'
 import { DEFAULT_CANDIDATE_STASH_CONTEXT } from './records'
 import { MOCK_ADMIN_USER_UUID, MOCK_USER_UUID } from './authApi'
-import { productIdByLegacyId } from './salesTables'
+import { skuGroupKeyByLegacyId } from './salesTables'
 
-const productId = (legacyId: string) => productIdByLegacyId[legacyId] ?? legacyId
+const skuGroupKey = (legacyId: string) => skuGroupKeyByLegacyId[legacyId] ?? legacyId
 
 const defaultCandidateItemListParams = (stashUuid: string) => ({
   stashUuid,
@@ -67,13 +67,13 @@ describe('api/mock dashboardApi competitor channel behavior', () => {
 
   it('applies selected channel to secondary daily competitor trend', async () => {
     const kream = await mockDashboardApi.getSecondaryDailyTrend({
-      productId: productId('B'),
+      skuGroupKey: skuGroupKey('B'),
       startMonth: '2025-01',
       leadTimeDays: 0,
       competitorChannelId: 'kream',
     })
     const musinsa = await mockDashboardApi.getSecondaryDailyTrend({
-      productId: productId('B'),
+      skuGroupKey: skuGroupKey('B'),
       startMonth: '2025-01',
       leadTimeDays: 0,
       competitorChannelId: 'musinsa',
@@ -93,11 +93,11 @@ describe('api/mock dashboardApi competitor channel behavior', () => {
       endDate: '2025-12-31',
       forecastMonths: 8,
     }
-    const kream = await mockDashboardApi.getProductMonthlyTrend(productId('B'), {
+    const kream = await mockDashboardApi.getProductMonthlyTrend(skuGroupKey('B'), {
       ...params,
       competitorChannelId: 'kream',
     })
-    const musinsa = await mockDashboardApi.getProductMonthlyTrend(productId('B'), {
+    const musinsa = await mockDashboardApi.getProductMonthlyTrend(skuGroupKey('B'), {
       ...params,
       competitorChannelId: 'musinsa',
     })
@@ -137,17 +137,16 @@ describe('api/mock dashboardApi candidate stash contract stubs', () => {
     expect(hidden.items).toEqual([])
   })
 
-  it('returns candidate item badge names with shared badge definitions', async () => {
+  it('returns candidate item badges as DB-shaped name/color/tooltip arrays', async () => {
     const stashes = await mockDashboardApi.getCandidateStashes()
     const target = stashes.find((row) => row.itemCount > 0)
     expect(target).toBeDefined()
 
     const result = await mockDashboardApi.getCandidateItemsByStash(defaultCandidateItemListParams(target!.uuid))
-    const definitionNames = Object.keys(result.badgeDefinitions).sort()
-    const itemBadgeNames = result.items.flatMap((item) => item.insight.badgeNames)
+    const itemBadges = result.items.flatMap((item) => item.insight.badges)
+    const itemBadgeNames = itemBadges.map((badge) => badge.name)
 
-    expect(definitionNames).toEqual(['자사이익', '자사판매', '크림판매'])
-    expect(itemBadgeNames.every((name) => name in result.badgeDefinitions)).toBe(true)
+    expect(itemBadges.every((badge) => Boolean(badge.name && badge.color && badge.tooltip))).toBe(true)
     expect(itemBadgeNames).not.toContain('크림 매출')
     expect(itemBadgeNames).not.toContain('자사 매출')
     expect(itemBadgeNames).not.toContain('자사 이율')
@@ -165,9 +164,9 @@ describe('api/mock dashboardApi candidate stash contract stubs', () => {
 
     expect(result.items.length).toBeGreaterThan(0)
     expect(
-      result.items.every((item) => item.insight.rankTone === 'top' || item.insight.badgeNames.length > 0),
+      result.items.every((item) => item.insight.rankTone === 'top' || item.insight.badges.length > 0),
     ).toBe(true)
-    expect(Object.keys(result.badgeDefinitions).length).toBeGreaterThan(0)
+    expect(result.items.some((item) => item.insight.badges.length > 0)).toBe(true)
   })
 
   it('seeds mixed test top and test shoe products in the default candidate stash', async () => {
@@ -220,7 +219,7 @@ describe('api/mock dashboardApi candidate stash contract stubs', () => {
     await mockDashboardApi.deleteCandidateItem(item!.uuid)
     await mockDashboardApi.appendCandidateItem({
       stashUuid: source!.uuid,
-      productId: item!.productId,
+      skuGroupKey: item!.skuGroupKey,
       details: detail!.details!,
       isLatestLlmComment: false,
     })

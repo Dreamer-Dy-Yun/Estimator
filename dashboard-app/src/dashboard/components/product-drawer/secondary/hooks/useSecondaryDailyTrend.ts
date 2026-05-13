@@ -5,7 +5,7 @@ import type { ApiUnitErrorInfo } from '../../../../../types'
 import { buildShadeRanges } from '../../../trend/trendRangeUtils'
 
 type Params = {
-  productId: string
+  skuGroupKey: string
   selectedStart: string
   selectedEnd: string
   leadTimeDays: number
@@ -14,7 +14,7 @@ type Params = {
 }
 
 export function useSecondaryDailyTrend({
-  productId,
+  skuGroupKey,
   selectedStart,
   selectedEnd,
   leadTimeDays,
@@ -32,7 +32,7 @@ export function useSecondaryDailyTrend({
     void (async () => {
       try {
         const params = {
-          productId,
+          skuGroupKey,
           startMonth: selectedStart,
           leadTimeDays,
           competitorChannelId,
@@ -47,7 +47,7 @@ export function useSecondaryDailyTrend({
         setDailyTrendSeries([])
         setDailyTrendError(
           makeApiErrorInfo(
-            `getSecondaryDailyTrend(${JSON.stringify({ productId, startMonth: selectedStart, leadTimeDays, competitorChannelId })})`,
+            `getSecondaryDailyTrend(${JSON.stringify({ skuGroupKey, startMonth: selectedStart, leadTimeDays, competitorChannelId })})`,
             err,
           ),
         )
@@ -56,7 +56,7 @@ export function useSecondaryDailyTrend({
     return () => {
       alive = false
     }
-  }, [competitorChannelId, leadTimeDays, makeApiErrorInfo, productId, selectedStart])
+  }, [competitorChannelId, leadTimeDays, makeApiErrorInfo, skuGroupKey, selectedStart])
 
   const { periodShade: dailyPeriodShade, forecastShade: dailyForecastShade } = useMemo(
     () => buildShadeRanges(

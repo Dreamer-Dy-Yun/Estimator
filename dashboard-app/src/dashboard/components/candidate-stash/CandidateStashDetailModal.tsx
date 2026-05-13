@@ -623,10 +623,7 @@ export function CandidateStashDetailModal({ stashUuid, stashSummary, onClose, on
                                 {formatGroupedNumber(row.expectedOrderAmount)} 원
                               </span>
                               <span className={detailStyles.innerOrderBadgeList}>
-                                <CandidateInsightBadges
-                                  badgeNames={row.insight.badgeNames}
-                                  definitions={m.badgeDefinitions}
-                                />
+                                <CandidateInsightBadges badges={row.insight.badges} />
                               </span>
                             </div>
                           )
@@ -644,7 +641,6 @@ export function CandidateStashDetailModal({ stashUuid, stashSummary, onClose, on
       {recommendationOpen && (
         <CandidateRecommendationModal
           rows={recommendationRows}
-          badgeDefinitions={m.badgeDefinitions}
           selectedUuids={recommendationSelectedUuids}
           selectedCount={recommendationSelectedCount}
           allSelected={allRecommendationSelected}

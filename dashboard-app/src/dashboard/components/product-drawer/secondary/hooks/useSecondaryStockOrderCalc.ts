@@ -4,7 +4,7 @@ import type { ApiUnitErrorInfo } from '../../../../../types'
 import type { SecondaryForecastCalc } from '../secondaryDrawerTypes'
 
 type Params = {
-  productId: string
+  skuGroupKey: string
   selectedStart: string
   selectedEnd: string
   forecastMeanPeriodEnd: string
@@ -17,7 +17,7 @@ type Params = {
 }
 
 export function useSecondaryStockOrderCalc({
-  productId,
+  skuGroupKey,
   selectedStart,
   selectedEnd,
   forecastMeanPeriodEnd,
@@ -37,7 +37,7 @@ export function useSecondaryStockOrderCalc({
       try {
         const roundedManualSafetyStock = Math.max(0, Math.round(manualSafetyStock))
         const params = {
-          productId,
+          skuGroupKey,
           periodStart: selectedStart,
           periodEnd: selectedEnd,
           forecastPeriodEnd: forecastMeanPeriodEnd,
@@ -57,7 +57,7 @@ export function useSecondaryStockOrderCalc({
         setForecastCalcError(
           makeApiErrorInfo(
             `getSecondaryStockOrderCalc(${JSON.stringify({
-              productId,
+              skuGroupKey,
               periodStart: selectedStart,
               periodEnd: selectedEnd,
               forecastPeriodEnd: forecastMeanPeriodEnd,
@@ -80,7 +80,7 @@ export function useSecondaryStockOrderCalc({
     leadTimeDays,
     makeApiErrorInfo,
     manualSafetyStock,
-    productId,
+    skuGroupKey,
     safetyStockMode,
     selectedEnd,
     selectedStart,

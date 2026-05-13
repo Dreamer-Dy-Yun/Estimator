@@ -7,7 +7,7 @@ import { makeApiErrorInfo } from '../apiErrorInfo'
 import { SalesMetricsCard } from './cards/SalesMetricsCard'
 
 type Props = {
-  productId: string
+  skuGroupKey: string
   startDate: string
   endDate: string
   channelId: string
@@ -18,7 +18,7 @@ type Props = {
 }
 
 export function ProductSalesMetricsContainer({
-  productId,
+  skuGroupKey,
   startDate,
   endDate,
   channelId,
@@ -40,7 +40,7 @@ export function ProductSalesMetricsContainer({
     const reqSeq = ++reqSeqRef.current
     void (async () => {
       try {
-        const data = await dashboardApi.getProductSalesInsight(productId, {
+        const data = await dashboardApi.getProductSalesInsight(skuGroupKey, {
           startDate,
           endDate,
           competitorChannelId: channelId,
@@ -54,7 +54,7 @@ export function ProductSalesMetricsContainer({
         setSalesInsightError(
           makeApiErrorInfo(
             pageName,
-            `getProductSalesInsight(${JSON.stringify({ productId, startDate, endDate, competitorChannelId: channelId })})`,
+            `getProductSalesInsight(${JSON.stringify({ skuGroupKey, startDate, endDate, competitorChannelId: channelId })})`,
             err,
           ),
         )
@@ -63,7 +63,7 @@ export function ProductSalesMetricsContainer({
     return () => {
       alive = false
     }
-  }, [channelId, endDate, pageName, productId, startDate])
+  }, [channelId, endDate, pageName, skuGroupKey, startDate])
 
   const salesMetricsError = salesInsightError ?? channelsError
 

@@ -46,11 +46,11 @@ export interface DashboardApi {
   getSelfSales(params?: SelfSalesParams): Promise<SelfSalesRow[]>
   getCompetitorSales(params?: CompetitorSalesParams): Promise<CompetitorSalesRow[]>
   getSalesFilterMeta(): Promise<SalesFilterMeta>
-  getProductDrawerBundle(id: string): Promise<ProductDrawerBundle>
-  getProductMonthlyTrend(id: string, params: ProductMonthlyTrendParams): Promise<ProductMonthlyTrend>
-  getProductSalesInsight(id: string, params: ProductSalesInsightParams): Promise<ProductSalesInsight>
+  getProductDrawerBundle(skuGroupKey: string): Promise<ProductDrawerBundle>
+  getProductMonthlyTrend(skuGroupKey: string, params: ProductMonthlyTrendParams): Promise<ProductMonthlyTrend>
+  getProductSalesInsight(skuGroupKey: string, params: ProductSalesInsightParams): Promise<ProductSalesInsight>
   getProductSecondaryDetail(
-    id: string,
+    skuGroupKey: string,
     params?: ProductSecondaryDetailParams,
   ): Promise<ProductSecondaryDetail>
   getSecondaryDailyTrend(params: SecondaryDailyTrendParams): Promise<SecondaryDailyTrendPoint[]>

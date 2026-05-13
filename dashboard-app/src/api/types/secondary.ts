@@ -13,7 +13,7 @@ export interface SecondaryDailyTrendPoint {
 }
 
 export interface SecondaryDailyTrendParams {
-  productId: string
+  skuGroupKey: string
   startMonth: string
   leadTimeDays: number
   /** Competitor channel used for the competitor daily-sales series. */
@@ -34,7 +34,7 @@ export interface ProductSecondaryDetailParams {
 }
 
 export interface SecondaryStockOrderCalcParams {
-  productId: string
+  skuGroupKey: string
   periodStart: string
   periodEnd: string
   forecastPeriodEnd?: string

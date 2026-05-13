@@ -43,8 +43,7 @@ export type {
   SecondaryStockSafetyCalcBlock,
 } from './secondary'
 export type {
-  CandidateBadgeDefinition,
-  CandidateBadgeDefinitionMap,
+  CandidateBadge,
   CandidateItemDetail,
   CandidateItemListParams,
   CandidateItemListResult,

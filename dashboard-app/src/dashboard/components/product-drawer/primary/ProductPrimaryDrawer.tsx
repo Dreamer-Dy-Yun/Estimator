@@ -116,7 +116,7 @@ export function ProductPrimaryDrawer({
 
         <ComponentErrorBoundary page={pageName} unit="PrimarySalesMetricsCard">
           <ProductSalesMetricsContainer
-            productId={summary.id}
+            skuGroupKey={summary.skuGroupKey}
             startDate={periodStart}
             endDate={periodEnd}
             channelId={channelState.channelId}
@@ -129,7 +129,7 @@ export function ProductPrimaryDrawer({
 
         <ComponentErrorBoundary page={pageName} unit="PrimarySalesTrendCard">
           <ProductMonthlyTrendContainer
-            productId={summary.id}
+            skuGroupKey={summary.skuGroupKey}
             fallbackTrend={summary.monthlySalesTrend ?? []}
             periodStart={periodStart}
             periodEnd={periodEnd}

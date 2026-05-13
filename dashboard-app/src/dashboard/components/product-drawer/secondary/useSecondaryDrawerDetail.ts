@@ -5,14 +5,14 @@ import type { OrderSnapshotDocumentV1 } from '../../../../snapshot/orderSnapshot
 import { makeApiErrorInfo } from '../apiErrorInfo'
 
 type Params = {
-  productId: string
+  skuGroupKey: string
   expandPaneOpen: boolean
   hydrateSnapshot?: OrderSnapshotDocumentV1 | null
   pageName: string
 }
 
 export function useSecondaryDrawerDetail({
-  productId,
+  skuGroupKey,
   expandPaneOpen,
   hydrateSnapshot = null,
   pageName,
@@ -22,14 +22,14 @@ export function useSecondaryDrawerDetail({
 
   const secondaryFromSnapshot = useMemo(
     () =>
-      hydrateSnapshot != null && hydrateSnapshot.drawer2.secondary.id === productId
+      hydrateSnapshot != null && hydrateSnapshot.drawer2.secondary.skuGroupKey === skuGroupKey
         ? hydrateSnapshot.drawer2.secondary
         : null,
-    [hydrateSnapshot, productId],
+    [hydrateSnapshot, skuGroupKey],
   )
 
   const hydrateForPanel =
-    hydrateSnapshot != null && hydrateSnapshot.productId === productId ? hydrateSnapshot : null
+    hydrateSnapshot != null && hydrateSnapshot.skuGroupKey === skuGroupKey ? hydrateSnapshot : null
 
   useEffect(() => {
     if (!expandPaneOpen) {
@@ -47,7 +47,7 @@ export function useSecondaryDrawerDetail({
     let alive = true
     void (async () => {
       try {
-        const d = await dashboardApi.getProductSecondaryDetail(productId)
+        const d = await dashboardApi.getProductSecondaryDetail(skuGroupKey)
         if (!alive) return
         if (!d) throw new Error('2차 상세 데이터가 비어 있습니다.')
         setSecondaryDetail(d)
@@ -56,14 +56,14 @@ export function useSecondaryDrawerDetail({
         if (!alive) return
         setSecondaryDetail(null)
         setSecondaryDetailError(
-          makeApiErrorInfo(pageName, `getProductSecondaryDetail(${JSON.stringify({ productId })})`, err),
+          makeApiErrorInfo(pageName, `getProductSecondaryDetail(${JSON.stringify({ skuGroupKey })})`, err),
         )
       }
     })()
     return () => {
       alive = false
     }
-  }, [expandPaneOpen, pageName, productId, secondaryFromSnapshot])
+  }, [expandPaneOpen, pageName, skuGroupKey, secondaryFromSnapshot])
 
   return {
     secondaryDetail,

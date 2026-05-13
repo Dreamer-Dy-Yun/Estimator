@@ -1,7 +1,7 @@
 import type { SecondaryOrderSnapshotPayload } from '../types/snapshot'
 import { ORDER_SNAPSHOT_SCHEMA_VERSION } from '../../snapshot/orderSnapshotTypes'
-import { allKnownProductIds, secondaryCompetitorChannels } from './salesTables'
-import { productPrimaryById, productSecondaryById } from './productCatalog'
+import { allKnownSkuGroupKeys, secondaryCompetitorChannels } from './salesTables'
+import { productPrimaryBySkuGroupKey, productSecondaryBySkuGroupKey } from './productCatalog'
 import { buildSalesKpiColumn } from '../../utils/salesKpiColumn'
 
 const koNumber = new Intl.NumberFormat('ko-KR')
@@ -72,9 +72,9 @@ export function ensureMockAiCommentForSnapshot(snapshot: SecondaryOrderSnapshotP
 }
 
 /** 후보군 목업: 품번별 요약·2차 스냅샷을 채워 브랜드 등이 리스트/드로어에 표시되도록 함 */
-export function buildMockOrderSnapshotForCandidate(productId: string): SecondaryOrderSnapshotPayload {
-  const primary = productPrimaryById[productId] ?? productPrimaryById[allKnownProductIds[0]]!
-  const secondary = productSecondaryById[productId] ?? productSecondaryById[allKnownProductIds[0]]!
+export function buildMockOrderSnapshotForCandidate(skuGroupKey: string): SecondaryOrderSnapshotPayload {
+  const primary = productPrimaryBySkuGroupKey[skuGroupKey] ?? productPrimaryBySkuGroupKey[allKnownSkuGroupKeys[0]]!
+  const secondary = productSecondaryBySkuGroupKey[skuGroupKey] ?? productSecondaryBySkuGroupKey[allKnownSkuGroupKeys[0]]!
   const channel = secondaryCompetitorChannels[0]!
   const selfCol = buildSalesKpiColumn('self', primary, secondary, channel)
   const compCol = buildSalesKpiColumn('competitor', primary, secondary, channel)
@@ -122,7 +122,7 @@ export function buildMockOrderSnapshotForCandidate(productId: string): Secondary
   const confirmedExpectedOpProfit = confirmedOrderQty * opMarginPerUnit
   return ensureMockAiCommentForSnapshot({
     schemaVersion: ORDER_SNAPSHOT_SCHEMA_VERSION,
-    productId,
+    skuGroupKey,
     savedAt,
     context: {
       periodStart: '2025-01-01',

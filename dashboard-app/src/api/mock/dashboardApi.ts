@@ -2,7 +2,7 @@ import type { ProductPrimarySummary } from '../../types'
 import type {
   AppendCandidateItemPayload,
   AppendCandidateItemsPayload,
-  CandidateBadgeDefinitionMap,
+  CandidateBadge,
   CandidateStashAnalysisHandlers,
   CandidateStashAnalysisProgressEvent,
   CandidateItemDetail,
@@ -32,24 +32,24 @@ import { makeUuid32, sleep } from './utils'
 import { seededCandidateItems, seededCandidateStashes } from './candidateSeeds'
 import { MOCK_ADMIN_USER_UUID } from './authApi'
 import {
-  allKnownProductIds,
+  allKnownSkuGroupKeys,
   brands,
   categories,
   colorCodeOrder,
-  competitorById,
+  competitorBySkuGroupKey,
   competitorSalesRows,
   getMockSecondaryCompetitorChannel,
   secondaryCompetitorChannels,
-  selfById,
+  selfBySkuGroupKey,
   selfSalesRows,
 } from './salesTables'
 import {
   estimatePeriodWeight,
   historicalMonths,
   makeSalesTrend,
-  productPrimaryById,
-  productSecondaryById,
-  stockTrendById,
+  productPrimaryBySkuGroupKey,
+  productSecondaryBySkuGroupKey,
+  stockTrendBySkuGroupKey,
 } from './productCatalog'
 import {
   buildSecondaryDailyTrend,
@@ -76,7 +76,7 @@ function filterCandidateStashesForOwner(
   ownerUserUuid?: string,
 ): CandidateStashRecord[] {
   if (!ownerUserUuid) return rows
-  return rows.filter((row) => row.createdByUserUuid === ownerUserUuid)
+  return rows.filter((row) => row.userUuid === ownerUserUuid)
 }
 
 function readCandidateItemRecords(): CandidateItemRecord[] {
@@ -86,7 +86,7 @@ function readCandidateItemRecords(): CandidateItemRecord[] {
 function findCandidateStashForOwner(stashUuid: string, ownerUserUuid?: string): CandidateStashRecord | null {
   const stash = readCandidateStashRecords().find((row) => row.uuid === stashUuid) ?? null
   if (!stash) return null
-  if (ownerUserUuid && stash.createdByUserUuid !== ownerUserUuid) return null
+  if (ownerUserUuid && stash.userUuid !== ownerUserUuid) return null
   return stash
 }
 
@@ -111,7 +111,7 @@ function buildCandidateAnalysisEvent(
     totalItems,
     completedItems,
     currentItemUuid: item?.uuid ?? null,
-    currentProductName: item ? (item.details?.drawer1?.summary?.productName ?? productPrimaryById[item.productId]?.productName ?? null) : null,
+    currentProductName: item ? (item.details?.drawer1?.summary?.productName ?? productPrimaryBySkuGroupKey[item.skuGroupKey]?.productName ?? null) : null,
     message,
     error: null,
   }
@@ -119,23 +119,29 @@ function buildCandidateAnalysisEvent(
 
 const INNER_ORDER_TOP_PERCENT_THRESHOLD = 10
 const INNER_ORDER_BOTTOM_PERCENT_THRESHOLD = 10
-const CANDIDATE_BADGE_DEFINITIONS = {
+const CANDIDATE_BADGES_BY_NAME: Record<string, CandidateBadge> = {
   크림판매: {
+    name: '크림판매',
     color: '#0f766e',
     tooltip: `조회 기간 내 크림 경쟁사 판매수량 상위 ${INNER_ORDER_TOP_PERCENT_THRESHOLD}% 이내 후보입니다.`,
   },
   자사이익: {
+    name: '자사이익',
     color: '#be123c',
     tooltip: '조회 기간 내 자사 영업이익률이 9% 이상인 후보입니다.',
   },
   자사판매: {
+    name: '자사판매',
     color: '#c2410c',
     tooltip: `조회 기간 내 자사 판매수량 상위 ${INNER_ORDER_TOP_PERCENT_THRESHOLD}% 이내 후보입니다.`,
   },
-} satisfies CandidateBadgeDefinitionMap
+}
 
-function getCandidateBadgeDefinitions(): CandidateBadgeDefinitionMap {
-  return { ...CANDIDATE_BADGE_DEFINITIONS }
+function toCandidateBadges(names: string[]): CandidateBadge[] {
+  return names.flatMap((name) => {
+    const badge = CANDIDATE_BADGES_BY_NAME[name]
+    return badge ? [badge] : []
+  })
 }
 
 function toCandidateStashSummary(
@@ -165,16 +171,16 @@ function inBottomPercent(rankPercentile: number | null | undefined) {
 }
 
 function buildCandidateItemInsight(
-  productId: string,
+  skuGroupKey: string,
   expectedSalesQty: number,
   expectedSalesAmount: number,
   expectedOpProfit: number,
   dataReferencePeriod?: { start: string; end: string },
 ) {
-  const competitor = competitorById[productId]
-  const self = selfById[productId]
+  const competitor = competitorBySkuGroupKey[skuGroupKey]
+  const self = selfBySkuGroupKey[skuGroupKey]
   const channelLabel = secondaryCompetitorChannels[0]?.label ?? '크림'
-  const badgeNames: string[] = []
+  const badgeNameList: string[] = []
   const periodWeight = dataReferencePeriod
     ? estimatePeriodWeight(dataReferencePeriod.start, dataReferencePeriod.end)
     : 1
@@ -182,16 +188,16 @@ function buildCandidateItemInsight(
     typeof value === 'number' ? Math.max(1, Math.round(value * periodWeight)) : null
 
   if (inTopPercent(competitor?.rankPercentile)) {
-    badgeNames.push(`${channelLabel}판매`)
+    badgeNameList.push(`${channelLabel}판매`)
   }
   if (typeof self?.opMarginRate === 'number' && self.opMarginRate >= 9) {
-    badgeNames.push('자사이익')
+    badgeNameList.push('자사이익')
   }
   if (inTopPercent(self?.rankPercentile)) {
-    badgeNames.push('자사판매')
+    badgeNameList.push('자사판매')
   }
 
-  const top = badgeNames.length > 0
+  const top = badgeNameList.length > 0
   const bottom = !top && (inBottomPercent(competitor?.rankPercentile) || inBottomPercent(self?.rankPercentile))
 
   return {
@@ -207,7 +213,7 @@ function buildCandidateItemInsight(
     rankTone: top ? 'top' as const : bottom ? 'bottom' as const : 'neutral' as const,
     topPercentThreshold: INNER_ORDER_TOP_PERCENT_THRESHOLD,
     bottomPercentThreshold: INNER_ORDER_BOTTOM_PERCENT_THRESHOLD,
-    badgeNames,
+    badges: toCandidateBadges(badgeNameList),
   }
 }
 
@@ -222,10 +228,10 @@ function buildCandidateItemSummariesForStash(
 
   return readCandidateItemsForStash(stashUuid, ownerUserUuid)
     .map((row) => {
-      const productId = row.productId
-      const primary = productPrimaryById[productId] ?? productPrimaryById[allKnownProductIds[0]]!
-      const self = selfById[productId]
-      const competitor = competitorById[productId]
+      const skuGroupKey = row.skuGroupKey
+      const primary = productPrimaryBySkuGroupKey[skuGroupKey] ?? productPrimaryBySkuGroupKey[allKnownSkuGroupKeys[0]]!
+      const self = selfBySkuGroupKey[skuGroupKey]
+      const competitor = competitorBySkuGroupKey[skuGroupKey]
       const avgPrice = Math.max(1, Math.round(self?.avgPrice ?? primary.price))
       const avgCost = Math.max(1, Math.round(self?.avgCost ?? primary.price * 0.78))
       const feeRatePct = Math.max(0, Math.round((self?.feeRate ?? 13) * 10) / 10)
@@ -238,7 +244,7 @@ function buildCandidateItemSummariesForStash(
       const sizeMix = primary.sizeMix.length ? primary.sizeMix : [{ size: '-', ratio: 1 }]
       const sizeRatioSum = sizeMix.reduce((acc, sizeRow) => acc + Math.max(0, sizeRow.ratio), 0) || 1
       const insight = buildCandidateItemInsight(
-        productId,
+        skuGroupKey,
         qty,
         expectedSalesAmount,
         expectedOpProfit,
@@ -247,7 +253,7 @@ function buildCandidateItemSummariesForStash(
       return {
         uuid: row.uuid,
         stashUuid: row.stashUuid,
-        productId,
+        skuGroupKey,
         brand: primary.brand,
         code: primary.code,
         productName: primary.productName,
@@ -371,9 +377,9 @@ export const mockDashboardApi = {
       historicalMonths,
     }
   },
-  getProductDrawerBundle: async (id: string) => {
+  getProductDrawerBundle: async (skuGroupKey: string) => {
     await sleep(80)
-    const primary = productPrimaryById[id] ?? productPrimaryById[allKnownProductIds[0]]!
+    const primary = productPrimaryBySkuGroupKey[skuGroupKey] ?? productPrimaryBySkuGroupKey[allKnownSkuGroupKeys[0]]!
     const { monthlySalesTrend, ...summaryBase } = primary
     void monthlySalesTrend
     const summary: ProductPrimarySummary = {
@@ -382,18 +388,18 @@ export const mockDashboardApi = {
     return { summary }
   },
   getProductMonthlyTrend: async (
-    id: string,
+    skuGroupKey: string,
     params: ProductMonthlyTrendParams,
   ): Promise<ProductMonthlyTrend> => {
     await sleep(80)
-    const primary = productPrimaryById[id] ?? productPrimaryById[allKnownProductIds[0]]!
+    const primary = productPrimaryBySkuGroupKey[skuGroupKey] ?? productPrimaryBySkuGroupKey[allKnownSkuGroupKeys[0]]!
     const fc = Math.max(1, Math.min(24, Math.round(params.forecastMonths ?? 8)))
-    const seed = id.charCodeAt(0)
+    const seed = skuGroupKey.charCodeAt(0)
     const base = Math.max(800, Math.round(primary.qty * 0.42))
     const selfTrend = makeSalesTrend(base, seed, fc)
     const channel = getMockSecondaryCompetitorChannel(params.competitorChannelId)
     return {
-      productId: primary.id,
+      skuGroupKey: primary.skuGroupKey,
       targetPeriodDays: {
         start: params.startDate,
         end: params.endDate,
@@ -414,15 +420,15 @@ export const mockDashboardApi = {
     }
   },
   getProductSalesInsight: async (
-    id: string,
+    skuGroupKey: string,
     params: ProductSalesInsightParams,
   ): Promise<ProductSalesInsight> => {
     await sleep(80)
-    const primary = productPrimaryById[id] ?? productPrimaryById[allKnownProductIds[0]]!
-    const secondary = productSecondaryById[id] ?? productSecondaryById[allKnownProductIds[0]]!
+    const primary = productPrimaryBySkuGroupKey[skuGroupKey] ?? productPrimaryBySkuGroupKey[allKnownSkuGroupKeys[0]]!
+    const secondary = productSecondaryBySkuGroupKey[skuGroupKey] ?? productSecondaryBySkuGroupKey[allKnownSkuGroupKeys[0]]!
     const channel = getMockSecondaryCompetitorChannel(params.competitorChannelId)
     return {
-      productId: primary.id,
+      skuGroupKey: primary.skuGroupKey,
       targetPeriodDays: {
         start: params.startDate,
         end: params.endDate,
@@ -433,20 +439,20 @@ export const mockDashboardApi = {
       competitor: buildSalesKpiColumn('competitor', primary, secondary, channel),
     }
   },
-  getProductSecondaryDetail: async (id: string, params?: ProductSecondaryDetailParams) => {
+  getProductSecondaryDetail: async (skuGroupKey: string, params?: ProductSecondaryDetailParams) => {
     void params
     await sleep(80)
-    return productSecondaryById[id] ?? productSecondaryById[allKnownProductIds[0]]!
+    return productSecondaryBySkuGroupKey[skuGroupKey] ?? productSecondaryBySkuGroupKey[allKnownSkuGroupKeys[0]]!
   },
   getSecondaryDailyTrend: async ({
-    productId,
+    skuGroupKey,
     startMonth,
     leadTimeDays,
     competitorChannelId,
   }: SecondaryDailyTrendParams) => {
     await sleep(80)
-    const primary = productPrimaryById[productId] ?? productPrimaryById[allKnownProductIds[0]]!
-    const stockTrend = stockTrendById[productId] ?? stockTrendById[allKnownProductIds[0]]!
+    const primary = productPrimaryBySkuGroupKey[skuGroupKey] ?? productPrimaryBySkuGroupKey[allKnownSkuGroupKeys[0]]!
+    const stockTrend = stockTrendBySkuGroupKey[skuGroupKey] ?? stockTrendBySkuGroupKey[allKnownSkuGroupKeys[0]]!
     const channel = getMockSecondaryCompetitorChannel(competitorChannelId)
     return buildSecondaryDailyTrend(primary.monthlySalesTrend ?? [], stockTrend, startMonth, leadTimeDays, channel.qtySkew)
   },
@@ -485,10 +491,7 @@ export const mockDashboardApi = {
       start: dataReferencePeriodStart,
       end: dataReferencePeriodEnd,
     })
-    return {
-      items,
-      badgeDefinitions: getCandidateBadgeDefinitions(),
-    }
+    return { items }
   },
   getCandidateRecommendations: async (
     {
@@ -504,12 +507,9 @@ export const mockDashboardApi = {
       end: dataReferencePeriodEnd,
     })
     const recommendedItems = items.filter(
-      (item) => item.insight.rankTone === 'top' || item.insight.badgeNames.length > 0,
+      (item) => item.insight.rankTone === 'top' || item.insight.badges.length > 0,
     )
-    return {
-      items: recommendedItems.length ? recommendedItems : items,
-      badgeDefinitions: getCandidateBadgeDefinitions(),
-    }
+    return { items: recommendedItems.length ? recommendedItems : items }
   },
   getCandidateItemByUuid: async (itemUuid: string, ownerUserUuid?: string): Promise<CandidateItemDetail | null> => {
     await sleep(50)
@@ -519,7 +519,7 @@ export const mockDashboardApi = {
     return {
       uuid: row.uuid,
       stashUuid: row.stashUuid,
-      productId: row.productId,
+      skuGroupKey: row.skuGroupKey,
       details: row.details,
       isLatestLlmComment: row.isLatestLlmComment,
       dbCreatedAt: row.dbCreatedAt,
@@ -566,7 +566,7 @@ export const mockDashboardApi = {
       uuid: makeUuid32(),
       name: payload.name.trim() || `오더 후보군 ${now.slice(0, 10)}`,
       note: payload.note?.trim() || null,
-      createdByUserUuid: ownerUserUuid,
+      userUuid: ownerUserUuid,
       periodStart: payload.periodStart,
       periodEnd: payload.periodEnd,
       forecastMonths: payload.forecastMonths,
@@ -616,7 +616,7 @@ export const mockDashboardApi = {
     if (!findCandidateStashForOwner(payload.stashUuid, ownerUserUuid)) {
       throw new Error('후보군을 찾을 수 없습니다.')
     }
-    const unknownProduct = payload.productIds.find((productId) => !productPrimaryById[productId])
+    const unknownProduct = payload.skuGroupKeys.find((skuGroupKey) => !productPrimaryBySkuGroupKey[skuGroupKey])
     if (unknownProduct) {
       throw new Error(`상품을 찾을 수 없습니다: ${unknownProduct}`)
     }
@@ -726,7 +726,7 @@ export const mockDashboardApi = {
       })
     } else {
       job.items.forEach((item, index) => {
-        const productName = item.details?.drawer1?.summary?.productName ?? item.productId
+        const productName = item.details?.drawer1?.summary?.productName ?? item.skuGroupKey
         queue(260 + (index * 420), () => {
           emit(buildCandidateAnalysisEvent(
             jobId,
@@ -771,7 +771,7 @@ export const mockDashboardApi = {
     }
   },
   getSecondaryStockOrderCalc: async ({
-    productId,
+    skuGroupKey,
     periodStart,
     periodEnd,
     forecastPeriodEnd,
@@ -782,7 +782,7 @@ export const mockDashboardApi = {
     dailyMean: dailyMeanParam,
   }: SecondaryStockOrderCalcParams): Promise<SecondaryStockOrderCalcResult> => {
     await sleep(70)
-    const primary = productPrimaryById[productId] ?? productPrimaryById[allKnownProductIds[0]]!
+    const primary = productPrimaryBySkuGroupKey[skuGroupKey] ?? productPrimaryBySkuGroupKey[allKnownSkuGroupKeys[0]]!
     const fromTrend = dailyMeanSigma(primary.monthlySalesTrend ?? [], periodStart, periodEnd)
     /** 기간 산술평균: 월 판매 단순 평균의 일환산(일평균 판매량). */
     const trendMuRaw = fromTrend.dailyMean

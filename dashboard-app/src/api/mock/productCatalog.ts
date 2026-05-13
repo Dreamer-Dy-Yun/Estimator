@@ -1,6 +1,6 @@
 import type { ProductPrimarySummary, ProductSecondaryDetail } from '../../types'
 import { clamp } from './utils'
-import { allKnownProductIds, competitorById, selfById } from './salesTables'
+import { allKnownSkuGroupKeys, competitorBySkuGroupKey, selfBySkuGroupKey } from './salesTables'
 
 const SALES_MONTHS: string[] = (() => {
   const months: string[] = []
@@ -77,10 +77,10 @@ const SEASONALITY_TEMPLATES: ReadonlyArray<readonly number[]> = [
   [0.22, 0.15, 0.04, 0.02, 0.03, 0.05, 0.08, 0.18, 0.12, 0.06, 0.03, 0.05],
 ]
 
-const hashProductId = (id: string) => [...id].reduce((acc, ch) => acc + ch.charCodeAt(0), 0)
+const hashSkuGroupKey = (skuGroupKey: string) => [...skuGroupKey].reduce((acc, ch) => acc + ch.charCodeAt(0), 0)
 
-const makeSeasonality = (id: string) => {
-  const h = hashProductId(id)
+const makeSeasonality = (skuGroupKey: string) => {
+  const h = hashSkuGroupKey(skuGroupKey)
   const templateIndex = h % SEASONALITY_TEMPLATES.length
   const base = SEASONALITY_TEMPLATES[templateIndex]
   const raw = base.map((v, i) => {
@@ -205,18 +205,18 @@ export const estimatePeriodWeight = (startDate?: string, endDate?: string) => {
   // 12개월 기준으로 환산 (너무 작아지지 않게 하한 적용)
   return clamp(span / 12, 0.2, 1.8)
 }
-export const { primary: productPrimaryById, secondary: productSecondaryById } = (() => {
+export const { primary: productPrimaryBySkuGroupKey, secondary: productSecondaryBySkuGroupKey } = (() => {
   const primary: Record<string, ProductPrimarySummary> = {}
   const secondary: Record<string, ProductSecondaryDetail> = {}
-  for (const id of allKnownProductIds) {
-    const s = selfById[id]
-    const c = competitorById[id]
-    const seed = id.charCodeAt(0)
+  for (const skuGroupKey of allKnownSkuGroupKeys) {
+    const s = selfBySkuGroupKey[skuGroupKey]
+    const c = competitorBySkuGroupKey[skuGroupKey]
+    const seed = skuGroupKey.charCodeAt(0)
 
-    const productName = s?.productName ?? c?.productName ?? `상품-${id}`
+    const productName = s?.productName ?? c?.productName ?? `상품-${skuGroupKey}`
     const brand = s?.brand ?? c?.brand ?? '나이키'
     const category = s?.category ?? c?.category ?? '신발'
-    const code = s?.code ?? c?.code ?? id
+    const code = s?.code ?? c?.code ?? skuGroupKey
     const colorCode = s?.colorCode ?? c?.colorCode ?? '000'
 
     const price = s?.avgPrice ?? c?.selfAvgPrice ?? Math.round((c?.competitorAvgPrice ?? 120000) * 0.96)
@@ -229,8 +229,8 @@ export const { primary: productPrimaryById, secondary: productSecondaryById } = 
     const fullMix = makeSizeMix(recommendedOrderQty, productQty, price, availableStock, seed, category)
     const { sizeMix, competitorRatioBySize } = splitPrimarySecondaryFromSizeMix(fullMix)
 
-    primary[id] = {
-      id,
+    primary[skuGroupKey] = {
+      skuGroupKey,
       productName,
       brand,
       category,
@@ -241,11 +241,11 @@ export const { primary: productPrimaryById, secondary: productSecondaryById } = 
       availableStock,
       recommendedOrderQty,
       monthlySalesTrend: makeSalesTrend(Math.max(800, Math.round(productQty * 0.42)), seed, 8),
-      seasonality: makeSeasonality(id),
+      seasonality: makeSeasonality(skuGroupKey),
       sizeMix,
     }
-    secondary[id] = {
-      id,
+    secondary[skuGroupKey] = {
+      skuGroupKey,
       competitorPrice,
       competitorQty,
       competitorRatioBySize,
@@ -253,21 +253,21 @@ export const { primary: productPrimaryById, secondary: productSecondaryById } = 
   }
   return { primary, secondary }
 })()
-export const stockTrendById: Record<string, Array<{
+export const stockTrendBySkuGroupKey: Record<string, Array<{
   date: string
   stock: number
   inboundExpected: number
   inboundQty: number
-}>> = Object.fromEntries(allKnownProductIds.map((id) => {
-  const d = productPrimaryById[id]
-  const seed = id.charCodeAt(0)
+}>> = Object.fromEntries(allKnownSkuGroupKeys.map((skuGroupKey) => {
+  const d = productPrimaryBySkuGroupKey[skuGroupKey]
+  const seed = skuGroupKey.charCodeAt(0)
   /** 이 SKU 기준 입고 주기(월): 3 또는 4 */
   const inboundCycleMonths = 3 + (seed % 2)
   const monthlySalesTrend = d.monthlySalesTrend ?? []
   const warm = monthlySalesTrend.slice(0, Math.min(24, monthlySalesTrend.length))
   const avgMonthlySales = warm.reduce((a, p) => a + p.sales, 0) / Math.max(1, warm.length)
   /** 전기간 재고 계산용 입고 사이클(표시 노출은 미래 구간만) */
-  let monthsUntilInbound = (seed * 5 + id.length) % inboundCycleMonths
+  let monthsUntilInbound = (seed * 5 + skuGroupKey.length) % inboundCycleMonths
   /** 월말 재고: 전월말 + 당월 입고(특정 시점 반영) − 당월 판매 소진 */
   let stock = Math.max(
     200,
@@ -302,5 +302,5 @@ export const stockTrendById: Record<string, Array<{
       inboundQty: inbound,
     }
   })
-  return [id, series]
+  return [skuGroupKey, series]
 }))

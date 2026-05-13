@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { estimatePeriodWeight, historicalMonths, makeSalesTrend, productPrimaryById } from './productCatalog'
-import { productIdByLegacyId } from './salesTables'
+import { estimatePeriodWeight, historicalMonths, makeSalesTrend, productPrimaryBySkuGroupKey } from './productCatalog'
+import { skuGroupKeyByLegacyId } from './salesTables'
 
 describe('api/mock productCatalog', () => {
   it('exposes historical month bounds as 2024-07..2025-12', () => {
@@ -33,8 +33,8 @@ describe('api/mock productCatalog', () => {
   })
 
   it('uses apparel sizes for test top and shoe sizes for test shoe', () => {
-    const top = productPrimaryById[productIdByLegacyId.TEST_TOP]
-    const shoe = productPrimaryById[productIdByLegacyId.TEST_SHOE]
+    const top = productPrimaryBySkuGroupKey[skuGroupKeyByLegacyId.TEST_TOP]
+    const shoe = productPrimaryBySkuGroupKey[skuGroupKeyByLegacyId.TEST_SHOE]
 
     expect(top?.productName).toBe('테스트 상의')
     expect(top?.sizeMix.map((row) => row.size)).toEqual(['S', 'M', 'L', 'XL', 'XXL'])

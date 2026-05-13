@@ -27,7 +27,7 @@
 - `CandidateItemSummary.orderExport`를 추가해 UI가 이미 받은 목록 데이터로 XLSX를 생성하도록 했다. 별도 `order-export.xlsx` endpoint와 후보별 상세 N회 조회는 두지 않는다.
 - `deleteCandidateItems(stashUuid, itemUuids)`를 추가해 일괄 삭제 API 경계를 만들었다.
 - `SecondaryCompetitorChannel` public 타입은 `{ id, label }`만 가진다. `priceSkew`, `qtySkew`는 `src/api/mock` 내부 타입으로 분리했다.
-- `CandidateStashSummary` public 응답에서 `createdByUserUuid`를 제거했다. 소유자 필터링은 세션 기반 백엔드 책임이고, 일반 목록 화면에는 owner UUID가 필요 없다.
+- `CandidateStashSummary` public 응답에서 `userUuid`를 제거했다. 소유자 필터링은 세션 기반 백엔드 책임이고, 일반 목록 화면에는 owner UUID가 필요 없다.
 
 ## Follow-Up Candidates
 

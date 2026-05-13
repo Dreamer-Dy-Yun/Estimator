@@ -33,12 +33,12 @@ type ScatterPoint = {
 
 export const SelfPage = () => {
   const [rows, setRows] = useState<SelfSalesRow[]>([])
-  const [selectedProductId, setSelectedProductId] = useState<string | null>(null)
-  const [bulkSelectedProductIds, setBulkSelectedProductIds] = useState<Set<string>>(() => new Set())
+  const [selectedSkuGroupKey, setSelectedSkuGroupKey] = useState<string | null>(null)
+  const [bulkSelectedSkuGroupKeys, setBulkSelectedSkuGroupKeys] = useState<Set<string>>(() => new Set())
   const [bulkAddOpen, setBulkAddOpen] = useState(false)
   const { toastMessage, copyAndNotify } = useCopyToastMessage()
   const [forecastMonths, setForecastMonths] = useState(() => readForecastMonthsFromStorage())
-  const summaryBundle = useProductDrawerBundle(selectedProductId)
+  const summaryBundle = useProductDrawerBundle(selectedSkuGroupKey)
   const { ref: chartBodyRef, width: chartWidth, height: chartHeight, ready: chartReady } = useElementSize<HTMLDivElement>()
 
   const onForecastMonthsChange = useCallback((n: number) => {
@@ -119,14 +119,14 @@ export const SelfPage = () => {
     [rows, periodStartDate, periodEndDate],
   )
 
-  const navigationOrderIds = useMemo(() => rows.map((r) => r.productId), [rows])
-  const bulkSelectedCount = bulkSelectedProductIds.size
+  const navigationOrderIds = useMemo(() => rows.map((r) => r.skuGroupKey), [rows])
+  const bulkSelectedCount = bulkSelectedSkuGroupKeys.size
   const allRowsSelected = rows.length > 0 && bulkSelectedCount === rows.length
-  const selectedProductIds = useMemo(() => [...bulkSelectedProductIds], [bulkSelectedProductIds])
+  const selectedSkuGroupKeys = useMemo(() => [...bulkSelectedSkuGroupKeys], [bulkSelectedSkuGroupKeys])
 
   useEffect(() => {
-    setBulkSelectedProductIds((prev) => {
-      const available = new Set(rows.map((row) => row.productId))
+    setBulkSelectedSkuGroupKeys((prev) => {
+      const available = new Set(rows.map((row) => row.skuGroupKey))
       const next = new Set([...prev].filter((id) => available.has(id)))
       return next.size === prev.size ? prev : next
     })
@@ -134,11 +134,11 @@ export const SelfPage = () => {
 
   const onRequestNavigateAdjacent = useCallback(
     (direction: AdjacentDirection) => {
-      if (!selectedProductId) return
-      const nextId = adjacentIdInOrder(navigationOrderIds, selectedProductId, direction)
-      if (nextId != null && nextId !== selectedProductId) setSelectedProductId(nextId)
+      if (!selectedSkuGroupKey) return
+      const nextId = adjacentIdInOrder(navigationOrderIds, selectedSkuGroupKey, direction)
+      if (nextId != null && nextId !== selectedSkuGroupKey) setSelectedSkuGroupKey(nextId)
     },
-    [navigationOrderIds, selectedProductId],
+    [navigationOrderIds, selectedSkuGroupKey],
   )
 
   const renderScatterTooltip = (props: { active?: boolean; payload?: ReadonlyArray<{ payload?: ScatterPoint }> }) => {
@@ -161,7 +161,7 @@ export const SelfPage = () => {
   }
 
   const toggleBulkRow = (id: string) => {
-    setBulkSelectedProductIds((prev) => {
+    setBulkSelectedSkuGroupKeys((prev) => {
       const next = new Set(prev)
       if (next.has(id)) next.delete(id)
       else next.add(id)
@@ -170,7 +170,7 @@ export const SelfPage = () => {
   }
 
   const toggleAllRows = () => {
-    setBulkSelectedProductIds(() => (allRowsSelected ? new Set() : new Set(rows.map((row) => row.productId))))
+    setBulkSelectedSkuGroupKeys(() => (allRowsSelected ? new Set() : new Set(rows.map((row) => row.skuGroupKey))))
   }
 
   const scatterShape = useCallback(
@@ -307,10 +307,10 @@ export const SelfPage = () => {
               cell: (r) => (
                 <input
                   type="checkbox"
-                  checked={bulkSelectedProductIds.has(r.productId)}
+                  checked={bulkSelectedSkuGroupKeys.has(r.skuGroupKey)}
                   aria-label={`${r.productName} 선택`}
                   onClick={(event) => event.stopPropagation()}
-                  onChange={() => toggleBulkRow(r.productId)}
+                  onChange={() => toggleBulkRow(r.skuGroupKey)}
                 />
               ),
               align: 'center',
@@ -332,11 +332,11 @@ export const SelfPage = () => {
           ]}
           rows={rows}
           defaultSort={{ key: 'qty', dir: 'desc' }}
-          onRowClick={(row) => setSelectedProductId(row.productId)}
+          onRowClick={(row) => setSelectedSkuGroupKey(row.skuGroupKey)}
           onRowKeyDown={(row, event) => {
             if (event.key !== 'ArrowLeft') return
             event.preventDefault()
-            setSelectedProductId(row.productId)
+            setSelectedSkuGroupKey(row.skuGroupKey)
           }}
         />
       </div>
@@ -347,21 +347,21 @@ export const SelfPage = () => {
         periodEnd={periodEndDate}
         forecastMonths={forecastMonths}
         onForecastMonthsChange={onForecastMonthsChange}
-        onClose={() => setSelectedProductId(null)}
+        onClose={() => setSelectedSkuGroupKey(null)}
         onRequestNavigateAdjacent={onRequestNavigateAdjacent}
         secondaryEnabled={false}
       />
 
       <AnalysisCandidateBulkAddModal
         open={bulkAddOpen}
-        productIds={selectedProductIds}
+        skuGroupKeys={selectedSkuGroupKeys}
         periodStart={periodStartDate}
         periodEnd={periodEndDate}
         forecastMonths={forecastMonths}
         onClose={() => setBulkAddOpen(false)}
         onDone={() => {
           setBulkAddOpen(false)
-          setBulkSelectedProductIds(new Set())
+          setBulkSelectedSkuGroupKeys(new Set())
         }}
       />
     </section>

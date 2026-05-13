@@ -4,7 +4,7 @@ import { parseOrderSnapshot } from './parseOrderSnapshot'
 
 const validSnapshot = {
   schemaVersion: ORDER_SNAPSHOT_SCHEMA_VERSION,
-  productId: 'B',
+  skuGroupKey: 'B',
   savedAt: '2026-04-23T00:00:00.000Z',
   context: {
     periodStart: '2026-01-01',
@@ -87,16 +87,16 @@ describe('parseOrderSnapshot', () => {
     expect(() => parseOrderSnapshot(withoutDrawer2)).toThrow(/drawer/)
   })
 
-  it('throws when productId is missing or empty', () => {
-    const missingProductId = { ...validSnapshot, productId: null }
-    const emptyProductId = { ...validSnapshot, productId: '' }
-    expect(() => parseOrderSnapshot(missingProductId)).toThrow(/productId/)
-    expect(() => parseOrderSnapshot(emptyProductId)).toThrow(/productId/)
+  it('throws when skuGroupKey is missing or empty', () => {
+    const missingSkuGroupKey = { ...validSnapshot, skuGroupKey: null }
+    const emptySkuGroupKey = { ...validSnapshot, skuGroupKey: '' }
+    expect(() => parseOrderSnapshot(missingSkuGroupKey)).toThrow(/skuGroupKey/)
+    expect(() => parseOrderSnapshot(emptySkuGroupKey)).toThrow(/skuGroupKey/)
   })
   
-  it('throws when productId is not a string', () => {
-    const numericProductId = { ...validSnapshot, productId: 1234 }
-    expect(() => parseOrderSnapshot(numericProductId)).toThrow(/productId/)
+  it('throws when skuGroupKey is not a string', () => {
+    const numericSkuGroupKey = { ...validSnapshot, skuGroupKey: 1234 }
+    expect(() => parseOrderSnapshot(numericSkuGroupKey)).toThrow(/skuGroupKey/)
   })
 
   it('throws when snapshot structure blocks are missing', () => {

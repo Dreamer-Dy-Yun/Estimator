@@ -8,7 +8,7 @@ export function parseOrderSnapshot(
   if (d.schemaVersion !== ORDER_SNAPSHOT_SCHEMA_VERSION) {
     throw new Error(`snapshot schemaVersion mismatch: ${String(d.schemaVersion)}`)
   }
-  if (typeof d.productId !== 'string' || !d.productId) throw new Error('snapshot productId is missing')
+  if (typeof d.skuGroupKey !== 'string' || !d.skuGroupKey) throw new Error('snapshot skuGroupKey is missing')
   validateDrawer1Structure(expectRecord(d.drawer1, 'drawer1'))
   expectRecord(d.context, 'context')
   validateDrawer2Structure(expectRecord(d.drawer2, 'drawer2'))

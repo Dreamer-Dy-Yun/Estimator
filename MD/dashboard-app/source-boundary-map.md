@@ -29,9 +29,9 @@
 - 후보군 생성/삭제/복제/편집 이벤트는 API 호출 후 목록을 재조회한다. mock은 응답 흐름만 모사하고 브라우저 저장소에 후보군/이너 후보를 만들거나 지우지 않는다.
 - 후보군/관리자/드로워 저장처럼 백엔드 mutation 요청이 성공한 경우 `AppToastProvider`의 상단 자동 닫힘 toast로 완료 상태를 알린다. toast는 클릭 없이 2~3초 뒤 사라지고, 중요한 작업 영역을 가리지 않도록 화면 상단 중앙에 고정한다.
 - 후보군 목록/상세/수정 계열 API는 현재 인증 세션의 `USER_ACCOUNT.uuid` 기준으로 소유자 데이터를 필터링한다. 화면은 사용자 UUID를 직접 파라미터로 보내지 않고 `src/api/requests/dashboardRequests.ts`가 request boundary에서만 세션 UUID를 읽어 mock/향후 HTTP 요청에 붙인다.
-- 자사/경쟁사 분석 탭은 후보군에 상품을 담는 입구다. 분석 리스트의 체크박스와 `선택한 물품을 후보군으로` 모달은 스냅샷 없이 `stashUuid + productIds`만 API에 전달한다. `row.id`는 화면 행 식별자이고, `productId`는 `SKU.code + SKU.color_code` 상품 단위에 대응한다. AI 코멘트/사이즈별 확정 오더량은 이너후보군 2차 드로워에서 저장하기 전까지 미확정이다.
+- 자사/경쟁사 분석 탭은 후보군에 상품을 담는 입구다. 분석 리스트의 체크박스와 `선택한 물품을 후보군으로` 모달은 스냅샷 없이 `stashUuid + skuGroupKeys`만 API에 전달한다. `row.id`는 화면 행 식별자이고, `skuGroupKey`는 `SKU.code + SKU.color_code` 상품 단위에 대응한다. AI 코멘트/사이즈별 확정 오더량은 이너후보군 2차 드로워에서 저장하기 전까지 미확정이다.
 - 자사/경쟁사 분석 탭에서는 `ProductDrawer.secondaryEnabled={false}`로 2차 드로워를 열지 않는다. 2차 드로워 코드는 유지하되, 반원 버튼과 키보드 2차 진입은 이너후보군에서만 허용한다.
-- 이너후보군 리스트 조회는 `dataReferencePeriodStart`/`dataReferencePeriodEnd`를 API에 전달한다. 백엔드는 해당 기간의 전체 상품 분포를 먼저 계산해 배지를 부여한 뒤 후보군에 담긴 상품만 반환해야 하며, 요청 adapter 주석과 API 스펙에 이 부하 지점을 기록한다.
+- 이너후보군 리스트 조회는 `dataReferencePeriodStart`/`dataReferencePeriodEnd`를 API에 전달한다. 백엔드는 해당 기간의 전체 상품 분포를 먼저 계산해 배지를 부여한 뒤 후보군에 담긴 상품만 반환해야 하며, 배지는 DB `CANDIDATE_ITEM.badge`와 같은 `{ name, color, tooltip }[]` 형태로 `insight.badges`에 싣는다. 요청 adapter 주석과 API 스펙에는 이 부하 지점을 기록한다.
 - 이너후보군의 상세확정 여부는 후보 아이템 `details` 스냅샷 존재 여부다. 리스트 기본값은 데이터 참조기간 기준 live 계산값이고, 2차 드로워의 스냅샷 기준 보기에서는 저장 당시 전체 값과 기간을 복원하되 그래프는 그 기간으로 다시 조회한다.
 - 드로워 키보드 조작은 `좌=열기`, `우=닫기`, `상/하=이전/다음`이다. 자사/경쟁사 리스트 row에서는 좌 키가 1차 드로워만 열고, 이너후보군에서는 좌 키로 1차를 열고 열린 1차 안에서 좌 키로 2차를 연다. ESC는 2차가 열려 있으면 2차부터 닫고, 한 번 더 누르면 1차를 닫는다.
 - 후보군 상세 필터 카드에는 발주 엑셀 다운로드 액션을 둔다. 화면은 다운로드 클릭 시 백엔드를 다시 호출하지 않고, 이미 받은 `CandidateItemSummary.orderExport` DTO로 브라우저에서 XLSX를 생성한다. 주 데이터 시트는 브랜드·품번(`code`)·상품명(`productName`)·색상(`colorCode`)·배지·판매 지표·총 오더 지표 컬럼 뒤에 후보군 전체 사이즈를 동적 컬럼으로 붙이고, 제품에 없는 사이즈는 `N/A`로 표시한다. 복수 배지는 한 셀 안에서 줄바꿈한다. 메타 시트에는 오더 입고 예정일과 사용자 이름을 둔다.
@@ -107,7 +107,7 @@
 |------|------|
 | `admin-gpt-key.ts` | 관리자 GPT 키 목록/추가/메타 변경/키 교체/연결 테스트/삭제 계약. GPT만 사용하므로 공급자/Base URL/Project ID는 계약에서 제외하고, 요청 payload에는 `plainKey`, 목록 응답에는 `maskedKey`만 포함한다 |
 | `auth.ts` | 로그인 요청, 인증 사용자, 사용자 정보/비밀번호 변경, 관리자 유저 추가/제거/수정/비밀번호 재설정, 세션, 인증 API 계약 |
-| `candidate.ts` | 후보군/이너 후보/후보군 분석 SSE 요청·응답 계약. 기간 기반 후보군 리스트 조회, 상세확정 여부, 스냅샷 없는 일괄 담기 payload, nullable 상세 스냅샷을 소유한다 |
+| `candidate.ts` | 후보군/이너 후보/후보군 분석 SSE 요청·응답 계약. 기간 기반 후보군 리스트 조회, DB형 배지 배열, 상세확정 여부, 스냅샷 없는 일괄 담기 payload, nullable 상세 스냅샷을 소유한다 |
 | `dashboard-api.ts` | 화면에서 쓰는 `DashboardApi` 인터페이스 |
 | `drawer.ts` | 1차 drawer bundle, 월간 판매 추이, 판매 인사이트 계약 |
 | `index.ts` | API public type export |
@@ -305,7 +305,7 @@
 | 파일 | 역할 |
 |------|------|
 | `orderSnapshotTypes.ts` | 저장 문서 schema 타입 |
-| `parseOrderSnapshot.ts` | API 타입에 의존하지 않고 `unknown` 저장 문서의 schemaVersion, productId, drawer/context 주요 블록, sizeRows 배열 구조만 검증한다. 내부 숫자/문자 비즈니스 값은 백엔드 계약을 신뢰하고 화면/export에서 드러나게 둔다 |
+| `parseOrderSnapshot.ts` | API 타입에 의존하지 않고 `unknown` 저장 문서의 schemaVersion, skuGroupKey, drawer/context 주요 블록, sizeRows 배열 구조만 검증한다. 내부 숫자/문자 비즈니스 값은 백엔드 계약을 신뢰하고 화면/export에서 드러나게 둔다 |
 
 ## src/styles
 

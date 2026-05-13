@@ -11,7 +11,7 @@ import styles from '../common.module.css'
 
 type Props = {
   open: boolean
-  productIds: string[]
+  skuGroupKeys: string[]
   periodStart: string
   periodEnd: string
   forecastMonths: number
@@ -21,7 +21,7 @@ type Props = {
 
 export function AnalysisCandidateBulkAddModal({
   open,
-  productIds,
+  skuGroupKeys,
   periodStart,
   periodEnd,
   forecastMonths,
@@ -36,7 +36,7 @@ export function AnalysisCandidateBulkAddModal({
   const [error, setError] = useState<string | null>(null)
   const requestSeqRef = useRef(0)
   const { showToast } = useAppToast()
-  const uniqueProductIds = useMemo(() => [...new Set(productIds)], [productIds])
+  const uniqueSkuGroupKeys = useMemo(() => [...new Set(skuGroupKeys)], [skuGroupKeys])
 
   useEffect(() => {
     if (!open) return
@@ -85,13 +85,13 @@ export function AnalysisCandidateBulkAddModal({
   }
 
   const confirm = async () => {
-    if (!selectedStashUuid || uniqueProductIds.length === 0) return
+    if (!selectedStashUuid || uniqueSkuGroupKeys.length === 0) return
     setBusy(true)
     setError(null)
     try {
       await appendCandidateItems({
         stashUuid: selectedStashUuid,
-        productIds: uniqueProductIds,
+        skuGroupKeys: uniqueSkuGroupKeys,
       })
       showToast('선택한 상품을 후보군에 담았습니다.')
       onDone()
@@ -122,7 +122,7 @@ export function AnalysisCandidateBulkAddModal({
         </div>
 
         <div className={styles.analysisBulkMeta}>
-          선택 상품 <b>{uniqueProductIds.length}</b>개
+          선택 상품 <b>{uniqueSkuGroupKeys.length}</b>개
         </div>
 
         <div className={styles.analysisBulkCreateGrid}>
@@ -186,7 +186,7 @@ export function AnalysisCandidateBulkAddModal({
             type="button"
             className={`${styles.actionBtn} ${styles.btnPrimary}`}
             onClick={() => void confirm()}
-            disabled={busy || !selectedStashUuid || uniqueProductIds.length === 0}
+            disabled={busy || !selectedStashUuid || uniqueSkuGroupKeys.length === 0}
           >
             담기
           </button>

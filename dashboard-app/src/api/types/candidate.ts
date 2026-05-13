@@ -35,7 +35,7 @@ export interface CandidateItemOrderExport {
 export interface CandidateItemSummary {
   uuid: string
   stashUuid: string
-  productId: string
+  skuGroupKey: string
   brand: string
   code: string
   productName: string
@@ -57,17 +57,12 @@ export interface CandidateItemSummary {
   dbUpdatedAt: string
 }
 
-/**
- * Backend-driven badge definition map.
- * The response owns badge color/tooltip metadata, while each item carries only
- * badge names that reference this map.
- */
-export interface CandidateBadgeDefinition {
+/** Candidate item badge stored as CANDIDATE_ITEM.badge JSON. */
+export interface CandidateBadge {
+  name: string
   color: string
   tooltip: string
 }
-
-export type CandidateBadgeDefinitionMap = Record<string, CandidateBadgeDefinition>
 
 export interface CandidateItemInsightSummary {
   competitorChannelLabel: string
@@ -82,12 +77,11 @@ export interface CandidateItemInsightSummary {
   rankTone: 'top' | 'bottom' | 'neutral'
   topPercentThreshold: number
   bottomPercentThreshold: number
-  badgeNames: string[]
+  badges: CandidateBadge[]
 }
 
 export interface CandidateItemListResult {
   items: CandidateItemSummary[]
-  badgeDefinitions: CandidateBadgeDefinitionMap
 }
 
 export interface CandidateItemListParams {
@@ -108,7 +102,7 @@ export type CandidateRecommendationResult = CandidateItemListResult
 export interface CandidateItemDetail {
   uuid: string
   stashUuid: string
-  productId: string
+  skuGroupKey: string
   details: SecondaryOrderSnapshotPayload | null
   isLatestLlmComment: boolean
   dbCreatedAt: string
@@ -132,16 +126,16 @@ export interface UpdateCandidateStashPayload {
 
 export interface AppendCandidateItemPayload {
   stashUuid: string
-  productId: string
+  skuGroupKey: string
   details: SecondaryOrderSnapshotPayload
   isLatestLlmComment: boolean
 }
 
-/** Adds SKU candidates from analysis lists without saving an order snapshot. */
+/** Adds SKU.code + SKU.color_code groups from analysis lists without saving an order snapshot. */
 export interface AppendCandidateItemsPayload {
   stashUuid: string
-  /** Product identifiers for code + color groups. No order snapshot is saved here. */
-  productIds: string[]
+  /** skuGroupKey values. Backend maps each key to matching SKU rows by code/color_code. */
+  skuGroupKeys: string[]
 }
 
 export interface UpdateCandidateItemPayload {

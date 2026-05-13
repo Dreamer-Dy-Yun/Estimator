@@ -1,8 +1,8 @@
 /** One row in the self (own channel) sales analysis table. */
 export type SelfSalesRow = {
   id: string
-  /** Backend product identifier for a code + color group. UI row id is separate. */
-  productId: string
+  /** SKU.code + SKU.color_code grouping key. UI row id and SKU.uuid are separate. */
+  skuGroupKey: string
   rank: number
   /** Percentile rank among all SKUs. */
   rankPercentile: number
@@ -27,8 +27,8 @@ export type SelfSalesRow = {
 /** One row in the competitor comparison sales table. */
 export type CompetitorSalesRow = {
   id: string
-  /** Backend product identifier for a code + color group. UI row id is separate. */
-  productId: string
+  /** SKU.code + SKU.color_code grouping key. UI row id and SKU.uuid are separate. */
+  skuGroupKey: string
   rank: number
   rankPercentile: number
   brand: string
@@ -62,8 +62,8 @@ export type ProductSizeMixRow = {
 }
 
 export type ProductPrimarySummary = {
-  /** Backend product identifier for a code + color group. */
-  id: string
+  /** Frontend/backend grouping key for SKU.code + SKU.color_code. It is not SKU.uuid. */
+  skuGroupKey: string
   productName: string
   brand: string
   category: string
@@ -87,7 +87,7 @@ export type ProductPrimarySummary = {
 
 /** 2차 드로워 전용: 경쟁 베이스라인 + 사이즈별 경쟁 비중 — 별도 API. */
 export type ProductSecondaryDetail = {
-  id: string
+  skuGroupKey: string
   competitorPrice: number
   competitorQty: number
   competitorRatioBySize: Record<string, number>

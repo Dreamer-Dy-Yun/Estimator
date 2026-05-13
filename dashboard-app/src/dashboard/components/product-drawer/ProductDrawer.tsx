@@ -69,7 +69,7 @@ function ProductDrawerContent({
     secondaryDetailError,
     hydrateForPanel,
   } = useSecondaryDrawerDetail({
-    productId: summary.id,
+    skuGroupKey: summary.skuGroupKey,
     expandPaneOpen: secondaryEnabled && expandPaneOpen,
     hydrateSnapshot,
     pageName,

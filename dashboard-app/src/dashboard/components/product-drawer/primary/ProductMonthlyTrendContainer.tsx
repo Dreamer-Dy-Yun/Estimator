@@ -12,7 +12,7 @@ import { makeApiErrorInfo } from '../apiErrorInfo'
 const COMPETITOR_CHANNEL_FALLBACK_LABEL = '경쟁사'
 
 type Props = {
-  productId: string
+  skuGroupKey: string
   fallbackTrend: MonthlySalesPoint[]
   periodStart: string
   periodEnd: string
@@ -24,7 +24,7 @@ type Props = {
 }
 
 export function ProductMonthlyTrendContainer({
-  productId,
+  skuGroupKey,
   fallbackTrend,
   periodStart,
   periodEnd,
@@ -65,11 +65,11 @@ export function ProductMonthlyTrendContainer({
 
   useEffect(() => {
     setForecastComboOpen(false)
-  }, [productId])
+  }, [skuGroupKey])
 
   useEffect(() => {
     setChartHovered(false)
-  }, [productId])
+  }, [skuGroupKey])
 
   const selectedStart = normalizeMonthKey(periodStart)
   const selectedEnd = normalizeMonthKey(periodEnd)
@@ -85,7 +85,7 @@ export function ProductMonthlyTrendContainer({
     const reqSeq = ++reqSeqRef.current
     void (async () => {
       try {
-        const data = await dashboardApi.getProductMonthlyTrend(productId, {
+        const data = await dashboardApi.getProductMonthlyTrend(skuGroupKey, {
           startDate,
           endDate,
           forecastMonths,
@@ -100,7 +100,7 @@ export function ProductMonthlyTrendContainer({
         setMonthlyTrendError(
           makeApiErrorInfo(
             pageName,
-            `getProductMonthlyTrend(${JSON.stringify({ productId, startDate, endDate, forecastMonths, competitorChannelId: channelId })})`,
+            `getProductMonthlyTrend(${JSON.stringify({ skuGroupKey, startDate, endDate, forecastMonths, competitorChannelId: channelId })})`,
             err,
           ),
         )
@@ -109,7 +109,7 @@ export function ProductMonthlyTrendContainer({
     return () => {
       alive = false
     }
-  }, [channelId, endDate, forecastMonths, pageName, productId, startDate])
+  }, [channelId, endDate, forecastMonths, pageName, skuGroupKey, startDate])
 
   const salesSeries = useMemo(() => {
     if (monthlyTrend != null) {
@@ -151,7 +151,7 @@ export function ProductMonthlyTrendContainer({
 
   useEffect(() => {
     setWindowSize(baseWindowSize)
-  }, [baseWindowSize, productId])
+  }, [baseWindowSize, skuGroupKey])
 
   const hasForecastInSeries = salesSeries.some((p) => p.isForecast)
 

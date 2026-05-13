@@ -10,7 +10,6 @@ import {
   subscribeCandidateStashAnalysis,
   type CandidateStashAnalysisProgressEvent,
   type CandidateStashAnalysisSubscription,
-  type CandidateBadgeDefinitionMap,
   type CandidateItemSummary,
   type CandidateStashSummary,
 } from '../../../api'
@@ -87,7 +86,6 @@ export function useCandidateStashDetailModal({
   const [recommendationItems, setRecommendationItems] = useState<CandidateItemSummary[]>([])
   const [recommendationLoading, setRecommendationLoading] = useState(false)
   const [recommendationError, setRecommendationError] = useState<string | null>(null)
-  const [badgeDefinitions, setBadgeDefinitions] = useState<CandidateBadgeDefinitionMap>({})
   const [detailLoading, setDetailLoading] = useState(false)
   const [detailError, setDetailError] = useState<string | null>(null)
   const [brandQuery, setBrandQuery] = useState('')
@@ -100,7 +98,7 @@ export function useCandidateStashDetailModal({
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [drawerClosing, setDrawerClosing] = useState(false)
   const [drawerError, setDrawerError] = useState<string | null>(null)
-  const [drawerProductId, setDrawerProductId] = useState<string | null>(null)
+  const [drawerSkuGroupKey, setDrawerSkuGroupKey] = useState<string | null>(null)
   const [openedItemUuid, setOpenedItemUuid] = useState<string | null>(null)
   const [hydrateSnap, setHydrateSnap] = useState<OrderSnapshotDocumentV1 | null>(null)
   const [drawerForecastMonths, setDrawerForecastMonths] = useState(8)
@@ -172,13 +170,11 @@ export function useCandidateStashDetailModal({
       })
       if (!mountedRef.current || itemLoadSeqRef.current !== seq) return
       setItems(result.items)
-      setBadgeDefinitions(result.badgeDefinitions)
       setDetailLoading(false)
     } catch (err) {
       if (!mountedRef.current || itemLoadSeqRef.current !== seq) return
       const message = err instanceof Error ? err.message : '이너 후보 목록 스냅샷 데이터가 올바르지 않습니다.'
       setItems([])
-      setBadgeDefinitions({})
       setDetailError(message)
       setDetailLoading(false)
     }
@@ -368,7 +364,7 @@ export function useCandidateStashDetailModal({
   }, [totals.expectedOpProfit, totals.expectedSalesAmount])
 
   const fc = clampForecastMonths(drawerForecastMonths)
-  const bundle = useProductDrawerBundle(drawerOpen || drawerClosing ? drawerProductId : null, {
+  const bundle = useProductDrawerBundle(drawerOpen || drawerClosing ? drawerSkuGroupKey : null, {
     allowStaleWhileRevalidate: false,
   })
 
@@ -395,7 +391,6 @@ export function useCandidateStashDetailModal({
       })
       if (!mountedRef.current || recommendationLoadSeqRef.current !== seq) return []
       setRecommendationItems(result.items)
-      setBadgeDefinitions(result.badgeDefinitions)
       setRecommendationLoading(false)
       return result.items
     } catch (err) {
@@ -409,8 +404,8 @@ export function useCandidateStashDetailModal({
   }, [dataReferenceEnd, dataReferenceStart, stashUuid])
 
   const mergedSummary = useMemo(
-    () => mergePrimarySummaryFromBundleAndSnapshot(drawerProductId, bundle, hydrateSnap),
-    [bundle, drawerProductId, hydrateSnap],
+    () => mergePrimarySummaryFromBundleAndSnapshot(drawerSkuGroupKey, bundle, hydrateSnap),
+    [bundle, drawerSkuGroupKey, hydrateSnap],
   )
 
   if (drawerOpen && (!dataReferenceStart || !dataReferenceEnd)) {
@@ -434,7 +429,7 @@ export function useCandidateStashDetailModal({
       if (!mountedRef.current || drawerRequestSeqRef.current !== seq) return
       setHydrateSnap(snap)
       setDrawerForecastMonths(clampForecastMonths(snap?.context.forecastMonths ?? detailTarget?.forecastMonths ?? 8))
-      setDrawerProductId(row.productId)
+      setDrawerSkuGroupKey(row.skuGroupKey)
       setOpenedItemUuid(row.uuid)
       setDrawerOpen(true)
     } catch (err) {
@@ -466,7 +461,7 @@ export function useCandidateStashDetailModal({
 
   const closeDrawer = useCallback(() => {
     drawerRequestSeqRef.current += 1
-    if (!drawerOpen && !drawerClosing && drawerProductId == null) return
+    if (!drawerOpen && !drawerClosing && drawerSkuGroupKey == null) return
     if (drawerCloseTimerRef.current != null) {
       window.clearTimeout(drawerCloseTimerRef.current)
       drawerCloseTimerRef.current = null
@@ -477,11 +472,11 @@ export function useCandidateStashDetailModal({
       drawerCloseTimerRef.current = null
       if (!mountedRef.current) return
       setDrawerClosing(false)
-      setDrawerProductId(null)
+      setDrawerSkuGroupKey(null)
       setOpenedItemUuid(null)
       setHydrateSnap(null)
     }, INNER_DRAWER_CLOSE_LAYOUT_MS)
-  }, [drawerClosing, drawerOpen, drawerProductId])
+  }, [drawerClosing, drawerOpen, drawerSkuGroupKey])
 
   const onDrawerForecastMonthsChange = useCallback((n: number) => {
     setDrawerForecastMonths(clampForecastMonths(n))
@@ -549,7 +544,6 @@ export function useCandidateStashDetailModal({
     recommendationItems,
     recommendationLoading,
     recommendationError,
-    badgeDefinitions,
     detailLoading,
     detailError,
     brandQuery,

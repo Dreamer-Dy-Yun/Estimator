@@ -19,7 +19,7 @@ export interface ProductMonthlyTrendPoint {
 }
 
 export interface ProductMonthlyTrend {
-  productId: string
+  skuGroupKey: string
   targetPeriodDays: {
     start: string
     end: string
@@ -54,7 +54,7 @@ export interface ProductSalesInsightColumn {
 }
 
 export interface ProductSalesInsight {
-  productId: string
+  skuGroupKey: string
   targetPeriodDays: {
     start: string
     end: string

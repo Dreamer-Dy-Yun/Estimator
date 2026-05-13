@@ -10,48 +10,48 @@ export type UseProductDrawerBundleOptions = {
 }
 
 export type ProductDrawerBundleCache = {
-  id: string
+  skuGroupKey: string
   bundle: ProductDrawerBundle
 } | null
 
 /** Hook 외부에서도 재사용 가능한 번들 선택 규칙(순수 함수). */
 export function pickProductDrawerBundleFromCache(
-  selectedId: string | null,
+  selectedSkuGroupKey: string | null,
   cache: ProductDrawerBundleCache,
   allowStaleWhileRevalidate: boolean,
 ): ProductDrawerBundle | null {
-  if (!selectedId) return null
+  if (!selectedSkuGroupKey) return null
   if (!cache) return null
-  if (!allowStaleWhileRevalidate && cache.id !== selectedId) return null
+  if (!allowStaleWhileRevalidate && cache.skuGroupKey !== selectedSkuGroupKey) return null
   return cache.bundle
 }
 
 /** 1차 드로어: 품번 선택 시 자사 요약 번들만 로드. id 없으면 null. */
 export function useProductDrawerBundle(
-  selectedId: string | null,
+  selectedSkuGroupKey: string | null,
   options?: UseProductDrawerBundleOptions,
 ) {
   const allowStale = options?.allowStaleWhileRevalidate !== false
   const [cache, setCache] = useState<ProductDrawerBundleCache>(null)
 
   useEffect(() => {
-    if (!selectedId) {
+    if (!selectedSkuGroupKey) {
       setCache(null)
       return
     }
     let alive = true
-    getProductDrawerBundle(selectedId)
+    getProductDrawerBundle(selectedSkuGroupKey)
       .then((data) => {
-        if (alive) setCache({ id: selectedId, bundle: data })
+        if (alive) setCache({ skuGroupKey: selectedSkuGroupKey, bundle: data })
       })
       .catch(() => {
         // 네트워크/목업 실패 시 이전 품번 캐시 오염을 막기 위해 현재 선택 품번 캐시를 비운다.
-        if (alive) setCache((prev) => (prev?.id === selectedId ? null : prev))
+        if (alive) setCache((prev) => (prev?.skuGroupKey === selectedSkuGroupKey ? null : prev))
       })
     return () => {
       alive = false
     }
-  }, [selectedId])
+  }, [selectedSkuGroupKey])
 
-  return pickProductDrawerBundleFromCache(selectedId, cache, allowStale)
+  return pickProductDrawerBundleFromCache(selectedSkuGroupKey, cache, allowStale)
 }

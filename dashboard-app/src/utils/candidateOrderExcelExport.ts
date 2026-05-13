@@ -127,10 +127,10 @@ function sizeOrderMap(item: CandidateItemSummary): Map<string, number> {
 }
 
 function badgeCell(summary: CandidateItemSummary): string {
-  const badgeNames = [
-    ...new Set(summary.insight.badgeNames.map((name) => name.trim()).filter(Boolean)),
+  const badgeLabels = [
+    ...new Set(summary.insight.badges.map((badge) => badge.name.trim()).filter(Boolean)),
   ]
-  return badgeNames.length ? badgeNames.join('\n') : '-'
+  return badgeLabels.length ? badgeLabels.join('\n') : '-'
 }
 
 function exportRow(

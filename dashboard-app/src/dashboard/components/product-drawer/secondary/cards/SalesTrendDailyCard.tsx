@@ -23,7 +23,7 @@ type TrendPoint = {
 type SizeOption = { id: string; label: string; share: number }
 
 type Props = {
-  productId: string
+  skuGroupKey: string
   competitorChannelLabel: string
   /** 사이즈별 비중(합 1). 비어 있으면 선택 UI 숨김. */
   sizeOptions: SizeOption[]
@@ -36,14 +36,14 @@ type Props = {
   }
 }
 
-export function SalesTrendDailyCard({ productId, competitorChannelLabel, sizeOptions, trend }: Props) {
+export function SalesTrendDailyCard({ skuGroupKey, competitorChannelLabel, sizeOptions, trend }: Props) {
   const [expanded, setExpanded] = useState(false)
   const [selectedSizeId, setSelectedSizeId] = useState<'all' | string>('all')
   const chartHeight = 240
 
   useEffect(() => {
     setSelectedSizeId('all')
-  }, [productId])
+  }, [skuGroupKey])
 
   const scaledSeries = useMemo(() => {
     if (selectedSizeId === 'all') return trend.series

@@ -32,11 +32,15 @@ const candidateStashExcelTemplateFilename = '(Han.A)Template(ver.0.0.0).xlsx'
  *   enforce the same owner filter server-side.
  * - Stored snapshots remain the source of drawer/order state. Do not silently
  *   recalculate or replace snapshot fields in the request adapter.
+ * - SKU identity follows the DB sheet: SKU rows are unique by code + color_code
+ *   + size. List/drawer APIs operate on a skuGroupKey, a product-level grouping
+ *   of SKU.code + SKU.color_code. Backend implementations should map this key to
+ *   the matching SKU rows before aggregating size-level data.
  * - Candidate stash item list is period-sensitive. The backend should calculate
- *   the requested period over the full eligible product universe, assign badges
- *   from that full-period distribution, then return only the products contained
- *   in the requested stash. Cache period/channel ranking results if this becomes
- *   expensive.
+ *   the requested period over the full eligible skuGroupKey universe, assign
+ *   badges from that full-period distribution, then return only the skuGroupKeys
+ *   contained in the requested stash. Cache period/channel ranking results if
+ *   this becomes expensive.
  * - Period/channel-sensitive drawer data should remain separate API calls rather
  *   than being merged back into a single oversized bundle.
  */
@@ -52,24 +56,24 @@ function resolvePublicAssetUrl(path: string): string {
 }
 
 async function getProductMonthlyTrend(
-  id: string,
+  skuGroupKey: string,
   params: ProductMonthlyTrendParams,
 ): Promise<ProductMonthlyTrend> {
-  return mockDashboardApi.getProductMonthlyTrend(id, params)
+  return mockDashboardApi.getProductMonthlyTrend(skuGroupKey, params)
 }
 
 async function getProductSalesInsight(
-  id: string,
+  skuGroupKey: string,
   params: ProductSalesInsightParams,
 ): Promise<ProductSalesInsight> {
-  return mockDashboardApi.getProductSalesInsight(id, params)
+  return mockDashboardApi.getProductSalesInsight(skuGroupKey, params)
 }
 
 async function getProductSecondaryDetail(
-  id: string,
+  skuGroupKey: string,
   params?: ProductSecondaryDetailParams,
 ): Promise<ProductSecondaryDetail> {
-  return mockDashboardApi.getProductSecondaryDetail(id, params)
+  return mockDashboardApi.getProductSecondaryDetail(skuGroupKey, params)
 }
 
 async function getSecondaryDailyTrend(
@@ -95,7 +99,7 @@ export const dashboardRequests: DashboardApi = {
   getSelfSales: (params): Promise<SelfSalesRow[]> => mockDashboardApi.getSelfSales(params),
   getCompetitorSales: (params): Promise<CompetitorSalesRow[]> => mockDashboardApi.getCompetitorSales(params),
   getSalesFilterMeta: () => mockDashboardApi.getSalesFilterMeta(),
-  getProductDrawerBundle: (id) => mockDashboardApi.getProductDrawerBundle(id),
+  getProductDrawerBundle: (skuGroupKey) => mockDashboardApi.getProductDrawerBundle(skuGroupKey),
   getProductMonthlyTrend,
   getProductSalesInsight,
   getProductSecondaryDetail,

@@ -33,7 +33,7 @@
 - `candidateOrderExcelExport.ts`의 통합 문서 생성 책임을 `CandidateOrderWorkbookBuilder`로 묶었다.
 - 빌더는 `exceljs` 모듈, clock, 스타일 정책을 주입받도록 해 파일명 날짜와 시트 스타일 의존성을 테스트 가능한 인스턴스 책임으로 옮겼다.
 - `CandidateItemSummary` 타입 주석에서 리스트 live 계산값, 저장 스냅샷, 다운로드 DTO 의미를 분리했다.
-- 백엔드 API 스펙에서 `productId`가 현재 프론트 계약상 `SKU.code + SKU.color_code` 상품 단위에 대응함을 명시했다.
+- 백엔드 API 스펙에서 `skuGroupKey`가 현재 프론트 계약상 `SKU.code + SKU.color_code` 상품 단위에 대응함을 명시했다.
 
 ## Deferred Candidates
 

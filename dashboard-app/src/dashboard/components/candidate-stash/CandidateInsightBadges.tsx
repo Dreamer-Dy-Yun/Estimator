@@ -1,30 +1,28 @@
 import type { CSSProperties } from 'react'
-import type { CandidateBadgeDefinitionMap } from '../../../api'
+import type { CandidateBadge } from '../../../api'
 import styles from './CandidateInsightBadges.module.css'
 
 type Props = {
-  badgeNames: string[]
-  definitions: CandidateBadgeDefinitionMap
+  badges: CandidateBadge[]
 }
 
-export function CandidateInsightBadges({ badgeNames, definitions }: Props) {
-  if (!badgeNames.length) {
+export function CandidateInsightBadges({ badges }: Props) {
+  if (!badges.length) {
     return <span className={styles.empty}>-</span>
   }
 
   return (
     <>
-      {badgeNames.map((badgeName) => {
-        const definition = definitions[badgeName]
-        const color = definition?.color ?? '#64748b'
+      {badges.map((badge) => {
+        const color = badge.color || '#64748b'
         return (
           <span
-            key={badgeName}
+            key={badge.name}
             className={styles.badge}
-            title={definition?.tooltip ?? badgeName}
+            title={badge.tooltip || badge.name}
             style={{ '--candidate-badge-color': color } as CSSProperties}
           >
-            <span>{badgeName}</span>
+            <span>{badge.name}</span>
           </span>
         )
       })}

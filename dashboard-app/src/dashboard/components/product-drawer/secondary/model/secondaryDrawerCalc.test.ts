@@ -4,7 +4,7 @@ import { buildSalesKpiColumn } from '../../../../../utils/salesKpiColumn'
 import { mergePrimarySecondarySizeMix } from './secondaryDrawerCalc'
 
 const primary: ProductPrimarySummary = {
-  id: 'B',
+  skuGroupKey: 'B__010',
   productName: 'BBBBB',
   brand: '나이키',
   category: '신발',
@@ -23,7 +23,7 @@ const primary: ProductPrimarySummary = {
 }
 
 const secondary: ProductSecondaryDetail = {
-  id: 'B',
+  skuGroupKey: 'B__010',
   competitorPrice: 110,
   competitorQty: 150,
   competitorRatioBySize: { '250': 0.7 },

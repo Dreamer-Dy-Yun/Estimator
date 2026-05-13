@@ -149,7 +149,7 @@ export function ProductSecondaryDrawer({
     setCandidateListOpen(false)
     setCandidateStashes([])
     setSelectedCandidate(null)
-  }, [primary.id])
+  }, [primary.skuGroupKey])
 
   const makeApiErrorInfo = useCallback((request: string, err: unknown): ApiUnitErrorInfo => ({
     checkedAt: new Date().toISOString(),
@@ -169,7 +169,7 @@ export function ProductSecondaryDrawer({
 
   useEffect(() => {
     if (!hasSavedSnapshot) setShowSnapshotInfo(false)
-  }, [hasSavedSnapshot, primary.id])
+  }, [hasSavedSnapshot, primary.skuGroupKey])
 
   const channel = useMemo<SecondaryCompetitorChannel>(
     () => competitorChannels.find((ch) => ch.id === channelId)!,
@@ -182,7 +182,7 @@ export function ProductSecondaryDrawer({
     salesInsightReqSeqRef.current = reqSeq
     void (async () => {
       try {
-        const result = await dashboardApi.getProductSalesInsight(primary.id, {
+        const result = await dashboardApi.getProductSalesInsight(primary.skuGroupKey, {
           startDate: monthToStartDate(selectedStart),
           endDate: monthToEndDate(selectedEnd),
           competitorChannelId: channel.id,
@@ -196,7 +196,7 @@ export function ProductSecondaryDrawer({
         setSalesInsightError(
           makeApiErrorInfo(
             `getProductSalesInsight(${JSON.stringify({
-              productId: primary.id,
+              skuGroupKey: primary.skuGroupKey,
               startDate: monthToStartDate(selectedStart),
               endDate: monthToEndDate(selectedEnd),
               competitorChannelId: channel.id,
@@ -209,7 +209,7 @@ export function ProductSecondaryDrawer({
     return () => {
       alive = false
     }
-  }, [channel.id, makeApiErrorInfo, primary.id, selectedEnd, selectedStart])
+  }, [channel.id, makeApiErrorInfo, primary.skuGroupKey, selectedEnd, selectedStart])
 
   const fallbackSelfCol = useMemo(
     () => buildSalesKpiColumn('self', primary, secondary, channel),
@@ -225,17 +225,17 @@ export function ProductSecondaryDrawer({
   useEffect(() => {
     if (prefillFromSnapshot != null) return
     setDailyMeanClient(null)
-  }, [primary.id, selectedEnd, selectedStart, prefillFromSnapshot])
+  }, [primary.skuGroupKey, selectedEnd, selectedStart, prefillFromSnapshot])
 
   useEffect(() => {
     setUnitCostInput(Math.max(0, Math.round(selfCol.avgCost ?? 0)))
     setUnitPriceInput(Math.max(0, Math.round(selfCol.avgPrice)))
     setExpectedFeeRatePct(Math.max(0, Math.round((selfCol.feeRatePct ?? 0) * 10) / 10))
-  }, [primary.id, selfCol.avgCost, selfCol.avgPrice, selfCol.feeRatePct])
+  }, [primary.skuGroupKey, selfCol.avgCost, selfCol.avgPrice, selfCol.feeRatePct])
 
   useEffect(() => {
     setLeadTimeStartDate((s) => (s < minOrderDate ? minOrderDate : s))
-  }, [minOrderDate, primary.id])
+  }, [minOrderDate, primary.skuGroupKey])
 
   useEffect(() => {
     setLeadTimeEndDate((e) => (e < leadTimeStartDate ? leadTimeStartDate : e))
@@ -282,7 +282,7 @@ export function ProductSecondaryDrawer({
   )
 
   const { forecastCalc, forecastCalcError } = useSecondaryStockOrderCalc({
-    productId: primary.id,
+    skuGroupKey: primary.skuGroupKey,
     selectedStart,
     selectedEnd,
     forecastMeanPeriodEnd,
@@ -379,7 +379,7 @@ export function ProductSecondaryDrawer({
 
   useEffect(() => {
     setConfirmBySize({})
-  }, [primary.id, prefillFromSnapshot])
+  }, [primary.skuGroupKey, prefillFromSnapshot])
 
   useEffect(() => {
     if (snapshotInfoMode) return
@@ -411,7 +411,7 @@ export function ProductSecondaryDrawer({
     setLeadTimeStartDate(si.leadTimeStartDate)
     setLeadTimeEndDate(si.leadTimeEndDate)
     setDailyMeanClient(si.dailyMean)
-  }, [prefillFromSnapshot, primary.id, onChannelChange])
+  }, [prefillFromSnapshot, primary.skuGroupKey, onChannelChange])
 
   const sizeAgg = useMemo(() => {
     const mix = mergePrimarySecondarySizeMix(primary, secondary)
@@ -477,7 +477,7 @@ export function ProductSecondaryDrawer({
     dailyForecastShade,
     dailyTickIndices,
   } = useSecondaryDailyTrend({
-    productId: primary.id,
+    skuGroupKey: primary.skuGroupKey,
     selectedStart,
     selectedEnd,
     leadTimeDays,
@@ -499,7 +499,7 @@ export function ProductSecondaryDrawer({
 
   const buildSnapshot = useCallback((): OrderSnapshotDocumentV1 => ({
       schemaVersion: ORDER_SNAPSHOT_SCHEMA_VERSION,
-      productId: primary.id,
+      skuGroupKey: primary.skuGroupKey,
       savedAt: new Date().toISOString(),
       context: {
         periodStart: viewPeriodStart,
@@ -599,7 +599,7 @@ export function ProductSecondaryDrawer({
     try {
       await dashboardApi.appendCandidateItem({
         stashUuid: selectedCandidate.uuid,
-        productId: primary.id,
+        skuGroupKey: primary.skuGroupKey,
         details: snap,
         isLatestLlmComment: false,
       })
@@ -607,7 +607,7 @@ export function ProductSecondaryDrawer({
     } finally {
       if (mountedRef.current) setCandidateActionLoading(false)
     }
-  }, [buildSnapshot, primary.id, selectedCandidate, showToast])
+  }, [buildSnapshot, primary.skuGroupKey, selectedCandidate, showToast])
 
   const saveCandidateItemChanges = useCallback(async () => {
     if (candidateItemContext == null) return
@@ -844,7 +844,7 @@ export function ProductSecondaryDrawer({
 
           <ComponentErrorBoundary page={pageName} unit="SalesTrendDailyCard">
             <SalesTrendDailyCard
-              productId={primary.id}
+              skuGroupKey={primary.skuGroupKey}
               competitorChannelLabel={channel.label}
               sizeOptions={dailyTrendSizeOptions}
               trend={{
