@@ -3,6 +3,7 @@ import { mockAuthApi, mockDashboardApi } from '../mock'
 import type {
   CandidateStashExcelTemplateDownload,
   DashboardApi,
+  CompetitorSalesGridParams,
   ProductMonthlyTrend,
   ProductMonthlyTrendParams,
   ProductSalesInsight,
@@ -13,6 +14,8 @@ import type {
   SecondaryDailyTrendPoint,
   SecondaryStockOrderCalcParams,
   SecondaryStockOrderCalcResult,
+  ScatterSalesGridResponse,
+  SelfSalesGridParams,
 } from '../types'
 
 const candidateStashExcelTemplateAsset = 'templates/candidate-stash-upload-template-v0.0.0.xlsx'
@@ -126,6 +129,11 @@ export const dashboardRequests: DashboardApi = {
    */
   getSelfSales: (params): Promise<SelfSalesRow[]> => mockDashboardApi.getSelfSales(params),
   getCompetitorSales: (params): Promise<CompetitorSalesRow[]> => mockDashboardApi.getCompetitorSales(params),
+  getSelfSalesScatterGrid: (params: SelfSalesGridParams): Promise<ScatterSalesGridResponse> =>
+    mockDashboardApi.getSelfSalesScatterGrid(params),
+  getCompetitorSalesScatterGrid: (
+    params: CompetitorSalesGridParams,
+  ): Promise<ScatterSalesGridResponse> => mockDashboardApi.getCompetitorSalesScatterGrid(params),
   getSalesFilterMeta: () => mockDashboardApi.getSalesFilterMeta(),
 
   /**

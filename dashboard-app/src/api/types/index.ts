@@ -22,7 +22,18 @@ export type {
   UpdateAdminUserPayload,
   UpdateAuthUserPayload,
 } from './auth'
-export type { CompetitorSalesParams, SalesFilterMeta, SelfSalesParams } from './sales'
+export type {
+  CompetitorSalesGridParams,
+  CompetitorSalesParams,
+  SalesFilterMeta,
+  ScatterGridAxisMeta,
+  ScatterGridBinParams,
+  ScatterGridCell,
+  ScatterSalesGridMeta,
+  ScatterSalesGridResponse,
+  SelfSalesGridParams,
+  SelfSalesParams,
+} from './sales'
 export type {
   ProductDrawerBundle,
   ProductMonthlyTrend,

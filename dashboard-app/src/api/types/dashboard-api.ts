@@ -10,7 +10,14 @@ import type {
   ProductSalesInsight,
   ProductSalesInsightParams,
 } from './drawer'
-import type { CompetitorSalesParams, SalesFilterMeta, SelfSalesParams } from './sales'
+import type {
+  CompetitorSalesGridParams,
+  CompetitorSalesParams,
+  SalesFilterMeta,
+  SelfSalesGridParams,
+  SelfSalesParams,
+  ScatterSalesGridResponse,
+} from './sales'
 import type {
   AppendCandidateItemPayload,
   AppendCandidateItemsPayload,
@@ -45,6 +52,10 @@ import type {
 export interface DashboardApi {
   getSelfSales(params?: SelfSalesParams): Promise<SelfSalesRow[]>
   getCompetitorSales(params?: CompetitorSalesParams): Promise<CompetitorSalesRow[]>
+  getSelfSalesScatterGrid(params?: SelfSalesGridParams): Promise<ScatterSalesGridResponse>
+  getCompetitorSalesScatterGrid(
+    params?: CompetitorSalesGridParams,
+  ): Promise<ScatterSalesGridResponse>
   getSalesFilterMeta(): Promise<SalesFilterMeta>
   getProductDrawerBundle(skuGroupKey: string): Promise<ProductDrawerBundle>
   getProductMonthlyTrend(skuGroupKey: string, params: ProductMonthlyTrendParams): Promise<ProductMonthlyTrend>

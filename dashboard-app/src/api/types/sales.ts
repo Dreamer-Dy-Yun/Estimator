@@ -29,3 +29,45 @@ export interface SalesFilterMeta {
   /** Closed historical months axis (vs forecast months), e.g. period sliders. */
   historicalMonths: string[]
 }
+
+export interface ScatterGridBinParams {
+  /** Requested bucket size for X axis. If omitted, backend chooses a derived value. */
+  xBucketSize?: number
+  /** Requested bucket size for Y axis. If omitted, backend chooses a derived value. */
+  yBucketSize?: number
+  /** Optional max number of ids returned per cell. */
+  maxSkuIdsPerCell?: number
+}
+
+export interface SelfSalesGridParams extends SelfSalesParams, ScatterGridBinParams {}
+export interface CompetitorSalesGridParams extends CompetitorSalesParams, ScatterGridBinParams {}
+
+export interface ScatterGridAxisMeta {
+  min: number
+  max: number
+  bucketSize: number
+}
+
+export interface ScatterSalesGridMeta {
+  xAxis: ScatterGridAxisMeta
+  yAxis: ScatterGridAxisMeta
+}
+
+export interface ScatterGridCell {
+  cellKey: string
+  count: number
+  skuIds: string[]
+  hasMoreSkuIds: boolean
+  xStart: number
+  xEnd: number
+  yStart: number
+  yEnd: number
+  representativeX: number
+  representativeY: number
+}
+
+export interface ScatterSalesGridResponse {
+  cells: ScatterGridCell[]
+  meta: ScatterSalesGridMeta
+}
+

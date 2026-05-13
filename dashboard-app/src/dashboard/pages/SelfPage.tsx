@@ -1,14 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { CartesianGrid, Scatter, ScatterChart, Tooltip, XAxis, YAxis } from 'recharts'
-import { getSelfSales } from '../../api'
+import { getSelfSales, getSelfSalesScatterGrid } from '../../api'
 import type { SelfSalesRow } from '../../types'
 import { selfSalesWeightedMarginRate, selfSalesWeightedOpMarginRate } from '../../utils/analysisKpiWeighted'
 import type { AdjacentDirection } from '../../utils/adjacentListNavigation'
 import { adjacentIdInOrder } from '../../utils/adjacentListNavigation'
 import { clampForecastMonths, readForecastMonthsFromStorage, writeForecastMonthsToStorage } from '../../utils/forecastMonthsStorage'
 import { formatGroupedNumber, formatPercent } from '../../utils/format'
-import { CopyToastBanner } from '../components/CopyToastBanner'
-import { useCopyToastMessage } from '../components/useCopyToastMessage'
+import type { ScatterSalesGridResponse } from '../../api/types'
 import { AnalysisCandidateBulkAddModal } from '../components/candidate-stash/AnalysisCandidateBulkAddModal'
 import { ProductDrawer } from '../components/product-drawer/ProductDrawer'
 import styles from '../components/common.module.css'
@@ -21,22 +20,25 @@ import { useElementSize } from '../hooks/useElementSize'
 import { useAnalysisSalesFilters } from '../hooks/useAnalysisSalesFilters'
 import { useProductDrawerBundle } from '../hooks/useProductDrawerBundle'
 
-type ScatterPoint = {
+type ScatterGridPoint = {
   x: number
   y: number
-  brand: string
-  code: string
-  productName: string
-  colorCode: string
-  copyText: string
+  cellKey: string
+  count: number
+  xStart: number
+  xEnd: number
+  yStart: number
+  yEnd: number
+  hasMoreSkuIds: boolean
 }
 
 export const SelfPage = () => {
   const [rows, setRows] = useState<SelfSalesRow[]>([])
+  const [scatterGrid, setScatterGrid] = useState<ScatterSalesGridResponse | null>(null)
   const [selectedSkuGroupKey, setSelectedSkuGroupKey] = useState<string | null>(null)
+  const [activeGridCellKey, setActiveGridCellKey] = useState<string | null>(null)
   const [bulkSelectedSkuGroupKeys, setBulkSelectedSkuGroupKeys] = useState<Set<string>>(() => new Set())
   const [bulkAddOpen, setBulkAddOpen] = useState(false)
-  const { toastMessage, copyAndNotify } = useCopyToastMessage()
   const [forecastMonths, setForecastMonths] = useState(() => readForecastMonthsFromStorage())
   const summaryBundle = useProductDrawerBundle(selectedSkuGroupKey)
   const { ref: chartBodyRef, width: chartWidth, height: chartHeight, ready: chartReady } = useElementSize<HTMLDivElement>()
@@ -46,7 +48,9 @@ export const SelfPage = () => {
     setForecastMonths(v)
     writeForecastMonthsToStorage(v)
   }, [])
+
   const salesReqSeqRef = useRef(0)
+  const scatterGridReqSeqRef = useRef(0)
   const {
     filterFields,
     historicalMonths,
@@ -78,59 +82,82 @@ export const SelfPage = () => {
     }
   }, [salesParams])
 
-  const kpi = useMemo(() => {
-    const totalAmount = rows.reduce((acc, row) => acc + row.amount, 0)
-    const totalQty = rows.reduce((acc, row) => acc + row.qty, 0)
-    const avgMarginRate = selfSalesWeightedMarginRate(rows)
-    const avgOpMarginRate = selfSalesWeightedOpMarginRate(rows)
-    return { totalAmount, totalQty, avgMarginRate, avgOpMarginRate }
-  }, [rows])
+  useEffect(() => {
+    let alive = true
+    const reqSeq = ++scatterGridReqSeqRef.current
+    void getSelfSalesScatterGrid(salesParams).then((data) => {
+      if (!alive) return
+      if (reqSeq !== scatterGridReqSeqRef.current) return
+      setScatterGrid(data)
+    })
+    return () => {
+      alive = false
+    }
+  }, [salesParams])
 
-  const scatterData: ScatterPoint[] = useMemo(
-    () => rows.map((r) => {
-      const yMillion = Math.round(r.amount / 1000000)
-      const copyText = [
-        '[자사 분석 · 판매액/영업이익률 분석]',
-        `기간: ${periodStartDate} ~ ${periodEndDate}`,
-        `브랜드: ${r.brand}`,
-        `카테고리: ${r.category}`,
-        `품번: ${r.code}`,
-        `상품명: ${r.productName}`,
-        `색상: ${r.colorCode}`,
-        `평균판매가(원): ${formatGroupedNumber(r.avgPrice)}`,
-        `평균매입원가(원): ${formatGroupedNumber(r.avgCost)}`,
-        `판매량(EA): ${formatGroupedNumber(r.qty)}`,
-        `총판매액(원): ${formatGroupedNumber(r.amount)}`,
-        `매출이익율: ${formatPercent(r.marginRate)}`,
-        `영업이익율: ${formatPercent(r.opMarginRate)}`,
-        `차트 X(영업이익율): ${formatPercent(r.opMarginRate)}`,
-        `차트 Y(판매액): ${yMillion}백만`,
-      ].join('\n')
-      return {
-        x: r.opMarginRate,
-        y: yMillion,
-        brand: r.brand,
-        code: r.code,
-        productName: r.productName,
-        colorCode: r.colorCode,
-        copyText,
-      }
-    }),
-    [rows, periodStartDate, periodEndDate],
+  const activeGridCellSkuIds = useMemo(() => {
+    if (!activeGridCellKey || !scatterGrid) return null
+    const target = scatterGrid.cells.find((cell) => cell.cellKey === activeGridCellKey)
+    if (!target) return null
+    return new Set(target.skuIds)
+  }, [activeGridCellKey, scatterGrid])
+
+  const visibleRows = useMemo(
+    () => (activeGridCellSkuIds == null
+      ? rows
+      : rows.filter((row) => activeGridCellSkuIds.has(row.skuGroupKey))),
+    [activeGridCellSkuIds, rows],
   )
 
-  const navigationOrderIds = useMemo(() => rows.map((r) => r.skuGroupKey), [rows])
+  useEffect(() => {
+    if (!activeGridCellKey) return
+    if (!scatterGrid?.cells.some((cell) => cell.cellKey === activeGridCellKey)) {
+      setActiveGridCellKey(null)
+    }
+  }, [activeGridCellKey, scatterGrid])
+
+  useEffect(() => {
+    if (!selectedSkuGroupKey) return
+    if (!visibleRows.some((row) => row.skuGroupKey === selectedSkuGroupKey)) {
+      setSelectedSkuGroupKey(null)
+    }
+  }, [selectedSkuGroupKey, visibleRows])
+
+  const kpi = useMemo(() => {
+    const totalAmount = visibleRows.reduce((acc, row) => acc + row.amount, 0)
+    const totalQty = visibleRows.reduce((acc, row) => acc + row.qty, 0)
+    const avgMarginRate = selfSalesWeightedMarginRate(visibleRows)
+    const avgOpMarginRate = selfSalesWeightedOpMarginRate(visibleRows)
+    return { totalAmount, totalQty, avgMarginRate, avgOpMarginRate }
+  }, [visibleRows])
+
+  const scatterData: ScatterGridPoint[] = useMemo(
+    () => (scatterGrid?.cells ?? []).map((cell) => ({
+      x: cell.representativeX,
+      y: cell.representativeY,
+      cellKey: cell.cellKey,
+      count: cell.count,
+      xStart: cell.xStart,
+      xEnd: cell.xEnd,
+      yStart: cell.yStart,
+      yEnd: cell.yEnd,
+      hasMoreSkuIds: cell.hasMoreSkuIds,
+    })),
+    [scatterGrid],
+  )
+
+  const navigationOrderIds = useMemo(() => visibleRows.map((r) => r.skuGroupKey), [visibleRows])
   const bulkSelectedCount = bulkSelectedSkuGroupKeys.size
-  const allRowsSelected = rows.length > 0 && bulkSelectedCount === rows.length
+  const allRowsSelected = visibleRows.length > 0 && bulkSelectedCount === visibleRows.length
   const selectedSkuGroupKeys = useMemo(() => [...bulkSelectedSkuGroupKeys], [bulkSelectedSkuGroupKeys])
 
   useEffect(() => {
     setBulkSelectedSkuGroupKeys((prev) => {
-      const available = new Set(rows.map((row) => row.skuGroupKey))
+      const available = new Set(visibleRows.map((row) => row.skuGroupKey))
       const next = new Set([...prev].filter((id) => available.has(id)))
       return next.size === prev.size ? prev : next
     })
-  }, [rows])
+  }, [visibleRows])
 
   const onRequestNavigateAdjacent = useCallback(
     (direction: AdjacentDirection) => {
@@ -141,7 +168,7 @@ export const SelfPage = () => {
     [navigationOrderIds, selectedSkuGroupKey],
   )
 
-  const renderScatterTooltip = (props: { active?: boolean; payload?: ReadonlyArray<{ payload?: ScatterPoint }> }) => {
+  const renderScatterTooltip = (props: { active?: boolean; payload?: ReadonlyArray<{ payload?: ScatterGridPoint }> }) => {
     const { active, payload } = props
     if (!active || !payload?.length) return null
     const point = payload[0]?.payload
@@ -149,16 +176,27 @@ export const SelfPage = () => {
 
     return (
       <div className={styles.chartTooltip}>
-        <div className={styles.chartTooltipTitle}>{point.brand}</div>
-        <div className={styles.chartTooltipText}>{point.productName}</div>
-        <div className={styles.chartTooltipText}>품번: {point.code}</div>
-        <div className={styles.chartTooltipText}>색상: {point.colorCode}</div>
-        <div className={styles.chartTooltipText}>영업이익율: {formatPercent(point.x)}</div>
-        <div className={styles.chartTooltipText}>판매액: {point.y}백만</div>
-        <div className={styles.chartTooltipHint}>클릭 시 클립보드에 복사</div>
+        <div className={styles.chartTooltipTitle}>격자 셀</div>
+      <div className={styles.chartTooltipText}>
+          영업이익률: {formatPercent(point.xStart)} ~ {formatPercent(point.xEnd)}
+        </div>
+        <div className={styles.chartTooltipText}>
+          판매액(백만): {formatGroupedNumber(point.yStart)} ~ {formatGroupedNumber(point.yEnd)}
+        </div>
+        <div className={styles.chartTooltipText}>건수: {formatGroupedNumber(point.count)} EA</div>
+        {point.hasMoreSkuIds ? (
+          <div className={styles.chartTooltipText}>셀 제한으로 일부 상품만 표시</div>
+        ) : null}
+        <div className={styles.chartTooltipHint}>
+          클릭 시 셀 내 상품만 표시
+        </div>
       </div>
     )
   }
+
+  const onScatterCellClick = useCallback((cellKey: string) => {
+    setActiveGridCellKey((prev) => (prev === cellKey ? null : cellKey))
+  }, [])
 
   const toggleBulkRow = (id: string) => {
     setBulkSelectedSkuGroupKeys((prev) => {
@@ -170,28 +208,31 @@ export const SelfPage = () => {
   }
 
   const toggleAllRows = () => {
-    setBulkSelectedSkuGroupKeys(() => (allRowsSelected ? new Set() : new Set(rows.map((row) => row.skuGroupKey))))
+    setBulkSelectedSkuGroupKeys(() => (allRowsSelected ? new Set() : new Set(visibleRows.map((row) => row.skuGroupKey))))
   }
 
   const scatterShape = useCallback(
-    (props: { cx?: number; cy?: number; payload?: ScatterPoint }) => {
+    (props: { cx?: number; cy?: number; payload?: ScatterGridPoint }) => {
       const { cx, cy, payload } = props
       if (cx == null || cy == null || !payload) return null
+      const isActive = payload.cellKey === activeGridCellKey
       return (
         <circle
           cx={cx}
           cy={cy}
-          r={5}
-          fill="#3b82f6"
+          r={6}
+          fill={isActive ? '#0284c7' : '#3b82f6'}
+          stroke={isActive ? '#0f172a' : undefined}
+          strokeWidth={isActive ? 1.5 : undefined}
           style={{ cursor: 'pointer' }}
           onClick={(e) => {
             e.stopPropagation()
-            void copyAndNotify(payload.copyText)
+            onScatterCellClick(payload.cellKey)
           }}
         />
       )
     },
-    [copyAndNotify],
+    [activeGridCellKey, onScatterCellClick],
   )
 
   const scatterChartWidth = Math.max(1, Math.floor(chartWidth))
@@ -199,7 +240,6 @@ export const SelfPage = () => {
 
   return (
     <section className={styles.page}>
-      <CopyToastBanner message={toastMessage} />
       <FilterBar
         title=""
         filterClassName={styles.filterAnalysisGrid}
@@ -300,7 +340,7 @@ export const SelfPage = () => {
                 <input
                   type="checkbox"
                   checked={allRowsSelected}
-                  disabled={rows.length === 0}
+                  disabled={visibleRows.length === 0}
                   aria-label="전체 선택"
                   onChange={toggleAllRows}
                 />
@@ -330,8 +370,8 @@ export const SelfPage = () => {
             { key: 'amount', header: '총판매액', cell: (r) => formatGroupedNumber(r.amount), align: 'right', sortValue: (r) => r.amount },
             { key: 'margin', header: '매출이익율', cell: (r) => formatPercent(r.marginRate), align: 'right', sortValue: (r) => r.marginRate },
             { key: 'op', header: '영업이익률', cell: (r) => formatPercent(r.opMarginRate), align: 'right', sortValue: (r) => r.opMarginRate },
-          ]}
-          rows={rows}
+            ]}
+          rows={visibleRows}
           defaultSort={{ key: 'qty', dir: 'desc' }}
           onRowClick={(row) => setSelectedSkuGroupKey(row.skuGroupKey)}
           onRowKeyDown={(row, event) => {

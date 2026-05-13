@@ -1,14 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { CartesianGrid, Scatter, ScatterChart, Tooltip, XAxis, YAxis } from 'recharts'
-import { getCompetitorSales, getSecondaryCompetitorChannels } from '../../api'
+import { getCompetitorSales, getCompetitorSalesScatterGrid, getSecondaryCompetitorChannels } from '../../api'
 import type { SecondaryCompetitorChannel } from '../../api/types'
 import type { CompetitorSalesRow } from '../../types'
 import type { AdjacentDirection } from '../../utils/adjacentListNavigation'
 import { adjacentIdInOrder } from '../../utils/adjacentListNavigation'
 import { clampForecastMonths, readForecastMonthsFromStorage, writeForecastMonthsToStorage } from '../../utils/forecastMonthsStorage'
 import { formatGroupedNumber } from '../../utils/format'
-import { CopyToastBanner } from '../components/CopyToastBanner'
-import { useCopyToastMessage } from '../components/useCopyToastMessage'
 import { AnalysisCandidateBulkAddModal } from '../components/candidate-stash/AnalysisCandidateBulkAddModal'
 import { ProductDrawer } from '../components/product-drawer/ProductDrawer'
 import styles from '../components/common.module.css'
@@ -20,24 +18,27 @@ import { KpiGrid } from '../components/KpiGrid'
 import { useElementSize } from '../hooks/useElementSize'
 import { useAnalysisSalesFilters } from '../hooks/useAnalysisSalesFilters'
 import { useProductDrawerBundle } from '../hooks/useProductDrawerBundle'
+import type { ScatterSalesGridResponse } from '../../api/types'
 
-type QtyScatterPoint = {
+type CompetitorScatterGridPoint = {
   x: number
   y: number
-  brand: string
-  category: string
-  code: string
-  productName: string
-  colorCode: string
-  copyText: string
+  cellKey: string
+  count: number
+  xStart: number
+  xEnd: number
+  yStart: number
+  yEnd: number
+  hasMoreSkuIds: boolean
 }
 
 export const CompetitorPage = () => {
   const [rows, setRows] = useState<CompetitorSalesRow[]>([])
+  const [scatterGrid, setScatterGrid] = useState<ScatterSalesGridResponse | null>(null)
   const [selectedSkuGroupKey, setSelectedSkuGroupKey] = useState<string | null>(null)
+  const [activeGridCellKey, setActiveGridCellKey] = useState<string | null>(null)
   const [bulkSelectedSkuGroupKeys, setBulkSelectedSkuGroupKeys] = useState<Set<string>>(() => new Set())
   const [bulkAddOpen, setBulkAddOpen] = useState(false)
-  const { toastMessage, copyAndNotify } = useCopyToastMessage()
   const [forecastMonths, setForecastMonths] = useState(() => readForecastMonthsFromStorage())
   const summaryBundle = useProductDrawerBundle(selectedSkuGroupKey)
   const { ref: chartBodyRef, width: chartWidth, height: chartHeight, ready: chartReady } = useElementSize<HTMLDivElement>()
@@ -53,6 +54,7 @@ export const CompetitorPage = () => {
   const [showRowsWithSelfSalesOnly, setShowRowsWithSelfSalesOnly] = useState(false)
   const channelsReqSeqRef = useRef(0)
   const salesReqSeqRef = useRef(0)
+  const scatterGridReqSeqRef = useRef(0)
   const {
     filterFields,
     historicalMonths,
@@ -105,10 +107,27 @@ export const CompetitorPage = () => {
     }
   }, [salesParams, competitorChannelId])
 
+  useEffect(() => {
+    let alive = true
+    const reqSeq = ++scatterGridReqSeqRef.current
+    void getCompetitorSalesScatterGrid({
+      ...salesParams,
+      competitorChannelId,
+    }).then((data) => {
+      if (!alive) return
+      if (reqSeq !== scatterGridReqSeqRef.current) return
+      setScatterGrid(data)
+    })
+    return () => {
+      alive = false
+    }
+  }, [salesParams, competitorChannelId])
+
   const channelOptions = useMemo(
     () => ['전체', ...channels.map((ch) => ch.label)],
     [channels],
   )
+
   const competitorFilterFields = useMemo<FilterField[]>(() => [
     ...filterFields,
     {
@@ -119,17 +138,44 @@ export const CompetitorPage = () => {
       options: channelOptions,
     },
   ], [filterFields, competitorChannelLabel, channelOptions])
+
   const competitorTooltipLabel = competitorChannelLabel === '전체'
     ? '전체 경쟁사'
     : competitorChannelLabel
-  const competitorAxisLabel = competitorChannelLabel === '전체'
-    ? '전체 경쟁사'
-    : competitorChannelLabel
+  const competitorAxisLabel = competitorTooltipLabel
 
-  const visibleRows = useMemo(
+  const baseRows = useMemo(
     () => (showRowsWithSelfSalesOnly ? rows.filter((row) => row.selfQty != null) : rows),
     [rows, showRowsWithSelfSalesOnly],
   )
+
+  const activeGridCellSkuIds = useMemo(() => {
+    if (!activeGridCellKey || !scatterGrid) return null
+    const target = scatterGrid.cells.find((cell) => cell.cellKey === activeGridCellKey)
+    if (!target) return null
+    return new Set(target.skuIds)
+  }, [activeGridCellKey, scatterGrid])
+
+  const visibleRows = useMemo(
+    () => (activeGridCellSkuIds == null
+      ? baseRows
+      : baseRows.filter((row) => activeGridCellSkuIds.has(row.skuGroupKey))),
+    [activeGridCellSkuIds, baseRows],
+  )
+
+  useEffect(() => {
+    if (!activeGridCellKey) return
+    if (!scatterGrid?.cells.some((cell) => cell.cellKey === activeGridCellKey)) {
+      setActiveGridCellKey(null)
+    }
+  }, [activeGridCellKey, scatterGrid])
+
+  useEffect(() => {
+    if (!selectedSkuGroupKey) return
+    if (!visibleRows.some((row) => row.skuGroupKey === selectedSkuGroupKey)) {
+      setSelectedSkuGroupKey(null)
+    }
+  }, [selectedSkuGroupKey, visibleRows])
 
   const kpi = useMemo(() => {
     const totalCompetitorAmount = visibleRows.reduce((acc, row) => acc + row.competitorAmount, 0)
@@ -139,41 +185,19 @@ export const CompetitorPage = () => {
     return { totalCompetitorAmount, totalSelfAmount, totalCompetitorQty, totalSelfQty }
   }, [visibleRows])
 
-  const qtyScatterData: QtyScatterPoint[] = useMemo(
-    () => visibleRows
-      .filter((r) => r.selfQty != null)
-      .map((r) => {
-        const selfQty = r.selfQty ?? 0
-        const copyText = [
-          '[경쟁사 분석 · 경쟁·자사 판매량 비교]',
-          `기간: ${periodStartDate} ~ ${periodEndDate}`,
-          `경쟁 채널: ${competitorTooltipLabel}`,
-          `브랜드: ${r.brand}`,
-          `카테고리: ${r.category}`,
-          `품번: ${r.code}`,
-          `상품명: ${r.productName}`,
-          `색상: ${r.colorCode}`,
-          `경쟁 평균가(원): ${formatGroupedNumber(r.competitorAvgPrice)}`,
-          `경쟁 판매량(EA): ${formatGroupedNumber(r.competitorQty)}`,
-          `경쟁 판매액(원): ${formatGroupedNumber(r.competitorAmount)}`,
-          `자사 평균가(원): ${r.selfAvgPrice != null ? formatGroupedNumber(r.selfAvgPrice) : '—'}`,
-          `자사 판매량(EA): ${formatGroupedNumber(selfQty)}`,
-          `자사 판매액(원): ${r.selfAmount != null ? formatGroupedNumber(r.selfAmount) : '—'}`,
-          `차트 X(자사 판매량 EA): ${formatGroupedNumber(selfQty)}`,
-          `차트 Y(경쟁 판매량 EA): ${formatGroupedNumber(r.competitorQty)}`,
-        ].join('\n')
-        return {
-          x: selfQty,
-          y: r.competitorQty,
-          brand: r.brand,
-          category: r.category,
-          code: r.code,
-          productName: r.productName,
-          colorCode: r.colorCode,
-          copyText,
-        }
-      }),
-    [visibleRows, periodStartDate, periodEndDate, competitorTooltipLabel],
+  const scatterData: CompetitorScatterGridPoint[] = useMemo(
+    () => (scatterGrid?.cells ?? []).map((cell) => ({
+      x: cell.representativeX,
+      y: cell.representativeY,
+      cellKey: cell.cellKey,
+      count: cell.count,
+      xStart: cell.xStart,
+      xEnd: cell.xEnd,
+      yStart: cell.yStart,
+      yEnd: cell.yEnd,
+      hasMoreSkuIds: cell.hasMoreSkuIds,
+    })),
+    [scatterGrid],
   )
 
   const navigationOrderIds = useMemo(() => visibleRows.map((r) => r.skuGroupKey), [visibleRows])
@@ -198,7 +222,10 @@ export const CompetitorPage = () => {
     [navigationOrderIds, selectedSkuGroupKey],
   )
 
-  const renderQtyScatterTooltip = (props: { active?: boolean; payload?: ReadonlyArray<{ payload?: QtyScatterPoint }> }) => {
+  const renderQtyScatterTooltip = (props: {
+    active?: boolean
+    payload?: ReadonlyArray<{ payload?: CompetitorScatterGridPoint }>
+  }) => {
     const { active, payload } = props
     if (!active || !payload?.length) return null
     const point = payload[0]?.payload
@@ -206,22 +233,27 @@ export const CompetitorPage = () => {
 
     return (
       <div className={styles.chartTooltip}>
-        <div className={styles.chartTooltipTitle}>{point.brand}</div>
-        <div className={styles.chartTooltipText}>{point.category} · {point.productName}</div>
-        <div className={styles.chartTooltipText}>품번: {point.code}</div>
-        <div className={styles.chartTooltipText}>색상: {point.colorCode}</div>
+        <div className={styles.chartTooltipTitle}>격자 셀</div>
         <div className={styles.chartTooltipText}>
-          자사 판매량:{' '}
-          <span style={{ color: '#2563eb', fontWeight: 600 }}>{formatGroupedNumber(point.x)} EA</span>
+          자사 판매량: {formatGroupedNumber(point.xStart)} ~ {formatGroupedNumber(point.xEnd)}
         </div>
         <div className={styles.chartTooltipText}>
-          {competitorTooltipLabel} 판매량:{' '}
-          <span style={{ color: '#ef4444', fontWeight: 600 }}>{formatGroupedNumber(point.y)} EA</span>
+          {competitorAxisLabel} 판매량: {formatGroupedNumber(point.yStart)} ~ {formatGroupedNumber(point.yEnd)}
         </div>
-        <div className={styles.chartTooltipHint}>클릭 시 클립보드에 복사</div>
+        <div className={styles.chartTooltipText}>건수: {formatGroupedNumber(point.count)} EA</div>
+        {point.hasMoreSkuIds ? (
+          <div className={styles.chartTooltipText}>셀 제한으로 일부 상품만 표시</div>
+        ) : null}
+        <div className={styles.chartTooltipHint}>
+          클릭 시 셀 내 상품만 표시
+        </div>
       </div>
     )
   }
+
+  const onScatterCellClick = useCallback((cellKey: string) => {
+    setActiveGridCellKey((prev) => (prev === cellKey ? null : cellKey))
+  }, [])
 
   const toggleBulkRow = (id: string) => {
     setBulkSelectedSkuGroupKeys((prev) => {
@@ -239,24 +271,27 @@ export const CompetitorPage = () => {
   }
 
   const qtyScatterShape = useCallback(
-    (props: { cx?: number; cy?: number; payload?: QtyScatterPoint }) => {
+    (props: { cx?: number; cy?: number; payload?: CompetitorScatterGridPoint }) => {
       const { cx, cy, payload } = props
       if (cx == null || cy == null || !payload) return null
+      const isActive = payload.cellKey === activeGridCellKey
       return (
         <circle
           cx={cx}
           cy={cy}
-          r={5}
-          fill="#3b82f6"
+          r={6}
+          fill={isActive ? '#0284c7' : '#3b82f6'}
+          stroke={isActive ? '#0f172a' : undefined}
+          strokeWidth={isActive ? 1.5 : undefined}
           style={{ cursor: 'pointer' }}
           onClick={(e) => {
             e.stopPropagation()
-            void copyAndNotify(payload.copyText)
+            onScatterCellClick(payload.cellKey)
           }}
         />
       )
     },
-    [copyAndNotify],
+    [activeGridCellKey, onScatterCellClick],
   )
 
   const scatterChartWidth = Math.max(1, Math.floor(chartWidth))
@@ -264,7 +299,6 @@ export const CompetitorPage = () => {
 
   return (
     <section className={styles.page}>
-      <CopyToastBanner message={toastMessage} />
       <FilterBar
         title=""
         filterClassName={styles.filterAnalysisGrid}
@@ -324,7 +358,7 @@ export const CompetitorPage = () => {
                 <ScatterChart
                   width={scatterChartWidth}
                   height={scatterChartHeight}
-                  data={qtyScatterData}
+                  data={scatterData}
                   margin={{ top: 8, right: 8, bottom: 22, left: 8 }}
                 >
                   <CartesianGrid strokeDasharray="3 3" />

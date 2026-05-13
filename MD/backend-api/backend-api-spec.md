@@ -774,3 +774,16 @@ badges: [
 - [`dashboard-app/src/snapshot/orderSnapshotTypes.ts`](../../dashboard-app/src/snapshot/orderSnapshotTypes.ts)
 - [`dashboard-app/src/dashboard/components/product-drawer/secondary/secondaryDrawerTypes.ts`](../../dashboard-app/src/dashboard/components/product-drawer/secondary/secondaryDrawerTypes.ts)
 - [`dashboard-app/src/utils/salesKpiColumn.ts`](../../dashboard-app/src/utils/salesKpiColumn.ts)
+
+## 2.1 Scatter grid endpoints (added)
+
+### 2.1.1 `DashboardApi` additions
+
+- `getSelfSalesScatterGrid(params?)`
+  - `GET /sales/self/scatter-grid`
+  - Query params: `startDate`, `endDate`, `brand`, `category`, `codeQuery`, `colorCode`, `nameQuery`, `xBucketSize`, `yBucketSize`, `maxSkuIdsPerCell`
+  - Response: `ScatterSalesGridResponse` (`cells` + `meta`)
+- `getCompetitorSalesScatterGrid(params?)`
+  - `GET /sales/competitor/scatter-grid`
+  - Query params: `startDate`, `endDate`, `brand`, `category`, `codeQuery`, `colorCode`, `nameQuery`, `competitorChannelId`, `xBucketSize`, `yBucketSize`, `maxSkuIdsPerCell`
+  - Response: `ScatterSalesGridResponse` (`cells` + `meta`)
