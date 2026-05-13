@@ -126,6 +126,7 @@
 .chartClearSelectionButton {
   height: 26px;
   padding: 4px 8px;
+  font-weight: 700;
   white-space: nowrap;
 }
 

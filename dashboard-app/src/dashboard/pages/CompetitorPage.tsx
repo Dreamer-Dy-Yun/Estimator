@@ -330,11 +330,13 @@ export const CompetitorPage = () => {
                   activeGridCellKey ? '' : styles.chartActionHidden
                 }`}
                 aria-hidden={!activeGridCellKey}
+                aria-label="선택 초기화"
                 disabled={!activeGridCellKey}
                 tabIndex={activeGridCellKey ? 0 : -1}
+                title="선택 초기화"
                 onClick={clearActiveGridCell}
               >
-                격자 선택 해제
+                선택 초기화
               </button>
             )}
           >
