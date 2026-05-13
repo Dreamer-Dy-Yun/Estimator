@@ -301,15 +301,20 @@ export const SelfPage = () => {
           <ChartCard
             title="판매량/영업 이익률 분석"
             className={styles.selfChartCard}
-            titleAction={activeGridCellKey ? (
+            titleAction={(
               <button
                 type="button"
-                className={`${styles.actionBtn} ${styles.btnNeutral} ${styles.chartClearSelectionButton}`}
+                className={`${styles.actionBtn} ${styles.btnNeutral} ${styles.chartClearSelectionButton} ${
+                  activeGridCellKey ? '' : styles.chartActionHidden
+                }`}
+                aria-hidden={!activeGridCellKey}
+                disabled={!activeGridCellKey}
+                tabIndex={activeGridCellKey ? 0 : -1}
                 onClick={() => setActiveGridCellKey(null)}
               >
                 격자 선택 해제
               </button>
-            ) : null}
+            )}
           >
             <div ref={chartBodyRef} className={styles.selfChartBody}>
               {chartReady ? (

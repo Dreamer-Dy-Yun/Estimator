@@ -129,6 +129,11 @@
   white-space: nowrap;
 }
 
+.chartActionHidden {
+  visibility: hidden;
+  pointer-events: none;
+}
+
 .salesTrendTitleRow {
   display: flex;
   align-items: center;
