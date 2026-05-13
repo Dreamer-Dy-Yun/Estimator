@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom'
 import { BlockMath } from 'react-katex'
 import { dashboardApi, type ProductSalesInsight, type SecondaryCompetitorChannel } from '../../../../api'
 import { ComponentErrorBoundary } from '../../../../components/ComponentErrorBoundary'
-import { useAppToast } from '../../../../components/AppToast'
+import { useAppToast } from '../../../../components/AppToastContext'
 import type { ApiUnitErrorInfo, ProductPrimarySummary, ProductSecondaryDetail } from '../../../../types'
 import {
   daysInclusiveBetween,

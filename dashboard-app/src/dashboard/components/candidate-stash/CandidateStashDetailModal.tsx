@@ -62,10 +62,11 @@ export function CandidateStashDetailModal({ stashUuid, stashSummary, onClose, on
   const { session } = useAuth()
   const [selectedItemUuids, setSelectedItemUuids] = useState<Set<string>>(() => new Set())
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false)
-  const [analysisPopupDismissed, setAnalysisPopupDismissed] = useState(false)
-  const [analysisAutoDismissRemainingSec, setAnalysisAutoDismissRemainingSec] = useState(
-    ANALYSIS_POPUP_AUTO_DISMISS_SECONDS,
-  )
+  const [dismissedAnalysisJobKey, setDismissedAnalysisJobKey] = useState<string | null>(null)
+  const [analysisAutoDismissState, setAnalysisAutoDismissState] = useState<{
+    key: string
+    remainingSec: number
+  } | null>(null)
   const [recommendationOpen, setRecommendationOpen] = useState(false)
   const [recommendationSelectedUuids, setRecommendationSelectedUuids] = useState<Set<string>>(() => new Set())
   const selectAllRef = useRef<HTMLInputElement | null>(null)
@@ -76,14 +77,24 @@ export function CandidateStashDetailModal({ stashUuid, stashSummary, onClose, on
     [m.recommendationItems],
   )
   const recommendationRowUuids = useMemo(() => recommendationRows.map((row) => row.uuid), [recommendationRows])
-  const selectedVisibleCount = useMemo(
-    () => visibleItemUuids.filter((uuid) => selectedItemUuids.has(uuid)).length,
+  const selectedVisibleItemUuids = useMemo(
+    () => visibleItemUuids.filter((uuid) => selectedItemUuids.has(uuid)),
     [selectedItemUuids, visibleItemUuids],
   )
-  const recommendationSelectedCount = useMemo(
-    () => recommendationRowUuids.filter((uuid) => recommendationSelectedUuids.has(uuid)).length,
+  const selectedVisibleItemUuidSet = useMemo(
+    () => new Set(selectedVisibleItemUuids),
+    [selectedVisibleItemUuids],
+  )
+  const recommendationSelectedVisibleUuids = useMemo(
+    () => recommendationRowUuids.filter((uuid) => recommendationSelectedUuids.has(uuid)),
     [recommendationRowUuids, recommendationSelectedUuids],
   )
+  const recommendationSelectedVisibleUuidSet = useMemo(
+    () => new Set(recommendationSelectedVisibleUuids),
+    [recommendationSelectedVisibleUuids],
+  )
+  const selectedVisibleCount = selectedVisibleItemUuids.length
+  const recommendationSelectedCount = recommendationSelectedVisibleUuids.length
   const allVisibleSelected = visibleItemUuids.length > 0 && selectedVisibleCount === visibleItemUuids.length
   const partiallyVisibleSelected = selectedVisibleCount > 0 && selectedVisibleCount < visibleItemUuids.length
   const allRecommendationSelected =
@@ -120,50 +131,33 @@ export function CandidateStashDetailModal({ stashUuid, stashSummary, onClose, on
     }
   })()
   const analysisIsTerminal = m.analysisProgress?.status === 'completed' || m.analysisProgress?.status === 'failed'
-  const showAnalysisPopup = Boolean(m.analysisProgress && !analysisPopupDismissed)
+  const analysisJobKey = m.analysisProgress ? `${stashUuid}:${m.analysisProgress.jobId}` : null
+  const showAnalysisPopup = Boolean(
+    m.analysisProgress && analysisJobKey && dismissedAnalysisJobKey !== analysisJobKey,
+  )
+  const analysisAutoDismissRemainingSec =
+    analysisAutoDismissState?.key === analysisJobKey
+      ? analysisAutoDismissState.remainingSec
+      : ANALYSIS_POPUP_AUTO_DISMISS_SECONDS
 
   useEffect(() => {
-    setAnalysisPopupDismissed(false)
-    setAnalysisAutoDismissRemainingSec(ANALYSIS_POPUP_AUTO_DISMISS_SECONDS)
-  }, [stashUuid, m.analysisProgress?.jobId])
-
-  useEffect(() => {
-    if (!analysisIsTerminal || analysisPopupDismissed) return
-    setAnalysisAutoDismissRemainingSec(ANALYSIS_POPUP_AUTO_DISMISS_SECONDS)
+    if (!analysisIsTerminal || !analysisJobKey || dismissedAnalysisJobKey === analysisJobKey) return
     const timer = window.setInterval(() => {
-      setAnalysisAutoDismissRemainingSec((prev) => {
-        if (prev <= 1) {
-          window.clearInterval(timer)
-          setAnalysisPopupDismissed(true)
-          return 0
-        }
-        return prev - 1
+      setAnalysisAutoDismissState((prev) => {
+        const current =
+          prev?.key === analysisJobKey ? prev.remainingSec : ANALYSIS_POPUP_AUTO_DISMISS_SECONDS
+        const remainingSec = Math.max(0, current - 1)
+        if (remainingSec === 0) setDismissedAnalysisJobKey(analysisJobKey)
+        return { key: analysisJobKey, remainingSec }
       })
     }, 1000)
     return () => window.clearInterval(timer)
-  }, [analysisIsTerminal, analysisPopupDismissed, m.analysisProgress?.jobId])
+  }, [analysisIsTerminal, dismissedAnalysisJobKey, analysisJobKey])
 
   useEffect(() => {
     if (!selectAllRef.current) return
     selectAllRef.current.indeterminate = partiallyVisibleSelected
   }, [partiallyVisibleSelected])
-
-  useEffect(() => {
-    setSelectedItemUuids((prev) => {
-      const visible = new Set(visibleItemUuids)
-      const next = new Set([...prev].filter((uuid) => visible.has(uuid)))
-      return next.size === prev.size ? prev : next
-    })
-  }, [visibleItemUuids])
-
-  useEffect(() => {
-    if (!recommendationOpen) return
-    setRecommendationSelectedUuids((prev) => {
-      const available = new Set(recommendationRowUuids)
-      const next = new Set([...prev].filter((uuid) => available.has(uuid)))
-      return next.size === prev.size ? prev : next
-    })
-  }, [recommendationOpen, recommendationRowUuids])
 
   const toggleSelectedItem = (uuid: string) => {
     setSelectedItemUuids((prev) => {
@@ -200,7 +194,7 @@ export function CandidateStashDetailModal({ stashUuid, stashSummary, onClose, on
   }
 
   const applyRecommendations = () => {
-    setSelectedItemUuids(new Set(recommendationSelectedUuids))
+    setSelectedItemUuids(new Set(recommendationSelectedVisibleUuids))
     setRecommendationOpen(false)
   }
 
@@ -249,7 +243,7 @@ export function CandidateStashDetailModal({ stashUuid, stashSummary, onClose, on
                   <button
                     type="button"
                     className={`${styles.iconCloseButton} ${detailStyles.analysisStatusDismissBtn}`}
-                    onClick={() => setAnalysisPopupDismissed(true)}
+                    onClick={() => setDismissedAnalysisJobKey(analysisJobKey)}
                     aria-label="AI 분석 팝업 즉시 닫기"
                     title="즉시 닫기"
                   />
@@ -349,12 +343,12 @@ export function CandidateStashDetailModal({ stashUuid, stashSummary, onClose, on
                       <DeleteButton
                         label="일괄삭제"
                         onClick={() => setBulkDeleteOpen(true)}
-                        disabled={selectedItemUuids.size === 0}
+                        disabled={selectedVisibleCount === 0}
                         aria-label="선택 이너 오더 일괄삭제"
                         title={
-                          selectedItemUuids.size === 0
+                          selectedVisibleCount === 0
                             ? '삭제할 이너 오더를 선택하세요.'
-                            : `선택된 이너 오더 ${selectedItemUuids.size}개 삭제`
+                            : `선택된 이너 오더 ${selectedVisibleCount}개 삭제`
                         }
                       />
                     </div>
@@ -565,7 +559,7 @@ export function CandidateStashDetailModal({ stashUuid, stashSummary, onClose, on
                           />
                         </div>
                         {m.tableRows.map((row, index) => {
-                          const selected = selectedItemUuids.has(row.uuid)
+                          const selected = selectedVisibleItemUuidSet.has(row.uuid)
                           return (
                             <div
                               key={row.uuid}
@@ -641,7 +635,7 @@ export function CandidateStashDetailModal({ stashUuid, stashSummary, onClose, on
       {recommendationOpen && (
         <CandidateRecommendationModal
           rows={recommendationRows}
-          selectedUuids={recommendationSelectedUuids}
+          selectedUuids={recommendationSelectedVisibleUuidSet}
           selectedCount={recommendationSelectedCount}
           allSelected={allRecommendationSelected}
           partiallySelected={partiallyRecommendationSelected}
@@ -688,8 +682,8 @@ export function CandidateStashDetailModal({ stashUuid, stashSummary, onClose, on
         busy={m.bulkDeleteBusy}
         title="일괄삭제 확인"
         message={
-          selectedItemUuids.size > 0
-            ? <>선택된 이너 오더 <b>{selectedItemUuids.size}</b>개를 삭제할까요?</>
+          selectedVisibleCount > 0
+            ? <>선택된 이너 오더 <b>{selectedVisibleCount}</b>개를 삭제할까요?</>
             : '삭제할 이너 오더가 선택되지 않았습니다.'
         }
         confirmText="일괄삭제"
@@ -698,7 +692,7 @@ export function CandidateStashDetailModal({ stashUuid, stashSummary, onClose, on
         keepOpenAttr
         onCancel={() => setBulkDeleteOpen(false)}
         onConfirm={async () => {
-          await m.confirmDeleteItems([...selectedItemUuids])
+          await m.confirmDeleteItems([...selectedVisibleItemUuids])
           setSelectedItemUuids(new Set())
           setBulkDeleteOpen(false)
         }}

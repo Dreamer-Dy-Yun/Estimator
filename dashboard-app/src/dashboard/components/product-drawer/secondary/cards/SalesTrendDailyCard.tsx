@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { SalesTrendChart, type TrendShade } from '../../../trend/SalesTrendChart'
 import { ApiUnitErrorBadge } from '../../../../../components/ApiUnitErrorBadge'
 import type { ApiUnitErrorInfo } from '../../../../../types'
@@ -38,12 +38,11 @@ type Props = {
 
 export function SalesTrendDailyCard({ skuGroupKey, competitorChannelLabel, sizeOptions, trend }: Props) {
   const [expanded, setExpanded] = useState(false)
-  const [selectedSizeId, setSelectedSizeId] = useState<'all' | string>('all')
+  const [selectedSizeState, setSelectedSizeState] = useState<{ skuGroupKey: string; sizeId: 'all' | string } | null>(
+    null,
+  )
   const chartHeight = 240
-
-  useEffect(() => {
-    setSelectedSizeId('all')
-  }, [skuGroupKey])
+  const selectedSizeId = selectedSizeState?.skuGroupKey === skuGroupKey ? selectedSizeState.sizeId : 'all'
 
   const scaledSeries = useMemo(() => {
     if (selectedSizeId === 'all') return trend.series
@@ -111,7 +110,7 @@ export function SalesTrendDailyCard({ skuGroupKey, competitorChannelLabel, sizeO
               value={selectedSizeId}
               onChange={(e) => {
                 const v = e.target.value
-                setSelectedSizeId(v === 'all' ? 'all' : v)
+                setSelectedSizeState({ skuGroupKey, sizeId: v === 'all' ? 'all' : v })
               }}
             >
               <option value="all">{KO.optionTrendDailySizeAll}</option>

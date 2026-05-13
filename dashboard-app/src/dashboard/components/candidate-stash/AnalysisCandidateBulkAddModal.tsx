@@ -5,7 +5,7 @@ import {
   getCandidateStashes,
   type CandidateStashSummary,
 } from '../../../api'
-import { useAppToast } from '../../../components/AppToast'
+import { useAppToast } from '../../../components/AppToastContext'
 import { formatDateTimeMinute } from '../../../utils/date'
 import styles from '../common.module.css'
 

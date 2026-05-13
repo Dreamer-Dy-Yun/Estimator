@@ -29,6 +29,7 @@ export function FilterListCombo({ inputId, value, onChange, options, inputType =
   const [open, setOpen] = useState(false)
   const [activeIdx, setActiveIdx] = useState(-1)
   const [panelRect, setPanelRect] = useState<PanelRect | null>(null)
+  const comboOpen = open && !disabled
 
   const filtered = useMemo(() => {
     if (disabled) return []
@@ -45,15 +46,7 @@ export function FilterListCombo({ inputId, value, onChange, options, inputType =
   }, [])
 
   useLayoutEffect(() => {
-    if (disabled) {
-      setOpen(false)
-      setPanelRect(null)
-      return
-    }
-    if (!open) {
-      setPanelRect(null)
-      return
-    }
+    if (!comboOpen) return
     updatePanelRect()
     const onReposition = () => updatePanelRect()
     window.addEventListener('resize', onReposition)
@@ -62,7 +55,7 @@ export function FilterListCombo({ inputId, value, onChange, options, inputType =
       window.removeEventListener('resize', onReposition)
       window.removeEventListener('scroll', onReposition, true)
     }
-  }, [disabled, open, updatePanelRect, filtered.length, value])
+  }, [comboOpen, updatePanelRect, filtered.length, value])
 
   const close = useCallback(() => {
     setOpen(false)
@@ -71,7 +64,7 @@ export function FilterListCombo({ inputId, value, onChange, options, inputType =
   }, [])
 
   useEffect(() => {
-    if (!open) return
+    if (!comboOpen) return
     const onDoc = (e: MouseEvent) => {
       const t = e.target as Node
       const el = wrapRef.current
@@ -81,7 +74,7 @@ export function FilterListCombo({ inputId, value, onChange, options, inputType =
     }
     document.addEventListener('mousedown', onDoc)
     return () => document.removeEventListener('mousedown', onDoc)
-  }, [open, close])
+  }, [comboOpen, close])
 
   const pick = useCallback(
     (v: string) => {
@@ -93,13 +86,13 @@ export function FilterListCombo({ inputId, value, onChange, options, inputType =
 
   const onKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (disabled) return
-    if (!open && (e.key === 'ArrowDown' || e.key === 'ArrowUp') && filtered.length > 0) {
+    if (!comboOpen && (e.key === 'ArrowDown' || e.key === 'ArrowUp') && filtered.length > 0) {
       setOpen(true)
       setActiveIdx(e.key === 'ArrowUp' ? filtered.length - 1 : 0)
       e.preventDefault()
       return
     }
-    if (!open) return
+    if (!comboOpen) return
     if (e.key === 'Escape') {
       close()
       e.preventDefault()
@@ -123,9 +116,9 @@ export function FilterListCombo({ inputId, value, onChange, options, inputType =
     }
   }
 
-  const showList = open && options.length > 0 && filtered.length > 0
+  const showList = comboOpen && options.length > 0 && filtered.length > 0
   const showNoMatch =
-    open &&
+    comboOpen &&
     options.length > 0 &&
     filtered.length === 0 &&
     value.trim() !== '' &&
@@ -170,7 +163,7 @@ export function FilterListCombo({ inputId, value, onChange, options, inputType =
 
   return (
     <div
-      className={`${styles.wrap} ${open && panelVisible ? styles.wrapOpen : ''}`}
+      className={`${styles.wrap} ${comboOpen && panelVisible ? styles.wrapOpen : ''}`}
       ref={wrapRef}
     >
       <input
@@ -178,7 +171,7 @@ export function FilterListCombo({ inputId, value, onChange, options, inputType =
         className={styles.input}
         type={inputType}
         autoComplete="off"
-        aria-expanded={open && panelVisible}
+        aria-expanded={comboOpen && panelVisible}
         aria-controls={showList ? `${inputId}-listbox` : undefined}
         aria-activedescendant={showList && activeIdx >= 0 ? `${inputId}-opt-${activeIdx}` : undefined}
         value={value}

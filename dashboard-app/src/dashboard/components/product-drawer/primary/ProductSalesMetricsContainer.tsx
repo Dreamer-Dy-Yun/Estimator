@@ -17,6 +17,12 @@ type Props = {
   pageName: string
 }
 
+type SalesInsightState = {
+  key: string
+  data: ProductSalesInsight | null
+  error: ApiUnitErrorInfo | null
+}
+
 export function ProductSalesMetricsContainer({
   skuGroupKey,
   startDate,
@@ -28,14 +34,20 @@ export function ProductSalesMetricsContainer({
   pageName,
 }: Props) {
   const reqSeqRef = useRef(0)
-  const [salesInsight, setSalesInsight] = useState<ProductSalesInsight | null>(null)
-  const [salesInsightError, setSalesInsightError] = useState<ApiUnitErrorInfo | null>(null)
+  const [salesInsightState, setSalesInsightState] = useState<SalesInsightState | null>(null)
+  const salesInsightRequestKey = JSON.stringify({
+    skuGroupKey,
+    startDate,
+    endDate,
+    competitorChannelId: channelId,
+  })
+  const salesInsight =
+    channelId && salesInsightState?.key === salesInsightRequestKey ? salesInsightState.data : null
+  const salesInsightError =
+    channelId && salesInsightState?.key === salesInsightRequestKey ? salesInsightState.error : null
 
   useEffect(() => {
-    if (!channelId) {
-      setSalesInsight(null)
-      return
-    }
+    if (!channelId) return
     let alive = true
     const reqSeq = ++reqSeqRef.current
     void (async () => {
@@ -46,24 +58,24 @@ export function ProductSalesMetricsContainer({
           competitorChannelId: channelId,
         })
         if (!alive || reqSeq !== reqSeqRef.current) return
-        setSalesInsight(data)
-        setSalesInsightError(null)
+        setSalesInsightState({ key: salesInsightRequestKey, data, error: null })
       } catch (err) {
         if (!alive || reqSeq !== reqSeqRef.current) return
-        setSalesInsight(null)
-        setSalesInsightError(
-          makeApiErrorInfo(
+        setSalesInsightState({
+          key: salesInsightRequestKey,
+          data: null,
+          error: makeApiErrorInfo(
             pageName,
             `getProductSalesInsight(${JSON.stringify({ skuGroupKey, startDate, endDate, competitorChannelId: channelId })})`,
             err,
           ),
-        )
+        })
       }
     })()
     return () => {
       alive = false
     }
-  }, [channelId, endDate, pageName, skuGroupKey, startDate])
+  }, [channelId, endDate, pageName, salesInsightRequestKey, skuGroupKey, startDate])
 
   const salesMetricsError = salesInsightError ?? channelsError
 

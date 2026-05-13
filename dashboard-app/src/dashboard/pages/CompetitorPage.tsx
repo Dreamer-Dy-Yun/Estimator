@@ -19,6 +19,7 @@ import { KpiGrid } from '../components/KpiGrid'
 import { useElementSize } from '../hooks/useElementSize'
 import { maskNonPeriodAnalysisFilterFields, useAnalysisSalesFilters } from '../hooks/useAnalysisSalesFilters'
 import type { FilterField } from '../model/filterField'
+import { useAnalysisVisibleSelection } from '../hooks/useAnalysisVisibleSelection'
 import { useProductDrawerBundle } from '../hooks/useProductDrawerBundle'
 import type { ScatterSalesGridResponse } from '../../api/types'
 
@@ -38,12 +39,8 @@ type CompetitorScatterGridPoint = {
 export const CompetitorPage = () => {
   const [rows, setRows] = useState<CompetitorSalesRow[]>([])
   const [scatterGrid, setScatterGrid] = useState<ScatterSalesGridResponse | null>(null)
-  const [selectedSkuGroupKey, setSelectedSkuGroupKey] = useState<string | null>(null)
-  const [activeGridCellKey, setActiveGridCellKey] = useState<string | null>(null)
-  const [bulkSelectedSkuGroupKeys, setBulkSelectedSkuGroupKeys] = useState<Set<string>>(() => new Set())
   const [bulkAddOpen, setBulkAddOpen] = useState(false)
   const [forecastMonths, setForecastMonths] = useState(() => readForecastMonthsFromStorage())
-  const summaryBundle = useProductDrawerBundle(selectedSkuGroupKey)
   const { ref: chartBodyRef, width: chartWidth, height: chartHeight, ready: chartReady } = useElementSize<HTMLDivElement>()
 
   const onForecastMonthsChange = useCallback((n: number) => {
@@ -141,11 +138,6 @@ export const CompetitorPage = () => {
       options: channelOptions,
     },
   ], [filterFields, competitorChannelLabel, channelOptions])
-  const displayedCompetitorFilterFields = useMemo(
-    () => (activeGridCellKey ? maskNonPeriodAnalysisFilterFields(competitorFilterFields) : competitorFilterFields),
-    [activeGridCellKey, competitorFilterFields],
-  )
-
   const competitorTooltipLabel = competitorChannelLabel === '전체'
     ? '전체 경쟁사'
     : competitorChannelLabel
@@ -155,34 +147,28 @@ export const CompetitorPage = () => {
     () => (showRowsWithSelfSalesOnly ? rows.filter((row) => row.selfQty != null) : rows),
     [rows, showRowsWithSelfSalesOnly],
   )
+  const {
+    activeGridCellKey,
+    selectedSkuGroupKey,
+    bulkSelectedSkuGroupKeys,
+    visibleRows,
+    navigationOrderIds,
+    bulkSelectedCount,
+    allVisibleRowsSelected,
+    selectedSkuGroupKeys,
+    setSelectedSkuGroupKey,
+    onScatterCellClick,
+    clearActiveGridCell,
+    toggleBulkRow,
+    toggleAllVisibleRows,
+    clearBulkSelection,
+  } = useAnalysisVisibleSelection(baseRows, scatterGrid)
+  const summaryBundle = useProductDrawerBundle(selectedSkuGroupKey)
 
-  const activeGridCellSkuIds = useMemo(() => {
-    if (!activeGridCellKey || !scatterGrid) return null
-    const target = scatterGrid.cells.find((cell) => cell.cellKey === activeGridCellKey)
-    if (!target) return null
-    return new Set(target.skuIds)
-  }, [activeGridCellKey, scatterGrid])
-
-  const visibleRows = useMemo(
-    () => (activeGridCellSkuIds == null
-      ? baseRows
-      : baseRows.filter((row) => activeGridCellSkuIds.has(row.skuGroupKey))),
-    [activeGridCellSkuIds, baseRows],
+  const displayedCompetitorFilterFields = useMemo(
+    () => (activeGridCellKey ? maskNonPeriodAnalysisFilterFields(competitorFilterFields) : competitorFilterFields),
+    [activeGridCellKey, competitorFilterFields],
   )
-
-  useEffect(() => {
-    if (!activeGridCellKey) return
-    if (!scatterGrid?.cells.some((cell) => cell.cellKey === activeGridCellKey)) {
-      setActiveGridCellKey(null)
-    }
-  }, [activeGridCellKey, scatterGrid])
-
-  useEffect(() => {
-    if (!selectedSkuGroupKey) return
-    if (!visibleRows.some((row) => row.skuGroupKey === selectedSkuGroupKey)) {
-      setSelectedSkuGroupKey(null)
-    }
-  }, [selectedSkuGroupKey, visibleRows])
 
   const kpi = useMemo(() => {
     const totalCompetitorAmount = visibleRows.reduce((acc, row) => acc + row.competitorAmount, 0)
@@ -213,26 +199,13 @@ export const CompetitorPage = () => {
     [maxScatterGridCount, scatterGrid],
   )
 
-  const navigationOrderIds = useMemo(() => visibleRows.map((r) => r.skuGroupKey), [visibleRows])
-  const bulkSelectedCount = bulkSelectedSkuGroupKeys.size
-  const allVisibleRowsSelected = visibleRows.length > 0 && bulkSelectedCount === visibleRows.length
-  const selectedSkuGroupKeys = useMemo(() => [...bulkSelectedSkuGroupKeys], [bulkSelectedSkuGroupKeys])
-
-  useEffect(() => {
-    setBulkSelectedSkuGroupKeys((prev) => {
-      const available = new Set(visibleRows.map((row) => row.skuGroupKey))
-      const next = new Set([...prev].filter((id) => available.has(id)))
-      return next.size === prev.size ? prev : next
-    })
-  }, [visibleRows])
-
   const onRequestNavigateAdjacent = useCallback(
     (direction: AdjacentDirection) => {
       if (!selectedSkuGroupKey) return
       const nextId = adjacentIdInOrder(navigationOrderIds, selectedSkuGroupKey, direction)
       if (nextId != null && nextId !== selectedSkuGroupKey) setSelectedSkuGroupKey(nextId)
     },
-    [navigationOrderIds, selectedSkuGroupKey],
+    [navigationOrderIds, selectedSkuGroupKey, setSelectedSkuGroupKey],
   )
 
   const renderQtyScatterTooltip = (props: {
@@ -262,25 +235,6 @@ export const CompetitorPage = () => {
         </div>
       </div>
     )
-  }
-
-  const onScatterCellClick = useCallback((cellKey: string) => {
-    setActiveGridCellKey((prev) => (prev === cellKey ? null : cellKey))
-  }, [])
-
-  const toggleBulkRow = (id: string) => {
-    setBulkSelectedSkuGroupKeys((prev) => {
-      const next = new Set(prev)
-      if (next.has(id)) next.delete(id)
-      else next.add(id)
-      return next
-    })
-  }
-
-  const toggleAllVisibleRows = () => {
-    setBulkSelectedSkuGroupKeys(() => (
-      allVisibleRowsSelected ? new Set() : new Set(visibleRows.map((row) => row.skuGroupKey))
-    ))
   }
 
   const scatterChartWidth = Math.max(1, Math.floor(chartWidth))
@@ -378,7 +332,7 @@ export const CompetitorPage = () => {
                 aria-hidden={!activeGridCellKey}
                 disabled={!activeGridCellKey}
                 tabIndex={activeGridCellKey ? 0 : -1}
-                onClick={() => setActiveGridCellKey(null)}
+                onClick={clearActiveGridCell}
               >
                 격자 선택 해제
               </button>
@@ -498,7 +452,7 @@ export const CompetitorPage = () => {
         onClose={() => setBulkAddOpen(false)}
         onDone={() => {
           setBulkAddOpen(false)
-          setBulkSelectedSkuGroupKeys(new Set())
+          clearBulkSelection()
         }}
       />
     </section>

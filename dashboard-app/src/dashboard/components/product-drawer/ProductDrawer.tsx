@@ -57,7 +57,8 @@ function ProductDrawerContent({
 }) {
   const pageName = 'ProductDrawer'
   const drawerRef = useRef<HTMLElement | null>(null)
-  const [expandPaneOpen, setExpandPaneOpen] = useState(() => secondaryEnabled && !!initialExpandSecondary)
+  const [expandPaneOpenState, setExpandPaneOpen] = useState(() => !!initialExpandSecondary)
+  const expandPaneOpen = secondaryEnabled && expandPaneOpenState
   const {
     competitorChannels,
     channelId,
@@ -70,18 +71,10 @@ function ProductDrawerContent({
     hydrateForPanel,
   } = useSecondaryDrawerDetail({
     skuGroupKey: summary.skuGroupKey,
-    expandPaneOpen: secondaryEnabled && expandPaneOpen,
+    expandPaneOpen,
     hydrateSnapshot,
     pageName,
   })
-
-  useEffect(() => {
-    if (!secondaryEnabled) {
-      setExpandPaneOpen(false)
-      return
-    }
-    if (initialExpandSecondary) setExpandPaneOpen(true)
-  }, [initialExpandSecondary, secondaryEnabled])
 
   useEffect(() => {
     if (suppressDocumentLayoutShift) return

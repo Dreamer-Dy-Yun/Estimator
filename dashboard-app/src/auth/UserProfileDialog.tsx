@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { useAuth } from './AuthContext'
-import { useAppToast } from '../components/AppToast'
+import { useAppToast } from '../components/AppToastContext'
 import styles from './UserProfileDialog.module.css'
 
 const ROLE_LABELS = {

@@ -47,6 +47,9 @@
 - 관리자 화면은 `/admin` 별도 라우트와 `src/admin`이 소유한다. 화면은 같은 `DashboardLayout` 안에서 렌더하며, 관리자 권한 사용자에게만 `오더 후보군` 뒤 관리자 전용 탭을 보여준다. 인증 권한은 `admin`과 `user` 두 단계만 둔다. 사용자 관리는 관리자 화면 안의 탭/패널로 분리한다. 관리자 비밀번호 관리는 조회가 아니라 임시 비밀번호 재설정 API만 호출하고, 임시 비밀번호는 응답 직후 한 번만 표시한다.
 - 관리자 GPT 키 관리는 `src/api/types/admin-gpt-key.ts` 계약과 `src/api/mock/adminGptKeyApi.ts` mock을 통해서만 접근한다. 화면은 GPT 키 원문을 입력/교체 요청에만 담고, 목록 응답은 `maskedKey`만 표시한다. 목록은 식별용 요약 정보만 노출하고, 메타 변경/키 교체/연결 테스트/삭제는 행 클릭 후 열리는 모달이 소유한다. 현재 mock은 DB 대체 저장소가 아니라 런타임 메모리에서 마스킹 값과 메타데이터만 보관한다.
 - API 요청 교체 지점은 `src/api/requests/*`로 분리한다. 화면/훅/페이지는 mock을 알 수 없고, `src/api/client.ts`는 public export facade만 맡는다. 실제 백엔드가 생기면 `requests` 파일 안의 mock 위임을 HTTP 요청으로 바꾸는 것을 기본 원칙으로 한다.
+- 2026-05-13 정리에서 전체 `npm run lint` 실패를 0건으로 만들고 `tsconfig.app.json`/`tsconfig.node.json`에 `strict: true`를 켰다. 이후 기능 변경은 린트와 strict 타입 검사를 기본 품질선으로 본다.
+- 자사/경쟁사 분석의 격자 셀 선택, 현재 화면 기준 선택 유효성, 후보군 일괄 담기 체크박스 상태는 `dashboard/hooks/useAnalysisVisibleSelection.ts`가 소유한다. 페이지는 KPI/차트/목록 렌더와 API 호출 결과 연결만 맡고, 필터·격자 변경 후 선택 상태를 effect로 억지 정리하지 않는다.
+- 산점도 격자화 mock 계산은 `api/mock/scatterGrid.ts`로 분리했다. 운영에서는 백엔드가 같은 책임을 가지며, 프론트는 응답 `cells`와 `meta`로 색상·표시 반지름만 계산한다.
 - 상품 drawer feature는 `dashboard/components/product-drawer`로 모았다. 루트 `ProductDrawer`는 overlay와 공유 상태만 조율하고, `primary`가 1차 드로워, `secondary`가 2차 드로워를 소유한다.
 - 경쟁 채널 상태는 1차 판매 정보와 2차 일별 추이가 공유하므로 `product-drawer/useCompetitorChannels.ts`가 소유한다. 2차 상세 조회는 `product-drawer/secondary/useSecondaryDrawerDetail.ts`가 소유한다.
 - 인증 context와 `useAuth`는 `AuthContext.ts`가 소유하고, `AuthProvider.tsx`는 세션 로딩과 API 호출 orchestration만 담당한다.
@@ -69,8 +72,8 @@
 | `package.json` | 앱 스크립트와 의존성 선언. | 런타임/빌드/테스트 의존성 변경 시 수정 |
 | `package-lock.json` | npm 의존성 잠금. | `package.json` 변경 또는 설치 결과 변경 시 수정 |
 | `vite.config.ts` | Vite 설정. 프로덕션 빌드의 vendor chunk 분리는 Rolldown `codeSplitting.groups`에서 관리한다. | 빌드 옵션, 플러그인, chunk 분리 기준 변경 시 수정 |
-| `tsconfig*.json` | TypeScript 컴파일 경계. | TS 대상, strictness, include 경계 변경 시 수정 |
-| `eslint.config.js` | 린트 규칙. 현재 전체 lint에는 기존 실패가 있을 수 있다. | 규칙이나 대상 변경 시 수정 |
+| `tsconfig*.json` | TypeScript 컴파일 경계. 현재 앱/노드 설정 모두 `strict: true`를 사용한다. | TS 대상, strictness, include 경계 변경 시 수정 |
+| `eslint.config.js` | 린트 규칙. 현재 전체 `npm run lint`는 통과해야 하는 기준선이다. | 규칙이나 대상 변경 시 수정 |
 | `index.html` | Vite HTML 진입점. | 루트 마크업/메타/앱 mount 변경 시 수정 |
 | `public/` | 빌드에 그대로 포함되는 정적 자산. | URL로 직접 참조되는 자산 추가/수정 |
 | `src/` | 앱 소스. 아래 경계 표를 따른다. | 기능 변경 시 관련 하위 경계 갱신 |
@@ -127,6 +130,7 @@
 | `productCatalog.ts` | 상품 catalog seed와 조회. 의류는 S/M/L/XL/XXL, 신발은 235~280 사이즈 체계를 생성한다 |
 | `records.ts` | mock 원천 record 묶음 |
 | `salesTables.ts` | 자사/경쟁 판매 테이블 mock |
+| `scatterGrid.ts` | 자사/경쟁 산점도 mock 격자화 계산. 운영에서는 백엔드가 같은 책임을 가져야 하므로, mock `dashboardApi.ts` 본문에서 분리해 테스트 가능한 계산 경계로 둔다 |
 | `secondaryDailyTrend.ts` | 2차 드로워 일간 트렌드 mock. 선택 경쟁 채널의 수량 보정이 경쟁사 일별 판매량에 반영된다 |
 | `utils.ts` | mock 전용 유틸 |
 
@@ -173,7 +177,7 @@
 | 파일 | 역할 |
 |------|------|
 | `ApiUnitErrorBadge.tsx` | API 단위 오류를 표시하는 공용 badge |
-| `AppToast.tsx`, `AppToast.module.css` | 앱 전역 성공/정보/오류 toast provider와 상단 자동 닫힘 표시 |
+| `AppToast.tsx`, `AppToastContext.ts`, `AppToast.module.css` | 앱 전역 성공/정보/오류 toast provider와 상단 자동 닫힘 표시. hook/context export는 fast-refresh 경계를 위해 `AppToastContext.ts`가 소유한다 |
 | `ComponentErrorBoundary.tsx` | 컴포넌트 단위 오류 격리 boundary |
 
 ## src/dashboard
@@ -196,8 +200,8 @@
 
 | 파일 | 역할 |
 |------|------|
-| `SelfPage.tsx` | 자사 판매 분석 라우트. 공통 분석 필터/기간 상태는 `useAnalysisSalesFilters`가 소유하고, 페이지는 자사 KPI·포지셔닝 차트·목록 컬럼·선택 체크박스·후보군 일괄 담기 진입을 소유한다. KPI는 필터링된 행의 총 판매액·판매량과 판매액 가중 평균 매출/영업이익율을 보여준다. 산점도 격자 셀 색은 `scatterGridDisplay` 유틸로 count 기반 연속 그라데이션을 적용한다. 기본 목록 정렬은 판매량 내림차순이며, 2차 드로워는 열지 않는다 |
-| `CompetitorPage.tsx` | 경쟁 판매 분석 라우트. 공통 분석 필터/기간 상태는 `useAnalysisSalesFilters`가 소유하고, 페이지는 경쟁 채널 필터, 자사판매량 존재 행 토글, 경쟁 KPI·판매량 비교 차트·목록 컬럼·선택 체크박스·후보군 일괄 담기 진입을 소유한다. KPI는 필터링된 행의 경쟁사/자사 판매액·판매량 합계를 보여주며, 경쟁 채널이 `전체`이면 API 응답은 전체 경쟁 채널 합계여야 한다. 기본 목록 정렬은 경쟁 판매량 내림차순이고 경쟁·자사 판매량 비교 차트는 X축 자사 판매량, Y축 경쟁사 판매량을 사용한다. 산점도 격자 셀 색은 `scatterGridDisplay` 유틸로 count 기반 연속 그라데이션을 적용하며, 2차 드로워는 열지 않는다 |
+| `SelfPage.tsx` | 자사 판매 분석 라우트. 공통 분석 필터/기간 상태는 `useAnalysisSalesFilters`가 소유하고, 격자 셀 선택·현재 화면 기준 선택 유효성·후보군 일괄 담기 선택 상태는 `useAnalysisVisibleSelection`이 소유한다. 페이지는 자사 KPI·포지셔닝 차트·목록 컬럼·후보군 일괄 담기 진입을 소유한다. KPI는 필터링된 행의 총 판매액·판매량과 판매액 가중 평균 매출/영업이익율을 보여준다. 산점도 격자 셀 색은 `scatterGridDisplay` 유틸로 count 기반 연속 그라데이션을 적용한다. 기본 목록 정렬은 판매량 내림차순이며, 2차 드로워는 열지 않는다 |
+| `CompetitorPage.tsx` | 경쟁 판매 분석 라우트. 공통 분석 필터/기간 상태는 `useAnalysisSalesFilters`가 소유하고, 격자 셀 선택·현재 화면 기준 선택 유효성·후보군 일괄 담기 선택 상태는 `useAnalysisVisibleSelection`이 소유한다. 페이지는 경쟁 채널 필터, 자사판매량 존재 행 토글, 경쟁 KPI·판매량 비교 차트·목록 컬럼·후보군 일괄 담기 진입을 소유한다. KPI는 필터링된 행의 경쟁사/자사 판매액·판매량 합계를 보여주며, 경쟁 채널이 `전체`이면 API 응답은 전체 경쟁 채널 합계여야 한다. 기본 목록 정렬은 경쟁 판매량 내림차순이고 경쟁·자사 판매량 비교 차트는 X축 자사 판매량, Y축 경쟁사 판매량을 사용한다. 산점도 격자 셀 색은 `scatterGridDisplay` 유틸로 count 기반 연속 그라데이션을 적용하며, 2차 드로워는 열지 않는다 |
 | `SnapshotConfirmPage.tsx` | 후보군 목록, 후보군 업로드, 업로드 템플릿 다운로드 링크, 후보군 생성/수정/삭제/복제 라우트 |
 | `SnapshotConfirmPage.module.css` | `SnapshotConfirmPage`의 후보군 목록, 업로드 카드 2행 grid 영역, 이름·비고 편집 모달의 form/input 전용 스타일 |
 
@@ -284,6 +288,7 @@
 |------|------|
 | `useElementSize.ts` | element resize 측정 |
 | `useAnalysisSalesFilters.ts` | 자사/경쟁 분석 공통 기간·브랜드·카테고리·품번·색상·상품명 필터 상태와 filter meta API 요청. 산점도 cell 선택 시 기간 외 필터를 비운 것처럼 보이게 하는 분석 화면 표시 정책도 여기서 만든다 |
+| `useAnalysisVisibleSelection.ts` | 자사/경쟁 분석 공통 격자 셀 선택, 현재 보이는 행 계산, 선택 상품 drawer id, 후보군 일괄 담기 체크박스 상태. 필터나 격자 결과가 바뀔 때 상태를 effect로 삭제하지 않고 현재 화면에서 유효한 값만 파생한다 |
 | `usePeriodRangeFilter.ts` | 판매 분석 기간 필터 상태 |
 | `useProductDrawerBundle.ts` | 상품 drawer bundle 로딩, stale cache, snapshot fallback 보호 |
 

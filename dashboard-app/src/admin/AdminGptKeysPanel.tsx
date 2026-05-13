@@ -7,7 +7,7 @@ import {
   testAdminGptKey,
   updateAdminGptKey,
 } from '../api'
-import { useAppToast } from '../components/AppToast'
+import { useAppToast } from '../components/AppToastContext'
 import type {
   AdminGptKeyPurpose,
   AdminGptKeySummary,
@@ -79,22 +79,6 @@ function AdminGptKeyDialog({
     model !== gptKey.model ||
     note !== (gptKey.note ?? '') ||
     isActive !== gptKey.isActive
-
-  useEffect(() => {
-    setName(gptKey.name)
-    setPurpose(gptKey.purpose)
-    setModel(gptKey.model)
-    setNote(gptKey.note ?? '')
-    setIsActive(gptKey.isActive)
-    setRotateKey('')
-    setRowMessage(null)
-    setErrorMessage(null)
-    setIsSaving(false)
-    setIsRotating(false)
-    setIsTesting(false)
-    setIsDeleting(false)
-    setDeleteConfirm(false)
-  }, [gptKey.uuid])
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -448,6 +432,7 @@ export function AdminGptKeysPanel() {
 
       {selectedGptKey ? (
         <AdminGptKeyDialog
+          key={selectedGptKey.uuid}
           gptKey={selectedGptKey}
           onClose={() => setSelectedGptKeyUuid(null)}
           onChanged={reloadGptKeys}

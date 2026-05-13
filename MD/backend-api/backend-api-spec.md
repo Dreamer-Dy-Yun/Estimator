@@ -792,6 +792,8 @@ badges: [
 
 산점도 API는 반드시 백엔드 집계 API로 구현한다. 수만 행의 원천 판매 row를 프론트로 내려서 브라우저에서 격자화하지 않는다.
 
+프론트 mock의 참고 구현은 `dashboard-app/src/api/mock/scatterGrid.ts`에 분리되어 있다. 이는 운영 프론트 책임이 아니라 백엔드 격자화 계약을 검증하기 위한 reference/mock 계산이며, 운영 연결 시 같은 계산 책임은 Python 백엔드로 옮긴다.
+
 공통 구현 방향:
 
 - FastAPI/SQLAlchemy 기준으로는 목록 API와 동일한 filter builder를 공유한다.

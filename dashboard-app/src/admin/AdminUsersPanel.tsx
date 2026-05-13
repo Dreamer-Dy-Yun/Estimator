@@ -8,7 +8,7 @@ import {
 } from '../api'
 import type { AdminUserSummary, AuthRole, ResetAdminUserPasswordResult } from '../api'
 import { useAuth } from '../auth/AuthContext'
-import { useAppToast } from '../components/AppToast'
+import { useAppToast } from '../components/AppToastContext'
 import { formatUpdatedAt, getErrorMessage, ROLE_OPTIONS } from './adminHelpers'
 import styles from './AdminPage.module.css'
 

@@ -26,7 +26,6 @@ import type {
   SecondaryDailyTrendParams,
   SecondaryStockOrderCalcParams,
   SecondaryStockOrderCalcResult,
-  ScatterSalesGridResponse,
   SelfSalesParams,
   SelfSalesGridParams,
 } from '../types'
@@ -63,138 +62,7 @@ import {
 } from './secondaryDailyTrend'
 import { buildSalesKpiColumn } from '../../utils/salesKpiColumn'
 import { uniqueSortedStrings } from '../../utils/uniqueSortedStrings'
-
-type ScatterGridBuildRow = {
-  skuGroupKey: string
-  x: number
-  y: number
-}
-
-type ScatterGridBucket = {
-  cellKey: string
-  count: number
-  skuIds: string[]
-  xStart: number
-  xEnd: number
-  yStart: number
-  yEnd: number
-  representativeX: number
-  representativeY: number
-}
-
-const DEFAULT_SCATTER_BUCKET_COUNT = 12
-const DEFAULT_SCATTER_BUCKET_SIZE_RATIO = 0.7
-
-function resolveBucketSize(span: number, requested: number | undefined): number {
-  if (requested !== undefined && Number.isFinite(requested) && requested > 0) return requested
-  if (!Number.isFinite(span) || span <= 0) return 1
-  return (span / DEFAULT_SCATTER_BUCKET_COUNT) * DEFAULT_SCATTER_BUCKET_SIZE_RATIO
-}
-
-function clampIndex(value: number, start: number, bucketSize: number, bucketCount: number): number {
-  const raw = (value - start) / bucketSize
-  const idx = Math.floor(raw)
-  if (!Number.isFinite(idx)) return 0
-  return Math.max(0, Math.min(bucketCount - 1, idx))
-}
-
-function toGridMetaCellKey(valueStart: number, valueEnd: number): string {
-  return `${valueStart.toFixed(6)}-${valueEnd.toFixed(6)}`
-}
-
-function buildScatterGridCells(
-  rows: ScatterGridBuildRow[],
-  xBucketSize?: number,
-  yBucketSize?: number,
-  maxSkuIdsPerCell?: number,
-): ScatterSalesGridResponse {
-  const validRows = rows.filter((row) => Number.isFinite(row.x) && Number.isFinite(row.y))
-  if (validRows.length === 0) {
-    return {
-      cells: [],
-      meta: {
-        xAxis: { min: 0, max: 0, bucketSize: xBucketSize && xBucketSize > 0 ? xBucketSize : 1 },
-        yAxis: { min: 0, max: 0, bucketSize: yBucketSize && yBucketSize > 0 ? yBucketSize : 1 },
-      },
-    }
-  }
-
-  const xValues = validRows.map((row) => row.x)
-  const yValues = validRows.map((row) => row.y)
-  const xMin = Math.min(...xValues)
-  const xMax = Math.max(...xValues)
-  const yMin = Math.min(...yValues)
-  const yMax = Math.max(...yValues)
-
-  const xSize = resolveBucketSize(xMax - xMin, xBucketSize)
-  const ySize = resolveBucketSize(yMax - yMin, yBucketSize)
-
-  const xCount = xMin === xMax ? 1 : Math.max(1, Math.ceil((xMax - xMin) / xSize))
-  const yCount = yMin === yMax ? 1 : Math.max(1, Math.ceil((yMax - yMin) / ySize))
-  const maxSkuIds = maxSkuIdsPerCell && maxSkuIdsPerCell > 0 ? maxSkuIdsPerCell : undefined
-
-  const cellsByKey = new Map<string, ScatterGridBucket>()
-
-  for (const row of validRows) {
-    const xIdx = clampIndex(row.x, xMin, xSize, xCount)
-    const yIdx = clampIndex(row.y, yMin, ySize, yCount)
-    const xStart = xMin + xIdx * xSize
-    const xEnd = xIdx === xCount - 1 ? xMax : xStart + xSize
-    const yStart = yMin + yIdx * ySize
-    const yEnd = yIdx === yCount - 1 ? yMax : yStart + ySize
-    const key = `${toGridMetaCellKey(xStart, xEnd)}|${toGridMetaCellKey(yStart, yEnd)}`
-    const existing = cellsByKey.get(key)
-    if (existing) {
-      existing.count += 1
-      if (maxSkuIds == null || existing.skuIds.length < maxSkuIds) {
-        existing.skuIds.push(row.skuGroupKey)
-      }
-    } else {
-      const xStartRounded = Number.isFinite(xStart) ? xStart : 0
-      const xEndRounded = Number.isFinite(xEnd) ? xEnd : xStartRounded
-      const yStartRounded = Number.isFinite(yStart) ? yStart : 0
-      const yEndRounded = Number.isFinite(yEnd) ? yEnd : yStartRounded
-      const skuIds = []
-      if (maxSkuIds == null || 0 < maxSkuIds) {
-        skuIds.push(row.skuGroupKey)
-      }
-      cellsByKey.set(key, {
-        cellKey: key,
-        count: 1,
-        skuIds,
-        xStart: xStartRounded,
-        xEnd: xEndRounded,
-        yStart: yStartRounded,
-        yEnd: yEndRounded,
-        representativeX: (xStartRounded + xEndRounded) / 2,
-        representativeY: (yStartRounded + yEndRounded) / 2,
-      })
-    }
-  }
-
-  const cells: ScatterSalesGridResponse['cells'] = Array.from(cellsByKey.values()).map((row) => ({
-    cellKey: row.cellKey,
-    count: row.count,
-    skuIds: row.skuIds,
-    hasMoreSkuIds: maxSkuIds == null ? false : row.count > maxSkuIds,
-    xStart: row.xStart,
-    xEnd: row.xEnd,
-    yStart: row.yStart,
-    yEnd: row.yEnd,
-    representativeX: row.representativeX,
-    representativeY: row.representativeY,
-  }))
-
-  cells.sort((a, b) => b.count - a.count)
-
-  return {
-    cells,
-    meta: {
-      xAxis: { min: xMin, max: xMax, bucketSize: xSize },
-      yAxis: { min: yMin, max: yMax, bucketSize: ySize },
-    },
-  }
-}
+import { buildScatterGridCells } from './scatterGrid'
 
 type CandidateAnalysisJob = {
   stashUuid: string

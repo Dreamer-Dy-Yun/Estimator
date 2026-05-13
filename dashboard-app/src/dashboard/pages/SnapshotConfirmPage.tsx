@@ -9,7 +9,7 @@ import {
   type CandidateStashExcelUploadResult,
   type CandidateStashSummary,
 } from '../../api'
-import { useAppToast } from '../../components/AppToast'
+import { useAppToast } from '../../components/AppToastContext'
 import { formatDateTimeMinute } from '../../utils/date'
 import styles from '../components/common.module.css'
 import { ConfirmModal } from '../components/ConfirmModal'

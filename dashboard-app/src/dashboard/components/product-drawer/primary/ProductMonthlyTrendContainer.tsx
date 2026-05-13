@@ -23,6 +23,12 @@ type Props = {
   pageName: string
 }
 
+type MonthlyTrendState = {
+  key: string
+  data: ProductMonthlyTrend | null
+  error: ApiUnitErrorInfo | null
+}
+
 export function ProductMonthlyTrendContainer({
   skuGroupKey,
   fallbackTrend,
@@ -37,23 +43,24 @@ export function ProductMonthlyTrendContainer({
   const forecastMonthsLabelId = useId()
   const forecastComboRef = useRef<HTMLDivElement | null>(null)
   const reqSeqRef = useRef(0)
-  const [forecastComboOpen, setForecastComboOpen] = useState(false)
-  const [monthlyTrend, setMonthlyTrend] = useState<ProductMonthlyTrend | null>(null)
-  const [monthlyTrendError, setMonthlyTrendError] = useState<ApiUnitErrorInfo | null>(null)
+  const [forecastComboOpenForSkuGroupKey, setForecastComboOpenForSkuGroupKey] = useState<string | null>(null)
+  const [monthlyTrendState, setMonthlyTrendState] = useState<MonthlyTrendState | null>(null)
   const [salesTrendVisible, setSalesTrendVisible] = useState({ self: true, competitor: true })
-  const [chartHovered, setChartHovered] = useState(false)
+  const [chartHoveredSkuGroupKey, setChartHoveredSkuGroupKey] = useState<string | null>(null)
+  const forecastComboOpen = forecastComboOpenForSkuGroupKey === skuGroupKey
+  const chartHovered = chartHoveredSkuGroupKey === skuGroupKey
 
   useEffect(() => {
     if (!forecastComboOpen) return
     const onDocDown = (e: MouseEvent) => {
       const el = forecastComboRef.current
-      if (el && !el.contains(e.target as Node)) setForecastComboOpen(false)
+      if (el && !el.contains(e.target as Node)) setForecastComboOpenForSkuGroupKey(null)
     }
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== 'Escape') return
       e.preventDefault()
       e.stopPropagation()
-      setForecastComboOpen(false)
+      setForecastComboOpenForSkuGroupKey(null)
     }
     document.addEventListener('mousedown', onDocDown)
     document.addEventListener('keydown', onKey)
@@ -63,24 +70,24 @@ export function ProductMonthlyTrendContainer({
     }
   }, [forecastComboOpen])
 
-  useEffect(() => {
-    setForecastComboOpen(false)
-  }, [skuGroupKey])
-
-  useEffect(() => {
-    setChartHovered(false)
-  }, [skuGroupKey])
-
   const selectedStart = normalizeMonthKey(periodStart)
   const selectedEnd = normalizeMonthKey(periodEnd)
   const startDate = monthToStartDate(selectedStart)
   const endDate = monthToEndDate(selectedEnd)
+  const monthlyTrendRequestKey = JSON.stringify({
+    skuGroupKey,
+    startDate,
+    endDate,
+    forecastMonths,
+    competitorChannelId: channelId,
+  })
+  const monthlyTrend =
+    channelId && monthlyTrendState?.key === monthlyTrendRequestKey ? monthlyTrendState.data : null
+  const monthlyTrendError =
+    channelId && monthlyTrendState?.key === monthlyTrendRequestKey ? monthlyTrendState.error : null
 
   useEffect(() => {
-    if (!channelId) {
-      setMonthlyTrend(null)
-      return
-    }
+    if (!channelId) return
     let alive = true
     const reqSeq = ++reqSeqRef.current
     void (async () => {
@@ -92,24 +99,24 @@ export function ProductMonthlyTrendContainer({
           competitorChannelId: channelId,
         })
         if (!alive || reqSeq !== reqSeqRef.current) return
-        setMonthlyTrend(data)
-        setMonthlyTrendError(null)
+        setMonthlyTrendState({ key: monthlyTrendRequestKey, data, error: null })
       } catch (err) {
         if (!alive || reqSeq !== reqSeqRef.current) return
-        setMonthlyTrend(null)
-        setMonthlyTrendError(
-          makeApiErrorInfo(
+        setMonthlyTrendState({
+          key: monthlyTrendRequestKey,
+          data: null,
+          error: makeApiErrorInfo(
             pageName,
             `getProductMonthlyTrend(${JSON.stringify({ skuGroupKey, startDate, endDate, forecastMonths, competitorChannelId: channelId })})`,
             err,
           ),
-        )
+        })
       }
     })()
     return () => {
       alive = false
     }
-  }, [channelId, endDate, forecastMonths, pageName, skuGroupKey, startDate])
+  }, [channelId, endDate, forecastMonths, monthlyTrendRequestKey, pageName, skuGroupKey, startDate])
 
   const salesSeries = useMemo(() => {
     if (monthlyTrend != null) {
@@ -147,11 +154,9 @@ export function ProductMonthlyTrendContainer({
     salesSeries.length,
     Math.max(8, periodLen * 2, requiredSpan),
   )
-  const [windowSize, setWindowSize] = useState(baseWindowSize)
-
-  useEffect(() => {
-    setWindowSize(baseWindowSize)
-  }, [baseWindowSize, skuGroupKey])
+  const windowSizeKey = `${skuGroupKey}:${baseWindowSize}`
+  const [windowSizeState, setWindowSizeState] = useState<{ key: string; value: number } | null>(null)
+  const windowSize = windowSizeState?.key === windowSizeKey ? windowSizeState.value : baseWindowSize
 
   const hasForecastInSeries = salesSeries.some((p) => p.isForecast)
 
@@ -246,7 +251,10 @@ export function ProductMonthlyTrendContainer({
     event.preventDefault()
     const next = event.deltaY > 0 ? windowSize + 2 : windowSize - 2
     const minWindow = Math.max(periodLen + 2, 6)
-    setWindowSize(Math.max(minWindow, Math.min(salesSeries.length, next)))
+    setWindowSizeState({
+      key: windowSizeKey,
+      value: Math.max(minWindow, Math.min(salesSeries.length, next)),
+    })
   }
 
   return (
@@ -269,7 +277,9 @@ export function ProductMonthlyTrendContainer({
                 aria-expanded={forecastComboOpen}
                 aria-labelledby={forecastMonthsLabelId}
                 aria-label={`판매추이 포캐스트 개월 수, 현재 ${forecastMonths}`}
-                onClick={() => setForecastComboOpen((o) => !o)}
+                onClick={() => setForecastComboOpenForSkuGroupKey((current) => (
+                  current === skuGroupKey ? null : skuGroupKey
+                ))}
               >
                 {forecastMonths}
               </button>
@@ -293,7 +303,7 @@ export function ProductMonthlyTrendContainer({
                         }
                         onClick={() => {
                           onForecastMonthsChange(n)
-                          setForecastComboOpen(false)
+                          setForecastComboOpenForSkuGroupKey(null)
                         }}
                       >
                         {n}
@@ -333,8 +343,8 @@ export function ProductMonthlyTrendContainer({
         </div>
       </div>
       <div
-        onMouseEnter={() => setChartHovered(true)}
-        onMouseLeave={() => setChartHovered(false)}
+        onMouseEnter={() => setChartHoveredSkuGroupKey(skuGroupKey)}
+        onMouseLeave={() => setChartHoveredSkuGroupKey(null)}
         onWheel={onChartWheel}
       >
         <div className={styles.chartClipWrap}>

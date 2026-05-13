@@ -1,33 +1,20 @@
 import {
-  createContext,
   useCallback,
-  useContext,
   useEffect,
   useMemo,
   useRef,
   useState,
   type ReactNode,
 } from 'react'
+import { ToastContext, type ToastOptions, type ToastVariant } from './AppToastContext'
 import styles from './AppToast.module.css'
-
-type ToastVariant = 'success' | 'info' | 'error'
 
 type ToastState = {
   message: string
   variant: ToastVariant
 }
 
-type ToastOptions = {
-  variant?: ToastVariant
-  durationMs?: number
-}
-
-type ToastContextValue = {
-  showToast: (message: string, options?: ToastOptions) => void
-}
-
 const DEFAULT_TOAST_DURATION_MS = 2800
-const ToastContext = createContext<ToastContextValue | null>(null)
 
 function AppToastBanner({ toast }: { toast: ToastState | null }) {
   if (!toast) return null
@@ -72,10 +59,4 @@ export function AppToastProvider({ children }: { children: ReactNode }) {
       <AppToastBanner toast={toast} />
     </ToastContext.Provider>
   )
-}
-
-export function useAppToast() {
-  const context = useContext(ToastContext)
-  if (!context) throw new Error('useAppToast must be used within AppToastProvider')
-  return context
 }

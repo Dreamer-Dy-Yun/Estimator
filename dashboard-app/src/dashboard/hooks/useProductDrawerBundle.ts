@@ -35,10 +35,7 @@ export function useProductDrawerBundle(
   const [cache, setCache] = useState<ProductDrawerBundleCache>(null)
 
   useEffect(() => {
-    if (!selectedSkuGroupKey) {
-      setCache(null)
-      return
-    }
+    if (!selectedSkuGroupKey) return
     let alive = true
     getProductDrawerBundle(selectedSkuGroupKey)
       .then((data) => {

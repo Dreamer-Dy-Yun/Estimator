@@ -51,6 +51,7 @@ export function FilterBar({
                   </select>
                 ) : field.kind === 'listCombo' ? (
                   <FilterListCombo
+                    key={`${inputId}-${field.disabled ? 'disabled' : 'enabled'}`}
                     inputId={inputId}
                     value={value}
                     onChange={(v) => field.onChange?.(v)}
