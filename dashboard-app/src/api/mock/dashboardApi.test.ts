@@ -118,20 +118,21 @@ describe('api/mock dashboardApi candidate stash contract stubs', () => {
     const adminOwned = await mockDashboardApi.getCandidateStashes(MOCK_ADMIN_USER_UUID)
     const userOwned = await mockDashboardApi.getCandidateStashes(MOCK_USER_UUID)
 
-    expect(adminOwned.length).toBeGreaterThan(0)
-    expect(userOwned.length).toBeGreaterThan(0)
+    expect(all.length).toBe(4)
+    expect(adminOwned.length).toBe(4)
+    expect(userOwned.length).toBe(0)
     const adminUuids = new Set(adminOwned.map((row) => row.uuid))
     expect(userOwned.every((row) => !adminUuids.has(row.uuid))).toBe(true)
     expect(adminOwned.length + userOwned.length).toBe(all.length)
   })
 
   it('hides candidate items when stash belongs to another user', async () => {
-    const userOwned = await mockDashboardApi.getCandidateStashes(MOCK_USER_UUID)
-    const target = userOwned.find((row) => row.itemCount > 0)
+    const adminOwned = await mockDashboardApi.getCandidateStashes(MOCK_ADMIN_USER_UUID)
+    const target = adminOwned.find((row) => row.itemCount > 0)
     expect(target).toBeDefined()
 
-    const visible = await mockDashboardApi.getCandidateItemsByStash(defaultCandidateItemListParams(target!.uuid), MOCK_USER_UUID)
-    const hidden = await mockDashboardApi.getCandidateItemsByStash(defaultCandidateItemListParams(target!.uuid), MOCK_ADMIN_USER_UUID)
+    const visible = await mockDashboardApi.getCandidateItemsByStash(defaultCandidateItemListParams(target!.uuid), MOCK_ADMIN_USER_UUID)
+    const hidden = await mockDashboardApi.getCandidateItemsByStash(defaultCandidateItemListParams(target!.uuid), MOCK_USER_UUID)
 
     expect(visible.items.length).toBeGreaterThan(0)
     expect(hidden.items).toEqual([])
