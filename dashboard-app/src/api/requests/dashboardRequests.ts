@@ -32,6 +32,11 @@ const candidateStashExcelTemplateFilename = '(Han.A)Template(ver.0.0.0).xlsx'
  *   enforce the same owner filter server-side.
  * - Stored snapshots remain the source of drawer/order state. Do not silently
  *   recalculate or replace snapshot fields in the request adapter.
+ * - Candidate stash item list is period-sensitive. The backend should calculate
+ *   the requested period over the full eligible product universe, assign badges
+ *   from that full-period distribution, then return only the products contained
+ *   in the requested stash. Cache period/channel ranking results if this becomes
+ *   expensive.
  * - Period/channel-sensitive drawer data should remain separate API calls rather
  *   than being merged back into a single oversized bundle.
  */
@@ -98,8 +103,8 @@ export const dashboardRequests: DashboardApi = {
   getSecondaryCompetitorChannels: () => mockDashboardApi.getSecondaryCompetitorChannels(),
   getCandidateStashes: async (productId) =>
     mockDashboardApi.getCandidateStashes(productId, await requireCurrentUserUuid()),
-  getCandidateItemsByStash: async (stashUuid) =>
-    mockDashboardApi.getCandidateItemsByStash(stashUuid, await requireCurrentUserUuid()),
+  getCandidateItemsByStash: async (params) =>
+    mockDashboardApi.getCandidateItemsByStash(params, await requireCurrentUserUuid()),
   getCandidateRecommendations: async (params) =>
     mockDashboardApi.getCandidateRecommendations(params, await requireCurrentUserUuid()),
   getCandidateItemByUuid: async (itemUuid) =>
@@ -118,6 +123,8 @@ export const dashboardRequests: DashboardApi = {
     mockDashboardApi.duplicateCandidateStash(stashUuid, await requireCurrentUserUuid()),
   appendCandidateItem: async (payload) =>
     mockDashboardApi.appendCandidateItem(payload, await requireCurrentUserUuid()),
+  appendCandidateItems: async (payload) =>
+    mockDashboardApi.appendCandidateItems(payload, await requireCurrentUserUuid()),
   updateCandidateItem: async (payload) =>
     mockDashboardApi.updateCandidateItem(payload, await requireCurrentUserUuid()),
   getCandidateStashExcelTemplateDownload,

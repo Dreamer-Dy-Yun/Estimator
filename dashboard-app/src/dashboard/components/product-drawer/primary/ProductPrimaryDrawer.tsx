@@ -15,6 +15,7 @@ type Props = {
   forecastMonths: number
   onForecastMonthsChange: (months: number) => void
   expandPaneOpen: boolean
+  secondaryEnabled?: boolean
   onToggleSecondary: () => void
   onClose: () => void
   channelState: {
@@ -35,6 +36,7 @@ export function ProductPrimaryDrawer({
   forecastMonths,
   onForecastMonthsChange,
   expandPaneOpen,
+  secondaryEnabled = true,
   onToggleSecondary,
   onClose,
   channelState,
@@ -48,40 +50,42 @@ export function ProductPrimaryDrawer({
 
   return (
     <div className={styles.drawerColumn}>
-      <button
-        type="button"
-        className={styles.drawerExpandToggle}
-        onClick={onToggleSecondary}
-        aria-expanded={expandPaneOpen}
-        aria-label={expandPaneOpen ? '추가 영역 닫기' : '추가 영역 열기'}
-      >
-        <svg
-          className={styles.drawerExpandToggleIcon}
-          viewBox="0 0 24 24"
-          aria-hidden="true"
-          focusable="false"
+      {secondaryEnabled && (
+        <button
+          type="button"
+          className={styles.drawerExpandToggle}
+          onClick={onToggleSecondary}
+          aria-expanded={expandPaneOpen}
+          aria-label={expandPaneOpen ? '추가 영역 닫기' : '추가 영역 열기'}
         >
-          {expandPaneOpen ? (
-            <path
-              d="M8 5.5L17 12L8 18.5"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          ) : (
-            <path
-              d="M16 5.5L7 12L16 18.5"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          )}
-        </svg>
-      </button>
+          <svg
+            className={styles.drawerExpandToggleIcon}
+            viewBox="0 0 24 24"
+            aria-hidden="true"
+            focusable="false"
+          >
+            {expandPaneOpen ? (
+              <path
+                d="M8 5.5L17 12L8 18.5"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            ) : (
+              <path
+                d="M16 5.5L7 12L16 18.5"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            )}
+          </svg>
+        </button>
+      )}
       <div className={styles.drawerHead}>
         <div className={styles.drawerHeadTitle}>
           <strong>상품 인사이트</strong>

@@ -5,7 +5,7 @@
 | 작성 지시 | Yun Daeyoung |
 | 작성자 | Codex |
 | 작성일 | 2026-05-06 |
-| 최종 수정일 | 2026-05-09 |
+| 최종 수정일 | 2026-05-13 |
 | 상태 | 유지 문서 |
 | 적용 범위 | `dashboard-app`, 프론트엔드 소스, 관련 배포/문서 경계 |
 
@@ -28,6 +28,11 @@
 - 오더 스냅샷 독립 localStorage 저장/조회/삭제 API를 제거하고, 후보 아이템 `details`를 스냅샷 저장의 단일 경로로 둔다.
 - 후보군 생성/삭제/복제/편집 이벤트는 API 호출 후 목록을 재조회한다. mock은 응답 흐름만 모사하고 브라우저 저장소에 후보군/이너 후보를 만들거나 지우지 않는다.
 - 후보군 목록/상세/수정 계열 API는 현재 인증 세션의 `USER_ACCOUNT.uuid` 기준으로 소유자 데이터를 필터링한다. 화면은 사용자 UUID를 직접 파라미터로 보내지 않고 `src/api/requests/dashboardRequests.ts`가 request boundary에서만 세션 UUID를 읽어 mock/향후 HTTP 요청에 붙인다.
+- 자사/경쟁사 분석 탭은 후보군에 상품을 담는 입구다. 분석 리스트의 체크박스와 `선택한 물품을 후보군으로` 모달은 스냅샷 없이 `stashUuid + productIds`만 API에 전달한다. 현재 `productId`는 `SKU.code + SKU.color_code` 상품 단위에 대응하고, AI 코멘트/사이즈별 확정 오더량은 이너후보군 2차 드로워에서 저장하기 전까지 미확정이다.
+- 자사/경쟁사 분석 탭에서는 `ProductDrawer.secondaryEnabled={false}`로 2차 드로워를 열지 않는다. 2차 드로워 코드는 유지하되, 반원 버튼과 키보드 2차 진입은 이너후보군에서만 허용한다.
+- 이너후보군 리스트 조회는 `dataReferencePeriodStart`/`dataReferencePeriodEnd`를 API에 전달한다. 백엔드는 해당 기간의 전체 상품 분포를 먼저 계산해 배지를 부여한 뒤 후보군에 담긴 상품만 반환해야 하며, 요청 adapter 주석과 API 스펙에 이 부하 지점을 기록한다.
+- 이너후보군의 상세확정 여부는 후보 아이템 `details` 스냅샷 존재 여부다. 리스트 기본값은 데이터 참조기간 기준 live 계산값이고, 2차 드로워의 스냅샷 기준 보기에서는 저장 당시 전체 값과 기간을 복원하되 그래프는 그 기간으로 다시 조회한다.
+- 드로워 키보드 조작은 `좌=열기`, `우=닫기`, `상/하=이전/다음`이다. 자사/경쟁사 리스트 row에서는 좌 키가 1차 드로워만 열고, 이너후보군에서는 좌 키로 1차를 열고 열린 1차 안에서 좌 키로 2차를 연다. ESC는 2차가 열려 있으면 2차부터 닫고, 한 번 더 누르면 1차를 닫는다.
 - 후보군 상세 필터 카드에는 발주 엑셀 다운로드 액션을 둔다. 화면은 다운로드 클릭 시 백엔드를 다시 호출하지 않고, 이미 받은 `CandidateItemSummary.orderExport` DTO로 브라우저에서 XLSX를 생성한다. 주 데이터 시트는 브랜드·품번(`code`)·상품명(`productName`)·색상(`colorCode`)·배지·판매 지표·총 오더 지표 컬럼 뒤에 후보군 전체 사이즈를 동적 컬럼으로 붙이고, 제품에 없는 사이즈는 `N/A`로 표시한다. 복수 배지는 한 셀 안에서 줄바꿈한다. 메타 시트에는 오더 입고 예정일과 사용자 이름을 둔다.
 - SKU 식별 메타는 DB `SKU` 테이블 설계에 맞춰 `code`, `colorCode`, `productName`을 사용한다. 실제 SKU 유일성은 `code + colorCode + size` 조합으로 보고, 분석 리스트·1차 드로어 배지·2차 메타·후보군/엑셀 계약이 같은 필드명을 쓴다.
 - 라우트 페이지는 `src/App.tsx`에서 `React.lazy`로 분리한다. 기본 라우팅은 일반 배포용 `BrowserRouter`이고, GitHub Pages workflow만 `VITE_ROUTER_MODE=hash`로 `HashRouter`를 켠다.
@@ -101,7 +106,7 @@
 |------|------|
 | `admin-gpt-key.ts` | 관리자 GPT 키 목록/추가/메타 변경/키 교체/연결 테스트/삭제 계약. GPT만 사용하므로 공급자/Base URL/Project ID는 계약에서 제외하고, 요청 payload에는 `plainKey`, 목록 응답에는 `maskedKey`만 포함한다 |
 | `auth.ts` | 로그인 요청, 인증 사용자, 사용자 정보/비밀번호 변경, 관리자 유저 추가/제거/수정/비밀번호 재설정, 세션, 인증 API 계약 |
-| `candidate.ts` | 후보군/이너 후보/후보군 분석 SSE 요청·응답 계약. 후보군은 생성 사용자 UUID, 생성 당시 기간, 포캐스트 개월 수를 계약에 포함한다 |
+| `candidate.ts` | 후보군/이너 후보/후보군 분석 SSE 요청·응답 계약. 기간 기반 후보군 리스트 조회, 상세확정 여부, 스냅샷 없는 일괄 담기 payload, nullable 상세 스냅샷을 소유한다 |
 | `dashboard-api.ts` | 화면에서 쓰는 `DashboardApi` 인터페이스 |
 | `drawer.ts` | 1차 drawer bundle, 월간 판매 추이, 판매 인사이트 계약 |
 | `index.ts` | API public type export |
@@ -116,7 +121,7 @@
 | `adminGptKeyApi.ts` | mock 관리자 GPT 키 관리 구현. 관리자 세션만 허용하고, 키 원문은 응답/목록 상태에 남기지 않는다 |
 | `authApi.ts` | mock 인증 API 구현. 로그인 입력값은 검증 없이 통과시키고, 사용자 목록은 정적 seed, 세션은 런타임 메모리에만 둔다. 관리자 비밀번호 재설정은 임시 비밀번호 1회 응답 흐름만 모사한다 |
 | `candidateSeeds.ts` | 후보군/후보 아이템 읽기 전용 seed 데이터와 소유자 UUID, 목업 AI 코멘트 포함 스냅샷. 기본 후보군 A에는 신발/의류/테스트 상품을 섞어 엑셀 동적 사이즈 컬럼을 검증한다 |
-| `dashboardApi.ts` | mock `DashboardApi` 구현체. public API 계약을 맞춰 응답하되 후보군 mutation은 저장하지 않는 계약 stub이다. 후보군 조회/상세는 전달된 mock 세션 사용자 UUID로 소유자 필터링을 모사한다 |
+| `dashboardApi.ts` | mock `DashboardApi` 구현체. public API 계약을 맞춰 응답하되 후보군 mutation은 저장하지 않는 계약 stub이다. 후보군 조회/상세는 전달된 mock 세션 사용자 UUID로 소유자 필터링을 모사하고, 이너 후보군 리스트는 데이터 참조기간 기준 live 수치와 배지를 계산해 반환한다 |
 | `orderSnapshotForCandidate.ts` | 후보 아이템용 오더 스냅샷 생성/복원 보조와 임시 목업 AI 코멘트 생성 |
 | `productCatalog.ts` | 상품 catalog seed와 조회. 의류는 S/M/L/XL/XXL, 신발은 235~280 사이즈 체계를 생성한다 |
 | `records.ts` | mock 원천 record 묶음 |
@@ -130,7 +135,7 @@
 |------|------|
 | `authRequests.ts` | 로그인, 세션, 사용자 정보, 관리자 사용자 관리 요청 adapter. 실제 백엔드 전환 시 HttpOnly 세션, 비밀번호/임시 비밀번호 일회성 응답, 관리자 보호 정책을 이 파일에서 HTTP 요청으로 연결한다 |
 | `adminGptKeyRequests.ts` | 관리자 GPT 키 관리 요청 adapter. GPT 전용 계약이며 원문 키는 생성/교체 요청에만 싣고 목록/수정/테스트/삭제 응답은 원문 키를 받지 않는 흐름을 유지한다 |
-| `dashboardRequests.ts` | 자사/경쟁 판매, 상품 드로워, 후보군, 분석 SSE, 엑셀 업로드 템플릿 요청 adapter. 후보군 계열은 현재 세션의 `USER_ACCOUNT.uuid`를 request boundary에서만 붙이고, 화면 내부로 사용자 UUID를 흘리지 않는다 |
+| `dashboardRequests.ts` | 자사/경쟁 판매, 상품 드로워, 후보군, 분석 SSE, 엑셀 업로드 템플릿 요청 adapter. 후보군 계열은 현재 세션의 `USER_ACCOUNT.uuid`를 request boundary에서만 붙이고, 화면 내부로 사용자 UUID를 흘리지 않는다. 기간 기반 후보군 리스트는 전체 상품 분포 배지 계산 후 stash item만 반환해야 한다는 백엔드 주의점을 이 경계에 기록한다 |
 | `index.ts` | request adapter export 진입 파일 |
 
 ## src/auth
@@ -189,8 +194,8 @@
 
 | 파일 | 역할 |
 |------|------|
-| `SelfPage.tsx` | 자사 판매 분석 라우트. 공통 분석 필터/기간 상태는 `useAnalysisSalesFilters`가 소유하고, 페이지는 자사 KPI·포지셔닝 차트·목록 컬럼을 소유한다. KPI는 필터링된 행의 총 판매액·판매량과 판매액 가중 평균 매출/영업이익율을 보여준다. 기본 목록 정렬은 판매량 내림차순이다 |
-| `CompetitorPage.tsx` | 경쟁 판매 분석 라우트. 공통 분석 필터/기간 상태는 `useAnalysisSalesFilters`가 소유하고, 페이지는 경쟁 채널 필터, 자사판매량 존재 행 토글, 경쟁 KPI·판매량 비교 차트·목록 컬럼을 소유한다. KPI는 필터링된 행의 경쟁사/자사 판매액·판매량 합계를 보여준다. 기본 목록 정렬은 경쟁 판매량 내림차순이고 경쟁·자사 판매량 비교 차트는 X축 자사 판매량, Y축 경쟁사 판매량을 사용한다 |
+| `SelfPage.tsx` | 자사 판매 분석 라우트. 공통 분석 필터/기간 상태는 `useAnalysisSalesFilters`가 소유하고, 페이지는 자사 KPI·포지셔닝 차트·목록 컬럼·선택 체크박스·후보군 일괄 담기 진입을 소유한다. KPI는 필터링된 행의 총 판매액·판매량과 판매액 가중 평균 매출/영업이익율을 보여준다. 기본 목록 정렬은 판매량 내림차순이며, 2차 드로워는 열지 않는다 |
+| `CompetitorPage.tsx` | 경쟁 판매 분석 라우트. 공통 분석 필터/기간 상태는 `useAnalysisSalesFilters`가 소유하고, 페이지는 경쟁 채널 필터, 자사판매량 존재 행 토글, 경쟁 KPI·판매량 비교 차트·목록 컬럼·선택 체크박스·후보군 일괄 담기 진입을 소유한다. KPI는 필터링된 행의 경쟁사/자사 판매액·판매량 합계를 보여준다. 기본 목록 정렬은 경쟁 판매량 내림차순이고 경쟁·자사 판매량 비교 차트는 X축 자사 판매량, Y축 경쟁사 판매량을 사용하며, 2차 드로워는 열지 않는다 |
 | `SnapshotConfirmPage.tsx` | 후보군 목록, 후보군 업로드, 업로드 템플릿 다운로드 링크, 후보군 생성/수정/삭제/복제 라우트 |
 | `SnapshotConfirmPage.module.css` | `SnapshotConfirmPage`의 후보군 목록, 업로드 카드 2행 grid 영역, 이름·비고 편집 모달의 form/input 전용 스타일 |
 
@@ -225,9 +230,10 @@
 
 | 파일 | 역할 |
 |------|------|
-| `CandidateStashDetailModal.tsx` | 특정 후보군의 이너 후보 목록, 표시 순서 인덱스, 정렬 헤더, 데이터 참조기간 입력, 요약, 필터, 필터 카드 발주 엑셀 다운로드 액션, 추천 보기 호출/적용, drawer 연결, 일괄/개별 삭제 확인 흐름 |
+| `CandidateStashDetailModal.tsx` | 특정 후보군의 이너 후보 목록, 표시 순서 인덱스, 정렬 헤더, 데이터 참조기간 입력, 상세확정 컬럼, 요약, 필터, 필터 카드 발주 엑셀 다운로드 액션, 추천 보기 호출/적용, drawer 연결, 일괄/개별 삭제 확인 흐름 |
 | `CandidateStashDetailModal.module.css` | 후보군 상세 모달 전용 스타일, 헤더 데이터 참조기간 인라인 grid, 필터 카드 액션 grid, 엑셀 다운로드 버튼, 1차 드로어 열림 시 전용 span을 쓰는 40칸 헤더 grid, 헤더 고정/이너 후보 리스트 내부 스크롤 경계 |
-| `useCandidateStashDetailModal.ts` | 후보군 상세 모달의 API 호출, 필터, 리스트 정렬 상태, 데이터 참조기간 override, 추천 후보 조회 상태, 프론트 발주 엑셀 생성 상태, drawer hydration, drawer 닫힘 전환, SSE 분석 진행 상태 |
+| `useCandidateStashDetailModal.ts` | 후보군 상세 모달의 API 호출, 필터, 리스트 정렬 상태, 데이터 참조기간 override, 기간 기반 후보 아이템 조회, 추천 후보 조회 상태, 프론트 발주 엑셀 생성 상태, drawer hydration, drawer 닫힘 전환, SSE 분석 진행 상태 |
+| `AnalysisCandidateBulkAddModal.tsx` | 자사/경쟁사 분석 리스트에서 선택한 상품을 기존 후보군에 담거나 새 후보군을 만든 뒤 담는 모달. 스냅샷을 만들지 않고 `appendCandidateItems`만 호출한다 |
 | `CandidateRecommendationModal.tsx` | 후보군 상세에서 추천 후보를 선택/적용하는 보조 모달 |
 | `CandidateRecommendationModal.module.css` | 추천 모달 전용 스타일 |
 | `CandidateInsightBadges.tsx` | 후보 아이템 인사이트 badge 렌더링 |
@@ -239,7 +245,7 @@
 
 | 파일/폴더 | 역할 |
 |------|------|
-| `ProductDrawer.tsx` | 상품 drawer overlay shell. 닫기, body layout shift, 2차 드로워 열림 상태, 방향키 이동, ESC 단계 닫기, 공유 경쟁 채널 상태를 조율한다. 2차 드로워가 열린 상태에서 이전/다음 상품으로 이동해도 2차 드로워 상태를 유지하고, 2차 드로워는 경쟁 채널 목록과 선택값이 준비된 뒤 렌더한다 |
+| `ProductDrawer.tsx` | 상품 drawer overlay shell. 닫기, body layout shift, 2차 드로워 허용 여부(`secondaryEnabled`), 2차 드로워 열림 상태, 방향키 이동, ESC 단계 닫기, 공유 경쟁 채널 상태를 조율한다. `좌=열기`, `우=닫기`, `상/하=이전/다음` 키를 처리하고, 2차 드로워가 열린 상태에서 이전/다음 상품으로 이동해도 2차 드로워 상태를 유지한다 |
 | `apiErrorInfo.ts` | 상품 drawer 하위 API 오류 정보를 같은 형식으로 만드는 helper |
 | `ko.ts` | 상품 drawer feature에서 공유하는 한국어 텍스트 상수 |
 | `useCompetitorChannels.ts` | 1차 판매 정보/월간 추이와 2차 일별 추이가 공유하는 경쟁 채널 목록 조회와 선택 상태. 빈 채널 목록은 API 오류로 처리하고 임의 채널 객체를 만들지 않는다 |
@@ -250,7 +256,7 @@
 
 | 파일/폴더 | 역할 |
 |------|------|
-| `ProductPrimaryDrawer.tsx` | 1차 드로워 column. 헤더, 상품 요약 카드, 1차 기능 컨테이너 배치를 소유한다 |
+| `ProductPrimaryDrawer.tsx` | 1차 드로워 column. 헤더, 상품 요약 카드, 1차 기능 컨테이너 배치와 2차 드로워 열기 버튼 표시 여부를 소유한다 |
 | `ProductSalesMetricsContainer.tsx` | 선택 상품·기간·경쟁 채널 기준 1차 판매 정보 조회와 `SalesMetricsCard` 연결 |
 | `ProductMonthlyTrendContainer.tsx` | 선택 상품·기간·포캐스트 개월·경쟁 채널 기준 월간 판매 추이 조회, 표시 토글, chart window 상태. 판매추이 표시 토글의 활성 배경색은 차트 선 색상과 맞춘다 |
 | `cards/SalesMetricsCard.tsx` | 1차 판매 정보 표 UI. 자사/경쟁사 헤더 음영은 판매추이 선 색상 계열을 따른다 |
@@ -259,7 +265,7 @@
 
 | 파일/폴더 | 역할 |
 |------|------|
-| `ProductSecondaryDrawer.tsx` | 2차 드로워 content orchestration. 카드 배치, 스냅샷 생성, 후보군 저장/수정 사용자 액션을 소유한다. 저장 스냅샷의 큰 구조는 `parseOrderSnapshot`에 맡기고 이 컴포넌트는 계약된 내부 값을 다시 보정하지 않는다 |
+| `ProductSecondaryDrawer.tsx` | 2차 드로워 content orchestration. 카드 배치, 스냅샷 생성, 후보군 저장/수정 사용자 액션, 이너후보군 live compact 표시, 스냅샷 기준 보기 토글을 소유한다. 저장 스냅샷의 큰 구조는 `parseOrderSnapshot`에 맡기고, live 모드는 AI 코멘트와 사이즈별 오더량 중심으로 보이며, 스냅샷 기준 보기에서는 저장 당시 기간과 전체 값을 복원한다 |
 | `useSecondaryDrawerDetail.ts` | 2차 드로워가 열릴 때의 상세 조회와 검증된 스냅샷 hydration |
 | `secondaryDrawerTypes.ts` | 2차 드로워 내부 view-model 타입 |
 | `candidateActionCards.tsx` | 2차 드로워에서 후보군 저장/연결 액션 UI |
@@ -276,7 +282,7 @@
 | 파일 | 역할 |
 |------|------|
 | `useElementSize.ts` | element resize 측정 |
-| `useAnalysisSalesFilters.ts` | 자사/경쟁 분석 공통 기간·브랜드·카테고리·품번·상품명 필터 상태와 filter meta API 요청 |
+| `useAnalysisSalesFilters.ts` | 자사/경쟁 분석 공통 기간·브랜드·카테고리·품번·색상·상품명 필터 상태와 filter meta API 요청 |
 | `usePeriodRangeFilter.ts` | 판매 분석 기간 필터 상태 |
 | `useProductDrawerBundle.ts` | 상품 drawer bundle 로딩, stale cache, snapshot fallback 보호 |
 

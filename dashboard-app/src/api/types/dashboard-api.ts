@@ -13,8 +13,10 @@ import type {
 import type { CompetitorSalesParams, SalesFilterMeta, SelfSalesParams } from './sales'
 import type {
   AppendCandidateItemPayload,
+  AppendCandidateItemsPayload,
   UpdateCandidateItemPayload,
   CandidateItemDetail,
+  CandidateItemListParams,
   CandidateItemListResult,
   CandidateRecommendationParams,
   CandidateRecommendationResult,
@@ -54,7 +56,7 @@ export interface DashboardApi {
   getSecondaryDailyTrend(params: SecondaryDailyTrendParams): Promise<SecondaryDailyTrendPoint[]>
   getSecondaryCompetitorChannels(): Promise<SecondaryCompetitorChannel[]>
   getCandidateStashes(productId?: string): Promise<CandidateStashSummary[]>
-  getCandidateItemsByStash(stashUuid: string): Promise<CandidateItemListResult>
+  getCandidateItemsByStash(params: CandidateItemListParams): Promise<CandidateItemListResult>
   getCandidateRecommendations(params: CandidateRecommendationParams): Promise<CandidateRecommendationResult>
   getCandidateItemByUuid(itemUuid: string): Promise<CandidateItemDetail | null>
   deleteCandidateItem(itemUuid: string): Promise<void>
@@ -64,6 +66,7 @@ export interface DashboardApi {
   updateCandidateStash(payload: UpdateCandidateStashPayload): Promise<CandidateStashSummary>
   duplicateCandidateStash(stashUuid: string): Promise<void>
   appendCandidateItem(payload: AppendCandidateItemPayload): Promise<void>
+  appendCandidateItems(payload: AppendCandidateItemsPayload): Promise<void>
   updateCandidateItem(payload: UpdateCandidateItemPayload): Promise<void>
   getCandidateStashExcelTemplateDownload(): CandidateStashExcelTemplateDownload
   uploadCandidateStashExcel(file: File): Promise<CandidateStashExcelUploadResult>

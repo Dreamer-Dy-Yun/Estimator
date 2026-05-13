@@ -1,11 +1,13 @@
 import type { TableColumn } from './PaginatedTable'
 import type { SortState } from '../../utils/sort'
+import type { KeyboardEvent } from 'react'
 import { PaginatedTable } from './PaginatedTable'
 
 type AnalysisListProps<T extends { id: string }> = {
   columns: Array<TableColumn<T>>
   rows: T[]
   onRowClick?: (row: T) => void
+  onRowKeyDown?: (row: T, event: KeyboardEvent<HTMLTableRowElement>) => void
   defaultSort?: SortState
   batchSize?: number
   wrapClassName?: string
@@ -15,6 +17,7 @@ export function AnalysisList<T extends { id: string }>({
   columns,
   rows,
   onRowClick,
+  onRowKeyDown,
   defaultSort,
   batchSize = 30,
   wrapClassName,
@@ -25,6 +28,7 @@ export function AnalysisList<T extends { id: string }>({
       columns={columns}
       rows={rows}
       onRowClick={onRowClick}
+      onRowKeyDown={onRowKeyDown}
       defaultSort={defaultSort}
       wrapClassName={wrapClassName}
       infiniteScroll={{ enabled: true, batchSize }}

@@ -38,6 +38,7 @@ export type InnerCandidateSortKey =
   | 'code'
   | 'productName'
   | 'colorCode'
+  | 'isDetailConfirmed'
   | 'selfQty'
   | 'competitorQty'
   | 'expectedSalesQty'
@@ -62,6 +63,8 @@ function candidateSortValue(row: InnerCandidateRow, key: InnerCandidateSortKey):
       return row.productName
     case 'colorCode':
       return row.colorCode
+    case 'isDetailConfirmed':
+      return row.isDetailConfirmed ? 1 : 0
     case 'selfQty':
       return row.insight.selfQty
     case 'competitorQty':
@@ -70,22 +73,6 @@ function candidateSortValue(row: InnerCandidateRow, key: InnerCandidateSortKey):
       return row.insight.expectedSalesQty
     case 'expectedOrderAmount':
       return row.expectedOrderAmount
-  }
-}
-
-function applySnapshotDataReferencePeriod(
-  snap: OrderSnapshotDocumentV1,
-  dataReferencePeriodStart: string,
-  dataReferencePeriodEnd: string,
-): OrderSnapshotDocumentV1 {
-  return {
-    ...snap,
-    context: {
-      ...snap.context,
-      periodStart: dataReferencePeriodStart,
-      periodEnd: dataReferencePeriodEnd,
-      dailyTrendStartMonth: dataReferencePeriodStart.slice(0, 7),
-    },
   }
 }
 
@@ -170,13 +157,17 @@ export function useCandidateStashDetailModal({
   }, [stashUuid, stashSummaryProp])
 
   const loadItems = useCallback(async () => {
-    if (!stashUuid) return
+    if (!stashUuid || !dataReferencePeriodStart || !dataReferencePeriodEnd) return
     const seq = itemLoadSeqRef.current + 1
     itemLoadSeqRef.current = seq
     setDetailLoading(true)
     setDetailError(null)
     try {
-      const result = await getCandidateItemsByStash(stashUuid)
+      const result = await getCandidateItemsByStash({
+        stashUuid,
+        dataReferencePeriodStart,
+        dataReferencePeriodEnd,
+      })
       if (!mountedRef.current || itemLoadSeqRef.current !== seq) return
       setItems(result.items)
       setBadgeDefinitions(result.badgeDefinitions)
@@ -189,7 +180,7 @@ export function useCandidateStashDetailModal({
       setDetailError(message)
       setDetailLoading(false)
     }
-  }, [stashUuid])
+  }, [dataReferencePeriodEnd, dataReferencePeriodStart, stashUuid])
 
   useEffect(() => {
     void loadItems()
@@ -414,17 +405,9 @@ export function useCandidateStashDetailModal({
     }
   }, [dataReferenceEnd, dataReferenceStart, stashUuid])
 
-  const drawerHydrateSnap = useMemo(
-    () => (
-      hydrateSnap && dataReferenceStart && dataReferenceEnd
-        ? applySnapshotDataReferencePeriod(hydrateSnap, dataReferenceStart, dataReferenceEnd)
-        : hydrateSnap
-    ),
-    [dataReferenceEnd, dataReferenceStart, hydrateSnap],
-  )
   const mergedSummary = useMemo(
-    () => mergePrimarySummaryFromBundleAndSnapshot(drawerProductId, bundle, drawerHydrateSnap),
-    [bundle, drawerProductId, drawerHydrateSnap],
+    () => mergePrimarySummaryFromBundleAndSnapshot(drawerProductId, bundle, hydrateSnap),
+    [bundle, drawerProductId, hydrateSnap],
   )
 
   if (drawerOpen && (!dataReferenceStart || !dataReferenceEnd)) {
@@ -444,10 +427,10 @@ export function useCandidateStashDetailModal({
       const detail = await getCandidateItemByUuid(row.uuid)
       if (!mountedRef.current || drawerRequestSeqRef.current !== seq) return
       if (!detail) throw new Error(`후보 상세 데이터 없음: ${row.uuid}`)
-      const snap = parseOrderSnapshot(detail.details)
+      const snap = detail.details ? parseOrderSnapshot(detail.details) : null
       if (!mountedRef.current || drawerRequestSeqRef.current !== seq) return
       setHydrateSnap(snap)
-      setDrawerForecastMonths(clampForecastMonths(snap.context.forecastMonths))
+      setDrawerForecastMonths(clampForecastMonths(snap?.context.forecastMonths ?? detailTarget?.forecastMonths ?? 8))
       setDrawerProductId(row.productId)
       setOpenedItemUuid(row.uuid)
       setDrawerOpen(true)
@@ -456,7 +439,7 @@ export function useCandidateStashDetailModal({
       const message = err instanceof Error ? err.message : '후보 상세 스냅샷 로드에 실패했습니다.'
       setDrawerError(message)
     }
-  }, [])
+  }, [detailTarget?.forecastMonths])
 
   const onRequestNavigateAdjacent = useCallback(
     async (direction: AdjacentDirection) => {
@@ -573,7 +556,7 @@ export function useCandidateStashDetailModal({
     toggleTableSort,
     drawerError,
     openedItemUuid,
-    hydrateSnap: drawerHydrateSnap,
+    hydrateSnap,
     dataReferencePeriodStart,
     dataReferencePeriodEnd,
     onDataReferencePeriodStartChange,

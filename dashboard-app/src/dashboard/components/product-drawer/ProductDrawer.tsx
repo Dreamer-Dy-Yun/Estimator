@@ -33,6 +33,7 @@ function ProductDrawerContent({
   onForecastMonthsChange,
   hydrateSnapshot,
   initialExpandSecondary,
+  secondaryEnabled = true,
   candidateItemContext,
   onRequestNavigateAdjacent,
   disableAdjacentNavigation,
@@ -47,6 +48,7 @@ function ProductDrawerContent({
   onForecastMonthsChange: (months: number) => void
   hydrateSnapshot?: OrderSnapshotDocumentV1 | null
   initialExpandSecondary?: boolean
+  secondaryEnabled?: boolean
   candidateItemContext?: CandidateItemPanelContext | null
   onRequestNavigateAdjacent?: (direction: AdjacentDirection) => void | Promise<void>
   disableAdjacentNavigation?: boolean
@@ -55,7 +57,7 @@ function ProductDrawerContent({
 }) {
   const pageName = 'ProductDrawer'
   const drawerRef = useRef<HTMLElement | null>(null)
-  const [expandPaneOpen, setExpandPaneOpen] = useState(() => !!initialExpandSecondary)
+  const [expandPaneOpen, setExpandPaneOpen] = useState(() => secondaryEnabled && !!initialExpandSecondary)
   const {
     competitorChannels,
     channelId,
@@ -68,14 +70,18 @@ function ProductDrawerContent({
     hydrateForPanel,
   } = useSecondaryDrawerDetail({
     productId: summary.id,
-    expandPaneOpen,
+    expandPaneOpen: secondaryEnabled && expandPaneOpen,
     hydrateSnapshot,
     pageName,
   })
 
   useEffect(() => {
+    if (!secondaryEnabled) {
+      setExpandPaneOpen(false)
+      return
+    }
     if (initialExpandSecondary) setExpandPaneOpen(true)
-  }, [initialExpandSecondary])
+  }, [initialExpandSecondary, secondaryEnabled])
 
   useEffect(() => {
     if (suppressDocumentLayoutShift) return
@@ -106,24 +112,44 @@ function ProductDrawerContent({
   const selectedChannelMissing = channelId !== '' && !selectedChannelReady
 
   useEffect(() => {
-    if (!onRequestNavigateAdjacent || disableAdjacentNavigation) return
-    if (!expandPaneOpen) return
+    if (closing) return
 
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return
+      if (!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key)) return
       if (e.defaultPrevented || e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return
       if (blocksAdjacentKeyNavigation(e.target)) return
       e.preventDefault()
-      const direction: AdjacentDirection = e.key === 'ArrowRight' ? 'next' : 'prev'
-      void Promise.resolve(onRequestNavigateAdjacent(direction))
+      e.stopPropagation()
+
+      if ((e.key === 'ArrowUp' || e.key === 'ArrowDown') && onRequestNavigateAdjacent && !disableAdjacentNavigation) {
+        const direction: AdjacentDirection = e.key === 'ArrowDown' ? 'next' : 'prev'
+        void Promise.resolve(onRequestNavigateAdjacent(direction))
+        return
+      }
+
+      if (e.key === 'ArrowLeft') {
+        if (secondaryEnabled && !expandPaneOpen) setExpandPaneOpen(true)
+        return
+      }
+
+      if (e.key === 'ArrowRight') {
+        if (expandPaneOpen) {
+          setExpandPaneOpen(false)
+          return
+        }
+        onClose()
+      }
     }
 
     window.addEventListener('keydown', onKeyDown, true)
     return () => window.removeEventListener('keydown', onKeyDown, true)
   }, [
+    closing,
     disableAdjacentNavigation,
     expandPaneOpen,
+    onClose,
     onRequestNavigateAdjacent,
+    secondaryEnabled,
   ])
 
   useEffect(() => {
@@ -151,7 +177,7 @@ function ProductDrawerContent({
   return (
     <aside
       ref={drawerRef}
-      className={`${styles.drawer} ${expandPaneOpen ? styles.drawerWithExpandPane : ''} ${closing ? styles.drawerClosing : ''}`}
+      className={`${styles.drawer} ${secondaryEnabled && expandPaneOpen ? styles.drawerWithExpandPane : ''} ${closing ? styles.drawerClosing : ''}`}
       onMouseDown={(e) => e.stopPropagation()}
       onClick={(e) => e.stopPropagation()}
     >
@@ -164,6 +190,7 @@ function ProductDrawerContent({
         forecastMonths={forecastMonths}
         onForecastMonthsChange={onForecastMonthsChange}
         expandPaneOpen={expandPaneOpen}
+        secondaryEnabled={secondaryEnabled}
         onToggleSecondary={() => setExpandPaneOpen((v) => !v)}
         onClose={onClose}
         channelState={{
@@ -175,12 +202,13 @@ function ProductDrawerContent({
         pageName={pageName}
       />
 
-      <div
-        className={`${styles.drawerExpandPane} ${expandPaneOpen ? styles.drawerExpandPaneOpen : ''}`}
-        aria-hidden={!expandPaneOpen}
-      >
-        <div className={styles.drawerExpandPaneInner}>
-          {expandPaneOpen && (
+      {secondaryEnabled && (
+        <div
+          className={`${styles.drawerExpandPane} ${expandPaneOpen ? styles.drawerExpandPaneOpen : ''}`}
+          aria-hidden={!expandPaneOpen}
+        >
+          <div className={styles.drawerExpandPaneInner}>
+            {expandPaneOpen && (
             channelsError != null ? (
               <div className={styles.drawerSecondaryLoading}>
                 경쟁 채널 데이터를 불러오지 못했습니다.
@@ -218,9 +246,10 @@ function ProductDrawerContent({
                 }}
               />
             )
-          )}
+            )}
+          </div>
         </div>
-      </div>
+      )}
     </aside>
   )
 }
@@ -234,6 +263,7 @@ export const ProductDrawer = ({
   onForecastMonthsChange,
   hydrateSnapshot,
   initialExpandSecondary,
+  secondaryEnabled,
   candidateItemContext,
   onRequestNavigateAdjacent,
   disableAdjacentNavigation,
@@ -248,6 +278,7 @@ export const ProductDrawer = ({
   onForecastMonthsChange: (months: number) => void
   hydrateSnapshot?: OrderSnapshotDocumentV1 | null
   initialExpandSecondary?: boolean
+  secondaryEnabled?: boolean
   candidateItemContext?: CandidateItemPanelContext | null
   onRequestNavigateAdjacent?: (direction: AdjacentDirection) => void | Promise<void>
   disableAdjacentNavigation?: boolean
@@ -265,6 +296,7 @@ export const ProductDrawer = ({
       onForecastMonthsChange={onForecastMonthsChange}
       hydrateSnapshot={hydrateSnapshot}
       initialExpandSecondary={initialExpandSecondary}
+      secondaryEnabled={secondaryEnabled}
       candidateItemContext={candidateItemContext}
       onRequestNavigateAdjacent={onRequestNavigateAdjacent}
       disableAdjacentNavigation={disableAdjacentNavigation}

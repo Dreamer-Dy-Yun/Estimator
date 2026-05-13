@@ -9,6 +9,7 @@ import { clampForecastMonths, readForecastMonthsFromStorage, writeForecastMonths
 import { formatGroupedNumber, formatPercent } from '../../utils/format'
 import { CopyToastBanner } from '../components/CopyToastBanner'
 import { useCopyToastMessage } from '../components/useCopyToastMessage'
+import { AnalysisCandidateBulkAddModal } from '../components/candidate-stash/AnalysisCandidateBulkAddModal'
 import { ProductDrawer } from '../components/product-drawer/ProductDrawer'
 import styles from '../components/common.module.css'
 import { AnalysisList } from '../components/AnalysisList'
@@ -33,6 +34,8 @@ type ScatterPoint = {
 export const SelfPage = () => {
   const [rows, setRows] = useState<SelfSalesRow[]>([])
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [bulkSelectedIds, setBulkSelectedIds] = useState<Set<string>>(() => new Set())
+  const [bulkAddOpen, setBulkAddOpen] = useState(false)
   const { toastMessage, copyAndNotify } = useCopyToastMessage()
   const [forecastMonths, setForecastMonths] = useState(() => readForecastMonthsFromStorage())
   const summaryBundle = useProductDrawerBundle(selectedId)
@@ -117,6 +120,17 @@ export const SelfPage = () => {
   )
 
   const navigationOrderIds = useMemo(() => rows.map((r) => r.id), [rows])
+  const bulkSelectedCount = bulkSelectedIds.size
+  const allRowsSelected = rows.length > 0 && bulkSelectedCount === rows.length
+  const selectedProductIds = useMemo(() => [...bulkSelectedIds], [bulkSelectedIds])
+
+  useEffect(() => {
+    setBulkSelectedIds((prev) => {
+      const available = new Set(rows.map((row) => row.id))
+      const next = new Set([...prev].filter((id) => available.has(id)))
+      return next.size === prev.size ? prev : next
+    })
+  }, [rows])
 
   const onRequestNavigateAdjacent = useCallback(
     (direction: AdjacentDirection) => {
@@ -144,6 +158,19 @@ export const SelfPage = () => {
         <div className={styles.chartTooltipHint}>클릭 시 클립보드에 복사</div>
       </div>
     )
+  }
+
+  const toggleBulkRow = (id: string) => {
+    setBulkSelectedIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  const toggleAllRows = () => {
+    setBulkSelectedIds(() => (allRowsSelected ? new Set() : new Set(rows.map((row) => row.id))))
   }
 
   const scatterShape = useCallback(
@@ -193,6 +220,17 @@ export const SelfPage = () => {
           />
         )}
       />
+      <div className={styles.analysisBulkActionBar}>
+        <span className={styles.analysisSelectionCount}>선택 {bulkSelectedCount}개</span>
+        <button
+          type="button"
+          className={`${styles.actionBtn} ${styles.btnPrimary} ${styles.analysisBulkAddButton}`}
+          onClick={() => setBulkAddOpen(true)}
+          disabled={bulkSelectedCount === 0}
+        >
+          선택한 물품을 후보군으로
+        </button>
+      </div>
 
       <div className={`${styles.twoCol} ${styles.selfTwoCol}`}>
         <div className={`${styles.leftCol} ${styles.selfLeftCol}`}>
@@ -255,6 +293,30 @@ export const SelfPage = () => {
 
         <AnalysisList<SelfSalesRow>
           columns={[
+            {
+              key: 'bulkSelect',
+              header: (
+                <input
+                  type="checkbox"
+                  checked={allRowsSelected}
+                  disabled={rows.length === 0}
+                  aria-label="전체 선택"
+                  onChange={toggleAllRows}
+                />
+              ),
+              cell: (r) => (
+                <input
+                  type="checkbox"
+                  checked={bulkSelectedIds.has(r.id)}
+                  aria-label={`${r.productName} 선택`}
+                  onClick={(event) => event.stopPropagation()}
+                  onChange={() => toggleBulkRow(r.id)}
+                />
+              ),
+              align: 'center',
+              width: '42px',
+              sortable: false,
+            },
             { key: 'rank', header: '순위', cell: (r) => r.rank, align: 'center', sortValue: (r) => r.rank },
             { key: 'brand', header: '브랜드', cell: (r) => r.brand, width: '8.5%', sortValue: (r) => r.brand },
             { key: 'category', header: '카테고리', cell: (r) => r.category, sortValue: (r) => r.category },
@@ -271,6 +333,11 @@ export const SelfPage = () => {
           rows={rows}
           defaultSort={{ key: 'qty', dir: 'desc' }}
           onRowClick={(row) => setSelectedId(row.id)}
+          onRowKeyDown={(row, event) => {
+            if (event.key !== 'ArrowLeft') return
+            event.preventDefault()
+            setSelectedId(row.id)
+          }}
         />
       </div>
 
@@ -282,6 +349,20 @@ export const SelfPage = () => {
         onForecastMonthsChange={onForecastMonthsChange}
         onClose={() => setSelectedId(null)}
         onRequestNavigateAdjacent={onRequestNavigateAdjacent}
+        secondaryEnabled={false}
+      />
+
+      <AnalysisCandidateBulkAddModal
+        open={bulkAddOpen}
+        productIds={selectedProductIds}
+        periodStart={periodStartDate}
+        periodEnd={periodEndDate}
+        forecastMonths={forecastMonths}
+        onClose={() => setBulkAddOpen(false)}
+        onDone={() => {
+          setBulkAddOpen(false)
+          setBulkSelectedIds(new Set())
+        }}
       />
     </section>
   )

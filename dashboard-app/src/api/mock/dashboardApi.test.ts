@@ -3,6 +3,12 @@ import { mockDashboardApi } from './dashboardApi'
 import { DEFAULT_CANDIDATE_STASH_CONTEXT } from './records'
 import { MOCK_ADMIN_USER_UUID, MOCK_USER_UUID } from './authApi'
 
+const defaultCandidateItemListParams = (stashUuid: string) => ({
+  stashUuid,
+  dataReferencePeriodStart: DEFAULT_CANDIDATE_STASH_CONTEXT.periodStart,
+  dataReferencePeriodEnd: DEFAULT_CANDIDATE_STASH_CONTEXT.periodEnd,
+})
+
 describe('api/mock dashboardApi competitor channel behavior', () => {
   it('returns only kream/musinsa competitor channels', async () => {
     const channels = await mockDashboardApi.getSecondaryCompetitorChannels()
@@ -121,8 +127,8 @@ describe('api/mock dashboardApi candidate stash contract stubs', () => {
     const target = userOwned.find((row) => row.itemCount > 0)
     expect(target).toBeDefined()
 
-    const visible = await mockDashboardApi.getCandidateItemsByStash(target!.uuid, MOCK_USER_UUID)
-    const hidden = await mockDashboardApi.getCandidateItemsByStash(target!.uuid, MOCK_ADMIN_USER_UUID)
+    const visible = await mockDashboardApi.getCandidateItemsByStash(defaultCandidateItemListParams(target!.uuid), MOCK_USER_UUID)
+    const hidden = await mockDashboardApi.getCandidateItemsByStash(defaultCandidateItemListParams(target!.uuid), MOCK_ADMIN_USER_UUID)
 
     expect(visible.items.length).toBeGreaterThan(0)
     expect(hidden.items).toEqual([])
@@ -133,7 +139,7 @@ describe('api/mock dashboardApi candidate stash contract stubs', () => {
     const target = stashes.find((row) => row.itemCount > 0)
     expect(target).toBeDefined()
 
-    const result = await mockDashboardApi.getCandidateItemsByStash(target!.uuid)
+    const result = await mockDashboardApi.getCandidateItemsByStash(defaultCandidateItemListParams(target!.uuid))
     const definitionNames = Object.keys(result.badgeDefinitions).sort()
     const itemBadgeNames = result.items.flatMap((item) => item.insight.badgeNames)
 
@@ -163,7 +169,7 @@ describe('api/mock dashboardApi candidate stash contract stubs', () => {
 
   it('seeds mixed test top and test shoe products in the default candidate stash', async () => {
     const result = await mockDashboardApi.getCandidateItemsByStash(
-      'candidatestash00000000000000000001',
+      defaultCandidateItemListParams('candidatestash00000000000000000001'),
       MOCK_ADMIN_USER_UUID,
     )
     const names = result.items.map((item) => item.productName)
@@ -202,26 +208,27 @@ describe('api/mock dashboardApi candidate stash contract stubs', () => {
     const source = stashes.find((row) => row.itemCount > 0)
     expect(source).toBeDefined()
 
-    const before = await mockDashboardApi.getCandidateItemsByStash(source!.uuid)
+    const before = await mockDashboardApi.getCandidateItemsByStash(defaultCandidateItemListParams(source!.uuid))
     const item = before.items[0]
     expect(item).toBeDefined()
     const detail = await mockDashboardApi.getCandidateItemByUuid(item!.uuid)
     expect(detail).toBeDefined()
+    expect(detail!.details).toBeDefined()
 
     await mockDashboardApi.deleteCandidateItem(item!.uuid)
     await mockDashboardApi.appendCandidateItem({
       stashUuid: source!.uuid,
       productId: item!.productId,
-      details: detail!.details,
+      details: detail!.details!,
       isLatestLlmComment: false,
     })
     await mockDashboardApi.updateCandidateItem({
       itemUuid: item!.uuid,
-      details: detail!.details,
+      details: detail!.details!,
       isLatestLlmComment: false,
     })
 
-    const after = await mockDashboardApi.getCandidateItemsByStash(source!.uuid)
+    const after = await mockDashboardApi.getCandidateItemsByStash(defaultCandidateItemListParams(source!.uuid))
     expect(after).toEqual(before)
   })
 
@@ -230,10 +237,10 @@ describe('api/mock dashboardApi candidate stash contract stubs', () => {
     const target = stashes.find((row) => row.itemCount > 0)
     expect(target).toBeDefined()
 
-    const list = await mockDashboardApi.getCandidateItemsByStash(target!.uuid)
+    const list = await mockDashboardApi.getCandidateItemsByStash(defaultCandidateItemListParams(target!.uuid))
     const detail = await mockDashboardApi.getCandidateItemByUuid(list.items[0]!.uuid)
 
-    expect(detail?.details.drawer2.llmPrompt.trim()).not.toBe('')
-    expect(detail?.details.drawer2.llmAnswer.trim()).not.toBe('')
+    expect(detail?.details?.drawer2.llmPrompt.trim()).not.toBe('')
+    expect(detail?.details?.drawer2.llmAnswer.trim()).not.toBe('')
   })
 })

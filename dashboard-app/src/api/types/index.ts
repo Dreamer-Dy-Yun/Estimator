@@ -46,6 +46,7 @@ export type {
   CandidateBadgeDefinition,
   CandidateBadgeDefinitionMap,
   CandidateItemDetail,
+  CandidateItemListParams,
   CandidateItemListResult,
   CandidateItemOrderExport,
   CandidateItemOrderExportSizeQty,
@@ -63,6 +64,7 @@ export type {
   CreateCandidateStashPayload,
   UpdateCandidateStashPayload,
   AppendCandidateItemPayload,
+  AppendCandidateItemsPayload,
   UpdateCandidateItemPayload,
 } from './candidate'
 export type { SecondaryOrderSnapshotPayload } from './snapshot'

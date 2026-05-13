@@ -21,18 +21,21 @@ export function useAnalysisSalesFilters() {
   const [codeFilter, setCodeFilter] = useState(ALL_OPTION)
   const [productNameOptions, setProductNameOptions] = useState<string[]>(EMPTY_OPTIONS)
   const [productNameFilter, setProductNameFilter] = useState(ALL_OPTION)
+  const [colorCodeOptions, setColorCodeOptions] = useState<string[]>(EMPTY_OPTIONS)
+  const [colorCodeFilter, setColorCodeFilter] = useState(ALL_OPTION)
   const [historicalMonths, setHistoricalMonths] = useState<string[]>([])
   const [showPeriodBar, setShowPeriodBar] = useState(false)
   const period = usePeriodRangeFilter(historicalMonths)
 
   useEffect(() => {
     let alive = true
-    void getSalesFilterMeta().then(({ brands, categories, codes, productNames, historicalMonths: months }) => {
+    void getSalesFilterMeta().then(({ brands, categories, codes, colorCodes, productNames, historicalMonths: months }) => {
       if (!alive) return
       setBrandOptions([ALL_OPTION, ...brands])
       setCategoryOptions([ALL_OPTION, ...categories])
       setCodeOptions([ALL_OPTION, ...codes])
       setProductNameOptions([ALL_OPTION, ...productNames])
+      setColorCodeOptions([ALL_OPTION, ...colorCodes])
       setHistoricalMonths(months)
     })
     return () => {
@@ -47,6 +50,7 @@ export function useAnalysisSalesFilters() {
     category: filterParam(categoryFilter),
     codeQuery: filterParam(codeFilter),
     nameQuery: filterParam(productNameFilter),
+    colorCode: filterParam(colorCodeFilter),
   }), [
     period.periodStartDate,
     period.periodEndDate,
@@ -54,6 +58,7 @@ export function useAnalysisSalesFilters() {
     categoryFilter,
     codeFilter,
     productNameFilter,
+    colorCodeFilter,
   ])
 
   const filterFields = useMemo<FilterField[]>(() => [
@@ -63,6 +68,7 @@ export function useAnalysisSalesFilters() {
     { label: '카테고리', kind: 'listCombo', inputType: 'text', value: categoryFilter, onChange: setCategoryFilter, options: categoryOptions },
     { label: '품번', kind: 'listCombo', inputType: 'text', value: codeFilter, onChange: setCodeFilter, options: codeOptions },
     { label: '상품명', kind: 'listCombo', inputType: 'text', value: productNameFilter, onChange: setProductNameFilter, options: productNameOptions },
+    { label: '색상', kind: 'listCombo', inputType: 'text', value: colorCodeFilter, onChange: setColorCodeFilter, options: colorCodeOptions },
   ], [
     period.periodStartDate,
     period.periodEndDate,
@@ -76,6 +82,8 @@ export function useAnalysisSalesFilters() {
     codeOptions,
     productNameFilter,
     productNameOptions,
+    colorCodeFilter,
+    colorCodeOptions,
   ])
 
   return {

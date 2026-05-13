@@ -157,6 +157,6 @@ const seededCandidateItemDrafts: Array<Omit<CandidateItemRecord, 'isLatestLlmCom
 ]
 export const seededCandidateItems: CandidateItemRecord[] = seededCandidateItemDrafts.map((item) => ({
   ...item,
-  details: ensureMockAiCommentForSnapshot(item.details),
+  details: item.details ? ensureMockAiCommentForSnapshot(item.details) : null,
   isLatestLlmComment: true,
 }))

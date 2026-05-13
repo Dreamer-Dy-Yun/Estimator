@@ -5,7 +5,7 @@
 | 작성 지시 | Yun Daeyoung |
 | 작성자 | Codex |
 | 작성일 | 2026-04-23 |
-| 최종 수정일 | 2026-05-09 |
+| 최종 수정일 | 2026-05-13 |
 | 상태 | 유지 문서 |
 | 적용 범위 | `dashboard-app/src/api/types`, `dashboard-app/src/api/requests`, 백엔드 REST API 계약 |
 
@@ -237,8 +237,8 @@
 
 | 계약 메서드 | 제안 HTTP | 제안 경로·쿼리 |
 |-------------|-----------|----------------|
-| `getSelfSales(params?)` | GET | `/sales/self?startDate&endDate&brand&category&codeQuery&nameQuery` |
-| `getCompetitorSales(params?)` | GET | `/sales/competitor?startDate&endDate&brand&category&codeQuery&nameQuery&competitorChannelId` |
+| `getSelfSales(params?)` | GET | `/sales/self?startDate&endDate&brand&category&codeQuery&colorCode&nameQuery` |
+| `getCompetitorSales(params?)` | GET | `/sales/competitor?startDate&endDate&brand&category&codeQuery&colorCode&nameQuery&competitorChannelId` |
 | `getSalesFilterMeta()` | GET | `/sales/filter-meta` |
 | `getProductDrawerBundle(id)` | GET | `/products/:id/drawer-bundle` |
 | `getProductMonthlyTrend(id, params)` | GET | `/products/:id/monthly-trend?startDate&endDate&forecastMonths&competitorChannelId` |
@@ -246,10 +246,10 @@
 | `getProductSecondaryDetail(id, params?)` | GET | `/products/:id/secondary-detail?minOpMarginPct` |
 | `getSecondaryDailyTrend(params)` | GET | `/products/:productId/secondary/daily-trend?startMonth&leadTimeDays&competitorChannelId` |
 | `getSecondaryCompetitorChannels()` | GET | `/secondary/competitor-channels` |
-| `getCandidateStashes(productId?)` | GET | `/candidate-stashes?ownerUserUuid&productId` |
-| `getCandidateItemsByStash(stashUuid)` | GET | `/candidate-stashes/:stashUuid/items?ownerUserUuid` |
-| `getCandidateRecommendations(params)` | GET | `/candidate-stashes/:stashUuid/recommendations?ownerUserUuid&dataReferencePeriodStart&dataReferencePeriodEnd` |
-| `getCandidateItemByUuid(itemUuid)` | GET | `/candidate-items/:itemUuid?ownerUserUuid` |
+| `getCandidateStashes(productId?)` | GET | `/candidate-stashes?productId` |
+| `getCandidateItemsByStash(params)` | GET | `/candidate-stashes/:stashUuid/items?dataReferencePeriodStart&dataReferencePeriodEnd` |
+| `getCandidateRecommendations(params)` | GET | `/candidate-stashes/:stashUuid/recommendations?dataReferencePeriodStart&dataReferencePeriodEnd` |
+| `getCandidateItemByUuid(itemUuid)` | GET | `/candidate-items/:itemUuid` |
 | `deleteCandidateItem(itemUuid)` | DELETE | `/candidate-items/:itemUuid` body `{ ownerUserUuid }` 또는 세션 기준 |
 | `deleteCandidateItems(stashUuid, itemUuids)` | DELETE | `/candidate-stashes/:stashUuid/items` body `{ ownerUserUuid, itemUuids }` |
 | `deleteCandidateStash(stashUuid)` | DELETE | `/candidate-stashes/:stashUuid` body `{ ownerUserUuid }` 또는 세션 기준 |
@@ -257,6 +257,7 @@
 | `updateCandidateStash(payload)` | PATCH | `/candidate-stashes/:stashUuid` body `{ ...payload, ownerUserUuid }` |
 | `duplicateCandidateStash(stashUuid)` | POST | `/candidate-stashes/:stashUuid/duplicate` body `{ ownerUserUuid }` |
 | `appendCandidateItem(payload)` | POST | `/candidate-stashes/:stashUuid/items` body `{ ...payload, ownerUserUuid }` |
+| `appendCandidateItems(payload)` | POST | `/candidate-stashes/:stashUuid/items/bulk` body `{ productIds }` |
 | `updateCandidateItem(payload)` | PATCH | `/candidate-items/:itemUuid` body `{ ...payload, ownerUserUuid }` |
 | `uploadCandidateStashExcel(file)` | POST multipart/form-data | `/candidate-stashes/import/excel` |
 | `startCandidateStashAnalysis(stashUuid)` | POST | `/candidate-stashes/:stashUuid/analysis` |
@@ -278,6 +279,7 @@
 | `brand` | string? | 브랜드 필터 |
 | `category` | string? | 카테고리 필터 |
 | `codeQuery` | string? | SKU.`code` 품번 부분 일치 필터 |
+| `colorCode` | string? | SKU.`color_code` 색상 코드 필터 |
 | `nameQuery` | string? | 상품명 부분 일치 필터 |
 | `competitorChannelId` | string? | **경쟁 API만**. 선택한 경쟁 채널(가격·수량 스큐 적용 대상) |
 
@@ -314,6 +316,7 @@
 | `brands` | 브랜드 목록 |
 | `categories` | 카테고리 목록 |
 | `codes` | 자사·경쟁 분석 필터 제안용 SKU.`code` 목록 |
+| `colorCodes` | 자사·경쟁 분석 필터 제안용 SKU.`color_code` 목록. 운영에서 별도 색상 정렬 정책이 있으면 그 순서를 내려준다 |
 | `productNames` | 자사·경쟁 분석 필터 제안용 상품명 목록 |
 | `historicalMonths` | **과거 실적** 월 축(슬라이더 등). 포캐스트 월과 구분 |
 
@@ -450,12 +453,22 @@
 | `uuid` | 스태시 PK |
 | `name`, `note` | 이름·비고 |
 | `productId` | 연결 상품 |
-| `periodStart`, `periodEnd` | 후보군 생성 당시의 분석 기간. 프론트 상세 화면은 이 값을 조회 기준일 초기값으로 쓰며, 화면 내 변경값은 이너 후보 드로어를 열 때 기간 기준으로 적용 |
+| `periodStart`, `periodEnd` | 후보군 생성 당시의 데이터 참조 기간. 프론트 상세 화면은 이 값을 초기값으로 쓰며, 이후 사용자가 바꾼 `dataReferencePeriodStart`/`dataReferencePeriodEnd`가 후보군 리스트 재계산과 추천 판단에 적용된다 |
 | `forecastMonths` | 후보군 생성 당시의 월간 판매추이 포캐스트 개월 수 |
 | `itemCount` | 소속 후보 아이템 개수 |
 | `dbCreatedAt`, `dbUpdatedAt` | 생성·수정 시각(아이템 추가로 스태시 “갱신” 시각을 반영할지는 백엔드 정책) |
 
 `getCandidateStashes`, `getCandidateItemsByStash`, `getCandidateRecommendations`, `getCandidateItemByUuid` 및 후보군 mutation 계열은 현재 인증 세션을 기준으로 동작한다. 프론트는 사용자 UUID를 요청 파라미터로 보내지 않으며, 백엔드는 세션의 `USER_ACCOUNT.uuid`와 후보군의 `createdByUserUuid`가 일치하는 데이터만 반환/수정해야 한다.
+
+**`CandidateItemListParams`** (`getCandidateItemsByStash` 요청)
+
+| 필드 | 의미 |
+|------|------|
+| `stashUuid` | 조회할 후보군 UUID. REST 경로의 `:stashUuid`와 동일 |
+| `dataReferencePeriodStart` | 후보군 리스트 수치와 배지 판단에 사용할 데이터 참조 시작일 (`YYYY-MM-DD`) |
+| `dataReferencePeriodEnd` | 후보군 리스트 수치와 배지 판단에 사용할 데이터 참조 종료일 (`YYYY-MM-DD`) |
+
+이 API는 단순히 후보군에 담긴 상품만 조회해 계산하면 안 된다. 배지 기준이 “조회 기간 전체에서 상위 몇 %인가”처럼 전체 분포에 의존하므로, 백엔드는 먼저 해당 기간의 전체 대상 상품 데이터를 집계하고 그 전체 분포 기준으로 배지를 부여한 뒤, 그 결과 중 `stashUuid`에 담긴 상품만 추려 반환해야 한다. 기간 변경마다 호출될 수 있으므로 기간+경쟁채널 기준 랭킹/배지 계산 결과를 캐시하거나 materialized view/batch 집계를 두는 방식을 권장한다.
 
 **`CandidateItemListResult`** (`getCandidateItemsByStash` 응답)
 
@@ -503,27 +516,29 @@ badgeDefinitions: {
 | `uuid` | 아이템 PK |
 | `stashUuid` | 소속 스태시 |
 | `productId` | 상품 id |
-| `brand`, `code`, `productName`, `colorCode` | 스냅샷 1차 요약에서 복사. 색상은 SKU 식별 메타이므로 목록·엑셀에 함께 노출한다. |
-| `qty` | 사이즈별 **`confirmQty` 합**(확정 수량 기준 EA) |
-| `expectedOrderAmount` | 예상 **발주 금액(원)** — 스냅샷 `drawer2.stockDerived.expectedOrderAmount` 와 동일 의미 |
-| `expectedSalesAmount` | 예상 매출 — `stockDerived.expectedSalesAmount` |
-| `expectedOpProfit` | 예상 영업이익 — `stockDerived.expectedOpProfit` |
+| `brand`, `code`, `productName`, `colorCode` | 현재 상품 마스터와 기간 집계 결과의 SKU 메타. 색상은 SKU 식별 메타이므로 목록·엑셀에 함께 노출한다. |
+| `qty` | 데이터 참조 기간 기준 추천/예상 오더 수량 합계(EA). 저장 스냅샷이 있더라도 리스트 기본값은 현재 기간 live 계산값이다 |
+| `expectedOrderAmount` | 데이터 참조 기간 기준 예상 **발주 금액(원)** |
+| `expectedSalesAmount` | 데이터 참조 기간 기준 예상 매출 |
+| `expectedOpProfit` | 데이터 참조 기간 기준 예상 영업이익 |
 | `insight.badgeNames` | 이 아이템에 붙일 배지 이름 배열. 현재 목데이터 기준 허용 배지는 `크림판매`, `자사이익`, `자사판매` |
 | `orderExport` | 발주 엑셀을 프론트에서 즉시 생성하기 위한 다운로드 DTO. 전체 `details` 스냅샷을 다시 받지 않도록 `competitorChannelLabel`, 자사/경쟁 기간 판매량, 총 오더량/금액, 평균 원가/판매가/수수료율/영업이익율, 오더 입고 예정일, 사이즈별 오더량만 포함 |
 | `isLatestLlmComment` | 현재 저장 스냅샷 기준 AI 코멘트/추천이 최신인지 여부. DB 컬럼은 `is_latest_llm_comment` 권장 |
+| `isDetailConfirmed` | 이너후보군 2차 드로워에서 저장한 스냅샷이 있으면 `true`. 리스트의 상세확정 컬럼은 이 값을 표시한다 |
 | `dbCreatedAt`, `dbUpdatedAt` | 생성·수정 시각 |
 
 **`CandidateItemDetail`**
 
 | 필드 | 의미 |
 |------|------|
-| `details` | 저장 시점의 **`SecondaryOrderSnapshotPayload` 전체 JSON** |
+| `details` | 저장 시점의 **`SecondaryOrderSnapshotPayload` 전체 JSON**. 스냅샷 없이 후보군에 담긴 아이템은 `null`이다 |
 | `isLatestLlmComment` | 상세 스냅샷 기준 AI 코멘트/추천 최신 여부 |
 
 **페이로드**
 
 - `CreateCandidateStashPayload`: `{ productId, name, note?, periodStart, periodEnd, forecastMonths }`
 - `UpdateCandidateStashPayload`: `{ stashUuid, name, note? }` — 메타만 갱신
+- `AppendCandidateItemsPayload`: `{ stashUuid, productIds }` — 자사/경쟁사 분석 리스트에서 선택한 상품들을 스냅샷 없이 후보군에 추가한다. 현재 프론트의 `productId`는 내부적으로 `SKU.code + SKU.color_code` 상품 단위에 대응하며, 사이즈별 확정 오더량과 AI 코멘트는 이너후보군 2차 드로워에서 저장하기 전까지 비어 있거나 미확정 상태다
 - `AppendCandidateItemPayload`: `{ stashUuid, productId, details, isLatestLlmComment? }` — `details`가 오더 스냅샷 저장의 단일 경로이며, 기본값은 `false` 권장
 - `UpdateCandidateItemPayload`: `{ itemUuid, details, isLatestLlmComment }`
 - `CandidateStashExcelUploadResult`: `{ stashUuid, stashName, itemCount, warnings: string[] }`
@@ -534,6 +549,8 @@ badgeDefinitions: {
 **동작 메모**
 
 - `duplicateCandidateStash`: 동일 스태시·아이템 복제(구현 세부는 백엔드 결정). 프론트는 완료 후 `getCandidateStashes()`를 다시 호출해 목록을 동기화합니다.
+- 자사/경쟁사 분석 탭의 `appendCandidateItems`는 후보군에 상품 식별자만 추가하고 스냅샷을 만들지 않습니다. 따라서 새로 담긴 아이템의 `details`는 `null`, `isDetailConfirmed`는 `false`여야 합니다. 스냅샷은 이너후보군 2차 드로워에서 개별 저장/수정할 때만 생성합니다.
+- 이너후보군 리스트 기본 화면은 `CandidateItemSummary`의 live 계산값을 표시합니다. 저장 스냅샷이 있는 경우에도 상세확정 여부만 표시하고, 사용자가 2차 드로워에서 “스냅샷 기준 보기”를 켰을 때 저장 당시의 전체 값과 기간을 복원합니다. 그래프 데이터는 스냅샷에 저장하지 않으므로 스냅샷 기간 기준으로 다시 조회해 표시합니다.
 - `uploadCandidateStashExcel`: 프론트는 파일을 파싱하지 않습니다. `multipart/form-data`의 `file` 필드로 엑셀 파일을 전송하고,
   백엔드는 파일 내용을 검증한 뒤 DB 트랜잭션 안에서 후보군과 후보 아이템을 생성해야 합니다.
   성공 후 프론트는 응답 객체를 목록에 직접 삽입하지 않고 `getCandidateStashes()`를 다시 호출해 DB 기준 목록과 동기화합니다.
@@ -550,7 +567,7 @@ badgeDefinitions: {
 **후보군 스냅샷 AI 분석**
 
 - 후보군 상세 모달이 열리면 프론트는 `startCandidateStashAnalysis(stashUuid)`를 호출합니다.
-- 백엔드는 해당 `stashUuid`에 속한 후보 아이템의 저장 스냅샷(`CandidateItemDetail.details`)을 DB에서 읽고, 각 스냅샷을 AI 분석 작업에 투입합니다.
+- 백엔드는 해당 `stashUuid`에 속한 후보 아이템 중 저장 스냅샷(`CandidateItemDetail.details`)이 존재하는 항목만 AI 분석 작업에 투입합니다. 스냅샷 없이 담긴 미확정 항목은 AI 코멘트/사이즈별 확정 오더량의 근거가 없으므로 건너뛰거나 “미확정” 상태로 보고합니다.
 - 시작 응답은 `{ jobId, stashUuid, itemCount }`입니다. 프론트는 후보군 상세 모달이 열려 있는 동안만 이 `jobId`로 SSE 스트림을 엽니다.
 - SSE는 `Content-Type: text/event-stream`으로 제공하고, 각 `data:`는 `CandidateStashAnalysisProgressEvent` JSON입니다.
 - `status` 값은 `'queued' | 'running' | 'completed' | 'failed'` 중 하나입니다.
@@ -734,8 +751,9 @@ badgeDefinitions: {
 
 1. OpenAPI 또는 JSON Schema로 위 타입을 Export 가능하면 프론트 codegen과 공유하기 쉽습니다.
 2. 후보 아이템 저장 시 **`schemaVersion`** 과 **`context`** 필드를 클라이언트가 그대로 보내므로 검증 후 저장합니다.
-3. 후보 아이템 목록 집계 필드는 스냅샷 **`drawer2.stockDerived`** 및 **`sizeRows[].confirmQty`** 와 일관되게 계산해야 합니다.
-4. 필드 리네이밍 시 프론트 TypeScript와 동시 배포 또는 버전 분기 필요.
+3. 후보 아이템 목록 집계 필드는 `CandidateItemListParams.dataReferencePeriodStart`~`dataReferencePeriodEnd` 기준 live 계산값입니다. 스냅샷 값으로 목록을 덮어쓰지 말고, 스냅샷은 상세확정 여부와 2차 드로워의 저장 당시 근거 복원에만 사용합니다.
+4. 배지는 조회 기간 전체 대상 상품의 분포를 먼저 계산한 뒤 후보군 포함 상품만 추려 반환합니다. 성능이 부담되면 기간/채널별 랭킹·배지 결과 캐시를 우선 고려합니다.
+5. 필드 리네이밍 시 프론트 TypeScript와 동시 배포 또는 버전 분기 필요.
 
 ---
 

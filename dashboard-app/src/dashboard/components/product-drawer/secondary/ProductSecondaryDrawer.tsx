@@ -131,6 +131,7 @@ export function ProductSecondaryDrawer({
   const [candidateNoteInput, setCandidateNoteInput] = useState('')
   const [salesInsight, setSalesInsight] = useState<ProductSalesInsight | null>(null)
   const [salesInsightError, setSalesInsightError] = useState<ApiUnitErrorInfo | null>(null)
+  const [showSnapshotInfo, setShowSnapshotInfo] = useState(false)
 
   useEffect(() => {
     mountedRef.current = true
@@ -155,9 +156,17 @@ export function ProductSecondaryDrawer({
   }), [pageName])
 
   const minOrderDate = formatIsoDateLocal(new Date())
-  const selectedStart = normalizeMonthKey(periodStart)
-  const selectedEnd = normalizeMonthKey(periodEnd)
+  const hasSavedSnapshot = candidateItemContext != null && prefillFromSnapshot != null
+  const snapshotInfoMode = hasSavedSnapshot && showSnapshotInfo
+  const viewPeriodStart = snapshotInfoMode ? prefillFromSnapshot!.context.periodStart : periodStart
+  const viewPeriodEnd = snapshotInfoMode ? prefillFromSnapshot!.context.periodEnd : periodEnd
+  const selectedStart = normalizeMonthKey(viewPeriodStart)
+  const selectedEnd = normalizeMonthKey(viewPeriodEnd)
   const monthlySalesTrend = useMemo(() => primary.monthlySalesTrend ?? [], [primary.monthlySalesTrend])
+
+  useEffect(() => {
+    if (!hasSavedSnapshot) setShowSnapshotInfo(false)
+  }, [hasSavedSnapshot, primary.id])
 
   const channel = useMemo<SecondaryCompetitorChannel>(
     () => competitorChannels.find((ch) => ch.id === channelId)!,
@@ -489,8 +498,8 @@ export function ProductSecondaryDrawer({
       productId: primary.id,
       savedAt: new Date().toISOString(),
       context: {
-        periodStart,
-        periodEnd,
+        periodStart: viewPeriodStart,
+        periodEnd: viewPeriodEnd,
         forecastMonths,
         dailyTrendStartMonth: selectedStart,
         dailyTrendLeadTimeDays: leadTimeDays,
@@ -543,8 +552,8 @@ export function ProductSecondaryDrawer({
       },
     }), [
     primary,
-    periodStart,
-    periodEnd,
+    viewPeriodStart,
+    viewPeriodEnd,
     forecastMonths,
     secondary,
     channel.id,
@@ -692,6 +701,40 @@ export function ProductSecondaryDrawer({
     }
   }
 
+  const aiCommentCard = (
+    <ComponentErrorBoundary page={pageName} unit="AiCommentCard">
+      <AiCommentCard comment={aiComment} />
+    </ComponentErrorBoundary>
+  )
+  const sizeOrderCard = (
+    <ComponentErrorBoundary page={pageName} unit="SizeOrderCard">
+      <SizeOrderCard
+        sizeOrder={{
+          channelLabel: channel.label,
+          selfWeightPct,
+          sizeRows,
+          totalOrderBalanceHelpId,
+          expectedInboundOrderBalanceHelpId,
+          sizeRecQtyHelpId,
+          salesForecastHelpId: salesForecastSizeOrderHelpId,
+          currentStockQty: forecastCalc?.display.currentStockQtyTotal ?? 0,
+          totalOrderBalanceQty: forecastCalc?.display.totalOrderBalanceTotal ?? 0,
+          expectedInboundOrderBalanceQty: forecastCalc?.display.expectedInboundOrderBalanceTotal ?? 0,
+          currentStockQtyBySize: forecastCalc?.display.currentStockQtyBySize ?? [],
+          totalOrderBalanceBySize: forecastCalc?.display.totalOrderBalanceBySize ?? [],
+          expectedInboundOrderBalanceBySize: forecastCalc?.display.expectedInboundOrderBalanceBySize ?? [],
+          manualConfirmBySize: manualConfirmDerived,
+        }}
+        actions={{
+          onSelfWeightPctChange: setSelfWeightPct,
+          onConfirmQtyChange: handleConfirmQtyChange,
+        }}
+        help={portalHelp}
+      />
+    </ComponentErrorBoundary>
+  )
+  const liveCandidateCompactMode = candidateItemContext != null && !snapshotInfoMode
+
   return (
     <div className={styles.panel}>
       <div className={styles.metaFilterRow}>
@@ -707,6 +750,10 @@ export function ProductSecondaryDrawer({
                 <InnerCandidateActionCard
                   context={candidateItemContext}
                   loading={candidateActionLoading}
+                  saveLabel={hasSavedSnapshot ? '수정' : '저장'}
+                  hasSnapshot={hasSavedSnapshot}
+                  showSnapshotInfo={showSnapshotInfo}
+                  onShowSnapshotInfoChange={setShowSnapshotInfo}
                   onSave={saveCandidateItemChanges}
                 />
               ) : (
@@ -738,102 +785,83 @@ export function ProductSecondaryDrawer({
         </div>
       </div>
 
-      <div className={styles.salesStockAiRow}>
-        <ComponentErrorBoundary page={pageName} unit="SalesForecastCard">
-          <SalesForecastCard
-            forecast={{
-              inputs: forecastInputs,
-              error: salesInsightError ?? forecastCalcError,
-              computed: {
-                recommendedOrderQtyTotal: recommendedQtyTotal,
-                confirmedOrderQtyTotal: confirmedQtyTotal,
-                forecastExpectedSales: forecastExpectedSalesFromRec,
-                forecastOpProfit: forecastOpProfitFromRec,
-                confirmedExpectedSales,
-                confirmedOpProfit: confirmedExpectedOpProfit,
-              },
-            }}
-            orderSettings={{
-              currentOrderDate: leadTimeStartDate,
-              nextOrderDate: leadTimeEndDate,
-              minOrderDate,
-              bufferStock,
-              unitCost: unitCostInput,
-              unitPrice: unitPriceInput,
-              expectedFeeRatePct,
-            }}
-            actions={{
-              onCurrentOrderDateChange: (next) => {
-                const v = next < minOrderDate ? minOrderDate : next
-                setLeadTimeStartDate(v)
-                setLeadTimeEndDate((e) => (e < v ? v : e))
-              },
-              onNextOrderDateChange: (next) => {
-                let v = next < minOrderDate ? minOrderDate : next
-                if (v < leadTimeStartDate) v = leadTimeStartDate
-                setLeadTimeEndDate(v)
-              },
-              onBufferStockChange: setBufferStock,
-              onUnitCostChange: setUnitCostInput,
-              onUnitPriceChange: setUnitPriceInput,
-              onExpectedFeeRatePctChange: setExpectedFeeRatePct,
-            }}
-            help={{
-              labelIds: {
-                forecastQtyCalc: forecastQtyCalcHelpId,
-                expectedOpProfitRate: expectedOpProfitRateHelpId,
-              },
-              portal: portalHelp,
-            }}
-          />
-        </ComponentErrorBoundary>
-        <ComponentErrorBoundary page={pageName} unit="AiCommentCard">
-          <AiCommentCard
-            comment={aiComment}
-          />
-        </ComponentErrorBoundary>
-      </div>
+      {liveCandidateCompactMode ? (
+        <div className={styles.salesStockAiRow}>
+          {aiCommentCard}
+          {sizeOrderCard}
+        </div>
+      ) : (
+        <>
+          <div className={styles.salesStockAiRow}>
+            <ComponentErrorBoundary page={pageName} unit="SalesForecastCard">
+              <SalesForecastCard
+                forecast={{
+                  inputs: forecastInputs,
+                  error: salesInsightError ?? forecastCalcError,
+                  computed: {
+                    recommendedOrderQtyTotal: recommendedQtyTotal,
+                    confirmedOrderQtyTotal: confirmedQtyTotal,
+                    forecastExpectedSales: forecastExpectedSalesFromRec,
+                    forecastOpProfit: forecastOpProfitFromRec,
+                    confirmedExpectedSales,
+                    confirmedOpProfit: confirmedExpectedOpProfit,
+                  },
+                }}
+                orderSettings={{
+                  currentOrderDate: leadTimeStartDate,
+                  nextOrderDate: leadTimeEndDate,
+                  minOrderDate,
+                  bufferStock,
+                  unitCost: unitCostInput,
+                  unitPrice: unitPriceInput,
+                  expectedFeeRatePct,
+                }}
+                actions={{
+                  onCurrentOrderDateChange: (next) => {
+                    const v = next < minOrderDate ? minOrderDate : next
+                    setLeadTimeStartDate(v)
+                    setLeadTimeEndDate((e) => (e < v ? v : e))
+                  },
+                  onNextOrderDateChange: (next) => {
+                    let v = next < minOrderDate ? minOrderDate : next
+                    if (v < leadTimeStartDate) v = leadTimeStartDate
+                    setLeadTimeEndDate(v)
+                  },
+                  onBufferStockChange: setBufferStock,
+                  onUnitCostChange: setUnitCostInput,
+                  onUnitPriceChange: setUnitPriceInput,
+                  onExpectedFeeRatePctChange: setExpectedFeeRatePct,
+                }}
+                help={{
+                  labelIds: {
+                    forecastQtyCalc: forecastQtyCalcHelpId,
+                    expectedOpProfitRate: expectedOpProfitRateHelpId,
+                  },
+                  portal: portalHelp,
+                }}
+              />
+            </ComponentErrorBoundary>
+            {aiCommentCard}
+          </div>
 
-      <ComponentErrorBoundary page={pageName} unit="SalesTrendDailyCard">
-        <SalesTrendDailyCard
-          productId={primary.id}
-          competitorChannelLabel={channel.label}
-          sizeOptions={dailyTrendSizeOptions}
-          trend={{
-            series: dailyTrendSeries,
-            tickIndices: dailyTickIndices,
-            periodShade: dailyPeriodShade,
-            forecastShade: dailyForecastShade,
-            error: dailyTrendError,
-          }}
-        />
-      </ComponentErrorBoundary>
+          <ComponentErrorBoundary page={pageName} unit="SalesTrendDailyCard">
+            <SalesTrendDailyCard
+              productId={primary.id}
+              competitorChannelLabel={channel.label}
+              sizeOptions={dailyTrendSizeOptions}
+              trend={{
+                series: dailyTrendSeries,
+                tickIndices: dailyTickIndices,
+                periodShade: dailyPeriodShade,
+                forecastShade: dailyForecastShade,
+                error: dailyTrendError,
+              }}
+            />
+          </ComponentErrorBoundary>
 
-      <ComponentErrorBoundary page={pageName} unit="SizeOrderCard">
-        <SizeOrderCard
-          sizeOrder={{
-            channelLabel: channel.label,
-            selfWeightPct,
-            sizeRows,
-            totalOrderBalanceHelpId,
-            expectedInboundOrderBalanceHelpId,
-            sizeRecQtyHelpId,
-            salesForecastHelpId: salesForecastSizeOrderHelpId,
-            currentStockQty: forecastCalc?.display.currentStockQtyTotal ?? 0,
-            totalOrderBalanceQty: forecastCalc?.display.totalOrderBalanceTotal ?? 0,
-            expectedInboundOrderBalanceQty: forecastCalc?.display.expectedInboundOrderBalanceTotal ?? 0,
-            currentStockQtyBySize: forecastCalc?.display.currentStockQtyBySize ?? [],
-            totalOrderBalanceBySize: forecastCalc?.display.totalOrderBalanceBySize ?? [],
-            expectedInboundOrderBalanceBySize: forecastCalc?.display.expectedInboundOrderBalanceBySize ?? [],
-            manualConfirmBySize: manualConfirmDerived,
-          }}
-          actions={{
-            onSelfWeightPctChange: setSelfWeightPct,
-            onConfirmQtyChange: handleConfirmQtyChange,
-          }}
-          help={portalHelp}
-        />
-      </ComponentErrorBoundary>
+          {sizeOrderCard}
+        </>
+      )}
       <PortalHelpPopoverLayer
         help={portalHelp}
         popoverClassName={commonStyles.helpPopoverPortal}

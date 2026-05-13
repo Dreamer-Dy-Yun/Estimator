@@ -525,6 +525,13 @@ export function CandidateStashDetailModal({ stashUuid, stashSummary, onClose, on
                             onSort={m.toggleTableSort}
                           />
                           <InnerOrderSortHeader
+                            label="상세확정"
+                            sortKey="isDetailConfirmed"
+                            activeKey={activeSortKey}
+                            activeDir={activeSortDir}
+                            onSort={m.toggleTableSort}
+                          />
+                          <InnerOrderSortHeader
                             label="자사 기간 총 판매량"
                             sortKey="selfQty"
                             activeKey={activeSortKey}
@@ -573,6 +580,11 @@ export function CandidateStashDetailModal({ stashUuid, stashSummary, onClose, on
                               onKeyDown={(e) => {
                                 const target = e.target as HTMLElement | null
                                 if (target?.closest('input, button, a, select, textarea')) return
+                                if (e.key === 'ArrowLeft') {
+                                  e.preventDefault()
+                                  toggleItemDrawer(row)
+                                  return
+                                }
                                 if (e.key !== 'Enter' && e.key !== ' ') return
                                 e.preventDefault()
                                 toggleItemDrawer(row)
@@ -595,6 +607,9 @@ export function CandidateStashDetailModal({ stashUuid, stashSummary, onClose, on
                               <span className={detailStyles.innerOrderCode}>{row.code}</span>
                               <span className={detailStyles.innerOrderName}>{row.productName}</span>
                               <span className={detailStyles.innerOrderColor}>{row.colorCode}</span>
+                              <span className={detailStyles.innerOrderConfirmState}>
+                                {row.isDetailConfirmed ? '확정' : '미확정'}
+                              </span>
                               <span className={detailStyles.innerOrderCellNum}>
                                 {formatEaQuantity(row.insight.selfQty)}
                               </span>

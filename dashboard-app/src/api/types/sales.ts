@@ -6,6 +6,7 @@ export interface SelfSalesParams {
   category?: string
   /** SKU.code 품번 부분 일치(대소문자 무시). */
   codeQuery?: string
+  colorCode?: string
   /** 상품명 부분 일치(대소문자 무시). */
   nameQuery?: string
 }
@@ -21,6 +22,7 @@ export interface SalesFilterMeta {
   categories: string[]
   /** 목록 콤보 제안용 고유 SKU.code(자사·경쟁 데이터 합집합). */
   codes: string[]
+  colorCodes: string[]
   /** 목록 콤보 제안용 고유 상품명(자사·경쟁 데이터 합집합). */
   productNames: string[]
   /** Closed historical months axis (vs forecast months), e.g. period sliders. */

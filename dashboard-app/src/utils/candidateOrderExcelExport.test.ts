@@ -31,6 +31,7 @@ function candidateItem(uuid: string, size: string): CandidateItemSummary {
       badgeNames: ['크림판매'],
     },
     isLatestLlmComment: true,
+    isDetailConfirmed: true,
     orderExport: {
       competitorChannelLabel: '크림',
       selfQty: 10,

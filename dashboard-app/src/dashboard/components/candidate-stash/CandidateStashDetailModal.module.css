@@ -392,13 +392,14 @@
     minmax(84px, 0.45fr)
     minmax(220px, 1.45fr)
     minmax(70px, 0.35fr)
+    minmax(82px, 0.4fr)
     minmax(130px, 0.7fr)
     minmax(130px, 0.7fr)
     minmax(130px, 0.7fr)
     minmax(150px, 0.85fr);
   align-items: center;
   gap: 10px;
-  min-width: 1360px;
+  min-width: 1460px;
 }
 
 .innerOrderHeader {
@@ -483,6 +484,7 @@
 .innerOrderBrand,
 .innerOrderCode,
 .innerOrderColor,
+.innerOrderConfirmState,
 .innerOrderName {
   min-width: 0;
   overflow: hidden;
@@ -508,6 +510,20 @@
 
 .innerOrderName {
   color: #0f172a;
+  font-weight: 800;
+}
+
+.innerOrderConfirmState {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 24px;
+  padding: 0 8px;
+  border: 1px solid #cbd5e1;
+  border-radius: 999px;
+  background: #f8fafc;
+  color: #334155;
+  font-size: 13px;
   font-weight: 800;
 }
 
@@ -742,7 +758,7 @@
   }
 
   .innerOrderRow {
-    grid-template-columns: 28px 28px minmax(72px, 0.45fr) minmax(70px, 0.45fr) minmax(110px, 1fr) minmax(60px, 0.35fr);
+    grid-template-columns: 28px 28px minmax(72px, 0.45fr) minmax(70px, 0.45fr) minmax(110px, 1fr) minmax(60px, 0.35fr) minmax(70px, 0.45fr);
     min-width: 0;
   }
 

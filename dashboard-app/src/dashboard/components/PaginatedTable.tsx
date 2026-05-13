@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent, type ReactNode } from 'react'
 import { compareSortValues, nextSortState, type SortState, type SortValue } from '../../utils/sort'
 import { drawerKeepOpenDataProps } from '../drawer/drawerDom'
 import styles from './common.module.css'
@@ -18,6 +18,7 @@ type PaginatedTableBase<T> = {
   columns: Array<TableColumn<T>>
   rows: T[]
   onRowClick?: (row: T) => void
+  onRowKeyDown?: (row: T, event: KeyboardEvent<HTMLTableRowElement>) => void
   defaultSort?: SortState
   /** 루트 `.tableWrap`에 추가 클래스(페이지별 열 간격·밀도 등) */
   wrapClassName?: string
@@ -41,7 +42,7 @@ export type PaginatedTableProps<T extends { id: string }> = PaginatedTableBase<T
 )
 
 export function PaginatedTable<T extends { id: string }>(props: PaginatedTableProps<T>) {
-  const { columns, rows, onRowClick, defaultSort, infiniteScroll, wrapClassName } = props
+  const { columns, rows, onRowClick, onRowKeyDown, defaultSort, infiniteScroll, wrapClassName } = props
   const plain = props.paginated === false
   const tableBodyRef = useRef<HTMLDivElement | null>(null)
   const loadMoreRef = useRef<HTMLDivElement | null>(null)
@@ -139,8 +140,10 @@ export function PaginatedTable<T extends { id: string }>(props: PaginatedTablePr
             {pageRows.map((row) => (
               <tr
                 key={row.id}
-                className={onRowClick ? styles.rowClickable : undefined}
+                className={onRowClick || onRowKeyDown ? styles.rowClickable : undefined}
                 onClick={() => onRowClick?.(row)}
+                onKeyDown={(event) => onRowKeyDown?.(row, event)}
+                tabIndex={onRowClick || onRowKeyDown ? 0 : undefined}
               >
                 {columns.map((c) => (
                   <td key={c.key} style={{ textAlign: c.align ?? 'left', width: c.width }}>{c.cell(row)}</td>

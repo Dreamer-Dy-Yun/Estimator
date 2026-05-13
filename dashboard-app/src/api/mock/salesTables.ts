@@ -23,11 +23,11 @@ export function getMockSecondaryCompetitorChannel(id?: string): MockSecondaryCom
 
 type SalesRowWithColor = { id: string; colorCode: string }
 
-const colorCodePalette = ['010', '020', '030', '100', '110', '200', '210', '300']
+export const colorCodeOrder = ['010', '020', '030', '100', '110', '200', '210', '300']
 
 function colorCodeForMockSku(id: string): string {
   const seed = [...id].reduce((acc, ch) => acc + ch.charCodeAt(0), 0)
-  return colorCodePalette[seed % colorCodePalette.length]!
+  return colorCodeOrder[seed % colorCodeOrder.length]!
 }
 
 function withSkuColor<T extends SalesRowWithColor>(rows: Array<Omit<T, 'colorCode'>>): T[] {

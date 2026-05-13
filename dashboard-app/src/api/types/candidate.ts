@@ -49,6 +49,8 @@ export interface CandidateItemSummary {
   insight: CandidateItemInsightSummary
   /** Whether the stored AI recommendation/comment reflects the latest saved snapshot. */
   isLatestLlmComment: boolean
+  /** True when this candidate item has a saved order snapshot from the secondary drawer. */
+  isDetailConfirmed: boolean
   /** Minimal data already loaded with the list so Excel export does not call the backend again. */
   orderExport: CandidateItemOrderExport
   dbCreatedAt: string
@@ -88,6 +90,12 @@ export interface CandidateItemListResult {
   badgeDefinitions: CandidateBadgeDefinitionMap
 }
 
+export interface CandidateItemListParams {
+  stashUuid: string
+  dataReferencePeriodStart: string
+  dataReferencePeriodEnd: string
+}
+
 export interface CandidateRecommendationParams {
   stashUuid: string
   dataReferencePeriodStart: string
@@ -101,7 +109,7 @@ export interface CandidateItemDetail {
   uuid: string
   stashUuid: string
   productId: string
-  details: SecondaryOrderSnapshotPayload
+  details: SecondaryOrderSnapshotPayload | null
   isLatestLlmComment: boolean
   dbCreatedAt: string
   dbUpdatedAt: string
@@ -128,6 +136,12 @@ export interface AppendCandidateItemPayload {
   productId: string
   details: SecondaryOrderSnapshotPayload
   isLatestLlmComment: boolean
+}
+
+/** Adds SKU candidates from analysis lists without saving an order snapshot. */
+export interface AppendCandidateItemsPayload {
+  stashUuid: string
+  productIds: string[]
 }
 
 export interface UpdateCandidateItemPayload {

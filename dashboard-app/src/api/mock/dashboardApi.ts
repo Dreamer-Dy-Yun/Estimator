@@ -1,10 +1,12 @@
 import type { ProductPrimarySummary } from '../../types'
 import type {
   AppendCandidateItemPayload,
+  AppendCandidateItemsPayload,
   CandidateBadgeDefinitionMap,
   CandidateStashAnalysisHandlers,
   CandidateStashAnalysisProgressEvent,
   CandidateItemDetail,
+  CandidateItemListParams,
   CandidateItemListResult,
   CandidateItemSummary,
   CandidateRecommendationParams,
@@ -33,6 +35,7 @@ import {
   allKnownProductIds,
   brands,
   categories,
+  colorCodeOrder,
   competitorById,
   competitorSalesRows,
   getMockSecondaryCompetitorChannel,
@@ -108,7 +111,7 @@ function buildCandidateAnalysisEvent(
     totalItems,
     completedItems,
     currentItemUuid: item?.uuid ?? null,
-    currentProductName: item?.details?.drawer1?.summary?.productName ?? null,
+    currentProductName: item ? (item.details?.drawer1?.summary?.productName ?? productPrimaryById[item.skuUuid]?.productName ?? null) : null,
     message,
     error: null,
   }
@@ -214,25 +217,27 @@ function buildCandidateItemSummariesForStash(
   ownerUserUuid?: string,
   dataReferencePeriod?: { start: string; end: string },
 ): CandidateItemSummary[] {
+  const periodWeight = dataReferencePeriod
+    ? estimatePeriodWeight(dataReferencePeriod.start, dataReferencePeriod.end)
+    : 1
+
   return readCandidateItemsForStash(stashUuid, ownerUserUuid)
     .map((row) => {
       const productId = row.skuUuid
-      const summary = row.details?.drawer1?.summary
-      const drawer2 = row.details?.drawer2
-      if (!summary || !drawer2) {
-        throw new Error(`후보 아이템 스냅샷 누락: ${row.uuid}`)
-      }
-      const qty = drawer2.sizeRows.reduce((acc, r) => acc + Math.max(0, Math.round(r.confirmQty ?? 0)), 0)
-      const expectedOrderAmount = drawer2.stockDerived?.expectedOrderAmount
-      const expectedSalesAmount = drawer2.stockDerived?.expectedSalesAmount
-      const expectedOpProfit = drawer2.stockDerived?.expectedOpProfit
-      if (
-        typeof expectedOrderAmount !== 'number'
-        || typeof expectedSalesAmount !== 'number'
-        || typeof expectedOpProfit !== 'number'
-      ) {
-        throw new Error(`후보 아이템 집계 수치 누락: ${row.uuid}`)
-      }
+      const primary = productPrimaryById[productId] ?? productPrimaryById[allKnownProductIds[0]]!
+      const self = selfById[productId]
+      const competitor = competitorById[productId]
+      const avgPrice = Math.max(1, Math.round(self?.avgPrice ?? primary.price))
+      const avgCost = Math.max(1, Math.round(self?.avgCost ?? primary.price * 0.78))
+      const feeRatePct = Math.max(0, Math.round((self?.feeRate ?? 13) * 10) / 10)
+      const baseQty = Math.max(1, Math.round((self?.qty ?? competitor?.selfQty ?? primary.qty) * 0.58))
+      const qty = Math.max(1, Math.round(baseQty * periodWeight))
+      const expectedOrderAmount = qty * avgCost
+      const expectedSalesAmount = qty * avgPrice
+      const expectedOpProfit = qty * Math.round(avgPrice - avgCost - (avgPrice * feeRatePct) / 100)
+      const opMarginRatePct = expectedSalesAmount > 0 ? (expectedOpProfit / expectedSalesAmount) * 100 : null
+      const sizeMix = primary.sizeMix.length ? primary.sizeMix : [{ size: '-', ratio: 1 }]
+      const sizeRatioSum = sizeMix.reduce((acc, sizeRow) => acc + Math.max(0, sizeRow.ratio), 0) || 1
       const insight = buildCandidateItemInsight(
         productId,
         qty,
@@ -244,30 +249,31 @@ function buildCandidateItemSummariesForStash(
         uuid: row.uuid,
         stashUuid: row.stashUuid,
         productId,
-        brand: summary.brand,
-        code: summary.code,
-        productName: summary.productName,
-        colorCode: summary.colorCode,
+        brand: primary.brand,
+        code: primary.code,
+        productName: primary.productName,
+        colorCode: primary.colorCode,
         qty,
         expectedOrderAmount,
         expectedSalesAmount,
         expectedOpProfit,
         insight,
         isLatestLlmComment: row.isLatestLlmComment,
+        isDetailConfirmed: row.details != null,
         orderExport: {
-          competitorChannelLabel: drawer2.competitorChannelLabel,
-          selfQty: drawer2.salesSelf.qty,
-          competitorQty: drawer2.salesCompetitor.qty,
+          competitorChannelLabel: insight.competitorChannelLabel,
+          selfQty: insight.selfQty,
+          competitorQty: insight.competitorQty,
           expectedSalesQty: qty,
           expectedOrderAmount,
-          avgCost: drawer2.salesSelf.avgCost,
-          avgPrice: drawer2.salesSelf.avgPrice,
-          feeRatePct: drawer2.salesSelf.feeRatePct,
-          opMarginRatePct: drawer2.salesSelf.opMarginRatePct,
-          inboundExpectedDate: drawer2.stockInputs.leadTimeEndDate,
-          sizeOrderQty: drawer2.sizeRows.map((sizeRow) => ({
+          avgCost,
+          avgPrice,
+          feeRatePct,
+          opMarginRatePct,
+          inboundExpectedDate: row.details?.drawer2.stockInputs.leadTimeEndDate ?? null,
+          sizeOrderQty: sizeMix.map((sizeRow) => ({
             size: sizeRow.size,
-            orderQty: Math.max(0, Math.round(sizeRow.confirmQty)),
+            orderQty: Math.max(0, Math.round(qty * (Math.max(0, sizeRow.ratio) / sizeRatioSum))),
           })),
         },
         dbCreatedAt: row.dbCreatedAt,
@@ -283,6 +289,7 @@ export const mockDashboardApi = {
     const brand = params?.brand
     const category = params?.category
     const codeQ = params?.codeQuery?.trim().toLowerCase()
+    const colorCode = params?.colorCode
     const nameQ = params?.nameQuery?.trim().toLowerCase()
     const weighted = estimatePeriodWeight(params?.startDate, params?.endDate)
 
@@ -290,6 +297,7 @@ export const mockDashboardApi = {
       .filter((row) => (brand ? row.brand === brand : true))
       .filter((row) => (category ? row.category === category : true))
       .filter((row) => (codeQ ? row.code.toLowerCase().includes(codeQ) : true))
+      .filter((row) => (colorCode ? row.colorCode === colorCode : true))
       .filter((row) => (nameQ ? row.productName.toLowerCase().includes(nameQ) : true))
       .map((row) => {
         const qty = Math.max(1, Math.round(row.qty * weighted))
@@ -308,6 +316,7 @@ export const mockDashboardApi = {
     const brand = params?.brand
     const category = params?.category
     const codeQ = params?.codeQuery?.trim().toLowerCase()
+    const colorCode = params?.colorCode
     const nameQ = params?.nameQuery?.trim().toLowerCase()
     const weighted = estimatePeriodWeight(params?.startDate, params?.endDate)
     const channel = getMockSecondaryCompetitorChannel(params?.competitorChannelId)
@@ -318,6 +327,7 @@ export const mockDashboardApi = {
       .filter((row) => (brand ? row.brand === brand : true))
       .filter((row) => (category ? row.category === category : true))
       .filter((row) => (codeQ ? row.code.toLowerCase().includes(codeQ) : true))
+      .filter((row) => (colorCode ? row.colorCode === colorCode : true))
       .filter((row) => (nameQ ? row.productName.toLowerCase().includes(nameQ) : true))
       .map((row) => {
         const compQty = Math.max(1, Math.round(row.competitorQty * weighted * qtySkew))
@@ -338,21 +348,26 @@ export const mockDashboardApi = {
   getSalesFilterMeta: async () => {
     await sleep(60)
     const codeSet = new Set<string>()
+    const colorCodeSet = new Set<string>()
     const nameSet = new Set<string>()
     for (const r of selfSalesRows) {
       codeSet.add(r.code)
+      colorCodeSet.add(r.colorCode)
       nameSet.add(r.productName)
     }
     for (const r of competitorSalesRows) {
       codeSet.add(r.code)
+      colorCodeSet.add(r.colorCode)
       nameSet.add(r.productName)
     }
     const codes = uniqueSortedStrings(codeSet)
+    const colorCodes = colorCodeOrder.filter((colorCode) => colorCodeSet.has(colorCode))
     const productNames = uniqueSortedStrings(nameSet)
     return {
       brands,
       categories,
       codes,
+      colorCodes,
       productNames,
       historicalMonths,
     }
@@ -459,9 +474,19 @@ export const mockDashboardApi = {
       })
       .sort((a, b) => String(b.dbCreatedAt).localeCompare(String(a.dbCreatedAt)))
   },
-  getCandidateItemsByStash: async (stashUuid: string, ownerUserUuid?: string): Promise<CandidateItemListResult> => {
+  getCandidateItemsByStash: async (
+    {
+      stashUuid,
+      dataReferencePeriodStart,
+      dataReferencePeriodEnd,
+    }: CandidateItemListParams,
+    ownerUserUuid?: string,
+  ): Promise<CandidateItemListResult> => {
     await sleep(60)
-    const items = buildCandidateItemSummariesForStash(stashUuid, ownerUserUuid)
+    const items = buildCandidateItemSummariesForStash(stashUuid, ownerUserUuid, {
+      start: dataReferencePeriodStart,
+      end: dataReferencePeriodEnd,
+    })
     return {
       items,
       badgeDefinitions: getCandidateBadgeDefinitions(),
@@ -493,9 +518,6 @@ export const mockDashboardApi = {
     const row = readCandidateItemRecords().find((it) => it.uuid === itemUuid)
     if (!row) return null
     if (!findCandidateStashForOwner(row.stashUuid, ownerUserUuid)) return null
-    if (!row.details) {
-      throw new Error(`후보 상세 스냅샷 누락: ${itemUuid}`)
-    }
     return {
       uuid: row.uuid,
       stashUuid: row.stashUuid,
@@ -591,6 +613,16 @@ export const mockDashboardApi = {
       throw new Error('후보군을 찾을 수 없습니다.')
     }
     void payload
+  },
+  appendCandidateItems: async (payload: AppendCandidateItemsPayload, ownerUserUuid?: string): Promise<void> => {
+    await sleep(70)
+    if (!findCandidateStashForOwner(payload.stashUuid, ownerUserUuid)) {
+      throw new Error('후보군을 찾을 수 없습니다.')
+    }
+    const unknownProduct = payload.productIds.find((productId) => !productPrimaryById[productId])
+    if (unknownProduct) {
+      throw new Error(`상품을 찾을 수 없습니다: ${unknownProduct}`)
+    }
   },
   updateCandidateItem: async (payload: UpdateCandidateItemPayload, ownerUserUuid?: string): Promise<void> => {
     await sleep(70)
