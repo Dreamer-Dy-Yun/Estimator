@@ -124,10 +124,25 @@
 }
 
 .chartClearSelectionButton {
-  height: 26px;
-  padding: 4px 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 24px;
+  padding: 0 9px;
+  border-color: #d8e1ee;
+  border-radius: 999px;
+  background: #f8fafc;
+  color: #475569;
+  font-size: 11px;
   font-weight: 700;
+  line-height: 1;
   white-space: nowrap;
+}
+
+.chartClearSelectionButton:hover:not(:disabled) {
+  border-color: #94a3b8;
+  background: #eef4fb;
+  color: #0f172a;
 }
 
 .chartActionHidden {
