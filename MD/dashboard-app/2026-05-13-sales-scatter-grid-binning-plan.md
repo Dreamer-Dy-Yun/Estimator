@@ -77,7 +77,7 @@
 추가 필드(추천)
 
 - `cellKey`: `"x:y"` 형태
-- `displayColor`: 셀 강조색(필요 시)
+- `displayColor`: 셀 강조색(필요 시). 현재 프론트 구현은 백엔드에서 색을 받지 않고, 응답 `cells[].count`와 현재 응답의 최대 count를 기준으로 민트 → 라임 → 노랑 → 앰버 색 stop 사이를 연속 보간한다. count 1은 최저 밀도로 두고, 그 이상은 큰 셀 쏠림을 줄이기 위해 `sqrt((count - 1) / (maxCount - 1))` 비율을 사용한다.
 
 ## 5) 구현 단계 (우선순위)
 
@@ -126,7 +126,7 @@
    - 차트:
      - hover → 커스텀 tooltip에 `x/y 범위, count`
      - click → `activeGridCellKey`와 `activeGridSkuIds` 갱신
-     - 기존 `Scatter` 점 사이즈/색상은 셀 count 기반으로 조정
+    - 기존 `Scatter` 점 색상은 셀 count 기반 연속 그라데이션으로 조정
    - 리스트/상세 영역:
      - 기존 `rows`에서 `activeGridSkuIds`가 존재하면 해당 SKU만 표시
      - `activeGridSkuIds` 빈 값이면 기존 동작 유지

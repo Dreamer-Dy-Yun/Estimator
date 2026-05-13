@@ -7,6 +7,7 @@ import type { AdjacentDirection } from '../../utils/adjacentListNavigation'
 import { adjacentIdInOrder } from '../../utils/adjacentListNavigation'
 import { clampForecastMonths, readForecastMonthsFromStorage, writeForecastMonthsToStorage } from '../../utils/forecastMonthsStorage'
 import { formatGroupedNumber, formatPercent } from '../../utils/format'
+import { getScatterGridCellColor } from '../../utils/scatterGridColor'
 import type { ScatterSalesGridResponse } from '../../api/types'
 import { AnalysisCandidateBulkAddModal } from '../components/candidate-stash/AnalysisCandidateBulkAddModal'
 import { ProductDrawer } from '../components/product-drawer/ProductDrawer'
@@ -30,6 +31,7 @@ type ScatterGridPoint = {
   yStart: number
   yEnd: number
   hasMoreSkuIds: boolean
+  color: string
 }
 
 export const SelfPage = () => {
@@ -131,6 +133,11 @@ export const SelfPage = () => {
     return { totalAmount, totalQty, avgMarginRate, avgOpMarginRate }
   }, [visibleRows])
 
+  const maxScatterGridCount = useMemo(
+    () => Math.max(0, ...(scatterGrid?.cells ?? []).map((cell) => cell.count)),
+    [scatterGrid],
+  )
+
   const scatterData: ScatterGridPoint[] = useMemo(
     () => (scatterGrid?.cells ?? []).map((cell) => ({
       x: cell.representativeX,
@@ -142,8 +149,9 @@ export const SelfPage = () => {
       yStart: cell.yStart,
       yEnd: cell.yEnd,
       hasMoreSkuIds: cell.hasMoreSkuIds,
+      color: getScatterGridCellColor(cell.count, maxScatterGridCount),
     })),
-    [scatterGrid],
+    [maxScatterGridCount, scatterGrid],
   )
 
   const navigationOrderIds = useMemo(() => visibleRows.map((r) => r.skuGroupKey), [visibleRows])
@@ -221,9 +229,9 @@ export const SelfPage = () => {
           cx={cx}
           cy={cy}
           r={6}
-          fill={isActive ? '#0284c7' : '#3b82f6'}
-          stroke={isActive ? '#0f172a' : undefined}
-          strokeWidth={isActive ? 1.5 : undefined}
+          fill={payload.color}
+          stroke={isActive ? '#0f172a' : '#ffffff'}
+          strokeWidth={isActive ? 1.75 : 0.75}
           style={{ cursor: 'pointer' }}
           onClick={(e) => {
             e.stopPropagation()
@@ -325,7 +333,7 @@ export const SelfPage = () => {
                     }}
                   />
                   <Tooltip content={renderScatterTooltip} />
-                  <Scatter fill="#3b82f6" shape={scatterShape} />
+                  <Scatter fill="#f59e0b" shape={scatterShape} />
                 </ScatterChart>
               ) : null}
             </div>

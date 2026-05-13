@@ -7,6 +7,7 @@ import type { AdjacentDirection } from '../../utils/adjacentListNavigation'
 import { adjacentIdInOrder } from '../../utils/adjacentListNavigation'
 import { clampForecastMonths, readForecastMonthsFromStorage, writeForecastMonthsToStorage } from '../../utils/forecastMonthsStorage'
 import { formatGroupedNumber } from '../../utils/format'
+import { getScatterGridCellColor } from '../../utils/scatterGridColor'
 import { AnalysisCandidateBulkAddModal } from '../components/candidate-stash/AnalysisCandidateBulkAddModal'
 import { ProductDrawer } from '../components/product-drawer/ProductDrawer'
 import styles from '../components/common.module.css'
@@ -30,6 +31,7 @@ type CompetitorScatterGridPoint = {
   yStart: number
   yEnd: number
   hasMoreSkuIds: boolean
+  color: string
 }
 
 export const CompetitorPage = () => {
@@ -185,6 +187,11 @@ export const CompetitorPage = () => {
     return { totalCompetitorAmount, totalSelfAmount, totalCompetitorQty, totalSelfQty }
   }, [visibleRows])
 
+  const maxScatterGridCount = useMemo(
+    () => Math.max(0, ...(scatterGrid?.cells ?? []).map((cell) => cell.count)),
+    [scatterGrid],
+  )
+
   const scatterData: CompetitorScatterGridPoint[] = useMemo(
     () => (scatterGrid?.cells ?? []).map((cell) => ({
       x: cell.representativeX,
@@ -196,8 +203,9 @@ export const CompetitorPage = () => {
       yStart: cell.yStart,
       yEnd: cell.yEnd,
       hasMoreSkuIds: cell.hasMoreSkuIds,
+      color: getScatterGridCellColor(cell.count, maxScatterGridCount),
     })),
-    [scatterGrid],
+    [maxScatterGridCount, scatterGrid],
   )
 
   const navigationOrderIds = useMemo(() => visibleRows.map((r) => r.skuGroupKey), [visibleRows])
@@ -280,9 +288,9 @@ export const CompetitorPage = () => {
           cx={cx}
           cy={cy}
           r={6}
-          fill={isActive ? '#0284c7' : '#3b82f6'}
-          stroke={isActive ? '#0f172a' : undefined}
-          strokeWidth={isActive ? 1.5 : undefined}
+          fill={payload.color}
+          stroke={isActive ? '#0f172a' : '#ffffff'}
+          strokeWidth={isActive ? 1.75 : 0.75}
           style={{ cursor: 'pointer' }}
           onClick={(e) => {
             e.stopPropagation()
@@ -390,7 +398,7 @@ export const CompetitorPage = () => {
                     }}
                   />
                   <Tooltip content={renderQtyScatterTooltip} />
-                  <Scatter fill="#3b82f6" shape={qtyScatterShape} />
+                  <Scatter fill="#f59e0b" shape={qtyScatterShape} />
                 </ScatterChart>
               ) : null}
             </div>
