@@ -34,7 +34,7 @@
 - 자사/경쟁사 분석 탭은 후보군에 상품을 담는 입구다. 분석 리스트의 체크박스와 `선택한 물품을 후보군으로` 모달은 스냅샷 없이 `stashUuid + skuGroupKeys`만 API에 전달한다. `row.id`는 화면 행 식별자이고, `skuGroupKey`는 `SKU.code + SKU.color_code` 상품 단위에 대응한다. AI 코멘트/사이즈별 확정 오더량은 이너후보군 2차 드로워에서 저장하기 전까지 미확정이다.
 - 자사/경쟁사 분석 탭에서는 `ProductDrawer.secondaryEnabled={false}`로 2차 드로워를 열지 않는다. 2차 드로워 코드는 유지하되, 반원 버튼과 키보드 2차 진입은 이너후보군에서만 허용한다.
 - 이너후보군 리스트 조회는 `dataReferencePeriodStart`/`dataReferencePeriodEnd`를 API에 전달한다. 백엔드는 해당 기간의 전체 상품 분포를 먼저 계산해 배지를 부여한 뒤 후보군에 담긴 상품만 반환해야 하며, 배지는 DB `CANDIDATE_ITEM.badge`와 같은 `{ name, color, tooltip }[]` 형태로 `insight.badges`에 싣는다. 요청 adapter 주석과 API 스펙에는 이 부하 지점을 기록한다.
-- 이너후보군의 상세확정 여부는 후보 아이템 `details` 스냅샷 존재 여부다. 리스트 기본값은 데이터 참조기간 기준 live 계산값이고, 2차 드로워의 스냅샷 기준 보기에서는 저장 당시 전체 값과 기간을 복원하되 그래프는 그 기간으로 다시 조회한다.
+- 이너후보군의 상세확정 여부는 후보 아이템 `details` 스냅샷 존재 여부다. 리스트 기본값은 데이터 참조기간 기준 live 계산값이고, 2차 드로워는 live/스냅샷 기준 보기 모두 통합 오더 설정, AI 코멘트, 일별 추이, 사이즈별 오더 카드를 표시한다. 스냅샷 기준 보기에서는 저장 당시 전체 값과 기간을 복원하되 그래프는 그 기간으로 다시 조회한다.
 - 드로워 키보드 조작은 `좌=열기`, `우=닫기`, `상/하=이전/다음`이다. 자사/경쟁사 리스트 row에서는 좌 키가 1차 드로워만 열고, 이너후보군에서는 좌 키로 1차를 열고 열린 1차 안에서 좌 키로 2차를 연다. ESC는 2차가 열려 있으면 2차부터 닫고, 한 번 더 누르면 1차를 닫는다.
 - 후보군 상세 필터 카드에는 발주 엑셀 다운로드 액션을 둔다. 화면은 다운로드 클릭 시 백엔드를 다시 호출하지 않고, 이미 받은 `CandidateItemSummary.orderExport` DTO로 브라우저에서 XLSX를 생성한다. 주 데이터 시트는 브랜드·품번(`code`)·상품명(`productName`)·색상(`colorCode`)·배지·판매 지표·총 오더 지표 컬럼 뒤에 후보군 전체 사이즈를 동적 컬럼으로 붙이고, 제품에 없는 사이즈는 `N/A`로 표시한다. 복수 배지는 한 셀 안에서 줄바꿈한다. 메타 시트에는 오더 입고 예정일과 사용자 이름을 둔다.
 - SKU 식별 메타는 DB `SKU` 테이블 설계에 맞춰 `code`, `colorCode`, `productName`을 사용한다. 실제 SKU 유일성은 `code + colorCode + size` 조합으로 보고, 분석 리스트·1차 드로어 배지·2차 메타·후보군/엑셀 계약이 같은 필드명을 쓴다.
@@ -206,8 +206,8 @@
 
 | 파일 | 역할 |
 |------|------|
-| `SelfPage.tsx` | 자사 판매 분석 라우트. 공통 분석 필터/기간 상태는 `useAnalysisSalesFilters`, 격자 셀 선택·화면 기준 선택 유효성·후보군 일괄 담기 선택 상태는 `useAnalysisVisibleSelection`이 소유한다. 페이지는 자사 KPI, 공통 산점도 카드 연결, 자사 목록 컬럼, 후보군 일괄 담기 진입을 조립한다. 기본 목록 정렬은 판매량 내림차순이며 2차 드로워는 열지 않는다. |
-| `CompetitorPage.tsx` | 경쟁 판매 분석 라우트. 경쟁 채널 필터, 자사판매량 존재 행 토글, 경쟁 KPI, 공통 산점도 카드, 경쟁 목록, 후보군 일괄 담기 진입을 조립한다. 목록 렌더는 `CompetitorAnalysisList.tsx`, KPI는 `CompetitorKpiGrid.tsx`, 필터 우측 토글/버튼은 `CompetitorFilterEndControls.tsx`에 위임한다. 경쟁 채널이 `전체`이면 API 응답은 전체 경쟁 채널 합계여야 한다. |
+| `SelfPage.tsx` | 자사 판매 분석 라우트. 공통 분석 필터/기간 상태는 `useAnalysisSalesFilters`, 격자 셀 선택·화면 기준 선택 유효성·후보군 일괄 담기 선택 상태는 `useAnalysisVisibleSelection`이 소유한다. 페이지는 자사 KPI, 공통 산점도 카드 연결, 자사 목록 컬럼, 후보군 일괄 담기 진입을 조립한다. 기본 목록 정렬은 판매량 오름차순이며 2차 드로워는 열지 않는다. |
+| `CompetitorPage.tsx` | 경쟁 판매 분석 라우트. 경쟁 채널 필터, 자사판매량 존재 행 토글, 경쟁 KPI, 공통 산점도 카드, 경쟁 목록, 후보군 일괄 담기 진입을 조립한다. 목록 렌더는 `CompetitorAnalysisList.tsx`, KPI는 `CompetitorKpiGrid.tsx`, 필터 우측 토글/버튼은 `CompetitorFilterEndControls.tsx`에 위임한다. 기본 목록 정렬은 경쟁 판매량 오름차순이며, 경쟁 채널이 `전체`이면 API 응답은 전체 경쟁 채널 합계여야 한다. |
 | `SnapshotConfirmPage.tsx` | 후보군 목록/업로드/수정/삭제/복제 라우트의 상태와 API 액션 조립을 소유한다. 업로드 카드, 후보군 카드 리스트, 이름·비고 편집 dialog는 `pages/snapshot-confirm/*` 하위 컴포넌트가 소유한다. |
 | `snapshot-confirm/CandidateStashUploadCard.tsx` | 후보군 엑셀 업로드 card, 템플릿 다운로드 링크, drag/drop 입력 UI를 소유한다. 실제 업로드 API 호출은 페이지에서 주입받는다. |
 | `snapshot-confirm/CandidateStashList.tsx` | 후보군 카드 목록과 빈 상태 렌더링을 소유한다. 상세 열기/복제/편집/삭제 API 동작은 페이지에서 주입받는다. |

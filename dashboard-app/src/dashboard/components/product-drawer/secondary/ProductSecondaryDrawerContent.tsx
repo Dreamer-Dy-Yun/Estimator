@@ -122,7 +122,6 @@ export function ProductSecondaryDrawerContent({
   const confirmedQtyTotal = sizeRows.reduce((acc, r) => acc + Math.max(0, Math.round(r.confirmQty)), 0)
   const perUnitFee = Math.round((unitPriceInput * expectedFeeRatePct) / 100)
   const perUnitOpMargin = unitPriceInput - unitCostInput - perUnitFee
-  const liveCandidateCompactMode = candidateItemContext != null && !showSnapshotInfo
   const aiCommentCard = (
     <ComponentErrorBoundary page={pageName} unit="AiCommentCard">
       <AiCommentCard comment={aiComment} />
@@ -196,73 +195,64 @@ export function ProductSecondaryDrawerContent({
           </div>
         </div>
       </div>
-      {liveCandidateCompactMode ? (
-        <div className={styles.salesStockAiRow}>
-          {aiCommentCard}
-          {sizeOrderCard}
-        </div>
-      ) : (
-        <>
-          <div className={styles.salesStockAiRow}>
-            <ComponentErrorBoundary page={pageName} unit="SalesForecastCard">
-              <SalesForecastCard
-                forecast={{
-                  inputs: forecastInputs,
-                  error: salesInsightError ?? forecastCalcError,
-                  computed: {
-                    recommendedOrderQtyTotal: recommendedQtyTotal,
-                    confirmedOrderQtyTotal: confirmedQtyTotal,
-                    forecastExpectedSales: recommendedQtyTotal * unitPriceInput,
-                    forecastOpProfit: recommendedQtyTotal * perUnitOpMargin,
-                    confirmedExpectedSales: confirmedQtyTotal * unitPriceInput,
-                    confirmedOpProfit: confirmedQtyTotal * perUnitOpMargin,
-                  },
-                }}
-                orderSettings={{
-                  currentOrderDate: leadTimeStartDate,
-                  nextOrderDate: leadTimeEndDate,
-                  minOrderDate,
-                  bufferStock,
-                  unitCost: unitCostInput,
-                  unitPrice: unitPriceInput,
-                  expectedFeeRatePct,
-                }}
-                actions={{
-                  onCurrentOrderDateChange,
-                  onNextOrderDateChange,
-                  onBufferStockChange,
-                  onUnitCostChange,
-                  onUnitPriceChange,
-                  onExpectedFeeRatePctChange,
-                }}
-                help={{
-                  labelIds: {
-                    forecastQtyCalc: helpIds.forecastQtyCalc,
-                    expectedOpProfitRate: helpIds.expectedOpProfitRate,
-                  },
-                  portal: portalHelp,
-                }}
-              />
-            </ComponentErrorBoundary>
-            {aiCommentCard}
-          </div>
-          <ComponentErrorBoundary page={pageName} unit="SalesTrendDailyCard">
-            <SalesTrendDailyCard
-              skuGroupKey={primary.skuGroupKey}
-              competitorChannelLabel={channel.label}
-              sizeOptions={dailyTrendSizeOptions}
-              trend={{
-                series: dailyTrend.dailyTrendSeries,
-                tickIndices: dailyTrend.dailyTickIndices,
-                periodShade: dailyTrend.dailyPeriodShade,
-                forecastShade: dailyTrend.dailyForecastShade,
-                error: dailyTrend.dailyTrendError,
-              }}
-            />
-          </ComponentErrorBoundary>
-          {sizeOrderCard}
-        </>
-      )}
+      <div className={styles.salesStockAiRow}>
+        <ComponentErrorBoundary page={pageName} unit="SalesForecastCard">
+          <SalesForecastCard
+            forecast={{
+              inputs: forecastInputs,
+              error: salesInsightError ?? forecastCalcError,
+              computed: {
+                recommendedOrderQtyTotal: recommendedQtyTotal,
+                confirmedOrderQtyTotal: confirmedQtyTotal,
+                forecastExpectedSales: recommendedQtyTotal * unitPriceInput,
+                forecastOpProfit: recommendedQtyTotal * perUnitOpMargin,
+                confirmedExpectedSales: confirmedQtyTotal * unitPriceInput,
+                confirmedOpProfit: confirmedQtyTotal * perUnitOpMargin,
+              },
+            }}
+            orderSettings={{
+              currentOrderDate: leadTimeStartDate,
+              nextOrderDate: leadTimeEndDate,
+              minOrderDate,
+              bufferStock,
+              unitCost: unitCostInput,
+              unitPrice: unitPriceInput,
+              expectedFeeRatePct,
+            }}
+            actions={{
+              onCurrentOrderDateChange,
+              onNextOrderDateChange,
+              onBufferStockChange,
+              onUnitCostChange,
+              onUnitPriceChange,
+              onExpectedFeeRatePctChange,
+            }}
+            help={{
+              labelIds: {
+                forecastQtyCalc: helpIds.forecastQtyCalc,
+                expectedOpProfitRate: helpIds.expectedOpProfitRate,
+              },
+              portal: portalHelp,
+            }}
+          />
+        </ComponentErrorBoundary>
+        {aiCommentCard}
+      </div>
+      <ComponentErrorBoundary page={pageName} unit="SalesTrendDailyCard">
+        <SalesTrendDailyCard
+          skuGroupKey={primary.skuGroupKey}
+          competitorChannelLabel={channel.label}
+          sizeOptions={dailyTrendSizeOptions}
+          trend={{
+            series: dailyTrend.dailyTrendSeries,
+            tickIndices: dailyTrend.dailyTickIndices,
+            periodShade: dailyTrend.dailyPeriodShade,
+            forecastShade: dailyTrend.dailyForecastShade,
+            error: dailyTrend.dailyTrendError,
+          }}
+        />
+      </ComponentErrorBoundary>
+      {sizeOrderCard}
       <PortalHelpPopoverLayer
         help={portalHelp}
         popoverClassName={commonStyles.helpPopoverPortal}
