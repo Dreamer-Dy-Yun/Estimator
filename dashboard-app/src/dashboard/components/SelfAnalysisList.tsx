@@ -28,7 +28,7 @@ export function SelfAnalysisList({
   onOrderedSkuGroupKeysChange,
 }: Props) {
   const salesQtyRankBySkuGroupKey = useMemo(
-    () => createDisplayRankMap(rows, getSelfAnalysisRowId, (row) => row.qty),
+    () => createDisplayRankMap(rows, getSelfAnalysisRowId, (row) => row.qty, 'desc'),
     [rows],
   )
 
@@ -118,7 +118,7 @@ export function SelfAnalysisList({
       activeRowId={selectedSkuGroupKey}
       getRowId={getSelfAnalysisRowId}
       onOrderedRowIdsChange={onOrderedSkuGroupKeysChange}
-      defaultSort={{ key: 'salesQtyRank', dir: 'asc' }}
+      defaultSort={{ key: 'qty', dir: 'desc' }}
       onRowClick={(row) => onSelectSkuGroupKey(row.skuGroupKey)}
       onRowKeyDown={(row, event) => {
         if (event.key !== 'ArrowLeft') return

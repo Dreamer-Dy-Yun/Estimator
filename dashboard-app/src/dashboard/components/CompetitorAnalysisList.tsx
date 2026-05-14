@@ -28,7 +28,7 @@ export function CompetitorAnalysisList({
   onOrderedSkuGroupKeysChange,
 }: Props) {
   const competitorQtyRankBySkuGroupKey = useMemo(
-    () => createDisplayRankMap(rows, getCompetitorRowId, (row) => row.competitorQty),
+    () => createDisplayRankMap(rows, getCompetitorRowId, (row) => row.competitorQty, 'desc'),
     [rows],
   )
 
@@ -118,7 +118,7 @@ export function CompetitorAnalysisList({
       activeRowId={selectedSkuGroupKey}
       getRowId={getCompetitorRowId}
       onOrderedRowIdsChange={onOrderedSkuGroupKeysChange}
-      defaultSort={{ key: 'competitorQtyRank', dir: 'asc' }}
+      defaultSort={{ key: 'competitorQty', dir: 'desc' }}
       onRowClick={(row) => onSelectSkuGroupKey(row.skuGroupKey)}
       onRowKeyDown={(row, event) => {
         if (event.key !== 'ArrowLeft') return

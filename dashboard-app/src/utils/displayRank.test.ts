@@ -35,4 +35,20 @@ describe('createDisplayRankMap', () => {
       ['b', 3],
     ])
   })
+
+  it('ranks the highest value first when direction is descending', () => {
+    const rows = [
+      { id: 'a', qty: 30 },
+      { id: 'b', qty: 10 },
+      { id: 'c', qty: 50 },
+    ]
+
+    const rankMap = createDisplayRankMap(rows, (row) => row.id, (row) => row.qty, 'desc')
+
+    expect([...rankMap.entries()]).toEqual([
+      ['c', 1],
+      ['a', 2],
+      ['b', 3],
+    ])
+  })
 })
