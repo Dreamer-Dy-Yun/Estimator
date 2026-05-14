@@ -78,8 +78,8 @@
 @media (min-width: 641px) {
   :global(body[data-primary-drawer-open='true']) .analysisTableWrap .table th,
   :global(body[data-primary-drawer-open='true']) .analysisTableWrap .table td {
-    padding: 6px 4px;
-    font-size: 9.5px;
+    padding: 7px 5px;
+    font-size: 11px;
     line-height: 1.15;
   }
 
