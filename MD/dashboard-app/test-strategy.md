@@ -106,6 +106,8 @@
 ## 8. 성공 기준 (1차 마일스톤)
 
 - 로컬에서 `npm run lint`, `npm run check:encoding`, `npm run test:run`, `npm run build`, `npm run test:e2e`가 통과한다.
+- GitHub Actions 배포 job에서도 `lint -> check:encoding -> test:run -> Playwright Chromium 설치 -> test:e2e -> build` 순서로 통과해야 Pages 배포가 진행된다.
+- `check:encoding`이 `MD`와 `AGENTS.md`까지 검사하므로 workflow trigger path에는 `dashboard-app/**`, `MD/**`, `AGENTS.md`, workflow 파일을 포함한다.
 - 로직/API 계약 변경은 관련 Vitest를 동반한다.
 - 라우트/모달/드로워/로그인 흐름 변경은 Playwright smoke 시나리오 갱신을 검토한다.
 

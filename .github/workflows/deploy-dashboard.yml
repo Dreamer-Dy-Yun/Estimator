@@ -6,6 +6,8 @@ on:
       - main
     paths:
       - dashboard-app/**
+      - MD/**
+      - AGENTS.md
       - .github/workflows/deploy-dashboard.yml
   workflow_dispatch:
 
@@ -44,8 +46,17 @@ jobs:
       - name: Run lint
         run: npm run lint
 
+      - name: Check Korean encoding
+        run: npm run check:encoding
+
       - name: Run tests
         run: npm run test:run
+
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Run E2E tests
+        run: npm run test:e2e
 
       - name: Build
         env:
