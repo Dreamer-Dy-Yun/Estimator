@@ -5,7 +5,7 @@
 | 작성 지시 | Yun Daeyoung |
 | 작성자 | Codex |
 | 작성일 | 2026-05-06 |
-| 최종 수정일 | 2026-05-13 |
+| 최종 수정일 | 2026-05-14 |
 | 상태 | 유지 문서 |
 | 적용 범위 | `dashboard-app`, 프론트엔드 소스, 관련 배포/문서 경계 |
 
@@ -14,6 +14,8 @@
 이 문서는 기능 변경, API 계약 변경, 폴더 이동, 공용 컴포넌트 추가, 주요 스타일/빌드 경계 변경이 있을 때 반드시 같이 업데이트한다.
 
 역할을 한 문장으로 설명하기 어려운 파일이나 폴더가 생기면 먼저 경계를 분리한다. 분리 없이 "여러 일을 한다"라고만 기록하지 않는다.
+
+하드닝 완료 파일은 [module-hardening.md](./module-hardening.md)에 별도 등록한다. 등록된 파일은 명시적 사용자 허가 없이 수정하지 않고, 호출부는 문서화된 공개 계약만 보고 사용한다.
 
 ## 이번 경계 정리
 
@@ -362,18 +364,18 @@ React나 API 구현에 의존하지 않는 순수 보조 함수만 둔다.
 
 | 파일 | 역할 |
 |------|------|
-| `adjacentListNavigation.ts` | 이전/다음 row 탐색 |
-| `analysisKpiWeighted.ts` | 분석 KPI 가중 계산 |
+| `adjacentListNavigation.ts` | 이전/다음 row 탐색. 하드닝 완료 모듈이며 상세 계약은 `module-hardening.md`를 따른다 |
+| `analysisKpiWeighted.ts` | 분석 KPI 매출액 가중 계산. 하드닝 완료 모듈이며 상세 계약은 `module-hardening.md`를 따른다 |
 | `copyToClipboard.ts` | clipboard 복사 helper |
 | `date.ts` | 날짜 formatting/parsing |
 | `forecastMonthsStorage.ts` | forecast month localStorage 저장 |
-| `format.ts` | 숫자/비율/EA 표시 format |
-| `hashRank.ts` | hash 기반 rank 보조 |
+| `format.ts` | 숫자/비율/EA 표시 format. 하드닝 완료 모듈이며 상세 계약은 `module-hardening.md`를 따른다 |
+| `hashRank.ts` | hash 기반 rank 보조. 하드닝 완료 모듈이며 상세 계약은 `module-hardening.md`를 따른다 |
 | `candidateOrderExcelExport.ts` | 이미 조회한 후보군 아이템의 `orderExport` DTO를 발주용 XLSX로 변환하고 다운로드 파일명을 만든다. `CandidateOrderWorkbookBuilder`가 ExcelJS 모듈, clock, 스타일 정책을 주입받아 통합 문서 생성 책임을 가진다. `exceljs`는 후보군 상세 목록 로딩 후 미리 로드하고 다운로드 시 같은 promise를 재사용한다. 주 데이터/메타 시트 헤더와 `N/A` 셀 스타일을 적용한다 |
 | `salesKpiColumn.ts` | 판매 KPI column view-model helper |
 | `scatterGridDisplay.ts` | Scatter-grid cell count -> blue lightness color, and response meta + chart size -> dynamic point radius. Binning itself remains backend-owned. |
-| `sort.ts` | 정렬 방향/상태/값 타입과 한국어 문자열·숫자·빈 값 비교 helper |
-| `uniqueSortedStrings.ts` | 문자열 option 정렬/중복 제거 |
+| `sort.ts` | 정렬 방향/상태/값 타입과 한국어 문자열·숫자·빈 값 비교 helper. 하드닝 완료 모듈이며 상세 계약은 `module-hardening.md`를 따른다 |
+| `uniqueSortedStrings.ts` | 문자열 option 정렬/중복 제거. 하드닝 완료 모듈이며 상세 계약은 `module-hardening.md`를 따른다 |
 
 ## 테스트 파일 규칙
 

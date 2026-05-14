@@ -1,3 +1,9 @@
+/**
+ * Hardened module: shared table/list sort primitives.
+ * Responsibility: compare nullable primitive values and cycle a column sort state through asc -> desc -> none.
+ * Contract: missing values sort last in ascending comparisons; callers apply direction outside the comparator.
+ * Side effects: none.
+ */
 export type SortDirection = 'asc' | 'desc'
 export type SortValue = string | number | null | undefined
 export type SortState<TKey extends string = string> = {

@@ -1,3 +1,9 @@
+/**
+ * Hardened module: adjacent id navigation.
+ * Responsibility: resolve previous/next ids inside the caller-provided visible order.
+ * Contract: navigation wraps at both ends and returns null when no current id or no visible ids exist.
+ * Side effects: none.
+ */
 /** `ArrowLeft` / `ArrowRight` 등에서 이전·다음 항목으로 쓰는 방향. */
 export type AdjacentDirection = 'prev' | 'next'
 

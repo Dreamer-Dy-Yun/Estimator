@@ -1,3 +1,9 @@
+/**
+ * Hardened module: shared display formatting.
+ * Responsibility: convert already computed numeric values into Korean-locale UI strings.
+ * Contract: nullable helpers render missing values as `-`; they do not invent business defaults.
+ * Side effects: none.
+ */
 /** `null`이면 `'-'`, 아니면 천 단위 구분 `ko-KR` (수량·금액 공통 표기). */
 export function formatGroupedNumber(value: number | null): string {
   if (value === null) return '-'
