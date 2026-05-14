@@ -94,16 +94,24 @@ export function SnapshotInfoToggleCard({
   showSnapshotInfo,
   onShowSnapshotInfoChange,
 }: SnapshotInfoToggleCardProps) {
+  const disabled = !hasSnapshot || loading
+
   return (
-    <label className={styles.snapshotInfoToggle}>
-      <input
-        type="checkbox"
-        checked={showSnapshotInfo}
-        disabled={!hasSnapshot || loading}
-        onChange={(event) => onShowSnapshotInfoChange(event.target.checked)}
-      />
-      <span>{KO.labelSnapshotInfoToggle}</span>
-    </label>
+    <button
+      type="button"
+      className={`${styles.snapshotInfoToggle} ${
+        showSnapshotInfo ? styles.snapshotInfoToggleOn : ''
+      }`}
+      role="switch"
+      aria-checked={showSnapshotInfo}
+      disabled={disabled}
+      onClick={() => onShowSnapshotInfoChange(!showSnapshotInfo)}
+    >
+      <span className={styles.snapshotInfoSwitchTrack} aria-hidden="true">
+        <span className={styles.snapshotInfoSwitchThumb} />
+      </span>
+      <span className={styles.snapshotInfoToggleText}>{KO.labelSnapshotInfoToggle}</span>
+    </button>
   )
 }
 
