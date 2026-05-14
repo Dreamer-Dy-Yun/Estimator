@@ -3,6 +3,7 @@ import { deleteAdminGptKey, rotateAdminGptKey, testAdminGptKey, updateAdminGptKe
 import type { AdminGptKeyPurpose, AdminGptKeySummary, AdminGptKeyTestResult } from '../api'
 import { useAppToast } from '../components/AppToastContext'
 import { LoadingSpinner } from '../components/LoadingSpinner'
+import { AdminActiveSwitch } from './AdminActiveSwitch'
 import { GPT_KEY_PURPOSE_OPTIONS, getErrorMessage } from './adminHelpers'
 import styles from './AdminPage.module.css'
 
@@ -162,15 +163,18 @@ export function AdminGptKeyDialog({
             <span>모델</span>
             <input value={model} onChange={(event) => setModel(event.target.value)} maxLength={80} />
           </label>
-          <label className={styles.createActiveField}>
-            <input type="checkbox" checked={isActive} onChange={(event) => setIsActive(event.target.checked)} />
-            <span>활성</span>
-          </label>
+          <div className={styles.createActiveField}>
+            <AdminActiveSwitch checked={isActive} onChange={setIsActive} />
+          </div>
           <label className={`${styles.createField} ${styles.gptKeyDialogNote}`}>
             <span>메모</span>
             <input value={note} onChange={(event) => setNote(event.target.value)} maxLength={200} />
           </label>
-          <button className={styles.createButton} type="submit" disabled={!isDirty || isSaving}>
+          <button
+            className={`${styles.createButton} ${styles.gptKeyDialogSubmitButton}`}
+            type="submit"
+            disabled={!isDirty || isSaving}
+          >
             {isSaving ? <LoadingSpinner size="inline" label="변경 중" /> : '변경'}
           </button>
         </form>

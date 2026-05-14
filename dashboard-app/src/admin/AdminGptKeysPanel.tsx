@@ -7,6 +7,7 @@ import type {
   AdminGptKeySummary,
   AdminGptKeyTestResult,
 } from '../api'
+import { AdminActiveSwitch } from './AdminActiveSwitch'
 import { GPT_KEY_PURPOSE_OPTIONS, getErrorMessage } from './adminHelpers'
 import { AdminGptKeyDialog } from './AdminGptKeyDialog'
 import { AdminGptKeyRow } from './AdminGptKeyRow'
@@ -148,14 +149,9 @@ export function AdminGptKeysPanel() {
             autoComplete="off"
           />
         </label>
-        <label className={styles.createActiveField}>
-          <input
-            type="checkbox"
-            checked={newIsActive}
-            onChange={(event) => setNewIsActive(event.target.checked)}
-          />
-          <span>활성</span>
-        </label>
+        <div className={styles.createActiveField}>
+          <AdminActiveSwitch checked={newIsActive} onChange={setNewIsActive} />
+        </div>
         <label className={`${styles.createField} ${styles.gptKeyCreateNote}`}>
           <span>메모</span>
           <input
