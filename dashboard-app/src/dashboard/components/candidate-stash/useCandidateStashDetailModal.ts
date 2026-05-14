@@ -1,47 +1,18 @@
-﻿import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
-  deleteCandidateItem,
-  deleteCandidateItems,
-  getCandidateItemByUuid,
   getCandidateItemsByStash,
   getCandidateRecommendations,
   getCandidateStashes,
   type CandidateItemSummary,
   type CandidateStashSummary,
 } from '../../../api'
-import type { AdjacentDirection } from '../../../utils/adjacentListNavigation'
-import { adjacentIdInOrder } from '../../../utils/adjacentListNavigation'
-import { clampForecastMonths } from '../../../utils/forecastMonthsStorage'
-import { parseOrderSnapshot } from '../../../snapshot/parseOrderSnapshot'
-import type { OrderSnapshotDocumentV1 } from '../../../snapshot/orderSnapshotTypes'
-import { compareSortValues, nextSortState, type SortState, type SortValue } from '../../../utils/sort'
-import { uniqueSortedStrings } from '../../../utils/uniqueSortedStrings'
-import { mergePrimarySummaryFromBundleAndSnapshot } from '../../drawer/mergePrimarySummaryFromSnapshot'
-import { useProductDrawerBundle } from '../../hooks/useProductDrawerBundle'
 import { normalizeRangeOnEndInput, normalizeRangeOnStartInput } from '../../hooks/usePeriodRangeFilter'
-import {
-  createCandidateOrderExcelExport,
-  downloadBlob,
-  preloadCandidateOrderExcelExport,
-} from '../../../utils/candidateOrderExcelExport'
+import { preloadCandidateOrderExcelExport } from '../../../utils/candidateOrderExcelExport'
 import { useAppToast } from '../../../components/AppToastContext'
 import { useCandidateStashAnalysisProgress } from './useCandidateStashAnalysisProgress'
-
-const INNER_DRAWER_CLOSE_LAYOUT_MS = 440
-
-export type InnerCandidateRow = CandidateItemSummary & { id: string }
-export type InnerCandidateSortKey =
-  | 'brand'
-  | 'code'
-  | 'productName'
-  | 'colorCode'
-  | 'isDetailConfirmed'
-  | 'selfQty'
-  | 'competitorQty'
-  | 'expectedSalesQty'
-  | 'expectedOrderAmount'
-
-type InnerCandidateSortState = SortState<InnerCandidateSortKey>
+import { useInnerCandidateTable } from './useInnerCandidateTable'
+import { useCandidateStashItemDrawer } from './useCandidateStashItemDrawer'
+import { useCandidateStashItemActions } from './useCandidateStashItemActions'
 
 type Args = {
   stashUuid: string
@@ -50,28 +21,7 @@ type Args = {
   onStashesInvalidate?: () => void
 }
 
-function candidateSortValue(row: InnerCandidateRow, key: InnerCandidateSortKey): SortValue {
-  switch (key) {
-    case 'brand':
-      return row.brand
-    case 'code':
-      return row.code
-    case 'productName':
-      return row.productName
-    case 'colorCode':
-      return row.colorCode
-    case 'isDetailConfirmed':
-      return row.isDetailConfirmed ? 1 : 0
-    case 'selfQty':
-      return row.insight.selfQty
-    case 'competitorQty':
-      return row.insight.competitorQty
-    case 'expectedSalesQty':
-      return row.insight.expectedSalesQty
-    case 'expectedOrderAmount':
-      return row.expectedOrderAmount
-  }
-}
+export type { InnerCandidateRow, InnerCandidateSortKey } from './candidateStashDetailTypes'
 
 export function useCandidateStashDetailModal({
   stashUuid,
@@ -85,34 +35,15 @@ export function useCandidateStashDetailModal({
   const [recommendationError, setRecommendationError] = useState<string | null>(null)
   const [detailLoading, setDetailLoading] = useState(false)
   const [detailError, setDetailError] = useState<string | null>(null)
-  const [brandQuery, setBrandQuery] = useState('')
-  const [codeQuery, setCodeQuery] = useState('')
-  const [productNameQuery, setProductNameQuery] = useState('')
-  const [tableSort, setTableSort] = useState<InnerCandidateSortState | null>(null)
   const [dataReferencePeriodStart, setDataReferencePeriodStart] = useState('')
   const [dataReferencePeriodEnd, setDataReferencePeriodEnd] = useState('')
 
-  const [drawerOpen, setDrawerOpen] = useState(false)
-  const [drawerClosing, setDrawerClosing] = useState(false)
-  const [drawerError, setDrawerError] = useState<string | null>(null)
-  const [drawerSkuGroupKey, setDrawerSkuGroupKey] = useState<string | null>(null)
-  const [openedItemUuid, setOpenedItemUuid] = useState<string | null>(null)
-  const [hydrateSnap, setHydrateSnap] = useState<OrderSnapshotDocumentV1 | null>(null)
-  const [drawerForecastMonths, setDrawerForecastMonths] = useState(8)
-
   const [itemDeleteTarget, setItemDeleteTarget] = useState<CandidateItemSummary | null>(null)
-  const [itemDeleteBusy, setItemDeleteBusy] = useState(false)
-  const [bulkDeleteBusy, setBulkDeleteBusy] = useState(false)
-  const [orderExportBusy, setOrderExportBusy] = useState(false)
-  const [orderExportError, setOrderExportError] = useState<string | null>(null)
   const { showToast } = useAppToast()
   const mountedRef = useRef(false)
   const stashLoadSeqRef = useRef(0)
   const itemLoadSeqRef = useRef(0)
   const recommendationLoadSeqRef = useRef(0)
-  const drawerRequestSeqRef = useRef(0)
-  const drawerCloseTimerRef = useRef<ReturnType<typeof window.setTimeout> | null>(null)
-  const innerNavLockRef = useRef(false)
   const initializedDetailTargetUuidRef = useRef<string | null>(null)
 
   useEffect(() => {
@@ -122,11 +53,6 @@ export function useCandidateStashDetailModal({
       stashLoadSeqRef.current += 1
       itemLoadSeqRef.current += 1
       recommendationLoadSeqRef.current += 1
-      drawerRequestSeqRef.current += 1
-      if (drawerCloseTimerRef.current != null) {
-        window.clearTimeout(drawerCloseTimerRef.current)
-        drawerCloseTimerRef.current = null
-      }
     }
   }, [])
 
@@ -175,7 +101,13 @@ export function useCandidateStashDetailModal({
   }, [dataReferencePeriodEnd, dataReferencePeriodStart, stashUuid])
 
   useEffect(() => {
-    void loadItems()
+    let alive = true
+    queueMicrotask(() => {
+      if (alive) void loadItems()
+    })
+    return () => {
+      alive = false
+    }
   }, [loadItems])
 
   useEffect(() => {
@@ -210,13 +142,20 @@ export function useCandidateStashDetailModal({
     if (initializedDetailTargetUuidRef.current === nextUuid) return
     initializedDetailTargetUuidRef.current = nextUuid
 
-    if (!detailTarget) {
-      setDataReferencePeriodStart('')
-      setDataReferencePeriodEnd('')
-      return
+    let alive = true
+    queueMicrotask(() => {
+      if (!alive) return
+      if (!detailTarget) {
+        setDataReferencePeriodStart('')
+        setDataReferencePeriodEnd('')
+        return
+      }
+      setDataReferencePeriodStart(detailTarget.periodStart)
+      setDataReferencePeriodEnd(detailTarget.periodEnd)
+    })
+    return () => {
+      alive = false
     }
-    setDataReferencePeriodStart(detailTarget.periodStart)
-    setDataReferencePeriodEnd(detailTarget.periodEnd)
   }, [detailTarget])
 
   const onDataReferencePeriodStartChange = useCallback((value: string) => {
@@ -231,70 +170,21 @@ export function useCandidateStashDetailModal({
     setDataReferencePeriodStart((currentStart) => normalizeRangeOnEndInput(value, currentStart || value).startDate)
   }, [])
 
-  const toggleTableSort = useCallback((key: InnerCandidateSortKey) => {
-    setTableSort((current) => nextSortState(current, key))
-  }, [])
-
-  const brandOptions = useMemo(() => uniqueSortedStrings(items.map((i) => i.brand)), [items])
-  const codeOptions = useMemo(() => uniqueSortedStrings(items.map((i) => i.code)), [items])
-  const productNameOptions = useMemo(() => uniqueSortedStrings(items.map((i) => i.productName)), [items])
-
-  const filteredItems = useMemo(() => {
-    return items.filter((item) => {
-      const bq = brandQuery.trim().toLowerCase()
-      const cq = codeQuery.trim().toLowerCase()
-      const nq = productNameQuery.trim().toLowerCase()
-      if (bq && !item.brand.toLowerCase().includes(bq)) return false
-      if (cq && !item.code.toLowerCase().includes(cq)) return false
-      if (nq && !item.productName.toLowerCase().includes(nq)) return false
-      return true
-    })
-  }, [brandQuery, items, codeQuery, productNameQuery])
-
-  const tableRows = useMemo((): InnerCandidateRow[] => {
-    const rows = filteredItems.map((item) => ({ ...item, id: item.uuid }))
-    if (!tableSort) return rows
-    const originalIndex = new Map(rows.map((row, index) => [row.uuid, index]))
-    return [...rows].sort((a, b) => {
-      const compared = compareSortValues(
-        candidateSortValue(a, tableSort.key),
-        candidateSortValue(b, tableSort.key),
-      )
-      if (compared !== 0) return tableSort.dir === 'asc' ? compared : -compared
-      return originalIndex.get(a.uuid)! - originalIndex.get(b.uuid)!
-    })
-  }, [filteredItems, tableSort])
-
-  const totals = useMemo(() => {
-    return filteredItems.reduce(
-      (acc, item) => {
-        acc.qty += item.qty
-        acc.expectedOrderAmount += item.expectedOrderAmount
-        acc.expectedSalesAmount += item.expectedSalesAmount
-        acc.expectedOpProfit += item.expectedOpProfit
-        return acc
-      },
-      { qty: 0, expectedOrderAmount: 0, expectedSalesAmount: 0, expectedOpProfit: 0 },
-    )
-  }, [filteredItems])
-
-  const totalExpectedOpProfitRatePct = useMemo(() => {
-    if (totals.expectedSalesAmount <= 0) return null
-    return (totals.expectedOpProfit / totals.expectedSalesAmount) * 100
-  }, [totals.expectedOpProfit, totals.expectedSalesAmount])
-
-  const fc = clampForecastMonths(drawerForecastMonths)
-  const bundle = useProductDrawerBundle(drawerOpen || drawerClosing ? drawerSkuGroupKey : null, {
-    allowStaleWhileRevalidate: false,
-  })
-
-  const dataReferenceStart = dataReferencePeriodStart || hydrateSnap?.context.periodStart
-  const dataReferenceEnd = dataReferencePeriodEnd || hydrateSnap?.context.periodEnd
+  const table = useInnerCandidateTable(items)
+  const dataReferenceStart = dataReferencePeriodStart || undefined
+  const dataReferenceEnd = dataReferencePeriodEnd || undefined
   useEffect(() => {
+    let alive = true
     recommendationLoadSeqRef.current += 1
-    setRecommendationItems([])
-    setRecommendationError(null)
-    setRecommendationLoading(false)
+    queueMicrotask(() => {
+      if (!alive) return
+      setRecommendationItems([])
+      setRecommendationError(null)
+      setRecommendationLoading(false)
+    })
+    return () => {
+      alive = false
+    }
   }, [dataReferenceEnd, dataReferenceStart, stashUuid])
 
   const loadRecommendations = useCallback(async (): Promise<CandidateItemSummary[]> => {
@@ -323,193 +213,83 @@ export function useCandidateStashDetailModal({
     }
   }, [dataReferenceEnd, dataReferenceStart, stashUuid])
 
-  const mergedSummary = useMemo(
-    () => mergePrimarySummaryFromBundleAndSnapshot(drawerSkuGroupKey, bundle, hydrateSnap),
-    [bundle, drawerSkuGroupKey, hydrateSnap],
-  )
-
-  if (drawerOpen && (!dataReferenceStart || !dataReferenceEnd)) {
-    throw new Error('후보 스냅샷 기간 정보 누락')
-  }
-
-  const openItemDrawer = useCallback(async (row: InnerCandidateRow) => {
-    const seq = drawerRequestSeqRef.current + 1
-    drawerRequestSeqRef.current = seq
-    if (drawerCloseTimerRef.current != null) {
-      window.clearTimeout(drawerCloseTimerRef.current)
-      drawerCloseTimerRef.current = null
-    }
-    setDrawerClosing(false)
-    setDrawerError(null)
-    try {
-      const detail = await getCandidateItemByUuid(row.uuid)
-      if (!mountedRef.current || drawerRequestSeqRef.current !== seq) return
-      if (!detail) throw new Error(`후보 상세 데이터 없음: ${row.uuid}`)
-      const snap = detail.details ? parseOrderSnapshot(detail.details) : null
-      if (!mountedRef.current || drawerRequestSeqRef.current !== seq) return
-      setHydrateSnap(snap)
-      setDrawerForecastMonths(clampForecastMonths(snap?.context.forecastMonths ?? detailTarget?.forecastMonths ?? 8))
-      setDrawerSkuGroupKey(row.skuGroupKey)
-      setOpenedItemUuid(row.uuid)
-      setDrawerOpen(true)
-    } catch (err) {
-      if (!mountedRef.current || drawerRequestSeqRef.current !== seq) return
-      const message = err instanceof Error ? err.message : '후보 상세 스냅샷 로드에 실패했습니다.'
-      setDrawerError(message)
-    }
-  }, [detailTarget?.forecastMonths])
-
-  const onRequestNavigateAdjacent = useCallback(
-    async (direction: AdjacentDirection) => {
-      if (!drawerOpen) return
-      if (itemDeleteTarget) return
-      if (innerNavLockRef.current) return
-      const order = tableRows.map((r) => r.uuid)
-      const nextUuid = adjacentIdInOrder(order, openedItemUuid, direction)
-      if (nextUuid == null || nextUuid === openedItemUuid) return
-      const row = tableRows.find((r) => r.uuid === nextUuid)
-      if (!row) return
-      innerNavLockRef.current = true
-      try {
-        await openItemDrawer(row)
-      } finally {
-        innerNavLockRef.current = false
-      }
-    },
-    [drawerOpen, itemDeleteTarget, openedItemUuid, openItemDrawer, tableRows],
-  )
-
-  const closeDrawer = useCallback(() => {
-    drawerRequestSeqRef.current += 1
-    if (!drawerOpen && !drawerClosing && drawerSkuGroupKey == null) return
-    if (drawerCloseTimerRef.current != null) {
-      window.clearTimeout(drawerCloseTimerRef.current)
-      drawerCloseTimerRef.current = null
-    }
-    setDrawerOpen(false)
-    setDrawerClosing(true)
-    drawerCloseTimerRef.current = window.setTimeout(() => {
-      drawerCloseTimerRef.current = null
-      if (!mountedRef.current) return
-      setDrawerClosing(false)
-      setDrawerSkuGroupKey(null)
-      setOpenedItemUuid(null)
-      setHydrateSnap(null)
-    }, INNER_DRAWER_CLOSE_LAYOUT_MS)
-  }, [drawerClosing, drawerOpen, drawerSkuGroupKey])
-
-  const onDrawerForecastMonthsChange = useCallback((n: number) => {
-    setDrawerForecastMonths(clampForecastMonths(n))
-  }, [])
+  const drawer = useCandidateStashItemDrawer({
+    dataReferenceStart,
+    dataReferenceEnd,
+    detailTarget,
+    itemDeleteTargetUuid: itemDeleteTarget?.uuid ?? null,
+    tableRows: table.tableRows,
+  })
+  const actions = useCandidateStashItemActions({
+    stashUuid,
+    detailTarget,
+    items,
+    itemDeleteTarget,
+    openedItemUuid: drawer.openedItemUuid,
+    closeDrawer: drawer.closeDrawer,
+    loadItems,
+    refreshStashes,
+    showToast,
+  })
 
   const confirmDeleteItem = useCallback(async () => {
-    if (!itemDeleteTarget) return
-    setItemDeleteBusy(true)
-    try {
-      await deleteCandidateItem(itemDeleteTarget.uuid)
-      if (!mountedRef.current) return
-      if (openedItemUuid === itemDeleteTarget.uuid) closeDrawer()
-      setItemDeleteTarget(null)
-      await loadItems()
-      await refreshStashes()
-      showToast('후보를 삭제했습니다.')
-    } finally {
-      if (mountedRef.current) setItemDeleteBusy(false)
-    }
-  }, [closeDrawer, itemDeleteTarget, loadItems, openedItemUuid, refreshStashes, showToast])
-
-  const confirmDeleteItems = useCallback(async (itemUuids: string[]) => {
-    const uniqueUuids = [...new Set(itemUuids)]
-    if (!uniqueUuids.length) return
-    setBulkDeleteBusy(true)
-    try {
-      await deleteCandidateItems(stashUuid, uniqueUuids)
-      if (!mountedRef.current) return
-      if (openedItemUuid && uniqueUuids.includes(openedItemUuid)) closeDrawer()
-      await loadItems()
-      await refreshStashes()
-      showToast('선택한 후보를 삭제했습니다.')
-    } finally {
-      if (mountedRef.current) setBulkDeleteBusy(false)
-    }
-  }, [closeDrawer, loadItems, openedItemUuid, refreshStashes, showToast, stashUuid])
-
-  const downloadOrderExcel = useCallback(async (userName: string) => {
-    if (!detailTarget) return
-    if (!items.length) return
-    setOrderExportBusy(true)
-    setOrderExportError(null)
-    try {
-      const { blob, filename } = await createCandidateOrderExcelExport({
-        stashName: detailTarget.name,
-        userName,
-        items,
-      })
-      if (!mountedRef.current) return
-      downloadBlob(blob, filename)
-      showToast('엑셀 다운로드 파일을 생성했습니다.')
-    } catch (err) {
-      if (!mountedRef.current) return
-      const message = err instanceof Error ? err.message : '엑셀 다운로드 파일 생성에 실패했습니다.'
-      setOrderExportError(message)
-    } finally {
-      if (mountedRef.current) setOrderExportBusy(false)
-    }
-  }, [detailTarget, items, showToast])
+    await actions.confirmDeleteItem()
+    if (mountedRef.current) setItemDeleteTarget(null)
+  }, [actions])
 
   return {
-    drawerOpen,
-    drawerClosing,
+    drawerOpen: drawer.drawerOpen,
+    drawerClosing: drawer.drawerClosing,
     items,
     recommendationItems,
     recommendationLoading,
     recommendationError,
     detailLoading,
     detailError,
-    brandQuery,
-    setBrandQuery,
-    codeQuery,
-    setCodeQuery,
-    productNameQuery,
-    setProductNameQuery,
-    tableSort,
-    toggleTableSort,
-    drawerError,
-    openedItemUuid,
-    hydrateSnap,
+    brandQuery: table.brandQuery,
+    setBrandQuery: table.setBrandQuery,
+    codeQuery: table.codeQuery,
+    setCodeQuery: table.setCodeQuery,
+    productNameQuery: table.productNameQuery,
+    setProductNameQuery: table.setProductNameQuery,
+    tableSort: table.tableSort,
+    toggleTableSort: table.toggleTableSort,
+    drawerError: drawer.drawerError,
+    openedItemUuid: drawer.openedItemUuid,
+    hydrateSnap: drawer.hydrateSnap,
     dataReferencePeriodStart,
     dataReferencePeriodEnd,
     onDataReferencePeriodStartChange,
     onDataReferencePeriodEndChange,
-    fc,
-    bundle,
-    mergedSummary,
+    fc: drawer.fc,
+    bundle: drawer.bundle,
+    mergedSummary: drawer.mergedSummary,
     periodStart: dataReferenceStart,
     periodEnd: dataReferenceEnd,
     itemDeleteTarget,
-    itemDeleteBusy,
-    bulkDeleteBusy,
-    orderExportBusy,
-    orderExportError,
+    itemDeleteBusy: actions.itemDeleteBusy,
+    bulkDeleteBusy: actions.bulkDeleteBusy,
+    orderExportBusy: actions.orderExportBusy,
+    orderExportError: actions.orderExportError,
     analysisProgress,
     analysisError,
     setItemDeleteTarget,
     detailTarget,
-    brandOptions,
-    codeOptions,
-    productNameOptions,
-    tableRows,
-    totals,
-    totalExpectedOpProfitRatePct,
-    openItemDrawer,
-    onRequestNavigateAdjacent,
-    closeDrawer,
-    onDrawerForecastMonthsChange,
+    brandOptions: table.brandOptions,
+    codeOptions: table.codeOptions,
+    productNameOptions: table.productNameOptions,
+    tableRows: table.tableRows,
+    totals: table.totals,
+    totalExpectedOpProfitRatePct: table.totalExpectedOpProfitRatePct,
+    openItemDrawer: drawer.openItemDrawer,
+    onRequestNavigateAdjacent: drawer.onRequestNavigateAdjacent,
+    closeDrawer: drawer.closeDrawer,
+    onDrawerForecastMonthsChange: drawer.onDrawerForecastMonthsChange,
     loadItems,
     refreshStashes,
     confirmDeleteItem,
-    confirmDeleteItems,
-    downloadOrderExcel,
+    confirmDeleteItems: actions.confirmDeleteItems,
+    downloadOrderExcel: actions.downloadOrderExcel,
     loadRecommendations,
   }
 }

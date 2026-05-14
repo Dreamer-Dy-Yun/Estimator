@@ -157,6 +157,33 @@
   flex-shrink: 0;
 }
 
+.sizeOrderTooltip {
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 8px 10px;
+  background: #ffffff;
+  color: #0f172a;
+  font-size: 12px;
+}
+
+.sizeOrderTooltipTitle {
+  margin-bottom: 4px;
+  color: #475569;
+}
+
+.sizeOrderTooltipRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.sizeOrderTooltipSwatch {
+  width: 8px;
+  height: 8px;
+  flex-shrink: 0;
+  border-radius: 999px;
+}
+
 /**
  * 확정 수량 셀: 표 안에서 우측 정렬·세로 가운데 유지 (input을 td에 직접 두면 레이아웃이 깨지기 쉬움)
  */

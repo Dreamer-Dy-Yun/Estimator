@@ -239,7 +239,11 @@
 |------|------|
 | `CandidateStashDetailModal.tsx` | 특정 후보군 상세 모달의 화면 조립. 데이터 참조기간 입력, 요약, 필터, 엑셀 다운로드 액션, 추천 보기 호출/적용, drawer 연결, 일괄/개별 삭제 확인 흐름을 소유한다 |
 | `CandidateStashDetailModal.module.css` | 후보군 상세 모달 CSS 진입점. 실제 스타일은 `candidate-stash/style-parts/*`가 header, analysis status, filter/summary, inner order list, modal shell, responsive로 나눠 소유한다 |
-| `useCandidateStashDetailModal.ts` | 후보군 상세 모달의 API 호출, 필터, 리스트 정렬 상태, 데이터 참조기간 override, 기간 기반 후보 아이템 조회, 추천 후보 조회 상태, 프론트 발주 엑셀 생성 상태, drawer hydration, drawer 닫힘 전환 상태 |
+| `useCandidateStashDetailModal.ts` | 후보군 상세 모달의 얇은 조립 hook. 후보군/아이템 조회, 데이터 참조기간 초기화, 추천 조회 트리거, 분석 완료 새로고침을 묶고, 필터·정렬은 `useInnerCandidateTable.ts`, drawer hydration/전환은 `useCandidateStashItemDrawer.ts`, 삭제·엑셀 액션은 `useCandidateStashItemActions.ts`에 위임한다 |
+| `useInnerCandidateTable.ts` | 이너 후보 아이템의 필터 옵션, 검색어, 정렬 상태, 표 row 생성, 합계 계산을 소유한다 |
+| `useCandidateStashItemDrawer.ts` | 이너 후보 아이템 2차 드로워 열기/닫기 전환, 스냅샷 hydration, 인접 아이템 이동을 소유한다 |
+| `useCandidateStashItemActions.ts` | 이너 후보 아이템 삭제, 일괄 삭제, 엑셀 다운로드 생성 액션 상태를 소유한다 |
+| `candidateStashDetailTypes.ts` | 이너 후보 row와 정렬 key 타입 |
 | `useCandidateStashAnalysisProgress.ts` | 후보군 AI 분석 SSE 구독 hook. 작업 시작, 진행/실패/완료 상태, 완료 후 새로고침 콜백 호출을 소유한다 |
 | `InnerCandidateOrderList.tsx` | 이너 후보 리스트 표면 UI. 표시 순서 인덱스, 정렬 헤더, 상세확정 컬럼, 선택 체크박스, badge 렌더링을 소유한다 |
 | `AnalysisCandidateBulkAddModal.tsx` | 자사/경쟁사 분석 리스트에서 선택한 상품을 기존 후보군에 담거나 새 후보군을 만든 뒤 담는 모달. 스냅샷을 만들지 않고 `appendCandidateItems`만 호출한다 |
@@ -274,14 +278,15 @@
 
 | 파일/폴더 | 역할 |
 |------|------|
-| `ProductSecondaryDrawer.tsx` | 2차 드로워 content orchestration. 카드 배치, 이너후보군 live compact 표시, 스냅샷 기준 보기 토글을 소유한다. 저장 스냅샷의 큰 구조는 `parseOrderSnapshot`에 맡기고, live 모드는 AI 코멘트와 사이즈별 오더량 중심으로 보이며, 스냅샷 기준 보기에서는 저장 당시 기간과 전체 값을 복원한다 |
+| `ProductSecondaryDrawer.tsx` | 2차 드로워 container. 기간/단가/AI 코멘트/스냅샷 토글 같은 화면 상태만 들고, 요청은 `hooks/useSecondaryDrawerRequests.ts`, 계산은 `hooks/useSecondaryOrderCalculations.ts`, 조립은 `hooks/useSecondaryForecastModel.ts`, 렌더는 `ProductSecondaryDrawerContent.tsx`에 위임한다 |
+| `ProductSecondaryDrawerContent.tsx` | 2차 드로워 render-only content. 메타/후보군 액션/판매예측/AI 코멘트/일별 추이/사이즈 오더 카드 배치와 help popover 렌더링만 소유한다 |
 | `useSecondaryDrawerDetail.ts` | 2차 드로워가 열릴 때의 상세 조회와 검증된 스냅샷 hydration |
 | `secondaryDrawerTypes.ts` | 2차 드로워 내부 view-model 타입 |
 | `candidateActionCards.tsx` | 2차 드로워에서 후보군 저장/연결 액션 UI |
 | `CandidateStashPickerModal.tsx` | 2차 드로워 후보군 선택/생성 portal 모달. 후보군 옵션 표시와 선택 이벤트만 소유한다 |
 | `secondarySnapshot.ts` | 2차 드로워의 오더 스냅샷 문서 생성. 저장 범위와 `OrderSnapshotDocumentV1` 필드 매핑을 UI 본문에서 분리한다 |
-| `cards/*` | 2차 드로워 카드 단위 UI. `SizeOrderCard`의 가중치 조절막대는 왼쪽 자사/오른쪽 경쟁사 시각 방향을 따르며, 내부 상태는 스냅샷 계약에 맞춰 `selfWeightPct`로 저장한다 |
-| `hooks/*` | 2차 드로워의 컨테이너 단위 API 요청/액션 상태. 판매 정보, 재고·발주 계산, 선택 경쟁 채널 기준 일별 추이, 후보군 선택/저장 액션 상태를 소유한다 |
+| `cards/*` | 2차 드로워 카드 단위 UI. `SizeOrderCard`는 사이즈별 오더 표와 가중치 입력만 소유하고, 비중 차트 행은 `SizeOrderShareChartRow.tsx`가 소유한다. 가중치 상태는 스냅샷 계약에 맞춰 `selfWeightPct`로 저장한다 |
+| `hooks/*` | 2차 드로워 hook 경계. `useSecondaryDrawerRequests.ts`는 API 요청, `useSecondaryOrderCalculations.ts`는 계산 view-model, `useSecondaryForecastModel.ts`는 상태/요청/계산 결과를 얇게 조립, `useSecondaryCandidateActions.ts`는 후보군 저장/수정 액션을 소유한다 |
 | `model/*` | 2차 드로워 계산 로직. `SecondaryOrderDraft`는 live/snapshot 모드별 사이즈 확정 수량 baseline과 사용자 override 책임을 묶은 작은 클래스다. `secondarySizeOrderRows.ts`는 사이즈 비중, 추천 수량, 확정 수량 view-model 생성을 소유한다 |
 | `style-parts/*` | `secondaryDrawer.module.css`가 CSS `@import`로 묶는 2차 드로워 카드/컨트롤/표/입력 스타일 조각 |
 | `secondaryDrawer.module.css` | 2차 드로워 content 스타일 |
