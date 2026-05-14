@@ -10,14 +10,24 @@ import {
   type CandidateStashSummary,
 } from '../../api'
 import { useAppToast } from '../../components/AppToastContext'
-import { formatDateTimeMinute } from '../../utils/date'
 import styles from '../components/common.module.css'
-import { ConfirmModal } from '../components/ConfirmModal'
-import confirmStyles from '../components/ConfirmModal.module.css'
-import pageStyles from './SnapshotConfirmPage.module.css'
 import { CandidateStashDetailModal } from '../components/candidate-stash/CandidateStashDetailModal'
-import { DeleteButton } from '../components/DeleteButton'
+import { ConfirmModal } from '../components/ConfirmModal'
 import { FilterBar } from '../components/FilterBar'
+import { CandidateStashEditDialog } from './snapshot-confirm/CandidateStashEditDialog'
+import { CandidateStashList } from './snapshot-confirm/CandidateStashList'
+import { CandidateStashUploadCard } from './snapshot-confirm/CandidateStashUploadCard'
+import pageStyles from './SnapshotConfirmPage.module.css'
+
+type StashSortKey = 'createdDesc' | 'createdAsc' | 'updatedDesc' | 'updatedAsc'
+
+const SORT_LABEL_BY_KEY: Record<StashSortKey, string> = {
+  createdDesc: '생성일 최신순',
+  createdAsc: '생성일 오래된순',
+  updatedDesc: '변경일 최신순',
+  updatedAsc: '변경일 오래된순',
+}
+const SORT_OPTIONS = Object.values(SORT_LABEL_BY_KEY)
 
 const toTime = (iso: string) => {
   const ts = new Date(iso).getTime()
@@ -39,7 +49,7 @@ export const SnapshotConfirmPage = () => {
   const [editBusy, setEditBusy] = useState(false)
   const [stashNameQuery, setStashNameQuery] = useState('')
   const [stashNoteQuery, setStashNoteQuery] = useState('')
-  const [stashSortKey, setStashSortKey] = useState<'createdDesc' | 'createdAsc' | 'updatedDesc' | 'updatedAsc'>('createdDesc')
+  const [stashSortKey, setStashSortKey] = useState<StashSortKey>('createdDesc')
   const uploadInputRef = useRef<HTMLInputElement | null>(null)
   const mountedRef = useRef(false)
   const loadStashesSeqRef = useRef(0)
@@ -94,11 +104,11 @@ export const SnapshotConfirmPage = () => {
   }
 
   const filteredStashes = useMemo(() => {
-    const nq = stashNameQuery.trim().toLowerCase()
-    const noteQ = stashNoteQuery.trim().toLowerCase()
+    const nameQuery = stashNameQuery.trim().toLowerCase()
+    const noteQuery = stashNoteQuery.trim().toLowerCase()
     const filtered = stashes.filter((stash) => {
-      if (nq && !stash.name.toLowerCase().includes(nq)) return false
-      if (noteQ && !(stash.note ?? '').toLowerCase().includes(noteQ)) return false
+      if (nameQuery && !stash.name.toLowerCase().includes(nameQuery)) return false
+      if (noteQuery && !(stash.note ?? '').toLowerCase().includes(noteQuery)) return false
       return true
     })
     return [...filtered].sort((a, b) => {
@@ -108,6 +118,43 @@ export const SnapshotConfirmPage = () => {
       return toTime(a.dbUpdatedAt) - toTime(b.dbUpdatedAt)
     })
   }, [stashNameQuery, stashNoteQuery, stashSortKey, stashes])
+
+  const openEditDialog = (stash: CandidateStashSummary) => {
+    setEditTarget(stash)
+    setEditName(stash.name)
+    setEditNote(stash.note ?? '')
+  }
+
+  const duplicateStash = async (stash: CandidateStashSummary) => {
+    setDuplicateBusyUuid(stash.uuid)
+    try {
+      await duplicateCandidateStash(stash.uuid)
+      await loadStashes()
+      showToast('후보군 복제 요청이 완료되었습니다.')
+    } finally {
+      if (mountedRef.current) setDuplicateBusyUuid(null)
+    }
+  }
+
+  const saveEditDialog = async () => {
+    if (!editTarget) return
+    setEditBusy(true)
+    try {
+      await updateCandidateStash({
+        stashUuid: editTarget.uuid,
+        name: editName.trim(),
+        note: editNote.trim() || null,
+      })
+      await loadStashes()
+      if (!mountedRef.current) return
+      setEditTarget(null)
+      showToast('후보군 이름·비고를 변경했습니다.')
+    } finally {
+      if (mountedRef.current) setEditBusy(false)
+    }
+  }
+
+  const selectedDetailStash = stashes.find((stash) => stash.uuid === openDetailStashUuid)
 
   return (
     <section className={`${styles.page} ${pageStyles.snapshotPage}`}>
@@ -132,282 +179,54 @@ export const SnapshotConfirmPage = () => {
           {
             label: '정렬',
             kind: 'select',
-            value:
-              stashSortKey === 'createdDesc'
-                ? '생성일 최신순'
-                : stashSortKey === 'createdAsc'
-                  ? '생성일 오래된순'
-                  : stashSortKey === 'updatedDesc'
-                    ? '변경일 최신순'
-                    : '변경일 오래된순',
-            onChange: (v) => {
-              if (v === '생성일 최신순') setStashSortKey('createdDesc')
-              else if (v === '생성일 오래된순') setStashSortKey('createdAsc')
-              else if (v === '변경일 최신순') setStashSortKey('updatedDesc')
-              else setStashSortKey('updatedAsc')
+            value: SORT_LABEL_BY_KEY[stashSortKey],
+            onChange: (label) => {
+              const nextEntry = Object.entries(SORT_LABEL_BY_KEY).find(([, nextLabel]) => nextLabel === label)
+              setStashSortKey((nextEntry?.[0] as StashSortKey | undefined) ?? 'createdDesc')
             },
-            options: ['생성일 최신순', '생성일 오래된순', '변경일 최신순', '변경일 오래된순'],
+            options: SORT_OPTIONS,
           },
         ]}
       />
 
-      <div className={`${styles.card} ${pageStyles.uploadCard}`}>
-        <div className={pageStyles.uploadCopy}>
-          <div className={pageStyles.uploadTitleRow}>
-            <strong className={pageStyles.uploadTitle}>엑셀 업로드</strong>
-            <span className={pageStyles.uploadBadge}>후보군 추가</span>
-            <p className={pageStyles.uploadDescription}>
-              엑셀 파일을 끌어오거나 클릭해서 오더 후보군을 추가합니다.
-            </p>
-          </div>
-          <div className={pageStyles.uploadTemplateCell}>
-            <a
-              className={pageStyles.templateButton}
-              href={candidateStashTemplateDownload.href}
-              download={candidateStashTemplateDownload.filename}
-            >
-              템플릿 다운로드
-            </a>
-          </div>
-        </div>
-        <div className={pageStyles.uploadControls}>
-          <input
-            id="candidate-stash-excel-upload"
-            ref={uploadInputRef}
-            type="file"
-            accept=".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"
-            className={pageStyles.uploadInput}
-            disabled={uploadBusy}
-            onChange={(e) => {
-              selectUploadFile(e.target.files?.[0] ?? null)
-            }}
-          />
-          <button
-            type="button"
-            className={`${pageStyles.uploadDropzone} ${uploadDragActive ? pageStyles.uploadDropzoneActive : ''}`}
-            disabled={uploadBusy}
-            onClick={() => uploadInputRef.current?.click()}
-            onDragEnter={(e) => {
-              e.preventDefault()
-              e.stopPropagation()
-              if (!uploadBusy) setUploadDragActive(true)
-            }}
-            onDragOver={(e) => {
-              e.preventDefault()
-              e.stopPropagation()
-              if (!uploadBusy) setUploadDragActive(true)
-            }}
-            onDragLeave={(e) => {
-              e.preventDefault()
-              e.stopPropagation()
-              setUploadDragActive(false)
-            }}
-            onDrop={(e) => {
-              e.preventDefault()
-              e.stopPropagation()
-              setUploadDragActive(false)
-              if (uploadBusy) return
-              selectUploadFile(e.dataTransfer.files?.[0] ?? null)
-              if (uploadInputRef.current) uploadInputRef.current.value = ''
-            }}
-          >
-            <span className={pageStyles.uploadDropzoneTitle}>
-              {uploadFile ? uploadFile.name : '엑셀 파일을 끌어오거나 클릭'}
-            </span>
-            <span className={pageStyles.uploadDropzoneSub}>.xlsx, .xls 파일만 업로드</span>
-          </button>
-          <button
-            type="button"
-            className={`${pageStyles.actionBtn} ${pageStyles.btnPrimary}`}
-            disabled={!uploadFile || uploadBusy}
-            onClick={handleExcelUpload}
-          >
-            {uploadBusy ? '업로드 중...' : '업로드'}
-          </button>
-        </div>
-        {(uploadError || uploadResult) && (
-          <div className={uploadError ? pageStyles.uploadError : pageStyles.uploadResult}>
-            {uploadError
-              ? uploadError
-              : `${uploadResult?.stashName ?? '후보군'} 생성 완료 · 등록 상품 ${uploadResult?.itemCount ?? 0}건`}
-          </div>
-        )}
-      </div>
+      <CandidateStashUploadCard
+        templateDownload={candidateStashTemplateDownload}
+        uploadInputRef={uploadInputRef}
+        uploadFile={uploadFile}
+        uploadBusy={uploadBusy}
+        uploadDragActive={uploadDragActive}
+        uploadError={uploadError}
+        uploadResult={uploadResult}
+        onSelectFile={selectUploadFile}
+        onUpload={handleExcelUpload}
+        onDragActiveChange={setUploadDragActive}
+      />
 
-      {!stashes.length ? (
-        <div className={`${styles.card} ${pageStyles.emptyStateCard}`}>저장된 오더 후보군이 없습니다.</div>
-      ) : !filteredStashes.length ? (
-        <div className={`${styles.card} ${pageStyles.emptyStateCard}`}>검색 조건에 맞는 후보군이 없습니다.</div>
-      ) : (
-        <div className={pageStyles.stashList}>
-          {filteredStashes.map((stash) => {
-            return (
-              <div key={stash.uuid} className={`${styles.card} ${pageStyles.stashCard}`}>
-                <div className={pageStyles.stashCardRow}>
-                  <button
-                    type="button"
-                    onClick={() => setOpenDetailStashUuid(stash.uuid)}
-                    style={{
-                      width: '100%',
-                      border: 0,
-                      background: 'transparent',
-                      textAlign: 'left',
-                      padding: 0,
-                      cursor: 'pointer',
-                      display: 'grid',
-                      gap: 6,
-                    }}
-                  >
-                    <div className={pageStyles.stashInfoGrid}>
-                      <div className={pageStyles.stashLeftTop}>
-                        <strong className={pageStyles.stashName}>{stash.name}</strong>
-                        <span className={pageStyles.stashMetaDot}>·</span>
-                        <span className={pageStyles.stashMeta}>등록 상품 {stash.itemCount}건</span>
-                      </div>
-                      <span className={pageStyles.stashMetaRight}>생성일: {formatDateTimeMinute(stash.dbCreatedAt)}</span>
-                      <span className={pageStyles.stashNote}>{stash.note?.trim() ? stash.note : '-'}</span>
-                      <span className={pageStyles.stashMetaRight}>변경일: {formatDateTimeMinute(stash.dbUpdatedAt)}</span>
-                    </div>
-                  </button>
-                  <div className={pageStyles.stashCardActions}>
-                    <button
-                      type="button"
-                      className={`${pageStyles.actionBtn} ${pageStyles.btnNeutral}`}
-                      aria-label={`${stash.name} 이름·비고 편집`}
-                      title="이름·비고 편집"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        setEditTarget(stash)
-                        setEditName(stash.name)
-                        setEditNote(stash.note ?? '')
-                      }}
-                    >
-                      <span className={pageStyles.editLabelFull}>이름·비고 편집</span>
-                      <span className={pageStyles.editLabelCompact}>편집</span>
-                    </button>
-                    <button
-                      type="button"
-                      className={`${pageStyles.actionBtn} ${pageStyles.btnNeutral}`}
-                      disabled={duplicateBusyUuid === stash.uuid}
-                      aria-label={`${stash.name} 복제`}
-                      title="복제"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        void (async () => {
-                          setDuplicateBusyUuid(stash.uuid)
-                          try {
-                            await duplicateCandidateStash(stash.uuid)
-                            await loadStashes()
-                            showToast('후보군 복제 요청이 완료되었습니다.')
-                          } finally {
-                            if (mountedRef.current) setDuplicateBusyUuid(null)
-                          }
-                        })()
-                      }}
-                    >
-                      {duplicateBusyUuid === stash.uuid ? '복제 중…' : '복제'}
-                    </button>
-                    <DeleteButton aria-label={`${stash.name} 삭제`} title="삭제" onClick={() => setDeleteTarget(stash)} />
-                  </div>
-                </div>
-              </div>
-            )
-          })}
-        </div>
-      )}
+      <CandidateStashList
+        allStashesEmpty={!stashes.length}
+        stashes={filteredStashes}
+        duplicateBusyUuid={duplicateBusyUuid}
+        onOpenDetail={setOpenDetailStashUuid}
+        onOpenEdit={openEditDialog}
+        onDuplicate={(stash) => void duplicateStash(stash)}
+        onDelete={setDeleteTarget}
+      />
 
-      {editTarget && (
-        <div
-          className={confirmStyles.backdrop}
-          onClick={() => !editBusy && setEditTarget(null)}
-        >
-          <div
-            className={confirmStyles.panel}
-            onClick={(e) => e.stopPropagation()}
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="stash-edit-dialog-title"
-          >
-            <h3 id="stash-edit-dialog-title" className={confirmStyles.title}>
-              이름·비고 편집
-            </h3>
-            <p className={confirmStyles.text}>
-              후보군 표시용 이름과 비고만 바꿉니다. 등록 상품·스냅샷 데이터는 그대로입니다.
-            </p>
-            <div className={pageStyles.confirmModalForm}>
-              <div className={pageStyles.confirmModalField}>
-                <span className={pageStyles.confirmModalLabel}>후보군 UUID</span>
-                <p className={pageStyles.confirmModalUuid}>{editTarget.uuid}</p>
-              </div>
-              <div className={pageStyles.confirmModalField}>
-                <label className={pageStyles.confirmModalLabel} htmlFor="stash-edit-name">
-                  이름
-                </label>
-                <input
-                  id="stash-edit-name"
-                  type="text"
-                  className={pageStyles.confirmModalInput}
-                  value={editName}
-                  onChange={(e) => setEditName(e.target.value)}
-                  disabled={editBusy}
-                  autoComplete="off"
-                />
-              </div>
-              <div className={pageStyles.confirmModalField}>
-                <label className={pageStyles.confirmModalLabel} htmlFor="stash-edit-note">
-                  비고
-                </label>
-                <textarea
-                  id="stash-edit-note"
-                  className={`${pageStyles.confirmModalInput} ${pageStyles.confirmModalTextarea}`}
-                  value={editNote}
-                  onChange={(e) => setEditNote(e.target.value)}
-                  disabled={editBusy}
-                  rows={3}
-                />
-              </div>
-            </div>
-            <div className={confirmStyles.actions}>
-              <button
-                type="button"
-                className={`${confirmStyles.button} ${confirmStyles.cancelButton}`}
-                onClick={() => setEditTarget(null)}
-                disabled={editBusy}
-              >
-                취소
-              </button>
-              <button
-                type="button"
-                className={`${confirmStyles.button} ${confirmStyles.primaryButton}`}
-                disabled={editBusy || !editName.trim()}
-                onClick={async () => {
-                  setEditBusy(true)
-                  try {
-                    await updateCandidateStash({
-                      stashUuid: editTarget.uuid,
-                      name: editName.trim(),
-                      note: editNote.trim() || null,
-                    })
-                    await loadStashes()
-                    if (!mountedRef.current) return
-                    setEditTarget(null)
-                    showToast('후보군 이름·비고를 변경했습니다.')
-                  } finally {
-                    if (mountedRef.current) setEditBusy(false)
-                  }
-                }}
-              >
-                {editBusy ? '저장 중…' : '저장'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <CandidateStashEditDialog
+        editTarget={editTarget}
+        editName={editName}
+        editNote={editNote}
+        editBusy={editBusy}
+        onNameChange={setEditName}
+        onNoteChange={setEditNote}
+        onClose={() => setEditTarget(null)}
+        onSave={saveEditDialog}
+      />
 
       {openDetailStashUuid && (
         <CandidateStashDetailModal
           stashUuid={openDetailStashUuid}
-          stashSummary={stashes.find((s) => s.uuid === openDetailStashUuid)}
+          stashSummary={selectedDetailStash}
           onClose={() => setOpenDetailStashUuid(null)}
           onStashesInvalidate={loadStashes}
         />
@@ -419,7 +238,7 @@ export const SnapshotConfirmPage = () => {
         title="삭제 확인"
         message={deleteTarget ? <><b>{deleteTarget.name}</b> 후보군을 삭제할까요?</> : null}
         confirmText="삭제"
-        confirmingText="삭제 중…"
+        confirmingText="삭제 중"
         dialogTitleId="stash-list-delete-dialog-title"
         onCancel={() => setDeleteTarget(null)}
         onConfirm={async () => {

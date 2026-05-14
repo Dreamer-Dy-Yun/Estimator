@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { CartesianGrid, Scatter, ScatterChart, Tooltip, XAxis, YAxis } from 'recharts'
 import { getCompetitorSales, getCompetitorSalesScatterGrid, getSecondaryCompetitorChannels } from '../../api'
 import type { SecondaryCompetitorChannel } from '../../api/types'
 import type { CompetitorSalesRow } from '../../types'
@@ -11,30 +10,21 @@ import { getScatterGridCellColor, getScatterGridCellPointRadius } from '../../ut
 import { AnalysisCandidateBulkAddModal } from '../components/candidate-stash/AnalysisCandidateBulkAddModal'
 import { ProductDrawer } from '../components/product-drawer/ProductDrawer'
 import styles from '../components/common.module.css'
-import { AnalysisList } from '../components/AnalysisList'
 import { AnalysisPeriodTools } from '../components/AnalysisPeriodTools'
-import { ChartCard } from '../components/ChartCard'
+import {
+  AnalysisScatterChartCard,
+  type AnalysisScatterGridPoint,
+} from '../components/AnalysisScatterChartCard'
+import { CompetitorAnalysisList } from '../components/CompetitorAnalysisList'
+import { CompetitorFilterEndControls } from '../components/CompetitorFilterEndControls'
+import { CompetitorKpiGrid } from '../components/CompetitorKpiGrid'
 import { FilterBar } from '../components/FilterBar'
-import { KpiGrid } from '../components/KpiGrid'
 import { useElementSize } from '../hooks/useElementSize'
 import { maskNonPeriodAnalysisFilterFields, useAnalysisSalesFilters } from '../hooks/useAnalysisSalesFilters'
 import type { FilterField } from '../model/filterField'
 import { useAnalysisVisibleSelection } from '../hooks/useAnalysisVisibleSelection'
 import { useProductDrawerBundle } from '../hooks/useProductDrawerBundle'
 import type { ScatterSalesGridResponse } from '../../api/types'
-
-type CompetitorScatterGridPoint = {
-  x: number
-  y: number
-  cellKey: string
-  count: number
-  xStart: number
-  xEnd: number
-  yStart: number
-  yEnd: number
-  hasMoreSkuIds: boolean
-  color: string
-}
 
 export const CompetitorPage = () => {
   const [rows, setRows] = useState<CompetitorSalesRow[]>([])
@@ -183,7 +173,7 @@ export const CompetitorPage = () => {
     [scatterGrid],
   )
 
-  const scatterData: CompetitorScatterGridPoint[] = useMemo(
+  const scatterData: AnalysisScatterGridPoint[] = useMemo(
     () => (scatterGrid?.cells ?? []).map((cell) => ({
       x: cell.representativeX,
       y: cell.representativeY,
@@ -210,7 +200,7 @@ export const CompetitorPage = () => {
 
   const renderQtyScatterTooltip = (props: {
     active?: boolean
-    payload?: ReadonlyArray<{ payload?: CompetitorScatterGridPoint }>
+    payload?: ReadonlyArray<{ payload?: AnalysisScatterGridPoint }>
   }) => {
     const { active, payload } = props
     if (!active || !payload?.length) return null
@@ -241,30 +231,6 @@ export const CompetitorPage = () => {
   const scatterChartHeight = Math.max(1, Math.floor(chartHeight))
   const scatterPointRadius = getScatterGridCellPointRadius(scatterGrid?.meta, scatterChartWidth, scatterChartHeight)
 
-  const qtyScatterShape = useCallback(
-    (props: { cx?: number; cy?: number; payload?: CompetitorScatterGridPoint }) => {
-      const { cx, cy, payload } = props
-      if (cx == null || cy == null || !payload) return null
-      const isActive = payload.cellKey === activeGridCellKey
-      return (
-        <circle
-          cx={cx}
-          cy={cy}
-          r={scatterPointRadius}
-          fill={payload.color}
-          stroke={isActive ? '#0f172a' : '#ffffff'}
-          strokeWidth={isActive ? 1.75 : 0.75}
-          style={{ cursor: 'pointer' }}
-          onClick={(e) => {
-            e.stopPropagation()
-            onScatterCellClick(payload.cellKey)
-          }}
-        />
-      )
-    },
-    [activeGridCellKey, onScatterCellClick, scatterPointRadius],
-  )
-
   return (
     <section className={styles.page}>
       <FilterBar
@@ -285,24 +251,12 @@ export const CompetitorPage = () => {
             onPeriodBarStart={onPeriodBarStart}
             onPeriodBarEnd={onPeriodBarEnd}
             endControl={(
-              <div className={styles.periodPresetRowEndGroup}>
-                <label className={styles.periodPresetRowToggle}>
-                  <input
-                    type="checkbox"
-                    checked={showRowsWithSelfSalesOnly}
-                    onChange={(event) => setShowRowsWithSelfSalesOnly(event.target.checked)}
-                  />
-                  <span>자사판매량이 존재하는 경우만 보기</span>
-                </label>
-                <button
-                  type="button"
-                  className={`${styles.actionBtn} ${styles.btnPrimary} ${styles.analysisBulkAddButton}`}
-                  onClick={() => setBulkAddOpen(true)}
-                  disabled={bulkSelectedCount === 0}
-                >
-                  선택한 물품을 후보군으로
-                </button>
-              </div>
+              <CompetitorFilterEndControls
+                showRowsWithSelfSalesOnly={showRowsWithSelfSalesOnly}
+                bulkSelectedCount={bulkSelectedCount}
+                onSelfSalesOnlyChange={setShowRowsWithSelfSalesOnly}
+                onOpenBulkAdd={() => setBulkAddOpen(true)}
+              />
             )}
           />
         )}
@@ -310,129 +264,44 @@ export const CompetitorPage = () => {
 
       <div className={`${styles.twoCol} ${styles.selfTwoCol}`}>
         <div className={`${styles.leftCol} ${styles.selfLeftCol}`}>
-          <KpiGrid
-            stacked
-            items={[
-              { label: '총 경쟁사 판매액', value: formatGroupedNumber(kpi.totalCompetitorAmount), unit: '원' },
-              { label: '총 자사 판매액', value: formatGroupedNumber(kpi.totalSelfAmount), unit: '원' },
-              { label: '총 경쟁사 판매량', value: formatGroupedNumber(kpi.totalCompetitorQty), unit: 'EA' },
-              { label: '총 자사 판매량', value: formatGroupedNumber(kpi.totalSelfQty), unit: 'EA' },
-            ]}
+          <CompetitorKpiGrid
+            totalCompetitorAmount={kpi.totalCompetitorAmount}
+            totalSelfAmount={kpi.totalSelfAmount}
+            totalCompetitorQty={kpi.totalCompetitorQty}
+            totalSelfQty={kpi.totalSelfQty}
           />
 
-          <ChartCard
+          <AnalysisScatterChartCard<AnalysisScatterGridPoint>
             title="경쟁·자사 판매량 비교"
-            className={styles.selfChartCard}
-            titleAction={(
-              <button
-                type="button"
-                className={`${styles.actionBtn} ${styles.btnNeutral} ${styles.chartClearSelectionButton} ${
-                  activeGridCellKey ? '' : styles.chartActionHidden
-                }`}
-                aria-hidden={!activeGridCellKey}
-                aria-label="선택 초기화"
-                disabled={!activeGridCellKey}
-                tabIndex={activeGridCellKey ? 0 : -1}
-                title="선택 초기화"
-                onClick={clearActiveGridCell}
-              >
-                선택 초기화
-              </button>
-            )}
-          >
-            <div ref={chartBodyRef} className={styles.selfChartBody}>
-              {chartReady ? (
-                <ScatterChart
-                  width={scatterChartWidth}
-                  height={scatterChartHeight}
-                  data={scatterData}
-                  margin={{ top: 8, right: 8, bottom: 22, left: 8 }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis
-                    type="number"
-                    dataKey="x"
-                    name="자사 판매량(EA)"
-                    tick={{ fontSize: 10 }}
-                    label={{
-                      value: '자사',
-                      position: 'insideBottom',
-                      offset: -10,
-                      style: { fill: '#2563eb', fontSize: 11, fontWeight: 600 },
-                    }}
-                  />
-                  <YAxis
-                    type="number"
-                    dataKey="y"
-                    name={`${competitorAxisLabel} 판매량(EA)`}
-                    tick={{ fontSize: 10 }}
-                    width={38}
-                    tickMargin={4}
-                    label={{
-                      value: competitorAxisLabel,
-                      angle: -90,
-                      position: 'insideLeft',
-                      offset: 0,
-                      style: { fill: '#ef4444', fontSize: 11, fontWeight: 600 },
-                    }}
-                  />
-                  <Tooltip content={renderQtyScatterTooltip} />
-                  <Scatter fill="#f59e0b" shape={qtyScatterShape} />
-                </ScatterChart>
-              ) : null}
-            </div>
-          </ChartCard>
+            data={scatterData}
+            chartBodyRef={chartBodyRef}
+            chartReady={chartReady}
+            width={scatterChartWidth}
+            height={scatterChartHeight}
+            pointRadius={scatterPointRadius}
+            activeCellKey={activeGridCellKey}
+            onCellClick={onScatterCellClick}
+            onClearSelection={clearActiveGridCell}
+            renderTooltip={renderQtyScatterTooltip}
+            xAxis={{ name: '자사 판매량(EA)', label: '자사', labelColor: '#2563eb' }}
+            yAxis={{
+              name: `${competitorAxisLabel} 판매량(EA)`,
+              label: competitorAxisLabel,
+              labelColor: '#ef4444',
+              width: 38,
+              tickMargin: 4,
+            }}
+          />
         </div>
 
-        <AnalysisList<CompetitorSalesRow>
-          columns={[
-            {
-              key: 'bulkSelect',
-              header: (
-                <input
-                  type="checkbox"
-                  checked={allVisibleRowsSelected}
-                  disabled={visibleRows.length === 0}
-                  aria-label="전체 선택"
-                  onChange={toggleAllVisibleRows}
-                />
-              ),
-              cell: (r) => (
-                <input
-                  type="checkbox"
-                  checked={bulkSelectedSkuGroupKeys.has(r.skuGroupKey)}
-                  aria-label={`${r.productName} 선택`}
-                  onClick={(event) => event.stopPropagation()}
-                  onChange={() => toggleBulkRow(r.skuGroupKey)}
-                />
-              ),
-              align: 'center',
-              width: '42px',
-              sortable: false,
-            },
-            { key: 'rank', header: '순위', cell: (r) => r.rank, align: 'center', sortValue: (r) => r.rank },
-            { key: 'brand', header: '브랜드', cell: (r) => r.brand, width: '8.5%', sortValue: (r) => r.brand },
-            { key: 'category', header: '카테고리', cell: (r) => r.category, sortValue: (r) => r.category },
-            { key: 'code', header: '품번', cell: (r) => r.code, sortValue: (r) => r.code },
-            { key: 'productName', header: '상품명', cell: (r) => r.productName, sortValue: (r) => r.productName },
-            { key: 'colorCode', header: '색상', cell: (r) => r.colorCode, sortValue: (r) => r.colorCode },
-            { key: 'competitorAvgPrice', header: '경쟁 평균가', cell: (r) => formatGroupedNumber(r.competitorAvgPrice), align: 'right', sortValue: (r) => r.competitorAvgPrice },
-            { key: 'selfAvgPrice', header: '자사 평균가', cell: (r) => (r.selfAvgPrice != null ? formatGroupedNumber(r.selfAvgPrice) : '—'), align: 'right', sortValue: (r) => r.selfAvgPrice ?? 0 },
-            { key: 'competitorQty', header: '경쟁 판매량', cell: (r) => formatGroupedNumber(r.competitorQty), align: 'right', sortValue: (r) => r.competitorQty },
-            { key: 'selfQty', header: '자사 판매량', cell: (r) => (r.selfQty != null ? formatGroupedNumber(r.selfQty) : '—'), align: 'right', sortValue: (r) => r.selfQty ?? 0 },
-            { key: 'competitorAmount', header: '경쟁 판매액', cell: (r) => formatGroupedNumber(r.competitorAmount), align: 'right', sortValue: (r) => r.competitorAmount },
-            { key: 'selfAmount', header: '자사 판매액', cell: (r) => (r.selfAmount != null ? formatGroupedNumber(r.selfAmount) : '—'), align: 'right', sortValue: (r) => r.selfAmount ?? 0 },
-          ]}
+        <CompetitorAnalysisList
           rows={visibleRows}
-          defaultSort={{ key: 'competitorQty', dir: 'desc' }}
-          onRowClick={(row) => setSelectedSkuGroupKey(row.skuGroupKey)}
-          onRowKeyDown={(row, event) => {
-            if (event.key !== 'ArrowLeft') return
-            event.preventDefault()
-            setSelectedSkuGroupKey(row.skuGroupKey)
-          }}
-        />
-      </div>
+          allVisibleRowsSelected={allVisibleRowsSelected}
+          bulkSelectedSkuGroupKeys={bulkSelectedSkuGroupKeys}
+          onToggleAllVisibleRows={toggleAllVisibleRows}
+          onToggleBulkRow={toggleBulkRow}
+          onSelectSkuGroupKey={setSelectedSkuGroupKey}
+        />      </div>
 
       <ProductDrawer
         summary={summaryBundle?.summary ?? null}

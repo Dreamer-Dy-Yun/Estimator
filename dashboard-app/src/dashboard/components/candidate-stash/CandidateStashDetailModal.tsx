@@ -1,23 +1,21 @@
-﻿import { useEffect, useMemo, useRef, useState } from 'react'
+import { useMemo, useState } from 'react'
 import type { CandidateStashSummary } from '../../../api'
-import { formatDateTimeMinute } from '../../../utils/date'
-import { formatGroupedNumber, formatRatioDecimalKo } from '../../../utils/format'
 import { useAuth } from '../../../auth/AuthContext'
-import { ConfirmModal } from '../ConfirmModal'
-import { DeleteButton } from '../DeleteButton'
-import { FilterBar } from '../FilterBar'
-import { ProductDrawer } from '../product-drawer/ProductDrawer'
 import { stashDetailModalBackdropDataProps } from '../../drawer/drawerDom'
+import { CandidateRecommendationModal } from './CandidateRecommendationModal'
+import { CandidateStashAnalysisStatusPopup } from './CandidateStashAnalysisStatusPopup'
+import { CandidateStashDeleteDialogs } from './CandidateStashDeleteDialogs'
+import { CandidateStashDetailBody } from './CandidateStashDetailBody'
+import { CandidateStashDetailFilters } from './CandidateStashDetailFilters'
+import { CandidateStashDetailHeader } from './CandidateStashDetailHeader'
+import { CandidateStashMissingState } from './CandidateStashMissingState'
+import { CandidateStashProductDrawer } from './CandidateStashProductDrawer'
 import {
   useCandidateStashDetailModal,
   type InnerCandidateRow,
 } from './useCandidateStashDetailModal'
-import styles from '../common.module.css'
-import { CandidateRecommendationModal } from './CandidateRecommendationModal'
-import { InnerCandidateOrderEmptyState, InnerCandidateOrderList } from './InnerCandidateOrderList'
+import { useVisibleUuidSelection } from './useVisibleUuidSelection'
 import detailStyles from './CandidateStashDetailModal.module.css'
-
-const ANALYSIS_POPUP_AUTO_DISMISS_SECONDS = 5
 
 type Props = {
   stashUuid: string
@@ -28,164 +26,47 @@ type Props = {
 }
 
 export function CandidateStashDetailModal({ stashUuid, stashSummary, onClose, onStashesInvalidate }: Props) {
-  const m = useCandidateStashDetailModal({ stashUuid, stashSummary, onStashesInvalidate })
+  const model = useCandidateStashDetailModal({ stashUuid, stashSummary, onStashesInvalidate })
   const { session } = useAuth()
-  const [selectedItemUuids, setSelectedItemUuids] = useState<Set<string>>(() => new Set())
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false)
-  const [dismissedAnalysisJobKey, setDismissedAnalysisJobKey] = useState<string | null>(null)
-  const [analysisAutoDismissState, setAnalysisAutoDismissState] = useState<{
-    key: string
-    remainingSec: number
-  } | null>(null)
   const [recommendationOpen, setRecommendationOpen] = useState(false)
-  const [recommendationSelectedUuids, setRecommendationSelectedUuids] = useState<Set<string>>(() => new Set())
-  const selectAllRef = useRef<HTMLInputElement | null>(null)
 
-  const visibleItemUuids = useMemo(() => m.tableRows.map((row) => row.uuid), [m.tableRows])
+  const visibleItemUuids = useMemo(() => model.tableRows.map((row) => row.uuid), [model.tableRows])
+  const itemSelection = useVisibleUuidSelection(visibleItemUuids)
   const recommendationRows = useMemo<InnerCandidateRow[]>(
-    () => m.recommendationItems.map((item) => ({ ...item, id: item.uuid })),
-    [m.recommendationItems],
+    () => model.recommendationItems.map((item) => ({ ...item, id: item.uuid })),
+    [model.recommendationItems],
   )
   const recommendationRowUuids = useMemo(() => recommendationRows.map((row) => row.uuid), [recommendationRows])
-  const selectedVisibleItemUuids = useMemo(
-    () => visibleItemUuids.filter((uuid) => selectedItemUuids.has(uuid)),
-    [selectedItemUuids, visibleItemUuids],
-  )
-  const selectedVisibleItemUuidSet = useMemo(
-    () => new Set(selectedVisibleItemUuids),
-    [selectedVisibleItemUuids],
-  )
-  const recommendationSelectedVisibleUuids = useMemo(
-    () => recommendationRowUuids.filter((uuid) => recommendationSelectedUuids.has(uuid)),
-    [recommendationRowUuids, recommendationSelectedUuids],
-  )
-  const recommendationSelectedVisibleUuidSet = useMemo(
-    () => new Set(recommendationSelectedVisibleUuids),
-    [recommendationSelectedVisibleUuids],
-  )
-  const selectedVisibleCount = selectedVisibleItemUuids.length
-  const recommendationSelectedCount = recommendationSelectedVisibleUuids.length
-  const allVisibleSelected = visibleItemUuids.length > 0 && selectedVisibleCount === visibleItemUuids.length
-  const partiallyVisibleSelected = selectedVisibleCount > 0 && selectedVisibleCount < visibleItemUuids.length
-  const allRecommendationSelected =
-    recommendationRowUuids.length > 0 && recommendationSelectedCount === recommendationRowUuids.length
-  const partiallyRecommendationSelected =
-    recommendationSelectedCount > 0 && recommendationSelectedCount < recommendationRowUuids.length
+  const recommendationSelection = useVisibleUuidSelection(recommendationRowUuids)
   const competitorSalesQtyHeader = useMemo(() => {
-    const labels = m.tableRows
+    const labels = model.tableRows
       .map((row) => row.insight.competitorChannelLabel.trim())
       .filter((label) => label.length > 0)
     const uniqueLabels = [...new Set(labels)]
     return uniqueLabels.length === 1 ? `${uniqueLabels[0]} 기간 총 판매량` : '경쟁사 기간 총 판매량'
-  }, [m.tableRows])
-  const activeSortKey = m.tableSort?.key ?? null
-  const activeSortDir = m.tableSort?.dir ?? null
-  const analysisProgressPct = useMemo(() => {
-    const progress = m.analysisProgress
-    if (!progress) return 0
-    if (progress.totalItems <= 0) return progress.status === 'completed' ? 100 : 0
-    return Math.max(0, Math.min(100, Math.round((progress.completedItems / progress.totalItems) * 100)))
-  }, [m.analysisProgress])
-  const analysisStatusLabel = (() => {
-    switch (m.analysisProgress?.status) {
-      case 'queued':
-        return '대기'
-      case 'running':
-        return '처리중'
-      case 'completed':
-        return '완료'
-      case 'failed':
-        return '실패'
-      default:
-        return '대기'
-    }
-  })()
-  const analysisIsTerminal = m.analysisProgress?.status === 'completed' || m.analysisProgress?.status === 'failed'
-  const analysisJobKey = m.analysisProgress ? `${stashUuid}:${m.analysisProgress.jobId}` : null
-  const showAnalysisPopup = Boolean(
-    m.analysisProgress && analysisJobKey && dismissedAnalysisJobKey !== analysisJobKey,
-  )
-  const analysisAutoDismissRemainingSec =
-    analysisAutoDismissState?.key === analysisJobKey
-      ? analysisAutoDismissState.remainingSec
-      : ANALYSIS_POPUP_AUTO_DISMISS_SECONDS
-
-  useEffect(() => {
-    if (!analysisIsTerminal || !analysisJobKey || dismissedAnalysisJobKey === analysisJobKey) return
-    const timer = window.setInterval(() => {
-      setAnalysisAutoDismissState((prev) => {
-        const current =
-          prev?.key === analysisJobKey ? prev.remainingSec : ANALYSIS_POPUP_AUTO_DISMISS_SECONDS
-        const remainingSec = Math.max(0, current - 1)
-        if (remainingSec === 0) setDismissedAnalysisJobKey(analysisJobKey)
-        return { key: analysisJobKey, remainingSec }
-      })
-    }, 1000)
-    return () => window.clearInterval(timer)
-  }, [analysisIsTerminal, dismissedAnalysisJobKey, analysisJobKey])
-
-  useEffect(() => {
-    if (!selectAllRef.current) return
-    selectAllRef.current.indeterminate = partiallyVisibleSelected
-  }, [partiallyVisibleSelected])
-
-  const toggleSelectedItem = (uuid: string) => {
-    setSelectedItemUuids((prev) => {
-      const next = new Set(prev)
-      if (next.has(uuid)) next.delete(uuid)
-      else next.add(uuid)
-      return next
-    })
-  }
+  }, [model.tableRows])
 
   const openRecommendationModal = () => {
     void (async () => {
-      const rows = await m.loadRecommendations()
+      const rows = await model.loadRecommendations()
       if (!rows.length) return
-      setRecommendationSelectedUuids(new Set(rows.map((row) => row.uuid)))
+      recommendationSelection.replaceSelection(rows.map((row) => row.uuid))
       setRecommendationOpen(true)
     })()
   }
 
-  const toggleRecommendationItem = (uuid: string) => {
-    setRecommendationSelectedUuids((prev) => {
-      const next = new Set(prev)
-      if (next.has(uuid)) next.delete(uuid)
-      else next.add(uuid)
-      return next
-    })
-  }
-
-  const toggleAllRecommendationItems = () => {
-    setRecommendationSelectedUuids(() => {
-      if (allRecommendationSelected) return new Set()
-      return new Set(recommendationRowUuids)
-    })
-  }
-
   const applyRecommendations = () => {
-    setSelectedItemUuids(new Set(recommendationSelectedVisibleUuids))
+    itemSelection.replaceSelection(recommendationSelection.selectedVisibleUuids)
     setRecommendationOpen(false)
   }
 
-  const toggleAllVisibleItems = () => {
-    setSelectedItemUuids((prev) => {
-      const next = new Set(prev)
-      if (allVisibleSelected) {
-        for (const uuid of visibleItemUuids) next.delete(uuid)
-      } else {
-        for (const uuid of visibleItemUuids) next.add(uuid)
-      }
-      return next
-    })
-  }
-
   const toggleItemDrawer = (row: InnerCandidateRow) => {
-    if (m.drawerOpen && m.openedItemUuid === row.uuid) {
-      m.closeDrawer()
+    if (model.drawerOpen && model.openedItemUuid === row.uuid) {
+      model.closeDrawer()
       return
     }
-    void m.openItemDrawer(row)
+    void model.openItemDrawer(row)
   }
 
   return (
@@ -194,278 +75,56 @@ export function CandidateStashDetailModal({ stashUuid, stashSummary, onClose, on
         className={detailStyles.stashDetailModalBackdrop}
         onClick={() => onClose()}
         role="presentation"
-        {...stashDetailModalBackdropDataProps(m.drawerOpen, m.drawerClosing)}
+        {...stashDetailModalBackdropDataProps(model.drawerOpen, model.drawerClosing)}
       >
-        {showAnalysisPopup && m.analysisProgress && (
-          <div
-            className={`${detailStyles.analysisStatusCard} ${detailStyles.analysisStatusPopup} ${
-              m.analysisError ? detailStyles.analysisStatusCardError : ''
-            }`}
-            role="status"
-            aria-live="polite"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className={detailStyles.analysisStatusHead}>
-              <strong>AI 스냅샷 분석</strong>
-              <span className={detailStyles.analysisStatusHeadActions}>
-                <span className={detailStyles.analysisStatusBadge}>{analysisStatusLabel}</span>
-                {analysisIsTerminal && (
-                  <button
-                    type="button"
-                    className={`${styles.iconCloseButton} ${detailStyles.analysisStatusDismissBtn}`}
-                    onClick={() => setDismissedAnalysisJobKey(analysisJobKey)}
-                    aria-label="AI 분석 팝업 즉시 닫기"
-                    title="즉시 닫기"
-                  />
-                )}
-              </span>
-            </div>
-            <div
-              className={detailStyles.analysisStatusProgressTrack}
-              aria-hidden="true"
-            >
-              <span
-                className={detailStyles.analysisStatusProgressFill}
-                style={{ width: `${analysisProgressPct}%` }}
-              />
-            </div>
-            <div className={detailStyles.analysisStatusMeta}>
-              <span>{m.analysisError ?? m.analysisProgress.message}</span>
-              <span>
-                {m.analysisProgress.completedItems}/{m.analysisProgress.totalItems}
-              </span>
-            </div>
-            {analysisIsTerminal && (
-              <div className={detailStyles.analysisStatusAutoDismissText}>
-                이 팝업은 {analysisAutoDismissRemainingSec}초 후에 닫힙니다.
-              </div>
-            )}
-          </div>
-        )}
+        <CandidateStashAnalysisStatusPopup
+          stashUuid={stashUuid}
+          progress={model.analysisProgress}
+          error={model.analysisError}
+        />
 
         <div
           className={detailStyles.stashDetailModalPanel}
-          onClick={(e) => e.stopPropagation()}
+          onClick={(event) => event.stopPropagation()}
           role="dialog"
           aria-modal="true"
           aria-labelledby="stash-detail-modal-title"
         >
           <div className={detailStyles.stashDetailModalBody}>
-            {!m.detailTarget ? (
-              <div className={styles.card}>
-                <div className={detailStyles.emptyState}>해당 후보군을 찾을 수 없습니다.</div>
-                <div className={detailStyles.stashDetailModalFooterActions}>
-                  <button
-                    type="button"
-                    className={`${styles.actionBtn} ${styles.btnNeutral}`}
-                    onClick={onClose}
-                  >
-                    닫기
-                  </button>
-                </div>
-              </div>
+            {!model.detailTarget ? (
+              <CandidateStashMissingState onClose={onClose} />
             ) : (
               <>
-                <div className={styles.card}>
-                  <div className={detailStyles.detailHeaderGrid}>
-                    <div className={detailStyles.detailHeaderTitleArea}>
-                      <h3 id="stash-detail-modal-title" className={detailStyles.detailTitle}>
-                        {m.detailTarget.name}
-                      </h3>
-                    </div>
-                    <div className={detailStyles.detailHeaderDataReferencePeriodCell} aria-label="데이터 참조 기간">
-                      <span className={detailStyles.detailHeaderDataReferencePeriodLabel}>데이터 참조 기간 :</span>
-                      <input
-                        className={detailStyles.detailHeaderDataReferencePeriodInput}
-                        type="date"
-                        aria-label="데이터 참조 시작일"
-                        value={m.dataReferencePeriodStart}
-                        onChange={(event) => m.onDataReferencePeriodStartChange(event.target.value)}
-                      />
-                      <span className={detailStyles.detailHeaderDataReferencePeriodSeparator}>~</span>
-                      <input
-                        className={detailStyles.detailHeaderDataReferencePeriodInput}
-                        type="date"
-                        aria-label="데이터 참조 종료일"
-                        value={m.dataReferencePeriodEnd}
-                        onChange={(event) => m.onDataReferencePeriodEndChange(event.target.value)}
-                      />
-                    </div>
-                    <div className={detailStyles.detailMetaStack}>
-                      <span className={detailStyles.detailMetaLine}>
-                        생성 {formatDateTimeMinute(m.detailTarget.dbCreatedAt)}
-                      </span>
-                      <span className={detailStyles.detailMetaLine}>
-                        변경 {formatDateTimeMinute(m.detailTarget.dbUpdatedAt)}
-                      </span>
-                    </div>
-                    <div className={detailStyles.detailHeaderRecommendationCell}>
-                      <button
-                        type="button"
-                        className={`${styles.actionBtn} ${styles.btnNeutral} ${detailStyles.detailHeaderRecommendationBtn}`}
-                        onClick={openRecommendationModal}
-                        disabled={m.recommendationLoading || !m.tableRows.length || !m.periodStart || !m.periodEnd}
-                      >
-                        {m.recommendationLoading ? '추천 조회 중' : '추천 보기'}
-                      </button>
-                    </div>
-                    <div className={detailStyles.detailHeaderDeleteCell}>
-                      <DeleteButton
-                        label="일괄삭제"
-                        onClick={() => setBulkDeleteOpen(true)}
-                        disabled={selectedVisibleCount === 0}
-                        aria-label="선택 이너 오더 일괄삭제"
-                        title={
-                          selectedVisibleCount === 0
-                            ? '삭제할 이너 오더를 선택하세요.'
-                            : `선택된 이너 오더 ${selectedVisibleCount}개 삭제`
-                        }
-                      />
-                    </div>
-                    <button
-                      type="button"
-                      className={`${styles.actionBtn} ${styles.btnNeutral} ${detailStyles.detailHeaderCloseBtn}`}
-                      onClick={onClose}
-                      aria-label="닫기"
-                      title="닫기"
-                    >
-                      ×
-                    </button>
-                    {m.detailTarget.note && (
-                      <div className={detailStyles.detailNoteGridCell}>{m.detailTarget.note}</div>
-                    )}
-                  </div>
-                </div>
-
-                {m.recommendationError && (
-                  <div className={detailStyles.orderExportError} role="alert">
-                    추천 후보 조회 실패: {m.recommendationError}
-                  </div>
-                )}
-
-                <FilterBar
-                  title=""
-                  filterClassName={detailStyles.detailFilterGrid}
-                  fields={[
-                    {
-                      label: '브랜드',
-                      kind: 'listCombo',
-                      inputType: 'text',
-                      value: m.brandQuery,
-                      onChange: m.setBrandQuery,
-                      options: m.brandOptions,
-                    },
-                    {
-                      label: '품번',
-                      kind: 'listCombo',
-                      inputType: 'text',
-                      value: m.codeQuery,
-                      onChange: m.setCodeQuery,
-                      options: m.codeOptions,
-                    },
-                    {
-                      label: '상품명',
-                      kind: 'listCombo',
-                      inputType: 'text',
-                      value: m.productNameQuery,
-                      onChange: m.setProductNameQuery,
-                      options: m.productNameOptions,
-                    },
-                  ]}
-                  filterEndContent={
-                    <div className={detailStyles.detailFilterActionCell}>
-                      <button
-                        type="button"
-                        className={detailStyles.orderExcelDownloadBtn}
-                        onClick={() => void m.downloadOrderExcel(session?.user.name ?? session?.user.loginId ?? '사용자')}
-                        disabled={m.detailLoading || m.orderExportBusy || m.items.length === 0}
-                      >
-                        {m.orderExportBusy ? '생성 중' : '엑셀 다운로드'}
-                      </button>
-                    </div>
-                  }
+                <CandidateStashDetailHeader
+                  detailTarget={model.detailTarget}
+                  dataReferencePeriodStart={model.dataReferencePeriodStart}
+                  dataReferencePeriodEnd={model.dataReferencePeriodEnd}
+                  recommendationLoading={model.recommendationLoading}
+                  canLoadRecommendations={Boolean(model.tableRows.length && model.periodStart && model.periodEnd)}
+                  selectedVisibleCount={itemSelection.selectedVisibleCount}
+                  onDataReferencePeriodStartChange={model.onDataReferencePeriodStartChange}
+                  onDataReferencePeriodEndChange={model.onDataReferencePeriodEndChange}
+                  onOpenRecommendations={openRecommendationModal}
+                  onOpenBulkDelete={() => setBulkDeleteOpen(true)}
+                  onClose={onClose}
                 />
-                {m.orderExportError && (
-                  <div className={detailStyles.orderExportError} role="alert">
-                    엑셀 다운로드 실패: {m.orderExportError}
-                  </div>
-                )}
-
-                <div className={detailStyles.innerDrawerAwareBody}>
-                  <div className={detailStyles.innerSummaryGrid}>
-                    <div className={detailStyles.innerSummaryCard}>
-                      <span className={detailStyles.innerSummaryLabel}>합계 오더 수량</span>
-                      <strong className={detailStyles.innerSummaryValue}>
-                        {formatGroupedNumber(m.totals.qty)} <span className={detailStyles.innerSummaryUnit}>EA</span>
-                      </strong>
-                    </div>
-                    <div className={detailStyles.innerSummaryCard}>
-                      <span className={detailStyles.innerSummaryLabel}>합계 오더 금액</span>
-                      <strong className={detailStyles.innerSummaryValue}>
-                        {formatGroupedNumber(m.totals.expectedOrderAmount)} <span className={detailStyles.innerSummaryUnit}>원</span>
-                      </strong>
-                    </div>
-                    <div className={detailStyles.innerSummaryCard}>
-                      <span className={detailStyles.innerSummaryLabel}>합계 총 기대 매출</span>
-                      <strong className={detailStyles.innerSummaryValue}>
-                        {formatGroupedNumber(m.totals.expectedSalesAmount)} <span className={detailStyles.innerSummaryUnit}>원</span>
-                      </strong>
-                    </div>
-                    <div className={detailStyles.innerSummaryCard}>
-                      <span className={detailStyles.innerSummaryLabel}>합계 총 기대 영업 이익</span>
-                      <strong className={detailStyles.innerSummaryValue}>
-                        {formatGroupedNumber(m.totals.expectedOpProfit)} <span className={detailStyles.innerSummaryUnit}>원</span>
-                      </strong>
-                    </div>
-                    <div className={detailStyles.innerSummaryCard}>
-                      <span className={detailStyles.innerSummaryLabel}>합계 총 기대 영업이익률</span>
-                      <strong className={detailStyles.innerSummaryValue}>
-                        {m.totalExpectedOpProfitRatePct == null
-                          ? '-'
-                          : `${formatRatioDecimalKo(m.totalExpectedOpProfitRatePct)}`}
-                        <span className={detailStyles.innerSummaryUnit}>%</span>
-                      </strong>
-                    </div>
-                  </div>
-                  <div className={detailStyles.innerCandidateListBlock}>
-                    {m.detailLoading ? (
-                      <InnerCandidateOrderEmptyState>
-                        이너 후보 목록을 불러오는 중...
-                      </InnerCandidateOrderEmptyState>
-                    ) : m.drawerError ? (
-                      <InnerCandidateOrderEmptyState>
-                        이너 후보 상세 로드 실패: {m.drawerError}
-                      </InnerCandidateOrderEmptyState>
-                    ) : m.detailError ? (
-                      <InnerCandidateOrderEmptyState>
-                        이너 후보 목록 로드 실패: {m.detailError}
-                      </InnerCandidateOrderEmptyState>
-                    ) : !m.tableRows.length ? (
-                      <InnerCandidateOrderEmptyState>
-                        {m.brandQuery.trim() || m.codeQuery.trim() || m.productNameQuery.trim()
-                          ? '검색 결과가 없습니다.'
-                          : '등록된 이너 후보가 없습니다.'}
-                      </InnerCandidateOrderEmptyState>
-                    ) : (
-                      <InnerCandidateOrderList
-                        rows={m.tableRows}
-                        visibleItemUuids={visibleItemUuids}
-                        selectedUuidSet={selectedVisibleItemUuidSet}
-                        allVisibleSelected={allVisibleSelected}
-                        selectAllRef={selectAllRef}
-                        competitorSalesQtyHeader={competitorSalesQtyHeader}
-                        activeSortKey={activeSortKey}
-                        activeSortDir={activeSortDir}
-                        drawerOpen={m.drawerOpen}
-                        openedItemUuid={m.openedItemUuid}
-                        onToggleAllVisibleItems={toggleAllVisibleItems}
-                        onToggleSelectedItem={toggleSelectedItem}
-                        onToggleItemDrawer={toggleItemDrawer}
-                        onSort={m.toggleTableSort}
-                      />
-                    )}
-                  </div>
-                </div>
+                <CandidateStashDetailFilters
+                  model={model}
+                  downloadUserName={session?.user.name ?? session?.user.loginId ?? '사용자'}
+                />
+                <CandidateStashDetailBody
+                  model={model}
+                  visibleItemUuids={visibleItemUuids}
+                  selectedUuidSet={itemSelection.selectedVisibleUuidSet}
+                  allVisibleSelected={itemSelection.allVisibleSelected}
+                  selectAllRef={itemSelection.selectAllRef}
+                  competitorSalesQtyHeader={competitorSalesQtyHeader}
+                  activeSortKey={model.tableSort?.key ?? null}
+                  activeSortDir={model.tableSort?.dir ?? null}
+                  onToggleAllVisibleItems={itemSelection.toggleAllVisibleUuids}
+                  onToggleSelectedItem={itemSelection.toggleSelectedUuid}
+                  onToggleItemDrawer={toggleItemDrawer}
+                />
               </>
             )}
           </div>
@@ -475,81 +134,27 @@ export function CandidateStashDetailModal({ stashUuid, stashSummary, onClose, on
       {recommendationOpen && (
         <CandidateRecommendationModal
           rows={recommendationRows}
-          selectedUuids={recommendationSelectedVisibleUuidSet}
-          selectedCount={recommendationSelectedCount}
-          allSelected={allRecommendationSelected}
-          partiallySelected={partiallyRecommendationSelected}
+          selectedUuids={recommendationSelection.selectedVisibleUuidSet}
+          selectedCount={recommendationSelection.selectedVisibleCount}
+          allSelected={recommendationSelection.allVisibleSelected}
+          partiallySelected={recommendationSelection.partiallyVisibleSelected}
           onClose={() => setRecommendationOpen(false)}
-          onToggleAll={toggleAllRecommendationItems}
-          onToggleItem={toggleRecommendationItem}
+          onToggleAll={recommendationSelection.toggleAllVisibleUuids}
+          onToggleItem={recommendationSelection.toggleSelectedUuid}
           onApply={applyRecommendations}
         />
       )}
 
-      <ProductDrawer
-        summary={m.mergedSummary}
-        suppressDocumentLayoutShift
-        closing={m.drawerClosing}
-        onClose={m.closeDrawer}
-        periodStart={m.periodStart!}
-        periodEnd={m.periodEnd!}
-        forecastMonths={m.fc}
-        onForecastMonthsChange={m.onDrawerForecastMonthsChange}
-        hydrateSnapshot={m.hydrateSnap}
-        onRequestNavigateAdjacent={m.onRequestNavigateAdjacent}
-        disableAdjacentNavigation={Boolean(bulkDeleteOpen || m.itemDeleteTarget)}
-        candidateItemContext={
-          m.detailTarget && m.openedItemUuid
-            ? {
-                stashName: m.detailTarget.name,
-                stashNote: m.detailTarget.note,
-                itemUuid: m.openedItemUuid,
-                onSaved: () => {
-                  void m.loadItems()
-                  void m.refreshStashes()
-                },
-                onRequestDeleteItem: () => {
-                  const row = m.items.find((i) => i.uuid === m.openedItemUuid)
-                  if (row) m.setItemDeleteTarget(row)
-                },
-              }
-            : null
-        }
-      />
-
-      <ConfirmModal
-        open={bulkDeleteOpen}
-        busy={m.bulkDeleteBusy}
-        title="일괄삭제 확인"
-        message={
-          selectedVisibleCount > 0
-            ? <>선택된 이너 오더 <b>{selectedVisibleCount}</b>개를 삭제할까요?</>
-            : '삭제할 이너 오더가 선택되지 않았습니다.'
-        }
-        confirmText="일괄삭제"
-        confirmingText="삭제 중…"
-        dialogTitleId="bulk-item-delete-dialog-title"
-        keepOpenAttr
-        onCancel={() => setBulkDeleteOpen(false)}
-        onConfirm={async () => {
-          await m.confirmDeleteItems([...selectedVisibleItemUuids])
-          setSelectedItemUuids(new Set())
+      <CandidateStashProductDrawer model={model} bulkDeleteOpen={bulkDeleteOpen} />
+      <CandidateStashDeleteDialogs
+        model={model}
+        bulkDeleteOpen={bulkDeleteOpen}
+        selectedVisibleCount={itemSelection.selectedVisibleCount}
+        selectedVisibleItemUuids={itemSelection.selectedVisibleUuids}
+        onCloseBulkDelete={() => setBulkDeleteOpen(false)}
+        onBulkDeleteDone={() => {
+          itemSelection.clearSelection()
           setBulkDeleteOpen(false)
-        }}
-      />
-
-      <ConfirmModal
-        open={Boolean(m.itemDeleteTarget)}
-        busy={m.itemDeleteBusy}
-        title="상품 삭제"
-        message={m.itemDeleteTarget ? <><b>{m.itemDeleteTarget.productName}</b>을(를) 이너 후보에서 제거할까요?</> : null}
-        confirmText="삭제"
-        confirmingText="삭제 중…"
-        dialogTitleId="item-delete-dialog-title"
-        keepOpenAttr
-        onCancel={() => m.setItemDeleteTarget(null)}
-        onConfirm={async () => {
-          await m.confirmDeleteItem()
         }}
       />
     </>

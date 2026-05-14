@@ -293,3 +293,5 @@ export function useCandidateStashDetailModal({
     loadRecommendations,
   }
 }
+
+export type CandidateStashDetailModalModel = ReturnType<typeof useCandidateStashDetailModal>

@@ -166,12 +166,14 @@
 
 | 파일 | 역할 |
 |------|------|
-| `AdminPage.tsx` | 관리자 라우트 shell. 공통 헤더 안에 사용자 관리/GPT 키 관리 탭과 현재 탭 설명을 배치한다 |
-| `AdminUsersPanel.tsx` | 관리자 유저 목록 조회, 추가, UUID 기준 제거, 로그인 ID/이름/비고/권한/활성 상태 수정, 임시 비밀번호 재설정 화면과 임시 비밀번호 클릭 복사 |
-| `AdminGptKeysPanel.tsx` | 관리자 GPT 키 목록 조회, 추가, 요약 행, 상세 관리 모달. 목록은 이름/용도/모델/마스킹 키/활성 상태를 보여주고, 모달은 중복 식별 카드 없이 메타 변경/키 교체/연결 테스트/삭제 작업만 담는다. 원문 키는 생성/교체 form state와 API 요청에만 존재한다 |
-| `AdminPage.module.css` | 관리자 화면 CSS 진입점. 실제 스타일은 `admin/style-parts/*`가 shell/forms/lists/dialogs/responsive로 나눠 소유한다 |
-| `adminHelpers.ts` | 관리자 화면의 역할/GPT 키 용도 option, 테스트 상태 label, 공통 날짜/오류 표시 helper |
-
+| `AdminPage.tsx` | 관리자 라우트 shell. 공통 헤더 안에 사용자 관리/GPT 키 관리 탭과 현재 탭 설명을 배치한다. |
+| `AdminUsersPanel.tsx` | 관리자 사용자 목록 조회, 추가, 임시 비밀번호 표시/복사 dialog, 사용자 row 목록 조립을 소유한다. 개별 row 편집/삭제/비밀번호 재설정 동작은 `AdminUserRow.tsx`에 위임한다. |
+| `AdminUserRow.tsx` | 사용자 1명 단위의 로그인 ID/이름/비고/권한/활성 상태 수정, UUID 표시, 삭제, 임시 비밀번호 재설정 요청을 소유한다. |
+| `AdminGptKeysPanel.tsx` | GPT 키 목록 조회, 추가 form, 선택된 GPT 키 dialog 열림 상태를 소유한다. 행 요약 렌더는 `AdminGptKeyRow.tsx`, 상세 수정/교체/테스트/삭제는 `AdminGptKeyDialog.tsx`에 위임한다. |
+| `AdminGptKeyRow.tsx` | GPT 키 목록의 식별 정보 행 렌더링만 소유한다. 원문 키는 표시하지 않고 `maskedKey`만 사용한다. |
+| `AdminGptKeyDialog.tsx` | GPT 키 메타 변경, 새 키 교체, 연결 테스트, 삭제 확인 흐름을 소유한다. 원문 키는 교체 요청 field 안에서만 존재한다. |
+| `AdminPage.module.css` | 관리자 화면 CSS 진입점. 실제 스타일은 `admin/style-parts/*`가 shell/forms/lists/dialogs/responsive로 나눠 소유한다. |
+| `adminHelpers.ts` | 관리자 화면의 역할/GPT 키 용도 option, 테스트 상태 label, 공통 날짜/오류 표시 helper. |
 ## src/components
 
 앱 전체에서 재사용 가능한 컴포넌트만 둔다. 대시보드 도메인에 묶인 컴포넌트는 `dashboard/components`로 간다.
@@ -198,21 +200,27 @@
 
 ## dashboard/pages
 
-라우트 페이지 전용 폴더다. 모달, badge, hook처럼 라우트가 아닌 단위는 여기 두지 않는다.
+라우트 페이지 전용 폴더다. 모달, badge, hook처럼 라우트가 아닌 단위는 가급적 자기 feature 폴더로 분리한다.
 
 | 파일 | 역할 |
 |------|------|
-| `SelfPage.tsx` | 자사 판매 분석 라우트. 공통 분석 필터/기간 상태는 `useAnalysisSalesFilters`가 소유하고, 격자 셀 선택·현재 화면 기준 선택 유효성·후보군 일괄 담기 선택 상태는 `useAnalysisVisibleSelection`이 소유한다. 페이지는 자사 KPI·포지셔닝 차트·목록 컬럼·후보군 일괄 담기 진입을 소유한다. KPI는 필터링된 행의 총 판매액·판매량과 판매액 가중 평균 매출/영업이익율을 보여준다. 산점도 격자 셀 색은 `scatterGridDisplay` 유틸로 count 기반 연속 그라데이션을 적용한다. 기본 목록 정렬은 판매량 내림차순이며, 2차 드로워는 열지 않는다 |
-| `CompetitorPage.tsx` | 경쟁 판매 분석 라우트. 공통 분석 필터/기간 상태는 `useAnalysisSalesFilters`가 소유하고, 격자 셀 선택·현재 화면 기준 선택 유효성·후보군 일괄 담기 선택 상태는 `useAnalysisVisibleSelection`이 소유한다. 페이지는 경쟁 채널 필터, 자사판매량 존재 행 토글, 경쟁 KPI·판매량 비교 차트·목록 컬럼·후보군 일괄 담기 진입을 소유한다. KPI는 필터링된 행의 경쟁사/자사 판매액·판매량 합계를 보여주며, 경쟁 채널이 `전체`이면 API 응답은 전체 경쟁 채널 합계여야 한다. 기본 목록 정렬은 경쟁 판매량 내림차순이고 경쟁·자사 판매량 비교 차트는 X축 자사 판매량, Y축 경쟁사 판매량을 사용한다. 산점도 격자 셀 색은 `scatterGridDisplay` 유틸로 count 기반 연속 그라데이션을 적용하며, 2차 드로워는 열지 않는다 |
-| `SnapshotConfirmPage.tsx` | 후보군 목록, 후보군 업로드, 업로드 템플릿 다운로드 링크, 후보군 생성/수정/삭제/복제 라우트 |
-| `SnapshotConfirmPage.module.css` | 오더 후보군 화면 CSS 진입점. 실제 스타일은 `pages/snapshot-confirm-style-parts/*`가 layout, upload card, stash cards, edit modal, responsive로 나눠 소유한다 |
-
+| `SelfPage.tsx` | 자사 판매 분석 라우트. 공통 분석 필터/기간 상태는 `useAnalysisSalesFilters`, 격자 셀 선택·화면 기준 선택 유효성·후보군 일괄 담기 선택 상태는 `useAnalysisVisibleSelection`이 소유한다. 페이지는 자사 KPI, 공통 산점도 카드 연결, 자사 목록 컬럼, 후보군 일괄 담기 진입을 조립한다. 기본 목록 정렬은 판매량 내림차순이며 2차 드로워는 열지 않는다. |
+| `CompetitorPage.tsx` | 경쟁 판매 분석 라우트. 경쟁 채널 필터, 자사판매량 존재 행 토글, 경쟁 KPI, 공통 산점도 카드, 경쟁 목록, 후보군 일괄 담기 진입을 조립한다. 목록 렌더는 `CompetitorAnalysisList.tsx`, KPI는 `CompetitorKpiGrid.tsx`, 필터 우측 토글/버튼은 `CompetitorFilterEndControls.tsx`에 위임한다. 경쟁 채널이 `전체`이면 API 응답은 전체 경쟁 채널 합계여야 한다. |
+| `SnapshotConfirmPage.tsx` | 후보군 목록/업로드/수정/삭제/복제 라우트의 상태와 API 액션 조립을 소유한다. 업로드 카드, 후보군 카드 리스트, 이름·비고 편집 dialog는 `pages/snapshot-confirm/*` 하위 컴포넌트가 소유한다. |
+| `snapshot-confirm/CandidateStashUploadCard.tsx` | 후보군 엑셀 업로드 card, 템플릿 다운로드 링크, drag/drop 입력 UI를 소유한다. 실제 업로드 API 호출은 페이지에서 주입받는다. |
+| `snapshot-confirm/CandidateStashList.tsx` | 후보군 카드 목록과 빈 상태 렌더링을 소유한다. 상세 열기/복제/편집/삭제 API 동작은 페이지에서 주입받는다. |
+| `snapshot-confirm/CandidateStashEditDialog.tsx` | 후보군 이름·비고 편집 dialog 렌더링을 소유한다. 저장 API 동작은 페이지에서 주입받는다. |
+| `SnapshotConfirmPage.module.css` | 오더 후보군 화면 CSS 진입점. 실제 스타일은 `pages/snapshot-confirm-style-parts/*`가 layout, upload card, stash cards, edit modal, responsive로 나눠 소유한다. |
 ## dashboard/components
 
 대시보드 feature 안에서 공유되는 UI 컴포넌트다. 특정 하위 feature가 커지면 하위 폴더로 분리한다.
 
 | 파일/폴더 | 역할 |
 |------|------|
+| `AnalysisScatterChartCard.tsx` | 자사/경쟁사 분석에서 공통으로 쓰는 산점도 카드. 격자 cell 색, 선택 초기화 버튼, X/Y축 라벨, point 클릭 연결을 렌더링한다. 데이터 조회와 필터 상태는 페이지가 소유한다. |
+| `CompetitorAnalysisList.tsx` | 경쟁사 분석 목록의 컬럼 정의와 row 클릭/키보드 열기/체크박스 렌더링을 소유한다. |
+| `CompetitorFilterEndControls.tsx` | 경쟁사 분석 필터 우측의 `자사판매량이 존재하는 경우만 보기` 토글과 `선택한 물품을 후보군으로` 버튼을 소유한다. |
+| `CompetitorKpiGrid.tsx` | 경쟁사 분석 KPI 4개 카드 렌더링을 소유한다. KPI 값 계산은 페이지가 필터링된 row 기준으로 수행한다. |
 | `AnalysisList.tsx` | 판매 분석 목록 wrapper |
 | `AnalysisPeriodTools.tsx` | 자사/경쟁 분석 공통 기간 preset 버튼, 기간 bar 토글, dual range UI |
 | `ChartCard.tsx` | 차트 카드 wrapper. `titleAction`으로 그래프 내부 보조 액션(예: 격자 선택 해제)을 받을 수 있다 |
@@ -233,25 +241,33 @@
 
 ## dashboard/components/candidate-stash
 
-후보군 상세 모달 안에서 쓰는 UI와 상태 훅을 소유한다. 후보군 목록 라우트 자체는 `SnapshotConfirmPage`가 소유한다.
+후보군 상세 모달 안에서 쓰는 UI와 상태 일을 소유한다. 후보군 목록 좌우의 자체 책임은 `SnapshotConfirmPage`가 소유한다.
 
 | 파일 | 역할 |
 |------|------|
-| `CandidateStashDetailModal.tsx` | 특정 후보군 상세 모달의 화면 조립. 데이터 참조기간 입력, 요약, 필터, 엑셀 다운로드 액션, 추천 보기 호출/적용, drawer 연결, 일괄/개별 삭제 확인 흐름을 소유한다 |
-| `CandidateStashDetailModal.module.css` | 후보군 상세 모달 CSS 진입점. 실제 스타일은 `candidate-stash/style-parts/*`가 header, analysis status, filter/summary, inner order list, modal shell, responsive로 나눠 소유한다 |
-| `useCandidateStashDetailModal.ts` | 후보군 상세 모달의 얇은 조립 hook. 후보군/아이템 조회, 데이터 참조기간 초기화, 추천 조회 트리거, 분석 완료 새로고침을 묶고, 필터·정렬은 `useInnerCandidateTable.ts`, drawer hydration/전환은 `useCandidateStashItemDrawer.ts`, 삭제·엑셀 액션은 `useCandidateStashItemActions.ts`에 위임한다 |
-| `useInnerCandidateTable.ts` | 이너 후보 아이템의 필터 옵션, 검색어, 정렬 상태, 표 row 생성, 합계 계산을 소유한다 |
-| `useCandidateStashItemDrawer.ts` | 이너 후보 아이템 2차 드로워 열기/닫기 전환, 스냅샷 hydration, 인접 아이템 이동을 소유한다 |
-| `useCandidateStashItemActions.ts` | 이너 후보 아이템 삭제, 일괄 삭제, 엑셀 다운로드 생성 액션 상태를 소유한다 |
-| `candidateStashDetailTypes.ts` | 이너 후보 row와 정렬 key 타입 |
-| `useCandidateStashAnalysisProgress.ts` | 후보군 AI 분석 SSE 구독 hook. 작업 시작, 진행/실패/완료 상태, 완료 후 새로고침 콜백 호출을 소유한다 |
-| `InnerCandidateOrderList.tsx` | 이너 후보 리스트 표면 UI. 표시 순서 인덱스, 정렬 헤더, 상세확정 컬럼, 선택 체크박스, badge 렌더링을 소유한다 |
-| `AnalysisCandidateBulkAddModal.tsx` | 자사/경쟁사 분석 리스트에서 선택한 상품을 기존 후보군에 담거나 새 후보군을 만든 뒤 담는 모달. 스냅샷을 만들지 않고 `appendCandidateItems`만 호출한다 |
-| `CandidateRecommendationModal.tsx` | 후보군 상세에서 추천 후보를 선택/적용하는 보조 모달 |
-| `CandidateRecommendationModal.module.css` | 추천 모달 전용 스타일 |
-| `CandidateInsightBadges.tsx` | 후보 아이템 인사이트 badge 렌더링 |
-| `CandidateInsightBadges.module.css` | 후보 인사이트 badge 스타일 |
-
+| `CandidateStashDetailModal.tsx` | 후보군 상세 모달의 최상위 조립 컴포넌트. 모델 hook, 선택 hook, 추천 모달 열림 상태, 주요 하위 컴포넌트 배치만 소유한다. 헤더/필터/본문/드로워/삭제 확인/분석 팝업 렌더 책임은 하위 파일로 위임한다. |
+| `CandidateStashDetailHeader.tsx` | 후보군 이름, 데이터 참조기간 입력, 생성/변경일, 추천 보기, 일괄삭제, 닫기 버튼 렌더링만 소유한다. |
+| `CandidateStashDetailFilters.tsx` | 브랜드/품번/상품명 필터와 엑셀 다운로드 액션 렌더링만 소유한다. 다운로드 데이터 생성은 API/엑셀 유틸 경계를 따른다. |
+| `CandidateStashDetailBody.tsx` | 후보군 상세 요약 KPI와 이너 후보 리스트 상태 분기 렌더링을 소유한다. 리스트 자체 row/table 렌더링은 `InnerCandidateOrderList.tsx`에 위임한다. |
+| `CandidateStashProductDrawer.tsx` | 이너 후보군에서 열리는 상품 drawer 연결부. drawer context, 저장 후 새로고침, 개별 삭제 요청 연결만 소유한다. |
+| `CandidateStashDeleteDialogs.tsx` | 이너 후보 개별 삭제와 일괄 삭제 확인 모달만 소유한다. |
+| `CandidateStashAnalysisStatusPopup.tsx` | AI 스냅샷 분석 진행 팝업 렌더링을 소유한다. 자동 닫힘과 상태 라벨 계산은 `useAnalysisStatusPopup.ts`가 소유한다. |
+| `CandidateStashMissingState.tsx` | 후보군을 찾지 못했을 때의 빈 상태 렌더링만 소유한다. |
+| `CandidateStashDetailModal.module.css` | 후보군 상세 모달 CSS 진입점. 실제 스타일은 `candidate-stash/style-parts/*`가 header, analysis status, filter/summary, inner order list, modal shell, responsive로 나눠 소유한다. |
+| `useCandidateStashDetailModal.ts` | 후보군 상세 모달의 모델 조립 hook. 후보군/아이템 조회, 데이터 참조기간 초기화, 추천 조회 트리거, 분석 완료 새로고침을 묶고, 필터·정렬은 `useInnerCandidateTable.ts`, drawer hydration/전환은 `useCandidateStashItemDrawer.ts`, 삭제·엑셀 액션은 `useCandidateStashItemActions.ts`에 위임한다. |
+| `useVisibleUuidSelection.ts` | 화면에 보이는 UUID 목록 기준 선택 상태, 전체 선택, indeterminate checkbox ref를 소유하는 공통 hook이다. |
+| `useAnalysisStatusPopup.ts` | AI 분석 진행 팝업의 상태 라벨, 진행률, 자동 닫힘 타이머를 소유한다. |
+| `useInnerCandidateTable.ts` | 이너 후보 아이템의 필터 옵션, 검색어, 정렬 상태, row 생성, 합계 계산을 소유한다. |
+| `useCandidateStashItemDrawer.ts` | 이너 후보 아이템 2차 드로워 열기/닫기 전환, 스냅샷 hydration, 인접 아이템 이동을 소유한다. |
+| `useCandidateStashItemActions.ts` | 이너 후보 아이템 삭제, 일괄 삭제, 엑셀 다운로드 생성 액션 상태를 소유한다. |
+| `candidateStashDetailTypes.ts` | 이너 후보 row와 정렬 key 타입을 소유한다. |
+| `useCandidateStashAnalysisProgress.ts` | 후보군 AI 분석 SSE 구독 hook. 작업 시작, 진행/실패/완료 상태, 완료 후 새로고침 콜백 호출을 소유한다. |
+| `InnerCandidateOrderList.tsx` | 이너 후보 리스트 화면 UI. 표시 순서 인덱스, 정렬 헤더, 상세확정 컬럼, 선택 체크박스, badge 렌더링을 소유한다. |
+| `AnalysisCandidateBulkAddModal.tsx` | 자사/경쟁사 분석 리스트에서 선택한 상품을 기존 후보군에 넣거나 새 후보군을 만든 뒤 넣는 모달. 스냅샷을 만들지 않고 `appendCandidateItems`만 호출한다. |
+| `CandidateRecommendationModal.tsx` | 후보군 상세에서 추천 후보를 선택/적용하는 보조 모달. |
+| `CandidateRecommendationModal.module.css` | 추천 모달 전용 스타일. |
+| `CandidateInsightBadges.tsx` | 후보 아이템 인사이트 badge 렌더링. |
+| `CandidateInsightBadges.module.css` | 후보 인사이트 badge 스타일. |
 ## dashboard/components/product-drawer
 
 상품 drawer feature다. UX 구조를 기준으로 루트 shell 안에 1차 드로워와 2차 드로워를 둔다. 데이터 성격인 summary/detail 이름으로 폴더를 나누지 않는다.
@@ -271,7 +287,8 @@
 |------|------|
 | `ProductPrimaryDrawer.tsx` | 1차 드로워 column. 헤더, 상품 요약 카드, 1차 기능 컨테이너 배치와 2차 드로워 열기 버튼 표시 여부를 소유한다 |
 | `ProductSalesMetricsContainer.tsx` | 선택 상품·기간·경쟁 채널 기준 1차 판매 정보 조회와 `SalesMetricsCard` 연결 |
-| `ProductMonthlyTrendContainer.tsx` | 선택 상품·기간·포캐스트 개월·경쟁 채널 기준 월간 판매 추이 조회, 표시 토글, chart window 상태. 판매추이 표시 토글의 활성 배경색은 차트 선 색상과 맞춘다 |
+| `ProductMonthlyTrendContainer.tsx` | 1차 드로워 월간 판매 추이 카드 렌더링을 소유한다. 요청/윈도우/토글/차트 데이터 계산은 `useProductMonthlyTrendModel.ts`에 위임한다. 판매추이 표시 토글의 활성 배경색은 차트 선 색상과 맞춘다. |
+| `useProductMonthlyTrendModel.ts` | 선택 상품·기간·포캐스트 개월·경쟁 채널 기준 월간 판매 추이 조회, chart window 계산, 시리즈 표시 토글, 에러 상태를 소유한다. |
 | `cards/SalesMetricsCard.tsx` | 1차 판매 정보 표 UI. 자사/경쟁사 헤더 음영은 판매추이 선 색상 계열을 따른다 |
 
 ### product-drawer/secondary

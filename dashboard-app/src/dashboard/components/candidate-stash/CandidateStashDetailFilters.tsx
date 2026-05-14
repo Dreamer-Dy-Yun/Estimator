@@ -1,0 +1,69 @@
+import { FilterBar } from '../FilterBar'
+import type { CandidateStashDetailModalModel } from './useCandidateStashDetailModal'
+import detailStyles from './CandidateStashDetailModal.module.css'
+
+type Props = {
+  model: CandidateStashDetailModalModel
+  downloadUserName: string
+}
+
+export function CandidateStashDetailFilters({ model, downloadUserName }: Props) {
+  return (
+    <>
+      {model.recommendationError && (
+        <div className={detailStyles.orderExportError} role="alert">
+          추천 후보 조회 실패: {model.recommendationError}
+        </div>
+      )}
+
+      <FilterBar
+        title=""
+        filterClassName={detailStyles.detailFilterGrid}
+        fields={[
+          {
+            label: '브랜드',
+            kind: 'listCombo',
+            inputType: 'text',
+            value: model.brandQuery,
+            onChange: model.setBrandQuery,
+            options: model.brandOptions,
+          },
+          {
+            label: '품번',
+            kind: 'listCombo',
+            inputType: 'text',
+            value: model.codeQuery,
+            onChange: model.setCodeQuery,
+            options: model.codeOptions,
+          },
+          {
+            label: '상품명',
+            kind: 'listCombo',
+            inputType: 'text',
+            value: model.productNameQuery,
+            onChange: model.setProductNameQuery,
+            options: model.productNameOptions,
+          },
+        ]}
+        filterEndContent={
+          <div className={detailStyles.detailFilterActionCell}>
+            <button
+              type="button"
+              className={detailStyles.orderExcelDownloadBtn}
+              onClick={() => void model.downloadOrderExcel(downloadUserName)}
+              disabled={model.detailLoading || model.orderExportBusy || model.items.length === 0}
+            >
+              {model.orderExportBusy ? '생성 중' : '엑셀 다운로드'}
+            </button>
+          </div>
+        }
+      />
+
+      {model.orderExportError && (
+        <div className={detailStyles.orderExportError} role="alert">
+          엑셀 다운로드 실패: {model.orderExportError}
+        </div>
+      )}
+    </>
+  )
+}

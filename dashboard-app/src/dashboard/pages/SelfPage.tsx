@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { CartesianGrid, Scatter, ScatterChart, Tooltip, XAxis, YAxis } from 'recharts'
 import { getSelfSales, getSelfSalesScatterGrid } from '../../api'
 import type { SelfSalesRow } from '../../types'
 import { selfSalesWeightedMarginRate, selfSalesWeightedOpMarginRate } from '../../utils/analysisKpiWeighted'
@@ -14,26 +13,16 @@ import { ProductDrawer } from '../components/product-drawer/ProductDrawer'
 import styles from '../components/common.module.css'
 import { AnalysisList } from '../components/AnalysisList'
 import { AnalysisPeriodTools } from '../components/AnalysisPeriodTools'
-import { ChartCard } from '../components/ChartCard'
+import {
+  AnalysisScatterChartCard,
+  type AnalysisScatterGridPoint,
+} from '../components/AnalysisScatterChartCard'
 import { FilterBar } from '../components/FilterBar'
 import { KpiGrid } from '../components/KpiGrid'
 import { useElementSize } from '../hooks/useElementSize'
 import { maskNonPeriodAnalysisFilterFields, useAnalysisSalesFilters } from '../hooks/useAnalysisSalesFilters'
 import { useAnalysisVisibleSelection } from '../hooks/useAnalysisVisibleSelection'
 import { useProductDrawerBundle } from '../hooks/useProductDrawerBundle'
-
-type ScatterGridPoint = {
-  x: number
-  y: number
-  cellKey: string
-  count: number
-  xStart: number
-  xEnd: number
-  yStart: number
-  yEnd: number
-  hasMoreSkuIds: boolean
-  color: string
-}
 
 export const SelfPage = () => {
   const [rows, setRows] = useState<SelfSalesRow[]>([])
@@ -124,7 +113,7 @@ export const SelfPage = () => {
     [scatterGrid],
   )
 
-  const scatterData: ScatterGridPoint[] = useMemo(
+  const scatterData: AnalysisScatterGridPoint[] = useMemo(
     () => (scatterGrid?.cells ?? []).map((cell) => ({
       x: cell.representativeX,
       y: cell.representativeY,
@@ -154,7 +143,7 @@ export const SelfPage = () => {
     [navigationOrderIds, selectedSkuGroupKey, setSelectedSkuGroupKey],
   )
 
-  const renderScatterTooltip = (props: { active?: boolean; payload?: ReadonlyArray<{ payload?: ScatterGridPoint }> }) => {
+  const renderScatterTooltip = (props: { active?: boolean; payload?: ReadonlyArray<{ payload?: AnalysisScatterGridPoint }> }) => {
     const { active, payload } = props
     if (!active || !payload?.length) return null
     const point = payload[0]?.payload
@@ -183,30 +172,6 @@ export const SelfPage = () => {
   const scatterChartWidth = Math.max(1, Math.floor(chartWidth))
   const scatterChartHeight = Math.max(1, Math.floor(chartHeight))
   const scatterPointRadius = getScatterGridCellPointRadius(scatterGrid?.meta, scatterChartWidth, scatterChartHeight)
-
-  const scatterShape = useCallback(
-    (props: { cx?: number; cy?: number; payload?: ScatterGridPoint }) => {
-      const { cx, cy, payload } = props
-      if (cx == null || cy == null || !payload) return null
-      const isActive = payload.cellKey === activeGridCellKey
-      return (
-        <circle
-          cx={cx}
-          cy={cy}
-          r={scatterPointRadius}
-          fill={payload.color}
-          stroke={isActive ? '#0f172a' : '#ffffff'}
-          strokeWidth={isActive ? 1.75 : 0.75}
-          style={{ cursor: 'pointer' }}
-          onClick={(e) => {
-            e.stopPropagation()
-            onScatterCellClick(payload.cellKey)
-          }}
-        />
-      )
-    },
-    [activeGridCellKey, onScatterCellClick, scatterPointRadius],
-  )
 
   return (
     <section className={styles.page}>
@@ -255,70 +220,26 @@ export const SelfPage = () => {
             ]}
           />
 
-          <ChartCard
+          <AnalysisScatterChartCard<AnalysisScatterGridPoint>
             title="판매량/영업 이익률 분석"
-            className={styles.selfChartCard}
-            titleAction={(
-              <button
-                type="button"
-                className={`${styles.actionBtn} ${styles.btnNeutral} ${styles.chartClearSelectionButton} ${
-                  activeGridCellKey ? '' : styles.chartActionHidden
-                }`}
-                aria-hidden={!activeGridCellKey}
-                aria-label="선택 초기화"
-                disabled={!activeGridCellKey}
-                tabIndex={activeGridCellKey ? 0 : -1}
-                title="선택 초기화"
-                onClick={clearActiveGridCell}
-              >
-                선택 초기화
-              </button>
-            )}
-          >
-            <div ref={chartBodyRef} className={styles.selfChartBody}>
-              {chartReady ? (
-                <ScatterChart
-                  width={scatterChartWidth}
-                  height={scatterChartHeight}
-                  data={scatterData}
-                  margin={{ top: 8, right: 8, bottom: 22, left: 8 }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis
-                    type="number"
-                    dataKey="x"
-                    name="영업이익률"
-                    unit="%"
-                    tickFormatter={(v) => `${v}`}
-                    tick={{ fontSize: 10 }}
-                    label={{
-                      value: '영업이익률',
-                      position: 'insideBottom',
-                      offset: -10,
-                      style: { fill: '#475569', fontSize: 11, fontWeight: 600 },
-                    }}
-                  />
-                  <YAxis
-                    type="number"
-                    dataKey="y"
-                    name="판매량(EA)"
-                    tick={{ fontSize: 10 }}
-                    width={42}
-                    tickMargin={4}
-                    label={{
-                      value: '판매량(EA)',
-                      angle: -90,
-                      position: 'insideLeft',
-                      offset: 0,
-                      style: { fill: '#475569', fontSize: 11, fontWeight: 600 },
-                    }}
-                  />
-                  <Tooltip content={renderScatterTooltip} />
-                  <Scatter fill="#f59e0b" shape={scatterShape} />
-                </ScatterChart>
-              ) : null}
-            </div>
-          </ChartCard>
+            data={scatterData}
+            chartBodyRef={chartBodyRef}
+            chartReady={chartReady}
+            width={scatterChartWidth}
+            height={scatterChartHeight}
+            pointRadius={scatterPointRadius}
+            activeCellKey={activeGridCellKey}
+            onCellClick={onScatterCellClick}
+            onClearSelection={clearActiveGridCell}
+            renderTooltip={renderScatterTooltip}
+            xAxis={{
+              name: '영업이익률',
+              label: '영업이익률',
+              unit: '%',
+              tickFormatter: (value) => `${value}`,
+            }}
+            yAxis={{ name: '판매량(EA)', label: '판매량(EA)', width: 42, tickMargin: 4 }}
+          />
         </div>
 
         <AnalysisList<SelfSalesRow>
