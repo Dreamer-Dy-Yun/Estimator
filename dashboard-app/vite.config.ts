@@ -1,4 +1,4 @@
-import { defineConfig } from 'vite'
+import { configDefaults, defineConfig } from 'vitest/config'
 import react from '@vitejs/plugin-react'
 
 const fromNodePackage = (moduleId: string, packageName: string) =>
@@ -10,6 +10,9 @@ const fromNodePackage = (moduleId: string, packageName: string) =>
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
+  test: {
+    exclude: [...configDefaults.exclude, 'e2e/**'],
+  },
   build: {
     rolldownOptions: {
       output: {

@@ -78,12 +78,14 @@
 |------|------|-----------|
 | `package.json` | 앱 스크립트와 의존성 선언. 한국어 깨짐 점검은 `npm run check:encoding`이 담당한다. | 런타임/빌드/테스트/검사 스크립트 변경 시 수정 |
 | `package-lock.json` | npm 의존성 잠금. | `package.json` 변경 또는 설치 결과 변경 시 수정 |
-| `vite.config.ts` | Vite 설정. 프로덕션 빌드의 vendor chunk 분리는 Rolldown `codeSplitting.groups`에서 관리한다. | 빌드 옵션, 플러그인, chunk 분리 기준 변경 시 수정 |
+| `vite.config.ts` | Vite/Vitest 설정. 프로덕션 빌드의 vendor chunk 분리는 Rolldown `codeSplitting.groups`에서 관리하고, Vitest는 Playwright 전용 `e2e/`를 제외한다. | 빌드 옵션, 플러그인, chunk 분리 기준, 단위 테스트 포함/제외 범위 변경 시 수정 |
+| `playwright.config.ts` | e2e 테스트 실행 설정. 로컬 Vite dev server를 4175 포트로 띄우고 Chromium 프로젝트에서 주요 시나리오를 실행한다. | e2e 브라우저, 서버 포트, retry/report/trace 정책 변경 시 수정 |
 | `tsconfig*.json` | TypeScript 컴파일 경계. 현재 앱/노드 설정 모두 `strict: true`를 사용한다. | TS 대상, strictness, include 경계 변경 시 수정 |
 | `eslint.config.js` | 린트 규칙. 현재 전체 `npm run lint`는 통과해야 하는 기준선이다. | 규칙이나 대상 변경 시 수정 |
 | `index.html` | Vite HTML 진입점. | 루트 마크업/메타/앱 mount 변경 시 수정 |
-| `scripts/check-korean-encoding.mjs` | `src`와 `MD`의 UTF-8 한국어 문자열이 실제 mojibake나 replacement 문자로 손상됐는지 확인한다. 콘솔 표시 깨짐과 파일 손상을 구분하기 위한 검사 도구다. | 한국어 문자열 점검 범위, 검사 휴리스틱, 문서 위치 변경 시 수정 |
+| `scripts/check-korean-encoding.mjs` | `src`, `e2e`, `MD`의 UTF-8 한국어 문자열이 실제 mojibake나 replacement 문자로 손상됐는지 확인한다. 콘솔 표시 깨짐과 파일 손상을 구분하기 위한 검사 도구다. | 한국어 문자열 점검 범위, 검사 휴리스틱, 문서 위치 변경 시 수정 |
 | `public/` | 빌드에 그대로 포함되는 정적 자산. | URL로 직접 참조되는 자산 추가/수정 |
+| `e2e/` | Playwright 실제 브라우저 시나리오 테스트. | 로그인/라우트/모달/드로워 같은 주요 사용자 흐름 변경 시 수정 |
 | `src/` | 앱 소스. 아래 경계 표를 따른다. | 기능 변경 시 관련 하위 경계 갱신 |
 | `dist/` | 빌드 산출물. 소스가 아니다. | 커밋하지 않는다 |
 | `node_modules/` | 설치 산출물. 소스가 아니다. | 커밋하지 않는다 |
@@ -96,6 +98,15 @@
 | `src/App.tsx` | 배포 환경별 router 선택, 최상위 shell, 전역 toast/auth provider 연결, 대시보드/관리자 라우트 lazy import. 기본은 `BrowserRouter`, `VITE_ROUTER_MODE=hash`일 때만 `HashRouter`를 쓴다. | URL 라우팅, 주요 layout 진입점, 라우트 단위 chunk 경계, 배포 라우팅 방식 변경 시 수정 |
 | `src/app.module.css` | 최상위 앱 shell 크기와 main 영역 스타일. | 앱 전체 shell 레이아웃 변경 시 수정 |
 | `src/types.ts` | 아직 API 계약으로 승격되지 않은 공용 도메인 타입. | 여러 영역에서 공유되는 타입만 둔다 |
+
+## e2e
+
+실제 브라우저에서 주요 사용자 흐름을 확인하는 Playwright 시나리오다. 단위 테스트가 계산/모델을 검증하고, e2e는 로그인, 라우트 이동, 모달/드로워 같은 화면 조립이 함께 깨지지 않는지 본다.
+
+| 파일/폴더 | 역할 |
+|------|------|
+| `main-flows.spec.ts` | 기본 mock 로그인, 자사/경쟁사/오더 후보군/관리자 탭 이동, 1차 드로워, 후보군 담기 모달, 후보군 상세, GPT 키 상세 팝업 smoke 시나리오 |
+| `helpers/app.ts` | 기본 mock 로그인 helper와 브라우저 runtime error 수집/검증 helper |
 
 ## src/api
 

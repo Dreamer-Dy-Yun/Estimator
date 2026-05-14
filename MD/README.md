@@ -53,4 +53,5 @@
 | [dashboard-app/test-strategy.md](./dashboard-app/test-strategy.md) | 테스트 전략 |
 | [backend-api/README.md](./backend-api/README.md) | 백엔드 API 문서 입구 |
 | [backend-api/backend-api-spec.md](./backend-api/backend-api-spec.md) | 백엔드 API 계약 상세 |
+| [troubleshooting/README.md](./troubleshooting/README.md) | 반복 환경 문제와 검증 병목 해결 방법 |
 | [HISTORY/README.md](./HISTORY/README.md) | 날짜별 계획·완료·과거 요구사항 이력 보관 기준 |

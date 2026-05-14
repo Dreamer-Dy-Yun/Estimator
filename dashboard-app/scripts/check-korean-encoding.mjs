@@ -2,7 +2,7 @@ import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { extname, join } from 'node:path'
 import process from 'node:process'
 
-const ROOTS = ['src', '../MD', '../AGENTS.md']
+const ROOTS = ['src', 'e2e', '../MD', '../AGENTS.md']
 const TEXT_EXTS = new Set(['.ts', '.tsx', '.js', '.mjs', '.css', '.md', '.json', '.html', '.yml', '.yaml'])
 const IGNORED_DIRS = new Set(['dist', 'node_modules'])
 
@@ -20,6 +20,8 @@ function collectFiles(dir, out = []) {
 }
 
 function hasMojibakeMarker(line) {
+  if (line.includes('intentional-mojibake-example')) return false
+
   const chars = [...line]
   for (let i = 0; i < chars.length; i += 1) {
     const cp = chars[i].codePointAt(0)
