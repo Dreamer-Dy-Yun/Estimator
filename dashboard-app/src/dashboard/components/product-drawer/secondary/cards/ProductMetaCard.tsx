@@ -26,7 +26,7 @@ export function ProductMetaCard({ primary }: Props) {
           <span className={styles.metaLabel}>{KO.labelColorCode}</span>
           <span className={styles.metaValue}>{primary.colorCode}</span>
         </div>
-        <div className={styles.metaItem}>
+        <div className={`${styles.metaItem} ${styles.metaItemProductName}`}>
           <span className={styles.metaLabel}>{KO.labelProductName}</span>
           <span className={styles.metaValue}>{primary.productName}</span>
         </div>
