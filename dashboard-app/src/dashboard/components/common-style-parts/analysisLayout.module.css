@@ -52,7 +52,7 @@
 
 .twoCol {
   display: grid;
-  grid-template-columns: 320px 1fr;
+  grid-template-columns: clamp(230px, 24vw, 280px) minmax(0, 1fr);
   gap: 12px;
   align-items: flex-start;
 }
@@ -148,4 +148,16 @@
 .chartActionHidden {
   visibility: hidden;
   pointer-events: none;
+}
+
+@media (max-width: 640px) {
+  .twoCol {
+    grid-template-columns: 1fr;
+  }
+
+  .selfTwoCol {
+    height: auto;
+    min-height: 0;
+    overflow: visible;
+  }
 }

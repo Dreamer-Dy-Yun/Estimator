@@ -53,4 +53,5 @@
 | [dashboard-app/test-strategy.md](./dashboard-app/test-strategy.md) | 테스트 전략 |
 | [backend-api/README.md](./backend-api/README.md) | 백엔드 API 문서 입구 |
 | [backend-api/backend-api-spec.md](./backend-api/backend-api-spec.md) | 백엔드 API 계약 상세 |
+| [manual/README.md](./manual/README.md) | 사용자 매뉴얼 웹 원본과 캡처 기준 |
 | [HISTORY/README.md](./HISTORY/README.md) | 날짜별 계획·완료·과거 요구사항 이력 보관 기준 |

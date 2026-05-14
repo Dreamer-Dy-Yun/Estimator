@@ -2,6 +2,7 @@ import type { TableColumn } from './PaginatedTable'
 import type { SortState } from '../../utils/sort'
 import type { KeyboardEvent } from 'react'
 import { PaginatedTable } from './PaginatedTable'
+import styles from './common.module.css'
 
 type AnalysisListProps<T extends { id: string }> = {
   columns: Array<TableColumn<T>>
@@ -22,6 +23,8 @@ export function AnalysisList<T extends { id: string }>({
   batchSize = 30,
   wrapClassName,
 }: AnalysisListProps<T>) {
+  const analysisWrapClassName = `${styles.analysisTableWrap}${wrapClassName ? ` ${wrapClassName}` : ''}`
+
   return (
     <PaginatedTable<T>
       paginated={false}
@@ -30,7 +33,7 @@ export function AnalysisList<T extends { id: string }>({
       onRowClick={onRowClick}
       onRowKeyDown={onRowKeyDown}
       defaultSort={defaultSort}
-      wrapClassName={wrapClassName}
+      wrapClassName={analysisWrapClassName}
       infiniteScroll={{ enabled: true, batchSize }}
     />
   )

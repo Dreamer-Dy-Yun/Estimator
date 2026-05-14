@@ -120,6 +120,11 @@ export function PaginatedTable<T extends { id: string }>(props: PaginatedTablePr
     <div className={`${styles.tableWrap}${wrapClassName ? ` ${wrapClassName}` : ''}`} {...drawerKeepOpenDataProps()}>
       <div ref={tableBodyRef} className={styles.tableBody}>
         <table className={styles.table}>
+          <colgroup>
+            {columns.map((c) => (
+              <col key={c.key} style={{ width: c.width }} />
+            ))}
+          </colgroup>
           <thead>
             <tr>
               {columns.map((c) => {
