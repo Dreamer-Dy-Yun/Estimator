@@ -5,20 +5,21 @@ import { selfSalesWeightedMarginRate, selfSalesWeightedOpMarginRate } from '../.
 import type { AdjacentDirection } from '../../utils/adjacentListNavigation'
 import { adjacentIdInOrder } from '../../utils/adjacentListNavigation'
 import { clampForecastMonths, readForecastMonthsFromStorage, writeForecastMonthsToStorage } from '../../utils/forecastMonthsStorage'
-import { formatGroupedNumber, formatPercent } from '../../utils/format'
+import { formatGroupedNumber } from '../../utils/format'
 import { getScatterGridCellColor, getScatterGridCellPointRadius } from '../../utils/scatterGridDisplay'
 import type { ScatterSalesGridResponse } from '../../api/types'
 import { AnalysisCandidateBulkAddModal } from '../components/candidate-stash/AnalysisCandidateBulkAddModal'
 import { ProductDrawer } from '../components/product-drawer/ProductDrawer'
 import styles from '../components/common.module.css'
-import { AnalysisList } from '../components/AnalysisList'
 import { AnalysisPeriodTools } from '../components/AnalysisPeriodTools'
 import {
   AnalysisScatterChartCard,
   type AnalysisScatterGridPoint,
 } from '../components/AnalysisScatterChartCard'
+import { renderSelfSalesScatterTooltip } from '../components/AnalysisScatterTooltips'
 import { FilterBar } from '../components/FilterBar'
 import { KpiGrid } from '../components/KpiGrid'
+import { SelfAnalysisList } from '../components/SelfAnalysisList'
 import { useElementSize } from '../hooks/useElementSize'
 import { maskNonPeriodAnalysisFilterFields, useAnalysisSalesFilters } from '../hooks/useAnalysisSalesFilters'
 import { useAnalysisVisibleSelection } from '../hooks/useAnalysisVisibleSelection'
@@ -143,32 +144,6 @@ export const SelfPage = () => {
     [navigationOrderIds, selectedSkuGroupKey, setSelectedSkuGroupKey],
   )
 
-  const renderScatterTooltip = (props: { active?: boolean; payload?: ReadonlyArray<{ payload?: AnalysisScatterGridPoint }> }) => {
-    const { active, payload } = props
-    if (!active || !payload?.length) return null
-    const point = payload[0]?.payload
-    if (!point) return null
-
-    return (
-      <div className={styles.chartTooltip}>
-        <div className={styles.chartTooltipTitle}>격자 셀</div>
-      <div className={styles.chartTooltipText}>
-          영업이익률: {formatPercent(point.xStart)} ~ {formatPercent(point.xEnd)}
-        </div>
-        <div className={styles.chartTooltipText}>
-          판매량: {formatGroupedNumber(point.yStart)} ~ {formatGroupedNumber(point.yEnd)}
-        </div>
-        <div className={styles.chartTooltipText}>건수: {formatGroupedNumber(point.count)} EA</div>
-        {point.hasMoreSkuIds ? (
-          <div className={styles.chartTooltipText}>셀 제한으로 일부 상품만 표시</div>
-        ) : null}
-        <div className={styles.chartTooltipHint}>
-          클릭 시 셀 내 상품만 표시
-        </div>
-      </div>
-    )
-  }
-
   const scatterChartWidth = Math.max(1, Math.floor(chartWidth))
   const scatterChartHeight = Math.max(1, Math.floor(chartHeight))
   const scatterPointRadius = getScatterGridCellPointRadius(scatterGrid?.meta, scatterChartWidth, scatterChartHeight)
@@ -231,7 +206,7 @@ export const SelfPage = () => {
             activeCellKey={activeGridCellKey}
             onCellClick={onScatterCellClick}
             onClearSelection={clearActiveGridCell}
-            renderTooltip={renderScatterTooltip}
+            renderTooltip={renderSelfSalesScatterTooltip}
             xAxis={{
               name: '영업이익률',
               label: '영업이익률',
@@ -242,53 +217,14 @@ export const SelfPage = () => {
           />
         </div>
 
-        <AnalysisList<SelfSalesRow>
-          columns={[
-            {
-              key: 'bulkSelect',
-              header: (
-                <input
-                  type="checkbox"
-                  checked={allRowsSelected}
-                  disabled={visibleRows.length === 0}
-                  aria-label="전체 선택"
-                  onChange={toggleAllVisibleRows}
-                />
-              ),
-              cell: (r) => (
-                <input
-                  type="checkbox"
-                  checked={bulkSelectedSkuGroupKeys.has(r.skuGroupKey)}
-                  aria-label={`${r.productName} 선택`}
-                  onClick={(event) => event.stopPropagation()}
-                  onChange={() => toggleBulkRow(r.skuGroupKey)}
-                />
-              ),
-              align: 'center',
-              width: '42px',
-              sortable: false,
-            },
-            { key: 'rowIndex', header: '순위', cell: (_r, index) => index + 1, align: 'center', sortable: false },
-            { key: 'brand', header: '브랜드', cell: (r) => r.brand, width: '8.5%', sortValue: (r) => r.brand },
-            { key: 'category', header: '카테고리', cell: (r) => r.category, sortValue: (r) => r.category },
-            { key: 'code', header: '품번', cell: (r) => r.code, sortValue: (r) => r.code },
-            { key: 'productName', header: '상품명', cell: (r) => r.productName, sortValue: (r) => r.productName },
-            { key: 'colorCode', header: '색상', cell: (r) => r.colorCode, sortValue: (r) => r.colorCode },
-            { key: 'avgPrice', header: '평균판매가', cell: (r) => formatGroupedNumber(r.avgPrice), align: 'right', sortValue: (r) => r.avgPrice },
-            { key: 'avgCost', header: '평균매입원가', cell: (r) => formatGroupedNumber(r.avgCost), align: 'right', sortValue: (r) => r.avgCost },
-            { key: 'qty', header: '판매량', cell: (r) => formatGroupedNumber(r.qty), align: 'right', sortValue: (r) => r.qty },
-            { key: 'amount', header: '총판매액', cell: (r) => formatGroupedNumber(r.amount), align: 'right', sortValue: (r) => r.amount },
-            { key: 'margin', header: '매출이익율', cell: (r) => formatPercent(r.marginRate), align: 'right', sortValue: (r) => r.marginRate },
-            { key: 'op', header: '영업이익률', cell: (r) => formatPercent(r.opMarginRate), align: 'right', sortValue: (r) => r.opMarginRate },
-            ]}
+        <SelfAnalysisList
           rows={visibleRows}
-          defaultSort={{ key: 'qty', dir: 'asc' }}
-          onRowClick={(row) => setSelectedSkuGroupKey(row.skuGroupKey)}
-          onRowKeyDown={(row, event) => {
-            if (event.key !== 'ArrowLeft') return
-            event.preventDefault()
-            setSelectedSkuGroupKey(row.skuGroupKey)
-          }}
+          selectedSkuGroupKey={selectedSkuGroupKey}
+          allVisibleRowsSelected={allRowsSelected}
+          bulkSelectedSkuGroupKeys={bulkSelectedSkuGroupKeys}
+          onToggleAllVisibleRows={toggleAllVisibleRows}
+          onToggleBulkRow={toggleBulkRow}
+          onSelectSkuGroupKey={setSelectedSkuGroupKey}
         />
       </div>
 

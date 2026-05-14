@@ -7,6 +7,8 @@ import styles from './common.module.css'
 type AnalysisListProps<T extends { id: string }> = {
   columns: Array<TableColumn<T>>
   rows: T[]
+  activeRowId?: string | null
+  getRowId?: (row: T) => string
   onRowClick?: (row: T) => void
   onRowKeyDown?: (row: T, event: KeyboardEvent<HTMLTableRowElement>) => void
   defaultSort?: SortState
@@ -17,6 +19,8 @@ type AnalysisListProps<T extends { id: string }> = {
 export function AnalysisList<T extends { id: string }>({
   columns,
   rows,
+  activeRowId,
+  getRowId,
   onRowClick,
   onRowKeyDown,
   defaultSort,
@@ -30,6 +34,8 @@ export function AnalysisList<T extends { id: string }>({
       paginated={false}
       columns={columns}
       rows={rows}
+      activeRowId={activeRowId}
+      getRowId={getRowId}
       onRowClick={onRowClick}
       onRowKeyDown={onRowKeyDown}
       defaultSort={defaultSort}

@@ -154,6 +154,11 @@
   margin-top: 2px;
 }
 
+.chartTooltipCount {
+  color: #0f172a;
+  font-weight: 800;
+}
+
 .chartTooltipHint {
   font-size: 11px;
   color: #64748b;
@@ -173,6 +178,20 @@
 
 .rowClickable:hover {
   background: #f8fafc;
+}
+
+.rowActive > td,
+.rowActive:hover > td {
+  background: #eff6ff;
+}
+
+.rowActive > td:first-child {
+  box-shadow: inset 3px 0 0 #2563eb;
+}
+
+.rowActive:focus-visible {
+  outline: 2px solid rgba(37, 99, 235, 0.28);
+  outline-offset: -2px;
 }
 
 .pager {

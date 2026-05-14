@@ -1,5 +1,9 @@
 import type { ProductPrimarySummary, ProductSecondaryDetail } from '../../../../types'
-import { ORDER_SNAPSHOT_SCHEMA_VERSION, type OrderSnapshotDocumentV1 } from '../../../../snapshot/orderSnapshotTypes'
+import {
+  ORDER_SNAPSHOT_SCHEMA_VERSION,
+  type OrderSnapshotDocumentV1,
+  type OrderSnapshotStockDisplayV1,
+} from '../../../../snapshot/orderSnapshotTypes'
 import type { SalesKpiColumn, SecondaryForecastDerived, SecondaryForecastInputs } from './secondaryDrawerTypes'
 
 export type SecondarySnapshotSizeRow = {
@@ -26,6 +30,7 @@ export type BuildSecondaryOrderSnapshotParams = {
   compCol: SalesKpiColumn
   forecastInputs: SecondaryForecastInputs
   forecastDerived: SecondaryForecastDerived
+  stockDisplay: OrderSnapshotStockDisplayV1 | null
   selfWeightPct: number
   bufferStock: number
   aiPrompt: string
@@ -50,6 +55,7 @@ export function buildSecondaryOrderSnapshot({
   compCol,
   forecastInputs,
   forecastDerived,
+  stockDisplay,
   selfWeightPct,
   bufferStock,
   aiPrompt,
@@ -66,6 +72,14 @@ export function buildSecondaryOrderSnapshot({
   const expectedOpProfit = orderQty * perUnitOpMargin
   const { monthlySalesTrend, ...summary } = primary
   void monthlySalesTrend
+  const storedStockDisplay = stockDisplay == null ? undefined : {
+    currentStockQtyTotal: stockDisplay.currentStockQtyTotal,
+    totalOrderBalanceTotal: stockDisplay.totalOrderBalanceTotal,
+    expectedInboundOrderBalanceTotal: stockDisplay.expectedInboundOrderBalanceTotal,
+    currentStockQtyBySize: [...stockDisplay.currentStockQtyBySize],
+    totalOrderBalanceBySize: [...stockDisplay.totalOrderBalanceBySize],
+    expectedInboundOrderBalanceBySize: [...stockDisplay.expectedInboundOrderBalanceBySize],
+  }
 
   return {
     schemaVersion: ORDER_SNAPSHOT_SCHEMA_VERSION,
@@ -90,6 +104,12 @@ export function buildSecondaryOrderSnapshot({
       salesCompetitor: compCol,
       stockInputs: forecastInputs,
       stockDerived: forecastDerived,
+      orderUnitInputs: {
+        unitPrice,
+        unitCost,
+        expectedFeeRatePct,
+      },
+      stockDisplay: storedStockDisplay,
       selfWeightPct,
       sizeForecastSource: 'forecastQty',
       bufferStock,
@@ -115,4 +135,3 @@ export function buildSecondaryOrderSnapshot({
     },
   }
 }
-

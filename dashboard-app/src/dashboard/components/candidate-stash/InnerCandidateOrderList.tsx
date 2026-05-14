@@ -1,4 +1,4 @@
-import type { ReactNode, RefObject } from 'react'
+import { useEffect, useRef, type ReactNode, type RefObject } from 'react'
 import { formatEaQuantity, formatGroupedNumber } from '../../../utils/format'
 import { CandidateInsightBadges } from './CandidateInsightBadges'
 import type { InnerCandidateRow, InnerCandidateSortKey } from './useCandidateStashDetailModal'
@@ -67,6 +67,16 @@ export function InnerCandidateOrderList({
   onToggleItemDrawer,
   onSort,
 }: Props) {
+  const rowRefs = useRef(new Map<string, HTMLDivElement>())
+
+  useEffect(() => {
+    if (!drawerOpen || !openedItemUuid) return
+    const activeRow = rowRefs.current.get(openedItemUuid)
+    if (!activeRow) return
+    activeRow.scrollIntoView({ block: 'nearest', inline: 'nearest' })
+    activeRow.focus({ preventScroll: true })
+  }, [drawerOpen, openedItemUuid, rows.length])
+
   return (
     <div className={detailStyles.innerOrderList} role="list">
       <div className={detailStyles.innerOrderHeader} role="presentation">
@@ -93,16 +103,21 @@ export function InnerCandidateOrderList({
       </div>
       {rows.map((row, index) => {
         const selected = selectedUuidSet.has(row.uuid)
+        const active = drawerOpen && openedItemUuid === row.uuid
         return (
           <div
             key={row.uuid}
+            ref={(node) => {
+              if (node) rowRefs.current.set(row.uuid, node)
+              else rowRefs.current.delete(row.uuid)
+            }}
             className={`${detailStyles.innerOrderRow} ${
               row.insight.rankTone === 'top'
                 ? detailStyles.innerOrderRowTop
                 : row.insight.rankTone === 'bottom'
                   ? detailStyles.innerOrderRowBottom
                   : ''
-            }`}
+            } ${active ? detailStyles.innerOrderRowActive : ''}`}
             onClick={() => onToggleItemDrawer(row)}
             onKeyDown={(e) => {
               const target = e.target as HTMLElement | null
@@ -119,6 +134,7 @@ export function InnerCandidateOrderList({
             role="listitem"
             tabIndex={0}
             aria-expanded={drawerOpen && openedItemUuid === row.uuid}
+            aria-current={active ? 'true' : undefined}
           >
             <span className={detailStyles.innerOrderIndexCell}>{index + 1}</span>
             <span className={detailStyles.innerOrderCheckCell}>

@@ -12,6 +12,7 @@ import type { OrderSnapshotDocumentV1 } from '../../../../snapshot/orderSnapshot
 import type { CandidateItemPanelContext } from './candidateActionCards'
 import { useSecondaryForecastModel } from './hooks/useSecondaryForecastModel'
 import { ProductSecondaryDrawerContent } from './ProductSecondaryDrawerContent'
+import { buildSecondarySnapshotView } from './secondarySnapshotView'
 
 export type { CandidateItemPanelContext }
 
@@ -93,6 +94,10 @@ export function ProductSecondaryDrawer({
   const snapshotInfoMode = hasSavedSnapshot && showSnapshotInfo
   const viewPeriodStart = snapshotInfoMode ? prefillFromSnapshot!.context.periodStart : periodStart
   const viewPeriodEnd = snapshotInfoMode ? prefillFromSnapshot!.context.periodEnd : periodEnd
+  const snapshotView = useMemo(
+    () => buildSecondarySnapshotView(prefillFromSnapshot, snapshotInfoMode),
+    [prefillFromSnapshot, snapshotInfoMode],
+  )
 
   useEffect(() => {
     if (hasSavedSnapshot) return
@@ -150,11 +155,24 @@ export function ProductSecondaryDrawer({
       setLeadTimeStartDate(si.leadTimeStartDate)
       setLeadTimeEndDate(si.leadTimeEndDate)
       setDailyMeanClient(si.dailyMean)
+      if (d2.orderUnitInputs != null) {
+        setUnitCostInput(d2.orderUnitInputs.unitCost)
+        setUnitPriceInput(d2.orderUnitInputs.unitPrice)
+        setExpectedFeeRatePct(d2.orderUnitInputs.expectedFeeRatePct)
+      }
     })
     return () => {
       alive = false
     }
   }, [prefillFromSnapshot, primary.skuGroupKey, onChannelChange])
+
+  const viewChannel = useMemo<SecondaryCompetitorChannel>(() => {
+    if (!snapshotInfoMode || prefillFromSnapshot == null) return channel
+    return {
+      id: prefillFromSnapshot.drawer2.competitorChannelId,
+      label: prefillFromSnapshot.drawer2.competitorChannelLabel,
+    }
+  }, [channel, prefillFromSnapshot, snapshotInfoMode])
 
   const model = useSecondaryForecastModel({
     primary,
@@ -165,7 +183,7 @@ export function ProductSecondaryDrawer({
     forecastMonths,
     prefillFromSnapshot,
     candidateItemContext,
-    channel,
+    channel: viewChannel,
     viewPeriodStart,
     viewPeriodEnd,
     snapshotInfoMode,
@@ -213,27 +231,36 @@ export function ProductSecondaryDrawer({
     if (v < leadTimeStartDate) v = leadTimeStartDate
     setLeadTimeEndDate(v)
   }
+  const viewUnitInputs = snapshotView?.orderUnitInputs
+  const viewLeadTimeStartDate = snapshotView?.stockInputs.leadTimeStartDate ?? leadTimeStartDate
+  const viewLeadTimeEndDate = snapshotView?.stockInputs.leadTimeEndDate ?? leadTimeEndDate
+  const viewBufferStock = snapshotView?.bufferStock ?? bufferStock
+  const viewUnitCostInput = viewUnitInputs?.unitCost ?? unitCostInput
+  const viewUnitPriceInput = viewUnitInputs?.unitPrice ?? unitPriceInput
+  const viewExpectedFeeRatePct = viewUnitInputs?.expectedFeeRatePct ?? expectedFeeRatePct
+  const viewSelfWeightPct = snapshotView?.selfWeightPct ?? selfWeightPct
+  const viewAiComment = snapshotView?.aiComment ?? aiComment
 
   return (
     <ProductSecondaryDrawerContent
       pageName={pageName}
       primary={primary}
-      channel={channel}
+      channel={viewChannel}
       candidateItemContext={candidateItemContext}
       hasSavedSnapshot={hasSavedSnapshot}
       showSnapshotInfo={showSnapshotInfo}
       onShowSnapshotInfoChange={setShowSnapshotInfo}
       model={model}
-      aiComment={aiComment}
-      selfWeightPct={selfWeightPct}
+      aiComment={viewAiComment}
+      selfWeightPct={viewSelfWeightPct}
       onSelfWeightPctChange={setSelfWeightPct}
       minOrderDate={minOrderDate}
-      leadTimeStartDate={leadTimeStartDate}
-      leadTimeEndDate={leadTimeEndDate}
-      bufferStock={bufferStock}
-      unitCostInput={unitCostInput}
-      unitPriceInput={unitPriceInput}
-      expectedFeeRatePct={expectedFeeRatePct}
+      leadTimeStartDate={viewLeadTimeStartDate}
+      leadTimeEndDate={viewLeadTimeEndDate}
+      bufferStock={viewBufferStock}
+      unitCostInput={viewUnitCostInput}
+      unitPriceInput={viewUnitPriceInput}
+      expectedFeeRatePct={viewExpectedFeeRatePct}
       onCurrentOrderDateChange={handleCurrentOrderDateChange}
       onNextOrderDateChange={handleNextOrderDateChange}
       onBufferStockChange={setBufferStock}

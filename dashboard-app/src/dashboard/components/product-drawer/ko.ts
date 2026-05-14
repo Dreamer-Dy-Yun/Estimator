@@ -68,6 +68,7 @@ export const KO = {
   "btnCreateCandidateConfirm": "생성",
   "labelCandidateName": "후보군 이름",
   "labelCandidateNote": "비고",
+  "labelSnapshotInfoToggle": "스냅샷 기준 보기",
   "msgNoNote": "비고 없음",
   "msgCandidateEmpty": "후보군이 없습니다.",
   "hintSnapshot": "확정 시 2차 드로워 상태와 AI 코멘트가 선택한 후보군 이너 오더에 저장됩니다.",

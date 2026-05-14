@@ -7,6 +7,7 @@ import { normalizeMonthKey } from '../../../trend/trendRangeUtils'
 import type { CandidateItemPanelContext } from '../candidateActionCards'
 import { SecondaryOrderDraft } from '../model/SecondaryOrderDraft'
 import { buildSecondaryOrderSnapshot } from '../secondarySnapshot'
+import { buildSecondarySnapshotView } from '../secondarySnapshotView'
 import { useSecondaryCandidateActions } from './useSecondaryCandidateActions'
 import { useSecondaryDrawerRequests } from './useSecondaryDrawerRequests'
 import { useSecondaryOrderCalculations } from './useSecondaryOrderCalculations'
@@ -182,6 +183,22 @@ export function useSecondaryForecastModel(args: Args) {
     snapshotConfirmBySize,
     snapshotInfoMode,
   })
+  const snapshotView = useMemo(
+    () => buildSecondarySnapshotView(prefillFromSnapshot, snapshotInfoMode),
+    [prefillFromSnapshot, snapshotInfoMode],
+  )
+  const displayedCalculations = useMemo(() => {
+    if (snapshotView == null) return calculations
+    return {
+      ...calculations,
+      forecastInputs: snapshotView.stockInputs,
+      forecastDerived: snapshotView.stockDerived,
+      sizeRows: snapshotView.sizeRows,
+      manualConfirmDerived: {},
+    }
+  }, [calculations, snapshotView])
+  const stockDisplay = snapshotView?.stockDisplay ?? requests.forecastCalc?.display ?? null
+
   const buildSnapshot = useCallback((): OrderSnapshotDocumentV1 => buildSecondaryOrderSnapshot({
     primary,
     secondary,
@@ -196,6 +213,7 @@ export function useSecondaryForecastModel(args: Args) {
     compCol: requests.compCol,
     forecastInputs: calculations.forecastInputs,
     forecastDerived: calculations.forecastDerived,
+    stockDisplay: requests.forecastCalc?.display ?? null,
     selfWeightPct,
     bufferStock,
     aiPrompt,
@@ -218,6 +236,7 @@ export function useSecondaryForecastModel(args: Args) {
     leadTimeDays,
     primary,
     requests.compCol,
+    requests.forecastCalc?.display,
     requests.selfCol,
     secondary,
     selectedStart,
@@ -249,7 +268,9 @@ export function useSecondaryForecastModel(args: Args) {
     selectedStart,
     selectedEnd,
     ...requests,
-    ...calculations,
+    ...displayedCalculations,
+    stockDisplay,
+    snapshotConfirmedTotals: snapshotView?.confirmedTotals ?? null,
     candidateActions,
     handleConfirmQtyChange,
   }

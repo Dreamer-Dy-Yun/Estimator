@@ -120,6 +120,9 @@ export function buildMockOrderSnapshotForCandidate(skuGroupKey: string): Seconda
   const confirmedOrderQty = sizeRows.reduce((acc, row) => acc + Math.max(0, Math.round(row.confirmQty ?? 0)), 0)
   const confirmedExpectedSalesAmount = confirmedOrderQty * unitPrice
   const confirmedExpectedOpProfit = confirmedOrderQty * opMarginPerUnit
+  const currentStockQtyBySize = primary.sizeMix.map((row) => Math.max(0, Math.round(row.availableStock)))
+  const totalOrderBalanceBySize = sizeRows.map((row) => Math.max(0, Math.round(row.confirmQty * 0.4)))
+  const expectedInboundOrderBalanceBySize = sizeRows.map((row) => Math.max(0, Math.round(row.confirmQty * 0.3)))
   return ensureMockAiCommentForSnapshot({
     schemaVersion: ORDER_SNAPSHOT_SCHEMA_VERSION,
     skuGroupKey,
@@ -141,6 +144,19 @@ export function buildMockOrderSnapshotForCandidate(skuGroupKey: string): Seconda
       salesCompetitor: compCol,
       stockInputs,
       stockDerived,
+      orderUnitInputs: {
+        unitPrice,
+        unitCost,
+        expectedFeeRatePct: selfCol.feeRatePct ?? 0,
+      },
+      stockDisplay: {
+        currentStockQtyTotal: currentStockQtyBySize.reduce((acc, value) => acc + value, 0),
+        totalOrderBalanceTotal: totalOrderBalanceBySize.reduce((acc, value) => acc + value, 0),
+        expectedInboundOrderBalanceTotal: expectedInboundOrderBalanceBySize.reduce((acc, value) => acc + value, 0),
+        currentStockQtyBySize,
+        totalOrderBalanceBySize,
+        expectedInboundOrderBalanceBySize,
+      },
       selfWeightPct: 50,
       sizeForecastSource: 'forecastQty',
       bufferStock: 0,

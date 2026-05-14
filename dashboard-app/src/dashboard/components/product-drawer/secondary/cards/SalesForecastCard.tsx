@@ -17,6 +17,8 @@ export type SalesForecastComputedTable = {
   forecastOpProfit: number
   confirmedExpectedSales: number
   confirmedOpProfit: number
+  forecastOpProfitRatePct?: number | null
+  confirmedOpProfitRatePct?: number | null
 }
 
 type Props = {
@@ -70,14 +72,12 @@ export function SalesForecastCard({ forecast, orderSettings, actions, help }: Pr
     const opProfit = (expectedSales * (1 - feeRate)) - (unitCost * expectedQty)
     return (opProfit / expectedSales) * 100
   }
-  const forecastOpProfitRatePct = calcExpectedOpProfitRatePct(
-    computed.forecastExpectedSales,
-    computed.recommendedOrderQtyTotal,
-  )
-  const confirmedOpProfitRatePct = calcExpectedOpProfitRatePct(
-    computed.confirmedExpectedSales,
-    computed.confirmedOrderQtyTotal,
-  )
+  const forecastOpProfitRatePct = computed.forecastOpProfitRatePct !== undefined
+    ? computed.forecastOpProfitRatePct
+    : calcExpectedOpProfitRatePct(computed.forecastExpectedSales, computed.recommendedOrderQtyTotal)
+  const confirmedOpProfitRatePct = computed.confirmedOpProfitRatePct !== undefined
+    ? computed.confirmedOpProfitRatePct
+    : calcExpectedOpProfitRatePct(computed.confirmedExpectedSales, computed.confirmedOrderQtyTotal)
 
   return (
     <div className={`${styles.card} ${styles.gridColumnCard}`}>

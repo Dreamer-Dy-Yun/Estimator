@@ -5,7 +5,6 @@ import type { CompetitorSalesRow } from '../../types'
 import type { AdjacentDirection } from '../../utils/adjacentListNavigation'
 import { adjacentIdInOrder } from '../../utils/adjacentListNavigation'
 import { clampForecastMonths, readForecastMonthsFromStorage, writeForecastMonthsToStorage } from '../../utils/forecastMonthsStorage'
-import { formatGroupedNumber } from '../../utils/format'
 import { getScatterGridCellColor, getScatterGridCellPointRadius } from '../../utils/scatterGridDisplay'
 import { AnalysisCandidateBulkAddModal } from '../components/candidate-stash/AnalysisCandidateBulkAddModal'
 import { ProductDrawer } from '../components/product-drawer/ProductDrawer'
@@ -15,6 +14,7 @@ import {
   AnalysisScatterChartCard,
   type AnalysisScatterGridPoint,
 } from '../components/AnalysisScatterChartCard'
+import { createCompetitorSalesScatterTooltip } from '../components/AnalysisScatterTooltips'
 import { CompetitorAnalysisList } from '../components/CompetitorAnalysisList'
 import { CompetitorFilterEndControls } from '../components/CompetitorFilterEndControls'
 import { CompetitorKpiGrid } from '../components/CompetitorKpiGrid'
@@ -198,34 +198,10 @@ export const CompetitorPage = () => {
     [navigationOrderIds, selectedSkuGroupKey, setSelectedSkuGroupKey],
   )
 
-  const renderQtyScatterTooltip = (props: {
-    active?: boolean
-    payload?: ReadonlyArray<{ payload?: AnalysisScatterGridPoint }>
-  }) => {
-    const { active, payload } = props
-    if (!active || !payload?.length) return null
-    const point = payload[0]?.payload
-    if (!point) return null
-
-    return (
-      <div className={styles.chartTooltip}>
-        <div className={styles.chartTooltipTitle}>격자 셀</div>
-        <div className={styles.chartTooltipText}>
-          자사 판매량: {formatGroupedNumber(point.xStart)} ~ {formatGroupedNumber(point.xEnd)}
-        </div>
-        <div className={styles.chartTooltipText}>
-          {competitorAxisLabel} 판매량: {formatGroupedNumber(point.yStart)} ~ {formatGroupedNumber(point.yEnd)}
-        </div>
-        <div className={styles.chartTooltipText}>건수: {formatGroupedNumber(point.count)} EA</div>
-        {point.hasMoreSkuIds ? (
-          <div className={styles.chartTooltipText}>셀 제한으로 일부 상품만 표시</div>
-        ) : null}
-        <div className={styles.chartTooltipHint}>
-          클릭 시 셀 내 상품만 표시
-        </div>
-      </div>
-    )
-  }
+  const renderQtyScatterTooltip = useMemo(
+    () => createCompetitorSalesScatterTooltip(competitorAxisLabel),
+    [competitorAxisLabel],
+  )
 
   const scatterChartWidth = Math.max(1, Math.floor(chartWidth))
   const scatterChartHeight = Math.max(1, Math.floor(chartHeight))
@@ -296,12 +272,14 @@ export const CompetitorPage = () => {
 
         <CompetitorAnalysisList
           rows={visibleRows}
+          selectedSkuGroupKey={selectedSkuGroupKey}
           allVisibleRowsSelected={allVisibleRowsSelected}
           bulkSelectedSkuGroupKeys={bulkSelectedSkuGroupKeys}
           onToggleAllVisibleRows={toggleAllVisibleRows}
           onToggleBulkRow={toggleBulkRow}
           onSelectSkuGroupKey={setSelectedSkuGroupKey}
-        />      </div>
+        />
+      </div>
 
       <ProductDrawer
         summary={summaryBundle?.summary ?? null}

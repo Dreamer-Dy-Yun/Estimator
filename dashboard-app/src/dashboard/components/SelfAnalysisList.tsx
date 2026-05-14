@@ -1,9 +1,9 @@
-import type { CompetitorSalesRow } from '../../types'
-import { formatGroupedNumber } from '../../utils/format'
+import type { SelfSalesRow } from '../../types'
+import { formatGroupedNumber, formatPercent } from '../../utils/format'
 import { AnalysisList } from './AnalysisList'
 
 type Props = {
-  rows: CompetitorSalesRow[]
+  rows: SelfSalesRow[]
   selectedSkuGroupKey: string | null
   allVisibleRowsSelected: boolean
   bulkSelectedSkuGroupKeys: Set<string>
@@ -12,9 +12,9 @@ type Props = {
   onSelectSkuGroupKey: (skuGroupKey: string) => void
 }
 
-const getCompetitorRowId = (row: CompetitorSalesRow) => row.skuGroupKey
+const getSelfAnalysisRowId = (row: SelfSalesRow) => row.skuGroupKey
 
-export function CompetitorAnalysisList({
+export function SelfAnalysisList({
   rows,
   selectedSkuGroupKey,
   allVisibleRowsSelected,
@@ -24,7 +24,7 @@ export function CompetitorAnalysisList({
   onSelectSkuGroupKey,
 }: Props) {
   return (
-    <AnalysisList<CompetitorSalesRow>
+    <AnalysisList<SelfSalesRow>
       columns={[
         {
           key: 'bulkSelect',
@@ -57,52 +57,52 @@ export function CompetitorAnalysisList({
         { key: 'productName', header: '상품명', cell: (row) => row.productName, sortValue: (row) => row.productName },
         { key: 'colorCode', header: '색상', cell: (row) => row.colorCode, sortValue: (row) => row.colorCode },
         {
-          key: 'competitorAvgPrice',
-          header: '경쟁 평균가',
-          cell: (row) => formatGroupedNumber(row.competitorAvgPrice),
+          key: 'avgPrice',
+          header: '평균판매가',
+          cell: (row) => formatGroupedNumber(row.avgPrice),
           align: 'right',
-          sortValue: (row) => row.competitorAvgPrice,
+          sortValue: (row) => row.avgPrice,
         },
         {
-          key: 'selfAvgPrice',
-          header: '자사 평균가',
-          cell: (row) => (row.selfAvgPrice != null ? formatGroupedNumber(row.selfAvgPrice) : '-'),
+          key: 'avgCost',
+          header: '평균매입원가',
+          cell: (row) => formatGroupedNumber(row.avgCost),
           align: 'right',
-          sortValue: (row) => row.selfAvgPrice ?? 0,
+          sortValue: (row) => row.avgCost,
         },
         {
-          key: 'competitorQty',
-          header: '경쟁 판매량',
-          cell: (row) => formatGroupedNumber(row.competitorQty),
+          key: 'qty',
+          header: '판매량',
+          cell: (row) => formatGroupedNumber(row.qty),
           align: 'right',
-          sortValue: (row) => row.competitorQty,
+          sortValue: (row) => row.qty,
         },
         {
-          key: 'selfQty',
-          header: '자사 판매량',
-          cell: (row) => (row.selfQty != null ? formatGroupedNumber(row.selfQty) : '-'),
+          key: 'amount',
+          header: '총판매액',
+          cell: (row) => formatGroupedNumber(row.amount),
           align: 'right',
-          sortValue: (row) => row.selfQty ?? 0,
+          sortValue: (row) => row.amount,
         },
         {
-          key: 'competitorAmount',
-          header: '경쟁 판매액',
-          cell: (row) => formatGroupedNumber(row.competitorAmount),
+          key: 'margin',
+          header: '매출이익율',
+          cell: (row) => formatPercent(row.marginRate),
           align: 'right',
-          sortValue: (row) => row.competitorAmount,
+          sortValue: (row) => row.marginRate,
         },
         {
-          key: 'selfAmount',
-          header: '자사 판매액',
-          cell: (row) => (row.selfAmount != null ? formatGroupedNumber(row.selfAmount) : '-'),
+          key: 'op',
+          header: '영업이익률',
+          cell: (row) => formatPercent(row.opMarginRate),
           align: 'right',
-          sortValue: (row) => row.selfAmount ?? 0,
+          sortValue: (row) => row.opMarginRate,
         },
       ]}
       rows={rows}
       activeRowId={selectedSkuGroupKey}
-      getRowId={getCompetitorRowId}
-      defaultSort={{ key: 'competitorQty', dir: 'asc' }}
+      getRowId={getSelfAnalysisRowId}
+      defaultSort={{ key: 'qty', dir: 'asc' }}
       onRowClick={(row) => onSelectSkuGroupKey(row.skuGroupKey)}
       onRowKeyDown={(row, event) => {
         if (event.key !== 'ArrowLeft') return

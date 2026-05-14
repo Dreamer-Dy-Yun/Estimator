@@ -3,7 +3,6 @@ import type { Dispatch, SetStateAction } from 'react'
 import type { SecondaryCompetitorChannel } from '../../../../api'
 import { ComponentErrorBoundary } from '../../../../components/ComponentErrorBoundary'
 import type { ProductPrimarySummary } from '../../../../types'
-import { formatDateTimeMinute } from '../../../../utils/date'
 import { PortalHelpPopoverLayer } from '../../PortalHelpPopover'
 import commonStyles from '../../common.module.css'
 import { usePortalHelpPopover } from '../../usePortalHelpPopover'
@@ -13,12 +12,9 @@ import { ProductMetaCard } from './cards/ProductMetaCard'
 import { SalesForecastCard } from './cards/SalesForecastCard'
 import { SalesTrendDailyCard } from './cards/SalesTrendDailyCard'
 import { SizeOrderCard } from './cards/SizeOrderCard'
-import {
-  CandidateStashOrderActionCard,
-  InnerCandidateActionCard,
-  type CandidateItemPanelContext,
-} from './candidateActionCards'
+import type { CandidateItemPanelContext } from './candidateActionCards'
 import { CandidateStashPickerModal } from './CandidateStashPickerModal'
+import { SecondaryDrawerActionArea } from './SecondaryDrawerActionArea'
 import styles from './secondaryDrawer.module.css'
 import type { SecondaryHelpId } from './secondaryDrawerTypes'
 import type { useSecondaryForecastModel } from './hooks/useSecondaryForecastModel'
@@ -108,20 +104,28 @@ export function ProductSecondaryDrawerContent({
 }: Props) {
   const {
     salesInsightError,
-    forecastCalc,
     forecastCalcError,
     forecastInputs,
+    forecastDerived,
     sizeRows,
     manualConfirmDerived,
+    stockDisplay,
+    snapshotConfirmedTotals,
     dailyTrend,
     dailyTrendSizeOptions,
     candidateActions,
     handleConfirmQtyChange,
   } = model
+  const snapshotInfoMode = hasSavedSnapshot && showSnapshotInfo
   const recommendedQtyTotal = sizeRows.reduce((acc, r) => acc + Math.max(0, Math.round(r.recommendedQty)), 0)
   const confirmedQtyTotal = sizeRows.reduce((acc, r) => acc + Math.max(0, Math.round(r.confirmQty)), 0)
   const perUnitFee = Math.round((unitPriceInput * expectedFeeRatePct) / 100)
   const perUnitOpMargin = unitPriceInput - unitCostInput - perUnitFee
+  const forecastExpectedSales = snapshotInfoMode ? forecastDerived.expectedSalesAmount : recommendedQtyTotal * unitPriceInput
+  const forecastOpProfit = snapshotInfoMode ? forecastDerived.expectedOpProfit : recommendedQtyTotal * perUnitOpMargin
+  const confirmedExpectedSales = snapshotConfirmedTotals?.expectedSalesAmount ?? confirmedQtyTotal * unitPriceInput
+  const confirmedOpProfit = snapshotConfirmedTotals?.expectedOpProfit ?? confirmedQtyTotal * perUnitOpMargin
+  const forecastOpProfitRatePct = snapshotInfoMode && forecastExpectedSales > 0 ? (forecastOpProfit / forecastExpectedSales) * 100 : undefined
   const aiCommentCard = (
     <ComponentErrorBoundary page={pageName} unit="AiCommentCard">
       <AiCommentCard comment={aiComment} />
@@ -138,12 +142,12 @@ export function ProductSecondaryDrawerContent({
           expectedInboundOrderBalanceHelpId: helpIds.expectedInboundOrderBalance,
           sizeRecQtyHelpId: helpIds.sizeRecQty,
           salesForecastHelpId: helpIds.salesForecastSizeOrder,
-          currentStockQty: forecastCalc?.display.currentStockQtyTotal ?? 0,
-          totalOrderBalanceQty: forecastCalc?.display.totalOrderBalanceTotal ?? 0,
-          expectedInboundOrderBalanceQty: forecastCalc?.display.expectedInboundOrderBalanceTotal ?? 0,
-          currentStockQtyBySize: forecastCalc?.display.currentStockQtyBySize ?? [],
-          totalOrderBalanceBySize: forecastCalc?.display.totalOrderBalanceBySize ?? [],
-          expectedInboundOrderBalanceBySize: forecastCalc?.display.expectedInboundOrderBalanceBySize ?? [],
+          currentStockQty: stockDisplay?.currentStockQtyTotal ?? 0,
+          totalOrderBalanceQty: stockDisplay?.totalOrderBalanceTotal ?? 0,
+          expectedInboundOrderBalanceQty: stockDisplay?.expectedInboundOrderBalanceTotal ?? 0,
+          currentStockQtyBySize: stockDisplay?.currentStockQtyBySize ?? [],
+          totalOrderBalanceBySize: stockDisplay?.totalOrderBalanceBySize ?? [],
+          expectedInboundOrderBalanceBySize: stockDisplay?.expectedInboundOrderBalanceBySize ?? [],
           manualConfirmBySize: manualConfirmDerived,
         }}
         actions={{
@@ -163,36 +167,15 @@ export function ProductSecondaryDrawerContent({
           </ComponentErrorBoundary>
         </div>
         <div className={styles.metaFilterActionBlock}>
-          <div className={`${styles.card} ${styles.metaFilterActionCard}`}>
-            <div className={styles.metaFilterActionGrid}>
-              {candidateItemContext != null ? (
-                <InnerCandidateActionCard
-                  context={candidateItemContext}
-                  loading={candidateActions.loading}
-                  saveLabel={hasSavedSnapshot ? '수정' : '저장'}
-                  hasSnapshot={hasSavedSnapshot}
-                  showSnapshotInfo={showSnapshotInfo}
-                  onShowSnapshotInfoChange={onShowSnapshotInfoChange}
-                  onSave={candidateActions.saveCandidateItemChanges}
-                />
-              ) : (
-                <CandidateStashOrderActionCard
-                  selectedTitle={candidateActions.selectedCandidate?.name ?? '-'}
-                  selectedSub={
-                    candidateActions.selectedCandidate?.dbCreatedAt
-                      ? formatDateTimeMinute(candidateActions.selectedCandidate.dbCreatedAt)
-                      : '-'
-                  }
-                  loading={candidateActions.loading}
-                  confirmDisabled={candidateActions.selectedCandidate == null}
-                  onOpenStashPicker={candidateActions.openPicker}
-                  onConfirmOrder={candidateActions.confirmOrder}
-                  portalHelp={portalHelp}
-                  confirmOrderHelpId={helpIds.confirmOrder}
-                />
-              )}
-            </div>
-          </div>
+          <SecondaryDrawerActionArea
+            candidateItemContext={candidateItemContext}
+            hasSavedSnapshot={hasSavedSnapshot}
+            showSnapshotInfo={showSnapshotInfo}
+            onShowSnapshotInfoChange={onShowSnapshotInfoChange}
+            candidateActions={candidateActions}
+            portalHelp={portalHelp}
+            confirmOrderHelpId={helpIds.confirmOrder}
+          />
         </div>
       </div>
       <div className={styles.salesStockAiRow}>
@@ -203,11 +186,13 @@ export function ProductSecondaryDrawerContent({
               error: salesInsightError ?? forecastCalcError,
               computed: {
                 recommendedOrderQtyTotal: recommendedQtyTotal,
-                confirmedOrderQtyTotal: confirmedQtyTotal,
-                forecastExpectedSales: recommendedQtyTotal * unitPriceInput,
-                forecastOpProfit: recommendedQtyTotal * perUnitOpMargin,
-                confirmedExpectedSales: confirmedQtyTotal * unitPriceInput,
-                confirmedOpProfit: confirmedQtyTotal * perUnitOpMargin,
+                confirmedOrderQtyTotal: snapshotConfirmedTotals?.orderQty ?? confirmedQtyTotal,
+                forecastExpectedSales,
+                forecastOpProfit,
+                confirmedExpectedSales,
+                confirmedOpProfit,
+                forecastOpProfitRatePct,
+                confirmedOpProfitRatePct: snapshotConfirmedTotals?.expectedOpProfitRatePct,
               },
             }}
             orderSettings={{

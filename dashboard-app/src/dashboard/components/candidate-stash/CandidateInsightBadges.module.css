@@ -22,3 +22,16 @@
   font-size: 12px;
   line-height: 1;
 }
+
+:global([data-inner-drawer-open='true']) .badge,
+:global([data-inner-drawer-closing='true']) .badge {
+  min-height: 17px;
+  padding: 1px 4px;
+  font-size: 8px;
+  gap: 3px;
+}
+
+:global([data-inner-drawer-open='true']) .empty,
+:global([data-inner-drawer-closing='true']) .empty {
+  font-size: 10px;
+}

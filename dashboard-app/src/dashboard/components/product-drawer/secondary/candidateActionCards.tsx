@@ -77,10 +77,33 @@ type InnerCandidateActionCardProps = {
   context: CandidateItemPanelContext
   loading: boolean
   saveLabel: string
+  onSave: () => void
+}
+
+type SnapshotInfoToggleCardProps = {
   hasSnapshot: boolean
+  loading: boolean
   showSnapshotInfo: boolean
   onShowSnapshotInfoChange: (next: boolean) => void
-  onSave: () => void
+}
+
+export function SnapshotInfoToggleCard({
+  hasSnapshot,
+  loading,
+  showSnapshotInfo,
+  onShowSnapshotInfoChange,
+}: SnapshotInfoToggleCardProps) {
+  return (
+    <label className={styles.snapshotInfoToggle}>
+      <input
+        type="checkbox"
+        checked={showSnapshotInfo}
+        disabled={!hasSnapshot || loading}
+        onChange={(event) => onShowSnapshotInfoChange(event.target.checked)}
+      />
+      <span>{KO.labelSnapshotInfoToggle}</span>
+    </label>
+  )
 }
 
 /** 이너 후보 상세 드로어: 현재 후보군 + 변경 저장 + 삭제 */
@@ -88,9 +111,6 @@ export function InnerCandidateActionCard({
   context,
   loading,
   saveLabel,
-  hasSnapshot,
-  showSnapshotInfo,
-  onShowSnapshotInfoChange,
   onSave,
 }: InnerCandidateActionCardProps) {
   return (
@@ -100,15 +120,6 @@ export function InnerCandidateActionCard({
         <span className={styles.metaFilterSelectedSub}>
           {context.stashNote?.trim() ? context.stashNote : KO.msgNoNote}
         </span>
-        <label className={styles.snapshotInfoToggle}>
-          <input
-            type="checkbox"
-            checked={showSnapshotInfo}
-            disabled={!hasSnapshot || loading}
-            onChange={(event) => onShowSnapshotInfoChange(event.target.checked)}
-          />
-          <span>스냅샷 기준 보기</span>
-        </label>
       </div>
       <button
         type="button"

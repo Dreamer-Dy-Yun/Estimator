@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent, type ReactNode } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent, type ReactNode } from 'react'
 import { compareSortValues, nextSortState, type SortState, type SortValue } from '../../utils/sort'
 import { drawerKeepOpenDataProps } from '../drawer/drawerDom'
 import styles from './common.module.css'
@@ -27,6 +27,8 @@ export type TableColumn<T> = SortableTableColumn<T> | StaticTableColumn<T>
 type PaginatedTableBase<T> = {
   columns: Array<TableColumn<T>>
   rows: T[]
+  activeRowId?: string | null
+  getRowId?: (row: T) => string
   onRowClick?: (row: T) => void
   onRowKeyDown?: (row: T, event: KeyboardEvent<HTMLTableRowElement>) => void
   defaultSort?: SortState
@@ -52,10 +54,11 @@ export type PaginatedTableProps<T extends { id: string }> = PaginatedTableBase<T
 )
 
 export function PaginatedTable<T extends { id: string }>(props: PaginatedTableProps<T>) {
-  const { columns, rows, onRowClick, onRowKeyDown, defaultSort, infiniteScroll, wrapClassName } = props
+  const { columns, rows, activeRowId, getRowId, onRowClick, onRowKeyDown, defaultSort, infiniteScroll, wrapClassName } = props
   const plain = props.paginated === false
   const tableBodyRef = useRef<HTMLDivElement | null>(null)
   const loadMoreRef = useRef<HTMLDivElement | null>(null)
+  const rowRefs = useRef(new Map<string, HTMLTableRowElement>())
 
   const [sort, setSort] = useState<SortState | null>(defaultSort ?? null)
   const batchSize = Math.max(1, infiniteScroll?.batchSize ?? 30)
@@ -75,6 +78,7 @@ export function PaginatedTable<T extends { id: string }>(props: PaginatedTablePr
     })
     return list
   }, [rows, columns, sort])
+  const rowIdOf = useCallback((row: T) => getRowId?.(row) ?? row.id, [getRowId])
 
   const page = plain ? 1 : props.page
   const pageSize = plain ? Math.max(1, sortedRows.length) : props.pageSize
@@ -87,6 +91,28 @@ export function PaginatedTable<T extends { id: string }>(props: PaginatedTablePr
   const pageRows = plain
     ? (infiniteEnabled ? sortedRows.slice(0, visibleCount) : sortedRows)
     : sortedRows.slice(startIndex, startIndex + pageSize)
+
+  useEffect(() => {
+    if (!infiniteEnabled || !activeRowId) return
+    const activeIndex = sortedRows.findIndex((row) => rowIdOf(row) === activeRowId)
+    if (activeIndex < 0 || activeIndex < visibleCount) return
+    let alive = true
+    const nextVisibleCount = Math.min(sortedRows.length, activeIndex + 1)
+    queueMicrotask(() => {
+      if (alive) setVisibleCount(nextVisibleCount)
+    })
+    return () => {
+      alive = false
+    }
+  }, [activeRowId, infiniteEnabled, rowIdOf, sortedRows, visibleCount])
+
+  useEffect(() => {
+    if (!activeRowId) return
+    const activeRow = rowRefs.current.get(activeRowId)
+    if (!activeRow) return
+    activeRow.scrollIntoView({ block: 'nearest', inline: 'nearest' })
+    activeRow.focus({ preventScroll: true })
+  }, [activeRowId, pageRows.length, sort])
 
   useEffect(() => {
     if (!infiniteEnabled) return
@@ -147,21 +173,32 @@ export function PaginatedTable<T extends { id: string }>(props: PaginatedTablePr
             </tr>
           </thead>
           <tbody>
-            {pageRows.map((row, rowIndex) => (
-              <tr
-                key={row.id}
-                className={onRowClick || onRowKeyDown ? styles.rowClickable : undefined}
-                onClick={() => onRowClick?.(row)}
-                onKeyDown={(event) => onRowKeyDown?.(row, event)}
-                tabIndex={onRowClick || onRowKeyDown ? 0 : undefined}
-              >
-                {columns.map((c) => (
-                  <td key={c.key} style={{ textAlign: c.align ?? 'left', width: c.width }}>
-                    {c.cell(row, startIndex + rowIndex)}
-                  </td>
-                ))}
-              </tr>
-            ))}
+            {pageRows.map((row, rowIndex) => {
+              const rowId = rowIdOf(row)
+              const active = activeRowId === rowId
+              const clickable = Boolean(onRowClick || onRowKeyDown)
+              const rowClassName = `${clickable ? styles.rowClickable : ''} ${active ? styles.rowActive : ''}`.trim() || undefined
+              return (
+                <tr
+                  key={row.id}
+                  ref={(node) => {
+                    if (node) rowRefs.current.set(rowId, node)
+                    else rowRefs.current.delete(rowId)
+                  }}
+                  className={rowClassName}
+                  onClick={() => onRowClick?.(row)}
+                  onKeyDown={(event) => onRowKeyDown?.(row, event)}
+                  tabIndex={clickable ? 0 : undefined}
+                  aria-current={active ? 'true' : undefined}
+                >
+                  {columns.map((c) => (
+                    <td key={c.key} style={{ textAlign: c.align ?? 'left', width: c.width }}>
+                      {c.cell(row, startIndex + rowIndex)}
+                    </td>
+                  ))}
+                </tr>
+              )
+            })}
           </tbody>
         </table>
         {infiniteEnabled && pageRows.length < sortedRows.length && (

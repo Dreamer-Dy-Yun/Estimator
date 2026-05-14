@@ -15,6 +15,21 @@ export type OrderSnapshotSizeRowV1 = {
   confirmQty: number
 }
 
+export interface OrderSnapshotOrderUnitInputsV1 {
+  unitPrice: number
+  unitCost: number
+  expectedFeeRatePct: number
+}
+
+export interface OrderSnapshotStockDisplayV1 {
+  currentStockQtyTotal: number
+  totalOrderBalanceTotal: number
+  expectedInboundOrderBalanceTotal: number
+  currentStockQtyBySize: number[]
+  totalOrderBalanceBySize: number[]
+  expectedInboundOrderBalanceBySize: number[]
+}
+
 /** 1차 요약(판매추이 월간·재고 시계열 제외 — `skuGroupKey`+`context`로 번들 재요청) */
 export type OrderSnapshotPrimarySummaryV2 = Omit<ProductPrimarySummary, 'monthlySalesTrend'>
 
@@ -36,6 +51,8 @@ export type OrderSnapshotDrawer2V1 = {
   salesCompetitor: SalesKpiColumn
   stockInputs: SecondaryForecastInputs
   stockDerived: SecondaryForecastDerived
+  orderUnitInputs?: OrderSnapshotOrderUnitInputsV1
+  stockDisplay?: OrderSnapshotStockDisplayV1
   selfWeightPct: number
   sizeForecastSource: 'periodMean' | 'forecastQty'
   bufferStock: number

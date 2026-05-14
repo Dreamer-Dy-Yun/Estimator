@@ -553,7 +553,7 @@ badges: [
 
 - `duplicateCandidateStash`: 동일 스태시·아이템 복제(구현 세부는 백엔드 결정). 프론트는 완료 후 `getCandidateStashes()`를 다시 호출해 목록을 동기화합니다.
 - 자사/경쟁사 분석 탭의 `appendCandidateItems`는 후보군에 상품 식별자만 추가하고 스냅샷을 만들지 않습니다. 따라서 새로 담긴 아이템의 `details`는 `null`, `isDetailConfirmed`는 `false`여야 합니다. 스냅샷은 이너후보군 2차 드로워에서 개별 저장/수정할 때만 생성합니다.
-- 이너후보군 리스트 기본 화면은 `CandidateItemSummary`의 live 계산값을 표시합니다. 저장 스냅샷이 있는 경우에도 상세확정 여부만 표시하고, 사용자가 2차 드로워에서 “스냅샷 기준 보기”를 켰을 때 저장 당시의 전체 값과 기간을 복원합니다. 그래프 데이터는 스냅샷에 저장하지 않으므로 스냅샷 기간 기준으로 다시 조회해 표시합니다.
+- 이너후보군 리스트 기본 화면은 `CandidateItemSummary`의 live 계산값을 표시합니다. 저장 스냅샷이 있는 경우에도 상세확정 여부만 표시하고, 사용자가 2차 드로워에서 “스냅샷 기준 보기”를 켰을 때 저장 당시의 통합 오더 설정, AI 코멘트, 사이즈별 오더 수치와 기간을 복원합니다. 그래프 데이터는 스냅샷에 저장하지 않으므로 스냅샷 기간 기준으로 다시 조회해 표시합니다.
 - `uploadCandidateStashExcel`: 프론트는 파일을 파싱하지 않습니다. `multipart/form-data`의 `file` 필드로 엑셀 파일을 전송하고,
   백엔드는 파일 내용을 검증한 뒤 DB 트랜잭션 안에서 후보군과 후보 아이템을 생성해야 합니다.
   생성자/소유자는 요청 body가 아니라 인증 세션의 `USER_ACCOUNT.uuid`를 기준으로 결정합니다.
@@ -724,6 +724,8 @@ badges: [
 | `salesSelf`, `salesCompetitor` | [`SalesKpiColumn`](#41-saleskpicolumn) |
 | `stockInputs` | [`SecondaryForecastInputs`](#42-secondaryforecastinputs) |
 | `stockDerived` | [`SecondaryForecastDerived`](#43-secondaryforecastderived) |
+| `orderUnitInputs` | 저장 당시 통합 오더 설정의 단가·원가·예상 수수료율: `{ unitPrice, unitCost, expectedFeeRatePct }`. 스냅샷 기준 보기에서 live 판매 정보로 재계산하지 않고 이 값을 표시한다 |
+| `stockDisplay` | 저장 당시 사이즈별 오더 카드의 재고/미입고/입고예정 표시값. `getSecondaryStockOrderCalc.display`와 같은 구조이며, 스냅샷 기준 보기에서 현재 API 응답 대신 사용한다 |
 | `selfWeightPct` | 자사 가중(%) |
 | `sizeForecastSource` | `'periodMean'` \| `'forecastQty'` — 사이즈 예측 소스 |
 | `bufferStock` | 추가 버퍼 재고 |
