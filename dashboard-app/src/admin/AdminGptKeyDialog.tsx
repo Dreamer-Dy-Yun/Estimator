@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import { deleteAdminGptKey, rotateAdminGptKey, testAdminGptKey, updateAdminGptKey } from '../api'
+import { deleteAdminGptKey, testAdminGptKey, updateAdminGptKey } from '../api'
 import type { AdminGptKeyPurpose, AdminGptKeySummary, AdminGptKeyTestResult } from '../api'
 import { useAppToast } from '../components/AppToastContext'
 import { LoadingSpinner } from '../components/LoadingSpinner'
@@ -30,7 +30,6 @@ export function AdminGptKeyDialog({
   const [rowMessage, setRowMessage] = useState<string | null>(null)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [isSaving, setIsSaving] = useState(false)
-  const [isRotating, setIsRotating] = useState(false)
   const [isTesting, setIsTesting] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
   const [deleteConfirm, setDeleteConfirm] = useState(false)
@@ -39,13 +38,16 @@ export function AdminGptKeyDialog({
     purpose !== gptKey.purpose ||
     model !== gptKey.model ||
     note !== (gptKey.note ?? '') ||
-    isActive !== gptKey.isActive
+    isActive !== gptKey.isActive ||
+    rotateKey.trim().length > 0
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     setErrorMessage(null)
     setRowMessage(null)
     setIsSaving(true)
+    const nextPlainKey = rotateKey.trim()
+    const hasNewPlainKey = nextPlainKey.length > 0
 
     try {
       await updateAdminGptKey({
@@ -55,34 +57,17 @@ export function AdminGptKeyDialog({
         model,
         isActive,
         note,
+        plainKey: hasNewPlainKey ? nextPlainKey : undefined,
       })
       await onChanged()
-      setRowMessage('변경됨')
-      showToast('GPT 키 정보를 변경했습니다.')
+      if (hasNewPlainKey) setRotateKey('')
+      setRowMessage(hasNewPlainKey ? '변경됨 · 키 교체됨' : '변경됨')
+      showToast(hasNewPlainKey ? 'GPT 키 정보와 API 키를 변경했습니다.' : 'GPT 키 정보를 변경했습니다.')
       setDeleteConfirm(false)
     } catch (error) {
       setErrorMessage(getErrorMessage(error))
     } finally {
       setIsSaving(false)
-    }
-  }
-
-  const handleRotate = async () => {
-    setErrorMessage(null)
-    setRowMessage(null)
-    setIsRotating(true)
-
-    try {
-      await rotateAdminGptKey({ uuid: gptKey.uuid, plainKey: rotateKey })
-      setRotateKey('')
-      await onChanged()
-      setRowMessage('키 교체됨')
-      showToast('GPT API 키를 교체했습니다.')
-      setDeleteConfirm(false)
-    } catch (error) {
-      setErrorMessage(getErrorMessage(error))
-    } finally {
-      setIsRotating(false)
     }
   }
 
@@ -144,7 +129,7 @@ export function AdminGptKeyDialog({
           </button>
         </header>
 
-        <form className={styles.gptKeyDialogForm} onSubmit={handleSubmit}>
+        <form id="admin-gpt-key-detail-form" className={styles.gptKeyDialogForm} onSubmit={handleSubmit}>
           <label className={styles.createField}>
             <span>이름</span>
             <input value={name} onChange={(event) => setName(event.target.value)} maxLength={80} />
@@ -170,16 +155,9 @@ export function AdminGptKeyDialog({
             <span>메모</span>
             <input value={note} onChange={(event) => setNote(event.target.value)} maxLength={200} />
           </label>
-          <button
-            className={`${styles.createButton} ${styles.gptKeyDialogSubmitButton}`}
-            type="submit"
-            disabled={!isDirty || isSaving}
-          >
-            {isSaving ? <LoadingSpinner size="inline" label="변경 중" /> : '변경'}
-          </button>
         </form>
 
-        <div className={styles.gptKeyDialogRotate}>
+        <div className={styles.gptKeyDialogKeyTools}>
           <label className={styles.createField}>
             <span>새 GPT API 키</span>
             <input
@@ -189,9 +167,6 @@ export function AdminGptKeyDialog({
               autoComplete="off"
             />
           </label>
-          <button className={styles.secondaryButton} type="button" onClick={handleRotate} disabled={isRotating}>
-            {isRotating ? <LoadingSpinner size="inline" label="교체 중" /> : '키 교체'}
-          </button>
           <button className={styles.secondaryButton} type="button" onClick={handleTest} disabled={isTesting}>
             {isTesting ? <LoadingSpinner size="inline" label="테스트 중" /> : '연결 테스트'}
           </button>
@@ -203,6 +178,14 @@ export function AdminGptKeyDialog({
         <div className={styles.gptKeyDialogActions}>
           <button className={styles.dangerButton} type="button" onClick={handleDelete} disabled={isDeleting}>
             {isDeleting ? <LoadingSpinner size="inline" label="삭제 중" /> : deleteConfirm ? '삭제 확인' : '삭제'}
+          </button>
+          <button
+            className={styles.createButton}
+            type="submit"
+            form="admin-gpt-key-detail-form"
+            disabled={!isDirty || isSaving}
+          >
+            {isSaving ? <LoadingSpinner size="inline" label="변경 중" /> : '변경'}
           </button>
           <button className={styles.secondaryButton} type="button" onClick={onClose}>
             닫기

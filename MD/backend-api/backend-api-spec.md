@@ -5,7 +5,7 @@
 | 작성 지시 | Yun Daeyoung |
 | 작성자 | Codex |
 | 작성일 | 2026-04-23 |
-| 최종 수정일 | 2026-05-13 |
+| 최종 수정일 | 2026-05-14 |
 | 상태 | 유지 문서 |
 | 적용 범위 | `dashboard-app/src/api/types`, `dashboard-app/src/api/requests`, 백엔드 REST API 계약 |
 
@@ -20,7 +20,7 @@
 | 파일 | 기능 범위 | 백엔드 구현 시 주의점 |
 |------|-----------|----------------------|
 | `src/api/requests/authRequests.ts` | 로그인, 세션, 사용자 정보 변경, 관리자 사용자 관리 | HttpOnly cookie 기반 세션 권장. 비밀번호/임시 비밀번호는 요청 또는 1회 응답에만 존재해야 하며 목록·세션 응답에 포함하지 않는다 |
-| `src/api/requests/adminGptKeyRequests.ts` | 관리자 GPT 키 목록, 생성, 메타 변경, 키 교체, 연결 테스트, 삭제 | GPT 전용 계약이다. 생성/교체 요청만 `plainKey`를 담고, 응답은 `maskedKey`만 내려준다. 키 저장/암호화/감사 로그는 백엔드 책임이다 |
+| `src/api/requests/adminGptKeyRequests.ts` | 관리자 GPT 키 목록, 생성, 메타/키 변경, 연결 테스트, 삭제 | GPT 전용 계약이다. 생성/변경 요청만 `plainKey`를 담을 수 있고, 응답은 `maskedKey`만 내려준다. 키 저장/암호화/감사 로그는 백엔드 책임이다 |
 | `src/api/requests/dashboardRequests.ts` | 자사/경쟁 판매, 상품 드로워, 후보군, 분석 SSE, 엑셀 업로드 템플릿 | 후보군 계열 요청은 현재 사용자 `USER_ACCOUNT.uuid` 기준으로 소유자 필터를 강제한다. 프론트 UI는 사용자 UUID를 들고 다니지 않고 request adapter에서만 붙인다. 세션 기반 백엔드라면 요청값보다 서버 세션을 우선한다. 경쟁 분석 목록은 `competitorChannelId` 생략 시 전체 경쟁 채널 합계를 반환하고, 상품 드로워 판매 인사이트는 선택 경쟁 채널을 필수로 받는다. 이너후보군 리스트는 데이터 참조기간의 전체 상품 분포로 배지를 계산한 뒤 stash item만 반환한다. 발주 엑셀 다운로드는 백엔드 재호출 없이 이미 받은 `orderExport` DTO로 프론트가 생성한다 |
 
 `src/api/client.ts`는 public export facade다. 화면에서 import하는 이름을 안정적으로 유지하기 위한 파일이며, mock과 실제 HTTP를 선택하는 책임은 갖지 않는다.
@@ -85,7 +85,6 @@
 | `getAdminGptKeys()` | GET | `/admin/gpt-keys` |
 | `createAdminGptKey(payload)` | POST | `/admin/gpt-keys` |
 | `updateAdminGptKey(payload)` | PATCH | `/admin/gpt-keys/:keyUuid` |
-| `rotateAdminGptKey(payload)` | POST | `/admin/gpt-keys/:keyUuid/rotate` |
 | `testAdminGptKey(keyUuid)` | POST | `/admin/gpt-keys/:keyUuid/test` |
 | `deleteAdminGptKey(keyUuid)` | DELETE | `/admin/gpt-keys/:keyUuid` |
 
@@ -201,14 +200,8 @@
 | 필드 | 타입 | 설명 |
 |------|------|------|
 | `uuid` | string | 변경 대상 GPT 키 UUID |
-| `name`, `purpose`, `model`, `isActive`, `note` | 위와 동일 | 원문 키를 제외한 메타데이터 변경 |
-
-**`RotateAdminGptKeyPayload`**
-
-| 필드 | 타입 | 설명 |
-|------|------|------|
-| `uuid` | string | 교체 대상 GPT 키 UUID |
-| `plainKey` | string | 새 원문 GPT 키. 프론트는 요청 후 입력값을 비운다 |
+| `name`, `purpose`, `model`, `isActive`, `note` | 위와 동일 | GPT 키 메타데이터 변경 |
+| `plainKey` | string \| undefined | 새 원문 GPT 키. 값이 있으면 같은 `변경` 요청에서 키를 교체하고, 프론트는 요청 후 입력값을 비운다 |
 
 **`AdminGptKeyTestResult`**
 
@@ -219,7 +212,7 @@
 | `message` | string | 관리자 화면에 표시할 결과 메시지 |
 | `testedAt` | string | ISO 8601 테스트 시각 |
 
-운영 DB는 GPT 원문 키를 저장할 수 있지만, 프론트 응답 DTO는 기본적으로 `maskedKey`만 내려주는 방식을 권장한다. 키 생성/교체/테스트/비활성화는 수행 관리자 UUID, 대상 키 UUID, 시각, 요청 IP를 감사 로그로 남기는 것이 좋다.
+운영 DB는 GPT 원문 키를 저장할 수 있지만, 프론트 응답 DTO는 기본적으로 `maskedKey`만 내려주는 방식을 권장한다. 키 생성/변경/테스트/비활성화는 수행 관리자 UUID, 대상 키 UUID, 시각, 요청 IP를 감사 로그로 남기는 것이 좋다.
 
 **`USER_ACCOUNT` 정합성 메모**
 

@@ -54,10 +54,10 @@
 
 .activeSwitch {
   height: 34px;
-  border: 1px solid #cbd5e1;
+  border: 0;
   border-radius: 999px;
-  padding: 0 10px 0 8px;
-  background: #ffffff;
+  padding: 0;
+  background: transparent;
   display: inline-flex;
   align-items: center;
   gap: 7px;
@@ -102,8 +102,6 @@
 }
 
 .activeSwitchOn {
-  border-color: #99f6e4;
-  background: #f0fdfa;
   color: #115e59;
 }
 

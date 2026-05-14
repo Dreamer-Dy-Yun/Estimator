@@ -32,11 +32,7 @@ export interface UpdateAdminGptKeyPayload {
   model: string
   isActive: boolean
   note: string | null
-}
-
-export interface RotateAdminGptKeyPayload {
-  uuid: string
-  plainKey: string
+  plainKey?: string
 }
 
 export interface AdminGptKeyTestResult {
@@ -50,7 +46,6 @@ export interface AdminGptKeyApi {
   getAdminGptKeys(): Promise<AdminGptKeySummary[]>
   createAdminGptKey(payload: CreateAdminGptKeyPayload): Promise<AdminGptKeySummary>
   updateAdminGptKey(payload: UpdateAdminGptKeyPayload): Promise<AdminGptKeySummary>
-  rotateAdminGptKey(payload: RotateAdminGptKeyPayload): Promise<AdminGptKeySummary>
   testAdminGptKey(keyUuid: string): Promise<AdminGptKeyTestResult>
   deleteAdminGptKey(keyUuid: string): Promise<void>
 }

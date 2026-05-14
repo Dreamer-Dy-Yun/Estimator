@@ -47,7 +47,7 @@
 - 이너 후보 리스트의 표시 순서 인덱스와 헤더 정렬 상태는 후보군 상세 모달 UI 상태다. 인덱스는 레코드 값이 아니라 현재 정렬된 화면 순서에서 1부터 다시 계산한다.
 - 로그인 화면, 라우트 보호, 사용자 정보/비밀번호 변경 모달은 `src/auth`가 소유한다. 인증 API 계약과 목 세션 저장은 `src/api` 아래에 두어 실제 백엔드로 교체할 때 화면이 mock 구현을 직접 알지 않게 한다. 보호 라우트는 직접 URL 진입과 새로고침 복귀를 위해 `/login?redirect=...`를 남긴다. 목 로그인 화면은 `mock-admin` / `admin` 기본값을 미리 채워 수정 없이 로그인할 수 있게 한다.
 - 관리자 화면은 `/admin` 별도 라우트와 `src/admin`이 소유한다. 화면은 같은 `DashboardLayout` 안에서 렌더하며, 관리자 권한 사용자에게만 `오더 후보군` 뒤 관리자 전용 탭을 보여준다. 인증 권한은 `admin`과 `user` 두 단계만 둔다. 사용자 관리는 관리자 화면 안의 탭/패널로 분리한다. 관리자 비밀번호 관리는 조회가 아니라 임시 비밀번호 재설정 API만 호출하고, 임시 비밀번호는 응답 직후 한 번만 표시한다.
-- 관리자 GPT 키 관리는 `src/api/types/admin-gpt-key.ts` 계약과 `src/api/mock/adminGptKeyApi.ts` mock을 통해서만 접근한다. 화면은 GPT 키 원문을 입력/교체 요청에만 담고, 목록 응답은 `maskedKey`만 표시한다. 목록은 식별용 요약 정보만 노출하고, 메타 변경/키 교체/연결 테스트/삭제는 행 클릭 후 열리는 모달이 소유한다. 상세 모달의 입력값은 저장 전 draft이며, 목록은 변경 API 성공 후 재조회된 값만 반영한다. 현재 mock은 DB 대체 저장소가 아니라 런타임 메모리에서 마스킹 값과 메타데이터만 보관한다.
+- 관리자 GPT 키 관리는 `src/api/types/admin-gpt-key.ts` 계약과 `src/api/mock/adminGptKeyApi.ts` mock을 통해서만 접근한다. 화면은 GPT 키 원문을 생성/변경 요청에만 담고, 목록 응답은 `maskedKey`만 표시한다. 목록은 식별용 요약 정보만 노출하고, 메타/키 변경, 연결 테스트, 삭제는 행 클릭 후 열리는 모달이 소유한다. 상세 모달의 입력값은 저장 전 draft이며, 목록은 변경 API 성공 후 재조회된 값만 반영한다. 현재 mock은 DB 대체 저장소가 아니라 런타임 메모리에서 마스킹 값과 메타데이터만 보관한다.
 - API 요청 교체 지점은 `src/api/requests/*`로 분리한다. 화면/훅/페이지는 mock을 알 수 없고, `src/api/client.ts`는 public export facade만 맡는다. 실제 백엔드가 생기면 `requests` 파일 안의 mock 위임을 HTTP 요청으로 바꾸는 것을 기본 원칙으로 한다.
 - 2026-05-13 정리에서 전체 `npm run lint` 실패를 0건으로 만들고 `tsconfig.app.json`/`tsconfig.node.json`에 `strict: true`를 켰다. 이후 기능 변경은 린트와 strict 타입 검사를 기본 품질선으로 본다.
 - 자사/경쟁사 분석의 격자 셀 선택, 현재 화면 기준 선택 유효성, 후보군 일괄 담기 체크박스 상태는 `dashboard/hooks/useAnalysisVisibleSelection.ts`가 소유한다. 페이지는 KPI/차트/목록 렌더와 API 호출 결과 연결만 맡고, 요청 생명주기와 stale 응답 차단은 `dashboard/hooks/useDashboardRequest.ts`를 사용한다. 필터·격자 변경 후 선택 상태를 effect로 억지 정리하지 않는다.
@@ -127,7 +127,7 @@
 
 | 파일 | 역할 |
 |------|------|
-| `admin-gpt-key.ts` | 관리자 GPT 키 목록/추가/메타 변경/키 교체/연결 테스트/삭제 계약. GPT만 사용하므로 공급자/Base URL/Project ID는 계약에서 제외하고, 요청 payload에는 `plainKey`, 목록 응답에는 `maskedKey`만 포함한다 |
+| `admin-gpt-key.ts` | 관리자 GPT 키 목록/추가/메타·키 변경/연결 테스트/삭제 계약. GPT만 사용하므로 공급자/Base URL/Project ID는 계약에서 제외하고, 생성/변경 요청 payload에만 `plainKey`를 허용하며 목록 응답에는 `maskedKey`만 포함한다 |
 | `auth.ts` | 로그인 요청, 인증 사용자, 사용자 정보/비밀번호 변경, 관리자 유저 추가/제거/수정/비밀번호 재설정, 세션, 인증 API 계약 |
 | `candidate.ts` | 후보군/이너 후보/후보군 분석 SSE 요청·응답 계약. 기간 기반 후보군 리스트 조회, DB형 배지 배열, 상세확정 여부, 스냅샷 없는 일괄 담기 payload, nullable 상세 스냅샷을 소유한다 |
 | `dashboard-api.ts` | 화면에서 쓰는 `DashboardApi` 인터페이스 |
@@ -162,7 +162,7 @@
 | 파일 | 역할 |
 |------|------|
 | `authRequests.ts` | 로그인, 세션, 사용자 정보, 관리자 사용자 관리 요청 adapter. 실제 백엔드 전환 시 HttpOnly 세션, 비밀번호/임시 비밀번호 일회성 응답, 관리자 보호 정책을 이 파일에서 HTTP 요청으로 연결한다 |
-| `adminGptKeyRequests.ts` | 관리자 GPT 키 관리 요청 adapter. GPT 전용 계약이며 원문 키는 생성/교체 요청에만 싣고 목록/수정/테스트/삭제 응답은 원문 키를 받지 않는 흐름을 유지한다 |
+| `adminGptKeyRequests.ts` | 관리자 GPT 키 관리 요청 adapter. GPT 전용 계약이며 원문 키는 생성/변경 요청에만 싣고 목록/변경/테스트/삭제 응답은 원문 키를 받지 않는 흐름을 유지한다 |
 | `dashboardRequests.ts` | 자사/경쟁 판매, 상품 드로워, 후보군, 분석 SSE, 엑셀 업로드 템플릿 요청 adapter. 후보군 계열은 현재 세션의 `USER_ACCOUNT.uuid`를 request boundary에서만 붙이고, 화면 내부로 사용자 UUID를 흘리지 않는다. 경쟁 분석은 `competitorChannelId`가 없으면 전체 경쟁 채널 합계로 조회하고, 1차 드로워 판매 인사이트는 선택 경쟁 채널을 반드시 보낸다. 기간 기반 후보군 리스트는 전체 상품 분포 배지 계산 후 stash item만 반환해야 한다는 백엔드 주의점을 이 경계에 기록한다. 후보군 엑셀 업로드/템플릿은 백엔드 이관 대상이지만, 이너후보군 발주 엑셀 다운로드는 이미 받은 `orderExport` 기반 프론트 생성 기능이다 |
 | `index.ts` | request adapter export 진입 파일 |
 
@@ -192,7 +192,7 @@
 | `AdminUserRow.tsx` | 사용자 1명 단위의 로그인 ID/이름/비고/권한/활성 상태 수정, UUID 표시, 삭제, 임시 비밀번호 재설정 요청을 소유한다. |
 | `AdminGptKeysPanel.tsx` | GPT 키 목록 조회, 추가 form, 선택된 GPT 키 dialog 열림 상태를 소유한다. 행 요약 렌더는 `AdminGptKeyRow.tsx`, 상세 수정/교체/테스트/삭제는 `AdminGptKeyDialog.tsx`에 위임한다. |
 | `AdminGptKeyRow.tsx` | GPT 키 목록의 식별 정보 행 렌더링만 소유한다. 원문 키는 표시하지 않고 `maskedKey`만 사용한다. |
-| `AdminGptKeyDialog.tsx` | GPT 키 메타 변경, 새 키 교체, 연결 테스트, 삭제 확인 흐름을 소유한다. 원문 키는 교체 요청 field 안에서만 존재한다. |
+| `AdminGptKeyDialog.tsx` | GPT 키 메타·키 변경, 연결 테스트, 삭제 확인 흐름을 소유한다. 원문 키는 변경 요청 field 안에서만 존재하고 별도 키 교체 버튼을 두지 않는다. |
 | `AdminActiveSwitch.tsx` | 관리자 화면에서 쓰는 활성/비활성 스위치 UI. 저장 책임 없이 boolean draft 값만 부모로 돌려준다. |
 | `AdminPage.module.css` | 관리자 화면 CSS 진입점. 실제 스타일은 `admin/style-parts/*`가 shell/forms/lists/dialogs/responsive로 나눠 소유한다. |
 | `adminHelpers.ts` | 관리자 화면의 역할/GPT 키 용도 option, 테스트 상태 label, 공통 날짜/오류 표시 helper. |

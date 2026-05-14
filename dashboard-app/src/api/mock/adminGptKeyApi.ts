@@ -3,7 +3,6 @@ import type {
   AdminGptKeySummary,
   AdminGptKeyTestResult,
   CreateAdminGptKeyPayload,
-  RotateAdminGptKeyPayload,
   UpdateAdminGptKeyPayload,
 } from '../types'
 import { assertMockAdminSession } from './authApi'
@@ -83,6 +82,14 @@ export const mockAdminGptKeyApi: AdminGptKeyApi = {
     const target = findGptKey(payload.uuid)
     if (!target) throw new Error('GPT 키를 찾을 수 없습니다.')
 
+    const nextPlainKey = payload.plainKey?.trim()
+    const keyPatch = nextPlainKey
+      ? {
+          maskedKey: maskPlainKey(nextPlainKey),
+          lastTestedAt: null,
+          lastTestStatus: 'untested' as const,
+        }
+      : {}
     const nextGptKey: AdminGptKeySummary = {
       ...target,
       name: payload.name.trim() || target.name,
@@ -90,22 +97,7 @@ export const mockAdminGptKeyApi: AdminGptKeyApi = {
       model: payload.model.trim() || target.model,
       isActive: payload.isActive,
       note: cleanNote(payload.note),
-      dbUpdatedAt: new Date().toISOString(),
-    }
-    mockAdminGptKeys = mockAdminGptKeys.map((gptKey) => (gptKey.uuid === payload.uuid ? nextGptKey : gptKey))
-    return nextGptKey
-  },
-  rotateAdminGptKey: async (payload: RotateAdminGptKeyPayload): Promise<AdminGptKeySummary> => {
-    await sleep(110)
-    assertMockAdminSession()
-    const target = findGptKey(payload.uuid)
-    if (!target) throw new Error('GPT 키를 찾을 수 없습니다.')
-
-    const nextGptKey: AdminGptKeySummary = {
-      ...target,
-      maskedKey: maskPlainKey(payload.plainKey),
-      lastTestedAt: null,
-      lastTestStatus: 'untested',
+      ...keyPatch,
       dbUpdatedAt: new Date().toISOString(),
     }
     mockAdminGptKeys = mockAdminGptKeys.map((gptKey) => (gptKey.uuid === payload.uuid ? nextGptKey : gptKey))

@@ -11,9 +11,9 @@ import type { AdminGptKeyApi } from '../types'
  * Contract watch points for the backend:
  * - This file is the only GPT-key API switch point. Admin screens receive only
  *   AdminGptKeySummary DTOs and should never hold raw keys after submit.
- * - create/rotate requests may contain plainKey, but list/update/test/delete
- *   responses must never return the raw key.
- * - GPT key "수정" changes metadata only. Key material is replaced through rotate.
+ * - create/update requests may contain plainKey, but list/update/test/delete
+ *   responses must never return the raw key. update handles metadata changes and
+ *   optional key replacement together because the admin UI has one "변경" action.
  * - Key storage, encryption, validation, and audit logs are backend concerns.
  * - All endpoints require an admin session.
  */
@@ -21,7 +21,6 @@ export const adminGptKeyRequests: AdminGptKeyApi = {
   getAdminGptKeys: () => mockAdminGptKeyApi.getAdminGptKeys(),
   createAdminGptKey: (payload) => mockAdminGptKeyApi.createAdminGptKey(payload),
   updateAdminGptKey: (payload) => mockAdminGptKeyApi.updateAdminGptKey(payload),
-  rotateAdminGptKey: (payload) => mockAdminGptKeyApi.rotateAdminGptKey(payload),
   testAdminGptKey: (keyUuid) => mockAdminGptKeyApi.testAdminGptKey(keyUuid),
   deleteAdminGptKey: (keyUuid) => mockAdminGptKeyApi.deleteAdminGptKey(keyUuid),
 }

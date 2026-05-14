@@ -14,7 +14,6 @@ export const logout = authRequests.logout
 export const getAdminGptKeys = adminGptKeyRequests.getAdminGptKeys
 export const createAdminGptKey = adminGptKeyRequests.createAdminGptKey
 export const updateAdminGptKey = adminGptKeyRequests.updateAdminGptKey
-export const rotateAdminGptKey = adminGptKeyRequests.rotateAdminGptKey
 export const testAdminGptKey = adminGptKeyRequests.testAdminGptKey
 export const deleteAdminGptKey = adminGptKeyRequests.deleteAdminGptKey
 

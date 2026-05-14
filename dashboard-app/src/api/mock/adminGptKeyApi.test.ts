@@ -26,7 +26,7 @@ describe('api/mock adminGptKeyApi behavior', () => {
     expect(JSON.stringify(gptKeys)).not.toContain('secret-value')
   })
 
-  it('updates metadata, rotates the key preview, and records test status', async () => {
+  it('updates metadata, replaces the key preview, and records test status', async () => {
     await mockAuthApi.login({ loginId: 'mock-admin', password: 'admin' })
 
     const created = await mockAdminGptKeyApi.createAdminGptKey({
@@ -44,9 +44,6 @@ describe('api/mock adminGptKeyApi behavior', () => {
       model: 'gpt-test',
       isActive: true,
       note: '메모',
-    })
-    const rotated = await mockAdminGptKeyApi.rotateAdminGptKey({
-      uuid: created.uuid,
       plainKey: 'sk-new-9999',
     })
     const result = await mockAdminGptKeyApi.testAdminGptKey(created.uuid)
@@ -59,7 +56,7 @@ describe('api/mock adminGptKeyApi behavior', () => {
       model: 'gpt-test',
       note: '메모',
     })
-    expect(rotated.maskedKey).toBe('sk-...9999')
+    expect(updated.maskedKey).toBe('sk-...9999')
     expect(result.status).toBe('success')
     expect(gptKeys.some((gptKey) => gptKey.uuid === created.uuid)).toBe(false)
   })

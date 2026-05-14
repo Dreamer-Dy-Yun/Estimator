@@ -69,7 +69,7 @@
   }
 
   .gptKeyDialogForm,
-  .gptKeyDialogRotate {
+  .gptKeyDialogKeyTools {
     grid-template-columns: 1fr;
   }
 
@@ -82,7 +82,7 @@
   }
 
   .gptKeyDialogActions button,
-  .gptKeyDialogRotate button {
+  .gptKeyDialogKeyTools button {
     width: 100%;
   }
 

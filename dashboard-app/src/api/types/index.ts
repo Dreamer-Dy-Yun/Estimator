@@ -5,7 +5,6 @@ export type {
   AdminGptKeyTestResult,
   AdminGptKeyTestStatus,
   CreateAdminGptKeyPayload,
-  RotateAdminGptKeyPayload,
   UpdateAdminGptKeyPayload,
 } from './admin-gpt-key'
 export type {

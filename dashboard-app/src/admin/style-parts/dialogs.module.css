@@ -55,9 +55,8 @@
 }
 
 .gptKeyDialogForm,
-.gptKeyDialogRotate {
+.gptKeyDialogKeyTools {
   display: grid;
-  grid-template-columns: minmax(120px, 1fr) minmax(120px, 0.9fr) minmax(120px, 0.9fr) 84px 98px;
   gap: 8px;
   align-items: end;
   border: 1px solid #e2e8f0;
@@ -66,17 +65,16 @@
   background: #fbfdff;
 }
 
+.gptKeyDialogForm {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
 .gptKeyDialogNote {
-  grid-column: 1 / span 4;
-}
-
-.gptKeyDialogSubmitButton {
   grid-column: 1 / -1;
-  justify-self: stretch;
 }
 
-.gptKeyDialogRotate {
-  grid-template-columns: minmax(220px, 1fr) 102px 112px;
+.gptKeyDialogKeyTools {
+  grid-template-columns: minmax(220px, 1fr) 112px;
 }
 
 .gptKeyDialogActions {
