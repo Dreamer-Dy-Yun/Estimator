@@ -1,4 +1,5 @@
 import type { CandidateStashSummary } from '../../../api'
+import { LoadingSpinner } from '../../../components/LoadingSpinner'
 import confirmStyles from '../../components/ConfirmModal.module.css'
 import pageStyles from '../SnapshotConfirmPage.module.css'
 
@@ -91,7 +92,7 @@ export function CandidateStashEditDialog({
             disabled={editBusy || !editName.trim()}
             onClick={onSave}
           >
-            {editBusy ? '저장 중' : '저장'}
+            {editBusy ? <LoadingSpinner size="inline" label="저장 중" /> : '저장'}
           </button>
         </div>
       </div>

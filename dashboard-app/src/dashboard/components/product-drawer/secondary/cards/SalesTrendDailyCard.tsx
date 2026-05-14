@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { SalesTrendChart, type TrendShade } from '../../../trend/SalesTrendChart'
 import { ApiUnitErrorBadge } from '../../../../../components/ApiUnitErrorBadge'
+import { LoadingSpinner } from '../../../../../components/LoadingSpinner'
 import type { ApiUnitErrorInfo } from '../../../../../types'
 import commonStyles from '../../../common.module.css'
 import { DAILY_TREND_AS_OF_DATE } from '../../../../../api'
@@ -29,6 +30,7 @@ type Props = {
   sizeOptions: SizeOption[]
   trend: {
     series: TrendPoint[]
+    loading: boolean
     tickIndices: number[]
     periodShade: TrendShade
     forecastShade: TrendShade | null
@@ -133,66 +135,86 @@ export function SalesTrendDailyCard({ skuGroupKey, competitorChannelLabel, sizeO
       </div>
       {expanded && (
         <div className={`${commonStyles.chartClipWrap} ${styles.dailyTrendClipWrap}`}>
-          <SalesTrendChart
-            data={chartSeries}
-            height={chartHeight}
-            allowEscapeViewBox={{ x: false, y: false }}
-            periodShade={trend.periodShade}
-            forecastShade={trend.forecastShade}
-            barsUseSecondaryAxis
-            bars={[
-              { dataKey: 'stockBar', name: '실재고', stackId: 'stockInbound', fill: '#149632', fillOpacity: 0.58, barSize: 7 },
-              { dataKey: 'inboundAccumBar', name: '예상 재고', stackId: 'stockInbound', fill: '#ef4444', fillOpacity: 0.42, barSize: 7 },
-            ]}
-            lines={[
-              { dataKey: 'salesActual', stroke: '#0f172a' },
-              {
-                dataKey: 'salesForecast',
-                stroke: '#2563eb',
-                strokeDasharray: '4 4',
-                connectNulls: true,
-              },
-            ]}
-            tickFormatter={() => ''}
-            tickAngle={0}
-            tickHeight={10}
-            xTicks={trend.tickIndices}
-            minTickGap={4}
-            interval={0}
-            tooltipValueFormatter={(value, name) => {
-              if (name === 'stockBar') return [formatGroupedNumber(value), '실재고']
-              if (name === 'inboundAccumBar') return [formatGroupedNumber(value), '예상 재고']
-              if (name === 'salesActual') return [formatGroupedNumber(value), '판매 실적']
-              if (name === 'salesForecast') return [formatGroupedNumber(value), '판매 예측']
-              return [formatGroupedNumber(value), String(name)]
-            }}
-            tooltipLabelFormatter={(row) => String(row.date ?? '')}
-          />
-          <SalesTrendChart
-            data={salesCompareSeries}
-            height={130}
-            yMax={selfSalesYMax}
-            secondaryYMax={competitorSalesYMax}
-            allowEscapeViewBox={{ x: false, y: false }}
-            periodShade={trend.periodShade}
-            forecastShade={trend.forecastShade}
-            lines={[
-              { dataKey: 'selfSales', stroke: '#2563eb', yAxisId: 'primary' },
-              { dataKey: 'competitorSales', stroke: '#ef4444', yAxisId: 'secondary' },
-            ]}
-            tickFormatter={(row) => String(row.date ?? '')}
-            tickAngle={-45}
-            tickHeight={46}
-            xTicks={trend.tickIndices}
-            minTickGap={4}
-            interval={0}
-            tooltipValueFormatter={(value, name) => {
-              if (name === 'selfSales') return [formatGroupedNumber(value), '자사 판매량']
-              if (name === 'competitorSales') return [formatGroupedNumber(value), `${competitorChannelLabel} 판매량`]
-              return [formatGroupedNumber(value), String(name)]
-            }}
-            tooltipLabelFormatter={(row) => String(row.date ?? '')}
-          />
+          {trend.loading ? (
+            <LoadingSpinner label="일별 판매추이를 불러오는 중" />
+          ) : (
+            <>
+              <SalesTrendChart
+                data={chartSeries}
+                height={chartHeight}
+                allowEscapeViewBox={{ x: false, y: false }}
+                periodShade={trend.periodShade}
+                forecastShade={trend.forecastShade}
+                barsUseSecondaryAxis
+                bars={[
+                  {
+                    dataKey: 'stockBar',
+                    name: '실재고',
+                    stackId: 'stockInbound',
+                    fill: '#149632',
+                    fillOpacity: 0.58,
+                    barSize: 7,
+                  },
+                  {
+                    dataKey: 'inboundAccumBar',
+                    name: '예상 재고',
+                    stackId: 'stockInbound',
+                    fill: '#ef4444',
+                    fillOpacity: 0.42,
+                    barSize: 7,
+                  },
+                ]}
+                lines={[
+                  { dataKey: 'salesActual', stroke: '#0f172a' },
+                  {
+                    dataKey: 'salesForecast',
+                    stroke: '#2563eb',
+                    strokeDasharray: '4 4',
+                    connectNulls: true,
+                  },
+                ]}
+                tickFormatter={() => ''}
+                tickAngle={0}
+                tickHeight={10}
+                xTicks={trend.tickIndices}
+                minTickGap={4}
+                interval={0}
+                tooltipValueFormatter={(value, name) => {
+                  if (name === 'stockBar') return [formatGroupedNumber(value), '실재고']
+                  if (name === 'inboundAccumBar') return [formatGroupedNumber(value), '예상 재고']
+                  if (name === 'salesActual') return [formatGroupedNumber(value), '판매 실적']
+                  if (name === 'salesForecast') return [formatGroupedNumber(value), '판매 예측']
+                  return [formatGroupedNumber(value), String(name)]
+                }}
+                tooltipLabelFormatter={(row) => String(row.date ?? '')}
+              />
+              <SalesTrendChart
+                data={salesCompareSeries}
+                height={130}
+                yMax={selfSalesYMax}
+                secondaryYMax={competitorSalesYMax}
+                allowEscapeViewBox={{ x: false, y: false }}
+                periodShade={trend.periodShade}
+                forecastShade={trend.forecastShade}
+                lines={[
+                  { dataKey: 'selfSales', stroke: '#2563eb', yAxisId: 'primary' },
+                  { dataKey: 'competitorSales', stroke: '#ef4444', yAxisId: 'secondary' },
+                ]}
+                tickFormatter={(row) => String(row.date ?? '')}
+                tickAngle={-45}
+                tickHeight={46}
+                xTicks={trend.tickIndices}
+                minTickGap={4}
+                interval={0}
+                tooltipValueFormatter={(value, name) => {
+                  if (name === 'selfSales') return [formatGroupedNumber(value), '자사 판매량']
+                  if (name === 'competitorSales') return [formatGroupedNumber(value), `${competitorChannelLabel} 판매량`]
+                  return [formatGroupedNumber(value), String(name)]
+                }}
+                tooltipLabelFormatter={(row) => String(row.date ?? '')}
+              />
+            </>
+          )}
         </div>
       )}
     </div>

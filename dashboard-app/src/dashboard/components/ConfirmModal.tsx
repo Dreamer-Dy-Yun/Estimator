@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { LoadingSpinner } from '../../components/LoadingSpinner'
 import { drawerKeepOpenDataProps } from '../drawer/drawerDom'
 import styles from './ConfirmModal.module.css'
 
@@ -85,7 +86,7 @@ export function ConfirmModal({
             disabled={busy}
             onClick={() => void onConfirm()}
           >
-            {busy ? confirmingText : confirmText}
+            {busy ? <LoadingSpinner size="inline" label={confirmingText} /> : confirmText}
           </button>
         </div>
       </div>

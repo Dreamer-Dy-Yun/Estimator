@@ -60,6 +60,10 @@
 
 .createButton {
   height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
   border: 0;
   border-radius: 6px;
   padding: 0 12px;

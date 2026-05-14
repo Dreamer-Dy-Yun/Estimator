@@ -10,6 +10,7 @@ type Props = {
   onToggleAllVisibleRows: () => void
   onToggleBulkRow: (skuGroupKey: string) => void
   onSelectSkuGroupKey: (skuGroupKey: string) => void
+  onOrderedSkuGroupKeysChange?: (skuGroupKeys: string[]) => void
 }
 
 const getSelfAnalysisRowId = (row: SelfSalesRow) => row.skuGroupKey
@@ -22,6 +23,7 @@ export function SelfAnalysisList({
   onToggleAllVisibleRows,
   onToggleBulkRow,
   onSelectSkuGroupKey,
+  onOrderedSkuGroupKeysChange,
 }: Props) {
   return (
     <AnalysisList<SelfSalesRow>
@@ -102,6 +104,7 @@ export function SelfAnalysisList({
       rows={rows}
       activeRowId={selectedSkuGroupKey}
       getRowId={getSelfAnalysisRowId}
+      onOrderedRowIdsChange={onOrderedSkuGroupKeysChange}
       defaultSort={{ key: 'qty', dir: 'asc' }}
       onRowClick={(row) => onSelectSkuGroupKey(row.skuGroupKey)}
       onRowKeyDown={(row, event) => {

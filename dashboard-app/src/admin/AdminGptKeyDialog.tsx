@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react'
 import { deleteAdminGptKey, rotateAdminGptKey, testAdminGptKey, updateAdminGptKey } from '../api'
 import type { AdminGptKeyPurpose, AdminGptKeySummary, AdminGptKeyTestResult } from '../api'
 import { useAppToast } from '../components/AppToastContext'
+import { LoadingSpinner } from '../components/LoadingSpinner'
 import { GPT_KEY_PURPOSE_OPTIONS, getErrorMessage } from './adminHelpers'
 import styles from './AdminPage.module.css'
 
@@ -170,7 +171,7 @@ export function AdminGptKeyDialog({
             <input value={note} onChange={(event) => setNote(event.target.value)} maxLength={200} />
           </label>
           <button className={styles.createButton} type="submit" disabled={!isDirty || isSaving}>
-            {isSaving ? '변경 중' : '변경'}
+            {isSaving ? <LoadingSpinner size="inline" label="변경 중" /> : '변경'}
           </button>
         </form>
 
@@ -185,10 +186,10 @@ export function AdminGptKeyDialog({
             />
           </label>
           <button className={styles.secondaryButton} type="button" onClick={handleRotate} disabled={isRotating}>
-            {isRotating ? '교체 중' : '키 교체'}
+            {isRotating ? <LoadingSpinner size="inline" label="교체 중" /> : '키 교체'}
           </button>
           <button className={styles.secondaryButton} type="button" onClick={handleTest} disabled={isTesting}>
-            {isTesting ? '테스트 중' : '연결 테스트'}
+            {isTesting ? <LoadingSpinner size="inline" label="테스트 중" /> : '연결 테스트'}
           </button>
         </div>
 
@@ -197,7 +198,7 @@ export function AdminGptKeyDialog({
 
         <div className={styles.gptKeyDialogActions}>
           <button className={styles.dangerButton} type="button" onClick={handleDelete} disabled={isDeleting}>
-            {isDeleting ? '삭제 중' : deleteConfirm ? '삭제 확인' : '삭제'}
+            {isDeleting ? <LoadingSpinner size="inline" label="삭제 중" /> : deleteConfirm ? '삭제 확인' : '삭제'}
           </button>
           <button className={styles.secondaryButton} type="button" onClick={onClose}>
             닫기

@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { useAuth } from './AuthContext'
 import { useAppToast } from '../components/AppToastContext'
+import { LoadingSpinner } from '../components/LoadingSpinner'
 import styles from './UserProfileDialog.module.css'
 
 const ROLE_LABELS = {
@@ -157,7 +158,7 @@ export function UserProfileDialog({ open, onClose }: { open: boolean; onClose: (
               취소
             </button>
             <button className={styles.primaryButton} type="submit" disabled={isSaving}>
-              {isSaving ? '저장 중' : '저장'}
+              {isSaving ? <LoadingSpinner size="inline" label="저장 중" /> : '저장'}
             </button>
           </div>
         </form>

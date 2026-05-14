@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { getCompetitorSales, getCompetitorSalesScatterGrid, getSecondaryCompetitorChannels } from '../../api'
 import type { SecondaryCompetitorChannel } from '../../api/types'
 import type { CompetitorSalesRow } from '../../types'
@@ -6,6 +6,7 @@ import type { AdjacentDirection } from '../../utils/adjacentListNavigation'
 import { adjacentIdInOrder } from '../../utils/adjacentListNavigation'
 import { clampForecastMonths, readForecastMonthsFromStorage, writeForecastMonthsToStorage } from '../../utils/forecastMonthsStorage'
 import { getScatterGridCellColor, getScatterGridCellPointRadius } from '../../utils/scatterGridDisplay'
+import { LoadingSpinner } from '../../components/LoadingSpinner'
 import { AnalysisCandidateBulkAddModal } from '../components/candidate-stash/AnalysisCandidateBulkAddModal'
 import { ProductDrawer } from '../components/product-drawer/ProductDrawer'
 import styles from '../components/common.module.css'
@@ -23,14 +24,17 @@ import { useElementSize } from '../hooks/useElementSize'
 import { maskNonPeriodAnalysisFilterFields, useAnalysisSalesFilters } from '../hooks/useAnalysisSalesFilters'
 import type { FilterField } from '../model/filterField'
 import { useAnalysisVisibleSelection } from '../hooks/useAnalysisVisibleSelection'
-import { useProductDrawerBundle } from '../hooks/useProductDrawerBundle'
+import { useDashboardRequest } from '../hooks/useDashboardRequest'
+import { useProductDrawerBundleState } from '../hooks/useProductDrawerBundle'
 import type { ScatterSalesGridResponse } from '../../api/types'
 
+const EMPTY_COMPETITOR_ROWS: CompetitorSalesRow[] = []
+const EMPTY_COMPETITOR_CHANNELS: SecondaryCompetitorChannel[] = []
+
 export const CompetitorPage = () => {
-  const [rows, setRows] = useState<CompetitorSalesRow[]>([])
-  const [scatterGrid, setScatterGrid] = useState<ScatterSalesGridResponse | null>(null)
   const [bulkAddOpen, setBulkAddOpen] = useState(false)
   const [forecastMonths, setForecastMonths] = useState(() => readForecastMonthsFromStorage())
+  const [orderedSkuGroupKeys, setOrderedSkuGroupKeys] = useState<string[]>([])
   const { ref: chartBodyRef, width: chartWidth, height: chartHeight, ready: chartReady } = useElementSize<HTMLDivElement>()
 
   const onForecastMonthsChange = useCallback((n: number) => {
@@ -39,12 +43,8 @@ export const CompetitorPage = () => {
     writeForecastMonthsToStorage(v)
   }, [])
 
-  const [channels, setChannels] = useState<SecondaryCompetitorChannel[]>([])
   const [competitorChannelLabel, setCompetitorChannelLabel] = useState('전체')
   const [showRowsWithSelfSalesOnly, setShowRowsWithSelfSalesOnly] = useState(false)
-  const channelsReqSeqRef = useRef(0)
-  const salesReqSeqRef = useRef(0)
-  const scatterGridReqSeqRef = useRef(0)
   const {
     filterFields,
     historicalMonths,
@@ -62,56 +62,26 @@ export const CompetitorPage = () => {
     onPeriodBarStart,
     onPeriodBarEnd,
   } = useAnalysisSalesFilters()
+  const { data: channels } = useDashboardRequest(getSecondaryCompetitorChannels, EMPTY_COMPETITOR_CHANNELS)
 
   const competitorChannelId = useMemo(() => {
     if (competitorChannelLabel === '전체') return undefined
     return channels.find((ch) => ch.label === competitorChannelLabel)?.id
   }, [channels, competitorChannelLabel])
 
-  useEffect(() => {
-    let alive = true
-    const reqSeq = ++channelsReqSeqRef.current
-    void getSecondaryCompetitorChannels().then((data) => {
-      if (!alive) return
-      if (reqSeq !== channelsReqSeqRef.current) return
-      setChannels(data)
-    })
-    return () => {
-      alive = false
-    }
-  }, [])
-
-  useEffect(() => {
-    let alive = true
-    const reqSeq = ++salesReqSeqRef.current
-    void getCompetitorSales({
-      ...salesParams,
-      competitorChannelId,
-    }).then((data) => {
-      if (!alive) return
-      if (reqSeq !== salesReqSeqRef.current) return
-      setRows(data)
-    })
-    return () => {
-      alive = false
-    }
-  }, [salesParams, competitorChannelId])
-
-  useEffect(() => {
-    let alive = true
-    const reqSeq = ++scatterGridReqSeqRef.current
-    void getCompetitorSalesScatterGrid({
-      ...salesParams,
-      competitorChannelId,
-    }).then((data) => {
-      if (!alive) return
-      if (reqSeq !== scatterGridReqSeqRef.current) return
-      setScatterGrid(data)
-    })
-    return () => {
-      alive = false
-    }
-  }, [salesParams, competitorChannelId])
+  const loadRows = useCallback(() => getCompetitorSales({
+    ...salesParams,
+    competitorChannelId,
+  }), [competitorChannelId, salesParams])
+  const loadScatterGrid = useCallback(() => getCompetitorSalesScatterGrid({
+    ...salesParams,
+    competitorChannelId,
+  }), [competitorChannelId, salesParams])
+  const { data: rows, loading: rowsLoading } = useDashboardRequest(loadRows, EMPTY_COMPETITOR_ROWS)
+  const { data: scatterGrid, loading: scatterGridLoading } = useDashboardRequest<ScatterSalesGridResponse | null>(
+    loadScatterGrid,
+    null,
+  )
 
   const channelOptions = useMemo(
     () => ['전체', ...channels.map((ch) => ch.label)],
@@ -137,6 +107,7 @@ export const CompetitorPage = () => {
     () => (showRowsWithSelfSalesOnly ? rows.filter((row) => row.selfQty != null) : rows),
     [rows, showRowsWithSelfSalesOnly],
   )
+
   const {
     activeGridCellKey,
     selectedSkuGroupKey,
@@ -153,7 +124,8 @@ export const CompetitorPage = () => {
     toggleAllVisibleRows,
     clearBulkSelection,
   } = useAnalysisVisibleSelection(baseRows, scatterGrid)
-  const summaryBundle = useProductDrawerBundle(selectedSkuGroupKey)
+  const summaryBundleState = useProductDrawerBundleState(selectedSkuGroupKey)
+  const summaryBundle = summaryBundleState.bundle
 
   const displayedCompetitorFilterFields = useMemo(
     () => (activeGridCellKey ? maskNonPeriodAnalysisFilterFields(competitorFilterFields) : competitorFilterFields),
@@ -192,10 +164,11 @@ export const CompetitorPage = () => {
   const onRequestNavigateAdjacent = useCallback(
     (direction: AdjacentDirection) => {
       if (!selectedSkuGroupKey) return
-      const nextId = adjacentIdInOrder(navigationOrderIds, selectedSkuGroupKey, direction)
+      const orderIds = orderedSkuGroupKeys.length ? orderedSkuGroupKeys : navigationOrderIds
+      const nextId = adjacentIdInOrder(orderIds, selectedSkuGroupKey, direction)
       if (nextId != null && nextId !== selectedSkuGroupKey) setSelectedSkuGroupKey(nextId)
     },
-    [navigationOrderIds, selectedSkuGroupKey, setSelectedSkuGroupKey],
+    [navigationOrderIds, orderedSkuGroupKeys, selectedSkuGroupKey, setSelectedSkuGroupKey],
   )
 
   const renderQtyScatterTooltip = useMemo(
@@ -240,12 +213,18 @@ export const CompetitorPage = () => {
 
       <div className={`${styles.twoCol} ${styles.selfTwoCol}`}>
         <div className={`${styles.leftCol} ${styles.selfLeftCol}`}>
-          <CompetitorKpiGrid
-            totalCompetitorAmount={kpi.totalCompetitorAmount}
-            totalSelfAmount={kpi.totalSelfAmount}
-            totalCompetitorQty={kpi.totalCompetitorQty}
-            totalSelfQty={kpi.totalSelfQty}
-          />
+          {rowsLoading && !rows.length ? (
+            <div className={styles.analysisPanelLoading}>
+              <LoadingSpinner label="분석 지표를 불러오는 중" />
+            </div>
+          ) : (
+            <CompetitorKpiGrid
+              totalCompetitorAmount={kpi.totalCompetitorAmount}
+              totalSelfAmount={kpi.totalSelfAmount}
+              totalCompetitorQty={kpi.totalCompetitorQty}
+              totalSelfQty={kpi.totalSelfQty}
+            />
+          )}
 
           <AnalysisScatterChartCard<AnalysisScatterGridPoint>
             title="경쟁·자사 판매량 비교"
@@ -254,6 +233,7 @@ export const CompetitorPage = () => {
             chartReady={chartReady}
             width={scatterChartWidth}
             height={scatterChartHeight}
+            loading={scatterGridLoading && scatterData.length === 0}
             pointRadius={scatterPointRadius}
             activeCellKey={activeGridCellKey}
             onCellClick={onScatterCellClick}
@@ -270,19 +250,27 @@ export const CompetitorPage = () => {
           />
         </div>
 
-        <CompetitorAnalysisList
-          rows={visibleRows}
-          selectedSkuGroupKey={selectedSkuGroupKey}
-          allVisibleRowsSelected={allVisibleRowsSelected}
-          bulkSelectedSkuGroupKeys={bulkSelectedSkuGroupKeys}
-          onToggleAllVisibleRows={toggleAllVisibleRows}
-          onToggleBulkRow={toggleBulkRow}
-          onSelectSkuGroupKey={setSelectedSkuGroupKey}
-        />
+        {rowsLoading && !rows.length ? (
+          <div className={styles.analysisListLoading}>
+            <LoadingSpinner label="경쟁사 분석 목록을 불러오는 중" />
+          </div>
+        ) : (
+          <CompetitorAnalysisList
+            rows={visibleRows}
+            selectedSkuGroupKey={selectedSkuGroupKey}
+            allVisibleRowsSelected={allVisibleRowsSelected}
+            bulkSelectedSkuGroupKeys={bulkSelectedSkuGroupKeys}
+            onToggleAllVisibleRows={toggleAllVisibleRows}
+            onToggleBulkRow={toggleBulkRow}
+            onSelectSkuGroupKey={setSelectedSkuGroupKey}
+            onOrderedSkuGroupKeysChange={setOrderedSkuGroupKeys}
+          />
+        )}
       </div>
 
       <ProductDrawer
         summary={summaryBundle?.summary ?? null}
+        loading={summaryBundleState.loading}
         periodStart={periodStartDate}
         periodEnd={periodEndDate}
         forecastMonths={forecastMonths}

@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
-import { ApiUnitErrorBadge } from '../../../components/ApiUnitErrorBadge'
+import { LoadingSpinner } from '../../../components/LoadingSpinner'
 import type { ProductPrimarySummary } from '../../../types'
 import type { AdjacentDirection } from '../../../utils/adjacentListNavigation'
 import { normalizeMonthKey } from '../trend/trendRangeUtils'
 import { ProductPrimaryDrawer } from './primary/ProductPrimaryDrawer'
-import { ProductSecondaryDrawer } from './secondary/ProductSecondaryDrawer'
+import { ProductDrawerSecondaryPane } from './ProductDrawerSecondaryPane'
 import type { CandidateItemPanelContext } from './secondary/candidateActionCards'
 import { useCompetitorChannels } from './useCompetitorChannels'
 import { useSecondaryDrawerDetail } from './secondary/useSecondaryDrawerDetail'
@@ -196,52 +196,25 @@ function ProductDrawerContent({
       />
 
       {secondaryEnabled && (
-        <div
-          className={`${styles.drawerExpandPane} ${expandPaneOpen ? styles.drawerExpandPaneOpen : ''}`}
-          aria-hidden={!expandPaneOpen}
-        >
-          <div className={styles.drawerExpandPaneInner}>
-            {expandPaneOpen && (
-            channelsError != null ? (
-              <div className={styles.drawerSecondaryLoading}>
-                경쟁 채널 데이터를 불러오지 못했습니다.
-                <ApiUnitErrorBadge error={channelsError} />
-              </div>
-            ) : !selectedChannelReady ? (
-              <div className={styles.drawerSecondaryLoading}>
-                {selectedChannelMissing
-                  ? '선택된 경쟁 채널이 현재 채널 목록에 없습니다.'
-                  : '경쟁 채널 데이터를 불러오는 중...'}
-              </div>
-            ) : secondaryDetailError != null ? (
-              <div className={styles.drawerSecondaryLoading}>
-                2차 데이터를 불러오지 못했습니다.
-                <ApiUnitErrorBadge error={secondaryDetailError} />
-              </div>
-            ) : secondaryDetail === null ? (
-              <div className={styles.drawerSecondaryLoading}>
-                2차 데이터를 불러오는 중...
-              </div>
-            ) : (
-              <ProductSecondaryDrawer
-                primary={summary}
-                secondary={secondaryDetail}
-                periodStart={selectedStart}
-                periodEnd={selectedEnd}
-                forecastMonths={forecastMonths}
-                pageName="ProductDrawer > ProductSecondaryDrawer"
-                prefillFromSnapshot={hydrateForPanel}
-                candidateItemContext={candidateItemContext ?? null}
-                channelState={{
-                  channelId,
-                  competitorChannels,
-                  onChannelChange: setChannelId,
-                }}
-              />
-            )
-            )}
-          </div>
-        </div>
+        <ProductDrawerSecondaryPane
+          open={expandPaneOpen}
+          summary={summary}
+          selectedStart={selectedStart}
+          selectedEnd={selectedEnd}
+          forecastMonths={forecastMonths}
+          channelsError={channelsError}
+          selectedChannelReady={selectedChannelReady}
+          selectedChannelMissing={selectedChannelMissing}
+          secondaryDetail={secondaryDetail}
+          secondaryDetailError={secondaryDetailError}
+          hydrateForPanel={hydrateForPanel}
+          candidateItemContext={candidateItemContext}
+          channelState={{
+            channelId,
+            competitorChannels,
+            onChannelChange: setChannelId,
+          }}
+        />
       )}
     </aside>
   )
@@ -249,6 +222,7 @@ function ProductDrawerContent({
 
 export const ProductDrawer = ({
   summary,
+  loading = false,
   onClose,
   periodStart,
   periodEnd,
@@ -264,6 +238,7 @@ export const ProductDrawer = ({
   closing,
 }: {
   summary: ProductPrimarySummary | null
+  loading?: boolean
   onClose: () => void
   periodStart: string
   periodEnd: string
@@ -278,7 +253,16 @@ export const ProductDrawer = ({
   suppressDocumentLayoutShift?: boolean
   closing?: boolean
 }) => {
-  if (!summary) return null
+  if (!summary) {
+    if (!loading) return null
+    return (
+      <aside className={`${styles.drawer} ${closing ? styles.drawerClosing : ''}`}>
+        <div className={styles.drawerLoadingPanel}>
+          <LoadingSpinner label="상품 정보를 불러오는 중" />
+        </div>
+      </aside>
+    )
+  }
   return (
     <ProductDrawerContent
       summary={summary}

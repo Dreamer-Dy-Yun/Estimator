@@ -1,5 +1,6 @@
 import type { RefObject } from 'react'
 import { formatGroupedNumber, formatRatioDecimalKo } from '../../../utils/format'
+import { LoadingSpinner } from '../../../components/LoadingSpinner'
 import { InnerCandidateOrderEmptyState, InnerCandidateOrderList } from './InnerCandidateOrderList'
 import type {
   CandidateStashDetailModalModel,
@@ -67,7 +68,9 @@ export function CandidateStashDetailBody({
 
       <div className={detailStyles.innerCandidateListBlock}>
         {model.detailLoading ? (
-          <InnerCandidateOrderEmptyState>이너 후보 목록을 불러오는 중...</InnerCandidateOrderEmptyState>
+          <InnerCandidateOrderEmptyState>
+            <LoadingSpinner label="이너 후보 목록을 불러오는 중" />
+          </InnerCandidateOrderEmptyState>
         ) : model.drawerError ? (
           <InnerCandidateOrderEmptyState>
             이너 후보 상세 로드 실패: {model.drawerError}

@@ -24,6 +24,7 @@ export function useSecondarySalesInsight({
   const requestSeqRef = useRef(0)
   const [salesInsight, setSalesInsight] = useState<ProductSalesInsight | null>(null)
   const [salesInsightError, setSalesInsightError] = useState<ApiUnitErrorInfo | null>(null)
+  const [salesInsightLoading, setSalesInsightLoading] = useState(true)
 
   useEffect(() => {
     return () => {
@@ -35,6 +36,9 @@ export function useSecondarySalesInsight({
     let alive = true
     const reqSeq = requestSeqRef.current + 1
     requestSeqRef.current = reqSeq
+    queueMicrotask(() => {
+      if (alive && requestSeqRef.current === reqSeq) setSalesInsightLoading(true)
+    })
     void (async () => {
       try {
         const result = await dashboardApi.getProductSalesInsight(primary.skuGroupKey, {
@@ -59,6 +63,8 @@ export function useSecondarySalesInsight({
             err,
           ),
         )
+      } finally {
+        if (alive && requestSeqRef.current === reqSeq) setSalesInsightLoading(false)
       }
     })()
     return () => {
@@ -79,5 +85,6 @@ export function useSecondarySalesInsight({
     selfCol: salesInsight?.self ?? fallbackSelfCol,
     compCol: salesInsight?.competitor ?? fallbackCompCol,
     salesInsightError,
+    salesInsightLoading,
   }
 }

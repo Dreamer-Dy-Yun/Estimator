@@ -6,6 +6,7 @@ import {
   type CandidateStashSummary,
 } from '../../../api'
 import { useAppToast } from '../../../components/AppToastContext'
+import { LoadingSpinner } from '../../../components/LoadingSpinner'
 import { formatDateTimeMinute } from '../../../utils/date'
 import styles from '../common.module.css'
 
@@ -150,12 +151,14 @@ export function AnalysisCandidateBulkAddModal({
             onClick={() => void createAndSelect()}
             disabled={busy}
           >
-            후보군 생성
+            {busy ? <LoadingSpinner size="inline" label="처리 중" /> : '후보군 생성'}
           </button>
         </div>
 
         <div className={styles.analysisBulkStashList}>
-          {stashes.length === 0 ? (
+          {busy && stashes.length === 0 ? (
+            <LoadingSpinner label="후보군 목록을 불러오는 중" />
+          ) : stashes.length === 0 ? (
             <div className={styles.analysisBulkEmpty}>선택 가능한 후보군이 없습니다. 위에서 새 후보군을 생성하세요.</div>
           ) : (
             stashes.map((stash) => (
@@ -165,6 +168,7 @@ export function AnalysisCandidateBulkAddModal({
                 className={`${styles.analysisBulkStashItem} ${
                   selectedStashUuid === stash.uuid ? styles.analysisBulkStashItemSelected : ''
                 }`}
+                disabled={busy}
                 onClick={() => setSelectedStashUuid(stash.uuid)}
               >
                 <span>{stash.name}</span>
@@ -188,7 +192,7 @@ export function AnalysisCandidateBulkAddModal({
             onClick={() => void confirm()}
             disabled={busy || !selectedStashUuid || uniqueSkuGroupKeys.length === 0}
           >
-            담기
+            {busy ? <LoadingSpinner size="inline" label="담는 중" /> : '담기'}
           </button>
         </div>
       </section>

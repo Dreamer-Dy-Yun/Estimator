@@ -10,6 +10,7 @@ export function CandidateStashProductDrawer({ model, bulkDeleteOpen }: Props) {
   return (
     <ProductDrawer
       summary={model.mergedSummary}
+      loading={Boolean(model.drawerOpen && model.mergedSummary == null)}
       suppressDocumentLayoutShift
       closing={model.drawerClosing}
       onClose={model.closeDrawer}

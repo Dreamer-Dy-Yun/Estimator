@@ -10,6 +10,7 @@ type Props = {
   onToggleAllVisibleRows: () => void
   onToggleBulkRow: (skuGroupKey: string) => void
   onSelectSkuGroupKey: (skuGroupKey: string) => void
+  onOrderedSkuGroupKeysChange?: (skuGroupKeys: string[]) => void
 }
 
 const getCompetitorRowId = (row: CompetitorSalesRow) => row.skuGroupKey
@@ -22,6 +23,7 @@ export function CompetitorAnalysisList({
   onToggleAllVisibleRows,
   onToggleBulkRow,
   onSelectSkuGroupKey,
+  onOrderedSkuGroupKeysChange,
 }: Props) {
   return (
     <AnalysisList<CompetitorSalesRow>
@@ -102,6 +104,7 @@ export function CompetitorAnalysisList({
       rows={rows}
       activeRowId={selectedSkuGroupKey}
       getRowId={getCompetitorRowId}
+      onOrderedRowIdsChange={onOrderedSkuGroupKeysChange}
       defaultSort={{ key: 'competitorQty', dir: 'asc' }}
       onRowClick={(row) => onSelectSkuGroupKey(row.skuGroupKey)}
       onRowKeyDown={(row, event) => {

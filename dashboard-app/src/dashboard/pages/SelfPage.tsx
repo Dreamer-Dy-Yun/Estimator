@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { getSelfSales, getSelfSalesScatterGrid } from '../../api'
 import type { SelfSalesRow } from '../../types'
 import { selfSalesWeightedMarginRate, selfSalesWeightedOpMarginRate } from '../../utils/analysisKpiWeighted'
@@ -8,6 +8,7 @@ import { clampForecastMonths, readForecastMonthsFromStorage, writeForecastMonths
 import { formatGroupedNumber } from '../../utils/format'
 import { getScatterGridCellColor, getScatterGridCellPointRadius } from '../../utils/scatterGridDisplay'
 import type { ScatterSalesGridResponse } from '../../api/types'
+import { LoadingSpinner } from '../../components/LoadingSpinner'
 import { AnalysisCandidateBulkAddModal } from '../components/candidate-stash/AnalysisCandidateBulkAddModal'
 import { ProductDrawer } from '../components/product-drawer/ProductDrawer'
 import styles from '../components/common.module.css'
@@ -23,13 +24,15 @@ import { SelfAnalysisList } from '../components/SelfAnalysisList'
 import { useElementSize } from '../hooks/useElementSize'
 import { maskNonPeriodAnalysisFilterFields, useAnalysisSalesFilters } from '../hooks/useAnalysisSalesFilters'
 import { useAnalysisVisibleSelection } from '../hooks/useAnalysisVisibleSelection'
-import { useProductDrawerBundle } from '../hooks/useProductDrawerBundle'
+import { useDashboardRequest } from '../hooks/useDashboardRequest'
+import { useProductDrawerBundleState } from '../hooks/useProductDrawerBundle'
+
+const EMPTY_SELF_ROWS: SelfSalesRow[] = []
 
 export const SelfPage = () => {
-  const [rows, setRows] = useState<SelfSalesRow[]>([])
-  const [scatterGrid, setScatterGrid] = useState<ScatterSalesGridResponse | null>(null)
   const [bulkAddOpen, setBulkAddOpen] = useState(false)
   const [forecastMonths, setForecastMonths] = useState(() => readForecastMonthsFromStorage())
+  const [orderedSkuGroupKeys, setOrderedSkuGroupKeys] = useState<string[]>([])
   const { ref: chartBodyRef, width: chartWidth, height: chartHeight, ready: chartReady } = useElementSize<HTMLDivElement>()
 
   const onForecastMonthsChange = useCallback((n: number) => {
@@ -38,8 +41,6 @@ export const SelfPage = () => {
     writeForecastMonthsToStorage(v)
   }, [])
 
-  const salesReqSeqRef = useRef(0)
-  const scatterGridReqSeqRef = useRef(0)
   const {
     filterFields,
     historicalMonths,
@@ -57,6 +58,13 @@ export const SelfPage = () => {
     onPeriodBarStart,
     onPeriodBarEnd,
   } = useAnalysisSalesFilters()
+  const loadRows = useCallback(() => getSelfSales(salesParams), [salesParams])
+  const loadScatterGrid = useCallback(() => getSelfSalesScatterGrid(salesParams), [salesParams])
+  const { data: rows, loading: rowsLoading } = useDashboardRequest(loadRows, EMPTY_SELF_ROWS)
+  const { data: scatterGrid, loading: scatterGridLoading } = useDashboardRequest<ScatterSalesGridResponse | null>(
+    loadScatterGrid,
+    null,
+  )
   const {
     activeGridCellKey,
     selectedSkuGroupKey,
@@ -73,33 +81,8 @@ export const SelfPage = () => {
     toggleAllVisibleRows,
     clearBulkSelection,
   } = useAnalysisVisibleSelection(rows, scatterGrid)
-  const summaryBundle = useProductDrawerBundle(selectedSkuGroupKey)
-
-  useEffect(() => {
-    let alive = true
-    const reqSeq = ++salesReqSeqRef.current
-    void getSelfSales(salesParams).then((data) => {
-      if (!alive) return
-      if (reqSeq !== salesReqSeqRef.current) return
-      setRows(data)
-    })
-    return () => {
-      alive = false
-    }
-  }, [salesParams])
-
-  useEffect(() => {
-    let alive = true
-    const reqSeq = ++scatterGridReqSeqRef.current
-    void getSelfSalesScatterGrid(salesParams).then((data) => {
-      if (!alive) return
-      if (reqSeq !== scatterGridReqSeqRef.current) return
-      setScatterGrid(data)
-    })
-    return () => {
-      alive = false
-    }
-  }, [salesParams])
+  const summaryBundleState = useProductDrawerBundleState(selectedSkuGroupKey)
+  const summaryBundle = summaryBundleState.bundle
 
   const kpi = useMemo(() => {
     const totalAmount = visibleRows.reduce((acc, row) => acc + row.amount, 0)
@@ -138,10 +121,11 @@ export const SelfPage = () => {
   const onRequestNavigateAdjacent = useCallback(
     (direction: AdjacentDirection) => {
       if (!selectedSkuGroupKey) return
-      const nextId = adjacentIdInOrder(navigationOrderIds, selectedSkuGroupKey, direction)
+      const orderIds = orderedSkuGroupKeys.length ? orderedSkuGroupKeys : navigationOrderIds
+      const nextId = adjacentIdInOrder(orderIds, selectedSkuGroupKey, direction)
       if (nextId != null && nextId !== selectedSkuGroupKey) setSelectedSkuGroupKey(nextId)
     },
-    [navigationOrderIds, selectedSkuGroupKey, setSelectedSkuGroupKey],
+    [navigationOrderIds, orderedSkuGroupKeys, selectedSkuGroupKey, setSelectedSkuGroupKey],
   )
 
   const scatterChartWidth = Math.max(1, Math.floor(chartWidth))
@@ -185,15 +169,21 @@ export const SelfPage = () => {
 
       <div className={`${styles.twoCol} ${styles.selfTwoCol}`}>
         <div className={`${styles.leftCol} ${styles.selfLeftCol}`}>
-          <KpiGrid
-            stacked
-            items={[
-              { label: '총 판매액', value: formatGroupedNumber(kpi.totalAmount), unit: '원' },
-              { label: '총 판매량', value: formatGroupedNumber(kpi.totalQty), unit: 'EA' },
-              { label: '평균 매출 이익율', value: kpi.avgMarginRate.toFixed(1), unit: '%' },
-              { label: '평균 영업이익율', value: kpi.avgOpMarginRate.toFixed(1), unit: '%' },
-            ]}
-          />
+          {rowsLoading && !rows.length ? (
+            <div className={styles.analysisPanelLoading}>
+              <LoadingSpinner label="분석 지표를 불러오는 중" />
+            </div>
+          ) : (
+            <KpiGrid
+              stacked
+              items={[
+                { label: '총 판매액', value: formatGroupedNumber(kpi.totalAmount), unit: '원' },
+                { label: '총 판매량', value: formatGroupedNumber(kpi.totalQty), unit: 'EA' },
+                { label: '평균 매출 이익율', value: kpi.avgMarginRate.toFixed(1), unit: '%' },
+                { label: '평균 영업이익율', value: kpi.avgOpMarginRate.toFixed(1), unit: '%' },
+              ]}
+            />
+          )}
 
           <AnalysisScatterChartCard<AnalysisScatterGridPoint>
             title="판매량/영업 이익률 분석"
@@ -202,6 +192,7 @@ export const SelfPage = () => {
             chartReady={chartReady}
             width={scatterChartWidth}
             height={scatterChartHeight}
+            loading={scatterGridLoading && scatterData.length === 0}
             pointRadius={scatterPointRadius}
             activeCellKey={activeGridCellKey}
             onCellClick={onScatterCellClick}
@@ -217,19 +208,27 @@ export const SelfPage = () => {
           />
         </div>
 
-        <SelfAnalysisList
-          rows={visibleRows}
-          selectedSkuGroupKey={selectedSkuGroupKey}
-          allVisibleRowsSelected={allRowsSelected}
-          bulkSelectedSkuGroupKeys={bulkSelectedSkuGroupKeys}
-          onToggleAllVisibleRows={toggleAllVisibleRows}
-          onToggleBulkRow={toggleBulkRow}
-          onSelectSkuGroupKey={setSelectedSkuGroupKey}
-        />
+        {rowsLoading && !rows.length ? (
+          <div className={styles.analysisListLoading}>
+            <LoadingSpinner label="자사 분석 목록을 불러오는 중" />
+          </div>
+        ) : (
+          <SelfAnalysisList
+            rows={visibleRows}
+            selectedSkuGroupKey={selectedSkuGroupKey}
+            allVisibleRowsSelected={allRowsSelected}
+            bulkSelectedSkuGroupKeys={bulkSelectedSkuGroupKeys}
+            onToggleAllVisibleRows={toggleAllVisibleRows}
+            onToggleBulkRow={toggleBulkRow}
+            onSelectSkuGroupKey={setSelectedSkuGroupKey}
+            onOrderedSkuGroupKeysChange={setOrderedSkuGroupKeys}
+          />
+        )}
       </div>
 
       <ProductDrawer
         summary={summaryBundle?.summary ?? null}
+        loading={summaryBundleState.loading}
         periodStart={periodStartDate}
         periodEnd={periodEndDate}
         forecastMonths={forecastMonths}

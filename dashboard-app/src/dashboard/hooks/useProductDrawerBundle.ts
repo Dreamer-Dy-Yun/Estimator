@@ -14,6 +14,11 @@ export type ProductDrawerBundleCache = {
   bundle: ProductDrawerBundle
 } | null
 
+type ProductDrawerBundleRequestState = {
+  skuGroupKey: string | null
+  loading: boolean
+}
+
 /** Hook 외부에서도 재사용 가능한 번들 선택 규칙(순수 함수). */
 export function pickProductDrawerBundleFromCache(
   selectedSkuGroupKey: string | null,
@@ -27,16 +32,26 @@ export function pickProductDrawerBundleFromCache(
 }
 
 /** 1차 드로어: 품번 선택 시 자사 요약 번들만 로드. id 없으면 null. */
-export function useProductDrawerBundle(
+export function useProductDrawerBundleState(
   selectedSkuGroupKey: string | null,
   options?: UseProductDrawerBundleOptions,
 ) {
   const allowStale = options?.allowStaleWhileRevalidate !== false
   const [cache, setCache] = useState<ProductDrawerBundleCache>(null)
+  const [requestState, setRequestState] = useState<ProductDrawerBundleRequestState>({
+    skuGroupKey: null,
+    loading: false,
+  })
 
   useEffect(() => {
-    if (!selectedSkuGroupKey) return
+    if (!selectedSkuGroupKey) {
+      queueMicrotask(() => setRequestState({ skuGroupKey: null, loading: false }))
+      return
+    }
     let alive = true
+    queueMicrotask(() => {
+      if (alive) setRequestState({ skuGroupKey: selectedSkuGroupKey, loading: true })
+    })
     getProductDrawerBundle(selectedSkuGroupKey)
       .then((data) => {
         if (alive) setCache({ skuGroupKey: selectedSkuGroupKey, bundle: data })
@@ -45,10 +60,29 @@ export function useProductDrawerBundle(
         // 네트워크/목업 실패 시 이전 품번 캐시 오염을 막기 위해 현재 선택 품번 캐시를 비운다.
         if (alive) setCache((prev) => (prev?.skuGroupKey === selectedSkuGroupKey ? null : prev))
       })
+      .finally(() => {
+        if (alive) setRequestState({ skuGroupKey: selectedSkuGroupKey, loading: false })
+      })
     return () => {
       alive = false
     }
   }, [selectedSkuGroupKey])
 
-  return pickProductDrawerBundleFromCache(selectedSkuGroupKey, cache, allowStale)
+  const bundle = pickProductDrawerBundleFromCache(selectedSkuGroupKey, cache, allowStale)
+  const loading = Boolean(
+    selectedSkuGroupKey &&
+      requestState.skuGroupKey === selectedSkuGroupKey &&
+      requestState.loading &&
+      (!bundle || !allowStale),
+  )
+
+  return { bundle, loading }
+}
+
+/** 1차 드로어: 기존 호출부용 bundle-only wrapper. */
+export function useProductDrawerBundle(
+  selectedSkuGroupKey: string | null,
+  options?: UseProductDrawerBundleOptions,
+) {
+  return useProductDrawerBundleState(selectedSkuGroupKey, options).bundle
 }

@@ -10,6 +10,7 @@ import {
   type CandidateStashSummary,
 } from '../../api'
 import { useAppToast } from '../../components/AppToastContext'
+import { LoadingSpinner } from '../../components/LoadingSpinner'
 import styles from '../components/common.module.css'
 import { CandidateStashDetailModal } from '../components/candidate-stash/CandidateStashDetailModal'
 import { ConfirmModal } from '../components/ConfirmModal'
@@ -53,6 +54,7 @@ export const SnapshotConfirmPage = () => {
   const uploadInputRef = useRef<HTMLInputElement | null>(null)
   const mountedRef = useRef(false)
   const loadStashesSeqRef = useRef(0)
+  const [stashesLoading, setStashesLoading] = useState(true)
   const [uploadFile, setUploadFile] = useState<File | null>(null)
   const [uploadBusy, setUploadBusy] = useState(false)
   const [uploadError, setUploadError] = useState<string | null>(null)
@@ -62,9 +64,14 @@ export const SnapshotConfirmPage = () => {
   const loadStashes = useCallback(async () => {
     const seq = loadStashesSeqRef.current + 1
     loadStashesSeqRef.current = seq
-    const list = await getCandidateStashes()
-    if (!mountedRef.current || loadStashesSeqRef.current !== seq) return
-    setStashes(list)
+    setStashesLoading(true)
+    try {
+      const list = await getCandidateStashes()
+      if (!mountedRef.current || loadStashesSeqRef.current !== seq) return
+      setStashes(list)
+    } finally {
+      if (mountedRef.current && loadStashesSeqRef.current === seq) setStashesLoading(false)
+    }
   }, [])
 
   useEffect(() => {
@@ -202,15 +209,21 @@ export const SnapshotConfirmPage = () => {
         onDragActiveChange={setUploadDragActive}
       />
 
-      <CandidateStashList
-        allStashesEmpty={!stashes.length}
-        stashes={filteredStashes}
-        duplicateBusyUuid={duplicateBusyUuid}
-        onOpenDetail={setOpenDetailStashUuid}
-        onOpenEdit={openEditDialog}
-        onDuplicate={(stash) => void duplicateStash(stash)}
-        onDelete={setDeleteTarget}
-      />
+      {stashesLoading && !stashes.length ? (
+        <div className={`${styles.card} ${pageStyles.emptyStateCard}`}>
+          <LoadingSpinner label="오더 후보군 목록을 불러오는 중" />
+        </div>
+      ) : (
+        <CandidateStashList
+          allStashesEmpty={!stashes.length}
+          stashes={filteredStashes}
+          duplicateBusyUuid={duplicateBusyUuid}
+          onOpenDetail={setOpenDetailStashUuid}
+          onOpenEdit={openEditDialog}
+          onDuplicate={(stash) => void duplicateStash(stash)}
+          onDelete={setDeleteTarget}
+        />
+      )}
 
       <CandidateStashEditDialog
         editTarget={editTarget}

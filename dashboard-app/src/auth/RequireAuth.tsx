@@ -1,4 +1,5 @@
 import { Navigate, Outlet, useLocation } from 'react-router-dom'
+import { LoadingSpinner } from '../components/LoadingSpinner'
 import { useAuth } from './AuthContext'
 import styles from './authGate.module.css'
 
@@ -7,7 +8,11 @@ export function RequireAuth() {
   const { session, isLoading } = useAuth()
 
   if (isLoading) {
-    return <div className={styles.authFallback}>세션 확인 중</div>
+    return (
+      <div className={styles.authFallback}>
+        <LoadingSpinner size="page" label="세션 확인 중" />
+      </div>
+    )
   }
 
   if (!session) {

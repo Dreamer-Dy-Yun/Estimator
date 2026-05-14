@@ -35,7 +35,7 @@
 - 자사/경쟁사 분석 탭에서는 `ProductDrawer.secondaryEnabled={false}`로 2차 드로워를 열지 않는다. 2차 드로워 코드는 유지하되, 반원 버튼과 키보드 2차 진입은 이너후보군에서만 허용한다.
 - 이너후보군 리스트 조회는 `dataReferencePeriodStart`/`dataReferencePeriodEnd`를 API에 전달한다. 백엔드는 해당 기간의 전체 상품 분포를 먼저 계산해 배지를 부여한 뒤 후보군에 담긴 상품만 반환해야 하며, 배지는 DB `CANDIDATE_ITEM.badge`와 같은 `{ name, color, tooltip }[]` 형태로 `insight.badges`에 싣는다. 요청 adapter 주석과 API 스펙에는 이 부하 지점을 기록한다.
 - 이너후보군의 상세확정 여부는 후보 아이템 `details` 스냅샷 존재 여부다. 리스트 기본값은 데이터 참조기간 기준 live 계산값이고, 2차 드로워는 live/스냅샷 기준 보기 모두 통합 오더 설정, AI 코멘트, 일별 추이, 사이즈별 오더 카드를 표시한다. 스냅샷 기준 보기에서는 저장 당시의 통합 오더 설정값, AI 코멘트, 사이즈별 오더 수치와 기간을 복원하되 그래프는 그 기간으로 다시 조회한다.
-- 드로워 키보드 조작은 `좌=열기`, `우=닫기`, `상/하=이전/다음`이다. 자사/경쟁사 리스트 row에서는 좌 키가 1차 드로워만 열고, 이너후보군에서는 좌 키로 1차를 열고 열린 1차 안에서 좌 키로 2차를 연다. ESC는 2차가 열려 있으면 2차부터 닫고, 한 번 더 누르면 1차를 닫는다. 상/하 이동으로 현재 상품이 바뀌면 원본 리스트의 현재 row도 포커스·스크롤·강조 상태를 함께 갱신한다.
+- 드로워 키보드 조작은 `좌=열기`, `우=닫기`, `상/하=이전/다음`이다. 자사/경쟁사 리스트 row에서는 좌 키가 1차 드로워만 열고, 이너후보군에서는 좌 키로 1차를 열고 열린 1차 안에서 좌 키로 2차를 연다. ESC는 2차가 열려 있으면 2차부터 닫고, 한 번 더 누르면 1차를 닫는다. 상/하 이동으로 현재 상품이 바뀌면 원본 리스트의 현재 row도 포커스·스크롤·강조 상태를 함께 갱신한다. 자사/경쟁사 분석의 상/하 이동 순서는 `PaginatedTable`이 실제 렌더링에 사용한 정렬 row id 순서(`onOrderedRowIdsChange`)를 기준으로 한다.
 - 후보군 상세 필터 카드에는 발주 엑셀 다운로드 액션을 둔다. 화면은 다운로드 클릭 시 백엔드를 다시 호출하지 않고, 이미 받은 `CandidateItemSummary.orderExport` DTO로 브라우저에서 XLSX를 생성한다. 주 데이터 시트는 브랜드·품번(`code`)·상품명(`productName`)·색상(`colorCode`)·배지·판매 지표·총 오더 지표 컬럼 뒤에 후보군 전체 사이즈를 동적 컬럼으로 붙이고, 제품에 없는 사이즈는 `N/A`로 표시한다. 복수 배지는 한 셀 안에서 줄바꿈한다. 메타 시트에는 오더 입고 예정일과 사용자 이름을 둔다.
 - SKU 식별 메타는 DB `SKU` 테이블 설계에 맞춰 `code`, `colorCode`, `productName`을 사용한다. 실제 SKU 유일성은 `code + colorCode + size` 조합으로 보고, 분석 리스트·1차 드로어 배지·2차 메타·후보군/엑셀 계약이 같은 필드명을 쓴다.
 - 라우트 페이지는 `src/App.tsx`에서 `React.lazy`로 분리한다. 기본 라우팅은 일반 배포용 `BrowserRouter`이고, GitHub Pages workflow만 `VITE_ROUTER_MODE=hash`로 `HashRouter`를 켠다.
@@ -50,15 +50,16 @@
 - 관리자 GPT 키 관리는 `src/api/types/admin-gpt-key.ts` 계약과 `src/api/mock/adminGptKeyApi.ts` mock을 통해서만 접근한다. 화면은 GPT 키 원문을 입력/교체 요청에만 담고, 목록 응답은 `maskedKey`만 표시한다. 목록은 식별용 요약 정보만 노출하고, 메타 변경/키 교체/연결 테스트/삭제는 행 클릭 후 열리는 모달이 소유한다. 현재 mock은 DB 대체 저장소가 아니라 런타임 메모리에서 마스킹 값과 메타데이터만 보관한다.
 - API 요청 교체 지점은 `src/api/requests/*`로 분리한다. 화면/훅/페이지는 mock을 알 수 없고, `src/api/client.ts`는 public export facade만 맡는다. 실제 백엔드가 생기면 `requests` 파일 안의 mock 위임을 HTTP 요청으로 바꾸는 것을 기본 원칙으로 한다.
 - 2026-05-13 정리에서 전체 `npm run lint` 실패를 0건으로 만들고 `tsconfig.app.json`/`tsconfig.node.json`에 `strict: true`를 켰다. 이후 기능 변경은 린트와 strict 타입 검사를 기본 품질선으로 본다.
-- 자사/경쟁사 분석의 격자 셀 선택, 현재 화면 기준 선택 유효성, 후보군 일괄 담기 체크박스 상태는 `dashboard/hooks/useAnalysisVisibleSelection.ts`가 소유한다. 페이지는 KPI/차트/목록 렌더와 API 호출 결과 연결만 맡고, 필터·격자 변경 후 선택 상태를 effect로 억지 정리하지 않는다.
+- 자사/경쟁사 분석의 격자 셀 선택, 현재 화면 기준 선택 유효성, 후보군 일괄 담기 체크박스 상태는 `dashboard/hooks/useAnalysisVisibleSelection.ts`가 소유한다. 페이지는 KPI/차트/목록 렌더와 API 호출 결과 연결만 맡고, 요청 생명주기와 stale 응답 차단은 `dashboard/hooks/useDashboardRequest.ts`를 사용한다. 필터·격자 변경 후 선택 상태를 effect로 억지 정리하지 않는다.
 - 산점도 격자화 mock 계산은 `api/mock/scatterGrid.ts`로 분리했다. 운영에서는 백엔드가 같은 책임을 가지며, 프론트는 응답 `cells`와 `meta`로 색상·표시 반지름만 계산한다.
 - 2026-05-14 정리에서 분석 페이지의 목록 컬럼 정의는 `SelfAnalysisList.tsx`/`CompetitorAnalysisList.tsx`, 산점도 tooltip 렌더는 `AnalysisScatterTooltips.tsx`로 분리했다. 페이지는 API 결과 연결, 필터/선택 상태 조립, KPI/차트/드로워 배치만 담당한다.
 - 후보군 mock의 기간 기준 후보 요약, 배지 평가, 엑셀 다운로드 DTO 조립은 `candidateItemSummaryBuilder.ts`로 분리했다. `candidateMockApi.ts`는 후보군 소유자 필터링, mutation stub, API 응답 orchestration만 맡는다.
 - 2차 드로워 재고·발주 계산 mock은 `secondaryStockOrderCalcApi.ts`로 분리했다. `dashboardApi.ts`는 DashboardApi public mock 조립과 판매/드로워 조회 흐름을 맡고, 계산 세부식은 전용 파일이 소유한다.
-- 상품 drawer feature는 `dashboard/components/product-drawer`로 모았다. 루트 `ProductDrawer`는 overlay와 공유 상태만 조율하고, `primary`가 1차 드로워, `secondary`가 2차 드로워를 소유한다.
+- 상품 drawer feature는 `dashboard/components/product-drawer`로 모았다. 루트 `ProductDrawer`는 overlay와 공유 상태만 조율하고, `ProductDrawerSecondaryPane`은 2차 패널의 로딩/오류/상세 렌더 분기를 소유한다. `primary`가 1차 드로워, `secondary`가 2차 드로워 내부 content를 소유한다.
 - 경쟁 채널 상태는 1차 판매 정보와 2차 일별 추이가 공유하므로 `product-drawer/useCompetitorChannels.ts`가 소유한다. 2차 상세 조회는 `product-drawer/secondary/useSecondaryDrawerDetail.ts`가 소유한다.
 - 인증 context와 `useAuth`는 `AuthContext.ts`가 소유하고, `AuthProvider.tsx`는 세션 로딩과 API 호출 orchestration만 담당한다.
 - 앱 전역 mutation 완료 toast는 `src/components/AppToast.tsx`가 소유한다. 복사 완료 toast는 기존 화면별 흐름을 유지하되, 백엔드 요청 완료 알림과 UI 위치 원칙을 맞춘다.
+- 요청 대기 표시는 `src/components/LoadingSpinner.tsx`가 소유한다. 페이지/모달/드로워는 자기 API 요청 상태만 판별하고, 큰 패널형 스피너 또는 버튼 내부 inline 스피너를 이 공용 컴포넌트로 렌더한다.
 
 ## 최상위 저장소
 
@@ -192,6 +193,7 @@
 | `ApiUnitErrorBadge.tsx` | API 단위 오류를 표시하는 공용 badge |
 | `AppToast.tsx`, `AppToastContext.ts`, `AppToast.module.css` | 앱 전역 성공/정보/오류 toast provider와 상단 자동 닫힘 표시. hook/context export는 fast-refresh 경계를 위해 `AppToastContext.ts`가 소유한다 |
 | `ComponentErrorBoundary.tsx` | 컴포넌트 단위 오류 격리 boundary |
+| `LoadingSpinner.tsx`, `LoadingSpinner.module.css` | 요청 대기 상태의 공용 spinner. 권한 확인/목록/차트/드로워/모달은 큰 panel/page 표시를 쓰고, 저장·삭제·업로드 같은 버튼 요청은 inline 표시를 쓴다 |
 
 ## src/dashboard
 
@@ -213,8 +215,8 @@
 
 | 파일 | 역할 |
 |------|------|
-| `SelfPage.tsx` | 자사 판매 분석 라우트. 공통 분석 필터/기간 상태는 `useAnalysisSalesFilters`, 격자 셀 선택·화면 기준 선택 유효성·후보군 일괄 담기 선택 상태는 `useAnalysisVisibleSelection`이 소유한다. 페이지는 API 결과 연결, 자사 KPI, 공통 산점도 카드 연결, 후보군 일괄 담기 진입을 조립한다. 목록 컬럼/row 이벤트는 `SelfAnalysisList.tsx`, tooltip 렌더는 `AnalysisScatterTooltips.tsx`에 위임한다. 기본 목록 정렬은 판매량 오름차순이며 2차 드로워는 열지 않는다. |
-| `CompetitorPage.tsx` | 경쟁 판매 분석 라우트. 경쟁 채널 필터, 자사판매량 존재 행 토글, 경쟁 KPI, 공통 산점도 카드, 후보군 일괄 담기 진입을 조립한다. 목록 렌더는 `CompetitorAnalysisList.tsx`, KPI는 `CompetitorKpiGrid.tsx`, 필터 우측 토글/버튼은 `CompetitorFilterEndControls.tsx`, tooltip 렌더는 `AnalysisScatterTooltips.tsx`에 위임한다. 기본 목록 정렬은 경쟁 판매량 오름차순이며, 경쟁 채널이 `전체`이면 API 응답은 전체 경쟁 채널 합계여야 한다. |
+| `SelfPage.tsx` | 자사 판매 분석 라우트. 공통 분석 필터/기간 상태는 `useAnalysisSalesFilters`, 격자 셀 선택·화면 기준 선택 유효성·후보군 일괄 담기 선택 상태는 `useAnalysisVisibleSelection`이 소유한다. 페이지는 API 결과 연결, 자사 KPI, 공통 산점도 카드 연결, 후보군 일괄 담기 진입을 조립한다. 목록 컬럼/row 이벤트는 `SelfAnalysisList.tsx`, tooltip 렌더는 `AnalysisScatterTooltips.tsx`에 위임한다. 기본 목록 정렬은 판매량 오름차순이며 2차 드로워는 열지 않는다. 1차 드로워 상/하 이동은 `SelfAnalysisList`가 보고한 현재 테이블 정렬 순서를 사용한다. |
+| `CompetitorPage.tsx` | 경쟁 판매 분석 라우트. 경쟁 채널 필터, 자사판매량 존재 행 토글, 경쟁 KPI, 공통 산점도 카드, 후보군 일괄 담기 진입을 조립한다. 목록 렌더는 `CompetitorAnalysisList.tsx`, KPI는 `CompetitorKpiGrid.tsx`, 필터 우측 토글/버튼은 `CompetitorFilterEndControls.tsx`, tooltip 렌더는 `AnalysisScatterTooltips.tsx`에 위임한다. 기본 목록 정렬은 경쟁 판매량 오름차순이며, 경쟁 채널이 `전체`이면 API 응답은 전체 경쟁 채널 합계여야 한다. 1차 드로워 상/하 이동은 `CompetitorAnalysisList`가 보고한 현재 테이블 정렬 순서를 사용한다. |
 | `SnapshotConfirmPage.tsx` | 후보군 목록/업로드/수정/삭제/복제 라우트의 상태와 API 액션 조립을 소유한다. 업로드 카드, 후보군 카드 리스트, 이름·비고 편집 dialog는 `pages/snapshot-confirm/*` 하위 컴포넌트가 소유한다. |
 | `snapshot-confirm/CandidateStashUploadCard.tsx` | 후보군 엑셀 업로드 card, 템플릿 다운로드 링크, drag/drop 입력 UI를 소유한다. 실제 업로드 API 호출은 페이지에서 주입받는다. |
 | `snapshot-confirm/CandidateStashList.tsx` | 후보군 카드 목록과 빈 상태 렌더링을 소유한다. 상세 열기/복제/편집/삭제 API 동작은 페이지에서 주입받는다. |
@@ -228,10 +230,10 @@
 |------|------|
 | `AnalysisScatterChartCard.tsx` | 자사/경쟁사 분석에서 공통으로 쓰는 산점도 카드. 격자 cell 색, 선택 초기화 버튼, X/Y축 라벨, point 클릭 연결을 렌더링한다. 데이터 조회와 필터 상태는 페이지가 소유한다. |
 | `AnalysisScatterTooltips.tsx` | 자사/경쟁사 산점도 tooltip 렌더링. tooltip 텍스트/포맷/건수 강조 표현을 페이지 컨테이너에서 분리한다. |
-| `CompetitorAnalysisList.tsx` | 경쟁사 분석 목록의 컬럼 정의와 row 클릭/키보드 열기/체크박스 렌더링을 소유한다. 현재 드로워 상품 row는 `selectedSkuGroupKey`로 받아 공통 목록 포커스 경계에 전달한다. |
+| `CompetitorAnalysisList.tsx` | 경쟁사 분석 목록의 컬럼 정의와 row 클릭/키보드 열기/체크박스 렌더링을 소유한다. 현재 드로워 상품 row는 `selectedSkuGroupKey`로 받아 공통 목록 포커스 경계에 전달하고, 현재 테이블 정렬 순서를 페이지에 보고한다. |
 | `CompetitorFilterEndControls.tsx` | 경쟁사 분석 필터 우측의 `자사판매량이 존재하는 경우만 보기` 토글과 `선택한 물품을 후보군으로` 버튼을 소유한다. |
 | `CompetitorKpiGrid.tsx` | 경쟁사 분석 KPI 4개 카드 렌더링을 소유한다. KPI 값 계산은 페이지가 필터링된 row 기준으로 수행한다. |
-| `AnalysisList.tsx` | 판매 분석 목록 wrapper. `PaginatedTable`의 정렬/스크롤 구현을 감싸고, 현재 드로워 상품 row 식별자를 전달한다. |
+| `AnalysisList.tsx` | 판매 분석 목록 wrapper. `PaginatedTable`의 정렬/스크롤 구현을 감싸고, 현재 드로워 상품 row 식별자와 실제 정렬 row id 보고 콜백을 전달한다. |
 | `AnalysisPeriodTools.tsx` | 자사/경쟁 분석 공통 기간 preset 버튼, 기간 bar 토글, dual range UI |
 | `ChartCard.tsx` | 차트 카드 wrapper. `titleAction`으로 그래프 내부 보조 액션(예: 격자 선택 해제)을 받을 수 있다 |
 | `ConfirmModal.tsx` | 확인 모달 shell. 기본 shell 스타일을 갖고, 특수 화면은 필요한 classNames만 선택적으로 주입한다 |
@@ -242,8 +244,8 @@
 | `FilterBar.tsx` | 페이지 상단 필터 조합. 필터 field view-model은 `dashboard/model/filterField.ts`를 따르며, `filterEndContent`로 필터 grid 끝의 버튼/액션 칸을 받을 수 있다. `displayValue`/`disabled`는 선택 상태 표시 같은 UI 표현 전용이다 |
 | `FilterListCombo.*` | 목록 기반 검색/선택 필터. 값이 `전체`인 필드는 전체 옵션 목록을 열어 보여준다 |
 | `KpiGrid.tsx` | KPI 카드 grid. 자사/경쟁사 분석 좌측 KPI stack의 compact card density와 숫자/단위 분리 렌더링은 공통 CSS가 소유한다 |
-| `PaginatedTable.tsx` | 정렬/페이지네이션 테이블. `activeRowId/getRowId` 계약을 통해 외부 선택 row를 포커스·스크롤·강조한다. |
-| `SelfAnalysisList.tsx` | 자사 분석 목록의 컬럼 정의와 row 클릭/키보드 열기/체크박스 렌더링을 소유한다. 현재 드로워 상품 row는 `selectedSkuGroupKey`로 받아 공통 목록 포커스 경계에 전달한다. |
+| `PaginatedTable.tsx` | 정렬/페이지네이션 테이블. `activeRowId/getRowId` 계약을 통해 외부 선택 row를 포커스·스크롤·강조한다. `onOrderedRowIdsChange`로 현재 정렬이 적용된 전체 row id 순서를 보고해 드로워 상/하 이동과 화면 정렬 순서를 맞춘다. |
+| `SelfAnalysisList.tsx` | 자사 분석 목록의 컬럼 정의와 row 클릭/키보드 열기/체크박스 렌더링을 소유한다. 현재 드로워 상품 row는 `selectedSkuGroupKey`로 받아 공통 목록 포커스 경계에 전달하고, 현재 테이블 정렬 순서를 페이지에 보고한다. |
 | `PortalHelpPopover.tsx`, `usePortalHelpPopover.ts`, `portalHelpPopoverPosition.ts` | help popover와 위치 계산 |
 | `common.module.css` | 대시보드 공용 CSS 진입점. 실제 스타일은 `components/common-style-parts/*`가 분석 layout, 추이 컨트롤, help/action, filter/period, bulk modal, period slider, table, drawer로 나눠 소유한다 |
 | `trend/` | 판매 트렌드 차트와 차트 range 보조 |
@@ -286,6 +288,7 @@
 | 파일/폴더 | 역할 |
 |------|------|
 | `ProductDrawer.tsx` | 상품 drawer overlay shell. 닫기, body layout shift, 2차 드로워 허용 여부(`secondaryEnabled`), 2차 드로워 열림 상태, 방향키 이동, ESC 단계 닫기, 공유 경쟁 채널 상태를 조율한다. `좌=열기`, `우=닫기`, `상/하=이전/다음` 키를 처리하고, 2차 드로워가 열린 상태에서 이전/다음 상품으로 이동해도 2차 드로워 상태를 유지한다. 원본 리스트 포커스 이동은 각 리스트가 현재 선택 id를 받아 처리한다 |
+| `ProductDrawerSecondaryPane.tsx` | `ProductDrawer`의 확장 패널 UI. 경쟁 채널 로딩/오류, 2차 상세 로딩/오류, `ProductSecondaryDrawer` 연결을 소유한다. 키보드·body layout·공유 채널 상태 생성은 루트 drawer에 남긴다 |
 | `apiErrorInfo.ts` | 상품 drawer 하위 API 오류 정보를 같은 형식으로 만드는 helper |
 | `ko.ts` | 상품 drawer feature에서 공유하는 한국어 텍스트 상수 |
 | `useCompetitorChannels.ts` | 1차 판매 정보/월간 추이와 2차 일별 추이가 공유하는 경쟁 채널 목록 조회와 선택 상태. 빈 채널 목록은 API 오류로 처리하고 임의 채널 객체를 만들지 않는다 |
@@ -330,8 +333,9 @@
 | `useElementSize.ts` | element resize 측정 |
 | `useAnalysisSalesFilters.ts` | 자사/경쟁 분석 공통 기간·브랜드·카테고리·품번·색상·상품명 필터 상태와 filter meta API 요청. 산점도 cell 선택 시 기간 외 필터를 비운 것처럼 보이게 하는 분석 화면 표시 정책도 여기서 만든다 |
 | `useAnalysisVisibleSelection.ts` | 자사/경쟁 분석 공통 격자 셀 선택, 현재 보이는 행 계산, 선택 상품 drawer id, 후보군 일괄 담기 체크박스 상태. 필터나 격자 결과가 바뀔 때 상태를 effect로 삭제하지 않고 현재 화면에서 유효한 값만 파생한다 |
+| `useDashboardRequest.ts` | dashboard page에서 쓰는 단발 조회 요청 생명주기. loading 상태, 실패 fallback, stale 응답 차단만 소유하고, 어떤 API를 부르는지와 fallback 데이터 의미는 호출 페이지가 결정한다 |
 | `usePeriodRangeFilter.ts` | 판매 분석 기간 필터 상태 |
-| `useProductDrawerBundle.ts` | 상품 drawer bundle 로딩, stale cache, snapshot fallback 보호 |
+| `useProductDrawerBundle.ts` | 상품 drawer bundle 로딩, loading 상태, stale cache, snapshot fallback 보호. 기존 bundle-only 호출은 `useProductDrawerBundle`, 로딩 UI가 필요한 호출은 `useProductDrawerBundleState`를 사용한다 |
 
 ## dashboard/model
 

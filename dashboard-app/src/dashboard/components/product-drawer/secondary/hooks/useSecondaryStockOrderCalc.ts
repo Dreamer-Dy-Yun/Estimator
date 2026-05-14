@@ -30,9 +30,13 @@ export function useSecondaryStockOrderCalc({
 }: Params) {
   const [forecastCalc, setForecastCalc] = useState<SecondaryForecastCalc | null>(null)
   const [forecastCalcError, setForecastCalcError] = useState<ApiUnitErrorInfo | null>(null)
+  const [forecastCalcLoading, setForecastCalcLoading] = useState(true)
 
   useEffect(() => {
     let alive = true
+    queueMicrotask(() => {
+      if (alive) setForecastCalcLoading(true)
+    })
     void (async () => {
       try {
         const roundedManualSafetyStock = Math.max(0, Math.round(manualSafetyStock))
@@ -69,6 +73,8 @@ export function useSecondaryStockOrderCalc({
             err,
           ),
         )
+      } finally {
+        if (alive) setForecastCalcLoading(false)
       }
     })()
     return () => {
@@ -87,5 +93,5 @@ export function useSecondaryStockOrderCalc({
     serviceLevelPct,
   ])
 
-  return { forecastCalc, forecastCalcError }
+  return { forecastCalc, forecastCalcError, forecastCalcLoading }
 }

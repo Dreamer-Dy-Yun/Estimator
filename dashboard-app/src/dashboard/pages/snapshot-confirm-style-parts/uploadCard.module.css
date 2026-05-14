@@ -182,6 +182,10 @@
 }
 
 .btnPrimary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
   color: #ffffff;
   border-color: #0f172a;
   background: #0f172a;

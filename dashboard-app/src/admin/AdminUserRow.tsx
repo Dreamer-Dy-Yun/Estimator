@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { deleteAdminUser, updateAdminUser } from '../api'
 import type { AdminUserSummary, AuthRole } from '../api'
+import { LoadingSpinner } from '../components/LoadingSpinner'
 import { formatUpdatedAt, getErrorMessage, ROLE_OPTIONS } from './adminHelpers'
 import styles from './AdminPage.module.css'
 
@@ -153,7 +154,7 @@ export function AdminUserRow({
       <div className={styles.updatedCell}>{formatUpdatedAt(user.dbUpdatedAt)}</div>
       <div className={styles.actionCell}>
         <button className={styles.saveButton} type="submit" disabled={!isDirty || isSaving}>
-          {isSaving ? '변경 중' : '변경'}
+          {isSaving ? <LoadingSpinner size="inline" label="변경 중" /> : '변경'}
         </button>
         <button
           className={styles.resetButton}
@@ -161,7 +162,7 @@ export function AdminUserRow({
           onClick={handlePasswordReset}
           disabled={isResettingPassword}
         >
-          {isResettingPassword ? '재설정 중' : '비밀번호 재설정'}
+          {isResettingPassword ? <LoadingSpinner size="inline" label="재설정 중" /> : '비밀번호 재설정'}
         </button>
         <button
           className={styles.deleteButton}
@@ -169,7 +170,7 @@ export function AdminUserRow({
           onClick={handleDelete}
           disabled={isCurrentUser || isDeleting}
         >
-          {isDeleting ? '제거 중' : '제거'}
+          {isDeleting ? <LoadingSpinner size="inline" label="제거 중" /> : '제거'}
         </button>
       </div>
       {errorMessage ? <p className={styles.rowError}>{errorMessage}</p> : null}

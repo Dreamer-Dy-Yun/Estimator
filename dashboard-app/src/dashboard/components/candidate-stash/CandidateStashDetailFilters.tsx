@@ -1,4 +1,5 @@
 import { FilterBar } from '../FilterBar'
+import { LoadingSpinner } from '../../../components/LoadingSpinner'
 import type { CandidateStashDetailModalModel } from './useCandidateStashDetailModal'
 import detailStyles from './CandidateStashDetailModal.module.css'
 
@@ -53,7 +54,7 @@ export function CandidateStashDetailFilters({ model, downloadUserName }: Props) 
               onClick={() => void model.downloadOrderExcel(downloadUserName)}
               disabled={model.detailLoading || model.orderExportBusy || model.items.length === 0}
             >
-              {model.orderExportBusy ? '생성 중' : '엑셀 다운로드'}
+              {model.orderExportBusy ? <LoadingSpinner size="inline" label="생성 중" /> : '엑셀 다운로드'}
             </button>
           </div>
         }

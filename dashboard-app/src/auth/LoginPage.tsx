@@ -1,5 +1,6 @@
 import { useMemo, useState, type FormEvent } from 'react'
 import { Navigate, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
+import { LoadingSpinner } from '../components/LoadingSpinner'
 import { useAuth } from './AuthContext'
 import styles from './LoginPage.module.css'
 
@@ -90,7 +91,7 @@ export function LoginPage() {
           {errorMessage ? <p className={styles.errorMessage}>{errorMessage}</p> : null}
 
           <button className={styles.submitButton} type="submit" disabled={isSubmitting}>
-            {isSubmitting ? '확인 중' : '로그인'}
+            {isSubmitting ? <LoadingSpinner size="inline" label="확인 중" /> : '로그인'}
           </button>
         </form>
 

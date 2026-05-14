@@ -108,6 +108,10 @@
 
 /** Recharts 영역: 툴팁·커서가 밖으로 나가 드로어 가로 스크롤이 생기지 않도록 */
 .actionBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
   padding: 8px 12px;
   border-radius: 8px;
   border: 1px solid #cbd5e1;
@@ -153,4 +157,3 @@
   width: 100%;
   overflow: visible;
 }
-

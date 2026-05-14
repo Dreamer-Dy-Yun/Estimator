@@ -1,5 +1,6 @@
 import type { CandidateStashSummary } from '../../../api'
 import { formatDateTimeMinute } from '../../../utils/date'
+import { LoadingSpinner } from '../../../components/LoadingSpinner'
 import { DeleteButton } from '../DeleteButton'
 import styles from '../common.module.css'
 import detailStyles from './CandidateStashDetailModal.module.css'
@@ -72,7 +73,7 @@ export function CandidateStashDetailHeader({
             onClick={onOpenRecommendations}
             disabled={recommendationLoading || !canLoadRecommendations}
           >
-            {recommendationLoading ? '추천 조회 중' : '추천 보기'}
+            {recommendationLoading ? <LoadingSpinner size="inline" label="추천 조회 중" /> : '추천 보기'}
           </button>
         </div>
         <div className={detailStyles.detailHeaderDeleteCell}>

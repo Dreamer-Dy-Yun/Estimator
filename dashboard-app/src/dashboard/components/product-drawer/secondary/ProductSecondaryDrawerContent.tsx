@@ -104,7 +104,9 @@ export function ProductSecondaryDrawerContent({
 }: Props) {
   const {
     salesInsightError,
+    salesInsightLoading,
     forecastCalcError,
+    forecastCalcLoading,
     forecastInputs,
     forecastDerived,
     sizeRows,
@@ -183,6 +185,7 @@ export function ProductSecondaryDrawerContent({
           <SalesForecastCard
             forecast={{
               inputs: forecastInputs,
+              loading: salesInsightLoading || forecastCalcLoading,
               error: salesInsightError ?? forecastCalcError,
               computed: {
                 recommendedOrderQtyTotal: recommendedQtyTotal,
@@ -230,6 +233,7 @@ export function ProductSecondaryDrawerContent({
           sizeOptions={dailyTrendSizeOptions}
           trend={{
             series: dailyTrend.dailyTrendSeries,
+            loading: dailyTrend.dailyTrendLoading,
             tickIndices: dailyTrend.dailyTickIndices,
             periodShade: dailyTrend.dailyPeriodShade,
             forecastShade: dailyTrend.dailyForecastShade,

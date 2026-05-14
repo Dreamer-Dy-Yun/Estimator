@@ -1,5 +1,6 @@
 import { PortalHelpMark } from '../../../PortalHelpPopover'
 import { ApiUnitErrorBadge } from '../../../../../components/ApiUnitErrorBadge'
+import { LoadingSpinner } from '../../../../../components/LoadingSpinner'
 import type { ApiUnitErrorInfo } from '../../../../../types'
 import { formatGroupedNumber, formatRatioDecimalKo } from '../../../../../utils/format'
 import commonStyles from '../../../common.module.css'
@@ -24,6 +25,7 @@ export type SalesForecastComputedTable = {
 type Props = {
   forecast: {
     inputs: SecondaryForecastInputs
+    loading: boolean
     error: ApiUnitErrorInfo | null
     /** 클라이언트 연산 표시값 — API 응답 금액 미사용 */
     computed: SalesForecastComputedTable
@@ -194,80 +196,84 @@ export function SalesForecastCard({ forecast, orderSettings, actions, help }: Pr
           </span>
         </div>
       </div>
-      <div className={styles.cardTableScroll}>
-        <table className={`${styles.table} ${styles.salesForecastTable}`}>
-          <thead>
-            <tr>
-              <th>{KO.thMetric}</th>
-              <th className={styles.num}>
-                <span className={`${commonStyles.cardTitleWithHelp} ${styles.forecastColumnHeaderWithRadio}`}>
-                  {KO.thSizeIntegratedColExpected}
-                  <PortalHelpMark
-                    helpId="forecastQtyCalc"
-                    placement="above"
-                    labelId={labelIds.forecastQtyCalc}
-                    markClassName={commonStyles.helpMark}
-                    help={portal}
-                  />
-                </span>
-              </th>
-              <th className={styles.num}>
-                <span className={`${commonStyles.cardTitleWithHelp} ${styles.forecastColumnHeaderWithRadio}`}>
-                  {KO.thSizeIntegratedColConfirm}
-                </span>
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td>
-                <span className={commonStyles.cardTitleWithHelp}>
-                  {KO.rowOrderQty}
-                  <PortalHelpMark
-                    helpId="forecastQtyCalc"
-                    placement="above"
-                    labelId={labelIds.forecastQtyCalc}
-                    markClassName={commonStyles.helpMark}
-                    help={portal}
-                  />
-                </span>
-              </td>
-              <td className={styles.num}>{formatGroupedNumber(computed.recommendedOrderQtyTotal)}</td>
-              <td className={styles.num}>{formatGroupedNumber(computed.confirmedOrderQtyTotal)}</td>
-            </tr>
-            <tr>
-              <td>{KO.rowExpectedSales}</td>
-              <td className={styles.num}>{formatGroupedNumber(computed.forecastExpectedSales)}</td>
-              <td className={styles.num}>{formatGroupedNumber(computed.confirmedExpectedSales)}</td>
-            </tr>
-            <tr>
-              <td>{KO.rowExpectedOpProfit}</td>
-              <td className={styles.num}>{formatGroupedNumber(computed.forecastOpProfit)}</td>
-              <td className={styles.num}>{formatGroupedNumber(computed.confirmedOpProfit)}</td>
-            </tr>
-            <tr>
-              <td>
-                <span className={commonStyles.cardTitleWithHelp}>
-                  {KO.rowExpectedOpProfitRate}
-                  <PortalHelpMark
-                    helpId="expectedOpProfitRate"
-                    placement="above"
-                    labelId={labelIds.expectedOpProfitRate}
-                    markClassName={commonStyles.helpMark}
-                    help={portal}
-                  />
-                </span>
-              </td>
-              <td className={styles.num}>
-                {forecastOpProfitRatePct === null ? '-' : `${formatRatioDecimalKo(forecastOpProfitRatePct)}%`}
-              </td>
-              <td className={styles.num}>
-                {confirmedOpProfitRatePct === null ? '-' : `${formatRatioDecimalKo(confirmedOpProfitRatePct)}%`}
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+      {forecast.loading ? (
+        <LoadingSpinner label="통합 오더 계산 중" />
+      ) : (
+        <div className={styles.cardTableScroll}>
+          <table className={`${styles.table} ${styles.salesForecastTable}`}>
+            <thead>
+              <tr>
+                <th>{KO.thMetric}</th>
+                <th className={styles.num}>
+                  <span className={`${commonStyles.cardTitleWithHelp} ${styles.forecastColumnHeaderWithRadio}`}>
+                    {KO.thSizeIntegratedColExpected}
+                    <PortalHelpMark
+                      helpId="forecastQtyCalc"
+                      placement="above"
+                      labelId={labelIds.forecastQtyCalc}
+                      markClassName={commonStyles.helpMark}
+                      help={portal}
+                    />
+                  </span>
+                </th>
+                <th className={styles.num}>
+                  <span className={`${commonStyles.cardTitleWithHelp} ${styles.forecastColumnHeaderWithRadio}`}>
+                    {KO.thSizeIntegratedColConfirm}
+                  </span>
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>
+                  <span className={commonStyles.cardTitleWithHelp}>
+                    {KO.rowOrderQty}
+                    <PortalHelpMark
+                      helpId="forecastQtyCalc"
+                      placement="above"
+                      labelId={labelIds.forecastQtyCalc}
+                      markClassName={commonStyles.helpMark}
+                      help={portal}
+                    />
+                  </span>
+                </td>
+                <td className={styles.num}>{formatGroupedNumber(computed.recommendedOrderQtyTotal)}</td>
+                <td className={styles.num}>{formatGroupedNumber(computed.confirmedOrderQtyTotal)}</td>
+              </tr>
+              <tr>
+                <td>{KO.rowExpectedSales}</td>
+                <td className={styles.num}>{formatGroupedNumber(computed.forecastExpectedSales)}</td>
+                <td className={styles.num}>{formatGroupedNumber(computed.confirmedExpectedSales)}</td>
+              </tr>
+              <tr>
+                <td>{KO.rowExpectedOpProfit}</td>
+                <td className={styles.num}>{formatGroupedNumber(computed.forecastOpProfit)}</td>
+                <td className={styles.num}>{formatGroupedNumber(computed.confirmedOpProfit)}</td>
+              </tr>
+              <tr>
+                <td>
+                  <span className={commonStyles.cardTitleWithHelp}>
+                    {KO.rowExpectedOpProfitRate}
+                    <PortalHelpMark
+                      helpId="expectedOpProfitRate"
+                      placement="above"
+                      labelId={labelIds.expectedOpProfitRate}
+                      markClassName={commonStyles.helpMark}
+                      help={portal}
+                    />
+                  </span>
+                </td>
+                <td className={styles.num}>
+                  {forecastOpProfitRatePct === null ? '-' : `${formatRatioDecimalKo(forecastOpProfitRatePct)}%`}
+                </td>
+                <td className={styles.num}>
+                  {confirmedOpProfitRatePct === null ? '-' : `${formatRatioDecimalKo(confirmedOpProfitRatePct)}%`}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   )
 }

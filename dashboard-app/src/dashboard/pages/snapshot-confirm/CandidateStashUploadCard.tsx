@@ -1,5 +1,6 @@
 import type { RefObject } from 'react'
 import type { CandidateStashExcelUploadResult } from '../../../api'
+import { LoadingSpinner } from '../../../components/LoadingSpinner'
 import styles from '../../components/common.module.css'
 import pageStyles from '../SnapshotConfirmPage.module.css'
 
@@ -101,7 +102,7 @@ export function CandidateStashUploadCard({
           disabled={!uploadFile || uploadBusy}
           onClick={onUpload}
         >
-          {uploadBusy ? '업로드 중...' : '업로드'}
+          {uploadBusy ? <LoadingSpinner size="inline" label="업로드 중" /> : '업로드'}
         </button>
       </div>
       {(uploadError || uploadResult) && (

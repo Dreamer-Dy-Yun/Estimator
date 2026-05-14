@@ -1,4 +1,5 @@
 import type { CandidateStashSummary } from '../../../api'
+import { LoadingSpinner } from '../../../components/LoadingSpinner'
 import { formatDateTimeMinute } from '../../../utils/date'
 import { DeleteButton } from '../../components/DeleteButton'
 import styles from '../../components/common.module.css'
@@ -83,9 +84,9 @@ export function CandidateStashList({
                 onClick={(event) => {
                   event.stopPropagation()
                   onDuplicate(stash)
-                }}
-              >
-                {duplicateBusyUuid === stash.uuid ? '복제 중' : '복제'}
+              }}
+            >
+                {duplicateBusyUuid === stash.uuid ? <LoadingSpinner size="inline" label="복제 중" /> : '복제'}
               </button>
               <DeleteButton aria-label={`${stash.name} 삭제`} title="삭제" onClick={() => onDelete(stash)} />
             </div>

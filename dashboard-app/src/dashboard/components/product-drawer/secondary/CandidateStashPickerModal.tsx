@@ -1,5 +1,6 @@
 import { createPortal } from 'react-dom'
 import { formatDateTimeMinute } from '../../../../utils/date'
+import { LoadingSpinner } from '../../../../components/LoadingSpinner'
 import commonStyles from '../../common.module.css'
 import { KO } from '../ko'
 import styles from './secondaryDrawer.module.css'
@@ -83,11 +84,13 @@ export function CandidateStashPickerModal({
               onClick={onCreate}
               disabled={loading}
             >
-              {KO.btnCreateCandidateConfirm}
+              {loading ? <LoadingSpinner size="inline" label="처리 중" /> : KO.btnCreateCandidateConfirm}
             </button>
           </div>
           <div className={styles.candidateList}>
-            {options.length === 0 ? (
+            {loading && options.length === 0 ? (
+              <LoadingSpinner label="후보군 목록을 불러오는 중" />
+            ) : options.length === 0 ? (
               <div className={styles.candidateEmptyState}>
                 <p className={styles.candidateEmptyTitle}>{KO.msgCandidateEmpty}</p>
                 <p className={styles.metaFilterActionHint}>
@@ -102,6 +105,7 @@ export function CandidateStashPickerModal({
                   className={`${styles.candidateListItem} ${
                     selectedUuid === row.uuid ? styles.candidateListItemActive : ''
                   }`}
+                  disabled={loading}
                   onClick={() => onSelect(row)}
                 >
                   <div className={styles.candidateListItemTop}>

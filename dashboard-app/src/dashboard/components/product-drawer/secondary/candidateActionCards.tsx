@@ -1,5 +1,6 @@
 import styles from './secondaryDrawer.module.css'
 import { KO } from '../ko'
+import { LoadingSpinner } from '../../../../components/LoadingSpinner'
 import type { SecondaryHelpId } from './secondaryDrawerTypes'
 import type { usePortalHelpPopover } from '../../usePortalHelpPopover'
 import { DeleteButton } from '../../DeleteButton'
@@ -49,7 +50,7 @@ export function CandidateStashOrderActionCard({
         onClick={() => void onOpenStashPicker()}
         disabled={loading}
       >
-        {KO.btnSelectCandidate}
+        {loading ? <LoadingSpinner size="inline" label={KO.btnSelectCandidate} /> : KO.btnSelectCandidate}
       </button>
       <span
         ref={portalHelp.setAnchor('confirmOrder')}
@@ -66,7 +67,7 @@ export function CandidateStashOrderActionCard({
           onBlur={portalHelp.scheduleClose}
           aria-describedby={portalHelp.activeId === 'confirmOrder' ? confirmOrderHelpId : undefined}
         >
-          {KO.btnConfirmOrder}
+          {loading ? <LoadingSpinner size="inline" label={KO.btnConfirmOrder} /> : KO.btnConfirmOrder}
         </button>
       </span>
     </>
@@ -127,7 +128,7 @@ export function InnerCandidateActionCard({
         onClick={() => void onSave()}
         disabled={loading}
       >
-        {saveLabel}
+        {loading ? <LoadingSpinner size="inline" label={saveLabel} /> : saveLabel}
       </button>
       <span className={styles.innerCandidateDeleteBtn}>
         <DeleteButton

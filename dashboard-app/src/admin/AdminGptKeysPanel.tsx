@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { createAdminGptKey, getAdminGptKeys } from '../api'
 import { useAppToast } from '../components/AppToastContext'
+import { LoadingSpinner } from '../components/LoadingSpinner'
 import type {
   AdminGptKeyPurpose,
   AdminGptKeySummary,
@@ -165,7 +166,7 @@ export function AdminGptKeysPanel() {
           />
         </label>
         <button className={styles.createButton} type="submit" disabled={isCreating}>
-          {isCreating ? '추가 중' : 'GPT 키 추가'}
+          {isCreating ? <LoadingSpinner size="inline" label="추가 중" /> : 'GPT 키 추가'}
         </button>
         {createErrorMessage ? <p className={styles.createError}>{createErrorMessage}</p> : null}
       </form>
@@ -178,7 +179,11 @@ export function AdminGptKeysPanel() {
         <span>상태</span>
       </div>
 
-      {isLoading ? <div className={styles.emptyState}>GPT 키 목록 로딩 중</div> : null}
+      {isLoading ? (
+        <div className={styles.emptyState}>
+          <LoadingSpinner label="GPT 키 목록 로딩 중" />
+        </div>
+      ) : null}
       {errorMessage ? <div className={styles.errorState}>{errorMessage}</div> : null}
       {!isLoading && !errorMessage ? (
         <div className={styles.userList}>

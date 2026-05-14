@@ -1,5 +1,6 @@
 import { useCallback, type ReactNode, type RefObject } from 'react'
 import { CartesianGrid, Scatter, ScatterChart, Tooltip, XAxis, YAxis } from 'recharts'
+import { LoadingSpinner } from '../../components/LoadingSpinner'
 import styles from './common.module.css'
 import { ChartCard } from './ChartCard'
 
@@ -36,6 +37,7 @@ type Props<TPoint extends AnalysisScatterGridPointBase> = {
   chartReady: boolean
   width: number
   height: number
+  loading?: boolean
   pointRadius: number
   activeCellKey: string | null
   onCellClick: (cellKey: string) => void
@@ -53,6 +55,7 @@ export function AnalysisScatterChartCard<TPoint extends AnalysisScatterGridPoint
   chartReady,
   width,
   height,
+  loading = false,
   pointRadius,
   activeCellKey,
   onCellClick,
@@ -108,7 +111,9 @@ export function AnalysisScatterChartCard<TPoint extends AnalysisScatterGridPoint
       )}
     >
       <div ref={chartBodyRef} className={styles.selfChartBody}>
-        {chartReady ? (
+        {loading ? (
+          <LoadingSpinner label="그래프 데이터를 불러오는 중" />
+        ) : chartReady ? (
           <ScatterChart
             width={width}
             height={height}
@@ -149,7 +154,9 @@ export function AnalysisScatterChartCard<TPoint extends AnalysisScatterGridPoint
             <Tooltip content={renderTooltip} />
             <Scatter fill={fill} shape={scatterShape} />
           </ScatterChart>
-        ) : null}
+        ) : (
+          <LoadingSpinner label="그래프 영역을 준비하는 중" />
+        )}
       </div>
     </ChartCard>
   )

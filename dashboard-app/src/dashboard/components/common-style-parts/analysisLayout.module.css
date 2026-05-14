@@ -14,6 +14,19 @@
   grid-template-columns: 1fr;
 }
 
+.analysisPanelLoading,
+.analysisListLoading {
+  display: grid;
+  min-height: 0;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  background: #ffffff;
+}
+
+.analysisListLoading {
+  height: 100%;
+}
+
 .kpi {
   background: #ffffff;
   border: 1px solid #e2e8f0;
@@ -93,6 +106,7 @@
 
 .selfChartBody {
   display: grid;
+  place-items: stretch;
   height: 100%;
   min-height: 0;
   min-width: 0;

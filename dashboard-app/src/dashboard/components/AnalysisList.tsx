@@ -11,6 +11,7 @@ type AnalysisListProps<T extends { id: string }> = {
   getRowId?: (row: T) => string
   onRowClick?: (row: T) => void
   onRowKeyDown?: (row: T, event: KeyboardEvent<HTMLTableRowElement>) => void
+  onOrderedRowIdsChange?: (rowIds: string[]) => void
   defaultSort?: SortState
   batchSize?: number
   wrapClassName?: string
@@ -23,6 +24,7 @@ export function AnalysisList<T extends { id: string }>({
   getRowId,
   onRowClick,
   onRowKeyDown,
+  onOrderedRowIdsChange,
   defaultSort,
   batchSize = 30,
   wrapClassName,
@@ -38,6 +40,7 @@ export function AnalysisList<T extends { id: string }>({
       getRowId={getRowId}
       onRowClick={onRowClick}
       onRowKeyDown={onRowKeyDown}
+      onOrderedRowIdsChange={onOrderedRowIdsChange}
       defaultSort={defaultSort}
       wrapClassName={analysisWrapClassName}
       infiniteScroll={{ enabled: true, batchSize }}

@@ -24,11 +24,15 @@ export function useSecondaryDailyTrend({
   const reqSeqRef = useRef(0)
   const [dailyTrendSeries, setDailyTrendSeries] = useState<SecondaryDailyTrendPoint[]>([])
   const [dailyTrendError, setDailyTrendError] = useState<ApiUnitErrorInfo | null>(null)
+  const [dailyTrendLoading, setDailyTrendLoading] = useState(true)
 
   useEffect(() => {
     let alive = true
     const reqSeq = reqSeqRef.current + 1
     reqSeqRef.current = reqSeq
+    queueMicrotask(() => {
+      if (alive && reqSeqRef.current === reqSeq) setDailyTrendLoading(true)
+    })
     void (async () => {
       try {
         const params = {
@@ -51,6 +55,8 @@ export function useSecondaryDailyTrend({
             err,
           ),
         )
+      } finally {
+        if (alive && reqSeqRef.current === reqSeq) setDailyTrendLoading(false)
       }
     })()
     return () => {
@@ -81,6 +87,7 @@ export function useSecondaryDailyTrend({
 
   return {
     dailyTrendSeries,
+    dailyTrendLoading,
     dailyTrendError,
     dailyPeriodShade,
     dailyForecastShade,

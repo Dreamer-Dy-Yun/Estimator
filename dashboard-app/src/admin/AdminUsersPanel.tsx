@@ -7,6 +7,7 @@ import {
 import type { AdminUserSummary, AuthRole, ResetAdminUserPasswordResult } from '../api'
 import { useAuth } from '../auth/AuthContext'
 import { useAppToast } from '../components/AppToastContext'
+import { LoadingSpinner } from '../components/LoadingSpinner'
 import { getErrorMessage, ROLE_OPTIONS } from './adminHelpers'
 import { AdminUserRow } from './AdminUserRow'
 import styles from './AdminPage.module.css'
@@ -202,7 +203,7 @@ export function AdminUsersPanel() {
             <span>활성</span>
           </label>
           <button className={styles.createButton} type="submit" disabled={isCreating}>
-            {isCreating ? '추가 중' : '사용자 추가'}
+            {isCreating ? <LoadingSpinner size="inline" label="추가 중" /> : '사용자 추가'}
           </button>
           {createErrorMessage ? <p className={styles.createError}>{createErrorMessage}</p> : null}
         </form>
@@ -218,7 +219,11 @@ export function AdminUsersPanel() {
           <span>작업</span>
         </div>
 
-        {isLoading ? <div className={styles.emptyState}>사용자 목록 로딩 중</div> : null}
+        {isLoading ? (
+          <div className={styles.emptyState}>
+            <LoadingSpinner label="사용자 목록 로딩 중" />
+          </div>
+        ) : null}
         {errorMessage ? <div className={styles.errorState}>{errorMessage}</div> : null}
         {!isLoading && !errorMessage ? (
           <div className={styles.userList}>

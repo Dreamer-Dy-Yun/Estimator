@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { dashboardApi, type ProductSalesInsight, type SecondaryCompetitorChannel } from '../../../../api'
 import { ApiUnitErrorBadge } from '../../../../components/ApiUnitErrorBadge'
+import { LoadingSpinner } from '../../../../components/LoadingSpinner'
 import type { ApiUnitErrorInfo } from '../../../../types'
 import styles from '../../common.module.css'
 import { makeApiErrorInfo } from '../apiErrorInfo'
@@ -95,7 +96,7 @@ export function ProductSalesMetricsContainer({
     return (
       <div className={`${styles.card} ${styles.drawerSalesMetricsCard}`}>
         <div className={styles.cardTitle}>판매 정보</div>
-        <p className={styles.drawerLoadingText}>판매 정보를 불러오는 중...</p>
+        <LoadingSpinner label="판매 정보를 불러오는 중" />
       </div>
     )
   }
