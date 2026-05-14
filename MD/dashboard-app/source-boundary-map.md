@@ -5,7 +5,7 @@
 | 작성 지시 | Yun Daeyoung |
 | 작성자 | Codex |
 | 작성일 | 2026-05-06 |
-| 최종 수정일 | 2026-05-14 |
+| 최종 수정일 | 2026-05-15 |
 | 상태 | 유지 문서 |
 | 적용 범위 | `dashboard-app`, 프론트엔드 소스, 관련 배포/문서 경계 |
 
@@ -53,6 +53,7 @@
 - 자사/경쟁사 분석의 격자 셀 선택, 현재 화면 기준 선택 유효성, 후보군 일괄 담기 체크박스 상태는 `dashboard/hooks/useAnalysisVisibleSelection.ts`가 소유한다. 페이지는 KPI/차트/목록 렌더와 API 호출 결과 연결만 맡고, 요청 생명주기와 stale 응답 차단은 `dashboard/hooks/useDashboardRequest.ts`를 사용한다. 필터·격자 변경 후 선택 상태를 effect로 억지 정리하지 않는다.
 - 산점도 격자화 mock 계산은 `api/mock/scatterGrid.ts`로 분리했다. 운영에서는 백엔드가 같은 책임을 가지며, 프론트는 응답 `cells`와 `meta`로 색상·표시 반지름만 계산한다.
 - 2026-05-14 정리에서 분석 페이지의 목록 컬럼 정의는 `SelfAnalysisList.tsx`/`CompetitorAnalysisList.tsx`, 산점도 tooltip 렌더는 `AnalysisScatterTooltips.tsx`로 분리했다. 페이지는 API 결과 연결, 필터/선택 상태 조립, KPI/차트/드로워 배치만 담당한다.
+- 자사/경쟁사 분석 목록의 `순위` 컬럼은 화면 행 번호나 seed rank가 아니라 현재 렌더링 대상 rows의 판매량 기준 표시 순위다. 자사는 `qty`, 경쟁사는 `competitorQty` 기준이며, 산점도 셀 선택처럼 백엔드 재호출 없이 rows가 줄어드는 경우도 `displayRank.ts`가 현재 rows 안에서 다시 계산한다.
 - 후보군 mock의 기간 기준 후보 요약, 배지 평가, 엑셀 다운로드 DTO 조립은 `candidateItemSummaryBuilder.ts`로 분리했다. `candidateMockApi.ts`는 후보군 소유자 필터링, mutation stub, API 응답 orchestration만 맡는다.
 - 2차 드로워 재고·발주 계산 mock은 `secondaryStockOrderCalcApi.ts`로 분리했다. `dashboardApi.ts`는 DashboardApi public mock 조립과 판매/드로워 조회 흐름을 맡고, 계산 세부식은 전용 파일이 소유한다.
 - 상품 drawer feature는 `dashboard/components/product-drawer`로 모았다. 루트 `ProductDrawer`는 overlay와 공유 상태만 조율하고, `ProductDrawerSecondaryPane`은 2차 패널의 로딩/오류/상세 렌더 분기를 소유한다. `primary`가 1차 드로워, `secondary`가 2차 드로워 내부 content를 소유한다.
@@ -242,7 +243,7 @@
 |------|------|
 | `AnalysisScatterChartCard.tsx` | 자사/경쟁사 분석에서 공통으로 쓰는 산점도 카드. 격자 cell 색, 선택 초기화 버튼, X/Y축 라벨, point 클릭 연결을 렌더링한다. 데이터 조회와 필터 상태는 페이지가 소유한다. |
 | `AnalysisScatterTooltips.tsx` | 자사/경쟁사 산점도 tooltip 렌더링. tooltip 텍스트/포맷/건수 강조 표현을 페이지 컨테이너에서 분리한다. |
-| `CompetitorAnalysisList.tsx` | 경쟁사 분석 목록의 컬럼 정의와 row 클릭/키보드 열기/체크박스 렌더링을 소유한다. 현재 드로워 상품 row는 `selectedSkuGroupKey`로 받아 공통 목록 포커스 경계에 전달하고, 현재 테이블 정렬 순서를 페이지에 보고한다. |
+| `CompetitorAnalysisList.tsx` | 경쟁사 분석 목록의 컬럼 정의와 row 클릭/키보드 열기/체크박스 렌더링을 소유한다. `순위`는 현재 rows의 `competitorQty` 기준 표시 순위로 계산한다. 현재 드로워 상품 row는 `selectedSkuGroupKey`로 받아 공통 목록 포커스 경계에 전달하고, 현재 테이블 정렬 순서를 페이지에 보고한다. |
 | `CompetitorFilterEndControls.tsx` | 경쟁사 분석 필터 우측의 `자사판매량이 존재하는 경우만 보기` 토글과 `선택한 물품을 후보군으로` 버튼을 소유한다. |
 | `CompetitorKpiGrid.tsx` | 경쟁사 분석 KPI 4개 카드 렌더링을 소유한다. KPI 값 계산은 페이지가 필터링된 row 기준으로 수행한다. |
 | `AnalysisList.tsx` | 판매 분석 목록 wrapper. `PaginatedTable`의 정렬/스크롤 구현을 감싸고, 현재 드로워 상품 row 식별자와 실제 정렬 row id 보고 콜백을 전달한다. |
@@ -257,7 +258,7 @@
 | `FilterListCombo.*` | 목록 기반 검색/선택 필터. 값이 `전체`인 필드는 전체 옵션 목록을 열어 보여준다 |
 | `KpiGrid.tsx` | KPI 카드 grid. 자사/경쟁사 분석 좌측 KPI stack의 compact card density와 숫자/단위 분리 렌더링은 공통 CSS가 소유한다 |
 | `PaginatedTable.tsx` | 정렬/페이지네이션 테이블. `activeRowId/getRowId` 계약을 통해 외부 선택 row를 포커스·스크롤·강조한다. `onOrderedRowIdsChange`로 현재 정렬이 적용된 전체 row id 순서를 보고해 드로워 상/하 이동과 화면 정렬 순서를 맞춘다. |
-| `SelfAnalysisList.tsx` | 자사 분석 목록의 컬럼 정의와 row 클릭/키보드 열기/체크박스 렌더링을 소유한다. 현재 드로워 상품 row는 `selectedSkuGroupKey`로 받아 공통 목록 포커스 경계에 전달하고, 현재 테이블 정렬 순서를 페이지에 보고한다. |
+| `SelfAnalysisList.tsx` | 자사 분석 목록의 컬럼 정의와 row 클릭/키보드 열기/체크박스 렌더링을 소유한다. `순위`는 현재 rows의 `qty` 기준 표시 순위로 계산한다. 현재 드로워 상품 row는 `selectedSkuGroupKey`로 받아 공통 목록 포커스 경계에 전달하고, 현재 테이블 정렬 순서를 페이지에 보고한다. |
 | `PortalHelpPopover.tsx`, `usePortalHelpPopover.ts`, `portalHelpPopoverPosition.ts` | help popover와 위치 계산 |
 | `common.module.css` | 대시보드 공용 CSS 진입점. 실제 스타일은 `components/common-style-parts/*`가 분석 layout, 추이 컨트롤, help/action, filter/period, bulk modal, period slider, table, drawer로 나눠 소유한다 |
 | `trend/` | 판매 트렌드 차트와 차트 range 보조 |
@@ -395,6 +396,7 @@ React나 API 구현에 의존하지 않는 순수 보조 함수만 둔다.
 | `analysisKpiWeighted.ts` | 분석 KPI 매출액 가중 계산. 하드닝 완료 모듈이며 상세 계약은 `module-hardening.md`를 따른다 |
 | `copyToClipboard.ts` | clipboard 복사 helper |
 | `date.ts` | 날짜 formatting/parsing |
+| `displayRank.ts` | 현재 화면 rows 안에서 특정 값 기준 표시 순위 map을 만든다. 자사/경쟁사 분석 목록의 판매량 순위 컬럼이 사용한다 |
 | `forecastMonthsStorage.ts` | forecast month localStorage 저장 |
 | `format.ts` | 숫자/비율/EA 표시 format. 하드닝 완료 모듈이며 상세 계약은 `module-hardening.md`를 따른다 |
 | `hashRank.ts` | hash 기반 rank 보조. 하드닝 완료 모듈이며 상세 계약은 `module-hardening.md`를 따른다 |

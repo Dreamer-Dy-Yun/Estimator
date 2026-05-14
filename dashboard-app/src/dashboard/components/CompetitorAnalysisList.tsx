@@ -1,4 +1,6 @@
+import { useMemo } from 'react'
 import type { CompetitorSalesRow } from '../../types'
+import { createDisplayRankMap } from '../../utils/displayRank'
 import { formatGroupedNumber } from '../../utils/format'
 import { AnalysisList } from './AnalysisList'
 
@@ -25,6 +27,11 @@ export function CompetitorAnalysisList({
   onSelectSkuGroupKey,
   onOrderedSkuGroupKeysChange,
 }: Props) {
+  const competitorQtyRankBySkuGroupKey = useMemo(
+    () => createDisplayRankMap(rows, getCompetitorRowId, (row) => row.competitorQty),
+    [rows],
+  )
+
   return (
     <AnalysisList<CompetitorSalesRow>
       columns={[
@@ -52,7 +59,13 @@ export function CompetitorAnalysisList({
           width: '42px',
           sortable: false,
         },
-        { key: 'rowIndex', header: '순위', cell: (_row, index) => index + 1, align: 'center', sortable: false },
+        {
+          key: 'competitorQtyRank',
+          header: '순위',
+          cell: (row) => competitorQtyRankBySkuGroupKey.get(row.skuGroupKey) ?? '-',
+          align: 'center',
+          sortValue: (row) => competitorQtyRankBySkuGroupKey.get(row.skuGroupKey) ?? Number.MAX_SAFE_INTEGER,
+        },
         { key: 'brand', header: '브랜드', cell: (row) => row.brand, width: '8.5%', sortValue: (row) => row.brand },
         { key: 'category', header: '카테고리', cell: (row) => row.category, sortValue: (row) => row.category },
         { key: 'code', header: '품번', cell: (row) => row.code, sortValue: (row) => row.code },
@@ -105,7 +118,7 @@ export function CompetitorAnalysisList({
       activeRowId={selectedSkuGroupKey}
       getRowId={getCompetitorRowId}
       onOrderedRowIdsChange={onOrderedSkuGroupKeysChange}
-      defaultSort={{ key: 'competitorQty', dir: 'asc' }}
+      defaultSort={{ key: 'competitorQtyRank', dir: 'asc' }}
       onRowClick={(row) => onSelectSkuGroupKey(row.skuGroupKey)}
       onRowKeyDown={(row, event) => {
         if (event.key !== 'ArrowLeft') return

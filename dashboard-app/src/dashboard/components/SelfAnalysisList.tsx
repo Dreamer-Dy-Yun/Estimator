@@ -1,4 +1,6 @@
+import { useMemo } from 'react'
 import type { SelfSalesRow } from '../../types'
+import { createDisplayRankMap } from '../../utils/displayRank'
 import { formatGroupedNumber, formatPercent } from '../../utils/format'
 import { AnalysisList } from './AnalysisList'
 
@@ -25,6 +27,11 @@ export function SelfAnalysisList({
   onSelectSkuGroupKey,
   onOrderedSkuGroupKeysChange,
 }: Props) {
+  const salesQtyRankBySkuGroupKey = useMemo(
+    () => createDisplayRankMap(rows, getSelfAnalysisRowId, (row) => row.qty),
+    [rows],
+  )
+
   return (
     <AnalysisList<SelfSalesRow>
       columns={[
@@ -52,7 +59,13 @@ export function SelfAnalysisList({
           width: '42px',
           sortable: false,
         },
-        { key: 'rowIndex', header: '순위', cell: (_row, index) => index + 1, align: 'center', sortable: false },
+        {
+          key: 'salesQtyRank',
+          header: '순위',
+          cell: (row) => salesQtyRankBySkuGroupKey.get(row.skuGroupKey) ?? '-',
+          align: 'center',
+          sortValue: (row) => salesQtyRankBySkuGroupKey.get(row.skuGroupKey) ?? Number.MAX_SAFE_INTEGER,
+        },
         { key: 'brand', header: '브랜드', cell: (row) => row.brand, width: '8.5%', sortValue: (row) => row.brand },
         { key: 'category', header: '카테고리', cell: (row) => row.category, sortValue: (row) => row.category },
         { key: 'code', header: '품번', cell: (row) => row.code, sortValue: (row) => row.code },
@@ -105,7 +118,7 @@ export function SelfAnalysisList({
       activeRowId={selectedSkuGroupKey}
       getRowId={getSelfAnalysisRowId}
       onOrderedRowIdsChange={onOrderedSkuGroupKeysChange}
-      defaultSort={{ key: 'qty', dir: 'asc' }}
+      defaultSort={{ key: 'salesQtyRank', dir: 'asc' }}
       onRowClick={(row) => onSelectSkuGroupKey(row.skuGroupKey)}
       onRowKeyDown={(row, event) => {
         if (event.key !== 'ArrowLeft') return
