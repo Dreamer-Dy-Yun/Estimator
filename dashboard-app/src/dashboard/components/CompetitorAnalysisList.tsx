@@ -46,7 +46,7 @@ export function CompetitorAnalysisList({
           width: '42px',
           sortable: false,
         },
-        { key: 'rank', header: '순위', cell: (row) => row.rank, align: 'center', sortValue: (row) => row.rank },
+        { key: 'rowIndex', header: '순위', cell: (_row, index) => index + 1, align: 'center', sortable: false },
         { key: 'brand', header: '브랜드', cell: (row) => row.brand, width: '8.5%', sortValue: (row) => row.brand },
         { key: 'category', header: '카테고리', cell: (row) => row.category, sortValue: (row) => row.category },
         { key: 'code', header: '품번', cell: (row) => row.code, sortValue: (row) => row.code },
@@ -96,7 +96,7 @@ export function CompetitorAnalysisList({
         },
       ]}
       rows={rows}
-      defaultSort={{ key: 'competitorQty', dir: 'desc' }}
+      defaultSort={{ key: 'competitorQty', dir: 'asc' }}
       onRowClick={(row) => onSelectSkuGroupKey(row.skuGroupKey)}
       onRowKeyDown={(row, event) => {
         if (event.key !== 'ArrowLeft') return

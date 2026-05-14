@@ -268,7 +268,7 @@ export const SelfPage = () => {
               width: '42px',
               sortable: false,
             },
-            { key: 'rank', header: '순위', cell: (r) => r.rank, align: 'center', sortValue: (r) => r.rank },
+            { key: 'rowIndex', header: '순위', cell: (_r, index) => index + 1, align: 'center', sortable: false },
             { key: 'brand', header: '브랜드', cell: (r) => r.brand, width: '8.5%', sortValue: (r) => r.brand },
             { key: 'category', header: '카테고리', cell: (r) => r.category, sortValue: (r) => r.category },
             { key: 'code', header: '품번', cell: (r) => r.code, sortValue: (r) => r.code },
@@ -282,7 +282,7 @@ export const SelfPage = () => {
             { key: 'op', header: '영업이익률', cell: (r) => formatPercent(r.opMarginRate), align: 'right', sortValue: (r) => r.opMarginRate },
             ]}
           rows={visibleRows}
-          defaultSort={{ key: 'qty', dir: 'desc' }}
+          defaultSort={{ key: 'qty', dir: 'asc' }}
           onRowClick={(row) => setSelectedSkuGroupKey(row.skuGroupKey)}
           onRowKeyDown={(row, event) => {
             if (event.key !== 'ArrowLeft') return

@@ -6,7 +6,7 @@ import styles from './common.module.css'
 type TableColumnBase<T> = {
   key: string
   header: ReactNode
-  cell: (row: T) => ReactNode
+  cell: (row: T, rowIndex: number) => ReactNode
   align?: 'left' | 'right' | 'center'
   width?: CSSProperties['width']
 }
@@ -142,7 +142,7 @@ export function PaginatedTable<T extends { id: string }>(props: PaginatedTablePr
             </tr>
           </thead>
           <tbody>
-            {pageRows.map((row) => (
+            {pageRows.map((row, rowIndex) => (
               <tr
                 key={row.id}
                 className={onRowClick || onRowKeyDown ? styles.rowClickable : undefined}
@@ -151,7 +151,9 @@ export function PaginatedTable<T extends { id: string }>(props: PaginatedTablePr
                 tabIndex={onRowClick || onRowKeyDown ? 0 : undefined}
               >
                 {columns.map((c) => (
-                  <td key={c.key} style={{ textAlign: c.align ?? 'left', width: c.width }}>{c.cell(row)}</td>
+                  <td key={c.key} style={{ textAlign: c.align ?? 'left', width: c.width }}>
+                    {c.cell(row, startIndex + rowIndex)}
+                  </td>
                 ))}
               </tr>
             ))}
