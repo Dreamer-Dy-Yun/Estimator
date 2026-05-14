@@ -25,6 +25,7 @@ body.capture-mode {
 body.capture-mode .slide { display: none; }
 body.capture-mode .slide.is-capture { display: block; }
 body:not(.capture-mode) .cover { display: none; }
+.screen-slide .topbar, .screen-slide .brand, .screen-slide .manual-label,
 .screen-slide .title, .screen-slide .subtitle { display: none; }
 
 h1, h2, h3, p {
@@ -171,10 +172,10 @@ p {
 }
 
 .full-shot {
-  left: 80px;
-  top: 80px;
-  width: 1120px;
-  height: 630px;
+  left: 0; top: 0;
+  width: 1280px;
+  height: 720px;
+  border: 0; border-radius: 0;
 }
 
 .half-shot {
@@ -186,22 +187,22 @@ p {
 
 .label-grid {
   position: absolute; z-index: 3;
-  left: 96px;
-  top: 594px;
+  left: 24px;
+  top: 602px;
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 10px;
-  width: 1088px;
+  gap: 8px;
+  width: 1232px;
 }
 
 .label {
-  min-height: 86px;
+  min-height: 94px;
   border: 1px solid #d6e4f0;
   border-radius: 14px;
-  background: rgb(255 255 255 / 0.94);
-  padding: 12px 14px;
+  background: rgb(255 255 255 / 0.92);
+  padding: 11px 14px;
   color: #334155;
-  font-size: 16px;
+  font-size: 15px;
   line-height: 1.35;
 }
 
@@ -229,10 +230,10 @@ p {
 .c-green { background: #16a34a; }
 .c-amber { background: #f59e0b; }
 .c-red { background: #ef4444; }
-.p-tab { left: 148px; top: 104px; }
-.p-filter { left: 189px; top: 187px; }
-.p-kpi { left: 187px; top: 337px; }
-.p-table { left: 721px; top: 260px; }
+.p-tab { left: 78px; top: 28px; }
+.p-filter { left: 125px; top: 122px; }
+.p-kpi { left: 122px; top: 294px; }
+.p-table { left: 733px; top: 206px; }
 
 .cards {
   position: absolute;
