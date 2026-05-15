@@ -1,6 +1,7 @@
 import styles from './secondaryDrawer.module.css'
 import { KO } from '../ko'
 import { LoadingSpinner } from '../../../../components/LoadingSpinner'
+import type { OrderSnapshotDocumentV1 } from '../../../../snapshot/orderSnapshotTypes'
 import type { SecondaryHelpId } from './secondaryDrawerTypes'
 import type { usePortalHelpPopover } from '../../usePortalHelpPopover'
 import { DeleteButton } from '../../DeleteButton'
@@ -10,6 +11,11 @@ export type CandidateItemPanelContext = {
   stashName: string
   stashNote: string | null
   itemUuid: string
+  isDetailConfirmed: boolean
+  onDraftChange?: (snapshot: OrderSnapshotDocumentV1) => void
+  onResetDraft?: () => void
+  onConfirmed?: (snapshot: OrderSnapshotDocumentV1) => void
+  onUnconfirmed?: () => void
   onSaved?: () => void
   onRequestDeleteItem: () => void
 }
@@ -77,51 +83,20 @@ export function CandidateStashOrderActionCard({
 type InnerCandidateActionCardProps = {
   context: CandidateItemPanelContext
   loading: boolean
-  saveLabel: string
-  onSave: () => void
-}
-
-type SnapshotInfoToggleCardProps = {
-  hasSnapshot: boolean
-  loading: boolean
-  showSnapshotInfo: boolean
-  onShowSnapshotInfoChange: (next: boolean) => void
-}
-
-export function SnapshotInfoToggleCard({
-  hasSnapshot,
-  loading,
-  showSnapshotInfo,
-  onShowSnapshotInfoChange,
-}: SnapshotInfoToggleCardProps) {
-  const disabled = !hasSnapshot || loading
-
-  return (
-    <button
-      type="button"
-      className={`${styles.snapshotInfoToggle} ${
-        showSnapshotInfo ? styles.snapshotInfoToggleOn : ''
-      }`}
-      role="switch"
-      aria-checked={showSnapshotInfo}
-      disabled={disabled}
-      onClick={() => onShowSnapshotInfoChange(!showSnapshotInfo)}
-    >
-      <span className={styles.snapshotInfoSwitchTrack} aria-hidden="true">
-        <span className={styles.snapshotInfoSwitchThumb} />
-      </span>
-      <span className={styles.snapshotInfoToggleText}>{KO.labelSnapshotInfoToggle}</span>
-    </button>
-  )
+  confirmed: boolean
+  onReset: () => void
+  onToggleConfirm: () => void
 }
 
 /** 이너 후보 상세 드로어: 현재 후보군 + 변경 저장 + 삭제 */
 export function InnerCandidateActionCard({
   context,
   loading,
-  saveLabel,
-  onSave,
+  confirmed,
+  onReset,
+  onToggleConfirm,
 }: InnerCandidateActionCardProps) {
+  const confirmLabel = confirmed ? KO.btnUnconfirmCandidateDetail : KO.btnConfirmCandidateDetail
   return (
     <>
       <div className={styles.metaFilterSelectedInfo}>
@@ -132,11 +107,19 @@ export function InnerCandidateActionCard({
       </div>
       <button
         type="button"
-        className={`${styles.btn} ${styles.innerCandidateActionBtn} ${styles.btnViewportAdaptive}`}
-        onClick={() => void onSave()}
+        className={`${styles.btn} ${styles.btnSecondary} ${styles.innerCandidateActionBtn} ${styles.btnViewportAdaptive}`}
+        onClick={() => void onReset()}
         disabled={loading}
       >
-        {loading ? <LoadingSpinner size="inline" label={saveLabel} /> : saveLabel}
+        {KO.btnResetCandidateDraft}
+      </button>
+      <button
+        type="button"
+        className={`${styles.btn} ${styles.innerCandidateActionBtn} ${confirmed ? styles.innerCandidateUnconfirmBtn : ''} ${styles.btnViewportAdaptive}`}
+        onClick={() => void onToggleConfirm()}
+        disabled={loading}
+      >
+        {loading ? <LoadingSpinner size="inline" label={confirmLabel} /> : confirmLabel}
       </button>
       <span className={styles.innerCandidateDeleteBtn}>
         <DeleteButton

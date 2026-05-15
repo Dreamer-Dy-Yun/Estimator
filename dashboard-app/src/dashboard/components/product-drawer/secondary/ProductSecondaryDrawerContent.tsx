@@ -1,8 +1,9 @@
 ﻿import { BlockMath } from 'react-katex'
-import type { Dispatch, SetStateAction } from 'react'
+import { useId, useState } from 'react'
 import type { SecondaryCompetitorChannel } from '../../../../api'
 import { ComponentErrorBoundary } from '../../../../components/ComponentErrorBoundary'
 import type { ApiUnitErrorInfo, ProductPrimarySummary } from '../../../../types'
+import { ConfirmModal } from '../../ConfirmModal'
 import { PortalHelpPopoverLayer } from '../../PortalHelpPopover'
 import commonStyles from '../../common.module.css'
 import { usePortalHelpPopover } from '../../usePortalHelpPopover'
@@ -34,8 +35,7 @@ type Props = {
   channel: SecondaryCompetitorChannel
   candidateItemContext: CandidateItemPanelContext | null
   hasSavedSnapshot: boolean
-  showSnapshotInfo: boolean
-  onShowSnapshotInfoChange: Dispatch<SetStateAction<boolean>>
+  onResetToLive: () => void
   model: ReturnType<typeof useSecondaryForecastModel>
   aiComment: string
   aiCommentLoading: boolean
@@ -82,8 +82,7 @@ export function ProductSecondaryDrawerContent({
   channel,
   candidateItemContext,
   hasSavedSnapshot,
-  showSnapshotInfo,
-  onShowSnapshotInfoChange,
+  onResetToLive,
   model,
   aiComment,
   aiCommentLoading,
@@ -112,26 +111,24 @@ export function ProductSecondaryDrawerContent({
     forecastCalcError,
     forecastCalcLoading,
     forecastInputs,
-    forecastDerived,
     sizeRows,
     manualConfirmDerived,
     stockDisplay,
-    snapshotConfirmedTotals,
     dailyTrend,
     dailyTrendSizeOptions,
     candidateActions,
     handleConfirmQtyChange,
   } = model
-  const snapshotInfoMode = hasSavedSnapshot && showSnapshotInfo
+  const [unconfirmOpen, setUnconfirmOpen] = useState(false)
+  const unconfirmDialogTitleId = useId()
   const recommendedQtyTotal = sizeRows.reduce((acc, r) => acc + Math.max(0, Math.round(r.recommendedQty)), 0)
   const confirmedQtyTotal = sizeRows.reduce((acc, r) => acc + Math.max(0, Math.round(r.confirmQty)), 0)
   const perUnitFee = Math.round((unitPriceInput * expectedFeeRatePct) / 100)
   const perUnitOpMargin = unitPriceInput - unitCostInput - perUnitFee
-  const forecastExpectedSales = snapshotInfoMode ? forecastDerived.expectedSalesAmount : recommendedQtyTotal * unitPriceInput
-  const forecastOpProfit = snapshotInfoMode ? forecastDerived.expectedOpProfit : recommendedQtyTotal * perUnitOpMargin
-  const confirmedExpectedSales = snapshotConfirmedTotals?.expectedSalesAmount ?? confirmedQtyTotal * unitPriceInput
-  const confirmedOpProfit = snapshotConfirmedTotals?.expectedOpProfit ?? confirmedQtyTotal * perUnitOpMargin
-  const forecastOpProfitRatePct = snapshotInfoMode && forecastExpectedSales > 0 ? (forecastOpProfit / forecastExpectedSales) * 100 : undefined
+  const forecastExpectedSales = recommendedQtyTotal * unitPriceInput
+  const forecastOpProfit = recommendedQtyTotal * perUnitOpMargin
+  const confirmedExpectedSales = confirmedQtyTotal * unitPriceInput
+  const confirmedOpProfit = confirmedQtyTotal * perUnitOpMargin
   const aiCommentCard = (
     <ComponentErrorBoundary page={pageName} unit="AiCommentCard">
       <AiCommentCard comment={aiComment} loading={aiCommentLoading} error={aiCommentError} />
@@ -176,9 +173,9 @@ export function ProductSecondaryDrawerContent({
           <SecondaryDrawerActionArea
             candidateItemContext={candidateItemContext}
             hasSavedSnapshot={hasSavedSnapshot}
-            showSnapshotInfo={showSnapshotInfo}
-            onShowSnapshotInfoChange={onShowSnapshotInfoChange}
             candidateActions={candidateActions}
+            onResetToLive={onResetToLive}
+            onRequestUnconfirm={() => setUnconfirmOpen(true)}
             portalHelp={portalHelp}
             confirmOrderHelpId={helpIds.confirmOrder}
           />
@@ -193,13 +190,11 @@ export function ProductSecondaryDrawerContent({
               error: salesInsightError ?? forecastCalcError,
               computed: {
                 recommendedOrderQtyTotal: recommendedQtyTotal,
-                confirmedOrderQtyTotal: snapshotConfirmedTotals?.orderQty ?? confirmedQtyTotal,
+                confirmedOrderQtyTotal: confirmedQtyTotal,
                 forecastExpectedSales,
                 forecastOpProfit,
                 confirmedExpectedSales,
                 confirmedOpProfit,
-                forecastOpProfitRatePct,
-                confirmedOpProfitRatePct: snapshotConfirmedTotals?.expectedOpProfitRatePct,
               },
             }}
             orderSettings={{
@@ -263,6 +258,22 @@ export function ProductSecondaryDrawerContent({
           </>
         )}
       </PortalHelpPopoverLayer>
+      <ConfirmModal
+        open={unconfirmOpen}
+        busy={candidateActions.loading}
+        title="상세확정 해제"
+        message="저장된 2차 드로워 스냅샷을 삭제하고 상세미확정 상태로 되돌립니다. 진행하면 현재 DB 스냅샷은 null로 저장됩니다."
+        confirmText="확정 해제"
+        confirmingText="해제 중"
+        dialogTitleId={unconfirmDialogTitleId}
+        keepOpenAttr
+        onCancel={() => setUnconfirmOpen(false)}
+        onConfirm={async () => {
+          await candidateActions.unconfirmCandidateItem()
+          onResetToLive()
+          setUnconfirmOpen(false)
+        }}
+      />
       {candidateActions.listOpen && (
         <CandidateStashPickerModal
           options={candidateActions.stashes}

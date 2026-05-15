@@ -13,7 +13,6 @@ import type { CandidateItemPanelContext } from './candidateActionCards'
 import { useSecondaryAiComment } from './hooks/useSecondaryAiComment'
 import { useSecondaryForecastModel } from './hooks/useSecondaryForecastModel'
 import { ProductSecondaryDrawerContent } from './ProductSecondaryDrawerContent'
-import { buildSecondarySnapshotView } from './secondarySnapshotView'
 
 export type { CandidateItemPanelContext }
 
@@ -88,28 +87,30 @@ export function ProductSecondaryDrawer({
   const [selfWeightPct, setSelfWeightPct] = useState(50)
   /** 사용자가 직접 덮어쓴 확정 수량만. live/snapshot baseline은 SecondaryOrderDraft가 정한다. */
   const [confirmBySize, setConfirmBySize] = useState<Record<string, number>>({})
-  const [showSnapshotInfo, setShowSnapshotInfo] = useState(false)
+  const [snapshotConfirmBaselineActive, setSnapshotConfirmBaselineActive] = useState(false)
+  const [appliedPrefillKey, setAppliedPrefillKey] = useState<string | null>(null)
 
   const minOrderDate = formatIsoDateLocal(new Date())
-  const hasSavedSnapshot = candidateItemContext != null && prefillFromSnapshot != null
-  const snapshotInfoMode = hasSavedSnapshot && showSnapshotInfo
-  const viewPeriodStart = snapshotInfoMode ? prefillFromSnapshot!.context.periodStart : periodStart
-  const viewPeriodEnd = snapshotInfoMode ? prefillFromSnapshot!.context.periodEnd : periodEnd
-  const snapshotView = useMemo(
-    () => buildSecondarySnapshotView(prefillFromSnapshot, snapshotInfoMode),
-    [prefillFromSnapshot, snapshotInfoMode],
+  const hasSavedSnapshot = Boolean(candidateItemContext?.isDetailConfirmed)
+  const viewPeriodStart = periodStart
+  const viewPeriodEnd = periodEnd
+  const prefillKey = useMemo(
+    () => (prefillFromSnapshot == null
+      ? null
+      : [
+          candidateItemContext?.itemUuid ?? primary.skuGroupKey,
+          prefillFromSnapshot.savedAt,
+          prefillFromSnapshot.context.periodStart,
+          prefillFromSnapshot.context.periodEnd,
+        ].join('|')),
+    [candidateItemContext?.itemUuid, prefillFromSnapshot, primary.skuGroupKey],
   )
-
-  useEffect(() => {
-    if (hasSavedSnapshot) return
-    let alive = true
-    queueMicrotask(() => {
-      if (alive) setShowSnapshotInfo(false)
-    })
-    return () => {
-      alive = false
-    }
-  }, [hasSavedSnapshot, primary.skuGroupKey])
+  const snapshotConfirmBySize = useMemo(
+    () => (prefillFromSnapshot == null
+      ? {}
+      : Object.fromEntries(prefillFromSnapshot.drawer2.sizeRows.map((row) => [row.size, row.confirmQty]))),
+    [prefillFromSnapshot],
+  )
 
   const channel = useMemo<SecondaryCompetitorChannel>(
     () => competitorChannels.find((ch) => ch.id === channelId)!,
@@ -142,12 +143,26 @@ export function ProductSecondaryDrawer({
   )
 
   useEffect(() => {
-    if (prefillFromSnapshot == null) return
-    const d2 = prefillFromSnapshot.drawer2
-    const si = d2.stockInputs
     let alive = true
     queueMicrotask(() => {
       if (!alive) return
+      if (prefillFromSnapshot == null) {
+        const nextStart = defaultLeadTime.start < minOrderDate ? minOrderDate : defaultLeadTime.start
+        const nextEnd = defaultLeadTime.end < nextStart ? nextStart : defaultLeadTime.end
+        setDailyMeanClient(null)
+        setLeadTimeStartDate(nextStart)
+        setLeadTimeEndDate(nextEnd)
+        setBufferStock(0)
+        setSelfWeightPct(50)
+        setAiPrompt('')
+        setAiComment('')
+        setConfirmBySize({})
+        setSnapshotConfirmBaselineActive(false)
+        setAppliedPrefillKey(null)
+        return
+      }
+      const d2 = prefillFromSnapshot.drawer2
+      const si = d2.stockInputs
       onChannelChange(d2.competitorChannelId)
       setBufferStock(d2.bufferStock)
       setSelfWeightPct(d2.selfWeightPct)
@@ -156,6 +171,9 @@ export function ProductSecondaryDrawer({
       setLeadTimeStartDate(si.leadTimeStartDate)
       setLeadTimeEndDate(si.leadTimeEndDate)
       setDailyMeanClient(si.dailyMean)
+      setConfirmBySize({})
+      setSnapshotConfirmBaselineActive(true)
+      setAppliedPrefillKey(prefillKey)
       if (d2.orderUnitInputs != null) {
         setUnitCostInput(d2.orderUnitInputs.unitCost)
         setUnitPriceInput(d2.orderUnitInputs.unitPrice)
@@ -165,15 +183,19 @@ export function ProductSecondaryDrawer({
     return () => {
       alive = false
     }
-  }, [prefillFromSnapshot, primary.skuGroupKey, onChannelChange])
+  }, [
+    defaultLeadTime.end,
+    defaultLeadTime.start,
+    minOrderDate,
+    onChannelChange,
+    prefillFromSnapshot,
+    prefillKey,
+    primary.skuGroupKey,
+  ])
 
   const viewChannel = useMemo<SecondaryCompetitorChannel>(() => {
-    if (!snapshotInfoMode || prefillFromSnapshot == null) return channel
-    return {
-      id: prefillFromSnapshot.drawer2.competitorChannelId,
-      label: prefillFromSnapshot.drawer2.competitorChannelLabel,
-    }
-  }, [channel, prefillFromSnapshot, snapshotInfoMode])
+    return channel
+  }, [channel])
 
   const aiCommentParams = useMemo(() => ({
     skuGroupKey: primary.skuGroupKey,
@@ -195,7 +217,7 @@ export function ProductSecondaryDrawer({
     setAiComment(result.llmAnswer)
   }, [])
   const { aiCommentLoading, aiCommentError } = useSecondaryAiComment({
-    enabled: !snapshotInfoMode,
+    enabled: candidateItemContext == null || prefillFromSnapshot == null,
     pageName,
     params: aiCommentParams,
     onLoaded: handleAiCommentLoaded,
@@ -213,7 +235,8 @@ export function ProductSecondaryDrawer({
     channel: viewChannel,
     viewPeriodStart,
     viewPeriodEnd,
-    snapshotInfoMode,
+    snapshotConfirmBySize,
+    useSnapshotConfirmBaseline: snapshotConfirmBaselineActive,
     dailyMeanClient,
     setDailyMeanClient,
     leadTimeStartDate,
@@ -235,8 +258,10 @@ export function ProductSecondaryDrawer({
     showToast,
   })
   const { selfCol } = model
+  const buildCurrentSnapshot = model.buildSnapshot
 
   useEffect(() => {
+    if (prefillFromSnapshot != null) return
     let alive = true
     queueMicrotask(() => {
       if (!alive) return
@@ -247,7 +272,7 @@ export function ProductSecondaryDrawer({
     return () => {
       alive = false
     }
-  }, [primary.skuGroupKey, selfCol.avgCost, selfCol.avgPrice, selfCol.feeRatePct])
+  }, [prefillFromSnapshot, primary.skuGroupKey, selfCol.avgCost, selfCol.avgPrice, selfCol.feeRatePct])
   const handleCurrentOrderDateChange = (next: string) => {
     const v = next < minOrderDate ? minOrderDate : next
     setLeadTimeStartDate(v)
@@ -258,15 +283,51 @@ export function ProductSecondaryDrawer({
     if (v < leadTimeStartDate) v = leadTimeStartDate
     setLeadTimeEndDate(v)
   }
-  const viewUnitInputs = snapshotView?.orderUnitInputs
-  const viewLeadTimeStartDate = snapshotView?.stockInputs.leadTimeStartDate ?? leadTimeStartDate
-  const viewLeadTimeEndDate = snapshotView?.stockInputs.leadTimeEndDate ?? leadTimeEndDate
-  const viewBufferStock = snapshotView?.bufferStock ?? bufferStock
-  const viewUnitCostInput = viewUnitInputs?.unitCost ?? unitCostInput
-  const viewUnitPriceInput = viewUnitInputs?.unitPrice ?? unitPriceInput
-  const viewExpectedFeeRatePct = viewUnitInputs?.expectedFeeRatePct ?? expectedFeeRatePct
-  const viewSelfWeightPct = snapshotView?.selfWeightPct ?? selfWeightPct
-  const viewAiComment = snapshotView?.aiComment ?? aiComment
+
+  const handleResetToLive = useCallback(() => {
+    const nextStart = defaultLeadTime.start < minOrderDate ? minOrderDate : defaultLeadTime.start
+    const nextEnd = defaultLeadTime.end < nextStart ? nextStart : defaultLeadTime.end
+    setDailyMeanClient(null)
+    setLeadTimeStartDate(nextStart)
+    setLeadTimeEndDate(nextEnd)
+    setBufferStock(0)
+    setUnitCostInput(Math.max(0, Math.round(selfCol.avgCost ?? 0)))
+    setUnitPriceInput(Math.max(0, Math.round(selfCol.avgPrice)))
+    setExpectedFeeRatePct(Math.max(0, Math.round((selfCol.feeRatePct ?? 0) * 10) / 10))
+    setAiPrompt('')
+    setAiComment('')
+    setSelfWeightPct(50)
+    setConfirmBySize({})
+    setSnapshotConfirmBaselineActive(false)
+    setAppliedPrefillKey(null)
+    candidateItemContext?.onResetDraft?.()
+  }, [
+    candidateItemContext,
+    defaultLeadTime.end,
+    defaultLeadTime.start,
+    minOrderDate,
+    selfCol.avgCost,
+    selfCol.avgPrice,
+    selfCol.feeRatePct,
+  ])
+
+  useEffect(() => {
+    if (candidateItemContext == null) return
+    if (prefillKey != null && appliedPrefillKey !== prefillKey) return
+    let alive = true
+    queueMicrotask(() => {
+      if (!alive) return
+      candidateItemContext.onDraftChange?.(buildCurrentSnapshot())
+    })
+    return () => {
+      alive = false
+    }
+  }, [
+    appliedPrefillKey,
+    candidateItemContext,
+    buildCurrentSnapshot,
+    prefillKey,
+  ])
 
   return (
     <ProductSecondaryDrawerContent
@@ -275,21 +336,20 @@ export function ProductSecondaryDrawer({
       channel={viewChannel}
       candidateItemContext={candidateItemContext}
       hasSavedSnapshot={hasSavedSnapshot}
-      showSnapshotInfo={showSnapshotInfo}
-      onShowSnapshotInfoChange={setShowSnapshotInfo}
+      onResetToLive={handleResetToLive}
       model={model}
-      aiComment={viewAiComment}
-      aiCommentLoading={snapshotInfoMode ? false : aiCommentLoading}
-      aiCommentError={snapshotInfoMode ? null : aiCommentError}
-      selfWeightPct={viewSelfWeightPct}
+      aiComment={aiComment}
+      aiCommentLoading={aiCommentLoading}
+      aiCommentError={aiCommentError}
+      selfWeightPct={selfWeightPct}
       onSelfWeightPctChange={setSelfWeightPct}
       minOrderDate={minOrderDate}
-      leadTimeStartDate={viewLeadTimeStartDate}
-      leadTimeEndDate={viewLeadTimeEndDate}
-      bufferStock={viewBufferStock}
-      unitCostInput={viewUnitCostInput}
-      unitPriceInput={viewUnitPriceInput}
-      expectedFeeRatePct={viewExpectedFeeRatePct}
+      leadTimeStartDate={leadTimeStartDate}
+      leadTimeEndDate={leadTimeEndDate}
+      bufferStock={bufferStock}
+      unitCostInput={unitCostInput}
+      unitPriceInput={unitPriceInput}
+      expectedFeeRatePct={expectedFeeRatePct}
       onCurrentOrderDateChange={handleCurrentOrderDateChange}
       onNextOrderDateChange={handleNextOrderDateChange}
       onBufferStockChange={setBufferStock}

@@ -105,22 +105,42 @@ export function useSecondaryCandidateActions({
     }
   }, [buildSnapshot, selectedCandidate, showToast, skuGroupKey])
 
-  const saveCandidateItemChanges = useCallback(async () => {
+  const confirmCandidateItem = useCallback(async () => {
+    if (candidateItemContext == null) return
+    const snapshot = buildSnapshot()
+    setLoading(true)
+    try {
+      await dashboardApi.updateCandidateItem({
+        itemUuid: candidateItemContext.itemUuid,
+        details: snapshot,
+        isLatestLlmComment: false,
+      })
+      if (!mountedRef.current) return
+      candidateItemContext.onConfirmed?.(snapshot)
+      candidateItemContext.onSaved?.()
+      showToast(hasSavedSnapshot ? '상세확정 내용을 갱신했습니다.' : '상세확정했습니다.')
+    } finally {
+      if (mountedRef.current) setLoading(false)
+    }
+  }, [buildSnapshot, candidateItemContext, hasSavedSnapshot, showToast])
+
+  const unconfirmCandidateItem = useCallback(async () => {
     if (candidateItemContext == null) return
     setLoading(true)
     try {
       await dashboardApi.updateCandidateItem({
         itemUuid: candidateItemContext.itemUuid,
-        details: buildSnapshot(),
+        details: null,
         isLatestLlmComment: false,
       })
       if (!mountedRef.current) return
+      candidateItemContext.onUnconfirmed?.()
       candidateItemContext.onSaved?.()
-      showToast(hasSavedSnapshot ? '후보 상세 아이템을 수정했습니다.' : '후보 상세 아이템을 저장했습니다.')
+      showToast('상세확정을 해제했습니다.')
     } finally {
       if (mountedRef.current) setLoading(false)
     }
-  }, [buildSnapshot, candidateItemContext, hasSavedSnapshot, showToast])
+  }, [candidateItemContext, showToast])
 
   const createCandidate = useCallback(async () => {
     setLoading(true)
@@ -160,7 +180,8 @@ export function useSecondaryCandidateActions({
     confirmOrder,
     refresh,
     openPicker,
-    saveCandidateItemChanges,
+    confirmCandidateItem,
+    unconfirmCandidateItem,
     selectCandidate,
   }
 }

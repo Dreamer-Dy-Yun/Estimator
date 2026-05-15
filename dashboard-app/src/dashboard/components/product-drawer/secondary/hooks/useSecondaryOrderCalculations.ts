@@ -28,7 +28,7 @@ type Args = {
   bufferStock: number
   confirmBySize: Record<string, number>
   snapshotConfirmBySize: Record<string, number>
-  snapshotInfoMode: boolean
+  useSnapshotConfirmBaseline: boolean
 }
 
 export function useSecondaryOrderCalculations({
@@ -50,7 +50,7 @@ export function useSecondaryOrderCalculations({
   bufferStock,
   confirmBySize,
   snapshotConfirmBySize,
-  snapshotInfoMode,
+  useSnapshotConfirmBaseline,
 }: Args) {
   const monthlySalesTrend = useMemo(() => primary.monthlySalesTrend ?? [], [primary.monthlySalesTrend])
   const clientStock = useMemo(
@@ -127,11 +127,11 @@ export function useSecondaryOrderCalculations({
   ])
   const orderDraft = useMemo(
     () => new SecondaryOrderDraft({
-      mode: snapshotInfoMode ? 'snapshot' : 'live',
+      mode: useSnapshotConfirmBaseline ? 'snapshot' : 'live',
       manualConfirmBySize: confirmBySize,
       snapshotConfirmBySize,
     }),
-    [confirmBySize, snapshotConfirmBySize, snapshotInfoMode],
+    [confirmBySize, snapshotConfirmBySize, useSnapshotConfirmBaseline],
   )
   const sizeAgg = useMemo(() => buildSecondarySizeShares(primary, secondary, selfWeightPct), [primary, secondary, selfWeightPct])
   const sizeRows = useMemo(() => {

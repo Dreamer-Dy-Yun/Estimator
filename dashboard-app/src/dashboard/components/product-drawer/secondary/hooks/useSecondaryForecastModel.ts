@@ -7,7 +7,6 @@ import { normalizeMonthKey } from '../../../trend/trendRangeUtils'
 import type { CandidateItemPanelContext } from '../candidateActionCards'
 import { SecondaryOrderDraft } from '../model/SecondaryOrderDraft'
 import { buildSecondaryOrderSnapshot } from '../secondarySnapshot'
-import { buildSecondarySnapshotView } from '../secondarySnapshotView'
 import { useSecondaryCandidateActions } from './useSecondaryCandidateActions'
 import { useSecondaryDrawerRequests } from './useSecondaryDrawerRequests'
 import { useSecondaryOrderCalculations } from './useSecondaryOrderCalculations'
@@ -24,7 +23,8 @@ type Args = {
   channel: SecondaryCompetitorChannel
   viewPeriodStart: string
   viewPeriodEnd: string
-  snapshotInfoMode: boolean
+  snapshotConfirmBySize: Record<string, number>
+  useSnapshotConfirmBaseline: boolean
   dailyMeanClient: number | null
   setDailyMeanClient: (value: number | null) => void
   leadTimeStartDate: string
@@ -59,7 +59,8 @@ export function useSecondaryForecastModel(args: Args) {
     channel,
     viewPeriodStart,
     viewPeriodEnd,
-    snapshotInfoMode,
+    snapshotConfirmBySize,
+    useSnapshotConfirmBaseline,
     dailyMeanClient,
     setDailyMeanClient,
     leadTimeStartDate,
@@ -110,10 +111,6 @@ export function useSecondaryForecastModel(args: Args) {
     manualSafetyStock,
     dailyMeanClient,
   })
-  const snapshotConfirmBySize = useMemo((): Record<string, number> => {
-    if (prefillFromSnapshot == null) return {}
-    return Object.fromEntries(prefillFromSnapshot.drawer2.sizeRows.map((row) => [row.size, row.confirmQty]))
-  }, [prefillFromSnapshot])
   const stockDisplayKey = useMemo(() => {
     const d = requests.forecastCalc?.display
     if (!d) return ''
@@ -128,6 +125,7 @@ export function useSecondaryForecastModel(args: Args) {
   }, [requests.forecastCalc])
 
   useEffect(() => {
+    if (useSnapshotConfirmBaseline) return
     let alive = true
     queueMicrotask(() => {
       if (alive) setConfirmBySize({})
@@ -135,10 +133,10 @@ export function useSecondaryForecastModel(args: Args) {
     return () => {
       alive = false
     }
-  }, [primary.skuGroupKey, prefillFromSnapshot, setConfirmBySize])
+  }, [primary.skuGroupKey, prefillFromSnapshot, setConfirmBySize, useSnapshotConfirmBaseline])
 
   useEffect(() => {
-    if (snapshotInfoMode) return
+    if (useSnapshotConfirmBaseline) return
     let alive = true
     queueMicrotask(() => {
       if (alive) setConfirmBySize({})
@@ -147,7 +145,7 @@ export function useSecondaryForecastModel(args: Args) {
       alive = false
     }
   }, [
-    snapshotInfoMode,
+    useSnapshotConfirmBaseline,
     bufferStock,
     dailyMeanClient,
     leadTimeEndDate,
@@ -181,23 +179,9 @@ export function useSecondaryForecastModel(args: Args) {
     bufferStock,
     confirmBySize,
     snapshotConfirmBySize,
-    snapshotInfoMode,
+    useSnapshotConfirmBaseline,
   })
-  const snapshotView = useMemo(
-    () => buildSecondarySnapshotView(prefillFromSnapshot, snapshotInfoMode),
-    [prefillFromSnapshot, snapshotInfoMode],
-  )
-  const displayedCalculations = useMemo(() => {
-    if (snapshotView == null) return calculations
-    return {
-      ...calculations,
-      forecastInputs: snapshotView.stockInputs,
-      forecastDerived: snapshotView.stockDerived,
-      sizeRows: snapshotView.sizeRows,
-      manualConfirmDerived: {},
-    }
-  }, [calculations, snapshotView])
-  const stockDisplay = snapshotView?.stockDisplay ?? requests.forecastCalc?.display ?? null
+  const stockDisplay = requests.forecastCalc?.display ?? null
 
   const buildSnapshot = useCallback((): OrderSnapshotDocumentV1 => buildSecondaryOrderSnapshot({
     primary,
@@ -258,20 +242,20 @@ export function useSecondaryForecastModel(args: Args) {
   })
   const handleConfirmQtyChange = useCallback((size: string, next: number, recommendedQty: number) => {
     setConfirmBySize((prev) => new SecondaryOrderDraft({
-      mode: snapshotInfoMode ? 'snapshot' : 'live',
+      mode: useSnapshotConfirmBaseline ? 'snapshot' : 'live',
       manualConfirmBySize: prev,
       snapshotConfirmBySize,
     }).nextManualConfirmBySize(size, next, recommendedQty))
-  }, [setConfirmBySize, snapshotConfirmBySize, snapshotInfoMode])
+  }, [setConfirmBySize, snapshotConfirmBySize, useSnapshotConfirmBaseline])
 
   return {
     selectedStart,
     selectedEnd,
     ...requests,
-    ...displayedCalculations,
+    ...calculations,
     stockDisplay,
-    snapshotConfirmedTotals: snapshotView?.confirmedTotals ?? null,
     candidateActions,
+    buildSnapshot,
     handleConfirmQtyChange,
   }
 }
