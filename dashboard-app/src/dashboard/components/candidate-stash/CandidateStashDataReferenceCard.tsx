@@ -24,7 +24,7 @@ export function CandidateStashDataReferenceCard({
   return (
     <div className={styles.card}>
       <div className={detailStyles.dataReferenceQueryGrid}>
-        <span className={detailStyles.dataReferenceQueryLabel}>데이터 참조 기간</span>
+        <span className={detailStyles.dataReferenceQueryLabel}>조회 데이터 기간</span>
         <div className={detailStyles.dataReferenceQueryControls}>
           <input
             className={detailStyles.dataReferenceQueryInput}

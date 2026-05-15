@@ -6,30 +6,32 @@
 }
 
 .dataReferenceQueryLabel {
-  grid-column: 1 / span 6;
+  grid-column: 1 / span 3;
   min-width: 0;
   color: #475569;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 800;
   white-space: nowrap;
 }
 
 .dataReferenceQueryControls {
-  grid-column: 7 / span 16;
+  grid-column: 4 / span 7;
   min-width: 0;
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
   align-items: center;
-  flex-wrap: wrap;
-  gap: 8px;
+  gap: 6px;
 }
 
 .dataReferenceQuerySeparator {
+  grid-column: 4;
+  text-align: center;
   color: #64748b;
   font-weight: 800;
 }
 
 .dataReferenceQueryInput {
-  width: 144px;
+  width: 100%;
   min-width: 0;
   height: 34px;
   border: 1px solid #cbd5e1;
@@ -43,6 +45,14 @@
   font-weight: 700;
 }
 
+.dataReferenceQueryInput:first-of-type {
+  grid-column: 1 / span 3;
+}
+
+.dataReferenceQueryInput:last-of-type {
+  grid-column: 5 / span 3;
+}
+
 .dataReferenceQueryInput:focus {
   border-color: #2563eb;
   outline: 2px solid rgba(37, 99, 235, 0.18);
@@ -50,10 +60,10 @@
 }
 
 .dataReferenceQueryActions {
-  grid-column: 23 / -1;
+  grid-column: 12 / -1;
   min-width: 0;
   display: flex;
-  justify-content: flex-end;
+  justify-content: flex-start;
   gap: 8px;
 }
 
