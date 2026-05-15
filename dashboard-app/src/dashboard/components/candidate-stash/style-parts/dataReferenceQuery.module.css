@@ -1,6 +1,6 @@
 .detailActionCardGrid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: 1fr;
   gap: 8px;
 }
 
@@ -20,7 +20,7 @@
 }
 
 .dataReferenceQueryControls {
-  flex: none;
+  flex: 0 1 316px;
   min-width: 246px;
   display: flex;
   align-items: center;
@@ -76,6 +76,16 @@
   align-items: center;
   gap: 8px;
   min-width: 0;
+}
+
+.bulkConfirmButton {
+  min-width: 120px;
+  height: 34px;
+  color: #475569;
+  border-color: #cbd5e1;
+  background: #f8fafc;
+  font-weight: 800;
+  white-space: nowrap;
 }
 
 .bulkUnconfirmButton {

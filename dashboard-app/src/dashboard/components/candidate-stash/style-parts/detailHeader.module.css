@@ -7,7 +7,7 @@
 }
 
 .detailHeaderTitleArea {
-  grid-column: 1 / span 25;
+  grid-column: 1 / span 28;
   grid-row: 1;
   min-width: 0;
 }
@@ -22,7 +22,7 @@
 }
 
 .detailMetaStack {
-  grid-column: 26 / span 5;
+  grid-column: 29 / span 5;
   grid-row: 1;
   display: flex;
   flex-direction: column;
@@ -38,7 +38,7 @@
 }
 
 .detailHeaderRecommendationCell {
-  grid-column: 31 / span 4;
+  grid-column: 34 / span 5;
   grid-row: 1;
   min-width: 0;
   align-self: stretch;

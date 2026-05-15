@@ -36,15 +36,22 @@ export function AdminUserRow({
     isActive !== user.isActive
 
   useEffect(() => {
-    setLoginId(user.loginId)
-    setName(user.name)
-    setNote(user.note ?? '')
-    setRole(user.role)
-    setIsActive(user.isActive)
-    setErrorMessage(null)
-    setIsSaving(false)
-    setIsDeleting(false)
-    setIsResettingPassword(false)
+    let alive = true
+    queueMicrotask(() => {
+      if (!alive) return
+      setLoginId(user.loginId)
+      setName(user.name)
+      setNote(user.note ?? '')
+      setRole(user.role)
+      setIsActive(user.isActive)
+      setErrorMessage(null)
+      setIsSaving(false)
+      setIsDeleting(false)
+      setIsResettingPassword(false)
+    })
+    return () => {
+      alive = false
+    }
   }, [user])
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {

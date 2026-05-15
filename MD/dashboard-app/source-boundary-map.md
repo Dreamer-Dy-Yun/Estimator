@@ -33,7 +33,7 @@
 - 후보군 목록/상세/수정 계열 API는 현재 인증 세션의 `USER_ACCOUNT.uuid` 기준으로 소유자 데이터를 필터링한다. 화면은 사용자 UUID를 직접 파라미터로 보내지 않고 `src/api/requests/dashboardRequests.ts`가 request boundary에서만 세션 UUID를 읽어 mock/향후 HTTP 요청에 붙인다. mock은 후보 아이템 추가/삭제/상세확정 해제처럼 사용자가 확인해야 하는 mutation을 런타임 메모리 배열에 반영해 DB 동작을 모사한다.
 - 자사/경쟁사 분석 탭은 후보군에 상품을 담는 입구다. 분석 리스트의 체크박스와 `선택한 물품을 후보군으로` 모달은 스냅샷 없이 `stashUuid + skuGroupKeys`만 API에 전달한다. `row.id`는 화면 행 식별자이고, `skuGroupKey`는 `SKU.code + SKU.color_code` 상품 단위에 대응한다. AI 코멘트/사이즈별 확정 오더량은 이너후보군 2차 드로워에서 저장하기 전까지 미확정이다.
 - 자사/경쟁사 분석 탭에서는 `ProductDrawer.secondaryEnabled={false}`로 2차 드로워를 열지 않는다. 2차 드로워 코드는 유지하되, 반원 버튼과 키보드 2차 진입은 이너후보군에서만 허용한다.
-- 이너후보군 리스트 조회는 `dataReferencePeriodStart`/`dataReferencePeriodEnd`를 API에 전달한다. 기간 입력은 헤더와 필터 사이의 `CandidateStashDataReferenceCard`가 draft 상태로 소유하고, 사용자가 `조회` 버튼을 누를 때만 적용 기간을 바꿔 `getCandidateItemsByStash`를 호출한다. 같은 행의 선택 작업 영역은 `CandidateStashBulkActionCard`가 소유하며, 상세확정 일괄해제는 선택된 후보 아이템의 `details`를 `null`로 저장하는 명시적 mutation이다. 백엔드는 해당 기간의 전체 SKU 분포를 먼저 계산해 배지를 부여한 `referenceItems`와 후보군에 담긴 `candidateItems`를 함께 반환한다. `CANDIDATE_ITEM.sku_uuid = SKU.uuid`를 기준으로 추천 보기 중복 제외와 이너오더 조인을 수행하며, 총 오더 수량/금액과 엑셀용 `orderExport`는 이후 `subscribeCandidateOrderMetrics` SSE 이벤트로 행별 갱신한다.
+- 이너후보군 리스트 조회는 `dataReferencePeriodStart`/`dataReferencePeriodEnd`를 API에 전달한다. 기간 입력은 헤더와 필터 사이의 전체 폭 `CandidateStashDataReferenceCard`가 draft 상태로 소유하고, 사용자가 `조회` 버튼을 누를 때만 적용 기간을 바꿔 `getCandidateItemsByStash`를 호출한다. 선택 작업 영역은 `CandidateStashBulkActionCard`가 소유하며, 상세확정 일괄해제는 선택된 후보 아이템의 `details`를 `null`로 저장하는 명시적 mutation이다. 상세 일괄확정은 아직 API 계약과 mutation 동작이 없어 비활성 UI 자리만 둔다. 백엔드는 해당 기간의 전체 SKU 분포를 먼저 계산해 배지를 부여한 `referenceItems`와 후보군에 담긴 `candidateItems`를 함께 반환한다. `CANDIDATE_ITEM.sku_uuid = SKU.uuid`를 기준으로 추천 보기 중복 제외와 이너오더 조인을 수행하며, 총 오더 수량/금액과 엑셀용 `orderExport`는 이후 `subscribeCandidateOrderMetrics` SSE 이벤트로 행별 갱신한다.
 - 이너후보군의 상세확정 여부는 후보 아이템 `details` 스냅샷 존재 여부다. 리스트 기본값은 데이터 참조기간 기준 live 계산값이고, 2차 드로워는 live/스냅샷 기준 보기 모두 통합 오더 설정, AI 코멘트, 일별 추이, 사이즈별 오더 카드를 표시한다. 스냅샷 기준 보기에서는 저장 당시의 통합 오더 설정값, AI 코멘트, 사이즈별 오더 수치와 기간을 복원하되 그래프는 그 기간으로 다시 조회한다.
 - 드로워 키보드 조작은 `좌=열기`, `우=닫기`, `상/하=이전/다음`이다. 자사/경쟁사 리스트 row에서는 좌 키가 1차 드로워만 열고, 이너후보군에서는 좌 키로 1차를 열고 열린 1차 안에서 좌 키로 2차를 연다. ESC는 2차가 열려 있으면 2차부터 닫고, 한 번 더 누르면 1차를 닫는다. 상/하 이동으로 현재 상품이 바뀌면 원본 리스트의 현재 row도 포커스·스크롤·강조 상태를 함께 갱신한다. 자사/경쟁사 분석의 상/하 이동 순서는 `PaginatedTable`이 실제 렌더링에 사용한 정렬 row id 순서(`onOrderedRowIdsChange`)를 기준으로 한다.
 - 후보군 상세 필터 카드에는 발주 엑셀 다운로드 액션을 둔다. 화면은 다운로드 클릭 시 백엔드를 다시 호출하지 않고, 이미 받은 `CandidateItemSummary.orderExport` DTO로 브라우저에서 XLSX를 생성한다. 주 데이터 시트는 브랜드·품번(`code`)·상품명(`productName`)·색상(`colorCode`)·배지·판매 지표·총 오더 지표 컬럼 뒤에 후보군 전체 사이즈를 동적 컬럼으로 붙이고, 제품에 없는 사이즈는 `N/A`로 표시한다. 복수 배지는 한 셀 안에서 줄바꿈한다. 메타 시트에는 오더 입고 예정일과 사용자 이름을 둔다.
@@ -277,7 +277,9 @@
 | 파일 | 역할 |
 |------|------|
 | `CandidateStashDetailModal.tsx` | 후보군 상세 모달의 최상위 조립 컴포넌트. 모델 hook, 선택 hook, 추천 모달 열림 상태, 주요 하위 컴포넌트 배치만 소유한다. 헤더/필터/본문/드로워/삭제 확인 렌더 책임은 하위 파일로 위임한다. |
-| `CandidateStashDetailHeader.tsx` | 후보군 이름, 데이터 참조기간 입력, 생성/변경일, 추천 보기, 일괄삭제, 닫기 버튼 렌더링만 소유한다. |
+| `CandidateStashDetailHeader.tsx` | 후보군 이름, 생성/변경일, 추천 보기, 닫기 버튼 렌더링만 소유한다. 추천 보기는 닫기 버튼 옆 우측 액션 묶음에 둔다. |
+| `CandidateStashDataReferenceCard.tsx` | 후보군 상세 데이터 참조기간 draft 입력과 조회 버튼 렌더링만 소유한다. 헤더 아래 전체 폭 카드로 배치한다. |
+| `CandidateStashBulkActionCard.tsx` | 상세 일괄확정 자리, 상세확정 일괄해제, 일괄삭제 버튼 렌더링만 소유한다. 상세 일괄확정은 실제 mutation 계약이 정해질 때까지 비활성 UI로 둔다. |
 | `CandidateStashDetailFilters.tsx` | 브랜드/품번/상품명 필터와 엑셀 다운로드 액션 렌더링만 소유한다. 다운로드 데이터 생성은 API/엑셀 유틸 경계를 따른다. |
 | `CandidateStashDetailBody.tsx` | 후보군 상세 요약 KPI와 이너 후보 리스트 상태 분기 렌더링을 소유한다. 리스트 자체 row/table 렌더링은 `InnerCandidateOrderList.tsx`에 위임한다. |
 | `CandidateStashProductDrawer.tsx` | 이너 후보군에서 열리는 상품 drawer 연결부. drawer context, 저장 후 새로고침, 개별 삭제 요청 연결만 소유한다. |
@@ -289,7 +291,7 @@
 | `useVisibleUuidSelection.ts` | 화면에 보이는 UUID 목록 기준 선택 상태, 전체 선택, indeterminate checkbox ref를 소유하는 공통 hook이다. |
 | `useInnerCandidateTable.ts` | 이너 후보 아이템의 필터 옵션, 검색어, 정렬 상태, row 생성, 합계 계산을 소유한다. |
 | `useCandidateStashItemDrawer.ts` | 이너 후보 아이템 2차 드로워 열기/닫기 전환, 스냅샷 hydration, 인접 아이템 이동을 소유한다. `openedItemUuid`는 이너 후보 리스트의 현재 row 포커스 기준으로도 사용된다. |
-| `useCandidateStashItemActions.ts` | 이너 후보 아이템 삭제, 일괄 삭제, 엑셀 다운로드 생성 액션 상태를 소유한다. |
+| `useCandidateStashItemActions.ts` | 이너 후보 아이템 삭제, 일괄 삭제, 상세확정 일괄해제, 엑셀 다운로드 생성 액션 상태를 소유한다. 상세 일괄확정은 아직 연결하지 않는다. |
 | `candidateStashDetailTypes.ts` | 이너 후보 row와 정렬 key 타입을 소유한다. |
 | `InnerCandidateOrderList.tsx` | 이너 후보 리스트 화면 UI. 표시 순서 인덱스, 정렬 헤더, 상태 컬럼의 상세확정/상세미확정 표시, 오더 지표 로딩/실패 셀, 선택 체크박스, badge 렌더링을 소유한다. |
 | `AnalysisCandidateBulkAddModal.tsx` | 자사/경쟁사 분석 리스트에서 선택한 상품을 기존 후보군에 넣거나 새 후보군을 만든 뒤 넣는 모달. 스냅샷을 만들지 않고 `appendCandidateItems`만 호출한다. |

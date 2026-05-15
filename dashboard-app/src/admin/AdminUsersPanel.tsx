@@ -35,7 +35,6 @@ export function AdminUsersPanel() {
 
   useEffect(() => {
     let alive = true
-    setIsLoading(true)
     getAdminUsers()
       .then((nextUsers) => {
         if (alive) setUsers(nextUsers)

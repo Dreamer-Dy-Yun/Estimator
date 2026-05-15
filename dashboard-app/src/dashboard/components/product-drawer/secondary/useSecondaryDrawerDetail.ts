@@ -32,6 +32,9 @@ export function useSecondaryDrawerDetail({
     hydrateSnapshot != null && hydrateSnapshot.skuGroupKey === skuGroupKey ? hydrateSnapshot : null
 
   useEffect(() => {
+    let alive = true
+    queueMicrotask(() => {
+      if (!alive) return
     if (!expandPaneOpen) {
       setSecondaryDetail(null)
       setSecondaryDetailError(null)
@@ -44,7 +47,6 @@ export function useSecondaryDrawerDetail({
     }
     setSecondaryDetail(null)
     setSecondaryDetailError(null)
-    let alive = true
     void (async () => {
       try {
         const d = await dashboardApi.getProductSecondaryDetail(skuGroupKey)
@@ -60,6 +62,7 @@ export function useSecondaryDrawerDetail({
         )
       }
     })()
+    })
     return () => {
       alive = false
     }

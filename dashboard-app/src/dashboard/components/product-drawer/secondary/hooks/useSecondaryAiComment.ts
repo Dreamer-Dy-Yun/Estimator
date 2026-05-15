@@ -44,30 +44,33 @@ export function useSecondaryAiComment({
   )
 
   useEffect(() => {
-    if (!enabled) {
-      setLoading(false)
-      setError(null)
-      return
-    }
     let alive = true
-    setLoading(true)
-    setError(null)
-    void (async () => {
-      try {
-        const result = await dashboardApi.getSecondaryAiComment(params)
-        if (!alive) return
-        onLoadedRef.current({
-          llmPrompt: result.llmPrompt,
-          llmAnswer: result.llmAnswer,
-        })
+    queueMicrotask(() => {
+      if (!alive) return
+      if (!enabled) {
+        setLoading(false)
         setError(null)
-      } catch (err) {
-        if (!alive) return
-        setError(makeApiErrorInfo(pageName, `getSecondaryAiComment(${JSON.stringify(params)})`, err))
-      } finally {
-        if (alive) setLoading(false)
+        return
       }
-    })()
+      setLoading(true)
+      setError(null)
+      void (async () => {
+        try {
+          const result = await dashboardApi.getSecondaryAiComment(params)
+          if (!alive) return
+          onLoadedRef.current({
+            llmPrompt: result.llmPrompt,
+            llmAnswer: result.llmAnswer,
+          })
+          setError(null)
+        } catch (err) {
+          if (!alive) return
+          setError(makeApiErrorInfo(pageName, `getSecondaryAiComment(${JSON.stringify(params)})`, err))
+        } finally {
+          if (alive) setLoading(false)
+        }
+      })()
+    })
     return () => {
       alive = false
     }

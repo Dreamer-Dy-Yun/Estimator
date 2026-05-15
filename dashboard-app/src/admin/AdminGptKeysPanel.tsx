@@ -32,7 +32,6 @@ export function AdminGptKeysPanel() {
 
   useEffect(() => {
     let alive = true
-    setIsLoading(true)
     getAdminGptKeys()
       .then((nextGptKeys) => {
         if (alive) setGptKeys(nextGptKeys)

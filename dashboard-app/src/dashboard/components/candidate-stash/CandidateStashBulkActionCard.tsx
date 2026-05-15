@@ -20,6 +20,14 @@ export function CandidateStashBulkActionCard({
       <div className={detailStyles.bulkActionCard}>
         <button
           type="button"
+          className={`${styles.actionBtn} ${detailStyles.bulkConfirmButton}`}
+          disabled
+          title="상세 일괄확정은 추후 연결 예정입니다."
+        >
+          상세 일괄확정
+        </button>
+        <button
+          type="button"
           className={`${styles.actionBtn} ${detailStyles.bulkUnconfirmButton}`}
           onClick={onOpenBulkUnconfirm}
           disabled={selectedConfirmedCount === 0}

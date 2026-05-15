@@ -40,7 +40,6 @@ export function AdminGoogleSheetsPanel() {
 
   useEffect(() => {
     let alive = true
-    setIsLoading(true)
     getAdminGoogleSheetConfigs()
       .then((nextConfigs) => {
         if (alive) setConfigs(nextConfigs)

@@ -41,6 +41,9 @@ export function AnalysisCandidateBulkAddModal({
 
   useEffect(() => {
     if (!open) return
+    let alive = true
+    queueMicrotask(() => {
+      if (!alive) return
     const seq = requestSeqRef.current + 1
     requestSeqRef.current = seq
     setBusy(true)
@@ -58,6 +61,11 @@ export function AnalysisCandidateBulkAddModal({
       .finally(() => {
         if (requestSeqRef.current === seq) setBusy(false)
       })
+    })
+    return () => {
+      alive = false
+      requestSeqRef.current += 1
+    }
   }, [open])
 
   if (!open) return null

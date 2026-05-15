@@ -35,12 +35,19 @@ export function UserProfileDialog({ open, onClose }: { open: boolean; onClose: (
 
   useEffect(() => {
     if (!open) return
-    setLoginId(session?.user.loginId ?? '')
-    setCurrentPassword('')
-    setNewPassword('')
-    setConfirmPassword('')
-    setErrorMessage(null)
-    setIsSaving(false)
+    let alive = true
+    queueMicrotask(() => {
+      if (!alive) return
+      setLoginId(session?.user.loginId ?? '')
+      setCurrentPassword('')
+      setNewPassword('')
+      setConfirmPassword('')
+      setErrorMessage(null)
+      setIsSaving(false)
+    })
+    return () => {
+      alive = false
+    }
   }, [open, session?.user.loginId])
 
   if (!open || !session) return null

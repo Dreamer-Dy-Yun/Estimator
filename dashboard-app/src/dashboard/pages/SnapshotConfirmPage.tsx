@@ -76,7 +76,9 @@ export const SnapshotConfirmPage = () => {
 
   useEffect(() => {
     mountedRef.current = true
-    void loadStashes()
+    queueMicrotask(() => {
+      if (mountedRef.current) void loadStashes()
+    })
     return () => {
       mountedRef.current = false
       loadStashesSeqRef.current += 1

@@ -58,6 +58,7 @@ export function useCandidateStashItemDrawer({
     () => mergePrimarySummaryFromBundleAndSnapshot(drawerSkuGroupKey, bundle, hydrateSnap),
     [bundle, drawerSkuGroupKey, hydrateSnap],
   )
+  const detailForecastMonths = detailTarget?.forecastMonths ?? 8
 
   if (drawerOpen && (!dataReferenceStart || !dataReferenceEnd)) {
     throw new Error('후보 스냅샷 기간 정보 누락')
@@ -79,7 +80,7 @@ export function useCandidateStashItemDrawer({
       const snap = detail.details ? parseOrderSnapshot(detail.details) : null
       if (!mountedRef.current || drawerRequestSeqRef.current !== seq) return
       setHydrateSnap(snap)
-      setDrawerForecastMonths(clampForecastMonths(snap?.context.forecastMonths ?? detailTarget?.forecastMonths ?? 8))
+      setDrawerForecastMonths(clampForecastMonths(snap?.context.forecastMonths ?? detailForecastMonths))
       setDrawerSkuGroupKey(row.skuGroupKey)
       setOpenedItemUuid(row.uuid)
       setDrawerOpen(true)
@@ -88,7 +89,7 @@ export function useCandidateStashItemDrawer({
       const message = err instanceof Error ? err.message : '후보 상세 스냅샷 로드에 실패했습니다.'
       setDrawerError(message)
     }
-  }, [detailTarget?.forecastMonths])
+  }, [detailForecastMonths])
 
   const onRequestNavigateAdjacent = useCallback(
     async (direction: AdjacentDirection) => {
