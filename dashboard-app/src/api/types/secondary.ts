@@ -25,6 +25,21 @@ export interface SecondaryCompetitorChannel {
   label: string
 }
 
+export interface SecondaryAiCommentParams {
+  skuGroupKey: string
+  periodStart: string
+  periodEnd: string
+  forecastMonths: number
+  competitorChannelId: string
+  candidateItemUuid?: string | null
+}
+
+export interface SecondaryAiCommentResult {
+  llmPrompt: string
+  llmAnswer: string
+  generatedAt: string
+}
+
 /**
  * Query options for `getProductSecondaryDetail`.
  * When a value changes the same SKU panel should request a fresh response.

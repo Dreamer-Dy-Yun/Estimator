@@ -1,3 +1,4 @@
 export { mockAdminGptKeyApi } from './mock/adminGptKeyApi'
+export { mockAdminGoogleSheetApi } from './mock/adminGoogleSheetApi'
 export { mockDashboardApi } from './mock/dashboardApi'
 export { mockAuthApi } from './mock/authApi'

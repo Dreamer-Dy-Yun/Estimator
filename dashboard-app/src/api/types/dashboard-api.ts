@@ -27,9 +27,6 @@ import type {
   CandidateItemListResult,
   CandidateRecommendationParams,
   CandidateRecommendationResult,
-  CandidateStashAnalysisHandlers,
-  CandidateStashAnalysisStartResult,
-  CandidateStashAnalysisSubscription,
   CandidateStashExcelTemplateDownload,
   CandidateStashExcelUploadResult,
   CandidateStashSummary,
@@ -37,6 +34,8 @@ import type {
   UpdateCandidateStashPayload,
 } from './candidate'
 import type {
+  SecondaryAiCommentParams,
+  SecondaryAiCommentResult,
   ProductSecondaryDetailParams,
   SecondaryCompetitorChannel,
   SecondaryDailyTrendParams,
@@ -65,6 +64,7 @@ export interface DashboardApi {
     params?: ProductSecondaryDetailParams,
   ): Promise<ProductSecondaryDetail>
   getSecondaryDailyTrend(params: SecondaryDailyTrendParams): Promise<SecondaryDailyTrendPoint[]>
+  getSecondaryAiComment(params: SecondaryAiCommentParams): Promise<SecondaryAiCommentResult>
   getSecondaryCompetitorChannels(): Promise<SecondaryCompetitorChannel[]>
   getCandidateStashes(): Promise<CandidateStashSummary[]>
   getCandidateItemsByStash(params: CandidateItemListParams): Promise<CandidateItemListResult>
@@ -81,10 +81,5 @@ export interface DashboardApi {
   updateCandidateItem(payload: UpdateCandidateItemPayload): Promise<void>
   getCandidateStashExcelTemplateDownload(): CandidateStashExcelTemplateDownload
   uploadCandidateStashExcel(file: File): Promise<CandidateStashExcelUploadResult>
-  startCandidateStashAnalysis(stashUuid: string): Promise<CandidateStashAnalysisStartResult>
-  subscribeCandidateStashAnalysis(
-    jobId: string,
-    handlers: CandidateStashAnalysisHandlers,
-  ): CandidateStashAnalysisSubscription
   getSecondaryStockOrderCalc(params: SecondaryStockOrderCalcParams): Promise<SecondaryStockOrderCalcResult>
 }

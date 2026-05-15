@@ -1,0 +1,65 @@
+.dataReferenceQueryGrid {
+  display: grid;
+  grid-template-columns: repeat(40, minmax(0, 1fr));
+  align-items: center;
+  gap: 10px;
+}
+
+.dataReferenceQueryLabel {
+  grid-column: 1 / span 6;
+  min-width: 0;
+  color: #475569;
+  font-size: 13px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.dataReferenceQueryControls {
+  grid-column: 7 / span 16;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.dataReferenceQuerySeparator {
+  color: #64748b;
+  font-weight: 800;
+}
+
+.dataReferenceQueryInput {
+  width: 144px;
+  min-width: 0;
+  height: 34px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 0 10px;
+  box-sizing: border-box;
+  background: #ffffff;
+  color: #0f172a;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.dataReferenceQueryInput:focus {
+  border-color: #2563eb;
+  outline: 2px solid rgba(37, 99, 235, 0.18);
+  outline-offset: 0;
+}
+
+.dataReferenceQueryActions {
+  grid-column: 23 / -1;
+  min-width: 0;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.dataReferenceQueryButton {
+  min-width: 88px;
+  height: 34px;
+  padding-inline: 16px;
+  white-space: nowrap;
+}

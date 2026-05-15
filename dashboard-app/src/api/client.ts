@@ -1,4 +1,4 @@
-import { adminGptKeyRequests, authRequests, dashboardRequests } from './requests'
+import { adminGoogleSheetRequests, adminGptKeyRequests, authRequests, dashboardRequests } from './requests'
 
 export const getCurrentAuthSession = authRequests.getCurrentSession
 export const login = authRequests.login
@@ -17,6 +17,11 @@ export const updateAdminGptKey = adminGptKeyRequests.updateAdminGptKey
 export const testAdminGptKey = adminGptKeyRequests.testAdminGptKey
 export const deleteAdminGptKey = adminGptKeyRequests.deleteAdminGptKey
 
+export const getAdminGoogleSheetConfigs = adminGoogleSheetRequests.getAdminGoogleSheetConfigs
+export const createAdminGoogleSheetConfig = adminGoogleSheetRequests.createAdminGoogleSheetConfig
+export const updateAdminGoogleSheetConfig = adminGoogleSheetRequests.updateAdminGoogleSheetConfig
+export const deleteAdminGoogleSheetConfig = adminGoogleSheetRequests.deleteAdminGoogleSheetConfig
+
 export const getSelfSales = dashboardRequests.getSelfSales
 export const getCompetitorSales = dashboardRequests.getCompetitorSales
 export const getSelfSalesScatterGrid = dashboardRequests.getSelfSalesScatterGrid
@@ -24,6 +29,7 @@ export const getCompetitorSalesScatterGrid = dashboardRequests.getCompetitorSale
 export const getSalesFilterMeta = dashboardRequests.getSalesFilterMeta
 export const getProductDrawerBundle = dashboardRequests.getProductDrawerBundle
 export const getSecondaryCompetitorChannels = dashboardRequests.getSecondaryCompetitorChannels
+export const getSecondaryAiComment = dashboardRequests.getSecondaryAiComment
 export const getCandidateStashes = dashboardRequests.getCandidateStashes
 export const getCandidateItemsByStash = dashboardRequests.getCandidateItemsByStash
 export const getCandidateRecommendations = dashboardRequests.getCandidateRecommendations
@@ -37,7 +43,5 @@ export const updateCandidateStash = dashboardRequests.updateCandidateStash
 export const appendCandidateItems = dashboardRequests.appendCandidateItems
 export const getCandidateStashExcelTemplateDownload = dashboardRequests.getCandidateStashExcelTemplateDownload
 export const uploadCandidateStashExcel = dashboardRequests.uploadCandidateStashExcel
-export const startCandidateStashAnalysis = dashboardRequests.startCandidateStashAnalysis
-export const subscribeCandidateStashAnalysis = dashboardRequests.subscribeCandidateStashAnalysis
 
 export const dashboardApi = dashboardRequests

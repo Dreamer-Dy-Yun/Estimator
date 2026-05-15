@@ -3,8 +3,8 @@
  * Style ownership lives in style-parts; this file keeps import paths stable for TSX.
  */
 @import '../../styles/primaryDrawerLayout.vars.css';
+@import './style-parts/dataReferenceQuery.module.css';
 @import './style-parts/detailHeader.module.css';
-@import './style-parts/analysisStatus.module.css';
 @import './style-parts/filterSummary.module.css';
 @import './style-parts/innerOrderList.module.css';
 @import './style-parts/modalShell.module.css';

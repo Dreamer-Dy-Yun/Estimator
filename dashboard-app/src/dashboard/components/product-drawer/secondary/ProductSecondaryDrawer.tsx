@@ -1,4 +1,4 @@
-import { useEffect, useId, useMemo, useState } from 'react'
+import { useCallback, useEffect, useId, useMemo, useState } from 'react'
 import type { SecondaryCompetitorChannel } from '../../../../api'
 import { useAppToast } from '../../../../components/AppToastContext'
 import type { ProductPrimarySummary, ProductSecondaryDetail } from '../../../../types'
@@ -10,6 +10,7 @@ import { usePortalHelpPopover } from '../../usePortalHelpPopover'
 import type { SecondaryHelpId } from './secondaryDrawerTypes'
 import type { OrderSnapshotDocumentV1 } from '../../../../snapshot/orderSnapshotTypes'
 import type { CandidateItemPanelContext } from './candidateActionCards'
+import { useSecondaryAiComment } from './hooks/useSecondaryAiComment'
 import { useSecondaryForecastModel } from './hooks/useSecondaryForecastModel'
 import { ProductSecondaryDrawerContent } from './ProductSecondaryDrawerContent'
 import { buildSecondarySnapshotView } from './secondarySnapshotView'
@@ -174,6 +175,32 @@ export function ProductSecondaryDrawer({
     }
   }, [channel, prefillFromSnapshot, snapshotInfoMode])
 
+  const aiCommentParams = useMemo(() => ({
+    skuGroupKey: primary.skuGroupKey,
+    periodStart: viewPeriodStart,
+    periodEnd: viewPeriodEnd,
+    forecastMonths,
+    competitorChannelId: viewChannel.id,
+    candidateItemUuid: candidateItemContext?.itemUuid ?? null,
+  }), [
+    candidateItemContext?.itemUuid,
+    forecastMonths,
+    primary.skuGroupKey,
+    viewChannel.id,
+    viewPeriodEnd,
+    viewPeriodStart,
+  ])
+  const handleAiCommentLoaded = useCallback((result: { llmPrompt: string; llmAnswer: string }) => {
+    setAiPrompt(result.llmPrompt)
+    setAiComment(result.llmAnswer)
+  }, [])
+  const { aiCommentLoading, aiCommentError } = useSecondaryAiComment({
+    enabled: !snapshotInfoMode,
+    pageName,
+    params: aiCommentParams,
+    onLoaded: handleAiCommentLoaded,
+  })
+
   const model = useSecondaryForecastModel({
     primary,
     secondary,
@@ -252,6 +279,8 @@ export function ProductSecondaryDrawer({
       onShowSnapshotInfoChange={setShowSnapshotInfo}
       model={model}
       aiComment={viewAiComment}
+      aiCommentLoading={snapshotInfoMode ? false : aiCommentLoading}
+      aiCommentError={snapshotInfoMode ? null : aiCommentError}
       selfWeightPct={viewSelfWeightPct}
       onSelfWeightPctChange={setSelfWeightPct}
       minOrderDate={minOrderDate}

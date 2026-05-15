@@ -7,9 +7,25 @@
     grid-template-columns: 1fr;
   }
 
-  .detailHeaderTitleArea,
-  .detailHeaderDataReferencePeriodCell {
+  .detailHeaderTitleArea {
     grid-column: 1 / -1;
+  }
+
+  .dataReferenceQueryGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .dataReferenceQueryControls,
+  .dataReferenceQueryActions {
+    grid-column: 1 / -1;
+  }
+
+  .dataReferenceQueryActions {
+    justify-content: stretch;
+  }
+
+  .dataReferenceQueryButton {
+    width: 100%;
   }
 
   .detailMetaStack {

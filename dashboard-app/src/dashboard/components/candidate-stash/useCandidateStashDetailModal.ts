@@ -9,7 +9,6 @@ import {
 import { normalizeRangeOnEndInput, normalizeRangeOnStartInput } from '../../hooks/usePeriodRangeFilter'
 import { preloadCandidateOrderExcelExport } from '../../../utils/candidateOrderExcelExport'
 import { useAppToast } from '../../../components/AppToastContext'
-import { useCandidateStashAnalysisProgress } from './useCandidateStashAnalysisProgress'
 import { useInnerCandidateTable } from './useInnerCandidateTable'
 import { useCandidateStashItemDrawer } from './useCandidateStashItemDrawer'
 import { useCandidateStashItemActions } from './useCandidateStashItemActions'
@@ -37,6 +36,8 @@ export function useCandidateStashDetailModal({
   const [detailError, setDetailError] = useState<string | null>(null)
   const [dataReferencePeriodStart, setDataReferencePeriodStart] = useState('')
   const [dataReferencePeriodEnd, setDataReferencePeriodEnd] = useState('')
+  const [draftDataReferencePeriodStart, setDraftDataReferencePeriodStart] = useState('')
+  const [draftDataReferencePeriodEnd, setDraftDataReferencePeriodEnd] = useState('')
 
   const [itemDeleteTarget, setItemDeleteTarget] = useState<CandidateItemSummary | null>(null)
   const { showToast } = useAppToast()
@@ -76,8 +77,11 @@ export function useCandidateStashDetailModal({
     })()
   }, [stashUuid, stashSummaryProp])
 
-  const loadItems = useCallback(async () => {
-    if (!stashUuid || !dataReferencePeriodStart || !dataReferencePeriodEnd) return
+  const loadItems = useCallback(async (
+    nextPeriodStart = dataReferencePeriodStart,
+    nextPeriodEnd = dataReferencePeriodEnd,
+  ) => {
+    if (!stashUuid || !nextPeriodStart || !nextPeriodEnd) return
     const seq = itemLoadSeqRef.current + 1
     itemLoadSeqRef.current = seq
     setDetailLoading(true)
@@ -85,8 +89,8 @@ export function useCandidateStashDetailModal({
     try {
       const result = await getCandidateItemsByStash({
         stashUuid,
-        dataReferencePeriodStart,
-        dataReferencePeriodEnd,
+        dataReferencePeriodStart: nextPeriodStart,
+        dataReferencePeriodEnd: nextPeriodEnd,
       })
       if (!mountedRef.current || itemLoadSeqRef.current !== seq) return
       setItems(result.items)
@@ -101,16 +105,6 @@ export function useCandidateStashDetailModal({
   }, [dataReferencePeriodEnd, dataReferencePeriodStart, stashUuid])
 
   useEffect(() => {
-    let alive = true
-    queueMicrotask(() => {
-      if (alive) void loadItems()
-    })
-    return () => {
-      alive = false
-    }
-  }, [loadItems])
-
-  useEffect(() => {
     if (!items.length) return
     void preloadCandidateOrderExcelExport().catch(() => undefined)
   }, [items.length, stashUuid])
@@ -121,16 +115,6 @@ export function useCandidateStashDetailModal({
     setStashes(list)
     onStashesInvalidate?.()
   }, [onStashesInvalidate])
-
-  const handleAnalysisCompleted = useCallback(() => {
-    void loadItems()
-    void refreshStashes()
-    showToast('후보군 AI 분석이 완료되었습니다.')
-  }, [loadItems, refreshStashes, showToast])
-  const { analysisProgress, analysisError } = useCandidateStashAnalysisProgress({
-    stashUuid,
-    onCompleted: handleAnalysisCompleted,
-  })
 
   const detailTarget = useMemo(
     () => (stashUuid ? stashes.find((s) => s.uuid === stashUuid) ?? null : null),
@@ -148,27 +132,43 @@ export function useCandidateStashDetailModal({
       if (!detailTarget) {
         setDataReferencePeriodStart('')
         setDataReferencePeriodEnd('')
+        setDraftDataReferencePeriodStart('')
+        setDraftDataReferencePeriodEnd('')
+        setItems([])
         return
       }
       setDataReferencePeriodStart(detailTarget.periodStart)
       setDataReferencePeriodEnd(detailTarget.periodEnd)
+      setDraftDataReferencePeriodStart(detailTarget.periodStart)
+      setDraftDataReferencePeriodEnd(detailTarget.periodEnd)
+      void loadItems(detailTarget.periodStart, detailTarget.periodEnd)
     })
     return () => {
       alive = false
     }
-  }, [detailTarget])
+  }, [detailTarget, loadItems])
 
   const onDataReferencePeriodStartChange = useCallback((value: string) => {
     if (!value) return
-    setDataReferencePeriodStart(value)
-    setDataReferencePeriodEnd((currentEnd) => normalizeRangeOnStartInput(value, currentEnd || value).endDate)
+    setDraftDataReferencePeriodStart(value)
+    setDraftDataReferencePeriodEnd((currentEnd) => normalizeRangeOnStartInput(value, currentEnd || value).endDate)
   }, [])
 
   const onDataReferencePeriodEndChange = useCallback((value: string) => {
     if (!value) return
-    setDataReferencePeriodEnd(value)
-    setDataReferencePeriodStart((currentStart) => normalizeRangeOnEndInput(value, currentStart || value).startDate)
+    setDraftDataReferencePeriodEnd(value)
+    setDraftDataReferencePeriodStart((currentStart) => normalizeRangeOnEndInput(value, currentStart || value).startDate)
   }, [])
+
+  const applyDataReferencePeriod = useCallback(() => {
+    if (!draftDataReferencePeriodStart || !draftDataReferencePeriodEnd) return
+    const normalized = normalizeRangeOnStartInput(draftDataReferencePeriodStart, draftDataReferencePeriodEnd)
+    setDataReferencePeriodStart(normalized.startDate)
+    setDataReferencePeriodEnd(normalized.endDate)
+    setDraftDataReferencePeriodStart(normalized.startDate)
+    setDraftDataReferencePeriodEnd(normalized.endDate)
+    void loadItems(normalized.startDate, normalized.endDate)
+  }, [draftDataReferencePeriodEnd, draftDataReferencePeriodStart, loadItems])
 
   const table = useInnerCandidateTable(items)
   const dataReferenceStart = dataReferencePeriodStart || undefined
@@ -259,8 +259,11 @@ export function useCandidateStashDetailModal({
     hydrateSnap: drawer.hydrateSnap,
     dataReferencePeriodStart,
     dataReferencePeriodEnd,
+    draftDataReferencePeriodStart,
+    draftDataReferencePeriodEnd,
     onDataReferencePeriodStartChange,
     onDataReferencePeriodEndChange,
+    applyDataReferencePeriod,
     fc: drawer.fc,
     bundle: drawer.bundle,
     mergedSummary: drawer.mergedSummary,
@@ -271,8 +274,6 @@ export function useCandidateStashDetailModal({
     bulkDeleteBusy: actions.bulkDeleteBusy,
     orderExportBusy: actions.orderExportBusy,
     orderExportError: actions.orderExportError,
-    analysisProgress,
-    analysisError,
     setItemDeleteTarget,
     detailTarget,
     brandOptions: table.brandOptions,

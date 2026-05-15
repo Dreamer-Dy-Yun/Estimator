@@ -141,6 +141,22 @@ describe('api/mock dashboardApi competitor channel behavior', () => {
     expect(musinsa.competitorChannelId).toBe('musinsa')
     expect(sumCompetitorSales(musinsa.points)).toBeLessThan(sumCompetitorSales(kream.points))
   })
+
+  it('returns secondary drawer AI comment for the requested open context', async () => {
+    const result = await mockDashboardApi.getSecondaryAiComment({
+      skuGroupKey: skuGroupKey('B'),
+      periodStart: '2025-01-01',
+      periodEnd: '2025-12-31',
+      forecastMonths: 8,
+      competitorChannelId: 'kream',
+      candidateItemUuid: 'candidate-item-test',
+    })
+
+    expect(result.llmPrompt).toContain('2025-01-01~2025-12-31')
+    expect(result.llmPrompt).toContain('candidate-item-test')
+    expect(result.llmAnswer).toContain('크림')
+    expect(result.generatedAt).not.toBe('')
+  })
 })
 
 describe('api/mock dashboardApi candidate stash contract stubs', () => {

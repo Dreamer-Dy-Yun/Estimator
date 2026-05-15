@@ -26,6 +26,7 @@
 
 .createField input,
 .createField select,
+.createField textarea,
 .fieldCell textarea {
   width: 100%;
   height: 34px;
@@ -38,6 +39,7 @@
 
 .createField input:focus,
 .createField select:focus,
+.createField textarea:focus,
 .fieldCell textarea:focus {
   border-color: #2563eb;
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
@@ -151,6 +153,34 @@
 
 .gptKeyCreateNote {
   min-width: 0;
+}
+
+.googleSheetCreateForm {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr)) minmax(110px, 0.72fr) 92px 136px;
+  gap: 8px;
+  align-items: end;
+  padding: 14px 18px;
+  border-bottom: 1px solid #e2e8f0;
+  background: #fbfdff;
+}
+
+.googleSheetWideField {
+  grid-column: span 2;
+}
+
+.googleSheetKeyField {
+  grid-column: span 3;
+}
+
+.googleSheetKeyField textarea {
+  height: 58px;
+  padding: 8px 9px;
+  resize: vertical;
+}
+
+.googleSheetCreateNote {
+  grid-column: span 2;
 }
 
 .createError {

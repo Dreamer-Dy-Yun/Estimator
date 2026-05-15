@@ -21,7 +21,8 @@
 |------|-----------|----------------------|
 | `src/api/requests/authRequests.ts` | 로그인, 세션, 사용자 정보 변경, 관리자 사용자 관리 | HttpOnly cookie 기반 세션 권장. 비밀번호/임시 비밀번호는 요청 또는 1회 응답에만 존재해야 하며 목록·세션 응답에 포함하지 않는다 |
 | `src/api/requests/adminGptKeyRequests.ts` | 관리자 GPT 키 목록, 생성, 메타/키 변경, 연결 테스트, 삭제 | GPT 전용 계약이다. 생성/변경 요청만 `plainKey`를 담을 수 있고, 응답은 `maskedKey`만 내려준다. 키 저장/암호화/감사 로그는 백엔드 책임이다 |
-| `src/api/requests/dashboardRequests.ts` | 자사/경쟁 판매, 상품 드로워, 후보군, 분석 SSE, 엑셀 업로드 템플릿 | 후보군 계열 요청은 현재 사용자 `USER_ACCOUNT.uuid` 기준으로 소유자 필터를 강제한다. 프론트 UI는 사용자 UUID를 들고 다니지 않고 request adapter에서만 붙인다. 세션 기반 백엔드라면 요청값보다 서버 세션을 우선한다. 경쟁 분석 목록은 `competitorChannelId` 생략 시 전체 경쟁 채널 합계를 반환하고, 상품 드로워 판매 인사이트는 선택 경쟁 채널을 필수로 받는다. 이너후보군 리스트는 데이터 참조기간의 전체 상품 분포로 배지를 계산한 뒤 stash item만 반환한다. 발주 엑셀 다운로드는 백엔드 재호출 없이 이미 받은 `orderExport` DTO로 프론트가 생성한다 |
+| `src/api/requests/adminGoogleSheetRequests.ts` | 관리자 구글 시트 설정 목록, 생성, 변경, 삭제 | 서비스 계정 JSON 키는 생성/변경 요청에만 담고 응답에는 `maskedServiceAccountKey`만 내려준다. 백엔드는 서비스 계정 이메일에 시트 공유 권한이 있는지 확인하고, 키 원문은 암호화 저장 또는 secret manager로 보관한다 |
+| `src/api/requests/dashboardRequests.ts` | 자사/경쟁 판매, 상품 드로워, 후보군, 엑셀 업로드 템플릿 | 후보군 계열 요청은 현재 사용자 `USER_ACCOUNT.uuid` 기준으로 소유자 필터를 강제한다. 프론트 UI는 사용자 UUID를 들고 다니지 않고 request adapter에서만 붙인다. 세션 기반 백엔드라면 요청값보다 서버 세션을 우선한다. 경쟁 분석 목록은 `competitorChannelId` 생략 시 전체 경쟁 채널 합계를 반환하고, 상품 드로워 판매 인사이트는 선택 경쟁 채널을 필수로 받는다. 이너후보군 리스트는 데이터 참조기간의 전체 상품 분포로 배지를 계산한 뒤 stash item만 반환한다. 발주 엑셀 다운로드는 백엔드 재호출 없이 이미 받은 `orderExport` DTO로 프론트가 생성한다 |
 
 `src/api/client.ts`는 public export facade다. 화면에서 import하는 이름을 안정적으로 유지하기 위한 파일이며, mock과 실제 HTTP를 선택하는 책임은 갖지 않는다.
 
@@ -87,6 +88,17 @@
 | `updateAdminGptKey(payload)` | PATCH | `/admin/gpt-keys/:keyUuid` |
 | `testAdminGptKey(keyUuid)` | POST | `/admin/gpt-keys/:keyUuid/test` |
 | `deleteAdminGptKey(keyUuid)` | DELETE | `/admin/gpt-keys/:keyUuid` |
+
+**`AdminGoogleSheetApi` 제안 매핑**
+
+관리자 구글 시트 설정은 Google Sheets API 접근을 위한 서버 설정 계약(`src/api/types/admin-google-sheet.ts`)이다. 모든 경로는 관리자 권한이 필요하다. 원문 서비스 계정 JSON 키는 프론트가 생성/변경 요청에만 보내고, 목록/조회 응답에는 절대 포함하지 않는다.
+
+| 계약 메서드 | 제안 HTTP | 제안 경로 |
+|-------------|-----------|----------|
+| `getAdminGoogleSheetConfigs()` | GET | `/admin/google-sheets` |
+| `createAdminGoogleSheetConfig(payload)` | POST | `/admin/google-sheets` |
+| `updateAdminGoogleSheetConfig(payload)` | PATCH | `/admin/google-sheets/:configUuid` |
+| `deleteAdminGoogleSheetConfig(configUuid)` | DELETE | `/admin/google-sheets/:configUuid` |
 
 **`LoginRequest`**
 
@@ -214,6 +226,41 @@
 
 운영 DB는 GPT 원문 키를 저장할 수 있지만, 프론트 응답 DTO는 기본적으로 `maskedKey`만 내려주는 방식을 권장한다. 키 생성/변경/테스트/비활성화는 수행 관리자 UUID, 대상 키 UUID, 시각, 요청 IP를 감사 로그로 남기는 것이 좋다.
 
+**`AdminGoogleSheetConfigSummary`**
+
+| 필드 | 타입 | 설명 |
+|------|------|------|
+| `uuid` | string | 서버 생성 구글 시트 설정 UUID |
+| `name` | string | 관리자 화면 표시 이름 |
+| `purpose` | `'db-schema' \| 'upload-template' \| 'operation-reference' \| 'test'` | 사용 범위. DB 설계 참조, 업로드 템플릿, 운영 참조, 연결 테스트 등 |
+| `serviceAccountEmail` | string | Google Cloud 서비스 계정 이메일. 대상 시트 공유 대상과 일치해야 한다 |
+| `serviceAccountRole` | `'viewer' \| 'editor'` | 대상 Google Sheet에서 서비스 계정에 부여해야 하는 권한 |
+| `maskedServiceAccountKey` | string | 목록/조회 화면 표시용 마스킹 키. 원문 JSON 키는 응답하지 않는다 |
+| `spreadsheetUrl` | string | 관리자가 입력한 Google Sheets URL |
+| `spreadsheetId` | string | 백엔드가 URL에서 파싱하거나 직접 받은 spreadsheet id |
+| `sheetRange` | string | API 호출 범위. 예: `SKU!A1:Z` |
+| `accessMode` | `'readonly' \| 'readwrite'` | 백엔드가 이 설정으로 수행할 접근 모드 |
+| `isActive` | boolean | 활성 설정 여부 |
+| `note` | string \| null | 내부 비고 |
+| `dbUpdatedAt` | string | ISO 8601 최근 변경 시각 |
+
+**`CreateAdminGoogleSheetConfigPayload`**
+
+| 필드 | 타입 | 설명 |
+|------|------|------|
+| `name`, `purpose`, `serviceAccountEmail`, `serviceAccountRole`, `spreadsheetUrl`, `sheetRange`, `accessMode`, `isActive`, `note` | 위와 동일 | 구글 시트 설정 메타데이터 |
+| `serviceAccountKeyJson` | string | Google Cloud 서비스 계정 JSON 키 원문. 백엔드는 저장 시 암호화하거나 secret manager에 위임하고 응답에는 마스킹 값만 반환한다 |
+
+**`UpdateAdminGoogleSheetConfigPayload`**
+
+| 필드 | 타입 | 설명 |
+|------|------|------|
+| `uuid` | string | 변경 대상 설정 UUID |
+| `name`, `purpose`, `serviceAccountEmail`, `serviceAccountRole`, `spreadsheetUrl`, `sheetRange`, `accessMode`, `isActive`, `note` | 위와 동일 | 구글 시트 설정 메타데이터 변경 |
+| `serviceAccountKeyJson` | string \| undefined | 새 서비스 계정 JSON 키. 값이 있으면 같은 변경 요청에서 교체한다 |
+
+백엔드 구현 방향: Python에서는 Google API client 또는 gspread 계열을 사용하되, 설정 조회 API에서는 키 원문을 절대 직렬화하지 않는다. 시트 접근 실패는 권한 부족, 잘못된 spreadsheet id/range, 폐기된 서비스 계정 키를 구분해 관리자 화면에 표시 가능한 메시지로 반환하는 것이 좋다. 해당 설정 변경/삭제는 수행 관리자 UUID, 대상 설정 UUID, 시각, 요청 IP를 감사 로그로 남기는 것을 권장한다.
+
 **`USER_ACCOUNT` 정합성 메모**
 
 - 계정 테이블은 `USER_ACCOUNT`를 기준으로 하며, 외부/API 사용자 식별자는 `USER_ACCOUNT.uuid`를 사용한다.
@@ -238,6 +285,7 @@
 | `getProductSalesInsight(skuGroupKey, params)` | GET | `/products/:skuGroupKey/sales-insight?startDate&endDate&competitorChannelId` |
 | `getProductSecondaryDetail(skuGroupKey, params?)` | GET | `/products/:skuGroupKey/secondary-detail?minOpMarginPct` |
 | `getSecondaryDailyTrend(params)` | GET | `/products/:skuGroupKey/secondary/daily-trend?startMonth&leadTimeDays&competitorChannelId` |
+| `getSecondaryAiComment(params)` | POST 권장 | `/products/:skuGroupKey/secondary/ai-comment` body `{ periodStart, periodEnd, forecastMonths, competitorChannelId, candidateItemUuid? }` |
 | `getSecondaryCompetitorChannels()` | GET | `/secondary/competitor-channels` |
 | `getCandidateStashes()` | GET | `/candidate-stashes` 세션 소유자 기준 |
 | `getCandidateItemsByStash(params)` | GET | `/candidate-stashes/:stashUuid/items?dataReferencePeriodStart&dataReferencePeriodEnd` |
@@ -253,8 +301,6 @@
 | `appendCandidateItems(payload)` | POST | `/candidate-stashes/:stashUuid/items/bulk` body `{ skuGroupKeys }`, 세션 소유자 기준 |
 | `updateCandidateItem(payload)` | PATCH | `/candidate-items/:itemUuid` body `{ details, isLatestLlmComment }`, 세션 소유자 기준 |
 | `uploadCandidateStashExcel(file)` | POST multipart/form-data | `/candidate-stashes/import/excel` 세션 생성자 기준 |
-| `startCandidateStashAnalysis(stashUuid)` | POST | `/candidate-stashes/:stashUuid/analysis` 세션 소유자 기준 |
-| `subscribeCandidateStashAnalysis(jobId, handlers)` | GET (SSE) | `/candidate-stash-analyses/:jobId/events` 세션 소유자 기준 |
 | `getSecondaryStockOrderCalc(params)` | GET 또는 POST | 쿼리가 길면 POST `/secondary/stock-order-calc` body 권장 |
 
 ---
@@ -429,7 +475,31 @@
 | `competitorSales` | 경쟁 **실판매 수량(EA)**. 예측 구간 등에서는 `null` 가능 |
 | `isForecast` | 포캐스트 구간 여부 |
 
-### 3.8 `getSecondaryCompetitorChannels`
+### 3.8 `getSecondaryAiComment`
+
+2차 드로워가 열릴 때 live 기준 AI 코멘트를 요청한다. 이 요청은 후보 아이템 스냅샷을 자동 저장하거나 수정하지 않는다. 사용자가 2차 드로워에서 저장/수정 버튼을 눌렀을 때만 반환된 `llmAnswer`가 후보 아이템 `details.drawer2.llmAnswer`에 저장된다.
+
+**요청 (`SecondaryAiCommentParams`)**
+
+| 필드 | 의미 |
+|------|------|
+| `skuGroupKey` | 상품 단위 묶음 키. `SKU.code + SKU.color_code`에 대응 |
+| `periodStart`, `periodEnd` | AI 코멘트 생성 기준 데이터 참조 기간 |
+| `forecastMonths` | 현재 드로워의 예측 개월 수 |
+| `competitorChannelId` | 현재 선택된 경쟁 채널 id |
+| `candidateItemUuid` | 선택. 이너후보군에서 열린 후보 아이템 UUID. 저장 전 일반 2차 드로워이면 `null` 또는 생략 |
+
+**응답 (`SecondaryAiCommentResult`)**
+
+| 필드 | 의미 |
+|------|------|
+| `llmPrompt` | 백엔드가 사용한 프롬프트/요약 컨텍스트. 스냅샷 저장 시 판단 근거로 함께 보관한다 |
+| `llmAnswer` | 화면의 AI 코멘트 카드에 표시할 본문 |
+| `generatedAt` | 생성 시각 |
+
+백엔드 구현 방향: Python 백엔드는 활성 GPT 키(`purpose = ai-comment` 또는 `all`)를 선택해, 상품 기본 정보, 조회 기간 판매 요약, 선택 경쟁 채널 지표, 재고·발주 계산에 필요한 요약값을 서버에서 구성한 뒤 코멘트를 생성한다. 프론트가 화면에 이미 가진 값만 그대로 되돌려 보내게 만들지 말고, DB/집계 기준으로 같은 컨텍스트를 재구성하는 쪽이 정합성에 유리하다. 다만 응답은 화면 표시와 스냅샷 저장에 필요한 `llmPrompt`, `llmAnswer`, `generatedAt`만 내려준다.
+
+### 3.9 `getSecondaryCompetitorChannels`
 
 **응답 (`SecondaryCompetitorChannel[]`)**
 
@@ -442,7 +512,7 @@
 
 현재 프론트 기준 유효 채널은 **`kream`, `musinsa`** 입니다(`naver` 제거됨).
 
-### 3.9 후보군(Candidate stash / item)
+### 3.10 후보군(Candidate stash / item)
 
 **`CandidateStashSummary`**
 
@@ -450,7 +520,7 @@
 |------|------|
 | `uuid` | 스태시 PK |
 | `name`, `note` | 이름·비고 |
-| `periodStart`, `periodEnd` | 후보군 생성 당시의 데이터 참조 기간. 프론트 상세 화면은 이 값을 초기값으로 쓰며, 이후 사용자가 바꾼 `dataReferencePeriodStart`/`dataReferencePeriodEnd`가 후보군 리스트 재계산과 추천 판단에 적용된다 |
+| `periodStart`, `periodEnd` | 후보군 생성 당시의 데이터 참조 기간. 프론트 상세 화면은 이 값을 조회 카드의 초기값으로 쓰며, 사용자가 기간 입력 후 `조회` 버튼을 누른 시점의 `dataReferencePeriodStart`/`dataReferencePeriodEnd`가 후보군 리스트 재계산과 추천 판단에 적용된다 |
 | `forecastMonths` | 후보군 생성 당시의 월간 판매추이 포캐스트 개월 수 |
 | `itemCount` | 소속 후보 아이템 개수 |
 | `dbCreatedAt`, `dbUpdatedAt` | 생성·수정 시각(아이템 추가로 스태시 “갱신” 시각을 반영할지는 백엔드 정책) |
@@ -465,7 +535,7 @@
 | `dataReferencePeriodStart` | 후보군 리스트 수치와 배지 판단에 사용할 데이터 참조 시작일 (`YYYY-MM-DD`) |
 | `dataReferencePeriodEnd` | 후보군 리스트 수치와 배지 판단에 사용할 데이터 참조 종료일 (`YYYY-MM-DD`) |
 
-이 API는 단순히 후보군에 담긴 상품만 조회해 계산하면 안 된다. 배지 기준이 “조회 기간 전체에서 상위 몇 %인가”처럼 전체 분포에 의존하므로, 백엔드는 먼저 해당 기간의 전체 대상 상품 데이터를 집계하고 그 전체 분포 기준으로 배지를 부여한 뒤, 그 결과 중 `stashUuid`에 담긴 상품만 추려 반환해야 한다. 기간 변경마다 호출될 수 있으므로 기간+경쟁채널 기준 랭킹/배지 계산 결과를 캐시하거나 materialized view/batch 집계를 두는 방식을 권장한다.
+이 API는 단순히 후보군에 담긴 상품만 조회해 계산하면 안 된다. 배지 기준이 “조회 기간 전체에서 상위 몇 %인가”처럼 전체 분포에 의존하므로, 백엔드는 먼저 해당 기간의 전체 대상 상품 데이터를 집계하고 그 전체 분포 기준으로 배지를 부여한 뒤, 그 결과 중 `stashUuid`에 담긴 상품만 추려 반환해야 한다. 프론트는 날짜 입력 변경마다 호출하지 않고 `조회` 버튼 클릭 시점에만 호출한다. 그래도 조회 기간 변경은 무거운 재집계가 될 수 있으므로 기간+경쟁채널 기준 랭킹/배지 계산 결과를 캐시하거나 materialized view/batch 집계를 두는 방식을 권장한다.
 
 **`CandidateItemListResult`** (`getCandidateItemsByStash` 응답)
 
@@ -540,8 +610,6 @@ badges: [
 - `AppendCandidateItemPayload`: `{ stashUuid, skuGroupKey, details, isLatestLlmComment? }` — `details`가 오더 스냅샷 저장의 단일 경로이며, 기본값은 `false` 권장
 - `UpdateCandidateItemPayload`: `{ itemUuid, details, isLatestLlmComment }`
 - `CandidateStashExcelUploadResult`: `{ stashUuid, stashName, itemCount, warnings: string[] }`
-- `CandidateStashAnalysisStartResult`: `{ jobId, stashUuid, itemCount }`
-- `CandidateStashAnalysisProgressEvent`: `{ jobId, stashUuid, status, totalItems, completedItems, currentItemUuid, currentProductName, message, error? }`
 - 2차 드로워에서 후보 아이템 스냅샷을 다시 저장할 때 프론트는 `updateCandidateItem`에 `isLatestLlmComment: false`를 보냅니다. 백엔드는 해당 아이템의 DB `is_latest_llm_comment`를 `false`로 저장해 기존 AI 코멘트/추천이 최신 스냅샷 기준이 아님을 표시해야 합니다.
 
 **동작 메모**
@@ -563,21 +631,13 @@ badges: [
   - 백엔드는 생성된 후보군 UUID, 등록 아이템 수, 무시/보정된 행 경고를 응답합니다.
   - 검증 실패 시 후보군/아이템을 부분 저장하지 않는 것을 기본 정책으로 권장합니다.
 
-**후보군 스냅샷 AI 분석**
+**후보군 AI 코멘트/상세확정**
 
-- 후보군 상세 모달이 열리면 프론트는 `startCandidateStashAnalysis(stashUuid)`를 호출합니다.
-- 백엔드는 해당 `stashUuid`에 속한 후보 아이템 중 저장 스냅샷(`CandidateItemDetail.details`)이 존재하는 항목만 AI 분석 작업에 투입합니다. 스냅샷 없이 담긴 미확정 항목은 AI 코멘트/사이즈별 확정 오더량의 근거가 없으므로 건너뛰거나 “미확정” 상태로 보고합니다.
-- 시작 응답은 `{ jobId, stashUuid, itemCount }`입니다. 프론트는 후보군 상세 모달이 열려 있는 동안만 이 `jobId`로 SSE 스트림을 엽니다.
-- SSE는 `Content-Type: text/event-stream`으로 제공하고, 각 `data:`는 `CandidateStashAnalysisProgressEvent` JSON입니다.
-- `status` 값은 `'queued' | 'running' | 'completed' | 'failed'` 중 하나입니다.
-- 진행 이벤트는 최소한 `totalItems`, `completedItems`, `message`를 포함해야 합니다. 특정 아이템 처리 중이면 `currentItemUuid`, `currentProductName`을 채웁니다.
-- 각 후보 아이템의 AI 분석/코멘트 갱신이 완료되면 백엔드는 해당 아이템의 DB `is_latest_llm_comment`를 `true`로 갱신해야 합니다.
-- 실패 시 `status: 'failed'`와 `error` 메시지를 내려야 하며, 프론트는 진행 카드에 실패 상태를 표시합니다.
-- 프론트는 모달 닫힘/언마운트 또는 `completed`/`failed` 수신 시 SSE 연결을 닫습니다. 백엔드는 terminal 이벤트(`completed` 또는 `failed`) 전송 후 스트림을 종료하는 것을 권장합니다.
-- 브라우저가 SSE 연결을 끊어도 백엔드 작업 취소를 의미하지 않습니다. 별도 취소 API가 필요하면 독립 계약으로 추가합니다.
-- AI 분석 결과를 후보 아이템·후보군에 저장할 경우, 저장 위치와 요약 필드는 별도 응답/조회 계약으로 추가해야 합니다. 현재 프론트 계약은 “요청 발생 + 진행 상태 표시”까지만 요구합니다.
+- 후보군 상세 모달이 열릴 때 자동 AI 일괄 분석 요청이나 SSE 진행 상태 표시는 하지 않습니다.
+- AI 코멘트와 사이즈별 확정 오더량은 이너후보군 2차 드로워에서 스냅샷을 저장/수정할 때 후보 아이템 `details`에 함께 저장합니다.
+- 백엔드가 별도 비동기 AI 분석 작업을 도입하려면 후보군 자동 열림 흐름이 아니라 명시적 사용자 액션과 별도 API 계약으로 추가해야 합니다.
 
-### 3.10 `getSecondaryStockOrderCalc`
+### 3.11 `getSecondaryStockOrderCalc`
 
 **요청 (`SecondaryStockOrderCalcParams`)**
 

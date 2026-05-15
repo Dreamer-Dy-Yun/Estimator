@@ -7,13 +7,9 @@ import detailStyles from './CandidateStashDetailModal.module.css'
 
 type Props = {
   detailTarget: CandidateStashSummary
-  dataReferencePeriodStart: string
-  dataReferencePeriodEnd: string
   recommendationLoading: boolean
   canLoadRecommendations: boolean
   selectedVisibleCount: number
-  onDataReferencePeriodStartChange: (value: string) => void
-  onDataReferencePeriodEndChange: (value: string) => void
   onOpenRecommendations: () => void
   onOpenBulkDelete: () => void
   onClose: () => void
@@ -21,13 +17,9 @@ type Props = {
 
 export function CandidateStashDetailHeader({
   detailTarget,
-  dataReferencePeriodStart,
-  dataReferencePeriodEnd,
   recommendationLoading,
   canLoadRecommendations,
   selectedVisibleCount,
-  onDataReferencePeriodStartChange,
-  onDataReferencePeriodEndChange,
   onOpenRecommendations,
   onOpenBulkDelete,
   onClose,
@@ -39,24 +31,6 @@ export function CandidateStashDetailHeader({
           <h3 id="stash-detail-modal-title" className={detailStyles.detailTitle}>
             {detailTarget.name}
           </h3>
-        </div>
-        <div className={detailStyles.detailHeaderDataReferencePeriodCell} aria-label="데이터 참조 기간">
-          <span className={detailStyles.detailHeaderDataReferencePeriodLabel}>데이터 참조 기간 :</span>
-          <input
-            className={detailStyles.detailHeaderDataReferencePeriodInput}
-            type="date"
-            aria-label="데이터 참조 시작일"
-            value={dataReferencePeriodStart}
-            onChange={(event) => onDataReferencePeriodStartChange(event.target.value)}
-          />
-          <span className={detailStyles.detailHeaderDataReferencePeriodSeparator}>~</span>
-          <input
-            className={detailStyles.detailHeaderDataReferencePeriodInput}
-            type="date"
-            aria-label="데이터 참조 종료일"
-            value={dataReferencePeriodEnd}
-            onChange={(event) => onDataReferencePeriodEndChange(event.target.value)}
-          />
         </div>
         <div className={detailStyles.detailMetaStack}>
           <span className={detailStyles.detailMetaLine}>

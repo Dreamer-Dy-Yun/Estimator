@@ -18,7 +18,6 @@ import { seededCandidateItems, seededCandidateStashes } from './candidateSeeds'
 import { type CandidateItemRecord, type CandidateStashRecord } from './records'
 import { productPrimaryBySkuGroupKey } from './productCatalog'
 import { makeUuid32, sleep } from './utils'
-import { createCandidateAnalysisMockApi } from './candidateAnalysisMock'
 
 function readCandidateStashRecords(): CandidateStashRecord[] {
   return seededCandidateStashes
@@ -75,12 +74,6 @@ function buildCandidateListParamsPeriod({
     end: dataReferencePeriodEnd,
   }
 }
-
-const candidateAnalysisMockApi = createCandidateAnalysisMockApi({
-  findCandidateStashForOwner,
-  readCandidateItemsForStash,
-  getProductName: (skuGroupKey) => productPrimaryBySkuGroupKey[skuGroupKey]?.productName ?? null,
-})
 
 export const candidateMockApi = {
   getCandidateStashes: async (ownerUserUuid?: string): Promise<CandidateStashSummary[]> => {
@@ -263,5 +256,4 @@ export const candidateMockApi = {
       ],
     }
   },
-  ...candidateAnalysisMockApi,
 }

@@ -95,7 +95,7 @@ export function InnerCandidateOrderList({
         <InnerOrderSortHeader label="품번" sortKey="code" activeKey={activeSortKey} activeDir={activeSortDir} onSort={onSort} />
         <InnerOrderSortHeader label="상품명" sortKey="productName" activeKey={activeSortKey} activeDir={activeSortDir} onSort={onSort} />
         <InnerOrderSortHeader label="색상" sortKey="colorCode" activeKey={activeSortKey} activeDir={activeSortDir} onSort={onSort} />
-        <InnerOrderSortHeader label="상세확정" sortKey="isDetailConfirmed" activeKey={activeSortKey} activeDir={activeSortDir} onSort={onSort} />
+        <InnerOrderSortHeader label="상태" sortKey="isDetailConfirmed" activeKey={activeSortKey} activeDir={activeSortDir} onSort={onSort} />
         <InnerOrderSortHeader label="자사 기간 총 판매량" sortKey="selfQty" activeKey={activeSortKey} activeDir={activeSortDir} align="right" onSort={onSort} />
         <InnerOrderSortHeader label={competitorSalesQtyHeader} sortKey="competitorQty" activeKey={activeSortKey} activeDir={activeSortDir} align="right" onSort={onSort} />
         <InnerOrderSortHeader label="총 오더 수량" sortKey="expectedSalesQty" activeKey={activeSortKey} activeDir={activeSortDir} align="right" onSort={onSort} />
@@ -151,7 +151,7 @@ export function InnerCandidateOrderList({
             <span className={detailStyles.innerOrderName}>{row.productName}</span>
             <span className={detailStyles.innerOrderColor}>{row.colorCode}</span>
             <span className={detailStyles.innerOrderConfirmState}>
-              {row.isDetailConfirmed ? '확정' : '미확정'}
+              {row.isDetailConfirmed ? '상세확정' : '미확정'}
             </span>
             <span className={detailStyles.innerOrderCellNum}>{formatEaQuantity(row.insight.selfQty)}</span>
             <span className={detailStyles.innerOrderCellNum}>{formatEaQuantity(row.insight.competitorQty)}</span>

@@ -8,6 +8,15 @@ export type {
   UpdateAdminGptKeyPayload,
 } from './admin-gpt-key'
 export type {
+  AdminGoogleSheetAccessMode,
+  AdminGoogleSheetApi,
+  AdminGoogleSheetConfigSummary,
+  AdminGoogleSheetPurpose,
+  AdminGoogleSheetShareRole,
+  CreateAdminGoogleSheetConfigPayload,
+  UpdateAdminGoogleSheetConfigPayload,
+} from './admin-google-sheet'
+export type {
   AdminUserSummary,
   AuthApi,
   AuthRole,
@@ -43,6 +52,8 @@ export type {
   ProductSalesInsightParams,
 } from './drawer'
 export type {
+  SecondaryAiCommentParams,
+  SecondaryAiCommentResult,
   ProductSecondaryDetailParams,
   SecondaryCompetitorChannel,
   SecondaryDailyTrendParams,
@@ -62,11 +73,6 @@ export type {
   CandidateItemSummary,
   CandidateRecommendationParams,
   CandidateRecommendationResult,
-  CandidateStashAnalysisHandlers,
-  CandidateStashAnalysisProgressEvent,
-  CandidateStashAnalysisStartResult,
-  CandidateStashAnalysisStatus,
-  CandidateStashAnalysisSubscription,
   CandidateStashExcelUploadResult,
   CandidateStashExcelTemplateDownload,
   CandidateStashSummary,

@@ -18,7 +18,8 @@
     display: none;
   }
 
-  .gptKeyTableHeader {
+  .gptKeyTableHeader,
+  .googleSheetTableHeader {
     display: none;
   }
 
@@ -31,18 +32,23 @@
     gap: 10px;
   }
 
-  .gptKeyListRow {
+  .gptKeyListRow,
+  .googleSheetListRow {
     grid-template-columns: 1fr;
     gap: 10px;
   }
 
   .createForm,
-  .gptKeyCreateForm {
+  .gptKeyCreateForm,
+  .googleSheetCreateForm {
     grid-template-columns: 1fr;
     align-items: stretch;
   }
 
   .gptKeyCreateNote,
+  .googleSheetWideField,
+  .googleSheetKeyField,
+  .googleSheetCreateNote,
   .noteCell {
     grid-column: 1 / -1;
   }

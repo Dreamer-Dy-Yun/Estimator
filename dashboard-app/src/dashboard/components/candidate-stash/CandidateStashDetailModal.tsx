@@ -3,7 +3,7 @@ import type { CandidateStashSummary } from '../../../api'
 import { useAuth } from '../../../auth/AuthContext'
 import { stashDetailModalBackdropDataProps } from '../../drawer/drawerDom'
 import { CandidateRecommendationModal } from './CandidateRecommendationModal'
-import { CandidateStashAnalysisStatusPopup } from './CandidateStashAnalysisStatusPopup'
+import { CandidateStashDataReferenceCard } from './CandidateStashDataReferenceCard'
 import { CandidateStashDeleteDialogs } from './CandidateStashDeleteDialogs'
 import { CandidateStashDetailBody } from './CandidateStashDetailBody'
 import { CandidateStashDetailFilters } from './CandidateStashDetailFilters'
@@ -77,12 +77,6 @@ export function CandidateStashDetailModal({ stashUuid, stashSummary, onClose, on
         role="presentation"
         {...stashDetailModalBackdropDataProps(model.drawerOpen, model.drawerClosing)}
       >
-        <CandidateStashAnalysisStatusPopup
-          stashUuid={stashUuid}
-          progress={model.analysisProgress}
-          error={model.analysisError}
-        />
-
         <div
           className={detailStyles.stashDetailModalPanel}
           onClick={(event) => event.stopPropagation()}
@@ -97,16 +91,20 @@ export function CandidateStashDetailModal({ stashUuid, stashSummary, onClose, on
               <>
                 <CandidateStashDetailHeader
                   detailTarget={model.detailTarget}
-                  dataReferencePeriodStart={model.dataReferencePeriodStart}
-                  dataReferencePeriodEnd={model.dataReferencePeriodEnd}
                   recommendationLoading={model.recommendationLoading}
                   canLoadRecommendations={Boolean(model.tableRows.length && model.periodStart && model.periodEnd)}
                   selectedVisibleCount={itemSelection.selectedVisibleCount}
-                  onDataReferencePeriodStartChange={model.onDataReferencePeriodStartChange}
-                  onDataReferencePeriodEndChange={model.onDataReferencePeriodEndChange}
                   onOpenRecommendations={openRecommendationModal}
                   onOpenBulkDelete={() => setBulkDeleteOpen(true)}
                   onClose={onClose}
+                />
+                <CandidateStashDataReferenceCard
+                  periodStart={model.draftDataReferencePeriodStart}
+                  periodEnd={model.draftDataReferencePeriodEnd}
+                  loading={model.detailLoading}
+                  onPeriodStartChange={model.onDataReferencePeriodStartChange}
+                  onPeriodEndChange={model.onDataReferencePeriodEndChange}
+                  onSearch={model.applyDataReferencePeriod}
                 />
                 <CandidateStashDetailFilters
                   model={model}

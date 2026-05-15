@@ -2,7 +2,7 @@
 import type { Dispatch, SetStateAction } from 'react'
 import type { SecondaryCompetitorChannel } from '../../../../api'
 import { ComponentErrorBoundary } from '../../../../components/ComponentErrorBoundary'
-import type { ProductPrimarySummary } from '../../../../types'
+import type { ApiUnitErrorInfo, ProductPrimarySummary } from '../../../../types'
 import { PortalHelpPopoverLayer } from '../../PortalHelpPopover'
 import commonStyles from '../../common.module.css'
 import { usePortalHelpPopover } from '../../usePortalHelpPopover'
@@ -38,6 +38,8 @@ type Props = {
   onShowSnapshotInfoChange: Dispatch<SetStateAction<boolean>>
   model: ReturnType<typeof useSecondaryForecastModel>
   aiComment: string
+  aiCommentLoading: boolean
+  aiCommentError: ApiUnitErrorInfo | null
   selfWeightPct: number
   onSelfWeightPctChange: (value: number) => void
   minOrderDate: string
@@ -84,6 +86,8 @@ export function ProductSecondaryDrawerContent({
   onShowSnapshotInfoChange,
   model,
   aiComment,
+  aiCommentLoading,
+  aiCommentError,
   selfWeightPct,
   onSelfWeightPctChange,
   minOrderDate,
@@ -130,7 +134,7 @@ export function ProductSecondaryDrawerContent({
   const forecastOpProfitRatePct = snapshotInfoMode && forecastExpectedSales > 0 ? (forecastOpProfit / forecastExpectedSales) * 100 : undefined
   const aiCommentCard = (
     <ComponentErrorBoundary page={pageName} unit="AiCommentCard">
-      <AiCommentCard comment={aiComment} />
+      <AiCommentCard comment={aiComment} loading={aiCommentLoading} error={aiCommentError} />
     </ComponentErrorBoundary>
   )
   const sizeOrderCard = (

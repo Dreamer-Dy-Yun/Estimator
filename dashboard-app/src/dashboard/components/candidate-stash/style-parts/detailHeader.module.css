@@ -7,7 +7,7 @@
 }
 
 .detailHeaderTitleArea {
-  grid-column: 1 / span 16;
+  grid-column: 1 / span 25;
   grid-row: 1;
   min-width: 0;
 }
@@ -31,49 +31,6 @@
   font-size: 11px;
   line-height: 1.25;
   color: #64748b;
-}
-
-.detailHeaderDataReferencePeriodCell {
-  grid-column: 17 / span 9;
-  grid-row: 1;
-  min-width: 0;
-  display: grid;
-  grid-template-columns: auto minmax(100px, 124px) auto minmax(100px, 124px);
-  align-items: center;
-  justify-self: start;
-  justify-content: start;
-  gap: 6px;
-}
-
-.detailHeaderDataReferencePeriodLabel,
-.detailHeaderDataReferencePeriodSeparator {
-  min-width: 0;
-  color: #64748b;
-  font-size: 11px;
-  font-weight: 800;
-  line-height: 1;
-  white-space: nowrap;
-}
-
-.detailHeaderDataReferencePeriodInput {
-  width: 100%;
-  min-width: 0;
-  height: 32px;
-  border: 0;
-  border-radius: 6px;
-  padding: 0 6px;
-  box-sizing: border-box;
-  background: transparent;
-  color: #0f172a;
-  font: inherit;
-  font-size: 14.4px;
-  font-weight: 700;
-  outline: none;
-}
-
-.detailHeaderDataReferencePeriodInput:focus {
-  background: #f8fafc;
-  box-shadow: none;
 }
 
 .detailMetaLine {

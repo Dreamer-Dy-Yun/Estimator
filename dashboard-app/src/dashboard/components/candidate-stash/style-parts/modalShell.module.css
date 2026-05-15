@@ -70,16 +70,8 @@
 
 .stashDetailModalBackdrop[data-inner-drawer-open='true'] .detailHeaderTitleArea,
 .stashDetailModalBackdrop[data-inner-drawer-closing='true'] .detailHeaderTitleArea {
-  grid-column: 1 / span 14;
+  grid-column: 1 / span 25;
   grid-row: 1;
-}
-
-.stashDetailModalBackdrop[data-inner-drawer-open='true'] .detailHeaderDataReferencePeriodCell,
-.stashDetailModalBackdrop[data-inner-drawer-closing='true'] .detailHeaderDataReferencePeriodCell {
-  grid-column: 15 / span 11;
-  grid-row: 1;
-  grid-template-columns: auto minmax(100px, 124px) auto minmax(100px, 124px);
-  gap: 6px;
 }
 
 .stashDetailModalBackdrop[data-inner-drawer-open='true'] .detailMetaStack,
@@ -107,6 +99,30 @@
   grid-row: 1;
 }
 
+.stashDetailModalBackdrop[data-inner-drawer-open='true'] .dataReferenceQueryGrid,
+.stashDetailModalBackdrop[data-inner-drawer-closing='true'] .dataReferenceQueryGrid {
+  grid-template-columns: 1fr;
+}
+
+.stashDetailModalBackdrop[data-inner-drawer-open='true'] .dataReferenceQueryLabel,
+.stashDetailModalBackdrop[data-inner-drawer-open='true'] .dataReferenceQueryControls,
+.stashDetailModalBackdrop[data-inner-drawer-open='true'] .dataReferenceQueryActions,
+.stashDetailModalBackdrop[data-inner-drawer-closing='true'] .dataReferenceQueryLabel,
+.stashDetailModalBackdrop[data-inner-drawer-closing='true'] .dataReferenceQueryControls,
+.stashDetailModalBackdrop[data-inner-drawer-closing='true'] .dataReferenceQueryActions {
+  grid-column: 1 / -1;
+}
+
+.stashDetailModalBackdrop[data-inner-drawer-open='true'] .dataReferenceQueryActions,
+.stashDetailModalBackdrop[data-inner-drawer-closing='true'] .dataReferenceQueryActions {
+  justify-content: stretch;
+}
+
+.stashDetailModalBackdrop[data-inner-drawer-open='true'] .dataReferenceQueryButton,
+.stashDetailModalBackdrop[data-inner-drawer-closing='true'] .dataReferenceQueryButton {
+  width: 100%;
+}
+
 .stashDetailModalBackdrop[data-inner-drawer-open='true'] .detailHeaderRecommendationBtn,
 .stashDetailModalBackdrop[data-inner-drawer-closing='true'] .detailHeaderRecommendationBtn,
 .stashDetailModalBackdrop[data-inner-drawer-open='true'] .detailHeaderDeleteCell :global(button),
@@ -120,4 +136,3 @@
   justify-content: flex-end;
   margin-top: 10px;
 }
-

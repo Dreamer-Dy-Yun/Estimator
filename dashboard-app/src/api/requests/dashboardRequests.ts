@@ -10,6 +10,8 @@ import type {
   ProductSalesInsightParams,
   ProductSecondaryDetail,
   ProductSecondaryDetailParams,
+  SecondaryAiCommentParams,
+  SecondaryAiCommentResult,
   SecondaryDailyTrendParams,
   SecondaryDailyTrendPoint,
   SecondaryStockOrderCalcParams,
@@ -51,6 +53,11 @@ const candidateStashExcelTemplateFilename = '(Han.A)Template(ver.0.0.0).xlsx'
  *   skuGroupKey and keep self sales unduplicated.
  * - Period/channel-sensitive drawer data should remain separate API calls rather
  *   than being merged back into a single oversized bundle.
+ * - Secondary drawer AI comments are requested when the 2차 drawer opens.
+ *   Backend should generate comments from skuGroupKey, data reference period,
+ *   forecastMonths, selected competitor channel, and optional candidateItemUuid.
+ *   Opening the drawer must not mutate candidate snapshots by itself; returned
+ *   text is stored only when the user saves the secondary drawer.
  * - Candidate stash ownership is based on USER_ACCOUNT.uuid. The UI does not pass
  *   userUuid around; this adapter resolves the current session and sends it only
  *   at the request boundary. If the backend uses HttpOnly session identity, still
@@ -62,8 +69,10 @@ const candidateStashExcelTemplateFilename = '(Han.A)Template(ver.0.0.0).xlsx'
  * - Candidate stash item list is period-sensitive. The backend should calculate
  *   the requested period over the full eligible skuGroupKey universe, assign
  *   badges from that full-period distribution, then return only the skuGroupKeys
- *   contained in the requested stash. Cache period/channel ranking results if
- *   this becomes expensive.
+ *   contained in the requested stash. The UI keeps date inputs as draft state
+ *   and calls this endpoint only when the user presses 조회, not on every date
+ *   keystroke/change. Cache period/channel ranking results if this becomes
+ *   expensive.
  * - Stored snapshots remain the source of confirmed drawer/order state. Live
  *   candidate list values may recalculate by data reference period, but saved
  *   snapshot details must not be silently overwritten by adapter-side math.
@@ -113,6 +122,12 @@ async function getSecondaryDailyTrend(
   params: SecondaryDailyTrendParams,
 ): Promise<SecondaryDailyTrendPoint[]> {
   return mockDashboardApi.getSecondaryDailyTrend(params)
+}
+
+async function getSecondaryAiComment(
+  params: SecondaryAiCommentParams,
+): Promise<SecondaryAiCommentResult> {
+  return mockDashboardApi.getSecondaryAiComment(params)
 }
 
 function getCandidateStashExcelTemplateDownload(): CandidateStashExcelTemplateDownload {
@@ -212,6 +227,7 @@ export const dashboardRequests: DashboardApi = {
   getProductSalesInsight,
   getProductSecondaryDetail,
   getSecondaryDailyTrend,
+  getSecondaryAiComment,
   getSecondaryCompetitorChannels: () => mockDashboardApi.getSecondaryCompetitorChannels(),
 
   /**
@@ -256,10 +272,5 @@ export const dashboardRequests: DashboardApi = {
   uploadCandidateStashExcel: async (file) =>
     withCurrentUserUuid((userUuid) => mockDashboardApi.uploadCandidateStashExcel(file, userUuid)),
 
-  /** Candidate analysis progress is SSE-shaped in production. */
-  startCandidateStashAnalysis: async (stashUuid) =>
-    withCurrentUserUuid((userUuid) => mockDashboardApi.startCandidateStashAnalysis(stashUuid, userUuid)),
-  subscribeCandidateStashAnalysis: (jobId, handlers) =>
-    mockDashboardApi.subscribeCandidateStashAnalysis(jobId, handlers),
   getSecondaryStockOrderCalc,
 }
