@@ -15,12 +15,9 @@ let mockAdminGoogleSheetConfigs: AdminGoogleSheetConfigSummary[] = [
     name: 'DB 설계 시트',
     purpose: 'db-schema',
     serviceAccountEmail: 'han-a-sheets@mock-project.iam.gserviceaccount.com',
-    serviceAccountRole: 'viewer',
     maskedServiceAccountKey: 'json-...mock',
     spreadsheetUrl: 'https://docs.google.com/spreadsheets/d/mock-spreadsheet-id/edit',
     spreadsheetId: 'mock-spreadsheet-id',
-    sheetRange: 'SKU!A1:Z',
-    accessMode: 'readonly',
     isActive: true,
     note: 'DB 테이블 정의 참조용 목업 설정',
     dbUpdatedAt: MOCK_UPDATED_AT,
@@ -52,6 +49,22 @@ function maskServiceAccountKey(serviceAccountKeyJson: string) {
   return `json-...${clean.slice(-4)}`
 }
 
+function extractServiceAccountEmail(serviceAccountKeyJson: string) {
+  const clean = serviceAccountKeyJson.trim()
+  if (!clean) throw new Error('서비스 계정 JSON 키 파일이 필요합니다.')
+  try {
+    const parsed = JSON.parse(clean) as { client_email?: unknown }
+    if (typeof parsed.client_email === 'string' && parsed.client_email.trim()) {
+      return parsed.client_email.trim()
+    }
+  } catch {
+    // Regex fallback keeps the mock useful while the UI still rejects malformed JSON.
+  }
+  const clientEmailMatch = clean.match(/"client_email"\s*:\s*"([^"]+)"/)
+  if (clientEmailMatch?.[1]) return clientEmailMatch[1].trim()
+  throw new Error('서비스 계정 JSON 키에서 client_email을 찾을 수 없습니다.')
+}
+
 function findConfig(uuid: string) {
   return mockAdminGoogleSheetConfigs.find((config) => config.uuid === uuid) ?? null
 }
@@ -76,13 +89,10 @@ export const mockAdminGoogleSheetApi: AdminGoogleSheetApi = {
       uuid: createMockUuid(),
       name: payload.name.trim() || '새 구글 시트',
       purpose: payload.purpose,
-      serviceAccountEmail: payload.serviceAccountEmail.trim(),
-      serviceAccountRole: payload.serviceAccountRole,
+      serviceAccountEmail: extractServiceAccountEmail(payload.serviceAccountKeyJson),
       maskedServiceAccountKey: maskServiceAccountKey(payload.serviceAccountKeyJson),
       spreadsheetUrl: payload.spreadsheetUrl.trim(),
       spreadsheetId: extractSpreadsheetId(payload.spreadsheetUrl),
-      sheetRange: payload.sheetRange.trim() || 'Sheet1!A1:Z',
-      accessMode: payload.accessMode,
       isActive: payload.isActive,
       note: cleanNote(payload.note),
       dbUpdatedAt: now,
@@ -103,13 +113,10 @@ export const mockAdminGoogleSheetApi: AdminGoogleSheetApi = {
       ...target,
       name: payload.name.trim() || target.name,
       purpose: payload.purpose,
-      serviceAccountEmail: payload.serviceAccountEmail.trim(),
-      serviceAccountRole: payload.serviceAccountRole,
+      serviceAccountEmail: nextKey ? extractServiceAccountEmail(nextKey) : target.serviceAccountEmail,
       maskedServiceAccountKey: nextKey ? maskServiceAccountKey(nextKey) : target.maskedServiceAccountKey,
       spreadsheetUrl: payload.spreadsheetUrl.trim(),
       spreadsheetId: extractSpreadsheetId(payload.spreadsheetUrl),
-      sheetRange: payload.sheetRange.trim() || target.sheetRange,
-      accessMode: payload.accessMode,
       isActive: payload.isActive,
       note: cleanNote(payload.note),
       dbUpdatedAt: new Date().toISOString(),

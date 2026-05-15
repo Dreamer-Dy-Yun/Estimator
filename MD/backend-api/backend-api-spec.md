@@ -21,7 +21,7 @@
 |------|-----------|----------------------|
 | `src/api/requests/authRequests.ts` | 로그인, 세션, 사용자 정보 변경, 관리자 사용자 관리 | HttpOnly cookie 기반 세션 권장. 비밀번호/임시 비밀번호는 요청 또는 1회 응답에만 존재해야 하며 목록·세션 응답에 포함하지 않는다 |
 | `src/api/requests/adminGptKeyRequests.ts` | 관리자 GPT 키 목록, 생성, 메타/키 변경, 연결 테스트, 삭제 | GPT 전용 계약이다. 생성/변경 요청만 `plainKey`를 담을 수 있고, 응답은 `maskedKey`만 내려준다. 키 저장/암호화/감사 로그는 백엔드 책임이다 |
-| `src/api/requests/adminGoogleSheetRequests.ts` | 관리자 구글 시트 설정 목록, 생성, 변경, 삭제 | 서비스 계정 JSON 키는 생성/변경 요청에만 담고 응답에는 `maskedServiceAccountKey`만 내려준다. 백엔드는 서비스 계정 이메일에 시트 공유 권한이 있는지 확인하고, 키 원문은 암호화 저장 또는 secret manager로 보관한다 |
+| `src/api/requests/adminGoogleSheetRequests.ts` | 관리자 구글 시트 설정 목록, 생성, 변경, 삭제 | 서비스 계정 JSON 키는 생성/변경 요청에만 담고 응답에는 `maskedServiceAccountKey`만 내려준다. 백엔드는 JSON의 `client_email`을 서비스 계정 이메일로 파싱하고, 키 원문은 암호화 저장 또는 secret manager로 보관한다 |
 | `src/api/requests/dashboardRequests.ts` | 자사/경쟁 판매, 상품 드로워, 후보군, 엑셀 업로드 템플릿 | 후보군 계열 요청은 현재 사용자 `USER_ACCOUNT.uuid` 기준으로 소유자 필터를 강제한다. 프론트 UI는 사용자 UUID를 들고 다니지 않고 request adapter에서만 붙인다. 세션 기반 백엔드라면 요청값보다 서버 세션을 우선한다. 경쟁 분석 목록은 `competitorChannelId` 생략 시 전체 경쟁 채널 합계를 반환하고, 상품 드로워 판매 인사이트는 선택 경쟁 채널을 필수로 받는다. 이너후보군 리스트는 데이터 참조기간의 전체 상품 분포로 배지를 계산한 뒤 stash item만 반환한다. 기간 총판매량은 백엔드가 `*_MONTHLY_SUMMARY`와 raw 판매 테이블을 조합해 계산하고, 프론트는 내려온 값을 그대로 표시한다. 발주 엑셀 다운로드는 백엔드 재호출 없이 이미 받은 `orderExport` DTO로 프론트가 생성한다 |
 
 `src/api/client.ts`는 public export facade다. 화면에서 import하는 이름을 안정적으로 유지하기 위한 파일이며, mock/HTTP 선택과 base URL 처리는 `src/api/requests/httpClient.ts`와 각 request adapter가 맡는다.
@@ -234,13 +234,10 @@
 | `uuid` | string | 서버 생성 구글 시트 설정 UUID |
 | `name` | string | 관리자 화면 표시 이름 |
 | `purpose` | `'db-schema' \| 'upload-template' \| 'operation-reference' \| 'test'` | 사용 범위. DB 설계 참조, 업로드 템플릿, 운영 참조, 연결 테스트 등 |
-| `serviceAccountEmail` | string | Google Cloud 서비스 계정 이메일. 대상 시트 공유 대상과 일치해야 한다 |
-| `serviceAccountRole` | `'viewer' \| 'editor'` | 대상 Google Sheet에서 서비스 계정에 부여해야 하는 권한 |
+| `serviceAccountEmail` | string | Google Cloud 서비스 계정 이메일. 백엔드가 서비스 계정 JSON 키의 `client_email`에서 파싱한다 |
 | `maskedServiceAccountKey` | string | 목록/조회 화면 표시용 마스킹 키. 원문 JSON 키는 응답하지 않는다 |
 | `spreadsheetUrl` | string | 관리자가 입력한 Google Sheets URL |
 | `spreadsheetId` | string | 백엔드가 URL에서 파싱하거나 직접 받은 spreadsheet id |
-| `sheetRange` | string | API 호출 범위. 예: `SKU!A1:Z` |
-| `accessMode` | `'readonly' \| 'readwrite'` | 백엔드가 이 설정으로 수행할 접근 모드 |
 | `isActive` | boolean | 활성 설정 여부 |
 | `note` | string \| null | 내부 비고 |
 | `dbUpdatedAt` | string | ISO 8601 최근 변경 시각 |
@@ -249,18 +246,18 @@
 
 | 필드 | 타입 | 설명 |
 |------|------|------|
-| `name`, `purpose`, `serviceAccountEmail`, `serviceAccountRole`, `spreadsheetUrl`, `sheetRange`, `accessMode`, `isActive`, `note` | 위와 동일 | 구글 시트 설정 메타데이터 |
-| `serviceAccountKeyJson` | string | Google Cloud 서비스 계정 JSON 키 원문. 백엔드는 저장 시 암호화하거나 secret manager에 위임하고 응답에는 마스킹 값만 반환한다 |
+| `name`, `purpose`, `spreadsheetUrl`, `isActive`, `note` | 위와 동일 | 구글 시트 설정 메타데이터 |
+| `serviceAccountKeyJson` | string | Google Cloud 서비스 계정 JSON 키 원문. 백엔드는 `client_email`을 파싱해 `serviceAccountEmail`로 저장하고, 키 원문은 암호화하거나 secret manager에 위임하며 응답에는 마스킹 값만 반환한다 |
 
 **`UpdateAdminGoogleSheetConfigPayload`**
 
 | 필드 | 타입 | 설명 |
 |------|------|------|
 | `uuid` | string | 변경 대상 설정 UUID |
-| `name`, `purpose`, `serviceAccountEmail`, `serviceAccountRole`, `spreadsheetUrl`, `sheetRange`, `accessMode`, `isActive`, `note` | 위와 동일 | 구글 시트 설정 메타데이터 변경 |
+| `name`, `purpose`, `spreadsheetUrl`, `isActive`, `note` | 위와 동일 | 구글 시트 설정 메타데이터 변경 |
 | `serviceAccountKeyJson` | string \| undefined | 새 서비스 계정 JSON 키. 값이 있으면 같은 변경 요청에서 교체한다 |
 
-백엔드 구현 방향: Python에서는 Google API client 또는 gspread 계열을 사용하되, 설정 조회 API에서는 키 원문을 절대 직렬화하지 않는다. 시트 접근 실패는 권한 부족, 잘못된 spreadsheet id/range, 폐기된 서비스 계정 키를 구분해 관리자 화면에 표시 가능한 메시지로 반환하는 것이 좋다. 해당 설정 변경/삭제는 수행 관리자 UUID, 대상 설정 UUID, 시각, 요청 IP를 감사 로그로 남기는 것을 권장한다.
+백엔드 구현 방향: Python에서는 Google API client 또는 gspread 계열을 사용하되, 설정 조회 API에서는 키 원문을 절대 직렬화하지 않는다. 시트 접근 실패는 권한 부족, 잘못된 spreadsheet id, 폐기된 서비스 계정 키를 구분해 관리자 화면에 표시 가능한 메시지로 반환하는 것이 좋다. 해당 설정 변경/삭제는 수행 관리자 UUID, 대상 설정 UUID, 시각, 요청 IP를 감사 로그로 남기는 것을 권장한다.
 
 **`USER_ACCOUNT` 정합성 메모**
 

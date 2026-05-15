@@ -13,12 +13,8 @@ describe('mockAdminGoogleSheetApi', () => {
     const created = await mockAdminGoogleSheetApi.createAdminGoogleSheetConfig({
       name: '테스트 시트',
       purpose: 'test',
-      serviceAccountEmail: 'sheet-test@mock.iam.gserviceaccount.com',
-      serviceAccountRole: 'viewer',
       serviceAccountKeyJson: '{"client_email":"sheet-test@mock.iam.gserviceaccount.com","private_key":"secret-value"}',
       spreadsheetUrl: 'https://docs.google.com/spreadsheets/d/test-sheet-id/edit',
-      sheetRange: 'SKU!A1:Z',
-      accessMode: 'readonly',
       isActive: true,
       note: '테스트',
     })
@@ -26,6 +22,7 @@ describe('mockAdminGoogleSheetApi', () => {
     const configs = await mockAdminGoogleSheetApi.getAdminGoogleSheetConfigs()
 
     expect(created.spreadsheetId).toBe('test-sheet-id')
+    expect(created.serviceAccountEmail).toBe('sheet-test@mock.iam.gserviceaccount.com')
     expect(configs.some((config) => config.uuid === created.uuid)).toBe(true)
     expect(JSON.stringify(configs)).not.toContain('secret-value')
   })
@@ -36,12 +33,8 @@ describe('mockAdminGoogleSheetApi', () => {
     const created = await mockAdminGoogleSheetApi.createAdminGoogleSheetConfig({
       name: '삭제 테스트 시트',
       purpose: 'test',
-      serviceAccountEmail: 'delete-sheet@mock.iam.gserviceaccount.com',
-      serviceAccountRole: 'viewer',
-      serviceAccountKeyJson: '{"private_key":"delete-secret"}',
+      serviceAccountKeyJson: '{"client_email":"delete-sheet@mock.iam.gserviceaccount.com","private_key":"delete-secret"}',
       spreadsheetUrl: 'delete-sheet-id',
-      sheetRange: 'Sheet1!A1:Z',
-      accessMode: 'readonly',
       isActive: true,
       note: null,
     })

@@ -1,7 +1,5 @@
 import type {
-  AdminGoogleSheetAccessMode,
   AdminGoogleSheetPurpose,
-  AdminGoogleSheetShareRole,
   AdminGptKeyPurpose,
   AdminGptKeyTestStatus,
   AuthRole,
@@ -30,16 +28,6 @@ export const GOOGLE_SHEET_PURPOSE_OPTIONS: Array<{ value: AdminGoogleSheetPurpos
   { value: 'upload-template', label: '업로드 템플릿' },
   { value: 'operation-reference', label: '운영 참조' },
   { value: 'test', label: '연결 테스트' },
-]
-
-export const GOOGLE_SHEET_SHARE_ROLE_OPTIONS: Array<{ value: AdminGoogleSheetShareRole; label: string }> = [
-  { value: 'viewer', label: '보기' },
-  { value: 'editor', label: '편집' },
-]
-
-export const GOOGLE_SHEET_ACCESS_MODE_OPTIONS: Array<{ value: AdminGoogleSheetAccessMode; label: string }> = [
-  { value: 'readonly', label: '읽기' },
-  { value: 'readwrite', label: '읽기/쓰기' },
 ]
 
 export function getErrorMessage(error: unknown) {

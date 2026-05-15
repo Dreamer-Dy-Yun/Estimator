@@ -9,11 +9,9 @@ export type {
   UpdateAdminGptKeyPayload,
 } from './admin-gpt-key'
 export type {
-  AdminGoogleSheetAccessMode,
   AdminGoogleSheetApi,
   AdminGoogleSheetConfigSummary,
   AdminGoogleSheetPurpose,
-  AdminGoogleSheetShareRole,
   CreateAdminGoogleSheetConfigPayload,
   UpdateAdminGoogleSheetConfigPayload,
 } from './admin-google-sheet'

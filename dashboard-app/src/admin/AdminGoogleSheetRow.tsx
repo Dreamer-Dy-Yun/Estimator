@@ -1,8 +1,6 @@
 import type { AdminGoogleSheetConfigSummary } from '../api'
 import {
-  GOOGLE_SHEET_ACCESS_MODE_OPTIONS,
   GOOGLE_SHEET_PURPOSE_OPTIONS,
-  GOOGLE_SHEET_SHARE_ROLE_OPTIONS,
   formatUpdatedAt,
 } from './adminHelpers'
 import styles from './AdminPage.module.css'
@@ -30,11 +28,7 @@ export function AdminGoogleSheetRow({ config, onDelete }: AdminGoogleSheetRowPro
       </span>
       <span className={styles.gptKeyNameCell}>
         <strong>{config.spreadsheetId}</strong>
-        <small>{config.sheetRange}</small>
-      </span>
-      <span>
-        {getOptionLabel(GOOGLE_SHEET_SHARE_ROLE_OPTIONS, config.serviceAccountRole)} /{' '}
-        {getOptionLabel(GOOGLE_SHEET_ACCESS_MODE_OPTIONS, config.accessMode)}
+        <small>{config.spreadsheetUrl}</small>
       </span>
       <span className={styles.statusCell}>
         <span className={`${styles.statusPill} ${config.isActive ? styles.status_success : styles.status_failed}`}>

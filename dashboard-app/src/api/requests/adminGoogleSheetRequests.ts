@@ -9,12 +9,13 @@ import { apiRequest, USE_MOCK_API } from './httpClient'
  * - Keep the service account JSON key on the server only. The frontend may send
  *   `serviceAccountKeyJson` on create/update, but list responses must return
  *   only `maskedServiceAccountKey`.
- * - The target spreadsheet must be shared with `serviceAccountEmail` using the
- *   requested `serviceAccountRole` before backend access will work.
+ * - The backend should parse `client_email` from the JSON key and expose it as
+ *   `serviceAccountEmail` in summary responses. The UI does not ask the admin
+ *   to duplicate that value.
  * - `spreadsheetUrl` is the user-facing address, while `spreadsheetId` should be
  *   parsed and stored server-side for Google Sheets API calls.
- * - `sheetRange`, `accessMode`, `purpose`, and `note` describe how this sheet is
- *   used; they are not UI-only fields and should be persisted with the config.
+ * - `purpose` and `note` describe how this sheet is used; they are not UI-only
+ *   fields and should be persisted with the config.
  */
 const httpAdminGoogleSheetRequests: AdminGoogleSheetApi = {
   getAdminGoogleSheetConfigs: () => apiRequest('/admin/google-sheets'),

@@ -157,7 +157,7 @@
 
 .googleSheetCreateForm {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr)) minmax(110px, 0.72fr) 92px 136px;
+  grid-template-columns: minmax(150px, 0.9fr) minmax(128px, 0.6fr) repeat(2, minmax(0, 1fr)) 92px 136px;
   gap: 8px;
   align-items: end;
   padding: 14px 18px;
@@ -170,17 +170,73 @@
 }
 
 .googleSheetKeyField {
-  grid-column: span 3;
+  grid-column: span 4;
 }
 
-.googleSheetKeyField textarea {
-  height: 58px;
-  padding: 8px 9px;
-  resize: vertical;
+.googleSheetKeyDropzone {
+  min-height: 72px;
+  display: grid;
+  gap: 5px;
+  align-content: center;
+  position: relative;
+  border: 1px dashed #94a3b8;
+  border-radius: 10px;
+  padding: 12px 14px;
+  background: #f8fafc;
+  color: #334155;
+  cursor: pointer;
+  transition:
+    border-color 150ms ease,
+    background-color 150ms ease,
+    box-shadow 150ms ease;
+}
+
+.googleSheetKeyDropzone:hover,
+.googleSheetKeyDropzone:focus-visible,
+.googleSheetKeyDropzoneActive {
+  border-color: #0f766e;
+  background: #ecfdf5;
+  box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.1);
+  outline: none;
+}
+
+.googleSheetKeyDropzone strong {
+  overflow: hidden;
+  color: #0f172a;
+  font-size: 13px;
+  font-weight: 900;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.googleSheetKeyDropzone small {
+  overflow: hidden;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.googleSheetKeyHiddenInput {
+  display: none;
+}
+
+.googleSheetKeyClearButton {
+  width: fit-content;
+  height: 28px;
+  border: 1px solid #cbd5e1;
+  border-radius: 999px;
+  padding: 0 10px;
+  background: #ffffff;
+  color: #475569;
+  font-size: 12px;
+  font-weight: 900;
+  cursor: pointer;
 }
 
 .googleSheetCreateNote {
-  grid-column: span 2;
+  grid-column: span 1;
 }
 
 .createError {
