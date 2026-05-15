@@ -10,6 +10,12 @@
     gap: 10px;
   }
 
+  .panelHeader,
+  .panelHeaderActions {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
   .tabBar {
     flex-wrap: wrap;
   }

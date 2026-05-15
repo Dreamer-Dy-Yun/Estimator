@@ -1,14 +1,14 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useState } from 'react'
 import {
-  createAdminUser,
   getAdminUsers,
   resetAdminUserPassword,
 } from '../api'
-import type { AdminUserSummary, AuthRole, ResetAdminUserPasswordResult } from '../api'
+import type { AdminUserSummary, ResetAdminUserPasswordResult } from '../api'
 import { useAuth } from '../auth/AuthContext'
 import { useAppToast } from '../components/AppToastContext'
 import { LoadingSpinner } from '../components/LoadingSpinner'
-import { getErrorMessage, ROLE_OPTIONS } from './adminHelpers'
+import { getErrorMessage } from './adminHelpers'
+import { AdminUserCreateDialog } from './AdminUserCreateDialog'
 import { AdminUserRow } from './AdminUserRow'
 import styles from './AdminPage.module.css'
 
@@ -20,16 +20,9 @@ export function AdminUsersPanel() {
   const { session, refreshSession } = useAuth()
   const { showToast } = useAppToast()
   const [users, setUsers] = useState<AdminUserSummary[]>([])
-  const [newLoginId, setNewLoginId] = useState('')
-  const [newPassword, setNewPassword] = useState('')
-  const [newName, setNewName] = useState('')
-  const [newNote, setNewNote] = useState('')
-  const [newRole, setNewRole] = useState<AuthRole>('user')
-  const [newIsActive, setNewIsActive] = useState(true)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
-  const [createErrorMessage, setCreateErrorMessage] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
-  const [isCreating, setIsCreating] = useState(false)
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
   const [passwordResetNotice, setPasswordResetNotice] = useState<PasswordResetNotice | null>(null)
   const [passwordCopyMessage, setPasswordCopyMessage] = useState<string | null>(null)
 
@@ -104,35 +97,6 @@ export function AdminUsersPanel() {
     }
   }
 
-  const handleCreate = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault()
-    setCreateErrorMessage(null)
-    setIsCreating(true)
-
-    try {
-      await createAdminUser({
-        loginId: newLoginId,
-        password: newPassword,
-        name: newName,
-        note: newNote,
-        role: newRole,
-        isActive: newIsActive,
-      })
-      await reloadUsers()
-      setNewLoginId('')
-      setNewPassword('')
-      setNewName('')
-      setNewNote('')
-      setNewRole('user')
-      setNewIsActive(true)
-      showToast('사용자를 추가했습니다.')
-    } catch (error) {
-      setCreateErrorMessage(getErrorMessage(error))
-    } finally {
-      setIsCreating(false)
-    }
-  }
-
   return (
     <>
       <div className={styles.panel}>
@@ -141,71 +105,10 @@ export function AdminUsersPanel() {
             <h2>사용자</h2>
             <p>{users.length}명</p>
           </div>
-        </div>
-
-        <form className={styles.createForm} onSubmit={handleCreate}>
-          <label className={styles.createField}>
-            <span>로그인 ID</span>
-            <input
-              value={newLoginId}
-              onChange={(event) => setNewLoginId(event.target.value)}
-              placeholder="login-id"
-              autoComplete="username"
-              maxLength={32}
-            />
-          </label>
-          <label className={styles.createField}>
-            <span>비밀번호</span>
-            <input
-              value={newPassword}
-              onChange={(event) => setNewPassword(event.target.value)}
-              placeholder="초기 비밀번호"
-              type="password"
-              autoComplete="new-password"
-            />
-          </label>
-          <label className={styles.createField}>
-            <span>이름</span>
-            <input
-              value={newName}
-              onChange={(event) => setNewName(event.target.value)}
-              placeholder="사용자 이름"
-              autoComplete="name"
-              maxLength={80}
-            />
-          </label>
-          <label className={styles.createField}>
-            <span>비고</span>
-            <input
-              value={newNote}
-              onChange={(event) => setNewNote(event.target.value)}
-              placeholder="직책, 부서 등"
-              maxLength={200}
-            />
-          </label>
-          <label className={styles.createField}>
-            <span>권한</span>
-            <select value={newRole} onChange={(event) => setNewRole(event.target.value as AuthRole)}>
-              {ROLE_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className={styles.createActiveField}>
-            <input
-              type="checkbox"
-              checked={newIsActive}
-              onChange={(event) => setNewIsActive(event.target.checked)}
-            />
-            <span>활성</span>
-          </label>
-          <button className={styles.createButton} type="submit" disabled={isCreating}>
-            {isCreating ? <LoadingSpinner size="inline" label="추가 중" /> : '사용자 추가'}
+          <button className={styles.createButton} type="button" onClick={() => setIsCreateDialogOpen(true)}>
+            사용자 추가
           </button>
-          {createErrorMessage ? <p className={styles.createError}>{createErrorMessage}</p> : null}
-        </form>
+        </div>
 
         <div className={styles.tableHeader} aria-hidden="true">
           <span>UUID</span>
@@ -239,6 +142,10 @@ export function AdminUsersPanel() {
           </div>
         ) : null}
       </div>
+
+      {isCreateDialogOpen ? (
+        <AdminUserCreateDialog onClose={() => setIsCreateDialogOpen(false)} onCreated={reloadUsers} />
+      ) : null}
 
       {passwordResetNotice ? (
         <div

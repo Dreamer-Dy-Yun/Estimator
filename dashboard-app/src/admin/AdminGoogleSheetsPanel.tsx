@@ -1,16 +1,13 @@
-import { useEffect, useState, type FormEvent } from 'react'
-import { createAdminGoogleSheetConfig, deleteAdminGoogleSheetConfig, getAdminGoogleSheetConfigs } from '../api'
+import { useEffect, useState } from 'react'
+import { deleteAdminGoogleSheetConfig, getAdminGoogleSheetConfigs } from '../api'
 import type {
   AdminGoogleSheetConfigSummary,
-  AdminGoogleSheetPurpose,
 } from '../api'
 import { useAppToast } from '../components/AppToastContext'
 import { LoadingSpinner } from '../components/LoadingSpinner'
-import { AdminActiveSwitch } from './AdminActiveSwitch'
-import { AdminGoogleSheetKeyDropzone } from './AdminGoogleSheetKeyDropzone'
+import { AdminGoogleSheetCreateDialog } from './AdminGoogleSheetCreateDialog'
 import { AdminGoogleSheetRow } from './AdminGoogleSheetRow'
 import {
-  GOOGLE_SHEET_PURPOSE_OPTIONS,
   getErrorMessage,
 } from './adminHelpers'
 import styles from './AdminPage.module.css'
@@ -18,18 +15,9 @@ import styles from './AdminPage.module.css'
 export function AdminGoogleSheetsPanel() {
   const { showToast } = useAppToast()
   const [configs, setConfigs] = useState<AdminGoogleSheetConfigSummary[]>([])
-  const [name, setName] = useState('')
-  const [purpose, setPurpose] = useState<AdminGoogleSheetPurpose>('db-schema')
-  const [serviceAccountKeyJson, setServiceAccountKeyJson] = useState('')
-  const [serviceAccountFileName, setServiceAccountFileName] = useState('')
-  const [serviceAccountEmail, setServiceAccountEmail] = useState('')
-  const [spreadsheetUrl, setSpreadsheetUrl] = useState('')
-  const [isActive, setIsActive] = useState(true)
-  const [note, setNote] = useState('')
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
-  const [createErrorMessage, setCreateErrorMessage] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
-  const [isCreating, setIsCreating] = useState(false)
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
 
   useEffect(() => {
     let alive = true
@@ -53,35 +41,6 @@ export function AdminGoogleSheetsPanel() {
     setConfigs(nextConfigs)
   }
 
-  const handleCreate = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault()
-    setCreateErrorMessage(null)
-    setIsCreating(true)
-    try {
-      await createAdminGoogleSheetConfig({
-        name,
-        purpose,
-        serviceAccountKeyJson,
-        spreadsheetUrl,
-        isActive,
-        note,
-      })
-      await reloadConfigs()
-      setName('')
-      setServiceAccountKeyJson('')
-      setServiceAccountFileName('')
-      setServiceAccountEmail('')
-      setSpreadsheetUrl('')
-      setIsActive(true)
-      setNote('')
-      showToast('구글 시트 설정을 추가했습니다.')
-    } catch (error) {
-      setCreateErrorMessage(getErrorMessage(error))
-    } finally {
-      setIsCreating(false)
-    }
-  }
-
   const handleDelete = async (config: AdminGoogleSheetConfigSummary) => {
     if (!window.confirm(`${config.name} 설정을 제거할까요?`)) return
     try {
@@ -100,60 +59,10 @@ export function AdminGoogleSheetsPanel() {
           <h2>구글 시트</h2>
           <p>{configs.length}개</p>
         </div>
-      </div>
-
-      <form className={styles.googleSheetCreateForm} onSubmit={handleCreate}>
-        <label className={styles.createField}>
-          <span>이름</span>
-          <input value={name} onChange={(event) => setName(event.target.value)} placeholder="DB 설계 시트" />
-        </label>
-        <label className={styles.createField}>
-          <span>용도</span>
-          <select value={purpose} onChange={(event) => setPurpose(event.target.value as AdminGoogleSheetPurpose)}>
-            {GOOGLE_SHEET_PURPOSE_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className={`${styles.createField} ${styles.googleSheetWideField}`}>
-          <span>시트 주소</span>
-          <input
-            value={spreadsheetUrl}
-            onChange={(event) => setSpreadsheetUrl(event.target.value)}
-            placeholder="https://docs.google.com/spreadsheets/d/.../edit"
-          />
-        </label>
-        <div className={styles.createActiveField}>
-          <AdminActiveSwitch checked={isActive} onChange={setIsActive} />
-        </div>
-        <AdminGoogleSheetKeyDropzone
-          fileName={serviceAccountFileName}
-          serviceAccountEmail={serviceAccountEmail}
-          disabled={isCreating}
-          onLoaded={(loaded) => {
-            setServiceAccountFileName(loaded.fileName)
-            setServiceAccountKeyJson(loaded.keyJson)
-            setServiceAccountEmail(loaded.serviceAccountEmail)
-            setCreateErrorMessage(null)
-          }}
-          onClear={() => {
-            setServiceAccountFileName('')
-            setServiceAccountKeyJson('')
-            setServiceAccountEmail('')
-          }}
-          onError={setCreateErrorMessage}
-        />
-        <label className={`${styles.createField} ${styles.googleSheetCreateNote}`}>
-          <span>비고</span>
-          <input value={note} onChange={(event) => setNote(event.target.value)} placeholder="용도나 관리 위치" />
-        </label>
-        <button className={styles.createButton} type="submit" disabled={isCreating}>
-          {isCreating ? <LoadingSpinner size="inline" label="추가 중" /> : '구글 시트 추가'}
+        <button className={styles.createButton} type="button" onClick={() => setIsCreateDialogOpen(true)}>
+          구글 시트 추가
         </button>
-        {createErrorMessage ? <p className={styles.createError}>{createErrorMessage}</p> : null}
-      </form>
+      </div>
 
       <div className={styles.googleSheetTableHeader} aria-hidden="true">
         <span>이름</span>
@@ -176,6 +85,9 @@ export function AdminGoogleSheetsPanel() {
             <AdminGoogleSheetRow key={config.uuid} config={config} onDelete={handleDelete} />
           ))}
         </div>
+      ) : null}
+      {isCreateDialogOpen ? (
+        <AdminGoogleSheetCreateDialog onClose={() => setIsCreateDialogOpen(false)} onCreated={reloadConfigs} />
       ) : null}
     </div>
   )

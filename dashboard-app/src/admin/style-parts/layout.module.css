@@ -98,3 +98,12 @@
   font-size: 13px;
   font-weight: 800;
 }
+
+.panelHeaderActions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  min-width: 0;
+  flex-wrap: wrap;
+}
