@@ -279,8 +279,8 @@
 |------|------|
 | `CandidateStashDetailModal.tsx` | 후보군 상세 모달의 최상위 조립 컴포넌트. 모델 hook, 선택 hook, 추천 모달 열림 상태, 주요 하위 컴포넌트 배치만 소유한다. 헤더/필터/본문/드로워/삭제 확인 렌더 책임은 하위 파일로 위임한다. |
 | `CandidateStashDetailHeader.tsx` | 후보군 이름, 생성/변경일, 추천 보기, 닫기 버튼 렌더링만 소유한다. 추천 보기는 닫기 버튼 옆 우측 액션 묶음에 둔다. |
-| `CandidateStashDataReferenceCard.tsx` | 후보군 상세 데이터 참조기간 draft 입력과 조회 버튼 렌더링만 소유한다. 데스크톱에서는 선택 작업 카드와 한 줄 2열로 배치한다. |
-| `CandidateStashBulkActionCard.tsx` | 상세 일괄확정 자리, 상세확정 일괄해제, 일괄삭제 버튼 렌더링만 소유한다. 상세 일괄확정은 실제 mutation 계약이 정해질 때까지 비활성 UI로 둔다. |
+| `CandidateStashDataReferenceCard.tsx` | 후보군 상세 데이터 참조기간 draft 입력과 조회 버튼 렌더링만 소유한다. 데스크톱에서는 선택 작업 카드와 한 줄 2열로 배치하고, 카드 내부는 10칸 grid로 레이블/기간 입력/조회 버튼 폭을 고정 비율로 나눈다. |
+| `CandidateStashBulkActionCard.tsx` | 상세 일괄확정 자리, 상세확정 일괄해제, 일괄삭제 버튼 렌더링만 소유한다. 버튼은 동일폭 grid 칸으로 배치하며, 상세 일괄확정은 실제 mutation 계약이 정해질 때까지 비활성 UI로 둔다. |
 | `CandidateStashDetailFilters.tsx` | 브랜드/품번/상품명 필터와 엑셀 다운로드 액션 렌더링만 소유한다. 다운로드 데이터 생성은 API/엑셀 유틸 경계를 따른다. |
 | `CandidateStashDetailBody.tsx` | 후보군 상세 요약 KPI와 이너 후보 리스트 상태 분기 렌더링을 소유한다. 리스트 자체 row/table 렌더링은 `InnerCandidateOrderList.tsx`에 위임한다. |
 | `CandidateStashProductDrawer.tsx` | 이너 후보군에서 열리는 상품 drawer 연결부. drawer context, 저장 후 새로고침, 개별 삭제 요청 연결만 소유한다. |

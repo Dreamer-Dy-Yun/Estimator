@@ -5,14 +5,16 @@
 }
 
 .dataReferenceQueryGrid {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(10, minmax(0, 1fr));
   align-items: center;
   gap: 8px;
   min-width: 0;
 }
 
 .dataReferenceQueryLabel {
-  flex: none;
+  grid-column: 1 / span 2;
+  min-width: 0;
   color: #475569;
   font-size: 12px;
   font-weight: 800;
@@ -20,22 +22,23 @@
 }
 
 .dataReferenceQueryControls {
-  flex: 0 1 316px;
-  min-width: 246px;
-  display: flex;
+  grid-column: 3 / span 6;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   align-items: center;
   gap: 6px;
 }
 
 .dataReferenceQuerySeparator {
-  flex: none;
+  min-width: 16px;
   text-align: center;
   color: #64748b;
   font-weight: 800;
 }
 
 .dataReferenceQueryInput {
-  width: 130px;
+  width: 100%;
   min-width: 0;
   height: 34px;
   border: 1px solid #cbd5e1;
@@ -56,30 +59,31 @@
 }
 
 .dataReferenceQueryActions {
-  flex: none;
+  grid-column: 9 / span 2;
   min-width: 0;
   display: flex;
-  justify-content: flex-start;
+  justify-content: stretch;
   gap: 8px;
 }
 
 .dataReferenceQueryButton {
-  min-width: 88px;
+  width: 100%;
+  min-width: 0;
   height: 34px;
-  padding-inline: 16px;
+  padding-inline: 12px;
   white-space: nowrap;
 }
 
 .bulkActionCard {
-  display: flex;
-  justify-content: flex-end;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   align-items: center;
   gap: 8px;
   min-width: 0;
 }
 
 .bulkConfirmButton {
-  min-width: 120px;
+  min-width: 0;
   height: 34px;
   color: #475569;
   border-color: #cbd5e1;
@@ -89,7 +93,7 @@
 }
 
 .bulkUnconfirmButton {
-  min-width: 136px;
+  min-width: 0;
   height: 34px;
   color: #9f1239;
   border-color: #fecdd3;
@@ -105,5 +109,7 @@
 }
 
 .bulkActionCard :global(button) {
+  width: 100%;
+  min-width: 0;
   min-height: 34px;
 }

@@ -100,27 +100,36 @@
 
 .stashDetailModalBackdrop[data-inner-drawer-open='true'] .dataReferenceQueryGrid,
 .stashDetailModalBackdrop[data-inner-drawer-closing='true'] .dataReferenceQueryGrid {
-  flex-wrap: wrap;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.stashDetailModalBackdrop[data-inner-drawer-open='true'] .dataReferenceQueryLabel,
+.stashDetailModalBackdrop[data-inner-drawer-open='true'] .dataReferenceQueryControls,
+.stashDetailModalBackdrop[data-inner-drawer-open='true'] .dataReferenceQueryActions,
+.stashDetailModalBackdrop[data-inner-drawer-closing='true'] .dataReferenceQueryLabel,
+.stashDetailModalBackdrop[data-inner-drawer-closing='true'] .dataReferenceQueryControls,
+.stashDetailModalBackdrop[data-inner-drawer-closing='true'] .dataReferenceQueryActions {
+  grid-column: 1 / -1;
 }
 
 .stashDetailModalBackdrop[data-inner-drawer-open='true'] .dataReferenceQueryControls,
 .stashDetailModalBackdrop[data-inner-drawer-closing='true'] .dataReferenceQueryControls {
   min-width: 0;
-  flex: 1 1 100%;
 }
 
 .stashDetailModalBackdrop[data-inner-drawer-open='true'] .dataReferenceQueryInput,
 .stashDetailModalBackdrop[data-inner-drawer-closing='true'] .dataReferenceQueryInput {
-  flex: 1 1 0;
-  width: auto;
+  width: 100%;
 }
 
 .stashDetailModalBackdrop[data-inner-drawer-open='true'] .dataReferenceQueryActions,
-.stashDetailModalBackdrop[data-inner-drawer-open='true'] .bulkActionCard,
-.stashDetailModalBackdrop[data-inner-drawer-closing='true'] .dataReferenceQueryActions,
-.stashDetailModalBackdrop[data-inner-drawer-closing='true'] .bulkActionCard {
-  flex: 1 1 100%;
+.stashDetailModalBackdrop[data-inner-drawer-closing='true'] .dataReferenceQueryActions {
   justify-content: stretch;
+}
+
+.stashDetailModalBackdrop[data-inner-drawer-open='true'] .bulkActionCard,
+.stashDetailModalBackdrop[data-inner-drawer-closing='true'] .bulkActionCard {
+  grid-template-columns: 1fr;
 }
 
 .stashDetailModalBackdrop[data-inner-drawer-open='true'] .dataReferenceQueryButton,

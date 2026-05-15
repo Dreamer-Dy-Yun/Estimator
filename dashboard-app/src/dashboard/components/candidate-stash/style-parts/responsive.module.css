@@ -16,23 +16,29 @@
   }
 
   .dataReferenceQueryGrid {
-    flex-wrap: wrap;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .dataReferenceQueryLabel,
+  .dataReferenceQueryControls,
+  .dataReferenceQueryActions {
+    grid-column: 1 / -1;
   }
 
   .dataReferenceQueryControls {
     min-width: 0;
-    flex: 1 1 100%;
   }
 
   .dataReferenceQueryInput {
-    flex: 1 1 0;
-    width: auto;
+    width: 100%;
   }
 
-  .dataReferenceQueryActions,
-  .bulkActionCard {
-    flex: 1 1 100%;
+  .dataReferenceQueryActions {
     justify-content: stretch;
+  }
+
+  .bulkActionCard {
+    grid-template-columns: 1fr;
   }
 
   .dataReferenceQueryButton,
