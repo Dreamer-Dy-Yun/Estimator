@@ -33,7 +33,7 @@
 - 후보군 목록/상세/수정 계열 API는 현재 인증 세션의 `USER_ACCOUNT.uuid` 기준으로 소유자 데이터를 필터링한다. 화면은 사용자 UUID를 직접 파라미터로 보내지 않고 `src/api/requests/dashboardRequests.ts`가 request boundary에서만 세션 UUID를 읽어 mock/향후 HTTP 요청에 붙인다. mock은 후보 아이템 추가/삭제/상세확정 해제처럼 사용자가 확인해야 하는 mutation을 런타임 메모리 배열에 반영해 DB 동작을 모사한다.
 - 자사/경쟁사 분석 탭은 후보군에 상품을 담는 입구다. 분석 리스트의 체크박스와 `선택한 물품을 후보군으로` 모달은 스냅샷 없이 `stashUuid + skuGroupKeys`만 API에 전달한다. `row.id`는 화면 행 식별자이고, `skuGroupKey`는 `SKU.code + SKU.color_code` 상품 단위에 대응한다. AI 코멘트/사이즈별 확정 오더량은 이너후보군 2차 드로워에서 저장하기 전까지 미확정이다.
 - 자사/경쟁사 분석 탭에서는 `ProductDrawer.secondaryEnabled={false}`로 2차 드로워를 열지 않는다. 2차 드로워 코드는 유지하되, 반원 버튼과 키보드 2차 진입은 이너후보군에서만 허용한다.
-- 이너후보군 리스트 조회는 `dataReferencePeriodStart`/`dataReferencePeriodEnd`를 API에 전달한다. 기간 입력은 헤더와 필터 사이의 전체 폭 `CandidateStashDataReferenceCard`가 draft 상태로 소유하고, 사용자가 `조회` 버튼을 누를 때만 적용 기간을 바꿔 `getCandidateItemsByStash`를 호출한다. 선택 작업 영역은 `CandidateStashBulkActionCard`가 소유하며, 상세확정 일괄해제는 선택된 후보 아이템의 `details`를 `null`로 저장하는 명시적 mutation이다. 상세 일괄확정은 아직 API 계약과 mutation 동작이 없어 비활성 UI 자리만 둔다. 백엔드는 해당 기간의 전체 SKU 분포를 먼저 계산해 배지를 부여한 `referenceItems`와 후보군에 담긴 `candidateItems`를 함께 반환한다. `CANDIDATE_ITEM.sku_uuid = SKU.uuid`를 기준으로 추천 보기 중복 제외와 이너오더 조인을 수행하며, 총 오더 수량/금액과 엑셀용 `orderExport`는 이후 `subscribeCandidateOrderMetrics` SSE 이벤트로 행별 갱신한다.
+- 이너후보군 리스트 조회는 `dataReferencePeriodStart`/`dataReferencePeriodEnd`를 API에 전달한다. 기간 입력은 헤더와 필터 사이의 전체 폭 `CandidateStashDataReferenceCard`가 draft 상태로 소유하고, 사용자가 `조회` 버튼을 누를 때만 적용 기간을 바꿔 `getCandidateItemsByStash`를 호출한다. 선택 작업 영역은 `CandidateStashBulkActionCard`가 소유하며, 상세확정 일괄해제는 선택된 후보 아이템의 `details`를 `null`로 저장하는 명시적 mutation이다. 상세 일괄확정은 아직 API 계약과 mutation 동작이 없어 비활성 UI 자리만 둔다. 백엔드는 해당 기간의 전체 SKU 분포를 먼저 계산해 배지를 부여한 `referenceItems`와 후보군에 담긴 `candidateItems`를 함께 반환한다. 기간 자사/경쟁사 총판매량은 백엔드가 확정 전체 월은 `ERP_MONTHLY_SUMMARY`/`EXTERNAL_MONTHLY_SUMMARY(site 포함)`에서 가져오고, 부분 월과 미확정 월은 `SALES_ERP`/`SALES_EXTERNAL` raw 합산으로 보정한 값이다. 프론트는 이 값을 재계산하지 않고 표시/정렬/엑셀 다운로드에만 사용한다. `CANDIDATE_ITEM.sku_uuid = SKU.uuid`를 기준으로 추천 보기 중복 제외와 이너오더 조인을 수행하며, 총 오더 수량/금액과 엑셀용 `orderExport`는 이후 `subscribeCandidateOrderMetrics` SSE 이벤트로 행별 갱신한다.
 - 이너후보군의 상세확정 여부는 후보 아이템 `details` 스냅샷 존재 여부다. 리스트 기본값은 데이터 참조기간 기준 live 계산값이고, 2차 드로워는 live/스냅샷 기준 보기 모두 통합 오더 설정, AI 코멘트, 일별 추이, 사이즈별 오더 카드를 표시한다. 스냅샷 기준 보기에서는 저장 당시의 통합 오더 설정값, AI 코멘트, 사이즈별 오더 수치와 기간을 복원하되 그래프는 그 기간으로 다시 조회한다.
 - 드로워 키보드 조작은 `좌=열기`, `우=닫기`, `상/하=이전/다음`이다. 자사/경쟁사 리스트 row에서는 좌 키가 1차 드로워만 열고, 이너후보군에서는 좌 키로 1차를 열고 열린 1차 안에서 좌 키로 2차를 연다. ESC는 2차가 열려 있으면 2차부터 닫고, 한 번 더 누르면 1차를 닫는다. 상/하 이동으로 현재 상품이 바뀌면 원본 리스트의 현재 row도 포커스·스크롤·강조 상태를 함께 갱신한다. 자사/경쟁사 분석의 상/하 이동 순서는 `PaginatedTable`이 실제 렌더링에 사용한 정렬 row id 순서(`onOrderedRowIdsChange`)를 기준으로 한다.
 - 후보군 상세 필터 카드에는 발주 엑셀 다운로드 액션을 둔다. 화면은 다운로드 클릭 시 백엔드를 다시 호출하지 않고, 이미 받은 `CandidateItemSummary.orderExport` DTO로 브라우저에서 XLSX를 생성한다. 주 데이터 시트는 브랜드·품번(`code`)·상품명(`productName`)·색상(`colorCode`)·배지·판매 지표·총 오더 지표 컬럼 뒤에 후보군 전체 사이즈를 동적 컬럼으로 붙이고, 제품에 없는 사이즈는 `N/A`로 표시한다. 복수 배지는 한 셀 안에서 줄바꿈한다. 메타 시트에는 오더 입고 예정일과 사용자 이름을 둔다.
@@ -49,13 +49,13 @@
 - 관리자 화면은 `/admin` 별도 라우트와 `src/admin`이 소유한다. 화면은 같은 `DashboardLayout` 안에서 렌더하며, 관리자 권한 사용자에게만 `오더 후보군` 뒤 관리자 전용 탭을 보여준다. 인증 권한은 `admin`과 `user` 두 단계만 둔다. 사용자 관리는 관리자 화면 안의 탭/패널로 분리한다. 관리자 비밀번호 관리는 조회가 아니라 임시 비밀번호 재설정 API만 호출하고, 임시 비밀번호는 응답 직후 한 번만 표시한다.
 - 관리자 GPT 키 관리는 `src/api/types/admin-gpt-key.ts` 계약과 `src/api/mock/adminGptKeyApi.ts` mock을 통해서만 접근한다. 화면은 GPT 키 원문을 생성/변경 요청에만 담고, 목록 응답은 `maskedKey`만 표시한다. 목록은 식별용 요약 정보만 노출하고, 메타/키 변경, 연결 테스트, 삭제는 행 클릭 후 열리는 모달이 소유한다. 상세 모달의 입력값은 저장 전 draft이며, 목록은 변경 API 성공 후 재조회된 값만 반영한다. 현재 mock은 DB 대체 저장소가 아니라 런타임 메모리에서 마스킹 값과 메타데이터만 보관한다.
 - 관리자 구글 시트 관리는 `src/api/types/admin-google-sheet.ts` 계약과 `src/api/mock/adminGoogleSheetApi.ts` mock을 통해서만 접근한다. 서비스 계정 JSON 키 원문은 생성/변경 요청 payload에만 존재하고, 목록 응답은 `maskedServiceAccountKey`만 표시한다. 화면은 서비스 계정 이메일, 시트 공유 권한, 접근 모드, 시트 주소/범위, 용도, 비고를 관리하며 실제 Google Sheets API 연결은 `src/api/requests/adminGoogleSheetRequests.ts` 교체 지점에서 백엔드 HTTP 요청으로 바꾼다.
-- API 요청 교체 지점은 `src/api/requests/*`로 분리한다. 화면/훅/페이지는 mock을 알 수 없고, `src/api/client.ts`는 public export facade만 맡는다. 실제 백엔드가 생기면 `requests` 파일 안의 mock 위임을 HTTP 요청으로 바꾸는 것을 기본 원칙으로 한다.
+- API 요청 교체 지점은 `src/api/requests/*`로 분리한다. 화면/훅/페이지는 mock을 알 수 없고, `src/api/client.ts`는 public export facade만 맡는다. 기본값은 mock이며, `VITE_USE_MOCK_API=false`일 때만 `requests/httpClient.ts`가 `VITE_API_BASE_URL` 기준 HTTP 요청을 수행한다.
 - 2026-05-13 정리에서 전체 `npm run lint` 실패를 0건으로 만들고 `tsconfig.app.json`/`tsconfig.node.json`에 `strict: true`를 켰다. 이후 기능 변경은 린트와 strict 타입 검사를 기본 품질선으로 본다.
 - 자사/경쟁사 분석의 격자 셀 선택, 현재 화면 기준 선택 유효성, 후보군 일괄 담기 체크박스 상태는 `dashboard/hooks/useAnalysisVisibleSelection.ts`가 소유한다. 페이지는 KPI/차트/목록 렌더와 API 호출 결과 연결만 맡고, 요청 생명주기와 stale 응답 차단은 `dashboard/hooks/useDashboardRequest.ts`를 사용한다. 필터·격자 변경 후 선택 상태를 effect로 억지 정리하지 않는다.
 - 산점도 격자화 mock 계산은 `api/mock/scatterGrid.ts`로 분리했다. 운영에서는 백엔드가 같은 책임을 가지며, 프론트는 응답 `cells`와 `meta`로 색상·표시 반지름만 계산한다.
 - 2026-05-14 정리에서 분석 페이지의 목록 컬럼 정의는 `SelfAnalysisList.tsx`/`CompetitorAnalysisList.tsx`, 산점도 tooltip 렌더는 `AnalysisScatterTooltips.tsx`로 분리했다. 페이지는 API 결과 연결, 필터/선택 상태 조립, KPI/차트/드로워 배치만 담당한다.
 - 자사/경쟁사 분석 목록의 `순위` 컬럼은 화면 행 번호나 seed rank가 아니라 현재 렌더링 대상 rows의 판매량 기준 표시 순위다. 자사는 `qty`, 경쟁사는 `competitorQty` 기준이며, 판매량이 가장 많은 항목이 1위다. API/mock 기본 응답도 같은 판매량 내림차순으로 정렬해 테이블 정렬 해제 시 이 기준 순서로 돌아가게 한다. 산점도 셀 선택처럼 백엔드 재호출 없이 rows가 줄어드는 경우도 `displayRank.ts`가 현재 rows 안에서 다시 계산한다.
-- 후보군 mock의 기간 기준 후보 요약, 배지 평가, 오더 지표 DTO 조립은 `candidateItemSummaryBuilder.ts`로 분리했다. `candidateMockApi.ts`는 후보군 소유자 필터링, 인메모리 mutation, 초기 조회 응답과 SSE 형태의 오더 지표 이벤트 orchestration만 맡는다.
+- 후보군 mock의 기간 기준 후보 요약, 배지 평가, 오더 지표 DTO 조립은 `candidateItemSummaryBuilder.ts`로 분리했다. `candidateMockApi.ts`는 후보군 소유자 필터링, 인메모리 mutation, 초기 조회 응답, 오더 지표 SSE, 후보군 분석 SSE mock orchestration만 맡는다.
 - 2차 드로워 재고·발주 계산 mock은 `secondaryStockOrderCalcApi.ts`로 분리했다. `dashboardApi.ts`는 DashboardApi public mock 조립과 판매/드로워 조회 흐름을 맡고, 계산 세부식은 전용 파일이 소유한다.
 - 상품 drawer feature는 `dashboard/components/product-drawer`로 모았다. 루트 `ProductDrawer`는 overlay와 공유 상태만 조율하고, `ProductDrawerSecondaryPane`은 2차 패널의 로딩/오류/상세 렌더 분기를 소유한다. `primary`가 1차 드로워, `secondary`가 2차 드로워 내부 content를 소유한다.
 - 경쟁 채널 상태는 1차 판매 정보와 2차 일별 추이가 공유하므로 `product-drawer/useCompetitorChannels.ts`가 소유한다. 2차 상세 조회는 `product-drawer/secondary/useSecondaryDrawerDetail.ts`가 소유한다.
@@ -117,7 +117,8 @@
 | 경로 | 역할 | 변경 기준 |
 |------|------|-----------|
 | `api/client.ts` | 화면에서 호출하는 API 함수와 `dashboardApi` 객체를 노출하는 public facade. mock이나 HTTP 세부 구현은 알지 않는다. | API public surface 추가/삭제 시 수정 |
-| `api/requests/*` | 실제 API 요청 교체 지점. 현재는 mock API를 호출하지만, 백엔드 엔드포인트가 생기면 이 폴더 안에서 HTTP 요청으로 바꾼다. 각 파일에는 기능 범위와 백엔드 구현 주의점을 짧은 주석으로 둔다. | mock 위임을 실제 API 요청으로 교체하거나 요청 정책이 바뀔 때 수정 |
+| `api/requests/*` | 실제 API 요청 진입점. 각 adapter는 `VITE_USE_MOCK_API` 기준으로 mock 구현과 HTTP 구현을 선택하고, 화면에는 `src/api/client.ts` facade만 노출한다. 기본값은 mock이고 `VITE_USE_MOCK_API=false`에서만 HTTP 구현을 쓴다. 각 파일에는 기능 범위와 백엔드 구현 주의점을 짧은 주석으로 둔다. | mock/HTTP 선택 정책, endpoint 경로, 요청/응답 정책이 바뀔 때 수정 |
+| `api/requests/httpClient.ts` | 공용 HTTP 요청 helper. `VITE_API_BASE_URL` 기본값, `VITE_USE_MOCK_API` 판정, JSON/FormData 요청, `{ message }` 에러 추출, EventSource SSE 구독을 소유한다. | base URL 정책, 인증 쿠키 정책, 공통 에러 포맷, SSE 연결 방식이 바뀔 때 수정 |
 | `api/index.ts` | API public export. | 외부에서 import할 API surface 변경 시 수정 |
 | `api/mock.ts` | request adapter가 사용하는 mock API 진입 파일. 화면과 훅은 import하지 않는다. | mock 구현 위치를 바꿀 때만 수정 |
 | `api/dailyTrendAsOf.ts` | 일간 트렌드 as-of 계산 보조 로직. | 일간 트렌드 기준일 규칙 변경 시 수정 |
@@ -129,7 +130,7 @@
 
 | 파일 | 역할 |
 |------|------|
-| `admin-gpt-key.ts` | 관리자 GPT 키 목록/추가/메타·키 변경/연결 테스트/삭제 계약. GPT만 사용하므로 공급자/Base URL/Project ID는 계약에서 제외하고, 생성/변경 요청 payload에만 `plainKey`를 허용하며 목록 응답에는 `maskedKey`만 포함한다 |
+| `admin-gpt-key.ts` | 관리자 GPT 키 목록/추가/메타 변경/키 회전/연결 테스트/삭제 계약. GPT만 사용하므로 공급자/Base URL/Project ID는 계약에서 제외하고, 생성/회전 요청 payload에만 `plainKey`를 허용하며 목록 응답에는 `maskedKey`만 포함한다 |
 | `admin-google-sheet.ts` | 관리자 구글 시트 설정 목록/추가/변경/삭제 계약. 서비스 계정 이메일, 공유 권한, 키 JSON, 시트 주소/범위, 접근 모드, 용도, 비고를 소유하고 목록 응답에는 원문 키 대신 `maskedServiceAccountKey`만 포함한다 |
 | `auth.ts` | 로그인 요청, 인증 사용자, 사용자 정보/비밀번호 변경, 관리자 유저 추가/제거/수정/비밀번호 재설정, 세션, 인증 API 계약 |
 | `candidate.ts` | 후보군/이너 후보 요청·응답 계약. 기간 기반 후보군 리스트 조회, `referenceItems`/`candidateItems` 분리, `CANDIDATE_ITEM.sku_uuid = SKU.uuid` 관계, 오더 지표 SSE 이벤트, DB형 배지 배열, 상세확정 여부, 스냅샷 없는 일괄 담기 payload, nullable 상세 스냅샷을 소유한다 |
@@ -148,7 +149,7 @@
 | `adminGoogleSheetApi.ts` | mock 관리자 구글 시트 설정 구현. 관리자 세션만 허용하고, 서비스 계정 JSON 키 원문은 응답/목록 상태에 남기지 않는다 |
 | `authApi.ts` | mock 인증 API 구현. 로그인 입력값은 검증 없이 통과시키고, 사용자 목록은 정적 seed, 세션은 런타임 메모리에만 둔다. 관리자 비밀번호 재설정은 임시 비밀번호 1회 응답 흐름만 모사한다 |
 | `candidateSeeds.ts` | 후보군/후보 아이템 읽기 전용 seed 데이터와 소유자 UUID, 목업 AI 코멘트 포함 스냅샷. 기본 후보군 A에는 신발/의류/테스트 상품을 섞어 엑셀 동적 사이즈 컬럼을 검증한다 |
-| `candidateMockApi.ts` | 후보군/이너후보군 mock API 구현. 후보군 소유자 필터링, 후보 아이템 인메모리 mutation, 초기 조회 응답, 오더 지표 SSE mock, 엑셀 업로드 mock 응답을 소유한다. 기간 기준 후보 요약/배지/오더 지표 DTO 조립은 `candidateItemSummaryBuilder.ts`에 위임한다 |
+| `candidateMockApi.ts` | 후보군/이너후보군 mock API 구현. 후보군 소유자 필터링, 후보 아이템 인메모리 mutation, 초기 조회 응답, 오더 지표 SSE mock, 후보군 분석 SSE mock, 엑셀 업로드 mock 응답을 소유한다. 기간 기준 후보 요약/배지/오더 지표 DTO 조립은 `candidateItemSummaryBuilder.ts`에 위임한다 |
 | `candidateItemSummaryBuilder.ts` | 이너후보군 조회 기간 기준 reference item, candidate item, live 배지, 오더 지표, 발주 엑셀 다운로드용 `orderExport` DTO 조립을 소유한다 |
 | `dashboardApi.ts` | 판매 분석, 산점도, 상품 드로어 조회 mock `DashboardApi` 구현체. 후보군 API는 `candidateMockApi.ts`, 2차 재고·발주 계산은 `secondaryStockOrderCalcApi.ts`를 연결해 public 계약만 합친다 |
 | `orderSnapshotForCandidate.ts` | 후보 아이템용 오더 스냅샷 생성/복원 보조와 임시 목업 AI 코멘트 생성 |
@@ -165,7 +166,7 @@
 | 파일 | 역할 |
 |------|------|
 | `authRequests.ts` | 로그인, 세션, 사용자 정보, 관리자 사용자 관리 요청 adapter. 실제 백엔드 전환 시 HttpOnly 세션, 비밀번호/임시 비밀번호 일회성 응답, 관리자 보호 정책을 이 파일에서 HTTP 요청으로 연결한다 |
-| `adminGptKeyRequests.ts` | 관리자 GPT 키 관리 요청 adapter. GPT 전용 계약이며 원문 키는 생성/변경 요청에만 싣고 목록/변경/테스트/삭제 응답은 원문 키를 받지 않는 흐름을 유지한다 |
+| `adminGptKeyRequests.ts` | 관리자 GPT 키 관리 요청 adapter. GPT 전용 계약이며 원문 키는 생성/회전 요청에만 싣고 목록/변경/테스트/삭제 응답은 원문 키를 받지 않는 흐름을 유지한다. 기존 화면의 단일 변경 요청은 메타 PATCH 후 필요 시 rotate 요청으로 분리한다 |
 | `adminGoogleSheetRequests.ts` | 관리자 구글 시트 설정 요청 adapter. 서비스 계정 JSON 키는 생성/변경 요청에만 싣고, 목록 응답은 마스킹 키와 시트 식별 메타만 받는 흐름을 유지한다. 백엔드는 서비스 계정 공유 권한, 키 보관/암호화, 시트 ID 파싱을 이 경계 뒤에서 처리한다 |
 | `dashboardRequests.ts` | 자사/경쟁 판매, 상품 드로워, 후보군, 엑셀 업로드 템플릿 요청 adapter. 후보군 계열은 현재 세션의 `USER_ACCOUNT.uuid`를 request boundary에서만 붙이고, 화면 내부로 사용자 UUID를 흘리지 않는다. 경쟁 분석은 `competitorChannelId`가 없으면 전체 경쟁 채널 합계로 조회하고, 1차 드로워 판매 인사이트는 선택 경쟁 채널을 반드시 보낸다. 2차 드로워 AI 코멘트는 드로워 열림 시점에 별도 요청하되 자동 저장하지 않는다. 기간 기반 후보군 리스트는 전체 SKU 분포 배지 계산 후 reference/candidate item을 분리 반환하고, 총 오더 지표는 SSE로 행별 계산해야 한다는 백엔드 주의점을 이 경계에 기록한다. 후보군 엑셀 업로드/템플릿은 백엔드 이관 대상이지만, 이너후보군 발주 엑셀 다운로드는 이미 받은 reference item과 SSE `orderExport` 기반 프론트 생성 기능이다 |
 | `index.ts` | request adapter export 진입 파일 |

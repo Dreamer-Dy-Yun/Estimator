@@ -1,5 +1,6 @@
 import { mockAdminGoogleSheetApi } from '../mock'
 import type { AdminGoogleSheetApi } from '../types'
+import { apiRequest, USE_MOCK_API } from './httpClient'
 
 /**
  * Backend contract switch point for Google Sheets integrations.
@@ -15,9 +16,26 @@ import type { AdminGoogleSheetApi } from '../types'
  * - `sheetRange`, `accessMode`, `purpose`, and `note` describe how this sheet is
  *   used; they are not UI-only fields and should be persisted with the config.
  */
-export const adminGoogleSheetRequests: AdminGoogleSheetApi = {
+const httpAdminGoogleSheetRequests: AdminGoogleSheetApi = {
+  getAdminGoogleSheetConfigs: () => apiRequest('/admin/google-sheets'),
+  createAdminGoogleSheetConfig: (payload) =>
+    apiRequest('/admin/google-sheets', { method: 'POST', body: payload }),
+  updateAdminGoogleSheetConfig: (payload) =>
+    apiRequest(`/admin/google-sheets/${encodeURIComponent(payload.uuid)}`, {
+      method: 'PATCH',
+      body: payload,
+    }),
+  deleteAdminGoogleSheetConfig: (configUuid) =>
+    apiRequest(`/admin/google-sheets/${encodeURIComponent(configUuid)}`, { method: 'DELETE' }),
+}
+
+const mockAdminGoogleSheetRequests: AdminGoogleSheetApi = {
   getAdminGoogleSheetConfigs: () => mockAdminGoogleSheetApi.getAdminGoogleSheetConfigs(),
   createAdminGoogleSheetConfig: (payload) => mockAdminGoogleSheetApi.createAdminGoogleSheetConfig(payload),
   updateAdminGoogleSheetConfig: (payload) => mockAdminGoogleSheetApi.updateAdminGoogleSheetConfig(payload),
   deleteAdminGoogleSheetConfig: (configUuid) => mockAdminGoogleSheetApi.deleteAdminGoogleSheetConfig(configUuid),
 }
+
+export const adminGoogleSheetRequests: AdminGoogleSheetApi = USE_MOCK_API
+  ? mockAdminGoogleSheetRequests
+  : httpAdminGoogleSheetRequests

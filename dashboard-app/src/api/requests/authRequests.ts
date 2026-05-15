@@ -1,5 +1,6 @@
 import { mockAuthApi } from '../mock'
 import type { AuthApi } from '../types'
+import { ApiHttpError, apiRequest, USE_MOCK_API } from './httpClient'
 
 /**
  * Auth/admin-user request adapter.
@@ -22,7 +23,30 @@ import type { AuthApi } from '../types'
  * - USER_ACCOUNT.uuid is the external user identifier. loginId can change and
  *   must not be used as a foreign key for candidate ownership.
  */
-export const authRequests: AuthApi = {
+const httpAuthRequests: AuthApi = {
+  getCurrentSession: async () => {
+    try {
+      return await apiRequest('/auth/session')
+    } catch (error) {
+      if (error instanceof ApiHttpError && error.status === 401) return null
+      throw error
+    }
+  },
+  login: (payload) => apiRequest('/auth/login', { method: 'POST', body: payload }),
+  updateCurrentUser: (payload) => apiRequest('/auth/me', { method: 'PATCH', body: payload }),
+  changeCurrentUserPassword: (payload) => apiRequest('/auth/me/password', { method: 'POST', body: payload }),
+  getAdminUsers: () => apiRequest('/admin/users'),
+  createAdminUser: (payload) => apiRequest('/admin/users', { method: 'POST', body: payload }),
+  updateAdminUser: (payload) =>
+    apiRequest(`/admin/users/${encodeURIComponent(payload.uuid)}`, { method: 'PATCH', body: payload }),
+  resetAdminUserPassword: (userUuid) =>
+    apiRequest(`/admin/users/${encodeURIComponent(userUuid)}/password-reset`, { method: 'POST' }),
+  deleteAdminUser: (userUuid) =>
+    apiRequest(`/admin/users/${encodeURIComponent(userUuid)}`, { method: 'DELETE' }),
+  logout: () => apiRequest('/auth/logout', { method: 'POST' }),
+}
+
+const mockAuthRequests: AuthApi = {
   getCurrentSession: () => mockAuthApi.getCurrentSession(),
   login: (payload) => mockAuthApi.login(payload),
   updateCurrentUser: (payload) => mockAuthApi.updateCurrentUser(payload),
@@ -34,3 +58,5 @@ export const authRequests: AuthApi = {
   deleteAdminUser: (userUuid) => mockAuthApi.deleteAdminUser(userUuid),
   logout: () => mockAuthApi.logout(),
 }
+
+export const authRequests: AuthApi = USE_MOCK_API ? mockAuthRequests : httpAuthRequests

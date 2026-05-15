@@ -177,6 +177,30 @@ export interface CandidateOrderMetricSubscription {
   close: () => void
 }
 
+export interface CandidateStashAnalysisStartResult {
+  jobId: string
+  stashUuid: string
+  itemCount: number
+}
+
+export type CandidateStashAnalysisStatus = 'queued' | 'running' | 'completed' | 'failed'
+
+export interface CandidateStashAnalysisProgressEvent {
+  jobId: string
+  stashUuid: string
+  status: CandidateStashAnalysisStatus
+  totalItems: number
+  completedItems: number
+  currentItemUuid?: string
+  currentProductName?: string
+  message: string
+  error?: string
+}
+
+export interface CandidateStashAnalysisSubscription {
+  close: () => void
+}
+
 /** Candidate item detail response. `details` is null until the inner secondary drawer saves a snapshot. */
 export interface CandidateItemDetail {
   uuid: string

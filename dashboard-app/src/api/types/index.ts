@@ -5,6 +5,7 @@ export type {
   AdminGptKeyTestResult,
   AdminGptKeyTestStatus,
   CreateAdminGptKeyPayload,
+  RotateAdminGptKeyPayload,
   UpdateAdminGptKeyPayload,
 } from './admin-gpt-key'
 export type {
@@ -73,6 +74,10 @@ export type {
   CandidateOrderMetricStatus,
   CandidateOrderMetricStreamParams,
   CandidateOrderMetricSubscription,
+  CandidateStashAnalysisProgressEvent,
+  CandidateStashAnalysisStartResult,
+  CandidateStashAnalysisStatus,
+  CandidateStashAnalysisSubscription,
   CandidateItemOrderExport,
   CandidateItemOrderExportSizeQty,
   CandidateItemSummary,

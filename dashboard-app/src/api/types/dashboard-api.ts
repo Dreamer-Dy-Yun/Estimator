@@ -28,6 +28,9 @@ import type {
   CandidateOrderMetricEvent,
   CandidateOrderMetricStreamParams,
   CandidateOrderMetricSubscription,
+  CandidateStashAnalysisProgressEvent,
+  CandidateStashAnalysisStartResult,
+  CandidateStashAnalysisSubscription,
   CandidateRecommendationParams,
   CandidateRecommendationResult,
   CandidateStashExcelTemplateDownload,
@@ -75,6 +78,11 @@ export interface DashboardApi {
     params: CandidateOrderMetricStreamParams,
     listener: (event: CandidateOrderMetricEvent) => void,
   ): CandidateOrderMetricSubscription
+  startCandidateStashAnalysis(stashUuid: string): Promise<CandidateStashAnalysisStartResult>
+  subscribeCandidateStashAnalysis(
+    jobId: string,
+    listener: (event: CandidateStashAnalysisProgressEvent) => void,
+  ): CandidateStashAnalysisSubscription
   getCandidateRecommendations(params: CandidateRecommendationParams): Promise<CandidateRecommendationResult>
   getCandidateItemByUuid(itemUuid: string): Promise<CandidateItemDetail | null>
   deleteCandidateItem(itemUuid: string): Promise<void>

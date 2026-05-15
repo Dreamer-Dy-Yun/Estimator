@@ -3,6 +3,7 @@ import type {
   AdminGptKeySummary,
   AdminGptKeyTestResult,
   CreateAdminGptKeyPayload,
+  RotateAdminGptKeyPayload,
   UpdateAdminGptKeyPayload,
 } from '../types'
 import { assertMockAdminSession } from './authApi'
@@ -99,6 +100,23 @@ export const mockAdminGptKeyApi: AdminGptKeyApi = {
       note: cleanNote(payload.note),
       ...keyPatch,
       dbUpdatedAt: new Date().toISOString(),
+    }
+    mockAdminGptKeys = mockAdminGptKeys.map((gptKey) => (gptKey.uuid === payload.uuid ? nextGptKey : gptKey))
+    return nextGptKey
+  },
+  rotateAdminGptKey: async (payload: RotateAdminGptKeyPayload): Promise<AdminGptKeySummary> => {
+    await sleep(110)
+    assertMockAdminSession()
+    const target = findGptKey(payload.uuid)
+    if (!target) throw new Error('GPT 키를 찾을 수 없습니다.')
+
+    const now = new Date().toISOString()
+    const nextGptKey: AdminGptKeySummary = {
+      ...target,
+      maskedKey: maskPlainKey(payload.plainKey),
+      lastTestedAt: null,
+      lastTestStatus: 'untested',
+      dbUpdatedAt: now,
     }
     mockAdminGptKeys = mockAdminGptKeys.map((gptKey) => (gptKey.uuid === payload.uuid ? nextGptKey : gptKey))
     return nextGptKey

@@ -19,6 +19,7 @@ import type {
   ScatterSalesGridResponse,
   SelfSalesGridParams,
 } from '../types'
+import { type ApiQueryParams, apiRequest, buildApiUrl, openApiEventStream, USE_MOCK_API } from './httpClient'
 
 const candidateStashExcelTemplateAsset = 'templates/candidate-stash-upload-template-v0.0.0.xlsx'
 const candidateStashExcelTemplateFilename = '(Han.A)Template(ver.0.0.0).xlsx'
@@ -210,7 +211,7 @@ async function getCompetitorSalesScatterGrid(
   return mockDashboardApi.getCompetitorSalesScatterGrid(params)
 }
 
-export const dashboardRequests: DashboardApi = {
+const mockDashboardRequests: DashboardApi = {
   /**
    * Analysis list contracts.
    * - Params mirror the visible filter bar.
@@ -262,6 +263,23 @@ export const dashboardRequests: DashboardApi = {
       },
     }
   },
+  startCandidateStashAnalysis: async (stashUuid) =>
+    withCurrentUserUuid((userUuid) => mockDashboardApi.startCandidateStashAnalysis(stashUuid, userUuid)),
+  subscribeCandidateStashAnalysis: (jobId, listener) => {
+    let subscription: ReturnType<typeof mockDashboardApi.subscribeCandidateStashAnalysis> | null = null
+    let closed = false
+    void withCurrentUserUuid(async (userUuid) => {
+      if (closed) return
+      subscription = mockDashboardApi.subscribeCandidateStashAnalysis(jobId, listener, userUuid)
+      if (closed) subscription.close()
+    })
+    return {
+      close: () => {
+        closed = true
+        subscription?.close()
+      },
+    }
+  },
   getCandidateRecommendations: async (params) =>
     withCurrentUserUuid((userUuid) => mockDashboardApi.getCandidateRecommendations(params, userUuid)),
   getCandidateItemByUuid: async (itemUuid) =>
@@ -297,3 +315,120 @@ export const dashboardRequests: DashboardApi = {
 
   getSecondaryStockOrderCalc,
 }
+
+function encodePathSegment(value: string): string {
+  return encodeURIComponent(value)
+}
+
+function queryParams(params?: object): ApiQueryParams | undefined {
+  if (!params) return undefined
+  return Object.fromEntries(Object.entries(params)) as ApiQueryParams
+}
+
+function getHttpCandidateStashExcelTemplateDownload(): CandidateStashExcelTemplateDownload {
+  return {
+    href: buildApiUrl('/candidate-stashes/excel-template'),
+    filename: candidateStashExcelTemplateFilename,
+  }
+}
+
+const httpDashboardRequests: DashboardApi = {
+  getSelfSales: (params) => apiRequest('/sales/self', { query: queryParams(params) }),
+  getCompetitorSales: (params) => apiRequest('/sales/competitor', { query: queryParams(params) }),
+  getSelfSalesScatterGrid: (params) =>
+    apiRequest('/sales/self/scatter-grid', { query: queryParams(params) }),
+  getCompetitorSalesScatterGrid: (params) =>
+    apiRequest('/sales/competitor/scatter-grid', { query: queryParams(params) }),
+  getSalesFilterMeta: () => apiRequest('/sales/filter-meta'),
+
+  getProductDrawerBundle: (skuGroupKey) =>
+    apiRequest(`/products/${encodePathSegment(skuGroupKey)}/drawer-bundle`),
+  getProductMonthlyTrend: (skuGroupKey, params) =>
+    apiRequest(`/products/${encodePathSegment(skuGroupKey)}/monthly-trend`, {
+      query: queryParams(params),
+    }),
+  getProductSalesInsight: (skuGroupKey, params) =>
+    apiRequest(`/products/${encodePathSegment(skuGroupKey)}/sales-insight`, {
+      query: queryParams(params),
+    }),
+  getProductSecondaryDetail: (skuGroupKey, params) =>
+    apiRequest(`/products/${encodePathSegment(skuGroupKey)}/secondary-detail`, {
+      query: queryParams(params),
+    }),
+  getSecondaryDailyTrend: ({ skuGroupKey, ...params }) =>
+    apiRequest(`/products/${encodePathSegment(skuGroupKey)}/secondary/daily-trend`, {
+      query: queryParams(params),
+    }),
+  getSecondaryAiComment: ({ skuGroupKey, ...payload }) =>
+    apiRequest(`/products/${encodePathSegment(skuGroupKey)}/secondary/ai-comment`, {
+      method: 'POST',
+      body: payload,
+    }),
+  getSecondaryCompetitorChannels: () => apiRequest('/secondary/competitor-channels'),
+
+  getCandidateStashes: () => apiRequest('/candidate-stashes'),
+  getCandidateItemsByStash: ({ stashUuid, ...params }) =>
+    apiRequest(`/candidate-stashes/${encodePathSegment(stashUuid)}/items`, {
+      query: queryParams(params),
+    }),
+  subscribeCandidateOrderMetrics: (params, listener) =>
+    openApiEventStream(`/candidate-stashes/${encodePathSegment(params.stashUuid)}/items/order-metrics/events`, {
+      requestId: params.requestId,
+      dataReferencePeriodStart: params.dataReferencePeriodStart,
+      dataReferencePeriodEnd: params.dataReferencePeriodEnd,
+      candidateItemUuids: params.candidateItemUuids,
+    }, listener),
+  startCandidateStashAnalysis: (stashUuid) =>
+    apiRequest(`/candidate-stashes/${encodePathSegment(stashUuid)}/analysis`, { method: 'POST' }),
+  subscribeCandidateStashAnalysis: (jobId, listener) =>
+    openApiEventStream(`/candidate-stash-analyses/${encodePathSegment(jobId)}/events`, undefined, listener),
+  getCandidateRecommendations: ({ stashUuid, ...params }) =>
+    apiRequest(`/candidate-stashes/${encodePathSegment(stashUuid)}/recommendations`, {
+      query: queryParams(params),
+    }),
+  getCandidateItemByUuid: (itemUuid) => apiRequest(`/candidate-items/${encodePathSegment(itemUuid)}`),
+  deleteCandidateItem: (itemUuid) =>
+    apiRequest(`/candidate-items/${encodePathSegment(itemUuid)}`, { method: 'DELETE' }),
+  deleteCandidateItems: (stashUuid, itemUuids) =>
+    apiRequest(`/candidate-stashes/${encodePathSegment(stashUuid)}/items`, {
+      method: 'DELETE',
+      body: { itemUuids },
+    }),
+  deleteCandidateStash: (stashUuid) =>
+    apiRequest(`/candidate-stashes/${encodePathSegment(stashUuid)}`, { method: 'DELETE' }),
+  createCandidateStash: (payload) =>
+    apiRequest('/candidate-stashes', { method: 'POST', body: payload }),
+  updateCandidateStash: ({ stashUuid, ...payload }) =>
+    apiRequest(`/candidate-stashes/${encodePathSegment(stashUuid)}`, {
+      method: 'PATCH',
+      body: payload,
+    }),
+  duplicateCandidateStash: (stashUuid) =>
+    apiRequest(`/candidate-stashes/${encodePathSegment(stashUuid)}/duplicate`, { method: 'POST' }),
+  appendCandidateItem: ({ stashUuid, ...payload }) =>
+    apiRequest(`/candidate-stashes/${encodePathSegment(stashUuid)}/items`, {
+      method: 'POST',
+      body: payload,
+    }),
+  appendCandidateItems: ({ stashUuid, ...payload }) =>
+    apiRequest(`/candidate-stashes/${encodePathSegment(stashUuid)}/items/bulk`, {
+      method: 'POST',
+      body: payload,
+    }),
+  updateCandidateItem: ({ itemUuid, ...payload }) =>
+    apiRequest(`/candidate-items/${encodePathSegment(itemUuid)}`, {
+      method: 'PATCH',
+      body: payload,
+    }),
+  getCandidateStashExcelTemplateDownload: getHttpCandidateStashExcelTemplateDownload,
+  uploadCandidateStashExcel: (file) => {
+    const formData = new FormData()
+    formData.append('file', file)
+    return apiRequest('/candidate-stashes/import/excel', { method: 'POST', body: formData })
+  },
+
+  getSecondaryStockOrderCalc: (params) =>
+    apiRequest('/secondary/stock-order-calc', { method: 'POST', body: params }),
+}
+
+export const dashboardRequests: DashboardApi = USE_MOCK_API ? mockDashboardRequests : httpDashboardRequests

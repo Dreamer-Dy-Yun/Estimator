@@ -11,7 +11,7 @@
 
 이 문서는 프론트의 **`AuthApi` / `DashboardApi` TypeScript 계약**을 만족하는 REST API를 설계·구현하기 위한 참고 자료입니다. 필드명은 **camelCase**, JSON 직렬화를 가정합니다.
 
-현재 백엔드 엔드포인트는 아직 작성되지 않았다. 따라서 프론트의 실제 요청 교체 지점은 `dashboard-app/src/api/requests/*`이며, 백엔드는 `src/api/types/*` 계약과 이 문서를 기준으로 엔드포인트를 구성한다. 지금 `requests` 파일은 mock API를 호출하지만, 백엔드 연결 시 화면/훅을 건드리지 않고 해당 파일 내부만 HTTP 요청으로 교체하는 것을 기본 원칙으로 한다.
+현재 프론트 요청 계층은 `/api/v1` prefix의 REST API를 기준으로 HTTP adapter를 작성해 둔다. 기본값은 mock API이며, `VITE_USE_MOCK_API=false`일 때만 `VITE_API_BASE_URL` 기본값 `http://localhost:8080/api/v1`로 실제 HTTP 요청을 보낸다. 화면/훅은 `src/api/client.ts` facade만 호출하며 mock/HTTP 선택을 알지 않는다.
 
 ---
 
@@ -22,9 +22,9 @@
 | `src/api/requests/authRequests.ts` | 로그인, 세션, 사용자 정보 변경, 관리자 사용자 관리 | HttpOnly cookie 기반 세션 권장. 비밀번호/임시 비밀번호는 요청 또는 1회 응답에만 존재해야 하며 목록·세션 응답에 포함하지 않는다 |
 | `src/api/requests/adminGptKeyRequests.ts` | 관리자 GPT 키 목록, 생성, 메타/키 변경, 연결 테스트, 삭제 | GPT 전용 계약이다. 생성/변경 요청만 `plainKey`를 담을 수 있고, 응답은 `maskedKey`만 내려준다. 키 저장/암호화/감사 로그는 백엔드 책임이다 |
 | `src/api/requests/adminGoogleSheetRequests.ts` | 관리자 구글 시트 설정 목록, 생성, 변경, 삭제 | 서비스 계정 JSON 키는 생성/변경 요청에만 담고 응답에는 `maskedServiceAccountKey`만 내려준다. 백엔드는 서비스 계정 이메일에 시트 공유 권한이 있는지 확인하고, 키 원문은 암호화 저장 또는 secret manager로 보관한다 |
-| `src/api/requests/dashboardRequests.ts` | 자사/경쟁 판매, 상품 드로워, 후보군, 엑셀 업로드 템플릿 | 후보군 계열 요청은 현재 사용자 `USER_ACCOUNT.uuid` 기준으로 소유자 필터를 강제한다. 프론트 UI는 사용자 UUID를 들고 다니지 않고 request adapter에서만 붙인다. 세션 기반 백엔드라면 요청값보다 서버 세션을 우선한다. 경쟁 분석 목록은 `competitorChannelId` 생략 시 전체 경쟁 채널 합계를 반환하고, 상품 드로워 판매 인사이트는 선택 경쟁 채널을 필수로 받는다. 이너후보군 리스트는 데이터 참조기간의 전체 상품 분포로 배지를 계산한 뒤 stash item만 반환한다. 발주 엑셀 다운로드는 백엔드 재호출 없이 이미 받은 `orderExport` DTO로 프론트가 생성한다 |
+| `src/api/requests/dashboardRequests.ts` | 자사/경쟁 판매, 상품 드로워, 후보군, 엑셀 업로드 템플릿 | 후보군 계열 요청은 현재 사용자 `USER_ACCOUNT.uuid` 기준으로 소유자 필터를 강제한다. 프론트 UI는 사용자 UUID를 들고 다니지 않고 request adapter에서만 붙인다. 세션 기반 백엔드라면 요청값보다 서버 세션을 우선한다. 경쟁 분석 목록은 `competitorChannelId` 생략 시 전체 경쟁 채널 합계를 반환하고, 상품 드로워 판매 인사이트는 선택 경쟁 채널을 필수로 받는다. 이너후보군 리스트는 데이터 참조기간의 전체 상품 분포로 배지를 계산한 뒤 stash item만 반환한다. 기간 총판매량은 백엔드가 `*_MONTHLY_SUMMARY`와 raw 판매 테이블을 조합해 계산하고, 프론트는 내려온 값을 그대로 표시한다. 발주 엑셀 다운로드는 백엔드 재호출 없이 이미 받은 `orderExport` DTO로 프론트가 생성한다 |
 
-`src/api/client.ts`는 public export facade다. 화면에서 import하는 이름을 안정적으로 유지하기 위한 파일이며, mock과 실제 HTTP를 선택하는 책임은 갖지 않는다.
+`src/api/client.ts`는 public export facade다. 화면에서 import하는 이름을 안정적으로 유지하기 위한 파일이며, mock/HTTP 선택과 base URL 처리는 `src/api/requests/httpClient.ts`와 각 request adapter가 맡는다.
 
 ---
 
@@ -86,6 +86,7 @@
 | `getAdminGptKeys()` | GET | `/admin/gpt-keys` |
 | `createAdminGptKey(payload)` | POST | `/admin/gpt-keys` |
 | `updateAdminGptKey(payload)` | PATCH | `/admin/gpt-keys/:keyUuid` |
+| `rotateAdminGptKey(payload)` | POST | `/admin/gpt-keys/:keyUuid/rotate` |
 | `testAdminGptKey(keyUuid)` | POST | `/admin/gpt-keys/:keyUuid/test` |
 | `deleteAdminGptKey(keyUuid)` | DELETE | `/admin/gpt-keys/:keyUuid` |
 
@@ -273,12 +274,14 @@
 
 ## 2. `DashboardApi` 메서드 ↔ REST 제안 매핑
 
-아래 경로는 **제안**입니다. 팀 규칙에 맞게 접두사(`/api/v1` 등)를 붙이면 됩니다.
+아래 경로는 프론트 HTTP adapter가 호출하는 `/api/v1` 뒤의 상대 경로다. prefix 또는 host는 `VITE_API_BASE_URL`에서 교체한다.
 
 | 계약 메서드 | 제안 HTTP | 제안 경로·쿼리 |
 |-------------|-----------|----------------|
 | `getSelfSales(params?)` | GET | `/sales/self?startDate&endDate&brand&category&codeQuery&colorCode&nameQuery` |
 | `getCompetitorSales(params?)` | GET | `/sales/competitor?startDate&endDate&brand&category&codeQuery&colorCode&nameQuery&competitorChannelId` |
+| `getSelfSalesScatterGrid(params?)` | GET | `/sales/self/scatter-grid?startDate&endDate&brand&category&codeQuery&colorCode&nameQuery&xBucketSize&yBucketSize&maxSkuIdsPerCell` |
+| `getCompetitorSalesScatterGrid(params?)` | GET | `/sales/competitor/scatter-grid?startDate&endDate&brand&category&codeQuery&colorCode&nameQuery&competitorChannelId&xBucketSize&yBucketSize&maxSkuIdsPerCell` |
 | `getSalesFilterMeta()` | GET | `/sales/filter-meta` |
 | `getProductDrawerBundle(skuGroupKey)` | GET | `/products/:skuGroupKey/drawer-bundle` |
 | `getProductMonthlyTrend(skuGroupKey, params)` | GET | `/products/:skuGroupKey/monthly-trend?startDate&endDate&forecastMonths&competitorChannelId` |
@@ -289,7 +292,9 @@
 | `getSecondaryCompetitorChannels()` | GET | `/secondary/competitor-channels` |
 | `getCandidateStashes()` | GET | `/candidate-stashes` 세션 소유자 기준 |
 | `getCandidateItemsByStash(params)` | GET | `/candidate-stashes/:stashUuid/items?dataReferencePeriodStart&dataReferencePeriodEnd` |
-| `subscribeCandidateOrderMetrics(params)` | SSE 권장 | `/candidate-stashes/:stashUuid/items/order-metrics/events?requestId&dataReferencePeriodStart&dataReferencePeriodEnd&candidateItemUuids[]` |
+| `subscribeCandidateOrderMetrics(params)` | SSE 권장 | `/candidate-stashes/:stashUuid/items/order-metrics/events?requestId&dataReferencePeriodStart&dataReferencePeriodEnd&candidateItemUuids` (`candidateItemUuids`는 반복 query param) |
+| `startCandidateStashAnalysis(stashUuid)` | POST | `/candidate-stashes/:stashUuid/analysis` 세션 소유자 기준 |
+| `subscribeCandidateStashAnalysis(jobId, listener)` | GET (SSE) | `/candidate-stash-analyses/:jobId/events` 세션 소유자 기준 |
 | `getCandidateRecommendations(params)` | GET | `/candidate-stashes/:stashUuid/recommendations?dataReferencePeriodStart&dataReferencePeriodEnd` |
 | `getCandidateItemByUuid(itemUuid)` | GET | `/candidate-items/:itemUuid` |
 | `deleteCandidateItem(itemUuid)` | DELETE | `/candidate-items/:itemUuid` 세션 소유자 기준 |
@@ -301,8 +306,9 @@
 | `appendCandidateItem(payload)` | POST | `/candidate-stashes/:stashUuid/items` body `{ skuGroupKey, details, isLatestLlmComment }`, 세션 소유자 기준 |
 | `appendCandidateItems(payload)` | POST | `/candidate-stashes/:stashUuid/items/bulk` body `{ skuGroupKeys }`, 세션 소유자 기준 |
 | `updateCandidateItem(payload)` | PATCH | `/candidate-items/:itemUuid` body `{ details, isLatestLlmComment }`, 세션 소유자 기준 |
+| `getCandidateStashExcelTemplateDownload()` | GET | `/candidate-stashes/excel-template` |
 | `uploadCandidateStashExcel(file)` | POST multipart/form-data | `/candidate-stashes/import/excel` 세션 생성자 기준 |
-| `getSecondaryStockOrderCalc(params)` | GET 또는 POST | 쿼리가 길면 POST `/secondary/stock-order-calc` body 권장 |
+| `getSecondaryStockOrderCalc(params)` | POST | `/secondary/stock-order-calc` body |
 
 ---
 
@@ -538,6 +544,8 @@
 
 이 API는 단순히 후보군에 담긴 상품만 조회해 계산하면 안 된다. 배지 기준이 “조회 기간 전체에서 상위 몇 %인가”처럼 전체 분포에 의존하므로, 백엔드는 먼저 해당 기간의 전체 대상 SKU 데이터를 집계하고 그 전체 분포 기준으로 배지를 부여한다. 응답은 전체 분포 기준의 가벼운 `referenceItems`와 후보군에 실제로 담긴 `candidateItems`를 함께 내려준다. 프론트는 날짜 입력 변경마다 호출하지 않고 `조회` 버튼 클릭 시점에만 호출한다. 그래도 조회 기간 변경은 무거운 재집계가 될 수 있으므로 기간+경쟁채널 기준 랭킹/배지 계산 결과를 캐시하거나 materialized view/batch 집계를 두는 방식을 권장한다.
 
+기간 총판매량은 백엔드 계산 계약이다. 자사 판매는 `ERP_MONTHLY_SUMMARY`를 우선 사용하되, 조회 시작/종료가 월 전체를 덮지 않는 부분 월과 아직 확정되지 않은 월은 `SALES_ERP`를 일자 기준으로 합산해 보정한다. 경쟁 판매는 `SALES_EXTERNAL`을 원천으로 보며, `EXTERNAL_MONTHLY_SUMMARY`의 `site` 축이 제공되면 확정된 전체 월은 월 요약을 사용하고 부분 월/미확정 월은 `SALES_EXTERNAL`로 보정한다. 전체 경쟁 채널 조회는 site 전체 합산이고, 특정 경쟁 채널 조회는 해당 `site`만 합산한다. 프론트는 이 계산을 재현하지 않고 `CandidateItemSummary.insight.selfSalesQty`와 `competitorSalesQty`를 그대로 표시한다.
+
 **`CandidateItemListResult`** (`getCandidateItemsByStash` 응답)
 
 | 필드 | 의미 |
@@ -592,6 +600,8 @@ badges: [
 | `isDetailConfirmed` | 이너후보군 2차 드로워에서 저장한 스냅샷이 있으면 `true`. 리스트의 상세확정 컬럼은 이 값을 표시한다 |
 | `dbCreatedAt`, `dbUpdatedAt` | 생성·수정 시각 |
 
+`insight.selfSalesQty`와 `insight.competitorSalesQty`는 위 기간 총판매량 계약에 따라 백엔드가 계산한 SKU group(`SKU.code + SKU.color_code`) 단위 합산값이다. SKU가 size 단위로 분리되어 있으므로 백엔드는 같은 code/color의 size별 `sku_uuid`를 먼저 묶어 합산한다. 프론트는 화면 정렬과 엑셀 다운로드에 이 값을 사용하지만, 월 요약/raw 보정 여부나 경쟁 `site` 필터를 화면에서 직접 계산하지 않는다.
+
 **`CandidateItemDetail`**
 
 | 필드 | 의미 |
@@ -644,9 +654,11 @@ badges: [
 
 **후보군 AI 코멘트/상세확정**
 
-- 후보군 상세 모달이 열릴 때 자동 AI 일괄 분석 요청이나 SSE 진행 상태 표시는 하지 않습니다.
+- 프론트 API 계약에는 후보군 분석 시작 `startCandidateStashAnalysis(stashUuid)`와 진행 SSE `subscribeCandidateStashAnalysis(jobId, listener)`를 둔다. 화면에서 호출할 때는 모달 생명주기에 맞춰 SSE를 닫아야 한다.
+- 백엔드는 해당 `stashUuid`에 속한 후보 아이템 중 저장 스냅샷(`CandidateItemDetail.details`)이 존재하는 항목만 AI 분석 작업에 투입한다. 스냅샷 없이 담긴 미확정 항목은 건너뛰거나 미확정 상태로 보고한다.
+- 시작 응답은 `{ jobId, stashUuid, itemCount }`이며 SSE 이벤트는 `{ jobId, stashUuid, status, totalItems, completedItems, currentItemUuid?, currentProductName?, message, error? }`를 내려준다.
 - AI 코멘트와 사이즈별 확정 오더량은 이너후보군 2차 드로워에서 스냅샷을 저장/수정할 때 후보 아이템 `details`에 함께 저장합니다.
-- 백엔드가 별도 비동기 AI 분석 작업을 도입하려면 후보군 자동 열림 흐름이 아니라 명시적 사용자 액션과 별도 API 계약으로 추가해야 합니다.
+- 각 후보 아이템의 AI 분석/코멘트 갱신이 완료되면 백엔드는 해당 아이템의 DB `is_latest_llm_comment`를 `true`로 갱신한다. 실패 시 `status: 'failed'`와 `error` 메시지를 내려야 한다.
 
 ### 3.11 `getSecondaryStockOrderCalc`
 

@@ -14,6 +14,7 @@ export const logout = authRequests.logout
 export const getAdminGptKeys = adminGptKeyRequests.getAdminGptKeys
 export const createAdminGptKey = adminGptKeyRequests.createAdminGptKey
 export const updateAdminGptKey = adminGptKeyRequests.updateAdminGptKey
+export const rotateAdminGptKey = adminGptKeyRequests.rotateAdminGptKey
 export const testAdminGptKey = adminGptKeyRequests.testAdminGptKey
 export const deleteAdminGptKey = adminGptKeyRequests.deleteAdminGptKey
 
@@ -33,6 +34,8 @@ export const getSecondaryAiComment = dashboardRequests.getSecondaryAiComment
 export const getCandidateStashes = dashboardRequests.getCandidateStashes
 export const getCandidateItemsByStash = dashboardRequests.getCandidateItemsByStash
 export const subscribeCandidateOrderMetrics = dashboardRequests.subscribeCandidateOrderMetrics
+export const startCandidateStashAnalysis = dashboardRequests.startCandidateStashAnalysis
+export const subscribeCandidateStashAnalysis = dashboardRequests.subscribeCandidateStashAnalysis
 export const getCandidateRecommendations = dashboardRequests.getCandidateRecommendations
 export const getCandidateItemByUuid = dashboardRequests.getCandidateItemByUuid
 export const deleteCandidateItem = dashboardRequests.deleteCandidateItem
