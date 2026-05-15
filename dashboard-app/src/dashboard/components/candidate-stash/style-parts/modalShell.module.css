@@ -95,26 +95,29 @@
 
 .stashDetailModalBackdrop[data-inner-drawer-open='true'] .detailActionCardGrid,
 .stashDetailModalBackdrop[data-inner-drawer-closing='true'] .detailActionCardGrid {
-  grid-template-columns: 1fr;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .stashDetailModalBackdrop[data-inner-drawer-open='true'] .dataReferenceQueryGrid,
 .stashDetailModalBackdrop[data-inner-drawer-closing='true'] .dataReferenceQueryGrid {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(10, minmax(0, 1fr));
 }
 
 .stashDetailModalBackdrop[data-inner-drawer-open='true'] .dataReferenceQueryLabel,
-.stashDetailModalBackdrop[data-inner-drawer-open='true'] .dataReferenceQueryControls,
-.stashDetailModalBackdrop[data-inner-drawer-open='true'] .dataReferenceQueryActions,
-.stashDetailModalBackdrop[data-inner-drawer-closing='true'] .dataReferenceQueryLabel,
-.stashDetailModalBackdrop[data-inner-drawer-closing='true'] .dataReferenceQueryControls,
-.stashDetailModalBackdrop[data-inner-drawer-closing='true'] .dataReferenceQueryActions {
-  grid-column: 1 / -1;
+.stashDetailModalBackdrop[data-inner-drawer-closing='true'] .dataReferenceQueryLabel {
+  grid-column: 1 / span 2;
 }
 
 .stashDetailModalBackdrop[data-inner-drawer-open='true'] .dataReferenceQueryControls,
 .stashDetailModalBackdrop[data-inner-drawer-closing='true'] .dataReferenceQueryControls {
+  grid-column: 3 / span 6;
   min-width: 0;
+}
+
+.stashDetailModalBackdrop[data-inner-drawer-open='true'] .dataReferenceQueryActions,
+.stashDetailModalBackdrop[data-inner-drawer-closing='true'] .dataReferenceQueryActions {
+  grid-column: 9 / span 2;
+  justify-content: stretch;
 }
 
 .stashDetailModalBackdrop[data-inner-drawer-open='true'] .dataReferenceQueryInput,
@@ -122,14 +125,9 @@
   width: 100%;
 }
 
-.stashDetailModalBackdrop[data-inner-drawer-open='true'] .dataReferenceQueryActions,
-.stashDetailModalBackdrop[data-inner-drawer-closing='true'] .dataReferenceQueryActions {
-  justify-content: stretch;
-}
-
 .stashDetailModalBackdrop[data-inner-drawer-open='true'] .bulkActionCard,
 .stashDetailModalBackdrop[data-inner-drawer-closing='true'] .bulkActionCard {
-  grid-template-columns: 1fr;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .stashDetailModalBackdrop[data-inner-drawer-open='true'] .dataReferenceQueryButton,
