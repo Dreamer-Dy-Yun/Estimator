@@ -87,11 +87,13 @@ export function ProductSecondaryDrawer({
   const [selfWeightPct, setSelfWeightPct] = useState(50)
   /** 사용자가 직접 덮어쓴 확정 수량만. live/snapshot baseline은 SecondaryOrderDraft가 정한다. */
   const [confirmBySize, setConfirmBySize] = useState<Record<string, number>>({})
-  const [snapshotConfirmBaselineActive, setSnapshotConfirmBaselineActive] = useState(false)
+  const [snapshotConfirmBaselineActive, setSnapshotConfirmBaselineActive] = useState(
+    () => prefillFromSnapshot != null && candidateItemContext?.hydrateSnapshotSource === 'confirmed',
+  )
   const [appliedPrefillKey, setAppliedPrefillKey] = useState<string | null>(null)
 
   const minOrderDate = formatIsoDateLocal(new Date())
-  const hasSavedSnapshot = Boolean(candidateItemContext?.isDetailConfirmed)
+  const hasSavedSnapshot = Boolean(candidateItemContext?.confirmedSnapshot)
   const viewPeriodStart = periodStart
   const viewPeriodEnd = periodEnd
   const prefillKey = useMemo(
@@ -172,7 +174,7 @@ export function ProductSecondaryDrawer({
       setLeadTimeEndDate(si.leadTimeEndDate)
       setDailyMeanClient(si.dailyMean)
       setConfirmBySize({})
-      setSnapshotConfirmBaselineActive(true)
+      setSnapshotConfirmBaselineActive(candidateItemContext?.hydrateSnapshotSource === 'confirmed')
       setAppliedPrefillKey(prefillKey)
       if (d2.orderUnitInputs != null) {
         setUnitCostInput(d2.orderUnitInputs.unitCost)
@@ -191,6 +193,7 @@ export function ProductSecondaryDrawer({
     prefillFromSnapshot,
     prefillKey,
     primary.skuGroupKey,
+    candidateItemContext?.hydrateSnapshotSource,
   ])
 
   const viewChannel = useMemo<SecondaryCompetitorChannel>(() => {
@@ -311,13 +314,22 @@ export function ProductSecondaryDrawer({
     selfCol.feeRatePct,
   ])
 
+  const handleRestoreConfirmed = useCallback(() => {
+    if (!candidateItemContext?.confirmedSnapshot) return
+    setSnapshotConfirmBaselineActive(true)
+    candidateItemContext.onRestoreConfirmed?.()
+  }, [candidateItemContext])
+
   useEffect(() => {
     if (candidateItemContext == null) return
     if (prefillKey != null && appliedPrefillKey !== prefillKey) return
     let alive = true
     queueMicrotask(() => {
       if (!alive) return
-      candidateItemContext.onDraftChange?.(buildCurrentSnapshot())
+      candidateItemContext.onDraftChange?.(
+        buildCurrentSnapshot(),
+        snapshotConfirmBaselineActive ? 'confirmed' : 'live',
+      )
     })
     return () => {
       alive = false
@@ -327,6 +339,7 @@ export function ProductSecondaryDrawer({
     candidateItemContext,
     buildCurrentSnapshot,
     prefillKey,
+    snapshotConfirmBaselineActive,
   ])
 
   return (
@@ -336,7 +349,9 @@ export function ProductSecondaryDrawer({
       channel={viewChannel}
       candidateItemContext={candidateItemContext}
       hasSavedSnapshot={hasSavedSnapshot}
+      showingConfirmedValues={snapshotConfirmBaselineActive}
       onResetToLive={handleResetToLive}
+      onRestoreConfirmed={handleRestoreConfirmed}
       model={model}
       aiComment={aiComment}
       aiCommentLoading={aiCommentLoading}

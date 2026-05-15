@@ -12,8 +12,11 @@ export type CandidateItemPanelContext = {
   stashNote: string | null
   itemUuid: string
   isDetailConfirmed: boolean
-  onDraftChange?: (snapshot: OrderSnapshotDocumentV1) => void
+  confirmedSnapshot?: OrderSnapshotDocumentV1 | null
+  hydrateSnapshotSource?: 'confirmed' | 'live' | null
+  onDraftChange?: (snapshot: OrderSnapshotDocumentV1, source: 'confirmed' | 'live') => void
   onResetDraft?: () => void
+  onRestoreConfirmed?: () => void
   onConfirmed?: (snapshot: OrderSnapshotDocumentV1) => void
   onUnconfirmed?: () => void
   onSaved?: () => void
@@ -84,7 +87,10 @@ type InnerCandidateActionCardProps = {
   context: CandidateItemPanelContext
   loading: boolean
   confirmed: boolean
+  showingConfirmedValues: boolean
+  canRestoreConfirmed: boolean
   onReset: () => void
+  onRestoreConfirmed: () => void
   onToggleConfirm: () => void
 }
 
@@ -93,10 +99,14 @@ export function InnerCandidateActionCard({
   context,
   loading,
   confirmed,
+  showingConfirmedValues,
+  canRestoreConfirmed,
   onReset,
+  onRestoreConfirmed,
   onToggleConfirm,
 }: InnerCandidateActionCardProps) {
   const confirmLabel = confirmed ? KO.btnUnconfirmCandidateDetail : KO.btnConfirmCandidateDetail
+  const resetRestoreLabel = showingConfirmedValues ? KO.btnResetCandidateDraft : KO.btnRestoreConfirmedCandidateDraft
   return (
     <>
       <div className={styles.metaFilterSelectedInfo}>
@@ -108,10 +118,10 @@ export function InnerCandidateActionCard({
       <button
         type="button"
         className={`${styles.btn} ${styles.btnSecondary} ${styles.innerCandidateActionBtn} ${styles.btnViewportAdaptive}`}
-        onClick={() => void onReset()}
-        disabled={loading}
+        onClick={() => void (showingConfirmedValues ? onReset() : onRestoreConfirmed())}
+        disabled={loading || (!showingConfirmedValues && !canRestoreConfirmed)}
       >
-        {KO.btnResetCandidateDraft}
+        {resetRestoreLabel}
       </button>
       <button
         type="button"

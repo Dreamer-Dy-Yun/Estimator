@@ -35,7 +35,9 @@ type Props = {
   channel: SecondaryCompetitorChannel
   candidateItemContext: CandidateItemPanelContext | null
   hasSavedSnapshot: boolean
+  showingConfirmedValues: boolean
   onResetToLive: () => void
+  onRestoreConfirmed: () => void
   model: ReturnType<typeof useSecondaryForecastModel>
   aiComment: string
   aiCommentLoading: boolean
@@ -82,7 +84,9 @@ export function ProductSecondaryDrawerContent({
   channel,
   candidateItemContext,
   hasSavedSnapshot,
+  showingConfirmedValues,
   onResetToLive,
+  onRestoreConfirmed,
   model,
   aiComment,
   aiCommentLoading,
@@ -173,8 +177,10 @@ export function ProductSecondaryDrawerContent({
           <SecondaryDrawerActionArea
             candidateItemContext={candidateItemContext}
             hasSavedSnapshot={hasSavedSnapshot}
+            showingConfirmedValues={showingConfirmedValues}
             candidateActions={candidateActions}
             onResetToLive={onResetToLive}
+            onRestoreConfirmed={onRestoreConfirmed}
             onRequestUnconfirm={() => setUnconfirmOpen(true)}
             portalHelp={portalHelp}
             confirmOrderHelpId={helpIds.confirmOrder}

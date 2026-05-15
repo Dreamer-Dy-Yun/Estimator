@@ -12,8 +12,10 @@ import styles from './secondaryDrawer.module.css'
 type Props = {
   candidateItemContext: CandidateItemPanelContext | null
   hasSavedSnapshot: boolean
+  showingConfirmedValues: boolean
   candidateActions: ReturnType<typeof useSecondaryForecastModel>['candidateActions']
   onResetToLive: () => void
+  onRestoreConfirmed: () => void
   onRequestUnconfirm: () => void
   portalHelp: ReturnType<typeof usePortalHelpPopover<SecondaryHelpId>>
   confirmOrderHelpId: string
@@ -22,8 +24,10 @@ type Props = {
 export function SecondaryDrawerActionArea({
   candidateItemContext,
   hasSavedSnapshot,
+  showingConfirmedValues,
   candidateActions,
   onResetToLive,
+  onRestoreConfirmed,
   onRequestUnconfirm,
   portalHelp,
   confirmOrderHelpId,
@@ -36,7 +40,10 @@ export function SecondaryDrawerActionArea({
             context={candidateItemContext}
             loading={candidateActions.loading}
             confirmed={hasSavedSnapshot}
+            showingConfirmedValues={showingConfirmedValues}
+            canRestoreConfirmed={Boolean(candidateItemContext.confirmedSnapshot)}
             onReset={onResetToLive}
+            onRestoreConfirmed={onRestoreConfirmed}
             onToggleConfirm={hasSavedSnapshot ? onRequestUnconfirm : candidateActions.confirmCandidateItem}
           />
         </div>

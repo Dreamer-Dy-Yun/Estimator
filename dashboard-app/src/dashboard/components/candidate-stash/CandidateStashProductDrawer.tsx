@@ -21,8 +21,13 @@ export function CandidateStashProductDrawer({ model, bulkDeleteOpen }: Props) {
       stashNote: model.detailTarget.note,
       itemUuid,
       isDetailConfirmed: openedItem.isDetailConfirmed,
-      onDraftChange: (snapshot: OrderSnapshotDocumentV1) => model.saveDrawerDraftSnapshot(itemUuid, snapshot),
+      confirmedSnapshot: model.confirmedHydrateSnap,
+      hydrateSnapshotSource: model.hydrateSnapSource,
+      onDraftChange: (snapshot: OrderSnapshotDocumentV1, source: 'confirmed' | 'live') => (
+        model.saveDrawerDraftSnapshot(itemUuid, snapshot, source)
+      ),
       onResetDraft: () => model.clearDrawerDraftSnapshot(itemUuid),
+      onRestoreConfirmed: () => model.restoreDrawerConfirmedSnapshot(itemUuid),
       onConfirmed: (snapshot: OrderSnapshotDocumentV1) => model.markDrawerSnapshotConfirmed(itemUuid, snapshot),
       onUnconfirmed: () => model.markDrawerSnapshotUnconfirmed(itemUuid),
       onSaved: () => {

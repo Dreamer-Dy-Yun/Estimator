@@ -11,6 +11,13 @@ import type { InnerCandidateRow } from './candidateStashDetailTypes'
 
 const INNER_DRAWER_CLOSE_LAYOUT_MS = 440
 
+type DrawerSnapshotSource = 'confirmed' | 'live'
+
+type DrawerDraftSnapshotEntry = {
+  snapshot: OrderSnapshotDocumentV1
+  source: DrawerSnapshotSource
+}
+
 type Args = {
   dataReferenceStart: string | undefined
   dataReferenceEnd: string | undefined
@@ -32,12 +39,15 @@ export function useCandidateStashItemDrawer({
   const [drawerSkuGroupKey, setDrawerSkuGroupKey] = useState<string | null>(null)
   const [openedItemUuid, setOpenedItemUuid] = useState<string | null>(null)
   const [hydrateSnap, setHydrateSnap] = useState<OrderSnapshotDocumentV1 | null>(null)
+  const [hydrateSnapSource, setHydrateSnapSource] = useState<DrawerSnapshotSource | null>(null)
+  const [confirmedHydrateSnap, setConfirmedHydrateSnap] = useState<OrderSnapshotDocumentV1 | null>(null)
   const [drawerForecastMonths, setDrawerForecastMonths] = useState(8)
   const mountedRef = useRef(false)
   const drawerRequestSeqRef = useRef(0)
   const drawerCloseTimerRef = useRef<ReturnType<typeof window.setTimeout> | null>(null)
   const innerNavLockRef = useRef(false)
-  const draftSnapshotsByItemUuidRef = useRef<Record<string, OrderSnapshotDocumentV1>>({})
+  const draftSnapshotsByItemUuidRef = useRef<Record<string, DrawerDraftSnapshotEntry>>({})
+  const confirmedSnapshotsByItemUuidRef = useRef<Record<string, OrderSnapshotDocumentV1>>({})
 
   useEffect(() => {
     mountedRef.current = true
@@ -79,10 +89,15 @@ export function useCandidateStashItemDrawer({
       if (!mountedRef.current || drawerRequestSeqRef.current !== seq) return
       if (!detail) throw new Error(`후보 상세 데이터 없음: ${row.uuid}`)
       const snap = detail.details ? parseOrderSnapshot(detail.details) : null
-      const draftSnap = draftSnapshotsByItemUuidRef.current[row.uuid] ?? null
-      const hydrateSnap = draftSnap ?? snap
+      if (snap) confirmedSnapshotsByItemUuidRef.current[row.uuid] = snap
+      else delete confirmedSnapshotsByItemUuidRef.current[row.uuid]
+      const draftEntry = draftSnapshotsByItemUuidRef.current[row.uuid] ?? null
+      const hydrateSnap = draftEntry?.snapshot ?? snap
+      const hydrateSource = draftEntry?.source ?? (snap ? 'confirmed' : null)
       if (!mountedRef.current || drawerRequestSeqRef.current !== seq) return
       setHydrateSnap(hydrateSnap)
+      setHydrateSnapSource(hydrateSource)
+      setConfirmedHydrateSnap(snap)
       setDrawerForecastMonths(clampForecastMonths(hydrateSnap?.context.forecastMonths ?? detailForecastMonths))
       setDrawerSkuGroupKey(row.skuGroupKey)
       setOpenedItemUuid(row.uuid)
@@ -130,6 +145,8 @@ export function useCandidateStashItemDrawer({
       setDrawerSkuGroupKey(null)
       setOpenedItemUuid(null)
       setHydrateSnap(null)
+      setHydrateSnapSource(null)
+      setConfirmedHydrateSnap(null)
     }, INNER_DRAWER_CLOSE_LAYOUT_MS)
   }, [drawerClosing, drawerOpen, drawerSkuGroupKey])
 
@@ -137,23 +154,43 @@ export function useCandidateStashItemDrawer({
     setDrawerForecastMonths(clampForecastMonths(n))
   }, [])
 
-  const saveDrawerDraftSnapshot = useCallback((itemUuid: string, snapshot: OrderSnapshotDocumentV1) => {
-    draftSnapshotsByItemUuidRef.current[itemUuid] = snapshot
+  const saveDrawerDraftSnapshot = useCallback((
+    itemUuid: string,
+    snapshot: OrderSnapshotDocumentV1,
+    source: DrawerSnapshotSource,
+  ) => {
+    draftSnapshotsByItemUuidRef.current[itemUuid] = { snapshot, source }
   }, [])
 
   const clearDrawerDraftSnapshot = useCallback((itemUuid: string) => {
     delete draftSnapshotsByItemUuidRef.current[itemUuid]
     if (openedItemUuid === itemUuid) setHydrateSnap(null)
+    if (openedItemUuid === itemUuid) setHydrateSnapSource(null)
   }, [openedItemUuid])
 
   const markDrawerSnapshotConfirmed = useCallback((itemUuid: string, snapshot: OrderSnapshotDocumentV1) => {
     delete draftSnapshotsByItemUuidRef.current[itemUuid]
+    confirmedSnapshotsByItemUuidRef.current[itemUuid] = snapshot
     if (openedItemUuid === itemUuid) setHydrateSnap(snapshot)
+    if (openedItemUuid === itemUuid) setHydrateSnapSource('confirmed')
+    if (openedItemUuid === itemUuid) setConfirmedHydrateSnap(snapshot)
   }, [openedItemUuid])
 
   const markDrawerSnapshotUnconfirmed = useCallback((itemUuid: string) => {
     delete draftSnapshotsByItemUuidRef.current[itemUuid]
+    delete confirmedSnapshotsByItemUuidRef.current[itemUuid]
     if (openedItemUuid === itemUuid) setHydrateSnap(null)
+    if (openedItemUuid === itemUuid) setHydrateSnapSource(null)
+    if (openedItemUuid === itemUuid) setConfirmedHydrateSnap(null)
+  }, [openedItemUuid])
+
+  const restoreDrawerConfirmedSnapshot = useCallback((itemUuid: string) => {
+    const snap = confirmedSnapshotsByItemUuidRef.current[itemUuid] ?? null
+    if (!snap) return
+    delete draftSnapshotsByItemUuidRef.current[itemUuid]
+    if (openedItemUuid === itemUuid) setHydrateSnap(snap)
+    if (openedItemUuid === itemUuid) setHydrateSnapSource('confirmed')
+    if (openedItemUuid === itemUuid) setConfirmedHydrateSnap(snap)
   }, [openedItemUuid])
 
   return {
@@ -162,6 +199,8 @@ export function useCandidateStashItemDrawer({
     drawerError,
     openedItemUuid,
     hydrateSnap,
+    hydrateSnapSource,
+    confirmedHydrateSnap,
     fc,
     bundle,
     mergedSummary,
@@ -173,5 +212,6 @@ export function useCandidateStashItemDrawer({
     clearDrawerDraftSnapshot,
     markDrawerSnapshotConfirmed,
     markDrawerSnapshotUnconfirmed,
+    restoreDrawerConfirmedSnapshot,
   }
 }
