@@ -28,6 +28,30 @@ type Args = {
   onStashesInvalidate?: () => void
 }
 
+type ItemStateUpdater = CandidateItemSummary[] | ((current: CandidateItemSummary[]) => CandidateItemSummary[])
+
+type LoadItemsOptions = {
+  metricSkuGroupKeys?: readonly string[]
+  preserveExistingMetrics?: boolean
+}
+
+function preserveOrderMetricFields(
+  next: CandidateItemSummary,
+  previous: CandidateItemSummary | undefined,
+): CandidateItemSummary {
+  if (!previous) return next
+  return {
+    ...next,
+    orderMetricStatus: previous.orderMetricStatus,
+    qty: previous.qty,
+    expectedOrderAmount: previous.expectedOrderAmount,
+    expectedSalesAmount: previous.expectedSalesAmount,
+    expectedOpProfit: previous.expectedOpProfit,
+    insight: previous.insight,
+    orderExport: previous.orderExport,
+  }
+}
+
 export type { InnerCandidateRow, InnerCandidateSortKey } from './candidateStashDetailTypes'
 
 export function useCandidateStashDetailModal({
@@ -36,7 +60,7 @@ export function useCandidateStashDetailModal({
   onStashesInvalidate,
 }: Args) {
   const [stashes, setStashes] = useState<CandidateStashSummary[]>([])
-  const [items, setItems] = useState<CandidateItemSummary[]>([])
+  const [items, setItemsState] = useState<CandidateItemSummary[]>([])
   const [recommendationItems, setRecommendationItems] = useState<CandidateReferenceItemSummary[]>([])
   const [recommendationLoading, setRecommendationLoading] = useState(false)
   const [recommendationError, setRecommendationError] = useState<string | null>(null)
@@ -50,10 +74,19 @@ export function useCandidateStashDetailModal({
   const [itemDeleteTarget, setItemDeleteTarget] = useState<CandidateItemSummary | null>(null)
   const { showToast } = useAppToast()
   const mountedRef = useRef(false)
+  const itemsRef = useRef<CandidateItemSummary[]>([])
   const stashLoadSeqRef = useRef(0)
   const itemLoadSeqRef = useRef(0)
   const metricSubscriptionRef = useRef<CandidateOrderMetricSubscription | null>(null)
   const initializedDetailTargetUuidRef = useRef<string | null>(null)
+
+  const setItems = useCallback((next: ItemStateUpdater) => {
+    setItemsState((current) => {
+      const resolved = typeof next === 'function' ? next(current) : next
+      itemsRef.current = resolved
+      return resolved
+    })
+  }, [])
 
   useEffect(() => {
     mountedRef.current = true
@@ -94,6 +127,7 @@ export function useCandidateStashDetailModal({
   const loadItems = useCallback(async (
     nextPeriodStart = dataReferencePeriodStart,
     nextPeriodEnd = dataReferencePeriodEnd,
+    options: LoadItemsOptions = {},
   ) => {
     if (!stashUuid || !nextPeriodStart || !nextPeriodEnd) return
     const seq = itemLoadSeqRef.current + 1
@@ -108,10 +142,24 @@ export function useCandidateStashDetailModal({
         dataReferencePeriodEnd: nextPeriodEnd,
       })
       if (!mountedRef.current || itemLoadSeqRef.current !== seq) return
-      setItems(result.items)
+      const metricSkuGroupKeySet = options.metricSkuGroupKeys == null
+        ? null
+        : new Set(options.metricSkuGroupKeys)
+      const metricCandidateItems = metricSkuGroupKeySet == null
+        ? result.candidateItems
+        : result.candidateItems.filter((item) => metricSkuGroupKeySet.has(item.skuGroupKey))
+      const metricItemUuidSet = new Set(metricCandidateItems.map((item) => item.uuid))
+      const previousItemByUuid = new Map(itemsRef.current.map((item) => [item.uuid, item]))
+      const nextItems = options.preserveExistingMetrics
+        ? result.items.map((item) => (
+            metricItemUuidSet.has(item.uuid) ? item : preserveOrderMetricFields(item, previousItemByUuid.get(item.uuid))
+          ))
+        : result.items
+      setItems(nextItems)
       setRecommendationItems(deriveCandidateRecommendations(result.referenceItems, result.candidateItems))
       setDetailLoading(false)
-      const candidateItemUuids = result.candidateItems.map((item) => item.uuid)
+      const candidateItemUuids = metricCandidateItems.map((item) => item.uuid)
+      if (!candidateItemUuids.length) return
       const requestId = `${stashUuid}:${nextPeriodStart}:${nextPeriodEnd}:${seq}`
       metricSubscriptionRef.current = subscribeCandidateOrderMetrics({
         stashUuid,
@@ -142,7 +190,7 @@ export function useCandidateStashDetailModal({
       setDetailError(message)
       setDetailLoading(false)
     }
-  }, [closeMetricSubscription, dataReferencePeriodEnd, dataReferencePeriodStart, stashUuid])
+  }, [closeMetricSubscription, dataReferencePeriodEnd, dataReferencePeriodStart, setItems, stashUuid])
 
   useEffect(() => {
     if (!items.length) return
@@ -188,7 +236,7 @@ export function useCandidateStashDetailModal({
     return () => {
       alive = false
     }
-  }, [closeMetricSubscription, detailTarget, loadItems])
+  }, [closeMetricSubscription, detailTarget, loadItems, setItems])
 
   const onDataReferencePeriodStartChange = useCallback((value: string) => {
     if (!value) return
@@ -229,12 +277,17 @@ export function useCandidateStashDetailModal({
   const appendRecommendedItems = useCallback(async (rows: CandidateReferenceItemSummary[]) => {
     const skuGroupKeys = [...new Set(rows.map((row) => row.skuGroupKey))]
     if (!skuGroupKeys.length) return
+    const existingSkuGroupKeySet = new Set(itemsRef.current.map((item) => item.skuGroupKey))
+    const addedMetricSkuGroupKeys = skuGroupKeys.filter((skuGroupKey) => !existingSkuGroupKeySet.has(skuGroupKey))
     await appendCandidateItems({ stashUuid, skuGroupKeys })
     if (!mountedRef.current) return
-    await loadItems()
+    await loadItems(dataReferencePeriodStart, dataReferencePeriodEnd, {
+      metricSkuGroupKeys: addedMetricSkuGroupKeys,
+      preserveExistingMetrics: true,
+    })
     await refreshStashes()
     showToast('추천 후보를 후보군에 추가했습니다.')
-  }, [loadItems, refreshStashes, showToast, stashUuid])
+  }, [dataReferencePeriodEnd, dataReferencePeriodStart, loadItems, refreshStashes, showToast, stashUuid])
 
   const drawer = useCandidateStashItemDrawer({
     dataReferenceStart,

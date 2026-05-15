@@ -613,7 +613,7 @@ badges: [
 
 **`CandidateOrderMetricEvent`** (`subscribeCandidateOrderMetrics` SSE)
 
-초기 `getCandidateItemsByStash` 응답 이후 총 오더 수량·총 오더 금액처럼 계산량이 큰 값을 항목별로 내려준다.
+초기 `getCandidateItemsByStash` 응답 이후 총 오더 수량·총 오더 금액처럼 계산량이 큰 값을 항목별로 내려준다. `candidateItemUuids`는 전체 후보 아이템이 아니라 이번에 계산이 필요한 부분 집합만 반복 query param으로 보낼 수 있다. 추천 적용 직후 프론트는 새로 추가된 후보 아이템 UUID만 같은 SSE에 전달하며, 기존 행의 계산 완료 값은 유지한다.
 
 | 이벤트 | 의미 |
 |--------|------|

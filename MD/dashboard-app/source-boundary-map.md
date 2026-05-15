@@ -287,7 +287,7 @@
 | `CandidateStashDeleteDialogs.tsx` | 이너 후보 개별 삭제와 일괄 삭제 확인 모달만 소유한다. |
 | `CandidateStashMissingState.tsx` | 후보군을 찾지 못했을 때의 빈 상태 렌더링만 소유한다. |
 | `CandidateStashDetailModal.module.css` | 후보군 상세 모달 CSS 진입점. 실제 스타일은 `candidate-stash/style-parts/*`가 header, filter/summary, inner order list, modal shell, responsive로 나눠 소유한다. |
-| `useCandidateStashDetailModal.ts` | 후보군 상세 모달의 모델 조립 hook. 후보군/아이템 조회, 데이터 참조기간 초기화, reference/candidate item 합성, 추천 파생, 오더 지표 SSE 구독을 묶고, 필터·정렬은 `useInnerCandidateTable.ts`, drawer hydration/전환은 `useCandidateStashItemDrawer.ts`, 삭제·엑셀 액션은 `useCandidateStashItemActions.ts`에 위임한다. |
+| `useCandidateStashDetailModal.ts` | 후보군 상세 모달의 모델 조립 hook. 후보군/아이템 조회, 데이터 참조기간 초기화, reference/candidate item 합성, 추천 파생, 오더 지표 SSE 구독을 묶는다. 추천 적용 시에는 기존 후보와 비교해 새로 추가된 후보만 오더 지표 SSE 대상으로 보내고 기존 계산 완료값은 보존한다. 필터·정렬은 `useInnerCandidateTable.ts`, drawer hydration/전환은 `useCandidateStashItemDrawer.ts`, 삭제·엑셀 액션은 `useCandidateStashItemActions.ts`에 위임한다. |
 | `candidateItemMetricModel.ts` | SSE로 받은 오더 지표를 `CandidateItemSummary` 행에 적용하고, `referenceItems`에서 이미 후보군에 담긴 `skuUuid`를 제외해 추천 목록을 파생하는 순수 모델 함수. |
 | `useVisibleUuidSelection.ts` | 화면에 보이는 UUID 목록 기준 선택 상태, 전체 선택, indeterminate checkbox ref를 소유하는 공통 hook이다. |
 | `useInnerCandidateTable.ts` | 이너 후보 아이템의 필터 옵션, 검색어, 정렬 상태, row 생성, 합계 계산을 소유한다. |
