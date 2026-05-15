@@ -65,6 +65,7 @@ export const mockDashboardApi = {
           opMarginAmount,
         }
       })
+      .sort((a, b) => b.qty - a.qty)
   },
   getSelfSalesScatterGrid: async (params?: SelfSalesGridParams) => {
     const rows = await mockDashboardApi.getSelfSales(params)
@@ -114,6 +115,7 @@ export const mockDashboardApi = {
           selfAmount,
         }
       })
+      .sort((a, b) => b.competitorQty - a.competitorQty)
   },
   getCompetitorSalesScatterGrid: async (params?: CompetitorSalesGridParams) => {
     const rows = await mockDashboardApi.getCompetitorSales(params)

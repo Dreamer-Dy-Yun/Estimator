@@ -80,6 +80,16 @@ describe('api/mock dashboardApi competitor channel behavior', () => {
     expect(competitor.map((row) => row.code)).toEqual(['TEST-SHOE'])
   })
 
+  it('returns analysis sales rows in default sales quantity descending order', async () => {
+    const self = await mockDashboardApi.getSelfSales()
+    const competitor = await mockDashboardApi.getCompetitorSales()
+
+    expect(self.map((row) => row.qty)).toEqual([...self.map((row) => row.qty)].sort((a, b) => b - a))
+    expect(competitor.map((row) => row.competitorQty)).toEqual(
+      [...competitor.map((row) => row.competitorQty)].sort((a, b) => b - a),
+    )
+  })
+
   it('returns product code suggestions for analysis filters', async () => {
     const meta = await mockDashboardApi.getSalesFilterMeta()
     expect(meta.codes).toContain('TEST-SHOE')

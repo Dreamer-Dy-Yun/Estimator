@@ -5,7 +5,7 @@
 | 작성 지시 | Yun Daeyoung |
 | 작성자 | Codex |
 | 작성일 | 2026-04-23 |
-| 최종 수정일 | 2026-05-14 |
+| 최종 수정일 | 2026-05-15 |
 | 상태 | 유지 문서 |
 | 적용 범위 | `dashboard-app/src/api/types`, `dashboard-app/src/api/requests`, 백엔드 REST API 계약 |
 
@@ -302,6 +302,8 @@
 | `selfAvgPrice`, `selfQty`, `selfAmount` | 자사 채널 비교용(없으면 `null`) |
 
 경쟁사 분석 화면에서 경쟁 채널 필터가 `전체`이면 프론트는 `competitorChannelId`를 보내지 않습니다. 이때 백엔드는 `skuGroupKey`별로 모든 경쟁 채널의 `competitorQty`와 `competitorAmount`를 합산하고, `competitorAvgPrice = competitorAmount / competitorQty`의 수량 가중 평균으로 내려줍니다. 자사 수량·금액은 경쟁 채널 수만큼 중복 합산하지 않습니다. 특정 채널 id가 들어오면 해당 채널 데이터만 반환합니다.
+
+기본 응답 순서는 판매량 내림차순입니다. `getSelfSales`는 필터 적용 후 `qty DESC`, `getCompetitorSales`는 경쟁 채널 집계 후 `competitorQty DESC`로 내려줍니다. 프론트 테이블에서 정렬을 해제하면 이 API 응답 순서로 돌아가므로, DB 쿼리 또는 백엔드 집계 결과에서 기본 정렬을 보장해야 합니다.
 
 ### 3.2 `getSalesFilterMeta`
 

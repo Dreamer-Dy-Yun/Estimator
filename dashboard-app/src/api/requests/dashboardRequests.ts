@@ -37,6 +37,10 @@ const candidateStashExcelTemplateFilename = '(Han.A)Template(ver.0.0.0).xlsx'
  * - Analysis list filters are query conditions, not local-only UI filters. The
  *   backend should apply date/brand/category/code/color/name/channel conditions
  *   before ranking, KPI, and chart values are returned.
+ * - Analysis list default order is sales quantity descending. getSelfSales
+ *   should return rows by qty DESC, and getCompetitorSales by competitorQty
+ *   DESC after all filters and channel aggregation. The table's "no sort"
+ *   state intentionally falls back to this API order.
  * - Scatter grid endpoints should be server-side aggregations for large result
  *   sets. Tens of thousands of raw rows should not be fetched only so the
  *   browser can bin them. The frontend may request xBucketSize/yBucketSize when
