@@ -84,6 +84,11 @@ export function useInnerCandidateTable(items: CandidateItemSummary[]) {
     )
   }, [filteredItems])
 
+  const pendingOrderMetricCount = useMemo(
+    () => filteredItems.filter((item) => item.orderMetricStatus === 'loading').length,
+    [filteredItems],
+  )
+
   const totalExpectedOpProfitRatePct = useMemo(() => {
     if (totals.expectedSalesAmount <= 0) return null
     return (totals.expectedOpProfit / totals.expectedSalesAmount) * 100
@@ -103,6 +108,7 @@ export function useInnerCandidateTable(items: CandidateItemSummary[]) {
     productNameOptions,
     tableRows,
     totals,
+    pendingOrderMetricCount,
     totalExpectedOpProfitRatePct,
   }
 }

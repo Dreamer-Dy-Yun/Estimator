@@ -32,6 +32,7 @@ export const getSecondaryCompetitorChannels = dashboardRequests.getSecondaryComp
 export const getSecondaryAiComment = dashboardRequests.getSecondaryAiComment
 export const getCandidateStashes = dashboardRequests.getCandidateStashes
 export const getCandidateItemsByStash = dashboardRequests.getCandidateItemsByStash
+export const subscribeCandidateOrderMetrics = dashboardRequests.subscribeCandidateOrderMetrics
 export const getCandidateRecommendations = dashboardRequests.getCandidateRecommendations
 export const getCandidateItemByUuid = dashboardRequests.getCandidateItemByUuid
 export const deleteCandidateItem = dashboardRequests.deleteCandidateItem
@@ -41,6 +42,7 @@ export const createCandidateStash = dashboardRequests.createCandidateStash
 export const duplicateCandidateStash = dashboardRequests.duplicateCandidateStash
 export const updateCandidateStash = dashboardRequests.updateCandidateStash
 export const appendCandidateItems = dashboardRequests.appendCandidateItems
+export const updateCandidateItem = dashboardRequests.updateCandidateItem
 export const getCandidateStashExcelTemplateDownload = dashboardRequests.getCandidateStashExcelTemplateDownload
 export const uploadCandidateStashExcel = dashboardRequests.uploadCandidateStashExcel
 

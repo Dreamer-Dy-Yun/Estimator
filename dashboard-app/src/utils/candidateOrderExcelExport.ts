@@ -1,4 +1,4 @@
-import type { CandidateItemSummary } from '../api/types/candidate'
+import type { CandidateItemOrderExport, CandidateItemSummary } from '../api/types/candidate'
 import type { Cell, Row, Worksheet } from 'exceljs'
 
 export type CandidateOrderExportInput = {
@@ -64,7 +64,7 @@ function getInboundExpectedDate(items: CandidateItemSummary[]): string {
   const dates = [
     ...new Set(
       items
-        .map((item) => item.orderExport.inboundExpectedDate?.trim())
+        .map((item) => getOrderExport(item).inboundExpectedDate?.trim())
         .filter((date): date is string => Boolean(date)),
     ),
   ]
@@ -92,7 +92,7 @@ function collectSizeColumns(items: CandidateItemSummary[]): string[] {
   const sizes: string[] = []
 
   for (const item of items) {
-    for (const sizeRow of item.orderExport.sizeOrderQty) {
+    for (const sizeRow of getOrderExport(item).sizeOrderQty) {
       const size = normalizeSize(sizeRow.size)
       if (!size || seen.has(size)) continue
       seen.add(size)
@@ -108,7 +108,7 @@ function getCompetitorQtyHeader(items: CandidateItemSummary[]): string {
     ...new Set(
       items
         .map((item) => (
-          item.orderExport.competitorChannelLabel || item.insight.competitorChannelLabel
+          getOrderExport(item).competitorChannelLabel || item.insight.competitorChannelLabel
         ).trim())
         .filter(Boolean),
     ),
@@ -118,7 +118,7 @@ function getCompetitorQtyHeader(items: CandidateItemSummary[]): string {
 
 function sizeOrderMap(item: CandidateItemSummary): Map<string, number> {
   const map = new Map<string, number>()
-  for (const sizeRow of item.orderExport.sizeOrderQty) {
+  for (const sizeRow of getOrderExport(item).sizeOrderQty) {
     const size = normalizeSize(sizeRow.size)
     if (!size) continue
     map.set(size, (map.get(size) ?? 0) + roundedNonNegative(sizeRow.orderQty))
@@ -133,12 +133,17 @@ function badgeCell(summary: CandidateItemSummary): string {
   return badgeLabels.length ? badgeLabels.join('\n') : '-'
 }
 
+function getOrderExport(item: CandidateItemSummary): CandidateItemOrderExport {
+  if (!item.orderExport) throw new Error('오더 지표 계산이 완료되지 않은 후보가 있습니다.')
+  return item.orderExport
+}
+
 function exportRow(
   item: CandidateItemSummary,
   sizeColumns: string[],
 ): ExcelCellValue[] {
   const sizeQtyByName = sizeOrderMap(item)
-  const orderExport = item.orderExport
+  const orderExport = getOrderExport(item)
 
   return [
     item.brand,

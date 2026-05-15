@@ -1,8 +1,9 @@
 import { useMemo, useState } from 'react'
-import type { CandidateStashSummary } from '../../../api'
+import type { CandidateReferenceItemSummary, CandidateStashSummary } from '../../../api'
 import { useAuth } from '../../../auth/AuthContext'
 import { stashDetailModalBackdropDataProps } from '../../drawer/drawerDom'
 import { CandidateRecommendationModal } from './CandidateRecommendationModal'
+import { CandidateStashBulkActionCard } from './CandidateStashBulkActionCard'
 import { CandidateStashDataReferenceCard } from './CandidateStashDataReferenceCard'
 import { CandidateStashDeleteDialogs } from './CandidateStashDeleteDialogs'
 import { CandidateStashDetailBody } from './CandidateStashDetailBody'
@@ -29,13 +30,20 @@ export function CandidateStashDetailModal({ stashUuid, stashSummary, onClose, on
   const model = useCandidateStashDetailModal({ stashUuid, stashSummary, onStashesInvalidate })
   const { session } = useAuth()
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false)
+  const [bulkUnconfirmOpen, setBulkUnconfirmOpen] = useState(false)
   const [recommendationOpen, setRecommendationOpen] = useState(false)
 
   const visibleItemUuids = useMemo(() => model.tableRows.map((row) => row.uuid), [model.tableRows])
   const itemSelection = useVisibleUuidSelection(visibleItemUuids)
-  const recommendationRows = useMemo<InnerCandidateRow[]>(
-    () => model.recommendationItems.map((item) => ({ ...item, id: item.uuid })),
+  const recommendationRows = useMemo<CandidateReferenceItemSummary[]>(
+    () => model.recommendationItems,
     [model.recommendationItems],
+  )
+  const selectedConfirmedItemUuids = useMemo(
+    () => model.tableRows
+      .filter((row) => itemSelection.selectedVisibleUuidSet.has(row.uuid) && row.isDetailConfirmed)
+      .map((row) => row.uuid),
+    [itemSelection.selectedVisibleUuidSet, model.tableRows],
   )
   const recommendationRowUuids = useMemo(() => recommendationRows.map((row) => row.uuid), [recommendationRows])
   const recommendationSelection = useVisibleUuidSelection(recommendationRowUuids)
@@ -57,8 +65,14 @@ export function CandidateStashDetailModal({ stashUuid, stashSummary, onClose, on
   }
 
   const applyRecommendations = () => {
-    itemSelection.replaceSelection(recommendationSelection.selectedVisibleUuids)
-    setRecommendationOpen(false)
+    const selectedRows = recommendationRows.filter((row) => (
+      recommendationSelection.selectedVisibleUuidSet.has(row.uuid)
+    ))
+    void model.appendRecommendedItems(selectedRows).then(() => {
+      recommendationSelection.clearSelection()
+      itemSelection.clearSelection()
+      setRecommendationOpen(false)
+    })
   }
 
   const toggleItemDrawer = (row: InnerCandidateRow) => {
@@ -93,19 +107,25 @@ export function CandidateStashDetailModal({ stashUuid, stashSummary, onClose, on
                   detailTarget={model.detailTarget}
                   recommendationLoading={model.recommendationLoading}
                   canLoadRecommendations={Boolean(model.tableRows.length && model.periodStart && model.periodEnd)}
-                  selectedVisibleCount={itemSelection.selectedVisibleCount}
                   onOpenRecommendations={openRecommendationModal}
-                  onOpenBulkDelete={() => setBulkDeleteOpen(true)}
                   onClose={onClose}
                 />
-                <CandidateStashDataReferenceCard
-                  periodStart={model.draftDataReferencePeriodStart}
-                  periodEnd={model.draftDataReferencePeriodEnd}
-                  loading={model.detailLoading}
-                  onPeriodStartChange={model.onDataReferencePeriodStartChange}
-                  onPeriodEndChange={model.onDataReferencePeriodEndChange}
-                  onSearch={model.applyDataReferencePeriod}
-                />
+                <div className={detailStyles.detailActionCardGrid}>
+                  <CandidateStashDataReferenceCard
+                    periodStart={model.draftDataReferencePeriodStart}
+                    periodEnd={model.draftDataReferencePeriodEnd}
+                    loading={model.detailLoading}
+                    onPeriodStartChange={model.onDataReferencePeriodStartChange}
+                    onPeriodEndChange={model.onDataReferencePeriodEndChange}
+                    onSearch={model.applyDataReferencePeriod}
+                  />
+                  <CandidateStashBulkActionCard
+                    selectedVisibleCount={itemSelection.selectedVisibleCount}
+                    selectedConfirmedCount={selectedConfirmedItemUuids.length}
+                    onOpenBulkUnconfirm={() => setBulkUnconfirmOpen(true)}
+                    onOpenBulkDelete={() => setBulkDeleteOpen(true)}
+                  />
+                </div>
                 <CandidateStashDetailFilters
                   model={model}
                   downloadUserName={session?.user.name ?? session?.user.loginId ?? '사용자'}
@@ -143,16 +163,24 @@ export function CandidateStashDetailModal({ stashUuid, stashSummary, onClose, on
         />
       )}
 
-      <CandidateStashProductDrawer model={model} bulkDeleteOpen={bulkDeleteOpen} />
+      <CandidateStashProductDrawer model={model} bulkDeleteOpen={bulkDeleteOpen || bulkUnconfirmOpen} />
       <CandidateStashDeleteDialogs
         model={model}
         bulkDeleteOpen={bulkDeleteOpen}
+        bulkUnconfirmOpen={bulkUnconfirmOpen}
         selectedVisibleCount={itemSelection.selectedVisibleCount}
         selectedVisibleItemUuids={itemSelection.selectedVisibleUuids}
+        selectedConfirmedCount={selectedConfirmedItemUuids.length}
+        selectedConfirmedItemUuids={selectedConfirmedItemUuids}
         onCloseBulkDelete={() => setBulkDeleteOpen(false)}
+        onCloseBulkUnconfirm={() => setBulkUnconfirmOpen(false)}
         onBulkDeleteDone={() => {
           itemSelection.clearSelection()
           setBulkDeleteOpen(false)
+        }}
+        onBulkUnconfirmDone={() => {
+          itemSelection.clearSelection()
+          setBulkUnconfirmOpen(false)
         }}
       />
     </>

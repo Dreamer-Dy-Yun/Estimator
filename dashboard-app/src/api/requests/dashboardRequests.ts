@@ -67,15 +67,23 @@ const candidateStashExcelTemplateFilename = '(Han.A)Template(ver.0.0.0).xlsx'
  *   of SKU.code + SKU.color_code. Backend implementations should map this key to
  *   the matching SKU rows before aggregating size-level data.
  * - Candidate stash item list is period-sensitive. The backend should calculate
- *   the requested period over the full eligible skuGroupKey universe, assign
- *   badges from that full-period distribution, then return only the skuGroupKeys
- *   contained in the requested stash. The UI keeps date inputs as draft state
- *   and calls this endpoint only when the user presses 조회, not on every date
- *   keystroke/change. Cache period/channel ranking results if this becomes
- *   expensive.
+ *   the requested period over the full eligible SKU universe, assign badges
+ *   from that full-period distribution, and return the light reference list
+ *   plus CANDIDATE_ITEM rows. CANDIDATE_ITEM.sku_uuid must equal SKU.uuid; do
+ *   not compare CANDIDATE_ITEM.uuid with SKU.uuid. The UI keeps date inputs as
+ *   draft state and calls this endpoint only when the user presses 조회, not on
+ *   every date keystroke/change. Cache period/channel ranking results if this
+ *   becomes expensive.
+ * - Candidate total order qty/amount is intentionally not part of the first
+ *   list payload. Use subscribeCandidateOrderMetrics as an SSE/EventSource-like
+ *   stream keyed by requestId + candidate item uuid. Backend Python direction:
+ *   flush one item event as each heavy calculation completes and send completed
+ *   at the end; stale requestIds are ignored by the frontend.
  * - Stored snapshots remain the source of confirmed drawer/order state. Live
  *   candidate list values may recalculate by data reference period, but saved
  *   snapshot details must not be silently overwritten by adapter-side math.
+ *   The only clear path is an explicit updateCandidateItem request with
+ *   details: null, used by 상세확정 일괄해제.
  * - Candidate Excel upload is backend-owned. The frontend sends the file and
  *   refreshes the list from API response state; it should not parse/import rows.
  * - Candidate Excel download is frontend-owned for now and uses the already
@@ -239,6 +247,21 @@ export const dashboardRequests: DashboardApi = {
     withCurrentUserUuid((userUuid) => mockDashboardApi.getCandidateStashes(userUuid)),
   getCandidateItemsByStash: async (params) =>
     withCurrentUserUuid((userUuid) => mockDashboardApi.getCandidateItemsByStash(params, userUuid)),
+  subscribeCandidateOrderMetrics: (params, listener) => {
+    let subscription: ReturnType<typeof mockDashboardApi.subscribeCandidateOrderMetrics> | null = null
+    let closed = false
+    void withCurrentUserUuid(async (userUuid) => {
+      if (closed) return
+      subscription = mockDashboardApi.subscribeCandidateOrderMetrics(params, listener, userUuid)
+      if (closed) subscription.close()
+    })
+    return {
+      close: () => {
+        closed = true
+        subscription?.close()
+      },
+    }
+  },
   getCandidateRecommendations: async (params) =>
     withCurrentUserUuid((userUuid) => mockDashboardApi.getCandidateRecommendations(params, userUuid)),
   getCandidateItemByUuid: async (itemUuid) =>
@@ -266,7 +289,7 @@ export const dashboardRequests: DashboardApi = {
    * Candidate Excel contracts.
    * Template link can later move to backend by changing this adapter only.
    * Upload remains server-imported; download remains client-generated from
-   * CandidateItemSummary.orderExport until the product explicitly changes it.
+   * already loaded candidate rows plus SSE CandidateItemSummary.orderExport.
    */
   getCandidateStashExcelTemplateDownload,
   uploadCandidateStashExcel: async (file) =>

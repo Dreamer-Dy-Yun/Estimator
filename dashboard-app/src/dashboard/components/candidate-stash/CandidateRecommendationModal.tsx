@@ -1,12 +1,12 @@
 import { useEffect, useRef } from 'react'
+import type { CandidateReferenceItemSummary } from '../../../api'
 import { formatEaQuantity, formatGroupedNumber } from '../../../utils/format'
 import styles from '../common.module.css'
-import type { InnerCandidateRow } from './useCandidateStashDetailModal'
 import { CandidateInsightBadges } from './CandidateInsightBadges'
 import modalStyles from './CandidateRecommendationModal.module.css'
 
 type Props = {
-  rows: InnerCandidateRow[]
+  rows: CandidateReferenceItemSummary[]
   selectedUuids: Set<string>
   selectedCount: number
   allSelected: boolean

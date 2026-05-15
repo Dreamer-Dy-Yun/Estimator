@@ -194,6 +194,12 @@
   text-align: right;
 }
 
+.innerOrderMetricState {
+  color: #be123c;
+  font-size: 13px;
+  font-weight: 800;
+}
+
 .innerOrderHeader .innerOrderCellNum {
   overflow: visible;
   text-overflow: clip;

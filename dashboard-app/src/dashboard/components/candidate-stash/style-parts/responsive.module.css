@@ -11,20 +11,32 @@
     grid-column: 1 / -1;
   }
 
-  .dataReferenceQueryGrid {
+  .detailActionCardGrid {
     grid-template-columns: 1fr;
   }
 
-  .dataReferenceQueryControls,
-  .dataReferenceQueryActions {
-    grid-column: 1 / -1;
+  .dataReferenceQueryGrid {
+    flex-wrap: wrap;
   }
 
-  .dataReferenceQueryActions {
+  .dataReferenceQueryControls {
+    min-width: 0;
+    flex: 1 1 100%;
+  }
+
+  .dataReferenceQueryInput {
+    flex: 1 1 0;
+    width: auto;
+  }
+
+  .dataReferenceQueryActions,
+  .bulkActionCard {
+    flex: 1 1 100%;
     justify-content: stretch;
   }
 
-  .dataReferenceQueryButton {
+  .dataReferenceQueryButton,
+  .bulkActionCard :global(button) {
     width: 100%;
   }
 
@@ -35,10 +47,6 @@
 
   .detailHeaderRecommendationCell {
     grid-column: 4;
-  }
-
-  .detailHeaderDeleteCell {
-    grid-column: 5;
   }
 
   .detailHeaderCloseBtn {

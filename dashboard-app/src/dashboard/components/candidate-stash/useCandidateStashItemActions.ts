@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   deleteCandidateItem,
   deleteCandidateItems,
+  updateCandidateItem,
   type CandidateItemSummary,
   type CandidateStashSummary,
 } from '../../../api'
@@ -35,6 +36,7 @@ export function useCandidateStashItemActions({
 }: Args) {
   const [itemDeleteBusy, setItemDeleteBusy] = useState(false)
   const [bulkDeleteBusy, setBulkDeleteBusy] = useState(false)
+  const [bulkUnconfirmBusy, setBulkUnconfirmBusy] = useState(false)
   const [orderExportBusy, setOrderExportBusy] = useState(false)
   const [orderExportError, setOrderExportError] = useState<string | null>(null)
   const mountedRef = useRef(false)
@@ -77,9 +79,33 @@ export function useCandidateStashItemActions({
     }
   }, [closeDrawer, loadItems, openedItemUuid, refreshStashes, showToast, stashUuid])
 
+  const confirmUnconfirmItems = useCallback(async (itemUuids: string[]) => {
+    const uniqueUuids = [...new Set(itemUuids)]
+    if (!uniqueUuids.length) return
+    setBulkUnconfirmBusy(true)
+    try {
+      await Promise.all(uniqueUuids.map((itemUuid) => updateCandidateItem({
+        itemUuid,
+        details: null,
+        isLatestLlmComment: false,
+      })))
+      if (!mountedRef.current) return
+      if (openedItemUuid && uniqueUuids.includes(openedItemUuid)) closeDrawer()
+      await loadItems()
+      await refreshStashes()
+      showToast('선택한 후보의 상세확정을 해제했습니다.')
+    } finally {
+      if (mountedRef.current) setBulkUnconfirmBusy(false)
+    }
+  }, [closeDrawer, loadItems, openedItemUuid, refreshStashes, showToast])
+
   const downloadOrderExcel = useCallback(async (userName: string) => {
     if (!detailTarget) return
     if (!items.length) return
+    if (items.some((item) => item.orderMetricStatus !== 'loaded' || !item.orderExport)) {
+      setOrderExportError('오더 지표 계산이 완료된 뒤 엑셀을 다운로드할 수 있습니다.')
+      return
+    }
     setOrderExportBusy(true)
     setOrderExportError(null)
     try {
@@ -103,10 +129,12 @@ export function useCandidateStashItemActions({
   return {
     itemDeleteBusy,
     bulkDeleteBusy,
+    bulkUnconfirmBusy,
     orderExportBusy,
     orderExportError,
     confirmDeleteItem,
     confirmDeleteItems,
+    confirmUnconfirmItems,
     downloadOrderExcel,
   }
 }

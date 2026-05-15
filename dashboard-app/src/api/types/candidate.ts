@@ -32,14 +32,32 @@ export interface CandidateItemOrderExport {
   sizeOrderQty: CandidateItemOrderExportSizeQty[]
 }
 
+export type CandidateOrderMetricStatus = 'loading' | 'loaded' | 'failed'
+
+export interface CandidateOrderMetric {
+  itemUuid: string
+  /** CANDIDATE_ITEM.sku_uuid, equal to SKU.uuid in the backend contract. */
+  skuUuid: string
+  qty: number
+  expectedOrderAmount: number
+  expectedSalesAmount: number
+  expectedOpProfit: number
+  orderExport: CandidateItemOrderExport
+}
+
 export interface CandidateItemSummary {
+  /** CANDIDATE_ITEM.uuid */
   uuid: string
   stashUuid: string
+  /** CANDIDATE_ITEM.sku_uuid. Mock uses the current skuGroupKey as SKU.uuid until the backend exists. */
+  skuUuid: string
+  /** Transitional product-color key used by existing drawer APIs. */
   skuGroupKey: string
   brand: string
   code: string
   productName: string
   colorCode: string
+  orderMetricStatus: CandidateOrderMetricStatus
   qty: number
   /** Live expected order amount in KRW for the requested data reference period. */
   expectedOrderAmount: number
@@ -51,8 +69,8 @@ export interface CandidateItemSummary {
   isLatestLlmComment: boolean
   /** True when this candidate item has a saved order snapshot from the secondary drawer. */
   isDetailConfirmed: boolean
-  /** Download DTO already loaded with the list so Excel export does not call the backend again. */
-  orderExport: CandidateItemOrderExport
+  /** Download DTO loaded by the order-metric stream. Excel export must not refetch backend data. */
+  orderExport: CandidateItemOrderExport | null
   dbCreatedAt: string
   dbUpdatedAt: string
 }
@@ -80,7 +98,37 @@ export interface CandidateItemInsightSummary {
   badges: CandidateBadge[]
 }
 
+export interface CandidateReferenceItemSummary {
+  /** SKU.uuid. Mock uses the current skuGroupKey as SKU.uuid until the backend exists. */
+  uuid: string
+  /** Transitional product-color key used by existing drawer APIs. */
+  skuGroupKey: string
+  brand: string
+  code: string
+  productName: string
+  colorCode: string
+  insight: CandidateItemInsightSummary
+}
+
+export interface CandidateStashItemSummary {
+  /** CANDIDATE_ITEM.uuid */
+  uuid: string
+  stashUuid: string
+  /** CANDIDATE_ITEM.sku_uuid, equal to SKU.uuid. */
+  skuUuid: string
+  /** Transitional product-color key used by existing drawer APIs. */
+  skuGroupKey: string
+  isLatestLlmComment: boolean
+  hasSnapshot: boolean
+  snapshotUpdatedAt?: string
+  dbCreatedAt: string
+  dbUpdatedAt: string
+}
+
 export interface CandidateItemListResult {
+  referenceItems: CandidateReferenceItemSummary[]
+  candidateItems: CandidateStashItemSummary[]
+  /** Screen-composed rows. Order metrics arrive later through the metric stream. */
   items: CandidateItemSummary[]
 }
 
@@ -98,10 +146,42 @@ export interface CandidateRecommendationParams {
 
 export type CandidateRecommendationResult = CandidateItemListResult
 
+export interface CandidateOrderMetricStreamParams extends CandidateItemListParams {
+  requestId: string
+  candidateItemUuids: string[]
+}
+
+export type CandidateOrderMetricEvent =
+  | {
+      type: 'item'
+      requestId: string
+      itemUuid: string
+      skuUuid: string
+      metric: CandidateOrderMetric
+    }
+  | {
+      type: 'itemFailed'
+      requestId: string
+      itemUuid: string
+      skuUuid: string
+      message: string
+    }
+  | {
+      type: 'completed'
+      requestId: string
+      processedCount: number
+      failedCount: number
+    }
+
+export interface CandidateOrderMetricSubscription {
+  close: () => void
+}
+
 /** Candidate item detail response. `details` is null until the inner secondary drawer saves a snapshot. */
 export interface CandidateItemDetail {
   uuid: string
   stashUuid: string
+  skuUuid: string
   skuGroupKey: string
   details: SecondaryOrderSnapshotPayload | null
   isLatestLlmComment: boolean
@@ -140,7 +220,8 @@ export interface AppendCandidateItemsPayload {
 
 export interface UpdateCandidateItemPayload {
   itemUuid: string
-  details: SecondaryOrderSnapshotPayload
+  /** null clears the saved secondary-drawer snapshot and makes the item unconfirmed. */
+  details: SecondaryOrderSnapshotPayload | null
   isLatestLlmComment: boolean
 }
 

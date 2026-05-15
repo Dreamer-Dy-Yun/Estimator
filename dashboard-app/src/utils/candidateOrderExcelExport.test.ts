@@ -9,11 +9,13 @@ function candidateItem(uuid: string, size: string): CandidateItemSummary {
   return {
     uuid,
     stashUuid: 'stash-1',
+    skuUuid: `product-${uuid}`,
     skuGroupKey: `product-${uuid}`,
     brand: '나이키',
     code: `SKU-${uuid}`,
     productName: `테스트 상품 ${uuid}`,
     colorCode: '010',
+    orderMetricStatus: 'loaded',
     qty: 10,
     expectedOrderAmount: 100000,
     expectedSalesAmount: 150000,

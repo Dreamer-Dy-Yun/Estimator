@@ -1,9 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
+  appendCandidateItems,
   getCandidateItemsByStash,
-  getCandidateRecommendations,
   getCandidateStashes,
+  subscribeCandidateOrderMetrics,
   type CandidateItemSummary,
+  type CandidateOrderMetricSubscription,
+  type CandidateReferenceItemSummary,
   type CandidateStashSummary,
 } from '../../../api'
 import { normalizeRangeOnEndInput, normalizeRangeOnStartInput } from '../../hooks/usePeriodRangeFilter'
@@ -12,6 +15,11 @@ import { useAppToast } from '../../../components/AppToastContext'
 import { useInnerCandidateTable } from './useInnerCandidateTable'
 import { useCandidateStashItemDrawer } from './useCandidateStashItemDrawer'
 import { useCandidateStashItemActions } from './useCandidateStashItemActions'
+import {
+  applyOrderMetricToCandidateItem,
+  deriveCandidateRecommendations,
+  markCandidateItemOrderMetricFailed,
+} from './candidateItemMetricModel'
 
 type Args = {
   stashUuid: string
@@ -29,7 +37,7 @@ export function useCandidateStashDetailModal({
 }: Args) {
   const [stashes, setStashes] = useState<CandidateStashSummary[]>([])
   const [items, setItems] = useState<CandidateItemSummary[]>([])
-  const [recommendationItems, setRecommendationItems] = useState<CandidateItemSummary[]>([])
+  const [recommendationItems, setRecommendationItems] = useState<CandidateReferenceItemSummary[]>([])
   const [recommendationLoading, setRecommendationLoading] = useState(false)
   const [recommendationError, setRecommendationError] = useState<string | null>(null)
   const [detailLoading, setDetailLoading] = useState(false)
@@ -44,7 +52,7 @@ export function useCandidateStashDetailModal({
   const mountedRef = useRef(false)
   const stashLoadSeqRef = useRef(0)
   const itemLoadSeqRef = useRef(0)
-  const recommendationLoadSeqRef = useRef(0)
+  const metricSubscriptionRef = useRef<CandidateOrderMetricSubscription | null>(null)
   const initializedDetailTargetUuidRef = useRef<string | null>(null)
 
   useEffect(() => {
@@ -53,8 +61,14 @@ export function useCandidateStashDetailModal({
       mountedRef.current = false
       stashLoadSeqRef.current += 1
       itemLoadSeqRef.current += 1
-      recommendationLoadSeqRef.current += 1
+      metricSubscriptionRef.current?.close()
+      metricSubscriptionRef.current = null
     }
+  }, [])
+
+  const closeMetricSubscription = useCallback(() => {
+    metricSubscriptionRef.current?.close()
+    metricSubscriptionRef.current = null
   }, [])
 
   useEffect(() => {
@@ -84,6 +98,7 @@ export function useCandidateStashDetailModal({
     if (!stashUuid || !nextPeriodStart || !nextPeriodEnd) return
     const seq = itemLoadSeqRef.current + 1
     itemLoadSeqRef.current = seq
+    closeMetricSubscription()
     setDetailLoading(true)
     setDetailError(null)
     try {
@@ -94,15 +109,40 @@ export function useCandidateStashDetailModal({
       })
       if (!mountedRef.current || itemLoadSeqRef.current !== seq) return
       setItems(result.items)
+      setRecommendationItems(deriveCandidateRecommendations(result.referenceItems, result.candidateItems))
       setDetailLoading(false)
+      const candidateItemUuids = result.candidateItems.map((item) => item.uuid)
+      const requestId = `${stashUuid}:${nextPeriodStart}:${nextPeriodEnd}:${seq}`
+      metricSubscriptionRef.current = subscribeCandidateOrderMetrics({
+        stashUuid,
+        dataReferencePeriodStart: nextPeriodStart,
+        dataReferencePeriodEnd: nextPeriodEnd,
+        requestId,
+        candidateItemUuids,
+      }, (event) => {
+        if (!mountedRef.current || itemLoadSeqRef.current !== seq) return
+        if (event.requestId !== requestId) return
+        if (event.type === 'item') {
+          setItems((current) => current.map((item) => (
+            item.uuid === event.itemUuid ? applyOrderMetricToCandidateItem(item, event.metric) : item
+          )))
+          return
+        }
+        if (event.type === 'itemFailed') {
+          setItems((current) => current.map((item) => (
+            item.uuid === event.itemUuid ? markCandidateItemOrderMetricFailed(item) : item
+          )))
+        }
+      })
     } catch (err) {
       if (!mountedRef.current || itemLoadSeqRef.current !== seq) return
       const message = err instanceof Error ? err.message : '이너 후보 목록 스냅샷 데이터가 올바르지 않습니다.'
       setItems([])
+      setRecommendationItems([])
       setDetailError(message)
       setDetailLoading(false)
     }
-  }, [dataReferencePeriodEnd, dataReferencePeriodStart, stashUuid])
+  }, [closeMetricSubscription, dataReferencePeriodEnd, dataReferencePeriodStart, stashUuid])
 
   useEffect(() => {
     if (!items.length) return
@@ -135,6 +175,8 @@ export function useCandidateStashDetailModal({
         setDraftDataReferencePeriodStart('')
         setDraftDataReferencePeriodEnd('')
         setItems([])
+        setRecommendationItems([])
+        closeMetricSubscription()
         return
       }
       setDataReferencePeriodStart(detailTarget.periodStart)
@@ -146,7 +188,7 @@ export function useCandidateStashDetailModal({
     return () => {
       alive = false
     }
-  }, [detailTarget, loadItems])
+  }, [closeMetricSubscription, detailTarget, loadItems])
 
   const onDataReferencePeriodStartChange = useCallback((value: string) => {
     if (!value) return
@@ -173,45 +215,26 @@ export function useCandidateStashDetailModal({
   const table = useInnerCandidateTable(items)
   const dataReferenceStart = dataReferencePeriodStart || undefined
   const dataReferenceEnd = dataReferencePeriodEnd || undefined
-  useEffect(() => {
-    let alive = true
-    recommendationLoadSeqRef.current += 1
-    queueMicrotask(() => {
-      if (!alive) return
-      setRecommendationItems([])
-      setRecommendationError(null)
-      setRecommendationLoading(false)
-    })
-    return () => {
-      alive = false
-    }
-  }, [dataReferenceEnd, dataReferenceStart, stashUuid])
 
-  const loadRecommendations = useCallback(async (): Promise<CandidateItemSummary[]> => {
+  const loadRecommendations = useCallback(async (): Promise<CandidateReferenceItemSummary[]> => {
     if (!stashUuid || !dataReferenceStart || !dataReferenceEnd) return []
-    const seq = recommendationLoadSeqRef.current + 1
-    recommendationLoadSeqRef.current = seq
     setRecommendationLoading(true)
     setRecommendationError(null)
-    try {
-      const result = await getCandidateRecommendations({
-        stashUuid,
-        dataReferencePeriodStart: dataReferenceStart,
-        dataReferencePeriodEnd: dataReferenceEnd,
-      })
-      if (!mountedRef.current || recommendationLoadSeqRef.current !== seq) return []
-      setRecommendationItems(result.items)
-      setRecommendationLoading(false)
-      return result.items
-    } catch (err) {
-      if (!mountedRef.current || recommendationLoadSeqRef.current !== seq) return []
-      const message = err instanceof Error ? err.message : '추천 후보 조회에 실패했습니다.'
-      setRecommendationItems([])
-      setRecommendationError(message)
-      setRecommendationLoading(false)
-      return []
-    }
-  }, [dataReferenceEnd, dataReferenceStart, stashUuid])
+    await Promise.resolve()
+    if (!mountedRef.current) return []
+    setRecommendationLoading(false)
+    return recommendationItems
+  }, [dataReferenceEnd, dataReferenceStart, recommendationItems, stashUuid])
+
+  const appendRecommendedItems = useCallback(async (rows: CandidateReferenceItemSummary[]) => {
+    const skuGroupKeys = [...new Set(rows.map((row) => row.skuGroupKey))]
+    if (!skuGroupKeys.length) return
+    await appendCandidateItems({ stashUuid, skuGroupKeys })
+    if (!mountedRef.current) return
+    await loadItems()
+    await refreshStashes()
+    showToast('추천 후보를 후보군에 추가했습니다.')
+  }, [loadItems, refreshStashes, showToast, stashUuid])
 
   const drawer = useCandidateStashItemDrawer({
     dataReferenceStart,
@@ -272,6 +295,7 @@ export function useCandidateStashDetailModal({
     itemDeleteTarget,
     itemDeleteBusy: actions.itemDeleteBusy,
     bulkDeleteBusy: actions.bulkDeleteBusy,
+    bulkUnconfirmBusy: actions.bulkUnconfirmBusy,
     orderExportBusy: actions.orderExportBusy,
     orderExportError: actions.orderExportError,
     setItemDeleteTarget,
@@ -281,6 +305,7 @@ export function useCandidateStashDetailModal({
     productNameOptions: table.productNameOptions,
     tableRows: table.tableRows,
     totals: table.totals,
+    pendingOrderMetricCount: table.pendingOrderMetricCount,
     totalExpectedOpProfitRatePct: table.totalExpectedOpProfitRatePct,
     openItemDrawer: drawer.openItemDrawer,
     onRequestNavigateAdjacent: drawer.onRequestNavigateAdjacent,
@@ -288,8 +313,10 @@ export function useCandidateStashDetailModal({
     onDrawerForecastMonthsChange: drawer.onDrawerForecastMonthsChange,
     loadItems,
     refreshStashes,
+    appendRecommendedItems,
     confirmDeleteItem,
     confirmDeleteItems: actions.confirmDeleteItems,
+    confirmUnconfirmItems: actions.confirmUnconfirmItems,
     downloadOrderExcel: actions.downloadOrderExcel,
     loadRecommendations,
   }

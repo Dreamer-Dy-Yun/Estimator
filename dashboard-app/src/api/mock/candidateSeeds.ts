@@ -46,7 +46,7 @@ export const seededCandidateStashes: CandidateStashRecord[] = [
     dbUpdatedAt: '2026-04-20T11:20:00.000Z',
   },
 ]
-const seededCandidateItemDrafts: Array<Omit<CandidateItemRecord, 'isLatestLlmComment'>> = [
+const seededCandidateItemDrafts: Array<Omit<CandidateItemRecord, 'isLatestLlmComment' | 'skuUuid'>> = [
   {
     uuid: 'candidateitem000000000000000000001',
     stashUuid: 'candidatestash00000000000000000001',
@@ -120,6 +120,7 @@ const seededCandidateItemDrafts: Array<Omit<CandidateItemRecord, 'isLatestLlmCom
 ]
 export const seededCandidateItems: CandidateItemRecord[] = seededCandidateItemDrafts.map((item) => ({
   ...item,
+  skuUuid: item.skuGroupKey,
   details: item.details ? ensureMockAiCommentForSnapshot(item.details) : null,
   isLatestLlmComment: true,
 }))

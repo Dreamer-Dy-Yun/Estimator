@@ -252,7 +252,7 @@ describe('api/mock dashboardApi candidate stash contract stubs', () => {
     expect(after.some((row) => row.uuid === created.uuid)).toBe(false)
   })
 
-  it('keeps candidate item list read-only after item mutation API calls', async () => {
+  it('mutates candidate item list through item add/delete API calls', async () => {
     const stashes = await mockDashboardApi.getCandidateStashes()
     const source = stashes.find((row) => row.itemCount > 0)
     expect(source).toBeDefined()
@@ -265,20 +265,44 @@ describe('api/mock dashboardApi candidate stash contract stubs', () => {
     expect(detail!.details).toBeDefined()
 
     await mockDashboardApi.deleteCandidateItem(item!.uuid)
+    const afterDelete = await mockDashboardApi.getCandidateItemsByStash(defaultCandidateItemListParams(source!.uuid))
+    expect(afterDelete.items.some((row) => row.uuid === item!.uuid)).toBe(false)
+
     await mockDashboardApi.appendCandidateItem({
       stashUuid: source!.uuid,
       skuGroupKey: item!.skuGroupKey,
       details: detail!.details!,
       isLatestLlmComment: false,
     })
-    await mockDashboardApi.updateCandidateItem({
-      itemUuid: item!.uuid,
-      details: detail!.details!,
-      isLatestLlmComment: false,
-    })
 
     const after = await mockDashboardApi.getCandidateItemsByStash(defaultCandidateItemListParams(source!.uuid))
-    expect(after).toEqual(before)
+    expect(after.items).toHaveLength(before.items.length)
+    expect(after.items.some((row) => row.skuUuid === item!.skuUuid)).toBe(true)
+  })
+
+  it('clears candidate detail confirmation when updating details to null', async () => {
+    const stashes = await mockDashboardApi.getCandidateStashes()
+    const source = stashes.find((row) => row.itemCount > 0)
+    expect(source).toBeDefined()
+    const before = await mockDashboardApi.getCandidateItemsByStash(defaultCandidateItemListParams(source!.uuid))
+    const item = before.items.find((row) => row.isDetailConfirmed)
+    expect(item).toBeDefined()
+    const detail = await mockDashboardApi.getCandidateItemByUuid(item!.uuid)
+    expect(detail?.details).toBeDefined()
+
+    await mockDashboardApi.updateCandidateItem({
+      itemUuid: item!.uuid,
+      details: null,
+      isLatestLlmComment: false,
+    })
+    const afterClear = await mockDashboardApi.getCandidateItemsByStash(defaultCandidateItemListParams(source!.uuid))
+    expect(afterClear.items.find((row) => row.uuid === item!.uuid)?.isDetailConfirmed).toBe(false)
+
+    await mockDashboardApi.updateCandidateItem({
+      itemUuid: item!.uuid,
+      details: detail!.details,
+      isLatestLlmComment: detail!.isLatestLlmComment,
+    })
   })
 
   it('hydrates seeded candidate drawer snapshots with mock AI comments', async () => {

@@ -289,6 +289,7 @@
 | `getSecondaryCompetitorChannels()` | GET | `/secondary/competitor-channels` |
 | `getCandidateStashes()` | GET | `/candidate-stashes` 세션 소유자 기준 |
 | `getCandidateItemsByStash(params)` | GET | `/candidate-stashes/:stashUuid/items?dataReferencePeriodStart&dataReferencePeriodEnd` |
+| `subscribeCandidateOrderMetrics(params)` | SSE 권장 | `/candidate-stashes/:stashUuid/items/order-metrics/events?requestId&dataReferencePeriodStart&dataReferencePeriodEnd&candidateItemUuids[]` |
 | `getCandidateRecommendations(params)` | GET | `/candidate-stashes/:stashUuid/recommendations?dataReferencePeriodStart&dataReferencePeriodEnd` |
 | `getCandidateItemByUuid(itemUuid)` | GET | `/candidate-items/:itemUuid` |
 | `deleteCandidateItem(itemUuid)` | DELETE | `/candidate-items/:itemUuid` 세션 소유자 기준 |
@@ -535,15 +536,17 @@
 | `dataReferencePeriodStart` | 후보군 리스트 수치와 배지 판단에 사용할 데이터 참조 시작일 (`YYYY-MM-DD`) |
 | `dataReferencePeriodEnd` | 후보군 리스트 수치와 배지 판단에 사용할 데이터 참조 종료일 (`YYYY-MM-DD`) |
 
-이 API는 단순히 후보군에 담긴 상품만 조회해 계산하면 안 된다. 배지 기준이 “조회 기간 전체에서 상위 몇 %인가”처럼 전체 분포에 의존하므로, 백엔드는 먼저 해당 기간의 전체 대상 상품 데이터를 집계하고 그 전체 분포 기준으로 배지를 부여한 뒤, 그 결과 중 `stashUuid`에 담긴 상품만 추려 반환해야 한다. 프론트는 날짜 입력 변경마다 호출하지 않고 `조회` 버튼 클릭 시점에만 호출한다. 그래도 조회 기간 변경은 무거운 재집계가 될 수 있으므로 기간+경쟁채널 기준 랭킹/배지 계산 결과를 캐시하거나 materialized view/batch 집계를 두는 방식을 권장한다.
+이 API는 단순히 후보군에 담긴 상품만 조회해 계산하면 안 된다. 배지 기준이 “조회 기간 전체에서 상위 몇 %인가”처럼 전체 분포에 의존하므로, 백엔드는 먼저 해당 기간의 전체 대상 SKU 데이터를 집계하고 그 전체 분포 기준으로 배지를 부여한다. 응답은 전체 분포 기준의 가벼운 `referenceItems`와 후보군에 실제로 담긴 `candidateItems`를 함께 내려준다. 프론트는 날짜 입력 변경마다 호출하지 않고 `조회` 버튼 클릭 시점에만 호출한다. 그래도 조회 기간 변경은 무거운 재집계가 될 수 있으므로 기간+경쟁채널 기준 랭킹/배지 계산 결과를 캐시하거나 materialized view/batch 집계를 두는 방식을 권장한다.
 
 **`CandidateItemListResult`** (`getCandidateItemsByStash` 응답)
 
 | 필드 | 의미 |
 |------|------|
-| `items` | 후보 아이템 목록. 각 아이템의 `insight.badges`가 `CANDIDATE_ITEM.badge` JSON 배열과 같은 `{ name, color, tooltip }[]` 형태를 가진다 |
+| `referenceItems` | 조회 기간 전체 분포 기준으로 계산된 추천/조회 기준 SKU 목록. `uuid`는 `SKU.uuid`이며 `brand`, `code`, `productName`, `colorCode`, 기간 자사/경쟁사 판매량, `insight.badges`를 포함한다 |
+| `candidateItems` | 후보군에 실제로 담긴 `CANDIDATE_ITEM` 목록. `uuid`는 `CANDIDATE_ITEM.uuid`, `skuUuid`는 `CANDIDATE_ITEM.sku_uuid = SKU.uuid`, `hasSnapshot`은 `details != null` |
+| `items` | 화면 편의를 위해 `candidateItems`와 `referenceItems`를 조인한 후보 아이템 목록. 총 오더 수량/금액은 초기 응답에서 아직 로딩 상태일 수 있다 |
 
-배지는 DB 테이블 정의의 `CANDIDATE_ITEM.badge`처럼 아이템별 JSON 배열로 내려준다. 같은 배지명이 여러 아이템에 반복되어도 후보군 상세 응답 규모에서는 중복 비용보다 계약 단순성이 더 중요하다. 색상/툴팁은 백엔드가 기간 기준 계산과 함께 확정해 내려주며, 프론트는 별도 배지 정의 호출이나 이름-정의 조인을 하지 않는다.
+배지는 DB 테이블 정의의 badge JSON처럼 항목별 `{ name, color, tooltip }[]` 배열로 내려준다. 같은 배지명이 여러 아이템에 반복되어도 후보군 상세 응답 규모에서는 중복 비용보다 계약 단순성이 더 중요하다. 색상/툴팁은 백엔드가 기간 기준 계산과 함께 확정해 내려주며, 프론트는 별도 배지 정의 호출이나 이름-정의 조인을 하지 않는다.
 
 ```ts
 badges: [
@@ -565,32 +568,26 @@ badges: [
 ]
 ```
 
-**`CandidateRecommendationParams`** (`getCandidateRecommendations` 요청)
+**추천 보기 파생 규칙**
 
-| 필드 | 의미 |
-|------|------|
-| `stashUuid` | 추천을 조회할 후보군 UUID. REST 경로의 `:stashUuid`와 동일 |
-| `dataReferencePeriodStart` | 추천 판단에 사용할 데이터 참조 시작일 (`YYYY-MM-DD`) |
-| `dataReferencePeriodEnd` | 추천 판단에 사용할 데이터 참조 종료일 (`YYYY-MM-DD`) |
-
-**`CandidateRecommendationResult`**
-
-`CandidateItemListResult`와 같은 `{ items }` 구조를 쓴다. 단, `items`는 백엔드가 `dataReferencePeriodStart`~`dataReferencePeriodEnd` 기간의 판매/이익/배지 조건을 기준으로 추천한 후보만 내려준다. 추천이 비어 있을 때 전체 후보를 내려줄지, 빈 배열을 내려줄지는 백엔드 정책으로 확정해야 하며, 현재 mock은 화면 확인을 위해 추천 조건이 없으면 전체 후보를 반환한다.
+추천 보기는 별도 중복 조회를 하지 않고 `CandidateItemListResult.referenceItems`에서 파생한다. `candidateItems.skuUuid`를 `Set`으로 만들고, `referenceItems` 중 `referenceItem.uuid`가 이 Set에 없는 항목만 보여준다. 목록이 수백 건 이상일 수 있으므로 프론트와 백엔드 모두 이 비교를 중첩 루프가 아니라 Set/Hash join 기준으로 처리해야 한다.
 
 **`CandidateItemSummary`** (목록 행)
 
 | 필드 | 의미 |
 |------|------|
-| `uuid` | 아이템 PK |
+| `uuid` | `CANDIDATE_ITEM.uuid` |
 | `stashUuid` | 소속 스태시 |
+| `skuUuid` | `CANDIDATE_ITEM.sku_uuid`. 반드시 `SKU.uuid`를 가리킨다 |
 | `skuGroupKey` | 상품 단위 식별자. 현재 프론트 계약에서는 `SKU.code + SKU.color_code`에 대응하며, 사이즈는 2차 드로워/스냅샷의 사이즈별 행에서 다룬다 |
 | `brand`, `code`, `productName`, `colorCode` | 현재 상품 마스터와 기간 집계 결과의 SKU 메타. 색상은 SKU 식별 메타이므로 목록·엑셀에 함께 노출한다. |
-| `qty` | 데이터 참조 기간 기준 추천/예상 오더 수량 합계(EA). 저장 스냅샷이 있더라도 리스트 기본값은 현재 기간 live 계산값이다 |
-| `expectedOrderAmount` | 데이터 참조 기간 기준 예상 **발주 금액(원)** |
+| `orderMetricStatus` | `loading`, `loaded`, `failed`. 총 오더 지표 SSE 진행 상태 |
+| `qty` | 데이터 참조 기간 기준 추천/예상 오더 수량 합계(EA). SSE 도착 전에는 화면상 로딩 상태로 취급한다 |
+| `expectedOrderAmount` | 데이터 참조 기간 기준 예상 **발주 금액(원)**. SSE 도착 전에는 화면상 로딩 상태로 취급한다 |
 | `expectedSalesAmount` | 데이터 참조 기간 기준 예상 매출 |
 | `expectedOpProfit` | 데이터 참조 기간 기준 예상 영업이익 |
 | `insight.badges` | 이 아이템에 붙일 배지 배열. 각 값은 `{ name, color, tooltip }`이며 현재 목데이터 기준 허용 배지는 `크림판매`, `자사이익`, `자사판매` |
-| `orderExport` | 발주 엑셀을 프론트에서 즉시 생성하기 위한 요청 기간 기준 다운로드 DTO. 전체 `details` 스냅샷을 다시 받지 않도록 `competitorChannelLabel`, 자사/경쟁 기간 판매량, 총 오더량/금액, 평균 원가/판매가/수수료율/영업이익율, 오더 입고 예정일, 사이즈별 오더량만 포함 |
+| `orderExport` | 발주 엑셀을 프론트에서 생성하기 위한 요청 기간 기준 다운로드 DTO. SSE 지표가 도착하기 전에는 `null`일 수 있으며, 프론트는 모든 행의 오더 지표가 로드된 뒤에만 다운로드를 허용한다 |
 | `isLatestLlmComment` | 현재 저장 스냅샷 기준 AI 코멘트/추천이 최신인지 여부. DB 컬럼은 `is_latest_llm_comment` 권장 |
 | `isDetailConfirmed` | 이너후보군 2차 드로워에서 저장한 스냅샷이 있으면 `true`. 리스트의 상세확정 컬럼은 이 값을 표시한다 |
 | `dbCreatedAt`, `dbUpdatedAt` | 생성·수정 시각 |
@@ -599,8 +596,22 @@ badges: [
 
 | 필드 | 의미 |
 |------|------|
+| `uuid` | `CANDIDATE_ITEM.uuid` |
+| `skuUuid` | `CANDIDATE_ITEM.sku_uuid = SKU.uuid` |
 | `details` | 저장 시점의 **`SecondaryOrderSnapshotPayload` 전체 JSON**. 스냅샷 없이 후보군에 담긴 아이템은 `null`이다 |
 | `isLatestLlmComment` | 상세 스냅샷 기준 AI 코멘트/추천 최신 여부 |
+
+**`CandidateOrderMetricEvent`** (`subscribeCandidateOrderMetrics` SSE)
+
+초기 `getCandidateItemsByStash` 응답 이후 총 오더 수량·총 오더 금액처럼 계산량이 큰 값을 항목별로 내려준다.
+
+| 이벤트 | 의미 |
+|--------|------|
+| `item` | `requestId`, `itemUuid`, `skuUuid`, `metric`을 포함한다. `metric`은 `qty`, `expectedOrderAmount`, `expectedSalesAmount`, `expectedOpProfit`, `orderExport`를 가진다 |
+| `itemFailed` | 특정 후보 아이템 지표 계산 실패. 행 단위 오류로 표시한다 |
+| `completed` | 전체 candidate item 지표 계산 종료. `processedCount`, `failedCount`를 포함한다 |
+
+프론트는 `requestId`가 현재 조회 요청과 다르면 stale 이벤트로 버린다. 사용자가 조회 데이터 기간을 바꿔 다시 조회하면 이전 SSE 연결을 닫아야 한다.
 
 **페이로드**
 
@@ -608,7 +619,7 @@ badges: [
 - `UpdateCandidateStashPayload`: `{ stashUuid, name, note? }` — 메타만 갱신
 - `AppendCandidateItemsPayload`: `{ stashUuid, skuGroupKeys }` — 자사/경쟁사 분석 리스트에서 선택한 상품들을 스냅샷 없이 후보군에 추가한다. 현재 프론트의 `skuGroupKey`는 내부적으로 `SKU.code + SKU.color_code` 상품 단위에 대응하며, 사이즈별 확정 오더량과 AI 코멘트는 이너후보군 2차 드로워에서 저장하기 전까지 비어 있거나 미확정 상태다
 - `AppendCandidateItemPayload`: `{ stashUuid, skuGroupKey, details, isLatestLlmComment? }` — `details`가 오더 스냅샷 저장의 단일 경로이며, 기본값은 `false` 권장
-- `UpdateCandidateItemPayload`: `{ itemUuid, details, isLatestLlmComment }`
+- `UpdateCandidateItemPayload`: `{ itemUuid, details, isLatestLlmComment }`. `details`가 `null`이면 저장된 2차 드로워 스냅샷을 삭제해 상세확정을 해제한다. 이 작업은 복구 불가능한 사용자 명시 액션으로 취급한다.
 - `CandidateStashExcelUploadResult`: `{ stashUuid, stashName, itemCount, warnings: string[] }`
 - 2차 드로워에서 후보 아이템 스냅샷을 다시 저장할 때 프론트는 `updateCandidateItem`에 `isLatestLlmComment: false`를 보냅니다. 백엔드는 해당 아이템의 DB `is_latest_llm_comment`를 `false`로 저장해 기존 AI 코멘트/추천이 최신 스냅샷 기준이 아님을 표시해야 합니다.
 
@@ -622,7 +633,7 @@ badges: [
   생성자/소유자는 요청 body가 아니라 인증 세션의 `USER_ACCOUNT.uuid`를 기준으로 결정합니다.
   성공 후 프론트는 응답 객체를 목록에 직접 삽입하지 않고 `getCandidateStashes()`를 다시 호출해 DB 기준 목록과 동기화합니다.
 - `getCandidateStashExcelTemplateDownload`: 현재 프론트는 정적 파일 URL을 반환하지만, 운영 백엔드 연결 시에는 같은 프론트 계약을 유지한 채 템플릿 다운로드 endpoint로 교체할 수 있습니다. 예: `GET /candidate-stashes/excel-template`.
-- 후보군 발주 엑셀 다운로드: 별도 백엔드 다운로드 endpoint를 두지 않습니다. 프론트는 이미 `getCandidateItemsByStash` 응답으로 받은 `CandidateItemSummary.orderExport` DTO를 사용해 브라우저에서 XLSX를 생성합니다. 주 데이터 시트는 후보 아이템 1개를 1행으로 두며, 기본 컬럼은 `브랜드`, `품번`, `상품명`, `색상`, `배지`, `자사 기간 총 판매량`, `{선택 경쟁사} 기간 총 판매량`, `총 오더량`, `총 오더 금액`, `평균 원가`, `평균 판매가`, `평균 수수료율`, `평균 영업이익율`입니다. `배지`가 복수인 경우 한 셀 안에서 줄바꿈으로 구분합니다. 그 뒤에는 해당 후보군 전체에서 등장한 모든 사이즈를 동적 컬럼으로 추가하고, 각 제품의 사이즈별 오더량을 기재합니다. 제품에 존재하지 않는 사이즈 컬럼은 `N/A`로 표시해 실제 오더량 `0`과 구분합니다. 메타 시트는 `오더 입고 예정일`, `이름`을 포함합니다. `이름`은 현재 세션의 `USER_ACCOUNT.name` 또는 운영에서 정한 사용자 표시명을 사용합니다.
+- 후보군 발주 엑셀 다운로드: 별도 백엔드 다운로드 endpoint를 두지 않습니다. 프론트는 이미 조회한 후보 아이템과 SSE로 받은 `CandidateItemSummary.orderExport` DTO를 사용해 브라우저에서 XLSX를 생성합니다. 모든 행의 오더 지표가 로드되기 전에는 다운로드를 막습니다. 주 데이터 시트는 후보 아이템 1개를 1행으로 두며, 기본 컬럼은 `브랜드`, `품번`, `상품명`, `색상`, `배지`, `자사 기간 총 판매량`, `{선택 경쟁사} 기간 총 판매량`, `총 오더량`, `총 오더 금액`, `평균 원가`, `평균 판매가`, `평균 수수료율`, `평균 영업이익율`입니다. `배지`가 복수인 경우 한 셀 안에서 줄바꿈으로 구분합니다. 그 뒤에는 해당 후보군 전체에서 등장한 모든 사이즈를 동적 컬럼으로 추가하고, 각 제품의 사이즈별 오더량을 기재합니다. 제품에 존재하지 않는 사이즈 컬럼은 `N/A`로 표시해 실제 오더량 `0`과 구분합니다. 메타 시트는 `오더 입고 예정일`, `이름`을 포함합니다. `이름`은 현재 세션의 `USER_ACCOUNT.name` 또는 운영에서 정한 사용자 표시명을 사용합니다.
 - 엑셀 업로드 검증 권장:
   - 현재 템플릿 초안의 `DATA` 시트 필수 컬럼 예: `브랜드`, `품번`, `오더 수량`, `금번 오더 입고일`, `차기 오더 입고일`.
   - `오더 수량`은 사이즈별 입력이 아니라 총 발주 수량입니다. 사이즈별 오더 배분/조정은 시스템 내부 계산 흐름이 담당합니다.

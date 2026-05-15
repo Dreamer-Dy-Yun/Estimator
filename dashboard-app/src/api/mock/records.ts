@@ -21,6 +21,8 @@ export type CandidateStashRecord = {
 export type CandidateItemRecord = {
   uuid: string
   stashUuid: string
+  /** CANDIDATE_ITEM.sku_uuid. Mock uses skuGroupKey as the stand-in SKU.uuid. */
+  skuUuid: string
   skuGroupKey: string
   details: SecondaryOrderSnapshotPayload | null
   isLatestLlmComment: boolean

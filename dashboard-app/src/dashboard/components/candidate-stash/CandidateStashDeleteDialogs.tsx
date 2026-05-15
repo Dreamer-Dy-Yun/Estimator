@@ -4,22 +4,52 @@ import type { CandidateStashDetailModalModel } from './useCandidateStashDetailMo
 type Props = {
   model: CandidateStashDetailModalModel
   bulkDeleteOpen: boolean
+  bulkUnconfirmOpen: boolean
   selectedVisibleCount: number
   selectedVisibleItemUuids: string[]
+  selectedConfirmedCount: number
+  selectedConfirmedItemUuids: string[]
   onCloseBulkDelete: () => void
+  onCloseBulkUnconfirm: () => void
   onBulkDeleteDone: () => void
+  onBulkUnconfirmDone: () => void
 }
 
 export function CandidateStashDeleteDialogs({
   model,
   bulkDeleteOpen,
+  bulkUnconfirmOpen,
   selectedVisibleCount,
   selectedVisibleItemUuids,
+  selectedConfirmedCount,
+  selectedConfirmedItemUuids,
   onCloseBulkDelete,
+  onCloseBulkUnconfirm,
   onBulkDeleteDone,
+  onBulkUnconfirmDone,
 }: Props) {
   return (
     <>
+      <ConfirmModal
+        open={bulkUnconfirmOpen}
+        busy={model.bulkUnconfirmBusy}
+        title="상세확정 일괄해제"
+        message={
+          selectedConfirmedCount > 0
+            ? <>상세 확정을 해제하면 확정 내용을 복구할 수 없습니다.</>
+            : '상세확정 해제할 이너 오더가 선택되지 않았습니다.'
+        }
+        confirmText="계속"
+        confirmingText="해제 중…"
+        dialogTitleId="bulk-item-unconfirm-dialog-title"
+        keepOpenAttr
+        onCancel={onCloseBulkUnconfirm}
+        onConfirm={async () => {
+          await model.confirmUnconfirmItems(selectedConfirmedItemUuids)
+          onBulkUnconfirmDone()
+        }}
+      />
+
       <ConfirmModal
         open={bulkDeleteOpen}
         busy={model.bulkDeleteBusy}

@@ -1,13 +1,18 @@
-.dataReferenceQueryGrid {
+.detailActionCardGrid {
   display: grid;
-  grid-template-columns: repeat(40, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.dataReferenceQueryGrid {
+  display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
+  min-width: 0;
 }
 
 .dataReferenceQueryLabel {
-  grid-column: 1 / span 3;
-  min-width: 0;
+  flex: none;
   color: #475569;
   font-size: 12px;
   font-weight: 800;
@@ -15,23 +20,22 @@
 }
 
 .dataReferenceQueryControls {
-  grid-column: 4 / span 7;
-  min-width: 0;
-  display: grid;
-  grid-template-columns: repeat(7, minmax(0, 1fr));
+  flex: none;
+  min-width: 246px;
+  display: flex;
   align-items: center;
   gap: 6px;
 }
 
 .dataReferenceQuerySeparator {
-  grid-column: 4;
+  flex: none;
   text-align: center;
   color: #64748b;
   font-weight: 800;
 }
 
 .dataReferenceQueryInput {
-  width: 100%;
+  width: 130px;
   min-width: 0;
   height: 34px;
   border: 1px solid #cbd5e1;
@@ -45,14 +49,6 @@
   font-weight: 700;
 }
 
-.dataReferenceQueryInput:first-of-type {
-  grid-column: 1 / span 3;
-}
-
-.dataReferenceQueryInput:last-of-type {
-  grid-column: 5 / span 3;
-}
-
 .dataReferenceQueryInput:focus {
   border-color: #2563eb;
   outline: 2px solid rgba(37, 99, 235, 0.18);
@@ -60,7 +56,7 @@
 }
 
 .dataReferenceQueryActions {
-  grid-column: 12 / -1;
+  flex: none;
   min-width: 0;
   display: flex;
   justify-content: flex-start;
@@ -72,4 +68,32 @@
   height: 34px;
   padding-inline: 16px;
   white-space: nowrap;
+}
+
+.bulkActionCard {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.bulkUnconfirmButton {
+  min-width: 136px;
+  height: 34px;
+  color: #9f1239;
+  border-color: #fecdd3;
+  background: #fff1f2;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.bulkUnconfirmButton:hover:not(:disabled) {
+  color: #881337;
+  border-color: #fda4af;
+  background: #ffe4e6;
+}
+
+.bulkActionCard :global(button) {
+  min-height: 34px;
 }

@@ -52,9 +52,20 @@ export function CandidateStashDetailFilters({ model, downloadUserName }: Props) 
               type="button"
               className={detailStyles.orderExcelDownloadBtn}
               onClick={() => void model.downloadOrderExcel(downloadUserName)}
-              disabled={model.detailLoading || model.orderExportBusy || model.items.length === 0}
+              disabled={
+                model.detailLoading ||
+                model.orderExportBusy ||
+                model.items.length === 0 ||
+                model.pendingOrderMetricCount > 0
+              }
             >
-              {model.orderExportBusy ? <LoadingSpinner size="inline" label="생성 중" /> : '엑셀 다운로드'}
+              {model.orderExportBusy ? (
+                <LoadingSpinner size="inline" label="생성 중" />
+              ) : model.pendingOrderMetricCount > 0 ? (
+                <LoadingSpinner size="inline" label="오더 지표 계산 중" />
+              ) : (
+                '엑셀 다운로드'
+              )}
             </button>
           </div>
         }

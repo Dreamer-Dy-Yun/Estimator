@@ -1,5 +1,6 @@
 import { useEffect, useRef, type ReactNode, type RefObject } from 'react'
 import { formatEaQuantity, formatGroupedNumber } from '../../../utils/format'
+import { LoadingSpinner } from '../../../components/LoadingSpinner'
 import { CandidateInsightBadges } from './CandidateInsightBadges'
 import type { InnerCandidateRow, InnerCandidateSortKey } from './useCandidateStashDetailModal'
 import styles from '../common.module.css'
@@ -32,6 +33,15 @@ function InnerOrderSortHeader({ label, sortKey, activeKey, activeDir, align = 'l
       <span className={detailStyles.innerOrderSortIcon} aria-hidden="true">{sortMark}</span>
     </button>
   )
+}
+
+function OrderMetricCell({ row, kind }: { row: InnerCandidateRow; kind: 'qty' | 'amount' }) {
+  if (row.orderMetricStatus === 'failed') return <span className={detailStyles.innerOrderMetricState}>실패</span>
+  if (row.orderMetricStatus !== 'loaded') {
+    return <LoadingSpinner size="inline" label="오더 지표 계산 중" showLabel={false} />
+  }
+  if (kind === 'qty') return <>{formatGroupedNumber(row.insight.expectedSalesQty)} EA</>
+  return <>{formatGroupedNumber(row.expectedOrderAmount)} 원</>
 }
 
 type Props = {
@@ -151,15 +161,15 @@ export function InnerCandidateOrderList({
             <span className={detailStyles.innerOrderName}>{row.productName}</span>
             <span className={detailStyles.innerOrderColor}>{row.colorCode}</span>
             <span className={detailStyles.innerOrderConfirmState}>
-              {row.isDetailConfirmed ? '상세확정' : '미확정'}
+              {row.isDetailConfirmed ? '상세확정' : '상세미확정'}
             </span>
             <span className={detailStyles.innerOrderCellNum}>{formatEaQuantity(row.insight.selfQty)}</span>
             <span className={detailStyles.innerOrderCellNum}>{formatEaQuantity(row.insight.competitorQty)}</span>
             <span className={detailStyles.innerOrderCellNum}>
-              {formatGroupedNumber(row.insight.expectedSalesQty)} EA
+              <OrderMetricCell row={row} kind="qty" />
             </span>
             <span className={detailStyles.innerOrderCellNum}>
-              {formatGroupedNumber(row.expectedOrderAmount)} 원
+              <OrderMetricCell row={row} kind="amount" />
             </span>
             <span className={detailStyles.innerOrderBadgeList}>
               <CandidateInsightBadges badges={row.insight.badges} />

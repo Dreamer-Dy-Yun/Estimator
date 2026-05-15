@@ -25,6 +25,9 @@ import type {
   CandidateItemDetail,
   CandidateItemListParams,
   CandidateItemListResult,
+  CandidateOrderMetricEvent,
+  CandidateOrderMetricStreamParams,
+  CandidateOrderMetricSubscription,
   CandidateRecommendationParams,
   CandidateRecommendationResult,
   CandidateStashExcelTemplateDownload,
@@ -68,6 +71,10 @@ export interface DashboardApi {
   getSecondaryCompetitorChannels(): Promise<SecondaryCompetitorChannel[]>
   getCandidateStashes(): Promise<CandidateStashSummary[]>
   getCandidateItemsByStash(params: CandidateItemListParams): Promise<CandidateItemListResult>
+  subscribeCandidateOrderMetrics(
+    params: CandidateOrderMetricStreamParams,
+    listener: (event: CandidateOrderMetricEvent) => void,
+  ): CandidateOrderMetricSubscription
   getCandidateRecommendations(params: CandidateRecommendationParams): Promise<CandidateRecommendationResult>
   getCandidateItemByUuid(itemUuid: string): Promise<CandidateItemDetail | null>
   deleteCandidateItem(itemUuid: string): Promise<void>

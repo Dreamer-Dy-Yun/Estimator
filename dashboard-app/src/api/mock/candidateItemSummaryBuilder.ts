@@ -1,4 +1,10 @@
-import type { CandidateBadge, CandidateItemSummary } from '../types'
+import type {
+  CandidateBadge,
+  CandidateItemSummary,
+  CandidateOrderMetric,
+  CandidateReferenceItemSummary,
+  CandidateStashItemSummary,
+} from '../types'
 import type { CandidateItemRecord } from './records'
 import {
   allKnownSkuGroupKeys,
@@ -90,73 +96,164 @@ function buildCandidateItemInsight(
   }
 }
 
-export function buildCandidateItemSummaries(
-  records: CandidateItemRecord[],
+function buildOrderMetric(
+  row: CandidateItemRecord,
   dataReferencePeriod?: CandidateDataReferencePeriod,
-): CandidateItemSummary[] {
+): CandidateOrderMetric {
+  const skuGroupKey = row.skuGroupKey
   const periodWeight = dataReferencePeriod
     ? estimatePeriodWeight(dataReferencePeriod.start, dataReferencePeriod.end)
     : 1
+  const primary = productPrimaryBySkuGroupKey[skuGroupKey] ?? productPrimaryBySkuGroupKey[allKnownSkuGroupKeys[0]]!
+  const self = selfBySkuGroupKey[skuGroupKey]
+  const competitor = competitorBySkuGroupKey[skuGroupKey]
+  const avgPrice = Math.max(1, Math.round(self?.avgPrice ?? primary.price))
+  const avgCost = Math.max(1, Math.round(self?.avgCost ?? primary.price * 0.78))
+  const feeRatePct = Math.max(0, Math.round((self?.feeRate ?? 13) * 10) / 10)
+  const baseQty = Math.max(1, Math.round((self?.qty ?? competitor?.selfQty ?? primary.qty) * 0.58))
+  const qty = Math.max(1, Math.round(baseQty * periodWeight))
+  const expectedOrderAmount = qty * avgCost
+  const expectedSalesAmount = qty * avgPrice
+  const expectedOpProfit = qty * Math.round(avgPrice - avgCost - (avgPrice * feeRatePct) / 100)
+  const opMarginRatePct = expectedSalesAmount > 0 ? (expectedOpProfit / expectedSalesAmount) * 100 : null
+  const sizeMix = primary.sizeMix.length ? primary.sizeMix : [{ size: '-', ratio: 1 }]
+  const sizeRatioSum = sizeMix.reduce((acc, sizeRow) => acc + Math.max(0, sizeRow.ratio), 0) || 1
+  const insight = buildCandidateItemInsight(
+    skuGroupKey,
+    qty,
+    expectedSalesAmount,
+    expectedOpProfit,
+    dataReferencePeriod,
+  )
+
+  return {
+    itemUuid: row.uuid,
+    skuUuid: row.skuUuid,
+    qty,
+    expectedOrderAmount,
+    expectedSalesAmount,
+    expectedOpProfit,
+    orderExport: {
+      competitorChannelLabel: insight.competitorChannelLabel,
+      selfQty: insight.selfQty,
+      competitorQty: insight.competitorQty,
+      expectedSalesQty: qty,
+      expectedOrderAmount,
+      avgCost,
+      avgPrice,
+      feeRatePct,
+      opMarginRatePct,
+      inboundExpectedDate: row.details?.drawer2.stockInputs.leadTimeEndDate ?? null,
+      sizeOrderQty: sizeMix.map((sizeRow) => ({
+        size: sizeRow.size,
+        orderQty: Math.max(0, Math.round(qty * (Math.max(0, sizeRow.ratio) / sizeRatioSum))),
+      })),
+    },
+  }
+}
+
+export function buildCandidateReferenceItems(
+  skuGroupKeys: string[],
+  dataReferencePeriod?: CandidateDataReferencePeriod,
+): CandidateReferenceItemSummary[] {
+  return skuGroupKeys.map((skuGroupKey) => {
+    const primary = productPrimaryBySkuGroupKey[skuGroupKey] ?? productPrimaryBySkuGroupKey[allKnownSkuGroupKeys[0]]!
+    return {
+      uuid: skuGroupKey,
+      skuGroupKey,
+      brand: primary.brand,
+      code: primary.code,
+      productName: primary.productName,
+      colorCode: primary.colorCode,
+      insight: buildCandidateItemInsight(skuGroupKey, 0, 0, 0, dataReferencePeriod),
+    }
+  })
+}
+
+export function buildCandidateStashItems(records: CandidateItemRecord[]): CandidateStashItemSummary[] {
+  return records.map((row) => ({
+    uuid: row.uuid,
+    stashUuid: row.stashUuid,
+    skuUuid: row.skuUuid,
+    skuGroupKey: row.skuGroupKey,
+    isLatestLlmComment: row.isLatestLlmComment,
+    hasSnapshot: row.details != null,
+    snapshotUpdatedAt: row.details ? row.dbUpdatedAt ?? row.dbCreatedAt : undefined,
+    dbCreatedAt: row.dbCreatedAt,
+    dbUpdatedAt: row.dbUpdatedAt ?? row.dbCreatedAt,
+  }))
+}
+
+export function applyCandidateOrderMetric(
+  item: CandidateItemSummary,
+  metric: CandidateOrderMetric,
+): CandidateItemSummary {
+  return {
+    ...item,
+    orderMetricStatus: 'loaded',
+    qty: metric.qty,
+    expectedOrderAmount: metric.expectedOrderAmount,
+    expectedSalesAmount: metric.expectedSalesAmount,
+    expectedOpProfit: metric.expectedOpProfit,
+    insight: {
+      ...item.insight,
+      expectedSalesQty: metric.qty,
+      expectedSalesAmount: metric.expectedSalesAmount,
+      expectedOpProfit: metric.expectedOpProfit,
+    },
+    orderExport: metric.orderExport,
+  }
+}
+
+export function markCandidateOrderMetricFailed(item: CandidateItemSummary): CandidateItemSummary {
+  return {
+    ...item,
+    orderMetricStatus: 'failed',
+  }
+}
+
+export function buildCandidateOrderMetric(
+  row: CandidateItemRecord,
+  dataReferencePeriod?: CandidateDataReferencePeriod,
+): CandidateOrderMetric {
+  return buildOrderMetric(row, dataReferencePeriod)
+}
+
+export function buildCandidateItemSummaries(
+  records: CandidateItemRecord[],
+  dataReferencePeriod?: CandidateDataReferencePeriod,
+  options: { includeOrderMetrics?: boolean } = {},
+): CandidateItemSummary[] {
+  const includeOrderMetrics = options.includeOrderMetrics ?? true
 
   return records
     .map((row) => {
       const skuGroupKey = row.skuGroupKey
       const primary = productPrimaryBySkuGroupKey[skuGroupKey] ?? productPrimaryBySkuGroupKey[allKnownSkuGroupKeys[0]]!
-      const self = selfBySkuGroupKey[skuGroupKey]
-      const competitor = competitorBySkuGroupKey[skuGroupKey]
-      const avgPrice = Math.max(1, Math.round(self?.avgPrice ?? primary.price))
-      const avgCost = Math.max(1, Math.round(self?.avgCost ?? primary.price * 0.78))
-      const feeRatePct = Math.max(0, Math.round((self?.feeRate ?? 13) * 10) / 10)
-      const baseQty = Math.max(1, Math.round((self?.qty ?? competitor?.selfQty ?? primary.qty) * 0.58))
-      const qty = Math.max(1, Math.round(baseQty * periodWeight))
-      const expectedOrderAmount = qty * avgCost
-      const expectedSalesAmount = qty * avgPrice
-      const expectedOpProfit = qty * Math.round(avgPrice - avgCost - (avgPrice * feeRatePct) / 100)
-      const opMarginRatePct = expectedSalesAmount > 0 ? (expectedOpProfit / expectedSalesAmount) * 100 : null
-      const sizeMix = primary.sizeMix.length ? primary.sizeMix : [{ size: '-', ratio: 1 }]
-      const sizeRatioSum = sizeMix.reduce((acc, sizeRow) => acc + Math.max(0, sizeRow.ratio), 0) || 1
-      const insight = buildCandidateItemInsight(
-        skuGroupKey,
-        qty,
-        expectedSalesAmount,
-        expectedOpProfit,
-        dataReferencePeriod,
-      )
-
-      return {
+      const baseInsight = buildCandidateItemInsight(skuGroupKey, 0, 0, 0, dataReferencePeriod)
+      const baseItem: CandidateItemSummary = {
         uuid: row.uuid,
         stashUuid: row.stashUuid,
+        skuUuid: row.skuUuid,
         skuGroupKey,
         brand: primary.brand,
         code: primary.code,
         productName: primary.productName,
         colorCode: primary.colorCode,
-        qty,
-        expectedOrderAmount,
-        expectedSalesAmount,
-        expectedOpProfit,
-        insight,
+        orderMetricStatus: includeOrderMetrics ? 'loaded' : 'loading',
+        qty: 0,
+        expectedOrderAmount: 0,
+        expectedSalesAmount: 0,
+        expectedOpProfit: 0,
+        insight: baseInsight,
         isLatestLlmComment: row.isLatestLlmComment,
         isDetailConfirmed: row.details != null,
-        orderExport: {
-          competitorChannelLabel: insight.competitorChannelLabel,
-          selfQty: insight.selfQty,
-          competitorQty: insight.competitorQty,
-          expectedSalesQty: qty,
-          expectedOrderAmount,
-          avgCost,
-          avgPrice,
-          feeRatePct,
-          opMarginRatePct,
-          inboundExpectedDate: row.details?.drawer2.stockInputs.leadTimeEndDate ?? null,
-          sizeOrderQty: sizeMix.map((sizeRow) => ({
-            size: sizeRow.size,
-            orderQty: Math.max(0, Math.round(qty * (Math.max(0, sizeRow.ratio) / sizeRatioSum))),
-          })),
-        },
+        orderExport: null,
         dbCreatedAt: row.dbCreatedAt,
         dbUpdatedAt: row.dbUpdatedAt ?? row.dbCreatedAt,
       }
+      if (!includeOrderMetrics) return baseItem
+      return applyCandidateOrderMetric(baseItem, buildOrderMetric(row, dataReferencePeriod))
     })
     .sort((a, b) => String(b.dbCreatedAt).localeCompare(String(a.dbCreatedAt)))
 }
