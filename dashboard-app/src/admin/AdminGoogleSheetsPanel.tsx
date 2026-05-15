@@ -1,15 +1,12 @@
 import { useEffect, useState } from 'react'
-import { deleteAdminGoogleSheetConfig, getAdminGoogleSheetConfigs } from '../api'
-import type {
-  AdminGoogleSheetConfigSummary,
-} from '../api'
+import { getAdminGoogleSheetConfigs } from '../api'
+import type { AdminGoogleSheetConfigSummary } from '../api'
 import { useAppToast } from '../components/AppToastContext'
 import { LoadingSpinner } from '../components/LoadingSpinner'
 import { AdminGoogleSheetCreateDialog } from './AdminGoogleSheetCreateDialog'
+import { AdminGoogleSheetDialog } from './AdminGoogleSheetDialog'
 import { AdminGoogleSheetRow } from './AdminGoogleSheetRow'
-import {
-  getErrorMessage,
-} from './adminHelpers'
+import { getErrorMessage } from './adminHelpers'
 import styles from './AdminPage.module.css'
 
 export function AdminGoogleSheetsPanel() {
@@ -18,6 +15,8 @@ export function AdminGoogleSheetsPanel() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
+  const [selectedConfigUuid, setSelectedConfigUuid] = useState<string | null>(null)
+  const selectedConfig = configs.find((config) => config.uuid === selectedConfigUuid) ?? null
 
   useEffect(() => {
     let alive = true
@@ -41,15 +40,10 @@ export function AdminGoogleSheetsPanel() {
     setConfigs(nextConfigs)
   }
 
-  const handleDelete = async (config: AdminGoogleSheetConfigSummary) => {
-    if (!window.confirm(`${config.name} 설정을 제거할까요?`)) return
-    try {
-      await deleteAdminGoogleSheetConfig(config.uuid)
-      await reloadConfigs()
-      showToast('구글 시트 설정을 삭제했습니다.')
-    } catch (error) {
-      setErrorMessage(getErrorMessage(error))
-    }
+  const handleDeleted = async () => {
+    await reloadConfigs()
+    setSelectedConfigUuid(null)
+    showToast('구글 시트 설정을 삭제했습니다.')
   }
 
   return (
@@ -70,7 +64,6 @@ export function AdminGoogleSheetsPanel() {
         <span>서비스 계정</span>
         <span>시트</span>
         <span>상태</span>
-        <span>작업</span>
       </div>
 
       {isLoading ? (
@@ -82,12 +75,25 @@ export function AdminGoogleSheetsPanel() {
       {!isLoading && !errorMessage ? (
         <div className={styles.userList}>
           {configs.map((config) => (
-            <AdminGoogleSheetRow key={config.uuid} config={config} onDelete={handleDelete} />
+            <AdminGoogleSheetRow
+              key={config.uuid}
+              config={config}
+              onOpen={(nextConfig) => setSelectedConfigUuid(nextConfig.uuid)}
+            />
           ))}
         </div>
       ) : null}
       {isCreateDialogOpen ? (
         <AdminGoogleSheetCreateDialog onClose={() => setIsCreateDialogOpen(false)} onCreated={reloadConfigs} />
+      ) : null}
+      {selectedConfig ? (
+        <AdminGoogleSheetDialog
+          key={selectedConfig.uuid}
+          config={selectedConfig}
+          onClose={() => setSelectedConfigUuid(null)}
+          onChanged={reloadConfigs}
+          onDeleted={handleDeleted}
+        />
       ) : null}
     </div>
   )

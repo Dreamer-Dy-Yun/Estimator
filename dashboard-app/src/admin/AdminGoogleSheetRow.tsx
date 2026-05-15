@@ -7,16 +7,16 @@ import styles from './AdminPage.module.css'
 
 interface AdminGoogleSheetRowProps {
   config: AdminGoogleSheetConfigSummary
-  onDelete: (config: AdminGoogleSheetConfigSummary) => void
+  onOpen: (config: AdminGoogleSheetConfigSummary) => void
 }
 
 function getOptionLabel<T extends string>(options: Array<{ value: T; label: string }>, value: T) {
   return options.find((option) => option.value === value)?.label ?? value
 }
 
-export function AdminGoogleSheetRow({ config, onDelete }: AdminGoogleSheetRowProps) {
+export function AdminGoogleSheetRow({ config, onOpen }: AdminGoogleSheetRowProps) {
   return (
-    <div className={styles.googleSheetListRow}>
+    <button className={styles.googleSheetListRow} type="button" onClick={() => onOpen(config)}>
       <span className={styles.gptKeyNameCell}>
         <strong>{config.name}</strong>
         <small>{config.note ?? config.uuid}</small>
@@ -36,11 +36,6 @@ export function AdminGoogleSheetRow({ config, onDelete }: AdminGoogleSheetRowPro
         </span>
         <small>{formatUpdatedAt(config.dbUpdatedAt)}</small>
       </span>
-      <span className={styles.actionCell}>
-        <button className={styles.deleteButton} type="button" onClick={() => onDelete(config)}>
-          삭제
-        </button>
-      </span>
-    </div>
+    </button>
   )
 }

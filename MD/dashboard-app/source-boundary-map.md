@@ -194,17 +194,19 @@
 |------|------|
 | `AdminPage.tsx` | 관리자 라우트 shell. 공통 헤더 안에 사용자 관리/GPT 키 관리/구글 시트 관리 탭과 현재 탭 설명을 배치한다. |
 | `AdminCreateDialogShell.tsx` | 관리자 추가 모달의 공통 backdrop/header/form/actions 골격을 소유한다. 사용자/GPT 키/구글 시트 생성 다이얼로그가 같은 포맷을 쓰기 위해 재사용한다. |
-| `AdminUsersPanel.tsx` | 관리자 사용자 목록 조회, 추가 dialog 열림 상태, 임시 비밀번호 표시/복사 dialog, 사용자 row 목록 조립을 소유한다. 추가 입력/제출은 `AdminUserCreateDialog.tsx`, 개별 row 편집/삭제/비밀번호 재설정 동작은 `AdminUserRow.tsx`에 위임한다. |
+| `AdminUsersPanel.tsx` | 관리자 사용자 목록 조회, 추가 dialog 열림 상태, 선택된 사용자 detail dialog 열림 상태, 임시 비밀번호 표시/복사 dialog, 사용자 row 목록 조립을 소유한다. 추가 입력/제출은 `AdminUserCreateDialog.tsx`, 상세 변경/삭제/비밀번호 재설정은 `AdminUserDialog.tsx`, 행 요약 렌더는 `AdminUserRow.tsx`에 위임한다. |
 | `AdminUserCreateDialog.tsx` | 사용자 추가 입력 상태와 생성 요청 제출을 소유한다. 성공 후 목록 재조회 callback을 호출하고 모달을 닫는다. |
-| `AdminUserRow.tsx` | 사용자 1명 단위의 로그인 ID/이름/비고/권한/활성 상태 수정, UUID 표시, 삭제, 임시 비밀번호 재설정 요청을 소유한다. |
+| `AdminUserDialog.tsx` | 사용자 상세 모달. 로그인 ID/이름/비고/권한/활성 상태 변경, 삭제 확인, 임시 비밀번호 재설정 요청을 소유한다. |
+| `AdminUserRow.tsx` | 사용자 1명 단위의 UUID, 로그인 ID, 이름, 비고, 권한, 상태, 변경일 요약 렌더링과 상세 dialog open 이벤트만 소유한다. |
 | `AdminGptKeysPanel.tsx` | GPT 키 목록 조회, 추가 dialog 열림 상태, 선택된 GPT 키 dialog 열림 상태를 소유한다. 추가 입력/제출은 `AdminGptKeyCreateDialog.tsx`, 행 요약 렌더는 `AdminGptKeyRow.tsx`, 상세 수정/교체/테스트/삭제는 `AdminGptKeyDialog.tsx`에 위임한다. |
 | `AdminGptKeyCreateDialog.tsx` | GPT 키 추가 입력 상태와 생성 요청 제출을 소유한다. 성공 후 목록 재조회 callback을 호출하고 모달을 닫는다. |
 | `AdminGptKeyRow.tsx` | GPT 키 목록의 식별 정보 행 렌더링만 소유한다. 원문 키는 표시하지 않고 `maskedKey`만 사용한다. |
 | `AdminGptKeyDialog.tsx` | GPT 키 메타·키 변경, 연결 테스트, 삭제 확인 흐름을 소유한다. 원문 키는 변경 요청 field 안에서만 존재하고 별도 키 교체 버튼을 두지 않는다. |
-| `AdminGoogleSheetsPanel.tsx` | 구글 시트 설정 목록 조회와 추가 dialog 열림 상태를 소유한다. 추가 입력/제출은 `AdminGoogleSheetCreateDialog.tsx`에 위임하고, 목록에는 마스킹 키만 표시한다. |
+| `AdminGoogleSheetsPanel.tsx` | 구글 시트 설정 목록 조회, 추가 dialog 열림 상태, 선택된 구글 시트 detail dialog 열림 상태를 소유한다. 추가 입력/제출은 `AdminGoogleSheetCreateDialog.tsx`, 상세 변경/삭제/키 교체는 `AdminGoogleSheetDialog.tsx`에 위임하고, 목록에는 마스킹 키만 표시한다. |
 | `AdminGoogleSheetCreateDialog.tsx` | 구글 시트 설정 추가 입력 상태와 생성 요청 제출을 소유한다. 서비스 계정 JSON 키는 드래그앤드랍 파일 입력으로만 받고 생성 요청 field 안에서만 존재한다. |
+| `AdminGoogleSheetDialog.tsx` | 구글 시트 설정 상세 모달. 이름/용도/시트 주소/활성/비고 변경, 서비스 계정 JSON 키 교체, 삭제 확인을 소유한다. |
 | `AdminGoogleSheetKeyDropzone.tsx` | 서비스 계정 JSON 키 파일 선택/드래그앤드랍, JSON 형식 확인, `client_email` 파싱 preview만 소유한다. |
-| `AdminGoogleSheetRow.tsx` | 구글 시트 설정 1건의 요약 행 렌더링과 삭제 버튼만 소유한다. |
+| `AdminGoogleSheetRow.tsx` | 구글 시트 설정 1건의 요약 행 렌더링과 상세 dialog open 이벤트만 소유한다. |
 | `AdminActiveSwitch.tsx` | 관리자 화면에서 쓰는 활성/비활성 스위치 UI. 저장 책임 없이 boolean draft 값만 부모로 돌려준다. |
 | `AdminPage.module.css` | 관리자 화면 CSS 진입점. 실제 스타일은 `admin/style-parts/*`가 shell/forms/lists/dialogs/responsive로 나눠 소유한다. |
 | `adminHelpers.ts` | 관리자 화면의 역할/GPT 키/구글 시트 option, 테스트 상태 label, 공통 날짜/오류 표시 helper. |

@@ -1,14 +1,12 @@
 import { useEffect, useState } from 'react'
-import {
-  getAdminUsers,
-  resetAdminUserPassword,
-} from '../api'
+import { getAdminUsers, resetAdminUserPassword } from '../api'
 import type { AdminUserSummary, ResetAdminUserPasswordResult } from '../api'
 import { useAuth } from '../auth/AuthContext'
 import { useAppToast } from '../components/AppToastContext'
 import { LoadingSpinner } from '../components/LoadingSpinner'
 import { getErrorMessage } from './adminHelpers'
 import { AdminUserCreateDialog } from './AdminUserCreateDialog'
+import { AdminUserDialog } from './AdminUserDialog'
 import { AdminUserRow } from './AdminUserRow'
 import styles from './AdminPage.module.css'
 
@@ -23,8 +21,10 @@ export function AdminUsersPanel() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
+  const [selectedUserUuid, setSelectedUserUuid] = useState<string | null>(null)
   const [passwordResetNotice, setPasswordResetNotice] = useState<PasswordResetNotice | null>(null)
   const [passwordCopyMessage, setPasswordCopyMessage] = useState<string | null>(null)
+  const selectedUser = users.find((user) => user.uuid === selectedUserUuid) ?? null
 
   useEffect(() => {
     let alive = true
@@ -49,14 +49,14 @@ export function AdminUsersPanel() {
     setUsers(nextUsers)
   }
 
-  const handleSaved = async () => {
+  const handleChanged = async () => {
     await reloadUsers()
     await refreshSession()
-    showToast('사용자 정보를 변경했습니다.')
   }
 
   const handleDeleted = async () => {
     await reloadUsers()
+    setSelectedUserUuid(null)
     showToast('사용자를 제거했습니다.')
   }
 
@@ -73,10 +73,7 @@ export function AdminUsersPanel() {
           : currentUser,
       ),
     )
-    setPasswordResetNotice({
-      loginId: user.loginId,
-      ...result,
-    })
+    setPasswordResetNotice({ loginId: user.loginId, ...result })
     setPasswordCopyMessage(null)
     showToast('임시 비밀번호를 발급했습니다.')
   }
@@ -118,7 +115,6 @@ export function AdminUsersPanel() {
           <span>권한</span>
           <span>상태</span>
           <span>변경일</span>
-          <span>작업</span>
         </div>
 
         {isLoading ? (
@@ -130,14 +126,7 @@ export function AdminUsersPanel() {
         {!isLoading && !errorMessage ? (
           <div className={styles.userList}>
             {users.map((user) => (
-              <AdminUserRow
-                key={user.uuid}
-                user={user}
-                currentUserUuid={session?.user.uuid ?? ''}
-                onSaved={handleSaved}
-                onDeleted={handleDeleted}
-                onPasswordReset={handlePasswordReset}
-              />
+              <AdminUserRow key={user.uuid} user={user} onOpen={(nextUser) => setSelectedUserUuid(nextUser.uuid)} />
             ))}
           </div>
         ) : null}
@@ -146,13 +135,20 @@ export function AdminUsersPanel() {
       {isCreateDialogOpen ? (
         <AdminUserCreateDialog onClose={() => setIsCreateDialogOpen(false)} onCreated={reloadUsers} />
       ) : null}
+      {selectedUser ? (
+        <AdminUserDialog
+          key={selectedUser.uuid}
+          user={selectedUser}
+          currentUserUuid={session?.user.uuid ?? ''}
+          onClose={() => setSelectedUserUuid(null)}
+          onChanged={handleChanged}
+          onDeleted={handleDeleted}
+          onPasswordReset={handlePasswordReset}
+        />
+      ) : null}
 
       {passwordResetNotice ? (
-        <div
-          className={styles.resetNoticeBackdrop}
-          role="presentation"
-          onClick={closePasswordResetNotice}
-        >
+        <div className={styles.resetNoticeBackdrop} role="presentation" onClick={closePasswordResetNotice}>
           <div
             className={styles.resetNoticeDialog}
             role="dialog"
@@ -160,15 +156,8 @@ export function AdminUsersPanel() {
             onClick={(event) => event.stopPropagation()}
           >
             <div className={styles.resetNoticeDialogHeader}>
-              <strong className={styles.resetNoticeTitle}>
-                {passwordResetNotice.loginId} 임시 비밀번호
-              </strong>
-              <button
-                type="button"
-                className={styles.resetNoticeCloseButton}
-                onClick={closePasswordResetNotice}
-                aria-label="닫기"
-              >
+              <strong className={styles.resetNoticeTitle}>{passwordResetNotice.loginId} 임시 비밀번호</strong>
+              <button type="button" className={styles.resetNoticeCloseButton} onClick={closePasswordResetNotice} aria-label="닫기">
                 x
               </button>
             </div>
