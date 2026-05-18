@@ -1,23 +1,21 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   getCandidateItemsByStash,
-  type CandidateItemDetail,
   type CandidateItemSummary,
   type CandidateStashSummary,
 } from '../../../api'
-import { normalizeRangeOnEndInput, normalizeRangeOnStartInput } from '../../hooks/usePeriodRangeFilter'
 import { preloadCandidateOrderExcelExport } from '../../../utils/candidateOrderExcelExport'
 import { useAppToast } from '../../../components/AppToastContext'
-import type { OrderSnapshotDocumentV1 } from '../../../snapshot/orderSnapshotTypes'
 import { useInnerCandidateTable } from './useInnerCandidateTable'
 import { useCandidateStashItemDrawer } from './useCandidateStashItemDrawer'
 import { useCandidateStashItemActions } from './useCandidateStashItemActions'
 import { useCandidateOrderMetricStream } from './useCandidateOrderMetricStream'
 import { useCandidateStashSummaries } from './useCandidateStashSummaries'
 import { useCandidateRecommendations } from './useCandidateRecommendations'
+import { useCandidateDataReferencePeriod, type AppliedCandidateDataReferencePeriod } from './useCandidateDataReferencePeriod'
+import { useCandidateDetailConfirmationMutations } from './useCandidateDetailConfirmationMutations'
 import {
   applyCandidateDetailConfirmationOverrides,
-  createCandidateDetailConfirmationOverride,
   type CandidateDetailConfirmationOverrideMap,
 } from './candidateDetailConfirmationOverrideModel'
 import {
@@ -45,17 +43,16 @@ export function useCandidateStashDetailModal({
   const [items, setItemsState] = useState<CandidateItemSummary[]>([])
   const [detailLoading, setDetailLoading] = useState(false)
   const [detailError, setDetailError] = useState<string | null>(null)
-  const [dataReferencePeriodStart, setDataReferencePeriodStart] = useState('')
-  const [dataReferencePeriodEnd, setDataReferencePeriodEnd] = useState('')
-  const [draftDataReferencePeriodStart, setDraftDataReferencePeriodStart] = useState('')
-  const [draftDataReferencePeriodEnd, setDraftDataReferencePeriodEnd] = useState('')
   const [itemDeleteTarget, setItemDeleteTarget] = useState<CandidateItemSummary | null>(null)
   const { showToast } = useAppToast()
   const mountedRef = useRef(false)
   const itemsRef = useRef<CandidateItemSummary[]>([])
   const clearRecommendationItemsRef = useRef<() => void>(() => undefined)
   const confirmationOverridesRef = useRef<CandidateDetailConfirmationOverrideMap>({})
-  const initializedDetailTargetUuidRef = useRef<string | null>(null)
+  const appliedPeriodRef = useRef<AppliedCandidateDataReferencePeriod>({ start: '', end: '' })
+  const clearRecommendationItemsFromRef = useCallback(() => {
+    clearRecommendationItemsRef.current()
+  }, [])
 
   const setItems = useCallback((next: ItemStateUpdater) => {
     setItemsState((current) => {
@@ -86,8 +83,8 @@ export function useCandidateStashDetailModal({
   })
 
   const loadItems = useCallback(async (
-    nextPeriodStart = dataReferencePeriodStart,
-    nextPeriodEnd = dataReferencePeriodEnd,
+    nextPeriodStart = appliedPeriodRef.current.start,
+    nextPeriodEnd = appliedPeriodRef.current.end,
     options: CandidateMetricReloadOptions = {},
   ) => {
     if (!stashUuid || !nextPeriodStart || !nextPeriodEnd) return
@@ -129,9 +126,8 @@ export function useCandidateStashDetailModal({
       setDetailLoading(false)
     }
   }, [
+    appliedPeriodRef,
     beginItemLoad,
-    dataReferencePeriodEnd,
-    dataReferencePeriodStart,
     isCurrentItemLoad,
     setItems,
     stashUuid,
@@ -142,6 +138,24 @@ export function useCandidateStashDetailModal({
     if (!items.length) return
     void preloadCandidateOrderExcelExport().catch(() => undefined)
   }, [items.length, stashUuid])
+
+  const dataReferencePeriod = useCandidateDataReferencePeriod({
+    detailTarget,
+    appliedPeriodRef,
+    setItems,
+    clearRecommendationItems: clearRecommendationItemsFromRef,
+    closeMetricSubscription,
+    loadItems,
+  })
+  const {
+    dataReferencePeriodStart,
+    dataReferencePeriodEnd,
+    draftDataReferencePeriodStart,
+    draftDataReferencePeriodEnd,
+    onDataReferencePeriodStartChange,
+    onDataReferencePeriodEndChange,
+    applyDataReferencePeriod,
+  } = dataReferencePeriod
 
   const recommendations = useCandidateRecommendations({
     stashUuid,
@@ -160,55 +174,6 @@ export function useCandidateStashDetailModal({
     clearRecommendationItemsRef.current = clearRecommendationItems
   }, [clearRecommendationItems])
 
-  useEffect(() => {
-    const nextUuid = detailTarget?.uuid ?? null
-    if (initializedDetailTargetUuidRef.current === nextUuid) return
-    initializedDetailTargetUuidRef.current = nextUuid
-
-    let alive = true
-    queueMicrotask(() => {
-      if (!alive) return
-      if (!detailTarget) {
-        setDataReferencePeriodStart('')
-        setDataReferencePeriodEnd('')
-        setDraftDataReferencePeriodStart('')
-        setDraftDataReferencePeriodEnd('')
-        setItems([])
-        clearRecommendationItems()
-        closeMetricSubscription()
-        return
-      }
-      setDataReferencePeriodStart(detailTarget.periodStart)
-      setDataReferencePeriodEnd(detailTarget.periodEnd)
-      setDraftDataReferencePeriodStart(detailTarget.periodStart)
-      setDraftDataReferencePeriodEnd(detailTarget.periodEnd)
-      void loadItems(detailTarget.periodStart, detailTarget.periodEnd)
-    })
-    return () => {
-      alive = false
-    }
-  }, [clearRecommendationItems, closeMetricSubscription, detailTarget, loadItems, setItems])
-  const onDataReferencePeriodStartChange = useCallback((value: string) => {
-    if (!value) return
-    setDraftDataReferencePeriodStart(value)
-    setDraftDataReferencePeriodEnd((currentEnd) => normalizeRangeOnStartInput(value, currentEnd || value).endDate)
-  }, [])
-
-  const onDataReferencePeriodEndChange = useCallback((value: string) => {
-    if (!value) return
-    setDraftDataReferencePeriodEnd(value)
-    setDraftDataReferencePeriodStart((currentStart) => normalizeRangeOnEndInput(value, currentStart || value).startDate)
-  }, [])
-
-  const applyDataReferencePeriod = useCallback(() => {
-    if (!draftDataReferencePeriodStart || !draftDataReferencePeriodEnd) return
-    const normalized = normalizeRangeOnStartInput(draftDataReferencePeriodStart, draftDataReferencePeriodEnd)
-    setDataReferencePeriodStart(normalized.startDate)
-    setDataReferencePeriodEnd(normalized.endDate)
-    setDraftDataReferencePeriodStart(normalized.startDate)
-    setDraftDataReferencePeriodEnd(normalized.endDate)
-    void loadItems(normalized.startDate, normalized.endDate)
-  }, [draftDataReferencePeriodEnd, draftDataReferencePeriodStart, loadItems])
   const table = useInnerCandidateTable(items)
   const dataReferenceStart = dataReferencePeriodStart || undefined
   const dataReferenceEnd = dataReferencePeriodEnd || undefined
@@ -220,68 +185,16 @@ export function useCandidateStashDetailModal({
     itemDeleteTargetUuid: itemDeleteTarget?.uuid ?? null,
     tableRows: table.tableRows,
   })
-  const recordDetailConfirmationMutation = useCallback((
-    itemUuid: string,
-    isDetailConfirmed: boolean,
-    confirmedSnapshot: OrderSnapshotDocumentV1 | null,
-    updatedItem: CandidateItemDetail,
-  ) => {
-    const baseItem = itemsRef.current.find((item) => item.uuid === itemUuid)
-    confirmationOverridesRef.current = {
-      ...confirmationOverridesRef.current,
-      [itemUuid]: createCandidateDetailConfirmationOverride(baseItem, isDetailConfirmed, confirmedSnapshot),
-    }
-    setItems((current) => current.map((item) => (
-      item.uuid === itemUuid
-        ? {
-            ...item,
-            isDetailConfirmed: updatedItem.isDetailConfirmed,
-            isLatestLlmComment: updatedItem.isLatestLlmComment,
-            dbUpdatedAt: updatedItem.dbUpdatedAt,
-          }
-        : item
-    )))
-    return baseItem?.dbUpdatedAt ?? null
-  }, [setItems])
-
-  const markDrawerSnapshotConfirmed = useCallback((
-    itemUuid: string,
-    snapshot: OrderSnapshotDocumentV1,
-    updatedItem: CandidateItemDetail,
-  ) => {
-    const baseDbUpdatedAt = recordDetailConfirmationMutation(itemUuid, true, snapshot, updatedItem)
-    drawer.markDrawerSnapshotConfirmed(itemUuid, snapshot, baseDbUpdatedAt)
-  }, [drawer, recordDetailConfirmationMutation])
-
-  const markDrawerSnapshotUnconfirmed = useCallback((itemUuid: string, updatedItem: CandidateItemDetail) => {
-    const baseDbUpdatedAt = recordDetailConfirmationMutation(itemUuid, false, null, updatedItem)
-    drawer.markDrawerSnapshotUnconfirmed(itemUuid, baseDbUpdatedAt)
-  }, [drawer, recordDetailConfirmationMutation])
-
-  const markItemsDetailUnconfirmed = useCallback((updatedItems: CandidateItemDetail[]) => {
-    const uniqueUuids = [...new Set(updatedItems.map((item) => item.uuid))]
-    if (!uniqueUuids.length) return
-    const uuidSet = new Set(uniqueUuids)
-    const updatedItemByUuid = new Map(updatedItems.map((item) => [item.uuid, item]))
-    const itemByUuid = new Map(itemsRef.current.map((item) => [item.uuid, item]))
-    const nextOverrides = { ...confirmationOverridesRef.current }
-    uniqueUuids.forEach((itemUuid) => {
-      const baseItem = itemByUuid.get(itemUuid)
-      nextOverrides[itemUuid] = createCandidateDetailConfirmationOverride(baseItem, false, null)
-      drawer.markDrawerSnapshotUnconfirmed(itemUuid, baseItem?.dbUpdatedAt ?? null)
-    })
-    confirmationOverridesRef.current = nextOverrides
-    setItems((current) => current.map((item) => (
-      uuidSet.has(item.uuid)
-        ? {
-            ...item,
-            isDetailConfirmed: updatedItemByUuid.get(item.uuid)?.isDetailConfirmed ?? false,
-            isLatestLlmComment: updatedItemByUuid.get(item.uuid)?.isLatestLlmComment ?? false,
-            dbUpdatedAt: updatedItemByUuid.get(item.uuid)?.dbUpdatedAt ?? item.dbUpdatedAt,
-          }
-        : item
-    )))
-  }, [drawer, setItems])
+  const {
+    markDrawerSnapshotConfirmed,
+    markDrawerSnapshotUnconfirmed,
+    markItemsDetailUnconfirmed,
+  } = useCandidateDetailConfirmationMutations({
+    itemsRef,
+    confirmationOverridesRef,
+    setItems,
+    drawer,
+  })
 
   const actions = useCandidateStashItemActions({
     stashUuid,

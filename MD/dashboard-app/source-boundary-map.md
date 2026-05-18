@@ -287,7 +287,9 @@
 | `FilterListCombo.*` | 목록 기반 검색/선택 필터. 값이 `전체`인 필드는 전체 옵션 목록을 열어 보여준다 |
 | `KpiGrid.tsx` | KPI 카드 grid. 자사/경쟁사 분석 좌측 KPI stack의 compact card density와 숫자/단위 분리 렌더링은 공통 CSS가 소유한다 |
 | `DashboardRequestStatus.tsx` | 분석 페이지 요청 상태 표시. 여러 `useDashboardRequest` 결과를 모아 초기 조회/갱신 중/실패/이전 데이터 표시와 마지막 갱신 시각을 한 줄 상태 배지로 보여준다. 데이터 요청 자체는 수행하지 않는다. |
-| `PaginatedTable.tsx` | 정렬/페이지네이션 테이블. `activeRowId/getRowId` 계약을 통해 외부 선택 row를 포커스·스크롤·강조한다. `onOrderedRowIdsChange`로 현재 정렬이 적용된 전체 row id 순서를 보고해 드로워 상/하 이동과 화면 정렬 순서를 맞춘다. 정렬 가능한 헤더는 `aria-sort`와 Enter/Space 키 정렬을 제공한다. page row, column render config, active row lookup은 memoized 계산 경계로 두어 drawer 이동이나 parent 재렌더 때 테이블 내부 계산을 반복하지 않게 한다. |
+| `PaginatedTable.tsx` | 정렬/페이지네이션 테이블 본체. `activeRowId/getRowId` 계약을 통해 외부 선택 row를 포커스·스크롤·강조한다. `onOrderedRowIdsChange`로 현재 정렬이 적용된 전체 row id 순서를 보고해 드로워 상/하 이동과 화면 정렬 순서를 맞춘다. 정렬 가능한 헤더는 `aria-sort`와 Enter/Space 키 정렬을 제공한다. page row, column render config, active row lookup은 memoized 계산 경계로 두어 drawer 이동이나 parent 재렌더 때 테이블 내부 계산을 반복하지 않게 한다. |
+| `PaginatedTableTypes.ts` | `PaginatedTable`의 public column/props 타입과 내부 column render config 타입 경계. 테이블 구현 파일이 타입 선언까지 소유해 커지지 않도록 분리한다. |
+| `PaginatedTablePager.tsx` | `PaginatedTable`의 페이지 이동 UI. 테이블 정렬/row 계산과 pager 버튼 렌더 책임을 분리한다. |
 | `SelfAnalysisList.tsx` | 자사 분석 목록의 컬럼 정의와 row 클릭/키보드 열기/체크박스 렌더링을 소유한다. `순위`는 현재 rows의 `qty` 기준 표시 순위로 계산하고, 판매량이 많은 항목이 1위다. 현재 드로워 상품 row는 `selectedSkuGroupKey`로 받아 공통 목록 포커스 경계에 전달하고, 현재 테이블 정렬 순서를 페이지에 보고한다. |
 | `PortalHelpPopover.tsx`, `usePortalHelpPopover.ts`, `portalHelpPopoverPosition.ts` | help popover와 위치 계산 |
 | `common.module.css` | 대시보드 공용 CSS 진입점. 실제 스타일은 `components/common-style-parts/*`가 분석 layout, 추이 컨트롤, help/action, filter/period, bulk modal, period slider, table, drawer로 나눠 소유한다 |
@@ -311,7 +313,9 @@
 | `CandidateStashDeleteDialogs.tsx` | 이너 후보 개별 삭제와 일괄 삭제 확인 모달만 소유한다. |
 | `CandidateStashMissingState.tsx` | 후보군을 찾지 못했을 때의 빈 상태 렌더링만 소유한다. |
 | `CandidateStashDetailModal.module.css` | 후보군 상세 모달 CSS 진입점. 실제 스타일은 `candidate-stash/style-parts/*`가 header, filter/summary, inner order list, modal shell, responsive로 나눠 소유한다. |
-| `useCandidateStashDetailModal.ts` | 후보군 상세 모달의 모델 조립 hook. 데이터 참조기간 적용, 후보 아이템 조회, 하위 hook 연결만 맡는다. 후보군 summary 조회는 `useCandidateStashSummaries.ts`, 추천 조회/배지 패치/추천 추가는 `useCandidateRecommendations.ts`, 오더 지표 SSE는 `useCandidateOrderMetricStream.ts`, 필터·정렬은 `useInnerCandidateTable.ts`, drawer hydration/전환은 `useCandidateStashItemDrawer.ts`, 삭제·엑셀 액션은 `useCandidateStashItemActions.ts`에 위임한다. 상세확정 저장/해제 PATCH 성공 직후의 로컬 확정 상태는 `candidateDetailConfirmationOverrideModel.ts`를 통해 stale 목록 재조회보다 우선 적용한다. |
+| `useCandidateStashDetailModal.ts` | 후보군 상세 모달의 모델 조립 hook. 후보 아이템 조회와 하위 hook 연결만 맡는다. 데이터 참조기간 draft/apply/init은 `useCandidateDataReferencePeriod.ts`, 후보군 summary 조회는 `useCandidateStashSummaries.ts`, 추천 조회/배지 패치/추천 추가는 `useCandidateRecommendations.ts`, 오더 지표 SSE는 `useCandidateOrderMetricStream.ts`, 필터·정렬은 `useInnerCandidateTable.ts`, drawer hydration/전환은 `useCandidateStashItemDrawer.ts`, 삭제·엑셀 액션은 `useCandidateStashItemActions.ts`, 상세확정 저장/해제 로컬 mutation 보호는 `useCandidateDetailConfirmationMutations.ts`에 위임한다. |
+| `useCandidateDataReferencePeriod.ts` | 후보군 상세 모달의 조회 데이터 기간 draft 상태, 시작/종료일 정규화, `조회` 버튼 apply, 상세 대상 변경 시 기간 초기화와 첫 목록 조회를 소유한다. |
+| `useCandidateDetailConfirmationMutations.ts` | 상세확정 저장/해제 PATCH 성공 직후 리스트 row와 열린 drawer 스냅샷 상태를 로컬 기준 상태로 반영하고, stale 목록 재조회가 이를 덮어쓰지 못하게 하는 override 갱신을 소유한다. |
 | `useCandidateStashSummaries.ts` | 후보군 summary 목록 조회, 전달받은 summary 우선 사용, 현재 상세 대상 `detailTarget`, 목록 무효화 후 재조회 액션을 소유한다. |
 | `useCandidateRecommendations.ts` | 이너 후보 추천 조회 상태, `getCandidateRecommendations` 호출, 현재 후보 `skuUuid`와 일치하는 추천 row의 배지 패치, 추천 UI용 중복 제외, 추천 후보 추가 mutation 흐름을 소유한다. 데이터 참조기간이 바뀌거나 목록이 재조회되면 진행 중인 추천 응답은 stale로 무시한다. |
 | `useCandidateOrderMetricStream.ts` | 이너 후보 총 오더 수량/금액 SSE 구독, requestId/seq stale guard, item/itemFailed 이벤트의 row 반영을 소유한다. 목록 조회 hook은 stream lifecycle을 직접 알지 않는다. |

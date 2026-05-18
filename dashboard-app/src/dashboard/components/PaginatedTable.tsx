@@ -1,30 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent, type ReactNode } from 'react'
-import { compareSortValues, nextSortState, type SortState, type SortValue } from '../../utils/sort'
+import { compareSortValues, nextSortState, type SortState } from '../../utils/sort'
 import { drawerKeepOpenDataProps } from '../drawer/drawerDom'
 import styles from './common.module.css'
+import { PaginatedTablePager } from './PaginatedTablePager'
+import type { AriaSortValue, ColumnRenderConfig, PaginatedTableProps } from './PaginatedTableTypes'
 
-type TableColumnBase<T> = {
-  key: string
-  header: ReactNode
-  cell: (row: T, rowIndex: number) => ReactNode
-  align?: 'left' | 'right' | 'center'
-  width?: CSSProperties['width']
-}
-
-type SortableTableColumn<T> = TableColumnBase<T> & {
-  sortValue: (row: T) => SortValue
-  sortable?: true
-}
-
-type StaticTableColumn<T> = TableColumnBase<T> & {
-  /** false: 헤더 클릭 정렬 비활성(액션 열 등) */
-  sortable: false
-  sortValue?: never
-}
-
-export type TableColumn<T> = SortableTableColumn<T> | StaticTableColumn<T>
-
-type AriaSortValue = 'none' | 'ascending' | 'descending'
+export type { PaginatedTableProps, TableColumn } from './PaginatedTableTypes'
 const noopPageChange = () => {}
 
 function headerText(header: ReactNode, fallback: string) {
@@ -42,44 +23,6 @@ function sortActionLabel(columnLabel: string, columnKey: string, sort: SortState
   if (sort.dir === 'asc') return `${columnLabel} 기준 내림차순 정렬`
   return `${columnLabel} 정렬 해제`
 }
-
-type ColumnRenderConfig<T> = {
-  column: TableColumn<T>
-  canSort: boolean
-  style: CSSProperties
-  ariaSort?: AriaSortValue
-  actionLabel?: string
-}
-
-type PaginatedTableBase<T> = {
-  columns: Array<TableColumn<T>>
-  rows: T[]
-  activeRowId?: string | null
-  getRowId?: (row: T) => string
-  onRowClick?: (row: T) => void
-  onRowKeyDown?: (row: T, event: KeyboardEvent<HTMLTableRowElement>) => void
-  onOrderedRowIdsChange?: (rowIds: string[]) => void
-  defaultSort?: SortState
-  /** 루트 `.tableWrap`에 추가 클래스(페이지별 열 간격·밀도 등) */
-  wrapClassName?: string
-  infiniteScroll?: {
-    enabled: boolean
-    batchSize?: number
-  }
-}
-
-export type PaginatedTableProps<T extends { id: string }> = PaginatedTableBase<T> & (
-  | {
-      paginated?: true
-      page: number
-      pageSize: number
-      onPageChange: (page: number) => void
-      onPageSizeChange: (size: number) => void
-    }
-  | {
-      paginated: false
-    }
-)
 
 export function PaginatedTable<T extends { id: string }>(props: PaginatedTableProps<T>) {
   const {
@@ -288,24 +231,15 @@ export function PaginatedTable<T extends { id: string }>(props: PaginatedTablePr
         )}
       </div>
       {!plain && (
-        <div className={styles.pager}>
-          <div className={styles.pagerInfo}>
-            {sortedRows.length ? `${startIndex + 1} - ${Math.min(startIndex + pageSize, sortedRows.length)} / ${sortedRows.length}` : '0 / 0'}
-          </div>
-          <div className={styles.pagerButtons}>
-            <button type="button" onClick={() => onPageChange(1)} disabled={currentPage === 1}>처음</button>
-            <button type="button" onClick={() => onPageChange(Math.max(1, currentPage - 1))} disabled={currentPage === 1}>이전</button>
-            <span>{currentPage} / {totalPages}</span>
-            <button type="button" onClick={() => onPageChange(Math.min(totalPages, currentPage + 1))} disabled={currentPage === totalPages}>다음</button>
-            <button type="button" onClick={() => onPageChange(totalPages)} disabled={currentPage === totalPages}>마지막</button>
-            <select value={pageSize} onChange={(e) => onPageSizeChange(Number(e.target.value))}>
-              <option value={10}>10</option>
-              <option value={20}>20</option>
-              <option value={50}>50</option>
-              <option value={100}>100</option>
-            </select>
-          </div>
-        </div>
+        <PaginatedTablePager
+          totalRows={sortedRows.length}
+          startIndex={startIndex}
+          pageSize={pageSize}
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={onPageChange}
+          onPageSizeChange={onPageSizeChange}
+        />
       )}
     </div>
   )
