@@ -139,6 +139,12 @@ export function CandidateStashDetailModal({ stashUuid, stashSummary, onClose, on
                   competitorSalesQtyHeader={competitorSalesQtyHeader}
                   activeSortKey={model.tableSort?.key ?? null}
                   activeSortDir={model.tableSort?.dir ?? null}
+                  keyboardNavigationDisabled={Boolean(
+                    recommendationOpen
+                    || bulkDeleteOpen
+                    || bulkUnconfirmOpen
+                    || model.itemDeleteTarget
+                  )}
                   onToggleAllVisibleItems={itemSelection.toggleAllVisibleUuids}
                   onToggleSelectedItem={itemSelection.toggleSelectedUuid}
                   onToggleItemDrawer={toggleItemDrawer}

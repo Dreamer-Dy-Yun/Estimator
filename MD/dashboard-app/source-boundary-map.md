@@ -328,6 +328,7 @@
 | `useCandidateStashItemActions.ts` | 이너 후보 아이템 삭제, 일괄 삭제, 상세확정 일괄해제, 엑셀 다운로드 생성 액션 상태를 소유한다. 상세 일괄확정은 아직 연결하지 않는다. |
 | `candidateStashDetailTypes.ts` | 이너 후보 row와 정렬 key 타입을 소유한다. |
 | `InnerCandidateOrderList.tsx` | 이너 후보 리스트 화면 UI. 표시 순서 인덱스, 정렬 헤더, 상태 컬럼의 상세확정/상세미확정 표시, 오더 지표 로딩/실패 셀, 선택 체크박스, badge 렌더링을 소유한다. 행 본문과 오더 지표 셀은 memoized 컴포넌트로 분리해 drawer 활성 row 변경, 선택 상태 변경, SSE metric 일부 갱신 때 변경 없는 행의 숫자 포맷팅과 JSX 재생성을 줄인다. |
+| `useInnerCandidateOrderKeyboardFocus.ts` | 이너 후보군 리스트의 키보드 포커스 계약. 1차 드로워가 닫힌 상태에서도 상/하 방향키로 현재 정렬 순서 기준 row를 포커스하고, 좌 방향키로 포커스된 row의 1차 드로워를 연다. 1차 드로워가 열려 있으면 `ProductDrawer`의 방향키 계약이 우선한다. |
 | `AnalysisCandidateBulkAddModal.tsx` | 자사/경쟁사 분석 리스트에서 선택한 상품을 기존 후보군에 넣거나 새 후보군을 만든 뒤 넣는 모달. 스냅샷을 만들지 않고 `appendCandidateItems`만 호출한다. |
 | `CandidateRecommendationModal.tsx` | 후보군 상세에서 추천 후보를 선택/적용하는 보조 모달. |
 | `CandidateRecommendationModal.module.css` | 추천 모달 전용 스타일. |

@@ -2,7 +2,9 @@ import { memo, useCallback, useEffect, useRef, type KeyboardEvent, type ReactNod
 import { formatEaQuantity, formatGroupedNumber } from '../../../utils/format'
 import { LoadingSpinner } from '../../../components/LoadingSpinner'
 import { CandidateInsightBadges } from './CandidateInsightBadges'
-import type { InnerCandidateRow, InnerCandidateSortKey } from './useCandidateStashDetailModal'
+import type { InnerCandidateRow, InnerCandidateSortKey } from './candidateStashDetailTypes'
+import { useInnerCandidateOrderKeyboardFocus } from './useInnerCandidateOrderKeyboardFocus'
+import type { AdjacentDirection } from '../../../utils/adjacentListNavigation'
 import styles from '../common.module.css'
 import detailStyles from './CandidateStashDetailModal.module.css'
 
@@ -53,6 +55,7 @@ type InnerCandidateOrderRowProps = {
   rowRefs: RefObject<Map<string, HTMLDivElement>>
   onToggleSelectedItem: (uuid: string) => void
   onToggleItemDrawer: (row: InnerCandidateRow) => void
+  onRequestFocusAdjacent: (currentUuid: string | null, direction: AdjacentDirection) => void
 }
 
 const InnerCandidateOrderRow = memo(function InnerCandidateOrderRow({
@@ -64,6 +67,7 @@ const InnerCandidateOrderRow = memo(function InnerCandidateOrderRow({
   rowRefs,
   onToggleSelectedItem,
   onToggleItemDrawer,
+  onRequestFocusAdjacent,
 }: InnerCandidateOrderRowProps) {
   const rowRefMap = rowRefs.current
   const setRowRef = useCallback((node: HTMLDivElement | null) => {
@@ -81,13 +85,21 @@ const InnerCandidateOrderRow = memo(function InnerCandidateOrderRow({
     if (target?.closest('input, button, a, select, textarea')) return
     if (e.key === 'ArrowLeft') {
       e.preventDefault()
+      e.stopPropagation()
       onToggleItemDrawer(row)
+      return
+    }
+    if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+      e.preventDefault()
+      e.stopPropagation()
+      onRequestFocusAdjacent(row.uuid, e.key === 'ArrowDown' ? 'next' : 'prev')
       return
     }
     if (e.key !== 'Enter' && e.key !== ' ') return
     e.preventDefault()
+    e.stopPropagation()
     onToggleItemDrawer(row)
-  }, [onToggleItemDrawer, row])
+  }, [onRequestFocusAdjacent, onToggleItemDrawer, row])
   const rankToneClass = row.insight.rankTone === 'top'
     ? detailStyles.innerOrderRowTop
     : row.insight.rankTone === 'bottom'
@@ -151,7 +163,9 @@ type Props = {
   activeSortKey: InnerCandidateSortKey | null
   activeSortDir: 'asc' | 'desc' | null
   drawerOpen: boolean
+  drawerClosing: boolean
   openedItemUuid: string | null
+  keyboardNavigationDisabled?: boolean
   onToggleAllVisibleItems: () => void
   onToggleSelectedItem: (uuid: string) => void
   onToggleItemDrawer: (row: InnerCandidateRow) => void
@@ -168,21 +182,31 @@ export function InnerCandidateOrderList({
   activeSortKey,
   activeSortDir,
   drawerOpen,
+  drawerClosing,
   openedItemUuid,
+  keyboardNavigationDisabled = false,
   onToggleAllVisibleItems,
   onToggleSelectedItem,
   onToggleItemDrawer,
   onSort,
 }: Props) {
   const rowRefs = useRef(new Map<string, HTMLDivElement>())
+  const { activeItemUuid, focusAdjacent } = useInnerCandidateOrderKeyboardFocus({
+    rows,
+    drawerOpen,
+    drawerClosing,
+    openedItemUuid,
+    disabled: keyboardNavigationDisabled,
+    onOpenItemDrawer: onToggleItemDrawer,
+  })
 
   useEffect(() => {
-    if (!drawerOpen || !openedItemUuid) return
-    const activeRow = rowRefs.current.get(openedItemUuid)
+    if (!activeItemUuid) return
+    const activeRow = rowRefs.current.get(activeItemUuid)
     if (!activeRow) return
     activeRow.scrollIntoView({ block: 'nearest', inline: 'nearest' })
     activeRow.focus({ preventScroll: true })
-  }, [drawerOpen, openedItemUuid, rows.length])
+  }, [activeItemUuid, rows.length])
 
   return (
     <div className={detailStyles.innerOrderList} role="list">
@@ -210,7 +234,7 @@ export function InnerCandidateOrderList({
       </div>
       {rows.map((row, index) => {
         const selected = selectedUuidSet.has(row.uuid)
-        const active = drawerOpen && openedItemUuid === row.uuid
+        const active = activeItemUuid === row.uuid
         return (
           <InnerCandidateOrderRow
             key={row.uuid}
@@ -222,6 +246,7 @@ export function InnerCandidateOrderList({
             rowRefs={rowRefs}
             onToggleSelectedItem={onToggleSelectedItem}
             onToggleItemDrawer={onToggleItemDrawer}
+            onRequestFocusAdjacent={focusAdjacent}
           />
         )
       })}

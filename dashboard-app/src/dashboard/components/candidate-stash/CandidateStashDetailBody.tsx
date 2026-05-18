@@ -21,6 +21,7 @@ type Props = {
   onToggleAllVisibleItems: () => void
   onToggleSelectedItem: (uuid: string) => void
   onToggleItemDrawer: (row: InnerCandidateRow) => void
+  keyboardNavigationDisabled?: boolean
 }
 
 export function CandidateStashDetailBody({
@@ -35,6 +36,7 @@ export function CandidateStashDetailBody({
   onToggleAllVisibleItems,
   onToggleSelectedItem,
   onToggleItemDrawer,
+  keyboardNavigationDisabled = false,
 }: Props) {
   return (
     <div className={detailStyles.innerDrawerAwareBody}>
@@ -96,7 +98,9 @@ export function CandidateStashDetailBody({
             activeSortKey={activeSortKey}
             activeSortDir={activeSortDir}
             drawerOpen={model.drawerOpen}
+            drawerClosing={model.drawerClosing}
             openedItemUuid={model.openedItemUuid}
+            keyboardNavigationDisabled={keyboardNavigationDisabled}
             onToggleAllVisibleItems={onToggleAllVisibleItems}
             onToggleSelectedItem={onToggleSelectedItem}
             onToggleItemDrawer={onToggleItemDrawer}
