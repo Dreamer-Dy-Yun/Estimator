@@ -1,4 +1,10 @@
-import { adminGoogleSheetRequests, adminGptKeyRequests, authRequests, dashboardRequests } from './requests'
+import {
+  adminGoogleSheetRequests,
+  adminGptKeyRequests,
+  authRequests,
+  dashboardRequests,
+  inventoryArrivalRequests,
+} from './requests'
 
 export const getCurrentAuthSession = authRequests.getCurrentSession
 export const login = authRequests.login
@@ -22,6 +28,8 @@ export const getAdminGoogleSheetConfigs = adminGoogleSheetRequests.getAdminGoogl
 export const createAdminGoogleSheetConfig = adminGoogleSheetRequests.createAdminGoogleSheetConfig
 export const updateAdminGoogleSheetConfig = adminGoogleSheetRequests.updateAdminGoogleSheetConfig
 export const deleteAdminGoogleSheetConfig = adminGoogleSheetRequests.deleteAdminGoogleSheetConfig
+
+export const collectInventoryArrivalDates = inventoryArrivalRequests.collectInventoryArrivalDates
 
 export const getSelfSales = dashboardRequests.getSelfSales
 export const getCompetitorSales = dashboardRequests.getCompetitorSales

@@ -9,7 +9,7 @@
 | 상태 | 유지 문서 |
 | 적용 범위 | `dashboard-app/src/api/types`, `dashboard-app/src/api/requests`, 백엔드 REST API 계약 |
 
-이 문서는 프론트의 **`AuthApi` / `DashboardApi` TypeScript 계약**을 만족하는 REST API를 설계·구현하기 위한 참고 자료입니다. 필드명은 **camelCase**, JSON 직렬화를 가정합니다.
+이 문서는 프론트의 **`AuthApi` / `DashboardApi` / `InventoryArrivalApi` TypeScript 계약**을 만족하는 REST API를 설계·구현하기 위한 참고 자료입니다. 필드명은 **camelCase**, JSON 직렬화를 가정합니다.
 
 현재 프론트 요청 계층은 `/api/v1` prefix의 REST API를 기준으로 HTTP adapter를 작성해 둔다. 기본값은 mock API이며, `VITE_USE_MOCK_API=false`일 때만 `VITE_API_BASE_URL` 기본값 `http://localhost:8080/api/v1`로 실제 HTTP 요청을 보낸다. 화면/훅은 `src/api/client.ts` facade만 호출하며 mock/HTTP 선택을 알지 않는다.
 
@@ -22,6 +22,7 @@
 | `src/api/requests/authRequests.ts` | 로그인, 세션, 사용자 정보 변경, 관리자 사용자 관리 | HttpOnly cookie 기반 세션 권장. 비밀번호/임시 비밀번호는 요청 또는 1회 응답에만 존재해야 하며 목록·세션 응답에 포함하지 않는다 |
 | `src/api/requests/adminGptKeyRequests.ts` | 관리자 GPT 키 목록, 생성, 메타/키 변경, 연결 테스트, 삭제 | GPT 전용 계약이다. 생성/변경 요청만 `plainKey`를 담을 수 있고, 응답은 `maskedKey`만 내려준다. 키 저장/암호화/감사 로그는 백엔드 책임이다 |
 | `src/api/requests/adminGoogleSheetRequests.ts` | 관리자 구글 시트 설정 목록, 생성, 변경, 삭제 | 서비스 계정 JSON 키는 생성/변경 요청에만 담고 응답에는 `maskedServiceAccountKey`만 내려준다. 백엔드는 JSON의 `client_email`을 서비스 계정 이메일로 파싱하고, 키 원문은 암호화 저장 또는 secret manager로 보관한다 |
+| `src/api/requests/inventoryArrivalRequests.ts` | 스프레드시트 기반 입고예정일 수집 | 모든 로그인 사용자가 호출할 수 있는 전역 작업이다. 프론트는 시트 키나 서비스 계정 원문을 보내지 않고, 백엔드가 활성 구글 시트 설정을 선택해 읽고 DB에 upsert한다. 응답은 수집/실패 건수와 상태 메시지만 반환한다 |
 | `src/api/requests/dashboardRequests.ts` | 자사/경쟁 판매, 상품 드로워, 후보군, 엑셀 업로드 템플릿 | 후보군 계열 요청은 현재 사용자 `USER_ACCOUNT.uuid` 기준으로 소유자 필터를 강제한다. 프론트 UI는 사용자 UUID를 들고 다니지 않고 request adapter에서만 붙인다. 세션 기반 백엔드라면 요청값보다 서버 세션을 우선한다. 경쟁 분석 목록은 `competitorChannelId` 생략 시 전체 경쟁 채널 합계를 반환하고, 상품 드로워 판매 인사이트는 선택 경쟁 채널을 필수로 받는다. 이너후보군 리스트는 데이터 참조기간의 전체 상품 분포로 배지를 계산한 뒤 stash item만 반환한다. 기간 총판매량은 백엔드가 `*_MONTHLY_SUMMARY`와 raw 판매 테이블을 조합해 계산하고, 프론트는 내려온 값을 그대로 표시한다. 발주 엑셀 다운로드는 백엔드 재호출 없이 이미 받은 `orderExport` DTO로 프론트가 생성한다 |
 
 `src/api/client.ts`는 public export facade다. 화면에서 import하는 이름을 안정적으로 유지하기 위한 파일이며, mock/HTTP 선택과 base URL 처리는 `src/api/requests/httpClient.ts`와 각 request adapter가 맡는다.
@@ -100,6 +101,26 @@
 | `createAdminGoogleSheetConfig(payload)` | POST | `/admin/google-sheets` |
 | `updateAdminGoogleSheetConfig(payload)` | PATCH | `/admin/google-sheets/:configUuid` |
 | `deleteAdminGoogleSheetConfig(configUuid)` | DELETE | `/admin/google-sheets/:configUuid` |
+
+**`InventoryArrivalApi` 제안 매핑**
+
+입고예정일 수집은 관리자 설정 화면이 아니라 대시보드 헤더의 전역 작업이다. 모든 로그인 사용자가 실행할 수 있으며, 프론트는 결과 목록을 표시하지 않고 성공/부분성공/실패와 건수만 toast로 알린다.
+
+| 계약 메서드 | 제안 HTTP | 제안 경로 |
+|-------------|-----------|----------|
+| `collectInventoryArrivalDates()` | POST | `/inventory-arrival-dates/collect-from-sheet` |
+
+백엔드 구현 방향: Python 백엔드는 활성 Google Sheets 설정 중 입고예정일 수집용 설정을 선택하고, 서비스 계정으로 시트를 읽은 뒤 SKU/품번/색상/입고예정일 등 운영에서 확정한 매핑 기준에 따라 입고예정일 테이블을 upsert한다. 프론트 요청에는 시트 ID나 서비스 계정 키가 포함되지 않는다. 시트 접근 실패, 컬럼 누락, 날짜 파싱 실패, DB 저장 실패는 `{ "message": string }` 에러 바디로 구분 가능하게 반환한다. 일부 행만 실패한 경우 HTTP 200으로 `status: "partial"`, `failedCount > 0`을 반환할 수 있다.
+
+**`InventoryArrivalCollectionResult`**
+
+| 필드 | 타입 | 설명 |
+|------|------|------|
+| `status` | `'success' \| 'partial' \| 'failed'` | 작업 결과 상태. 완전 실패를 HTTP 에러로 처리하는 경우 `failed`는 쓰지 않아도 된다 |
+| `collectedCount` | number | 수집·저장 또는 갱신에 성공한 행/레코드 수 |
+| `failedCount` | number | 행 단위 검증/저장 실패 수 |
+| `message` | string | toast에 그대로 표시 가능한 사용자 메시지 |
+| `collectedAt` | string | ISO 8601 작업 완료 시각 |
 
 **`LoginRequest`**
 

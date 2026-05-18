@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext'
 import { UserProfileDialog } from '../auth/UserProfileDialog'
+import { InventoryArrivalCollectButton } from './InventoryArrivalCollectButton'
 import styles from './layout.module.css'
 
 const tabs = [
@@ -46,6 +47,7 @@ export const DashboardLayout = () => {
             ) : null}
           </div>
           <div className={styles.sessionControls}>
+            <InventoryArrivalCollectButton />
             <button className={styles.userButton} type="button" onClick={() => setIsProfileOpen(true)}>
               <span className={styles.userName}>{session?.user.loginId ?? '사용자'}</span>
               <span className={styles.roleBadge}>{session ? roleLabels[session.user.role] : '사용자'}</span>

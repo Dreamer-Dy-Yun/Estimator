@@ -63,6 +63,7 @@
 - 경쟁 채널 상태는 1차 판매 정보와 2차 일별 추이가 공유하므로 `product-drawer/useCompetitorChannels.ts`가 소유한다. 2차 상세 조회는 `product-drawer/secondary/useSecondaryDrawerDetail.ts`가 소유한다.
 - 인증 context와 `useAuth`는 `AuthContext.ts`가 소유하고, `AuthProvider.tsx`는 세션 로딩과 API 호출 orchestration만 담당한다.
 - 앱 전역 mutation 완료 toast는 `src/components/AppToast.tsx`가 소유한다. 복사 완료 toast는 기존 화면별 흐름을 유지하되, 백엔드 요청 완료 알림과 UI 위치 원칙을 맞춘다.
+- 입고예정일 수집은 대시보드 헤더의 전역 유틸리티 액션이다. `InventoryArrivalCollectButton.tsx`가 버튼 상태와 toast 연결만 소유하고, 실제 수집은 `src/api/requests/inventoryArrivalRequests.ts` 계약 뒤에서 mock/HTTP로 교체된다. 버튼은 모든 로그인 사용자에게 노출되며 주요 탭과 같은 active navigation으로 취급하지 않는다.
 - 요청 대기 표시는 `src/components/LoadingSpinner.tsx`가 소유한다. 페이지/모달/드로워는 자기 API 요청 상태만 판별하고, 큰 패널형 스피너 또는 버튼 내부 inline 스피너를 이 공용 컴포넌트로 렌더한다.
 - 2026-05-18 프론트 런타임 최적화에서는 기능을 줄이지 않고 렌더·파생 계산 경계를 유지한 채 반복 비용만 낮췄다. 산점도 차트는 정적 drawing config와 단일 point click handler를 사용하고, `PaginatedTable`은 column render config/page row/정렬 row id를 memoized 경계로 둔다. 이너 후보 리스트는 row와 오더 지표 셀을 memoized 컴포넌트로 분리하고, badge는 색상별 style 객체를 캐시한다. 후보군 mock은 기본 후보 조회에서 배지/추천 insight를 즉시 계산하지 않고 pending 상태를 반환하며, 추천 API가 배지 있는 SKU page만 조립한다. mock 후보군 summary는 stash별 item 통계를 단일 순회로 만든다.
 
@@ -180,6 +181,7 @@
 | `authRequests.ts` | 로그인, 세션, 사용자 정보, 관리자 사용자 관리 요청 adapter. 실제 백엔드 전환 시 HttpOnly 세션, 비밀번호/임시 비밀번호 일회성 응답, 관리자 보호 정책을 이 파일에서 HTTP 요청으로 연결한다 |
 | `adminGptKeyRequests.ts` | 관리자 GPT 키 관리 요청 adapter. GPT 전용 계약이며 원문 키는 생성/회전 요청에만 싣고 목록/변경/테스트/삭제 응답은 원문 키를 받지 않는 흐름을 유지한다. 기존 화면의 단일 변경 요청은 메타 PATCH 후 필요 시 rotate 요청으로 분리한다 |
 | `adminGoogleSheetRequests.ts` | 관리자 구글 시트 설정 요청 adapter. 서비스 계정 JSON 키는 생성/변경 요청에만 싣고, 목록 응답은 마스킹 키와 시트 식별 메타만 받는 흐름을 유지한다. 백엔드는 JSON `client_email` 파싱, 키 보관/암호화, 시트 ID 파싱을 이 경계 뒤에서 처리한다 |
+| `inventoryArrivalRequests.ts` | 입고예정일 수집 요청 adapter. 모든 로그인 사용자가 호출할 수 있는 전역 작업이며, 프론트는 시트 식별자나 서비스 계정 키를 보내지 않고 수집 결과 요약만 받는다. |
 | `dashboardRequestShared.ts` | dashboard request adapter들이 공유하는 정적 템플릿 파일명, public asset URL, path/query param helper를 소유한다 |
 | `dashboardRequests.ts` | `VITE_USE_MOCK_API`에 따라 mock/HTTP dashboard adapter를 선택하는 얇은 진입점. 도메인별 호출 구현을 넣지 않는다 |
 | `mockDashboardRequests.ts` | mock dashboard adapter. 후보군 계열은 현재 세션의 `USER_ACCOUNT.uuid`를 request boundary에서만 붙이고, 화면 내부로 사용자 UUID를 흘리지 않는다. mock API를 직접 화면으로 노출하지 않는 보호막이다 |
@@ -243,7 +245,8 @@
 
 | 경로 | 역할 |
 |------|------|
-| `DashboardLayout.tsx` | `/dashboard` 하위 탭/레이아웃 |
+| `DashboardLayout.tsx` | `/dashboard` 하위 탭/레이아웃. 주요 탭과 세션 영역을 조립하고, 전역 유틸리티 액션은 별도 컴포넌트로 둔다. |
+| `InventoryArrivalCollectButton.tsx` | 헤더 우측의 `입고예정일 수집` 전역 버튼. 수집 요청 중 disabled/inline spinner, 성공·부분성공·실패 toast 표시만 소유한다. |
 | `layout.module.css` | `DashboardLayout` 전용 스타일 |
 | `pages/` | 라우트에 직접 연결되고 `src/App.tsx`에서 lazy import되는 화면만 둔다 |
 | `components/` | 대시보드 내부에서 재사용되는 UI와 feature 컴포넌트 |

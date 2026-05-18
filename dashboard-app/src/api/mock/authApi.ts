@@ -133,6 +133,10 @@ function assertLoggedInSession() {
   return session
 }
 
+export function assertMockSession() {
+  return assertLoggedInSession()
+}
+
 export function assertMockAdminSession() {
   const session = assertLoggedInSession()
   if (session.user.role !== 'admin') {

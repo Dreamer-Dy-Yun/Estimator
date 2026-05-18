@@ -76,6 +76,34 @@
   font-weight: 700;
 }
 
+.utilityButton {
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: 1px solid rgba(45, 212, 191, 0.52);
+  border-radius: 6px;
+  padding: 0 10px;
+  background: rgba(20, 184, 166, 0.12);
+  color: #ccfbf1;
+  font-size: 12px;
+  font-weight: 900;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.utilityButton:hover,
+.utilityButton:focus-visible {
+  background: rgba(20, 184, 166, 0.22);
+  color: #ffffff;
+}
+
+.utilityButton:disabled {
+  cursor: wait;
+  opacity: 0.72;
+}
+
 .userButton {
   height: 32px;
   display: inline-flex;

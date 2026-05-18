@@ -16,6 +16,9 @@ export type {
   ChangePasswordPayload,
   CompetitorSalesParams,
   DashboardApi,
+  InventoryArrivalApi,
+  InventoryArrivalCollectionResult,
+  InventoryArrivalCollectionStatus,
   LoginRequest,
   LoginResult,
   ResetAdminUserPasswordResult,
@@ -66,6 +69,7 @@ export type {
 export { DAILY_TREND_AS_OF_DATE } from './dailyTrendAsOf'
 export {
   changeCurrentUserPassword,
+  collectInventoryArrivalDates,
   createAdminGptKey,
   createAdminGoogleSheetConfig,
   createAdminUser,

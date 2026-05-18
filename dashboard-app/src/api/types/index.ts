@@ -97,6 +97,11 @@ export type {
 } from './candidate-order-metrics'
 export type { SecondaryOrderSnapshotPayload } from './snapshot'
 export type { DashboardApi } from './dashboard-api'
+export type {
+  InventoryArrivalApi,
+  InventoryArrivalCollectionResult,
+  InventoryArrivalCollectionStatus,
+} from './inventory-arrival'
 
 export type { MonthlySalesPoint, ProductPrimarySummary, ProductSecondaryDetail } from '../../types'
 export type { OrderSnapshotDocumentV1 } from '../../snapshot/orderSnapshotTypes'
