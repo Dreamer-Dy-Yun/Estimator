@@ -139,7 +139,7 @@ export const SnapshotConfirmPage = () => {
     try {
       await duplicateCandidateStash(stash.uuid)
       await loadStashes()
-      showToast('후보군 복제 요청이 완료되었습니다.')
+      showToast('후보군이 복제되었습니다.')
     } finally {
       if (mountedRef.current) setDuplicateBusyUuid(null)
     }
