@@ -68,7 +68,7 @@
 | 경로 | 역할 | 변경 기준 |
 |------|------|-----------|
 | `.editorconfig` | 저장소 텍스트 파일의 기본 문자셋을 UTF-8로 고정한다. 한국어 문자열이 편집기별 기본 인코딩 차이로 손상되는 것을 막는 최상위 경계다. | 문자셋/줄바꿈 같은 저장소 공통 편집 규칙 변경 시 수정 |
-| `.github/workflows/deploy-dashboard.yml` | `dashboard-app`을 lint/test 후 `/Estimator/` base와 `VITE_ROUTER_MODE=hash`로 빌드, SPA fallback용 `404.html`을 포함해 GitHub Pages에 배포한다. | 배포 방식, Node 버전, Pages 경로, fallback/라우터 모드, CI 품질 gate가 바뀔 때 수정 |
+| `.github/workflows/deploy-dashboard.yml` | `dashboard-app`을 lint/encoding/unit/e2e 후 `/Estimator/` base와 `VITE_ROUTER_MODE=hash`로 빌드, SPA fallback용 `404.html`을 포함해 GitHub Pages에 배포한다. CI는 Playwright Chromium을 설치한 뒤 `npm run test:e2e`를 실행한다. | 배포 방식, Node 버전, Pages 경로, fallback/라우터 모드, CI 품질 gate가 바뀔 때 수정 |
 | `AGENTS.md` | 작업자 지침. Git, 문서, 검증, 프론트엔드 경계 규칙을 둔다. | 프로젝트 운영 규칙이 바뀔 때 수정 |
 | `MD/` | 요구사항, API 계약, 구조 문서 보관소. 문서 작성·보존 기준은 `MD/README.md`가 소유하고, 날짜별 작업 이력은 유지 문서에 흡수되면 삭제한다. | 기능/API/구조/문서 운영 기준 변경 시 관련 문서 갱신 |
 | `dashboard-app/` | React/Vite 대시보드 앱. | 프론트엔드 작업의 주 대상 |
@@ -107,7 +107,12 @@
 
 | 파일/폴더 | 역할 |
 |------|------|
-| `main-flows.spec.ts` | 기본 mock 로그인, 자사/경쟁사/오더 후보군/관리자 탭 이동, 1차 드로워, 후보군 담기 모달, 후보군 상세, GPT 키 상세 팝업 smoke 시나리오 |
+| `navigation.spec.ts` | 기본 mock 로그인 후 자사/경쟁사/오더 후보군/관리자 라우트와 관리자 탭 존재를 확인하는 라우팅 smoke 시나리오 |
+| `self-drawer.spec.ts` | 자사 분석 리스트에서 1차 상품 드로워를 열고 ESC로 닫는 drawer smoke 시나리오 |
+| `analysis-bulk-add.spec.ts` | 경쟁사 분석 리스트에서 상품 체크 후 후보군 담기 모달을 여는 분석-to-후보군 smoke 시나리오 |
+| `candidate-stash.spec.ts` | 오더 후보군 상세의 조회 데이터 기간 카드, 선택 작업 카드, 추천 진입 버튼을 확인하는 후보군 상세 smoke 시나리오 |
+| `admin-gpt-key.spec.ts` | 관리자 GPT 키 목록에서 상세 설정 모달을 여는 관리자 smoke 시나리오 |
+| `admin-sheets.spec.ts` | 관리자 구글 시트 설정 목록에서 상세 설정 모달을 여는 관리자 smoke 시나리오 |
 | `helpers/app.ts` | 기본 mock 로그인 helper와 브라우저 runtime error 수집/검증 helper |
 
 ## src/api
