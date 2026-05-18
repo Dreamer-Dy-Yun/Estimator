@@ -1,17 +1,19 @@
 import { useMemo } from 'react'
 import type { CompetitorSalesRow } from '../../types'
+import type { AdjacentDirection } from '../../utils/adjacentListNavigation'
 import { createDisplayRankMap } from '../../utils/displayRank'
 import { formatGroupedNumber } from '../../utils/format'
 import { AnalysisList } from './AnalysisList'
 
 type Props = {
   rows: CompetitorSalesRow[]
-  selectedSkuGroupKey: string | null
+  activeSkuGroupKey: string | null
   allVisibleRowsSelected: boolean
   bulkSelectedSkuGroupKeys: Set<string>
   onToggleAllVisibleRows: () => void
   onToggleBulkRow: (skuGroupKey: string) => void
-  onSelectSkuGroupKey: (skuGroupKey: string) => void
+  onOpenSkuGroupKey: (skuGroupKey: string) => void
+  onRequestFocusAdjacent: (currentSkuGroupKey: string | null, direction: AdjacentDirection) => void
   onOrderedSkuGroupKeysChange?: (skuGroupKeys: string[]) => void
 }
 
@@ -19,12 +21,13 @@ const getCompetitorRowId = (row: CompetitorSalesRow) => row.skuGroupKey
 
 export function CompetitorAnalysisList({
   rows,
-  selectedSkuGroupKey,
+  activeSkuGroupKey,
   allVisibleRowsSelected,
   bulkSelectedSkuGroupKeys,
   onToggleAllVisibleRows,
   onToggleBulkRow,
-  onSelectSkuGroupKey,
+  onOpenSkuGroupKey,
+  onRequestFocusAdjacent,
   onOrderedSkuGroupKeysChange,
 }: Props) {
   const competitorQtyRankBySkuGroupKey = useMemo(
@@ -115,15 +118,17 @@ export function CompetitorAnalysisList({
         },
       ]}
       rows={rows}
-      activeRowId={selectedSkuGroupKey}
+      activeRowId={activeSkuGroupKey}
       getRowId={getCompetitorRowId}
       onOrderedRowIdsChange={onOrderedSkuGroupKeysChange}
       defaultSort={{ key: 'competitorQty', dir: 'desc' }}
-      onRowClick={(row) => onSelectSkuGroupKey(row.skuGroupKey)}
+      onRowClick={(row) => onOpenSkuGroupKey(row.skuGroupKey)}
       onRowKeyDown={(row, event) => {
-        if (event.key !== 'ArrowLeft') return
+        if (event.key !== 'ArrowLeft' && event.key !== 'ArrowUp' && event.key !== 'ArrowDown') return
         event.preventDefault()
-        onSelectSkuGroupKey(row.skuGroupKey)
+        event.stopPropagation()
+        if (event.key === 'ArrowLeft') onOpenSkuGroupKey(row.skuGroupKey)
+        else onRequestFocusAdjacent(row.skuGroupKey, event.key === 'ArrowDown' ? 'next' : 'prev')
       }}
     />
   )

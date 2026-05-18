@@ -2,8 +2,6 @@ import { useCallback, useMemo, useState } from 'react'
 import { getCompetitorSales, getCompetitorSalesScatterGrid, getSecondaryCompetitorChannels } from '../../api'
 import type { SecondaryCompetitorChannel } from '../../api/types'
 import type { CompetitorSalesRow } from '../../types'
-import type { AdjacentDirection } from '../../utils/adjacentListNavigation'
-import { adjacentIdInOrder } from '../../utils/adjacentListNavigation'
 import { clampForecastMonths, readForecastMonthsFromStorage, writeForecastMonthsToStorage } from '../../utils/forecastMonthsStorage'
 import { LoadingSpinner } from '../../components/LoadingSpinner'
 import { AnalysisCandidateBulkAddModal } from '../components/candidate-stash/AnalysisCandidateBulkAddModal'
@@ -19,6 +17,7 @@ import { DashboardRequestStatus } from '../components/DashboardRequestStatus'
 import { FilterBar } from '../components/FilterBar'
 import { useAnalysisScatterGridView } from '../hooks/useAnalysisScatterGridView'
 import { useElementSize } from '../hooks/useElementSize'
+import { useAnalysisRowKeyboardFocus } from '../hooks/useAnalysisRowKeyboardFocus'
 import { maskNonPeriodAnalysisFilterFields, useAnalysisSalesFilters } from '../hooks/useAnalysisSalesFilters'
 import type { FilterField } from '../model/filterField'
 import { useAnalysisVisibleSelection } from '../hooks/useAnalysisVisibleSelection'
@@ -113,6 +112,7 @@ export const CompetitorPage = () => {
   const {
     activeGridCellKey,
     selectedSkuGroupKey,
+    activeSkuGroupKey,
     bulkSelectedSkuGroupKeys,
     visibleRows,
     navigationOrderIds,
@@ -120,6 +120,7 @@ export const CompetitorPage = () => {
     allVisibleRowsSelected,
     selectedSkuGroupKeys,
     setSelectedSkuGroupKey,
+    focusSkuGroupKey,
     onScatterCellClick,
     clearActiveGridCell,
     toggleBulkRow,
@@ -149,15 +150,15 @@ export const CompetitorPage = () => {
     scatterPointRadius,
   } = useAnalysisScatterGridView({ scatterGrid, chartWidth, chartHeight })
 
-  const onRequestNavigateAdjacent = useCallback(
-    (direction: AdjacentDirection) => {
-      if (!selectedSkuGroupKey) return
-      const orderIds = orderedSkuGroupKeys.length ? orderedSkuGroupKeys : navigationOrderIds
-      const nextId = adjacentIdInOrder(orderIds, selectedSkuGroupKey, direction)
-      if (nextId != null && nextId !== selectedSkuGroupKey) setSelectedSkuGroupKey(nextId)
-    },
-    [navigationOrderIds, orderedSkuGroupKeys, selectedSkuGroupKey, setSelectedSkuGroupKey],
-  )
+  const { onRequestNavigateAdjacent, onRequestFocusAdjacent } = useAnalysisRowKeyboardFocus({
+    orderedRowIds: orderedSkuGroupKeys,
+    visibleRowIds: navigationOrderIds,
+    activeSkuGroupKey,
+    drawerSkuGroupKey: selectedSkuGroupKey,
+    disabled: bulkAddOpen,
+    onFocusSkuGroupKey: focusSkuGroupKey,
+    onOpenSkuGroupKey: setSelectedSkuGroupKey,
+  })
 
   const renderQtyScatterTooltip = useMemo(
     () => createCompetitorSalesScatterTooltip(competitorAxisLabel),
@@ -249,12 +250,13 @@ export const CompetitorPage = () => {
         ) : (
           <CompetitorAnalysisList
             rows={visibleRows}
-            selectedSkuGroupKey={selectedSkuGroupKey}
+            activeSkuGroupKey={activeSkuGroupKey}
             allVisibleRowsSelected={allVisibleRowsSelected}
             bulkSelectedSkuGroupKeys={bulkSelectedSkuGroupKeys}
             onToggleAllVisibleRows={toggleAllVisibleRows}
             onToggleBulkRow={toggleBulkRow}
-            onSelectSkuGroupKey={setSelectedSkuGroupKey}
+            onOpenSkuGroupKey={setSelectedSkuGroupKey}
+            onRequestFocusAdjacent={onRequestFocusAdjacent}
             onOrderedSkuGroupKeysChange={setOrderedSkuGroupKeys}
           />
         )}

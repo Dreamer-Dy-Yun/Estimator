@@ -10,6 +10,7 @@ export function useAnalysisVisibleSelection<Row extends AnalysisSelectableRow>(
   scatterGrid: ScatterSalesGridResponse | null,
 ) {
   const [selectedSkuGroupKeyState, setSelectedSkuGroupKey] = useState<string | null>(null)
+  const [focusedSkuGroupKeyState, setFocusedSkuGroupKey] = useState<string | null>(null)
   const [activeGridCellKeyState, setActiveGridCellKey] = useState<string | null>(null)
   const [bulkSelectedSkuGroupKeys, setBulkSelectedSkuGroupKeys] = useState<Set<string>>(() => new Set())
 
@@ -44,6 +45,15 @@ export function useAnalysisVisibleSelection<Row extends AnalysisSelectableRow>(
     ),
     [selectedSkuGroupKeyState, visibleRows],
   )
+  const focusedSkuGroupKey = useMemo(
+    () => (
+      focusedSkuGroupKeyState && visibleRows.some((row) => row.skuGroupKey === focusedSkuGroupKeyState)
+        ? focusedSkuGroupKeyState
+        : null
+    ),
+    [focusedSkuGroupKeyState, visibleRows],
+  )
+  const activeSkuGroupKey = selectedSkuGroupKey ?? focusedSkuGroupKey
 
   const navigationOrderIds = useMemo(() => visibleRows.map((row) => row.skuGroupKey), [visibleRows])
   const visibleBulkSelectedSkuGroupKeys = useMemo(
@@ -86,16 +96,28 @@ export function useAnalysisVisibleSelection<Row extends AnalysisSelectableRow>(
     setBulkSelectedSkuGroupKeys(new Set())
   }, [])
 
+  const openSkuGroupKey = useCallback((skuGroupKey: string | null) => {
+    setSelectedSkuGroupKey(skuGroupKey)
+    if (skuGroupKey) setFocusedSkuGroupKey(skuGroupKey)
+  }, [])
+
+  const focusSkuGroupKey = useCallback((skuGroupKey: string | null) => {
+    setFocusedSkuGroupKey(skuGroupKey)
+  }, [])
+
   return {
     activeGridCellKey,
     selectedSkuGroupKey,
+    focusedSkuGroupKey,
+    activeSkuGroupKey,
     bulkSelectedSkuGroupKeys,
     visibleRows,
     navigationOrderIds,
     bulkSelectedCount,
     allVisibleRowsSelected,
     selectedSkuGroupKeys: visibleBulkSelectedSkuGroupKeys,
-    setSelectedSkuGroupKey,
+    setSelectedSkuGroupKey: openSkuGroupKey,
+    focusSkuGroupKey,
     onScatterCellClick,
     clearActiveGridCell,
     toggleBulkRow,

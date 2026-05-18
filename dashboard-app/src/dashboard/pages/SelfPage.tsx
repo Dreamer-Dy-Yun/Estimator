@@ -2,8 +2,6 @@ import { useCallback, useMemo, useState } from 'react'
 import { getSelfSales, getSelfSalesScatterGrid } from '../../api'
 import type { SelfSalesRow } from '../../types'
 import { selfSalesWeightedMarginRate, selfSalesWeightedOpMarginRate } from '../../utils/analysisKpiWeighted'
-import type { AdjacentDirection } from '../../utils/adjacentListNavigation'
-import { adjacentIdInOrder } from '../../utils/adjacentListNavigation'
 import { clampForecastMonths, readForecastMonthsFromStorage, writeForecastMonthsToStorage } from '../../utils/forecastMonthsStorage'
 import { formatGroupedNumber } from '../../utils/format'
 import type { ScatterSalesGridResponse } from '../../api/types'
@@ -20,6 +18,7 @@ import { KpiGrid } from '../components/KpiGrid'
 import { SelfAnalysisList } from '../components/SelfAnalysisList'
 import { useAnalysisScatterGridView } from '../hooks/useAnalysisScatterGridView'
 import { useElementSize } from '../hooks/useElementSize'
+import { useAnalysisRowKeyboardFocus } from '../hooks/useAnalysisRowKeyboardFocus'
 import { maskNonPeriodAnalysisFilterFields, useAnalysisSalesFilters } from '../hooks/useAnalysisSalesFilters'
 import { useAnalysisVisibleSelection } from '../hooks/useAnalysisVisibleSelection'
 import { useDashboardRequest } from '../hooks/useDashboardRequest'
@@ -69,6 +68,7 @@ export const SelfPage = () => {
   const {
     activeGridCellKey,
     selectedSkuGroupKey,
+    activeSkuGroupKey,
     bulkSelectedSkuGroupKeys,
     visibleRows,
     navigationOrderIds,
@@ -76,6 +76,7 @@ export const SelfPage = () => {
     allVisibleRowsSelected: allRowsSelected,
     selectedSkuGroupKeys,
     setSelectedSkuGroupKey,
+    focusSkuGroupKey,
     onScatterCellClick,
     clearActiveGridCell,
     toggleBulkRow,
@@ -105,15 +106,15 @@ export const SelfPage = () => {
     [activeGridCellKey, filterFields],
   )
 
-  const onRequestNavigateAdjacent = useCallback(
-    (direction: AdjacentDirection) => {
-      if (!selectedSkuGroupKey) return
-      const orderIds = orderedSkuGroupKeys.length ? orderedSkuGroupKeys : navigationOrderIds
-      const nextId = adjacentIdInOrder(orderIds, selectedSkuGroupKey, direction)
-      if (nextId != null && nextId !== selectedSkuGroupKey) setSelectedSkuGroupKey(nextId)
-    },
-    [navigationOrderIds, orderedSkuGroupKeys, selectedSkuGroupKey, setSelectedSkuGroupKey],
-  )
+  const { onRequestNavigateAdjacent, onRequestFocusAdjacent } = useAnalysisRowKeyboardFocus({
+    orderedRowIds: orderedSkuGroupKeys,
+    visibleRowIds: navigationOrderIds,
+    activeSkuGroupKey,
+    drawerSkuGroupKey: selectedSkuGroupKey,
+    disabled: bulkAddOpen,
+    onFocusSkuGroupKey: focusSkuGroupKey,
+    onOpenSkuGroupKey: setSelectedSkuGroupKey,
+  })
 
   return (
     <section className={styles.page}>
@@ -205,12 +206,13 @@ export const SelfPage = () => {
         ) : (
           <SelfAnalysisList
             rows={visibleRows}
-            selectedSkuGroupKey={selectedSkuGroupKey}
+            activeSkuGroupKey={activeSkuGroupKey}
             allVisibleRowsSelected={allRowsSelected}
             bulkSelectedSkuGroupKeys={bulkSelectedSkuGroupKeys}
             onToggleAllVisibleRows={toggleAllVisibleRows}
             onToggleBulkRow={toggleBulkRow}
-            onSelectSkuGroupKey={setSelectedSkuGroupKey}
+            onOpenSkuGroupKey={setSelectedSkuGroupKey}
+            onRequestFocusAdjacent={onRequestFocusAdjacent}
             onOrderedSkuGroupKeysChange={setOrderedSkuGroupKeys}
           />
         )}
