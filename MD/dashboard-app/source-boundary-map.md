@@ -339,8 +339,9 @@
 
 | 파일/폴더 | 역할 |
 |------|------|
-| `ProductDrawer.tsx` | 상품 drawer overlay shell. 닫기, body layout shift, 2차 드로워 허용 여부(`secondaryEnabled`), 2차 드로워 열림 상태, 방향키 이동, ESC 단계 닫기, 공유 경쟁 채널 상태를 조율한다. `좌=열기`, `우=닫기`, `상/하=이전/다음` 키를 처리하고, 2차 드로워가 열린 상태에서 이전/다음 상품으로 이동해도 2차 드로워 상태를 유지한다. 원본 리스트 포커스 이동은 각 리스트가 현재 선택 id를 받아 처리한다 |
+| `ProductDrawer.tsx` | 상품 drawer overlay shell. 닫기, body layout shift, 2차 드로워 허용 여부(`secondaryEnabled`), 2차 드로워 열림 상태, 로딩 패널, 공유 경쟁 채널 상태를 조율한다. 키보드 이벤트 자체는 `useProductDrawerKeyboard.ts`에 위임한다. 원본 리스트 포커스 이동은 각 리스트가 현재 선택 id를 받아 처리한다 |
 | `ProductDrawerSecondaryPane.tsx` | `ProductDrawer`의 확장 패널 UI. 경쟁 채널 로딩/오류, 2차 상세 로딩/오류, `ProductSecondaryDrawer` 연결을 소유한다. 키보드·body layout·공유 채널 상태 생성은 루트 drawer에 남긴다 |
+| `useProductDrawerKeyboard.ts` | 상품 drawer 키보드 계약. 로딩 패널과 실제 drawer가 같은 `좌=열기`, `우=닫기`, `상/하=이전/다음`, `ESC=2차 우선 닫기 후 1차 닫기` 규칙을 공유하도록 한다. 입력/콤보박스 내부 방향키는 가로채지 않는다 |
 | `apiErrorInfo.ts` | 상품 drawer 하위 API 오류 정보를 같은 형식으로 만드는 helper |
 | `ko.ts` | 상품 drawer feature에서 공유하는 한국어 텍스트 상수 |
 | `useCompetitorChannels.ts` | 1차 판매 정보/월간 추이와 2차 일별 추이가 공유하는 경쟁 채널 목록 조회와 선택 상태. 빈 채널 목록은 API 오류로 처리하고 임의 채널 객체를 만들지 않는다 |

@@ -7,22 +7,12 @@ import { ProductPrimaryDrawer } from './primary/ProductPrimaryDrawer'
 import { ProductDrawerSecondaryPane } from './ProductDrawerSecondaryPane'
 import type { CandidateItemPanelContext } from './secondary/candidateActionCards'
 import { useCompetitorChannels } from './useCompetitorChannels'
+import { useProductDrawerKeyboard } from './useProductDrawerKeyboard'
 import { useSecondaryDrawerDetail } from './secondary/useSecondaryDrawerDetail'
 import type { OrderSnapshotDocumentV1 } from '../../../snapshot/orderSnapshotTypes'
 import { DRAWER_KEEP_OPEN_SELECTOR } from '../../drawer/drawerDom'
 import { setBodyPrimaryDrawerOpen } from '../../drawer/primaryDrawerBody'
 import styles from '../common.module.css'
-
-function getEventTargetElement(target: EventTarget | null): Element | null {
-  if (target instanceof Element) return target
-  if (target instanceof Node) return target.parentElement
-  return null
-}
-
-function blocksAdjacentKeyNavigation(target: EventTarget | null): boolean {
-  const el = getEventTargetElement(target)
-  return Boolean(el?.closest('input, textarea, select, [contenteditable="true"], [data-filter-combo-panel]'))
-}
 
 function ProductDrawerContent({
   summary,
@@ -104,65 +94,15 @@ function ProductDrawerContent({
   const selectedChannelReady = competitorChannels.some((channel) => channel.id === channelId)
   const selectedChannelMissing = channelId !== '' && !selectedChannelReady
 
-  useEffect(() => {
-    if (closing) return
-
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key)) return
-      if (e.defaultPrevented || e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return
-      if (blocksAdjacentKeyNavigation(e.target)) return
-      e.preventDefault()
-      e.stopPropagation()
-
-      if ((e.key === 'ArrowUp' || e.key === 'ArrowDown') && onRequestNavigateAdjacent && !disableAdjacentNavigation) {
-        const direction: AdjacentDirection = e.key === 'ArrowDown' ? 'next' : 'prev'
-        void Promise.resolve(onRequestNavigateAdjacent(direction))
-        return
-      }
-
-      if (e.key === 'ArrowLeft') {
-        if (secondaryEnabled && !expandPaneOpen) setExpandPaneOpen(true)
-        return
-      }
-
-      if (e.key === 'ArrowRight') {
-        if (expandPaneOpen) {
-          setExpandPaneOpen(false)
-          return
-        }
-        onClose()
-      }
-    }
-
-    window.addEventListener('keydown', onKeyDown, true)
-    return () => window.removeEventListener('keydown', onKeyDown, true)
-  }, [
+  useProductDrawerKeyboard({
     closing,
-    disableAdjacentNavigation,
     expandPaneOpen,
+    setExpandPaneOpen,
     onClose,
     onRequestNavigateAdjacent,
+    disableAdjacentNavigation,
     secondaryEnabled,
-  ])
-
-  useEffect(() => {
-    if (closing) return
-
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key !== 'Escape') return
-      if (e.defaultPrevented || e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return
-      e.preventDefault()
-      e.stopPropagation()
-      if (expandPaneOpen) {
-        setExpandPaneOpen(false)
-        return
-      }
-      onClose()
-    }
-
-    window.addEventListener('keydown', onKeyDown)
-    return () => window.removeEventListener('keydown', onKeyDown)
-  }, [closing, expandPaneOpen, onClose])
+  })
 
   const selectedStart = normalizeMonthKey(periodStart)
   const selectedEnd = normalizeMonthKey(periodEnd)
@@ -255,13 +195,7 @@ export const ProductDrawer = ({
 }) => {
   if (!summary) {
     if (!loading) return null
-    return (
-      <aside className={`${styles.drawer} ${closing ? styles.drawerClosing : ''}`}>
-        <div className={styles.drawerLoadingPanel}>
-          <LoadingSpinner label="상품 정보를 불러오는 중" />
-        </div>
-      </aside>
-    )
+    return <ProductDrawerLoadingPanel closing={closing} onClose={onClose} />
   }
   return (
     <ProductDrawerContent
@@ -280,5 +214,22 @@ export const ProductDrawer = ({
       suppressDocumentLayoutShift={suppressDocumentLayoutShift}
       closing={closing}
     />
+  )
+}
+
+function ProductDrawerLoadingPanel({
+  closing,
+  onClose,
+}: {
+  closing?: boolean
+  onClose: () => void
+}) {
+  useProductDrawerKeyboard({ closing, onClose })
+  return (
+    <aside className={`${styles.drawer} ${closing ? styles.drawerClosing : ''}`}>
+      <div className={styles.drawerLoadingPanel}>
+        <LoadingSpinner label="상품 정보를 불러오는 중" />
+      </div>
+    </aside>
   )
 }
