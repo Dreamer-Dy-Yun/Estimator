@@ -67,17 +67,10 @@ export type {
   CandidateItemDetail,
   CandidateItemListParams,
   CandidateItemListResult,
-  CandidateOrderMetric,
-  CandidateOrderMetricEvent,
-  CandidateOrderMetricStatus,
-  CandidateOrderMetricStreamParams,
-  CandidateOrderMetricSubscription,
   CandidateStashAnalysisProgressEvent,
   CandidateStashAnalysisStartResult,
   CandidateStashAnalysisStatus,
   CandidateStashAnalysisSubscription,
-  CandidateItemOrderExport,
-  CandidateItemOrderExportSizeQty,
   CandidateItemSummary,
   CandidateReferenceItemSummary,
   CandidateRecommendationParams,
@@ -92,6 +85,15 @@ export type {
   AppendCandidateItemsPayload,
   UpdateCandidateItemPayload,
 } from './candidate'
+export type {
+  CandidateItemOrderExport,
+  CandidateItemOrderExportSizeQty,
+  CandidateOrderMetric,
+  CandidateOrderMetricEvent,
+  CandidateOrderMetricStatus,
+  CandidateOrderMetricStreamParams,
+  CandidateOrderMetricSubscription,
+} from './candidate-order-metrics'
 export type { SecondaryOrderSnapshotPayload } from './snapshot'
 export type { DashboardApi } from './dashboard-api'
 

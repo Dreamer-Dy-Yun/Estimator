@@ -25,9 +25,6 @@ import type {
   CandidateItemDetail,
   CandidateItemListParams,
   CandidateItemListResult,
-  CandidateOrderMetricEvent,
-  CandidateOrderMetricStreamParams,
-  CandidateOrderMetricSubscription,
   CandidateStashAnalysisProgressEvent,
   CandidateStashAnalysisStartResult,
   CandidateStashAnalysisSubscription,
@@ -39,6 +36,11 @@ import type {
   CreateCandidateStashPayload,
   UpdateCandidateStashPayload,
 } from './candidate'
+import type {
+  CandidateOrderMetricEvent,
+  CandidateOrderMetricStreamParams,
+  CandidateOrderMetricSubscription,
+} from './candidate-order-metrics'
 import type {
   SecondaryAiCommentParams,
   SecondaryAiCommentResult,

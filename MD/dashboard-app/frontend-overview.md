@@ -137,7 +137,7 @@ dashboard-app/src/
     hooks/                # useProductDrawerBundle, usePeriodRangeFilter
     pages/                # Self, Competitor, SnapshotConfirm route pages
   snapshot/               # 오더 스냅샷 타입/파서
-  utils/                  # format, date, forecastMonthsStorage, adjacentListNavigation, candidateOrderExcelExport
+  utils/                  # format, date, forecastMonthsStorage, adjacentListNavigation, candidateOrderExcel*
   types.ts
 ```
 

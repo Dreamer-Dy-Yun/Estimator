@@ -612,6 +612,8 @@ badges: [
 
 초기 `getCandidateItemsByStash` 응답 이후 총 오더 수량·총 오더 금액처럼 계산량이 큰 값을 항목별로 내려준다. `candidateItemUuids`는 전체 후보 아이템이 아니라 이번에 계산이 필요한 부분 집합만 반복 query param으로 보낼 수 있다. 추천 적용 직후 프론트는 새로 추가된 후보 아이템 UUID만 같은 SSE에 전달하며, 기존 행의 계산 완료 값은 유지한다.
 
+프론트 타입 소유 파일은 `dashboard-app/src/api/types/candidate-order-metrics.ts`다. 후보군 기본 조회 계약(`candidate.ts`)과 분리되어 있으므로, 백엔드가 오더 계산 job/SSE 구조를 바꾸면 이 파일과 `subscribeCandidateOrderMetrics` adapter만 우선 확인한다.
+
 | 이벤트 | 의미 |
 |--------|------|
 | `item` | `requestId`, `itemUuid`, `skuUuid`, `metric`을 포함한다. `metric`은 `qty`, `expectedOrderAmount`, `expectedSalesAmount`, `expectedOpProfit`, `orderExport`를 가진다 |

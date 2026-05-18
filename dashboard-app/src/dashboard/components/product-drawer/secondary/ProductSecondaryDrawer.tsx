@@ -1,20 +1,22 @@
-import { useCallback, useEffect, useId, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { SecondaryCompetitorChannel } from '../../../../api'
 import { useAppToast } from '../../../../components/AppToastContext'
 import type { ProductPrimarySummary, ProductSecondaryDetail } from '../../../../types'
-import {
-  daysInclusiveBetween,
-  formatIsoDateLocal,
-} from '../../../../utils/date'
-import { usePortalHelpPopover } from '../../usePortalHelpPopover'
-import type { SecondaryHelpId } from './secondaryDrawerTypes'
+import { daysInclusiveBetween, formatIsoDateLocal } from '../../../../utils/date'
 import type { OrderSnapshotDocumentV1 } from '../../../../snapshot/orderSnapshotTypes'
 import type { CandidateItemPanelContext } from './candidateActionCards'
-import { useSecondaryAiComment } from './hooks/useSecondaryAiComment'
+import { useSecondaryAiCommentState } from './hooks/useSecondaryAiCommentState'
 import { useSecondaryForecastModel } from './hooks/useSecondaryForecastModel'
+import { useSecondaryHelpController } from './hooks/useSecondaryHelpController'
+import { useSecondarySnapshotPrefill } from './hooks/useSecondarySnapshotPrefill'
 import { ProductSecondaryDrawerContent } from './ProductSecondaryDrawerContent'
+import { buildDefaultLeadTimeDates } from './secondaryDefaultLeadTime'
 
 export type { CandidateItemPanelContext }
+
+const SAFETY_STOCK_MODE: 'manual' | 'formula' = 'formula'
+const MANUAL_SAFETY_STOCK = 0
+const SERVICE_LEVEL_PCT = 95
 
 type Props = {
   primary: ProductPrimarySummary
@@ -34,17 +36,6 @@ type Props = {
   }
 }
 
-function buildDefaultLeadTimeDates() {
-  const today = new Date()
-  const startDate = new Date(today)
-  startDate.setMonth(startDate.getMonth() + 6)
-  const start = formatIsoDateLocal(startDate)
-  const endDate = new Date(today)
-  endDate.setFullYear(endDate.getFullYear() + 1)
-  const end = formatIsoDateLocal(endDate)
-  return { start, end }
-}
-
 export function ProductSecondaryDrawer({
   primary,
   secondary,
@@ -57,33 +48,17 @@ export function ProductSecondaryDrawer({
   channelState,
 }: Props) {
   const defaultLeadTime = useMemo(() => buildDefaultLeadTimeDates(), [])
-  const {
-    channelId,
-    competitorChannels,
-    onChannelChange,
-  } = channelState
-  const confirmOrderHelpId = useId()
-  const forecastQtyCalcHelpId = useId()
-  const expectedOpProfitRateHelpId = useId()
-  const totalOrderBalanceHelpId = useId()
-  const expectedInboundOrderBalanceHelpId = useId()
-  const sizeRecQtyHelpId = useId()
-  const salesForecastSizeOrderHelpId = useId()
-  const portalHelp = usePortalHelpPopover<SecondaryHelpId>()
+  const { channelId, competitorChannels, onChannelChange } = channelState
+  const { portalHelp, helpIds } = useSecondaryHelpController()
   const { showToast } = useAppToast()
-  const safetyStockMode: 'manual' | 'formula' = 'formula'
-  const manualSafetyStock = 0
   /** null: 예측 수량연산용 μ는 클라이언트 가중모형값. 숫자면 해당 값으로 덮어씀. */
   const [dailyMeanClient, setDailyMeanClient] = useState<number | null>(null)
-  const serviceLevelPct = 95
   const [leadTimeStartDate, setLeadTimeStartDate] = useState(defaultLeadTime.start)
   const [leadTimeEndDate, setLeadTimeEndDate] = useState(defaultLeadTime.end)
   const [bufferStock, setBufferStock] = useState(0)
   const [unitCostInput, setUnitCostInput] = useState(Math.max(0, Math.round(primary.price * 0.78)))
   const [unitPriceInput, setUnitPriceInput] = useState(Math.max(0, Math.round(primary.price)))
   const [expectedFeeRatePct, setExpectedFeeRatePct] = useState(13)
-  const [aiPrompt, setAiPrompt] = useState('')
-  const [aiComment, setAiComment] = useState('')
   const [selfWeightPct, setSelfWeightPct] = useState(50)
   /** 사용자가 직접 덮어쓴 확정 수량만. live/snapshot baseline은 SecondaryOrderDraft가 정한다. */
   const [confirmBySize, setConfirmBySize] = useState<Record<string, number>>({})
@@ -144,86 +119,45 @@ export function ProductSecondaryDrawer({
     [leadTimeEndDate, leadTimeStartDate],
   )
 
-  useEffect(() => {
-    let alive = true
-    queueMicrotask(() => {
-      if (!alive) return
-      if (prefillFromSnapshot == null) {
-        const nextStart = defaultLeadTime.start < minOrderDate ? minOrderDate : defaultLeadTime.start
-        const nextEnd = defaultLeadTime.end < nextStart ? nextStart : defaultLeadTime.end
-        setDailyMeanClient(null)
-        setLeadTimeStartDate(nextStart)
-        setLeadTimeEndDate(nextEnd)
-        setBufferStock(0)
-        setSelfWeightPct(50)
-        setAiPrompt('')
-        setAiComment('')
-        setConfirmBySize({})
-        setSnapshotConfirmBaselineActive(false)
-        setAppliedPrefillKey(null)
-        return
-      }
-      const d2 = prefillFromSnapshot.drawer2
-      const si = d2.stockInputs
-      onChannelChange(d2.competitorChannelId)
-      setBufferStock(d2.bufferStock)
-      setSelfWeightPct(d2.selfWeightPct)
-      setAiPrompt(d2.llmPrompt)
-      setAiComment(d2.llmAnswer)
-      setLeadTimeStartDate(si.leadTimeStartDate)
-      setLeadTimeEndDate(si.leadTimeEndDate)
-      setDailyMeanClient(si.dailyMean)
-      setConfirmBySize({})
-      setSnapshotConfirmBaselineActive(candidateItemContext?.hydrateSnapshotSource === 'confirmed')
-      setAppliedPrefillKey(prefillKey)
-      if (d2.orderUnitInputs != null) {
-        setUnitCostInput(d2.orderUnitInputs.unitCost)
-        setUnitPriceInput(d2.orderUnitInputs.unitPrice)
-        setExpectedFeeRatePct(d2.orderUnitInputs.expectedFeeRatePct)
-      }
-    })
-    return () => {
-      alive = false
-    }
-  }, [
-    defaultLeadTime.end,
-    defaultLeadTime.start,
-    minOrderDate,
-    onChannelChange,
-    prefillFromSnapshot,
-    prefillKey,
-    primary.skuGroupKey,
-    candidateItemContext?.hydrateSnapshotSource,
-  ])
-
-  const viewChannel = useMemo<SecondaryCompetitorChannel>(() => {
-    return channel
-  }, [channel])
-
-  const aiCommentParams = useMemo(() => ({
+  const {
+    aiPrompt,
+    aiComment,
+    aiCommentLoading,
+    aiCommentError,
+    setAiPrompt,
+    setAiComment,
+  } = useSecondaryAiCommentState({
+    pageName,
     skuGroupKey: primary.skuGroupKey,
     periodStart: viewPeriodStart,
     periodEnd: viewPeriodEnd,
     forecastMonths,
-    competitorChannelId: viewChannel.id,
-    candidateItemUuid: candidateItemContext?.itemUuid ?? null,
-  }), [
-    candidateItemContext?.itemUuid,
-    forecastMonths,
-    primary.skuGroupKey,
-    viewChannel.id,
-    viewPeriodEnd,
-    viewPeriodStart,
-  ])
-  const handleAiCommentLoaded = useCallback((result: { llmPrompt: string; llmAnswer: string }) => {
-    setAiPrompt(result.llmPrompt)
-    setAiComment(result.llmAnswer)
-  }, [])
-  const { aiCommentLoading, aiCommentError } = useSecondaryAiComment({
-    enabled: candidateItemContext == null || prefillFromSnapshot == null,
-    pageName,
-    params: aiCommentParams,
-    onLoaded: handleAiCommentLoaded,
+    channel,
+    candidateItemContext,
+    prefillFromSnapshot,
+  })
+
+  useSecondarySnapshotPrefill({
+    prefillFromSnapshot,
+    candidateItemContext,
+    primarySkuGroupKey: primary.skuGroupKey,
+    defaultLeadTime,
+    minOrderDate,
+    prefillKey,
+    onChannelChange,
+    setDailyMeanClient,
+    setLeadTimeStartDate,
+    setLeadTimeEndDate,
+    setBufferStock,
+    setSelfWeightPct,
+    setAiPrompt,
+    setAiComment,
+    setConfirmBySize,
+    setSnapshotConfirmBaselineActive,
+    setAppliedPrefillKey,
+    setUnitCostInput,
+    setUnitPriceInput,
+    setExpectedFeeRatePct,
   })
 
   const model = useSecondaryForecastModel({
@@ -235,7 +169,7 @@ export function ProductSecondaryDrawer({
     forecastMonths,
     prefillFromSnapshot,
     candidateItemContext,
-    channel: viewChannel,
+    channel,
     viewPeriodStart,
     viewPeriodEnd,
     snapshotConfirmBySize,
@@ -254,9 +188,9 @@ export function ProductSecondaryDrawer({
     expectedFeeRatePct,
     aiPrompt,
     aiComment,
-    safetyStockMode,
-    manualSafetyStock,
-    serviceLevelPct,
+    safetyStockMode: SAFETY_STOCK_MODE,
+    manualSafetyStock: MANUAL_SAFETY_STOCK,
+    serviceLevelPct: SERVICE_LEVEL_PCT,
     hasSavedSnapshot,
     showToast,
   })
@@ -312,6 +246,8 @@ export function ProductSecondaryDrawer({
     selfCol.avgCost,
     selfCol.avgPrice,
     selfCol.feeRatePct,
+    setAiComment,
+    setAiPrompt,
   ])
 
   const handleRestoreConfirmed = useCallback(() => {
@@ -346,7 +282,7 @@ export function ProductSecondaryDrawer({
     <ProductSecondaryDrawerContent
       pageName={pageName}
       primary={primary}
-      channel={viewChannel}
+      channel={channel}
       candidateItemContext={candidateItemContext}
       hasSavedSnapshot={hasSavedSnapshot}
       showingConfirmedValues={snapshotConfirmBaselineActive}
@@ -372,15 +308,7 @@ export function ProductSecondaryDrawer({
       onUnitPriceChange={setUnitPriceInput}
       onExpectedFeeRatePctChange={setExpectedFeeRatePct}
       portalHelp={portalHelp}
-      helpIds={{
-        confirmOrder: confirmOrderHelpId,
-        forecastQtyCalc: forecastQtyCalcHelpId,
-        expectedOpProfitRate: expectedOpProfitRateHelpId,
-        totalOrderBalance: totalOrderBalanceHelpId,
-        expectedInboundOrderBalance: expectedInboundOrderBalanceHelpId,
-        sizeRecQty: sizeRecQtyHelpId,
-        salesForecastSizeOrder: salesForecastSizeOrderHelpId,
-      }}
+      helpIds={helpIds}
     />
   )
 }

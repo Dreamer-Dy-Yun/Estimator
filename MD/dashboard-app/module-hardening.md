@@ -49,7 +49,7 @@
 | 파일 | 보류 사유 |
 |------|-----------|
 | `dashboard-app/src/utils/scatterGridDisplay.ts` | 산점도 색상·점 크기·백엔드 격자 계약이 최근 변경 중이라 아직 안정 계약으로 묶지 않는다. |
-| `dashboard-app/src/utils/candidateOrderExcelExport.ts` | 엑셀 컬럼·스타일·템플릿 정책이 계속 조정 중이므로 출력 계약이 고정된 뒤 하드닝한다. |
+| `dashboard-app/src/utils/candidateOrderExcelData.ts`, `dashboard-app/src/utils/candidateOrderExcelWorkbook.ts`, `dashboard-app/src/utils/candidateOrderExcelExport.ts` | 엑셀 컬럼·스타일·템플릿 정책이 계속 조정 중이므로 출력 계약이 고정된 뒤 하드닝한다. |
 | `dashboard-app/src/api/requests/*` | 실제 백엔드 엔드포인트가 아직 없어서 mock 위임과 HTTP 전환 계약이 확정되지 않았다. |
 | `dashboard-app/src/dashboard/components/product-drawer/*` | 드로워 UX와 1차/2차 노출 정책이 아직 제품 흐름과 함께 조정 중이다. |
 | `dashboard-app/src/dashboard/components/candidate-stash/*` | 이너후보군 실시간 계산, 스냅샷 보기, 상세확정 흐름이 아직 큰 단위로 변하고 있다. |

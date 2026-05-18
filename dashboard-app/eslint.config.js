@@ -10,7 +10,7 @@ import { globalIgnores } from 'eslint/config'
  * @see https://typescript-eslint.io/getting-started/
  */
 export default tseslint.config(
-  globalIgnores(['dist']),
+  globalIgnores(['dist', 'playwright-report', 'test-results', '.playwright']),
   js.configs.recommended,
   ...tseslint.configs.recommended,
   reactHooks.configs.flat.recommended,

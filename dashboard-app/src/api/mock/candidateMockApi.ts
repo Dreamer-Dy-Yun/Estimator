@@ -19,94 +19,25 @@
   UpdateCandidateStashPayload,
 } from '../types'
 import { MOCK_ADMIN_USER_UUID } from './authApi'
+import { subscribeMockCandidateOrderMetrics } from './candidateOrderMetricStream'
 import {
-  buildCandidateItemSummaries,
-  buildCandidateOrderMetric,
-  buildCandidateReferenceItems,
-  buildCandidateStashItems,
-  type CandidateDataReferencePeriod,
-} from './candidateItemSummaryBuilder'
-import { seededCandidateItems, seededCandidateStashes } from './candidateSeeds'
-import { type CandidateItemRecord, type CandidateStashRecord } from './records'
+  startMockCandidateStashAnalysis,
+  subscribeMockCandidateStashAnalysis,
+} from './candidateStashAnalysisStream'
+import {
+  buildCandidateItemListResult,
+  buildCandidateListParamsPeriod,
+  createCandidateItemRecord,
+  filterCandidateStashesForOwner,
+  findCandidateStashForOwner,
+  readCandidateItemRecords,
+  readCandidateItemsForStash,
+  readCandidateStashRecords,
+  toCandidateStashSummary,
+} from './candidateMockStore'
+import { type CandidateStashRecord } from './records'
 import { productPrimaryBySkuGroupKey } from './productCatalog'
-import { allKnownSkuGroupKeys } from './salesTables'
 import { makeUuid32, sleep } from './utils'
-
-interface CandidateStashAnalysisJob {
-  stashUuid: string
-  ownerUserUuid?: string
-  itemUuids: string[]
-}
-
-const candidateStashAnalysisJobs = new Map<string, CandidateStashAnalysisJob>()
-
-function readCandidateStashRecords(): CandidateStashRecord[] {
-  return seededCandidateStashes
-}
-
-function readCandidateItemRecords(): CandidateItemRecord[] {
-  return seededCandidateItems
-}
-
-function filterCandidateStashesForOwner(
-  rows: CandidateStashRecord[],
-  ownerUserUuid?: string,
-): CandidateStashRecord[] {
-  if (!ownerUserUuid) return rows
-  return rows.filter((row) => row.userUuid === ownerUserUuid)
-}
-
-function findCandidateStashForOwner(stashUuid: string, ownerUserUuid?: string): CandidateStashRecord | null {
-  const stash = readCandidateStashRecords().find((row) => row.uuid === stashUuid) ?? null
-  if (!stash) return null
-  if (ownerUserUuid && stash.userUuid !== ownerUserUuid) return null
-  return stash
-}
-
-function readCandidateItemsForStash(stashUuid: string, ownerUserUuid?: string): CandidateItemRecord[] {
-  if (!findCandidateStashForOwner(stashUuid, ownerUserUuid)) return []
-  return readCandidateItemRecords().filter((row) => row.stashUuid === stashUuid)
-}
-
-function toCandidateStashSummary(
-  row: CandidateStashRecord,
-  itemCount: number,
-  dbUpdatedAt = row.dbUpdatedAt ?? row.dbCreatedAt,
-): CandidateStashSummary {
-  return {
-    uuid: row.uuid,
-    name: row.name,
-    note: row.note ?? null,
-    periodStart: row.periodStart,
-    periodEnd: row.periodEnd,
-    forecastMonths: row.forecastMonths,
-    itemCount,
-    dbCreatedAt: row.dbCreatedAt,
-    dbUpdatedAt,
-  }
-}
-
-function buildCandidateListParamsPeriod({
-  dataReferencePeriodStart,
-  dataReferencePeriodEnd,
-}: CandidateItemListParams | CandidateRecommendationParams): CandidateDataReferencePeriod {
-  return {
-    start: dataReferencePeriodStart,
-    end: dataReferencePeriodEnd,
-  }
-}
-
-function buildCandidateItemListResult(
-  records: CandidateItemRecord[],
-  period: CandidateDataReferencePeriod,
-  includeOrderMetrics = false,
-): CandidateItemListResult {
-  return {
-    referenceItems: buildCandidateReferenceItems(allKnownSkuGroupKeys, period),
-    candidateItems: buildCandidateStashItems(records),
-    items: buildCandidateItemSummaries(records, period, { includeOrderMetrics }),
-  }
-}
 
 export const candidateMockApi = {
   getCandidateStashes: async (ownerUserUuid?: string): Promise<CandidateStashSummary[]> => {
@@ -142,133 +73,16 @@ export const candidateMockApi = {
     params: CandidateOrderMetricStreamParams,
     listener: (event: CandidateOrderMetricEvent) => void,
     ownerUserUuid?: string,
-  ): CandidateOrderMetricSubscription => {
-    const records = readCandidateItemsForStash(params.stashUuid, ownerUserUuid)
-      .filter((row) => params.candidateItemUuids.includes(row.uuid))
-    const period = buildCandidateListParamsPeriod(params)
-    const timers = records.map((row, index) => globalThis.setTimeout(() => {
-      listener({
-        type: 'item',
-        requestId: params.requestId,
-        itemUuid: row.uuid,
-        skuUuid: row.skuUuid,
-        metric: buildCandidateOrderMetric(row, period),
-      })
-      if (index === records.length - 1) {
-        listener({
-          type: 'completed',
-          requestId: params.requestId,
-          processedCount: records.length,
-          failedCount: 0,
-        })
-      }
-    }, 80 + index * 45))
-    if (records.length === 0) {
-      const timer = globalThis.setTimeout(() => {
-        listener({
-          type: 'completed',
-          requestId: params.requestId,
-          processedCount: 0,
-          failedCount: 0,
-        })
-      }, 0)
-      timers.push(timer)
-    }
-    return {
-      close: () => {
-        timers.forEach((timer) => globalThis.clearTimeout(timer))
-      },
-    }
-  },
+  ): CandidateOrderMetricSubscription => subscribeMockCandidateOrderMetrics(params, listener, ownerUserUuid),
   startCandidateStashAnalysis: async (
     stashUuid: string,
     ownerUserUuid?: string,
-  ): Promise<CandidateStashAnalysisStartResult> => {
-    await sleep(60)
-    if (!findCandidateStashForOwner(stashUuid, ownerUserUuid)) {
-      throw new Error('후보군을 찾을 수 없습니다.')
-    }
-    const itemUuids = readCandidateItemsForStash(stashUuid, ownerUserUuid)
-      .filter((row) => row.details != null)
-      .map((row) => row.uuid)
-    const jobId = `mock-analysis-${makeUuid32()}`
-    candidateStashAnalysisJobs.set(jobId, { stashUuid, ownerUserUuid, itemUuids })
-    return {
-      jobId,
-      stashUuid,
-      itemCount: itemUuids.length,
-    }
-  },
+  ): Promise<CandidateStashAnalysisStartResult> => startMockCandidateStashAnalysis(stashUuid, ownerUserUuid),
   subscribeCandidateStashAnalysis: (
     jobId: string,
     listener: (event: CandidateStashAnalysisProgressEvent) => void,
     ownerUserUuid?: string,
-  ): CandidateStashAnalysisSubscription => {
-    const job = candidateStashAnalysisJobs.get(jobId)
-    const canReadJob = job && (!ownerUserUuid || job.ownerUserUuid === ownerUserUuid)
-    const stashUuid = job?.stashUuid ?? ''
-    const itemUuids = canReadJob ? job.itemUuids : []
-    const totalItems = itemUuids.length
-    const timers: ReturnType<typeof globalThis.setTimeout>[] = []
-
-    const emit = (event: CandidateStashAnalysisProgressEvent, delay: number) => {
-      timers.push(globalThis.setTimeout(() => listener(event), delay))
-    }
-
-    if (!canReadJob) {
-      emit({
-        jobId,
-        stashUuid,
-        status: 'failed',
-        totalItems: 0,
-        completedItems: 0,
-        message: '후보군 분석 작업을 찾을 수 없습니다.',
-        error: '후보군 분석 작업을 찾을 수 없습니다.',
-      }, 0)
-      return {
-        close: () => timers.forEach((timer) => globalThis.clearTimeout(timer)),
-      }
-    }
-
-    emit({
-      jobId,
-      stashUuid,
-      status: totalItems > 0 ? 'running' : 'completed',
-      totalItems,
-      completedItems: 0,
-      message: totalItems > 0 ? '후보군 AI 분석을 시작했습니다.' : '분석 가능한 확정 스냅샷이 없습니다.',
-    }, 0)
-
-    itemUuids.forEach((itemUuid, index) => {
-      const item = readCandidateItemRecords().find((row) => row.uuid === itemUuid)
-      const product = item ? productPrimaryBySkuGroupKey[item.skuGroupKey] : null
-      emit({
-        jobId,
-        stashUuid,
-        status: 'running',
-        totalItems,
-        completedItems: index + 1,
-        currentItemUuid: itemUuid,
-        currentProductName: product?.productName,
-        message: `${product?.productName ?? itemUuid} 분석을 완료했습니다.`,
-      }, 80 + index * 80)
-    })
-
-    if (totalItems > 0) {
-      emit({
-        jobId,
-        stashUuid,
-        status: 'completed',
-        totalItems,
-        completedItems: totalItems,
-        message: '후보군 AI 분석을 완료했습니다.',
-      }, 120 + totalItems * 80)
-    }
-
-    return {
-      close: () => timers.forEach((timer) => globalThis.clearTimeout(timer)),
-    }
-  },
+  ): CandidateStashAnalysisSubscription => subscribeMockCandidateStashAnalysis(jobId, listener, ownerUserUuid),
   getCandidateRecommendations: async (
     params: CandidateRecommendationParams,
     ownerUserUuid?: string,
@@ -387,14 +201,10 @@ export const candidateMockApi = {
     }
     const now = new Date().toISOString()
     readCandidateItemRecords().push({
-      uuid: makeUuid32(),
-      stashUuid: payload.stashUuid,
-      skuUuid: payload.skuGroupKey,
-      skuGroupKey: payload.skuGroupKey,
+      ...createCandidateItemRecord(payload.stashUuid, payload.skuGroupKey, now, {
       details: payload.details,
       isLatestLlmComment: payload.isLatestLlmComment,
-      dbCreatedAt: now,
-      dbUpdatedAt: now,
+      }),
     })
   },
   appendCandidateItems: async (payload: AppendCandidateItemsPayload, ownerUserUuid?: string): Promise<void> => {
@@ -413,16 +223,7 @@ export const candidateMockApi = {
     const now = new Date().toISOString()
     for (const skuGroupKey of [...new Set(payload.skuGroupKeys)]) {
       if (existingSkuSet.has(skuGroupKey)) continue
-      records.push({
-        uuid: makeUuid32(),
-        stashUuid: payload.stashUuid,
-        skuUuid: skuGroupKey,
-        skuGroupKey,
-        details: null,
-        isLatestLlmComment: false,
-        dbCreatedAt: now,
-        dbUpdatedAt: now,
-      })
+      records.push(createCandidateItemRecord(payload.stashUuid, skuGroupKey, now))
       existingSkuSet.add(skuGroupKey)
     }
   },

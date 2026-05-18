@@ -5,7 +5,7 @@
 | 작성 지시 | Yun Daeyoung |
 | 작성자 | Codex |
 | 작성일 | 2026-05-06 |
-| 최종 수정일 | 2026-05-15 |
+| 최종 수정일 | 2026-05-18 |
 | 상태 | 유지 문서 |
 | 적용 범위 | `dashboard-app`, 프론트엔드 소스, 관련 배포/문서 경계 |
 
@@ -30,7 +30,7 @@
 - 오더 스냅샷 독립 localStorage 저장/조회/삭제 API를 제거하고, 후보 아이템 `details`를 스냅샷 저장의 단일 경로로 둔다.
 - 후보군 생성/삭제/복제/편집 이벤트는 API 호출 후 목록을 재조회한다. mock은 응답 흐름만 모사하고 브라우저 저장소에 후보군/이너 후보를 만들거나 지우지 않는다.
 - 후보군/관리자/드로워 저장처럼 백엔드 mutation 요청이 성공한 경우 `AppToastProvider`의 상단 자동 닫힘 toast로 완료 상태를 알린다. toast는 클릭 없이 2~3초 뒤 사라지고, 중요한 작업 영역을 가리지 않도록 화면 상단 중앙에 고정한다.
-- 후보군 목록/상세/수정 계열 API는 현재 인증 세션의 `USER_ACCOUNT.uuid` 기준으로 소유자 데이터를 필터링한다. 화면은 사용자 UUID를 직접 파라미터로 보내지 않고 `src/api/requests/dashboardRequests.ts`가 request boundary에서만 세션 UUID를 읽어 mock/향후 HTTP 요청에 붙인다. mock은 후보 아이템 추가/삭제/상세확정 해제처럼 사용자가 확인해야 하는 mutation을 런타임 메모리 배열에 반영해 DB 동작을 모사한다.
+- 후보군 목록/상세/수정 계열 API는 현재 인증 세션의 `USER_ACCOUNT.uuid` 기준으로 소유자 데이터를 필터링한다. 화면은 사용자 UUID를 직접 파라미터로 보내지 않고 `src/api/requests/mockDashboardRequests.ts`가 mock request boundary에서만 세션 UUID를 읽어 mock에 붙인다. 실제 HTTP 전환 시에는 `src/api/requests/httpDashboardRequests.ts`가 같은 `DashboardApi` 계약으로 서버 endpoint만 호출한다. mock은 후보 아이템 추가/삭제/상세확정 해제처럼 사용자가 확인해야 하는 mutation을 런타임 메모리 배열에 반영해 DB 동작을 모사한다.
 - 자사/경쟁사 분석 탭은 후보군에 상품을 담는 입구다. 분석 리스트의 체크박스와 `선택한 물품을 후보군으로` 모달은 스냅샷 없이 `stashUuid + skuGroupKeys`만 API에 전달한다. `row.id`는 화면 행 식별자이고, `skuGroupKey`는 `SKU.code + SKU.color_code` 상품 단위에 대응한다. AI 코멘트/사이즈별 확정 오더량은 이너후보군 2차 드로워에서 저장하기 전까지 미확정이다.
 - 자사/경쟁사 분석 탭에서는 `ProductDrawer.secondaryEnabled={false}`로 2차 드로워를 열지 않는다. 2차 드로워 코드는 유지하되, 반원 버튼과 키보드 2차 진입은 이너후보군에서만 허용한다.
 - 이너후보군 리스트 조회는 `dataReferencePeriodStart`/`dataReferencePeriodEnd`를 API에 전달한다. 기간 입력은 헤더와 필터 사이의 `CandidateStashDataReferenceCard`가 draft 상태로 소유하고, 사용자가 `조회` 버튼을 누를 때만 적용 기간을 바꿔 `getCandidateItemsByStash`를 호출한다. 조회 카드와 선택 작업 카드는 데스크톱에서 한 줄 2열로 배치한다. 선택 작업 영역은 `CandidateStashBulkActionCard`가 소유하며, 상세확정 일괄해제는 선택된 후보 아이템의 `details`를 `null`로 저장하는 명시적 mutation이다. 상세 일괄확정은 아직 API 계약과 mutation 동작이 없어 비활성 UI 자리만 둔다. 백엔드는 해당 기간의 전체 SKU 분포를 먼저 계산해 배지를 부여한 `referenceItems`와 후보군에 담긴 `candidateItems`를 함께 반환한다. 기간 자사/경쟁사 총판매량은 백엔드가 확정 전체 월은 `ERP_MONTHLY_SUMMARY`/`EXTERNAL_MONTHLY_SUMMARY(site 포함)`에서 가져오고, 부분 월과 미확정 월은 `SALES_ERP`/`SALES_EXTERNAL` raw 합산으로 보정한 값이다. 프론트는 이 값을 재계산하지 않고 표시/정렬/엑셀 다운로드에만 사용한다. `CANDIDATE_ITEM.sku_uuid = SKU.uuid`를 기준으로 추천 보기 중복 제외와 이너오더 조인을 수행하며, 총 오더 수량/금액과 엑셀용 `orderExport`는 이후 `subscribeCandidateOrderMetrics` SSE 이벤트로 행별 갱신한다.
@@ -55,7 +55,7 @@
 - 산점도 격자화 mock 계산은 `api/mock/scatterGrid.ts`로 분리했다. 운영에서는 백엔드가 같은 책임을 가지며, 프론트는 응답 `cells`와 `meta`로 색상·표시 반지름만 계산한다.
 - 2026-05-14 정리에서 분석 페이지의 목록 컬럼 정의는 `SelfAnalysisList.tsx`/`CompetitorAnalysisList.tsx`, 산점도 tooltip 렌더는 `AnalysisScatterTooltips.tsx`로 분리했다. 페이지는 API 결과 연결, 필터/선택 상태 조립, KPI/차트/드로워 배치만 담당한다.
 - 자사/경쟁사 분석 목록의 `순위` 컬럼은 화면 행 번호나 seed rank가 아니라 현재 렌더링 대상 rows의 판매량 기준 표시 순위다. 자사는 `qty`, 경쟁사는 `competitorQty` 기준이며, 판매량이 가장 많은 항목이 1위다. API/mock 기본 응답도 같은 판매량 내림차순으로 정렬해 테이블 정렬 해제 시 이 기준 순서로 돌아가게 한다. 산점도 셀 선택처럼 백엔드 재호출 없이 rows가 줄어드는 경우도 `displayRank.ts`가 현재 rows 안에서 다시 계산한다.
-- 후보군 mock의 기간 기준 후보 요약, 배지 평가, 오더 지표 DTO 조립은 `candidateItemSummaryBuilder.ts`로 분리했다. `candidateMockApi.ts`는 후보군 소유자 필터링, 인메모리 mutation, 초기 조회 응답, 오더 지표 SSE, 후보군 분석 SSE mock orchestration만 맡는다.
+- 후보군 mock의 기간 기준 후보 요약, 배지 평가, 오더 지표 DTO 조립은 `candidateItemSummaryBuilder.ts`로 분리했다. `candidateMockStore.ts`는 seed/store 읽기와 list result 조립을, `candidateOrderMetricStream.ts`는 오더 지표 SSE mock을, `candidateStashAnalysisStream.ts`는 후보군 분석 SSE mock을 소유한다. `candidateMockApi.ts`는 후보군 public mock method orchestration과 mutation entry만 맡는다.
 - 2차 드로워 재고·발주 계산 mock은 `secondaryStockOrderCalcApi.ts`로 분리했다. `dashboardApi.ts`는 DashboardApi public mock 조립과 판매/드로워 조회 흐름을 맡고, 계산 세부식은 전용 파일이 소유한다.
 - 상품 drawer feature는 `dashboard/components/product-drawer`로 모았다. 루트 `ProductDrawer`는 overlay와 공유 상태만 조율하고, `ProductDrawerSecondaryPane`은 2차 패널의 로딩/오류/상세 렌더 분기를 소유한다. `primary`가 1차 드로워, `secondary`가 2차 드로워 내부 content를 소유한다.
 - 경쟁 채널 상태는 1차 판매 정보와 2차 일별 추이가 공유하므로 `product-drawer/useCompetitorChannels.ts`가 소유한다. 2차 상세 조회는 `product-drawer/secondary/useSecondaryDrawerDetail.ts`가 소유한다.
@@ -83,7 +83,7 @@
 | `vite.config.ts` | Vite/Vitest 설정. 프로덕션 빌드의 vendor chunk 분리는 Rolldown `codeSplitting.groups`에서 관리하고, Vitest는 Playwright 전용 `e2e/`를 제외한다. | 빌드 옵션, 플러그인, chunk 분리 기준, 단위 테스트 포함/제외 범위 변경 시 수정 |
 | `playwright.config.ts` | e2e 테스트 실행 설정. 로컬 Vite dev server를 4175 포트로 띄우고 Chromium 프로젝트에서 주요 시나리오를 실행한다. | e2e 브라우저, 서버 포트, retry/report/trace 정책 변경 시 수정 |
 | `tsconfig*.json` | TypeScript 컴파일 경계. 현재 앱/노드 설정 모두 `strict: true`를 사용한다. | TS 대상, strictness, include 경계 변경 시 수정 |
-| `eslint.config.js` | 린트 규칙. 현재 전체 `npm run lint`는 통과해야 하는 기준선이다. | 규칙이나 대상 변경 시 수정 |
+| `eslint.config.js` | 린트 규칙. 현재 전체 `npm run lint`는 통과해야 하는 기준선이다. Playwright report/test-results 같은 실행 산출물은 검사 대상에서 제외한다. | 규칙이나 대상 변경 시 수정 |
 | `index.html` | Vite HTML 진입점. | 루트 마크업/메타/앱 mount 변경 시 수정 |
 | `scripts/check-korean-encoding.mjs` | `src`, `e2e`, `MD`의 UTF-8 한국어 문자열이 실제 mojibake나 replacement 문자로 손상됐는지 확인한다. 콘솔 표시 깨짐과 파일 손상을 구분하기 위한 검사 도구다. | 한국어 문자열 점검 범위, 검사 휴리스틱, 문서 위치 변경 시 수정 |
 | `public/` | 빌드에 그대로 포함되는 정적 자산. | URL로 직접 참조되는 자산 추가/수정 |
@@ -122,7 +122,7 @@
 | `api/index.ts` | API public export. | 외부에서 import할 API surface 변경 시 수정 |
 | `api/mock.ts` | request adapter가 사용하는 mock API 진입 파일. 화면과 훅은 import하지 않는다. | mock 구현 위치를 바꿀 때만 수정 |
 | `api/dailyTrendAsOf.ts` | 일간 트렌드 as-of 계산 보조 로직. | 일간 트렌드 기준일 규칙 변경 시 수정 |
-| `api/types/*` | 프론트-백엔드 계약 타입. 관리자 GPT 키 계약은 `admin-gpt-key.ts`, 구글 시트 설정 계약은 `admin-google-sheet.ts`, 인증 계약은 `auth.ts`, 후보군 계약은 `candidate.ts`, 저장 스냅샷 계약은 `snapshot.ts`, 2차 드로워 계약은 `secondary.ts`가 소유한다. | 요청/응답 구조가 바뀌면 먼저 수정 |
+| `api/types/*` | 프론트-백엔드 계약 타입. 관리자 GPT 키 계약은 `admin-gpt-key.ts`, 구글 시트 설정 계약은 `admin-google-sheet.ts`, 인증 계약은 `auth.ts`, 후보군 기본 계약은 `candidate.ts`, 후보 오더 지표/SSE 계약은 `candidate-order-metrics.ts`, 저장 스냅샷 계약은 `snapshot.ts`, 2차 드로워 계약은 `secondary.ts`가 소유한다. | 요청/응답 구조가 바뀌면 먼저 수정 |
 | `api/mock/*` | 읽기 전용 seed, mock 계산, mock 응답 구현. mutation mock은 브라우저 저장소를 DB처럼 변경하지 않는다. | 데모 데이터나 mock 동작 변경 시 수정 |
 | `dashboard-app/public/templates/*` | 현재 프론트가 정적으로 제공하는 후보군 업로드 템플릿 배포 파일. 원본 초안은 루트 `TEMPLATE/`에 둔다. | 템플릿 파일을 프론트 배포물로 교체할 때 수정. 백엔드 endpoint로 이전하면 제거 |
 
@@ -133,7 +133,8 @@
 | `admin-gpt-key.ts` | 관리자 GPT 키 목록/추가/메타 변경/키 회전/연결 테스트/삭제 계약. GPT만 사용하므로 공급자/Base URL/Project ID는 계약에서 제외하고, 생성/회전 요청 payload에만 `plainKey`를 허용하며 목록 응답에는 `maskedKey`만 포함한다 |
 | `admin-google-sheet.ts` | 관리자 구글 시트 설정 목록/추가/변경/삭제 계약. 생성/변경 요청은 키 JSON, 시트 주소, 용도, 비고를 소유하고, 서비스 계정 이메일은 JSON의 `client_email`에서 파싱된 값으로 응답한다. 목록 응답에는 원문 키 대신 `maskedServiceAccountKey`만 포함한다 |
 | `auth.ts` | 로그인 요청, 인증 사용자, 사용자 정보/비밀번호 변경, 관리자 유저 추가/제거/수정/비밀번호 재설정, 세션, 인증 API 계약 |
-| `candidate.ts` | 후보군/이너 후보 요청·응답 계약. 기간 기반 후보군 리스트 조회, `referenceItems`/`candidateItems` 분리, `CANDIDATE_ITEM.sku_uuid = SKU.uuid` 관계, 오더 지표 SSE 이벤트, DB형 배지 배열, 상세확정 여부, 스냅샷 없는 일괄 담기 payload, nullable 상세 스냅샷을 소유한다 |
+| `candidate.ts` | 후보군/이너 후보 기본 요청·응답 계약. 기간 기반 후보군 리스트 조회, `referenceItems`/`candidateItems` 분리, `CANDIDATE_ITEM.sku_uuid = SKU.uuid` 관계, DB형 배지 배열, 상세확정 여부, 스냅샷 없는 일괄 담기 payload, nullable 상세 스냅샷을 소유한다 |
+| `candidate-order-metrics.ts` | 이너 후보 총 오더 수량/금액, 발주 엑셀용 `orderExport`, 오더 지표 로딩 상태, `subscribeCandidateOrderMetrics` SSE 이벤트/구독 계약을 소유한다. 무거운 계산 job/stream 계약 변경 시 이 파일과 backend API spec을 함께 갱신한다 |
 | `dashboard-api.ts` | 화면에서 쓰는 `DashboardApi` 인터페이스 |
 | `drawer.ts` | 1차 drawer bundle, 월간 판매 추이, 판매 인사이트 계약 |
 | `index.ts` | API public type export |
@@ -149,7 +150,10 @@
 | `adminGoogleSheetApi.ts` | mock 관리자 구글 시트 설정 구현. 관리자 세션만 허용하고, 서비스 계정 JSON 키 원문은 응답/목록 상태에 남기지 않는다 |
 | `authApi.ts` | mock 인증 API 구현. 로그인 입력값은 검증 없이 통과시키고, 사용자 목록은 정적 seed, 세션은 런타임 메모리에만 둔다. 관리자 비밀번호 재설정은 임시 비밀번호 1회 응답 흐름만 모사한다 |
 | `candidateSeeds.ts` | 후보군/후보 아이템 읽기 전용 seed 데이터와 소유자 UUID, 목업 AI 코멘트 포함 스냅샷. 기본 후보군 A에는 신발/의류/테스트 상품을 섞어 엑셀 동적 사이즈 컬럼을 검증한다 |
-| `candidateMockApi.ts` | 후보군/이너후보군 mock API 구현. 후보군 소유자 필터링, 후보 아이템 인메모리 mutation, 초기 조회 응답, 오더 지표 SSE mock, 후보군 분석 SSE mock, 엑셀 업로드 mock 응답을 소유한다. 기간 기준 후보 요약/배지/오더 지표 DTO 조립은 `candidateItemSummaryBuilder.ts`에 위임한다 |
+| `candidateMockApi.ts` | 후보군/이너후보군 public mock API facade. 후보 아이템 인메모리 mutation, 후보군 생성/수정/삭제/복제 mock 응답, 엑셀 업로드 mock 응답을 연결한다. store/list/SSE 세부 구현은 아래 전용 파일에 위임한다 |
+| `candidateMockStore.ts` | 후보군/후보 아이템 seed store 읽기, 소유자 필터링, 후보군 summary 변환, 기간 기반 list result 조립, candidate item record 생성을 소유한다 |
+| `candidateOrderMetricStream.ts` | `subscribeCandidateOrderMetrics` mock SSE. candidate item UUID 목록을 받아 행별 오더 지표 이벤트와 completed 이벤트를 순차 발행한다 |
+| `candidateStashAnalysisStream.ts` | 후보군 분석 mock job 생성과 analysis SSE 진행 이벤트를 소유한다 |
 | `candidateItemSummaryBuilder.ts` | 이너후보군 조회 기간 기준 reference item, candidate item, live 배지, 오더 지표, 발주 엑셀 다운로드용 `orderExport` DTO 조립을 소유한다 |
 | `dashboardApi.ts` | 판매 분석, 산점도, 상품 드로어 조회 mock `DashboardApi` 구현체. 후보군 API는 `candidateMockApi.ts`, 2차 재고·발주 계산은 `secondaryStockOrderCalcApi.ts`를 연결해 public 계약만 합친다 |
 | `orderSnapshotForCandidate.ts` | 후보 아이템용 오더 스냅샷 생성/복원 보조와 임시 목업 AI 코멘트 생성 |
@@ -168,7 +172,10 @@
 | `authRequests.ts` | 로그인, 세션, 사용자 정보, 관리자 사용자 관리 요청 adapter. 실제 백엔드 전환 시 HttpOnly 세션, 비밀번호/임시 비밀번호 일회성 응답, 관리자 보호 정책을 이 파일에서 HTTP 요청으로 연결한다 |
 | `adminGptKeyRequests.ts` | 관리자 GPT 키 관리 요청 adapter. GPT 전용 계약이며 원문 키는 생성/회전 요청에만 싣고 목록/변경/테스트/삭제 응답은 원문 키를 받지 않는 흐름을 유지한다. 기존 화면의 단일 변경 요청은 메타 PATCH 후 필요 시 rotate 요청으로 분리한다 |
 | `adminGoogleSheetRequests.ts` | 관리자 구글 시트 설정 요청 adapter. 서비스 계정 JSON 키는 생성/변경 요청에만 싣고, 목록 응답은 마스킹 키와 시트 식별 메타만 받는 흐름을 유지한다. 백엔드는 JSON `client_email` 파싱, 키 보관/암호화, 시트 ID 파싱을 이 경계 뒤에서 처리한다 |
-| `dashboardRequests.ts` | 자사/경쟁 판매, 상품 드로워, 후보군, 엑셀 업로드 템플릿 요청 adapter. 후보군 계열은 현재 세션의 `USER_ACCOUNT.uuid`를 request boundary에서만 붙이고, 화면 내부로 사용자 UUID를 흘리지 않는다. 경쟁 분석은 `competitorChannelId`가 없으면 전체 경쟁 채널 합계로 조회하고, 1차 드로워 판매 인사이트는 선택 경쟁 채널을 반드시 보낸다. 2차 드로워 AI 코멘트는 드로워 열림 시점에 별도 요청하되 자동 저장하지 않는다. 기간 기반 후보군 리스트는 전체 SKU 분포 배지 계산 후 reference/candidate item을 분리 반환하고, 총 오더 지표는 SSE로 행별 계산해야 한다는 백엔드 주의점을 이 경계에 기록한다. 후보군 엑셀 업로드/템플릿은 백엔드 이관 대상이지만, 이너후보군 발주 엑셀 다운로드는 이미 받은 reference item과 SSE `orderExport` 기반 프론트 생성 기능이다 |
+| `dashboardRequestShared.ts` | dashboard request adapter들이 공유하는 정적 템플릿 파일명, public asset URL, path/query param helper를 소유한다 |
+| `dashboardRequests.ts` | `VITE_USE_MOCK_API`에 따라 mock/HTTP dashboard adapter를 선택하는 얇은 진입점. 도메인별 호출 구현을 넣지 않는다 |
+| `mockDashboardRequests.ts` | mock dashboard adapter. 후보군 계열은 현재 세션의 `USER_ACCOUNT.uuid`를 request boundary에서만 붙이고, 화면 내부로 사용자 UUID를 흘리지 않는다. mock API를 직접 화면으로 노출하지 않는 보호막이다 |
+| `httpDashboardRequests.ts` | 실제 백엔드 HTTP dashboard adapter. 자사/경쟁 판매, 상품 드로워, 후보군, SSE, 엑셀 업로드/템플릿 endpoint 경로를 `DashboardApi` 계약에 맞춰 연결한다 |
 | `index.ts` | request adapter export 진입 파일 |
 
 ## src/auth
@@ -294,7 +301,10 @@
 | `CandidateStashDeleteDialogs.tsx` | 이너 후보 개별 삭제와 일괄 삭제 확인 모달만 소유한다. |
 | `CandidateStashMissingState.tsx` | 후보군을 찾지 못했을 때의 빈 상태 렌더링만 소유한다. |
 | `CandidateStashDetailModal.module.css` | 후보군 상세 모달 CSS 진입점. 실제 스타일은 `candidate-stash/style-parts/*`가 header, filter/summary, inner order list, modal shell, responsive로 나눠 소유한다. |
-| `useCandidateStashDetailModal.ts` | 후보군 상세 모달의 모델 조립 hook. 후보군/아이템 조회, 데이터 참조기간 초기화, reference/candidate item 합성, 추천 파생, 오더 지표 SSE 구독을 묶는다. 추천 적용 시에는 기존 후보와 비교해 새로 추가된 후보만 오더 지표 SSE 대상으로 보내고 기존 계산 완료값은 보존한다. 필터·정렬은 `useInnerCandidateTable.ts`, drawer hydration/전환은 `useCandidateStashItemDrawer.ts`, 삭제·엑셀 액션은 `useCandidateStashItemActions.ts`에 위임한다. |
+| `useCandidateStashDetailModal.ts` | 후보군 상세 모달의 모델 조립 hook. 데이터 참조기간 적용, 후보 아이템 조회, 추천 파생, 하위 hook 연결만 맡는다. 후보군 summary 조회는 `useCandidateStashSummaries.ts`, 오더 지표 SSE는 `useCandidateOrderMetricStream.ts`, 필터·정렬은 `useInnerCandidateTable.ts`, drawer hydration/전환은 `useCandidateStashItemDrawer.ts`, 삭제·엑셀 액션은 `useCandidateStashItemActions.ts`에 위임한다. |
+| `useCandidateStashSummaries.ts` | 후보군 summary 목록 조회, 전달받은 summary 우선 사용, 현재 상세 대상 `detailTarget`, 목록 무효화 후 재조회 액션을 소유한다. |
+| `useCandidateOrderMetricStream.ts` | 이너 후보 총 오더 수량/금액 SSE 구독, requestId/seq stale guard, item/itemFailed 이벤트의 row 반영을 소유한다. 목록 조회 hook은 stream lifecycle을 직접 알지 않는다. |
+| `candidateItemListMergeModel.ts` | 후보 추천 적용 뒤 기존 행의 계산 완료 오더 지표를 보존할지, 새로 추가된 후보만 SSE 재계산 대상에 넣을지 결정하는 순수 병합 모델. |
 | `candidateItemMetricModel.ts` | SSE로 받은 오더 지표를 `CandidateItemSummary` 행에 적용하고, `referenceItems`에서 이미 후보군에 담긴 `skuUuid`를 제외해 추천 목록을 파생하는 순수 모델 함수. |
 | `useVisibleUuidSelection.ts` | 화면에 보이는 UUID 목록 기준 선택 상태, 전체 선택, indeterminate checkbox ref를 소유하는 공통 hook이다. |
 | `useInnerCandidateTable.ts` | 이너 후보 아이템의 필터 옵션, 검색어, 정렬 상태, row 생성, 합계 계산을 소유한다. |
@@ -335,7 +345,7 @@
 
 | 파일/폴더 | 역할 |
 |------|------|
-| `ProductSecondaryDrawer.tsx` | 2차 드로워 container. 기간/단가/AI 코멘트/확정수량 draft 같은 화면 상태만 들고, 이너 후보 저장 스냅샷은 초기 hydrate 값으로만 사용한다. AI 코멘트 요청은 `hooks/useSecondaryAiComment.ts`, 나머지 요청은 `hooks/useSecondaryDrawerRequests.ts`, 계산은 `hooks/useSecondaryOrderCalculations.ts`, 조립은 `hooks/useSecondaryForecastModel.ts`, 렌더는 `ProductSecondaryDrawerContent.tsx`에 위임한다 |
+| `ProductSecondaryDrawer.tsx` | 2차 드로워 container. 기간/단가/확정수량 draft 같은 화면 상태와 하위 hook 연결만 들고, 이너 후보 저장 스냅샷은 초기 hydrate 값으로만 사용한다. AI 코멘트 상태는 `hooks/useSecondaryAiCommentState.ts`, 스냅샷 hydrate side effect는 `hooks/useSecondarySnapshotPrefill.ts`, help id/popover는 `hooks/useSecondaryHelpController.ts`, 계산 조립은 `hooks/useSecondaryForecastModel.ts`, 렌더는 `ProductSecondaryDrawerContent.tsx`에 위임한다 |
 | `ProductSecondaryDrawerContent.tsx` | 2차 드로워 render-only content. 메타/후보군 액션/판매예측/AI 코멘트/일별 추이/사이즈 오더 카드 배치, 상세확정 해제 확인 모달, help popover 렌더링만 소유한다 |
 | `useSecondaryDrawerDetail.ts` | 2차 드로워가 열릴 때의 상세 조회와 검증된 스냅샷 hydration |
 | `secondaryDrawerTypes.ts` | 2차 드로워 내부 view-model 타입 |
@@ -344,7 +354,8 @@
 | `CandidateStashPickerModal.tsx` | 2차 드로워 후보군 선택/생성 portal 모달. 후보군 옵션 표시와 선택 이벤트만 소유한다 |
 | `secondarySnapshot.ts` | 2차 드로워의 오더 스냅샷 문서 생성. 저장 범위와 `OrderSnapshotDocumentV1` 필드 매핑을 UI 본문에서 분리한다 |
 | `cards/*` | 2차 드로워 카드 단위 UI. `SizeOrderCard`는 사이즈별 오더 표와 가중치 입력만 소유하고, 비중 차트 행은 `SizeOrderShareChartRow.tsx`가 소유한다. 가중치 상태는 스냅샷 계약에 맞춰 `selfWeightPct`로 저장한다 |
-| `hooks/*` | 2차 드로워 hook 경계. `useSecondaryAiComment.ts`는 드로워 열림 기준 AI 코멘트 요청, `useSecondaryDrawerRequests.ts`는 판매/재고/일별 추이 API 요청, `useSecondaryOrderCalculations.ts`는 계산 view-model, `useSecondaryForecastModel.ts`는 상태/요청/계산 결과를 얇게 조립, `useSecondaryCandidateActions.ts`는 후보군 저장과 이너 후보 확정/확정해제 액션을 소유한다 |
+| `hooks/*` | 2차 드로워 hook 경계. `useSecondaryAiComment.ts`는 드로워 열림 기준 AI 코멘트 요청, `useSecondaryAiCommentState.ts`는 AI 프롬프트/답변 state와 요청 결과 반영, `useSecondarySnapshotPrefill.ts`는 저장 스냅샷을 2차 드로워 form state에 hydrate하는 side effect, `useSecondaryHelpController.ts`는 help id와 portal popover, `useSecondaryDrawerRequests.ts`는 판매/재고/일별 추이 API 요청, `useSecondaryOrderCalculations.ts`는 계산 view-model, `useSecondaryForecastModel.ts`는 상태/요청/계산 결과를 얇게 조립, `useSecondaryCandidateActions.ts`는 후보군 저장과 이너 후보 확정/확정해제 액션을 소유한다 |
+| `secondaryDefaultLeadTime.ts` | 2차 드로워 기본 입고 예정일 범위 계산. 날짜 기본값 규칙 변경 시 이 파일만 먼저 확인한다 |
 | `model/*` | 2차 드로워 계산 로직. `SecondaryOrderDraft`는 live/snapshot 모드별 사이즈 확정 수량 baseline과 사용자 override 책임을 묶은 작은 클래스다. `secondarySizeOrderRows.ts`는 사이즈 비중, 추천 수량, 확정 수량 view-model 생성을 소유한다 |
 | `style-parts/*` | `secondaryDrawer.module.css`가 CSS `@import`로 묶는 2차 드로워 카드/컨트롤/표/입력 스타일 조각 |
 | `secondaryDrawer.module.css` | 2차 드로워 content 스타일 |
@@ -412,7 +423,9 @@ React나 API 구현에 의존하지 않는 순수 보조 함수만 둔다.
 | `forecastMonthsStorage.ts` | forecast month localStorage 저장 |
 | `format.ts` | 숫자/비율/EA 표시 format. 하드닝 완료 모듈이며 상세 계약은 `module-hardening.md`를 따른다 |
 | `hashRank.ts` | hash 기반 rank 보조. 하드닝 완료 모듈이며 상세 계약은 `module-hardening.md`를 따른다 |
-| `candidateOrderExcelExport.ts` | 이미 조회한 후보군 아이템의 SSE `orderExport` DTO를 발주용 XLSX로 변환하고 다운로드 파일명을 만든다. `CandidateOrderWorkbookBuilder`가 ExcelJS 모듈, clock, 스타일 정책을 주입받아 통합 문서 생성 책임을 가진다. `exceljs`는 후보군 상세 목록 로딩 후 미리 로드하고 다운로드 시 같은 promise를 재사용한다. 주 데이터/메타 시트 헤더와 `N/A` 셀 스타일을 적용하며, 오더 지표가 없는 행은 오류로 드러낸다 |
+| `candidateOrderExcelData.ts` | 이미 조회한 후보군 아이템의 SSE `orderExport` DTO를 발주 엑셀용 주 데이터/메타 행과 컬럼 폭 view-model로 변환한다. 오더 지표가 없는 행은 오류로 드러내고, ExcelJS나 브라우저 다운로드 API는 알지 않는다. |
+| `candidateOrderExcelWorkbook.ts` | `CandidateOrderWorkbookBuilder`가 ExcelJS 모듈, clock, 스타일 정책을 주입받아 XLSX 통합 문서를 생성한다. 주 데이터/메타 시트 헤더와 `N/A` 셀 스타일, 파일명 생성 규칙을 소유한다. |
+| `candidateOrderExcelExport.ts` | 후보군 엑셀 다운로드 public entry. `exceljs`를 후보군 상세 목록 로딩 후 미리 로드하고 다운로드 시 같은 promise를 재사용하며, 생성된 Blob을 브라우저 다운로드로 연결한다. 기존 호출부 호환을 위해 workbook builder도 재수출한다. |
 | `salesKpiColumn.ts` | 판매 KPI column view-model helper |
 | `scatterGridDisplay.ts` | Scatter-grid cell count -> blue lightness color, and response meta + chart size -> dynamic point radius. Binning itself remains backend-owned. |
 | `sort.ts` | 정렬 방향/상태/값 타입과 한국어 문자열·숫자·빈 값 비교 helper. 하드닝 완료 모듈이며 상세 계약은 `module-hardening.md`를 따른다 |
