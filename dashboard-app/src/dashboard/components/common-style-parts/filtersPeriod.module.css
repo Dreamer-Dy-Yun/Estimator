@@ -67,16 +67,21 @@
 }
 
 .fieldDisabled label {
-  color: #94a3b8;
+  color: #64748b;
 }
 
 .field input:disabled,
 .field select:disabled {
   border-color: #dbe4ef;
-  border-style: dashed;
-  background: #f8fafc;
-  color: transparent;
+  background: #f1f5f9;
+  color: #64748b;
+  -webkit-text-fill-color: #64748b;
   cursor: not-allowed;
+}
+
+.field input:disabled::placeholder {
+  color: #94a3b8;
+  opacity: 1;
 }
 
 .periodTools {

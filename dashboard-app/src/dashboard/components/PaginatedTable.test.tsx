@@ -42,6 +42,12 @@ function renderTable(onOrderedRowIdsChange = vi.fn()) {
   return { onOrderedRowIdsChange }
 }
 
+function findHeader(label: string) {
+  const header = [...document.querySelectorAll('th')].find((node) => node.textContent?.includes(label))
+  expect(header).toBeTruthy()
+  return header as HTMLTableCellElement
+}
+
 afterEach(() => {
   act(() => {
     root?.unmount()
@@ -61,13 +67,49 @@ describe('PaginatedTable', () => {
 
   it('reports row ids again when the visible sort order changes', () => {
     const { onOrderedRowIdsChange } = renderTable()
-    const qtyHeader = [...document.querySelectorAll('th')].find((node) => node.textContent?.includes('판매량'))
-    expect(qtyHeader).toBeTruthy()
+    const qtyHeader = findHeader('판매량')
 
     act(() => {
       qtyHeader?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
     })
 
     expect(onOrderedRowIdsChange).toHaveBeenLastCalledWith(['a', 'c', 'b'])
+  })
+
+  it('exposes aria-sort and sort action labels on sortable headers', () => {
+    renderTable()
+    const labelHeader = findHeader('상품명')
+    const qtyHeader = findHeader('판매량')
+
+    expect(labelHeader.getAttribute('aria-sort')).toBe('none')
+    expect(labelHeader.getAttribute('aria-label')).toBe('상품명 기준 오름차순 정렬')
+    expect(labelHeader.getAttribute('title')).toBe('상품명 기준 오름차순 정렬')
+    expect(qtyHeader.getAttribute('aria-sort')).toBe('ascending')
+    expect(qtyHeader.getAttribute('aria-label')).toBe('판매량 기준 내림차순 정렬')
+    expect(qtyHeader.tabIndex).toBe(0)
+  })
+
+  it('sorts from the focused header with Enter', () => {
+    const { onOrderedRowIdsChange } = renderTable()
+    const qtyHeader = findHeader('판매량')
+
+    act(() => {
+      qtyHeader.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }))
+    })
+
+    expect(qtyHeader.getAttribute('aria-sort')).toBe('descending')
+    expect(onOrderedRowIdsChange).toHaveBeenLastCalledWith(['a', 'c', 'b'])
+  })
+
+  it('sorts from the focused header with Space', () => {
+    const { onOrderedRowIdsChange } = renderTable()
+    const labelHeader = findHeader('상품명')
+
+    act(() => {
+      labelHeader.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', bubbles: true }))
+    })
+
+    expect(labelHeader.getAttribute('aria-sort')).toBe('ascending')
+    expect(onOrderedRowIdsChange).toHaveBeenLastCalledWith(['a', 'b', 'c'])
   })
 })

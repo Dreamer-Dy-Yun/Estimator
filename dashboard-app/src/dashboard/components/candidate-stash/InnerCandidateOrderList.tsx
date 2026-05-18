@@ -1,4 +1,4 @@
-import { useEffect, useRef, type ReactNode, type RefObject } from 'react'
+import { memo, useCallback, useEffect, useRef, type KeyboardEvent, type ReactNode, type RefObject } from 'react'
 import { formatEaQuantity, formatGroupedNumber } from '../../../utils/format'
 import { LoadingSpinner } from '../../../components/LoadingSpinner'
 import { CandidateInsightBadges } from './CandidateInsightBadges'
@@ -35,14 +35,111 @@ function InnerOrderSortHeader({ label, sortKey, activeKey, activeDir, align = 'l
   )
 }
 
-function OrderMetricCell({ row, kind }: { row: InnerCandidateRow; kind: 'qty' | 'amount' }) {
+const OrderMetricCell = memo(function OrderMetricCell({ row, kind }: { row: InnerCandidateRow; kind: 'qty' | 'amount' }) {
   if (row.orderMetricStatus === 'failed') return <span className={detailStyles.innerOrderMetricState}>실패</span>
   if (row.orderMetricStatus !== 'loaded') {
     return <LoadingSpinner size="inline" label="오더 지표 계산 중" showLabel={false} />
   }
   if (kind === 'qty') return <>{formatGroupedNumber(row.insight.expectedSalesQty)} EA</>
   return <>{formatGroupedNumber(row.expectedOrderAmount)} 원</>
+})
+
+type InnerCandidateOrderRowProps = {
+  row: InnerCandidateRow
+  index: number
+  selected: boolean
+  active: boolean
+  drawerOpen: boolean
+  rowRefs: RefObject<Map<string, HTMLDivElement>>
+  onToggleSelectedItem: (uuid: string) => void
+  onToggleItemDrawer: (row: InnerCandidateRow) => void
 }
+
+const InnerCandidateOrderRow = memo(function InnerCandidateOrderRow({
+  row,
+  index,
+  selected,
+  active,
+  drawerOpen,
+  rowRefs,
+  onToggleSelectedItem,
+  onToggleItemDrawer,
+}: InnerCandidateOrderRowProps) {
+  const rowRefMap = rowRefs.current
+  const setRowRef = useCallback((node: HTMLDivElement | null) => {
+    if (node) rowRefMap.set(row.uuid, node)
+    else rowRefMap.delete(row.uuid)
+  }, [row.uuid, rowRefMap])
+  const toggleDrawer = useCallback(() => {
+    onToggleItemDrawer(row)
+  }, [onToggleItemDrawer, row])
+  const toggleSelected = useCallback(() => {
+    onToggleSelectedItem(row.uuid)
+  }, [onToggleSelectedItem, row.uuid])
+  const onRowKeyDown = useCallback((e: KeyboardEvent<HTMLDivElement>) => {
+    const target = e.target as HTMLElement | null
+    if (target?.closest('input, button, a, select, textarea')) return
+    if (e.key === 'ArrowLeft') {
+      e.preventDefault()
+      onToggleItemDrawer(row)
+      return
+    }
+    if (e.key !== 'Enter' && e.key !== ' ') return
+    e.preventDefault()
+    onToggleItemDrawer(row)
+  }, [onToggleItemDrawer, row])
+  const rankToneClass = row.insight.rankTone === 'top'
+    ? detailStyles.innerOrderRowTop
+    : row.insight.rankTone === 'bottom'
+      ? detailStyles.innerOrderRowBottom
+      : ''
+
+  return (
+    <div
+      ref={setRowRef}
+      className={`${detailStyles.innerOrderRow} ${rankToneClass} ${active ? detailStyles.innerOrderRowActive : ''}`}
+      onClick={toggleDrawer}
+      onKeyDown={onRowKeyDown}
+      role="listitem"
+      tabIndex={0}
+      aria-expanded={drawerOpen && active}
+      aria-current={active ? 'true' : undefined}
+    >
+      <span className={detailStyles.innerOrderIndexCell}>{index + 1}</span>
+      <span className={detailStyles.innerOrderCheckCell}>
+        <input
+          type="checkbox"
+          checked={selected}
+          aria-label={`${row.productName} 선택`}
+          onClick={(e) => e.stopPropagation()}
+          onChange={toggleSelected}
+        />
+      </span>
+      <span className={detailStyles.innerOrderBrand}>{row.brand}</span>
+      <span className={detailStyles.innerOrderCode}>{row.code}</span>
+      <span className={detailStyles.innerOrderName}>{row.productName}</span>
+      <span className={detailStyles.innerOrderColor}>{row.colorCode}</span>
+      <span className={detailStyles.innerOrderConfirmState}>
+        {row.isDetailConfirmed ? '상세확정' : '상세미확정'}
+      </span>
+      <span className={detailStyles.innerOrderCellNum}>{formatEaQuantity(row.insight.selfQty)}</span>
+      <span className={detailStyles.innerOrderCellNum}>{formatEaQuantity(row.insight.competitorQty)}</span>
+      <span className={detailStyles.innerOrderCellNum}>
+        <OrderMetricCell row={row} kind="qty" />
+      </span>
+      <span className={detailStyles.innerOrderCellNum}>
+        <OrderMetricCell row={row} kind="amount" />
+      </span>
+      <span className={detailStyles.innerOrderBadgeList}>
+        <CandidateInsightBadges
+          badges={row.insight.badges}
+          loading={row.insightStatus === 'loading'}
+          failed={row.insightStatus === 'failed'}
+        />
+      </span>
+    </div>
+  )
+})
 
 type Props = {
   rows: InnerCandidateRow[]
@@ -115,66 +212,17 @@ export function InnerCandidateOrderList({
         const selected = selectedUuidSet.has(row.uuid)
         const active = drawerOpen && openedItemUuid === row.uuid
         return (
-          <div
+          <InnerCandidateOrderRow
             key={row.uuid}
-            ref={(node) => {
-              if (node) rowRefs.current.set(row.uuid, node)
-              else rowRefs.current.delete(row.uuid)
-            }}
-            className={`${detailStyles.innerOrderRow} ${
-              row.insight.rankTone === 'top'
-                ? detailStyles.innerOrderRowTop
-                : row.insight.rankTone === 'bottom'
-                  ? detailStyles.innerOrderRowBottom
-                  : ''
-            } ${active ? detailStyles.innerOrderRowActive : ''}`}
-            onClick={() => onToggleItemDrawer(row)}
-            onKeyDown={(e) => {
-              const target = e.target as HTMLElement | null
-              if (target?.closest('input, button, a, select, textarea')) return
-              if (e.key === 'ArrowLeft') {
-                e.preventDefault()
-                onToggleItemDrawer(row)
-                return
-              }
-              if (e.key !== 'Enter' && e.key !== ' ') return
-              e.preventDefault()
-              onToggleItemDrawer(row)
-            }}
-            role="listitem"
-            tabIndex={0}
-            aria-expanded={drawerOpen && openedItemUuid === row.uuid}
-            aria-current={active ? 'true' : undefined}
-          >
-            <span className={detailStyles.innerOrderIndexCell}>{index + 1}</span>
-            <span className={detailStyles.innerOrderCheckCell}>
-              <input
-                type="checkbox"
-                checked={selected}
-                aria-label={`${row.productName} 선택`}
-                onClick={(e) => e.stopPropagation()}
-                onChange={() => onToggleSelectedItem(row.uuid)}
-              />
-            </span>
-            <span className={detailStyles.innerOrderBrand}>{row.brand}</span>
-            <span className={detailStyles.innerOrderCode}>{row.code}</span>
-            <span className={detailStyles.innerOrderName}>{row.productName}</span>
-            <span className={detailStyles.innerOrderColor}>{row.colorCode}</span>
-            <span className={detailStyles.innerOrderConfirmState}>
-              {row.isDetailConfirmed ? '상세확정' : '상세미확정'}
-            </span>
-            <span className={detailStyles.innerOrderCellNum}>{formatEaQuantity(row.insight.selfQty)}</span>
-            <span className={detailStyles.innerOrderCellNum}>{formatEaQuantity(row.insight.competitorQty)}</span>
-            <span className={detailStyles.innerOrderCellNum}>
-              <OrderMetricCell row={row} kind="qty" />
-            </span>
-            <span className={detailStyles.innerOrderCellNum}>
-              <OrderMetricCell row={row} kind="amount" />
-            </span>
-            <span className={detailStyles.innerOrderBadgeList}>
-              <CandidateInsightBadges badges={row.insight.badges} />
-            </span>
-          </div>
+            row={row}
+            index={index}
+            selected={selected}
+            active={active}
+            drawerOpen={drawerOpen}
+            rowRefs={rowRefs}
+            onToggleSelectedItem={onToggleSelectedItem}
+            onToggleItemDrawer={onToggleItemDrawer}
+          />
         )
       })}
     </div>

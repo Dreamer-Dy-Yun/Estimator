@@ -1,6 +1,7 @@
 import styles from './secondaryDrawer.module.css'
 import { KO } from '../ko'
 import { LoadingSpinner } from '../../../../components/LoadingSpinner'
+import type { CandidateItemDetail } from '../../../../api'
 import type { OrderSnapshotDocumentV1 } from '../../../../snapshot/orderSnapshotTypes'
 import type { SecondaryHelpId } from './secondaryDrawerTypes'
 import type { usePortalHelpPopover } from '../../usePortalHelpPopover'
@@ -17,8 +18,8 @@ export type CandidateItemPanelContext = {
   onDraftChange?: (snapshot: OrderSnapshotDocumentV1, source: 'confirmed' | 'live') => void
   onResetDraft?: () => void
   onRestoreConfirmed?: () => void
-  onConfirmed?: (snapshot: OrderSnapshotDocumentV1) => void
-  onUnconfirmed?: () => void
+  onConfirmed?: (snapshot: OrderSnapshotDocumentV1, updatedItem: CandidateItemDetail) => void
+  onUnconfirmed?: (updatedItem: CandidateItemDetail) => void
   onSaved?: () => void
   onRequestDeleteItem: () => void
 }

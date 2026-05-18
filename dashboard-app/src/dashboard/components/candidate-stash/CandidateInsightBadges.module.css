@@ -23,6 +23,19 @@
   line-height: 1;
 }
 
+.pending,
+.failed {
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.failed {
+  color: #be123c;
+}
+
 :global([data-inner-drawer-open='true']) .badge,
 :global([data-inner-drawer-closing='true']) .badge {
   min-height: 17px;
@@ -34,4 +47,11 @@
 :global([data-inner-drawer-open='true']) .empty,
 :global([data-inner-drawer-closing='true']) .empty {
   font-size: 10px;
+}
+
+:global([data-inner-drawer-open='true']) .pending,
+:global([data-inner-drawer-closing='true']) .pending,
+:global([data-inner-drawer-open='true']) .failed,
+:global([data-inner-drawer-closing='true']) .failed {
+  font-size: 9px;
 }

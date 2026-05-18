@@ -84,6 +84,7 @@ export type {
   AppendCandidateItemPayload,
   AppendCandidateItemsPayload,
   UpdateCandidateItemPayload,
+  UpdateCandidateItemResponse,
 } from './candidate'
 export type {
   CandidateItemOrderExport,

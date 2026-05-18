@@ -31,6 +31,7 @@ export type {
   SecondaryCompetitorChannel,
   SecondaryStockOrderCalcResult,
   CandidateBadge,
+  CandidateItemDetail,
   CandidateItemListResult,
   CandidateItemListParams,
   CandidateOrderMetric,
@@ -59,6 +60,8 @@ export type {
   UpdateAdminGoogleSheetConfigPayload,
   UpdateAdminUserPayload,
   UpdateAuthUserPayload,
+  UpdateCandidateItemPayload,
+  UpdateCandidateItemResponse,
 } from './types'
 export { DAILY_TREND_AS_OF_DATE } from './dailyTrendAsOf'
 export {

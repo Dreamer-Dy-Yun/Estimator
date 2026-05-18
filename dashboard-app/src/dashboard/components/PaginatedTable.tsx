@@ -24,6 +24,33 @@ type StaticTableColumn<T> = TableColumnBase<T> & {
 
 export type TableColumn<T> = SortableTableColumn<T> | StaticTableColumn<T>
 
+type AriaSortValue = 'none' | 'ascending' | 'descending'
+const noopPageChange = () => {}
+
+function headerText(header: ReactNode, fallback: string) {
+  if (typeof header === 'string' || typeof header === 'number') return String(header)
+  return fallback
+}
+
+function ariaSortFor(columnKey: string, sort: SortState | null): AriaSortValue {
+  if (sort?.key !== columnKey) return 'none'
+  return sort.dir === 'asc' ? 'ascending' : 'descending'
+}
+
+function sortActionLabel(columnLabel: string, columnKey: string, sort: SortState | null) {
+  if (sort?.key !== columnKey) return `${columnLabel} 기준 오름차순 정렬`
+  if (sort.dir === 'asc') return `${columnLabel} 기준 내림차순 정렬`
+  return `${columnLabel} 정렬 해제`
+}
+
+type ColumnRenderConfig<T> = {
+  column: TableColumn<T>
+  canSort: boolean
+  style: CSSProperties
+  ariaSort?: AriaSortValue
+  actionLabel?: string
+}
+
 type PaginatedTableBase<T> = {
   columns: Array<TableColumn<T>>
   rows: T[]
@@ -96,15 +123,35 @@ export function PaginatedTable<T extends { id: string }>(props: PaginatedTablePr
 
   const page = plain ? 1 : props.page
   const pageSize = plain ? Math.max(1, sortedRows.length) : props.pageSize
-  const onPageChange = plain ? () => {} : props.onPageChange
-  const onPageSizeChange = plain ? () => {} : props.onPageSizeChange
+  const onPageChange = plain ? noopPageChange : props.onPageChange
+  const onPageSizeChange = plain ? noopPageChange : props.onPageSizeChange
 
   const totalPages = Math.max(1, Math.ceil(sortedRows.length / pageSize))
   const currentPage = Math.min(page, totalPages)
   const startIndex = plain ? 0 : (currentPage - 1) * pageSize
-  const pageRows = plain
-    ? (infiniteEnabled ? sortedRows.slice(0, visibleCount) : sortedRows)
-    : sortedRows.slice(startIndex, startIndex + pageSize)
+  const pageRows = useMemo(
+    () => (plain
+      ? (infiniteEnabled ? sortedRows.slice(0, visibleCount) : sortedRows)
+      : sortedRows.slice(startIndex, startIndex + pageSize)),
+    [infiniteEnabled, pageSize, plain, sortedRows, startIndex, visibleCount],
+  )
+  const columnConfigs = useMemo<Array<ColumnRenderConfig<T>>>(
+    () => columns.map((column) => {
+      const canSort = column.sortable !== false
+      const style = { textAlign: column.align ?? 'left', width: column.width } satisfies CSSProperties
+      if (!canSort) return { column, canSort, style }
+      const columnLabel = headerText(column.header, column.key)
+      const actionLabel = sortActionLabel(columnLabel, column.key, sort)
+      return {
+        column,
+        canSort,
+        style,
+        ariaSort: ariaSortFor(column.key, sort),
+        actionLabel,
+      }
+    }),
+    [columns, sort],
+  )
 
   useEffect(() => {
     if (!onOrderedRowIdsChange) return
@@ -117,7 +164,7 @@ export function PaginatedTable<T extends { id: string }>(props: PaginatedTablePr
 
   useEffect(() => {
     if (!infiniteEnabled || !activeRowId) return
-    const activeIndex = sortedRows.findIndex((row) => rowIdOf(row) === activeRowId)
+    const activeIndex = sortedRowIds.indexOf(activeRowId)
     if (activeIndex < 0 || activeIndex < visibleCount) return
     let alive = true
     const nextVisibleCount = Math.min(sortedRows.length, activeIndex + 1)
@@ -127,7 +174,7 @@ export function PaginatedTable<T extends { id: string }>(props: PaginatedTablePr
     return () => {
       alive = false
     }
-  }, [activeRowId, infiniteEnabled, rowIdOf, sortedRows, visibleCount])
+  }, [activeRowId, infiniteEnabled, sortedRowIds, sortedRows.length, visibleCount])
 
   useEffect(() => {
     if (!activeRowId) return
@@ -159,36 +206,46 @@ export function PaginatedTable<T extends { id: string }>(props: PaginatedTablePr
     return () => observer.disconnect()
   }, [infiniteEnabled, sortedRows.length, batchSize])
 
-  const onSort = (key: string, sortable: boolean) => {
+  const onSort = useCallback((key: string, sortable: boolean) => {
     if (!sortable) return
     setSort((current) => nextSortState(current, key))
     onPageChange(1)
-  }
+  }, [onPageChange])
+
+  const onHeaderSortKeyDown = useCallback((event: KeyboardEvent<HTMLTableCellElement>, key: string) => {
+    if (event.key !== 'Enter' && event.key !== ' ' && event.key !== 'Spacebar') return
+    event.preventDefault()
+    onSort(key, true)
+  }, [onSort])
 
   return (
     <div className={`${styles.tableWrap}${wrapClassName ? ` ${wrapClassName}` : ''}`} {...drawerKeepOpenDataProps()}>
       <div ref={tableBodyRef} className={styles.tableBody}>
         <table className={styles.table}>
           <colgroup>
-            {columns.map((c) => (
-              <col key={c.key} style={{ width: c.width }} />
+            {columnConfigs.map(({ column }) => (
+              <col key={column.key} style={{ width: column.width }} />
             ))}
           </colgroup>
           <thead>
             <tr>
-              {columns.map((c) => {
-                const canSort = c.sortable !== false
-                const cellStyle = { textAlign: c.align ?? 'left', width: c.width }
+              {columnConfigs.map(({ column, canSort, style: cellStyle, ariaSort, actionLabel }) => {
                 return (
                   <th
-                    key={c.key}
+                    key={column.key}
+                    scope="col"
                     style={cellStyle}
                     className={canSort ? styles.sortableTh : undefined}
-                    onClick={canSort ? () => onSort(c.key, true) : undefined}
+                    onClick={canSort ? () => onSort(column.key, true) : undefined}
+                    onKeyDown={canSort ? (event) => onHeaderSortKeyDown(event, column.key) : undefined}
+                    tabIndex={canSort ? 0 : undefined}
+                    aria-sort={canSort ? ariaSort : undefined}
+                    aria-label={canSort ? actionLabel : undefined}
+                    title={canSort ? actionLabel : undefined}
                   >
                     <span className={styles.thInner}>
-                      {c.header}
-                      {canSort && sort?.key === c.key && <span>{sort.dir === 'asc' ? '▲' : '▼'}</span>}
+                      {column.header}
+                      {canSort && sort?.key === column.key && <span>{sort.dir === 'asc' ? '▲' : '▼'}</span>}
                     </span>
                   </th>
                 )
@@ -214,9 +271,9 @@ export function PaginatedTable<T extends { id: string }>(props: PaginatedTablePr
                   tabIndex={clickable ? 0 : undefined}
                   aria-current={active ? 'true' : undefined}
                 >
-                  {columns.map((c) => (
-                    <td key={c.key} style={{ textAlign: c.align ?? 'left', width: c.width }}>
-                      {c.cell(row, startIndex + rowIndex)}
+                  {columnConfigs.map(({ column, style: cellStyle }) => (
+                    <td key={column.key} style={cellStyle}>
+                      {column.cell(row, startIndex + rowIndex)}
                     </td>
                   ))}
                 </tr>

@@ -2,15 +2,14 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { SecondaryCompetitorChannel } from '../../../../api'
 import { useAppToast } from '../../../../components/AppToastContext'
 import type { ProductPrimarySummary, ProductSecondaryDetail } from '../../../../types'
-import { daysInclusiveBetween, formatIsoDateLocal } from '../../../../utils/date'
 import type { OrderSnapshotDocumentV1 } from '../../../../snapshot/orderSnapshotTypes'
 import type { CandidateItemPanelContext } from './candidateActionCards'
 import { useSecondaryAiCommentState } from './hooks/useSecondaryAiCommentState'
 import { useSecondaryForecastModel } from './hooks/useSecondaryForecastModel'
 import { useSecondaryHelpController } from './hooks/useSecondaryHelpController'
+import { useSecondaryLeadTimeDates } from './hooks/useSecondaryLeadTimeDates'
 import { useSecondarySnapshotPrefill } from './hooks/useSecondarySnapshotPrefill'
 import { ProductSecondaryDrawerContent } from './ProductSecondaryDrawerContent'
-import { buildDefaultLeadTimeDates } from './secondaryDefaultLeadTime'
 
 export type { CandidateItemPanelContext }
 
@@ -47,14 +46,23 @@ export function ProductSecondaryDrawer({
   candidateItemContext = null,
   channelState,
 }: Props) {
-  const defaultLeadTime = useMemo(() => buildDefaultLeadTimeDates(), [])
   const { channelId, competitorChannels, onChannelChange } = channelState
   const { portalHelp, helpIds } = useSecondaryHelpController()
   const { showToast } = useAppToast()
   /** null: 예측 수량연산용 μ는 클라이언트 가중모형값. 숫자면 해당 값으로 덮어씀. */
   const [dailyMeanClient, setDailyMeanClient] = useState<number | null>(null)
-  const [leadTimeStartDate, setLeadTimeStartDate] = useState(defaultLeadTime.start)
-  const [leadTimeEndDate, setLeadTimeEndDate] = useState(defaultLeadTime.end)
+  const {
+    defaultLeadTime,
+    minOrderDate,
+    leadTimeStartDate,
+    leadTimeEndDate,
+    leadTimeDays,
+    setLeadTimeStartDate,
+    setLeadTimeEndDate,
+    handleCurrentOrderDateChange,
+    handleNextOrderDateChange,
+    resetLeadTimeToLive,
+  } = useSecondaryLeadTimeDates()
   const [bufferStock, setBufferStock] = useState(0)
   const [unitCostInput, setUnitCostInput] = useState(Math.max(0, Math.round(primary.price * 0.78)))
   const [unitPriceInput, setUnitPriceInput] = useState(Math.max(0, Math.round(primary.price)))
@@ -67,7 +75,6 @@ export function ProductSecondaryDrawer({
   )
   const [appliedPrefillKey, setAppliedPrefillKey] = useState<string | null>(null)
 
-  const minOrderDate = formatIsoDateLocal(new Date())
   const hasSavedSnapshot = Boolean(candidateItemContext?.confirmedSnapshot)
   const viewPeriodStart = periodStart
   const viewPeriodEnd = periodEnd
@@ -92,31 +99,6 @@ export function ProductSecondaryDrawer({
   const channel = useMemo<SecondaryCompetitorChannel>(
     () => competitorChannels.find((ch) => ch.id === channelId)!,
     [channelId, competitorChannels],
-  )
-
-  useEffect(() => {
-    let alive = true
-    queueMicrotask(() => {
-      if (alive) setLeadTimeStartDate((s) => (s < minOrderDate ? minOrderDate : s))
-    })
-    return () => {
-      alive = false
-    }
-  }, [minOrderDate, primary.skuGroupKey])
-
-  useEffect(() => {
-    let alive = true
-    queueMicrotask(() => {
-      if (alive) setLeadTimeEndDate((e) => (e < leadTimeStartDate ? leadTimeStartDate : e))
-    })
-    return () => {
-      alive = false
-    }
-  }, [leadTimeStartDate])
-
-  const leadTimeDays = useMemo(
-    () => daysInclusiveBetween(leadTimeStartDate, leadTimeEndDate),
-    [leadTimeEndDate, leadTimeStartDate],
   )
 
   const {
@@ -210,23 +192,9 @@ export function ProductSecondaryDrawer({
       alive = false
     }
   }, [prefillFromSnapshot, primary.skuGroupKey, selfCol.avgCost, selfCol.avgPrice, selfCol.feeRatePct])
-  const handleCurrentOrderDateChange = (next: string) => {
-    const v = next < minOrderDate ? minOrderDate : next
-    setLeadTimeStartDate(v)
-    setLeadTimeEndDate((e) => (e < v ? v : e))
-  }
-  const handleNextOrderDateChange = (next: string) => {
-    let v = next < minOrderDate ? minOrderDate : next
-    if (v < leadTimeStartDate) v = leadTimeStartDate
-    setLeadTimeEndDate(v)
-  }
-
   const handleResetToLive = useCallback(() => {
-    const nextStart = defaultLeadTime.start < minOrderDate ? minOrderDate : defaultLeadTime.start
-    const nextEnd = defaultLeadTime.end < nextStart ? nextStart : defaultLeadTime.end
     setDailyMeanClient(null)
-    setLeadTimeStartDate(nextStart)
-    setLeadTimeEndDate(nextEnd)
+    resetLeadTimeToLive()
     setBufferStock(0)
     setUnitCostInput(Math.max(0, Math.round(selfCol.avgCost ?? 0)))
     setUnitPriceInput(Math.max(0, Math.round(selfCol.avgPrice)))
@@ -240,9 +208,7 @@ export function ProductSecondaryDrawer({
     candidateItemContext?.onResetDraft?.()
   }, [
     candidateItemContext,
-    defaultLeadTime.end,
-    defaultLeadTime.start,
-    minOrderDate,
+    resetLeadTimeToLive,
     selfCol.avgCost,
     selfCol.avgPrice,
     selfCol.feeRatePct,

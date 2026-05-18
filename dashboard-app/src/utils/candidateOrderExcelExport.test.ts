@@ -20,6 +20,7 @@ function candidateItem(uuid: string, size: string): CandidateItemSummary {
     expectedOrderAmount: 100000,
     expectedSalesAmount: 150000,
     expectedOpProfit: 20000,
+    insightStatus: 'loaded',
     insight: {
       competitorChannelLabel: '크림',
       competitorQty: 8,

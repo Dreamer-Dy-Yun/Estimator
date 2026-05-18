@@ -3,6 +3,7 @@ import {
   deleteCandidateItem,
   deleteCandidateItems,
   updateCandidateItem,
+  type CandidateItemDetail,
   type CandidateItemSummary,
   type CandidateStashSummary,
 } from '../../../api'
@@ -21,6 +22,7 @@ type Args = {
   loadItems: () => Promise<void>
   refreshStashes: () => Promise<void>
   showToast: (message: string) => void
+  onItemsUnconfirmed?: (updatedItems: CandidateItemDetail[]) => void
 }
 
 export function useCandidateStashItemActions({
@@ -33,6 +35,7 @@ export function useCandidateStashItemActions({
   loadItems,
   refreshStashes,
   showToast,
+  onItemsUnconfirmed,
 }: Args) {
   const [itemDeleteBusy, setItemDeleteBusy] = useState(false)
   const [bulkDeleteBusy, setBulkDeleteBusy] = useState(false)
@@ -84,12 +87,13 @@ export function useCandidateStashItemActions({
     if (!uniqueUuids.length) return
     setBulkUnconfirmBusy(true)
     try {
-      await Promise.all(uniqueUuids.map((itemUuid) => updateCandidateItem({
+      const updatedItems = await Promise.all(uniqueUuids.map((itemUuid) => updateCandidateItem({
         itemUuid,
         details: null,
         isLatestLlmComment: false,
       })))
       if (!mountedRef.current) return
+      onItemsUnconfirmed?.(updatedItems)
       if (openedItemUuid && uniqueUuids.includes(openedItemUuid)) closeDrawer()
       await loadItems()
       await refreshStashes()
@@ -97,7 +101,7 @@ export function useCandidateStashItemActions({
     } finally {
       if (mountedRef.current) setBulkUnconfirmBusy(false)
     }
-  }, [closeDrawer, loadItems, openedItemUuid, refreshStashes, showToast])
+  }, [closeDrawer, loadItems, onItemsUnconfirmed, openedItemUuid, refreshStashes, showToast])
 
   const downloadOrderExcel = useCallback(async (userName: string) => {
     if (!detailTarget) return

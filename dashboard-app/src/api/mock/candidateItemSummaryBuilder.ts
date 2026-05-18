@@ -5,13 +5,9 @@ import type {
   CandidateReferenceItemSummary,
   CandidateStashItemSummary,
 } from '../types'
+import type { CandidateItemInsightSummary } from '../types/candidate'
 import type { CandidateItemRecord } from './records'
-import {
-  allKnownSkuGroupKeys,
-  competitorBySkuGroupKey,
-  secondaryCompetitorChannels,
-  selfBySkuGroupKey,
-} from './salesTables'
+import { allKnownSkuGroupKeys, competitorBySkuGroupKey, secondaryCompetitorChannels, selfBySkuGroupKey } from './salesTables'
 import { estimatePeriodWeight, productPrimaryBySkuGroupKey } from './productCatalog'
 
 export type CandidateDataReferencePeriod = {
@@ -61,7 +57,7 @@ function buildCandidateItemInsight(
   expectedSalesAmount: number,
   expectedOpProfit: number,
   dataReferencePeriod?: CandidateDataReferencePeriod,
-) {
+): CandidateItemInsightSummary {
   const competitor = competitorBySkuGroupKey[skuGroupKey]
   const self = selfBySkuGroupKey[skuGroupKey]
   const channelLabel = secondaryCompetitorChannels[0]?.label ?? '크림'
@@ -93,6 +89,34 @@ function buildCandidateItemInsight(
     topPercentThreshold: INNER_ORDER_TOP_PERCENT_THRESHOLD,
     bottomPercentThreshold: INNER_ORDER_BOTTOM_PERCENT_THRESHOLD,
     badges: toCandidateBadges(badgeNameList),
+  }
+}
+
+function hasCandidateBadgeSource(skuGroupKey: string) {
+  const competitor = competitorBySkuGroupKey[skuGroupKey]
+  const self = selfBySkuGroupKey[skuGroupKey]
+  return (
+    inTopPercent(competitor?.rankPercentile) ||
+    (typeof self?.opMarginRate === 'number' && self.opMarginRate >= 9) ||
+    inTopPercent(self?.rankPercentile)
+  )
+}
+
+function buildPendingCandidateItemInsight(): CandidateItemInsightSummary {
+  return {
+    competitorChannelLabel: secondaryCompetitorChannels[0]?.label ?? '크림',
+    competitorQty: null,
+    competitorAmount: null,
+    selfQty: null,
+    selfAmount: null,
+    expectedSalesQty: 0,
+    expectedSalesAmount: 0,
+    expectedOpProfit: 0,
+    selfOpProfitRatePct: null,
+    rankTone: 'neutral' as const,
+    topPercentThreshold: INNER_ORDER_TOP_PERCENT_THRESHOLD,
+    bottomPercentThreshold: INNER_ORDER_BOTTOM_PERCENT_THRESHOLD,
+    badges: [],
   }
 }
 
@@ -156,18 +180,27 @@ export function buildCandidateReferenceItems(
   skuGroupKeys: string[],
   dataReferencePeriod?: CandidateDataReferencePeriod,
 ): CandidateReferenceItemSummary[] {
-  return skuGroupKeys.map((skuGroupKey) => {
-    const primary = productPrimaryBySkuGroupKey[skuGroupKey] ?? productPrimaryBySkuGroupKey[allKnownSkuGroupKeys[0]]!
-    return {
-      uuid: skuGroupKey,
-      skuGroupKey,
-      brand: primary.brand,
-      code: primary.code,
-      productName: primary.productName,
-      colorCode: primary.colorCode,
-      insight: buildCandidateItemInsight(skuGroupKey, 0, 0, 0, dataReferencePeriod),
-    }
-  })
+  return skuGroupKeys.map((skuGroupKey) => buildCandidateReferenceItem(skuGroupKey, dataReferencePeriod))
+}
+
+export function buildCandidateReferenceItem(
+  skuGroupKey: string,
+  dataReferencePeriod?: CandidateDataReferencePeriod,
+): CandidateReferenceItemSummary {
+  const primary = productPrimaryBySkuGroupKey[skuGroupKey] ?? productPrimaryBySkuGroupKey[allKnownSkuGroupKeys[0]]!
+  return {
+    uuid: skuGroupKey,
+    skuGroupKey,
+    brand: primary.brand,
+    code: primary.code,
+    productName: primary.productName,
+    colorCode: primary.colorCode,
+    insight: buildCandidateItemInsight(skuGroupKey, 0, 0, 0, dataReferencePeriod),
+  }
+}
+
+export function hasCandidateRecommendationBadge(skuGroupKey: string): boolean {
+  return hasCandidateBadgeSource(skuGroupKey)
 }
 
 export function buildCandidateStashItems(records: CandidateItemRecord[]): CandidateStashItemSummary[] {
@@ -222,15 +255,18 @@ export function buildCandidateOrderMetric(
 export function buildCandidateItemSummaries(
   records: CandidateItemRecord[],
   dataReferencePeriod?: CandidateDataReferencePeriod,
-  options: { includeOrderMetrics?: boolean } = {},
+  options: { includeOrderMetrics?: boolean; includeInsights?: boolean } = {},
 ): CandidateItemSummary[] {
   const includeOrderMetrics = options.includeOrderMetrics ?? true
+  const includeInsights = options.includeInsights ?? true
 
   return records
     .map((row) => {
       const skuGroupKey = row.skuGroupKey
       const primary = productPrimaryBySkuGroupKey[skuGroupKey] ?? productPrimaryBySkuGroupKey[allKnownSkuGroupKeys[0]]!
-      const baseInsight = buildCandidateItemInsight(skuGroupKey, 0, 0, 0, dataReferencePeriod)
+      const baseInsight = includeInsights
+        ? buildCandidateItemInsight(skuGroupKey, 0, 0, 0, dataReferencePeriod)
+        : buildPendingCandidateItemInsight()
       const baseItem: CandidateItemSummary = {
         uuid: row.uuid,
         stashUuid: row.stashUuid,
@@ -245,6 +281,7 @@ export function buildCandidateItemSummaries(
         expectedOrderAmount: 0,
         expectedSalesAmount: 0,
         expectedOpProfit: 0,
+        insightStatus: includeInsights ? 'loaded' : 'loading',
         insight: baseInsight,
         isLatestLlmComment: row.isLatestLlmComment,
         isDetailConfirmed: row.details != null,

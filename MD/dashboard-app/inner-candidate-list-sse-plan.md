@@ -5,8 +5,8 @@
 | 작성 지시 | Yun Daeyoung |
 | 작성자 | Codex |
 | 작성일 | 2026-05-15 |
-| 최종 수정일 | 2026-05-15 |
-| 상태 | 계획 문서 |
+| 최종 수정일 | 2026-05-18 |
+| 상태 | 구현 반영 문서 |
 | 적용 범위 | 이너 후보군 조회, 추천 보기, 이너오더 리스트, CANDIDATE_ITEM/SKU UUID 관계, 오더 지표 SSE |
 
 ## 목적
@@ -62,7 +62,7 @@ SKU.uuid                  = 추천/조회 기준 상품 UUID
 - 총 오더 수량·총 오더 금액 같은 무거운 계산 결과
 - 엑셀 다운로드용 오더 데이터
 
-이 구조에서는 총 오더 계산이 늦어질 때 전체 리스트 응답도 늦어지고, 추천 보기와 이너오더 리스트가 같은 조회 데이터에서 파생된다는 점도 드러나지 않는다.
+이 구조에서는 총 오더 계산이 늦어질 때 전체 리스트 응답도 늦어지고, 전체 SKU 분포가 필요한 배지/추천 계산 때문에 모달 첫 조회가 무거워질 수 있다.
 
 ## 목표 계약
 
@@ -78,19 +78,6 @@ interface CandidateStashQueryParams {
   dataReferencePeriodEnd: string;
 }
 
-interface CandidateReferenceItemSummary {
-  uuid: string;
-  brand: string;
-  code: string;
-  productName: string;
-  colorCode: string;
-  insight: {
-    selfQty: number;
-    competitorQty: number | null;
-    badges: CandidateBadge[];
-  };
-}
-
 interface CandidateStashItemSummary {
   uuid: string;
   skuUuid: string;
@@ -98,23 +85,44 @@ interface CandidateStashItemSummary {
   snapshotUpdatedAt?: string;
 }
 
-interface CandidateStashQueryResult {
-  referenceItems: CandidateReferenceItemSummary[];
+interface CandidateItemListResult {
   candidateItems: CandidateStashItemSummary[];
+  items: CandidateItemSummary[];
 }
 ```
 
-`referenceItems`는 조회 기간 내 전체 데이터를 기반으로 배지까지 부여한 목록이다. 백엔드는 먼저 조회 기간에 해당하는 전체 후보 데이터에 배지를 계산한 뒤, 추천과 기존 후보군 표시가 모두 가능한 형태로 내려준다.
+`getCandidateItemsByStash`는 후보군에 담긴 아이템만 빠르게 내려준다. 전체 SKU 분포 기반 배지와 추천 후보는 이 응답에 포함하지 않는다.
 
 `candidateItems`는 해당 후보군에 실제로 담긴 후보 아이템 목록이다. 이 값은 후보군 소유, 상세확정 상태, 스냅샷 존재 여부를 나타낸다. `uuid`는 후보 아이템 레코드 UUID이고, `skuUuid`는 그 후보 아이템이 가리키는 `SKU.uuid`이다.
 
-프론트는 다음처럼 합성한다.
+프론트는 다음처럼 표시한다.
 
-- 이너오더 리스트: `candidateItems`를 기준으로 `referenceItems`를 `candidateItem.skuUuid === referenceItem.uuid`로 조인한다.
-- 추천 보기: `referenceItems` 중 `candidateItems.skuUuid` Set에 없는 항목만 표시한다.
+- 이너오더 리스트: `items`를 먼저 표시한다.
+- 배지 컬럼: `insightStatus === 'loading'`이면 `로딩중...`을 표시한다.
 - 상태 컬럼: `hasSnapshot === true`이면 `상세확정`, 아니면 `상세미확정`.
 
-### 2. 오더 지표 SSE
+### 2. 배지·추천 조회
+
+추천 버튼 또는 백그라운드 prefetch는 별도 계약을 사용한다.
+
+```ts
+interface CandidateRecommendationParams {
+  stashUuid: string;
+  dataReferencePeriodStart: string;
+  dataReferencePeriodEnd: string;
+  limit?: number;
+  cursor?: string;
+}
+
+interface CandidateRecommendationResult {
+  recommendations: CandidateReferenceItemSummary[];
+  nextCursor?: string | null;
+}
+```
+
+백엔드는 조회 기간 전체 SKU 분포를 집계해 배지가 있는 SKU 목록만 계산한다. 전체 reference 목록을 프론트로 내려주지 않고 배지 있는 `recommendations` page만 반환한다. 이 목록에는 이미 후보군에 담긴 SKU가 포함될 수 있다. 프론트는 `CandidateItemSummary.skuUuid === recommendation.uuid`인 row를 기존 행 배지로 병합하고, 추천 UI에서는 해당 row를 숨긴다. 백엔드는 배지가 있는 현재 후보군 SKU를 응답에 포함하되, `limit/cursor`는 추천 UI에 노출될 신규 후보 기준으로 적용하는 구현을 권장한다.
+
+### 3. 오더 지표 SSE
 
 초기 조회 응답에는 `총 오더 수량`과 `총 오더 금액`을 포함하지 않는다. 초기 응답 이후 후보 아이템별로 SSE를 구독해 순차 갱신한다.
 
@@ -159,7 +167,7 @@ type CandidateOrderMetricEvent =
 추천 보기와 이너오더 리스트가 각각 수백 건 이상일 수 있으므로 다음 원칙을 적용한다.
 
 - 중복 제거는 `Set<string>`으로 처리한다. 배열 중첩 비교를 피한다.
-- `referenceItemsByUuid`는 `Map<string, CandidateReferenceItemSummary>`로 만든다.
+- 추천 응답 병합은 `skuUuid -> insight` `Map`으로 처리한다.
 - SSE 이벤트는 전체 리스트를 다시 만들지 않고, `itemUuid` 기준 metric map만 갱신한다.
 - 리스트 렌더는 정렬·필터 결과와 metric map을 분리해, 오더 지표 이벤트 하나가 들어올 때마다 추천 리스트까지 재계산하지 않는다.
 - 행별 오더 지표 로딩 상태를 둔다. 값이 없으면 `계산 중` 또는 스피너를 표시하고, 실패 시 해당 행에만 실패 상태를 표시한다.
@@ -171,9 +179,9 @@ type CandidateOrderMetricEvent =
 
 1. 조회 기간과 사용자 UUID로 접근 가능한 후보군을 확인한다.
 2. 조회 기간 내 판매 원천 데이터를 집계한다.
-3. 전체 후보 상품에 대해 배지 조건을 계산한다.
-4. `referenceItems`를 반환한다.
-5. 후보군에 담긴 `candidateItems`를 반환한다.
+3. `getCandidateItemsByStash`는 후보군에 담긴 기본 아이템만 반환한다.
+4. `getCandidateRecommendations`는 전체 후보 상품에 대해 배지 조건을 계산한다.
+5. 배지가 있는 추천 후보 page를 반환한다.
 6. 초기 응답이 끝난 뒤, 프론트가 SSE를 열면 후보 아이템별 총 오더 수량·총 오더 금액을 계산해 `item` 이벤트로 보낸다.
 
 오더 지표 계산이 무거우면 백엔드는 다음 중 하나를 선택한다.
@@ -186,6 +194,8 @@ type CandidateOrderMetricEvent =
 
 ## 프론트 변경 계획
 
+현재 프론트 mock/API 대체 구현은 아래 계획을 기준으로 반영되어 있다. `getCandidateItemsByStash`는 후보군에 담긴 기본 행을 먼저 반환하고, `getCandidateRecommendations`는 배지 있는 추천 SKU page를 별도 반환한다. 총 오더 수량·금액은 `subscribeCandidateOrderMetrics` SSE로 행별 갱신한다.
+
 1. API 타입 분리
    - `CandidateReferenceItemSummary`
    - `CandidateStashItemSummary`
@@ -193,16 +203,16 @@ type CandidateOrderMetricEvent =
    - `CandidateOrderMetricEvent`
 2. API 호출부 분리
    - 기존 `getCandidateItemsByStash`를 조회 응답 계약에 맞춘다.
-   - 추천 전용 API는 화면에서 직접 쓰지 않고, 같은 조회 응답에서 파생한다.
+   - `getCandidateRecommendations`는 배지 패치와 추천 후보 page를 담당한다.
    - SSE 구독 함수는 `src/api` 뒤에 둔다.
 3. 이너후보군 모델 정리
-   - `referenceItemsByUuid`
+   - `recommendationInsightsBySkuUuid`
    - `candidateItemRows`
    - `recommendationRows`
    - `orderMetricsByItemUuid`
 4. 추천 보기 필터링
-   - `candidateItems`의 `skuUuid` Set을 만든다.
-   - `referenceItems`에서 Set에 없는 항목만 표시한다.
+   - 백엔드가 `candidateItems.skuUuid` 제외를 수행한다.
+   - 프론트는 중복 row가 들어오면 방어적으로 숨긴다.
 5. 이너오더 리스트 표시
    - 기본 정보는 조인된 reference item에서 표시한다.
    - 상세확정 상태는 candidate item의 `hasSnapshot`만 본다.
@@ -243,3 +253,4 @@ type CandidateOrderMetricEvent =
 - SSE 대신 WebSocket 또는 polling fallback 추가
 - 계산량이 큰 오더 지표를 기간·후보군 기준으로 캐싱
 - 수천 건 이상을 대비한 리스트 virtualization
+- SSE item 이벤트 대량 수신 시 프론트 rendering batching 도입

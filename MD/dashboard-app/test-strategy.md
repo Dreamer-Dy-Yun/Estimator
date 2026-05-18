@@ -5,7 +5,7 @@
 | 작성 지시 | Yun Daeyoung |
 | 작성자 | Codex |
 | 작성일 | 2026-04-23 |
-| 최종 수정일 | 2026-05-14 |
+| 최종 수정일 | 2026-05-18 |
 | 상태 | 유지 문서 |
 | 적용 범위 | `dashboard-app` 테스트 |
 
@@ -64,6 +64,8 @@
 
 5. **React 컴포넌트**
    - `FilterListCombo`, `FilterBar`는 상호작용·포털이 있어 비용 큼 → **유틸·모델 안정화 뒤** 소수만 도입.
+   - `PaginatedTable`은 정렬 순서 보고, `aria-sort`, Enter/Space 정렬을 단위 테스트로 유지한다.
+   - `useDashboardRequest`는 성공, 갱신 실패 시 기존 데이터 유지, stale 상태 표시를 DOM hook 테스트로 유지한다.
 
 6. **Playwright E2E smoke**
    - mock 로그인, 자사/경쟁사/오더 후보군/관리자 라우트 이동.

@@ -35,6 +35,8 @@ export interface CandidateItemSummary {
   expectedSalesAmount: number
   /** Live expected operating profit in KRW for the requested data reference period. */
   expectedOpProfit: number
+  /** Badge/period insight loading state. Order amount/qty has its own orderMetricStatus. */
+  insightStatus: 'loading' | 'loaded' | 'failed'
   insight: CandidateItemInsightSummary
   /** Whether the stored AI recommendation/comment reflects the latest saved secondary-drawer snapshot. */
   isLatestLlmComment: boolean
@@ -97,9 +99,8 @@ export interface CandidateStashItemSummary {
 }
 
 export interface CandidateItemListResult {
-  referenceItems: CandidateReferenceItemSummary[]
   candidateItems: CandidateStashItemSummary[]
-  /** Screen-composed rows. Order metrics arrive later through the metric stream. */
+  /** Screen-composed candidate rows only. Badge/recommendation and order metrics arrive later. */
   items: CandidateItemSummary[]
 }
 
@@ -113,9 +114,15 @@ export interface CandidateRecommendationParams {
   stashUuid: string
   dataReferencePeriodStart: string
   dataReferencePeriodEnd: string
+  limit?: number
+  cursor?: string
 }
 
-export type CandidateRecommendationResult = CandidateItemListResult
+export interface CandidateRecommendationResult {
+  /** Badge-bearing SKU rows. Frontend uses rows already in the stash as badge patches and hides them from recommendation UI. */
+  recommendations: CandidateReferenceItemSummary[]
+  nextCursor?: string | null
+}
 
 export interface CandidateStashAnalysisStartResult {
   jobId: string
@@ -141,15 +148,22 @@ export interface CandidateStashAnalysisSubscription {
   close: () => void
 }
 
-/** Candidate item detail response. `details` is null until the inner secondary drawer saves a snapshot. */
+/**
+ * Candidate item detail response.
+ * `details` is null until the inner secondary drawer saves a snapshot.
+ * PATCH /candidate-items/:itemUuid must return this shape after DB commit/cache invalidation.
+ */
 export interface CandidateItemDetail {
   uuid: string
   stashUuid: string
   skuUuid: string
   skuGroupKey: string
   details: SecondaryOrderSnapshotPayload | null
+  /** Server-side confirmation state derived from whether details is null. */
+  isDetailConfirmed: boolean
   isLatestLlmComment: boolean
   dbCreatedAt: string
+  /** Must change whenever details or isLatestLlmComment changes. Used for read-after-write protection. */
   dbUpdatedAt: string
 }
 
@@ -188,6 +202,13 @@ export interface UpdateCandidateItemPayload {
   details: SecondaryOrderSnapshotPayload | null
   isLatestLlmComment: boolean
 }
+
+/**
+ * PATCH /candidate-items/:itemUuid success response.
+ * Backend must return this after the DB commit and cache invalidation are complete,
+ * so the frontend can treat the response as the authoritative post-mutation state.
+ */
+export type UpdateCandidateItemResponse = CandidateItemDetail
 
 export interface CandidateStashExcelUploadResult {
   stashUuid: string

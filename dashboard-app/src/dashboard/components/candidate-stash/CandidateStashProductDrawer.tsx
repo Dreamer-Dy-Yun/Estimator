@@ -1,4 +1,5 @@
 import { useMemo } from 'react'
+import type { CandidateItemDetail } from '../../../api'
 import type { OrderSnapshotDocumentV1 } from '../../../snapshot/orderSnapshotTypes'
 import { ProductDrawer } from '../product-drawer/ProductDrawer'
 import type { CandidateStashDetailModalModel } from './useCandidateStashDetailModal'
@@ -28,8 +29,10 @@ export function CandidateStashProductDrawer({ model, bulkDeleteOpen }: Props) {
       ),
       onResetDraft: () => model.clearDrawerDraftSnapshot(itemUuid),
       onRestoreConfirmed: () => model.restoreDrawerConfirmedSnapshot(itemUuid),
-      onConfirmed: (snapshot: OrderSnapshotDocumentV1) => model.markDrawerSnapshotConfirmed(itemUuid, snapshot),
-      onUnconfirmed: () => model.markDrawerSnapshotUnconfirmed(itemUuid),
+      onConfirmed: (snapshot: OrderSnapshotDocumentV1, updatedItem: CandidateItemDetail) => (
+        model.markDrawerSnapshotConfirmed(itemUuid, snapshot, updatedItem)
+      ),
+      onUnconfirmed: (updatedItem: CandidateItemDetail) => model.markDrawerSnapshotUnconfirmed(itemUuid, updatedItem),
       onSaved: () => {
         void model.loadItems()
         void model.refreshStashes()

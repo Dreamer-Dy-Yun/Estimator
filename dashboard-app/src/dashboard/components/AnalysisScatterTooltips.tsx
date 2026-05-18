@@ -1,5 +1,5 @@
 import { formatGroupedNumber, formatPercent } from '../../utils/format'
-import type { AnalysisScatterGridPoint } from './AnalysisScatterChartCard'
+import type { AnalysisScatterGridPoint } from '../model/analysisScatterGridPoint'
 import styles from './common.module.css'
 
 export type AnalysisScatterTooltipProps = {

@@ -17,11 +17,11 @@ export async function loginWithDefaultMockUser(page: Page, targetPath = '/dashbo
   const loginButton = page.getByRole('button', { name: '로그인' })
   const logoutButton = page.getByRole('button', { name: '로그아웃' })
   if (!(await logoutButton.isVisible())) {
-    await expect(loginButton).toBeVisible()
+    await expect(loginButton).toBeVisible({ timeout: 15000 })
     await loginButton.click()
   }
 
-  await expect(logoutButton).toBeVisible()
+  await expect(logoutButton).toBeVisible({ timeout: 15000 })
 }
 
 export async function expectNoRuntimeErrors(errors: string[]) {

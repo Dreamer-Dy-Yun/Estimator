@@ -1,11 +1,13 @@
 import type {
   CandidateItemListResult,
+  CandidateRecommendationResult,
   CandidateStashSummary,
 } from '../types'
 import {
   buildCandidateItemSummaries,
-  buildCandidateReferenceItems,
+  buildCandidateReferenceItem,
   buildCandidateStashItems,
+  hasCandidateRecommendationBadge,
   type CandidateDataReferencePeriod,
 } from './candidateItemSummaryBuilder'
 import { seededCandidateItems, seededCandidateStashes } from './candidateSeeds'
@@ -80,9 +82,38 @@ export function buildCandidateItemListResult(
   includeOrderMetrics = false,
 ): CandidateItemListResult {
   return {
-    referenceItems: buildCandidateReferenceItems(allKnownSkuGroupKeys, period),
     candidateItems: buildCandidateStashItems(records),
-    items: buildCandidateItemSummaries(records, period, { includeOrderMetrics }),
+    items: buildCandidateItemSummaries(records, period, {
+      includeInsights: false,
+      includeOrderMetrics,
+    }),
+  }
+}
+
+export function buildCandidateRecommendationResult(
+  period: CandidateDataReferencePeriod,
+  limit = 50,
+  cursor?: string,
+): CandidateRecommendationResult {
+  const startIndex = cursor ? Math.max(0, Number(cursor) || 0) : 0
+  const pageSize = Math.max(1, limit)
+  const recommendations: CandidateRecommendationResult['recommendations'] = []
+  let nextCursor: string | null = null
+
+  for (let index = startIndex; index < allKnownSkuGroupKeys.length; index += 1) {
+    const skuGroupKey = allKnownSkuGroupKeys[index]
+    if (!skuGroupKey || !hasCandidateRecommendationBadge(skuGroupKey)) continue
+
+    if (recommendations.length >= pageSize) {
+      nextCursor = String(index)
+      break
+    }
+    recommendations.push(buildCandidateReferenceItem(skuGroupKey, period))
+  }
+
+  return {
+    recommendations,
+    nextCursor,
   }
 }
 

@@ -5,7 +5,7 @@
 | 작성 지시 | Yun Daeyoung |
 | 작성자 | Codex |
 | 작성일 | 2026-04-23 |
-| 최종 수정일 | 2026-05-15 |
+| 최종 수정일 | 2026-05-18 |
 | 상태 | 유지 문서 |
 | 적용 범위 | `dashboard-app/src/api/types`, `dashboard-app/src/api/requests`, 백엔드 REST API 계약 |
 
@@ -302,7 +302,7 @@
 | `duplicateCandidateStash(stashUuid)` | POST | `/candidate-stashes/:stashUuid/duplicate` 세션 소유자 기준 |
 | `appendCandidateItem(payload)` | POST | `/candidate-stashes/:stashUuid/items` body `{ skuGroupKey, details, isLatestLlmComment }`, 세션 소유자 기준 |
 | `appendCandidateItems(payload)` | POST | `/candidate-stashes/:stashUuid/items/bulk` body `{ skuGroupKeys }`, 세션 소유자 기준 |
-| `updateCandidateItem(payload)` | PATCH | `/candidate-items/:itemUuid` body `{ details, isLatestLlmComment }`, 세션 소유자 기준 |
+| `updateCandidateItem(payload)` | PATCH | `/candidate-items/:itemUuid` body `{ details, isLatestLlmComment }`, 세션 소유자 기준. 성공 응답은 commit/cache 반영 이후 최신 `UpdateCandidateItemResponse` |
 | `getCandidateStashExcelTemplateDownload()` | GET | `/candidate-stashes/excel-template` |
 | `uploadCandidateStashExcel(file)` | POST multipart/form-data | `/candidate-stashes/import/excel` 세션 생성자 기준 |
 | `getSecondaryStockOrderCalc(params)` | POST | `/secondary/stock-order-calc` body |
@@ -536,10 +536,10 @@
 | 필드 | 의미 |
 |------|------|
 | `stashUuid` | 조회할 후보군 UUID. REST 경로의 `:stashUuid`와 동일 |
-| `dataReferencePeriodStart` | 후보군 리스트 수치와 배지 판단에 사용할 데이터 참조 시작일 (`YYYY-MM-DD`) |
-| `dataReferencePeriodEnd` | 후보군 리스트 수치와 배지 판단에 사용할 데이터 참조 종료일 (`YYYY-MM-DD`) |
+| `dataReferencePeriodStart` | 후보군 리스트의 기간 판매량과 이후 지표 계산에 사용할 데이터 참조 시작일 (`YYYY-MM-DD`) |
+| `dataReferencePeriodEnd` | 후보군 리스트의 기간 판매량과 이후 지표 계산에 사용할 데이터 참조 종료일 (`YYYY-MM-DD`) |
 
-이 API는 단순히 후보군에 담긴 상품만 조회해 계산하면 안 된다. 배지 기준이 “조회 기간 전체에서 상위 몇 %인가”처럼 전체 분포에 의존하므로, 백엔드는 먼저 해당 기간의 전체 대상 SKU 데이터를 집계하고 그 전체 분포 기준으로 배지를 부여한다. 응답은 전체 분포 기준의 가벼운 `referenceItems`와 후보군에 실제로 담긴 `candidateItems`를 함께 내려준다. 프론트는 날짜 입력 변경마다 호출하지 않고 `조회` 버튼 클릭 시점에만 호출한다. 그래도 조회 기간 변경은 무거운 재집계가 될 수 있으므로 기간+경쟁채널 기준 랭킹/배지 계산 결과를 캐시하거나 materialized view/batch 집계를 두는 방식을 권장한다.
+이 API는 모달 첫 표시를 빠르게 하기 위한 기본 후보 리스트 조회다. 백엔드는 후보군에 실제로 담긴 `candidateItems`와 화면 행에 필요한 기본 SKU 메타/기간 판매량만 내려준다. 전체 SKU 분포를 기반으로 한 배지와 추천 후보는 `getCandidateRecommendations`에서 별도 계산한다. 프론트는 배지 컬럼을 `로딩중...` 상태로 표시할 수 있으며, 추천 보기 또는 백그라운드 추천 조회가 완료되면 추천 응답 안에서 현재 후보군 `skuUuid`와 일치하는 row를 기존 행에 병합해 배지를 반영한다.
 
 기간 총판매량은 백엔드 계산 계약이다. 자사 판매는 `ERP_MONTHLY_SUMMARY`를 우선 사용하되, 조회 시작/종료가 월 전체를 덮지 않는 부분 월과 아직 확정되지 않은 월은 `SALES_ERP`를 일자 기준으로 합산해 보정한다. 경쟁 판매는 `SALES_EXTERNAL`을 원천으로 보며, `EXTERNAL_MONTHLY_SUMMARY`의 `site` 축이 제공되면 확정된 전체 월은 월 요약을 사용하고 부분 월/미확정 월은 `SALES_EXTERNAL`로 보정한다. 전체 경쟁 채널 조회는 site 전체 합산이고, 특정 경쟁 채널 조회는 해당 `site`만 합산한다. 프론트는 이 계산을 재현하지 않고 `CandidateItemSummary.insight.selfSalesQty`와 `competitorSalesQty`를 그대로 표시한다.
 
@@ -547,11 +547,29 @@
 
 | 필드 | 의미 |
 |------|------|
-| `referenceItems` | 조회 기간 전체 분포 기준으로 계산된 추천/조회 기준 SKU 목록. `uuid`는 `SKU.uuid`이며 `brand`, `code`, `productName`, `colorCode`, 기간 자사/경쟁사 판매량, `insight.badges`를 포함한다 |
 | `candidateItems` | 후보군에 실제로 담긴 `CANDIDATE_ITEM` 목록. `uuid`는 `CANDIDATE_ITEM.uuid`, `skuUuid`는 `CANDIDATE_ITEM.sku_uuid = SKU.uuid`, `hasSnapshot`은 `details != null` |
-| `items` | 화면 편의를 위해 `candidateItems`와 `referenceItems`를 조인한 후보 아이템 목록. 총 오더 수량/금액은 초기 응답에서 아직 로딩 상태일 수 있다 |
+| `items` | 후보군에 담긴 아이템만 포함하는 화면 행. 총 오더 수량/금액은 초기 응답에서 로딩 상태이고, 배지/랭킹성 insight도 별도 추천 조회 전에는 로딩 상태일 수 있다 |
 
-배지는 DB 테이블 정의의 badge JSON처럼 항목별 `{ name, color, tooltip }[]` 배열로 내려준다. 같은 배지명이 여러 아이템에 반복되어도 후보군 상세 응답 규모에서는 중복 비용보다 계약 단순성이 더 중요하다. 색상/툴팁은 백엔드가 기간 기준 계산과 함께 확정해 내려주며, 프론트는 별도 배지 정의 호출이나 이름-정의 조인을 하지 않는다.
+**`CandidateRecommendationParams`** (`getCandidateRecommendations` 요청)
+
+| 필드 | 의미 |
+|------|------|
+| `stashUuid` | 조회할 후보군 UUID |
+| `dataReferencePeriodStart` | 배지와 추천 기준이 되는 데이터 참조 시작일 |
+| `dataReferencePeriodEnd` | 배지와 추천 기준이 되는 데이터 참조 종료일 |
+| `limit` | 추천 후보 반환 개수. 기본 50 권장 |
+| `cursor` | 다음 추천 페이지 조회용 cursor. offset 문자열 또는 opaque cursor 모두 가능 |
+
+이 API는 조회 기간 전체 SKU 분포를 집계해 배지가 있는 SKU 목록만 계산한다. 전체 분포를 봐야 하는 비용은 백엔드가 부담하되, 프론트로 전체 reference 목록을 내려주지 않는다. 응답의 `recommendations`에는 현재 후보군에 이미 담긴 SKU가 포함될 수 있다. 프론트는 그 row를 화면 추천 목록에서는 숨기고, 같은 `skuUuid`를 가진 후보 행의 배지/랭킹성 insight로 병합한다. 백엔드는 배지가 붙은 현재 후보군 SKU를 먼저 응답에 포함하고, 그 뒤에 현재 후보군에 없는 추천 SKU를 `limit`만큼 붙이는 구현을 권장한다. 이 경우 `limit/cursor`는 추천 UI에 노출될 "신규 후보" 기준으로 적용하고, 배지 패치용 현재 후보군 SKU는 `limit` 차감 대상에서 제외한다.
+
+**`CandidateRecommendationResult`** (`getCandidateRecommendations` 응답)
+
+| 필드 | 의미 |
+|------|------|
+| `recommendations` | 배지가 있는 추천 SKU 목록. 각 `uuid`는 `SKU.uuid`다. 현재 후보군에 이미 있는 SKU도 포함될 수 있으며, 프론트가 `CandidateItemSummary.skuUuid`와 비교해 행 배지 병합과 추천 UI 제외를 처리한다 |
+| `nextCursor` | 다음 페이지가 있으면 cursor, 없으면 `null` |
+
+배지는 DB 테이블 정의의 badge JSON처럼 항목별 `{ name, color, tooltip }[]` 배열로 내려준다. 색상/툴팁은 백엔드가 기간 기준 계산과 함께 확정해 내려주며, 프론트는 별도 배지 정의 호출이나 이름-정의 조인을 하지 않는다.
 
 ```ts
 badges: [
@@ -573,9 +591,9 @@ badges: [
 ]
 ```
 
-**추천 보기 파생 규칙**
+**추천 보기 제외 규칙**
 
-추천 보기는 별도 중복 조회를 하지 않고 `CandidateItemListResult.referenceItems`에서 파생한다. `candidateItems.skuUuid`를 `Set`으로 만들고, `referenceItems` 중 `referenceItem.uuid`가 이 Set에 없는 항목만 보여준다. 목록이 수백 건 이상일 수 있으므로 프론트와 백엔드 모두 이 비교를 중첩 루프가 아니라 Set/Hash join 기준으로 처리해야 한다.
+추천 응답은 배지 패치와 추천 UI를 한 배열로 처리한다. 백엔드는 조회 기간 전체 SKU 분포에서 배지가 있는 row를 만들고, 그중 현재 후보군에 이미 있는 SKU는 기존 행 배지 패치용으로 응답에 포함할 수 있다. 추천 UI용 신규 후보는 `candidateItems.skuUuid`를 `Set` 또는 DB hash/semi join 기준으로 제외한 뒤 `limit/cursor`를 적용한다. 프론트는 같은 응답 배열에서 현재 화면에 있는 `skuUuid`와 중복되는 row를 숨기고, 대량 reference 전체를 받아 중복 제외하지 않는다.
 
 **`CandidateItemSummary`** (목록 행)
 
@@ -591,6 +609,7 @@ badges: [
 | `expectedOrderAmount` | 데이터 참조 기간 기준 예상 **발주 금액(원)**. SSE 도착 전에는 화면상 로딩 상태로 취급한다 |
 | `expectedSalesAmount` | 데이터 참조 기간 기준 예상 매출 |
 | `expectedOpProfit` | 데이터 참조 기간 기준 예상 영업이익 |
+| `insightStatus` | `loading`, `loaded`, `failed`. 배지/추천성 insight 패치 로딩 상태 |
 | `insight.badges` | 이 아이템에 붙일 배지 배열. 각 값은 `{ name, color, tooltip }`이며 현재 목데이터 기준 허용 배지는 `크림판매`, `자사이익`, `자사판매` |
 | `orderExport` | 발주 엑셀을 프론트에서 생성하기 위한 요청 기간 기준 다운로드 DTO. SSE 지표가 도착하기 전에는 `null`일 수 있으며, 프론트는 모든 행의 오더 지표가 로드된 뒤에만 다운로드를 허용한다 |
 | `isLatestLlmComment` | 현재 저장 스냅샷 기준 AI 코멘트/추천이 최신인지 여부. DB 컬럼은 `is_latest_llm_comment` 권장 |
@@ -604,9 +623,27 @@ badges: [
 | 필드 | 의미 |
 |------|------|
 | `uuid` | `CANDIDATE_ITEM.uuid` |
+| `stashUuid` | `CANDIDATE_ITEM.stash_uuid` |
 | `skuUuid` | `CANDIDATE_ITEM.sku_uuid = SKU.uuid` |
+| `skuGroupKey` | 상품 단위 식별자. 현재 프론트 계약에서는 `SKU.code + SKU.color_code`에 대응 |
 | `details` | 저장 시점의 **`SecondaryOrderSnapshotPayload` 전체 JSON**. 스냅샷 없이 후보군에 담긴 아이템은 `null`이다 |
+| `isDetailConfirmed` | `details != null`에서 파생되는 서버 확정 상태. 저장 성공 응답에서는 `details`와 반드시 같은 의미여야 한다 |
 | `isLatestLlmComment` | 상세 스냅샷 기준 AI 코멘트/추천 최신 여부 |
+| `dbCreatedAt` | 생성 시각 |
+| `dbUpdatedAt` | 상세 저장/해제 직후 read-after-write 보호 기준. `details` 또는 `isLatestLlmComment` 변경 commit 이후 값이 갱신되어야 한다 |
+
+**`UpdateCandidateItemResponse`** (`PATCH /candidate-items/:itemUuid` 성공 응답)
+
+`UpdateCandidateItemResponse`는 `CandidateItemDetail`과 같은 shape다. 백엔드는 PATCH 요청을 성공으로 응답하기 전에 DB commit과 관련 캐시 무효화를 마치고, 방금 저장된 후보 아이템의 최신 상세 상태를 반환해야 한다.
+
+| 응답 필드 | 백엔드 구현 기준 |
+|------|------|
+| `details` | 요청 `details`가 객체이면 저장된 스냅샷 객체, `null`이면 `null` |
+| `isDetailConfirmed` | `details != null`과 같은 의미. 저장이면 `true`, 상세확정 해제면 `false` |
+| `isLatestLlmComment` | 요청 `isLatestLlmComment` 저장 결과. 2차 드로워 저장/해제는 보통 `false` |
+| `dbUpdatedAt` | 이번 PATCH로 실제 갱신된 새 시각. 후속 GET이 이전 값과 같은 stale row를 내려주면 프론트는 PATCH 응답 상태를 계속 보호한다 |
+
+프론트는 이 응답을 mutation 직후의 권위 상태로 사용한다. 따라서 PATCH 응답을 `204 No Content`나 `{ ok: true }`로 축소하지 않는다. 백엔드가 성능상 전체 detail 재조회가 부담되면, 같은 필드를 가진 DTO를 UPDATE 결과와 반환 컬럼으로 조립해도 된다.
 
 **`CandidateOrderMetricEvent`** (`subscribeCandidateOrderMetrics` SSE)
 
@@ -628,9 +665,10 @@ badges: [
 - `UpdateCandidateStashPayload`: `{ stashUuid, name, note? }` — 메타만 갱신
 - `AppendCandidateItemsPayload`: `{ stashUuid, skuGroupKeys }` — 자사/경쟁사 분석 리스트에서 선택한 상품들을 스냅샷 없이 후보군에 추가한다. 현재 프론트의 `skuGroupKey`는 내부적으로 `SKU.code + SKU.color_code` 상품 단위에 대응하며, 사이즈별 확정 오더량과 AI 코멘트는 이너후보군 2차 드로워에서 저장하기 전까지 비어 있거나 미확정 상태다
 - `AppendCandidateItemPayload`: `{ stashUuid, skuGroupKey, details, isLatestLlmComment? }` — `details`가 오더 스냅샷 저장의 단일 경로이며, 기본값은 `false` 권장
-- `UpdateCandidateItemPayload`: `{ itemUuid, details, isLatestLlmComment }`. `details`에 스냅샷이 있으면 상세확정으로 저장/갱신하고, `details`가 `null`이면 저장된 2차 드로워 스냅샷을 삭제해 상세확정을 해제한다. 이 작업은 복구 불가능한 사용자 명시 액션으로 취급한다.
+- `UpdateCandidateItemPayload`: `{ itemUuid, details, isLatestLlmComment }`. `details`에 스냅샷이 있으면 상세확정으로 저장/갱신하고, `details`가 `null`이면 저장된 2차 드로워 스냅샷을 삭제해 상세확정을 해제한다. 이 작업은 복구 불가능한 사용자 명시 액션으로 취급한다. 성공 응답은 `UpdateCandidateItemResponse`다.
 - `CandidateStashExcelUploadResult`: `{ stashUuid, stashName, itemCount, warnings: string[] }`
 - 2차 드로워에서 후보 아이템 스냅샷을 다시 저장할 때 프론트는 `updateCandidateItem`에 `isLatestLlmComment: false`를 보냅니다. 백엔드는 해당 아이템의 DB `is_latest_llm_comment`를 `false`로 저장해 기존 AI 코멘트/추천이 최신 스냅샷 기준이 아님을 표시해야 합니다.
+- `updateCandidateItem` 성공 응답은 필수로 commit 이후 최신 `UpdateCandidateItemResponse`를 반환합니다. 프론트는 PATCH 성공 직후 이 응답의 `isDetailConfirmed`, `isLatestLlmComment`, `dbUpdatedAt`을 현재 화면 기준 상태로 반영하고, 이후 `getCandidateItemsByStash`/`getCandidateItemByUuid`에서 이전 `dbUpdatedAt`을 가진 stale row가 내려와도 방금 mutation한 상태를 덮어쓰지 않습니다. 서버가 새 `dbUpdatedAt`과 같은 확정 상태를 내려오면 보호를 해제합니다. 백엔드는 PATCH 성공 응답을 보내기 전에 DB commit과 캐시 무효화를 끝내거나, 적어도 다음 GET이 이전 `details`를 읽지 않도록 read-after-write 일관성을 보장해야 합니다.
 
 **동작 메모**
 

@@ -6,26 +6,25 @@ import type { AdjacentDirection } from '../../utils/adjacentListNavigation'
 import { adjacentIdInOrder } from '../../utils/adjacentListNavigation'
 import { clampForecastMonths, readForecastMonthsFromStorage, writeForecastMonthsToStorage } from '../../utils/forecastMonthsStorage'
 import { formatGroupedNumber } from '../../utils/format'
-import { getScatterGridCellColor, getScatterGridCellPointRadius } from '../../utils/scatterGridDisplay'
 import type { ScatterSalesGridResponse } from '../../api/types'
 import { LoadingSpinner } from '../../components/LoadingSpinner'
 import { AnalysisCandidateBulkAddModal } from '../components/candidate-stash/AnalysisCandidateBulkAddModal'
 import { ProductDrawer } from '../components/product-drawer/ProductDrawer'
 import styles from '../components/common.module.css'
 import { AnalysisPeriodTools } from '../components/AnalysisPeriodTools'
-import {
-  AnalysisScatterChartCard,
-  type AnalysisScatterGridPoint,
-} from '../components/AnalysisScatterChartCard'
+import { AnalysisScatterChartCard } from '../components/AnalysisScatterChartCard'
 import { renderSelfSalesScatterTooltip } from '../components/AnalysisScatterTooltips'
+import { DashboardRequestStatus } from '../components/DashboardRequestStatus'
 import { FilterBar } from '../components/FilterBar'
 import { KpiGrid } from '../components/KpiGrid'
 import { SelfAnalysisList } from '../components/SelfAnalysisList'
+import { useAnalysisScatterGridView } from '../hooks/useAnalysisScatterGridView'
 import { useElementSize } from '../hooks/useElementSize'
 import { maskNonPeriodAnalysisFilterFields, useAnalysisSalesFilters } from '../hooks/useAnalysisSalesFilters'
 import { useAnalysisVisibleSelection } from '../hooks/useAnalysisVisibleSelection'
 import { useDashboardRequest } from '../hooks/useDashboardRequest'
 import { useProductDrawerBundleState } from '../hooks/useProductDrawerBundle'
+import type { AnalysisScatterGridPoint } from '../model/analysisScatterGridPoint'
 
 const EMPTY_SELF_ROWS: SelfSalesRow[] = []
 
@@ -60,11 +59,13 @@ export const SelfPage = () => {
   } = useAnalysisSalesFilters()
   const loadRows = useCallback(() => getSelfSales(salesParams), [salesParams])
   const loadScatterGrid = useCallback(() => getSelfSalesScatterGrid(salesParams), [salesParams])
-  const { data: rows, loading: rowsLoading } = useDashboardRequest(loadRows, EMPTY_SELF_ROWS)
-  const { data: scatterGrid, loading: scatterGridLoading } = useDashboardRequest<ScatterSalesGridResponse | null>(
+  const rowsRequest = useDashboardRequest(loadRows, EMPTY_SELF_ROWS)
+  const scatterGridRequest = useDashboardRequest<ScatterSalesGridResponse | null>(
     loadScatterGrid,
     null,
   )
+  const { data: rows, loading: rowsLoading } = rowsRequest
+  const { data: scatterGrid, loading: scatterGridLoading } = scatterGridRequest
   const {
     activeGridCellKey,
     selectedSkuGroupKey,
@@ -92,26 +93,12 @@ export const SelfPage = () => {
     return { totalAmount, totalQty, avgMarginRate, avgOpMarginRate }
   }, [visibleRows])
 
-  const maxScatterGridCount = useMemo(
-    () => Math.max(0, ...(scatterGrid?.cells ?? []).map((cell) => cell.count)),
-    [scatterGrid],
-  )
-
-  const scatterData: AnalysisScatterGridPoint[] = useMemo(
-    () => (scatterGrid?.cells ?? []).map((cell) => ({
-      x: cell.representativeX,
-      y: cell.representativeY,
-      cellKey: cell.cellKey,
-      count: cell.count,
-      xStart: cell.xStart,
-      xEnd: cell.xEnd,
-      yStart: cell.yStart,
-      yEnd: cell.yEnd,
-      hasMoreSkuIds: cell.hasMoreSkuIds,
-      color: getScatterGridCellColor(cell.count, maxScatterGridCount),
-    })),
-    [maxScatterGridCount, scatterGrid],
-  )
+  const {
+    scatterData,
+    scatterChartWidth,
+    scatterChartHeight,
+    scatterPointRadius,
+  } = useAnalysisScatterGridView({ scatterGrid, chartWidth, chartHeight })
 
   const displayedFilterFields = useMemo(
     () => (activeGridCellKey ? maskNonPeriodAnalysisFilterFields(filterFields) : filterFields),
@@ -127,10 +114,6 @@ export const SelfPage = () => {
     },
     [navigationOrderIds, orderedSkuGroupKeys, selectedSkuGroupKey, setSelectedSkuGroupKey],
   )
-
-  const scatterChartWidth = Math.max(1, Math.floor(chartWidth))
-  const scatterChartHeight = Math.max(1, Math.floor(chartHeight))
-  const scatterPointRadius = getScatterGridCellPointRadius(scatterGrid?.meta, scatterChartWidth, scatterChartHeight)
 
   return (
     <section className={styles.page}>
@@ -165,6 +148,13 @@ export const SelfPage = () => {
             )}
           />
         )}
+      />
+
+      <DashboardRequestStatus
+        items={[
+          { label: '자사 분석 목록', state: rowsRequest },
+          { label: '산점도', state: scatterGridRequest },
+        ]}
       />
 
       <div className={`${styles.twoCol} ${styles.selfTwoCol}`}>

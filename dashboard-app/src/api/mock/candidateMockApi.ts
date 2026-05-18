@@ -16,6 +16,7 @@
   CandidateStashSummary,
   CreateCandidateStashPayload,
   UpdateCandidateItemPayload,
+  UpdateCandidateItemResponse,
   UpdateCandidateStashPayload,
 } from '../types'
 import { MOCK_ADMIN_USER_UUID } from './authApi'
@@ -27,6 +28,7 @@ import {
 import {
   buildCandidateItemListResult,
   buildCandidateListParamsPeriod,
+  buildCandidateRecommendationResult,
   createCandidateItemRecord,
   filterCandidateStashesForOwner,
   findCandidateStashForOwner,
@@ -39,22 +41,49 @@ import { type CandidateStashRecord } from './records'
 import { productPrimaryBySkuGroupKey } from './productCatalog'
 import { makeUuid32, sleep } from './utils'
 
+function toCandidateItemDetail(row: ReturnType<typeof readCandidateItemRecords>[number]): CandidateItemDetail {
+  return {
+    uuid: row.uuid,
+    stashUuid: row.stashUuid,
+    skuUuid: row.skuUuid,
+    skuGroupKey: row.skuGroupKey,
+    details: row.details,
+    isDetailConfirmed: row.details != null,
+    isLatestLlmComment: row.isLatestLlmComment,
+    dbCreatedAt: row.dbCreatedAt,
+    dbUpdatedAt: row.dbUpdatedAt ?? row.dbCreatedAt,
+  }
+}
+
+function buildCandidateItemStatsByStash(items: ReturnType<typeof readCandidateItemRecords>) {
+  const stats = new Map<string, { count: number; latestItemTs: string }>()
+  for (const item of items) {
+    const current = stats.get(item.stashUuid)
+    const dbCreatedAt = String(item.dbCreatedAt)
+    if (!current) {
+      stats.set(item.stashUuid, { count: 1, latestItemTs: dbCreatedAt })
+      continue
+    }
+    current.count += 1
+    if (dbCreatedAt > current.latestItemTs) current.latestItemTs = dbCreatedAt
+  }
+  return stats
+}
+
 export const candidateMockApi = {
   getCandidateStashes: async (ownerUserUuid?: string): Promise<CandidateStashSummary[]> => {
     await sleep(60)
     const stashes = readCandidateStashRecords()
     const items = readCandidateItemRecords()
     const owned = filterCandidateStashesForOwner(stashes, ownerUserUuid)
+    const itemStatsByStash = buildCandidateItemStatsByStash(items)
     return owned
       .map((row) => {
-        const linkedItems = items.filter((it) => it.stashUuid === row.uuid)
-        const latestItemTs = linkedItems.reduce<string>(
-          (latest, it) => (String(it.dbCreatedAt) > latest ? String(it.dbCreatedAt) : latest),
-          '',
-        )
+        const itemStats = itemStatsByStash.get(row.uuid)
+        const latestItemTs = itemStats?.latestItemTs ?? ''
         const recordUpdatedAt = row.dbUpdatedAt ?? row.dbCreatedAt
         const dbUpdatedAt = latestItemTs && latestItemTs > recordUpdatedAt ? latestItemTs : recordUpdatedAt
-        return toCandidateStashSummary(row, linkedItems.length, dbUpdatedAt)
+        return toCandidateStashSummary(row, itemStats?.count ?? 0, dbUpdatedAt)
       })
       .sort((a, b) => String(b.dbCreatedAt).localeCompare(String(a.dbCreatedAt)))
   },
@@ -88,33 +117,26 @@ export const candidateMockApi = {
     ownerUserUuid?: string,
   ): Promise<CandidateRecommendationResult> => {
     await sleep(70)
-    const records = readCandidateItemsForStash(params.stashUuid, ownerUserUuid)
-    return buildCandidateItemListResult(records, buildCandidateListParamsPeriod(params), false)
+    if (!findCandidateStashForOwner(params.stashUuid, ownerUserUuid)) {
+      return { recommendations: [], nextCursor: null }
+    }
+    return buildCandidateRecommendationResult(buildCandidateListParamsPeriod(params), params.limit, params.cursor)
   },
   getCandidateItemByUuid: async (itemUuid: string, ownerUserUuid?: string): Promise<CandidateItemDetail | null> => {
     await sleep(50)
     const row = readCandidateItemRecords().find((it) => it.uuid === itemUuid)
     if (!row) return null
     if (!findCandidateStashForOwner(row.stashUuid, ownerUserUuid)) return null
-    return {
-      uuid: row.uuid,
-      stashUuid: row.stashUuid,
-      skuUuid: row.skuUuid,
-      skuGroupKey: row.skuGroupKey,
-      details: row.details,
-      isLatestLlmComment: row.isLatestLlmComment,
-      dbCreatedAt: row.dbCreatedAt,
-      dbUpdatedAt: row.dbUpdatedAt ?? row.dbCreatedAt,
-    }
+    return toCandidateItemDetail(row)
   },
   deleteCandidateItem: async (itemUuid: string, ownerUserUuid?: string): Promise<void> => {
     await sleep(60)
     const records = readCandidateItemRecords()
-    const row = records.find((it) => it.uuid === itemUuid)
+    const index = records.findIndex((it) => it.uuid === itemUuid)
+    const row = index >= 0 ? records[index] : undefined
     if (row && !findCandidateStashForOwner(row.stashUuid, ownerUserUuid)) {
       throw new Error('후보 아이템을 찾을 수 없습니다.')
     }
-    const index = records.findIndex((it) => it.uuid === itemUuid)
     if (index >= 0) records.splice(index, 1)
   },
   deleteCandidateItems: async (
@@ -180,8 +202,11 @@ export const candidateMockApi = {
       note: payload.note?.trim() || null,
       dbUpdatedAt: now,
     }
-    const linkedItems = items.filter((it) => it.stashUuid === target.uuid)
-    return toCandidateStashSummary(updated, linkedItems.length)
+    let itemCount = 0
+    for (const item of items) {
+      if (item.stashUuid === target.uuid) itemCount += 1
+    }
+    return toCandidateStashSummary(updated, itemCount)
   },
   duplicateCandidateStash: async (sourceStashUuid: string, ownerUserUuid?: string): Promise<void> => {
     await sleep(90)
@@ -202,8 +227,8 @@ export const candidateMockApi = {
     const now = new Date().toISOString()
     readCandidateItemRecords().push({
       ...createCandidateItemRecord(payload.stashUuid, payload.skuGroupKey, now, {
-      details: payload.details,
-      isLatestLlmComment: payload.isLatestLlmComment,
+        details: payload.details,
+        isLatestLlmComment: payload.isLatestLlmComment,
       }),
     })
   },
@@ -215,11 +240,10 @@ export const candidateMockApi = {
     const unknownProduct = payload.skuGroupKeys.find((skuGroupKey) => !productPrimaryBySkuGroupKey[skuGroupKey])
     if (unknownProduct) throw new Error(`상품을 찾을 수 없습니다: ${unknownProduct}`)
     const records = readCandidateItemRecords()
-    const existingSkuSet = new Set(
-      records
-        .filter((row) => row.stashUuid === payload.stashUuid)
-        .map((row) => row.skuUuid),
-    )
+    const existingSkuSet = new Set<string>()
+    for (const row of records) {
+      if (row.stashUuid === payload.stashUuid) existingSkuSet.add(row.skuUuid)
+    }
     const now = new Date().toISOString()
     for (const skuGroupKey of [...new Set(payload.skuGroupKeys)]) {
       if (existingSkuSet.has(skuGroupKey)) continue
@@ -227,7 +251,10 @@ export const candidateMockApi = {
       existingSkuSet.add(skuGroupKey)
     }
   },
-  updateCandidateItem: async (payload: UpdateCandidateItemPayload, ownerUserUuid?: string): Promise<void> => {
+  updateCandidateItem: async (
+    payload: UpdateCandidateItemPayload,
+    ownerUserUuid?: string,
+  ): Promise<UpdateCandidateItemResponse> => {
     await sleep(70)
     const item = readCandidateItemRecords().find((row) => row.uuid === payload.itemUuid)
     if (!item || !findCandidateStashForOwner(item.stashUuid, ownerUserUuid)) {
@@ -237,6 +264,7 @@ export const candidateMockApi = {
     item.details = payload.details
     item.isLatestLlmComment = payload.isLatestLlmComment
     item.dbUpdatedAt = now
+    return toCandidateItemDetail(item)
   },
   uploadCandidateStashExcel: async (
     file: File,

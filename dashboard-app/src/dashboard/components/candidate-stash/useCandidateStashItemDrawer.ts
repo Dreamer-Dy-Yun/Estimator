@@ -18,6 +18,11 @@ type DrawerDraftSnapshotEntry = {
   source: DrawerSnapshotSource
 }
 
+type DrawerSnapshotMutationState = {
+  state: 'confirmed' | 'unconfirmed'
+  baseDbUpdatedAt: string | null
+}
+
 type Args = {
   dataReferenceStart: string | undefined
   dataReferenceEnd: string | undefined
@@ -48,6 +53,7 @@ export function useCandidateStashItemDrawer({
   const innerNavLockRef = useRef(false)
   const draftSnapshotsByItemUuidRef = useRef<Record<string, DrawerDraftSnapshotEntry>>({})
   const confirmedSnapshotsByItemUuidRef = useRef<Record<string, OrderSnapshotDocumentV1>>({})
+  const snapshotMutationsByItemUuidRef = useRef<Record<string, DrawerSnapshotMutationState>>({})
 
   useEffect(() => {
     mountedRef.current = true
@@ -89,15 +95,28 @@ export function useCandidateStashItemDrawer({
       if (!mountedRef.current || drawerRequestSeqRef.current !== seq) return
       if (!detail) throw new Error(`후보 상세 데이터 없음: ${row.uuid}`)
       const snap = detail.details ? parseOrderSnapshot(detail.details) : null
-      if (snap) confirmedSnapshotsByItemUuidRef.current[row.uuid] = snap
+      const localMutation = snapshotMutationsByItemUuidRef.current[row.uuid] ?? null
+      const serverCaughtUp = localMutation?.baseDbUpdatedAt != null
+        && detail.dbUpdatedAt !== localMutation.baseDbUpdatedAt
+        && Boolean(snap) === (localMutation.state === 'confirmed')
+      if (serverCaughtUp) delete snapshotMutationsByItemUuidRef.current[row.uuid]
+      const effectiveMutation = serverCaughtUp ? null : localMutation
+      let confirmedSnap = snap
+      if (effectiveMutation?.state === 'confirmed') {
+        confirmedSnap = confirmedSnapshotsByItemUuidRef.current[row.uuid] ?? snap
+      }
+      if (effectiveMutation?.state === 'unconfirmed') {
+        confirmedSnap = null
+      }
+      if (confirmedSnap) confirmedSnapshotsByItemUuidRef.current[row.uuid] = confirmedSnap
       else delete confirmedSnapshotsByItemUuidRef.current[row.uuid]
       const draftEntry = draftSnapshotsByItemUuidRef.current[row.uuid] ?? null
-      const hydrateSnap = draftEntry?.snapshot ?? snap
-      const hydrateSource = draftEntry?.source ?? (snap ? 'confirmed' : null)
+      const hydrateSnap = draftEntry?.snapshot ?? confirmedSnap
+      const hydrateSource = draftEntry?.source ?? (confirmedSnap ? 'confirmed' : null)
       if (!mountedRef.current || drawerRequestSeqRef.current !== seq) return
       setHydrateSnap(hydrateSnap)
       setHydrateSnapSource(hydrateSource)
-      setConfirmedHydrateSnap(snap)
+      setConfirmedHydrateSnap(confirmedSnap)
       setDrawerForecastMonths(clampForecastMonths(hydrateSnap?.context.forecastMonths ?? detailForecastMonths))
       setDrawerSkuGroupKey(row.skuGroupKey)
       setOpenedItemUuid(row.uuid)
@@ -168,17 +187,26 @@ export function useCandidateStashItemDrawer({
     if (openedItemUuid === itemUuid) setHydrateSnapSource(null)
   }, [openedItemUuid])
 
-  const markDrawerSnapshotConfirmed = useCallback((itemUuid: string, snapshot: OrderSnapshotDocumentV1) => {
+  const markDrawerSnapshotConfirmed = useCallback((
+    itemUuid: string,
+    snapshot: OrderSnapshotDocumentV1,
+    baseDbUpdatedAt: string | null = null,
+  ) => {
     delete draftSnapshotsByItemUuidRef.current[itemUuid]
     confirmedSnapshotsByItemUuidRef.current[itemUuid] = snapshot
+    snapshotMutationsByItemUuidRef.current[itemUuid] = { state: 'confirmed', baseDbUpdatedAt }
     if (openedItemUuid === itemUuid) setHydrateSnap(snapshot)
     if (openedItemUuid === itemUuid) setHydrateSnapSource('confirmed')
     if (openedItemUuid === itemUuid) setConfirmedHydrateSnap(snapshot)
   }, [openedItemUuid])
 
-  const markDrawerSnapshotUnconfirmed = useCallback((itemUuid: string) => {
+  const markDrawerSnapshotUnconfirmed = useCallback((
+    itemUuid: string,
+    baseDbUpdatedAt: string | null = null,
+  ) => {
     delete draftSnapshotsByItemUuidRef.current[itemUuid]
     delete confirmedSnapshotsByItemUuidRef.current[itemUuid]
+    snapshotMutationsByItemUuidRef.current[itemUuid] = { state: 'unconfirmed', baseDbUpdatedAt }
     if (openedItemUuid === itemUuid) setHydrateSnap(null)
     if (openedItemUuid === itemUuid) setHydrateSnapSource(null)
     if (openedItemUuid === itemUuid) setConfirmedHydrateSnap(null)

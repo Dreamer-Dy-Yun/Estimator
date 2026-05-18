@@ -1,24 +1,9 @@
-import { useCallback, type ReactNode, type RefObject } from 'react'
+import { useCallback, useMemo, type MouseEventHandler, type ReactNode, type RefObject } from 'react'
 import { CartesianGrid, Scatter, ScatterChart, Tooltip, XAxis, YAxis } from 'recharts'
 import { LoadingSpinner } from '../../components/LoadingSpinner'
 import styles from './common.module.css'
 import { ChartCard } from './ChartCard'
-
-export type AnalysisScatterGridPointBase = {
-  cellKey: string
-  color: string
-}
-
-export type AnalysisScatterGridPoint = AnalysisScatterGridPointBase & {
-  x: number
-  y: number
-  count: number
-  xStart: number
-  xEnd: number
-  yStart: number
-  yEnd: number
-  hasMoreSkuIds: boolean
-}
+import type { AnalysisScatterGridPointBase } from '../model/analysisScatterGridPoint'
 
 type AxisConfig = {
   name: string
@@ -48,6 +33,11 @@ type Props<TPoint extends AnalysisScatterGridPointBase> = {
   fill?: string
 }
 
+const SCATTER_CHART_MARGIN = { top: 8, right: 8, bottom: 22, left: 8 }
+const AXIS_TICK_STYLE = { fontSize: 10 }
+const POINT_CURSOR_STYLE = { cursor: 'pointer' }
+const DEFAULT_AXIS_LABEL_COLOR = '#475569'
+
 export function AnalysisScatterChartCard<TPoint extends AnalysisScatterGridPointBase>({
   title,
   data,
@@ -65,6 +55,42 @@ export function AnalysisScatterChartCard<TPoint extends AnalysisScatterGridPoint
   yAxis,
   fill = '#f59e0b',
 }: Props<TPoint>) {
+  const xAxisLabel = useMemo(
+    () => ({
+      value: xAxis.label,
+      position: 'insideBottom' as const,
+      offset: -10,
+      style: {
+        fill: xAxis.labelColor ?? DEFAULT_AXIS_LABEL_COLOR,
+        fontSize: 11,
+        fontWeight: 600,
+      },
+    }),
+    [xAxis.label, xAxis.labelColor],
+  )
+  const yAxisLabel = useMemo(
+    () => ({
+      value: yAxis.label,
+      angle: -90,
+      position: 'insideLeft' as const,
+      offset: 0,
+      style: {
+        fill: yAxis.labelColor ?? DEFAULT_AXIS_LABEL_COLOR,
+        fontSize: 11,
+        fontWeight: 600,
+      },
+    }),
+    [yAxis.label, yAxis.labelColor],
+  )
+  const handlePointClick = useCallback<MouseEventHandler<SVGCircleElement>>(
+    (event) => {
+      const cellKey = event.currentTarget.dataset.cellKey
+      if (!cellKey) return
+      event.stopPropagation()
+      onCellClick(cellKey)
+    },
+    [onCellClick],
+  )
   const scatterShape = useCallback(
     (props: { cx?: number; cy?: number; payload?: TPoint }) => {
       const { cx, cy, payload } = props
@@ -75,18 +101,16 @@ export function AnalysisScatterChartCard<TPoint extends AnalysisScatterGridPoint
           cx={cx}
           cy={cy}
           r={pointRadius}
+          data-cell-key={payload.cellKey}
           fill={payload.color}
           stroke={isActive ? '#0f172a' : '#ffffff'}
           strokeWidth={isActive ? 1.75 : 0.75}
-          style={{ cursor: 'pointer' }}
-          onClick={(event) => {
-            event.stopPropagation()
-            onCellClick(payload.cellKey)
-          }}
+          style={POINT_CURSOR_STYLE}
+          onClick={handlePointClick}
         />
       )
     },
-    [activeCellKey, onCellClick, pointRadius],
+    [activeCellKey, handlePointClick, pointRadius],
   )
 
   return (
@@ -118,7 +142,7 @@ export function AnalysisScatterChartCard<TPoint extends AnalysisScatterGridPoint
             width={width}
             height={height}
             data={data}
-            margin={{ top: 8, right: 8, bottom: 22, left: 8 }}
+            margin={SCATTER_CHART_MARGIN}
           >
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis
@@ -127,29 +151,18 @@ export function AnalysisScatterChartCard<TPoint extends AnalysisScatterGridPoint
               name={xAxis.name}
               unit={xAxis.unit}
               tickFormatter={xAxis.tickFormatter}
-              tick={{ fontSize: 10 }}
-              label={{
-                value: xAxis.label,
-                position: 'insideBottom',
-                offset: -10,
-                style: { fill: xAxis.labelColor ?? '#475569', fontSize: 11, fontWeight: 600 },
-              }}
+              tick={AXIS_TICK_STYLE}
+              label={xAxisLabel}
             />
             <YAxis
               type="number"
               dataKey="y"
               name={yAxis.name}
               unit={yAxis.unit}
-              tick={{ fontSize: 10 }}
+              tick={AXIS_TICK_STYLE}
               width={yAxis.width ?? 38}
               tickMargin={yAxis.tickMargin ?? 4}
-              label={{
-                value: yAxis.label,
-                angle: -90,
-                position: 'insideLeft',
-                offset: 0,
-                style: { fill: yAxis.labelColor ?? '#475569', fontSize: 11, fontWeight: 600 },
-              }}
+              label={yAxisLabel}
             />
             <Tooltip content={renderTooltip} />
             <Scatter fill={fill} shape={scatterShape} />

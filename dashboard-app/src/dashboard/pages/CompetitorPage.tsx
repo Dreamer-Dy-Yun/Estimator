@@ -5,21 +5,19 @@ import type { CompetitorSalesRow } from '../../types'
 import type { AdjacentDirection } from '../../utils/adjacentListNavigation'
 import { adjacentIdInOrder } from '../../utils/adjacentListNavigation'
 import { clampForecastMonths, readForecastMonthsFromStorage, writeForecastMonthsToStorage } from '../../utils/forecastMonthsStorage'
-import { getScatterGridCellColor, getScatterGridCellPointRadius } from '../../utils/scatterGridDisplay'
 import { LoadingSpinner } from '../../components/LoadingSpinner'
 import { AnalysisCandidateBulkAddModal } from '../components/candidate-stash/AnalysisCandidateBulkAddModal'
 import { ProductDrawer } from '../components/product-drawer/ProductDrawer'
 import styles from '../components/common.module.css'
 import { AnalysisPeriodTools } from '../components/AnalysisPeriodTools'
-import {
-  AnalysisScatterChartCard,
-  type AnalysisScatterGridPoint,
-} from '../components/AnalysisScatterChartCard'
+import { AnalysisScatterChartCard } from '../components/AnalysisScatterChartCard'
 import { createCompetitorSalesScatterTooltip } from '../components/AnalysisScatterTooltips'
 import { CompetitorAnalysisList } from '../components/CompetitorAnalysisList'
 import { CompetitorFilterEndControls } from '../components/CompetitorFilterEndControls'
 import { CompetitorKpiGrid } from '../components/CompetitorKpiGrid'
+import { DashboardRequestStatus } from '../components/DashboardRequestStatus'
 import { FilterBar } from '../components/FilterBar'
+import { useAnalysisScatterGridView } from '../hooks/useAnalysisScatterGridView'
 import { useElementSize } from '../hooks/useElementSize'
 import { maskNonPeriodAnalysisFilterFields, useAnalysisSalesFilters } from '../hooks/useAnalysisSalesFilters'
 import type { FilterField } from '../model/filterField'
@@ -27,6 +25,7 @@ import { useAnalysisVisibleSelection } from '../hooks/useAnalysisVisibleSelectio
 import { useDashboardRequest } from '../hooks/useDashboardRequest'
 import { useProductDrawerBundleState } from '../hooks/useProductDrawerBundle'
 import type { ScatterSalesGridResponse } from '../../api/types'
+import type { AnalysisScatterGridPoint } from '../model/analysisScatterGridPoint'
 
 const EMPTY_COMPETITOR_ROWS: CompetitorSalesRow[] = []
 const EMPTY_COMPETITOR_CHANNELS: SecondaryCompetitorChannel[] = []
@@ -62,7 +61,8 @@ export const CompetitorPage = () => {
     onPeriodBarStart,
     onPeriodBarEnd,
   } = useAnalysisSalesFilters()
-  const { data: channels } = useDashboardRequest(getSecondaryCompetitorChannels, EMPTY_COMPETITOR_CHANNELS)
+  const channelsRequest = useDashboardRequest(getSecondaryCompetitorChannels, EMPTY_COMPETITOR_CHANNELS)
+  const { data: channels } = channelsRequest
 
   const competitorChannelId = useMemo(() => {
     if (competitorChannelLabel === '전체') return undefined
@@ -77,11 +77,13 @@ export const CompetitorPage = () => {
     ...salesParams,
     competitorChannelId,
   }), [competitorChannelId, salesParams])
-  const { data: rows, loading: rowsLoading } = useDashboardRequest(loadRows, EMPTY_COMPETITOR_ROWS)
-  const { data: scatterGrid, loading: scatterGridLoading } = useDashboardRequest<ScatterSalesGridResponse | null>(
+  const rowsRequest = useDashboardRequest(loadRows, EMPTY_COMPETITOR_ROWS)
+  const scatterGridRequest = useDashboardRequest<ScatterSalesGridResponse | null>(
     loadScatterGrid,
     null,
   )
+  const { data: rows, loading: rowsLoading } = rowsRequest
+  const { data: scatterGrid, loading: scatterGridLoading } = scatterGridRequest
 
   const channelOptions = useMemo(
     () => ['전체', ...channels.map((ch) => ch.label)],
@@ -140,26 +142,12 @@ export const CompetitorPage = () => {
     return { totalCompetitorAmount, totalSelfAmount, totalCompetitorQty, totalSelfQty }
   }, [visibleRows])
 
-  const maxScatterGridCount = useMemo(
-    () => Math.max(0, ...(scatterGrid?.cells ?? []).map((cell) => cell.count)),
-    [scatterGrid],
-  )
-
-  const scatterData: AnalysisScatterGridPoint[] = useMemo(
-    () => (scatterGrid?.cells ?? []).map((cell) => ({
-      x: cell.representativeX,
-      y: cell.representativeY,
-      cellKey: cell.cellKey,
-      count: cell.count,
-      xStart: cell.xStart,
-      xEnd: cell.xEnd,
-      yStart: cell.yStart,
-      yEnd: cell.yEnd,
-      hasMoreSkuIds: cell.hasMoreSkuIds,
-      color: getScatterGridCellColor(cell.count, maxScatterGridCount),
-    })),
-    [maxScatterGridCount, scatterGrid],
-  )
+  const {
+    scatterData,
+    scatterChartWidth,
+    scatterChartHeight,
+    scatterPointRadius,
+  } = useAnalysisScatterGridView({ scatterGrid, chartWidth, chartHeight })
 
   const onRequestNavigateAdjacent = useCallback(
     (direction: AdjacentDirection) => {
@@ -175,10 +163,6 @@ export const CompetitorPage = () => {
     () => createCompetitorSalesScatterTooltip(competitorAxisLabel),
     [competitorAxisLabel],
   )
-
-  const scatterChartWidth = Math.max(1, Math.floor(chartWidth))
-  const scatterChartHeight = Math.max(1, Math.floor(chartHeight))
-  const scatterPointRadius = getScatterGridCellPointRadius(scatterGrid?.meta, scatterChartWidth, scatterChartHeight)
 
   return (
     <section className={styles.page}>
@@ -209,6 +193,14 @@ export const CompetitorPage = () => {
             )}
           />
         )}
+      />
+
+      <DashboardRequestStatus
+        items={[
+          { label: '경쟁 채널', state: channelsRequest },
+          { label: '경쟁사 분석 목록', state: rowsRequest },
+          { label: '산점도', state: scatterGridRequest },
+        ]}
       />
 
       <div className={`${styles.twoCol} ${styles.selfTwoCol}`}>

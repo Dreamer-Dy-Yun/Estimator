@@ -2,7 +2,6 @@ import type {
   CandidateItemSummary,
   CandidateOrderMetric,
   CandidateReferenceItemSummary,
-  CandidateStashItemSummary,
 } from '../../../api'
 
 export function applyOrderMetricToCandidateItem(
@@ -33,10 +32,46 @@ export function markCandidateItemOrderMetricFailed(item: CandidateItemSummary): 
   }
 }
 
-export function deriveCandidateRecommendations(
-  referenceItems: CandidateReferenceItemSummary[],
-  candidateItems: CandidateStashItemSummary[],
-): CandidateReferenceItemSummary[] {
-  const candidateSkuUuidSet = new Set(candidateItems.map((item) => item.skuUuid))
-  return referenceItems.filter((item) => !candidateSkuUuidSet.has(item.uuid))
+export function applyRecommendationInsightsToCandidateItems(
+  items: CandidateItemSummary[],
+  recommendations: CandidateReferenceItemSummary[],
+): CandidateItemSummary[] {
+  if (!items.length) return items
+  if (!recommendations.length) {
+    let changed = false
+    const loadedItems = items.map((item) => {
+      if (item.insightStatus === 'loaded') return item
+      changed = true
+      return {
+        ...item,
+        insightStatus: 'loaded' as const,
+      }
+    })
+    return changed ? loadedItems : items
+  }
+  const insightBySkuUuid = new Map(recommendations.map((row) => [row.uuid, row.insight]))
+  let changed = false
+  const loadedItems = items.map((item) => {
+    const insight = insightBySkuUuid.get(item.skuUuid)
+    if (!insight) {
+      if (item.insightStatus === 'loaded') return item
+      changed = true
+      return {
+        ...item,
+        insightStatus: 'loaded' as const,
+      }
+    }
+    changed = true
+    return {
+      ...item,
+      insightStatus: 'loaded' as const,
+      insight: {
+        ...insight,
+        expectedSalesQty: item.insight.expectedSalesQty,
+        expectedSalesAmount: item.insight.expectedSalesAmount,
+        expectedOpProfit: item.insight.expectedOpProfit,
+      },
+    }
+  })
+  return changed ? loadedItems : items
 }

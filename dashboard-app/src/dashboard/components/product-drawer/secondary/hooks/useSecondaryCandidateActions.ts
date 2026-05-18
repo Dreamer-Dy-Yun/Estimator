@@ -110,13 +110,13 @@ export function useSecondaryCandidateActions({
     const snapshot = buildSnapshot()
     setLoading(true)
     try {
-      await dashboardApi.updateCandidateItem({
+      const updatedItem = await dashboardApi.updateCandidateItem({
         itemUuid: candidateItemContext.itemUuid,
         details: snapshot,
         isLatestLlmComment: false,
       })
       if (!mountedRef.current) return
-      candidateItemContext.onConfirmed?.(snapshot)
+      candidateItemContext.onConfirmed?.(snapshot, updatedItem)
       candidateItemContext.onSaved?.()
       showToast(hasSavedSnapshot ? '상세확정 내용을 갱신했습니다.' : '상세확정했습니다.')
     } finally {
@@ -128,13 +128,13 @@ export function useSecondaryCandidateActions({
     if (candidateItemContext == null) return
     setLoading(true)
     try {
-      await dashboardApi.updateCandidateItem({
+      const updatedItem = await dashboardApi.updateCandidateItem({
         itemUuid: candidateItemContext.itemUuid,
         details: null,
         isLatestLlmComment: false,
       })
       if (!mountedRef.current) return
-      candidateItemContext.onUnconfirmed?.()
+      candidateItemContext.onUnconfirmed?.(updatedItem)
       candidateItemContext.onSaved?.()
       showToast('상세확정을 해제했습니다.')
     } finally {

@@ -109,6 +109,9 @@ export const httpDashboardRequests: DashboardApi = {
       method: 'POST',
       body: payload,
     }),
+  // Response contract: latest CandidateItemDetail after DB commit/cache invalidation.
+  // The frontend uses isDetailConfirmed/isLatestLlmComment/dbUpdatedAt from this response
+  // as the authoritative post-mutation state and protects it from stale follow-up GETs.
   updateCandidateItem: ({ itemUuid, ...payload }) =>
     apiRequest(`/candidate-items/${encodePathSegment(itemUuid)}`, {
       method: 'PATCH',

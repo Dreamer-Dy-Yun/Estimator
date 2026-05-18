@@ -1,8 +1,21 @@
 import { useEffect, useRef, useState } from 'react'
 
-type DashboardRequestState<T> = {
+export type DashboardRequestError = {
+  message: string
+}
+
+export type DashboardRequestState<T> = {
   data: T
   loading: boolean
+  isRefreshing: boolean
+  error: DashboardRequestError | null
+  lastUpdatedAt: string | null
+  isStale: boolean
+}
+
+function toRequestError(error: unknown): DashboardRequestError {
+  if (error instanceof Error && error.message.trim()) return { message: error.message }
+  return { message: '요청에 실패했습니다.' }
 }
 
 export function useDashboardRequest<T>(
@@ -10,26 +23,43 @@ export function useDashboardRequest<T>(
   fallbackData: T,
 ): DashboardRequestState<T> {
   const requestSeqRef = useRef(0)
+  const hasLoadedRef = useRef(false)
   const [data, setData] = useState<T>(fallbackData)
   const [loading, setLoading] = useState(true)
+  const [isRefreshing, setIsRefreshing] = useState(false)
+  const [error, setError] = useState<DashboardRequestError | null>(null)
+  const [lastUpdatedAt, setLastUpdatedAt] = useState<string | null>(null)
 
   useEffect(() => {
     let alive = true
     const reqSeq = ++requestSeqRef.current
 
     queueMicrotask(() => {
-      if (alive && reqSeq === requestSeqRef.current) setLoading(true)
+      if (!alive || reqSeq !== requestSeqRef.current) return
+      if (hasLoadedRef.current) {
+        setIsRefreshing(true)
+      } else {
+        setLoading(true)
+      }
     })
 
     void request()
       .then((nextData) => {
-        if (alive && reqSeq === requestSeqRef.current) setData(nextData)
+        if (!alive || reqSeq !== requestSeqRef.current) return
+        hasLoadedRef.current = true
+        setData(nextData)
+        setError(null)
+        setLastUpdatedAt(new Date().toISOString())
       })
-      .catch(() => {
-        if (alive && reqSeq === requestSeqRef.current) setData(fallbackData)
+      .catch((nextError: unknown) => {
+        if (!alive || reqSeq !== requestSeqRef.current) return
+        if (!hasLoadedRef.current) setData(fallbackData)
+        setError(toRequestError(nextError))
       })
       .finally(() => {
-        if (alive && reqSeq === requestSeqRef.current) setLoading(false)
+        if (!alive || reqSeq !== requestSeqRef.current) return
+        setLoading(false)
+        setIsRefreshing(false)
       })
 
     return () => {
@@ -37,5 +67,12 @@ export function useDashboardRequest<T>(
     }
   }, [fallbackData, request])
 
-  return { data, loading }
+  return {
+    data,
+    loading,
+    isRefreshing,
+    error,
+    lastUpdatedAt,
+    isStale: Boolean(error && lastUpdatedAt),
+  }
 }
