@@ -137,6 +137,13 @@ export const SelfPage = () => {
             onPeriodBarEnd={onPeriodBarEnd}
             endControl={(
               <div className={styles.periodPresetRowEndGroup}>
+                <DashboardRequestStatus
+                  compact
+                  items={[
+                    { label: '자사 분석 목록', state: rowsRequest },
+                    { label: '산점도', state: scatterGridRequest },
+                  ]}
+                />
                 <button
                   type="button"
                   className={`${styles.actionBtn} ${styles.btnPrimary} ${styles.analysisBulkAddButton}`}
@@ -149,13 +156,6 @@ export const SelfPage = () => {
             )}
           />
         )}
-      />
-
-      <DashboardRequestStatus
-        items={[
-          { label: '자사 분석 목록', state: rowsRequest },
-          { label: '산점도', state: scatterGridRequest },
-        ]}
       />
 
       <div className={`${styles.twoCol} ${styles.selfTwoCol}`}>

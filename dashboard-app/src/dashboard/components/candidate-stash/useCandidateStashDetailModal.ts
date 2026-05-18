@@ -168,11 +168,21 @@ export function useCandidateStashDetailModal({
     refreshStashes,
     showToast,
   })
-  const { clearRecommendationItems } = recommendations
+  const {
+    clearRecommendationItems,
+    loadRecommendations,
+    recommendationLoading,
+  } = recommendations
 
   useEffect(() => {
     clearRecommendationItemsRef.current = clearRecommendationItems
   }, [clearRecommendationItems])
+
+  useEffect(() => {
+    if (detailLoading || detailError || recommendationLoading) return
+    if (!items.some((item) => item.insightStatus === 'loading')) return
+    void loadRecommendations()
+  }, [detailError, detailLoading, items, loadRecommendations, recommendationLoading])
 
   const table = useInnerCandidateTable(items)
   const dataReferenceStart = dataReferencePeriodStart || undefined
@@ -279,7 +289,7 @@ export function useCandidateStashDetailModal({
     confirmDeleteItems: actions.confirmDeleteItems,
     confirmUnconfirmItems: actions.confirmUnconfirmItems,
     downloadOrderExcel: actions.downloadOrderExcel,
-    loadRecommendations: recommendations.loadRecommendations,
+    loadRecommendations,
   }
 }
 

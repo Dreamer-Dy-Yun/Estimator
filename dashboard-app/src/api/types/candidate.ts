@@ -100,7 +100,7 @@ export interface CandidateStashItemSummary {
 
 export interface CandidateItemListResult {
   candidateItems: CandidateStashItemSummary[]
-  /** Screen-composed candidate rows only. Badge/recommendation and order metrics arrive later. */
+  /** Screen-composed candidate rows only. Badge/recommendation and order metrics arrive by separate requests. */
   items: CandidateItemSummary[]
 }
 
@@ -119,7 +119,7 @@ export interface CandidateRecommendationParams {
 }
 
 export interface CandidateRecommendationResult {
-  /** Badge-bearing SKU rows. Frontend uses rows already in the stash as badge patches and hides them from recommendation UI. */
+  /** Badge-bearing SKU rows. Frontend eagerly pages this response, patches stash rows, and hides duplicates from recommendation UI. */
   recommendations: CandidateReferenceItemSummary[]
   nextCursor?: string | null
 }

@@ -5,7 +5,7 @@
 | 작성 지시 | Yun Daeyoung |
 | 작성자 | Codex |
 | 작성일 | 2026-05-07 |
-| 최종 수정일 | 2026-05-14 |
+| 최종 수정일 | 2026-05-18 |
 | 상태 | 유지 문서 |
 
 ## 목적
@@ -51,6 +51,7 @@
 | [dashboard-app/source-boundary-map.md](./dashboard-app/source-boundary-map.md) | 소스 폴더와 파일 역할, 경계 규칙 |
 | [dashboard-app/module-hardening.md](./dashboard-app/module-hardening.md) | 하드닝 완료 모듈과 수정 허가 규칙 |
 | [dashboard-app/test-strategy.md](./dashboard-app/test-strategy.md) | 테스트 전략 |
+| [dashboard-app/qa-current-behavior.md](./dashboard-app/qa-current-behavior.md) | 현재 화면/데이터/API 동작 기준 QA 문서 |
 | [backend-api/README.md](./backend-api/README.md) | 백엔드 API 문서 입구 |
 | [backend-api/backend-api-spec.md](./backend-api/backend-api-spec.md) | 백엔드 API 계약 상세 |
 | [troubleshooting/README.md](./troubleshooting/README.md) | 반복 환경 문제와 검증 병목 해결 방법 |

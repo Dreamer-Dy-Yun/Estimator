@@ -23,7 +23,7 @@
 | `src/api/requests/adminGptKeyRequests.ts` | 관리자 GPT 키 목록, 생성, 메타/키 변경, 연결 테스트, 삭제 | GPT 전용 계약이다. 생성/변경 요청만 `plainKey`를 담을 수 있고, 응답은 `maskedKey`만 내려준다. 키 저장/암호화/감사 로그는 백엔드 책임이다 |
 | `src/api/requests/adminGoogleSheetRequests.ts` | 관리자 구글 시트 설정 목록, 생성, 변경, 삭제 | 서비스 계정 JSON 키는 생성/변경 요청에만 담고 응답에는 `maskedServiceAccountKey`만 내려준다. 백엔드는 JSON의 `client_email`을 서비스 계정 이메일로 파싱하고, 키 원문은 암호화 저장 또는 secret manager로 보관한다 |
 | `src/api/requests/inventoryArrivalRequests.ts` | 스프레드시트 기반 입고예정일 수집 | 모든 로그인 사용자가 호출할 수 있는 전역 작업이다. 프론트는 시트 키나 서비스 계정 원문을 보내지 않고, 백엔드가 활성 구글 시트 설정을 선택해 읽고 DB에 upsert한다. 응답은 수집/실패 건수와 상태 메시지만 반환한다 |
-| `src/api/requests/dashboardRequests.ts` | 자사/경쟁 판매, 상품 드로워, 후보군, 엑셀 업로드 템플릿 | 후보군 계열 요청은 현재 사용자 `USER_ACCOUNT.uuid` 기준으로 소유자 필터를 강제한다. 프론트 UI는 사용자 UUID를 들고 다니지 않고 request adapter에서만 붙인다. 세션 기반 백엔드라면 요청값보다 서버 세션을 우선한다. 경쟁 분석 목록은 `competitorChannelId` 생략 시 전체 경쟁 채널 합계를 반환하고, 상품 드로워 판매 인사이트는 선택 경쟁 채널을 필수로 받는다. 이너후보군 리스트는 데이터 참조기간의 전체 상품 분포로 배지를 계산한 뒤 stash item만 반환한다. 기간 총판매량은 백엔드가 `*_MONTHLY_SUMMARY`와 raw 판매 테이블을 조합해 계산하고, 프론트는 내려온 값을 그대로 표시한다. 발주 엑셀 다운로드는 백엔드 재호출 없이 이미 받은 `orderExport` DTO로 프론트가 생성한다 |
+| `src/api/requests/dashboardRequests.ts` | 자사/경쟁 판매, 상품 드로워, 후보군, 엑셀 업로드 템플릿 | 후보군 계열 요청은 현재 사용자 `USER_ACCOUNT.uuid` 기준으로 소유자 필터를 강제한다. 프론트 UI는 사용자 UUID를 들고 다니지 않고 request adapter에서만 붙인다. 세션 기반 백엔드라면 요청값보다 서버 세션을 우선한다. 경쟁 분석 목록은 `competitorChannelId` 생략 시 전체 경쟁 채널 합계를 반환하고, 상품 드로워 판매 인사이트는 선택 경쟁 채널을 필수로 받는다. 이너후보군 기본 리스트는 stash item과 기간 판매량만 빠르게 반환하고, 배지/추천은 별도 `getCandidateRecommendations` 응답을 각 조회 결과 수신 직후 자동으로 page 조회해 병합한다. 기간 총판매량은 백엔드가 `*_MONTHLY_SUMMARY`와 raw 판매 테이블을 조합해 계산하고, 프론트는 내려온 값을 그대로 표시한다. 발주 엑셀 다운로드는 백엔드 재호출 없이 이미 받은 `orderExport` DTO로 프론트가 생성한다 |
 
 `src/api/client.ts`는 public export facade다. 화면에서 import하는 이름을 안정적으로 유지하기 위한 파일이며, mock/HTTP 선택과 base URL 처리는 `src/api/requests/httpClient.ts`와 각 request adapter가 맡는다.
 
@@ -313,7 +313,7 @@
 | `subscribeCandidateOrderMetrics(params)` | SSE 권장 | `/candidate-stashes/:stashUuid/items/order-metrics/events?requestId&dataReferencePeriodStart&dataReferencePeriodEnd&candidateItemUuids` (`candidateItemUuids`는 반복 query param) |
 | `startCandidateStashAnalysis(stashUuid)` | POST | `/candidate-stashes/:stashUuid/analysis` 세션 소유자 기준 |
 | `subscribeCandidateStashAnalysis(jobId, listener)` | GET (SSE) | `/candidate-stash-analyses/:jobId/events` 세션 소유자 기준 |
-| `getCandidateRecommendations(params)` | GET | `/candidate-stashes/:stashUuid/recommendations?dataReferencePeriodStart&dataReferencePeriodEnd` |
+| `getCandidateRecommendations(params)` | GET | `/candidate-stashes/:stashUuid/recommendations?dataReferencePeriodStart&dataReferencePeriodEnd&limit&cursor` |
 | `getCandidateItemByUuid(itemUuid)` | GET | `/candidate-items/:itemUuid` |
 | `deleteCandidateItem(itemUuid)` | DELETE | `/candidate-items/:itemUuid` 세션 소유자 기준 |
 | `deleteCandidateItems(stashUuid, itemUuids)` | DELETE | `/candidate-stashes/:stashUuid/items` body `{ itemUuids }`, 세션 소유자 기준 |
@@ -560,7 +560,7 @@
 | `dataReferencePeriodStart` | 후보군 리스트의 기간 판매량과 이후 지표 계산에 사용할 데이터 참조 시작일 (`YYYY-MM-DD`) |
 | `dataReferencePeriodEnd` | 후보군 리스트의 기간 판매량과 이후 지표 계산에 사용할 데이터 참조 종료일 (`YYYY-MM-DD`) |
 
-이 API는 모달 첫 표시를 빠르게 하기 위한 기본 후보 리스트 조회다. 백엔드는 후보군에 실제로 담긴 `candidateItems`와 화면 행에 필요한 기본 SKU 메타/기간 판매량만 내려준다. 전체 SKU 분포를 기반으로 한 배지와 추천 후보는 `getCandidateRecommendations`에서 별도 계산한다. 프론트는 배지 컬럼을 `로딩중...` 상태로 표시할 수 있으며, 추천 보기 또는 백그라운드 추천 조회가 완료되면 추천 응답 안에서 현재 후보군 `skuUuid`와 일치하는 row를 기존 행에 병합해 배지를 반영한다.
+이 API는 조회 버튼 적용 결과와 후보군 상세 모달 최초 자동 조회 결과에 공통으로 쓰이는 기본 후보 리스트 조회다. 백엔드는 후보군에 실제로 담긴 `candidateItems`와 화면 행에 필요한 기본 SKU 메타/기간 판매량만 내려준다. 전체 SKU 분포를 기반으로 한 배지와 추천 후보는 `getCandidateRecommendations`에서 별도 계산한다. 프론트는 이 기본 리스트를 받은 직후 `getCandidateRecommendations`를 page 단위로 자동 조회해, 추천 응답 안에서 현재 후보군 `skuUuid`와 일치하는 row를 기존 행에 병합한다. 따라서 `추천 보기` 버튼은 배지 계산을 시작하는 트리거가 아니라 이미 로드된 추천 목록을 여는 UI이며, 추천 응답 실패 시 배지 컬럼은 `실패` 상태를 표시한다.
 
 기간 총판매량은 백엔드 계산 계약이다. 자사 판매는 `ERP_MONTHLY_SUMMARY`를 우선 사용하되, 조회 시작/종료가 월 전체를 덮지 않는 부분 월과 아직 확정되지 않은 월은 `SALES_ERP`를 일자 기준으로 합산해 보정한다. 경쟁 판매는 `SALES_EXTERNAL`을 원천으로 보며, `EXTERNAL_MONTHLY_SUMMARY`의 `site` 축이 제공되면 확정된 전체 월은 월 요약을 사용하고 부분 월/미확정 월은 `SALES_EXTERNAL`로 보정한다. 전체 경쟁 채널 조회는 site 전체 합산이고, 특정 경쟁 채널 조회는 해당 `site`만 합산한다. 프론트는 이 계산을 재현하지 않고 `CandidateItemSummary.insight.selfSalesQty`와 `competitorSalesQty`를 그대로 표시한다.
 
@@ -569,7 +569,7 @@
 | 필드 | 의미 |
 |------|------|
 | `candidateItems` | 후보군에 실제로 담긴 `CANDIDATE_ITEM` 목록. `uuid`는 `CANDIDATE_ITEM.uuid`, `skuUuid`는 `CANDIDATE_ITEM.sku_uuid = SKU.uuid`, `hasSnapshot`은 `details != null` |
-| `items` | 후보군에 담긴 아이템만 포함하는 화면 행. 총 오더 수량/금액은 초기 응답에서 로딩 상태이고, 배지/랭킹성 insight도 별도 추천 조회 전에는 로딩 상태일 수 있다 |
+| `items` | 후보군에 담긴 아이템만 포함하는 화면 행. 총 오더 수량/금액은 기본 조회 응답에서 로딩 상태이고, 배지/랭킹성 insight는 조회 결과 직후 별도 추천 조회가 끝날 때까지 로딩 상태일 수 있다 |
 
 **`CandidateRecommendationParams`** (`getCandidateRecommendations` 요청)
 
@@ -581,7 +581,7 @@
 | `limit` | 추천 후보 반환 개수. 기본 50 권장 |
 | `cursor` | 다음 추천 페이지 조회용 cursor. offset 문자열 또는 opaque cursor 모두 가능 |
 
-이 API는 조회 기간 전체 SKU 분포를 집계해 배지가 있는 SKU 목록만 계산한다. 전체 분포를 봐야 하는 비용은 백엔드가 부담하되, 프론트로 전체 reference 목록을 내려주지 않는다. 응답의 `recommendations`에는 현재 후보군에 이미 담긴 SKU가 포함될 수 있다. 프론트는 그 row를 화면 추천 목록에서는 숨기고, 같은 `skuUuid`를 가진 후보 행의 배지/랭킹성 insight로 병합한다. 백엔드는 배지가 붙은 현재 후보군 SKU를 먼저 응답에 포함하고, 그 뒤에 현재 후보군에 없는 추천 SKU를 `limit`만큼 붙이는 구현을 권장한다. 이 경우 `limit/cursor`는 추천 UI에 노출될 "신규 후보" 기준으로 적용하고, 배지 패치용 현재 후보군 SKU는 `limit` 차감 대상에서 제외한다.
+이 API는 조회 기간 전체 SKU 분포를 집계해 배지가 있는 SKU 목록만 계산한다. 전체 분포를 봐야 하는 비용은 백엔드가 부담하되, 프론트로 전체 reference 목록을 내려주지 않는다. 응답의 `recommendations`에는 현재 후보군에 이미 담긴 SKU가 포함될 수 있다. 프론트는 후보군 기본 조회 결과가 들어올 때마다 이 API를 `nextCursor`가 없어질 때까지 page 조회하고, 같은 `skuUuid`를 가진 후보 행에는 배지/랭킹성 insight로 병합하며, 추천 UI에서는 현재 후보군 row를 숨긴다. 백엔드는 배지가 붙은 현재 후보군 SKU를 먼저 응답에 포함하고, 그 뒤에 현재 후보군에 없는 추천 SKU를 `limit`만큼 붙이는 구현을 권장한다. 이 경우 `limit/cursor`는 추천 UI에 노출될 "신규 후보" 기준으로 적용하고, 배지 패치용 현재 후보군 SKU는 `limit` 차감 대상에서 제외한다.
 
 **`CandidateRecommendationResult`** (`getCandidateRecommendations` 응답)
 

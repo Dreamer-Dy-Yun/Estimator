@@ -32,6 +32,20 @@ export function markCandidateItemOrderMetricFailed(item: CandidateItemSummary): 
   }
 }
 
+export function markCandidateItemInsightsFailed(items: CandidateItemSummary[]): CandidateItemSummary[] {
+  if (!items.length) return items
+  let changed = false
+  const failedItems = items.map((item) => {
+    if (item.insightStatus !== 'loading') return item
+    changed = true
+    return {
+      ...item,
+      insightStatus: 'failed' as const,
+    }
+  })
+  return changed ? failedItems : items
+}
+
 export function applyRecommendationInsightsToCandidateItems(
   items: CandidateItemSummary[],
   recommendations: CandidateReferenceItemSummary[],

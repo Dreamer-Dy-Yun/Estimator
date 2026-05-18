@@ -10,7 +10,10 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "vitest",
+    "pretest:e2e": "npm run test:e2e:clear-cache",
     "test:e2e": "playwright test",
+    "test:e2e:clear-cache": "node scripts/clear-playwright-transform-cache.mjs",
+    "pretest:e2e:ui": "npm run test:e2e:clear-cache",
     "test:e2e:ui": "playwright test --ui",
     "test:run": "vitest --run"
   },

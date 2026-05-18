@@ -5,8 +5,13 @@ import {
   type CandidateItemSummary,
   type CandidateReferenceItemSummary,
 } from '../../../api'
-import { applyRecommendationInsightsToCandidateItems } from './candidateItemMetricModel'
+import {
+  applyRecommendationInsightsToCandidateItems,
+  markCandidateItemInsightsFailed,
+} from './candidateItemMetricModel'
 import type { CandidateMetricReloadOptions } from './candidateItemListMergeModel'
+
+const RECOMMENDATION_PAGE_SIZE = 100
 
 type CandidateItemStateUpdater =
   | CandidateItemSummary[]
@@ -45,31 +50,46 @@ export function useCandidateRecommendations({
   const [recommendationLoading, setRecommendationLoading] = useState(false)
   const [recommendationError, setRecommendationError] = useState<string | null>(null)
   const requestSeqRef = useRef(0)
+  const loadedPeriodKeyRef = useRef<string | null>(null)
+  const recommendationItemsRef = useRef<CandidateReferenceItemSummary[]>([])
 
   const clearRecommendationItems = useCallback(() => {
     requestSeqRef.current += 1
+    loadedPeriodKeyRef.current = null
+    recommendationItemsRef.current = []
     setRecommendationItems([])
     setRecommendationLoading(false)
     setRecommendationError(null)
   }, [])
 
-  const loadRecommendations = useCallback(async (): Promise<CandidateReferenceItemSummary[]> => {
+  const loadRecommendations = useCallback(async (force = false): Promise<CandidateReferenceItemSummary[]> => {
     if (!stashUuid || !dataReferencePeriodStart || !dataReferencePeriodEnd) return []
+    const periodKey = `${stashUuid}:${dataReferencePeriodStart}:${dataReferencePeriodEnd}`
+    if (!force && loadedPeriodKeyRef.current === periodKey) return recommendationItemsRef.current
     const seq = requestSeqRef.current + 1
     requestSeqRef.current = seq
     setRecommendationLoading(true)
     setRecommendationError(null)
     try {
-      const result = await getCandidateRecommendations({
-        stashUuid,
-        dataReferencePeriodStart,
-        dataReferencePeriodEnd,
-        limit: 100,
-      })
-      if (!mountedRef.current || requestSeqRef.current !== seq) return []
+      const allRecommendations: CandidateReferenceItemSummary[] = []
+      let cursor: string | undefined
+      do {
+        const result = await getCandidateRecommendations({
+          stashUuid,
+          dataReferencePeriodStart,
+          dataReferencePeriodEnd,
+          limit: RECOMMENDATION_PAGE_SIZE,
+          cursor,
+        })
+        if (!mountedRef.current || requestSeqRef.current !== seq) return []
+        allRecommendations.push(...result.recommendations)
+        cursor = result.nextCursor ?? undefined
+      } while (cursor)
       const candidateSkuUuidSet = new Set(itemsRef.current.map((item) => item.skuUuid))
-      const recommendationRows = result.recommendations.filter((row) => !candidateSkuUuidSet.has(row.uuid))
-      setItems((current) => applyRecommendationInsightsToCandidateItems(current, result.recommendations))
+      const recommendationRows = allRecommendations.filter((row) => !candidateSkuUuidSet.has(row.uuid))
+      setItems((current) => applyRecommendationInsightsToCandidateItems(current, allRecommendations))
+      loadedPeriodKeyRef.current = periodKey
+      recommendationItemsRef.current = recommendationRows
       setRecommendationItems(recommendationRows)
       setRecommendationLoading(false)
       return recommendationRows
@@ -77,6 +97,7 @@ export function useCandidateRecommendations({
       if (!mountedRef.current || requestSeqRef.current !== seq) return []
       const message = err instanceof Error ? err.message : '추천 후보 조회에 실패했습니다.'
       setRecommendationError(message)
+      setItems(markCandidateItemInsightsFailed)
       setRecommendationLoading(false)
       return []
     }

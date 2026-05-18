@@ -1,8 +1,10 @@
+import type { ReactNode } from 'react'
 import styles from './common.module.css'
 
 type Props = {
   showRowsWithSelfSalesOnly: boolean
   bulkSelectedCount: number
+  requestStatus?: ReactNode
   onSelfSalesOnlyChange: (checked: boolean) => void
   onOpenBulkAdd: () => void
 }
@@ -10,11 +12,13 @@ type Props = {
 export function CompetitorFilterEndControls({
   showRowsWithSelfSalesOnly,
   bulkSelectedCount,
+  requestStatus,
   onSelfSalesOnlyChange,
   onOpenBulkAdd,
 }: Props) {
   return (
     <div className={styles.periodPresetRowEndGroup}>
+      {requestStatus}
       <label className={styles.periodPresetRowToggle}>
         <input
           type="checkbox"

@@ -5,7 +5,7 @@
 | 작성 지시 | Yun Daeyoung |
 | 작성자 | Codex |
 | 작성일 | 2026-04-23 |
-| 최종 수정일 | 2026-05-14 |
+| 최종 수정일 | 2026-05-18 |
 | 상태 | 유지 문서 |
 | 적용 범위 | `dashboard-app` 문서 |
 
@@ -21,6 +21,7 @@
 | [source-boundary-map.md](./source-boundary-map.md) | 소스 폴더/파일 역할과 경계 규칙. 기능 변경 시 반드시 갱신 |
 | [module-hardening.md](./module-hardening.md) | 하드닝 완료 모듈, 공개 계약, 수정 허가 규칙 |
 | [test-strategy.md](./test-strategy.md) | Vitest 테스트 전략과 우선순위 |
+| [qa-current-behavior.md](./qa-current-behavior.md) | 현재 화면/데이터/키보드/API 동작 기준 QA 문서. 기능 변경 시 반드시 갱신 |
 | [inner-candidate-list-sse-plan.md](./inner-candidate-list-sse-plan.md) | 이너 후보군 조회·추천·오더 지표 SSE 분리 계획 |
 
 백엔드 API 계약은 [../backend-api/README.md](../backend-api/README.md)를 참고합니다.

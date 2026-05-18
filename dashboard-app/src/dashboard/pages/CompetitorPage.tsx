@@ -188,20 +188,22 @@ export const CompetitorPage = () => {
               <CompetitorFilterEndControls
                 showRowsWithSelfSalesOnly={showRowsWithSelfSalesOnly}
                 bulkSelectedCount={bulkSelectedCount}
+                requestStatus={(
+                  <DashboardRequestStatus
+                    compact
+                    items={[
+                      { label: '경쟁 채널', state: channelsRequest },
+                      { label: '경쟁사 분석 목록', state: rowsRequest },
+                      { label: '산점도', state: scatterGridRequest },
+                    ]}
+                  />
+                )}
                 onSelfSalesOnlyChange={setShowRowsWithSelfSalesOnly}
                 onOpenBulkAdd={() => setBulkAddOpen(true)}
               />
             )}
           />
         )}
-      />
-
-      <DashboardRequestStatus
-        items={[
-          { label: '경쟁 채널', state: channelsRequest },
-          { label: '경쟁사 분석 목록', state: rowsRequest },
-          { label: '산점도', state: scatterGridRequest },
-        ]}
       />
 
       <div className={`${styles.twoCol} ${styles.selfTwoCol}`}>
