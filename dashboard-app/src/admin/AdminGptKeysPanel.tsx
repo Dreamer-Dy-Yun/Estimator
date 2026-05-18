@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import { getAdminGptKeys } from '../api'
 import { useAppToast } from '../components/AppToastContext'
-import { LoadingSpinner } from '../components/LoadingSpinner'
 import type {
   AdminGptKeySummary,
   AdminGptKeyTestResult,
@@ -10,6 +9,7 @@ import { getErrorMessage } from './adminHelpers'
 import { AdminGptKeyCreateDialog } from './AdminGptKeyCreateDialog'
 import { AdminGptKeyDialog } from './AdminGptKeyDialog'
 import { AdminGptKeyRow } from './AdminGptKeyRow'
+import { AdminListPanel } from './AdminListPanel'
 import styles from './AdminPage.module.css'
 
 export function AdminGptKeysPanel() {
@@ -70,45 +70,32 @@ export function AdminGptKeysPanel() {
   }
 
   return (
-    <div className={styles.panel}>
-      <div className={styles.panelHeader}>
-        <div>
-          <h2>GPT 키</h2>
-          <p>{gptKeys.length}개</p>
-        </div>
-        <div className={styles.panelHeaderActions}>
-          {testMessage ? <span className={styles.panelNotice}>{testMessage}</span> : null}
-          <button className={styles.createButton} type="button" onClick={() => setIsCreateDialogOpen(true)}>
-            GPT 키 추가
-          </button>
-        </div>
-      </div>
-
-      <div className={styles.gptKeyTableHeader} aria-hidden="true">
-        <span>이름</span>
-        <span>용도</span>
-        <span>모델</span>
-        <span>키</span>
-        <span>상태</span>
-      </div>
-
-      {isLoading ? (
-        <div className={styles.emptyState}>
-          <LoadingSpinner label="GPT 키 목록 로딩 중" />
-        </div>
-      ) : null}
-      {errorMessage ? <div className={styles.errorState}>{errorMessage}</div> : null}
-      {!isLoading && !errorMessage ? (
-        <div className={styles.userList}>
-          {gptKeys.map((gptKey) => (
-            <AdminGptKeyRow
-              key={gptKey.uuid}
-              gptKey={gptKey}
-              onOpen={(nextGptKey) => setSelectedGptKeyUuid(nextGptKey.uuid)}
-            />
-          ))}
-        </div>
-      ) : null}
+    <>
+      <AdminListPanel
+        title="GPT 키"
+        countLabel={`${gptKeys.length}개`}
+        headerClassName={styles.gptKeyTableHeader}
+        columns={['이름', '용도', '모델', '키', '상태']}
+        loadingLabel="GPT 키 목록 로딩 중"
+        isLoading={isLoading}
+        errorMessage={errorMessage}
+        actions={
+          <>
+            {testMessage ? <span className={styles.panelNotice}>{testMessage}</span> : null}
+            <button className={styles.createButton} type="button" onClick={() => setIsCreateDialogOpen(true)}>
+              GPT 키 추가
+            </button>
+          </>
+        }
+      >
+        {gptKeys.map((gptKey) => (
+          <AdminGptKeyRow
+            key={gptKey.uuid}
+            gptKey={gptKey}
+            onOpen={(nextGptKey) => setSelectedGptKeyUuid(nextGptKey.uuid)}
+          />
+        ))}
+      </AdminListPanel>
 
       {selectedGptKey ? (
         <AdminGptKeyDialog
@@ -129,6 +116,6 @@ export function AdminGptKeysPanel() {
           }}
         />
       ) : null}
-    </div>
+    </>
   )
 }

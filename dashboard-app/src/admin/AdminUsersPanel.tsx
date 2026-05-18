@@ -3,8 +3,8 @@ import { getAdminUsers, resetAdminUserPassword } from '../api'
 import type { AdminUserSummary, ResetAdminUserPasswordResult } from '../api'
 import { useAuth } from '../auth/AuthContext'
 import { useAppToast } from '../components/AppToastContext'
-import { LoadingSpinner } from '../components/LoadingSpinner'
 import { getErrorMessage } from './adminHelpers'
+import { AdminListPanel } from './AdminListPanel'
 import { AdminUserCreateDialog } from './AdminUserCreateDialog'
 import { AdminUserDialog } from './AdminUserDialog'
 import { AdminUserRow } from './AdminUserRow'
@@ -96,41 +96,24 @@ export function AdminUsersPanel() {
 
   return (
     <>
-      <div className={styles.panel}>
-        <div className={styles.panelHeader}>
-          <div>
-            <h2>사용자</h2>
-            <p>{users.length}명</p>
-          </div>
+      <AdminListPanel
+        title="사용자"
+        countLabel={`${users.length}명`}
+        headerClassName={styles.tableHeader}
+        columns={['UUID', '로그인 ID', '이름', '비고', '권한', '상태', '변경일']}
+        loadingLabel="사용자 목록 로딩 중"
+        isLoading={isLoading}
+        errorMessage={errorMessage}
+        actions={
           <button className={styles.createButton} type="button" onClick={() => setIsCreateDialogOpen(true)}>
             사용자 추가
           </button>
-        </div>
-
-        <div className={styles.tableHeader} aria-hidden="true">
-          <span>UUID</span>
-          <span>로그인 ID</span>
-          <span>이름</span>
-          <span>비고</span>
-          <span>권한</span>
-          <span>상태</span>
-          <span>변경일</span>
-        </div>
-
-        {isLoading ? (
-          <div className={styles.emptyState}>
-            <LoadingSpinner label="사용자 목록 로딩 중" />
-          </div>
-        ) : null}
-        {errorMessage ? <div className={styles.errorState}>{errorMessage}</div> : null}
-        {!isLoading && !errorMessage ? (
-          <div className={styles.userList}>
-            {users.map((user) => (
-              <AdminUserRow key={user.uuid} user={user} onOpen={(nextUser) => setSelectedUserUuid(nextUser.uuid)} />
-            ))}
-          </div>
-        ) : null}
-      </div>
+        }
+      >
+        {users.map((user) => (
+          <AdminUserRow key={user.uuid} user={user} onOpen={(nextUser) => setSelectedUserUuid(nextUser.uuid)} />
+        ))}
+      </AdminListPanel>
 
       {isCreateDialogOpen ? (
         <AdminUserCreateDialog onClose={() => setIsCreateDialogOpen(false)} onCreated={reloadUsers} />

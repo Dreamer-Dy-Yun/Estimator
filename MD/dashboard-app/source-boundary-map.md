@@ -48,8 +48,9 @@
 - 이너 후보 리스트의 표시 순서 인덱스와 헤더 정렬 상태는 후보군 상세 모달 UI 상태다. 인덱스는 레코드 값이 아니라 현재 정렬된 화면 순서에서 1부터 다시 계산한다.
 - 로그인 화면, 라우트 보호, 사용자 정보/비밀번호 변경 모달은 `src/auth`가 소유한다. 인증 API 계약과 목 세션 저장은 `src/api` 아래에 두어 실제 백엔드로 교체할 때 화면이 mock 구현을 직접 알지 않게 한다. 보호 라우트는 직접 URL 진입과 새로고침 복귀를 위해 `/login?redirect=...`를 남긴다. 목 로그인 화면은 `mock-admin` / `admin` 기본값을 미리 채워 수정 없이 로그인할 수 있게 한다.
 - 관리자 화면은 `/admin` 별도 라우트와 `src/admin`이 소유한다. 화면은 같은 `DashboardLayout` 안에서 렌더하며, 관리자 권한 사용자에게만 `오더 후보군` 뒤 관리자 전용 탭을 보여준다. 인증 권한은 `admin`과 `user` 두 단계만 둔다. 사용자 관리는 관리자 화면 안의 탭/패널로 분리한다. 관리자 비밀번호 관리는 조회가 아니라 임시 비밀번호 재설정 API만 호출하고, 임시 비밀번호는 응답 직후 한 번만 표시한다.
+- 관리자 사용자/GPT 키/구글 시트 목록은 `AdminListPanel.tsx`를 공통 shell로 사용한다. 공통 shell은 패널 제목, 건수, header action, 컬럼 헤더, 로딩/오류 상태, 스크롤 본문만 소유하고, 데이터 조회·생성/상세 dialog 상태·행 렌더링은 각 패널과 row 컴포넌트가 계속 소유한다.
 - 관리자 GPT 키 관리는 `src/api/types/admin-gpt-key.ts` 계약과 `src/api/mock/adminGptKeyApi.ts` mock을 통해서만 접근한다. 화면은 GPT 키 원문을 생성/변경 요청에만 담고, 목록 응답은 `maskedKey`만 표시한다. 목록은 식별용 요약 정보만 노출하고, 메타/키 변경, 연결 테스트, 삭제는 행 클릭 후 열리는 모달이 소유한다. 상세 모달의 입력값은 저장 전 draft이며, 목록은 변경 API 성공 후 재조회된 값만 반영한다. 현재 mock은 DB 대체 저장소가 아니라 런타임 메모리에서 마스킹 값과 메타데이터만 보관한다.
-- 관리자 구글 시트 관리는 `src/api/types/admin-google-sheet.ts` 계약과 `src/api/mock/adminGoogleSheetApi.ts` mock을 통해서만 접근한다. 서비스 계정 JSON 키 원문은 생성/변경 요청 payload에만 존재하고, 목록 응답은 `maskedServiceAccountKey`만 표시한다. 화면은 JSON 키 파일 드래그앤드랍으로 `client_email`을 파싱하고, 시트 주소, 용도, 비고를 관리하며 실제 Google Sheets API 연결은 `src/api/requests/adminGoogleSheetRequests.ts` 교체 지점에서 백엔드 HTTP 요청으로 바꾼다.
+- 관리자 구글 시트 관리는 `src/api/types/admin-google-sheet.ts` 계약과 `src/api/mock/adminGoogleSheetApi.ts` mock을 통해서만 접근한다. 서비스 계정 JSON 키 원문은 생성/변경 요청 payload에만 존재하고, 목록 응답은 `maskedServiceAccountKey`만 표시한다. 화면은 JSON 키 파일 드래그앤드랍으로 `client_email`을 파싱하고, 시트 주소, 용도, 비고를 관리하며 실제 Google Sheets API 연결은 `src/api/requests/adminGoogleSheetRequests.ts` 교체 지점에서 백엔드 HTTP 요청으로 바꾼다. 목록의 `시트로 이동`은 이미 받은 `spreadsheetUrl` 또는 `spreadsheetId`로 새 탭을 여는 순수 프론트 액션이며, 서버 mutation이나 추가 조회를 만들지 않는다.
 - API 요청 교체 지점은 `src/api/requests/*`로 분리한다. 화면/훅/페이지는 mock을 알 수 없고, `src/api/client.ts`는 public export facade만 맡는다. 기본값은 mock이며, `VITE_USE_MOCK_API=false`일 때만 `requests/httpClient.ts`가 `VITE_API_BASE_URL` 기준 HTTP 요청을 수행한다.
 - 2026-05-13 정리에서 전체 `npm run lint` 실패를 0건으로 만들고 `tsconfig.app.json`/`tsconfig.node.json`에 `strict: true`를 켰다. 이후 기능 변경은 린트와 strict 타입 검사를 기본 품질선으로 본다.
 - 자사/경쟁사 분석의 격자 셀 선택, 현재 화면 기준 선택 유효성, 후보군 일괄 담기 체크박스 상태는 `dashboard/hooks/useAnalysisVisibleSelection.ts`가 소유한다. 페이지는 KPI/차트/목록 렌더와 API 호출 결과 연결만 맡고, 요청 생명주기와 stale 응답 차단은 `dashboard/hooks/useDashboardRequest.ts`를 사용한다. 분석 페이지는 `DashboardRequestStatus.tsx`로 마지막 갱신 시각, 갱신 중, 실패, 이전 데이터 표시 상태를 노출한다. 필터·격자 변경 후 선택 상태를 effect로 억지 정리하지 않는다.
@@ -114,7 +115,7 @@
 | `analysis-bulk-add.spec.ts` | 경쟁사 분석 리스트에서 상품 체크 후 후보군 담기 모달을 여는 분석-to-후보군 smoke 시나리오 |
 | `candidate-stash.spec.ts` | 오더 후보군 상세의 조회 데이터 기간 카드, 선택 작업 카드, 추천 진입 버튼을 확인하는 후보군 상세 smoke 시나리오 |
 | `admin-gpt-key.spec.ts` | 관리자 GPT 키 목록에서 상세 설정 모달을 여는 관리자 smoke 시나리오 |
-| `admin-sheets.spec.ts` | 관리자 구글 시트 설정 목록에서 상세 설정 모달을 여는 관리자 smoke 시나리오 |
+| `admin-google-sheets.spec.ts` | 관리자 구글 시트 설정 목록에서 `시트로 이동` 액션 노출과 상세 설정 모달을 확인하는 관리자 smoke 시나리오 |
 | `helpers/app.ts` | 기본 mock 로그인 helper와 브라우저 runtime error 수집/검증 helper |
 
 ## src/api
@@ -208,6 +209,7 @@
 |------|------|
 | `AdminPage.tsx` | 관리자 라우트 shell. 공통 헤더 안에 사용자 관리/GPT 키 관리/구글 시트 관리 탭과 현재 탭 설명을 배치한다. |
 | `AdminCreateDialogShell.tsx` | 관리자 추가 모달의 공통 backdrop/header/form/actions 골격을 소유한다. 사용자/GPT 키/구글 시트 생성 다이얼로그가 같은 포맷을 쓰기 위해 재사용한다. |
+| `AdminListPanel.tsx` | 관리자 목록 패널 공통 shell. 제목/건수, header action, 컬럼 헤더, 로딩/오류 상태, 컬럼 헤더 아래 스크롤 body를 소유한다. 각 업무 패널의 API 조회, dialog 상태, row 렌더링 책임은 받지 않는다. |
 | `AdminUsersPanel.tsx` | 관리자 사용자 목록 조회, 추가 dialog 열림 상태, 선택된 사용자 detail dialog 열림 상태, 임시 비밀번호 표시/복사 dialog, 사용자 row 목록 조립을 소유한다. 추가 입력/제출은 `AdminUserCreateDialog.tsx`, 상세 변경/삭제/비밀번호 재설정은 `AdminUserDialog.tsx`, 행 요약 렌더는 `AdminUserRow.tsx`에 위임한다. |
 | `AdminUserCreateDialog.tsx` | 사용자 추가 입력 상태와 생성 요청 제출을 소유한다. 성공 후 목록 재조회 callback을 호출하고 모달을 닫는다. |
 | `AdminUserDialog.tsx` | 사용자 상세 모달. 로그인 ID/이름/비고/권한/활성 상태 변경, 삭제 확인, 임시 비밀번호 재설정 요청을 소유한다. |
@@ -220,9 +222,9 @@
 | `AdminGoogleSheetCreateDialog.tsx` | 구글 시트 설정 추가 입력 상태와 생성 요청 제출을 소유한다. 서비스 계정 JSON 키는 드래그앤드랍 파일 입력으로만 받고 생성 요청 field 안에서만 존재한다. |
 | `AdminGoogleSheetDialog.tsx` | 구글 시트 설정 상세 모달. 이름/용도/시트 주소/활성/비고 변경, 서비스 계정 JSON 키 교체, 삭제 확인을 소유한다. |
 | `AdminGoogleSheetKeyDropzone.tsx` | 서비스 계정 JSON 키 파일 선택/드래그앤드랍, JSON 형식 확인, `client_email` 파싱 preview만 소유한다. |
-| `AdminGoogleSheetRow.tsx` | 구글 시트 설정 1건의 요약 행 렌더링과 상세 dialog open 이벤트만 소유한다. |
+| `AdminGoogleSheetRow.tsx` | 구글 시트 설정 1건의 요약 행 렌더링, 상세 dialog open 버튼, 이미 받은 시트 주소로 새 탭을 여는 `시트로 이동` 버튼만 소유한다. 상세 열기와 외부 이동은 같은 행 안의 형제 액션으로 두어 중첩 버튼 구조를 만들지 않는다. |
 | `AdminActiveSwitch.tsx` | 관리자 화면에서 쓰는 활성/비활성 스위치 UI. 저장 책임 없이 boolean draft 값만 부모로 돌려준다. |
-| `AdminPage.module.css` | 관리자 화면 CSS 진입점. 실제 스타일은 `admin/style-parts/*`가 shell/forms/lists/dialogs/responsive로 나눠 소유한다. |
+| `AdminPage.module.css` | 관리자 화면 CSS 진입점. 실제 스타일은 `admin/style-parts/*`가 shell/forms/lists/google-sheets/dialogs/responsive로 나눠 소유한다. 사용자/GPT 키/구글 시트 패널은 같은 `panelHeader` + table header + `adminListBody` 구조를 공유하며, 컬럼 헤더 아래 리스트 본문만 스크롤된다. |
 | `adminHelpers.ts` | 관리자 화면의 역할/GPT 키/구글 시트 option, 테스트 상태 label, 공통 날짜/오류 표시 helper. |
 ## src/components
 

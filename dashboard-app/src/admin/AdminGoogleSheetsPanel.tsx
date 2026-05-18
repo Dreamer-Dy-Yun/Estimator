@@ -2,10 +2,10 @@ import { useEffect, useState } from 'react'
 import { getAdminGoogleSheetConfigs } from '../api'
 import type { AdminGoogleSheetConfigSummary } from '../api'
 import { useAppToast } from '../components/AppToastContext'
-import { LoadingSpinner } from '../components/LoadingSpinner'
 import { AdminGoogleSheetCreateDialog } from './AdminGoogleSheetCreateDialog'
 import { AdminGoogleSheetDialog } from './AdminGoogleSheetDialog'
 import { AdminGoogleSheetRow } from './AdminGoogleSheetRow'
+import { AdminListPanel } from './AdminListPanel'
 import { getErrorMessage } from './adminHelpers'
 import styles from './AdminPage.module.css'
 
@@ -47,42 +47,29 @@ export function AdminGoogleSheetsPanel() {
   }
 
   return (
-    <div className={styles.panel}>
-      <div className={styles.panelHeader}>
-        <div>
-          <h2>구글 시트</h2>
-          <p>{configs.length}개</p>
-        </div>
-        <button className={styles.createButton} type="button" onClick={() => setIsCreateDialogOpen(true)}>
-          구글 시트 추가
-        </button>
-      </div>
-
-      <div className={styles.googleSheetTableHeader} aria-hidden="true">
-        <span>이름</span>
-        <span>용도</span>
-        <span>서비스 계정</span>
-        <span>시트</span>
-        <span>상태</span>
-      </div>
-
-      {isLoading ? (
-        <div className={styles.emptyState}>
-          <LoadingSpinner label="구글 시트 설정 로딩 중" />
-        </div>
-      ) : null}
-      {errorMessage ? <div className={styles.errorState}>{errorMessage}</div> : null}
-      {!isLoading && !errorMessage ? (
-        <div className={styles.userList}>
-          {configs.map((config) => (
-            <AdminGoogleSheetRow
-              key={config.uuid}
-              config={config}
-              onOpen={(nextConfig) => setSelectedConfigUuid(nextConfig.uuid)}
-            />
-          ))}
-        </div>
-      ) : null}
+    <>
+      <AdminListPanel
+        title="구글 시트"
+        countLabel={`${configs.length}개`}
+        headerClassName={styles.googleSheetTableHeader}
+        columns={['이름', '용도', '서비스 계정', '시트', '상태', '이동']}
+        loadingLabel="구글 시트 설정 로딩 중"
+        isLoading={isLoading}
+        errorMessage={errorMessage}
+        actions={
+          <button className={styles.createButton} type="button" onClick={() => setIsCreateDialogOpen(true)}>
+            구글 시트 추가
+          </button>
+        }
+      >
+        {configs.map((config) => (
+          <AdminGoogleSheetRow
+            key={config.uuid}
+            config={config}
+            onOpen={(nextConfig) => setSelectedConfigUuid(nextConfig.uuid)}
+          />
+        ))}
+      </AdminListPanel>
       {isCreateDialogOpen ? (
         <AdminGoogleSheetCreateDialog onClose={() => setIsCreateDialogOpen(false)} onCreated={reloadConfigs} />
       ) : null}
@@ -95,6 +82,6 @@ export function AdminGoogleSheetsPanel() {
           onDeleted={handleDeleted}
         />
       ) : null}
-    </div>
+    </>
   )
 }

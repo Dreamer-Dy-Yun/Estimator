@@ -1,3 +1,4 @@
+import type { MouseEvent } from 'react'
 import type { AdminGoogleSheetConfigSummary } from '../api'
 import {
   GOOGLE_SHEET_PURPOSE_OPTIONS,
@@ -14,28 +15,56 @@ function getOptionLabel<T extends string>(options: Array<{ value: T; label: stri
   return options.find((option) => option.value === value)?.label ?? value
 }
 
+function getSpreadsheetOpenUrl(config: AdminGoogleSheetConfigSummary) {
+  const url = config.spreadsheetUrl.trim()
+  if (/^https?:\/\//i.test(url)) return url
+  return `https://docs.google.com/spreadsheets/d/${encodeURIComponent(config.spreadsheetId || url)}/edit`
+}
+
 export function AdminGoogleSheetRow({ config, onOpen }: AdminGoogleSheetRowProps) {
+  const handleOpenSheet = (event: MouseEvent<HTMLButtonElement>) => {
+    event.stopPropagation()
+    window.open(getSpreadsheetOpenUrl(config), '_blank', 'noopener,noreferrer')
+  }
+
   return (
-    <button className={styles.googleSheetListRow} type="button" onClick={() => onOpen(config)}>
-      <span className={styles.gptKeyNameCell}>
-        <strong>{config.name}</strong>
-        <small>{config.note ?? config.uuid}</small>
-      </span>
-      <span>{getOptionLabel(GOOGLE_SHEET_PURPOSE_OPTIONS, config.purpose)}</span>
-      <span className={styles.gptKeyNameCell}>
-        <strong>{config.serviceAccountEmail}</strong>
-        <small>{config.maskedServiceAccountKey}</small>
-      </span>
-      <span className={styles.gptKeyNameCell}>
-        <strong>{config.spreadsheetId}</strong>
-        <small>{config.spreadsheetUrl}</small>
-      </span>
-      <span className={styles.statusCell}>
-        <span className={`${styles.statusPill} ${config.isActive ? styles.status_success : styles.status_failed}`}>
-          {config.isActive ? '활성' : '비활성'}
+    <div className={styles.googleSheetListRow}>
+      <button
+        className={styles.googleSheetDetailButton}
+        type="button"
+        onClick={() => onOpen(config)}
+        aria-label={`${config.name} 상세 설정`}
+      >
+        <span className={styles.gptKeyNameCell}>
+          <strong>{config.name}</strong>
+          <small>{config.note ?? config.uuid}</small>
         </span>
-        <small>{formatUpdatedAt(config.dbUpdatedAt)}</small>
+        <span>{getOptionLabel(GOOGLE_SHEET_PURPOSE_OPTIONS, config.purpose)}</span>
+        <span className={styles.gptKeyNameCell}>
+          <strong>{config.serviceAccountEmail}</strong>
+          <small>{config.maskedServiceAccountKey}</small>
+        </span>
+        <span className={styles.gptKeyNameCell}>
+          <strong>{config.spreadsheetId}</strong>
+          <small>{config.spreadsheetUrl}</small>
+        </span>
+        <span className={styles.statusCell}>
+          <span className={`${styles.statusPill} ${config.isActive ? styles.status_success : styles.status_failed}`}>
+            {config.isActive ? '활성' : '비활성'}
+          </span>
+          <small>{formatUpdatedAt(config.dbUpdatedAt)}</small>
+        </span>
+      </button>
+      <span className={styles.actionCell}>
+        <button
+          className={styles.resetButton}
+          type="button"
+          onClick={handleOpenSheet}
+          aria-label={`${config.name} 시트로 이동`}
+        >
+          시트로 이동
+        </button>
       </span>
-    </button>
+    </div>
   )
 }

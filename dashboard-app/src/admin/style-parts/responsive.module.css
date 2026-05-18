@@ -30,7 +30,7 @@
   }
 
   .panel {
-    display: block;
+    display: flex;
   }
 
   .userRow {
@@ -40,6 +40,12 @@
 
   .gptKeyListRow,
   .googleSheetListRow {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .googleSheetDetailButton {
+    grid-column: 1 / -1;
     grid-template-columns: 1fr;
     gap: 10px;
   }

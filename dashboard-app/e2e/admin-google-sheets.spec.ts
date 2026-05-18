@@ -8,9 +8,11 @@ test('admin google sheet detail dialog opens and closes', async ({ page }) => {
   await page.getByRole('button', { name: '구글 시트 관리' }).click()
   await expect(page.getByRole('heading', { name: '구글 시트' })).toBeVisible()
 
-  const firstGoogleSheetRow = page.locator('button', { hasText: 'han-a-sheets@mock-project' }).first()
-  await expect(firstGoogleSheetRow).toBeVisible()
-  await firstGoogleSheetRow.click()
+  const detailButton = page.getByRole('button', { name: 'DB 설계 시트 상세 설정' })
+  await expect(detailButton).toBeVisible()
+  await expect(page.getByRole('button', { name: 'DB 설계 시트 시트로 이동' })).toBeVisible()
+
+  await detailButton.click()
 
   const dialog = page.getByRole('dialog', { name: '상세 설정' })
   await expect(dialog).toBeVisible()
