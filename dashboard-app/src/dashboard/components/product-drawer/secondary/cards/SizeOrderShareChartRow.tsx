@@ -50,14 +50,17 @@ export function SizeOrderShareChartRow({ tableRef, channelLabel, sizeRows }: Pro
   }, [sizeRows.length, tableRef])
 
   const shareLineData = useMemo(
-    () => sizeRows.map((r, i) => ({
-      x: xCenters[i] ?? i,
-      size: r.size,
-      selfPct: r.selfSharePct,
-      compPct: r.competitorSharePct,
-      weightedPct: r.blendedSharePct,
-    })),
-    [sizeRows, xCenters],
+    () => {
+      const columnWidth = chartWidth > 0 && sizeRows.length > 0 ? chartWidth / sizeRows.length : 1
+      return sizeRows.map((r, i) => ({
+        x: xCenters[i] ?? ((i + 0.5) * columnWidth),
+        size: r.size,
+        selfPct: r.selfSharePct,
+        compPct: r.competitorSharePct,
+        weightedPct: r.blendedSharePct,
+      }))
+    },
+    [chartWidth, sizeRows, xCenters],
   )
   const xDomain = useMemo<[number, number]>(() => {
     if (chartWidth <= 0) return [0, Math.max(1, sizeRows.length)]
@@ -114,7 +117,7 @@ export function SizeOrderShareChartRow({ tableRef, channelLabel, sizeRows }: Pro
         <div ref={chartInnerRef} className={styles.sizeOrderShareChartInner}>
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={shareLineData} margin={{ top: 4, right: 0, left: 0, bottom: 0 }}>
-              <XAxis type="number" dataKey="x" domain={xDomain} hide />
+              <XAxis type="number" dataKey="x" domain={xDomain} hide allowDataOverflow />
               <YAxis domain={yDomain} hide />
               <Tooltip content={renderShareTooltip} />
               <Line type="monotone" dataKey="selfPct" name={`${KO.thSelf} ${KO.thSharePctUnit}`} stroke="#2563eb" strokeWidth={2} dot={{ r: 3 }} isAnimationActive={false} />

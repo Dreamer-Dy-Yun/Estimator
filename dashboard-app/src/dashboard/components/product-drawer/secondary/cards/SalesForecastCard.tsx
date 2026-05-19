@@ -2,7 +2,7 @@ import { PortalHelpMark } from '../../../PortalHelpPopover'
 import { ApiUnitErrorBadge } from '../../../../../components/ApiUnitErrorBadge'
 import { LoadingSpinner } from '../../../../../components/LoadingSpinner'
 import type { ApiUnitErrorInfo } from '../../../../../types'
-import { formatGroupedNumber, formatRatioDecimalKo } from '../../../../../utils/format'
+import { formatGroupedNumber, formatGroupedOneDecimal, formatRatioDecimalKo } from '../../../../../utils/format'
 import commonStyles from '../../../common.module.css'
 import { usePortalHelpPopover } from '../../../usePortalHelpPopover'
 import { KO } from '../../ko'
@@ -181,7 +181,7 @@ export function SalesForecastCard({ forecast, orderSettings, actions, help }: Pr
           <span className={`${styles.inlineLabel} ${styles.stockCellLabel}`}>{KO.labelDailyMeanSales}</span>
           <span className={`${styles.inlineFieldInput} ${styles.stockCellInputWrap}`}>
             <span className={`${styles.stockComputedValue} ${styles.stockFillInput}`}>
-              {formatGroupedNumber(inputs.trendDailyMean)}
+              {formatGroupedOneDecimal(inputs.trendDailyMean)}
             </span>
             <span className={styles.inlineUnit}>EA/일</span>
           </span>
@@ -190,7 +190,7 @@ export function SalesForecastCard({ forecast, orderSettings, actions, help }: Pr
           <span className={`${styles.inlineLabel} ${styles.stockCellLabel}`}>{KO.labelDailyMeanExpectedSales}</span>
           <span className={`${styles.inlineFieldInput} ${styles.stockCellInputWrap}`}>
             <span className={`${styles.stockComputedValue} ${styles.stockFillInput}`}>
-              {formatGroupedNumber(inputs.dailyMean)}
+              {formatGroupedOneDecimal(inputs.dailyMean)}
             </span>
             <span className={styles.inlineUnit}>EA/일</span>
           </span>

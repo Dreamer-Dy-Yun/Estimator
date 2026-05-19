@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   formatEaQuantity,
   formatGroupedNumber,
+  formatGroupedOneDecimal,
   formatPercent,
   formatRatioDecimalKo,
 } from './format'
@@ -16,6 +17,12 @@ describe('format utils', () => {
   it('formats percent with 1 decimal place', () => {
     expect(formatPercent(12.34)).toBe('12.3%')
     expect(formatPercent(9.99)).toBe('10.0%')
+  })
+
+  it('formats grouped numbers with exactly 1 decimal place', () => {
+    expect(formatGroupedOneDecimal(null)).toBe('-')
+    expect(formatGroupedOneDecimal(1234)).toBe('1,234.0')
+    expect(formatGroupedOneDecimal(1234.25)).toBe('1,234.3')
   })
 
   it('formats ratio decimal string with two fraction digits (no % suffix)', () => {

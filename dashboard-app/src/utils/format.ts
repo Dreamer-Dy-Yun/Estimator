@@ -10,6 +10,12 @@ export function formatGroupedNumber(value: number | null): string {
   return value.toLocaleString('ko-KR')
 }
 
+/** 천 단위 구분 + 소수 첫째 자리 고정 표기. 일평균 수량처럼 반올림 표시가 필요한 값에 사용한다. */
+export function formatGroupedOneDecimal(value: number | null): string {
+  if (value === null) return '-'
+  return value.toLocaleString('ko-KR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })
+}
+
 /** 퍼센트, 소수 첫째 자리까지 + `%`. */
 export function formatPercent(value: number): string {
   return `${value.toFixed(1)}%`
