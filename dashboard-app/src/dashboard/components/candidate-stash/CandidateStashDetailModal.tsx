@@ -128,6 +128,7 @@ export function CandidateStashDetailModal({ stashUuid, stashSummary, onClose, on
                     periodStart={model.draftDataReferencePeriodStart}
                     periodEnd={model.draftDataReferencePeriodEnd}
                     loading={model.detailLoading}
+                    queryDirty={model.dataReferencePeriodQueryDirty}
                     onPeriodStartChange={model.onDataReferencePeriodStartChange}
                     onPeriodEndChange={model.onDataReferencePeriodEndChange}
                     onSearch={model.applyDataReferencePeriod}

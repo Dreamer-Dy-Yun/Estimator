@@ -29,6 +29,9 @@ export function useCandidateDataReferencePeriod({
   const [draftDataReferencePeriodStart, setDraftDataReferencePeriodStart] = useState('')
   const [draftDataReferencePeriodEnd, setDraftDataReferencePeriodEnd] = useState('')
   const initializedDetailTargetUuidRef = useRef<string | null>(null)
+  const dataReferencePeriodQueryDirty =
+    draftDataReferencePeriodStart !== dataReferencePeriodStart
+    || draftDataReferencePeriodEnd !== dataReferencePeriodEnd
 
   const applyReferencePeriod = useCallback((periodStart: string, periodEnd: string) => {
     if (!periodStart || !periodEnd) return
@@ -95,6 +98,7 @@ export function useCandidateDataReferencePeriod({
     dataReferencePeriodEnd,
     draftDataReferencePeriodStart,
     draftDataReferencePeriodEnd,
+    dataReferencePeriodQueryDirty,
     onDataReferencePeriodStartChange,
     onDataReferencePeriodEndChange,
     applyDataReferencePeriod,

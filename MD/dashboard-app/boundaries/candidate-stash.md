@@ -36,7 +36,7 @@
 | `useCandidateRecommendations.ts` | 추천 조회, 배지 병합, 추천 UI용 중복 제외 |
 | `useCandidateOrderMetricStream.ts` | 총 오더 수량/금액 SSE 구독과 row 반영 |
 
-조회 데이터 기간은 `dataReferencePeriodStart`/`dataReferencePeriodEnd`로 API에 전달한다. 사용자가 `조회` 버튼을 누르면 적용 기간을 바꿔 `getCandidateItemsByStash`를 호출한다. 후보군 상세 모달 최초 진입도 같은 조회 파이프라인을 한 번 실행한다.
+조회 데이터 기간은 `dataReferencePeriodStart`/`dataReferencePeriodEnd`로 API에 전달한다. 사용자가 `조회` 버튼을 누르면 적용 기간을 바꿔 `getCandidateItemsByStash`를 호출한다. 후보군 상세 모달 최초 진입도 같은 조회 파이프라인을 한 번 실행한다. 마지막 조회 이후 입력 기간이 바뀌지 않았으면 `조회` 버튼은 비활성화한다.
 
 ## 추천과 배지
 

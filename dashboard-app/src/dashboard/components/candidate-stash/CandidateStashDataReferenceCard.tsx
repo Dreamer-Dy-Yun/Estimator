@@ -6,6 +6,7 @@ type Props = {
   periodStart: string
   periodEnd: string
   loading: boolean
+  queryDirty: boolean
   onPeriodStartChange: (value: string) => void
   onPeriodEndChange: (value: string) => void
   onSearch: () => void
@@ -15,11 +16,12 @@ export function CandidateStashDataReferenceCard({
   periodStart,
   periodEnd,
   loading,
+  queryDirty,
   onPeriodStartChange,
   onPeriodEndChange,
   onSearch,
 }: Props) {
-  const canSearch = Boolean(periodStart && periodEnd && !loading)
+  const canSearch = Boolean(periodStart && periodEnd && queryDirty && !loading)
 
   return (
     <div className={styles.card}>
