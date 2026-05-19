@@ -60,7 +60,7 @@
   }
 
   .innerOrderRow {
-    grid-template-columns: 28px 44px minmax(72px, 0.45fr) minmax(70px, 0.45fr) minmax(110px, 1fr) minmax(60px, 0.35fr) minmax(70px, 0.45fr);
+    grid-template-columns: 44px 28px minmax(72px, 0.45fr) minmax(70px, 0.45fr) minmax(110px, 1fr) minmax(60px, 0.35fr) minmax(70px, 0.45fr);
     min-width: 0;
   }
 

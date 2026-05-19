@@ -117,7 +117,6 @@ const InnerCandidateOrderRow = memo(function InnerCandidateOrderRow({
       aria-expanded={drawerOpen && active}
       aria-current={active ? 'true' : undefined}
     >
-      <span className={detailStyles.innerOrderIndexCell}>{index + 1}</span>
       <span className={detailStyles.innerOrderCheckCell} onClick={(e) => e.stopPropagation()}>
         <label className={detailStyles.innerOrderCheckboxTarget}>
           <input
@@ -128,6 +127,7 @@ const InnerCandidateOrderRow = memo(function InnerCandidateOrderRow({
           />
         </label>
       </span>
+      <span className={detailStyles.innerOrderIndexCell}>{index + 1}</span>
       <span className={detailStyles.innerOrderBrand}>{row.brand}</span>
       <span className={detailStyles.innerOrderCode}>{row.code}</span>
       <span className={detailStyles.innerOrderName}>{row.productName}</span>
@@ -212,7 +212,6 @@ export function InnerCandidateOrderList({
   return (
     <div className={detailStyles.innerOrderList} role="list">
       <div className={detailStyles.innerOrderHeader} role="presentation">
-        <span className={detailStyles.innerOrderIndexCell} aria-hidden="true" />
         <span className={detailStyles.innerOrderCheckCell}>
           <label className={detailStyles.innerOrderCheckboxTarget}>
             <input
@@ -225,6 +224,7 @@ export function InnerCandidateOrderList({
             />
           </label>
         </span>
+        <span className={detailStyles.innerOrderIndexCell} aria-hidden="true" />
         <InnerOrderSortHeader label="브랜드" sortKey="brand" activeKey={activeSortKey} activeDir={activeSortDir} onSort={onSort} />
         <InnerOrderSortHeader label="품번" sortKey="code" activeKey={activeSortKey} activeDir={activeSortDir} onSort={onSort} />
         <InnerOrderSortHeader label="상품명" sortKey="productName" activeKey={activeSortKey} activeDir={activeSortDir} onSort={onSort} />

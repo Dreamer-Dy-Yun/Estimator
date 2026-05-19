@@ -21,8 +21,8 @@
 .innerOrderRow {
   display: grid;
   grid-template-columns:
-    32px
     52px
+    32px
     minmax(90px, 0.6fr)
     minmax(84px, 0.45fr)
     minmax(220px, 1.45fr)
@@ -105,7 +105,7 @@
 }
 
 .innerOrderCheckCell {
-  grid-column: 2;
+  grid-column: 1;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -113,7 +113,7 @@
 }
 
 .innerOrderIndexCell {
-  grid-column: 1;
+  grid-column: 2;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -295,8 +295,8 @@
 .stashDetailModalBackdrop[data-inner-drawer-open='true'] .innerOrderRow,
 .stashDetailModalBackdrop[data-inner-drawer-closing='true'] .innerOrderRow {
   grid-template-columns:
-    22px
     36px
+    22px
     minmax(30px, 0.52fr)
     minmax(24px, 0.38fr)
     minmax(54px, 1.2fr)
