@@ -32,7 +32,7 @@ function InnerOrderSortHeader({ label, sortKey, activeKey, activeDir, align = 'l
       aria-label={`${label} 정렬`}
       aria-pressed={active}
     >
-      <span>{label}</span>
+      <span className={detailStyles.innerOrderSortLabel}>{label}</span>
       <span className={detailStyles.innerOrderSortIcon} aria-hidden="true">{sortMark}</span>
     </button>
   )

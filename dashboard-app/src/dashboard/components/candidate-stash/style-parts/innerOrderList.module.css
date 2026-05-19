@@ -244,12 +244,14 @@
 }
 
 .innerOrderSortHeader {
+  position: relative;
   display: inline-flex;
   align-items: center;
-  justify-content: flex-start;
-  gap: 4px;
+  justify-content: center;
+  gap: 0;
+  width: 100%;
   min-width: 0;
-  padding: 0;
+  padding: 0 12px;
   border: 0;
   background: transparent;
   color: inherit;
@@ -257,7 +259,7 @@
   font-size: 13.6px;
   font-weight: 800;
   line-height: 1.1;
-  text-align: left;
+  text-align: center;
   cursor: pointer;
 }
 
@@ -274,12 +276,20 @@
 }
 
 .innerOrderSortHeaderNum {
-  justify-content: flex-end;
-  text-align: right;
+  justify-content: center;
+  text-align: center;
   white-space: normal;
 }
 
+.innerOrderSortLabel {
+  display: block;
+  min-width: 0;
+  max-width: 100%;
+}
+
 .innerOrderSortIcon {
+  position: absolute;
+  right: 0;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -346,9 +356,9 @@
 
 .stashDetailModalBackdrop[data-inner-drawer-open='true'] .innerOrderSortHeader,
 .stashDetailModalBackdrop[data-inner-drawer-closing='true'] .innerOrderSortHeader {
-  gap: 2px;
   font-size: 10.5px;
   line-height: 1.15;
+  padding: 0 8px;
 }
 
 .stashDetailModalBackdrop[data-inner-drawer-open='true'] .innerOrderSortIcon,
