@@ -84,7 +84,7 @@ export function CandidateStashDetailModal({ stashUuid, stashSummary, onClose, on
       recommendationSelection.clearSelection()
       itemSelection.clearSelection()
       setRecommendationOpen(false)
-    })
+    }).catch(() => undefined)
   }
 
   const toggleItemDrawer = (row: InnerCandidateRow) => {

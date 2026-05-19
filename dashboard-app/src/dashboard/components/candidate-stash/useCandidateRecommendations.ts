@@ -4,12 +4,12 @@ import {
   getCandidateRecommendations,
   type CandidateItemSummary,
   type CandidateReferenceItemSummary,
+  type CandidateStashItemSummary,
 } from '../../../api'
 import {
   applyRecommendationInsightsToCandidateItems,
   markCandidateItemInsightsFailed,
 } from './candidateItemMetricModel'
-import type { CandidateMetricReloadOptions } from './candidateItemListMergeModel'
 
 const RECOMMENDATION_PAGE_SIZE = 100
 
@@ -17,11 +17,10 @@ type CandidateItemStateUpdater =
   | CandidateItemSummary[]
   | ((current: CandidateItemSummary[]) => CandidateItemSummary[])
 
-type LoadCandidateItems = (
-  nextPeriodStart?: string,
-  nextPeriodEnd?: string,
-  options?: CandidateMetricReloadOptions,
-) => Promise<void>
+type AppendRecommendedItems = (
+  candidateItems: CandidateStashItemSummary[],
+  recommendations: CandidateReferenceItemSummary[],
+) => void
 
 type Args = {
   stashUuid: string
@@ -30,7 +29,7 @@ type Args = {
   mountedRef: MutableRefObject<boolean>
   itemsRef: MutableRefObject<CandidateItemSummary[]>
   setItems: (next: CandidateItemStateUpdater) => void
-  loadItems: LoadCandidateItems
+  onRecommendedItemsAppended: AppendRecommendedItems
   refreshStashes: () => Promise<void>
   showToast: (message: string) => void
 }
@@ -42,7 +41,7 @@ export function useCandidateRecommendations({
   mountedRef,
   itemsRef,
   setItems,
-  loadItems,
+  onRecommendedItemsAppended,
   refreshStashes,
   showToast,
 }: Args) {
@@ -106,22 +105,30 @@ export function useCandidateRecommendations({
   const appendRecommendedItems = useCallback(async (rows: CandidateReferenceItemSummary[]) => {
     const skuGroupKeys = [...new Set(rows.map((row) => row.skuGroupKey))]
     if (!skuGroupKeys.length) return
-    const existingSkuGroupKeySet = new Set(itemsRef.current.map((item) => item.skuGroupKey))
-    const addedMetricSkuGroupKeys = skuGroupKeys.filter((skuGroupKey) => !existingSkuGroupKeySet.has(skuGroupKey))
-    await appendCandidateItems({ stashUuid, skuGroupKeys })
-    if (!mountedRef.current) return
-    await loadItems(dataReferencePeriodStart, dataReferencePeriodEnd, {
-      metricSkuGroupKeys: addedMetricSkuGroupKeys,
-      preserveExistingMetrics: true,
-    })
-    await refreshStashes()
-    showToast('추천 후보를 후보군에 추가했습니다.')
+    try {
+      const result = await appendCandidateItems({ stashUuid, skuGroupKeys })
+      if (!mountedRef.current) return
+      onRecommendedItemsAppended(result.candidateItems, rows)
+      const createdSkuUuidSet = new Set(result.candidateItems.map((item) => item.skuUuid))
+      if (createdSkuUuidSet.size) {
+        const nextRecommendations = recommendationItemsRef.current.filter((row) => !createdSkuUuidSet.has(row.uuid))
+        recommendationItemsRef.current = nextRecommendations
+        setRecommendationItems(nextRecommendations)
+      }
+      void refreshStashes().catch(() => undefined)
+      showToast(
+        createdSkuUuidSet.size
+          ? `추천 후보 ${createdSkuUuidSet.size}개를 후보군에 추가했습니다.`
+          : '새로 추가된 추천 후보가 없습니다.',
+      )
+    } catch (err) {
+      if (!mountedRef.current) return
+      showToast(err instanceof Error ? err.message : '추천 후보 추가에 실패했습니다.')
+      throw err
+    }
   }, [
-    dataReferencePeriodEnd,
-    dataReferencePeriodStart,
-    itemsRef,
-    loadItems,
     mountedRef,
+    onRecommendedItemsAppended,
     refreshStashes,
     showToast,
     stashUuid,

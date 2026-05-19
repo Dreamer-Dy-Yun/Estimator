@@ -193,6 +193,28 @@ function splitPrimarySecondaryFromSizeMix(
 
 export const historicalMonths = SALES_MONTHS.filter((month) => month < '2026-01')
 
+type MockSkuMetadata = Pick<
+  ProductPrimarySummary,
+  'skuGroupKey' | 'productName' | 'brand' | 'category' | 'code' | 'colorCode'
+>
+
+function buildSkuMetadata(skuGroupKey: string): MockSkuMetadata {
+  const source = selfBySkuGroupKey[skuGroupKey] ?? competitorBySkuGroupKey[skuGroupKey]
+  if (!source) throw new Error(`Missing mock SKU metadata: ${skuGroupKey}`)
+  return {
+    skuGroupKey,
+    productName: source.productName,
+    brand: source.brand,
+    category: source.category,
+    code: source.code,
+    colorCode: source.colorCode,
+  }
+}
+
+export const skuMetadataBySkuGroupKey: Record<string, MockSkuMetadata> = Object.fromEntries(
+  allKnownSkuGroupKeys.map((skuGroupKey) => [skuGroupKey, buildSkuMetadata(skuGroupKey)]),
+)
+
 export const estimatePeriodWeight = (startDate?: string, endDate?: string) => {
   if (!startDate || !endDate) return 1
   const toMonthIndex = (date: string) => {
@@ -212,30 +234,21 @@ export const { primary: productPrimaryBySkuGroupKey, secondary: productSecondary
     const s = selfBySkuGroupKey[skuGroupKey]
     const c = competitorBySkuGroupKey[skuGroupKey]
     const seed = skuGroupKey.charCodeAt(0)
-
-    const productName = s?.productName ?? c?.productName ?? `상품-${skuGroupKey}`
-    const brand = s?.brand ?? c?.brand ?? '나이키'
-    const category = s?.category ?? c?.category ?? '신발'
-    const code = s?.code ?? c?.code ?? skuGroupKey
-    const colorCode = s?.colorCode ?? c?.colorCode ?? '000'
+    const metadata = skuMetadataBySkuGroupKey[skuGroupKey]
+    if (!metadata) throw new Error(`Missing mock SKU metadata: ${skuGroupKey}`)
 
     const price = s?.avgPrice ?? c?.selfAvgPrice ?? Math.round((c?.competitorAvgPrice ?? 120000) * 0.96)
-    const competitorPrice = c?.competitorAvgPrice ?? Math.round(price * 1.03)
     const productQty = s?.qty ?? c?.selfQty ?? Math.round((c?.competitorQty ?? 5000) * 0.85)
-    const competitorQty = Math.max(1, Math.round(productQty * KREAM_TO_SELF_QTY_RATIO))
+    const competitorPrice = c?.competitorAvgPrice ?? Math.round(price * 1.03)
+    const competitorQty = c?.competitorQty ?? Math.max(0, Math.round(productQty * KREAM_TO_SELF_QTY_RATIO))
     const recommendedOrderQty = Math.round(productQty / 1.7)
     const availableStock = Math.round(productQty * 0.45)
 
-    const fullMix = makeSizeMix(recommendedOrderQty, productQty, price, availableStock, seed, category)
+    const fullMix = makeSizeMix(recommendedOrderQty, productQty, price, availableStock, seed, metadata.category)
     const { sizeMix, competitorRatioBySize } = splitPrimarySecondaryFromSizeMix(fullMix)
 
     primary[skuGroupKey] = {
-      skuGroupKey,
-      productName,
-      brand,
-      category,
-      code,
-      colorCode,
+      ...metadata,
       price,
       qty: productQty,
       availableStock,
@@ -258,8 +271,9 @@ export const stockTrendBySkuGroupKey: Record<string, Array<{
   stock: number
   inboundExpected: number
   inboundQty: number
-}>> = Object.fromEntries(allKnownSkuGroupKeys.map((skuGroupKey) => {
+}>> = Object.fromEntries(Object.keys(productPrimaryBySkuGroupKey).map((skuGroupKey) => {
   const d = productPrimaryBySkuGroupKey[skuGroupKey]
+  if (!d) throw new Error(`Missing product primary for stock trend: ${skuGroupKey}`)
   const seed = skuGroupKey.charCodeAt(0)
   /** 이 SKU 기준 입고 주기(월): 3 또는 4 */
   const inboundCycleMonths = 3 + (seed % 2)

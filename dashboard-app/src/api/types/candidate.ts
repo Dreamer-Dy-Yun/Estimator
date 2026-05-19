@@ -35,7 +35,7 @@ export interface CandidateItemSummary {
   expectedSalesAmount: number
   /** Live expected operating profit in KRW for the requested data reference period. */
   expectedOpProfit: number
-  /** Badge/period insight loading state. Order amount/qty has its own orderMetricStatus. */
+  /** Badge/recommendation insight loading state. Period sales totals are part of the base item response. */
   insightStatus: 'loading' | 'loaded' | 'failed'
   insight: CandidateItemInsightSummary
   /** Whether the stored AI recommendation/comment reflects the latest saved secondary-drawer snapshot. */
@@ -80,6 +80,7 @@ export interface CandidateReferenceItemSummary {
   code: string
   productName: string
   colorCode: string
+  /** Period sales totals plus badge/rank insight for recommendation display and candidate-row patching. */
   insight: CandidateItemInsightSummary
 }
 
@@ -100,7 +101,7 @@ export interface CandidateStashItemSummary {
 
 export interface CandidateItemListResult {
   candidateItems: CandidateStashItemSummary[]
-  /** Screen-composed candidate rows only. Badge/recommendation and order metrics arrive by separate requests. */
+  /** Screen-composed candidate rows with SKU metadata and period sales totals. Badge/recommendation and order metrics arrive by separate requests. */
   items: CandidateItemSummary[]
 }
 
@@ -119,7 +120,7 @@ export interface CandidateRecommendationParams {
 }
 
 export interface CandidateRecommendationResult {
-  /** Badge-bearing SKU rows. Frontend eagerly pages this response, patches stash rows, and hides duplicates from recommendation UI. */
+  /** Badge-bearing SKU rows with period sales totals. Frontend eagerly pages this response, patches stash rows, and hides duplicates from recommendation UI. */
   recommendations: CandidateReferenceItemSummary[]
   nextCursor?: string | null
 }
@@ -226,6 +227,11 @@ export interface AppendCandidateItemsPayload {
   stashUuid: string
   /** skuGroupKey values. Backend maps each key to matching SKU rows by code/color_code. */
   skuGroupKeys: string[]
+}
+
+export interface AppendCandidateItemsResponse {
+  /** Newly created candidate item records only. Existing duplicates are not returned. */
+  candidateItems: CandidateStashItemSummary[]
 }
 
 export interface UpdateCandidateItemPayload {

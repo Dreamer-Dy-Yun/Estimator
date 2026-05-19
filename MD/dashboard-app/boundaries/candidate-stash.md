@@ -36,20 +36,25 @@
 | `useCandidateRecommendations.ts` | 추천 조회, 배지 병합, 추천 UI용 중복 제외 |
 | `useCandidateOrderMetricStream.ts` | 총 오더 수량/금액 SSE 구독과 row 반영 |
 
-조회 데이터 기간은 `dataReferencePeriodStart`/`dataReferencePeriodEnd`로 API에 전달한다. 사용자가 `조회` 버튼을 누르면 적용 기간을 바꿔 `getCandidateItemsByStash`를 호출한다. 후보군 상세 모달 최초 진입도 같은 조회 파이프라인을 한 번 실행한다. 마지막 조회 이후 입력 기간이 바뀌지 않았으면 `조회` 버튼은 비활성화한다.
+조회 데이터 기간은 `dataReferencePeriodStart`/`dataReferencePeriodEnd`로 API에 전달한다. 후보군 상세 모달 최초 진입 시 초기 조회 기간은 후보군 생성 당시 기간이 아니라 `오늘 - 1년`부터 `오늘`까지다. 사용자가 `조회` 버튼을 누르면 적용 기간을 바꿔 `getCandidateItemsByStash`를 호출한다. 후보군 상세 모달 최초 진입도 같은 조회 파이프라인을 한 번 실행한다. 마지막 조회 이후 입력 기간이 바뀌지 않았으면 `조회` 버튼은 비활성화한다.
 
 ## 추천과 배지
 
-- `getCandidateItemsByStash`는 후보군에 실제로 담긴 기본 행만 빠르게 반환한다.
-- 전체 SKU 분포 기반 배지와 추천 후보는 `getCandidateRecommendations`가 배지 있는 `recommendations` 목록 하나로 반환한다.
+- `getCandidateItemsByStash`는 후보군에 실제로 담긴 기본 행과 자사/경쟁사 기간 총판매량을 빠르게 반환한다.
+- 전체 SKU 분포 기반 배지와 추천 후보는 `getCandidateRecommendations`가 배지 있는 `recommendations` 목록 하나로 반환한다. 각 recommendation row에는 배지뿐 아니라 같은 기간의 자사/경쟁사 기간 총판매량도 포함된다.
 - 프론트는 기본 후보 행이 들어온 직후 추천 API를 `nextCursor` 끝까지 자동 page 조회한다.
 - 추천 row의 `skuUuid`가 현재 후보군 row와 일치하면 기존 행 배지로 병합한다.
 - 추천 UI에서는 이미 후보군에 있는 row를 숨긴다.
 - `추천 보기` 버튼은 배지 계산 시작 버튼이 아니라 이미 받은 추천 목록을 여는 버튼이다.
+- 추천 적용은 전체 후보 목록을 다시 조회하지 않는다. `appendCandidateItems` 응답의 신규 `CandidateStashItemSummary`와 이미 받은 recommendation row를 매칭해 현재 리스트 앞에 로컬 삽입하고, 추천 UI에서는 해당 row를 제거한다.
 
 ## 오더 지표 SSE
 
 총 오더 수량, 총 오더 금액, 엑셀용 `orderExport`는 `subscribeCandidateOrderMetrics` SSE 이벤트로 행별 갱신한다. 목록 조회 hook은 stream lifecycle을 직접 알지 않는다.
+
+조회 버튼으로 기간을 새로 적용하면 기존 오더 지표 SSE 구독을 모두 닫고 전체 후보 item UUID를 새 요청으로 계산한다. 추천 적용처럼 일부 row만 추가되는 경우에는 기존 계산값을 유지한 채 신규 `candidateItemUuids`만 별도 SSE 요청으로 보낸다.
+
+`useCandidateOrderMetricStream.ts`는 동일한 조회 조건과 같은 후보 item UUID 묶음이 이미 구독 중이면 다시 열지 않는다. 또한 요청한 모든 item이 `item` 또는 `itemFailed` 이벤트로 처리되면 `completed` 이벤트 전이라도 EventSource를 닫는다. 이는 백엔드가 완료 이벤트 없이 SSE 응답을 닫았을 때 브라우저가 동일 URL로 자동 재접속하는 것을 막기 위한 경계 책임이다.
 
 ## 상세확정
 

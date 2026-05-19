@@ -15,6 +15,7 @@
 - API 타입은 `src/api/types/*`에 `interface` 우선으로 둔다.
 - mock은 임시 데이터가 아니라 백엔드 계약 대체 구현체다.
 - 백엔드가 제공해야 하는 비즈니스 값은 프론트에서 임의로 생성하지 않는다.
+- mock/HTTP adapter는 요청 처리 중 모르는 SKU나 경쟁 채널을 다른 상품이나 기본 채널로 대체하지 않는다. 계약상 필수 원천이 없으면 에러, `null`, 또는 행 단위 실패 상태로 드러낸다. 단, mock seed가 화면 검증용 카탈로그 값을 생성하는 것은 별도 mock 데이터 생성 책임으로 허용한다.
 
 ## public 진입점
 
@@ -35,7 +36,7 @@
 | `types/admin-gpt-key.ts` | GPT 키 관리 |
 | `types/admin-google-sheet.ts` | Google Sheets API 설정 관리 |
 | `types/candidate.ts` | 후보군, 후보 아이템, 추천, 상세확정 |
-| `types/candidate-order-metrics.ts` | 총 오더 수량/금액 SSE |
+| `types/candidate-order-metrics.ts` | 총 오더 수량/금액 SSE. 백엔드는 `completed`를 보내야 하며, 프론트는 모든 요청 item이 settle되면 자동 재접속 방지를 위해 구독을 닫는다 |
 | `types/drawer.ts` | 상품 1차 드로워 번들 |
 | `types/sales.ts` | 자사/경쟁사 분석 요청/응답 |
 | `types/secondary.ts` | 2차 드로워 상세, 재고·발주, AI 코멘트 |

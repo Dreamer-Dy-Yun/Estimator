@@ -2,6 +2,8 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   getCandidateItemsByStash,
   type CandidateItemSummary,
+  type CandidateReferenceItemSummary,
+  type CandidateStashItemSummary,
   type CandidateStashSummary,
 } from '../../../api'
 import { preloadCandidateOrderExcelExport } from '../../../utils/candidateOrderExcelExport'
@@ -24,7 +26,10 @@ import {
   selectMetricCandidateItems,
   type CandidateMetricReloadOptions,
 } from './candidateItemListMergeModel'
-import { removeCandidateItemsByUuid } from './candidateItemLocalMutationModel'
+import {
+  appendRecommendedCandidateItems,
+  removeCandidateItemsByUuid,
+} from './candidateItemLocalMutationModel'
 
 type Args = {
   stashUuid: string
@@ -73,6 +78,7 @@ export function useCandidateStashDetailModal({
   const {
     beginItemLoad,
     closeMetricSubscription,
+    getCurrentItemLoadSeq,
     isCurrentItemLoad,
     subscribeOrderMetrics,
   } = useCandidateOrderMetricStream({ stashUuid, mountedRef, setItems })
@@ -159,6 +165,27 @@ export function useCandidateStashDetailModal({
     applyDataReferencePeriod,
   } = dataReferencePeriod
 
+  const appendRecommendedItemsLocally = useCallback((
+    candidateItems: CandidateStashItemSummary[],
+    recommendationRows: CandidateReferenceItemSummary[],
+  ) => {
+    if (!candidateItems.length) return
+    setItems(appendRecommendedCandidateItems(itemsRef.current, candidateItems, recommendationRows))
+    subscribeOrderMetrics({
+      seq: getCurrentItemLoadSeq(),
+      dataReferencePeriodStart,
+      dataReferencePeriodEnd,
+      candidateItemUuids: candidateItems.map((item) => item.uuid),
+    })
+  }, [
+    dataReferencePeriodEnd,
+    dataReferencePeriodStart,
+    getCurrentItemLoadSeq,
+    itemsRef,
+    setItems,
+    subscribeOrderMetrics,
+  ])
+
   const recommendations = useCandidateRecommendations({
     stashUuid,
     dataReferencePeriodStart,
@@ -166,7 +193,7 @@ export function useCandidateStashDetailModal({
     mountedRef,
     itemsRef,
     setItems,
-    loadItems,
+    onRecommendedItemsAppended: appendRecommendedItemsLocally,
     refreshStashes,
     showToast,
   })

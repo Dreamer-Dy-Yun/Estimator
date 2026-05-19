@@ -21,6 +21,7 @@ import type {
 import type {
   AppendCandidateItemPayload,
   AppendCandidateItemsPayload,
+  AppendCandidateItemsResponse,
   CandidateItemDetail,
   CandidateItemListParams,
   CandidateItemListResult,
@@ -106,7 +107,7 @@ export interface DashboardApi {
   updateCandidateStash(payload: UpdateCandidateStashPayload): Promise<CandidateStashSummary>
   duplicateCandidateStash(stashUuid: string): Promise<void>
   appendCandidateItem(payload: AppendCandidateItemPayload): Promise<void>
-  appendCandidateItems(payload: AppendCandidateItemsPayload): Promise<void>
+  appendCandidateItems(payload: AppendCandidateItemsPayload): Promise<AppendCandidateItemsResponse>
   updateCandidateItem(payload: UpdateCandidateItemPayload): Promise<UpdateCandidateItemResponse>
   getCandidateStashExcelTemplateDownload(): CandidateStashExcelTemplateDownload
   uploadCandidateStashExcel(file: File): Promise<CandidateStashExcelUploadResult>

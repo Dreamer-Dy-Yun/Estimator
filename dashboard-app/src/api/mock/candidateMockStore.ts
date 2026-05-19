@@ -84,7 +84,7 @@ export function buildCandidateItemListResult(
   return {
     candidateItems: buildCandidateStashItems(records),
     items: buildCandidateItemSummaries(records, period, {
-      includeInsights: false,
+      includeRecommendationInsights: false,
       includeOrderMetrics,
     }),
   }

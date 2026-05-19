@@ -15,10 +15,10 @@ export const secondaryCompetitorChannels: SecondaryCompetitorChannel[] =
   mockSecondaryCompetitorChannels.map(({ id, label }) => ({ id, label }))
 
 export function getMockSecondaryCompetitorChannel(id?: string): MockSecondaryCompetitorChannel {
-  return (
-    mockSecondaryCompetitorChannels.find((channel) => channel.id === id)
-    ?? mockSecondaryCompetitorChannels[0]!
-  )
+  if (!id) return mockSecondaryCompetitorChannels[0]!
+  const channel = mockSecondaryCompetitorChannels.find((candidate) => candidate.id === id)
+  if (!channel) throw new Error(`Unknown mock competitor channel: ${id}`)
+  return channel
 }
 
 export function getMockCompetitorSalesChannels(id?: string): MockSecondaryCompetitorChannel[] {

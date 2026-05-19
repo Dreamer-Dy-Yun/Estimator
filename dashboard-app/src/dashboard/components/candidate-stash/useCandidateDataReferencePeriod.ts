@@ -1,6 +1,10 @@
 import { useCallback, useEffect, useRef, useState, type MutableRefObject } from 'react'
 import type { CandidateItemSummary, CandidateStashSummary } from '../../../api'
-import { normalizeRangeOnEndInput, normalizeRangeOnStartInput } from '../../hooks/usePeriodRangeFilter'
+import {
+  buildDefaultPeriodRange,
+  normalizeRangeOnEndInput,
+  normalizeRangeOnStartInput,
+} from '../../hooks/usePeriodRangeFilter'
 
 export interface AppliedCandidateDataReferencePeriod {
   start: string
@@ -63,7 +67,8 @@ export function useCandidateDataReferencePeriod({
         closeMetricSubscription()
         return
       }
-      applyReferencePeriod(detailTarget.periodStart, detailTarget.periodEnd)
+      const initialPeriod = buildDefaultPeriodRange()
+      applyReferencePeriod(initialPeriod.startDate, initialPeriod.endDate)
     })
     return () => {
       alive = false

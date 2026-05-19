@@ -14,7 +14,6 @@ import type {
 } from '../types'
 import { sleep } from './utils'
 import {
-  allKnownSkuGroupKeys,
   brands,
   categories,
   colorCodeOrder,
@@ -42,16 +41,43 @@ import { getSecondaryStockOrderCalc } from './secondaryStockOrderCalcApi'
 const koNumber = new Intl.NumberFormat('ko-KR')
 
 function formatEa(value: number | null | undefined) {
-  return `${koNumber.format(Math.max(0, Math.round(value ?? 0)))}EA`
+  if (value == null) return '확인 필요'
+  return `${koNumber.format(Math.max(0, Math.round(value)))}EA`
 }
 
 function formatWon(value: number | null | undefined) {
-  return `${koNumber.format(Math.max(0, Math.round(value ?? 0)))}원`
+  if (value == null) return '확인 필요'
+  return `${koNumber.format(Math.max(0, Math.round(value)))}원`
+}
+
+function requireProductPrimary(skuGroupKey: string) {
+  const primary = productPrimaryBySkuGroupKey[skuGroupKey]
+  if (!primary) throw new Error(`Unknown mock product primary: ${skuGroupKey}`)
+  return primary
+}
+
+function requireProductSecondary(skuGroupKey: string) {
+  const secondary = productSecondaryBySkuGroupKey[skuGroupKey]
+  if (!secondary) throw new Error(`Unknown mock product secondary: ${skuGroupKey}`)
+  return secondary
+}
+
+function requireStockTrend(skuGroupKey: string) {
+  const stockTrend = stockTrendBySkuGroupKey[skuGroupKey]
+  if (!stockTrend) throw new Error(`Unknown mock stock trend: ${skuGroupKey}`)
+  return stockTrend
+}
+
+function requireNumber(value: number | null | undefined, label: string) {
+  if (typeof value !== 'number' || !Number.isFinite(value)) {
+    throw new Error(`Missing mock numeric value: ${label}`)
+  }
+  return value
 }
 
 function buildSecondaryAiComment(params: SecondaryAiCommentParams) {
-  const primary = productPrimaryBySkuGroupKey[params.skuGroupKey] ?? productPrimaryBySkuGroupKey[allKnownSkuGroupKeys[0]]!
-  const secondary = productSecondaryBySkuGroupKey[params.skuGroupKey] ?? productSecondaryBySkuGroupKey[allKnownSkuGroupKeys[0]]!
+  const primary = requireProductPrimary(params.skuGroupKey)
+  const secondary = requireProductSecondary(params.skuGroupKey)
   const channel = getMockSecondaryCompetitorChannel(params.competitorChannelId)
   const selfCol = buildSalesKpiColumn('self', primary, secondary, channel)
   const competitorCol = buildSalesKpiColumn('competitor', primary, secondary, channel)
@@ -59,8 +85,8 @@ function buildSecondaryAiComment(params: SecondaryAiCommentParams) {
     (best, row) => (best == null || row.qty > best.qty ? row : best),
     null,
   )
-  const competitorQty = Math.max(0, Math.round(competitorCol.qty ?? 0))
-  const selfQty = Math.max(0, Math.round(selfCol.qty ?? 0))
+  const competitorQty = Math.max(0, Math.round(competitorCol.qty))
+  const selfQty = Math.max(0, Math.round(selfCol.qty))
   const qtyGap = competitorQty - selfQty
   const prompt = [
     `${primary.brand} ${primary.productName}(${primary.code}/${primary.colorCode})의 2차 드로워 AI 코멘트를 작성해 주세요.`,
@@ -72,7 +98,7 @@ function buildSecondaryAiComment(params: SecondaryAiCommentParams) {
     qtyGap > 0
       ? `경쟁 채널 판매량이 자사보다 ${formatEa(qtyGap)} 높아, 입고 전 판매 속도와 노출 조건을 먼저 점검하는 편이 좋습니다.`
       : `자사 판매량이 경쟁 채널 대비 밀리지 않아, 현재 오더 수량은 재고 여유와 이익률 중심으로 조정하면 됩니다.`,
-    `추천 오더 기준 수량은 ${formatEa(primary.recommendedOrderQty)}, 예상 주문 원가는 약 ${formatWon(primary.recommendedOrderQty * Math.round(selfCol.avgCost ?? 0))}입니다.`,
+    `추천 오더 기준 수량은 ${formatEa(primary.recommendedOrderQty)}, 예상 주문 원가는 약 ${formatWon(primary.recommendedOrderQty * Math.round(requireNumber(selfCol.avgCost, 'self avgCost')))}입니다.`,
     topSize
       ? `${topSize.size} 사이즈 판매 비중이 가장 커서 사이즈별 오더 조정 시 우선 확인하세요.`
       : '사이즈별 판매 비중 데이터가 비어 있어, 저장 전 사이즈 배분 확인이 필요합니다.',
@@ -101,9 +127,9 @@ export const mockDashboardApi = {
       .filter((row) => (colorCode ? row.colorCode === colorCode : true))
       .filter((row) => (nameQ ? row.productName.toLowerCase().includes(nameQ) : true))
       .map((row) => {
-        const qty = Math.max(1, Math.round(row.qty * weighted))
-        const amount = Math.max(1, Math.round(row.amount * weighted))
-        const opMarginAmount = Math.max(1, Math.round(row.opMarginAmount * weighted))
+        const qty = Math.max(0, Math.round(row.qty * weighted))
+        const amount = Math.max(0, Math.round(row.amount * weighted))
+        const opMarginAmount = Math.max(0, Math.round(row.opMarginAmount * weighted))
         return {
           ...row,
           qty,
@@ -140,18 +166,18 @@ export const mockDashboardApi = {
       .filter((row) => (nameQ ? row.productName.toLowerCase().includes(nameQ) : true))
       .map((row) => {
         const channelMetrics = channels.map((channel) => {
-          const qty = Math.max(1, Math.round(row.competitorQty * weighted * channel.qtySkew))
-          const avgPrice = Math.max(1, Math.round(row.competitorAvgPrice * channel.priceSkew))
+          const qty = Math.max(0, Math.round(row.competitorQty * weighted * channel.qtySkew))
+          const avgPrice = Math.max(0, Math.round(row.competitorAvgPrice * channel.priceSkew))
           return {
             qty,
-            amount: Math.max(1, Math.round(qty * avgPrice)),
+            amount: Math.max(0, Math.round(qty * avgPrice)),
           }
         })
         const competitorQty = channelMetrics.reduce((sum, metric) => sum + metric.qty, 0)
         const competitorAmount = channelMetrics.reduce((sum, metric) => sum + metric.amount, 0)
-        const competitorAvgPrice = Math.max(1, Math.round(competitorAmount / Math.max(1, competitorQty)))
-        const selfQty = row.selfQty != null ? Math.max(1, Math.round(row.selfQty * weighted)) : null
-        const selfAmount = row.selfAmount != null ? Math.max(1, Math.round(row.selfAmount * weighted)) : null
+        const competitorAvgPrice = competitorQty > 0 ? Math.max(0, Math.round(competitorAmount / competitorQty)) : 0
+        const selfQty = row.selfQty != null ? Math.max(0, Math.round(row.selfQty * weighted)) : null
+        const selfAmount = row.selfAmount != null ? Math.max(0, Math.round(row.selfAmount * weighted)) : null
         return {
           ...row,
           competitorQty,
@@ -166,10 +192,10 @@ export const mockDashboardApi = {
   getCompetitorSalesScatterGrid: async (params?: CompetitorSalesGridParams) => {
     const rows = await mockDashboardApi.getCompetitorSales(params)
     const grouped = rows
-      .filter((row) => row.selfQty != null)
+      .filter((row): row is typeof row & { selfQty: number } => row.selfQty != null)
       .map((row) => ({
         skuGroupKey: row.skuGroupKey,
-        x: row.selfQty ?? 0,
+        x: row.selfQty,
         y: row.competitorQty,
       }))
     return buildScatterGridCells(
@@ -208,7 +234,7 @@ export const mockDashboardApi = {
   },
   getProductDrawerBundle: async (skuGroupKey: string) => {
     await sleep(80)
-    const primary = productPrimaryBySkuGroupKey[skuGroupKey] ?? productPrimaryBySkuGroupKey[allKnownSkuGroupKeys[0]]!
+    const primary = requireProductPrimary(skuGroupKey)
     const { monthlySalesTrend, ...summaryBase } = primary
     void monthlySalesTrend
     const summary: ProductPrimarySummary = {
@@ -221,7 +247,7 @@ export const mockDashboardApi = {
     params: ProductMonthlyTrendParams,
   ): Promise<ProductMonthlyTrend> => {
     await sleep(80)
-    const primary = productPrimaryBySkuGroupKey[skuGroupKey] ?? productPrimaryBySkuGroupKey[allKnownSkuGroupKeys[0]]!
+    const primary = requireProductPrimary(skuGroupKey)
     const fc = Math.max(1, Math.min(24, Math.round(params.forecastMonths ?? 8)))
     const seed = skuGroupKey.charCodeAt(0)
     const base = Math.max(800, Math.round(primary.qty * 0.42))
@@ -242,7 +268,7 @@ export const mockDashboardApi = {
           selfSales: Math.max(0, Math.round(point.sales)),
           competitorSales: point.isForecast
             ? null
-            : Math.max(1, Math.round(point.sales * 10 * channel.qtySkew * rhythm)),
+            : Math.max(0, Math.round(point.sales * 10 * channel.qtySkew * rhythm)),
           isForecast: point.isForecast,
         }
       }),
@@ -253,8 +279,8 @@ export const mockDashboardApi = {
     params: ProductSalesInsightParams,
   ): Promise<ProductSalesInsight> => {
     await sleep(80)
-    const primary = productPrimaryBySkuGroupKey[skuGroupKey] ?? productPrimaryBySkuGroupKey[allKnownSkuGroupKeys[0]]!
-    const secondary = productSecondaryBySkuGroupKey[skuGroupKey] ?? productSecondaryBySkuGroupKey[allKnownSkuGroupKeys[0]]!
+    const primary = requireProductPrimary(skuGroupKey)
+    const secondary = requireProductSecondary(skuGroupKey)
     const channel = getMockSecondaryCompetitorChannel(params.competitorChannelId)
     return {
       skuGroupKey: primary.skuGroupKey,
@@ -271,7 +297,7 @@ export const mockDashboardApi = {
   getProductSecondaryDetail: async (skuGroupKey: string, params?: ProductSecondaryDetailParams) => {
     void params
     await sleep(80)
-    return productSecondaryBySkuGroupKey[skuGroupKey] ?? productSecondaryBySkuGroupKey[allKnownSkuGroupKeys[0]]!
+    return requireProductSecondary(skuGroupKey)
   },
   getSecondaryAiComment: async (params: SecondaryAiCommentParams) => {
     await sleep(140)
@@ -284,8 +310,8 @@ export const mockDashboardApi = {
     competitorChannelId,
   }: SecondaryDailyTrendParams) => {
     await sleep(80)
-    const primary = productPrimaryBySkuGroupKey[skuGroupKey] ?? productPrimaryBySkuGroupKey[allKnownSkuGroupKeys[0]]!
-    const stockTrend = stockTrendBySkuGroupKey[skuGroupKey] ?? stockTrendBySkuGroupKey[allKnownSkuGroupKeys[0]]!
+    const primary = requireProductPrimary(skuGroupKey)
+    const stockTrend = requireStockTrend(skuGroupKey)
     const channel = getMockSecondaryCompetitorChannel(competitorChannelId)
     return buildSecondaryDailyTrend(primary.monthlySalesTrend ?? [], stockTrend, startMonth, leadTimeDays, channel.qtySkew)
   },

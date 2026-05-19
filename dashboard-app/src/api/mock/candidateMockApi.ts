@@ -1,6 +1,7 @@
 import type {
   AppendCandidateItemPayload,
   AppendCandidateItemsPayload,
+  AppendCandidateItemsResponse,
   CandidateDetailBulkConfirmProgressEvent,
   CandidateDetailBulkConfirmStartPayload,
   CandidateDetailBulkConfirmStartResult,
@@ -45,6 +46,7 @@ import {
   readCandidateStashRecords,
   toCandidateStashSummary,
 } from './candidateMockStore'
+import { buildCandidateStashItems } from './candidateItemSummaryBuilder'
 import { type CandidateStashRecord } from './records'
 import { productPrimaryBySkuGroupKey } from './productCatalog'
 import { makeUuid32, sleep } from './utils'
@@ -249,7 +251,10 @@ export const candidateMockApi = {
       }),
     })
   },
-  appendCandidateItems: async (payload: AppendCandidateItemsPayload, ownerUserUuid?: string): Promise<void> => {
+  appendCandidateItems: async (
+    payload: AppendCandidateItemsPayload,
+    ownerUserUuid?: string,
+  ): Promise<AppendCandidateItemsResponse> => {
     await sleep(70)
     if (!findCandidateStashForOwner(payload.stashUuid, ownerUserUuid)) {
       throw new Error('후보군을 찾을 수 없습니다.')
@@ -262,10 +267,16 @@ export const candidateMockApi = {
       if (row.stashUuid === payload.stashUuid) existingSkuSet.add(row.skuUuid)
     }
     const now = new Date().toISOString()
+    const createdItems = []
     for (const skuGroupKey of [...new Set(payload.skuGroupKeys)]) {
       if (existingSkuSet.has(skuGroupKey)) continue
-      records.push(createCandidateItemRecord(payload.stashUuid, skuGroupKey, now))
+      const created = createCandidateItemRecord(payload.stashUuid, skuGroupKey, now)
+      records.push(created)
+      createdItems.push(created)
       existingSkuSet.add(skuGroupKey)
+    }
+    return {
+      candidateItems: buildCandidateStashItems(createdItems),
     }
   },
   updateCandidateItem: async (

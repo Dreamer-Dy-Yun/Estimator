@@ -18,16 +18,17 @@ describe('api/mock dashboardApi competitor channel behavior', () => {
     expect(base.length).toBeGreaterThan(0)
     expect(musinsa.length).toBe(base.length)
 
-    const baseRow = base.find((row) => row.id === 'B') ?? base[0]
-    const musinsaRow = musinsa.find((row) => row.id === baseRow?.id)
+    const baseRow = base.find((row) => row.id === 'B')
+    if (!baseRow) throw new Error('Expected mock competitor row B')
+    const musinsaRow = musinsa.find((row) => row.id === baseRow.id)
 
-    expect(baseRow).toBeDefined()
     expect(musinsaRow).toBeDefined()
+    if (!musinsaRow) throw new Error('Expected mock musinsa row B')
 
-    expect(musinsaRow?.competitorAvgPrice).toBe(Math.max(1, Math.round((baseRow?.competitorAvgPrice ?? 0) * 1.02)))
-    expect(musinsaRow?.competitorQty).toBe(Math.max(1, Math.round((baseRow?.competitorQty ?? 0) * 0.88)))
+    expect(musinsaRow?.competitorAvgPrice).toBe(Math.max(0, Math.round(baseRow.competitorAvgPrice * 1.02)))
+    expect(musinsaRow?.competitorQty).toBe(Math.max(0, Math.round(baseRow.competitorQty * 0.88)))
     expect(musinsaRow?.competitorAmount).toBe(
-      Math.max(1, Math.round((musinsaRow?.competitorQty ?? 0) * (musinsaRow?.competitorAvgPrice ?? 0))),
+      Math.max(0, Math.round(musinsaRow.competitorQty * musinsaRow.competitorAvgPrice)),
     )
   })
 
@@ -43,25 +44,22 @@ describe('api/mock dashboardApi competitor channel behavior', () => {
     expect(allRow).toBeDefined()
     expect(kreamRow).toBeDefined()
     expect(musinsaRow).toBeDefined()
-    expect(allRow?.competitorQty).toBe((kreamRow?.competitorQty ?? 0) + (musinsaRow?.competitorQty ?? 0))
-    expect(allRow?.competitorAmount).toBe((kreamRow?.competitorAmount ?? 0) + (musinsaRow?.competitorAmount ?? 0))
-    expect(allRow?.competitorAvgPrice).toBe(
-      Math.max(1, Math.round((allRow?.competitorAmount ?? 0) / Math.max(1, allRow?.competitorQty ?? 0))),
-    )
-    expect(allRow?.selfQty).toBe(kreamRow?.selfQty)
-    expect(allRow?.selfAmount).toBe(kreamRow?.selfAmount)
+    if (!allRow || !kreamRow || !musinsaRow) throw new Error('Expected mock rows for channel aggregation')
+    expect(allRow.competitorQty).toBe(kreamRow.competitorQty + musinsaRow.competitorQty)
+    expect(allRow.competitorAmount).toBe(kreamRow.competitorAmount + musinsaRow.competitorAmount)
+    expect(allRow.competitorAvgPrice).toBe(Math.round(allRow.competitorAmount / allRow.competitorQty))
+    expect(allRow.selfQty).toBe(kreamRow.selfQty)
+    expect(allRow.selfAmount).toBe(kreamRow.selfAmount)
   })
 
-  it('falls back to default skew for unknown channel id', async () => {
-    const base = await mockDashboardApi.getCompetitorSales({ competitorChannelId: 'kream' })
-    const unknown = await mockDashboardApi.getCompetitorSales({ competitorChannelId: 'unknown-channel' })
-    expect(unknown).toEqual(base)
+  it('rejects unknown competitor channel ids instead of substituting another channel', async () => {
+    await expect(mockDashboardApi.getCompetitorSales({ competitorChannelId: 'unknown-channel' }))
+      .rejects.toThrow('Unknown mock competitor channel')
   })
 
-  it('treats removed naver channel id as fallback(default skew)', async () => {
-    const base = await mockDashboardApi.getCompetitorSales({ competitorChannelId: 'kream' })
-    const naver = await mockDashboardApi.getCompetitorSales({ competitorChannelId: 'naver' })
-    expect(naver).toEqual(base)
+  it('rejects removed competitor channel ids instead of treating them as default', async () => {
+    await expect(mockDashboardApi.getCompetitorSales({ competitorChannelId: 'naver' }))
+      .rejects.toThrow('Unknown mock competitor channel')
   })
 
   it('filters self and competitor sales by product code query', async () => {

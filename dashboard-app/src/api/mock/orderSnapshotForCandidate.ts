@@ -1,17 +1,38 @@
 import type { SecondaryOrderSnapshotPayload } from '../types/snapshot'
 import { ORDER_SNAPSHOT_SCHEMA_VERSION } from '../../snapshot/orderSnapshotTypes'
-import { allKnownSkuGroupKeys, secondaryCompetitorChannels } from './salesTables'
+import { secondaryCompetitorChannels } from './salesTables'
 import { productPrimaryBySkuGroupKey, productSecondaryBySkuGroupKey } from './productCatalog'
 import { buildSalesKpiColumn } from '../../utils/salesKpiColumn'
 
 const koNumber = new Intl.NumberFormat('ko-KR')
 
 function formatEa(value: number | null | undefined) {
-  return `${koNumber.format(Math.max(0, Math.round(value ?? 0)))}EA`
+  if (value == null) return '확인 필요'
+  return `${koNumber.format(Math.max(0, Math.round(value)))}EA`
 }
 
 function formatWon(value: number | null | undefined) {
-  return `${koNumber.format(Math.max(0, Math.round(value ?? 0)))}원`
+  if (value == null) return '확인 필요'
+  return `${koNumber.format(Math.max(0, Math.round(value)))}원`
+}
+
+function requireProductPrimary(skuGroupKey: string) {
+  const primary = productPrimaryBySkuGroupKey[skuGroupKey]
+  if (!primary) throw new Error(`Unknown mock product primary: ${skuGroupKey}`)
+  return primary
+}
+
+function requireProductSecondary(skuGroupKey: string) {
+  const secondary = productSecondaryBySkuGroupKey[skuGroupKey]
+  if (!secondary) throw new Error(`Unknown mock product secondary: ${skuGroupKey}`)
+  return secondary
+}
+
+function requireNumber(value: number | null | undefined, label: string) {
+  if (typeof value !== 'number' || !Number.isFinite(value)) {
+    throw new Error(`Missing mock numeric value: ${label}`)
+  }
+  return value
 }
 
 function findLargestSizeRow(snapshot: SecondaryOrderSnapshotPayload) {
@@ -39,7 +60,10 @@ function buildMockAiAnswer(snapshot: SecondaryOrderSnapshotPayload) {
   const d2 = snapshot.drawer2
   const totals = d2.confirmedTotals
   const largestSize = findLargestSizeRow(snapshot)
-  const stockGap = Math.max(0, Math.round((d2.stockDerived.recommendedOrderQty ?? 0) - (summary.availableStock ?? 0)))
+  const stockGap =
+    typeof d2.stockDerived.recommendedOrderQty === 'number' && typeof summary.availableStock === 'number'
+      ? Math.max(0, Math.round(d2.stockDerived.recommendedOrderQty - summary.availableStock))
+      : null
   const marginLabel = typeof totals?.expectedOpProfitRatePct === 'number'
     ? `${totals.expectedOpProfitRatePct.toFixed(1)}%`
     : '확인 필요'
@@ -50,7 +74,9 @@ function buildMockAiAnswer(snapshot: SecondaryOrderSnapshotPayload) {
   return [
     `${summary.productName}은(는) ${d2.competitorChannelLabel} 기준 판매 흐름을 같이 볼 후보입니다.`,
     `현재 스냅샷은 확정 오더 ${formatEa(totals?.orderQty)}, 예상 매출 ${formatWon(totals?.expectedSalesAmount)}, 예상 영업이익률 ${marginLabel}로 잡혀 있습니다.`,
-    stockGap > 0
+    stockGap == null
+      ? '추천 수량 또는 가용 재고 데이터가 비어 있어, 재고 부족 여부는 원천 데이터를 먼저 확인해야 합니다.'
+      : stockGap > 0
       ? `추천 수량 대비 가용 재고가 약 ${formatEa(stockGap)} 부족하므로 리드타임 전 판매 속도와 미입고 잔량을 우선 점검하세요.`
       : '가용 재고가 추천 수량을 크게 압박하지 않아, 판매 속도 변화가 없으면 현재 확정 수량을 기준안으로 둘 수 있습니다.',
     sizeLine,
@@ -81,14 +107,17 @@ export function buildMockOrderSnapshotForCandidate(
   skuGroupKey: string,
   options: MockOrderSnapshotOptions = {},
 ): SecondaryOrderSnapshotPayload {
-  const primary = productPrimaryBySkuGroupKey[skuGroupKey] ?? productPrimaryBySkuGroupKey[allKnownSkuGroupKeys[0]]!
-  const secondary = productSecondaryBySkuGroupKey[skuGroupKey] ?? productSecondaryBySkuGroupKey[allKnownSkuGroupKeys[0]]!
+  const primary = requireProductPrimary(skuGroupKey)
+  const secondary = requireProductSecondary(skuGroupKey)
   const channel = secondaryCompetitorChannels[0]!
   const selfCol = buildSalesKpiColumn('self', primary, secondary, channel)
   const compCol = buildSalesKpiColumn('competitor', primary, secondary, channel)
   const { monthlySalesTrend, ...summarySansTrend } = primary
   void monthlySalesTrend
   const leadTimeDays = 30
+  const avgCost = requireNumber(selfCol.avgCost, 'self avgCost')
+  const feePerUnitValue = requireNumber(selfCol.feePerUnit, 'self feePerUnit')
+  const feeRatePct = requireNumber(selfCol.feeRatePct, 'self feeRatePct')
   const stockInputs = {
     trendDailyMean: Math.max(0.1, Math.round((primary.qty / 365) * 10) / 10),
     dailyMean: Math.max(0.1, Math.round((primary.qty / 365) * 10) / 10),
@@ -101,8 +130,8 @@ export function buildMockOrderSnapshotForCandidate(
     serviceLevelPct: 95,
   }
   const unitPrice = Math.max(0, Math.round(summarySansTrend.price ?? primary.price))
-  const unitCost = Math.max(0, Math.round(selfCol.avgCost ?? 0))
-  const feePerUnit = Math.max(0, Math.round(selfCol.feePerUnit ?? 0))
+  const unitCost = Math.max(0, Math.round(avgCost))
+  const feePerUnit = Math.max(0, Math.round(feePerUnitValue))
   const opMarginPerUnit = unitPrice - unitCost - feePerUnit
   const stockDerived = {
     safetyStock: Math.max(0, Math.round(primary.availableStock * 0.2)),
@@ -112,8 +141,8 @@ export function buildMockOrderSnapshotForCandidate(
     expectedOpProfit: Math.round(primary.recommendedOrderQty * opMarginPerUnit),
   }
   const sizeRows = primary.sizeMix.map((row) => {
-    const rec = Math.max(1, row.confirmedQty)
-    const fq = Math.max(1, Math.round(row.qty * 0.12))
+    const rec = Math.max(0, row.confirmedQty)
+    const fq = Math.max(0, Math.round(row.qty * 0.12))
     return {
       size: row.size,
       selfSharePct: 25,
@@ -125,7 +154,7 @@ export function buildMockOrderSnapshotForCandidate(
     }
   })
   const savedAt = new Date().toISOString()
-  const confirmedOrderQty = sizeRows.reduce((acc, row) => acc + Math.max(0, Math.round(row.confirmQty ?? 0)), 0)
+  const confirmedOrderQty = sizeRows.reduce((acc, row) => acc + Math.max(0, Math.round(row.confirmQty)), 0)
   const confirmedExpectedSalesAmount = confirmedOrderQty * unitPrice
   const confirmedExpectedOpProfit = confirmedOrderQty * opMarginPerUnit
   const currentStockQtyBySize = primary.sizeMix.map((row) => Math.max(0, Math.round(row.availableStock)))
@@ -155,7 +184,7 @@ export function buildMockOrderSnapshotForCandidate(
       orderUnitInputs: {
         unitPrice,
         unitCost,
-        expectedFeeRatePct: selfCol.feeRatePct ?? 0,
+        expectedFeeRatePct: feeRatePct,
       },
       stockDisplay: {
         currentStockQtyTotal: currentStockQtyBySize.reduce((acc, value) => acc + value, 0),

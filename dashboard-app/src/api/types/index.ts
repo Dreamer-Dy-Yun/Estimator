@@ -88,6 +88,7 @@ export type {
   UpdateCandidateStashPayload,
   AppendCandidateItemPayload,
   AppendCandidateItemsPayload,
+  AppendCandidateItemsResponse,
   UpdateCandidateItemPayload,
   UpdateCandidateItemResponse,
 } from './candidate'

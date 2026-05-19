@@ -34,6 +34,7 @@ export type {
   SecondaryCompetitorChannel,
   SecondaryStockOrderCalcResult,
   CandidateBadge,
+  AppendCandidateItemsResponse,
   CandidateDetailBulkConfirmProgressEvent,
   CandidateDetailBulkConfirmStartPayload,
   CandidateDetailBulkConfirmStartResult,

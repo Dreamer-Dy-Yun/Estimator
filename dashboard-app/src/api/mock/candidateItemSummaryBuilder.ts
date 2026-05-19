@@ -7,8 +7,8 @@ import type {
 } from '../types'
 import type { CandidateItemInsightSummary } from '../types/candidate'
 import type { CandidateItemRecord } from './records'
-import { allKnownSkuGroupKeys, competitorBySkuGroupKey, secondaryCompetitorChannels, selfBySkuGroupKey } from './salesTables'
-import { estimatePeriodWeight, productPrimaryBySkuGroupKey } from './productCatalog'
+import { competitorBySkuGroupKey, secondaryCompetitorChannels, selfBySkuGroupKey } from './salesTables'
+import { estimatePeriodWeight, productPrimaryBySkuGroupKey, skuMetadataBySkuGroupKey } from './productCatalog'
 
 export type CandidateDataReferencePeriod = {
   start: string
@@ -51,6 +51,24 @@ function toCandidateBadges(names: string[]): CandidateBadge[] {
   })
 }
 
+function getProductPrimary(skuGroupKey: string) {
+  const primary = productPrimaryBySkuGroupKey[skuGroupKey]
+  if (!primary) throw new Error(`Unknown mock SKU group: ${skuGroupKey}`)
+  return primary
+}
+
+function getSkuMetadata(skuGroupKey: string) {
+  const metadata = skuMetadataBySkuGroupKey[skuGroupKey]
+  if (!metadata) throw new Error(`Unknown mock SKU metadata: ${skuGroupKey}`)
+  return metadata
+}
+
+function getPrimaryCompetitorChannelLabel() {
+  const channel = secondaryCompetitorChannels[0]
+  if (!channel) throw new Error('Missing mock competitor channel master')
+  return channel.label
+}
+
 function buildCandidateItemInsight(
   skuGroupKey: string,
   expectedSalesQty: number,
@@ -60,13 +78,13 @@ function buildCandidateItemInsight(
 ): CandidateItemInsightSummary {
   const competitor = competitorBySkuGroupKey[skuGroupKey]
   const self = selfBySkuGroupKey[skuGroupKey]
-  const channelLabel = secondaryCompetitorChannels[0]?.label ?? '크림'
+  const channelLabel = getPrimaryCompetitorChannelLabel()
   const badgeNameList: string[] = []
   const periodWeight = dataReferencePeriod
     ? estimatePeriodWeight(dataReferencePeriod.start, dataReferencePeriod.end)
     : 1
-  const weightedNumber = (value: number | null | undefined) =>
-    typeof value === 'number' ? Math.max(1, Math.round(value * periodWeight)) : null
+  const weightedSalesValue = (value: number | null | undefined) =>
+    typeof value === 'number' ? Math.max(0, Math.round(value * periodWeight)) : null
 
   if (inTopPercent(competitor?.rankPercentile)) badgeNameList.push(`${channelLabel}판매`)
   if (typeof self?.opMarginRate === 'number' && self.opMarginRate >= 9) badgeNameList.push('자사이익')
@@ -77,10 +95,10 @@ function buildCandidateItemInsight(
 
   return {
     competitorChannelLabel: channelLabel,
-    competitorQty: weightedNumber(competitor?.competitorQty),
-    competitorAmount: weightedNumber(competitor?.competitorAmount),
-    selfQty: weightedNumber(self?.qty ?? competitor?.selfQty),
-    selfAmount: weightedNumber(self?.amount ?? competitor?.selfAmount),
+    competitorQty: weightedSalesValue(competitor?.competitorQty),
+    competitorAmount: weightedSalesValue(competitor?.competitorAmount),
+    selfQty: weightedSalesValue(self?.qty),
+    selfAmount: weightedSalesValue(self?.amount),
     expectedSalesQty,
     expectedSalesAmount,
     expectedOpProfit,
@@ -102,20 +120,14 @@ function hasCandidateBadgeSource(skuGroupKey: string) {
   )
 }
 
-function buildPendingCandidateItemInsight(): CandidateItemInsightSummary {
+function buildCandidateItemPeriodSalesInsight(
+  skuGroupKey: string,
+  dataReferencePeriod?: CandidateDataReferencePeriod,
+): CandidateItemInsightSummary {
+  const insight = buildCandidateItemInsight(skuGroupKey, 0, 0, 0, dataReferencePeriod)
   return {
-    competitorChannelLabel: secondaryCompetitorChannels[0]?.label ?? '크림',
-    competitorQty: null,
-    competitorAmount: null,
-    selfQty: null,
-    selfAmount: null,
-    expectedSalesQty: 0,
-    expectedSalesAmount: 0,
-    expectedOpProfit: 0,
-    selfOpProfitRatePct: null,
-    rankTone: 'neutral' as const,
-    topPercentThreshold: INNER_ORDER_TOP_PERCENT_THRESHOLD,
-    bottomPercentThreshold: INNER_ORDER_BOTTOM_PERCENT_THRESHOLD,
+    ...insight,
+    rankTone: 'neutral',
     badges: [],
   }
 }
@@ -128,20 +140,19 @@ function buildOrderMetric(
   const periodWeight = dataReferencePeriod
     ? estimatePeriodWeight(dataReferencePeriod.start, dataReferencePeriod.end)
     : 1
-  const primary = productPrimaryBySkuGroupKey[skuGroupKey] ?? productPrimaryBySkuGroupKey[allKnownSkuGroupKeys[0]]!
+  const primary = getProductPrimary(skuGroupKey)
   const self = selfBySkuGroupKey[skuGroupKey]
-  const competitor = competitorBySkuGroupKey[skuGroupKey]
-  const avgPrice = Math.max(1, Math.round(self?.avgPrice ?? primary.price))
-  const avgCost = Math.max(1, Math.round(self?.avgCost ?? primary.price * 0.78))
+  const avgPrice = Math.max(0, Math.round(self?.avgPrice ?? primary.price))
+  const avgCost = Math.max(0, Math.round(self?.avgCost ?? primary.price * 0.78))
   const feeRatePct = Math.max(0, Math.round((self?.feeRate ?? 13) * 10) / 10)
-  const baseQty = Math.max(1, Math.round((self?.qty ?? competitor?.selfQty ?? primary.qty) * 0.58))
-  const qty = Math.max(1, Math.round(baseQty * periodWeight))
+  const baseQty = Math.max(0, Math.round((self?.qty ?? primary.qty) * 0.58))
+  const qty = Math.max(0, Math.round(baseQty * periodWeight))
   const expectedOrderAmount = qty * avgCost
   const expectedSalesAmount = qty * avgPrice
   const expectedOpProfit = qty * Math.round(avgPrice - avgCost - (avgPrice * feeRatePct) / 100)
   const opMarginRatePct = expectedSalesAmount > 0 ? (expectedOpProfit / expectedSalesAmount) * 100 : null
-  const sizeMix = primary.sizeMix.length ? primary.sizeMix : [{ size: '-', ratio: 1 }]
-  const sizeRatioSum = sizeMix.reduce((acc, sizeRow) => acc + Math.max(0, sizeRow.ratio), 0) || 1
+  const sizeMix = primary.sizeMix
+  const sizeRatioSum = sizeMix.reduce((acc, sizeRow) => acc + Math.max(0, sizeRow.ratio), 0)
   const insight = buildCandidateItemInsight(
     skuGroupKey,
     qty,
@@ -168,10 +179,12 @@ function buildOrderMetric(
       feeRatePct,
       opMarginRatePct,
       inboundExpectedDate: row.details?.drawer2.stockInputs.leadTimeEndDate ?? null,
-      sizeOrderQty: sizeMix.map((sizeRow) => ({
-        size: sizeRow.size,
-        orderQty: Math.max(0, Math.round(qty * (Math.max(0, sizeRow.ratio) / sizeRatioSum))),
-      })),
+      sizeOrderQty: sizeRatioSum > 0
+        ? sizeMix.map((sizeRow) => ({
+            size: sizeRow.size,
+            orderQty: Math.max(0, Math.round(qty * (Math.max(0, sizeRow.ratio) / sizeRatioSum))),
+          }))
+        : [],
     },
   }
 }
@@ -187,14 +200,14 @@ export function buildCandidateReferenceItem(
   skuGroupKey: string,
   dataReferencePeriod?: CandidateDataReferencePeriod,
 ): CandidateReferenceItemSummary {
-  const primary = productPrimaryBySkuGroupKey[skuGroupKey] ?? productPrimaryBySkuGroupKey[allKnownSkuGroupKeys[0]]!
+  const metadata = getSkuMetadata(skuGroupKey)
   return {
     uuid: skuGroupKey,
     skuGroupKey,
-    brand: primary.brand,
-    code: primary.code,
-    productName: primary.productName,
-    colorCode: primary.colorCode,
+    brand: metadata.brand,
+    code: metadata.code,
+    productName: metadata.productName,
+    colorCode: metadata.colorCode,
     insight: buildCandidateItemInsight(skuGroupKey, 0, 0, 0, dataReferencePeriod),
   }
 }
@@ -255,33 +268,33 @@ export function buildCandidateOrderMetric(
 export function buildCandidateItemSummaries(
   records: CandidateItemRecord[],
   dataReferencePeriod?: CandidateDataReferencePeriod,
-  options: { includeOrderMetrics?: boolean; includeInsights?: boolean } = {},
+  options: { includeOrderMetrics?: boolean; includeRecommendationInsights?: boolean } = {},
 ): CandidateItemSummary[] {
   const includeOrderMetrics = options.includeOrderMetrics ?? true
-  const includeInsights = options.includeInsights ?? true
+  const includeRecommendationInsights = options.includeRecommendationInsights ?? true
 
   return records
     .map((row) => {
       const skuGroupKey = row.skuGroupKey
-      const primary = productPrimaryBySkuGroupKey[skuGroupKey] ?? productPrimaryBySkuGroupKey[allKnownSkuGroupKeys[0]]!
-      const baseInsight = includeInsights
+      const metadata = getSkuMetadata(skuGroupKey)
+      const baseInsight = includeRecommendationInsights
         ? buildCandidateItemInsight(skuGroupKey, 0, 0, 0, dataReferencePeriod)
-        : buildPendingCandidateItemInsight()
+        : buildCandidateItemPeriodSalesInsight(skuGroupKey, dataReferencePeriod)
       const baseItem: CandidateItemSummary = {
         uuid: row.uuid,
         stashUuid: row.stashUuid,
         skuUuid: row.skuUuid,
         skuGroupKey,
-        brand: primary.brand,
-        code: primary.code,
-        productName: primary.productName,
-        colorCode: primary.colorCode,
+        brand: metadata.brand,
+        code: metadata.code,
+        productName: metadata.productName,
+        colorCode: metadata.colorCode,
         orderMetricStatus: includeOrderMetrics ? 'loaded' : 'loading',
         qty: 0,
         expectedOrderAmount: 0,
         expectedSalesAmount: 0,
         expectedOpProfit: 0,
-        insightStatus: includeInsights ? 'loaded' : 'loading',
+        insightStatus: includeRecommendationInsights ? 'loaded' : 'loading',
         insight: baseInsight,
         isLatestLlmComment: row.isLatestLlmComment,
         isDetailConfirmed: row.details != null,

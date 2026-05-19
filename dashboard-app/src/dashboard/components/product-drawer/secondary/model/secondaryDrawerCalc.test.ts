@@ -62,7 +62,7 @@ describe('buildSalesKpiColumn', () => {
     expect(kpi.costRatioPct).toBeCloseTo(78, 6)
   })
 
-  it('builds competitor KPI with channel skew and min qty 1 (no cost/margin/fee mock)', () => {
+  it('builds competitor KPI with channel skew without forcing a minimum quantity', () => {
     const tinyQtySecondary: ProductSecondaryDetail = {
       ...secondary,
       competitorQty: 0,
@@ -74,8 +74,8 @@ describe('buildSalesKpiColumn', () => {
     }
     const kpi = buildSalesKpiColumn('competitor', primary, tinyQtySecondary, tinyChannel)
     expect(kpi.avgPrice).toBe(138)
-    expect(kpi.qty).toBe(1)
-    expect(kpi.amount).toBe(138)
+    expect(kpi.qty).toBe(0)
+    expect(kpi.amount).toBe(0)
     expect(kpi.avgCost).toBeNull()
     expect(kpi.grossMarginPerUnit).toBeNull()
     expect(kpi.feePerUnit).toBeNull()

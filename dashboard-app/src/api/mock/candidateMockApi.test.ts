@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest'
 import { mockDashboardApi } from './dashboardApi'
 import { MOCK_ADMIN_USER_UUID, MOCK_USER_UUID } from './authApi'
 import { DEFAULT_CANDIDATE_STASH_CONTEXT } from './records'
+import { buildCandidateOrderMetric } from './candidateItemSummaryBuilder'
+import { skuGroupKeyByLegacyId } from './salesTables'
 
 const defaultCandidateItemListParams = (stashUuid: string) => ({
   stashUuid,
@@ -41,7 +43,7 @@ describe('api/mock candidate stash contract stubs', () => {
     expect(hidden.items).toEqual([])
   })
 
-  it('returns base candidate item rows without eager recommendation insight data', async () => {
+  it('returns base candidate item rows with period sales totals but without eager badges', async () => {
     const result = await mockDashboardApi.getCandidateItemsByStash(
       defaultCandidateItemListParams('candidatestash00000000000000000001'),
       MOCK_ADMIN_USER_UUID,
@@ -50,6 +52,8 @@ describe('api/mock candidate stash contract stubs', () => {
     expect(result.items.length).toBeGreaterThan(0)
     expect(result.items.every((item) => item.insightStatus === 'loading')).toBe(true)
     expect(result.items.every((item) => item.insight.badges.length === 0)).toBe(true)
+    expect(result.items.some((item) => typeof item.insight.selfQty === 'number')).toBe(true)
+    expect(result.items.some((item) => typeof item.insight.competitorQty === 'number')).toBe(true)
   })
 
   it('returns candidate item badges as DB-shaped name/color/tooltip arrays', async () => {
@@ -82,6 +86,51 @@ describe('api/mock candidate stash contract stubs', () => {
       result.recommendations.every((item) => item.insight.rankTone === 'top' || item.insight.badges.length > 0),
     ).toBe(true)
     expect(result.recommendations.some((item) => item.insight.badges.length > 0)).toBe(true)
+  })
+
+  it('does not synthesize period sales totals when one side has no source data', async () => {
+    const result = await mockDashboardApi.getCandidateRecommendations(
+      {
+        stashUuid: 'candidatestash00000000000000000001',
+        dataReferencePeriodStart: '2025-01-01',
+        dataReferencePeriodEnd: '2025-12-31',
+        limit: 100,
+      },
+      MOCK_ADMIN_USER_UUID,
+    )
+    const competitorOnly = result.recommendations.find((item) => item.code === 'A')
+
+    expect(competitorOnly).toBeDefined()
+    expect(competitorOnly?.insight.competitorQty).toBeGreaterThan(0)
+    expect(competitorOnly?.insight.selfQty).toBeNull()
+  })
+
+  it('keeps missing self period totals visible even when mock catalog generates order metrics', () => {
+    const skuGroupKey = skuGroupKeyByLegacyId.A!
+    const metric = buildCandidateOrderMetric(
+      {
+        uuid: 'candidateitem-test-competitor-only',
+        stashUuid: 'candidatestash00000000000000000001',
+        skuUuid: skuGroupKey,
+        skuGroupKey,
+        details: null,
+        isLatestLlmComment: false,
+        dbCreatedAt: '2026-04-20T09:00:00.000Z',
+        dbUpdatedAt: '2026-04-20T09:00:00.000Z',
+      },
+      {
+        start: '2025-01-01',
+        end: '2025-12-31',
+      },
+    )
+
+    expect(metric.qty).toBeGreaterThan(0)
+    expect(metric.expectedOrderAmount).toBeGreaterThan(0)
+    expect(metric.orderExport.avgPrice).toBeGreaterThan(0)
+    expect(metric.orderExport.avgCost).toBeGreaterThan(0)
+    expect(metric.orderExport.feeRatePct).toBeGreaterThan(0)
+    expect(metric.orderExport.selfQty).toBeNull()
+    expect(metric.orderExport.competitorQty).toBeGreaterThan(0)
   })
 
   it('paginates candidate recommendations without changing badge-bearing row shape', async () => {

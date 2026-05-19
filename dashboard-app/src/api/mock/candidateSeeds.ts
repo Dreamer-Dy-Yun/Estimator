@@ -5,8 +5,18 @@ import {
 } from './orderSnapshotForCandidate'
 import { MOCK_ADMIN_USER_UUID } from './authApi'
 import { skuGroupKeyByLegacyId } from './salesTables'
+import { productSecondaryBySkuGroupKey } from './productCatalog'
 
-const skuGroupKey = (legacyId: string) => skuGroupKeyByLegacyId[legacyId] ?? legacyId
+const skuGroupKey = (legacyId: string) => {
+  const key = skuGroupKeyByLegacyId[legacyId]
+  if (!key) throw new Error(`Unknown mock legacy SKU id: ${legacyId}`)
+  return key
+}
+
+const seedSnapshot = (legacyId: string) => {
+  const key = skuGroupKey(legacyId)
+  return productSecondaryBySkuGroupKey[key] ? buildMockOrderSnapshotForCandidate(key) : null
+}
 
 export const seededCandidateStashes: CandidateStashRecord[] = [
   {
@@ -51,7 +61,7 @@ const seededCandidateItemDrafts: Array<Omit<CandidateItemRecord, 'isLatestLlmCom
     uuid: 'candidateitem000000000000000000001',
     stashUuid: 'candidatestash00000000000000000001',
     skuGroupKey: skuGroupKey('B'),
-    details: buildMockOrderSnapshotForCandidate(skuGroupKey('B')),
+    details: seedSnapshot('B'),
     dbCreatedAt: '2026-04-20T09:10:00.000Z',
     dbUpdatedAt: '2026-04-20T09:10:00.000Z',
   },
@@ -73,7 +83,7 @@ const seededCandidateItemDrafts: Array<Omit<CandidateItemRecord, 'isLatestLlmCom
     uuid: `candidateitem000000000000000000${suffix}`,
     stashUuid: 'candidatestash00000000000000000001',
     skuGroupKey: skuGroupKey(pid),
-    details: buildMockOrderSnapshotForCandidate(skuGroupKey(pid)),
+    details: seedSnapshot(pid),
     dbCreatedAt: `2026-04-20T${created}`,
     dbUpdatedAt: `2026-04-20T${updated}`,
   })),
@@ -81,7 +91,7 @@ const seededCandidateItemDrafts: Array<Omit<CandidateItemRecord, 'isLatestLlmCom
     uuid: 'candidateitem000000000000000000002',
     stashUuid: 'candidatestash00000000000000000002',
     skuGroupKey: skuGroupKey('B'),
-    details: buildMockOrderSnapshotForCandidate(skuGroupKey('B')),
+    details: seedSnapshot('B'),
     dbCreatedAt: '2026-04-20T10:40:00.000Z',
     dbUpdatedAt: '2026-04-20T10:40:00.000Z',
   },
@@ -97,7 +107,7 @@ const seededCandidateItemDrafts: Array<Omit<CandidateItemRecord, 'isLatestLlmCom
     uuid,
     stashUuid: 'candidatestash00000000000000000002',
     skuGroupKey: skuGroupKey(pid),
-    details: buildMockOrderSnapshotForCandidate(skuGroupKey(pid)),
+    details: seedSnapshot(pid),
     dbCreatedAt: `2026-04-20T${created}`,
     dbUpdatedAt: `2026-04-20T${updated}`,
   })),
@@ -105,7 +115,7 @@ const seededCandidateItemDrafts: Array<Omit<CandidateItemRecord, 'isLatestLlmCom
     uuid: 'candidateitem000000000000000000003',
     stashUuid: 'candidatestash00000000000000000003',
     skuGroupKey: skuGroupKey('D'),
-    details: buildMockOrderSnapshotForCandidate(skuGroupKey('D')),
+    details: seedSnapshot('D'),
     dbCreatedAt: '2026-04-20T11:10:00.000Z',
     dbUpdatedAt: '2026-04-20T11:10:00.000Z',
   },
@@ -113,7 +123,7 @@ const seededCandidateItemDrafts: Array<Omit<CandidateItemRecord, 'isLatestLlmCom
     uuid: 'candidateitem000000000000000000004',
     stashUuid: 'candidatestash00000000000000000004',
     skuGroupKey: skuGroupKey('H'),
-    details: buildMockOrderSnapshotForCandidate(skuGroupKey('H')),
+    details: seedSnapshot('H'),
     dbCreatedAt: '2026-04-20T11:30:00.000Z',
     dbUpdatedAt: '2026-04-20T11:30:00.000Z',
   },

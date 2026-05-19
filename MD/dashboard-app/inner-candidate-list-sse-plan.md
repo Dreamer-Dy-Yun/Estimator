@@ -68,7 +68,7 @@ SKU.uuid                  = 추천/조회 기준 상품 UUID
 
 ### 1. 이너 후보군 조회 응답
 
-조회 버튼과 최초 로딩은 같은 계약을 사용한다.
+조회 버튼과 최초 로딩은 같은 계약을 사용한다. 최초 로딩의 기본 조회 데이터 기간은 후보군 생성 당시 기간이 아니라 화면 진입일 기준 `오늘 - 1년`부터 `오늘`까지다.
 
 ```ts
 interface CandidateStashQueryParams {
@@ -91,7 +91,7 @@ interface CandidateItemListResult {
 }
 ```
 
-`getCandidateItemsByStash`는 후보군에 담긴 아이템만 빠르게 내려준다. 전체 SKU 분포 기반 배지와 추천 후보는 이 응답에 포함하지 않는다.
+`getCandidateItemsByStash`는 후보군에 담긴 아이템과 자사/경쟁사 기간 총판매량을 빠르게 내려준다. 전체 SKU 분포 기반 배지와 추천 후보는 이 응답에 포함하지 않는다.
 
 `candidateItems`는 해당 후보군에 실제로 담긴 후보 아이템 목록이다. 이 값은 후보군 소유, 상세확정 상태, 스냅샷 존재 여부를 나타낸다. `uuid`는 후보 아이템 레코드 UUID이고, `skuUuid`는 그 후보 아이템이 가리키는 `SKU.uuid`이다.
 
@@ -103,7 +103,7 @@ interface CandidateItemListResult {
 
 ### 2. 배지·추천 조회
 
-추천 버튼 또는 백그라운드 prefetch는 별도 계약을 사용한다.
+기본 후보 리스트 조회 직후 실행되는 백그라운드 추천 조회는 별도 계약을 사용한다. 추천 버튼은 이 요청의 트리거가 아니라 이미 조회된 결과를 표시하는 UI다.
 
 ```ts
 interface CandidateRecommendationParams {
@@ -120,11 +120,13 @@ interface CandidateRecommendationResult {
 }
 ```
 
-백엔드는 조회 기간 전체 SKU 분포를 집계해 배지가 있는 SKU 목록만 계산한다. 전체 reference 목록을 프론트로 내려주지 않고 배지 있는 `recommendations` page만 반환한다. 이 목록에는 이미 후보군에 담긴 SKU가 포함될 수 있다. 프론트는 `CandidateItemSummary.skuUuid === recommendation.uuid`인 row를 기존 행 배지로 병합하고, 추천 UI에서는 해당 row를 숨긴다. 백엔드는 배지가 있는 현재 후보군 SKU를 응답에 포함하되, `limit/cursor`는 추천 UI에 노출될 신규 후보 기준으로 적용하는 구현을 권장한다.
+백엔드는 조회 기간 전체 SKU 분포를 집계해 배지가 있는 SKU 목록만 계산한다. 전체 reference 목록을 프론트로 내려주지 않고 배지 있는 `recommendations` page만 반환한다. 각 recommendation row에는 배지와 함께 자사/경쟁사 기간 총판매량도 포함한다. 이 목록에는 이미 후보군에 담긴 SKU가 포함될 수 있다. 프론트는 `CandidateItemSummary.skuUuid === recommendation.uuid`인 row를 기존 행 배지로 병합하고, 추천 UI에서는 해당 row를 숨긴다. 백엔드는 배지가 있는 현재 후보군 SKU를 응답에 포함하되, `limit/cursor`는 추천 UI에 노출될 신규 후보 기준으로 적용하는 구현을 권장한다.
 
 ### 3. 오더 지표 SSE
 
 초기 조회 응답에는 `총 오더 수량`과 `총 오더 금액`을 포함하지 않는다. 초기 응답 이후 후보 아이템별로 SSE를 구독해 순차 갱신한다.
+
+오더 지표 SSE는 없는 값을 다른 원천으로 메우지 않는다. 자사 판매·원가·수수료처럼 계산에 필요한 원천 값이 없으면 백엔드는 `null`, `0`, 또는 `itemFailed`로 드러내야 하며, 경쟁사 데이터나 상품마스터 기본값으로 대체하지 않는다.
 
 ```ts
 interface CandidateOrderMetricStreamParams {
@@ -160,7 +162,9 @@ type CandidateOrderMetricEvent =
     };
 ```
 
-프론트는 `requestId`와 조회 기간을 비교해 stale SSE 이벤트를 버린다. 사용자가 조회 기간을 바꿔 다시 조회하면 이전 SSE 구독은 닫는다.
+프론트는 `requestId`와 조회 기간을 비교해 stale SSE 이벤트를 버린다. 사용자가 조회 기간을 바꿔 다시 조회하면 이전 SSE 구독은 닫는다. 같은 조회 조건과 같은 `candidateItemUuids` 묶음이 이미 구독 중이면 중복 구독하지 않는다.
+
+백엔드는 반드시 `completed` 이벤트를 보내는 것이 원칙이다. 다만 브라우저 `EventSource`는 서버 연결이 닫히면 같은 URL로 자동 재연결할 수 있으므로, 프론트는 요청한 모든 `candidateItemUuids`에 대해 `item` 또는 `itemFailed`를 받으면 `completed` 수신 전이라도 해당 SSE 연결을 닫는다. 이 방어는 동일한 오더 지표 SSE URL이 반복 호출되는 것을 막기 위한 클라이언트 측 안전장치다.
 
 ## 성능 원칙
 
@@ -213,6 +217,8 @@ type CandidateOrderMetricEvent =
 4. 추천 보기 필터링
    - 백엔드가 `candidateItems.skuUuid` 제외를 수행한다.
    - 프론트는 중복 row가 들어오면 방어적으로 숨긴다.
+   - 추천 적용 시 전체 후보군 목록을 재조회하지 않는다.
+   - `appendCandidateItems` 응답의 신규 `candidateItems`와 이미 받은 recommendation row를 매칭해 로컬 리스트로 옮긴다.
 5. 이너오더 리스트 표시
    - 기본 정보는 조인된 reference item에서 표시한다.
    - 상세확정 상태는 candidate item의 `hasSnapshot`만 본다.
@@ -222,6 +228,8 @@ type CandidateOrderMetricEvent =
    - 새 `requestId` 생성
    - 항목별 로딩 상태 초기화
    - `item`, `itemFailed`, `completed` 처리
+   - 요청한 모든 item UUID가 `item` 또는 `itemFailed`로 settle되면 즉시 SSE 닫기
+   - 추천 적용 직후에는 신규 candidate item UUID만 별도 SSE 요청으로 추가한다.
 7. 문서 갱신
    - `MD/backend-api/backend-api-spec.md`
    - `MD/dashboard-app/source-boundary-map.md`
