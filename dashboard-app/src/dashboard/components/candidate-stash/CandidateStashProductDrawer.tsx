@@ -34,7 +34,6 @@ export function CandidateStashProductDrawer({ model, bulkDeleteOpen }: Props) {
       ),
       onUnconfirmed: (updatedItem: CandidateItemDetail) => model.markDrawerSnapshotUnconfirmed(itemUuid, updatedItem),
       onSaved: () => {
-        void model.loadItems()
         void model.refreshStashes()
       },
       onRequestDeleteItem: () => {

@@ -148,3 +148,59 @@
   justify-content: flex-end;
   margin-top: 10px;
 }
+
+.bulkConfirmProgressPopup {
+  position: fixed;
+  top: calc(var(--primary-drawer-edge-inset) + 10px);
+  left: 50%;
+  z-index: 9100;
+  width: min(420px, calc(100vw - 32px));
+  transform: translateX(-50%);
+  border: 1px solid #bfdbfe;
+  border-radius: 10px;
+  background: #eff6ff;
+  color: #0f172a;
+  box-shadow: 0 14px 32px rgba(15, 23, 42, 0.18);
+  padding: 12px 14px;
+}
+
+.bulkConfirmProgressHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 14px;
+}
+
+.bulkConfirmProgressClose {
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #334155;
+  font-size: 12px;
+  font-weight: 800;
+  padding: 4px 8px;
+}
+
+.bulkConfirmProgressBody {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.bulkConfirmProgressMeta {
+  margin-top: 6px;
+  color: #475569;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.bulkConfirmProgressError {
+  margin: 8px 0 0;
+  color: #991b1b;
+  font-size: 12px;
+  font-weight: 800;
+}

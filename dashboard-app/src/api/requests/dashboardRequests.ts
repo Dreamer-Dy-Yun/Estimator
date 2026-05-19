@@ -1,4 +1,5 @@
 import type { DashboardApi } from '../types'
+import { withDashboardMasterDataCache } from './dashboardMasterDataCache'
 import { USE_MOCK_API } from './httpClient'
 import { httpDashboardRequests } from './httpDashboardRequests'
 import { mockDashboardRequests } from './mockDashboardRequests'
@@ -14,4 +15,6 @@ import { mockDashboardRequests } from './mockDashboardRequests'
  * When a request payload/response changes, update `src/api/types/*`, the
  * matching adapter file, and the backend API spec together.
  */
-export const dashboardRequests: DashboardApi = USE_MOCK_API ? mockDashboardRequests : httpDashboardRequests
+export const dashboardRequests: DashboardApi = withDashboardMasterDataCache(
+  USE_MOCK_API ? mockDashboardRequests : httpDashboardRequests,
+)

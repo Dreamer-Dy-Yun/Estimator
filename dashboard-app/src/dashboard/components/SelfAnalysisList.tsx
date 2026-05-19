@@ -67,6 +67,7 @@ export function SelfAnalysisList({
           header: '순위',
           cell: (row) => salesQtyRankBySkuGroupKey.get(row.skuGroupKey) ?? '-',
           align: 'center',
+          width: '58px',
           sortValue: (row) => salesQtyRankBySkuGroupKey.get(row.skuGroupKey) ?? Number.MAX_SAFE_INTEGER,
         },
         { key: 'brand', header: '브랜드', cell: (row) => row.brand, width: '8.5%', sortValue: (row) => row.brand },

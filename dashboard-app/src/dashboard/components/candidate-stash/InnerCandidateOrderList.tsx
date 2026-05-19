@@ -118,14 +118,15 @@ const InnerCandidateOrderRow = memo(function InnerCandidateOrderRow({
       aria-current={active ? 'true' : undefined}
     >
       <span className={detailStyles.innerOrderIndexCell}>{index + 1}</span>
-      <span className={detailStyles.innerOrderCheckCell}>
-        <input
-          type="checkbox"
-          checked={selected}
-          aria-label={`${row.productName} 선택`}
-          onClick={(e) => e.stopPropagation()}
-          onChange={toggleSelected}
-        />
+      <span className={detailStyles.innerOrderCheckCell} onClick={(e) => e.stopPropagation()}>
+        <label className={detailStyles.innerOrderCheckboxTarget}>
+          <input
+            type="checkbox"
+            checked={selected}
+            aria-label={`${row.productName} 선택`}
+            onChange={toggleSelected}
+          />
+        </label>
       </span>
       <span className={detailStyles.innerOrderBrand}>{row.brand}</span>
       <span className={detailStyles.innerOrderCode}>{row.code}</span>
@@ -213,14 +214,16 @@ export function InnerCandidateOrderList({
       <div className={detailStyles.innerOrderHeader} role="presentation">
         <span className={detailStyles.innerOrderIndexCell} aria-hidden="true" />
         <span className={detailStyles.innerOrderCheckCell}>
-          <input
-            ref={selectAllRef}
-            type="checkbox"
-            checked={allVisibleSelected}
-            disabled={visibleItemUuids.length === 0}
-            aria-label="전체 선택"
-            onChange={onToggleAllVisibleItems}
-          />
+          <label className={detailStyles.innerOrderCheckboxTarget}>
+            <input
+              ref={selectAllRef}
+              type="checkbox"
+              checked={allVisibleSelected}
+              disabled={visibleItemUuids.length === 0}
+              aria-label="전체 선택"
+              onChange={onToggleAllVisibleItems}
+            />
+          </label>
         </span>
         <InnerOrderSortHeader label="브랜드" sortKey="brand" activeKey={activeSortKey} activeDir={activeSortDir} onSort={onSort} />
         <InnerOrderSortHeader label="품번" sortKey="code" activeKey={activeSortKey} activeDir={activeSortDir} onSort={onSort} />

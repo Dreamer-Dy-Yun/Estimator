@@ -134,14 +134,31 @@ export const mockDashboardRequests: DashboardApi = {
       },
     }
   },
-  startCandidateStashAnalysis: async (stashUuid) =>
-    withCurrentUserUuid((userUuid) => mockDashboardApi.startCandidateStashAnalysis(stashUuid, userUuid)),
-  subscribeCandidateStashAnalysis: (jobId, listener) => {
-    let subscription: ReturnType<typeof mockDashboardApi.subscribeCandidateStashAnalysis> | null = null
+  startCandidateStashLlmCommentJob: async (stashUuid) =>
+    withCurrentUserUuid((userUuid) => mockDashboardApi.startCandidateStashLlmCommentJob(stashUuid, userUuid)),
+  subscribeCandidateStashLlmCommentJob: (jobId, listener) => {
+    let subscription: ReturnType<typeof mockDashboardApi.subscribeCandidateStashLlmCommentJob> | null = null
     let closed = false
     void withCurrentUserUuid(async (userUuid) => {
       if (closed) return
-      subscription = mockDashboardApi.subscribeCandidateStashAnalysis(jobId, listener, userUuid)
+      subscription = mockDashboardApi.subscribeCandidateStashLlmCommentJob(jobId, listener, userUuid)
+      if (closed) subscription.close()
+    })
+    return {
+      close: () => {
+        closed = true
+        subscription?.close()
+      },
+    }
+  },
+  startCandidateDetailBulkConfirm: async (payload) =>
+    withCurrentUserUuid((userUuid) => mockDashboardApi.startCandidateDetailBulkConfirm(payload, userUuid)),
+  subscribeCandidateDetailBulkConfirm: (jobId, listener) => {
+    let subscription: ReturnType<typeof mockDashboardApi.subscribeCandidateDetailBulkConfirm> | null = null
+    let closed = false
+    void withCurrentUserUuid(async (userUuid) => {
+      if (closed) return
+      subscription = mockDashboardApi.subscribeCandidateDetailBulkConfirm(jobId, listener, userUuid)
       if (closed) subscription.close()
     })
     return {

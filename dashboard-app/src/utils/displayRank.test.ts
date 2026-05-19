@@ -51,4 +51,17 @@ describe('createDisplayRankMap', () => {
       ['b', 3],
     ])
   })
+
+  it('does not mutate the source row order', () => {
+    const rows = [
+      { id: 'a', qty: 30 },
+      { id: 'b', qty: 10 },
+      { id: 'c', qty: 10 },
+      { id: 'd', qty: 20 },
+    ]
+
+    createDisplayRankMap(rows, (row) => row.id, (row) => row.qty)
+
+    expect(rows.map((row) => row.id)).toEqual(['a', 'b', 'c', 'd'])
+  })
 })

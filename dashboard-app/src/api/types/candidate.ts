@@ -124,18 +124,18 @@ export interface CandidateRecommendationResult {
   nextCursor?: string | null
 }
 
-export interface CandidateStashAnalysisStartResult {
+export interface CandidateStashLlmCommentJobStartResult {
   jobId: string
   stashUuid: string
   itemCount: number
 }
 
-export type CandidateStashAnalysisStatus = 'queued' | 'running' | 'completed' | 'failed'
+export type CandidateStashLlmCommentJobStatus = 'queued' | 'running' | 'completed' | 'failed'
 
-export interface CandidateStashAnalysisProgressEvent {
+export interface CandidateStashLlmCommentJobProgressEvent {
   jobId: string
   stashUuid: string
-  status: CandidateStashAnalysisStatus
+  status: CandidateStashLlmCommentJobStatus
   totalItems: number
   completedItems: number
   currentItemUuid?: string
@@ -144,7 +144,39 @@ export interface CandidateStashAnalysisProgressEvent {
   error?: string
 }
 
-export interface CandidateStashAnalysisSubscription {
+export interface CandidateStashLlmCommentJobSubscription {
+  close: () => void
+}
+
+export interface CandidateDetailBulkConfirmStartPayload {
+  stashUuid: string
+  itemUuids: string[]
+  dataReferencePeriodStart: string
+  dataReferencePeriodEnd: string
+}
+
+export interface CandidateDetailBulkConfirmStartResult {
+  jobId: string
+  stashUuid: string
+  itemCount: number
+}
+
+export type CandidateDetailBulkConfirmStatus = 'queued' | 'running' | 'completed' | 'failed'
+
+export interface CandidateDetailBulkConfirmProgressEvent {
+  jobId: string
+  stashUuid: string
+  status: CandidateDetailBulkConfirmStatus
+  totalItems: number
+  completedItems: number
+  currentItemUuid?: string
+  currentProductName?: string
+  updatedItem?: CandidateItemDetail
+  message: string
+  error?: string
+}
+
+export interface CandidateDetailBulkConfirmSubscription {
   close: () => void
 }
 

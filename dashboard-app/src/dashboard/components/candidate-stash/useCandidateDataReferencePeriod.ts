@@ -30,6 +30,17 @@ export function useCandidateDataReferencePeriod({
   const [draftDataReferencePeriodEnd, setDraftDataReferencePeriodEnd] = useState('')
   const initializedDetailTargetUuidRef = useRef<string | null>(null)
 
+  const applyReferencePeriod = useCallback((periodStart: string, periodEnd: string) => {
+    if (!periodStart || !periodEnd) return
+    const normalized = normalizeRangeOnStartInput(periodStart, periodEnd)
+    appliedPeriodRef.current = { start: normalized.startDate, end: normalized.endDate }
+    setDataReferencePeriodStart(normalized.startDate)
+    setDataReferencePeriodEnd(normalized.endDate)
+    setDraftDataReferencePeriodStart(normalized.startDate)
+    setDraftDataReferencePeriodEnd(normalized.endDate)
+    void loadItems(normalized.startDate, normalized.endDate)
+  }, [appliedPeriodRef, loadItems])
+
   useEffect(() => {
     const nextUuid = detailTarget?.uuid ?? null
     if (initializedDetailTargetUuidRef.current === nextUuid) return
@@ -49,17 +60,19 @@ export function useCandidateDataReferencePeriod({
         closeMetricSubscription()
         return
       }
-      appliedPeriodRef.current = { start: detailTarget.periodStart, end: detailTarget.periodEnd }
-      setDataReferencePeriodStart(detailTarget.periodStart)
-      setDataReferencePeriodEnd(detailTarget.periodEnd)
-      setDraftDataReferencePeriodStart(detailTarget.periodStart)
-      setDraftDataReferencePeriodEnd(detailTarget.periodEnd)
-      void loadItems(detailTarget.periodStart, detailTarget.periodEnd)
+      applyReferencePeriod(detailTarget.periodStart, detailTarget.periodEnd)
     })
     return () => {
       alive = false
     }
-  }, [appliedPeriodRef, clearRecommendationItems, closeMetricSubscription, detailTarget, loadItems, setItems])
+  }, [
+    appliedPeriodRef,
+    applyReferencePeriod,
+    clearRecommendationItems,
+    closeMetricSubscription,
+    detailTarget,
+    setItems,
+  ])
 
   const onDataReferencePeriodStartChange = useCallback((value: string) => {
     if (!value) return
@@ -74,15 +87,8 @@ export function useCandidateDataReferencePeriod({
   }, [])
 
   const applyDataReferencePeriod = useCallback(() => {
-    if (!draftDataReferencePeriodStart || !draftDataReferencePeriodEnd) return
-    const normalized = normalizeRangeOnStartInput(draftDataReferencePeriodStart, draftDataReferencePeriodEnd)
-    appliedPeriodRef.current = { start: normalized.startDate, end: normalized.endDate }
-    setDataReferencePeriodStart(normalized.startDate)
-    setDataReferencePeriodEnd(normalized.endDate)
-    setDraftDataReferencePeriodStart(normalized.startDate)
-    setDraftDataReferencePeriodEnd(normalized.endDate)
-    void loadItems(normalized.startDate, normalized.endDate)
-  }, [appliedPeriodRef, draftDataReferencePeriodEnd, draftDataReferencePeriodStart, loadItems])
+    applyReferencePeriod(draftDataReferencePeriodStart, draftDataReferencePeriodEnd)
+  }, [applyReferencePeriod, draftDataReferencePeriodEnd, draftDataReferencePeriodStart])
 
   return {
     dataReferencePeriodStart,

@@ -14,6 +14,7 @@ import { useCandidateStashSummaries } from './useCandidateStashSummaries'
 import { useCandidateRecommendations } from './useCandidateRecommendations'
 import { useCandidateDataReferencePeriod, type AppliedCandidateDataReferencePeriod } from './useCandidateDataReferencePeriod'
 import { useCandidateDetailConfirmationMutations } from './useCandidateDetailConfirmationMutations'
+import { useCandidateBulkDetailConfirm } from './useCandidateBulkDetailConfirm'
 import {
   applyCandidateDetailConfirmationOverrides,
   type CandidateDetailConfirmationOverrideMap,
@@ -23,10 +24,10 @@ import {
   selectMetricCandidateItems,
   type CandidateMetricReloadOptions,
 } from './candidateItemListMergeModel'
+import { removeCandidateItemsByUuid } from './candidateItemLocalMutationModel'
 
 type Args = {
   stashUuid: string
-  /** 부모가 이미 알고 있으면 전달 — `getCandidateStashes()` 중복 호출 생략 */
   stashSummary?: CandidateStashSummary | null
   onStashesInvalidate?: () => void
 }
@@ -91,6 +92,7 @@ export function useCandidateStashDetailModal({
     const seq = beginItemLoad()
     setDetailLoading(true)
     setDetailError(null)
+    clearRecommendationItemsRef.current()
     try {
       const result = await getCandidateItemsByStash({
         stashUuid,
@@ -108,7 +110,6 @@ export function useCandidateStashDetailModal({
       const protectedResult = applyCandidateDetailConfirmationOverrides(nextItems, confirmationOverridesRef.current)
       confirmationOverridesRef.current = protectedResult.overrides
       setItems(protectedResult.items)
-      clearRecommendationItemsRef.current()
       setDetailLoading(false)
       const candidateItemUuids = metricCandidateItems.map((item) => item.uuid)
       subscribeOrderMetrics({
@@ -198,13 +199,26 @@ export function useCandidateStashDetailModal({
   const {
     markDrawerSnapshotConfirmed,
     markDrawerSnapshotUnconfirmed,
+    markItemsDetailConfirmed,
     markItemsDetailUnconfirmed,
-  } = useCandidateDetailConfirmationMutations({
-    itemsRef,
-    confirmationOverridesRef,
-    setItems,
-    drawer,
+  } =
+    useCandidateDetailConfirmationMutations({
+      itemsRef,
+      confirmationOverridesRef,
+      setItems,
+      drawer,
+    })
+  const bulkConfirm = useCandidateBulkDetailConfirm({
+    stashUuid,
+    dataReferencePeriodStart,
+    dataReferencePeriodEnd,
+    mountedRef,
+    onItemsConfirmed: markItemsDetailConfirmed,
+    showToast,
   })
+  const removeItemsLocally = useCallback((itemUuids: string[]) => {
+    setItems((current) => removeCandidateItemsByUuid(current, itemUuids))
+  }, [setItems])
 
   const actions = useCandidateStashItemActions({
     stashUuid,
@@ -213,9 +227,9 @@ export function useCandidateStashDetailModal({
     itemDeleteTarget,
     openedItemUuid: drawer.openedItemUuid,
     closeDrawer: drawer.closeDrawer,
-    loadItems,
     refreshStashes,
     showToast,
+    onItemsDeleted: removeItemsLocally,
     onItemsUnconfirmed: markItemsDetailUnconfirmed,
   })
 
@@ -260,6 +274,8 @@ export function useCandidateStashDetailModal({
     periodEnd: dataReferenceEnd,
     itemDeleteTarget,
     itemDeleteBusy: actions.itemDeleteBusy,
+    bulkConfirmBusy: bulkConfirm.bulkConfirmBusy,
+    bulkConfirmProgress: bulkConfirm.bulkConfirmProgress,
     bulkDeleteBusy: actions.bulkDeleteBusy,
     bulkUnconfirmBusy: actions.bulkUnconfirmBusy,
     orderExportBusy: actions.orderExportBusy,
@@ -286,10 +302,11 @@ export function useCandidateStashDetailModal({
     refreshStashes,
     appendRecommendedItems: recommendations.appendRecommendedItems,
     confirmDeleteItem,
+    confirmBulkDetailItems: bulkConfirm.confirmBulkDetailItems,
+    closeBulkConfirmProgress: bulkConfirm.closeBulkConfirmProgress,
     confirmDeleteItems: actions.confirmDeleteItems,
     confirmUnconfirmItems: actions.confirmUnconfirmItems,
     downloadOrderExcel: actions.downloadOrderExcel,
-    loadRecommendations,
   }
 }
 

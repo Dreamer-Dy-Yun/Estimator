@@ -4,14 +4,20 @@ import detailStyles from './CandidateStashDetailModal.module.css'
 
 type Props = {
   selectedVisibleCount: number
+  selectedUnconfirmedCount: number
   selectedConfirmedCount: number
+  bulkConfirmBusy: boolean
+  onBulkConfirm: () => void
   onOpenBulkUnconfirm: () => void
   onOpenBulkDelete: () => void
 }
 
 export function CandidateStashBulkActionCard({
   selectedVisibleCount,
+  selectedUnconfirmedCount,
   selectedConfirmedCount,
+  bulkConfirmBusy,
+  onBulkConfirm,
   onOpenBulkUnconfirm,
   onOpenBulkDelete,
 }: Props) {
@@ -21,10 +27,15 @@ export function CandidateStashBulkActionCard({
         <button
           type="button"
           className={`${styles.actionBtn} ${detailStyles.bulkConfirmButton}`}
-          disabled
-          title="상세 일괄확정은 추후 연결 예정입니다."
+          onClick={onBulkConfirm}
+          disabled={bulkConfirmBusy || selectedUnconfirmedCount === 0}
+          title={
+            selectedUnconfirmedCount === 0
+              ? '상세확정할 미확정 이너 오더를 선택하세요.'
+              : `선택된 상세미확정 이너 오더 ${selectedUnconfirmedCount}개 확정`
+          }
         >
-          상세 일괄확정
+          {bulkConfirmBusy ? '확정 중…' : '상세 일괄확정'}
         </button>
         <button
           type="button"

@@ -75,14 +75,18 @@ export function useSecondaryCandidateActions({
   }, [])
 
   const openPicker = useCallback(async () => {
-    setListOpen((prev) => !prev)
+    if (listOpen) {
+      setListOpen(false)
+      return
+    }
+    setListOpen(true)
     setLoading(true)
     try {
       await refresh()
     } finally {
       if (mountedRef.current) setLoading(false)
     }
-  }, [refresh])
+  }, [listOpen, refresh])
 
   const selectCandidate = useCallback((row: CandidateStashPickerOption) => {
     setSelectedCandidate({ uuid: row.uuid, name: row.name, dbCreatedAt: row.dbCreatedAt })

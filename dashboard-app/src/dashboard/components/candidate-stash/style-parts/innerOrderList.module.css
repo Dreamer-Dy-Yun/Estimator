@@ -22,7 +22,7 @@
   display: grid;
   grid-template-columns:
     32px
-    34px
+    52px
     minmax(90px, 0.6fr)
     minmax(84px, 0.45fr)
     minmax(220px, 1.45fr)
@@ -104,6 +104,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  min-width: 0;
 }
 
 .innerOrderIndexCell {
@@ -118,11 +119,41 @@
   font-variant-numeric: tabular-nums;
 }
 
+.innerOrderCheckboxTarget {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.innerOrderRow .innerOrderCheckCell {
+  grid-row: 1 / span 2;
+  align-self: stretch;
+}
+
+.innerOrderRow .innerOrderCheckboxTarget {
+  width: 48px;
+  height: 48px;
+}
+
+.innerOrderCheckboxTarget:hover,
+.innerOrderCheckboxTarget:focus-within {
+  background: rgba(37, 99, 235, 0.08);
+}
+
 .innerOrderCheckCell input {
-  width: 16px;
-  height: 16px;
+  width: 20px;
+  height: 20px;
   margin: 0;
   cursor: pointer;
+}
+
+.innerOrderRow .innerOrderCheckCell input {
+  width: 22px;
+  height: 22px;
 }
 
 .innerOrderBrand,
@@ -259,7 +290,7 @@
 .stashDetailModalBackdrop[data-inner-drawer-closing='true'] .innerOrderRow {
   grid-template-columns:
     22px
-    28px
+    36px
     minmax(30px, 0.52fr)
     minmax(24px, 0.38fr)
     minmax(54px, 1.2fr)
@@ -325,4 +356,16 @@
 .stashDetailModalBackdrop[data-inner-drawer-closing='true'] .innerOrderBadgeList {
   gap: 3px;
   margin-top: -3px;
+}
+
+.stashDetailModalBackdrop[data-inner-drawer-open='true'] .innerOrderRow .innerOrderCheckboxTarget,
+.stashDetailModalBackdrop[data-inner-drawer-closing='true'] .innerOrderRow .innerOrderCheckboxTarget {
+  width: 34px;
+  height: 34px;
+}
+
+.stashDetailModalBackdrop[data-inner-drawer-open='true'] .innerOrderRow .innerOrderCheckCell input,
+.stashDetailModalBackdrop[data-inner-drawer-closing='true'] .innerOrderRow .innerOrderCheckCell input {
+  width: 19px;
+  height: 19px;
 }

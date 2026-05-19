@@ -5,7 +5,7 @@
 | 작성 지시 | Yun Daeyoung |
 | 작성자 | Codex |
 | 작성일 | 2026-05-14 |
-| 최종 수정일 | 2026-05-14 |
+| 최종 수정일 | 2026-05-19 |
 | 상태 | 유지 문서 |
 | 적용 범위 | `dashboard-app/src` 모듈 하드닝 기준과 완료 목록 |
 
@@ -43,16 +43,26 @@
 | `dashboard-app/src/utils/sort.ts` | nullable 원시값 비교와 정렬 상태 순환을 제공한다. | `compareSortValues(a, b)`: 비교 숫자 반환. `nextSortState(current, key)`: `asc -> desc -> null` 순환. | 없음 | 누락값 정렬 위치, 한국어 locale, 정렬 순환 UX가 전역으로 바뀌는 경우에만 변경. | `sort.test.ts` |
 | `dashboard-app/src/utils/adjacentListNavigation.ts` | 현재 보이는 id 순서 안에서 이전/다음 id를 구한다. | `order`, `currentId`, `direction` 입력. 빈 목록 또는 현재 id 없음은 `null`, 양끝은 wrap. | 없음 | 키보드/드로워 이동의 wrap 정책이 바뀌는 경우에만 변경. | `adjacentListNavigation.test.ts` |
 | `dashboard-app/src/utils/format.ts` | 계산이 끝난 숫자 값을 한국어 UI 표시 문자열로 변환한다. | nullable number helper는 결측을 `-`로 표시하고, 비율/수량 helper는 정해진 소수 자리와 단위를 붙인다. | 없음 | 전체 UI 숫자 표기 정책이나 결측 표기 정책이 바뀌는 경우에만 변경. | `format.test.ts` |
+| `dashboard-app/src/utils/displayRank.ts` | 현재 렌더링 대상 rows 안에서 값 기준 표시 순위 map을 만든다. 동률은 같은 competition rank를 공유하고, 동률 내부는 입력 순서를 보존한다. | `rows`, `rowIdOf`, `rankValueOf`, `direction` 입력. 반환값은 `row id -> 표시 순위` `Map`. 입력 rows는 변경하지 않는다. | 없음 | 자사/경쟁사 분석의 순위 정의가 판매량 기반 competition rank에서 바뀌거나, 누락값 정렬 정책이 전역으로 바뀌는 경우에만 변경. | `displayRank.test.ts` |
+| `dashboard-app/src/utils/scatterGridDisplay.ts` | 백엔드가 계산한 scatter-grid cell의 `count/meta`를 UI 표시 색상과 점 반지름으로 변환한다. 격자 binning 자체는 소유하지 않는다. | `getScatterGridCellColor(count, maxCount)`는 낮은 밀도일수록 밝고 높은 밀도일수록 어두운 같은 blue hue HSL 문자열을 반환한다. `getScatterGridCellPointRadius(meta, chartWidth, chartHeight)`는 bucket pixel size 기반 반지름을 `2.5..9` 범위로 반환한다. | 없음 | 산점도 색상 계열, 명도 범위, 반지름 비율/범위 또는 백엔드 scatter-grid meta 계약이 바뀌는 경우에만 변경. | `scatterGridDisplay.test.ts` |
 
 ## 하드닝 후보이나 보류한 모듈
 
 | 파일 | 보류 사유 |
 |------|-----------|
-| `dashboard-app/src/utils/scatterGridDisplay.ts` | 산점도 색상·점 크기·백엔드 격자 계약이 최근 변경 중이라 아직 안정 계약으로 묶지 않는다. |
 | `dashboard-app/src/utils/candidateOrderExcelData.ts`, `dashboard-app/src/utils/candidateOrderExcelWorkbook.ts`, `dashboard-app/src/utils/candidateOrderExcelExport.ts` | 엑셀 컬럼·스타일·템플릿 정책이 계속 조정 중이므로 출력 계약이 고정된 뒤 하드닝한다. |
 | `dashboard-app/src/api/requests/*` | 실제 백엔드 엔드포인트가 아직 없어서 mock 위임과 HTTP 전환 계약이 확정되지 않았다. |
 | `dashboard-app/src/dashboard/components/product-drawer/*` | 드로워 UX와 1차/2차 노출 정책이 아직 제품 흐름과 함께 조정 중이다. |
 | `dashboard-app/src/dashboard/components/candidate-stash/*` | 이너후보군 실시간 계산, 스냅샷 보기, 상세확정 흐름이 아직 큰 단위로 변하고 있다. |
+
+## 다음 하드닝 후보
+
+| 파일 | 후보 이유 | 선행 조건 |
+|------|-----------|-----------|
+| `dashboard-app/src/dashboard/drawer/drawerDom.ts` | 드로워 바깥 클릭/상호작용 target 판정의 DOM 계약이 작고 재사용성이 높다. | 버튼/입력/커스텀 keep-open 정책이 더 바뀌지 않는지 한 번 더 확인한다. |
+| `dashboard-app/src/dashboard/interaction/interactionTarget.ts` | 키보드/마우스 이벤트에서 입력계 조작을 제외하는 공통 판정이다. | table, drawer, modal이 같은 제외 정책을 공유하는지 테스트로 고정한다. |
+| `dashboard-app/src/api/requests/dashboardMasterDataCache.ts` | 페이지와 공통 드로워의 master data 중복 요청 coalescing 경계가 작다. | 캐시 대상이 master data로만 제한되는지, mutation 후 무효화 대상이 아닌지 백엔드 계약 문서와 맞춘다. |
+| `dashboard-app/src/dashboard/components/candidate-stash/candidateItemLocalMutationModel.ts` | 삭제 성공 후 로컬 row 제거만 맡는 순수 모델이다. | 상세확정/일괄확정/추천 병합 흐름이 더 흔들리지 않는지 확인한 뒤 candidate-stash broad 보류에서 분리한다. |
 
 ## 새 하드닝 절차
 

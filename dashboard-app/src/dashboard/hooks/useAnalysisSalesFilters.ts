@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { getSalesFilterMeta } from '../../api'
 import type { SelfSalesParams } from '../../api/types'
 import type { FilterField } from '../model/filterField'
@@ -34,6 +34,10 @@ export function useAnalysisSalesFilters() {
   const [historicalMonths, setHistoricalMonths] = useState<string[]>([])
   const [showPeriodBar, setShowPeriodBar] = useState(false)
   const period = usePeriodRangeFilter(historicalMonths)
+  const [appliedPeriod, setAppliedPeriod] = useState(() => ({
+    startDate: period.periodStartDate,
+    endDate: period.periodEndDate,
+  }))
 
   useEffect(() => {
     let alive = true
@@ -52,16 +56,16 @@ export function useAnalysisSalesFilters() {
   }, [])
 
   const salesParams = useMemo<SelfSalesParams>(() => ({
-    startDate: period.periodStartDate,
-    endDate: period.periodEndDate,
+    startDate: appliedPeriod.startDate,
+    endDate: appliedPeriod.endDate,
     brand: filterParam(brandFilter),
     category: filterParam(categoryFilter),
     codeQuery: filterParam(codeFilter),
     nameQuery: filterParam(productNameFilter),
     colorCode: filterParam(colorCodeFilter),
   }), [
-    period.periodStartDate,
-    period.periodEndDate,
+    appliedPeriod.startDate,
+    appliedPeriod.endDate,
     brandFilter,
     categoryFilter,
     codeFilter,
@@ -94,8 +98,22 @@ export function useAnalysisSalesFilters() {
     colorCodeOptions,
   ])
 
+  const periodQueryDirty = period.periodStartDate !== appliedPeriod.startDate
+    || period.periodEndDate !== appliedPeriod.endDate
+
+  const applyPeriodQuery = useCallback(() => {
+    setAppliedPeriod({
+      startDate: period.periodStartDate,
+      endDate: period.periodEndDate,
+    })
+  }, [period.periodEndDate, period.periodStartDate])
+
   return {
     ...period,
+    appliedPeriodStartDate: appliedPeriod.startDate,
+    appliedPeriodEndDate: appliedPeriod.endDate,
+    periodQueryDirty,
+    applyPeriodQuery,
     filterFields,
     historicalMonths,
     salesParams,

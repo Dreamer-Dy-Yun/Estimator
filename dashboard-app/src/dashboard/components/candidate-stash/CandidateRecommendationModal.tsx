@@ -1,12 +1,15 @@
 import { useEffect, useRef } from 'react'
 import type { CandidateReferenceItemSummary } from '../../../api'
 import { formatEaQuantity, formatGroupedNumber } from '../../../utils/format'
+import { LoadingSpinner } from '../../../components/LoadingSpinner'
 import styles from '../common.module.css'
 import { CandidateInsightBadges } from './CandidateInsightBadges'
 import modalStyles from './CandidateRecommendationModal.module.css'
 
 type Props = {
   rows: CandidateReferenceItemSummary[]
+  loading: boolean
+  error: string | null
   selectedUuids: Set<string>
   selectedCount: number
   allSelected: boolean
@@ -19,6 +22,8 @@ type Props = {
 
 export function CandidateRecommendationModal({
   rows,
+  loading,
+  error,
   selectedUuids,
   selectedCount,
   allSelected,
@@ -54,7 +59,9 @@ export function CandidateRecommendationModal({
               추천 보기
             </h3>
             <div className={modalStyles.meta}>
-              추천 {formatGroupedNumber(rows.length)}개 · 선택 {formatGroupedNumber(selectedCount)}개
+              {loading
+                ? '추천 후보 로딩 중'
+                : `추천 ${formatGroupedNumber(rows.length)}개 · 선택 ${formatGroupedNumber(selectedCount)}개`}
             </div>
           </div>
           <button
@@ -86,6 +93,22 @@ export function CandidateRecommendationModal({
               <span className={modalStyles.num}>자사 기간 총 판매량</span>
               <span className={modalStyles.num}>경쟁사 기간 총 판매량</span>
             </div>
+            {loading && (
+              <div className={modalStyles.statusRow} role="row">
+                <LoadingSpinner size="inline" label="추천 후보 로딩 중" />
+                <span>조회 데이터 기간 기준 추천 후보를 불러오는 중입니다.</span>
+              </div>
+            )}
+            {!loading && error && (
+              <div className={modalStyles.statusRow} role="row">
+                <span className={modalStyles.errorText}>추천 후보 조회 실패: {error}</span>
+              </div>
+            )}
+            {!loading && !error && rows.length === 0 && (
+              <div className={modalStyles.statusRow} role="row">
+                <span>표시할 추천 후보가 없습니다.</span>
+              </div>
+            )}
             {rows.map((row) => {
               const selected = selectedUuids.has(row.uuid)
               return (
@@ -129,7 +152,7 @@ export function CandidateRecommendationModal({
               type="button"
               className={`${styles.actionBtn} ${styles.btnPrimary}`}
               onClick={onApply}
-              disabled={selectedCount === 0}
+              disabled={loading || selectedCount === 0}
             >
               추천 적용
             </button>

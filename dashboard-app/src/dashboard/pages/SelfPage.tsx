@@ -10,6 +10,7 @@ import { AnalysisCandidateBulkAddModal } from '../components/candidate-stash/Ana
 import { ProductDrawer } from '../components/product-drawer/ProductDrawer'
 import styles from '../components/common.module.css'
 import { AnalysisPeriodTools } from '../components/AnalysisPeriodTools'
+import { AnalysisPeriodQueryButton } from '../components/AnalysisPeriodQueryButton'
 import { AnalysisScatterChartCard } from '../components/AnalysisScatterChartCard'
 import { renderSelfSalesScatterTooltip } from '../components/AnalysisScatterTooltips'
 import { DashboardRequestStatus } from '../components/DashboardRequestStatus'
@@ -43,10 +44,12 @@ export const SelfPage = () => {
     filterFields,
     historicalMonths,
     salesParams,
+    appliedPeriodStartDate,
+    appliedPeriodEndDate,
+    periodQueryDirty,
+    applyPeriodQuery,
     showPeriodBar,
     setShowPeriodBar,
-    periodStartDate,
-    periodEndDate,
     periodStartIdx,
     periodEndIdx,
     startPct,
@@ -152,6 +155,7 @@ export const SelfPage = () => {
                 >
                   선택한 물품을 후보군으로
                 </button>
+                <AnalysisPeriodQueryButton disabled={!periodQueryDirty} onClick={applyPeriodQuery} />
               </div>
             )}
           />
@@ -221,8 +225,8 @@ export const SelfPage = () => {
       <ProductDrawer
         summary={summaryBundle?.summary ?? null}
         loading={summaryBundleState.loading}
-        periodStart={periodStartDate}
-        periodEnd={periodEndDate}
+        periodStart={appliedPeriodStartDate}
+        periodEnd={appliedPeriodEndDate}
         forecastMonths={forecastMonths}
         onForecastMonthsChange={onForecastMonthsChange}
         onClose={() => setSelectedSkuGroupKey(null)}
@@ -233,8 +237,8 @@ export const SelfPage = () => {
       <AnalysisCandidateBulkAddModal
         open={bulkAddOpen}
         skuGroupKeys={selectedSkuGroupKeys}
-        periodStart={periodStartDate}
-        periodEnd={periodEndDate}
+        periodStart={appliedPeriodStartDate}
+        periodEnd={appliedPeriodEndDate}
         forecastMonths={forecastMonths}
         onClose={() => setBulkAddOpen(false)}
         onDone={() => {

@@ -93,9 +93,39 @@ export function useCandidateDetailConfirmationMutations({
     )))
   }, [confirmationOverridesRef, drawer, itemsRef, setItems])
 
+  const markItemsDetailConfirmed = useCallback((updatedItems: CandidateItemDetail[]) => {
+    const confirmedItems = updatedItems.filter((item) => item.details)
+    const uniqueUuids = [...new Set(confirmedItems.map((item) => item.uuid))]
+    if (!uniqueUuids.length) return
+    const uuidSet = new Set(uniqueUuids)
+    const updatedItemByUuid = new Map(confirmedItems.map((item) => [item.uuid, item]))
+    const itemByUuid = new Map(itemsRef.current.map((item) => [item.uuid, item]))
+    const nextOverrides = { ...confirmationOverridesRef.current }
+    uniqueUuids.forEach((itemUuid) => {
+      const updatedItem = updatedItemByUuid.get(itemUuid)
+      if (!updatedItem?.details) return
+      const baseItem = itemByUuid.get(itemUuid)
+      nextOverrides[itemUuid] = createCandidateDetailConfirmationOverride(baseItem, true, updatedItem.details)
+      drawer.markDrawerSnapshotConfirmed(itemUuid, updatedItem.details, baseItem?.dbUpdatedAt ?? null)
+    })
+    confirmationOverridesRef.current = nextOverrides
+    setItems((current) => current.map((item) => {
+      const updatedItem = updatedItemByUuid.get(item.uuid)
+      return uuidSet.has(item.uuid) && updatedItem
+        ? {
+            ...item,
+            isDetailConfirmed: updatedItem.isDetailConfirmed,
+            isLatestLlmComment: updatedItem.isLatestLlmComment,
+            dbUpdatedAt: updatedItem.dbUpdatedAt,
+          }
+        : item
+    }))
+  }, [confirmationOverridesRef, drawer, itemsRef, setItems])
+
   return {
     markDrawerSnapshotConfirmed,
     markDrawerSnapshotUnconfirmed,
+    markItemsDetailConfirmed,
     markItemsDetailUnconfirmed,
   }
 }

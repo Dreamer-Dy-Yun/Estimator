@@ -1,20 +1,25 @@
 import type { ReactNode } from 'react'
+import { AnalysisPeriodQueryButton } from './AnalysisPeriodQueryButton'
 import styles from './common.module.css'
 
 type Props = {
   showRowsWithSelfSalesOnly: boolean
   bulkSelectedCount: number
+  queryDisabled: boolean
   requestStatus?: ReactNode
   onSelfSalesOnlyChange: (checked: boolean) => void
   onOpenBulkAdd: () => void
+  onApplyPeriodQuery: () => void
 }
 
 export function CompetitorFilterEndControls({
   showRowsWithSelfSalesOnly,
   bulkSelectedCount,
+  queryDisabled,
   requestStatus,
   onSelfSalesOnlyChange,
   onOpenBulkAdd,
+  onApplyPeriodQuery,
 }: Props) {
   return (
     <div className={styles.periodPresetRowEndGroup}>
@@ -35,6 +40,7 @@ export function CompetitorFilterEndControls({
       >
         선택한 물품을 후보군으로
       </button>
+      <AnalysisPeriodQueryButton disabled={queryDisabled} onClick={onApplyPeriodQuery} />
     </div>
   )
 }

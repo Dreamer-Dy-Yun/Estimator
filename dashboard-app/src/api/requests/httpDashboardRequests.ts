@@ -72,10 +72,19 @@ export const httpDashboardRequests: DashboardApi = {
       dataReferencePeriodEnd: params.dataReferencePeriodEnd,
       candidateItemUuids: params.candidateItemUuids,
     }, listener),
-  startCandidateStashAnalysis: (stashUuid) =>
-    apiRequest(`/candidate-stashes/${encodePathSegment(stashUuid)}/analysis`, { method: 'POST' }),
-  subscribeCandidateStashAnalysis: (jobId, listener) =>
-    openApiEventStream(`/candidate-stash-analyses/${encodePathSegment(jobId)}/events`, undefined, listener),
+  // Starts a backend job that calculates each requested item's secondary drawer state,
+  // saves CANDIDATE_ITEM.details, and emits committed CandidateItemDetail rows by SSE.
+  startCandidateDetailBulkConfirm: ({ stashUuid, ...payload }) =>
+    apiRequest(`/candidate-stashes/${encodePathSegment(stashUuid)}/items/detail-confirmation-jobs`, {
+      method: 'POST',
+      body: payload,
+    }),
+  subscribeCandidateDetailBulkConfirm: (jobId, listener) =>
+    openApiEventStream(`/candidate-item-detail-confirmation-jobs/${encodePathSegment(jobId)}/events`, undefined, listener),
+  startCandidateStashLlmCommentJob: (stashUuid) =>
+    apiRequest(`/candidate-stashes/${encodePathSegment(stashUuid)}/llm-comment-jobs`, { method: 'POST' }),
+  subscribeCandidateStashLlmCommentJob: (jobId, listener) =>
+    openApiEventStream(`/candidate-stash-llm-comment-jobs/${encodePathSegment(jobId)}/events`, undefined, listener),
   getCandidateRecommendations: ({ stashUuid, ...params }) =>
     apiRequest(`/candidate-stashes/${encodePathSegment(stashUuid)}/recommendations`, {
       query: queryParams(params),

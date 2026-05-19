@@ -1,6 +1,10 @@
-﻿import type {
+import type {
   AppendCandidateItemPayload,
   AppendCandidateItemsPayload,
+  CandidateDetailBulkConfirmProgressEvent,
+  CandidateDetailBulkConfirmStartPayload,
+  CandidateDetailBulkConfirmStartResult,
+  CandidateDetailBulkConfirmSubscription,
   CandidateItemDetail,
   CandidateItemListParams,
   CandidateItemListResult,
@@ -9,9 +13,9 @@
   CandidateOrderMetricSubscription,
   CandidateRecommendationParams,
   CandidateRecommendationResult,
-  CandidateStashAnalysisProgressEvent,
-  CandidateStashAnalysisStartResult,
-  CandidateStashAnalysisSubscription,
+  CandidateStashLlmCommentJobProgressEvent,
+  CandidateStashLlmCommentJobStartResult,
+  CandidateStashLlmCommentJobSubscription,
   CandidateStashExcelUploadResult,
   CandidateStashSummary,
   CreateCandidateStashPayload,
@@ -22,9 +26,13 @@
 import { MOCK_ADMIN_USER_UUID } from './authApi'
 import { subscribeMockCandidateOrderMetrics } from './candidateOrderMetricStream'
 import {
-  startMockCandidateStashAnalysis,
-  subscribeMockCandidateStashAnalysis,
-} from './candidateStashAnalysisStream'
+  startMockCandidateDetailBulkConfirm,
+  subscribeMockCandidateDetailBulkConfirm,
+} from './candidateDetailBulkConfirmStream'
+import {
+  startMockCandidateStashLlmCommentJob,
+  subscribeMockCandidateStashLlmCommentJob,
+} from './candidateStashLlmCommentJobStream'
 import {
   buildCandidateItemListResult,
   buildCandidateListParamsPeriod,
@@ -103,15 +111,24 @@ export const candidateMockApi = {
     listener: (event: CandidateOrderMetricEvent) => void,
     ownerUserUuid?: string,
   ): CandidateOrderMetricSubscription => subscribeMockCandidateOrderMetrics(params, listener, ownerUserUuid),
-  startCandidateStashAnalysis: async (
+  startCandidateStashLlmCommentJob: async (
     stashUuid: string,
     ownerUserUuid?: string,
-  ): Promise<CandidateStashAnalysisStartResult> => startMockCandidateStashAnalysis(stashUuid, ownerUserUuid),
-  subscribeCandidateStashAnalysis: (
+  ): Promise<CandidateStashLlmCommentJobStartResult> => startMockCandidateStashLlmCommentJob(stashUuid, ownerUserUuid),
+  subscribeCandidateStashLlmCommentJob: (
     jobId: string,
-    listener: (event: CandidateStashAnalysisProgressEvent) => void,
+    listener: (event: CandidateStashLlmCommentJobProgressEvent) => void,
     ownerUserUuid?: string,
-  ): CandidateStashAnalysisSubscription => subscribeMockCandidateStashAnalysis(jobId, listener, ownerUserUuid),
+  ): CandidateStashLlmCommentJobSubscription => subscribeMockCandidateStashLlmCommentJob(jobId, listener, ownerUserUuid),
+  startCandidateDetailBulkConfirm: async (
+    payload: CandidateDetailBulkConfirmStartPayload,
+    ownerUserUuid?: string,
+  ): Promise<CandidateDetailBulkConfirmStartResult> => startMockCandidateDetailBulkConfirm(payload, ownerUserUuid),
+  subscribeCandidateDetailBulkConfirm: (
+    jobId: string,
+    listener: (event: CandidateDetailBulkConfirmProgressEvent) => void,
+    ownerUserUuid?: string,
+  ): CandidateDetailBulkConfirmSubscription => subscribeMockCandidateDetailBulkConfirm(jobId, listener, ownerUserUuid),
   getCandidateRecommendations: async (
     params: CandidateRecommendationParams,
     ownerUserUuid?: string,

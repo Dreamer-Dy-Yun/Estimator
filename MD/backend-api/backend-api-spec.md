@@ -23,7 +23,7 @@
 | `src/api/requests/adminGptKeyRequests.ts` | 관리자 GPT 키 목록, 생성, 메타/키 변경, 연결 테스트, 삭제 | GPT 전용 계약이다. 생성/변경 요청만 `plainKey`를 담을 수 있고, 응답은 `maskedKey`만 내려준다. 키 저장/암호화/감사 로그는 백엔드 책임이다 |
 | `src/api/requests/adminGoogleSheetRequests.ts` | 관리자 구글 시트 설정 목록, 생성, 변경, 삭제 | 서비스 계정 JSON 키는 생성/변경 요청에만 담고 응답에는 `maskedServiceAccountKey`만 내려준다. 백엔드는 JSON의 `client_email`을 서비스 계정 이메일로 파싱하고, 키 원문은 암호화 저장 또는 secret manager로 보관한다 |
 | `src/api/requests/inventoryArrivalRequests.ts` | 스프레드시트 기반 입고예정일 수집 | 모든 로그인 사용자가 호출할 수 있는 전역 작업이다. 프론트는 시트 키나 서비스 계정 원문을 보내지 않고, 백엔드가 활성 구글 시트 설정을 선택해 읽고 DB에 upsert한다. 응답은 수집/실패 건수와 상태 메시지만 반환한다 |
-| `src/api/requests/dashboardRequests.ts` | 자사/경쟁 판매, 상품 드로워, 후보군, 엑셀 업로드 템플릿 | 후보군 계열 요청은 현재 사용자 `USER_ACCOUNT.uuid` 기준으로 소유자 필터를 강제한다. 프론트 UI는 사용자 UUID를 들고 다니지 않고 request adapter에서만 붙인다. 세션 기반 백엔드라면 요청값보다 서버 세션을 우선한다. 경쟁 분석 목록은 `competitorChannelId` 생략 시 전체 경쟁 채널 합계를 반환하고, 상품 드로워 판매 인사이트는 선택 경쟁 채널을 필수로 받는다. 이너후보군 기본 리스트는 stash item과 기간 판매량만 빠르게 반환하고, 배지/추천은 별도 `getCandidateRecommendations` 응답을 각 조회 결과 수신 직후 자동으로 page 조회해 병합한다. 기간 총판매량은 백엔드가 `*_MONTHLY_SUMMARY`와 raw 판매 테이블을 조합해 계산하고, 프론트는 내려온 값을 그대로 표시한다. 발주 엑셀 다운로드는 백엔드 재호출 없이 이미 받은 `orderExport` DTO로 프론트가 생성한다 |
+| `src/api/requests/dashboardRequests.ts` | 자사/경쟁 판매, 상품 드로워, 후보군, 엑셀 업로드 템플릿 | 후보군 계열 요청은 현재 사용자 `USER_ACCOUNT.uuid` 기준으로 소유자 필터를 강제한다. 프론트 UI는 사용자 UUID를 들고 다니지 않고 request adapter에서만 붙인다. 세션 기반 백엔드라면 요청값보다 서버 세션을 우선한다. 경쟁 분석 목록은 `competitorChannelId` 생략 시 전체 경쟁 채널 합계를 반환하고, 상품 드로워 판매 인사이트는 선택 경쟁 채널을 필수로 받는다. 경쟁 채널 마스터 목록은 페이지 필터와 공통 드로워가 모두 참조하므로 프론트 request boundary에서 in-flight/result를 공유한다. 백엔드도 해당 endpoint를 사용자별 업무 데이터가 아닌 가벼운 master data로 보고 캐시 가능하게 유지한다. 이너후보군 기본 리스트는 stash item과 기간 판매량만 빠르게 반환하고, 배지/추천은 별도 `getCandidateRecommendations` 응답을 각 조회 결과 수신 직후 자동으로 page 조회해 병합한다. 기간 총판매량은 백엔드가 `*_MONTHLY_SUMMARY`와 raw 판매 테이블을 조합해 계산하고, 프론트는 내려온 값을 그대로 표시한다. 발주 엑셀 다운로드는 백엔드 재호출 없이 이미 받은 `orderExport` DTO로 프론트가 생성한다 |
 
 `src/api/client.ts`는 public export facade다. 화면에서 import하는 이름을 안정적으로 유지하기 위한 파일이며, mock/HTTP 선택과 base URL 처리는 `src/api/requests/httpClient.ts`와 각 request adapter가 맡는다.
 
@@ -311,8 +311,8 @@
 | `getCandidateStashes()` | GET | `/candidate-stashes` 세션 소유자 기준 |
 | `getCandidateItemsByStash(params)` | GET | `/candidate-stashes/:stashUuid/items?dataReferencePeriodStart&dataReferencePeriodEnd` |
 | `subscribeCandidateOrderMetrics(params)` | SSE 권장 | `/candidate-stashes/:stashUuid/items/order-metrics/events?requestId&dataReferencePeriodStart&dataReferencePeriodEnd&candidateItemUuids` (`candidateItemUuids`는 반복 query param) |
-| `startCandidateStashAnalysis(stashUuid)` | POST | `/candidate-stashes/:stashUuid/analysis` 세션 소유자 기준 |
-| `subscribeCandidateStashAnalysis(jobId, listener)` | GET (SSE) | `/candidate-stash-analyses/:jobId/events` 세션 소유자 기준 |
+| `startCandidateStashLlmCommentJob(stashUuid)` | POST | `/candidate-stashes/:stashUuid/llm-comment-jobs` 세션 소유자 기준 |
+| `subscribeCandidateStashLlmCommentJob(jobId, listener)` | GET (SSE) | `/candidate-stash-llm-comment-jobs/:jobId/events` 세션 소유자 기준 |
 | `getCandidateRecommendations(params)` | GET | `/candidate-stashes/:stashUuid/recommendations?dataReferencePeriodStart&dataReferencePeriodEnd&limit&cursor` |
 | `getCandidateItemByUuid(itemUuid)` | GET | `/candidate-items/:itemUuid` |
 | `deleteCandidateItem(itemUuid)` | DELETE | `/candidate-items/:itemUuid` 세션 소유자 기준 |
@@ -571,6 +571,23 @@
 | `candidateItems` | 후보군에 실제로 담긴 `CANDIDATE_ITEM` 목록. `uuid`는 `CANDIDATE_ITEM.uuid`, `skuUuid`는 `CANDIDATE_ITEM.sku_uuid = SKU.uuid`, `hasSnapshot`은 `details != null` |
 | `items` | 후보군에 담긴 아이템만 포함하는 화면 행. 총 오더 수량/금액은 기본 조회 응답에서 로딩 상태이고, 배지/랭킹성 insight는 조회 결과 직후 별도 추천 조회가 끝날 때까지 로딩 상태일 수 있다 |
 
+**후보군 조회 캐시/무효화 규칙**
+
+`getCandidateItemsByStash`의 최종 응답은 현재 `CANDIDATE_ITEM` membership을 반영해야 한다. 백엔드가 `(ownerUserUuid, stashUuid, dataReferencePeriodStart, dataReferencePeriodEnd)` 기준으로 최종 응답 전체를 TTL 캐시하면, `deleteCandidateItem`, `deleteCandidateItems`, `appendCandidateItems`, `updateCandidateItem` 직후 삭제 전/수정 전 후보가 다시 내려올 수 있다. 따라서 최종 후보군 item 목록 응답 자체는 캐시하지 않거나, 아래 mutation 성공 전에 같은 stash 관련 캐시를 반드시 무효화해야 한다.
+
+무효화 대상 mutation:
+
+- `POST /candidate-stashes/:stashUuid/items`
+- `POST /candidate-stashes/:stashUuid/items/bulk`
+- `DELETE /candidate-items/:itemUuid`
+- `DELETE /candidate-stashes/:stashUuid/items`
+- `PATCH /candidate-items/:itemUuid`
+- `DELETE /candidate-stashes/:stashUuid`
+
+캐시 가능한 영역은 "현재 후보군 membership"이 아니라 계산 원천이다. 예를 들어 조회 기간/채널별 SKU 판매 집계, 랭킹/percentile, 배지 판정용 전체 SKU 분포, 추천 후보 원천 pool은 캐시할 수 있다. 다만 응답을 만들 때는 캐시된 계산 결과를 현재 DB의 `CANDIDATE_ITEM`과 다시 join/filter해야 한다. 즉 삭제된 candidate item이 `candidateItems`나 `items`에 다시 나타나면 안 되고, 현재 후보군에 이미 담긴 SKU를 추천 UI에서 제외하는 판단도 최신 membership 기준이어야 한다.
+
+프론트는 삭제 성공 직후 후보 아이템 전체 목록을 재조회하지 않고 현재 화면의 row만 로컬 제거한다. 사용자가 이후 `조회`를 다시 누를 때는 백엔드가 최신 membership 기준 응답을 내려줘야 하며, 프론트는 후보군 item 목록에 별도 TTL 캐시를 두지 않는다.
+
 **`CandidateRecommendationParams`** (`getCandidateRecommendations` 요청)
 
 | 필드 | 의미 |
@@ -687,9 +704,10 @@ badges: [
 - `AppendCandidateItemsPayload`: `{ stashUuid, skuGroupKeys }` — 자사/경쟁사 분석 리스트에서 선택한 상품들을 스냅샷 없이 후보군에 추가한다. 현재 프론트의 `skuGroupKey`는 내부적으로 `SKU.code + SKU.color_code` 상품 단위에 대응하며, 사이즈별 확정 오더량과 AI 코멘트는 이너후보군 2차 드로워에서 저장하기 전까지 비어 있거나 미확정 상태다
 - `AppendCandidateItemPayload`: `{ stashUuid, skuGroupKey, details, isLatestLlmComment? }` — `details`가 오더 스냅샷 저장의 단일 경로이며, 기본값은 `false` 권장
 - `UpdateCandidateItemPayload`: `{ itemUuid, details, isLatestLlmComment }`. `details`에 스냅샷이 있으면 상세확정으로 저장/갱신하고, `details`가 `null`이면 저장된 2차 드로워 스냅샷을 삭제해 상세확정을 해제한다. 이 작업은 복구 불가능한 사용자 명시 액션으로 취급한다. 성공 응답은 `UpdateCandidateItemResponse`다.
+- `CandidateDetailBulkConfirmStartPayload`: `{ stashUuid, itemUuids, dataReferencePeriodStart, dataReferencePeriodEnd }`. 선택된 상세미확정 후보 아이템들을 백엔드 job으로 상세확정한다. 백엔드는 각 item의 2차 드로워 계산, AI 코멘트 포함 스냅샷 생성, `CANDIDATE_ITEM.details` 저장을 item 단위 트랜잭션 또는 안전한 batch 트랜잭션으로 수행한다.
 - `CandidateStashExcelUploadResult`: `{ stashUuid, stashName, itemCount, warnings: string[] }`
 - 2차 드로워에서 후보 아이템 스냅샷을 다시 저장할 때 프론트는 `updateCandidateItem`에 `isLatestLlmComment: false`를 보냅니다. 백엔드는 해당 아이템의 DB `is_latest_llm_comment`를 `false`로 저장해 기존 AI 코멘트/추천이 최신 스냅샷 기준이 아님을 표시해야 합니다.
-- `updateCandidateItem` 성공 응답은 필수로 commit 이후 최신 `UpdateCandidateItemResponse`를 반환합니다. 프론트는 PATCH 성공 직후 이 응답의 `isDetailConfirmed`, `isLatestLlmComment`, `dbUpdatedAt`을 현재 화면 기준 상태로 반영하고, 이후 `getCandidateItemsByStash`/`getCandidateItemByUuid`에서 이전 `dbUpdatedAt`을 가진 stale row가 내려와도 방금 mutation한 상태를 덮어쓰지 않습니다. 서버가 새 `dbUpdatedAt`과 같은 확정 상태를 내려오면 보호를 해제합니다. 백엔드는 PATCH 성공 응답을 보내기 전에 DB commit과 캐시 무효화를 끝내거나, 적어도 다음 GET이 이전 `details`를 읽지 않도록 read-after-write 일관성을 보장해야 합니다.
+- `updateCandidateItem` 성공 응답은 필수로 commit 이후 최신 `UpdateCandidateItemResponse`를 반환합니다. 프론트는 개별 확정 저장/해제와 상세확정 일괄해제 모두 PATCH 성공 직후 이 응답의 `isDetailConfirmed`, `isLatestLlmComment`, `dbUpdatedAt`을 현재 화면 기준 상태로 반영하고, 후보 아이템 전체 목록을 즉시 재조회하지 않습니다. 이후 사용자가 조회 버튼을 누르거나 다른 이유로 `getCandidateItemsByStash`/`getCandidateItemByUuid`가 실행될 때 이전 `dbUpdatedAt`을 가진 stale row가 내려와도 방금 mutation한 상태를 덮어쓰지 않습니다. 서버가 새 `dbUpdatedAt`과 같은 확정 상태를 내려오면 보호를 해제합니다. 백엔드는 PATCH 성공 응답을 보내기 전에 DB commit과 캐시 무효화를 끝내거나, 적어도 다음 GET이 이전 `details`를 읽지 않도록 read-after-write 일관성을 보장해야 합니다.
 
 **동작 메모**
 
@@ -710,13 +728,31 @@ badges: [
   - 백엔드는 생성된 후보군 UUID, 등록 아이템 수, 무시/보정된 행 경고를 응답합니다.
   - 검증 실패 시 후보군/아이템을 부분 저장하지 않는 것을 기본 정책으로 권장합니다.
 
-**후보군 AI 코멘트/상세확정**
+**후보군 LLM 코멘트/상세확정**
 
-- 프론트 API 계약에는 후보군 분석 시작 `startCandidateStashAnalysis(stashUuid)`와 진행 SSE `subscribeCandidateStashAnalysis(jobId, listener)`를 둔다. 화면에서 호출할 때는 모달 생명주기에 맞춰 SSE를 닫아야 한다.
-- 백엔드는 해당 `stashUuid`에 속한 후보 아이템 중 저장 스냅샷(`CandidateItemDetail.details`)이 존재하는 항목만 AI 분석 작업에 투입한다. 스냅샷 없이 담긴 미확정 항목은 건너뛰거나 미확정 상태로 보고한다.
+- 프론트 API 계약에는 후보군 LLM 코멘트 작업 시작 `startCandidateStashLlmCommentJob(stashUuid)`와 진행 SSE `subscribeCandidateStashLlmCommentJob(jobId, listener)`를 둔다. 화면에서 호출할 때는 모달 생명주기에 맞춰 SSE를 닫아야 한다.
+- 백엔드는 해당 `stashUuid`에 속한 후보 아이템 중 저장 스냅샷(`CandidateItemDetail.details`)이 존재하는 항목만 LLM 코멘트 생성 작업에 투입한다. 스냅샷 없이 담긴 미확정 항목은 건너뛰거나 미확정 상태로 보고한다.
 - 시작 응답은 `{ jobId, stashUuid, itemCount }`이며 SSE 이벤트는 `{ jobId, stashUuid, status, totalItems, completedItems, currentItemUuid?, currentProductName?, message, error? }`를 내려준다.
 - AI 코멘트와 사이즈별 확정 오더량은 이너후보군 2차 드로워에서 스냅샷을 저장/수정할 때 후보 아이템 `details`에 함께 저장합니다.
-- 각 후보 아이템의 AI 분석/코멘트 갱신이 완료되면 백엔드는 해당 아이템의 DB `is_latest_llm_comment`를 `true`로 갱신한다. 실패 시 `status: 'failed'`와 `error` 메시지를 내려야 한다.
+- 각 후보 아이템의 LLM 코멘트 갱신이 완료되면 백엔드는 해당 아이템의 DB `is_latest_llm_comment`를 `true`로 갱신한다. 실패 시 `status: 'failed'`와 `error` 메시지를 내려야 한다.
+
+**상세 일괄확정**
+
+| 계약 메서드 | 제안 HTTP | 제안 경로 |
+|-------------|-----------|----------|
+| `startCandidateDetailBulkConfirm(payload)` | POST | `/candidate-stashes/:stashUuid/items/detail-confirmation-jobs` |
+| `subscribeCandidateDetailBulkConfirm(jobId, listener)` | SSE | `/candidate-item-detail-confirmation-jobs/:jobId/events` |
+
+- 시작 요청 body는 `itemUuids`, `dataReferencePeriodStart`, `dataReferencePeriodEnd`를 포함한다. `stashUuid`는 path와 payload 모두 프론트 타입에 존재하지만, HTTP adapter는 path에 넣고 body에는 나머지 필드만 보낸다.
+- 시작 응답은 `{ jobId, stashUuid, itemCount }`다. `itemCount`는 실제 처리 대상 item 수이며, 존재하지 않거나 권한 밖인 item은 포함하지 않는다.
+- SSE 이벤트는 `{ jobId, stashUuid, status, totalItems, completedItems, currentItemUuid?, currentProductName?, updatedItem?, message, error? }`다.
+- item 처리가 성공할 때마다 `updatedItem`에 commit 이후 최신 `CandidateItemDetail`을 포함한다. 프론트는 이 이벤트를 현재 리스트와 열린 드로워의 권위 상태로 사용하므로, 백엔드는 이벤트 발행 전에 `CANDIDATE_ITEM.details`, `is_latest_llm_comment`, `db_updated_at` 저장과 관련 캐시 무효화를 끝내야 한다.
+- `updatedItem.details`는 반드시 `SecondaryOrderSnapshotPayload`, 즉 아래 5.5절의 `OrderSnapshotDocumentV1` v2 스키마와 동일한 JSON이어야 한다. 백엔드는 `schemaVersion: 2`, `skuGroupKey`, `savedAt`, `context`, `drawer1`, `drawer2`를 채워 `CANDIDATE_ITEM.details`에 저장한다.
+- 상세 일괄확정에서 저장되는 스냅샷의 `context.periodStart`와 `context.periodEnd`는 시작 요청의 `dataReferencePeriodStart`와 `dataReferencePeriodEnd`를 따른다.
+- `drawer2.confirmedTotals`와 `drawer2.sizeRows[].confirmQty`는 상세확정 상태, 스냅샷 기준 보기, 엑셀/오더 근거 복원에 사용되므로 누락하면 안 된다. AI 코멘트를 함께 생성하는 경우 `drawer2.llmPrompt`, `drawer2.llmAnswer`도 저장한다.
+- 프론트는 진행 팝업을 표시하고 item 이벤트마다 row를 로컬로 `상세확정` 처리한다. 전체 후보 아이템 목록은 재조회하지 않는다.
+- 실패 정책은 item 단위 실패와 전체 실패 중 하나를 택해 명확히 문서화한다. 현재 프론트 타입은 전체 job `failed`와 `error`를 표시할 수 있고, item 단위 실패가 필요하면 별도 event type 또는 `updatedItem` 없는 running 이벤트와 message로 확장한다.
+- 이 job은 추천/배지 조회나 총 오더 수량/금액 SSE를 대체하지 않는다. 일괄확정 후 이미 화면에 있는 live 목록값은 그대로 두고, 상세확정 여부와 저장 스냅샷만 갱신한다.
 
 ### 3.11 `getSecondaryStockOrderCalc`
 
@@ -732,6 +768,8 @@ badges: [
 | `safetyStockMode` | `'manual'` \| `'formula'` |
 | `manualSafetyStock` | 수동 안전재고 수량 |
 | `dailyMean` | 선택. 비우면 백엔드가 기간 트렌드 등으로 **일평균 수요 μ** 산출 |
+
+프론트 호출 기준: 2차 드로워의 재고·발주 입력값이 바뀔 때마다 즉시 호출하지 않고, 마지막 입력 후 1초 동안 추가 변경이 없을 때만 이 API를 호출한다. 이미 나간 이전 요청은 네트워크 레벨에서 반드시 abort되지는 않을 수 있으나, 프론트는 cleanup된 요청의 응답을 stale로 보고 화면에 반영하지 않는다. 백엔드는 같은 SKU/기간/입력 조합에 대해 멱등적으로 계산 결과를 반환해야 하며, 빠른 연속 요청이 오더라도 마지막 요청 기준 결과가 화면의 기준이 된다.
 
 **응답 (`SecondaryStockOrderCalcResult`)**
 

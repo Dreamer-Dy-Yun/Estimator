@@ -72,7 +72,15 @@ export function ensureMockAiCommentForSnapshot(snapshot: SecondaryOrderSnapshotP
 }
 
 /** 후보군 목업: 품번별 요약·2차 스냅샷을 채워 브랜드 등이 리스트/드로어에 표시되도록 함 */
-export function buildMockOrderSnapshotForCandidate(skuGroupKey: string): SecondaryOrderSnapshotPayload {
+interface MockOrderSnapshotOptions {
+  periodStart?: string
+  periodEnd?: string
+}
+
+export function buildMockOrderSnapshotForCandidate(
+  skuGroupKey: string,
+  options: MockOrderSnapshotOptions = {},
+): SecondaryOrderSnapshotPayload {
   const primary = productPrimaryBySkuGroupKey[skuGroupKey] ?? productPrimaryBySkuGroupKey[allKnownSkuGroupKeys[0]]!
   const secondary = productSecondaryBySkuGroupKey[skuGroupKey] ?? productSecondaryBySkuGroupKey[allKnownSkuGroupKeys[0]]!
   const channel = secondaryCompetitorChannels[0]!
@@ -128,8 +136,8 @@ export function buildMockOrderSnapshotForCandidate(skuGroupKey: string): Seconda
     skuGroupKey,
     savedAt,
     context: {
-      periodStart: '2025-01-01',
-      periodEnd: '2025-12-31',
+      periodStart: options.periodStart ?? '2025-01-01',
+      periodEnd: options.periodEnd ?? '2025-12-31',
       forecastMonths: 8,
       dailyTrendStartMonth: '2025-01',
       dailyTrendLeadTimeDays: leadTimeDays,

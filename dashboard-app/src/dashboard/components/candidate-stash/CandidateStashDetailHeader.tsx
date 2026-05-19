@@ -1,21 +1,18 @@
 import type { CandidateStashSummary } from '../../../api'
 import { formatDateTimeMinute } from '../../../utils/date'
-import { LoadingSpinner } from '../../../components/LoadingSpinner'
 import styles from '../common.module.css'
 import detailStyles from './CandidateStashDetailModal.module.css'
 
 type Props = {
   detailTarget: CandidateStashSummary
-  recommendationLoading: boolean
-  canLoadRecommendations: boolean
+  canOpenRecommendations: boolean
   onOpenRecommendations: () => void
   onClose: () => void
 }
 
 export function CandidateStashDetailHeader({
   detailTarget,
-  recommendationLoading,
-  canLoadRecommendations,
+  canOpenRecommendations,
   onOpenRecommendations,
   onClose,
 }: Props) {
@@ -40,9 +37,9 @@ export function CandidateStashDetailHeader({
             type="button"
             className={`${styles.actionBtn} ${styles.btnNeutral} ${detailStyles.detailHeaderRecommendationBtn}`}
             onClick={onOpenRecommendations}
-            disabled={recommendationLoading || !canLoadRecommendations}
+            disabled={!canOpenRecommendations}
           >
-            {recommendationLoading ? <LoadingSpinner size="inline" label="추천 조회 중" /> : '추천 보기'}
+            추천 보기
           </button>
         </div>
         <button

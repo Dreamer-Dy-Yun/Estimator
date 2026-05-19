@@ -98,6 +98,22 @@
   background: #eef6ff;
 }
 
+.statusRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 58px;
+  padding: 0 14px;
+  border-bottom: 1px solid #e2e8f0;
+  color: #64748b;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.errorText {
+  color: #991b1b;
+}
+
 .checkCell {
   display: inline-flex;
   align-items: center;

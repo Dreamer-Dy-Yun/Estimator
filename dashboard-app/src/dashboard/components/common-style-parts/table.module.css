@@ -41,9 +41,9 @@
 
 .analysisTableWrap .table th:nth-child(2),
 .analysisTableWrap .table td:nth-child(2) {
-  width: 42px;
-  min-width: 42px;
-  max-width: 42px;
+  width: 58px;
+  min-width: 58px;
+  max-width: 58px;
 }
 
 .analysisTableWrap .table input[type='checkbox'] {

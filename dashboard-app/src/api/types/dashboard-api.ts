@@ -24,9 +24,13 @@ import type {
   CandidateItemDetail,
   CandidateItemListParams,
   CandidateItemListResult,
-  CandidateStashAnalysisProgressEvent,
-  CandidateStashAnalysisStartResult,
-  CandidateStashAnalysisSubscription,
+  CandidateDetailBulkConfirmProgressEvent,
+  CandidateDetailBulkConfirmStartPayload,
+  CandidateDetailBulkConfirmStartResult,
+  CandidateDetailBulkConfirmSubscription,
+  CandidateStashLlmCommentJobProgressEvent,
+  CandidateStashLlmCommentJobStartResult,
+  CandidateStashLlmCommentJobSubscription,
   CandidateRecommendationParams,
   CandidateRecommendationResult,
   CandidateStashExcelTemplateDownload,
@@ -81,11 +85,18 @@ export interface DashboardApi {
     params: CandidateOrderMetricStreamParams,
     listener: (event: CandidateOrderMetricEvent) => void,
   ): CandidateOrderMetricSubscription
-  startCandidateStashAnalysis(stashUuid: string): Promise<CandidateStashAnalysisStartResult>
-  subscribeCandidateStashAnalysis(
+  startCandidateStashLlmCommentJob(stashUuid: string): Promise<CandidateStashLlmCommentJobStartResult>
+  subscribeCandidateStashLlmCommentJob(
     jobId: string,
-    listener: (event: CandidateStashAnalysisProgressEvent) => void,
-  ): CandidateStashAnalysisSubscription
+    listener: (event: CandidateStashLlmCommentJobProgressEvent) => void,
+  ): CandidateStashLlmCommentJobSubscription
+  startCandidateDetailBulkConfirm(
+    payload: CandidateDetailBulkConfirmStartPayload,
+  ): Promise<CandidateDetailBulkConfirmStartResult>
+  subscribeCandidateDetailBulkConfirm(
+    jobId: string,
+    listener: (event: CandidateDetailBulkConfirmProgressEvent) => void,
+  ): CandidateDetailBulkConfirmSubscription
   getCandidateRecommendations(params: CandidateRecommendationParams): Promise<CandidateRecommendationResult>
   getCandidateItemByUuid(itemUuid: string): Promise<CandidateItemDetail | null>
   deleteCandidateItem(itemUuid: string): Promise<void>

@@ -3,6 +3,8 @@ import { dashboardApi } from '../../../../../api'
 import type { ApiUnitErrorInfo } from '../../../../../types'
 import type { SecondaryForecastCalc } from '../secondaryDrawerTypes'
 
+const STOCK_ORDER_CALC_DEBOUNCE_MS = 1000
+
 type Params = {
   skuGroupKey: string
   selectedStart: string
@@ -34,51 +36,55 @@ export function useSecondaryStockOrderCalc({
 
   useEffect(() => {
     let alive = true
+    let timerId: ReturnType<typeof window.setTimeout> | null = null
     queueMicrotask(() => {
       if (alive) setForecastCalcLoading(true)
     })
-    void (async () => {
-      try {
-        const roundedManualSafetyStock = Math.max(0, Math.round(manualSafetyStock))
-        const params = {
-          skuGroupKey,
-          periodStart: selectedStart,
-          periodEnd: selectedEnd,
-          forecastPeriodEnd: forecastMeanPeriodEnd,
-          serviceLevelPct,
-          leadTimeDays,
-          safetyStockMode,
-          manualSafetyStock: roundedManualSafetyStock,
-          ...(dailyMeanClient != null ? { dailyMean: dailyMeanClient } : {}),
+    timerId = window.setTimeout(() => {
+      void (async () => {
+        try {
+          const roundedManualSafetyStock = Math.max(0, Math.round(manualSafetyStock))
+          const params = {
+            skuGroupKey,
+            periodStart: selectedStart,
+            periodEnd: selectedEnd,
+            forecastPeriodEnd: forecastMeanPeriodEnd,
+            serviceLevelPct,
+            leadTimeDays,
+            safetyStockMode,
+            manualSafetyStock: roundedManualSafetyStock,
+            ...(dailyMeanClient != null ? { dailyMean: dailyMeanClient } : {}),
+          }
+          const result = await dashboardApi.getSecondaryStockOrderCalc(params)
+          if (!alive) return
+          setForecastCalc(result)
+          setForecastCalcError(null)
+        } catch (err) {
+          if (!alive) return
+          setForecastCalc(null)
+          setForecastCalcError(
+            makeApiErrorInfo(
+              `getSecondaryStockOrderCalc(${JSON.stringify({
+                skuGroupKey,
+                periodStart: selectedStart,
+                periodEnd: selectedEnd,
+                forecastPeriodEnd: forecastMeanPeriodEnd,
+                serviceLevelPct,
+                leadTimeDays,
+                safetyStockMode,
+                manualSafetyStock,
+              })})`,
+              err,
+            ),
+          )
+        } finally {
+          if (alive) setForecastCalcLoading(false)
         }
-        const result = await dashboardApi.getSecondaryStockOrderCalc(params)
-        if (!alive) return
-        setForecastCalc(result)
-        setForecastCalcError(null)
-      } catch (err) {
-        if (!alive) return
-        setForecastCalc(null)
-        setForecastCalcError(
-          makeApiErrorInfo(
-            `getSecondaryStockOrderCalc(${JSON.stringify({
-              skuGroupKey,
-              periodStart: selectedStart,
-              periodEnd: selectedEnd,
-              forecastPeriodEnd: forecastMeanPeriodEnd,
-              serviceLevelPct,
-              leadTimeDays,
-              safetyStockMode,
-              manualSafetyStock,
-            })})`,
-            err,
-          ),
-        )
-      } finally {
-        if (alive) setForecastCalcLoading(false)
-      }
-    })()
+      })()
+    }, STOCK_ORDER_CALC_DEBOUNCE_MS)
     return () => {
       alive = false
+      if (timerId != null) window.clearTimeout(timerId)
     }
   }, [
     dailyMeanClient,

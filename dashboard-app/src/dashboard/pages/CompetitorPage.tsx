@@ -47,10 +47,12 @@ export const CompetitorPage = () => {
     filterFields,
     historicalMonths,
     salesParams,
+    appliedPeriodStartDate,
+    appliedPeriodEndDate,
+    periodQueryDirty,
+    applyPeriodQuery,
     showPeriodBar,
     setShowPeriodBar,
-    periodStartDate,
-    periodEndDate,
     periodStartIdx,
     periodEndIdx,
     startPct,
@@ -188,6 +190,7 @@ export const CompetitorPage = () => {
               <CompetitorFilterEndControls
                 showRowsWithSelfSalesOnly={showRowsWithSelfSalesOnly}
                 bulkSelectedCount={bulkSelectedCount}
+                queryDisabled={!periodQueryDirty}
                 requestStatus={(
                   <DashboardRequestStatus
                     compact
@@ -200,6 +203,7 @@ export const CompetitorPage = () => {
                 )}
                 onSelfSalesOnlyChange={setShowRowsWithSelfSalesOnly}
                 onOpenBulkAdd={() => setBulkAddOpen(true)}
+                onApplyPeriodQuery={applyPeriodQuery}
               />
             )}
           />
@@ -267,8 +271,8 @@ export const CompetitorPage = () => {
       <ProductDrawer
         summary={summaryBundle?.summary ?? null}
         loading={summaryBundleState.loading}
-        periodStart={periodStartDate}
-        periodEnd={periodEndDate}
+        periodStart={appliedPeriodStartDate}
+        periodEnd={appliedPeriodEndDate}
         forecastMonths={forecastMonths}
         onForecastMonthsChange={onForecastMonthsChange}
         onClose={() => setSelectedSkuGroupKey(null)}
@@ -279,8 +283,8 @@ export const CompetitorPage = () => {
       <AnalysisCandidateBulkAddModal
         open={bulkAddOpen}
         skuGroupKeys={selectedSkuGroupKeys}
-        periodStart={periodStartDate}
-        periodEnd={periodEndDate}
+        periodStart={appliedPeriodStartDate}
+        periodEnd={appliedPeriodEndDate}
         forecastMonths={forecastMonths}
         onClose={() => setBulkAddOpen(false)}
         onDone={() => {

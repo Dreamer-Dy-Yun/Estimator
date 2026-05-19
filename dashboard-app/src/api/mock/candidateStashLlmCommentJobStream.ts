@@ -1,7 +1,7 @@
 import type {
-  CandidateStashAnalysisProgressEvent,
-  CandidateStashAnalysisStartResult,
-  CandidateStashAnalysisSubscription,
+  CandidateStashLlmCommentJobProgressEvent,
+  CandidateStashLlmCommentJobStartResult,
+  CandidateStashLlmCommentJobSubscription,
 } from '../types'
 import {
   findCandidateStashForOwner,
@@ -11,18 +11,18 @@ import {
 import { productPrimaryBySkuGroupKey } from './productCatalog'
 import { makeUuid32, sleep } from './utils'
 
-interface CandidateStashAnalysisJob {
+interface CandidateStashLlmCommentJob {
   stashUuid: string
   ownerUserUuid?: string
   itemUuids: string[]
 }
 
-const candidateStashAnalysisJobs = new Map<string, CandidateStashAnalysisJob>()
+const candidateStashLlmCommentJobs = new Map<string, CandidateStashLlmCommentJob>()
 
-export async function startMockCandidateStashAnalysis(
+export async function startMockCandidateStashLlmCommentJob(
   stashUuid: string,
   ownerUserUuid?: string,
-): Promise<CandidateStashAnalysisStartResult> {
+): Promise<CandidateStashLlmCommentJobStartResult> {
   await sleep(60)
   if (!findCandidateStashForOwner(stashUuid, ownerUserUuid)) {
     throw new Error('후보군을 찾을 수 없습니다.')
@@ -30,8 +30,8 @@ export async function startMockCandidateStashAnalysis(
   const itemUuids = readCandidateItemsForStash(stashUuid, ownerUserUuid)
     .filter((row) => row.details != null)
     .map((row) => row.uuid)
-  const jobId = `mock-analysis-${makeUuid32()}`
-  candidateStashAnalysisJobs.set(jobId, { stashUuid, ownerUserUuid, itemUuids })
+  const jobId = `mock-llm-comment-${makeUuid32()}`
+  candidateStashLlmCommentJobs.set(jobId, { stashUuid, ownerUserUuid, itemUuids })
   return {
     jobId,
     stashUuid,
@@ -39,19 +39,19 @@ export async function startMockCandidateStashAnalysis(
   }
 }
 
-export function subscribeMockCandidateStashAnalysis(
+export function subscribeMockCandidateStashLlmCommentJob(
   jobId: string,
-  listener: (event: CandidateStashAnalysisProgressEvent) => void,
+  listener: (event: CandidateStashLlmCommentJobProgressEvent) => void,
   ownerUserUuid?: string,
-): CandidateStashAnalysisSubscription {
-  const job = candidateStashAnalysisJobs.get(jobId)
+): CandidateStashLlmCommentJobSubscription {
+  const job = candidateStashLlmCommentJobs.get(jobId)
   const canReadJob = job && (!ownerUserUuid || job.ownerUserUuid === ownerUserUuid)
   const stashUuid = job?.stashUuid ?? ''
   const itemUuids = canReadJob ? job.itemUuids : []
   const totalItems = itemUuids.length
   const timers: ReturnType<typeof globalThis.setTimeout>[] = []
 
-  const emit = (event: CandidateStashAnalysisProgressEvent, delay: number) => {
+  const emit = (event: CandidateStashLlmCommentJobProgressEvent, delay: number) => {
     timers.push(globalThis.setTimeout(() => listener(event), delay))
   }
 
@@ -62,8 +62,8 @@ export function subscribeMockCandidateStashAnalysis(
       status: 'failed',
       totalItems: 0,
       completedItems: 0,
-      message: '후보군 분석 작업을 찾을 수 없습니다.',
-      error: '후보군 분석 작업을 찾을 수 없습니다.',
+      message: '후보군 LLM 코멘트 작업을 찾을 수 없습니다.',
+      error: '후보군 LLM 코멘트 작업을 찾을 수 없습니다.',
     }, 0)
     return {
       close: () => timers.forEach((timer) => globalThis.clearTimeout(timer)),
@@ -76,7 +76,7 @@ export function subscribeMockCandidateStashAnalysis(
     status: totalItems > 0 ? 'running' : 'completed',
     totalItems,
     completedItems: 0,
-    message: totalItems > 0 ? '후보군 AI 분석을 시작했습니다.' : '분석 가능한 확정 스냅샷이 없습니다.',
+    message: totalItems > 0 ? '후보군 LLM 코멘트 생성을 시작했습니다.' : 'LLM 코멘트를 생성할 확정 스냅샷이 없습니다.',
   }, 0)
 
   itemUuids.forEach((itemUuid, index) => {
@@ -90,7 +90,7 @@ export function subscribeMockCandidateStashAnalysis(
       completedItems: index + 1,
       currentItemUuid: itemUuid,
       currentProductName: product?.productName,
-      message: `${product?.productName ?? itemUuid} 분석을 완료했습니다.`,
+      message: `${product?.productName ?? itemUuid} LLM 코멘트 생성을 완료했습니다.`,
     }, 80 + index * 80)
   })
 
@@ -101,7 +101,7 @@ export function subscribeMockCandidateStashAnalysis(
       status: 'completed',
       totalItems,
       completedItems: totalItems,
-      message: '후보군 AI 분석을 완료했습니다.',
+      message: '후보군 LLM 코멘트 생성을 완료했습니다.',
     }, 120 + totalItems * 80)
   }
 

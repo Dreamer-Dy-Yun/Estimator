@@ -19,9 +19,9 @@ type Args = {
   itemDeleteTarget: CandidateItemSummary | null
   openedItemUuid: string | null
   closeDrawer: () => void
-  loadItems: () => Promise<void>
   refreshStashes: () => Promise<void>
   showToast: (message: string) => void
+  onItemsDeleted?: (itemUuids: string[]) => void
   onItemsUnconfirmed?: (updatedItems: CandidateItemDetail[]) => void
 }
 
@@ -32,9 +32,9 @@ export function useCandidateStashItemActions({
   itemDeleteTarget,
   openedItemUuid,
   closeDrawer,
-  loadItems,
   refreshStashes,
   showToast,
+  onItemsDeleted,
   onItemsUnconfirmed,
 }: Args) {
   const [itemDeleteBusy, setItemDeleteBusy] = useState(false)
@@ -58,13 +58,13 @@ export function useCandidateStashItemActions({
       await deleteCandidateItem(itemDeleteTarget.uuid)
       if (!mountedRef.current) return
       if (openedItemUuid === itemDeleteTarget.uuid) closeDrawer()
-      await loadItems()
+      onItemsDeleted?.([itemDeleteTarget.uuid])
       await refreshStashes()
       showToast('후보를 삭제했습니다.')
     } finally {
       if (mountedRef.current) setItemDeleteBusy(false)
     }
-  }, [closeDrawer, itemDeleteTarget, loadItems, openedItemUuid, refreshStashes, showToast])
+  }, [closeDrawer, itemDeleteTarget, onItemsDeleted, openedItemUuid, refreshStashes, showToast])
 
   const confirmDeleteItems = useCallback(async (itemUuids: string[]) => {
     const uniqueUuids = [...new Set(itemUuids)]
@@ -74,13 +74,13 @@ export function useCandidateStashItemActions({
       await deleteCandidateItems(stashUuid, uniqueUuids)
       if (!mountedRef.current) return
       if (openedItemUuid && uniqueUuids.includes(openedItemUuid)) closeDrawer()
-      await loadItems()
+      onItemsDeleted?.(uniqueUuids)
       await refreshStashes()
       showToast('선택한 후보를 삭제했습니다.')
     } finally {
       if (mountedRef.current) setBulkDeleteBusy(false)
     }
-  }, [closeDrawer, loadItems, openedItemUuid, refreshStashes, showToast, stashUuid])
+  }, [closeDrawer, onItemsDeleted, openedItemUuid, refreshStashes, showToast, stashUuid])
 
   const confirmUnconfirmItems = useCallback(async (itemUuids: string[]) => {
     const uniqueUuids = [...new Set(itemUuids)]
@@ -95,13 +95,12 @@ export function useCandidateStashItemActions({
       if (!mountedRef.current) return
       onItemsUnconfirmed?.(updatedItems)
       if (openedItemUuid && uniqueUuids.includes(openedItemUuid)) closeDrawer()
-      await loadItems()
       await refreshStashes()
       showToast('선택한 후보의 상세확정을 해제했습니다.')
     } finally {
       if (mountedRef.current) setBulkUnconfirmBusy(false)
     }
-  }, [closeDrawer, loadItems, onItemsUnconfirmed, openedItemUuid, refreshStashes, showToast])
+  }, [closeDrawer, onItemsUnconfirmed, openedItemUuid, refreshStashes, showToast])
 
   const downloadOrderExcel = useCallback(async (userName: string) => {
     if (!detailTarget) return
