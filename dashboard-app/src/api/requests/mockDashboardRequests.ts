@@ -119,13 +119,15 @@ export const mockDashboardRequests: DashboardApi = {
     withCurrentUserUuid((userUuid) => mockDashboardApi.getCandidateStashes(userUuid)),
   getCandidateItemsByStash: async (params) =>
     withCurrentUserUuid((userUuid) => mockDashboardApi.getCandidateItemsByStash(params, userUuid)),
-  subscribeCandidateOrderMetrics: (params, listener) => {
+  subscribeCandidateOrderMetrics: (params, listener, onError) => {
     let subscription: ReturnType<typeof mockDashboardApi.subscribeCandidateOrderMetrics> | null = null
     let closed = false
     void withCurrentUserUuid(async (userUuid) => {
       if (closed) return
       subscription = mockDashboardApi.subscribeCandidateOrderMetrics(params, listener, userUuid)
       if (closed) subscription.close()
+    }).catch((error: unknown) => {
+      if (!closed) onError?.(error)
     })
     return {
       close: () => {
@@ -136,13 +138,15 @@ export const mockDashboardRequests: DashboardApi = {
   },
   startCandidateStashLlmCommentJob: async (stashUuid) =>
     withCurrentUserUuid((userUuid) => mockDashboardApi.startCandidateStashLlmCommentJob(stashUuid, userUuid)),
-  subscribeCandidateStashLlmCommentJob: (jobId, listener) => {
+  subscribeCandidateStashLlmCommentJob: (jobId, listener, onError) => {
     let subscription: ReturnType<typeof mockDashboardApi.subscribeCandidateStashLlmCommentJob> | null = null
     let closed = false
     void withCurrentUserUuid(async (userUuid) => {
       if (closed) return
       subscription = mockDashboardApi.subscribeCandidateStashLlmCommentJob(jobId, listener, userUuid)
       if (closed) subscription.close()
+    }).catch((error: unknown) => {
+      if (!closed) onError?.(error)
     })
     return {
       close: () => {
@@ -153,13 +157,15 @@ export const mockDashboardRequests: DashboardApi = {
   },
   startCandidateDetailBulkConfirm: async (payload) =>
     withCurrentUserUuid((userUuid) => mockDashboardApi.startCandidateDetailBulkConfirm(payload, userUuid)),
-  subscribeCandidateDetailBulkConfirm: (jobId, listener) => {
+  subscribeCandidateDetailBulkConfirm: (jobId, listener, onError) => {
     let subscription: ReturnType<typeof mockDashboardApi.subscribeCandidateDetailBulkConfirm> | null = null
     let closed = false
     void withCurrentUserUuid(async (userUuid) => {
       if (closed) return
       subscription = mockDashboardApi.subscribeCandidateDetailBulkConfirm(jobId, listener, userUuid)
       if (closed) subscription.close()
+    }).catch((error: unknown) => {
+      if (!closed) onError?.(error)
     })
     return {
       close: () => {

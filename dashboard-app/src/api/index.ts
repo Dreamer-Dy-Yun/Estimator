@@ -1,3 +1,5 @@
+export { ApiHttpError } from './requests/httpClient'
+export { classifyApiFailureStatus, isApiErrorResponse } from './types'
 export type {
   AdminGptKeyApi,
   AdminGptKeyPurpose,
@@ -16,6 +18,7 @@ export type {
   ChangePasswordPayload,
   CompetitorSalesParams,
   DashboardApi,
+  DashboardEventStreamErrorListener,
   InventoryArrivalApi,
   InventoryArrivalCollectionResult,
   InventoryArrivalCollectionStatus,
@@ -69,6 +72,8 @@ export type {
   UpdateAdminGoogleSheetConfigPayload,
   UpdateAdminUserPayload,
   UpdateAuthUserPayload,
+  ApiErrorResponse,
+  ApiFailureKind,
   UpdateCandidateItemPayload,
   UpdateCandidateItemResponse,
 } from './types'

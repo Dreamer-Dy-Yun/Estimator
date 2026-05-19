@@ -5,7 +5,7 @@
 | 작성 지시 | Yun Daeyoung |
 | 작성자 | Codex |
 | 작성일 | 2026-05-19 |
-| 최종 수정일 | 2026-05-19 |
+| 최종 수정일 | 2026-05-20 |
 | 상태 | 유지 문서 |
 | 적용 범위 | 공통 UI, hooks/model/interaction/drawer, snapshot, styles, utils |
 
@@ -59,6 +59,7 @@
 |------|------|
 | `src/styles/global.css` | 전역 reset/base 스타일 |
 | `dashboard/components/common-style-parts/*` | 필터, table, 공통 카드/버튼 스타일 조각 |
+| `dashboard/components/common-style-parts/drawer*.module.css` | 공통 드로워 shell, 상품 이미지, Recharts focus 제거 스타일 |
 | feature별 `.module.css` | 해당 feature 전용 layout과 상태 스타일 |
 
 기존 카드, 그리드, 패널, 버튼, 여백, 색상 톤을 유지한다. UI 카드를 중첩 카드처럼 보이게 만드는 변경은 피한다.

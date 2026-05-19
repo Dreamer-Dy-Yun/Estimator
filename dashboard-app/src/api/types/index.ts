@@ -1,3 +1,5 @@
+export { classifyApiFailureStatus, isApiErrorResponse } from './api-error'
+export type { ApiErrorResponse, ApiFailureKind } from './api-error'
 export type {
   AdminGptKeyApi,
   AdminGptKeyPurpose,
@@ -102,7 +104,7 @@ export type {
   CandidateOrderMetricSubscription,
 } from './candidate-order-metrics'
 export type { SecondaryOrderSnapshotPayload } from './snapshot'
-export type { DashboardApi } from './dashboard-api'
+export type { DashboardApi, DashboardEventStreamErrorListener } from './dashboard-api'
 export type {
   InventoryArrivalApi,
   InventoryArrivalCollectionResult,

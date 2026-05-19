@@ -62,6 +62,8 @@ import type {
  * Dashboard data access contract.
  * Implemented by mock today; swap for HTTP client later.
  */
+export type DashboardEventStreamErrorListener = (error: unknown) => void
+
 export interface DashboardApi {
   getSelfSales(params?: SelfSalesParams): Promise<SelfSalesRow[]>
   getCompetitorSales(params?: CompetitorSalesParams): Promise<CompetitorSalesRow[]>
@@ -85,11 +87,13 @@ export interface DashboardApi {
   subscribeCandidateOrderMetrics(
     params: CandidateOrderMetricStreamParams,
     listener: (event: CandidateOrderMetricEvent) => void,
+    onError?: DashboardEventStreamErrorListener,
   ): CandidateOrderMetricSubscription
   startCandidateStashLlmCommentJob(stashUuid: string): Promise<CandidateStashLlmCommentJobStartResult>
   subscribeCandidateStashLlmCommentJob(
     jobId: string,
     listener: (event: CandidateStashLlmCommentJobProgressEvent) => void,
+    onError?: DashboardEventStreamErrorListener,
   ): CandidateStashLlmCommentJobSubscription
   startCandidateDetailBulkConfirm(
     payload: CandidateDetailBulkConfirmStartPayload,
@@ -97,6 +101,7 @@ export interface DashboardApi {
   subscribeCandidateDetailBulkConfirm(
     jobId: string,
     listener: (event: CandidateDetailBulkConfirmProgressEvent) => void,
+    onError?: DashboardEventStreamErrorListener,
   ): CandidateDetailBulkConfirmSubscription
   getCandidateRecommendations(params: CandidateRecommendationParams): Promise<CandidateRecommendationResult>
   getCandidateItemByUuid(itemUuid: string): Promise<CandidateItemDetail | null>

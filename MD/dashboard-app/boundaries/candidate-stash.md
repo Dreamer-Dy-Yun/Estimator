@@ -5,7 +5,7 @@
 | 작성 지시 | Yun Daeyoung |
 | 작성자 | Codex |
 | 작성일 | 2026-05-19 |
-| 최종 수정일 | 2026-05-19 |
+| 최종 수정일 | 2026-05-20 |
 | 상태 | 유지 문서 |
 | 적용 범위 | 오더 후보군, 이너 후보군, 추천, 상세확정, 오더 지표, 엑셀 |
 
@@ -81,8 +81,11 @@
 | `useInnerCandidateTable.ts` | 필터 옵션, 검색어, 정렬 상태, row 생성, 합계 계산 |
 | `useVisibleUuidSelection.ts` | 보이는 UUID 목록 기준 선택 상태 |
 | `useInnerCandidateOrderKeyboardFocus.ts` | 이너 후보 리스트 키보드 포커스 |
+| `style-parts/innerOrderList.module.css` | 이너 후보 리스트 기본 grid, row, cell, 상태/배지 스타일 |
+| `style-parts/innerOrderListSortHeader.module.css` | 정렬 헤더 정렬, 라벨, 정렬 아이콘 스타일 |
+| `style-parts/innerOrderListDrawerCompact.module.css` | 1차 드로워 열림/닫힘 중 리스트 compact 스타일 |
 
-리스트 첫 칸은 선택 체크박스, 둘째 칸은 현재 정렬된 화면 순서에서 1부터 다시 계산하는 표시 인덱스다. 표시 인덱스는 레코드 값이 아니다. 표시 인덱스 뒤의 헤더 필드명은 각 컬럼 중앙에 배치하고, 정렬 아이콘은 라벨 중앙 정렬을 밀지 않는 보조 표시로 둔다.
+리스트 첫 칸은 선택 체크박스, 둘째 칸은 현재 정렬된 화면 순서에서 1부터 다시 계산하는 표시 인덱스다. 표시 인덱스는 레코드 값이 아니다. 이너 후보 리스트 헤더는 데이터 성격을 따른다. 브랜드, 품번, 상품명, 색상 같은 문자열 식별 컬럼은 왼쪽, 상태는 중앙, 판매량과 총 오더 수량/금액 같은 숫자 컬럼은 오른쪽 정렬한다. 정렬 아이콘은 라벨 정렬을 밀지 않는 보조 표시로 둔다.
 
 ## 이너 후보군 드로워
 

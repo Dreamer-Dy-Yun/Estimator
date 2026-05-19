@@ -103,6 +103,13 @@ export function useCandidateOrderMetricStream({ stashUuid, mountedRef, setItems 
     }
 
     const pendingItemUuids = createPendingMetricItemUuidSet(nextCandidateItemUuids)
+    const failPendingItems = () => {
+      if (!isCurrentItemLoad(seq)) return
+      setItems((current) => current.map((item) => (
+        pendingItemUuids.has(item.uuid) ? markCandidateItemOrderMetricFailed(item) : item
+      )))
+      closeRequest()
+    }
     const subscription = subscribeCandidateOrderMetrics({
       stashUuid,
       dataReferencePeriodStart,
@@ -129,7 +136,7 @@ export function useCandidateOrderMetricStream({ stashUuid, mountedRef, setItems 
         )))
         if (settlePendingMetricItem(pendingItemUuids, event.itemUuid)) closeRequest()
       }
-    })
+    }, failPendingItems)
     metricSubscriptionsRef.current.set(requestId, {
       signature,
       subscription,

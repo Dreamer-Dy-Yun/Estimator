@@ -5,7 +5,7 @@
 | 작성 지시 | Yun Daeyoung |
 | 작성자 | Codex |
 | 작성일 | 2026-05-06 |
-| 최종 수정일 | 2026-05-19 |
+| 최종 수정일 | 2026-05-20 |
 | 상태 | 유지 문서 |
 | 적용 범위 | `dashboard-app`, 프론트엔드 소스, 관련 배포/문서 경계 |
 
@@ -33,7 +33,8 @@
 | 오더 후보군, 이너 후보군, 추천, 상세확정, 엑셀 | [candidate-stash.md](./boundaries/candidate-stash.md) | `dashboard-app/src/dashboard/components/candidate-stash` |
 | 상품 1차/2차 드로워, 스냅샷, AI 코멘트, 재고·발주 계산 | [product-drawer.md](./boundaries/product-drawer.md) | `dashboard-app/src/dashboard/components/product-drawer` |
 | 공통 컴포넌트, hooks/model/interaction/drawer, snapshot, utils | [shared-modules.md](./boundaries/shared-modules.md) | `dashboard-app/src/components`, `dashboard-app/src/dashboard/hooks`, `dashboard-app/src/utils` |
-| 현재 QA 기준과 검증 명령 | [qa-current-behavior.md](./qa-current-behavior.md), [test-strategy.md](./test-strategy.md) | `dashboard-app/src/**/*.test.*`, `dashboard-app/e2e` |
+| 현재 QA 기준과 검증 명령 | [qa-current-behavior.md](./qa-current-behavior.md), [qa-state-contracts.md](./qa-state-contracts.md), [test-strategy.md](./test-strategy.md) | `dashboard-app/src/**/*.test.*`, `dashboard-app/e2e` |
+| 버튼, 카드, 패널, 리스트, 드로워, 모달의 UI 패턴 | [ui-patterns.md](./ui-patterns.md) | `dashboard-app/src/components`, `dashboard-app/src/dashboard/components`, CSS Modules |
 | 하드닝 완료 모듈과 수정 허가 규칙 | [module-hardening.md](./module-hardening.md) | `dashboard-app/src/utils` 등 |
 | 백엔드 구현용 API 상세 | [../backend-api/README.md](../backend-api/README.md) | `dashboard-app/src/api/types` |
 
@@ -46,7 +47,8 @@
 | 후보군 상세 조회, 추천, 배지, 오더 지표 SSE, 상세확정/해제/삭제, 엑셀 변경 | [candidate-stash.md](./boundaries/candidate-stash.md), [../backend-api/backend-api-spec.md](../backend-api/backend-api-spec.md), [qa-current-behavior.md](./qa-current-behavior.md) |
 | 상품 드로워, 스냅샷 저장 범위, AI 코멘트, 재고·발주 계산 변경 | [product-drawer.md](./boundaries/product-drawer.md), [../backend-api/backend-api-spec.md](../backend-api/backend-api-spec.md), [qa-current-behavior.md](./qa-current-behavior.md) |
 | 로그인/관리자 화면, GPT 키, 구글 시트 설정 변경 | [auth-admin.md](./boundaries/auth-admin.md), [qa-current-behavior.md](./qa-current-behavior.md) |
-| 공통 UI, table, toast, spinner, keyboard interaction, utils 변경 | [shared-modules.md](./boundaries/shared-modules.md), 필요 시 [module-hardening.md](./module-hardening.md) |
+| 공통 UI, table, toast, spinner, keyboard interaction, utils 변경 | [shared-modules.md](./boundaries/shared-modules.md), [ui-patterns.md](./ui-patterns.md), 필요 시 [module-hardening.md](./module-hardening.md) |
+| 로딩, 빈 값, 오류, 권한 실패, stale, 비활성 UX 변경 | [qa-state-contracts.md](./qa-state-contracts.md), [qa-current-behavior.md](./qa-current-behavior.md) |
 | e2e/CI/build/router/배포 변경 | [repository-runtime.md](./boundaries/repository-runtime.md), [test-strategy.md](./test-strategy.md) |
 
 ## 새 파일 배치 규칙

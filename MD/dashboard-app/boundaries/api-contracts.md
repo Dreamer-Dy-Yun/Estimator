@@ -5,7 +5,7 @@
 | 작성 지시 | Yun Daeyoung |
 | 작성자 | Codex |
 | 작성일 | 2026-05-19 |
-| 최종 수정일 | 2026-05-19 |
+| 최종 수정일 | 2026-05-20 |
 | 상태 | 유지 문서 |
 | 적용 범위 | `dashboard-app/src/api`, mock/HTTP adapter, API 타입 계약 |
 
@@ -24,7 +24,7 @@
 | `api/client.ts` | 화면에서 호출하는 API 함수와 `dashboardApi` 객체를 노출하는 facade |
 | `api/index.ts` | API public export |
 | `api/requests/*` | mock/HTTP adapter 선택과 실제 요청 경계 |
-| `api/requests/httpClient.ts` | `VITE_API_BASE_URL`, JSON/FormData 요청, 공통 에러, EventSource SSE 구독 |
+| `api/requests/httpClient.ts` | `VITE_API_BASE_URL`, JSON/FormData 요청, `ApiHttpError` 생성, EventSource SSE 구독 |
 | `api/mock.ts` | request adapter가 사용하는 mock API 진입 파일. 화면은 import하지 않는다 |
 
 ## 타입 계약
@@ -35,6 +35,7 @@
 | `types/auth.ts` | 로그인, 세션, 사용자 정보, 비밀번호 변경 |
 | `types/admin-gpt-key.ts` | GPT 키 관리 |
 | `types/admin-google-sheet.ts` | Google Sheets API 설정 관리 |
+| `types/api-error.ts` | 공통 실패 응답(`ApiErrorResponse`)과 HTTP status to `ApiFailureKind` 분류 |
 | `types/candidate.ts` | 후보군, 후보 아이템, 추천, 상세확정 |
 | `types/candidate-order-metrics.ts` | 총 오더 수량/금액 SSE. 백엔드는 `completed`를 보내야 하며, 프론트는 모든 요청 item이 settle되면 자동 재접속 방지를 위해 구독을 닫는다 |
 | `types/drawer.ts` | 상품 1차 드로워 번들 |
@@ -68,6 +69,10 @@
 - `httpDashboardRequests.ts`는 실제 백엔드 endpoint 경로를 `DashboardApi` 계약에 맞춰 연결한다.
 - `dashboardMasterDataCache.ts`는 page와 공통 drawer가 공유하는 master data 요청을 coalesce한다. mutation 후 무효화 대상이 아닌 master data만 캐시한다.
 - 관리자 Google Sheets mock은 서비스 계정 키를 JSON으로 parse해 `client_email`을 확인한다. 잘못된 JSON을 정규식 등으로 보정하지 않는다.
+- HTTP 실패는 `httpClient.ts`에서 `ApiHttpError`로 변환한다. 기존 화면은 `error.message`만 읽어도 동작해야 하며, 새 호출부는 필요할 때 `status`, `kind`, `code`, `body`를 참조한다.
+- 상태 분류 기준은 `401=authentication`, `403=permission`, `404=not-found`, `409=conflict`, `422=validation`, `5xx=server`, 그 외 `4xx=client`다.
+- SSE 구독은 application event 실패와 transport 실패를 분리한다. `openApiEventStream`은 `onError`를 제공하고, 화면 hook은 연결 실패 시 기존 데이터를 유지하거나 요청 대상 row만 실패 상태로 전환해야 한다.
+- 성공인데 응답 본문이 없는 API는 204를 사용한다. 빈 배열/객체가 정상 데이터인 endpoint는 해당 타입 계약에 명시하고, 실패를 빈 성공값으로 숨기지 않는다.
 
 ## 백엔드 문서 연결
 

@@ -10,3 +10,5 @@
 @import './common-style-parts/periodSlider.module.css';
 @import './common-style-parts/table.module.css';
 @import './common-style-parts/drawer.module.css';
+@import './common-style-parts/drawerProductImage.module.css';
+@import './common-style-parts/drawerChartFocus.module.css';

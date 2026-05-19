@@ -5,7 +5,7 @@
 | 작성 지시 | Yun Daeyoung |
 | 작성자 | Codex |
 | 작성일 | 2026-04-23 |
-| 최종 수정일 | 2026-05-18 |
+| 최종 수정일 | 2026-05-20 |
 | 상태 | 유지 문서 |
 | 적용 범위 | `dashboard-app/src/api/types`, `dashboard-app/src/api/requests`, 백엔드 REST API 계약 |
 
@@ -60,8 +60,29 @@
 - 프론트는 `/login`과 `/dashboard/*` 보호 라우트를 분리합니다. 인증 계약은 `src/api/types/auth.ts`의 `AuthApi`가 소유합니다.
 - 목 구현은 동작 확인용으로 로그인 입력값을 검증하지 않고 통과시키며 세션은 런타임 메모리에만 둡니다. `mock-user` ID는 일반 사용자 권한 확인용이고, 그 외 입력은 관리자 권한으로 처리합니다. 사용자 목록/후보군 목록의 실제 변경은 백엔드 DB가 소유해야 하며, 프론트 mock은 mutation 응답 흐름만 모사합니다. 실제 백엔드에서는 가능하면 **HttpOnly cookie 기반 세션**을 권장합니다.
 - 프론트 mock 로그인 화면은 기본값 `mock-admin` / `admin`을 미리 채워 두어, 수정 없이 로그인하면 해당 관리자 세션으로 들어갑니다. 이 값은 동작 확인용이며 실제 백엔드 연결 시 제거/교체 대상입니다.
-- 모든 보호 API에 동일 정책을 적용하고, 실패 시 **HTTP 401/403** 과 JSON 에러 바디를 권장합니다.
-- 클라이언트 계약에는 공통 에러 타입이 없습니다. 최소 `{ "message": string }` 형태를 권장합니다.
+- 모든 보호 API에 동일 정책을 적용하고, 인증 실패는 **HTTP 401**, 권한 실패는 **HTTP 403** 과 JSON 에러 바디를 반환합니다.
+- 공통 실패 응답은 가능한 한 `ApiErrorResponse` 형태를 사용합니다. `message`는 사용자가 확인 가능한 기본 문구이고, `code`는 백엔드/도메인 에러 식별자, `details`는 필드 오류 등 구조화된 추가 정보입니다.
+- 성공 응답이 비어야 하는 API는 **HTTP 204**를 사용합니다. 목록/요약처럼 빈 값 자체가 정상 데이터인 경우에는 endpoint별 계약에 맞춰 빈 배열(`[]`)이나 문서화된 빈 객체를 반환하고, 실패를 빈 성공값으로 감추지 않습니다.
+
+**공통 실패 응답 (`ApiErrorResponse`)**
+
+| 필드 | 타입 | 설명 |
+|------|------|------|
+| `message` | string | 필수. 프론트 `ApiHttpError.message`로 유지되는 기본 오류 문구 |
+| `code` | string \| undefined | 선택. 프론트 `ApiHttpError.code`로 노출되는 안정적인 에러 코드 |
+| `details` | unknown | 선택. 필드별 검증 오류, 충돌 원인 등 구조화된 추가 정보 |
+
+**HTTP status to `ApiFailureKind`**
+
+| HTTP status | `ApiFailureKind` | 기준 |
+|-------------|------------------|------|
+| 401 | `authentication` | 로그인 만료, 인증 누락, 인증 실패 |
+| 403 | `permission` | 인증은 되었지만 역할/소유권 권한 부족 |
+| 404 | `not-found` | 대상 리소스 없음 또는 접근 가능한 범위에 없음 |
+| 409 | `conflict` | 중복, 상태 충돌, 동시 수정 충돌 |
+| 422 | `validation` | 요청 payload 또는 비즈니스 검증 실패 |
+| 5xx | `server` | 서버 내부 오류, 외부 연동 실패, 미처리 예외 |
+| 그 외 4xx | `client` | 위 기준으로 분리되지 않은 클라이언트 요청 오류 |
 
 **`AuthApi` 제안 매핑**
 
@@ -700,7 +721,7 @@ badges: [
 | `itemFailed` | 특정 후보 아이템 지표 계산 실패. 행 단위 오류로 표시한다 |
 | `completed` | 전체 candidate item 지표 계산 종료. `processedCount`, `failedCount`를 포함한다 |
 
-프론트는 `requestId`가 현재 조회 요청과 다르면 stale 이벤트로 버린다. 사용자가 조회 데이터 기간을 바꿔 다시 조회하면 이전 SSE 연결을 닫아야 한다.
+프론트는 `requestId`가 현재 조회 요청과 다르면 stale 이벤트로 버린다. 사용자가 조회 데이터 기간을 바꿔 다시 조회하면 이전 SSE 연결을 닫아야 한다. EventSource transport 오류가 발생하면 프론트는 연결 실패로 표시하고, 오더 지표는 요청 대상 row만 실패 상태로 전환한다.
 
 백엔드는 모든 요청 item이 `item` 또는 `itemFailed`로 처리된 뒤 `completed` 이벤트를 보내고 SSE 응답을 종료해야 한다. 브라우저 `EventSource`는 응답 종료 후 자동 재연결할 수 있으므로, 프론트는 방어적으로 모든 요청 item UUID가 settle되면 `completed` 수신 전이라도 연결을 닫는다. 따라서 백엔드는 동일한 `requestId` 재접속이 들어오더라도 가능한 한 idempotent하게 처리하고, 정상 구현에서는 `completed`를 누락하지 않아야 한다.
 

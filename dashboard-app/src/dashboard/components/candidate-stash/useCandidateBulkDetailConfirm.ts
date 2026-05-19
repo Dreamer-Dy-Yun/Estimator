@@ -30,6 +30,11 @@ interface Args {
 
 const CLOSE_DELAY_MS = 4000
 
+function getStreamErrorMessage(error: unknown): string {
+  if (error instanceof Error && error.message.trim()) return error.message
+  return '상세 일괄확정 연결이 끊겼습니다.'
+}
+
 export function useCandidateBulkDetailConfirm({
   stashUuid,
   dataReferencePeriodStart,
@@ -121,6 +126,10 @@ export function useCandidateBulkDetailConfirm({
             scheduleClose()
             reject(new Error(event.error ?? event.message))
           }
+        }, (error) => {
+          if (!mountedRef.current) return
+          closeSubscription()
+          reject(new Error(getStreamErrorMessage(error)))
         })
       })
     } catch (err) {

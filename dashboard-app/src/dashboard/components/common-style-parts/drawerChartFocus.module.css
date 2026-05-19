@@ -1,0 +1,14 @@
+/* Recharts: 클릭 시 래퍼뿐 아니라 내부 g/path/레이어마다 포커스 링이 나오는 경우까지 제거 */
+:global(.recharts-responsive-container:focus),
+:global(.recharts-responsive-container:focus-visible),
+:global(.recharts-wrapper:focus),
+:global(.recharts-wrapper:focus-visible),
+:global(.recharts-surface:focus),
+:global(.recharts-surface:focus-visible),
+:global(.recharts-responsive-container *:focus),
+:global(.recharts-responsive-container *:focus-visible),
+:global(.recharts-wrapper *:focus),
+:global(.recharts-wrapper *:focus-visible) {
+  outline: none !important;
+  box-shadow: none !important;
+}

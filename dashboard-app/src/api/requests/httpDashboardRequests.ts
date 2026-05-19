@@ -65,13 +65,13 @@ export const httpDashboardRequests: DashboardApi = {
     apiRequest(`/candidate-stashes/${encodePathSegment(stashUuid)}/items`, {
       query: queryParams(params),
     }),
-  subscribeCandidateOrderMetrics: (params, listener) =>
+  subscribeCandidateOrderMetrics: (params, listener, onError) =>
     openApiEventStream(`/candidate-stashes/${encodePathSegment(params.stashUuid)}/items/order-metrics/events`, {
       requestId: params.requestId,
       dataReferencePeriodStart: params.dataReferencePeriodStart,
       dataReferencePeriodEnd: params.dataReferencePeriodEnd,
       candidateItemUuids: params.candidateItemUuids,
-    }, listener),
+    }, listener, { onError }),
   // Starts a backend job that calculates each requested item's secondary drawer state,
   // saves CANDIDATE_ITEM.details, and emits committed CandidateItemDetail rows by SSE.
   startCandidateDetailBulkConfirm: ({ stashUuid, ...payload }) =>
@@ -79,12 +79,22 @@ export const httpDashboardRequests: DashboardApi = {
       method: 'POST',
       body: payload,
     }),
-  subscribeCandidateDetailBulkConfirm: (jobId, listener) =>
-    openApiEventStream(`/candidate-item-detail-confirmation-jobs/${encodePathSegment(jobId)}/events`, undefined, listener),
+  subscribeCandidateDetailBulkConfirm: (jobId, listener, onError) =>
+    openApiEventStream(
+      `/candidate-item-detail-confirmation-jobs/${encodePathSegment(jobId)}/events`,
+      undefined,
+      listener,
+      { onError },
+    ),
   startCandidateStashLlmCommentJob: (stashUuid) =>
     apiRequest(`/candidate-stashes/${encodePathSegment(stashUuid)}/llm-comment-jobs`, { method: 'POST' }),
-  subscribeCandidateStashLlmCommentJob: (jobId, listener) =>
-    openApiEventStream(`/candidate-stash-llm-comment-jobs/${encodePathSegment(jobId)}/events`, undefined, listener),
+  subscribeCandidateStashLlmCommentJob: (jobId, listener, onError) =>
+    openApiEventStream(
+      `/candidate-stash-llm-comment-jobs/${encodePathSegment(jobId)}/events`,
+      undefined,
+      listener,
+      { onError },
+    ),
   getCandidateRecommendations: ({ stashUuid, ...params }) =>
     apiRequest(`/candidate-stashes/${encodePathSegment(stashUuid)}/recommendations`, {
       query: queryParams(params),

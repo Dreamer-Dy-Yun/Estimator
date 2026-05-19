@@ -8,6 +8,7 @@
 @import './style-parts/layout.module.css';
 @import './style-parts/headers.module.css';
 @import './style-parts/metaFilterCandidate.module.css';
+@import './style-parts/candidateSelection.module.css';
 @import './style-parts/cardsControls.module.css';
 @import './style-parts/tablesSizeOrder.module.css';
 @import './style-parts/stockInputs.module.css';

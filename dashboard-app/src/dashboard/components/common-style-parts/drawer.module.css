@@ -279,38 +279,3 @@
   font-size: 12px;
   font-weight: 600;
 }
-
-.productImageWrap {
-  border: 1px solid #e2e8f0;
-  border-radius: 10px;
-  overflow: hidden;
-  background: #f8fafc;
-  margin: 0;
-  width: 100%;
-  height: 100%;
-  align-self: stretch;
-  justify-self: stretch;
-  display: flex;
-}
-
-.productImage {
-  display: block;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-/* Recharts: 클릭 시 래퍼뿐 아니라 내부 g/path/레이어마다 포커스 링이 나오는 경우까지 제거 */
-:global(.recharts-responsive-container:focus),
-:global(.recharts-responsive-container:focus-visible),
-:global(.recharts-wrapper:focus),
-:global(.recharts-wrapper:focus-visible),
-:global(.recharts-surface:focus),
-:global(.recharts-surface:focus-visible),
-:global(.recharts-responsive-container *:focus),
-:global(.recharts-responsive-container *:focus-visible),
-:global(.recharts-wrapper *:focus),
-:global(.recharts-wrapper *:focus-visible) {
-  outline: none !important;
-  box-shadow: none !important;
-}

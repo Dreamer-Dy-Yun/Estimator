@@ -7,5 +7,7 @@
 @import './style-parts/detailHeader.module.css';
 @import './style-parts/filterSummary.module.css';
 @import './style-parts/innerOrderList.module.css';
+@import './style-parts/innerOrderListSortHeader.module.css';
+@import './style-parts/innerOrderListDrawerCompact.module.css';
 @import './style-parts/modalShell.module.css';
 @import './style-parts/responsive.module.css';

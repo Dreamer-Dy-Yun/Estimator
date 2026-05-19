@@ -14,7 +14,7 @@ type SortHeaderProps = {
   sortKey: InnerCandidateSortKey
   activeKey: InnerCandidateSortKey | null
   activeDir: 'asc' | 'desc' | null
-  align?: 'left' | 'right'
+  align?: 'left' | 'center' | 'right'
   onSort: (key: InnerCandidateSortKey) => void
 }
 
@@ -25,9 +25,11 @@ function InnerOrderSortHeader({ label, sortKey, activeKey, activeDir, align = 'l
   return (
     <button
       type="button"
-      className={`${detailStyles.innerOrderSortHeader} ${
-        align === 'right' ? detailStyles.innerOrderSortHeaderNum : ''
-      }`}
+      className={[
+        detailStyles.innerOrderSortHeader,
+        align === 'center' ? detailStyles.innerOrderSortHeaderCenter : '',
+        align === 'right' ? detailStyles.innerOrderSortHeaderNum : '',
+      ].filter(Boolean).join(' ')}
       onClick={() => onSort(sortKey)}
       aria-label={`${label} 정렬`}
       aria-pressed={active}
@@ -229,7 +231,7 @@ export function InnerCandidateOrderList({
         <InnerOrderSortHeader label="품번" sortKey="code" activeKey={activeSortKey} activeDir={activeSortDir} onSort={onSort} />
         <InnerOrderSortHeader label="상품명" sortKey="productName" activeKey={activeSortKey} activeDir={activeSortDir} onSort={onSort} />
         <InnerOrderSortHeader label="색상" sortKey="colorCode" activeKey={activeSortKey} activeDir={activeSortDir} onSort={onSort} />
-        <InnerOrderSortHeader label="상태" sortKey="isDetailConfirmed" activeKey={activeSortKey} activeDir={activeSortDir} onSort={onSort} />
+        <InnerOrderSortHeader label="상태" sortKey="isDetailConfirmed" activeKey={activeSortKey} activeDir={activeSortDir} align="center" onSort={onSort} />
         <InnerOrderSortHeader label="자사 기간 총 판매량" sortKey="selfQty" activeKey={activeSortKey} activeDir={activeSortDir} align="right" onSort={onSort} />
         <InnerOrderSortHeader label={competitorSalesQtyHeader} sortKey="competitorQty" activeKey={activeSortKey} activeDir={activeSortDir} align="right" onSort={onSort} />
         <InnerOrderSortHeader label="총 오더 수량" sortKey="expectedSalesQty" activeKey={activeSortKey} activeDir={activeSortDir} align="right" onSort={onSort} />

@@ -1,3 +1,6 @@
+import { classifyApiFailureStatus, isApiErrorResponse, readApiErrorCode } from '../types/api-error'
+import type { ApiFailureKind } from '../types/api-error'
+
 export type ApiQueryValue =
   | string
   | number
@@ -16,12 +19,22 @@ export interface ApiRequestOptions extends Omit<RequestInit, 'body'> {
 export class ApiHttpError extends Error {
   readonly status: number
   readonly body: unknown
+  readonly kind: ApiFailureKind
+  readonly code?: string
 
-  constructor(status: number, message: string, body: unknown) {
+  constructor(
+    status: number,
+    message: string,
+    body: unknown,
+    kind: ApiFailureKind = classifyApiFailureStatus(status),
+    code: string | undefined = readApiErrorCode(body),
+  ) {
     super(message)
     this.name = 'ApiHttpError'
     this.status = status
     this.body = body
+    this.kind = kind
+    if (code) this.code = code
   }
 }
 
@@ -63,9 +76,9 @@ async function readResponseBody(response: Response): Promise<unknown> {
 }
 
 function getErrorMessage(body: unknown, fallback: string): string {
-  if (body && typeof body === 'object' && 'message' in body) {
-    const message = (body as { message?: unknown }).message
-    if (typeof message === 'string' && message.trim()) return message
+  if (isApiErrorResponse(body)) {
+    const message = body.message.trim()
+    if (message) return message
   }
   if (typeof body === 'string' && body.trim()) return body
   return fallback
@@ -108,15 +121,23 @@ export interface ApiEventStreamSubscription {
   close: () => void
 }
 
+export interface ApiEventStreamOptions {
+  onError?: (event: Event) => void
+}
+
 export function openApiEventStream<T>(
   path: string,
   query: ApiQueryParams | undefined,
   listener: (event: T) => void,
+  options: ApiEventStreamOptions = {},
 ): ApiEventStreamSubscription {
   const eventSource = new EventSource(buildApiUrl(path, query), { withCredentials: true })
   eventSource.onmessage = (message) => {
     if (!message.data) return
     listener(JSON.parse(message.data) as T)
+  }
+  eventSource.onerror = (event) => {
+    options.onError?.(event)
   }
   return {
     close: () => eventSource.close(),
