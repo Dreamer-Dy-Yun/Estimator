@@ -36,7 +36,7 @@
 - 이너후보군 리스트 조회는 `dataReferencePeriodStart`/`dataReferencePeriodEnd`를 API에 전달한다. 기간 입력은 헤더와 필터 사이의 `CandidateStashDataReferenceCard`가 draft 상태로 소유하고, 사용자가 `조회` 버튼을 누를 때만 적용 기간을 바꿔 `getCandidateItemsByStash`를 호출한다. 후보군 상세 모달 최초 진입도 같은 조회 경로를 자동으로 한 번 실행한다. 조회 카드와 선택 작업 카드는 데스크톱에서 한 줄 2열로 배치한다. 선택 작업 영역은 `CandidateStashBulkActionCard`가 소유하며, 상세확정 일괄해제는 선택된 후보 아이템의 `details`를 `null`로 저장하는 명시적 mutation이다. 상세 일괄확정은 아직 API 계약과 mutation 동작이 없어 비활성 UI 자리만 둔다. `getCandidateItemsByStash`는 후보군에 실제로 담긴 기본 행만 빠르게 반환하고, 전체 SKU 분포 기반 배지와 추천 후보는 `getCandidateRecommendations`가 배지 있는 `recommendations` 목록 하나로 반환한다. 프론트는 조회 결과 기본 행이 들어온 직후 이 추천 API를 `nextCursor` 끝까지 자동 page 조회해 현재 후보군 `skuUuid`와 일치하는 row를 기존 행 배지로 병합하고, 추천 UI에서는 이미 후보군에 있는 row를 숨긴다. `추천 보기`는 배지 계산 시작 버튼이 아니라 이미 받은 추천 목록을 여는 버튼이다. 기간 자사/경쟁사 총판매량은 백엔드가 확정 전체 월은 `ERP_MONTHLY_SUMMARY`/`EXTERNAL_MONTHLY_SUMMARY(site 포함)`에서 가져오고, 부분 월과 미확정 월은 `SALES_ERP`/`SALES_EXTERNAL` raw 합산으로 보정한 값이다. 프론트는 이 값을 재계산하지 않고 표시/정렬/엑셀 다운로드에만 사용한다. `CANDIDATE_ITEM.sku_uuid = SKU.uuid`를 기준으로 추천 보기 중복 제외와 이너오더 병합을 수행하며, 총 오더 수량/금액과 엑셀용 `orderExport`는 이후 `subscribeCandidateOrderMetrics` SSE 이벤트로 행별 갱신한다.
 - 이너후보군의 상세확정 여부는 후보 아이템 `details` 스냅샷 존재 여부다. 리스트 기본값은 데이터 참조기간 기준 live 계산값이고, 2차 드로워는 live/스냅샷 기준 보기 모두 통합 오더 설정, AI 코멘트, 일별 추이, 사이즈별 오더 카드를 표시한다. 스냅샷 기준 보기에서는 저장 당시의 통합 오더 설정값, AI 코멘트, 사이즈별 오더 수치와 기간을 복원하되 그래프는 그 기간으로 다시 조회한다.
 - 이너후보군 2차 드로워의 상세확정 저장/해제는 `PATCH /candidate-items/:itemUuid` 성공 응답인 `UpdateCandidateItemResponse`를 현재 화면의 기준 상태로 삼는다. 이 응답은 commit/cache 반영 이후 최신 `CandidateItemDetail` shape여야 하며, 프론트는 `isDetailConfirmed`, `isLatestLlmComment`, `dbUpdatedAt`을 즉시 리스트와 열린 드로워에 반영한다. 직후 `getCandidateItemsByStash` 또는 `getCandidateItemByUuid`가 DB commit/cache 반영 전 stale 값을 반환해도 `candidateDetailConfirmationOverrideModel.ts`와 `useCandidateStashItemDrawer.ts`의 로컬 스냅샷 mutation 보호가 리스트/열린 드로워 상태를 덮어쓰지 못하게 한다. 이후 서버 응답의 `dbUpdatedAt`이 바뀌고 원하는 확정 상태가 내려오면 목록 override는 해제된다.
-- 드로워 키보드 조작은 `좌=열기`, `우=닫기`, `상/하=이전/다음`이다. 자사/경쟁사 리스트는 1차 드로워가 닫힌 상태에서도 `useAnalysisRowKeyboardFocus.ts`가 현재 정렬 row id 순서 기준으로 상/하 포커스 이동을 처리하고, 좌 키로 포커스된 row의 1차 드로워를 연다. 오른쪽 방향키 닫기는 1차 드로워가 열린 뒤 `ProductDrawer`가 계속 처리한다. 이너후보군에서는 좌 키로 1차를 열고 열린 1차 안에서 좌 키로 2차를 연다. ESC는 2차가 열려 있으면 2차부터 닫고, 한 번 더 누르면 1차를 닫는다. 드로워가 열린 뒤 상/하 이동으로 현재 상품이 바뀌면 원본 리스트의 현재 row도 포커스·스크롤·강조 상태를 함께 갱신한다. 자사/경쟁사 분석의 상/하 이동 순서는 `PaginatedTable`이 실제 렌더링에 사용한 정렬 row id 순서(`onOrderedRowIdsChange`)를 기준으로 한다. `ProductDrawer`의 바깥 클릭 닫힘 정책은 `dashboard/drawer/drawerDom.ts`가 소유한다. 버튼, 입력, 선택, 토글, 링크, label, 필터 콤보, `data-drawer-keep-open` 영역은 조작이 드로워 닫힘보다 우선하며, 비상호작용 배경 클릭만 1차 드로워를 닫는다. 커스텀 클릭 UI가 필요하면 먼저 실제 `button`/`input`/`select`로 표현 가능한지 검토하고, 불가한 경우에만 명시적으로 `data-drawer-keep-open`을 부여한다.
+- 드로워 키보드 조작은 `좌=열기`, `우=닫기`, `상/하=이전/다음`이다. 자사/경쟁사 리스트는 1차 드로워가 닫힌 상태에서도 `useAnalysisRowKeyboardFocus.ts`가 현재 정렬 row id 순서 기준으로 상/하 포커스 이동을 처리하고, 좌 키로 포커스된 row의 1차 드로워를 연다. 오른쪽 방향키 닫기는 1차 드로워가 열린 뒤 `ProductDrawer`가 계속 처리한다. 이너후보군에서는 좌 키로 1차를 열고 열린 1차 안에서 좌 키로 2차를 연다. ESC는 2차가 열려 있으면 2차부터 닫고, 한 번 더 누르면 1차를 닫는다. 드로워가 열린 뒤 상/하 이동으로 현재 상품이 바뀌면 원본 리스트의 현재 row도 포커스·스크롤·강조 상태를 함께 갱신한다. 자사/경쟁사 분석의 상/하 이동 순서는 `PaginatedTable`이 실제 렌더링에 사용한 정렬 row id 순서(`onOrderedRowIdsChange`)를 기준으로 한다. 입력/버튼/필터 콤보 같은 전역 조작 제외 target 판정은 `dashboard/interaction/interactionTarget.ts`가 소유하고, `ProductDrawer`의 바깥 클릭 닫힘 정책은 `dashboard/drawer/drawerDom.ts`가 이를 사용한다. 버튼, 입력, 선택, 토글, 링크, label, 필터 콤보, `data-drawer-keep-open` 영역은 조작이 드로워 닫힘보다 우선하며, 비상호작용 배경 클릭만 1차 드로워를 닫는다. 커스텀 클릭 UI가 필요하면 먼저 실제 `button`/`input`/`select`로 표현 가능한지 검토하고, 불가한 경우에만 명시적으로 `data-drawer-keep-open`을 부여한다.
 - 후보군 상세 필터 카드에는 발주 엑셀 다운로드 액션을 둔다. 화면은 다운로드 클릭 시 백엔드를 다시 호출하지 않고, 이미 받은 `CandidateItemSummary.orderExport` DTO로 브라우저에서 XLSX를 생성한다. 주 데이터 시트는 브랜드·품번(`code`)·상품명(`productName`)·색상(`colorCode`)·배지·판매 지표·총 오더 지표 컬럼 뒤에 후보군 전체 사이즈를 동적 컬럼으로 붙이고, 제품에 없는 사이즈는 `N/A`로 표시한다. 복수 배지는 한 셀 안에서 줄바꿈한다. 메타 시트에는 오더 입고 예정일과 사용자 이름을 둔다.
 - SKU 식별 메타는 DB `SKU` 테이블 설계에 맞춰 `code`, `colorCode`, `productName`을 사용한다. 실제 SKU 유일성은 `code + colorCode + size` 조합으로 보고, 분석 리스트·1차 드로어 배지·2차 메타·후보군/엑셀 계약이 같은 필드명을 쓴다.
 - 라우트 페이지는 `src/App.tsx`에서 `React.lazy`로 분리한다. 기본 라우팅은 일반 배포용 `BrowserRouter`이고, GitHub Pages workflow만 `VITE_ROUTER_MODE=hash`로 `HashRouter`를 켠다.
@@ -251,6 +251,7 @@
 | `pages/` | 라우트에 직접 연결되고 `src/App.tsx`에서 lazy import되는 화면만 둔다 |
 | `components/` | 대시보드 내부에서 재사용되는 UI와 feature 컴포넌트 |
 | `hooks/` | 여러 대시보드 영역에서 쓰는 공용 훅 |
+| `interaction/` | 전역 키보드/드로워 조작이 입력·버튼·필터 콤보 같은 상호작용 요소를 침범하지 않도록 판정하는 DOM target helper |
 | `drawer/` | 상품 요약 drawer의 DOM/병합/본문 보조 로직 |
 | `styles/` | dashboard feature 전용 CSS 변수 |
 
@@ -406,13 +407,21 @@ Dashboard 라우트/훅/컴포넌트가 공유하는 화면 view-model 타입만
 | `analysisScatterGridPoint.ts` | 분석 산점도 point view-model 타입. 훅과 tooltip이 차트 카드 컴포넌트 내부 타입을 역참조하지 않도록 공통 타입 경계를 제공한다. |
 | `filterField.ts` | `FilterBar`와 분석 필터 훅이 공유하는 필터 field view-model 타입 |
 
+## dashboard/interaction
+
+전역 키보드 조작과 drawer 바깥 클릭 정책이 공유하는 DOM target 판정 helper를 둔다. 화면 기능이 개별 selector 문자열을 직접 복제하지 않도록 하고, 실제 조작 UI는 가능한 한 `button`/`input`/`select` 같은 semantic element를 우선 사용한다.
+
+| 파일 | 역할 |
+|------|------|
+| `interactionTarget.ts` | 입력/필터 콤보, 일반 상호작용 컨트롤, dialog 내부 target 여부를 판정한다. 자사/경쟁사 리스트 키보드, 이너후보 리스트 키보드, 상품 drawer 키보드, 상품 drawer 바깥 클릭 정책이 이 helper를 공유한다. |
+
 ## dashboard/drawer
 
 상품 요약 drawer의 비시각 보조 로직이다.
 
 | 파일 | 역할 |
 |------|------|
-| `drawerDom.ts` | drawer/modal DOM data attribute helper. `ProductDrawer` 바깥 클릭 닫힘에서 버튼·입력·선택·토글·링크·필터 콤보 같은 외부 상호작용 요소를 닫힘 대상에서 제외하는 정책도 소유한다 |
+| `drawerDom.ts` | drawer/modal DOM data attribute helper. `ProductDrawer` 바깥 클릭 닫힘에서 `interactionTarget.ts`가 판정한 외부 상호작용 요소와 `data-drawer-keep-open` 영역을 닫힘 대상에서 제외한다 |
 | `mergePrimarySummaryFromSnapshot.ts` | API bundle과 snapshot summary 병합 |
 | `primaryDrawerBody.ts` | primary drawer body 관련 보조 값 |
 
@@ -470,8 +479,9 @@ React나 API 구현에 의존하지 않는 순수 보조 함수만 둔다.
 6. 대시보드 라우트 페이지면 `src/dashboard/pages`.
 7. 특정 feature 전용 UI/훅/CSS면 `src/dashboard/components/<feature-name>`.
 8. 여러 dashboard 화면에서 쓰는 UI면 `src/dashboard/components`.
-9. 여러 feature에서 쓰는 순수 계산이면 `src/utils` 또는 더 도메인성이 강하면 해당 feature의 `model`.
-10. 저장 문서 schema나 파싱이면 `src/snapshot`.
+9. 여러 dashboard feature의 키보드/클릭 target 판정처럼 DOM 상호작용 경계면 `src/dashboard/interaction`.
+10. 여러 feature에서 쓰는 순수 계산이면 `src/utils` 또는 더 도메인성이 강하면 해당 feature의 `model`.
+11. 저장 문서 schema나 파싱이면 `src/snapshot`.
 
 ## 경계 점검 질문
 

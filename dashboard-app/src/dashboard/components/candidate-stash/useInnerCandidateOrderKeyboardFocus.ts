@@ -1,16 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { AdjacentDirection } from '../../../utils/adjacentListNavigation'
 import { adjacentIdInOrder } from '../../../utils/adjacentListNavigation'
+import { isDialogOrInteractiveControlTarget } from '../../interaction/interactionTarget'
 import type { InnerCandidateRow } from './candidateStashDetailTypes'
-
-function blocksInnerCandidateKeyboardNavigation(target: EventTarget | null) {
-  const element = target instanceof Element
-    ? target
-    : target instanceof Node
-      ? target.parentElement
-      : null
-  return Boolean(element?.closest('input, textarea, select, button, a, [contenteditable="true"], [data-filter-combo-panel]'))
-}
 
 function nextFocusableInnerCandidateUuid(
   orderIds: readonly string[],
@@ -86,7 +78,7 @@ export function useInnerCandidateOrderKeyboardFocus({
     const onKeyDown = (event: KeyboardEvent) => {
       if (!['ArrowUp', 'ArrowDown', 'ArrowLeft'].includes(event.key)) return
       if (event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return
-      if (blocksInnerCandidateKeyboardNavigation(event.target)) return
+      if (isDialogOrInteractiveControlTarget(event.target)) return
 
       if (event.key === 'ArrowLeft') {
         if (!openFocusedItem(focusedVisibleItemUuid)) return

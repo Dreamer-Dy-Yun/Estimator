@@ -5,6 +5,7 @@ import { CandidateInsightBadges } from './CandidateInsightBadges'
 import type { InnerCandidateRow, InnerCandidateSortKey } from './candidateStashDetailTypes'
 import { useInnerCandidateOrderKeyboardFocus } from './useInnerCandidateOrderKeyboardFocus'
 import type { AdjacentDirection } from '../../../utils/adjacentListNavigation'
+import { isInteractiveControlTarget } from '../../interaction/interactionTarget'
 import styles from '../common.module.css'
 import detailStyles from './CandidateStashDetailModal.module.css'
 
@@ -81,8 +82,7 @@ const InnerCandidateOrderRow = memo(function InnerCandidateOrderRow({
     onToggleSelectedItem(row.uuid)
   }, [onToggleSelectedItem, row.uuid])
   const onRowKeyDown = useCallback((e: KeyboardEvent<HTMLDivElement>) => {
-    const target = e.target as HTMLElement | null
-    if (target?.closest('input, button, a, select, textarea')) return
+    if (isInteractiveControlTarget(e.target)) return
     if (e.key === 'ArrowLeft') {
       e.preventDefault()
       e.stopPropagation()

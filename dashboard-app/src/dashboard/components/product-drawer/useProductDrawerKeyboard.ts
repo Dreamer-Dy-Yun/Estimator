@@ -1,16 +1,6 @@
 import { useEffect } from 'react'
 import type { AdjacentDirection } from '../../../utils/adjacentListNavigation'
-
-function getEventTargetElement(target: EventTarget | null): Element | null {
-  if (target instanceof Element) return target
-  if (target instanceof Node) return target.parentElement
-  return null
-}
-
-function blocksAdjacentKeyNavigation(target: EventTarget | null): boolean {
-  const el = getEventTargetElement(target)
-  return Boolean(el?.closest('input, textarea, select, [contenteditable="true"], [data-filter-combo-panel]'))
-}
+import { isEditingOrComboTarget } from '../../interaction/interactionTarget'
 
 interface ProductDrawerKeyboardOptions {
   closing?: boolean
@@ -37,7 +27,7 @@ export function useProductDrawerKeyboard({
     const onKeyDown = (e: KeyboardEvent) => {
       if (!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key)) return
       if (e.defaultPrevented || e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return
-      if (blocksAdjacentKeyNavigation(e.target)) return
+      if (isEditingOrComboTarget(e.target)) return
       e.preventDefault()
       e.stopPropagation()
 

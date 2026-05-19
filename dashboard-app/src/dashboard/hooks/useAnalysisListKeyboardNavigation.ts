@@ -1,15 +1,7 @@
 import { useEffect } from 'react'
 import type { AdjacentDirection } from '../../utils/adjacentListNavigation'
 import { adjacentIdInOrder } from '../../utils/adjacentListNavigation'
-
-function blocksAnalysisListKeyboardNavigation(target: EventTarget | null) {
-  const element = target instanceof Element
-    ? target
-    : target instanceof Node
-      ? target.parentElement
-      : null
-  return Boolean(element?.closest('input, textarea, select, button, a, [contenteditable="true"], [role="dialog"], [data-filter-combo-panel]'))
-}
+import { isDialogOrInteractiveControlTarget } from '../interaction/interactionTarget'
 
 export function nextFocusableAnalysisRowId(
   orderIds: readonly string[],
@@ -42,7 +34,7 @@ export function useAnalysisListKeyboardNavigation({
     const onKeyDown = (event: KeyboardEvent) => {
       if (!['ArrowUp', 'ArrowDown', 'ArrowLeft'].includes(event.key)) return
       if (event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return
-      if (blocksAnalysisListKeyboardNavigation(event.target)) return
+      if (isDialogOrInteractiveControlTarget(event.target)) return
 
       if (event.key === 'ArrowLeft') {
         if (!activeSkuGroupKey) return
