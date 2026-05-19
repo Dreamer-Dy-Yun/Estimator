@@ -9,6 +9,7 @@ import { LoadingSpinner } from '../../components/LoadingSpinner'
 import { AnalysisCandidateBulkAddModal } from '../components/candidate-stash/AnalysisCandidateBulkAddModal'
 import { ProductDrawer } from '../components/product-drawer/ProductDrawer'
 import styles from '../components/common.module.css'
+import { AnalysisListRequestFrame } from '../components/AnalysisListRequestFrame'
 import { AnalysisPeriodTools } from '../components/AnalysisPeriodTools'
 import { AnalysisPeriodQueryButton } from '../components/AnalysisPeriodQueryButton'
 import { AnalysisScatterChartCard } from '../components/AnalysisScatterChartCard'
@@ -203,11 +204,12 @@ export const SelfPage = () => {
           />
         </div>
 
-        {rowsLoading && !rows.length ? (
-          <div className={styles.analysisListLoading}>
-            <LoadingSpinner label="자사 분석 목록을 불러오는 중" />
-          </div>
-        ) : (
+        <AnalysisListRequestFrame
+          initialLoading={rowsLoading && !rows.length}
+          refreshing={rowsRequest.isRefreshing}
+          initialLabel="자사 분석 목록을 불러오는 중"
+          refreshLabel="자사 분석 목록을 갱신하는 중"
+        >
           <SelfAnalysisList
             rows={visibleRows}
             activeSkuGroupKey={activeSkuGroupKey}
@@ -219,7 +221,7 @@ export const SelfPage = () => {
             onRequestFocusAdjacent={onRequestFocusAdjacent}
             onOrderedSkuGroupKeysChange={setOrderedSkuGroupKeys}
           />
-        )}
+        </AnalysisListRequestFrame>
       </div>
 
       <ProductDrawer

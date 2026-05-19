@@ -7,6 +7,7 @@ import { LoadingSpinner } from '../../components/LoadingSpinner'
 import { AnalysisCandidateBulkAddModal } from '../components/candidate-stash/AnalysisCandidateBulkAddModal'
 import { ProductDrawer } from '../components/product-drawer/ProductDrawer'
 import styles from '../components/common.module.css'
+import { AnalysisListRequestFrame } from '../components/AnalysisListRequestFrame'
 import { AnalysisPeriodTools } from '../components/AnalysisPeriodTools'
 import { AnalysisScatterChartCard } from '../components/AnalysisScatterChartCard'
 import { createCompetitorSalesScatterTooltip } from '../components/AnalysisScatterTooltips'
@@ -249,11 +250,12 @@ export const CompetitorPage = () => {
           />
         </div>
 
-        {rowsLoading && !rows.length ? (
-          <div className={styles.analysisListLoading}>
-            <LoadingSpinner label="경쟁사 분석 목록을 불러오는 중" />
-          </div>
-        ) : (
+        <AnalysisListRequestFrame
+          initialLoading={rowsLoading && !rows.length}
+          refreshing={rowsRequest.isRefreshing}
+          initialLabel="경쟁사 분석 목록을 불러오는 중"
+          refreshLabel="경쟁사 분석 목록을 갱신하는 중"
+        >
           <CompetitorAnalysisList
             rows={visibleRows}
             activeSkuGroupKey={activeSkuGroupKey}
@@ -265,7 +267,7 @@ export const CompetitorPage = () => {
             onRequestFocusAdjacent={onRequestFocusAdjacent}
             onOrderedSkuGroupKeysChange={setOrderedSkuGroupKeys}
           />
-        )}
+        </AnalysisListRequestFrame>
       </div>
 
       <ProductDrawer

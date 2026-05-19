@@ -47,10 +47,13 @@
 |------|------|
 | `SelfAnalysisList.tsx` | 자사 분석 목록 column 정의와 row 렌더 |
 | `CompetitorAnalysisList.tsx` | 경쟁사 분석 목록 column 정의와 row 렌더 |
+| `AnalysisListRequestFrame.tsx` | 분석 목록 최초 로딩/갱신 중 스피너 표시. 갱신 중에는 기존 rows를 비우지 않는다 |
 | `PaginatedTable.tsx` | 정렬 가능한 table shell, 현재 정렬 row id 전달 |
 | `utils/displayRank.ts` | 현재 화면 rows 기준 표시 순위 계산. 하드닝 완료 |
 
 순위는 화면 행 번호나 seed rank가 아니라 현재 렌더링 대상 rows의 판매량 기준 표시 순위다. 자사는 `qty`, 경쟁사는 `competitorQty` 기준이며 판매량이 가장 많은 항목이 1위다.
+
+목록 첫 요청에는 리스트 영역 전체 스피너를 표시한다. 한 번 rows가 표시된 뒤 필터/기간/경쟁 채널 변경으로 재조회가 들어가면 기존 리스트는 유지하고 중앙 오버레이 스피너만 표시한다.
 
 ## 산점도
 
