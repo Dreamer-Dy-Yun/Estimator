@@ -37,32 +37,27 @@ function extractSpreadsheetId(spreadsheetUrl: string) {
   return match?.[1] ?? spreadsheetUrl.trim()
 }
 
-function maskServiceAccountKey(serviceAccountKeyJson: string) {
-  const clean = serviceAccountKeyJson.trim()
-  if (!clean) return 'json-...empty'
-  const clientEmailMatch = clean.match(/"client_email"\s*:\s*"([^"]+)"/)
-  const clientEmail = clientEmailMatch?.[1]
-  if (clientEmail) {
-    const [name] = clientEmail.split('@')
-    return `json-...${name.slice(-4)}`
-  }
-  return `json-...${clean.slice(-4)}`
+interface ParsedServiceAccountKey {
+  clientEmail: string
 }
 
-function extractServiceAccountEmail(serviceAccountKeyJson: string) {
+function parseServiceAccountKey(serviceAccountKeyJson: string): ParsedServiceAccountKey {
   const clean = serviceAccountKeyJson.trim()
   if (!clean) throw new Error('서비스 계정 JSON 키 파일이 필요합니다.')
   try {
     const parsed = JSON.parse(clean) as { client_email?: unknown }
     if (typeof parsed.client_email === 'string' && parsed.client_email.trim()) {
-      return parsed.client_email.trim()
+      return { clientEmail: parsed.client_email.trim() }
     }
   } catch {
-    // Regex fallback keeps the mock useful while the UI still rejects malformed JSON.
+    throw new Error('서비스 계정 JSON 키 파일 형식이 올바르지 않습니다.')
   }
-  const clientEmailMatch = clean.match(/"client_email"\s*:\s*"([^"]+)"/)
-  if (clientEmailMatch?.[1]) return clientEmailMatch[1].trim()
   throw new Error('서비스 계정 JSON 키에서 client_email을 찾을 수 없습니다.')
+}
+
+function maskServiceAccountKey(clientEmail: string) {
+  const [name] = clientEmail.split('@')
+  return `json-...${name.slice(-4)}`
 }
 
 function findConfig(uuid: string) {
@@ -85,12 +80,13 @@ export const mockAdminGoogleSheetApi: AdminGoogleSheetApi = {
     await sleep(120)
     assertMockAdminSession()
     const now = new Date().toISOString()
+    const serviceAccountKey = parseServiceAccountKey(payload.serviceAccountKeyJson)
     const config: AdminGoogleSheetConfigSummary = {
       uuid: createMockUuid(),
       name: payload.name.trim() || '새 구글 시트',
       purpose: payload.purpose,
-      serviceAccountEmail: extractServiceAccountEmail(payload.serviceAccountKeyJson),
-      maskedServiceAccountKey: maskServiceAccountKey(payload.serviceAccountKeyJson),
+      serviceAccountEmail: serviceAccountKey.clientEmail,
+      maskedServiceAccountKey: maskServiceAccountKey(serviceAccountKey.clientEmail),
       spreadsheetUrl: payload.spreadsheetUrl.trim(),
       spreadsheetId: extractSpreadsheetId(payload.spreadsheetUrl),
       isActive: payload.isActive,
@@ -109,12 +105,15 @@ export const mockAdminGoogleSheetApi: AdminGoogleSheetApi = {
     if (!target) throw new Error('구글 시트 설정을 찾을 수 없습니다.')
 
     const nextKey = payload.serviceAccountKeyJson?.trim()
+    const serviceAccountKey = nextKey ? parseServiceAccountKey(nextKey) : null
     const nextConfig: AdminGoogleSheetConfigSummary = {
       ...target,
       name: payload.name.trim() || target.name,
       purpose: payload.purpose,
-      serviceAccountEmail: nextKey ? extractServiceAccountEmail(nextKey) : target.serviceAccountEmail,
-      maskedServiceAccountKey: nextKey ? maskServiceAccountKey(nextKey) : target.maskedServiceAccountKey,
+      serviceAccountEmail: serviceAccountKey?.clientEmail ?? target.serviceAccountEmail,
+      maskedServiceAccountKey: serviceAccountKey
+        ? maskServiceAccountKey(serviceAccountKey.clientEmail)
+        : target.maskedServiceAccountKey,
       spreadsheetUrl: payload.spreadsheetUrl.trim(),
       spreadsheetId: extractSpreadsheetId(payload.spreadsheetUrl),
       isActive: payload.isActive,

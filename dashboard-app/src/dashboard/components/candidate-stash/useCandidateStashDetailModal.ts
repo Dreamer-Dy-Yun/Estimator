@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import {
-  getCandidateItemsByStash,
   type CandidateItemSummary,
   type CandidateReferenceItemSummary,
   type CandidateStashItemSummary,
@@ -17,19 +16,12 @@ import { useCandidateRecommendations } from './useCandidateRecommendations'
 import { useCandidateDataReferencePeriod, type AppliedCandidateDataReferencePeriod } from './useCandidateDataReferencePeriod'
 import { useCandidateDetailConfirmationMutations } from './useCandidateDetailConfirmationMutations'
 import { useCandidateBulkDetailConfirm } from './useCandidateBulkDetailConfirm'
-import {
-  applyCandidateDetailConfirmationOverrides,
-  type CandidateDetailConfirmationOverrideMap,
-} from './candidateDetailConfirmationOverrideModel'
-import {
-  mergeCandidateItemsWithPreservedMetrics,
-  selectMetricCandidateItems,
-  type CandidateMetricReloadOptions,
-} from './candidateItemListMergeModel'
+import type { CandidateDetailConfirmationOverrideMap } from './candidateDetailConfirmationOverrideModel'
 import {
   appendRecommendedCandidateItems,
   removeCandidateItemsByUuid,
 } from './candidateItemLocalMutationModel'
+import { useCandidateItemsLoader } from './useCandidateItemsLoader'
 
 type Args = {
   stashUuid: string
@@ -47,8 +39,6 @@ export function useCandidateStashDetailModal({
   onStashesInvalidate,
 }: Args) {
   const [items, setItemsState] = useState<CandidateItemSummary[]>([])
-  const [detailLoading, setDetailLoading] = useState(false)
-  const [detailError, setDetailError] = useState<string | null>(null)
   const [itemDeleteTarget, setItemDeleteTarget] = useState<CandidateItemSummary | null>(null)
   const { showToast } = useAppToast()
   const mountedRef = useRef(false)
@@ -89,57 +79,17 @@ export function useCandidateStashDetailModal({
     onStashesInvalidate,
   })
 
-  const loadItems = useCallback(async (
-    nextPeriodStart = appliedPeriodRef.current.start,
-    nextPeriodEnd = appliedPeriodRef.current.end,
-    options: CandidateMetricReloadOptions = {},
-  ) => {
-    if (!stashUuid || !nextPeriodStart || !nextPeriodEnd) return
-    const seq = beginItemLoad()
-    setDetailLoading(true)
-    setDetailError(null)
-    clearRecommendationItemsRef.current()
-    try {
-      const result = await getCandidateItemsByStash({
-        stashUuid,
-        dataReferencePeriodStart: nextPeriodStart,
-        dataReferencePeriodEnd: nextPeriodEnd,
-      })
-      if (!isCurrentItemLoad(seq)) return
-      const metricCandidateItems = selectMetricCandidateItems(result.candidateItems, options.metricSkuGroupKeys)
-      const nextItems = mergeCandidateItemsWithPreservedMetrics(
-        result.items,
-        metricCandidateItems,
-        itemsRef.current,
-        options.preserveExistingMetrics,
-      )
-      const protectedResult = applyCandidateDetailConfirmationOverrides(nextItems, confirmationOverridesRef.current)
-      confirmationOverridesRef.current = protectedResult.overrides
-      setItems(protectedResult.items)
-      setDetailLoading(false)
-      const candidateItemUuids = metricCandidateItems.map((item) => item.uuid)
-      subscribeOrderMetrics({
-        seq,
-        dataReferencePeriodStart: nextPeriodStart,
-        dataReferencePeriodEnd: nextPeriodEnd,
-        candidateItemUuids,
-      })
-    } catch (err) {
-      if (!isCurrentItemLoad(seq)) return
-      const message = err instanceof Error ? err.message : '이너 후보 목록 스냅샷 데이터가 올바르지 않습니다.'
-      setItems([])
-      clearRecommendationItemsRef.current()
-      setDetailError(message)
-      setDetailLoading(false)
-    }
-  }, [
+  const { detailLoading, detailError, loadItems } = useCandidateItemsLoader({
+    stashUuid,
     appliedPeriodRef,
+    itemsRef,
+    confirmationOverridesRef,
+    clearRecommendationItems: clearRecommendationItemsFromRef,
     beginItemLoad,
     isCurrentItemLoad,
     setItems,
-    stashUuid,
     subscribeOrderMetrics,
-  ])
+  })
 
   useEffect(() => {
     if (!items.length) return

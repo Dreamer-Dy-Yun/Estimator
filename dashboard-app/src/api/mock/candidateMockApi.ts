@@ -34,6 +34,7 @@ import {
   startMockCandidateStashLlmCommentJob,
   subscribeMockCandidateStashLlmCommentJob,
 } from './candidateStashLlmCommentJobStream'
+import { buildCandidateItemStatsByStash, toCandidateItemDetail } from './candidateMockMappers'
 import {
   buildCandidateItemListResult,
   buildCandidateListParamsPeriod,
@@ -50,35 +51,6 @@ import { buildCandidateStashItems } from './candidateItemSummaryBuilder'
 import { type CandidateStashRecord } from './records'
 import { productPrimaryBySkuGroupKey } from './productCatalog'
 import { makeUuid32, sleep } from './utils'
-
-function toCandidateItemDetail(row: ReturnType<typeof readCandidateItemRecords>[number]): CandidateItemDetail {
-  return {
-    uuid: row.uuid,
-    stashUuid: row.stashUuid,
-    skuUuid: row.skuUuid,
-    skuGroupKey: row.skuGroupKey,
-    details: row.details,
-    isDetailConfirmed: row.details != null,
-    isLatestLlmComment: row.isLatestLlmComment,
-    dbCreatedAt: row.dbCreatedAt,
-    dbUpdatedAt: row.dbUpdatedAt ?? row.dbCreatedAt,
-  }
-}
-
-function buildCandidateItemStatsByStash(items: ReturnType<typeof readCandidateItemRecords>) {
-  const stats = new Map<string, { count: number; latestItemTs: string }>()
-  for (const item of items) {
-    const current = stats.get(item.stashUuid)
-    const dbCreatedAt = String(item.dbCreatedAt)
-    if (!current) {
-      stats.set(item.stashUuid, { count: 1, latestItemTs: dbCreatedAt })
-      continue
-    }
-    current.count += 1
-    if (dbCreatedAt > current.latestItemTs) current.latestItemTs = dbCreatedAt
-  }
-  return stats
-}
 
 export const candidateMockApi = {
   getCandidateStashes: async (ownerUserUuid?: string): Promise<CandidateStashSummary[]> => {

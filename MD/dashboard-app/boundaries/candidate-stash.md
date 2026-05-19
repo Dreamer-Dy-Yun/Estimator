@@ -33,6 +33,7 @@
 | `CandidateStashDetailModal.tsx` | 상세 모달 shell과 하위 hook 조립 |
 | `useCandidateStashDetailModal.ts` | 상세 모달 모델 조립 hook |
 | `useCandidateDataReferencePeriod.ts` | 조회 데이터 기간 draft/apply, 첫 조회 실행 |
+| `useCandidateItemsLoader.ts` | 후보군 상세 기본 행 조회, stale guard, 상세확정 override 적용, 오더 지표 SSE 시작 |
 | `useCandidateRecommendations.ts` | 추천 조회, 배지 병합, 추천 UI용 중복 제외 |
 | `useCandidateOrderMetricStream.ts` | 총 오더 수량/금액 SSE 구독과 row 반영 |
 

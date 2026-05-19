@@ -20,11 +20,11 @@ function toRequestError(error: unknown): DashboardRequestError {
 
 export function useDashboardRequest<T>(
   request: () => Promise<T>,
-  fallbackData: T,
+  initialData: T,
 ): DashboardRequestState<T> {
   const requestSeqRef = useRef(0)
   const hasLoadedRef = useRef(false)
-  const [data, setData] = useState<T>(fallbackData)
+  const [data, setData] = useState<T>(initialData)
   const [loading, setLoading] = useState(true)
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [error, setError] = useState<DashboardRequestError | null>(null)
@@ -53,7 +53,7 @@ export function useDashboardRequest<T>(
       })
       .catch((nextError: unknown) => {
         if (!alive || reqSeq !== requestSeqRef.current) return
-        if (!hasLoadedRef.current) setData(fallbackData)
+        if (!hasLoadedRef.current) setData(initialData)
         setError(toRequestError(nextError))
       })
       .finally(() => {
@@ -65,7 +65,7 @@ export function useDashboardRequest<T>(
     return () => {
       alive = false
     }
-  }, [fallbackData, request])
+  }, [initialData, request])
 
   return {
     data,

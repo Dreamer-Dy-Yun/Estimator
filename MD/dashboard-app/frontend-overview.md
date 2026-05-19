@@ -78,7 +78,7 @@
 - **KPI:** 총 판매액, 평균 영업이익률 등.
 - **차트:** 판매량–영업이익률 산점도. 백엔드 격자 응답을 [`useAnalysisScatterGridView`](../../dashboard-app/src/dashboard/hooks/useAnalysisScatterGridView.ts)가 차트 point view-model로 변환합니다.
 - **목록:** `AnalysisList` + 정렬 가능한 컬럼(내부 [`PaginatedTable`](../../dashboard-app/src/dashboard/components/PaginatedTable.tsx)).
-- **상태 표시:** 목록/산점도 요청 상태는 [`useDashboardRequest`](../../dashboard-app/src/dashboard/hooks/useDashboardRequest.ts)가 `loading`, `isRefreshing`, `error`, `lastUpdatedAt`, `isStale`로 관리하고, [`DashboardRequestStatus`](../../dashboard-app/src/dashboard/components/DashboardRequestStatus.tsx)가 갱신 중·실패·이전 데이터 표시를 한 줄 배지로 보여줍니다. 갱신 실패 시 기존 데이터가 있으면 fallback으로 덮지 않고 이전 데이터를 유지합니다.
+- **상태 표시:** 목록/산점도 요청 상태는 [`useDashboardRequest`](../../dashboard-app/src/dashboard/hooks/useDashboardRequest.ts)가 `loading`, `isRefreshing`, `error`, `lastUpdatedAt`, `isStale`로 관리하고, [`DashboardRequestStatus`](../../dashboard-app/src/dashboard/components/DashboardRequestStatus.tsx)가 갱신 중·실패·이전 데이터 표시를 한 줄 배지로 보여줍니다. 갱신 실패 시 기존 데이터가 있으면 임의 대체값으로 덮지 않고 이전 데이터를 유지합니다.
 - **행 클릭:** [`ProductDrawer`](../../dashboard-app/src/dashboard/components/product-drawer/ProductDrawer.tsx) — 1차 기본 번들은 [`useProductDrawerBundle`](../../dashboard-app/src/dashboard/hooks/useProductDrawerBundle.ts)가 받고, drawer 내부의 판매 정보/월간 추이/2차 상세는 1차/2차 드로워 컨테이너가 각각 별도 API를 요청합니다.
 - **포캐스트 월 수:** 로컬 스토리지에 저장 ([`forecastMonthsStorage`](../../dashboard-app/src/utils/forecastMonthsStorage.ts)).
 

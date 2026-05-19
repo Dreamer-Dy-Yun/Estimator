@@ -24,10 +24,10 @@ type ProbeProps = {
   request: () => Promise<string[]>
 }
 
-const FALLBACK_DATA = ['fallback']
+const INITIAL_DATA = ['initial']
 
 function Probe({ request }: ProbeProps) {
-  const state = useDashboardRequest(request, FALLBACK_DATA)
+  const state = useDashboardRequest(request, INITIAL_DATA)
   return (
     <output
       data-loading={state.loading}

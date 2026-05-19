@@ -1,5 +1,4 @@
 import type {
-  CandidateBadge,
   CandidateItemSummary,
   CandidateOrderMetric,
   CandidateReferenceItemSummary,
@@ -9,46 +8,17 @@ import type { CandidateItemInsightSummary } from '../types/candidate'
 import type { CandidateItemRecord } from './records'
 import { competitorBySkuGroupKey, secondaryCompetitorChannels, selfBySkuGroupKey } from './salesTables'
 import { estimatePeriodWeight, productPrimaryBySkuGroupKey, skuMetadataBySkuGroupKey } from './productCatalog'
+import {
+  buildCandidateBadges,
+  INNER_ORDER_BOTTOM_PERCENT_THRESHOLD,
+  INNER_ORDER_TOP_PERCENT_THRESHOLD,
+  isBottomCandidatePercent,
+  isTopCandidatePercent,
+} from './candidateInsightBadgeModel'
 
-export type CandidateDataReferencePeriod = {
+export interface CandidateDataReferencePeriod {
   start: string
   end: string
-}
-
-const INNER_ORDER_TOP_PERCENT_THRESHOLD = 10
-const INNER_ORDER_BOTTOM_PERCENT_THRESHOLD = 10
-
-const CANDIDATE_BADGES_BY_NAME: Record<string, CandidateBadge> = {
-  크림판매: {
-    name: '크림판매',
-    color: '#0f766e',
-    tooltip: `조회 기간 내 크림 경쟁사 판매수량 상위 ${INNER_ORDER_TOP_PERCENT_THRESHOLD}% 이내 후보입니다.`,
-  },
-  자사이익: {
-    name: '자사이익',
-    color: '#be123c',
-    tooltip: '조회 기간 내 자사 영업이익률이 9% 이상인 후보입니다.',
-  },
-  자사판매: {
-    name: '자사판매',
-    color: '#c2410c',
-    tooltip: `조회 기간 내 자사 판매수량 상위 ${INNER_ORDER_TOP_PERCENT_THRESHOLD}% 이내 후보입니다.`,
-  },
-}
-
-function inTopPercent(rankPercentile: number | null | undefined) {
-  return typeof rankPercentile === 'number' && rankPercentile >= 100 - INNER_ORDER_TOP_PERCENT_THRESHOLD
-}
-
-function inBottomPercent(rankPercentile: number | null | undefined) {
-  return typeof rankPercentile === 'number' && rankPercentile <= INNER_ORDER_BOTTOM_PERCENT_THRESHOLD
-}
-
-function toCandidateBadges(names: string[]): CandidateBadge[] {
-  return names.flatMap((name) => {
-    const badge = CANDIDATE_BADGES_BY_NAME[name]
-    return badge ? [badge] : []
-  })
 }
 
 function getProductPrimary(skuGroupKey: string) {
@@ -86,12 +56,14 @@ function buildCandidateItemInsight(
   const weightedSalesValue = (value: number | null | undefined) =>
     typeof value === 'number' ? Math.max(0, Math.round(value * periodWeight)) : null
 
-  if (inTopPercent(competitor?.rankPercentile)) badgeNameList.push(`${channelLabel}판매`)
+  if (isTopCandidatePercent(competitor?.rankPercentile)) badgeNameList.push(`${channelLabel}판매`)
   if (typeof self?.opMarginRate === 'number' && self.opMarginRate >= 9) badgeNameList.push('자사이익')
-  if (inTopPercent(self?.rankPercentile)) badgeNameList.push('자사판매')
+  if (isTopCandidatePercent(self?.rankPercentile)) badgeNameList.push('자사판매')
 
   const top = badgeNameList.length > 0
-  const bottom = !top && (inBottomPercent(competitor?.rankPercentile) || inBottomPercent(self?.rankPercentile))
+  const bottom = !top && (
+    isBottomCandidatePercent(competitor?.rankPercentile) || isBottomCandidatePercent(self?.rankPercentile)
+  )
 
   return {
     competitorChannelLabel: channelLabel,
@@ -106,7 +78,7 @@ function buildCandidateItemInsight(
     rankTone: top ? 'top' as const : bottom ? 'bottom' as const : 'neutral' as const,
     topPercentThreshold: INNER_ORDER_TOP_PERCENT_THRESHOLD,
     bottomPercentThreshold: INNER_ORDER_BOTTOM_PERCENT_THRESHOLD,
-    badges: toCandidateBadges(badgeNameList),
+    badges: buildCandidateBadges(badgeNameList),
   }
 }
 
@@ -114,9 +86,9 @@ function hasCandidateBadgeSource(skuGroupKey: string) {
   const competitor = competitorBySkuGroupKey[skuGroupKey]
   const self = selfBySkuGroupKey[skuGroupKey]
   return (
-    inTopPercent(competitor?.rankPercentile) ||
+    isTopCandidatePercent(competitor?.rankPercentile) ||
     (typeof self?.opMarginRate === 'number' && self.opMarginRate >= 9) ||
-    inTopPercent(self?.rankPercentile)
+    isTopCandidatePercent(self?.rankPercentile)
   )
 }
 

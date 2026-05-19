@@ -105,7 +105,7 @@ export function ProductPrimaryDrawer({
               <span className={styles.metaChip}>{summary.brand}</span>
               <span className={styles.metaChip}>{summary.category}</span>
               <span className={styles.metaChip}>{summary.code}</span>
-                      <span className={styles.metaChip}>{summary.colorCode}</span>
+              <span className={styles.metaChip}>{summary.colorCode}</span>
               <span className={styles.metaChip}>{summary.productName}</span>
             </div>
             <div className={styles.productImageWrap}>

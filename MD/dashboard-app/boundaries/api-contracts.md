@@ -49,9 +49,12 @@
 | `mock/authApi.ts` | 런타임 메모리 기반 인증 mock |
 | `mock/admin*Api.ts` | 관리자 사용자/GPT/구글 시트 mock |
 | `mock/dashboardApi.ts` | 판매/드로워 mock public 조립 |
+| `mock/secondaryAiComment.ts` | 2차 드로워 AI 코멘트 mock 문장 생성 |
 | `mock/candidateMockApi.ts` | 후보군 mock public method orchestration과 mutation entry |
 | `mock/candidateMockStore.ts` | 후보군 seed/store 읽기와 list result 조립 |
-| `mock/candidateItemSummaryBuilder.ts` | 기간 기준 후보 요약, 배지 평가, 오더 지표 DTO 조립 |
+| `mock/candidateMockMappers.ts` | 후보 아이템 상세 DTO와 후보군별 item 통계 매핑 |
+| `mock/candidateItemSummaryBuilder.ts` | 기간 기준 후보 요약과 오더 지표 DTO 조립 |
+| `mock/candidateInsightBadgeModel.ts` | 추천/배지 판정 기준과 배지 DTO 생성 |
 | `mock/candidateOrderMetricStream.ts` | 총 오더 지표 SSE mock |
 | `mock/candidateDetailBulkConfirmStream.ts` | 상세 일괄확정 SSE mock |
 | `mock/candidateStashLlmCommentJobStream.ts` | 후보군 LLM 코멘트 SSE mock |
@@ -64,6 +67,7 @@
 - `mockDashboardRequests.ts`는 현재 세션의 `USER_ACCOUNT.uuid`를 request boundary에서만 붙인다. 화면 내부로 사용자 UUID를 흘리지 않는다.
 - `httpDashboardRequests.ts`는 실제 백엔드 endpoint 경로를 `DashboardApi` 계약에 맞춰 연결한다.
 - `dashboardMasterDataCache.ts`는 page와 공통 drawer가 공유하는 master data 요청을 coalesce한다. mutation 후 무효화 대상이 아닌 master data만 캐시한다.
+- 관리자 Google Sheets mock은 서비스 계정 키를 JSON으로 parse해 `client_email`을 확인한다. 잘못된 JSON을 정규식 등으로 보정하지 않는다.
 
 ## 백엔드 문서 연결
 
