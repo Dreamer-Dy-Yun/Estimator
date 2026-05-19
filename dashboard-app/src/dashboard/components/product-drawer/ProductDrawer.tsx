@@ -10,7 +10,7 @@ import { useCompetitorChannels } from './useCompetitorChannels'
 import { useProductDrawerKeyboard } from './useProductDrawerKeyboard'
 import { useSecondaryDrawerDetail } from './secondary/useSecondaryDrawerDetail'
 import type { OrderSnapshotDocumentV1 } from '../../../snapshot/orderSnapshotTypes'
-import { DRAWER_KEEP_OPEN_SELECTOR } from '../../drawer/drawerDom'
+import { shouldKeepDrawerOpenOnOutsideMouseDown } from '../../drawer/drawerDom'
 import { setBodyPrimaryDrawerOpen } from '../../drawer/primaryDrawerBody'
 import styles from '../common.module.css'
 
@@ -78,11 +78,7 @@ function ProductDrawerContent({
       const clickedInsideDrawer = drawerRef.current ? path.includes(drawerRef.current) : false
       if (clickedInsideDrawer) return
 
-      const clickedKeepOpenArea = path.some((node) => {
-        if (!(node instanceof Element)) return false
-        return Boolean(node.closest(DRAWER_KEEP_OPEN_SELECTOR))
-      })
-      if (clickedKeepOpenArea) return
+      if (shouldKeepDrawerOpenOnOutsideMouseDown(event)) return
 
       onClose()
     }
