@@ -1,14 +1,18 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useMemo } from 'react'
 import type { SecondaryCompetitorChannel } from '../../../../api'
 import { useAppToast } from '../../../../components/AppToastContext'
 import type { ProductPrimarySummary, ProductSecondaryDetail } from '../../../../types'
 import type { OrderSnapshotDocumentV1 } from '../../../../snapshot/orderSnapshotTypes'
 import type { CandidateItemPanelContext } from './candidateActionCards'
 import { useSecondaryAiCommentState } from './hooks/useSecondaryAiCommentState'
+import {
+  useSecondaryDrawerDraftEmission,
+  useSecondaryDrawerLiveUnitDefaults,
+  useSecondaryDrawerSnapshotController,
+} from './hooks/useSecondaryDrawerSnapshotController'
 import { useSecondaryForecastModel } from './hooks/useSecondaryForecastModel'
 import { useSecondaryHelpController } from './hooks/useSecondaryHelpController'
 import { useSecondaryLeadTimeDates } from './hooks/useSecondaryLeadTimeDates'
-import { useSecondarySnapshotPrefill } from './hooks/useSecondarySnapshotPrefill'
 import { ProductSecondaryDrawerContent } from './ProductSecondaryDrawerContent'
 
 export type { CandidateItemPanelContext }
@@ -49,8 +53,6 @@ export function ProductSecondaryDrawer({
   const { channelId, competitorChannels, onChannelChange } = channelState
   const { portalHelp, helpIds } = useSecondaryHelpController()
   const { showToast } = useAppToast()
-  /** null: 예측 수량연산용 μ는 클라이언트 가중모형값. 숫자면 해당 값으로 덮어씀. */
-  const [dailyMeanClient, setDailyMeanClient] = useState<number | null>(null)
   const {
     defaultLeadTime,
     minOrderDate,
@@ -63,43 +65,17 @@ export function ProductSecondaryDrawer({
     handleNextOrderDateChange,
     resetLeadTimeToLive,
   } = useSecondaryLeadTimeDates()
-  const [bufferStock, setBufferStock] = useState(0)
-  const [unitCostInput, setUnitCostInput] = useState(Math.max(0, Math.round(primary.price * 0.78)))
-  const [unitPriceInput, setUnitPriceInput] = useState(Math.max(0, Math.round(primary.price)))
-  const [expectedFeeRatePct, setExpectedFeeRatePct] = useState(13)
-  const [selfWeightPct, setSelfWeightPct] = useState(50)
-  /** 사용자가 직접 덮어쓴 확정 수량만. live/snapshot baseline은 SecondaryOrderDraft가 정한다. */
-  const [confirmBySize, setConfirmBySize] = useState<Record<string, number>>({})
-  const [snapshotConfirmBaselineActive, setSnapshotConfirmBaselineActive] = useState(
-    () => prefillFromSnapshot != null && candidateItemContext?.hydrateSnapshotSource === 'confirmed',
-  )
-  const [appliedPrefillKey, setAppliedPrefillKey] = useState<string | null>(null)
 
-  const hasSavedSnapshot = Boolean(candidateItemContext?.confirmedSnapshot)
   const viewPeriodStart = periodStart
   const viewPeriodEnd = periodEnd
-  const prefillKey = useMemo(
-    () => (prefillFromSnapshot == null
-      ? null
-      : [
-          candidateItemContext?.itemUuid ?? primary.skuGroupKey,
-          prefillFromSnapshot.savedAt,
-          prefillFromSnapshot.context.periodStart,
-          prefillFromSnapshot.context.periodEnd,
-        ].join('|')),
-    [candidateItemContext?.itemUuid, prefillFromSnapshot, primary.skuGroupKey],
-  )
-  const snapshotConfirmBySize = useMemo(
-    () => (prefillFromSnapshot == null
-      ? {}
-      : Object.fromEntries(prefillFromSnapshot.drawer2.sizeRows.map((row) => [row.size, row.confirmQty]))),
-    [prefillFromSnapshot],
-  )
 
-  const channel = useMemo<SecondaryCompetitorChannel>(
-    () => competitorChannels.find((ch) => ch.id === channelId)!,
-    [channelId, competitorChannels],
-  )
+  const channel = useMemo<SecondaryCompetitorChannel>(() => {
+    const selectedChannel = competitorChannels.find((ch) => ch.id === channelId)
+    if (selectedChannel == null) {
+      throw new Error(`ProductSecondaryDrawer: channelId "${channelId}" is not available.`)
+    }
+    return selectedChannel
+  }, [channelId, competitorChannels])
 
   const {
     aiPrompt,
@@ -119,28 +95,44 @@ export function ProductSecondaryDrawer({
     candidateItemContext,
   })
 
-  useSecondarySnapshotPrefill({
+  const snapshotController = useSecondaryDrawerSnapshotController({
     prefillFromSnapshot,
     candidateItemContext,
     primarySkuGroupKey: primary.skuGroupKey,
+    primaryPrice: primary.price,
     defaultLeadTime,
     minOrderDate,
-    prefillKey,
     onChannelChange,
-    setDailyMeanClient,
     setLeadTimeStartDate,
     setLeadTimeEndDate,
-    setBufferStock,
-    setSelfWeightPct,
     setAiPrompt,
     setAiComment,
-    setConfirmBySize,
-    setSnapshotConfirmBaselineActive,
-    setAppliedPrefillKey,
-    setUnitCostInput,
-    setUnitPriceInput,
-    setExpectedFeeRatePct,
+    resetLeadTimeToLive,
   })
+  const {
+    dailyMeanClient,
+    setDailyMeanClient,
+    bufferStock,
+    setBufferStock,
+    unitCostInput,
+    setUnitCostInput,
+    unitPriceInput,
+    setUnitPriceInput,
+    expectedFeeRatePct,
+    setExpectedFeeRatePct,
+    selfWeightPct,
+    setSelfWeightPct,
+    confirmBySize,
+    setConfirmBySize,
+    hasSavedSnapshot,
+    prefillKey,
+    appliedPrefillKey,
+    snapshotConfirmBySize,
+    snapshotConfirmBaselineActive,
+    applyLiveOrderUnitInputs,
+    handleResetToLive,
+    handleRestoreConfirmed,
+  } = snapshotController
 
   const model = useSecondaryForecastModel({
     primary,
@@ -178,74 +170,28 @@ export function ProductSecondaryDrawer({
   })
   const { selfCol } = model
   const buildCurrentSnapshot = model.buildSnapshot
+
+  useSecondaryDrawerLiveUnitDefaults({
+    prefillFromSnapshot,
+    primarySkuGroupKey: primary.skuGroupKey,
+    liveOrderUnitSource: selfCol,
+    applyLiveOrderUnitInputs,
+  })
+
   const handleRequestAiComment = useCallback(() => {
     requestAiComment(buildCurrentSnapshot())
   }, [buildCurrentSnapshot, requestAiComment])
+  const handleResetToLiveClick = useCallback(() => {
+    handleResetToLive(selfCol)
+  }, [handleResetToLive, selfCol])
 
-  useEffect(() => {
-    if (prefillFromSnapshot != null) return
-    let alive = true
-    queueMicrotask(() => {
-      if (!alive) return
-      setUnitCostInput(Math.max(0, Math.round(selfCol.avgCost ?? 0)))
-      setUnitPriceInput(Math.max(0, Math.round(selfCol.avgPrice)))
-      setExpectedFeeRatePct(Math.max(0, Math.round((selfCol.feeRatePct ?? 0) * 10) / 10))
-    })
-    return () => {
-      alive = false
-    }
-  }, [prefillFromSnapshot, primary.skuGroupKey, selfCol.avgCost, selfCol.avgPrice, selfCol.feeRatePct])
-  const handleResetToLive = useCallback(() => {
-    setDailyMeanClient(null)
-    resetLeadTimeToLive()
-    setBufferStock(0)
-    setUnitCostInput(Math.max(0, Math.round(selfCol.avgCost ?? 0)))
-    setUnitPriceInput(Math.max(0, Math.round(selfCol.avgPrice)))
-    setExpectedFeeRatePct(Math.max(0, Math.round((selfCol.feeRatePct ?? 0) * 10) / 10))
-    setAiPrompt('')
-    setAiComment('')
-    setSelfWeightPct(50)
-    setConfirmBySize({})
-    setSnapshotConfirmBaselineActive(false)
-    setAppliedPrefillKey(null)
-    candidateItemContext?.onResetDraft?.()
-  }, [
-    candidateItemContext,
-    resetLeadTimeToLive,
-    selfCol.avgCost,
-    selfCol.avgPrice,
-    selfCol.feeRatePct,
-    setAiComment,
-    setAiPrompt,
-  ])
-
-  const handleRestoreConfirmed = useCallback(() => {
-    if (!candidateItemContext?.confirmedSnapshot) return
-    setSnapshotConfirmBaselineActive(true)
-    candidateItemContext.onRestoreConfirmed?.()
-  }, [candidateItemContext])
-
-  useEffect(() => {
-    if (candidateItemContext == null) return
-    if (prefillKey != null && appliedPrefillKey !== prefillKey) return
-    let alive = true
-    queueMicrotask(() => {
-      if (!alive) return
-      candidateItemContext.onDraftChange?.(
-        buildCurrentSnapshot(),
-        snapshotConfirmBaselineActive ? 'confirmed' : 'live',
-      )
-    })
-    return () => {
-      alive = false
-    }
-  }, [
+  useSecondaryDrawerDraftEmission({
     appliedPrefillKey,
     candidateItemContext,
     buildCurrentSnapshot,
     prefillKey,
     snapshotConfirmBaselineActive,
-  ])
+  })
 
   return (
     <ProductSecondaryDrawerContent
@@ -255,7 +201,7 @@ export function ProductSecondaryDrawer({
       candidateItemContext={candidateItemContext}
       hasSavedSnapshot={hasSavedSnapshot}
       showingConfirmedValues={snapshotConfirmBaselineActive}
-      onResetToLive={handleResetToLive}
+      onResetToLive={handleResetToLiveClick}
       onRestoreConfirmed={handleRestoreConfirmed}
       model={model}
       aiComment={aiComment}

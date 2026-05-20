@@ -25,7 +25,7 @@ describe('api/mock candidate stash contract stubs', () => {
     expect(adminOwned.length + userOwned.length).toBe(all.length)
   })
 
-  it('hides candidate items when stash belongs to another user', async () => {
+  it('rejects candidate item access when stash belongs to another user', async () => {
     const adminOwned = await mockDashboardApi.getCandidateStashes(MOCK_ADMIN_USER_UUID)
     const target = adminOwned.find((row) => row.itemCount > 0)
     expect(target).toBeDefined()
@@ -34,13 +34,10 @@ describe('api/mock candidate stash contract stubs', () => {
       defaultCandidateItemListParams(target!.uuid),
       MOCK_ADMIN_USER_UUID,
     )
-    const hidden = await mockDashboardApi.getCandidateItemsByStash(
-      defaultCandidateItemListParams(target!.uuid),
-      MOCK_USER_UUID,
-    )
-
     expect(visible.items.length).toBeGreaterThan(0)
-    expect(hidden.items).toEqual([])
+    await expect(
+      mockDashboardApi.getCandidateItemsByStash(defaultCandidateItemListParams(target!.uuid), MOCK_USER_UUID),
+    ).rejects.toThrow('후보군을 찾을 수 없습니다.')
   })
 
   it('returns base candidate item rows with period sales totals but without eager badges', async () => {
@@ -169,23 +166,32 @@ describe('api/mock candidate stash contract stubs', () => {
     expect(names.some((name) => name !== '테스트 상의' && name !== '테스트 신발')).toBe(true)
   })
 
-  it('keeps candidate stash list read-only after mutation API calls', async () => {
+  it('mutates candidate stash list through stash mutation API calls', async () => {
     const before = await mockDashboardApi.getCandidateStashes()
-    const source = before.find((row) => row.itemCount > 0)
-    expect(source).toBeDefined()
 
     const created = await mockDashboardApi.createCandidateStash({
       name: '프론트 임시 후보군',
       note: null,
       ...DEFAULT_CANDIDATE_STASH_CONTEXT,
     })
-    await mockDashboardApi.updateCandidateStash({
-      stashUuid: source!.uuid,
+    const afterCreate = await mockDashboardApi.getCandidateStashes()
+    expect(afterCreate.some((row) => row.uuid === created.uuid)).toBe(true)
+
+    const updated = await mockDashboardApi.updateCandidateStash({
+      stashUuid: created.uuid,
       name: '프론트 수정',
-      note: '저장되면 안 됨',
+      note: '저장됨',
     })
-    await mockDashboardApi.duplicateCandidateStash(source!.uuid)
-    await mockDashboardApi.deleteCandidateStash(source!.uuid)
+    expect(updated.name).toBe('프론트 수정')
+    expect(updated.note).toBe('저장됨')
+
+    await mockDashboardApi.duplicateCandidateStash(created.uuid)
+    const afterDuplicate = await mockDashboardApi.getCandidateStashes()
+    const duplicated = afterDuplicate.find((row) => row.uuid !== created.uuid && row.name === '프론트 수정 복사본')
+    expect(duplicated).toBeDefined()
+
+    await mockDashboardApi.deleteCandidateStash(created.uuid)
+    await mockDashboardApi.deleteCandidateStash(duplicated!.uuid)
 
     const after = await mockDashboardApi.getCandidateStashes()
     expect(after).toEqual(before)

@@ -1,6 +1,6 @@
 import { useMemo, useRef } from 'react'
+import { formatGroupedNumber } from '../../../../../utils/format'
 import { PortalHelpMark } from '../../../PortalHelpPopover'
-import { formatGroupedNumber, formatRatioDecimalKo } from '../../../../../utils/format'
 import commonStyles from '../../../common.module.css'
 import { KO } from '../../ko'
 import styles from '../secondaryDrawer.module.css'
@@ -8,6 +8,7 @@ import type { SecondaryHelpId } from '../secondaryDrawerTypes'
 import { usePortalHelpPopover } from '../../../usePortalHelpPopover'
 
 import { SizeOrderShareChartRow } from './SizeOrderShareChartRow'
+import { calculateSizeOrderColumnTotals, formatOptionalGroupedNumber, formatSharePct, getCompetitorWeightPct, getSelfWeightPctFromCompetitorInput, parseConfirmQtyInput, parseSelfWeightPctFromCompetitorInput, parseSelfWeightPctInput } from './sizeOrderCardModel'
 import type { SizeOrderRow } from './sizeOrderCardTypes'
 
 type Props = {
@@ -36,13 +37,35 @@ type Props = {
   help: ReturnType<typeof usePortalHelpPopover<SecondaryHelpId>>
 }
 
-function clampWeightPct(v: number): number {
-  if (!Number.isFinite(v)) return 0
-  return Math.max(0, Math.min(100, Math.round(v * 100) / 100))
+type QuantityRowHelpMark = { helpId: SecondaryHelpId; labelId: string; help: Props['help'] }
+
+type QuantityRowProps = {
+  label: string
+  totalQty: number
+  sizeRows: SizeOrderRow[]
+  valueForSize: (row: SizeOrderRow, index: number) => number | undefined
+  helpMark?: QuantityRowHelpMark
 }
 
-function formatOptionalGroupedNumber(value: number | undefined): string {
-  return value == null ? '-' : formatGroupedNumber(value)
+function QuantityRow({ label, totalQty, sizeRows, valueForSize, helpMark }: QuantityRowProps) {
+  const labelNode = helpMark ? (
+    <span className={commonStyles.cardTitleWithHelp}>
+      {label}
+      <PortalHelpMark helpId={helpMark.helpId} placement="above" labelId={helpMark.labelId} markClassName={commonStyles.helpMark} help={helpMark.help} />
+    </span>
+  ) : (
+    label
+  )
+
+  return (
+    <tr>
+      <td>{labelNode}</td>
+      <td className={styles.num}>{formatGroupedNumber(totalQty)}</td>
+      {sizeRows.map((r, i) => (
+        <td key={r.size} className={styles.num}>{formatOptionalGroupedNumber(valueForSize(r, i))}</td>
+      ))}
+    </tr>
+  )
 }
 
 export function SizeOrderCard({ sizeOrder, actions, help }: Props) {
@@ -63,21 +86,8 @@ export function SizeOrderCard({ sizeOrder, actions, help }: Props) {
     manualConfirmBySize,
   } = sizeOrder
   const tableRef = useRef<HTMLTableElement | null>(null)
-  const competitorWeightPct = clampWeightPct(100 - selfWeightPct)
-  const columnTotals = useMemo(() => {
-    let weightedPct = 0
-    let forecast = 0
-    let rec = 0
-    let confirm = 0
-    for (const r of sizeRows) {
-      weightedPct += r.blendedSharePct
-      forecast += r.forecastQty
-      rec += r.recommendedQty
-      confirm += r.confirmQty
-    }
-    return { weightedPct, forecast, rec, confirm }
-  }, [sizeRows])
-
+  const competitorWeightPct = getCompetitorWeightPct(selfWeightPct)
+  const columnTotals = useMemo(() => calculateSizeOrderColumnTotals(sizeRows), [sizeRows])
 
   return (
     <div className={styles.card}>
@@ -94,14 +104,8 @@ export function SizeOrderCard({ sizeOrder, actions, help }: Props) {
               step={0.01}
               value={selfWeightPct}
               onChange={(e) => {
-                const t = e.target.value.trim()
-                if (t === '') {
-                  actions.onSelfWeightPctChange(0)
-                  return
-                }
-                const n = Number(t)
-                if (!Number.isFinite(n)) return
-                actions.onSelfWeightPctChange(clampWeightPct(n))
+                const next = parseSelfWeightPctInput(e.target.value)
+                if (next != null) actions.onSelfWeightPctChange(next)
               }}
               aria-label={KO.selfWeight}
             />
@@ -116,8 +120,7 @@ export function SizeOrderCard({ sizeOrder, actions, help }: Props) {
           step={0.01}
           value={competitorWeightPct}
           onChange={(e) => {
-            const competitorWeight = clampWeightPct(Number(e.target.value))
-            actions.onSelfWeightPctChange(clampWeightPct(100 - competitorWeight))
+            actions.onSelfWeightPctChange(getSelfWeightPctFromCompetitorInput(Number(e.target.value)))
           }}
           aria-label={KO.ariaWeightSlider}
         />
@@ -128,20 +131,14 @@ export function SizeOrderCard({ sizeOrder, actions, help }: Props) {
               className={styles.sliderPctInput}
               min={0}
               max={100}
-              step={0.01}
-              value={competitorWeightPct}
-              onChange={(e) => {
-                const t = e.target.value.trim()
-                if (t === '') {
-                  actions.onSelfWeightPctChange(100)
-                  return
-                }
-                const n = Number(t)
-                if (!Number.isFinite(n)) return
-                actions.onSelfWeightPctChange(clampWeightPct(100 - clampWeightPct(n)))
-              }}
-              aria-label={`${channelLabel} ${KO.competitorWeightApprox}`}
-            />
+                step={0.01}
+                value={competitorWeightPct}
+                onChange={(e) => {
+                  const next = parseSelfWeightPctFromCompetitorInput(e.target.value)
+                  if (next != null) actions.onSelfWeightPctChange(next)
+                }}
+                aria-label={`${channelLabel} ${KO.competitorWeightApprox}`}
+              />
             <span className={styles.sliderPctSuffix}>%</span>
           </div>
           <span
@@ -172,94 +169,51 @@ export function SizeOrderCard({ sizeOrder, actions, help }: Props) {
             />
             <tr data-chart-align-row="">
               <td>{KO.rowMetricAdjustReflectedSizeSharePct}</td>
-              <td className={styles.num}>{formatRatioDecimalKo(columnTotals.weightedPct)}</td>
+              <td className={styles.num}>{formatSharePct(columnTotals.weightedPct)}</td>
               {sizeRows.map((r) => (
                 <td key={r.size} className={styles.num} data-chart-x="">
-                  {formatRatioDecimalKo(r.blendedSharePct)}
+                  {formatSharePct(r.blendedSharePct)}
                 </td>
               ))}
             </tr>
-            <tr>
-              <td>{KO.rowCurrentStockQty}</td>
-              <td className={styles.num}>{formatGroupedNumber(currentStockQty)}</td>
-              {sizeRows.map((r, i) => (
-                <td key={r.size} className={styles.num}>{formatOptionalGroupedNumber(currentStockQtyBySize[i])}</td>
-              ))}
-            </tr>
-            <tr>
-              <td>
-                <span className={commonStyles.cardTitleWithHelp}>
-                  {KO.rowTotalOrderBalance}
-                  <PortalHelpMark
-                    helpId="totalOrderBalance"
-                    placement="above"
-                    labelId={totalOrderBalanceHelpId}
-                    markClassName={commonStyles.helpMark}
-                    help={help}
-                  />
-                </span>
-              </td>
-              <td className={styles.num}>{formatGroupedNumber(totalOrderBalanceQty)}</td>
-              {sizeRows.map((r, i) => (
-                <td key={r.size} className={styles.num}>{formatOptionalGroupedNumber(totalOrderBalanceBySize[i])}</td>
-              ))}
-            </tr>
-            <tr>
-              <td>
-                <span className={commonStyles.cardTitleWithHelp}>
-                  {KO.rowExpectedInboundOrderBalance}
-                  <PortalHelpMark
-                    helpId="expectedInboundOrderBalance"
-                    placement="above"
-                    labelId={expectedInboundOrderBalanceHelpId}
-                    markClassName={commonStyles.helpMark}
-                    help={help}
-                  />
-                </span>
-              </td>
-              <td className={styles.num}>{formatGroupedNumber(expectedInboundOrderBalanceQty)}</td>
-              {sizeRows.map((r, i) => (
-                <td key={r.size} className={styles.num}>
-                  {formatOptionalGroupedNumber(expectedInboundOrderBalanceBySize[i])}
-                </td>
-              ))}
-            </tr>
-            <tr>
-              <td>
-                <span className={commonStyles.cardTitleWithHelp}>
-                  {KO.rowSalesForecast}
-                  <PortalHelpMark
-                    helpId="salesForecastSizeOrder"
-                    placement="above"
-                    labelId={salesForecastHelpId}
-                    markClassName={commonStyles.helpMark}
-                    help={help}
-                  />
-                </span>
-              </td>
-              <td className={styles.num}>{formatGroupedNumber(columnTotals.forecast)}</td>
-              {sizeRows.map((r) => (
-                <td key={r.size} className={styles.num}>{formatGroupedNumber(r.forecastQty)}</td>
-              ))}
-            </tr>
-            <tr>
-              <td>
-                <span className={commonStyles.cardTitleWithHelp}>
-                  {KO.thRecQty}
-                  <PortalHelpMark
-                    helpId="sizeRecQty"
-                    placement="above"
-                    labelId={sizeRecQtyHelpId}
-                    markClassName={commonStyles.helpMark}
-                    help={help}
-                  />
-                </span>
-              </td>
-              <td className={styles.num}>{formatGroupedNumber(columnTotals.rec)}</td>
-              {sizeRows.map((r) => (
-                <td key={r.size} className={styles.num}>{formatGroupedNumber(r.recommendedQty)}</td>
-              ))}
-            </tr>
+            <QuantityRow
+              label={KO.rowCurrentStockQty}
+              totalQty={currentStockQty}
+              sizeRows={sizeRows}
+              valueForSize={(_, i) => currentStockQtyBySize[i]}
+            />
+            <QuantityRow
+              label={KO.rowTotalOrderBalance}
+              totalQty={totalOrderBalanceQty}
+              sizeRows={sizeRows}
+              valueForSize={(_, i) => totalOrderBalanceBySize[i]}
+              helpMark={{ helpId: 'totalOrderBalance', labelId: totalOrderBalanceHelpId, help }}
+            />
+            <QuantityRow
+              label={KO.rowExpectedInboundOrderBalance}
+              totalQty={expectedInboundOrderBalanceQty}
+              sizeRows={sizeRows}
+              valueForSize={(_, i) => expectedInboundOrderBalanceBySize[i]}
+              helpMark={{
+                helpId: 'expectedInboundOrderBalance',
+                labelId: expectedInboundOrderBalanceHelpId,
+                help,
+              }}
+            />
+            <QuantityRow
+              label={KO.rowSalesForecast}
+              totalQty={columnTotals.forecast}
+              sizeRows={sizeRows}
+              valueForSize={(r) => r.forecastQty}
+              helpMark={{ helpId: 'salesForecastSizeOrder', labelId: salesForecastHelpId, help }}
+            />
+            <QuantityRow
+              label={KO.thRecQty}
+              totalQty={columnTotals.rec}
+              sizeRows={sizeRows}
+              valueForSize={(r) => r.recommendedQty}
+              helpMark={{ helpId: 'sizeRecQty', labelId: sizeRecQtyHelpId, help }}
+            />
             <tr>
               <td>{KO.thConfirmQty}</td>
               <td className={styles.num}>{formatGroupedNumber(columnTotals.confirm)}</td>
@@ -277,12 +231,10 @@ export function SizeOrderCard({ sizeOrder, actions, help }: Props) {
                         step={1}
                         className={styles.stockNumberInput}
                         value={r.confirmQty}
-                        onChange={(e) =>
-                          actions.onConfirmQtyChange(
-                            r.size,
-                            Math.max(0, Number(e.target.value) || 0),
-                            r.recommendedQty,
-                          )}
+                        onChange={(e) => {
+                          const next = parseConfirmQtyInput(e.target.value)
+                          if (next != null) actions.onConfirmQtyChange(r.size, next, r.recommendedQty)
+                        }}
                         aria-label={`${r.size} ${KO.thConfirmQty}`}
                       />
                     </span>

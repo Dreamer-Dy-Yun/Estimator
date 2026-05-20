@@ -24,7 +24,6 @@ import type {
   UpdateCandidateItemResponse,
   UpdateCandidateStashPayload,
 } from '../types'
-import { MOCK_ADMIN_USER_UUID } from './authApi'
 import { subscribeMockCandidateOrderMetrics } from './candidateOrderMetricStream'
 import {
   startMockCandidateDetailBulkConfirm,
@@ -39,18 +38,25 @@ import {
   buildCandidateItemListResult,
   buildCandidateListParamsPeriod,
   buildCandidateRecommendationResult,
-  createCandidateItemRecord,
   filterCandidateStashesForOwner,
   findCandidateStashForOwner,
   readCandidateItemRecords,
-  readCandidateItemsForStash,
   readCandidateStashRecords,
   toCandidateStashSummary,
 } from './candidateMockStore'
-import { buildCandidateStashItems } from './candidateItemSummaryBuilder'
-import { type CandidateStashRecord } from './records'
-import { productPrimaryBySkuGroupKey } from './productCatalog'
-import { makeUuid32, sleep } from './utils'
+import {
+  appendCandidateItemRecord,
+  appendCandidateItemsToStash,
+  createCandidateStashSummary,
+  deleteCandidateItemRecord,
+  deleteCandidateItemRecords,
+  deleteCandidateStashRecord,
+  duplicateCandidateStashRecord,
+  updateCandidateItemRecord,
+  updateCandidateStashSummary,
+  uploadCandidateStashExcelFile,
+} from './candidateMockMutations'
+import { sleep } from './utils'
 
 export const candidateMockApi = {
   getCandidateStashes: async (ownerUserUuid?: string): Promise<CandidateStashSummary[]> => {
@@ -74,8 +80,11 @@ export const candidateMockApi = {
     ownerUserUuid?: string,
   ): Promise<CandidateItemListResult> => {
     await sleep(60)
+    if (!findCandidateStashForOwner(params.stashUuid, ownerUserUuid)) {
+      throw new Error('후보군을 찾을 수 없습니다.')
+    }
     return buildCandidateItemListResult(
-      readCandidateItemsForStash(params.stashUuid, ownerUserUuid),
+      readCandidateItemRecords().filter((row) => row.stashUuid === params.stashUuid),
       buildCandidateListParamsPeriod(params),
       false,
     )
@@ -109,7 +118,7 @@ export const candidateMockApi = {
   ): Promise<CandidateRecommendationResult> => {
     await sleep(70)
     if (!findCandidateStashForOwner(params.stashUuid, ownerUserUuid)) {
-      return { recommendations: [], nextCursor: null }
+      throw new Error('후보군을 찾을 수 없습니다.')
     }
     return buildCandidateRecommendationResult(buildCandidateListParamsPeriod(params), params.limit, params.cursor)
   },
@@ -122,13 +131,7 @@ export const candidateMockApi = {
   },
   deleteCandidateItem: async (itemUuid: string, ownerUserUuid?: string): Promise<void> => {
     await sleep(60)
-    const records = readCandidateItemRecords()
-    const index = records.findIndex((it) => it.uuid === itemUuid)
-    const row = index >= 0 ? records[index] : undefined
-    if (row && !findCandidateStashForOwner(row.stashUuid, ownerUserUuid)) {
-      throw new Error('후보 아이템을 찾을 수 없습니다.')
-    }
-    if (index >= 0) records.splice(index, 1)
+    deleteCandidateItemRecord(itemUuid, ownerUserUuid)
   },
   deleteCandidateItems: async (
     stashUuid: string,
@@ -136,156 +139,53 @@ export const candidateMockApi = {
     ownerUserUuid?: string,
   ): Promise<void> => {
     await sleep(80)
-    if (!findCandidateStashForOwner(stashUuid, ownerUserUuid)) {
-      throw new Error('후보군을 찾을 수 없습니다.')
-    }
-    const uuidSet = new Set(itemUuids)
-    const invalidItem = readCandidateItemRecords().find(
-      (item) => uuidSet.has(item.uuid) && item.stashUuid !== stashUuid,
-    )
-    if (invalidItem) throw new Error('후보군에 포함되지 않은 아이템이 있습니다.')
-    const records = readCandidateItemRecords()
-    for (let index = records.length - 1; index >= 0; index -= 1) {
-      const item = records[index]
-      if (item.stashUuid === stashUuid && uuidSet.has(item.uuid)) records.splice(index, 1)
-    }
+    deleteCandidateItemRecords(stashUuid, itemUuids, ownerUserUuid)
   },
   deleteCandidateStash: async (stashUuid: string, ownerUserUuid?: string): Promise<void> => {
     await sleep(60)
-    if (!findCandidateStashForOwner(stashUuid, ownerUserUuid)) {
-      throw new Error('후보군을 찾을 수 없습니다.')
-    }
+    deleteCandidateStashRecord(stashUuid, ownerUserUuid)
   },
   createCandidateStash: async (
     payload: CreateCandidateStashPayload,
-    ownerUserUuid = MOCK_ADMIN_USER_UUID,
+    ownerUserUuid?: string,
   ): Promise<CandidateStashSummary> => {
     await sleep(90)
-    const now = new Date().toISOString()
-    const stash: CandidateStashRecord = {
-      uuid: makeUuid32(),
-      name: payload.name.trim() || `오더 후보군 ${now.slice(0, 10)}`,
-      note: payload.note?.trim() || null,
-      userUuid: ownerUserUuid,
-      periodStart: payload.periodStart,
-      periodEnd: payload.periodEnd,
-      forecastMonths: payload.forecastMonths,
-      dbCreatedAt: now,
-      dbUpdatedAt: now,
-    }
-    return toCandidateStashSummary(stash, 0)
+    return createCandidateStashSummary(payload, ownerUserUuid)
   },
   updateCandidateStash: async (
     payload: UpdateCandidateStashPayload,
     ownerUserUuid?: string,
   ): Promise<CandidateStashSummary> => {
     await sleep(70)
-    const stashes = readCandidateStashRecords()
-    const items = readCandidateItemRecords()
-    const target = stashes.find((s) => s.uuid === payload.stashUuid)
-    if (!target || !findCandidateStashForOwner(target.uuid, ownerUserUuid)) {
-      throw new Error('후보군을 찾을 수 없습니다.')
-    }
-    const now = new Date().toISOString()
-    const updated: CandidateStashRecord = {
-      ...target,
-      name: payload.name.trim() || target.name,
-      note: payload.note?.trim() || null,
-      dbUpdatedAt: now,
-    }
-    let itemCount = 0
-    for (const item of items) {
-      if (item.stashUuid === target.uuid) itemCount += 1
-    }
-    return toCandidateStashSummary(updated, itemCount)
+    return updateCandidateStashSummary(payload, ownerUserUuid)
   },
   duplicateCandidateStash: async (sourceStashUuid: string, ownerUserUuid?: string): Promise<void> => {
     await sleep(90)
-    const stashes = readCandidateStashRecords()
-    const source = stashes.find((row) => row.uuid === sourceStashUuid)
-    if (!source || !findCandidateStashForOwner(source.uuid, ownerUserUuid)) {
-      throw new Error('복제할 후보군을 찾을 수 없습니다.')
-    }
+    duplicateCandidateStashRecord(sourceStashUuid, ownerUserUuid)
   },
   appendCandidateItem: async (payload: AppendCandidateItemPayload, ownerUserUuid?: string): Promise<void> => {
     await sleep(70)
-    if (!findCandidateStashForOwner(payload.stashUuid, ownerUserUuid)) {
-      throw new Error('후보군을 찾을 수 없습니다.')
-    }
-    if (!productPrimaryBySkuGroupKey[payload.skuGroupKey]) {
-      throw new Error(`상품을 찾을 수 없습니다: ${payload.skuGroupKey}`)
-    }
-    const now = new Date().toISOString()
-    readCandidateItemRecords().push({
-      ...createCandidateItemRecord(payload.stashUuid, payload.skuGroupKey, now, {
-        details: payload.details,
-        isLatestLlmComment: payload.isLatestLlmComment,
-      }),
-    })
+    appendCandidateItemRecord(payload, ownerUserUuid)
   },
   appendCandidateItems: async (
     payload: AppendCandidateItemsPayload,
     ownerUserUuid?: string,
   ): Promise<AppendCandidateItemsResponse> => {
     await sleep(70)
-    if (!findCandidateStashForOwner(payload.stashUuid, ownerUserUuid)) {
-      throw new Error('후보군을 찾을 수 없습니다.')
-    }
-    const unknownProduct = payload.skuGroupKeys.find((skuGroupKey) => !productPrimaryBySkuGroupKey[skuGroupKey])
-    if (unknownProduct) throw new Error(`상품을 찾을 수 없습니다: ${unknownProduct}`)
-    const records = readCandidateItemRecords()
-    const existingSkuSet = new Set<string>()
-    for (const row of records) {
-      if (row.stashUuid === payload.stashUuid) existingSkuSet.add(row.skuUuid)
-    }
-    const now = new Date().toISOString()
-    const createdItems = []
-    for (const skuGroupKey of [...new Set(payload.skuGroupKeys)]) {
-      if (existingSkuSet.has(skuGroupKey)) continue
-      const created = createCandidateItemRecord(payload.stashUuid, skuGroupKey, now)
-      records.push(created)
-      createdItems.push(created)
-      existingSkuSet.add(skuGroupKey)
-    }
-    return {
-      candidateItems: buildCandidateStashItems(createdItems),
-    }
+    return appendCandidateItemsToStash(payload, ownerUserUuid)
   },
   updateCandidateItem: async (
     payload: UpdateCandidateItemPayload,
     ownerUserUuid?: string,
   ): Promise<UpdateCandidateItemResponse> => {
     await sleep(70)
-    const item = readCandidateItemRecords().find((row) => row.uuid === payload.itemUuid)
-    if (!item || !findCandidateStashForOwner(item.stashUuid, ownerUserUuid)) {
-      throw new Error('후보 아이템을 찾을 수 없습니다.')
-    }
-    const now = new Date().toISOString()
-    item.details = payload.details
-    item.isLatestLlmComment = payload.isLatestLlmComment
-    item.dbUpdatedAt = now
-    return toCandidateItemDetail(item)
+    return updateCandidateItemRecord(payload, ownerUserUuid)
   },
   uploadCandidateStashExcel: async (
     file: File,
     ownerUserUuid?: string,
   ): Promise<CandidateStashExcelUploadResult> => {
     await sleep(140)
-    void ownerUserUuid
-
-    const fileName = file.name.trim()
-    const isExcel = /\.(xlsx|xls)$/i.test(fileName)
-    if (!fileName || !isExcel) throw new Error('엑셀 파일(.xlsx, .xls)만 업로드할 수 있습니다.')
-    if (file.size <= 0) throw new Error('빈 엑셀 파일은 업로드할 수 없습니다.')
-
-    return {
-      stashUuid: makeUuid32(),
-      stashName: `엑셀 업로드 후보군 ${fileName}`,
-      itemCount: 0,
-      warnings: [
-        '목 API는 파일 검증과 성공 응답만 모사하며 프론트 저장소에 후보군을 만들지 않습니다.',
-        '실제 백엔드는 필수 컬럼 검증 후 DB에 후보군과 후보 아이템을 저장해야 합니다.',
-      ],
-    }
+    return uploadCandidateStashExcelFile(file, ownerUserUuid)
   },
 }
