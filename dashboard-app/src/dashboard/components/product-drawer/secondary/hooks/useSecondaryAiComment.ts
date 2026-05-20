@@ -64,16 +64,22 @@ export function useSecondaryAiComment({
         if (requestSeq.current !== currentRequest) return
         setError(makeApiErrorInfo(pageName, `getSecondaryAiComment(${JSON.stringify(requestParams)})`, err))
       } finally {
-        if (requestSeq.current !== currentRequest) return
-        setLoading(false)
+        if (requestSeq.current === currentRequest) {
+          setLoading(false)
+        }
       }
     })()
   }, [params, pageName])
 
   useEffect(() => {
     if (!autoFetchEnabled) {
-      setLoading(false)
-      setError(null)
+      const currentRequest = requestSeq.current + 1
+      requestSeq.current = currentRequest
+      queueMicrotask(() => {
+        if (requestSeq.current !== currentRequest) return
+        setLoading(false)
+        setError(null)
+      })
       return
     }
 

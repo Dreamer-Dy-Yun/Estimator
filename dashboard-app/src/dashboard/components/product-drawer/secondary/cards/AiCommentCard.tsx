@@ -1,6 +1,6 @@
 ﻿import { LoadingSpinner } from '../../../../../components/LoadingSpinner'
 import type { ApiUnitErrorInfo } from '../../../../../types'
-import { KO } from '../ko'
+import { KO } from '../../ko'
 import styles from '../secondaryDrawer.module.css'
 import aiStyles from '../style-parts/cardAi.module.css'
 
