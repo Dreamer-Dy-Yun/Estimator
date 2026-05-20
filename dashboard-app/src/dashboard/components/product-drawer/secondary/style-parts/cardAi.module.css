@@ -26,6 +26,11 @@
   overflow: auto;
 }
 
+.aiCommentActions {
+  display: flex;
+  justify-content: flex-end;
+}
+
 .btn {
   display: inline-flex;
   align-items: center;

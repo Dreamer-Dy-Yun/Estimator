@@ -106,6 +106,7 @@ export function ProductSecondaryDrawer({
     aiComment,
     aiCommentLoading,
     aiCommentError,
+    requestAiComment,
     setAiPrompt,
     setAiComment,
   } = useSecondaryAiCommentState({
@@ -116,7 +117,6 @@ export function ProductSecondaryDrawer({
     forecastMonths,
     channel,
     candidateItemContext,
-    prefillFromSnapshot,
   })
 
   useSecondarySnapshotPrefill({
@@ -178,6 +178,9 @@ export function ProductSecondaryDrawer({
   })
   const { selfCol } = model
   const buildCurrentSnapshot = model.buildSnapshot
+  const handleRequestAiComment = useCallback(() => {
+    requestAiComment(buildCurrentSnapshot())
+  }, [buildCurrentSnapshot, requestAiComment])
 
   useEffect(() => {
     if (prefillFromSnapshot != null) return
@@ -258,6 +261,7 @@ export function ProductSecondaryDrawer({
       aiComment={aiComment}
       aiCommentLoading={aiCommentLoading}
       aiCommentError={aiCommentError}
+      onRequestAiComment={handleRequestAiComment}
       selfWeightPct={selfWeightPct}
       onSelfWeightPctChange={setSelfWeightPct}
       minOrderDate={minOrderDate}

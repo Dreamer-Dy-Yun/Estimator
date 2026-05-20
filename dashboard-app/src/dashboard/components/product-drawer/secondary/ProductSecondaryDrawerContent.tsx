@@ -42,6 +42,7 @@ type Props = {
   aiComment: string
   aiCommentLoading: boolean
   aiCommentError: ApiUnitErrorInfo | null
+  onRequestAiComment: () => void
   selfWeightPct: number
   onSelfWeightPctChange: (value: number) => void
   minOrderDate: string
@@ -91,6 +92,7 @@ export function ProductSecondaryDrawerContent({
   aiComment,
   aiCommentLoading,
   aiCommentError,
+  onRequestAiComment,
   selfWeightPct,
   onSelfWeightPctChange,
   minOrderDate,
@@ -135,7 +137,12 @@ export function ProductSecondaryDrawerContent({
   const confirmedOpProfit = confirmedQtyTotal * perUnitOpMargin
   const aiCommentCard = (
     <ComponentErrorBoundary page={pageName} unit="AiCommentCard">
-      <AiCommentCard comment={aiComment} loading={aiCommentLoading} error={aiCommentError} />
+      <AiCommentCard
+        comment={aiComment}
+        loading={aiCommentLoading}
+        error={aiCommentError}
+        onRequest={onRequestAiComment}
+      />
     </ComponentErrorBoundary>
   )
   const sizeOrderCard = (

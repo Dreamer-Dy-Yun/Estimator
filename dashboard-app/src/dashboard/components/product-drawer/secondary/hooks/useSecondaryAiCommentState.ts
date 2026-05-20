@@ -1,7 +1,8 @@
 import { useCallback, useMemo, useState } from 'react'
+import type { ApiUnitErrorInfo } from '../../../../../types'
 import type { SecondaryCompetitorChannel } from '../../../../../api'
-import type { OrderSnapshotDocumentV1 } from '../../../../../snapshot/orderSnapshotTypes'
 import type { CandidateItemPanelContext } from '../candidateActionCards'
+import type { OrderSnapshotDocumentV1 } from '../../../../../snapshot/orderSnapshotTypes'
 import { useSecondaryAiComment } from './useSecondaryAiComment'
 
 type Args = {
@@ -12,7 +13,16 @@ type Args = {
   forecastMonths: number
   channel: SecondaryCompetitorChannel
   candidateItemContext: CandidateItemPanelContext | null
-  prefillFromSnapshot: OrderSnapshotDocumentV1 | null
+}
+
+type ReturnValue = {
+  aiPrompt: string
+  aiComment: string
+  aiCommentLoading: boolean
+  aiCommentError: ApiUnitErrorInfo | null
+  requestAiComment: (snapshotForAiComment?: OrderSnapshotDocumentV1 | null) => void
+  setAiPrompt: (value: string) => void
+  setAiComment: (value: string) => void
 }
 
 export function useSecondaryAiCommentState({
@@ -23,8 +33,7 @@ export function useSecondaryAiCommentState({
   forecastMonths,
   channel,
   candidateItemContext,
-  prefillFromSnapshot,
-}: Args) {
+}: Args): ReturnValue {
   const [aiPrompt, setAiPrompt] = useState('')
   const [aiComment, setAiComment] = useState('')
   const aiCommentParams = useMemo(() => ({
@@ -46,19 +55,32 @@ export function useSecondaryAiCommentState({
     setAiPrompt(result.llmPrompt)
     setAiComment(result.llmAnswer)
   }, [])
-  const { aiCommentLoading, aiCommentError } = useSecondaryAiComment({
-    enabled: candidateItemContext == null || prefillFromSnapshot == null,
+  const {
+    aiCommentLoading,
+    aiCommentError,
+    requestAiComment: request,
+  } = useSecondaryAiComment({
+    autoFetchEnabled: false,
     pageName,
     params: aiCommentParams,
     onLoaded: handleAiCommentLoaded,
   })
+
+  const requestAiComment = useCallback((snapshotForAiComment?: OrderSnapshotDocumentV1 | null) => {
+    request({
+      ...aiCommentParams,
+      ...(snapshotForAiComment == null ? {} : { snapshotForAiComment }),
+    })
+  }, [aiCommentParams, request])
 
   return {
     aiPrompt,
     aiComment,
     aiCommentLoading,
     aiCommentError,
+    requestAiComment,
     setAiPrompt,
     setAiComment,
   }
 }
+

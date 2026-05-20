@@ -1,3 +1,5 @@
+import type { OrderSnapshotDocumentV1 } from '../../snapshot/orderSnapshotTypes'
+
 export interface SecondaryDailyTrendPoint {
   idx: number
   date: string
@@ -32,6 +34,8 @@ export interface SecondaryAiCommentParams {
   forecastMonths: number
   competitorChannelId: string
   candidateItemUuid?: string | null
+  /** Full secondary snapshot used by AI generation at click time when available. */
+  snapshotForAiComment?: OrderSnapshotDocumentV1
 }
 
 export interface SecondaryAiCommentResult {

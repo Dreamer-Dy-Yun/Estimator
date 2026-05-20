@@ -69,6 +69,7 @@ export const KO = {
   "btnSelectCandidate": "후보군 선택",
   "btnDelete": "삭제",
   "btnCreateCandidateConfirm": "생성",
+  "btnRequestAiComment": "코멘트 요청",
   "labelCandidateName": "후보군 이름",
   "labelCandidateNote": "비고",
   "msgNoNote": "비고 없음",

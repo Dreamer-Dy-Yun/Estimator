@@ -1,17 +1,17 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { dashboardApi, type SecondaryAiCommentParams } from '../../../../../api'
 import type { ApiUnitErrorInfo } from '../../../../../types'
 import { makeApiErrorInfo } from '../../apiErrorInfo'
 
 type Args = {
-  enabled: boolean
+  autoFetchEnabled: boolean
   pageName: string
   params: SecondaryAiCommentParams
   onLoaded: (result: { llmPrompt: string; llmAnswer: string }) => void
 }
 
 export function useSecondaryAiComment({
-  enabled,
+  autoFetchEnabled,
   pageName,
   params,
   onLoaded,
@@ -19,6 +19,7 @@ export function useSecondaryAiComment({
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<ApiUnitErrorInfo | null>(null)
   const onLoadedRef = useRef(onLoaded)
+  const requestSeq = useRef(0)
 
   useEffect(() => {
     onLoadedRef.current = onLoaded
@@ -43,41 +44,49 @@ export function useSecondaryAiComment({
     ],
   )
 
-  useEffect(() => {
-    let alive = true
-    queueMicrotask(() => {
-      if (!alive) return
-      if (!enabled) {
-        setLoading(false)
-        setError(null)
-        return
-      }
+  const requestAiComment = useCallback((nextParams?: SecondaryAiCommentParams) => {
+    void (async () => {
+      const currentRequest = requestSeq.current + 1
+      requestSeq.current = currentRequest
       setLoading(true)
       setError(null)
-      void (async () => {
-        try {
-          const result = await dashboardApi.getSecondaryAiComment(params)
-          if (!alive) return
-          onLoadedRef.current({
-            llmPrompt: result.llmPrompt,
-            llmAnswer: result.llmAnswer,
-          })
-          setError(null)
-        } catch (err) {
-          if (!alive) return
-          setError(makeApiErrorInfo(pageName, `getSecondaryAiComment(${JSON.stringify(params)})`, err))
-        } finally {
-          if (alive) setLoading(false)
-        }
-      })()
-    })
-    return () => {
-      alive = false
+      const requestParams = nextParams ?? params
+
+      try {
+        const result = await dashboardApi.getSecondaryAiComment(requestParams)
+        if (requestSeq.current !== currentRequest) return
+        onLoadedRef.current({
+          llmPrompt: result.llmPrompt,
+          llmAnswer: result.llmAnswer,
+        })
+        setError(null)
+      } catch (err) {
+        if (requestSeq.current !== currentRequest) return
+        setError(makeApiErrorInfo(pageName, `getSecondaryAiComment(${JSON.stringify(requestParams)})`, err))
+      } finally {
+        if (requestSeq.current !== currentRequest) return
+        setLoading(false)
+      }
+    })()
+  }, [params, pageName])
+
+  useEffect(() => {
+    if (!autoFetchEnabled) {
+      setLoading(false)
+      setError(null)
+      return
     }
-  }, [enabled, pageName, params, requestKey])
+
+    requestAiComment(params)
+
+    return () => {
+      requestSeq.current += 1
+    }
+  }, [autoFetchEnabled, params, requestKey, requestAiComment])
 
   return {
     aiCommentLoading: loading,
     aiCommentError: error,
+    requestAiComment,
   }
 }
