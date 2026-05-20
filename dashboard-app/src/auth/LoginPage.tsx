@@ -1,5 +1,6 @@
 import { useMemo, useState, type FormEvent } from 'react'
 import { Navigate, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
+import { USE_MOCK_API } from '../api'
 import { LoadingSpinner } from '../components/LoadingSpinner'
 import { useAuth } from './AuthContext'
 import styles from './LoginPage.module.css'
@@ -94,11 +95,12 @@ export function LoginPage() {
             {isSubmitting ? <LoadingSpinner size="inline" label="확인 중" /> : '로그인'}
           </button>
         </form>
-
-        <div className={styles.environmentRow}>
-          <span>Mock 인증</span>
-          <strong>기본값으로 바로 로그인 가능</strong>
-        </div>
+        {USE_MOCK_API ? (
+          <div className={styles.environmentRow}>
+            <span>Mock Mode</span>
+            <strong>Mock API를 사용 중입니다.</strong>
+          </div>
+        ) : null}
       </div>
     </section>
   )

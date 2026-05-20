@@ -1,4 +1,4 @@
-export { ApiHttpError } from './requests/httpClient'
+export { ApiHttpError, USE_MOCK_API } from './requests/httpClient'
 export { classifyApiFailureStatus, isApiErrorResponse } from './types'
 export type {
   AdminGptKeyApi,

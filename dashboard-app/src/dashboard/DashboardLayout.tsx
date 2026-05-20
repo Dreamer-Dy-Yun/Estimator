@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
+import { USE_MOCK_API } from '../api'
 import { useAuth } from '../auth/AuthContext'
 import { UserProfileDialog } from '../auth/UserProfileDialog'
 import { InventoryArrivalCollectButton } from './InventoryArrivalCollectButton'
@@ -46,6 +47,11 @@ export const DashboardLayout = () => {
               </NavLink>
             ) : null}
           </div>
+          {USE_MOCK_API ? (
+            <div className={styles.mockModeBadge} role="status" aria-live="polite">
+              Mock Mode
+            </div>
+          ) : null}
           <div className={styles.sessionControls}>
             <InventoryArrivalCollectButton />
             <button className={styles.userButton} type="button" onClick={() => setIsProfileOpen(true)}>
