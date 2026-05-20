@@ -2,6 +2,7 @@
 import type { ApiUnitErrorInfo } from '../../../../../types'
 import { KO } from '../ko'
 import styles from '../secondaryDrawer.module.css'
+import aiStyles from '../style-parts/cardAi.module.css'
 
 type Props = {
   comment: string
@@ -25,14 +26,14 @@ export function AiCommentCard({
       <h3 className={styles.sectionTitle}>
         {KO.sectionAi}
       </h3>
-      <div className={styles.aiCardBody}>
-        <div className={styles.aiAnswer} aria-live="polite">
+      <div className={aiStyles.aiCardBody}>
+        <div className={aiStyles.aiAnswer} aria-live="polite">
           {content}
         </div>
-        <div className={styles.aiCommentActions}>
+        <div className={aiStyles.aiCommentActions}>
           <button
             type="button"
-            className={styles.btn}
+            className={aiStyles.btn}
             onClick={onRequest}
             disabled={loading}
           >
@@ -45,3 +46,4 @@ export function AiCommentCard({
     </div>
   )
 }
+
