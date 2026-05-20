@@ -1,7 +1,7 @@
 /** 상품 메타 카드 | 검색·필터 카드 (좌우) */
 .metaFilterRow {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(280px, 0.72fr);
+  grid-template-columns: minmax(0, 1fr) minmax(360px, 0.78fr);
   gap: 10px;
   align-items: stretch;
   min-width: 0;
@@ -41,7 +41,7 @@
 }
 
 .metaFilterActionGridCompact {
-  grid-template-columns: minmax(0, 1fr) repeat(3, 58px);
+  grid-template-columns: minmax(0, 1fr) repeat(3, 82px);
   gap: 6px;
 }
 
@@ -74,8 +74,8 @@
 }
 
 .metaFilterActionGridCompact .innerCandidateActionBtn {
-  width: 58px;
-  min-width: 58px;
+  width: 82px;
+  min-width: 82px;
   justify-self: end;
 }
 
@@ -118,8 +118,8 @@
 }
 
 .metaFilterActionGridCompact .innerCandidateDeleteBtn :global(button) {
-  width: 58px;
-  min-width: 58px;
+  width: 82px;
+  min-width: 82px;
   padding-inline: 6px;
   gap: 4px;
 }
