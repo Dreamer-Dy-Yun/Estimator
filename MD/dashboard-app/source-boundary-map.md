@@ -64,6 +64,14 @@
 - React나 API 구현에 의존하지 않는 순수 보조 함수는 `src/utils` 또는 해당 feature의 `model`에 둔다.
 - 테스트는 특별한 이유가 없으면 대상 파일 옆에 `*.test.ts(x)`로 둔다. 실제 브라우저 흐름은 `e2e/`에 둔다.
 
+## candidate-stash hook 상태 경계
+
+| hook | 소유 상태 | 외부 경계 | 관련 문서 |
+|------|-----------|-----------|-----------|
+| `dashboard-app/src/dashboard/components/candidate-stash/useCandidateItemsLoader.ts` | 기본 후보 item 조회 로딩/오류, 기본 item set 반영, 상세확정 override 보호, 오더 지표 SSE 구독 시작 | 추천 목록 pagination과 추천 추가 mutation은 `useCandidateRecommendations`가 소유한다. 오더 지표 event 처리와 subscription 생명주기 전체를 이 hook이 소유하는 것은 아니다. | [qa-current-behavior.md](./qa-current-behavior.md), [module-hardening.md](./module-hardening.md) |
+| `dashboard-app/src/dashboard/components/candidate-stash/useCandidateRecommendations.ts` | 추천 목록, 추천 로딩/오류, 기간별 추천 cache, 추천 배지 병합, 추천 후보 추가 mutation 후 추천 목록 정리 | 기본 후보 item 조회 실패와 상세 일괄확정 progress는 소유하지 않는다. 최신 조회 실패 시 기존 추천 ref 유지와 배지 실패 표시는 stale UX이며, 이전 seq 응답 무시는 async stale guard다. | [failure-ux-matrix.md](./failure-ux-matrix.md), [qa-current-behavior.md](./qa-current-behavior.md) |
+| `dashboard-app/src/dashboard/components/candidate-stash/useCandidateBulkDetailConfirm.ts` | 상세 일괄확정 요청, SSE subscription, progress popup 상태, busy 상태, 완료/실패 toast | 기본 리스트 재조회, 스냅샷 저장/해제 계산, 추천 state를 소유하지 않는다. 기간 변경 seq 방어는 caller 계약과 같이 다룰 사항이며 이 hook의 현재 내부 guard는 mounted 상태 중심이다. | [module-hardening.md](./module-hardening.md), [qa-current-behavior.md](./qa-current-behavior.md) |
+
 ## CSS public facade 기준
 
 - `dashboard-app/src/dashboard/components/common.module.css`는 dashboard 공통 CSS public facade다. TS/TSX는 `common-style-parts/**`를 직접 import하지 않고 이 파일을 통해 사용한다.

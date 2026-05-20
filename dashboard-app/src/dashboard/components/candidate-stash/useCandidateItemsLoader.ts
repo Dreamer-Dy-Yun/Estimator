@@ -59,7 +59,6 @@ export function useCandidateItemsLoader({
     const seq = beginItemLoad()
     setCandidateItemsLoading(true)
     setCandidateItemsLoadError(null)
-    clearRecommendationItems()
     try {
       const result = await getCandidateItemsByStash({
         stashUuid,
@@ -67,6 +66,7 @@ export function useCandidateItemsLoader({
         dataReferencePeriodEnd: nextPeriodEnd,
       })
       if (!isCurrentItemLoad(seq)) return
+      clearRecommendationItems()
       const metricCandidateItems = selectMetricCandidateItems(result.candidateItems, options.metricSkuGroupKeys)
       const nextItems = mergeCandidateItemsWithPreservedMetrics(
         result.items,
@@ -87,7 +87,6 @@ export function useCandidateItemsLoader({
     } catch (err) {
       if (!isCurrentItemLoad(seq)) return
       const message = getApiErrorDisplayMessage(err, '후보 상품 목록을 불러오지 못했습니다.')
-      clearRecommendationItems()
       setCandidateItemsLoadError(message)
       setCandidateItemsLoading(false)
     }

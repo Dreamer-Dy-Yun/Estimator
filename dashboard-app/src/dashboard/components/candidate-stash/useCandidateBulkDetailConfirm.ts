@@ -48,11 +48,16 @@ export function useCandidateBulkDetailConfirm({
   const subscriptionRef = useRef<CandidateDetailBulkConfirmSubscription | null>(null)
   const closeTimerRef = useRef<ReturnType<typeof window.setTimeout> | null>(null)
   const progressRef = useRef<CandidateBulkDetailConfirmProgress | null>(null)
+  const sequenceRef = useRef(0)
 
   const setProgress = useCallback((next: CandidateBulkDetailConfirmProgress | null) => {
     progressRef.current = next
     setBulkConfirmProgress(next)
   }, [])
+
+  const isCurrentSequence = useCallback((sequence: number) => (
+    mountedRef.current && sequenceRef.current === sequence
+  ), [mountedRef])
 
   const closeSubscription = useCallback(() => {
     subscriptionRef.current?.close()
@@ -70,16 +75,17 @@ export function useCandidateBulkDetailConfirm({
     if (closeTimerRef.current) window.clearTimeout(closeTimerRef.current)
   }, [closeSubscription])
 
-  const scheduleClose = useCallback(() => {
+  const scheduleClose = useCallback((sequence: number) => {
     if (closeTimerRef.current) window.clearTimeout(closeTimerRef.current)
     closeTimerRef.current = window.setTimeout(() => {
-      if (!mountedRef.current) return
+      if (!isCurrentSequence(sequence)) return
       setProgress(null)
       closeTimerRef.current = null
     }, CLOSE_DELAY_MS)
-  }, [mountedRef, setProgress])
+  }, [isCurrentSequence, setProgress])
 
-  const applyProgressEvent = useCallback((event: CandidateDetailBulkConfirmProgressEvent) => {
+  const applyProgressEvent = useCallback((event: CandidateDetailBulkConfirmProgressEvent, sequence: number) => {
+    if (!isCurrentSequence(sequence)) return false
     if (event.updatedItem) onItemsConfirmed([event.updatedItem])
     setProgress({
       open: true,
@@ -90,11 +96,14 @@ export function useCandidateBulkDetailConfirm({
       message: event.message,
       error: event.error,
     })
-  }, [onItemsConfirmed, setProgress])
+    return true
+  }, [isCurrentSequence, onItemsConfirmed, setProgress])
 
   const confirmBulkDetailItems = useCallback(async (itemUuids: string[]) => {
     const uniqueUuids = [...new Set(itemUuids)]
     if (!uniqueUuids.length || !dataReferencePeriodStart || !dataReferencePeriodEnd) return
+    const sequence = sequenceRef.current + 1
+    sequenceRef.current = sequence
     setBulkConfirmBusy(true)
     closeSubscription()
     closeProgress()
@@ -112,16 +121,18 @@ export function useCandidateBulkDetailConfirm({
         dataReferencePeriodStart,
         dataReferencePeriodEnd,
       })
-      if (!mountedRef.current) return
+      if (!isCurrentSequence(sequence)) return
       await new Promise<void>((resolve, reject) => {
         subscriptionRef.current = subscribeCandidateDetailBulkConfirm(start.jobId, (event) => {
-          if (!mountedRef.current) return
-          applyProgressEvent(event)
+          if (!applyProgressEvent(event, sequence)) {
+            resolve()
+            return
+          }
           if (event.status === 'completed') {
             closeSubscription()
             setBulkConfirmBusy(false)
             showToast('상세 일괄확정이 완료되었습니다.')
-            scheduleClose()
+            scheduleClose(sequence)
             resolve()
             return
           }
@@ -129,17 +140,20 @@ export function useCandidateBulkDetailConfirm({
             closeSubscription()
             setBulkConfirmBusy(false)
             showToast('상세 일괄확정에 실패했습니다.', { variant: 'error' })
-            scheduleClose()
+            scheduleClose(sequence)
             reject(new Error(event.error ?? event.message))
           }
         }, (error) => {
-          if (!mountedRef.current) return
+          if (!isCurrentSequence(sequence)) {
+            resolve()
+            return
+          }
           closeSubscription()
           reject(error instanceof Error ? error : new Error(getStreamErrorMessage(error)))
         })
       })
     } catch (err) {
-      if (!mountedRef.current) return
+      if (!isCurrentSequence(sequence)) return
       const previousProgress = progressRef.current
       const failedProgressMessage = previousProgress?.status === 'failed'
         ? previousProgress.error ?? previousProgress.message
@@ -156,7 +170,7 @@ export function useCandidateBulkDetailConfirm({
         error: message,
       })
       showToast(message, { variant: 'error' })
-      scheduleClose()
+      scheduleClose(sequence)
       throw err
     }
   }, [
@@ -165,7 +179,7 @@ export function useCandidateBulkDetailConfirm({
     closeSubscription,
     dataReferencePeriodEnd,
     dataReferencePeriodStart,
-    mountedRef,
+    isCurrentSequence,
     scheduleClose,
     showToast,
     stashUuid,

@@ -33,6 +33,7 @@
 - row/cell 실패는 실패 배지와 툴팁을 기본 surface로 문서화한다. 이 정책을 구현하기 위해 하드닝 완료 utility의 숫자/문자열 fallback 계약을 바꾸면 안 된다.
 - 목록, 권한, mutation, SSE 실패는 기존 화면 surface를 사용한다. 실패 표시만을 위한 신규 카드 추가나 레이아웃 밀림은 하드닝 방향이 아니다.
 - 하드닝 완료 모듈은 실패를 성공/빈 값으로 바꾸는 fallback을 제공하지 않는다. 필요하면 호출부의 error state, toast, row/cell 실패 상태로 드러낸다.
+- stale UX는 사용자에게 보이는 기존 데이터 유지와 실패 표시 정책이고, async stale guard는 늦은 응답을 무시하는 내부 방어다. 하드닝 문서에서 두 개념을 같은 책임으로 묶지 않는다.
 
 ## 1차 하드닝 기준
 
@@ -61,7 +62,15 @@
 | `dashboard-app/src/utils/candidateOrderExcelData.ts`, `dashboard-app/src/utils/candidateOrderExcelWorkbook.ts`, `dashboard-app/src/utils/candidateOrderExcelExport.ts` | 엑셀 컬럼·스타일·템플릿 정책이 계속 조정 중이므로 출력 계약이 고정된 뒤 하드닝한다. |
 | `dashboard-app/src/api/requests/*` | 실제 백엔드 엔드포인트가 아직 없어서 mock 위임과 HTTP 전환 계약이 확정되지 않았다. |
 | `dashboard-app/src/dashboard/components/product-drawer/*` | 드로워 UX와 1차/2차 노출 정책이 아직 제품 흐름과 함께 조정 중이다. |
-| `dashboard-app/src/dashboard/components/candidate-stash/*` | 이너후보군 실시간 계산, 스냅샷 보기, 상세확정 흐름이 아직 큰 단위로 변하고 있다. |
+| `dashboard-app/src/dashboard/components/candidate-stash/*` | 이너후보군 실시간 계산, 추천/배지, 상세확정 흐름이 아직 큰 단위로 변하고 있다. hook별 현재 상태 책임과 수정 경계는 아래 표로만 고정하고, 하드닝 완료로 승격하지 않는다. |
+
+## candidate-stash hook별 상태 책임과 수정 경계
+
+| hook | 현재 상태 책임 | async stale guard 경계 | 수정 경계 |
+|------|----------------|------------------------|-----------|
+| `useCandidateItemsLoader.ts` | 기본 후보 item 조회의 `candidateItemsLoading`, `candidateItemsLoadError`, `setItems` 반영, 상세확정 override 보호, 오더 지표 SSE 구독 트리거를 맡는다. 추천 state는 재조회 시 clear만 요청한다. | `beginItemLoad`와 `isCurrentItemLoad`로 받은 seq가 최신일 때만 결과, 오류, 오더 지표 구독을 반영한다. 늦은 이전 조회 응답은 실패 UX가 아니라 무시 대상이다. | 기본 리스트 조회, 기존 item 유지, 상세확정 override 병합, 오더 지표 구독 시작 조건을 바꿀 때만 수정한다. 추천 pagination, 추천 추가 mutation, SSE progress 팝업 책임을 합치지 않는다. |
+| `useCandidateRecommendations.ts` | 추천 목록, 추천 로딩/오류, 기간별 추천 cache ref, 추천 배지 병합, 추천 후보 추가 mutation 후 추천 목록 제거와 toast를 맡는다. | `requestSeqRef`와 `mountedRef`로 이전 추천 조회와 unmount 이후 응답을 무시한다. 실패 시 기존 추천 ref를 반환하고 item 배지는 실패 상태로 표시한다. | 추천 조회/배지 실패, 추천 modal 목록, `appendCandidateItems` 성공 반영을 바꿀 때만 수정한다. 기본 후보 item 조회 실패나 오더 지표 SSE 실패 책임을 가져오지 않는다. |
+| `useCandidateBulkDetailConfirm.ts` | 상세 일괄확정 시작, SSE subscription, `bulkConfirmBusy`, `bulkConfirmProgress`, progress popup close timer, 완료/실패 toast를 맡는다. | 현재 hook의 내부 guard는 `mountedRef` 중심이다. 기간 변경이나 다른 item load seq와의 충돌 방어는 caller 계약과 함께 다뤄야 하며, 문서만으로 새 seq 책임을 이 hook에 부여하지 않는다. | 일괄확정 progress UX, subscription 종료, `updatedItem` 반영 callback 호출 경계를 바꿀 때만 수정한다. 스냅샷 저장/해제 계산, 기본 리스트 재조회, 추천 state 책임을 합치지 않는다. |
 
 ## 다음 하드닝 후보
 
