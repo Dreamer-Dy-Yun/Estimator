@@ -41,7 +41,8 @@
 }
 
 .metaFilterActionGridCompact {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1fr) max-content max-content max-content;
+  gap: 6px;
 }
 
 .metaFilterActionGridCompact .btn,
@@ -68,9 +69,29 @@
   grid-column: 1 / -1;
 }
 
+.metaFilterActionGridCompact .innerCandidateActionBtn {
+  width: auto;
+  min-width: 58px;
+  justify-self: end;
+}
+
+.metaFilterActionGridCompact .innerCandidateActionBtn:nth-of-type(1) {
+  grid-column: 2;
+}
+
+.metaFilterActionGridCompact .innerCandidateActionBtn:nth-of-type(2) {
+  grid-column: 3;
+}
+
 .innerCandidateDeleteBtn {
   display: flex;
   width: 100%;
+}
+
+.metaFilterActionGridCompact .innerCandidateDeleteBtn {
+  grid-column: 4;
+  width: auto;
+  justify-self: end;
 }
 
 .innerCandidateActionBtn {
@@ -85,6 +106,22 @@
 .innerCandidateActionBtn.btnViewportAdaptive {
   padding: 0 clamp(10px, 0.7vw + 7px, 14px);
   font-size: clamp(11px, 0.22vw + 10px, 13px);
+}
+
+.metaFilterActionGridCompact .innerCandidateActionBtn.btnViewportAdaptive {
+  padding-inline: clamp(5px, 0.35vw + 3px, 9px);
+  font-size: clamp(10px, 0.15vw + 9.5px, 11.5px);
+}
+
+.metaFilterActionGridCompact .innerCandidateDeleteBtn :global(button) {
+  width: auto;
+  min-width: 48px;
+  padding-inline: 6px;
+  gap: 4px;
+}
+
+.metaFilterActionGridCompact .innerCandidateDeleteBtn :global(button span) {
+  white-space: nowrap;
 }
 
 .innerCandidateUnconfirmBtn {
