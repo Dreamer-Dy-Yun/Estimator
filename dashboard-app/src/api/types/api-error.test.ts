@@ -4,13 +4,15 @@ import { classifyApiFailureStatus } from './api-error'
 
 describe('classifyApiFailureStatus', () => {
   const cases: Array<[number, ApiFailureKind]> = [
-    [401, 'authentication'],
+    [401, 'auth'],
     [403, 'permission'],
+    [408, 'timeout'],
     [404, 'not-found'],
     [409, 'conflict'],
     [422, 'validation'],
     [500, 'server'],
     [503, 'server'],
+    [504, 'timeout'],
     [599, 'server'],
   ]
 

@@ -41,6 +41,9 @@ export function CandidateStashDetailModal({ stashUuid, stashSummary, onClose, on
     () => model.recommendationItems,
     [model.recommendationItems],
   )
+  const handleActionFailureAlreadyReported = () => {
+    // The action hooks already surface these failures through toast/error state.
+  }
   const selectedConfirmedItemUuids = useMemo(
     () => model.tableRows
       .filter((row) => itemSelection.selectedVisibleUuidSet.has(row.uuid) && row.isDetailConfirmed)
@@ -84,7 +87,7 @@ export function CandidateStashDetailModal({ stashUuid, stashSummary, onClose, on
       recommendationSelection.clearSelection()
       itemSelection.clearSelection()
       setRecommendationOpen(false)
-    }).catch(() => undefined)
+    }).catch(handleActionFailureAlreadyReported)
   }
 
   const toggleItemDrawer = (row: InnerCandidateRow) => {
@@ -112,9 +115,14 @@ export function CandidateStashDetailModal({ stashUuid, stashSummary, onClose, on
         >
           <div className={detailStyles.stashDetailModalBody}>
             {!model.detailTarget ? (
-              <CandidateStashMissingState onClose={onClose} />
+              <CandidateStashMissingState loadError={model.stashListLoadError} onClose={onClose} />
             ) : (
               <>
+                {model.stashListLoadError && (
+                  <div className={detailStyles.emptyState} role="alert">
+                    {model.stashListLoadError}
+                  </div>
+                )}
                 <CandidateStashDetailHeader
                   detailTarget={model.detailTarget}
                   canOpenRecommendations={Boolean(
@@ -141,7 +149,7 @@ export function CandidateStashDetailModal({ stashUuid, stashSummary, onClose, on
                     onBulkConfirm={() => {
                       void model.confirmBulkDetailItems(selectedUnconfirmedItemUuids)
                         .then(() => itemSelection.clearSelection())
-                        .catch(() => undefined)
+                        .catch(handleActionFailureAlreadyReported)
                     }}
                     onOpenBulkUnconfirm={() => setBulkUnconfirmOpen(true)}
                     onOpenBulkDelete={() => setBulkDeleteOpen(true)}

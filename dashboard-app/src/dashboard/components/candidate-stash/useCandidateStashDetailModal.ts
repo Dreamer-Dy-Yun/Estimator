@@ -72,7 +72,7 @@ export function useCandidateStashDetailModal({
     isCurrentItemLoad,
     subscribeOrderMetrics,
   } = useCandidateOrderMetricStream({ stashUuid, mountedRef, setItems })
-  const { detailTarget, refreshStashes } = useCandidateStashSummaries({
+  const { detailTarget, refreshStashes, stashListLoadError } = useCandidateStashSummaries({
     stashUuid,
     stashSummary: stashSummaryProp,
     mountedRef,
@@ -247,6 +247,7 @@ export function useCandidateStashDetailModal({
     periodEnd: dataReferenceEnd,
     itemDeleteTarget,
     detailTarget,
+    stashListLoadError,
     brandOptions: table.brandOptions,
     codeOptions: table.codeOptions,
     productNameOptions: table.productNameOptions,
