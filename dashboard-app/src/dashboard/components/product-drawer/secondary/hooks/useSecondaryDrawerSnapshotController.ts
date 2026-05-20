@@ -191,21 +191,22 @@ export function useSecondaryDrawerLiveUnitDefaults({
   liveOrderUnitSource,
   applyLiveOrderUnitInputs,
 }: LiveUnitDefaultsArgs) {
+  const { avgCost, avgPrice, feeRatePct } = liveOrderUnitSource
   useEffect(() => {
     if (prefillFromSnapshot != null) return
     let alive = true
     queueMicrotask(() => {
       if (!alive) return
-      applyLiveOrderUnitInputs(liveOrderUnitSource)
+      applyLiveOrderUnitInputs({ avgCost, avgPrice, feeRatePct })
     })
     return () => {
       alive = false
     }
   }, [
     applyLiveOrderUnitInputs,
-    liveOrderUnitSource.avgCost,
-    liveOrderUnitSource.avgPrice,
-    liveOrderUnitSource.feeRatePct,
+    avgCost,
+    avgPrice,
+    feeRatePct,
     prefillFromSnapshot,
     primarySkuGroupKey,
   ])
