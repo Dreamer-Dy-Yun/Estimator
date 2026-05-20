@@ -1,5 +1,9 @@
 import { useCallback, useState, type MutableRefObject } from 'react'
-import { getCandidateItemsByStash, type CandidateItemSummary } from '../../../api'
+import {
+  getApiErrorDisplayMessage,
+  getCandidateItemsByStash,
+  type CandidateItemSummary,
+} from '../../../api'
 import {
   applyCandidateDetailConfirmationOverrides,
   type CandidateDetailConfirmationOverrideMap,
@@ -43,8 +47,8 @@ export function useCandidateItemsLoader({
   setItems,
   subscribeOrderMetrics,
 }: UseCandidateItemsLoaderParams) {
-  const [detailLoading, setDetailLoading] = useState(false)
-  const [detailError, setDetailError] = useState<string | null>(null)
+  const [candidateItemsLoading, setCandidateItemsLoading] = useState(false)
+  const [candidateItemsLoadError, setCandidateItemsLoadError] = useState<string | null>(null)
 
   const loadItems = useCallback(async (
     nextPeriodStart = appliedPeriodRef.current.start,
@@ -53,8 +57,8 @@ export function useCandidateItemsLoader({
   ) => {
     if (!stashUuid || !nextPeriodStart || !nextPeriodEnd) return
     const seq = beginItemLoad()
-    setDetailLoading(true)
-    setDetailError(null)
+    setCandidateItemsLoading(true)
+    setCandidateItemsLoadError(null)
     clearRecommendationItems()
     try {
       const result = await getCandidateItemsByStash({
@@ -73,7 +77,7 @@ export function useCandidateItemsLoader({
       const protectedResult = applyCandidateDetailConfirmationOverrides(nextItems, confirmationOverridesRef.current)
       confirmationOverridesRef.current = protectedResult.overrides
       setItems(protectedResult.items)
-      setDetailLoading(false)
+      setCandidateItemsLoading(false)
       subscribeOrderMetrics({
         seq,
         dataReferencePeriodStart: nextPeriodStart,
@@ -82,11 +86,10 @@ export function useCandidateItemsLoader({
       })
     } catch (err) {
       if (!isCurrentItemLoad(seq)) return
-      const message = err instanceof Error ? err.message : '이너 후보 목록 스냅샷 데이터가 올바르지 않습니다.'
-      setItems([])
+      const message = getApiErrorDisplayMessage(err, '후보 상품 목록을 불러오지 못했습니다.')
       clearRecommendationItems()
-      setDetailError(message)
-      setDetailLoading(false)
+      setCandidateItemsLoadError(message)
+      setCandidateItemsLoading(false)
     }
   }, [
     appliedPeriodRef,
@@ -101,8 +104,8 @@ export function useCandidateItemsLoader({
   ])
 
   return {
-    detailLoading,
-    detailError,
+    candidateItemsLoading,
+    candidateItemsLoadError,
     loadItems,
   }
 }

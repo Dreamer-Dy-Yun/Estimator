@@ -1,6 +1,7 @@
-import { useCallback, useRef, useState, type MutableRefObject } from 'react'
+﻿import { useCallback, useRef, useState, type MutableRefObject } from 'react'
 import {
   appendCandidateItems,
+  getApiErrorDisplayMessage,
   getCandidateRecommendations,
   type CandidateItemSummary,
   type CandidateReferenceItemSummary,
@@ -94,7 +95,7 @@ export function useCandidateRecommendations({
       return recommendationRows
     } catch (err) {
       if (!mountedRef.current || requestSeqRef.current !== seq) return []
-      const message = err instanceof Error ? err.message : '추천 후보 조회에 실패했습니다.'
+      const message = getApiErrorDisplayMessage(err, '추천 후보 조회에 실패했습니다.')
       setRecommendationError(message)
       setItems(markCandidateItemInsightsFailed)
       setRecommendationLoading(false)
@@ -119,11 +120,11 @@ export function useCandidateRecommendations({
       showToast(
         createdSkuUuidSet.size
           ? `추천 후보 ${createdSkuUuidSet.size}개를 후보군에 추가했습니다.`
-          : '새로 추가된 추천 후보가 없습니다.',
+          : '새로 추가할 추천 후보가 없습니다.',
       )
     } catch (err) {
       if (!mountedRef.current) return
-      showToast(err instanceof Error ? err.message : '추천 후보 추가에 실패했습니다.')
+      showToast(getApiErrorDisplayMessage(err, '추천 후보 추가에 실패했습니다.'))
       throw err
     }
   }, [

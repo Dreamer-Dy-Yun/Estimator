@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { ApiClientError } from '../types/api-error'
-import { ApiHttpError, apiRequest, openApiEventStream } from './httpClient'
+import { API_ADAPTER_MODE, ApiHttpError, USE_MOCK_API, apiRequest, openApiEventStream } from './httpClient'
 
 const fetchMock = vi.fn()
 
@@ -37,6 +37,13 @@ afterEach(() => {
   vi.unstubAllGlobals()
   fetchMock.mockReset()
   EventSourceMock.instances = []
+})
+
+describe('api adapter mode contract', () => {
+  it('keeps the named adapter mode aligned with the legacy mock boolean', () => {
+    expect(['mock', 'http']).toContain(API_ADAPTER_MODE)
+    expect(API_ADAPTER_MODE).toBe(USE_MOCK_API ? 'mock' : 'http')
+  })
 })
 
 describe('apiRequest', () => {

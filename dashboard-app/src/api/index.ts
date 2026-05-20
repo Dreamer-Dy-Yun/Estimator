@@ -1,5 +1,6 @@
-export { ApiHttpError, USE_MOCK_API } from './requests/httpClient'
-export { classifyApiFailureStatus, isApiErrorResponse } from './types'
+export { API_ADAPTER_MODE, ApiHttpError, USE_MOCK_API } from './requests/httpClient'
+export type { ApiAdapterMode } from './requests/httpClient'
+export { classifyApiFailureStatus, getApiErrorDisplayMessage, isApiErrorResponse } from './types/api-error'
 export type {
   AdminGptKeyApi,
   AdminGptKeyPurpose,

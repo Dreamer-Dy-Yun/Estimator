@@ -1,4 +1,4 @@
-import { FilterBar } from '../FilterBar'
+﻿import { FilterBar } from '../FilterBar'
 import { LoadingSpinner } from '../../../components/LoadingSpinner'
 import type { CandidateStashDetailModalModel } from './useCandidateStashDetailModal'
 import detailStyles from './CandidateStashDetailModal.module.css'
@@ -53,7 +53,7 @@ export function CandidateStashDetailFilters({ model, downloadUserName }: Props) 
               className={detailStyles.orderExcelDownloadBtn}
               onClick={() => void model.downloadOrderExcel(downloadUserName)}
               disabled={
-                model.detailLoading ||
+                model.candidateItemsLoading ||
                 model.orderExportBusy ||
                 model.items.length === 0 ||
                 model.pendingOrderMetricCount > 0

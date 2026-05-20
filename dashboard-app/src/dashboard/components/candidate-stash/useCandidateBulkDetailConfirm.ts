@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+﻿import { useCallback, useEffect, useRef, useState } from 'react'
 import {
+  getApiErrorDisplayMessage,
   startCandidateDetailBulkConfirm,
   subscribeCandidateDetailBulkConfirm,
   type CandidateDetailBulkConfirmProgressEvent,
@@ -31,8 +32,7 @@ interface Args {
 const CLOSE_DELAY_MS = 4000
 
 function getStreamErrorMessage(error: unknown): string {
-  if (error instanceof Error && error.message.trim()) return error.message
-  return '상세 일괄확정 연결이 끊겼습니다.'
+  return getApiErrorDisplayMessage(error, '상세 일괄확정 연결이 끊겼습니다.')
 }
 
 export function useCandidateBulkDetailConfirm({
@@ -134,7 +134,7 @@ export function useCandidateBulkDetailConfirm({
       })
     } catch (err) {
       if (!mountedRef.current) return
-      const message = err instanceof Error ? err.message : '상세 일괄확정에 실패했습니다.'
+      const message = getApiErrorDisplayMessage(err, '상세 일괄확정에 실패했습니다.')
       setBulkConfirmBusy(false)
       setBulkConfirmProgress({
         open: true,

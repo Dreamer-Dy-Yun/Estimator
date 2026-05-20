@@ -1,4 +1,4 @@
-import type { RefObject } from 'react'
+﻿import type { RefObject } from 'react'
 import { formatGroupedNumber, formatRatioDecimalKo } from '../../../utils/format'
 import { LoadingSpinner } from '../../../components/LoadingSpinner'
 import { InnerCandidateOrderEmptyState, InnerCandidateOrderList } from './InnerCandidateOrderList'
@@ -69,7 +69,7 @@ export function CandidateStashDetailBody({
       </div>
 
       <div className={detailStyles.innerCandidateListBlock}>
-        {model.detailLoading ? (
+        {model.candidateItemsLoading ? (
           <InnerCandidateOrderEmptyState>
             <LoadingSpinner label="이너 후보 목록을 불러오는 중" />
           </InnerCandidateOrderEmptyState>
@@ -77,9 +77,9 @@ export function CandidateStashDetailBody({
           <InnerCandidateOrderEmptyState>
             이너 후보 상세 로드 실패: {model.drawerError}
           </InnerCandidateOrderEmptyState>
-        ) : model.detailError ? (
+        ) : model.candidateItemsLoadError && !model.tableRows.length ? (
           <InnerCandidateOrderEmptyState>
-            이너 후보 목록 로드 실패: {model.detailError}
+            이너 후보 목록 로드 실패: {model.candidateItemsLoadError}
           </InnerCandidateOrderEmptyState>
         ) : !model.tableRows.length ? (
           <InnerCandidateOrderEmptyState>
@@ -88,24 +88,31 @@ export function CandidateStashDetailBody({
               : '등록된 이너 후보가 없습니다.'}
           </InnerCandidateOrderEmptyState>
         ) : (
-          <InnerCandidateOrderList
-            rows={model.tableRows}
-            visibleItemUuids={visibleItemUuids}
-            selectedUuidSet={selectedUuidSet}
-            allVisibleSelected={allVisibleSelected}
-            selectAllRef={selectAllRef}
-            competitorSalesQtyHeader={competitorSalesQtyHeader}
-            activeSortKey={activeSortKey}
-            activeSortDir={activeSortDir}
-            drawerOpen={model.drawerOpen}
-            drawerClosing={model.drawerClosing}
-            openedItemUuid={model.openedItemUuid}
-            keyboardNavigationDisabled={keyboardNavigationDisabled}
-            onToggleAllVisibleItems={onToggleAllVisibleItems}
-            onToggleSelectedItem={onToggleSelectedItem}
-            onToggleItemDrawer={onToggleItemDrawer}
-            onSort={model.toggleTableSort}
-          />
+          <>
+            {model.candidateItemsLoadError ? (
+              <InnerCandidateOrderEmptyState>
+                후보 목록 최신화 실패: {model.candidateItemsLoadError}
+              </InnerCandidateOrderEmptyState>
+            ) : null}
+            <InnerCandidateOrderList
+              rows={model.tableRows}
+              visibleItemUuids={visibleItemUuids}
+              selectedUuidSet={selectedUuidSet}
+              allVisibleSelected={allVisibleSelected}
+              selectAllRef={selectAllRef}
+              competitorSalesQtyHeader={competitorSalesQtyHeader}
+              activeSortKey={activeSortKey}
+              activeSortDir={activeSortDir}
+              drawerOpen={model.drawerOpen}
+              drawerClosing={model.drawerClosing}
+              openedItemUuid={model.openedItemUuid}
+              keyboardNavigationDisabled={keyboardNavigationDisabled}
+              onToggleAllVisibleItems={onToggleAllVisibleItems}
+              onToggleSelectedItem={onToggleSelectedItem}
+              onToggleItemDrawer={onToggleItemDrawer}
+              onSort={model.toggleTableSort}
+            />
+          </>
         )}
       </div>
     </div>

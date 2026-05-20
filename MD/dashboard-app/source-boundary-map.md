@@ -5,7 +5,7 @@
 | 작성 지시 | Yun Daeyoung |
 | 작성자 | Codex |
 | 작성일 | 2026-05-06 |
-| 최종 수정일 | 2026-05-20 |
+| 최종 수정일 | 2026-05-21 |
 | 상태 | 유지 문서 |
 | 적용 범위 | `dashboard-app`, 프론트엔드 소스, 관련 배포/문서 경계 |
 
@@ -27,7 +27,7 @@
 | 알고 싶은 것 | 먼저 볼 문서 | 대표 소스 |
 |------|------|------|
 | 저장소 루트, 빌드, 라우팅, e2e 경계 | [repository-runtime.md](./boundaries/repository-runtime.md) | `.github/`, `dashboard-app/vite.config.ts`, `dashboard-app/e2e` |
-| API facade, mock/HTTP adapter, 타입 계약 위치 | [api-contracts.md](./boundaries/api-contracts.md) | `dashboard-app/src/api` |
+| API facade, mock/HTTP runtime mode, 실패 kind, 타입 계약 위치 | [api-contracts.md](./boundaries/api-contracts.md) | `dashboard-app/src/api` |
 | 로그인, 세션, 관리자 사용자/GPT/구글 시트 관리 | [auth-admin.md](./boundaries/auth-admin.md) | `dashboard-app/src/auth`, `dashboard-app/src/admin` |
 | 자사/경쟁사 분석, 필터, 산점도, 분석 리스트 | [analysis-pages.md](./boundaries/analysis-pages.md) | `dashboard-app/src/dashboard/pages`, `dashboard-app/src/dashboard/components/*AnalysisList.tsx` |
 | 오더 후보군, 이너 후보군, 추천, 상세확정, 엑셀 | [candidate-stash.md](./boundaries/candidate-stash.md) | `dashboard-app/src/dashboard/components/candidate-stash` |
@@ -43,9 +43,9 @@
 
 | 변경 내용 | 같이 갱신할 문서 |
 |------|------|
-| 새 API 메서드, 응답 DTO, SSE 이벤트, mock/HTTP adapter 변경 | [api-contracts.md](./boundaries/api-contracts.md), [../backend-api/backend-api-spec.md](../backend-api/backend-api-spec.md) |
+| 새 API 메서드, 응답 DTO, SSE 이벤트, API 실패 kind, mock/HTTP adapter 변경 | [api-contracts.md](./boundaries/api-contracts.md), [../backend-api/backend-api-spec.md](../backend-api/backend-api-spec.md) |
 | 자사/경쟁사 분석 필터, 기간 조회 방식, 산점도, 순위, 후보군 담기 변경 | [analysis-pages.md](./boundaries/analysis-pages.md), [qa-current-behavior.md](./qa-current-behavior.md) |
-| 후보군 상세 조회, 추천, 배지, 오더 지표 SSE, 상세확정/해제/삭제, 엑셀 변경 | [candidate-stash.md](./boundaries/candidate-stash.md), [../backend-api/backend-api-spec.md](../backend-api/backend-api-spec.md), [qa-current-behavior.md](./qa-current-behavior.md) |
+| 후보군 상세 조회, 추천, 배지, 오더 지표 SSE, 상세확정/해제/삭제, 상세 목록 재조회 실패 표시, 엑셀 변경 | [candidate-stash.md](./boundaries/candidate-stash.md), [../backend-api/backend-api-spec.md](../backend-api/backend-api-spec.md), [qa-current-behavior.md](./qa-current-behavior.md) |
 | 상품 드로워, 스냅샷 저장 범위, AI 코멘트, 재고·발주 계산 변경 | [product-drawer.md](./boundaries/product-drawer.md), [../backend-api/backend-api-spec.md](../backend-api/backend-api-spec.md), [qa-current-behavior.md](./qa-current-behavior.md) |
 | 로그인/관리자 화면, GPT 키, 구글 시트 설정 변경 | [auth-admin.md](./boundaries/auth-admin.md), [qa-current-behavior.md](./qa-current-behavior.md) |
 | 공통 UI, table, toast, spinner, keyboard interaction, utils 변경 | [shared-modules.md](./boundaries/shared-modules.md), [ui-patterns.md](./ui-patterns.md), 필요 시 [module-hardening.md](./module-hardening.md) |

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+﻿import { useEffect, useMemo, useRef, useState } from 'react'
 import type { CandidateReferenceItemSummary, CandidateStashSummary } from '../../../api'
 import { useAuth } from '../../../auth/AuthContext'
 import { stashDetailModalBackdropDataProps } from '../../drawer/drawerDom'
@@ -21,7 +21,7 @@ import detailStyles from './CandidateStashDetailModal.module.css'
 
 type Props = {
   stashUuid: string
-  /** 목록에서 열 때 전달하면 후보군 목록 API를 한 번 덜 호출함 */
+  /** 목록에서 요약 정보를 전달하면 후보군 목록 API를 한 번 덜 호출한다. */
   stashSummary?: CandidateStashSummary | null
   onClose: () => void
   onStashesInvalidate?: () => void
@@ -126,7 +126,7 @@ export function CandidateStashDetailModal({ stashUuid, stashSummary, onClose, on
                 <CandidateStashDetailHeader
                   detailTarget={model.detailTarget}
                   canOpenRecommendations={Boolean(
-                    !model.detailLoading && model.tableRows.length && model.periodStart && model.periodEnd,
+                    !model.candidateItemsLoading && model.tableRows.length && model.periodStart && model.periodEnd,
                   )}
                   onOpenRecommendations={openRecommendationModal}
                   onClose={onClose}
@@ -135,7 +135,7 @@ export function CandidateStashDetailModal({ stashUuid, stashSummary, onClose, on
                   <CandidateStashDataReferenceCard
                     periodStart={model.draftDataReferencePeriodStart}
                     periodEnd={model.draftDataReferencePeriodEnd}
-                    loading={model.detailLoading}
+                    loading={model.candidateItemsLoading}
                     queryDirty={model.dataReferencePeriodQueryDirty}
                     onPeriodStartChange={model.onDataReferencePeriodStartChange}
                     onPeriodEndChange={model.onDataReferencePeriodEndChange}

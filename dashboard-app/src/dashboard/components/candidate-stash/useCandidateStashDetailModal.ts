@@ -79,7 +79,7 @@ export function useCandidateStashDetailModal({
     onStashesInvalidate,
   })
 
-  const { detailLoading, detailError, loadItems } = useCandidateItemsLoader({
+  const { candidateItemsLoading, candidateItemsLoadError, loadItems } = useCandidateItemsLoader({
     stashUuid,
     appliedPeriodRef,
     itemsRef,
@@ -152,10 +152,10 @@ export function useCandidateStashDetailModal({
   }, [clearRecommendationItems])
 
   useEffect(() => {
-    if (detailLoading || detailError || recommendationLoading) return
+    if (candidateItemsLoading || candidateItemsLoadError || recommendationLoading) return
     if (!items.some((item) => item.insightStatus === 'loading')) return
     void loadRecommendations()
-  }, [detailError, detailLoading, items, loadRecommendations, recommendationLoading])
+  }, [candidateItemsLoadError, candidateItemsLoading, items, loadRecommendations, recommendationLoading])
 
   const table = useInnerCandidateTable(items)
   const dataReferenceStart = dataReferencePeriodStart || undefined
@@ -217,8 +217,8 @@ export function useCandidateStashDetailModal({
     recommendationItems: recommendations.recommendationItems,
     recommendationLoading: recommendations.recommendationLoading,
     recommendationError: recommendations.recommendationError,
-    detailLoading,
-    detailError,
+    candidateItemsLoading,
+    candidateItemsLoadError,
     brandQuery: table.brandQuery,
     setBrandQuery: table.setBrandQuery,
     codeQuery: table.codeQuery,

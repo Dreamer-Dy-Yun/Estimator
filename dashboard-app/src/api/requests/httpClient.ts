@@ -21,6 +21,8 @@ export interface ApiRequestOptions extends Omit<RequestInit, 'body'> {
   body?: BodyInit | object | null
 }
 
+export type ApiAdapterMode = 'mock' | 'http'
+
 export class ApiHttpError extends ApiClientError {
   readonly status: number
   readonly body: unknown
@@ -40,7 +42,9 @@ export class ApiHttpError extends ApiClientError {
 }
 
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8080/api/v1'
-export const USE_MOCK_API = String(import.meta.env.VITE_USE_MOCK_API ?? 'true').toLowerCase() !== 'false'
+export const API_ADAPTER_MODE: ApiAdapterMode =
+  String(import.meta.env.VITE_USE_MOCK_API ?? 'true').toLowerCase() === 'false' ? 'http' : 'mock'
+export const USE_MOCK_API = API_ADAPTER_MODE === 'mock'
 
 function appendQueryParam(searchParams: URLSearchParams, key: string, value: ApiQueryValue) {
   if (value == null || value === '') return

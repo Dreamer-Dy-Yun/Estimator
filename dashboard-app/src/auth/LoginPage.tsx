@@ -1,6 +1,6 @@
-import { useMemo, useState, type FormEvent } from 'react'
+﻿import { useMemo, useState, type FormEvent } from 'react'
 import { Navigate, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
-import { USE_MOCK_API } from '../api'
+import { API_ADAPTER_MODE, getApiErrorDisplayMessage } from '../api'
 import { LoadingSpinner } from '../components/LoadingSpinner'
 import { useAuth } from './AuthContext'
 import styles from './LoginPage.module.css'
@@ -13,7 +13,7 @@ const DEFAULT_LOGIN_ID = 'mock-admin'
 const DEFAULT_PASSWORD = 'admin'
 
 function getErrorMessage(error: unknown) {
-  return error instanceof Error ? error.message : '로그인 처리 중 오류가 발생했습니다.'
+  return getApiErrorDisplayMessage(error, '로그인 처리 중 오류가 발생했습니다.')
 }
 
 function getRedirectTo(queryRedirect: string | null, state: LoginLocationState | null) {
@@ -95,12 +95,14 @@ export function LoginPage() {
             {isSubmitting ? <LoadingSpinner size="inline" label="확인 중" /> : '로그인'}
           </button>
         </form>
-        {USE_MOCK_API ? (
-          <div className={styles.environmentRow}>
-            <span>Mock Mode</span>
-            <strong>Mock API를 사용 중입니다.</strong>
-          </div>
-        ) : null}
+        <div className={styles.environmentRow}>
+          <span>{API_ADAPTER_MODE === 'mock' ? 'Mock API Mode' : 'HTTP API Mode'}</span>
+          <strong>
+            {API_ADAPTER_MODE === 'mock'
+              ? 'Mock API를 사용 중입니다.'
+              : 'HTTP API를 사용 중입니다.'}
+          </strong>
+        </div>
       </div>
     </section>
   )

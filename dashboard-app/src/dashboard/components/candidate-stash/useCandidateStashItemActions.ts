@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+﻿import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   deleteCandidateItem,
   deleteCandidateItems,
+  getApiErrorDisplayMessage,
   updateCandidateItem,
   type CandidateItemDetail,
   type CandidateItemSummary,
@@ -61,6 +62,9 @@ export function useCandidateStashItemActions({
       onItemsDeleted?.([itemDeleteTarget.uuid])
       await refreshStashes()
       showToast('후보를 삭제했습니다.')
+    } catch (err) {
+      if (mountedRef.current) showToast(getApiErrorDisplayMessage(err, '후보를 삭제하지 못했습니다.'))
+      throw err
     } finally {
       if (mountedRef.current) setItemDeleteBusy(false)
     }
@@ -77,6 +81,9 @@ export function useCandidateStashItemActions({
       onItemsDeleted?.(uniqueUuids)
       await refreshStashes()
       showToast('선택한 후보를 삭제했습니다.')
+    } catch (err) {
+      if (mountedRef.current) showToast(getApiErrorDisplayMessage(err, '선택 후보를 삭제하지 못했습니다.'))
+      throw err
     } finally {
       if (mountedRef.current) setBulkDeleteBusy(false)
     }
@@ -96,7 +103,10 @@ export function useCandidateStashItemActions({
       onItemsUnconfirmed?.(updatedItems)
       if (openedItemUuid && uniqueUuids.includes(openedItemUuid)) closeDrawer()
       await refreshStashes()
-      showToast('선택한 후보의 상세확정을 해제했습니다.')
+      showToast('선택한 후보의 상세 확정을 해제했습니다.')
+    } catch (err) {
+      if (mountedRef.current) showToast(getApiErrorDisplayMessage(err, '선택 후보 상세 확정을 해제하지 못했습니다.'))
+      throw err
     } finally {
       if (mountedRef.current) setBulkUnconfirmBusy(false)
     }
@@ -106,7 +116,7 @@ export function useCandidateStashItemActions({
     if (!detailTarget) return
     if (!items.length) return
     if (items.some((item) => item.orderMetricStatus !== 'loaded' || !item.orderExport)) {
-      setOrderExportError('오더 지표 계산이 완료된 뒤 엑셀을 다운로드할 수 있습니다.')
+      setOrderExportError('오더 지표 계산이 완료되어야 엑셀을 다운로드할 수 있습니다.')
       return
     }
     setOrderExportBusy(true)
@@ -122,7 +132,7 @@ export function useCandidateStashItemActions({
       showToast('엑셀 다운로드 파일을 생성했습니다.')
     } catch (err) {
       if (!mountedRef.current) return
-      const message = err instanceof Error ? err.message : '엑셀 다운로드 파일 생성에 실패했습니다.'
+      const message = getApiErrorDisplayMessage(err, '엑셀 다운로드 파일을 생성하지 못했습니다.')
       setOrderExportError(message)
     } finally {
       if (mountedRef.current) setOrderExportBusy(false)
