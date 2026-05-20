@@ -1,164 +1,27 @@
-import type {
+﻿import type {
   CandidateItemSummary,
   CandidateOrderMetric,
   CandidateReferenceItemSummary,
   CandidateStashItemSummary,
 } from '../types'
-import type { CandidateItemInsightSummary } from '../types/candidate'
 import type { CandidateItemRecord } from './records'
-import { competitorBySkuGroupKey, secondaryCompetitorChannels, selfBySkuGroupKey } from './salesTables'
-import { estimatePeriodWeight, productPrimaryBySkuGroupKey, skuMetadataBySkuGroupKey } from './productCatalog'
 import {
-  buildCandidateBadges,
-  INNER_ORDER_BOTTOM_PERCENT_THRESHOLD,
-  INNER_ORDER_TOP_PERCENT_THRESHOLD,
-  isBottomCandidatePercent,
-  isTopCandidatePercent,
-} from './candidateInsightBadgeModel'
+  buildCandidateItemInsight,
+  buildCandidateItemPeriodSalesInsight,
+  hasCandidateBadgeSource,
+} from './candidateItemInsights'
+import { buildCandidateItemOrderMetric } from './candidateItemOrderMetrics'
+import { skuMetadataBySkuGroupKey } from './productCatalog'
 
 export interface CandidateDataReferencePeriod {
   start: string
   end: string
 }
 
-function getProductPrimary(skuGroupKey: string) {
-  const primary = productPrimaryBySkuGroupKey[skuGroupKey]
-  if (!primary) throw new Error(`Unknown mock SKU group: ${skuGroupKey}`)
-  return primary
-}
-
 function getSkuMetadata(skuGroupKey: string) {
   const metadata = skuMetadataBySkuGroupKey[skuGroupKey]
   if (!metadata) throw new Error(`Unknown mock SKU metadata: ${skuGroupKey}`)
   return metadata
-}
-
-function getPrimaryCompetitorChannelLabel() {
-  const channel = secondaryCompetitorChannels[0]
-  if (!channel) throw new Error('Missing mock competitor channel master')
-  return channel.label
-}
-
-function buildCandidateItemInsight(
-  skuGroupKey: string,
-  expectedSalesQty: number,
-  expectedSalesAmount: number,
-  expectedOpProfit: number,
-  dataReferencePeriod?: CandidateDataReferencePeriod,
-): CandidateItemInsightSummary {
-  const competitor = competitorBySkuGroupKey[skuGroupKey]
-  const self = selfBySkuGroupKey[skuGroupKey]
-  const channelLabel = getPrimaryCompetitorChannelLabel()
-  const badgeNameList: string[] = []
-  const periodWeight = dataReferencePeriod
-    ? estimatePeriodWeight(dataReferencePeriod.start, dataReferencePeriod.end)
-    : 1
-  const weightedSalesValue = (value: number | null | undefined) =>
-    typeof value === 'number' ? Math.max(0, Math.round(value * periodWeight)) : null
-
-  if (isTopCandidatePercent(competitor?.rankPercentile)) badgeNameList.push(`${channelLabel}판매`)
-  if (typeof self?.opMarginRate === 'number' && self.opMarginRate >= 9) badgeNameList.push('자사이익')
-  if (isTopCandidatePercent(self?.rankPercentile)) badgeNameList.push('자사판매')
-
-  const top = badgeNameList.length > 0
-  const bottom = !top && (
-    isBottomCandidatePercent(competitor?.rankPercentile) || isBottomCandidatePercent(self?.rankPercentile)
-  )
-
-  return {
-    competitorChannelLabel: channelLabel,
-    competitorQty: weightedSalesValue(competitor?.competitorQty),
-    competitorAmount: weightedSalesValue(competitor?.competitorAmount),
-    selfQty: weightedSalesValue(self?.qty),
-    selfAmount: weightedSalesValue(self?.amount),
-    expectedSalesQty,
-    expectedSalesAmount,
-    expectedOpProfit,
-    selfOpProfitRatePct: self?.opMarginRate ?? null,
-    rankTone: top ? 'top' as const : bottom ? 'bottom' as const : 'neutral' as const,
-    topPercentThreshold: INNER_ORDER_TOP_PERCENT_THRESHOLD,
-    bottomPercentThreshold: INNER_ORDER_BOTTOM_PERCENT_THRESHOLD,
-    badges: buildCandidateBadges(badgeNameList),
-  }
-}
-
-function hasCandidateBadgeSource(skuGroupKey: string) {
-  const competitor = competitorBySkuGroupKey[skuGroupKey]
-  const self = selfBySkuGroupKey[skuGroupKey]
-  return (
-    isTopCandidatePercent(competitor?.rankPercentile) ||
-    (typeof self?.opMarginRate === 'number' && self.opMarginRate >= 9) ||
-    isTopCandidatePercent(self?.rankPercentile)
-  )
-}
-
-function buildCandidateItemPeriodSalesInsight(
-  skuGroupKey: string,
-  dataReferencePeriod?: CandidateDataReferencePeriod,
-): CandidateItemInsightSummary {
-  const insight = buildCandidateItemInsight(skuGroupKey, 0, 0, 0, dataReferencePeriod)
-  return {
-    ...insight,
-    rankTone: 'neutral',
-    badges: [],
-  }
-}
-
-function buildOrderMetric(
-  row: CandidateItemRecord,
-  dataReferencePeriod?: CandidateDataReferencePeriod,
-): CandidateOrderMetric {
-  const skuGroupKey = row.skuGroupKey
-  const periodWeight = dataReferencePeriod
-    ? estimatePeriodWeight(dataReferencePeriod.start, dataReferencePeriod.end)
-    : 1
-  const primary = getProductPrimary(skuGroupKey)
-  const self = selfBySkuGroupKey[skuGroupKey]
-  const avgPrice = Math.max(0, Math.round(self?.avgPrice ?? primary.price))
-  const avgCost = Math.max(0, Math.round(self?.avgCost ?? primary.price * 0.78))
-  const feeRatePct = Math.max(0, Math.round((self?.feeRate ?? 13) * 10) / 10)
-  const baseQty = Math.max(0, Math.round((self?.qty ?? primary.qty) * 0.58))
-  const qty = Math.max(0, Math.round(baseQty * periodWeight))
-  const expectedOrderAmount = qty * avgCost
-  const expectedSalesAmount = qty * avgPrice
-  const expectedOpProfit = qty * Math.round(avgPrice - avgCost - (avgPrice * feeRatePct) / 100)
-  const opMarginRatePct = expectedSalesAmount > 0 ? (expectedOpProfit / expectedSalesAmount) * 100 : null
-  const sizeMix = primary.sizeMix
-  const sizeRatioSum = sizeMix.reduce((acc, sizeRow) => acc + Math.max(0, sizeRow.ratio), 0)
-  const insight = buildCandidateItemInsight(
-    skuGroupKey,
-    qty,
-    expectedSalesAmount,
-    expectedOpProfit,
-    dataReferencePeriod,
-  )
-
-  return {
-    itemUuid: row.uuid,
-    skuUuid: row.skuUuid,
-    qty,
-    expectedOrderAmount,
-    expectedSalesAmount,
-    expectedOpProfit,
-    orderExport: {
-      competitorChannelLabel: insight.competitorChannelLabel,
-      selfQty: insight.selfQty,
-      competitorQty: insight.competitorQty,
-      expectedSalesQty: qty,
-      expectedOrderAmount,
-      avgCost,
-      avgPrice,
-      feeRatePct,
-      opMarginRatePct,
-      inboundExpectedDate: row.details?.drawer2.stockInputs.leadTimeEndDate ?? null,
-      sizeOrderQty: sizeRatioSum > 0
-        ? sizeMix.map((sizeRow) => ({
-            size: sizeRow.size,
-            orderQty: Math.max(0, Math.round(qty * (Math.max(0, sizeRow.ratio) / sizeRatioSum))),
-          }))
-        : [],
-    },
-  }
 }
 
 export function buildCandidateReferenceItems(
@@ -234,7 +97,7 @@ export function buildCandidateOrderMetric(
   row: CandidateItemRecord,
   dataReferencePeriod?: CandidateDataReferencePeriod,
 ): CandidateOrderMetric {
-  return buildOrderMetric(row, dataReferencePeriod)
+  return buildCandidateItemOrderMetric(row, dataReferencePeriod)
 }
 
 export function buildCandidateItemSummaries(
@@ -275,7 +138,7 @@ export function buildCandidateItemSummaries(
         dbUpdatedAt: row.dbUpdatedAt ?? row.dbCreatedAt,
       }
       if (!includeOrderMetrics) return baseItem
-      return applyCandidateOrderMetric(baseItem, buildOrderMetric(row, dataReferencePeriod))
+      return applyCandidateOrderMetric(baseItem, buildCandidateItemOrderMetric(row, dataReferencePeriod))
     })
     .sort((a, b) => String(b.dbCreatedAt).localeCompare(String(a.dbCreatedAt)))
 }

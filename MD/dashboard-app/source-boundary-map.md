@@ -35,6 +35,7 @@
 | 공통 컴포넌트, hooks/model/interaction/drawer, snapshot, utils | [shared-modules.md](./boundaries/shared-modules.md) | `dashboard-app/src/components`, `dashboard-app/src/dashboard/hooks`, `dashboard-app/src/utils` |
 | 현재 QA 기준과 검증 명령 | [qa-current-behavior.md](./qa-current-behavior.md), [qa-state-contracts.md](./qa-state-contracts.md), [test-strategy.md](./test-strategy.md) | `dashboard-app/src/**/*.test.*`, `dashboard-app/e2e` |
 | 버튼, 카드, 패널, 리스트, 드로워, 모달의 UI 패턴 | [ui-patterns.md](./ui-patterns.md) | `dashboard-app/src/components`, `dashboard-app/src/dashboard/components`, CSS Modules |
+| CSS public facade, 직접 import 예외, selector/token 하드닝 상태 | [hardening-status.md](./hardening-status.md) | `dashboard-app/src/dashboard/components/common.module.css`, `dashboard-app/src/dashboard/components/product-drawer/secondary/secondaryDrawer.module.css`, `dashboard-app/src/styles/tokens.css` |
 | 하드닝 완료 모듈과 수정 허가 규칙 | [module-hardening.md](./module-hardening.md) | `dashboard-app/src/utils` 등 |
 | 백엔드 구현용 API 상세 | [../backend-api/README.md](../backend-api/README.md) | `dashboard-app/src/api/types` |
 
@@ -48,6 +49,7 @@
 | 상품 드로워, 스냅샷 저장 범위, AI 코멘트, 재고·발주 계산 변경 | [product-drawer.md](./boundaries/product-drawer.md), [../backend-api/backend-api-spec.md](../backend-api/backend-api-spec.md), [qa-current-behavior.md](./qa-current-behavior.md) |
 | 로그인/관리자 화면, GPT 키, 구글 시트 설정 변경 | [auth-admin.md](./boundaries/auth-admin.md), [qa-current-behavior.md](./qa-current-behavior.md) |
 | 공통 UI, table, toast, spinner, keyboard interaction, utils 변경 | [shared-modules.md](./boundaries/shared-modules.md), [ui-patterns.md](./ui-patterns.md), 필요 시 [module-hardening.md](./module-hardening.md) |
+| CSS public facade, style-parts 직접 import 예외, selector 중복, token 후보 변경 | [hardening-status.md](./hardening-status.md), 필요 시 [ui-patterns.md](./ui-patterns.md) |
 | 로딩, 빈 값, 오류, 권한 실패, stale, 비활성 UX 변경 | [qa-state-contracts.md](./qa-state-contracts.md), [qa-current-behavior.md](./qa-current-behavior.md) |
 | e2e/CI/build/router/배포 변경 | [repository-runtime.md](./boundaries/repository-runtime.md), [test-strategy.md](./test-strategy.md) |
 
@@ -60,6 +62,13 @@
 - 상품 드로워 관련 UI와 hook은 `dashboard/components/product-drawer`.
 - React나 API 구현에 의존하지 않는 순수 보조 함수는 `src/utils` 또는 해당 feature의 `model`에 둔다.
 - 테스트는 특별한 이유가 없으면 대상 파일 옆에 `*.test.ts(x)`로 둔다. 실제 브라우저 흐름은 `e2e/`에 둔다.
+
+## CSS public facade 기준
+
+- `dashboard-app/src/dashboard/components/common.module.css`는 dashboard 공통 CSS public facade다. TS/TSX는 `common-style-parts/**`를 직접 import하지 않고 이 파일을 통해 사용한다.
+- `dashboard-app/src/dashboard/components/product-drawer/secondary/secondaryDrawer.module.css`는 2차 드로워 CSS public facade다. TS/TSX는 원칙적으로 `secondary/style-parts/**`를 직접 import하지 않는다.
+- 현재 직접 import 예외는 `AiCommentCard.tsx`의 `../style-parts/cardAi.module.css` 참조다. 유지하거나 facade 뒤로 되돌리는 결정은 [hardening-status.md](./hardening-status.md)의 승인 필요 후보로 추적한다.
+- 현재 경계 예외는 primary `SalesMetricsCard.tsx`가 secondary `secondaryDrawer.module.css`를 참조하는 구조다. 공통 metrics style로 분리할지 여부는 후속 하드닝에서 결정한다.
 
 ## 경계 점검 질문
 
