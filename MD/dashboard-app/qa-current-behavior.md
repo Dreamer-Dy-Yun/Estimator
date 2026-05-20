@@ -5,7 +5,7 @@
 | 작성 지시 | Yun Daeyoung |
 | 작성자 | Codex |
 | 작성일 | 2026-05-18 |
-| 최종 수정일 | 2026-05-20 |
+| 최종 수정일 | 2026-05-21 |
 | 상태 | 유지 문서 |
 | 적용 범위 | `dashboard-app` 전체 화면, API/mock 경계, 주요 사용자 흐름 |
 
@@ -23,7 +23,8 @@
 - API 계약상 확정된 내부 값은 과도하게 정규화하지 않고 그대로 표시한다.
 - mutation 성공은 상단 자동 닫힘 toast로 알려야 한다.
 - 정상 완료 상태가 매번 화면 공간을 차지하면 안 된다. 사용자가 알아야 할 로딩/오류/이전 데이터 상태만 노출한다.
-- E2E는 사용자가 명시적으로 요청한 경우에만 실행한다.
+- 로컬 작업 중 E2E는 사용자가 명시적으로 요청한 경우에만 실행한다.
+- CI 배포 workflow는 `npm run test:e2e`를 GitHub Pages 빌드/배포 gate로 항상 실행한다.
 
 ## 공통 진입과 인증
 
@@ -210,7 +211,7 @@
 | `npm run check:encoding` | 한글 인코딩 문제가 없어야 한다. |
 | `npm run test:run` | Vitest 전체가 통과해야 한다. |
 | `npm run build -- --base=/Estimator/` | GitHub Pages 배포 기준 빌드가 통과해야 한다. |
-| `npm run test:e2e` | 사용자가 명시적으로 요청한 경우 실행한다. Playwright 환경 이슈는 테스트 실패와 구분해 보고한다. |
+| `npm run test:e2e` | 로컬 작업 중에는 사용자가 명시적으로 요청한 경우 실행한다. CI 배포 workflow의 `Run E2E tests` 단계는 GitHub Pages 빌드/배포 gate로 항상 실행한다. Playwright 환경 이슈는 테스트 실패와 구분해 보고한다. |
 
 ## 변경 시 갱신 규칙
 

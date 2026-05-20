@@ -5,7 +5,7 @@
 | 작성 지시 | Yun Daeyoung |
 | 작성자 | Codex |
 | 작성일 | 2026-04-23 |
-| 최종 수정일 | 2026-05-18 |
+| 최종 수정일 | 2026-05-21 |
 | 상태 | 유지 문서 |
 | 적용 범위 | `dashboard-app` 테스트 |
 
@@ -68,11 +68,14 @@
    - `useDashboardRequest`는 성공, 갱신 실패 시 기존 데이터 유지, stale 상태 표시를 DOM hook 테스트로 유지한다.
 
 6. **Playwright E2E smoke**
-   - mock 로그인, 자사/경쟁사/오더 후보군/관리자 라우트 이동.
-   - 자사 분석 1차 드로워 열기/닫기.
-   - 분석 리스트에서 선택 상품 후보군 담기 모달 열기.
-   - 오더 후보군 상세의 데이터 참조 기간과 추천 보기 진입 확인.
-   - 관리자 GPT 키 상세 팝업 확인.
+   - `navigation.spec.ts`: mock 로그인 후 주요 라우트와 관리자 탭 이동을 확인한다.
+   - `self-drawer.spec.ts`: 자사 분석 드로워 열기/닫기 흐름을 확인한다.
+   - `analysis-bulk-add.spec.ts`: 분석 리스트에서 선택 상품 후보군 담기 모달 진입을 확인한다.
+   - `candidate-stash.spec.ts`: 오더 후보군 상세의 조회 카드, 작업 카드, 추천 진입을 확인한다.
+   - `candidate-stash-keyboard.spec.ts`: 후보군 내부 목록 키보드 포커스와 드로워 진입을 확인한다.
+   - `inventory-arrival-collect.spec.ts`: 헤더의 입고 예정 수집 요약 토스트를 확인한다.
+   - `admin-gpt-key.spec.ts`: 관리자 GPT 키 행 상세 팝업을 확인한다.
+   - `admin-google-sheets.spec.ts`: 관리자 Google Sheets 상세 다이얼로그 열기/닫기를 확인한다.
 
 ---
 
@@ -91,8 +94,20 @@
 |------|------|
 | `vite.config.ts` | Vitest 설정과 `e2e/**` 제외. |
 | `playwright.config.ts` | Playwright 테스트 디렉터리, dev server, Chromium 프로젝트, trace/report 정책. |
-| `e2e/main-flows.spec.ts` | 주요 업무 smoke 시나리오. |
 | `e2e/helpers/app.ts` | mock 로그인, runtime error 수집/검증 helper. |
+
+현재 Playwright E2E smoke spec은 다음 8개다.
+
+| 파일 | 역할 |
+|------|------|
+| `e2e/admin-google-sheets.spec.ts` | 관리자 Google Sheets 상세 다이얼로그 열기/닫기. |
+| `e2e/admin-gpt-key.spec.ts` | 관리자 GPT 키 행 상세 팝업 확인. |
+| `e2e/analysis-bulk-add.spec.ts` | 분석 리스트에서 선택 상품 후보군 담기 모달 진입 확인. |
+| `e2e/candidate-stash-keyboard.spec.ts` | 후보군 내부 목록의 키보드 포커스와 드로워 진입 확인. |
+| `e2e/candidate-stash.spec.ts` | 오더 후보군 상세의 조회 카드, 작업 카드, 추천 진입 확인. |
+| `e2e/inventory-arrival-collect.spec.ts` | 헤더 입고 예정 수집 요약 토스트 확인. |
+| `e2e/navigation.spec.ts` | 로그인 후 주요 라우트와 관리자 탭 이동 확인. |
+| `e2e/self-drawer.spec.ts` | 자사 분석 드로워 열기/닫기 확인. |
 
 ---
 
@@ -107,8 +122,9 @@
 
 ## 8. 성공 기준 (1차 마일스톤)
 
-- 로컬에서 `npm run lint`, `npm run check:encoding`, `npm run test:run`, `npm run build`, `npm run test:e2e`가 통과한다.
-- GitHub Actions 배포 job에서도 `lint -> check:encoding -> test:run -> Playwright Chromium 설치 -> test:e2e -> build` 순서로 통과해야 Pages 배포가 진행된다.
+- 로컬 일반 작업에서는 `npm run lint`, `npm run check:encoding`, `npm run test:run`, `npm run build`를 변경 범위에 맞게 실행한다.
+- 로컬 Playwright E2E는 브라우저 구동 비용이 있으므로 사용자가 명시적으로 요청한 경우에 `npm run test:e2e`로 실행한다.
+- GitHub Actions 배포 job에서는 `lint -> check:encoding -> test:run -> Playwright Chromium 설치 -> test:e2e -> build` 순서로 항상 통과해야 Pages 배포가 진행된다.
 - `check:encoding`이 `MD`와 `AGENTS.md`까지 검사하므로 workflow trigger path에는 `dashboard-app/**`, `MD/**`, `AGENTS.md`, workflow 파일을 포함한다.
 - 로직/API 계약 변경은 관련 Vitest를 동반한다.
 - 라우트/모달/드로워/로그인 흐름 변경은 Playwright smoke 시나리오 갱신을 검토한다.

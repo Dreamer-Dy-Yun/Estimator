@@ -5,7 +5,7 @@
 | 작성 지시 | Yun Daeyoung |
 | 작성자 | Codex |
 | 작성일 | 2026-05-19 |
-| 최종 수정일 | 2026-05-19 |
+| 최종 수정일 | 2026-05-21 |
 | 상태 | 유지 문서 |
 | 적용 범위 | 저장소 루트, 앱 루트, 라우팅, 빌드, e2e, 배포 |
 
@@ -55,15 +55,17 @@
 
 | 파일/폴더 | 역할 |
 |------|------|
+| `admin-google-sheets.spec.ts` | 관리자 구글 시트 이동 액션과 상세 설정 모달 smoke |
+| `admin-gpt-key.spec.ts` | 관리자 GPT 키 상세 설정 모달 smoke |
+| `analysis-bulk-add.spec.ts` | 경쟁사 분석에서 상품 선택 후 후보군 담기 모달 열기 |
+| `candidate-stash-keyboard.spec.ts` | 후보군 상세의 키보드 이동과 드로워 조작 smoke |
+| `candidate-stash.spec.ts` | 후보군 상세의 조회 카드, 추천, 배지 자동 패치 smoke |
+| `inventory-arrival-collect.spec.ts` | 헤더의 입고예정일 수집 액션 smoke |
 | `navigation.spec.ts` | mock 로그인 후 주요 라우트와 관리자 탭 존재 확인 |
 | `self-drawer.spec.ts` | 자사 분석에서 1차 상품 드로워 열기/닫기 |
-| `analysis-bulk-add.spec.ts` | 경쟁사 분석에서 상품 선택 후 후보군 담기 모달 열기 |
-| `candidate-stash.spec.ts` | 후보군 상세의 조회 카드, 추천, 배지 자동 패치 smoke |
-| `admin-gpt-key.spec.ts` | 관리자 GPT 키 상세 설정 모달 smoke |
-| `admin-google-sheets.spec.ts` | 구글 시트 이동 액션과 상세 설정 모달 smoke |
 | `helpers/app.ts` | mock 로그인 helper와 runtime error 수집 helper |
 
 ## 검증 기준
 
 - 일반 프론트 변경: `npm run lint`, `npm run test:run`, `npm run check:encoding`, `npm run build -- --base=/Estimator/`.
-- 배포 전에는 GitHub Actions의 lint, encoding, unit, e2e, build, deploy 상태를 확인한다.
+- 배포 workflow는 lint, encoding, unit, e2e를 통과해야 build/deploy로 진행한다. e2e는 CI 배포 gate에서 항상 실행된다.
