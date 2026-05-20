@@ -1,5 +1,5 @@
-﻿import type { CandidateOrderMetric } from '../types'
-import type { CandidateDataReferencePeriod } from './candidateItemSummaryBuilder'
+import type { CandidateOrderMetric } from '../types'
+import type { CandidateDataReferencePeriod } from './candidateItemSummaryTypes'
 import { buildCandidateItemInsight } from './candidateItemInsights'
 import { estimatePeriodWeight, productPrimaryBySkuGroupKey } from './productCatalog'
 import type { CandidateItemRecord } from './records'

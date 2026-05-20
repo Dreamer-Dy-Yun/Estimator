@@ -1,9 +1,7 @@
-﻿import { BlockMath } from 'react-katex'
-import { useId, useState } from 'react'
+import { BlockMath } from 'react-katex'
 import type { SecondaryCompetitorChannel } from '../../../../api'
 import { ComponentErrorBoundary } from '../../../../components/ComponentErrorBoundary'
 import type { ApiUnitErrorInfo, ProductPrimarySummary } from '../../../../types'
-import { ConfirmModal } from '../../ConfirmModal'
 import { PortalHelpPopoverLayer } from '../../PortalHelpPopover'
 import commonStyles from '../../common.module.css'
 import { usePortalHelpPopover } from '../../usePortalHelpPopover'
@@ -14,8 +12,7 @@ import { SalesForecastCard } from './cards/SalesForecastCard'
 import { SalesTrendDailyCard } from './cards/SalesTrendDailyCard'
 import { SizeOrderCard } from './cards/SizeOrderCard'
 import type { CandidateItemPanelContext } from './candidateActionCards'
-import { CandidateStashPickerModal } from './CandidateStashPickerModal'
-import { SecondaryDrawerActionArea } from './SecondaryDrawerActionArea'
+import { SecondaryDrawerCandidateActions } from './SecondaryDrawerCandidateActions'
 import styles from './secondaryDrawer.module.css'
 import type { SecondaryHelpId } from './secondaryDrawerTypes'
 import type { useSecondaryForecastModel } from './hooks/useSecondaryForecastModel'
@@ -125,8 +122,6 @@ export function ProductSecondaryDrawerContent({
     candidateActions,
     handleConfirmQtyChange,
   } = model
-  const [unconfirmOpen, setUnconfirmOpen] = useState(false)
-  const unconfirmDialogTitleId = useId()
   const recommendedQtyTotal = sizeRows.reduce((acc, r) => acc + Math.max(0, Math.round(r.recommendedQty)), 0)
   const confirmedQtyTotal = sizeRows.reduce((acc, r) => acc + Math.max(0, Math.round(r.confirmQty)), 0)
   const perUnitFee = Math.round((unitPriceInput * expectedFeeRatePct) / 100)
@@ -180,19 +175,16 @@ export function ProductSecondaryDrawerContent({
             <ProductMetaCard primary={primary} />
           </ComponentErrorBoundary>
         </div>
-        <div className={styles.metaFilterActionBlock}>
-          <SecondaryDrawerActionArea
-            candidateItemContext={candidateItemContext}
-            hasSavedSnapshot={hasSavedSnapshot}
-            showingConfirmedValues={showingConfirmedValues}
-            candidateActions={candidateActions}
-            onResetToLive={onResetToLive}
-            onRestoreConfirmed={onRestoreConfirmed}
-            onRequestUnconfirm={() => setUnconfirmOpen(true)}
-            portalHelp={portalHelp}
-            confirmOrderHelpId={helpIds.confirmOrder}
-          />
-        </div>
+        <SecondaryDrawerCandidateActions
+          candidateItemContext={candidateItemContext}
+          hasSavedSnapshot={hasSavedSnapshot}
+          showingConfirmedValues={showingConfirmedValues}
+          candidateActions={candidateActions}
+          onResetToLive={onResetToLive}
+          onRestoreConfirmed={onRestoreConfirmed}
+          portalHelp={portalHelp}
+          confirmOrderHelpId={helpIds.confirmOrder}
+        />
       </div>
       <div className={styles.salesStockAiRow}>
         <ComponentErrorBoundary page={pageName} unit="SalesForecastCard">
@@ -271,36 +263,6 @@ export function ProductSecondaryDrawerContent({
           </>
         )}
       </PortalHelpPopoverLayer>
-      <ConfirmModal
-        open={unconfirmOpen}
-        busy={candidateActions.loading}
-        title="상세확정 해제"
-        message="저장된 2차 드로워 스냅샷을 삭제하고 상세미확정 상태로 되돌립니다. 진행하면 현재 DB 스냅샷은 null로 저장됩니다."
-        confirmText="확정 해제"
-        confirmingText="해제 중"
-        dialogTitleId={unconfirmDialogTitleId}
-        keepOpenAttr
-        onCancel={() => setUnconfirmOpen(false)}
-        onConfirm={async () => {
-          await candidateActions.unconfirmCandidateItem()
-          onResetToLive()
-          setUnconfirmOpen(false)
-        }}
-      />
-      {candidateActions.listOpen && (
-        <CandidateStashPickerModal
-          options={candidateActions.stashes}
-          selectedUuid={candidateActions.selectedCandidate?.uuid ?? null}
-          nameInput={candidateActions.nameInput}
-          noteInput={candidateActions.noteInput}
-          loading={candidateActions.loading}
-          onNameInputChange={candidateActions.setNameInput}
-          onNoteInputChange={candidateActions.setNoteInput}
-          onCreate={candidateActions.createCandidate}
-          onClose={() => candidateActions.setListOpen(false)}
-          onSelect={candidateActions.selectCandidate}
-        />
-      )}
     </div>
   )
 }

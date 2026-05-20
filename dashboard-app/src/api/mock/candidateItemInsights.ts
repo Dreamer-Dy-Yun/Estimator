@@ -1,4 +1,4 @@
-﻿import type { CandidateItemInsightSummary } from '../types/candidate'
+import type { CandidateItemInsightSummary } from '../types/candidate'
 import {
   buildCandidateBadges,
   INNER_ORDER_BOTTOM_PERCENT_THRESHOLD,
@@ -6,7 +6,7 @@ import {
   isBottomCandidatePercent,
   isTopCandidatePercent,
 } from './candidateInsightBadgeModel'
-import type { CandidateDataReferencePeriod } from './candidateItemSummaryBuilder'
+import type { CandidateDataReferencePeriod } from './candidateItemSummaryTypes'
 import { estimatePeriodWeight } from './productCatalog'
 import { competitorBySkuGroupKey, secondaryCompetitorChannels, selfBySkuGroupKey } from './salesTables'
 

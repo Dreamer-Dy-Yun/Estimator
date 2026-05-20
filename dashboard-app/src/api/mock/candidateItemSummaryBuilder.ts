@@ -1,10 +1,11 @@
-﻿import type {
+import type {
   CandidateItemSummary,
   CandidateOrderMetric,
   CandidateReferenceItemSummary,
   CandidateStashItemSummary,
 } from '../types'
 import type { CandidateItemRecord } from './records'
+import type { CandidateDataReferencePeriod } from './candidateItemSummaryTypes'
 import {
   buildCandidateItemInsight,
   buildCandidateItemPeriodSalesInsight,
@@ -13,10 +14,7 @@ import {
 import { buildCandidateItemOrderMetric } from './candidateItemOrderMetrics'
 import { skuMetadataBySkuGroupKey } from './productCatalog'
 
-export interface CandidateDataReferencePeriod {
-  start: string
-  end: string
-}
+export type { CandidateDataReferencePeriod } from './candidateItemSummaryTypes'
 
 function getSkuMetadata(skuGroupKey: string) {
   const metadata = skuMetadataBySkuGroupKey[skuGroupKey]
