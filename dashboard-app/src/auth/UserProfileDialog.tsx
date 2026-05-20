@@ -1,8 +1,12 @@
 import { useEffect, useState, type FormEvent } from 'react'
+import { getApiErrorDisplayMessage } from '../api'
+import { isApiClientError } from '../api/types/api-error'
 import { useAuth } from './AuthContext'
 import { useAppToast } from '../components/AppToastContext'
 import { LoadingSpinner } from '../components/LoadingSpinner'
 import styles from './UserProfileDialog.module.css'
+
+const DEFAULT_PROFILE_ERROR_MESSAGE = '사용자 정보 저장 중 오류가 발생했습니다.'
 
 const ROLE_LABELS = {
   admin: '관리자',
@@ -20,7 +24,8 @@ function formatExpiresAt(value: string) {
 }
 
 function getErrorMessage(error: unknown) {
-  return error instanceof Error ? error.message : '사용자 정보 저장 중 오류가 발생했습니다.'
+  if (isApiClientError(error)) return getApiErrorDisplayMessage(error, DEFAULT_PROFILE_ERROR_MESSAGE)
+  return error instanceof Error ? error.message : DEFAULT_PROFILE_ERROR_MESSAGE
 }
 
 export function UserProfileDialog({ open, onClose }: { open: boolean; onClose: () => void }) {

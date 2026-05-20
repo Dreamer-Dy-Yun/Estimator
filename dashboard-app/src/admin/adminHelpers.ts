@@ -1,9 +1,13 @@
+import { getApiErrorDisplayMessage } from '../api'
 import type {
   AdminGoogleSheetPurpose,
   AdminGptKeyPurpose,
   AdminGptKeyTestStatus,
   AuthRole,
 } from '../api'
+import { isApiClientError } from '../api/types/api-error'
+
+const DEFAULT_ADMIN_ERROR_MESSAGE = '관리자 정보를 처리하는 중 오류가 발생했습니다.'
 
 export const ROLE_OPTIONS: Array<{ value: AuthRole; label: string }> = [
   { value: 'admin', label: '관리자' },
@@ -30,8 +34,9 @@ export const GOOGLE_SHEET_PURPOSE_OPTIONS: Array<{ value: AdminGoogleSheetPurpos
   { value: 'test', label: '연결 테스트' },
 ]
 
-export function getErrorMessage(error: unknown) {
-  return error instanceof Error ? error.message : '관리자 정보를 처리하는 중 오류가 발생했습니다.'
+export function getErrorMessage(error: unknown, fallback = DEFAULT_ADMIN_ERROR_MESSAGE) {
+  if (isApiClientError(error)) return getApiErrorDisplayMessage(error, fallback)
+  return error instanceof Error ? error.message : fallback
 }
 
 export function formatUpdatedAt(value: string | null) {

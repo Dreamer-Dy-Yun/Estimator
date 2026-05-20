@@ -11,6 +11,18 @@ type LoginLocationState = {
 
 const DEFAULT_LOGIN_ID = 'mock-admin'
 const DEFAULT_PASSWORD = 'admin'
+const AUTH_SESSION_ERROR_STORAGE_KEY = 'han-a.auth.session-error-message'
+
+function consumeSessionCheckErrorMessage() {
+  if (typeof window === 'undefined') return null
+  try {
+    const message = window.sessionStorage.getItem(AUTH_SESSION_ERROR_STORAGE_KEY)
+    window.sessionStorage.removeItem(AUTH_SESSION_ERROR_STORAGE_KEY)
+    return message?.trim() ? message : null
+  } catch {
+    return null
+  }
+}
 
 function getErrorMessage(error: unknown) {
   return getApiErrorDisplayMessage(error, '로그인 처리 중 오류가 발생했습니다.')
@@ -29,7 +41,7 @@ export function LoginPage() {
   const { session, login } = useAuth()
   const [loginId, setLoginId] = useState(DEFAULT_LOGIN_ID)
   const [password, setPassword] = useState(DEFAULT_PASSWORD)
-  const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [errorMessage, setErrorMessage] = useState<string | null>(() => consumeSessionCheckErrorMessage())
   const [isSubmitting, setIsSubmitting] = useState(false)
   const redirectTo = useMemo(
     () => getRedirectTo(searchParams.get('redirect'), location.state as LoginLocationState | null),

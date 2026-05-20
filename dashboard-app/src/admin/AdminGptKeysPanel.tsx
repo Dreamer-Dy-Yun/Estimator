@@ -29,7 +29,7 @@ export function AdminGptKeysPanel() {
         if (alive) setGptKeys(nextGptKeys)
       })
       .catch((error) => {
-        if (alive) setErrorMessage(getErrorMessage(error))
+        if (alive) setErrorMessage(getErrorMessage(error, 'GPT 키 목록을 불러오지 못했습니다.'))
       })
       .finally(() => {
         if (alive) setIsLoading(false)

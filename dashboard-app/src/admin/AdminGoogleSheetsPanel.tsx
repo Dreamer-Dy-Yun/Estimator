@@ -25,7 +25,7 @@ export function AdminGoogleSheetsPanel() {
         if (alive) setConfigs(nextConfigs)
       })
       .catch((error) => {
-        if (alive) setErrorMessage(getErrorMessage(error))
+        if (alive) setErrorMessage(getErrorMessage(error, '구글 시트 설정을 불러오지 못했습니다.'))
       })
       .finally(() => {
         if (alive) setIsLoading(false)

@@ -33,7 +33,7 @@ export function AdminUsersPanel() {
         if (alive) setUsers(nextUsers)
       })
       .catch((error) => {
-        if (alive) setErrorMessage(getErrorMessage(error))
+        if (alive) setErrorMessage(getErrorMessage(error, '사용자 목록을 불러오지 못했습니다.'))
       })
       .finally(() => {
         if (alive) setIsLoading(false)

@@ -47,6 +47,12 @@ export function useCandidateBulkDetailConfirm({
   const [bulkConfirmProgress, setBulkConfirmProgress] = useState<CandidateBulkDetailConfirmProgress | null>(null)
   const subscriptionRef = useRef<CandidateDetailBulkConfirmSubscription | null>(null)
   const closeTimerRef = useRef<ReturnType<typeof window.setTimeout> | null>(null)
+  const progressRef = useRef<CandidateBulkDetailConfirmProgress | null>(null)
+
+  const setProgress = useCallback((next: CandidateBulkDetailConfirmProgress | null) => {
+    progressRef.current = next
+    setBulkConfirmProgress(next)
+  }, [])
 
   const closeSubscription = useCallback(() => {
     subscriptionRef.current?.close()
@@ -56,8 +62,8 @@ export function useCandidateBulkDetailConfirm({
   const closeProgress = useCallback(() => {
     if (closeTimerRef.current) window.clearTimeout(closeTimerRef.current)
     closeTimerRef.current = null
-    setBulkConfirmProgress(null)
-  }, [])
+    setProgress(null)
+  }, [setProgress])
 
   useEffect(() => () => {
     closeSubscription()
@@ -68,14 +74,14 @@ export function useCandidateBulkDetailConfirm({
     if (closeTimerRef.current) window.clearTimeout(closeTimerRef.current)
     closeTimerRef.current = window.setTimeout(() => {
       if (!mountedRef.current) return
-      setBulkConfirmProgress(null)
+      setProgress(null)
       closeTimerRef.current = null
     }, CLOSE_DELAY_MS)
-  }, [mountedRef])
+  }, [mountedRef, setProgress])
 
   const applyProgressEvent = useCallback((event: CandidateDetailBulkConfirmProgressEvent) => {
     if (event.updatedItem) onItemsConfirmed([event.updatedItem])
-    setBulkConfirmProgress({
+    setProgress({
       open: true,
       status: event.status,
       totalItems: event.totalItems,
@@ -84,7 +90,7 @@ export function useCandidateBulkDetailConfirm({
       message: event.message,
       error: event.error,
     })
-  }, [onItemsConfirmed])
+  }, [onItemsConfirmed, setProgress])
 
   const confirmBulkDetailItems = useCallback(async (itemUuids: string[]) => {
     const uniqueUuids = [...new Set(itemUuids)]
@@ -92,7 +98,7 @@ export function useCandidateBulkDetailConfirm({
     setBulkConfirmBusy(true)
     closeSubscription()
     closeProgress()
-    setBulkConfirmProgress({
+    setProgress({
       open: true,
       status: 'queued',
       totalItems: uniqueUuids.length,
@@ -129,18 +135,23 @@ export function useCandidateBulkDetailConfirm({
         }, (error) => {
           if (!mountedRef.current) return
           closeSubscription()
-          reject(new Error(getStreamErrorMessage(error)))
+          reject(error instanceof Error ? error : new Error(getStreamErrorMessage(error)))
         })
       })
     } catch (err) {
       if (!mountedRef.current) return
-      const message = getApiErrorDisplayMessage(err, '상세 일괄확정에 실패했습니다.')
+      const previousProgress = progressRef.current
+      const failedProgressMessage = previousProgress?.status === 'failed'
+        ? previousProgress.error ?? previousProgress.message
+        : undefined
+      const message = failedProgressMessage ?? getApiErrorDisplayMessage(err, '상세 일괄확정에 실패했습니다.')
       setBulkConfirmBusy(false)
-      setBulkConfirmProgress({
+      setProgress({
         open: true,
         status: 'failed',
-        totalItems: uniqueUuids.length,
-        completedItems: 0,
+        totalItems: previousProgress?.totalItems ?? uniqueUuids.length,
+        completedItems: previousProgress?.completedItems ?? 0,
+        currentProductName: previousProgress?.currentProductName,
         message,
         error: message,
       })
@@ -158,6 +169,7 @@ export function useCandidateBulkDetailConfirm({
     scheduleClose,
     showToast,
     stashUuid,
+    setProgress,
   ])
 
   return {

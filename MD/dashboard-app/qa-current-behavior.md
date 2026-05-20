@@ -15,7 +15,7 @@
 
 ## QA 기본 원칙
 
-공통 로딩/빈 값/실패/권한/stale 상태 기준은 [qa-state-contracts.md](./qa-state-contracts.md)를 따른다. 버튼, 패널, 리스트, 드로워, toast, tooltip의 UI 리듬은 [ui-patterns.md](./ui-patterns.md)를 따른다.
+공통 로딩/빈 값/실패/권한/stale 상태 기준은 [qa-state-contracts.md](./qa-state-contracts.md)를 따르고, 실패 kind와 화면별 surface는 [failure-ux-matrix.md](./failure-ux-matrix.md)를 따른다. 버튼, 패널, 리스트, 드로워, toast, tooltip의 UI 리듬은 [ui-patterns.md](./ui-patterns.md)를 따른다.
 
 - 화면은 mock 구현을 직접 알면 안 되고, 모든 데이터 접근은 `src/api` 계약 뒤에서 이뤄져야 한다.
 - 백엔드가 제공해야 하는 비즈니스 값은 프론트가 임의로 생성하지 않는다.
@@ -23,6 +23,7 @@
 - API 계약상 확정된 내부 값은 과도하게 정규화하지 않고 그대로 표시한다.
 - mutation 성공은 상단 자동 닫힘 toast로 알려야 한다.
 - 정상 완료 상태가 매번 화면 공간을 차지하면 안 된다. 사용자가 알아야 할 로딩/오류/이전 데이터 상태만 노출한다.
+- 실패를 보여주기 위해 새 카드를 추가해 기존 화면을 밀지 않는다. row/cell 실패는 실패 배지와 툴팁, 목록/권한/mutation/SSE 실패는 기존 surface를 기본으로 한다.
 - 로컬 작업 중 E2E는 사용자가 명시적으로 요청한 경우에만 실행한다.
 - CI 배포 workflow는 `npm run test:e2e`를 GitHub Pages 빌드/배포 gate로 항상 실행한다.
 
@@ -139,10 +140,10 @@
 | 배지 병합 | 추천 결과 중 현재 후보군 row와 같은 `skuUuid`는 이너 리스트 배지와 기간 총판매량으로 병합한다. |
 | 추천 보기 | 추천 보기 목록에서는 이미 후보군에 있는 `skuUuid`를 숨긴다. 추천 보기 버튼은 배지 계산 시작 버튼이 아니며, 추천 조회가 아직 끝나지 않았으면 모달 내부에 로딩 상태를 표시한다. |
 | 추천 적용 | 선택 추천을 추가하면 `appendCandidateItems` 성공 응답의 신규 `candidateItems`와 이미 받은 추천 row를 매칭해 현재 리스트로 옮긴다. 후보군 전체 목록은 즉시 재조회하지 않고, 새 row의 총 오더 수량/금액만 SSE로 계산한다. |
-| 배지 실패 | 추천/배지 요청 실패 시 배지 셀은 무한 로딩이 아니라 실패 상태를 표시한다. |
+| 배지 실패 | 추천/배지 요청 실패 시 배지 셀은 무한 로딩이 아니라 실패 배지와 툴팁을 표시한다. |
 | 오더 지표 | 총 오더 수량, 총 오더 금액, 엑셀용 `orderExport`는 `subscribeCandidateOrderMetrics` SSE로 행별 갱신한다. |
 | 오더 지표 SSE 종료 | 요청한 모든 후보 item이 `item` 또는 `itemFailed` 이벤트를 받으면 프론트가 SSE 연결을 닫는다. `completed` 누락이나 서버 연결 종료로 동일 URL이 자동 재접속되어서는 안 된다. |
-| 오더 지표 SSE 실패 | EventSource transport 오류가 나면 기존 리스트는 유지하고 요청 대상 row의 오더 지표만 실패 상태로 표시한다. |
+| 오더 지표 SSE 실패 | EventSource transport 오류가 나면 기존 리스트는 유지하고 요청 대상 row의 오더 지표만 실패 배지와 툴팁으로 표시한다. |
 | 미수신 컬럼 | 아직 내려오지 않은 배지/오더 지표 컬럼은 로딩 상태를 표시한다. |
 | stale 방어 | 기간 변경 또는 재조회 중 이전 추천/오더 이벤트가 늦게 와도 최신 조회 결과를 덮으면 안 된다. |
 

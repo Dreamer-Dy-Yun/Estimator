@@ -94,12 +94,12 @@ export function useCandidateRecommendations({
       setRecommendationLoading(false)
       return recommendationRows
     } catch (err) {
-      if (!mountedRef.current || requestSeqRef.current !== seq) return []
+      if (!mountedRef.current || requestSeqRef.current !== seq) return recommendationItemsRef.current
       const message = getApiErrorDisplayMessage(err, '추천 후보 조회에 실패했습니다.')
       setRecommendationError(message)
       setItems(markCandidateItemInsightsFailed)
       setRecommendationLoading(false)
-      return []
+      return recommendationItemsRef.current
     }
   }, [dataReferencePeriodEnd, dataReferencePeriodStart, itemsRef, mountedRef, setItems, stashUuid])
 
@@ -116,7 +116,10 @@ export function useCandidateRecommendations({
         recommendationItemsRef.current = nextRecommendations
         setRecommendationItems(nextRecommendations)
       }
-      void refreshStashes().catch(() => undefined)
+      void refreshStashes().catch((err) => {
+        if (!mountedRef.current) return
+        showToast(getApiErrorDisplayMessage(err, '후보군 목록 최신화에 실패했습니다.'))
+      })
       showToast(
         createdSkuUuidSet.size
           ? `추천 후보 ${createdSkuUuidSet.size}개를 후보군에 추가했습니다.`

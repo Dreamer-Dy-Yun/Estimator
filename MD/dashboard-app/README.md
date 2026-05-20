@@ -5,7 +5,7 @@
 | 작성 지시 | Yun Daeyoung |
 | 작성자 | Codex |
 | 작성일 | 2026-04-23 |
-| 최종 수정일 | 2026-05-20 |
+| 최종 수정일 | 2026-05-21 |
 | 상태 | 유지 문서 |
 | 적용 범위 | `dashboard-app` 문서 |
 
@@ -24,6 +24,7 @@
 | [test-strategy.md](./test-strategy.md) | Vitest 테스트 전략과 우선순위 |
 | [qa-current-behavior.md](./qa-current-behavior.md) | 현재 화면/데이터/키보드/API 동작 기준 QA 문서. 기능 변경 시 반드시 갱신 |
 | [qa-state-contracts.md](./qa-state-contracts.md) | 로딩, 빈 값, 실패, 권한, stale, 비활성 상태 표시 기준 |
+| [failure-ux-matrix.md](./failure-ux-matrix.md) | 실패 kind별 UX surface, 화면별 실패 표시 정책, 허용/금지 fallback |
 | [ui-patterns.md](./ui-patterns.md) | 버튼, 카드, 패널, 리스트, 드로워, 모달, toast, tooltip UI 패턴 기준 |
 | [inner-candidate-list-sse-plan.md](./inner-candidate-list-sse-plan.md) | 이너 후보군 조회·추천·오더 지표 SSE 분리 계획 |
 

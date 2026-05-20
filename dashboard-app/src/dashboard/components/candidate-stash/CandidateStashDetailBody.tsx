@@ -38,6 +38,12 @@ export function CandidateStashDetailBody({
   onToggleItemDrawer,
   keyboardNavigationDisabled = false,
 }: Props) {
+  const hasCachedItems = model.items.length > 0
+  const hasVisibleRows = model.tableRows.length > 0
+  const hasSearchQuery = Boolean(
+    model.brandQuery.trim() || model.codeQuery.trim() || model.productNameQuery.trim(),
+  )
+
   return (
     <div className={detailStyles.innerDrawerAwareBody}>
       <div className={detailStyles.innerSummaryGrid}>
@@ -69,7 +75,7 @@ export function CandidateStashDetailBody({
       </div>
 
       <div className={detailStyles.innerCandidateListBlock}>
-        {model.candidateItemsLoading ? (
+        {model.candidateItemsLoading && !hasCachedItems ? (
           <InnerCandidateOrderEmptyState>
             <LoadingSpinner label="이너 후보 목록을 불러오는 중" />
           </InnerCandidateOrderEmptyState>
@@ -77,42 +83,35 @@ export function CandidateStashDetailBody({
           <InnerCandidateOrderEmptyState>
             이너 후보 상세 로드 실패: {model.drawerError}
           </InnerCandidateOrderEmptyState>
-        ) : model.candidateItemsLoadError && !model.tableRows.length ? (
+        ) : model.candidateItemsLoadError && !hasCachedItems ? (
           <InnerCandidateOrderEmptyState>
             이너 후보 목록 로드 실패: {model.candidateItemsLoadError}
           </InnerCandidateOrderEmptyState>
-        ) : !model.tableRows.length ? (
+        ) : !hasVisibleRows ? (
           <InnerCandidateOrderEmptyState>
-            {model.brandQuery.trim() || model.codeQuery.trim() || model.productNameQuery.trim()
+            {hasSearchQuery
               ? '검색 결과가 없습니다.'
               : '등록된 이너 후보가 없습니다.'}
           </InnerCandidateOrderEmptyState>
         ) : (
-          <>
-            {model.candidateItemsLoadError ? (
-              <InnerCandidateOrderEmptyState>
-                후보 목록 최신화 실패: {model.candidateItemsLoadError}
-              </InnerCandidateOrderEmptyState>
-            ) : null}
-            <InnerCandidateOrderList
-              rows={model.tableRows}
-              visibleItemUuids={visibleItemUuids}
-              selectedUuidSet={selectedUuidSet}
-              allVisibleSelected={allVisibleSelected}
-              selectAllRef={selectAllRef}
-              competitorSalesQtyHeader={competitorSalesQtyHeader}
-              activeSortKey={activeSortKey}
-              activeSortDir={activeSortDir}
-              drawerOpen={model.drawerOpen}
-              drawerClosing={model.drawerClosing}
-              openedItemUuid={model.openedItemUuid}
-              keyboardNavigationDisabled={keyboardNavigationDisabled}
-              onToggleAllVisibleItems={onToggleAllVisibleItems}
-              onToggleSelectedItem={onToggleSelectedItem}
-              onToggleItemDrawer={onToggleItemDrawer}
-              onSort={model.toggleTableSort}
-            />
-          </>
+          <InnerCandidateOrderList
+            rows={model.tableRows}
+            visibleItemUuids={visibleItemUuids}
+            selectedUuidSet={selectedUuidSet}
+            allVisibleSelected={allVisibleSelected}
+            selectAllRef={selectAllRef}
+            competitorSalesQtyHeader={competitorSalesQtyHeader}
+            activeSortKey={activeSortKey}
+            activeSortDir={activeSortDir}
+            drawerOpen={model.drawerOpen}
+            drawerClosing={model.drawerClosing}
+            openedItemUuid={model.openedItemUuid}
+            keyboardNavigationDisabled={keyboardNavigationDisabled}
+            onToggleAllVisibleItems={onToggleAllVisibleItems}
+            onToggleSelectedItem={onToggleSelectedItem}
+            onToggleItemDrawer={onToggleItemDrawer}
+            onSort={model.toggleTableSort}
+          />
         )}
       </div>
     </div>

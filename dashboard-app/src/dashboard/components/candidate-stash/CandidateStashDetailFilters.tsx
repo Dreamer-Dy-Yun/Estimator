@@ -11,6 +11,12 @@ type Props = {
 export function CandidateStashDetailFilters({ model, downloadUserName }: Props) {
   return (
     <>
+      {model.candidateItemsLoadError && model.items.length > 0 && (
+        <div className={detailStyles.orderExportError} role="alert">
+          후보 목록 최신화 실패: {model.candidateItemsLoadError} 기존 목록을 유지합니다.
+        </div>
+      )}
+
       {model.recommendationError && (
         <div className={detailStyles.orderExportError} role="alert">
           추천 후보 조회 실패: {model.recommendationError}

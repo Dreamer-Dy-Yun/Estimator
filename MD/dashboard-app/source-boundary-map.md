@@ -34,6 +34,7 @@
 | 상품 1차/2차 드로워, 스냅샷, AI 코멘트, 재고·발주 계산 | [product-drawer.md](./boundaries/product-drawer.md) | `dashboard-app/src/dashboard/components/product-drawer` |
 | 공통 컴포넌트, hooks/model/interaction/drawer, snapshot, utils | [shared-modules.md](./boundaries/shared-modules.md) | `dashboard-app/src/components`, `dashboard-app/src/dashboard/hooks`, `dashboard-app/src/utils` |
 | 현재 QA 기준과 검증 명령 | [qa-current-behavior.md](./qa-current-behavior.md), [qa-state-contracts.md](./qa-state-contracts.md), [test-strategy.md](./test-strategy.md) | `dashboard-app/src/**/*.test.*`, `dashboard-app/e2e` |
+| 실패 kind별 UX surface와 금지 fallback | [failure-ux-matrix.md](./failure-ux-matrix.md), [qa-state-contracts.md](./qa-state-contracts.md) | `dashboard-app/src/api/types/api-error.ts`, `dashboard-app/src/api/requests/httpClient.ts` |
 | 버튼, 카드, 패널, 리스트, 드로워, 모달의 UI 패턴 | [ui-patterns.md](./ui-patterns.md) | `dashboard-app/src/components`, `dashboard-app/src/dashboard/components`, CSS Modules |
 | CSS public facade, 직접 import 예외, selector/token 하드닝 상태 | [hardening-status.md](./hardening-status.md) | `dashboard-app/src/dashboard/components/common.module.css`, `dashboard-app/src/dashboard/components/product-drawer/secondary/secondaryDrawer.module.css`, `dashboard-app/src/styles/tokens.css` |
 | 하드닝 완료 모듈과 수정 허가 규칙 | [module-hardening.md](./module-hardening.md) | `dashboard-app/src/utils` 등 |
@@ -50,7 +51,7 @@
 | 로그인/관리자 화면, GPT 키, 구글 시트 설정 변경 | [auth-admin.md](./boundaries/auth-admin.md), [qa-current-behavior.md](./qa-current-behavior.md) |
 | 공통 UI, table, toast, spinner, keyboard interaction, utils 변경 | [shared-modules.md](./boundaries/shared-modules.md), [ui-patterns.md](./ui-patterns.md), 필요 시 [module-hardening.md](./module-hardening.md) |
 | CSS public facade, style-parts 직접 import 예외, selector 중복, token 후보 변경 | [hardening-status.md](./hardening-status.md), 필요 시 [ui-patterns.md](./ui-patterns.md) |
-| 로딩, 빈 값, 오류, 권한 실패, stale, 비활성 UX 변경 | [qa-state-contracts.md](./qa-state-contracts.md), [qa-current-behavior.md](./qa-current-behavior.md) |
+| 로딩, 빈 값, 오류, 권한 실패, stale, 비활성 UX 변경 | [failure-ux-matrix.md](./failure-ux-matrix.md), [qa-state-contracts.md](./qa-state-contracts.md), [qa-current-behavior.md](./qa-current-behavior.md) |
 | e2e/CI/build/router/배포 변경 | [repository-runtime.md](./boundaries/repository-runtime.md), [test-strategy.md](./test-strategy.md) |
 
 ## 새 파일 배치 규칙
