@@ -1,14 +1,12 @@
-﻿import { useCallback, useEffect, useRef, useState, type MutableRefObject } from 'react'
+import { useCallback, useEffect, useRef, useState, type MutableRefObject } from 'react'
 import {
   appendCandidateItems,
-  getCompanyUuidForOptionalScope,
   getApiErrorDisplayMessage,
   getCandidateRecommendations,
   type CandidateItemSummary,
   type CandidateReferenceItemSummary,
   type CandidateStashItemSummary,
 } from '../../../api'
-import { useAuth } from '../../../auth/AuthContext'
 import {
   applyRecommendationInsightsToCandidateItems,
   markCandidateItemInsightsFailed,
@@ -27,6 +25,7 @@ type AppendRecommendedItems = (
 
 type Args = {
   stashUuid: string
+  companyUuid?: string
   dataReferencePeriodStart: string
   dataReferencePeriodEnd: string
   mountedRef: MutableRefObject<boolean>
@@ -39,6 +38,7 @@ type Args = {
 
 export function useCandidateRecommendations({
   stashUuid,
+  companyUuid,
   dataReferencePeriodStart,
   dataReferencePeriodEnd,
   mountedRef,
@@ -48,8 +48,6 @@ export function useCandidateRecommendations({
   refreshStashes,
   showToast,
 }: Args) {
-  const { selectedCompanyUuid } = useAuth()
-  const companyUuid = getCompanyUuidForOptionalScope(selectedCompanyUuid)
   const [recommendationItems, setRecommendationItems] = useState<CandidateReferenceItemSummary[]>([])
   const [recommendationLoading, setRecommendationLoading] = useState(false)
   const [recommendationError, setRecommendationError] = useState<string | null>(null)

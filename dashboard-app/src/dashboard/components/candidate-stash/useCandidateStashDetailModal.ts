@@ -25,6 +25,7 @@ import { useCandidateItemsLoader } from './useCandidateItemsLoader'
 
 type Args = {
   stashUuid: string
+  companyUuid?: string
   stashSummary?: CandidateStashSummary | null
   onStashesInvalidate?: () => void
 }
@@ -35,6 +36,7 @@ export type { InnerCandidateRow, InnerCandidateSortKey } from './candidateStashD
 
 export function useCandidateStashDetailModal({
   stashUuid,
+  companyUuid,
   stashSummary: stashSummaryProp,
   onStashesInvalidate,
 }: Args) {
@@ -71,9 +73,10 @@ export function useCandidateStashDetailModal({
     getCurrentItemLoadSeq,
     isCurrentItemLoad,
     subscribeOrderMetrics,
-  } = useCandidateOrderMetricStream({ stashUuid, mountedRef, setItems })
+  } = useCandidateOrderMetricStream({ stashUuid, companyUuid, mountedRef, setItems })
   const { detailTarget, refreshStashes, stashListLoadError } = useCandidateStashSummaries({
     stashUuid,
+    companyUuid,
     stashSummary: stashSummaryProp,
     mountedRef,
     onStashesInvalidate,
@@ -81,6 +84,7 @@ export function useCandidateStashDetailModal({
 
   const { candidateItemsLoading, candidateItemsLoadError, loadItems } = useCandidateItemsLoader({
     stashUuid,
+    companyUuid,
     appliedPeriodRef,
     itemsRef,
     confirmationOverridesRef,
@@ -119,9 +123,11 @@ export function useCandidateStashDetailModal({
       seq: getCurrentItemLoadSeq(),
       dataReferencePeriodStart,
       dataReferencePeriodEnd,
+      companyUuid,
       candidateItemUuids: candidateItems.map((item) => item.uuid),
     })
   }, [
+    companyUuid,
     dataReferencePeriodEnd,
     dataReferencePeriodStart,
     getCurrentItemLoadSeq,
@@ -132,6 +138,7 @@ export function useCandidateStashDetailModal({
 
   const recommendations = useCandidateRecommendations({
     stashUuid,
+    companyUuid,
     dataReferencePeriodStart,
     dataReferencePeriodEnd,
     mountedRef,
@@ -182,6 +189,7 @@ export function useCandidateStashDetailModal({
     })
   const bulkConfirm = useCandidateBulkDetailConfirm({
     stashUuid,
+    companyUuid,
     dataReferencePeriodStart,
     dataReferencePeriodEnd,
     mountedRef,

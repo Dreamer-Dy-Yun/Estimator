@@ -14,7 +14,7 @@ export function subscribeMockCandidateOrderMetrics(
   listener: (event: CandidateOrderMetricEvent) => void,
   ownerUserUuid?: string,
 ): CandidateOrderMetricSubscription {
-  const records = readCandidateItemsForStash(params.stashUuid, ownerUserUuid)
+  const records = readCandidateItemsForStash(params.stashUuid, ownerUserUuid, params.companyUuid)
     .filter((row) => params.candidateItemUuids.includes(row.uuid))
   const period = buildCandidateListParamsPeriod(params)
   let failedCount = 0
@@ -25,7 +25,7 @@ export function subscribeMockCandidateOrderMetrics(
         requestId: params.requestId,
         itemUuid: row.uuid,
         skuUuid: row.skuUuid,
-        metric: buildCandidateOrderMetric(row, period),
+        metric: buildCandidateOrderMetric(row, period, params.companyUuid),
       })
     } catch (err) {
       failedCount += 1

@@ -82,25 +82,25 @@ export function useCandidateOrderMetricStream({ stashUuid, companyUuid, mountedR
     const signature = [
       metricCompanyUuid ?? 'all',
       buildCandidateOrderMetricRequestSignature({
-      stashUuid,
-      dataReferencePeriodStart,
-      dataReferencePeriodEnd,
-      seq,
-      candidateItemUuids: nextCandidateItemUuids,
+        stashUuid,
+        dataReferencePeriodStart,
+        dataReferencePeriodEnd,
+        seq,
+        candidateItemUuids: nextCandidateItemUuids,
       }),
     ].join(':')
     const existingRequestId = metricRequestIdBySignatureRef.current.get(signature)
     if (existingRequestId && metricSubscriptionsRef.current.has(existingRequestId)) return
 
     metricRequestSeqRef.current += 1
-  const requestId = [
-    stashUuid,
-    metricCompanyUuid ?? 'all',
-    dataReferencePeriodStart,
-    dataReferencePeriodEnd,
-    seq,
-    metricRequestSeqRef.current,
-  ].join(':')
+    const requestId = [
+      stashUuid,
+      metricCompanyUuid ?? 'all',
+      dataReferencePeriodStart,
+      dataReferencePeriodEnd,
+      seq,
+      metricRequestSeqRef.current,
+    ].join(':')
 
     const closeRequest = () => {
       const entry = metricSubscriptionsRef.current.get(requestId)
@@ -120,6 +120,7 @@ export function useCandidateOrderMetricStream({ stashUuid, companyUuid, mountedR
     }
     const subscription = subscribeCandidateOrderMetrics({
       stashUuid,
+      companyUuid: metricCompanyUuid,
       dataReferencePeriodStart,
       dataReferencePeriodEnd,
       requestId,

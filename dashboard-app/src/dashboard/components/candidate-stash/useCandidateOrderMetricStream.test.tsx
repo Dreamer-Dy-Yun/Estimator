@@ -10,6 +10,8 @@ import type {
 } from '../../../api'
 import { useCandidateOrderMetricStream } from './useCandidateOrderMetricStream'
 
+const TEST_COMPANY_UUID = '00000000-0000-4000-8000-000000000101'
+
 const apiMock = vi.hoisted(() => ({
   subscribeCandidateOrderMetrics: vi.fn(),
   subscriptions: [] as {
@@ -106,6 +108,7 @@ function Probe({ onControls }: { onControls: (nextControls: Controls) => void })
   ])
   const nextControls = useCandidateOrderMetricStream({
     stashUuid: 'stash-1',
+    companyUuid: TEST_COMPANY_UUID,
     mountedRef,
     setItems,
   })
@@ -168,6 +171,7 @@ describe('useCandidateOrderMetricStream', () => {
     })
 
     expect(apiMock.subscribeCandidateOrderMetrics).toHaveBeenCalledTimes(1)
+    expect(apiMock.subscriptions[0].params.companyUuid).toBe(TEST_COMPANY_UUID)
     expect(apiMock.subscriptions[0].params.candidateItemUuids).toEqual(['item-1', 'item-2'])
 
     act(() => {

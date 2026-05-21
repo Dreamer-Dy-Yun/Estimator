@@ -61,6 +61,8 @@
 
 `전체` 선택은 실제 회사 UUID 조건이 아니라 company scope를 비우는 UI 의미다. 프론트 HTTP adapter는 `전체`일 때 `companyUuid` query parameter를 생략하고, 백엔드는 해당 업무 조회에서 회사 `WHERE` 조건을 제거해 전체 회사를 조회한다. 단일 회사 선택 시 분석 목록, 산점도, 필터 메타, 상품 드로워, 2차 드로워, 후보군, 오더 계산, SSE, mutation 등 회사 소유 업무 데이터 요청에는 `companyUuid`를 포함한다. 후보군 UI는 단일 회사 기준 업무이므로 `전체` 선택 상태에서 탭과 후보군 추가 액션을 비활성화한다.
 
+프론트 mock도 이 scope를 단순 수신값으로만 두지 않는다. `companyUuid`는 판매량/금액 계산, 후보군 seed/store 조회, 후보 item 접근, 오더 지표 SSE 계산의 실제 분기 입력이며, `전체` scope 생략은 전체 회사 합산 또는 전체 회사 조회 의미로만 사용한다.
+
 현재 범위에서 사용자별 회사 접근 권한 부여는 구현 범위가 아니다. 백엔드는 인증된 사용자가 볼 수 있는 회사 목록을 정하는 정책을 별도로 확정할 수 있으나, 프론트는 임의 권한 flag나 소유권 값을 만들지 않는다.
 
 ### 1.5 인증·에러
@@ -331,28 +333,28 @@
 | `getCompetitorSalesScatterGrid(params?)` | GET | `/sales/competitor/scatter-grid?companyUuid&startDate&endDate&brand&category&codeQuery&colorCode&nameQuery&competitorChannelId&xBucketSize&yBucketSize&maxSkuIdsPerCell` |
 | `getSalesFilterMeta(params?)` | GET | `/sales/filter-meta?companyUuid` |
 | `getProductDrawerBundle(skuGroupKey, params?)` | GET | `/products/:skuGroupKey/drawer-bundle?companyUuid` |
-| `getProductMonthlyTrend(skuGroupKey, params)` | GET | `/products/:skuGroupKey/monthly-trend?startDate&endDate&forecastMonths&competitorChannelId` |
-| `getProductSalesInsight(skuGroupKey, params)` | GET | `/products/:skuGroupKey/sales-insight?startDate&endDate&competitorChannelId` |
-| `getProductSecondaryDetail(skuGroupKey, params?)` | GET | `/products/:skuGroupKey/secondary-detail?minOpMarginPct` |
-| `getSecondaryDailyTrend(params)` | GET | `/products/:skuGroupKey/secondary/daily-trend?startMonth&leadTimeDays&competitorChannelId` |
-| `getSecondaryAiComment(params)` | POST 권장 | `/products/:skuGroupKey/secondary/ai-comment` body `{ periodStart, periodEnd, forecastMonths, competitorChannelId, candidateItemUuid? }` |
+| `getProductMonthlyTrend(skuGroupKey, params)` | GET | `/products/:skuGroupKey/monthly-trend?companyUuid&startDate&endDate&forecastMonths&competitorChannelId` |
+| `getProductSalesInsight(skuGroupKey, params)` | GET | `/products/:skuGroupKey/sales-insight?companyUuid&startDate&endDate&competitorChannelId` |
+| `getProductSecondaryDetail(skuGroupKey, params?)` | GET | `/products/:skuGroupKey/secondary-detail?companyUuid&minOpMarginPct` |
+| `getSecondaryDailyTrend(params)` | GET | `/products/:skuGroupKey/secondary/daily-trend?companyUuid&startMonth&leadTimeDays&competitorChannelId` |
+| `getSecondaryAiComment(params)` | POST 권장 | `/products/:skuGroupKey/secondary/ai-comment` body `{ companyUuid?, periodStart, periodEnd, forecastMonths, competitorChannelId, candidateItemUuid? }` |
 | `getSecondaryCompetitorChannels()` | GET | `/secondary/competitor-channels` |
-| `getCandidateStashes()` | GET | `/candidate-stashes` 세션 소유자 기준 |
-| `getCandidateItemsByStash(params)` | GET | `/candidate-stashes/:stashUuid/items?dataReferencePeriodStart&dataReferencePeriodEnd` |
-| `subscribeCandidateOrderMetrics(params)` | SSE 권장 | `/candidate-stashes/:stashUuid/items/order-metrics/events?requestId&dataReferencePeriodStart&dataReferencePeriodEnd&candidateItemUuids` (`candidateItemUuids`는 반복 query param) |
-| `startCandidateStashLlmCommentJob(stashUuid)` | POST | `/candidate-stashes/:stashUuid/llm-comment-jobs` 세션 소유자 기준 |
+| `getCandidateStashes(params)` | GET | `/candidate-stashes?companyUuid` 세션 소유자와 회사 scope 기준 |
+| `getCandidateItemsByStash(params)` | GET | `/candidate-stashes/:stashUuid/items?companyUuid&dataReferencePeriodStart&dataReferencePeriodEnd` |
+| `subscribeCandidateOrderMetrics(params)` | SSE 권장 | `/candidate-stashes/:stashUuid/items/order-metrics/events?companyUuid&requestId&dataReferencePeriodStart&dataReferencePeriodEnd&candidateItemUuids` (`candidateItemUuids`는 반복 query param) |
+| `startCandidateStashLlmCommentJob(stashUuid, params)` | POST | `/candidate-stashes/:stashUuid/llm-comment-jobs` body 또는 query `{ companyUuid }`, 세션 소유자 기준 |
 | `subscribeCandidateStashLlmCommentJob(jobId, listener)` | GET (SSE) | `/candidate-stash-llm-comment-jobs/:jobId/events` 세션 소유자 기준 |
-| `getCandidateRecommendations(params)` | GET | `/candidate-stashes/:stashUuid/recommendations?dataReferencePeriodStart&dataReferencePeriodEnd&limit&cursor` |
-| `getCandidateItemByUuid(itemUuid)` | GET | `/candidate-items/:itemUuid` |
-| `deleteCandidateItem(itemUuid)` | DELETE | `/candidate-items/:itemUuid` 세션 소유자 기준 |
-| `deleteCandidateItems(stashUuid, itemUuids)` | DELETE | `/candidate-stashes/:stashUuid/items` body `{ itemUuids }`, 세션 소유자 기준 |
-| `deleteCandidateStash(stashUuid)` | DELETE | `/candidate-stashes/:stashUuid` 세션 소유자 기준 |
-| `createCandidateStash(payload)` | POST | `/candidate-stashes` body `{ name, note?, periodStart, periodEnd, forecastMonths }`, 생성자는 세션 기준 |
-| `updateCandidateStash(payload)` | PATCH | `/candidate-stashes/:stashUuid` body `{ name, note? }`, 세션 소유자 기준 |
-| `duplicateCandidateStash(stashUuid)` | POST | `/candidate-stashes/:stashUuid/duplicate` 세션 소유자 기준 |
-| `appendCandidateItem(payload)` | POST | `/candidate-stashes/:stashUuid/items` body `{ skuGroupKey, details, isLatestLlmComment }`, 세션 소유자 기준 |
-| `appendCandidateItems(payload)` | POST | `/candidate-stashes/:stashUuid/items/bulk` body `{ skuGroupKeys }`, 세션 소유자 기준. 응답은 `{ candidateItems }` |
-| `updateCandidateItem(payload)` | PATCH | `/candidate-items/:itemUuid` body `{ details, isLatestLlmComment }`, 세션 소유자 기준. 성공 응답은 commit/cache 반영 이후 최신 `UpdateCandidateItemResponse` |
+| `getCandidateRecommendations(params)` | GET | `/candidate-stashes/:stashUuid/recommendations?companyUuid&dataReferencePeriodStart&dataReferencePeriodEnd&limit&cursor` |
+| `getCandidateItemByUuid(itemUuid, params)` | GET | `/candidate-items/:itemUuid?companyUuid` |
+| `deleteCandidateItem(itemUuid, params)` | DELETE | `/candidate-items/:itemUuid?companyUuid` 세션 소유자 기준 |
+| `deleteCandidateItems(stashUuid, itemUuids, params)` | DELETE | `/candidate-stashes/:stashUuid/items` body `{ companyUuid, itemUuids }`, 세션 소유자 기준 |
+| `deleteCandidateStash(stashUuid, params)` | DELETE | `/candidate-stashes/:stashUuid?companyUuid` 세션 소유자 기준 |
+| `createCandidateStash(payload)` | POST | `/candidate-stashes` body `{ companyUuid, name, note?, periodStart, periodEnd, forecastMonths }`, 생성자는 세션 기준 |
+| `updateCandidateStash(payload)` | PATCH | `/candidate-stashes/:stashUuid` body `{ companyUuid, name, note? }`, 세션 소유자 기준 |
+| `duplicateCandidateStash(stashUuid, params)` | POST | `/candidate-stashes/:stashUuid/duplicate` body 또는 query `{ companyUuid }`, 세션 소유자 기준 |
+| `appendCandidateItem(payload)` | POST | `/candidate-stashes/:stashUuid/items` body `{ companyUuid, skuGroupKey, details, isLatestLlmComment }`, 세션 소유자 기준 |
+| `appendCandidateItems(payload)` | POST | `/candidate-stashes/:stashUuid/items/bulk` body `{ companyUuid, skuGroupKeys }`, 세션 소유자 기준. 응답은 `{ candidateItems }` |
+| `updateCandidateItem(payload)` | PATCH | `/candidate-items/:itemUuid` body `{ companyUuid, details, isLatestLlmComment }`, 세션 소유자 기준. 성공 응답은 commit/cache 반영 이후 최신 `UpdateCandidateItemResponse` |
 | `getCandidateStashExcelTemplateDownload()` | GET | `/candidate-stashes/excel-template` |
 | `uploadCandidateStashExcel(file)` | POST multipart/form-data | `/candidate-stashes/import/excel` 세션 생성자 기준 |
 | `getSecondaryStockOrderCalc(params)` | POST | `/secondary/stock-order-calc` body |
@@ -579,7 +581,7 @@
 | `itemCount` | 소속 후보 아이템 개수 |
 | `dbCreatedAt`, `dbUpdatedAt` | 생성·수정 시각(아이템 추가로 스태시 “갱신” 시각을 반영할지는 백엔드 정책) |
 
-`getCandidateStashes`, `getCandidateItemsByStash`, `getCandidateRecommendations`, `getCandidateItemByUuid` 및 후보군 mutation 계열은 현재 인증 세션을 기준으로 동작한다. 프론트는 사용자 UUID를 요청 파라미터로 보내지 않으며, 백엔드는 세션의 `USER_ACCOUNT.uuid`와 후보군의 `userUuid`가 일치하는 데이터만 반환/수정해야 한다.
+`getCandidateStashes`, `getCandidateItemsByStash`, `getCandidateRecommendations`, `getCandidateItemByUuid` 및 후보군 mutation 계열은 현재 인증 세션과 `companyUuid` scope를 기준으로 동작한다. 프론트는 사용자 UUID를 요청 파라미터로 보내지 않으며, 백엔드는 세션의 `USER_ACCOUNT.uuid`와 후보군의 `userUuid`가 일치하고 요청 회사 scope에 속한 데이터만 반환/수정해야 한다.
 
 **`CandidateItemListParams`** (`getCandidateItemsByStash` 요청)
 
@@ -719,6 +721,8 @@ badges: [
 
 초기 `getCandidateItemsByStash` 응답 이후 총 오더 수량·총 오더 금액처럼 계산량이 큰 값을 항목별로 내려준다. `candidateItemUuids`는 전체 후보 아이템이 아니라 이번에 계산이 필요한 부분 집합만 반복 query param으로 보낼 수 있다. 추천 적용 직후 프론트는 새로 추가된 후보 아이템 UUID만 같은 SSE에 전달하며, 기존 행의 계산 완료 값은 유지한다.
 
+후보군 오더 지표 hook은 부모 hook에서 DI로 받은 `companyUuid`를 `subscribeCandidateOrderMetrics` 요청에 포함한다. stream hook은 `AuthContext`나 전역 company selector를 직접 읽지 않으며, 같은 item UUID라도 회사 scope가 다르면 별도 계산 요청으로 취급한다.
+
 프론트 타입 소유 파일은 `dashboard-app/src/api/types/candidate-order-metrics.ts`다. 후보군 기본 조회 계약(`candidate.ts`)과 분리되어 있으므로, 백엔드가 오더 계산 job/SSE 구조를 바꾸면 이 파일과 `subscribeCandidateOrderMetrics` adapter만 우선 확인한다.
 
 오더 지표도 다른 데이터로 대체해 만들지 않는다. 예를 들어 자사 평균 판매가·평균 원가·수수료율이 없으면 경쟁사 가격이나 상품마스터 기본값으로 채우지 말고 `orderExport.avgPrice`, `avgCost`, `feeRatePct`를 `null`로 내려준다. 수량 산식에 필요한 원천 데이터가 없으면 해당 지표를 `0` 또는 `itemFailed`로 드러내고, 최소값 `1` 같은 임의 보정도 하지 않는다.
@@ -735,12 +739,12 @@ badges: [
 
 **페이로드**
 
-- `CreateCandidateStashPayload`: `{ name, note?, periodStart, periodEnd, forecastMonths }` — 후보군은 컨테이너이며 단일 상품을 소유하지 않는다
-- `UpdateCandidateStashPayload`: `{ stashUuid, name, note? }` — 메타만 갱신
-- `AppendCandidateItemsPayload`: `{ stashUuid, skuGroupKeys }` — 자사/경쟁사 분석 리스트 또는 추천 보기에서 선택한 상품들을 스냅샷 없이 후보군에 추가한다. 현재 프론트의 `skuGroupKey`는 내부적으로 `SKU.code + SKU.color_code` 상품 단위에 대응하며, 사이즈별 확정 오더량과 AI 코멘트는 이너후보군 2차 드로워에서 저장하기 전까지 비어 있거나 미확정 상태다
+- `CreateCandidateStashPayload`: `{ companyUuid, name, note?, periodStart, periodEnd, forecastMonths }` — 후보군은 단일 회사 scope의 컨테이너이며 단일 상품을 소유하지 않는다
+- `UpdateCandidateStashPayload`: `{ companyUuid, stashUuid, name, note? }` — 같은 회사 scope 안에서 메타만 갱신
+- `AppendCandidateItemsPayload`: `{ companyUuid, stashUuid, skuGroupKeys }` — 자사/경쟁사 분석 리스트 또는 추천 보기에서 선택한 상품들을 스냅샷 없이 후보군에 추가한다. 현재 프론트의 `skuGroupKey`는 내부적으로 `SKU.code + SKU.color_code` 상품 단위에 대응하며, 사이즈별 확정 오더량과 AI 코멘트는 이너후보군 2차 드로워에서 저장하기 전까지 비어 있거나 미확정 상태다
 - `AppendCandidateItemsResponse`: `{ candidateItems: CandidateStashItemSummary[] }` — 이번 요청으로 새로 생성된 `CANDIDATE_ITEM`만 반환한다. 이미 존재해서 skip된 항목은 포함하지 않는다. 추천 보기에서 추가한 경우 프론트는 이 응답의 신규 `candidateItems`와 이미 조회해 둔 recommendation row를 매칭해 화면 리스트로 로컬 이동시키며, `getCandidateItemsByStash` 전체 재조회는 하지 않는다. 총 오더 수량/금액은 새로 생성된 `candidateItems[].uuid`만 `subscribeCandidateOrderMetrics`에 넘겨 SSE로 계산한다.
-- `AppendCandidateItemPayload`: `{ stashUuid, skuGroupKey, details, isLatestLlmComment? }` — `details`가 오더 스냅샷 저장의 단일 경로이며, 기본값은 `false` 권장
-- `UpdateCandidateItemPayload`: `{ itemUuid, details, isLatestLlmComment }`. `details`에 스냅샷이 있으면 상세확정으로 저장/갱신하고, `details`가 `null`이면 저장된 2차 드로워 스냅샷을 삭제해 상세확정을 해제한다. 이 작업은 복구 불가능한 사용자 명시 액션으로 취급한다. 성공 응답은 `UpdateCandidateItemResponse`다.
+- `AppendCandidateItemPayload`: `{ companyUuid, stashUuid, skuGroupKey, details, isLatestLlmComment? }` — `details`가 오더 스냅샷 저장의 단일 경로이며, 기본값은 `false` 권장
+- `UpdateCandidateItemPayload`: `{ companyUuid, itemUuid, details, isLatestLlmComment }`. `details`에 스냅샷이 있으면 상세확정으로 저장/갱신하고, `details`가 `null`이면 저장된 2차 드로워 스냅샷을 삭제해 상세확정을 해제한다. 이 작업은 복구 불가능한 사용자 명시 액션으로 취급한다. 성공 응답은 `UpdateCandidateItemResponse`다.
 - `CandidateDetailBulkConfirmStartPayload`: `{ stashUuid, itemUuids, dataReferencePeriodStart, dataReferencePeriodEnd }`. 선택된 상세미확정 후보 아이템들을 백엔드 job으로 상세확정한다. 백엔드는 각 item의 2차 드로워 계산, AI 코멘트 포함 스냅샷 생성, `CANDIDATE_ITEM.details` 저장을 item 단위 트랜잭션 또는 안전한 batch 트랜잭션으로 수행한다.
 - `CandidateStashExcelUploadResult`: `{ stashUuid, stashName, itemCount, warnings: string[] }`
 - 2차 드로워에서 후보 아이템 스냅샷을 다시 저장할 때 프론트는 `updateCandidateItem`에 `isLatestLlmComment: false`를 보냅니다. 백엔드는 해당 아이템의 DB `is_latest_llm_comment`를 `false`로 저장해 기존 AI 코멘트/추천이 최신 스냅샷 기준이 아님을 표시해야 합니다.
@@ -754,8 +758,8 @@ badges: [
 - 이너후보군 리스트 기본 화면은 `CandidateItemSummary`의 live 계산값을 표시합니다. 저장 스냅샷이 있는 경우에도 리스트는 상세확정 여부만 표시하고, 2차 드로워는 저장 스냅샷을 편집 가능한 초기값으로 hydrate합니다. 이후 사용자가 바꾸는 미확정 값은 DB가 아니라 프론트 메모리 draft에만 머물며, 후보군 상세 모달을 닫으면 폐기됩니다. `확정`은 현재 2차 드로워 상태를 `details`에 저장하고, `확정 해제`는 확인 후 `details: null`로 업데이트합니다. `초기화`는 DB 스냅샷을 건드리지 않고 현재 이너오더 조회 기간 기준 live 계산값으로 되돌립니다.
 - `uploadCandidateStashExcel`: 프론트는 파일을 파싱하지 않습니다. `multipart/form-data`의 `file` 필드로 엑셀 파일을 전송하고,
   백엔드는 파일 내용을 검증한 뒤 DB 트랜잭션 안에서 후보군과 후보 아이템을 생성해야 합니다.
-  생성자/소유자는 요청 body가 아니라 인증 세션의 `USER_ACCOUNT.uuid`를 기준으로 결정합니다.
-  성공 후 프론트는 응답 객체를 목록에 직접 삽입하지 않고 `getCandidateStashes()`를 다시 호출해 DB 기준 목록과 동기화합니다.
+  생성자/소유자는 요청 body가 아니라 인증 세션의 `USER_ACCOUNT.uuid`를 기준으로 결정합니다. 회사 소유권은 요청 `companyUuid`와 대상 stash/item의 회사 scope가 일치하는지로 검증합니다.
+  성공 후 프론트는 응답 객체를 목록에 직접 삽입하지 않고 `getCandidateStashes({ companyUuid })`를 다시 호출해 DB 기준 목록과 동기화합니다.
 - `getCandidateStashExcelTemplateDownload`: 현재 프론트는 정적 파일 URL을 반환하지만, 운영 백엔드 연결 시에는 같은 프론트 계약을 유지한 채 템플릿 다운로드 endpoint로 교체할 수 있습니다. 예: `GET /candidate-stashes/excel-template`.
 - 후보군 발주 엑셀 다운로드: 별도 백엔드 다운로드 endpoint를 두지 않습니다. 프론트는 이미 조회한 후보 아이템과 SSE로 받은 `CandidateItemSummary.orderExport` DTO를 사용해 브라우저에서 XLSX를 생성합니다. 모든 행의 오더 지표가 로드되기 전에는 다운로드를 막습니다. 주 데이터 시트는 후보 아이템 1개를 1행으로 두며, 기본 컬럼은 `브랜드`, `품번`, `상품명`, `색상`, `배지`, `자사 기간 총 판매량`, `{선택 경쟁사} 기간 총 판매량`, `총 오더량`, `총 오더 금액`, `평균 원가`, `평균 판매가`, `평균 수수료율`, `평균 영업이익율`입니다. `배지`가 복수인 경우 한 셀 안에서 줄바꿈으로 구분합니다. 그 뒤에는 해당 후보군 전체에서 등장한 모든 사이즈를 동적 컬럼으로 추가하고, 각 제품의 사이즈별 오더량을 기재합니다. 제품에 존재하지 않는 사이즈 컬럼은 `N/A`로 표시해 실제 오더량 `0`과 구분합니다. 메타 시트는 `오더 입고 예정일`, `이름`을 포함합니다. `이름`은 현재 세션의 `USER_ACCOUNT.name` 또는 운영에서 정한 사용자 표시명을 사용합니다.
 - 엑셀 업로드 검증 권장:

@@ -1,6 +1,5 @@
-﻿import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type { CandidateReferenceItemSummary, CandidateStashSummary } from '../../../api'
-import { useAuth } from '../../../auth/AuthContext'
 import { stashDetailModalBackdropDataProps } from '../../drawer/drawerDom'
 import { CandidateRecommendationModal } from './CandidateRecommendationModal'
 import { CandidateBulkDetailConfirmProgress } from './CandidateBulkDetailConfirmProgress'
@@ -21,15 +20,23 @@ import detailStyles from './CandidateStashDetailModal.module.css'
 
 type Props = {
   stashUuid: string
+  companyUuid?: string
+  downloadUserName?: string
   /** 목록에서 요약 정보를 전달하면 후보군 목록 API를 한 번 덜 호출한다. */
   stashSummary?: CandidateStashSummary | null
   onClose: () => void
   onStashesInvalidate?: () => void
 }
 
-export function CandidateStashDetailModal({ stashUuid, stashSummary, onClose, onStashesInvalidate }: Props) {
-  const model = useCandidateStashDetailModal({ stashUuid, stashSummary, onStashesInvalidate })
-  const { session } = useAuth()
+export function CandidateStashDetailModal({
+  stashUuid,
+  companyUuid,
+  downloadUserName = '사용자',
+  stashSummary,
+  onClose,
+  onStashesInvalidate,
+}: Props) {
+  const model = useCandidateStashDetailModal({ stashUuid, companyUuid, stashSummary, onStashesInvalidate })
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false)
   const [bulkUnconfirmOpen, setBulkUnconfirmOpen] = useState(false)
   const [recommendationOpen, setRecommendationOpen] = useState(false)
@@ -157,7 +164,7 @@ export function CandidateStashDetailModal({ stashUuid, stashSummary, onClose, on
                 </div>
                 <CandidateStashDetailFilters
                   model={model}
-                  downloadUserName={session?.user.name ?? session?.user.loginId ?? '사용자'}
+                  downloadUserName={downloadUserName}
                 />
                 <CandidateStashDetailBody
                   model={model}

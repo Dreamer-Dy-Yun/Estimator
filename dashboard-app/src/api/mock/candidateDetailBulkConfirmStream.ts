@@ -1,4 +1,4 @@
-import type {
+﻿import type {
   CandidateDetailBulkConfirmProgressEvent,
   CandidateDetailBulkConfirmStartPayload,
   CandidateDetailBulkConfirmStartResult,
@@ -15,6 +15,7 @@ import { makeUuid32, sleep } from './utils'
 interface CandidateDetailBulkConfirmJob {
   stashUuid: string
   ownerUserUuid?: string
+  companyUuid?: string
   itemUuids: string[]
   periodStart: string
   periodEnd: string
@@ -25,9 +26,10 @@ const bulkConfirmJobs = new Map<string, CandidateDetailBulkConfirmJob>()
 export async function startMockCandidateDetailBulkConfirm(
   payload: CandidateDetailBulkConfirmStartPayload,
   ownerUserUuid?: string,
+  companyUuid?: string,
 ): Promise<CandidateDetailBulkConfirmStartResult> {
   await sleep(60)
-  if (!findCandidateStashForOwner(payload.stashUuid, ownerUserUuid)) {
+  if (!findCandidateStashForOwner(payload.stashUuid, ownerUserUuid, companyUuid)) {
     throw new Error('후보군을 찾을 수 없습니다.')
   }
   const requestedUuidSet = new Set(payload.itemUuids)
@@ -38,6 +40,7 @@ export async function startMockCandidateDetailBulkConfirm(
   bulkConfirmJobs.set(jobId, {
     stashUuid: payload.stashUuid,
     ownerUserUuid,
+    companyUuid,
     itemUuids,
     periodStart: payload.dataReferencePeriodStart,
     periodEnd: payload.dataReferencePeriodEnd,
@@ -49,9 +52,11 @@ export function subscribeMockCandidateDetailBulkConfirm(
   jobId: string,
   listener: (event: CandidateDetailBulkConfirmProgressEvent) => void,
   ownerUserUuid?: string,
+  companyUuid?: string,
 ): CandidateDetailBulkConfirmSubscription {
   const job = bulkConfirmJobs.get(jobId)
   const canReadJob = job && (!ownerUserUuid || job.ownerUserUuid === ownerUserUuid)
+    && (!companyUuid || job.companyUuid === companyUuid)
   const itemUuids = canReadJob ? job.itemUuids : []
   const totalItems = itemUuids.length
   const timers: ReturnType<typeof globalThis.setTimeout>[] = []

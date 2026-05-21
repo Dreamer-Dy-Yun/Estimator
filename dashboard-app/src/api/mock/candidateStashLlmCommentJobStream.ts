@@ -1,4 +1,4 @@
-import type {
+﻿import type {
   CandidateStashLlmCommentJobProgressEvent,
   CandidateStashLlmCommentJobStartResult,
   CandidateStashLlmCommentJobSubscription,
@@ -14,6 +14,7 @@ import { makeUuid32, sleep } from './utils'
 interface CandidateStashLlmCommentJob {
   stashUuid: string
   ownerUserUuid?: string
+  companyUuid?: string
   itemUuids: string[]
 }
 
@@ -22,16 +23,17 @@ const candidateStashLlmCommentJobs = new Map<string, CandidateStashLlmCommentJob
 export async function startMockCandidateStashLlmCommentJob(
   stashUuid: string,
   ownerUserUuid?: string,
+  companyUuid?: string,
 ): Promise<CandidateStashLlmCommentJobStartResult> {
   await sleep(60)
-  if (!findCandidateStashForOwner(stashUuid, ownerUserUuid)) {
+  if (!findCandidateStashForOwner(stashUuid, ownerUserUuid, companyUuid)) {
     throw new Error('후보군을 찾을 수 없습니다.')
   }
-  const itemUuids = readCandidateItemsForStash(stashUuid, ownerUserUuid)
+  const itemUuids = readCandidateItemsForStash(stashUuid, ownerUserUuid, companyUuid)
     .filter((row) => row.details != null)
     .map((row) => row.uuid)
   const jobId = `mock-llm-comment-${makeUuid32()}`
-  candidateStashLlmCommentJobs.set(jobId, { stashUuid, ownerUserUuid, itemUuids })
+  candidateStashLlmCommentJobs.set(jobId, { stashUuid, ownerUserUuid, companyUuid, itemUuids })
   return {
     jobId,
     stashUuid,
@@ -43,9 +45,11 @@ export function subscribeMockCandidateStashLlmCommentJob(
   jobId: string,
   listener: (event: CandidateStashLlmCommentJobProgressEvent) => void,
   ownerUserUuid?: string,
+  companyUuid?: string,
 ): CandidateStashLlmCommentJobSubscription {
   const job = candidateStashLlmCommentJobs.get(jobId)
   const canReadJob = job && (!ownerUserUuid || job.ownerUserUuid === ownerUserUuid)
+    && (!companyUuid || job.companyUuid === companyUuid)
   const stashUuid = job?.stashUuid ?? ''
   const itemUuids = canReadJob ? job.itemUuids : []
   const totalItems = itemUuids.length

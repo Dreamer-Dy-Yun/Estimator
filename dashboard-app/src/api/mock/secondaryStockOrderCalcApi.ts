@@ -1,5 +1,6 @@
 import type { SecondaryStockOrderCalcParams, SecondaryStockOrderCalcResult } from '../types'
 import { productPrimaryBySkuGroupKey } from './productCatalog'
+import { scopeMockProductPrimary } from './mockCompanyScope'
 import { dailyMeanSigma, forecastDailyMeanFromModel, zFromServiceLevelPct } from './secondaryDailyTrend'
 import { sleep } from './utils'
 
@@ -21,9 +22,8 @@ export async function getSecondaryStockOrderCalc({
   dailyMean: dailyMeanParam,
   companyUuid,
 }: SecondaryStockOrderCalcParams): Promise<SecondaryStockOrderCalcResult> {
-  void companyUuid
   await sleep(70)
-  const primary = requireProductPrimary(skuGroupKey)
+  const primary = scopeMockProductPrimary(requireProductPrimary(skuGroupKey), { companyUuid })
   const fromTrend = dailyMeanSigma(primary.monthlySalesTrend ?? [], periodStart, periodEnd)
   const trendMuRaw = fromTrend.dailyMean
   const trendDailyMean = Math.round(trendMuRaw * 10) / 10

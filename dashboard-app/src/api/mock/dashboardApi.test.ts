@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import { mockDashboardApi } from './dashboardApi'
+import { MOCK_HANA_COMPANY_UUID, MOCK_T1_COMPANY_UUID } from './mockCompanyScope'
 import { skuGroupKeyByLegacyId } from './salesTables'
 
 const skuGroupKey = (legacyId: string) => skuGroupKeyByLegacyId[legacyId] ?? legacyId
-const MOCK_COMPANY_UUID = '00000000-0000-4000-8000-000000000101'
+const MOCK_COMPANY_UUID = MOCK_HANA_COMPANY_UUID
 
 describe('api/mock dashboardApi competitor channel behavior', () => {
   it('returns only kream/musinsa competitor channels', async () => {
@@ -97,6 +98,19 @@ describe('api/mock dashboardApi competitor channel behavior', () => {
 
     expect(self.map((row) => row.code)).toEqual(['TEST-SHOE'])
     expect(competitor.map((row) => row.code)).toEqual(['TEST-SHOE'])
+  })
+
+  it('applies selected company scope to sales calculations instead of ignoring companyUuid', async () => {
+    const hanaSelf = await mockDashboardApi.getSelfSales({ companyUuid: MOCK_HANA_COMPANY_UUID })
+    const t1Self = await mockDashboardApi.getSelfSales({ companyUuid: MOCK_T1_COMPANY_UUID })
+    const allSelf = await mockDashboardApi.getSelfSales()
+    const sumQty = (rows: typeof hanaSelf) => rows.reduce((sum, row) => sum + row.qty, 0)
+
+    expect(hanaSelf.length).toBeGreaterThan(0)
+    expect(t1Self.length).toBe(hanaSelf.length)
+    expect(sumQty(hanaSelf)).not.toBe(sumQty(t1Self))
+    expect(sumQty(allSelf)).toBeGreaterThan(sumQty(hanaSelf))
+    expect(sumQty(allSelf)).toBeGreaterThan(sumQty(t1Self))
   })
 
   it('returns analysis sales rows in default sales quantity descending order', async () => {

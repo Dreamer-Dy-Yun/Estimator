@@ -1,11 +1,9 @@
 import { useCallback, useState, type MutableRefObject } from 'react'
 import {
-  getCompanyUuidForOptionalScope,
   getApiErrorDisplayMessage,
   getCandidateItemsByStash,
   type CandidateItemSummary,
 } from '../../../api'
-import { useAuth } from '../../../auth/AuthContext'
 import {
   applyCandidateDetailConfirmationOverrides,
   type CandidateDetailConfirmationOverrideMap,
@@ -29,6 +27,7 @@ interface SubscribeOrderMetricsArgs {
 
 interface UseCandidateItemsLoaderParams {
   stashUuid: string
+  companyUuid?: string
   appliedPeriodRef: MutableRefObject<AppliedCandidateDataReferencePeriod>
   itemsRef: MutableRefObject<CandidateItemSummary[]>
   confirmationOverridesRef: MutableRefObject<CandidateDetailConfirmationOverrideMap>
@@ -41,6 +40,7 @@ interface UseCandidateItemsLoaderParams {
 
 export function useCandidateItemsLoader({
   stashUuid,
+  companyUuid,
   appliedPeriodRef,
   itemsRef,
   confirmationOverridesRef,
@@ -50,8 +50,6 @@ export function useCandidateItemsLoader({
   setItems,
   subscribeOrderMetrics,
 }: UseCandidateItemsLoaderParams) {
-  const { selectedCompanyUuid } = useAuth()
-  const companyUuid = getCompanyUuidForOptionalScope(selectedCompanyUuid)
   const [candidateItemsLoading, setCandidateItemsLoading] = useState(false)
   const [candidateItemsLoadError, setCandidateItemsLoadError] = useState<string | null>(null)
 

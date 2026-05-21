@@ -1,6 +1,5 @@
-﻿import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import {
-  getCompanyUuidForOptionalScope,
   getApiErrorDisplayMessage,
   startCandidateDetailBulkConfirm,
   subscribeCandidateDetailBulkConfirm,
@@ -8,7 +7,6 @@ import {
   type CandidateDetailBulkConfirmSubscription,
   type CandidateItemDetail,
 } from '../../../api'
-import { useAuth } from '../../../auth/AuthContext'
 
 type MountedRef = { current: boolean }
 
@@ -24,6 +22,7 @@ export interface CandidateBulkDetailConfirmProgress {
 
 interface Args {
   stashUuid: string
+  companyUuid?: string
   dataReferencePeriodStart: string
   dataReferencePeriodEnd: string
   mountedRef: MountedRef
@@ -39,14 +38,13 @@ function getStreamErrorMessage(error: unknown): string {
 
 export function useCandidateBulkDetailConfirm({
   stashUuid,
+  companyUuid,
   dataReferencePeriodStart,
   dataReferencePeriodEnd,
   mountedRef,
   onItemsConfirmed,
   showToast,
 }: Args) {
-  const { selectedCompanyUuid } = useAuth()
-  const companyUuid = getCompanyUuidForOptionalScope(selectedCompanyUuid)
   const [bulkConfirmBusy, setBulkConfirmBusy] = useState(false)
   const [bulkConfirmProgress, setBulkConfirmProgress] = useState<CandidateBulkDetailConfirmProgress | null>(null)
   const subscriptionRef = useRef<CandidateDetailBulkConfirmSubscription | null>(null)

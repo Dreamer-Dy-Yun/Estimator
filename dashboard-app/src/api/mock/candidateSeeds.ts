@@ -4,6 +4,7 @@ import {
   ensureMockAiCommentForSnapshot,
 } from './orderSnapshotForCandidate'
 import { MOCK_ADMIN_USER_UUID } from './authApi'
+import { MOCK_HANA_COMPANY_UUID, MOCK_T1_COMPANY_UUID } from './mockCompanyScope'
 import { skuGroupKeyByLegacyId } from './salesTables'
 import { productSecondaryBySkuGroupKey } from './productCatalog'
 
@@ -24,15 +25,17 @@ export const seededCandidateStashes: CandidateStashRecord[] = [
     name: '기본 후보군 A',
     note: '초기 목업 데이터',
     userUuid: MOCK_ADMIN_USER_UUID,
+    companyUuid: MOCK_HANA_COMPANY_UUID,
     ...DEFAULT_CANDIDATE_STASH_CONTEXT,
     dbCreatedAt: '2026-04-20T09:00:00.000Z',
     dbUpdatedAt: '2026-04-20T09:00:00.000Z',
   },
   {
     uuid: 'candidatestash00000000000000000002',
-    name: '봄 시즌 후보군',
+    name: '가격 민감 후보군',
     note: '가격 민감도 높은 구성',
     userUuid: MOCK_ADMIN_USER_UUID,
+    companyUuid: MOCK_T1_COMPANY_UUID,
     ...DEFAULT_CANDIDATE_STASH_CONTEXT,
     dbCreatedAt: '2026-04-20T10:30:00.000Z',
     dbUpdatedAt: '2026-04-20T10:30:00.000Z',
@@ -42,6 +45,7 @@ export const seededCandidateStashes: CandidateStashRecord[] = [
     name: '기본 후보군 D',
     note: '의류 카테고리 기본안',
     userUuid: MOCK_ADMIN_USER_UUID,
+    companyUuid: MOCK_HANA_COMPANY_UUID,
     ...DEFAULT_CANDIDATE_STASH_CONTEXT,
     dbCreatedAt: '2026-04-20T11:00:00.000Z',
     dbUpdatedAt: '2026-04-20T11:00:00.000Z',
@@ -51,6 +55,7 @@ export const seededCandidateStashes: CandidateStashRecord[] = [
     name: '기본 후보군 H',
     note: '신발 프리미엄 라인',
     userUuid: MOCK_ADMIN_USER_UUID,
+    companyUuid: MOCK_T1_COMPANY_UUID,
     ...DEFAULT_CANDIDATE_STASH_CONTEXT,
     dbCreatedAt: '2026-04-20T11:20:00.000Z',
     dbUpdatedAt: '2026-04-20T11:20:00.000Z',
@@ -65,7 +70,7 @@ const seededCandidateItemDrafts: Array<Omit<CandidateItemRecord, 'isLatestLlmCom
     dbCreatedAt: '2026-04-20T09:10:00.000Z',
     dbUpdatedAt: '2026-04-20T09:10:00.000Z',
   },
-  /** 기본 후보군 A(01) — 이너 11건: 목록·필터·스크롤·정렬·상이한 사이즈 체계 */
+  /** 기본 후보군 A(01) 이너 리스트/필터/스크롤 검증용 seed */
   ...(
     [
       ['005', 'D', '09:12:00.000Z', '09:13:00.000Z'],
@@ -95,7 +100,7 @@ const seededCandidateItemDrafts: Array<Omit<CandidateItemRecord, 'isLatestLlmCom
     dbCreatedAt: '2026-04-20T10:40:00.000Z',
     dbUpdatedAt: '2026-04-20T10:40:00.000Z',
   },
-  /** 봄 시즌 후보군(02) — 이너 5건 이상(기존 1 + 아래 4) */
+  /** 가격 민감 후보군(02) 이너 리스트 검증용 seed */
   ...(
     [
       ['innerstash02item0000000000000001', 'D', '10:41:05.000Z', '10:41:05.000Z'],

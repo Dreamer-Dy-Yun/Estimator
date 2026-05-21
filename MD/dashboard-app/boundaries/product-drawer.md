@@ -11,7 +11,7 @@
 
 ## 책임 요약
 
-상품 드로워는 분석 페이지와 이너후보군에서 공통으로 쓰는 상품 상세 UI다. 특정 페이지 state에 직접 의존하지 않고 필요한 데이터는 API 경계로 호출한다. 단일 회사 선택 시 1차/2차 드로워, AI 코멘트, 재고·발주 계산 요청에는 `companyUuid`를 포함하고, `전체` 선택 시 생략해 전체 회사 기준으로 조회한다.
+상품 드로워는 분석 페이지와 이너후보군에서 공통으로 쓰는 상품 상세 UI다. 특정 페이지 state에 직접 의존하지 않고 필요한 데이터는 API 경계로 호출한다. 단일 회사 선택 시 1차/2차 드로워, AI 코멘트, 재고·발주 계산 요청에는 `companyUuid`를 포함하고, `전체` 선택 시 생략해 전체 회사 기준으로 조회한다. mock 드로워 응답도 같은 `companyUuid`를 판매량/재고/경쟁 지표 계산 입력으로 사용한다.
 
 ## 루트와 공통 상태
 
@@ -24,7 +24,7 @@
 
 경쟁 채널 master data 중복 요청 coalescing은 드로워가 아니라 API request boundary의 `dashboardMasterDataCache.ts`가 맡는다.
 
-회사 scope 경계는 `ProductDrawer.tsx`에서 확정한다. `ProductDrawerContent`는 `companyUuid`를 `ProductDrawerSecondaryPane.tsx`와 `ProductSecondaryDrawer.tsx`로 전달하고, `useSecondaryForecastModel.ts`와 `useSecondaryDrawerRequests.ts`가 하위 API hook에 주입한다. 2차 드로워 하위 hook은 `AuthContext`를 직접 읽지 않는다.
+회사 scope 경계는 `ProductDrawer.tsx`에서 확정한다. `ProductDrawerContent`는 `companyUuid`를 `ProductDrawerSecondaryPane.tsx`와 `ProductSecondaryDrawer.tsx`로 전달하고, `useSecondaryForecastModel.ts`와 `useSecondaryDrawerRequests.ts`가 하위 API hook에 주입한다. 2차 드로워 하위 hook은 `AuthContext`를 직접 읽지 않으며, mock/HTTP adapter 모두 이 DI 값을 API scope로 취급한다.
 
 ## 1차 드로워
 

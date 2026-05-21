@@ -2,6 +2,7 @@ import type { CandidateOrderMetric } from '../types'
 import type { CandidateDataReferencePeriod } from './candidateItemSummaryTypes'
 import { buildCandidateItemInsight } from './candidateItemInsights'
 import { estimatePeriodWeight, productPrimaryBySkuGroupKey } from './productCatalog'
+import { scopeMockProductPrimary, scopeMockSelfSalesRow } from './mockCompanyScope'
 import type { CandidateItemRecord } from './records'
 import { selfBySkuGroupKey } from './salesTables'
 
@@ -20,11 +21,13 @@ function getPeriodWeight(dataReferencePeriod?: CandidateDataReferencePeriod) {
 export function buildCandidateItemOrderMetric(
   row: CandidateItemRecord,
   dataReferencePeriod?: CandidateDataReferencePeriod,
+  companyUuid?: string,
 ): CandidateOrderMetric {
   const skuGroupKey = row.skuGroupKey
   const periodWeight = getPeriodWeight(dataReferencePeriod)
-  const primary = getProductPrimary(skuGroupKey)
-  const self = selfBySkuGroupKey[skuGroupKey]
+  const primary = scopeMockProductPrimary(getProductPrimary(skuGroupKey), { companyUuid })
+  const selfSource = selfBySkuGroupKey[skuGroupKey]
+  const self = selfSource ? scopeMockSelfSalesRow(selfSource, { companyUuid }) : null
   const avgPrice = Math.max(0, Math.round(self?.avgPrice ?? primary.price))
   const avgCost = Math.max(0, Math.round(self?.avgCost ?? primary.price * 0.78))
   const feeRatePct = Math.max(0, Math.round((self?.feeRate ?? 13) * 10) / 10)
@@ -42,6 +45,7 @@ export function buildCandidateItemOrderMetric(
     expectedSalesAmount,
     expectedOpProfit,
     dataReferencePeriod,
+    companyUuid,
   )
 
   return {

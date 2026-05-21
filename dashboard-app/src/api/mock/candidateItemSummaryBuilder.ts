@@ -25,13 +25,15 @@ function getSkuMetadata(skuGroupKey: string) {
 export function buildCandidateReferenceItems(
   skuGroupKeys: string[],
   dataReferencePeriod?: CandidateDataReferencePeriod,
+  companyUuid?: string,
 ): CandidateReferenceItemSummary[] {
-  return skuGroupKeys.map((skuGroupKey) => buildCandidateReferenceItem(skuGroupKey, dataReferencePeriod))
+  return skuGroupKeys.map((skuGroupKey) => buildCandidateReferenceItem(skuGroupKey, dataReferencePeriod, companyUuid))
 }
 
 export function buildCandidateReferenceItem(
   skuGroupKey: string,
   dataReferencePeriod?: CandidateDataReferencePeriod,
+  companyUuid?: string,
 ): CandidateReferenceItemSummary {
   const metadata = getSkuMetadata(skuGroupKey)
   return {
@@ -41,12 +43,12 @@ export function buildCandidateReferenceItem(
     code: metadata.code,
     productName: metadata.productName,
     colorCode: metadata.colorCode,
-    insight: buildCandidateItemInsight(skuGroupKey, 0, 0, 0, dataReferencePeriod),
+    insight: buildCandidateItemInsight(skuGroupKey, 0, 0, 0, dataReferencePeriod, companyUuid),
   }
 }
 
-export function hasCandidateRecommendationBadge(skuGroupKey: string): boolean {
-  return hasCandidateBadgeSource(skuGroupKey)
+export function hasCandidateRecommendationBadge(skuGroupKey: string, companyUuid?: string): boolean {
+  return hasCandidateBadgeSource(skuGroupKey, companyUuid)
 }
 
 export function buildCandidateStashItems(records: CandidateItemRecord[]): CandidateStashItemSummary[] {
@@ -94,14 +96,15 @@ export function markCandidateOrderMetricFailed(item: CandidateItemSummary): Cand
 export function buildCandidateOrderMetric(
   row: CandidateItemRecord,
   dataReferencePeriod?: CandidateDataReferencePeriod,
+  companyUuid?: string,
 ): CandidateOrderMetric {
-  return buildCandidateItemOrderMetric(row, dataReferencePeriod)
+  return buildCandidateItemOrderMetric(row, dataReferencePeriod, companyUuid)
 }
 
 export function buildCandidateItemSummaries(
   records: CandidateItemRecord[],
   dataReferencePeriod?: CandidateDataReferencePeriod,
-  options: { includeOrderMetrics?: boolean; includeRecommendationInsights?: boolean } = {},
+  options: { includeOrderMetrics?: boolean; includeRecommendationInsights?: boolean; companyUuid?: string } = {},
 ): CandidateItemSummary[] {
   const includeOrderMetrics = options.includeOrderMetrics ?? true
   const includeRecommendationInsights = options.includeRecommendationInsights ?? true
@@ -111,8 +114,8 @@ export function buildCandidateItemSummaries(
       const skuGroupKey = row.skuGroupKey
       const metadata = getSkuMetadata(skuGroupKey)
       const baseInsight = includeRecommendationInsights
-        ? buildCandidateItemInsight(skuGroupKey, 0, 0, 0, dataReferencePeriod)
-        : buildCandidateItemPeriodSalesInsight(skuGroupKey, dataReferencePeriod)
+        ? buildCandidateItemInsight(skuGroupKey, 0, 0, 0, dataReferencePeriod, options.companyUuid)
+        : buildCandidateItemPeriodSalesInsight(skuGroupKey, dataReferencePeriod, options.companyUuid)
       const baseItem: CandidateItemSummary = {
         uuid: row.uuid,
         stashUuid: row.stashUuid,
@@ -136,7 +139,11 @@ export function buildCandidateItemSummaries(
         dbUpdatedAt: row.dbUpdatedAt ?? row.dbCreatedAt,
       }
       if (!includeOrderMetrics) return baseItem
-      return applyCandidateOrderMetric(baseItem, buildCandidateItemOrderMetric(row, dataReferencePeriod))
+      return applyCandidateOrderMetric(baseItem, buildCandidateItemOrderMetric(
+        row,
+        dataReferencePeriod,
+        options.companyUuid,
+      ))
     })
     .sort((a, b) => String(b.dbCreatedAt).localeCompare(String(a.dbCreatedAt)))
 }

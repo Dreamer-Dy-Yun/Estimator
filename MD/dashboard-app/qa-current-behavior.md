@@ -209,7 +209,7 @@
 | 스냅샷 저장/해제 | PATCH 응답은 최신 `CandidateItemDetail` shape를 반환하는 계약으로 문서화한다. 프론트는 성공 응답을 현재 화면 기준 상태로 삼는다. |
 | 상세 일괄확정 | `startCandidateDetailBulkConfirm`과 `subscribeCandidateDetailBulkConfirm` SSE 계약을 사용한다. `updatedItem` 이벤트는 commit/cache 반영 이후 최신 `CandidateItemDetail`이어야 하며 프론트는 이를 로컬 확정 상태로 삼는다. |
 | 산점도 | binning과 cell 집계는 백엔드 책임이다. 프론트는 받은 `cells`와 `meta`로 표시만 한다. |
-| 회사 scope | `getCompanies` 응답은 `uuid`, `name`만 필요하다. 회사 소유 업무 API는 단일 회사 선택 시 `companyUuid`를 포함하고, `전체` 선택 시 생략한다. 분석, 산점도, filter meta, 후보군, 상품 드로워, 2차 드로워, 오더 계산, SSE, mutation 모두 같은 scope 계약을 따른다. |
+| 회사 scope | `getCompanies` 응답은 `uuid`, `name`만 필요하다. 회사 소유 업무 API는 단일 회사 선택 시 `companyUuid`를 포함하고, `전체` 선택 시 생략한다. 분석, 산점도, filter meta, 후보군, 상품 드로워, 2차 드로워, 오더 계산, SSE, mutation 모두 같은 scope 계약을 따른다. mock도 `companyUuid`를 판매/후보군/오더 지표 분기와 계산에 반영해야 한다. |
 
 ## 검증 명령
 
@@ -234,5 +234,6 @@
 - `uuid`가 없거나 `name`이 표시 불가능한 응답은 정상 dropdown 항목으로 조용히 대체하지 말고 오류 또는 비활성 상태로 드러낸다.
 - `전체` 선택은 `companyUuid` 생략과 동일해야 하며, 백엔드 구현 시 회사 where 조건을 제거하는 계약과 맞아야 한다.
 - 단일 회사 선택 후 분석, 산점도, filter meta, 후보군, 상품 드로워, 2차 드로워, 오더 계산, SSE, mutation 요청은 선택 회사 `uuid`를 포함해야 한다.
+- 후보군 오더 지표 hook은 부모가 DI로 넘긴 `companyUuid`를 SSE 구독 요청에 포함해야 하며, hook 내부에서 전역 AuthContext나 company selector를 직접 읽으면 안 된다.
 - 회사 변경 시 기존 async stale guard 원칙을 따른다. 회사 변경 이전 응답이 이후 전역 company 선택 상태를 덮어쓰면 안 된다.
 - 사용자별 회사 접근 권한 부여는 현재 범위가 아니다. 권한 정책이 추가되면 `/companies` 응답 범위와 403 UX를 별도 QA 항목으로 추가한다.

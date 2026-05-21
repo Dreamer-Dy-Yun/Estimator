@@ -1,4 +1,4 @@
-import type {
+﻿import type {
   AppendCandidateItemPayload,
   AppendCandidateItemsPayload,
   AppendCandidateItemsResponse,
@@ -19,12 +19,17 @@ import {
   readCandidateStashRecords,
   toCandidateStashSummary,
 } from './candidateMockStore'
+import { getMockMutationCompanyUuid } from './mockCompanyScope'
 import { productPrimaryBySkuGroupKey } from './productCatalog'
 import type { CandidateItemRecord, CandidateStashRecord } from './records'
 import { makeUuid32 } from './utils'
 
-function getCandidateStashForMutation(stashUuid: string, ownerUserUuid?: string): CandidateStashRecord {
-  const stash = findCandidateStashForOwner(stashUuid, ownerUserUuid)
+function getCandidateStashForMutation(
+  stashUuid: string,
+  ownerUserUuid?: string,
+  companyUuid?: string,
+): CandidateStashRecord {
+  const stash = findCandidateStashForOwner(stashUuid, ownerUserUuid, companyUuid)
   if (!stash) {
     throw new Error('후보군을 찾을 수 없습니다.')
   }
@@ -63,11 +68,11 @@ function assertKnownProduct(skuGroupKey: string): void {
   }
 }
 
-export function deleteCandidateItemRecord(itemUuid: string, ownerUserUuid?: string): void {
+export function deleteCandidateItemRecord(itemUuid: string, ownerUserUuid?: string, companyUuid?: string): void {
   const records = readCandidateItemRecords()
   const index = records.findIndex((it) => it.uuid === itemUuid)
   const row = index >= 0 ? records[index] : undefined
-  if (!row || !findCandidateStashForOwner(row.stashUuid, ownerUserUuid)) {
+  if (!row || !findCandidateStashForOwner(row.stashUuid, ownerUserUuid, companyUuid)) {
     throw new Error('후보 아이템을 찾을 수 없습니다.')
   }
   records.splice(index, 1)
@@ -77,15 +82,16 @@ export function deleteCandidateItemRecords(
   stashUuid: string,
   itemUuids: string[],
   ownerUserUuid?: string,
+  companyUuid?: string,
 ): void {
-  getCandidateStashForMutation(stashUuid, ownerUserUuid)
+  getCandidateStashForMutation(stashUuid, ownerUserUuid, companyUuid)
 
   const uuidSet = requireCandidateItemUuidSet(itemUuids)
   const records = readCandidateItemRecords()
   for (const itemUuid of uuidSet) {
     const item = records.find((row) => row.uuid === itemUuid)
     if (!item || item.stashUuid !== stashUuid) {
-      throw new Error('후보군에 포함되지 않은 아이템이 있습니다.')
+      throw new Error('후보군에 포함되지 않은 후보 아이템이 있습니다.')
     }
   }
 
@@ -95,8 +101,8 @@ export function deleteCandidateItemRecords(
   }
 }
 
-export function deleteCandidateStashRecord(stashUuid: string, ownerUserUuid?: string): void {
-  const target = getCandidateStashForMutation(stashUuid, ownerUserUuid)
+export function deleteCandidateStashRecord(stashUuid: string, ownerUserUuid?: string, companyUuid?: string): void {
+  const target = getCandidateStashForMutation(stashUuid, ownerUserUuid, companyUuid)
   const stashes = readCandidateStashRecords()
   const stashIndex = stashes.findIndex((row) => row.uuid === target.uuid)
   if (stashIndex >= 0) stashes.splice(stashIndex, 1)
@@ -120,6 +126,7 @@ export function createCandidateStashSummary(
     name,
     note: payload.note?.trim() || null,
     userUuid: ownerUserUuid,
+    companyUuid: getMockMutationCompanyUuid(payload),
     periodStart: payload.periodStart,
     periodEnd: payload.periodEnd,
     forecastMonths: payload.forecastMonths,
@@ -133,9 +140,10 @@ export function createCandidateStashSummary(
 export function updateCandidateStashSummary(
   payload: UpdateCandidateStashPayload,
   ownerUserUuid?: string,
+  companyUuid?: string,
 ): CandidateStashSummary {
   const items = readCandidateItemRecords()
-  const target = getCandidateStashForMutation(payload.stashUuid, ownerUserUuid)
+  const target = getCandidateStashForMutation(payload.stashUuid, ownerUserUuid, companyUuid)
   const name = requireCandidateStashName(payload.name)
 
   const now = new Date().toISOString()
@@ -150,8 +158,12 @@ export function updateCandidateStashSummary(
   return toCandidateStashSummary(target, itemCount)
 }
 
-export function duplicateCandidateStashRecord(sourceStashUuid: string, ownerUserUuid?: string): void {
-  const source = getCandidateStashForMutation(sourceStashUuid, ownerUserUuid)
+export function duplicateCandidateStashRecord(
+  sourceStashUuid: string,
+  ownerUserUuid?: string,
+  companyUuid?: string,
+): void {
+  const source = getCandidateStashForMutation(sourceStashUuid, ownerUserUuid, companyUuid)
   const now = new Date().toISOString()
   const duplicatedStashUuid = makeUuid32()
   readCandidateStashRecords().push({
@@ -174,8 +186,12 @@ export function duplicateCandidateStashRecord(sourceStashUuid: string, ownerUser
   }
 }
 
-export function appendCandidateItemRecord(payload: AppendCandidateItemPayload, ownerUserUuid?: string): void {
-  getCandidateStashForMutation(payload.stashUuid, ownerUserUuid)
+export function appendCandidateItemRecord(
+  payload: AppendCandidateItemPayload,
+  ownerUserUuid?: string,
+  companyUuid?: string,
+): void {
+  getCandidateStashForMutation(payload.stashUuid, ownerUserUuid, companyUuid)
   assertKnownProduct(payload.skuGroupKey)
 
   const now = new Date().toISOString()
@@ -194,8 +210,9 @@ export function appendCandidateItemRecord(payload: AppendCandidateItemPayload, o
 export function appendCandidateItemsToStash(
   payload: AppendCandidateItemsPayload,
   ownerUserUuid?: string,
+  companyUuid?: string,
 ): AppendCandidateItemsResponse {
-  getCandidateStashForMutation(payload.stashUuid, ownerUserUuid)
+  getCandidateStashForMutation(payload.stashUuid, ownerUserUuid, companyUuid)
   if (payload.skuGroupKeys.length === 0) throw new Error('추가할 상품이 없습니다.')
   if (payload.skuGroupKeys.some((skuGroupKey) => !skuGroupKey.trim())) {
     throw new Error('추가할 상품 키가 비어 있습니다.')
@@ -227,9 +244,10 @@ export function appendCandidateItemsToStash(
 export function updateCandidateItemRecord(
   payload: UpdateCandidateItemPayload,
   ownerUserUuid?: string,
+  companyUuid?: string,
 ): UpdateCandidateItemResponse {
   const item = readCandidateItemRecords().find((row) => row.uuid === payload.itemUuid)
-  if (!item || !findCandidateStashForOwner(item.stashUuid, ownerUserUuid)) {
+  if (!item || !findCandidateStashForOwner(item.stashUuid, ownerUserUuid, companyUuid)) {
     throw new Error('후보 아이템을 찾을 수 없습니다.')
   }
 
@@ -243,13 +261,15 @@ export function updateCandidateItemRecord(
 export function uploadCandidateStashExcelFile(
   file: File,
   ownerUserUuid?: string,
+  companyUuid?: string,
 ): CandidateStashExcelUploadResult {
   void ownerUserUuid
+  void companyUuid
 
   const fileName = file.name.trim()
   const isExcel = /\.(xlsx|xls)$/i.test(fileName)
   if (!fileName || !isExcel) throw new Error('엑셀 파일(.xlsx, .xls)만 업로드할 수 있습니다.')
   if (file.size <= 0) throw new Error('빈 엑셀 파일은 업로드할 수 없습니다.')
 
-  throw new Error('목 API는 엑셀 파일 파싱과 후보군 저장을 구현하지 않았습니다.')
+  throw new Error('Mock API는 엑셀 파일 파싱과 후보군 저장을 구현하지 않습니다.')
 }

@@ -1,10 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
-  getCompanyUuidForOptionalScope,
   getCandidateStashes,
   type CandidateStashSummary,
 } from '../../../api'
-import { useAuth } from '../../../auth/AuthContext'
 
 type MountedRef = {
   current: boolean
@@ -12,6 +10,7 @@ type MountedRef = {
 
 type Args = {
   stashUuid: string
+  companyUuid?: string
   stashSummary?: CandidateStashSummary | null
   mountedRef: MountedRef
   onStashesInvalidate?: () => void
@@ -24,12 +23,11 @@ function getStashListLoadErrorMessage(error: unknown): string {
 
 export function useCandidateStashSummaries({
   stashUuid,
+  companyUuid,
   stashSummary: stashSummaryProp,
   mountedRef,
   onStashesInvalidate,
 }: Args) {
-  const { selectedCompanyUuid } = useAuth()
-  const companyUuid = getCompanyUuidForOptionalScope(selectedCompanyUuid)
   const initialCompanyUuidRef = useRef(companyUuid)
   const [stashes, setStashes] = useState<CandidateStashSummary[]>([])
   const [stashListLoadError, setStashListLoadError] = useState<string | null>(null)

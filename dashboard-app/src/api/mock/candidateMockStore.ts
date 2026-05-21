@@ -11,6 +11,7 @@ import {
   type CandidateDataReferencePeriod,
 } from './candidateItemSummaryBuilder'
 import { seededCandidateItems, seededCandidateStashes } from './candidateSeeds'
+import { isMockRecordInCompanyScope } from './mockCompanyScope'
 import { type CandidateItemRecord, type CandidateStashRecord } from './records'
 import { allKnownSkuGroupKeys } from './salesTables'
 import { makeUuid32 } from './utils'
@@ -31,20 +32,31 @@ export function readCandidateItemRecords(): CandidateItemRecord[] {
 export function filterCandidateStashesForOwner(
   rows: CandidateStashRecord[],
   ownerUserUuid?: string,
+  companyUuid?: string,
 ): CandidateStashRecord[] {
-  if (!ownerUserUuid) return rows
-  return rows.filter((row) => row.userUuid === ownerUserUuid)
+  return rows
+    .filter((row) => (ownerUserUuid ? row.userUuid === ownerUserUuid : true))
+    .filter((row) => isMockRecordInCompanyScope(row.companyUuid, companyUuid))
 }
 
-export function findCandidateStashForOwner(stashUuid: string, ownerUserUuid?: string): CandidateStashRecord | null {
+export function findCandidateStashForOwner(
+  stashUuid: string,
+  ownerUserUuid?: string,
+  companyUuid?: string,
+): CandidateStashRecord | null {
   const stash = readCandidateStashRecords().find((row) => row.uuid === stashUuid) ?? null
   if (!stash) return null
   if (ownerUserUuid && stash.userUuid !== ownerUserUuid) return null
+  if (!isMockRecordInCompanyScope(stash.companyUuid, companyUuid)) return null
   return stash
 }
 
-export function readCandidateItemsForStash(stashUuid: string, ownerUserUuid?: string): CandidateItemRecord[] {
-  if (!findCandidateStashForOwner(stashUuid, ownerUserUuid)) return []
+export function readCandidateItemsForStash(
+  stashUuid: string,
+  ownerUserUuid?: string,
+  companyUuid?: string,
+): CandidateItemRecord[] {
+  if (!findCandidateStashForOwner(stashUuid, ownerUserUuid, companyUuid)) return []
   return readCandidateItemRecords().filter((row) => row.stashUuid === stashUuid)
 }
 
@@ -80,12 +92,14 @@ export function buildCandidateItemListResult(
   records: CandidateItemRecord[],
   period: CandidateDataReferencePeriod,
   includeOrderMetrics = false,
+  companyUuid?: string,
 ): CandidateItemListResult {
   return {
     candidateItems: buildCandidateStashItems(records),
     items: buildCandidateItemSummaries(records, period, {
       includeRecommendationInsights: false,
       includeOrderMetrics,
+      companyUuid,
     }),
   }
 }
@@ -94,6 +108,7 @@ export function buildCandidateRecommendationResult(
   period: CandidateDataReferencePeriod,
   limit = 50,
   cursor?: string,
+  companyUuid?: string,
 ): CandidateRecommendationResult {
   const startIndex = cursor ? Math.max(0, Number(cursor) || 0) : 0
   const pageSize = Math.max(1, limit)
@@ -102,13 +117,13 @@ export function buildCandidateRecommendationResult(
 
   for (let index = startIndex; index < allKnownSkuGroupKeys.length; index += 1) {
     const skuGroupKey = allKnownSkuGroupKeys[index]
-    if (!skuGroupKey || !hasCandidateRecommendationBadge(skuGroupKey)) continue
+    if (!skuGroupKey || !hasCandidateRecommendationBadge(skuGroupKey, companyUuid)) continue
 
     if (recommendations.length >= pageSize) {
       nextCursor = String(index)
       break
     }
-    recommendations.push(buildCandidateReferenceItem(skuGroupKey, period))
+    recommendations.push(buildCandidateReferenceItem(skuGroupKey, period, companyUuid))
   }
 
   return {

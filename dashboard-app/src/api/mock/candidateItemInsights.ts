@@ -8,6 +8,7 @@ import {
 } from './candidateInsightBadgeModel'
 import type { CandidateDataReferencePeriod } from './candidateItemSummaryTypes'
 import { estimatePeriodWeight } from './productCatalog'
+import { scopeMockCompetitorSalesRow, scopeMockSelfSalesRow } from './mockCompanyScope'
 import { competitorBySkuGroupKey, secondaryCompetitorChannels, selfBySkuGroupKey } from './salesTables'
 
 function getPrimaryCompetitorChannelLabel() {
@@ -32,9 +33,12 @@ export function buildCandidateItemInsight(
   expectedSalesAmount: number,
   expectedOpProfit: number,
   dataReferencePeriod?: CandidateDataReferencePeriod,
+  companyUuid?: string,
 ): CandidateItemInsightSummary {
-  const competitor = competitorBySkuGroupKey[skuGroupKey]
-  const self = selfBySkuGroupKey[skuGroupKey]
+  const competitorSource = competitorBySkuGroupKey[skuGroupKey]
+  const selfSource = selfBySkuGroupKey[skuGroupKey]
+  const competitor = competitorSource ? scopeMockCompetitorSalesRow(competitorSource, { companyUuid }) : null
+  const self = selfSource ? scopeMockSelfSalesRow(selfSource, { companyUuid }) : null
   const channelLabel = getPrimaryCompetitorChannelLabel()
   const badgeNameList: string[] = []
   const periodWeight = getPeriodWeight(dataReferencePeriod)
@@ -68,8 +72,9 @@ export function buildCandidateItemInsight(
 export function buildCandidateItemPeriodSalesInsight(
   skuGroupKey: string,
   dataReferencePeriod?: CandidateDataReferencePeriod,
+  companyUuid?: string,
 ): CandidateItemInsightSummary {
-  const insight = buildCandidateItemInsight(skuGroupKey, 0, 0, 0, dataReferencePeriod)
+  const insight = buildCandidateItemInsight(skuGroupKey, 0, 0, 0, dataReferencePeriod, companyUuid)
   return {
     ...insight,
     rankTone: 'neutral',
@@ -77,9 +82,11 @@ export function buildCandidateItemPeriodSalesInsight(
   }
 }
 
-export function hasCandidateBadgeSource(skuGroupKey: string) {
-  const competitor = competitorBySkuGroupKey[skuGroupKey]
-  const self = selfBySkuGroupKey[skuGroupKey]
+export function hasCandidateBadgeSource(skuGroupKey: string, companyUuid?: string) {
+  const competitorSource = competitorBySkuGroupKey[skuGroupKey]
+  const selfSource = selfBySkuGroupKey[skuGroupKey]
+  const competitor = competitorSource ? scopeMockCompetitorSalesRow(competitorSource, { companyUuid }) : null
+  const self = selfSource ? scopeMockSelfSalesRow(selfSource, { companyUuid }) : null
   return (
     isTopCandidatePercent(competitor?.rankPercentile) ||
     (typeof self?.opMarginRate === 'number' && self.opMarginRate >= 9) ||

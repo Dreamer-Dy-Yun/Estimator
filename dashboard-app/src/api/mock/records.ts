@@ -11,6 +11,7 @@ export type CandidateStashRecord = {
   name: string
   note: string | null
   userUuid: string
+  companyUuid: string
   periodStart: string
   periodEnd: string
   forecastMonths: number

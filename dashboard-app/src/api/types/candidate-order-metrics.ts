@@ -1,3 +1,5 @@
+import type { CompanyScopeParams } from './company'
+
 export interface CandidateItemOrderExportSizeQty {
   size: string
   orderQty: number
@@ -33,6 +35,7 @@ export interface CandidateOrderMetric {
 
 export interface CandidateOrderMetricStreamParams {
   stashUuid: string
+  companyUuid?: CompanyScopeParams['companyUuid']
   dataReferencePeriodStart: string
   dataReferencePeriodEnd: string
   requestId: string

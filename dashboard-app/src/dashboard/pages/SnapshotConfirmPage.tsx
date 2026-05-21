@@ -42,9 +42,10 @@ const candidateStashTemplateDownload = getCandidateStashExcelTemplateDownload()
 
 export const SnapshotConfirmPage = () => {
   const { showToast } = useAppToast()
-  const { selectedCompanyUuid } = useAuth()
+  const { session, selectedCompanyUuid } = useAuth()
   const companyUuid = useMemo(() => getCompanyUuidForOptionalScope(selectedCompanyUuid), [selectedCompanyUuid])
   const isAllCompanySelected = isAllCompanyUuid(selectedCompanyUuid)
+  const downloadUserName = session?.user.name ?? session?.user.loginId ?? '사용자'
   const [stashes, setStashes] = useState<CandidateStashSummary[]>([])
   const [openDetailStashUuid, setOpenDetailStashUuid] = useState<string | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<CandidateStashSummary | null>(null)
@@ -270,6 +271,8 @@ export const SnapshotConfirmPage = () => {
       {openDetailStashUuid && (
         <CandidateStashDetailModal
           stashUuid={openDetailStashUuid}
+          companyUuid={companyUuid}
+          downloadUserName={downloadUserName}
           stashSummary={selectedDetailStash}
           onClose={() => setOpenDetailStashUuid(null)}
           onStashesInvalidate={loadStashes}

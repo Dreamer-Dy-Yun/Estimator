@@ -11,7 +11,7 @@
 
 ## 책임 요약
 
-오더 후보군은 단일 회사 기준으로 스냅샷 전 후보 상품을 모으고, 이너 후보군 상세에서 기간 기준 조회·추천·오더 지표·상세확정을 다룬다. 단일 회사 선택 시 후보군 목록, 상세 조회, 추천, 오더 지표 SSE, 상세확정, LLM 코멘트, item/stash mutation 요청에는 `companyUuid`가 포함된다. 헤더 회사 선택이 `전체`이면 후보군 업무 흐름은 지원하지 않는다.
+오더 후보군은 단일 회사 기준으로 스냅샷 전 후보 상품을 모으고, 이너 후보군 상세에서 기간 기준 조회·추천·오더 지표·상세확정을 다룬다. 단일 회사 선택 시 후보군 목록, 상세 조회, 추천, 오더 지표 SSE, 상세확정, LLM 코멘트, item/stash mutation 요청에는 `companyUuid`가 포함된다. mock도 이 값을 stash/item 소유 scope와 오더 지표 계산에 반영한다. 헤더 회사 선택이 `전체`이면 후보군 업무 흐름은 지원하지 않는다.
 
 후보 아이템의 상세확정 여부는 `CANDIDATE_ITEM.details` 스냅샷 존재 여부다. 상세확정 저장/해제/일괄확정/일괄해제 직후에는 후보 아이템 전체 목록을 즉시 재조회하지 않고, 성공 응답 또는 SSE 이벤트로 현재 화면 상태를 로컬 반영한다.
 
@@ -53,13 +53,13 @@
 
 ## 오더 지표 SSE
 
-총 오더 수량, 총 오더 금액, 엑셀용 `orderExport`는 `subscribeCandidateOrderMetrics` SSE 이벤트로 행별 갱신한다. 목록 조회 hook은 stream lifecycle을 직접 알지 않는다.
+총 오더 수량, 총 오더 금액, 엑셀용 `orderExport`는 `subscribeCandidateOrderMetrics` SSE 이벤트로 행별 갱신한다. 목록 조회 hook은 stream lifecycle을 직접 알지 않는다. stream 요청의 `companyUuid`는 hook 생성 시 부모가 DI로 넘긴 값을 사용한다.
 
 조회 버튼으로 기간을 새로 적용하면 기존 오더 지표 SSE 구독을 모두 닫고 전체 후보 item UUID를 새 요청으로 계산한다. 추천 적용처럼 일부 row만 추가되는 경우에는 기존 계산값을 유지한 채 신규 `candidateItemUuids`만 별도 SSE 요청으로 보낸다.
 
 `useCandidateOrderMetricStream.ts`는 동일한 조회 조건과 같은 후보 item UUID 묶음이 이미 구독 중이면 다시 열지 않는다. 또한 요청한 모든 item이 `item` 또는 `itemFailed` 이벤트로 처리되면 `completed` 이벤트 전이라도 EventSource를 닫는다. 이는 백엔드가 완료 이벤트 없이 SSE 응답을 닫았을 때 브라우저가 동일 URL로 자동 재접속하는 것을 막기 위한 경계 책임이다.
 
-회사 scope는 `useCandidateItemsLoader.ts`와 추천/추가 호출부가 request 인자로 넘긴다. `useCandidateOrderMetricStream.ts`는 SSE 구독 lifecycle만 소유하며 `AuthContext`를 직접 읽지 않는다. 같은 stream hook을 테스트하거나 재사용할 때는 `companyUuid` 인자 또는 개별 `subscribeOrderMetrics` 요청 인자로 scope를 명시한다.
+회사 scope는 `useCandidateItemsLoader.ts`와 추천/추가 호출부가 request 인자로 넘긴다. `useCandidateOrderMetricStream.ts`는 부모 hook에서 DI로 받은 `companyUuid`를 SSE 구독 파라미터에 포함하고, 개별 `subscribeOrderMetrics` 호출은 기간과 대상 item UUID만 전달한다. stream hook은 `AuthContext`나 전역 company selector를 직접 읽지 않는다.
 
 ## 상세확정
 

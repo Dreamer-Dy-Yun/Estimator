@@ -3,9 +3,10 @@ import { mockDashboardApi } from './dashboardApi'
 import { MOCK_ADMIN_USER_UUID, MOCK_USER_UUID } from './authApi'
 import { DEFAULT_CANDIDATE_STASH_CONTEXT } from './records'
 import { buildCandidateOrderMetric } from './candidateItemSummaryBuilder'
+import { MOCK_HANA_COMPANY_UUID, MOCK_T1_COMPANY_UUID } from './mockCompanyScope'
 import { skuGroupKeyByLegacyId } from './salesTables'
 
-const MOCK_COMPANY_UUID = '00000000-0000-4000-8000-000000000101'
+const MOCK_COMPANY_UUID = MOCK_HANA_COMPANY_UUID
 
 const defaultCandidateItemListParams = (stashUuid: string) => ({
   stashUuid,
@@ -16,7 +17,7 @@ const defaultCandidateItemListParams = (stashUuid: string) => ({
 
 describe('api/mock candidate stash contract stubs', () => {
   it('filters candidate stashes by authenticated owner uuid', async () => {
-    const all = await mockDashboardApi.getCandidateStashes({ companyUuid: MOCK_COMPANY_UUID })
+    const all = await mockDashboardApi.getCandidateStashes()
     const adminOwned = await mockDashboardApi.getCandidateStashes(
       { companyUuid: MOCK_COMPANY_UUID },
       MOCK_ADMIN_USER_UUID,
@@ -27,11 +28,37 @@ describe('api/mock candidate stash contract stubs', () => {
     )
 
     expect(all.length).toBe(4)
-    expect(adminOwned.length).toBe(4)
+    expect(adminOwned.length).toBe(2)
     expect(userOwned.length).toBe(0)
     const adminUuids = new Set(adminOwned.map((row) => row.uuid))
     expect(userOwned.every((row) => !adminUuids.has(row.uuid))).toBe(true)
-    expect(adminOwned.length + userOwned.length).toBe(all.length)
+    expect(adminOwned.length + userOwned.length).toBe(2)
+  })
+
+  it('scopes candidate stashes and item access by company uuid', async () => {
+    const hanaStashes = await mockDashboardApi.getCandidateStashes(
+      { companyUuid: MOCK_HANA_COMPANY_UUID },
+      MOCK_ADMIN_USER_UUID,
+    )
+    const t1Stashes = await mockDashboardApi.getCandidateStashes(
+      { companyUuid: MOCK_T1_COMPANY_UUID },
+      MOCK_ADMIN_USER_UUID,
+    )
+    const target = hanaStashes.find((row) => row.itemCount > 0)
+    const t1StashUuids = new Set(t1Stashes.map((row) => row.uuid))
+
+    expect(hanaStashes.length).toBeGreaterThan(0)
+    expect(target).toBeDefined()
+    expect(hanaStashes.some((row) => t1StashUuids.has(row.uuid))).toBe(false)
+    await expect(
+      mockDashboardApi.getCandidateItemsByStash(
+        {
+          ...defaultCandidateItemListParams(target!.uuid),
+          companyUuid: MOCK_T1_COMPANY_UUID,
+        },
+        MOCK_ADMIN_USER_UUID,
+      ),
+    ).rejects.toThrow('후보군을 찾을 수 없습니다.')
   })
 
   it('rejects candidate item access when stash belongs to another user', async () => {
