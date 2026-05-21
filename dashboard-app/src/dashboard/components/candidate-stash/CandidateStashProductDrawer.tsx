@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import type { CandidateItemDetail } from '../../../api'
 import type { OrderSnapshotDocumentV1 } from '../../../snapshot/orderSnapshotTypes'
+import { useSelfCompanyLabel } from '../../hooks/useSelfCompanyLabel'
 import { ProductDrawer } from '../product-drawer/ProductDrawer'
 import type { CandidateStashDetailModalModel } from './useCandidateStashDetailModal'
 
@@ -10,6 +11,7 @@ type Props = {
 }
 
 export function CandidateStashProductDrawer({ model, bulkDeleteOpen }: Props) {
+  const selfCompanyLabel = useSelfCompanyLabel()
   const openedItem = useMemo(
     () => model.items.find((item) => item.uuid === model.openedItemUuid) ?? null,
     [model.items, model.openedItemUuid],
@@ -53,6 +55,7 @@ export function CandidateStashProductDrawer({ model, bulkDeleteOpen }: Props) {
       periodStart={model.periodStart!}
       periodEnd={model.periodEnd!}
       forecastMonths={model.fc}
+      selfCompanyLabel={selfCompanyLabel}
       onForecastMonthsChange={model.onDrawerForecastMonthsChange}
       hydrateSnapshot={model.hydrateSnap}
       onRequestNavigateAdjacent={model.onRequestNavigateAdjacent}

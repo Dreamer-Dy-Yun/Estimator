@@ -8,10 +8,11 @@ import type { SizeOrderRow } from './sizeOrderCardTypes'
 type Props = {
   tableRef: RefObject<HTMLTableElement | null>
   channelLabel: string
+  selfCompanyLabel: string
   sizeRows: SizeOrderRow[]
 }
 
-export function SizeOrderShareChartRow({ tableRef, channelLabel, sizeRows }: Props) {
+export function SizeOrderShareChartRow({ tableRef, channelLabel, selfCompanyLabel, sizeRows }: Props) {
   const chartCellRef = useRef<HTMLTableCellElement | null>(null)
   const chartInnerRef = useRef<HTMLDivElement | null>(null)
   const [xCenters, setXCenters] = useState<number[]>([])
@@ -108,7 +109,7 @@ export function SizeOrderShareChartRow({ tableRef, channelLabel, sizeRows }: Pro
       <td>{KO.rowShareMixLineChart}</td>
       <td className={`${styles.num} ${styles.sizeOrderShareLegendCell}`}>
         <div className={styles.sizeOrderShareLegend} role="list" aria-label={KO.rowShareMixLineChart}>
-          <LegendItem color="#2563eb" label={KO.thSelf} />
+          <LegendItem color="#2563eb" label={selfCompanyLabel} />
           <LegendItem color="#e11d48" label={channelLabel} />
           <LegendItem color="#a78bfa" label={KO.rowChartAdjustReflectedSharePct} />
         </div>
@@ -120,7 +121,7 @@ export function SizeOrderShareChartRow({ tableRef, channelLabel, sizeRows }: Pro
               <XAxis type="number" dataKey="x" domain={xDomain} hide allowDataOverflow />
               <YAxis domain={yDomain} hide />
               <Tooltip content={renderShareTooltip} />
-              <Line type="monotone" dataKey="selfPct" name={`${KO.thSelf} ${KO.thSharePctUnit}`} stroke="#2563eb" strokeWidth={2} dot={{ r: 3 }} isAnimationActive={false} />
+              <Line type="monotone" dataKey="selfPct" name={`${selfCompanyLabel} ${KO.thSharePctUnit}`} stroke="#2563eb" strokeWidth={2} dot={{ r: 3 }} isAnimationActive={false} />
               <Line type="monotone" dataKey="compPct" name={`${channelLabel} ${KO.thSharePctUnit}`} stroke="#e11d48" strokeWidth={2} dot={{ r: 3 }} isAnimationActive={false} />
               <Line type="monotone" dataKey="weightedPct" name={KO.rowChartAdjustReflectedSharePct} stroke="#a78bfa" strokeDasharray="6 4" strokeWidth={2} dot={{ r: 2.5 }} isAnimationActive={false} />
             </LineChart>

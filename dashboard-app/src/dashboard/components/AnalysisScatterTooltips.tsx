@@ -28,7 +28,7 @@ export function renderSelfSalesScatterTooltip({ active, payload }: AnalysisScatt
   )
 }
 
-export function createCompetitorSalesScatterTooltip(competitorAxisLabel: string) {
+export function createCompetitorSalesScatterTooltip(competitorAxisLabel: string, selfCompanyLabel: string) {
   return ({ active, payload }: AnalysisScatterTooltipProps) => {
     if (!active || !payload?.length) return null
     const point = payload[0]?.payload
@@ -38,7 +38,7 @@ export function createCompetitorSalesScatterTooltip(competitorAxisLabel: string)
       <div className={styles.chartTooltip}>
         <div className={styles.chartTooltipTitle}>판매량 비교 구간</div>
         <div className={styles.chartTooltipText}>
-          자사 판매량: {formatGroupedNumber(point.xStart)} ~ {formatGroupedNumber(point.xEnd)}
+          {selfCompanyLabel} 판매량: {formatGroupedNumber(point.xStart)} ~ {formatGroupedNumber(point.xEnd)}
         </div>
         <div className={styles.chartTooltipText}>
           {competitorAxisLabel} 판매량: {formatGroupedNumber(point.yStart)} ~ {formatGroupedNumber(point.yEnd)}

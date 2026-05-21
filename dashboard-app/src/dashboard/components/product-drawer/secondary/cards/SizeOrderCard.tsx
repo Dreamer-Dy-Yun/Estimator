@@ -14,6 +14,7 @@ import type { SizeOrderRow } from './sizeOrderCardTypes'
 type Props = {
   sizeOrder: {
     channelLabel: string
+    selfCompanyLabel: string
     selfWeightPct: number
     sizeRows: SizeOrderRow[]
     totalOrderBalanceHelpId: string
@@ -71,6 +72,7 @@ function QuantityRow({ label, totalQty, sizeRows, valueForSize, helpMark }: Quan
 export function SizeOrderCard({ sizeOrder, actions, help }: Props) {
   const {
     channelLabel,
+    selfCompanyLabel,
     selfWeightPct,
     sizeRows,
     totalOrderBalanceHelpId,
@@ -94,7 +96,7 @@ export function SizeOrderCard({ sizeOrder, actions, help }: Props) {
       <h3 className={styles.sectionTitle}>{KO.sectionSizeOrder}</h3>
       <div className={styles.sliderRow}>
         <div className={styles.sliderSelfGroup}>
-          <span className={styles.sliderRowLabel}>{KO.selfWeight}</span>
+          <span className={styles.sliderRowLabel}>{selfCompanyLabel} 가중치</span>
           <div className={styles.sliderPctBox}>
             <input
               type="number"
@@ -107,7 +109,7 @@ export function SizeOrderCard({ sizeOrder, actions, help }: Props) {
                 const next = parseSelfWeightPctInput(e.target.value)
                 if (next != null) actions.onSelfWeightPctChange(next)
               }}
-              aria-label={KO.selfWeight}
+              aria-label={`${selfCompanyLabel} 가중치`}
             />
             <span className={styles.sliderPctSuffix}>%</span>
           </div>
@@ -122,7 +124,7 @@ export function SizeOrderCard({ sizeOrder, actions, help }: Props) {
           onChange={(e) => {
             actions.onSelfWeightPctChange(getSelfWeightPctFromCompetitorInput(Number(e.target.value)))
           }}
-          aria-label={KO.ariaWeightSlider}
+          aria-label={`${selfCompanyLabel} 대 ${channelLabel} 가중치`}
         />
         <div className={styles.sliderCompGroup}>
           <div className={styles.sliderPctBox}>
@@ -165,6 +167,7 @@ export function SizeOrderCard({ sizeOrder, actions, help }: Props) {
             <SizeOrderShareChartRow
               tableRef={tableRef}
               channelLabel={channelLabel}
+              selfCompanyLabel={selfCompanyLabel}
               sizeRows={sizeRows}
             />
             <tr data-chart-align-row="">

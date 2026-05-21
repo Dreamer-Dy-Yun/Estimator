@@ -7,7 +7,14 @@ import {
   type ProductMonthlyTrendModelArgs,
 } from './useProductMonthlyTrendModel'
 
-export function ProductMonthlyTrendContainer(props: ProductMonthlyTrendModelArgs) {
+type ProductMonthlyTrendContainerProps = ProductMonthlyTrendModelArgs & {
+  selfCompanyLabel: string
+}
+
+export function ProductMonthlyTrendContainer({
+  selfCompanyLabel,
+  ...modelProps
+}: ProductMonthlyTrendContainerProps) {
   const {
     forecastMonthsLabelId,
     forecastComboRef,
@@ -26,8 +33,8 @@ export function ProductMonthlyTrendContainer(props: ProductMonthlyTrendModelArgs
     toggleForecastCombo,
     selectForecastMonths,
     toggleSalesTrendSeries,
-  } = useProductMonthlyTrendModel(props)
-  const { forecastMonths } = props
+  } = useProductMonthlyTrendModel(modelProps)
+  const { forecastMonths } = modelProps
 
   return (
     <div className={`${styles.card} ${styles.drawerSalesTrendCard}`}>
@@ -92,7 +99,7 @@ export function ProductMonthlyTrendContainer(props: ProductMonthlyTrendModelArgs
               }
               onClick={() => toggleSalesTrendSeries('self')}
             >
-              자사
+              {selfCompanyLabel}
             </button>
             <button
               type="button"
@@ -138,9 +145,9 @@ export function ProductMonthlyTrendContainer(props: ProductMonthlyTrendModelArgs
                 : []),
             ]}
             tooltipValueFormatter={(value, name) => {
-              if (name === 'actual') return [formatGroupedNumber(value), '판매 실적']
+              if (name === 'actual') return [formatGroupedNumber(value), `${selfCompanyLabel} 실적`]
               if (name === 'competitorActual') return [formatGroupedNumber(value), `${competitorTrendLabel} 판매`]
-              if (name === 'forecastLink') return [formatGroupedNumber(value), '판매 예측']
+              if (name === 'forecastLink') return [formatGroupedNumber(value), `${selfCompanyLabel} 예측`]
               return [formatGroupedNumber(value), name]
             }}
             tooltipLabelFormatter={(row) => String(row.date ?? '')}

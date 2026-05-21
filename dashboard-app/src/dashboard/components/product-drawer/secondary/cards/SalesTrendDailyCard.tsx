@@ -25,6 +25,7 @@ type SizeOption = { id: string; label: string; share: number }
 
 type Props = {
   skuGroupKey: string
+  selfCompanyLabel: string
   competitorChannelLabel: string
   /** 사이즈별 비중(합 1). 비어 있으면 선택 UI 숨김. */
   sizeOptions: SizeOption[]
@@ -38,7 +39,7 @@ type Props = {
   }
 }
 
-export function SalesTrendDailyCard({ skuGroupKey, competitorChannelLabel, sizeOptions, trend }: Props) {
+export function SalesTrendDailyCard({ skuGroupKey, selfCompanyLabel, competitorChannelLabel, sizeOptions, trend }: Props) {
   const [expanded, setExpanded] = useState(false)
   const [selectedSizeState, setSelectedSizeState] = useState<{ skuGroupKey: string; sizeId: 'all' | string } | null>(
     null,
@@ -207,7 +208,7 @@ export function SalesTrendDailyCard({ skuGroupKey, competitorChannelLabel, sizeO
                 minTickGap={4}
                 interval={0}
                 tooltipValueFormatter={(value, name) => {
-                  if (name === 'selfSales') return [formatGroupedNumber(value), '자사 판매량']
+                  if (name === 'selfSales') return [formatGroupedNumber(value), `${selfCompanyLabel} 판매량`]
                   if (name === 'competitorSales') return [formatGroupedNumber(value), `${competitorChannelLabel} 판매량`]
                   return [formatGroupedNumber(value), String(name)]
                 }}

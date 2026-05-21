@@ -1,5 +1,6 @@
 import { useId, type ChangeEvent } from 'react'
 import { useAuth } from '../auth/AuthContext'
+import { getCompanyOptionLabel } from './hooks/useSelfCompanyLabel'
 import styles from './companySelector.module.css'
 
 const EMPTY_LABEL = '회사 미선택'
@@ -35,7 +36,7 @@ export function CompanySelector() {
     return (
       <div className={styles.selectorShell} role="status" aria-live="polite">
         <div className={`${styles.control} ${styles.muted}`}>
-          <span className={styles.label}>자사</span>
+          <span className={styles.label}>회사</span>
           <span className={styles.value}>불러오는 중</span>
         </div>
       </div>
@@ -46,7 +47,7 @@ export function CompanySelector() {
     return (
       <div className={styles.selectorShell} role="status" aria-live="polite">
         <div className={`${styles.control} ${styles.error}`} title={errorMessage}>
-          <span className={styles.label}>자사</span>
+          <span className={styles.label}>회사</span>
           <span className={styles.value}>{errorMessage}</span>
         </div>
       </div>
@@ -57,7 +58,7 @@ export function CompanySelector() {
     return (
       <div className={styles.selectorShell} role="status" aria-live="polite">
         <div className={`${styles.control} ${styles.error}`}>
-          <span className={styles.label}>자사</span>
+          <span className={styles.label}>회사</span>
           <span className={styles.value}>회사 식별자 누락</span>
         </div>
       </div>
@@ -68,7 +69,7 @@ export function CompanySelector() {
     return (
       <div className={styles.selectorShell} role="status" aria-live="polite">
         <div className={`${styles.control} ${styles.muted}`}>
-          <span className={styles.label}>자사</span>
+          <span className={styles.label}>회사</span>
           <span className={styles.value}>{EMPTY_LABEL}</span>
         </div>
       </div>
@@ -77,12 +78,12 @@ export function CompanySelector() {
 
   if (companies.length === 1) {
     const company = companies[0]
-    const companyLabel = company.name || company.uuid || EMPTY_LABEL
+    const companyLabel = getCompanyOptionLabel(company) || EMPTY_LABEL
 
     return (
       <div className={styles.selectorShell}>
         <div className={styles.control} title={companyLabel}>
-          <span className={styles.label}>자사</span>
+          <span className={styles.label}>회사</span>
           <span className={styles.value}>{companyLabel}</span>
         </div>
       </div>
@@ -93,14 +94,14 @@ export function CompanySelector() {
     <div className={styles.selectorShell}>
       <div className={styles.control}>
         <label className={styles.label} htmlFor={selectId}>
-          자사
+          회사
         </label>
         <select
           id={selectId}
           className={styles.select}
           value={selectedValue}
           onChange={handleChange}
-          aria-label="자사 선택"
+          aria-label="회사 선택"
         >
           {!selectedValue ? (
             <option value="" disabled>
@@ -110,7 +111,7 @@ export function CompanySelector() {
           {companies.map((company) => {
             return (
               <option key={company.uuid} value={company.uuid}>
-                {company.name || company.uuid}
+                {getCompanyOptionLabel(company)}
               </option>
             )
           })}

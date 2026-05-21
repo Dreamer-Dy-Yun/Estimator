@@ -31,6 +31,7 @@ import type { FilterField } from '../model/filterField'
 import { useAnalysisVisibleSelection } from '../hooks/useAnalysisVisibleSelection'
 import { useDashboardRequest } from '../hooks/useDashboardRequest'
 import { useProductDrawerBundleState } from '../hooks/useProductDrawerBundle'
+import { useSelfCompanyLabel } from '../hooks/useSelfCompanyLabel'
 import type { ScatterSalesGridResponse } from '../../api/types'
 import type { AnalysisScatterGridPoint } from '../model/analysisScatterGridPoint'
 
@@ -39,6 +40,7 @@ const EMPTY_COMPETITOR_CHANNELS: SecondaryCompetitorChannel[] = []
 
 export const CompetitorPage = () => {
   const { selectedCompanyUuid } = useAuth()
+  const selfCompanyLabel = useSelfCompanyLabel()
   const [bulkAddOpen, setBulkAddOpen] = useState(false)
   const [forecastMonths, setForecastMonths] = useState(() => readForecastMonthsFromStorage())
   const [orderedSkuGroupKeys, setOrderedSkuGroupKeys] = useState<string[]>([])
@@ -173,8 +175,8 @@ export const CompetitorPage = () => {
   })
 
   const renderQtyScatterTooltip = useMemo(
-    () => createCompetitorSalesScatterTooltip(competitorAxisLabel),
-    [competitorAxisLabel],
+    () => createCompetitorSalesScatterTooltip(competitorAxisLabel, selfCompanyLabel),
+    [competitorAxisLabel, selfCompanyLabel],
   )
 
   return (
@@ -198,6 +200,7 @@ export const CompetitorPage = () => {
             onPeriodBarEnd={onPeriodBarEnd}
             endControl={(
               <CompetitorFilterEndControls
+                selfCompanyLabel={selfCompanyLabel}
                 showRowsWithSelfSalesOnly={showRowsWithSelfSalesOnly}
                 bulkSelectedCount={bulkSelectedCount}
                 queryDisabled={!periodQueryDirty}
@@ -231,6 +234,7 @@ export const CompetitorPage = () => {
             </div>
           ) : (
             <CompetitorKpiGrid
+              selfCompanyLabel={selfCompanyLabel}
               totalCompetitorAmount={kpi.totalCompetitorAmount}
               totalSelfAmount={kpi.totalSelfAmount}
               totalCompetitorQty={kpi.totalCompetitorQty}
@@ -239,7 +243,7 @@ export const CompetitorPage = () => {
           )}
 
           <AnalysisScatterChartCard<AnalysisScatterGridPoint>
-            title="경쟁·자사 판매량 비교"
+            title={`경쟁·${selfCompanyLabel} 판매량 비교`}
             data={scatterData}
             chartBodyRef={chartBodyRef}
             chartReady={chartReady}
@@ -251,7 +255,7 @@ export const CompetitorPage = () => {
             onCellClick={onScatterCellClick}
             onClearSelection={clearActiveGridCell}
             renderTooltip={renderQtyScatterTooltip}
-            xAxis={{ name: '자사 판매량(EA)', label: '자사', labelColor: '#2563eb' }}
+            xAxis={{ name: `${selfCompanyLabel} 판매량(EA)`, label: selfCompanyLabel, labelColor: '#2563eb' }}
             yAxis={{
               name: `${competitorAxisLabel} 판매량(EA)`,
               label: competitorAxisLabel,
@@ -288,6 +292,7 @@ export const CompetitorPage = () => {
         periodStart={appliedPeriodStartDate}
         periodEnd={appliedPeriodEndDate}
         forecastMonths={forecastMonths}
+        selfCompanyLabel={selfCompanyLabel}
         onForecastMonthsChange={onForecastMonthsChange}
         onClose={() => setSelectedSkuGroupKey(null)}
         onRequestNavigateAdjacent={onRequestNavigateAdjacent}

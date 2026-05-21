@@ -14,6 +14,7 @@ type Props = {
     self: SalesKpiColumn
     competitor: SalesKpiColumn
   }
+  selfCompanyLabel: string
   channelFilter?: {
     channelId: string
     competitorChannels: SecondaryCompetitorChannel[]
@@ -22,7 +23,7 @@ type Props = {
   }
 }
 
-export function SalesMetricsCard({ targetPeriodDays, sales, channelFilter }: Props) {
+export function SalesMetricsCard({ targetPeriodDays, sales, selfCompanyLabel, channelFilter }: Props) {
   const { channelLabel, self: selfCol, competitor: compCol } = sales
   const formatRank = (rank: number | null, total: number) =>
     rank === null ? '-' : `${rank}/${total}${KO.rankSuffix}`
@@ -68,7 +69,7 @@ export function SalesMetricsCard({ targetPeriodDays, sales, channelFilter }: Pro
           <thead>
             <tr>
               <th>{KO.thMetric}</th>
-              <th className={`${styles.num} ${styles.salesMetricsSelfHeader}`}>{KO.thSelf}</th>
+              <th className={`${styles.num} ${styles.salesMetricsSelfHeader}`}>{selfCompanyLabel}</th>
               <th className={`${styles.num} ${styles.salesMetricsCompetitorHeader}`}>
                 {channelFilter ? (
                   <span className={styles.salesMetricsChannelHeaderControl}>

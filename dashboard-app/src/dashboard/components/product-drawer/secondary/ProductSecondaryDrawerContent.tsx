@@ -40,6 +40,7 @@ type Props = {
   aiCommentLoading: boolean
   aiCommentError: ApiUnitErrorInfo | null
   onRequestAiComment: () => void
+  selfCompanyLabel: string
   selfWeightPct: number
   onSelfWeightPctChange: (value: number) => void
   minOrderDate: string
@@ -90,6 +91,7 @@ export function ProductSecondaryDrawerContent({
   aiCommentLoading,
   aiCommentError,
   onRequestAiComment,
+  selfCompanyLabel,
   selfWeightPct,
   onSelfWeightPctChange,
   minOrderDate,
@@ -145,6 +147,7 @@ export function ProductSecondaryDrawerContent({
       <SizeOrderCard
         sizeOrder={{
           channelLabel: channel.label,
+          selfCompanyLabel,
           selfWeightPct,
           sizeRows,
           totalOrderBalanceHelpId: helpIds.totalOrderBalance,
@@ -233,6 +236,7 @@ export function ProductSecondaryDrawerContent({
       <ComponentErrorBoundary page={pageName} unit="SalesTrendDailyCard">
         <SalesTrendDailyCard
           skuGroupKey={primary.skuGroupKey}
+          selfCompanyLabel={selfCompanyLabel}
           competitorChannelLabel={channel.label}
           sizeOptions={dailyTrendSizeOptions}
           trend={{

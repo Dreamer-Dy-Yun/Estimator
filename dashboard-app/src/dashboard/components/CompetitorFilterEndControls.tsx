@@ -3,6 +3,7 @@ import { AnalysisPeriodQueryButton } from './AnalysisPeriodQueryButton'
 import styles from './common.module.css'
 
 type Props = {
+  selfCompanyLabel: string
   showRowsWithSelfSalesOnly: boolean
   bulkSelectedCount: number
   queryDisabled: boolean
@@ -14,6 +15,7 @@ type Props = {
 }
 
 export function CompetitorFilterEndControls({
+  selfCompanyLabel,
   showRowsWithSelfSalesOnly,
   bulkSelectedCount,
   queryDisabled,
@@ -34,7 +36,7 @@ export function CompetitorFilterEndControls({
           checked={showRowsWithSelfSalesOnly}
           onChange={(event) => onSelfSalesOnlyChange(event.target.checked)}
         />
-        <span>자사판매량이 존재하는 경우만 보기</span>
+        <span>{selfCompanyLabel} 판매량이 존재하는 경우만 보기</span>
       </label>
       <button
         type="button"

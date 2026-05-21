@@ -15,6 +15,7 @@ type Props = {
   competitorChannels: SecondaryCompetitorChannel[]
   channelsError: ApiUnitErrorInfo | null
   onChannelChange: (next: string) => void
+  selfCompanyLabel: string
   pageName: string
 }
 
@@ -32,6 +33,7 @@ export function ProductSalesMetricsContainer({
   competitorChannels,
   channelsError,
   onChannelChange,
+  selfCompanyLabel,
   pageName,
 }: Props) {
   const reqSeqRef = useRef(0)
@@ -109,6 +111,7 @@ export function ProductSalesMetricsContainer({
         self: salesInsight.self,
         competitor: salesInsight.competitor,
       }}
+      selfCompanyLabel={selfCompanyLabel}
       channelFilter={{
         channelId,
         competitorChannels,

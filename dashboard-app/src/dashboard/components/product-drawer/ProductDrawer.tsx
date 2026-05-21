@@ -20,6 +20,7 @@ function ProductDrawerContent({
   periodStart,
   periodEnd,
   forecastMonths,
+  selfCompanyLabel,
   onForecastMonthsChange,
   hydrateSnapshot,
   initialExpandSecondary,
@@ -35,6 +36,7 @@ function ProductDrawerContent({
   periodStart: string
   periodEnd: string
   forecastMonths: number
+  selfCompanyLabel: string
   onForecastMonthsChange: (months: number) => void
   hydrateSnapshot?: OrderSnapshotDocumentV1 | null
   initialExpandSecondary?: boolean
@@ -117,6 +119,7 @@ function ProductDrawerContent({
         selectedStart={selectedStart}
         selectedEnd={selectedEnd}
         forecastMonths={forecastMonths}
+        selfCompanyLabel={selfCompanyLabel}
         onForecastMonthsChange={onForecastMonthsChange}
         expandPaneOpen={expandPaneOpen}
         secondaryEnabled={secondaryEnabled}
@@ -138,6 +141,7 @@ function ProductDrawerContent({
           selectedStart={selectedStart}
           selectedEnd={selectedEnd}
           forecastMonths={forecastMonths}
+          selfCompanyLabel={selfCompanyLabel}
           channelsError={channelsError}
           selectedChannelReady={selectedChannelReady}
           selectedChannelMissing={selectedChannelMissing}
@@ -163,6 +167,7 @@ export const ProductDrawer = ({
   periodStart,
   periodEnd,
   forecastMonths,
+  selfCompanyLabel,
   onForecastMonthsChange,
   hydrateSnapshot,
   initialExpandSecondary,
@@ -179,6 +184,7 @@ export const ProductDrawer = ({
   periodStart: string
   periodEnd: string
   forecastMonths: number
+  selfCompanyLabel: string
   onForecastMonthsChange: (months: number) => void
   hydrateSnapshot?: OrderSnapshotDocumentV1 | null
   initialExpandSecondary?: boolean
@@ -200,6 +206,7 @@ export const ProductDrawer = ({
       periodStart={periodStart}
       periodEnd={periodEnd}
       forecastMonths={forecastMonths}
+      selfCompanyLabel={selfCompanyLabel}
       onForecastMonthsChange={onForecastMonthsChange}
       hydrateSnapshot={hydrateSnapshot}
       initialExpandSecondary={initialExpandSecondary}

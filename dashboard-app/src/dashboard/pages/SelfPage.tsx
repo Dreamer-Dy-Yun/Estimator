@@ -26,12 +26,14 @@ import { maskNonPeriodAnalysisFilterFields, useAnalysisSalesFilters } from '../h
 import { useAnalysisVisibleSelection } from '../hooks/useAnalysisVisibleSelection'
 import { useDashboardRequest } from '../hooks/useDashboardRequest'
 import { useProductDrawerBundleState } from '../hooks/useProductDrawerBundle'
+import { useSelfCompanyLabel } from '../hooks/useSelfCompanyLabel'
 import type { AnalysisScatterGridPoint } from '../model/analysisScatterGridPoint'
 
 const EMPTY_SELF_ROWS: SelfSalesRow[] = []
 
 export const SelfPage = () => {
   const { selectedCompanyUuid } = useAuth()
+  const selfCompanyLabel = useSelfCompanyLabel()
   const [bulkAddOpen, setBulkAddOpen] = useState(false)
   const [forecastMonths, setForecastMonths] = useState(() => readForecastMonthsFromStorage())
   const [orderedSkuGroupKeys, setOrderedSkuGroupKeys] = useState<string[]>([])
@@ -151,7 +153,7 @@ export const SelfPage = () => {
                 <DashboardRequestStatus
                   compact
                   items={[
-                    { label: '자사 분석 목록', state: rowsRequest },
+                    { label: `${selfCompanyLabel} 분석 목록`, state: rowsRequest },
                     { label: '산점도', state: scatterGridRequest },
                   ]}
                 />
@@ -215,8 +217,8 @@ export const SelfPage = () => {
         <AnalysisListRequestFrame
           initialLoading={rowsLoading && !rows.length}
           refreshing={rowsRequest.isRefreshing}
-          initialLabel="자사 분석 목록을 불러오는 중"
-          refreshLabel="자사 분석 목록을 갱신하는 중"
+          initialLabel={`${selfCompanyLabel} 분석 목록을 불러오는 중`}
+          refreshLabel={`${selfCompanyLabel} 분석 목록을 갱신하는 중`}
         >
           <SelfAnalysisList
             rows={visibleRows}
@@ -238,6 +240,7 @@ export const SelfPage = () => {
         periodStart={appliedPeriodStartDate}
         periodEnd={appliedPeriodEndDate}
         forecastMonths={forecastMonths}
+        selfCompanyLabel={selfCompanyLabel}
         onForecastMonthsChange={onForecastMonthsChange}
         onClose={() => setSelectedSkuGroupKey(null)}
         onRequestNavigateAdjacent={onRequestNavigateAdjacent}

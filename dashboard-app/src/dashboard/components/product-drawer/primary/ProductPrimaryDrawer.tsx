@@ -13,6 +13,7 @@ type Props = {
   selectedStart: string
   selectedEnd: string
   forecastMonths: number
+  selfCompanyLabel: string
   onForecastMonthsChange: (months: number) => void
   expandPaneOpen: boolean
   secondaryEnabled?: boolean
@@ -34,6 +35,7 @@ export function ProductPrimaryDrawer({
   selectedStart,
   selectedEnd,
   forecastMonths,
+  selfCompanyLabel,
   onForecastMonthsChange,
   expandPaneOpen,
   secondaryEnabled = true,
@@ -123,6 +125,7 @@ export function ProductPrimaryDrawer({
             competitorChannels={channelState.competitorChannels}
             channelsError={channelState.channelsError}
             onChannelChange={channelState.onChannelChange}
+            selfCompanyLabel={selfCompanyLabel}
             pageName={pageName}
           />
         </ComponentErrorBoundary>
@@ -134,6 +137,7 @@ export function ProductPrimaryDrawer({
             periodStart={periodStart}
             periodEnd={periodEnd}
             forecastMonths={forecastMonths}
+            selfCompanyLabel={selfCompanyLabel}
             onForecastMonthsChange={onForecastMonthsChange}
             channelId={channelState.channelId}
             fallbackChannelLabel={competitorChannelLabel}

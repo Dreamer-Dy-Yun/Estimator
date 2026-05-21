@@ -11,7 +11,7 @@ test('로그인 후 주요 라우트와 관리자 탭을 이동할 수 있다', 
 
   await page.getByRole('link', { name: '경쟁사 분석' }).click()
   await expect(page).toHaveURL(/\/dashboard\/competitor$/)
-  await expect(page.getByText('경쟁·자사 판매량 비교')).toBeVisible()
+  await expect(page.getByText('경쟁·한아INT 판매량 비교')).toBeVisible()
 
   await page.getByRole('link', { name: '오더 후보군' }).click()
   await expect(page).toHaveURL(/\/dashboard\/snapshot-confirm$/)
