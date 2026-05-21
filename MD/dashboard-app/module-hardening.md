@@ -1,4 +1,4 @@
-# dashboard-app 모듈 하드닝 레지스트리
+﻿# dashboard-app 모듈 하드닝 레지스트리
 
 | 항목 | 내용 |
 |------|------|
@@ -113,4 +113,11 @@
 - `httpDashboardRequests.ts` 파일 전체는 endpoint mapping과 transport 조립 책임이 커서 현재 상태로 하드닝 완료 선언 대상이 아니다.
 - `useSecondaryCandidateActions.ts` hook 전체는 2차 드로워 저장, 후보군 picker, 후보군 생성, 상세확정 mutation을 함께 다루므로 all-company guard만 먼저 안정화 대상으로 본다.
 - `SnapshotConfirmPage.tsx` 페이지 전체는 검색/정렬/upload/edit/delete/detail modal까지 포함하므로 load failure UI만 하드닝 후보로 본다.
-- 이번 TODO에서는 테스트/빌드를 실행하지 않았으므로 후보 항목을 완료 상태로 승격하지 않는다.
+- TODO-065 범위에서는 테스트/빌드를 실행하지 않았으므로 후보 항목을 완료 상태로 승격하지 않는다.
+
+## TODO-065 company scope contract note
+
+- 이 문서는 현재 코드 계약을 반영한다. `코드 변경 없음`, `문서 작업`, `테스트/빌드 미실행` 문구는 TODO-065가 문서 정합성 작업이라는 뜻으로만 사용하며, 선행 TODO의 코드 변경이 없었다는 뜻으로 해석하지 않는다.
+- secondary AI comment와 secondary stock order calc는 POST 요청이지만 DB mutation/job/SSE가 아닌 read-like 계산/생성 요청이다. 따라서 optional company scope를 따른다.
+- 후보군 mutation, 후보군 backend job start, 후보군 job/SSE subscribe, 오더 지표 SSE는 required single company scope를 따른다.
+- SnapshotConfirmPage company switch stale guard, product-secondary picker stale guard, unconfirm failure control은 현재 코드 기준의 경계 개선 항목으로 문서화하되, TODO-065에서는 테스트/빌드를 실행하지 않았으므로 하드닝 완료로 잠그지 않는다.

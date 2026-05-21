@@ -1,4 +1,4 @@
-import { useId, useState } from 'react'
+﻿import { useId, useState } from 'react'
 import { ConfirmModal } from '../../ConfirmModal'
 import type { usePortalHelpPopover } from '../../usePortalHelpPopover'
 import type { CandidateItemPanelContext } from './candidateActionCards'
@@ -53,7 +53,7 @@ export function SecondaryDrawerCandidateActions({
         open={unconfirmOpen}
         busy={candidateActions.loading}
         title="상세확정 해제"
-        message="저장된 2차 드로워 스냅샷을 삭제하고 상세미확정 상태로 되돌립니다. 진행하면 현재 DB 스냅샷은 null로 저장됩니다."
+        message="저장된 2차 후보군 아이템의 상세확정을 해제하고 상세미확정 상태로 되돌립니다. 진행하면 현재 DB 아이템의 상세 스냅샷이 비워집니다."
         confirmText="확정 해제"
         confirmingText="해제 중"
         dialogTitleId={unconfirmDialogTitleId}
@@ -74,7 +74,7 @@ export function SecondaryDrawerCandidateActions({
           loading={candidateActions.loading}
           onNameInputChange={candidateActions.setNameInput}
           onNoteInputChange={candidateActions.setNoteInput}
-          onCreate={candidateActions.createCandidate}
+          onCreate={() => void candidateActions.createCandidate()}
           onClose={() => candidateActions.setListOpen(false)}
           onSelect={candidateActions.selectCandidate}
         />

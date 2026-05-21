@@ -67,7 +67,7 @@ export const httpDashboardRequests: DashboardApi = {
   getSecondaryAiComment: ({ skuGroupKey, ...payload }) =>
     apiRequest(`/products/${encodePathSegment(skuGroupKey)}/secondary/ai-comment`, {
       method: 'POST',
-      body: normalizeCompanyMutationScopeParams(payload),
+      body: normalizeCompanyScopeParams(payload),
     }),
   getSecondaryCompetitorChannels: () => apiRequest('/secondary/competitor-channels'),
   getCandidateStashes: (params) =>
@@ -171,5 +171,5 @@ export const httpDashboardRequests: DashboardApi = {
     return apiRequest('/candidate-stashes/import/excel', { method: 'POST', body: formData })
   },
   getSecondaryStockOrderCalc: (params) =>
-    apiRequest('/secondary/stock-order-calc', { method: 'POST', body: normalizeCompanyMutationScopeParams(params) }),
+    apiRequest('/secondary/stock-order-calc', { method: 'POST', body: normalizeCompanyScopeParams(params) }),
 }

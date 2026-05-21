@@ -70,8 +70,8 @@
 - `dashboardRequests.ts`는 `VITE_USE_MOCK_API`에 따라 mock/HTTP dashboard adapter를 선택하고 master data cache decorator를 적용하는 얇은 진입점이다.
 - `mockDashboardRequests.ts`는 현재 세션의 `USER_ACCOUNT.uuid`를 request boundary에서만 붙인다. 화면 내부로 사용자 UUID를 흘리지 않는다.
 - `httpDashboardRequests.ts`는 실제 백엔드 endpoint 경로를 `DashboardApi` 계약에 맞춰 연결한다.
-- 회사 소유 업무 데이터 adapter는 단일 회사 선택 시 `companyUuid`를 포함하고, `전체` 선택 시 생략한다. 이 scope는 분석 목록/산점도/filter meta뿐 아니라 후보군, 상품 드로워, 2차 드로워, 오더 계산, SSE까지 적용된다. 생략은 백엔드가 회사 where 조건을 제거한다는 조회 계약이며, mock adapter도 같은 의미로 데이터 분기/계산을 수행한다.
-- 후보군 mutation은 단일 회사 scope 전용이다. `전체` 선택 상태에서는 UI에서 후보군 mutation 진입을 막고, mock/HTTP 백엔드는 `companyUuid` 누락 요청을 검증 실패로 처리해야 한다.
+- 회사 소유 read adapter는 단일 회사 선택 시 `companyUuid`를 포함하고, `전체` 선택 시 생략한다. 이 scope는 분석 목록/산점도/filter meta, 상품 드로워, 2차 드로워 조회, secondary AI comment, secondary stock order calc에 적용된다. secondary AI comment와 stock order calc는 HTTP method가 POST여도 저장/수정/삭제/job 시작이 아닌 read-like 계산/생성 요청이므로 optional company scope 계약을 따른다. 생략은 백엔드가 회사 where 조건을 제거한다는 조회 계약이며, mock adapter도 같은 의미로 데이터 분기/계산을 수행한다.
+- 후보군 mutation, 후보군 backend job start, 후보군 job/SSE subscribe, 오더 지표 SSE, 후보군 엑셀 upload FormData는 단일 회사 scope 전용이다. `전체` 선택 상태에서는 UI에서 후보군 side-effect 진입을 막고, mock/HTTP 백엔드는 `companyUuid` 누락 요청을 검증 실패로 처리해야 한다.
 - `dashboardMasterDataCache.ts`는 page와 공통 drawer가 공유하는 master data 요청을 coalesce한다. mutation 후 무효화 대상이 아닌 master data만 캐시한다.
 - 관리자 Google Sheets mock은 서비스 계정 키를 JSON으로 parse해 `client_email`을 확인한다. 잘못된 JSON을 정규식 등으로 보정하지 않는다.
 - HTTP 실패는 `httpClient.ts`에서 `ApiHttpError`로 변환한다. 기존 화면은 `error.message`만 읽어도 동작해야 하며, 새 호출부는 필요할 때 `status`, `kind`, `code`, `body`를 참조한다.
@@ -99,7 +99,7 @@ API 계약이 바뀌면 [../../backend-api/backend-api-spec.md](../../backend-ap
 - 프론트 dropdown에 필요한 응답 필드는 `uuid`, `name`뿐이다.
 - 실제 백엔드는 COMPANY 테이블의 `uuid`, `name`을 내려주며, 현재 mock 계약은 `전체`, `한아INT`, `T1글로벌`을 포함한다.
 - `전체` 선택은 업무 API 요청에서 `companyUuid`를 생략하는 의미다. 백엔드는 `companyUuid`가 없으면 회사 where 조건을 적용하지 않는다.
-- 단일 회사 선택 시 회사 소유 업무 데이터 요청은 `companyUuid`를 포함한다. 적용 범위는 자사/경쟁사 분석 API, 산점도 API, filter meta, 후보군, 상품 드로워, 2차 드로워, 오더 계산, SSE, mutation이다.
+- 단일 회사 선택 시 회사 소유 업무 데이터 요청은 `companyUuid`를 포함한다. 적용 범위는 자사/경쟁사 분석 API, 산점도 API, filter meta, 상품 드로워, 2차 드로워 조회, secondary AI comment, secondary stock order calc, 후보군 조회, 후보군 mutation/job/SSE이다. 다만 secondary AI comment와 secondary stock order calc는 read-like POST optional scope이고, 후보군 mutation/job/SSE는 required single company scope다.
 - mock의 `한아INT`와 `T1글로벌` scope는 같은 seed를 단순 반환하지 않는다. 판매량/금액, 후보군 stash/item 접근, 오더 지표 SSE 계산은 선택 회사 UUID를 실제 입력으로 사용한다.
 - 오더 후보군은 단일 회사 기준 업무 흐름이므로 `전체` 선택 상태에서는 오더 후보군 탭과 후보군 추가 액션을 비활성화하고 후보군 mutation API를 호출하지 않는다.
 - 프론트는 dropdown 표시나 선택 상태 유지를 위해 존재하지 않는 company scope, 권한, 집계 값, business flag를 임의로 생성하지 않는다.
@@ -112,8 +112,8 @@ API 계약이 바뀌면 [../../backend-api/backend-api-spec.md](../../backend-ap
 
 - `types/company.ts`는 read API용 optional scope와 mutation/job/SSE용 required scope를 분리한다. `getCompanyUuidForOptionalScope`는 `전체` sentinel, 빈 문자열, 누락 값을 read API의 `companyUuid` 생략으로 정규화한다.
 - `getRequiredCompanyUuidForMutationScope`와 `normalizeCompanyMutationScopeParams`는 mutation, backend job, SSE subscribe가 단일 회사 scope 없이 실행되지 않도록 런타임에서 실패시킨다.
-- `httpDashboardRequests.ts`는 후보군 mutation, 상세 일괄확정 job/SSE, 후보군 LLM comment job/SSE, 오더 지표 SSE, 2차 드로워 AI comment, 재고/발주 계산, 엑셀 upload FormData에 단일 `companyUuid` 검증을 적용한다.
-- `httpDashboardRequests.ts`의 read API는 `normalizeCompanyScopeParams`를 통해 `전체` 선택 시 `companyUuid`를 query에서 생략하고, 단일 회사 선택 시 query에 포함한다.
+- `httpDashboardRequests.ts`는 secondary AI comment와 secondary stock order calc에는 read-like optional scope 정규화를 적용한다. 후보군 mutation, 상세 일괄확정 job/SSE, 후보군 LLM comment job/SSE, 오더 지표 SSE, 엑셀 upload FormData에는 required single company scope 검증을 적용한다.
+- `httpDashboardRequests.ts`의 read API와 read-like POST는 `normalizeCompanyScopeParams`를 통해 `전체` 선택 시 `companyUuid`를 query/body에서 생략하고, 단일 회사 선택 시 포함한다.
 
 ### 하드닝 후보
 
@@ -122,5 +122,5 @@ API 계약이 바뀌면 [../../backend-api/backend-api-spec.md](../../backend-ap
 
 ### 보류 항목
 
-- 이번 TODO에서는 테스트/빌드를 실행하지 않았으므로 위 항목을 검증 완료 또는 하드닝 완료로 선언하지 않는다.
+- 이 문서는 현재 코드 계약을 반영한 정합성 문서다. TODO-065 범위에서는 테스트/빌드를 실행하지 않았으므로 위 항목을 검증 완료 또는 하드닝 완료로 선언하지 않는다.
 - backend 권한 정책, 회사별 접근 가능 목록, 403 UX는 아직 현재 scope 밖이다. 해당 정책이 추가되면 `/companies` 응답 범위, 업무 API 403 기준, `failure-ux-matrix.md`를 함께 갱신해야 한다.

@@ -40,13 +40,23 @@ const toTime = (iso: string) => {
 
 const candidateStashTemplateDownload = getCandidateStashExcelTemplateDownload()
 
+const getCandidateStashScopeKey = (
+  companyUuid: string | undefined,
+  isAllCompanySelected: boolean,
+) => (isAllCompanySelected ? 'all-companies' : `company:${companyUuid ?? 'none'}`)
+
 export const SnapshotConfirmPage = () => {
   const { showToast } = useAppToast()
   const { session, selectedCompanyUuid } = useAuth()
   const companyUuid = useMemo(() => getCompanyUuidForOptionalScope(selectedCompanyUuid), [selectedCompanyUuid])
   const isAllCompanySelected = isAllCompanyUuid(selectedCompanyUuid)
+  const companyScopeKey = useMemo(
+    () => getCandidateStashScopeKey(companyUuid, isAllCompanySelected),
+    [companyUuid, isAllCompanySelected],
+  )
   const downloadUserName = session?.user.name ?? session?.user.loginId ?? '사용자'
   const [stashes, setStashes] = useState<CandidateStashSummary[]>([])
+  const [stashesScopeKey, setStashesScopeKey] = useState(companyScopeKey)
   const [openDetailStashUuid, setOpenDetailStashUuid] = useState<string | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<CandidateStashSummary | null>(null)
   const [deleteBusy, setDeleteBusy] = useState(false)
@@ -61,6 +71,7 @@ export const SnapshotConfirmPage = () => {
   const uploadInputRef = useRef<HTMLInputElement | null>(null)
   const mountedRef = useRef(false)
   const loadStashesSeqRef = useRef(0)
+  const companyScopeKeyRef = useRef(companyScopeKey)
   const [stashesLoading, setStashesLoading] = useState(true)
   const [stashesLoadError, setStashesLoadError] = useState<string | null>(null)
   const [uploadFile, setUploadFile] = useState<File | null>(null)
@@ -68,6 +79,36 @@ export const SnapshotConfirmPage = () => {
   const [uploadError, setUploadError] = useState<string | null>(null)
   const [uploadResult, setUploadResult] = useState<CandidateStashExcelUploadResult | null>(null)
   const [uploadDragActive, setUploadDragActive] = useState(false)
+
+  useEffect(() => {
+    companyScopeKeyRef.current = companyScopeKey
+    loadStashesSeqRef.current += 1
+    let alive = true
+    queueMicrotask(() => {
+      if (!alive) return
+      setStashes([])
+      setStashesScopeKey(companyScopeKey)
+      setStashesLoadError(null)
+      setStashesLoading(!isAllCompanySelected)
+      setOpenDetailStashUuid(null)
+      setDeleteTarget(null)
+      setDeleteBusy(false)
+      setDuplicateBusyUuid(null)
+      setEditTarget(null)
+      setEditName('')
+      setEditNote('')
+      setEditBusy(false)
+      setUploadFile(null)
+      setUploadBusy(false)
+      setUploadError(null)
+      setUploadResult(null)
+      setUploadDragActive(false)
+      if (uploadInputRef.current) uploadInputRef.current.value = ''
+    })
+    return () => {
+      alive = false
+    }
+  }, [companyScopeKey, isAllCompanySelected])
 
   const requireCompanyUuid = useCallback(() => {
     if (companyUuid) return companyUuid
@@ -77,6 +118,7 @@ export const SnapshotConfirmPage = () => {
   }, [companyUuid, showToast])
 
   const loadStashes = useCallback(async () => {
+    const requestScopeKey = companyScopeKey
     if (isAllCompanySelected) {
       setStashesLoading(false)
       setStashesLoadError(null)
@@ -88,16 +130,29 @@ export const SnapshotConfirmPage = () => {
     setStashesLoading(true)
     try {
       const list = await getCandidateStashes({ companyUuid })
-      if (!mountedRef.current || loadStashesSeqRef.current !== seq) return
+      if (
+        !mountedRef.current ||
+        loadStashesSeqRef.current !== seq ||
+        companyScopeKeyRef.current !== requestScopeKey
+      ) return
+      setStashesScopeKey(requestScopeKey)
       setStashes(list)
       setStashesLoadError(null)
     } catch (err) {
-      if (!mountedRef.current || loadStashesSeqRef.current !== seq) return
+      if (
+        !mountedRef.current ||
+        loadStashesSeqRef.current !== seq ||
+        companyScopeKeyRef.current !== requestScopeKey
+      ) return
       setStashesLoadError(err instanceof Error ? err.message : '오더 후보군 목록을 불러오지 못했습니다.')
     } finally {
-      if (mountedRef.current && loadStashesSeqRef.current === seq) setStashesLoading(false)
+      if (
+        mountedRef.current &&
+        loadStashesSeqRef.current === seq &&
+        companyScopeKeyRef.current === requestScopeKey
+      ) setStashesLoading(false)
     }
-  }, [companyUuid, isAllCompanySelected])
+  }, [companyScopeKey, companyUuid, isAllCompanySelected])
 
   useEffect(() => {
     mountedRef.current = true
@@ -118,30 +173,33 @@ export const SnapshotConfirmPage = () => {
 
   const handleExcelUpload = async () => {
     if (!uploadFile) return
+    const actionScopeKey = companyScopeKey
     setUploadBusy(true)
     setUploadError(null)
     setUploadResult(null)
     try {
       const mutationCompanyUuid = requireCompanyUuid()
       const result = await uploadCandidateStashExcel(uploadFile, { companyUuid: mutationCompanyUuid })
-      if (!mountedRef.current) return
+      if (!mountedRef.current || companyScopeKeyRef.current !== actionScopeKey) return
       setUploadResult(result)
       setUploadFile(null)
       if (uploadInputRef.current) uploadInputRef.current.value = ''
       await loadStashes()
+      if (!mountedRef.current || companyScopeKeyRef.current !== actionScopeKey) return
       showToast('목록 업로드 요청이 완료되었습니다.')
     } catch (err) {
-      if (!mountedRef.current) return
+      if (!mountedRef.current || companyScopeKeyRef.current !== actionScopeKey) return
       setUploadError(err instanceof Error ? err.message : '목록 업로드에 실패했습니다.')
     } finally {
-      if (mountedRef.current) setUploadBusy(false)
+      if (mountedRef.current && companyScopeKeyRef.current === actionScopeKey) setUploadBusy(false)
     }
   }
 
   const filteredStashes = useMemo(() => {
     const nameQuery = stashNameQuery.trim().toLowerCase()
     const noteQuery = stashNoteQuery.trim().toLowerCase()
-    const filtered = stashes.filter((stash) => {
+    const scopedStashes = stashesScopeKey === companyScopeKey ? stashes : []
+    const filtered = scopedStashes.filter((stash) => {
       if (nameQuery && !stash.name.toLowerCase().includes(nameQuery)) return false
       if (noteQuery && !(stash.note ?? '').toLowerCase().includes(noteQuery)) return false
       return true
@@ -152,7 +210,7 @@ export const SnapshotConfirmPage = () => {
       if (stashSortKey === 'updatedDesc') return toTime(b.dbUpdatedAt) - toTime(a.dbUpdatedAt)
       return toTime(a.dbUpdatedAt) - toTime(b.dbUpdatedAt)
     })
-  }, [stashNameQuery, stashNoteQuery, stashSortKey, stashes])
+  }, [companyScopeKey, stashNameQuery, stashNoteQuery, stashSortKey, stashes, stashesScopeKey])
 
   const openEditDialog = (stash: CandidateStashSummary) => {
     setEditTarget(stash)
@@ -161,19 +219,23 @@ export const SnapshotConfirmPage = () => {
   }
 
   const duplicateStash = async (stash: CandidateStashSummary) => {
+    const actionScopeKey = companyScopeKey
     setDuplicateBusyUuid(stash.uuid)
     try {
       const mutationCompanyUuid = requireCompanyUuid()
       await duplicateCandidateStash(stash.uuid, { companyUuid: mutationCompanyUuid })
+      if (!mountedRef.current || companyScopeKeyRef.current !== actionScopeKey) return
       await loadStashes()
+      if (!mountedRef.current || companyScopeKeyRef.current !== actionScopeKey) return
       showToast('후보군이 복제되었습니다.')
     } finally {
-      if (mountedRef.current) setDuplicateBusyUuid(null)
+      if (mountedRef.current && companyScopeKeyRef.current === actionScopeKey) setDuplicateBusyUuid(null)
     }
   }
 
   const saveEditDialog = async () => {
     if (!editTarget) return
+    const actionScopeKey = companyScopeKey
     setEditBusy(true)
     try {
       const mutationCompanyUuid = requireCompanyUuid()
@@ -183,16 +245,21 @@ export const SnapshotConfirmPage = () => {
         name: editName.trim(),
         note: editNote.trim() || null,
       })
+      if (!mountedRef.current || companyScopeKeyRef.current !== actionScopeKey) return
       await loadStashes()
-      if (!mountedRef.current) return
+      if (!mountedRef.current || companyScopeKeyRef.current !== actionScopeKey) return
       setEditTarget(null)
       showToast('후보군 이름·비고를 변경했습니다.')
     } finally {
-      if (mountedRef.current) setEditBusy(false)
+      if (mountedRef.current && companyScopeKeyRef.current === actionScopeKey) setEditBusy(false)
     }
   }
 
-  const selectedDetailStash = stashes.find((stash) => stash.uuid === openDetailStashUuid)
+  const isStashesScopeCurrent = stashesScopeKey === companyScopeKey
+  const isPendingScopeSwitch = !isStashesScopeCurrent
+  const scopedStashes = isStashesScopeCurrent ? stashes : []
+  const scopedStashesLoadError = isStashesScopeCurrent ? stashesLoadError : null
+  const selectedDetailStash = scopedStashes.find((stash) => stash.uuid === openDetailStashUuid)
 
   if (isAllCompanySelected) {
     return (
@@ -257,14 +324,14 @@ export const SnapshotConfirmPage = () => {
         onDragActiveChange={setUploadDragActive}
       />
 
-      {stashesLoadError && (
+      {scopedStashesLoadError && (
         <div className={`${styles.card} ${pageStyles.loadErrorCard}`} role="alert" aria-live="assertive">
           <div>
             <strong className={pageStyles.loadErrorTitle}>
               오더 후보군 목록을 불러오지 못했습니다.
             </strong>
-            <p className={pageStyles.loadErrorText}>{stashesLoadError}</p>
-            {stashes.length > 0 && (
+            <p className={pageStyles.loadErrorText}>{scopedStashesLoadError}</p>
+            {scopedStashes.length > 0 && (
               <p className={pageStyles.loadErrorSubText}>
                 아래 목록은 마지막으로 불러온 데이터입니다. 최신 목록이 아닐 수 있습니다.
               </p>
@@ -281,11 +348,11 @@ export const SnapshotConfirmPage = () => {
         </div>
       )}
 
-      {stashesLoading && !stashes.length && !stashesLoadError ? (
+      {(stashesLoading || isPendingScopeSwitch) && !scopedStashes.length && !scopedStashesLoadError ? (
         <div className={`${styles.card} ${pageStyles.emptyStateCard}`}>
           <LoadingSpinner label="오더 후보군 목록을 불러오는 중" />
         </div>
-      ) : stashesLoadError && !stashes.length ? (
+      ) : scopedStashesLoadError && !scopedStashes.length ? (
         <div className={`${styles.card} ${pageStyles.emptyStateCard}`}>
           <p className={pageStyles.loadErrorEmptyText}>
             목록을 표시할 수 없습니다. 다시 불러오기를 시도하세요.
@@ -293,7 +360,7 @@ export const SnapshotConfirmPage = () => {
         </div>
       ) : (
         <CandidateStashList
-          allStashesEmpty={!stashes.length}
+          allStashesEmpty={!scopedStashes.length}
           stashes={filteredStashes}
           duplicateBusyUuid={duplicateBusyUuid}
           onOpenDetail={setOpenDetailStashUuid}
@@ -336,16 +403,18 @@ export const SnapshotConfirmPage = () => {
         onCancel={() => setDeleteTarget(null)}
         onConfirm={async () => {
           if (!deleteTarget) return
+          const actionScopeKey = companyScopeKey
           setDeleteBusy(true)
           try {
             const mutationCompanyUuid = requireCompanyUuid()
             await deleteCandidateStash(deleteTarget.uuid, { companyUuid: mutationCompanyUuid })
+            if (!mountedRef.current || companyScopeKeyRef.current !== actionScopeKey) return
             await loadStashes()
-            if (!mountedRef.current) return
+            if (!mountedRef.current || companyScopeKeyRef.current !== actionScopeKey) return
             setDeleteTarget(null)
             showToast('후보군을 삭제했습니다.')
           } finally {
-            if (mountedRef.current) setDeleteBusy(false)
+            if (mountedRef.current && companyScopeKeyRef.current === actionScopeKey) setDeleteBusy(false)
           }
         }}
       />

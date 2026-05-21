@@ -115,8 +115,8 @@
 
 - 후보군 업무 흐름은 단일 회사 scope 전용이다. `전체` scope의 read API 생략 계약을 후보군 mutation, job, SSE에 적용하지 않는다.
 - `SnapshotConfirmPage.tsx`는 `전체` 선택 상태에서 후보군 목록 API를 호출하지 않고 페이지 내부 제한 안내를 표시한다.
-- `SnapshotConfirmPage.tsx`는 후보군 목록 load failure를 `stashesLoadError`로 유지하며, 실패를 빈 목록 성공으로 바꾸지 않는다.
-- 2차 드로워 후보군 액션 hook은 `getCompanyUuidForOptionalScope` 결과가 없으면 후보군 picker 열기와 mutation을 차단하고 toast로 사유를 표시한다.
+- `SnapshotConfirmPage.tsx`는 후보군 목록 load failure를 `stashesLoadError`로 유지하며, 실패를 빈 목록 성공으로 바꾸지 않는다. company switch 중 이전 회사 응답이 늦게 도착하면 현재 선택 회사의 목록 상태를 덮지 않는 stale guard 책임도 가진다.
+- 2차 드로워 후보군 액션 hook은 `getCompanyUuidForOptionalScope` 결과가 없으면 후보군 picker 열기와 mutation을 차단하고 toast로 사유를 표시한다. product-secondary picker는 company/sku 변경 중 이전 picker 요청 결과가 최신 상태를 덮지 않도록 stale guard를 유지하고, picker load 또는 unconfirm 실패를 성공 흐름으로 바꾸지 않는다.
 
 ### 하드닝 후보
 
@@ -125,5 +125,5 @@
 
 ### 보류 항목
 
-- 이번 문서 작업에서는 코드 변경과 테스트 실행을 하지 않았으므로 위 후보를 하드닝 완료로 잠그지 않는다.
+- 이 문서는 현재 코드 계약을 반영한 정합성 문서다. TODO-065 범위에서는 테스트/빌드를 실행하지 않았으므로 위 후보를 하드닝 완료로 잠그지 않는다.
 - 후보군 탭 비활성화, 페이지 내부 제한 안내, 2차 드로워 toast 문구는 같은 정책을 표현해야 한다. 문구 또는 접근성 설명을 바꾸는 작업은 `qa-current-behavior.md`와 함께 갱신한다.

@@ -34,7 +34,7 @@ type CandidateStashOrderActionCardProps = {
   scopeBlocked: boolean
   scopeBlockReason: string
   onOpenStashPicker: () => void | Promise<void>
-  onConfirmOrder: () => void
+  onConfirmOrder: () => void | Promise<boolean>
   portalHelp: PortalHelpApi
   confirmOrderHelpId: string
 }

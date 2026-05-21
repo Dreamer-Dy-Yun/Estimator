@@ -66,6 +66,7 @@ export function useSecondaryCandidateActions({
   }, [])
 
   useEffect(() => {
+    candidateListReqSeqRef.current += 1
     let alive = true
     queueMicrotask(() => {
       if (!alive) return
@@ -87,7 +88,7 @@ export function useSecondaryCandidateActions({
     const reqSeq = candidateListReqSeqRef.current + 1
     candidateListReqSeqRef.current = reqSeq
     const rows = await dashboardApi.getCandidateStashes({ companyUuid })
-    if (!mountedRef.current || candidateListReqSeqRef.current !== reqSeq) return rows
+    if (!mountedRef.current || candidateListReqSeqRef.current !== reqSeq) return null
     setStashes(rows.map(toPickerOption))
     return rows
   }, [companyUuid])
@@ -121,7 +122,7 @@ export function useSecondaryCandidateActions({
   }, [])
 
   const confirmOrder = useCallback(async () => {
-    if (selectedCandidate == null) return
+    if (selectedCandidate == null) return false
     setLoading(true)
     try {
       const mutationCompanyUuid = requireCompanyUuid()
@@ -133,15 +134,17 @@ export function useSecondaryCandidateActions({
         isLatestLlmComment: false,
       })
       showToast('후보군에 아이템을 저장했습니다.')
+      return true
     } catch (error) {
       showToast(getFailureMessage('후보군 아이템 저장', error))
+      return false
     } finally {
       if (mountedRef.current) setLoading(false)
     }
   }, [buildSnapshot, requireCompanyUuid, selectedCandidate, showToast, skuGroupKey])
 
   const confirmCandidateItem = useCallback(async () => {
-    if (candidateItemContext == null) return
+    if (candidateItemContext == null) return false
     const snapshot = buildSnapshot()
     setLoading(true)
     try {
@@ -152,19 +155,21 @@ export function useSecondaryCandidateActions({
         details: snapshot,
         isLatestLlmComment: false,
       })
-      if (!mountedRef.current) return
+      if (!mountedRef.current) return false
       candidateItemContext.onConfirmed?.(snapshot, updatedItem)
       candidateItemContext.onSaved?.()
       showToast(hasSavedSnapshot ? '상세확정 내용을 갱신했습니다.' : '상세확정했습니다.')
+      return true
     } catch (error) {
       showToast(getFailureMessage(hasSavedSnapshot ? '상세확정 갱신' : '상세확정', error))
+      return false
     } finally {
       if (mountedRef.current) setLoading(false)
     }
   }, [buildSnapshot, candidateItemContext, hasSavedSnapshot, requireCompanyUuid, showToast])
 
   const unconfirmCandidateItem = useCallback(async () => {
-    if (candidateItemContext == null) return
+    if (candidateItemContext == null) return false
     setLoading(true)
     try {
       const mutationCompanyUuid = requireCompanyUuid()
@@ -174,12 +179,14 @@ export function useSecondaryCandidateActions({
         details: null,
         isLatestLlmComment: false,
       })
-      if (!mountedRef.current) return
+      if (!mountedRef.current) return false
       candidateItemContext.onUnconfirmed?.(updatedItem)
       candidateItemContext.onSaved?.()
       showToast('상세확정을 해제했습니다.')
+      return true
     } catch (error) {
       showToast(getFailureMessage('상세확정 해제', error))
+      return false
     } finally {
       if (mountedRef.current) setLoading(false)
     }
@@ -198,16 +205,18 @@ export function useSecondaryCandidateActions({
         forecastMonths,
       })
       const nextCandidates = await refresh()
-      if (!mountedRef.current) return
+      if (!mountedRef.current || nextCandidates == null) return false
       const synced = nextCandidates.find((row) => row.uuid === created.uuid)
-      if (!synced) return
+      if (!synced) return false
       setSelectedCandidate({ uuid: synced.uuid, name: synced.name, dbCreatedAt: synced.dbCreatedAt })
       setNameInput('')
       setNoteInput('')
       setListOpen(false)
       showToast('후보군을 생성했습니다.')
+      return true
     } catch (error) {
       showToast(getFailureMessage('후보군 생성', error))
+      return false
     } finally {
       if (mountedRef.current) setLoading(false)
     }

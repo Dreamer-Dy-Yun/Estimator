@@ -38,7 +38,7 @@
 | 권한 | `admin`과 `user`만 존재한다. 관리자 탭은 관리자에게만 보인다. |
 | 헤더 | 자사 분석, 경쟁사 분석, 오더 후보군, 관리자 탭의 기존 스타일과 선택 상태를 유지한다. 회사 selector는 로그인 후 회사 목록을 조회해 `전체`, `한아INT`, `T1글로벌`을 표시한다. |
 | 전역 액션 | `입고예정일 수집`은 주요 탭이 아닌 헤더 유틸리티 액션이며 모든 로그인 사용자에게 노출된다. 성공/실패/수집 개수만 toast로 알린다. |
-| 회사 선택 | `전체`는 read API에서 `companyUuid`를 생략하는 의미다. 단일 회사 선택 시 분석, 산점도, filter meta, 후보군 조회, 상품 드로워, 2차 드로워, 오더 계산 조회는 선택 회사 UUID를 포함해야 한다. 후보군 mutation payload/params, bulk detail confirm job/SSE, 후보군 LLM comment job/SSE, 오더 지표 SSE는 단일 회사 scope에서만 가능하며 `전체` 또는 누락 scope로 호출되면 안 된다. |
+| 회사 선택 | `전체`는 read API와 read-like POST에서 `companyUuid`를 생략하는 의미다. 단일 회사 선택 시 분석, 산점도, filter meta, 후보군 조회, 상품 드로워, 2차 드로워 조회, secondary AI comment, secondary stock order calc는 선택 회사 UUID를 포함할 수 있다. secondary AI comment와 secondary stock order calc는 POST여도 DB mutation/job이 아니므로 optional scope다. 후보군 mutation payload/params, bulk detail confirm job/SSE, 후보군 LLM comment job/SSE, 오더 지표 SSE는 단일 회사 scope에서만 가능하며 `전체` 또는 누락 scope로 호출되면 안 된다. |
 
 ## 공통 요청 상태와 피드백
 
@@ -164,7 +164,7 @@
 | 상품 메타 | 브랜드, 카테고리, 품번, 색상, 상품명은 길어도 행바꿈하지 않고 한 줄 말줄임으로 표시한다. hover 시 전체 값이 툴팁으로 보여야 한다. |
 | 통합 오더 설정 | `일평균 판매량`과 `일평균 기대 판매량`은 계산값을 바꾸지 않고 화면에서 소수 둘째 자리 반올림, 소수 첫째 자리까지 표시한다. |
 | 상세확정 | 2차 드로워에서 스냅샷 저장 시 상세확정이 된다. 기존 스냅샷이 없으면 버튼은 `저장`, 있으면 `수정`이다. |
-| 확정 저장/해제 | PATCH 성공 후 열린 드로워와 이너 리스트는 응답 기준으로 즉시 `상세확정` 또는 `상세미확정` 상태가 된다. 개별 저장/해제와 상세확정 일괄해제 모두 후보 아이템 전체 목록을 즉시 재조회하지 않으며, 이후 stale 재조회가 도착해도 방금 mutation한 상태를 되돌리면 안 된다. |
+| 확정 저장/해제 | PATCH 성공 후 열린 드로워와 이너 리스트는 응답 기준으로 즉시 `상세확정` 또는 `상세미확정` 상태가 된다. 개별 저장/해제와 상세확정 일괄해제 모두 후보 아이템 전체 목록을 즉시 재조회하지 않으며, 이후 stale 재조회가 도착해도 방금 mutation한 상태를 되돌리면 안 된다. 해제 실패 시에는 성공 toast, 로컬 상태 전환, drawer 저장상태 전환이 진행되면 안 되고 실패 surface/toast만 남아야 한다. |
 | 스냅샷 기준 보기 | 스냅샷이 있을 때만 활성화된다. 스냅샷 기준에서는 저장 당시 기간과 통합 오더 설정, AI 코멘트, 사이즈별 오더 값이 복원된다. 그래프는 해당 기간 기준으로 다시 조회한다. |
 | 사이즈별 오더 | 가중치 조절은 표시 방향과 실제 반영 방향이 일치해야 한다. `비중` 라인 차트의 각 점은 해당 사이즈 컬럼의 중앙에 위치해야 한다. |
 | 카드 | 2차 드로워는 판매 정보, 판매추이, 통합 오더 설정, AI 코멘트, 일별 추이, 사이즈별 오더 등 현재 계약 카드가 빠지면 안 된다. |
@@ -209,17 +209,17 @@
 | 스냅샷 저장/해제 | PATCH 응답은 최신 `CandidateItemDetail` shape를 반환하는 계약으로 문서화한다. 프론트는 성공 응답을 현재 화면 기준 상태로 삼는다. |
 | 상세 일괄확정 | `startCandidateDetailBulkConfirm`과 `subscribeCandidateDetailBulkConfirm` SSE 계약을 사용한다. job start와 SSE subscribe 모두 같은 단일 `companyUuid`를 전달해야 한다. `updatedItem` 이벤트는 commit/cache 반영 이후 최신 `CandidateItemDetail`이어야 하며 프론트는 이를 로컬 확정 상태로 삼는다. |
 | 산점도 | binning과 cell 집계는 백엔드 책임이다. 프론트는 받은 `cells`와 `meta`로 표시만 한다. |
-| 회사 scope | `getCompanies` 응답은 `uuid`, `name`만 필요하다. 회사 소유 read API는 단일 회사 선택 시 `companyUuid`를 포함하고, `전체` 선택 시 생략한다. 후보군 mutation payload/params, bulk detail confirm job/SSE, 후보군 LLM comment job/SSE, 오더 지표 SSE는 단일 회사 scope가 필요하며 `전체` 또는 누락 scope로 호출되면 안 된다. HTTP adapter 검증 대상은 query, JSON body, FormData, SSE URL/query의 `companyUuid` 전파를 모두 포함한다. mock도 `companyUuid`를 판매/후보군/오더 지표 분기와 계산에 반영해야 한다. |
+| 회사 scope | `getCompanies` 응답은 `uuid`, `name`만 필요하다. 회사 소유 read API와 read-like POST는 단일 회사 선택 시 `companyUuid`를 포함하고, `전체` 선택 시 생략한다. secondary AI comment와 secondary stock order calc는 POST여도 optional scope다. 후보군 mutation payload/params, bulk detail confirm job/SSE, 후보군 LLM comment job/SSE, 오더 지표 SSE는 단일 회사 scope가 필요하며 `전체` 또는 누락 scope로 호출되면 안 된다. HTTP adapter 검증 대상은 query, JSON body, FormData, SSE URL/query의 `companyUuid` 전파를 모두 포함한다. mock도 `companyUuid`를 판매/후보군/오더 지표 분기와 계산에 반영해야 한다. |
 
 ## 2026-05-22 company scope / failure UX QA 기준
 
 | 구분 | QA 기준 |
 |------|---------|
-| HTTP adapter runtime guard | read API는 `전체` 선택 시 `companyUuid`를 생략할 수 있지만, mutation/job/SSE/FormData는 단일 회사 UUID가 없으면 요청을 만들면 안 된다. 실패는 기본 회사 fallback이나 빈 성공값이 아니라 명시적 오류로 드러나야 한다. |
+| HTTP adapter runtime guard | read API와 read-like POST는 `전체` 선택 시 `companyUuid`를 생략할 수 있다. secondary AI comment와 secondary stock order calc는 이 optional scope에 속한다. mutation/job/SSE/FormData는 단일 회사 UUID가 없으면 요청을 만들면 안 된다. 실패는 기본 회사 fallback이나 빈 성공값이 아니라 명시적 오류로 드러나야 한다. |
 | 2차 드로워 후보군 작업 | 전체 scope에서는 후보군 picker 열기, 후보군 생성, 후보군 item 저장, 상세확정 저장/해제가 진행되면 안 된다. 사용자는 toast로 회사 선택 필요 사유를 확인해야 한다. |
-| 오더 후보군 목록 전체 scope | 전체 scope에서는 후보군 목록 API를 호출하지 않고 페이지 내부 제한 안내를 표시한다. 라우트에서 강제로 튕기지 않는다. |
+| 오더 후보군 목록 전체 scope | 전체 scope에서는 후보군 목록 API를 호출하지 않고 페이지 내부 제한 안내를 표시한다. 라우트에서 강제로 튕기지 않는다. 회사 전환 중 이전 회사의 늦은 목록 응답이 현재 선택 회사 화면을 덮으면 안 되며, scope mismatch 응답은 조용히 무시하는 async stale guard 대상이다. |
 | 오더 후보군 목록 load failure | 목록 로드 실패는 정상 빈 목록과 구분한다. 기존 목록이 있으면 기존 목록을 유지하고 실패 카드와 재시도 버튼을 표시한다. 기존 목록이 없으면 목록을 표시할 수 없다는 실패 빈 상태를 표시한다. |
-| 완료/보류 판단 | 위 기준은 현재 동작 문서 기준이다. 이번 TODO에서는 테스트/빌드를 실행하지 않았으므로 하드닝 완료 또는 검증 완료로 선언하지 않는다. |
+| 완료/보류 판단 | 위 기준은 현재 동작 문서 기준이다. TODO-065 범위에서는 테스트/빌드를 실행하지 않았으므로 하드닝 완료 또는 검증 완료로 선언하지 않는다. |
 
 ## 검증 명령
 
@@ -248,3 +248,9 @@
 - 후보군 오더 지표 hook은 부모가 DI로 넘긴 `companyUuid`를 SSE 구독 요청에 포함해야 하며, hook 내부에서 전역 AuthContext나 company selector를 직접 읽으면 안 된다.
 - 회사 변경 시 기존 async stale guard 원칙을 따른다. 회사 변경 이전 응답이 이후 전역 company 선택 상태를 덮어쓰면 안 된다.
 - 사용자별 회사 접근 권한 부여는 현재 범위가 아니다. 권한 정책이 추가되면 `/companies` 응답 범위와 403 UX를 별도 QA 항목으로 추가한다.
+
+## TODO-065 문서 정합성 메모
+
+- 이 문서는 현재 코드 계약을 반영한다. `테스트/빌드 미실행`은 TODO-065 문서 작업에서 새 검증 명령을 실행하지 않았다는 의미이며, 선행 TODO에서 반영된 코드 변경이 없었다는 뜻이 아니다.
+- product-secondary picker는 회사/sku 변경 중 in-flight 응답이 최신 picker 상태를 덮지 않아야 한다. 실패 시 picker failure control을 유지하고 후보군 mutation 성공 흐름으로 넘어가면 안 된다.
+- SnapshotConfirmPage는 company switch 중 이전 회사 목록 응답을 최신 목록으로 채택하지 않는다. `전체` scope 전환 시에는 후보군 API 호출 대신 제한 안내를 표시한다.

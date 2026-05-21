@@ -1,4 +1,4 @@
-# dashboard-app 소스 경계 지도
+﻿# dashboard-app 소스 경계 지도
 
 | 항목 | 내용 |
 |------|------|
@@ -113,5 +113,16 @@
 
 ### 하드닝 보류 경계
 
-- 위 파일들은 현재 하드닝 완료 파일 목록에 추가하지 않는다. 이번 TODO는 문서 반영 작업이며 테스트/빌드를 실행하지 않았다.
+- 위 파일들은 현재 하드닝 완료 파일 목록에 추가하지 않는다. TODO-065는 문서 정합성 작업이며 테스트/빌드를 실행하지 않았다.
 - HTTP adapter 전체, 2차 드로워 후보군 hook 전체, SnapshotConfirmPage 전체는 아직 여러 책임을 함께 소유한다. 하드닝 시에는 runtime guard, all-company guard, load failure UI처럼 작은 책임 단위로 분리해 검증한다.
+
+## TODO-065 company scope / stale guard source boundary
+
+| 영역 | 소유 파일 | 책임 |
+|------|-----------|------|
+| read-like POST optional scope | `dashboard-app/src/api/requests/httpDashboardRequests.ts`, `dashboard-app/src/api/types/company.ts` | secondary AI comment와 secondary stock order calc는 POST이지만 저장/수정/삭제/job/SSE가 아니므로 optional company scope를 사용한다. `전체` scope는 `companyUuid` 생략으로 정규화한다. |
+| candidate required scope | `dashboard-app/src/api/requests/httpDashboardRequests.ts`, `dashboard-app/src/dashboard/components/candidate-stash/*` | 후보군 mutation, 상세 일괄확정 job/SSE, 후보군 LLM comment job/SSE, 오더 지표 SSE는 required single company scope다. 누락 scope를 기본 회사나 빈 성공으로 보정하지 않는다. |
+| SnapshotConfirmPage stale guard | `dashboard-app/src/dashboard/pages/SnapshotConfirmPage.tsx` | company switch 중 이전 회사 목록 응답이 현재 선택 회사 목록을 덮지 않게 한다. `전체` 전환 시 후보군 API 호출 대신 페이지 내부 제한 안내를 표시한다. |
+| product-secondary picker guard | `dashboard-app/src/dashboard/components/product-drawer/secondary/hooks/useSecondaryCandidateActions.ts` | company/sku 변경 중 이전 picker 요청 결과가 최신 상태를 덮지 않게 하고, picker load 실패 또는 unconfirm 실패를 mutation 성공 흐름으로 연결하지 않는다. |
+
+TODO-065는 문서 정합성 작업이며 테스트/빌드를 실행하지 않았다. 이 문구는 선행 TODO의 코드 변경이 없었다는 의미가 아니라, 이번 작업에서 추가 검증 명령을 실행하지 않았다는 의미다.

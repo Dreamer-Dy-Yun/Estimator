@@ -105,6 +105,88 @@ describe('httpDashboardRequests company scope forwarding', () => {
     )
   })
 
+  it('preserves concrete companyUuid for secondary read-like POST bodies', async () => {
+    await httpDashboardRequests.getSecondaryAiComment({
+      skuGroupKey: 'SKU-054-BLK',
+      companyUuid,
+      periodStart: '2025-01-01',
+      periodEnd: '2025-03-31',
+      forecastMonths: 3,
+      competitorChannelId: 'musinsa',
+    })
+    await httpDashboardRequests.getSecondaryStockOrderCalc({
+      skuGroupKey: 'SKU-054-BLK',
+      companyUuid,
+      periodStart: '2025-01-01',
+      periodEnd: '2025-03-31',
+      serviceLevelPct: 95,
+      leadTimeDays: 21,
+      safetyStockMode: 'formula',
+      manualSafetyStock: 0,
+    })
+
+    expect(httpClientMocks.apiRequest).toHaveBeenNthCalledWith(
+      1,
+      '/products/SKU-054-BLK/secondary/ai-comment',
+      expect.objectContaining({
+        method: 'POST',
+        body: expect.objectContaining({ companyUuid }),
+      }),
+    )
+    expect(httpClientMocks.apiRequest).toHaveBeenNthCalledWith(
+      2,
+      '/secondary/stock-order-calc',
+      expect.objectContaining({
+        method: 'POST',
+        body: expect.objectContaining({ companyUuid }),
+      }),
+    )
+  })
+
+  it('omits ALL, blank, and missing company scope for secondary read-like POST bodies', async () => {
+    await httpDashboardRequests.getSecondaryAiComment({
+      skuGroupKey: 'SKU-054-BLK',
+      companyUuid: ALL_COMPANY_UUID,
+      periodStart: '2025-01-01',
+      periodEnd: '2025-03-31',
+      forecastMonths: 3,
+      competitorChannelId: 'musinsa',
+    })
+    await httpDashboardRequests.getSecondaryAiComment({
+      skuGroupKey: 'SKU-054-BLK',
+      companyUuid: '   ',
+      periodStart: '2025-01-01',
+      periodEnd: '2025-03-31',
+      forecastMonths: 3,
+      competitorChannelId: 'musinsa',
+    })
+    await httpDashboardRequests.getSecondaryStockOrderCalc({
+      skuGroupKey: 'SKU-054-BLK',
+      periodStart: '2025-01-01',
+      periodEnd: '2025-03-31',
+      serviceLevelPct: 95,
+      leadTimeDays: 21,
+      safetyStockMode: 'formula',
+      manualSafetyStock: 0,
+    })
+    await httpDashboardRequests.getSecondaryStockOrderCalc({
+      skuGroupKey: 'SKU-054-BLK',
+      companyUuid: ALL_COMPANY_UUID,
+      periodStart: '2025-01-01',
+      periodEnd: '2025-03-31',
+      serviceLevelPct: 95,
+      leadTimeDays: 21,
+      safetyStockMode: 'formula',
+      manualSafetyStock: 0,
+    })
+
+    const apiRequestCalls = httpClientMocks.apiRequest.mock.calls as unknown as ApiRequestCall[]
+    expect(apiRequestCalls[0]?.[1]?.body).not.toHaveProperty('companyUuid')
+    expect(apiRequestCalls[1]?.[1]?.body).not.toHaveProperty('companyUuid')
+    expect(apiRequestCalls[2]?.[1]?.body).not.toHaveProperty('companyUuid')
+    expect(apiRequestCalls[3]?.[1]?.body).not.toHaveProperty('companyUuid')
+  })
+
   it('forwards companyUuid through upload FormData', async () => {
     const file = new File(['skuGroupKey\nSKU-054-BLK'], 'candidate-stash.xlsx', {
       type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
