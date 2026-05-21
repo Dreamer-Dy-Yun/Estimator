@@ -28,6 +28,8 @@
 
 `전체` 회사 선택 상태에서 오더 후보군 탭으로 진입하거나 페이지 안에서 `전체`로 변경되면 라우트에서 강제로 튕기지 않고, 페이지 내부 제한 안내를 표시한다. 이 상태에서는 후보군 API를 호출하지 않는다. 이는 후보군 데이터가 단일 회사 기준으로 생성·확정되어야 하기 때문이다.
 
+목록 로드 실패는 정상 빈 목록으로 감추지 않는다. 실패 시 기존 목록이 있으면 마지막으로 불러온 목록을 유지하면서 목록 로드 실패 카드와 재시도 버튼을 표시하고, 기존 목록이 없으면 목록을 표시할 수 없다는 빈 실패 상태를 표시한다. 이 기준은 후보군이 없는 정상 빈 상태와 API 실패 상태를 구분하기 위한 UX 경계다.
+
 ## 이너 후보군 조회
 
 | 파일 | 역할 |
@@ -106,3 +108,22 @@
 | `utils/candidateOrderExcelExport.ts` | exceljs preload와 브라우저 다운로드 연결 |
 
 엑셀 다운로드는 백엔드를 다시 호출하지 않고 이미 받은 `CandidateItemSummary.orderExport` DTO로 생성한다. 제품에 없는 사이즈는 `N/A`, 복수 배지는 한 셀 안에서 줄바꿈한다.
+
+## 2026-05-22 하드닝 후보와 보류
+
+### 완료로 문서화할 수 있는 경계
+
+- 후보군 업무 흐름은 단일 회사 scope 전용이다. `전체` scope의 read API 생략 계약을 후보군 mutation, job, SSE에 적용하지 않는다.
+- `SnapshotConfirmPage.tsx`는 `전체` 선택 상태에서 후보군 목록 API를 호출하지 않고 페이지 내부 제한 안내를 표시한다.
+- `SnapshotConfirmPage.tsx`는 후보군 목록 load failure를 `stashesLoadError`로 유지하며, 실패를 빈 목록 성공으로 바꾸지 않는다.
+- 2차 드로워 후보군 액션 hook은 `getCompanyUuidForOptionalScope` 결과가 없으면 후보군 picker 열기와 mutation을 차단하고 toast로 사유를 표시한다.
+
+### 하드닝 후보
+
+- `SnapshotConfirmPage.tsx`의 목록 로드 실패 UI: stale list 유지, 빈 실패 상태, 재시도 버튼의 UX 경계가 명확하므로 테스트 보강 후 하드닝 후보로 분리할 수 있다.
+- `useSecondaryCandidateActions.ts`의 all-company guard: 전체 scope에서 picker와 mutation 진입을 모두 막고 있으나 2차 드로워 저장/후보군 생성/후보군 선택 UI와 결합되어 있으므로 hook 전체보다 scope guard와 failure toast 경계를 우선 후보로 둔다.
+
+### 보류 항목
+
+- 이번 문서 작업에서는 코드 변경과 테스트 실행을 하지 않았으므로 위 후보를 하드닝 완료로 잠그지 않는다.
+- 후보군 탭 비활성화, 페이지 내부 제한 안내, 2차 드로워 toast 문구는 같은 정책을 표현해야 한다. 문구 또는 접근성 설명을 바꾸는 작업은 `qa-current-behavior.md`와 함께 갱신한다.

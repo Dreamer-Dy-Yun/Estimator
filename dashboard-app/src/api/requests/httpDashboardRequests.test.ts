@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { ALL_COMPANY_UUID } from '../types/company'
+import { ALL_COMPANY_UUID, type CompanyMutationScopeParams } from '../types/company'
 import { httpDashboardRequests } from './httpDashboardRequests'
 
 const httpClientMocks = vi.hoisted(() => ({
@@ -105,7 +105,7 @@ describe('httpDashboardRequests company scope forwarding', () => {
     )
   })
 
-  it('forwards companyUuid through upload FormData and omits ALL_COMPANY_UUID', async () => {
+  it('forwards companyUuid through upload FormData', async () => {
     const file = new File(['skuGroupKey\nSKU-054-BLK'], 'candidate-stash.xlsx', {
       type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     })
@@ -117,15 +117,6 @@ describe('httpDashboardRequests company scope forwarding', () => {
     expect(scopedBody).toBeInstanceOf(FormData)
     expect((scopedBody as FormData).get('file')).toBe(file)
     expect((scopedBody as FormData).get('companyUuid')).toBe(companyUuid)
-
-    await httpDashboardRequests.uploadCandidateStashExcel(file, {
-      companyUuid: ALL_COMPANY_UUID,
-    })
-
-    const allCompanyBody = apiRequestCalls[1]?.[1]?.body
-    expect(allCompanyBody).toBeInstanceOf(FormData)
-    expect((allCompanyBody as FormData).get('file')).toBe(file)
-    expect((allCompanyBody as FormData).has('companyUuid')).toBe(false)
   })
 
   it('forwards companyUuid through order metrics and detail bulk confirm SSE queries', () => {
@@ -169,5 +160,61 @@ describe('httpDashboardRequests company scope forwarding', () => {
       listener,
       { onError },
     )
+  })
+
+  it('hard-fails mutation and job requests before HTTP when company scope is missing or all-company', async () => {
+    expect(() =>
+      httpDashboardRequests.createCandidateStash({
+        companyUuid: ALL_COMPANY_UUID,
+        name: 'Spring 2025',
+        note: null,
+        periodStart: '2025-01-01',
+        periodEnd: '2025-03-31',
+        forecastMonths: 3,
+      }),
+    ).toThrow('single company scope')
+
+    expect(() =>
+      httpDashboardRequests.appendCandidateItems({
+        stashUuid: 'stash-054',
+        companyUuid: '   ',
+        skuGroupKeys: ['SKU-054-BLK'],
+      }),
+    ).toThrow('single company scope')
+
+    expect(() =>
+      httpDashboardRequests.startCandidateStashLlmCommentJob('stash-054', undefined as never),
+    ).toThrow('single company scope')
+    expect(httpClientMocks.apiRequest).not.toHaveBeenCalled()
+  })
+
+  it('hard-fails SSE subscriptions before opening a stream when company scope is missing or all-company', () => {
+    const listener = vi.fn()
+    const onError = vi.fn()
+
+    expect(() =>
+      httpDashboardRequests.subscribeCandidateOrderMetrics(
+        {
+          stashUuid: 'stash-054',
+          companyUuid: ALL_COMPANY_UUID,
+          requestId: 'request-054',
+          dataReferencePeriodStart: '2025-01-01',
+          dataReferencePeriodEnd: '2025-12-31',
+          candidateItemUuids: ['item-054'],
+        },
+        listener,
+        onError,
+      ),
+    ).toThrow('single company scope')
+
+    expect(() =>
+      httpDashboardRequests.subscribeCandidateDetailBulkConfirm(
+        'job-054',
+        listener,
+        onError,
+        undefined as unknown as CompanyMutationScopeParams,
+      ),
+    ).toThrow('single company scope')
+    expect(httpClientMocks.openApiEventStream).not.toHaveBeenCalled()
   })
 })

@@ -1,9 +1,9 @@
-/*
- * 2차 드로워 공용 CSS 모듈 — TS/TSX에서는 이 파일만 import.
- * 조각은 ./style-parts/ (직접 import 금지). 순서 변경 시 캐스케이드 주의.
+﻿/*
+ * 2차 드로어 공용 CSS 모듈. TS/TSX에서는 이 파일만 import한다.
+ * 조각은 ./style-parts/에 두며 직접 import하지 않는다. 순서 변경 시 캐스케이드에 주의한다.
  *
- * layout → headers → metaFilterCandidate → cardsControls → tablesSizeOrder
- * → stockInputs → cardAi → slider
+ * layout, headers, metaFilterCandidate, cardsControls, tablesSizeOrder,
+ * stockInputs, cardAi, slider
  */
 @import './style-parts/layout.module.css';
 @import './style-parts/headers.module.css';
@@ -17,4 +17,16 @@
 
 .dailyTrendClipWrap {
   overflow: hidden;
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }

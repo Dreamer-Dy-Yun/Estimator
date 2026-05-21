@@ -37,6 +37,28 @@ export function isAllCompanyUuid(companyUuid: string | null | undefined): boolea
   return isAllCompanyScope(companyUuid)
 }
 
+export function getRequiredCompanyUuidForMutationScope(
+  companyUuid: string | null | undefined,
+): string {
+  const normalizedCompanyUuid = companyUuid?.trim()
+  if (!normalizedCompanyUuid || normalizedCompanyUuid === ALL_COMPANY_UUID) {
+    throw new Error('Mutation, job, and SSE requests require a single company scope.')
+  }
+  return normalizedCompanyUuid
+}
+
+export function normalizeCompanyMutationScopeParams<T extends Partial<CompanyMutationScopeParams>>(
+  params?: T | null,
+): T {
+  if (!params) {
+    throw new Error('Mutation, job, and SSE requests require a single company scope.')
+  }
+  return {
+    ...params,
+    companyUuid: getRequiredCompanyUuidForMutationScope(params.companyUuid),
+  } as T
+}
+
 export function normalizeCompanyScopeParams<T extends CompanyScopeParams>(
   params?: T,
 ): T | undefined {

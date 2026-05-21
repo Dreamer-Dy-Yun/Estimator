@@ -1,4 +1,4 @@
-import type { useSecondaryForecastModel } from './hooks/useSecondaryForecastModel'
+﻿import type { useSecondaryForecastModel } from './hooks/useSecondaryForecastModel'
 import type { CandidateItemPanelContext } from './candidateActionCards'
 import {
   CandidateStashOrderActionCard,
@@ -42,6 +42,8 @@ export function SecondaryDrawerActionArea({
             confirmed={hasSavedSnapshot}
             showingConfirmedValues={showingConfirmedValues}
             canRestoreConfirmed={Boolean(candidateItemContext.confirmedSnapshot)}
+            scopeBlocked={candidateActions.companyScopeBlocked}
+            scopeBlockReason={candidateActions.companyScopeBlockReason}
             onReset={onResetToLive}
             onRestoreConfirmed={onRestoreConfirmed}
             onToggleConfirm={hasSavedSnapshot ? onRequestUnconfirm : candidateActions.confirmCandidateItem}
@@ -63,6 +65,8 @@ export function SecondaryDrawerActionArea({
           }
           loading={candidateActions.loading}
           confirmDisabled={candidateActions.selectedCandidate == null}
+          scopeBlocked={candidateActions.companyScopeBlocked}
+          scopeBlockReason={candidateActions.companyScopeBlockReason}
           onOpenStashPicker={candidateActions.openPicker}
           onConfirmOrder={candidateActions.confirmOrder}
           portalHelp={portalHelp}

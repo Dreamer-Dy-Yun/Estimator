@@ -19,12 +19,21 @@ type Params = {
   showToast: ToastContextValue['showToast']
 }
 
+const COMPANY_SCOPE_REQUIRED_MESSAGE = '회사를 선택한 상태에서만 후보군 작업을 할 수 있습니다.'
+
 const toPickerOption = (row: CandidateStashPickerOption): CandidateStashPickerOption => ({
   uuid: row.uuid,
   name: row.name,
   note: row.note,
   dbCreatedAt: row.dbCreatedAt,
 })
+
+const getFailureMessage = (actionLabel: string, error: unknown) => {
+  if (error instanceof Error && error.message.trim()) {
+    return `${actionLabel} 실패: ${error.message}`
+  }
+  return `${actionLabel}에 실패했습니다. 다시 시도해 주세요.`
+}
 
 export function useSecondaryCandidateActions({
   skuGroupKey,
@@ -38,6 +47,7 @@ export function useSecondaryCandidateActions({
 }: Params) {
   const { selectedCompanyUuid } = useAuth()
   const companyUuid = getCompanyUuidForOptionalScope(selectedCompanyUuid)
+  const companyScopeBlocked = companyUuid == null
   const mountedRef = useRef(false)
   const candidateListReqSeqRef = useRef(0)
   const [loading, setLoading] = useState(false)
@@ -70,7 +80,7 @@ export function useSecondaryCandidateActions({
 
   const requireCompanyUuid = useCallback(() => {
     if (companyUuid) return companyUuid
-    throw new Error('후보군 작업은 회사 선택이 필요합니다.')
+    throw new Error(COMPANY_SCOPE_REQUIRED_MESSAGE)
   }, [companyUuid])
 
   const refresh = useCallback(async () => {
@@ -87,14 +97,23 @@ export function useSecondaryCandidateActions({
       setListOpen(false)
       return
     }
+    if (companyScopeBlocked) {
+      showToast(COMPANY_SCOPE_REQUIRED_MESSAGE)
+      return
+    }
     setListOpen(true)
     setLoading(true)
     try {
       await refresh()
+    } catch (error) {
+      if (mountedRef.current) {
+        setListOpen(false)
+        showToast(getFailureMessage('후보군 목록 불러오기', error))
+      }
     } finally {
       if (mountedRef.current) setLoading(false)
     }
-  }, [listOpen, refresh])
+  }, [companyScopeBlocked, listOpen, refresh, showToast])
 
   const selectCandidate = useCallback((row: CandidateStashPickerOption) => {
     setSelectedCandidate({ uuid: row.uuid, name: row.name, dbCreatedAt: row.dbCreatedAt })
@@ -114,6 +133,8 @@ export function useSecondaryCandidateActions({
         isLatestLlmComment: false,
       })
       showToast('후보군에 아이템을 저장했습니다.')
+    } catch (error) {
+      showToast(getFailureMessage('후보군 아이템 저장', error))
     } finally {
       if (mountedRef.current) setLoading(false)
     }
@@ -135,6 +156,8 @@ export function useSecondaryCandidateActions({
       candidateItemContext.onConfirmed?.(snapshot, updatedItem)
       candidateItemContext.onSaved?.()
       showToast(hasSavedSnapshot ? '상세확정 내용을 갱신했습니다.' : '상세확정했습니다.')
+    } catch (error) {
+      showToast(getFailureMessage(hasSavedSnapshot ? '상세확정 갱신' : '상세확정', error))
     } finally {
       if (mountedRef.current) setLoading(false)
     }
@@ -155,6 +178,8 @@ export function useSecondaryCandidateActions({
       candidateItemContext.onUnconfirmed?.(updatedItem)
       candidateItemContext.onSaved?.()
       showToast('상세확정을 해제했습니다.')
+    } catch (error) {
+      showToast(getFailureMessage('상세확정 해제', error))
     } finally {
       if (mountedRef.current) setLoading(false)
     }
@@ -181,6 +206,8 @@ export function useSecondaryCandidateActions({
       setNoteInput('')
       setListOpen(false)
       showToast('후보군을 생성했습니다.')
+    } catch (error) {
+      showToast(getFailureMessage('후보군 생성', error))
     } finally {
       if (mountedRef.current) setLoading(false)
     }
@@ -191,6 +218,8 @@ export function useSecondaryCandidateActions({
     listOpen,
     stashes,
     selectedCandidate,
+    companyScopeBlocked,
+    companyScopeBlockReason: COMPANY_SCOPE_REQUIRED_MESSAGE,
     nameInput,
     noteInput,
     setNameInput,

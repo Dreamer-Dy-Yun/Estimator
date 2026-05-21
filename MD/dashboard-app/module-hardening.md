@@ -88,3 +88,29 @@
 3. 계약을 확인하는 테스트를 추가하거나 기존 테스트를 보강한다.
 4. `module-hardening.md`에 `하드닝 완료`로 등록한다.
 5. 이후 해당 파일을 수정해야 하면 먼저 사용자에게 “하드닝 완료 파일 수정 허가”를 명시적으로 요청한다.
+
+## 2026-05-22 company scope / failure UX 하드닝 점검
+
+### 이번 점검에서 하드닝 완료로 추가하지 않는 항목
+
+- `dashboard-app/src/api/requests/httpDashboardRequests.ts`
+- `dashboard-app/src/dashboard/components/product-drawer/secondary/hooks/useSecondaryCandidateActions.ts`
+- `dashboard-app/src/dashboard/pages/SnapshotConfirmPage.tsx`
+
+위 파일들은 company scope와 failure UX 경계가 개선된 상태로 문서화되었지만, 이번 TODO에서는 코드 변경과 테스트/빌드를 수행하지 않았다. 따라서 하드닝 완료 파일로 잠그지 않고 후보 또는 보류로 둔다.
+
+### 하드닝 후보
+
+| 파일 | 후보 이유 | 완료 전 필요한 확인 |
+|------|-----------|--------------------|
+| `dashboard-app/src/api/types/company.ts` | read optional scope와 mutation/job/SSE required scope helper가 작고 공개 계약이 명확하다. | helper별 단위 테스트, 오류 메시지 계약, `ALL_COMPANY_UUID` sentinel 변경 가능성 문서화 |
+| `dashboard-app/src/api/requests/httpDashboardRequests.ts`의 company scope guard 영역 | mutation/job/SSE/FormData에서 `companyUuid` 누락을 런타임 실패로 막는다. | adapter 전체가 아니라 scope guard 책임만 분리해 테스트하고, read API 생략 계약과 mutation 필수 계약을 케이스로 고정 |
+| `dashboard-app/src/dashboard/components/product-drawer/secondary/hooks/useSecondaryCandidateActions.ts`의 all-company guard | 2차 드로워에서 전체 scope 후보군 작업 진입을 toast와 상태값으로 차단한다. | picker open, 후보군 생성, 후보군 item 저장, 상세확정 저장/해제의 실패 surface 테스트 |
+| `dashboard-app/src/dashboard/pages/SnapshotConfirmPage.tsx`의 목록 load failure UI | 목록 실패를 빈 성공으로 숨기지 않고 retry/stale list/empty failure surface로 구분한다. | 최초 실패, 기존 목록 보유 상태의 재조회 실패, 전체 scope 전환, retry 동작 테스트 |
+
+### 보류 항목
+
+- `httpDashboardRequests.ts` 파일 전체는 endpoint mapping과 transport 조립 책임이 커서 현재 상태로 하드닝 완료 선언 대상이 아니다.
+- `useSecondaryCandidateActions.ts` hook 전체는 2차 드로워 저장, 후보군 picker, 후보군 생성, 상세확정 mutation을 함께 다루므로 all-company guard만 먼저 안정화 대상으로 본다.
+- `SnapshotConfirmPage.tsx` 페이지 전체는 검색/정렬/upload/edit/delete/detail modal까지 포함하므로 load failure UI만 하드닝 후보로 본다.
+- 이번 TODO에서는 테스트/빌드를 실행하지 않았으므로 후보 항목을 완료 상태로 승격하지 않는다.

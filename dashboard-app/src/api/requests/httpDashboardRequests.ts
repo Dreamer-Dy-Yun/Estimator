@@ -2,7 +2,11 @@ import type {
   CandidateStashExcelTemplateDownload,
   DashboardApi,
 } from '../types'
-import { normalizeCompanyScopeParams } from '../types'
+import {
+  getRequiredCompanyUuidForMutationScope,
+  normalizeCompanyMutationScopeParams,
+  normalizeCompanyScopeParams,
+} from '../types'
 import { apiRequest, buildApiUrl, openApiEventStream } from './httpClient'
 import {
   candidateStashExcelTemplateFilename,
@@ -63,7 +67,7 @@ export const httpDashboardRequests: DashboardApi = {
   getSecondaryAiComment: ({ skuGroupKey, ...payload }) =>
     apiRequest(`/products/${encodePathSegment(skuGroupKey)}/secondary/ai-comment`, {
       method: 'POST',
-      body: normalizeCompanyScopeParams(payload),
+      body: normalizeCompanyMutationScopeParams(payload),
     }),
   getSecondaryCompetitorChannels: () => apiRequest('/secondary/competitor-channels'),
   getCandidateStashes: (params) =>
@@ -78,31 +82,31 @@ export const httpDashboardRequests: DashboardApi = {
       dataReferencePeriodStart: params.dataReferencePeriodStart,
       dataReferencePeriodEnd: params.dataReferencePeriodEnd,
       candidateItemUuids: params.candidateItemUuids,
-      ...normalizeCompanyScopeParams({ companyUuid: params.companyUuid }),
+      companyUuid: getRequiredCompanyUuidForMutationScope(params.companyUuid),
     }, listener, { onError }),
   // Starts a backend job that calculates each requested item's secondary drawer state,
   // saves CANDIDATE_ITEM.details, and emits committed CandidateItemDetail rows by SSE.
   startCandidateDetailBulkConfirm: ({ stashUuid, ...payload }) =>
     apiRequest(`/candidate-stashes/${encodePathSegment(stashUuid)}/items/detail-confirmation-jobs`, {
       method: 'POST',
-      body: normalizeCompanyScopeParams(payload),
+      body: normalizeCompanyMutationScopeParams(payload),
     }),
   subscribeCandidateDetailBulkConfirm: (jobId, listener, onError, params) =>
     openApiEventStream(
       `/candidate-item-detail-confirmation-jobs/${encodePathSegment(jobId)}/events`,
-      queryParams(normalizeCompanyScopeParams(params)),
+      queryParams(normalizeCompanyMutationScopeParams(params)),
       listener,
       { onError },
     ),
   startCandidateStashLlmCommentJob: (stashUuid, params) =>
     apiRequest(`/candidate-stashes/${encodePathSegment(stashUuid)}/llm-comment-jobs`, {
       method: 'POST',
-      body: normalizeCompanyScopeParams(params),
+      body: normalizeCompanyMutationScopeParams(params),
     }),
   subscribeCandidateStashLlmCommentJob: (jobId, listener, onError, params) =>
     openApiEventStream(
       `/candidate-stash-llm-comment-jobs/${encodePathSegment(jobId)}/events`,
-      queryParams(normalizeCompanyScopeParams(params)),
+      queryParams(normalizeCompanyMutationScopeParams(params)),
       listener,
       { onError },
     ),
@@ -117,39 +121,39 @@ export const httpDashboardRequests: DashboardApi = {
   deleteCandidateItem: (itemUuid, params) =>
     apiRequest(`/candidate-items/${encodePathSegment(itemUuid)}`, {
       method: 'DELETE',
-      query: queryParams(normalizeCompanyScopeParams(params)),
+      query: queryParams(normalizeCompanyMutationScopeParams(params)),
     }),
   deleteCandidateItems: (stashUuid, itemUuids, params) =>
     apiRequest(`/candidate-stashes/${encodePathSegment(stashUuid)}/items`, {
       method: 'DELETE',
-      body: normalizeCompanyScopeParams({ itemUuids, companyUuid: params?.companyUuid }),
+      body: normalizeCompanyMutationScopeParams({ itemUuids, companyUuid: params?.companyUuid }),
     }),
   deleteCandidateStash: (stashUuid, params) =>
     apiRequest(`/candidate-stashes/${encodePathSegment(stashUuid)}`, {
       method: 'DELETE',
-      query: queryParams(normalizeCompanyScopeParams(params)),
+      query: queryParams(normalizeCompanyMutationScopeParams(params)),
     }),
   createCandidateStash: (payload) =>
-    apiRequest('/candidate-stashes', { method: 'POST', body: normalizeCompanyScopeParams(payload) }),
+    apiRequest('/candidate-stashes', { method: 'POST', body: normalizeCompanyMutationScopeParams(payload) }),
   updateCandidateStash: ({ stashUuid, ...payload }) =>
     apiRequest(`/candidate-stashes/${encodePathSegment(stashUuid)}`, {
       method: 'PATCH',
-      body: normalizeCompanyScopeParams(payload),
+      body: normalizeCompanyMutationScopeParams(payload),
     }),
   duplicateCandidateStash: (stashUuid, params) =>
     apiRequest(`/candidate-stashes/${encodePathSegment(stashUuid)}/duplicate`, {
       method: 'POST',
-      body: normalizeCompanyScopeParams(params),
+      body: normalizeCompanyMutationScopeParams(params),
     }),
   appendCandidateItem: ({ stashUuid, ...payload }) =>
     apiRequest(`/candidate-stashes/${encodePathSegment(stashUuid)}/items`, {
       method: 'POST',
-      body: normalizeCompanyScopeParams(payload),
+      body: normalizeCompanyMutationScopeParams(payload),
     }),
   appendCandidateItems: ({ stashUuid, ...payload }) =>
     apiRequest(`/candidate-stashes/${encodePathSegment(stashUuid)}/items/bulk`, {
       method: 'POST',
-      body: normalizeCompanyScopeParams(payload),
+      body: normalizeCompanyMutationScopeParams(payload),
     }),
   // Response contract: latest CandidateItemDetail after DB commit/cache invalidation.
   // The frontend uses isDetailConfirmed/isLatestLlmComment/dbUpdatedAt from this response
@@ -157,16 +161,15 @@ export const httpDashboardRequests: DashboardApi = {
   updateCandidateItem: ({ itemUuid, ...payload }) =>
     apiRequest(`/candidate-items/${encodePathSegment(itemUuid)}`, {
       method: 'PATCH',
-      body: normalizeCompanyScopeParams(payload),
+      body: normalizeCompanyMutationScopeParams(payload),
     }),
   getCandidateStashExcelTemplateDownload: getHttpCandidateStashExcelTemplateDownload,
   uploadCandidateStashExcel: (file, params) => {
     const formData = new FormData()
     formData.append('file', file)
-    const scope = normalizeCompanyScopeParams(params)
-    if (scope?.companyUuid) formData.append('companyUuid', scope.companyUuid)
+    formData.append('companyUuid', getRequiredCompanyUuidForMutationScope(params?.companyUuid))
     return apiRequest('/candidate-stashes/import/excel', { method: 'POST', body: formData })
   },
   getSecondaryStockOrderCalc: (params) =>
-    apiRequest('/secondary/stock-order-calc', { method: 'POST', body: normalizeCompanyScopeParams(params) }),
+    apiRequest('/secondary/stock-order-calc', { method: 'POST', body: normalizeCompanyMutationScopeParams(params) }),
 }

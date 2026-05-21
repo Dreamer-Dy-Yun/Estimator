@@ -34,8 +34,10 @@ export type {
 export {
   ALL_COMPANY_UUID,
   getCompanyUuidForOptionalScope,
+  getRequiredCompanyUuidForMutationScope,
   isAllCompanyScope,
   isAllCompanyUuid,
+  normalizeCompanyMutationScopeParams,
   normalizeCompanyScopeParams,
 } from './company'
 export type { CompanyApi, CompanyMutationScopeParams, CompanyScopeParams, CompanySummary } from './company'

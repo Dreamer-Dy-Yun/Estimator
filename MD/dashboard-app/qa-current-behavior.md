@@ -211,6 +211,16 @@
 | 산점도 | binning과 cell 집계는 백엔드 책임이다. 프론트는 받은 `cells`와 `meta`로 표시만 한다. |
 | 회사 scope | `getCompanies` 응답은 `uuid`, `name`만 필요하다. 회사 소유 read API는 단일 회사 선택 시 `companyUuid`를 포함하고, `전체` 선택 시 생략한다. 후보군 mutation payload/params, bulk detail confirm job/SSE, 후보군 LLM comment job/SSE, 오더 지표 SSE는 단일 회사 scope가 필요하며 `전체` 또는 누락 scope로 호출되면 안 된다. HTTP adapter 검증 대상은 query, JSON body, FormData, SSE URL/query의 `companyUuid` 전파를 모두 포함한다. mock도 `companyUuid`를 판매/후보군/오더 지표 분기와 계산에 반영해야 한다. |
 
+## 2026-05-22 company scope / failure UX QA 기준
+
+| 구분 | QA 기준 |
+|------|---------|
+| HTTP adapter runtime guard | read API는 `전체` 선택 시 `companyUuid`를 생략할 수 있지만, mutation/job/SSE/FormData는 단일 회사 UUID가 없으면 요청을 만들면 안 된다. 실패는 기본 회사 fallback이나 빈 성공값이 아니라 명시적 오류로 드러나야 한다. |
+| 2차 드로워 후보군 작업 | 전체 scope에서는 후보군 picker 열기, 후보군 생성, 후보군 item 저장, 상세확정 저장/해제가 진행되면 안 된다. 사용자는 toast로 회사 선택 필요 사유를 확인해야 한다. |
+| 오더 후보군 목록 전체 scope | 전체 scope에서는 후보군 목록 API를 호출하지 않고 페이지 내부 제한 안내를 표시한다. 라우트에서 강제로 튕기지 않는다. |
+| 오더 후보군 목록 load failure | 목록 로드 실패는 정상 빈 목록과 구분한다. 기존 목록이 있으면 기존 목록을 유지하고 실패 카드와 재시도 버튼을 표시한다. 기존 목록이 없으면 목록을 표시할 수 없다는 실패 빈 상태를 표시한다. |
+| 완료/보류 판단 | 위 기준은 현재 동작 문서 기준이다. 이번 TODO에서는 테스트/빌드를 실행하지 않았으므로 하드닝 완료 또는 검증 완료로 선언하지 않는다. |
+
 ## 검증 명령
 
 | 명령 | 기준 |

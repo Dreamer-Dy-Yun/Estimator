@@ -95,3 +95,23 @@
 - 자사/경쟁사 분석 boundary는 단일 회사 선택 시 분석 API 요청에 `companyUuid`가 포함된다는 정책을 소유한다.
 - 후보군 boundary는 `전체` 선택 상태에서 오더 후보군 탭과 후보군 추가 액션을 비활성화하고, 오더 후보군 페이지 내부 제한 안내를 표시한다는 정책을 소유한다.
 - 사용자별 회사 접근 권한 부여는 현재 source boundary 범위가 아니다. 권한 정책이 추가되면 `auth-admin.md`, `api-contracts.md`, backend API spec을 함께 갱신한다.
+
+## 2026-05-22 company scope / failure UX source boundary
+
+| 영역 | 소유 파일 | 책임 |
+|------|-----------|------|
+| company scope 타입과 helper | `dashboard-app/src/api/types/company.ts` | `전체` sentinel, read optional scope 정규화, mutation/job/SSE required scope 검증 |
+| HTTP adapter runtime guard | `dashboard-app/src/api/requests/httpDashboardRequests.ts` | read API query scope와 mutation/job/SSE/FormData 단일 회사 scope를 API adapter 경계에서 분리 적용 |
+| 2차 드로워 후보군 all-company guard | `dashboard-app/src/dashboard/components/product-drawer/secondary/hooks/useSecondaryCandidateActions.ts` | 전체 scope에서 후보군 picker와 mutation 진입을 막고 toast로 실패 사유 표시 |
+| 오더 후보군 목록 전체 scope guard와 load failure UI | `dashboard-app/src/dashboard/pages/SnapshotConfirmPage.tsx` | 전체 scope 안내, 후보군 목록 load error, stale list 유지, retry UI |
+
+### 완료 경계
+
+- company scope helper와 HTTP adapter는 read API의 `companyUuid` 생략과 mutation/job/SSE의 단일 회사 필수 계약을 분리한다.
+- 2차 드로워 후보군 액션은 전체 scope일 때 후보군 side-effect 진입 전 UI hook에서 차단한다.
+- SnapshotConfirmPage는 전체 scope에서 API를 호출하지 않고 내부 안내를 표시하며, 목록 load failure를 화면 상태로 유지한다.
+
+### 하드닝 보류 경계
+
+- 위 파일들은 현재 하드닝 완료 파일 목록에 추가하지 않는다. 이번 TODO는 문서 반영 작업이며 테스트/빌드를 실행하지 않았다.
+- HTTP adapter 전체, 2차 드로워 후보군 hook 전체, SnapshotConfirmPage 전체는 아직 여러 책임을 함께 소유한다. 하드닝 시에는 runtime guard, all-company guard, load failure UI처럼 작은 책임 단위로 분리해 검증한다.

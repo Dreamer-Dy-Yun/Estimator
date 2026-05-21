@@ -34,3 +34,58 @@
   font-size: 13px;
   line-height: 1.5;
 }
+
+.loadErrorCard {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  border-color: #fecdd3;
+  background: #fff7f8;
+  color: #7f1d1d;
+}
+
+.loadErrorTitle {
+  display: block;
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.loadErrorText {
+  margin: 6px 0 0;
+  color: #991b1b;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.loadErrorSubText,
+.loadErrorEmptyText {
+  margin: 6px 0 0;
+  color: #b45309;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.loadRetryButton {
+  flex: 0 0 auto;
+  min-height: 36px;
+  padding: 0 14px;
+  border: 1px solid #fca5a5;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #991b1b;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.loadRetryButton:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+@media (max-width: 720px) {
+  .loadErrorCard {
+    flex-direction: column;
+  }
+}

@@ -62,6 +62,7 @@ export const SnapshotConfirmPage = () => {
   const mountedRef = useRef(false)
   const loadStashesSeqRef = useRef(0)
   const [stashesLoading, setStashesLoading] = useState(true)
+  const [stashesLoadError, setStashesLoadError] = useState<string | null>(null)
   const [uploadFile, setUploadFile] = useState<File | null>(null)
   const [uploadBusy, setUploadBusy] = useState(false)
   const [uploadError, setUploadError] = useState<string | null>(null)
@@ -78,6 +79,7 @@ export const SnapshotConfirmPage = () => {
   const loadStashes = useCallback(async () => {
     if (isAllCompanySelected) {
       setStashesLoading(false)
+      setStashesLoadError(null)
       return
     }
 
@@ -88,6 +90,10 @@ export const SnapshotConfirmPage = () => {
       const list = await getCandidateStashes({ companyUuid })
       if (!mountedRef.current || loadStashesSeqRef.current !== seq) return
       setStashes(list)
+      setStashesLoadError(null)
+    } catch (err) {
+      if (!mountedRef.current || loadStashesSeqRef.current !== seq) return
+      setStashesLoadError(err instanceof Error ? err.message : '오더 후보군 목록을 불러오지 못했습니다.')
     } finally {
       if (mountedRef.current && loadStashesSeqRef.current === seq) setStashesLoading(false)
     }
@@ -251,9 +257,39 @@ export const SnapshotConfirmPage = () => {
         onDragActiveChange={setUploadDragActive}
       />
 
-      {stashesLoading && !stashes.length ? (
+      {stashesLoadError && (
+        <div className={`${styles.card} ${pageStyles.loadErrorCard}`} role="alert" aria-live="assertive">
+          <div>
+            <strong className={pageStyles.loadErrorTitle}>
+              오더 후보군 목록을 불러오지 못했습니다.
+            </strong>
+            <p className={pageStyles.loadErrorText}>{stashesLoadError}</p>
+            {stashes.length > 0 && (
+              <p className={pageStyles.loadErrorSubText}>
+                아래 목록은 마지막으로 불러온 데이터입니다. 최신 목록이 아닐 수 있습니다.
+              </p>
+            )}
+          </div>
+          <button
+            type="button"
+            className={pageStyles.loadRetryButton}
+            onClick={() => void loadStashes()}
+            disabled={stashesLoading}
+          >
+            {stashesLoading ? '재시도 중' : '다시 불러오기'}
+          </button>
+        </div>
+      )}
+
+      {stashesLoading && !stashes.length && !stashesLoadError ? (
         <div className={`${styles.card} ${pageStyles.emptyStateCard}`}>
           <LoadingSpinner label="오더 후보군 목록을 불러오는 중" />
+        </div>
+      ) : stashesLoadError && !stashes.length ? (
+        <div className={`${styles.card} ${pageStyles.emptyStateCard}`}>
+          <p className={pageStyles.loadErrorEmptyText}>
+            목록을 표시할 수 없습니다. 다시 불러오기를 시도하세요.
+          </p>
         </div>
       ) : (
         <CandidateStashList

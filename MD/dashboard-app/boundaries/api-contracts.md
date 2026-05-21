@@ -105,3 +105,22 @@ API 계약이 바뀌면 [../../backend-api/backend-api-spec.md](../../backend-ap
 - 프론트는 dropdown 표시나 선택 상태 유지를 위해 존재하지 않는 company scope, 권한, 집계 값, business flag를 임의로 생성하지 않는다.
 - 문서상 최소 응답 shape는 `Array<{ uuid: string; name: string }>`이며, API 타입은 interface 우선 원칙을 따른다.
 - 사용자별 회사 접근 권한 부여는 현재 범위가 아니며, 권한 정책 추가 시 `/companies` 응답 범위와 업무 API 403 기준을 같이 갱신한다.
+
+## 2026-05-22 company scope / failure UX hardening status
+
+### 완료로 문서화할 수 있는 경계
+
+- `types/company.ts`는 read API용 optional scope와 mutation/job/SSE용 required scope를 분리한다. `getCompanyUuidForOptionalScope`는 `전체` sentinel, 빈 문자열, 누락 값을 read API의 `companyUuid` 생략으로 정규화한다.
+- `getRequiredCompanyUuidForMutationScope`와 `normalizeCompanyMutationScopeParams`는 mutation, backend job, SSE subscribe가 단일 회사 scope 없이 실행되지 않도록 런타임에서 실패시킨다.
+- `httpDashboardRequests.ts`는 후보군 mutation, 상세 일괄확정 job/SSE, 후보군 LLM comment job/SSE, 오더 지표 SSE, 2차 드로워 AI comment, 재고/발주 계산, 엑셀 upload FormData에 단일 `companyUuid` 검증을 적용한다.
+- `httpDashboardRequests.ts`의 read API는 `normalizeCompanyScopeParams`를 통해 `전체` 선택 시 `companyUuid`를 query에서 생략하고, 단일 회사 선택 시 query에 포함한다.
+
+### 하드닝 후보
+
+- `dashboard-app/src/api/types/company.ts`: public helper 계약이 작고 명확하므로 단위 테스트와 문서화된 공개 함수 목록을 보강한 뒤 하드닝 완료 후보로 볼 수 있다.
+- `dashboard-app/src/api/requests/httpDashboardRequests.ts`: company scope runtime guard가 적용되어 있으나 파일 전체는 backend endpoint mapping, SSE, FormData, read/write scope를 함께 소유한다. API adapter 전체를 하드닝 완료로 잠그기보다 company scope guard 영역만 먼저 하드닝 후보로 분리한다.
+
+### 보류 항목
+
+- 이번 TODO에서는 테스트/빌드를 실행하지 않았으므로 위 항목을 검증 완료 또는 하드닝 완료로 선언하지 않는다.
+- backend 권한 정책, 회사별 접근 가능 목록, 403 UX는 아직 현재 scope 밖이다. 해당 정책이 추가되면 `/companies` 응답 범위, 업무 API 403 기준, `failure-ux-matrix.md`를 함께 갱신해야 한다.

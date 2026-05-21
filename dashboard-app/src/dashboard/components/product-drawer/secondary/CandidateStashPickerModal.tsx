@@ -1,4 +1,4 @@
-import { createPortal } from 'react-dom'
+﻿import { createPortal } from 'react-dom'
 import { formatDateTimeMinute } from '../../../../utils/date'
 import { LoadingSpinner } from '../../../../components/LoadingSpinner'
 import commonStyles from '../../common.module.css'
@@ -94,7 +94,7 @@ export function CandidateStashPickerModal({
               <div className={styles.candidateEmptyState}>
                 <p className={styles.candidateEmptyTitle}>{KO.msgCandidateEmpty}</p>
                 <p className={styles.metaFilterActionHint}>
-                  상단에서 이름과 비고를 입력해 후보군을 먼저 생성하세요.
+                  상단에서 이름과 비고를 입력해 후보군을 먼저 생성해 주세요.
                 </p>
               </div>
             ) : (

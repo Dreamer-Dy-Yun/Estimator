@@ -745,7 +745,7 @@ badges: [
 - `AppendCandidateItemsResponse`: `{ candidateItems: CandidateStashItemSummary[] }` — 이번 요청으로 새로 생성된 `CANDIDATE_ITEM`만 반환한다. 이미 존재해서 skip된 항목은 포함하지 않는다. 추천 보기에서 추가한 경우 프론트는 이 응답의 신규 `candidateItems`와 이미 조회해 둔 recommendation row를 매칭해 화면 리스트로 로컬 이동시키며, `getCandidateItemsByStash` 전체 재조회는 하지 않는다. 총 오더 수량/금액은 새로 생성된 `candidateItems[].uuid`만 `subscribeCandidateOrderMetrics`에 넘겨 SSE로 계산한다.
 - `AppendCandidateItemPayload`: `{ companyUuid, stashUuid, skuGroupKey, details, isLatestLlmComment? }` — `details`가 오더 스냅샷 저장의 단일 경로이며, 기본값은 `false` 권장
 - `UpdateCandidateItemPayload`: `{ companyUuid, itemUuid, details, isLatestLlmComment }`. `details`에 스냅샷이 있으면 상세확정으로 저장/갱신하고, `details`가 `null`이면 저장된 2차 드로워 스냅샷을 삭제해 상세확정을 해제한다. 이 작업은 복구 불가능한 사용자 명시 액션으로 취급한다. 성공 응답은 `UpdateCandidateItemResponse`다.
-- `CandidateDetailBulkConfirmStartPayload`: `{ stashUuid, itemUuids, dataReferencePeriodStart, dataReferencePeriodEnd }`. 선택된 상세미확정 후보 아이템들을 백엔드 job으로 상세확정한다. 백엔드는 각 item의 2차 드로워 계산, AI 코멘트 포함 스냅샷 생성, `CANDIDATE_ITEM.details` 저장을 item 단위 트랜잭션 또는 안전한 batch 트랜잭션으로 수행한다.
+- `CandidateDetailBulkConfirmStartPayload`: `{ companyUuid, stashUuid, itemUuids, dataReferencePeriodStart, dataReferencePeriodEnd }`. `companyUuid`는 필수 단일 회사 scope이며, `전체` 선택을 뜻하는 scope 생략은 허용하지 않는다. 선택된 상세미확정 후보 아이템들을 백엔드 job으로 상세확정하는 계약이다. 백엔드 구현은 각 item의 2차 드로워 계산, AI 코멘트 포함 스냅샷 생성, `CANDIDATE_ITEM.details` 저장을 item 단위 트랜잭션 또는 안전한 batch 트랜잭션으로 처리해야 한다.
 - `CandidateStashExcelUploadResult`: `{ stashUuid, stashName, itemCount, warnings: string[] }`
 - 2차 드로워에서 후보 아이템 스냅샷을 다시 저장할 때 프론트는 `updateCandidateItem`에 `isLatestLlmComment: false`를 보냅니다. 백엔드는 해당 아이템의 DB `is_latest_llm_comment`를 `false`로 저장해 기존 AI 코멘트/추천이 최신 스냅샷 기준이 아님을 표시해야 합니다.
 - `updateCandidateItem` 성공 응답은 필수로 commit 이후 최신 `UpdateCandidateItemResponse`를 반환합니다. 프론트는 개별 확정 저장/해제와 상세확정 일괄해제 모두 PATCH 성공 직후 이 응답의 `isDetailConfirmed`, `isLatestLlmComment`, `dbUpdatedAt`을 현재 화면 기준 상태로 반영하고, 후보 아이템 전체 목록을 즉시 재조회하지 않습니다. 이후 사용자가 조회 버튼을 누르거나 다른 이유로 `getCandidateItemsByStash`/`getCandidateItemByUuid`가 실행될 때 이전 `dbUpdatedAt`을 가진 stale row가 내려와도 방금 mutation한 상태를 덮어쓰지 않습니다. 서버가 새 `dbUpdatedAt`과 같은 확정 상태를 내려오면 보호를 해제합니다. 백엔드는 PATCH 성공 응답을 보내기 전에 DB commit과 캐시 무효화를 끝내거나, 적어도 다음 GET이 이전 `details`를 읽지 않도록 read-after-write 일관성을 보장해야 합니다.
@@ -785,7 +785,8 @@ badges: [
 | `startCandidateDetailBulkConfirm(payload)` | POST | `/candidate-stashes/:stashUuid/items/detail-confirmation-jobs` body `{ companyUuid, itemUuids, dataReferencePeriodStart, dataReferencePeriodEnd }` |
 | `subscribeCandidateDetailBulkConfirm(jobId, listener, params)` | SSE | `/candidate-item-detail-confirmation-jobs/:jobId/events?companyUuid` |
 
-- 시작 요청 body는 `itemUuids`, `dataReferencePeriodStart`, `dataReferencePeriodEnd`를 포함한다. `stashUuid`는 path와 payload 모두 프론트 타입에 존재하지만, HTTP adapter는 path에 넣고 body에는 나머지 필드만 보낸다.
+- 시작 요청 body는 `companyUuid`, `itemUuids`, `dataReferencePeriodStart`, `dataReferencePeriodEnd`를 포함한다. `companyUuid`는 필수 단일 회사 scope다. `stashUuid`는 path와 payload 모두 프론트 타입에 존재하지만, HTTP adapter는 path에 넣고 body에는 나머지 필드만 보낸다.
+- 상세 일괄확정 job start와 SSE subscribe는 같은 단일 `companyUuid` scope를 사용해야 한다. `전체` 선택 상태의 scope 생략은 read API의 전체 조회 계약에만 해당하며, 이 job/SSE 계약에서는 검증 실패로 처리해야 한다.
 - 시작 응답은 `{ jobId, stashUuid, itemCount }`다. `itemCount`는 실제 처리 대상 item 수이며, 존재하지 않거나 권한 밖인 item은 포함하지 않는다.
 - SSE 이벤트는 `{ jobId, stashUuid, status, totalItems, completedItems, currentItemUuid?, currentProductName?, updatedItem?, message, error? }`다.
 - item 처리가 성공할 때마다 `updatedItem`에 commit 이후 최신 `CandidateItemDetail`을 포함한다. 프론트는 이 이벤트를 현재 리스트와 열린 드로워의 권위 상태로 사용하므로, 백엔드는 이벤트 발행 전에 `CANDIDATE_ITEM.details`, `is_latest_llm_comment`, `db_updated_at` 저장과 관련 캐시 무효화를 끝내야 한다.
