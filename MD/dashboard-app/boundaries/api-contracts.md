@@ -1,11 +1,11 @@
-# API / Mock Boundary
+﻿# API / Mock Boundary
 
 | 항목 | 내용 |
 |------|------|
 | 작성 지시 | Yun Daeyoung |
 | 작성자 | Codex |
 | 작성일 | 2026-05-19 |
-| 최종 수정일 | 2026-05-21 |
+| 최종 수정일 | 2026-05-22 |
 | 상태 | 유지 문서 |
 | 적용 범위 | `dashboard-app/src/api`, mock/HTTP adapter, API 타입 계약 |
 

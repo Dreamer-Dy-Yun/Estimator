@@ -13,6 +13,14 @@ export interface CompanyScopeParams {
   companyUuid?: string | undefined
 }
 
+export interface CompanyMutationScopeParams {
+  /**
+   * Selected COMPANY.uuid for write/job endpoints.
+   * Mutation and side-effect job calls must target one concrete company.
+   */
+  companyUuid: string
+}
+
 export function getCompanyUuidForOptionalScope(
   companyUuid: string | null | undefined,
 ): string | undefined {
@@ -34,10 +42,13 @@ export function normalizeCompanyScopeParams<T extends CompanyScopeParams>(
 ): T | undefined {
   if (!params) return undefined
   const companyUuid = getCompanyUuidForOptionalScope(params.companyUuid)
+  const rest = { ...params }
+  delete rest.companyUuid
+  if (!companyUuid) return rest as T
   return {
-    ...params,
+    ...rest,
     companyUuid,
-  }
+  } as T
 }
 
 export interface CompanyApi {

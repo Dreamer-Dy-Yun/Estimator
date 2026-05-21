@@ -10,6 +10,7 @@ import {
 } from './candidateMockStore'
 import { productPrimaryBySkuGroupKey } from './productCatalog'
 import { makeUuid32, sleep } from './utils'
+import { MOCK_SINGLE_COMPANY_SCOPE_REQUIRED_MESSAGE } from './mockCompanyScope'
 
 interface CandidateStashLlmCommentJob {
   stashUuid: string
@@ -26,6 +27,9 @@ export async function startMockCandidateStashLlmCommentJob(
   companyUuid?: string,
 ): Promise<CandidateStashLlmCommentJobStartResult> {
   await sleep(60)
+  if (!companyUuid) {
+    throw new Error(MOCK_SINGLE_COMPANY_SCOPE_REQUIRED_MESSAGE)
+  }
   if (!findCandidateStashForOwner(stashUuid, ownerUserUuid, companyUuid)) {
     throw new Error('후보군을 찾을 수 없습니다.')
   }
@@ -49,7 +53,8 @@ export function subscribeMockCandidateStashLlmCommentJob(
 ): CandidateStashLlmCommentJobSubscription {
   const job = candidateStashLlmCommentJobs.get(jobId)
   const canReadJob = job && (!ownerUserUuid || job.ownerUserUuid === ownerUserUuid)
-    && (!companyUuid || job.companyUuid === companyUuid)
+    && !!companyUuid
+    && job.companyUuid === companyUuid
   const stashUuid = job?.stashUuid ?? ''
   const itemUuids = canReadJob ? job.itemUuids : []
   const totalItems = itemUuids.length

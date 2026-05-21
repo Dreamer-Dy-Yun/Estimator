@@ -11,7 +11,7 @@ import type {
   ProductSalesInsight,
   ProductSalesInsightParams,
 } from './drawer'
-import type { CompanyScopeParams } from './company'
+import type { CompanyMutationScopeParams, CompanyScopeParams } from './company'
 import type {
   CompetitorSalesGridParams,
   CompetitorSalesParams,
@@ -32,6 +32,7 @@ import type {
   CandidateDetailBulkConfirmStartPayload,
   CandidateDetailBulkConfirmStartResult,
   CandidateDetailBulkConfirmSubscription,
+  CandidateStashLlmCommentJobParams,
   CandidateStashLlmCommentJobProgressEvent,
   CandidateStashLlmCommentJobStartResult,
   CandidateStashLlmCommentJobSubscription,
@@ -98,13 +99,13 @@ export interface DashboardApi {
   ): CandidateOrderMetricSubscription
   startCandidateStashLlmCommentJob(
     stashUuid: string,
-    params?: CompanyScopeParams,
+    params: CandidateStashLlmCommentJobParams,
   ): Promise<CandidateStashLlmCommentJobStartResult>
   subscribeCandidateStashLlmCommentJob(
     jobId: string,
     listener: (event: CandidateStashLlmCommentJobProgressEvent) => void,
-    onError?: DashboardEventStreamErrorListener,
-    params?: CompanyScopeParams,
+    onError: DashboardEventStreamErrorListener | undefined,
+    params: CandidateStashLlmCommentJobParams,
   ): CandidateStashLlmCommentJobSubscription
   startCandidateDetailBulkConfirm(
     payload: CandidateDetailBulkConfirmStartPayload,
@@ -112,21 +113,21 @@ export interface DashboardApi {
   subscribeCandidateDetailBulkConfirm(
     jobId: string,
     listener: (event: CandidateDetailBulkConfirmProgressEvent) => void,
-    onError?: DashboardEventStreamErrorListener,
-    params?: CompanyScopeParams,
+    onError: DashboardEventStreamErrorListener | undefined,
+    params: CompanyMutationScopeParams,
   ): CandidateDetailBulkConfirmSubscription
   getCandidateRecommendations(params: CandidateRecommendationParams): Promise<CandidateRecommendationResult>
   getCandidateItemByUuid(itemUuid: string, params?: CompanyScopeParams): Promise<CandidateItemDetail | null>
-  deleteCandidateItem(itemUuid: string, params?: CompanyScopeParams): Promise<void>
-  deleteCandidateItems(stashUuid: string, itemUuids: string[], params?: CompanyScopeParams): Promise<void>
-  deleteCandidateStash(stashUuid: string, params?: CompanyScopeParams): Promise<void>
+  deleteCandidateItem(itemUuid: string, params: CompanyMutationScopeParams): Promise<void>
+  deleteCandidateItems(stashUuid: string, itemUuids: string[], params: CompanyMutationScopeParams): Promise<void>
+  deleteCandidateStash(stashUuid: string, params: CompanyMutationScopeParams): Promise<void>
   createCandidateStash(payload: CreateCandidateStashPayload): Promise<CandidateStashSummary>
   updateCandidateStash(payload: UpdateCandidateStashPayload): Promise<CandidateStashSummary>
-  duplicateCandidateStash(stashUuid: string, params?: CompanyScopeParams): Promise<void>
+  duplicateCandidateStash(stashUuid: string, params: CompanyMutationScopeParams): Promise<void>
   appendCandidateItem(payload: AppendCandidateItemPayload): Promise<void>
   appendCandidateItems(payload: AppendCandidateItemsPayload): Promise<AppendCandidateItemsResponse>
   updateCandidateItem(payload: UpdateCandidateItemPayload): Promise<UpdateCandidateItemResponse>
   getCandidateStashExcelTemplateDownload(): CandidateStashExcelTemplateDownload
-  uploadCandidateStashExcel(file: File, params?: CompanyScopeParams): Promise<CandidateStashExcelUploadResult>
+  uploadCandidateStashExcel(file: File, params: CompanyMutationScopeParams): Promise<CandidateStashExcelUploadResult>
   getSecondaryStockOrderCalc(params: SecondaryStockOrderCalcParams): Promise<SecondaryStockOrderCalcResult>
 }

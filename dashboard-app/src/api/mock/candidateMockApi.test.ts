@@ -1,10 +1,21 @@
-import { describe, expect, it } from 'vitest'
+﻿import { describe, expect, it } from 'vitest'
 import { mockDashboardApi } from './dashboardApi'
 import { ALL_COMPANY_UUID } from '../types'
+import type {
+  CandidateDetailBulkConfirmProgressEvent,
+  CandidateDetailBulkConfirmStartPayload,
+  CandidateStashLlmCommentJobProgressEvent,
+  CandidateStashLlmCommentJobParams,
+  CreateCandidateStashPayload,
+} from '../types'
 import { MOCK_ADMIN_USER_UUID, MOCK_USER_UUID } from './authApi'
 import { DEFAULT_CANDIDATE_STASH_CONTEXT } from './records'
 import { buildCandidateOrderMetric } from './candidateItemSummaryBuilder'
-import { MOCK_HANA_COMPANY_UUID, MOCK_T1_COMPANY_UUID } from './mockCompanyScope'
+import {
+  MOCK_HANA_COMPANY_UUID,
+  MOCK_SINGLE_COMPANY_SCOPE_REQUIRED_MESSAGE,
+  MOCK_T1_COMPANY_UUID,
+} from './mockCompanyScope'
 import { skuGroupKeyByLegacyId } from './salesTables'
 
 const MOCK_COMPANY_UUID = MOCK_HANA_COMPANY_UUID
@@ -14,6 +25,36 @@ const defaultCandidateItemListParams = (stashUuid: string) => ({
   dataReferencePeriodStart: DEFAULT_CANDIDATE_STASH_CONTEXT.periodStart,
   dataReferencePeriodEnd: DEFAULT_CANDIDATE_STASH_CONTEXT.periodEnd,
   companyUuid: MOCK_COMPANY_UUID,
+})
+
+const waitForBulkConfirmEvent = (
+  jobId: string,
+  companyUuid?: string,
+): Promise<CandidateDetailBulkConfirmProgressEvent> => new Promise((resolve) => {
+  const subscriptionRef: { current?: { close: () => void } } = {}
+  subscriptionRef.current = mockDashboardApi.subscribeCandidateDetailBulkConfirm(
+    jobId,
+    (event) => {
+      subscriptionRef.current?.close()
+      resolve(event)
+    },
+    companyUuid == null ? undefined : { companyUuid },
+  )
+})
+
+const waitForLlmCommentJobEvent = (
+  jobId: string,
+  companyUuid?: string,
+): Promise<CandidateStashLlmCommentJobProgressEvent> => new Promise((resolve) => {
+  const subscriptionRef: { current?: { close: () => void } } = {}
+  subscriptionRef.current = mockDashboardApi.subscribeCandidateStashLlmCommentJob(
+    jobId,
+    (event) => {
+      subscriptionRef.current?.close()
+      resolve(event)
+    },
+    companyUuid == null ? undefined : { companyUuid },
+  )
 })
 
 describe('api/mock candidate stash contract stubs', () => {
@@ -225,14 +266,14 @@ describe('api/mock candidate stash contract stubs', () => {
     const items = await mockDashboardApi.getCandidateItemsByStash(defaultCandidateItemListParams(source!.uuid))
     const item = items.items[0]
     expect(item).toBeDefined()
-    const mutationError = 'Mock mutation에는 명시적인 단일 companyUuid가 필요합니다.'
+    const mutationError = MOCK_SINGLE_COMPANY_SCOPE_REQUIRED_MESSAGE
 
     await expect(
       mockDashboardApi.createCandidateStash({
         name: '전체 scope 후보군',
         note: null,
         ...DEFAULT_CANDIDATE_STASH_CONTEXT,
-      }),
+      } as unknown as CreateCandidateStashPayload),
     ).rejects.toThrow(mutationError)
     await expect(
       mockDashboardApi.updateCandidateStash({
@@ -273,6 +314,84 @@ describe('api/mock candidate stash contract stubs', () => {
         companyUuid: ALL_COMPANY_UUID,
       }),
     ).rejects.toThrow(mutationError)
+  })
+
+  it('requires single company scope for bulk detail confirm start and subscribe', async () => {
+    const stashes = await mockDashboardApi.getCandidateStashes({ companyUuid: MOCK_COMPANY_UUID })
+    const source = stashes.find((row) => row.itemCount > 0)
+    expect(source).toBeDefined()
+
+    const items = await mockDashboardApi.getCandidateItemsByStash(defaultCandidateItemListParams(source!.uuid))
+    const item = items.items[0]
+    expect(item).toBeDefined()
+
+    const validPayload = {
+      stashUuid: source!.uuid,
+      itemUuids: [item!.uuid],
+      dataReferencePeriodStart: DEFAULT_CANDIDATE_STASH_CONTEXT.periodStart,
+      dataReferencePeriodEnd: DEFAULT_CANDIDATE_STASH_CONTEXT.periodEnd,
+      companyUuid: MOCK_COMPANY_UUID,
+    }
+
+    await expect(
+      mockDashboardApi.startCandidateDetailBulkConfirm({
+        stashUuid: validPayload.stashUuid,
+        itemUuids: validPayload.itemUuids,
+        dataReferencePeriodStart: validPayload.dataReferencePeriodStart,
+        dataReferencePeriodEnd: validPayload.dataReferencePeriodEnd,
+      } as unknown as CandidateDetailBulkConfirmStartPayload),
+    ).rejects.toThrow(MOCK_SINGLE_COMPANY_SCOPE_REQUIRED_MESSAGE)
+    await expect(
+      mockDashboardApi.startCandidateDetailBulkConfirm({
+        ...validPayload,
+        companyUuid: ALL_COMPANY_UUID,
+      }),
+    ).rejects.toThrow(MOCK_SINGLE_COMPANY_SCOPE_REQUIRED_MESSAGE)
+    await expect(
+      mockDashboardApi.startCandidateDetailBulkConfirm({
+        ...validPayload,
+        companyUuid: MOCK_T1_COMPANY_UUID,
+      }),
+    ).rejects.toThrow('후보군을 찾을 수 없습니다.')
+
+    const started = await mockDashboardApi.startCandidateDetailBulkConfirm(validPayload)
+
+    await expect(waitForBulkConfirmEvent(started.jobId)).resolves.toMatchObject({ status: 'failed' })
+    await expect(waitForBulkConfirmEvent(started.jobId, ALL_COMPANY_UUID)).resolves.toMatchObject({ status: 'failed' })
+    await expect(waitForBulkConfirmEvent(started.jobId, MOCK_T1_COMPANY_UUID)).resolves.toMatchObject({
+      status: 'failed',
+    })
+  })
+
+  it('requires single company scope for LLM comment job start and subscribe', async () => {
+    const stashes = await mockDashboardApi.getCandidateStashes({ companyUuid: MOCK_COMPANY_UUID })
+    const source = stashes.find((row) => row.itemCount > 0)
+    expect(source).toBeDefined()
+
+    await expect(
+      mockDashboardApi.startCandidateStashLlmCommentJob(
+        source!.uuid,
+        undefined as unknown as CandidateStashLlmCommentJobParams,
+      ),
+    ).rejects.toThrow(MOCK_SINGLE_COMPANY_SCOPE_REQUIRED_MESSAGE)
+    await expect(
+      mockDashboardApi.startCandidateStashLlmCommentJob(source!.uuid, { companyUuid: ALL_COMPANY_UUID }),
+    ).rejects.toThrow(MOCK_SINGLE_COMPANY_SCOPE_REQUIRED_MESSAGE)
+    await expect(
+      mockDashboardApi.startCandidateStashLlmCommentJob(source!.uuid, { companyUuid: MOCK_T1_COMPANY_UUID }),
+    ).rejects.toThrow('후보군을 찾을 수 없습니다.')
+
+    const started = await mockDashboardApi.startCandidateStashLlmCommentJob(source!.uuid, {
+      companyUuid: MOCK_COMPANY_UUID,
+    })
+
+    await expect(waitForLlmCommentJobEvent(started.jobId)).resolves.toMatchObject({ status: 'failed' })
+    await expect(waitForLlmCommentJobEvent(started.jobId, ALL_COMPANY_UUID)).resolves.toMatchObject({
+      status: 'failed',
+    })
+    await expect(waitForLlmCommentJobEvent(started.jobId, MOCK_T1_COMPANY_UUID)).resolves.toMatchObject({
+      status: 'failed',
+    })
   })
   it('mutates candidate stash list through stash mutation API calls', async () => {
     const before = await mockDashboardApi.getCandidateStashes({ companyUuid: MOCK_COMPANY_UUID })

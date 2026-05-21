@@ -38,7 +38,7 @@ export {
   isAllCompanyUuid,
   normalizeCompanyScopeParams,
 } from './company'
-export type { CompanyApi, CompanyScopeParams, CompanySummary } from './company'
+export type { CompanyApi, CompanyMutationScopeParams, CompanyScopeParams, CompanySummary } from './company'
 export type {
   CompetitorSalesGridParams,
   CompetitorSalesParams,
@@ -84,6 +84,7 @@ export type {
   CandidateItemDetail,
   CandidateItemListParams,
   CandidateItemListResult,
+  CandidateStashLlmCommentJobParams,
   CandidateStashLlmCommentJobProgressEvent,
   CandidateStashLlmCommentJobStartResult,
   CandidateStashLlmCommentJobStatus,

@@ -68,6 +68,13 @@ export const SnapshotConfirmPage = () => {
   const [uploadResult, setUploadResult] = useState<CandidateStashExcelUploadResult | null>(null)
   const [uploadDragActive, setUploadDragActive] = useState(false)
 
+  const requireCompanyUuid = useCallback(() => {
+    if (companyUuid) return companyUuid
+    const message = '오더 후보군은 회사 선택이 필요합니다.'
+    showToast(message)
+    throw new Error(message)
+  }, [companyUuid, showToast])
+
   const loadStashes = useCallback(async () => {
     if (isAllCompanySelected) {
       setStashesLoading(false)
@@ -109,7 +116,8 @@ export const SnapshotConfirmPage = () => {
     setUploadError(null)
     setUploadResult(null)
     try {
-      const result = await uploadCandidateStashExcel(uploadFile, { companyUuid })
+      const mutationCompanyUuid = requireCompanyUuid()
+      const result = await uploadCandidateStashExcel(uploadFile, { companyUuid: mutationCompanyUuid })
       if (!mountedRef.current) return
       setUploadResult(result)
       setUploadFile(null)
@@ -149,7 +157,8 @@ export const SnapshotConfirmPage = () => {
   const duplicateStash = async (stash: CandidateStashSummary) => {
     setDuplicateBusyUuid(stash.uuid)
     try {
-      await duplicateCandidateStash(stash.uuid, { companyUuid })
+      const mutationCompanyUuid = requireCompanyUuid()
+      await duplicateCandidateStash(stash.uuid, { companyUuid: mutationCompanyUuid })
       await loadStashes()
       showToast('후보군이 복제되었습니다.')
     } finally {
@@ -161,9 +170,10 @@ export const SnapshotConfirmPage = () => {
     if (!editTarget) return
     setEditBusy(true)
     try {
+      const mutationCompanyUuid = requireCompanyUuid()
       await updateCandidateStash({
         stashUuid: editTarget.uuid,
-        companyUuid,
+        companyUuid: mutationCompanyUuid,
         name: editName.trim(),
         note: editNote.trim() || null,
       })
@@ -292,7 +302,8 @@ export const SnapshotConfirmPage = () => {
           if (!deleteTarget) return
           setDeleteBusy(true)
           try {
-            await deleteCandidateStash(deleteTarget.uuid, { companyUuid })
+            const mutationCompanyUuid = requireCompanyUuid()
+            await deleteCandidateStash(deleteTarget.uuid, { companyUuid: mutationCompanyUuid })
             await loadStashes()
             if (!mountedRef.current) return
             setDeleteTarget(null)

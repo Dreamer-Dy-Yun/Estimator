@@ -33,6 +33,9 @@ export const MOCK_COMPANIES: CompanySummary[] = [
 
 type CompanyScopeInput = CompanyScopeParams | string | null | undefined
 
+export const MOCK_SINGLE_COMPANY_SCOPE_REQUIRED_MESSAGE =
+  'Mock mutation requires an explicit single companyUuid.'
+
 function resolveCompanyUuid(input?: CompanyScopeInput): string | undefined {
   return getCompanyUuidForOptionalScope(typeof input === 'string' || input == null ? input : input.companyUuid)
 }
@@ -62,7 +65,7 @@ export function getMockMutationCompanyUuid(input: CompanyScopeInput): string {
   const rawCompanyUuid = getRawCompanyUuid(input)
   const companyUuid = getCompanyUuidForOptionalScope(rawCompanyUuid)
   if (!companyUuid) {
-    throw new Error('Mock mutation에는 명시적인 단일 companyUuid가 필요합니다.')
+    throw new Error(MOCK_SINGLE_COMPANY_SCOPE_REQUIRED_MESSAGE)
   }
   return companyUuid
 }

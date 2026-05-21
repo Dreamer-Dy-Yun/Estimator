@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+﻿import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   getApiErrorDisplayMessage,
   startCandidateDetailBulkConfirm,
@@ -104,6 +104,10 @@ export function useCandidateBulkDetailConfirm({
   const confirmBulkDetailItems = useCallback(async (itemUuids: string[]) => {
     const uniqueUuids = [...new Set(itemUuids)]
     if (!uniqueUuids.length || !dataReferencePeriodStart || !dataReferencePeriodEnd) return
+    if (!companyUuid) {
+      showToast('오더 후보군은 회사 선택이 필요합니다.', { variant: 'error' })
+      return
+    }
     const sequence = sequenceRef.current + 1
     sequenceRef.current = sequence
     setBulkConfirmBusy(true)
@@ -153,7 +157,7 @@ export function useCandidateBulkDetailConfirm({
           }
           closeSubscription()
           reject(error instanceof Error ? error : new Error(getStreamErrorMessage(error)))
-        })
+        }, { companyUuid })
       })
     } catch (err) {
       if (!isCurrentSequence(sequence)) return

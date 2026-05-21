@@ -58,10 +58,15 @@ import {
   updateCandidateStashSummary,
   uploadCandidateStashExcelFile,
 } from './candidateMockMutations'
+import { getMockMutationCompanyUuid } from './mockCompanyScope'
 import { sleep } from './utils'
 
 function acceptMockCompanyScope(params?: CompanyScopeParams) {
   return normalizeCompanyScopeParams(params)?.companyUuid
+}
+
+function requireMockMutationCompanyScope(params?: CompanyScopeParams) {
+  return getMockMutationCompanyUuid(params)
 }
 
 type MockOwnerOrCompanyScope = string | CompanyScopeParams | undefined
@@ -134,7 +139,7 @@ export const candidateMockApi = {
     second?: MockOwnerOrCompanyScope,
   ): Promise<CandidateStashLlmCommentJobStartResult> => {
     const { ownerUserUuid, params } = resolveMockOwnerAndCompanyScope(first, second)
-    const companyUuid = acceptMockCompanyScope(params)
+    const companyUuid = requireMockMutationCompanyScope(params)
     return startMockCandidateStashLlmCommentJob(stashUuid, ownerUserUuid, companyUuid)
   },
   subscribeCandidateStashLlmCommentJob: (
@@ -151,7 +156,7 @@ export const candidateMockApi = {
     payload: CandidateDetailBulkConfirmStartPayload,
     ownerUserUuid?: string,
   ): Promise<CandidateDetailBulkConfirmStartResult> => {
-    const companyUuid = acceptMockCompanyScope(payload)
+    const companyUuid = requireMockMutationCompanyScope(payload)
     return startMockCandidateDetailBulkConfirm(payload, ownerUserUuid, companyUuid)
   },
   subscribeCandidateDetailBulkConfirm: (

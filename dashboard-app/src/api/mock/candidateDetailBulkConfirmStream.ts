@@ -11,6 +11,7 @@ import {
 import { buildMockOrderSnapshotForCandidate } from './orderSnapshotForCandidate'
 import { productPrimaryBySkuGroupKey } from './productCatalog'
 import { makeUuid32, sleep } from './utils'
+import { MOCK_SINGLE_COMPANY_SCOPE_REQUIRED_MESSAGE } from './mockCompanyScope'
 
 interface CandidateDetailBulkConfirmJob {
   stashUuid: string
@@ -29,6 +30,9 @@ export async function startMockCandidateDetailBulkConfirm(
   companyUuid?: string,
 ): Promise<CandidateDetailBulkConfirmStartResult> {
   await sleep(60)
+  if (!companyUuid) {
+    throw new Error(MOCK_SINGLE_COMPANY_SCOPE_REQUIRED_MESSAGE)
+  }
   if (!findCandidateStashForOwner(payload.stashUuid, ownerUserUuid, companyUuid)) {
     throw new Error('후보군을 찾을 수 없습니다.')
   }
@@ -56,7 +60,8 @@ export function subscribeMockCandidateDetailBulkConfirm(
 ): CandidateDetailBulkConfirmSubscription {
   const job = bulkConfirmJobs.get(jobId)
   const canReadJob = job && (!ownerUserUuid || job.ownerUserUuid === ownerUserUuid)
-    && (!companyUuid || job.companyUuid === companyUuid)
+    && !!companyUuid
+    && job.companyUuid === companyUuid
   const itemUuids = canReadJob ? job.itemUuids : []
   const totalItems = itemUuids.length
   const timers: ReturnType<typeof globalThis.setTimeout>[] = []

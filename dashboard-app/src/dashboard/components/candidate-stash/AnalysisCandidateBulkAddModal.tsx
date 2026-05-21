@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+﻿import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   appendCandidateItems,
   createCandidateStash,
@@ -20,6 +20,8 @@ type Props = {
   onClose: () => void
   onDone: () => void
 }
+
+const COMPANY_REQUIRED_MESSAGE = '후보군 추가는 회사 선택이 필요합니다.'
 
 export function AnalysisCandidateBulkAddModal({
   open,
@@ -46,25 +48,25 @@ export function AnalysisCandidateBulkAddModal({
     let alive = true
     queueMicrotask(() => {
       if (!alive) return
-    const seq = requestSeqRef.current + 1
-    requestSeqRef.current = seq
-    setBusy(true)
-    setError(null)
-    void getCandidateStashes({ companyUuid })
-      .then((rows) => {
-        if (requestSeqRef.current !== seq) return
-        setStashes(rows)
-        setSelectedStashUuid((current) => (
-          rows.some((row) => row.uuid === current) ? current : rows[0]?.uuid || ''
-        ))
-      })
-      .catch((err) => {
-        if (requestSeqRef.current !== seq) return
-        setError(err instanceof Error ? err.message : '후보군 목록을 불러오지 못했습니다.')
-      })
-      .finally(() => {
-        if (requestSeqRef.current === seq) setBusy(false)
-      })
+      const seq = requestSeqRef.current + 1
+      requestSeqRef.current = seq
+      setBusy(true)
+      setError(null)
+      void getCandidateStashes({ companyUuid })
+        .then((rows) => {
+          if (requestSeqRef.current !== seq) return
+          setStashes(rows)
+          setSelectedStashUuid((current) => (
+            rows.some((row) => row.uuid === current) ? current : rows[0]?.uuid || ''
+          ))
+        })
+        .catch((err) => {
+          if (requestSeqRef.current !== seq) return
+          setError(err instanceof Error ? err.message : '후보군 목록을 불러오지 못했습니다.')
+        })
+        .finally(() => {
+          if (requestSeqRef.current === seq) setBusy(false)
+        })
     })
     return () => {
       alive = false
@@ -75,6 +77,10 @@ export function AnalysisCandidateBulkAddModal({
   if (!open) return null
 
   const createAndSelect = async () => {
+    if (!companyUuid) {
+      setError(COMPANY_REQUIRED_MESSAGE)
+      return
+    }
     setBusy(true)
     setError(null)
     try {
@@ -100,6 +106,10 @@ export function AnalysisCandidateBulkAddModal({
 
   const confirm = async () => {
     if (!selectedStashUuid || uniqueSkuGroupKeys.length === 0) return
+    if (!companyUuid) {
+      setError(COMPANY_REQUIRED_MESSAGE)
+      return
+    }
     setBusy(true)
     setError(null)
     try {

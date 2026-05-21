@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type MutableRefObject } from 'react'
+﻿import { useCallback, useEffect, useRef, useState, type MutableRefObject } from 'react'
 import {
   appendCandidateItems,
   getApiErrorDisplayMessage,
@@ -35,6 +35,8 @@ type Args = {
   refreshStashes: () => Promise<void>
   showToast: (message: string) => void
 }
+
+const COMPANY_REQUIRED_MESSAGE = '추천 후보 추가는 회사 선택이 필요합니다.'
 
 export function useCandidateRecommendations({
   stashUuid,
@@ -123,6 +125,10 @@ export function useCandidateRecommendations({
   const appendRecommendedItems = useCallback(async (rows: CandidateReferenceItemSummary[]) => {
     const skuGroupKeys = [...new Set(rows.map((row) => row.skuGroupKey))]
     if (!skuGroupKeys.length) return
+    if (!companyUuid) {
+      showToast(COMPANY_REQUIRED_MESSAGE)
+      throw new Error(COMPANY_REQUIRED_MESSAGE)
+    }
     try {
       const result = await appendCandidateItems({ stashUuid, companyUuid, skuGroupKeys })
       if (!mountedRef.current) return

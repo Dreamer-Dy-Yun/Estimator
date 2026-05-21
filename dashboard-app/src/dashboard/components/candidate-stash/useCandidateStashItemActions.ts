@@ -54,11 +54,17 @@ export function useCandidateStashItemActions({
     }
   }, [])
 
+  const requireCompanyUuid = useCallback(() => {
+    if (companyUuid) return companyUuid
+    throw new Error('오더 후보군은 회사 선택이 필요합니다.')
+  }, [companyUuid])
+
   const confirmDeleteItem = useCallback(async () => {
     if (!itemDeleteTarget) return
     setItemDeleteBusy(true)
     try {
-      await deleteCandidateItem(itemDeleteTarget.uuid, { companyUuid })
+      const mutationCompanyUuid = requireCompanyUuid()
+      await deleteCandidateItem(itemDeleteTarget.uuid, { companyUuid: mutationCompanyUuid })
       if (!mountedRef.current) return
       if (openedItemUuid === itemDeleteTarget.uuid) closeDrawer()
       onItemsDeleted?.([itemDeleteTarget.uuid])
@@ -70,14 +76,15 @@ export function useCandidateStashItemActions({
     } finally {
       if (mountedRef.current) setItemDeleteBusy(false)
     }
-  }, [closeDrawer, companyUuid, itemDeleteTarget, onItemsDeleted, openedItemUuid, refreshStashes, showToast])
+  }, [closeDrawer, itemDeleteTarget, onItemsDeleted, openedItemUuid, refreshStashes, requireCompanyUuid, showToast])
 
   const confirmDeleteItems = useCallback(async (itemUuids: string[]) => {
     const uniqueUuids = [...new Set(itemUuids)]
     if (!uniqueUuids.length) return
     setBulkDeleteBusy(true)
     try {
-      await deleteCandidateItems(stashUuid, uniqueUuids, { companyUuid })
+      const mutationCompanyUuid = requireCompanyUuid()
+      await deleteCandidateItems(stashUuid, uniqueUuids, { companyUuid: mutationCompanyUuid })
       if (!mountedRef.current) return
       if (openedItemUuid && uniqueUuids.includes(openedItemUuid)) closeDrawer()
       onItemsDeleted?.(uniqueUuids)
@@ -89,16 +96,17 @@ export function useCandidateStashItemActions({
     } finally {
       if (mountedRef.current) setBulkDeleteBusy(false)
     }
-  }, [closeDrawer, companyUuid, onItemsDeleted, openedItemUuid, refreshStashes, showToast, stashUuid])
+  }, [closeDrawer, onItemsDeleted, openedItemUuid, refreshStashes, requireCompanyUuid, showToast, stashUuid])
 
   const confirmUnconfirmItems = useCallback(async (itemUuids: string[]) => {
     const uniqueUuids = [...new Set(itemUuids)]
     if (!uniqueUuids.length) return
     setBulkUnconfirmBusy(true)
     try {
+      const mutationCompanyUuid = requireCompanyUuid()
       const updatedItems = await Promise.all(uniqueUuids.map((itemUuid) => updateCandidateItem({
         itemUuid,
-        companyUuid,
+        companyUuid: mutationCompanyUuid,
         details: null,
         isLatestLlmComment: false,
       })))
@@ -113,7 +121,7 @@ export function useCandidateStashItemActions({
     } finally {
       if (mountedRef.current) setBulkUnconfirmBusy(false)
     }
-  }, [closeDrawer, companyUuid, onItemsUnconfirmed, openedItemUuid, refreshStashes, showToast])
+  }, [closeDrawer, onItemsUnconfirmed, openedItemUuid, refreshStashes, requireCompanyUuid, showToast])
 
   const downloadOrderExcel = useCallback(async (userName: string) => {
     if (!detailTarget) return

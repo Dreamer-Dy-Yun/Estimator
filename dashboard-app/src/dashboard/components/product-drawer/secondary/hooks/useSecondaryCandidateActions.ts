@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+﻿import { useCallback, useEffect, useRef, useState } from 'react'
 import { dashboardApi, getCompanyUuidForOptionalScope } from '../../../../../api'
 import { useAuth } from '../../../../../auth/AuthContext'
 import type { ToastContextValue } from '../../../../../components/AppToastContext'
@@ -68,6 +68,11 @@ export function useSecondaryCandidateActions({
     }
   }, [companyUuid, skuGroupKey])
 
+  const requireCompanyUuid = useCallback(() => {
+    if (companyUuid) return companyUuid
+    throw new Error('후보군 작업은 회사 선택이 필요합니다.')
+  }, [companyUuid])
+
   const refresh = useCallback(async () => {
     const reqSeq = candidateListReqSeqRef.current + 1
     candidateListReqSeqRef.current = reqSeq
@@ -100,10 +105,11 @@ export function useSecondaryCandidateActions({
     if (selectedCandidate == null) return
     setLoading(true)
     try {
+      const mutationCompanyUuid = requireCompanyUuid()
       await dashboardApi.appendCandidateItem({
         stashUuid: selectedCandidate.uuid,
         skuGroupKey,
-        companyUuid,
+        companyUuid: mutationCompanyUuid,
         details: buildSnapshot(),
         isLatestLlmComment: false,
       })
@@ -111,16 +117,17 @@ export function useSecondaryCandidateActions({
     } finally {
       if (mountedRef.current) setLoading(false)
     }
-  }, [buildSnapshot, companyUuid, selectedCandidate, showToast, skuGroupKey])
+  }, [buildSnapshot, requireCompanyUuid, selectedCandidate, showToast, skuGroupKey])
 
   const confirmCandidateItem = useCallback(async () => {
     if (candidateItemContext == null) return
     const snapshot = buildSnapshot()
     setLoading(true)
     try {
+      const mutationCompanyUuid = requireCompanyUuid()
       const updatedItem = await dashboardApi.updateCandidateItem({
         itemUuid: candidateItemContext.itemUuid,
-        companyUuid,
+        companyUuid: mutationCompanyUuid,
         details: snapshot,
         isLatestLlmComment: false,
       })
@@ -131,15 +138,16 @@ export function useSecondaryCandidateActions({
     } finally {
       if (mountedRef.current) setLoading(false)
     }
-  }, [buildSnapshot, candidateItemContext, companyUuid, hasSavedSnapshot, showToast])
+  }, [buildSnapshot, candidateItemContext, hasSavedSnapshot, requireCompanyUuid, showToast])
 
   const unconfirmCandidateItem = useCallback(async () => {
     if (candidateItemContext == null) return
     setLoading(true)
     try {
+      const mutationCompanyUuid = requireCompanyUuid()
       const updatedItem = await dashboardApi.updateCandidateItem({
         itemUuid: candidateItemContext.itemUuid,
-        companyUuid,
+        companyUuid: mutationCompanyUuid,
         details: null,
         isLatestLlmComment: false,
       })
@@ -150,15 +158,16 @@ export function useSecondaryCandidateActions({
     } finally {
       if (mountedRef.current) setLoading(false)
     }
-  }, [candidateItemContext, companyUuid, showToast])
+  }, [candidateItemContext, requireCompanyUuid, showToast])
 
   const createCandidate = useCallback(async () => {
     setLoading(true)
     try {
+      const mutationCompanyUuid = requireCompanyUuid()
       const created = await dashboardApi.createCandidateStash({
         name: nameInput.trim(),
         note: noteInput.trim(),
-        companyUuid,
+        companyUuid: mutationCompanyUuid,
         periodStart,
         periodEnd,
         forecastMonths,
@@ -175,7 +184,7 @@ export function useSecondaryCandidateActions({
     } finally {
       if (mountedRef.current) setLoading(false)
     }
-  }, [companyUuid, forecastMonths, nameInput, noteInput, periodEnd, periodStart, refresh, showToast])
+  }, [forecastMonths, nameInput, noteInput, periodEnd, periodStart, refresh, requireCompanyUuid, showToast])
 
   return {
     loading,

@@ -1,11 +1,11 @@
-# 현재 동작 기준 QA 문서
+﻿# 현재 동작 기준 QA 문서
 
 | 항목 | 내용 |
 |------|------|
 | 작성 지시 | Yun Daeyoung |
 | 작성자 | Codex |
 | 작성일 | 2026-05-18 |
-| 최종 수정일 | 2026-05-21 |
+| 최종 수정일 | 2026-05-22 |
 | 상태 | 유지 문서 |
 | 적용 범위 | `dashboard-app` 전체 화면, API/mock 경계, 주요 사용자 흐름 |
 
@@ -38,7 +38,7 @@
 | 권한 | `admin`과 `user`만 존재한다. 관리자 탭은 관리자에게만 보인다. |
 | 헤더 | 자사 분석, 경쟁사 분석, 오더 후보군, 관리자 탭의 기존 스타일과 선택 상태를 유지한다. 회사 selector는 로그인 후 회사 목록을 조회해 `전체`, `한아INT`, `T1글로벌`을 표시한다. |
 | 전역 액션 | `입고예정일 수집`은 주요 탭이 아닌 헤더 유틸리티 액션이며 모든 로그인 사용자에게 노출된다. 성공/실패/수집 개수만 toast로 알린다. |
-| 회사 선택 | `전체`는 조회 API에서 `companyUuid`를 생략하는 의미다. 단일 회사 선택 시 분석, 산점도, filter meta, 후보군, 상품 드로워, 2차 드로워, 오더 계산, SSE, mutation 요청은 선택 회사 UUID를 포함해야 한다. 후보군 mutation은 단일 회사 scope에서만 가능하다. |
+| 회사 선택 | `전체`는 read API에서 `companyUuid`를 생략하는 의미다. 단일 회사 선택 시 분석, 산점도, filter meta, 후보군 조회, 상품 드로워, 2차 드로워, 오더 계산 조회는 선택 회사 UUID를 포함해야 한다. 후보군 mutation payload/params, bulk detail confirm job/SSE, 후보군 LLM comment job/SSE, 오더 지표 SSE는 단일 회사 scope에서만 가능하며 `전체` 또는 누락 scope로 호출되면 안 된다. |
 
 ## 공통 요청 상태와 피드백
 
@@ -110,7 +110,7 @@
 
 | 구분 | QA 기준 |
 |------|---------|
-| 접근 | `오더 후보군` 탭에서 후보군 목록을 본다. 후보군은 현재 로그인 사용자와 단일 회사 선택 기준 데이터다. `전체` 선택 상태에서는 오더 후보군 탭이 비활성화되고 후보군 API 호출이 발생하면 안 된다. |
+| 접근 | `오더 후보군` 탭에서 후보군 목록을 본다. 후보군은 현재 로그인 사용자와 단일 회사 선택 기준 데이터다. `전체` 선택 상태에서는 오더 후보군 탭이 비활성화되고 후보군 API 호출이 발생하면 안 된다. 비활성 탭은 `aria-disabled="true"`와 비활성 사유를 설명하는 accessible description을 함께 제공해야 한다. |
 | 검색/정렬 | 이름 검색, 비고 검색, 정렬이 동작한다. |
 | 전체 선택 제한 | 오더 후보군 페이지가 열린 상태에서 회사 선택이 `전체`로 바뀌면 라우트에서 튕기지 않고 페이지 내부 제한 안내를 표시한다. |
 | 업로드 카드 | 후보군이 적어도 업로드 카드가 화면을 과도하게 채우지 않도록 고정 높이를 유지한다. |
@@ -207,9 +207,9 @@
 | HTTP 전환 | `VITE_USE_MOCK_API=false`일 때 `src/api/requests/*` HTTP adapter 교체 지점만 바꾸면 되도록 유지한다. |
 | 후보군 조회 | 후보군 기본 리스트, 추천/배지, 오더 지표 SSE는 분리된 계약이다. |
 | 스냅샷 저장/해제 | PATCH 응답은 최신 `CandidateItemDetail` shape를 반환하는 계약으로 문서화한다. 프론트는 성공 응답을 현재 화면 기준 상태로 삼는다. |
-| 상세 일괄확정 | `startCandidateDetailBulkConfirm`과 `subscribeCandidateDetailBulkConfirm` SSE 계약을 사용한다. `updatedItem` 이벤트는 commit/cache 반영 이후 최신 `CandidateItemDetail`이어야 하며 프론트는 이를 로컬 확정 상태로 삼는다. |
+| 상세 일괄확정 | `startCandidateDetailBulkConfirm`과 `subscribeCandidateDetailBulkConfirm` SSE 계약을 사용한다. job start와 SSE subscribe 모두 같은 단일 `companyUuid`를 전달해야 한다. `updatedItem` 이벤트는 commit/cache 반영 이후 최신 `CandidateItemDetail`이어야 하며 프론트는 이를 로컬 확정 상태로 삼는다. |
 | 산점도 | binning과 cell 집계는 백엔드 책임이다. 프론트는 받은 `cells`와 `meta`로 표시만 한다. |
-| 회사 scope | `getCompanies` 응답은 `uuid`, `name`만 필요하다. 회사 소유 조회 API는 단일 회사 선택 시 `companyUuid`를 포함하고, `전체` 선택 시 생략한다. 분석, 산점도, filter meta, 후보군, 상품 드로워, 2차 드로워, 오더 계산, SSE는 같은 scope 계약을 따른다. 후보군 mutation은 단일 회사 scope가 필요하며 `전체` 또는 누락 scope로 호출되면 안 된다. mock도 `companyUuid`를 판매/후보군/오더 지표 분기와 계산에 반영해야 한다. |
+| 회사 scope | `getCompanies` 응답은 `uuid`, `name`만 필요하다. 회사 소유 read API는 단일 회사 선택 시 `companyUuid`를 포함하고, `전체` 선택 시 생략한다. 후보군 mutation payload/params, bulk detail confirm job/SSE, 후보군 LLM comment job/SSE, 오더 지표 SSE는 단일 회사 scope가 필요하며 `전체` 또는 누락 scope로 호출되면 안 된다. HTTP adapter 검증 대상은 query, JSON body, FormData, SSE URL/query의 `companyUuid` 전파를 모두 포함한다. mock도 `companyUuid`를 판매/후보군/오더 지표 분기와 계산에 반영해야 한다. |
 
 ## 검증 명령
 
