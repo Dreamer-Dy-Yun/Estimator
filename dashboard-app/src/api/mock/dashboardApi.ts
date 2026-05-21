@@ -7,6 +7,7 @@ import type {
   ProductSalesInsight,
   ProductSalesInsightParams,
   ProductSecondaryDetailParams,
+  SalesFilterMetaParams,
   SecondaryAiCommentParams,
   SecondaryDailyTrendParams,
   SelfSalesParams,
@@ -152,7 +153,8 @@ export const mockDashboardApi = {
       params?.maxSkuIdsPerCell,
     )
   },
-  getSalesFilterMeta: async () => {
+  getSalesFilterMeta: async (_params?: SalesFilterMetaParams) => {
+    void _params
     await sleep(60)
     const codeSet = new Set<string>()
     const colorCodeSet = new Set<string>()

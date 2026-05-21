@@ -1,5 +1,12 @@
 import { useCallback, useMemo, useState } from 'react'
-import { getCompetitorSales, getCompetitorSalesScatterGrid, getSecondaryCompetitorChannels } from '../../api'
+import {
+  getCompanyUuidForOptionalScope,
+  getCompetitorSales,
+  getCompetitorSalesScatterGrid,
+  getSecondaryCompetitorChannels,
+  isAllCompanyUuid,
+} from '../../api'
+import { useAuth } from '../../auth/AuthContext'
 import type { SecondaryCompetitorChannel } from '../../api/types'
 import type { CompetitorSalesRow } from '../../types'
 import { clampForecastMonths, readForecastMonthsFromStorage, writeForecastMonthsToStorage } from '../../utils/forecastMonthsStorage'
@@ -31,6 +38,7 @@ const EMPTY_COMPETITOR_ROWS: CompetitorSalesRow[] = []
 const EMPTY_COMPETITOR_CHANNELS: SecondaryCompetitorChannel[] = []
 
 export const CompetitorPage = () => {
+  const { selectedCompanyUuid } = useAuth()
   const [bulkAddOpen, setBulkAddOpen] = useState(false)
   const [forecastMonths, setForecastMonths] = useState(() => readForecastMonthsFromStorage())
   const [orderedSkuGroupKeys, setOrderedSkuGroupKeys] = useState<string[]>([])
@@ -62,7 +70,8 @@ export const CompetitorPage = () => {
     setWholeRange,
     onPeriodBarStart,
     onPeriodBarEnd,
-  } = useAnalysisSalesFilters()
+  } = useAnalysisSalesFilters(getCompanyUuidForOptionalScope(selectedCompanyUuid))
+  const isAllCompanySelected = isAllCompanyUuid(selectedCompanyUuid)
   const channelsRequest = useDashboardRequest(getSecondaryCompetitorChannels, EMPTY_COMPETITOR_CHANNELS)
   const { data: channels } = channelsRequest
 
@@ -192,6 +201,9 @@ export const CompetitorPage = () => {
                 showRowsWithSelfSalesOnly={showRowsWithSelfSalesOnly}
                 bulkSelectedCount={bulkSelectedCount}
                 queryDisabled={!periodQueryDirty}
+                candidateAddDisabledReason={isAllCompanySelected
+                  ? '전체 선택 상태에서는 후보군에 추가할 수 없습니다. 한아INT 또는 T1글로벌을 선택하세요.'
+                  : undefined}
                 requestStatus={(
                   <DashboardRequestStatus
                     compact

@@ -2,6 +2,7 @@ import type {
   CandidateStashExcelTemplateDownload,
   DashboardApi,
 } from '../types'
+import { normalizeCompanyScopeParams } from '../types'
 import { apiRequest, buildApiUrl, openApiEventStream } from './httpClient'
 import {
   candidateStashExcelTemplateFilename,
@@ -29,13 +30,16 @@ function getHttpCandidateStashExcelTemplateDownload(): CandidateStashExcelTempla
 }
 
 export const httpDashboardRequests: DashboardApi = {
-  getSelfSales: (params) => apiRequest('/sales/self', { query: queryParams(params) }),
-  getCompetitorSales: (params) => apiRequest('/sales/competitor', { query: queryParams(params) }),
+  getSelfSales: (params) =>
+    apiRequest('/sales/self', { query: queryParams(normalizeCompanyScopeParams(params)) }),
+  getCompetitorSales: (params) =>
+    apiRequest('/sales/competitor', { query: queryParams(normalizeCompanyScopeParams(params)) }),
   getSelfSalesScatterGrid: (params) =>
-    apiRequest('/sales/self/scatter-grid', { query: queryParams(params) }),
+    apiRequest('/sales/self/scatter-grid', { query: queryParams(normalizeCompanyScopeParams(params)) }),
   getCompetitorSalesScatterGrid: (params) =>
-    apiRequest('/sales/competitor/scatter-grid', { query: queryParams(params) }),
-  getSalesFilterMeta: () => apiRequest('/sales/filter-meta'),
+    apiRequest('/sales/competitor/scatter-grid', { query: queryParams(normalizeCompanyScopeParams(params)) }),
+  getSalesFilterMeta: (params) =>
+    apiRequest('/sales/filter-meta', { query: queryParams(normalizeCompanyScopeParams(params)) }),
   getProductDrawerBundle: (skuGroupKey) =>
     apiRequest(`/products/${encodePathSegment(skuGroupKey)}/drawer-bundle`),
   getProductMonthlyTrend: (skuGroupKey, params) =>

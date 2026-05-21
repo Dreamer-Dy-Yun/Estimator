@@ -6,6 +6,7 @@ type Props = {
   showRowsWithSelfSalesOnly: boolean
   bulkSelectedCount: number
   queryDisabled: boolean
+  candidateAddDisabledReason?: string
   requestStatus?: ReactNode
   onSelfSalesOnlyChange: (checked: boolean) => void
   onOpenBulkAdd: () => void
@@ -16,11 +17,14 @@ export function CompetitorFilterEndControls({
   showRowsWithSelfSalesOnly,
   bulkSelectedCount,
   queryDisabled,
+  candidateAddDisabledReason,
   requestStatus,
   onSelfSalesOnlyChange,
   onOpenBulkAdd,
   onApplyPeriodQuery,
 }: Props) {
+  const bulkAddDisabled = bulkSelectedCount === 0 || Boolean(candidateAddDisabledReason)
+
   return (
     <div className={styles.periodPresetRowEndGroup}>
       {requestStatus}
@@ -36,7 +40,8 @@ export function CompetitorFilterEndControls({
         type="button"
         className={`${styles.actionBtn} ${styles.btnPrimary} ${styles.analysisBulkAddButton}`}
         onClick={onOpenBulkAdd}
-        disabled={bulkSelectedCount === 0}
+        disabled={bulkAddDisabled}
+        title={candidateAddDisabledReason}
       >
         선택한 물품을 후보군으로
       </button>

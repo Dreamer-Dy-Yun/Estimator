@@ -7,3 +7,30 @@
 @import './snapshot-confirm-style-parts/stashCards.module.css';
 @import './snapshot-confirm-style-parts/editModal.module.css';
 @import './snapshot-confirm-style-parts/responsive.module.css';
+
+.scopeGuard {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  padding: 16px 18px;
+  border: 1px solid #d8e2f0;
+  border-radius: 18px;
+  background: #f8fafc;
+  color: #1e293b;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+}
+
+.scopeGuardTitle {
+  display: block;
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.scopeGuardText {
+  margin: 6px 0 0;
+  color: #475569;
+  font-size: 13px;
+  line-height: 1.5;
+}

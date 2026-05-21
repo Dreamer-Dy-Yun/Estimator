@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useState } from 'react'
-import { getSelfSales, getSelfSalesScatterGrid } from '../../api'
+import { getCompanyUuidForOptionalScope, getSelfSales, getSelfSalesScatterGrid, isAllCompanyUuid } from '../../api'
+import { useAuth } from '../../auth/AuthContext'
 import type { SelfSalesRow } from '../../types'
 import { selfSalesWeightedMarginRate, selfSalesWeightedOpMarginRate } from '../../utils/analysisKpiWeighted'
 import { clampForecastMonths, readForecastMonthsFromStorage, writeForecastMonthsToStorage } from '../../utils/forecastMonthsStorage'
@@ -30,6 +31,7 @@ import type { AnalysisScatterGridPoint } from '../model/analysisScatterGridPoint
 const EMPTY_SELF_ROWS: SelfSalesRow[] = []
 
 export const SelfPage = () => {
+  const { selectedCompanyUuid } = useAuth()
   const [bulkAddOpen, setBulkAddOpen] = useState(false)
   const [forecastMonths, setForecastMonths] = useState(() => readForecastMonthsFromStorage())
   const [orderedSkuGroupKeys, setOrderedSkuGroupKeys] = useState<string[]>([])
@@ -59,7 +61,8 @@ export const SelfPage = () => {
     setWholeRange,
     onPeriodBarStart,
     onPeriodBarEnd,
-  } = useAnalysisSalesFilters()
+  } = useAnalysisSalesFilters(getCompanyUuidForOptionalScope(selectedCompanyUuid))
+  const isAllCompanySelected = isAllCompanyUuid(selectedCompanyUuid)
   const loadRows = useCallback(() => getSelfSales(salesParams), [salesParams])
   const loadScatterGrid = useCallback(() => getSelfSalesScatterGrid(salesParams), [salesParams])
   const rowsRequest = useDashboardRequest(loadRows, EMPTY_SELF_ROWS)
@@ -87,6 +90,10 @@ export const SelfPage = () => {
     toggleAllVisibleRows,
     clearBulkSelection,
   } = useAnalysisVisibleSelection(rows, scatterGrid)
+  const bulkAddDisabled = isAllCompanySelected || bulkSelectedCount === 0
+  const bulkAddTitle = isAllCompanySelected
+    ? '전체 선택 상태에서는 후보군에 추가할 수 없습니다. 한아INT 또는 T1글로벌을 선택하세요.'
+    : undefined
   const summaryBundleState = useProductDrawerBundleState(selectedSkuGroupKey)
   const summaryBundle = summaryBundleState.bundle
 
@@ -152,7 +159,8 @@ export const SelfPage = () => {
                   type="button"
                   className={`${styles.actionBtn} ${styles.btnPrimary} ${styles.analysisBulkAddButton}`}
                   onClick={() => setBulkAddOpen(true)}
-                  disabled={bulkSelectedCount === 0}
+                  disabled={bulkAddDisabled}
+                  title={bulkAddTitle}
                 >
                   선택한 물품을 후보군으로
                 </button>

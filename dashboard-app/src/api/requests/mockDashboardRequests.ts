@@ -10,6 +10,7 @@ import type {
   ProductSalesInsightParams,
   ProductSecondaryDetail,
   ProductSecondaryDetailParams,
+  SalesFilterMetaParams,
   ScatterSalesGridResponse,
   SecondaryAiCommentParams,
   SecondaryAiCommentResult,
@@ -84,6 +85,10 @@ function getCandidateStashExcelTemplateDownload(): CandidateStashExcelTemplateDo
   }
 }
 
+async function getSalesFilterMeta(params?: SalesFilterMetaParams) {
+  return mockDashboardApi.getSalesFilterMeta(params)
+}
+
 async function getSecondaryStockOrderCalc(
   params: SecondaryStockOrderCalcParams,
 ): Promise<SecondaryStockOrderCalcResult> {
@@ -107,7 +112,7 @@ export const mockDashboardRequests: DashboardApi = {
   getCompetitorSales: (params): Promise<CompetitorSalesRow[]> => mockDashboardApi.getCompetitorSales(params),
   getSelfSalesScatterGrid,
   getCompetitorSalesScatterGrid,
-  getSalesFilterMeta: () => mockDashboardApi.getSalesFilterMeta(),
+  getSalesFilterMeta,
   getProductDrawerBundle: (skuGroupKey) => mockDashboardApi.getProductDrawerBundle(skuGroupKey),
   getProductMonthlyTrend,
   getProductSalesInsight,

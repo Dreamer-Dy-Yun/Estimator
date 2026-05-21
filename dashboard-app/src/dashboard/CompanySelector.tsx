@@ -1,0 +1,121 @@
+import { useId, type ChangeEvent } from 'react'
+import { useAuth } from '../auth/AuthContext'
+import styles from './companySelector.module.css'
+
+const EMPTY_LABEL = '회사 미선택'
+
+function getErrorMessage(error: string | null) {
+  if (!error) return ''
+  return error
+}
+
+export function CompanySelector() {
+  const selectId = useId()
+  const {
+    companies,
+    selectedCompanyUuid,
+    selectedCompany,
+    isCompanyLoading,
+    companyError,
+    selectCompany,
+  } = useAuth()
+  const errorMessage = getErrorMessage(companyError)
+  const selectedValue = selectedCompanyUuid ?? selectedCompany?.uuid ?? ''
+  const hasInvalidCompany = companies.some((company) => !company.uuid)
+
+  const handleChange = (event: ChangeEvent<HTMLSelectElement>) => {
+    const nextCompanyUuid = event.target.value
+
+    if (!nextCompanyUuid || nextCompanyUuid === selectedValue) return
+
+    selectCompany(nextCompanyUuid)
+  }
+
+  if (isCompanyLoading) {
+    return (
+      <div className={styles.selectorShell} role="status" aria-live="polite">
+        <div className={`${styles.control} ${styles.muted}`}>
+          <span className={styles.label}>자사</span>
+          <span className={styles.value}>불러오는 중</span>
+        </div>
+      </div>
+    )
+  }
+
+  if (errorMessage) {
+    return (
+      <div className={styles.selectorShell} role="status" aria-live="polite">
+        <div className={`${styles.control} ${styles.error}`} title={errorMessage}>
+          <span className={styles.label}>자사</span>
+          <span className={styles.value}>{errorMessage}</span>
+        </div>
+      </div>
+    )
+  }
+
+  if (hasInvalidCompany) {
+    return (
+      <div className={styles.selectorShell} role="status" aria-live="polite">
+        <div className={`${styles.control} ${styles.error}`}>
+          <span className={styles.label}>자사</span>
+          <span className={styles.value}>회사 식별자 누락</span>
+        </div>
+      </div>
+    )
+  }
+
+  if (companies.length === 0) {
+    return (
+      <div className={styles.selectorShell} role="status" aria-live="polite">
+        <div className={`${styles.control} ${styles.muted}`}>
+          <span className={styles.label}>자사</span>
+          <span className={styles.value}>{EMPTY_LABEL}</span>
+        </div>
+      </div>
+    )
+  }
+
+  if (companies.length === 1) {
+    const company = companies[0]
+    const companyLabel = company.name || company.uuid || EMPTY_LABEL
+
+    return (
+      <div className={styles.selectorShell}>
+        <div className={styles.control} title={companyLabel}>
+          <span className={styles.label}>자사</span>
+          <span className={styles.value}>{companyLabel}</span>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className={styles.selectorShell}>
+      <div className={styles.control}>
+        <label className={styles.label} htmlFor={selectId}>
+          자사
+        </label>
+        <select
+          id={selectId}
+          className={styles.select}
+          value={selectedValue}
+          onChange={handleChange}
+          aria-label="자사 선택"
+        >
+          {!selectedValue ? (
+            <option value="" disabled>
+              회사를 선택하세요
+            </option>
+          ) : null}
+          {companies.map((company) => {
+            return (
+              <option key={company.uuid} value={company.uuid}>
+                {company.name || company.uuid}
+              </option>
+            )
+          })}
+        </select>
+      </div>
+    </div>
+  )
+}

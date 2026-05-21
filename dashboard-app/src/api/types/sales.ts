@@ -1,5 +1,7 @@
+import type { CompanyScopeParams } from './company'
+
 /** Query params for self sales list (keep in sync with backend when wired). */
-export interface SelfSalesParams {
+export interface SelfSalesParams extends CompanyScopeParams {
   startDate?: string
   endDate?: string
   brand?: string
@@ -18,6 +20,8 @@ export interface CompetitorSalesParams extends SelfSalesParams {
 }
 
 /** Filter and period UI metadata shared by self and competitor sales analysis. */
+export type SalesFilterMetaParams = CompanyScopeParams
+
 export interface SalesFilterMeta {
   brands: string[]
   categories: string[]

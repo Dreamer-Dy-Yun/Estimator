@@ -1,5 +1,6 @@
 export { adminGoogleSheetRequests } from './adminGoogleSheetRequests'
 export { adminGptKeyRequests } from './adminGptKeyRequests'
 export { authRequests } from './authRequests'
+export { companyRequests } from './companyRequests'
 export { dashboardRequests } from './dashboardRequests'
 export { inventoryArrivalRequests } from './inventoryArrivalRequests'

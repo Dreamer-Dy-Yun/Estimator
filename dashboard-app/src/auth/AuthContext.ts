@@ -1,13 +1,25 @@
 import { createContext, useContext } from 'react'
-import type { AuthSession, ChangePasswordPayload, LoginRequest, UpdateAuthUserPayload } from '../api'
+import type {
+  AuthSession,
+  ChangePasswordPayload,
+  CompanySummary,
+  LoginRequest,
+  UpdateAuthUserPayload,
+} from '../api'
 
 export type AuthContextValue = {
   session: AuthSession | null
   isLoading: boolean
+  companies: CompanySummary[]
+  selectedCompanyUuid: string | null
+  selectedCompany: CompanySummary | null
+  isCompanyLoading: boolean
+  companyError: string | null
   refreshSession(): Promise<AuthSession | null>
   login(payload: LoginRequest): Promise<AuthSession>
   updateUser(payload: UpdateAuthUserPayload): Promise<AuthSession>
   changePassword(payload: ChangePasswordPayload): Promise<void>
+  selectCompany(companyUuid: string): void
   logout(): Promise<void>
 }
 

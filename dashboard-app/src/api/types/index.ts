@@ -31,10 +31,19 @@ export type {
   UpdateAdminUserPayload,
   UpdateAuthUserPayload,
 } from './auth'
+export {
+  ALL_COMPANY_UUID,
+  getCompanyUuidForOptionalScope,
+  isAllCompanyScope,
+  isAllCompanyUuid,
+  normalizeCompanyScopeParams,
+} from './company'
+export type { CompanyApi, CompanyScopeParams, CompanySummary } from './company'
 export type {
   CompetitorSalesGridParams,
   CompetitorSalesParams,
   SalesFilterMeta,
+  SalesFilterMetaParams,
   ScatterGridAxisMeta,
   ScatterGridBinParams,
   ScatterGridCell,

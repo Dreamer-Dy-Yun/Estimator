@@ -27,9 +27,9 @@
 | 알고 싶은 것 | 먼저 볼 문서 | 대표 소스 |
 |------|------|------|
 | 저장소 루트, 빌드, 라우팅, e2e 경계 | [repository-runtime.md](./boundaries/repository-runtime.md) | `.github/`, `dashboard-app/vite.config.ts`, `dashboard-app/e2e` |
-| API facade, mock/HTTP runtime mode, 실패 kind, 타입 계약 위치 | [api-contracts.md](./boundaries/api-contracts.md) | `dashboard-app/src/api` |
+| API facade, mock/HTTP runtime mode, 실패 kind, 타입 계약 위치, 회사 목록과 company scope | [api-contracts.md](./boundaries/api-contracts.md) | `dashboard-app/src/api` |
 | 로그인, 세션, 관리자 사용자/GPT/구글 시트 관리 | [auth-admin.md](./boundaries/auth-admin.md) | `dashboard-app/src/auth`, `dashboard-app/src/admin` |
-| 자사/경쟁사 분석, 필터, 산점도, 분석 리스트 | [analysis-pages.md](./boundaries/analysis-pages.md) | `dashboard-app/src/dashboard/pages`, `dashboard-app/src/dashboard/components/*AnalysisList.tsx` |
+| 자사/경쟁사 분석, 필터, 산점도, 분석 리스트, 후보군 추가 제한 | [analysis-pages.md](./boundaries/analysis-pages.md) | `dashboard-app/src/dashboard/pages`, `dashboard-app/src/dashboard/components/*AnalysisList.tsx` |
 | 오더 후보군, 이너 후보군, 추천, 상세확정, 엑셀 | [candidate-stash.md](./boundaries/candidate-stash.md) | `dashboard-app/src/dashboard/components/candidate-stash` |
 | 상품 1차/2차 드로워, 스냅샷, AI 코멘트, 재고·발주 계산 | [product-drawer.md](./boundaries/product-drawer.md) | `dashboard-app/src/dashboard/components/product-drawer` |
 | 공통 컴포넌트, hooks/model/interaction/drawer, snapshot, utils | [shared-modules.md](./boundaries/shared-modules.md) | `dashboard-app/src/components`, `dashboard-app/src/dashboard/hooks`, `dashboard-app/src/utils` |
@@ -44,7 +44,7 @@
 
 | 변경 내용 | 같이 갱신할 문서 |
 |------|------|
-| 새 API 메서드, 응답 DTO, SSE 이벤트, API 실패 kind, mock/HTTP adapter 변경 | [api-contracts.md](./boundaries/api-contracts.md), [../backend-api/backend-api-spec.md](../backend-api/backend-api-spec.md) |
+| 새 API 메서드, 응답 DTO, SSE 이벤트, API 실패 kind, mock/HTTP adapter, company scope 변경 | [api-contracts.md](./boundaries/api-contracts.md), [../backend-api/backend-api-spec.md](../backend-api/backend-api-spec.md) |
 | 자사/경쟁사 분석 필터, 기간 조회 방식, 산점도, 순위, 후보군 담기 변경 | [analysis-pages.md](./boundaries/analysis-pages.md), [qa-current-behavior.md](./qa-current-behavior.md) |
 | 후보군 상세 조회, 추천, 배지, 오더 지표 SSE, 상세확정/해제/삭제, 상세 목록 재조회 실패 표시, 엑셀 변경 | [candidate-stash.md](./boundaries/candidate-stash.md), [../backend-api/backend-api-spec.md](../backend-api/backend-api-spec.md), [qa-current-behavior.md](./qa-current-behavior.md) |
 | 상품 드로워, 스냅샷 저장 범위, AI 코멘트, 재고·발주 계산 변경 | [product-drawer.md](./boundaries/product-drawer.md), [../backend-api/backend-api-spec.md](../backend-api/backend-api-spec.md), [qa-current-behavior.md](./qa-current-behavior.md) |
@@ -86,3 +86,12 @@
 - 백엔드가 제공해야 할 비즈니스 값을 프론트가 임의로 만들고 있지 않은가?
 - 기능 이름과 파일/함수/컴포넌트 이름이 실제 책임을 정확히 말하는가?
 - 하드닝 완료 파일을 수정해야 한다면 사용자에게 명시적 허가를 받았는가?
+
+## Company selector source boundary
+
+- Company selector 관련 문서 기준은 API 계약, header/auth boundary, 분석 페이지 boundary, 후보군 boundary, QA 기준, backend API spec으로 나뉜다.
+- API 계약 문서는 company list 응답을 `uuid`, `name` 중심의 dropdown 계약으로 다루고, `전체` 선택 시 `companyUuid` 생략 규칙을 함께 다룬다.
+- header boundary는 selector 위치를 업무 탭과 유틸리티 액션 사이로 고정하고, selector 책임을 전역 선택 상태까지로 제한한다.
+- 자사/경쟁사 분석 boundary는 단일 회사 선택 시 분석 API 요청에 `companyUuid`가 포함된다는 정책을 소유한다.
+- 후보군 boundary는 `전체` 선택 상태에서 오더 후보군 탭과 후보군 추가 액션을 비활성화하고, 오더 후보군 페이지 내부 제한 안내를 표시한다는 정책을 소유한다.
+- 사용자별 회사 접근 권한 부여는 현재 source boundary 범위가 아니다. 권한 정책이 추가되면 `auth-admin.md`, `api-contracts.md`, backend API spec을 함께 갱신한다.

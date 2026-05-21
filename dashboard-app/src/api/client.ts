@@ -2,6 +2,7 @@ import {
   adminGoogleSheetRequests,
   adminGptKeyRequests,
   authRequests,
+  companyRequests,
   dashboardRequests,
   inventoryArrivalRequests,
 } from './requests'
@@ -16,6 +17,8 @@ export const updateAdminUser = authRequests.updateAdminUser
 export const resetAdminUserPassword = authRequests.resetAdminUserPassword
 export const deleteAdminUser = authRequests.deleteAdminUser
 export const logout = authRequests.logout
+
+export const getCompanies = companyRequests.getCompanies
 
 export const getAdminGptKeys = adminGptKeyRequests.getAdminGptKeys
 export const createAdminGptKey = adminGptKeyRequests.createAdminGptKey

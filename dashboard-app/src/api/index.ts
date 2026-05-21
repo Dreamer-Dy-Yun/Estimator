@@ -1,6 +1,13 @@
 export { API_ADAPTER_MODE, ApiHttpError, USE_MOCK_API } from './requests/httpClient'
 export type { ApiAdapterMode } from './requests/httpClient'
 export { classifyApiFailureStatus, getApiErrorDisplayMessage, isApiErrorResponse } from './types/api-error'
+export {
+  ALL_COMPANY_UUID,
+  getCompanyUuidForOptionalScope,
+  isAllCompanyScope,
+  isAllCompanyUuid,
+  normalizeCompanyScopeParams,
+} from './types'
 export type {
   AdminGptKeyApi,
   AdminGptKeyPurpose,
@@ -17,6 +24,9 @@ export type {
   AuthSession,
   AuthUser,
   ChangePasswordPayload,
+  CompanyApi,
+  CompanyScopeParams,
+  CompanySummary,
   CompetitorSalesParams,
   DashboardApi,
   DashboardEventStreamErrorListener,
@@ -68,6 +78,7 @@ export type {
   CreateAdminGoogleSheetConfigPayload,
   CreateAdminUserPayload,
   SalesFilterMeta,
+  SalesFilterMetaParams,
   SelfSalesParams,
   UpdateAdminGptKeyPayload,
   UpdateAdminGoogleSheetConfigPayload,
@@ -93,6 +104,7 @@ export {
   getAdminGptKeys,
   getAdminGoogleSheetConfigs,
   getAdminUsers,
+  getCompanies,
   getCurrentAuthSession,
   getCompetitorSales,
   getCompetitorSalesScatterGrid,

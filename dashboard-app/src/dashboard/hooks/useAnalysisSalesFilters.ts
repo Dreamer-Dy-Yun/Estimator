@@ -20,7 +20,7 @@ function filterParam(value: string): string | undefined {
   return trimmed && trimmed !== ALL_OPTION ? trimmed : undefined
 }
 
-export function useAnalysisSalesFilters() {
+export function useAnalysisSalesFilters(companyUuid?: string) {
   const [brandOptions, setBrandOptions] = useState<string[]>(EMPTY_OPTIONS)
   const [brandFilter, setBrandFilter] = useState(ALL_OPTION)
   const [categoryOptions, setCategoryOptions] = useState<string[]>(EMPTY_OPTIONS)
@@ -41,7 +41,8 @@ export function useAnalysisSalesFilters() {
 
   useEffect(() => {
     let alive = true
-    void getSalesFilterMeta().then(({ brands, categories, codes, colorCodes, productNames, historicalMonths: months }) => {
+    const params = companyUuid ? { companyUuid } : undefined
+    void getSalesFilterMeta(params).then(({ brands, categories, codes, colorCodes, productNames, historicalMonths: months }) => {
       if (!alive) return
       setBrandOptions([ALL_OPTION, ...brands])
       setCategoryOptions([ALL_OPTION, ...categories])
@@ -53,7 +54,7 @@ export function useAnalysisSalesFilters() {
     return () => {
       alive = false
     }
-  }, [])
+  }, [companyUuid])
 
   const salesParams = useMemo<SelfSalesParams>(() => ({
     startDate: appliedPeriod.startDate,
@@ -63,6 +64,7 @@ export function useAnalysisSalesFilters() {
     codeQuery: filterParam(codeFilter),
     nameQuery: filterParam(productNameFilter),
     colorCode: filterParam(colorCodeFilter),
+    ...(companyUuid ? { companyUuid } : {}),
   }), [
     appliedPeriod.startDate,
     appliedPeriod.endDate,
@@ -71,6 +73,7 @@ export function useAnalysisSalesFilters() {
     codeFilter,
     productNameFilter,
     colorCodeFilter,
+    companyUuid,
   ])
 
   const filterFields = useMemo<FilterField[]>(() => [

@@ -8,7 +8,9 @@ import {
   updateCandidateStash,
   type CandidateStashExcelUploadResult,
   type CandidateStashSummary,
+  isAllCompanyUuid,
 } from '../../api'
+import { useAuth } from '../../auth/AuthContext'
 import { useAppToast } from '../../components/AppToastContext'
 import { LoadingSpinner } from '../../components/LoadingSpinner'
 import styles from '../components/common.module.css'
@@ -39,6 +41,8 @@ const candidateStashTemplateDownload = getCandidateStashExcelTemplateDownload()
 
 export const SnapshotConfirmPage = () => {
   const { showToast } = useAppToast()
+  const { selectedCompanyUuid } = useAuth()
+  const isAllCompanySelected = isAllCompanyUuid(selectedCompanyUuid)
   const [stashes, setStashes] = useState<CandidateStashSummary[]>([])
   const [openDetailStashUuid, setOpenDetailStashUuid] = useState<string | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<CandidateStashSummary | null>(null)
@@ -62,6 +66,11 @@ export const SnapshotConfirmPage = () => {
   const [uploadDragActive, setUploadDragActive] = useState(false)
 
   const loadStashes = useCallback(async () => {
+    if (isAllCompanySelected) {
+      setStashesLoading(false)
+      return
+    }
+
     const seq = loadStashesSeqRef.current + 1
     loadStashesSeqRef.current = seq
     setStashesLoading(true)
@@ -72,7 +81,7 @@ export const SnapshotConfirmPage = () => {
     } finally {
       if (mountedRef.current && loadStashesSeqRef.current === seq) setStashesLoading(false)
     }
-  }, [])
+  }, [isAllCompanySelected])
 
   useEffect(() => {
     mountedRef.current = true
@@ -164,6 +173,23 @@ export const SnapshotConfirmPage = () => {
   }
 
   const selectedDetailStash = stashes.find((stash) => stash.uuid === openDetailStashUuid)
+
+  if (isAllCompanySelected) {
+    return (
+      <section className={`${styles.page} ${pageStyles.snapshotPage}`}>
+        <div className={pageStyles.scopeGuard} role="status" aria-live="polite">
+          <div>
+            <strong className={pageStyles.scopeGuardTitle}>
+              전체 선택 상태에서는 오더 후보군을 사용할 수 없습니다.
+            </strong>
+            <p className={pageStyles.scopeGuardText}>
+              오더 후보군은 회사 단위 확정 데이터로 관리됩니다. 헤더에서 한아INT 또는 T1글로벌을 선택하세요.
+            </p>
+          </div>
+        </div>
+      </section>
+    )
+  }
 
   return (
     <section className={`${styles.page} ${pageStyles.snapshotPage}`}>

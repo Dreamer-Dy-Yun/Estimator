@@ -5,7 +5,7 @@
 | 작성 지시 | Yun Daeyoung |
 | 작성자 | Codex |
 | 작성일 | 2026-04-23 |
-| 최종 수정일 | 2026-05-20 |
+| 최종 수정일 | 2026-05-21 |
 | 상태 | 유지 문서 |
 | 적용 범위 | `dashboard-app/src/api/types`, `dashboard-app/src/api/requests`, 백엔드 REST API 계약 |
 
@@ -55,7 +55,15 @@
 - **`uuid`**: 후보 스태시·후보 아이템 등 **서버 생성 UUID** 문자열.
 - 오더 스냅샷은 현재 독립 저장 API가 아니라 후보 아이템의 `details` JSON으로만 저장·복원합니다.
 
-### 1.4 인증·에러
+### 1.4 회사 스코프
+
+회사 선택은 프론트 헤더의 전역 dropdown에서 관리한다. 로그인 직후 프론트는 `CompanyApi.getCompanies()`를 호출해 선택 가능한 회사 목록을 가져오며, 실제 백엔드는 COMPANY 테이블의 `uuid`, `name`을 내려준다. 현재 확정된 프론트 mock 목록은 `전체`, `한아INT`, `T1글로벌`이다.
+
+`전체` 선택은 실제 회사 UUID 조건이 아니라 company scope를 비우는 UI 의미다. 프론트 HTTP adapter는 `전체`일 때 `companyUuid` query parameter를 생략하고, 백엔드는 해당 업무 조회에서 회사 `WHERE` 조건을 제거해 전체 회사를 조회한다. 단일 회사 선택 시 자사/경쟁사 분석 계열 요청에는 `companyUuid`를 포함한다.
+
+현재 범위에서 사용자별 회사 접근 권한 부여는 구현 범위가 아니다. 백엔드는 인증된 사용자가 볼 수 있는 회사 목록을 정하는 정책을 별도로 확정할 수 있으나, 프론트는 임의 권한 flag나 소유권 값을 만들지 않는다.
+
+### 1.5 인증·에러
 
 - 프론트는 `/login`과 `/dashboard/*` 보호 라우트를 분리합니다. 인증 계약은 `src/api/types/auth.ts`의 `AuthApi`가 소유합니다.
 - 목 구현은 동작 확인용으로 로그인 입력값을 검증하지 않고 통과시키며 세션은 런타임 메모리에만 둡니다. `mock-user` ID는 일반 사용자 권한 확인용이고, 그 외 입력은 관리자 권한으로 처리합니다. 사용자 목록/후보군 목록의 실제 변경은 백엔드 DB가 소유해야 하며, 프론트 mock은 mutation 응답 흐름만 모사합니다. 실제 백엔드에서는 가능하면 **HttpOnly cookie 기반 세션**을 권장합니다.
@@ -970,6 +978,7 @@ badges: [
 ## 7. 참조 소스 파일
 
 - [`dashboard-app/src/api/types/dashboard-api.ts`](../../dashboard-app/src/api/types/dashboard-api.ts)
+- [`dashboard-app/src/api/types/company.ts`](../../dashboard-app/src/api/types/company.ts)
 - [`dashboard-app/src/api/types/auth.ts`](../../dashboard-app/src/api/types/auth.ts)
 - [`dashboard-app/src/api/types/candidate.ts`](../../dashboard-app/src/api/types/candidate.ts)
 - [`dashboard-app/src/api/types/snapshot.ts`](../../dashboard-app/src/api/types/snapshot.ts)
@@ -1040,16 +1049,46 @@ badges: [
 
 기본 bucket size는 최초 12분할 기준 bucket의 약 70%로 잡아 더 촘촘한 격자를 만든다. 프론트가 `xBucketSize`/`yBucketSize`를 명시하면 백엔드는 요청값을 우선하고, 응답 `meta.xAxis.bucketSize`/`meta.yAxis.bucketSize`에 실제 사용값을 내려준다. 산점도 격자 집계는 백엔드 책임이다. 수만 행 규모의 원본 행을 프론트로 내려서 브라우저에서 binning하지 않는다. 셀 색상과 표시 반지름은 백엔드가 주지 않고, 프론트가 `count`, 현재 응답의 최대 count, 응답 `meta`, 실제 차트 크기로 계산한다.
 
-## 8. 2026-05-21 API ?? ??? ? ??? ?? ??
+## 8. 2026-05-21 API 런타임 모드와 실패 정규화 기준
 
-?? ??? API ???? `dashboard-app/src/api/index.ts`? `API_ADAPTER_MODE`? ???? mock/http ???? ????.
+프론트 API 런타임 모드는 `dashboard-app/src/api/index.ts`의 `API_ADAPTER_MODE`로 mock/http 경계를 구분한다.
 
-- `API_ADAPTER_MODE` ?? `mock` ?? `http`??.
-- `mock`? `src/api/mock/*` ?? ???? ????.
-- `http`? `VITE_API_BASE_URL`? `src/api/requests/httpClient.ts` ?? ?? ???? ????.
-- ?? ??? ?? ??? `ApiClientError`?? HTTP ?? ??? `ApiHttpError`? ????.
-- `ApiClientError.kind`? `network`, `timeout`, `parse`, `stream-protocol`, `auth`, `permission`, `validation`, `server` ? UI ?? ??? ?? ????.
-- 401? `auth`, 403? `permission`?? ??? ??? ??? ?? ?? UX? ??? ?? ??.
-- SSE ??/????/JSON ?? ??? ?? ? ???? ??? `stream-protocol` ?? transport ??? ????.
+- `API_ADAPTER_MODE` 값은 `mock` 또는 `http`다.
+- `mock`은 `src/api/mock/*`의 계약 대체 구현을 사용한다.
+- `http`는 `VITE_API_BASE_URL`과 `src/api/requests/httpClient.ts` 경계를 통해 실제 백엔드로 요청한다.
+- 네트워크/timeout/parse 실패는 `ApiClientError`, HTTP 실패는 `ApiHttpError`로 정규화한다.
+- `ApiClientError.kind`는 `network`, `timeout`, `parse`, `stream-protocol`, `auth`, `permission`, `validation`, `server` 등 UI 정책 분기에 사용할 수 있는 값을 유지한다.
+- 401은 인증 실패, 403은 권한 실패로 구분해 UX 문구를 다르게 표시한다.
+- SSE 연결 실패, 프로토콜 오류, JSON parse 실패는 transport 실패로 숨기지 않고 `stream-protocol` 등 명시적 실패로 전달한다.
 
-??? ?? ?? ??? ??? ? ??? ???? ??. `candidateItemsLoadError`? ???? ??? ?? ??? ????, ?? ??? ??? ????/?? ??? ?? ? ??? ??? ???.
+후보군 상세 조회 실패처럼 기존 데이터가 남아 있는 화면은 빈 배열 성공으로 수렴하지 않고, 기존 데이터 유지와 최신화 실패 surface를 함께 보여준다.
+
+## 9. Company list and company scope contract
+
+Company list API는 header company selector dropdown을 위한 최소 계약이다. 실제 백엔드는 COMPANY 테이블의 `uuid`, `name`을 사용한다.
+
+| Contract method | Suggested HTTP | Suggested path | Response |
+|------|------|------|------|
+| `getCompanies()` | GET | `/companies` | `CompanySummary[]` |
+
+**`CompanySummary`**
+
+| Field | Type | Description |
+|------|------|------|
+| `uuid` | string | 회사 식별자. dropdown 선택값과 단일 회사 scope query의 기준 id이다. |
+| `name` | string | dropdown에 표시할 회사명이다. mock 기준 값은 `전체`, `한아INT`, `T1글로벌`이다. |
+
+**회사 scope query 정책**
+
+| 선택 상태 | 프론트 요청 | 백엔드 조회 기준 |
+|------|------|------|
+| `전체` | `companyUuid` 생략 | 회사 `WHERE` 조건을 적용하지 않는다. |
+| `한아INT`, `T1글로벌` 등 단일 회사 | `companyUuid=<CompanySummary.uuid>` 포함 | 해당 회사 UUID 조건을 적용한다. |
+
+- `전체`는 프론트 dropdown의 scope 선택지이며, 특정 회사 row의 업무 데이터 필터로 쓰지 않는다.
+- 자사/경쟁사 분석 목록, 산점도, filter meta 요청은 단일 회사 선택 시 `companyUuid` query를 포함한다.
+- `GET /sales/self`, `GET /sales/self/scatter-grid`, `GET /sales/competitor`, `GET /sales/competitor/scatter-grid`, `GET /sales/filter-meta`는 `companyUuid` 생략 시 전체 회사 기준으로 해석한다.
+- 오더 후보군은 단일 회사 기준 업무 흐름이다. 프론트는 `전체` 선택 상태에서 오더 후보군 탭과 자사/경쟁사 후보군 추가 액션을 비활성화한다.
+- 백엔드 사용자별 회사 접근 권한 부여는 현재 범위가 아니다. 권한 정책이 추가되면 `/companies` 응답 범위, 403 기준, 업무 API scope 검증을 함께 문서화해야 한다.
+- backend는 dropdown 편의를 위해 의미 없는 scope flag, 집계 값, 가짜 성공 상태를 추가하지 않는다.
+- 인증 실패는 401, 권한 실패는 403의 기존 오류 정책을 따른다.

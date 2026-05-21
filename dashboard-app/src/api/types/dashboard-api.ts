@@ -14,6 +14,7 @@ import type {
   CompetitorSalesGridParams,
   CompetitorSalesParams,
   SalesFilterMeta,
+  SalesFilterMetaParams,
   SelfSalesGridParams,
   SelfSalesParams,
   ScatterSalesGridResponse,
@@ -71,7 +72,7 @@ export interface DashboardApi {
   getCompetitorSalesScatterGrid(
     params?: CompetitorSalesGridParams,
   ): Promise<ScatterSalesGridResponse>
-  getSalesFilterMeta(): Promise<SalesFilterMeta>
+  getSalesFilterMeta(params?: SalesFilterMetaParams): Promise<SalesFilterMeta>
   getProductDrawerBundle(skuGroupKey: string): Promise<ProductDrawerBundle>
   getProductMonthlyTrend(skuGroupKey: string, params: ProductMonthlyTrendParams): Promise<ProductMonthlyTrend>
   getProductSalesInsight(skuGroupKey: string, params: ProductSalesInsightParams): Promise<ProductSalesInsight>

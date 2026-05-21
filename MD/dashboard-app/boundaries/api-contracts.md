@@ -5,7 +5,7 @@
 | 작성 지시 | Yun Daeyoung |
 | 작성자 | Codex |
 | 작성일 | 2026-05-19 |
-| 최종 수정일 | 2026-05-20 |
+| 최종 수정일 | 2026-05-21 |
 | 상태 | 유지 문서 |
 | 적용 범위 | `dashboard-app/src/api`, mock/HTTP adapter, API 타입 계약 |
 
@@ -24,6 +24,7 @@
 | `api/client.ts` | 화면에서 호출하는 API 함수와 `dashboardApi` 객체를 노출하는 facade |
 | `api/index.ts` | API public export |
 | `api/requests/*` | mock/HTTP adapter 선택과 실제 요청 경계 |
+| `api/requests/companyRequests.ts` | 로그인 직후 header company selector가 사용하는 회사 목록 adapter |
 | `api/requests/httpClient.ts` | `VITE_API_BASE_URL`, JSON/FormData 요청, `ApiHttpError` 생성, EventSource SSE 구독 |
 | `api/mock.ts` | request adapter가 사용하는 mock API 진입 파일. 화면은 import하지 않는다 |
 
@@ -33,6 +34,7 @@
 |------|-----------|
 | `types/dashboard-api.ts` | `DashboardApi` 전체 인터페이스 |
 | `types/auth.ts` | 로그인, 세션, 사용자 정보, 비밀번호 변경 |
+| `types/company.ts` | 회사 목록, `전체` sentinel, 업무 API company scope helper |
 | `types/admin-gpt-key.ts` | GPT 키 관리 |
 | `types/admin-google-sheet.ts` | Google Sheets API 설정 관리 |
 | `types/api-error.ts` | 공통 실패 응답(`ApiErrorResponse`)과 HTTP status to `ApiFailureKind` 분류 |
@@ -67,6 +69,7 @@
 - `dashboardRequests.ts`는 `VITE_USE_MOCK_API`에 따라 mock/HTTP dashboard adapter를 선택하고 master data cache decorator를 적용하는 얇은 진입점이다.
 - `mockDashboardRequests.ts`는 현재 세션의 `USER_ACCOUNT.uuid`를 request boundary에서만 붙인다. 화면 내부로 사용자 UUID를 흘리지 않는다.
 - `httpDashboardRequests.ts`는 실제 백엔드 endpoint 경로를 `DashboardApi` 계약에 맞춰 연결한다.
+- 자사/경쟁사 분석 계열 adapter는 단일 회사 선택 시 `companyUuid` query를 포함하고, `전체` 선택 시 query를 생략한다. 생략은 백엔드가 회사 where 조건을 제거한다는 계약이다.
 - `dashboardMasterDataCache.ts`는 page와 공통 drawer가 공유하는 master data 요청을 coalesce한다. mutation 후 무효화 대상이 아닌 master data만 캐시한다.
 - 관리자 Google Sheets mock은 서비스 계정 키를 JSON으로 parse해 `client_email`을 확인한다. 잘못된 JSON을 정규식 등으로 보정하지 않는다.
 - HTTP 실패는 `httpClient.ts`에서 `ApiHttpError`로 변환한다. 기존 화면은 `error.message`만 읽어도 동작해야 하며, 새 호출부는 필요할 때 `status`, `kind`, `code`, `body`를 참조한다.
@@ -80,10 +83,22 @@ API 계약이 바뀌면 [../../backend-api/backend-api-spec.md](../../backend-ap
 
 백엔드는 프론트 타입 정의와 응답 JSON 필드명이 1:1로 맞아야 한다. 특히 후보군/스냅샷/SSE 계약은 프론트가 API 응답을 신뢰하고 과도하게 정규화하지 않는다는 전제로 동작한다.
 
-## 2026-05-21 ?? ? ?? ?? ??
+## 2026-05-21 API 런타임과 실패 상태 경계
 
-- API ?? ?? ??? `API_ADAPTER_MODE`??. ?? ??? ??? ??? ??? API ??? ????? `API_RUNTIME_MODE`?? ??? ???? ???.
-- ??? ?? `mock`? `http`? ?????. UI ??? Mock API Mode / HTTP API Mode ???? ????.
-- API ??? `ApiClientError` ??? ?????, ??? `kind`? ??? ??? ??? ???? ????.
-- ??? ?? ?? ?? ??? `candidateItemsLoadError`? ???. ?? detail error?? ??? ???? ??? ???? ???.
-- ? ???? ?? ???? ????? ????. ??? `[]`?? ????? ??? ???? ???.
+- API 런타임 모드의 기준 이름은 `API_ADAPTER_MODE`다. UI 표시는 Mock API Mode / HTTP API Mode로 연결한다.
+- 런타임 모드는 `mock` 또는 `http`이며, 화면은 mock 구현을 직접 import하지 않는다.
+- API 실패는 `ApiClientError` 또는 `ApiHttpError`로 정규화하고, 호출부는 필요하면 `kind`를 기준으로 UX 정책을 나눈다.
+- 후보군 상세 기본 목록 실패는 `candidateItemsLoadError`로 유지한다. detail error가 있으면 기존 후보 목록을 비우지 않고 최신화 실패를 드러낸다.
+- 실패를 정상 빈 목록으로 감추지 않는다. 정상 빈 목록과 실패 상태는 API 계약과 화면 surface에서 구분한다.
+
+## Company selector and company scope boundary
+
+- Company list API는 header company selector dropdown을 위한 최소 목록 계약이다.
+- 프론트 dropdown에 필요한 응답 필드는 `uuid`, `name`뿐이다.
+- 실제 백엔드는 COMPANY 테이블의 `uuid`, `name`을 내려주며, 현재 mock 계약은 `전체`, `한아INT`, `T1글로벌`을 포함한다.
+- `전체` 선택은 업무 API 요청에서 `companyUuid`를 생략하는 의미다. 백엔드는 `companyUuid`가 없으면 회사 where 조건을 적용하지 않는다.
+- 단일 회사 선택 시 자사/경쟁사 분석 API, 산점도 API, filter meta 요청은 `companyUuid` query를 포함한다.
+- 오더 후보군은 단일 회사 기준 업무 흐름이므로 `전체` 선택 상태에서는 오더 후보군 탭과 후보군 추가 액션을 비활성화한다.
+- 프론트는 dropdown 표시나 선택 상태 유지를 위해 존재하지 않는 company scope, 권한, 집계 값, business flag를 임의로 생성하지 않는다.
+- 문서상 최소 응답 shape는 `Array<{ uuid: string; name: string }>`이며, API 타입은 interface 우선 원칙을 따른다.
+- 사용자별 회사 접근 권한 부여는 현재 범위가 아니며, 권한 정책 추가 시 `/companies` 응답 범위와 업무 API 403 기준을 같이 갱신한다.
