@@ -1,4 +1,4 @@
-import { isAllCompanyUuid, type CompanySummary } from '../../api'
+﻿import { isAllCompanyUuid, type CompanySummary } from '../../api'
 import { useAuth } from '../../auth/AuthContext'
 
 const FALLBACK_SELF_COMPANY_LABEL = '자사'

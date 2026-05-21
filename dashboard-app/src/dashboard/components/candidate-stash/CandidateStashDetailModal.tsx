@@ -22,7 +22,7 @@ type Props = {
   stashUuid: string
   companyUuid?: string
   downloadUserName?: string
-  /** 목록에서 요약 정보를 전달하면 후보군 목록 API를 한 번 덜 호출한다. */
+  /** Passing the list summary avoids one extra candidate-stash list request. */
   stashSummary?: CandidateStashSummary | null
   onClose: () => void
   onStashesInvalidate?: () => void
@@ -31,7 +31,7 @@ type Props = {
 export function CandidateStashDetailModal({
   stashUuid,
   companyUuid,
-  downloadUserName = '사용자',
+  downloadUserName = '\uC0AC\uC6A9\uC790',
   stashSummary,
   onClose,
   onStashesInvalidate,
@@ -70,7 +70,7 @@ export function CandidateStashDetailModal({
       .map((row) => row.insight.competitorChannelLabel.trim())
       .filter((label) => label.length > 0)
     const uniqueLabels = [...new Set(labels)]
-    return uniqueLabels.length === 1 ? `${uniqueLabels[0]} 기간 총 판매량` : '경쟁사 기간 총 판매량'
+    return uniqueLabels.length === 1 ? `${uniqueLabels[0]} \uAE30\uAC04 \uCD1D \uD310\uB9E4\uB7C9` : '\uACBD\uC7C1\uC0AC \uAE30\uAC04 \uCD1D \uD310\uB9E4\uB7C9'
   }, [model.tableRows])
 
   const openRecommendationModal = () => {

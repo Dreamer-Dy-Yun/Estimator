@@ -1,4 +1,4 @@
-import { useId, type ChangeEvent } from 'react'
+﻿import { useId, type ChangeEvent } from 'react'
 import { useAuth } from '../auth/AuthContext'
 import { getCompanyOptionLabel } from './hooks/useSelfCompanyLabel'
 import styles from './companySelector.module.css'
@@ -59,7 +59,7 @@ export function CompanySelector() {
       <div className={styles.selectorShell} role="status" aria-live="polite">
         <div className={`${styles.control} ${styles.error}`}>
           <span className={styles.label}>회사</span>
-          <span className={styles.value}>회사 식별자 누락</span>
+          <span className={styles.value}>회사 정보를 확인할 수 없습니다</span>
         </div>
       </div>
     )

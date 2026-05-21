@@ -70,7 +70,8 @@
 - `dashboardRequests.ts`는 `VITE_USE_MOCK_API`에 따라 mock/HTTP dashboard adapter를 선택하고 master data cache decorator를 적용하는 얇은 진입점이다.
 - `mockDashboardRequests.ts`는 현재 세션의 `USER_ACCOUNT.uuid`를 request boundary에서만 붙인다. 화면 내부로 사용자 UUID를 흘리지 않는다.
 - `httpDashboardRequests.ts`는 실제 백엔드 endpoint 경로를 `DashboardApi` 계약에 맞춰 연결한다.
-- 회사 소유 업무 데이터 adapter는 단일 회사 선택 시 `companyUuid`를 포함하고, `전체` 선택 시 생략한다. 이 scope는 분석 목록/산점도/filter meta뿐 아니라 후보군, 상품 드로워, 2차 드로워, 오더 계산, SSE, mutation까지 적용된다. 생략은 백엔드가 회사 where 조건을 제거한다는 계약이며, mock adapter도 같은 의미로 데이터 분기/계산을 수행한다.
+- 회사 소유 업무 데이터 adapter는 단일 회사 선택 시 `companyUuid`를 포함하고, `전체` 선택 시 생략한다. 이 scope는 분석 목록/산점도/filter meta뿐 아니라 후보군, 상품 드로워, 2차 드로워, 오더 계산, SSE까지 적용된다. 생략은 백엔드가 회사 where 조건을 제거한다는 조회 계약이며, mock adapter도 같은 의미로 데이터 분기/계산을 수행한다.
+- 후보군 mutation은 단일 회사 scope 전용이다. `전체` 선택 상태에서는 UI에서 후보군 mutation 진입을 막고, mock/HTTP 백엔드는 `companyUuid` 누락 요청을 검증 실패로 처리해야 한다.
 - `dashboardMasterDataCache.ts`는 page와 공통 drawer가 공유하는 master data 요청을 coalesce한다. mutation 후 무효화 대상이 아닌 master data만 캐시한다.
 - 관리자 Google Sheets mock은 서비스 계정 키를 JSON으로 parse해 `client_email`을 확인한다. 잘못된 JSON을 정규식 등으로 보정하지 않는다.
 - HTTP 실패는 `httpClient.ts`에서 `ApiHttpError`로 변환한다. 기존 화면은 `error.message`만 읽어도 동작해야 하며, 새 호출부는 필요할 때 `status`, `kind`, `code`, `body`를 참조한다.
@@ -100,7 +101,7 @@ API 계약이 바뀌면 [../../backend-api/backend-api-spec.md](../../backend-ap
 - `전체` 선택은 업무 API 요청에서 `companyUuid`를 생략하는 의미다. 백엔드는 `companyUuid`가 없으면 회사 where 조건을 적용하지 않는다.
 - 단일 회사 선택 시 회사 소유 업무 데이터 요청은 `companyUuid`를 포함한다. 적용 범위는 자사/경쟁사 분석 API, 산점도 API, filter meta, 후보군, 상품 드로워, 2차 드로워, 오더 계산, SSE, mutation이다.
 - mock의 `한아INT`와 `T1글로벌` scope는 같은 seed를 단순 반환하지 않는다. 판매량/금액, 후보군 stash/item 접근, 오더 지표 SSE 계산은 선택 회사 UUID를 실제 입력으로 사용한다.
-- 오더 후보군은 단일 회사 기준 업무 흐름이므로 `전체` 선택 상태에서는 오더 후보군 탭과 후보군 추가 액션을 비활성화하고 후보군 API를 호출하지 않는다.
+- 오더 후보군은 단일 회사 기준 업무 흐름이므로 `전체` 선택 상태에서는 오더 후보군 탭과 후보군 추가 액션을 비활성화하고 후보군 mutation API를 호출하지 않는다.
 - 프론트는 dropdown 표시나 선택 상태 유지를 위해 존재하지 않는 company scope, 권한, 집계 값, business flag를 임의로 생성하지 않는다.
 - 문서상 최소 응답 shape는 `Array<{ uuid: string; name: string }>`이며, API 타입은 interface 우선 원칙을 따른다.
 - 사용자별 회사 접근 권한 부여는 현재 범위가 아니며, 권한 정책 추가 시 `/companies` 응답 범위와 업무 API 403 기준을 같이 갱신한다.

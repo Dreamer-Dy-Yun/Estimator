@@ -29,8 +29,9 @@ function getCandidateStashForMutation(
   ownerUserUuid?: string,
   companyUuid?: string,
 ): CandidateStashRecord {
-  const stash = findCandidateStashForOwner(stashUuid, ownerUserUuid, companyUuid)
-  if (!stash) {
+  const requiredCompanyUuid = getMockMutationCompanyUuid(companyUuid)
+  const stash = findCandidateStashForOwner(stashUuid, ownerUserUuid, requiredCompanyUuid)
+  if (!stash || stash.companyUuid !== requiredCompanyUuid) {
     throw new Error('후보군을 찾을 수 없습니다.')
   }
   return stash
@@ -69,10 +70,11 @@ function assertKnownProduct(skuGroupKey: string): void {
 }
 
 export function deleteCandidateItemRecord(itemUuid: string, ownerUserUuid?: string, companyUuid?: string): void {
+  const requiredCompanyUuid = getMockMutationCompanyUuid(companyUuid)
   const records = readCandidateItemRecords()
   const index = records.findIndex((it) => it.uuid === itemUuid)
   const row = index >= 0 ? records[index] : undefined
-  if (!row || !findCandidateStashForOwner(row.stashUuid, ownerUserUuid, companyUuid)) {
+  if (!row || !findCandidateStashForOwner(row.stashUuid, ownerUserUuid, requiredCompanyUuid)) {
     throw new Error('후보 아이템을 찾을 수 없습니다.')
   }
   records.splice(index, 1)
@@ -246,8 +248,9 @@ export function updateCandidateItemRecord(
   ownerUserUuid?: string,
   companyUuid?: string,
 ): UpdateCandidateItemResponse {
+  const requiredCompanyUuid = getMockMutationCompanyUuid(companyUuid)
   const item = readCandidateItemRecords().find((row) => row.uuid === payload.itemUuid)
-  if (!item || !findCandidateStashForOwner(item.stashUuid, ownerUserUuid, companyUuid)) {
+  if (!item || !findCandidateStashForOwner(item.stashUuid, ownerUserUuid, requiredCompanyUuid)) {
     throw new Error('후보 아이템을 찾을 수 없습니다.')
   }
 
@@ -264,7 +267,7 @@ export function uploadCandidateStashExcelFile(
   companyUuid?: string,
 ): CandidateStashExcelUploadResult {
   void ownerUserUuid
-  void companyUuid
+  getMockMutationCompanyUuid(companyUuid)
 
   const fileName = file.name.trim()
   const isExcel = /\.(xlsx|xls)$/i.test(fileName)

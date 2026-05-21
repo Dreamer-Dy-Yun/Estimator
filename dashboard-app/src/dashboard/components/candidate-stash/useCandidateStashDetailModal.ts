@@ -202,6 +202,7 @@ export function useCandidateStashDetailModal({
 
   const actions = useCandidateStashItemActions({
     stashUuid,
+    companyUuid,
     detailTarget,
     items,
     itemDeleteTarget,

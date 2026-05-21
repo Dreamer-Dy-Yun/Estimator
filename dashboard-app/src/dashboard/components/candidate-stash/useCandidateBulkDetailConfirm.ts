@@ -33,7 +33,7 @@ interface Args {
 const CLOSE_DELAY_MS = 4000
 
 function getStreamErrorMessage(error: unknown): string {
-  return getApiErrorDisplayMessage(error, '상세 일괄확정 연결이 끊겼습니다.')
+  return getApiErrorDisplayMessage(error, '상세 일괄확정 연결에 실패했습니다.')
 }
 
 export function useCandidateBulkDetailConfirm({
@@ -142,7 +142,7 @@ export function useCandidateBulkDetailConfirm({
           if (event.status === 'failed') {
             closeSubscription()
             setBulkConfirmBusy(false)
-            showToast('상세 일괄확정에 실패했습니다.', { variant: 'error' })
+            showToast('상세 일괄확정이 실패했습니다.', { variant: 'error' })
             scheduleClose(sequence)
             reject(new Error(event.error ?? event.message))
           }

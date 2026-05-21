@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react'
+﻿import { useCallback, useMemo, useState } from 'react'
 import { getCompanyUuidForOptionalScope, getSelfSales, getSelfSalesScatterGrid, isAllCompanyUuid } from '../../api'
 import { useAuth } from '../../auth/AuthContext'
 import type { SelfSalesRow } from '../../types'
@@ -95,7 +95,7 @@ export const SelfPage = () => {
   } = useAnalysisVisibleSelection(rows, scatterGrid)
   const bulkAddDisabled = isAllCompanySelected || bulkSelectedCount === 0
   const bulkAddTitle = isAllCompanySelected
-    ? '전체 선택 상태에서는 후보군에 추가할 수 없습니다. 한아INT 또는 T1글로벌을 선택하세요.'
+    ? '전체 선택 상태에서는 오더 후보군에 추가할 수 없습니다. 회사를 선택하세요.'
     : undefined
   const summaryBundleState = useProductDrawerBundleState(selectedSkuGroupKey, { companyUuid })
   const summaryBundle = summaryBundleState.bundle
@@ -186,14 +186,14 @@ export const SelfPage = () => {
               items={[
                 { label: '총 판매액', value: formatGroupedNumber(kpi.totalAmount), unit: '원' },
                 { label: '총 판매량', value: formatGroupedNumber(kpi.totalQty), unit: 'EA' },
-                { label: '평균 매출 이익율', value: kpi.avgMarginRate.toFixed(1), unit: '%' },
-                { label: '평균 영업이익율', value: kpi.avgOpMarginRate.toFixed(1), unit: '%' },
+                { label: '평균 매출 이익률', value: kpi.avgMarginRate.toFixed(1), unit: '%' },
+                { label: '평균 영업 이익률', value: kpi.avgOpMarginRate.toFixed(1), unit: '%' },
               ]}
             />
           )}
 
           <AnalysisScatterChartCard<AnalysisScatterGridPoint>
-            title="판매량/영업 이익률 분석"
+            title="판매량·영업 이익률 분석"
             data={scatterData}
             chartBodyRef={chartBodyRef}
             chartReady={chartReady}
@@ -206,8 +206,8 @@ export const SelfPage = () => {
             onClearSelection={clearActiveGridCell}
             renderTooltip={renderSelfSalesScatterTooltip}
             xAxis={{
-              name: '영업이익률',
-              label: '영업이익률',
+              name: '영업 이익률',
+              label: '영업 이익률',
               unit: '%',
               tickFormatter: (value) => `${value}`,
             }}

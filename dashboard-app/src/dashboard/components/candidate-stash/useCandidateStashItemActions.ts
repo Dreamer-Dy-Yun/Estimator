@@ -15,6 +15,7 @@ import {
 
 type Args = {
   stashUuid: string
+  companyUuid?: string
   detailTarget: CandidateStashSummary | null
   items: CandidateItemSummary[]
   itemDeleteTarget: CandidateItemSummary | null
@@ -28,6 +29,7 @@ type Args = {
 
 export function useCandidateStashItemActions({
   stashUuid,
+  companyUuid,
   detailTarget,
   items,
   itemDeleteTarget,
@@ -56,7 +58,7 @@ export function useCandidateStashItemActions({
     if (!itemDeleteTarget) return
     setItemDeleteBusy(true)
     try {
-      await deleteCandidateItem(itemDeleteTarget.uuid)
+      await deleteCandidateItem(itemDeleteTarget.uuid, { companyUuid })
       if (!mountedRef.current) return
       if (openedItemUuid === itemDeleteTarget.uuid) closeDrawer()
       onItemsDeleted?.([itemDeleteTarget.uuid])
@@ -68,14 +70,14 @@ export function useCandidateStashItemActions({
     } finally {
       if (mountedRef.current) setItemDeleteBusy(false)
     }
-  }, [closeDrawer, itemDeleteTarget, onItemsDeleted, openedItemUuid, refreshStashes, showToast])
+  }, [closeDrawer, companyUuid, itemDeleteTarget, onItemsDeleted, openedItemUuid, refreshStashes, showToast])
 
   const confirmDeleteItems = useCallback(async (itemUuids: string[]) => {
     const uniqueUuids = [...new Set(itemUuids)]
     if (!uniqueUuids.length) return
     setBulkDeleteBusy(true)
     try {
-      await deleteCandidateItems(stashUuid, uniqueUuids)
+      await deleteCandidateItems(stashUuid, uniqueUuids, { companyUuid })
       if (!mountedRef.current) return
       if (openedItemUuid && uniqueUuids.includes(openedItemUuid)) closeDrawer()
       onItemsDeleted?.(uniqueUuids)
@@ -87,7 +89,7 @@ export function useCandidateStashItemActions({
     } finally {
       if (mountedRef.current) setBulkDeleteBusy(false)
     }
-  }, [closeDrawer, onItemsDeleted, openedItemUuid, refreshStashes, showToast, stashUuid])
+  }, [closeDrawer, companyUuid, onItemsDeleted, openedItemUuid, refreshStashes, showToast, stashUuid])
 
   const confirmUnconfirmItems = useCallback(async (itemUuids: string[]) => {
     const uniqueUuids = [...new Set(itemUuids)]
@@ -96,6 +98,7 @@ export function useCandidateStashItemActions({
     try {
       const updatedItems = await Promise.all(uniqueUuids.map((itemUuid) => updateCandidateItem({
         itemUuid,
+        companyUuid,
         details: null,
         isLatestLlmComment: false,
       })))
@@ -110,7 +113,7 @@ export function useCandidateStashItemActions({
     } finally {
       if (mountedRef.current) setBulkUnconfirmBusy(false)
     }
-  }, [closeDrawer, onItemsUnconfirmed, openedItemUuid, refreshStashes, showToast])
+  }, [closeDrawer, companyUuid, onItemsUnconfirmed, openedItemUuid, refreshStashes, showToast])
 
   const downloadOrderExcel = useCallback(async (userName: string) => {
     if (!detailTarget) return

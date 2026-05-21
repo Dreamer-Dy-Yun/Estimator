@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+﻿import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   deleteCandidateStash,
   duplicateCandidateStash,
@@ -115,10 +115,10 @@ export const SnapshotConfirmPage = () => {
       setUploadFile(null)
       if (uploadInputRef.current) uploadInputRef.current.value = ''
       await loadStashes()
-      showToast('엑셀 업로드 요청이 완료되었습니다.')
+      showToast('목록 업로드 요청이 완료되었습니다.')
     } catch (err) {
       if (!mountedRef.current) return
-      setUploadError(err instanceof Error ? err.message : '엑셀 업로드에 실패했습니다.')
+      setUploadError(err instanceof Error ? err.message : '목록 업로드에 실패했습니다.')
     } finally {
       if (mountedRef.current) setUploadBusy(false)
     }
@@ -187,7 +187,7 @@ export const SnapshotConfirmPage = () => {
               전체 선택 상태에서는 오더 후보군을 사용할 수 없습니다.
             </strong>
             <p className={pageStyles.scopeGuardText}>
-              오더 후보군은 회사 단위 확정 데이터로 관리됩니다. 헤더에서 한아INT 또는 T1글로벌을 선택하세요.
+              오더 후보군은 회사 단위 확정 데이터로 관리됩니다. 오더 후보군을 사용하려면 회사를 선택하세요.
             </p>
           </div>
         </div>

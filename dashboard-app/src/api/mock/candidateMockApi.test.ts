@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { mockDashboardApi } from './dashboardApi'
+import { ALL_COMPANY_UUID } from '../types'
 import { MOCK_ADMIN_USER_UUID, MOCK_USER_UUID } from './authApi'
 import { DEFAULT_CANDIDATE_STASH_CONTEXT } from './records'
 import { buildCandidateOrderMetric } from './candidateItemSummaryBuilder'
@@ -102,9 +103,9 @@ describe('api/mock candidate stash contract stubs', () => {
     const itemBadgeNames = itemBadges.map((badge) => badge.name)
 
     expect(itemBadges.every((badge) => Boolean(badge.name && badge.color && badge.tooltip))).toBe(true)
-    expect(itemBadgeNames).not.toContain('크림 매출')
     expect(itemBadgeNames).not.toContain('자사 매출')
-    expect(itemBadgeNames).not.toContain('자사 이율')
+    expect(itemBadgeNames).not.toContain('경쟁사 매출')
+    expect(itemBadgeNames).not.toContain('자사 이익')
   })
 
   it('returns candidate recommendations for a requested data reference period', async () => {
@@ -201,12 +202,78 @@ describe('api/mock candidate stash contract stubs', () => {
       MOCK_ADMIN_USER_UUID,
     )
     const names = result.items.map((item) => item.productName)
-
     expect(names).toContain('테스트 상의')
     expect(names).toContain('테스트 신발')
     expect(names.some((name) => name !== '테스트 상의' && name !== '테스트 신발')).toBe(true)
   })
 
+  it('allows read APIs to use all-company scope while keeping company filtering optional', async () => {
+    const implicitAll = await mockDashboardApi.getCandidateStashes()
+    const explicitAll = await mockDashboardApi.getCandidateStashes({ companyUuid: ALL_COMPANY_UUID })
+    const blankAll = await mockDashboardApi.getCandidateStashes({ companyUuid: '   ' })
+
+    expect(explicitAll).toEqual(implicitAll)
+    expect(blankAll).toEqual(implicitAll)
+    expect(implicitAll.length).toBeGreaterThan(0)
+  })
+
+  it('rejects candidate mutations without an explicit single company uuid', async () => {
+    const stashes = await mockDashboardApi.getCandidateStashes({ companyUuid: MOCK_COMPANY_UUID })
+    const source = stashes.find((row) => row.itemCount > 0)
+    expect(source).toBeDefined()
+
+    const items = await mockDashboardApi.getCandidateItemsByStash(defaultCandidateItemListParams(source!.uuid))
+    const item = items.items[0]
+    expect(item).toBeDefined()
+    const mutationError = 'Mock mutation에는 명시적인 단일 companyUuid가 필요합니다.'
+
+    await expect(
+      mockDashboardApi.createCandidateStash({
+        name: '전체 scope 후보군',
+        note: null,
+        ...DEFAULT_CANDIDATE_STASH_CONTEXT,
+      }),
+    ).rejects.toThrow(mutationError)
+    await expect(
+      mockDashboardApi.updateCandidateStash({
+        stashUuid: source!.uuid,
+        name: '전체 scope 수정',
+        companyUuid: ALL_COMPANY_UUID,
+        note: null,
+      }),
+    ).rejects.toThrow(mutationError)
+    await expect(mockDashboardApi.duplicateCandidateStash(source!.uuid, { companyUuid: ' ' })).rejects.toThrow(
+      mutationError,
+    )
+    await expect(mockDashboardApi.deleteCandidateStash(source!.uuid, { companyUuid: ALL_COMPANY_UUID })).rejects.toThrow(
+      mutationError,
+    )
+    await expect(
+      mockDashboardApi.appendCandidateItem({
+        stashUuid: source!.uuid,
+        skuGroupKey: item!.skuGroupKey,
+        companyUuid: ALL_COMPANY_UUID,
+        details: null!,
+        isLatestLlmComment: false,
+      }),
+    ).rejects.toThrow(mutationError)
+    await expect(
+      mockDashboardApi.updateCandidateItem({
+        itemUuid: item!.uuid,
+        companyUuid: ' ',
+        details: null,
+        isLatestLlmComment: false,
+      }),
+    ).rejects.toThrow(mutationError)
+    await expect(mockDashboardApi.deleteCandidateItem(item!.uuid, { companyUuid: ALL_COMPANY_UUID })).rejects.toThrow(
+      mutationError,
+    )
+    await expect(
+      mockDashboardApi.uploadCandidateStashExcel(new File(['x'], 'candidate.xlsx'), {
+        companyUuid: ALL_COMPANY_UUID,
+      }),
+    ).rejects.toThrow(mutationError)
+  })
   it('mutates candidate stash list through stash mutation API calls', async () => {
     const before = await mockDashboardApi.getCandidateStashes({ companyUuid: MOCK_COMPANY_UUID })
 

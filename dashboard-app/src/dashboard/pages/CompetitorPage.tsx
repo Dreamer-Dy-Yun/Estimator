@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react'
+﻿import { useCallback, useMemo, useState } from 'react'
 import {
   getCompanyUuidForOptionalScope,
   getCompetitorSales,
@@ -206,7 +206,7 @@ export const CompetitorPage = () => {
                 bulkSelectedCount={bulkSelectedCount}
                 queryDisabled={!periodQueryDirty}
                 candidateAddDisabledReason={isAllCompanySelected
-                  ? '전체 선택 상태에서는 후보군에 추가할 수 없습니다. 한아INT 또는 T1글로벌을 선택하세요.'
+                  ? '전체 선택 상태에서는 오더 후보군에 추가할 수 없습니다. 회사를 선택하세요.'
                   : undefined}
                 requestStatus={(
                   <DashboardRequestStatus
@@ -244,7 +244,7 @@ export const CompetitorPage = () => {
           )}
 
           <AnalysisScatterChartCard<AnalysisScatterGridPoint>
-            title={`경쟁·${selfCompanyLabel} 판매량 비교`}
+            title={`경쟁사·${selfCompanyLabel} 판매량 비교`}
             data={scatterData}
             chartBodyRef={chartBodyRef}
             chartReady={chartReady}

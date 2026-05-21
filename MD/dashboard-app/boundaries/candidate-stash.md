@@ -11,7 +11,7 @@
 
 ## 책임 요약
 
-오더 후보군은 단일 회사 기준으로 스냅샷 전 후보 상품을 모으고, 이너 후보군 상세에서 기간 기준 조회·추천·오더 지표·상세확정을 다룬다. 단일 회사 선택 시 후보군 목록, 상세 조회, 추천, 오더 지표 SSE, 상세확정, LLM 코멘트, item/stash mutation 요청에는 `companyUuid`가 포함된다. mock도 이 값을 stash/item 소유 scope와 오더 지표 계산에 반영한다. 헤더 회사 선택이 `전체`이면 후보군 업무 흐름은 지원하지 않는다.
+오더 후보군은 단일 회사 기준으로 스냅샷 전 후보 상품을 모으고, 이너 후보군 상세에서 기간 기준 조회·추천·오더 지표·상세확정을 다룬다. 단일 회사 선택 시 후보군 목록, 상세 조회, 추천, 오더 지표 SSE, 상세확정, LLM 코멘트, item/stash mutation 요청에는 `companyUuid`가 포함된다. mock도 이 값을 stash/item 소유 scope와 오더 지표 계산에 반영한다. 헤더 회사 선택이 `전체`이면 후보군 업무 흐름은 지원하지 않는다. 후보군 mutation은 `companyUuid` 누락 상태에서 기본 회사로 fallback하지 않고 실패해야 한다.
 
 후보 아이템의 상세확정 여부는 `CANDIDATE_ITEM.details` 스냅샷 존재 여부다. 상세확정 저장/해제/일괄확정/일괄해제 직후에는 후보 아이템 전체 목록을 즉시 재조회하지 않고, 성공 응답 또는 SSE 이벤트로 현재 화면 상태를 로컬 반영한다.
 
@@ -72,7 +72,7 @@
 | `candidateDetailConfirmationOverrideModel.ts` | stale 재조회가 로컬 확정 상태를 덮지 않게 보호 |
 | `candidateItemLocalMutationModel.ts` | 삭제 성공 후 현재 리스트에서 row 제거 |
 
-상세확정 저장/해제 API 성공 응답과 상세 일괄확정 SSE `updatedItem`은 현재 화면의 기준 상태다. 서버 응답의 `dbUpdatedAt`이 바뀌고 원하는 확정 상태가 내려오면 override는 해제된다.
+상세확정 저장/해제 API 성공 응답과 상세 일괄확정 SSE `updatedItem`은 현재 화면의 기준 상태다. 상세 일괄확정은 job start와 SSE subscribe 모두 같은 `companyUuid` scope를 사용해야 한다. 서버 응답의 `dbUpdatedAt`이 바뀌고 원하는 확정 상태가 내려오면 override는 해제된다.
 
 삭제와 일괄삭제는 삭제 API 성공 후 현재 `items`에서 삭제된 후보 아이템 uuid만 제거한다. 삭제는 남은 row의 판매/오더 계산값을 바꾸지 않으므로 전체 재조회 없이 합계 파생값이 자동 재계산된다.
 

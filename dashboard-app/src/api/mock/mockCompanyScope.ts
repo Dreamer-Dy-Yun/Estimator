@@ -37,6 +37,10 @@ function resolveCompanyUuid(input?: CompanyScopeInput): string | undefined {
   return getCompanyUuidForOptionalScope(typeof input === 'string' || input == null ? input : input.companyUuid)
 }
 
+function getRawCompanyUuid(input?: CompanyScopeInput): string | null | undefined {
+  return typeof input === 'string' || input == null ? input : input.companyUuid
+}
+
 function skuSeed(skuGroupKey: string): number {
   return [...skuGroupKey].reduce((sum, ch) => sum + ch.charCodeAt(0), 0)
 }
@@ -55,7 +59,12 @@ export function getMockCompanyScale(input: CompanyScopeInput, skuGroupKey: strin
 }
 
 export function getMockMutationCompanyUuid(input: CompanyScopeInput): string {
-  return resolveCompanyUuid(input) ?? MOCK_HANA_COMPANY_UUID
+  const rawCompanyUuid = getRawCompanyUuid(input)
+  const companyUuid = getCompanyUuidForOptionalScope(rawCompanyUuid)
+  if (!companyUuid) {
+    throw new Error('Mock mutation에는 명시적인 단일 companyUuid가 필요합니다.')
+  }
+  return companyUuid
 }
 
 export function isMockRecordInCompanyScope(recordCompanyUuid: string, input?: CompanyScopeInput): boolean {

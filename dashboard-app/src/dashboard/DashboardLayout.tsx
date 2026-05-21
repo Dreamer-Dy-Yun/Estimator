@@ -1,4 +1,4 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { USE_MOCK_API, isAllCompanyUuid } from '../api'
 import { useAuth } from '../auth/AuthContext'
@@ -41,7 +41,7 @@ export const DashboardLayout = () => {
                     type="button"
                     className={styles.tab}
                     disabled
-                    title="전체 선택 상태에서는 오더 후보군을 사용할 수 없습니다. 한아INT 또는 T1글로벌을 선택하세요."
+                    title="전체 선택 상태에서는 오더 후보군을 사용할 수 없습니다. 회사를 선택하세요."
                     aria-disabled="true"
                   >
                     {tab.label}
