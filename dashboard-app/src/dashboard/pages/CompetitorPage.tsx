@@ -41,6 +41,7 @@ const EMPTY_COMPETITOR_CHANNELS: SecondaryCompetitorChannel[] = []
 export const CompetitorPage = () => {
   const { selectedCompanyUuid } = useAuth()
   const selfCompanyLabel = useSelfCompanyLabel()
+  const companyUuid = useMemo(() => getCompanyUuidForOptionalScope(selectedCompanyUuid), [selectedCompanyUuid])
   const [bulkAddOpen, setBulkAddOpen] = useState(false)
   const [forecastMonths, setForecastMonths] = useState(() => readForecastMonthsFromStorage())
   const [orderedSkuGroupKeys, setOrderedSkuGroupKeys] = useState<string[]>([])
@@ -72,7 +73,7 @@ export const CompetitorPage = () => {
     setWholeRange,
     onPeriodBarStart,
     onPeriodBarEnd,
-  } = useAnalysisSalesFilters(getCompanyUuidForOptionalScope(selectedCompanyUuid))
+  } = useAnalysisSalesFilters(companyUuid)
   const isAllCompanySelected = isAllCompanyUuid(selectedCompanyUuid)
   const channelsRequest = useDashboardRequest(getSecondaryCompetitorChannels, EMPTY_COMPETITOR_CHANNELS)
   const { data: channels } = channelsRequest
@@ -141,7 +142,7 @@ export const CompetitorPage = () => {
     toggleAllVisibleRows,
     clearBulkSelection,
   } = useAnalysisVisibleSelection(baseRows, scatterGrid)
-  const summaryBundleState = useProductDrawerBundleState(selectedSkuGroupKey)
+  const summaryBundleState = useProductDrawerBundleState(selectedSkuGroupKey, { companyUuid })
   const summaryBundle = summaryBundleState.bundle
 
   const displayedCompetitorFilterFields = useMemo(
@@ -291,6 +292,7 @@ export const CompetitorPage = () => {
         loading={summaryBundleState.loading}
         periodStart={appliedPeriodStartDate}
         periodEnd={appliedPeriodEndDate}
+        companyUuid={companyUuid}
         forecastMonths={forecastMonths}
         selfCompanyLabel={selfCompanyLabel}
         onForecastMonthsChange={onForecastMonthsChange}
@@ -304,6 +306,7 @@ export const CompetitorPage = () => {
         skuGroupKeys={selectedSkuGroupKeys}
         periodStart={appliedPeriodStartDate}
         periodEnd={appliedPeriodEndDate}
+        companyUuid={companyUuid}
         forecastMonths={forecastMonths}
         onClose={() => setBulkAddOpen(false)}
         onDone={() => {

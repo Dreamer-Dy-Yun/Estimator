@@ -40,34 +40,37 @@ export const httpDashboardRequests: DashboardApi = {
     apiRequest('/sales/competitor/scatter-grid', { query: queryParams(normalizeCompanyScopeParams(params)) }),
   getSalesFilterMeta: (params) =>
     apiRequest('/sales/filter-meta', { query: queryParams(normalizeCompanyScopeParams(params)) }),
-  getProductDrawerBundle: (skuGroupKey) =>
-    apiRequest(`/products/${encodePathSegment(skuGroupKey)}/drawer-bundle`),
+  getProductDrawerBundle: (skuGroupKey, params) =>
+    apiRequest(`/products/${encodePathSegment(skuGroupKey)}/drawer-bundle`, {
+      query: queryParams(normalizeCompanyScopeParams(params)),
+    }),
   getProductMonthlyTrend: (skuGroupKey, params) =>
     apiRequest(`/products/${encodePathSegment(skuGroupKey)}/monthly-trend`, {
-      query: queryParams(params),
+      query: queryParams(normalizeCompanyScopeParams(params)),
     }),
   getProductSalesInsight: (skuGroupKey, params) =>
     apiRequest(`/products/${encodePathSegment(skuGroupKey)}/sales-insight`, {
-      query: queryParams(params),
+      query: queryParams(normalizeCompanyScopeParams(params)),
     }),
   getProductSecondaryDetail: (skuGroupKey, params) =>
     apiRequest(`/products/${encodePathSegment(skuGroupKey)}/secondary-detail`, {
-      query: queryParams(params),
+      query: queryParams(normalizeCompanyScopeParams(params)),
     }),
   getSecondaryDailyTrend: ({ skuGroupKey, ...params }) =>
     apiRequest(`/products/${encodePathSegment(skuGroupKey)}/secondary/daily-trend`, {
-      query: queryParams(params),
+      query: queryParams(normalizeCompanyScopeParams(params)),
     }),
   getSecondaryAiComment: ({ skuGroupKey, ...payload }) =>
     apiRequest(`/products/${encodePathSegment(skuGroupKey)}/secondary/ai-comment`, {
       method: 'POST',
-      body: payload,
+      body: normalizeCompanyScopeParams(payload),
     }),
   getSecondaryCompetitorChannels: () => apiRequest('/secondary/competitor-channels'),
-  getCandidateStashes: () => apiRequest('/candidate-stashes'),
+  getCandidateStashes: (params) =>
+    apiRequest('/candidate-stashes', { query: queryParams(normalizeCompanyScopeParams(params)) }),
   getCandidateItemsByStash: ({ stashUuid, ...params }) =>
     apiRequest(`/candidate-stashes/${encodePathSegment(stashUuid)}/items`, {
-      query: queryParams(params),
+      query: queryParams(normalizeCompanyScopeParams(params)),
     }),
   subscribeCandidateOrderMetrics: (params, listener, onError) =>
     openApiEventStream(`/candidate-stashes/${encodePathSegment(params.stashUuid)}/items/order-metrics/events`, {
@@ -75,62 +78,78 @@ export const httpDashboardRequests: DashboardApi = {
       dataReferencePeriodStart: params.dataReferencePeriodStart,
       dataReferencePeriodEnd: params.dataReferencePeriodEnd,
       candidateItemUuids: params.candidateItemUuids,
+      ...normalizeCompanyScopeParams({ companyUuid: params.companyUuid }),
     }, listener, { onError }),
   // Starts a backend job that calculates each requested item's secondary drawer state,
   // saves CANDIDATE_ITEM.details, and emits committed CandidateItemDetail rows by SSE.
   startCandidateDetailBulkConfirm: ({ stashUuid, ...payload }) =>
     apiRequest(`/candidate-stashes/${encodePathSegment(stashUuid)}/items/detail-confirmation-jobs`, {
       method: 'POST',
-      body: payload,
+      body: normalizeCompanyScopeParams(payload),
     }),
-  subscribeCandidateDetailBulkConfirm: (jobId, listener, onError) =>
+  subscribeCandidateDetailBulkConfirm: (jobId, listener, onError, params) =>
     openApiEventStream(
       `/candidate-item-detail-confirmation-jobs/${encodePathSegment(jobId)}/events`,
-      undefined,
+      queryParams(normalizeCompanyScopeParams(params)),
       listener,
       { onError },
     ),
-  startCandidateStashLlmCommentJob: (stashUuid) =>
-    apiRequest(`/candidate-stashes/${encodePathSegment(stashUuid)}/llm-comment-jobs`, { method: 'POST' }),
-  subscribeCandidateStashLlmCommentJob: (jobId, listener, onError) =>
+  startCandidateStashLlmCommentJob: (stashUuid, params) =>
+    apiRequest(`/candidate-stashes/${encodePathSegment(stashUuid)}/llm-comment-jobs`, {
+      method: 'POST',
+      body: normalizeCompanyScopeParams(params),
+    }),
+  subscribeCandidateStashLlmCommentJob: (jobId, listener, onError, params) =>
     openApiEventStream(
       `/candidate-stash-llm-comment-jobs/${encodePathSegment(jobId)}/events`,
-      undefined,
+      queryParams(normalizeCompanyScopeParams(params)),
       listener,
       { onError },
     ),
   getCandidateRecommendations: ({ stashUuid, ...params }) =>
     apiRequest(`/candidate-stashes/${encodePathSegment(stashUuid)}/recommendations`, {
-      query: queryParams(params),
+      query: queryParams(normalizeCompanyScopeParams(params)),
     }),
-  getCandidateItemByUuid: (itemUuid) => apiRequest(`/candidate-items/${encodePathSegment(itemUuid)}`),
-  deleteCandidateItem: (itemUuid) =>
-    apiRequest(`/candidate-items/${encodePathSegment(itemUuid)}`, { method: 'DELETE' }),
-  deleteCandidateItems: (stashUuid, itemUuids) =>
+  getCandidateItemByUuid: (itemUuid, params) =>
+    apiRequest(`/candidate-items/${encodePathSegment(itemUuid)}`, {
+      query: queryParams(normalizeCompanyScopeParams(params)),
+    }),
+  deleteCandidateItem: (itemUuid, params) =>
+    apiRequest(`/candidate-items/${encodePathSegment(itemUuid)}`, {
+      method: 'DELETE',
+      query: queryParams(normalizeCompanyScopeParams(params)),
+    }),
+  deleteCandidateItems: (stashUuid, itemUuids, params) =>
     apiRequest(`/candidate-stashes/${encodePathSegment(stashUuid)}/items`, {
       method: 'DELETE',
-      body: { itemUuids },
+      body: normalizeCompanyScopeParams({ itemUuids, companyUuid: params?.companyUuid }),
     }),
-  deleteCandidateStash: (stashUuid) =>
-    apiRequest(`/candidate-stashes/${encodePathSegment(stashUuid)}`, { method: 'DELETE' }),
+  deleteCandidateStash: (stashUuid, params) =>
+    apiRequest(`/candidate-stashes/${encodePathSegment(stashUuid)}`, {
+      method: 'DELETE',
+      query: queryParams(normalizeCompanyScopeParams(params)),
+    }),
   createCandidateStash: (payload) =>
-    apiRequest('/candidate-stashes', { method: 'POST', body: payload }),
+    apiRequest('/candidate-stashes', { method: 'POST', body: normalizeCompanyScopeParams(payload) }),
   updateCandidateStash: ({ stashUuid, ...payload }) =>
     apiRequest(`/candidate-stashes/${encodePathSegment(stashUuid)}`, {
       method: 'PATCH',
-      body: payload,
+      body: normalizeCompanyScopeParams(payload),
     }),
-  duplicateCandidateStash: (stashUuid) =>
-    apiRequest(`/candidate-stashes/${encodePathSegment(stashUuid)}/duplicate`, { method: 'POST' }),
+  duplicateCandidateStash: (stashUuid, params) =>
+    apiRequest(`/candidate-stashes/${encodePathSegment(stashUuid)}/duplicate`, {
+      method: 'POST',
+      body: normalizeCompanyScopeParams(params),
+    }),
   appendCandidateItem: ({ stashUuid, ...payload }) =>
     apiRequest(`/candidate-stashes/${encodePathSegment(stashUuid)}/items`, {
       method: 'POST',
-      body: payload,
+      body: normalizeCompanyScopeParams(payload),
     }),
   appendCandidateItems: ({ stashUuid, ...payload }) =>
     apiRequest(`/candidate-stashes/${encodePathSegment(stashUuid)}/items/bulk`, {
       method: 'POST',
-      body: payload,
+      body: normalizeCompanyScopeParams(payload),
     }),
   // Response contract: latest CandidateItemDetail after DB commit/cache invalidation.
   // The frontend uses isDetailConfirmed/isLatestLlmComment/dbUpdatedAt from this response
@@ -138,14 +157,16 @@ export const httpDashboardRequests: DashboardApi = {
   updateCandidateItem: ({ itemUuid, ...payload }) =>
     apiRequest(`/candidate-items/${encodePathSegment(itemUuid)}`, {
       method: 'PATCH',
-      body: payload,
+      body: normalizeCompanyScopeParams(payload),
     }),
   getCandidateStashExcelTemplateDownload: getHttpCandidateStashExcelTemplateDownload,
-  uploadCandidateStashExcel: (file) => {
+  uploadCandidateStashExcel: (file, params) => {
     const formData = new FormData()
     formData.append('file', file)
+    const scope = normalizeCompanyScopeParams(params)
+    if (scope?.companyUuid) formData.append('companyUuid', scope.companyUuid)
     return apiRequest('/candidate-stashes/import/excel', { method: 'POST', body: formData })
   },
   getSecondaryStockOrderCalc: (params) =>
-    apiRequest('/secondary/stock-order-calc', { method: 'POST', body: params }),
+    apiRequest('/secondary/stock-order-calc', { method: 'POST', body: normalizeCompanyScopeParams(params) }),
 }

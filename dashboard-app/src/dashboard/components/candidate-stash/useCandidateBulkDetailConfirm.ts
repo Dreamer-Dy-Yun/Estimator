@@ -1,5 +1,6 @@
 ﻿import { useCallback, useEffect, useRef, useState } from 'react'
 import {
+  getCompanyUuidForOptionalScope,
   getApiErrorDisplayMessage,
   startCandidateDetailBulkConfirm,
   subscribeCandidateDetailBulkConfirm,
@@ -7,6 +8,7 @@ import {
   type CandidateDetailBulkConfirmSubscription,
   type CandidateItemDetail,
 } from '../../../api'
+import { useAuth } from '../../../auth/AuthContext'
 
 type MountedRef = { current: boolean }
 
@@ -43,6 +45,8 @@ export function useCandidateBulkDetailConfirm({
   onItemsConfirmed,
   showToast,
 }: Args) {
+  const { selectedCompanyUuid } = useAuth()
+  const companyUuid = getCompanyUuidForOptionalScope(selectedCompanyUuid)
   const [bulkConfirmBusy, setBulkConfirmBusy] = useState(false)
   const [bulkConfirmProgress, setBulkConfirmProgress] = useState<CandidateBulkDetailConfirmProgress | null>(null)
   const subscriptionRef = useRef<CandidateDetailBulkConfirmSubscription | null>(null)
@@ -117,6 +121,7 @@ export function useCandidateBulkDetailConfirm({
     try {
       const start = await startCandidateDetailBulkConfirm({
         stashUuid,
+        companyUuid,
         itemUuids: uniqueUuids,
         dataReferencePeriodStart,
         dataReferencePeriodEnd,
@@ -177,6 +182,7 @@ export function useCandidateBulkDetailConfirm({
     applyProgressEvent,
     closeProgress,
     closeSubscription,
+    companyUuid,
     dataReferencePeriodEnd,
     dataReferencePeriodStart,
     isCurrentSequence,

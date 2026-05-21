@@ -13,6 +13,7 @@ type ProductDrawerSecondaryPaneProps = {
   selectedStart: string
   selectedEnd: string
   forecastMonths: number
+  companyUuid?: string
   selfCompanyLabel: string
   channelsError: ApiUnitErrorInfo | null
   selectedChannelReady: boolean
@@ -34,6 +35,7 @@ export function ProductDrawerSecondaryPane({
   selectedStart,
   selectedEnd,
   forecastMonths,
+  companyUuid,
   selfCompanyLabel,
   channelsError,
   selectedChannelReady,
@@ -80,6 +82,7 @@ export function ProductDrawerSecondaryPane({
               periodStart={selectedStart}
               periodEnd={selectedEnd}
               forecastMonths={forecastMonths}
+              companyUuid={companyUuid}
               selfCompanyLabel={selfCompanyLabel}
               pageName="ProductDrawer > ProductSecondaryDrawer"
               prefillFromSnapshot={hydrateForPanel}

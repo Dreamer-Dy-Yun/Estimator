@@ -1,4 +1,5 @@
 import type { OrderSnapshotDocumentV1 } from '../../snapshot/orderSnapshotTypes'
+import type { CompanyScopeParams } from './company'
 
 export interface SecondaryDailyTrendPoint {
   idx: number
@@ -14,7 +15,7 @@ export interface SecondaryDailyTrendPoint {
   isForecast: boolean
 }
 
-export interface SecondaryDailyTrendParams {
+export interface SecondaryDailyTrendParams extends CompanyScopeParams {
   skuGroupKey: string
   startMonth: string
   leadTimeDays: number
@@ -27,7 +28,7 @@ export interface SecondaryCompetitorChannel {
   label: string
 }
 
-export interface SecondaryAiCommentParams {
+export interface SecondaryAiCommentParams extends CompanyScopeParams {
   skuGroupKey: string
   periodStart: string
   periodEnd: string
@@ -48,11 +49,11 @@ export interface SecondaryAiCommentResult {
  * Query options for `getProductSecondaryDetail`.
  * When a value changes the same SKU panel should request a fresh response.
  */
-export interface ProductSecondaryDetailParams {
+export interface ProductSecondaryDetailParams extends CompanyScopeParams {
   minOpMarginPct?: number | null
 }
 
-export interface SecondaryStockOrderCalcParams {
+export interface SecondaryStockOrderCalcParams extends CompanyScopeParams {
   skuGroupKey: string
   periodStart: string
   periodEnd: string

@@ -1,5 +1,6 @@
 import { useEffect, useId, useMemo, useRef, useState, type WheelEvent } from 'react'
-import { dashboardApi, type ProductMonthlyTrend } from '../../../../api'
+import { dashboardApi, getCompanyUuidForOptionalScope, type ProductMonthlyTrend } from '../../../../api'
+import { useAuth } from '../../../../auth/AuthContext'
 import type { ApiUnitErrorInfo, MonthlySalesPoint } from '../../../../types'
 import { monthToEndDate, monthToStartDate } from '../../../../utils/date'
 import { buildShadeRanges, normalizeMonthKey } from '../../trend/trendRangeUtils'
@@ -36,6 +37,8 @@ export function useProductMonthlyTrendModel({
   fallbackChannelLabel,
   pageName,
 }: ProductMonthlyTrendModelArgs) {
+  const { selectedCompanyUuid } = useAuth()
+  const companyUuid = getCompanyUuidForOptionalScope(selectedCompanyUuid)
   const forecastMonthsLabelId = useId()
   const forecastComboRef = useRef<HTMLDivElement | null>(null)
   const reqSeqRef = useRef(0)
@@ -74,6 +77,7 @@ export function useProductMonthlyTrendModel({
     skuGroupKey,
     startDate,
     endDate,
+    companyUuid,
     forecastMonths,
     competitorChannelId: channelId,
   })
@@ -91,6 +95,7 @@ export function useProductMonthlyTrendModel({
         const data = await dashboardApi.getProductMonthlyTrend(skuGroupKey, {
           startDate,
           endDate,
+          companyUuid,
           forecastMonths,
           competitorChannelId: channelId,
         })
@@ -103,7 +108,7 @@ export function useProductMonthlyTrendModel({
           data: null,
           error: makeApiErrorInfo(
             pageName,
-            `getProductMonthlyTrend(${JSON.stringify({ skuGroupKey, startDate, endDate, forecastMonths, competitorChannelId: channelId })})`,
+            `getProductMonthlyTrend(${JSON.stringify({ skuGroupKey, startDate, endDate, companyUuid, forecastMonths, competitorChannelId: channelId })})`,
             err,
           ),
         })
@@ -112,7 +117,7 @@ export function useProductMonthlyTrendModel({
     return () => {
       alive = false
     }
-  }, [channelId, endDate, forecastMonths, monthlyTrendRequestKey, pageName, skuGroupKey, startDate])
+  }, [channelId, companyUuid, endDate, forecastMonths, monthlyTrendRequestKey, pageName, skuGroupKey, startDate])
 
   const salesSeries = useMemo(() => {
     if (monthlyTrend != null) {

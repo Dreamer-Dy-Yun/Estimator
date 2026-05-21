@@ -54,6 +54,7 @@ export type {
 } from './sales'
 export type {
   ProductDrawerBundle,
+  ProductDrawerBundleParams,
   ProductMonthlyTrend,
   ProductMonthlyTrendParams,
   ProductMonthlyTrendPoint,

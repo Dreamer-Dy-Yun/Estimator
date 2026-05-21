@@ -52,9 +52,11 @@
 - 구글 시트 `시트로 이동`은 이미 받은 `spreadsheetUrl` 또는 `spreadsheetId`로 새 탭을 여는 순수 프론트 액션이다.
 - 현재 mock은 DB 대체 저장소가 아니라 런타임 메모리/정적 seed로 동작한다. 실제 정합성은 백엔드 DB가 소유한다.
 
-## TODO-038 header company selector boundary
+## Header company selector boundary
 
 - Company selector는 dashboard header에서 업무 탭 영역과 유틸리티 액션 영역 사이에 배치한다.
 - selector의 책임은 company list API에서 받은 `uuid`, `name` 목록을 dropdown으로 표시하고, 사용자가 선택한 company의 `uuid`를 전역 선택 상태로 유지하는 데 한정한다.
 - `AuthContext`는 로그인 세션과 사용자 인증 상태의 책임을 유지하며, company selector의 선택 상태를 인증 성공이나 권한 성공처럼 해석하지 않는다.
-- 이번 범위는 selector UI와 전역 선택 상태까지이며, 모든 업무 API에 company scope를 주입하는 작업은 후속 작업으로 분리한다.
+- 회사 선택은 인증 권한이 아니라 회사 소유 업무 데이터의 전역 scope다. 단일 회사 선택 시 업무 API request boundary가 `companyUuid`를 포함하고, `전체` 선택 시 생략한다.
+- 적용 범위는 분석, 산점도, filter meta, 후보군, 상품 드로워, 2차 드로워, 오더 계산, SSE, mutation이다.
+- 후보군 UI는 단일 회사 기준이므로 `전체` 선택 상태에서 탭과 후보군 추가 액션을 비활성화한다.

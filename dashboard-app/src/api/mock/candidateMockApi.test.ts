@@ -5,17 +5,26 @@ import { DEFAULT_CANDIDATE_STASH_CONTEXT } from './records'
 import { buildCandidateOrderMetric } from './candidateItemSummaryBuilder'
 import { skuGroupKeyByLegacyId } from './salesTables'
 
+const MOCK_COMPANY_UUID = '00000000-0000-4000-8000-000000000101'
+
 const defaultCandidateItemListParams = (stashUuid: string) => ({
   stashUuid,
   dataReferencePeriodStart: DEFAULT_CANDIDATE_STASH_CONTEXT.periodStart,
   dataReferencePeriodEnd: DEFAULT_CANDIDATE_STASH_CONTEXT.periodEnd,
+  companyUuid: MOCK_COMPANY_UUID,
 })
 
 describe('api/mock candidate stash contract stubs', () => {
   it('filters candidate stashes by authenticated owner uuid', async () => {
-    const all = await mockDashboardApi.getCandidateStashes()
-    const adminOwned = await mockDashboardApi.getCandidateStashes(MOCK_ADMIN_USER_UUID)
-    const userOwned = await mockDashboardApi.getCandidateStashes(MOCK_USER_UUID)
+    const all = await mockDashboardApi.getCandidateStashes({ companyUuid: MOCK_COMPANY_UUID })
+    const adminOwned = await mockDashboardApi.getCandidateStashes(
+      { companyUuid: MOCK_COMPANY_UUID },
+      MOCK_ADMIN_USER_UUID,
+    )
+    const userOwned = await mockDashboardApi.getCandidateStashes(
+      { companyUuid: MOCK_COMPANY_UUID },
+      MOCK_USER_UUID,
+    )
 
     expect(all.length).toBe(4)
     expect(adminOwned.length).toBe(4)
@@ -26,7 +35,10 @@ describe('api/mock candidate stash contract stubs', () => {
   })
 
   it('rejects candidate item access when stash belongs to another user', async () => {
-    const adminOwned = await mockDashboardApi.getCandidateStashes(MOCK_ADMIN_USER_UUID)
+    const adminOwned = await mockDashboardApi.getCandidateStashes(
+      { companyUuid: MOCK_COMPANY_UUID },
+      MOCK_ADMIN_USER_UUID,
+    )
     const target = adminOwned.find((row) => row.itemCount > 0)
     expect(target).toBeDefined()
 
@@ -54,7 +66,7 @@ describe('api/mock candidate stash contract stubs', () => {
   })
 
   it('returns candidate item badges as DB-shaped name/color/tooltip arrays', async () => {
-    const stashes = await mockDashboardApi.getCandidateStashes()
+    const stashes = await mockDashboardApi.getCandidateStashes({ companyUuid: MOCK_COMPANY_UUID })
     const target = stashes.find((row) => row.itemCount > 0)
     expect(target).toBeDefined()
 
@@ -74,6 +86,7 @@ describe('api/mock candidate stash contract stubs', () => {
         stashUuid: 'candidatestash00000000000000000001',
         dataReferencePeriodStart: '2025-01-01',
         dataReferencePeriodEnd: '2025-12-31',
+        companyUuid: MOCK_COMPANY_UUID,
       },
       MOCK_ADMIN_USER_UUID,
     )
@@ -92,6 +105,7 @@ describe('api/mock candidate stash contract stubs', () => {
         dataReferencePeriodStart: '2025-01-01',
         dataReferencePeriodEnd: '2025-12-31',
         limit: 100,
+        companyUuid: MOCK_COMPANY_UUID,
       },
       MOCK_ADMIN_USER_UUID,
     )
@@ -167,56 +181,59 @@ describe('api/mock candidate stash contract stubs', () => {
   })
 
   it('mutates candidate stash list through stash mutation API calls', async () => {
-    const before = await mockDashboardApi.getCandidateStashes()
+    const before = await mockDashboardApi.getCandidateStashes({ companyUuid: MOCK_COMPANY_UUID })
 
     const created = await mockDashboardApi.createCandidateStash({
       name: '프론트 임시 후보군',
       note: null,
+      companyUuid: MOCK_COMPANY_UUID,
       ...DEFAULT_CANDIDATE_STASH_CONTEXT,
     })
-    const afterCreate = await mockDashboardApi.getCandidateStashes()
+    const afterCreate = await mockDashboardApi.getCandidateStashes({ companyUuid: MOCK_COMPANY_UUID })
     expect(afterCreate.some((row) => row.uuid === created.uuid)).toBe(true)
 
     const updated = await mockDashboardApi.updateCandidateStash({
       stashUuid: created.uuid,
       name: '프론트 수정',
+      companyUuid: MOCK_COMPANY_UUID,
       note: '저장됨',
     })
     expect(updated.name).toBe('프론트 수정')
     expect(updated.note).toBe('저장됨')
 
-    await mockDashboardApi.duplicateCandidateStash(created.uuid)
-    const afterDuplicate = await mockDashboardApi.getCandidateStashes()
+    await mockDashboardApi.duplicateCandidateStash(created.uuid, { companyUuid: MOCK_COMPANY_UUID })
+    const afterDuplicate = await mockDashboardApi.getCandidateStashes({ companyUuid: MOCK_COMPANY_UUID })
     const duplicated = afterDuplicate.find((row) => row.uuid !== created.uuid && row.name === '프론트 수정 복사본')
     expect(duplicated).toBeDefined()
 
-    await mockDashboardApi.deleteCandidateStash(created.uuid)
-    await mockDashboardApi.deleteCandidateStash(duplicated!.uuid)
+    await mockDashboardApi.deleteCandidateStash(created.uuid, { companyUuid: MOCK_COMPANY_UUID })
+    await mockDashboardApi.deleteCandidateStash(duplicated!.uuid, { companyUuid: MOCK_COMPANY_UUID })
 
-    const after = await mockDashboardApi.getCandidateStashes()
+    const after = await mockDashboardApi.getCandidateStashes({ companyUuid: MOCK_COMPANY_UUID })
     expect(after).toEqual(before)
     expect(after.some((row) => row.uuid === created.uuid)).toBe(false)
   })
 
   it('mutates candidate item list through item add/delete API calls', async () => {
-    const stashes = await mockDashboardApi.getCandidateStashes()
+    const stashes = await mockDashboardApi.getCandidateStashes({ companyUuid: MOCK_COMPANY_UUID })
     const source = stashes.find((row) => row.itemCount > 0)
     expect(source).toBeDefined()
 
     const before = await mockDashboardApi.getCandidateItemsByStash(defaultCandidateItemListParams(source!.uuid))
     const item = before.items[0]
     expect(item).toBeDefined()
-    const detail = await mockDashboardApi.getCandidateItemByUuid(item!.uuid)
+    const detail = await mockDashboardApi.getCandidateItemByUuid(item!.uuid, { companyUuid: MOCK_COMPANY_UUID })
     expect(detail).toBeDefined()
     expect(detail!.details).toBeDefined()
 
-    await mockDashboardApi.deleteCandidateItem(item!.uuid)
+    await mockDashboardApi.deleteCandidateItem(item!.uuid, { companyUuid: MOCK_COMPANY_UUID })
     const afterDelete = await mockDashboardApi.getCandidateItemsByStash(defaultCandidateItemListParams(source!.uuid))
     expect(afterDelete.items.some((row) => row.uuid === item!.uuid)).toBe(false)
 
     await mockDashboardApi.appendCandidateItem({
       stashUuid: source!.uuid,
       skuGroupKey: item!.skuGroupKey,
+      companyUuid: MOCK_COMPANY_UUID,
       details: detail!.details!,
       isLatestLlmComment: false,
     })
@@ -227,17 +244,18 @@ describe('api/mock candidate stash contract stubs', () => {
   })
 
   it('clears candidate detail confirmation when updating details to null', async () => {
-    const stashes = await mockDashboardApi.getCandidateStashes()
+    const stashes = await mockDashboardApi.getCandidateStashes({ companyUuid: MOCK_COMPANY_UUID })
     const source = stashes.find((row) => row.itemCount > 0)
     expect(source).toBeDefined()
     const before = await mockDashboardApi.getCandidateItemsByStash(defaultCandidateItemListParams(source!.uuid))
     const item = before.items.find((row) => row.isDetailConfirmed)
     expect(item).toBeDefined()
-    const detail = await mockDashboardApi.getCandidateItemByUuid(item!.uuid)
+    const detail = await mockDashboardApi.getCandidateItemByUuid(item!.uuid, { companyUuid: MOCK_COMPANY_UUID })
     expect(detail?.details).toBeDefined()
 
     const cleared = await mockDashboardApi.updateCandidateItem({
       itemUuid: item!.uuid,
+      companyUuid: MOCK_COMPANY_UUID,
       details: null,
       isLatestLlmComment: false,
     })
@@ -250,6 +268,7 @@ describe('api/mock candidate stash contract stubs', () => {
 
     const restored = await mockDashboardApi.updateCandidateItem({
       itemUuid: item!.uuid,
+      companyUuid: MOCK_COMPANY_UUID,
       details: detail!.details,
       isLatestLlmComment: detail!.isLatestLlmComment,
     })
@@ -259,12 +278,14 @@ describe('api/mock candidate stash contract stubs', () => {
   })
 
   it('hydrates seeded candidate drawer snapshots with mock AI comments', async () => {
-    const stashes = await mockDashboardApi.getCandidateStashes()
+    const stashes = await mockDashboardApi.getCandidateStashes({ companyUuid: MOCK_COMPANY_UUID })
     const target = stashes.find((row) => row.itemCount > 0)
     expect(target).toBeDefined()
 
     const list = await mockDashboardApi.getCandidateItemsByStash(defaultCandidateItemListParams(target!.uuid))
-    const detail = await mockDashboardApi.getCandidateItemByUuid(list.items[0]!.uuid)
+    const detail = await mockDashboardApi.getCandidateItemByUuid(list.items[0]!.uuid, {
+      companyUuid: MOCK_COMPANY_UUID,
+    })
 
     expect(detail?.details?.drawer2.llmPrompt.trim()).not.toBe('')
     expect(detail?.details?.drawer2.llmAnswer.trim()).not.toBe('')

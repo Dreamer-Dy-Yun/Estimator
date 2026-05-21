@@ -4,6 +4,8 @@ import type {
   CandidateStashExcelTemplateDownload,
   CompetitorSalesGridParams,
   DashboardApi,
+  ProductDrawerBundle,
+  ProductDrawerBundleParams,
   ProductMonthlyTrend,
   ProductMonthlyTrendParams,
   ProductSalesInsight,
@@ -50,6 +52,13 @@ async function getProductMonthlyTrend(
   params: ProductMonthlyTrendParams,
 ): Promise<ProductMonthlyTrend> {
   return mockDashboardApi.getProductMonthlyTrend(skuGroupKey, params)
+}
+
+async function getProductDrawerBundle(
+  skuGroupKey: string,
+  params?: ProductDrawerBundleParams,
+): Promise<ProductDrawerBundle> {
+  return mockDashboardApi.getProductDrawerBundle(skuGroupKey, params)
 }
 
 async function getProductSalesInsight(
@@ -113,15 +122,15 @@ export const mockDashboardRequests: DashboardApi = {
   getSelfSalesScatterGrid,
   getCompetitorSalesScatterGrid,
   getSalesFilterMeta,
-  getProductDrawerBundle: (skuGroupKey) => mockDashboardApi.getProductDrawerBundle(skuGroupKey),
+  getProductDrawerBundle,
   getProductMonthlyTrend,
   getProductSalesInsight,
   getProductSecondaryDetail,
   getSecondaryDailyTrend,
   getSecondaryAiComment,
   getSecondaryCompetitorChannels: () => mockDashboardApi.getSecondaryCompetitorChannels(),
-  getCandidateStashes: async () =>
-    withCurrentUserUuid((userUuid) => mockDashboardApi.getCandidateStashes(userUuid)),
+  getCandidateStashes: async (params) =>
+    withCurrentUserUuid((userUuid) => mockDashboardApi.getCandidateStashes(userUuid, params)),
   getCandidateItemsByStash: async (params) =>
     withCurrentUserUuid((userUuid) => mockDashboardApi.getCandidateItemsByStash(params, userUuid)),
   subscribeCandidateOrderMetrics: (params, listener, onError) => {
@@ -141,14 +150,14 @@ export const mockDashboardRequests: DashboardApi = {
       },
     }
   },
-  startCandidateStashLlmCommentJob: async (stashUuid) =>
-    withCurrentUserUuid((userUuid) => mockDashboardApi.startCandidateStashLlmCommentJob(stashUuid, userUuid)),
-  subscribeCandidateStashLlmCommentJob: (jobId, listener, onError) => {
+  startCandidateStashLlmCommentJob: async (stashUuid, params) =>
+    withCurrentUserUuid((userUuid) => mockDashboardApi.startCandidateStashLlmCommentJob(stashUuid, userUuid, params)),
+  subscribeCandidateStashLlmCommentJob: (jobId, listener, onError, params) => {
     let subscription: ReturnType<typeof mockDashboardApi.subscribeCandidateStashLlmCommentJob> | null = null
     let closed = false
     void withCurrentUserUuid(async (userUuid) => {
       if (closed) return
-      subscription = mockDashboardApi.subscribeCandidateStashLlmCommentJob(jobId, listener, userUuid)
+      subscription = mockDashboardApi.subscribeCandidateStashLlmCommentJob(jobId, listener, userUuid, params)
       if (closed) subscription.close()
     }).catch((error: unknown) => {
       if (!closed) onError?.(error)
@@ -162,12 +171,12 @@ export const mockDashboardRequests: DashboardApi = {
   },
   startCandidateDetailBulkConfirm: async (payload) =>
     withCurrentUserUuid((userUuid) => mockDashboardApi.startCandidateDetailBulkConfirm(payload, userUuid)),
-  subscribeCandidateDetailBulkConfirm: (jobId, listener, onError) => {
+  subscribeCandidateDetailBulkConfirm: (jobId, listener, onError, params) => {
     let subscription: ReturnType<typeof mockDashboardApi.subscribeCandidateDetailBulkConfirm> | null = null
     let closed = false
     void withCurrentUserUuid(async (userUuid) => {
       if (closed) return
-      subscription = mockDashboardApi.subscribeCandidateDetailBulkConfirm(jobId, listener, userUuid)
+      subscription = mockDashboardApi.subscribeCandidateDetailBulkConfirm(jobId, listener, userUuid, params)
       if (closed) subscription.close()
     }).catch((error: unknown) => {
       if (!closed) onError?.(error)
@@ -181,20 +190,20 @@ export const mockDashboardRequests: DashboardApi = {
   },
   getCandidateRecommendations: async (params) =>
     withCurrentUserUuid((userUuid) => mockDashboardApi.getCandidateRecommendations(params, userUuid)),
-  getCandidateItemByUuid: async (itemUuid) =>
-    withCurrentUserUuid((userUuid) => mockDashboardApi.getCandidateItemByUuid(itemUuid, userUuid)),
-  deleteCandidateItem: async (itemUuid) =>
-    withCurrentUserUuid((userUuid) => mockDashboardApi.deleteCandidateItem(itemUuid, userUuid)),
-  deleteCandidateItems: async (stashUuid, itemUuids) =>
-    withCurrentUserUuid((userUuid) => mockDashboardApi.deleteCandidateItems(stashUuid, itemUuids, userUuid)),
-  deleteCandidateStash: async (stashUuid) =>
-    withCurrentUserUuid((userUuid) => mockDashboardApi.deleteCandidateStash(stashUuid, userUuid)),
+  getCandidateItemByUuid: async (itemUuid, params) =>
+    withCurrentUserUuid((userUuid) => mockDashboardApi.getCandidateItemByUuid(itemUuid, userUuid, params)),
+  deleteCandidateItem: async (itemUuid, params) =>
+    withCurrentUserUuid((userUuid) => mockDashboardApi.deleteCandidateItem(itemUuid, userUuid, params)),
+  deleteCandidateItems: async (stashUuid, itemUuids, params) =>
+    withCurrentUserUuid((userUuid) => mockDashboardApi.deleteCandidateItems(stashUuid, itemUuids, userUuid, params)),
+  deleteCandidateStash: async (stashUuid, params) =>
+    withCurrentUserUuid((userUuid) => mockDashboardApi.deleteCandidateStash(stashUuid, userUuid, params)),
   createCandidateStash: async (payload) =>
     withCurrentUserUuid((userUuid) => mockDashboardApi.createCandidateStash(payload, userUuid)),
   updateCandidateStash: async (payload) =>
     withCurrentUserUuid((userUuid) => mockDashboardApi.updateCandidateStash(payload, userUuid)),
-  duplicateCandidateStash: async (stashUuid) =>
-    withCurrentUserUuid((userUuid) => mockDashboardApi.duplicateCandidateStash(stashUuid, userUuid)),
+  duplicateCandidateStash: async (stashUuid, params) =>
+    withCurrentUserUuid((userUuid) => mockDashboardApi.duplicateCandidateStash(stashUuid, userUuid, params)),
   appendCandidateItem: async (payload) =>
     withCurrentUserUuid((userUuid) => mockDashboardApi.appendCandidateItem(payload, userUuid)),
   appendCandidateItems: async (payload) =>
@@ -202,7 +211,7 @@ export const mockDashboardRequests: DashboardApi = {
   updateCandidateItem: async (payload) =>
     withCurrentUserUuid((userUuid) => mockDashboardApi.updateCandidateItem(payload, userUuid)),
   getCandidateStashExcelTemplateDownload,
-  uploadCandidateStashExcel: async (file) =>
-    withCurrentUserUuid((userUuid) => mockDashboardApi.uploadCandidateStashExcel(file, userUuid)),
+  uploadCandidateStashExcel: async (file, params) =>
+    withCurrentUserUuid((userUuid) => mockDashboardApi.uploadCandidateStashExcel(file, userUuid, params)),
   getSecondaryStockOrderCalc,
 }

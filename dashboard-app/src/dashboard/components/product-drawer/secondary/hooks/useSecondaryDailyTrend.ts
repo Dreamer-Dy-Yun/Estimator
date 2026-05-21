@@ -8,6 +8,7 @@ type Params = {
   skuGroupKey: string
   selectedStart: string
   selectedEnd: string
+  companyUuid?: string
   leadTimeDays: number
   competitorChannelId: string
   makeApiErrorInfo: (request: string, err: unknown) => ApiUnitErrorInfo
@@ -17,6 +18,7 @@ export function useSecondaryDailyTrend({
   skuGroupKey,
   selectedStart,
   selectedEnd,
+  companyUuid,
   leadTimeDays,
   competitorChannelId,
   makeApiErrorInfo,
@@ -37,6 +39,7 @@ export function useSecondaryDailyTrend({
       try {
         const params = {
           skuGroupKey,
+          companyUuid,
           startMonth: selectedStart,
           leadTimeDays,
           competitorChannelId,
@@ -51,7 +54,7 @@ export function useSecondaryDailyTrend({
         setDailyTrendSeries([])
         setDailyTrendError(
           makeApiErrorInfo(
-            `getSecondaryDailyTrend(${JSON.stringify({ skuGroupKey, startMonth: selectedStart, leadTimeDays, competitorChannelId })})`,
+            `getSecondaryDailyTrend(${JSON.stringify({ skuGroupKey, companyUuid, startMonth: selectedStart, leadTimeDays, competitorChannelId })})`,
             err,
           ),
         )
@@ -62,7 +65,7 @@ export function useSecondaryDailyTrend({
     return () => {
       alive = false
     }
-  }, [competitorChannelId, leadTimeDays, makeApiErrorInfo, skuGroupKey, selectedStart])
+  }, [companyUuid, competitorChannelId, leadTimeDays, makeApiErrorInfo, skuGroupKey, selectedStart])
 
   const { periodShade: dailyPeriodShade, forecastShade: dailyForecastShade } = useMemo(
     () => buildShadeRanges(

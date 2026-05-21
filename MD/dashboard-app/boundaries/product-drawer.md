@@ -5,13 +5,13 @@
 | 작성 지시 | Yun Daeyoung |
 | 작성자 | Codex |
 | 작성일 | 2026-05-19 |
-| 최종 수정일 | 2026-05-20 |
+| 최종 수정일 | 2026-05-21 |
 | 상태 | 유지 문서 |
 | 적용 범위 | 상품 1차/2차 드로워, 스냅샷, AI 코멘트, 재고·발주 계산 |
 
 ## 책임 요약
 
-상품 드로워는 분석 페이지와 이너후보군에서 공통으로 쓰는 상품 상세 UI다. 특정 페이지 state에 직접 의존하지 않고 필요한 데이터는 API 경계로 호출한다.
+상품 드로워는 분석 페이지와 이너후보군에서 공통으로 쓰는 상품 상세 UI다. 특정 페이지 state에 직접 의존하지 않고 필요한 데이터는 API 경계로 호출한다. 단일 회사 선택 시 1차/2차 드로워, AI 코멘트, 재고·발주 계산 요청에는 `companyUuid`를 포함하고, `전체` 선택 시 생략해 전체 회사 기준으로 조회한다.
 
 ## 루트와 공통 상태
 
@@ -24,15 +24,17 @@
 
 경쟁 채널 master data 중복 요청 coalescing은 드로워가 아니라 API request boundary의 `dashboardMasterDataCache.ts`가 맡는다.
 
+회사 scope 경계는 `ProductDrawer.tsx`에서 확정한다. `ProductDrawerContent`는 `companyUuid`를 `ProductDrawerSecondaryPane.tsx`와 `ProductSecondaryDrawer.tsx`로 전달하고, `useSecondaryForecastModel.ts`와 `useSecondaryDrawerRequests.ts`가 하위 API hook에 주입한다. 2차 드로워 하위 hook은 `AuthContext`를 직접 읽지 않는다.
+
 ## 1차 드로워
 
 `product-drawer/primary`가 소유한다.
 
 | 영역 | API |
 |------|-----|
-| 상품 이미지/요약 | `getProductDrawerBundle` |
-| 판매 정보 | `getProductSalesInsight` |
-| 월간 판매 추이 | `getProductMonthlyTrend` |
+| 상품 이미지/요약 | `getProductDrawerBundle` + `companyUuid` |
+| 판매 정보 | `getProductSalesInsight` + `companyUuid` |
+| 월간 판매 추이 | `getProductMonthlyTrend` + `companyUuid` |
 
 판매 추이 그래프는 선형 축으로 고정하고, 자사/선택 경쟁 채널 표시를 각각 토글한다. 자사/경쟁사 분석 탭에서는 2차 드로워를 열지 않는다.
 
@@ -42,10 +44,10 @@
 
 | 영역 | API/모듈 |
 |------|----------|
-| 2차 상세 | `getProductSecondaryDetail` |
-| AI 코멘트 | `getSecondaryAiComment`, `useSecondaryAiComment.ts` |
-| 재고·발주 계산 | `getSecondaryStockOrderCalc`, `useSecondaryStockOrderCalc.ts` |
-| 일별 추이 | `getSecondaryDailyTrend` |
+| 2차 상세 | `getProductSecondaryDetail` + `companyUuid` |
+| AI 코멘트 | `getSecondaryAiComment`, `useSecondaryAiComment.ts` + `companyUuid` |
+| 재고·발주 계산 | `getSecondaryStockOrderCalc`, `useSecondaryStockOrderCalc.ts` + `companyUuid` |
+| 일별 추이 | `getSecondaryDailyTrend` + `companyUuid` |
 | 후보군 저장/확정 | `useSecondaryCandidateActions.ts` |
 | 사이즈별 오더 | `cards/SizeOrderCard.tsx`, `model/secondarySizeOrderRows.ts` |
 

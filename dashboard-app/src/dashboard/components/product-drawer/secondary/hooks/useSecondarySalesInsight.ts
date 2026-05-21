@@ -1,5 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { dashboardApi, type ProductSalesInsight, type SecondaryCompetitorChannel } from '../../../../../api'
+import {
+  dashboardApi,
+  type ProductSalesInsight,
+  type SecondaryCompetitorChannel,
+} from '../../../../../api'
 import type { ApiUnitErrorInfo, ProductPrimarySummary, ProductSecondaryDetail } from '../../../../../types'
 import { monthToEndDate, monthToStartDate } from '../../../../../utils/date'
 import { buildSalesKpiColumn } from '../../../../../utils/salesKpiColumn'
@@ -10,6 +14,7 @@ type Params = {
   channel: SecondaryCompetitorChannel
   selectedStart: string
   selectedEnd: string
+  companyUuid?: string
   makeApiErrorInfo: (request: string, err: unknown) => ApiUnitErrorInfo
 }
 
@@ -19,6 +24,7 @@ export function useSecondarySalesInsight({
   channel,
   selectedStart,
   selectedEnd,
+  companyUuid,
   makeApiErrorInfo,
 }: Params) {
   const requestSeqRef = useRef(0)
@@ -44,6 +50,7 @@ export function useSecondarySalesInsight({
         const result = await dashboardApi.getProductSalesInsight(primary.skuGroupKey, {
           startDate: monthToStartDate(selectedStart),
           endDate: monthToEndDate(selectedEnd),
+          companyUuid,
           competitorChannelId: channel.id,
         })
         if (!alive || requestSeqRef.current !== reqSeq) return
@@ -58,6 +65,7 @@ export function useSecondarySalesInsight({
               skuGroupKey: primary.skuGroupKey,
               startDate: monthToStartDate(selectedStart),
               endDate: monthToEndDate(selectedEnd),
+              companyUuid,
               competitorChannelId: channel.id,
             })})`,
             err,
@@ -70,7 +78,7 @@ export function useSecondarySalesInsight({
     return () => {
       alive = false
     }
-  }, [channel.id, makeApiErrorInfo, primary.skuGroupKey, selectedEnd, selectedStart])
+  }, [channel.id, companyUuid, makeApiErrorInfo, primary.skuGroupKey, selectedEnd, selectedStart])
 
   const fallbackSelfCol = useMemo(
     () => buildSalesKpiColumn('self', primary, secondary, channel),

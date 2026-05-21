@@ -17,6 +17,7 @@ import type {
   CandidateStashLlmCommentJobProgressEvent,
   CandidateStashLlmCommentJobStartResult,
   CandidateStashLlmCommentJobSubscription,
+  CompanyScopeParams,
   CandidateStashExcelUploadResult,
   CandidateStashSummary,
   CreateCandidateStashPayload,
@@ -24,6 +25,7 @@ import type {
   UpdateCandidateItemResponse,
   UpdateCandidateStashPayload,
 } from '../types'
+import { normalizeCompanyScopeParams } from '../types'
 import { subscribeMockCandidateOrderMetrics } from './candidateOrderMetricStream'
 import {
   startMockCandidateDetailBulkConfirm,
@@ -58,8 +60,35 @@ import {
 } from './candidateMockMutations'
 import { sleep } from './utils'
 
+function acceptMockCompanyScope(params?: CompanyScopeParams) {
+  void normalizeCompanyScopeParams(params)
+}
+
+type MockOwnerOrCompanyScope = string | CompanyScopeParams | undefined
+
+function resolveMockOwnerAndCompanyScope(
+  first?: MockOwnerOrCompanyScope,
+  second?: MockOwnerOrCompanyScope,
+) {
+  if (typeof first === 'string') {
+    return {
+      ownerUserUuid: first,
+      params: typeof second === 'object' ? second : undefined,
+    }
+  }
+  return {
+    ownerUserUuid: typeof second === 'string' ? second : undefined,
+    params: typeof first === 'object' ? first : typeof second === 'object' ? second : undefined,
+  }
+}
+
 export const candidateMockApi = {
-  getCandidateStashes: async (ownerUserUuid?: string): Promise<CandidateStashSummary[]> => {
+  getCandidateStashes: async (
+    first?: MockOwnerOrCompanyScope,
+    second?: MockOwnerOrCompanyScope,
+  ): Promise<CandidateStashSummary[]> => {
+    const { ownerUserUuid, params } = resolveMockOwnerAndCompanyScope(first, second)
+    acceptMockCompanyScope(params)
     await sleep(60)
     const stashes = readCandidateStashRecords()
     const items = readCandidateItemRecords()
@@ -79,6 +108,7 @@ export const candidateMockApi = {
     params: CandidateItemListParams,
     ownerUserUuid?: string,
   ): Promise<CandidateItemListResult> => {
+    acceptMockCompanyScope(params)
     await sleep(60)
     if (!findCandidateStashForOwner(params.stashUuid, ownerUserUuid)) {
       throw new Error('후보군을 찾을 수 없습니다.')
@@ -90,58 +120,101 @@ export const candidateMockApi = {
     )
   },
   subscribeCandidateOrderMetrics: (
-    params: CandidateOrderMetricStreamParams,
+    params: CandidateOrderMetricStreamParams & CompanyScopeParams,
     listener: (event: CandidateOrderMetricEvent) => void,
     ownerUserUuid?: string,
-  ): CandidateOrderMetricSubscription => subscribeMockCandidateOrderMetrics(params, listener, ownerUserUuid),
+  ): CandidateOrderMetricSubscription => {
+    acceptMockCompanyScope(params)
+    return subscribeMockCandidateOrderMetrics(params, listener, ownerUserUuid)
+  },
   startCandidateStashLlmCommentJob: async (
     stashUuid: string,
-    ownerUserUuid?: string,
-  ): Promise<CandidateStashLlmCommentJobStartResult> => startMockCandidateStashLlmCommentJob(stashUuid, ownerUserUuid),
+    first?: MockOwnerOrCompanyScope,
+    second?: MockOwnerOrCompanyScope,
+  ): Promise<CandidateStashLlmCommentJobStartResult> => {
+    const { ownerUserUuid, params } = resolveMockOwnerAndCompanyScope(first, second)
+    acceptMockCompanyScope(params)
+    return startMockCandidateStashLlmCommentJob(stashUuid, ownerUserUuid)
+  },
   subscribeCandidateStashLlmCommentJob: (
     jobId: string,
     listener: (event: CandidateStashLlmCommentJobProgressEvent) => void,
-    ownerUserUuid?: string,
-  ): CandidateStashLlmCommentJobSubscription => subscribeMockCandidateStashLlmCommentJob(jobId, listener, ownerUserUuid),
+    first?: MockOwnerOrCompanyScope,
+    second?: MockOwnerOrCompanyScope,
+  ): CandidateStashLlmCommentJobSubscription => {
+    const { ownerUserUuid, params } = resolveMockOwnerAndCompanyScope(first, second)
+    acceptMockCompanyScope(params)
+    return subscribeMockCandidateStashLlmCommentJob(jobId, listener, ownerUserUuid)
+  },
   startCandidateDetailBulkConfirm: async (
     payload: CandidateDetailBulkConfirmStartPayload,
     ownerUserUuid?: string,
-  ): Promise<CandidateDetailBulkConfirmStartResult> => startMockCandidateDetailBulkConfirm(payload, ownerUserUuid),
+  ): Promise<CandidateDetailBulkConfirmStartResult> => {
+    acceptMockCompanyScope(payload)
+    return startMockCandidateDetailBulkConfirm(payload, ownerUserUuid)
+  },
   subscribeCandidateDetailBulkConfirm: (
     jobId: string,
     listener: (event: CandidateDetailBulkConfirmProgressEvent) => void,
-    ownerUserUuid?: string,
-  ): CandidateDetailBulkConfirmSubscription => subscribeMockCandidateDetailBulkConfirm(jobId, listener, ownerUserUuid),
+    first?: MockOwnerOrCompanyScope,
+    second?: MockOwnerOrCompanyScope,
+  ): CandidateDetailBulkConfirmSubscription => {
+    const { ownerUserUuid, params } = resolveMockOwnerAndCompanyScope(first, second)
+    acceptMockCompanyScope(params)
+    return subscribeMockCandidateDetailBulkConfirm(jobId, listener, ownerUserUuid)
+  },
   getCandidateRecommendations: async (
     params: CandidateRecommendationParams,
     ownerUserUuid?: string,
   ): Promise<CandidateRecommendationResult> => {
+    acceptMockCompanyScope(params)
     await sleep(70)
     if (!findCandidateStashForOwner(params.stashUuid, ownerUserUuid)) {
       throw new Error('후보군을 찾을 수 없습니다.')
     }
     return buildCandidateRecommendationResult(buildCandidateListParamsPeriod(params), params.limit, params.cursor)
   },
-  getCandidateItemByUuid: async (itemUuid: string, ownerUserUuid?: string): Promise<CandidateItemDetail | null> => {
+  getCandidateItemByUuid: async (
+    itemUuid: string,
+    first?: MockOwnerOrCompanyScope,
+    second?: MockOwnerOrCompanyScope,
+  ): Promise<CandidateItemDetail | null> => {
+    const { ownerUserUuid, params } = resolveMockOwnerAndCompanyScope(first, second)
+    acceptMockCompanyScope(params)
     await sleep(50)
     const row = readCandidateItemRecords().find((it) => it.uuid === itemUuid)
     if (!row) return null
     if (!findCandidateStashForOwner(row.stashUuid, ownerUserUuid)) return null
     return toCandidateItemDetail(row)
   },
-  deleteCandidateItem: async (itemUuid: string, ownerUserUuid?: string): Promise<void> => {
+  deleteCandidateItem: async (
+    itemUuid: string,
+    first?: MockOwnerOrCompanyScope,
+    second?: MockOwnerOrCompanyScope,
+  ): Promise<void> => {
+    const { ownerUserUuid, params } = resolveMockOwnerAndCompanyScope(first, second)
+    acceptMockCompanyScope(params)
     await sleep(60)
     deleteCandidateItemRecord(itemUuid, ownerUserUuid)
   },
   deleteCandidateItems: async (
     stashUuid: string,
     itemUuids: string[],
-    ownerUserUuid?: string,
+    first?: MockOwnerOrCompanyScope,
+    second?: MockOwnerOrCompanyScope,
   ): Promise<void> => {
+    const { ownerUserUuid, params } = resolveMockOwnerAndCompanyScope(first, second)
+    acceptMockCompanyScope(params)
     await sleep(80)
     deleteCandidateItemRecords(stashUuid, itemUuids, ownerUserUuid)
   },
-  deleteCandidateStash: async (stashUuid: string, ownerUserUuid?: string): Promise<void> => {
+  deleteCandidateStash: async (
+    stashUuid: string,
+    first?: MockOwnerOrCompanyScope,
+    second?: MockOwnerOrCompanyScope,
+  ): Promise<void> => {
+    const { ownerUserUuid, params } = resolveMockOwnerAndCompanyScope(first, second)
+    acceptMockCompanyScope(params)
     await sleep(60)
     deleteCandidateStashRecord(stashUuid, ownerUserUuid)
   },
@@ -149,6 +222,7 @@ export const candidateMockApi = {
     payload: CreateCandidateStashPayload,
     ownerUserUuid?: string,
   ): Promise<CandidateStashSummary> => {
+    acceptMockCompanyScope(payload)
     await sleep(90)
     return createCandidateStashSummary(payload, ownerUserUuid)
   },
@@ -156,14 +230,22 @@ export const candidateMockApi = {
     payload: UpdateCandidateStashPayload,
     ownerUserUuid?: string,
   ): Promise<CandidateStashSummary> => {
+    acceptMockCompanyScope(payload)
     await sleep(70)
     return updateCandidateStashSummary(payload, ownerUserUuid)
   },
-  duplicateCandidateStash: async (sourceStashUuid: string, ownerUserUuid?: string): Promise<void> => {
+  duplicateCandidateStash: async (
+    sourceStashUuid: string,
+    first?: MockOwnerOrCompanyScope,
+    second?: MockOwnerOrCompanyScope,
+  ): Promise<void> => {
+    const { ownerUserUuid, params } = resolveMockOwnerAndCompanyScope(first, second)
+    acceptMockCompanyScope(params)
     await sleep(90)
     duplicateCandidateStashRecord(sourceStashUuid, ownerUserUuid)
   },
   appendCandidateItem: async (payload: AppendCandidateItemPayload, ownerUserUuid?: string): Promise<void> => {
+    acceptMockCompanyScope(payload)
     await sleep(70)
     appendCandidateItemRecord(payload, ownerUserUuid)
   },
@@ -171,6 +253,7 @@ export const candidateMockApi = {
     payload: AppendCandidateItemsPayload,
     ownerUserUuid?: string,
   ): Promise<AppendCandidateItemsResponse> => {
+    acceptMockCompanyScope(payload)
     await sleep(70)
     return appendCandidateItemsToStash(payload, ownerUserUuid)
   },
@@ -178,13 +261,17 @@ export const candidateMockApi = {
     payload: UpdateCandidateItemPayload,
     ownerUserUuid?: string,
   ): Promise<UpdateCandidateItemResponse> => {
+    acceptMockCompanyScope(payload)
     await sleep(70)
     return updateCandidateItemRecord(payload, ownerUserUuid)
   },
   uploadCandidateStashExcel: async (
     file: File,
-    ownerUserUuid?: string,
+    first?: MockOwnerOrCompanyScope,
+    second?: MockOwnerOrCompanyScope,
   ): Promise<CandidateStashExcelUploadResult> => {
+    const { ownerUserUuid, params } = resolveMockOwnerAndCompanyScope(first, second)
+    acceptMockCompanyScope(params)
     await sleep(140)
     return uploadCandidateStashExcelFile(file, ownerUserUuid)
   },

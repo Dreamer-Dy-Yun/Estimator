@@ -4,6 +4,7 @@ import {
   duplicateCandidateStash,
   getCandidateStashExcelTemplateDownload,
   getCandidateStashes,
+  getCompanyUuidForOptionalScope,
   uploadCandidateStashExcel,
   updateCandidateStash,
   type CandidateStashExcelUploadResult,
@@ -42,6 +43,7 @@ const candidateStashTemplateDownload = getCandidateStashExcelTemplateDownload()
 export const SnapshotConfirmPage = () => {
   const { showToast } = useAppToast()
   const { selectedCompanyUuid } = useAuth()
+  const companyUuid = useMemo(() => getCompanyUuidForOptionalScope(selectedCompanyUuid), [selectedCompanyUuid])
   const isAllCompanySelected = isAllCompanyUuid(selectedCompanyUuid)
   const [stashes, setStashes] = useState<CandidateStashSummary[]>([])
   const [openDetailStashUuid, setOpenDetailStashUuid] = useState<string | null>(null)
@@ -75,13 +77,13 @@ export const SnapshotConfirmPage = () => {
     loadStashesSeqRef.current = seq
     setStashesLoading(true)
     try {
-      const list = await getCandidateStashes()
+      const list = await getCandidateStashes({ companyUuid })
       if (!mountedRef.current || loadStashesSeqRef.current !== seq) return
       setStashes(list)
     } finally {
       if (mountedRef.current && loadStashesSeqRef.current === seq) setStashesLoading(false)
     }
-  }, [isAllCompanySelected])
+  }, [companyUuid, isAllCompanySelected])
 
   useEffect(() => {
     mountedRef.current = true
@@ -106,7 +108,7 @@ export const SnapshotConfirmPage = () => {
     setUploadError(null)
     setUploadResult(null)
     try {
-      const result = await uploadCandidateStashExcel(uploadFile)
+      const result = await uploadCandidateStashExcel(uploadFile, { companyUuid })
       if (!mountedRef.current) return
       setUploadResult(result)
       setUploadFile(null)
@@ -146,7 +148,7 @@ export const SnapshotConfirmPage = () => {
   const duplicateStash = async (stash: CandidateStashSummary) => {
     setDuplicateBusyUuid(stash.uuid)
     try {
-      await duplicateCandidateStash(stash.uuid)
+      await duplicateCandidateStash(stash.uuid, { companyUuid })
       await loadStashes()
       showToast('후보군이 복제되었습니다.')
     } finally {
@@ -160,6 +162,7 @@ export const SnapshotConfirmPage = () => {
     try {
       await updateCandidateStash({
         stashUuid: editTarget.uuid,
+        companyUuid,
         name: editName.trim(),
         note: editNote.trim() || null,
       })
@@ -286,7 +289,7 @@ export const SnapshotConfirmPage = () => {
           if (!deleteTarget) return
           setDeleteBusy(true)
           try {
-            await deleteCandidateStash(deleteTarget.uuid)
+            await deleteCandidateStash(deleteTarget.uuid, { companyUuid })
             await loadStashes()
             if (!mountedRef.current) return
             setDeleteTarget(null)

@@ -18,6 +18,7 @@ type Args = {
   periodStart: string
   periodEnd: string
   forecastMonths: number
+  companyUuid?: string
   prefillFromSnapshot: OrderSnapshotDocumentV1 | null
   candidateItemContext: CandidateItemPanelContext | null
   channel: SecondaryCompetitorChannel
@@ -54,6 +55,7 @@ export function useSecondaryForecastModel(args: Args) {
     periodStart,
     periodEnd,
     forecastMonths,
+    companyUuid,
     prefillFromSnapshot,
     candidateItemContext,
     channel,
@@ -104,6 +106,7 @@ export function useSecondaryForecastModel(args: Args) {
     channel,
     selectedStart,
     selectedEnd,
+    companyUuid,
     forecastMeanPeriodEnd,
     serviceLevelPct,
     leadTimeDays,

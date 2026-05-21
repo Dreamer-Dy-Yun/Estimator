@@ -3,6 +3,7 @@ import type {
   CandidateItemOrderExport,
   CandidateOrderMetricStatus,
 } from './candidate-order-metrics'
+import type { CompanyScopeParams } from './company'
 
 export interface CandidateStashSummary {
   uuid: string
@@ -105,13 +106,17 @@ export interface CandidateItemListResult {
   items: CandidateItemSummary[]
 }
 
-export interface CandidateItemListParams {
+export interface CandidateStashListParams extends CompanyScopeParams {
+  companyUuid?: CompanyScopeParams['companyUuid']
+}
+
+export interface CandidateItemListParams extends CompanyScopeParams {
   stashUuid: string
   dataReferencePeriodStart: string
   dataReferencePeriodEnd: string
 }
 
-export interface CandidateRecommendationParams {
+export interface CandidateRecommendationParams extends CompanyScopeParams {
   stashUuid: string
   dataReferencePeriodStart: string
   dataReferencePeriodEnd: string
@@ -149,7 +154,7 @@ export interface CandidateStashLlmCommentJobSubscription {
   close: () => void
 }
 
-export interface CandidateDetailBulkConfirmStartPayload {
+export interface CandidateDetailBulkConfirmStartPayload extends CompanyScopeParams {
   stashUuid: string
   itemUuids: string[]
   dataReferencePeriodStart: string
@@ -200,7 +205,7 @@ export interface CandidateItemDetail {
   dbUpdatedAt: string
 }
 
-export interface CreateCandidateStashPayload {
+export interface CreateCandidateStashPayload extends CompanyScopeParams {
   name: string
   note?: string | null
   periodStart: string
@@ -209,13 +214,13 @@ export interface CreateCandidateStashPayload {
 }
 
 /** Updates only candidate stash metadata. */
-export interface UpdateCandidateStashPayload {
+export interface UpdateCandidateStashPayload extends CompanyScopeParams {
   stashUuid: string
   name: string
   note?: string | null
 }
 
-export interface AppendCandidateItemPayload {
+export interface AppendCandidateItemPayload extends CompanyScopeParams {
   stashUuid: string
   skuGroupKey: string
   details: SecondaryOrderSnapshotPayload
@@ -223,7 +228,7 @@ export interface AppendCandidateItemPayload {
 }
 
 /** Adds SKU.code + SKU.color_code groups from analysis lists without saving an order snapshot. */
-export interface AppendCandidateItemsPayload {
+export interface AppendCandidateItemsPayload extends CompanyScopeParams {
   stashUuid: string
   /** skuGroupKey values. Backend maps each key to matching SKU rows by code/color_code. */
   skuGroupKeys: string[]
@@ -234,7 +239,7 @@ export interface AppendCandidateItemsResponse {
   candidateItems: CandidateStashItemSummary[]
 }
 
-export interface UpdateCandidateItemPayload {
+export interface UpdateCandidateItemPayload extends CompanyScopeParams {
   itemUuid: string
   /** null clears the saved secondary-drawer snapshot and makes the item unconfirmed. */
   details: SecondaryOrderSnapshotPayload | null

@@ -15,6 +15,7 @@ type Props = {
   skuGroupKeys: string[]
   periodStart: string
   periodEnd: string
+  companyUuid?: string
   forecastMonths: number
   onClose: () => void
   onDone: () => void
@@ -25,6 +26,7 @@ export function AnalysisCandidateBulkAddModal({
   skuGroupKeys,
   periodStart,
   periodEnd,
+  companyUuid,
   forecastMonths,
   onClose,
   onDone,
@@ -48,11 +50,13 @@ export function AnalysisCandidateBulkAddModal({
     requestSeqRef.current = seq
     setBusy(true)
     setError(null)
-    void getCandidateStashes()
+    void getCandidateStashes({ companyUuid })
       .then((rows) => {
         if (requestSeqRef.current !== seq) return
         setStashes(rows)
-        setSelectedStashUuid((current) => current || rows[0]?.uuid || '')
+        setSelectedStashUuid((current) => (
+          rows.some((row) => row.uuid === current) ? current : rows[0]?.uuid || ''
+        ))
       })
       .catch((err) => {
         if (requestSeqRef.current !== seq) return
@@ -66,7 +70,7 @@ export function AnalysisCandidateBulkAddModal({
       alive = false
       requestSeqRef.current += 1
     }
-  }, [open])
+  }, [companyUuid, open])
 
   if (!open) return null
 
@@ -77,6 +81,7 @@ export function AnalysisCandidateBulkAddModal({
       const created = await createCandidateStash({
         name: nameInput.trim(),
         note: noteInput.trim(),
+        companyUuid,
         periodStart,
         periodEnd,
         forecastMonths,
@@ -100,6 +105,7 @@ export function AnalysisCandidateBulkAddModal({
     try {
       await appendCandidateItems({
         stashUuid: selectedStashUuid,
+        companyUuid,
         skuGroupKeys: uniqueSkuGroupKeys,
       })
       showToast('선택한 상품을 후보군에 담았습니다.')

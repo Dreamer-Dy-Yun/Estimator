@@ -1,12 +1,14 @@
 ﻿import { useCallback, useEffect, useRef, useState, type MutableRefObject } from 'react'
 import {
   appendCandidateItems,
+  getCompanyUuidForOptionalScope,
   getApiErrorDisplayMessage,
   getCandidateRecommendations,
   type CandidateItemSummary,
   type CandidateReferenceItemSummary,
   type CandidateStashItemSummary,
 } from '../../../api'
+import { useAuth } from '../../../auth/AuthContext'
 import {
   applyRecommendationInsightsToCandidateItems,
   markCandidateItemInsightsFailed,
@@ -46,6 +48,8 @@ export function useCandidateRecommendations({
   refreshStashes,
   showToast,
 }: Args) {
+  const { selectedCompanyUuid } = useAuth()
+  const companyUuid = getCompanyUuidForOptionalScope(selectedCompanyUuid)
   const [recommendationItems, setRecommendationItems] = useState<CandidateReferenceItemSummary[]>([])
   const [recommendationLoading, setRecommendationLoading] = useState(false)
   const [recommendationError, setRecommendationError] = useState<string | null>(null)
@@ -53,7 +57,7 @@ export function useCandidateRecommendations({
   const loadedPeriodKeyRef = useRef<string | null>(null)
   const recommendationItemsRef = useRef<CandidateReferenceItemSummary[]>([])
   const currentPeriodKey = stashUuid && dataReferencePeriodStart && dataReferencePeriodEnd
-    ? `${stashUuid}:${dataReferencePeriodStart}:${dataReferencePeriodEnd}`
+    ? `${companyUuid ?? 'all'}:${stashUuid}:${dataReferencePeriodStart}:${dataReferencePeriodEnd}`
     : null
   const currentPeriodKeyRef = useRef<string | null>(currentPeriodKey)
 
@@ -89,6 +93,7 @@ export function useCandidateRecommendations({
       do {
         const result = await getCandidateRecommendations({
           stashUuid,
+          companyUuid,
           dataReferencePeriodStart,
           dataReferencePeriodEnd,
           limit: RECOMMENDATION_PAGE_SIZE,
@@ -115,13 +120,13 @@ export function useCandidateRecommendations({
       setRecommendationLoading(false)
       return recommendationItemsRef.current
     }
-  }, [currentPeriodKey, dataReferencePeriodEnd, dataReferencePeriodStart, itemsRef, mountedRef, setItems, stashUuid])
+  }, [companyUuid, currentPeriodKey, dataReferencePeriodEnd, dataReferencePeriodStart, itemsRef, mountedRef, setItems, stashUuid])
 
   const appendRecommendedItems = useCallback(async (rows: CandidateReferenceItemSummary[]) => {
     const skuGroupKeys = [...new Set(rows.map((row) => row.skuGroupKey))]
     if (!skuGroupKeys.length) return
     try {
-      const result = await appendCandidateItems({ stashUuid, skuGroupKeys })
+      const result = await appendCandidateItems({ stashUuid, companyUuid, skuGroupKeys })
       if (!mountedRef.current) return
       onRecommendedItemsAppended(result.candidateItems, rows)
       const createdSkuUuidSet = new Set(result.candidateItems.map((item) => item.skuUuid))
@@ -150,6 +155,7 @@ export function useCandidateRecommendations({
     refreshStashes,
     showToast,
     stashUuid,
+    companyUuid,
   ])
 
   return {

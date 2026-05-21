@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
+import { getCompanyUuidForOptionalScope } from '../../../api'
+import { useAuth } from '../../../auth/AuthContext'
 import { LoadingSpinner } from '../../../components/LoadingSpinner'
 import type { ProductPrimarySummary } from '../../../types'
 import type { AdjacentDirection } from '../../../utils/adjacentListNavigation'
@@ -19,6 +21,7 @@ function ProductDrawerContent({
   onClose,
   periodStart,
   periodEnd,
+  companyUuid,
   forecastMonths,
   selfCompanyLabel,
   onForecastMonthsChange,
@@ -35,6 +38,7 @@ function ProductDrawerContent({
   onClose: () => void
   periodStart: string
   periodEnd: string
+  companyUuid?: string
   forecastMonths: number
   selfCompanyLabel: string
   onForecastMonthsChange: (months: number) => void
@@ -116,6 +120,7 @@ function ProductDrawerContent({
         summary={summary}
         periodStart={periodStart}
         periodEnd={periodEnd}
+        companyUuid={companyUuid}
         selectedStart={selectedStart}
         selectedEnd={selectedEnd}
         forecastMonths={forecastMonths}
@@ -141,6 +146,7 @@ function ProductDrawerContent({
           selectedStart={selectedStart}
           selectedEnd={selectedEnd}
           forecastMonths={forecastMonths}
+          companyUuid={companyUuid}
           selfCompanyLabel={selfCompanyLabel}
           channelsError={channelsError}
           selectedChannelReady={selectedChannelReady}
@@ -166,6 +172,7 @@ export const ProductDrawer = ({
   onClose,
   periodStart,
   periodEnd,
+  companyUuid: companyUuidProp,
   forecastMonths,
   selfCompanyLabel,
   onForecastMonthsChange,
@@ -183,6 +190,7 @@ export const ProductDrawer = ({
   onClose: () => void
   periodStart: string
   periodEnd: string
+  companyUuid?: string
   forecastMonths: number
   selfCompanyLabel: string
   onForecastMonthsChange: (months: number) => void
@@ -195,6 +203,9 @@ export const ProductDrawer = ({
   suppressDocumentLayoutShift?: boolean
   closing?: boolean
 }) => {
+  const { selectedCompanyUuid } = useAuth()
+  const companyUuid = companyUuidProp ?? getCompanyUuidForOptionalScope(selectedCompanyUuid)
+
   if (!summary) {
     if (!loading) return null
     return <ProductDrawerLoadingPanel closing={closing} onClose={onClose} />
@@ -205,6 +216,7 @@ export const ProductDrawer = ({
       onClose={onClose}
       periodStart={periodStart}
       periodEnd={periodEnd}
+      companyUuid={companyUuid}
       forecastMonths={forecastMonths}
       selfCompanyLabel={selfCompanyLabel}
       onForecastMonthsChange={onForecastMonthsChange}

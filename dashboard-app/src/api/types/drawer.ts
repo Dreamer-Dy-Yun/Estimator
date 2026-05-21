@@ -1,10 +1,15 @@
 import type { ProductPrimarySummary } from '../../types'
+import type { CompanyScopeParams } from './company'
 
 export interface ProductDrawerBundle {
   summary: ProductPrimarySummary
 }
 
-export interface ProductMonthlyTrendParams {
+export interface ProductDrawerBundleParams extends CompanyScopeParams {
+  companyUuid?: CompanyScopeParams['companyUuid']
+}
+
+export interface ProductMonthlyTrendParams extends CompanyScopeParams {
   startDate: string
   endDate: string
   forecastMonths: number
@@ -29,7 +34,7 @@ export interface ProductMonthlyTrend {
   points: ProductMonthlyTrendPoint[]
 }
 
-export interface ProductSalesInsightParams {
+export interface ProductSalesInsightParams extends CompanyScopeParams {
   startDate: string
   endDate: string
   competitorChannelId: string

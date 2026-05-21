@@ -28,6 +28,7 @@ type Props = {
   periodEnd: string
   /** 오더 스냅샷용: 월간 포캐스트 개월 수 */
   forecastMonths: number
+  companyUuid?: string
   selfCompanyLabel: string
   pageName?: string
   /** 후보군 등에서 불러온 저장 스냅샷으로 폼·확정 수량 복원 */
@@ -46,6 +47,7 @@ export function ProductSecondaryDrawer({
   periodStart,
   periodEnd,
   forecastMonths,
+  companyUuid,
   selfCompanyLabel,
   pageName = 'ProductSecondaryDrawer',
   prefillFromSnapshot = null,
@@ -143,6 +145,7 @@ export function ProductSecondaryDrawer({
     periodStart,
     periodEnd,
     forecastMonths,
+    companyUuid,
     prefillFromSnapshot,
     candidateItemContext,
     channel,

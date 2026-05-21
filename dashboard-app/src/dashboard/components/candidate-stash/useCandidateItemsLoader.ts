@@ -1,9 +1,11 @@
 import { useCallback, useState, type MutableRefObject } from 'react'
 import {
+  getCompanyUuidForOptionalScope,
   getApiErrorDisplayMessage,
   getCandidateItemsByStash,
   type CandidateItemSummary,
 } from '../../../api'
+import { useAuth } from '../../../auth/AuthContext'
 import {
   applyCandidateDetailConfirmationOverrides,
   type CandidateDetailConfirmationOverrideMap,
@@ -21,6 +23,7 @@ interface SubscribeOrderMetricsArgs {
   seq: number
   dataReferencePeriodStart: string
   dataReferencePeriodEnd: string
+  companyUuid?: string
   candidateItemUuids: string[]
 }
 
@@ -47,6 +50,8 @@ export function useCandidateItemsLoader({
   setItems,
   subscribeOrderMetrics,
 }: UseCandidateItemsLoaderParams) {
+  const { selectedCompanyUuid } = useAuth()
+  const companyUuid = getCompanyUuidForOptionalScope(selectedCompanyUuid)
   const [candidateItemsLoading, setCandidateItemsLoading] = useState(false)
   const [candidateItemsLoadError, setCandidateItemsLoadError] = useState<string | null>(null)
 
@@ -62,6 +67,7 @@ export function useCandidateItemsLoader({
     try {
       const result = await getCandidateItemsByStash({
         stashUuid,
+        companyUuid,
         dataReferencePeriodStart: nextPeriodStart,
         dataReferencePeriodEnd: nextPeriodEnd,
       })
@@ -82,6 +88,7 @@ export function useCandidateItemsLoader({
         seq,
         dataReferencePeriodStart: nextPeriodStart,
         dataReferencePeriodEnd: nextPeriodEnd,
+        companyUuid,
         candidateItemUuids: metricCandidateItems.map((item) => item.uuid),
       })
     } catch (err) {
@@ -94,6 +101,7 @@ export function useCandidateItemsLoader({
     appliedPeriodRef,
     beginItemLoad,
     clearRecommendationItems,
+    companyUuid,
     confirmationOverridesRef,
     isCurrentItemLoad,
     itemsRef,

@@ -10,6 +10,7 @@ type Props = {
   summary: ProductPrimarySummary
   periodStart: string
   periodEnd: string
+  companyUuid?: string
   selectedStart: string
   selectedEnd: string
   forecastMonths: number
@@ -32,6 +33,7 @@ export function ProductPrimaryDrawer({
   summary,
   periodStart,
   periodEnd,
+  companyUuid,
   selectedStart,
   selectedEnd,
   forecastMonths,
@@ -121,6 +123,7 @@ export function ProductPrimaryDrawer({
             skuGroupKey={summary.skuGroupKey}
             startDate={periodStart}
             endDate={periodEnd}
+            companyUuid={companyUuid}
             channelId={channelState.channelId}
             competitorChannels={channelState.competitorChannels}
             channelsError={channelState.channelsError}

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { dashboardApi } from '../../../../../api'
+import { dashboardApi, getCompanyUuidForOptionalScope } from '../../../../../api'
+import { useAuth } from '../../../../../auth/AuthContext'
 import type { ToastContextValue } from '../../../../../components/AppToastContext'
 import type { OrderSnapshotDocumentV1 } from '../../../../../snapshot/orderSnapshotTypes'
 import type { CandidateItemPanelContext } from '../candidateActionCards'
@@ -35,6 +36,8 @@ export function useSecondaryCandidateActions({
   buildSnapshot,
   showToast,
 }: Params) {
+  const { selectedCompanyUuid } = useAuth()
+  const companyUuid = getCompanyUuidForOptionalScope(selectedCompanyUuid)
   const mountedRef = useRef(false)
   const candidateListReqSeqRef = useRef(0)
   const [loading, setLoading] = useState(false)
@@ -63,16 +66,16 @@ export function useSecondaryCandidateActions({
     return () => {
       alive = false
     }
-  }, [skuGroupKey])
+  }, [companyUuid, skuGroupKey])
 
   const refresh = useCallback(async () => {
     const reqSeq = candidateListReqSeqRef.current + 1
     candidateListReqSeqRef.current = reqSeq
-    const rows = await dashboardApi.getCandidateStashes()
+    const rows = await dashboardApi.getCandidateStashes({ companyUuid })
     if (!mountedRef.current || candidateListReqSeqRef.current !== reqSeq) return rows
     setStashes(rows.map(toPickerOption))
     return rows
-  }, [])
+  }, [companyUuid])
 
   const openPicker = useCallback(async () => {
     if (listOpen) {
@@ -100,6 +103,7 @@ export function useSecondaryCandidateActions({
       await dashboardApi.appendCandidateItem({
         stashUuid: selectedCandidate.uuid,
         skuGroupKey,
+        companyUuid,
         details: buildSnapshot(),
         isLatestLlmComment: false,
       })
@@ -107,7 +111,7 @@ export function useSecondaryCandidateActions({
     } finally {
       if (mountedRef.current) setLoading(false)
     }
-  }, [buildSnapshot, selectedCandidate, showToast, skuGroupKey])
+  }, [buildSnapshot, companyUuid, selectedCandidate, showToast, skuGroupKey])
 
   const confirmCandidateItem = useCallback(async () => {
     if (candidateItemContext == null) return
@@ -116,6 +120,7 @@ export function useSecondaryCandidateActions({
     try {
       const updatedItem = await dashboardApi.updateCandidateItem({
         itemUuid: candidateItemContext.itemUuid,
+        companyUuid,
         details: snapshot,
         isLatestLlmComment: false,
       })
@@ -126,7 +131,7 @@ export function useSecondaryCandidateActions({
     } finally {
       if (mountedRef.current) setLoading(false)
     }
-  }, [buildSnapshot, candidateItemContext, hasSavedSnapshot, showToast])
+  }, [buildSnapshot, candidateItemContext, companyUuid, hasSavedSnapshot, showToast])
 
   const unconfirmCandidateItem = useCallback(async () => {
     if (candidateItemContext == null) return
@@ -134,6 +139,7 @@ export function useSecondaryCandidateActions({
     try {
       const updatedItem = await dashboardApi.updateCandidateItem({
         itemUuid: candidateItemContext.itemUuid,
+        companyUuid,
         details: null,
         isLatestLlmComment: false,
       })
@@ -144,7 +150,7 @@ export function useSecondaryCandidateActions({
     } finally {
       if (mountedRef.current) setLoading(false)
     }
-  }, [candidateItemContext, showToast])
+  }, [candidateItemContext, companyUuid, showToast])
 
   const createCandidate = useCallback(async () => {
     setLoading(true)
@@ -152,6 +158,7 @@ export function useSecondaryCandidateActions({
       const created = await dashboardApi.createCandidateStash({
         name: nameInput.trim(),
         note: noteInput.trim(),
+        companyUuid,
         periodStart,
         periodEnd,
         forecastMonths,
@@ -168,7 +175,7 @@ export function useSecondaryCandidateActions({
     } finally {
       if (mountedRef.current) setLoading(false)
     }
-  }, [forecastMonths, nameInput, noteInput, periodEnd, periodStart, refresh, showToast])
+  }, [companyUuid, forecastMonths, nameInput, noteInput, periodEnd, periodStart, refresh, showToast])
 
   return {
     loading,

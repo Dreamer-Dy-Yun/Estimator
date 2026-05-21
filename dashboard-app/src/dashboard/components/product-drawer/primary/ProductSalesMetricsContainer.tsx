@@ -11,6 +11,7 @@ type Props = {
   skuGroupKey: string
   startDate: string
   endDate: string
+  companyUuid?: string
   channelId: string
   competitorChannels: SecondaryCompetitorChannel[]
   channelsError: ApiUnitErrorInfo | null
@@ -29,6 +30,7 @@ export function ProductSalesMetricsContainer({
   skuGroupKey,
   startDate,
   endDate,
+  companyUuid,
   channelId,
   competitorChannels,
   channelsError,
@@ -42,6 +44,7 @@ export function ProductSalesMetricsContainer({
     skuGroupKey,
     startDate,
     endDate,
+    companyUuid,
     competitorChannelId: channelId,
   })
   const salesInsight =
@@ -58,6 +61,7 @@ export function ProductSalesMetricsContainer({
         const data = await dashboardApi.getProductSalesInsight(skuGroupKey, {
           startDate,
           endDate,
+          companyUuid,
           competitorChannelId: channelId,
         })
         if (!alive || reqSeq !== reqSeqRef.current) return
@@ -69,7 +73,7 @@ export function ProductSalesMetricsContainer({
           data: null,
           error: makeApiErrorInfo(
             pageName,
-            `getProductSalesInsight(${JSON.stringify({ skuGroupKey, startDate, endDate, competitorChannelId: channelId })})`,
+            `getProductSalesInsight(${JSON.stringify({ skuGroupKey, startDate, endDate, companyUuid, competitorChannelId: channelId })})`,
             err,
           ),
         })
@@ -78,7 +82,7 @@ export function ProductSalesMetricsContainer({
     return () => {
       alive = false
     }
-  }, [channelId, endDate, pageName, salesInsightRequestKey, skuGroupKey, startDate])
+  }, [channelId, companyUuid, endDate, pageName, salesInsightRequestKey, skuGroupKey, startDate])
 
   const salesMetricsError = salesInsightError ?? channelsError
 

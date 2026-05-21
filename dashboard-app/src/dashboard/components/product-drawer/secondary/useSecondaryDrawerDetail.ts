@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
-import { dashboardApi } from '../../../../api'
+import { dashboardApi, getCompanyUuidForOptionalScope } from '../../../../api'
+import { useAuth } from '../../../../auth/AuthContext'
 import type { ApiUnitErrorInfo, ProductSecondaryDetail } from '../../../../types'
 import type { OrderSnapshotDocumentV1 } from '../../../../snapshot/orderSnapshotTypes'
 import { makeApiErrorInfo } from '../apiErrorInfo'
@@ -17,6 +18,8 @@ export function useSecondaryDrawerDetail({
   hydrateSnapshot = null,
   pageName,
 }: Params) {
+  const { selectedCompanyUuid } = useAuth()
+  const companyUuid = getCompanyUuidForOptionalScope(selectedCompanyUuid)
   const [secondaryDetail, setSecondaryDetail] = useState<ProductSecondaryDetail | null>(null)
   const [secondaryDetailError, setSecondaryDetailError] = useState<ApiUnitErrorInfo | null>(null)
 
@@ -49,7 +52,7 @@ export function useSecondaryDrawerDetail({
     setSecondaryDetailError(null)
     void (async () => {
       try {
-        const d = await dashboardApi.getProductSecondaryDetail(skuGroupKey)
+        const d = await dashboardApi.getProductSecondaryDetail(skuGroupKey, { companyUuid })
         if (!alive) return
         if (!d) throw new Error('2차 상세 데이터가 비어 있습니다.')
         setSecondaryDetail(d)
@@ -58,7 +61,7 @@ export function useSecondaryDrawerDetail({
         if (!alive) return
         setSecondaryDetail(null)
         setSecondaryDetailError(
-          makeApiErrorInfo(pageName, `getProductSecondaryDetail(${JSON.stringify({ skuGroupKey })})`, err),
+          makeApiErrorInfo(pageName, `getProductSecondaryDetail(${JSON.stringify({ skuGroupKey, companyUuid })})`, err),
         )
       }
     })()
@@ -66,7 +69,7 @@ export function useSecondaryDrawerDetail({
     return () => {
       alive = false
     }
-  }, [expandPaneOpen, pageName, skuGroupKey, secondaryFromSnapshot])
+  }, [companyUuid, expandPaneOpen, pageName, skuGroupKey, secondaryFromSnapshot])
 
   return {
     secondaryDetail,

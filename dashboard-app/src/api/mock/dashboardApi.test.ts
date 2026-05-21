@@ -3,6 +3,7 @@ import { mockDashboardApi } from './dashboardApi'
 import { skuGroupKeyByLegacyId } from './salesTables'
 
 const skuGroupKey = (legacyId: string) => skuGroupKeyByLegacyId[legacyId] ?? legacyId
+const MOCK_COMPANY_UUID = '00000000-0000-4000-8000-000000000101'
 
 describe('api/mock dashboardApi competitor channel behavior', () => {
   it('returns only kream/musinsa competitor channels', async () => {
@@ -12,8 +13,14 @@ describe('api/mock dashboardApi competitor channel behavior', () => {
   })
 
   it('applies musinsa skew to competitor sales rows', async () => {
-    const base = await mockDashboardApi.getCompetitorSales({ competitorChannelId: 'kream' })
-    const musinsa = await mockDashboardApi.getCompetitorSales({ competitorChannelId: 'musinsa' })
+    const base = await mockDashboardApi.getCompetitorSales({
+      competitorChannelId: 'kream',
+      companyUuid: MOCK_COMPANY_UUID,
+    })
+    const musinsa = await mockDashboardApi.getCompetitorSales({
+      competitorChannelId: 'musinsa',
+      companyUuid: MOCK_COMPANY_UUID,
+    })
 
     expect(base.length).toBeGreaterThan(0)
     expect(musinsa.length).toBe(base.length)
@@ -33,9 +40,15 @@ describe('api/mock dashboardApi competitor channel behavior', () => {
   })
 
   it('aggregates all competitor channels when no channel is selected', async () => {
-    const all = await mockDashboardApi.getCompetitorSales()
-    const kream = await mockDashboardApi.getCompetitorSales({ competitorChannelId: 'kream' })
-    const musinsa = await mockDashboardApi.getCompetitorSales({ competitorChannelId: 'musinsa' })
+    const all = await mockDashboardApi.getCompetitorSales({ companyUuid: MOCK_COMPANY_UUID })
+    const kream = await mockDashboardApi.getCompetitorSales({
+      competitorChannelId: 'kream',
+      companyUuid: MOCK_COMPANY_UUID,
+    })
+    const musinsa = await mockDashboardApi.getCompetitorSales({
+      competitorChannelId: 'musinsa',
+      companyUuid: MOCK_COMPANY_UUID,
+    })
 
     const allRow = all.find((row) => row.id === 'B')
     const kreamRow = kream.find((row) => row.id === allRow?.id)
@@ -53,26 +66,42 @@ describe('api/mock dashboardApi competitor channel behavior', () => {
   })
 
   it('rejects unknown competitor channel ids instead of substituting another channel', async () => {
-    await expect(mockDashboardApi.getCompetitorSales({ competitorChannelId: 'unknown-channel' }))
+    await expect(
+      mockDashboardApi.getCompetitorSales({
+        competitorChannelId: 'unknown-channel',
+        companyUuid: MOCK_COMPANY_UUID,
+      }),
+    )
       .rejects.toThrow('Unknown mock competitor channel')
   })
 
   it('rejects removed competitor channel ids instead of treating them as default', async () => {
-    await expect(mockDashboardApi.getCompetitorSales({ competitorChannelId: 'naver' }))
+    await expect(
+      mockDashboardApi.getCompetitorSales({
+        competitorChannelId: 'naver',
+        companyUuid: MOCK_COMPANY_UUID,
+      }),
+    )
       .rejects.toThrow('Unknown mock competitor channel')
   })
 
   it('filters self and competitor sales by product code query', async () => {
-    const self = await mockDashboardApi.getSelfSales({ codeQuery: 'test-shoe' })
-    const competitor = await mockDashboardApi.getCompetitorSales({ codeQuery: 'test-shoe' })
+    const self = await mockDashboardApi.getSelfSales({
+      codeQuery: 'test-shoe',
+      companyUuid: MOCK_COMPANY_UUID,
+    })
+    const competitor = await mockDashboardApi.getCompetitorSales({
+      codeQuery: 'test-shoe',
+      companyUuid: MOCK_COMPANY_UUID,
+    })
 
     expect(self.map((row) => row.code)).toEqual(['TEST-SHOE'])
     expect(competitor.map((row) => row.code)).toEqual(['TEST-SHOE'])
   })
 
   it('returns analysis sales rows in default sales quantity descending order', async () => {
-    const self = await mockDashboardApi.getSelfSales()
-    const competitor = await mockDashboardApi.getCompetitorSales()
+    const self = await mockDashboardApi.getSelfSales({ companyUuid: MOCK_COMPANY_UUID })
+    const competitor = await mockDashboardApi.getCompetitorSales({ companyUuid: MOCK_COMPANY_UUID })
 
     expect(self.map((row) => row.qty)).toEqual([...self.map((row) => row.qty)].sort((a, b) => b - a))
     expect(competitor.map((row) => row.competitorQty)).toEqual(
@@ -81,7 +110,7 @@ describe('api/mock dashboardApi competitor channel behavior', () => {
   })
 
   it('returns product code suggestions for analysis filters', async () => {
-    const meta = await mockDashboardApi.getSalesFilterMeta()
+    const meta = await mockDashboardApi.getSalesFilterMeta({ companyUuid: MOCK_COMPANY_UUID })
     expect(meta.codes).toContain('TEST-SHOE')
     expect(meta.codes).toContain('B')
   })
@@ -92,12 +121,14 @@ describe('api/mock dashboardApi competitor channel behavior', () => {
       startMonth: '2025-01',
       leadTimeDays: 0,
       competitorChannelId: 'kream',
+      companyUuid: MOCK_COMPANY_UUID,
     })
     const musinsa = await mockDashboardApi.getSecondaryDailyTrend({
       skuGroupKey: skuGroupKey('B'),
       startMonth: '2025-01',
       leadTimeDays: 0,
       competitorChannelId: 'musinsa',
+      companyUuid: MOCK_COMPANY_UUID,
     })
 
     const sumCompetitorSales = (rows: typeof kream) =>
@@ -113,6 +144,7 @@ describe('api/mock dashboardApi competitor channel behavior', () => {
       startDate: '2025-01-01',
       endDate: '2025-12-31',
       forecastMonths: 8,
+      companyUuid: MOCK_COMPANY_UUID,
     }
     const kream = await mockDashboardApi.getProductMonthlyTrend(skuGroupKey('B'), {
       ...params,
@@ -140,6 +172,7 @@ describe('api/mock dashboardApi competitor channel behavior', () => {
       forecastMonths: 8,
       competitorChannelId: 'kream',
       candidateItemUuid: 'candidate-item-test',
+      companyUuid: MOCK_COMPANY_UUID,
     })
 
     expect(result.llmPrompt).toContain('2025-01-01~2025-12-31')

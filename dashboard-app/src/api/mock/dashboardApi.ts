@@ -2,6 +2,7 @@
 import type {
   CompetitorSalesParams,
   CompetitorSalesGridParams,
+  ProductDrawerBundleParams,
   ProductMonthlyTrend,
   ProductMonthlyTrendParams,
   ProductSalesInsight,
@@ -181,7 +182,8 @@ export const mockDashboardApi = {
       historicalMonths,
     }
   },
-  getProductDrawerBundle: async (skuGroupKey: string) => {
+  getProductDrawerBundle: async (skuGroupKey: string, params?: ProductDrawerBundleParams) => {
+    void params
     await sleep(80)
     const primary = requireProductPrimary(skuGroupKey)
     const { monthlySalesTrend, ...summaryBase } = primary
@@ -257,7 +259,9 @@ export const mockDashboardApi = {
     startMonth,
     leadTimeDays,
     competitorChannelId,
+    companyUuid,
   }: SecondaryDailyTrendParams) => {
+    void companyUuid
     await sleep(80)
     const primary = requireProductPrimary(skuGroupKey)
     const stockTrend = requireStockTrend(skuGroupKey)

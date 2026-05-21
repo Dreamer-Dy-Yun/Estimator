@@ -9,6 +9,7 @@ type Params = {
   skuGroupKey: string
   selectedStart: string
   selectedEnd: string
+  companyUuid?: string
   forecastMeanPeriodEnd: string
   serviceLevelPct: number
   leadTimeDays: number
@@ -22,6 +23,7 @@ export function useSecondaryStockOrderCalc({
   skuGroupKey,
   selectedStart,
   selectedEnd,
+  companyUuid,
   forecastMeanPeriodEnd,
   serviceLevelPct,
   leadTimeDays,
@@ -46,6 +48,7 @@ export function useSecondaryStockOrderCalc({
           const roundedManualSafetyStock = Math.max(0, Math.round(manualSafetyStock))
           const params = {
             skuGroupKey,
+            companyUuid,
             periodStart: selectedStart,
             periodEnd: selectedEnd,
             forecastPeriodEnd: forecastMeanPeriodEnd,
@@ -66,6 +69,7 @@ export function useSecondaryStockOrderCalc({
             makeApiErrorInfo(
               `getSecondaryStockOrderCalc(${JSON.stringify({
                 skuGroupKey,
+                companyUuid,
                 periodStart: selectedStart,
                 periodEnd: selectedEnd,
                 forecastPeriodEnd: forecastMeanPeriodEnd,
@@ -88,6 +92,7 @@ export function useSecondaryStockOrderCalc({
     }
   }, [
     dailyMeanClient,
+    companyUuid,
     forecastMeanPeriodEnd,
     leadTimeDays,
     makeApiErrorInfo,

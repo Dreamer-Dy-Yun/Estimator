@@ -5,11 +5,13 @@ import type {
 } from '../../types'
 import type {
   ProductDrawerBundle,
+  ProductDrawerBundleParams,
   ProductMonthlyTrend,
   ProductMonthlyTrendParams,
   ProductSalesInsight,
   ProductSalesInsightParams,
 } from './drawer'
+import type { CompanyScopeParams } from './company'
 import type {
   CompetitorSalesGridParams,
   CompetitorSalesParams,
@@ -37,6 +39,7 @@ import type {
   CandidateRecommendationResult,
   CandidateStashExcelTemplateDownload,
   CandidateStashExcelUploadResult,
+  CandidateStashListParams,
   CandidateStashSummary,
   CreateCandidateStashPayload,
   UpdateCandidateItemPayload,
@@ -73,7 +76,10 @@ export interface DashboardApi {
     params?: CompetitorSalesGridParams,
   ): Promise<ScatterSalesGridResponse>
   getSalesFilterMeta(params?: SalesFilterMetaParams): Promise<SalesFilterMeta>
-  getProductDrawerBundle(skuGroupKey: string): Promise<ProductDrawerBundle>
+  getProductDrawerBundle(
+    skuGroupKey: string,
+    params?: ProductDrawerBundleParams,
+  ): Promise<ProductDrawerBundle>
   getProductMonthlyTrend(skuGroupKey: string, params: ProductMonthlyTrendParams): Promise<ProductMonthlyTrend>
   getProductSalesInsight(skuGroupKey: string, params: ProductSalesInsightParams): Promise<ProductSalesInsight>
   getProductSecondaryDetail(
@@ -83,18 +89,22 @@ export interface DashboardApi {
   getSecondaryDailyTrend(params: SecondaryDailyTrendParams): Promise<SecondaryDailyTrendPoint[]>
   getSecondaryAiComment(params: SecondaryAiCommentParams): Promise<SecondaryAiCommentResult>
   getSecondaryCompetitorChannels(): Promise<SecondaryCompetitorChannel[]>
-  getCandidateStashes(): Promise<CandidateStashSummary[]>
+  getCandidateStashes(params?: CandidateStashListParams): Promise<CandidateStashSummary[]>
   getCandidateItemsByStash(params: CandidateItemListParams): Promise<CandidateItemListResult>
   subscribeCandidateOrderMetrics(
-    params: CandidateOrderMetricStreamParams,
+    params: CandidateOrderMetricStreamParams & CompanyScopeParams,
     listener: (event: CandidateOrderMetricEvent) => void,
     onError?: DashboardEventStreamErrorListener,
   ): CandidateOrderMetricSubscription
-  startCandidateStashLlmCommentJob(stashUuid: string): Promise<CandidateStashLlmCommentJobStartResult>
+  startCandidateStashLlmCommentJob(
+    stashUuid: string,
+    params?: CompanyScopeParams,
+  ): Promise<CandidateStashLlmCommentJobStartResult>
   subscribeCandidateStashLlmCommentJob(
     jobId: string,
     listener: (event: CandidateStashLlmCommentJobProgressEvent) => void,
     onError?: DashboardEventStreamErrorListener,
+    params?: CompanyScopeParams,
   ): CandidateStashLlmCommentJobSubscription
   startCandidateDetailBulkConfirm(
     payload: CandidateDetailBulkConfirmStartPayload,
@@ -103,19 +113,20 @@ export interface DashboardApi {
     jobId: string,
     listener: (event: CandidateDetailBulkConfirmProgressEvent) => void,
     onError?: DashboardEventStreamErrorListener,
+    params?: CompanyScopeParams,
   ): CandidateDetailBulkConfirmSubscription
   getCandidateRecommendations(params: CandidateRecommendationParams): Promise<CandidateRecommendationResult>
-  getCandidateItemByUuid(itemUuid: string): Promise<CandidateItemDetail | null>
-  deleteCandidateItem(itemUuid: string): Promise<void>
-  deleteCandidateItems(stashUuid: string, itemUuids: string[]): Promise<void>
-  deleteCandidateStash(stashUuid: string): Promise<void>
+  getCandidateItemByUuid(itemUuid: string, params?: CompanyScopeParams): Promise<CandidateItemDetail | null>
+  deleteCandidateItem(itemUuid: string, params?: CompanyScopeParams): Promise<void>
+  deleteCandidateItems(stashUuid: string, itemUuids: string[], params?: CompanyScopeParams): Promise<void>
+  deleteCandidateStash(stashUuid: string, params?: CompanyScopeParams): Promise<void>
   createCandidateStash(payload: CreateCandidateStashPayload): Promise<CandidateStashSummary>
   updateCandidateStash(payload: UpdateCandidateStashPayload): Promise<CandidateStashSummary>
-  duplicateCandidateStash(stashUuid: string): Promise<void>
+  duplicateCandidateStash(stashUuid: string, params?: CompanyScopeParams): Promise<void>
   appendCandidateItem(payload: AppendCandidateItemPayload): Promise<void>
   appendCandidateItems(payload: AppendCandidateItemsPayload): Promise<AppendCandidateItemsResponse>
   updateCandidateItem(payload: UpdateCandidateItemPayload): Promise<UpdateCandidateItemResponse>
   getCandidateStashExcelTemplateDownload(): CandidateStashExcelTemplateDownload
-  uploadCandidateStashExcel(file: File): Promise<CandidateStashExcelUploadResult>
+  uploadCandidateStashExcel(file: File, params?: CompanyScopeParams): Promise<CandidateStashExcelUploadResult>
   getSecondaryStockOrderCalc(params: SecondaryStockOrderCalcParams): Promise<SecondaryStockOrderCalcResult>
 }

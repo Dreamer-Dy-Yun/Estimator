@@ -12,6 +12,7 @@ type Args = {
   channel: SecondaryCompetitorChannel
   selectedStart: string
   selectedEnd: string
+  companyUuid?: string
   forecastMeanPeriodEnd: string
   serviceLevelPct: number
   leadTimeDays: number
@@ -27,6 +28,7 @@ export function useSecondaryDrawerRequests({
   channel,
   selectedStart,
   selectedEnd,
+  companyUuid,
   forecastMeanPeriodEnd,
   serviceLevelPct,
   leadTimeDays,
@@ -47,12 +49,14 @@ export function useSecondaryDrawerRequests({
     channel,
     selectedStart,
     selectedEnd,
+    companyUuid,
     makeApiErrorInfo,
   })
   const stockOrder = useSecondaryStockOrderCalc({
     skuGroupKey: primary.skuGroupKey,
     selectedStart,
     selectedEnd,
+    companyUuid,
     forecastMeanPeriodEnd,
     serviceLevelPct,
     leadTimeDays,
@@ -65,6 +69,7 @@ export function useSecondaryDrawerRequests({
     skuGroupKey: primary.skuGroupKey,
     selectedStart,
     selectedEnd,
+    companyUuid,
     leadTimeDays,
     competitorChannelId: channel.id,
     makeApiErrorInfo,

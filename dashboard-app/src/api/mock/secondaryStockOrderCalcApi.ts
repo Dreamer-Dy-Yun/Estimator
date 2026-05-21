@@ -19,7 +19,9 @@ export async function getSecondaryStockOrderCalc({
   safetyStockMode,
   manualSafetyStock,
   dailyMean: dailyMeanParam,
+  companyUuid,
 }: SecondaryStockOrderCalcParams): Promise<SecondaryStockOrderCalcResult> {
+  void companyUuid
   await sleep(70)
   const primary = requireProductPrimary(skuGroupKey)
   const fromTrend = dailyMeanSigma(primary.monthlySalesTrend ?? [], periodStart, periodEnd)

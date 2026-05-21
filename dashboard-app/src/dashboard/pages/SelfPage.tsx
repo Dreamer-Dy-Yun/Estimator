@@ -34,6 +34,7 @@ const EMPTY_SELF_ROWS: SelfSalesRow[] = []
 export const SelfPage = () => {
   const { selectedCompanyUuid } = useAuth()
   const selfCompanyLabel = useSelfCompanyLabel()
+  const companyUuid = useMemo(() => getCompanyUuidForOptionalScope(selectedCompanyUuid), [selectedCompanyUuid])
   const [bulkAddOpen, setBulkAddOpen] = useState(false)
   const [forecastMonths, setForecastMonths] = useState(() => readForecastMonthsFromStorage())
   const [orderedSkuGroupKeys, setOrderedSkuGroupKeys] = useState<string[]>([])
@@ -63,7 +64,7 @@ export const SelfPage = () => {
     setWholeRange,
     onPeriodBarStart,
     onPeriodBarEnd,
-  } = useAnalysisSalesFilters(getCompanyUuidForOptionalScope(selectedCompanyUuid))
+  } = useAnalysisSalesFilters(companyUuid)
   const isAllCompanySelected = isAllCompanyUuid(selectedCompanyUuid)
   const loadRows = useCallback(() => getSelfSales(salesParams), [salesParams])
   const loadScatterGrid = useCallback(() => getSelfSalesScatterGrid(salesParams), [salesParams])
@@ -96,7 +97,7 @@ export const SelfPage = () => {
   const bulkAddTitle = isAllCompanySelected
     ? '전체 선택 상태에서는 후보군에 추가할 수 없습니다. 한아INT 또는 T1글로벌을 선택하세요.'
     : undefined
-  const summaryBundleState = useProductDrawerBundleState(selectedSkuGroupKey)
+  const summaryBundleState = useProductDrawerBundleState(selectedSkuGroupKey, { companyUuid })
   const summaryBundle = summaryBundleState.bundle
 
   const kpi = useMemo(() => {
@@ -239,6 +240,7 @@ export const SelfPage = () => {
         loading={summaryBundleState.loading}
         periodStart={appliedPeriodStartDate}
         periodEnd={appliedPeriodEndDate}
+        companyUuid={companyUuid}
         forecastMonths={forecastMonths}
         selfCompanyLabel={selfCompanyLabel}
         onForecastMonthsChange={onForecastMonthsChange}
@@ -252,6 +254,7 @@ export const SelfPage = () => {
         skuGroupKeys={selectedSkuGroupKeys}
         periodStart={appliedPeriodStartDate}
         periodEnd={appliedPeriodEndDate}
+        companyUuid={companyUuid}
         forecastMonths={forecastMonths}
         onClose={() => setBulkAddOpen(false)}
         onDone={() => {
