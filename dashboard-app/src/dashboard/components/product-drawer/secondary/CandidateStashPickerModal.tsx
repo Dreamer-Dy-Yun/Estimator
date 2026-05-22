@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+﻿import { useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { formatDateTimeMinute } from '../../../../utils/date'
 import { LoadingSpinner } from '../../../../components/LoadingSpinner'
@@ -26,6 +26,19 @@ type Props = {
   onClose: () => void
 }
 
+const focusableSelector = [
+  'a[href]',
+  'button:not([disabled])',
+  'input:not([disabled])',
+  'select:not([disabled])',
+  'textarea:not([disabled])',
+  '[tabindex]:not([tabindex="-1"])',
+].join(',')
+
+const getFocusableElements = (container: HTMLElement) => Array.from(
+  container.querySelectorAll<HTMLElement>(focusableSelector),
+).filter((element) => !element.hasAttribute('hidden') && element.tabIndex !== -1)
+
 export function CandidateStashPickerModal({
   options,
   selectedUuid,
@@ -38,8 +51,8 @@ export function CandidateStashPickerModal({
   onSelect,
   onClose,
 }: Props) {
+  const dialogRef = useRef<HTMLDivElement | null>(null)
   const nameInputRef = useRef<HTMLInputElement | null>(null)
-  const closeButtonRef = useRef<HTMLButtonElement | null>(null)
   const previousFocusRef = useRef<HTMLElement | null>(null)
 
   useEffect(() => {
@@ -56,9 +69,40 @@ export function CandidateStashPickerModal({
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key !== 'Escape') return
-      event.preventDefault()
-      onClose()
+      if (event.key === 'Escape') {
+        event.preventDefault()
+        onClose()
+        return
+      }
+
+      if (event.key !== 'Tab') return
+
+      const dialog = dialogRef.current
+      if (!dialog) return
+
+      const focusableElements = getFocusableElements(dialog)
+      if (focusableElements.length === 0) {
+        event.preventDefault()
+        dialog.focus()
+        return
+      }
+
+      const firstFocusable = focusableElements[0]
+      const lastFocusable = focusableElements[focusableElements.length - 1]
+      const activeElement = document.activeElement
+
+      if (event.shiftKey) {
+        if (activeElement === firstFocusable || !dialog.contains(activeElement)) {
+          event.preventDefault()
+          lastFocusable.focus()
+        }
+        return
+      }
+
+      if (activeElement === lastFocusable || !dialog.contains(activeElement)) {
+        event.preventDefault()
+        firstFocusable.focus()
+      }
     }
 
     document.addEventListener('keydown', handleKeyDown)
@@ -68,11 +112,13 @@ export function CandidateStashPickerModal({
   return createPortal(
     <div className={styles.candidateModalBackdrop} role="presentation" onClick={onClose}>
       <div
+        ref={dialogRef}
         className={styles.candidateModal}
         role="dialog"
         aria-modal="true"
         aria-labelledby="candidate-stash-picker-title"
         aria-describedby="candidate-stash-picker-description"
+        tabIndex={-1}
         onClick={(event) => event.stopPropagation()}
       >
         <div className={styles.candidatePanel}>
@@ -84,7 +130,6 @@ export function CandidateStashPickerModal({
               후보군을 선택하거나 이름과 비고를 입력해 새 후보군을 생성할 수 있습니다.
             </p>
             <button
-              ref={closeButtonRef}
               type="button"
               className={`${commonStyles.iconCloseButton} ${styles.candidateModalClose}`}
               onClick={onClose}

@@ -1,4 +1,4 @@
-﻿// @vitest-environment jsdom
+// @vitest-environment jsdom
 import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -97,6 +97,26 @@ describe('CandidateRecommendationModal', () => {
     expect(document.activeElement).toBe(previousButton)
   })
 
+  it('exposes complete table row, header, and cell semantics', () => {
+    renderModal()
+
+    const table = getRequiredElement<HTMLDivElement>('[role="table"]')
+    const rows = Array.from(table.querySelectorAll<HTMLElement>('[role="row"]'))
+    const headerCells = Array.from(rows[0]?.querySelectorAll<HTMLElement>('[role="columnheader"]') ?? [])
+    const dataCells = Array.from(rows[1]?.querySelectorAll<HTMLElement>('[role="cell"]') ?? [])
+
+    expect(rows).toHaveLength(2)
+    expect(headerCells).toHaveLength(7)
+    expect(dataCells).toHaveLength(7)
+  })
+
+  it('keeps non-data table states inside a spanning cell', () => {
+    renderModal({ rows: [], loading: true, selectedUuids: new Set(), selectedCount: 0, allSelected: false })
+
+    const statusCell = getRequiredElement<HTMLElement>('[role="row"] [role="cell"][aria-colspan="7"]')
+
+    expect(statusCell.querySelector('[role="status"]')).not.toBeNull()
+  })
   it('keeps Tab and Shift+Tab focus inside the modal', () => {
     renderModal()
 

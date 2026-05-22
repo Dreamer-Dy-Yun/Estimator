@@ -1,7 +1,16 @@
-import { useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode } from 'react'
+﻿import { useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode } from 'react'
 import { LoadingSpinner } from '../../components/LoadingSpinner'
 import { drawerKeepOpenDataProps } from '../drawer/drawerDom'
 import styles from './ConfirmModal.module.css'
+
+const focusableSelector = [
+  'a[href]',
+  'button:not([disabled])',
+  'input:not([disabled])',
+  'select:not([disabled])',
+  'textarea:not([disabled])',
+  '[tabindex]:not([tabindex="-1"])',
+].join(',')
 
 type ConfirmModalClassNames = {
   backdrop?: string
@@ -33,6 +42,10 @@ const getAsyncErrorMessage = (error: unknown) => {
   if (error instanceof Error && error.message.trim()) return error.message
   return '요청 처리 중 오류가 발생했습니다.'
 }
+
+const getFocusableElements = (container: HTMLElement) => Array.from(
+  container.querySelectorAll<HTMLElement>(focusableSelector),
+).filter((element) => !element.hasAttribute('disabled') && element.getAttribute('aria-hidden') !== 'true')
 
 export function ConfirmModal({
   open,
@@ -112,10 +125,38 @@ export function ConfirmModal({
   }
 
   const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
-    if (event.key !== 'Escape') return
-    event.preventDefault()
-    event.stopPropagation()
-    if (!busy) handleCancel()
+    if (event.key === 'Escape') {
+      event.preventDefault()
+      event.stopPropagation()
+      if (!busy) handleCancel()
+      return
+    }
+
+    if (event.key !== 'Tab') return
+
+    const panel = panelRef.current
+    if (!panel) return
+
+    const focusableElements = getFocusableElements(panel)
+    if (!focusableElements.length) {
+      event.preventDefault()
+      panel.focus()
+      return
+    }
+
+    const firstElement = focusableElements[0]
+    const lastElement = focusableElements[focusableElements.length - 1]
+
+    if (event.shiftKey && document.activeElement === firstElement) {
+      event.preventDefault()
+      lastElement.focus()
+      return
+    }
+
+    if (!event.shiftKey && document.activeElement === lastElement) {
+      event.preventDefault()
+      firstElement.focus()
+    }
   }
 
   return (

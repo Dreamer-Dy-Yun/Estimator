@@ -4,6 +4,7 @@ import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   deleteCandidateItem,
+  deleteCandidateItems,
   updateCandidateItem,
   type CandidateItemSummary,
 } from '../../../api'
@@ -139,6 +140,53 @@ describe('useCandidateStashItemActions', () => {
     )
     expect(vi.mocked(args.showToast).mock.calls.map(([message]) => message)).not.toContain('후보를 삭제했습니다.')
     expect(vi.mocked(args.showToast).mock.calls.some(([message]) => message.includes('삭제하지 못했습니다'))).toBe(false)
+  })
+
+  it('marks item delete mutation failure toast as error', async () => {
+    vi.mocked(deleteCandidateItem).mockRejectedValue(new Error('delete failed'))
+    const { args, hook } = setup()
+
+    await expect(act(async () => {
+      await hook.current.confirmDeleteItem()
+    })).rejects.toThrow('delete failed')
+
+    expect(args.refreshStashes).not.toHaveBeenCalled()
+    expect(args.showToast).toHaveBeenCalledWith(
+      '후보를 삭제하지 못했습니다.: delete failed',
+      { variant: 'error' },
+    )
+  })
+
+  it('marks bulk delete mutation failure toast as error', async () => {
+    vi.mocked(deleteCandidateItems).mockRejectedValue(new Error('bulk delete failed'))
+    const { args, hook } = setup({ itemDeleteTarget: null })
+
+    await expect(act(async () => {
+      await hook.current.confirmDeleteItems(['item-1', 'item-2'])
+    })).rejects.toThrow('bulk delete failed')
+
+    expect(args.refreshStashes).not.toHaveBeenCalled()
+    expect(args.showToast).toHaveBeenCalledWith(
+      '선택 후보를 삭제하지 못했습니다.: bulk delete failed',
+      { variant: 'error' },
+    )
+  })
+
+  it('marks bulk unconfirm mutation setup failure toast as error', async () => {
+    const { args, hook } = setup({
+      companyUuid: undefined,
+      itemDeleteTarget: null,
+    })
+
+    await expect(act(async () => {
+      await hook.current.confirmUnconfirmItems(['item-1'])
+    })).rejects.toThrow('오더 후보군은 회사 선택이 필요합니다.')
+
+    expect(args.refreshStashes).not.toHaveBeenCalled()
+    expect(args.showToast).toHaveBeenCalledWith(
+      '선택 후보 상세 확정을 해제하지 못했습니다.: 오더 후보군은 회사 선택이 필요합니다.',
+      { variant: 'error' },
+    )
   })
 
   it('marks partial bulk unconfirm toast as warning', async () => {

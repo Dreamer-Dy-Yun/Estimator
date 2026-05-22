@@ -104,4 +104,33 @@ describe('useSecondaryCandidateActions', () => {
       message.includes('후보군 생성 실패') && options?.variant === 'error'
     ))).toBe(false)
   })
+
+  it('reports candidate creation sync miss when refresh succeeds without the created row', async () => {
+    vi.mocked(dashboardApi.createCandidateStash).mockResolvedValue({ uuid: 'stash-created' } as never)
+    vi.mocked(dashboardApi.getCandidateStashes).mockResolvedValue([
+      {
+        uuid: 'stash-other',
+        name: 'other stash',
+        note: '',
+        dbCreatedAt: '2026-05-22T00:00:00.000Z',
+      },
+    ] as never)
+    const { args, hook } = setup()
+
+    act(() => {
+      hook.current.setNameInput('new stash')
+    })
+
+    let result = true
+    await act(async () => {
+      result = await hook.current.createCandidate()
+    })
+
+    expect(result).toBe(false)
+    expect(args.showToast).toHaveBeenCalledWith(
+      '후보군은 생성됐지만 새 목록에서 생성 항목을 확인하지 못했습니다. 목록을 다시 불러와 주세요.',
+      { variant: 'error' },
+    )
+    expect(vi.mocked(args.showToast).mock.calls.some(([message]) => message === '후보군을 생성했습니다.')).toBe(false)
+  })
 })

@@ -20,6 +20,8 @@ type Params = {
 }
 
 const COMPANY_SCOPE_REQUIRED_MESSAGE = '회사를 선택한 상태에서만 후보군 작업을 할 수 있습니다.'
+const CANDIDATE_CREATE_SYNC_MISS_MESSAGE =
+  '후보군은 생성됐지만 새 목록에서 생성 항목을 확인하지 못했습니다. 목록을 다시 불러와 주세요.'
 
 const toPickerOption = (row: CandidateStashPickerOption): CandidateStashPickerOption => ({
   uuid: row.uuid,
@@ -215,7 +217,10 @@ export function useSecondaryCandidateActions({
       }
       if (!mountedRef.current || nextCandidates == null) return false
       const synced = nextCandidates.find((row) => row.uuid === created.uuid)
-      if (!synced) return false
+      if (!synced) {
+        showToast(CANDIDATE_CREATE_SYNC_MISS_MESSAGE, { variant: 'error' })
+        return false
+      }
       setSelectedCandidate({ uuid: synced.uuid, name: synced.name, dbCreatedAt: synced.dbCreatedAt })
       setNameInput('')
       setNoteInput('')

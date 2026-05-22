@@ -1,4 +1,4 @@
-# Dashboard API Contract Catalog
+﻿# Dashboard API Contract Catalog
 
 최종 수정일: 2026-05-22
 

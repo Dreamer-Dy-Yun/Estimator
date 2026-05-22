@@ -149,7 +149,7 @@ export function CandidateRecommendationModal({
         <div className={modalStyles.tableWrap}>
           <div className={modalStyles.table} role="table" aria-label="추천 후보 목록">
             <div className={modalStyles.headerRow} role="row">
-              <span className={modalStyles.checkCell}>
+              <span className={modalStyles.checkCell} role="columnheader">
                 <input
                   ref={selectAllRef}
                   type="checkbox"
@@ -159,37 +159,42 @@ export function CandidateRecommendationModal({
                   onChange={onToggleAll}
                 />
               </span>
-              <span>번호</span>
-              <span>상품명</span>
-              <span>색상</span>
-              <span>배지</span>
-              <span className={modalStyles.num}>자사 기간 총 판매량</span>
-              <span className={modalStyles.num}>경쟁사 기간 총 판매량</span>
+              <span role="columnheader">번호</span>
+              <span role="columnheader">상품명</span>
+              <span role="columnheader">색상</span>
+              <span role="columnheader">배지</span>
+              <span className={modalStyles.num} role="columnheader">자사 기간 총 판매량</span>
+              <span className={modalStyles.num} role="columnheader">경쟁사 기간 총 판매량</span>
             </div>
             {loading && (
               <div className={modalStyles.statusRow} role="row">
+                <div role="cell" aria-colspan={7}>
                 <LoadingSpinner size="inline" label="추천 후보 로딩 중" />
                 <span role="status" aria-live="polite" aria-atomic="true">
                   조회 데이터와 기간 기준 추천 후보를 불러오는 중입니다.
                 </span>
+                </div>
               </div>
             )}
             {!loading && error && (
               <div className={modalStyles.statusRow} role="row">
                 <span
                   className={modalStyles.errorText}
-                  role="alert"
-                  aria-live="assertive"
-                  aria-atomic="true"
+                  role="cell"
+                  aria-colspan={7}
                 >
+                  <span role="alert" aria-live="assertive" aria-atomic="true">
                   추천 후보 조회 실패: {error}
+                  </span>
                 </span>
               </div>
             )}
             {!loading && !error && rows.length === 0 && (
               <div className={modalStyles.statusRow} role="row">
+                <span role="cell" aria-colspan={7}>
                 <span role="status" aria-live="polite" aria-atomic="true">
                   표시할 추천 후보가 없습니다.
+                </span>
                 </span>
               </div>
             )}
@@ -199,8 +204,9 @@ export function CandidateRecommendationModal({
                 <label
                   key={row.uuid}
                   className={`${modalStyles.row} ${selected ? modalStyles.rowSelected : ''}`}
+                  role="row"
                 >
-                  <span className={modalStyles.checkCell}>
+                  <span className={modalStyles.checkCell} role="cell">
                     <input
                       type="checkbox"
                       checked={selected}
@@ -208,14 +214,14 @@ export function CandidateRecommendationModal({
                       onChange={() => onToggleItem(row.uuid)}
                     />
                   </span>
-                  <span className={modalStyles.code}>{row.code}</span>
-                  <span className={modalStyles.name}>{row.productName}</span>
-                  <span className={modalStyles.colorCode}>{row.colorCode}</span>
-                  <span className={modalStyles.badgeList}>
+                  <span className={modalStyles.code} role="cell">{row.code}</span>
+                  <span className={modalStyles.name} role="cell">{row.productName}</span>
+                  <span className={modalStyles.colorCode} role="cell">{row.colorCode}</span>
+                  <span className={modalStyles.badgeList} role="cell">
                     <CandidateInsightBadges badges={row.insight.badges} />
                   </span>
-                  <span className={modalStyles.num}>{formatEaQuantity(row.insight.selfQty)}</span>
-                  <span className={modalStyles.num}>{formatEaQuantity(row.insight.competitorQty)}</span>
+                  <span className={modalStyles.num} role="cell">{formatEaQuantity(row.insight.selfQty)}</span>
+                  <span className={modalStyles.num} role="cell">{formatEaQuantity(row.insight.competitorQty)}</span>
                 </label>
               )
             })}

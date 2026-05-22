@@ -77,7 +77,7 @@ export function useCandidateStashItemActions({
         const mutationCompanyUuid = requireCompanyUuid()
         await deleteCandidateItem(itemDeleteTarget.uuid, { companyUuid: mutationCompanyUuid })
       } catch (err) {
-        if (mountedRef.current) showToast(getApiErrorDisplayMessage(err, '후보를 삭제하지 못했습니다.'))
+        if (mountedRef.current) showToast(getApiErrorDisplayMessage(err, '후보를 삭제하지 못했습니다.'), { variant: 'error' })
         throw err
       }
       if (!mountedRef.current) return
@@ -99,7 +99,7 @@ export function useCandidateStashItemActions({
         const mutationCompanyUuid = requireCompanyUuid()
         await deleteCandidateItems(stashUuid, uniqueUuids, { companyUuid: mutationCompanyUuid })
       } catch (err) {
-        if (mountedRef.current) showToast(getApiErrorDisplayMessage(err, '선택 후보를 삭제하지 못했습니다.'))
+        if (mountedRef.current) showToast(getApiErrorDisplayMessage(err, '선택 후보를 삭제하지 못했습니다.'), { variant: 'error' })
         throw err
       }
       if (!mountedRef.current) return
@@ -129,7 +129,7 @@ export function useCandidateStashItemActions({
           isLatestLlmComment: false,
         })))
       } catch (err) {
-        if (mountedRef.current) showToast(getApiErrorDisplayMessage(err, '선택 후보 상세 확정을 해제하지 못했습니다.'))
+        if (mountedRef.current) showToast(getApiErrorDisplayMessage(err, '선택 후보 상세 확정을 해제하지 못했습니다.'), { variant: 'error' })
         throw err
       }
       if (!mountedRef.current) return
