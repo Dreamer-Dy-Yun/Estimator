@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import type { CandidateReferenceItemSummary, CandidateStashSummary } from '../../../api'
+import type { CandidateStashSummary } from '../../../api'
 import { stashDetailModalBackdropDataProps } from '../../drawer/drawerDom'
 import { CandidateRecommendationModal } from './CandidateRecommendationModal'
 import { CandidateBulkDetailConfirmProgress } from './CandidateBulkDetailConfirmProgress'
@@ -44,10 +44,7 @@ export function CandidateStashDetailModal({
 
   const visibleItemUuids = useMemo(() => model.tableRows.map((row) => row.uuid), [model.tableRows])
   const itemSelection = useVisibleUuidSelection(visibleItemUuids)
-  const recommendationRows = useMemo<CandidateReferenceItemSummary[]>(
-    () => model.recommendationItems,
-    [model.recommendationItems],
-  )
+  const recommendationRows = model.recommendationItems
   const handleActionFailureAlreadyReported = () => {
     // The action hooks already surface these failures through toast/error state.
   }
@@ -79,12 +76,12 @@ export function CandidateStashDetailModal({
   }
 
   useEffect(() => {
-    if (!recommendationOpen || !recommendationRows.length) return
-    const recommendationKey = recommendationRows.map((row) => row.uuid).join('|')
+    if (!recommendationOpen || !recommendationRowUuids.length) return
+    const recommendationKey = recommendationRowUuids.join('|')
     if (recommendationAutoSelectKeyRef.current === recommendationKey) return
     recommendationAutoSelectKeyRef.current = recommendationKey
-    recommendationSelection.replaceSelection(recommendationRows.map((row) => row.uuid))
-  }, [recommendationOpen, recommendationRows, recommendationSelection])
+    recommendationSelection.replaceSelection(recommendationRowUuids)
+  }, [recommendationOpen, recommendationRowUuids, recommendationSelection])
 
   const applyRecommendations = () => {
     const selectedRows = recommendationRows.filter((row) => (
@@ -197,9 +194,6 @@ export function CandidateStashDetailModal({
           loading={model.recommendationLoading}
           error={model.recommendationError}
           selectedUuids={recommendationSelection.selectedVisibleUuidSet}
-          selectedCount={recommendationSelection.selectedVisibleCount}
-          allSelected={recommendationSelection.allVisibleSelected}
-          partiallySelected={recommendationSelection.partiallyVisibleSelected}
           onClose={() => setRecommendationOpen(false)}
           onToggleAll={recommendationSelection.toggleAllVisibleUuids}
           onToggleItem={recommendationSelection.toggleSelectedUuid}

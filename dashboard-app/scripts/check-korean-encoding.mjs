@@ -1,8 +1,19 @@
 ﻿import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs'
-import { extname, join } from 'node:path'
+import { dirname, extname, join, relative, resolve } from 'node:path'
 import process from 'node:process'
+import { fileURLToPath } from 'node:url'
 
-const ROOTS = ['src', 'e2e', 'scripts', '../MD', '../AGENTS.md']
+const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url))
+const DASHBOARD_APP_ROOT = resolve(SCRIPT_DIR, '..')
+const REPO_ROOT = resolve(DASHBOARD_APP_ROOT, '..')
+
+const SCAN_TARGETS = [
+  { label: 'dashboard-app/src', path: resolve(DASHBOARD_APP_ROOT, 'src') },
+  { label: 'dashboard-app/e2e', path: resolve(DASHBOARD_APP_ROOT, 'e2e') },
+  { label: 'dashboard-app/scripts', path: resolve(DASHBOARD_APP_ROOT, 'scripts') },
+  { label: 'MD', path: resolve(REPO_ROOT, 'MD') },
+  { label: 'AGENTS.md', path: resolve(REPO_ROOT, 'AGENTS.md') },
+]
 const TEXT_EXTS = new Set(['.ts', '.tsx', '.js', '.mjs', '.css', '.md', '.json', '.html', '.yml', '.yaml'])
 const IGNORED_DIRS = new Set(['dist', 'node_modules', '.git'])
 
@@ -19,9 +30,11 @@ const KNOWN_MOJIBAKE_FRAGMENTS = [
   '\u6e72',
 ]
 
-function collectFiles(path, out = []) {
-  if (!existsSync(path)) return out
+function toRepoRelativePath(path) {
+  return relative(REPO_ROOT, path).replaceAll('\\', '/')
+}
 
+function collectFiles(path, out = []) {
   const stat = statSync(path)
   if (!stat.isDirectory()) {
     if (TEXT_EXTS.has(extname(path))) out.push(path)
@@ -83,16 +96,23 @@ function hasMojibakeMarker(line, file, insideFence) {
 }
 
 const findings = []
+const missingTargets = SCAN_TARGETS.filter((target) => !existsSync(target.path))
 
-for (const root of ROOTS) {
-  for (const file of collectFiles(root)) {
+if (missingTargets.length) {
+  console.error('Korean encoding check failed because expected scan targets are missing:')
+  console.error(missingTargets.map((target) => `${target.label}: ${target.path}`).join('\n'))
+  process.exit(1)
+}
+
+for (const target of SCAN_TARGETS) {
+  for (const file of collectFiles(target.path)) {
     let insideFence = false
     readFileSync(file, 'utf8').split(/\r?\n/).forEach((line, index) => {
       if (file.endsWith('.md') && /^\s*```/.test(line)) {
         insideFence = !insideFence
       }
       if (hasMojibakeMarker(line, file, insideFence)) {
-        findings.push(`${file}:${index + 1}: ${line}`)
+        findings.push(`${toRepoRelativePath(file)}:${index + 1}: ${line}`)
       }
     })
   }

@@ -18,6 +18,7 @@ import {
   MOCK_T1_COMPANY_UUID,
 } from './mockCompanyScope'
 import { skuGroupKeyByLegacyId } from './salesTables'
+import { readCandidateItemRecords } from './candidateMockStore'
 
 const MOCK_COMPANY_UUID = MOCK_HANA_COMPANY_UUID
 
@@ -40,6 +41,21 @@ const waitForBulkConfirmEvent = (
       resolve(event)
     },
     companyUuid == null ? undefined : { companyUuid },
+  )
+})
+
+const waitForBulkConfirmCompletedEvent = (
+  jobId: string,
+  companyUuid: string,
+): Promise<CandidateDetailBulkConfirmProgressEvent> => new Promise((resolve) => {
+  const subscription = mockDashboardApi.subscribeCandidateDetailBulkConfirm(
+    jobId,
+    (event) => {
+      if (event.status !== 'completed') return
+      subscription.close()
+      resolve(event)
+    },
+    { companyUuid },
   )
 })
 
@@ -452,6 +468,59 @@ describe('api/mock candidate stash contract stubs', () => {
         companyUuid: MOCK_COMPANY_UUID,
       }),
     ).rejects.toThrow('후보군에 포함되지 않은 후보 아이템이 있습니다.')
+  })
+
+  it('defers SSE job mutations and refreshes latest LLM comment state in order', async () => {
+    const stashes = await mockDashboardApi.getCandidateStashes({ companyUuid: MOCK_COMPANY_UUID })
+    const source = stashes.find((row) => row.itemCount > 0)
+    expect(source).toBeDefined()
+
+    const before = await mockDashboardApi.getCandidateItemsByStash(defaultCandidateItemListParams(source!.uuid))
+    const confirmedItem = before.items.find((row) => row.isDetailConfirmed)
+    expect(confirmedItem).toBeDefined()
+    const detail = await mockDashboardApi.getCandidateItemByUuid(confirmedItem!.uuid, {
+      companyUuid: MOCK_COMPANY_UUID,
+    })
+    expect(detail?.details).toBeDefined()
+    await mockDashboardApi.updateCandidateItem({
+      itemUuid: confirmedItem!.uuid,
+      companyUuid: MOCK_COMPANY_UUID,
+      details: detail!.details,
+      isLatestLlmComment: true,
+    })
+    expect(
+      readCandidateItemRecords().find((row) => row.uuid === confirmedItem!.uuid)?.isLatestLlmComment,
+    ).toBe(true)
+
+    const bulkStarted = await mockDashboardApi.startCandidateDetailBulkConfirm({
+      stashUuid: source!.uuid,
+      itemUuids: [confirmedItem!.uuid],
+      dataReferencePeriodStart: DEFAULT_CANDIDATE_STASH_CONTEXT.periodStart,
+      dataReferencePeriodEnd: DEFAULT_CANDIDATE_STASH_CONTEXT.periodEnd,
+      companyUuid: MOCK_COMPANY_UUID,
+    })
+    const bulkCompleted = waitForBulkConfirmCompletedEvent(bulkStarted.jobId, MOCK_COMPANY_UUID)
+    expect(
+      readCandidateItemRecords().find((row) => row.uuid === confirmedItem!.uuid)?.isLatestLlmComment,
+    ).toBe(true)
+
+    await expect(bulkCompleted).resolves.toMatchObject({ status: 'completed' })
+    expect(
+      readCandidateItemRecords().find((row) => row.uuid === confirmedItem!.uuid)?.isLatestLlmComment,
+    ).toBe(false)
+
+    const llmStarted = await mockDashboardApi.startCandidateStashLlmCommentJob(source!.uuid, {
+      companyUuid: MOCK_COMPANY_UUID,
+    })
+    const llmCompleted = waitForLlmCommentJobCompletedEvent(llmStarted.jobId, MOCK_COMPANY_UUID)
+    expect(
+      readCandidateItemRecords().find((row) => row.uuid === confirmedItem!.uuid)?.isLatestLlmComment,
+    ).toBe(false)
+
+    await expect(llmCompleted).resolves.toMatchObject({ status: 'completed' })
+    expect(
+      readCandidateItemRecords().find((row) => row.uuid === confirmedItem!.uuid)?.isLatestLlmComment,
+    ).toBe(true)
   })
 
   it('requires single company scope for LLM comment job start and subscribe', async () => {

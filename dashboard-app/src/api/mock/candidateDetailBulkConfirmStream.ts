@@ -12,6 +12,7 @@ import { buildMockOrderSnapshotForCandidate } from './orderSnapshotForCandidate'
 import { productPrimaryBySkuGroupKey } from './productCatalog'
 import { makeUuid32, sleep } from './utils'
 import { MOCK_SINGLE_COMPANY_SCOPE_REQUIRED_MESSAGE } from './mockCompanyScope'
+import { createMockStreamTimers } from './mockStreamTimers'
 
 interface CandidateDetailBulkConfirmJob {
   stashUuid: string
@@ -77,14 +78,10 @@ export function subscribeMockCandidateDetailBulkConfirm(
     && job.companyUuid === companyUuid
   const itemUuids = canReadJob ? job.itemUuids : []
   const totalItems = itemUuids.length
-  const timers: ReturnType<typeof globalThis.setTimeout>[] = []
-
-  const emit = (event: CandidateDetailBulkConfirmProgressEvent, delay: number) => {
-    timers.push(globalThis.setTimeout(() => listener(event), delay))
-  }
+  const { emit, close } = createMockStreamTimers<CandidateDetailBulkConfirmProgressEvent>(listener)
 
   if (!job || !canReadJob) {
-    emit({
+    emit(() => ({
       jobId,
       stashUuid: '',
       status: 'failed',
@@ -92,35 +89,35 @@ export function subscribeMockCandidateDetailBulkConfirm(
       completedItems: 0,
       message: '상세 일괄확정 작업을 찾을 수 없습니다.',
       error: '상세 일괄확정 작업을 찾을 수 없습니다.',
-    }, 0)
-    return { close: () => timers.forEach((timer) => globalThis.clearTimeout(timer)) }
+    }), 0)
+    return { close }
   }
 
-  emit({
+  emit(() => ({
     jobId,
     stashUuid: job.stashUuid,
     status: totalItems > 0 ? 'running' : 'completed',
     totalItems,
     completedItems: 0,
     message: totalItems > 0 ? '상세 일괄확정을 시작했습니다.' : '상세확정할 후보가 없습니다.',
-  }, 0)
+  }), 0)
 
   itemUuids.forEach((itemUuid, index) => {
-    emit(confirmOneItemEvent(job, itemUuid, index + 1, totalItems, jobId), 90 + index * 90)
+    emit(() => confirmOneItemEvent(job, itemUuid, index + 1, totalItems, jobId), 90 + index * 90)
   })
 
   if (totalItems > 0) {
-    emit({
+    emit(() => ({
       jobId,
       stashUuid: job.stashUuid,
       status: 'completed',
       totalItems,
       completedItems: totalItems,
       message: '상세 일괄확정을 완료했습니다.',
-    }, 140 + totalItems * 90)
+    }), 140 + totalItems * 90)
   }
 
-  return { close: () => timers.forEach((timer) => globalThis.clearTimeout(timer)) }
+  return { close }
 }
 
 function confirmOneItemEvent(
@@ -147,7 +144,7 @@ function confirmOneItemEvent(
     periodStart: job.periodStart,
     periodEnd: job.periodEnd,
   })
-  item.isLatestLlmComment = true
+  item.isLatestLlmComment = false
   item.dbUpdatedAt = now
   const productName = productPrimaryBySkuGroupKey[item.skuGroupKey]?.productName
   return {

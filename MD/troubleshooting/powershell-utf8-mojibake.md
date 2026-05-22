@@ -49,6 +49,27 @@ node -e "const fs=require('fs'); const s=fs.readFileSync('<path>','utf8'); conso
 npm run check:encoding
 ```
 
+## 실행 위치 기준
+
+`npm run check:encoding`은 `dashboard-app` 패키지 스크립트로 실행하는 것을 기본으로 한다.
+
+직접 실행해야 할 때는 현재 작업 디렉터리에 의존하지 말고 스크립트 경로를 지정한다.
+
+```powershell
+node D:\DEV\HAN.A\dashboard-app\scripts\check-korean-encoding.mjs
+```
+
+checker는 `process.cwd()`가 아니라 `import.meta.url`로 자기 위치를 확인한 뒤 `dashboard-app` root와 repo root를 계산한다. 따라서 repo root, `dashboard-app`, 다른 하위 폴더에서 직접 실행해도 동일한 대상만 검사해야 한다.
+
+검사 대상은 `dashboard-app/src`, `dashboard-app/e2e`, `dashboard-app/scripts`, `MD`, `AGENTS.md`이다.
+
+## false pass 방지 기준
+
+- 의도한 검사 root가 없으면 성공으로 간주하지 않는다.
+- 누락된 root는 skip하지 않고 즉시 실패시켜 실행 위치 오류, repo 이동, 폴더명 변경을 드러낸다.
+- 검사 대상 root를 변경하면 checker와 이 문서의 대상 목록을 함께 갱신한다.
+- 임시 fixture나 의도된 모지바케 예시는 `intentional-mojibake-example` 주석으로 예외 의도를 명시한다.
+
 ## 작업 원칙
 
 - 한글 문자열은 UTF-8로 저장한다.

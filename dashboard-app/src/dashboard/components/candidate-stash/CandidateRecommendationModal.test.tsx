@@ -1,4 +1,4 @@
-﻿// @vitest-environment jsdom
+// @vitest-environment jsdom
 import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -48,9 +48,6 @@ function renderModal(overrides: Partial<ModalProps> = {}) {
     loading: false,
     error: null,
     selectedUuids: new Set(['candidate-1']),
-    selectedCount: 1,
-    allSelected: true,
-    partiallySelected: false,
     onClose: vi.fn(),
     onToggleAll: vi.fn(),
     onToggleItem: vi.fn(),
@@ -111,7 +108,7 @@ describe('CandidateRecommendationModal', () => {
   })
 
   it('keeps non-data table states inside a spanning cell', () => {
-    renderModal({ rows: [], loading: true, selectedUuids: new Set(), selectedCount: 0, allSelected: false })
+    renderModal({ rows: [], loading: true, selectedUuids: new Set() })
 
     const statusCell = getRequiredElement<HTMLElement>('[role="row"] [role="cell"][aria-colspan="7"]')
 
@@ -128,6 +125,20 @@ describe('CandidateRecommendationModal', () => {
     expect(container?.textContent).not.toContain('테스트 상품')
     expect(applyButton.disabled).toBe(true)
     expect(container?.textContent).toContain('추천 후보 조회 실패: network down')
+  })
+
+  it('does not enable apply with only stale selections outside visible rows', () => {
+    renderModal({
+      selectedUuids: new Set(['stale-candidate']),
+    })
+
+    const applyButton = Array.from(container?.querySelectorAll<HTMLButtonElement>('button') ?? [])
+      .find((button) => button.textContent?.trim() === '추천 적용')
+    if (!applyButton) throw new Error('Missing apply button')
+
+    expect(container?.textContent).toContain('추천 1개 · 선택 0개')
+    expect(container?.textContent).toContain('선택 0개')
+    expect(applyButton.disabled).toBe(true)
   })
 
   it('keeps Tab and Shift+Tab focus inside the modal', () => {

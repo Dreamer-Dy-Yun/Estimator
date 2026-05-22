@@ -32,6 +32,8 @@ export function CandidateStashUploadCard({
   onUpload,
   onDragActiveChange,
 }: Props) {
+  const uploadWarnings = uploadResult?.warnings ?? []
+
   return (
     <div className={`${styles.card} ${pageStyles.uploadCard}`} aria-busy={uploadBusy}>
       <div className={pageStyles.uploadCopy}>
@@ -103,7 +105,7 @@ export function CandidateStashUploadCard({
         </button>
         <button
           type="button"
-          className={`${pageStyles.actionBtn} ${pageStyles.btnPrimary}`}
+          className={`${pageStyles.actionBtn} ${pageStyles.btnPrimary} ${pageStyles.uploadActionButton}`}
           disabled={!uploadFile || uploadBusy}
           onClick={onUpload}
         >
@@ -116,16 +118,36 @@ export function CandidateStashUploadCard({
           )}
         </button>
       </div>
-      {(uploadError || uploadResult) && (
+      {uploadError && (
         <div
-          className={uploadError ? pageStyles.uploadError : pageStyles.uploadResult}
-          role={uploadError ? 'alert' : 'status'}
-          aria-live={uploadError ? 'assertive' : 'polite'}
+          className={pageStyles.uploadError}
+          role="alert"
+          aria-live="assertive"
           aria-atomic="true"
         >
-          {uploadError
-            ? uploadError
-            : `${uploadResult?.stashName ?? '후보군'} 생성 완료 · 등록 상품 ${uploadResult?.itemCount ?? 0}건`}
+          {uploadError}
+        </div>
+      )}
+      {!uploadError && uploadResult && (
+        <div className={pageStyles.uploadResultStack}>
+          <div
+            className={pageStyles.uploadResult}
+            role="status"
+            aria-live="polite"
+            aria-atomic="true"
+          >
+            {`${uploadResult.stashName ?? '후보군'} 생성 완료 · 등록 상품 ${uploadResult.itemCount ?? 0}건`}
+          </div>
+          {uploadWarnings.length > 0 && (
+            <div className={pageStyles.uploadWarnings} aria-label="업로드 경고">
+              <strong className={pageStyles.uploadWarningsTitle}>업로드 경고</strong>
+              <ul className={pageStyles.uploadWarningsList}>
+                {uploadWarnings.map((warning, index) => (
+                  <li key={`${index}-${warning}`}>{warning}</li>
+                ))}
+              </ul>
+            </div>
+          )}
         </div>
       )}
     </div>

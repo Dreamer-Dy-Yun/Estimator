@@ -24,7 +24,7 @@
     min-height: 60px;
   }
 
-  .uploadControls > .actionBtn {
+  .uploadActionButton {
     grid-column: 4;
     grid-row: 1 / span 2;
     min-height: 60px;
@@ -51,7 +51,7 @@
   .uploadTitleRow,
   .uploadTemplateCell,
   .uploadDropzone,
-  .uploadControls > .actionBtn {
+  .uploadActionButton {
     grid-column: 1;
     grid-row: auto;
   }
@@ -72,11 +72,11 @@
 
   .uploadDropzone,
   .uploadTemplateCell,
-  .uploadControls > .actionBtn {
+  .uploadActionButton {
     grid-column: 1;
   }
 
-  .uploadControls > .actionBtn {
+  .uploadActionButton {
     width: 100%;
     min-height: 40px;
   }

@@ -6,6 +6,10 @@ import { dashboardApi } from '../../../../../api'
 import type { CandidateStashPickerOption } from '../CandidateStashPickerModal'
 import { useSecondaryCandidateActions } from './useSecondaryCandidateActions'
 
+const authState = vi.hoisted(() => ({
+  selectedCompanyUuid: 'company-1' as string | null,
+}))
+
 vi.mock('../../../../../api', () => ({
   dashboardApi: {
     appendCandidateItem: vi.fn(),
@@ -17,7 +21,7 @@ vi.mock('../../../../../api', () => ({
 }))
 
 vi.mock('../../../../../auth/AuthContext', () => ({
-  useAuth: vi.fn(() => ({ selectedCompanyUuid: 'company-1' })),
+  useAuth: vi.fn(() => ({ selectedCompanyUuid: authState.selectedCompanyUuid })),
 }))
 
 type HookArgs = Parameters<typeof useSecondaryCandidateActions>[0]
@@ -74,10 +78,11 @@ afterEach(() => {
 
 describe('useSecondaryCandidateActions', () => {
   beforeEach(() => {
+    authState.selectedCompanyUuid = 'company-1'
     vi.clearAllMocks()
   })
 
-  const setup = () => {
+  const setup = (overrides: Partial<HookArgs> = {}) => {
     const args: HookArgs = {
       skuGroupKey: 'sku-1',
       periodStart: '2026-05-01',
@@ -87,6 +92,7 @@ describe('useSecondaryCandidateActions', () => {
       candidateItemContext: null,
       buildSnapshot: vi.fn(() => ({ version: 1 }) as never),
       showToast: vi.fn(),
+      ...overrides,
     }
 
     const hook = renderActions(args)
@@ -148,6 +154,84 @@ describe('useSecondaryCandidateActions', () => {
       { variant: 'error' },
     )
     expect(vi.mocked(args.showToast).mock.calls.some(([message]) => message === '후보군을 생성했습니다.')).toBe(false)
+  })
+
+  it('keeps loading active when an older action finishes after a newer action starts', async () => {
+    const firstAppend = deferred<void>()
+    const secondAppend = deferred<void>()
+    vi.mocked(dashboardApi.appendCandidateItem)
+      .mockReturnValueOnce(firstAppend.promise as never)
+      .mockReturnValueOnce(secondAppend.promise as never)
+    const { hook } = setup()
+
+    act(() => {
+      hook.current.selectCandidate({
+        uuid: 'stash-1',
+        name: 'selected stash',
+        note: '',
+        dbCreatedAt: '2026-05-22T00:00:00.000Z',
+      })
+    })
+
+    let firstPromise!: Promise<boolean>
+    let secondPromise!: Promise<boolean>
+    act(() => {
+      firstPromise = hook.current.confirmOrder()
+    })
+    act(() => {
+      secondPromise = hook.current.confirmOrder()
+    })
+
+    let firstResult = true
+    await act(async () => {
+      firstAppend.resolve()
+      firstResult = await firstPromise
+    })
+
+    expect(firstResult).toBe(false)
+    expect(hook.current.loading).toBe(true)
+
+    let secondResult = false
+    await act(async () => {
+      secondAppend.resolve()
+      secondResult = await secondPromise
+    })
+
+    expect(secondResult).toBe(true)
+    expect(hook.current.loading).toBe(false)
+  })
+
+  it('does not apply a candidate item confirmation result after the company changes', async () => {
+    const updateResult = deferred<{ uuid: string }>()
+    const onConfirmed = vi.fn()
+    const onSaved = vi.fn()
+    vi.mocked(dashboardApi.updateCandidateItem).mockReturnValue(updateResult.promise as never)
+    const { args, hook } = setup({
+      candidateItemContext: {
+        itemUuid: 'item-1',
+        onConfirmed,
+        onSaved,
+      } as never,
+    })
+
+    let confirmPromise!: Promise<boolean>
+    act(() => {
+      confirmPromise = hook.current.confirmCandidateItem()
+    })
+
+    authState.selectedCompanyUuid = 'company-2'
+    hook.rerender(args)
+
+    let result = true
+    await act(async () => {
+      updateResult.resolve({ uuid: 'item-1' })
+      result = await confirmPromise
+    })
+
+    expect(result).toBe(false)
+    expect(onConfirmed).not.toHaveBeenCalled()
+    expect(onSaved).not.toHaveBeenCalled()
+    expect(vi.mocked(args.showToast).mock.calls.some(([message]) => message === '상세확정했습니다.')).toBe(false)
   })
 
   it('does not select a created candidate when the sku group changes before refresh completes', async () => {

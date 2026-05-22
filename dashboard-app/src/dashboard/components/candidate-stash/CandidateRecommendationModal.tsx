@@ -1,4 +1,4 @@
-﻿import { useEffect, useRef } from 'react'
+import { useEffect, useRef } from 'react'
 import type { KeyboardEvent } from 'react'
 import type { CandidateReferenceItemSummary } from '../../../api'
 import { formatEaQuantity, formatGroupedNumber } from '../../../utils/format'
@@ -12,9 +12,6 @@ type Props = {
   loading: boolean
   error: string | null
   selectedUuids: Set<string>
-  selectedCount: number
-  allSelected: boolean
-  partiallySelected: boolean
   onClose: () => void
   onToggleAll: () => void
   onToggleItem: (uuid: string) => void
@@ -26,9 +23,6 @@ export function CandidateRecommendationModal({
   loading,
   error,
   selectedUuids,
-  selectedCount,
-  allSelected,
-  partiallySelected,
   onClose,
   onToggleAll,
   onToggleItem,
@@ -40,13 +34,18 @@ export function CandidateRecommendationModal({
   const previousFocusRef = useRef<HTMLElement | null>(null)
   const hasError = Boolean(error)
   const visibleRows = hasError ? [] : rows
-  const visibleSelectedCount = hasError ? 0 : selectedCount
-  const canApply = !loading && !hasError && selectedCount > 0
+  const visibleSelectedCount = visibleRows.reduce(
+    (count, row) => count + (selectedUuids.has(row.uuid) ? 1 : 0),
+    0,
+  )
+  const allVisibleRowsSelected = visibleRows.length > 0 && visibleSelectedCount === visibleRows.length
+  const partiallyVisibleRowsSelected = visibleSelectedCount > 0 && visibleSelectedCount < visibleRows.length
+  const canApply = !loading && !hasError && visibleSelectedCount > 0
 
   useEffect(() => {
     if (!selectAllRef.current) return
-    selectAllRef.current.indeterminate = partiallySelected
-  }, [partiallySelected])
+    selectAllRef.current.indeterminate = partiallyVisibleRowsSelected
+  }, [partiallyVisibleRowsSelected])
 
   useEffect(() => {
     previousFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
@@ -157,7 +156,7 @@ export function CandidateRecommendationModal({
                 <input
                   ref={selectAllRef}
                   type="checkbox"
-                  checked={allSelected && !hasError}
+                  checked={allVisibleRowsSelected}
                   disabled={loading || hasError || visibleRows.length === 0}
                   aria-label="추천 전체 선택"
                   onChange={onToggleAll}

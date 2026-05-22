@@ -11,6 +11,7 @@ import {
 import { productPrimaryBySkuGroupKey } from './productCatalog'
 import { makeUuid32, sleep } from './utils'
 import { MOCK_SINGLE_COMPANY_SCOPE_REQUIRED_MESSAGE } from './mockCompanyScope'
+import { createMockStreamTimers } from './mockStreamTimers'
 
 interface CandidateStashLlmCommentJob {
   stashUuid: string
@@ -58,14 +59,10 @@ export function subscribeMockCandidateStashLlmCommentJob(
   const stashUuid = job?.stashUuid ?? ''
   const itemUuids = canReadJob ? job.itemUuids : []
   const totalItems = itemUuids.length
-  const timers: ReturnType<typeof globalThis.setTimeout>[] = []
-
-  const emit = (event: CandidateStashLlmCommentJobProgressEvent, delay: number) => {
-    timers.push(globalThis.setTimeout(() => listener(event), delay))
-  }
+  const { emit, close } = createMockStreamTimers<CandidateStashLlmCommentJobProgressEvent>(listener)
 
   if (!canReadJob) {
-    emit({
+    emit(() => ({
       jobId,
       stashUuid,
       status: 'failed',
@@ -73,52 +70,54 @@ export function subscribeMockCandidateStashLlmCommentJob(
       completedItems: 0,
       message: '후보군 LLM 코멘트 작업을 찾을 수 없습니다.',
       error: '후보군 LLM 코멘트 작업을 찾을 수 없습니다.',
-    }, 0)
+    }), 0)
     return {
-      close: () => timers.forEach((timer) => globalThis.clearTimeout(timer)),
+      close,
     }
   }
 
-  emit({
+  emit(() => ({
     jobId,
     stashUuid,
     status: totalItems > 0 ? 'running' : 'completed',
     totalItems,
     completedItems: 0,
     message: totalItems > 0 ? '후보군 LLM 코멘트 생성을 시작했습니다.' : 'LLM 코멘트를 생성할 확정 스냅샷이 없습니다.',
-  }, 0)
+  }), 0)
 
   itemUuids.forEach((itemUuid, index) => {
-    const item = readCandidateItemRecords().find((row) => row.uuid === itemUuid)
-    const product = item ? productPrimaryBySkuGroupKey[item.skuGroupKey] : null
-    if (item) {
-      item.isLatestLlmComment = true
-      item.dbUpdatedAt = new Date().toISOString()
-    }
-    emit({
-      jobId,
-      stashUuid,
-      status: 'running',
-      totalItems,
-      completedItems: index + 1,
-      currentItemUuid: itemUuid,
-      currentProductName: product?.productName,
-      message: `${product?.productName ?? itemUuid} LLM 코멘트 생성을 완료했습니다.`,
+    emit(() => {
+      const item = readCandidateItemRecords().find((row) => row.uuid === itemUuid)
+      const product = item ? productPrimaryBySkuGroupKey[item.skuGroupKey] : null
+      if (item) {
+        item.isLatestLlmComment = true
+        item.dbUpdatedAt = new Date().toISOString()
+      }
+      return {
+        jobId,
+        stashUuid,
+        status: 'running',
+        totalItems,
+        completedItems: index + 1,
+        currentItemUuid: itemUuid,
+        currentProductName: product?.productName,
+        message: `${product?.productName ?? itemUuid} LLM 코멘트 생성을 완료했습니다.`,
+      }
     }, 80 + index * 80)
   })
 
   if (totalItems > 0) {
-    emit({
+    emit(() => ({
       jobId,
       stashUuid,
       status: 'completed',
       totalItems,
       completedItems: totalItems,
       message: '후보군 LLM 코멘트 생성을 완료했습니다.',
-    }, 120 + totalItems * 80)
+    }), 120 + totalItems * 80)
   }
 
   return {
-    close: () => timers.forEach((timer) => globalThis.clearTimeout(timer)),
+    close,
   }
 }
