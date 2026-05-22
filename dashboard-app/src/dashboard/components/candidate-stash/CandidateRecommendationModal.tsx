@@ -58,7 +58,12 @@ export function CandidateRecommendationModal({
             <h3 id="recommendation-modal-title" className={modalStyles.title}>
               추천 보기
             </h3>
-            <div className={modalStyles.meta}>
+            <div
+              className={modalStyles.meta}
+              role="status"
+              aria-live="polite"
+              aria-atomic="true"
+            >
               {loading
                 ? '추천 후보 로딩 중'
                 : `추천 ${formatGroupedNumber(rows.length)}개 · 선택 ${formatGroupedNumber(selectedCount)}개`}
@@ -86,7 +91,7 @@ export function CandidateRecommendationModal({
                   onChange={onToggleAll}
                 />
               </span>
-              <span>품번</span>
+              <span>번호</span>
               <span>상품명</span>
               <span>색상</span>
               <span>배지</span>
@@ -96,17 +101,28 @@ export function CandidateRecommendationModal({
             {loading && (
               <div className={modalStyles.statusRow} role="row">
                 <LoadingSpinner size="inline" label="추천 후보 로딩 중" />
-                <span>조회 데이터 기간 기준 추천 후보를 불러오는 중입니다.</span>
+                <span role="status" aria-live="polite" aria-atomic="true">
+                  조회 데이터와 기간 기준 추천 후보를 불러오는 중입니다.
+                </span>
               </div>
             )}
             {!loading && error && (
               <div className={modalStyles.statusRow} role="row">
-                <span className={modalStyles.errorText}>추천 후보 조회 실패: {error}</span>
+                <span
+                  className={modalStyles.errorText}
+                  role="alert"
+                  aria-live="assertive"
+                  aria-atomic="true"
+                >
+                  추천 후보 조회 실패: {error}
+                </span>
               </div>
             )}
             {!loading && !error && rows.length === 0 && (
               <div className={modalStyles.statusRow} role="row">
-                <span>표시할 추천 후보가 없습니다.</span>
+                <span role="status" aria-live="polite" aria-atomic="true">
+                  표시할 추천 후보가 없습니다.
+                </span>
               </div>
             )}
             {rows.map((row) => {

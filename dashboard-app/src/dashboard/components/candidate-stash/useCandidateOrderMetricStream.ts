@@ -145,6 +145,13 @@ export function useCandidateOrderMetricStream({ stashUuid, companyUuid, mountedR
         return
       }
       if (event.type === 'completed') {
+        if (pendingItemUuids.size) {
+          const remainingItemUuids = new Set(pendingItemUuids)
+          pendingItemUuids.clear()
+          setItems((current) => current.map((item) => (
+            remainingItemUuids.has(item.uuid) ? markCandidateItemOrderMetricFailed(item) : item
+          )))
+        }
         closeRequest()
         return
       }

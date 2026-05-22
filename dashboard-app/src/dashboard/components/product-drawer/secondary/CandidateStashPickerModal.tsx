@@ -1,4 +1,5 @@
-﻿import { createPortal } from 'react-dom'
+import { useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { formatDateTimeMinute } from '../../../../utils/date'
 import { LoadingSpinner } from '../../../../components/LoadingSpinner'
 import commonStyles from '../../common.module.css'
@@ -37,18 +38,53 @@ export function CandidateStashPickerModal({
   onSelect,
   onClose,
 }: Props) {
+  const nameInputRef = useRef<HTMLInputElement | null>(null)
+  const closeButtonRef = useRef<HTMLButtonElement | null>(null)
+  const previousFocusRef = useRef<HTMLElement | null>(null)
+
+  useEffect(() => {
+    previousFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
+    nameInputRef.current?.focus()
+
+    return () => {
+      const previousFocus = previousFocusRef.current
+      if (previousFocus?.isConnected) {
+        previousFocus.focus()
+      }
+    }
+  }, [])
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return
+      event.preventDefault()
+      onClose()
+    }
+
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [onClose])
+
   return createPortal(
     <div className={styles.candidateModalBackdrop} role="presentation" onClick={onClose}>
       <div
         className={styles.candidateModal}
         role="dialog"
         aria-modal="true"
+        aria-labelledby="candidate-stash-picker-title"
+        aria-describedby="candidate-stash-picker-description"
         onClick={(event) => event.stopPropagation()}
       >
         <div className={styles.candidatePanel}>
           <div className={styles.candidateModalHeader}>
-            <h4 className={styles.candidateModalTitle}>{KO.btnSelectCandidate}</h4>
+            <h4 id="candidate-stash-picker-title" className={styles.candidateModalTitle}>
+              {KO.btnSelectCandidate}
+            </h4>
+            <p id="candidate-stash-picker-description" hidden>
+              후보군을 선택하거나 이름과 비고를 입력해 새 후보군을 생성할 수 있습니다.
+            </p>
             <button
+              ref={closeButtonRef}
               type="button"
               className={`${commonStyles.iconCloseButton} ${styles.candidateModalClose}`}
               onClick={onClose}
@@ -59,6 +95,7 @@ export function CandidateStashPickerModal({
             <label className={styles.candidateCreateField} htmlFor="candidate-name-input">
               <span className={styles.candidateCreateLabel}>{KO.labelCandidateName}</span>
               <input
+                ref={nameInputRef}
                 id="candidate-name-input"
                 type="text"
                 className={styles.candidateTextInput}
@@ -106,6 +143,7 @@ export function CandidateStashPickerModal({
                     selectedUuid === row.uuid ? styles.candidateListItemActive : ''
                   }`}
                   disabled={loading}
+                  aria-pressed={selectedUuid === row.uuid}
                   onClick={() => onSelect(row)}
                 >
                   <div className={styles.candidateListItemTop}>

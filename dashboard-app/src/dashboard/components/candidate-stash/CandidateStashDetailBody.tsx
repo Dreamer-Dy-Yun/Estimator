@@ -43,6 +43,7 @@ export function CandidateStashDetailBody({
   const hasSearchQuery = Boolean(
     model.brandQuery.trim() || model.codeQuery.trim() || model.productNameQuery.trim(),
   )
+  const showCandidateItemsLoadAlert = Boolean(model.candidateItemsLoadError && hasCachedItems)
 
   return (
     <div className={detailStyles.innerDrawerAwareBody}>
@@ -75,6 +76,24 @@ export function CandidateStashDetailBody({
       </div>
 
       <div className={detailStyles.innerCandidateListBlock}>
+        {showCandidateItemsLoadAlert ? (
+          <div
+            role="alert"
+            aria-live="polite"
+            style={{
+              marginBottom: 12,
+              border: '1px solid rgba(220, 38, 38, 0.35)',
+              borderRadius: 12,
+              background: 'rgba(254, 242, 242, 0.92)',
+              color: '#991b1b',
+              padding: '10px 12px',
+              fontSize: 13,
+              fontWeight: 600,
+            }}
+          >
+            이너 후보 목록 갱신 실패: {model.candidateItemsLoadError}
+          </div>
+        ) : null}
         {model.candidateItemsLoading && !hasCachedItems ? (
           <InnerCandidateOrderEmptyState>
             <LoadingSpinner label="이너 후보 목록을 불러오는 중" />

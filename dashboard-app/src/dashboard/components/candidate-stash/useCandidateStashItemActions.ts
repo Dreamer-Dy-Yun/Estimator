@@ -102,25 +102,42 @@ export function useCandidateStashItemActions({
     const uniqueUuids = [...new Set(itemUuids)]
     if (!uniqueUuids.length) return
     setBulkUnconfirmBusy(true)
+    let shouldThrowBulkUnconfirmFailure = false
+    let bulkUnconfirmFailure: unknown
     try {
       const mutationCompanyUuid = requireCompanyUuid()
-      const updatedItems = await Promise.all(uniqueUuids.map((itemUuid) => updateCandidateItem({
+      const results = await Promise.allSettled(uniqueUuids.map((itemUuid) => updateCandidateItem({
         itemUuid,
         companyUuid: mutationCompanyUuid,
         details: null,
         isLatestLlmComment: false,
       })))
       if (!mountedRef.current) return
-      onItemsUnconfirmed?.(updatedItems)
-      if (openedItemUuid && uniqueUuids.includes(openedItemUuid)) closeDrawer()
-      await refreshStashes()
-      showToast('선택한 후보의 상세 확정을 해제했습니다.')
+      const updatedItems = results.flatMap((result) => (
+        result.status === 'fulfilled' ? [result.value] : []
+      ))
+      const failedCount = results.length - updatedItems.length
+      if (updatedItems.length) {
+        const updatedItemUuidSet = new Set(updatedItems.map((item) => item.uuid))
+        onItemsUnconfirmed?.(updatedItems)
+        if (openedItemUuid && updatedItemUuidSet.has(openedItemUuid)) closeDrawer()
+        await refreshStashes()
+      }
+      showToast(`상세 확정 해제: ${updatedItems.length}개 성공/${failedCount}개 실패했습니다.`)
+      if (failedCount > 0) {
+        const rejectedResult = results.find((result) => result.status === 'rejected')
+        shouldThrowBulkUnconfirmFailure = true
+        bulkUnconfirmFailure = rejectedResult?.status === 'rejected'
+          ? rejectedResult.reason
+          : new Error('선택 후보 상세 확정 일부를 해제하지 못했습니다.')
+      }
     } catch (err) {
       if (mountedRef.current) showToast(getApiErrorDisplayMessage(err, '선택 후보 상세 확정을 해제하지 못했습니다.'))
       throw err
     } finally {
       if (mountedRef.current) setBulkUnconfirmBusy(false)
     }
+    if (shouldThrowBulkUnconfirmFailure) throw bulkUnconfirmFailure
   }, [closeDrawer, onItemsUnconfirmed, openedItemUuid, refreshStashes, requireCompanyUuid, showToast])
 
   const downloadOrderExcel = useCallback(async (userName: string) => {

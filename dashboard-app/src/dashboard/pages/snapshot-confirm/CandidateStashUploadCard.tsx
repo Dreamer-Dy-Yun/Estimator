@@ -33,13 +33,13 @@ export function CandidateStashUploadCard({
   onDragActiveChange,
 }: Props) {
   return (
-    <div className={`${styles.card} ${pageStyles.uploadCard}`}>
+    <div className={`${styles.card} ${pageStyles.uploadCard}`} aria-busy={uploadBusy}>
       <div className={pageStyles.uploadCopy}>
         <div className={pageStyles.uploadTitleRow}>
           <strong className={pageStyles.uploadTitle}>엑셀 업로드</strong>
           <span className={pageStyles.uploadBadge}>후보군 추가</span>
           <p className={pageStyles.uploadDescription}>
-            엑셀 파일을 끌어오거나 클릭해서 오더 후보군을 추가합니다.
+            엑셀 파일을 끌어오거나 클릭해서 새 후보군을 추가합니다.
           </p>
         </div>
         <div className={pageStyles.uploadTemplateCell}>
@@ -91,7 +91,12 @@ export function CandidateStashUploadCard({
             if (uploadInputRef.current) uploadInputRef.current.value = ''
           }}
         >
-          <span className={pageStyles.uploadDropzoneTitle}>
+          <span
+            className={pageStyles.uploadDropzoneTitle}
+            role="status"
+            aria-live="polite"
+            aria-atomic="true"
+          >
             {uploadFile ? uploadFile.name : '엑셀 파일을 끌어오거나 클릭'}
           </span>
           <span className={pageStyles.uploadDropzoneSub}>.xlsx, .xls 파일만 업로드</span>
@@ -102,11 +107,22 @@ export function CandidateStashUploadCard({
           disabled={!uploadFile || uploadBusy}
           onClick={onUpload}
         >
-          {uploadBusy ? <LoadingSpinner size="inline" label="업로드 중" /> : '업로드'}
+          {uploadBusy ? (
+            <span role="status" aria-live="polite" aria-atomic="true">
+              <LoadingSpinner size="inline" label="업로드 중" />
+            </span>
+          ) : (
+            '업로드'
+          )}
         </button>
       </div>
       {(uploadError || uploadResult) && (
-        <div className={uploadError ? pageStyles.uploadError : pageStyles.uploadResult}>
+        <div
+          className={uploadError ? pageStyles.uploadError : pageStyles.uploadResult}
+          role={uploadError ? 'alert' : 'status'}
+          aria-live={uploadError ? 'assertive' : 'polite'}
+          aria-atomic="true"
+        >
           {uploadError
             ? uploadError
             : `${uploadResult?.stashName ?? '후보군'} 생성 완료 · 등록 상품 ${uploadResult?.itemCount ?? 0}건`}
