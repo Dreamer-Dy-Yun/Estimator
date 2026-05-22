@@ -99,7 +99,7 @@ export function useSecondaryCandidateActions({
       return
     }
     if (companyScopeBlocked) {
-      showToast(COMPANY_SCOPE_REQUIRED_MESSAGE)
+      showToast(COMPANY_SCOPE_REQUIRED_MESSAGE, { variant: 'error' })
       return
     }
     setListOpen(true)
@@ -109,7 +109,7 @@ export function useSecondaryCandidateActions({
     } catch (error) {
       if (mountedRef.current) {
         setListOpen(false)
-        showToast(getFailureMessage('후보군 목록 불러오기', error))
+        showToast(getFailureMessage('후보군 목록 불러오기', error), { variant: 'error' })
       }
     } finally {
       if (mountedRef.current) setLoading(false)
@@ -136,7 +136,7 @@ export function useSecondaryCandidateActions({
       showToast('후보군에 아이템을 저장했습니다.')
       return true
     } catch (error) {
-      showToast(getFailureMessage('후보군 아이템 저장', error))
+      showToast(getFailureMessage('후보군 아이템 저장', error), { variant: 'error' })
       return false
     } finally {
       if (mountedRef.current) setLoading(false)
@@ -161,7 +161,7 @@ export function useSecondaryCandidateActions({
       showToast(hasSavedSnapshot ? '상세확정 내용을 갱신했습니다.' : '상세확정했습니다.')
       return true
     } catch (error) {
-      showToast(getFailureMessage(hasSavedSnapshot ? '상세확정 갱신' : '상세확정', error))
+      showToast(getFailureMessage(hasSavedSnapshot ? '상세확정 갱신' : '상세확정', error), { variant: 'error' })
       return false
     } finally {
       if (mountedRef.current) setLoading(false)
@@ -185,7 +185,7 @@ export function useSecondaryCandidateActions({
       showToast('상세확정을 해제했습니다.')
       return true
     } catch (error) {
-      showToast(getFailureMessage('상세확정 해제', error))
+      showToast(getFailureMessage('상세확정 해제', error), { variant: 'error' })
       return false
     } finally {
       if (mountedRef.current) setLoading(false)
@@ -215,7 +215,7 @@ export function useSecondaryCandidateActions({
       showToast('후보군을 생성했습니다.')
       return true
     } catch (error) {
-      showToast(getFailureMessage('후보군 생성', error))
+      showToast(getFailureMessage('후보군 생성', error), { variant: 'error' })
       return false
     } finally {
       if (mountedRef.current) setLoading(false)

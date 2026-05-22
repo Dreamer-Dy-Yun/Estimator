@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import { useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode } from 'react'
 import { LoadingSpinner } from '../../components/LoadingSpinner'
 import { drawerKeepOpenDataProps } from '../drawer/drawerDom'
 import styles from './ConfirmModal.module.css'
@@ -29,6 +29,11 @@ type ConfirmModalProps = {
   keepOpenAttr?: boolean
 }
 
+const getAsyncErrorMessage = (error: unknown) => {
+  if (error instanceof Error && error.message.trim()) return error.message
+  return '요청 처리 중 오류가 발생했습니다.'
+}
+
 export function ConfirmModal({
   open,
   busy = false,
@@ -36,14 +41,48 @@ export function ConfirmModal({
   message,
   cancelText = '취소',
   confirmText = '확인',
-  confirmingText = '처리 중…',
+  confirmingText = '처리 중',
   dialogTitleId,
   classNames,
   onCancel,
   onConfirm,
   keepOpenAttr = false,
 }: ConfirmModalProps) {
+  const descriptionId = useId()
+  const asyncErrorId = useId()
+  const panelRef = useRef<HTMLDivElement | null>(null)
+  const cancelButtonRef = useRef<HTMLButtonElement | null>(null)
+  const previouslyFocusedElementRef = useRef<HTMLElement | null>(null)
+  const [confirmError, setConfirmError] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!open) return undefined
+
+    previouslyFocusedElementRef.current = document.activeElement instanceof HTMLElement
+      ? document.activeElement
+      : null
+
+    const frame = window.requestAnimationFrame(() => {
+      if (cancelButtonRef.current && !cancelButtonRef.current.disabled) {
+        cancelButtonRef.current.focus()
+        return
+      }
+      panelRef.current?.focus()
+    })
+
+    return () => {
+      window.cancelAnimationFrame(frame)
+      const previousElement = previouslyFocusedElementRef.current
+      if (previousElement && document.contains(previousElement)) {
+        previousElement.focus()
+      }
+      previouslyFocusedElementRef.current = null
+      setConfirmError(null)
+    }
+  }, [open])
+
   if (!open) return null
+
   const modalClassNames = {
     backdrop: classNames?.backdrop ?? styles.backdrop,
     panel: classNames?.panel ?? styles.panel,
@@ -54,28 +93,63 @@ export function ConfirmModal({
     cancelButton: classNames?.cancelButton ?? styles.cancelButton,
     confirmButton: classNames?.confirmButton ?? styles.dangerButton,
   }
+  const describedBy = confirmError ? `${descriptionId} ${asyncErrorId}` : descriptionId
+
+  const handleCancel = () => {
+    if (busy) return
+    setConfirmError(null)
+    onCancel()
+  }
+
+  const handleConfirm = async () => {
+    if (busy) return
+    setConfirmError(null)
+    try {
+      await onConfirm()
+    } catch (error) {
+      setConfirmError(getAsyncErrorMessage(error))
+    }
+  }
+
+  const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (event.key !== 'Escape') return
+    event.preventDefault()
+    event.stopPropagation()
+    if (!busy) handleCancel()
+  }
+
   return (
     <div
       {...(keepOpenAttr ? drawerKeepOpenDataProps() : {})}
       className={modalClassNames.backdrop}
-      onClick={() => !busy && onCancel()}
+      onClick={handleCancel}
+      onKeyDown={handleKeyDown}
     >
       <div
+        ref={panelRef}
         className={modalClassNames.panel}
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
         aria-labelledby={dialogTitleId}
+        aria-describedby={describedBy}
+        tabIndex={-1}
       >
         <h3 id={dialogTitleId} className={modalClassNames.title}>
           {title}
         </h3>
-        <p className={modalClassNames.text}>{message}</p>
+        <p id={descriptionId} className={modalClassNames.text}>{message}</p>
+        {confirmError && (
+          <p id={asyncErrorId} className={modalClassNames.text} role="alert">
+            {confirmError}
+          </p>
+        )}
         <div className={modalClassNames.actions}>
           <button
+            ref={cancelButtonRef}
             type="button"
             className={`${modalClassNames.button} ${modalClassNames.cancelButton}`}
-            onClick={onCancel}
+            onClick={handleCancel}
             disabled={busy}
           >
             {cancelText}
@@ -84,7 +158,7 @@ export function ConfirmModal({
             type="button"
             className={`${modalClassNames.button} ${modalClassNames.confirmButton}`}
             disabled={busy}
-            onClick={() => void onConfirm()}
+            onClick={() => void handleConfirm()}
           >
             {busy ? <LoadingSpinner size="inline" label={confirmingText} /> : confirmText}
           </button>

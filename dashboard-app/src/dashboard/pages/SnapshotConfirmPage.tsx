@@ -45,6 +45,13 @@ const getCandidateStashScopeKey = (
   isAllCompanySelected: boolean,
 ) => (isAllCompanySelected ? 'all-companies' : `company:${companyUuid ?? 'none'}`)
 
+const getCandidateActionFailureMessage = (actionLabel: string, err: unknown) => {
+  if (err instanceof Error && err.message.trim()) {
+    return `${actionLabel} 실패: ${err.message}`
+  }
+  return `${actionLabel}에 실패했습니다. 다시 시도해 주세요.`
+}
+
 export const SnapshotConfirmPage = () => {
   const { showToast } = useAppToast()
   const { session, selectedCompanyUuid } = useAuth()
@@ -113,9 +120,8 @@ export const SnapshotConfirmPage = () => {
   const requireCompanyUuid = useCallback(() => {
     if (companyUuid) return companyUuid
     const message = '오더 후보군은 회사 선택이 필요합니다.'
-    showToast(message)
     throw new Error(message)
-  }, [companyUuid, showToast])
+  }, [companyUuid])
 
   const loadStashes = useCallback(async () => {
     const requestScopeKey = companyScopeKey
@@ -228,6 +234,9 @@ export const SnapshotConfirmPage = () => {
       await loadStashes()
       if (!mountedRef.current || companyScopeKeyRef.current !== actionScopeKey) return
       showToast('후보군이 복제되었습니다.')
+    } catch (err) {
+      if (!mountedRef.current || companyScopeKeyRef.current !== actionScopeKey) return
+      showToast(getCandidateActionFailureMessage('후보군 복제', err), { variant: 'error' })
     } finally {
       if (mountedRef.current && companyScopeKeyRef.current === actionScopeKey) setDuplicateBusyUuid(null)
     }
@@ -250,6 +259,9 @@ export const SnapshotConfirmPage = () => {
       if (!mountedRef.current || companyScopeKeyRef.current !== actionScopeKey) return
       setEditTarget(null)
       showToast('후보군 이름·비고를 변경했습니다.')
+    } catch (err) {
+      if (!mountedRef.current || companyScopeKeyRef.current !== actionScopeKey) return
+      showToast(getCandidateActionFailureMessage('후보군 이름·비고 변경', err), { variant: 'error' })
     } finally {
       if (mountedRef.current && companyScopeKeyRef.current === actionScopeKey) setEditBusy(false)
     }
@@ -413,6 +425,9 @@ export const SnapshotConfirmPage = () => {
             if (!mountedRef.current || companyScopeKeyRef.current !== actionScopeKey) return
             setDeleteTarget(null)
             showToast('후보군을 삭제했습니다.')
+          } catch (err) {
+            if (!mountedRef.current || companyScopeKeyRef.current !== actionScopeKey) return
+            showToast(getCandidateActionFailureMessage('후보군 삭제', err), { variant: 'error' })
           } finally {
             if (mountedRef.current && companyScopeKeyRef.current === actionScopeKey) setDeleteBusy(false)
           }

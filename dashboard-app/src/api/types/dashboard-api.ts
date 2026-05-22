@@ -93,7 +93,7 @@ export interface DashboardApi {
   getCandidateStashes(params?: CandidateStashListParams): Promise<CandidateStashSummary[]>
   getCandidateItemsByStash(params: CandidateItemListParams): Promise<CandidateItemListResult>
   subscribeCandidateOrderMetrics(
-    params: CandidateOrderMetricStreamParams & CompanyScopeParams,
+    params: CandidateOrderMetricStreamParams,
     listener: (event: CandidateOrderMetricEvent) => void,
     onError?: DashboardEventStreamErrorListener,
   ): CandidateOrderMetricSubscription

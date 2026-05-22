@@ -79,8 +79,17 @@ export function useCandidateOrderMetricStream({ stashUuid, companyUuid, mountedR
     const metricCompanyUuid = requestCompanyUuid ?? companyUuid
     const nextCandidateItemUuids = normalizeCandidateItemUuids(candidateItemUuids)
     if (!nextCandidateItemUuids.length) return
+    if (!metricCompanyUuid) {
+      const pendingItemUuids = createPendingMetricItemUuidSet(nextCandidateItemUuids)
+      if (isCurrentItemLoad(seq)) {
+        setItems((current) => current.map((item) => (
+          pendingItemUuids.has(item.uuid) ? markCandidateItemOrderMetricFailed(item) : item
+        )))
+      }
+      return
+    }
     const signature = [
-      metricCompanyUuid ?? 'all',
+      metricCompanyUuid,
       buildCandidateOrderMetricRequestSignature({
         stashUuid,
         dataReferencePeriodStart,
@@ -95,7 +104,7 @@ export function useCandidateOrderMetricStream({ stashUuid, companyUuid, mountedR
     metricRequestSeqRef.current += 1
     const requestId = [
       stashUuid,
-      metricCompanyUuid ?? 'all',
+      metricCompanyUuid,
       dataReferencePeriodStart,
       dataReferencePeriodEnd,
       seq,

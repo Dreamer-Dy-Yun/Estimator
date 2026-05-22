@@ -18,8 +18,10 @@ const DEFAULT_TOAST_DURATION_MS = 2800
 
 function AppToastBanner({ toast }: { toast: ToastState | null }) {
   if (!toast) return null
+  const role = toast.variant === 'error' ? 'alert' : 'status'
+  const ariaLive = toast.variant === 'error' ? 'assertive' : 'polite'
   return (
-    <div className={`${styles.root} ${styles[toast.variant]}`} role="status" aria-live="polite">
+    <div className={`${styles.root} ${styles[toast.variant]}`} role={role} aria-live={ariaLive}>
       {toast.message}
     </div>
   )

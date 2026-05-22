@@ -1,4 +1,4 @@
-import type { CompanyScopeParams } from './company'
+import type { CompanyMutationScopeParams } from './company'
 
 export interface CandidateItemOrderExportSizeQty {
   size: string
@@ -33,9 +33,8 @@ export interface CandidateOrderMetric {
   orderExport: CandidateItemOrderExport
 }
 
-export interface CandidateOrderMetricStreamParams {
+export interface CandidateOrderMetricStreamParams extends CompanyMutationScopeParams {
   stashUuid: string
-  companyUuid?: CompanyScopeParams['companyUuid']
   dataReferencePeriodStart: string
   dataReferencePeriodEnd: string
   requestId: string

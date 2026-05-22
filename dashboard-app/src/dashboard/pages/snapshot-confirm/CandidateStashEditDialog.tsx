@@ -11,7 +11,7 @@ type Props = {
   onNameChange: (value: string) => void
   onNoteChange: (value: string) => void
   onClose: () => void
-  onSave: () => void
+  onSave: () => void | Promise<void>
 }
 
 export function CandidateStashEditDialog({
@@ -37,12 +37,13 @@ export function CandidateStashEditDialog({
         role="dialog"
         aria-modal="true"
         aria-labelledby="stash-edit-dialog-title"
+        aria-describedby="stash-edit-dialog-description"
       >
         <h3 id="stash-edit-dialog-title" className={confirmStyles.title}>
           이름·비고 편집
         </h3>
-        <p className={confirmStyles.text}>
-          후보군 표시 이름과 비고만 바꿉니다. 등록 상품과 스냅샷 데이터는 그대로입니다.
+        <p id="stash-edit-dialog-description" className={confirmStyles.text}>
+          후보군 표시 이름과 비고만 변경합니다. 등록 상품과 오류 데이터는 그대로 유지됩니다.
         </p>
         <div className={pageStyles.confirmModalForm}>
           <div className={pageStyles.confirmModalField}>
@@ -90,7 +91,7 @@ export function CandidateStashEditDialog({
             type="button"
             className={`${confirmStyles.button} ${confirmStyles.primaryButton}`}
             disabled={editBusy || !editName.trim()}
-            onClick={onSave}
+            onClick={() => void onSave()}
           >
             {editBusy ? <LoadingSpinner size="inline" label="저장 중" /> : '저장'}
           </button>

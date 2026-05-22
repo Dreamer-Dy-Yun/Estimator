@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { ALL_COMPANY_UUID, type CompanyMutationScopeParams } from '../types/company'
+import type { CandidateOrderMetricStreamParams } from '../types/candidate-order-metrics'
 import { httpDashboardRequests } from './httpDashboardRequests'
 
 const httpClientMocks = vi.hoisted(() => ({
@@ -273,6 +274,20 @@ describe('httpDashboardRequests company scope forwarding', () => {
   it('hard-fails SSE subscriptions before opening a stream when company scope is missing or all-company', () => {
     const listener = vi.fn()
     const onError = vi.fn()
+
+    expect(() =>
+      httpDashboardRequests.subscribeCandidateOrderMetrics(
+        {
+          stashUuid: 'stash-054',
+          requestId: 'request-054',
+          dataReferencePeriodStart: '2025-01-01',
+          dataReferencePeriodEnd: '2025-12-31',
+          candidateItemUuids: ['item-054'],
+        } as unknown as CandidateOrderMetricStreamParams,
+        listener,
+        onError,
+      ),
+    ).toThrow('single company scope')
 
     expect(() =>
       httpDashboardRequests.subscribeCandidateOrderMetrics(

@@ -126,12 +126,12 @@ export const candidateMockApi = {
     )
   },
   subscribeCandidateOrderMetrics: (
-    params: CandidateOrderMetricStreamParams & CompanyScopeParams,
+    params: CandidateOrderMetricStreamParams,
     listener: (event: CandidateOrderMetricEvent) => void,
     ownerUserUuid?: string,
   ): CandidateOrderMetricSubscription => {
-    acceptMockCompanyScope(params)
-    return subscribeMockCandidateOrderMetrics(params, listener, ownerUserUuid)
+    const companyUuid = requireMockMutationCompanyScope(params)
+    return subscribeMockCandidateOrderMetrics({ ...params, companyUuid }, listener, ownerUserUuid)
   },
   startCandidateStashLlmCommentJob: async (
     stashUuid: string,
@@ -149,7 +149,7 @@ export const candidateMockApi = {
     second?: MockOwnerOrCompanyScope,
   ): CandidateStashLlmCommentJobSubscription => {
     const { ownerUserUuid, params } = resolveMockOwnerAndCompanyScope(first, second)
-    const companyUuid = acceptMockCompanyScope(params)
+    const companyUuid = requireMockMutationCompanyScope(params)
     return subscribeMockCandidateStashLlmCommentJob(jobId, listener, ownerUserUuid, companyUuid)
   },
   startCandidateDetailBulkConfirm: async (
@@ -166,7 +166,7 @@ export const candidateMockApi = {
     second?: MockOwnerOrCompanyScope,
   ): CandidateDetailBulkConfirmSubscription => {
     const { ownerUserUuid, params } = resolveMockOwnerAndCompanyScope(first, second)
-    const companyUuid = acceptMockCompanyScope(params)
+    const companyUuid = requireMockMutationCompanyScope(params)
     return subscribeMockCandidateDetailBulkConfirm(jobId, listener, ownerUserUuid, companyUuid)
   },
   getCandidateRecommendations: async (

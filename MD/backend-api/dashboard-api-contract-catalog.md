@@ -510,7 +510,7 @@ query:
 | `competitorSales` | number optional | 경쟁사 일 판매량 또는 매출. 정확한 단위는 사용자 확인 필요 |
 | `sales` | number optional | 통합 표시값. 정확한 구성은 사용자 확인 필요 |
 
-### 9.6 GET `/products/{skuGroupKey}/secondary/competitor-channels`
+### 9.6 GET `/secondary/competitor-channels`
 
 2차 drawer에서 선택할 경쟁사 채널 목록을 조회한다.
 
@@ -542,8 +542,9 @@ query:
 
 | 필드 | 타입 | 설명 |
 |---|---|---|
-| `comment` | string | AI 코멘트 본문 |
-| `prompt` | string optional | 백엔드가 사용한 prompt. 저장/디버깅 목적 |
+| `llmPrompt` | string | AI 코멘트 생성에 사용한 prompt |
+| `llmAnswer` | string | AI 응답 본문 |
+| `generatedAt` | string | AI 코멘트 생성 일시 |
 
 ### 9.8 POST `/secondary/stock-order-calc`
 
@@ -594,7 +595,7 @@ query:
 | DELETE `/candidate-stashes/{stashUuid}/items` | required | item 일괄 삭제 |
 | GET `/candidate-stashes/{stashUuid}/recommendations` | optional | 추천 item |
 | GET `/candidate-items/{itemUuid}` | optional | item 상세 |
-| POST `/candidate-stashes/{stashUuid}/detail-confirmation-jobs` | required | 상세확정 job 시작 |
+| POST `/candidate-stashes/{stashUuid}/items/detail-confirmation-jobs` | required | 상세확정 job 시작 |
 | GET `/candidate-item-detail-confirmation-jobs/{jobId}/events` | required 권장 | 상세확정 SSE |
 | POST `/candidate-stashes/{stashUuid}/llm-comment-jobs` | required | LLM comment job 시작 |
 | GET `/candidate-stash-llm-comment-jobs/{jobId}/events` | required 권장 | LLM comment SSE |
@@ -605,31 +606,63 @@ query:
 
 | 필드 | 타입 | 설명 |
 |---|---|---|
-| `stashUuid` | string | 후보군 UUID |
-| `companyUuid` | string | 소유 회사 UUID |
+| `uuid` | string | 후보군 UUID |
 | `name` | string | 후보군 이름 |
-| `description` | string optional | 설명 |
+| `note` | string nullable | 후보군 메모 |
+| `periodStart` | string | 후보군 기준 분석 시작일 |
+| `periodEnd` | string | 후보군 기준 분석 종료일 |
+| `forecastMonths` | number | 후보군 기준 예측 개월 수 |
 | `itemCount` | number | 포함 item 수 |
-| `confirmedItemCount` | number optional | 확정 item 수 |
-| `createdAt` | string | 생성 일시 |
-| `updatedAt` | string | 수정 일시 |
+| `dbCreatedAt` | string | DB 생성 일시 |
+| `dbUpdatedAt` | string | DB 수정 일시 |
 
-`CandidateStashItem`
+`CandidateItemListResult`
+
+`GET /candidate-stashes/{stashUuid}/items` 응답은 저장 record 요약과 화면 표시용 item 요약을 함께 내려준다.
 
 | 필드 | 타입 | 설명 |
 |---|---|---|
-| `itemUuid` | string | item UUID |
+| `candidateItems` | `CandidateStashItemSummary[]` | 저장된 후보 item record 요약. 스냅샷 보유 여부와 최신 AI 코멘트 여부를 포함한다. |
+| `items` | `CandidateItemSummary[]` | 화면 표시용 후보 item 요약. SKU metadata, 기간 판매/예상 값, insight, order export 상태를 포함한다. |
+
+`CandidateStashItemSummary`
+
+| 필드 | 타입 | 설명 |
+|---|---|---|
+| `uuid` | string | 후보 item UUID |
 | `stashUuid` | string | 소속 후보군 UUID |
-| `skuGroupKey` | string | 상품 그룹 key |
-| `productName` | string | 상품명 |
+| `skuUuid` | string | `CANDIDATE_ITEM.sku_uuid`, 실제 SKU UUID |
+| `skuGroupKey` | string | 기존 drawer API와 연결하는 상품-색상 그룹 key |
+| `isLatestLlmComment` | boolean | 저장된 AI 코멘트가 최신 스냅샷 기준인지 여부 |
+| `hasSnapshot` | boolean | item에 저장된 2차 drawer 스냅샷이 있는지 여부 |
+| `snapshotUpdatedAt` | string optional | 저장 스냅샷의 마지막 수정 일시 |
+| `dbCreatedAt` | string | DB 생성 일시 |
+| `dbUpdatedAt` | string | DB 수정 일시 |
+
+`CandidateItemSummary`
+
+| 필드 | 타입 | 설명 |
+|---|---|---|
+| `uuid` | string | 후보 item UUID |
+| `stashUuid` | string | 소속 후보군 UUID |
+| `skuUuid` | string | `CANDIDATE_ITEM.sku_uuid`. 백엔드 미구현 mock에서는 `skuGroupKey`를 임시 사용한다. |
+| `skuGroupKey` | string | 기존 drawer API와 연결하는 상품-색상 그룹 key |
 | `brand` | string | 브랜드 |
-| `category` | string | 카테고리 |
-| `thumbnailUrl` | string optional | 썸네일 |
-| `status` | string | 후보/확정/해제 등 상태 |
-| `snapshot` | `OrderSnapshotDocumentV1` optional | 확정 또는 코멘트 기준 스냅샷 |
-| `llmComment` | string optional | AI 코멘트 |
-| `createdAt` | string | 생성 일시 |
-| `updatedAt` | string | 수정 일시 |
+| `code` | string | 상품 코드 |
+| `productName` | string | 상품명 |
+| `colorCode` | string | 색상 코드 |
+| `orderMetricStatus` | `CandidateOrderMetricStatus` | 오더 지표 계산 상태 |
+| `qty` | number | 조회 기준 기간 판매 수량 |
+| `expectedOrderAmount` | number | 조회 기준 기간의 예상 오더 금액 |
+| `expectedSalesAmount` | number | 조회 기준 기간의 예상 매출 |
+| `expectedOpProfit` | number | 조회 기준 기간의 예상 영업이익 |
+| `insightStatus` | `loading \| loaded \| failed` | badge/recommendation insight 로딩 상태 |
+| `insight` | `CandidateItemInsightSummary` | 기간 판매 총합, 경쟁 채널 비교, 예상 값, 배지 요약 |
+| `isLatestLlmComment` | boolean | 저장된 AI 코멘트가 최신 스냅샷 기준인지 여부 |
+| `isDetailConfirmed` | boolean | item에 저장된 오더 스냅샷이 있는지 여부 |
+| `orderExport` | `CandidateItemOrderExport \| null` | 발주 Excel export DTO. SSE로 로드되며 export 시 재조회하지 않는다. |
+| `dbCreatedAt` | string | DB 생성 일시 |
+| `dbUpdatedAt` | string | DB 수정 일시 |
 
 mutation payload 공통:
 

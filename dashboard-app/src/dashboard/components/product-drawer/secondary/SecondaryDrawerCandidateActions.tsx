@@ -60,7 +60,8 @@ export function SecondaryDrawerCandidateActions({
         keepOpenAttr
         onCancel={() => setUnconfirmOpen(false)}
         onConfirm={async () => {
-          await candidateActions.unconfirmCandidateItem()
+          const unconfirmed = await candidateActions.unconfirmCandidateItem()
+          if (!unconfirmed) return
           onResetToLive()
           setUnconfirmOpen(false)
         }}

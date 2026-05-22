@@ -4,6 +4,7 @@ import { ALL_COMPANY_UUID } from '../types'
 import type {
   CandidateDetailBulkConfirmProgressEvent,
   CandidateDetailBulkConfirmStartPayload,
+  CandidateOrderMetricStreamParams,
   CandidateStashLlmCommentJobProgressEvent,
   CandidateStashLlmCommentJobParams,
   CreateCandidateStashPayload,
@@ -356,8 +357,20 @@ describe('api/mock candidate stash contract stubs', () => {
 
     const started = await mockDashboardApi.startCandidateDetailBulkConfirm(validPayload)
 
-    await expect(waitForBulkConfirmEvent(started.jobId)).resolves.toMatchObject({ status: 'failed' })
-    await expect(waitForBulkConfirmEvent(started.jobId, ALL_COMPANY_UUID)).resolves.toMatchObject({ status: 'failed' })
+    expect(() =>
+      mockDashboardApi.subscribeCandidateDetailBulkConfirm(
+        started.jobId,
+        () => undefined,
+        undefined,
+      ),
+    ).toThrow(MOCK_SINGLE_COMPANY_SCOPE_REQUIRED_MESSAGE)
+    expect(() =>
+      mockDashboardApi.subscribeCandidateDetailBulkConfirm(
+        started.jobId,
+        () => undefined,
+        { companyUuid: ALL_COMPANY_UUID },
+      ),
+    ).toThrow(MOCK_SINGLE_COMPANY_SCOPE_REQUIRED_MESSAGE)
     await expect(waitForBulkConfirmEvent(started.jobId, MOCK_T1_COMPANY_UUID)).resolves.toMatchObject({
       status: 'failed',
     })
@@ -385,13 +398,70 @@ describe('api/mock candidate stash contract stubs', () => {
       companyUuid: MOCK_COMPANY_UUID,
     })
 
-    await expect(waitForLlmCommentJobEvent(started.jobId)).resolves.toMatchObject({ status: 'failed' })
-    await expect(waitForLlmCommentJobEvent(started.jobId, ALL_COMPANY_UUID)).resolves.toMatchObject({
-      status: 'failed',
-    })
+    expect(() =>
+      mockDashboardApi.subscribeCandidateStashLlmCommentJob(
+        started.jobId,
+        () => undefined,
+        undefined,
+      ),
+    ).toThrow(MOCK_SINGLE_COMPANY_SCOPE_REQUIRED_MESSAGE)
+    expect(() =>
+      mockDashboardApi.subscribeCandidateStashLlmCommentJob(
+        started.jobId,
+        () => undefined,
+        { companyUuid: ALL_COMPANY_UUID },
+      ),
+    ).toThrow(MOCK_SINGLE_COMPANY_SCOPE_REQUIRED_MESSAGE)
     await expect(waitForLlmCommentJobEvent(started.jobId, MOCK_T1_COMPANY_UUID)).resolves.toMatchObject({
       status: 'failed',
     })
+  })
+
+  it('requires single company scope for order metric SSE subscribe', async () => {
+    const stashes = await mockDashboardApi.getCandidateStashes({ companyUuid: MOCK_COMPANY_UUID })
+    const source = stashes.find((row) => row.itemCount > 0)
+    expect(source).toBeDefined()
+
+    const items = await mockDashboardApi.getCandidateItemsByStash(defaultCandidateItemListParams(source!.uuid))
+    const item = items.items[0]
+    expect(item).toBeDefined()
+
+    const validParams: CandidateOrderMetricStreamParams = {
+      stashUuid: source!.uuid,
+      companyUuid: MOCK_COMPANY_UUID,
+      requestId: 'mock-order-metric-scope-test',
+      dataReferencePeriodStart: DEFAULT_CANDIDATE_STASH_CONTEXT.periodStart,
+      dataReferencePeriodEnd: DEFAULT_CANDIDATE_STASH_CONTEXT.periodEnd,
+      candidateItemUuids: [item!.uuid],
+    }
+
+    expect(() =>
+      mockDashboardApi.subscribeCandidateOrderMetrics(
+        {
+          ...validParams,
+          companyUuid: undefined,
+        } as unknown as CandidateOrderMetricStreamParams,
+        () => undefined,
+        MOCK_ADMIN_USER_UUID,
+      ),
+    ).toThrow(MOCK_SINGLE_COMPANY_SCOPE_REQUIRED_MESSAGE)
+    expect(() =>
+      mockDashboardApi.subscribeCandidateOrderMetrics(
+        {
+          ...validParams,
+          companyUuid: ALL_COMPANY_UUID,
+        },
+        () => undefined,
+        MOCK_ADMIN_USER_UUID,
+      ),
+    ).toThrow(MOCK_SINGLE_COMPANY_SCOPE_REQUIRED_MESSAGE)
+
+    const subscription = mockDashboardApi.subscribeCandidateOrderMetrics(
+      validParams,
+      () => undefined,
+      MOCK_ADMIN_USER_UUID,
+    )
+    subscription.close()
   })
   it('mutates candidate stash list through stash mutation API calls', async () => {
     const before = await mockDashboardApi.getCandidateStashes({ companyUuid: MOCK_COMPANY_UUID })
