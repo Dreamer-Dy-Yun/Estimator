@@ -21,8 +21,19 @@ import {
 } from './candidateMockStore'
 import { getMockMutationCompanyUuid } from './mockCompanyScope'
 import { productPrimaryBySkuGroupKey } from './productCatalog'
-import type { CandidateItemRecord, CandidateStashRecord } from './records'
+import { DEFAULT_CANDIDATE_STASH_CONTEXT, type CandidateItemRecord, type CandidateStashRecord } from './records'
 import { makeUuid32 } from './utils'
+
+const MOCK_EXCEL_UPLOAD_ITEM_LIMIT = 3
+
+function buildCandidateStashNameFromUploadFile(fileName: string): string {
+  const withoutExtension = fileName.replace(/\.(xlsx|xls)$/i, '').trim()
+  return withoutExtension || '후보군 업로드'
+}
+
+function getMockExcelUploadSkuGroupKeys(): string[] {
+  return Object.keys(productPrimaryBySkuGroupKey).slice(0, MOCK_EXCEL_UPLOAD_ITEM_LIMIT)
+}
 
 function getCandidateStashForMutation(
   stashUuid: string,
@@ -263,16 +274,49 @@ export function updateCandidateItemRecord(
 
 export function uploadCandidateStashExcelFile(
   file: File,
-  ownerUserUuid?: string,
+  ownerUserUuid = MOCK_ADMIN_USER_UUID,
   companyUuid?: string,
 ): CandidateStashExcelUploadResult {
-  void ownerUserUuid
-  getMockMutationCompanyUuid(companyUuid)
+  const requiredCompanyUuid = getMockMutationCompanyUuid(companyUuid)
 
   const fileName = file.name.trim()
   const isExcel = /\.(xlsx|xls)$/i.test(fileName)
   if (!fileName || !isExcel) throw new Error('엑셀 파일(.xlsx, .xls)만 업로드할 수 있습니다.')
   if (file.size <= 0) throw new Error('빈 엑셀 파일은 업로드할 수 없습니다.')
 
-  throw new Error('Mock API는 엑셀 파일 파싱과 후보군 저장을 구현하지 않습니다.')
+  const skuGroupKeys = getMockExcelUploadSkuGroupKeys()
+  if (skuGroupKeys.length === 0) {
+    throw new Error('Mock API에 업로드 후보 상품 데이터가 없습니다.')
+  }
+
+  const now = new Date().toISOString()
+  const stashUuid = makeUuid32()
+  const stashName = buildCandidateStashNameFromUploadFile(fileName)
+  readCandidateStashRecords().push({
+    uuid: stashUuid,
+    name: stashName,
+    note: 'Mock Excel upload result',
+    userUuid: ownerUserUuid,
+    companyUuid: requiredCompanyUuid,
+    periodStart: DEFAULT_CANDIDATE_STASH_CONTEXT.periodStart,
+    periodEnd: DEFAULT_CANDIDATE_STASH_CONTEXT.periodEnd,
+    forecastMonths: DEFAULT_CANDIDATE_STASH_CONTEXT.forecastMonths,
+    dbCreatedAt: now,
+    dbUpdatedAt: now,
+  })
+
+  const records = readCandidateItemRecords()
+  for (const skuGroupKey of skuGroupKeys) {
+    records.push(createCandidateItemRecord(stashUuid, skuGroupKey, now))
+  }
+
+  return {
+    stashUuid,
+    stashName,
+    itemCount: skuGroupKeys.length,
+    warnings: [
+      'Mock API는 실제 엑셀 내용을 파싱하지 않고 파일명과 mock catalog로 후보군을 생성합니다.',
+      '업로드 기간과 예측 개월 수는 mock 기본 후보군 컨텍스트를 사용합니다.',
+    ],
+  }
 }

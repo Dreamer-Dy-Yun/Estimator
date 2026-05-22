@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react'
+import type { KeyboardEvent } from 'react'
 import type { CandidateReferenceItemSummary } from '../../../api'
 import { formatEaQuantity, formatGroupedNumber } from '../../../utils/format'
 import { LoadingSpinner } from '../../../components/LoadingSpinner'
@@ -34,11 +35,73 @@ export function CandidateRecommendationModal({
   onApply,
 }: Props) {
   const selectAllRef = useRef<HTMLInputElement | null>(null)
+  const panelRef = useRef<HTMLDivElement | null>(null)
+  const closeButtonRef = useRef<HTMLButtonElement | null>(null)
+  const previousFocusRef = useRef<HTMLElement | null>(null)
 
   useEffect(() => {
     if (!selectAllRef.current) return
     selectAllRef.current.indeterminate = partiallySelected
   }, [partiallySelected])
+
+  useEffect(() => {
+    previousFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
+    const initialFocus = selectAllRef.current && !selectAllRef.current.disabled
+      ? selectAllRef.current
+      : closeButtonRef.current
+
+    initialFocus?.focus()
+
+    return () => {
+      previousFocusRef.current?.focus()
+    }
+  }, [])
+
+  const handlePanelKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (event.key === 'Escape') {
+      event.stopPropagation()
+      onClose()
+      return
+    }
+
+    if (event.key !== 'Tab') return
+
+    const panel = panelRef.current
+    if (!panel) return
+
+    const focusableElements = Array.from(
+      panel.querySelectorAll<HTMLElement>(
+        [
+          'button:not([disabled])',
+          'input:not([disabled])',
+          'select:not([disabled])',
+          'textarea:not([disabled])',
+          'a[href]',
+          '[tabindex]:not([tabindex="-1"])',
+        ].join(','),
+      ),
+    ).filter((element) => !element.hasAttribute('disabled') && element.tabIndex !== -1)
+
+    if (!focusableElements.length) {
+      event.preventDefault()
+      return
+    }
+
+    const firstElement = focusableElements[0]
+    const lastElement = focusableElements[focusableElements.length - 1]
+    const activeElement = document.activeElement
+
+    if (event.shiftKey && activeElement === firstElement) {
+      event.preventDefault()
+      lastElement.focus()
+      return
+    }
+
+    if (!event.shiftKey && activeElement === lastElement) {
+      event.preventDefault()
+      firstElement.focus()
+    }
+  }
 
   return (
     <div
@@ -47,11 +110,14 @@ export function CandidateRecommendationModal({
       onClick={onClose}
     >
       <div
+        ref={panelRef}
         className={modalStyles.panel}
         role="dialog"
         aria-modal="true"
         aria-labelledby="recommendation-modal-title"
+        aria-describedby="recommendation-modal-status"
         onClick={(e) => e.stopPropagation()}
+        onKeyDown={handlePanelKeyDown}
       >
         <div className={modalStyles.header}>
           <div>
@@ -60,6 +126,7 @@ export function CandidateRecommendationModal({
             </h3>
             <div
               className={modalStyles.meta}
+              id="recommendation-modal-status"
               role="status"
               aria-live="polite"
               aria-atomic="true"
@@ -70,6 +137,7 @@ export function CandidateRecommendationModal({
             </div>
           </div>
           <button
+            ref={closeButtonRef}
             type="button"
             className={`${styles.iconCloseButton} ${modalStyles.closeButton}`}
             onClick={onClose}

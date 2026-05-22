@@ -1005,3 +1005,43 @@ Excel import 응답:
 | LLM prompt 저장 | prompt 원문 저장 가능 여부와 민감정보 정책 |
 
 위 항목은 백엔드가 임의로 확정하지 않는다. 모르면 사용자에게 물어본 뒤 API 계약 또는 DB 문서에 반영한다.
+
+## 14. TODO-076 contract corrections
+
+### 14.1 Failure kind naming
+
+`ApiFailureKind` is a frontend/client normalized literal union. The authentication/session failure literal is `auth`, not `authentication`.
+
+| HTTP status | ApiFailureKind | Meaning |
+|---:|---|---|
+| 401 | `auth` | Missing, expired, or invalid authentication/session |
+| 403 | `permission` | Authenticated but not allowed for the requested role/company/resource |
+
+Backend documents and OpenAPI examples must not expose `authentication` as if it were a supported client failure kind.
+
+### 14.2 Company scope required matrix for candidate side-effect flows
+
+| Flow | Scope rule |
+|---|---|
+| Candidate stash create/update/delete/duplicate | `companyUuid` required |
+| Candidate item add/update/delete/bulk delete | `companyUuid` required |
+| Candidate Excel import | `companyUuid` required |
+| Detail confirmation job start | `companyUuid` required |
+| Detail confirmation SSE subscribe | `companyUuid` required |
+| LLM comment job start | `companyUuid` required |
+| LLM comment SSE subscribe | `companyUuid` required |
+| Candidate order metric SSE subscribe | `companyUuid` required |
+
+Adapter/type alignment:
+
+- Mutation and job APIs pass scope through mutation-scope normalization.
+- Candidate order metric SSE passes `companyUuid` through the required company-scope helper before opening the stream.
+- `ALL_COMPANY_UUID`, empty string, omitted scope, or all-company dropdown state is invalid for these flows.
+- Read-only list/detail/recommendation endpoints may keep optional company scope where the catalog explicitly marks them optional.
+
+### 14.3 Mutation, refresh, partial, and pending failure policy
+
+- Mutation success and post-mutation refresh failure are separate states. Do not document a refresh failure as rollback or write failure unless the write endpoint itself failed.
+- If mutation succeeds but refresh fails, UI should preserve the authoritative mutation response or prior stable snapshot and display a refresh/stale warning.
+- Partial success is not full success. Bulk responses should expose successful count, failed count, and item-level errors where available.
+- SSE `completed` with unresolved requested items is a terminal partial/pending failure condition for those items. The UI may mark them failed/not-calculated rather than keeping a spinner.

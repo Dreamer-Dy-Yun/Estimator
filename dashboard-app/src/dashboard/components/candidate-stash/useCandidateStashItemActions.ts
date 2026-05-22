@@ -22,7 +22,7 @@ type Args = {
   openedItemUuid: string | null
   closeDrawer: () => void
   refreshStashes: () => Promise<void>
-  showToast: (message: string) => void
+  showToast: (message: string, options?: { variant?: 'success' | 'info' | 'error' }) => void
   onItemsDeleted?: (itemUuids: string[]) => void
   onItemsUnconfirmed?: (updatedItems: CandidateItemDetail[]) => void
 }
@@ -59,44 +59,58 @@ export function useCandidateStashItemActions({
     throw new Error('오더 후보군은 회사 선택이 필요합니다.')
   }, [companyUuid])
 
+  const refreshAfterMutation = useCallback(async (failureMessage: string) => {
+    try {
+      await refreshStashes()
+      return true
+    } catch {
+      if (mountedRef.current) showToast(failureMessage, { variant: 'error' })
+      return false
+    }
+  }, [refreshStashes, showToast])
+
   const confirmDeleteItem = useCallback(async () => {
     if (!itemDeleteTarget) return
     setItemDeleteBusy(true)
     try {
-      const mutationCompanyUuid = requireCompanyUuid()
-      await deleteCandidateItem(itemDeleteTarget.uuid, { companyUuid: mutationCompanyUuid })
+      try {
+        const mutationCompanyUuid = requireCompanyUuid()
+        await deleteCandidateItem(itemDeleteTarget.uuid, { companyUuid: mutationCompanyUuid })
+      } catch (err) {
+        if (mountedRef.current) showToast(getApiErrorDisplayMessage(err, '후보를 삭제하지 못했습니다.'))
+        throw err
+      }
       if (!mountedRef.current) return
       if (openedItemUuid === itemDeleteTarget.uuid) closeDrawer()
       onItemsDeleted?.([itemDeleteTarget.uuid])
-      await refreshStashes()
-      showToast('후보를 삭제했습니다.')
-    } catch (err) {
-      if (mountedRef.current) showToast(getApiErrorDisplayMessage(err, '후보를 삭제하지 못했습니다.'))
-      throw err
+      const refreshed = await refreshAfterMutation('후보를 삭제했지만 목록을 새로고침하지 못했습니다.')
+      if (refreshed) showToast('후보를 삭제했습니다.')
     } finally {
       if (mountedRef.current) setItemDeleteBusy(false)
     }
-  }, [closeDrawer, itemDeleteTarget, onItemsDeleted, openedItemUuid, refreshStashes, requireCompanyUuid, showToast])
+  }, [closeDrawer, itemDeleteTarget, onItemsDeleted, openedItemUuid, refreshAfterMutation, requireCompanyUuid, showToast])
 
   const confirmDeleteItems = useCallback(async (itemUuids: string[]) => {
     const uniqueUuids = [...new Set(itemUuids)]
     if (!uniqueUuids.length) return
     setBulkDeleteBusy(true)
     try {
-      const mutationCompanyUuid = requireCompanyUuid()
-      await deleteCandidateItems(stashUuid, uniqueUuids, { companyUuid: mutationCompanyUuid })
+      try {
+        const mutationCompanyUuid = requireCompanyUuid()
+        await deleteCandidateItems(stashUuid, uniqueUuids, { companyUuid: mutationCompanyUuid })
+      } catch (err) {
+        if (mountedRef.current) showToast(getApiErrorDisplayMessage(err, '선택 후보를 삭제하지 못했습니다.'))
+        throw err
+      }
       if (!mountedRef.current) return
       if (openedItemUuid && uniqueUuids.includes(openedItemUuid)) closeDrawer()
       onItemsDeleted?.(uniqueUuids)
-      await refreshStashes()
-      showToast('선택한 후보를 삭제했습니다.')
-    } catch (err) {
-      if (mountedRef.current) showToast(getApiErrorDisplayMessage(err, '선택 후보를 삭제하지 못했습니다.'))
-      throw err
+      const refreshed = await refreshAfterMutation('선택 후보를 삭제했지만 목록을 새로고침하지 못했습니다.')
+      if (refreshed) showToast('선택한 후보를 삭제했습니다.')
     } finally {
       if (mountedRef.current) setBulkDeleteBusy(false)
     }
-  }, [closeDrawer, onItemsDeleted, openedItemUuid, refreshStashes, requireCompanyUuid, showToast, stashUuid])
+  }, [closeDrawer, onItemsDeleted, openedItemUuid, refreshAfterMutation, requireCompanyUuid, showToast, stashUuid])
 
   const confirmUnconfirmItems = useCallback(async (itemUuids: string[]) => {
     const uniqueUuids = [...new Set(itemUuids)]
@@ -105,13 +119,19 @@ export function useCandidateStashItemActions({
     let shouldThrowBulkUnconfirmFailure = false
     let bulkUnconfirmFailure: unknown
     try {
-      const mutationCompanyUuid = requireCompanyUuid()
-      const results = await Promise.allSettled(uniqueUuids.map((itemUuid) => updateCandidateItem({
-        itemUuid,
-        companyUuid: mutationCompanyUuid,
-        details: null,
-        isLatestLlmComment: false,
-      })))
+      let results: PromiseSettledResult<CandidateItemDetail>[]
+      try {
+        const mutationCompanyUuid = requireCompanyUuid()
+        results = await Promise.allSettled(uniqueUuids.map((itemUuid) => updateCandidateItem({
+          itemUuid,
+          companyUuid: mutationCompanyUuid,
+          details: null,
+          isLatestLlmComment: false,
+        })))
+      } catch (err) {
+        if (mountedRef.current) showToast(getApiErrorDisplayMessage(err, '선택 후보 상세 확정을 해제하지 못했습니다.'))
+        throw err
+      }
       if (!mountedRef.current) return
       const updatedItems = results.flatMap((result) => (
         result.status === 'fulfilled' ? [result.value] : []
@@ -121,9 +141,15 @@ export function useCandidateStashItemActions({
         const updatedItemUuidSet = new Set(updatedItems.map((item) => item.uuid))
         onItemsUnconfirmed?.(updatedItems)
         if (openedItemUuid && updatedItemUuidSet.has(openedItemUuid)) closeDrawer()
-        await refreshStashes()
+        const refreshed = await refreshAfterMutation('상세 확정 해제는 반영됐지만 목록을 새로고침하지 못했습니다.')
+        if (!refreshed && failedCount === 0) return
       }
-      showToast(`상세 확정 해제: ${updatedItems.length}개 성공/${failedCount}개 실패했습니다.`)
+      showToast(
+        `상세 확정 해제: ${updatedItems.length}개 성공/${failedCount}개 실패했습니다.`,
+        failedCount > 0
+          ? { variant: 'error' }
+          : undefined,
+      )
       if (failedCount > 0) {
         const rejectedResult = results.find((result) => result.status === 'rejected')
         shouldThrowBulkUnconfirmFailure = true
@@ -131,14 +157,11 @@ export function useCandidateStashItemActions({
           ? rejectedResult.reason
           : new Error('선택 후보 상세 확정 일부를 해제하지 못했습니다.')
       }
-    } catch (err) {
-      if (mountedRef.current) showToast(getApiErrorDisplayMessage(err, '선택 후보 상세 확정을 해제하지 못했습니다.'))
-      throw err
     } finally {
       if (mountedRef.current) setBulkUnconfirmBusy(false)
     }
     if (shouldThrowBulkUnconfirmFailure) throw bulkUnconfirmFailure
-  }, [closeDrawer, onItemsUnconfirmed, openedItemUuid, refreshStashes, requireCompanyUuid, showToast])
+  }, [closeDrawer, onItemsUnconfirmed, openedItemUuid, refreshAfterMutation, requireCompanyUuid, showToast])
 
   const downloadOrderExcel = useCallback(async (userName: string) => {
     if (!detailTarget) return

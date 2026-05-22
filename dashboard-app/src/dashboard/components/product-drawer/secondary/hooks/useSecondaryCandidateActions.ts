@@ -204,7 +204,15 @@ export function useSecondaryCandidateActions({
         periodEnd,
         forecastMonths,
       })
-      const nextCandidates = await refresh()
+      let nextCandidates: Awaited<ReturnType<typeof refresh>>
+      try {
+        nextCandidates = await refresh()
+      } catch {
+        if (mountedRef.current) {
+          showToast('후보군은 생성됐지만 목록을 새로고침하지 못했습니다.', { variant: 'error' })
+        }
+        return false
+      }
       if (!mountedRef.current || nextCandidates == null) return false
       const synced = nextCandidates.find((row) => row.uuid === created.uuid)
       if (!synced) return false

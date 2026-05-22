@@ -103,3 +103,32 @@
 - QA 상태 계약이 바뀌면 [qa-state-contracts.md](./qa-state-contracts.md)를 함께 확인한다.
 - 화면별 현재 동작이 바뀌면 [qa-current-behavior.md](./qa-current-behavior.md)를 함께 확인한다.
 - 하드닝 완료 모듈의 공개 계약이 바뀌면 [module-hardening.md](./module-hardening.md)에 수정 허용 범위를 기록한다.
+
+## TODO-076 failure UX policy additions
+
+### ApiFailureKind naming
+
+- The normalized authentication failure kind is `auth`.
+- UX copy may say login/session/authentication in Korean, but code/document contract literals must not use `authentication`.
+- 401 maps to `auth`; 403 maps to `permission`.
+
+### Mutation success followed by refresh failure
+
+| Situation | UX policy | Forbidden handling |
+|---|---|---|
+| Mutation response succeeds, follow-up refresh fails | Keep committed mutation result or previous stable snapshot visible; show refresh failure/stale warning separately | Showing the mutation as failed, rolling back without evidence, or replacing data with an empty list |
+| Mutation response fails | Keep local state unchanged unless an explicit optimistic rollback is already tracked; show mutation failure | Marking local state as successfully changed |
+
+### Partial success and pending terminal states
+
+| Situation | UX policy | Forbidden handling |
+|---|---|---|
+| Bulk action partially succeeds | Apply successful rows, identify failed rows/count, and surface `N success, M failed` style feedback | Full-success toast or full-failure collapse |
+| SSE completes with pending items | Mark remaining pending rows as failed/not-calculated and close loading state | Infinite spinner or treating unresolved rows as successful |
+| SSE item failure event | Mark only the affected row/cell failed when possible | Failing the whole list without item-level evidence |
+
+### Company scope required UX implication
+
+- Candidate side-effect flows and order metric SSE require a single selected company.
+- If the user is in all-company scope, actions that need candidate/job/SSE/order metric mutation scope should be disabled or blocked before the request when possible.
+- If a request still reaches the backend without `companyUuid`, show validation feedback instead of generic server failure.

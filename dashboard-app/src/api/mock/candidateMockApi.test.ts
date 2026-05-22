@@ -317,6 +317,46 @@ describe('api/mock candidate stash contract stubs', () => {
     ).rejects.toThrow(mutationError)
   })
 
+  it('creates a mock candidate stash from a valid Excel upload with explicit mock warnings', async () => {
+    const uploaded = await mockDashboardApi.uploadCandidateStashExcel(new File(['mock'], 'candidate-upload.xlsx'), {
+      companyUuid: MOCK_COMPANY_UUID,
+    })
+
+    expect(uploaded.stashName).toBe('candidate-upload')
+    expect(uploaded.itemCount).toBeGreaterThan(0)
+    expect(uploaded.warnings.some((warning) => warning.includes('실제 엑셀 내용을 파싱하지 않고'))).toBe(true)
+
+    const stashes = await mockDashboardApi.getCandidateStashes(
+      { companyUuid: MOCK_COMPANY_UUID },
+      MOCK_ADMIN_USER_UUID,
+    )
+    const created = stashes.find((row) => row.uuid === uploaded.stashUuid)
+    expect(created).toBeDefined()
+    expect(created?.itemCount).toBe(uploaded.itemCount)
+
+    const items = await mockDashboardApi.getCandidateItemsByStash(
+      defaultCandidateItemListParams(uploaded.stashUuid),
+      MOCK_ADMIN_USER_UUID,
+    )
+    expect(items.candidateItems).toHaveLength(uploaded.itemCount)
+    expect(items.items.every((item) => item.isDetailConfirmed === false)).toBe(true)
+
+    await mockDashboardApi.deleteCandidateStash(uploaded.stashUuid, { companyUuid: MOCK_COMPANY_UUID })
+  })
+
+  it('keeps Excel upload as a single-company mutation', async () => {
+    await expect(
+      mockDashboardApi.uploadCandidateStashExcel(new File(['mock'], 'candidate-upload.xlsx'), {
+        companyUuid: ' ',
+      }),
+    ).rejects.toThrow(MOCK_SINGLE_COMPANY_SCOPE_REQUIRED_MESSAGE)
+    await expect(
+      mockDashboardApi.uploadCandidateStashExcel(new File(['mock'], 'candidate-upload.xlsx'), {
+        companyUuid: ALL_COMPANY_UUID,
+      }),
+    ).rejects.toThrow(MOCK_SINGLE_COMPANY_SCOPE_REQUIRED_MESSAGE)
+  })
+
   it('requires single company scope for bulk detail confirm start and subscribe', async () => {
     const stashes = await mockDashboardApi.getCandidateStashes({ companyUuid: MOCK_COMPANY_UUID })
     const source = stashes.find((row) => row.itemCount > 0)
