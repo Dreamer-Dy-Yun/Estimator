@@ -26,6 +26,8 @@
 
 후보군 생성/삭제/복제/편집 이벤트는 API 호출 후 후보군 목록을 재조회한다. mock은 브라우저 저장소에 후보군을 만들거나 지우지 않는다.
 
+후보군 엑셀 업로드는 단순 read가 아니라 후보군 목록을 바꾸는 mutation 진입점이다. HTTP와 mock 모두 단일 회사 scope가 필요하며, `전체` 또는 누락 scope에서 기본 회사로 보정하거나 성공처럼 처리하지 않는다. mock upload는 실제 저장소가 아니더라도 API 계약을 표현하는 대체 구현체이므로, 단일 회사 기준으로만 후보군 생성/갱신 결과를 돌려준다.
+
 `전체` 회사 선택 상태에서 오더 후보군 탭으로 진입하거나 페이지 안에서 `전체`로 변경되면 라우트에서 강제로 튕기지 않고, 페이지 내부 제한 안내를 표시한다. 이 상태에서는 후보군 API를 호출하지 않는다. 이는 후보군 데이터가 단일 회사 기준으로 생성·확정되어야 하기 때문이다.
 
 목록 로드 실패는 정상 빈 목록으로 감추지 않는다. 실패 시 기존 목록이 있으면 마지막으로 불러온 목록을 유지하면서 목록 로드 실패 카드와 재시도 버튼을 표시하고, 기존 목록이 없으면 목록을 표시할 수 없다는 빈 실패 상태를 표시한다. 이 기준은 후보군이 없는 정상 빈 상태와 API 실패 상태를 구분하기 위한 UX 경계다.
@@ -51,7 +53,10 @@
 - 추천 row의 `skuUuid`가 현재 후보군 row와 일치하면 기존 행 배지로 병합한다.
 - 추천 UI에서는 이미 후보군에 있는 row를 숨긴다.
 - `추천 보기` 버튼은 배지 계산 시작 버튼이 아니라 이미 받은 추천 목록을 여는 버튼이다.
-- 추천 적용은 전체 후보 목록을 다시 조회하지 않는다. `appendCandidateItems` 응답의 신규 `CandidateStashItemSummary`와 이미 받은 recommendation row를 매칭해 현재 리스트 앞에 로컬 삽입하고, 추천 UI에서는 해당 row를 제거한다.
+- 추천 적용은 전체 후보 목록을 다시 조회하지 않는다. `appendCandidateItems` 응답의 신규 `CandidateStashItemSummary`와 이미 받은 recommendation row를 매칭해 현재 리스트 앞에 로컬 삽입한다. 추천 UI의 visible row는 전체 추천 원본과 현재 후보 item membership에서 다시 파생하며, 이미 후보군에 들어간 SKU는 숨긴다.
+- 추천 적용 결과는 `applied`, `stale`, `empty`로 구분한다. `applied`는 append 응답 item이 현재 stash/company/period/item membership guard를 통과해 로컬 리스트와 추천 목록에 반영된 상태다. `stale`은 요청 이후 stash, company, 조회 period 또는 대상 item membership이 바뀌어 응답을 버린 상태다. `empty`는 append 요청은 성공했지만 현재 화면에 새로 반영할 item이 없는 상태다.
+- 추천 append 중에는 중복 append busy guard를 유지한다. 같은 추천 row를 연속 클릭하거나 이전 append 요청이 끝나기 전에 새 append가 들어와 최신 추천 목록과 item 목록을 덮으면 안 된다.
+- `stale`과 `empty`는 후보군 추가 성공으로 표시하지 않는다. 특히 `stale`은 현재 화면 상태를 보호하기 위한 async guard 결과이므로 사용자-visible 반영 없이 폐기한다. `empty`는 중복 또는 추가 불가 row를 성공 삽입처럼 보이지 않게 선택과 visible row를 정리할 수 있지만, 로컬 item 삽입으로 이어지면 안 된다.
 
 ## 오더 지표 SSE
 
@@ -99,6 +104,8 @@
 
 2차 드로워는 저장 스냅샷을 편집 가능한 초기값으로 사용하고, 이후 계산은 현재 입력값 기준으로 수행한다. 미확정 변경사항은 후보군 상세 모달이 열려 있는 동안 itemUuid별 클라이언트 메모리 draft로 유지한다.
 
+상세 모달 접근성 보강이 들어가는 경우 parent dialog가 focus trap과 close 후 focus restore를 소유한다. 1차/2차 드로워, 추천 보기, 진행 팝업 같은 하위 overlay가 열려 있으면 parent dialog는 Escape 닫힘을 양보하고 상위 전파를 막아야 하며, Escape는 가장 안쪽 overlay부터 닫히고 마지막에 parent dialog 닫힘으로 이어져야 한다.
+
 ## 엑셀
 
 | 파일 | 역할 |
@@ -111,19 +118,22 @@
 
 ## 2026-05-22 하드닝 후보와 보류
 
-### 완료로 문서화할 수 있는 경계
+### 현재 동작으로 문서화한 경계
 
 - 후보군 업무 흐름은 단일 회사 scope 전용이다. `전체` scope의 read API 생략 계약을 후보군 mutation, job, SSE에 적용하지 않는다.
+- 후보군 mock upload도 required single company scope mutation 계약에 속한다. mock이라는 이유로 `전체` scope를 기본 회사로 보정하거나 성공처럼 처리하지 않는다.
 - `SnapshotConfirmPage.tsx`는 `전체` 선택 상태에서 후보군 목록 API를 호출하지 않고 페이지 내부 제한 안내를 표시한다.
 - `SnapshotConfirmPage.tsx`는 후보군 목록 load failure를 `stashesLoadError`로 유지하며, 실패를 빈 목록 성공으로 바꾸지 않는다. company switch 중 이전 회사 응답이 늦게 도착하면 현재 선택 회사의 목록 상태를 덮지 않는 stale guard 책임도 가진다.
 - 2차 드로워 후보군 액션 hook은 `getCompanyUuidForOptionalScope` 결과가 없으면 후보군 picker 열기와 mutation을 차단하고 toast로 사유를 표시한다. product-secondary picker는 company/sku 변경 중 이전 picker 요청 결과가 최신 상태를 덮지 않도록 stale guard를 유지하고, picker load 또는 unconfirm 실패를 성공 흐름으로 바꾸지 않는다.
+- 추천 append는 applied/stale/empty 결과와 중복 append busy guard를 구분해야 한다. stash/company/period/item-membership guard를 통과하지 못한 응답은 성공 반영 대상이 아니라 stale 응답으로 폐기한다.
 
 ### 하드닝 후보
 
 - `SnapshotConfirmPage.tsx`의 목록 로드 실패 UI: stale list 유지, 빈 실패 상태, 재시도 버튼의 UX 경계가 명확하므로 테스트 보강 후 하드닝 후보로 분리할 수 있다.
+- `useCandidateRecommendations.ts`의 추천 append guard: 결과 판정과 scope/company/period/item-membership guard가 명확해지면 순수 helper 또는 작은 model로 분리해 테스트할 수 있다.
 - `useSecondaryCandidateActions.ts`의 all-company guard: 전체 scope에서 picker와 mutation 진입을 모두 막고 있으나 2차 드로워 저장/후보군 생성/후보군 선택 UI와 결합되어 있으므로 hook 전체보다 scope guard와 failure toast 경계를 우선 후보로 둔다.
 
 ### 보류 항목
 
-- 이 문서는 현재 코드 계약을 반영한 정합성 문서다. TODO-065 범위에서는 테스트/빌드를 실행하지 않았으므로 위 후보를 하드닝 완료로 잠그지 않는다.
+- 이 문서는 현재 코드 계약을 반영한 정합성 문서다. 문서 정합성 범위에서는 테스트/빌드를 실행하지 않았으므로 위 후보를 하드닝 완료로 잠그지 않는다.
 - 후보군 탭 비활성화, 페이지 내부 제한 안내, 2차 드로워 toast 문구는 같은 정책을 표현해야 한다. 문구 또는 접근성 설명을 바꾸는 작업은 `qa-current-behavior.md`와 함께 갱신한다.

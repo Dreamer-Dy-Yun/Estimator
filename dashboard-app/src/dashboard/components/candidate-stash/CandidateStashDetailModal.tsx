@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react'
 import type { CandidateStashSummary } from '../../../api'
 import { stashDetailModalBackdropDataProps } from '../../drawer/drawerDom'
 import { CandidateRecommendationModal } from './CandidateRecommendationModal'
@@ -41,6 +41,8 @@ export function CandidateStashDetailModal({
   const [bulkUnconfirmOpen, setBulkUnconfirmOpen] = useState(false)
   const [recommendationOpen, setRecommendationOpen] = useState(false)
   const recommendationAutoSelectKeyRef = useRef<string | null>(null)
+  const panelRef = useRef<HTMLDivElement | null>(null)
+  const previousFocusRef = useRef<HTMLElement | null>(null)
 
   const visibleItemUuids = useMemo(() => model.tableRows.map((row) => row.uuid), [model.tableRows])
   const itemSelection = useVisibleUuidSelection(visibleItemUuids)
@@ -70,6 +72,79 @@ export function CandidateStashDetailModal({
     const uniqueLabels = [...new Set(labels)]
     return uniqueLabels.length === 1 ? `${uniqueLabels[0]} \uAE30\uAC04 \uCD1D \uD310\uB9E4\uB7C9` : '\uACBD\uC7C1\uC0AC \uAE30\uAC04 \uCD1D \uD310\uB9E4\uB7C9'
   }, [model.tableRows])
+  const nestedModalOpen = Boolean(
+    recommendationOpen
+    || bulkDeleteOpen
+    || bulkUnconfirmOpen
+    || model.drawerOpen
+    || model.drawerClosing
+    || model.itemDeleteTarget
+    || model.bulkConfirmProgress,
+  )
+
+  useEffect(() => {
+    previousFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
+    panelRef.current?.focus()
+
+    return () => {
+      previousFocusRef.current?.focus()
+    }
+  }, [])
+
+  const handlePanelKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (event.key === 'Escape') {
+      if (model.drawerOpen || model.drawerClosing) {
+        event.stopPropagation()
+        model.closeDrawer()
+        return
+      }
+      if (nestedModalOpen) {
+        event.stopPropagation()
+        return
+      }
+      event.stopPropagation()
+      onClose()
+      return
+    }
+
+    if (event.key !== 'Tab' || nestedModalOpen) return
+
+    const panel = panelRef.current
+    if (!panel) return
+
+    const focusableElements = Array.from(
+      panel.querySelectorAll<HTMLElement>(
+        [
+          'button:not([disabled])',
+          'input:not([disabled])',
+          'select:not([disabled])',
+          'textarea:not([disabled])',
+          'a[href]',
+          '[tabindex]:not([tabindex="-1"])',
+        ].join(','),
+      ),
+    ).filter((element) => !element.hasAttribute('disabled') && element.tabIndex !== -1)
+
+    if (!focusableElements.length) {
+      event.preventDefault()
+      return
+    }
+
+    const firstElement = focusableElements[0]
+    const lastElement = focusableElements[focusableElements.length - 1]
+    const activeElement = document.activeElement
+
+    if (event.shiftKey && activeElement === firstElement) {
+      event.preventDefault()
+      lastElement.focus()
+      return
+    }
+
+    if (!event.shiftKey && activeElement === lastElement) {
+      event.preventDefault()
+      firstElement.focus()
+    }
+  }
 
   const openRecommendationModal = () => {
     if (recommendationsBlocked) return
@@ -86,10 +161,16 @@ export function CandidateStashDetailModal({
   }, [recommendationOpen, recommendationRowUuids, recommendationSelection])
 
   const applyRecommendations = () => {
+    if (model.recommendationAppendBusy) return
     const selectedRows = recommendationRows.filter((row) => (
       recommendationSelection.selectedVisibleUuidSet.has(row.uuid)
     ))
-    void model.appendRecommendedItems(selectedRows).then(() => {
+    void model.appendRecommendedItems(selectedRows).then((result) => {
+      if (result.status === 'stale') return
+      if (result.status === 'empty') {
+        recommendationSelection.clearSelection()
+        return
+      }
       recommendationSelection.clearSelection()
       itemSelection.clearSelection()
       setRecommendationOpen(false)
@@ -113,11 +194,14 @@ export function CandidateStashDetailModal({
         {...stashDetailModalBackdropDataProps(model.drawerOpen, model.drawerClosing)}
       >
         <div
+          ref={panelRef}
           className={detailStyles.stashDetailModalPanel}
           onClick={(event) => event.stopPropagation()}
+          onKeyDown={handlePanelKeyDown}
           role="dialog"
           aria-modal="true"
           aria-labelledby="stash-detail-modal-title"
+          tabIndex={-1}
         >
           <div className={detailStyles.stashDetailModalBody}>
             {!model.detailTarget ? (
@@ -198,6 +282,7 @@ export function CandidateStashDetailModal({
         <CandidateRecommendationModal
           rows={recommendationRows}
           loading={model.recommendationLoading}
+          applying={model.recommendationAppendBusy}
           error={model.recommendationError}
           selectedUuids={recommendationSelection.selectedVisibleUuidSet}
           onClose={() => setRecommendationOpen(false)}

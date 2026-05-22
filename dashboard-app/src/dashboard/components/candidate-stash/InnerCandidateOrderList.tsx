@@ -202,6 +202,13 @@ export function InnerCandidateOrderList({
     disabled: keyboardNavigationDisabled,
     onOpenItemDrawer: onToggleItemDrawer,
   })
+  const onListKeyDown = useCallback((event: KeyboardEvent<HTMLDivElement>) => {
+    if (event.target !== event.currentTarget) return
+    if (event.key !== 'ArrowUp' && event.key !== 'ArrowDown') return
+    event.preventDefault()
+    event.stopPropagation()
+    focusAdjacent(activeItemUuid, event.key === 'ArrowDown' ? 'next' : 'prev')
+  }, [activeItemUuid, focusAdjacent])
 
   useEffect(() => {
     if (!activeItemUuid) return
@@ -212,7 +219,12 @@ export function InnerCandidateOrderList({
   }, [activeItemUuid, rows.length])
 
   return (
-    <div className={detailStyles.innerOrderList} role="list">
+    <div
+      className={detailStyles.innerOrderList}
+      role="list"
+      tabIndex={0}
+      onKeyDown={onListKeyDown}
+    >
       <div className={detailStyles.innerOrderHeader} role="presentation">
         <span className={detailStyles.innerOrderCheckCell}>
           <label className={detailStyles.innerOrderCheckboxTarget}>

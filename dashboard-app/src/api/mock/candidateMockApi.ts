@@ -204,7 +204,7 @@ export const candidateMockApi = {
     second?: MockOwnerOrCompanyScope,
   ): Promise<void> => {
     const { ownerUserUuid, params } = resolveMockOwnerAndCompanyScope(first, second)
-    const companyUuid = acceptMockCompanyScope(params)
+    const companyUuid = requireMockMutationCompanyScope(params)
     await sleep(60)
     deleteCandidateItemRecord(itemUuid, ownerUserUuid, companyUuid)
   },
@@ -215,7 +215,7 @@ export const candidateMockApi = {
     second?: MockOwnerOrCompanyScope,
   ): Promise<void> => {
     const { ownerUserUuid, params } = resolveMockOwnerAndCompanyScope(first, second)
-    const companyUuid = acceptMockCompanyScope(params)
+    const companyUuid = requireMockMutationCompanyScope(params)
     await sleep(80)
     deleteCandidateItemRecords(stashUuid, itemUuids, ownerUserUuid, companyUuid)
   },
@@ -225,7 +225,7 @@ export const candidateMockApi = {
     second?: MockOwnerOrCompanyScope,
   ): Promise<void> => {
     const { ownerUserUuid, params } = resolveMockOwnerAndCompanyScope(first, second)
-    const companyUuid = acceptMockCompanyScope(params)
+    const companyUuid = requireMockMutationCompanyScope(params)
     await sleep(60)
     deleteCandidateStashRecord(stashUuid, ownerUserUuid, companyUuid)
   },
@@ -233,7 +233,7 @@ export const candidateMockApi = {
     payload: CreateCandidateStashPayload,
     ownerUserUuid?: string,
   ): Promise<CandidateStashSummary> => {
-    acceptMockCompanyScope(payload)
+    requireMockMutationCompanyScope(payload)
     await sleep(90)
     return createCandidateStashSummary(payload, ownerUserUuid)
   },
@@ -241,7 +241,7 @@ export const candidateMockApi = {
     payload: UpdateCandidateStashPayload,
     ownerUserUuid?: string,
   ): Promise<CandidateStashSummary> => {
-    const companyUuid = acceptMockCompanyScope(payload)
+    const companyUuid = requireMockMutationCompanyScope(payload)
     await sleep(70)
     return updateCandidateStashSummary(payload, ownerUserUuid, companyUuid)
   },
@@ -251,12 +251,12 @@ export const candidateMockApi = {
     second?: MockOwnerOrCompanyScope,
   ): Promise<void> => {
     const { ownerUserUuid, params } = resolveMockOwnerAndCompanyScope(first, second)
-    const companyUuid = acceptMockCompanyScope(params)
+    const companyUuid = requireMockMutationCompanyScope(params)
     await sleep(90)
     duplicateCandidateStashRecord(sourceStashUuid, ownerUserUuid, companyUuid)
   },
   appendCandidateItem: async (payload: AppendCandidateItemPayload, ownerUserUuid?: string): Promise<void> => {
-    const companyUuid = acceptMockCompanyScope(payload)
+    const companyUuid = requireMockMutationCompanyScope(payload)
     await sleep(70)
     appendCandidateItemRecord(payload, ownerUserUuid, companyUuid)
   },
@@ -264,7 +264,7 @@ export const candidateMockApi = {
     payload: AppendCandidateItemsPayload,
     ownerUserUuid?: string,
   ): Promise<AppendCandidateItemsResponse> => {
-    const companyUuid = acceptMockCompanyScope(payload)
+    const companyUuid = requireMockMutationCompanyScope(payload)
     await sleep(70)
     return appendCandidateItemsToStash(payload, ownerUserUuid, companyUuid)
   },
@@ -272,7 +272,7 @@ export const candidateMockApi = {
     payload: UpdateCandidateItemPayload,
     ownerUserUuid?: string,
   ): Promise<UpdateCandidateItemResponse> => {
-    const companyUuid = acceptMockCompanyScope(payload)
+    const companyUuid = requireMockMutationCompanyScope(payload)
     await sleep(70)
     return updateCandidateItemRecord(payload, ownerUserUuid, companyUuid)
   },
@@ -282,7 +282,7 @@ export const candidateMockApi = {
     second?: MockOwnerOrCompanyScope,
   ): Promise<CandidateStashExcelUploadResult> => {
     const { ownerUserUuid, params } = resolveMockOwnerAndCompanyScope(first, second)
-    const companyUuid = acceptMockCompanyScope(params)
+    const companyUuid = requireMockMutationCompanyScope(params)
     await sleep(140)
     return uploadCandidateStashExcelFile(file, ownerUserUuid, companyUuid)
   },

@@ -5,7 +5,7 @@
 | 작성 지시 | Yun Daeyoung |
 | 작성자 | Codex |
 | 작성일 | 2026-05-14 |
-| 최종 수정일 | 2026-05-21 |
+| 최종 수정일 | 2026-05-22 |
 | 상태 | 유지 문서 |
 | 적용 범위 | `dashboard-app/src` 모듈 하드닝 기준과 완료 목록 |
 
@@ -117,7 +117,28 @@
 
 ## TODO-065 company scope contract note
 
-- 이 문서는 현재 코드 계약을 반영한다. `코드 변경 없음`, `문서 작업`, `테스트/빌드 미실행` 문구는 TODO-065가 문서 정합성 작업이라는 뜻으로만 사용하며, 선행 TODO의 코드 변경이 없었다는 뜻으로 해석하지 않는다.
+- 이 문서는 현재 코드 계약을 반영한다. `문서 작업`, `테스트/빌드 미실행` 문구는 해당 TODO가 문서 정합성 작업이라는 뜻으로만 사용하며, 선행 작업의 코드 변경이 없었다는 뜻으로 해석하지 않는다.
 - secondary AI comment와 secondary stock order calc는 POST 요청이지만 DB mutation/job/SSE가 아닌 read-like 계산/생성 요청이다. 따라서 optional company scope를 따른다.
-- 후보군 mutation, 후보군 backend job start, 후보군 job/SSE subscribe, 오더 지표 SSE는 required single company scope를 따른다.
+- 후보군 mutation, 후보군 backend job start, 후보군 job/SSE subscribe, 오더 지표 SSE, 후보군 mock upload는 required single company scope를 따른다.
 - SnapshotConfirmPage company switch stale guard, product-secondary picker stale guard, unconfirm failure control은 현재 코드 기준의 경계 개선 항목으로 문서화하되, TODO-065에서는 테스트/빌드를 실행하지 않았으므로 하드닝 완료로 잠그지 않는다.
+
+## 2026-05-22 추천 append guard 계약 점검
+
+### 현재 계약
+
+- 추천 append는 `applied`, `stale`, `empty` 결과를 구분해야 한다. `applied`는 응답 item이 현재 stash/company/period/item membership 조건을 통과해 화면에 반영된 상태이고, `stale`은 요청 이후 scope나 기간 또는 대상 membership이 바뀌어 응답을 버린 상태이며, `empty`는 성공 응답이지만 새로 반영할 item이 없는 상태다.
+- 추천 append 중에는 중복 append를 허용하지 않는다. busy guard는 같은 추천을 두 번 추가하거나 이전 append 응답이 최신 추천 목록을 덮는 것을 막는 mutation 경계다.
+- append 응답 반영 전에는 stash scope, company scope, 조회 period, item membership을 다시 확인한다. 이 guard는 실패 UX가 아니라 늦은 응답 또는 잘못된 대상 반영을 막는 async/state consistency guard다.
+- 추천 visible row는 전체 추천 원본과 현재 후보 item membership에서 다시 파생한다. membership 변경마다 추천 목록 전체를 폐기하는 방식은 UX와 재조회 비용을 키우므로, scope/period 변경과 item membership 변경을 구분한다.
+- `stale`과 `empty`는 로컬 item 삽입으로 이어지면 안 된다. `stale`은 사용자-visible 반영 없이 폐기하고, `empty`는 중복 또는 추가 불가 row를 성공 삽입으로 오인하지 않게 선택과 visible row를 정리할 수 있다.
+
+### 하드닝 보류
+
+- 추천 append 흐름은 `useCandidateRecommendations.ts` 내부의 추천 조회, pagination, badge 병합, append mutation, 추천 modal 상태와 결합되어 있어 파일 전체를 하드닝 완료로 잠그지 않는다.
+- 하드닝하려면 append 결과 판정 모델을 작은 순수 함수 또는 hook 내부의 명시적 helper로 분리하고, `applied/stale/empty`, busy guard, scope/company/period/item-membership guard 테스트를 먼저 고정한다.
+
+## 2026-05-22 detail modal accessibility responsibility
+
+- 이너 후보군 상세 모달에 접근성 보강이 들어가는 경우 parent dialog가 focus trap과 close 후 focus restore 책임을 가진다.
+- 1차/2차 드로워와 하위 popup이 열려 있으면 parent dialog는 Escape 닫힘을 양보해야 하며, Escape는 내부 overlay 또는 2차 드로워부터 닫고 마지막에 parent dialog로 전달되는 순서를 유지해야 한다.
+- 접근성 보강은 현재 모달/드로워 키보드 흐름을 바꾸는 작업이므로 `qa-current-behavior.md`와 `candidate-stash.md`를 함께 갱신해야 한다.

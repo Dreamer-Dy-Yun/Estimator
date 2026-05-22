@@ -114,6 +114,7 @@
 | 검색/정렬 | 이름 검색, 비고 검색, 정렬이 동작한다. |
 | 전체 선택 제한 | 오더 후보군 페이지가 열린 상태에서 회사 선택이 `전체`로 바뀌면 라우트에서 튕기지 않고 페이지 내부 제한 안내를 표시한다. |
 | 업로드 카드 | 후보군이 적어도 업로드 카드가 화면을 과도하게 채우지 않도록 고정 높이를 유지한다. |
+| 업로드 scope | 후보군 엑셀 업로드는 후보군 목록을 바꾸는 mutation 진입점이다. HTTP와 mock 모두 단일 회사 scope가 필요하며, `전체` 또는 누락 scope에서 기본 회사로 보정하거나 성공처럼 처리하면 안 된다. |
 | 템플릿 다운로드 | 엑셀 업로드 영역 아래에 템플릿 다운로드 버튼이 있다. 실제 템플릿 파일은 향후 백엔드 이동 가능성을 고려한다. |
 | 후보군 카드 | 카드의 `이름·비고 편집`은 좁은 뷰포트에서 `편집`으로 줄어든다. |
 | 삭제/복제 | 삭제/복제는 API 요청 성공 후 목록을 재조회하고 toast를 표시한다. |
@@ -143,7 +144,9 @@
 | 추천/배지 | 기본 리스트가 들어온 직후 `getCandidateRecommendations`를 cursor 기반으로 끝까지 자동 조회한다. 추천 응답은 배지와 자사/경쟁사 기간 총판매량을 함께 포함한다. 추천 보기 버튼은 이 요청을 시작하지 않고, 이미 시작된 조회 결과를 모달로 표시한다. |
 | 배지 병합 | 추천 결과 중 현재 후보군 row와 같은 `skuUuid`는 이너 리스트 배지와 기간 총판매량으로 병합한다. |
 | 추천 보기 | 추천 보기 목록에서는 이미 후보군에 있는 `skuUuid`를 숨긴다. 추천 보기 버튼은 배지 계산 시작 버튼이 아니며, 추천 조회가 아직 끝나지 않았으면 모달 내부에 로딩 상태를 표시한다. |
-| 추천 적용 | 선택 추천을 추가하면 `appendCandidateItems` 성공 응답의 신규 `candidateItems`와 이미 받은 추천 row를 매칭해 현재 리스트로 옮긴다. 후보군 전체 목록은 즉시 재조회하지 않고, 새 row의 총 오더 수량/금액만 SSE로 계산한다. |
+| 추천 적용 | 선택 추천을 추가하면 `appendCandidateItems` 성공 응답의 신규 `candidateItems`와 이미 받은 추천 row를 매칭해 현재 리스트로 옮긴다. 후보군 전체 목록은 즉시 재조회하지 않고, 새 row의 총 오더 수량/금액만 SSE로 계산한다. 추천 visible row는 전체 추천 원본과 현재 후보 item membership에서 다시 파생한다. |
+| 추천 append 결과 | 추천 append 결과는 `applied`, `stale`, `empty`로 구분한다. `applied`만 로컬 리스트 삽입으로 이어질 수 있다. `stale`은 요청 이후 stash/company/period/item membership이 바뀐 응답이므로 사용자-visible 반영 없이 폐기하고, `empty`는 성공 삽입으로 보이지 않게 선택과 visible row를 정리할 수 있지만 로컬 item 삽입으로 이어지면 안 된다. |
+| 추천 append busy guard | append 진행 중 같은 추천 또는 같은 scope의 중복 append를 다시 시작하면 안 된다. busy guard는 중복 item 삽입과 이전 응답의 최신 목록 덮어쓰기를 막는 기준이다. |
 | 배지 실패 | 추천/배지 요청 실패 시 배지 셀은 무한 로딩이 아니라 실패 배지와 툴팁을 표시한다. |
 | 오더 지표 | 총 오더 수량, 총 오더 금액, 엑셀용 `orderExport`는 `subscribeCandidateOrderMetrics` SSE로 행별 갱신한다. |
 | 오더 지표 SSE 종료 | 요청한 모든 후보 item이 `item` 또는 `itemFailed` 이벤트를 받으면 프론트가 SSE 연결을 닫는다. `completed` 누락이나 서버 연결 종료로 동일 URL이 자동 재접속되어서는 안 된다. |
@@ -151,6 +154,7 @@
 | 미수신 컬럼 | 아직 내려오지 않은 배지/오더 지표 컬럼은 로딩 상태를 표시한다. |
 | 기존 데이터 유지 | 기본 리스트, 추천/배지, 오더 지표의 최신 요청이 실패해도 기존 row를 즉시 비우지 않는다. 기본 리스트 실패는 리스트 error surface, 추천 실패는 배지 실패, 오더 지표 실패는 대상 row/cell 실패로 표시한다. |
 | stale 방어 | 기간 변경 또는 재조회 중 이전 기본 리스트 응답, 추천 응답, 오더 이벤트가 늦게 와도 최신 조회 결과를 덮으면 안 된다. 이 경우는 실패 UX가 아니라 무시 대상이다. |
+| append guard | 추천 append 응답 반영 전에는 현재 stash, company, 조회 period, 대상 item membership이 요청 당시와 같은지 확인한다. mismatch는 성공 반영 대상이 아니라 stale 응답이다. |
 | hook 상태 책임 | 기본 item 조회 상태는 `useCandidateItemsLoader`, 추천 목록/배지 상태는 `useCandidateRecommendations`, 상세 일괄확정 progress 상태는 `useCandidateBulkDetailConfirm`이 맡는다. 한 hook이 다른 hook의 실패나 로딩 상태를 직접 소유하도록 섞으면 안 된다. |
 
 ## 이너 후보군 1차/2차 드로워
@@ -160,6 +164,7 @@
 | 1차 드로워 | 이너 후보군에서는 좌 방향키 또는 row 선택으로 1차 드로워를 연다. |
 | 2차 드로워 | 열린 1차 드로워 안에서 좌 방향키 또는 반원 버튼으로 2차 드로워를 연다. |
 | 닫힘 순서 | ESC 한 번은 2차 드로워를 닫고, 한 번 더 누르면 1차 드로워를 닫는다. 우 방향키는 닫기 방향이다. |
+| parent dialog 접근성 | 상세 모달 접근성 보강이 들어간 경우 parent dialog가 focus trap과 close 후 focus restore를 소유한다. 하위 드로워, 추천 보기 modal, 진행 popup이 열려 있으면 parent dialog는 Escape 닫힘을 양보하고 상위 전파를 막아 가장 안쪽 overlay부터 닫히는 순서를 따라야 한다. |
 | AI 코멘트 | 이너 후보군을 열 때 일괄 AI 답변을 만들지 않는다. AI 코멘트는 2차 드로워가 열릴 때 요청한다. |
 | 상품 메타 | 브랜드, 카테고리, 품번, 색상, 상품명은 길어도 행바꿈하지 않고 한 줄 말줄임으로 표시한다. hover 시 전체 값이 툴팁으로 보여야 한다. |
 | 통합 오더 설정 | `일평균 판매량`과 `일평균 기대 판매량`은 계산값을 바꾸지 않고 화면에서 소수 둘째 자리 반올림, 소수 첫째 자리까지 표시한다. |
@@ -210,6 +215,7 @@
 | 상세 일괄확정 | `startCandidateDetailBulkConfirm`과 `subscribeCandidateDetailBulkConfirm` SSE 계약을 사용한다. job start와 SSE subscribe 모두 같은 단일 `companyUuid`를 전달해야 한다. `updatedItem` 이벤트는 commit/cache 반영 이후 최신 `CandidateItemDetail`이어야 하며 프론트는 이를 로컬 확정 상태로 삼는다. |
 | 산점도 | binning과 cell 집계는 백엔드 책임이다. 프론트는 받은 `cells`와 `meta`로 표시만 한다. |
 | 회사 scope | `getCompanies` 응답은 `uuid`, `name`만 필요하다. 회사 소유 read API와 read-like POST는 단일 회사 선택 시 `companyUuid`를 포함하고, `전체` 선택 시 생략한다. secondary AI comment와 secondary stock order calc는 POST여도 optional scope다. 후보군 mutation payload/params, bulk detail confirm job/SSE, 후보군 LLM comment job/SSE, 오더 지표 SSE는 단일 회사 scope가 필요하며 `전체` 또는 누락 scope로 호출되면 안 된다. HTTP adapter 검증 대상은 query, JSON body, FormData, SSE URL/query의 `companyUuid` 전파를 모두 포함한다. mock도 `companyUuid`를 판매/후보군/오더 지표 분기와 계산에 반영해야 한다. |
+| mock upload scope | 후보군 mock upload는 API 계약을 표현하는 mutation 대체 구현체다. 단일 회사 scope 없이는 성공 응답을 만들면 안 되며, mock seed나 기본 회사로 조용히 대체하지 않는다. |
 
 ## 2026-05-22 company scope / failure UX QA 기준
 
@@ -217,6 +223,9 @@
 |------|---------|
 | HTTP adapter runtime guard | read API와 read-like POST는 `전체` 선택 시 `companyUuid`를 생략할 수 있다. secondary AI comment와 secondary stock order calc는 이 optional scope에 속한다. mutation/job/SSE/FormData는 단일 회사 UUID가 없으면 요청을 만들면 안 된다. 실패는 기본 회사 fallback이나 빈 성공값이 아니라 명시적 오류로 드러나야 한다. |
 | 2차 드로워 후보군 작업 | 전체 scope에서는 후보군 picker 열기, 후보군 생성, 후보군 item 저장, 상세확정 저장/해제가 진행되면 안 된다. 사용자는 toast로 회사 선택 필요 사유를 확인해야 한다. |
+| 후보군 mock upload | mock upload도 required single company scope mutation이다. `전체` 또는 누락 scope에서 성공처럼 처리하지 않고, 단일 회사 선택 필요 상태를 드러내야 한다. |
+| 추천 append guard | append 결과는 `applied`, `stale`, `empty`로 QA한다. 중복 append busy guard가 동작해야 하며, stash/company/period/item membership mismatch 응답은 사용자-visible 반영 없이 폐기되어야 한다. `empty`는 중복 또는 추가 불가 row를 성공 삽입처럼 보이지 않게 정리해야 한다. |
+| 상세 모달 접근성 | parent dialog focus trap, Escape 처리 순서, close 후 focus restore가 유지되어야 한다. 접근성 보강이 들어가더라도 기존 1차/2차 드로워 닫힘 순서와 하위 overlay 우선 닫힘을 깨면 안 된다. |
 | 오더 후보군 목록 전체 scope | 전체 scope에서는 후보군 목록 API를 호출하지 않고 페이지 내부 제한 안내를 표시한다. 라우트에서 강제로 튕기지 않는다. 회사 전환 중 이전 회사의 늦은 목록 응답이 현재 선택 회사 화면을 덮으면 안 되며, scope mismatch 응답은 조용히 무시하는 async stale guard 대상이다. |
 | 오더 후보군 목록 load failure | 목록 로드 실패는 정상 빈 목록과 구분한다. 기존 목록이 있으면 기존 목록을 유지하고 실패 카드와 재시도 버튼을 표시한다. 기존 목록이 없으면 목록을 표시할 수 없다는 실패 빈 상태를 표시한다. |
 | 완료/보류 판단 | 위 기준은 현재 동작 문서 기준이다. TODO-065 범위에서는 테스트/빌드를 실행하지 않았으므로 하드닝 완료 또는 검증 완료로 선언하지 않는다. |

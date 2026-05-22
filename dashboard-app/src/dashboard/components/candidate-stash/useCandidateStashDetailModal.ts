@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   type CandidateItemSummary,
   type CandidateReferenceItemSummary,
@@ -135,12 +135,22 @@ export function useCandidateStashDetailModal({
     setItems,
     subscribeOrderMetrics,
   ])
+  const recommendationItemMembershipKey = useMemo(
+    () => items.map((item) => item.skuUuid).sort().join('|'),
+    [items],
+  )
+  const recommendationItemSkuUuids = useMemo(
+    () => items.map((item) => item.skuUuid),
+    [items],
+  )
 
   const recommendations = useCandidateRecommendations({
     stashUuid,
     companyUuid,
     dataReferencePeriodStart,
     dataReferencePeriodEnd,
+    itemMembershipKey: recommendationItemMembershipKey,
+    itemSkuUuids: recommendationItemSkuUuids,
     mountedRef,
     itemsRef,
     setItems,
@@ -225,6 +235,7 @@ export function useCandidateStashDetailModal({
     items,
     recommendationItems: recommendations.recommendationItems,
     recommendationLoading: recommendations.recommendationLoading,
+    recommendationAppendBusy: recommendations.recommendationAppendBusy,
     recommendationError: recommendations.recommendationError,
     candidateItemsLoading,
     candidateItemsLoadError,

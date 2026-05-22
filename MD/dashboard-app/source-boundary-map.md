@@ -5,7 +5,7 @@
 | 작성 지시 | Yun Daeyoung |
 | 작성자 | Codex |
 | 작성일 | 2026-05-06 |
-| 최종 수정일 | 2026-05-21 |
+| 최종 수정일 | 2026-05-22 |
 | 상태 | 유지 문서 |
 | 적용 범위 | `dashboard-app`, 프론트엔드 소스, 관련 배포/문서 경계 |
 
@@ -47,6 +47,7 @@
 | 새 API 메서드, 응답 DTO, SSE 이벤트, API 실패 kind, mock/HTTP adapter, company scope 변경 | [api-contracts.md](./boundaries/api-contracts.md), [../backend-api/backend-api-spec.md](../backend-api/backend-api-spec.md) |
 | 자사/경쟁사 분석 필터, 기간 조회 방식, 산점도, 순위, 후보군 담기 변경 | [analysis-pages.md](./boundaries/analysis-pages.md), [qa-current-behavior.md](./qa-current-behavior.md) |
 | 후보군 상세 조회, 추천, 배지, 오더 지표 SSE, 상세확정/해제/삭제, 상세 목록 재조회 실패 표시, 엑셀 변경 | [candidate-stash.md](./boundaries/candidate-stash.md), [../backend-api/backend-api-spec.md](../backend-api/backend-api-spec.md), [qa-current-behavior.md](./qa-current-behavior.md) |
+| 추천 append guard, append 결과 판정, 중복 append busy guard 변경 | [candidate-stash.md](./boundaries/candidate-stash.md), [qa-current-behavior.md](./qa-current-behavior.md), 필요 시 [module-hardening.md](./module-hardening.md) |
 | 상품 드로워, 스냅샷 저장 범위, AI 코멘트, 재고·발주 계산 변경 | [product-drawer.md](./boundaries/product-drawer.md), [../backend-api/backend-api-spec.md](../backend-api/backend-api-spec.md), [qa-current-behavior.md](./qa-current-behavior.md) |
 | 로그인/관리자 화면, GPT 키, 구글 시트 설정 변경 | [auth-admin.md](./boundaries/auth-admin.md), [qa-current-behavior.md](./qa-current-behavior.md) |
 | 공통 UI, table, toast, spinner, keyboard interaction, utils 변경 | [shared-modules.md](./boundaries/shared-modules.md), [ui-patterns.md](./ui-patterns.md), 필요 시 [module-hardening.md](./module-hardening.md) |
@@ -105,7 +106,7 @@
 | 2차 드로워 후보군 all-company guard | `dashboard-app/src/dashboard/components/product-drawer/secondary/hooks/useSecondaryCandidateActions.ts` | 전체 scope에서 후보군 picker와 mutation 진입을 막고 toast로 실패 사유 표시 |
 | 오더 후보군 목록 전체 scope guard와 load failure UI | `dashboard-app/src/dashboard/pages/SnapshotConfirmPage.tsx` | 전체 scope 안내, 후보군 목록 load error, stale list 유지, retry UI |
 
-### 완료 경계
+### 현재 동작 경계
 
 - company scope helper와 HTTP adapter는 read API의 `companyUuid` 생략과 mutation/job/SSE의 단일 회사 필수 계약을 분리한다.
 - 2차 드로워 후보군 액션은 전체 scope일 때 후보군 side-effect 진입 전 UI hook에서 차단한다.
@@ -122,7 +123,10 @@
 |------|-----------|------|
 | read-like POST optional scope | `dashboard-app/src/api/requests/httpDashboardRequests.ts`, `dashboard-app/src/api/types/company.ts` | secondary AI comment와 secondary stock order calc는 POST이지만 저장/수정/삭제/job/SSE가 아니므로 optional company scope를 사용한다. `전체` scope는 `companyUuid` 생략으로 정규화한다. |
 | candidate required scope | `dashboard-app/src/api/requests/httpDashboardRequests.ts`, `dashboard-app/src/dashboard/components/candidate-stash/*` | 후보군 mutation, 상세 일괄확정 job/SSE, 후보군 LLM comment job/SSE, 오더 지표 SSE는 required single company scope다. 누락 scope를 기본 회사나 빈 성공으로 보정하지 않는다. |
+| candidate mock upload required scope | `dashboard-app/src/api/mock/*`, `dashboard-app/src/api/requests/*`, `dashboard-app/src/dashboard/pages/SnapshotConfirmPage.tsx` | 후보군 upload mock은 단순 fixture read가 아니라 후보군 생성/갱신 성격의 mutation 대체 구현이다. 단일 회사 scope가 없으면 기본 회사로 보정하지 않고 실패해야 한다. |
+| recommendation append guard | `dashboard-app/src/dashboard/components/candidate-stash/useCandidateRecommendations.ts` | 추천 append 응답을 `applied`, `stale`, `empty`로 구분하고, 중복 append busy guard와 stash/company/period/item-membership guard를 통과한 경우에만 로컬 item 삽입을 수행한다. 추천 visible row는 전체 추천 원본과 현재 item membership에서 다시 파생한다. |
 | SnapshotConfirmPage stale guard | `dashboard-app/src/dashboard/pages/SnapshotConfirmPage.tsx` | company switch 중 이전 회사 목록 응답이 현재 선택 회사 목록을 덮지 않게 한다. `전체` 전환 시 후보군 API 호출 대신 페이지 내부 제한 안내를 표시한다. |
 | product-secondary picker guard | `dashboard-app/src/dashboard/components/product-drawer/secondary/hooks/useSecondaryCandidateActions.ts` | company/sku 변경 중 이전 picker 요청 결과가 최신 상태를 덮지 않게 하고, picker load 실패 또는 unconfirm 실패를 mutation 성공 흐름으로 연결하지 않는다. |
+| candidate detail modal accessibility | `dashboard-app/src/dashboard/components/candidate-stash/CandidateStashDetailModal.tsx` 및 하위 overlay | parent dialog는 focus trap과 close 후 focus restore를 소유한다. 하위 drawer/popup이 열려 있으면 parent dialog는 Escape 닫힘을 양보하고 상위 전파를 막아 내부부터 닫히는 순서를 지킨다. |
 
-TODO-065는 문서 정합성 작업이며 테스트/빌드를 실행하지 않았다. 이 문구는 선행 TODO의 코드 변경이 없었다는 의미가 아니라, 이번 작업에서 추가 검증 명령을 실행하지 않았다는 의미다.
+TODO-065는 문서 정합성 작업이며 테스트/빌드를 실행하지 않았다. 이 문구는 선행 TODO의 코드 변경 여부를 판단하는 문구가 아니라, 이번 문서 작업에서 추가 검증 명령을 실행하지 않았다는 의미다.

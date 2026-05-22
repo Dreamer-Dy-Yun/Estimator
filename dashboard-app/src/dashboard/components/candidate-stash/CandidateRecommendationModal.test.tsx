@@ -46,6 +46,7 @@ function renderModal(overrides: Partial<ModalProps> = {}) {
   const props: ModalProps = {
     rows,
     loading: false,
+    applying: false,
     error: null,
     selectedUuids: new Set(['candidate-1']),
     onClose: vi.fn(),
@@ -139,6 +140,35 @@ describe('CandidateRecommendationModal', () => {
     expect(container?.textContent).toContain('추천 1개 · 선택 0개')
     expect(container?.textContent).toContain('선택 0개')
     expect(applyButton.disabled).toBe(true)
+  })
+
+  it('disables recommendation selection and apply while append is busy', () => {
+    renderModal({ applying: true })
+
+    const checkboxes = Array.from(container?.querySelectorAll<HTMLInputElement>('input[type="checkbox"]') ?? [])
+    const buttons = Array.from(container?.querySelectorAll<HTMLButtonElement>('button') ?? [])
+    const applyButton = buttons[buttons.length - 1]
+    const closeButton = getRequiredElement<HTMLButtonElement>('button[aria-label="추천 보기 닫기"]')
+    const cancelButton = buttons.find((button) => button.textContent?.trim() === '취소')
+    if (!applyButton) throw new Error('Missing apply button')
+    if (!cancelButton) throw new Error('Missing cancel button')
+
+    expect(checkboxes.every((checkbox) => checkbox.disabled)).toBe(true)
+    expect(document.activeElement).toBe(getRequiredElement<HTMLDivElement>('[role="dialog"]'))
+    expect(closeButton.disabled).toBe(true)
+    expect(cancelButton.disabled).toBe(true)
+    expect(applyButton.disabled).toBe(true)
+    expect(container?.textContent).toContain('추천 후보 적용 중')
+    expect(applyButton.textContent?.trim()).toBe('적용 중')
+  })
+
+  it('disables visible recommendation selection while refresh is loading', () => {
+    renderModal({ loading: true })
+
+    const checkboxes = Array.from(container?.querySelectorAll<HTMLInputElement>('input[type="checkbox"]') ?? [])
+
+    expect(checkboxes.every((checkbox) => checkbox.disabled)).toBe(true)
+    expect(container?.textContent).toContain('추천 후보 로딩 중')
   })
 
   it('keeps Tab and Shift+Tab focus inside the modal', () => {

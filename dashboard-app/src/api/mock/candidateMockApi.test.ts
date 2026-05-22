@@ -341,6 +341,14 @@ describe('api/mock candidate stash contract stubs', () => {
     await expect(mockDashboardApi.deleteCandidateItem(item!.uuid, { companyUuid: ALL_COMPANY_UUID })).rejects.toThrow(
       mutationError,
     )
+    await expect(mockDashboardApi.deleteCandidateItems(source!.uuid, [item!.uuid])).rejects.toThrow(mutationError)
+    await expect(
+      mockDashboardApi.appendCandidateItems({
+        stashUuid: source!.uuid,
+        skuGroupKeys: [item!.skuGroupKey],
+        companyUuid: ' ',
+      }),
+    ).rejects.toThrow(mutationError)
     await expect(
       mockDashboardApi.uploadCandidateStashExcel(new File(['x'], 'candidate.xlsx'), {
         companyUuid: ALL_COMPANY_UUID,
@@ -376,6 +384,9 @@ describe('api/mock candidate stash contract stubs', () => {
   })
 
   it('keeps Excel upload as a single-company mutation', async () => {
+    await expect(
+      mockDashboardApi.uploadCandidateStashExcel(new File(['mock'], 'candidate-upload.xlsx')),
+    ).rejects.toThrow(MOCK_SINGLE_COMPANY_SCOPE_REQUIRED_MESSAGE)
     await expect(
       mockDashboardApi.uploadCandidateStashExcel(new File(['mock'], 'candidate-upload.xlsx'), {
         companyUuid: ' ',

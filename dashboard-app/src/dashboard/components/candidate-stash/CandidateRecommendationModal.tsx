@@ -10,6 +10,7 @@ import modalStyles from './CandidateRecommendationModal.module.css'
 type Props = {
   rows: CandidateReferenceItemSummary[]
   loading: boolean
+  applying: boolean
   error: string | null
   selectedUuids: Set<string>
   onClose: () => void
@@ -21,6 +22,7 @@ type Props = {
 export function CandidateRecommendationModal({
   rows,
   loading,
+  applying,
   error,
   selectedUuids,
   onClose,
@@ -40,7 +42,7 @@ export function CandidateRecommendationModal({
   )
   const allVisibleRowsSelected = visibleRows.length > 0 && visibleSelectedCount === visibleRows.length
   const partiallyVisibleRowsSelected = visibleSelectedCount > 0 && visibleSelectedCount < visibleRows.length
-  const canApply = !loading && !hasError && visibleSelectedCount > 0
+  const canApply = !loading && !applying && !hasError && visibleSelectedCount > 0
 
   useEffect(() => {
     if (!selectAllRef.current) return
@@ -51,7 +53,9 @@ export function CandidateRecommendationModal({
     previousFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
     const initialFocus = selectAllRef.current && !selectAllRef.current.disabled
       ? selectAllRef.current
-      : closeButtonRef.current
+      : closeButtonRef.current && !closeButtonRef.current.disabled
+        ? closeButtonRef.current
+        : panelRef.current
 
     initialFocus?.focus()
 
@@ -60,10 +64,15 @@ export function CandidateRecommendationModal({
     }
   }, [])
 
+  useEffect(() => {
+    if (!applying) return
+    panelRef.current?.focus()
+  }, [applying])
+
   const handlePanelKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     if (event.key === 'Escape') {
       event.stopPropagation()
-      onClose()
+      if (!applying) onClose()
       return
     }
 
@@ -106,19 +115,31 @@ export function CandidateRecommendationModal({
     }
   }
 
+  const handleApply = () => {
+    if (!canApply) return
+    onApply()
+  }
+
+  const handleClose = () => {
+    if (applying) return
+    onClose()
+  }
+
   return (
     <div
       className={modalStyles.backdrop}
       role="presentation"
-      onClick={onClose}
+      onClick={handleClose}
     >
       <div
         ref={panelRef}
         className={modalStyles.panel}
         role="dialog"
         aria-modal="true"
+        aria-busy={loading || applying}
         aria-labelledby="recommendation-modal-title"
         aria-describedby="recommendation-modal-status"
+        tabIndex={-1}
         onClick={(e) => e.stopPropagation()}
         onKeyDown={handlePanelKeyDown}
       >
@@ -134,16 +155,19 @@ export function CandidateRecommendationModal({
               aria-live="polite"
               aria-atomic="true"
             >
-              {loading
-                ? '추천 후보 로딩 중'
-                : `추천 ${formatGroupedNumber(visibleRows.length)}개 · 선택 ${formatGroupedNumber(visibleSelectedCount)}개`}
+              {applying
+                ? '추천 후보 적용 중'
+                : loading
+                  ? '추천 후보 로딩 중'
+                  : `추천 ${formatGroupedNumber(visibleRows.length)}개 · 선택 ${formatGroupedNumber(visibleSelectedCount)}개`}
             </div>
           </div>
           <button
             ref={closeButtonRef}
             type="button"
             className={`${styles.iconCloseButton} ${modalStyles.closeButton}`}
-            onClick={onClose}
+            onClick={handleClose}
+            disabled={applying}
             aria-label="추천 보기 닫기"
             title="닫기"
           />
@@ -157,7 +181,7 @@ export function CandidateRecommendationModal({
                   ref={selectAllRef}
                   type="checkbox"
                   checked={allVisibleRowsSelected}
-                  disabled={loading || hasError || visibleRows.length === 0}
+                  disabled={loading || applying || hasError || visibleRows.length === 0}
                   aria-label="추천 전체 선택"
                   onChange={onToggleAll}
                 />
@@ -209,6 +233,7 @@ export function CandidateRecommendationModal({
                     <input
                       type="checkbox"
                       checked={selected}
+                      disabled={loading || applying || hasError}
                       aria-label={`${row.productName} 추천 선택`}
                       onChange={() => onToggleItem(row.uuid)}
                     />
@@ -233,17 +258,18 @@ export function CandidateRecommendationModal({
             <button
               type="button"
               className={`${styles.actionBtn} ${styles.btnNeutral}`}
-              onClick={onClose}
+              onClick={handleClose}
+              disabled={applying}
             >
               취소
             </button>
             <button
               type="button"
               className={`${styles.actionBtn} ${styles.btnPrimary}`}
-              onClick={onApply}
+              onClick={handleApply}
               disabled={!canApply}
             >
-              추천 적용
+              {applying ? '적용 중' : '추천 적용'}
             </button>
           </div>
         </div>
