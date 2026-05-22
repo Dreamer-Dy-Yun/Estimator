@@ -646,6 +646,13 @@ query:
 | `dbCreatedAt` | string | DB 생성 일시 |
 | `dbUpdatedAt` | string | DB 수정 일시 |
 
+추천 append 응답 매칭 계약:
+
+- `POST /candidate-stashes/{stashUuid}/items`와 bulk append 계열 응답은 프론트가 요청 당시 recommendation 원본과 매칭할 수 있는 `CandidateStashItemSummary` 식별자를 반환해야 한다.
+- 최소 식별자는 `uuid`, `stashUuid`, `skuUuid`, `skuGroupKey`다. `skuUuid`는 실제 SKU UUID이며, 백엔드가 mock 호환 때문에 임시 값을 쓰는 경우에도 프론트가 recommendation 원본과 같은 item인지 판단할 수 있어야 한다.
+- 프론트는 append 응답을 현재 stash/company/period/item membership과 다시 대조한다. scope 불일치, 기간 불일치, 이미 membership에 존재하는 item은 성공 삽입으로 반영하지 않는다. recommendation 원본과 매칭할 수 없는 item은 append 실패로 처리하며 `empty` 또는 `stale` 결과로 보정하지 않는다.
+- 백엔드는 append 성공을 표현하려고 의미 없는 item 식별자나 현재 recommendation과 연결 불가능한 payload를 만들면 안 된다. 부분 성공 또는 중복은 성공 item과 실패/skip 사유를 구분해 내려주는 방향이 권장된다.
+
 `CandidateItemSummary`
 
 | 필드 | 타입 | 설명 |

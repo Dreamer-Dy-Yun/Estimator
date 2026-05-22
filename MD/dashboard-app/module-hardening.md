@@ -79,7 +79,7 @@
 | `dashboard-app/src/dashboard/drawer/drawerDom.ts` | 드로워 바깥 클릭/상호작용 target 판정의 DOM 계약이 작고 재사용성이 높다. | 버튼/입력/커스텀 keep-open 정책이 더 바뀌지 않는지 한 번 더 확인한다. |
 | `dashboard-app/src/dashboard/interaction/interactionTarget.ts` | 키보드/마우스 이벤트에서 입력계 조작을 제외하는 공통 판정이다. | table, drawer, modal이 같은 제외 정책을 공유하는지 테스트로 고정한다. |
 | `dashboard-app/src/api/requests/dashboardMasterDataCache.ts` | 페이지와 공통 드로워의 master data 중복 요청 coalescing 경계가 작다. | 캐시 대상이 master data로만 제한되는지, mutation 후 무효화 대상이 아닌지 백엔드 계약 문서와 맞춘다. |
-| `dashboard-app/src/dashboard/components/candidate-stash/candidateItemLocalMutationModel.ts` | 삭제 성공 후 로컬 row 제거만 맡는 순수 모델이다. | 상세확정/일괄확정/추천 병합 흐름이 더 흔들리지 않는지 확인한 뒤 candidate-stash broad 보류에서 분리한다. |
+| `dashboard-app/src/dashboard/components/candidate-stash/candidateItemLocalMutationModel.ts` | 삭제 성공 후 로컬 row 제거와 추천 append 응답 매칭 후 로컬 row 삽입을 맡는 순수 모델이다. | 상세확정/일괄확정/추천 병합 흐름이 더 흔들리지 않는지 확인한 뒤 candidate-stash broad 보류에서 분리한다. |
 
 ## 새 하드닝 절차
 
@@ -129,13 +129,21 @@
 - 추천 append는 `applied`, `stale`, `empty` 결과를 구분해야 한다. `applied`는 응답 item이 현재 stash/company/period/item membership 조건을 통과해 화면에 반영된 상태이고, `stale`은 요청 이후 scope나 기간 또는 대상 membership이 바뀌어 응답을 버린 상태이며, `empty`는 성공 응답이지만 새로 반영할 item이 없는 상태다.
 - 추천 append 중에는 중복 append를 허용하지 않는다. busy guard는 같은 추천을 두 번 추가하거나 이전 append 응답이 최신 추천 목록을 덮는 것을 막는 mutation 경계다.
 - append 응답 반영 전에는 stash scope, company scope, 조회 period, item membership을 다시 확인한다. 이 guard는 실패 UX가 아니라 늦은 응답 또는 잘못된 대상 반영을 막는 async/state consistency guard다.
+- append 응답은 요청 당시 recommendation 원본과 다시 매칭되어야 한다. 신규 `CandidateStashItemSummary`를 recommendation 원본의 `skuUuid`/`skuGroupKey` 계열 식별자와 연결할 수 없거나 현재 item membership과 충돌하면, 프론트는 임의 row를 만들어 성공 삽입하지 않는다.
 - 추천 visible row는 전체 추천 원본과 현재 후보 item membership에서 다시 파생한다. membership 변경마다 추천 목록 전체를 폐기하는 방식은 UX와 재조회 비용을 키우므로, scope/period 변경과 item membership 변경을 구분한다.
 - `stale`과 `empty`는 로컬 item 삽입으로 이어지면 안 된다. `stale`은 사용자-visible 반영 없이 폐기하고, `empty`는 중복 또는 추가 불가 row를 성공 삽입으로 오인하지 않게 선택과 visible row를 정리할 수 있다.
+
+### TODO-111 직접 테스트 반영
+
+- `useCandidateRecommendations.ts` 직접 테스트는 `applied/stale/empty` 판정과 중복 append busy guard를 고정하는 범위로 문서화한다. append 응답 매칭 계약은 `candidateItemLocalMutationModel.test.ts`에서 별도로 고정한다.
+- 이 테스트는 hook의 추천 append 상태 계약을 직접 확인하는 보강이다. 후보군 상세 모달 전체, 기본 item loader, 오더 지표 SSE, 상세확정 job, 백엔드 API 구현까지 하드닝 완료로 확장해서 해석하지 않는다.
+- missing-state dialog label과 sort accessibility 보강은 QA/문서 계약에 맞춘 상태로 추적한다. 두 항목은 사용자-visible UX 경계 보강이지 순수 leaf module 하드닝 완료 항목이 아니다.
 
 ### 하드닝 보류
 
 - 추천 append 흐름은 `useCandidateRecommendations.ts` 내부의 추천 조회, pagination, badge 병합, append mutation, 추천 modal 상태와 결합되어 있어 파일 전체를 하드닝 완료로 잠그지 않는다.
-- 하드닝하려면 append 결과 판정 모델을 작은 순수 함수 또는 hook 내부의 명시적 helper로 분리하고, `applied/stale/empty`, busy guard, scope/company/period/item-membership guard 테스트를 먼저 고정한다.
+- 하드닝하려면 append 결과 판정 모델을 작은 순수 함수 또는 hook 내부의 명시적 helper로 분리하고, `applied/stale/empty`, busy guard, scope/company/period/item-membership guard 테스트를 먼저 고정한다. 응답 매칭은 로컬 item 삽입 모델의 테스트와 문서 계약을 함께 유지한다.
+- TODO-111은 직접 테스트와 계약 문서 보강 범위다. 이 문서에서는 `useCandidateRecommendations.ts`나 candidate-stash hook 묶음을 하드닝 완료 목록에 추가하지 않는다.
 
 ## 2026-05-22 detail modal accessibility responsibility
 

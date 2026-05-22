@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react'
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent } from 'react'
 import type { CandidateStashSummary } from '../../../api'
 import { stashDetailModalBackdropDataProps } from '../../drawer/drawerDom'
 import { CandidateRecommendationModal } from './CandidateRecommendationModal'
@@ -26,6 +26,18 @@ type Props = {
   stashSummary?: CandidateStashSummary | null
   onClose: () => void
   onStashesInvalidate?: () => void
+}
+
+const fallbackModalTitleStyle: CSSProperties = {
+  position: 'absolute',
+  width: 1,
+  height: 1,
+  padding: 0,
+  margin: -1,
+  overflow: 'hidden',
+  clip: 'rect(0 0 0 0)',
+  whiteSpace: 'nowrap',
+  border: 0,
 }
 
 export function CandidateStashDetailModal({
@@ -204,8 +216,13 @@ export function CandidateStashDetailModal({
           tabIndex={-1}
         >
           <div className={detailStyles.stashDetailModalBody}>
-            {!model.detailTarget ? (
-              <CandidateStashMissingState loadError={model.stashListLoadError} onClose={onClose} />
+    {!model.detailTarget ? (
+      <>
+        <h2 id="stash-detail-modal-title" style={fallbackModalTitleStyle}>
+          {model.stashListLoadError ? '후보 보관함 상세 로드 실패' : '후보 보관함 상세 없음'}
+        </h2>
+        <CandidateStashMissingState loadError={model.stashListLoadError} onClose={onClose} />
+      </>
             ) : (
               <>
                 {model.stashListLoadError && (

@@ -117,6 +117,26 @@ describe('appendRecommendedCandidateItems', () => {
     })
   })
 
+  it('matches an appended candidate item by candidateItem.skuUuid to recommendation row uuid', () => {
+    const selectedRow = {
+      ...recommendation('selected-row-uuid'),
+      uuid: 'sku-target',
+      skuGroupKey: 'different-group-key',
+    }
+    const next = appendRecommendedCandidateItems(
+      [],
+      [candidateItem('new-1', 'sku-target')],
+      [selectedRow],
+    )
+
+    expect(next[0]).toMatchObject({
+      uuid: 'new-1',
+      skuUuid: 'sku-target',
+      skuGroupKey: 'sku-target',
+      productName: '추천 selected-row-uuid',
+    })
+  })
+
   it('keeps reference when the backend returned no newly created item', () => {
     const items = [item('a')]
 
@@ -138,6 +158,26 @@ describe('appendRecommendedCandidateItems', () => {
       [],
       [candidateItem('new-1', 'sku-missing')],
       [],
-    )).toThrow('추천 후보 응답과 신규 후보 아이템을 매칭할 수 없습니다')
+    )).toThrow(
+      '추천 추가 응답 불일치: candidateItem.skuUuid는 선택한 추천 row uuid와 일치해야 합니다',
+    )
+  })
+
+  it('throws instead of partially appending when only part of the append response matches selected rows', () => {
+    expect(() => appendRecommendedCandidateItems(
+      [],
+      [candidateItem('new-1', 'sku-new'), candidateItem('new-2', 'sku-missing')],
+      [recommendation('sku-new')],
+    )).toThrow('candidateItem.skuUuid=sku-missing에 해당하는 추천 row가 없습니다')
+  })
+
+  it('throws when a duplicate sku response cannot be matched to a selected recommendation row', () => {
+    const items = [item('a')]
+
+    expect(() => appendRecommendedCandidateItems(
+      items,
+      [candidateItem('duplicate', items[0].skuUuid)],
+      [],
+    )).toThrow('candidateItem.skuUuid=sku-a에 해당하는 추천 row가 없습니다')
   })
 })

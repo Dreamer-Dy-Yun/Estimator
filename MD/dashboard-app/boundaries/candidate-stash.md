@@ -58,6 +58,14 @@
 - 추천 append 중에는 중복 append busy guard를 유지한다. 같은 추천 row를 연속 클릭하거나 이전 append 요청이 끝나기 전에 새 append가 들어와 최신 추천 목록과 item 목록을 덮으면 안 된다.
 - `stale`과 `empty`는 후보군 추가 성공으로 표시하지 않는다. 특히 `stale`은 현재 화면 상태를 보호하기 위한 async guard 결과이므로 사용자-visible 반영 없이 폐기한다. `empty`는 중복 또는 추가 불가 row를 성공 삽입처럼 보이지 않게 선택과 visible row를 정리할 수 있지만, 로컬 item 삽입으로 이어지면 안 된다.
 
+### 추천 append 응답 매칭 계약
+
+`appendCandidateItems` 응답은 요청 당시 선택한 recommendation과 현재 화면의 stash/company/period/item membership 기준에 다시 매칭된 경우에만 로컬 item 삽입으로 이어진다. 프론트는 append 응답의 신규 `CandidateStashItemSummary`를 이미 받은 recommendation 원본과 `candidateItem.skuUuid -> recommendation.uuid` 기준으로 대조하고, 대조 실패 또는 현재 item membership 불일치를 성공 삽입으로 보정하지 않는다.
+
+이 매칭 계약은 API/프론트 공동 계약이다. 백엔드는 append 응답에서 새로 생성되거나 이미 존재하는 후보 item을 식별할 수 있는 `CandidateStashItemSummary`를 반환해야 한다. 프론트는 해당 응답을 현재 추천 원본과 매칭할 수 없으면 append 실패로 처리하고 로컬 item을 삽입하지 않는다. 이는 요청 이후 화면 scope가 바뀐 `stale`이나 성공했지만 새로 반영할 item이 없는 `empty`와 구분한다. 추천 append 후 전체 후보군 재조회로 불일치를 숨기는 것은 기본 흐름이 아니다.
+
+TODO-111에서 `useCandidateRecommendations` 직접 테스트가 추가된 범위는 append 결과 판정, `applied/stale/empty` 분기, 중복 append busy guard다. append 응답 매칭 계약 자체는 `candidateItemLocalMutationModel.test.ts`에서 검증한다. 이 테스트들은 hook과 로컬 삽입 모델의 추천 append 상태 계약을 확인하는 직접 테스트이며, 후보군 상세 모달 전체, SSE 오더 지표, 상세확정 job, 백엔드 API 구현을 하드닝 완료로 선언하는 근거는 아니다.
+
 ## 오더 지표 SSE
 
 총 오더 수량, 총 오더 금액, 엑셀용 `orderExport`는 `subscribeCandidateOrderMetrics` SSE 이벤트로 행별 갱신한다. 목록 조회 hook은 stream lifecycle을 직접 알지 않는다. stream 요청의 `companyUuid`는 hook 생성 시 부모가 DI로 넘긴 값을 사용하며, SSE subscribe는 단일 회사 scope가 필수다.
@@ -77,7 +85,7 @@
 | `useCandidateStashItemActions.ts` | 삭제, 일괄삭제, 상세확정 일괄해제, 엑셀 다운로드 액션 |
 | `CandidateBulkDetailConfirmProgress.tsx` | 상세 일괄확정 진행 팝업 UI |
 | `candidateDetailConfirmationOverrideModel.ts` | stale 재조회가 로컬 확정 상태를 덮지 않게 보호 |
-| `candidateItemLocalMutationModel.ts` | 삭제 성공 후 현재 리스트에서 row 제거 |
+| `candidateItemLocalMutationModel.ts` | 삭제 성공 후 현재 리스트에서 row 제거, 추천 append 응답과 선택 recommendation 원본 매칭 후 로컬 row 삽입 |
 
 상세확정 저장/해제 API 성공 응답과 상세 일괄확정 SSE `updatedItem`은 현재 화면의 기준 상태다. 상세 일괄확정은 job start와 SSE subscribe 모두 같은 단일 `companyUuid` scope를 필수로 사용해야 한다. `전체` 또는 누락 scope는 read API의 전체 조회 생략과 다르게 검증 실패다. 서버 응답의 `dbUpdatedAt`이 바뀌고 원하는 확정 상태가 내려오면 override는 해제된다.
 
@@ -98,6 +106,8 @@
 
 리스트 첫 칸은 선택 체크박스, 둘째 칸은 현재 정렬된 화면 순서에서 1부터 다시 계산하는 표시 인덱스다. 표시 인덱스는 레코드 값이 아니다. 이너 후보 리스트 헤더는 데이터 성격을 따른다. 브랜드, 품번, 상품명, 색상 같은 문자열 식별 컬럼은 왼쪽, 상태는 중앙, 판매량과 총 오더 수량/금액 같은 숫자 컬럼은 오른쪽 정렬한다. 정렬 아이콘은 라벨 정렬을 밀지 않는 보조 표시로 둔다.
 
+정렬 가능한 헤더는 시각적 아이콘만으로 상태를 전달하지 않는다. 현재 정렬 key/direction은 보조 라벨 또는 접근성 속성으로 함께 전달되어야 하며, 정렬 버튼의 accessible name은 컬럼명과 정렬 동작을 구분할 수 있어야 한다. 표시 인덱스 컬럼은 정렬 결과에서 다시 계산되는 화면 번호임을 유지하고, 레코드 고유 순번처럼 설명하지 않는다.
+
 ## 이너 후보군 드로워
 
 이너 후보군에서는 좌 키로 1차 드로워를 열고, 열린 1차 안에서 좌 키로 2차를 연다. ESC는 2차부터 닫고 한 번 더 누르면 1차를 닫는다.
@@ -105,6 +115,8 @@
 2차 드로워는 저장 스냅샷을 편집 가능한 초기값으로 사용하고, 이후 계산은 현재 입력값 기준으로 수행한다. 미확정 변경사항은 후보군 상세 모달이 열려 있는 동안 itemUuid별 클라이언트 메모리 draft로 유지한다.
 
 상세 모달 접근성 보강이 들어가는 경우 parent dialog가 focus trap과 close 후 focus restore를 소유한다. 1차/2차 드로워, 추천 보기, 진행 팝업 같은 하위 overlay가 열려 있으면 parent dialog는 Escape 닫힘을 양보하고 상위 전파를 막아야 하며, Escape는 가장 안쪽 overlay부터 닫히고 마지막에 parent dialog 닫힘으로 이어져야 한다.
+
+missing-state dialog 또는 제한 안내 dialog는 사용자에게 필요한 다음 행동을 label에서 드러내야 한다. 예를 들어 회사 선택이 필요한 상태, 선택 가능한 후보 row가 없는 상태, append 결과가 `empty`인 상태는 모두 일반 성공 dialog가 아니라 누락/제한 상태임을 title 또는 accessible label에서 구분한다. 단, 문구 보강은 현재 UI 리듬을 유지하는 범위에서만 수행하고, 하위 overlay 닫힘 순서나 parent dialog focus 책임을 바꾸지 않는다.
 
 ## 엑셀
 
@@ -131,6 +143,7 @@
 
 - `SnapshotConfirmPage.tsx`의 목록 로드 실패 UI: stale list 유지, 빈 실패 상태, 재시도 버튼의 UX 경계가 명확하므로 테스트 보강 후 하드닝 후보로 분리할 수 있다.
 - `useCandidateRecommendations.ts`의 추천 append guard: 결과 판정과 scope/company/period/item-membership guard가 명확해지면 순수 helper 또는 작은 model로 분리해 테스트할 수 있다.
+- `useCandidateRecommendations.ts`의 직접 테스트와 `candidateItemLocalMutationModel.ts`의 append 응답 매칭 테스트는 추천 append 하드닝 후보를 좁히는 근거다. 다만 hook 전체가 추천 조회, pagination, badge 병합, modal 상태를 함께 소유하므로 TODO-111 기준으로 하드닝 완료 파일로 승격하지 않는다.
 - `useSecondaryCandidateActions.ts`의 all-company guard: 전체 scope에서 picker와 mutation 진입을 모두 막고 있으나 2차 드로워 저장/후보군 생성/후보군 선택 UI와 결합되어 있으므로 hook 전체보다 scope guard와 failure toast 경계를 우선 후보로 둔다.
 
 ### 보류 항목

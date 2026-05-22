@@ -21,6 +21,14 @@ type SortHeaderProps = {
 function InnerOrderSortHeader({ label, sortKey, activeKey, activeDir, align = 'left', onSort }: SortHeaderProps) {
   const active = activeKey === sortKey
   const sortMark = active ? (activeDir === 'asc' ? '▲' : '▼') : ''
+  const sortStateLabel = active
+    ? activeDir === 'asc'
+      ? '\uC624\uB984\uCC28\uC21C \uC815\uB82C \uC801\uC6A9\uB428'
+      : '\uB0B4\uB9BC\uCC28\uC21C \uC815\uB82C \uC801\uC6A9\uB428'
+    : '\uC815\uB82C \uC801\uC6A9\uB418\uC9C0 \uC54A\uC74C'
+  const nextSortLabel = active && activeDir === 'asc'
+    ? '\uB0B4\uB9BC\uCC28\uC21C\uC73C\uB85C \uC815\uB82C'
+    : '\uC624\uB984\uCC28\uC21C\uC73C\uB85C \uC815\uB82C'
 
   return (
     <button
@@ -31,7 +39,7 @@ function InnerOrderSortHeader({ label, sortKey, activeKey, activeDir, align = 'l
         align === 'right' ? detailStyles.innerOrderSortHeaderNum : '',
       ].filter(Boolean).join(' ')}
       onClick={() => onSort(sortKey)}
-      aria-label={`${label} 정렬`}
+                    aria-label={`${label} 정렬. 현재 상태: ${sortStateLabel}. 실행 시 ${nextSortLabel}`}
       aria-pressed={active}
     >
       <span className={detailStyles.innerOrderSortLabel}>{label}</span>

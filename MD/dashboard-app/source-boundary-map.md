@@ -48,6 +48,7 @@
 | 자사/경쟁사 분석 필터, 기간 조회 방식, 산점도, 순위, 후보군 담기 변경 | [analysis-pages.md](./boundaries/analysis-pages.md), [qa-current-behavior.md](./qa-current-behavior.md) |
 | 후보군 상세 조회, 추천, 배지, 오더 지표 SSE, 상세확정/해제/삭제, 상세 목록 재조회 실패 표시, 엑셀 변경 | [candidate-stash.md](./boundaries/candidate-stash.md), [../backend-api/backend-api-spec.md](../backend-api/backend-api-spec.md), [qa-current-behavior.md](./qa-current-behavior.md) |
 | 추천 append guard, append 결과 판정, 중복 append busy guard 변경 | [candidate-stash.md](./boundaries/candidate-stash.md), [qa-current-behavior.md](./qa-current-behavior.md), 필요 시 [module-hardening.md](./module-hardening.md) |
+| 추천 append 응답 매칭, `useCandidateRecommendations` 직접 테스트 범위 변경 | [candidate-stash.md](./boundaries/candidate-stash.md), [qa-current-behavior.md](./qa-current-behavior.md), [module-hardening.md](./module-hardening.md), [../backend-api/dashboard-api-contract-catalog.md](../backend-api/dashboard-api-contract-catalog.md) |
 | 상품 드로워, 스냅샷 저장 범위, AI 코멘트, 재고·발주 계산 변경 | [product-drawer.md](./boundaries/product-drawer.md), [../backend-api/backend-api-spec.md](../backend-api/backend-api-spec.md), [qa-current-behavior.md](./qa-current-behavior.md) |
 | 로그인/관리자 화면, GPT 키, 구글 시트 설정 변경 | [auth-admin.md](./boundaries/auth-admin.md), [qa-current-behavior.md](./qa-current-behavior.md) |
 | 공통 UI, table, toast, spinner, keyboard interaction, utils 변경 | [shared-modules.md](./boundaries/shared-modules.md), [ui-patterns.md](./ui-patterns.md), 필요 시 [module-hardening.md](./module-hardening.md) |
@@ -128,5 +129,17 @@
 | SnapshotConfirmPage stale guard | `dashboard-app/src/dashboard/pages/SnapshotConfirmPage.tsx` | company switch 중 이전 회사 목록 응답이 현재 선택 회사 목록을 덮지 않게 한다. `전체` 전환 시 후보군 API 호출 대신 페이지 내부 제한 안내를 표시한다. |
 | product-secondary picker guard | `dashboard-app/src/dashboard/components/product-drawer/secondary/hooks/useSecondaryCandidateActions.ts` | company/sku 변경 중 이전 picker 요청 결과가 최신 상태를 덮지 않게 하고, picker load 실패 또는 unconfirm 실패를 mutation 성공 흐름으로 연결하지 않는다. |
 | candidate detail modal accessibility | `dashboard-app/src/dashboard/components/candidate-stash/CandidateStashDetailModal.tsx` 및 하위 overlay | parent dialog는 focus trap과 close 후 focus restore를 소유한다. 하위 drawer/popup이 열려 있으면 parent dialog는 Escape 닫힘을 양보하고 상위 전파를 막아 내부부터 닫히는 순서를 지킨다. |
+| missing-state dialog label | `dashboard-app/src/dashboard/components/candidate-stash/*`, 관련 modal/dialog 컴포넌트 | 회사 선택 필요, 추천 없음, append empty 등 누락/제한 상태는 일반 성공 상태와 구분되는 title/accessibility label을 가져야 한다. |
+| sort accessibility | `dashboard-app/src/dashboard/components/candidate-stash/InnerCandidateOrderList.tsx`, sort header style-parts | 정렬 가능한 헤더는 컬럼명과 현재 정렬 상태를 아이콘 외 접근성 정보로 제공한다. 표시 인덱스는 정렬된 화면 순서 번호다. |
 
 TODO-065는 문서 정합성 작업이며 테스트/빌드를 실행하지 않았다. 이 문구는 선행 TODO의 코드 변경 여부를 판단하는 문구가 아니라, 이번 문서 작업에서 추가 검증 명령을 실행하지 않았다는 의미다.
+
+## TODO-111 recommendation/test boundary
+
+| 영역 | 소유 파일 | 문서 경계 |
+|------|-----------|-----------|
+| useCandidateRecommendations 직접 테스트 | `dashboard-app/src/dashboard/components/candidate-stash/useCandidateRecommendations.test.*` | 추천 append `applied/stale/empty`, busy guard를 확인하는 테스트 범위로 기록한다. |
+| 추천 append 응답 매칭 | `dashboard-app/src/dashboard/components/candidate-stash/candidateItemLocalMutationModel.ts`, `dashboard-app/src/api/types/*` | append 응답의 신규 후보 item과 기존 recommendation 원본이 매칭될 때만 로컬 item 삽입을 허용한다. 매칭 불가 응답은 append 실패이며 `empty`/`stale`과 구분한다. |
+| 하드닝 판단 | [module-hardening.md](./module-hardening.md) | 직접 테스트 보강은 하드닝 후보를 좁히는 근거지만, hook 전체 또는 candidate-stash 영역 전체를 하드닝 완료로 승격하지 않는다. |
+
+TODO-111에서는 코드와 테스트 실행을 다루지 않는다. 완료 항목은 문서 정합성 보강이며, 하드닝 완료 선언은 보류한다.

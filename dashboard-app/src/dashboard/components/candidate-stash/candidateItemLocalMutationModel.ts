@@ -4,6 +4,14 @@ import type {
   CandidateStashItemSummary,
 } from '../../../api'
 
+const APPEND_RESPONSE_MATCHING_INVARIANT =
+  '추천 추가 응답 불일치: candidateItem.skuUuid는 선택한 추천 row uuid와 일치해야 합니다'
+
+type RecommendationBySelectedRowUuid = ReadonlyMap<
+  CandidateReferenceItemSummary['uuid'],
+  CandidateReferenceItemSummary
+>
+
 export function removeCandidateItemsByUuid(
   items: CandidateItemSummary[],
   itemUuids: string[],
@@ -42,6 +50,25 @@ function toCandidateItemSummary(
   }
 }
 
+function createRecommendationBySelectedRowUuid(
+  recommendations: CandidateReferenceItemSummary[],
+): RecommendationBySelectedRowUuid {
+  return new Map(recommendations.map((row) => [row.uuid, row]))
+}
+
+function getMatchingRecommendationForAppendedCandidateItem(
+  candidateItem: CandidateStashItemSummary,
+  recommendationBySelectedRowUuid: RecommendationBySelectedRowUuid,
+): CandidateReferenceItemSummary {
+  const recommendation = recommendationBySelectedRowUuid.get(candidateItem.skuUuid)
+  if (!recommendation) {
+    throw new Error(
+      `${APPEND_RESPONSE_MATCHING_INVARIANT}; candidateItem.skuUuid=${candidateItem.skuUuid}에 해당하는 추천 row가 없습니다`,
+    )
+  }
+  return recommendation
+}
+
 export function appendRecommendedCandidateItems(
   items: CandidateItemSummary[],
   candidateItems: CandidateStashItemSummary[],
@@ -49,14 +76,14 @@ export function appendRecommendedCandidateItems(
 ): CandidateItemSummary[] {
   if (!candidateItems.length) return items
   const existingSkuUuidSet = new Set(items.map((item) => item.skuUuid))
-  const recommendationBySkuUuid = new Map(recommendations.map((row) => [row.uuid, row]))
+  const recommendationBySelectedRowUuid = createRecommendationBySelectedRowUuid(recommendations)
   const appendedItems: CandidateItemSummary[] = []
   for (const candidateItem of candidateItems) {
+    const recommendation = getMatchingRecommendationForAppendedCandidateItem(
+      candidateItem,
+      recommendationBySelectedRowUuid,
+    )
     if (existingSkuUuidSet.has(candidateItem.skuUuid)) continue
-    const recommendation = recommendationBySkuUuid.get(candidateItem.skuUuid)
-    if (!recommendation) {
-      throw new Error(`추천 후보 응답과 신규 후보 아이템을 매칭할 수 없습니다: ${candidateItem.skuUuid}`)
-    }
     appendedItems.push(toCandidateItemSummary(candidateItem, recommendation))
     existingSkuUuidSet.add(candidateItem.skuUuid)
   }
