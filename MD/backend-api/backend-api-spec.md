@@ -11,6 +11,9 @@
 
 이 문서는 프론트의 **`AuthApi` / `DashboardApi` / `InventoryArrivalApi` TypeScript 계약**을 만족하는 REST API를 설계·구현하기 위한 참고 자료입니다. 필드명은 **camelCase**, JSON 직렬화를 가정합니다.
 
+> 상세 구현 카탈로그: [dashboard-api-contract-catalog.md](./dashboard-api-contract-catalog.md)  
+> endpoint별 payload/response 필드 설명과 `OrderSnapshotDocumentV1` JSON 구조는 위 문서를 백엔드 구현 기준으로 함께 확인한다.
+
 현재 프론트 요청 계층은 `/api/v1` prefix의 REST API를 기준으로 HTTP adapter를 작성해 둔다. 기본값은 mock API이며, `VITE_USE_MOCK_API=false`일 때만 `VITE_API_BASE_URL` 기본값 `http://localhost:8080/api/v1`로 실제 HTTP 요청을 보낸다. 화면/훅은 `src/api/client.ts` facade만 호출하며 mock/HTTP 선택을 알지 않는다.
 
 ---
