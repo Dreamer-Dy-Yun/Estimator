@@ -3,6 +3,7 @@ import { act, createElement } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { dashboardApi } from '../../../../../api'
+import type { CandidateStashPickerOption } from '../CandidateStashPickerModal'
 import { useSecondaryCandidateActions } from './useSecondaryCandidateActions'
 
 vi.mock('../../../../../api', () => ({
@@ -43,7 +44,22 @@ function renderActions(args: HookArgs) {
       if (!current) throw new Error('Hook result is not ready')
       return current
     },
+    rerender(nextArgs: HookArgs) {
+      act(() => {
+        root?.render(createElement(Probe, { args: nextArgs, onRender: (result) => { current = result } }))
+      })
+    },
   }
+}
+
+function deferred<T>() {
+  let resolve!: (value: T) => void
+  let reject!: (reason?: unknown) => void
+  const promise = new Promise<T>((promiseResolve, promiseReject) => {
+    resolve = promiseResolve
+    reject = promiseReject
+  })
+  return { promise, resolve, reject }
 }
 
 afterEach(() => {
@@ -131,6 +147,44 @@ describe('useSecondaryCandidateActions', () => {
       '후보군은 생성됐지만 새 목록에서 생성 항목을 확인하지 못했습니다. 목록을 다시 불러와 주세요.',
       { variant: 'error' },
     )
+    expect(vi.mocked(args.showToast).mock.calls.some(([message]) => message === '후보군을 생성했습니다.')).toBe(false)
+  })
+
+  it('does not select a created candidate when the sku group changes before refresh completes', async () => {
+    const createResult = deferred<{ uuid: string }>()
+    const refreshResult = deferred<CandidateStashPickerOption[]>()
+    vi.mocked(dashboardApi.createCandidateStash).mockReturnValue(createResult.promise as never)
+    vi.mocked(dashboardApi.getCandidateStashes).mockReturnValue(refreshResult.promise as never)
+    const { args, hook } = setup()
+
+    act(() => {
+      hook.current.setNameInput('new stash')
+    })
+
+    let createPromise!: Promise<boolean>
+    act(() => {
+      createPromise = hook.current.createCandidate()
+    })
+
+
+    hook.rerender({ ...args, skuGroupKey: 'sku-2' })
+    createResult.resolve({ uuid: 'stash-created' })
+
+    refreshResult.resolve([
+      {
+        uuid: 'stash-created',
+        name: 'created stash',
+        note: '',
+        dbCreatedAt: '2026-05-22T00:00:00.000Z',
+      },
+    ])
+    let result = true
+    await act(async () => {
+      result = await createPromise
+    })
+
+    expect(result).toBe(false)
+    expect(hook.current.selectedCandidate).toBeNull()
     expect(vi.mocked(args.showToast).mock.calls.some(([message]) => message === '후보군을 생성했습니다.')).toBe(false)
   })
 })

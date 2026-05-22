@@ -31,10 +31,13 @@ type RenderResult = {
   }
 }
 
+const mountedRoots = new Set<Root>()
+
 const renderModal = (overrides: Partial<ComponentProps<typeof CandidateStashPickerModal>> = {}): RenderResult => {
   const container = document.createElement('div')
   document.body.appendChild(container)
   const root = createRoot(container)
+  mountedRoots.add(root)
   const props = {
     onClose: vi.fn(),
     onCreate: vi.fn(),
@@ -71,6 +74,10 @@ const dispatchKeyDown = (key: string, init: KeyboardEventInit = {}) => {
 }
 
 afterEach(() => {
+  act(() => {
+    mountedRoots.forEach((root) => root.unmount())
+    mountedRoots.clear()
+  })
   document.body.innerHTML = ''
 })
 
@@ -89,6 +96,7 @@ describe('CandidateStashPickerModal focus management', () => {
     act(() => {
       root.unmount()
     })
+    mountedRoots.delete(root)
     container.remove()
 
     expect(document.activeElement).toBe(opener)
@@ -123,5 +131,37 @@ describe('CandidateStashPickerModal focus management', () => {
     dispatchKeyDown('Escape')
 
     expect(props.onClose).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('CandidateStashPickerModal loading state', () => {
+  it('announces option refresh and exposes why existing options are disabled', () => {
+    renderModal({ loading: true })
+
+    const status = document.querySelector<HTMLElement>('[role="status"]')
+    const optionButtons = Array.from(document.querySelectorAll<HTMLButtonElement>('button')).filter((button) =>
+      button.textContent?.includes('Candidate'),
+    )
+
+    expect(status?.id).toBe('candidate-stash-picker-refreshing-status')
+    expect(status?.textContent).toContain('후보군 목록을 갱신 중입니다')
+    expect(status?.getAttribute('aria-live')).toBe('polite')
+    expect(status?.parentElement?.getAttribute('aria-busy')).toBe('true')
+    expect(optionButtons).toHaveLength(2)
+    optionButtons.forEach((button) => {
+      expect(button.disabled).toBe(true)
+      expect(button.getAttribute('aria-describedby')).toBe('candidate-stash-picker-refreshing-status')
+    })
+  })
+
+  it('keeps selection blocked while options are refreshing', () => {
+    const { props } = renderModal({ loading: true })
+    const firstOption = Array.from(document.querySelectorAll<HTMLButtonElement>('button')).find((button) =>
+      button.textContent?.includes('Candidate A'),
+    )
+
+    firstOption?.click()
+
+    expect(props.onSelect).not.toHaveBeenCalled()
   })
 })

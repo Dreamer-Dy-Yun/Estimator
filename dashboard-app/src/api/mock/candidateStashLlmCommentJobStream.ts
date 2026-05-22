@@ -91,6 +91,10 @@ export function subscribeMockCandidateStashLlmCommentJob(
   itemUuids.forEach((itemUuid, index) => {
     const item = readCandidateItemRecords().find((row) => row.uuid === itemUuid)
     const product = item ? productPrimaryBySkuGroupKey[item.skuGroupKey] : null
+    if (item) {
+      item.isLatestLlmComment = true
+      item.dbUpdatedAt = new Date().toISOString()
+    }
     emit({
       jobId,
       stashUuid,

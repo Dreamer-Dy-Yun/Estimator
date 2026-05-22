@@ -54,6 +54,8 @@ export function CandidateStashPickerModal({
   const dialogRef = useRef<HTMLDivElement | null>(null)
   const nameInputRef = useRef<HTMLInputElement | null>(null)
   const previousFocusRef = useRef<HTMLElement | null>(null)
+  const isRefreshingOptions = loading && options.length > 0
+  const refreshingStatusId = 'candidate-stash-picker-refreshing-status'
 
   useEffect(() => {
     previousFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
@@ -169,7 +171,7 @@ export function CandidateStashPickerModal({
               {loading ? <LoadingSpinner size="inline" label="처리 중" /> : KO.btnCreateCandidateConfirm}
             </button>
           </div>
-          <div className={styles.candidateList}>
+          <div className={styles.candidateList} aria-busy={loading}>
             {loading && options.length === 0 ? (
               <LoadingSpinner label="후보군 목록을 불러오는 중" />
             ) : options.length === 0 ? (
@@ -180,31 +182,44 @@ export function CandidateStashPickerModal({
                 </p>
               </div>
             ) : (
-              options.map((row) => (
-                <button
-                  key={row.uuid}
-                  type="button"
-                  className={`${styles.candidateListItem} ${
-                    selectedUuid === row.uuid ? styles.candidateListItemActive : ''
-                  }`}
-                  disabled={loading}
-                  aria-pressed={selectedUuid === row.uuid}
-                  onClick={() => onSelect(row)}
-                >
-                  <div className={styles.candidateListItemTop}>
-                    <span className={styles.candidateListItemName}>{row.name}</span>
-                    {selectedUuid === row.uuid && (
-                      <span className={styles.candidateListItemBadge}>선택됨</span>
-                    )}
-                  </div>
-                  <span className={styles.candidateListItemMeta}>
-                    생성일 {formatDateTimeMinute(row.dbCreatedAt)}
-                  </span>
-                  <span className={styles.candidateListItemDesc}>
-                    {row.note?.trim() ? row.note : KO.msgNoNote}
-                  </span>
-                </button>
-              ))
+              <>
+                {isRefreshingOptions && (
+                  <p
+                    id={refreshingStatusId}
+                    className={styles.metaFilterActionHint}
+                    role="status"
+                    aria-live="polite"
+                  >
+                    후보군 목록을 갱신 중입니다. 갱신 중에는 기존 후보군을 선택할 수 없습니다.
+                  </p>
+                )}
+                {options.map((row) => (
+                  <button
+                    key={row.uuid}
+                    type="button"
+                    className={`${styles.candidateListItem} ${
+                      selectedUuid === row.uuid ? styles.candidateListItemActive : ''
+                    }`}
+                    disabled={loading}
+                    aria-describedby={isRefreshingOptions ? refreshingStatusId : undefined}
+                    aria-pressed={selectedUuid === row.uuid}
+                    onClick={() => onSelect(row)}
+                  >
+                    <div className={styles.candidateListItemTop}>
+                      <span className={styles.candidateListItemName}>{row.name}</span>
+                      {selectedUuid === row.uuid && (
+                        <span className={styles.candidateListItemBadge}>선택됨</span>
+                      )}
+                    </div>
+                    <span className={styles.candidateListItemMeta}>
+                      생성일 {formatDateTimeMinute(row.dbCreatedAt)}
+                    </span>
+                    <span className={styles.candidateListItemDesc}>
+                      {row.note?.trim() ? row.note : KO.msgNoNote}
+                    </span>
+                  </button>
+                ))}
+              </>
             )}
           </div>
         </div>

@@ -49,7 +49,8 @@
 |---|---:|---|
 | `auth` | 401 | 로그인 만료 또는 인증 없음 |
 | `permission` | 403 | 로그인은 되었지만 권한 없음 |
-| `validation` | 400, 422 | 요청값 검증 실패 |
+| `validation` | 422 | 요청값 검증 실패. 현재 프론트는 422만 validation으로 정규화한다. |
+| `client` | 기타 400 계열 | 인증/권한/timeout/not-found/conflict/validation으로 분류되지 않은 클라이언트 요청 실패 |
 | `not-found` | 404 | 대상 없음 |
 | `server` | 500+ | 서버 내부 오류 |
 | `network` | 없음 | 네트워크 연결 실패. 프론트 정규화 영역 |
@@ -58,6 +59,12 @@
 | `stream-protocol` | SSE event 형식 오류 | SSE payload 파싱 또는 프로토콜 오류 |
 
 권장 JSON:
+
+주의:
+
+- 400 Bad Request는 백엔드가 요청 오류를 표현할 수 있는 status이지만, 현재 프론트 정규화 정책에서는 `validation`으로 고정 분류되지 않는다.
+- 프론트는 400을 포함한 기타 4xx status를 기본적으로 `client` 실패로 분류한다.
+- 화면에서 검증 실패 UX가 필요하면 백엔드는 422 Unprocessable Entity를 사용하거나, 프론트 계약 변경을 함께 진행해야 한다.
 
 ```json
 {

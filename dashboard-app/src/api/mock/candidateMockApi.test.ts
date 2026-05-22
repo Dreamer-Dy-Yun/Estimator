@@ -58,6 +58,21 @@ const waitForLlmCommentJobEvent = (
   )
 })
 
+const waitForLlmCommentJobCompletedEvent = (
+  jobId: string,
+  companyUuid: string,
+): Promise<CandidateStashLlmCommentJobProgressEvent> => new Promise((resolve) => {
+  const subscription = mockDashboardApi.subscribeCandidateStashLlmCommentJob(
+    jobId,
+    (event) => {
+      if (event.status !== 'completed') return
+      subscription.close()
+      resolve(event)
+    },
+    { companyUuid },
+  )
+})
+
 describe('api/mock candidate stash contract stubs', () => {
   it('filters candidate stashes by authenticated owner uuid', async () => {
     const all = await mockDashboardApi.getCandidateStashes()
@@ -416,6 +431,29 @@ describe('api/mock candidate stash contract stubs', () => {
     })
   })
 
+  it('rejects bulk detail confirm start when requested item uuid is outside the stash', async () => {
+    const stashes = await mockDashboardApi.getCandidateStashes({ companyUuid: MOCK_COMPANY_UUID })
+    const source = stashes.find((row) => row.itemCount > 0)
+    const other = stashes.find((row) => row.uuid !== source?.uuid && row.itemCount > 0)
+    expect(source).toBeDefined()
+    expect(other).toBeDefined()
+
+    const sourceItems = await mockDashboardApi.getCandidateItemsByStash(defaultCandidateItemListParams(source!.uuid))
+    const otherItems = await mockDashboardApi.getCandidateItemsByStash(defaultCandidateItemListParams(other!.uuid))
+    expect(sourceItems.items[0]).toBeDefined()
+    expect(otherItems.items[0]).toBeDefined()
+
+    await expect(
+      mockDashboardApi.startCandidateDetailBulkConfirm({
+        stashUuid: source!.uuid,
+        itemUuids: [sourceItems.items[0]!.uuid, otherItems.items[0]!.uuid],
+        dataReferencePeriodStart: DEFAULT_CANDIDATE_STASH_CONTEXT.periodStart,
+        dataReferencePeriodEnd: DEFAULT_CANDIDATE_STASH_CONTEXT.periodEnd,
+        companyUuid: MOCK_COMPANY_UUID,
+      }),
+    ).rejects.toThrow('후보군에 포함되지 않은 후보 아이템이 있습니다.')
+  })
+
   it('requires single company scope for LLM comment job start and subscribe', async () => {
     const stashes = await mockDashboardApi.getCandidateStashes({ companyUuid: MOCK_COMPANY_UUID })
     const source = stashes.find((row) => row.itemCount > 0)
@@ -455,6 +493,40 @@ describe('api/mock candidate stash contract stubs', () => {
     await expect(waitForLlmCommentJobEvent(started.jobId, MOCK_T1_COMPANY_UUID)).resolves.toMatchObject({
       status: 'failed',
     })
+  })
+
+  it('updates candidate item latest LLM comment state when mock LLM comment job completes', async () => {
+    const stashes = await mockDashboardApi.getCandidateStashes({ companyUuid: MOCK_COMPANY_UUID })
+    const source = stashes.find((row) => row.itemCount > 0)
+    expect(source).toBeDefined()
+
+    const before = await mockDashboardApi.getCandidateItemsByStash(defaultCandidateItemListParams(source!.uuid))
+    const confirmedItem = before.items.find((row) => row.isDetailConfirmed)
+    expect(confirmedItem).toBeDefined()
+    const detail = await mockDashboardApi.getCandidateItemByUuid(confirmedItem!.uuid, {
+      companyUuid: MOCK_COMPANY_UUID,
+    })
+    expect(detail?.details).toBeDefined()
+    await mockDashboardApi.updateCandidateItem({
+      itemUuid: confirmedItem!.uuid,
+      companyUuid: MOCK_COMPANY_UUID,
+      details: detail!.details,
+      isLatestLlmComment: false,
+    })
+
+    const staleList = await mockDashboardApi.getCandidateItemsByStash(defaultCandidateItemListParams(source!.uuid))
+    const staleItem = staleList.items.find((row) => row.uuid === confirmedItem!.uuid && !row.isLatestLlmComment)
+    expect(staleItem).toBeDefined()
+
+    const started = await mockDashboardApi.startCandidateStashLlmCommentJob(source!.uuid, {
+      companyUuid: MOCK_COMPANY_UUID,
+    })
+    await expect(waitForLlmCommentJobCompletedEvent(started.jobId, MOCK_COMPANY_UUID)).resolves.toMatchObject({
+      status: 'completed',
+    })
+
+    const after = await mockDashboardApi.getCandidateItemsByStash(defaultCandidateItemListParams(source!.uuid))
+    expect(after.items.find((row) => row.uuid === staleItem!.uuid)?.isLatestLlmComment).toBe(true)
   })
 
   it('requires single company scope for order metric SSE subscribe', async () => {

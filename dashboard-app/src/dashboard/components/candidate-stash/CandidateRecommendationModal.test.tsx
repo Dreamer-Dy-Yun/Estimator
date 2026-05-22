@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+﻿// @vitest-environment jsdom
 import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -101,11 +101,11 @@ describe('CandidateRecommendationModal', () => {
     renderModal()
 
     const table = getRequiredElement<HTMLDivElement>('[role="table"]')
-    const rows = Array.from(table.querySelectorAll<HTMLElement>('[role="row"]'))
-    const headerCells = Array.from(rows[0]?.querySelectorAll<HTMLElement>('[role="columnheader"]') ?? [])
-    const dataCells = Array.from(rows[1]?.querySelectorAll<HTMLElement>('[role="cell"]') ?? [])
+    const tableRows = Array.from(table.querySelectorAll<HTMLElement>('[role="row"]'))
+    const headerCells = Array.from(tableRows[0]?.querySelectorAll<HTMLElement>('[role="columnheader"]') ?? [])
+    const dataCells = Array.from(tableRows[1]?.querySelectorAll<HTMLElement>('[role="cell"]') ?? [])
 
-    expect(rows).toHaveLength(2)
+    expect(tableRows).toHaveLength(2)
     expect(headerCells).toHaveLength(7)
     expect(dataCells).toHaveLength(7)
   })
@@ -117,6 +117,19 @@ describe('CandidateRecommendationModal', () => {
 
     expect(statusCell.querySelector('[role="status"]')).not.toBeNull()
   })
+
+  it('blocks stale recommendation apply while an error is shown', () => {
+    renderModal({ error: 'network down' })
+
+    const applyButton = Array.from(container?.querySelectorAll<HTMLButtonElement>('button') ?? [])
+      .find((button) => button.textContent?.trim() === '추천 적용')
+    if (!applyButton) throw new Error('Missing apply button')
+
+    expect(container?.textContent).not.toContain('테스트 상품')
+    expect(applyButton.disabled).toBe(true)
+    expect(container?.textContent).toContain('추천 후보 조회 실패: network down')
+  })
+
   it('keeps Tab and Shift+Tab focus inside the modal', () => {
     renderModal()
 

@@ -30,6 +30,16 @@ type HookResult = ReturnType<typeof useCandidateStashItemActions>
 let root: Root | null = null
 let container: HTMLDivElement | null = null
 
+function createDeferred<T>() {
+  let resolve!: (value: T | PromiseLike<T>) => void
+  let reject!: (reason?: unknown) => void
+  const promise = new Promise<T>((promiseResolve, promiseReject) => {
+    resolve = promiseResolve
+    reject = promiseReject
+  })
+  return { promise, resolve, reject }
+}
+
 const createCandidateItemSummary = (uuid: string): CandidateItemSummary => ({
   uuid,
   stashUuid: 'stash-1',
@@ -84,6 +94,11 @@ function renderActions(args: HookArgs) {
     get current() {
       if (!current) throw new Error('Hook result is not ready')
       return current
+    },
+    rerender(nextArgs: HookArgs) {
+      act(() => {
+        root?.render(createElement(Probe, { args: nextArgs, onRender: (result) => { current = result } }))
+      })
     },
   }
 }
@@ -204,5 +219,91 @@ describe('useCandidateStashItemActions', () => {
       '상세 확정 해제: 1개 성공/1개 실패했습니다.',
       { variant: 'error' },
     )
+  })
+
+  it('does not reflect stale item delete success after stash changes', async () => {
+    const deleteDeferred = createDeferred<never>()
+    vi.mocked(deleteCandidateItem).mockReturnValue(deleteDeferred.promise)
+    const { args, hook } = setup({
+      openedItemUuid: 'item-1',
+    })
+
+    let mutationPromise!: Promise<void>
+    act(() => {
+      mutationPromise = hook.current.confirmDeleteItem()
+    })
+
+    hook.rerender({
+      ...args,
+      stashUuid: 'stash-2',
+    })
+
+    await act(async () => {
+      deleteDeferred.resolve({} as never)
+      await mutationPromise
+    })
+
+    expect(args.closeDrawer).not.toHaveBeenCalled()
+    expect(args.onItemsDeleted).not.toHaveBeenCalled()
+    expect(args.refreshStashes).not.toHaveBeenCalled()
+    expect(args.showToast).not.toHaveBeenCalled()
+  })
+
+  it('does not reflect stale bulk delete success after company changes', async () => {
+    const deleteDeferred = createDeferred<never>()
+    vi.mocked(deleteCandidateItems).mockReturnValue(deleteDeferred.promise)
+    const { args, hook } = setup({
+      itemDeleteTarget: null,
+      openedItemUuid: 'item-2',
+    })
+
+    let mutationPromise!: Promise<void>
+    act(() => {
+      mutationPromise = hook.current.confirmDeleteItems(['item-1', 'item-2'])
+    })
+
+    hook.rerender({
+      ...args,
+      companyUuid: 'company-2',
+    })
+
+    await act(async () => {
+      deleteDeferred.resolve({} as never)
+      await mutationPromise
+    })
+
+    expect(args.closeDrawer).not.toHaveBeenCalled()
+    expect(args.onItemsDeleted).not.toHaveBeenCalled()
+    expect(args.refreshStashes).not.toHaveBeenCalled()
+    expect(args.showToast).not.toHaveBeenCalled()
+  })
+
+  it('does not reflect stale bulk unconfirm success after stash changes', async () => {
+    const updateDeferred = createDeferred<never>()
+    vi.mocked(updateCandidateItem).mockReturnValue(updateDeferred.promise)
+    const { args, hook } = setup({
+      itemDeleteTarget: null,
+      openedItemUuid: 'item-1',
+    })
+
+    let mutationPromise!: Promise<void>
+    act(() => {
+      mutationPromise = hook.current.confirmUnconfirmItems(['item-1'])
+    })
+
+    hook.rerender({
+      ...args,
+      stashUuid: 'stash-2',
+    })
+
+    await act(async () => {
+      updateDeferred.resolve({ uuid: 'item-1' } as never)
+      await mutationPromise
+    })
+
+    expect(args.closeDrawer).not.toHaveBeenCalled()
+    expect(args.onItemsUnconfirmed).not.toHaveBeenCalled()
+    expect(args.refreshStashes).not.toHaveBeenCalled()
+    expect(args.showToast).not.toHaveBeenCalled()
   })
 })

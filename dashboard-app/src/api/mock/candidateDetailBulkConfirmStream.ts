@@ -36,10 +36,23 @@ export async function startMockCandidateDetailBulkConfirm(
   if (!findCandidateStashForOwner(payload.stashUuid, ownerUserUuid, companyUuid)) {
     throw new Error('후보군을 찾을 수 없습니다.')
   }
+  if (payload.itemUuids.length === 0) {
+    throw new Error('상세확정할 후보 아이템이 없습니다.')
+  }
+  if (payload.itemUuids.some((itemUuid) => !itemUuid.trim())) {
+    throw new Error('상세확정할 후보 아이템 ID가 비어 있습니다.')
+  }
   const requestedUuidSet = new Set(payload.itemUuids)
-  const itemUuids = readCandidateItemRecords()
-    .filter((row) => row.stashUuid === payload.stashUuid && requestedUuidSet.has(row.uuid))
-    .map((row) => row.uuid)
+  const stashItemUuidSet = new Set(
+    readCandidateItemRecords()
+      .filter((row) => row.stashUuid === payload.stashUuid)
+      .map((row) => row.uuid),
+  )
+  const invalidItemUuid = [...requestedUuidSet].find((itemUuid) => !stashItemUuidSet.has(itemUuid))
+  if (invalidItemUuid) {
+    throw new Error('후보군에 포함되지 않은 후보 아이템이 있습니다.')
+  }
+  const itemUuids = [...requestedUuidSet]
   const jobId = `mock-bulk-detail-confirm-${makeUuid32()}`
   bulkConfirmJobs.set(jobId, {
     stashUuid: payload.stashUuid,

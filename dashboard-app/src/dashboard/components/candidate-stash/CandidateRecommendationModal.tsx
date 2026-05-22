@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+﻿import { useEffect, useRef } from 'react'
 import type { KeyboardEvent } from 'react'
 import type { CandidateReferenceItemSummary } from '../../../api'
 import { formatEaQuantity, formatGroupedNumber } from '../../../utils/format'
@@ -38,6 +38,10 @@ export function CandidateRecommendationModal({
   const panelRef = useRef<HTMLDivElement | null>(null)
   const closeButtonRef = useRef<HTMLButtonElement | null>(null)
   const previousFocusRef = useRef<HTMLElement | null>(null)
+  const hasError = Boolean(error)
+  const visibleRows = hasError ? [] : rows
+  const visibleSelectedCount = hasError ? 0 : selectedCount
+  const canApply = !loading && !hasError && selectedCount > 0
 
   useEffect(() => {
     if (!selectAllRef.current) return
@@ -133,7 +137,7 @@ export function CandidateRecommendationModal({
             >
               {loading
                 ? '추천 후보 로딩 중'
-                : `추천 ${formatGroupedNumber(rows.length)}개 · 선택 ${formatGroupedNumber(selectedCount)}개`}
+                : `추천 ${formatGroupedNumber(visibleRows.length)}개 · 선택 ${formatGroupedNumber(visibleSelectedCount)}개`}
             </div>
           </div>
           <button
@@ -153,8 +157,8 @@ export function CandidateRecommendationModal({
                 <input
                   ref={selectAllRef}
                   type="checkbox"
-                  checked={allSelected}
-                  disabled={!rows.length}
+                  checked={allSelected && !hasError}
+                  disabled={loading || hasError || visibleRows.length === 0}
                   aria-label="추천 전체 선택"
                   onChange={onToggleAll}
                 />
@@ -169,36 +173,32 @@ export function CandidateRecommendationModal({
             {loading && (
               <div className={modalStyles.statusRow} role="row">
                 <div role="cell" aria-colspan={7}>
-                <LoadingSpinner size="inline" label="추천 후보 로딩 중" />
-                <span role="status" aria-live="polite" aria-atomic="true">
-                  조회 데이터와 기간 기준 추천 후보를 불러오는 중입니다.
-                </span>
+                  <LoadingSpinner size="inline" label="추천 후보 로딩 중" />
+                  <span role="status" aria-live="polite" aria-atomic="true">
+                    조회 데이터와 기간 기준 추천 후보를 불러오는 중입니다.
+                  </span>
                 </div>
               </div>
             )}
             {!loading && error && (
               <div className={modalStyles.statusRow} role="row">
-                <span
-                  className={modalStyles.errorText}
-                  role="cell"
-                  aria-colspan={7}
-                >
+                <span className={modalStyles.errorText} role="cell" aria-colspan={7}>
                   <span role="alert" aria-live="assertive" aria-atomic="true">
-                  추천 후보 조회 실패: {error}
+                    추천 후보 조회 실패: {error}
                   </span>
                 </span>
               </div>
             )}
-            {!loading && !error && rows.length === 0 && (
+            {!loading && !error && visibleRows.length === 0 && (
               <div className={modalStyles.statusRow} role="row">
                 <span role="cell" aria-colspan={7}>
-                <span role="status" aria-live="polite" aria-atomic="true">
-                  표시할 추천 후보가 없습니다.
-                </span>
+                  <span role="status" aria-live="polite" aria-atomic="true">
+                    표시할 추천 후보가 없습니다.
+                  </span>
                 </span>
               </div>
             )}
-            {rows.map((row) => {
+            {visibleRows.map((row) => {
               const selected = selectedUuids.has(row.uuid)
               return (
                 <label
@@ -229,7 +229,7 @@ export function CandidateRecommendationModal({
         </div>
 
         <div className={modalStyles.footer}>
-          <span className={modalStyles.applyMeta}>선택 {formatGroupedNumber(selectedCount)}개</span>
+          <span className={modalStyles.applyMeta}>선택 {formatGroupedNumber(visibleSelectedCount)}개</span>
           <div className={modalStyles.actions}>
             <button
               type="button"
@@ -242,7 +242,7 @@ export function CandidateRecommendationModal({
               type="button"
               className={`${styles.actionBtn} ${styles.btnPrimary}`}
               onClick={onApply}
-              disabled={loading || selectedCount === 0}
+              disabled={!canApply}
             >
               추천 적용
             </button>

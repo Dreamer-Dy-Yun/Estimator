@@ -8,6 +8,12 @@ import type { CandidateStashPickerOption } from '../CandidateStashPickerModal'
 
 type CandidateSelection = Pick<CandidateStashPickerOption, 'uuid' | 'name' | 'dbCreatedAt'>
 
+type CandidateCreateScopeSnapshot = {
+  companyUuid: string
+  skuGroupKey: string
+  requestSeq: number
+}
+
 type Params = {
   skuGroupKey: string
   periodStart: string
@@ -52,6 +58,10 @@ export function useSecondaryCandidateActions({
   const companyScopeBlocked = companyUuid == null
   const mountedRef = useRef(false)
   const candidateListReqSeqRef = useRef(0)
+  const currentCreateScopeRef = useRef<Pick<CandidateCreateScopeSnapshot, 'companyUuid' | 'skuGroupKey'>>({
+    companyUuid: companyUuid ?? '',
+    skuGroupKey,
+  })
   const [loading, setLoading] = useState(false)
   const [listOpen, setListOpen] = useState(false)
   const [stashes, setStashes] = useState<CandidateStashPickerOption[]>([])
@@ -68,6 +78,10 @@ export function useSecondaryCandidateActions({
   }, [])
 
   useEffect(() => {
+    currentCreateScopeRef.current = {
+      companyUuid: companyUuid ?? '',
+      skuGroupKey,
+    }
     candidateListReqSeqRef.current += 1
     let alive = true
     queueMicrotask(() => {
@@ -80,6 +94,14 @@ export function useSecondaryCandidateActions({
       alive = false
     }
   }, [companyUuid, skuGroupKey])
+
+  const isCurrentCreateScope = useCallback((snapshot: CandidateCreateScopeSnapshot) => {
+    const currentScope = currentCreateScopeRef.current
+    return mountedRef.current
+      && currentScope.companyUuid === snapshot.companyUuid
+      && currentScope.skuGroupKey === snapshot.skuGroupKey
+      && candidateListReqSeqRef.current === snapshot.requestSeq
+  }, [])
 
   const requireCompanyUuid = useCallback(() => {
     if (companyUuid) return companyUuid
@@ -198,6 +220,11 @@ export function useSecondaryCandidateActions({
     setLoading(true)
     try {
       const mutationCompanyUuid = requireCompanyUuid()
+      const createScopeSnapshot: CandidateCreateScopeSnapshot = {
+        companyUuid: mutationCompanyUuid,
+        skuGroupKey,
+        requestSeq: candidateListReqSeqRef.current,
+      }
       const created = await dashboardApi.createCandidateStash({
         name: nameInput.trim(),
         note: noteInput.trim(),
@@ -206,16 +233,18 @@ export function useSecondaryCandidateActions({
         periodEnd,
         forecastMonths,
       })
-      let nextCandidates: Awaited<ReturnType<typeof refresh>>
+      if (!isCurrentCreateScope(createScopeSnapshot)) return false
+      let nextCandidates: CandidateStashPickerOption[]
       try {
-        nextCandidates = await refresh()
+        nextCandidates = await dashboardApi.getCandidateStashes({ companyUuid: mutationCompanyUuid })
       } catch {
-        if (mountedRef.current) {
+        if (isCurrentCreateScope(createScopeSnapshot)) {
           showToast('후보군은 생성됐지만 목록을 새로고침하지 못했습니다.', { variant: 'error' })
         }
         return false
       }
-      if (!mountedRef.current || nextCandidates == null) return false
+      if (!isCurrentCreateScope(createScopeSnapshot)) return false
+      setStashes(nextCandidates.map(toPickerOption))
       const synced = nextCandidates.find((row) => row.uuid === created.uuid)
       if (!synced) {
         showToast(CANDIDATE_CREATE_SYNC_MISS_MESSAGE, { variant: 'error' })
@@ -233,7 +262,7 @@ export function useSecondaryCandidateActions({
     } finally {
       if (mountedRef.current) setLoading(false)
     }
-  }, [forecastMonths, nameInput, noteInput, periodEnd, periodStart, refresh, requireCompanyUuid, showToast])
+  }, [forecastMonths, isCurrentCreateScope, nameInput, noteInput, periodEnd, periodStart, requireCompanyUuid, showToast, skuGroupKey])
 
   return {
     loading,
