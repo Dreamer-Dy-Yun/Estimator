@@ -33,6 +33,11 @@ export function CandidateStashUploadCard({
   onDragActiveChange,
 }: Props) {
   const uploadWarnings = uploadResult?.warnings ?? []
+  const uploadResultMessage = uploadResult
+    ? typeof uploadResult.itemCount === 'number'
+      ? `${uploadResult.stashName || '후보군 이름 확인 필요'} 생성 완료 · 등록 상품 ${uploadResult.itemCount}건`
+      : `${uploadResult.stashName || '후보군 이름 확인 필요'} 생성 완료 · 등록 상품 수 확인 필요`
+    : null
 
   return (
     <div className={`${styles.card} ${pageStyles.uploadCard}`} aria-busy={uploadBusy}>
@@ -136,7 +141,7 @@ export function CandidateStashUploadCard({
             aria-live="polite"
             aria-atomic="true"
           >
-            {`${uploadResult.stashName ?? '후보군'} 생성 완료 · 등록 상품 ${uploadResult.itemCount ?? 0}건`}
+            {uploadResultMessage}
           </div>
           {uploadWarnings.length > 0 && (
             <div className={pageStyles.uploadWarnings} aria-label="업로드 경고">

@@ -137,7 +137,8 @@ export function useCandidateStashItemActions({
     itemDeleteRequestRef.current += 1
     const actionRequestId = itemDeleteRequestRef.current
     const canReflect = () => (
-      itemDeleteRequestRef.current === actionRequestId
+      mountedRef.current
+        && itemDeleteRequestRef.current === actionRequestId
         && isCurrentActionScope(actionScope)
     )
     setItemDeleteBusy(true)
@@ -166,7 +167,8 @@ export function useCandidateStashItemActions({
     bulkDeleteRequestRef.current += 1
     const actionRequestId = bulkDeleteRequestRef.current
     const canReflect = () => (
-      bulkDeleteRequestRef.current === actionRequestId
+      mountedRef.current
+        && bulkDeleteRequestRef.current === actionRequestId
         && isCurrentActionScope(actionScope)
     )
     setBulkDeleteBusy(true)
@@ -197,7 +199,8 @@ export function useCandidateStashItemActions({
     bulkUnconfirmRequestRef.current += 1
     const actionRequestId = bulkUnconfirmRequestRef.current
     const canReflect = () => (
-      bulkUnconfirmRequestRef.current === actionRequestId
+      mountedRef.current
+        && bulkUnconfirmRequestRef.current === actionRequestId
         && isCurrentActionScope(actionScope)
     )
     setBulkUnconfirmBusy(true)

@@ -75,7 +75,7 @@
 - `dashboardMasterDataCache.ts`는 page와 공통 drawer가 공유하는 master data 요청을 coalesce한다. mutation 후 무효화 대상이 아닌 master data만 캐시한다.
 - 관리자 Google Sheets mock은 서비스 계정 키를 JSON으로 parse해 `client_email`을 확인한다. 잘못된 JSON을 정규식 등으로 보정하지 않는다.
 - HTTP 실패는 `httpClient.ts`에서 `ApiHttpError`로 변환한다. 기존 화면은 `error.message`만 읽어도 동작해야 하며, 새 호출부는 필요할 때 `status`, `kind`, `code`, `body`를 참조한다.
-- 상태 분류 기준은 `401=authentication`, `403=permission`, `404=not-found`, `409=conflict`, `422=validation`, `5xx=server`, 그 외 `4xx=client`다.
+- 상태 분류 기준은 `401=auth`, `403=permission`, `404=not-found`, `409=conflict`, `422=validation`, `5xx=server`, 그 외 `4xx=client`다.
 - SSE 구독은 application event 실패와 transport 실패를 분리한다. `openApiEventStream`은 `onError`를 제공하고, 화면 hook은 연결 실패 시 기존 데이터를 유지하거나 요청 대상 row만 실패 상태로 전환해야 한다.
 - 성공인데 응답 본문이 없는 API는 204를 사용한다. 빈 배열/객체가 정상 데이터인 endpoint는 해당 타입 계약에 명시하고, 실패를 빈 성공값으로 숨기지 않는다.
 

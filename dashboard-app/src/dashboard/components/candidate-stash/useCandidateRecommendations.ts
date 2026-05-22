@@ -54,6 +54,7 @@ export function useCandidateRecommendations({
   const [recommendationLoading, setRecommendationLoading] = useState(false)
   const [recommendationError, setRecommendationError] = useState<string | null>(null)
   const requestSeqRef = useRef(0)
+  const appendSeqRef = useRef(0)
   const loadedPeriodKeyRef = useRef<string | null>(null)
   const recommendationItemsRef = useRef<CandidateReferenceItemSummary[]>([])
   const currentPeriodKey = stashUuid && dataReferencePeriodStart && dataReferencePeriodEnd
@@ -123,15 +124,27 @@ export function useCandidateRecommendations({
   }, [companyUuid, currentPeriodKey, dataReferencePeriodEnd, dataReferencePeriodStart, itemsRef, mountedRef, setItems, stashUuid])
 
   const appendRecommendedItems = useCallback(async (rows: CandidateReferenceItemSummary[]) => {
+    const appendPeriodKey = currentPeriodKey
     const skuGroupKeys = [...new Set(rows.map((row) => row.skuGroupKey))]
     if (!skuGroupKeys.length) return
+    if (!appendPeriodKey || !stashUuid || !dataReferencePeriodStart || !dataReferencePeriodEnd) {
+      showToast('추천 후보 추가 기준 기간을 확인할 수 없습니다.')
+      throw new Error('추천 후보 추가 기준 기간을 확인할 수 없습니다.')
+    }
     if (!companyUuid) {
       showToast(COMPANY_REQUIRED_MESSAGE)
       throw new Error(COMPANY_REQUIRED_MESSAGE)
     }
+    const appendSeq = appendSeqRef.current + 1
+    appendSeqRef.current = appendSeq
+    const canReflectAppend = () => (
+      mountedRef.current
+      && appendSeqRef.current === appendSeq
+      && currentPeriodKeyRef.current === appendPeriodKey
+    )
     try {
       const result = await appendCandidateItems({ stashUuid, companyUuid, skuGroupKeys })
-      if (!mountedRef.current) return
+      if (!canReflectAppend()) return
       onRecommendedItemsAppended(result.candidateItems, rows)
       const createdSkuUuidSet = new Set(result.candidateItems.map((item) => item.skuUuid))
       if (createdSkuUuidSet.size) {
@@ -140,7 +153,7 @@ export function useCandidateRecommendations({
         setRecommendationItems(nextRecommendations)
       }
       void refreshStashes().catch((err) => {
-        if (!mountedRef.current) return
+        if (!canReflectAppend()) return
         showToast(getApiErrorDisplayMessage(err, '후보군 목록 최신화에 실패했습니다.'))
       })
       showToast(
@@ -149,11 +162,15 @@ export function useCandidateRecommendations({
           : '새로 추가할 추천 후보가 없습니다.',
       )
     } catch (err) {
-      if (!mountedRef.current) return
+      if (!canReflectAppend()) return
       showToast(getApiErrorDisplayMessage(err, '추천 후보 추가에 실패했습니다.'))
       throw err
     }
   }, [
+    currentPeriodKey,
+    currentPeriodKeyRef,
+    dataReferencePeriodEnd,
+    dataReferencePeriodStart,
     mountedRef,
     onRecommendedItemsAppended,
     refreshStashes,

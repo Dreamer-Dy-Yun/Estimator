@@ -45,6 +45,7 @@ export function CandidateStashDetailModal({
   const visibleItemUuids = useMemo(() => model.tableRows.map((row) => row.uuid), [model.tableRows])
   const itemSelection = useVisibleUuidSelection(visibleItemUuids)
   const recommendationRows = model.recommendationItems
+  const recommendationsBlocked = Boolean(model.candidateItemsLoadError)
   const handleActionFailureAlreadyReported = () => {
     // The action hooks already surface these failures through toast/error state.
   }
@@ -71,6 +72,7 @@ export function CandidateStashDetailModal({
   }, [model.tableRows])
 
   const openRecommendationModal = () => {
+    if (recommendationsBlocked) return
     recommendationAutoSelectKeyRef.current = null
     setRecommendationOpen(true)
   }
@@ -130,7 +132,11 @@ export function CandidateStashDetailModal({
                 <CandidateStashDetailHeader
                   detailTarget={model.detailTarget}
                   canOpenRecommendations={Boolean(
-                    !model.candidateItemsLoading && model.tableRows.length && model.periodStart && model.periodEnd,
+                    !recommendationsBlocked
+                    && !model.candidateItemsLoading
+                    && model.tableRows.length
+                    && model.periodStart
+                    && model.periodEnd,
                   )}
                   onOpenRecommendations={openRecommendationModal}
                   onClose={onClose}

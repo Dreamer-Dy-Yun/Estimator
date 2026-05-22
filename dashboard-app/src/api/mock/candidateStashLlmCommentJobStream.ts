@@ -56,7 +56,7 @@ export function subscribeMockCandidateStashLlmCommentJob(
   const canReadJob = job && (!ownerUserUuid || job.ownerUserUuid === ownerUserUuid)
     && !!companyUuid
     && job.companyUuid === companyUuid
-  const stashUuid = job?.stashUuid ?? ''
+  const stashUuid = canReadJob ? job.stashUuid : ''
   const itemUuids = canReadJob ? job.itemUuids : []
   const totalItems = itemUuids.length
   const { emit, close } = createMockStreamTimers<CandidateStashLlmCommentJobProgressEvent>(listener)
