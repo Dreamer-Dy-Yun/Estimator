@@ -1,4 +1,4 @@
-import type { OrderSnapshotDocumentV1 } from '../../snapshot/orderSnapshotTypes'
+import type { OrderSnapshotDocumentV2 } from '../../snapshot/orderSnapshotTypes'
 import type { CompanyScopeParams } from './company'
 
 export interface SecondaryDailyTrendPoint {
@@ -36,7 +36,7 @@ export interface SecondaryAiCommentParams extends CompanyScopeParams {
   competitorChannelId: string
   candidateItemUuid?: string | null
   /** Full secondary snapshot used by AI generation at click time when available. */
-  snapshotForAiComment?: OrderSnapshotDocumentV1
+  snapshotForAiComment?: OrderSnapshotDocumentV2
 }
 
 export interface SecondaryAiCommentResult {

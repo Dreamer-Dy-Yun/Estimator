@@ -1,8 +1,8 @@
-﻿import styles from './secondaryDrawer.module.css'
+import styles from './secondaryDrawer.module.css'
 import { KO } from '../ko'
 import { LoadingSpinner } from '../../../../components/LoadingSpinner'
 import type { CandidateItemDetail } from '../../../../api'
-import type { OrderSnapshotDocumentV1 } from '../../../../snapshot/orderSnapshotTypes'
+import type { OrderSnapshotDocumentV2 } from '../../../../snapshot/orderSnapshotTypes'
 import type { SecondaryHelpId } from './secondaryDrawerTypes'
 import type { usePortalHelpPopover } from '../../usePortalHelpPopover'
 import { DeleteButton } from '../../DeleteButton'
@@ -13,12 +13,12 @@ export type CandidateItemPanelContext = {
   stashNote: string | null
   itemUuid: string
   isDetailConfirmed: boolean
-  confirmedSnapshot?: OrderSnapshotDocumentV1 | null
+  confirmedSnapshot?: OrderSnapshotDocumentV2 | null
   hydrateSnapshotSource?: 'confirmed' | 'live' | null
-  onDraftChange?: (snapshot: OrderSnapshotDocumentV1, source: 'confirmed' | 'live') => void
+  onDraftChange?: (snapshot: OrderSnapshotDocumentV2, source: 'confirmed' | 'live') => void
   onResetDraft?: () => void
   onRestoreConfirmed?: () => void
-  onConfirmed?: (snapshot: OrderSnapshotDocumentV1, updatedItem: CandidateItemDetail) => void
+  onConfirmed?: (snapshot: OrderSnapshotDocumentV2, updatedItem: CandidateItemDetail) => void
   onUnconfirmed?: (updatedItem: CandidateItemDetail) => void
   onSaved?: () => void
   onRequestDeleteItem: () => void

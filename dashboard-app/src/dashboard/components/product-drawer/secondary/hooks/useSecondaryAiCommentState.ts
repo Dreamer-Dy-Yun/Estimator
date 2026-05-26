@@ -2,7 +2,7 @@ import { useCallback, useMemo, useState } from 'react'
 import type { ApiUnitErrorInfo } from '../../../../../types'
 import type { SecondaryCompetitorChannel } from '../../../../../api'
 import type { CandidateItemPanelContext } from '../candidateActionCards'
-import type { OrderSnapshotDocumentV1 } from '../../../../../snapshot/orderSnapshotTypes'
+import type { OrderSnapshotDocumentV2 } from '../../../../../snapshot/orderSnapshotTypes'
 import { useSecondaryAiComment } from './useSecondaryAiComment'
 
 type Args = {
@@ -20,7 +20,7 @@ type ReturnValue = {
   aiComment: string
   aiCommentLoading: boolean
   aiCommentError: ApiUnitErrorInfo | null
-  requestAiComment: (snapshotForAiComment?: OrderSnapshotDocumentV1 | null) => void
+  requestAiComment: (snapshotForAiComment?: OrderSnapshotDocumentV2 | null) => void
   setAiPrompt: (value: string) => void
   setAiComment: (value: string) => void
 }
@@ -66,7 +66,7 @@ export function useSecondaryAiCommentState({
     onLoaded: handleAiCommentLoaded,
   })
 
-  const requestAiComment = useCallback((snapshotForAiComment?: OrderSnapshotDocumentV1 | null) => {
+  const requestAiComment = useCallback((snapshotForAiComment?: OrderSnapshotDocumentV2 | null) => {
     request({
       ...aiCommentParams,
       ...(snapshotForAiComment == null ? {} : { snapshotForAiComment }),

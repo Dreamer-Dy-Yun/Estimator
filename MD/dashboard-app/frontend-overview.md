@@ -103,7 +103,7 @@
 
 - **1차 드로워:** [`product-drawer/primary`](../../dashboard-app/src/dashboard/components/product-drawer/primary/)가 소유합니다. 상품 이미지, 기간·경쟁 채널 기준 판매 정보([`getProductSalesInsight`](../../dashboard-app/src/api/types/dashboard-api.ts)), 선택 경쟁 채널 기준 월간 판매 추이([`getProductMonthlyTrend`](../../dashboard-app/src/api/types/dashboard-api.ts))를 다룹니다. 드로워는 공통 컴포넌트라 특정 페이지의 채널 state를 직접 의존하지 않고 `getSecondaryCompetitorChannels`를 API 경계로 호출하며, 중복 호출 coalescing은 [`dashboardMasterDataCache`](../../dashboard-app/src/api/requests/dashboardMasterDataCache.ts)가 맡습니다. 판매 정보 표의 주요 수치는 굵게 강조하고 기본 표 글자보다 10% 크게 표시합니다. 판매 추이 그래프는 선형 축으로 고정하고, 자사/선택 경쟁 채널(예: 크림·무신사) 표시를 각각 토글합니다. 계절성 카드는 현재 화면에서 제외.
 - **2차 드로워:** [`product-drawer/secondary`](../../dashboard-app/src/dashboard/components/product-drawer/secondary/)가 소유합니다. 상품 메타, 후보군 저장/확정, 저장된 AI 코멘트 표시(`drawer2.llmAnswer`, 본문 15px), 사이즈별 확정 수량 등을 다룹니다. 이너 후보에서 열린 2차 드로워는 저장 스냅샷을 편집 가능한 초기값으로만 사용하고 이후 계산은 현재 입력값 기준으로 수행합니다. 2차 상세 조회([`getProductSecondaryDetail`](../../dashboard-app/src/api/types/dashboard-api.ts)), 재고·발주 시뮬([`getSecondaryStockOrderCalc`](../../dashboard-app/src/api/types/dashboard-api.ts)), 선택 경쟁 채널 기준 일별 추이([`getSecondaryDailyTrend`](../../dashboard-app/src/api/types/dashboard-api.ts))도 이 경계 안에 둡니다. 재고·발주 시뮬 API는 입력 변경마다 즉시 호출하지 않고 최종 입력 1초 후 호출하며, 이미 stale 처리된 응답은 화면에 반영하지 않습니다.
-- **스냅샷:** [`OrderSnapshotDocumentV1`](../../dashboard-app/src/snapshot/orderSnapshotTypes.ts) 스키마 v2, 파싱 [`parseOrderSnapshot`](../../dashboard-app/src/snapshot/parseOrderSnapshot.ts). 독립 스냅샷 목록 API는 없고 후보 아이템 `details`가 저장·복원 경로입니다.
+- **스냅샷:** [`OrderSnapshotDocumentV2`](../../dashboard-app/src/snapshot/orderSnapshotTypes.ts) 스키마 v2, 파싱 [`parseOrderSnapshot`](../../dashboard-app/src/snapshot/parseOrderSnapshot.ts). 독립 스냅샷 목록 API는 없고 후보 아이템 `details`가 저장·복원 경로입니다.
 - **키보드(2차가 열리고 2차 데이터 준비 완료 시):** `←` / `→`로 **현재 목록의 이전·다음 SKU**(또는 이너 후보의 uuid 순) 순환 — [`adjacentListNavigation`](../../dashboard-app/src/utils/adjacentListNavigation.ts). 입력·콤보 패널 포커스 시에는 무시.
 - **번들 로딩:** 자사/경쟁은 [`allowStaleWhileRevalidate`](../../dashboard-app/src/dashboard/hooks/useProductDrawerBundle.ts) 기본 `true`로 드로어 언마운트 방지(2차 접힘 방지). 이너 후보는 `false`로 스냅샷과 번들 id 정합 유지.
 
@@ -158,3 +158,12 @@ dashboard-app/src/
 ## 10. 목적 확인 요청 (선택)
 
 조직에서의 **공식 제품명·타깃 사용자·배포 형태(내부 전용 여부)**를 알려 주시면 §2를 그에 맞게 고칠 수 있습니다. 지금은 코드 근거 추정만 기술했습니다.
+
+## 2026-05-26 snapshot v2 company scope overview
+
+- Current order snapshots use `OrderSnapshotDocumentV2` with `schemaVersion: 2`.
+- `companyUuid?: string` is an optional top-level scope field.
+- Stored snapshot hydrate is scope-safe only when the selected scope and snapshot scope match exactly: same company UUID for single-company scope, or both unscoped for all-company scope.
+- Missing `companyUuid` is not assumed to match a selected company. The drawer should use live scoped reload or an explicit unavailable state instead of inventing business values.
+- New compact snapshots use `drawer2.competitorSalesBasis`; `drawer2.secondary` is legacy parser input only.
+- `OrderSnapshotDocumentV1` wording is deprecated compatibility wording, not the current contract.

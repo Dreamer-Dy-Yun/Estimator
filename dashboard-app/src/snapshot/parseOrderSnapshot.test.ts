@@ -39,7 +39,7 @@ const validSnapshot = {
       },
     },
     competitorChannelId: 'cream',
-    competitorChannelLabel: '크림',
+    competitorChannelLabel: 'Cream',
     bufferStock: 0,
     selfWeightPct: 50,
     llmPrompt: 'prompt',
@@ -126,6 +126,8 @@ const currentDrawer2Keys = [
   'stockInputs',
 ]
 
+const currentCandidateMockDrawer2Keys = [...currentDrawer2Keys, 'stockDisplay'].sort()
+
 function sortedKeys(value: object) {
   return Object.keys(value).sort()
 }
@@ -135,6 +137,24 @@ describe('parseOrderSnapshot', () => {
     const parsed = parseOrderSnapshot(validSnapshot)
     expect(parsed).toEqual(validSnapshot)
     expect(parsed).not.toBe(validSnapshot)
+  })
+
+  it('preserves top-level companyUuid when it is a valid non-empty string', () => {
+    const withCompanyUuid = {
+      ...validSnapshot,
+      companyUuid: 'company-uuid-001',
+    }
+
+    const parsed = parseOrderSnapshot(withCompanyUuid)
+
+    expect(parsed.companyUuid).toBe('company-uuid-001')
+    expect(parsed).toEqual(withCompanyUuid)
+  })
+
+  it('does not add top-level companyUuid when it is omitted', () => {
+    const parsed = parseOrderSnapshot(validSnapshot)
+
+    expect(parsed).not.toHaveProperty('companyUuid')
   })
 
   it('strips fields that are not part of the current v2 snapshot contract', () => {
@@ -267,6 +287,39 @@ describe('parseOrderSnapshot', () => {
     expect(snapshot.drawer2).not.toHaveProperty('stockDisplay')
   })
 
+  it('emits top-level companyUuid from the secondary snapshot builder when provided', () => {
+    const snapshot = buildSecondaryOrderSnapshot({
+      primary: {
+        ...validSnapshot.drawer1.summary,
+        monthlySalesTrend: [],
+        sizeMix: [],
+        seasonality: [],
+        recommendedOrderQty: 100,
+      } as Parameters<typeof buildSecondaryOrderSnapshot>[0]['primary'],
+      secondary: validSnapshot.drawer2.competitorSalesBasis,
+      periodStart: validSnapshot.context.periodStart,
+      periodEnd: validSnapshot.context.periodEnd,
+      forecastMonths: validSnapshot.context.forecastMonths,
+      selectedStart: validSnapshot.context.dailyTrendStartMonth,
+      leadTimeDays: validSnapshot.context.dailyTrendLeadTimeDays,
+      competitorChannelId: validSnapshot.drawer2.competitorChannelId,
+      competitorChannelLabel: validSnapshot.drawer2.competitorChannelLabel,
+      forecastInputs: validSnapshot.drawer2.stockInputs,
+      stockDisplay: null,
+      selfWeightPct: validSnapshot.drawer2.selfWeightPct,
+      bufferStock: validSnapshot.drawer2.bufferStock,
+      aiPrompt: validSnapshot.drawer2.llmPrompt,
+      aiComment: validSnapshot.drawer2.llmAnswer,
+      unitPrice: validSnapshot.drawer2.orderUnitInputs.unitPrice,
+      unitCost: validSnapshot.drawer2.orderUnitInputs.unitCost,
+      expectedFeeRatePct: validSnapshot.drawer2.orderUnitInputs.expectedFeeRatePct,
+      sizeRows: validSnapshot.drawer2.sizeRows.map((row) => ({ ...row })),
+      companyUuid: 'company-uuid-001',
+    })
+
+    expect(snapshot.companyUuid).toBe('company-uuid-001')
+  })
+
   it('emits only current snapshot fields from the candidate mock snapshot builder', () => {
     const secondaryLookup = productSecondaryBySkuGroupKey as Record<string, unknown>
     const skuGroupKey = Object.keys(productPrimaryBySkuGroupKey).find(
@@ -277,6 +330,7 @@ describe('parseOrderSnapshot', () => {
     const snapshot = buildMockOrderSnapshotForCandidate(skuGroupKey)
 
     expect(sortedKeys(snapshot.drawer1.summary)).toEqual(currentPrimarySummaryKeys)
+    expect(sortedKeys(snapshot.drawer2)).toEqual(currentCandidateMockDrawer2Keys)
     expect(sortedKeys(snapshot.drawer2.stockInputs)).toEqual(currentStockInputKeys)
     expect(snapshot.drawer1.summary).not.toHaveProperty('monthlySalesTrend')
     expect(snapshot.drawer1.summary).not.toHaveProperty('sizeMix')
@@ -288,6 +342,20 @@ describe('parseOrderSnapshot', () => {
     expect(snapshot.drawer2).not.toHaveProperty('stockDerived')
     expect(snapshot.drawer2).not.toHaveProperty('sizeForecastSource')
     expect(snapshot.drawer2).not.toHaveProperty('minOpMarginPct')
+  })
+
+  it('emits top-level companyUuid from the candidate mock snapshot builder when provided', () => {
+    const secondaryLookup = productSecondaryBySkuGroupKey as Record<string, unknown>
+    const skuGroupKey = Object.keys(productPrimaryBySkuGroupKey).find(
+      (key) => secondaryLookup[key] != null,
+    )
+    if (!skuGroupKey) throw new Error('No shared mock product key found')
+
+    const snapshot = buildMockOrderSnapshotForCandidate(skuGroupKey, {
+      companyUuid: 'company-uuid-001',
+    })
+
+    expect(snapshot.companyUuid).toBe('company-uuid-001')
   })
 
   it('throws when snapshot body is missing', () => {
@@ -339,6 +407,16 @@ describe('parseOrderSnapshot', () => {
   it('throws when skuGroupKey is not a string', () => {
     const numericSkuGroupKey = { ...validSnapshot, skuGroupKey: 1234 }
     expect(() => parseOrderSnapshot(numericSkuGroupKey)).toThrow(/skuGroupKey/)
+  })
+
+  it('throws when top-level companyUuid is empty or not a string', () => {
+    const emptyCompanyUuid = { ...validSnapshot, companyUuid: '' }
+    const nullCompanyUuid = { ...validSnapshot, companyUuid: null }
+    const numericCompanyUuid = { ...validSnapshot, companyUuid: 1234 }
+
+    expect(() => parseOrderSnapshot(emptyCompanyUuid)).toThrow(/companyUuid/)
+    expect(() => parseOrderSnapshot(nullCompanyUuid)).toThrow(/companyUuid/)
+    expect(() => parseOrderSnapshot(numericCompanyUuid)).toThrow(/companyUuid/)
   })
 
   it('throws when snapshot structure blocks are missing', () => {

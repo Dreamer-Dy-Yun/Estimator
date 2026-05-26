@@ -1,4 +1,4 @@
-﻿import type {
+import type {
   CandidateDetailBulkConfirmProgressEvent,
   CandidateDetailBulkConfirmStartPayload,
   CandidateDetailBulkConfirmStartResult,
@@ -17,7 +17,7 @@ import { createMockStreamTimers } from './mockStreamTimers'
 interface CandidateDetailBulkConfirmJob {
   stashUuid: string
   ownerUserUuid?: string
-  companyUuid?: string
+  companyUuid: string
   itemUuids: string[]
   periodStart: string
   periodEnd: string
@@ -141,6 +141,7 @@ function confirmOneItemEvent(
     }
   }
   item.details = buildMockOrderSnapshotForCandidate(item.skuGroupKey, {
+    companyUuid: job.companyUuid,
     periodStart: job.periodStart,
     periodEnd: job.periodEnd,
   })

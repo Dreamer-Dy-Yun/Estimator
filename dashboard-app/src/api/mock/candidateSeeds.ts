@@ -14,9 +14,9 @@ const skuGroupKey = (legacyId: string) => {
   return key
 }
 
-const seedSnapshot = (legacyId: string) => {
+const seedSnapshot = (legacyId: string, companyUuid: string) => {
   const key = skuGroupKey(legacyId)
-  return productSecondaryBySkuGroupKey[key] ? buildMockOrderSnapshotForCandidate(key) : null
+  return productSecondaryBySkuGroupKey[key] ? buildMockOrderSnapshotForCandidate(key, { companyUuid }) : null
 }
 
 export const seededCandidateStashes: CandidateStashRecord[] = [
@@ -66,7 +66,7 @@ const seededCandidateItemDrafts: Array<Omit<CandidateItemRecord, 'isLatestLlmCom
     uuid: 'candidateitem000000000000000000001',
     stashUuid: 'candidatestash00000000000000000001',
     skuGroupKey: skuGroupKey('B'),
-    details: seedSnapshot('B'),
+    details: seedSnapshot('B', MOCK_HANA_COMPANY_UUID),
     dbCreatedAt: '2026-04-20T09:10:00.000Z',
     dbUpdatedAt: '2026-04-20T09:10:00.000Z',
   },
@@ -88,7 +88,7 @@ const seededCandidateItemDrafts: Array<Omit<CandidateItemRecord, 'isLatestLlmCom
     uuid: `candidateitem000000000000000000${suffix}`,
     stashUuid: 'candidatestash00000000000000000001',
     skuGroupKey: skuGroupKey(pid),
-    details: seedSnapshot(pid),
+    details: seedSnapshot(pid, MOCK_HANA_COMPANY_UUID),
     dbCreatedAt: `2026-04-20T${created}`,
     dbUpdatedAt: `2026-04-20T${updated}`,
   })),
@@ -96,7 +96,7 @@ const seededCandidateItemDrafts: Array<Omit<CandidateItemRecord, 'isLatestLlmCom
     uuid: 'candidateitem000000000000000000002',
     stashUuid: 'candidatestash00000000000000000002',
     skuGroupKey: skuGroupKey('B'),
-    details: seedSnapshot('B'),
+    details: seedSnapshot('B', MOCK_T1_COMPANY_UUID),
     dbCreatedAt: '2026-04-20T10:40:00.000Z',
     dbUpdatedAt: '2026-04-20T10:40:00.000Z',
   },
@@ -112,7 +112,7 @@ const seededCandidateItemDrafts: Array<Omit<CandidateItemRecord, 'isLatestLlmCom
     uuid,
     stashUuid: 'candidatestash00000000000000000002',
     skuGroupKey: skuGroupKey(pid),
-    details: seedSnapshot(pid),
+    details: seedSnapshot(pid, MOCK_T1_COMPANY_UUID),
     dbCreatedAt: `2026-04-20T${created}`,
     dbUpdatedAt: `2026-04-20T${updated}`,
   })),
@@ -120,7 +120,7 @@ const seededCandidateItemDrafts: Array<Omit<CandidateItemRecord, 'isLatestLlmCom
     uuid: 'candidateitem000000000000000000003',
     stashUuid: 'candidatestash00000000000000000003',
     skuGroupKey: skuGroupKey('D'),
-    details: seedSnapshot('D'),
+    details: seedSnapshot('D', MOCK_HANA_COMPANY_UUID),
     dbCreatedAt: '2026-04-20T11:10:00.000Z',
     dbUpdatedAt: '2026-04-20T11:10:00.000Z',
   },
@@ -128,7 +128,7 @@ const seededCandidateItemDrafts: Array<Omit<CandidateItemRecord, 'isLatestLlmCom
     uuid: 'candidateitem000000000000000000004',
     stashUuid: 'candidatestash00000000000000000004',
     skuGroupKey: skuGroupKey('H'),
-    details: seedSnapshot('H'),
+    details: seedSnapshot('H', MOCK_T1_COMPANY_UUID),
     dbCreatedAt: '2026-04-20T11:30:00.000Z',
     dbUpdatedAt: '2026-04-20T11:30:00.000Z',
   },

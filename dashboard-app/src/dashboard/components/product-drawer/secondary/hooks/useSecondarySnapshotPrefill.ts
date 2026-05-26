@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import type { OrderSnapshotDocumentV1 } from '../../../../../snapshot/orderSnapshotTypes'
+import type { OrderSnapshotDocumentV2 } from '../../../../../snapshot/orderSnapshotTypes'
 import type { CandidateItemPanelContext } from '../candidateActionCards'
 
 type DateRange = {
@@ -8,7 +8,7 @@ type DateRange = {
 }
 
 type Args = {
-  prefillFromSnapshot: OrderSnapshotDocumentV1 | null
+  prefillFromSnapshot: OrderSnapshotDocumentV2 | null
   candidateItemContext: CandidateItemPanelContext | null
   primarySkuGroupKey: string
   defaultLeadTime: DateRange

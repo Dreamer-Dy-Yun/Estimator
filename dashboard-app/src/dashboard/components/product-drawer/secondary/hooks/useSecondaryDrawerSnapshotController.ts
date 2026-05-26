@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { Dispatch, SetStateAction } from 'react'
-import type { OrderSnapshotDocumentV1 } from '../../../../../snapshot/orderSnapshotTypes'
+import type { OrderSnapshotDocumentV2 } from '../../../../../snapshot/orderSnapshotTypes'
 import type { CandidateItemPanelContext } from '../candidateActionCards'
 import { useSecondarySnapshotPrefill } from './useSecondarySnapshotPrefill'
 
@@ -16,7 +16,7 @@ type DateRange = {
 }
 
 type SnapshotControllerArgs = {
-  prefillFromSnapshot: OrderSnapshotDocumentV1 | null
+  prefillFromSnapshot: OrderSnapshotDocumentV2 | null
   candidateItemContext: CandidateItemPanelContext | null
   primarySkuGroupKey: string
   primaryPrice: number
@@ -32,14 +32,14 @@ type SnapshotControllerArgs = {
 
 type DraftEmissionArgs = {
   candidateItemContext: CandidateItemPanelContext | null
-  buildCurrentSnapshot: () => OrderSnapshotDocumentV1
+  buildCurrentSnapshot: () => OrderSnapshotDocumentV2
   prefillKey: string | null
   appliedPrefillKey: string | null
   snapshotConfirmBaselineActive: boolean
 }
 
 type LiveUnitDefaultsArgs = {
-  prefillFromSnapshot: OrderSnapshotDocumentV1 | null
+  prefillFromSnapshot: OrderSnapshotDocumentV2 | null
   primarySkuGroupKey: string
   liveOrderUnitSource: LiveOrderUnitSource
   applyLiveOrderUnitInputs: (source: LiveOrderUnitSource) => void

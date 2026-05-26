@@ -4,7 +4,7 @@ import {
   createOrderSnapshotPrimarySummary,
   createOrderSnapshotStockInputs,
   ORDER_SNAPSHOT_SCHEMA_VERSION,
-  type OrderSnapshotDocumentV1,
+  type OrderSnapshotDocumentV2,
   type OrderSnapshotStockDisplayV1,
 } from '../../../../snapshot/orderSnapshotTypes'
 import type { SecondaryForecastInputs } from './secondaryDrawerTypes'
@@ -25,6 +25,7 @@ export type BuildSecondaryOrderSnapshotParams = {
   periodStart: string
   periodEnd: string
   forecastMonths: number
+  companyUuid?: string
   selectedStart: string
   leadTimeDays: number
   competitorChannelId: string
@@ -41,13 +42,14 @@ export type BuildSecondaryOrderSnapshotParams = {
   sizeRows: SecondarySnapshotSizeRow[]
 }
 
-export function buildSecondaryOrderSnapshot(params: BuildSecondaryOrderSnapshotParams): OrderSnapshotDocumentV1 {
+export function buildSecondaryOrderSnapshot(params: BuildSecondaryOrderSnapshotParams): OrderSnapshotDocumentV2 {
   const {
     primary,
     secondary,
     periodStart,
     periodEnd,
     forecastMonths,
+    companyUuid,
     selectedStart,
     leadTimeDays,
     competitorChannelId,
@@ -82,6 +84,7 @@ export function buildSecondaryOrderSnapshot(params: BuildSecondaryOrderSnapshotP
   return {
     schemaVersion: ORDER_SNAPSHOT_SCHEMA_VERSION,
     skuGroupKey: primary.skuGroupKey,
+    ...(companyUuid ? { companyUuid } : {}),
     savedAt: new Date().toISOString(),
     context: {
       periodStart,

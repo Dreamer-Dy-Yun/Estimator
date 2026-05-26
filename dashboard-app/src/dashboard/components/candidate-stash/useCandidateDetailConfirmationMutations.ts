@@ -1,6 +1,6 @@
 import { useCallback, type MutableRefObject } from 'react'
 import type { CandidateItemDetail, CandidateItemSummary } from '../../../api'
-import type { OrderSnapshotDocumentV1 } from '../../../snapshot/orderSnapshotTypes'
+import type { OrderSnapshotDocumentV2 } from '../../../snapshot/orderSnapshotTypes'
 import {
   createCandidateDetailConfirmationOverride,
   type CandidateDetailConfirmationOverrideMap,
@@ -11,7 +11,7 @@ type ItemStateUpdater = CandidateItemSummary[] | ((current: CandidateItemSummary
 interface DrawerSnapshotBridge {
   markDrawerSnapshotConfirmed: (
     itemUuid: string,
-    snapshot: OrderSnapshotDocumentV1,
+    snapshot: OrderSnapshotDocumentV2,
     baseDbUpdatedAt: string | null,
   ) => void
   markDrawerSnapshotUnconfirmed: (itemUuid: string, baseDbUpdatedAt: string | null) => void
@@ -33,7 +33,7 @@ export function useCandidateDetailConfirmationMutations({
   const recordDetailConfirmationMutation = useCallback((
     itemUuid: string,
     isDetailConfirmed: boolean,
-    confirmedSnapshot: OrderSnapshotDocumentV1 | null,
+    confirmedSnapshot: OrderSnapshotDocumentV2 | null,
     updatedItem: CandidateItemDetail,
   ) => {
     const baseItem = itemsRef.current.find((item) => item.uuid === itemUuid)
@@ -56,7 +56,7 @@ export function useCandidateDetailConfirmationMutations({
 
   const markDrawerSnapshotConfirmed = useCallback((
     itemUuid: string,
-    snapshot: OrderSnapshotDocumentV1,
+    snapshot: OrderSnapshotDocumentV2,
     updatedItem: CandidateItemDetail,
   ) => {
     const baseDbUpdatedAt = recordDetailConfirmationMutation(itemUuid, true, snapshot, updatedItem)

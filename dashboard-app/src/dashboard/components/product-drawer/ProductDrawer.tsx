@@ -11,7 +11,7 @@ import type { CandidateItemPanelContext } from './secondary/candidateActionCards
 import { useCompetitorChannels } from './useCompetitorChannels'
 import { useProductDrawerKeyboard } from './useProductDrawerKeyboard'
 import { useSecondaryDrawerDetail } from './secondary/useSecondaryDrawerDetail'
-import type { OrderSnapshotDocumentV1 } from '../../../snapshot/orderSnapshotTypes'
+import type { OrderSnapshotDocumentV2 } from '../../../snapshot/orderSnapshotTypes'
 import { shouldKeepDrawerOpenOnOutsideMouseDown } from '../../drawer/drawerDom'
 import { setBodyPrimaryDrawerOpen } from '../../drawer/primaryDrawerBody'
 import styles from '../common.module.css'
@@ -42,7 +42,7 @@ function ProductDrawerContent({
   forecastMonths: number
   selfCompanyLabel: string
   onForecastMonthsChange: (months: number) => void
-  hydrateSnapshot?: OrderSnapshotDocumentV1 | null
+  hydrateSnapshot?: OrderSnapshotDocumentV2 | null
   initialExpandSecondary?: boolean
   secondaryEnabled?: boolean
   candidateItemContext?: CandidateItemPanelContext | null
@@ -194,7 +194,7 @@ export const ProductDrawer = ({
   forecastMonths: number
   selfCompanyLabel: string
   onForecastMonthsChange: (months: number) => void
-  hydrateSnapshot?: OrderSnapshotDocumentV1 | null
+  hydrateSnapshot?: OrderSnapshotDocumentV2 | null
   initialExpandSecondary?: boolean
   secondaryEnabled?: boolean
   candidateItemContext?: CandidateItemPanelContext | null

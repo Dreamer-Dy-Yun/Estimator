@@ -1,6 +1,6 @@
 import type { ProductDrawerBundle } from '../../api'
 import type {
-  OrderSnapshotDocumentV1,
+  OrderSnapshotDocumentV2,
   OrderSnapshotPrimarySummaryV2,
 } from '../../snapshot/orderSnapshotTypes'
 import type { ProductPrimarySummary } from '../../types'
@@ -92,7 +92,7 @@ function getCompleteLegacySnapshotSummary(
 export function mergePrimarySummaryFromBundleAndSnapshot(
   drawerSkuGroupKey: string | null,
   bundle: ProductDrawerBundle | null,
-  hydrateSnap: OrderSnapshotDocumentV1 | null,
+  hydrateSnap: OrderSnapshotDocumentV2 | null,
 ): ProductPrimarySummary | null {
   if (!drawerSkuGroupKey) return null
   const snap1 = hydrateSnap?.drawer1?.summary as SnapshotPrimarySummary | undefined

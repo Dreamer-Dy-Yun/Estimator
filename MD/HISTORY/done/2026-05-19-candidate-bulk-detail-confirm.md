@@ -46,4 +46,4 @@
 - mock adapter는 item별 mock 스냅샷을 저장하고 최신 `CandidateItemDetail`을 SSE event로 내려준다.
 - 후보군 상세 UI는 선택된 상세미확정 row만 일괄확정 대상으로 삼고, 진행 팝업을 표시한다.
 - item 완료 event마다 전체 목록 재조회 없이 로컬 리스트와 drawer snapshot cache를 상세확정으로 갱신한다.
-- 백엔드 API 문서에 `updatedItem.details`가 `SecondaryOrderSnapshotPayload` / `OrderSnapshotDocumentV1` v2 스키마를 따라야 한다는 점을 명시했다.
+- 백엔드 API 문서에 `updatedItem.details`가 `SecondaryOrderSnapshotPayload` / `OrderSnapshotDocumentV2` 스키마를 따라야 한다는 점을 명시했다.

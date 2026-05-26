@@ -105,10 +105,11 @@ export function ensureMockAiCommentForSnapshot(snapshot: SecondaryOrderSnapshotP
   }
 }
 
-/** 후보군 목업: 품번별 요약·2차 스냅샷을 채워 브랜드 등이 리스트/드로어에 표시되도록 함 */
+/** 후보군 목업: 품번별 요약과 2차 스냅샷을 채워 리스트와 드로어 표시를 검증한다. */
 interface MockOrderSnapshotOptions {
   periodStart?: string
   periodEnd?: string
+  companyUuid?: string
 }
 
 export function buildMockOrderSnapshotForCandidate(
@@ -162,6 +163,7 @@ export function buildMockOrderSnapshotForCandidate(
   return ensureMockAiCommentForSnapshot({
     schemaVersion: ORDER_SNAPSHOT_SCHEMA_VERSION,
     skuGroupKey,
+    ...(options.companyUuid ? { companyUuid: options.companyUuid } : {}),
     savedAt,
     context: {
       periodStart: options.periodStart ?? '2025-01-01',

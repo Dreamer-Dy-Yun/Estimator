@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import type { CandidateItemDetail } from '../../../api'
-import type { OrderSnapshotDocumentV1 } from '../../../snapshot/orderSnapshotTypes'
+import type { OrderSnapshotDocumentV2 } from '../../../snapshot/orderSnapshotTypes'
 import { useSelfCompanyLabel } from '../../hooks/useSelfCompanyLabel'
 import { ProductDrawer } from '../product-drawer/ProductDrawer'
 import type { CandidateStashDetailModalModel } from './useCandidateStashDetailModal'
@@ -26,12 +26,12 @@ export function CandidateStashProductDrawer({ model, bulkDeleteOpen }: Props) {
       isDetailConfirmed: openedItem.isDetailConfirmed,
       confirmedSnapshot: model.confirmedHydrateSnap,
       hydrateSnapshotSource: model.hydrateSnapSource,
-      onDraftChange: (snapshot: OrderSnapshotDocumentV1, source: 'confirmed' | 'live') => (
+      onDraftChange: (snapshot: OrderSnapshotDocumentV2, source: 'confirmed' | 'live') => (
         model.saveDrawerDraftSnapshot(itemUuid, snapshot, source)
       ),
       onResetDraft: () => model.clearDrawerDraftSnapshot(itemUuid),
       onRestoreConfirmed: () => model.restoreDrawerConfirmedSnapshot(itemUuid),
-      onConfirmed: (snapshot: OrderSnapshotDocumentV1, updatedItem: CandidateItemDetail) => (
+      onConfirmed: (snapshot: OrderSnapshotDocumentV2, updatedItem: CandidateItemDetail) => (
         model.markDrawerSnapshotConfirmed(itemUuid, snapshot, updatedItem)
       ),
       onUnconfirmed: (updatedItem: CandidateItemDetail) => model.markDrawerSnapshotUnconfirmed(itemUuid, updatedItem),

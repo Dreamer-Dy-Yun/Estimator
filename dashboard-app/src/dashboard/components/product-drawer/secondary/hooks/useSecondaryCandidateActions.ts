@@ -1,8 +1,8 @@
-﻿import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { dashboardApi, getCompanyUuidForOptionalScope } from '../../../../../api'
 import { useAuth } from '../../../../../auth/AuthContext'
 import type { ToastContextValue } from '../../../../../components/AppToastContext'
-import type { OrderSnapshotDocumentV1 } from '../../../../../snapshot/orderSnapshotTypes'
+import type { OrderSnapshotDocumentV2 } from '../../../../../snapshot/orderSnapshotTypes'
 import type { CandidateItemPanelContext } from '../candidateActionCards'
 import type { CandidateStashPickerOption } from '../CandidateStashPickerModal'
 
@@ -21,7 +21,7 @@ type Params = {
   forecastMonths: number
   hasSavedSnapshot: boolean
   candidateItemContext: CandidateItemPanelContext | null
-  buildSnapshot: () => OrderSnapshotDocumentV1
+  buildSnapshot: () => OrderSnapshotDocumentV2
   showToast: ToastContextValue['showToast']
 }
 

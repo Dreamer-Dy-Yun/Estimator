@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo } from 'react'
 import type { Dispatch, SetStateAction } from 'react'
 import type { SecondaryCompetitorChannel } from '../../../../../api'
 import type { ProductPrimarySummary, ProductSecondaryDetail } from '../../../../../types'
-import type { OrderSnapshotDocumentV1 } from '../../../../../snapshot/orderSnapshotTypes'
+import type { OrderSnapshotDocumentV2 } from '../../../../../snapshot/orderSnapshotTypes'
 import { normalizeMonthKey } from '../../../trend/trendRangeUtils'
 import type { CandidateItemPanelContext } from '../candidateActionCards'
 import { SecondaryOrderDraft } from '../model/SecondaryOrderDraft'
@@ -19,7 +19,7 @@ type Args = {
   periodEnd: string
   forecastMonths: number
   companyUuid?: string
-  prefillFromSnapshot: OrderSnapshotDocumentV1 | null
+  prefillFromSnapshot: OrderSnapshotDocumentV2 | null
   candidateItemContext: CandidateItemPanelContext | null
   channel: SecondaryCompetitorChannel
   viewPeriodStart: string
@@ -186,12 +186,13 @@ export function useSecondaryForecastModel(args: Args) {
   })
   const stockDisplay = requests.forecastCalc?.display ?? null
 
-  const buildSnapshot = useCallback((): OrderSnapshotDocumentV1 => buildSecondaryOrderSnapshot({
+  const buildSnapshot = useCallback((): OrderSnapshotDocumentV2 => buildSecondaryOrderSnapshot({
     primary,
     secondary,
     periodStart: viewPeriodStart,
     periodEnd: viewPeriodEnd,
     forecastMonths,
+    companyUuid,
     selectedStart,
     leadTimeDays,
     competitorChannelId: channel.id,
@@ -214,6 +215,7 @@ export function useSecondaryForecastModel(args: Args) {
     calculations.sizeRows,
     channel.id,
     channel.label,
+    companyUuid,
     expectedFeeRatePct,
     forecastMonths,
     leadTimeDays,

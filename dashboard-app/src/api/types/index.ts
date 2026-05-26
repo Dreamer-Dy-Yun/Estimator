@@ -125,4 +125,4 @@ export type {
 } from './inventory-arrival'
 
 export type { MonthlySalesPoint, ProductPrimarySummary, ProductSecondaryDetail } from '../../types'
-export type { OrderSnapshotDocumentV1 } from '../../snapshot/orderSnapshotTypes'
+export type { OrderSnapshotDocumentV2 } from '../../snapshot/orderSnapshotTypes'

@@ -543,7 +543,7 @@ query:
 | `competitorChannelId` | string | Y | 경쟁사 채널 |
 | `companyUuid` | string | N | 회사 scope. 생략 시 전체 |
 | `candidateItemUuid` | string | N | 후보군 item 기준 코멘트 요청 시 사용 |
-| `snapshotForAiComment` | `OrderSnapshotDocumentV1` | N | 확정 전 코멘트 요청에 사용할 스냅샷 |
+| `snapshotForAiComment` | `OrderSnapshotDocumentV2` | N | 확정 전 코멘트 요청에 사용할 스냅샷 |
 
 응답: `SecondaryAiCommentResult`
 
@@ -688,7 +688,7 @@ mutation payload 공통:
 | `itemUuids` | string[] optional | bulk 삭제/job 대상 |
 | `name` | string optional | 후보군 이름 |
 | `description` | string optional | 설명 |
-| `snapshot` | `OrderSnapshotDocumentV1` optional | item에 저장할 스냅샷 |
+| `snapshot` | `OrderSnapshotDocumentV2` optional | item에 저장할 스냅샷 |
 | `llmComment` | string optional | AI 코멘트 |
 
 job start 응답:
@@ -729,11 +729,11 @@ Excel import 응답:
 
 스냅샷은 확정 또는 AI 코멘트 요청 시점의 분석 상태를 고정하는 문서다. 확정 이후에만 생성된다는 가정은 폐기되었다. AI 코멘트 요청 시에도 그 시점의 화면/계산 상태로 스냅샷을 만들어 전송할 수 있어야 한다.
 
-타입명: `OrderSnapshotDocumentV1`
+타입명: `OrderSnapshotDocumentV2`
 
 주의:
 
-- 현재 `schemaVersion` 상수값은 `2`다. 타입명은 `V1`로 남아 있지만 runtime schema version은 2다.
+- Current persisted snapshot document name is `OrderSnapshotDocumentV2`, and the runtime `schemaVersion` is `2`. Treat `OrderSnapshotDocumentV1` as deprecated compatibility wording only.
 - 백엔드는 snapshot을 단순 JSON blob으로 저장할 수 있으나, 각 필드의 의미를 알고 검증해야 한다.
 - 백엔드가 필드 의미를 모르면 임의 계산하거나 이름만 보고 확정하지 말고 사용자에게 확인해야 한다.
 
@@ -743,6 +743,7 @@ Excel import 응답:
 {
   "schemaVersion": 2,
   "skuGroupKey": "ADIDAS:D:110",
+  "companyUuid": "company-uuid-1",
   "savedAt": "2026-05-22T10:00:00.000Z",
   "context": {},
   "drawer1": {},
@@ -754,6 +755,7 @@ Excel import 응답:
 |---|---|---|
 | `schemaVersion` | number | 스냅샷 구조 버전. 현재 값은 `2` |
 | `skuGroupKey` | string | 상품 그룹 식별자. 브랜드/품번/색상 등 조합일 수 있으나 정확한 조합 규칙은 사용자 확인 필요 |
+| `companyUuid` | string optional | Top-level company scope. Required for new single-company snapshots; omitted only for legacy or explicitly unscoped compatibility. Do not repeat this field inside `drawer1.summary`, `drawer2.competitorSalesBasis`, product DTOs, or candidate item DTOs. |
 | `savedAt` | string | 스냅샷 생성 시각 |
 | `context` | object | 조회/예측 조건 |
 | `drawer1` | object | 1차 drawer 요약 |
@@ -1026,3 +1028,13 @@ Adapter/type alignment:
 - If mutation succeeds but refresh fails, UI should preserve the authoritative mutation response or prior stable snapshot and display a refresh/stale warning.
 - Partial success is not full success. Bulk responses should expose successful count, failed count, and item-level errors where available.
 - SSE `completed` with unresolved requested items is a terminal partial/pending failure condition for those items. The UI may mark them failed/not-calculated rather than keeping a spinner.
+
+## 15. Snapshot contract alignment note
+
+Section 11 is the source for the current snapshot JSON contract. Keep these rules consistent with `dashboard-app/src/snapshot/orderSnapshotTypes.ts` and `parseOrderSnapshot.ts`:
+
+- Use `OrderSnapshotDocumentV2` for current `schemaVersion: 2` snapshots.
+- Treat `OrderSnapshotDocumentV1` as deprecated compatibility wording only.
+- Keep `companyUuid?: string` as an optional top-level scope field, not a nested drawer field.
+- Emit `drawer2.competitorSalesBasis` for current payloads. Accept `drawer2.secondary` only as legacy parser input.
+- Hydrate a stored snapshot only when the selected scope matches the snapshot scope exactly: same company UUID for single-company scope, or both unscoped for all-company scope.

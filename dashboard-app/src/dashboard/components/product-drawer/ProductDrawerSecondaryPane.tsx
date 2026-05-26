@@ -2,7 +2,7 @@ import { ApiUnitErrorBadge } from '../../../components/ApiUnitErrorBadge'
 import { LoadingSpinner } from '../../../components/LoadingSpinner'
 import type { SecondaryCompetitorChannel } from '../../../api/types'
 import type { ApiUnitErrorInfo, ProductPrimarySummary, ProductSecondaryDetail } from '../../../types'
-import type { OrderSnapshotDocumentV1 } from '../../../snapshot/orderSnapshotTypes'
+import type { OrderSnapshotDocumentV2 } from '../../../snapshot/orderSnapshotTypes'
 import styles from '../common.module.css'
 import { ProductSecondaryDrawer } from './secondary/ProductSecondaryDrawer'
 import type { CandidateItemPanelContext } from './secondary/candidateActionCards'
@@ -20,7 +20,7 @@ type ProductDrawerSecondaryPaneProps = {
   selectedChannelMissing: boolean
   secondaryDetail: ProductSecondaryDetail | null
   secondaryDetailError: ApiUnitErrorInfo | null
-  hydrateForPanel: OrderSnapshotDocumentV1 | null
+  hydrateForPanel: OrderSnapshotDocumentV2 | null
   candidateItemContext?: CandidateItemPanelContext | null
   channelState: {
     channelId: string

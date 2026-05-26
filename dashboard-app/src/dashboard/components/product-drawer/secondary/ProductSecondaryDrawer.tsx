@@ -2,7 +2,7 @@ import { useCallback, useMemo } from 'react'
 import type { SecondaryCompetitorChannel } from '../../../../api'
 import { useAppToast } from '../../../../components/AppToastContext'
 import type { ProductPrimarySummary, ProductSecondaryDetail } from '../../../../types'
-import type { OrderSnapshotDocumentV1 } from '../../../../snapshot/orderSnapshotTypes'
+import type { OrderSnapshotDocumentV2 } from '../../../../snapshot/orderSnapshotTypes'
 import type { CandidateItemPanelContext } from './candidateActionCards'
 import { useSecondaryAiCommentState } from './hooks/useSecondaryAiCommentState'
 import {
@@ -32,7 +32,7 @@ type Props = {
   selfCompanyLabel: string
   pageName?: string
   /** 후보군 등에서 불러온 저장 스냅샷으로 폼·확정 수량 복원 */
-  prefillFromSnapshot?: OrderSnapshotDocumentV1 | null
+  prefillFromSnapshot?: OrderSnapshotDocumentV2 | null
   candidateItemContext?: CandidateItemPanelContext | null
   channelState: {
     channelId: string

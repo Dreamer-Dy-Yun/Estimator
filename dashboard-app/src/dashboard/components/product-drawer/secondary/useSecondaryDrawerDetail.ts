@@ -2,20 +2,20 @@ import { useEffect, useMemo, useState } from 'react'
 import { dashboardApi, getCompanyUuidForOptionalScope } from '../../../../api'
 import { useAuth } from '../../../../auth/AuthContext'
 import type { ApiUnitErrorInfo, ProductSecondaryDetail } from '../../../../types'
-import type { OrderSnapshotDocumentV1 } from '../../../../snapshot/orderSnapshotTypes'
+import type { OrderSnapshotDocumentV2 } from '../../../../snapshot/orderSnapshotTypes'
 import { makeApiErrorInfo } from '../apiErrorInfo'
 
 type Params = {
   skuGroupKey: string
   expandPaneOpen: boolean
-  hydrateSnapshot?: OrderSnapshotDocumentV1 | null
+  hydrateSnapshot?: OrderSnapshotDocumentV2 | null
   pageName: string
 }
 
 type SecondaryDetailRequestKey = {
   skuGroupKey: string
   companyUuid: string | null
-  hydrateSnapshot: OrderSnapshotDocumentV1 | null
+  hydrateSnapshot: OrderSnapshotDocumentV2 | null
 }
 
 type SecondaryDetailState = {
@@ -29,7 +29,7 @@ type SecondaryDetailErrorState = {
 }
 
 function getSecondaryDetailFromSnapshot(
-  hydrateSnapshot: OrderSnapshotDocumentV1 | null,
+  hydrateSnapshot: OrderSnapshotDocumentV2 | null,
   skuGroupKey: string,
 ): ProductSecondaryDetail | null {
   if (hydrateSnapshot?.skuGroupKey !== skuGroupKey) return null
@@ -43,19 +43,18 @@ function getSecondaryDetailFromSnapshot(
   }
 }
 
-function getScopeSafeHydrateSnapshot(
-  hydrateSnapshot: OrderSnapshotDocumentV1 | null,
+export function getScopeSafeHydrateSnapshot(
+  hydrateSnapshot: OrderSnapshotDocumentV2 | null,
   skuGroupKey: string,
   companyUuid: string | undefined,
-): OrderSnapshotDocumentV1 | null {
+): OrderSnapshotDocumentV2 | null {
   if (hydrateSnapshot == null) return null
   if (hydrateSnapshot.skuGroupKey !== skuGroupKey) return null
 
-  // OrderSnapshotDocumentV1 does not persist companyUuid. In a company-scoped
-  // drawer we cannot prove that a saved snapshot belongs to the current
-  // company, so API-keyed state must win until the snapshot contract carries
-  // company scope explicitly.
-  if (companyUuid != null) return null
+  if (companyUuid == null) {
+    return hydrateSnapshot.companyUuid == null ? hydrateSnapshot : null
+  }
+  if (hydrateSnapshot.companyUuid !== companyUuid) return null
 
   return hydrateSnapshot
 }
@@ -120,7 +119,7 @@ export function useSecondaryDrawerDetail({
         try {
           const d = await dashboardApi.getProductSecondaryDetail(skuGroupKey, { companyUuid })
           if (!alive) return
-          if (!d) throw new Error('2차 상세 데이터가 비어 있습니다.')
+          if (!d) throw new Error('Secondary detail data is empty.')
           setSecondaryDetailState({ requestKey, detail: d })
           setSecondaryDetailErrorState(null)
         } catch (err) {

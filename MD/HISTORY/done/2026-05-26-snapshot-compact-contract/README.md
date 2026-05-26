@@ -40,7 +40,8 @@ Compact the product drawer order snapshot contract so new candidate item details
 - Made parser and builders follow the explicit-fields-only snapshot contract.
 - Documented drawer2.stockInputs as the current 9-field required object.
 - Removed current-contract treatment of excluded fields such as forecastQtyCalc.
-- Disabled company-scoped snapshot hydrate when the snapshot has no companyUuid, preventing cross-company restore. Safe restore requires a future companyUuid snapshot contract.
+- Documented current `OrderSnapshotDocumentV2` naming and optional top-level `companyUuid?: string` for snapshot v2 company scope.
+- Documented the scope-safe hydrate rule: same company UUID for single-company scope, or both unscoped for all-company scope.
 
 ## Validation
 
@@ -52,11 +53,16 @@ Compact the product drawer order snapshot contract so new candidate item details
 
 ## Follow-up candidates
 
-- Add companyUuid to a future snapshot schema to safely re-enable company-scoped hydrate.
-- Rename OrderSnapshotDocumentV1 in a separate change because the current schemaVersion is 2.
-- Add a test that locks the full top-level drawer2 key set emitted by the candidate mock snapshot builder.
+- Coordinate backend persistence and frontend runtime rollout so new snapshots consistently include `companyUuid` for single-company details.
 
 ## Non-goals
 
 - No backend DB migration was performed.
 - Existing stored legacy snapshots were not migrated in the database.
+
+## Worker C addendum
+
+- Reinforced API/backend/frontend docs around current `OrderSnapshotDocumentV2` naming.
+- Documented optional top-level `companyUuid?: string` and exact scope-safe hydrate behavior.
+- Added regression intent for compact `drawer2` key behavior, including optional `stockDisplay`.
+- Tests were not run in this Worker C pass by request.
