@@ -43,6 +43,10 @@ Compact the product drawer order snapshot contract so new candidate item details
 - Documented current `OrderSnapshotDocumentV2` naming and optional top-level `companyUuid?: string` for snapshot v2 company scope.
 - Documented the scope-safe hydrate rule: same company UUID for single-company scope, or both unscoped for all-company scope.
 
+## Deployment notes
+
+- 2026-05-26: Deployment trigger pushed after GitHub workflow dispatch returned HTTP 500.
+
 ## Validation
 
 - npm run lint: passed.
