@@ -1,10 +1,13 @@
 import type { ProductPrimarySummary, ProductSecondaryDetail } from '../../../../types'
 import {
+  createOrderSnapshotCompetitorSalesBasis,
+  createOrderSnapshotPrimarySummary,
+  createOrderSnapshotStockInputs,
   ORDER_SNAPSHOT_SCHEMA_VERSION,
   type OrderSnapshotDocumentV1,
   type OrderSnapshotStockDisplayV1,
 } from '../../../../snapshot/orderSnapshotTypes'
-import type { SalesKpiColumn, SecondaryForecastDerived, SecondaryForecastInputs } from './secondaryDrawerTypes'
+import type { SecondaryForecastInputs } from './secondaryDrawerTypes'
 
 export type SecondarySnapshotSizeRow = {
   size: string
@@ -26,10 +29,7 @@ export type BuildSecondaryOrderSnapshotParams = {
   leadTimeDays: number
   competitorChannelId: string
   competitorChannelLabel: string
-  selfCol: SalesKpiColumn
-  compCol: SalesKpiColumn
   forecastInputs: SecondaryForecastInputs
-  forecastDerived: SecondaryForecastDerived
   stockDisplay: OrderSnapshotStockDisplayV1 | null
   selfWeightPct: number
   bufferStock: number
@@ -41,37 +41,35 @@ export type BuildSecondaryOrderSnapshotParams = {
   sizeRows: SecondarySnapshotSizeRow[]
 }
 
-export function buildSecondaryOrderSnapshot({
-  primary,
-  secondary,
-  periodStart,
-  periodEnd,
-  forecastMonths,
-  selectedStart,
-  leadTimeDays,
-  competitorChannelId,
-  competitorChannelLabel,
-  selfCol,
-  compCol,
-  forecastInputs,
-  forecastDerived,
-  stockDisplay,
-  selfWeightPct,
-  bufferStock,
-  aiPrompt,
-  aiComment,
-  unitPrice,
-  unitCost,
-  expectedFeeRatePct,
-  sizeRows,
-}: BuildSecondaryOrderSnapshotParams): OrderSnapshotDocumentV1 {
+export function buildSecondaryOrderSnapshot(params: BuildSecondaryOrderSnapshotParams): OrderSnapshotDocumentV1 {
+  const {
+    primary,
+    secondary,
+    periodStart,
+    periodEnd,
+    forecastMonths,
+    selectedStart,
+    leadTimeDays,
+    competitorChannelId,
+    competitorChannelLabel,
+    forecastInputs,
+    stockDisplay,
+    selfWeightPct,
+    bufferStock,
+    aiPrompt,
+    aiComment,
+    unitPrice,
+    unitCost,
+    expectedFeeRatePct,
+    sizeRows,
+  } = params
   const orderQty = sizeRows.reduce((acc, row) => acc + Math.max(0, Math.round(row.confirmQty)), 0)
   const perUnitFee = Math.round((unitPrice * expectedFeeRatePct) / 100)
   const perUnitOpMargin = unitPrice - unitCost - perUnitFee
   const expectedSalesAmount = orderQty * unitPrice
   const expectedOpProfit = orderQty * perUnitOpMargin
-  const { monthlySalesTrend, ...summary } = primary
-  void monthlySalesTrend
+  const summary = createOrderSnapshotPrimarySummary(primary)
+  const storedStockInputs = createOrderSnapshotStockInputs(forecastInputs)
   const storedStockDisplay = stockDisplay == null ? undefined : {
     currentStockQtyTotal: stockDisplay.currentStockQtyTotal,
     totalOrderBalanceTotal: stockDisplay.totalOrderBalanceTotal,
@@ -96,22 +94,17 @@ export function buildSecondaryOrderSnapshot({
       summary,
     },
     drawer2: {
-      secondary,
+      competitorSalesBasis: createOrderSnapshotCompetitorSalesBasis(secondary),
       competitorChannelId,
       competitorChannelLabel,
-      minOpMarginPct: null,
-      salesSelf: selfCol,
-      salesCompetitor: compCol,
-      stockInputs: forecastInputs,
-      stockDerived: forecastDerived,
+      stockInputs: storedStockInputs,
       orderUnitInputs: {
         unitPrice,
         unitCost,
         expectedFeeRatePct,
       },
-      stockDisplay: storedStockDisplay,
+      ...(storedStockDisplay == null ? {} : { stockDisplay: storedStockDisplay }),
       selfWeightPct,
-      sizeForecastSource: 'forecastQty',
       bufferStock,
       llmPrompt: aiPrompt,
       llmAnswer: aiComment,

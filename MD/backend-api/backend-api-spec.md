@@ -1,11 +1,11 @@
-﻿# Dashboard 백엔드 API 스펙 (구현용)
+# Dashboard 백엔드 API 스펙 (구현용)
 
 | 항목 | 내용 |
 |------|------|
 | 작성 지시 | Yun Daeyoung |
 | 작성자 | Codex |
 | 작성일 | 2026-04-23 |
-| 최종 수정일 | 2026-05-22 |
+| 최종 수정일 | 2026-05-26 |
 | 상태 | 유지 문서 |
 | 적용 범위 | `dashboard-app/src/api/types`, `dashboard-app/src/api/requests`, 백엔드 REST API 계약 |
 
@@ -866,16 +866,21 @@ badges: [
 
 ### 4.2 `SecondaryForecastInputs`
 
-재고·발주 시뮬 입력 상태입니다.
+2차 재고·발주 계산 및 snapshot `drawer2.stockInputs`에서 공유하는 입력 계약이다. current snapshot parser는 아래 필드를 모두 required로 검증한다.
 
-| 필드 | 의미 |
-|------|------|
-| `trendDailyMean` | 트렌드 기반 일평균(표시·동기화) |
-| `dailyMean` | 연산 μ |
-| `leadTimeStartDate`, `leadTimeEndDate`, `leadTimeDays` | 리드타임 창 |
-| `safetyStockMode`, `manualSafetyStock` | 안전재고 모드 |
-| `sigma` | 표준편차 등 |
-| `serviceLevelPct` | 서비스 수준 |
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `trendDailyMean` | number | Y | 일별 추이 기준으로 산출된 기본 일 평균 판매량. |
+| `dailyMean` | number | Y | 오더 계산에 실제 적용한 일 평균 판매량. trend 기준값 또는 사용자 보정값이 반영된 최종 입력이다. |
+| `leadTimeStartDate` | string | Y | 리드타임 계산 기준 시작일. 날짜 문자열이다. |
+| `leadTimeEndDate` | string | Y | 리드타임 계산 기준 종료일. 날짜 문자열이다. |
+| `leadTimeDays` | number | Y | 리드타임 일수. |
+| `safetyStockMode` | `'manual' \| 'formula'` | Y | 안전재고 입력 방식. parser는 `manual` 또는 `formula`만 허용한다. |
+| `manualSafetyStock` | number | Y | 수동 안전재고 입력값. `formula` 모드에서도 snapshot parse 계약상 필수 숫자다. |
+| `sigma` | number | Y | 안전재고 공식에 쓰는 표준편차 입력값. 공식과 표본/모집단 기준은 별도 확인이 필요하다. |
+| `serviceLevelPct` | number | Y | 서비스 레벨 퍼센트. 안전재고 계산에 사용한다. |
+
+`dailyMean`은 optional override가 아니라 current snapshot required field다. 백엔드는 누락값을 `0`이나 임의 기본값으로 채워 성공처럼 저장하지 않는다.
 
 ### 4.3 `SecondaryForecastDerived`
 
@@ -948,26 +953,30 @@ badges: [
 
 | 필드 | 의미 |
 |------|------|
-| `summary` | `ProductPrimarySummary`에서 **`monthlySalesTrend` 제외**한 요약(`OrderSnapshotPrimarySummaryV2`). 재조회 시 트렌드는 `getProductMonthlyTrend` / `getSecondaryDailyTrend` 계열 API로 복원 |
+| `summary` | 1차 드로워 compact summary(`OrderSnapshotPrimarySummaryV2`). 상품 식별/표시 메타와 기간 KPI만 저장하며 `monthlySalesTrend`, `sizeMix`, `seasonality`, `recommendedOrderQty`는 저장하지 않는다. 재조회 시 트렌드와 상세 계산값은 `getProductMonthlyTrend` / `getSecondaryDailyTrend` / 2차 계산 계열 API 또는 `drawer2` snapshot 필드로 복원한다. 프론트 hydrate는 bundle이 없을 때 current compact summary만으로 `ProductPrimarySummary`를 완성하지 않는다 |
 
 **`drawer2` (`OrderSnapshotDrawer2V1`)**
 
 | 필드 | 의미 |
 |------|------|
-| `secondary` | 당시 `ProductSecondaryDetail` 스냅샷 |
+| `competitorSalesBasis` | current v2 스냅샷의 2차 드로워 판매 기준 데이터. `ProductSecondaryDetail` 전체가 아니라 `skuGroupKey`, `competitorPrice`, `competitorQty`, `competitorRatioBySize`만 저장한다 |
 | `competitorChannelId`, `competitorChannelLabel` | 선택 경쟁 채널 |
-| `minOpMarginPct` | 스냅샷 시점 영업이익률 하한; `null` = 하한 없음 |
-| `salesSelf`, `salesCompetitor` | [`SalesKpiColumn`](#41-saleskpicolumn) |
-| `stockInputs` | [`SecondaryForecastInputs`](#42-secondaryforecastinputs) |
-| `stockDerived` | [`SecondaryForecastDerived`](#43-secondaryforecastderived) |
+| `stockInputs` | [`SecondaryForecastInputs`](#42-secondaryforecastinputs). current v2 parser는 9개 입력 필드를 모두 required로 검증한다 |
 | `orderUnitInputs` | 저장 당시 통합 오더 설정의 단가·원가·예상 수수료율: `{ unitPrice, unitCost, expectedFeeRatePct }`. 스냅샷 기준 보기에서 live 판매 정보로 재계산하지 않고 이 값을 표시한다 |
 | `stockDisplay` | 저장 당시 사이즈별 오더 카드의 재고/미입고/입고예정 표시값. `getSecondaryStockOrderCalc.display`와 같은 구조이며, 스냅샷 기준 보기에서 현재 API 응답 대신 사용한다 |
 | `selfWeightPct` | 자사 가중(%) |
-| `sizeForecastSource` | `'periodMean'` \| `'forecastQty'` — 사이즈 예측 소스 |
 | `bufferStock` | 추가 버퍼 재고 |
 | `llmPrompt`, `llmAnswer` | AI 코멘트 컨텍스트 |
 | `confirmedTotals` | 저장 시점 확정 합계(선택): `orderQty`, `expectedSalesAmount`, `expectedOpProfit`, `expectedOpProfitRatePct` |
 | `sizeRows` | [`OrderSnapshotSizeRowV1[]`](#56-ordersnapshotsizerowv1) |
+
+새 스냅샷 payload와 백엔드 문서에서는 `drawer2.secondary`를 current field로 사용하지 않는다. 기존 후보 아이템 `details`에 남아 있는 v2 legacy snapshot의 `drawer2.secondary`는 프론트 `parseOrderSnapshot` normalize 단계에서 `drawer2.competitorSalesBasis`로 흡수한다. 백엔드는 legacy JSON을 읽어야 하는 경우 normalize 이후의 current 의미를 기준으로 검증하고, 새 저장 payload에는 `drawer2.competitorSalesBasis`를 요구한다.
+
+current v2 스냅샷은 `drawer1.summary.monthlySalesTrend`, `drawer1.summary.sizeMix`, `drawer1.summary.seasonality`, `drawer1.summary.recommendedOrderQty`, `drawer2.minOpMarginPct`, `drawer2.salesSelf`, `drawer2.salesCompetitor`, `drawer2.stockDerived`, `drawer2.sizeForecastSource`, `drawer2.forecastQtyCalc`를 새로 저장하지 않는다. 해당 값이 기존 legacy JSON에 남아 있으면 current 계약 필드로 승격하지 않는다.
+
+**`drawer2.stockInputs` current v2 required fields**
+
+`drawer2.stockInputs`는 `SecondaryForecastInputs`이며, parser/current type 기준으로 `trendDailyMean`, `dailyMean`, `leadTimeStartDate`, `leadTimeEndDate`, `leadTimeDays`, `safetyStockMode`, `manualSafetyStock`, `sigma`, `serviceLevelPct`를 모두 required로 취급한다. 특히 `dailyMean`은 optional override가 아니고, `safetyStockMode`는 `manual` 또는 `formula` literal만 허용한다.
 
 ### 5.6 `OrderSnapshotSizeRowV1`
 
@@ -992,7 +1001,7 @@ badges: [
 ## 6. 구현 체크리스트
 
 1. OpenAPI 또는 JSON Schema로 위 타입을 Export 가능하면 프론트 codegen과 공유하기 쉽습니다.
-2. 후보 아이템 저장 시 **`schemaVersion`** 과 **`context`** 필드를 클라이언트가 그대로 보내므로 검증 후 저장합니다.
+2. 후보 아이템 저장 시 **`schemaVersion`** 과 **`context`** 필드를 클라이언트가 그대로 보내므로 검증 후 저장합니다. current v2 snapshot은 compact `drawer1.summary`와 `drawer2.competitorSalesBasis`를 기준으로 검증하고, legacy `drawer2.secondary`는 parser normalize 호환 경로에서만 다룹니다. current compact summary에 없는 비저장 필드를 백엔드가 빈 배열, `0`, 임의 계산값으로 채워 넣지 않습니다.
 3. 후보 아이템 목록 집계 필드는 `CandidateItemListParams.dataReferencePeriodStart`~`dataReferencePeriodEnd` 기준 live 계산값입니다. 스냅샷 값으로 목록을 덮어쓰지 말고, 스냅샷은 상세확정 여부와 2차 드로워의 저장 당시 근거 복원에만 사용합니다.
 4. 배지는 조회 기간 전체 대상 상품의 분포를 먼저 계산한 뒤 후보군 포함 상품만 추려 반환합니다. 성능이 부담되면 기간/채널별 랭킹·배지 결과 캐시를 우선 고려합니다.
 5. 필드 리네이밍 시 프론트 TypeScript와 동시 배포 또는 버전 분기 필요.

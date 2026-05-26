@@ -12,6 +12,65 @@ type Params = {
   pageName: string
 }
 
+type SecondaryDetailRequestKey = {
+  skuGroupKey: string
+  companyUuid: string | null
+  hydrateSnapshot: OrderSnapshotDocumentV1 | null
+}
+
+type SecondaryDetailState = {
+  requestKey: SecondaryDetailRequestKey
+  detail: ProductSecondaryDetail
+}
+
+type SecondaryDetailErrorState = {
+  requestKey: SecondaryDetailRequestKey
+  error: ApiUnitErrorInfo
+}
+
+function getSecondaryDetailFromSnapshot(
+  hydrateSnapshot: OrderSnapshotDocumentV1 | null,
+  skuGroupKey: string,
+): ProductSecondaryDetail | null {
+  if (hydrateSnapshot?.skuGroupKey !== skuGroupKey) return null
+  const basis = hydrateSnapshot.drawer2.competitorSalesBasis
+  if (basis.skuGroupKey !== skuGroupKey) return null
+  return {
+    skuGroupKey: basis.skuGroupKey,
+    competitorPrice: basis.competitorPrice,
+    competitorQty: basis.competitorQty,
+    competitorRatioBySize: { ...basis.competitorRatioBySize },
+  }
+}
+
+function getScopeSafeHydrateSnapshot(
+  hydrateSnapshot: OrderSnapshotDocumentV1 | null,
+  skuGroupKey: string,
+  companyUuid: string | undefined,
+): OrderSnapshotDocumentV1 | null {
+  if (hydrateSnapshot == null) return null
+  if (hydrateSnapshot.skuGroupKey !== skuGroupKey) return null
+
+  // OrderSnapshotDocumentV1 does not persist companyUuid. In a company-scoped
+  // drawer we cannot prove that a saved snapshot belongs to the current
+  // company, so API-keyed state must win until the snapshot contract carries
+  // company scope explicitly.
+  if (companyUuid != null) return null
+
+  return hydrateSnapshot
+}
+
+function isSameSecondaryDetailRequestKey(
+  stateKey: SecondaryDetailRequestKey,
+  currentKey: SecondaryDetailRequestKey,
+): boolean {
+  return (
+    stateKey.skuGroupKey === currentKey.skuGroupKey &&
+    stateKey.companyUuid === currentKey.companyUuid &&
+    stateKey.hydrateSnapshot === currentKey.hydrateSnapshot
+  )
+}
+
 export function useSecondaryDrawerDetail({
   skuGroupKey,
   expandPaneOpen,
@@ -20,60 +79,81 @@ export function useSecondaryDrawerDetail({
 }: Params) {
   const { selectedCompanyUuid } = useAuth()
   const companyUuid = getCompanyUuidForOptionalScope(selectedCompanyUuid)
-  const [secondaryDetail, setSecondaryDetail] = useState<ProductSecondaryDetail | null>(null)
-  const [secondaryDetailError, setSecondaryDetailError] = useState<ApiUnitErrorInfo | null>(null)
+  const [secondaryDetailState, setSecondaryDetailState] = useState<SecondaryDetailState | null>(null)
+  const [secondaryDetailErrorState, setSecondaryDetailErrorState] = useState<SecondaryDetailErrorState | null>(null)
 
-  const secondaryFromSnapshot = useMemo(
-    () =>
-      hydrateSnapshot != null && hydrateSnapshot.drawer2.secondary.skuGroupKey === skuGroupKey
-        ? hydrateSnapshot.drawer2.secondary
-        : null,
-    [hydrateSnapshot, skuGroupKey],
+  const scopeSafeHydrateSnapshot = useMemo(
+    () => getScopeSafeHydrateSnapshot(hydrateSnapshot, skuGroupKey, companyUuid),
+    [companyUuid, hydrateSnapshot, skuGroupKey],
   )
 
-  const hydrateForPanel =
-    hydrateSnapshot != null && hydrateSnapshot.skuGroupKey === skuGroupKey ? hydrateSnapshot : null
+  const secondaryFromSnapshot = useMemo(
+    () => getSecondaryDetailFromSnapshot(scopeSafeHydrateSnapshot, skuGroupKey),
+    [scopeSafeHydrateSnapshot, skuGroupKey],
+  )
+
+  const secondaryDetailRequestKey = useMemo(
+    () => ({ skuGroupKey, companyUuid: companyUuid ?? null, hydrateSnapshot: scopeSafeHydrateSnapshot }),
+    [companyUuid, scopeSafeHydrateSnapshot, skuGroupKey],
+  )
+
+  const hydrateForPanel = scopeSafeHydrateSnapshot
 
   useEffect(() => {
     let alive = true
+    const requestKey = secondaryDetailRequestKey
     queueMicrotask(() => {
       if (!alive) return
-    if (!expandPaneOpen) {
-      setSecondaryDetail(null)
-      setSecondaryDetailError(null)
-      return
-    }
-    if (secondaryFromSnapshot) {
-      setSecondaryDetail(secondaryFromSnapshot)
-      setSecondaryDetailError(null)
-      return
-    }
-    setSecondaryDetail(null)
-    setSecondaryDetailError(null)
-    void (async () => {
-      try {
-        const d = await dashboardApi.getProductSecondaryDetail(skuGroupKey, { companyUuid })
-        if (!alive) return
-        if (!d) throw new Error('2차 상세 데이터가 비어 있습니다.')
-        setSecondaryDetail(d)
-        setSecondaryDetailError(null)
-      } catch (err) {
-        if (!alive) return
-        setSecondaryDetail(null)
-        setSecondaryDetailError(
-          makeApiErrorInfo(pageName, `getProductSecondaryDetail(${JSON.stringify({ skuGroupKey, companyUuid })})`, err),
-        )
+      if (!expandPaneOpen) {
+        setSecondaryDetailState(null)
+        setSecondaryDetailErrorState(null)
+        return
       }
-    })()
+      if (secondaryFromSnapshot) {
+        setSecondaryDetailState({ requestKey, detail: secondaryFromSnapshot })
+        setSecondaryDetailErrorState(null)
+        return
+      }
+      setSecondaryDetailState(null)
+      setSecondaryDetailErrorState(null)
+      void (async () => {
+        try {
+          const d = await dashboardApi.getProductSecondaryDetail(skuGroupKey, { companyUuid })
+          if (!alive) return
+          if (!d) throw new Error('2차 상세 데이터가 비어 있습니다.')
+          setSecondaryDetailState({ requestKey, detail: d })
+          setSecondaryDetailErrorState(null)
+        } catch (err) {
+          if (!alive) return
+          setSecondaryDetailState(null)
+          setSecondaryDetailErrorState({
+            requestKey,
+            error: makeApiErrorInfo(pageName, `getProductSecondaryDetail(${JSON.stringify({ skuGroupKey, companyUuid })})`, err),
+          })
+        }
+      })()
     })
     return () => {
       alive = false
     }
-  }, [companyUuid, expandPaneOpen, pageName, skuGroupKey, secondaryFromSnapshot])
+  }, [companyUuid, expandPaneOpen, pageName, secondaryDetailRequestKey, secondaryFromSnapshot, skuGroupKey])
+
+  const keyedSecondaryDetail =
+    secondaryDetailState != null &&
+    isSameSecondaryDetailRequestKey(secondaryDetailState.requestKey, secondaryDetailRequestKey)
+      ? secondaryDetailState.detail
+      : null
+  const keyedSecondaryDetailError =
+    secondaryDetailErrorState != null &&
+    isSameSecondaryDetailRequestKey(secondaryDetailErrorState.requestKey, secondaryDetailRequestKey)
+      ? secondaryDetailErrorState.error
+      : null
+  const currentSecondaryDetail = !expandPaneOpen ? null : keyedSecondaryDetail ?? secondaryFromSnapshot
+  const currentSecondaryDetailError = !expandPaneOpen || currentSecondaryDetail != null ? null : keyedSecondaryDetailError
 
   return {
-    secondaryDetail,
-    secondaryDetailError,
+    secondaryDetail: currentSecondaryDetail,
+    secondaryDetailError: currentSecondaryDetailError,
     hydrateForPanel,
   }
 }

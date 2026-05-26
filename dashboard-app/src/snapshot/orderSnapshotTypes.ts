@@ -1,8 +1,7 @@
 import type { ProductPrimarySummary, ProductSecondaryDetail } from '../types'
-import type { SecondaryForecastDerived, SecondaryForecastInputs } from '../dashboard/components/product-drawer/secondary/secondaryDrawerTypes'
-import type { SalesKpiColumn } from '../utils/salesKpiColumn'
+import type { SecondaryForecastInputs } from '../dashboard/components/product-drawer/secondary/secondaryDrawerTypes'
 
-/** 오더 확정 시 저장하는 통합 스냅샷 스키마 버전 */
+/** Persisted order snapshot schema version. */
 export const ORDER_SNAPSHOT_SCHEMA_VERSION = 2 as const
 
 export type OrderSnapshotSizeRowV1 = {
@@ -30,35 +29,135 @@ export interface OrderSnapshotStockDisplayV1 {
   expectedInboundOrderBalanceBySize: number[]
 }
 
-/** 1차 요약(판매추이 월간·재고 시계열 제외 — `skuGroupKey`+`context`로 번들 재요청) */
-export type OrderSnapshotPrimarySummaryV2 = Omit<ProductPrimarySummary, 'monthlySalesTrend'>
+/**
+ * Primary summary saved in the snapshot.
+ * Heavy or recalculable source fields are intentionally excluded and must be
+ * reloaded from the product bundle when needed. Keep this explicit-field-only:
+ * new ProductPrimarySummary fields must not persist without a contract update.
+ */
+export type OrderSnapshotPrimarySummaryV2 = Pick<
+  ProductPrimarySummary,
+  | 'skuGroupKey'
+  | 'productName'
+  | 'brand'
+  | 'category'
+  | 'code'
+  | 'colorCode'
+  | 'price'
+  | 'qty'
+  | 'availableStock'
+>
 
 export type OrderSnapshotDrawer1V2 = {
   summary: OrderSnapshotPrimarySummaryV2
 }
 
 /**
- * 2차 드로워: 경쟁 채널·판매예측 지표·확정 수량·AI 코멘트 등
- * `secondary`는 당시 경쟁사 베이스라인 스냅샷
+ * Competitor sales basis saved from ProductSecondaryDetail.
+ * Keep this as explicit fields instead of storing the full secondary detail.
+ */
+export interface OrderSnapshotCompetitorSalesBasisV2 {
+  skuGroupKey: ProductSecondaryDetail['skuGroupKey']
+  competitorPrice: ProductSecondaryDetail['competitorPrice']
+  competitorQty: ProductSecondaryDetail['competitorQty']
+  competitorRatioBySize: ProductSecondaryDetail['competitorRatioBySize']
+}
+
+export function createOrderSnapshotPrimarySummary(
+  primary: ProductPrimarySummary,
+): OrderSnapshotPrimarySummaryV2 {
+  return {
+    skuGroupKey: primary.skuGroupKey,
+    productName: primary.productName,
+    brand: primary.brand,
+    category: primary.category,
+    code: primary.code,
+    colorCode: primary.colorCode,
+    price: primary.price,
+    qty: primary.qty,
+    availableStock: primary.availableStock,
+  }
+}
+
+export function createOrderSnapshotStockInputs(
+  stockInputs: SecondaryForecastInputs,
+): SecondaryForecastInputs {
+  return {
+    trendDailyMean: stockInputs.trendDailyMean,
+    dailyMean: stockInputs.dailyMean,
+    leadTimeStartDate: stockInputs.leadTimeStartDate,
+    leadTimeEndDate: stockInputs.leadTimeEndDate,
+    leadTimeDays: stockInputs.leadTimeDays,
+    safetyStockMode: stockInputs.safetyStockMode,
+    manualSafetyStock: stockInputs.manualSafetyStock,
+    sigma: stockInputs.sigma,
+    serviceLevelPct: stockInputs.serviceLevelPct,
+  }
+}
+
+export function toProductPrimarySummaryFromSnapshotSummary(
+  base: ProductPrimarySummary,
+  summary: OrderSnapshotPrimarySummaryV2,
+): ProductPrimarySummary {
+  return {
+    ...base,
+    ...summary,
+  }
+}
+
+export function createOrderSnapshotCompetitorSalesBasis(
+  secondary: ProductSecondaryDetail,
+): OrderSnapshotCompetitorSalesBasisV2 {
+  return {
+    skuGroupKey: secondary.skuGroupKey,
+    competitorPrice: secondary.competitorPrice,
+    competitorQty: secondary.competitorQty,
+    competitorRatioBySize: cloneSnapshotValue(secondary.competitorRatioBySize),
+  }
+}
+
+export function toProductSecondaryDetailFromSnapshotBasis(
+  base: ProductSecondaryDetail,
+  basis: OrderSnapshotCompetitorSalesBasisV2,
+): ProductSecondaryDetail {
+  return {
+    ...base,
+    skuGroupKey: basis.skuGroupKey,
+    competitorPrice: basis.competitorPrice,
+    competitorQty: basis.competitorQty,
+    competitorRatioBySize: cloneSnapshotValue(basis.competitorRatioBySize),
+  }
+}
+
+function cloneSnapshotValue<T>(value: T): T {
+  if (Array.isArray(value)) {
+    return value.map((item) => (isRecord(item) ? { ...item } : item)) as T
+  }
+  if (isRecord(value)) return { ...value } as T
+  return value
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value != null && typeof value === 'object' && !Array.isArray(value)
+}
+
+/**
+ * Secondary drawer snapshot.
+ * Stores the selected competitor channel, forecast inputs, confirmed quantity,
+ * order unit inputs, stock display values, and AI comment context.
  */
 export type OrderSnapshotDrawer2V1 = {
-  secondary: ProductSecondaryDetail
+  competitorSalesBasis: OrderSnapshotCompetitorSalesBasisV2
   competitorChannelId: string
   competitorChannelLabel: string
-  /** `null`: 하한 없음(전체). 2차 상세 재조회 시 `ProductSecondaryDetailParams`와 동일 의미로 맞출 것. */
-  minOpMarginPct: number | null
-  salesSelf: SalesKpiColumn
-  salesCompetitor: SalesKpiColumn
   stockInputs: SecondaryForecastInputs
-  stockDerived: SecondaryForecastDerived
   orderUnitInputs?: OrderSnapshotOrderUnitInputsV1
   stockDisplay?: OrderSnapshotStockDisplayV1
   selfWeightPct: number
-  sizeForecastSource: 'periodMean' | 'forecastQty'
   bufferStock: number
   llmPrompt: string
   llmAnswer: string
-  /** 저장 시점의 확정 합계(이너 후보 리스트 요약/열 표시용) */
+  /** Confirmed totals saved for candidate-list summaries and columns. */
   confirmedTotals?: {
     orderQty: number
     expectedSalesAmount: number
@@ -68,7 +167,7 @@ export type OrderSnapshotDrawer2V1 = {
   sizeRows: OrderSnapshotSizeRowV1[]
 }
 
-/** DB·로컬 저장용 단일 JSON 문서. 행 PK용 UUID는 DB에서 자동 생성 — 프론트는 보내지 않음 */
+/** Single JSON document persisted by DB/local storage. Row UUID is generated by the backend. */
 export type OrderSnapshotDocumentV1 = {
   schemaVersion: typeof ORDER_SNAPSHOT_SCHEMA_VERSION
   skuGroupKey: string

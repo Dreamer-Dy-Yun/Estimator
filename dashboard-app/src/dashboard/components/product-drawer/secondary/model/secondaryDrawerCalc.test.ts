@@ -28,6 +28,10 @@ const secondary: ProductSecondaryDetail = {
   competitorQty: 150,
   competitorRatioBySize: { '250': 0.7 },
 }
+const completeSecondary: ProductSecondaryDetail = {
+  ...secondary,
+  competitorRatioBySize: { '250': 0.7, '260': 0.3 },
+}
 
 const channel = {
   id: 'kream',
@@ -37,13 +41,19 @@ const channel = {
 }
 
 describe('mergePrimarySecondarySizeMix', () => {
-  it('merges competitor ratio by size and defaults to 1', () => {
-    const rows = mergePrimarySecondarySizeMix(primary, secondary)
+  it('merges competitor ratio by size without fallback defaults', () => {
+    const rows = mergePrimarySecondarySizeMix(primary, completeSecondary)
     expect(rows).toHaveLength(2)
     expect(rows[0]?.size).toBe('250')
     expect(rows[0]?.competitorRatio).toBe(0.7)
     expect(rows[1]?.size).toBe('260')
-    expect(rows[1]?.competitorRatio).toBe(1)
+    expect(rows[1]?.competitorRatio).toBe(0.3)
+  })
+
+  it('throws instead of dropping rows when competitor ratio is missing', () => {
+    expect(() => mergePrimarySecondarySizeMix(primary, secondary)).toThrow(
+      'Missing competitorRatioBySize for size "260".',
+    )
   })
 })
 

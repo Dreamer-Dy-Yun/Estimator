@@ -1,5 +1,10 @@
 import type { SecondaryOrderSnapshotPayload } from '../types/snapshot'
-import { ORDER_SNAPSHOT_SCHEMA_VERSION } from '../../snapshot/orderSnapshotTypes'
+import {
+  createOrderSnapshotCompetitorSalesBasis,
+  createOrderSnapshotPrimarySummary,
+  createOrderSnapshotStockInputs,
+  ORDER_SNAPSHOT_SCHEMA_VERSION,
+} from '../../snapshot/orderSnapshotTypes'
 import { secondaryCompetitorChannels } from './salesTables'
 import { productPrimaryBySkuGroupKey, productSecondaryBySkuGroupKey } from './productCatalog'
 import { buildSalesKpiColumn } from '../../utils/salesKpiColumn'
@@ -60,10 +65,13 @@ function buildMockAiAnswer(snapshot: SecondaryOrderSnapshotPayload) {
   const d2 = snapshot.drawer2
   const totals = d2.confirmedTotals
   const largestSize = findLargestSizeRow(snapshot)
-  const stockGap =
-    typeof d2.stockDerived.recommendedOrderQty === 'number' && typeof summary.availableStock === 'number'
-      ? Math.max(0, Math.round(d2.stockDerived.recommendedOrderQty - summary.availableStock))
-      : null
+  const recommendedQtyTotal = d2.sizeRows.reduce(
+    (acc, row) => acc + Math.max(0, Math.round(row.recommendedQty)),
+    0,
+  )
+  const stockGap = typeof summary.availableStock === 'number'
+    ? Math.max(0, recommendedQtyTotal - summary.availableStock)
+    : null
   const marginLabel = typeof totals?.expectedOpProfitRatePct === 'number'
     ? `${totals.expectedOpProfitRatePct.toFixed(1)}%`
     : '확인 필요'
@@ -111,14 +119,12 @@ export function buildMockOrderSnapshotForCandidate(
   const secondary = requireProductSecondary(skuGroupKey)
   const channel = secondaryCompetitorChannels[0]!
   const selfCol = buildSalesKpiColumn('self', primary, secondary, channel)
-  const compCol = buildSalesKpiColumn('competitor', primary, secondary, channel)
-  const { monthlySalesTrend, ...summarySansTrend } = primary
-  void monthlySalesTrend
+  const summarySansTrend = createOrderSnapshotPrimarySummary(primary)
   const leadTimeDays = 30
   const avgCost = requireNumber(selfCol.avgCost, 'self avgCost')
   const feePerUnitValue = requireNumber(selfCol.feePerUnit, 'self feePerUnit')
   const feeRatePct = requireNumber(selfCol.feeRatePct, 'self feeRatePct')
-  const stockInputs = {
+  const stockInputs = createOrderSnapshotStockInputs({
     trendDailyMean: Math.max(0.1, Math.round((primary.qty / 365) * 10) / 10),
     dailyMean: Math.max(0.1, Math.round((primary.qty / 365) * 10) / 10),
     leadTimeStartDate: '2026-04-01',
@@ -128,18 +134,11 @@ export function buildMockOrderSnapshotForCandidate(
     manualSafetyStock: 0,
     sigma: 12,
     serviceLevelPct: 95,
-  }
+  })
   const unitPrice = Math.max(0, Math.round(summarySansTrend.price ?? primary.price))
   const unitCost = Math.max(0, Math.round(avgCost))
   const feePerUnit = Math.max(0, Math.round(feePerUnitValue))
   const opMarginPerUnit = unitPrice - unitCost - feePerUnit
-  const stockDerived = {
-    safetyStock: Math.max(0, Math.round(primary.availableStock * 0.2)),
-    recommendedOrderQty: primary.recommendedOrderQty,
-    expectedOrderAmount: Math.round(primary.recommendedOrderQty * unitCost),
-    expectedSalesAmount: Math.round(primary.recommendedOrderQty * unitPrice),
-    expectedOpProfit: Math.round(primary.recommendedOrderQty * opMarginPerUnit),
-  }
   const sizeRows = primary.sizeMix.map((row) => {
     const rec = Math.max(0, row.confirmedQty)
     const fq = Math.max(0, Math.round(row.qty * 0.12))
@@ -173,14 +172,10 @@ export function buildMockOrderSnapshotForCandidate(
     },
     drawer1: { summary: summarySansTrend },
     drawer2: {
-      secondary,
+      competitorSalesBasis: createOrderSnapshotCompetitorSalesBasis(secondary),
       competitorChannelId: channel.id,
       competitorChannelLabel: channel.label,
-      minOpMarginPct: null,
-      salesSelf: selfCol,
-      salesCompetitor: compCol,
       stockInputs,
-      stockDerived,
       orderUnitInputs: {
         unitPrice,
         unitCost,
@@ -195,7 +190,6 @@ export function buildMockOrderSnapshotForCandidate(
         expectedInboundOrderBalanceBySize,
       },
       selfWeightPct: 50,
-      sizeForecastSource: 'forecastQty',
       bufferStock: 0,
       llmPrompt: '',
       llmAnswer: '',

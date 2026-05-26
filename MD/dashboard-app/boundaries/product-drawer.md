@@ -5,30 +5,31 @@
 | 작성 지시 | Yun Daeyoung |
 | 작성자 | Codex |
 | 작성일 | 2026-05-19 |
-| 최종 수정일 | 2026-05-21 |
+| 최종 수정일 | 2026-05-26 |
 | 상태 | 유지 문서 |
-| 적용 범위 | 상품 1차/2차 드로워, 스냅샷, AI 코멘트, 재고·발주 계산 |
+| 적용 범위 | 상품 1차/2차 드로워, 저장 스냅샷, AI 코멘트, 재고·발주 계산 |
 
 ## 책임 요약
 
-상품 드로워는 분석 페이지와 이너후보군에서 공통으로 쓰는 상품 상세 UI다. 특정 페이지 state에 직접 의존하지 않고 필요한 데이터는 API 경계로 호출한다. 단일 회사 선택 시 1차/2차 드로워, AI 코멘트, 재고·발주 계산 요청에는 `companyUuid`를 포함하고, `전체` 선택 시 생략해 전체 회사 기준으로 조회한다. mock 드로워 응답도 같은 `companyUuid`를 판매량/재고/경쟁 지표 계산 입력으로 사용한다.
+상품 드로워는 분석 페이지와 오더 후보군 상세에서 공통으로 여는 상품 상세 UI다. 페이지 상태를 직접 소유하지 않고, 상품 요약, 2차 상세, 경쟁 채널, 재고·발주 계산, AI 코멘트 요청은 API 경계 뒤에서 가져온다.
 
-## 루트와 공통 상태
+단일 회사가 선택된 경우 1차/2차 드로워의 조회 요청에는 `companyUuid`가 전달된다. `전체` 선택은 조회성 API에서만 scope 생략으로 처리하며, 후보군 저장/확정 같은 side effect는 후보군 경계에서 차단한다.
 
-| 파일 | 역할 |
+## 주요 파일
+
+| 파일 | 책임 |
 |------|------|
-| `ProductDrawer.tsx` | overlay와 공유 상태 조율 |
-| `ProductDrawerSecondaryPane.tsx` | 2차 패널 로딩/오류/상세 렌더 분기 |
-| `useProductDrawerKeyboard.ts` | 좌/우/상/하/ESC 키보드 계약 |
-| `useCompetitorChannels.ts` | 1차 판매 정보/월간 추이와 2차 일별 추이가 공유하는 경쟁 채널 목록과 선택 상태 |
-
-경쟁 채널 master data 중복 요청 coalescing은 드로워가 아니라 API request boundary의 `dashboardMasterDataCache.ts`가 맡는다.
-
-회사 scope 경계는 `ProductDrawer.tsx`에서 확정한다. `ProductDrawerContent`는 `companyUuid`를 `ProductDrawerSecondaryPane.tsx`와 `ProductSecondaryDrawer.tsx`로 전달하고, `useSecondaryForecastModel.ts`와 `useSecondaryDrawerRequests.ts`가 하위 API hook에 주입한다. 2차 드로워 하위 hook은 `AuthContext`를 직접 읽지 않으며, mock/HTTP adapter 모두 이 DI 값을 API scope로 취급한다.
+| `ProductDrawer.tsx` | 1차 드로워 shell, 2차 패널 열림 상태, 회사 scope 전달 |
+| `ProductDrawerSecondaryPane.tsx` | 2차 패널 로딩/오류/상세 데이터 분기 |
+| `mergePrimarySummaryFromSnapshot.ts` | API bundle summary와 저장 스냅샷 summary 병합 규칙 |
+| `useSecondaryDrawerDetail.ts` | 2차 상세 조회와 스냅샷 hydrate 기준 선택 |
+| `secondary/ProductSecondaryDrawer.tsx` | 2차 드로워 상태 조립 |
+| `secondary/hooks/useSecondaryForecastModel.ts` | 재고·발주 계산, size row, snapshot builder 연결 |
+| `secondary/secondarySnapshot.ts` | 현재 2차 드로워 상태를 저장 스냅샷 JSON으로 생성 |
+| `src/snapshot/orderSnapshotTypes.ts` | 저장 스냅샷 current 타입 |
+| `src/snapshot/parseOrderSnapshot.ts` | 저장 스냅샷 파싱과 legacy normalize |
 
 ## 1차 드로워
-
-`product-drawer/primary`가 소유한다.
 
 | 영역 | API |
 |------|-----|
@@ -36,47 +37,87 @@
 | 판매 정보 | `getProductSalesInsight` + `companyUuid` |
 | 월간 판매 추이 | `getProductMonthlyTrend` + `companyUuid` |
 
-판매 추이 그래프는 선형 축으로 고정하고, 자사/선택 경쟁 채널 표시를 각각 토글한다. 자사/경쟁사 분석 탭에서는 2차 드로워를 열지 않는다.
+1차 드로워의 판매 추이 그래프는 선형 축으로 고정한다. 자사/선택 경쟁 채널 표시는 각 카드에서 독립적으로 관리한다. 분석 페이지의 자사/경쟁사 리스트는 2차 드로워를 열지 않는다.
 
 ## 2차 드로워
-
-`product-drawer/secondary`가 소유한다.
 
 | 영역 | API/모듈 |
 |------|----------|
 | 2차 상세 | `getProductSecondaryDetail` + `companyUuid` |
 | AI 코멘트 | `getSecondaryAiComment`, `useSecondaryAiComment.ts` + `companyUuid` |
 | 재고·발주 계산 | `getSecondaryStockOrderCalc`, `useSecondaryStockOrderCalc.ts` + `companyUuid` |
-| 일별 추이 | `getSecondaryDailyTrend` + `companyUuid` |
+| 일간 추이 | `getSecondaryDailyTrend` + `companyUuid` |
 | 후보군 저장/확정 | `useSecondaryCandidateActions.ts` |
 | 사이즈별 오더 | `cards/SizeOrderCard.tsx`, `model/secondarySizeOrderRows.ts` |
 
-재고·발주 계산 API는 입력 변경마다 즉시 호출하지 않고 최종 입력 1초 후 호출한다. stale 응답은 화면에 반영하지 않는다.
-통합 오더 설정 카드의 `일평균 판매량`과 `일평균 기대 판매량`은 계산값 자체를 변경하지 않고 표시 단계에서 소수 첫째 자리 고정으로 반올림한다.
+재고·발주 계산 API는 입력이 바뀔 때마다 즉시 호출하지 않고 debounce 후 요청한다. stale 응답은 현재 화면 상태를 덮지 않아야 한다.
 
-## 스냅샷
+## 저장 스냅샷 current v2
 
-| 파일 | 역할 |
+독립 스냅샷 목록 API는 없다. 후보 아이템의 `details` JSON이 저장·복원 경로다.
+
+새로 생성하는 current v2 스냅샷은 화면/API 응답 객체를 넓게 복사하지 않고, 복원과 AI 판단에 필요한 값만 명시적으로 저장한다. 백엔드는 스냅샷을 JSON blob으로 저장할 수 있더라도 각 필드의 의미를 기준으로 최소 검증해야 한다.
+
+| snapshot 영역 | current 책임 |
 |------|------|
-| `secondary/secondarySnapshot.ts` | 2차 드로워의 오더 스냅샷 문서 생성 |
-| `src/snapshot/orderSnapshotTypes.ts` | `OrderSnapshotDocumentV1` 스키마 |
-| `src/snapshot/parseOrderSnapshot.ts` | 저장 스냅샷 파싱 |
+| `schemaVersion` | 현재 스냅샷 스키마 버전. 값은 `2`를 유지한다. |
+| `skuGroupKey` | 상품 단위 묶음 key. DB `SKU.uuid`가 아니다. |
+| `savedAt` | 저장 시각. 화면 표시가 아니라 저장 근거다. |
+| `context` | 분석 기간, 예측 개월, 일간 추이 재조회 기준. |
+| `drawer1.summary` | 1차 드로워 compact summary. 상품 식별/표시 메타와 기간 KPI만 저장한다. |
+| `drawer2.competitorSalesBasis` | 2차 판매 기준 데이터. `ProductSecondaryDetail` 전체가 아니라 `skuGroupKey`, `competitorPrice`, `competitorQty`, `competitorRatioBySize`만 저장한다. |
+| `drawer2.competitorChannelId`, `competitorChannelLabel` | 선택 경쟁 채널. |
+| `drawer2.stockInputs` | 재고·발주 계산 입력. 날짜, 일평균, 리드타임, 안전재고 설정을 복원한다. |
+| `drawer2.orderUnitInputs` | 저장 당시 단가, 원가, 예상 수수료율. |
+| `drawer2.stockDisplay` | 저장 당시 사이즈별 재고, 총 잔량, 입고예정 잔량 표시값. |
+| `drawer2.selfWeightPct`, `bufferStock` | 사용자가 조정한 사이즈 가중치와 버퍼 재고. |
+| `drawer2.llmPrompt`, `llmAnswer` | AI 코멘트 입력/결과. |
+| `drawer2.confirmedTotals` | 확정 오더 합계와 예상 매출/이익 요약. |
+| `drawer2.sizeRows` | 사이즈별 비중, 추천 수량, 확정 수량. |
 
-독립 스냅샷 목록 API는 없다. 후보 아이템 `details`가 저장·복원 경로다.
+### 저장하지 않는 필드
 
-저장 스냅샷은 판단 근거 보존을 위해 그래프 외 전 영역을 저장한다. 화면 표시는 현재 모드에 따라 live 계산값 또는 스냅샷 초기값을 사용한다.
+current v2 스냅샷은 다음 값을 새로 저장하지 않는다. 이 값들은 compact snapshot hydrate 과정에서 빈 배열, `0`, 임의 계산값으로 되살리지 않는다.
+
+| 제외 필드 | 처리 |
+|------|------|
+| `drawer1.summary.monthlySalesTrend` | 월간 추이는 필요 시 API로 재조회한다. |
+| `drawer1.summary.sizeMix` | current 확정 결과는 `drawer2.sizeRows`에 저장한다. |
+| `drawer1.summary.seasonality` | 화면 복원/AI 입력에 직접 쓰지 않는다. |
+| `drawer1.summary.recommendedOrderQty` | 2차 추천/확정 수량은 `drawer2.sizeRows`와 `confirmedTotals`가 기준이다. |
+| `drawer2.secondary` | legacy field. 새 payload는 `drawer2.competitorSalesBasis`를 사용한다. |
+| `drawer2.salesSelf`, `drawer2.salesCompetitor` | current 저장 대상이 아니다. 화면/AI에 필요한 요약은 명시 필드로 저장한다. |
+| `drawer2.stockDerived` | current 저장 대상이 아니다. 화면 기준 합계는 `confirmedTotals`, `sizeRows`, `stockDisplay`, `orderUnitInputs`로 복원한다. |
+| `drawer2.sizeForecastSource`, `drawer2.minOpMarginPct`, `drawer2.forecastQtyCalc` | current 저장 대상이 아니다. 필요한 계산 근거는 current 필드로 명시해야 한다. |
+
+### 1차 summary hydrate 규칙
+
+`drawer1.summary`는 current v2에서 compact summary이므로 단독으로 `ProductPrimarySummary`를 완성하지 않는다. compact summary에는 `monthlySalesTrend`, `seasonality`, `sizeMix`, `recommendedOrderQty`가 없으며, 이 필드를 빈 배열, `0`, 임의 계산값으로 padding하는 fallback은 금지한다.
+
+| 상황 | 처리 |
+|------|------|
+| live `ProductDrawerBundle` 있음 | bundle의 실제 `ProductPrimarySummary`를 기준으로 삼고, snapshot compact summary의 저장 필드만 덮어쓴다. `monthlySalesTrend`, `seasonality`, `sizeMix`, `recommendedOrderQty`는 snapshot에서 가져오지 않는다. |
+| live bundle 없음 + current compact snapshot | `ProductPrimarySummary` fallback을 만들지 않는다. 빈 배열, `0`, 임의 추천 수량으로 화면 shape만 맞추지 않는다. |
+| live bundle 없음 + parsed snapshot | parser 통과 후에는 legacy full summary 필드가 제거되므로 parsed `OrderSnapshotDocumentV1`만으로 legacy full summary fallback을 수행하지 않는다. |
+| live bundle 없음 + parse 전 raw legacy full summary 별도 보유 | `skuGroupKey`가 일치하고 raw legacy snapshot이 완전한 `ProductPrimarySummary`를 보유한 경우에만 별도 legacy fallback 계약으로 hydrate할 수 있다. 이 경로는 current compact summary fallback이 아니며, parsed snapshot 객체에서 복원할 수 없다. |
+
+### legacy normalize
+
+기존 후보 아이템 `details`에 legacy JSON이 남아 있을 수 있다. 프론트는 `parseOrderSnapshot`에서 legacy v2의 `drawer2.secondary`를 `drawer2.competitorSalesBasis`로 normalize하고, 이후 로직은 current field 기준으로 수행한다.
+
+`parseOrderSnapshot`은 `drawer1.summary`도 current compact field set으로 다시 만든다. 따라서 parser를 통과한 `OrderSnapshotDocumentV1`에는 legacy full summary의 `monthlySalesTrend`, `seasonality`, `sizeMix`, `recommendedOrderQty`가 남지 않는다. parse 이후 객체만으로는 legacy full summary fallback을 수행할 수 없고, current compact summary를 빈 배열/`0`으로 padding하는 fallback도 금지한다. legacy full summary fallback이 필요하다면 parse 전 raw payload를 별도 계약으로 보존한 경우에만 가능하다.
+
+legacy JSON에 current v2 제외 필드가 남아 있어도 새 저장 payload의 필드로 승격하지 않는다. 특히 `drawer1.summary`의 비저장 필드나 `drawer2.forecastQtyCalc` 같은 계산 상세는 current snapshot 계약에 포함하지 않는다.
 
 ## 키보드
 
-- 좌: 드로워 열기 방향.
-- 우: 드로워 닫기 방향.
-- 상/하: 현재 목록의 이전/다음 item.
-- ESC: 2차가 열려 있으면 2차부터 닫고, 한 번 더 누르면 1차를 닫는다.
+- 좌/우 방향키: 드로워 열기/닫기.
+- 위/아래 방향키: 현재 후보군 목록의 이전/다음 item 이동.
+- ESC: 2차 패널이 열려 있으면 2차 패널을 먼저 닫고, 다시 누르면 1차 드로워를 닫는다.
 - 입력/콤보박스 내부 방향키는 가로채지 않는다.
 
 ## 스타일
 
-`secondaryDrawer.module.css`가 CSS `@import`로 2차 드로워 카드/컨트롤/표/입력 스타일 조각을 묶는다. `metaFilterCandidate.module.css`는 메타/액션 grid만, `candidateSelection.module.css`는 후보군 선택 모달/리스트만 소유한다. 카드 단위 UI는 `cards/*`, hook 경계는 `hooks/*`, 계산 모델은 `model/*`에 둔다.
-2차 드로워 상단 메타/액션 행은 5열 grid를 사용하며, 상품 메타 영역은 1~3열, 후보군 정보와 버튼 영역은 4~5열을 차지한다. 이너 후보 액션 버튼은 동일 폭으로 정렬하되 버튼 문구는 행바꿈하지 않는다.
-2차 드로워 상품 메타 값은 행바꿈 없이 한 줄 말줄임으로 표시하며, hover 시 전체 값을 기본 툴팁으로 노출한다.
-사이즈별 오더의 `비중` 라인 차트는 테이블 사이즈 컬럼의 실제 중앙 좌표를 측정해 그리며, 측정 전 fallback도 각 컬럼 중앙 좌표를 사용한다.
+- 2차 드로워 CSS public facade는 `secondaryDrawer.module.css`다.
+- 카드 단위 UI는 `secondary/cards/*`, hook 경계는 `secondary/hooks/*`, 계산 모델은 `secondary/model/*`에 둔다.
+- 기존 카드, 그리드, 패널, 버튼 리듬을 유지한다.

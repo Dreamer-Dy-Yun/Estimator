@@ -1,6 +1,6 @@
-﻿# Dashboard API Contract Catalog
+# Dashboard API Contract Catalog
 
-최종 수정일: 2026-05-22
+최종 수정일: 2026-05-26
 
 이 문서는 백엔드가 프론트 API를 구현할 때 참고할 수 있도록, 현재 프론트 요청 계층의 API 계약과 주요 JSON 구조를 설명한다.
 
@@ -776,7 +776,7 @@ Excel import 응답:
 
 ### 11.3 `drawer1.summary`
 
-`drawer1.summary`는 `ProductPrimarySummary`에서 `monthlySalesTrend`를 제외한 값이다.
+`drawer1.summary`는 1차 drawer compact summary다. 상품 식별/표시 메타와 기간 KPI만 저장하며 `monthlySalesTrend`, `sizeMix`, `seasonality`, `recommendedOrderQty`는 저장하지 않는다.
 
 | 필드 | 타입 | 설명 |
 |---|---|---|
@@ -797,27 +797,24 @@ Excel import 응답:
 
 - 확정 기록에서 1차 분석 당시 상품 요약을 복원한다.
 - 이후 원천 데이터가 바뀌어도 확정 당시 기준값을 보존한다.
+- 사이즈 믹스, 계절성, 추천 발주 수량은 1차 compact summary의 책임이 아니다. 필요한 값은 2차 snapshot 필드 또는 별도 API 계약에서 확인한다.
 
-### 11.4 `drawer2.secondary`
+### 11.4 `drawer2.competitorSalesBasis`
 
-2차 drawer 상세 원천 데이터다.
+current v2 snapshot의 2차 drawer 판매 기준 데이터다. 기존 문서나 저장 JSON에 보이는 `drawer2.secondary`는 legacy field이며, 새 snapshot payload의 기준 필드가 아니다.
 
 | 필드 | 타입 | 설명 |
 |---|---|---|
 | `skuGroupKey` | string | 상품 그룹 key |
-| `productName` | string | 상품명 |
-| `brand` | string | 브랜드 |
-| `category` | string | 카테고리 |
-| `self` | `SalesKpiColumn` | 자사 KPI |
-| `competitor` | `SalesKpiColumn` | 경쟁사 KPI |
-| `sizeRows` | `ProductSizeMixRow[]` | 사이즈별 상세 |
-| `competitorChannels` | array optional | 경쟁사 채널 목록 |
-| `minOpMarginPct` | number nullable | 최소 영업이익률 |
+| `competitorPrice` | number | 저장 당시 선택 경쟁 기준 평균 판매가 |
+| `competitorQty` | number | 저장 당시 선택 경쟁 기준 판매 수량 |
+| `competitorRatioBySize` | object | 사이즈별 경쟁 비중. key는 size, value는 비중 |
 
 용도:
 
-- `salesSelf`, `salesCompetitor`, `sizeRows` 계산의 원천 비교값이다.
-- 백엔드는 snapshot 저장 시 이 object를 그대로 보존해야 하며, 저장 시점에 재계산해 덮어쓰지 않는다.
+- 2차 드로워 사이즈 비중과 경쟁 기준값 복원에 필요한 최소 판매 기준이다.
+- 백엔드는 `ProductSecondaryDetail` 전체를 저장하지 말고 위 필드만 current payload에 저장한다.
+- 기존 v2 legacy snapshot의 `drawer2.secondary`는 프론트 `parseOrderSnapshot` normalize 단계에서 `drawer2.competitorSalesBasis`로 흡수한다. 백엔드는 새 저장 payload에는 `competitorSalesBasis`를 요구하고, legacy read path만 별도로 허용한다.
 
 ### 11.5 `drawer2` 분석 조건 필드
 
@@ -825,69 +822,38 @@ Excel import 응답:
 |---|---|---|
 | `competitorChannelId` | string | 선택된 경쟁사 채널 ID |
 | `competitorChannelLabel` | string | 선택된 경쟁사 채널 표시명 |
-| `minOpMarginPct` | number nullable | 최소 영업이익률 조건 |
 | `selfWeightPct` | number | 자사 가중치. 0~100 |
-| `sizeForecastSource` | `periodMean \| forecastQty` | 사이즈 예측 출처 |
 | `bufferStock` | number | 버퍼 재고. 적용 공식은 사용자 확인 필요 |
 
 용도:
 
 - 사용자가 2차 drawer에서 선택한 비교 채널과 가중치 조건을 보존한다.
 - 나중에 같은 확정 결과를 다시 열 때 화면 입력 상태를 복원한다.
+- current v2 스냅샷은 `minOpMarginPct`, `sizeForecastSource`, `salesSelf`, `salesCompetitor`를 새로 저장하지 않는다.
 
-### 11.6 `drawer2.salesSelf`, `drawer2.salesCompetitor`
+### 11.6 `drawer2.stockInputs`
 
-둘 다 `SalesKpiColumn` 구조다.
+오더 계산 입력값이다. current parser(`parseOrderSnapshot`)는 `drawer2.stockInputs` 객체와 아래 9개 필드를 모두 required로 검증한다. 필수값 누락은 스냅샷 parse failure로 처리된다.
 
-| 필드 | 타입 | 설명 |
-|---|---|---|
-| `avgPrice` | number nullable | 평균 판매가 |
-| `qty` | number nullable | 판매 수량 |
-| `salesAmount` | number nullable | 매출 |
-| `avgCost` | number nullable | 평균 원가 |
-| `avgFeeRatePct` | number nullable | 평균 수수료율 |
-| `opProfit` | number nullable | 영업이익 |
-| `opMarginPct` | number nullable | 영업이익률 |
-
-용도:
-
-- 자사/경쟁사 KPI 테이블 표시와 AI 코멘트 입력에 사용한다.
-- `null`은 값이 없거나 계산 불가라는 의미다. `0`과 구분해야 한다.
-
-### 11.7 `drawer2.stockInputs`
-
-오더 계산 입력값이다.
-
-| 필드 | 타입 | 설명 |
-|---|---|---|
-| `serviceLevelPct` | number | 서비스 레벨 |
-| `leadTimeDays` | number | 리드타임 일수 |
-| `safetyStockMode` | string | 안전재고 방식 |
-| `manualSafetyStock` | number | 수동 안전재고 |
-| `dailyMean` | number optional | 일 평균 판매량 override |
+| 필드 | 타입 | 필수 | 설명 |
+|---|---|---:|---|
+| `trendDailyMean` | number | Y | 일별 추이 기준으로 산출된 기본 일 평균 판매량. 사용자 보정 전 trend basis다. |
+| `dailyMean` | number | Y | 오더 계산에 실제 적용한 일 평균 판매량. trend 기준값 또는 사용자 보정값이 반영된 최종 입력이다. |
+| `leadTimeStartDate` | string | Y | 리드타임 계산 기준 시작일. 날짜 문자열이며 parser는 문자열 여부를 검증한다. |
+| `leadTimeEndDate` | string | Y | 리드타임 계산 기준 종료일. 날짜 문자열이며 parser는 문자열 여부를 검증한다. |
+| `leadTimeDays` | number | Y | 리드타임 일수. 일별 추이 재조회 context의 `dailyTrendLeadTimeDays`와 의미가 맞아야 한다. |
+| `safetyStockMode` | `'manual' \| 'formula'` | Y | 안전재고 입력 방식. parser는 `manual` 또는 `formula`만 허용한다. |
+| `manualSafetyStock` | number | Y | 수동 안전재고 입력값. `formula` 모드에서도 snapshot parse 계약상 필수 숫자다. |
+| `sigma` | number | Y | 안전재고 공식에 쓰는 표준편차 입력값. 공식과 표본/모집단 기준은 백엔드 구현 전 사용자 확인이 필요하다. |
+| `serviceLevelPct` | number | Y | 서비스 레벨 퍼센트. 안전재고 계산에 사용한다. |
 
 용도:
 
 - 오더 계산 API에 전달한 입력을 확정 기록에 남긴다.
 - 계산 결과만 저장하면 왜 그 수량이 나왔는지 추적할 수 없기 때문에 입력도 함께 보존한다.
+- `dailyMean`은 optional override가 아니라 current snapshot required field다. 입력값이 없으면 백엔드는 임의 기본값으로 채우지 말고 계약 오류로 드러내야 한다.
 
-### 11.8 `drawer2.stockDerived`
-
-오더 계산 결과다.
-
-| 필드 | 타입 | 설명 |
-|---|---|---|
-| `trendDailyMean` | number | 추세 기반 일 평균 |
-| `dailyMean` | number | 실제 계산에 사용한 일 평균 |
-| `sigma` | number | 변동성 값. 공식은 사용자 확인 필요 |
-| `display` | object | 화면 표시용 계산 결과 |
-| `safetyStockCalc` | object | 안전재고 계산 상세 |
-| `forecastQtyCalc` | object | 예측 수량 계산 상세 |
-
-용도:
-
-- 확정 당시 계산 결과를 보존한다.
-- 백엔드는 schema를 무시하고 임의 JSON으로만 저장하지 말고, 최소한 필수 하위 object 존재와 숫자 타입을 검증해야 한다.
+current v2 스냅샷은 `drawer2.stockDerived`와 `drawer2.forecastQtyCalc`를 새로 저장하지 않는다. 확정 결과 복원은 `drawer2.sizeRows`, `drawer2.confirmedTotals`, `drawer2.stockDisplay`, `drawer2.orderUnitInputs`를 기준으로 한다. legacy JSON에 계산 상세가 남아 있더라도 current field로 검증하거나 새 payload에 요구하지 않는다.
 
 ### 11.9 `drawer2.orderUnitInputs`
 
@@ -989,7 +955,8 @@ Excel import 응답:
 - `savedAt` ISO 일시 문자열
 - `context.periodStart`, `context.periodEnd` 존재
 - `drawer1.summary` 존재
-- `drawer2.secondary` 존재
+- current snapshot은 `drawer2.competitorSalesBasis` 존재
+- legacy v2 snapshot은 `drawer2.secondary`를 parser normalize로 `drawer2.competitorSalesBasis`에 흡수한 뒤 검증
 - `drawer2.sizeRows` 배열 존재
 - `drawer2.sizeRows[].confirmQty` 숫자
 

@@ -29,6 +29,19 @@ type ProductDrawerSecondaryPaneProps = {
   }
 }
 
+function isFiniteCompetitorRatio(value: number | undefined): value is number {
+  return typeof value === 'number' && Number.isFinite(value)
+}
+
+function getMissingCompetitorRatioSizes(
+  summary: ProductPrimarySummary,
+  secondaryDetail: ProductSecondaryDetail,
+): string[] {
+  return summary.sizeMix
+    .filter((row) => !isFiniteCompetitorRatio(secondaryDetail.competitorRatioBySize[row.size]))
+    .map((row) => row.size)
+}
+
 export function ProductDrawerSecondaryPane({
   open,
   summary,
@@ -46,6 +59,9 @@ export function ProductDrawerSecondaryPane({
   candidateItemContext,
   channelState,
 }: ProductDrawerSecondaryPaneProps) {
+  const missingCompetitorRatioSizes =
+    secondaryDetail == null ? [] : getMissingCompetitorRatioSizes(summary, secondaryDetail)
+
   return (
     <div
       className={`${styles.drawerExpandPane} ${open ? styles.drawerExpandPaneOpen : ''}`}
@@ -74,6 +90,12 @@ export function ProductDrawerSecondaryPane({
           ) : secondaryDetail === null ? (
             <div className={styles.drawerSecondaryLoading}>
               <LoadingSpinner label="2차 데이터를 불러오는 중" />
+            </div>
+          ) : missingCompetitorRatioSizes.length > 0 ? (
+            <div className={styles.drawerSecondaryLoading}>
+              경쟁사 사이즈 비중 데이터가 누락되어 2차 산출을 표시할 수 없습니다.
+              <br />
+              누락 사이즈: {missingCompetitorRatioSizes.join(', ')}
             </div>
           ) : (
             <ProductSecondaryDrawer
