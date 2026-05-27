@@ -10,19 +10,19 @@ describe('forecastMonthsStorage', () => {
     vi.unstubAllGlobals()
   })
 
-  it('clamps forecast months into 1..24 and rounds', () => {
+  it('clamps forecast months into 1..12 and rounds', () => {
     expect(clampForecastMonths(1)).toBe(1)
-    expect(clampForecastMonths(24)).toBe(24)
-    expect(clampForecastMonths(24.6)).toBe(24)
+    expect(clampForecastMonths(12)).toBe(12)
+    expect(clampForecastMonths(12.6)).toBe(12)
     expect(clampForecastMonths(0)).toBe(1)
     expect(clampForecastMonths(-10)).toBe(1)
-    expect(clampForecastMonths(999)).toBe(24)
-    expect(clampForecastMonths(Number.NaN)).toBe(8)
+    expect(clampForecastMonths(999)).toBe(12)
+    expect(clampForecastMonths(Number.NaN)).toBe(12)
   })
 
   it('returns default when window is undefined', () => {
     vi.stubGlobal('window', undefined)
-    expect(readForecastMonthsFromStorage()).toBe(8)
+    expect(readForecastMonthsFromStorage()).toBe(12)
   })
 
   it('reads and clamps value from localStorage when available', () => {
@@ -35,7 +35,7 @@ describe('forecastMonthsStorage', () => {
       },
     })
     store.set('han.dashboard.salesTrendForecastMonths', '25')
-    expect(readForecastMonthsFromStorage()).toBe(24)
+    expect(readForecastMonthsFromStorage()).toBe(12)
   })
 
   it('returns default for non-numeric or empty storage value', () => {
@@ -48,9 +48,9 @@ describe('forecastMonthsStorage', () => {
       },
     })
     store.set('han.dashboard.salesTrendForecastMonths', 'abc')
-    expect(readForecastMonthsFromStorage()).toBe(8)
+    expect(readForecastMonthsFromStorage()).toBe(12)
     store.set('han.dashboard.salesTrendForecastMonths', '')
-    expect(readForecastMonthsFromStorage()).toBe(8)
+    expect(readForecastMonthsFromStorage()).toBe(12)
   })
 
   it('parses integer prefix from decimal-like value', () => {
@@ -74,7 +74,7 @@ describe('forecastMonthsStorage', () => {
       },
       setItem: () => undefined,
     })
-    expect(readForecastMonthsFromStorage()).toBe(8)
+    expect(readForecastMonthsFromStorage()).toBe(12)
   })
 
   it('writes clamped value and ignores write exceptions', () => {
@@ -86,7 +86,7 @@ describe('forecastMonthsStorage', () => {
       },
     })
     writeForecastMonthsToStorage(25.2)
-    expect(written).toEqual([['han.dashboard.salesTrendForecastMonths', '24']])
+    expect(written).toEqual([['han.dashboard.salesTrendForecastMonths', '12']])
 
     vi.stubGlobal('localStorage', {
       getItem: () => null,

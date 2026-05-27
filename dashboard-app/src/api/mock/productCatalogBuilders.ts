@@ -1,13 +1,31 @@
 import type { MonthlySalesPoint, ProductPrimarySummary, ProductSecondaryDetail } from '../../types'
+import { MAX_FORECAST_MONTHS } from '../../utils/forecastMonthsStorage'
 import { competitorBySkuGroupKey, selfBySkuGroupKey } from './salesTables'
 import { FORECAST_START_MONTH, SALES_MONTHS } from './productCatalogData'
 
 type MockSkuMetadata = Pick<ProductPrimarySummary, 'skuGroupKey' | 'productName' | 'brand' | 'category' | 'code' | 'colorCode'>
+type MakeSalesTrendOptions = {
+  historyStartMonth?: string
+  historyEndMonth?: string
+  forecastStartMonth?: string
+}
 
-const monthKeysFrom = (year: number, month: number, count: number): string[] => Array.from({ length: count }, (_, idx) => {
-  const total = year * 12 + month - 1 + idx
-  return `${Math.floor(total / 12)}-${String((total % 12) + 1).padStart(2, '0')}`
-})
+const monthIndex = (month: string) => {
+  const [year, monthNo] = month.split('-').map(Number)
+  if (!Number.isFinite(year) || !Number.isFinite(monthNo)) return null
+  return year * 12 + monthNo - 1
+}
+
+const monthFromIndex = (index: number) => `${Math.floor(index / 12)}-${String((index % 12) + 1).padStart(2, '0')}`
+
+const monthKeysBetween = (startMonth: string, endMonth: string): string[] => {
+  const start = monthIndex(startMonth)
+  const end = monthIndex(endMonth)
+  if (start == null || end == null) return []
+  const first = Math.min(start, end)
+  const last = Math.max(start, end)
+  return Array.from({ length: last - first + 1 }, (_, index) => monthFromIndex(first + index))
+}
 
 export function buildSkuMetadata(skuGroupKey: string): MockSkuMetadata {
   const source = selfBySkuGroupKey[skuGroupKey] ?? competitorBySkuGroupKey[skuGroupKey]
@@ -22,13 +40,23 @@ export function buildSkuMetadata(skuGroupKey: string): MockSkuMetadata {
   }
 }
 
-export const makeSalesTrend = (base: number, seed: number, forecastMonths: number): MonthlySalesPoint[] => {
-  const historical = SALES_MONTHS.filter((date) => date < FORECAST_START_MONTH)
-  return [...historical, ...monthKeysFrom(2026, 1, Math.max(1, Math.min(24, Math.round(forecastMonths))))]
+export const makeSalesTrend = (
+  base: number,
+  seed: number,
+  forecastMonths: number,
+  options: MakeSalesTrendOptions = {},
+): MonthlySalesPoint[] => {
+  const historical = options.historyStartMonth && options.historyEndMonth
+    ? monthKeysBetween(options.historyStartMonth, options.historyEndMonth)
+    : SALES_MONTHS.filter((date) => date < FORECAST_START_MONTH)
+  const forecastStart = monthIndex(options.forecastStartMonth ?? FORECAST_START_MONTH) ?? monthIndex(FORECAST_START_MONTH)!
+  const forecastStartMonth = monthFromIndex(forecastStart)
+  const forecastMonthsClamped = Math.max(1, Math.min(MAX_FORECAST_MONTHS, Math.round(forecastMonths)))
+  return [...historical, ...Array.from({ length: forecastMonthsClamped }, (_, index) => monthFromIndex(forecastStart + index))]
     .map((date, index) => ({
       date,
       sales: Math.max(80, Math.round(base * (0.84 + index * 0.018) * (1 + Math.sin((index + seed) * 0.45) * 0.1))),
-      isForecast: date >= FORECAST_START_MONTH,
+      isForecast: date >= forecastStartMonth,
     }))
 }
 

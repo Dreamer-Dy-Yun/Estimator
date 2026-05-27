@@ -15,6 +15,7 @@ import type {
   SelfSalesParams,
 } from '../types'
 import { buildSalesKpiColumn } from '../../utils/salesKpiColumn'
+import { DEFAULT_FORECAST_MONTHS } from '../../utils/forecastMonthsStorage'
 import { uniqueSortedStrings } from '../../utils/uniqueSortedStrings'
 import { candidateMockApi } from './candidateMockApi'
 import { buildSecondaryAiComment } from './secondaryAiComment'
@@ -61,6 +62,14 @@ function matchesProductFilters(
 
 function periodWeight(params?: { startDate?: string; endDate?: string }) {
   return estimatePeriodWeight(params?.startDate, params?.endDate)
+}
+
+const dateToMonth = (date: string) => date.slice(0, 7)
+
+const nextMonth = (month: string) => {
+  const [year, monthNo] = month.split('-').map(Number)
+  const next = new Date(year, monthNo, 1)
+  return `${next.getFullYear()}-${String(next.getMonth() + 1).padStart(2, '0')}`
 }
 
 export const mockDashboardApi = {
@@ -152,7 +161,16 @@ export const mockDashboardApi = {
       targetPeriodDays: { start: params.startDate, end: params.endDate },
       competitorChannelId: channel.id,
       competitorChannelLabel: channel.label,
-      points: makeSalesTrend(Math.max(800, Math.round(primary.qty * 0.42)), skuGroupKey.charCodeAt(0), params.forecastMonths ?? 8)
+      points: makeSalesTrend(
+        Math.max(800, Math.round(primary.qty * 0.42)),
+        skuGroupKey.charCodeAt(0),
+        params.forecastMonths ?? DEFAULT_FORECAST_MONTHS,
+        {
+          historyStartMonth: dateToMonth(params.startDate),
+          historyEndMonth: dateToMonth(params.endDate),
+          forecastStartMonth: nextMonth(dateToMonth(params.endDate)),
+        },
+      )
         .map((point, index) => ({
           date: point.date,
           selfSales: Math.max(0, Math.round(point.sales)),

@@ -39,6 +39,8 @@
 | 판매 정보 | `getProductSalesInsight` + optional `companyUuid` |
 | 월간 판매 추이 | `getProductMonthlyTrend` + optional `companyUuid` |
 
+Monthly trend request period is not the visible focus period. The drawer sends the last 24 completed monthly buckets ending at the previous month (`startDate` = first day of the first included month, `endDate` = previous month end). Forecast month default and maximum are both 12, and the chart window is capped at 36 months.
+
 1차 드로어의 판매 추이 그래프는 선형 축으로 고정한다. 자사/선택 경쟁사/채널 표시는 각 카드에서 독립적으로 관리한다. 분석 페이지의 자사/경쟁사 리스트 상태를 드로어 내부에 저장하지 않는다.
 
 ## 2차 드로어 API 경계

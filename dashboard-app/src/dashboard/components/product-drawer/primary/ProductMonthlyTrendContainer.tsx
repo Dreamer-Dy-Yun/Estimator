@@ -1,4 +1,5 @@
 import { formatGroupedNumber } from '../../../../utils/format'
+import { MAX_FORECAST_MONTHS } from '../../../../utils/forecastMonthsStorage'
 import { ApiUnitErrorBadge } from '../../../../components/ApiUnitErrorBadge'
 import styles from '../../common.module.css'
 import { SalesTrendChart } from '../../trend/SalesTrendChart'
@@ -86,7 +87,7 @@ export function ProductMonthlyTrendContainer({
               </button>
               {forecastComboOpen && (
                 <ul className={styles.forecastComboList} role="listbox" aria-labelledby={forecastMonthsLabelId} onWheel={(event) => event.stopPropagation()}>
-                  {Array.from({ length: 24 }, (_, index) => index + 1).map((month) => (
+                  {Array.from({ length: MAX_FORECAST_MONTHS }, (_, index) => index + 1).map((month) => (
                     <li key={month} role="presentation">
                       <button
                         type="button"

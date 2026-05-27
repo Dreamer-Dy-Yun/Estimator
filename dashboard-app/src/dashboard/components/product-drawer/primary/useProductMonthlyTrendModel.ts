@@ -1,7 +1,7 @@
 import { useEffect, useId, useRef, useState, type WheelEvent } from 'react'
 import { dashboardApi, type ProductMonthlyTrend } from '../../../../api'
 import type { ApiUnitErrorInfo, MonthlySalesPoint } from '../../../../types'
-import { monthToEndDate, monthToStartDate } from '../../../../utils/date'
+import { formatIsoDateLocal } from '../../../../utils/date'
 import { buildShadeRanges, normalizeMonthKey } from '../../trend/trendRangeUtils'
 import { makeApiErrorInfo } from '../apiErrorInfo'
 
@@ -29,6 +29,25 @@ type SalesSeriesPoint = {
 }
 
 type ShadeRange = { x1: number; x2: number }
+
+const MONTHLY_TREND_HISTORY_MONTHS = 24
+const MONTHLY_TREND_FORECAST_MAX_MONTHS = 12
+const MONTHLY_TREND_MAX_VISIBLE_MONTHS = MONTHLY_TREND_HISTORY_MONTHS + MONTHLY_TREND_FORECAST_MAX_MONTHS
+
+const buildMonthlyTrendRequestPeriod = (today = new Date()) => {
+  const previousMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1)
+  const startMonth = new Date(
+    previousMonth.getFullYear(),
+    previousMonth.getMonth() - (MONTHLY_TREND_HISTORY_MONTHS - 1),
+    1,
+  )
+  const endOfPreviousMonth = new Date(previousMonth.getFullYear(), previousMonth.getMonth() + 1, 0)
+
+  return {
+    startDate: formatIsoDateLocal(startMonth),
+    endDate: formatIsoDateLocal(endOfPreviousMonth),
+  }
+}
 
 const shiftShade = (
   shade: ShadeRange | null | undefined,
@@ -113,8 +132,9 @@ export function useProductMonthlyTrendModel({
 
   const selectedStart = normalizeMonthKey(periodStart)
   const selectedEnd = normalizeMonthKey(periodEnd)
-  const startDate = monthToStartDate(selectedStart)
-  const endDate = monthToEndDate(selectedEnd)
+  // 월간 추이 API는 완료된 월만 본다. 전월까지 포함한 최근 24개월을 요청한다.
+  // 차트는 24개월 실제 + 최대 12개월 예측, 총 36개월까지만 표시한다.
+  const { startDate, endDate } = buildMonthlyTrendRequestPeriod()
 
   useEffect(() => {
     let alive = true
@@ -177,7 +197,8 @@ export function useProductMonthlyTrendModel({
   const requiredSpan = periodStartIdx <= salesSeries.length - 1
     ? salesSeries.length - periodStartIdx
     : salesSeries.length
-  const baseWindowSize = Math.min(salesSeries.length, Math.max(8, periodLen * 2, requiredSpan))
+  const maxWindowSize = Math.min(salesSeries.length, MONTHLY_TREND_MAX_VISIBLE_MONTHS)
+  const baseWindowSize = Math.min(maxWindowSize, Math.max(8, periodLen * 2, requiredSpan))
   const windowSizeKey = `${skuGroupKey}:${baseWindowSize}`
   const [windowSizeState, setWindowSizeState] = useState<{ key: string; value: number } | null>(null)
   const windowSize = windowSizeState?.key === windowSizeKey ? windowSizeState.value : baseWindowSize
@@ -212,9 +233,10 @@ export function useProductMonthlyTrendModel({
     if (!chartHovered) return
     event.preventDefault()
     const next = event.deltaY > 0 ? windowSize + 2 : windowSize - 2
+    const minWindowSize = Math.min(maxWindowSize, Math.max(periodLen + 2, 6))
     setWindowSizeState({
       key: windowSizeKey,
-      value: Math.max(Math.max(periodLen + 2, 6), Math.min(salesSeries.length, next)),
+      value: Math.max(minWindowSize, Math.min(maxWindowSize, next)),
     })
   }
 

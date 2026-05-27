@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { getCandidateItemByUuid, isAllCompanyScope, type CandidateStashSummary } from '../../../api'
 import type { AdjacentDirection } from '../../../utils/adjacentListNavigation'
 import { adjacentIdInOrder } from '../../../utils/adjacentListNavigation'
-import { clampForecastMonths } from '../../../utils/forecastMonthsStorage'
+import { clampForecastMonths, DEFAULT_FORECAST_MONTHS } from '../../../utils/forecastMonthsStorage'
 import { parseOrderSnapshot } from '../../../snapshot/parseOrderSnapshot'
 import type { OrderSnapshotDocumentV2 } from '../../../snapshot/orderSnapshotTypes'
 import { mergePrimarySummaryFromBundleAndSnapshot } from '../../drawer/mergePrimarySummaryFromSnapshot'
@@ -33,7 +33,7 @@ export function useCandidateStashItemDrawer({ dataReferenceStart, dataReferenceE
   const [hydrateSnap, setHydrateSnap] = useState<OrderSnapshotDocumentV2 | null>(null)
   const [hydrateSnapSource, setHydrateSnapSource] = useState<DrawerSnapshotSource | null>(null)
   const [confirmedHydrateSnap, setConfirmedHydrateSnap] = useState<OrderSnapshotDocumentV2 | null>(null)
-  const [drawerForecastMonths, setDrawerForecastMonths] = useState(8)
+  const [drawerForecastMonths, setDrawerForecastMonths] = useState(DEFAULT_FORECAST_MONTHS)
   const [drawerCompanyUuid, setDrawerCompanyUuid] = useState<string | null>(null)
   const mountedRef = useRef(false)
   const drawerRequestSeqRef = useRef(0)
@@ -65,7 +65,7 @@ export function useCandidateStashItemDrawer({ dataReferenceStart, dataReferenceE
     companyUuid: drawerCompanyUuid ?? undefined,
   })
   const mergedSummary = useMemo(() => mergePrimarySummaryFromBundleAndSnapshot(drawerSkuGroupKey, bundle, hydrateSnap), [bundle, drawerSkuGroupKey, hydrateSnap])
-  const detailForecastMonths = detailTarget?.forecastMonths ?? 8
+  const detailForecastMonths = detailTarget?.forecastMonths ?? DEFAULT_FORECAST_MONTHS
 
   if (drawerOpen && (!dataReferenceStart || !dataReferenceEnd)) throw new Error('후보 상세 조회 기간 정보 누락')
 

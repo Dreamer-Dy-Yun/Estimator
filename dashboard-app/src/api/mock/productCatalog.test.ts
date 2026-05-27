@@ -17,9 +17,22 @@ describe('api/mock productCatalog', () => {
     expect(minTrend.filter((p) => p.isForecast)).toHaveLength(1)
 
     const maxTrend = makeSalesTrend(1000, 66, 99)
-    expect(maxTrend).toHaveLength(historicalMonths.length + 24)
-    expect(maxTrend.filter((p) => p.isForecast)).toHaveLength(24)
-    expect(maxTrend.at(-1)?.date).toBe('2027-12')
+    expect(maxTrend).toHaveLength(historicalMonths.length + 12)
+    expect(maxTrend.filter((p) => p.isForecast)).toHaveLength(12)
+    expect(maxTrend.at(-1)?.date).toBe('2026-12')
+  })
+
+  it('builds monthly trend from requested 24 completed months plus 12 forecast months', () => {
+    const trend = makeSalesTrend(1000, 66, 12, {
+      historyStartMonth: '2024-05',
+      historyEndMonth: '2026-04',
+      forecastStartMonth: '2026-05',
+    })
+
+    expect(trend).toHaveLength(36)
+    expect(trend[0]?.date).toBe('2024-05')
+    expect(trend.at(-1)?.date).toBe('2027-04')
+    expect(trend.filter((p) => p.isForecast)).toHaveLength(12)
   })
 
   it('rounds forecast months before clamping', () => {

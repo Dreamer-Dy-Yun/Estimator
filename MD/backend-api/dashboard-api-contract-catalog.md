@@ -432,6 +432,8 @@ query:
 
 ### 9.2 GET `/products/{skuGroupKey}/monthly-trend`
 
+Request period policy: frontend sends the last 24 completed monthly buckets ending at the previous month. Example: a request on 2026-05-27 sends `startDate=2024-05-01` and `endDate=2026-04-30`. `forecastMonths` defaults to 12 and is capped at 12. The chart displays at most 36 months: 24 actual months + 12 forecast months.
+
 월별 판매 추이를 조회한다.
 
 응답: `MonthlySalesTrendPoint[]`

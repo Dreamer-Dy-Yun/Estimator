@@ -77,6 +77,12 @@
 - 파일/함수/컴포넌트 이름이 실제 책임을 정확히 말하는가?
 - 하드닝 완료 파일을 수정해야 한다면 사용자에게 명시적 허가를 받았는가?
 
+## 2026-05-27 monthly trend request policy
+
+- Product primary monthly trend belongs to [product-drawer.md](./boundaries/product-drawer.md) and [backend-api-spec.md](../backend-api/backend-api-spec.md).
+- The drawer sends the last 24 completed monthly buckets ending at the previous month, not the visible focus period.
+- Forecast month default and maximum are 12; chart visibility is capped at 36 months.
+
 ## 2026-05-27 documentation/API alignment addendum
 
 ### Candidate append contract

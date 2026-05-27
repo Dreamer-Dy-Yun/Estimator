@@ -373,8 +373,8 @@
 
 | 필드 | 타입 | 의미 |
 |------|------|------|
-| `startDate` | string? | 필터 시작일(목업 관례에 맞춘 문자열) |
-| `endDate` | string? | 필터 종료일 |
+| `startDate` | Monthly trend query start date (`YYYY-MM-DD`): first day of the first included month in the last 24 completed monthly buckets. |
+| `endDate` | Monthly trend query end date (`YYYY-MM-DD`): last day of the previous month. |
 | `brand` | string? | 브랜드 필터 |
 | `category` | string? | 카테고리 필터 |
 | `codeQuery` | string? | SKU.`code` 품번 부분 일치 필터 |
@@ -434,6 +434,8 @@
 
 ### 3.4 `getProductMonthlyTrend`
 
+Request period policy: frontend sends the last 24 completed monthly buckets ending at the previous month, not the visible focus period. Example: a request on 2026-05-27 sends `startDate=2024-05-01` and `endDate=2026-04-30`. `forecastMonths` defaults to 12 and is capped at 12, so the chart displays at most 24 actual months + 12 forecast months = 36 months.
+
 기간·경쟁 채널 조건에 따라 1차 드로어의 **월간 판매 추이 그래프**를 구성합니다. `getProductDrawerBundle`은 상품 요약만 유지하고, 선택 경쟁 채널별 월간 시계열은 이 계약으로 분리합니다.
 
 **쿼리 (`ProductMonthlyTrendParams`)**
@@ -442,7 +444,7 @@
 |------|------|
 | `startDate` | 조회 기준 시작일 (`YYYY-MM-DD` 권장). UI의 기간 음영 기준과 동일 |
 | `endDate` | 조회 기준 종료일 (`YYYY-MM-DD` 권장). UI의 기간 음영 기준과 동일 |
-| `forecastMonths` | 월간 판매추이에 포함할 포캐스트 월 수(1~24) |
+| `forecastMonths` | Monthly forecast bucket count for the chart (1..12, default 12). |
 | `competitorChannelId` | 경쟁사 월간 판매량 시리즈에 적용할 선택 경쟁 채널 id |
 
 **응답 (`ProductMonthlyTrend`)**
