@@ -78,11 +78,13 @@ export function buildMockOrderSnapshotForCandidate(
   const feePerUnit = Math.max(0, Math.round(requireNumber(selfCol.feePerUnit, 'self feePerUnit')))
   const feeRatePct = requireNumber(selfCol.feeRatePct, 'self feeRatePct')
   const dailyMean = Math.max(0.1, Math.round((primary.qty / 365) * 10) / 10)
+  const selfQtyTotal = secondary.sizeRows.reduce((sum, row) => sum + Math.max(0, row.qty), 0)
+  const sharePct = (value: number, total: number) => total > 0 ? (Math.max(0, value) / total) * 100 : 0
   const sizeOrders = secondary.sizeRows.map((row) => ({
     size: row.size,
-    selfSharePct: 25,
-    competitorSharePct: 25,
-    blendedSharePct: 25,
+    selfSharePct: sharePct(row.qty, selfQtyTotal),
+    competitorSharePct: (secondary.competitorRatioBySize[row.size] ?? 0) * 100,
+    blendedSharePct: (sharePct(row.qty, selfQtyTotal) + (secondary.competitorRatioBySize[row.size] ?? 0) * 100) / 2,
     forecastQty: Math.max(0, Math.round(row.qty * 0.12)),
     recommendedQty: Math.max(0, row.confirmedQty),
     confirmQty: Math.max(0, row.confirmedQty),

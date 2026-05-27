@@ -3,11 +3,19 @@ import type { ProductPrimarySummary, ProductSecondaryDetail } from '../types'
 /** Persisted order snapshot schema version. */
 export const ORDER_SNAPSHOT_SCHEMA_VERSION = 2 as const
 
+/** Source ratio scale saved from API data: 0..1, not a display percent. */
+export type OrderSnapshotSourceRatio = number
+
+/** Display/calculation percent scale: 0..100. */
+export type OrderSnapshotPercent = number
+
+export type OrderSnapshotCompetitorRatioBySizeV2 = Record<string, OrderSnapshotSourceRatio>
+
 export type OrderSnapshotSizeOrderV2 = {
   size: string
-  selfSharePct: number
-  competitorSharePct: number
-  blendedSharePct: number
+  selfSharePct: OrderSnapshotPercent
+  competitorSharePct: OrderSnapshotPercent
+  blendedSharePct: OrderSnapshotPercent
   forecastQty: number
   recommendedQty: number
   confirmQty: number
@@ -16,7 +24,7 @@ export type OrderSnapshotSizeOrderV2 = {
 export interface OrderSnapshotUnitEconomicsV2 {
   unitPrice: number
   unitCost: number
-  expectedFeeRatePct: number
+  expectedFeeRatePct: OrderSnapshotPercent
 }
 
 export interface OrderSnapshotStockOrderDisplayV2 {
@@ -81,7 +89,16 @@ export interface OrderSnapshotCompetitorBasisV2 {
   skuGroupKey: ProductSecondaryDetail['skuGroupKey']
   competitorPrice: ProductSecondaryDetail['competitorPrice']
   competitorQty: ProductSecondaryDetail['competitorQty']
-  competitorRatioBySize: ProductSecondaryDetail['competitorRatioBySize']
+  competitorRatioBySize: OrderSnapshotCompetitorRatioBySizeV2
+}
+
+export interface OrderSnapshotConfirmedTotalsV2 {
+  /** Required sum derived from current drawer2.sizeOrders[].confirmQty by the current snapshot builder. */
+  orderQty: number
+  expectedSalesAmount: number
+  expectedOpProfit: number
+  /** Percent-point operating profit rate. May be negative when expected operating profit is negative. */
+  expectedOpProfitRatePct: number | null
 }
 
 export function createOrderSnapshotPrimarySummary(primary: ProductPrimarySummary): OrderSnapshotPrimarySummaryV2 {
@@ -115,13 +132,24 @@ export function createOrderSnapshotStockOrderResult(result: OrderSnapshotStockOr
   }
 }
 
+export function createOrderSnapshotCompetitorRatioBySize(
+  competitorRatioBySize: ProductSecondaryDetail['competitorRatioBySize'],
+): OrderSnapshotCompetitorRatioBySizeV2 {
+  return { ...competitorRatioBySize }
+}
+
 export function toProductPrimarySummaryFromSnapshotSummary(base: ProductPrimarySummary, summary: OrderSnapshotPrimarySummaryV2): ProductPrimarySummary {
   return { ...base, ...summary }
 }
 
 export function createOrderSnapshotCompetitorBasis(secondary: ProductSecondaryDetail): OrderSnapshotCompetitorBasisV2 {
   const { skuGroupKey, competitorPrice, competitorQty, competitorRatioBySize } = secondary
-  return { skuGroupKey, competitorPrice, competitorQty, competitorRatioBySize: { ...competitorRatioBySize } }
+  return {
+    skuGroupKey,
+    competitorPrice,
+    competitorQty,
+    competitorRatioBySize: createOrderSnapshotCompetitorRatioBySize(competitorRatioBySize),
+  }
 }
 
 export function toProductSecondaryDetailFromSnapshotBasis(base: ProductSecondaryDetail, basis: OrderSnapshotCompetitorBasisV2): ProductSecondaryDetail {
@@ -136,15 +164,10 @@ export type OrderSnapshotDrawer2V2 = {
   stockOrderRequest: OrderSnapshotStockOrderRequestV2
   stockOrderResult?: OrderSnapshotStockOrderResultV2
   unitEconomics?: OrderSnapshotUnitEconomicsV2
-  selfWeightPct: number
+  selfWeightPct: OrderSnapshotPercent
   bufferStock: number
   aiComment: OrderSnapshotAiCommentV2
-  confirmedTotals?: {
-    orderQty: number
-    expectedSalesAmount: number
-    expectedOpProfit: number
-    expectedOpProfitRatePct: number | null
-  }
+  confirmedTotals: OrderSnapshotConfirmedTotalsV2
   sizeOrders: OrderSnapshotSizeOrderV2[]
 }
 

@@ -151,7 +151,7 @@ describe('useCandidateStashItemActions', () => {
     expect(args.onItemsDeleted).toHaveBeenCalledWith(['item-1'])
     expect(args.showToast).toHaveBeenCalledWith(
       '후보는 삭제했지만 목록을 새로고침하지 못했습니다.',
-      { variant: 'error' },
+      { variant: 'warning' },
     )
     expect(vi.mocked(args.showToast).mock.calls.map(([message]) => message)).not.toContain('후보를 삭제했습니다.')
     expect(vi.mocked(args.showToast).mock.calls.some(([message]) => message.includes('삭제하지 못했습니다.'))).toBe(false)

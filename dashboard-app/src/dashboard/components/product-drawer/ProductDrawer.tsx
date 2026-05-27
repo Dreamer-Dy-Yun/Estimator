@@ -29,6 +29,7 @@ type ProductDrawerSharedProps = {
   candidateItemContext?: CandidateItemPanelContext | null
   onRequestNavigateAdjacent?: (direction: AdjacentDirection) => void | Promise<void>
   disableAdjacentNavigation?: boolean
+  keyboardShortcutsDisabled?: boolean
   suppressDocumentLayoutShift?: boolean
   closing?: boolean
 }
@@ -59,6 +60,7 @@ function ProductDrawerContent({
   candidateItemContext,
   onRequestNavigateAdjacent,
   disableAdjacentNavigation,
+  keyboardShortcutsDisabled,
   suppressDocumentLayoutShift,
   closing = false,
 }: ProductDrawerContentProps) {
@@ -79,6 +81,7 @@ function ProductDrawerContent({
   } = useSecondaryDrawerDetail({
     skuGroupKey: summary.skuGroupKey,
     expandPaneOpen,
+    companyUuid,
     hydrateSnapshot,
     pageName,
   })
@@ -114,6 +117,7 @@ function ProductDrawerContent({
     onClose,
     onRequestNavigateAdjacent,
     disableAdjacentNavigation,
+    disabled: keyboardShortcutsDisabled,
     secondaryEnabled,
   })
 

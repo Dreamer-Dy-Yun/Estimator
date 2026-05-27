@@ -5,6 +5,7 @@ import { useAppToast } from '../components/AppToastContext'
 import { LoadingSpinner } from '../components/LoadingSpinner'
 import { AdminActiveSwitch } from './AdminActiveSwitch'
 import { AdminGoogleSheetKeyDropzone } from './AdminGoogleSheetKeyDropzone'
+import { refreshAfterAdminMutation } from './adminMutationRefresh'
 import { GOOGLE_SHEET_PURPOSE_OPTIONS, getErrorMessage } from './adminHelpers'
 import styles from './AdminPage.module.css'
 
@@ -57,14 +58,16 @@ export function AdminGoogleSheetDialog({ config, onClose, onChanged, onDeleted }
         note,
         serviceAccountKeyJson: hasNewKey ? serviceAccountKeyJson : undefined,
       })
-      await onChanged()
+      const refreshWarningMessage = await refreshAfterAdminMutation(onChanged)
       if (hasNewKey) {
         setServiceAccountKeyJson('')
         setServiceAccountFileName('')
         setServiceAccountEmail('')
       }
-      setRowMessage(hasNewKey ? '변경됨 · JSON 키 교체됨' : '변경됨')
-      showToast(hasNewKey ? '구글 시트 설정과 JSON 키를 변경했습니다.' : '구글 시트 설정을 변경했습니다.')
+      const successRowMessage = hasNewKey ? '변경됨 · JSON 키 교체됨' : '변경됨'
+      const successToastMessage = hasNewKey ? '구글 시트 설정과 JSON 키를 변경했습니다.' : '구글 시트 설정을 변경했습니다.'
+      setRowMessage(refreshWarningMessage ? `${successRowMessage} · ${refreshWarningMessage}` : successRowMessage)
+      showToast(refreshWarningMessage ?? successToastMessage, refreshWarningMessage ? { variant: 'warning' } : undefined)
       setDeleteConfirm(false)
     } catch (error) {
       setErrorMessage(getErrorMessage(error))
@@ -86,7 +89,9 @@ export function AdminGoogleSheetDialog({ config, onClose, onChanged, onDeleted }
     setIsDeleting(true)
     try {
       await deleteAdminGoogleSheetConfig(config.uuid)
-      await onDeleted()
+      const refreshWarningMessage = await refreshAfterAdminMutation(onDeleted)
+      if (refreshWarningMessage) showToast(refreshWarningMessage, { variant: 'warning' })
+      onClose()
     } catch (error) {
       setErrorMessage(getErrorMessage(error))
       setIsDeleting(false)
@@ -95,7 +100,7 @@ export function AdminGoogleSheetDialog({ config, onClose, onChanged, onDeleted }
   }
 
   return (
-    <div className={styles.gptKeyDialogBackdrop} role="presentation" onMouseDown={onClose}>
+    <div className={styles.gptKeyDialogBackdrop} role="presentation" onMouseDown={isSaving || isDeleting ? undefined : onClose}>
       <section
         className={styles.gptKeyDialog}
         role="dialog"
@@ -108,7 +113,7 @@ export function AdminGoogleSheetDialog({ config, onClose, onChanged, onDeleted }
             <span>구글 시트 관리</span>
             <h3 id="admin-google-sheet-dialog-title">상세 설정</h3>
           </div>
-          <button className={styles.gptKeyDialogCloseButton} type="button" onClick={onClose} aria-label="닫기">
+          <button className={styles.gptKeyDialogCloseButton} type="button" onClick={onClose} disabled={isSaving || isDeleting} aria-label="닫기">
             x
           </button>
         </header>
@@ -168,7 +173,7 @@ export function AdminGoogleSheetDialog({ config, onClose, onChanged, onDeleted }
           <button className={styles.createButton} type="submit" form={formId} disabled={!isDirty || isSaving}>
             {isSaving ? <LoadingSpinner size="inline" label="변경 중" /> : '변경'}
           </button>
-          <button className={styles.secondaryButton} type="button" onClick={onClose}>
+          <button className={styles.secondaryButton} type="button" onClick={onClose} disabled={isSaving || isDeleting}>
             닫기
           </button>
         </div>

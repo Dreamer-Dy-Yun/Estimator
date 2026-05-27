@@ -71,8 +71,9 @@ export const makeSizeMix = (
 
 export function splitSecondarySizeRows(rows: ReturnType<typeof makeSizeMix>): Pick<ProductSecondaryDetail, 'sizeRows' | 'competitorRatioBySize'> {
   const competitorRatioBySize: Record<string, number> = {}
+  const competitorRatioTotal = rows.reduce((sum, row) => sum + Math.max(0, row.competitorRatio), 0)
   const sizeRows = rows.map(({ ratio, competitorRatio, ...row }) => {
-    competitorRatioBySize[row.size] = competitorRatio
+    competitorRatioBySize[row.size] = competitorRatioTotal > 0 ? Math.max(0, competitorRatio) / competitorRatioTotal : 0
     return { ...row, selfRatio: ratio }
   })
   return { sizeRows, competitorRatioBySize }

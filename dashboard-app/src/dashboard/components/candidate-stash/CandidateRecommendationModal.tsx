@@ -5,6 +5,7 @@ import { formatEaQuantity, formatGroupedNumber } from '../../../utils/format'
 import styles from '../common.module.css'
 import { CandidateInsightBadges } from './CandidateInsightBadges'
 import { useModalFocusTrap } from '../useModalFocusTrap'
+import { drawerKeepOpenDataProps } from '../../drawer/drawerDom'
 import modalStyles from './CandidateRecommendationModal.module.css'
 
 type Props = {
@@ -83,7 +84,7 @@ export function CandidateRecommendationModal({
       : `추천 ${formatGroupedNumber(visibleRows.length)}개 · 선택 ${formatGroupedNumber(selectedCount)}개`
 
   return (
-    <div className={modalStyles.backdrop} role="presentation" onClick={handleClose}>
+    <div className={modalStyles.backdrop} role="presentation" onClick={handleClose} {...drawerKeepOpenDataProps()}>
       <div
         ref={panelRef}
         className={modalStyles.panel}

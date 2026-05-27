@@ -124,6 +124,8 @@ export function ProductSecondaryDrawer({
     appliedPrefillKey,
     snapshotConfirmBySize,
     snapshotConfirmBaselineActive,
+    confirmedBaselineDraftDirty,
+    markConfirmedBaselineDraftDirty,
     applyLiveOrderUnitInputs,
     handleResetToLive,
     handleRestoreConfirmed,
@@ -169,18 +171,29 @@ export function ProductSecondaryDrawer({
   })
 
   const handleRequestAiComment = useCallback(() => {
+    markConfirmedBaselineDraftDirty()
     requestAiComment(buildSnapshot())
-  }, [buildSnapshot, requestAiComment])
+  }, [buildSnapshot, markConfirmedBaselineDraftDirty, requestAiComment])
   const handleResetToLiveClick = useCallback(() => {
     handleResetToLive(selfCol)
   }, [handleResetToLive, selfCol])
+  const handleCurrentOrderInboundDueDateDraftChange = useCallback((value: string) => {
+    markConfirmedBaselineDraftDirty()
+    handleCurrentOrderInboundDueDateChange(value)
+  }, [handleCurrentOrderInboundDueDateChange, markConfirmedBaselineDraftDirty])
+  const handleNextOrderInboundDueDateDraftChange = useCallback((value: string) => {
+    markConfirmedBaselineDraftDirty()
+    handleNextOrderInboundDueDateChange(value)
+  }, [handleNextOrderInboundDueDateChange, markConfirmedBaselineDraftDirty])
 
   useSecondaryDrawerDraftEmission({
     appliedPrefillKey,
+    canBuildSnapshot: model.stockOrderCalculationReady,
     candidateItemContext,
     buildSnapshot,
     prefillKey,
     snapshotConfirmBaselineActive,
+    confirmedBaselineDraftDirty,
   })
 
   return (
@@ -190,7 +203,7 @@ export function ProductSecondaryDrawer({
       channel={channel}
       candidateItemContext={candidateItemContext}
       hasSavedSnapshot={hasSavedSnapshot}
-      showingConfirmedValues={snapshotConfirmBaselineActive}
+      showingConfirmedValues={snapshotConfirmBaselineActive && !confirmedBaselineDraftDirty}
       onResetToLive={handleResetToLiveClick}
       onRestoreConfirmed={handleRestoreConfirmed}
       model={model}
@@ -211,8 +224,8 @@ export function ProductSecondaryDrawer({
         expectedFeeRatePct,
       }}
       orderInputActions={{
-        onCurrentOrderInboundDueDateChange: handleCurrentOrderInboundDueDateChange,
-        onNextOrderInboundDueDateChange: handleNextOrderInboundDueDateChange,
+        onCurrentOrderInboundDueDateChange: handleCurrentOrderInboundDueDateDraftChange,
+        onNextOrderInboundDueDateChange: handleNextOrderInboundDueDateDraftChange,
         onBufferStockChange: setBufferStock,
         onUnitCostChange: setUnitCostInput,
         onUnitPriceChange: setUnitPriceInput,

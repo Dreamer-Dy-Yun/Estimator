@@ -28,6 +28,7 @@ type Props = {
     sizeRows: SecondarySizeOrderDisplayRow[]
     helpIds: Pick<SecondaryHelpIds, 'totalOrderBalance' | 'expectedInboundOrderBalance' | 'sizeRecQty' | 'salesForecastSizeOrder'>
     stockOrderDisplay: SecondaryStockOrderCalcResult['display'] | null
+    calculationReady?: boolean
     manualConfirmBySize: Readonly<Record<string, true>>
   }
   actions: {
@@ -40,8 +41,8 @@ type Props = {
 type HelpMark = { helpId: SecondaryHelpId; labelId: string; help: Props['help'] }
 type QuantityRow = {
   label: string
-  totalQty: number
-  valueForSize: (row: SecondarySizeOrderDisplayRow, index: number) => number | undefined
+  totalQty: number | null
+  valueForSize: (row: SecondarySizeOrderDisplayRow, index: number) => number | null | undefined
   helpMark?: HelpMark
 }
 
@@ -59,30 +60,40 @@ function QuantityTableRow({ row, sizeRows }: { row: QuantityRow; sizeRows: Secon
   return (
     <tr>
       <td><LabelWithHelp label={row.label} helpMark={row.helpMark} /></td>
-      <td className={styles.num}>{formatGroupedNumber(row.totalQty)}</td>
+      <td className={styles.num}>{formatQuantityValue(row.totalQty)}</td>
       {sizeRows.map((sizeRow, index) => (
-        <td key={sizeRow.size} className={styles.num}>{formatOptionalGroupedNumber(row.valueForSize(sizeRow, index))}</td>
+        <td key={sizeRow.size} className={styles.num}>{formatQuantityValue(row.valueForSize(sizeRow, index))}</td>
       ))}
     </tr>
   )
 }
 
+function formatQuantityValue(value: number | null | undefined) {
+  if (value == null) return KO.valueNotCalculated
+  return formatOptionalGroupedNumber(value)
+}
+
 export function SizeOrderCard({ sizeOrder, actions, help }: Props) {
-  const { channelLabel, selfCompanyLabel, selfWeightPct, sizeRows, helpIds, stockOrderDisplay, manualConfirmBySize } = sizeOrder
+  const { channelLabel, selfCompanyLabel, selfWeightPct, sizeRows, helpIds, stockOrderDisplay, calculationReady = true, manualConfirmBySize } = sizeOrder
   const tableRef = useRef<HTMLTableElement | null>(null)
   const competitorWeightPct = getCompetitorWeightPct(selfWeightPct)
   const columnTotals = useMemo(() => calculateSizeOrderColumnTotals(sizeRows), [sizeRows])
   const quantityRows: QuantityRow[] = [
-    { label: KO.rowCurrentStockQty, totalQty: stockOrderDisplay?.currentStockQtyTotal ?? 0, valueForSize: (_, i) => stockOrderDisplay?.currentStockQtyBySize[i] },
-    { label: KO.rowTotalOrderBalance, totalQty: stockOrderDisplay?.totalOrderBalanceTotal ?? 0, valueForSize: (_, i) => stockOrderDisplay?.totalOrderBalanceBySize[i], helpMark: { helpId: 'totalOrderBalance', labelId: helpIds.totalOrderBalance, help } },
-    { label: KO.rowExpectedInboundOrderBalance, totalQty: stockOrderDisplay?.expectedInboundOrderBalanceTotal ?? 0, valueForSize: (_, i) => stockOrderDisplay?.expectedInboundOrderBalanceBySize[i], helpMark: { helpId: 'expectedInboundOrderBalance', labelId: helpIds.expectedInboundOrderBalance, help } },
-    { label: KO.rowSalesForecast, totalQty: columnTotals.forecast, valueForSize: (row) => row.forecastQty, helpMark: { helpId: 'salesForecastSizeOrder', labelId: helpIds.salesForecastSizeOrder, help } },
-    { label: KO.thRecQty, totalQty: columnTotals.rec, valueForSize: (row) => row.recommendedQty, helpMark: { helpId: 'sizeRecQty', labelId: helpIds.sizeRecQty, help } },
+    { label: KO.rowCurrentStockQty, totalQty: stockOrderDisplay?.currentStockQtyTotal ?? null, valueForSize: (_, i) => stockOrderDisplay?.currentStockQtyBySize[i] },
+    { label: KO.rowTotalOrderBalance, totalQty: stockOrderDisplay?.totalOrderBalanceTotal ?? null, valueForSize: (_, i) => stockOrderDisplay?.totalOrderBalanceBySize[i], helpMark: { helpId: 'totalOrderBalance', labelId: helpIds.totalOrderBalance, help } },
+    { label: KO.rowExpectedInboundOrderBalance, totalQty: stockOrderDisplay?.expectedInboundOrderBalanceTotal ?? null, valueForSize: (_, i) => stockOrderDisplay?.expectedInboundOrderBalanceBySize[i], helpMark: { helpId: 'expectedInboundOrderBalance', labelId: helpIds.expectedInboundOrderBalance, help } },
+    { label: KO.rowSalesForecast, totalQty: calculationReady ? columnTotals.forecast : null, valueForSize: (row) => (calculationReady ? row.forecastQty : null), helpMark: { helpId: 'salesForecastSizeOrder', labelId: helpIds.salesForecastSizeOrder, help } },
+    { label: KO.thRecQty, totalQty: calculationReady ? columnTotals.rec : null, valueForSize: (row) => (calculationReady ? row.recommendedQty : null), helpMark: { helpId: 'sizeRecQty', labelId: helpIds.sizeRecQty, help } },
   ]
 
   return (
     <div className={styles.card}>
       <h3 className={styles.sectionTitle}>{KO.sectionSizeOrder}</h3>
+      {!calculationReady && (
+        <p className={styles.metaFilterActionHint} role="status" aria-live="polite">
+          {KO.msgStockOrderCalcRequired}
+        </p>
+      )}
       <div className={styles.sliderRow}>
         <div className={styles.sliderSelfGroup}>
           <span className={styles.sliderRowLabel}>{selfCompanyLabel} 가중치</span>
@@ -154,24 +165,28 @@ export function SizeOrderCard({ sizeOrder, actions, help }: Props) {
             {quantityRows.map((row) => <QuantityTableRow key={row.label} row={row} sizeRows={sizeRows} />)}
             <tr>
               <td>{KO.thConfirmQty}</td>
-              <td className={styles.num}>{formatGroupedNumber(columnTotals.confirm)}</td>
+              <td className={styles.num}>{calculationReady ? formatGroupedNumber(columnTotals.confirm) : KO.valueNotCalculated}</td>
               {sizeRows.map((row) => {
                 const manual = Boolean(manualConfirmBySize[row.size])
                 return (
                   <td key={row.size} className={`${styles.num} ${styles.confirmQtyCell} ${manual ? styles.confirmQtyCellManual : ''}`}>
                     <span className={styles.confirmQtyInputWrap}>
-                      <input
-                        type="number"
-                        min={0}
-                        step={1}
-                        className={styles.stockNumberInput}
-                        value={row.confirmQty}
-                        onChange={(event) => {
-                          const next = parseConfirmQtyInput(event.target.value)
-                          if (next != null) actions.onConfirmQtyChange(row.size, next, row.recommendedQty)
-                        }}
-                        aria-label={`${row.size} ${KO.thConfirmQty}`}
-                      />
+                      {calculationReady ? (
+                        <input
+                          type="number"
+                          min={0}
+                          step={1}
+                          className={styles.stockNumberInput}
+                          value={row.confirmQty}
+                          onChange={(event) => {
+                            const next = parseConfirmQtyInput(event.target.value)
+                            if (next != null) actions.onConfirmQtyChange(row.size, next, row.recommendedQty)
+                          }}
+                          aria-label={`${row.size} ${KO.thConfirmQty}`}
+                        />
+                      ) : (
+                        <span className={styles.stockComputedValue}>{KO.valueNotCalculated}</span>
+                      )}
                     </span>
                   </td>
                 )

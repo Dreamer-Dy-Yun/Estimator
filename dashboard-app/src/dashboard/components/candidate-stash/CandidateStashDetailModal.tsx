@@ -10,6 +10,7 @@ import { CandidateStashDetailFilters } from './CandidateStashDetailFilters'
 import { CandidateStashDetailHeader } from './CandidateStashDetailHeader'
 import { CandidateStashMissingState } from './CandidateStashMissingState'
 import { CandidateStashProductDrawer } from './CandidateStashProductDrawer'
+import { stashDetailModalBackdropDataProps } from '../../drawer/drawerDom'
 import { useModalFocusTrap } from '../useModalFocusTrap'
 import { useCandidateStashDetailModal, type InnerCandidateRow } from './useCandidateStashDetailModal'
 import { useVisibleUuidSelection } from './useVisibleUuidSelection'
@@ -89,7 +90,7 @@ export function CandidateStashDetailModal({ stashUuid, companyUuid, downloadUser
   }
   const toggleItemDrawer = (row: InnerCandidateRow) => {
     if (model.drawerOpen && model.openedItemUuid === row.uuid) model.closeDrawer()
-    else void model.openItemDrawer(row)
+    else void model.openItemDrawer(row, { companyUuid })
   }
 
   return (
@@ -116,7 +117,7 @@ export function CandidateStashDetailModal({ stashUuid, companyUuid, downloadUser
       </div>
 
       {recommendationOpen && <CandidateRecommendationModal rows={recommendationRows} loading={model.recommendationLoading} applying={model.recommendationAppendBusy} error={model.recommendationError} selectedUuids={recommendationSelection.selectedVisibleUuidSet} onClose={() => setRecommendationOpen(false)} onToggleAll={recommendationSelection.toggleAllVisibleUuids} onToggleItem={recommendationSelection.toggleSelectedUuid} onApply={applyRecommendations} />}
-      <CandidateStashProductDrawer model={model} bulkDeleteOpen={bulkDeleteOpen || bulkUnconfirmOpen} />
+      <CandidateStashProductDrawer model={model} bulkDeleteOpen={bulkDeleteOpen || bulkUnconfirmOpen || recommendationOpen} />
       <CandidateBulkDetailConfirmProgress progress={model.bulkConfirmProgress} onClose={model.closeBulkConfirmProgress} />
       <CandidateStashDeleteDialogs
         model={model}
@@ -137,8 +138,4 @@ export function CandidateStashDetailModal({ stashUuid, companyUuid, downloadUser
       />
     </>
   )
-}
-
-function stashDetailModalBackdropDataProps(drawerOpen: boolean, drawerClosing: boolean) {
-  return drawerOpen || drawerClosing ? { 'data-drawer-open': 'true' } : undefined
 }

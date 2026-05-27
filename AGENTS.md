@@ -3,8 +3,10 @@
 ## Git
 
 - Use `main` as the default branch unless the user explicitly says otherwise.
-- Push completed work directly to `origin/main` when the user gives no different instruction.
-- Check `git status` before staging, committing, or pushing.
+- Do not stage, commit, or push unless the user explicitly requests it.
+- Check `git status` before any user-requested staging, committing, or pushing.
+- If the user requests a commit or push while the current branch is `main`, use `main`.
+- If the current branch is not `main`, commit or push only to the current branch and do not push directly to `main`.
 - Do not revert unrelated user changes.
 
 ## General Approach
@@ -29,6 +31,8 @@
 - In areas that already use `KO` constants, continue using that pattern.
 - This is a maintenance rule for the current codebase, not a preference to expand abstraction everywhere.
 - For `product-secondary` text, prefer adding to `ko.ts` instead of introducing nearby hard-coded strings.
+- When editing files that contain Korean UI text or Korean documentation, do not rewrite those files through PowerShell here-strings, `Set-Content`, or shell-generated text blocks. Use `apply_patch` for manual edits, or a UTF-8-safe script only when the change is mechanical and immediately checked by the encoding script.
+- If Korean text becomes `???`, replacement characters, or mojibake after an edit, treat it as a failed edit. Restore the intended Korean text in the same change before continuing.
 
 ## Data And API Contracts
 
@@ -67,3 +71,4 @@
 - Avoid introducing new lint problems in touched files.
 - Use `py` for Python scripts in this environment; `python` may not resolve correctly.
 - Read and write Korean text as UTF-8. Do not assume PowerShell's default display mojibake means the file is corrupted.
+- After touching Korean text in source or markdown, run `npm run check:encoding` in `dashboard-app` before committing or deploying. If tests compare Korean labels, rerun the affected test or `npm run test:run`.

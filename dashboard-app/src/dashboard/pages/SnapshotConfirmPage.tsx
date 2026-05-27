@@ -90,12 +90,11 @@ export const SnapshotConfirmPage = () => {
     message: string,
     options?: { variant?: 'error' | 'success' | 'warning' },
   ) => {
-    if (options?.variant === 'warning') {
-      showToast(message, { variant: 'info' })
-      return
-    }
     showToast(message, options?.variant ? { variant: options.variant } : undefined)
   }, [showToast])
+  const showRefreshFailureWarning = useCallback((message: string) => {
+    showCandidateToast(message, { variant: 'warning' })
+  }, [showCandidateToast])
 
   const loadStashes = useCallback(async () => {
     const requestScopeKey = companyScopeKey
@@ -115,6 +114,7 @@ export const SnapshotConfirmPage = () => {
     } catch (err) {
       if (mountedRef.current && loadStashesSeqRef.current === seq && companyScopeKeyRef.current === requestScopeKey) {
         setStashesLoadError(err instanceof Error ? err.message : '오더 후보군 목록을 불러오지 못했습니다.')
+        return { ok: false as const, error: err }
       }
     } finally {
       if (mountedRef.current && loadStashesSeqRef.current === seq && companyScopeKeyRef.current === requestScopeKey) setStashesLoading(false)
@@ -149,6 +149,7 @@ export const SnapshotConfirmPage = () => {
     return runScopedAction<CandidateStashExcelUploadResult>({
       actionLabel: '목록 업로드',
       successMessage: '목록 업로드 요청이 완료되었습니다.',
+      onRefreshError: showRefreshFailureWarning,
       setBusy: (busy) => patchUpload({ busy }),
       mutate: (mutationCompanyUuid) => uploadCandidateStashExcel(file, { companyUuid: mutationCompanyUuid }),
       afterSuccess: (result) => {
@@ -162,6 +163,7 @@ export const SnapshotConfirmPage = () => {
   const duplicateStash = (stash: CandidateStashSummary) => runScopedAction({
     actionLabel: '후보군 복제',
     successMessage: '후보군이 복제되었습니다.',
+    onRefreshError: showRefreshFailureWarning,
     setBusy: (busy) => setDuplicateBusyUuid(busy ? stash.uuid : null),
     mutate: (mutationCompanyUuid) => duplicateCandidateStash(stash.uuid, { companyUuid: mutationCompanyUuid }),
   })
@@ -171,6 +173,7 @@ export const SnapshotConfirmPage = () => {
     return runScopedAction({
       actionLabel: '후보군 이름/비고 변경',
       successMessage: '후보군 이름/비고를 변경했습니다.',
+      onRefreshError: showRefreshFailureWarning,
       setBusy: (busy) => patchEdit({ busy }),
       mutate: (mutationCompanyUuid) => updateCandidateStash({ stashUuid: target.uuid, companyUuid: mutationCompanyUuid, name: edit.name.trim(), note: edit.note.trim() || null }),
       afterSuccess: () => setEdit(EMPTY_EDIT),
@@ -182,6 +185,7 @@ export const SnapshotConfirmPage = () => {
     return runScopedAction({
       actionLabel: '후보군 삭제',
       successMessage: '후보군을 삭제했습니다.',
+      onRefreshError: showRefreshFailureWarning,
       setBusy: setDeleteBusy,
       mutate: (mutationCompanyUuid) => deleteCandidateStash(targetUuid, { companyUuid: mutationCompanyUuid }),
       afterSuccess: () => setDeleteTarget(null),

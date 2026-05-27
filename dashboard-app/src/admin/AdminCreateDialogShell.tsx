@@ -27,8 +27,12 @@ export function AdminCreateDialogShell({
   onSubmit,
   children,
 }: AdminCreateDialogShellProps) {
+  const handleClose = () => {
+    if (!isSubmitting) onClose()
+  }
+
   return (
-    <div className={styles.gptKeyDialogBackdrop} role="presentation" onMouseDown={onClose}>
+    <div className={styles.gptKeyDialogBackdrop} role="presentation" onMouseDown={handleClose}>
       <section
         className={styles.gptKeyDialog}
         role="dialog"
@@ -41,7 +45,7 @@ export function AdminCreateDialogShell({
             <span>{eyebrow}</span>
             <h3 id={`${formId}-title`}>{title}</h3>
           </div>
-          <button className={styles.gptKeyDialogCloseButton} type="button" onClick={onClose} aria-label="닫기">
+          <button className={styles.gptKeyDialogCloseButton} type="button" onClick={handleClose} disabled={isSubmitting} aria-label="닫기">
             x
           </button>
         </header>
@@ -53,7 +57,7 @@ export function AdminCreateDialogShell({
         {errorMessage ? <p className={styles.rowError}>{errorMessage}</p> : null}
 
         <div className={styles.gptKeyDialogActions}>
-          <button className={styles.secondaryButton} type="button" onClick={onClose}>
+          <button className={styles.secondaryButton} type="button" onClick={handleClose} disabled={isSubmitting}>
             닫기
           </button>
           <button className={styles.createButton} type="submit" form={formId} disabled={isSubmitting}>

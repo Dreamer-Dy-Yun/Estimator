@@ -95,15 +95,14 @@ export function useCandidateStashItemActions({
   }, [createCanReflectAction])
 
   const refreshAfterMutation = useCallback(async (failureMessage: string, canReflect: () => boolean) => {
-    if (!canReflect()) return false
+    if (!canReflect()) return null
     try {
       await refreshStashes()
-      return canReflect()
+      return null
     } catch {
-      if (canReflect()) showToast(failureMessage, { variant: 'error' })
-      return false
+      return canReflect() ? failureMessage : null
     }
-  }, [refreshStashes, showToast])
+  }, [refreshStashes])
 
   const confirmDeleteItem = useCallback(async () => {
     if (!itemDeleteTarget) return
@@ -119,8 +118,8 @@ export function useCandidateStashItemActions({
       }
       if (!canReflect()) return
       onItemsDeleted?.([target.uuid])
-      const refreshed = await refreshAfterMutation('후보는 삭제했지만 목록을 새로고침하지 못했습니다.', canReflect)
-      if (refreshed && canReflect()) showToast('후보를 삭제했습니다.')
+      const refreshWarningMessage = await refreshAfterMutation('후보는 삭제했지만 목록을 새로고침하지 못했습니다.', canReflect)
+      if (canReflect()) showToast(refreshWarningMessage ?? '후보를 삭제했습니다.', refreshWarningMessage ? { variant: 'warning' } : undefined)
       if (canReflect() && actionScope.drawerItemUuid === target.uuid) closeDrawer()
     } finally {
       if (canReflect()) setItemDeleteBusy(false)
@@ -141,8 +140,8 @@ export function useCandidateStashItemActions({
       }
       if (!canReflect()) return
       onItemsDeleted?.(itemUuidsSnapshot)
-      const refreshed = await refreshAfterMutation('선택 후보는 삭제했지만 목록을 새로고침하지 못했습니다.', canReflect)
-      if (refreshed && canReflect()) showToast('선택한 후보를 삭제했습니다.')
+      const refreshWarningMessage = await refreshAfterMutation('선택 후보는 삭제했지만 목록을 새로고침하지 못했습니다.', canReflect)
+      if (canReflect()) showToast(refreshWarningMessage ?? '선택한 후보를 삭제했습니다.', refreshWarningMessage ? { variant: 'warning' } : undefined)
       if (canReflect() && actionScope.drawerItemUuid && itemUuidsSnapshot.includes(actionScope.drawerItemUuid)) closeDrawer()
     } finally {
       if (canReflect()) setBulkDeleteBusy(false)
@@ -166,14 +165,19 @@ export function useCandidateStashItemActions({
       if (!canReflect()) return
       const updatedItems = results.flatMap((result) => result.status === 'fulfilled' ? [result.value] : [])
       const failedCount = results.length - updatedItems.length
+      let bulkUnconfirmRefreshFailed = false
       if (updatedItems.length) {
         const updatedItemUuidSet = new Set(updatedItems.map((item) => item.uuid))
         onItemsUnconfirmed?.(updatedItems)
-        const refreshed = await refreshAfterMutation('상세확정 해제는 반영했지만 목록을 새로고침하지 못했습니다.', canReflect)
-        if (!refreshed && failedCount === 0) return
+        const refreshWarningMessage = await refreshAfterMutation('상세확정 해제는 반영했지만 목록을 새로고침하지 못했습니다.', canReflect)
+        if (refreshWarningMessage && canReflect() && failedCount === 0) {
+          bulkUnconfirmRefreshFailed = true
+          showToast(refreshWarningMessage, { variant: 'warning' })
+        }
         if (canReflect() && actionScope.drawerItemUuid && updatedItemUuidSet.has(actionScope.drawerItemUuid)) closeDrawer()
       }
       if (!canReflect()) return
+      if (bulkUnconfirmRefreshFailed) return
       showToast(`상세확정 해제: ${updatedItems.length}개 성공/${failedCount}개 실패했습니다.`, failedCount > 0 ? { variant: 'error' } : undefined)
       if (failedCount > 0) {
         const rejected = results.find((result): result is PromiseRejectedResult => result.status === 'rejected')

@@ -1,8 +1,8 @@
 import { eventPathContainsInteractiveControl } from '../interaction/interactionTarget'
 
 /**
- * ProductDrawer 바깥 클릭 시 닫지 않을 영역(테이블 랩·모달·확인창 등) 표시.
- * selector 는 `Element.closest` 용.
+ * Marks portal content that should not trigger product-drawer outside-click close.
+ * The selector is attribute-based so `Element.closest` can detect nested portal nodes.
  */
 const DRAWER_KEEP_OPEN_ATTR = 'data-drawer-keep-open' as const
 
@@ -22,7 +22,7 @@ export function shouldKeepDrawerOpenOnOutsideMouseDown(event: MouseEvent): boole
   return shouldKeepDrawerOpenFromEventPath(event.composedPath())
 }
 
-/** 이너 오더 모달만 드로어에 맞춰 축소한다. 스타일은 `CandidateStashDetailModal.module.css`가 소유한다. */
+/** Adds inner-drawer state attributes consumed by `CandidateStashDetailModal.module.css`. */
 const INNER_DRAWER_LAYOUT_SHIFT_ATTR = 'data-inner-drawer-open' as const
 const INNER_DRAWER_LAYOUT_CLOSING_ATTR = 'data-inner-drawer-closing' as const
 

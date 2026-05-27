@@ -160,11 +160,11 @@ export function useCandidateRecommendations({
     if (!skuGroupKeys.length) return { status: 'empty' }
     if (appendBusyRef.current) return { status: 'stale' }
     if (!appendScopeKey || !appendRecommendationKey || !stashUuid || !dataReferencePeriodStart || !dataReferencePeriodEnd) {
-      showToast('추천 후보 추가 기준 기간을 확인할 수 없습니다.')
+      showToast('추천 후보 추가 기준 기간을 확인할 수 없습니다.', { variant: 'error' })
       throw new Error('추천 후보 추가 기준 기간을 확인할 수 없습니다.')
     }
     if (!companyUuid) {
-      showToast(COMPANY_REQUIRED_MESSAGE)
+      showToast(COMPANY_REQUIRED_MESSAGE, { variant: 'error' })
       throw new Error(COMPANY_REQUIRED_MESSAGE)
     }
     const appendSeq = appendSeqRef.current + 1
@@ -191,7 +191,7 @@ export function useCandidateRecommendations({
       ))
       void refreshStashes().catch((err) => {
         if (!canReflectAppend()) return
-        showToast(getApiErrorDisplayMessage(err, '후보군 목록 최신화에 실패했습니다.'))
+        showToast(getApiErrorDisplayMessage(err, '후보군 목록 최신화에 실패했습니다.'), { variant: 'warning' })
       })
       showToast(
         createdSkuUuidSet.size
@@ -203,7 +203,7 @@ export function useCandidateRecommendations({
         : { status: 'empty' }
     } catch (err) {
       if (!canReflectAppend()) return { status: 'stale' }
-      showToast(getApiErrorDisplayMessage(err, '추천 후보 추가에 실패했습니다.'))
+      showToast(getApiErrorDisplayMessage(err, '추천 후보 추가에 실패했습니다.'), { variant: 'error' })
       throw err
     } finally {
       if (appendSeqRef.current === appendSeq) {

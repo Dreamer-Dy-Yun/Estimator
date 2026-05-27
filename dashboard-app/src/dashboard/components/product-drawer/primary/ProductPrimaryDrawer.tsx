@@ -136,7 +136,7 @@ export function ProductPrimaryDrawer({
         <ComponentErrorBoundary page={pageName} unit="PrimarySalesTrendCard">
           <ProductMonthlyTrendContainer
             skuGroupKey={summary.skuGroupKey}
-
+            companyUuid={companyUuid}
             periodStart={periodStart}
             periodEnd={periodEnd}
             forecastMonths={forecastMonths}

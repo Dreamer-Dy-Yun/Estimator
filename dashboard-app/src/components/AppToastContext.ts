@@ -1,6 +1,6 @@
 import { createContext, useContext } from 'react'
 
-export type ToastVariant = 'success' | 'info' | 'error'
+export type ToastVariant = 'success' | 'info' | 'warning' | 'error'
 
 export type ToastOptions = {
   variant?: ToastVariant

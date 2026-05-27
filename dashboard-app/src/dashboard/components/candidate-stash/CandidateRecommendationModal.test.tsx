@@ -3,6 +3,7 @@ import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { CandidateReferenceItemSummary } from '../../../api'
+import { DRAWER_KEEP_OPEN_SELECTOR } from '../../drawer/drawerDom'
 import { CandidateRecommendationModal } from './CandidateRecommendationModal'
 
 const rows = [
@@ -106,6 +107,12 @@ describe('CandidateRecommendationModal', () => {
     expect(tableRows).toHaveLength(2)
     expect(headerCells).toHaveLength(7)
     expect(dataCells).toHaveLength(7)
+  })
+
+  it('marks the modal as drawer keep-open portal content', () => {
+    renderModal()
+
+    expect(container?.querySelector(DRAWER_KEEP_OPEN_SELECTOR)).not.toBeNull()
   })
 
   it('keeps non-data table states inside a spanning cell', () => {

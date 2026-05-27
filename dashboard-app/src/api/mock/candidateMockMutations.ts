@@ -9,6 +9,7 @@ import type {
   UpdateCandidateItemResponse,
   UpdateCandidateStashPayload,
 } from '../types'
+import { parseOrderSnapshot } from '../../snapshot/parseOrderSnapshot'
 import { MOCK_ADMIN_USER_UUID } from './authApi'
 import { buildCandidateStashItems } from './candidateItemSummaryBuilder'
 import { toCandidateItemDetail } from './candidateMockMappers'
@@ -62,6 +63,26 @@ function requireItemUuidSet(itemUuids: string[]): Set<string> {
 
 function createItem(stashUuid: string, skuGroupKey: string, now: string, overrides?: Partial<Pick<CandidateItemRecord, 'details' | 'isLatestLlmComment'>>) {
   return createCandidateItemRecord(stashUuid, skuGroupKey, now, overrides)
+}
+
+function requireCandidateDetailsSnapshot(
+  details: CandidateItemRecord['details'] | undefined,
+  skuGroupKey: string,
+  options: { allowNull: boolean; companyUuid: string },
+): CandidateItemRecord['details'] {
+  if (!details) {
+    if (options.allowNull) return null
+    throw new Error('Candidate item details are required.')
+  }
+
+  const snapshot = parseOrderSnapshot(details)
+  if (snapshot.skuGroupKey !== skuGroupKey) {
+    throw new Error(`Candidate item details skuGroupKey mismatch: ${snapshot.skuGroupKey} !== ${skuGroupKey}`)
+  }
+  if (snapshot.companyUuid !== options.companyUuid) {
+    throw new Error(`Candidate item details companyUuid mismatch: ${snapshot.companyUuid} !== ${options.companyUuid}`)
+  }
+  return snapshot
 }
 
 export function deleteCandidateItemRecord(itemUuid: string, ownerUserUuid?: string, companyUuid?: string): void {
@@ -137,12 +158,12 @@ export function duplicateCandidateStashRecord(sourceStashUuid: string, ownerUser
 }
 
 export function appendCandidateItemRecord(payload: AppendCandidateItemPayload, ownerUserUuid?: string, companyUuid?: string): void {
-  requireCandidateStashForMutation(payload.stashUuid, ownerUserUuid, companyUuid)
+  const stash = requireCandidateStashForMutation(payload.stashUuid, ownerUserUuid, companyUuid ?? payload.companyUuid)
   requireSkuGroupKeys([payload.skuGroupKey])
   const records = readCandidateItemRecords()
   if (records.some((row) => row.stashUuid === payload.stashUuid && row.skuGroupKey === payload.skuGroupKey)) throw new Error('이미 후보군에 포함된 상품입니다.')
   records.push(createItem(payload.stashUuid, payload.skuGroupKey, new Date().toISOString(), {
-    details: payload.details,
+    details: requireCandidateDetailsSnapshot(payload.details, payload.skuGroupKey, { allowNull: false, companyUuid: stash.companyUuid }),
     isLatestLlmComment: payload.isLatestLlmComment,
   }))
 }
@@ -167,7 +188,7 @@ export function updateCandidateItemRecord(payload: UpdateCandidateItemPayload, o
   const requiredCompanyUuid = getMockMutationCompanyUuid(companyUuid)
   const item = readCandidateItemRecords().find((row) => row.uuid === payload.itemUuid)
   if (!item || !findCandidateStashForOwner(item.stashUuid, ownerUserUuid, requiredCompanyUuid)) throw new Error('후보 아이템을 찾을 수 없습니다.')
-  item.details = payload.details
+  item.details = requireCandidateDetailsSnapshot(payload.details, item.skuGroupKey, { allowNull: true, companyUuid: requiredCompanyUuid })
   item.isLatestLlmComment = payload.isLatestLlmComment
   item.dbUpdatedAt = new Date().toISOString()
   return toCandidateItemDetail(item)

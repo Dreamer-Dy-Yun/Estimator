@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { getCandidateItemByUuid, type CandidateStashSummary } from '../../../api'
+import { getCandidateItemByUuid, isAllCompanyScope, type CandidateStashSummary } from '../../../api'
 import type { AdjacentDirection } from '../../../utils/adjacentListNavigation'
 import { adjacentIdInOrder } from '../../../utils/adjacentListNavigation'
 import { clampForecastMonths } from '../../../utils/forecastMonthsStorage'
@@ -14,6 +14,7 @@ const INNER_DRAWER_CLOSE_LAYOUT_MS = 440
 type DrawerSnapshotSource = 'confirmed' | 'live'
 type DraftSnapshotEntry = { snapshot: OrderSnapshotDocumentV2; source: DrawerSnapshotSource }
 type SnapshotMutationState = { state: 'confirmed' | 'unconfirmed'; baseDbUpdatedAt: string | null }
+type OpenItemDrawerOptions = { companyUuid?: string | null }
 
 type Args = {
   dataReferenceStart: string | undefined
@@ -36,6 +37,7 @@ export function useCandidateStashItemDrawer({ dataReferenceStart, dataReferenceE
   const mountedRef = useRef(false)
   const drawerRequestSeqRef = useRef(0)
   const drawerCloseTimerRef = useRef<ReturnType<typeof window.setTimeout> | null>(null)
+  const drawerCompanyUuidRef = useRef<string | null>(null)
   const innerNavLockRef = useRef(false)
   const draftSnapshotsByItemUuidRef = useRef<Record<string, DraftSnapshotEntry>>({})
   const confirmedSnapshotsByItemUuidRef = useRef<Record<string, OrderSnapshotDocumentV2>>({})
@@ -57,7 +59,10 @@ export function useCandidateStashItemDrawer({ dataReferenceStart, dataReferenceE
   }, [clearCloseTimer])
 
   const fc = clampForecastMonths(drawerForecastMonths)
-  const bundle = useProductDrawerBundle(drawerOpen || drawerClosing ? drawerSkuGroupKey : null, { allowStaleWhileRevalidate: false })
+  const bundle = useProductDrawerBundle(drawerOpen || drawerClosing ? drawerSkuGroupKey : null, {
+    allowStaleWhileRevalidate: false,
+    companyUuid: drawerCompanyUuidRef.current ?? undefined,
+  })
   const mergedSummary = useMemo(() => mergePrimarySummaryFromBundleAndSnapshot(drawerSkuGroupKey, bundle, hydrateSnap), [bundle, drawerSkuGroupKey, hydrateSnap])
   const detailForecastMonths = detailTarget?.forecastMonths ?? 8
 
@@ -70,17 +75,26 @@ export function useCandidateStashItemDrawer({ dataReferenceStart, dataReferenceE
     setConfirmedHydrateSnap(confirmed)
   }, [openedItemUuid])
 
-  const openItemDrawer = useCallback(async (row: InnerCandidateRow) => {
+  const openItemDrawer = useCallback(async (row: InnerCandidateRow, options?: OpenItemDrawerOptions) => {
     const seq = drawerRequestSeqRef.current + 1
     drawerRequestSeqRef.current = seq
     clearCloseTimer()
     setDrawerClosing(false)
     setDrawerError(null)
     try {
-      const detail = await getCandidateItemByUuid(row.uuid)
+      const scopedCompanyUuid = (options ? options.companyUuid?.trim() : drawerCompanyUuidRef.current) ?? null
+      if (!scopedCompanyUuid || isAllCompanyScope(scopedCompanyUuid)) throw new Error('Candidate item detail requires a single company scope.')
+      drawerCompanyUuidRef.current = scopedCompanyUuid
+      const detail = await getCandidateItemByUuid(row.uuid, { companyUuid: scopedCompanyUuid })
       if (!mountedRef.current || drawerRequestSeqRef.current !== seq) return
       if (!detail) throw new Error(`후보 상세 데이터 없음: ${row.uuid}`)
       const parsedSnapshot = detail.details ? parseOrderSnapshot(detail.details) : null
+      if (parsedSnapshot && parsedSnapshot.skuGroupKey !== row.skuGroupKey) {
+        throw new Error(`Candidate item snapshot skuGroupKey mismatch: ${row.uuid}`)
+      }
+      if (parsedSnapshot && parsedSnapshot.companyUuid !== scopedCompanyUuid) {
+        throw new Error(`Candidate item snapshot companyUuid mismatch: ${row.uuid}`)
+      }
       const localMutation = snapshotMutationsByItemUuidRef.current[row.uuid] ?? null
       const serverCaughtUp = localMutation?.baseDbUpdatedAt != null
         && detail.dbUpdatedAt !== localMutation.baseDbUpdatedAt
@@ -139,6 +153,7 @@ export function useCandidateStashItemDrawer({ dataReferenceStart, dataReferenceE
       setHydrateSnap(null)
       setHydrateSnapSource(null)
       setConfirmedHydrateSnap(null)
+      drawerCompanyUuidRef.current = null
     }, INNER_DRAWER_CLOSE_LAYOUT_MS)
   }, [clearCloseTimer, drawerClosing, drawerOpen, drawerSkuGroupKey])
 

@@ -2,6 +2,8 @@ import { useEffect } from 'react'
 import type { AdjacentDirection } from '../../../utils/adjacentListNavigation'
 import { isEditingOrComboTarget } from '../../interaction/interactionTarget'
 
+const CANDIDATE_STASH_PICKER_DIALOG_SELECTOR = '[aria-labelledby="candidate-stash-picker-title"]'
+
 interface ProductDrawerKeyboardOptions {
   closing?: boolean
   expandPaneOpen?: boolean
@@ -10,6 +12,7 @@ interface ProductDrawerKeyboardOptions {
   onClose: () => void
   onRequestNavigateAdjacent?: (direction: AdjacentDirection) => void | Promise<void>
   disableAdjacentNavigation?: boolean
+  disabled?: boolean
 }
 
 export function useProductDrawerKeyboard({
@@ -20,14 +23,16 @@ export function useProductDrawerKeyboard({
   onClose,
   onRequestNavigateAdjacent,
   disableAdjacentNavigation,
+  disabled = false,
 }: ProductDrawerKeyboardOptions) {
   useEffect(() => {
-    if (closing) return
+    if (closing || disabled) return
 
     const onKeyDown = (e: KeyboardEvent) => {
       if (!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key)) return
       if (e.defaultPrevented || e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return
       if (isEditingOrComboTarget(e.target)) return
+      if (isCandidateStashPickerOpen()) return
       e.preventDefault()
       e.stopPropagation()
 
@@ -53,6 +58,7 @@ export function useProductDrawerKeyboard({
     return () => window.removeEventListener('keydown', onKeyDown, true)
   }, [
     closing,
+    disabled,
     disableAdjacentNavigation,
     expandPaneOpen,
     onClose,
@@ -62,7 +68,7 @@ export function useProductDrawerKeyboard({
   ])
 
   useEffect(() => {
-    if (closing) return
+    if (closing || disabled) return
 
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key !== 'Escape') return
@@ -78,5 +84,9 @@ export function useProductDrawerKeyboard({
 
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [closing, expandPaneOpen, onClose, setExpandPaneOpen])
+  }, [closing, disabled, expandPaneOpen, onClose, setExpandPaneOpen])
+}
+
+function isCandidateStashPickerOpen() {
+  return Boolean(document.querySelector(CANDIDATE_STASH_PICKER_DIALOG_SELECTOR))
 }

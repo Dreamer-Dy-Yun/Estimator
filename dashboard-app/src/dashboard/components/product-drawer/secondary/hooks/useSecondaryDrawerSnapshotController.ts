@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState, type Dispatch, type SetStateAction } from 'react'
 import type { OrderSnapshotDocumentV2 } from '../../../../../snapshot/orderSnapshotTypes'
 import type { CandidateItemPanelContext } from '../secondaryDrawerTypes'
 import type { InboundDueDateDefaults } from './useSecondaryInboundDueDates'
@@ -28,9 +28,11 @@ type SnapshotControllerArgs = {
 type DraftEmissionArgs = {
   candidateItemContext: CandidateItemPanelContext | null
   buildSnapshot: () => OrderSnapshotDocumentV2
+  canBuildSnapshot?: boolean
   prefillKey: string | null
   appliedPrefillKey: string | null
   snapshotConfirmBaselineActive: boolean
+  confirmedBaselineDraftDirty: boolean
 }
 
 type LiveUnitDefaultsArgs = {
@@ -72,6 +74,7 @@ export function useSecondaryDrawerSnapshotController({
   const [snapshotConfirmBaselineActive, setSnapshotConfirmBaselineActive] = useState(
     () => prefillFromSnapshot != null && candidateItemContext?.hydrateSnapshotSource === 'confirmed',
   )
+  const [confirmedBaselineDraftDirty, setConfirmedBaselineDraftDirty] = useState(false)
   const [appliedPrefillKey, setAppliedPrefillKey] = useState<string | null>(null)
 
   const hasSavedSnapshot = Boolean(candidateItemContext?.confirmedSnapshot)
@@ -97,6 +100,41 @@ export function useSecondaryDrawerSnapshotController({
     if (source.avgCost != null) setUnitCostInput(roundNonNegative(source.avgCost))
     if (source.feeRatePct != null) setExpectedFeeRatePct(roundFeeRatePct(source.feeRatePct))
   }, [])
+  const markConfirmedBaselineDraftDirty = useCallback(() => {
+    setConfirmedBaselineDraftDirty(true)
+  }, [])
+  const setDraftDailyMeanClient = useCallback((value: SetStateAction<number | null>) => {
+    markConfirmedBaselineDraftDirty()
+    setDailyMeanClient(value)
+  }, [markConfirmedBaselineDraftDirty])
+  const setDraftBufferStock = useCallback((value: SetStateAction<number>) => {
+    markConfirmedBaselineDraftDirty()
+    setBufferStock(value)
+  }, [markConfirmedBaselineDraftDirty])
+  const setDraftUnitCostInput = useCallback((value: SetStateAction<number>) => {
+    markConfirmedBaselineDraftDirty()
+    setUnitCostInput(value)
+  }, [markConfirmedBaselineDraftDirty])
+  const setDraftUnitPriceInput = useCallback((value: SetStateAction<number>) => {
+    markConfirmedBaselineDraftDirty()
+    setUnitPriceInput(value)
+  }, [markConfirmedBaselineDraftDirty])
+  const setDraftExpectedFeeRatePct = useCallback((value: SetStateAction<number>) => {
+    markConfirmedBaselineDraftDirty()
+    setExpectedFeeRatePct(value)
+  }, [markConfirmedBaselineDraftDirty])
+  const setDraftSelfWeightPct = useCallback((value: SetStateAction<number>) => {
+    markConfirmedBaselineDraftDirty()
+    setSelfWeightPct(value)
+  }, [markConfirmedBaselineDraftDirty])
+  const setDraftConfirmBySize = useCallback<Dispatch<SetStateAction<Record<string, number>>>>((value) => {
+    markConfirmedBaselineDraftDirty()
+    setConfirmBySize(value)
+  }, [markConfirmedBaselineDraftDirty])
+
+  useEffect(() => {
+    setConfirmedBaselineDraftDirty(false)
+  }, [appliedPrefillKey, prefillKey])
 
   useSecondarySnapshotPrefill({
     prefillFromSnapshot,
@@ -134,6 +172,7 @@ export function useSecondaryDrawerSnapshotController({
     setSelfWeightPct(DEFAULT_SELF_WEIGHT_PCT)
     setConfirmBySize({})
     setSnapshotConfirmBaselineActive(false)
+    setConfirmedBaselineDraftDirty(false)
     setAppliedPrefillKey(null)
     candidateItemContext?.onResetDraft?.()
   }, [
@@ -149,29 +188,32 @@ export function useSecondaryDrawerSnapshotController({
     if (!candidateItemContext?.confirmedSnapshot) return
     setConfirmBySize({})
     setSnapshotConfirmBaselineActive(true)
+    setConfirmedBaselineDraftDirty(false)
     candidateItemContext.onRestoreConfirmed?.()
   }, [candidateItemContext])
 
   return {
     dailyMeanClient,
-    setDailyMeanClient,
+    setDailyMeanClient: setDraftDailyMeanClient,
     bufferStock,
-    setBufferStock,
+    setBufferStock: setDraftBufferStock,
     unitCostInput,
-    setUnitCostInput,
+    setUnitCostInput: setDraftUnitCostInput,
     unitPriceInput,
-    setUnitPriceInput,
+    setUnitPriceInput: setDraftUnitPriceInput,
     expectedFeeRatePct,
-    setExpectedFeeRatePct,
+    setExpectedFeeRatePct: setDraftExpectedFeeRatePct,
     selfWeightPct,
-    setSelfWeightPct,
+    setSelfWeightPct: setDraftSelfWeightPct,
     confirmBySize,
-    setConfirmBySize,
+    setConfirmBySize: setDraftConfirmBySize,
     hasSavedSnapshot,
     prefillKey,
     appliedPrefillKey,
     snapshotConfirmBySize,
     snapshotConfirmBaselineActive,
+    confirmedBaselineDraftDirty,
+    markConfirmedBaselineDraftDirty,
     applyLiveOrderUnitInputs,
     handleResetToLive,
     handleRestoreConfirmed,
@@ -201,20 +243,25 @@ export function useSecondaryDrawerLiveUnitDefaults({
 export function useSecondaryDrawerDraftEmission({
   candidateItemContext,
   buildSnapshot,
+  canBuildSnapshot = true,
   prefillKey,
   appliedPrefillKey,
   snapshotConfirmBaselineActive,
+  confirmedBaselineDraftDirty,
 }: DraftEmissionArgs) {
   useEffect(() => {
     if (candidateItemContext == null) return
+    if (!canBuildSnapshot) return
     if (prefillKey != null && appliedPrefillKey !== prefillKey) return
     candidateItemContext.onDraftChange?.(
       buildSnapshot(),
-      snapshotConfirmBaselineActive ? 'confirmed' : 'live',
+      snapshotConfirmBaselineActive && !confirmedBaselineDraftDirty ? 'confirmed' : 'live',
     )
   }, [
     appliedPrefillKey,
+    canBuildSnapshot,
     candidateItemContext,
+    confirmedBaselineDraftDirty,
     buildSnapshot,
     prefillKey,
     snapshotConfirmBaselineActive,

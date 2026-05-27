@@ -4,6 +4,7 @@ import type { AuthRole } from '../api'
 import { useAppToast } from '../components/AppToastContext'
 import { AdminActiveSwitch } from './AdminActiveSwitch'
 import { AdminCreateDialogShell } from './AdminCreateDialogShell'
+import { refreshAfterAdminMutation } from './adminMutationRefresh'
 import { getErrorMessage, ROLE_OPTIONS } from './adminHelpers'
 import styles from './AdminPage.module.css'
 
@@ -32,8 +33,9 @@ export function AdminUserCreateDialog({ onClose, onCreated }: AdminUserCreateDia
 
     try {
       await createAdminUser({ loginId, password, name, note, role, isActive })
-      await onCreated()
+      const refreshWarningMessage = await refreshAfterAdminMutation(onCreated)
       showToast('사용자를 추가했습니다.')
+      if (refreshWarningMessage) showToast(refreshWarningMessage, { variant: 'warning' })
       onClose()
     } catch (error) {
       setErrorMessage(getErrorMessage(error))

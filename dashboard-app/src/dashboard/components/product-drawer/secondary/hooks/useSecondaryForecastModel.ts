@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useMemo } from 'react'
 import type { Dispatch, SetStateAction } from 'react'
 import type { SecondaryCompetitorChannel } from '../../../../../api'
+import type { ToastContextValue } from '../../../../../components/AppToastContext'
 import type { ProductPrimarySummary, ProductSecondaryDetail } from '../../../../../types'
 import type { OrderSnapshotDocumentV2 } from '../../../../../snapshot/orderSnapshotTypes'
 import { normalizeMonthKey } from '../../../trend/trendRangeUtils'
+import { KO } from '../../ko'
 import type { CandidateItemPanelContext } from '../secondaryDrawerTypes'
 import { SecondaryOrderDraft } from '../model/SecondaryOrderDraft'
 import { buildSecondaryOrderSnapshot } from '../secondarySnapshot'
@@ -39,7 +41,7 @@ type Args = {
   aiPrompt: string
   aiComment: string
   hasSavedSnapshot: boolean
-  showToast: (message: string) => void
+  showToast: ToastContextValue['showToast']
 }
 
 export function useSecondaryForecastModel(args: Args) {
@@ -94,6 +96,12 @@ export function useSecondaryForecastModel(args: Args) {
     leadTimeDays,
     dailyMeanClient,
   })
+  const stockOrderCalculationReady = requests.forecastCalc != null && !requests.forecastCalcLoading
+  const guardStockOrderCalculation = useCallback(() => {
+    if (stockOrderCalculationReady) return true
+    showToast(KO.msgStockOrderCalcRequired, { variant: 'error' })
+    return false
+  }, [showToast, stockOrderCalculationReady])
   const stockOrderDisplayKey = useMemo(() => {
     const d = requests.forecastCalc?.display
     if (!d) return ''
@@ -130,13 +138,14 @@ export function useSecondaryForecastModel(args: Args) {
     forecastSalesHorizonDays: leadTimeDays,
     dailyMeanClient,
     forecastCalc: requests.forecastCalc,
+    stockOrderCalculationReady,
     selfWeightPct,
     bufferStock,
     confirmBySize,
     snapshotConfirmBySize,
     useSnapshotConfirmBaseline,
   })
-  const stockOrderDisplay = requests.forecastCalc?.display ?? null
+  const stockOrderDisplay = stockOrderCalculationReady ? requests.forecastCalc?.display ?? null : null
 
   const buildSnapshot = useCallback((): OrderSnapshotDocumentV2 => buildSecondaryOrderSnapshot({
     primary,
@@ -155,7 +164,7 @@ export function useSecondaryForecastModel(args: Args) {
       leadTimeDays,
       ...(dailyMeanClient == null ? {} : { dailyMeanOverride: dailyMeanClient }),
     },
-    stockOrderResult: requests.forecastCalc,
+    stockOrderResult: stockOrderCalculationReady ? requests.forecastCalc : null,
     selfWeightPct,
     bufferStock,
     aiPrompt,
@@ -185,16 +194,20 @@ export function useSecondaryForecastModel(args: Args) {
     secondary,
     selectedStart,
     selfWeightPct,
+    stockOrderCalculationReady,
     unitCostInput,
     unitPriceInput,
   ])
   const candidateActions = useSecondaryCandidateActions({
     skuGroupKey: primary.skuGroupKey,
+    companyUuid,
     periodStart,
     periodEnd,
     forecastMonths,
     hasSavedSnapshot,
     candidateItemContext,
+    canBuildSnapshot: stockOrderCalculationReady,
+    snapshotBlockReason: KO.msgStockOrderCalcRequired,
     buildSnapshot,
     showToast,
   })
@@ -212,6 +225,8 @@ export function useSecondaryForecastModel(args: Args) {
     ...requests,
     ...calculations,
     stockOrderDisplay,
+    stockOrderCalculationReady,
+    guardStockOrderCalculation,
     candidateActions,
     buildSnapshot,
     handleConfirmQtyChange,

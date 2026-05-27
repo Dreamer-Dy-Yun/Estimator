@@ -5,7 +5,9 @@ import {
   createOrderSnapshotStockOrderRequest,
   createOrderSnapshotStockOrderResult,
   ORDER_SNAPSHOT_SCHEMA_VERSION,
+  type OrderSnapshotConfirmedTotalsV2,
   type OrderSnapshotDocumentV2,
+  type OrderSnapshotSizeOrderV2,
   type OrderSnapshotStockOrderRequestV2,
   type OrderSnapshotStockOrderResultV2,
 } from '../../../../snapshot/orderSnapshotTypes'
@@ -34,6 +36,13 @@ export type BuildSecondaryOrderSnapshotParams = {
   sizeRows: SecondarySizeOrderDisplayRow[]
 }
 
+type ConfirmedTotalsInput = {
+  sizeOrders: OrderSnapshotSizeOrderV2[]
+  unitPrice: number
+  unitCost: number
+  expectedFeeRatePct: number
+}
+
 export function buildSecondaryOrderSnapshot(params: BuildSecondaryOrderSnapshotParams): OrderSnapshotDocumentV2 {
   const {
     primary,
@@ -57,18 +66,20 @@ export function buildSecondaryOrderSnapshot(params: BuildSecondaryOrderSnapshotP
     expectedFeeRatePct,
     sizeRows,
   } = params
-  const orderQty = sizeRows.reduce((acc, row) => acc + Math.max(0, Math.round(row.confirmQty)), 0)
-  const perUnitFee = Math.round((unitPrice * expectedFeeRatePct) / 100)
-  const perUnitOpMargin = unitPrice - unitCost - perUnitFee
-  const expectedSalesAmount = orderQty * unitPrice
-  const expectedOpProfit = orderQty * perUnitOpMargin
+  const sizeOrders = buildCurrentSnapshotSizeOrders(sizeRows)
+  const confirmedTotals = buildCurrentConfirmedTotals({
+    sizeOrders,
+    unitPrice,
+    unitCost,
+    expectedFeeRatePct,
+  })
   const summary = createOrderSnapshotPrimarySummary(primary)
   const storedStockOrderResult = createOrderSnapshotStockOrderResult(stockOrderResult)
 
   return {
     schemaVersion: ORDER_SNAPSHOT_SCHEMA_VERSION,
     skuGroupKey: primary.skuGroupKey,
-    ...(companyUuid ? { companyUuid } : {}),
+    ...createSnapshotCompanyScope(companyUuid),
     savedAt: new Date().toISOString(),
     context: {
       periodStart,
@@ -97,23 +108,52 @@ export function buildSecondaryOrderSnapshot(params: BuildSecondaryOrderSnapshotP
         prompt: aiPrompt,
         answer: aiComment,
       },
-      confirmedTotals: {
-        orderQty,
-        expectedSalesAmount,
-        expectedOpProfit,
-        expectedOpProfitRatePct: expectedSalesAmount > 0
-          ? (expectedOpProfit / expectedSalesAmount) * 100
-          : null,
-      },
-      sizeOrders: sizeRows.map((row) => ({
-        size: row.size,
-        selfSharePct: row.selfSharePct,
-        competitorSharePct: row.competitorSharePct,
-        blendedSharePct: row.blendedSharePct,
-        forecastQty: row.forecastQty,
-        recommendedQty: row.recommendedQty,
-        confirmQty: row.confirmQty,
-      })),
+      confirmedTotals,
+      sizeOrders,
     },
   }
+}
+
+function buildCurrentSnapshotSizeOrders(sizeRows: SecondarySizeOrderDisplayRow[]): OrderSnapshotSizeOrderV2[] {
+  return sizeRows.map((row) => ({
+    size: row.size,
+    selfSharePct: row.selfSharePct,
+    competitorSharePct: row.competitorSharePct,
+    blendedSharePct: row.blendedSharePct,
+    forecastQty: row.forecastQty,
+    recommendedQty: row.recommendedQty,
+    confirmQty: row.confirmQty,
+  }))
+}
+
+function buildCurrentConfirmedTotals({
+  sizeOrders,
+  unitPrice,
+  unitCost,
+  expectedFeeRatePct,
+}: ConfirmedTotalsInput): OrderSnapshotConfirmedTotalsV2 {
+  const orderQty = sumCurrentSizeOrderConfirmQty(sizeOrders)
+  const perUnitFee = Math.round((unitPrice * expectedFeeRatePct) / 100)
+  const perUnitOpMargin = unitPrice - unitCost - perUnitFee
+  const expectedSalesAmount = orderQty * unitPrice
+  const expectedOpProfit = orderQty * perUnitOpMargin
+
+  return {
+    orderQty,
+    expectedSalesAmount,
+    expectedOpProfit,
+    expectedOpProfitRatePct: expectedSalesAmount > 0
+      ? (expectedOpProfit / expectedSalesAmount) * 100
+      : null,
+  }
+}
+
+function sumCurrentSizeOrderConfirmQty(sizeOrders: Pick<OrderSnapshotSizeOrderV2, 'confirmQty'>[]): number {
+  return sizeOrders.reduce((acc, row) => acc + row.confirmQty, 0)
+}
+
+function createSnapshotCompanyScope(companyUuid: string | undefined): Pick<OrderSnapshotDocumentV2, 'companyUuid'> | Record<string, never> {
+  if (companyUuid === undefined) return {}
+  if (!companyUuid) throw new Error('companyUuid must be a non-empty string when provided')
+  return { companyUuid }
 }

@@ -82,7 +82,7 @@ afterEach(() => {
 })
 
 describe('CandidateStashPickerModal focus management', () => {
-  it('moves initial focus to the candidate name input and restores the previous focus on unmount', () => {
+  it('moves initial focus to the selected candidate option and restores the previous focus on unmount', () => {
     const opener = document.createElement('button')
     opener.type = 'button'
     opener.textContent = 'Open picker'
@@ -91,7 +91,8 @@ describe('CandidateStashPickerModal focus management', () => {
 
     const { root, container } = renderModal()
 
-    expect(document.activeElement).toBe(document.getElementById('candidate-name-input'))
+    const selectedOption = document.querySelector<HTMLButtonElement>('button[aria-current="true"]')
+    expect(document.activeElement).toBe(selectedOption)
 
     act(() => {
       root.unmount()
@@ -152,6 +153,7 @@ describe('CandidateStashPickerModal loading state', () => {
     optionButtons.forEach((button) => {
       expect(button.disabled).toBe(true)
       expect(button.getAttribute('aria-describedby')).toBe('candidate-stash-picker-refreshing-status')
+      expect(button.getAttribute('role')).toBeNull()
     })
   })
 

@@ -4,6 +4,7 @@ import type { AdminGptKeyPurpose } from '../api'
 import { useAppToast } from '../components/AppToastContext'
 import { AdminActiveSwitch } from './AdminActiveSwitch'
 import { AdminCreateDialogShell } from './AdminCreateDialogShell'
+import { refreshAfterAdminMutation } from './adminMutationRefresh'
 import { GPT_KEY_PURPOSE_OPTIONS, getErrorMessage } from './adminHelpers'
 import styles from './AdminPage.module.css'
 
@@ -32,8 +33,9 @@ export function AdminGptKeyCreateDialog({ onClose, onCreated }: AdminGptKeyCreat
 
     try {
       await createAdminGptKey({ name, purpose, model, plainKey, isActive, note })
-      await onCreated()
+      const refreshWarningMessage = await refreshAfterAdminMutation(onCreated)
       showToast('GPT 키를 추가했습니다.')
+      if (refreshWarningMessage) showToast(refreshWarningMessage, { variant: 'warning' })
       onClose()
     } catch (error) {
       setErrorMessage(getErrorMessage(error))

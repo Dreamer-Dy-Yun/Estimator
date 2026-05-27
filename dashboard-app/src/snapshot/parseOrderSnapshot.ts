@@ -12,13 +12,13 @@ const PRIMARY_STRING_KEYS = ['productName', 'brand', 'category', 'code', 'colorC
 const PRIMARY_NUMBER_KEYS = ['price', 'qty', 'availableStock'] as const
 const CONTEXT_STRING_KEYS = ['periodStart', 'periodEnd', 'dailyTrendStartMonth'] as const
 const CONTEXT_NUMBER_KEYS = ['forecastMonths', 'dailyTrendLeadTimeDays'] as const
-const UNIT_ECONOMICS_KEYS = ['unitPrice', 'unitCost', 'expectedFeeRatePct'] as const
 const STOCK_RESULT_KEYS = ['trendDailyMean', 'dailyMean', 'sigma'] as const
 const STOCK_DISPLAY_TOTAL_KEYS = ['currentStockQtyTotal', 'totalOrderBalanceTotal', 'expectedInboundOrderBalanceTotal'] as const
 const STOCK_DISPLAY_ARRAY_KEYS = ['currentStockQtyBySize', 'totalOrderBalanceBySize', 'expectedInboundOrderBalanceBySize'] as const
 const STOCK_ORDER_AMOUNT_KEYS = ['recommendedOrderQty', 'expectedOrderAmount', 'expectedSalesAmount', 'expectedOpProfit'] as const
 const CONFIRMED_TOTAL_KEYS = ['orderQty', 'expectedSalesAmount', 'expectedOpProfit'] as const
-const SIZE_ORDER_NUMBER_KEYS = ['selfSharePct', 'competitorSharePct', 'blendedSharePct', 'forecastQty', 'recommendedQty', 'confirmQty'] as const
+const SIZE_ORDER_SHARE_PCT_KEYS = ['selfSharePct', 'competitorSharePct', 'blendedSharePct'] as const
+const SIZE_ORDER_QUANTITY_KEYS = ['forecastQty', 'recommendedQty', 'confirmQty'] as const
 
 /** Parse and validate the stored candidate item snapshot at the API boundary without inventing fallback business values. */
 export function parseOrderSnapshot(details: unknown): OrderSnapshotDocumentV2 {
@@ -26,15 +26,27 @@ export function parseOrderSnapshot(details: unknown): OrderSnapshotDocumentV2 {
   if (d.schemaVersion !== ORDER_SNAPSHOT_SCHEMA_VERSION) {
     throw new Error(`snapshot schemaVersion mismatch: ${String(d.schemaVersion)}`)
   }
+  const skuGroupKey = expectNonEmptyString(d.skuGroupKey, 'snapshot.skuGroupKey')
   const companyUuid = expectOptionalNonEmptyString(d.companyUuid, 'snapshot.companyUuid')
+  const context = normalizeContext(expectRecord(d.context, 'context'))
+  const drawer1 = normalizeDrawer1Structure(expectRecord(d.drawer1, 'drawer1'))
+  const drawer2 = normalizeDrawer2Structure(expectRecord(d.drawer2, 'drawer2'))
+  expectMatchingNumbers(
+    context.dailyTrendLeadTimeDays,
+    drawer2.stockOrderRequest.leadTimeDays,
+    'context.dailyTrendLeadTimeDays',
+    'drawer2.stockOrderRequest.leadTimeDays',
+  )
+  expectMatchingStrings(skuGroupKey, drawer1.summary.skuGroupKey, 'snapshot.skuGroupKey', 'drawer1.summary.skuGroupKey')
+  expectMatchingStrings(skuGroupKey, drawer2.competitorBasis.skuGroupKey, 'snapshot.skuGroupKey', 'drawer2.competitorBasis.skuGroupKey')
   return {
     schemaVersion: ORDER_SNAPSHOT_SCHEMA_VERSION,
-    skuGroupKey: expectNonEmptyString(d.skuGroupKey, 'snapshot.skuGroupKey'),
+    skuGroupKey,
     ...optionalField('companyUuid', companyUuid),
     savedAt: expectString(d.savedAt, 'snapshot.savedAt'),
-    context: normalizeContext(expectRecord(d.context, 'context')),
-    drawer1: normalizeDrawer1Structure(expectRecord(d.drawer1, 'drawer1')),
-    drawer2: normalizeDrawer2Structure(expectRecord(d.drawer2, 'drawer2')),
+    context,
+    drawer1,
+    drawer2,
   }
 }
 
@@ -56,9 +68,11 @@ function normalizeDrawer1Structure(drawer1: Obj): OrderSnapshotDocumentV2['drawe
 }
 
 function normalizeDrawer2Structure(drawer2: Obj): OrderSnapshotDocumentV2['drawer2'] {
-  const stockOrderResult = normalizeOptionalStockOrderResult(drawer2.stockOrderResult)
+  const sizeOrders = normalizeSizeOrders(drawer2.sizeOrders)
+  const stockOrderResult = normalizeOptionalStockOrderResult(drawer2.stockOrderResult, sizeOrders.length)
   const unitEconomics = normalizeOptionalUnitEconomics(drawer2.unitEconomics)
-  const confirmedTotals = normalizeOptionalConfirmedTotals(drawer2.confirmedTotals)
+  const confirmedTotals = normalizeConfirmedTotals(drawer2.confirmedTotals)
+  expectConfirmedTotalsMatchSizeOrders(confirmedTotals, sizeOrders)
   return {
     competitorBasis: normalizeCompetitorBasis(expectRecord(drawer2.competitorBasis, 'drawer2.competitorBasis')),
     competitorChannelId: expectString(drawer2.competitorChannelId, 'drawer2.competitorChannelId'),
@@ -66,11 +80,11 @@ function normalizeDrawer2Structure(drawer2: Obj): OrderSnapshotDocumentV2['drawe
     stockOrderRequest: normalizeStockOrderRequest(drawer2.stockOrderRequest),
     ...optionalField('stockOrderResult', stockOrderResult),
     ...optionalField('unitEconomics', unitEconomics),
-    selfWeightPct: expectNumber(drawer2.selfWeightPct, 'drawer2.selfWeightPct'),
+    selfWeightPct: expectNumberInRange(drawer2.selfWeightPct, 'drawer2.selfWeightPct', 0, 100),
     bufferStock: expectNumber(drawer2.bufferStock, 'drawer2.bufferStock'),
     aiComment: normalizeAiComment(drawer2.aiComment),
-    ...optionalField('confirmedTotals', confirmedTotals),
-    sizeOrders: normalizeSizeOrders(drawer2.sizeOrders),
+    confirmedTotals,
+    sizeOrders,
   }
 }
 
@@ -88,7 +102,7 @@ function normalizeCompetitorRatioBySize(value: unknown): OrderSnapshotCompetitor
   return Object.fromEntries(
     Object.entries(source).map(([size, ratio]) => [
       size,
-      expectNumber(ratio, `drawer2.competitorBasis.competitorRatioBySize.${size}`),
+      expectNumberInRange(ratio, `drawer2.competitorBasis.competitorRatioBySize.${size}`, 0, 1),
     ]),
   )
 }
@@ -107,7 +121,13 @@ function normalizeStockOrderRequest(value: unknown): OrderSnapshotDocumentV2['dr
 
 function normalizeOptionalUnitEconomics(value: unknown): OrderSnapshotDocumentV2['drawer2']['unitEconomics'] {
   if (value === undefined) return undefined
-  return normalizeNumberFields(expectRecord(value, 'drawer2.unitEconomics'), 'drawer2.unitEconomics', UNIT_ECONOMICS_KEYS)
+  const label = 'drawer2.unitEconomics'
+  const source = expectRecord(value, label)
+  return {
+    unitPrice: expectNumber(source.unitPrice, `${label}.unitPrice`),
+    unitCost: expectNumber(source.unitCost, `${label}.unitCost`),
+    expectedFeeRatePct: expectNumberInRange(source.expectedFeeRatePct, `${label}.expectedFeeRatePct`, 0, 100),
+  }
 }
 
 function normalizeAiComment(value: unknown): OrderSnapshotDocumentV2['drawer2']['aiComment'] {
@@ -115,23 +135,27 @@ function normalizeAiComment(value: unknown): OrderSnapshotDocumentV2['drawer2'][
   return normalizeStringFields(source, 'drawer2.aiComment', ['prompt', 'answer'] as const)
 }
 
-function normalizeOptionalStockOrderResult(value: unknown): OrderSnapshotDocumentV2['drawer2']['stockOrderResult'] {
+function normalizeOptionalStockOrderResult(value: unknown, sizeOrdersLength: number): OrderSnapshotDocumentV2['drawer2']['stockOrderResult'] {
   if (value === undefined) return undefined
   const source = expectRecord(value, 'drawer2.stockOrderResult')
   return {
     ...normalizeNumberFields(source, 'drawer2.stockOrderResult', STOCK_RESULT_KEYS),
-    display: normalizeStockOrderDisplay(source.display),
+    display: normalizeStockOrderDisplay(source.display, sizeOrdersLength),
     safetyStockCalc: normalizeStockOrderAmountBlock(source.safetyStockCalc, 'safetyStockCalc', false),
     forecastQtyCalc: normalizeStockOrderAmountBlock(source.forecastQtyCalc, 'forecastQtyCalc', true),
   }
 }
 
-function normalizeStockOrderDisplay(value: unknown): StockOrderResult['display'] {
+function normalizeStockOrderDisplay(value: unknown, sizeOrdersLength: number): StockOrderResult['display'] {
   const label = 'drawer2.stockOrderResult.display'
   const source = expectRecord(value, label)
+  const bySizeArrays = normalizeNumberArrayFields(source, label, STOCK_DISPLAY_ARRAY_KEYS)
+  for (const key of STOCK_DISPLAY_ARRAY_KEYS) {
+    expectArrayLength(bySizeArrays[key], `${label}.${key}`, sizeOrdersLength)
+  }
   return {
     ...normalizeNumberFields(source, label, STOCK_DISPLAY_TOTAL_KEYS),
-    ...normalizeNumberArrayFields(source, label, STOCK_DISPLAY_ARRAY_KEYS),
+    ...bySizeArrays,
   }
 }
 
@@ -145,8 +169,7 @@ function normalizeStockOrderAmountBlock<K extends 'safetyStockCalc' | 'forecastQ
   } as StockOrderResult[K]
 }
 
-function normalizeOptionalConfirmedTotals(value: unknown): OrderSnapshotDocumentV2['drawer2']['confirmedTotals'] {
-  if (value === undefined) return undefined
+function normalizeConfirmedTotals(value: unknown): OrderSnapshotDocumentV2['drawer2']['confirmedTotals'] {
   const label = 'drawer2.confirmedTotals'
   const source = expectRecord(value, label)
   return {
@@ -161,9 +184,23 @@ function normalizeSizeOrders(value: unknown): OrderSnapshotDocumentV2['drawer2']
     const source = expectRecord(row, label)
     return {
       size: expectString(source.size, `${label}.size`),
-      ...normalizeNumberFields(source, label, SIZE_ORDER_NUMBER_KEYS),
+      ...normalizeNumberFieldsInRange(source, label, SIZE_ORDER_SHARE_PCT_KEYS, 0, 100),
+      ...normalizeNumberFields(source, label, SIZE_ORDER_QUANTITY_KEYS),
     }
   })
+}
+
+function expectConfirmedTotalsMatchSizeOrders(
+  confirmedTotals: OrderSnapshotDocumentV2['drawer2']['confirmedTotals'],
+  sizeOrders: OrderSnapshotDocumentV2['drawer2']['sizeOrders'],
+): void {
+  const expectedOrderQty = sizeOrders.reduce((sum, row) => sum + row.confirmQty, 0)
+  expectMatchingNumbers(
+    confirmedTotals.orderQty,
+    expectedOrderQty,
+    'drawer2.confirmedTotals.orderQty',
+    'sum(drawer2.sizeOrders[].confirmQty)',
+  )
 }
 
 function normalizeStringFields<K extends string>(source: Obj, label: string, keys: readonly K[]): Record<K, string> {
@@ -176,6 +213,18 @@ function optionalField<K extends string, V>(key: K, value: V | undefined): Parti
 
 function normalizeNumberFields<K extends string>(source: Obj, label: string, keys: readonly K[]): Record<K, number> {
   return Object.fromEntries(keys.map((key) => [key, expectNumber(source[key], `${label}.${key}`)])) as Record<K, number>
+}
+
+function normalizeNumberFieldsInRange<K extends string>(
+  source: Obj,
+  label: string,
+  keys: readonly K[],
+  min: number,
+  max: number,
+): Record<K, number> {
+  return Object.fromEntries(
+    keys.map((key) => [key, expectNumberInRange(source[key], `${label}.${key}`, min, max)]),
+  ) as Record<K, number>
 }
 
 function normalizeNumberArrayFields<K extends string>(source: Obj, label: string, keys: readonly K[]): Record<K, number[]> {
@@ -193,6 +242,13 @@ function expectRecord(value: unknown, label: string): Obj {
 
 function expectArray(value: unknown, label: string): unknown[] {
   if (!Array.isArray(value)) throw new Error(`${label} must be an array`)
+  return value
+}
+
+function expectArrayLength<T>(value: T[], label: string, expectedLength: number): T[] {
+  if (value.length !== expectedLength) {
+    throw new Error(`${label} length must match drawer2.sizeOrders length`)
+  }
   return value
 }
 
@@ -214,6 +270,24 @@ function expectOptionalNonEmptyString(value: unknown, label: string): string | u
 function expectNumber(value: unknown, label: string): number {
   if (typeof value !== 'number' || !Number.isFinite(value)) throw new Error(`${label} must be a finite number`)
   return value
+}
+
+function expectNumberInRange(value: unknown, label: string, min: number, max: number): number {
+  const number = expectNumber(value, label)
+  if (number < min || number > max) throw new Error(`${label} must be between ${min} and ${max}`)
+  return number
+}
+
+function expectMatchingNumbers(left: number, right: number, leftLabel: string, rightLabel: string): void {
+  if (Math.abs(left - right) > Number.EPSILON) {
+    throw new Error(`${leftLabel} must match ${rightLabel}`)
+  }
+}
+
+function expectMatchingStrings(left: string, right: string, leftLabel: string, rightLabel: string): void {
+  if (left !== right) {
+    throw new Error(`${leftLabel} must match ${rightLabel}`)
+  }
 }
 
 function expectNumberOrNull(value: unknown, label: string): number | null {

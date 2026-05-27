@@ -60,9 +60,9 @@
 
 ### 추천 append 응답 매칭 계약
 
-`appendCandidateItems` 응답은 요청 당시 선택한 recommendation과 현재 화면의 stash/company/period/item membership 기준에 다시 매칭된 경우에만 로컬 item 삽입으로 이어진다. 프론트는 append 응답의 신규 `CandidateStashItemSummary`를 이미 받은 recommendation 원본과 `candidateItem.skuUuid -> recommendation.uuid` 기준으로 대조하고, 대조 실패 또는 현재 item membership 불일치를 성공 삽입으로 보정하지 않는다.
+`appendCandidateItems` bulk 응답은 요청 당시 선택한 recommendation과 현재 화면의 stash/company/period/item membership 기준에 다시 매칭된 경우에만 로컬 item 삽입으로 이어진다. 프론트는 bulk 응답의 신규 `CandidateStashItemSummary`를 이미 받은 recommendation 원본과 `candidateItem.skuUuid -> recommendation.uuid` 기준으로 대조하고, 대조 실패 또는 현재 item membership 불일치를 성공 삽입으로 보정하지 않는다. 단건 `appendCandidateItem`은 `details`를 저장하는 `Promise<void>` mutation이며 이 추천 append 응답 매칭 계약의 입력이 아니다.
 
-이 매칭 계약은 API/프론트 공동 계약이다. 백엔드는 append 응답에서 새로 생성되거나 이미 존재하는 후보 item을 식별할 수 있는 `CandidateStashItemSummary`를 반환해야 한다. 프론트는 해당 응답을 현재 추천 원본과 매칭할 수 없으면 append 실패로 처리하고 로컬 item을 삽입하지 않는다. 이는 요청 이후 화면 scope가 바뀐 `stale`이나 성공했지만 새로 반영할 item이 없는 `empty`와 구분한다. 추천 append 후 전체 후보군 재조회로 불일치를 숨기는 것은 기본 흐름이 아니다.
+이 매칭 계약은 API/프론트 공동 계약이다. 백엔드는 bulk append 응답에서 새로 생성된 후보 item을 식별할 수 있는 `CandidateStashItemSummary`를 반환해야 한다. 프론트는 해당 응답을 현재 추천 원본과 매칭할 수 없으면 append 실패로 처리하고 로컬 item을 삽입하지 않는다. 이는 요청 이후 화면 scope가 바뀐 `stale`이나 성공했지만 새로 반영할 item이 없는 `empty`와 구분한다. 추천 append 후 전체 후보군 재조회로 불일치를 숨기는 것은 기본 흐름이 아니다.
 
 TODO-111에서 `useCandidateRecommendations` 직접 테스트가 추가된 범위는 append 결과 판정, `applied/stale/empty` 분기, 중복 append busy guard다. append 응답 매칭 계약 자체는 `candidateItemLocalMutationModel.test.ts`에서 검증한다. 이 테스트들은 hook과 로컬 삽입 모델의 추천 append 상태 계약을 확인하는 직접 테스트이며, 후보군 상세 모달 전체, SSE 오더 지표, 상세확정 job, 백엔드 API 구현을 하드닝 완료로 선언하는 근거는 아니다.
 

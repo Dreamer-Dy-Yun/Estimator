@@ -4,6 +4,7 @@ import type { AdminUserSummary, AuthRole } from '../api'
 import { useAppToast } from '../components/AppToastContext'
 import { LoadingSpinner } from '../components/LoadingSpinner'
 import { AdminActiveSwitch } from './AdminActiveSwitch'
+import { refreshAfterAdminMutation } from './adminMutationRefresh'
 import { getErrorMessage, ROLE_OPTIONS } from './adminHelpers'
 import styles from './AdminPage.module.css'
 
@@ -38,6 +39,7 @@ export function AdminUserDialog({
   const [isDeleting, setIsDeleting] = useState(false)
   const [isResettingPassword, setIsResettingPassword] = useState(false)
   const [deleteConfirm, setDeleteConfirm] = useState(false)
+  const isBusy = isSaving || isDeleting || isResettingPassword
   const isCurrentUser = user.uuid === currentUserUuid
   const isDirty =
     loginId !== user.loginId ||
@@ -54,9 +56,11 @@ export function AdminUserDialog({
 
     try {
       await updateAdminUser({ uuid: user.uuid, loginId, name, note, role, isActive })
-      await onChanged()
-      setRowMessage('변경됨')
-      showToast('사용자 정보를 변경했습니다.')
+      const refreshWarningMessage = await refreshAfterAdminMutation(onChanged)
+      const successRowMessage = '변경됨'
+      const successToastMessage = '사용자 정보를 변경했습니다.'
+      setRowMessage(refreshWarningMessage ? `${successRowMessage} · ${refreshWarningMessage}` : successRowMessage)
+      showToast(refreshWarningMessage ?? successToastMessage, refreshWarningMessage ? { variant: 'warning' } : undefined)
       setDeleteConfirm(false)
     } catch (error) {
       setErrorMessage(getErrorMessage(error))
@@ -97,7 +101,9 @@ export function AdminUserDialog({
     setIsDeleting(true)
     try {
       await deleteAdminUser(user.uuid)
-      await onDeleted()
+      const refreshWarningMessage = await refreshAfterAdminMutation(onDeleted)
+      if (refreshWarningMessage) showToast(refreshWarningMessage, { variant: 'warning' })
+      onClose()
     } catch (error) {
       setErrorMessage(getErrorMessage(error))
       setIsDeleting(false)
@@ -106,7 +112,7 @@ export function AdminUserDialog({
   }
 
   return (
-    <div className={styles.gptKeyDialogBackdrop} role="presentation" onMouseDown={onClose}>
+    <div className={styles.gptKeyDialogBackdrop} role="presentation" onMouseDown={isBusy ? undefined : onClose}>
       <section
         className={styles.gptKeyDialog}
         role="dialog"
@@ -119,7 +125,7 @@ export function AdminUserDialog({
             <span>사용자 관리</span>
             <h3 id="admin-user-dialog-title">상세 설정</h3>
           </div>
-          <button className={styles.gptKeyDialogCloseButton} type="button" onClick={onClose} aria-label="닫기">
+          <button className={styles.gptKeyDialogCloseButton} type="button" onClick={onClose} disabled={isBusy} aria-label="닫기">
             x
           </button>
         </header>
@@ -156,16 +162,16 @@ export function AdminUserDialog({
         {errorMessage ? <p className={styles.rowError}>{errorMessage}</p> : null}
 
         <div className={styles.gptKeyDialogActions}>
-          <button className={styles.dangerButton} type="button" onClick={handleDelete} disabled={isCurrentUser || isDeleting}>
+          <button className={styles.dangerButton} type="button" onClick={handleDelete} disabled={isCurrentUser || isBusy}>
             {isDeleting ? <LoadingSpinner size="inline" label="삭제 중" /> : deleteConfirm ? '삭제 확인' : '삭제'}
           </button>
-          <button className={styles.secondaryButton} type="button" onClick={handlePasswordReset} disabled={isResettingPassword}>
+          <button className={styles.secondaryButton} type="button" onClick={handlePasswordReset} disabled={isBusy}>
             {isResettingPassword ? <LoadingSpinner size="inline" label="재설정 중" /> : '비밀번호 재설정'}
           </button>
-          <button className={styles.createButton} type="submit" form={formId} disabled={!isDirty || isSaving}>
+          <button className={styles.createButton} type="submit" form={formId} disabled={!isDirty || isBusy}>
             {isSaving ? <LoadingSpinner size="inline" label="변경 중" /> : '변경'}
           </button>
-          <button className={styles.secondaryButton} type="button" onClick={onClose}>
+          <button className={styles.secondaryButton} type="button" onClick={onClose} disabled={isBusy}>
             닫기
           </button>
         </div>

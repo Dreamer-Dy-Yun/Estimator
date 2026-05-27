@@ -494,9 +494,9 @@ query:
 | `size` | string | 사이즈 라벨 |
 | `selfQty` | number | 자사 판매 수량 |
 | `competitorQty` | number | 경쟁사 판매 수량 |
-| `selfSharePct` | number | 자사 사이즈 비중 |
-| `competitorSharePct` | number | 경쟁사 사이즈 비중 |
-| `blendedSharePct` | number | 자사/경쟁사 가중치를 반영한 비중 |
+| `selfSharePct` | number | 자사 사이즈 비중. 0~100 percent |
+| `competitorSharePct` | number | 경쟁사 사이즈 비중. 0~100 percent |
+| `blendedSharePct` | number | 자사/경쟁사 가중치를 반영한 비중. 0~100 percent |
 | `currentStockQty` | number optional | 현재 재고 |
 | `orderBalanceQty` | number optional | 미입고 또는 주문 잔량 |
 | `forecastQty` | number optional | 예측 판매량 |
@@ -642,12 +642,18 @@ query:
 | `dbCreatedAt` | string | DB 생성 일시 |
 | `dbUpdatedAt` | string | DB 수정 일시 |
 
-추천 append 응답 매칭 계약:
+후보 item append 계약:
 
-- `POST /candidate-stashes/{stashUuid}/items`와 bulk append 계열 응답은 프론트가 요청 당시 recommendation 원본과 매칭할 수 있는 `CandidateStashItemSummary` 식별자를 반환해야 한다.
-- 최소 식별자는 `uuid`, `stashUuid`, `skuUuid`, `skuGroupKey`다. `skuUuid`는 실제 SKU UUID이며, 백엔드가 mock 호환 때문에 임시 값을 쓰는 경우에도 프론트가 recommendation 원본과 같은 item인지 판단할 수 있어야 한다.
-- 프론트는 append 응답을 현재 stash/company/period/item membership과 다시 대조한다. scope 불일치, 기간 불일치, 이미 membership에 존재하는 item은 성공 삽입으로 반영하지 않는다. recommendation 원본과 매칭할 수 없는 item은 append 실패로 처리하며 `empty` 또는 `stale` 결과로 보정하지 않는다.
-- 백엔드는 append 성공을 표현하려고 의미 없는 item 식별자나 현재 recommendation과 연결 불가능한 payload를 만들면 안 된다. 부분 성공 또는 중복은 성공 item과 실패/skip 사유를 구분해 내려주는 방향이 권장된다.
+- 단건 `appendCandidateItem`은 `POST /candidate-stashes/{stashUuid}/items`를 사용하며 2차 drawer snapshot/AI comment 기준을 후보군에 저장하는 mutation이다.
+- 단건 append request body는 `{ companyUuid, skuGroupKey, details, isLatestLlmComment }`다. `details`와 `isLatestLlmComment`는 필수이며 optional로 문서화하지 않는다.
+- 단건 append 성공 응답은 프론트 `DashboardApi.appendCandidateItem(...): Promise<void>` 계약에 맞춰 본문 없음(`204 No Content` 권장) 또는 무시 가능한 빈 성공 응답이다. 단건 append를 `CandidateStashItemSummary` 반환 API로 문서화하지 않는다.
+
+추천/bulk append 응답 매칭 계약:
+
+- 추천 적용의 bulk `appendCandidateItems`는 `POST /candidate-stashes/{stashUuid}/items/bulk`를 사용하며, 응답은 `AppendCandidateItemsResponse`의 `candidateItems: CandidateStashItemSummary[]`다.
+- bulk append 응답의 최소 식별자는 `uuid`, `stashUuid`, `skuUuid`, `skuGroupKey`다. `skuUuid`는 실제 SKU UUID이며, 백엔드가 mock 호환 때문에 임시 값을 쓰는 경우에도 프론트가 recommendation 원본과 같은 item인지 판단할 수 있어야 한다.
+- 프론트는 bulk append 응답을 현재 stash/company/period/item membership과 다시 대조한다. scope 불일치, 기간 불일치, 이미 membership에 존재하는 item은 성공 삽입으로 반영하지 않는다. recommendation 원본과 매칭할 수 없는 item은 append 실패로 처리하며 `empty` 또는 `stale` 결과로 보정하지 않는다.
+- 백엔드는 bulk append 성공을 표현하려고 의미 없는 item 식별자나 현재 recommendation과 연결 불가능한 payload를 만들면 안 된다. 부분 성공 또는 중복은 성공 item과 실패/skip 사유를 구분해 내려주는 방향이 권장된다.
 
 `CandidateItemSummary`
 
@@ -684,7 +690,7 @@ mutation payload 공통:
 | `itemUuids` | string[] optional | bulk 삭제/job 대상 |
 | `name` | string optional | 후보군 이름 |
 | `description` | string optional | 설명 |
-| `snapshot` | `OrderSnapshotDocumentV2` optional | item에 저장할 스냅샷 |
+| `details` | `OrderSnapshotDocumentV2` optional | item에 저장할 스냅샷. 실제 후보 item payload 필드명은 `details`이며, `snapshot`은 payload 필드명으로 사용하지 않는다. |
 | `llmComment` | string optional | AI 코멘트 |
 
 job start 응답:
@@ -725,6 +731,8 @@ Excel import 응답:
 
 스냅샷은 확정 또는 AI 코멘트 요청 시점의 분석 상태를 고정하는 문서다. 확정 이후에만 생성된다는 가정은 폐기되었다. AI 코멘트 요청 시에도 그 시점의 화면/계산 상태로 스냅샷을 만들어 전송할 수 있어야 한다.
 
+백엔드 구현자는 저장/검증/응답 책임을 [`order-snapshot-backend-contract.md`](./order-snapshot-backend-contract.md)에서 확인한다. LLM 프롬프트에 넣을 필드 설명과 해석 기준은 [`order-snapshot-llm-field-guide.md`](./order-snapshot-llm-field-guide.md)를 사용한다.
+
 타입명: `OrderSnapshotDocumentV2`
 
 주의:
@@ -750,8 +758,8 @@ Excel import 응답:
 | 필드 | 타입 | 설명 |
 |---|---|---|
 | `schemaVersion` | number | 스냅샷 구조 버전. 현재 값은 `2` |
-| `skuGroupKey` | string | 상품 그룹 식별자. 브랜드/품번/색상 등 조합일 수 있으나 정확한 조합 규칙은 사용자 확인 필요 |
-| `companyUuid` | string optional | Top-level company scope. Required for new single-company snapshots; omitted only for explicitly unscoped snapshots. Do not repeat this field inside `drawer1.summary`, `drawer2.competitorBasis`, product DTOs, or candidate item DTOs. |
+| `skuGroupKey` | string | 상품-색상 그룹 key. 현재 프론트 계약에서는 품번(`SKU.code`)과 색상(`SKU.color_code`) 조합을 대표하는 drawer/snapshot 연결 key |
+| `companyUuid` | string optional | Top-level company scope. Required for new single-company snapshots. Legacy snapshots missing this field should be migrated/backfilled from the owning candidate item or stash company scope before current single-company hydration. Omitted only for explicitly unscoped snapshots. Do not repeat this field inside `drawer1.summary`, `drawer2.competitorBasis`, product DTOs, or candidate item DTOs. |
 | `savedAt` | string | 스냅샷 생성 시각 |
 | `context` | object | 조회/예측 조건 |
 | `drawer1` | object | 1차 drawer 요약 |
@@ -777,24 +785,21 @@ Excel import 응답:
 
 | 필드 | 타입 | 설명 |
 |---|---|---|
-| `skuGroupKey` | string | 상품 그룹 key |
+| `skuGroupKey` | string | 상품 단위 key |
+| `productName` | string | 상품명 |
 | `brand` | string | 브랜드 |
 | `category` | string | 카테고리 |
-| `productName` | string | 상품명 |
-| `thumbnailUrl` | string optional | 썸네일 |
-| `salesAmount` | number | 기간 매출 |
-| `qty` | number | 기간 판매량. 정확한 기준은 사용자 확인 필요 |
-| `avgPrice` | number | 평균 판매가 |
-| `avgCost` | number optional | 평균 원가 |
-| `avgFeeRatePct` | number optional | 평균 수수료율 |
-| `opProfit` | number optional | 영업이익 |
-| `opMarginPct` | number optional | 영업이익률 |
+| `code` | string | 품번 또는 상품 코드 |
+| `colorCode` | string | 색상 코드 |
+| `price` | number | 저장 당시 자사 판매가 |
+| `qty` | number | 저장 당시 표시 기준 수량 |
+| `availableStock` | number | 판매 가능한 현재 재고 |
 
 용도:
 
-- 확정 기록에서 1차 분석 당시 상품 요약을 복원한다.
-- 이후 원천 데이터가 바뀌어도 확정 당시 기준값을 보존한다.
-- 사이즈 믹스, 계절성, 추천 발주 수량은 1차 compact summary의 책임이 아니다. 필요한 값은 2차 snapshot 필드 또는 별도 API 계약에서 확인한다.
+- 확정 기록에서 상품 식별, 가격, 재고 기준값을 복원한다.
+- 이후 원천 데이터가 바뀌어도 저장 당시 기준값을 보존한다.
+- 1차 drawer의 API 응답 전체가 아니라 current snapshot compact summary다.
 
 ### 11.4 `drawer2.competitorBasis`
 
@@ -804,11 +809,12 @@ Excel import 응답:
 | `skuGroupKey` | string | 상품 그룹 key |
 | `competitorPrice` | number | 저장 당시 선택 경쟁 기준 평균 판매가 |
 | `competitorQty` | number | 저장 당시 선택 경쟁 기준 판매 수량 |
-| `competitorRatioBySize` | object | 사이즈별 경쟁 비중. key는 size, value는 비중 |
+| `competitorRatioBySize` | object | 사이즈별 경쟁사 원천 비율. key는 size, value는 0~1 ratio이며 percent가 아니다. |
 
 용도:
 
 - 2차 드로워 사이즈 비중과 경쟁 기준값 복원에 필요한 최소 판매 기준이다.
+- `competitorRatioBySize`는 원천 ratio이고, `sizeOrders[].competitorSharePct`는 이 값을 0~100 percent로 정규화한 표시/계산 값이다.
 - 백엔드는 `ProductSecondaryDetail` 전체를 저장하지 말고 위 필드만 current payload에 저장한다.
 - Frontend `parseOrderSnapshot` fails when `drawer2.competitorBasis` is missing. Backend save payloads must provide `competitorBasis`.
 
@@ -818,14 +824,13 @@ Excel import 응답:
 |---|---|---|
 | `competitorChannelId` | string | 선택된 경쟁사 채널 ID |
 | `competitorChannelLabel` | string | 선택된 경쟁사 채널 표시명 |
-| `selfWeightPct` | number | 자사 가중치. 0~100 |
+| `selfWeightPct` | number | 자사 가중치. 0~100 percent |
 | `bufferStock` | number | 버퍼 재고. 적용 공식은 사용자 확인 필요 |
 
 용도:
 
 - 사용자가 2차 drawer에서 선택한 비교 채널과 가중치 조건을 보존한다.
 - 나중에 같은 확정 결과를 다시 열 때 화면 입력 상태를 복원한다.
-- current v2 스냅샷은 `minOpMarginPct`, `sizeForecastSource`, `salesSelf`, `salesCompetitor`를 새로 저장하지 않는다.
 
 ### 11.6 `drawer2.stockOrderRequest`
 
@@ -866,7 +871,7 @@ Excel import 응답:
 |---|---|---|
 | `unitPrice` | number | 기대 판매가 |
 | `unitCost` | number | 기대 원가 |
-| `expectedFeeRatePct` | number | 기대 수수료율 |
+| `expectedFeeRatePct` | number | 기대 수수료율. 0~100 percent |
 
 용도:
 
@@ -893,23 +898,25 @@ Excel import 응답:
 
 확인 필요:
 
-- 배열 길이가 `sizeOrders.length`와 다를 때 백엔드가 reject할지, missing을 `null`로 받을지 정책 확인 필요.
+- current v2는 `stockOrderResult.display.*BySize` 배열 길이가 `sizeOrders.length`와 다르면 reject한다.
 - 음수 재고/잔량 허용 여부 확인 필요.
 
 ### 11.11 `drawer2.confirmedTotals`
 
-확정 오더 총합이다.
+현재 스냅샷의 `sizeOrders[].confirmQty` 기준 총합이다. AI 코멘트 요청용 스냅샷에서는 현재 화면 입력값의 합계이고, 상세확정 저장 후에는 저장된 확정 오더 총합으로 사용한다.
 
 | 필드 | 타입 | 설명 |
 |---|---|---|
-| `orderQty` | number | 확정 오더 수량 합계 |
+| `orderQty` | number | 현재 스냅샷의 `sizeOrders[].confirmQty` 합계. 저장 후에는 확정 오더 수량 합계로 사용 |
 | `expectedSalesAmount` | number | 확정 수량 기준 예상 매출 |
 | `expectedOpProfit` | number | 확정 수량 기준 예상 영업이익 |
-| `expectedOpProfitRatePct` | number nullable | 예상 영업이익률 |
+| `expectedOpProfitRatePct` | number nullable | 예상 영업이익률. 손실이면 음수 가능, 계산 불가면 `null` |
 
 용도:
 
-- 후보군 확정 이후 목록/상세에서 확정 결과를 빠르게 표시한다.
+- 후보군 확정 이후 목록/상세에서 저장된 확정 결과를 빠르게 표시한다.
+- 프론트 current snapshot builder는 이 객체를 생성한다. 백엔드가 일괄 상세확정 스냅샷을 생성할 때도 포함해야 한다.
+- current `schemaVersion: 2` snapshot에서는 필수다. legacy snapshot을 살리기 위해 생략을 허용하지 않는다.
 - `expectedOpProfitRatePct`는 분모가 0이거나 계산 불가면 `null`이어야 한다.
 
 ### 11.12 `drawer2.sizeOrders`
@@ -919,9 +926,9 @@ Excel import 응답:
 | 필드 | 타입 | 설명 |
 |---|---|---|
 | `size` | string | 사이즈 라벨 |
-| `selfSharePct` | number | 자사 비중 |
-| `competitorSharePct` | number | 경쟁사 비중 |
-| `blendedSharePct` | number | 가중 반영 비중 |
+| `selfSharePct` | number | 자사 비중. 0~100 percent |
+| `competitorSharePct` | number | 경쟁사 비중. 0~100 percent |
+| `blendedSharePct` | number | 가중 반영 비중. 0~100 percent |
 | `forecastQty` | number | 예측 수량 |
 | `recommendedQty` | number | 추천 수량 |
 | `confirmQty` | number | 사용자가 확정한 수량 |
@@ -955,20 +962,22 @@ Excel import 응답:
 
 - `schemaVersion === 2`
 - `skuGroupKey` 존재
+- current single-company snapshot은 `companyUuid` 존재. 과거 저장분에 `companyUuid`가 없으면 owning candidate item/stash의 company scope로 migration/backfill한 뒤 current snapshot으로 hydrate한다.
 - `savedAt` ISO 일시 문자열
 - `context.periodStart`, `context.periodEnd` 존재
 - `drawer1.summary` 존재
 - current snapshot은 `drawer2.competitorBasis` 존재
 - Frontend `parseOrderSnapshot` fails when `drawer2.competitorBasis` is missing. Backend save payloads must provide `competitorBasis`.
+- current snapshot은 `drawer2.confirmedTotals` 존재
 - `drawer2.sizeOrders` 배열 존재
 - `drawer2.sizeOrders[].confirmQty` 숫자
 
 권장 검증:
 
-- `companyUuid`가 있는 후보군 item에 저장할 때 snapshot의 `skuGroupKey`와 item의 `skuGroupKey` 일치
+- 후보군 item에 저장할 때 item payload의 `details.skuGroupKey`, `details.drawer1.summary.skuGroupKey`, `details.drawer2.competitorBasis.skuGroupKey`, item의 `skuGroupKey` 일치
 - `drawer2.stockOrderResult.display.*BySize` 배열 길이와 `drawer2.sizeOrders` 길이 일치
-- 퍼센트 값은 0~100 범위
-- 수량/금액은 음수 불가. 반품/차감 업무가 있으면 별도 필드로 표현
+- `competitorRatioBySize` 값은 0~1 ratio, 비중/가중치/수수료율 `*Pct` 필드는 0~100 percent. `expectedOpProfitRatePct`는 손실이면 음수 가능
+- 프론트 `parseOrderSnapshot`은 저장된 화면 상태를 드러내기 위해 수량/금액/일평균 같은 유한 숫자 비즈니스 값의 음수를 보존한다. 백엔드는 신규 저장/확정 요청에서 도메인상 음수가 불가한 필드를 검증해야 하며, 반품/차감 업무가 있으면 별도 필드로 표현한다.
 - 스냅샷 저장 시 백엔드 재계산 금지. 재계산이 필요하면 새 snapshot version으로 저장
 
 ## 13. 백엔드 구현자가 사용자에게 확인해야 할 항목
@@ -981,7 +990,6 @@ Excel import 응답:
 | 조회 기간 | `periodEnd`가 포함인지 exclusive인지 |
 | `qty` | 판매량인지 주문량인지, 취소/반품 차감 후 값인지 |
 | 경쟁사 데이터 | 경쟁사 판매량/가격의 채널, 기간, 중복 제거 기준 |
-| `competitorRatioBySize` | 0~1 비율인지 0~100 퍼센트인지 |
 | `sigma` | 표준편차 공식과 표본/모집단 기준 |
 | `bufferStock` | 안전재고와 다른 개념인지, 어떤 계산식에 반영되는지 |
 | `totalOrderBalance` | 미입고, 발주잔량, 입고예정 중 정확히 어떤 업무 용어인지 |
@@ -1037,3 +1045,36 @@ Section 11 is the source for the current snapshot JSON contract. Keep these rule
 - Use `OrderSnapshotDocumentV2` for current `schemaVersion: 2` snapshots.
 - Keep `companyUuid?: string` as an optional top-level scope field, not a nested drawer field.
 - Hydrate a stored snapshot only when the selected scope matches the snapshot scope exactly: same company UUID for single-company scope, or both unscoped for all-company scope.
+- Interpret `competitorRatioBySize` as 0~1 ratio. Share, weight, and fee `*Pct` snapshot fields are 0~100 percent; `expectedOpProfitRatePct` may be negative when expected operating profit is negative.
+- Treat `confirmedTotals` as a required aggregate of the current snapshot `sizeOrders[].confirmQty`; after detail confirmation save, it is the saved confirmed order total.
+
+## 16. 2026-05-27 candidate append and drawer scope alignment
+
+### 16.1 Singular append item
+
+Singular append item is not the same contract as bulk append.
+
+Required singular append fields:
+
+| Field | Type | Required | Notes |
+|---|---|:---:|---|
+| `companyUuid` | string | Y | Concrete single-company scope. Omitted, empty, or all-company scope is invalid for mutation. |
+| `skuGroupKey` | string | Y | Product group key for the appended item. |
+| `details` | `OrderSnapshotDocumentV2` | Y | Persisted item snapshot. This field name is `details`; do not use `snapshot` as a payload alias. |
+| `isLatestLlmComment` | boolean | Y | Whether the stored AI comment matches the latest drawer/snapshot basis at append time. |
+| `llmComment` | string optional | N | AI comment text when available. |
+
+Bulk append remains a separate batch contract. Bulk append may send `skuGroupKeys` and return item-level batch results, and it must not be used to relax singular append requirements for `details` or `isLatestLlmComment`.
+
+### 16.2 Candidate detail drawer company scope
+
+Candidate detail drawer requests must keep the same explicit selected company scope across all drawer data and side-effect boundaries:
+
+| Flow | Scope rule |
+|---|---|
+| Candidate item detail read | Pass selected `companyUuid` for a single-company drawer. |
+| Primary bundle read | Pass the same selected `companyUuid` to `getProductDrawerBundle`. |
+| Secondary detail read | Pass the same selected `companyUuid` to `getProductSecondaryDetail`. |
+| Secondary mutation/update/confirm | Require the same concrete `companyUuid`; omitted, empty, or all-company scope is invalid. |
+
+Read-like APIs may still document optional all-company scope for normal analysis pages. That exception must not erase explicit single-company scope inside a candidate detail drawer transaction.

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { dashboardApi } from '../../../../../api'
 import type { SecondaryStockOrderCalcResult } from '../../../../../api/types'
 import type { ApiUnitErrorInfo } from '../../../../../types'
@@ -16,6 +16,11 @@ type Params = {
   makeApiErrorInfo: (request: string, err: unknown) => ApiUnitErrorInfo
 }
 
+type ForecastCalcState = {
+  requestKey: string
+  result: SecondaryStockOrderCalcResult
+}
+
 export function useSecondaryStockOrderCalc({
   skuGroupKey,
   selectedStart,
@@ -26,16 +31,33 @@ export function useSecondaryStockOrderCalc({
   dailyMeanClient,
   makeApiErrorInfo,
 }: Params) {
-  const [forecastCalc, setForecastCalc] = useState<SecondaryStockOrderCalcResult | null>(null)
+  const requestKey = useMemo(() => JSON.stringify({
+    skuGroupKey,
+    companyUuid: companyUuid ?? '',
+    selectedStart,
+    selectedEnd,
+    forecastMeanPeriodEnd,
+    leadTimeDays,
+    dailyMeanClient,
+  }), [
+    companyUuid,
+    dailyMeanClient,
+    forecastMeanPeriodEnd,
+    leadTimeDays,
+    selectedEnd,
+    selectedStart,
+    skuGroupKey,
+  ])
+  const [forecastCalcState, setForecastCalcState] = useState<ForecastCalcState | null>(null)
   const [forecastCalcError, setForecastCalcError] = useState<ApiUnitErrorInfo | null>(null)
   const [forecastCalcLoading, setForecastCalcLoading] = useState(true)
+  const forecastCalc = forecastCalcState?.requestKey === requestKey ? forecastCalcState.result : null
 
   useEffect(() => {
     let alive = true
     let timerId: ReturnType<typeof window.setTimeout> | null = null
-    queueMicrotask(() => {
-      if (alive) setForecastCalcLoading(true)
-    })
+    setForecastCalcLoading(true)
+    setForecastCalcError(null)
     timerId = window.setTimeout(() => {
       void (async () => {
         try {
@@ -50,11 +72,11 @@ export function useSecondaryStockOrderCalc({
           }
           const result = await dashboardApi.getSecondaryStockOrderCalc(params)
           if (!alive) return
-          setForecastCalc(result)
+          setForecastCalcState({ requestKey, result })
           setForecastCalcError(null)
         } catch (err) {
           if (!alive) return
-          setForecastCalc(null)
+          setForecastCalcState(null)
           setForecastCalcError(
             makeApiErrorInfo(
               `getSecondaryStockOrderCalc(${JSON.stringify({
@@ -83,6 +105,7 @@ export function useSecondaryStockOrderCalc({
     forecastMeanPeriodEnd,
     leadTimeDays,
     makeApiErrorInfo,
+    requestKey,
     skuGroupKey,
     selectedEnd,
     selectedStart,

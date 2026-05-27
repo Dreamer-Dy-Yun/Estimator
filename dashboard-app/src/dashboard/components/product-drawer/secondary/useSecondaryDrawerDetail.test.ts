@@ -50,6 +50,12 @@ const snapshot: OrderSnapshotDocumentV2 = {
       answer: '',
     },
     sizeOrders: [],
+    confirmedTotals: {
+      orderQty: 0,
+      expectedSalesAmount: 0,
+      expectedOpProfit: 0,
+      expectedOpProfitRatePct: null,
+    },
   },
 }
 

@@ -332,7 +332,7 @@ describe('useCandidateRecommendations', () => {
     })
 
     expect(args.refreshStashes).not.toHaveBeenCalled()
-    expect(args.showToast).toHaveBeenCalledWith('추천 후보 추가에 실패했습니다.')
+    expect(args.showToast).toHaveBeenCalledWith('추천 후보 추가에 실패했습니다.', { variant: 'error' })
     expect(result.current.recommendationAppendBusy).toBe(false)
   })
 

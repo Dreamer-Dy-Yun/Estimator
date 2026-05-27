@@ -5,6 +5,7 @@ import { useAppToast } from '../components/AppToastContext'
 import { AdminActiveSwitch } from './AdminActiveSwitch'
 import { AdminCreateDialogShell } from './AdminCreateDialogShell'
 import { AdminGoogleSheetKeyDropzone } from './AdminGoogleSheetKeyDropzone'
+import { refreshAfterAdminMutation } from './adminMutationRefresh'
 import { GOOGLE_SHEET_PURPOSE_OPTIONS, getErrorMessage } from './adminHelpers'
 import styles from './AdminPage.module.css'
 
@@ -42,8 +43,9 @@ export function AdminGoogleSheetCreateDialog({ onClose, onCreated }: AdminGoogle
         isActive,
         note,
       })
-      await onCreated()
+      const refreshWarningMessage = await refreshAfterAdminMutation(onCreated)
       showToast('구글 시트 설정을 추가했습니다.')
+      if (refreshWarningMessage) showToast(refreshWarningMessage, { variant: 'warning' })
       onClose()
     } catch (error) {
       setErrorMessage(getErrorMessage(error))

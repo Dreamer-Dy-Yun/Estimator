@@ -220,6 +220,7 @@ export function useCandidateStashDetailModal({
     ...actions,
     ...bulkConfirm,
     ...recommendations,
+    companyUuid,
     items,
     candidateItemsLoading,
     candidateItemsLoadError,

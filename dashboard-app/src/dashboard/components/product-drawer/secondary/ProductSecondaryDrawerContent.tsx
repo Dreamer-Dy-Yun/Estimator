@@ -74,6 +74,8 @@ export function ProductSecondaryDrawerContent({
     sizeRows,
     manualConfirmDerived,
     stockOrderDisplay,
+    stockOrderCalculationReady,
+    guardStockOrderCalculation,
     dailyTrend,
     dailyTrendSizeOptions,
     candidateActions,
@@ -84,10 +86,10 @@ export function ProductSecondaryDrawerContent({
   const { unitCost, unitPrice, expectedFeeRatePct } = orderInputFields
   const perUnitFee = Math.round((unitPrice * expectedFeeRatePct) / 100)
   const perUnitOpMargin = unitPrice - unitCost - perUnitFee
-  const forecastExpectedSales = recommendedQtyTotal * unitPrice
-  const forecastOpProfit = recommendedQtyTotal * perUnitOpMargin
-  const confirmedExpectedSales = confirmedQtyTotal * unitPrice
-  const confirmedOpProfit = confirmedQtyTotal * perUnitOpMargin
+  const forecastExpectedSales = stockOrderCalculationReady ? recommendedQtyTotal * unitPrice : 0
+  const forecastOpProfit = stockOrderCalculationReady ? recommendedQtyTotal * perUnitOpMargin : 0
+  const confirmedExpectedSales = stockOrderCalculationReady ? confirmedQtyTotal * unitPrice : 0
+  const confirmedOpProfit = stockOrderCalculationReady ? confirmedQtyTotal * perUnitOpMargin : 0
   return (
     <div className={styles.panel}>
       <div className={styles.metaFilterRow}>
@@ -114,6 +116,7 @@ export function ProductSecondaryDrawerContent({
               inputs: stockOrderDisplayInputs,
               loading: salesInsightLoading || forecastCalcLoading,
               error: salesInsightError ?? forecastCalcError,
+              calculationReady: stockOrderCalculationReady,
               computed: {
                 recommendedOrderQtyTotal: recommendedQtyTotal,
                 confirmedOrderQtyTotal: confirmedQtyTotal,
@@ -139,7 +142,7 @@ export function ProductSecondaryDrawerContent({
             comment={aiComment}
             loading={aiCommentLoading}
             error={aiCommentError}
-            onRequest={onRequestAiComment}
+            onRequest={stockOrderCalculationReady ? onRequestAiComment : guardStockOrderCalculation}
           />
         </ComponentErrorBoundary>
       </div>
@@ -168,6 +171,7 @@ export function ProductSecondaryDrawerContent({
             sizeRows,
             helpIds,
             stockOrderDisplay,
+            calculationReady: stockOrderCalculationReady,
             manualConfirmBySize: manualConfirmDerived,
           }}
           actions={{

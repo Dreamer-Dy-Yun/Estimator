@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { dashboardApi, getCompanyUuidForOptionalScope } from '../../../../api'
-import { useAuth } from '../../../../auth/AuthContext'
+import { dashboardApi } from '../../../../api'
 import type { ApiUnitErrorInfo, ProductSecondaryDetail } from '../../../../types'
 import type { OrderSnapshotDocumentV2 } from '../../../../snapshot/orderSnapshotTypes'
 import { makeApiErrorInfo } from '../apiErrorInfo'
@@ -8,6 +7,7 @@ import { makeApiErrorInfo } from '../apiErrorInfo'
 type Params = {
   skuGroupKey: string
   expandPaneOpen: boolean
+  companyUuid?: string
   hydrateSnapshot?: OrderSnapshotDocumentV2 | null
   pageName: string
 }
@@ -82,11 +82,10 @@ function isSameSecondaryDetailRequestKey(
 export function useSecondaryDrawerDetail({
   skuGroupKey,
   expandPaneOpen,
+  companyUuid,
   hydrateSnapshot = null,
   pageName,
 }: Params) {
-  const { selectedCompanyUuid } = useAuth()
-  const companyUuid = getCompanyUuidForOptionalScope(selectedCompanyUuid)
   const [secondaryDetailState, setSecondaryDetailState] = useState<SecondaryDetailState | null>(null)
   const [secondaryDetailErrorState, setSecondaryDetailErrorState] = useState<SecondaryDetailErrorState | null>(null)
 

@@ -13,6 +13,7 @@ type Args = {
   forecastSalesHorizonDays: number
   dailyMeanClient: number | null
   forecastCalc: SecondaryStockOrderCalcResult | null
+  stockOrderCalculationReady?: boolean
   selfWeightPct: number
   bufferStock: number
   confirmBySize: Record<string, number>
@@ -25,21 +26,33 @@ export function useSecondaryOrderCalculations({
   forecastSalesHorizonDays,
   dailyMeanClient,
   forecastCalc,
+  stockOrderCalculationReady,
   selfWeightPct,
   bufferStock,
   confirmBySize,
   snapshotConfirmBySize,
   useSnapshotConfirmBaseline,
 }: Args) {
-  const stockOrderDisplayInputs = useMemo(() => ({
-    trendDailyMean: forecastCalc?.trendDailyMean ?? 0,
-    dailyMean: dailyMeanClient ?? forecastCalc?.dailyMean ?? 0,
-    sigma: forecastCalc?.sigma ?? 0,
-  }), [
+  const calculationReady = stockOrderCalculationReady == null
+    ? forecastCalc != null
+    : stockOrderCalculationReady && forecastCalc != null
+  const stockOrderDisplayInputs = useMemo(() => {
+    if (!calculationReady || forecastCalc == null) {
+      return {
+        trendDailyMean: null,
+        dailyMean: null,
+        sigma: null,
+      }
+    }
+    return {
+      trendDailyMean: forecastCalc.trendDailyMean,
+      dailyMean: dailyMeanClient ?? forecastCalc.dailyMean,
+      sigma: forecastCalc.sigma,
+    }
+  }, [
+    calculationReady,
     dailyMeanClient,
-    forecastCalc?.dailyMean,
-    forecastCalc?.sigma,
-    forecastCalc?.trendDailyMean,
+    forecastCalc,
   ])
 
   const orderDraft = useMemo(
@@ -57,18 +70,23 @@ export function useSecondaryOrderCalculations({
   )
 
   const sizeRows = useMemo(() => {
-    const dailyMeanEa = dailyMeanClient ?? forecastCalc?.dailyMean ?? 0
+    const readyForecastCalc = calculationReady ? forecastCalc : null
+    const display = readyForecastCalc?.display ?? null
+    const dailyMeanEa = readyForecastCalc == null
+      ? 0
+      : dailyMeanClient ?? readyForecastCalc.dailyMean
     return buildSecondarySizeOrderRows({
       shares: sizeShares,
       dailyMeanEa,
       forecastSalesHorizonDays,
-      currentStockBySize: forecastCalc?.display.currentStockQtyBySize ?? [],
-      expectedInboundBySize: forecastCalc?.display.expectedInboundOrderBalanceBySize ?? [],
+      currentStockBySize: display?.currentStockQtyBySize ?? [],
+      expectedInboundBySize: display?.expectedInboundOrderBalanceBySize ?? [],
       bufferStock,
       orderDraft,
     })
   }, [
     bufferStock,
+    calculationReady,
     dailyMeanClient,
     forecastCalc,
     forecastSalesHorizonDays,
@@ -77,6 +95,7 @@ export function useSecondaryOrderCalculations({
   ])
 
   return {
+    stockOrderCalculationReady: calculationReady,
     stockOrderDisplayInputs,
     sizeRows,
     manualConfirmDerived: orderDraft.manualFlags(),

@@ -2,7 +2,6 @@ import type { ReactNode } from 'react'
 import { PortalHelpMark } from '../../../PortalHelpPopover'
 import { ApiUnitErrorBadge } from '../../../../../components/ApiUnitErrorBadge'
 import { LoadingSpinner } from '../../../../../components/LoadingSpinner'
-import type { SecondaryStockOrderCalcResult } from '../../../../../api/types'
 import type { OrderSnapshotStockOrderRequestV2 } from '../../../../../snapshot/orderSnapshotTypes'
 import type { ApiUnitErrorInfo } from '../../../../../types'
 import { formatGroupedNumber, formatGroupedOneDecimal, formatRatioDecimalKo } from '../../../../../utils/format'
@@ -12,7 +11,11 @@ import { KO } from '../../ko'
 import styles from '../secondaryDrawer.module.css'
 import type { SecondaryHelpId, SecondaryHelpIds } from '../secondaryDrawerTypes'
 
-type SalesForecastDisplayInputs = Pick<SecondaryStockOrderCalcResult, 'trendDailyMean' | 'dailyMean' | 'sigma'>
+type SalesForecastDisplayInputs = {
+  trendDailyMean: number | null
+  dailyMean: number | null
+  sigma: number | null
+}
 type SalesForecastInboundDateFields = Pick<OrderSnapshotStockOrderRequestV2, 'currentOrderInboundDueDate' | 'nextOrderInboundDueDate'>
 
 type SalesForecastComputedTable = {
@@ -40,7 +43,7 @@ export type SalesForecastOrderInputActions = {
 }
 
 type Props = {
-  forecast: { inputs: SalesForecastDisplayInputs; loading: boolean; error: ApiUnitErrorInfo | null; computed: SalesForecastComputedTable }
+  forecast: { inputs: SalesForecastDisplayInputs; loading: boolean; error: ApiUnitErrorInfo | null; calculationReady?: boolean; computed: SalesForecastComputedTable }
   orderInputFields: SalesForecastOrderInputFields
   actions: SalesForecastOrderInputActions
   help: { labelIds: Pick<SecondaryHelpIds, 'forecastQtyCalc' | 'expectedOpProfitRate'>; portal: ReturnType<typeof usePortalHelpPopover<SecondaryHelpId>> }
@@ -78,10 +81,10 @@ function NumberField({ label, value, onChange, unit, max, step = 1 }: NumberFiel
   )
 }
 
-function ComputedField({ label, value }: { label: string; value: number }) {
+function ComputedField({ label, value }: { label: string; value: number | null }) {
   return (
     <FieldCell label={label}>
-      <span className={`${styles.stockComputedValue} ${styles.stockFillInput}`}>{formatGroupedOneDecimal(value)}</span>
+      <span className={`${styles.stockComputedValue} ${styles.stockFillInput}`}>{value == null ? KO.valueNotCalculated : formatGroupedOneDecimal(value)}</span>
       <span className={styles.inlineUnit}>EA/일</span>
     </FieldCell>
   )
@@ -98,19 +101,21 @@ function HelpLabel({ label, helpId, labelIds, portal }: { label: string; helpId:
 
 export function SalesForecastCard({ forecast, orderInputFields, actions, help }: Props) {
   const { inputs, error, computed } = forecast
+  const calculationReady = forecast.calculationReady ?? true
   const { currentOrderInboundDueDate, nextOrderInboundDueDate, minOrderDate, bufferStock, unitCost, unitPrice, expectedFeeRatePct } = orderInputFields
   const { labelIds, portal } = help
   const calcRate = (expectedSales: number, expectedQty: number): number | null => {
     if (!Number.isFinite(expectedSales) || expectedSales <= 0) return null
     return (((expectedSales * (1 - Math.max(0, expectedFeeRatePct) / 100)) - (unitCost * expectedQty)) / expectedSales) * 100
   }
-  const forecastRate = calcRate(computed.forecastExpectedSales, computed.recommendedOrderQtyTotal)
-  const confirmedRate = calcRate(computed.confirmedExpectedSales, computed.confirmedOrderQtyTotal)
+  const forecastRate = calculationReady ? calcRate(computed.forecastExpectedSales, computed.recommendedOrderQtyTotal) : null
+  const confirmedRate = calculationReady ? calcRate(computed.confirmedExpectedSales, computed.confirmedOrderQtyTotal) : null
+  const metricValueText = (value: number) => (calculationReady ? formatGroupedNumber(value) : KO.valueNotCalculated)
   const metricRows: Array<{ key: string; label: string; expected: string; confirmed: string; helpId?: HelpKey }> = [
-    { key: 'orderQty', label: KO.rowOrderQty, helpId: 'forecastQtyCalc', expected: formatGroupedNumber(computed.recommendedOrderQtyTotal), confirmed: formatGroupedNumber(computed.confirmedOrderQtyTotal) },
-    { key: 'expectedSales', label: KO.rowExpectedSales, expected: formatGroupedNumber(computed.forecastExpectedSales), confirmed: formatGroupedNumber(computed.confirmedExpectedSales) },
-    { key: 'expectedOpProfit', label: KO.rowExpectedOpProfit, expected: formatGroupedNumber(computed.forecastOpProfit), confirmed: formatGroupedNumber(computed.confirmedOpProfit) },
-    { key: 'expectedOpProfitRate', label: KO.rowExpectedOpProfitRate, helpId: 'expectedOpProfitRate', expected: rateText(forecastRate), confirmed: rateText(confirmedRate) },
+    { key: 'orderQty', label: KO.rowOrderQty, helpId: 'forecastQtyCalc', expected: metricValueText(computed.recommendedOrderQtyTotal), confirmed: metricValueText(computed.confirmedOrderQtyTotal) },
+    { key: 'expectedSales', label: KO.rowExpectedSales, expected: metricValueText(computed.forecastExpectedSales), confirmed: metricValueText(computed.confirmedExpectedSales) },
+    { key: 'expectedOpProfit', label: KO.rowExpectedOpProfit, expected: metricValueText(computed.forecastOpProfit), confirmed: metricValueText(computed.confirmedOpProfit) },
+    { key: 'expectedOpProfitRate', label: KO.rowExpectedOpProfitRate, helpId: 'expectedOpProfitRate', expected: calculationReady ? rateText(forecastRate) : KO.valueNotCalculated, confirmed: calculationReady ? rateText(confirmedRate) : KO.valueNotCalculated },
   ]
 
   return (
@@ -118,6 +123,11 @@ export function SalesForecastCard({ forecast, orderInputFields, actions, help }:
       <div className={styles.stockTitleRow}>
         <h3 className={styles.sectionTitle}>{KO.sectionSalesForecastIntegrated}<ApiUnitErrorBadge error={error} /></h3>
       </div>
+      {!calculationReady && !error && (
+        <p className={styles.metaFilterActionHint} role="status" aria-live="polite">
+          {KO.msgStockOrderCalcRequired}
+        </p>
+      )}
       <div className={`${styles.stockInputList} ${styles.salesForecastInputList}`}>
         <DateField label={KO.labelCurrentOrderInboundDueDate} min={minOrderDate} value={currentOrderInboundDueDate} onChange={actions.onCurrentOrderInboundDueDateChange} />
         <DateField label={KO.labelNextOrderInboundDueDate} min={currentOrderInboundDueDate >= minOrderDate ? currentOrderInboundDueDate : minOrderDate} value={nextOrderInboundDueDate} onChange={actions.onNextOrderInboundDueDateChange} />

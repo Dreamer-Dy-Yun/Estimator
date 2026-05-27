@@ -1,6 +1,5 @@
 import { useEffect, useId, useRef, useState, type WheelEvent } from 'react'
-import { dashboardApi, getCompanyUuidForOptionalScope, type ProductMonthlyTrend } from '../../../../api'
-import { useAuth } from '../../../../auth/AuthContext'
+import { dashboardApi, type ProductMonthlyTrend } from '../../../../api'
 import type { ApiUnitErrorInfo, MonthlySalesPoint } from '../../../../types'
 import { monthToEndDate, monthToStartDate } from '../../../../utils/date'
 import { buildShadeRanges, normalizeMonthKey } from '../../trend/trendRangeUtils'
@@ -10,6 +9,7 @@ const COMPETITOR_CHANNEL_FALLBACK_LABEL = '경쟁사'
 
 export type ProductMonthlyTrendModelArgs = {
   skuGroupKey: string
+  companyUuid?: string
   periodStart: string
   periodEnd: string
   forecastMonths: number
@@ -67,6 +67,7 @@ const getViewRange = (
 
 export function useProductMonthlyTrendModel({
   skuGroupKey,
+  companyUuid,
   periodStart,
   periodEnd,
   forecastMonths,
@@ -76,8 +77,6 @@ export function useProductMonthlyTrendModel({
   fallbackTrend,
   pageName,
 }: ProductMonthlyTrendModelArgs) {
-  const { selectedCompanyUuid } = useAuth()
-  const companyUuid = getCompanyUuidForOptionalScope(selectedCompanyUuid)
   const forecastMonthsLabelId = useId()
   const forecastComboRef = useRef<HTMLDivElement | null>(null)
   const reqSeqRef = useRef(0)

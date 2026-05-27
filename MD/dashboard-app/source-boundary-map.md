@@ -1,164 +1,99 @@
-# dashboard-app 소스 경계 지도
+# dashboard-app Source Boundary Map
 
 | 항목 | 내용 |
 |------|------|
 | 작성 지시 | Yun Daeyoung |
 | 작성자 | Codex |
-| 작성일 | 2026-05-06 |
-| 최종 수정일 | 2026-05-26 |
-| 상태 | 유지 문서 |
+| 최초 작성일 | 2026-05-06 |
+| 최종 수정일 | 2026-05-27 |
+| 상태 | 최신 문서 |
 | 적용 범위 | `dashboard-app`, 프론트엔드 소스, 관련 배포/문서 경계 |
 
 ## 목적
 
-이 문서는 긴 상세 설명을 모두 담는 문서가 아니라, **어떤 내용을 보려면 어느 문서를 열어야 하는지 알려주는 마스터 인덱스**다.
+이 문서는 구현 세부를 모두 설명하지 않는다. 작업자가 기능, API 계약, 화면 동작, 폴더/파일 책임을 찾을 때 가장 먼저 확인하는 인덱스다.
 
-구현 세부, API 계약, 화면 동작, 파일별 책임은 아래 boundary 문서로 나눈다. 다음 작업자는 이 파일을 먼저 열고, 필요한 상세 문서만 추가로 읽는다.
-
-## 유지 규칙
-
-- 기능 변경, API 계약 변경, 폴더 이동, 공용 컴포넌트 추가, 주요 스타일/빌드 경계 변경 시 이 문서와 관련 boundary 문서를 같이 갱신한다.
-- 역할을 한 문장으로 설명하기 어려운 파일이나 폴더가 생기면 먼저 경계를 분리한다.
-- 하드닝 완료 파일은 [module-hardening.md](./module-hardening.md)에 별도 등록한다. 등록된 파일은 명시적 사용자 허가 없이 수정하지 않는다.
-- 날짜별 작업 이력은 현재 계약으로 흡수되면 [../HISTORY](../HISTORY)로 이동한다.
+기능 책임이 바뀌면 이 문서와 해당 `boundaries/*` 문서를 함께 갱신한다. 문서가 코드 책임과 어긋나면 기존 문구를 보존하지 않고 현재 책임 기준으로 다시 쓴다.
 
 ## 빠른 탐색
 
-| 알고 싶은 것 | 먼저 볼 문서 | 대표 소스 |
+| 확인할 것 | 먼저 볼 문서 | 대표 소스 |
 |------|------|------|
-| 저장소 루트, 빌드, 라우팅, e2e 경계 | [repository-runtime.md](./boundaries/repository-runtime.md) | `.github/`, `dashboard-app/vite.config.ts`, `dashboard-app/e2e` |
-| API facade, mock/HTTP runtime mode, 실패 kind, 타입 계약 위치, 회사 목록과 company scope | [api-contracts.md](./boundaries/api-contracts.md) | `dashboard-app/src/api` |
-| 로그인, 세션, 관리자 사용자/GPT/구글 시트 관리 | [auth-admin.md](./boundaries/auth-admin.md) | `dashboard-app/src/auth`, `dashboard-app/src/admin` |
-| 자사/경쟁사 분석, 필터, 산점도, 분석 리스트, 후보군 추가 제한 | [analysis-pages.md](./boundaries/analysis-pages.md) | `dashboard-app/src/dashboard/pages`, `dashboard-app/src/dashboard/components/*AnalysisList.tsx` |
-| 오더 후보군, 이너 후보군, 추천, 상세확정, 엑셀 | [candidate-stash.md](./boundaries/candidate-stash.md) | `dashboard-app/src/dashboard/components/candidate-stash` |
-| 상품 1차/2차 드로워, 스냅샷, AI 코멘트, 재고·발주 계산 | [product-drawer.md](./boundaries/product-drawer.md) | `dashboard-app/src/dashboard/components/product-drawer` |
-| 공통 컴포넌트, hooks/model/interaction/drawer, snapshot, utils | [shared-modules.md](./boundaries/shared-modules.md) | `dashboard-app/src/components`, `dashboard-app/src/dashboard/hooks`, `dashboard-app/src/utils` |
+| 저장소 런타임, 빌드, 라우팅, e2e | [repository-runtime.md](./boundaries/repository-runtime.md) | `.github/`, `dashboard-app/vite.config.ts`, `dashboard-app/e2e` |
+| API facade, mock/HTTP mode, 실패 kind, company scope | [api-contracts.md](./boundaries/api-contracts.md) | `dashboard-app/src/api` |
+| 로그인, 세션, 관리자 GPT/구글 시트 관리, admin mutation refresh | [auth-admin.md](./boundaries/auth-admin.md), [shared-modules.md](./boundaries/shared-modules.md) | `dashboard-app/src/auth`, `dashboard-app/src/admin` |
+| 자사/경쟁사 분석 페이지와 필터 | [analysis-pages.md](./boundaries/analysis-pages.md) | `dashboard-app/src/dashboard/pages`, `dashboard-app/src/dashboard/components/*AnalysisList.tsx` |
+| 후보군 상세, 추천, 배치, 상세확정, 저장 | [candidate-stash.md](./boundaries/candidate-stash.md) | `dashboard-app/src/dashboard/components/candidate-stash` |
+| 상품 1차/2차 드로어, 계산, AI 코멘트, product secondary snapshot | [product-drawer.md](./boundaries/product-drawer.md) | `dashboard-app/src/dashboard/components/product-drawer`, `dashboard-app/src/snapshot` |
+| 공통 UI, hooks/model/interaction/drawer, snapshot parser/test split, utils | [shared-modules.md](./boundaries/shared-modules.md) | `dashboard-app/src/components`, `dashboard-app/src/dashboard/hooks`, `dashboard-app/src/dashboard/drawer`, `dashboard-app/src/snapshot`, `dashboard-app/src/utils` |
 | 현재 QA 기준과 검증 명령 | [qa-current-behavior.md](./qa-current-behavior.md), [qa-state-contracts.md](./qa-state-contracts.md), [test-strategy.md](./test-strategy.md) | `dashboard-app/src/**/*.test.*`, `dashboard-app/e2e` |
 | 실패 kind별 UX surface와 금지 fallback | [failure-ux-matrix.md](./failure-ux-matrix.md), [qa-state-contracts.md](./qa-state-contracts.md) | `dashboard-app/src/api/types/api-error.ts`, `dashboard-app/src/api/requests/httpClient.ts` |
-| 버튼, 카드, 패널, 리스트, 드로워, 모달의 UI 패턴 | [ui-patterns.md](./ui-patterns.md) | `dashboard-app/src/components`, `dashboard-app/src/dashboard/components`, CSS Modules |
-| CSS public facade, 직접 import 예외, selector/token 하드닝 상태 | [hardening-status.md](./hardening-status.md) | `dashboard-app/src/dashboard/components/common.module.css`, `dashboard-app/src/dashboard/components/product-drawer/secondary/secondaryDrawer.module.css`, `dashboard-app/src/styles/tokens.css` |
+| 버튼, 카드, 패널, 리스트, 모달 UI 패턴 | [ui-patterns.md](./ui-patterns.md) | `dashboard-app/src/components`, `dashboard-app/src/dashboard/components`, CSS Modules |
+| CSS public facade와 style-parts 직접 import 예외 | [hardening-status.md](./hardening-status.md) | `common.module.css`, `secondaryDrawer.module.css`, `tokens.css` |
 | 하드닝 완료 모듈과 수정 허가 규칙 | [module-hardening.md](./module-hardening.md) | `dashboard-app/src/utils` 등 |
-| 백엔드 구현용 API 상세 | [../backend-api/README.md](../backend-api/README.md) | `dashboard-app/src/api/types` |
+| 백엔드 API 상세 | [../backend-api/README.md](../backend-api/README.md) | `dashboard-app/src/api/types` |
 
 ## 기능별 갱신 기준
 
 | 변경 내용 | 같이 갱신할 문서 |
 |------|------|
-| 새 API 메서드, 응답 DTO, SSE 이벤트, API 실패 kind, mock/HTTP adapter, company scope 변경 | [api-contracts.md](./boundaries/api-contracts.md), [../backend-api/backend-api-spec.md](../backend-api/backend-api-spec.md) |
-| 자사/경쟁사 분석 필터, 기간 조회 방식, 산점도, 순위, 후보군 담기 변경 | [analysis-pages.md](./boundaries/analysis-pages.md), [qa-current-behavior.md](./qa-current-behavior.md) |
-| 후보군 상세 조회, 추천, 배지, 오더 지표 SSE, 상세확정/해제/삭제, 상세 목록 재조회 실패 표시, 엑셀 변경 | [candidate-stash.md](./boundaries/candidate-stash.md), [../backend-api/backend-api-spec.md](../backend-api/backend-api-spec.md), [qa-current-behavior.md](./qa-current-behavior.md) |
-| 추천 append guard, append 결과 판정, 중복 append busy guard 변경 | [candidate-stash.md](./boundaries/candidate-stash.md), [qa-current-behavior.md](./qa-current-behavior.md), 필요 시 [module-hardening.md](./module-hardening.md) |
-| 추천 append 응답 매칭, `useCandidateRecommendations` 직접 테스트 범위 변경 | [candidate-stash.md](./boundaries/candidate-stash.md), [qa-current-behavior.md](./qa-current-behavior.md), [module-hardening.md](./module-hardening.md), [../backend-api/dashboard-api-contract-catalog.md](../backend-api/dashboard-api-contract-catalog.md) |
-| 상품 드로워, 스냅샷 저장 범위, AI 코멘트, 재고·발주 계산 변경 | [product-drawer.md](./boundaries/product-drawer.md), [../backend-api/backend-api-spec.md](../backend-api/backend-api-spec.md), [qa-current-behavior.md](./qa-current-behavior.md) |
-| 로그인/관리자 화면, GPT 키, 구글 시트 설정 변경 | [auth-admin.md](./boundaries/auth-admin.md), [qa-current-behavior.md](./qa-current-behavior.md) |
-| 공통 UI, table, toast, spinner, keyboard interaction, utils 변경 | [shared-modules.md](./boundaries/shared-modules.md), [ui-patterns.md](./ui-patterns.md), 필요 시 [module-hardening.md](./module-hardening.md) |
-| CSS public facade, style-parts 직접 import 예외, selector 중복, token 후보 변경 | [hardening-status.md](./hardening-status.md), 필요 시 [ui-patterns.md](./ui-patterns.md) |
-| 로딩, 빈 값, 오류, 권한 실패, stale, 비활성 UX 변경 | [failure-ux-matrix.md](./failure-ux-matrix.md), [qa-state-contracts.md](./qa-state-contracts.md), [qa-current-behavior.md](./qa-current-behavior.md) |
-| e2e/CI/build/router/배포 변경 | [repository-runtime.md](./boundaries/repository-runtime.md), [test-strategy.md](./test-strategy.md) |
+| API 요청/응답 DTO, SSE event, 실패 kind, mock/HTTP adapter, company scope | [api-contracts.md](./boundaries/api-contracts.md), [../backend-api/backend-api-spec.md](../backend-api/backend-api-spec.md) |
+| 분석 페이지 필터, 기간 조회, 경쟁사 선택, 후보군 열기 방식 | [analysis-pages.md](./boundaries/analysis-pages.md), [qa-current-behavior.md](./qa-current-behavior.md) |
+| 후보군 상세 조회, 추천, 배치, SSE, 상세확정/해제/삭제, 목록 refresh 실패 | [candidate-stash.md](./boundaries/candidate-stash.md), [../backend-api/backend-api-spec.md](../backend-api/backend-api-spec.md), [qa-current-behavior.md](./qa-current-behavior.md) |
+| 추천 append guard, append 결과 판정, 중복 append busy guard | [candidate-stash.md](./boundaries/candidate-stash.md), [qa-current-behavior.md](./qa-current-behavior.md), [module-hardening.md](./module-hardening.md) |
+| 상품 드로어 scope, AI 코멘트, 재고/발주 계산, product secondary snapshot 저장/복원 | [product-drawer.md](./boundaries/product-drawer.md), [../backend-api/backend-api-spec.md](../backend-api/backend-api-spec.md), [qa-current-behavior.md](./qa-current-behavior.md) |
+| 로그인/관리자 화면, GPT 키, 구글 시트 설정, admin mutation refresh helper | [auth-admin.md](./boundaries/auth-admin.md), [shared-modules.md](./boundaries/shared-modules.md), [qa-current-behavior.md](./qa-current-behavior.md) |
+| 공통 UI, table, toast, spinner, keyboard interaction, drawer DOM helper, utils | [shared-modules.md](./boundaries/shared-modules.md), [ui-patterns.md](./ui-patterns.md), [module-hardening.md](./module-hardening.md) |
+| snapshot type/parser/test split | [shared-modules.md](./boundaries/shared-modules.md), [product-drawer.md](./boundaries/product-drawer.md), [test-strategy.md](./test-strategy.md) |
+| CSS public facade, selector 중복, token 후보 | [hardening-status.md](./hardening-status.md), [ui-patterns.md](./ui-patterns.md) |
+| loading, empty, error, permission, stale, disabled UX | [failure-ux-matrix.md](./failure-ux-matrix.md), [qa-state-contracts.md](./qa-state-contracts.md), [qa-current-behavior.md](./qa-current-behavior.md) |
+| e2e/CI/build/router/deploy | [repository-runtime.md](./boundaries/repository-runtime.md), [test-strategy.md](./test-strategy.md) |
 
-## 새 파일 배치 규칙
+## 기본 파일 배치 규칙
 
-- 화면 라우트 조립은 `dashboard/pages`.
-- 데이터 접근은 `src/api` 뒤에만 둔다. 페이지/컴포넌트/훅은 mock을 직접 import하지 않는다.
+- 화면 라우트 조립은 `dashboard/pages`에 둔다.
+- 데이터 접근은 `src/api` 뒤에 둔다. 페이지/컴포넌트/훅은 mock을 직접 import하지 않는다.
 - 자사/경쟁사 분석 전용 UI는 `dashboard/components` 또는 분석 전용 하위 컴포넌트에 둔다.
-- 후보군 상세/추천/상세확정/엑셀 관련 UI와 hook은 `dashboard/components/candidate-stash`.
-- 상품 드로워 관련 UI와 hook은 `dashboard/components/product-drawer`.
-- React나 API 구현에 의존하지 않는 순수 보조 함수는 `src/utils` 또는 해당 feature의 `model`에 둔다.
-- 테스트는 특별한 이유가 없으면 대상 파일 옆에 `*.test.ts(x)`로 둔다. 실제 브라우저 흐름은 `e2e/`에 둔다.
+- 후보군 상세/추천/상세확정/저장 관련 UI와 hook은 `dashboard/components/candidate-stash`에 둔다.
+- 상품 드로어 관련 UI와 hook은 `dashboard/components/product-drawer`에 둔다.
+- React와 API 구현에 의존하지 않는 순수 보조 함수는 `src/utils` 또는 해당 feature의 `model`에 둔다.
+- snapshot 문서 타입과 parser는 `src/snapshot`이 소유한다. product drawer는 snapshot을 생성/소비하는 feature 책임을 가진다.
+- 테스트는 특별한 이유가 없으면 대상 파일 옆의 `*.test.ts(x)`에 둔다. 브라우저 e2e 흐름은 `e2e/`에 둔다.
 
-## candidate-stash hook 상태 경계
+## 최근 반영된 경계
 
-| hook | 소유 상태 | 외부 경계 | 관련 문서 |
-|------|-----------|-----------|-----------|
-| `dashboard-app/src/dashboard/components/candidate-stash/useCandidateItemsLoader.ts` | 기본 후보 item 조회 로딩/오류, 기본 item set 반영, 상세확정 override 보호, 오더 지표 SSE 구독 시작 | 추천 목록 pagination과 추천 추가 mutation은 `useCandidateRecommendations`가 소유한다. 오더 지표 event 처리와 subscription 생명주기 전체를 이 hook이 소유하는 것은 아니다. | [qa-current-behavior.md](./qa-current-behavior.md), [module-hardening.md](./module-hardening.md) |
-| `dashboard-app/src/dashboard/components/candidate-stash/useCandidateRecommendations.ts` | 추천 목록, 추천 로딩/오류, 기간별 추천 cache, 추천 배지 병합, 추천 후보 추가 mutation 후 추천 목록 정리 | 기본 후보 item 조회 실패와 상세 일괄확정 progress는 소유하지 않는다. 최신 조회 실패 시 기존 추천 ref 유지와 배지 실패 표시는 stale UX이며, 이전 seq 응답 무시는 async stale guard다. | [failure-ux-matrix.md](./failure-ux-matrix.md), [qa-current-behavior.md](./qa-current-behavior.md) |
-| `dashboard-app/src/dashboard/components/candidate-stash/useCandidateBulkDetailConfirm.ts` | 상세 일괄확정 요청, SSE subscription, progress popup 상태, busy 상태, 완료/실패 toast, job sequence guard | 기본 리스트 재조회, 스냅샷 저장/해제 계산, 추천 state를 소유하지 않는다. `mountedRef`는 unmount 방어이고 `sequenceRef`는 이전 상세확정 job의 SSE 이벤트/에러/close timer가 최신 progress를 덮지 못하게 하는 async stale guard다. 기간 변경 seq 방어는 caller 계약과 함께 다루되, 일괄확정 job 단위 guard는 이 hook의 내부 책임이다. | [module-hardening.md](./module-hardening.md), [qa-current-behavior.md](./qa-current-behavior.md), [failure-ux-matrix.md](./failure-ux-matrix.md) |
+| 영역 | 책임 |
+|------|------|
+| snapshot test split | `parseOrderSnapshot.validation.test.ts`는 저장/API JSON validation, `buildSecondaryOrderSnapshot.test.ts`는 snapshot builder, `orderSnapshotTestFixtures.ts`는 fixture 책임을 맡는다. product secondary UI/hook 테스트는 드로어 흐름과 사용자 interaction만 검증한다. |
+| adminMutationRefresh | 관리자 write 성공과 후속 refresh 실패를 분리하는 helper다. write 성공을 실패로 되돌리지 않고 warning/stale 상태를 별도로 드러낸다. |
+| product secondary snapshot | 2차 드로어는 계산 입력, 계산 결과, AI 코멘트, 확정 수량을 snapshot으로 생성한다. 계산 실패/미계산 상태를 0 값으로 저장하지 않는다. |
+| review lifecycle residue | 완료된 과거 review가 `mulAg/md/review`에 남아 있으면 대량 이동 대신 현재 plan 또는 `mulAg/md/README.md`에 정리 원칙과 후속 조치를 먼저 남긴다. |
 
-## CSS public facade 기준
-
-- `dashboard-app/src/dashboard/components/common.module.css`는 dashboard 공통 CSS public facade다. TS/TSX는 `common-style-parts/**`를 직접 import하지 않고 이 파일을 통해 사용한다.
-- `dashboard-app/src/dashboard/components/product-drawer/secondary/secondaryDrawer.module.css`는 2차 드로워 CSS public facade다. TS/TSX는 원칙적으로 `secondary/style-parts/**`를 직접 import하지 않는다.
-- 현재 직접 import 예외는 `AiCommentCard.tsx`의 `../style-parts/cardAi.module.css` 참조다. 유지하거나 facade 뒤로 되돌리는 결정은 [hardening-status.md](./hardening-status.md)의 승인 필요 후보로 추적한다.
-- 현재 경계 예외는 primary `SalesMetricsCard.tsx`가 secondary `secondaryDrawer.module.css`를 참조하는 구조다. 공통 metrics style로 분리할지 여부는 후속 하드닝에서 결정한다.
-
-## 경계 점검 질문
+## 경계 자가 질문
 
 - 이 파일이 화면, API, 계산, 저장 상태를 동시에 소유하고 있지 않은가?
-- 이 컴포넌트가 mock 또는 브라우저 저장소를 직접 알고 있지 않은가?
+- 컴포넌트가 mock 또는 브라우저 저장소를 직접 보고 있지 않은가?
 - 백엔드가 제공해야 할 비즈니스 값을 프론트가 임의로 만들고 있지 않은가?
-- 기능 이름과 파일/함수/컴포넌트 이름이 실제 책임을 정확히 말하는가?
+- 파일/함수/컴포넌트 이름이 실제 책임을 정확히 말하는가?
 - 하드닝 완료 파일을 수정해야 한다면 사용자에게 명시적 허가를 받았는가?
 
-## Company selector source boundary
+## 2026-05-27 documentation/API alignment addendum
 
-- Company selector 관련 문서 기준은 API 계약, header/auth boundary, 분석 페이지 boundary, 후보군 boundary, QA 기준, backend API spec으로 나뉜다.
-- API 계약 문서는 company list 응답을 `uuid`, `name` 중심의 dropdown 계약으로 다루고, `전체` 선택 시 `companyUuid` 생략 규칙을 함께 다룬다.
-- header boundary는 selector 위치를 업무 탭과 유틸리티 액션 사이로 고정하고, selector 책임을 전역 선택 상태까지로 제한한다.
-- 자사/경쟁사 분석 boundary는 단일 회사 선택 시 분석 API 요청에 `companyUuid`가 포함된다는 정책을 소유한다.
-- 후보군 boundary는 `전체` 선택 상태에서 오더 후보군 탭과 후보군 추가 액션을 비활성화하고, 오더 후보군 페이지 내부 제한 안내를 표시한다는 정책을 소유한다.
-- 사용자별 회사 접근 권한 부여는 현재 source boundary 범위가 아니다. 권한 정책이 추가되면 `auth-admin.md`, `api-contracts.md`, backend API spec을 함께 갱신한다.
+### Candidate append contract
 
-## 2026-05-22 company scope / failure UX source boundary
+- Singular candidate append is documented separately from bulk append.
+- Singular append must carry required `details: OrderSnapshotDocumentV2` and `isLatestLlmComment` state.
+- Singular append success follows the frontend `Promise<void>` contract and should be documented as empty/no-content response, not as an item summary response.
+- Bulk append may keep its batch shape and `CandidateStashItemSummary[]` response, but it must not be used as the source of truth for singular append item fields or response shape.
 
-| 영역 | 소유 파일 | 책임 |
-|------|-----------|------|
-| company scope 타입과 helper | `dashboard-app/src/api/types/company.ts` | `전체` sentinel, read optional scope 정규화, mutation/job/SSE required scope 검증 |
-| HTTP adapter runtime guard | `dashboard-app/src/api/requests/httpDashboardRequests.ts` | read API query scope와 mutation/job/SSE/FormData 단일 회사 scope를 API adapter 경계에서 분리 적용 |
-| 2차 드로워 후보군 all-company guard | `dashboard-app/src/dashboard/components/product-drawer/secondary/hooks/useSecondaryCandidateActions.ts` | 전체 scope에서 후보군 picker와 mutation 진입을 막고 toast로 실패 사유 표시 |
-| 오더 후보군 목록 전체 scope guard와 load failure UI | `dashboard-app/src/dashboard/pages/SnapshotConfirmPage.tsx` | 전체 scope 안내, 후보군 목록 load error, stale list 유지, retry UI |
+### Candidate detail drawer scope
 
-### 현재 동작 경계
+- Candidate detail drawer must preserve explicit selected company scope through item detail, primary bundle, secondary detail, and secondary mutation calls.
+- Product drawer's normal read-like optional all-company scope remains valid for analysis-page reads, but a candidate detail drawer opened in a single-company context must not silently drop `companyUuid`.
+- Secondary mutations from the detail drawer remain mutation-scope flows and require a concrete `companyUuid`.
 
-- company scope helper와 HTTP adapter는 read API의 `companyUuid` 생략과 mutation/job/SSE의 단일 회사 필수 계약을 분리한다.
-- 2차 드로워 후보군 액션은 전체 scope일 때 후보군 side-effect 진입 전 UI hook에서 차단한다.
-- SnapshotConfirmPage는 전체 scope에서 API를 호출하지 않고 내부 안내를 표시하며, 목록 load failure를 화면 상태로 유지한다.
+### Toast accessibility policy
 
-### 하드닝 보류 경계
-
-- 위 파일들은 현재 하드닝 완료 파일 목록에 추가하지 않는다. TODO-065는 문서 정합성 작업이며 테스트/빌드를 실행하지 않았다.
-- HTTP adapter 전체, 2차 드로워 후보군 hook 전체, SnapshotConfirmPage 전체는 아직 여러 책임을 함께 소유한다. 하드닝 시에는 runtime guard, all-company guard, load failure UI처럼 작은 책임 단위로 분리해 검증한다.
-
-## TODO-065 company scope / stale guard source boundary
-
-| 영역 | 소유 파일 | 책임 |
-|------|-----------|------|
-| read-like POST optional scope | `dashboard-app/src/api/requests/httpDashboardRequests.ts`, `dashboard-app/src/api/types/company.ts` | secondary AI comment와 secondary stock order calc는 POST이지만 저장/수정/삭제/job/SSE가 아니므로 optional company scope를 사용한다. `전체` scope는 `companyUuid` 생략으로 정규화한다. |
-| candidate required scope | `dashboard-app/src/api/requests/httpDashboardRequests.ts`, `dashboard-app/src/dashboard/components/candidate-stash/*` | 후보군 mutation, 상세 일괄확정 job/SSE, 후보군 LLM comment job/SSE, 오더 지표 SSE는 required single company scope다. 누락 scope를 기본 회사나 빈 성공으로 보정하지 않는다. |
-| candidate mock upload required scope | `dashboard-app/src/api/mock/*`, `dashboard-app/src/api/requests/*`, `dashboard-app/src/dashboard/pages/SnapshotConfirmPage.tsx` | 후보군 upload mock은 단순 fixture read가 아니라 후보군 생성/갱신 성격의 mutation 대체 구현이다. 단일 회사 scope가 없으면 기본 회사로 보정하지 않고 실패해야 한다. |
-| recommendation append guard | `dashboard-app/src/dashboard/components/candidate-stash/useCandidateRecommendations.ts` | 추천 append 응답을 `applied`, `stale`, `empty`로 구분하고, 중복 append busy guard와 stash/company/period/item-membership guard를 통과한 경우에만 로컬 item 삽입을 수행한다. 추천 visible row는 전체 추천 원본과 현재 item membership에서 다시 파생한다. |
-| SnapshotConfirmPage stale guard | `dashboard-app/src/dashboard/pages/SnapshotConfirmPage.tsx` | company switch 중 이전 회사 목록 응답이 현재 선택 회사 목록을 덮지 않게 한다. `전체` 전환 시 후보군 API 호출 대신 페이지 내부 제한 안내를 표시한다. |
-| product-secondary picker guard | `dashboard-app/src/dashboard/components/product-drawer/secondary/hooks/useSecondaryCandidateActions.ts` | company/sku 변경 중 이전 picker 요청 결과가 최신 상태를 덮지 않게 하고, picker load 실패 또는 unconfirm 실패를 mutation 성공 흐름으로 연결하지 않는다. |
-| candidate detail modal accessibility | `dashboard-app/src/dashboard/components/candidate-stash/CandidateStashDetailModal.tsx` 및 하위 overlay | parent dialog는 focus trap과 close 후 focus restore를 소유한다. 하위 drawer/popup이 열려 있으면 parent dialog는 Escape 닫힘을 양보하고 상위 전파를 막아 내부부터 닫히는 순서를 지킨다. |
-| missing-state dialog label | `dashboard-app/src/dashboard/components/candidate-stash/*`, 관련 modal/dialog 컴포넌트 | 회사 선택 필요, 추천 없음, append empty 등 누락/제한 상태는 일반 성공 상태와 구분되는 title/accessibility label을 가져야 한다. |
-| sort accessibility | `dashboard-app/src/dashboard/components/candidate-stash/InnerCandidateOrderList.tsx`, sort header style-parts | 정렬 가능한 헤더는 컬럼명과 현재 정렬 상태를 아이콘 외 접근성 정보로 제공한다. 표시 인덱스는 정렬된 화면 순서 번호다. |
-
-TODO-065는 문서 정합성 작업이며 테스트/빌드를 실행하지 않았다. 이 문구는 선행 TODO의 코드 변경 여부를 판단하는 문구가 아니라, 이번 문서 작업에서 추가 검증 명령을 실행하지 않았다는 의미다.
-
-## TODO-111 recommendation/test boundary
-
-| 영역 | 소유 파일 | 문서 경계 |
-|------|-----------|-----------|
-| useCandidateRecommendations 직접 테스트 | `dashboard-app/src/dashboard/components/candidate-stash/useCandidateRecommendations.test.*` | 추천 append `applied/stale/empty`, busy guard를 확인하는 테스트 범위로 기록한다. |
-| 추천 append 응답 매칭 | `dashboard-app/src/dashboard/components/candidate-stash/candidateItemLocalMutationModel.ts`, `dashboard-app/src/api/types/*` | append 응답의 신규 후보 item과 기존 recommendation 원본이 매칭될 때만 로컬 item 삽입을 허용한다. 매칭 불가 응답은 append 실패이며 `empty`/`stale`과 구분한다. |
-| 하드닝 판단 | [module-hardening.md](./module-hardening.md) | 직접 테스트 보강은 하드닝 후보를 좁히는 근거지만, hook 전체 또는 candidate-stash 영역 전체를 하드닝 완료로 승격하지 않는다. |
-
-TODO-111에서는 코드와 테스트 실행을 다루지 않는다. 완료 항목은 문서 정합성 보강이며, 하드닝 완료 선언은 보류한다.
-
-## TODO-114 snapshot compact contract source boundary
-
-| 영역 | 소유 문서 | 책임 |
-|------|-----------|------|
-| primary summary hydrate boundary | `dashboard-app/src/dashboard/drawer/mergePrimarySummaryFromSnapshot.ts` | current compact `drawer1.summary`는 bundle이 있을 때 저장 필드만 merge한다. bundle이 없으면 compact summary만으로 `ProductPrimarySummary`를 만들지 않고, 완전한 legacy summary만 hydrate할 수 있다. |
-| backend snapshot contract | [../backend-api/backend-api-spec.md](../backend-api/backend-api-spec.md), [../backend-api/dashboard-api-contract-catalog.md](../backend-api/dashboard-api-contract-catalog.md) | 백엔드 구현자가 `drawer1.summary`, `drawer2.competitorBasis`, 계산 입력/결과, 확정 row의 의미와 저장 용도를 이해할 수 있게 필드 설명을 유지한다. |
-
-
-## TODO-116 snapshot v2 company scope source boundary
-
-| Area | Owner document | Responsibility |
-|------|----------------|----------------|
-| Current snapshot type name | Product drawer boundary, backend API spec, API catalog | Use `OrderSnapshotDocumentV2` for current `schemaVersion: 2` snapshots. |
-| Snapshot company scope | Product drawer boundary, backend API spec, API catalog | Keep optional top-level `companyUuid?: string` as the snapshot scope field. Do not duplicate it as drawer-level scope. |
-| Hydrate guard | Product drawer boundary | `getScopeSafeHydrateSnapshot` accepts the snapshot only when `skuGroupKey` and scope match: same company UUID for single-company scope, or both unscoped for all-company scope. |
-| Regression coverage | `dashboard-app/src/snapshot/parseOrderSnapshot.test.ts` | Lock current compact key behavior, required `stockOrderRequest`, and optional `stockOrderResult` handling. |
-
-This documentation boundary tracks the current runtime contract. It is not a request to change code.
+- Warning toast copy is consistent with the current component policy when it is announced as `role="status"` with polite live-region behavior.
+- Only error toasts should use alert/assertive behavior.
+- Documentation references to warning toast should not describe warning as `alert` or `assertive` unless the component policy changes.

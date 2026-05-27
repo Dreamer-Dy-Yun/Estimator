@@ -4,6 +4,7 @@ import type { AdminGptKeyPurpose, AdminGptKeySummary, AdminGptKeyTestResult } fr
 import { useAppToast } from '../components/AppToastContext'
 import { LoadingSpinner } from '../components/LoadingSpinner'
 import { AdminActiveSwitch } from './AdminActiveSwitch'
+import { refreshAfterAdminMutation } from './adminMutationRefresh'
 import { GPT_KEY_PURPOSE_OPTIONS, getErrorMessage } from './adminHelpers'
 import styles from './AdminPage.module.css'
 
@@ -33,6 +34,7 @@ export function AdminGptKeyDialog({
   const [isTesting, setIsTesting] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
   const [deleteConfirm, setDeleteConfirm] = useState(false)
+  const isBusy = isSaving || isTesting || isDeleting
   const isDirty =
     name !== gptKey.name ||
     purpose !== gptKey.purpose ||
@@ -59,10 +61,12 @@ export function AdminGptKeyDialog({
         note,
         plainKey: hasNewPlainKey ? nextPlainKey : undefined,
       })
-      await onChanged()
+      const refreshWarningMessage = await refreshAfterAdminMutation(onChanged)
       if (hasNewPlainKey) setRotateKey('')
-      setRowMessage(hasNewPlainKey ? '변경됨 · 키 교체됨' : '변경됨')
-      showToast(hasNewPlainKey ? 'GPT 키 정보와 API 키를 변경했습니다.' : 'GPT 키 정보를 변경했습니다.')
+      const successRowMessage = hasNewPlainKey ? '변경됨 · 키 교체됨' : '변경됨'
+      const successToastMessage = hasNewPlainKey ? 'GPT 키 정보와 API 키를 변경했습니다.' : 'GPT 키 정보를 변경했습니다.'
+      setRowMessage(refreshWarningMessage ? `${successRowMessage} · ${refreshWarningMessage}` : successRowMessage)
+      showToast(refreshWarningMessage ?? successToastMessage, refreshWarningMessage ? { variant: 'warning' } : undefined)
       setDeleteConfirm(false)
     } catch (error) {
       setErrorMessage(getErrorMessage(error))
@@ -102,7 +106,9 @@ export function AdminGptKeyDialog({
     setIsDeleting(true)
     try {
       await deleteAdminGptKey(gptKey.uuid)
-      await onDeleted()
+      const refreshWarningMessage = await refreshAfterAdminMutation(onDeleted)
+      if (refreshWarningMessage) showToast(refreshWarningMessage, { variant: 'warning' })
+      onClose()
     } catch (error) {
       setErrorMessage(getErrorMessage(error))
       setIsDeleting(false)
@@ -111,7 +117,7 @@ export function AdminGptKeyDialog({
   }
 
   return (
-    <div className={styles.gptKeyDialogBackdrop} role="presentation" onMouseDown={onClose}>
+    <div className={styles.gptKeyDialogBackdrop} role="presentation" onMouseDown={isBusy ? undefined : onClose}>
       <section
         className={styles.gptKeyDialog}
         role="dialog"
@@ -124,7 +130,7 @@ export function AdminGptKeyDialog({
             <span>GPT 키 관리</span>
             <h3 id="admin-gpt-key-dialog-title">상세 설정</h3>
           </div>
-          <button className={styles.gptKeyDialogCloseButton} type="button" onClick={onClose} aria-label="닫기">
+          <button className={styles.gptKeyDialogCloseButton} type="button" onClick={onClose} disabled={isBusy} aria-label="닫기">
             x
           </button>
         </header>
@@ -167,7 +173,7 @@ export function AdminGptKeyDialog({
               autoComplete="off"
             />
           </label>
-          <button className={styles.secondaryButton} type="button" onClick={handleTest} disabled={isTesting}>
+          <button className={styles.secondaryButton} type="button" onClick={handleTest} disabled={isBusy}>
             {isTesting ? <LoadingSpinner size="inline" label="테스트 중" /> : '연결 테스트'}
           </button>
         </div>
@@ -176,18 +182,18 @@ export function AdminGptKeyDialog({
         {errorMessage ? <p className={styles.rowError}>{errorMessage}</p> : null}
 
         <div className={styles.gptKeyDialogActions}>
-          <button className={styles.dangerButton} type="button" onClick={handleDelete} disabled={isDeleting}>
+          <button className={styles.dangerButton} type="button" onClick={handleDelete} disabled={isBusy}>
             {isDeleting ? <LoadingSpinner size="inline" label="삭제 중" /> : deleteConfirm ? '삭제 확인' : '삭제'}
           </button>
           <button
             className={styles.createButton}
             type="submit"
             form="admin-gpt-key-detail-form"
-            disabled={!isDirty || isSaving}
+            disabled={!isDirty || isBusy}
           >
             {isSaving ? <LoadingSpinner size="inline" label="변경 중" /> : '변경'}
           </button>
-          <button className={styles.secondaryButton} type="button" onClick={onClose}>
+          <button className={styles.secondaryButton} type="button" onClick={onClose} disabled={isBusy}>
             닫기
           </button>
         </div>

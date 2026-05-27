@@ -25,6 +25,10 @@
   background: #0f172a;
 }
 
+.warning {
+  background: #b45309;
+}
+
 .error {
   background: #991b1b;
 }

@@ -1,8 +1,9 @@
-import { useRef } from 'react'
+import { useCallback, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { formatDateTimeMinute } from '../../../../utils/date'
 import { LoadingSpinner } from '../../../../components/LoadingSpinner'
 import commonStyles from '../../common.module.css'
+import { drawerKeepOpenDataProps } from '../../../drawer/drawerDom'
 import { KO } from '../ko'
 import styles from './secondaryDrawer.module.css'
 import { useModalFocusTrap } from '../../useModalFocusTrap'
@@ -41,16 +42,19 @@ export function CandidateStashPickerModal({
 }: Props) {
   const dialogRef = useRef<HTMLDivElement | null>(null)
   const nameInputRef = useRef<HTMLInputElement | null>(null)
+  const optionFocusRef = useRef<HTMLButtonElement | null>(null)
   const isRefreshingOptions = loading && options.length > 0
   const refreshingStatusId = 'candidate-stash-picker-refreshing-status'
+  const preferredFocusUuid = selectedUuid ?? options[0]?.uuid ?? null
+  const getInitialFocus = useCallback(() => optionFocusRef.current ?? nameInputRef.current, [])
   const handleKeyDown = useModalFocusTrap({
     panelRef: dialogRef,
     onClose,
-    initialFocusRef: nameInputRef,
+    getInitialFocus,
   })
 
   return createPortal(
-    <div className={styles.candidateModalBackdrop} role="presentation" onClick={onClose}>
+    <div className={styles.candidateModalBackdrop} role="presentation" onClick={onClose} {...drawerKeepOpenDataProps()}>
       <div
         ref={dialogRef}
         className={styles.candidateModal}
@@ -108,7 +112,7 @@ export function CandidateStashPickerModal({
               {loading ? <LoadingSpinner size="inline" label="처리 중" /> : KO.btnCreateCandidateConfirm}
             </button>
           </div>
-          <div className={styles.candidateList} aria-busy={loading}>
+          <div className={styles.candidateList} aria-busy={loading} aria-label="후보군 목록">
             {loading && options.length === 0 ? (
               <LoadingSpinner label="후보군 목록을 불러오는 중" />
             ) : options.length === 0 ? (
@@ -128,11 +132,12 @@ export function CandidateStashPickerModal({
                 {options.map((row) => (
                   <button
                     key={row.uuid}
+                    ref={row.uuid === preferredFocusUuid ? optionFocusRef : undefined}
                     type="button"
                     className={`${styles.candidateListItem} ${selectedUuid === row.uuid ? styles.candidateListItemActive : ''}`}
                     disabled={loading}
                     aria-describedby={isRefreshingOptions ? refreshingStatusId : undefined}
-                    aria-pressed={selectedUuid === row.uuid}
+                    aria-current={selectedUuid === row.uuid ? 'true' : undefined}
                     onClick={() => onSelect(row)}
                   >
                     <div className={styles.candidateListItemTop}>
