@@ -60,7 +60,7 @@ export type ProductPrimarySummary = {
   category: string
   code: string
   colorCode: string
-  /** Selling price (?먯궗 梨꾨꼸). */
+  /** Selling price in the self-company channel. */
   price: number
   qty: number
   /** Sellable on-hand quantity. */
@@ -68,7 +68,7 @@ export type ProductPrimarySummary = {
   monthlySalesTrend?: MonthlySalesPoint[]
 }
 
-/** 2차 드로워용 경쟁사 기준 상품 정보와 사이즈별 판매/재고 행. */
+/** Product and size-level sales/stock row used by the secondary drawer. */
 export type ProductSecondarySizeRow = {
   size: string
   selfRatio: number

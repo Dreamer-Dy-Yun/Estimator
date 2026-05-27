@@ -33,20 +33,23 @@ export function AnalysisCandidateBulkAddModal({ open, skuGroupKeys, periodStart,
     if (!open) return
     const seq = requestSeqRef.current + 1
     requestSeqRef.current = seq
-    setBusy(true)
-    setError(null)
-    void getCandidateStashes({ companyUuid })
-      .then((rows) => {
-        if (requestSeqRef.current !== seq) return
-        setStashes(rows)
-        setSelectedStashUuid((current) => rows.some((row) => row.uuid === current) ? current : rows[0]?.uuid || '')
-      })
-      .catch((err) => {
-        if (requestSeqRef.current === seq) setError(errorMessage(err, '후보군 목록을 불러오지 못했습니다.'))
-      })
-      .finally(() => {
-        if (requestSeqRef.current === seq) setBusy(false)
-      })
+    queueMicrotask(() => {
+      if (requestSeqRef.current !== seq) return
+      setBusy(true)
+      setError(null)
+      void getCandidateStashes({ companyUuid })
+        .then((rows) => {
+          if (requestSeqRef.current !== seq) return
+          setStashes(rows)
+          setSelectedStashUuid((current) => rows.some((row) => row.uuid === current) ? current : rows[0]?.uuid || '')
+        })
+        .catch((err) => {
+          if (requestSeqRef.current === seq) setError(errorMessage(err, '후보군 목록을 불러오지 못했습니다.'))
+        })
+        .finally(() => {
+          if (requestSeqRef.current === seq) setBusy(false)
+        })
+    })
     return () => {
       requestSeqRef.current += 1
     }
@@ -55,20 +58,21 @@ export function AnalysisCandidateBulkAddModal({ open, skuGroupKeys, periodStart,
   if (!open) return null
 
   const requireCompany = () => {
-    if (companyUuid) return true
+    if (companyUuid) return companyUuid
     setError(COMPANY_REQUIRED_MESSAGE)
-    return false
+    return null
   }
 
   const createAndSelect = async () => {
-    if (!requireCompany()) return
+    const mutationCompanyUuid = requireCompany()
+    if (!mutationCompanyUuid) return
     setBusy(true)
     setError(null)
     try {
       const created = await createCandidateStash({
         name: nameInput.trim(),
         note: noteInput.trim(),
-        companyUuid: companyUuid!,
+        companyUuid: mutationCompanyUuid,
         periodStart,
         periodEnd,
         forecastMonths,
@@ -86,12 +90,13 @@ export function AnalysisCandidateBulkAddModal({ open, skuGroupKeys, periodStart,
   }
 
   const confirm = async () => {
-    if (!selectedStashUuid || !uniqueSkuGroupKeys.length || !requireCompany()) return
+    const mutationCompanyUuid = requireCompany()
+    if (!selectedStashUuid || !uniqueSkuGroupKeys.length || !mutationCompanyUuid) return
     setBusy(true)
     setError(null)
     try {
-      await appendCandidateItems({ stashUuid: selectedStashUuid, companyUuid: companyUuid!, skuGroupKeys: uniqueSkuGroupKeys })
-      showToast('선택한 상품을 후보군에 담았습니다.')
+      await appendCandidateItems({ stashUuid: selectedStashUuid, companyUuid: mutationCompanyUuid, skuGroupKeys: uniqueSkuGroupKeys })
+      showToast('선택 상품을 후보군에 담았습니다.')
       onDone()
     } catch (err) {
       setError(errorMessage(err, '선택 상품을 후보군에 담지 못했습니다.'))

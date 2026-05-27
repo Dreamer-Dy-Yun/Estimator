@@ -118,35 +118,35 @@ export function useProductMonthlyTrendModel({
   const endDate = monthToEndDate(selectedEnd)
 
   useEffect(() => {
-    if (!channelId) {
-      setMonthlyTrendState(null)
-      return
-    }
     let alive = true
     const reqSeq = ++reqSeqRef.current
-    setMonthlyTrendState(null)
-    void dashboardApi.getProductMonthlyTrend(skuGroupKey, {
-      startDate,
-      endDate,
-      companyUuid,
-      forecastMonths,
-      competitorChannelId: channelId,
-    }).then(
-      (data) => {
-        if (alive && reqSeq === reqSeqRef.current) setMonthlyTrendState({ data, error: null })
-      },
-      (err) => {
-        if (!alive || reqSeq !== reqSeqRef.current) return
-        setMonthlyTrendState({
-          data: null,
-          error: makeApiErrorInfo(
-            pageName,
-            `getProductMonthlyTrend(${JSON.stringify({ skuGroupKey, startDate, endDate, companyUuid, forecastMonths, competitorChannelId: channelId })})`,
-            err,
-          ),
-        })
-      },
-    )
+    queueMicrotask(() => {
+      if (!alive || reqSeq !== reqSeqRef.current) return
+      setMonthlyTrendState(null)
+      if (!channelId) return
+      void dashboardApi.getProductMonthlyTrend(skuGroupKey, {
+        startDate,
+        endDate,
+        companyUuid,
+        forecastMonths,
+        competitorChannelId: channelId,
+      }).then(
+        (data) => {
+          if (alive && reqSeq === reqSeqRef.current) setMonthlyTrendState({ data, error: null })
+        },
+        (err) => {
+          if (!alive || reqSeq !== reqSeqRef.current) return
+          setMonthlyTrendState({
+            data: null,
+            error: makeApiErrorInfo(
+              pageName,
+              `getProductMonthlyTrend(${JSON.stringify({ skuGroupKey, startDate, endDate, companyUuid, forecastMonths, competitorChannelId: channelId })})`,
+              err,
+            ),
+          })
+        },
+      )
+    })
     return () => {
       alive = false
     }

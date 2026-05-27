@@ -27,6 +27,7 @@ const SORT_LABEL_BY_KEY: Record<StashSortKey, string> = {
 const SORT_OPTIONS = Object.values(SORT_LABEL_BY_KEY)
 const EMPTY_EDIT: EditState = { target: null, name: '', note: '', busy: false }
 const EMPTY_UPLOAD: UploadState = { file: null, busy: false, error: null, result: null, dragActive: false }
+const EMPTY_STASHES: CandidateStashSummary[] = []
 const candidateStashTemplateDownload = getCandidateStashExcelTemplateDownload()
 const toTime = (iso: string) => {
   const ts = new Date(iso).getTime()
@@ -132,9 +133,13 @@ export const SnapshotConfirmPage = () => {
   useEffect(() => {
     companyScopeKeyRef.current = companyScopeKey
     loadStashesSeqRef.current += 1
-    resetTransientState()
+    queueMicrotask(() => {
+      if (companyScopeKeyRef.current === companyScopeKey) resetTransientState()
+    })
   }, [companyScopeKey, resetTransientState])
-  useEffect(() => { void loadStashes() }, [loadStashes])
+  useEffect(() => {
+    queueMicrotask(() => { void loadStashes() })
+  }, [loadStashes])
 
   const selectUploadFile = (file: File | null) => patchUpload({ file, error: null, result: null })
   const uploadStashFile = () => {
@@ -164,8 +169,8 @@ export const SnapshotConfirmPage = () => {
     const target = edit.target
     if (!target) return Promise.resolve()
     return runScopedAction({
-      actionLabel: '후보군 이름·비고 변경',
-      successMessage: '후보군 이름·비고를 변경했습니다.',
+      actionLabel: '후보군 이름/비고 변경',
+      successMessage: '후보군 이름/비고를 변경했습니다.',
       setBusy: (busy) => patchEdit({ busy }),
       mutate: (mutationCompanyUuid) => updateCandidateStash({ stashUuid: target.uuid, companyUuid: mutationCompanyUuid, name: edit.name.trim(), note: edit.note.trim() || null }),
       afterSuccess: () => setEdit(EMPTY_EDIT),
@@ -183,7 +188,7 @@ export const SnapshotConfirmPage = () => {
     })
   }
 
-  const stashes = stashList.scopeKey === companyScopeKey ? stashList.rows : []
+  const stashes = stashList.scopeKey === companyScopeKey ? stashList.rows : EMPTY_STASHES
   const filteredStashes = useMemo(() => {
     const nameQuery = stashNameQuery.trim().toLowerCase()
     const noteQuery = stashNoteQuery.trim().toLowerCase()

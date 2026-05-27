@@ -49,8 +49,9 @@ function createTemporaryPassword() {
 
 const normalizeLoginId = (loginId: string) => loginId.trim().toLowerCase()
 
-function toAdminUserSummary({ password: _password, ...summary }: StoredAuthUser): AdminUserSummary {
-  return summary
+function toAdminUserSummary(user: StoredAuthUser): AdminUserSummary {
+  const { uuid, loginId, name, note, role, mustChangePassword, isActive, dbUpdatedAt } = user
+  return { uuid, loginId, name, note, role, mustChangePassword, isActive, dbUpdatedAt }
 }
 
 function toAuthUser({ uuid, loginId, name, role, mustChangePassword }: StoredAuthUser): AuthUser {

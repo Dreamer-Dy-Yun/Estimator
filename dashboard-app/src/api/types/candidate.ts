@@ -134,13 +134,13 @@ export interface CandidateJobProgressEventBase {
   error?: string
 }
 
-export interface CandidateStashLlmCommentJobProgressEvent extends CandidateJobProgressEventBase {}
+export type CandidateStashLlmCommentJobProgressEvent = CandidateJobProgressEventBase
 
 export interface CandidateJobSubscription {
   close: () => void
 }
 
-export interface CandidateStashLlmCommentJobSubscription extends CandidateJobSubscription {}
+export type CandidateStashLlmCommentJobSubscription = CandidateJobSubscription
 
 export interface CandidateDetailBulkConfirmStartPayload extends CompanyMutationScopeParams {
   stashUuid: string
@@ -161,7 +161,7 @@ export interface CandidateDetailBulkConfirmProgressEvent extends CandidateJobPro
   updatedItem?: CandidateItemDetail
 }
 
-export interface CandidateDetailBulkConfirmSubscription extends CandidateJobSubscription {}
+export type CandidateDetailBulkConfirmSubscription = CandidateJobSubscription
 
 export interface CandidateItemDetail {
   uuid: string

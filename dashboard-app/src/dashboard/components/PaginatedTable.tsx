@@ -89,7 +89,8 @@ export function PaginatedTable<T extends { id: string }>(props: PaginatedTablePr
   }, [activeRowId, infiniteEnabled, pageRows.length, sort, sortedRowIds, sortedRows.length, visibleCount])
 
   useEffect(() => {
-    if (infiniteEnabled) setVisibleCount(batchSize)
+    if (!infiniteEnabled) return
+    queueMicrotask(() => setVisibleCount(batchSize))
   }, [rows.length, sort, infiniteEnabled, batchSize])
 
   useEffect(() => {
@@ -124,7 +125,7 @@ export function PaginatedTable<T extends { id: string }>(props: PaginatedTablePr
             <tr>
               {columnConfigs.map(({ column, canSort, style: cellStyle, ariaSort, actionLabel }) => (
                 <th key={column.key} scope="col" style={cellStyle} className={canSort ? styles.sortableTh : undefined} onClick={canSort ? () => onSort(column.key, true) : undefined} onKeyDown={canSort ? (event) => onHeaderSortKeyDown(event, column.key) : undefined} tabIndex={canSort ? 0 : undefined} aria-sort={canSort ? ariaSort : undefined} aria-label={canSort ? actionLabel : undefined} title={canSort ? actionLabel : undefined}>
-                  <span className={styles.thInner}>{column.header}{canSort && sort?.key === column.key && <span>{sort.dir === 'asc' ? '↑' : '↓'}</span>}</span>
+                  <span className={styles.thInner}>{column.header}{canSort && sort?.key === column.key && <span>{sort.dir === 'asc' ? '▲' : '▼'}</span>}</span>
                 </th>
               ))}
             </tr>
@@ -143,7 +144,7 @@ export function PaginatedTable<T extends { id: string }>(props: PaginatedTablePr
             })}
           </tbody>
         </table>
-        {infiniteEnabled && pageRows.length < sortedRows.length && <div ref={loadMoreRef} style={{ padding: '10px', textAlign: 'center', color: '#64748b', fontSize: '12px' }}>스크롤하면 더 불러옵니다...</div>}
+        {infiniteEnabled && pageRows.length < sortedRows.length && <div ref={loadMoreRef} style={{ padding: '10px', textAlign: 'center', color: '#64748b', fontSize: '12px' }}>스크롤하면 더 불러옵니다.</div>}
       </div>
       {!plain && <PaginatedTablePager totalRows={sortedRows.length} startIndex={startIndex} pageSize={pageSize} currentPage={currentPage} totalPages={totalPages} onPageChange={onPageChange} onPageSizeChange={onPageSizeChange} />}
     </div>
