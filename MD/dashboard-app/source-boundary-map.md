@@ -26,7 +26,7 @@
 | 후보군 상세, 추천, 배치, 상세확정, 저장 | [candidate-stash.md](./boundaries/candidate-stash.md) | `dashboard-app/src/dashboard/components/candidate-stash` |
 | 상품 1차/2차 드로어, 계산, AI 코멘트, product secondary snapshot | [product-drawer.md](./boundaries/product-drawer.md) | `dashboard-app/src/dashboard/components/product-drawer`, `dashboard-app/src/snapshot` |
 | 공통 UI, hooks/model/interaction/drawer, snapshot parser/test split, utils | [shared-modules.md](./boundaries/shared-modules.md) | `dashboard-app/src/components`, `dashboard-app/src/dashboard/hooks`, `dashboard-app/src/dashboard/drawer`, `dashboard-app/src/snapshot`, `dashboard-app/src/utils` |
-| 현재 QA 기준과 검증 명령 | [qa-current-behavior.md](./qa-current-behavior.md), [qa-state-contracts.md](./qa-state-contracts.md), [test-strategy.md](./test-strategy.md) | `dashboard-app/src/**/*.test.*`, `dashboard-app/e2e` |
+| 현재 QA 기준과 검증 명령 | [qa-current-behavior.md](./qa-current-behavior.md), [qa-state-contracts.md](./qa-state-contracts.md), [test-strategy.md](./test-strategy.md), [e2e-strategy.md](./e2e-strategy.md) | `dashboard-app/src/**/*.test.*`, `dashboard-app/e2e` |
 | 실패 kind별 UX surface와 금지 fallback | [failure-ux-matrix.md](./failure-ux-matrix.md), [qa-state-contracts.md](./qa-state-contracts.md) | `dashboard-app/src/api/types/api-error.ts`, `dashboard-app/src/api/requests/httpClient.ts` |
 | 버튼, 카드, 패널, 리스트, 모달 UI 패턴 | [ui-patterns.md](./ui-patterns.md) | `dashboard-app/src/components`, `dashboard-app/src/dashboard/components`, CSS Modules |
 | CSS public facade와 style-parts 직접 import 예외 | [hardening-status.md](./hardening-status.md) | `common.module.css`, `secondaryDrawer.module.css`, `tokens.css` |
@@ -44,10 +44,10 @@
 | 상품 드로어 scope, AI 코멘트, 재고/발주 계산, product secondary snapshot 저장/복원 | [product-drawer.md](./boundaries/product-drawer.md), [../backend-api/backend-api-spec.md](../backend-api/backend-api-spec.md), [qa-current-behavior.md](./qa-current-behavior.md) |
 | 로그인/관리자 화면, GPT 키, 구글 시트 설정, admin mutation refresh helper | [auth-admin.md](./boundaries/auth-admin.md), [shared-modules.md](./boundaries/shared-modules.md), [qa-current-behavior.md](./qa-current-behavior.md) |
 | 공통 UI, table, toast, spinner, keyboard interaction, drawer DOM helper, utils | [shared-modules.md](./boundaries/shared-modules.md), [ui-patterns.md](./ui-patterns.md), [module-hardening.md](./module-hardening.md) |
-| snapshot type/parser/test split | [shared-modules.md](./boundaries/shared-modules.md), [product-drawer.md](./boundaries/product-drawer.md), [test-strategy.md](./test-strategy.md) |
+| snapshot type/parser/test split | [shared-modules.md](./boundaries/shared-modules.md), [product-drawer.md](./boundaries/product-drawer.md), [test-strategy.md](./test-strategy.md), [e2e-strategy.md](./e2e-strategy.md) |
 | CSS public facade, selector 중복, token 후보 | [hardening-status.md](./hardening-status.md), [ui-patterns.md](./ui-patterns.md) |
 | loading, empty, error, permission, stale, disabled UX | [failure-ux-matrix.md](./failure-ux-matrix.md), [qa-state-contracts.md](./qa-state-contracts.md), [qa-current-behavior.md](./qa-current-behavior.md) |
-| e2e/CI/build/router/deploy | [repository-runtime.md](./boundaries/repository-runtime.md), [test-strategy.md](./test-strategy.md) |
+| e2e/CI/build/router/deploy | [repository-runtime.md](./boundaries/repository-runtime.md), [test-strategy.md](./test-strategy.md), [e2e-strategy.md](./e2e-strategy.md) |
 
 ## 기본 파일 배치 규칙
 

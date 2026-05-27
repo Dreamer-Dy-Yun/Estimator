@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test'
 import { collectRuntimeErrors, expectNoRuntimeErrors, loginWithDefaultMockUser } from './helpers/app'
 
-test('로그인 후 주요 라우트와 관리자 탭을 이동할 수 있다', async ({ page }) => {
+test('@smoke @navigation 로그인 후 주요 라우트와 관리자 탭을 이동할 수 있다', async ({ page }) => {
   const runtimeErrors = collectRuntimeErrors(page)
 
   await loginWithDefaultMockUser(page, '/dashboard/self')

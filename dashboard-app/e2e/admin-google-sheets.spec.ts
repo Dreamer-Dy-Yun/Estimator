@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test'
 import { collectRuntimeErrors, expectNoRuntimeErrors, loginWithDefaultMockUser } from './helpers/app'
 
-test('admin google sheet detail dialog opens and closes', async ({ page }) => {
+test('@admin admin google sheet detail dialog opens and closes', async ({ page }) => {
   const runtimeErrors = collectRuntimeErrors(page)
 
   await loginWithDefaultMockUser(page, '/admin')

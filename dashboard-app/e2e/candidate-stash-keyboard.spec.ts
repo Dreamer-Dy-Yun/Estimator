@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test'
 import { collectRuntimeErrors, expectNoRuntimeErrors, loginWithDefaultMockUser } from './helpers/app'
 
-test('candidate stash inner list keyboard focus opens drawer', async ({ page }) => {
+test('@candidate @keyboard candidate stash inner list keyboard focus opens drawer', async ({ page }) => {
   const runtimeErrors = collectRuntimeErrors(page)
 
   await loginWithDefaultMockUser(page, '/dashboard/snapshot-confirm')

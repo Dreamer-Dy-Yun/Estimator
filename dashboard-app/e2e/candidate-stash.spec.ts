@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test'
 import { collectRuntimeErrors, expectNoRuntimeErrors, loginWithDefaultMockUser } from './helpers/app'
 
-test('오더 후보군 상세에서 조회 카드, 작업 카드, 추천 진입을 확인할 수 있다', async ({ page }) => {
+test('@smoke @candidate 오더 후보군 상세에서 조회 카드, 작업 카드, 추천 진입을 확인할 수 있다', async ({ page }) => {
   const runtimeErrors = collectRuntimeErrors(page)
 
   await loginWithDefaultMockUser(page, '/dashboard/snapshot-confirm')

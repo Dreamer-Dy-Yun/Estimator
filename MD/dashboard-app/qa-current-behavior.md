@@ -1,4 +1,4 @@
-﻿# 현재 동작 기준 QA 문서
+# 현재 동작 기준 QA 문서
 
 | 항목 | 내용 |
 |------|------|
@@ -250,7 +250,8 @@
 | `npm run check:encoding` | 한글 인코딩 문제가 없어야 한다. |
 | `npm run test:run` | Vitest 전체가 통과해야 한다. |
 | `npm run build -- --base=/Estimator/` | GitHub Pages 배포 기준 빌드가 통과해야 한다. |
-| `npm run test:e2e` | 로컬 작업 중에는 사용자가 명시적으로 요청한 경우 실행한다. CI 배포 workflow의 `Run E2E tests` 단계는 GitHub Pages 빌드/배포 gate로 항상 실행한다. Playwright 환경 이슈는 테스트 실패와 구분해 보고한다. |
+| `npm run test:e2e` | 로컬 작업 중에는 사용자가 명시적으로 요청한 경우 실행한다. 현재 기본값은 `@smoke` 태그 기반 빠른 browser smoke다. 전체 browser 회귀는 `npm run test:e2e:full`로 실행한다. Playwright 환경 이슈는 테스트 실패와 구분해 보고한다. |
+| `Dashboard E2E` workflow | GitHub Pages 배포 workflow와 분리된 수동 workflow다. `smoke`, `full`, `admin`, `candidate` 중 하나를 선택한다. 브라우저 설치 비용 때문에 모든 배포를 E2E로 막지 않는다. |
 
 ## 변경 시 갱신 규칙
 

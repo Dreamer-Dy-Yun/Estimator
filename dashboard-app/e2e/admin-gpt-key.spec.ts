@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test'
 import { collectRuntimeErrors, expectNoRuntimeErrors, loginWithDefaultMockUser } from './helpers/app'
 
-test('관리자 GPT 키 행을 열어 상세 팝업을 확인할 수 있다', async ({ page }) => {
+test('@admin 관리자 GPT 키 행을 열어 상세 팝업을 확인할 수 있다', async ({ page }) => {
   const runtimeErrors = collectRuntimeErrors(page)
 
   await loginWithDefaultMockUser(page, '/admin')

@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test'
 import { collectRuntimeErrors, expectNoRuntimeErrors, loginWithDefaultMockUser } from './helpers/app'
 
-test('분석 리스트에서 선택 상품 후보군 담기 모달을 열 수 있다', async ({ page }) => {
+test('@candidate @analysis 분석 리스트에서 선택 상품 후보군 담기 모달을 열 수 있다', async ({ page }) => {
   const runtimeErrors = collectRuntimeErrors(page)
 
   await loginWithDefaultMockUser(page, '/dashboard/competitor')

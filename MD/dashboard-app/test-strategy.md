@@ -131,3 +131,17 @@
 ---
 
 이 문서는 현재 테스트 경계 기준이다. 테스트 도구, 시나리오, 제외 범위가 바뀌면 코드와 함께 갱신한다.
+---
+
+## 2026-05-27 E2E 재구성 기준
+
+자세한 실행 기준은 [e2e-strategy.md](./e2e-strategy.md)를 우선한다.
+
+| 구분 | 명령 | 기준 |
+|------|------|------|
+| smoke | `npm run test:e2e` 또는 `npm run test:e2e:smoke` | `@smoke` 태그만 실행한다. 로그인, 핵심 이동, 기본 드로워, 후보군 상세, 입고예정일 toast를 빠르게 확인한다. |
+| full | `npm run test:e2e:full` | `dashboard-app/e2e` 전체 spec을 실행한다. |
+| admin | `npm run test:e2e:admin` | `@admin` 태그 spec만 실행한다. |
+| candidate | `npm run test:e2e:candidate` | `@candidate` 태그 spec만 실행한다. |
+
+GitHub Pages 배포 workflow는 브라우저 설치 비용 때문에 E2E를 직접 실행하지 않는다. E2E는 별도 `Dashboard E2E` workflow에서 수동으로 `smoke/full/admin/candidate` 중 하나를 선택해 실행한다.

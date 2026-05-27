@@ -1,0 +1,65 @@
+name: Dashboard E2E
+
+on:
+  workflow_dispatch:
+    inputs:
+      suite:
+        description: E2E suite to run
+        required: true
+        default: smoke
+        type: choice
+        options:
+          - smoke
+          - full
+          - admin
+          - candidate
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dashboard-e2e-${{ github.ref }}-${{ inputs.suite }}
+  cancel-in-progress: true
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: dashboard-app
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: dashboard-app/package-lock.json
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Build preview bundle
+        env:
+          VITE_ROUTER_MODE: hash
+        run: npm run build -- --base=/
+
+      - name: Run selected E2E suite
+        env:
+          PLAYWRIGHT_BASE_URL: http://127.0.0.1:4175
+          PLAYWRIGHT_WEB_SERVER_COMMAND: npm run preview -- --host 127.0.0.1 --port 4175
+        run: |
+          if [ "${{ inputs.suite }}" = "full" ]; then
+            npm run test:e2e:full
+          elif [ "${{ inputs.suite }}" = "admin" ]; then
+            npm run test:e2e:admin
+          elif [ "${{ inputs.suite }}" = "candidate" ]; then
+            npm run test:e2e:candidate
+          else
+            npm run test:e2e:smoke
+          fi
