@@ -133,7 +133,13 @@ export function useSecondaryDrawerSnapshotController({
   }, [markConfirmedBaselineDraftDirty])
 
   useEffect(() => {
-    setConfirmedBaselineDraftDirty(false)
+    let alive = true
+    queueMicrotask(() => {
+      if (alive) setConfirmedBaselineDraftDirty(false)
+    })
+    return () => {
+      alive = false
+    }
   }, [appliedPrefillKey, prefillKey])
 
   useSecondarySnapshotPrefill({

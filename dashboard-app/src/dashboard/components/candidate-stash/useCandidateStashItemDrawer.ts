@@ -34,6 +34,7 @@ export function useCandidateStashItemDrawer({ dataReferenceStart, dataReferenceE
   const [hydrateSnapSource, setHydrateSnapSource] = useState<DrawerSnapshotSource | null>(null)
   const [confirmedHydrateSnap, setConfirmedHydrateSnap] = useState<OrderSnapshotDocumentV2 | null>(null)
   const [drawerForecastMonths, setDrawerForecastMonths] = useState(8)
+  const [drawerCompanyUuid, setDrawerCompanyUuid] = useState<string | null>(null)
   const mountedRef = useRef(false)
   const drawerRequestSeqRef = useRef(0)
   const drawerCloseTimerRef = useRef<ReturnType<typeof window.setTimeout> | null>(null)
@@ -61,7 +62,7 @@ export function useCandidateStashItemDrawer({ dataReferenceStart, dataReferenceE
   const fc = clampForecastMonths(drawerForecastMonths)
   const bundle = useProductDrawerBundle(drawerOpen || drawerClosing ? drawerSkuGroupKey : null, {
     allowStaleWhileRevalidate: false,
-    companyUuid: drawerCompanyUuidRef.current ?? undefined,
+    companyUuid: drawerCompanyUuid ?? undefined,
   })
   const mergedSummary = useMemo(() => mergePrimarySummaryFromBundleAndSnapshot(drawerSkuGroupKey, bundle, hydrateSnap), [bundle, drawerSkuGroupKey, hydrateSnap])
   const detailForecastMonths = detailTarget?.forecastMonths ?? 8
@@ -85,6 +86,7 @@ export function useCandidateStashItemDrawer({ dataReferenceStart, dataReferenceE
       const scopedCompanyUuid = (options ? options.companyUuid?.trim() : drawerCompanyUuidRef.current) ?? null
       if (!scopedCompanyUuid || isAllCompanyScope(scopedCompanyUuid)) throw new Error('Candidate item detail requires a single company scope.')
       drawerCompanyUuidRef.current = scopedCompanyUuid
+      setDrawerCompanyUuid(scopedCompanyUuid)
       const detail = await getCandidateItemByUuid(row.uuid, { companyUuid: scopedCompanyUuid })
       if (!mountedRef.current || drawerRequestSeqRef.current !== seq) return
       if (!detail) throw new Error(`후보 상세 데이터 없음: ${row.uuid}`)
@@ -154,6 +156,7 @@ export function useCandidateStashItemDrawer({ dataReferenceStart, dataReferenceE
       setHydrateSnapSource(null)
       setConfirmedHydrateSnap(null)
       drawerCompanyUuidRef.current = null
+      setDrawerCompanyUuid(null)
     }, INNER_DRAWER_CLOSE_LAYOUT_MS)
   }, [clearCloseTimer, drawerClosing, drawerOpen, drawerSkuGroupKey])
 

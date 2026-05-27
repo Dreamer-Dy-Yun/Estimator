@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { dashboardApi } from '../../../../../api'
 import type { ToastContextValue } from '../../../../../components/AppToastContext'
 import type { OrderSnapshotDocumentV2 } from '../../../../../snapshot/orderSnapshotTypes'
@@ -84,19 +84,18 @@ export function useSecondaryCandidateActions({
   buildSnapshot,
   showToast,
 }: Params) {
-  const currentScope = {
+  const currentScope = useMemo(() => ({
     companyUuid: companyUuid ?? '',
     skuGroupKey,
     periodStart,
     periodEnd,
     forecastMonths,
-  }
+  }), [companyUuid, forecastMonths, periodEnd, periodStart, skuGroupKey])
   const mountedRef = useRef(false)
   const candidateListReqSeqRef = useRef(0)
   const actionReqSeqRef = useRef(0)
   const currentScopeRef = useRef<CandidateActionScope>(currentScope)
   const resetScopeRef = useRef<CandidateActionScope>(currentScope)
-  currentScopeRef.current = currentScope
   const [loading, setLoading] = useState(false)
   const [listOpen, setListOpen] = useState(false)
   const [stashes, setStashes] = useState<CandidateStashPickerOption[]>([])
@@ -110,13 +109,6 @@ export function useSecondaryCandidateActions({
     canBuildSnapshot,
     buildSnapshot,
   })
-  currentMutationRef.current = {
-    appendTarget: selectedCandidate?.uuid ?? '',
-    createTarget: `${nameInput.trim()}\n${noteInput.trim()}`,
-    itemTarget: candidateItemContext?.itemUuid ?? '',
-    canBuildSnapshot,
-    buildSnapshot,
-  }
 
   useEffect(() => {
     mountedRef.current = true
@@ -128,7 +120,21 @@ export function useSecondaryCandidateActions({
   }, [])
 
   useEffect(() => {
-    const nextScope = currentScopeRef.current
+    currentScopeRef.current = currentScope
+  }, [currentScope])
+
+  useEffect(() => {
+    currentMutationRef.current = {
+      appendTarget: selectedCandidate?.uuid ?? '',
+      createTarget: `${nameInput.trim()}\n${noteInput.trim()}`,
+      itemTarget: candidateItemContext?.itemUuid ?? '',
+      canBuildSnapshot,
+      buildSnapshot,
+    }
+  }, [buildSnapshot, canBuildSnapshot, candidateItemContext?.itemUuid, nameInput, noteInput, selectedCandidate?.uuid])
+
+  useEffect(() => {
+    const nextScope = currentScope
     const current = resetScopeRef.current
     if (
       current.companyUuid === nextScope.companyUuid
@@ -144,7 +150,7 @@ export function useSecondaryCandidateActions({
     setListOpen(false)
     setStashes([])
     setSelectedCandidate(null)
-  }, [companyUuid, forecastMonths, periodEnd, periodStart, skuGroupKey])
+  }, [currentScope])
 
   const isActiveActionScope = (snapshot: CandidateActionGuardSnapshot) => {
     const current = currentScopeRef.current

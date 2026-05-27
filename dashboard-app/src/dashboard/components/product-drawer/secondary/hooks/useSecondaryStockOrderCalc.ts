@@ -56,8 +56,11 @@ export function useSecondaryStockOrderCalc({
   useEffect(() => {
     let alive = true
     let timerId: ReturnType<typeof window.setTimeout> | null = null
-    setForecastCalcLoading(true)
-    setForecastCalcError(null)
+    queueMicrotask(() => {
+      if (!alive) return
+      setForecastCalcLoading(true)
+      setForecastCalcError(null)
+    })
     timerId = window.setTimeout(() => {
       void (async () => {
         try {
