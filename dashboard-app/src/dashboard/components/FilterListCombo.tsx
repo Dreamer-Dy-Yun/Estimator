@@ -46,10 +46,11 @@ export function FilterListCombo({ inputId, value, onChange, options, inputType =
 
   useLayoutEffect(() => {
     if (!comboOpen) return
-    updatePanelRect()
+    const frameId = window.requestAnimationFrame(updatePanelRect)
     window.addEventListener('resize', updatePanelRect)
     window.addEventListener('scroll', updatePanelRect, true)
     return () => {
+      window.cancelAnimationFrame(frameId)
       window.removeEventListener('resize', updatePanelRect)
       window.removeEventListener('scroll', updatePanelRect, true)
     }
@@ -68,6 +69,7 @@ export function FilterListCombo({ inputId, value, onChange, options, inputType =
   const onKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
     if (disabled) return
     if (!comboOpen && isArrowOpenKey(event.key) && filtered.length > 0) {
+      updatePanelRect()
       setOpen(true)
       setActiveIdx(event.key === 'ArrowUp' ? filtered.length - 1 : 0)
       event.preventDefault()
@@ -130,11 +132,13 @@ export function FilterListCombo({ inputId, value, onChange, options, inputType =
         onChange={(event) => {
           if (disabled) return
           onChange(event.target.value)
+          updatePanelRect()
           setActiveIdx(-1)
           setOpen(options.length > 0)
         }}
         onFocus={() => {
           if (disabled) return
+          updatePanelRect()
           setOpen(options.length > 0)
           setActiveIdx(-1)
         }}

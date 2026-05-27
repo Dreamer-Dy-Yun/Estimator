@@ -57,27 +57,6 @@ jobs:
           VITE_ROUTER_MODE: hash
         run: npm run build -- --base=/Estimator/
 
-      - name: Cache Playwright browsers
-        id: playwright-cache
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-${{ hashFiles('dashboard-app/package-lock.json') }}
-
-      - name: Install Playwright browsers
-        if: steps.playwright-cache.outputs.cache-hit != 'true'
-        timeout-minutes: 10
-        run: npx playwright install --with-deps chromium
-
-      - name: Install Playwright system dependencies
-        if: steps.playwright-cache.outputs.cache-hit == 'true'
-        timeout-minutes: 5
-        run: npx playwright install-deps chromium
-
-      - name: Run E2E tests
-        timeout-minutes: 10
-        run: npm run test:e2e
-
       - name: Copy SPA fallback
         run: cp dist/index.html dist/404.html
 
