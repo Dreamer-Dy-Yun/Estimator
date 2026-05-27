@@ -1,10 +1,9 @@
 import type { ProductPrimarySummary, ProductSecondaryDetail } from '../types'
-import type { SecondaryForecastInputs } from '../dashboard/components/product-drawer/secondary/secondaryDrawerTypes'
 
 /** Persisted order snapshot schema version. */
 export const ORDER_SNAPSHOT_SCHEMA_VERSION = 2 as const
 
-export type OrderSnapshotSizeRowV1 = {
+export type OrderSnapshotSizeOrderV2 = {
   size: string
   selfSharePct: number
   competitorSharePct: number
@@ -14,13 +13,13 @@ export type OrderSnapshotSizeRowV1 = {
   confirmQty: number
 }
 
-export interface OrderSnapshotOrderUnitInputsV1 {
+export interface OrderSnapshotUnitEconomicsV2 {
   unitPrice: number
   unitCost: number
   expectedFeeRatePct: number
 }
 
-export interface OrderSnapshotStockDisplayV1 {
+export interface OrderSnapshotStockOrderDisplayV2 {
   currentStockQtyTotal: number
   totalOrderBalanceTotal: number
   expectedInboundOrderBalanceTotal: number
@@ -29,167 +28,140 @@ export interface OrderSnapshotStockDisplayV1 {
   expectedInboundOrderBalanceBySize: number[]
 }
 
-/**
- * Primary summary saved in the snapshot.
- * Heavy or recalculable source fields are intentionally excluded and must be
- * reloaded from the product bundle when needed. Keep this explicit-field-only:
- * new ProductPrimarySummary fields must not persist without a contract update.
- */
+export interface OrderSnapshotStockOrderRequestV2 {
+  currentOrderInboundDueDate: string
+  nextOrderInboundDueDate: string
+  leadTimeDays: number
+  /** Optional operator override. Omitted means the snapshot used the calculated daily mean. */
+  dailyMeanOverride?: number
+}
+
+export interface OrderSnapshotStockOrderAmountBlockV2 {
+  recommendedOrderQty: number
+  expectedOrderAmount: number
+  expectedSalesAmount: number
+  expectedOpProfit: number
+}
+
+export interface OrderSnapshotStockOrderSafetyBlockV2 extends OrderSnapshotStockOrderAmountBlockV2 {
+  safetyStock: number
+}
+
+export interface OrderSnapshotStockOrderForecastBlockV2 extends OrderSnapshotStockOrderAmountBlockV2 {
+  safetyStock: null
+}
+
+export interface OrderSnapshotStockOrderResultV2 {
+  trendDailyMean: number
+  dailyMean: number
+  sigma: number
+  /** Size-array fields are copied on snapshot restore to avoid mutating cached drawer state. */
+  display: OrderSnapshotStockOrderDisplayV2
+  safetyStockCalc: OrderSnapshotStockOrderSafetyBlockV2
+  forecastQtyCalc: OrderSnapshotStockOrderForecastBlockV2
+}
+
+export interface OrderSnapshotAiCommentV2 {
+  prompt: string
+  answer: string
+}
+
+/** Explicit primary fields persisted by snapshot v2. Heavy source fields must be reloaded from the product bundle. */
 export type OrderSnapshotPrimarySummaryV2 = Pick<
   ProductPrimarySummary,
-  | 'skuGroupKey'
-  | 'productName'
-  | 'brand'
-  | 'category'
-  | 'code'
-  | 'colorCode'
-  | 'price'
-  | 'qty'
-  | 'availableStock'
+  'skuGroupKey' | 'productName' | 'brand' | 'category' | 'code' | 'colorCode' | 'price' | 'qty' | 'availableStock'
 >
 
 export type OrderSnapshotDrawer1V2 = {
   summary: OrderSnapshotPrimarySummaryV2
 }
 
-/**
- * Competitor sales basis saved from ProductSecondaryDetail.
- * Keep this as explicit fields instead of storing the full secondary detail.
- */
-export interface OrderSnapshotCompetitorSalesBasisV2 {
+/** Competitor sales basis saved from ProductSecondaryDetail, not the full secondary detail. */
+export interface OrderSnapshotCompetitorBasisV2 {
   skuGroupKey: ProductSecondaryDetail['skuGroupKey']
   competitorPrice: ProductSecondaryDetail['competitorPrice']
   competitorQty: ProductSecondaryDetail['competitorQty']
   competitorRatioBySize: ProductSecondaryDetail['competitorRatioBySize']
 }
 
-export function createOrderSnapshotPrimarySummary(
-  primary: ProductPrimarySummary,
-): OrderSnapshotPrimarySummaryV2 {
+export function createOrderSnapshotPrimarySummary(primary: ProductPrimarySummary): OrderSnapshotPrimarySummaryV2 {
+  const { skuGroupKey, productName, brand, category, code, colorCode, price, qty, availableStock } = primary
+  return { skuGroupKey, productName, brand, category, code, colorCode, price, qty, availableStock }
+}
+
+export function createOrderSnapshotStockOrderRequest(stockOrderRequest: OrderSnapshotStockOrderRequestV2): OrderSnapshotStockOrderRequestV2 {
+  const { currentOrderInboundDueDate, nextOrderInboundDueDate, leadTimeDays, dailyMeanOverride } = stockOrderRequest
   return {
-    skuGroupKey: primary.skuGroupKey,
-    productName: primary.productName,
-    brand: primary.brand,
-    category: primary.category,
-    code: primary.code,
-    colorCode: primary.colorCode,
-    price: primary.price,
-    qty: primary.qty,
-    availableStock: primary.availableStock,
+    currentOrderInboundDueDate,
+    nextOrderInboundDueDate,
+    leadTimeDays,
+    ...(dailyMeanOverride == null ? {} : { dailyMeanOverride }),
   }
 }
 
-export function createOrderSnapshotStockInputs(
-  stockInputs: SecondaryForecastInputs,
-): SecondaryForecastInputs {
+export function createOrderSnapshotStockOrderResult(result: OrderSnapshotStockOrderResultV2 | null): OrderSnapshotStockOrderResultV2 | undefined {
+  if (result == null) return undefined
+  const { display } = result
   return {
-    trendDailyMean: stockInputs.trendDailyMean,
-    dailyMean: stockInputs.dailyMean,
-    leadTimeStartDate: stockInputs.leadTimeStartDate,
-    leadTimeEndDate: stockInputs.leadTimeEndDate,
-    leadTimeDays: stockInputs.leadTimeDays,
-    safetyStockMode: stockInputs.safetyStockMode,
-    manualSafetyStock: stockInputs.manualSafetyStock,
-    sigma: stockInputs.sigma,
-    serviceLevelPct: stockInputs.serviceLevelPct,
+    ...result,
+    display: {
+      ...display,
+      currentStockQtyBySize: [...display.currentStockQtyBySize],
+      totalOrderBalanceBySize: [...display.totalOrderBalanceBySize],
+      expectedInboundOrderBalanceBySize: [...display.expectedInboundOrderBalanceBySize],
+    },
+    safetyStockCalc: { ...result.safetyStockCalc },
+    forecastQtyCalc: { ...result.forecastQtyCalc },
   }
 }
 
-export function toProductPrimarySummaryFromSnapshotSummary(
-  base: ProductPrimarySummary,
-  summary: OrderSnapshotPrimarySummaryV2,
-): ProductPrimarySummary {
-  return {
-    ...base,
-    ...summary,
-  }
+export function toProductPrimarySummaryFromSnapshotSummary(base: ProductPrimarySummary, summary: OrderSnapshotPrimarySummaryV2): ProductPrimarySummary {
+  return { ...base, ...summary }
 }
 
-export function createOrderSnapshotCompetitorSalesBasis(
-  secondary: ProductSecondaryDetail,
-): OrderSnapshotCompetitorSalesBasisV2 {
-  return {
-    skuGroupKey: secondary.skuGroupKey,
-    competitorPrice: secondary.competitorPrice,
-    competitorQty: secondary.competitorQty,
-    competitorRatioBySize: cloneSnapshotValue(secondary.competitorRatioBySize),
-  }
+export function createOrderSnapshotCompetitorBasis(secondary: ProductSecondaryDetail): OrderSnapshotCompetitorBasisV2 {
+  const { skuGroupKey, competitorPrice, competitorQty, competitorRatioBySize } = secondary
+  return { skuGroupKey, competitorPrice, competitorQty, competitorRatioBySize: { ...competitorRatioBySize } }
 }
 
-export function toProductSecondaryDetailFromSnapshotBasis(
-  base: ProductSecondaryDetail,
-  basis: OrderSnapshotCompetitorSalesBasisV2,
-): ProductSecondaryDetail {
-  return {
-    ...base,
-    skuGroupKey: basis.skuGroupKey,
-    competitorPrice: basis.competitorPrice,
-    competitorQty: basis.competitorQty,
-    competitorRatioBySize: cloneSnapshotValue(basis.competitorRatioBySize),
-  }
+export function toProductSecondaryDetailFromSnapshotBasis(base: ProductSecondaryDetail, basis: OrderSnapshotCompetitorBasisV2): ProductSecondaryDetail {
+  return { ...base, ...basis, competitorRatioBySize: { ...basis.competitorRatioBySize } }
 }
 
-function cloneSnapshotValue<T>(value: T): T {
-  if (Array.isArray(value)) {
-    return value.map((item) => (isRecord(item) ? { ...item } : item)) as T
-  }
-  if (isRecord(value)) return { ...value } as T
-  return value
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return value != null && typeof value === 'object' && !Array.isArray(value)
-}
-
-/**
- * Secondary drawer snapshot.
- * Stores the selected competitor channel, forecast inputs, confirmed quantity,
- * order unit inputs, stock display values, and AI comment context.
- */
-export type OrderSnapshotDrawer2V1 = {
-  competitorSalesBasis: OrderSnapshotCompetitorSalesBasisV2
+/** Secondary drawer snapshot: competitor channel, stock-order request/result, confirmed quantity, economics, comment. */
+export type OrderSnapshotDrawer2V2 = {
+  competitorBasis: OrderSnapshotCompetitorBasisV2
   competitorChannelId: string
   competitorChannelLabel: string
-  stockInputs: SecondaryForecastInputs
-  orderUnitInputs?: OrderSnapshotOrderUnitInputsV1
-  stockDisplay?: OrderSnapshotStockDisplayV1
+  stockOrderRequest: OrderSnapshotStockOrderRequestV2
+  stockOrderResult?: OrderSnapshotStockOrderResultV2
+  unitEconomics?: OrderSnapshotUnitEconomicsV2
   selfWeightPct: number
   bufferStock: number
-  llmPrompt: string
-  llmAnswer: string
-  /** Confirmed totals saved for candidate-list summaries and columns. */
+  aiComment: OrderSnapshotAiCommentV2
   confirmedTotals?: {
     orderQty: number
     expectedSalesAmount: number
     expectedOpProfit: number
     expectedOpProfitRatePct: number | null
   }
-  sizeRows: OrderSnapshotSizeRowV1[]
+  sizeOrders: OrderSnapshotSizeOrderV2[]
 }
 
 /** Single JSON document persisted by DB/local storage for snapshot schema v2. Row UUID is generated by the backend. */
 export type OrderSnapshotDocumentV2 = {
   schemaVersion: typeof ORDER_SNAPSHOT_SCHEMA_VERSION
   skuGroupKey: string
-  /**
-   * Company scope for single-company snapshots.
-   * New candidate/order snapshots should include this field; omission is kept
-   * only for legacy or explicitly unscoped compatibility.
-   */
+  /** New candidate/order snapshots should include this; omission means explicitly unscoped snapshot. */
   companyUuid?: string
   savedAt: string
   context: {
     periodStart: string
     periodEnd: string
     forecastMonths: number
-    /** startMonth value used when restoring secondary daily trend requests. */
     dailyTrendStartMonth: string
-    /** leadTimeDays value used when restoring secondary daily trend requests. */
     dailyTrendLeadTimeDays: number
   }
   drawer1: OrderSnapshotDrawer1V2
-  drawer2: OrderSnapshotDrawer2V1
+  drawer2: OrderSnapshotDrawer2V2
 }
-
-/** @deprecated Use OrderSnapshotDocumentV2 for current schema v2 snapshots. */
-export type OrderSnapshotDocumentV1 = OrderSnapshotDocumentV2

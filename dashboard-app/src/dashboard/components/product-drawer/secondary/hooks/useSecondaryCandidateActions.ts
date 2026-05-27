@@ -1,12 +1,10 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { dashboardApi, getCompanyUuidForOptionalScope } from '../../../../../api'
 import { useAuth } from '../../../../../auth/AuthContext'
 import type { ToastContextValue } from '../../../../../components/AppToastContext'
 import type { OrderSnapshotDocumentV2 } from '../../../../../snapshot/orderSnapshotTypes'
-import type { CandidateItemPanelContext } from '../candidateActionCards'
+import type { CandidateItemPanelContext } from '../secondaryDrawerTypes'
 import type { CandidateStashPickerOption } from '../CandidateStashPickerModal'
-
-type CandidateSelection = Pick<CandidateStashPickerOption, 'uuid' | 'name' | 'dbCreatedAt'>
 
 type CandidateActionGuardSnapshot = {
   companyUuid: string
@@ -26,13 +24,10 @@ type Params = {
 }
 
 const COMPANY_SCOPE_REQUIRED_MESSAGE = '회사를 선택한 상태에서만 후보군 작업을 할 수 있습니다.'
-const CANDIDATE_CREATE_SYNC_MISS_MESSAGE =
-  '후보군은 생성됐지만 새 목록에서 생성 항목을 확인하지 못했습니다. 목록을 다시 불러와 주세요.'
+const CANDIDATE_CREATE_SYNC_MISS_MESSAGE = '후보군은 생성됐지만 목록에서 생성 항목을 확인하지 못했습니다. 목록을 다시 불러와 주세요.'
 
 const getFailureMessage = (actionLabel: string, error: unknown) => {
-  if (error instanceof Error && error.message.trim()) {
-    return `${actionLabel} 실패: ${error.message}`
-  }
+  if (error instanceof Error && error.message.trim()) return `${actionLabel} 실패: ${error.message}`
   return `${actionLabel}에 실패했습니다. 다시 시도해 주세요.`
 }
 
@@ -48,18 +43,14 @@ export function useSecondaryCandidateActions({
 }: Params) {
   const { selectedCompanyUuid } = useAuth()
   const companyUuid = getCompanyUuidForOptionalScope(selectedCompanyUuid)
-  const companyScopeBlocked = companyUuid == null
   const mountedRef = useRef(false)
   const candidateListReqSeqRef = useRef(0)
   const actionReqSeqRef = useRef(0)
-  const currentCandidateActionScopeRef = useRef<Pick<CandidateActionGuardSnapshot, 'companyUuid' | 'skuGroupKey'>>({
-    companyUuid: companyUuid ?? '',
-    skuGroupKey,
-  })
+  const currentScopeRef = useRef({ companyUuid: companyUuid ?? '', skuGroupKey })
   const [loading, setLoading] = useState(false)
   const [listOpen, setListOpen] = useState(false)
   const [stashes, setStashes] = useState<CandidateStashPickerOption[]>([])
-  const [selectedCandidate, setSelectedCandidate] = useState<CandidateSelection | null>(null)
+  const [selectedCandidate, setSelectedCandidate] = useState<CandidateStashPickerOption | null>(null)
   const [nameInput, setNameInput] = useState('')
   const [noteInput, setNoteInput] = useState('')
 
@@ -73,14 +64,10 @@ export function useSecondaryCandidateActions({
   }, [])
 
   useEffect(() => {
-    const nextCompanyUuid = companyUuid ?? ''
-    const currentScope = currentCandidateActionScopeRef.current
-    if (currentScope.companyUuid === nextCompanyUuid && currentScope.skuGroupKey === skuGroupKey) return
-
-    currentCandidateActionScopeRef.current = {
-      companyUuid: nextCompanyUuid,
-      skuGroupKey,
-    }
+    const nextScope = { companyUuid: companyUuid ?? '', skuGroupKey }
+    const current = currentScopeRef.current
+    if (current.companyUuid === nextScope.companyUuid && current.skuGroupKey === nextScope.skuGroupKey) return
+    currentScopeRef.current = nextScope
     candidateListReqSeqRef.current += 1
     actionReqSeqRef.current += 1
     setLoading(false)
@@ -89,205 +76,156 @@ export function useSecondaryCandidateActions({
     setSelectedCandidate(null)
   }, [companyUuid, skuGroupKey])
 
-  const isActiveCandidateAction = useCallback((snapshot: CandidateActionGuardSnapshot) => {
-    const currentScope = currentCandidateActionScopeRef.current
+  const isActiveAction = (snapshot: CandidateActionGuardSnapshot) => {
+    const current = currentScopeRef.current
     return mountedRef.current
-      && currentScope.companyUuid === snapshot.companyUuid
-      && currentScope.skuGroupKey === snapshot.skuGroupKey
+      && current.companyUuid === snapshot.companyUuid
+      && current.skuGroupKey === snapshot.skuGroupKey
       && actionReqSeqRef.current === snapshot.actionSeq
-  }, [])
+  }
 
-  const beginCandidateAction = useCallback((): CandidateActionGuardSnapshot => {
+  const beginAction = (actionCompanyUuid = companyUuid ?? ''): CandidateActionGuardSnapshot => {
     const actionSeq = actionReqSeqRef.current + 1
     actionReqSeqRef.current = actionSeq
     setLoading(true)
-    return {
-      companyUuid: companyUuid ?? '',
-      skuGroupKey,
-      actionSeq,
+    return { companyUuid: actionCompanyUuid, skuGroupKey, actionSeq }
+  }
+
+  const runMutation = async <T,>(
+    actionLabel: string,
+    mutate: (mutationCompanyUuid: string) => Promise<T>,
+    reflect: (result: T) => boolean | void,
+  ) => {
+    if (!companyUuid) {
+      showToast(COMPANY_SCOPE_REQUIRED_MESSAGE, { variant: 'error' })
+      return false
     }
-  }, [companyUuid, skuGroupKey])
+    const snapshot = beginAction(companyUuid)
+    try {
+      const result = await mutate(companyUuid)
+      if (!isActiveAction(snapshot)) return false
+      return reflect(result) !== false
+    } catch (error) {
+      if (isActiveAction(snapshot)) showToast(getFailureMessage(actionLabel, error), { variant: 'error' })
+      return false
+    } finally {
+      if (isActiveAction(snapshot)) setLoading(false)
+    }
+  }
 
-  const finishCandidateAction = useCallback((snapshot: CandidateActionGuardSnapshot) => {
-    if (isActiveCandidateAction(snapshot)) setLoading(false)
-  }, [isActiveCandidateAction])
-
-  const requireCompanyUuid = useCallback(() => {
-    if (companyUuid) return companyUuid
-    throw new Error(COMPANY_SCOPE_REQUIRED_MESSAGE)
-  }, [companyUuid])
-
-  const refresh = useCallback(async () => {
+  const refresh = async () => {
     const reqSeq = candidateListReqSeqRef.current + 1
     candidateListReqSeqRef.current = reqSeq
     const rows = await dashboardApi.getCandidateStashes({ companyUuid })
     if (!mountedRef.current || candidateListReqSeqRef.current !== reqSeq) return null
     setStashes(rows)
     return rows
-  }, [companyUuid])
+  }
 
-  const openPicker = useCallback(async () => {
+  const openPicker = async () => {
     if (listOpen) {
       setListOpen(false)
       return
     }
-    if (companyScopeBlocked) {
+    if (!companyUuid) {
       showToast(COMPANY_SCOPE_REQUIRED_MESSAGE, { variant: 'error' })
       return
     }
     setListOpen(true)
-    const actionSnapshot = beginCandidateAction()
+    const snapshot = beginAction(companyUuid)
     try {
       await refresh()
     } catch (error) {
-      if (isActiveCandidateAction(actionSnapshot)) {
+      if (isActiveAction(snapshot)) {
         setListOpen(false)
         showToast(getFailureMessage('후보군 목록 불러오기', error), { variant: 'error' })
       }
     } finally {
-      finishCandidateAction(actionSnapshot)
+      if (isActiveAction(snapshot)) setLoading(false)
     }
-  }, [beginCandidateAction, companyScopeBlocked, finishCandidateAction, isActiveCandidateAction, listOpen, refresh, showToast])
+  }
 
-  const selectCandidate = useCallback((row: CandidateStashPickerOption) => {
-    setSelectedCandidate({ uuid: row.uuid, name: row.name, dbCreatedAt: row.dbCreatedAt })
-    setListOpen(false)
-  }, [])
+  const confirmOrder = () => {
+    if (selectedCandidate == null) return Promise.resolve(false)
+    return runMutation(
+      '후보군 아이템 저장',
+      (companyUuid) => dashboardApi.appendCandidateItem({
+        stashUuid: selectedCandidate.uuid, skuGroupKey, companyUuid, details: buildSnapshot(), isLatestLlmComment: false,
+      }),
+      () => showToast('후보군에 아이템을 저장했습니다.'),
+    )
+  }
 
-  const confirmOrder = useCallback(async () => {
-    if (selectedCandidate == null) return false
-    const actionSnapshot = beginCandidateAction()
-    try {
-      const mutationCompanyUuid = requireCompanyUuid()
-      await dashboardApi.appendCandidateItem({
-        stashUuid: selectedCandidate.uuid,
-        skuGroupKey,
-        companyUuid: mutationCompanyUuid,
-        details: buildSnapshot(),
-        isLatestLlmComment: false,
-      })
-      if (!isActiveCandidateAction(actionSnapshot)) return false
-      showToast('후보군에 아이템을 저장했습니다.')
-      return true
-    } catch (error) {
-      if (isActiveCandidateAction(actionSnapshot)) {
-        showToast(getFailureMessage('후보군 아이템 저장', error), { variant: 'error' })
-      }
-      return false
-    } finally {
-      finishCandidateAction(actionSnapshot)
-    }
-  }, [beginCandidateAction, buildSnapshot, finishCandidateAction, isActiveCandidateAction, requireCompanyUuid, selectedCandidate, showToast, skuGroupKey])
+  const saveCandidateItemDetails = (
+    details: OrderSnapshotDocumentV2 | null,
+    actionLabel: string,
+    onSaved: (updatedItem: Awaited<ReturnType<typeof dashboardApi.updateCandidateItem>>) => void,
+  ) => {
+    if (candidateItemContext == null) return Promise.resolve(false)
+    return runMutation(
+      actionLabel,
+      (companyUuid) => dashboardApi.updateCandidateItem({
+        itemUuid: candidateItemContext.itemUuid, companyUuid, details, isLatestLlmComment: false,
+      }),
+      onSaved,
+    )
+  }
 
-  const confirmCandidateItem = useCallback(async () => {
-    if (candidateItemContext == null) return false
+  const confirmCandidateItem = () => {
+    if (candidateItemContext == null) return Promise.resolve(false)
     const snapshot = buildSnapshot()
-    const actionSnapshot = beginCandidateAction()
-    try {
-      const mutationCompanyUuid = requireCompanyUuid()
-      const updatedItem = await dashboardApi.updateCandidateItem({
-        itemUuid: candidateItemContext.itemUuid,
-        companyUuid: mutationCompanyUuid,
-        details: snapshot,
-        isLatestLlmComment: false,
-      })
-      if (!isActiveCandidateAction(actionSnapshot)) return false
-      candidateItemContext.onConfirmed?.(snapshot, updatedItem)
-      candidateItemContext.onSaved?.()
+    return saveCandidateItemDetails(snapshot, hasSavedSnapshot ? '상세확정 갱신' : '상세확정', (updatedItem) => {
+      candidateItemContext?.onConfirmed?.(snapshot, updatedItem)
+      candidateItemContext?.onSaved?.()
       showToast(hasSavedSnapshot ? '상세확정 내용을 갱신했습니다.' : '상세확정했습니다.')
-      return true
-    } catch (error) {
-      if (isActiveCandidateAction(actionSnapshot)) {
-        showToast(getFailureMessage(hasSavedSnapshot ? '상세확정 갱신' : '상세확정', error), { variant: 'error' })
-      }
-      return false
-    } finally {
-      finishCandidateAction(actionSnapshot)
-    }
-  }, [beginCandidateAction, buildSnapshot, candidateItemContext, finishCandidateAction, hasSavedSnapshot, isActiveCandidateAction, requireCompanyUuid, showToast])
+    })
+  }
 
-  const unconfirmCandidateItem = useCallback(async () => {
-    if (candidateItemContext == null) return false
-    const actionSnapshot = beginCandidateAction()
-    try {
-      const mutationCompanyUuid = requireCompanyUuid()
-      const updatedItem = await dashboardApi.updateCandidateItem({
-        itemUuid: candidateItemContext.itemUuid,
-        companyUuid: mutationCompanyUuid,
-        details: null,
-        isLatestLlmComment: false,
-      })
-      if (!isActiveCandidateAction(actionSnapshot)) return false
-      candidateItemContext.onUnconfirmed?.(updatedItem)
-      candidateItemContext.onSaved?.()
-      showToast('상세확정을 해제했습니다.')
-      return true
-    } catch (error) {
-      if (isActiveCandidateAction(actionSnapshot)) {
-        showToast(getFailureMessage('상세확정 해제', error), { variant: 'error' })
-      }
-      return false
-    } finally {
-      finishCandidateAction(actionSnapshot)
-    }
-  }, [beginCandidateAction, candidateItemContext, finishCandidateAction, isActiveCandidateAction, requireCompanyUuid, showToast])
+  const unconfirmCandidateItem = () => saveCandidateItemDetails(null, '상세확정 해제', (updatedItem) => {
+    candidateItemContext?.onUnconfirmed?.(updatedItem)
+    candidateItemContext?.onSaved?.()
+    showToast('상세확정을 해제했습니다.')
+  })
 
-  const createCandidate = useCallback(async () => {
-    const actionSnapshot = beginCandidateAction()
-    const createListReqSeq = candidateListReqSeqRef.current
-    try {
-      const mutationCompanyUuid = requireCompanyUuid()
-      const createActionSnapshot: CandidateActionGuardSnapshot = {
-        ...actionSnapshot,
-        companyUuid: mutationCompanyUuid,
-      }
+  const createCandidate = () => runMutation(
+    '후보군 생성',
+    async (mutationCompanyUuid) => {
+      const listReqSeq = candidateListReqSeqRef.current
       const created = await dashboardApi.createCandidateStash({
-        name: nameInput.trim(),
-        note: noteInput.trim(),
-        companyUuid: mutationCompanyUuid,
-        periodStart,
-        periodEnd,
-        forecastMonths,
+        name: nameInput.trim(), note: noteInput.trim(), companyUuid: mutationCompanyUuid, periodStart, periodEnd, forecastMonths,
       })
-      if (!isActiveCandidateAction(createActionSnapshot) || candidateListReqSeqRef.current !== createListReqSeq) return false
-      let nextCandidates: CandidateStashPickerOption[]
       try {
-        nextCandidates = await dashboardApi.getCandidateStashes({ companyUuid: mutationCompanyUuid })
-      } catch {
-        if (isActiveCandidateAction(createActionSnapshot) && candidateListReqSeqRef.current === createListReqSeq) {
-          showToast('후보군은 생성됐지만 목록을 새로고침하지 못했습니다.', { variant: 'error' })
+        return {
+          createdUuid: created.uuid,
+          options: await dashboardApi.getCandidateStashes({ companyUuid: mutationCompanyUuid }),
+          listReqSeq,
         }
-        return false
+      } catch {
+        throw new Error('후보군은 생성됐지만 목록을 새로고침하지 못했습니다.')
       }
-      if (!isActiveCandidateAction(createActionSnapshot) || candidateListReqSeqRef.current !== createListReqSeq) return false
-      setStashes(nextCandidates)
-      const synced = nextCandidates.find((row) => row.uuid === created.uuid)
+    },
+    ({ createdUuid, options, listReqSeq }) => {
+      if (candidateListReqSeqRef.current !== listReqSeq) return false
+      setStashes(options)
+      const synced = options.find((row) => row.uuid === createdUuid)
       if (!synced) {
         showToast(CANDIDATE_CREATE_SYNC_MISS_MESSAGE, { variant: 'error' })
         return false
       }
-      setSelectedCandidate({ uuid: synced.uuid, name: synced.name, dbCreatedAt: synced.dbCreatedAt })
+      setSelectedCandidate(synced)
       setNameInput('')
       setNoteInput('')
       setListOpen(false)
       showToast('후보군을 생성했습니다.')
-      return true
-    } catch (error) {
-      if (isActiveCandidateAction(actionSnapshot)) {
-        showToast(getFailureMessage('후보군 생성', error), { variant: 'error' })
-      }
-      return false
-    } finally {
-      finishCandidateAction(actionSnapshot)
-    }
-  }, [beginCandidateAction, finishCandidateAction, forecastMonths, isActiveCandidateAction, nameInput, noteInput, periodEnd, periodStart, requireCompanyUuid, showToast])
+    },
+  )
 
   return {
     loading,
     listOpen,
     stashes,
     selectedCandidate,
-    companyScopeBlocked,
+    companyScopeBlocked: companyUuid == null,
     companyScopeBlockReason: COMPANY_SCOPE_REQUIRED_MESSAGE,
     nameInput,
     noteInput,
@@ -300,6 +238,9 @@ export function useSecondaryCandidateActions({
     openPicker,
     confirmCandidateItem,
     unconfirmCandidateItem,
-    selectCandidate,
+    selectCandidate: (row: CandidateStashPickerOption) => {
+      setSelectedCandidate(row)
+      setListOpen(false)
+    },
   }
 }

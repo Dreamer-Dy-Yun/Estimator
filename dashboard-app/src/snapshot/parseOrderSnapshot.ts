@@ -1,192 +1,194 @@
 import {
   ORDER_SNAPSHOT_SCHEMA_VERSION,
-  type OrderSnapshotCompetitorSalesBasisV2,
+  type OrderSnapshotCompetitorBasisV2,
   type OrderSnapshotDocumentV2,
   type OrderSnapshotPrimarySummaryV2,
 } from './orderSnapshotTypes'
 
-/** Parse and validate the stored candidate item snapshot at the API boundary. */
-export function parseOrderSnapshot(
-  details: unknown,
-): OrderSnapshotDocumentV2 {
+type Obj = Record<string, unknown>
+type StockOrderResult = NonNullable<OrderSnapshotDocumentV2['drawer2']['stockOrderResult']>
+
+const PRIMARY_STRING_KEYS = ['productName', 'brand', 'category', 'code', 'colorCode'] as const
+const PRIMARY_NUMBER_KEYS = ['price', 'qty', 'availableStock'] as const
+const CONTEXT_STRING_KEYS = ['periodStart', 'periodEnd', 'dailyTrendStartMonth'] as const
+const CONTEXT_NUMBER_KEYS = ['forecastMonths', 'dailyTrendLeadTimeDays'] as const
+const UNIT_ECONOMICS_KEYS = ['unitPrice', 'unitCost', 'expectedFeeRatePct'] as const
+const STOCK_RESULT_KEYS = ['trendDailyMean', 'dailyMean', 'sigma'] as const
+const STOCK_DISPLAY_TOTAL_KEYS = ['currentStockQtyTotal', 'totalOrderBalanceTotal', 'expectedInboundOrderBalanceTotal'] as const
+const STOCK_DISPLAY_ARRAY_KEYS = ['currentStockQtyBySize', 'totalOrderBalanceBySize', 'expectedInboundOrderBalanceBySize'] as const
+const STOCK_ORDER_AMOUNT_KEYS = ['recommendedOrderQty', 'expectedOrderAmount', 'expectedSalesAmount', 'expectedOpProfit'] as const
+const CONFIRMED_TOTAL_KEYS = ['orderQty', 'expectedSalesAmount', 'expectedOpProfit'] as const
+const SIZE_ORDER_NUMBER_KEYS = ['selfSharePct', 'competitorSharePct', 'blendedSharePct', 'forecastQty', 'recommendedQty', 'confirmQty'] as const
+
+/** Parse and validate the stored candidate item snapshot at the API boundary without inventing fallback business values. */
+export function parseOrderSnapshot(details: unknown): OrderSnapshotDocumentV2 {
   const d = expectRecord(details, 'snapshot')
   if (d.schemaVersion !== ORDER_SNAPSHOT_SCHEMA_VERSION) {
     throw new Error(`snapshot schemaVersion mismatch: ${String(d.schemaVersion)}`)
   }
-  const skuGroupKey = expectNonEmptyString(d.skuGroupKey, 'snapshot.skuGroupKey')
   const companyUuid = expectOptionalNonEmptyString(d.companyUuid, 'snapshot.companyUuid')
-  const drawer1 = normalizeDrawer1Structure(expectRecord(d.drawer1, 'drawer1'))
-  const drawer2 = normalizeDrawer2Structure(expectRecord(d.drawer2, 'drawer2'))
   return {
     schemaVersion: ORDER_SNAPSHOT_SCHEMA_VERSION,
-    skuGroupKey,
-    ...(companyUuid === undefined ? {} : { companyUuid }),
+    skuGroupKey: expectNonEmptyString(d.skuGroupKey, 'snapshot.skuGroupKey'),
+    ...optionalField('companyUuid', companyUuid),
     savedAt: expectString(d.savedAt, 'snapshot.savedAt'),
     context: normalizeContext(expectRecord(d.context, 'context')),
-    drawer1,
-    drawer2,
+    drawer1: normalizeDrawer1Structure(expectRecord(d.drawer1, 'drawer1')),
+    drawer2: normalizeDrawer2Structure(expectRecord(d.drawer2, 'drawer2')),
   }
 }
 
-function normalizeContext(context: Record<string, unknown>): OrderSnapshotDocumentV2['context'] {
+function normalizeContext(context: Obj): OrderSnapshotDocumentV2['context'] {
   return {
-    periodStart: expectString(context.periodStart, 'context.periodStart'),
-    periodEnd: expectString(context.periodEnd, 'context.periodEnd'),
-    forecastMonths: expectNumber(context.forecastMonths, 'context.forecastMonths'),
-    dailyTrendStartMonth: expectString(context.dailyTrendStartMonth, 'context.dailyTrendStartMonth'),
-    dailyTrendLeadTimeDays: expectNumber(context.dailyTrendLeadTimeDays, 'context.dailyTrendLeadTimeDays'),
+    ...normalizeStringFields(context, 'context', CONTEXT_STRING_KEYS),
+    ...normalizeNumberFields(context, 'context', CONTEXT_NUMBER_KEYS),
   }
 }
 
-function normalizeDrawer1Structure(drawer1: Record<string, unknown>): OrderSnapshotDocumentV2['drawer1'] {
+function normalizeDrawer1Structure(drawer1: Obj): OrderSnapshotDocumentV2['drawer1'] {
   const source = expectRecord(drawer1.summary, 'drawer1.summary')
   const summary: OrderSnapshotPrimarySummaryV2 = {
     skuGroupKey: expectNonEmptyString(source.skuGroupKey, 'drawer1.summary.skuGroupKey'),
-    productName: expectString(source.productName, 'drawer1.summary.productName'),
-    brand: expectString(source.brand, 'drawer1.summary.brand'),
-    category: expectString(source.category, 'drawer1.summary.category'),
-    code: expectString(source.code, 'drawer1.summary.code'),
-    colorCode: expectString(source.colorCode, 'drawer1.summary.colorCode'),
-    price: expectNumber(source.price, 'drawer1.summary.price'),
-    qty: expectNumber(source.qty, 'drawer1.summary.qty'),
-    availableStock: expectNumber(source.availableStock, 'drawer1.summary.availableStock'),
+    ...normalizeStringFields(source, 'drawer1.summary', PRIMARY_STRING_KEYS),
+    ...normalizeNumberFields(source, 'drawer1.summary', PRIMARY_NUMBER_KEYS),
   }
-  return {
-    summary,
-  }
+  return { summary }
 }
 
-function normalizeDrawer2Structure(drawer2: Record<string, unknown>): OrderSnapshotDocumentV2['drawer2'] {
-  const competitorSalesBasis = normalizeCompetitorSalesBasis(
-    expectRecord(drawer2.competitorSalesBasis ?? drawer2.secondary, 'drawer2.competitorSalesBasis'),
-  )
-  const orderUnitInputs = normalizeOptionalOrderUnitInputs(drawer2.orderUnitInputs)
-  const stockDisplay = normalizeOptionalStockDisplay(drawer2.stockDisplay)
+function normalizeDrawer2Structure(drawer2: Obj): OrderSnapshotDocumentV2['drawer2'] {
+  const stockOrderResult = normalizeOptionalStockOrderResult(drawer2.stockOrderResult)
+  const unitEconomics = normalizeOptionalUnitEconomics(drawer2.unitEconomics)
   const confirmedTotals = normalizeOptionalConfirmedTotals(drawer2.confirmedTotals)
   return {
-    competitorSalesBasis,
+    competitorBasis: normalizeCompetitorBasis(expectRecord(drawer2.competitorBasis, 'drawer2.competitorBasis')),
     competitorChannelId: expectString(drawer2.competitorChannelId, 'drawer2.competitorChannelId'),
     competitorChannelLabel: expectString(drawer2.competitorChannelLabel, 'drawer2.competitorChannelLabel'),
-    stockInputs: normalizeStockInputs(drawer2.stockInputs),
-    ...(orderUnitInputs == null ? {} : { orderUnitInputs }),
-    ...(stockDisplay == null ? {} : { stockDisplay }),
+    stockOrderRequest: normalizeStockOrderRequest(drawer2.stockOrderRequest),
+    ...optionalField('stockOrderResult', stockOrderResult),
+    ...optionalField('unitEconomics', unitEconomics),
     selfWeightPct: expectNumber(drawer2.selfWeightPct, 'drawer2.selfWeightPct'),
     bufferStock: expectNumber(drawer2.bufferStock, 'drawer2.bufferStock'),
-    llmPrompt: expectString(drawer2.llmPrompt, 'drawer2.llmPrompt'),
-    llmAnswer: expectString(drawer2.llmAnswer, 'drawer2.llmAnswer'),
-    ...(confirmedTotals == null ? {} : { confirmedTotals }),
-    sizeRows: normalizeSizeRows(drawer2.sizeRows),
+    aiComment: normalizeAiComment(drawer2.aiComment),
+    ...optionalField('confirmedTotals', confirmedTotals),
+    sizeOrders: normalizeSizeOrders(drawer2.sizeOrders),
   }
 }
 
-function normalizeCompetitorSalesBasis(
-  basis: Record<string, unknown>,
-): OrderSnapshotCompetitorSalesBasisV2 {
+function normalizeCompetitorBasis(basis: Obj): OrderSnapshotCompetitorBasisV2 {
   return {
-    skuGroupKey: expectNonEmptyString(basis.skuGroupKey, 'drawer2.competitorSalesBasis.skuGroupKey'),
-    competitorPrice: expectNumber(basis.competitorPrice, 'drawer2.competitorSalesBasis.competitorPrice'),
-    competitorQty: expectNumber(basis.competitorQty, 'drawer2.competitorSalesBasis.competitorQty'),
+    skuGroupKey: expectNonEmptyString(basis.skuGroupKey, 'drawer2.competitorBasis.skuGroupKey'),
+    competitorPrice: expectNumber(basis.competitorPrice, 'drawer2.competitorBasis.competitorPrice'),
+    competitorQty: expectNumber(basis.competitorQty, 'drawer2.competitorBasis.competitorQty'),
     competitorRatioBySize: normalizeCompetitorRatioBySize(basis.competitorRatioBySize),
   }
 }
 
-function normalizeCompetitorRatioBySize(value: unknown): OrderSnapshotCompetitorSalesBasisV2['competitorRatioBySize'] {
-  const source = expectRecord(value, 'drawer2.competitorSalesBasis.competitorRatioBySize')
-  const ratios: Record<string, number> = {}
-  for (const [size, ratio] of Object.entries(source)) {
-    ratios[size] = expectNumber(ratio, `drawer2.competitorSalesBasis.competitorRatioBySize.${size}`)
-  }
-  return ratios
+function normalizeCompetitorRatioBySize(value: unknown): OrderSnapshotCompetitorBasisV2['competitorRatioBySize'] {
+  const source = expectRecord(value, 'drawer2.competitorBasis.competitorRatioBySize')
+  return Object.fromEntries(
+    Object.entries(source).map(([size, ratio]) => [
+      size,
+      expectNumber(ratio, `drawer2.competitorBasis.competitorRatioBySize.${size}`),
+    ]),
+  )
 }
 
-function normalizeStockInputs(value: unknown): OrderSnapshotDocumentV2['drawer2']['stockInputs'] {
-  const source = expectRecord(value, 'drawer2.stockInputs')
+function normalizeStockOrderRequest(value: unknown): OrderSnapshotDocumentV2['drawer2']['stockOrderRequest'] {
+  const label = 'drawer2.stockOrderRequest'
+  const source = expectRecord(value, label)
   return {
-    trendDailyMean: expectNumber(source.trendDailyMean, 'drawer2.stockInputs.trendDailyMean'),
-    dailyMean: expectNumber(source.dailyMean, 'drawer2.stockInputs.dailyMean'),
-    leadTimeStartDate: expectString(source.leadTimeStartDate, 'drawer2.stockInputs.leadTimeStartDate'),
-    leadTimeEndDate: expectString(source.leadTimeEndDate, 'drawer2.stockInputs.leadTimeEndDate'),
-    leadTimeDays: expectNumber(source.leadTimeDays, 'drawer2.stockInputs.leadTimeDays'),
-    safetyStockMode: expectSafetyStockMode(source.safetyStockMode, 'drawer2.stockInputs.safetyStockMode'),
-    manualSafetyStock: expectNumber(source.manualSafetyStock, 'drawer2.stockInputs.manualSafetyStock'),
-    sigma: expectNumber(source.sigma, 'drawer2.stockInputs.sigma'),
-    serviceLevelPct: expectNumber(source.serviceLevelPct, 'drawer2.stockInputs.serviceLevelPct'),
+    ...normalizeStringFields(source, label, ['currentOrderInboundDueDate', 'nextOrderInboundDueDate'] as const),
+    leadTimeDays: expectNumber(source.leadTimeDays, `${label}.leadTimeDays`),
+    ...(source.dailyMeanOverride === undefined
+      ? {}
+      : { dailyMeanOverride: expectNumber(source.dailyMeanOverride, `${label}.dailyMeanOverride`) }),
   }
 }
 
-function normalizeOptionalOrderUnitInputs(
-  value: unknown,
-): OrderSnapshotDocumentV2['drawer2']['orderUnitInputs'] {
+function normalizeOptionalUnitEconomics(value: unknown): OrderSnapshotDocumentV2['drawer2']['unitEconomics'] {
   if (value === undefined) return undefined
-  const source = expectRecord(value, 'drawer2.orderUnitInputs')
-  return {
-    unitPrice: expectNumber(source.unitPrice, 'drawer2.orderUnitInputs.unitPrice'),
-    unitCost: expectNumber(source.unitCost, 'drawer2.orderUnitInputs.unitCost'),
-    expectedFeeRatePct: expectNumber(source.expectedFeeRatePct, 'drawer2.orderUnitInputs.expectedFeeRatePct'),
-  }
+  return normalizeNumberFields(expectRecord(value, 'drawer2.unitEconomics'), 'drawer2.unitEconomics', UNIT_ECONOMICS_KEYS)
 }
 
-function normalizeOptionalStockDisplay(
-  value: unknown,
-): OrderSnapshotDocumentV2['drawer2']['stockDisplay'] {
+function normalizeAiComment(value: unknown): OrderSnapshotDocumentV2['drawer2']['aiComment'] {
+  const source = expectRecord(value, 'drawer2.aiComment')
+  return normalizeStringFields(source, 'drawer2.aiComment', ['prompt', 'answer'] as const)
+}
+
+function normalizeOptionalStockOrderResult(value: unknown): OrderSnapshotDocumentV2['drawer2']['stockOrderResult'] {
   if (value === undefined) return undefined
-  const source = expectRecord(value, 'drawer2.stockDisplay')
+  const source = expectRecord(value, 'drawer2.stockOrderResult')
   return {
-    currentStockQtyTotal: expectNumber(source.currentStockQtyTotal, 'drawer2.stockDisplay.currentStockQtyTotal'),
-    totalOrderBalanceTotal: expectNumber(source.totalOrderBalanceTotal, 'drawer2.stockDisplay.totalOrderBalanceTotal'),
-    expectedInboundOrderBalanceTotal: expectNumber(
-      source.expectedInboundOrderBalanceTotal,
-      'drawer2.stockDisplay.expectedInboundOrderBalanceTotal',
-    ),
-    currentStockQtyBySize: normalizeNumberArray(source.currentStockQtyBySize, 'drawer2.stockDisplay.currentStockQtyBySize'),
-    totalOrderBalanceBySize: normalizeNumberArray(source.totalOrderBalanceBySize, 'drawer2.stockDisplay.totalOrderBalanceBySize'),
-    expectedInboundOrderBalanceBySize: normalizeNumberArray(
-      source.expectedInboundOrderBalanceBySize,
-      'drawer2.stockDisplay.expectedInboundOrderBalanceBySize',
-    ),
+    ...normalizeNumberFields(source, 'drawer2.stockOrderResult', STOCK_RESULT_KEYS),
+    display: normalizeStockOrderDisplay(source.display),
+    safetyStockCalc: normalizeStockOrderAmountBlock(source.safetyStockCalc, 'safetyStockCalc', false),
+    forecastQtyCalc: normalizeStockOrderAmountBlock(source.forecastQtyCalc, 'forecastQtyCalc', true),
   }
 }
 
-function normalizeOptionalConfirmedTotals(
-  value: unknown,
-): OrderSnapshotDocumentV2['drawer2']['confirmedTotals'] {
+function normalizeStockOrderDisplay(value: unknown): StockOrderResult['display'] {
+  const label = 'drawer2.stockOrderResult.display'
+  const source = expectRecord(value, label)
+  return {
+    ...normalizeNumberFields(source, label, STOCK_DISPLAY_TOTAL_KEYS),
+    ...normalizeNumberArrayFields(source, label, STOCK_DISPLAY_ARRAY_KEYS),
+  }
+}
+
+function normalizeStockOrderAmountBlock<K extends 'safetyStockCalc' | 'forecastQtyCalc'>(value: unknown, key: K, nullableSafetyStock: boolean): StockOrderResult[K] {
+  const label = `drawer2.stockOrderResult.${key}`
+  const source = expectRecord(value, label)
+  if (nullableSafetyStock && source.safetyStock !== null) throw new Error(`${label}.safetyStock must be null`)
+  return {
+    safetyStock: nullableSafetyStock ? null : expectNumber(source.safetyStock, `${label}.safetyStock`),
+    ...normalizeNumberFields(source, label, STOCK_ORDER_AMOUNT_KEYS),
+  } as StockOrderResult[K]
+}
+
+function normalizeOptionalConfirmedTotals(value: unknown): OrderSnapshotDocumentV2['drawer2']['confirmedTotals'] {
   if (value === undefined) return undefined
-  const source = expectRecord(value, 'drawer2.confirmedTotals')
+  const label = 'drawer2.confirmedTotals'
+  const source = expectRecord(value, label)
   return {
-    orderQty: expectNumber(source.orderQty, 'drawer2.confirmedTotals.orderQty'),
-    expectedSalesAmount: expectNumber(source.expectedSalesAmount, 'drawer2.confirmedTotals.expectedSalesAmount'),
-    expectedOpProfit: expectNumber(source.expectedOpProfit, 'drawer2.confirmedTotals.expectedOpProfit'),
-    expectedOpProfitRatePct: expectNumberOrNull(
-      source.expectedOpProfitRatePct,
-      'drawer2.confirmedTotals.expectedOpProfitRatePct',
-    ),
+    ...normalizeNumberFields(source, label, CONFIRMED_TOTAL_KEYS),
+    expectedOpProfitRatePct: expectNumberOrNull(source.expectedOpProfitRatePct, `${label}.expectedOpProfitRatePct`),
   }
 }
 
-function normalizeSizeRows(value: unknown): OrderSnapshotDocumentV2['drawer2']['sizeRows'] {
-  return expectArray(value, 'drawer2.sizeRows').map((row, index) => {
-    const source = expectRecord(row, `drawer2.sizeRows[${index}]`)
+function normalizeSizeOrders(value: unknown): OrderSnapshotDocumentV2['drawer2']['sizeOrders'] {
+  return expectArray(value, 'drawer2.sizeOrders').map((row, index) => {
+    const label = `drawer2.sizeOrders[${index}]`
+    const source = expectRecord(row, label)
     return {
-      size: expectString(source.size, `drawer2.sizeRows[${index}].size`),
-      selfSharePct: expectNumber(source.selfSharePct, `drawer2.sizeRows[${index}].selfSharePct`),
-      competitorSharePct: expectNumber(source.competitorSharePct, `drawer2.sizeRows[${index}].competitorSharePct`),
-      blendedSharePct: expectNumber(source.blendedSharePct, `drawer2.sizeRows[${index}].blendedSharePct`),
-      forecastQty: expectNumber(source.forecastQty, `drawer2.sizeRows[${index}].forecastQty`),
-      recommendedQty: expectNumber(source.recommendedQty, `drawer2.sizeRows[${index}].recommendedQty`),
-      confirmQty: expectNumber(source.confirmQty, `drawer2.sizeRows[${index}].confirmQty`),
+      size: expectString(source.size, `${label}.size`),
+      ...normalizeNumberFields(source, label, SIZE_ORDER_NUMBER_KEYS),
     }
   })
+}
+
+function normalizeStringFields<K extends string>(source: Obj, label: string, keys: readonly K[]): Record<K, string> {
+  return Object.fromEntries(keys.map((key) => [key, expectString(source[key], `${label}.${key}`)])) as Record<K, string>
+}
+
+function optionalField<K extends string, V>(key: K, value: V | undefined): Partial<Record<K, V>> {
+  return value === undefined ? {} : { [key]: value } as Record<K, V>
+}
+
+function normalizeNumberFields<K extends string>(source: Obj, label: string, keys: readonly K[]): Record<K, number> {
+  return Object.fromEntries(keys.map((key) => [key, expectNumber(source[key], `${label}.${key}`)])) as Record<K, number>
+}
+
+function normalizeNumberArrayFields<K extends string>(source: Obj, label: string, keys: readonly K[]): Record<K, number[]> {
+  return Object.fromEntries(keys.map((key) => [key, normalizeNumberArray(source[key], `${label}.${key}`)])) as Record<K, number[]>
 }
 
 function normalizeNumberArray(value: unknown, label: string): number[] {
   return expectArray(value, label).map((item, index) => expectNumber(item, `${label}[${index}]`))
 }
 
-function expectRecord(value: unknown, label: string): Record<string, unknown> {
-  if (value == null || typeof value !== 'object' || Array.isArray(value)) {
-    throw new Error(`${label} must be an object`)
-  }
-  return value as Record<string, unknown>
+function expectRecord(value: unknown, label: string): Obj {
+  if (value == null || typeof value !== 'object' || Array.isArray(value)) throw new Error(`${label} must be an object`)
+  return value as Obj
 }
 
 function expectArray(value: unknown, label: string): unknown[] {
@@ -206,27 +208,14 @@ function expectNonEmptyString(value: unknown, label: string): string {
 }
 
 function expectOptionalNonEmptyString(value: unknown, label: string): string | undefined {
-  if (value === undefined) return undefined
-  return expectNonEmptyString(value, label)
-}
-function expectNumber(value: unknown, label: string): number {
-  if (typeof value !== 'number' || !Number.isFinite(value)) {
-    throw new Error(`${label} must be a finite number`)
-  }
-  return value
+  return value === undefined ? undefined : expectNonEmptyString(value, label)
 }
 
-function expectSafetyStockMode(
-  value: unknown,
-  label: string,
-): OrderSnapshotDocumentV2['drawer2']['stockInputs']['safetyStockMode'] {
-  if (value !== 'manual' && value !== 'formula') {
-    throw new Error(`${label} must be manual or formula`)
-  }
+function expectNumber(value: unknown, label: string): number {
+  if (typeof value !== 'number' || !Number.isFinite(value)) throw new Error(`${label} must be a finite number`)
   return value
 }
 
 function expectNumberOrNull(value: unknown, label: string): number | null {
-  if (value === null) return null
-  return expectNumber(value, label)
+  return value === null ? null : expectNumber(value, label)
 }

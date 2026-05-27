@@ -5,8 +5,7 @@ import {
   createCandidateDetailConfirmationOverride,
   type CandidateDetailConfirmationOverrideMap,
 } from './candidateDetailConfirmationOverrideModel'
-
-type ItemStateUpdater = CandidateItemSummary[] | ((current: CandidateItemSummary[]) => CandidateItemSummary[])
+import type { CandidateSetItems } from './candidateStashDetailTypes'
 
 interface DrawerSnapshotBridge {
   markDrawerSnapshotConfirmed: (
@@ -20,8 +19,20 @@ interface DrawerSnapshotBridge {
 interface UseCandidateDetailConfirmationMutationsParams {
   itemsRef: MutableRefObject<CandidateItemSummary[]>
   confirmationOverridesRef: MutableRefObject<CandidateDetailConfirmationOverrideMap>
-  setItems: (next: ItemStateUpdater) => void
+  setItems: CandidateSetItems
   drawer: DrawerSnapshotBridge
+}
+
+function mergeDetailConfirmationState(
+  item: CandidateItemSummary,
+  updatedItem: CandidateItemDetail,
+): CandidateItemSummary {
+  return {
+    ...item,
+    isDetailConfirmed: updatedItem.isDetailConfirmed,
+    isLatestLlmComment: updatedItem.isLatestLlmComment,
+    dbUpdatedAt: updatedItem.dbUpdatedAt,
+  }
 }
 
 export function useCandidateDetailConfirmationMutations({
@@ -42,14 +53,7 @@ export function useCandidateDetailConfirmationMutations({
       [itemUuid]: createCandidateDetailConfirmationOverride(baseItem, isDetailConfirmed, confirmedSnapshot),
     }
     setItems((current) => current.map((item) => (
-      item.uuid === itemUuid
-        ? {
-            ...item,
-            isDetailConfirmed: updatedItem.isDetailConfirmed,
-            isLatestLlmComment: updatedItem.isLatestLlmComment,
-            dbUpdatedAt: updatedItem.dbUpdatedAt,
-          }
-        : item
+      item.uuid === itemUuid ? mergeDetailConfirmationState(item, updatedItem) : item
     )))
     return baseItem?.dbUpdatedAt ?? null
   }, [confirmationOverridesRef, itemsRef, setItems])
@@ -82,13 +86,8 @@ export function useCandidateDetailConfirmationMutations({
     })
     confirmationOverridesRef.current = nextOverrides
     setItems((current) => current.map((item) => (
-      uuidSet.has(item.uuid)
-        ? {
-            ...item,
-            isDetailConfirmed: updatedItemByUuid.get(item.uuid)?.isDetailConfirmed ?? false,
-            isLatestLlmComment: updatedItemByUuid.get(item.uuid)?.isLatestLlmComment ?? false,
-            dbUpdatedAt: updatedItemByUuid.get(item.uuid)?.dbUpdatedAt ?? item.dbUpdatedAt,
-          }
+      uuidSet.has(item.uuid) && updatedItemByUuid.has(item.uuid)
+        ? mergeDetailConfirmationState(item, updatedItemByUuid.get(item.uuid)!)
         : item
     )))
   }, [confirmationOverridesRef, drawer, itemsRef, setItems])
@@ -111,14 +110,7 @@ export function useCandidateDetailConfirmationMutations({
     confirmationOverridesRef.current = nextOverrides
     setItems((current) => current.map((item) => {
       const updatedItem = updatedItemByUuid.get(item.uuid)
-      return uuidSet.has(item.uuid) && updatedItem
-        ? {
-            ...item,
-            isDetailConfirmed: updatedItem.isDetailConfirmed,
-            isLatestLlmComment: updatedItem.isLatestLlmComment,
-            dbUpdatedAt: updatedItem.dbUpdatedAt,
-          }
-        : item
+      return uuidSet.has(item.uuid) && updatedItem ? mergeDetailConfirmationState(item, updatedItem) : item
     }))
   }, [confirmationOverridesRef, drawer, itemsRef, setItems])
 

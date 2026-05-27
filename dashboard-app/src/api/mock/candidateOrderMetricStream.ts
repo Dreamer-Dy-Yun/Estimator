@@ -1,65 +1,46 @@
-import type {
-  CandidateOrderMetricEvent,
-  CandidateOrderMetricStreamParams,
-  CandidateOrderMetricSubscription,
-} from '../types'
+import type { CandidateOrderMetricEvent, CandidateOrderMetricStreamParams, CandidateOrderMetricSubscription } from '../types'
 import { buildCandidateOrderMetric } from './candidateItemSummaryBuilder'
-import {
-  buildCandidateListParamsPeriod,
-  readCandidateItemsForStash,
-} from './candidateMockStore'
+import { buildCandidateListParamsPeriod, readCandidateItemsForStash } from './candidateMockStore'
+import { createMockStreamTimers } from './mockStreamTimers'
 
 export function subscribeMockCandidateOrderMetrics(
   params: CandidateOrderMetricStreamParams,
   listener: (event: CandidateOrderMetricEvent) => void,
   ownerUserUuid?: string,
 ): CandidateOrderMetricSubscription {
-  const records = readCandidateItemsForStash(params.stashUuid, ownerUserUuid, params.companyUuid)
+  const rows = readCandidateItemsForStash(params.stashUuid, ownerUserUuid, params.companyUuid)
     .filter((row) => params.candidateItemUuids.includes(row.uuid))
   const period = buildCandidateListParamsPeriod(params)
+  const { emit, close } = createMockStreamTimers<CandidateOrderMetricEvent>(listener)
   let failedCount = 0
-  const timers = records.map((row, index) => globalThis.setTimeout(() => {
+
+  rows.forEach((row, index) => emit(() => {
     try {
-      listener({
+      return {
         type: 'item',
         requestId: params.requestId,
         itemUuid: row.uuid,
         skuUuid: row.skuUuid,
         metric: buildCandidateOrderMetric(row, period, params.companyUuid),
-      })
-    } catch (err) {
+      }
+    } catch (error) {
       failedCount += 1
-      listener({
+      return {
         type: 'itemFailed',
         requestId: params.requestId,
         itemUuid: row.uuid,
         skuUuid: row.skuUuid,
-        message: err instanceof Error ? err.message : '오더 지표 계산 실패',
-      })
-    }
-    if (index === records.length - 1) {
-      listener({
-        type: 'completed',
-        requestId: params.requestId,
-        processedCount: records.length,
-        failedCount,
-      })
+        message: error instanceof Error ? error.message : '오더 지표 계산 실패',
+      }
     }
   }, 80 + index * 45))
-  if (records.length === 0) {
-    const timer = globalThis.setTimeout(() => {
-      listener({
-        type: 'completed',
-        requestId: params.requestId,
-        processedCount: 0,
-        failedCount: 0,
-      })
-    }, 0)
-    timers.push(timer)
-  }
-  return {
-    close: () => {
-      timers.forEach((timer) => globalThis.clearTimeout(timer))
-    },
-  }
+
+  emit(() => ({
+    type: 'completed',
+    requestId: params.requestId,
+    processedCount: rows.length,
+    failedCount,
+  }), rows.length === 0 ? 0 : 90 + rows.length * 45)
+
+  return { close }
 }

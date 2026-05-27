@@ -1,7 +1,33 @@
-import type { CandidateItemSummary } from '../../../api'
+import type { MutableRefObject } from 'react'
+import type { CandidateItemSummary, CandidateStashItemSummary, CandidateReferenceItemSummary } from '../../../api'
+import type { ToastContextValue } from '../../../components/AppToastContext'
 import type { SortState } from '../../../utils/sort'
 
-export type InnerCandidateRow = CandidateItemSummary & { id: string }
+export type InnerCandidateRow = CandidateItemSummary
+export type CandidateMountedRef = MutableRefObject<boolean>
+export type CandidateItemsRef = MutableRefObject<CandidateItemSummary[]>
+export type CandidateShowToast = ToastContextValue['showToast']
+export type CandidateItemStateUpdater =
+  | CandidateItemSummary[]
+  | ((current: CandidateItemSummary[]) => CandidateItemSummary[])
+export type CandidateSetItems = (next: CandidateItemStateUpdater) => void
+
+export type CandidateItemActionScope = {
+  stashUuid: string
+  companyUuid?: string
+  drawerItemUuid: string | null
+  itemTargetUuid?: string | null
+}
+
+export type AppendRecommendedItems = (
+  candidateItems: CandidateStashItemSummary[],
+  recommendations: CandidateReferenceItemSummary[],
+) => void
+
+export type AppendRecommendedItemsResult =
+  | { status: 'applied'; appendedCount: number }
+  | { status: 'stale' }
+  | { status: 'empty' }
 
 export type InnerCandidateSortKey =
   | 'brand'

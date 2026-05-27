@@ -1,4 +1,4 @@
-import type { ProductPrimarySummary, ProductSecondaryDetail, ProductSizeMixMergedRow } from '../../../../../types'
+import type { ProductSecondaryDetail, ProductSecondarySizeRow } from '../../../../../types'
 
 function isFiniteCompetitorRatio(value: number | undefined): value is number {
   return typeof value === 'number' && Number.isFinite(value)
@@ -9,12 +9,12 @@ function requireCompetitorRatio(size: string, value: number | undefined): number
   throw new Error(`Missing competitorRatioBySize for size "${size}".`)
 }
 
-/** 1차 사이즈 행 + 2차 경쟁 비중 병합 (UI·차트용). */
-export function mergePrimarySecondarySizeMix(
-  primary: ProductPrimarySummary,
+export type ProductSecondarySizeShareRow = ProductSecondarySizeRow & { competitorRatio: number }
+
+export function mergeSecondarySizeRows(
   secondary: ProductSecondaryDetail,
-): ProductSizeMixMergedRow[] {
-  return primary.sizeMix.map((row) => {
+): ProductSecondarySizeShareRow[] {
+  return secondary.sizeRows.map((row) => {
     const competitorRatio = requireCompetitorRatio(row.size, secondary.competitorRatioBySize[row.size])
     return { ...row, competitorRatio }
   })

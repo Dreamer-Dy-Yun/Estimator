@@ -1,10 +1,5 @@
-﻿import { useEffect, useMemo, useRef, useState } from 'react'
-import {
-  appendCandidateItems,
-  createCandidateStash,
-  getCandidateStashes,
-  type CandidateStashSummary,
-} from '../../../api'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { appendCandidateItems, createCandidateStash, getCandidateStashes, type CandidateStashSummary } from '../../../api'
 import { useAppToast } from '../../../components/AppToastContext'
 import { LoadingSpinner } from '../../../components/LoadingSpinner'
 import { formatDateTimeMinute } from '../../../utils/date'
@@ -23,16 +18,7 @@ type Props = {
 
 const COMPANY_REQUIRED_MESSAGE = '후보군 추가는 회사 선택이 필요합니다.'
 
-export function AnalysisCandidateBulkAddModal({
-  open,
-  skuGroupKeys,
-  periodStart,
-  periodEnd,
-  companyUuid,
-  forecastMonths,
-  onClose,
-  onDone,
-}: Props) {
+export function AnalysisCandidateBulkAddModal({ open, skuGroupKeys, periodStart, periodEnd, companyUuid, forecastMonths, onClose, onDone }: Props) {
   const [stashes, setStashes] = useState<CandidateStashSummary[]>([])
   const [selectedStashUuid, setSelectedStashUuid] = useState('')
   const [nameInput, setNameInput] = useState('')
@@ -45,49 +31,44 @@ export function AnalysisCandidateBulkAddModal({
 
   useEffect(() => {
     if (!open) return
-    let alive = true
-    queueMicrotask(() => {
-      if (!alive) return
-      const seq = requestSeqRef.current + 1
-      requestSeqRef.current = seq
-      setBusy(true)
-      setError(null)
-      void getCandidateStashes({ companyUuid })
-        .then((rows) => {
-          if (requestSeqRef.current !== seq) return
-          setStashes(rows)
-          setSelectedStashUuid((current) => (
-            rows.some((row) => row.uuid === current) ? current : rows[0]?.uuid || ''
-          ))
-        })
-        .catch((err) => {
-          if (requestSeqRef.current !== seq) return
-          setError(err instanceof Error ? err.message : '후보군 목록을 불러오지 못했습니다.')
-        })
-        .finally(() => {
-          if (requestSeqRef.current === seq) setBusy(false)
-        })
-    })
+    const seq = requestSeqRef.current + 1
+    requestSeqRef.current = seq
+    setBusy(true)
+    setError(null)
+    void getCandidateStashes({ companyUuid })
+      .then((rows) => {
+        if (requestSeqRef.current !== seq) return
+        setStashes(rows)
+        setSelectedStashUuid((current) => rows.some((row) => row.uuid === current) ? current : rows[0]?.uuid || '')
+      })
+      .catch((err) => {
+        if (requestSeqRef.current === seq) setError(errorMessage(err, '후보군 목록을 불러오지 못했습니다.'))
+      })
+      .finally(() => {
+        if (requestSeqRef.current === seq) setBusy(false)
+      })
     return () => {
-      alive = false
       requestSeqRef.current += 1
     }
   }, [companyUuid, open])
 
   if (!open) return null
 
+  const requireCompany = () => {
+    if (companyUuid) return true
+    setError(COMPANY_REQUIRED_MESSAGE)
+    return false
+  }
+
   const createAndSelect = async () => {
-    if (!companyUuid) {
-      setError(COMPANY_REQUIRED_MESSAGE)
-      return
-    }
+    if (!requireCompany()) return
     setBusy(true)
     setError(null)
     try {
       const created = await createCandidateStash({
         name: nameInput.trim(),
         note: noteInput.trim(),
-        companyUuid,
+        companyUuid: companyUuid!,
         periodStart,
         periodEnd,
         forecastMonths,
@@ -98,30 +79,22 @@ export function AnalysisCandidateBulkAddModal({
       setNoteInput('')
       showToast('후보군을 생성했습니다.')
     } catch (err) {
-      setError(err instanceof Error ? err.message : '후보군 생성에 실패했습니다.')
+      setError(errorMessage(err, '후보군 생성에 실패했습니다.'))
     } finally {
       setBusy(false)
     }
   }
 
   const confirm = async () => {
-    if (!selectedStashUuid || uniqueSkuGroupKeys.length === 0) return
-    if (!companyUuid) {
-      setError(COMPANY_REQUIRED_MESSAGE)
-      return
-    }
+    if (!selectedStashUuid || !uniqueSkuGroupKeys.length || !requireCompany()) return
     setBusy(true)
     setError(null)
     try {
-      await appendCandidateItems({
-        stashUuid: selectedStashUuid,
-        companyUuid,
-        skuGroupKeys: uniqueSkuGroupKeys,
-      })
+      await appendCandidateItems({ stashUuid: selectedStashUuid, companyUuid: companyUuid!, skuGroupKeys: uniqueSkuGroupKeys })
       showToast('선택한 상품을 후보군에 담았습니다.')
       onDone()
     } catch (err) {
-      setError(err instanceof Error ? err.message : '선택 상품을 후보군에 담지 못했습니다.')
+      setError(errorMessage(err, '선택 상품을 후보군에 담지 못했습니다.'))
     } finally {
       setBusy(false)
     }
@@ -129,97 +102,45 @@ export function AnalysisCandidateBulkAddModal({
 
   return (
     <div className={styles.modalBackdrop} role="presentation" onClick={onClose}>
-      <section
-        className={styles.modalPanel}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="analysis-candidate-bulk-title"
-        onClick={(event) => event.stopPropagation()}
-      >
+      <section className={styles.modalPanel} role="dialog" aria-modal="true" aria-labelledby="analysis-candidate-bulk-title" onClick={(event) => event.stopPropagation()}>
         <div className={styles.modalHeader}>
           <h3 id="analysis-candidate-bulk-title">선택 상품 후보군 담기</h3>
-          <button
-            type="button"
-            className={styles.iconCloseButton}
-            onClick={onClose}
-            aria-label="후보군 담기 닫기"
-          />
+          <button type="button" className={styles.iconCloseButton} onClick={onClose} aria-label="후보군 담기 닫기" />
         </div>
-
-        <div className={styles.analysisBulkMeta}>
-          선택 상품 <b>{uniqueSkuGroupKeys.length}</b>개
-        </div>
-
+        <div className={styles.analysisBulkMeta}>선택 상품 <b>{uniqueSkuGroupKeys.length}</b>개</div>
         <div className={styles.analysisBulkCreateGrid}>
-          <label className={styles.field}>
-            <span>후보군 이름</span>
-            <input
-              type="text"
-              value={nameInput}
-              placeholder="새 후보군 이름"
-              onChange={(event) => setNameInput(event.target.value)}
-            />
-          </label>
-          <label className={styles.field}>
-            <span>비고</span>
-            <input
-              type="text"
-              value={noteInput}
-              placeholder="후보군 비고"
-              onChange={(event) => setNoteInput(event.target.value)}
-            />
-          </label>
-          <button
-            type="button"
-            className={`${styles.actionBtn} ${styles.btnNeutral}`}
-            onClick={() => void createAndSelect()}
-            disabled={busy}
-          >
+          <TextField label="후보군 이름" value={nameInput} placeholder="새 후보군 이름" onChange={setNameInput} />
+          <TextField label="비고" value={noteInput} placeholder="후보군 비고" onChange={setNoteInput} />
+          <button type="button" className={`${styles.actionBtn} ${styles.btnNeutral}`} onClick={() => void createAndSelect()} disabled={busy}>
             {busy ? <LoadingSpinner size="inline" label="처리 중" /> : '후보군 생성'}
           </button>
         </div>
-
         <div className={styles.analysisBulkStashList}>
-          {busy && stashes.length === 0 ? (
-            <LoadingSpinner label="후보군 목록을 불러오는 중" />
-          ) : stashes.length === 0 ? (
-            <div className={styles.analysisBulkEmpty}>선택 가능한 후보군이 없습니다. 위에서 새 후보군을 생성하세요.</div>
-          ) : (
-            stashes.map((stash) => (
-              <button
-                key={stash.uuid}
-                type="button"
-                className={`${styles.analysisBulkStashItem} ${
-                  selectedStashUuid === stash.uuid ? styles.analysisBulkStashItemSelected : ''
-                }`}
-                disabled={busy}
-                onClick={() => setSelectedStashUuid(stash.uuid)}
-              >
+          {busy && !stashes.length ? <LoadingSpinner label="후보군 목록을 불러오는 중" />
+            : !stashes.length ? <div className={styles.analysisBulkEmpty}>선택 가능한 후보군이 없습니다. 위에서 새 후보군을 생성하세요.</div>
+            : stashes.map((stash) => (
+              <button key={stash.uuid} type="button" className={`${styles.analysisBulkStashItem} ${selectedStashUuid === stash.uuid ? styles.analysisBulkStashItemSelected : ''}`} disabled={busy} onClick={() => setSelectedStashUuid(stash.uuid)}>
                 <span>{stash.name}</span>
-                <small>
-                  {stash.note?.trim() || '비고 없음'} · 생성 {formatDateTimeMinute(stash.dbCreatedAt)}
-                </small>
+                <small>{stash.note?.trim() || '비고 없음'} · 생성 {formatDateTimeMinute(stash.dbCreatedAt)}</small>
               </button>
-            ))
-          )}
+            ))}
         </div>
-
         {error && <div className={styles.modalError}>{error}</div>}
-
         <div className={styles.modalActions}>
-          <button type="button" className={`${styles.actionBtn} ${styles.btnNeutral}`} onClick={onClose}>
-            취소
-          </button>
-          <button
-            type="button"
-            className={`${styles.actionBtn} ${styles.btnPrimary}`}
-            onClick={() => void confirm()}
-            disabled={busy || !selectedStashUuid || uniqueSkuGroupKeys.length === 0}
-          >
+          <button type="button" className={`${styles.actionBtn} ${styles.btnNeutral}`} onClick={onClose}>취소</button>
+          <button type="button" className={`${styles.actionBtn} ${styles.btnPrimary}`} onClick={() => void confirm()} disabled={busy || !selectedStashUuid || !uniqueSkuGroupKeys.length}>
             {busy ? <LoadingSpinner size="inline" label="담는 중" /> : '담기'}
           </button>
         </div>
       </section>
     </div>
   )
+}
+
+function TextField({ label, value, placeholder, onChange }: { label: string; value: string; placeholder: string; onChange: (value: string) => void }) {
+  return <label className={styles.field}><span>{label}</span><input type="text" value={value} placeholder={placeholder} onChange={(event) => onChange(event.target.value)} /></label>
+}
+
+function errorMessage(err: unknown, fallback: string) {
+  return err instanceof Error ? err.message : fallback
 }

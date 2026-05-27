@@ -1,8 +1,3 @@
-export interface CandidateDataReferencePeriodRange {
-  start: string
-  end: string
-}
-
 export interface CandidateDataReferencePeriodState {
   dataReferencePeriodStart: string
   dataReferencePeriodEnd: string
@@ -10,31 +5,11 @@ export interface CandidateDataReferencePeriodState {
   draftDataReferencePeriodEnd: string
 }
 
-export interface ChangeCandidateDataReferenceDraftStartAction {
-  type: 'draftStartChanged'
-  value: string
-}
-
-export interface ChangeCandidateDataReferenceDraftEndAction {
-  type: 'draftEndChanged'
-  value: string
-}
-
-export interface ApplyCandidateDataReferencePeriodAction {
-  type: 'periodApplied'
-  start: string
-  end: string
-}
-
-export interface ResetCandidateDataReferencePeriodAction {
-  type: 'reset'
-}
-
 export type CandidateDataReferencePeriodAction =
-  | ChangeCandidateDataReferenceDraftStartAction
-  | ChangeCandidateDataReferenceDraftEndAction
-  | ApplyCandidateDataReferencePeriodAction
-  | ResetCandidateDataReferencePeriodAction
+  | { type: 'draftStartChanged'; value: string }
+  | { type: 'draftEndChanged'; value: string }
+  | { type: 'periodApplied'; start: string; end: string }
+  | { type: 'reset' }
 
 export const initialCandidateDataReferencePeriodState: CandidateDataReferencePeriodState = {
   dataReferencePeriodStart: '',
@@ -43,111 +18,54 @@ export const initialCandidateDataReferencePeriodState: CandidateDataReferencePer
   draftDataReferencePeriodEnd: '',
 }
 
-export function getCandidateDataReferencePeriodQueryDirty(
-  state: CandidateDataReferencePeriodState,
-): boolean {
+export function getCandidateDataReferencePeriodQueryDirty(state: CandidateDataReferencePeriodState): boolean {
   return state.draftDataReferencePeriodStart !== state.dataReferencePeriodStart
     || state.draftDataReferencePeriodEnd !== state.dataReferencePeriodEnd
 }
 
-export function normalizeCandidateDataReferenceAppliedPeriod(
-  start: string,
-  end: string,
-): CandidateDataReferencePeriodRange | null {
-  if (!start || !end) return null
-  return normalizeRangeOnStartInputPolicy(start, end)
+export function normalizeCandidateDataReferenceAppliedPeriod(start: string, end: string) {
+  return start && end ? { start, end: start > end ? start : end } : null
+}
+
+function samePeriodState(a: CandidateDataReferencePeriodState, b: CandidateDataReferencePeriodState) {
+  return a.dataReferencePeriodStart === b.dataReferencePeriodStart
+    && a.dataReferencePeriodEnd === b.dataReferencePeriodEnd
+    && a.draftDataReferencePeriodStart === b.draftDataReferencePeriodStart
+    && a.draftDataReferencePeriodEnd === b.draftDataReferencePeriodEnd
+}
+
+function replaceIfChanged(current: CandidateDataReferencePeriodState, next: CandidateDataReferencePeriodState) {
+  return samePeriodState(current, next) ? current : next
 }
 
 export function candidateDataReferencePeriodReducer(
   state: CandidateDataReferencePeriodState,
   action: CandidateDataReferencePeriodAction,
 ): CandidateDataReferencePeriodState {
-  switch (action.type) {
-    case 'draftStartChanged':
-      return reduceDraftStartChanged(state, action.value)
-    case 'draftEndChanged':
-      return reduceDraftEndChanged(state, action.value)
-    case 'periodApplied':
-      return reducePeriodApplied(state, action.start, action.end)
-    case 'reset':
-      return replaceStateIfChanged(state, initialCandidateDataReferencePeriodState)
-    default:
-      return state
+  if (action.type === 'reset') return replaceIfChanged(state, initialCandidateDataReferencePeriodState)
+  if (action.type === 'periodApplied') {
+    const next = normalizeCandidateDataReferenceAppliedPeriod(action.start, action.end)
+    return next ? replaceIfChanged(state, {
+      dataReferencePeriodStart: next.start,
+      dataReferencePeriodEnd: next.end,
+      draftDataReferencePeriodStart: next.start,
+      draftDataReferencePeriodEnd: next.end,
+    }) : state
   }
-}
-
-function reduceDraftStartChanged(
-  state: CandidateDataReferencePeriodState,
-  value: string,
-): CandidateDataReferencePeriodState {
-  if (!value) return state
-  const next = normalizeRangeOnStartInputPolicy(value, state.draftDataReferencePeriodEnd || value)
-  return replaceStateIfChanged(state, {
+  if (!action.value) return state
+  const draftStart = action.type === 'draftStartChanged'
+    ? action.value
+    : action.value < (state.draftDataReferencePeriodStart || action.value)
+      ? action.value
+      : state.draftDataReferencePeriodStart || action.value
+  const draftEnd = action.type === 'draftEndChanged'
+    ? action.value
+    : action.value > (state.draftDataReferencePeriodEnd || action.value)
+      ? action.value
+      : state.draftDataReferencePeriodEnd || action.value
+  return replaceIfChanged(state, {
     ...state,
-    draftDataReferencePeriodStart: next.start,
-    draftDataReferencePeriodEnd: next.end,
+    draftDataReferencePeriodStart: draftStart,
+    draftDataReferencePeriodEnd: draftEnd,
   })
-}
-
-function reduceDraftEndChanged(
-  state: CandidateDataReferencePeriodState,
-  value: string,
-): CandidateDataReferencePeriodState {
-  if (!value) return state
-  const next = normalizeRangeOnEndInputPolicy(value, state.draftDataReferencePeriodStart || value)
-  return replaceStateIfChanged(state, {
-    ...state,
-    draftDataReferencePeriodStart: next.start,
-    draftDataReferencePeriodEnd: next.end,
-  })
-}
-
-function reducePeriodApplied(
-  state: CandidateDataReferencePeriodState,
-  start: string,
-  end: string,
-): CandidateDataReferencePeriodState {
-  const next = normalizeCandidateDataReferenceAppliedPeriod(start, end)
-  if (!next) return state
-  return replaceStateIfChanged(state, {
-    dataReferencePeriodStart: next.start,
-    dataReferencePeriodEnd: next.end,
-    draftDataReferencePeriodStart: next.start,
-    draftDataReferencePeriodEnd: next.end,
-  })
-}
-
-function normalizeRangeOnStartInputPolicy(
-  nextStartDate: string,
-  currentEndDate: string,
-): CandidateDataReferencePeriodRange {
-  return {
-    start: nextStartDate,
-    end: nextStartDate > currentEndDate ? nextStartDate : currentEndDate,
-  }
-}
-
-function normalizeRangeOnEndInputPolicy(
-  nextEndDate: string,
-  currentStartDate: string,
-): CandidateDataReferencePeriodRange {
-  return {
-    start: nextEndDate < currentStartDate ? nextEndDate : currentStartDate,
-    end: nextEndDate,
-  }
-}
-
-function replaceStateIfChanged(
-  current: CandidateDataReferencePeriodState,
-  next: CandidateDataReferencePeriodState,
-): CandidateDataReferencePeriodState {
-  if (
-    current.dataReferencePeriodStart === next.dataReferencePeriodStart
-    && current.dataReferencePeriodEnd === next.dataReferencePeriodEnd
-    && current.draftDataReferencePeriodStart === next.draftDataReferencePeriodStart
-    && current.draftDataReferencePeriodEnd === next.draftDataReferencePeriodEnd
-  ) {
-    return current
-  }
-  return next
 }

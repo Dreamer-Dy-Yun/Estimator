@@ -1,6 +1,3 @@
-/**
- * 필터 한 줄 UI. `kind: 'listCombo'`는 공통 `FilterListCombo`로만 렌더링(중복 구현 없음).
- */
 import { useId, type ReactNode } from 'react'
 import type { FilterField } from '../model/filterField'
 import { FilterListCombo } from './FilterListCombo'
@@ -11,17 +8,10 @@ type FilterBarProps = {
   fields: FilterField[]
   filterEndContent?: ReactNode
   extraContent?: ReactNode
-  /** 기본 `filterHorizontal` 대신 사용(예: 분석 페이지 그리드 레이아웃). */
   filterClassName?: string
 }
 
-export function FilterBar({
-  title = '필터',
-  fields,
-  filterEndContent,
-  extraContent,
-  filterClassName,
-}: FilterBarProps) {
+export function FilterBar({ title = '필터', fields, filterEndContent, extraContent, filterClassName }: FilterBarProps) {
   const barId = useId()
   return (
     <div className={styles.filterRow}>
@@ -37,36 +27,13 @@ export function FilterBar({
               <div key={field.label} className={`${styles.field} ${field.disabled ? styles.fieldDisabled : ''}`}>
                 <label htmlFor={inputId}>{field.label}</label>
                 {field.kind === 'select' ? (
-                  <select
-                    id={inputId}
-                    value={value}
-                    disabled={field.disabled}
-                    onChange={(e) => field.onChange?.(e.target.value)}
-                  >
-                    {selectOptions.map((option) => (
-                      <option key={option} value={option}>
-                        {option}
-                      </option>
-                    ))}
+                  <select id={inputId} value={value} disabled={field.disabled} onChange={(event) => field.onChange?.(event.target.value)}>
+                    {selectOptions.map((option) => <option key={option} value={option}>{option}</option>)}
                   </select>
                 ) : field.kind === 'listCombo' ? (
-                  <FilterListCombo
-                    key={`${inputId}-${field.disabled ? 'disabled' : 'enabled'}`}
-                    inputId={inputId}
-                    value={value}
-                    onChange={(v) => field.onChange?.(v)}
-                    options={field.options ?? []}
-                    inputType={field.inputType ?? 'text'}
-                    disabled={field.disabled}
-                  />
+                  <FilterListCombo key={`${inputId}-${field.disabled ? 'disabled' : 'enabled'}`} inputId={inputId} value={value} onChange={(next) => field.onChange?.(next)} options={field.options ?? []} inputType={field.inputType ?? 'text'} disabled={field.disabled} />
                 ) : (
-                  <input
-                    id={inputId}
-                    type={field.inputType ?? 'text'}
-                    value={value}
-                    disabled={field.disabled}
-                    onChange={(e) => field.onChange?.(e.target.value)}
-                  />
+                  <input id={inputId} type={field.inputType ?? 'text'} value={value} disabled={field.disabled} onChange={(event) => field.onChange?.(event.target.value)} />
                 )}
               </div>
             )

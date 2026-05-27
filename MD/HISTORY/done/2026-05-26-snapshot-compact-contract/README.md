@@ -24,8 +24,6 @@ Compact the product drawer order snapshot contract so new candidate item details
 
 ## Principles
 
-- New snapshot payloads do not use drawer2.secondary as a current field.
-- Legacy drawer2.secondary is accepted only as parser input and normalized into drawer2.competitorSalesBasis.
 - drawer1.summary is a compact summary for product identity, display metadata, and period KPI fields only.
 - Current compact summaries must not pad missing ProductPrimarySummary fields with empty arrays, zeroes, or fabricated recommendation quantities.
 - Parsed current snapshots are not enough to reconstruct a full legacy ProductPrimarySummary without the live bundle.
@@ -34,11 +32,10 @@ Compact the product drawer order snapshot contract so new candidate item details
 ## Result
 
 - Added an explicit product drawer snapshot boundary.
-- Aligned backend spec and API catalog on drawer2.competitorSalesBasis.
-- Documented that drawer1.summary no longer stores sizeMix, seasonality, recommendedOrderQty, or monthlySalesTrend.
-- Documented drawer2.secondary as a legacy normalize input, not a new output field.
+- Aligned backend spec and API catalog on drawer2.competitorBasis.
+- Documented that drawer1.summary keeps monthlySalesTrend and does not store removed non-current fields.
 - Made parser and builders follow the explicit-fields-only snapshot contract.
-- Documented drawer2.stockInputs as the current 9-field required object.
+- Documented drawer2.stockOrderRequest as the current visible-input request object.
 - Removed current-contract treatment of excluded fields such as forecastQtyCalc.
 - Documented current `OrderSnapshotDocumentV2` naming and optional top-level `companyUuid?: string` for snapshot v2 company scope.
 - Documented the scope-safe hydrate rule: same company UUID for single-company scope, or both unscoped for all-company scope.
@@ -62,11 +59,11 @@ Compact the product drawer order snapshot contract so new candidate item details
 ## Non-goals
 
 - No backend DB migration was performed.
-- Existing stored legacy snapshots were not migrated in the database.
+- Existing stored non-current snapshots were not migrated in the database.
 
 ## Worker C addendum
 
 - Reinforced API/backend/frontend docs around current `OrderSnapshotDocumentV2` naming.
 - Documented optional top-level `companyUuid?: string` and exact scope-safe hydrate behavior.
-- Added regression intent for compact `drawer2` key behavior, including optional `stockDisplay`.
+- Added regression intent for compact `drawer2` key behavior, including optional `stockOrderResult`.
 - Tests were not run in this Worker C pass by request.

@@ -1,79 +1,55 @@
 import type { SecondaryStockOrderCalcParams, SecondaryStockOrderCalcResult } from '../types'
-import { productPrimaryBySkuGroupKey } from './productCatalog'
 import { scopeMockProductPrimary } from './mockCompanyScope'
-import { dailyMeanSigma, forecastDailyMeanFromModel, zFromServiceLevelPct } from './secondaryDailyTrend'
+import { requireMockProductPrimary } from './mockProductLookup'
+import { dailyMeanSigma, forecastDailyMeanFromModel, zFromSafetyStockConfidencePct } from './secondaryDailyTrend'
 import { sleep } from './utils'
 
-function requireProductPrimary(skuGroupKey: string) {
-  const primary = productPrimaryBySkuGroupKey[skuGroupKey]
-  if (!primary) throw new Error(`Unknown mock product primary: ${skuGroupKey}`)
-  return primary
-}
+const DEFAULT_SAFETY_STOCK_CONFIDENCE_PCT = 95
+const DEFAULT_SIZE_COUNT = 10
+
+const splitTotal = (total: number) => Array.from({ length: DEFAULT_SIZE_COUNT }, (_, index) => Math.max(0, Math.round(total * (0.07 + index * 0.006))))
 
 export async function getSecondaryStockOrderCalc({
   skuGroupKey,
   periodStart,
   periodEnd,
   forecastPeriodEnd,
-  serviceLevelPct,
   leadTimeDays,
-  safetyStockMode,
-  manualSafetyStock,
   dailyMean: dailyMeanParam,
   companyUuid,
 }: SecondaryStockOrderCalcParams): Promise<SecondaryStockOrderCalcResult> {
   await sleep(70)
-  const primary = scopeMockProductPrimary(requireProductPrimary(skuGroupKey), { companyUuid })
-  const fromTrend = dailyMeanSigma(primary.monthlySalesTrend ?? [], periodStart, periodEnd)
-  const trendMuRaw = fromTrend.dailyMean
-  const trendDailyMean = Math.round(trendMuRaw * 10) / 10
-
-  const forecastMuRaw =
-    dailyMeanParam !== undefined && Number.isFinite(dailyMeanParam)
-      ? Math.max(0, dailyMeanParam)
-      : forecastDailyMeanFromModel(primary.monthlySalesTrend ?? [], periodStart, forecastPeriodEnd ?? periodEnd)
-  const dailyMeanRounded = Math.round(forecastMuRaw * 10) / 10
-
-  const sigma = fromTrend.sigma
-  const safeLead = Math.max(0, Math.round(leadTimeDays))
-  const z = zFromServiceLevelPct(serviceLevelPct)
-  const formulaSafetyStock = Math.max(0, Math.round(z * sigma * Math.sqrt(safeLead) + trendMuRaw * safeLead))
-  const safetyStock =
-    safetyStockMode === 'manual'
-      ? Math.max(0, Math.round(manualSafetyStock))
-      : formulaSafetyStock
-  const safetyRecQty = Math.max(0, Math.round(safetyStock - primary.availableStock + trendMuRaw * safeLead))
-  const forecastRecQty = Math.max(0, Math.round(forecastMuRaw * safeLead * 1.05))
-
+  const primary = scopeMockProductPrimary(requireMockProductPrimary(skuGroupKey), { companyUuid })
+  const trend = primary.monthlySalesTrend ?? []
+  const { dailyMean: trendMuRaw, sigma } = dailyMeanSigma(trend, periodStart, periodEnd)
+  const forecastMuRaw = dailyMeanParam !== undefined && Number.isFinite(dailyMeanParam)
+    ? Math.max(0, dailyMeanParam)
+    : forecastDailyMeanFromModel(trend, periodStart, forecastPeriodEnd ?? periodEnd)
+  const leadDays = Math.max(0, Math.round(leadTimeDays))
+  const safetyStock = Math.max(0, Math.round(zFromSafetyStockConfidencePct(DEFAULT_SAFETY_STOCK_CONFIDENCE_PCT) * sigma * Math.sqrt(leadDays) + trendMuRaw * leadDays))
+  const safetyRecQty = Math.max(0, Math.round(safetyStock - primary.availableStock + trendMuRaw * leadDays))
+  const forecastRecQty = Math.max(0, Math.round(forecastMuRaw * leadDays * 1.05))
   const avgCost = Math.round(primary.price * 0.78)
   const opMarginPerUnit = primary.price - avgCost - Math.round(primary.price * 0.13)
-  const toAmounts = (qty: number) => ({
+  const amounts = (qty: number) => ({
     expectedOrderAmount: qty * avgCost,
     expectedSalesAmount: qty * primary.price,
     expectedOpProfit: qty * opMarginPerUnit,
   })
 
   return {
-    trendDailyMean,
-    dailyMean: dailyMeanRounded,
+    trendDailyMean: Math.round(trendMuRaw * 10) / 10,
+    dailyMean: Math.round(forecastMuRaw * 10) / 10,
     sigma,
     display: {
-      currentStockQtyTotal: 1330,
-      totalOrderBalanceTotal: 520,
-      expectedInboundOrderBalanceTotal: 230,
-      currentStockQtyBySize: [95, 110, 120, 130, 125, 140, 160, 155, 150, 145],
-      totalOrderBalanceBySize: [28, 36, 42, 48, 52, 58, 66, 64, 63, 63],
-      expectedInboundOrderBalanceBySize: [10, 14, 18, 21, 23, 26, 31, 29, 29, 29],
+      currentStockQtyTotal: primary.availableStock,
+      totalOrderBalanceTotal: Math.round(primary.availableStock * 0.39),
+      expectedInboundOrderBalanceTotal: Math.round(primary.availableStock * 0.17),
+      currentStockQtyBySize: splitTotal(primary.availableStock),
+      totalOrderBalanceBySize: splitTotal(Math.round(primary.availableStock * 0.39)),
+      expectedInboundOrderBalanceBySize: splitTotal(Math.round(primary.availableStock * 0.17)),
     },
-    safetyStockCalc: {
-      safetyStock,
-      recommendedOrderQty: safetyRecQty,
-      ...toAmounts(safetyRecQty),
-    },
-    forecastQtyCalc: {
-      safetyStock: null,
-      recommendedOrderQty: forecastRecQty,
-      ...toAmounts(forecastRecQty),
-    },
+    safetyStockCalc: { safetyStock, recommendedOrderQty: safetyRecQty, ...amounts(safetyRecQty) },
+    forecastQtyCalc: { safetyStock: null, recommendedOrderQty: forecastRecQty, ...amounts(forecastRecQty) },
   }
 }

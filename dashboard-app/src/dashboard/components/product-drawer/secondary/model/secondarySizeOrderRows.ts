@@ -1,5 +1,5 @@
-import type { ProductPrimarySummary, ProductSecondaryDetail } from '../../../../../types'
-import { mergePrimarySecondarySizeMix } from './secondaryDrawerCalc'
+import type { ProductSecondaryDetail, ProductSecondarySizeRow } from '../../../../../types'
+import { mergeSecondarySizeRows } from './secondaryDrawerCalc'
 import type { SecondaryOrderDraft } from './SecondaryOrderDraft'
 
 export type SecondarySizeOrderRow = {
@@ -12,6 +12,8 @@ export type SecondarySizeOrderRow = {
   recommendedQty: number
   confirmQty: number
 }
+
+export type SecondarySizeOrderDisplayRow = Omit<SecondarySizeOrderRow, 'avgPrice'>
 
 type SecondarySizeShare = Omit<SecondarySizeOrderRow, 'forecastQty' | 'recommendedQty' | 'confirmQty'>
 
@@ -26,17 +28,16 @@ type SizeOrderRowsParams = {
 }
 
 export function buildSecondarySizeShares(
-  primary: ProductPrimarySummary,
   secondary: ProductSecondaryDetail,
   selfWeightPct: number,
 ): SecondarySizeShare[] {
-  const mix = mergePrimarySecondarySizeMix(primary, secondary)
-  const selfRatioSum = mix.reduce((acc, row) => acc + row.ratio, 0)
+  const mix = mergeSecondarySizeRows(secondary)
+  const selfRatioSum = mix.reduce((acc, row) => acc + row.selfRatio, 0)
   const competitorRatioSum = mix.reduce((acc, row) => acc + row.competitorRatio, 0)
   const selfWeight = selfWeightPct / 100
   const competitorWeight = 1 - selfWeight
   const raw = mix.map((row) => {
-    const selfSharePct = selfRatioSum > 0 ? (row.ratio / selfRatioSum) * 100 : 0
+    const selfSharePct = selfRatioSum > 0 ? (row.selfRatio / selfRatioSum) * 100 : 0
     const competitorSharePct = competitorRatioSum > 0 ? (row.competitorRatio / competitorRatioSum) * 100 : 0
     return {
       size: row.size,
@@ -81,12 +82,12 @@ export function buildSecondarySizeOrderRows({
   })
 }
 
-export function buildDailyTrendSizeOptions(sizeMix: ProductPrimarySummary['sizeMix']) {
-  if (!sizeMix.length) return []
-  const sum = sizeMix.reduce((acc, row) => acc + row.ratio, 0) || 1
-  return sizeMix.map((row) => ({
+export function buildDailyTrendSizeOptions(sizeRows: ProductSecondarySizeRow[]) {
+  if (!sizeRows.length) return []
+  const sum = sizeRows.reduce((acc, row) => acc + row.selfRatio, 0) || 1
+  return sizeRows.map((row) => ({
     id: row.size,
     label: row.size,
-    share: row.ratio / sum,
+    share: row.selfRatio / sum,
   }))
 }

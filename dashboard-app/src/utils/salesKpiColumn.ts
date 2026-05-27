@@ -1,12 +1,12 @@
 import type { ProductPrimarySummary, ProductSecondaryDetail } from '../types'
 import { hashRank } from './hashRank'
 
-/** 자사/경쟁 채널 한 컬럼의 판매·원가·수수료·순이익 지표 (2차 드로워·스냅샷 공통). */
+/** 자사/경쟁 채널 판매 KPI 컬럼. 1차 요약 카드와 2차 계산 카드가 같은 구조를 사용한다. */
 export type SalesKpiColumn = {
   avgPrice: number
   qty: number
   amount: number
-  /** 경쟁사 컬럼은 원가·마진·수수료·영업이익 미제공 → null */
+  /** 경쟁사 컬럼은 원가, 마진, 수수료, 영업이익을 제공하지 않으므로 null이다. */
   avgCost: number | null
   grossMarginPerUnit: number | null
   feePerUnit: number | null

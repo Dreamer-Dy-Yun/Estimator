@@ -3,16 +3,13 @@ import {
   getCandidateStashes,
   type CandidateStashSummary,
 } from '../../../api'
-
-type MountedRef = {
-  current: boolean
-}
+import type { CandidateMountedRef } from './candidateStashDetailTypes'
 
 type Args = {
   stashUuid: string
   companyUuid?: string
   stashSummary?: CandidateStashSummary | null
-  mountedRef: MountedRef
+  mountedRef: CandidateMountedRef
   onStashesInvalidate?: () => void
 }
 

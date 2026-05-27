@@ -1,4 +1,4 @@
-﻿// @vitest-environment jsdom
+// @vitest-environment jsdom
 import { act, createElement } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -119,12 +119,10 @@ describe('useSecondaryCandidateActions', () => {
       companyUuid: 'company-1',
     }))
     expect(args.showToast).toHaveBeenCalledWith(
-      '후보군은 생성됐지만 목록을 새로고침하지 못했습니다.',
+      '후보군 생성 실패: 후보군은 생성됐지만 목록을 새로고침하지 못했습니다.',
       { variant: 'error' },
     )
-    expect(vi.mocked(args.showToast).mock.calls.some(([message, options]) => (
-      message.includes('후보군 생성 실패') && options?.variant === 'error'
-    ))).toBe(false)
+    expect(vi.mocked(args.showToast).mock.calls.some(([message]) => message === '후보군을 생성했습니다.')).toBe(false)
   })
 
   it('reports candidate creation sync miss when refresh succeeds without the created row', async () => {
@@ -150,7 +148,7 @@ describe('useSecondaryCandidateActions', () => {
 
     expect(result).toBe(false)
     expect(args.showToast).toHaveBeenCalledWith(
-      '후보군은 생성됐지만 새 목록에서 생성 항목을 확인하지 못했습니다. 목록을 다시 불러와 주세요.',
+      '후보군은 생성됐지만 목록에서 생성 항목을 확인하지 못했습니다. 목록을 다시 불러와 주세요.',
       { variant: 'error' },
     )
     expect(vi.mocked(args.showToast).mock.calls.some(([message]) => message === '후보군을 생성했습니다.')).toBe(false)

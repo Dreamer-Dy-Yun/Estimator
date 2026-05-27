@@ -1,170 +1,105 @@
-import type { SecondaryOrderSnapshotPayload } from '../types/snapshot'
+import { buildSalesKpiColumn } from '../../utils/salesKpiColumn'
 import {
-  createOrderSnapshotCompetitorSalesBasis,
+  createOrderSnapshotCompetitorBasis,
   createOrderSnapshotPrimarySummary,
-  createOrderSnapshotStockInputs,
+  createOrderSnapshotStockOrderRequest,
   ORDER_SNAPSHOT_SCHEMA_VERSION,
 } from '../../snapshot/orderSnapshotTypes'
+import type { SecondaryOrderSnapshotPayload } from '../types/snapshot'
+import { requireMockProductPrimary, requireMockProductSecondary } from './mockProductLookup'
 import { secondaryCompetitorChannels } from './salesTables'
-import { productPrimaryBySkuGroupKey, productSecondaryBySkuGroupKey } from './productCatalog'
-import { buildSalesKpiColumn } from '../../utils/salesKpiColumn'
 
 const koNumber = new Intl.NumberFormat('ko-KR')
+const formatEa = (value: number | null | undefined) => value == null ? '확인 필요' : `${koNumber.format(Math.max(0, Math.round(value)))}EA`
+const formatWon = (value: number | null | undefined) => value == null ? '확인 필요' : `${koNumber.format(Math.max(0, Math.round(value)))}원`
 
-function formatEa(value: number | null | undefined) {
-  if (value == null) return '확인 필요'
-  return `${koNumber.format(Math.max(0, Math.round(value)))}EA`
-}
-
-function formatWon(value: number | null | undefined) {
-  if (value == null) return '확인 필요'
-  return `${koNumber.format(Math.max(0, Math.round(value)))}원`
-}
-
-function requireProductPrimary(skuGroupKey: string) {
-  const primary = productPrimaryBySkuGroupKey[skuGroupKey]
-  if (!primary) throw new Error(`Unknown mock product primary: ${skuGroupKey}`)
-  return primary
-}
-
-function requireProductSecondary(skuGroupKey: string) {
-  const secondary = productSecondaryBySkuGroupKey[skuGroupKey]
-  if (!secondary) throw new Error(`Unknown mock product secondary: ${skuGroupKey}`)
-  return secondary
-}
-
-function requireNumber(value: number | null | undefined, label: string) {
-  if (typeof value !== 'number' || !Number.isFinite(value)) {
-    throw new Error(`Missing mock numeric value: ${label}`)
-  }
-  return value
-}
-
-function findLargestSizeRow(snapshot: SecondaryOrderSnapshotPayload) {
-  return snapshot.drawer2.sizeRows.reduce<(typeof snapshot.drawer2.sizeRows)[number] | null>(
-    (best, row) => {
-      if (best == null) return row
-      return Math.max(0, row.confirmQty) > Math.max(0, best.confirmQty) ? row : best
-    },
-    null,
-  )
-}
-
-function buildMockAiPrompt(snapshot: SecondaryOrderSnapshotPayload) {
-  const summary = snapshot.drawer1.summary
-  const d2 = snapshot.drawer2
-  return [
-    `${summary.brand} ${summary.productName}의 오더 후보 스냅샷을 검토해 주세요.`,
-    `기간 ${snapshot.context.periodStart}~${snapshot.context.periodEnd}, 경쟁 채널 ${d2.competitorChannelLabel}, 확정 오더 ${formatEa(d2.confirmedTotals?.orderQty)} 기준입니다.`,
-    '판매 흐름, 재고 여유, 사이즈별 확정 수량 기준으로 사용자가 바로 확인할 코멘트를 짧게 작성해 주세요.',
-  ].join('\n')
-}
-
-function buildMockAiAnswer(snapshot: SecondaryOrderSnapshotPayload) {
-  const summary = snapshot.drawer1.summary
-  const d2 = snapshot.drawer2
-  const totals = d2.confirmedTotals
-  const largestSize = findLargestSizeRow(snapshot)
-  const recommendedQtyTotal = d2.sizeRows.reduce(
-    (acc, row) => acc + Math.max(0, Math.round(row.recommendedQty)),
-    0,
-  )
-  const stockGap = typeof summary.availableStock === 'number'
-    ? Math.max(0, recommendedQtyTotal - summary.availableStock)
-    : null
-  const marginLabel = typeof totals?.expectedOpProfitRatePct === 'number'
-    ? `${totals.expectedOpProfitRatePct.toFixed(1)}%`
-    : '확인 필요'
-  const sizeLine = largestSize
-    ? `${largestSize.size} 사이즈 확정 수량이 ${formatEa(largestSize.confirmQty)}로 가장 커서, 해당 사이즈의 입고 잔량과 품절 리스크를 먼저 확인하세요.`
-    : '사이즈별 확정 수량이 비어 있어, 최종 오더 전 사이즈 배분을 다시 확인하세요.'
-
-  return [
-    `${summary.productName}은(는) ${d2.competitorChannelLabel} 기준 판매 흐름을 같이 볼 후보입니다.`,
-    `현재 스냅샷은 확정 오더 ${formatEa(totals?.orderQty)}, 예상 매출 ${formatWon(totals?.expectedSalesAmount)}, 예상 영업이익률 ${marginLabel}로 잡혀 있습니다.`,
-    stockGap == null
-      ? '추천 수량 또는 가용 재고 데이터가 비어 있어, 재고 부족 여부는 원천 데이터를 먼저 확인해야 합니다.'
-      : stockGap > 0
-      ? `추천 수량 대비 가용 재고가 약 ${formatEa(stockGap)} 부족하므로 리드타임 전 판매 속도와 미입고 잔량을 우선 점검하세요.`
-      : '가용 재고가 추천 수량을 크게 압박하지 않아, 판매 속도 변화가 없으면 현재 확정 수량을 기준안으로 둘 수 있습니다.',
-    sizeLine,
-  ].join('\n')
-}
-
-export function ensureMockAiCommentForSnapshot(snapshot: SecondaryOrderSnapshotPayload): SecondaryOrderSnapshotPayload {
-  const currentPrompt = snapshot.drawer2.llmPrompt.trim()
-  const currentAnswer = snapshot.drawer2.llmAnswer.trim()
-  if (currentPrompt && currentAnswer) return snapshot
-  return {
-    ...snapshot,
-    drawer2: {
-      ...snapshot.drawer2,
-      llmPrompt: currentPrompt || buildMockAiPrompt(snapshot),
-      llmAnswer: currentAnswer || buildMockAiAnswer(snapshot),
-    },
-  }
-}
-
-/** 후보군 목업: 품번별 요약과 2차 스냅샷을 채워 리스트와 드로어 표시를 검증한다. */
 interface MockOrderSnapshotOptions {
   periodStart?: string
   periodEnd?: string
   companyUuid?: string
 }
 
+function requireNumber(value: number | null | undefined, label: string) {
+  if (typeof value !== 'number' || !Number.isFinite(value)) throw new Error(`Missing mock numeric value: ${label}`)
+  return value
+}
+
+function buildMockAiPrompt(snapshot: SecondaryOrderSnapshotPayload) {
+  const { summary } = snapshot.drawer1
+  const { competitorChannelLabel, confirmedTotals } = snapshot.drawer2
+  return [
+    `${summary.brand} ${summary.productName} 후보군 AI 코멘트를 작성하세요.`,
+    `기간 ${snapshot.context.periodStart}~${snapshot.context.periodEnd}, 경쟁 채널 ${competitorChannelLabel}, 확정 오더 ${formatEa(confirmedTotals?.orderQty)} 기준입니다.`,
+    '판매 흐름, 재고, 사이즈별 확정 수량 기준으로 사용자가 바로 확인할 코멘트를 짧게 작성하세요.',
+  ].join('\n')
+}
+
+function buildMockAiAnswer(snapshot: SecondaryOrderSnapshotPayload) {
+  const { summary } = snapshot.drawer1
+  const { competitorChannelLabel, confirmedTotals } = snapshot.drawer2
+  const marginRate = typeof confirmedTotals?.expectedOpProfitRatePct === 'number'
+    ? `${confirmedTotals.expectedOpProfitRatePct.toFixed(1)}%`
+    : '확인 필요'
+  return [
+    `${summary.productName}은(는) ${competitorChannelLabel} 기준 판매 흐름을 함께 볼 후보군입니다.`,
+    `확정 오더 ${formatEa(confirmedTotals?.orderQty)}, 예상 매출 ${formatWon(confirmedTotals?.expectedSalesAmount)}, 예상 영업이익률 ${marginRate}입니다.`,
+    '추천 수량 대비 가용 재고, 입고 잔량, 사이즈별 확정 수량을 우선 확인하세요.',
+  ].join('\n')
+}
+
+export function ensureMockAiCommentForSnapshot(snapshot: SecondaryOrderSnapshotPayload): SecondaryOrderSnapshotPayload {
+  const prompt = snapshot.drawer2.aiComment.prompt.trim()
+  const answer = snapshot.drawer2.aiComment.answer.trim()
+  if (prompt && answer) return snapshot
+  return {
+    ...snapshot,
+    drawer2: {
+      ...snapshot.drawer2,
+      aiComment: {
+        prompt: prompt || buildMockAiPrompt(snapshot),
+        answer: answer || buildMockAiAnswer(snapshot),
+      },
+    },
+  }
+}
+
 export function buildMockOrderSnapshotForCandidate(
   skuGroupKey: string,
   options: MockOrderSnapshotOptions = {},
 ): SecondaryOrderSnapshotPayload {
-  const primary = requireProductPrimary(skuGroupKey)
-  const secondary = requireProductSecondary(skuGroupKey)
+  const primary = requireMockProductPrimary(skuGroupKey)
+  const secondary = requireMockProductSecondary(skuGroupKey)
   const channel = secondaryCompetitorChannels[0]!
   const selfCol = buildSalesKpiColumn('self', primary, secondary, channel)
-  const summarySansTrend = createOrderSnapshotPrimarySummary(primary)
+  const summary = createOrderSnapshotPrimarySummary(primary)
   const leadTimeDays = 30
-  const avgCost = requireNumber(selfCol.avgCost, 'self avgCost')
-  const feePerUnitValue = requireNumber(selfCol.feePerUnit, 'self feePerUnit')
+  const unitPrice = Math.max(0, Math.round(summary.price ?? primary.price))
+  const unitCost = Math.max(0, Math.round(requireNumber(selfCol.avgCost, 'self avgCost')))
+  const feePerUnit = Math.max(0, Math.round(requireNumber(selfCol.feePerUnit, 'self feePerUnit')))
   const feeRatePct = requireNumber(selfCol.feeRatePct, 'self feeRatePct')
-  const stockInputs = createOrderSnapshotStockInputs({
-    trendDailyMean: Math.max(0.1, Math.round((primary.qty / 365) * 10) / 10),
-    dailyMean: Math.max(0.1, Math.round((primary.qty / 365) * 10) / 10),
-    leadTimeStartDate: '2026-04-01',
-    leadTimeEndDate: '2026-05-01',
-    leadTimeDays,
-    safetyStockMode: 'formula' as const,
-    manualSafetyStock: 0,
-    sigma: 12,
-    serviceLevelPct: 95,
-  })
-  const unitPrice = Math.max(0, Math.round(summarySansTrend.price ?? primary.price))
-  const unitCost = Math.max(0, Math.round(avgCost))
-  const feePerUnit = Math.max(0, Math.round(feePerUnitValue))
-  const opMarginPerUnit = unitPrice - unitCost - feePerUnit
-  const sizeRows = primary.sizeMix.map((row) => {
-    const rec = Math.max(0, row.confirmedQty)
-    const fq = Math.max(0, Math.round(row.qty * 0.12))
-    return {
-      size: row.size,
-      selfSharePct: 25,
-      competitorSharePct: 25,
-      blendedSharePct: 25,
-      forecastQty: fq,
-      recommendedQty: rec,
-      confirmQty: rec,
-    }
-  })
-  const savedAt = new Date().toISOString()
-  const confirmedOrderQty = sizeRows.reduce((acc, row) => acc + Math.max(0, Math.round(row.confirmQty)), 0)
-  const confirmedExpectedSalesAmount = confirmedOrderQty * unitPrice
-  const confirmedExpectedOpProfit = confirmedOrderQty * opMarginPerUnit
-  const currentStockQtyBySize = primary.sizeMix.map((row) => Math.max(0, Math.round(row.availableStock)))
-  const totalOrderBalanceBySize = sizeRows.map((row) => Math.max(0, Math.round(row.confirmQty * 0.4)))
-  const expectedInboundOrderBalanceBySize = sizeRows.map((row) => Math.max(0, Math.round(row.confirmQty * 0.3)))
+  const dailyMean = Math.max(0.1, Math.round((primary.qty / 365) * 10) / 10)
+  const sizeOrders = secondary.sizeRows.map((row) => ({
+    size: row.size,
+    selfSharePct: 25,
+    competitorSharePct: 25,
+    blendedSharePct: 25,
+    forecastQty: Math.max(0, Math.round(row.qty * 0.12)),
+    recommendedQty: Math.max(0, row.confirmedQty),
+    confirmQty: Math.max(0, row.confirmedQty),
+  }))
+  const currentStockQtyBySize = secondary.sizeRows.map((row) => Math.max(0, Math.round(row.availableStock)))
+  const totalOrderBalanceBySize = sizeOrders.map((row) => Math.max(0, Math.round(row.confirmQty * 0.4)))
+  const expectedInboundOrderBalanceBySize = sizeOrders.map((row) => Math.max(0, Math.round(row.confirmQty * 0.3)))
+  const orderQty = sizeOrders.reduce((sum, row) => sum + row.confirmQty, 0)
+  const expectedSalesAmount = orderQty * unitPrice
+  const expectedOpProfit = orderQty * (unitPrice - unitCost - feePerUnit)
+  const expectedOrderAmount = orderQty * unitCost
+
   return ensureMockAiCommentForSnapshot({
     schemaVersion: ORDER_SNAPSHOT_SCHEMA_VERSION,
     skuGroupKey,
     ...(options.companyUuid ? { companyUuid: options.companyUuid } : {}),
-    savedAt,
+    savedAt: new Date().toISOString(),
     context: {
       periodStart: options.periodStart ?? '2025-01-01',
       periodEnd: options.periodEnd ?? '2025-12-31',
@@ -172,38 +107,42 @@ export function buildMockOrderSnapshotForCandidate(
       dailyTrendStartMonth: '2025-01',
       dailyTrendLeadTimeDays: leadTimeDays,
     },
-    drawer1: { summary: summarySansTrend },
+    drawer1: { summary },
     drawer2: {
-      competitorSalesBasis: createOrderSnapshotCompetitorSalesBasis(secondary),
+      competitorBasis: createOrderSnapshotCompetitorBasis(secondary),
       competitorChannelId: channel.id,
       competitorChannelLabel: channel.label,
-      stockInputs,
-      orderUnitInputs: {
-        unitPrice,
-        unitCost,
-        expectedFeeRatePct: feeRatePct,
+      stockOrderRequest: createOrderSnapshotStockOrderRequest({
+        currentOrderInboundDueDate: '2026-04-01',
+        nextOrderInboundDueDate: '2026-05-01',
+        leadTimeDays,
+      }),
+      stockOrderResult: {
+        trendDailyMean: dailyMean,
+        dailyMean,
+        sigma: 12,
+        display: {
+          currentStockQtyTotal: currentStockQtyBySize.reduce((sum, value) => sum + value, 0),
+          totalOrderBalanceTotal: totalOrderBalanceBySize.reduce((sum, value) => sum + value, 0),
+          expectedInboundOrderBalanceTotal: expectedInboundOrderBalanceBySize.reduce((sum, value) => sum + value, 0),
+          currentStockQtyBySize,
+          totalOrderBalanceBySize,
+          expectedInboundOrderBalanceBySize,
+        },
+        safetyStockCalc: { safetyStock: orderQty, recommendedOrderQty: orderQty, expectedOrderAmount, expectedSalesAmount, expectedOpProfit },
+        forecastQtyCalc: { safetyStock: null, recommendedOrderQty: orderQty, expectedOrderAmount, expectedSalesAmount, expectedOpProfit },
       },
-      stockDisplay: {
-        currentStockQtyTotal: currentStockQtyBySize.reduce((acc, value) => acc + value, 0),
-        totalOrderBalanceTotal: totalOrderBalanceBySize.reduce((acc, value) => acc + value, 0),
-        expectedInboundOrderBalanceTotal: expectedInboundOrderBalanceBySize.reduce((acc, value) => acc + value, 0),
-        currentStockQtyBySize,
-        totalOrderBalanceBySize,
-        expectedInboundOrderBalanceBySize,
-      },
+      unitEconomics: { unitPrice, unitCost, expectedFeeRatePct: feeRatePct },
       selfWeightPct: 50,
       bufferStock: 0,
-      llmPrompt: '',
-      llmAnswer: '',
+      aiComment: { prompt: '', answer: '' },
       confirmedTotals: {
-        orderQty: confirmedOrderQty,
-        expectedSalesAmount: confirmedExpectedSalesAmount,
-        expectedOpProfit: confirmedExpectedOpProfit,
-        expectedOpProfitRatePct: confirmedExpectedSalesAmount > 0
-          ? (confirmedExpectedOpProfit / confirmedExpectedSalesAmount) * 100
-          : null,
+        orderQty,
+        expectedSalesAmount,
+        expectedOpProfit,
+        expectedOpProfitRatePct: expectedSalesAmount > 0 ? (expectedOpProfit / expectedSalesAmount) * 100 : null,
       },
-      sizeRows,
+      sizeOrders,
     },
   })
 }

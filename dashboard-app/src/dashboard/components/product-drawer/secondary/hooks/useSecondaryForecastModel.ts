@@ -4,7 +4,7 @@ import type { SecondaryCompetitorChannel } from '../../../../../api'
 import type { ProductPrimarySummary, ProductSecondaryDetail } from '../../../../../types'
 import type { OrderSnapshotDocumentV2 } from '../../../../../snapshot/orderSnapshotTypes'
 import { normalizeMonthKey } from '../../../trend/trendRangeUtils'
-import type { CandidateItemPanelContext } from '../candidateActionCards'
+import type { CandidateItemPanelContext } from '../secondaryDrawerTypes'
 import { SecondaryOrderDraft } from '../model/SecondaryOrderDraft'
 import { buildSecondaryOrderSnapshot } from '../secondarySnapshot'
 import { useSecondaryCandidateActions } from './useSecondaryCandidateActions'
@@ -22,14 +22,12 @@ type Args = {
   prefillFromSnapshot: OrderSnapshotDocumentV2 | null
   candidateItemContext: CandidateItemPanelContext | null
   channel: SecondaryCompetitorChannel
-  viewPeriodStart: string
-  viewPeriodEnd: string
   snapshotConfirmBySize: Record<string, number>
   useSnapshotConfirmBaseline: boolean
   dailyMeanClient: number | null
   setDailyMeanClient: (value: number | null) => void
-  leadTimeStartDate: string
-  leadTimeEndDate: string
+  currentOrderInboundDueDate: string
+  nextOrderInboundDueDate: string
   leadTimeDays: number
   selfWeightPct: number
   bufferStock: number
@@ -40,9 +38,6 @@ type Args = {
   expectedFeeRatePct: number
   aiPrompt: string
   aiComment: string
-  safetyStockMode: 'manual' | 'formula'
-  manualSafetyStock: number
-  serviceLevelPct: number
   hasSavedSnapshot: boolean
   showToast: (message: string) => void
 }
@@ -59,14 +54,12 @@ export function useSecondaryForecastModel(args: Args) {
     prefillFromSnapshot,
     candidateItemContext,
     channel,
-    viewPeriodStart,
-    viewPeriodEnd,
     snapshotConfirmBySize,
     useSnapshotConfirmBaseline,
     dailyMeanClient,
     setDailyMeanClient,
-    leadTimeStartDate,
-    leadTimeEndDate,
+    currentOrderInboundDueDate,
+    nextOrderInboundDueDate,
     leadTimeDays,
     selfWeightPct,
     bufferStock,
@@ -77,26 +70,16 @@ export function useSecondaryForecastModel(args: Args) {
     expectedFeeRatePct,
     aiPrompt,
     aiComment,
-    safetyStockMode,
-    manualSafetyStock,
-    serviceLevelPct,
     hasSavedSnapshot,
     showToast,
   } = args
-  const selectedStart = normalizeMonthKey(viewPeriodStart)
-  const selectedEnd = normalizeMonthKey(viewPeriodEnd)
-  const forecastMeanPeriodEnd = leadTimeEndDate.slice(0, 7)
-  const forecastSalesHorizonDays = leadTimeDays
+  const selectedStart = normalizeMonthKey(periodStart)
+  const selectedEnd = normalizeMonthKey(periodEnd)
+  const forecastMeanPeriodEnd = nextOrderInboundDueDate.slice(0, 7)
 
   useEffect(() => {
     if (prefillFromSnapshot != null) return
-    let alive = true
-    queueMicrotask(() => {
-      if (alive) setDailyMeanClient(null)
-    })
-    return () => {
-      alive = false
-    }
+    setDailyMeanClient(null)
   }, [primary.skuGroupKey, selectedEnd, selectedStart, prefillFromSnapshot, setDailyMeanClient])
 
   const requests = useSecondaryDrawerRequests({
@@ -108,13 +91,10 @@ export function useSecondaryForecastModel(args: Args) {
     selectedEnd,
     companyUuid,
     forecastMeanPeriodEnd,
-    serviceLevelPct,
     leadTimeDays,
-    safetyStockMode,
-    manualSafetyStock,
     dailyMeanClient,
   })
-  const stockDisplayKey = useMemo(() => {
+  const stockOrderDisplayKey = useMemo(() => {
     const d = requests.forecastCalc?.display
     if (!d) return ''
     return [
@@ -129,53 +109,25 @@ export function useSecondaryForecastModel(args: Args) {
 
   useEffect(() => {
     if (useSnapshotConfirmBaseline) return
-    let alive = true
-    queueMicrotask(() => {
-      if (alive) setConfirmBySize({})
-    })
-    return () => {
-      alive = false
-    }
-  }, [primary.skuGroupKey, prefillFromSnapshot, setConfirmBySize, useSnapshotConfirmBaseline])
-
-  useEffect(() => {
-    if (useSnapshotConfirmBaseline) return
-    let alive = true
-    queueMicrotask(() => {
-      if (alive) setConfirmBySize({})
-    })
-    return () => {
-      alive = false
-    }
+    setConfirmBySize({})
   }, [
     useSnapshotConfirmBaseline,
     bufferStock,
     dailyMeanClient,
-    leadTimeEndDate,
-    leadTimeStartDate,
-    manualSafetyStock,
-    safetyStockMode,
+    nextOrderInboundDueDate,
+    currentOrderInboundDueDate,
+    prefillFromSnapshot,
+    primary.skuGroupKey,
     selectedEnd,
     selectedStart,
     selfWeightPct,
-    serviceLevelPct,
-    stockDisplayKey,
+    stockOrderDisplayKey,
     setConfirmBySize,
   ])
 
   const calculations = useSecondaryOrderCalculations({
-    primary,
     secondary,
-    selectedStart,
-    selectedEnd,
-    forecastMeanPeriodEnd,
-    leadTimeStartDate,
-    leadTimeEndDate,
-    leadTimeDays,
-    forecastSalesHorizonDays,
-    serviceLevelPct,
-    safetyStockMode,
-    manualSafetyStock,
+    forecastSalesHorizonDays: leadTimeDays,
     dailyMeanClient,
     forecastCalc: requests.forecastCalc,
     selfWeightPct,
@@ -184,21 +136,26 @@ export function useSecondaryForecastModel(args: Args) {
     snapshotConfirmBySize,
     useSnapshotConfirmBaseline,
   })
-  const stockDisplay = requests.forecastCalc?.display ?? null
+  const stockOrderDisplay = requests.forecastCalc?.display ?? null
 
   const buildSnapshot = useCallback((): OrderSnapshotDocumentV2 => buildSecondaryOrderSnapshot({
     primary,
     secondary,
-    periodStart: viewPeriodStart,
-    periodEnd: viewPeriodEnd,
+    periodStart,
+    periodEnd,
     forecastMonths,
     companyUuid,
     selectedStart,
     leadTimeDays,
     competitorChannelId: channel.id,
     competitorChannelLabel: channel.label,
-    forecastInputs: calculations.forecastInputs,
-    stockDisplay: requests.forecastCalc?.display ?? null,
+    stockOrderRequest: {
+      currentOrderInboundDueDate,
+      nextOrderInboundDueDate,
+      leadTimeDays,
+      ...(dailyMeanClient == null ? {} : { dailyMeanOverride: dailyMeanClient }),
+    },
+    stockOrderResult: requests.forecastCalc,
     selfWeightPct,
     bufferStock,
     aiPrompt,
@@ -211,23 +168,25 @@ export function useSecondaryForecastModel(args: Args) {
     aiComment,
     aiPrompt,
     bufferStock,
-    calculations.forecastInputs,
     calculations.sizeRows,
     channel.id,
     channel.label,
+    currentOrderInboundDueDate,
     companyUuid,
+    dailyMeanClient,
     expectedFeeRatePct,
     forecastMonths,
     leadTimeDays,
+    nextOrderInboundDueDate,
+    periodEnd,
+    periodStart,
     primary,
-    requests.forecastCalc?.display,
+    requests.forecastCalc,
     secondary,
     selectedStart,
     selfWeightPct,
     unitCostInput,
     unitPriceInput,
-    viewPeriodEnd,
-    viewPeriodStart,
   ])
   const candidateActions = useSecondaryCandidateActions({
     skuGroupKey: primary.skuGroupKey,
@@ -252,7 +211,7 @@ export function useSecondaryForecastModel(args: Args) {
     selectedEnd,
     ...requests,
     ...calculations,
-    stockDisplay,
+    stockOrderDisplay,
     candidateActions,
     buildSnapshot,
     handleConfirmQtyChange,

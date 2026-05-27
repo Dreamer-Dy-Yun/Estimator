@@ -3,7 +3,7 @@ import type { SecondaryCompetitorChannel } from '../../../../api'
 import { useAppToast } from '../../../../components/AppToastContext'
 import type { ProductPrimarySummary, ProductSecondaryDetail } from '../../../../types'
 import type { OrderSnapshotDocumentV2 } from '../../../../snapshot/orderSnapshotTypes'
-import type { CandidateItemPanelContext } from './candidateActionCards'
+import type { CandidateItemPanelContext } from './secondaryDrawerTypes'
 import { useSecondaryAiCommentState } from './hooks/useSecondaryAiCommentState'
 import {
   useSecondaryDrawerDraftEmission,
@@ -12,26 +12,20 @@ import {
 } from './hooks/useSecondaryDrawerSnapshotController'
 import { useSecondaryForecastModel } from './hooks/useSecondaryForecastModel'
 import { useSecondaryHelpController } from './hooks/useSecondaryHelpController'
-import { useSecondaryLeadTimeDates } from './hooks/useSecondaryLeadTimeDates'
+import { useSecondaryInboundDueDates } from './hooks/useSecondaryInboundDueDates'
 import { ProductSecondaryDrawerContent } from './ProductSecondaryDrawerContent'
 
 export type { CandidateItemPanelContext }
-
-const SAFETY_STOCK_MODE: 'manual' | 'formula' = 'formula'
-const MANUAL_SAFETY_STOCK = 0
-const SERVICE_LEVEL_PCT = 95
 
 type Props = {
   primary: ProductPrimarySummary
   secondary: ProductSecondaryDetail
   periodStart: string
   periodEnd: string
-  /** 오더 스냅샷용: 월간 포캐스트 개월 수 */
   forecastMonths: number
   companyUuid?: string
   selfCompanyLabel: string
   pageName?: string
-  /** 후보군 등에서 불러온 저장 스냅샷으로 폼·확정 수량 복원 */
   prefillFromSnapshot?: OrderSnapshotDocumentV2 | null
   candidateItemContext?: CandidateItemPanelContext | null
   channelState: {
@@ -58,20 +52,17 @@ export function ProductSecondaryDrawer({
   const { portalHelp, helpIds } = useSecondaryHelpController()
   const { showToast } = useAppToast()
   const {
-    defaultLeadTime,
+    defaultInboundDueDates,
     minOrderDate,
-    leadTimeStartDate,
-    leadTimeEndDate,
+    currentOrderInboundDueDate,
+    nextOrderInboundDueDate,
     leadTimeDays,
-    setLeadTimeStartDate,
-    setLeadTimeEndDate,
-    handleCurrentOrderDateChange,
-    handleNextOrderDateChange,
-    resetLeadTimeToLive,
-  } = useSecondaryLeadTimeDates()
-
-  const viewPeriodStart = periodStart
-  const viewPeriodEnd = periodEnd
+    setCurrentOrderInboundDueDate,
+    setNextOrderInboundDueDate,
+    handleCurrentOrderInboundDueDateChange,
+    handleNextOrderInboundDueDateChange,
+    resetInboundDueDatesToLive,
+  } = useSecondaryInboundDueDates()
 
   const channel = useMemo<SecondaryCompetitorChannel>(() => {
     const selectedChannel = competitorChannels.find((ch) => ch.id === channelId)
@@ -92,8 +83,8 @@ export function ProductSecondaryDrawer({
   } = useSecondaryAiCommentState({
     pageName,
     skuGroupKey: primary.skuGroupKey,
-    periodStart: viewPeriodStart,
-    periodEnd: viewPeriodEnd,
+    periodStart,
+    periodEnd,
     forecastMonths,
     channel,
     candidateItemContext,
@@ -104,14 +95,14 @@ export function ProductSecondaryDrawer({
     candidateItemContext,
     primarySkuGroupKey: primary.skuGroupKey,
     primaryPrice: primary.price,
-    defaultLeadTime,
+    defaultInboundDueDates,
     minOrderDate,
     onChannelChange,
-    setLeadTimeStartDate,
-    setLeadTimeEndDate,
+    setCurrentOrderInboundDueDate,
+    setNextOrderInboundDueDate,
     setAiPrompt,
     setAiComment,
-    resetLeadTimeToLive,
+    resetInboundDueDatesToLive,
   })
   const {
     dailyMeanClient,
@@ -149,14 +140,12 @@ export function ProductSecondaryDrawer({
     prefillFromSnapshot,
     candidateItemContext,
     channel,
-    viewPeriodStart,
-    viewPeriodEnd,
     snapshotConfirmBySize,
     useSnapshotConfirmBaseline: snapshotConfirmBaselineActive,
     dailyMeanClient,
     setDailyMeanClient,
-    leadTimeStartDate,
-    leadTimeEndDate,
+    currentOrderInboundDueDate,
+    nextOrderInboundDueDate,
     leadTimeDays,
     selfWeightPct,
     bufferStock,
@@ -167,14 +156,10 @@ export function ProductSecondaryDrawer({
     expectedFeeRatePct,
     aiPrompt,
     aiComment,
-    safetyStockMode: SAFETY_STOCK_MODE,
-    manualSafetyStock: MANUAL_SAFETY_STOCK,
-    serviceLevelPct: SERVICE_LEVEL_PCT,
     hasSavedSnapshot,
     showToast,
   })
-  const { selfCol } = model
-  const buildCurrentSnapshot = model.buildSnapshot
+  const { selfCol, buildSnapshot } = model
 
   useSecondaryDrawerLiveUnitDefaults({
     prefillFromSnapshot,
@@ -184,8 +169,8 @@ export function ProductSecondaryDrawer({
   })
 
   const handleRequestAiComment = useCallback(() => {
-    requestAiComment(buildCurrentSnapshot())
-  }, [buildCurrentSnapshot, requestAiComment])
+    requestAiComment(buildSnapshot())
+  }, [buildSnapshot, requestAiComment])
   const handleResetToLiveClick = useCallback(() => {
     handleResetToLive(selfCol)
   }, [handleResetToLive, selfCol])
@@ -193,7 +178,7 @@ export function ProductSecondaryDrawer({
   useSecondaryDrawerDraftEmission({
     appliedPrefillKey,
     candidateItemContext,
-    buildCurrentSnapshot,
+    buildSnapshot,
     prefillKey,
     snapshotConfirmBaselineActive,
   })
@@ -216,19 +201,23 @@ export function ProductSecondaryDrawer({
       selfCompanyLabel={selfCompanyLabel}
       selfWeightPct={selfWeightPct}
       onSelfWeightPctChange={setSelfWeightPct}
-      minOrderDate={minOrderDate}
-      leadTimeStartDate={leadTimeStartDate}
-      leadTimeEndDate={leadTimeEndDate}
-      bufferStock={bufferStock}
-      unitCostInput={unitCostInput}
-      unitPriceInput={unitPriceInput}
-      expectedFeeRatePct={expectedFeeRatePct}
-      onCurrentOrderDateChange={handleCurrentOrderDateChange}
-      onNextOrderDateChange={handleNextOrderDateChange}
-      onBufferStockChange={setBufferStock}
-      onUnitCostChange={setUnitCostInput}
-      onUnitPriceChange={setUnitPriceInput}
-      onExpectedFeeRatePctChange={setExpectedFeeRatePct}
+      orderInputFields={{
+        minOrderDate,
+        currentOrderInboundDueDate,
+        nextOrderInboundDueDate,
+        bufferStock,
+        unitCost: unitCostInput,
+        unitPrice: unitPriceInput,
+        expectedFeeRatePct,
+      }}
+      orderInputActions={{
+        onCurrentOrderInboundDueDateChange: handleCurrentOrderInboundDueDateChange,
+        onNextOrderInboundDueDateChange: handleNextOrderInboundDueDateChange,
+        onBufferStockChange: setBufferStock,
+        onUnitCostChange: setUnitCostInput,
+        onUnitPriceChange: setUnitPriceInput,
+        onExpectedFeeRatePctChange: setExpectedFeeRatePct,
+      }}
       portalHelp={portalHelp}
       helpIds={helpIds}
     />

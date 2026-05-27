@@ -1,16 +1,8 @@
-﻿import { useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode } from 'react'
+import { useCallback, useId, useRef, useState, type ReactNode } from 'react'
 import { LoadingSpinner } from '../../components/LoadingSpinner'
 import { drawerKeepOpenDataProps } from '../drawer/drawerDom'
 import styles from './ConfirmModal.module.css'
-
-const focusableSelector = [
-  'a[href]',
-  'button:not([disabled])',
-  'input:not([disabled])',
-  'select:not([disabled])',
-  'textarea:not([disabled])',
-  '[tabindex]:not([tabindex="-1"])',
-].join(',')
+import { useModalFocusTrap } from './useModalFocusTrap'
 
 type ConfirmModalClassNames = {
   backdrop?: string
@@ -43,10 +35,6 @@ const getAsyncErrorMessage = (error: unknown) => {
   return '요청 처리 중 오류가 발생했습니다.'
 }
 
-const getFocusableElements = (container: HTMLElement) => Array.from(
-  container.querySelectorAll<HTMLElement>(focusableSelector),
-).filter((element) => !element.hasAttribute('disabled') && element.getAttribute('aria-hidden') !== 'true')
-
 export function ConfirmModal({
   open,
   busy = false,
@@ -65,34 +53,19 @@ export function ConfirmModal({
   const asyncErrorId = useId()
   const panelRef = useRef<HTMLDivElement | null>(null)
   const cancelButtonRef = useRef<HTMLButtonElement | null>(null)
-  const previouslyFocusedElementRef = useRef<HTMLElement | null>(null)
   const [confirmError, setConfirmError] = useState<string | null>(null)
-
-  useEffect(() => {
-    if (!open) return undefined
-
-    previouslyFocusedElementRef.current = document.activeElement instanceof HTMLElement
-      ? document.activeElement
-      : null
-
-    const frame = window.requestAnimationFrame(() => {
-      if (cancelButtonRef.current && !cancelButtonRef.current.disabled) {
-        cancelButtonRef.current.focus()
-        return
-      }
-      panelRef.current?.focus()
-    })
-
-    return () => {
-      window.cancelAnimationFrame(frame)
-      const previousElement = previouslyFocusedElementRef.current
-      if (previousElement && document.contains(previousElement)) {
-        previousElement.focus()
-      }
-      previouslyFocusedElementRef.current = null
-      setConfirmError(null)
-    }
-  }, [open])
+  const handleCancel = useCallback(() => {
+    if (busy) return
+    setConfirmError(null)
+    onCancel()
+  }, [busy, onCancel])
+  const handleKeyDown = useModalFocusTrap({
+    panelRef,
+    active: open,
+    closeDisabled: busy,
+    onClose: handleCancel,
+    initialFocusRef: cancelButtonRef,
+  })
 
   if (!open) return null
 
@@ -107,13 +80,6 @@ export function ConfirmModal({
     confirmButton: classNames?.confirmButton ?? styles.dangerButton,
   }
   const describedBy = confirmError ? `${descriptionId} ${asyncErrorId}` : descriptionId
-
-  const handleCancel = () => {
-    if (busy) return
-    setConfirmError(null)
-    onCancel()
-  }
-
   const handleConfirm = async () => {
     if (busy) return
     setConfirmError(null)
@@ -121,41 +87,6 @@ export function ConfirmModal({
       await onConfirm()
     } catch (error) {
       setConfirmError(getAsyncErrorMessage(error))
-    }
-  }
-
-  const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
-    if (event.key === 'Escape') {
-      event.preventDefault()
-      event.stopPropagation()
-      if (!busy) handleCancel()
-      return
-    }
-
-    if (event.key !== 'Tab') return
-
-    const panel = panelRef.current
-    if (!panel) return
-
-    const focusableElements = getFocusableElements(panel)
-    if (!focusableElements.length) {
-      event.preventDefault()
-      panel.focus()
-      return
-    }
-
-    const firstElement = focusableElements[0]
-    const lastElement = focusableElements[focusableElements.length - 1]
-
-    if (event.shiftKey && document.activeElement === firstElement) {
-      event.preventDefault()
-      lastElement.focus()
-      return
-    }
-
-    if (!event.shiftKey && document.activeElement === lastElement) {
-      event.preventDefault()
-      firstElement.focus()
     }
   }
 
@@ -176,9 +107,7 @@ export function ConfirmModal({
         aria-describedby={describedBy}
         tabIndex={-1}
       >
-        <h3 id={dialogTitleId} className={modalClassNames.title}>
-          {title}
-        </h3>
+        <h3 id={dialogTitleId} className={modalClassNames.title}>{title}</h3>
         <p id={descriptionId} className={modalClassNames.text}>{message}</p>
         {confirmError && (
           <p id={asyncErrorId} className={modalClassNames.text} role="alert">

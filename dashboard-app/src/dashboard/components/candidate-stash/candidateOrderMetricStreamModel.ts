@@ -1,11 +1,3 @@
-export interface CandidateOrderMetricRequestSignatureParams {
-  stashUuid: string
-  dataReferencePeriodStart: string
-  dataReferencePeriodEnd: string
-  seq: number
-  candidateItemUuids: readonly string[]
-}
-
 export function normalizeCandidateItemUuids(candidateItemUuids: readonly string[]): string[] {
   return [...new Set(candidateItemUuids)].sort()
 }
@@ -16,14 +8,14 @@ export function buildCandidateOrderMetricRequestSignature({
   dataReferencePeriodEnd,
   seq,
   candidateItemUuids,
-}: CandidateOrderMetricRequestSignatureParams): string {
-  return [
-    stashUuid,
-    dataReferencePeriodStart,
-    dataReferencePeriodEnd,
-    seq,
-    normalizeCandidateItemUuids(candidateItemUuids).join(','),
-  ].join(':')
+}: {
+  stashUuid: string
+  dataReferencePeriodStart: string
+  dataReferencePeriodEnd: string
+  seq: number
+  candidateItemUuids: readonly string[]
+}): string {
+  return [stashUuid, dataReferencePeriodStart, dataReferencePeriodEnd, seq, normalizeCandidateItemUuids(candidateItemUuids).join(',')].join(':')
 }
 
 export function createPendingMetricItemUuidSet(candidateItemUuids: readonly string[]): Set<string> {

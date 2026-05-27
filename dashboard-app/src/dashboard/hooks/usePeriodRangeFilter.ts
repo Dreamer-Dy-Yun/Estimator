@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react'
 import { dateToMonth, formatIsoDateLocal, monthToEndDate, monthToStartDate } from '../../utils/date'
 
-type PeriodRangeFilter = {
+type DateRange = { startDate: string; endDate: string }
+type PeriodRangeFilter = DateRange & {
   periodStartDate: string
   periodEndDate: string
   periodStartIdx: number
@@ -28,61 +29,30 @@ export function findPeriodEndIdx(historicalMonths: string[], periodEndDate: stri
   return idx === -1 ? Math.max(0, historicalMonths.length - 1) : idx
 }
 
-export function computePeriodBarPercents(
-  historicalMonthsLength: number,
-  periodStartIdx: number,
-  periodEndIdx: number,
-): { startPct: number; endPct: number } {
+export function computePeriodBarPercents(historicalMonthsLength: number, periodStartIdx: number, periodEndIdx: number) {
   if (historicalMonthsLength <= 1) return { startPct: 0, endPct: 100 }
-  return {
-    startPct: (periodStartIdx / (historicalMonthsLength - 1)) * 100,
-    endPct: (periodEndIdx / (historicalMonthsLength - 1)) * 100,
-  }
+  const maxIdx = historicalMonthsLength - 1
+  return { startPct: (periodStartIdx / maxIdx) * 100, endPct: (periodEndIdx / maxIdx) * 100 }
 }
 
-export function computePresetPeriodDates(
-  historicalMonths: string[],
-  currentEndIdx: number,
-  months: number,
-): { startDate: string; endDate: string } | null {
+export function computePresetPeriodDates(historicalMonths: string[], currentEndIdx: number, months: number): DateRange | null {
   if (!historicalMonths.length) return null
   const safeEndIdx = Math.max(0, Math.min(historicalMonths.length - 1, currentEndIdx))
-  const safeMonths = Math.max(1, Math.round(months))
-  const startIdx = Math.max(0, safeEndIdx - safeMonths + 1)
-  return {
-    startDate: monthToStartDate(historicalMonths[startIdx]!),
-    endDate: monthToEndDate(historicalMonths[safeEndIdx]!),
-  }
+  const startIdx = Math.max(0, safeEndIdx - Math.max(1, Math.round(months)) + 1)
+  return { startDate: monthToStartDate(historicalMonths[startIdx]!), endDate: monthToEndDate(historicalMonths[safeEndIdx]!) }
 }
 
-export function computeWholeRangeDates(
-  historicalMonths: string[],
-): { startDate: string; endDate: string } | null {
+export function computeWholeRangeDates(historicalMonths: string[]): DateRange | null {
   if (!historicalMonths.length) return null
-  return {
-    startDate: monthToStartDate(historicalMonths[0]!),
-    endDate: monthToEndDate(historicalMonths[historicalMonths.length - 1]!),
-  }
+  return { startDate: monthToStartDate(historicalMonths[0]!), endDate: monthToEndDate(historicalMonths[historicalMonths.length - 1]!) }
 }
 
-export function normalizeRangeOnStartInput(
-  nextStartDate: string,
-  currentEndDate: string,
-): { startDate: string; endDate: string } {
-  return {
-    startDate: nextStartDate,
-    endDate: nextStartDate > currentEndDate ? nextStartDate : currentEndDate,
-  }
+export function normalizeRangeOnStartInput(nextStartDate: string, currentEndDate: string): DateRange {
+  return { startDate: nextStartDate, endDate: nextStartDate > currentEndDate ? nextStartDate : currentEndDate }
 }
 
-export function normalizeRangeOnEndInput(
-  nextEndDate: string,
-  currentStartDate: string,
-): { startDate: string; endDate: string } {
-  return {
-    startDate: nextEndDate < currentStartDate ? nextEndDate : currentStartDate,
-    endDate: nextEndDate,
-  }
+export function normalizeRangeOnEndInput(nextEndDate: string, currentStartDate: string): DateRange {
+  return { startDate: nextEndDate < currentStartDate ? nextEndDate : currentStartDate, endDate: nextEndDate }
 }
 
 export function clampPeriodBarStartIdx(nextIdx: number, currentEndIdx: number): number {
@@ -97,74 +67,36 @@ function daysInMonth(year: number, monthIndex: number): number {
   return new Date(year, monthIndex + 1, 0).getDate()
 }
 
-export function buildDefaultPeriodRange(today = new Date()): { startDate: string; endDate: string } {
+export function buildDefaultPeriodRange(today = new Date()): DateRange {
   const end = new Date(today.getFullYear(), today.getMonth(), today.getDate())
-  const startYear = end.getFullYear() - 1
-  const startMonth = end.getMonth()
-  const startDay = Math.min(end.getDate(), daysInMonth(startYear, startMonth))
-  const start = new Date(startYear, startMonth, startDay)
-  return {
-    startDate: formatIsoDateLocal(start),
-    endDate: formatIsoDateLocal(end),
-  }
+  const start = new Date(end.getFullYear() - 1, end.getMonth(), Math.min(end.getDate(), daysInMonth(end.getFullYear() - 1, end.getMonth())))
+  return { startDate: formatIsoDateLocal(start), endDate: formatIsoDateLocal(end) }
 }
 
 export function usePeriodRangeFilter(historicalMonths: string[]): PeriodRangeFilter {
   const [defaultPeriod] = useState(() => buildDefaultPeriodRange())
   const [periodStartDate, setPeriodStartDate] = useState(defaultPeriod.startDate)
   const [periodEndDate, setPeriodEndDate] = useState(defaultPeriod.endDate)
-
-  const periodStartIdx = useMemo(() => {
-    return findPeriodStartIdx(historicalMonths, periodStartDate)
-  }, [historicalMonths, periodStartDate])
-
-  const periodEndIdx = useMemo(() => {
-    return findPeriodEndIdx(historicalMonths, periodEndDate)
-  }, [historicalMonths, periodEndDate])
-
-  const setPresetMonths = (months: number) => {
-    const next = computePresetPeriodDates(historicalMonths, periodEndIdx, months)
+  const periodStartIdx = useMemo(() => findPeriodStartIdx(historicalMonths, periodStartDate), [historicalMonths, periodStartDate])
+  const periodEndIdx = useMemo(() => findPeriodEndIdx(historicalMonths, periodEndDate), [historicalMonths, periodEndDate])
+  const applyRange = (next: DateRange | null) => {
     if (!next) return
     setPeriodStartDate(next.startDate)
     setPeriodEndDate(next.endDate)
   }
-
-  const setWholeRange = () => {
-    const next = computeWholeRangeDates(historicalMonths)
-    if (!next) return
-    setPeriodStartDate(next.startDate)
-    setPeriodEndDate(next.endDate)
-  }
-
-  const onStartDateChange = (value: string) => {
-    const next = normalizeRangeOnStartInput(value, periodEndDate)
-    setPeriodStartDate(next.startDate)
-    setPeriodEndDate(next.endDate)
-  }
-
-  const onEndDateChange = (value: string) => {
-    const next = normalizeRangeOnEndInput(value, periodStartDate)
-    setPeriodStartDate(next.startDate)
-    setPeriodEndDate(next.endDate)
-  }
-
   const onPeriodBarStart = (value: number) => {
-    const idx = clampPeriodBarStartIdx(value, periodEndIdx)
-    const month = historicalMonths[idx]
-    if (!month) return
-    setPeriodStartDate(monthToStartDate(month))
+    const month = historicalMonths[clampPeriodBarStartIdx(value, periodEndIdx)]
+    if (month) setPeriodStartDate(monthToStartDate(month))
   }
-
   const onPeriodBarEnd = (value: number) => {
-    const idx = clampPeriodBarEndIdx(value, periodStartIdx)
-    const month = historicalMonths[idx]
-    if (!month) return
-    setPeriodEndDate(monthToEndDate(month))
+    const month = historicalMonths[clampPeriodBarEndIdx(value, periodStartIdx)]
+    if (month) setPeriodEndDate(monthToEndDate(month))
   }
-
   const { startPct, endPct } = computePeriodBarPercents(historicalMonths.length, periodStartIdx, periodEndIdx)
 
   return {
+    startDate: periodStartDate,
+    endDate: periodEndDate,
     periodStartDate,
     periodEndDate,
     periodStartIdx,
@@ -173,10 +105,10 @@ export function usePeriodRangeFilter(historicalMonths: string[]): PeriodRangeFil
     endPct,
     setPeriodStartDate,
     setPeriodEndDate,
-    setPresetMonths,
-    setWholeRange,
-    onStartDateChange,
-    onEndDateChange,
+    setPresetMonths: (months) => applyRange(computePresetPeriodDates(historicalMonths, periodEndIdx, months)),
+    setWholeRange: () => applyRange(computeWholeRangeDates(historicalMonths)),
+    onStartDateChange: (value) => applyRange(normalizeRangeOnStartInput(value, periodEndDate)),
+    onEndDateChange: (value) => applyRange(normalizeRangeOnEndInput(value, periodStartDate)),
     onPeriodBarStart,
     onPeriodBarEnd,
   }

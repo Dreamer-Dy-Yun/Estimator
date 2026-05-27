@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useState } from 'react'
 import type { ApiUnitErrorInfo } from '../../../../../types'
 import type { SecondaryCompetitorChannel } from '../../../../../api'
-import type { CandidateItemPanelContext } from '../candidateActionCards'
+import type { CandidateItemPanelContext } from '../secondaryDrawerTypes'
 import type { OrderSnapshotDocumentV2 } from '../../../../../snapshot/orderSnapshotTypes'
 import { useSecondaryAiComment } from './useSecondaryAiComment'
 
@@ -83,4 +83,3 @@ export function useSecondaryAiCommentState({
     setAiComment,
   }
 }
-

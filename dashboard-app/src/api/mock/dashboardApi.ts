@@ -1,7 +1,7 @@
-﻿import type { ProductPrimarySummary } from '../../types'
+import type { ProductPrimarySummary } from '../../types'
 import type {
-  CompetitorSalesParams,
   CompetitorSalesGridParams,
+  CompetitorSalesParams,
   ProductDrawerBundleParams,
   ProductMonthlyTrend,
   ProductMonthlyTrendParams,
@@ -11,10 +11,15 @@ import type {
   SalesFilterMetaParams,
   SecondaryAiCommentParams,
   SecondaryDailyTrendParams,
-  SelfSalesParams,
   SelfSalesGridParams,
+  SelfSalesParams,
 } from '../types'
-import { sleep } from './utils'
+import { buildSalesKpiColumn } from '../../utils/salesKpiColumn'
+import { uniqueSortedStrings } from '../../utils/uniqueSortedStrings'
+import { candidateMockApi } from './candidateMockApi'
+import { buildSecondaryAiComment } from './secondaryAiComment'
+import { buildSecondaryDailyTrend } from './secondaryDailyTrend'
+import { getSecondaryStockOrderCalc } from './secondaryStockOrderCalcApi'
 import {
   brands,
   categories,
@@ -25,21 +30,9 @@ import {
   secondaryCompetitorChannels,
   selfSalesRows,
 } from './salesTables'
-import {
-  estimatePeriodWeight,
-  historicalMonths,
-  makeSalesTrend,
-  productPrimaryBySkuGroupKey,
-  productSecondaryBySkuGroupKey,
-  stockTrendBySkuGroupKey,
-} from './productCatalog'
-import { buildSecondaryDailyTrend } from './secondaryDailyTrend'
-import { buildSalesKpiColumn } from '../../utils/salesKpiColumn'
-import { uniqueSortedStrings } from '../../utils/uniqueSortedStrings'
 import { buildScatterGridCells } from './scatterGrid'
-import { candidateMockApi } from './candidateMockApi'
-import { getSecondaryStockOrderCalc } from './secondaryStockOrderCalcApi'
-import { buildSecondaryAiComment } from './secondaryAiComment'
+import { estimatePeriodWeight, historicalMonths, makeSalesTrend } from './productCatalog'
+import { requireMockProductPrimary, requireMockProductSecondary, requireMockStockTrend } from './mockProductLookup'
 import {
   scopeMockCompetitorSalesRow,
   scopeMockProductPrimary,
@@ -47,242 +40,165 @@ import {
   scopeMockSelfSalesRow,
   scopeMockStockTrend,
 } from './mockCompanyScope'
+import { sleep } from './utils'
 
-function requireProductPrimary(skuGroupKey: string) {
-  const primary = productPrimaryBySkuGroupKey[skuGroupKey]
-  if (!primary) throw new Error(`Unknown mock product primary: ${skuGroupKey}`)
-  return primary
+function queryText(value?: string) {
+  return value?.trim().toLowerCase()
 }
 
-function requireProductSecondary(skuGroupKey: string) {
-  const secondary = productSecondaryBySkuGroupKey[skuGroupKey]
-  if (!secondary) throw new Error(`Unknown mock product secondary: ${skuGroupKey}`)
-  return secondary
+function matchesProductFilters(
+  row: { brand: string; category: string; code: string; colorCode: string; productName: string },
+  params?: SelfSalesParams | CompetitorSalesParams,
+) {
+  const codeQuery = queryText(params?.codeQuery)
+  const nameQuery = queryText(params?.nameQuery)
+  return (!params?.brand || row.brand === params.brand)
+    && (!params?.category || row.category === params.category)
+    && (!params?.colorCode || row.colorCode === params.colorCode)
+    && (!codeQuery || row.code.toLowerCase().includes(codeQuery))
+    && (!nameQuery || row.productName.toLowerCase().includes(nameQuery))
 }
 
-function requireStockTrend(skuGroupKey: string) {
-  const stockTrend = stockTrendBySkuGroupKey[skuGroupKey]
-  if (!stockTrend) throw new Error(`Unknown mock stock trend: ${skuGroupKey}`)
-  return stockTrend
+function periodWeight(params?: { startDate?: string; endDate?: string }) {
+  return estimatePeriodWeight(params?.startDate, params?.endDate)
 }
 
 export const mockDashboardApi = {
   getSelfSales: async (params?: SelfSalesParams) => {
     await sleep(80)
-    const brand = params?.brand
-    const category = params?.category
-    const codeQ = params?.codeQuery?.trim().toLowerCase()
-    const colorCode = params?.colorCode
-    const nameQ = params?.nameQuery?.trim().toLowerCase()
-    const weighted = estimatePeriodWeight(params?.startDate, params?.endDate)
-
+    const weighted = periodWeight(params)
     return selfSalesRows
       .map((row) => scopeMockSelfSalesRow(row, params))
-      .filter((row): row is NonNullable<typeof row> => row != null)
-      .filter((row) => (brand ? row.brand === brand : true))
-      .filter((row) => (category ? row.category === category : true))
-      .filter((row) => (codeQ ? row.code.toLowerCase().includes(codeQ) : true))
-      .filter((row) => (colorCode ? row.colorCode === colorCode : true))
-      .filter((row) => (nameQ ? row.productName.toLowerCase().includes(nameQ) : true))
-      .map((row) => {
-        const qty = Math.max(0, Math.round(row.qty * weighted))
-        const amount = Math.max(0, Math.round(row.amount * weighted))
-        const opMarginAmount = Math.max(0, Math.round(row.opMarginAmount * weighted))
-        return {
-          ...row,
-          qty,
-          amount,
-          opMarginAmount,
-        }
-      })
+      .filter((row): row is NonNullable<typeof row> => row != null && matchesProductFilters(row, params))
+      .map((row) => ({
+        ...row,
+        qty: Math.max(0, Math.round(row.qty * weighted)),
+        amount: Math.max(0, Math.round(row.amount * weighted)),
+        opMarginAmount: Math.max(0, Math.round(row.opMarginAmount * weighted)),
+      }))
       .sort((a, b) => b.qty - a.qty)
   },
-  getSelfSalesScatterGrid: async (params?: SelfSalesGridParams) => {
-    const rows = await mockDashboardApi.getSelfSales(params)
-    const grouped = rows.map((row) => ({
-      skuGroupKey: row.skuGroupKey,
-      x: row.opMarginRate,
-      y: row.qty,
-    }))
-    return buildScatterGridCells(grouped, params?.xBucketSize, params?.yBucketSize, params?.maxSkuIdsPerCell)
-  },
+
+  getSelfSalesScatterGrid: async (params?: SelfSalesGridParams) => buildScatterGridCells(
+    (await mockDashboardApi.getSelfSales(params)).map((row) => ({ skuGroupKey: row.skuGroupKey, x: row.opMarginRate, y: row.qty })),
+    params?.xBucketSize,
+    params?.yBucketSize,
+    params?.maxSkuIdsPerCell,
+  ),
+
   getCompetitorSales: async (params?: CompetitorSalesParams) => {
     await sleep(80)
-    const brand = params?.brand
-    const category = params?.category
-    const codeQ = params?.codeQuery?.trim().toLowerCase()
-    const colorCode = params?.colorCode
-    const nameQ = params?.nameQuery?.trim().toLowerCase()
-    const weighted = estimatePeriodWeight(params?.startDate, params?.endDate)
+    const weighted = periodWeight(params)
     const channels = getMockCompetitorSalesChannels(params?.competitorChannelId)
-
     return competitorSalesRows
       .map((row) => scopeMockCompetitorSalesRow(row, params))
-      .filter((row): row is NonNullable<typeof row> => row != null)
-      .filter((row) => (brand ? row.brand === brand : true))
-      .filter((row) => (category ? row.category === category : true))
-      .filter((row) => (codeQ ? row.code.toLowerCase().includes(codeQ) : true))
-      .filter((row) => (colorCode ? row.colorCode === colorCode : true))
-      .filter((row) => (nameQ ? row.productName.toLowerCase().includes(nameQ) : true))
+      .filter((row): row is NonNullable<typeof row> => row != null && matchesProductFilters(row, params))
       .map((row) => {
         const channelMetrics = channels.map((channel) => {
           const qty = Math.max(0, Math.round(row.competitorQty * weighted * channel.qtySkew))
           const avgPrice = Math.max(0, Math.round(row.competitorAvgPrice * channel.priceSkew))
-          return {
-            qty,
-            amount: Math.max(0, Math.round(qty * avgPrice)),
-          }
+          return { qty, amount: Math.max(0, Math.round(qty * avgPrice)) }
         })
         const competitorQty = channelMetrics.reduce((sum, metric) => sum + metric.qty, 0)
         const competitorAmount = channelMetrics.reduce((sum, metric) => sum + metric.amount, 0)
-        const competitorAvgPrice = competitorQty > 0 ? Math.max(0, Math.round(competitorAmount / competitorQty)) : 0
-        const selfQty = row.selfQty != null ? Math.max(0, Math.round(row.selfQty * weighted)) : null
-        const selfAmount = row.selfAmount != null ? Math.max(0, Math.round(row.selfAmount * weighted)) : null
         return {
           ...row,
           competitorQty,
-          competitorAvgPrice,
+          competitorAvgPrice: competitorQty > 0 ? Math.max(0, Math.round(competitorAmount / competitorQty)) : 0,
           competitorAmount,
-          selfQty,
-          selfAmount,
+          selfQty: row.selfQty == null ? null : Math.max(0, Math.round(row.selfQty * weighted)),
+          selfAmount: row.selfAmount == null ? null : Math.max(0, Math.round(row.selfAmount * weighted)),
         }
       })
       .sort((a, b) => b.competitorQty - a.competitorQty)
   },
-  getCompetitorSalesScatterGrid: async (params?: CompetitorSalesGridParams) => {
-    const rows = await mockDashboardApi.getCompetitorSales(params)
-    const grouped = rows
+
+  getCompetitorSalesScatterGrid: async (params?: CompetitorSalesGridParams) => buildScatterGridCells(
+    (await mockDashboardApi.getCompetitorSales(params))
       .filter((row): row is typeof row & { selfQty: number } => row.selfQty != null)
-      .map((row) => ({
-        skuGroupKey: row.skuGroupKey,
-        x: row.selfQty,
-        y: row.competitorQty,
-      }))
-    return buildScatterGridCells(
-      grouped,
-      params?.xBucketSize,
-      params?.yBucketSize,
-      params?.maxSkuIdsPerCell,
-    )
-  },
+      .map((row) => ({ skuGroupKey: row.skuGroupKey, x: row.selfQty, y: row.competitorQty })),
+    params?.xBucketSize,
+    params?.yBucketSize,
+    params?.maxSkuIdsPerCell,
+  ),
+
   getSalesFilterMeta: async (params?: SalesFilterMetaParams) => {
     await sleep(60)
-    const codeSet = new Set<string>()
-    const colorCodeSet = new Set<string>()
-    const nameSet = new Set<string>()
-    for (const r of selfSalesRows
-      .map((row) => scopeMockSelfSalesRow(row, params))
-      .filter((row): row is NonNullable<typeof row> => row != null)) {
-      codeSet.add(r.code)
-      colorCodeSet.add(r.colorCode)
-      nameSet.add(r.productName)
-    }
-    for (const r of competitorSalesRows
-      .map((row) => scopeMockCompetitorSalesRow(row, params))
-      .filter((row): row is NonNullable<typeof row> => row != null)) {
-      codeSet.add(r.code)
-      colorCodeSet.add(r.colorCode)
-      nameSet.add(r.productName)
-    }
-    const codes = uniqueSortedStrings(codeSet)
-    const colorCodes = colorCodeOrder.filter((colorCode) => colorCodeSet.has(colorCode))
-    const productNames = uniqueSortedStrings(nameSet)
+    const scopedSelf = selfSalesRows.map((row) => scopeMockSelfSalesRow(row, params)).filter(Boolean)
+    const scopedCompetitor = competitorSalesRows.map((row) => scopeMockCompetitorSalesRow(row, params)).filter(Boolean)
+    const rows = [...scopedSelf, ...scopedCompetitor] as Array<{ code: string; colorCode: string; productName: string }>
     return {
       brands,
       categories,
-      codes,
-      colorCodes,
-      productNames,
+      codes: uniqueSortedStrings(new Set(rows.map((row) => row.code))),
+      colorCodes: colorCodeOrder.filter((colorCode) => rows.some((row) => row.colorCode === colorCode)),
+      productNames: uniqueSortedStrings(new Set(rows.map((row) => row.productName))),
       historicalMonths,
     }
   },
+
   getProductDrawerBundle: async (skuGroupKey: string, params?: ProductDrawerBundleParams) => {
     await sleep(80)
-    const primary = scopeMockProductPrimary(requireProductPrimary(skuGroupKey), params)
-    const { monthlySalesTrend, ...summaryBase } = primary
-    void monthlySalesTrend
-    const summary: ProductPrimarySummary = {
-      ...summaryBase,
-    }
+    const summary: ProductPrimarySummary = { ...scopeMockProductPrimary(requireMockProductPrimary(skuGroupKey), params) }
     return { summary }
   },
-  getProductMonthlyTrend: async (
-    skuGroupKey: string,
-    params: ProductMonthlyTrendParams,
-  ): Promise<ProductMonthlyTrend> => {
+
+  getProductMonthlyTrend: async (skuGroupKey: string, params: ProductMonthlyTrendParams): Promise<ProductMonthlyTrend> => {
     await sleep(80)
-    const primary = scopeMockProductPrimary(requireProductPrimary(skuGroupKey), params)
-    const fc = Math.max(1, Math.min(24, Math.round(params.forecastMonths ?? 8)))
-    const seed = skuGroupKey.charCodeAt(0)
-    const base = Math.max(800, Math.round(primary.qty * 0.42))
-    const selfTrend = makeSalesTrend(base, seed, fc)
+    const primary = scopeMockProductPrimary(requireMockProductPrimary(skuGroupKey), params)
     const channel = getMockSecondaryCompetitorChannel(params.competitorChannelId)
     return {
       skuGroupKey: primary.skuGroupKey,
-      targetPeriodDays: {
-        start: params.startDate,
-        end: params.endDate,
-      },
+      targetPeriodDays: { start: params.startDate, end: params.endDate },
       competitorChannelId: channel.id,
       competitorChannelLabel: channel.label,
-      points: selfTrend.map((point, idx) => {
-        const rhythm = 1 + Math.sin((idx + seed) * 0.47) * 0.06
-        return {
+      points: makeSalesTrend(Math.max(800, Math.round(primary.qty * 0.42)), skuGroupKey.charCodeAt(0), params.forecastMonths ?? 8)
+        .map((point, index) => ({
           date: point.date,
           selfSales: Math.max(0, Math.round(point.sales)),
-          competitorSales: point.isForecast
-            ? null
-            : Math.max(0, Math.round(point.sales * 10 * channel.qtySkew * rhythm)),
+          competitorSales: point.isForecast ? null : Math.max(0, Math.round(point.sales * 10 * channel.qtySkew * (1 + Math.sin(index) * 0.06))),
           isForecast: point.isForecast,
-        }
-      }),
+        })),
     }
   },
-  getProductSalesInsight: async (
-    skuGroupKey: string,
-    params: ProductSalesInsightParams,
-  ): Promise<ProductSalesInsight> => {
+
+  getProductSalesInsight: async (skuGroupKey: string, params: ProductSalesInsightParams): Promise<ProductSalesInsight> => {
     await sleep(80)
-    const primary = scopeMockProductPrimary(requireProductPrimary(skuGroupKey), params)
-    const secondary = scopeMockProductSecondary(requireProductSecondary(skuGroupKey), params)
+    const primary = scopeMockProductPrimary(requireMockProductPrimary(skuGroupKey), params)
+    const secondary = scopeMockProductSecondary(requireMockProductSecondary(skuGroupKey), params)
     const channel = getMockSecondaryCompetitorChannel(params.competitorChannelId)
     return {
       skuGroupKey: primary.skuGroupKey,
-      targetPeriodDays: {
-        start: params.startDate,
-        end: params.endDate,
-      },
+      targetPeriodDays: { start: params.startDate, end: params.endDate },
       competitorChannelId: channel.id,
       competitorChannelLabel: channel.label,
       self: buildSalesKpiColumn('self', primary, secondary, channel),
       competitor: buildSalesKpiColumn('competitor', primary, secondary, channel),
     }
   },
+
   getProductSecondaryDetail: async (skuGroupKey: string, params?: ProductSecondaryDetailParams) => {
     await sleep(80)
-    return scopeMockProductSecondary(requireProductSecondary(skuGroupKey), params)
+    return scopeMockProductSecondary(requireMockProductSecondary(skuGroupKey), params)
   },
+
   getSecondaryAiComment: async (params: SecondaryAiCommentParams) => {
     await sleep(140)
     return buildSecondaryAiComment(params)
   },
-  getSecondaryDailyTrend: async ({
-    skuGroupKey,
-    startMonth,
-    leadTimeDays,
-    competitorChannelId,
-    companyUuid,
-  }: SecondaryDailyTrendParams) => {
+
+  getSecondaryDailyTrend: async ({ skuGroupKey, startMonth, leadTimeDays, competitorChannelId, companyUuid }: SecondaryDailyTrendParams) => {
     await sleep(80)
-    const primary = scopeMockProductPrimary(requireProductPrimary(skuGroupKey), { companyUuid })
-    const stockTrend = scopeMockStockTrend(skuGroupKey, requireStockTrend(skuGroupKey), { companyUuid })
-    const channel = getMockSecondaryCompetitorChannel(competitorChannelId)
-    return buildSecondaryDailyTrend(primary.monthlySalesTrend ?? [], stockTrend, startMonth, leadTimeDays, channel.qtySkew)
+    const primary = scopeMockProductPrimary(requireMockProductPrimary(skuGroupKey), { companyUuid })
+    const stockTrend = scopeMockStockTrend(skuGroupKey, requireMockStockTrend(skuGroupKey), { companyUuid })
+    return buildSecondaryDailyTrend(primary.monthlySalesTrend ?? [], stockTrend, startMonth, leadTimeDays, getMockSecondaryCompetitorChannel(competitorChannelId).qtySkew)
   },
+
   getSecondaryCompetitorChannels: async () => {
     await sleep(40)
     return secondaryCompetitorChannels
   },
+
   ...candidateMockApi,
   getSecondaryStockOrderCalc,
 }

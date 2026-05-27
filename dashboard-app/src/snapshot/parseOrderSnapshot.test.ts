@@ -30,7 +30,7 @@ const validSnapshot = {
     },
   },
   drawer2: {
-    competitorSalesBasis: {
+    competitorBasis: {
       skuGroupKey: 'B',
       competitorPrice: 120000,
       competitorQty: 32,
@@ -42,31 +42,47 @@ const validSnapshot = {
     competitorChannelLabel: 'Cream',
     bufferStock: 0,
     selfWeightPct: 50,
-    llmPrompt: 'prompt',
-    llmAnswer: 'comment',
-    stockInputs: {
-      trendDailyMean: 10,
-      leadTimeStartDate: '2026-02-01',
-      leadTimeEndDate: '2026-02-28',
-      leadTimeDays: 30,
-      dailyMean: 10,
-      safetyStockMode: 'formula',
-      manualSafetyStock: 0,
-      sigma: 1,
-      serviceLevelPct: 95,
+    aiComment: {
+      prompt: 'prompt',
+      answer: 'comment',
     },
-    orderUnitInputs: {
+    stockOrderRequest: {
+      currentOrderInboundDueDate: '2026-02-01',
+      nextOrderInboundDueDate: '2026-02-28',
+      leadTimeDays: 30,
+      dailyMeanOverride: 10,
+    },
+    stockOrderResult: {
+      trendDailyMean: 10,
+      dailyMean: 10,
+      sigma: 1,
+      display: {
+        currentStockQtyTotal: 20,
+        totalOrderBalanceTotal: 4,
+        expectedInboundOrderBalanceTotal: 2,
+        currentStockQtyBySize: [20],
+        totalOrderBalanceBySize: [4],
+        expectedInboundOrderBalanceBySize: [2],
+      },
+      safetyStockCalc: {
+        safetyStock: 12,
+        recommendedOrderQty: 12,
+        expectedOrderAmount: 720000,
+        expectedSalesAmount: 1200000,
+        expectedOpProfit: 336000,
+      },
+      forecastQtyCalc: {
+        safetyStock: null,
+        recommendedOrderQty: 12,
+        expectedOrderAmount: 720000,
+        expectedSalesAmount: 1200000,
+        expectedOpProfit: 336000,
+      },
+    },
+    unitEconomics: {
       unitPrice: 100000,
       unitCost: 60000,
       expectedFeeRatePct: 12,
-    },
-    stockDisplay: {
-      currentStockQtyTotal: 20,
-      totalOrderBalanceTotal: 4,
-      expectedInboundOrderBalanceTotal: 2,
-      currentStockQtyBySize: [20],
-      totalOrderBalanceBySize: [4],
-      expectedInboundOrderBalanceBySize: [2],
     },
     confirmedTotals: {
       orderQty: 12,
@@ -74,7 +90,7 @@ const validSnapshot = {
       expectedOpProfit: 336000,
       expectedOpProfitRatePct: 28,
     },
-    sizeRows: [
+    sizeOrders: [
       {
         size: '250',
         selfSharePct: 40,
@@ -88,6 +104,18 @@ const validSnapshot = {
   },
 } as const
 
+const secondaryDetailFixture = {
+  ...validSnapshot.drawer2.competitorBasis,
+  sizeRows: [{
+    size: '250',
+    selfRatio: 40,
+    confirmedQty: 12,
+    avgPrice: 100000,
+    qty: 80,
+    availableStock: 20,
+  }],
+}
+
 const currentPrimarySummaryKeys = [
   'availableStock',
   'brand',
@@ -100,33 +128,28 @@ const currentPrimarySummaryKeys = [
   'skuGroupKey',
 ]
 
-const currentStockInputKeys = [
-  'dailyMean',
+const currentStockOrderRequestKeys = [
+  'currentOrderInboundDueDate',
+  'dailyMeanOverride',
   'leadTimeDays',
-  'leadTimeEndDate',
-  'leadTimeStartDate',
-  'manualSafetyStock',
-  'safetyStockMode',
-  'serviceLevelPct',
-  'sigma',
-  'trendDailyMean',
+  'nextOrderInboundDueDate',
 ]
 
 const currentDrawer2Keys = [
+  'aiComment',
   'bufferStock',
+  'competitorBasis',
   'competitorChannelId',
   'competitorChannelLabel',
-  'competitorSalesBasis',
   'confirmedTotals',
-  'llmAnswer',
-  'llmPrompt',
-  'orderUnitInputs',
   'selfWeightPct',
-  'sizeRows',
-  'stockInputs',
+  'sizeOrders',
+  'stockOrderRequest',
+  'stockOrderResult',
+  'unitEconomics',
 ]
 
-const currentCandidateMockDrawer2Keys = [...currentDrawer2Keys, 'stockDisplay'].sort()
+const currentCandidateMockDrawer2Keys = [...currentDrawer2Keys].sort()
 
 function sortedKeys(value: object) {
   return Object.keys(value).sort()
@@ -176,9 +199,9 @@ describe('parseOrderSnapshot', () => {
       drawer2: {
         ...validSnapshot.drawer2,
         unknownDrawer2Field: true,
-        stockInputs: {
-          ...validSnapshot.drawer2.stockInputs,
-          unknownStockInputField: true,
+        stockOrderRequest: {
+          ...validSnapshot.drawer2.stockOrderRequest,
+          unknownStockOrderRequestField: true,
         },
       },
     }
@@ -189,58 +212,34 @@ describe('parseOrderSnapshot', () => {
     expect(parsed.drawer1).not.toHaveProperty('unknownDrawer1Field')
     expect(parsed.drawer1.summary).not.toHaveProperty('unknownSummaryField')
     expect(parsed.drawer2).not.toHaveProperty('unknownDrawer2Field')
-    expect(parsed.drawer2.stockInputs).toEqual(validSnapshot.drawer2.stockInputs)
-    expect(parsed.drawer2.stockInputs).not.toHaveProperty('unknownStockInputField')
+    expect(parsed.drawer2.stockOrderRequest).toEqual(validSnapshot.drawer2.stockOrderRequest)
+    expect(parsed.drawer2.stockOrderRequest).not.toHaveProperty('unknownStockOrderRequestField')
   })
 
-  it('strips legacy removed fields and normalizes drawer2.secondary into competitorSalesBasis', () => {
-    const { competitorSalesBasis, ...drawer2WithoutBasis } = validSnapshot.drawer2
-    void competitorSalesBasis
-    const legacy = {
+  it('strips fields that are explicitly excluded from the current snapshot contract', () => {
+    const withExcludedFields = {
       ...validSnapshot,
       drawer1: {
         summary: {
           ...validSnapshot.drawer1.summary,
           monthlySalesTrend: [],
-          sizeMix: [{ size: '250', confirmedQty: 1 }],
-          seasonality: { peak: 'winter' },
-          recommendedOrderQty: 100,
         },
       },
       drawer2: {
-        ...drawer2WithoutBasis,
-        secondary: {
-          skuGroupKey: 'B',
-          competitorPrice: 99000,
-          competitorQty: 15,
-          competitorRatioBySize: {
-            '250': 45,
-          },
-          productName: 'legacy detail should not be stored',
-        },
+        ...validSnapshot.drawer2,
         salesSelf: { legacy: true },
         salesCompetitor: { legacy: true },
-        stockDerived: { recommendedOrderQty: 100 },
         sizeForecastSource: 'forecastQty',
         minOpMarginPct: null,
       },
     }
 
-    const parsed = parseOrderSnapshot(legacy)
+    const parsed = parseOrderSnapshot(withExcludedFields)
 
     expect(parsed.drawer1.summary).toEqual(validSnapshot.drawer1.summary)
-    expect(parsed.drawer2.competitorSalesBasis).toEqual({
-      skuGroupKey: 'B',
-      competitorPrice: 99000,
-      competitorQty: 15,
-      competitorRatioBySize: {
-        '250': 45,
-      },
-    })
-    expect(parsed.drawer2).not.toHaveProperty('secondary')
+    expect(parsed.drawer2.competitorBasis).toEqual(validSnapshot.drawer2.competitorBasis)
     expect(parsed.drawer2).not.toHaveProperty('salesSelf')
     expect(parsed.drawer2).not.toHaveProperty('salesCompetitor')
-    expect(parsed.drawer2).not.toHaveProperty('stockDerived')
     expect(parsed.drawer2).not.toHaveProperty('sizeForecastSource')
     expect(parsed.drawer2).not.toHaveProperty('minOpMarginPct')
   })
@@ -250,13 +249,10 @@ describe('parseOrderSnapshot', () => {
       primary: {
         ...validSnapshot.drawer1.summary,
         monthlySalesTrend: [],
-        sizeMix: [],
-        seasonality: [],
-        recommendedOrderQty: 100,
         unknownPrimaryField: 'drop',
       } as Parameters<typeof buildSecondaryOrderSnapshot>[0]['primary'],
       secondary: {
-        ...validSnapshot.drawer2.competitorSalesBasis,
+        ...secondaryDetailFixture,
         unknownSecondaryField: 'drop',
       } as Parameters<typeof buildSecondaryOrderSnapshot>[0]['secondary'],
       periodStart: validSnapshot.context.periodStart,
@@ -266,25 +262,25 @@ describe('parseOrderSnapshot', () => {
       leadTimeDays: validSnapshot.context.dailyTrendLeadTimeDays,
       competitorChannelId: validSnapshot.drawer2.competitorChannelId,
       competitorChannelLabel: validSnapshot.drawer2.competitorChannelLabel,
-      forecastInputs: {
-        ...validSnapshot.drawer2.stockInputs,
-        unknownStockInputField: 'drop',
-      } as Parameters<typeof buildSecondaryOrderSnapshot>[0]['forecastInputs'],
-      stockDisplay: null,
+      stockOrderRequest: {
+        ...validSnapshot.drawer2.stockOrderRequest,
+        unknownStockOrderRequestField: 'drop',
+      } as Parameters<typeof buildSecondaryOrderSnapshot>[0]['stockOrderRequest'],
+      stockOrderResult: null,
       selfWeightPct: validSnapshot.drawer2.selfWeightPct,
       bufferStock: validSnapshot.drawer2.bufferStock,
-      aiPrompt: validSnapshot.drawer2.llmPrompt,
-      aiComment: validSnapshot.drawer2.llmAnswer,
-      unitPrice: validSnapshot.drawer2.orderUnitInputs.unitPrice,
-      unitCost: validSnapshot.drawer2.orderUnitInputs.unitCost,
-      expectedFeeRatePct: validSnapshot.drawer2.orderUnitInputs.expectedFeeRatePct,
-      sizeRows: validSnapshot.drawer2.sizeRows.map((row) => ({ ...row })),
+      aiPrompt: validSnapshot.drawer2.aiComment.prompt,
+      aiComment: validSnapshot.drawer2.aiComment.answer,
+      unitPrice: validSnapshot.drawer2.unitEconomics.unitPrice,
+      unitCost: validSnapshot.drawer2.unitEconomics.unitCost,
+      expectedFeeRatePct: validSnapshot.drawer2.unitEconomics.expectedFeeRatePct,
+      sizeRows: validSnapshot.drawer2.sizeOrders.map((row) => ({ ...row })),
     })
 
     expect(sortedKeys(snapshot.drawer1.summary)).toEqual(currentPrimarySummaryKeys)
-    expect(sortedKeys(snapshot.drawer2)).toEqual(currentDrawer2Keys)
-    expect(sortedKeys(snapshot.drawer2.stockInputs)).toEqual(currentStockInputKeys)
-    expect(snapshot.drawer2).not.toHaveProperty('stockDisplay')
+    expect(sortedKeys(snapshot.drawer2)).toEqual(currentDrawer2Keys.filter((key) => key !== 'stockOrderResult'))
+    expect(sortedKeys(snapshot.drawer2.stockOrderRequest)).toEqual(currentStockOrderRequestKeys)
+    expect(snapshot.drawer2).not.toHaveProperty('stockOrderResult')
   })
 
   it('emits top-level companyUuid from the secondary snapshot builder when provided', () => {
@@ -292,11 +288,8 @@ describe('parseOrderSnapshot', () => {
       primary: {
         ...validSnapshot.drawer1.summary,
         monthlySalesTrend: [],
-        sizeMix: [],
-        seasonality: [],
-        recommendedOrderQty: 100,
       } as Parameters<typeof buildSecondaryOrderSnapshot>[0]['primary'],
-      secondary: validSnapshot.drawer2.competitorSalesBasis,
+      secondary: secondaryDetailFixture,
       periodStart: validSnapshot.context.periodStart,
       periodEnd: validSnapshot.context.periodEnd,
       forecastMonths: validSnapshot.context.forecastMonths,
@@ -304,16 +297,16 @@ describe('parseOrderSnapshot', () => {
       leadTimeDays: validSnapshot.context.dailyTrendLeadTimeDays,
       competitorChannelId: validSnapshot.drawer2.competitorChannelId,
       competitorChannelLabel: validSnapshot.drawer2.competitorChannelLabel,
-      forecastInputs: validSnapshot.drawer2.stockInputs,
-      stockDisplay: null,
+      stockOrderRequest: validSnapshot.drawer2.stockOrderRequest,
+      stockOrderResult: null,
       selfWeightPct: validSnapshot.drawer2.selfWeightPct,
       bufferStock: validSnapshot.drawer2.bufferStock,
-      aiPrompt: validSnapshot.drawer2.llmPrompt,
-      aiComment: validSnapshot.drawer2.llmAnswer,
-      unitPrice: validSnapshot.drawer2.orderUnitInputs.unitPrice,
-      unitCost: validSnapshot.drawer2.orderUnitInputs.unitCost,
-      expectedFeeRatePct: validSnapshot.drawer2.orderUnitInputs.expectedFeeRatePct,
-      sizeRows: validSnapshot.drawer2.sizeRows.map((row) => ({ ...row })),
+      aiPrompt: validSnapshot.drawer2.aiComment.prompt,
+      aiComment: validSnapshot.drawer2.aiComment.answer,
+      unitPrice: validSnapshot.drawer2.unitEconomics.unitPrice,
+      unitCost: validSnapshot.drawer2.unitEconomics.unitCost,
+      expectedFeeRatePct: validSnapshot.drawer2.unitEconomics.expectedFeeRatePct,
+      sizeRows: validSnapshot.drawer2.sizeOrders.map((row) => ({ ...row })),
       companyUuid: 'company-uuid-001',
     })
 
@@ -331,15 +324,12 @@ describe('parseOrderSnapshot', () => {
 
     expect(sortedKeys(snapshot.drawer1.summary)).toEqual(currentPrimarySummaryKeys)
     expect(sortedKeys(snapshot.drawer2)).toEqual(currentCandidateMockDrawer2Keys)
-    expect(sortedKeys(snapshot.drawer2.stockInputs)).toEqual(currentStockInputKeys)
-    expect(snapshot.drawer1.summary).not.toHaveProperty('monthlySalesTrend')
-    expect(snapshot.drawer1.summary).not.toHaveProperty('sizeMix')
-    expect(snapshot.drawer1.summary).not.toHaveProperty('seasonality')
-    expect(snapshot.drawer1.summary).not.toHaveProperty('recommendedOrderQty')
+    expect(sortedKeys(snapshot.drawer2.stockOrderRequest)).toEqual(
+      currentStockOrderRequestKeys.filter((key) => key !== 'dailyMeanOverride'),
+    )
     expect(snapshot.drawer2).not.toHaveProperty('secondary')
     expect(snapshot.drawer2).not.toHaveProperty('salesSelf')
     expect(snapshot.drawer2).not.toHaveProperty('salesCompetitor')
-    expect(snapshot.drawer2).not.toHaveProperty('stockDerived')
     expect(snapshot.drawer2).not.toHaveProperty('sizeForecastSource')
     expect(snapshot.drawer2).not.toHaveProperty('minOpMarginPct')
   })
@@ -403,7 +393,7 @@ describe('parseOrderSnapshot', () => {
     expect(() => parseOrderSnapshot(missingSkuGroupKey)).toThrow(/skuGroupKey/)
     expect(() => parseOrderSnapshot(emptySkuGroupKey)).toThrow(/skuGroupKey/)
   })
-  
+
   it('throws when skuGroupKey is not a string', () => {
     const numericSkuGroupKey = { ...validSnapshot, skuGroupKey: 1234 }
     expect(() => parseOrderSnapshot(numericSkuGroupKey)).toThrow(/skuGroupKey/)
@@ -424,57 +414,52 @@ describe('parseOrderSnapshot', () => {
       ...validSnapshot,
       drawer2: {
         ...validSnapshot.drawer2,
-        stockInputs: null,
+        stockOrderRequest: null,
       },
     }
-    expect(() => parseOrderSnapshot(broken)).toThrow(/stockInputs/)
+    expect(() => parseOrderSnapshot(broken)).toThrow(/stockOrderRequest/)
   })
 
-  it('throws when stockInputs fields have invalid types', () => {
-    const invalidStockInputsList = [
-      { ...validSnapshot.drawer2.stockInputs, trendDailyMean: '10' },
-      { ...validSnapshot.drawer2.stockInputs, dailyMean: null },
-      { ...validSnapshot.drawer2.stockInputs, leadTimeStartDate: 20260201 },
-      { ...validSnapshot.drawer2.stockInputs, leadTimeEndDate: undefined },
-      { ...validSnapshot.drawer2.stockInputs, leadTimeDays: '30' },
-      { ...validSnapshot.drawer2.stockInputs, safetyStockMode: 'auto' },
-      { ...validSnapshot.drawer2.stockInputs, manualSafetyStock: null },
-      { ...validSnapshot.drawer2.stockInputs, sigma: Number.NaN },
-      { ...validSnapshot.drawer2.stockInputs, serviceLevelPct: '95' },
+  it('throws when stockOrderRequest fields have invalid types', () => {
+    const invalidStockOrderRequestsList = [
+      { ...validSnapshot.drawer2.stockOrderRequest, currentOrderInboundDueDate: 20260201 },
+      { ...validSnapshot.drawer2.stockOrderRequest, nextOrderInboundDueDate: undefined },
+      { ...validSnapshot.drawer2.stockOrderRequest, leadTimeDays: '30' },
+      { ...validSnapshot.drawer2.stockOrderRequest, dailyMeanOverride: '10' },
     ]
-    for (const stockInputs of invalidStockInputsList) {
+    for (const stockOrderRequest of invalidStockOrderRequestsList) {
       const broken = {
         ...validSnapshot,
         drawer2: {
           ...validSnapshot.drawer2,
-          stockInputs,
+          stockOrderRequest,
         },
       }
-      expect(() => parseOrderSnapshot(broken)).toThrow(/stockInputs/)
+      expect(() => parseOrderSnapshot(broken)).toThrow(/stockOrderRequest/)
     }
   })
 
-  it('throws when competitorSalesBasis fields have invalid types', () => {
+  it('throws when competitorBasis fields have invalid types', () => {
     const invalidBasisList = [
-      { ...validSnapshot.drawer2.competitorSalesBasis, competitorPrice: '120000' },
-      { ...validSnapshot.drawer2.competitorSalesBasis, competitorQty: null },
-      { ...validSnapshot.drawer2.competitorSalesBasis, competitorRatioBySize: [{ size: '250', ratioPct: 60 }] },
-      { ...validSnapshot.drawer2.competitorSalesBasis, competitorRatioBySize: { '250': '60' } },
+      { ...validSnapshot.drawer2.competitorBasis, competitorPrice: '120000' },
+      { ...validSnapshot.drawer2.competitorBasis, competitorQty: null },
+      { ...validSnapshot.drawer2.competitorBasis, competitorRatioBySize: [{ size: '250', ratioPct: 60 }] },
+      { ...validSnapshot.drawer2.competitorBasis, competitorRatioBySize: { '250': '60' } },
     ]
-    for (const competitorSalesBasis of invalidBasisList) {
+    for (const competitorBasis of invalidBasisList) {
       const broken = {
         ...validSnapshot,
         drawer2: {
           ...validSnapshot.drawer2,
-          competitorSalesBasis,
+          competitorBasis,
         },
       }
-      expect(() => parseOrderSnapshot(broken)).toThrow(/competitorSalesBasis/)
+      expect(() => parseOrderSnapshot(broken)).toThrow(/competitorBasis/)
     }
   })
 
-  it('throws when sizeRows row fields have invalid types', () => {
-    const [row] = validSnapshot.drawer2.sizeRows
+  it('throws when sizeOrders row fields have invalid types', () => {
+    const [row] = validSnapshot.drawer2.sizeOrders
     const invalidRows = [
       { ...row, size: 250 },
       { ...row, selfSharePct: '40' },
@@ -489,10 +474,10 @@ describe('parseOrderSnapshot', () => {
         ...validSnapshot,
         drawer2: {
           ...validSnapshot.drawer2,
-          sizeRows: [invalidRow],
+          sizeOrders: [invalidRow],
         },
       }
-      expect(() => parseOrderSnapshot(broken)).toThrow(/sizeRows/)
+      expect(() => parseOrderSnapshot(broken)).toThrow(/sizeOrders/)
     }
   })
 
@@ -501,12 +486,12 @@ describe('parseOrderSnapshot', () => {
       ...validSnapshot,
       drawer2: {
         ...validSnapshot.drawer2,
-        stockInputs: { ...validSnapshot.drawer2.stockInputs, dailyMean: -1 },
-        sizeRows: [{ ...validSnapshot.drawer2.sizeRows[0], confirmQty: -1 }],
+        stockOrderRequest: { ...validSnapshot.drawer2.stockOrderRequest, dailyMeanOverride: -1 },
+        sizeOrders: [{ ...validSnapshot.drawer2.sizeOrders[0], confirmQty: -1 }],
       },
     }
     const parsed = parseOrderSnapshot(internallyOdd)
-    expect(parsed.drawer2.stockInputs).toEqual(internallyOdd.drawer2.stockInputs)
-    expect(parsed.drawer2.sizeRows).toEqual(internallyOdd.drawer2.sizeRows)
+    expect(parsed.drawer2.stockOrderRequest).toEqual(internallyOdd.drawer2.stockOrderRequest)
+    expect(parsed.drawer2.sizeOrders).toEqual(internallyOdd.drawer2.sizeOrders)
   })
 })

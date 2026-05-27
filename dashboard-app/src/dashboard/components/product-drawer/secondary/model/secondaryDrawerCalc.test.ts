@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { ProductPrimarySummary, ProductSecondaryDetail } from '../../../../../types'
 import { buildSalesKpiColumn } from '../../../../../utils/salesKpiColumn'
-import { mergePrimarySecondarySizeMix } from './secondaryDrawerCalc'
+import { mergeSecondarySizeRows } from './secondaryDrawerCalc'
 
 const primary: ProductPrimarySummary = {
   skuGroupKey: 'B__010',
@@ -13,13 +13,7 @@ const primary: ProductPrimarySummary = {
   price: 100,
   qty: 200,
   availableStock: 80,
-  recommendedOrderQty: 120,
   monthlySalesTrend: [{ date: '2026-01', sales: 1000, isForecast: false }],
-  seasonality: [{ month: 1, ratio: 1 }],
-  sizeMix: [
-    { size: '250', ratio: 0.5, confirmedQty: 60, avgPrice: 100, qty: 100, availableStock: 40 },
-    { size: '260', ratio: 0.5, confirmedQty: 60, avgPrice: 100, qty: 100, availableStock: 40 },
-  ],
 }
 
 const secondary: ProductSecondaryDetail = {
@@ -27,6 +21,10 @@ const secondary: ProductSecondaryDetail = {
   competitorPrice: 110,
   competitorQty: 150,
   competitorRatioBySize: { '250': 0.7 },
+  sizeRows: [
+    { size: '250', selfRatio: 0.5, confirmedQty: 60, avgPrice: 100, qty: 100, availableStock: 40 },
+    { size: '260', selfRatio: 0.5, confirmedQty: 60, avgPrice: 100, qty: 100, availableStock: 40 },
+  ],
 }
 const completeSecondary: ProductSecondaryDetail = {
   ...secondary,
@@ -40,9 +38,9 @@ const channel = {
   qtySkew: 0.5,
 }
 
-describe('mergePrimarySecondarySizeMix', () => {
+describe('mergeSecondarySizeRows', () => {
   it('merges competitor ratio by size without fallback defaults', () => {
-    const rows = mergePrimarySecondarySizeMix(primary, completeSecondary)
+    const rows = mergeSecondarySizeRows(completeSecondary)
     expect(rows).toHaveLength(2)
     expect(rows[0]?.size).toBe('250')
     expect(rows[0]?.competitorRatio).toBe(0.7)
@@ -51,7 +49,7 @@ describe('mergePrimarySecondarySizeMix', () => {
   })
 
   it('throws instead of dropping rows when competitor ratio is missing', () => {
-    expect(() => mergePrimarySecondarySizeMix(primary, secondary)).toThrow(
+    expect(() => mergeSecondarySizeRows(secondary)).toThrow(
       'Missing competitorRatioBySize for size "260".',
     )
   })

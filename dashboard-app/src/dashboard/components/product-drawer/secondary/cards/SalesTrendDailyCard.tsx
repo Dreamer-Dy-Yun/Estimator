@@ -2,24 +2,13 @@ import { useMemo, useState } from 'react'
 import { SalesTrendChart, type TrendShade } from '../../../trend/SalesTrendChart'
 import { ApiUnitErrorBadge } from '../../../../../components/ApiUnitErrorBadge'
 import { LoadingSpinner } from '../../../../../components/LoadingSpinner'
-import type { ApiUnitErrorInfo } from '../../../../../types'
-import commonStyles from '../../../common.module.css'
 import { DAILY_TREND_AS_OF_DATE } from '../../../../../api'
+import type { SecondaryDailyTrendPoint } from '../../../../../api/types'
+import type { ApiUnitErrorInfo } from '../../../../../types'
 import { formatGroupedNumber } from '../../../../../utils/format'
+import commonStyles from '../../../common.module.css'
 import { KO } from '../../ko'
 import styles from '../secondaryDrawer.module.css'
-
-type TrendPoint = {
-  idx: number
-  date: string
-  month: string
-  sales: number
-  stockBar: number
-  inboundAccumBar: number
-  selfSales: number | null
-  competitorSales: number | null
-  isForecast: boolean
-}
 
 type SizeOption = { id: string; label: string; share: number }
 
@@ -27,10 +16,9 @@ type Props = {
   skuGroupKey: string
   selfCompanyLabel: string
   competitorChannelLabel: string
-  /** 사이즈별 비중(합 1). 비어 있으면 선택 UI 숨김. */
   sizeOptions: SizeOption[]
   trend: {
-    series: TrendPoint[]
+    series: SecondaryDailyTrendPoint[]
     loading: boolean
     tickIndices: number[]
     periodShade: TrendShade
@@ -39,12 +27,25 @@ type Props = {
   }
 }
 
+const chartHeight = 240
+const stockBars = [
+  { dataKey: 'stockBar', name: '현재고', fill: '#149632', fillOpacity: 0.58, barSize: 7, stackId: 'stockInbound' },
+  { dataKey: 'inboundAccumBar', name: '예상 입고', fill: '#ef4444', fillOpacity: 0.42, barSize: 7, stackId: 'stockInbound' },
+]
+const actualForecastLines = [
+  { dataKey: 'salesActual', stroke: '#0f172a' },
+  { dataKey: 'salesForecast', stroke: '#2563eb', strokeDasharray: '4 4', connectNulls: true },
+]
+const stockTrendNameByKey: Record<string, string> = {
+  salesActual: '실제 판매',
+  salesForecast: '예측 판매',
+  stockBar: '현재고',
+  inboundAccumBar: '예상 입고',
+}
+
 export function SalesTrendDailyCard({ skuGroupKey, selfCompanyLabel, competitorChannelLabel, sizeOptions, trend }: Props) {
   const [expanded, setExpanded] = useState(false)
-  const [selectedSizeState, setSelectedSizeState] = useState<{ skuGroupKey: string; sizeId: 'all' | string } | null>(
-    null,
-  )
-  const chartHeight = 240
+  const [selectedSizeState, setSelectedSizeState] = useState<{ skuGroupKey: string; sizeId: 'all' | string } | null>(null)
   const selectedSizeId = selectedSizeState?.skuGroupKey === skuGroupKey ? selectedSizeState.sizeId : 'all'
 
   const scaledSeries = useMemo(() => {
@@ -58,45 +59,31 @@ export function SalesTrendDailyCard({ skuGroupKey, selfCompanyLabel, competitorC
     }))
   }, [trend.series, selectedSizeId, sizeOptions])
 
-  /** 월간 판매추이와 동일: 기준일 이하 실적(검정 실선), 이후 예측(파란 점선) + 전환일 연결 */
   const chartSeries = useMemo(() => {
-    const asOf = DAILY_TREND_AS_OF_DATE
-    const firstFutureIdx = scaledSeries.findIndex((p) => p.date > asOf)
-    const hasFuture = firstFutureIdx !== -1
+    const firstFutureIdx = scaledSeries.findIndex((p) => p.date > DAILY_TREND_AS_OF_DATE)
     return scaledSeries.map((p, idx) => {
-      const isFuture = p.date > asOf
-      const bridge = hasFuture && (idx === firstFutureIdx - 1 || isFuture)
-      return {
-        ...p,
-        salesActual: isFuture ? null : p.sales,
-        salesForecast: bridge ? p.sales : null,
-      }
+      const isFuture = p.date > DAILY_TREND_AS_OF_DATE
+      const bridge = firstFutureIdx !== -1 && (idx === firstFutureIdx - 1 || isFuture)
+      return { ...p, salesActual: isFuture ? null : p.sales, salesForecast: bridge ? p.sales : null }
     })
   }, [scaledSeries])
 
   const salesCompareSeries = useMemo(
-    () =>
-      chartSeries.map((p) => ({
-        idx: p.idx,
-        date: p.date,
-        selfSales: p.selfSales,
-        competitorSales: p.competitorSales,
-      })),
+    () => chartSeries.map((p) => ({ idx: p.idx, date: p.date, selfSales: p.selfSales, competitorSales: p.competitorSales })),
     [chartSeries],
   )
-
-  /** 하단 비교 그래프 축 최대값: 각 시리즈의 실제 데이터 최대치 기반 */
-  const selfSalesYMax = useMemo(() => {
-    const mx = salesCompareSeries.reduce((acc, p) => Math.max(acc, Number(p.selfSales ?? 0)), 0)
-    return mx <= 0 ? 1 : Math.ceil(mx * 1.05)
+  const [selfSalesYMax, competitorSalesYMax] = useMemo(() => {
+    const max = salesCompareSeries.reduce((acc, p) => ({
+      self: Math.max(acc.self, Number(p.selfSales ?? 0)),
+      competitor: Math.max(acc.competitor, Number(p.competitorSales ?? 0)),
+    }), { self: 0, competitor: 0 })
+    return [max.self <= 0 ? 1 : Math.ceil(max.self * 1.05), max.competitor <= 0 ? 1 : Math.ceil(max.competitor * 1.05)]
   }, [salesCompareSeries])
-
-  const competitorSalesYMax = useMemo(() => {
-    const mx = salesCompareSeries.reduce((acc, p) => Math.max(acc, Number(p.competitorSales ?? 0)), 0)
-    return mx <= 0 ? 1 : Math.ceil(mx * 1.05)
-  }, [salesCompareSeries])
-
   const showSizeSelect = expanded && sizeOptions.length > 0
+  const salesCompareNameByKey = useMemo<Record<string, string>>(() => ({
+    selfSales: `${selfCompanyLabel} 판매량`,
+    competitorSales: `${competitorChannelLabel} 판매량`,
+  }), [competitorChannelLabel, selfCompanyLabel])
 
   return (
     <div className={styles.card}>
@@ -111,17 +98,10 @@ export function SalesTrendDailyCard({ skuGroupKey, selfCompanyLabel, competitorC
               className={styles.dailyTrendSizeSelect}
               aria-label={KO.ariaTrendDailySizeSelect}
               value={selectedSizeId}
-              onChange={(e) => {
-                const v = e.target.value
-                setSelectedSizeState({ skuGroupKey, sizeId: v === 'all' ? 'all' : v })
-              }}
+              onChange={(e) => setSelectedSizeState({ skuGroupKey, sizeId: e.target.value === 'all' ? 'all' : e.target.value })}
             >
               <option value="all">{KO.optionTrendDailySizeAll}</option>
-              {sizeOptions.map((o) => (
-                <option key={o.id} value={o.id}>
-                  {o.label}
-                </option>
-              ))}
+              {sizeOptions.map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}
             </select>
           )}
           <button
@@ -137,7 +117,7 @@ export function SalesTrendDailyCard({ skuGroupKey, selfCompanyLabel, competitorC
       {expanded && (
         <div className={`${commonStyles.chartClipWrap} ${styles.dailyTrendClipWrap}`}>
           {trend.loading ? (
-            <LoadingSpinner label="일별 판매추이를 불러오는 중" />
+            <LoadingSpinner label="일간 판매추이를 불러오는 중" />
           ) : (
             <>
               <SalesTrendChart
@@ -147,46 +127,15 @@ export function SalesTrendDailyCard({ skuGroupKey, selfCompanyLabel, competitorC
                 periodShade={trend.periodShade}
                 forecastShade={trend.forecastShade}
                 barsUseSecondaryAxis
-                bars={[
-                  {
-                    dataKey: 'stockBar',
-                    name: '실재고',
-                    stackId: 'stockInbound',
-                    fill: '#149632',
-                    fillOpacity: 0.58,
-                    barSize: 7,
-                  },
-                  {
-                    dataKey: 'inboundAccumBar',
-                    name: '예상 재고',
-                    stackId: 'stockInbound',
-                    fill: '#ef4444',
-                    fillOpacity: 0.42,
-                    barSize: 7,
-                  },
-                ]}
-                lines={[
-                  { dataKey: 'salesActual', stroke: '#0f172a' },
-                  {
-                    dataKey: 'salesForecast',
-                    stroke: '#2563eb',
-                    strokeDasharray: '4 4',
-                    connectNulls: true,
-                  },
-                ]}
+                bars={stockBars}
+                lines={actualForecastLines}
                 tickFormatter={() => ''}
                 tickAngle={0}
                 tickHeight={10}
                 xTicks={trend.tickIndices}
                 minTickGap={4}
                 interval={0}
-                tooltipValueFormatter={(value, name) => {
-                  if (name === 'stockBar') return [formatGroupedNumber(value), '실재고']
-                  if (name === 'inboundAccumBar') return [formatGroupedNumber(value), '예상 재고']
-                  if (name === 'salesActual') return [formatGroupedNumber(value), '판매 실적']
-                  if (name === 'salesForecast') return [formatGroupedNumber(value), '판매 예측']
-                  return [formatGroupedNumber(value), String(name)]
-                }}
+                tooltipValueFormatter={(value, name) => [formatGroupedNumber(value), stockTrendNameByKey[String(name)] ?? String(name)]}
                 tooltipLabelFormatter={(row) => String(row.date ?? '')}
               />
               <SalesTrendChart
@@ -207,11 +156,7 @@ export function SalesTrendDailyCard({ skuGroupKey, selfCompanyLabel, competitorC
                 xTicks={trend.tickIndices}
                 minTickGap={4}
                 interval={0}
-                tooltipValueFormatter={(value, name) => {
-                  if (name === 'selfSales') return [formatGroupedNumber(value), `${selfCompanyLabel} 판매량`]
-                  if (name === 'competitorSales') return [formatGroupedNumber(value), `${competitorChannelLabel} 판매량`]
-                  return [formatGroupedNumber(value), String(name)]
-                }}
+                tooltipValueFormatter={(value, name) => [formatGroupedNumber(value), salesCompareNameByKey[String(name)] ?? String(name)]}
                 tooltipLabelFormatter={(row) => String(row.date ?? '')}
               />
             </>

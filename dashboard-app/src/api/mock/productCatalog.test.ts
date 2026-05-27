@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { estimatePeriodWeight, historicalMonths, makeSalesTrend, productPrimaryBySkuGroupKey } from './productCatalog'
+import { estimatePeriodWeight, historicalMonths, makeSalesTrend, productPrimaryBySkuGroupKey, productSecondaryBySkuGroupKey } from './productCatalog'
 import { skuGroupKeyByLegacyId } from './salesTables'
 
 describe('api/mock productCatalog', () => {
@@ -37,9 +37,9 @@ describe('api/mock productCatalog', () => {
     const shoe = productPrimaryBySkuGroupKey[skuGroupKeyByLegacyId.TEST_SHOE]
 
     expect(top?.productName).toBe('테스트 상의')
-    expect(top?.sizeMix.map((row) => row.size)).toEqual(['S', 'M', 'L', 'XL', 'XXL'])
+    expect(productSecondaryBySkuGroupKey[skuGroupKeyByLegacyId.TEST_TOP]?.sizeRows.map((row) => row.size)).toEqual(['S', 'M', 'L', 'XL', 'XXL'])
     expect(shoe?.productName).toBe('테스트 신발')
-    expect(shoe?.sizeMix.map((row) => row.size)).toEqual([
+    expect(productSecondaryBySkuGroupKey[skuGroupKeyByLegacyId.TEST_SHOE]?.sizeRows.map((row) => row.size)).toEqual([
       '235',
       '240',
       '245',

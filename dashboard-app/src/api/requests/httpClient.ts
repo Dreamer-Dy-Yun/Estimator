@@ -16,12 +16,18 @@ export type ApiQueryValue =
 
 export type ApiQueryParams = Record<string, ApiQueryValue>
 
-export interface ApiRequestOptions extends Omit<RequestInit, 'body'> {
-  query?: ApiQueryParams
-  body?: BodyInit | object | null
-}
+export type ApiRequestOptions = Omit<RequestInit, 'body'> & { query?: ApiQueryParams; body?: BodyInit | object | null }
 
 export type ApiAdapterMode = 'mock' | 'http'
+
+function createApiClientError(
+  kind: ApiFailureKind,
+  message: string,
+  code: string,
+  metadata: Omit<ConstructorParameters<typeof ApiClientError>[2], 'code'> = {},
+): ApiClientError {
+  return new ApiClientError(kind, message, { ...metadata, code })
+}
 
 export class ApiHttpError extends ApiClientError {
   readonly status: number
@@ -79,40 +85,47 @@ function classifyTransportFailure(error: unknown): ApiFailureKind {
   return 'network'
 }
 
-function createFetchFailure(error: unknown): ApiClientError {
+function createTransportFailure(
+  error: unknown,
+  timeoutMessage: string,
+  networkMessage: string,
+  timeoutCode: string,
+  networkCode: string,
+  status?: number,
+): ApiClientError {
   const kind = classifyTransportFailure(error)
-  return new ApiClientError(
-    kind,
-    kind === 'timeout' ? 'API 요청 시간이 초과되었습니다.' : 'API 서버에 연결하지 못했습니다.',
-    {
-      cause: error,
-      code: kind === 'timeout' ? 'REQUEST_TIMEOUT' : 'NETWORK_ERROR',
-    },
-  )
-}
-
-function createResponseReadFailure(error: unknown, status: number): ApiClientError {
-  const kind = classifyTransportFailure(error)
-  return new ApiClientError(
-    kind,
-    kind === 'timeout' ? 'API 응답 수신 시간이 초과되었습니다.' : 'API 응답 본문을 읽지 못했습니다.',
-    {
-      cause: error,
-      code: kind === 'timeout' ? 'RESPONSE_TIMEOUT' : 'RESPONSE_READ_FAILED',
-      status,
-    },
-  )
-}
-
-function createResponseParseFailure(error: unknown, status: number, body: string): ApiClientError {
-  return new ApiClientError('parse', 'API 응답 JSON을 해석하지 못했습니다.', {
-    body,
+  return createApiClientError(kind, kind === 'timeout' ? timeoutMessage : networkMessage, kind === 'timeout' ? timeoutCode : networkCode, {
     cause: error,
-    code: 'RESPONSE_PARSE_FAILED',
-    status,
+    ...(status == null ? {} : { status }),
   })
 }
 
+function createFetchFailure(error: unknown): ApiClientError {
+  return createTransportFailure(
+    error,
+    'API 요청 시간이 초과되었습니다.',
+    'API 서버에 연결하지 못했습니다.',
+    'REQUEST_TIMEOUT',
+    'NETWORK_ERROR',
+  )
+}
+function createResponseReadFailure(error: unknown, status: number): ApiClientError {
+  return createTransportFailure(
+    error,
+    'API 응답 수신 시간이 초과되었습니다.',
+    'API 응답 본문을 읽지 못했습니다.',
+    'RESPONSE_TIMEOUT',
+    'RESPONSE_READ_FAILED',
+    status,
+  )
+}
+function createResponseParseFailure(error: unknown, status: number, body: string): ApiClientError {
+  return createApiClientError('parse', 'API 응답 JSON을 해석하지 못했습니다.', 'RESPONSE_PARSE_FAILED', {
+    body,
+    cause: error,
+    status,
+  })
+}
 async function readResponseBody(response: Response): Promise<unknown> {
   if (response.status === 204) return undefined
   let text: string
@@ -139,7 +152,6 @@ function getHttpFallbackMessage(status: number, statusText: string): string {
   if (status >= 500 && status <= 599) return '서버 오류가 발생했습니다.'
   return statusText || 'API 요청에 실패했습니다.'
 }
-
 function getErrorMessage(body: unknown, fallback: string): string {
   if (isApiErrorResponse(body)) {
     const message = body.message.trim()
@@ -178,9 +190,8 @@ export async function apiRequest<T>(path: string, options: ApiRequestOptions = {
     requestBody = prepareBody(options.body)
     headers = prepareHeaders(options)
   } catch (error) {
-    throw new ApiClientError('client', 'API 요청을 생성하지 못했습니다.', {
+    throw createApiClientError('client', 'API 요청을 생성하지 못했습니다.', 'REQUEST_CREATE_FAILED', {
       cause: error,
-      code: 'REQUEST_CREATE_FAILED',
     })
   }
 
@@ -207,36 +218,18 @@ export async function apiRequest<T>(path: string, options: ApiRequestOptions = {
   return responseBody as T
 }
 
-export interface ApiEventStreamSubscription {
-  close: () => void
-}
+export type ApiEventStreamSubscription = { close: () => void }
+export type ApiEventStreamOptions = { onError?: (error: ApiClientError) => void }
 
-export interface ApiEventStreamOptions {
-  onError?: (error: ApiClientError) => void
+function createStreamFailure(
+  kind: ApiFailureKind,
+  message: string,
+  code: string,
+  cause: unknown,
+  body?: string,
+): ApiClientError {
+  return createApiClientError(kind, message, code, { body, cause })
 }
-
-function createStreamConnectionFailure(event: Event): ApiClientError {
-  return new ApiClientError('network', '스트림 연결에 실패했습니다.', {
-    cause: event,
-    code: 'SSE_CONNECTION_ERROR',
-  })
-}
-
-function createStreamOpenFailure(error: unknown): ApiClientError {
-  return new ApiClientError('network', '스트림 연결을 시작하지 못했습니다.', {
-    cause: error,
-    code: 'SSE_OPEN_FAILED',
-  })
-}
-
-function createStreamProtocolFailure(error: unknown, body: string): ApiClientError {
-  return new ApiClientError('stream-protocol', '스트림 메시지를 해석하지 못했습니다.', {
-    body,
-    cause: error,
-    code: 'SSE_MESSAGE_PARSE_FAILED',
-  })
-}
-
 export function openApiEventStream<T>(
   path: string,
   query: ApiQueryParams | undefined,
@@ -247,7 +240,7 @@ export function openApiEventStream<T>(
   try {
     eventSource = new EventSource(buildApiUrl(path, query), { withCredentials: true })
   } catch (error) {
-    throw createStreamOpenFailure(error)
+    throw createStreamFailure('network', '스트림 연결을 시작하지 못했습니다.', 'SSE_OPEN_FAILED', error)
   }
   eventSource.onmessage = (message) => {
     if (!message.data) return
@@ -256,13 +249,19 @@ export function openApiEventStream<T>(
       parsed = JSON.parse(message.data) as T
     } catch (error) {
       eventSource.close()
-      options.onError?.(createStreamProtocolFailure(error, message.data))
+      options.onError?.(createStreamFailure(
+        'stream-protocol',
+        '스트림 메시지를 해석하지 못했습니다.',
+        'SSE_MESSAGE_PARSE_FAILED',
+        error,
+        message.data,
+      ))
       return
     }
     listener(parsed)
   }
   eventSource.onerror = (event) => {
-    options.onError?.(createStreamConnectionFailure(event))
+    options.onError?.(createStreamFailure('network', '스트림 연결에 실패했습니다.', 'SSE_CONNECTION_ERROR', event))
   }
   return {
     close: () => eventSource.close(),

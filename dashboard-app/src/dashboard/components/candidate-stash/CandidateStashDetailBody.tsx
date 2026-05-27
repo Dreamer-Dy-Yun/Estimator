@@ -1,13 +1,10 @@
-﻿import type { RefObject } from 'react'
-import { formatGroupedNumber, formatRatioDecimalKo } from '../../../utils/format'
+import type { ReactNode } from 'react'
 import { LoadingSpinner } from '../../../components/LoadingSpinner'
+import { formatGroupedNumber, formatRatioDecimalKo } from '../../../utils/format'
 import { InnerCandidateOrderEmptyState, InnerCandidateOrderList } from './InnerCandidateOrderList'
-import type {
-  CandidateStashDetailModalModel,
-  InnerCandidateRow,
-  InnerCandidateSortKey,
-} from './useCandidateStashDetailModal'
+import type { CandidateStashDetailModalModel, InnerCandidateRow, InnerCandidateSortKey } from './useCandidateStashDetailModal'
 import detailStyles from './CandidateStashDetailModal.module.css'
+import type { RefObject } from 'react'
 
 type Props = {
   model: CandidateStashDetailModalModel
@@ -23,6 +20,13 @@ type Props = {
   onToggleItemDrawer: (row: InnerCandidateRow) => void
   keyboardNavigationDisabled?: boolean
 }
+
+const summaryRows = [
+  ['합계 오더 수량', 'qty', 'EA'],
+  ['합계 오더 금액', 'expectedOrderAmount', '원'],
+  ['합계 총 기대 매출', 'expectedSalesAmount', '원'],
+  ['합계 총 기대 영업 이익', 'expectedOpProfit', '원'],
+] as const
 
 export function CandidateStashDetailBody({
   model,
@@ -40,78 +44,25 @@ export function CandidateStashDetailBody({
 }: Props) {
   const hasCachedItems = model.items.length > 0
   const hasVisibleRows = model.tableRows.length > 0
-  const hasSearchQuery = Boolean(
-    model.brandQuery.trim() || model.codeQuery.trim() || model.productNameQuery.trim(),
-  )
-  const showCandidateItemsLoadAlert = Boolean(model.candidateItemsLoadError && hasCachedItems)
+  const hasSearchQuery = Boolean(model.brandQuery.trim() || model.codeQuery.trim() || model.productNameQuery.trim())
+  const emptyMessage = model.drawerError
+    ? `이너 후보 상세 로드 실패: ${model.drawerError}`
+    : model.candidateItemsLoadError && !hasCachedItems
+      ? `이너 후보 목록 로드 실패: ${model.candidateItemsLoadError}`
+      : hasSearchQuery ? '검색 결과가 없습니다.' : '등록된 이너 후보가 없습니다.'
 
   return (
     <div className={detailStyles.innerDrawerAwareBody}>
       <div className={detailStyles.innerSummaryGrid}>
-        <SummaryCard label="합계 오더 수량" value={formatGroupedNumber(model.totals.qty)} unit="EA" />
-        <SummaryCard
-          label="합계 오더 금액"
-          value={formatGroupedNumber(model.totals.expectedOrderAmount)}
-          unit="원"
-        />
-        <SummaryCard
-          label="합계 총 기대 매출"
-          value={formatGroupedNumber(model.totals.expectedSalesAmount)}
-          unit="원"
-        />
-        <SummaryCard
-          label="합계 총 기대 영업 이익"
-          value={formatGroupedNumber(model.totals.expectedOpProfit)}
-          unit="원"
-        />
-        <SummaryCard
-          label="합계 총 기대 영업이익률"
-          value={
-            model.totalExpectedOpProfitRatePct == null
-              ? '-'
-              : formatRatioDecimalKo(model.totalExpectedOpProfitRatePct)
-          }
-          unit="%"
-        />
+        {summaryRows.map(([label, key, unit]) => <SummaryCard key={key} label={label} value={formatGroupedNumber(model.totals[key])} unit={unit} />)}
+        <SummaryCard label="합계 총 기대 영업이익률" value={model.totalExpectedOpProfitRatePct == null ? '-' : formatRatioDecimalKo(model.totalExpectedOpProfitRatePct)} unit="%" />
       </div>
-
       <div className={detailStyles.innerCandidateListBlock}>
-        {showCandidateItemsLoadAlert ? (
-          <div
-            role="alert"
-            aria-live="polite"
-            style={{
-              marginBottom: 12,
-              border: '1px solid rgba(220, 38, 38, 0.35)',
-              borderRadius: 12,
-              background: 'rgba(254, 242, 242, 0.92)',
-              color: '#991b1b',
-              padding: '10px 12px',
-              fontSize: 13,
-              fontWeight: 600,
-            }}
-          >
-            이너 후보 목록 갱신 실패: {model.candidateItemsLoadError}
-          </div>
-        ) : null}
+        {model.candidateItemsLoadError && hasCachedItems ? <Alert>이너 후보 목록 갱신 실패: {model.candidateItemsLoadError}</Alert> : null}
         {model.candidateItemsLoading && !hasCachedItems ? (
-          <InnerCandidateOrderEmptyState>
-            <LoadingSpinner label="이너 후보 목록을 불러오는 중" />
-          </InnerCandidateOrderEmptyState>
-        ) : model.drawerError ? (
-          <InnerCandidateOrderEmptyState>
-            이너 후보 상세 로드 실패: {model.drawerError}
-          </InnerCandidateOrderEmptyState>
-        ) : model.candidateItemsLoadError && !hasCachedItems ? (
-          <InnerCandidateOrderEmptyState>
-            이너 후보 목록 로드 실패: {model.candidateItemsLoadError}
-          </InnerCandidateOrderEmptyState>
-        ) : !hasVisibleRows ? (
-          <InnerCandidateOrderEmptyState>
-            {hasSearchQuery
-              ? '검색 결과가 없습니다.'
-              : '등록된 이너 후보가 없습니다.'}
-          </InnerCandidateOrderEmptyState>
+          <InnerCandidateOrderEmptyState><LoadingSpinner label="이너 후보 목록을 불러오는 중" /></InnerCandidateOrderEmptyState>
+        ) : !hasVisibleRows || model.drawerError || (model.candidateItemsLoadError && !hasCachedItems) ? (
+          <InnerCandidateOrderEmptyState>{emptyMessage}</InnerCandidateOrderEmptyState>
         ) : (
           <InnerCandidateOrderList
             rows={model.tableRows}
@@ -137,13 +88,10 @@ export function CandidateStashDetailBody({
   )
 }
 
+function Alert({ children }: { children: ReactNode }) {
+  return <div className={detailStyles.orderExportError} role="alert">{children}</div>
+}
+
 function SummaryCard({ label, value, unit }: { label: string; value: string; unit: string }) {
-  return (
-    <div className={detailStyles.innerSummaryCard}>
-      <span className={detailStyles.innerSummaryLabel}>{label}</span>
-      <strong className={detailStyles.innerSummaryValue}>
-        {value} <span className={detailStyles.innerSummaryUnit}>{unit}</span>
-      </strong>
-    </div>
-  )
+  return <div className={detailStyles.innerSummaryCard}><span className={detailStyles.innerSummaryLabel}>{label}</span><strong className={detailStyles.innerSummaryValue}>{value} <span className={detailStyles.innerSummaryUnit}>{unit}</span></strong></div>
 }

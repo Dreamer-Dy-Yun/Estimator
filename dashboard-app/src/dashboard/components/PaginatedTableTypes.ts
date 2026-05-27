@@ -15,21 +15,13 @@ type SortableTableColumn<T> = TableColumnBase<T> & {
 }
 
 type StaticTableColumn<T> = TableColumnBase<T> & {
-  /** false: 헤더 클릭 정렬 비활성(액션 열 등) */
+  /** false이면 헤더 클릭 정렬을 비활성화한다. */
   sortable: false
   sortValue?: never
 }
 
 export type TableColumn<T> = SortableTableColumn<T> | StaticTableColumn<T>
 export type AriaSortValue = 'none' | 'ascending' | 'descending'
-
-export type ColumnRenderConfig<T> = {
-  column: TableColumn<T>
-  canSort: boolean
-  style: CSSProperties
-  ariaSort?: AriaSortValue
-  actionLabel?: string
-}
 
 type PaginatedTableBase<T> = {
   columns: Array<TableColumn<T>>
@@ -40,7 +32,7 @@ type PaginatedTableBase<T> = {
   onRowKeyDown?: (row: T, event: KeyboardEvent<HTMLTableRowElement>) => void
   onOrderedRowIdsChange?: (rowIds: string[]) => void
   defaultSort?: SortState
-  /** 루트 `.tableWrap`에 추가 클래스(페이지별 열 간격·밀도 등) */
+  /** 루트 tableWrap에 추가할 페이지별 클래스. */
   wrapClassName?: string
   infiniteScroll?: {
     enabled: boolean
@@ -49,14 +41,6 @@ type PaginatedTableBase<T> = {
 }
 
 export type PaginatedTableProps<T extends { id: string }> = PaginatedTableBase<T> & (
-  | {
-      paginated?: true
-      page: number
-      pageSize: number
-      onPageChange: (page: number) => void
-      onPageSizeChange: (size: number) => void
-    }
-  | {
-      paginated: false
-    }
+  | { paginated?: true; page: number; pageSize: number; onPageChange: (page: number) => void; onPageSizeChange: (size: number) => void }
+  | { paginated: false }
 )

@@ -1,8 +1,8 @@
 import type { CandidateOrderMetric } from '../types'
 import type { CandidateDataReferencePeriod } from './candidateItemSummaryTypes'
 import { buildCandidateItemInsight } from './candidateItemInsights'
-import { estimatePeriodWeight, productPrimaryBySkuGroupKey } from './productCatalog'
-import { scopeMockProductPrimary, scopeMockSelfSalesRow } from './mockCompanyScope'
+import { estimatePeriodWeight, productPrimaryBySkuGroupKey, productSecondaryBySkuGroupKey } from './productCatalog'
+import { scopeMockProductPrimary, scopeMockProductSecondary, scopeMockSelfSalesRow } from './mockCompanyScope'
 import type { CandidateItemRecord } from './records'
 import { selfBySkuGroupKey } from './salesTables'
 
@@ -16,6 +16,12 @@ function getPeriodWeight(dataReferencePeriod?: CandidateDataReferencePeriod) {
   return dataReferencePeriod
     ? estimatePeriodWeight(dataReferencePeriod.start, dataReferencePeriod.end)
     : 1
+}
+
+function getProductSecondary(skuGroupKey: string) {
+  const secondary = productSecondaryBySkuGroupKey[skuGroupKey]
+  if (!secondary) throw new Error(`Unknown mock secondary SKU group: ${skuGroupKey}`)
+  return secondary
 }
 
 export function buildCandidateItemOrderMetric(
@@ -37,8 +43,9 @@ export function buildCandidateItemOrderMetric(
   const expectedSalesAmount = qty * avgPrice
   const expectedOpProfit = qty * Math.round(avgPrice - avgCost - (avgPrice * feeRatePct) / 100)
   const opMarginRatePct = expectedSalesAmount > 0 ? (expectedOpProfit / expectedSalesAmount) * 100 : null
-  const sizeMix = primary.sizeMix
-  const sizeRatioSum = sizeMix.reduce((acc, sizeRow) => acc + Math.max(0, sizeRow.ratio), 0)
+  const secondary = scopeMockProductSecondary(getProductSecondary(skuGroupKey), { companyUuid })
+  const sizeRows = secondary.sizeRows
+  const sizeRatioSum = sizeRows.reduce((acc, sizeRow) => acc + Math.max(0, sizeRow.selfRatio), 0)
   const insight = buildCandidateItemInsight(
     skuGroupKey,
     qty,
@@ -65,11 +72,11 @@ export function buildCandidateItemOrderMetric(
       avgPrice,
       feeRatePct,
       opMarginRatePct,
-      inboundExpectedDate: row.details?.drawer2.stockInputs.leadTimeEndDate ?? null,
+      inboundExpectedDate: row.details?.drawer2.stockOrderRequest.nextOrderInboundDueDate ?? null,
       sizeOrderQty: sizeRatioSum > 0
-        ? sizeMix.map((sizeRow) => ({
+        ? sizeRows.map((sizeRow) => ({
             size: sizeRow.size,
-            orderQty: Math.max(0, Math.round(qty * (Math.max(0, sizeRow.ratio) / sizeRatioSum))),
+            orderQty: Math.max(0, Math.round(qty * (Math.max(0, sizeRow.selfRatio) / sizeRatioSum))),
           }))
         : [],
     },

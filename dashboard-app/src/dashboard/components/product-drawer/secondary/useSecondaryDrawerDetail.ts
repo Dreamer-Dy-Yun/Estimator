@@ -33,13 +33,22 @@ function getSecondaryDetailFromSnapshot(
   skuGroupKey: string,
 ): ProductSecondaryDetail | null {
   if (hydrateSnapshot?.skuGroupKey !== skuGroupKey) return null
-  const basis = hydrateSnapshot.drawer2.competitorSalesBasis
+  const basis = hydrateSnapshot.drawer2.competitorBasis
   if (basis.skuGroupKey !== skuGroupKey) return null
+  const display = hydrateSnapshot.drawer2.stockOrderResult?.display
   return {
     skuGroupKey: basis.skuGroupKey,
     competitorPrice: basis.competitorPrice,
     competitorQty: basis.competitorQty,
     competitorRatioBySize: { ...basis.competitorRatioBySize },
+    sizeRows: hydrateSnapshot.drawer2.sizeOrders.map((row, index) => ({
+      size: row.size,
+      selfRatio: row.selfSharePct,
+      confirmedQty: row.confirmQty,
+      avgPrice: hydrateSnapshot.drawer2.unitEconomics?.unitPrice ?? hydrateSnapshot.drawer1.summary.price,
+      qty: row.forecastQty,
+      availableStock: display?.currentStockQtyBySize[index] ?? 0,
+    })),
   }
 }
 

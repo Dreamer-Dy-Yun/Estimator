@@ -1,32 +1,24 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type MutableRefObject } from 'react'
+import { useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import {
   appendCandidateItems,
   getApiErrorDisplayMessage,
   getCandidateRecommendations,
-  type CandidateItemSummary,
   type CandidateReferenceItemSummary,
-  type CandidateStashItemSummary,
 } from '../../../api'
 import {
   applyRecommendationInsightsToCandidateItems,
   markCandidateItemInsightsFailed,
 } from './candidateItemMetricModel'
+import type {
+  AppendRecommendedItems,
+  AppendRecommendedItemsResult,
+  CandidateItemsRef,
+  CandidateMountedRef,
+  CandidateSetItems,
+  CandidateShowToast,
+} from './candidateStashDetailTypes'
 
 const RECOMMENDATION_PAGE_SIZE = 100
-
-type CandidateItemStateUpdater =
-  | CandidateItemSummary[]
-  | ((current: CandidateItemSummary[]) => CandidateItemSummary[])
-
-type AppendRecommendedItems = (
-  candidateItems: CandidateStashItemSummary[],
-  recommendations: CandidateReferenceItemSummary[],
-) => void
-
-export type AppendRecommendedItemsResult =
-  | { status: 'applied'; appendedCount: number }
-  | { status: 'stale' }
-  | { status: 'empty' }
 
 type Args = {
   stashUuid: string
@@ -35,15 +27,20 @@ type Args = {
   dataReferencePeriodEnd: string
   itemMembershipKey: string
   itemSkuUuids: string[]
-  mountedRef: MutableRefObject<boolean>
-  itemsRef: MutableRefObject<CandidateItemSummary[]>
-  setItems: (next: CandidateItemStateUpdater) => void
+  mountedRef: CandidateMountedRef
+  itemsRef: CandidateItemsRef
+  setItems: CandidateSetItems
   onRecommendedItemsAppended: AppendRecommendedItems
   refreshStashes: () => Promise<void>
-  showToast: (message: string) => void
+  showToast: CandidateShowToast
 }
 
 const COMPANY_REQUIRED_MESSAGE = '추천 후보 추가는 회사 선택이 필요합니다.'
+
+type RecommendationScopeKey = {
+  period: string | null
+  recommendation: string | null
+}
 
 export function useCandidateRecommendations({
   stashUuid,
@@ -67,18 +64,14 @@ export function useCandidateRecommendations({
   const requestSeqRef = useRef(0)
   const appendSeqRef = useRef(0)
   const appendBusyRef = useRef(false)
-  const currentScopeKeyRef = useRef<string | null>(null)
-  const currentRecommendationKeyRef = useRef<string | null>(null)
-  const recommendationItemsRef = useRef<CandidateReferenceItemSummary[]>([])
-  const recommendationSourceItemsRef = useRef<CandidateReferenceItemSummary[]>([])
+  const currentKeyRef = useRef<RecommendationScopeKey>({ period: null, recommendation: null })
   const currentPeriodKey = stashUuid && dataReferencePeriodStart && dataReferencePeriodEnd
     ? `${companyUuid ?? 'all'}:${stashUuid}:${dataReferencePeriodStart}:${dataReferencePeriodEnd}`
     : null
   const currentRecommendationKey = currentPeriodKey ? `${currentPeriodKey}:${itemMembershipKey}` : null
 
   useLayoutEffect(() => {
-    currentScopeKeyRef.current = currentPeriodKey
-    currentRecommendationKeyRef.current = currentRecommendationKey
+    currentKeyRef.current = { period: currentPeriodKey, recommendation: currentRecommendationKey }
   }, [currentPeriodKey, currentRecommendationKey])
 
   const recommendationItems = useMemo(() => {
@@ -87,14 +80,8 @@ export function useCandidateRecommendations({
     return recommendationSourceItems.filter((row) => !candidateSkuUuidSet.has(row.uuid))
   }, [currentPeriodKey, itemSkuUuids, loadedScopeKey, recommendationSourceItems])
 
-  useEffect(() => {
-    recommendationItemsRef.current = recommendationItems
-  }, [recommendationItems])
-
   const clearRecommendationItems = useCallback(() => {
     requestSeqRef.current += 1
-    recommendationSourceItemsRef.current = []
-    recommendationItemsRef.current = []
     setLoadedScopeKey(null)
     setRecommendationSourceItems([])
     setRecommendationLoading(false)
@@ -107,14 +94,14 @@ export function useCandidateRecommendations({
     if (!requestScopeKey || !requestRecommendationKey || !stashUuid || !dataReferencePeriodStart || !dataReferencePeriodEnd) {
       return []
     }
-    if (!force && loadedScopeKey === requestScopeKey) return recommendationItemsRef.current
+    if (!force && loadedScopeKey === requestScopeKey) return recommendationItems
     const seq = requestSeqRef.current + 1
     requestSeqRef.current = seq
     const isCurrentRecommendationRequest = () => (
       mountedRef.current
       && requestSeqRef.current === seq
-      && currentScopeKeyRef.current === requestScopeKey
-      && currentRecommendationKeyRef.current === requestRecommendationKey
+      && currentKeyRef.current.period === requestScopeKey
+      && currentKeyRef.current.recommendation === requestRecommendationKey
     )
     setRecommendationLoading(true)
     setRecommendationError(null)
@@ -130,27 +117,25 @@ export function useCandidateRecommendations({
           limit: RECOMMENDATION_PAGE_SIZE,
           cursor,
         })
-        if (!isCurrentRecommendationRequest()) return recommendationItemsRef.current
+        if (!isCurrentRecommendationRequest()) return recommendationItems
         allRecommendations.push(...result.recommendations)
         cursor = result.nextCursor ?? undefined
       } while (cursor)
-      if (!isCurrentRecommendationRequest()) return recommendationItemsRef.current
+      if (!isCurrentRecommendationRequest()) return recommendationItems
       const candidateSkuUuidSet = new Set(itemsRef.current.map((item) => item.skuUuid))
       const recommendationRows = allRecommendations.filter((row) => !candidateSkuUuidSet.has(row.uuid))
       setItems((current) => applyRecommendationInsightsToCandidateItems(current, allRecommendations))
-      recommendationSourceItemsRef.current = allRecommendations
-      recommendationItemsRef.current = recommendationRows
       setLoadedScopeKey(requestScopeKey)
       setRecommendationSourceItems(allRecommendations)
       setRecommendationLoading(false)
       return recommendationRows
     } catch (err) {
-      if (!isCurrentRecommendationRequest()) return recommendationItemsRef.current
+      if (!isCurrentRecommendationRequest()) return recommendationItems
       const message = getApiErrorDisplayMessage(err, '추천 후보 조회에 실패했습니다.')
       setRecommendationError(message)
       setItems(markCandidateItemInsightsFailed)
       setRecommendationLoading(false)
-      return recommendationItemsRef.current
+      return recommendationItems
     }
   }, [
     companyUuid,
@@ -161,6 +146,7 @@ export function useCandidateRecommendations({
     itemsRef,
     loadedScopeKey,
     mountedRef,
+    recommendationItems,
     setItems,
     stashUuid,
   ])
@@ -188,26 +174,21 @@ export function useCandidateRecommendations({
     const canReflectAppend = () => (
       mountedRef.current
       && appendSeqRef.current === appendSeq
-      && currentScopeKeyRef.current === appendScopeKey
-      && currentRecommendationKeyRef.current === appendRecommendationKey
+      && currentKeyRef.current.period === appendScopeKey
+      && currentKeyRef.current.recommendation === appendRecommendationKey
     )
     try {
       const result = await appendCandidateItems({ stashUuid, companyUuid, skuGroupKeys })
       if (!canReflectAppend()) return { status: 'stale' }
       onRecommendedItemsAppended(result.candidateItems, rows)
       const createdSkuUuidSet = new Set(result.candidateItems.map((item) => item.skuUuid))
-      if (createdSkuUuidSet.size) {
-        const nextSourceItems = recommendationSourceItemsRef.current.filter((row) => !createdSkuUuidSet.has(row.uuid))
-        recommendationSourceItemsRef.current = nextSourceItems
-        setRecommendationSourceItems(nextSourceItems)
-      } else if (skuGroupKeys.length) {
-        const requestedSkuGroupKeySet = new Set(skuGroupKeys)
-        const nextSourceItems = recommendationSourceItemsRef.current.filter((row) => (
-          !requestedSkuGroupKeySet.has(row.skuGroupKey)
-        ))
-        recommendationSourceItemsRef.current = nextSourceItems
-        setRecommendationSourceItems(nextSourceItems)
-      }
+      const removableKeySet = createdSkuUuidSet.size
+        ? createdSkuUuidSet
+        : new Set(skuGroupKeys)
+      const removableField = createdSkuUuidSet.size ? 'uuid' : 'skuGroupKey'
+      setRecommendationSourceItems((current) => (
+        current.filter((row) => !removableKeySet.has(row[removableField]))
+      ))
       void refreshStashes().catch((err) => {
         if (!canReflectAppend()) return
         showToast(getApiErrorDisplayMessage(err, '후보군 목록 최신화에 실패했습니다.'))

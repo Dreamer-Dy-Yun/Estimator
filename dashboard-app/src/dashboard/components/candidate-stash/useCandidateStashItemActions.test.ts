@@ -150,11 +150,11 @@ describe('useCandidateStashItemActions', () => {
 
     expect(args.onItemsDeleted).toHaveBeenCalledWith(['item-1'])
     expect(args.showToast).toHaveBeenCalledWith(
-      '후보를 삭제했지만 목록을 새로고침하지 못했습니다.',
+      '후보는 삭제했지만 목록을 새로고침하지 못했습니다.',
       { variant: 'error' },
     )
     expect(vi.mocked(args.showToast).mock.calls.map(([message]) => message)).not.toContain('후보를 삭제했습니다.')
-    expect(vi.mocked(args.showToast).mock.calls.some(([message]) => message.includes('삭제하지 못했습니다'))).toBe(false)
+    expect(vi.mocked(args.showToast).mock.calls.some(([message]) => message.includes('삭제하지 못했습니다.'))).toBe(false)
   })
 
   it('marks item delete mutation failure toast as error', async () => {
@@ -195,11 +195,11 @@ describe('useCandidateStashItemActions', () => {
 
     await expect(act(async () => {
       await hook.current.confirmUnconfirmItems(['item-1'])
-    })).rejects.toThrow('오더 후보군은 회사 선택이 필요합니다.')
+    })).rejects.toThrow('오더 후보군 작업은 회사 선택이 필요합니다.')
 
     expect(args.refreshStashes).not.toHaveBeenCalled()
     expect(args.showToast).toHaveBeenCalledWith(
-      '선택 후보 상세 확정을 해제하지 못했습니다.: 오더 후보군은 회사 선택이 필요합니다.',
+      '선택 후보 상세확정을 해제하지 못했습니다.: 오더 후보군 작업은 회사 선택이 필요합니다.',
       { variant: 'error' },
     )
   })
@@ -216,7 +216,7 @@ describe('useCandidateStashItemActions', () => {
 
     expect(args.refreshStashes).toHaveBeenCalledTimes(1)
     expect(args.showToast).toHaveBeenCalledWith(
-      '상세 확정 해제: 1개 성공/1개 실패했습니다.',
+      '상세확정 해제: 1개 성공/1개 실패했습니다.',
       { variant: 'error' },
     )
   })

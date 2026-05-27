@@ -1,4 +1,4 @@
-﻿// @vitest-environment jsdom
+// @vitest-environment jsdom
 import { act, type ComponentProps } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -67,9 +67,9 @@ const renderModal = (overrides: Partial<ComponentProps<typeof CandidateStashPick
   return { container, root, props }
 }
 
-const dispatchKeyDown = (key: string, init: KeyboardEventInit = {}) => {
+const dispatchKeyDown = (target: EventTarget, key: string, init: KeyboardEventInit = {}) => {
   act(() => {
-    document.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true, ...init }))
+    target.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true, ...init }))
   })
 }
 
@@ -115,10 +115,10 @@ describe('CandidateStashPickerModal focus management', () => {
     expect(secondOption).toBeTruthy()
 
     closeButton?.focus()
-    dispatchKeyDown('Tab', { shiftKey: true })
+    dispatchKeyDown(closeButton as HTMLButtonElement, 'Tab', { shiftKey: true })
     expect(document.activeElement).toBe(secondOption)
 
-    dispatchKeyDown('Tab')
+    dispatchKeyDown(secondOption as HTMLButtonElement, 'Tab')
     expect(document.activeElement).toBe(closeButton)
 
     nameInput.focus()
@@ -127,8 +127,9 @@ describe('CandidateStashPickerModal focus management', () => {
 
   it('closes the picker modal when Escape is pressed', () => {
     const { props } = renderModal()
+    const nameInput = document.getElementById('candidate-name-input') as HTMLInputElement
 
-    dispatchKeyDown('Escape')
+    dispatchKeyDown(nameInput, 'Escape')
 
     expect(props.onClose).toHaveBeenCalledTimes(1)
   })

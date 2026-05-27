@@ -1,10 +1,11 @@
-﻿import { useEffect, useRef } from 'react'
+import { useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { formatDateTimeMinute } from '../../../../utils/date'
 import { LoadingSpinner } from '../../../../components/LoadingSpinner'
 import commonStyles from '../../common.module.css'
 import { KO } from '../ko'
 import styles from './secondaryDrawer.module.css'
+import { useModalFocusTrap } from '../../useModalFocusTrap'
 
 export type CandidateStashPickerOption = {
   uuid: string
@@ -26,19 +27,6 @@ type Props = {
   onClose: () => void
 }
 
-const focusableSelector = [
-  'a[href]',
-  'button:not([disabled])',
-  'input:not([disabled])',
-  'select:not([disabled])',
-  'textarea:not([disabled])',
-  '[tabindex]:not([tabindex="-1"])',
-].join(',')
-
-const getFocusableElements = (container: HTMLElement) => Array.from(
-  container.querySelectorAll<HTMLElement>(focusableSelector),
-).filter((element) => !element.hasAttribute('hidden') && element.tabIndex !== -1)
-
 export function CandidateStashPickerModal({
   options,
   selectedUuid,
@@ -53,63 +41,13 @@ export function CandidateStashPickerModal({
 }: Props) {
   const dialogRef = useRef<HTMLDivElement | null>(null)
   const nameInputRef = useRef<HTMLInputElement | null>(null)
-  const previousFocusRef = useRef<HTMLElement | null>(null)
   const isRefreshingOptions = loading && options.length > 0
   const refreshingStatusId = 'candidate-stash-picker-refreshing-status'
-
-  useEffect(() => {
-    previousFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
-    nameInputRef.current?.focus()
-
-    return () => {
-      const previousFocus = previousFocusRef.current
-      if (previousFocus?.isConnected) {
-        previousFocus.focus()
-      }
-    }
-  }, [])
-
-  useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        event.preventDefault()
-        onClose()
-        return
-      }
-
-      if (event.key !== 'Tab') return
-
-      const dialog = dialogRef.current
-      if (!dialog) return
-
-      const focusableElements = getFocusableElements(dialog)
-      if (focusableElements.length === 0) {
-        event.preventDefault()
-        dialog.focus()
-        return
-      }
-
-      const firstFocusable = focusableElements[0]
-      const lastFocusable = focusableElements[focusableElements.length - 1]
-      const activeElement = document.activeElement
-
-      if (event.shiftKey) {
-        if (activeElement === firstFocusable || !dialog.contains(activeElement)) {
-          event.preventDefault()
-          lastFocusable.focus()
-        }
-        return
-      }
-
-      if (activeElement === lastFocusable || !dialog.contains(activeElement)) {
-        event.preventDefault()
-        firstFocusable.focus()
-      }
-    }
-
-    document.addEventListener('keydown', handleKeyDown)
-    return () => document.removeEventListener('keydown', handleKeyDown)
-  }, [onClose])
+  const handleKeyDown = useModalFocusTrap({
+    panelRef: dialogRef,
+    onClose,
+    initialFocusRef: nameInputRef,
+  })
 
   return createPortal(
     <div className={styles.candidateModalBackdrop} role="presentation" onClick={onClose}>
@@ -122,12 +60,11 @@ export function CandidateStashPickerModal({
         aria-describedby="candidate-stash-picker-description"
         tabIndex={-1}
         onClick={(event) => event.stopPropagation()}
+        onKeyDown={handleKeyDown}
       >
         <div className={styles.candidatePanel}>
           <div className={styles.candidateModalHeader}>
-            <h4 id="candidate-stash-picker-title" className={styles.candidateModalTitle}>
-              {KO.btnSelectCandidate}
-            </h4>
+            <h4 id="candidate-stash-picker-title" className={styles.candidateModalTitle}>{KO.btnSelectCandidate}</h4>
             <p id="candidate-stash-picker-description" hidden>
               후보군을 선택하거나 이름과 비고를 입력해 새 후보군을 생성할 수 있습니다.
             </p>
@@ -184,12 +121,7 @@ export function CandidateStashPickerModal({
             ) : (
               <>
                 {isRefreshingOptions && (
-                  <p
-                    id={refreshingStatusId}
-                    className={styles.metaFilterActionHint}
-                    role="status"
-                    aria-live="polite"
-                  >
+                  <p id={refreshingStatusId} className={styles.metaFilterActionHint} role="status" aria-live="polite">
                     후보군 목록을 갱신 중입니다. 갱신 중에는 기존 후보군을 선택할 수 없습니다.
                   </p>
                 )}
@@ -197,9 +129,7 @@ export function CandidateStashPickerModal({
                   <button
                     key={row.uuid}
                     type="button"
-                    className={`${styles.candidateListItem} ${
-                      selectedUuid === row.uuid ? styles.candidateListItemActive : ''
-                    }`}
+                    className={`${styles.candidateListItem} ${selectedUuid === row.uuid ? styles.candidateListItemActive : ''}`}
                     disabled={loading}
                     aria-describedby={isRefreshingOptions ? refreshingStatusId : undefined}
                     aria-pressed={selectedUuid === row.uuid}
@@ -207,16 +137,10 @@ export function CandidateStashPickerModal({
                   >
                     <div className={styles.candidateListItemTop}>
                       <span className={styles.candidateListItemName}>{row.name}</span>
-                      {selectedUuid === row.uuid && (
-                        <span className={styles.candidateListItemBadge}>선택됨</span>
-                      )}
+                      {selectedUuid === row.uuid && <span className={styles.candidateListItemBadge}>선택됨</span>}
                     </div>
-                    <span className={styles.candidateListItemMeta}>
-                      생성일 {formatDateTimeMinute(row.dbCreatedAt)}
-                    </span>
-                    <span className={styles.candidateListItemDesc}>
-                      {row.note?.trim() ? row.note : KO.msgNoNote}
-                    </span>
+                    <span className={styles.candidateListItemMeta}>생성일 {formatDateTimeMinute(row.dbCreatedAt)}</span>
+                    <span className={styles.candidateListItemDesc}>{row.note?.trim() ? row.note : KO.msgNoNote}</span>
                   </button>
                 ))}
               </>

@@ -1,6 +1,6 @@
 import { formatGroupedNumber, formatRatioDecimalKo } from '../../../../../utils/format'
 
-import type { SizeOrderRow } from './sizeOrderCardTypes'
+import type { SecondarySizeOrderDisplayRow } from '../model/secondarySizeOrderRows'
 
 export type SizeOrderColumnTotals = {
   weightedPct: number
@@ -39,7 +39,7 @@ export function parseSelfWeightPctFromCompetitorInput(rawValue: string): number 
   return next == null ? null : getSelfWeightPctFromCompetitorInput(next)
 }
 
-export function calculateSizeOrderColumnTotals(sizeRows: readonly SizeOrderRow[]): SizeOrderColumnTotals {
+export function calculateSizeOrderColumnTotals(sizeRows: readonly SecondarySizeOrderDisplayRow[]): SizeOrderColumnTotals {
   return sizeRows.reduce<SizeOrderColumnTotals>(
     (totals, row) => ({
       weightedPct: totals.weightedPct + row.blendedSharePct,

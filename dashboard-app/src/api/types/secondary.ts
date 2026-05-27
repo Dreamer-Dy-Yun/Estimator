@@ -58,28 +58,24 @@ export interface SecondaryStockOrderCalcParams extends CompanyScopeParams {
   periodStart: string
   periodEnd: string
   forecastPeriodEnd?: string
-  serviceLevelPct: number
   leadTimeDays: number
-  safetyStockMode: 'manual' | 'formula'
-  manualSafetyStock: number
   /** Optional demand mean supplied by the frontend; backend computes it when omitted. */
   dailyMean?: number
 }
 
-export interface SecondaryStockSafetyCalcBlock {
-  safetyStock: number
+interface SecondaryStockOrderAmountBlock {
   recommendedOrderQty: number
   expectedOrderAmount: number
   expectedSalesAmount: number
   expectedOpProfit: number
 }
 
-export interface SecondaryStockForecastQtyCalcBlock {
+export interface SecondaryStockSafetyCalcBlock extends SecondaryStockOrderAmountBlock {
+  safetyStock: number
+}
+
+export interface SecondaryStockForecastQtyCalcBlock extends SecondaryStockOrderAmountBlock {
   safetyStock: null
-  recommendedOrderQty: number
-  expectedOrderAmount: number
-  expectedSalesAmount: number
-  expectedOpProfit: number
 }
 
 export interface SecondaryStockOrderCalcResult {

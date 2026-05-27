@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { dashboardApi } from '../../../../../api'
+import type { SecondaryStockOrderCalcResult } from '../../../../../api/types'
 import type { ApiUnitErrorInfo } from '../../../../../types'
-import type { SecondaryForecastCalc } from '../secondaryDrawerTypes'
 
 const STOCK_ORDER_CALC_DEBOUNCE_MS = 1000
 
@@ -11,10 +11,7 @@ type Params = {
   selectedEnd: string
   companyUuid?: string
   forecastMeanPeriodEnd: string
-  serviceLevelPct: number
   leadTimeDays: number
-  safetyStockMode: 'manual' | 'formula'
-  manualSafetyStock: number
   dailyMeanClient: number | null
   makeApiErrorInfo: (request: string, err: unknown) => ApiUnitErrorInfo
 }
@@ -25,14 +22,11 @@ export function useSecondaryStockOrderCalc({
   selectedEnd,
   companyUuid,
   forecastMeanPeriodEnd,
-  serviceLevelPct,
   leadTimeDays,
-  safetyStockMode,
-  manualSafetyStock,
   dailyMeanClient,
   makeApiErrorInfo,
 }: Params) {
-  const [forecastCalc, setForecastCalc] = useState<SecondaryForecastCalc | null>(null)
+  const [forecastCalc, setForecastCalc] = useState<SecondaryStockOrderCalcResult | null>(null)
   const [forecastCalcError, setForecastCalcError] = useState<ApiUnitErrorInfo | null>(null)
   const [forecastCalcLoading, setForecastCalcLoading] = useState(true)
 
@@ -45,17 +39,13 @@ export function useSecondaryStockOrderCalc({
     timerId = window.setTimeout(() => {
       void (async () => {
         try {
-          const roundedManualSafetyStock = Math.max(0, Math.round(manualSafetyStock))
           const params = {
             skuGroupKey,
             companyUuid,
             periodStart: selectedStart,
             periodEnd: selectedEnd,
             forecastPeriodEnd: forecastMeanPeriodEnd,
-            serviceLevelPct,
             leadTimeDays,
-            safetyStockMode,
-            manualSafetyStock: roundedManualSafetyStock,
             ...(dailyMeanClient != null ? { dailyMean: dailyMeanClient } : {}),
           }
           const result = await dashboardApi.getSecondaryStockOrderCalc(params)
@@ -73,10 +63,7 @@ export function useSecondaryStockOrderCalc({
                 periodStart: selectedStart,
                 periodEnd: selectedEnd,
                 forecastPeriodEnd: forecastMeanPeriodEnd,
-                serviceLevelPct,
                 leadTimeDays,
-                safetyStockMode,
-                manualSafetyStock,
               })})`,
               err,
             ),
@@ -96,12 +83,9 @@ export function useSecondaryStockOrderCalc({
     forecastMeanPeriodEnd,
     leadTimeDays,
     makeApiErrorInfo,
-    manualSafetyStock,
     skuGroupKey,
-    safetyStockMode,
     selectedEnd,
     selectedStart,
-    serviceLevelPct,
   ])
 
   return { forecastCalc, forecastCalcError, forecastCalcLoading }

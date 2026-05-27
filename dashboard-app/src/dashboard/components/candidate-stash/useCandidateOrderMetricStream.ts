@@ -1,7 +1,6 @@
-import { useCallback, useEffect, useRef, type Dispatch, type SetStateAction } from 'react'
+import { useCallback, useEffect, useRef } from 'react'
 import {
   subscribeCandidateOrderMetrics,
-  type CandidateItemSummary,
   type CandidateOrderMetricSubscription,
 } from '../../../api'
 import {
@@ -14,16 +13,13 @@ import {
   normalizeCandidateItemUuids,
   settlePendingMetricItem,
 } from './candidateOrderMetricStreamModel'
-
-type MountedRef = {
-  current: boolean
-}
+import type { CandidateMountedRef, CandidateSetItems } from './candidateStashDetailTypes'
 
 type Args = {
   stashUuid: string
   companyUuid?: string
-  mountedRef: MountedRef
-  setItems: Dispatch<SetStateAction<CandidateItemSummary[]>>
+  mountedRef: CandidateMountedRef
+  setItems: CandidateSetItems
 }
 
 type SubscribeArgs = {

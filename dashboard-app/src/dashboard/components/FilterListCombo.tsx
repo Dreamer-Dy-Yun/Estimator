@@ -1,28 +1,19 @@
-/**
- * 리스트 값만 제안하는 **공통** 콤보 입력(네이티브 `<datalist>` 아님).
- * 카드형과 맞춘 패널: `FilterListCombo.module.css` + body 포털 `position:fixed`.
- *
- * 사용처:
- * - `FilterBar`의 `kind: 'listCombo'`가 여기로 위임.
- * - 필터 바깥(단일 필드)에서도 동일 UI가 필요하면 이 컴포넌트만 import 해 `<label htmlFor={inputId}>`와 조합.
- */
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react'
 import { createPortal } from 'react-dom'
 import styles from './FilterListCombo.module.css'
 
 type PanelRect = { top: number; left: number; width: number }
-const ALL_OPTION_LABEL = '전체'
-
 type Props = {
-  /** 바깥 `<label htmlFor>`와 동일 id */
   inputId: string
   value: string
   onChange: (next: string) => void
-  /** 리스트에서만 온 고유값(부분 일치로 필터해 표시) */
   options: string[]
   inputType?: 'text' | 'date'
   disabled?: boolean
 }
+
+const ALL_OPTION_LABEL = '전체'
+const isArrowOpenKey = (key: string) => key === 'ArrowDown' || key === 'ArrowUp'
 
 export function FilterListCombo({ inputId, value, onChange, options, inputType = 'text', disabled = false }: Props) {
   const wrapRef = useRef<HTMLDivElement | null>(null)
@@ -30,142 +21,102 @@ export function FilterListCombo({ inputId, value, onChange, options, inputType =
   const [activeIdx, setActiveIdx] = useState(-1)
   const [panelRect, setPanelRect] = useState<PanelRect | null>(null)
   const comboOpen = open && !disabled
-
   const filtered = useMemo(() => {
     if (disabled) return []
     const q = value.trim().toLowerCase()
-    if (!q || q === ALL_OPTION_LABEL.toLowerCase()) return options
-    return options.filter((o) => o.toLowerCase().includes(q))
+    return !q || q === ALL_OPTION_LABEL.toLowerCase() ? options : options.filter((option) => option.toLowerCase().includes(q))
   }, [disabled, options, value])
+  const showList = comboOpen && options.length > 0 && filtered.length > 0
+  const showNoMatch = comboOpen && options.length > 0 && filtered.length === 0 && value.trim() !== '' && value.trim().toLowerCase() !== ALL_OPTION_LABEL.toLowerCase()
+  const panelVisible = showList || showNoMatch
 
   const updatePanelRect = useCallback(() => {
-    const el = wrapRef.current
-    if (!el) return
-    const r = el.getBoundingClientRect()
-    setPanelRect({ top: r.bottom + 4, left: r.left, width: Math.max(160, r.width) })
+    const rect = wrapRef.current?.getBoundingClientRect()
+    if (rect) setPanelRect({ top: rect.bottom + 4, left: rect.left, width: Math.max(160, rect.width) })
   }, [])
-
-  useLayoutEffect(() => {
-    if (!comboOpen) return
-    updatePanelRect()
-    const onReposition = () => updatePanelRect()
-    window.addEventListener('resize', onReposition)
-    window.addEventListener('scroll', onReposition, true)
-    return () => {
-      window.removeEventListener('resize', onReposition)
-      window.removeEventListener('scroll', onReposition, true)
-    }
-  }, [comboOpen, updatePanelRect, filtered.length, value])
-
   const close = useCallback(() => {
     setOpen(false)
     setActiveIdx(-1)
     setPanelRect(null)
   }, [])
+  const pick = useCallback((next: string) => {
+    onChange(next)
+    close()
+  }, [close, onChange])
+
+  useLayoutEffect(() => {
+    if (!comboOpen) return
+    updatePanelRect()
+    window.addEventListener('resize', updatePanelRect)
+    window.addEventListener('scroll', updatePanelRect, true)
+    return () => {
+      window.removeEventListener('resize', updatePanelRect)
+      window.removeEventListener('scroll', updatePanelRect, true)
+    }
+  }, [comboOpen, filtered.length, updatePanelRect, value])
 
   useEffect(() => {
     if (!comboOpen) return
-    const onDoc = (e: MouseEvent) => {
-      const t = e.target as Node
-      const el = wrapRef.current
-      if (el?.contains(t)) return
-      if ((e.target as HTMLElement | null)?.closest?.('[data-filter-combo-panel]')) return
-      close()
+    const onDocumentMouseDown = (event: MouseEvent) => {
+      const target = event.target as Node
+      if (!wrapRef.current?.contains(target) && !(event.target as HTMLElement | null)?.closest?.('[data-filter-combo-panel]')) close()
     }
-    document.addEventListener('mousedown', onDoc)
-    return () => document.removeEventListener('mousedown', onDoc)
-  }, [comboOpen, close])
+    document.addEventListener('mousedown', onDocumentMouseDown)
+    return () => document.removeEventListener('mousedown', onDocumentMouseDown)
+  }, [close, comboOpen])
 
-  const pick = useCallback(
-    (v: string) => {
-      onChange(v)
-      close()
-    },
-    [onChange, close],
-  )
-
-  const onKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+  const onKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
     if (disabled) return
-    if (!comboOpen && (e.key === 'ArrowDown' || e.key === 'ArrowUp') && filtered.length > 0) {
+    if (!comboOpen && isArrowOpenKey(event.key) && filtered.length > 0) {
       setOpen(true)
-      setActiveIdx(e.key === 'ArrowUp' ? filtered.length - 1 : 0)
-      e.preventDefault()
+      setActiveIdx(event.key === 'ArrowUp' ? filtered.length - 1 : 0)
+      event.preventDefault()
       return
     }
     if (!comboOpen) return
-    if (e.key === 'Escape') {
+    if (event.key === 'Escape') {
       close()
-      e.preventDefault()
+      event.preventDefault()
       return
     }
-    if (e.key === 'ArrowDown') {
-      setActiveIdx((i) => (filtered.length === 0 ? -1 : (i + 1) % filtered.length))
-      e.preventDefault()
+    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+      setActiveIdx((idx) => (filtered.length === 0 ? -1 : event.key === 'ArrowDown' ? (idx + 1) % filtered.length : idx <= 0 ? filtered.length - 1 : idx - 1))
+      event.preventDefault()
       return
     }
-    if (e.key === 'ArrowUp') {
-      setActiveIdx((i) =>
-        filtered.length === 0 ? -1 : (i <= 0 ? filtered.length - 1 : i - 1),
-      )
-      e.preventDefault()
-      return
-    }
-    if (e.key === 'Enter' && activeIdx >= 0 && activeIdx < filtered.length) {
+    if (event.key === 'Enter' && activeIdx >= 0 && activeIdx < filtered.length) {
       pick(filtered[activeIdx]!)
-      e.preventDefault()
+      event.preventDefault()
     }
   }
 
-  const showList = comboOpen && options.length > 0 && filtered.length > 0
-  const showNoMatch =
-    comboOpen &&
-    options.length > 0 &&
-    filtered.length === 0 &&
-    value.trim() !== '' &&
-    value.trim().toLowerCase() !== ALL_OPTION_LABEL.toLowerCase()
-
-  const panelNode =
-    panelRect && (showList || showNoMatch) ? (
-      <div
-        className={styles.panelFixed}
-        data-filter-combo-panel
-        style={{ top: panelRect.top, left: panelRect.left, width: panelRect.width }}
-        role="presentation"
-      >
-        {showList ? (
-          <ul className={styles.panelInner} role="listbox" id={`${inputId}-listbox`}>
-            {filtered.map((opt, i) => (
-              <li key={opt} role="presentation">
-                <button
-                  type="button"
-                  id={`${inputId}-opt-${i}`}
-                  role="option"
-                  aria-selected={i === activeIdx}
-                  className={`${styles.option} ${i === activeIdx ? styles.optionActive : ''}`}
-                  onMouseDown={(ev) => ev.preventDefault()}
-                  onClick={() => pick(opt)}
-                  onMouseEnter={() => setActiveIdx(i)}
-                >
-                  {opt}
-                </button>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <div className={styles.panelInner}>
-            <div className={styles.emptyHint}>목록에 일치하는 값이 없습니다.</div>
-          </div>
-        )}
-      </div>
-    ) : null
-
-  const panelVisible = Boolean(showList || showNoMatch)
+  const panelNode = panelRect && panelVisible ? (
+    <div className={styles.panelFixed} data-filter-combo-panel style={{ top: panelRect.top, left: panelRect.left, width: panelRect.width }} role="presentation">
+      {showList ? (
+        <ul className={styles.panelInner} role="listbox" id={`${inputId}-listbox`}>
+          {filtered.map((option, index) => (
+            <li key={option} role="presentation">
+              <button
+                type="button"
+                id={`${inputId}-opt-${index}`}
+                role="option"
+                aria-selected={index === activeIdx}
+                className={`${styles.option} ${index === activeIdx ? styles.optionActive : ''}`}
+                onMouseDown={(event) => event.preventDefault()}
+                onMouseEnter={() => setActiveIdx(index)}
+                onClick={() => pick(option)}
+              >
+                {option}
+              </button>
+            </li>
+          ))}
+        </ul>
+      ) : <div className={styles.panelInner}><div className={styles.emptyHint}>목록에 일치하는 값이 없습니다.</div></div>}
+    </div>
+  ) : null
 
   return (
-    <div
-      className={`${styles.wrap} ${comboOpen && panelVisible ? styles.wrapOpen : ''}`}
-      ref={wrapRef}
-    >
+    <div className={`${styles.wrap} ${comboOpen && panelVisible ? styles.wrapOpen : ''}`} ref={wrapRef}>
       <input
         id={inputId}
         className={styles.input}
@@ -176,30 +127,21 @@ export function FilterListCombo({ inputId, value, onChange, options, inputType =
         aria-activedescendant={showList && activeIdx >= 0 ? `${inputId}-opt-${activeIdx}` : undefined}
         value={value}
         disabled={disabled}
-        onChange={(e) => {
+        onChange={(event) => {
           if (disabled) return
-          onChange(e.target.value)
+          onChange(event.target.value)
           setActiveIdx(-1)
-          if (options.length > 0) setOpen(true)
+          setOpen(options.length > 0)
         }}
         onFocus={() => {
           if (disabled) return
-          if (options.length > 0) setOpen(true)
+          setOpen(options.length > 0)
           setActiveIdx(-1)
         }}
         onKeyDown={onKeyDown}
       />
       <span className={styles.comboChevron} aria-hidden>
-        <svg viewBox="0 0 12 12" width="12" height="12" focusable="false">
-          <path
-            d="M2.5 4.25L6 7.75L9.5 4.25"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.35"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
+        <svg viewBox="0 0 12 12" width="12" height="12" focusable="false"><path d="M2.5 4.25L6 7.75L9.5 4.25" fill="none" stroke="currentColor" strokeWidth="1.35" strokeLinecap="round" strokeLinejoin="round" /></svg>
       </span>
       {typeof document !== 'undefined' && panelNode ? createPortal(panelNode, document.body) : null}
     </div>

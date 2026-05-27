@@ -58,7 +58,7 @@ export function useInnerCandidateTable(items: CandidateItemSummary[]) {
   }, [brandQuery, codeQuery, items, productNameQuery])
 
   const tableRows = useMemo((): InnerCandidateRow[] => {
-    const rows = filteredItems.map((item) => ({ ...item, id: item.uuid }))
+    const rows = filteredItems
     if (!tableSort) return rows
     const originalIndex = new Map(rows.map((row, index) => [row.uuid, index]))
     return [...rows].sort((a, b) => {

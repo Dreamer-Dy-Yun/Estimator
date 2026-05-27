@@ -3,7 +3,6 @@ import type {
   MonthlySalesPoint,
   ProductPrimarySummary,
   ProductSecondaryDetail,
-  ProductSizeMixRow,
   SelfSalesRow,
 } from '../../types'
 import {
@@ -83,6 +82,16 @@ function scaleNullableCount(value: number | null, scale: number): number | null 
   return value == null ? null : scaleCount(value, scale)
 }
 
+function scopeMonthlySalesTrend(
+  points: MonthlySalesPoint[] | undefined,
+  scale: number,
+): MonthlySalesPoint[] | undefined {
+  return points?.map((point) => ({
+    ...point,
+    sales: scaleCount(point.sales, scale),
+  }))
+}
+
 export function scopeMockSelfSalesRow(row: SelfSalesRow, input?: CompanyScopeInput): SelfSalesRow | null {
   const scale = getMockCompanyScale(input, row.skuGroupKey)
   if (scale <= 0) return null
@@ -109,24 +118,6 @@ export function scopeMockCompetitorSalesRow(
   }
 }
 
-function scopeMonthlySalesTrend(
-  points: MonthlySalesPoint[] | undefined,
-  scale: number,
-): MonthlySalesPoint[] | undefined {
-  return points?.map((point) => ({
-    ...point,
-    sales: scaleCount(point.sales, scale),
-  }))
-}
-
-function scopeSizeMix(rows: ProductSizeMixRow[], scale: number): ProductSizeMixRow[] {
-  return rows.map((row) => ({
-    ...row,
-    confirmedQty: scaleCount(row.confirmedQty, scale),
-    qty: scaleCount(row.qty, scale),
-    availableStock: scaleCount(row.availableStock, scale),
-  }))
-}
 
 export function scopeMockProductPrimary(
   primary: ProductPrimarySummary,
@@ -138,9 +129,7 @@ export function scopeMockProductPrimary(
     ...primary,
     qty: scaleCount(primary.qty, scale),
     availableStock: scaleCount(primary.availableStock, scale),
-    recommendedOrderQty: scaleCount(primary.recommendedOrderQty, scale),
     monthlySalesTrend: scopeMonthlySalesTrend(primary.monthlySalesTrend, scale),
-    sizeMix: scopeSizeMix(primary.sizeMix, scale),
   }
 }
 
@@ -153,6 +142,12 @@ export function scopeMockProductSecondary(
   return {
     ...secondary,
     competitorQty: scaleCount(secondary.competitorQty, scale),
+    sizeRows: secondary.sizeRows.map((row) => ({
+      ...row,
+      confirmedQty: scaleCount(row.confirmedQty, scale),
+      qty: scaleCount(row.qty, scale),
+      availableStock: scaleCount(row.availableStock, scale),
+    })),
   }
 }
 

@@ -50,16 +50,15 @@
 
 ## 4. 1차 우선순위 (무엇부터 테스트할지)
 
-1. **`src/utils/adjacentListNavigation.ts`**  
+1. **`src/utils/adjacentListNavigation.ts`**
    - 순환 인덱스, `currentId`가 목록에 없을 때 동작, 길이 1·0 경계.
 
-2. **`src/snapshot/parseOrderSnapshot.ts`** (및 스키마 검증이 있다면)  
+2. **`src/snapshot/parseOrderSnapshot.ts`** (및 스키마 검증이 있다면)
    - 유효/무효 JSON, 버전 필드, 필수 필드 누락 시 기대 에러.
 
-3. **`src/dashboard/hooks/useProductDrawerBundle.ts`** (선택)  
+3. **`src/dashboard/hooks/useProductDrawerBundle.ts`** (선택)
    - 훅은 `renderHook`으로 상태 전이가 많음 → 2단계로 미루거나, **훅 내부 분기 최소화 + 순수 함수 추출** 후 그 함수만 테스트.
 
-4. **`src/dashboard/components/product-drawer/secondary/model/clientStockOrderCompute.ts`** / **`secondaryDrawerCalc.ts`**
    - 입력 고정 시 출력 숫자 스냅샷 또는 허용 오차.
 
 5. **React 컴포넌트**

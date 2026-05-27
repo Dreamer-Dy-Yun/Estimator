@@ -1,4 +1,4 @@
-import { useEffect, useId, useMemo, useRef, useState, type WheelEvent } from 'react'
+import { useEffect, useId, useRef, useState, type WheelEvent } from 'react'
 import { dashboardApi, getCompanyUuidForOptionalScope, type ProductMonthlyTrend } from '../../../../api'
 import { useAuth } from '../../../../auth/AuthContext'
 import type { ApiUnitErrorInfo, MonthlySalesPoint } from '../../../../types'
@@ -10,31 +10,70 @@ const COMPETITOR_CHANNEL_FALLBACK_LABEL = '경쟁사'
 
 export type ProductMonthlyTrendModelArgs = {
   skuGroupKey: string
-  fallbackTrend: MonthlySalesPoint[]
   periodStart: string
   periodEnd: string
   forecastMonths: number
   onForecastMonthsChange: (months: number) => void
   channelId: string
   fallbackChannelLabel: string
+  fallbackTrend: MonthlySalesPoint[]
   pageName: string
 }
 
-type MonthlyTrendState = {
-  key: string
-  data: ProductMonthlyTrend | null
-  error: ApiUnitErrorInfo | null
+type SalesSeriesPoint = {
+  date: string
+  isForecast: boolean
+  idx: number
+  sales: number
+  competitorSales: number | null
+}
+
+type ShadeRange = { x1: number; x2: number }
+
+const shiftShade = (
+  shade: ShadeRange | null | undefined,
+  viewStart: number,
+  viewEnd: number,
+  collapseWhenOutside = false,
+) => {
+  if (!shade) return null
+  const min = -0.5
+  const max = Math.max(0, viewEnd - viewStart) + 0.5
+  const x1 = Math.max(min, shade.x1 - viewStart)
+  const x2 = Math.min(max, shade.x2 - viewStart)
+  if (x2 < x1) return collapseWhenOutside ? { x1, x2: x1 } : null
+  return { x1, x2 }
+}
+
+const getViewRange = (
+  salesSeries: SalesSeriesPoint[],
+  periodStartIdx: number,
+  periodEndIdx: number,
+  windowSize: number,
+) => {
+  const lastSeriesIdx = salesSeries.length - 1
+  if (salesSeries.some((point) => point.isForecast)) {
+    return {
+      viewEnd: lastSeriesIdx,
+      viewStart: Math.max(0, lastSeriesIdx - windowSize + 1),
+    }
+  }
+  const center = (periodStartIdx + periodEndIdx) / 2
+  let viewStart = Math.max(0, Math.round(center) - Math.floor(windowSize / 2))
+  const viewEnd = Math.min(lastSeriesIdx, viewStart + windowSize - 1)
+  if (viewEnd - viewStart + 1 < windowSize) viewStart = Math.max(0, viewEnd - windowSize + 1)
+  return { viewStart, viewEnd }
 }
 
 export function useProductMonthlyTrendModel({
   skuGroupKey,
-  fallbackTrend,
   periodStart,
   periodEnd,
   forecastMonths,
   onForecastMonthsChange,
   channelId,
   fallbackChannelLabel,
+  fallbackTrend,
   pageName,
 }: ProductMonthlyTrendModelArgs) {
   const { selectedCompanyUuid } = useAuth()
@@ -43,7 +82,10 @@ export function useProductMonthlyTrendModel({
   const forecastComboRef = useRef<HTMLDivElement | null>(null)
   const reqSeqRef = useRef(0)
   const [forecastComboOpenForSkuGroupKey, setForecastComboOpenForSkuGroupKey] = useState<string | null>(null)
-  const [monthlyTrendState, setMonthlyTrendState] = useState<MonthlyTrendState | null>(null)
+  const [monthlyTrendState, setMonthlyTrendState] = useState<{
+    data: ProductMonthlyTrend | null
+    error: ApiUnitErrorInfo | null
+  } | null>(null)
   const [salesTrendVisible, setSalesTrendVisible] = useState({ self: true, competitor: true })
   const [chartHoveredSkuGroupKey, setChartHoveredSkuGroupKey] = useState<string | null>(null)
   const forecastComboOpen = forecastComboOpenForSkuGroupKey === skuGroupKey
@@ -51,15 +93,16 @@ export function useProductMonthlyTrendModel({
 
   useEffect(() => {
     if (!forecastComboOpen) return
+    const closeForecastCombo = () => setForecastComboOpenForSkuGroupKey(null)
     const onDocDown = (event: MouseEvent) => {
       const el = forecastComboRef.current
-      if (el && !el.contains(event.target as Node)) setForecastComboOpenForSkuGroupKey(null)
+      if (el && !el.contains(event.target as Node)) closeForecastCombo()
     }
     const onKey = (event: KeyboardEvent) => {
       if (event.key !== 'Escape') return
       event.preventDefault()
       event.stopPropagation()
-      setForecastComboOpenForSkuGroupKey(null)
+      closeForecastCombo()
     }
     document.addEventListener('mousedown', onDocDown)
     document.addEventListener('keydown', onKey)
@@ -73,38 +116,28 @@ export function useProductMonthlyTrendModel({
   const selectedEnd = normalizeMonthKey(periodEnd)
   const startDate = monthToStartDate(selectedStart)
   const endDate = monthToEndDate(selectedEnd)
-  const monthlyTrendRequestKey = JSON.stringify({
-    skuGroupKey,
-    startDate,
-    endDate,
-    companyUuid,
-    forecastMonths,
-    competitorChannelId: channelId,
-  })
-  const monthlyTrend =
-    channelId && monthlyTrendState?.key === monthlyTrendRequestKey ? monthlyTrendState.data : null
-  const monthlyTrendError =
-    channelId && monthlyTrendState?.key === monthlyTrendRequestKey ? monthlyTrendState.error : null
 
   useEffect(() => {
-    if (!channelId) return
+    if (!channelId) {
+      setMonthlyTrendState(null)
+      return
+    }
     let alive = true
     const reqSeq = ++reqSeqRef.current
-    void (async () => {
-      try {
-        const data = await dashboardApi.getProductMonthlyTrend(skuGroupKey, {
-          startDate,
-          endDate,
-          companyUuid,
-          forecastMonths,
-          competitorChannelId: channelId,
-        })
-        if (!alive || reqSeq !== reqSeqRef.current) return
-        setMonthlyTrendState({ key: monthlyTrendRequestKey, data, error: null })
-      } catch (err) {
+    setMonthlyTrendState(null)
+    void dashboardApi.getProductMonthlyTrend(skuGroupKey, {
+      startDate,
+      endDate,
+      companyUuid,
+      forecastMonths,
+      competitorChannelId: channelId,
+    }).then(
+      (data) => {
+        if (alive && reqSeq === reqSeqRef.current) setMonthlyTrendState({ data, error: null })
+      },
+      (err) => {
         if (!alive || reqSeq !== reqSeqRef.current) return
         setMonthlyTrendState({
-          key: monthlyTrendRequestKey,
           data: null,
           error: makeApiErrorInfo(
             pageName,
@@ -112,112 +145,58 @@ export function useProductMonthlyTrendModel({
             err,
           ),
         })
-      }
-    })()
+      },
+    )
     return () => {
       alive = false
     }
-  }, [channelId, companyUuid, endDate, forecastMonths, monthlyTrendRequestKey, pageName, skuGroupKey, startDate])
+  }, [channelId, companyUuid, endDate, forecastMonths, pageName, skuGroupKey, startDate])
 
-  const salesSeries = useMemo(() => {
-    if (monthlyTrend != null) {
-      return monthlyTrend.points.map((point, idx) => ({
-        date: point.date,
-        isForecast: point.isForecast,
-        idx,
-        sales: Math.round(point.selfSales),
-        competitorSales: point.competitorSales,
-      }))
-    }
-    return fallbackTrend.map((point, idx) => ({
-      ...point,
+  const monthlyTrend = channelId ? monthlyTrendState?.data ?? null : null
+  const monthlyTrendError = channelId ? monthlyTrendState?.error ?? null : null
+  const salesSeries: SalesSeriesPoint[] = monthlyTrend
+    ? monthlyTrend.points.map((point, idx) => ({
+      date: point.date,
+      isForecast: Boolean(point.isForecast),
+      idx,
+      sales: Math.round(point.selfSales),
+      competitorSales: point.competitorSales,
+    }))
+    : fallbackTrend.map((point, idx) => ({
+      date: point.date,
+      isForecast: Boolean(point.isForecast),
       idx,
       sales: Math.round(point.sales),
-      competitorSales: null as number | null,
+      competitorSales: null,
     }))
-  }, [fallbackTrend, monthlyTrend])
-
-  const competitorTrendLabel =
-    monthlyTrend?.competitorChannelLabel
-    ?? fallbackChannelLabel
-    ?? COMPETITOR_CHANNEL_FALLBACK_LABEL
-
-  const { periodStartIdx, periodEndIdx, periodShade, forecastShade } = useMemo(
-    () => buildShadeRanges(salesSeries, selectedStart, selectedEnd),
-    [salesSeries, selectedEnd, selectedStart],
+  const { periodStartIdx, periodEndIdx, periodShade, forecastShade } = buildShadeRanges(
+    salesSeries,
+    selectedStart,
+    selectedEnd,
   )
-
   const periodLen = Math.max(1, periodEndIdx - periodStartIdx + 1)
-  const lastSeriesIdx = salesSeries.length - 1
-  const requiredSpan =
-    periodStartIdx <= lastSeriesIdx ? lastSeriesIdx - periodStartIdx + 1 : salesSeries.length
-  const baseWindowSize = Math.min(
-    salesSeries.length,
-    Math.max(8, periodLen * 2, requiredSpan),
-  )
+  const requiredSpan = periodStartIdx <= salesSeries.length - 1
+    ? salesSeries.length - periodStartIdx
+    : salesSeries.length
+  const baseWindowSize = Math.min(salesSeries.length, Math.max(8, periodLen * 2, requiredSpan))
   const windowSizeKey = `${skuGroupKey}:${baseWindowSize}`
   const [windowSizeState, setWindowSizeState] = useState<{ key: string; value: number } | null>(null)
   const windowSize = windowSizeState?.key === windowSizeKey ? windowSizeState.value : baseWindowSize
+  const { viewStart, viewEnd } = getViewRange(salesSeries, periodStartIdx, periodEndIdx, windowSize)
 
-  const hasForecastInSeries = salesSeries.some((point) => point.isForecast)
-  let viewStart: number
-  let viewEnd: number
-  if (hasForecastInSeries) {
-    viewEnd = lastSeriesIdx
-    viewStart = Math.max(0, viewEnd - windowSize + 1)
-  } else {
-    const center = (periodStartIdx + periodEndIdx) / 2
-    const half = Math.floor(windowSize / 2)
-    viewStart = Math.max(0, Math.round(center) - half)
-    viewEnd = Math.min(lastSeriesIdx, viewStart + windowSize - 1)
-    if (viewEnd - viewStart + 1 < windowSize) {
-      viewStart = Math.max(0, viewEnd - windowSize + 1)
-    }
-  }
-
-  const chartData = useMemo(() => {
-    const firstForecastIdx = salesSeries.findIndex((point) => point.isForecast)
-    const hasForecast = firstForecastIdx !== -1
-
-    return salesSeries.map((point, idx) => ({
-      ...point,
-      actual: point.isForecast ? null : point.sales,
-      competitorActual: point.isForecast ? null : point.competitorSales,
-      forecastLink: hasForecast && (idx === firstForecastIdx - 1 || idx >= firstForecastIdx)
-        ? point.sales
-        : null,
-    }))
-  }, [salesSeries])
-
-  const trendWindowData = useMemo(
-    () => chartData.slice(viewStart, viewEnd + 1).map((row, i) => ({ ...row, idx: i })),
-    [chartData, viewEnd, viewStart],
-  )
-  const salesTrendChartDense = trendWindowData.length >= 18
-
-  const shiftedPeriodShade = useMemo(() => {
-    const min = -0.5
-    const max = Math.max(0, viewEnd - viewStart) + 0.5
-    const x1 = Math.max(min, periodShade.x1 - viewStart)
-    const x2 = Math.min(max, periodShade.x2 - viewStart)
-    return { x1, x2: Math.max(x1, x2) }
-  }, [periodShade.x1, periodShade.x2, viewEnd, viewStart])
-
-  const shiftedForecastShade = useMemo(() => {
-    if (!forecastShade) return null
-    const min = -0.5
-    const max = Math.max(0, viewEnd - viewStart) + 0.5
-    const x1 = Math.max(min, forecastShade.x1 - viewStart)
-    const x2 = Math.min(max, forecastShade.x2 - viewStart)
-    if (x2 < x1) return null
-    return { x1, x2 }
-  }, [forecastShade, viewEnd, viewStart])
-
-  const salesTrendYMax = useMemo(() => {
+  const firstForecastIdx = salesSeries.findIndex((point) => point.isForecast)
+  const chartData = salesSeries.map((point, idx) => ({
+    ...point,
+    actual: point.isForecast ? null : point.sales,
+    competitorActual: point.isForecast ? null : point.competitorSales,
+    forecastLink: firstForecastIdx !== -1 && (idx === firstForecastIdx - 1 || idx >= firstForecastIdx)
+      ? point.sales
+      : null,
+  }))
+  const trendWindowData = chartData.slice(viewStart, viewEnd + 1).map((row, idx) => ({ ...row, idx }))
+  const salesTrendYMax = (() => {
     let max = 0
-    const from = Math.max(0, Math.min(viewStart, chartData.length - 1))
-    const to = Math.max(from, Math.min(viewEnd, chartData.length - 1))
-    for (let i = from; i <= to; i += 1) {
+    for (let i = Math.max(0, viewStart); i <= Math.min(viewEnd, chartData.length - 1); i += 1) {
       const row = chartData[i]
       if (!row) continue
       max = Math.max(
@@ -228,16 +207,15 @@ export function useProductMonthlyTrendModel({
       )
     }
     return max <= 0 ? 100 : Math.ceil(max * 1.06)
-  }, [chartData, salesTrendVisible.competitor, salesTrendVisible.self, viewStart, viewEnd])
+  })()
 
   const onChartWheel = (event: WheelEvent<HTMLDivElement>) => {
     if (!chartHovered) return
     event.preventDefault()
     const next = event.deltaY > 0 ? windowSize + 2 : windowSize - 2
-    const minWindow = Math.max(periodLen + 2, 6)
     setWindowSizeState({
       key: windowSizeKey,
-      value: Math.max(minWindow, Math.min(salesSeries.length, next)),
+      value: Math.max(Math.max(periodLen + 2, 6), Math.min(salesSeries.length, next)),
     })
   }
 
@@ -247,12 +225,12 @@ export function useProductMonthlyTrendModel({
     forecastComboOpen,
     monthlyTrendError,
     salesTrendVisible,
-    competitorTrendLabel,
+    competitorTrendLabel: monthlyTrend?.competitorChannelLabel ?? fallbackChannelLabel ?? COMPETITOR_CHANNEL_FALLBACK_LABEL,
     trendWindowData,
-    salesTrendChartDense,
+    salesTrendChartDense: trendWindowData.length >= 18,
     salesTrendYMax,
-    shiftedPeriodShade,
-    shiftedForecastShade,
+    shiftedPeriodShade: shiftShade(periodShade, viewStart, viewEnd, true) ?? { x1: -0.5, x2: -0.5 },
+    shiftedForecastShade: shiftShade(forecastShade, viewStart, viewEnd),
     onChartWheel,
     onChartMouseEnter: () => setChartHoveredSkuGroupKey(skuGroupKey),
     onChartMouseLeave: () => setChartHoveredSkuGroupKey(null),

@@ -1,13 +1,13 @@
 import { afterEach, describe, expect, it } from 'vitest'
 import { mockAuthApi } from './authApi'
 
-describe('api/mock authApi pass-through behavior', () => {
+describe('api/mock authApi behavior', () => {
   afterEach(async () => {
     await mockAuthApi.logout()
   })
 
   it('accepts arbitrary login values as an admin mock session', async () => {
-    const result = await mockAuthApi.login({ loginId: '아무 값', password: '' })
+    const result = await mockAuthApi.login({ loginId: '테스트 관리자', password: '' })
     const session = await mockAuthApi.getCurrentSession()
 
     expect(result.session.user.role).toBe('admin')
@@ -20,46 +20,50 @@ describe('api/mock authApi pass-through behavior', () => {
     expect(result.session.user.role).toBe('user')
   })
 
-  it('lets auth mutation stubs pass without browser persistence', async () => {
+  it('applies auth mutation mock state without browser persistence', async () => {
     await mockAuthApi.login({ loginId: 'tester', password: 'anything' })
 
     await expect(mockAuthApi.updateCurrentUser({ loginId: '' })).resolves.toBeDefined()
     await expect(mockAuthApi.changeCurrentUserPassword({ currentPassword: '', newPassword: '' })).resolves.toBeUndefined()
-    await expect(mockAuthApi.createAdminUser({
-      loginId: '',
+
+    const created = await mockAuthApi.createAdminUser({
+      loginId: 'mock-created-user',
       password: '',
       name: '생성 사용자',
       note: '생성 메모',
       role: 'user',
       isActive: true,
-    })).resolves.toMatchObject({
+    })
+    expect(created).toMatchObject({
       loginId: 'mock-created-user',
       name: '생성 사용자',
       note: '생성 메모',
       role: 'user',
       isActive: true,
     })
+
     await expect(mockAuthApi.updateAdminUser({
-      uuid: 'unknown-user',
-      loginId: '',
+      uuid: created.uuid,
+      loginId: 'mock-updated-user',
       name: '수정 사용자',
       note: '수정 메모',
       role: 'admin',
       isActive: false,
     })).resolves.toMatchObject({
-      uuid: 'unknown-user',
+      uuid: created.uuid,
       loginId: 'mock-updated-user',
       name: '수정 사용자',
       note: '수정 메모',
       role: 'admin',
       isActive: false,
     })
-    const reset = await mockAuthApi.resetAdminUserPassword('unknown-user')
+
+    const reset = await mockAuthApi.resetAdminUserPassword(created.uuid)
     expect(reset).toMatchObject({
       mustChangePassword: true,
       dbUpdatedAt: expect.any(String),
     })
     expect(reset.temporaryPassword).toMatch(/^Tmp-.{12}$/)
-    await expect(mockAuthApi.deleteAdminUser('unknown-user')).resolves.toBeUndefined()
+    await expect(mockAuthApi.deleteAdminUser(created.uuid)).resolves.toBeUndefined()
   })
 })

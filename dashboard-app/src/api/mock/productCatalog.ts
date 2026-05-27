@@ -5,10 +5,9 @@ import { KREAM_TO_SELF_QTY_RATIO, SALES_MONTHS } from './productCatalogData'
 import {
   buildSkuMetadata,
   makeSalesTrend as buildSalesTrend,
-  makeSeasonality,
   makeSizeMix,
   makeStockTrend,
-  splitPrimarySecondaryFromSizeMix,
+  splitSecondarySizeRows,
 } from './productCatalogBuilders'
 
 export { makeSalesTrend } from './productCatalogBuilders'
@@ -50,27 +49,26 @@ export const { primary: productPrimaryBySkuGroupKey, secondary: productSecondary
     const productQty = s?.qty ?? c?.selfQty ?? Math.round((c?.competitorQty ?? 5000) * 0.85)
     const competitorPrice = c?.competitorAvgPrice ?? Math.round(price * 1.03)
     const competitorQty = c?.competitorQty ?? Math.max(0, Math.round(productQty * KREAM_TO_SELF_QTY_RATIO))
-    const recommendedOrderQty = Math.round(productQty / 1.7)
+    const initialOrderQty = Math.round(productQty / 1.7)
     const availableStock = Math.round(productQty * 0.45)
 
-    const fullMix = makeSizeMix(recommendedOrderQty, productQty, price, availableStock, seed, metadata.category)
-    const { sizeMix, competitorRatioBySize } = splitPrimarySecondaryFromSizeMix(fullMix)
+    const monthlySalesTrend = buildSalesTrend(Math.max(800, Math.round(productQty * 0.42)), seed, 8)
+    const fullMix = makeSizeMix(initialOrderQty, productQty, price, availableStock, seed, metadata.category)
+    const { sizeRows, competitorRatioBySize } = splitSecondarySizeRows(fullMix)
 
     primary[skuGroupKey] = {
       ...metadata,
       price,
       qty: productQty,
       availableStock,
-      recommendedOrderQty,
-      monthlySalesTrend: buildSalesTrend(Math.max(800, Math.round(productQty * 0.42)), seed, 8),
-      seasonality: makeSeasonality(skuGroupKey),
-      sizeMix,
+      monthlySalesTrend,
     }
     secondary[skuGroupKey] = {
       skuGroupKey,
       competitorPrice,
       competitorQty,
       competitorRatioBySize,
+      sizeRows,
     }
   }
   return { primary, secondary }
@@ -84,5 +82,5 @@ export const stockTrendBySkuGroupKey: Record<string, Array<{
 }>> = Object.fromEntries(Object.keys(productPrimaryBySkuGroupKey).map((skuGroupKey) => {
   const product = productPrimaryBySkuGroupKey[skuGroupKey]
   if (!product) throw new Error(`Missing product primary for stock trend: ${skuGroupKey}`)
-  return [skuGroupKey, makeStockTrend(skuGroupKey, product)]
+  return [skuGroupKey, makeStockTrend(skuGroupKey, product.monthlySalesTrend ?? [])]
 }))

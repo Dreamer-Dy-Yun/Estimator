@@ -1,4 +1,4 @@
-﻿import { describe, expect, it } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import { mockDashboardApi } from './dashboardApi'
 import { ALL_COMPANY_UUID } from '../types'
 import type {
@@ -762,7 +762,7 @@ describe('api/mock candidate stash contract stubs', () => {
       companyUuid: MOCK_COMPANY_UUID,
     })
 
-    expect(detail?.details?.drawer2.llmPrompt.trim()).not.toBe('')
-    expect(detail?.details?.drawer2.llmAnswer.trim()).not.toBe('')
+    expect(detail?.details?.drawer2.aiComment.prompt.trim()).not.toBe('')
+    expect(detail?.details?.drawer2.aiComment.answer.trim()).not.toBe('')
   })
 })

@@ -3,19 +3,19 @@ import {
   getApiErrorDisplayMessage,
   getCandidateItemsByStash,
   type CandidateItemSummary,
+  type CandidateStashItemSummary,
 } from '../../../api'
 import {
   applyCandidateDetailConfirmationOverrides,
   type CandidateDetailConfirmationOverrideMap,
 } from './candidateDetailConfirmationOverrideModel'
-import {
-  mergeCandidateItemsWithPreservedMetrics,
-  selectMetricCandidateItems,
-  type CandidateMetricReloadOptions,
-} from './candidateItemListMergeModel'
 import type { AppliedCandidateDataReferencePeriod } from './useCandidateDataReferencePeriod'
+import type { CandidateSetItems } from './candidateStashDetailTypes'
 
-type ItemStateUpdater = CandidateItemSummary[] | ((current: CandidateItemSummary[]) => CandidateItemSummary[])
+type CandidateMetricReloadOptions = {
+  metricSkuGroupKeys?: readonly string[]
+  preserveExistingMetrics?: boolean
+}
 
 interface SubscribeOrderMetricsArgs {
   seq: number
@@ -34,8 +34,36 @@ interface UseCandidateItemsLoaderParams {
   clearRecommendationItems: () => void
   beginItemLoad: () => number
   isCurrentItemLoad: (seq: number) => boolean
-  setItems: (next: ItemStateUpdater) => void
+  setItems: CandidateSetItems
   subscribeOrderMetrics: (args: SubscribeOrderMetricsArgs) => void
+}
+
+function selectMetricCandidateItems(
+  candidateItems: CandidateStashItemSummary[],
+  metricSkuGroupKeys?: readonly string[],
+): CandidateStashItemSummary[] {
+  if (!metricSkuGroupKeys) return candidateItems
+  const metricSkuGroupKeySet = new Set(metricSkuGroupKeys)
+  return candidateItems.filter((item) => metricSkuGroupKeySet.has(item.skuGroupKey))
+}
+
+function preserveOrderMetricFields(
+  item: CandidateItemSummary,
+  previous: CandidateItemSummary | undefined,
+): CandidateItemSummary {
+  return previous
+    ? {
+        ...item,
+        orderMetricStatus: previous.orderMetricStatus,
+        qty: previous.qty,
+        expectedOrderAmount: previous.expectedOrderAmount,
+        expectedSalesAmount: previous.expectedSalesAmount,
+        expectedOpProfit: previous.expectedOpProfit,
+        insightStatus: previous.insightStatus,
+        insight: previous.insight,
+        orderExport: previous.orderExport,
+      }
+    : item
 }
 
 export function useCandidateItemsLoader({
@@ -72,12 +100,15 @@ export function useCandidateItemsLoader({
       if (!isCurrentItemLoad(seq)) return
       clearRecommendationItems()
       const metricCandidateItems = selectMetricCandidateItems(result.candidateItems, options.metricSkuGroupKeys)
-      const nextItems = mergeCandidateItemsWithPreservedMetrics(
-        result.items,
-        metricCandidateItems,
-        itemsRef.current,
-        options.preserveExistingMetrics,
-      )
+      const previousItemByUuid = options.preserveExistingMetrics
+        ? new Map(itemsRef.current.map((item) => [item.uuid, item]))
+        : null
+      const metricItemUuidSet = new Set(metricCandidateItems.map((item) => item.uuid))
+      const nextItems = previousItemByUuid
+        ? result.items.map((item) => (
+            metricItemUuidSet.has(item.uuid) ? item : preserveOrderMetricFields(item, previousItemByUuid.get(item.uuid))
+          ))
+        : result.items
       const protectedResult = applyCandidateDetailConfirmationOverrides(nextItems, confirmationOverridesRef.current)
       confirmationOverridesRef.current = protectedResult.overrides
       setItems(protectedResult.items)

@@ -29,7 +29,7 @@ const snapshot: OrderSnapshotDocumentV2 = {
     },
   },
   drawer2: {
-    competitorSalesBasis: {
+    competitorBasis: {
       skuGroupKey: 'SKU-001',
       competitorPrice: 1200,
       competitorQty: 8,
@@ -37,22 +37,19 @@ const snapshot: OrderSnapshotDocumentV2 = {
     },
     competitorChannelId: 'cream',
     competitorChannelLabel: 'Cream',
-    stockInputs: {
-      trendDailyMean: 1,
-      dailyMean: 1,
-      leadTimeStartDate: '2026-06-01',
-      leadTimeEndDate: '2026-06-30',
+    stockOrderRequest: {
+      currentOrderInboundDueDate: '2026-06-01',
+      nextOrderInboundDueDate: '2026-06-30',
       leadTimeDays: 30,
-      safetyStockMode: 'formula',
-      manualSafetyStock: 0,
-      sigma: 1,
-      serviceLevelPct: 95,
+      dailyMeanOverride: 1,
     },
     selfWeightPct: 50,
     bufferStock: 0,
-    llmPrompt: '',
-    llmAnswer: '',
-    sizeRows: [],
+    aiComment: {
+      prompt: '',
+      answer: '',
+    },
+    sizeOrders: [],
   },
 }
 
@@ -67,7 +64,7 @@ describe('getScopeSafeHydrateSnapshot', () => {
     expect(getScopeSafeHydrateSnapshot(snapshot, 'SKU-001', undefined)).toBeNull()
   })
 
-  it('keeps legacy unscoped snapshots only in all-company scope', () => {
+  it('keeps unscoped snapshots only in all-company scope', () => {
     const unscopedSnapshot: OrderSnapshotDocumentV2 = { ...snapshot }
     delete unscopedSnapshot.companyUuid
 

@@ -1,203 +1,135 @@
+import type { ReactNode } from 'react'
 import { PortalHelpMark } from '../../../PortalHelpPopover'
 import { ApiUnitErrorBadge } from '../../../../../components/ApiUnitErrorBadge'
 import { LoadingSpinner } from '../../../../../components/LoadingSpinner'
+import type { SecondaryStockOrderCalcResult } from '../../../../../api/types'
+import type { OrderSnapshotStockOrderRequestV2 } from '../../../../../snapshot/orderSnapshotTypes'
 import type { ApiUnitErrorInfo } from '../../../../../types'
 import { formatGroupedNumber, formatGroupedOneDecimal, formatRatioDecimalKo } from '../../../../../utils/format'
 import commonStyles from '../../../common.module.css'
 import { usePortalHelpPopover } from '../../../usePortalHelpPopover'
 import { KO } from '../../ko'
 import styles from '../secondaryDrawer.module.css'
-import type { SecondaryForecastInputs, SecondaryHelpId } from '../secondaryDrawerTypes'
+import type { SecondaryHelpId, SecondaryHelpIds } from '../secondaryDrawerTypes'
 
-export type SalesForecastComputedTable = {
-  /** 사이즈별 추천 수량 합 — 예상 열 */
+type SalesForecastDisplayInputs = Pick<SecondaryStockOrderCalcResult, 'trendDailyMean' | 'dailyMean' | 'sigma'>
+type SalesForecastInboundDateFields = Pick<OrderSnapshotStockOrderRequestV2, 'currentOrderInboundDueDate' | 'nextOrderInboundDueDate'>
+
+type SalesForecastComputedTable = {
   recommendedOrderQtyTotal: number
-  /** 사이즈별 확정 수량 합 — 확정 열 */
   confirmedOrderQtyTotal: number
   forecastExpectedSales: number
   forecastOpProfit: number
   confirmedExpectedSales: number
   confirmedOpProfit: number
-  forecastOpProfitRatePct?: number | null
-  confirmedOpProfitRatePct?: number | null
+}
+export type SalesForecastOrderInputFields = SalesForecastInboundDateFields & {
+  minOrderDate: string
+  bufferStock: number
+  unitCost: number
+  unitPrice: number
+  expectedFeeRatePct: number
+}
+export type SalesForecastOrderInputActions = {
+  onCurrentOrderInboundDueDateChange: (next: string) => void
+  onNextOrderInboundDueDateChange: (next: string) => void
+  onBufferStockChange: (next: number) => void
+  onUnitCostChange: (next: number) => void
+  onUnitPriceChange: (next: number) => void
+  onExpectedFeeRatePctChange: (next: number) => void
 }
 
 type Props = {
-  forecast: {
-    inputs: SecondaryForecastInputs
-    loading: boolean
-    error: ApiUnitErrorInfo | null
-    /** 클라이언트 연산 표시값 — API 응답 금액 미사용 */
-    computed: SalesForecastComputedTable
-  }
-  orderSettings: {
-    currentOrderDate: string
-    nextOrderDate: string
-    minOrderDate: string
-    bufferStock: number
-    unitCost: number
-    unitPrice: number
-    expectedFeeRatePct: number
-  }
-  actions: {
-    onCurrentOrderDateChange: (next: string) => void
-    onNextOrderDateChange: (next: string) => void
-    onBufferStockChange: (next: number) => void
-    onUnitCostChange: (next: number) => void
-    onUnitPriceChange: (next: number) => void
-    onExpectedFeeRatePctChange: (next: number) => void
-  }
-  help: {
-    labelIds: {
-      forecastQtyCalc: string
-      expectedOpProfitRate: string
-    }
-    portal: ReturnType<typeof usePortalHelpPopover<SecondaryHelpId>>
-  }
+  forecast: { inputs: SalesForecastDisplayInputs; loading: boolean; error: ApiUnitErrorInfo | null; computed: SalesForecastComputedTable }
+  orderInputFields: SalesForecastOrderInputFields
+  actions: SalesForecastOrderInputActions
+  help: { labelIds: Pick<SecondaryHelpIds, 'forecastQtyCalc' | 'expectedOpProfitRate'>; portal: ReturnType<typeof usePortalHelpPopover<SecondaryHelpId>> }
+}
+type HelpKey = 'forecastQtyCalc' | 'expectedOpProfitRate'
+
+type NumberFieldProps = { label: string; value: number; onChange: (next: number) => void; unit: string; max?: number; step?: number }
+
+const toNonNegativeNumber = (value: string) => Math.max(0, Number(value) || 0)
+const rateText = (value: number | null) => (value === null ? '-' : `${formatRatioDecimalKo(value)}%`)
+
+function FieldCell({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div className={styles.stockInputCell}>
+      <span className={`${styles.inlineLabel} ${styles.stockCellLabel}`}>{label}</span>
+      <span className={`${styles.inlineFieldInput} ${styles.stockCellInputWrap}`}>{children}</span>
+    </div>
+  )
 }
 
-export function SalesForecastCard({ forecast, orderSettings, actions, help }: Props) {
+function DateField({ label, value, min, onChange }: { label: string; value: string; min: string; onChange: (next: string) => void }) {
+  return (
+    <FieldCell label={label}>
+      <input type="date" className={`${styles.stockDateInput} ${styles.stockFillInput}`} min={min} value={value} onChange={(e) => onChange(e.target.value)} aria-label={label} />
+    </FieldCell>
+  )
+}
+
+function NumberField({ label, value, onChange, unit, max, step = 1 }: NumberFieldProps) {
+  return (
+    <FieldCell label={label}>
+      <input type="number" className={`${styles.stockNumberInput} ${styles.stockFillInput}`} min={0} max={max} step={step} value={value} onChange={(e) => onChange(toNonNegativeNumber(e.target.value))} aria-label={label} />
+      <span className={styles.inlineUnit}>{unit}</span>
+    </FieldCell>
+  )
+}
+
+function ComputedField({ label, value }: { label: string; value: number }) {
+  return (
+    <FieldCell label={label}>
+      <span className={`${styles.stockComputedValue} ${styles.stockFillInput}`}>{formatGroupedOneDecimal(value)}</span>
+      <span className={styles.inlineUnit}>EA/일</span>
+    </FieldCell>
+  )
+}
+
+function HelpLabel({ label, helpId, labelIds, portal }: { label: string; helpId: HelpKey; labelIds: Pick<SecondaryHelpIds, HelpKey>; portal: ReturnType<typeof usePortalHelpPopover<SecondaryHelpId>> }) {
+  return (
+    <span className={commonStyles.cardTitleWithHelp}>
+      {label}
+      <PortalHelpMark helpId={helpId} placement="above" labelId={labelIds[helpId]} markClassName={commonStyles.helpMark} help={portal} />
+    </span>
+  )
+}
+
+export function SalesForecastCard({ forecast, orderInputFields, actions, help }: Props) {
   const { inputs, error, computed } = forecast
-  const {
-    currentOrderDate,
-    nextOrderDate,
-    minOrderDate,
-    bufferStock,
-    unitCost,
-    unitPrice,
-    expectedFeeRatePct,
-  } = orderSettings
+  const { currentOrderInboundDueDate, nextOrderInboundDueDate, minOrderDate, bufferStock, unitCost, unitPrice, expectedFeeRatePct } = orderInputFields
   const { labelIds, portal } = help
-  const feeRate = Math.max(0, expectedFeeRatePct) / 100
-  const calcExpectedOpProfitRatePct = (expectedSales: number, expectedQty: number): number | null => {
+  const calcRate = (expectedSales: number, expectedQty: number): number | null => {
     if (!Number.isFinite(expectedSales) || expectedSales <= 0) return null
-    const opProfit = (expectedSales * (1 - feeRate)) - (unitCost * expectedQty)
-    return (opProfit / expectedSales) * 100
+    return (((expectedSales * (1 - Math.max(0, expectedFeeRatePct) / 100)) - (unitCost * expectedQty)) / expectedSales) * 100
   }
-  const forecastOpProfitRatePct = computed.forecastOpProfitRatePct !== undefined
-    ? computed.forecastOpProfitRatePct
-    : calcExpectedOpProfitRatePct(computed.forecastExpectedSales, computed.recommendedOrderQtyTotal)
-  const confirmedOpProfitRatePct = computed.confirmedOpProfitRatePct !== undefined
-    ? computed.confirmedOpProfitRatePct
-    : calcExpectedOpProfitRatePct(computed.confirmedExpectedSales, computed.confirmedOrderQtyTotal)
+  const forecastRate = calcRate(computed.forecastExpectedSales, computed.recommendedOrderQtyTotal)
+  const confirmedRate = calcRate(computed.confirmedExpectedSales, computed.confirmedOrderQtyTotal)
+  const metricRows: Array<{ key: string; label: string; expected: string; confirmed: string; helpId?: HelpKey }> = [
+    { key: 'orderQty', label: KO.rowOrderQty, helpId: 'forecastQtyCalc', expected: formatGroupedNumber(computed.recommendedOrderQtyTotal), confirmed: formatGroupedNumber(computed.confirmedOrderQtyTotal) },
+    { key: 'expectedSales', label: KO.rowExpectedSales, expected: formatGroupedNumber(computed.forecastExpectedSales), confirmed: formatGroupedNumber(computed.confirmedExpectedSales) },
+    { key: 'expectedOpProfit', label: KO.rowExpectedOpProfit, expected: formatGroupedNumber(computed.forecastOpProfit), confirmed: formatGroupedNumber(computed.confirmedOpProfit) },
+    { key: 'expectedOpProfitRate', label: KO.rowExpectedOpProfitRate, helpId: 'expectedOpProfitRate', expected: rateText(forecastRate), confirmed: rateText(confirmedRate) },
+  ]
 
   return (
     <div className={`${styles.card} ${styles.gridColumnCard}`}>
       <div className={styles.stockTitleRow}>
-        <h3 className={styles.sectionTitle}>
-          {KO.sectionSalesForecastIntegrated}
-          <ApiUnitErrorBadge error={error} />
-        </h3>
+        <h3 className={styles.sectionTitle}>{KO.sectionSalesForecastIntegrated}<ApiUnitErrorBadge error={error} /></h3>
       </div>
       <div className={`${styles.stockInputList} ${styles.salesForecastInputList}`}>
-        <div className={styles.stockInputCell}>
-          <span className={`${styles.inlineLabel} ${styles.stockCellLabel}`}>{KO.labelCurrentOrderDate}</span>
-          <span className={`${styles.inlineFieldInput} ${styles.stockCellInputWrap}`}>
-            <input
-              type="date"
-              className={`${styles.stockDateInput} ${styles.stockFillInput}`}
-              min={minOrderDate}
-              value={currentOrderDate}
-              onChange={(e) => actions.onCurrentOrderDateChange(e.target.value)}
-              aria-label={KO.labelCurrentOrderDate}
-            />
-          </span>
-        </div>
-        <div className={styles.stockInputCell}>
-          <span className={`${styles.inlineLabel} ${styles.stockCellLabel}`}>{KO.labelNextOrderDate}</span>
-          <span className={`${styles.inlineFieldInput} ${styles.stockCellInputWrap}`}>
-            <input
-              type="date"
-              className={`${styles.stockDateInput} ${styles.stockFillInput}`}
-              min={currentOrderDate >= minOrderDate ? currentOrderDate : minOrderDate}
-              value={nextOrderDate}
-              onChange={(e) => actions.onNextOrderDateChange(e.target.value)}
-              aria-label={KO.labelNextOrderDate}
-            />
-          </span>
-        </div>
-        <div className={styles.stockInputCell}>
-          <span className={`${styles.inlineLabel} ${styles.stockCellLabel}`}>{KO.labelBufferStock}</span>
-          <span className={`${styles.inlineFieldInput} ${styles.stockCellInputWrap}`}>
-            <input
-              type="number"
-              className={`${styles.stockNumberInput} ${styles.stockFillInput}`}
-              min={0}
-              step={1}
-              value={bufferStock}
-              onChange={(e) => actions.onBufferStockChange(Math.max(0, Number(e.target.value) || 0))}
-              aria-label={KO.labelBufferStock}
-            />
-            <span className={styles.inlineUnit}>{KO.unitBufferStockDays}</span>
-          </span>
-        </div>
-        <div className={styles.stockInputCell}>
-          <span className={`${styles.inlineLabel} ${styles.stockCellLabel}`}>{KO.labelUnitCost}</span>
-          <span className={`${styles.inlineFieldInput} ${styles.stockCellInputWrap}`}>
-            <input
-              type="number"
-              className={`${styles.stockNumberInput} ${styles.stockFillInput}`}
-              min={0}
-              step={1}
-              value={unitCost}
-              onChange={(e) => actions.onUnitCostChange(Math.max(0, Number(e.target.value) || 0))}
-              aria-label={KO.labelUnitCost}
-            />
-            <span className={styles.inlineUnit}>{KO.unitWonPerEa}</span>
-          </span>
-        </div>
-        <div className={styles.stockInputCell}>
-          <span className={`${styles.inlineLabel} ${styles.stockCellLabel}`}>{KO.labelUnitPrice}</span>
-          <span className={`${styles.inlineFieldInput} ${styles.stockCellInputWrap}`}>
-            <input
-              type="number"
-              className={`${styles.stockNumberInput} ${styles.stockFillInput}`}
-              min={0}
-              step={1}
-              value={unitPrice}
-              onChange={(e) => actions.onUnitPriceChange(Math.max(0, Number(e.target.value) || 0))}
-              aria-label={KO.labelUnitPrice}
-            />
-            <span className={styles.inlineUnit}>{KO.unitWonPerEa}</span>
-          </span>
-        </div>
-        <div className={styles.stockInputCell}>
-          <span className={`${styles.inlineLabel} ${styles.stockCellLabel}`}>{KO.labelExpectedFeeRate}</span>
-          <span className={`${styles.inlineFieldInput} ${styles.stockCellInputWrap}`}>
-            <input
-              type="number"
-              className={`${styles.stockNumberInput} ${styles.stockFillInput}`}
-              min={0}
-              max={100}
-              step={0.1}
-              value={expectedFeeRatePct}
-              onChange={(e) => actions.onExpectedFeeRatePctChange(Math.max(0, Number(e.target.value) || 0))}
-              aria-label={KO.labelExpectedFeeRate}
-            />
-            <span className={styles.inlineUnit}>%</span>
-          </span>
-        </div>
-        <div className={styles.stockInputCell}>
-          <span className={`${styles.inlineLabel} ${styles.stockCellLabel}`}>{KO.labelDailyMeanSales}</span>
-          <span className={`${styles.inlineFieldInput} ${styles.stockCellInputWrap}`}>
-            <span className={`${styles.stockComputedValue} ${styles.stockFillInput}`}>
-              {formatGroupedOneDecimal(inputs.trendDailyMean)}
-            </span>
-            <span className={styles.inlineUnit}>EA/일</span>
-          </span>
-        </div>
-        <div className={styles.stockInputCell}>
-          <span className={`${styles.inlineLabel} ${styles.stockCellLabel}`}>{KO.labelDailyMeanExpectedSales}</span>
-          <span className={`${styles.inlineFieldInput} ${styles.stockCellInputWrap}`}>
-            <span className={`${styles.stockComputedValue} ${styles.stockFillInput}`}>
-              {formatGroupedOneDecimal(inputs.dailyMean)}
-            </span>
-            <span className={styles.inlineUnit}>EA/일</span>
-          </span>
-        </div>
+        <DateField label={KO.labelCurrentOrderInboundDueDate} min={minOrderDate} value={currentOrderInboundDueDate} onChange={actions.onCurrentOrderInboundDueDateChange} />
+        <DateField label={KO.labelNextOrderInboundDueDate} min={currentOrderInboundDueDate >= minOrderDate ? currentOrderInboundDueDate : minOrderDate} value={nextOrderInboundDueDate} onChange={actions.onNextOrderInboundDueDateChange} />
+        <NumberField label={KO.labelBufferStock} value={bufferStock} onChange={actions.onBufferStockChange} unit={KO.unitBufferStockDays} />
+        <NumberField label={KO.labelUnitCost} value={unitCost} onChange={actions.onUnitCostChange} unit={KO.unitWonPerEa} />
+        <NumberField label={KO.labelUnitPrice} value={unitPrice} onChange={actions.onUnitPriceChange} unit={KO.unitWonPerEa} />
+        <NumberField label={KO.labelExpectedFeeRate} value={expectedFeeRatePct} onChange={actions.onExpectedFeeRatePctChange} unit="%" max={100} step={0.1} />
+        <ComputedField label={KO.labelDailyMeanSales} value={inputs.trendDailyMean} />
+        <ComputedField label={KO.labelDailyMeanExpectedSales} value={inputs.dailyMean} />
       </div>
       {forecast.loading ? (
-        <LoadingSpinner label="통합 오더 계산 중" />
+        <LoadingSpinner label={`${KO.sectionSalesForecastIntegrated} 계산 중`} />
       ) : (
         <div className={styles.cardTableScroll}>
           <table className={`${styles.table} ${styles.salesForecastTable}`}>
@@ -207,69 +139,20 @@ export function SalesForecastCard({ forecast, orderSettings, actions, help }: Pr
                 <th className={styles.num}>
                   <span className={`${commonStyles.cardTitleWithHelp} ${styles.forecastColumnHeaderWithRadio}`}>
                     {KO.thSizeIntegratedColExpected}
-                    <PortalHelpMark
-                      helpId="forecastQtyCalc"
-                      placement="above"
-                      labelId={labelIds.forecastQtyCalc}
-                      markClassName={commonStyles.helpMark}
-                      help={portal}
-                    />
+                    <PortalHelpMark helpId="forecastQtyCalc" placement="above" labelId={labelIds.forecastQtyCalc} markClassName={commonStyles.helpMark} help={portal} />
                   </span>
                 </th>
-                <th className={styles.num}>
-                  <span className={`${commonStyles.cardTitleWithHelp} ${styles.forecastColumnHeaderWithRadio}`}>
-                    {KO.thSizeIntegratedColConfirm}
-                  </span>
-                </th>
+                <th className={styles.num}><span className={`${commonStyles.cardTitleWithHelp} ${styles.forecastColumnHeaderWithRadio}`}>{KO.thSizeIntegratedColConfirm}</span></th>
               </tr>
             </thead>
             <tbody>
-              <tr>
-                <td>
-                  <span className={commonStyles.cardTitleWithHelp}>
-                    {KO.rowOrderQty}
-                    <PortalHelpMark
-                      helpId="forecastQtyCalc"
-                      placement="above"
-                      labelId={labelIds.forecastQtyCalc}
-                      markClassName={commonStyles.helpMark}
-                      help={portal}
-                    />
-                  </span>
-                </td>
-                <td className={styles.num}>{formatGroupedNumber(computed.recommendedOrderQtyTotal)}</td>
-                <td className={styles.num}>{formatGroupedNumber(computed.confirmedOrderQtyTotal)}</td>
-              </tr>
-              <tr>
-                <td>{KO.rowExpectedSales}</td>
-                <td className={styles.num}>{formatGroupedNumber(computed.forecastExpectedSales)}</td>
-                <td className={styles.num}>{formatGroupedNumber(computed.confirmedExpectedSales)}</td>
-              </tr>
-              <tr>
-                <td>{KO.rowExpectedOpProfit}</td>
-                <td className={styles.num}>{formatGroupedNumber(computed.forecastOpProfit)}</td>
-                <td className={styles.num}>{formatGroupedNumber(computed.confirmedOpProfit)}</td>
-              </tr>
-              <tr>
-                <td>
-                  <span className={commonStyles.cardTitleWithHelp}>
-                    {KO.rowExpectedOpProfitRate}
-                    <PortalHelpMark
-                      helpId="expectedOpProfitRate"
-                      placement="above"
-                      labelId={labelIds.expectedOpProfitRate}
-                      markClassName={commonStyles.helpMark}
-                      help={portal}
-                    />
-                  </span>
-                </td>
-                <td className={styles.num}>
-                  {forecastOpProfitRatePct === null ? '-' : `${formatRatioDecimalKo(forecastOpProfitRatePct)}%`}
-                </td>
-                <td className={styles.num}>
-                  {confirmedOpProfitRatePct === null ? '-' : `${formatRatioDecimalKo(confirmedOpProfitRatePct)}%`}
-                </td>
-              </tr>
+              {metricRows.map((row) => (
+                <tr key={row.key}>
+                  <td>{row.helpId ? <HelpLabel label={row.label} helpId={row.helpId} labelIds={labelIds} portal={portal} /> : row.label}</td>
+                  <td className={styles.num}>{row.expected}</td>
+                  <td className={styles.num}>{row.confirmed}</td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>

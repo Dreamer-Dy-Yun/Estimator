@@ -4,11 +4,7 @@ import { adjacentIdInOrder } from '../../../utils/adjacentListNavigation'
 import { isDialogOrInteractiveControlTarget } from '../../interaction/interactionTarget'
 import type { InnerCandidateRow } from './candidateStashDetailTypes'
 
-function nextFocusableInnerCandidateUuid(
-  orderIds: readonly string[],
-  currentUuid: string | null,
-  direction: AdjacentDirection,
-) {
+function nextFocusableInnerCandidateUuid(orderIds: readonly string[], currentUuid: string | null, direction: AdjacentDirection) {
   if (!orderIds.length) return null
   if (!currentUuid) return direction === 'next' ? orderIds[0] : orderIds[orderIds.length - 1]
   return adjacentIdInOrder(orderIds, currentUuid, direction)
@@ -38,25 +34,11 @@ export function useInnerCandidateOrderKeyboardFocus({
   const activeItemUuid = drawerOpen ? openedItemUuid : focusedVisibleItemUuid
 
   useEffect(() => {
-    if (!openedItemUuid) return
-    let alive = true
-    queueMicrotask(() => {
-      if (alive) setFocusedItemUuid(openedItemUuid)
-    })
-    return () => {
-      alive = false
-    }
+    if (openedItemUuid) queueMicrotask(() => setFocusedItemUuid(openedItemUuid))
   }, [openedItemUuid])
 
   useEffect(() => {
-    if (!focusedItemUuid || orderedUuids.includes(focusedItemUuid)) return
-    let alive = true
-    queueMicrotask(() => {
-      if (alive) setFocusedItemUuid(null)
-    })
-    return () => {
-      alive = false
-    }
+    if (focusedItemUuid && !orderedUuids.includes(focusedItemUuid)) queueMicrotask(() => setFocusedItemUuid(null))
   }, [focusedItemUuid, orderedUuids])
 
   const focusAdjacent = useCallback((currentUuid: string | null, direction: AdjacentDirection) => {
@@ -64,31 +46,23 @@ export function useInnerCandidateOrderKeyboardFocus({
     if (nextUuid) setFocusedItemUuid(nextUuid)
   }, [orderedUuids])
 
-  const openFocusedItem = useCallback((uuid: string | null) => {
-    if (!uuid) return false
-    const row = rows.find((candidate) => candidate.uuid === uuid)
-    if (!row) return false
-    onOpenItemDrawer(row)
-    return true
-  }, [onOpenItemDrawer, rows])
-
   useEffect(() => {
     if (disabled || drawerOpen || drawerClosing) return
-
     const onKeyDown = (event: KeyboardEvent) => {
       if (!['ArrowUp', 'ArrowDown', 'ArrowLeft'].includes(event.key)) return
       if (event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return
       if (isDialogOrInteractiveControlTarget(event.target)) return
 
       if (event.key === 'ArrowLeft') {
-        if (!openFocusedItem(focusedVisibleItemUuid)) return
+        const row = rows.find((candidate) => candidate.uuid === focusedVisibleItemUuid)
+        if (!row) return
         event.preventDefault()
         event.stopPropagation()
+        onOpenItemDrawer(row)
         return
       }
 
-      const direction: AdjacentDirection = event.key === 'ArrowDown' ? 'next' : 'prev'
-      const nextUuid = nextFocusableInnerCandidateUuid(orderedUuids, focusedVisibleItemUuid, direction)
+      const nextUuid = nextFocusableInnerCandidateUuid(orderedUuids, focusedVisibleItemUuid, event.key === 'ArrowDown' ? 'next' : 'prev')
       if (!nextUuid) return
       event.preventDefault()
       event.stopPropagation()
@@ -97,17 +71,7 @@ export function useInnerCandidateOrderKeyboardFocus({
 
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [
-    disabled,
-    drawerClosing,
-    drawerOpen,
-    focusedVisibleItemUuid,
-    openFocusedItem,
-    orderedUuids,
-  ])
+  }, [disabled, drawerClosing, drawerOpen, focusedVisibleItemUuid, onOpenItemDrawer, orderedUuids, rows])
 
-  return {
-    activeItemUuid,
-    focusAdjacent,
-  }
+  return { activeItemUuid, focusAdjacent }
 }

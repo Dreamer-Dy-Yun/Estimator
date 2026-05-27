@@ -1,4 +1,4 @@
-﻿import { describe, expect, it } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import {
   pickProductDrawerBundleFromCache,
   type ProductDrawerBundleCache,
@@ -15,10 +15,10 @@ const bundleA = {
     price: 100,
     qty: 10,
     availableStock: 5,
-    recommendedOrderQty: 3,
-    monthlySalesTrend: [],
-    seasonality: [],
-    sizeMix: [],
+
+
+
+
   },
 }
 

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import type { Dispatch, SetStateAction } from 'react'
 import type { OrderSnapshotDocumentV2 } from '../../../../../snapshot/orderSnapshotTypes'
-import type { CandidateItemPanelContext } from '../candidateActionCards'
+import type { CandidateItemPanelContext } from '../secondaryDrawerTypes'
+import type { InboundDueDateDefaults } from './useSecondaryInboundDueDates'
 import { useSecondarySnapshotPrefill } from './useSecondarySnapshotPrefill'
 
 type LiveOrderUnitSource = {
@@ -10,29 +10,24 @@ type LiveOrderUnitSource = {
   feeRatePct?: number | null
 }
 
-type DateRange = {
-  start: string
-  end: string
-}
-
 type SnapshotControllerArgs = {
   prefillFromSnapshot: OrderSnapshotDocumentV2 | null
   candidateItemContext: CandidateItemPanelContext | null
   primarySkuGroupKey: string
   primaryPrice: number
-  defaultLeadTime: DateRange
+  defaultInboundDueDates: InboundDueDateDefaults
   minOrderDate: string
   onChannelChange: (next: string) => void
-  setLeadTimeStartDate: (value: string) => void
-  setLeadTimeEndDate: (value: string) => void
+  setCurrentOrderInboundDueDate: (value: string) => void
+  setNextOrderInboundDueDate: (value: string) => void
   setAiPrompt: (value: string) => void
   setAiComment: (value: string) => void
-  resetLeadTimeToLive: () => void
+  resetInboundDueDatesToLive: () => void
 }
 
 type DraftEmissionArgs = {
   candidateItemContext: CandidateItemPanelContext | null
-  buildCurrentSnapshot: () => OrderSnapshotDocumentV2
+  buildSnapshot: () => OrderSnapshotDocumentV2
   prefillKey: string | null
   appliedPrefillKey: string | null
   snapshotConfirmBaselineActive: boolean
@@ -58,23 +53,21 @@ export function useSecondaryDrawerSnapshotController({
   candidateItemContext,
   primarySkuGroupKey,
   primaryPrice,
-  defaultLeadTime,
+  defaultInboundDueDates,
   minOrderDate,
   onChannelChange,
-  setLeadTimeStartDate,
-  setLeadTimeEndDate,
+  setCurrentOrderInboundDueDate,
+  setNextOrderInboundDueDate,
   setAiPrompt,
   setAiComment,
-  resetLeadTimeToLive,
+  resetInboundDueDatesToLive,
 }: SnapshotControllerArgs) {
-  /** null: 예측 수량연산용 μ는 클라이언트 가중모형값. 숫자면 해당 값으로 덮어씀. */
   const [dailyMeanClient, setDailyMeanClient] = useState<number | null>(null)
   const [bufferStock, setBufferStock] = useState(DEFAULT_BUFFER_STOCK)
   const [unitCostInput, setUnitCostInput] = useState(roundNonNegative(primaryPrice * DEFAULT_UNIT_COST_PRICE_RATIO))
   const [unitPriceInput, setUnitPriceInput] = useState(roundNonNegative(primaryPrice))
   const [expectedFeeRatePct, setExpectedFeeRatePct] = useState(DEFAULT_EXPECTED_FEE_RATE_PCT)
   const [selfWeightPct, setSelfWeightPct] = useState(DEFAULT_SELF_WEIGHT_PCT)
-  /** 사용자가 직접 덮어쓴 확정 수량만. live/snapshot baseline은 SecondaryOrderDraft가 정한다. */
   const [confirmBySize, setConfirmBySize] = useState<Record<string, number>>({})
   const [snapshotConfirmBaselineActive, setSnapshotConfirmBaselineActive] = useState(
     () => prefillFromSnapshot != null && candidateItemContext?.hydrateSnapshotSource === 'confirmed',
@@ -96,7 +89,7 @@ export function useSecondaryDrawerSnapshotController({
   const snapshotConfirmBySize = useMemo(
     () => (prefillFromSnapshot == null
       ? {}
-      : Object.fromEntries(prefillFromSnapshot.drawer2.sizeRows.map((row) => [row.size, row.confirmQty]))),
+      : Object.fromEntries(prefillFromSnapshot.drawer2.sizeOrders.map((row) => [row.size, row.confirmQty]))),
     [prefillFromSnapshot],
   )
   const applyLiveOrderUnitInputs = useCallback((source: LiveOrderUnitSource) => {
@@ -109,13 +102,13 @@ export function useSecondaryDrawerSnapshotController({
     prefillFromSnapshot,
     candidateItemContext,
     primarySkuGroupKey,
-    defaultLeadTime,
+    defaultInboundDueDates,
     minOrderDate,
     prefillKey,
     onChannelChange,
     setDailyMeanClient,
-    setLeadTimeStartDate,
-    setLeadTimeEndDate,
+    setCurrentOrderInboundDueDate,
+    setNextOrderInboundDueDate,
     setBufferStock,
     setSelfWeightPct,
     setAiPrompt,
@@ -130,7 +123,7 @@ export function useSecondaryDrawerSnapshotController({
 
   const handleResetToLive = useCallback((liveOrderUnitSource: LiveOrderUnitSource) => {
     setDailyMeanClient(null)
-    resetLeadTimeToLive()
+    resetInboundDueDatesToLive()
     setBufferStock(DEFAULT_BUFFER_STOCK)
     setUnitCostInput(roundNonNegative(primaryPrice * DEFAULT_UNIT_COST_PRICE_RATIO))
     setUnitPriceInput(roundNonNegative(primaryPrice))
@@ -147,7 +140,7 @@ export function useSecondaryDrawerSnapshotController({
     applyLiveOrderUnitInputs,
     candidateItemContext,
     primaryPrice,
-    resetLeadTimeToLive,
+    resetInboundDueDatesToLive,
     setAiComment,
     setAiPrompt,
   ])
@@ -173,7 +166,7 @@ export function useSecondaryDrawerSnapshotController({
     selfWeightPct,
     setSelfWeightPct,
     confirmBySize,
-    setConfirmBySize: setConfirmBySize as Dispatch<SetStateAction<Record<string, number>>>,
+    setConfirmBySize,
     hasSavedSnapshot,
     prefillKey,
     appliedPrefillKey,
@@ -194,14 +187,7 @@ export function useSecondaryDrawerLiveUnitDefaults({
   const { avgCost, avgPrice, feeRatePct } = liveOrderUnitSource
   useEffect(() => {
     if (prefillFromSnapshot != null) return
-    let alive = true
-    queueMicrotask(() => {
-      if (!alive) return
-      applyLiveOrderUnitInputs({ avgCost, avgPrice, feeRatePct })
-    })
-    return () => {
-      alive = false
-    }
+    applyLiveOrderUnitInputs({ avgCost, avgPrice, feeRatePct })
   }, [
     applyLiveOrderUnitInputs,
     avgCost,
@@ -214,7 +200,7 @@ export function useSecondaryDrawerLiveUnitDefaults({
 
 export function useSecondaryDrawerDraftEmission({
   candidateItemContext,
-  buildCurrentSnapshot,
+  buildSnapshot,
   prefillKey,
   appliedPrefillKey,
   snapshotConfirmBaselineActive,
@@ -222,21 +208,14 @@ export function useSecondaryDrawerDraftEmission({
   useEffect(() => {
     if (candidateItemContext == null) return
     if (prefillKey != null && appliedPrefillKey !== prefillKey) return
-    let alive = true
-    queueMicrotask(() => {
-      if (!alive) return
-      candidateItemContext.onDraftChange?.(
-        buildCurrentSnapshot(),
-        snapshotConfirmBaselineActive ? 'confirmed' : 'live',
-      )
-    })
-    return () => {
-      alive = false
-    }
+    candidateItemContext.onDraftChange?.(
+      buildSnapshot(),
+      snapshotConfirmBaselineActive ? 'confirmed' : 'live',
+    )
   }, [
     appliedPrefillKey,
     candidateItemContext,
-    buildCurrentSnapshot,
+    buildSnapshot,
     prefillKey,
     snapshotConfirmBaselineActive,
   ])

@@ -1,13 +1,13 @@
-import { ApiUnitErrorBadge } from '../../../../../components/ApiUnitErrorBadge'
+import type { ReactNode } from 'react'
 import type { SecondaryCompetitorChannel } from '../../../../../api'
+import { ApiUnitErrorBadge } from '../../../../../components/ApiUnitErrorBadge'
 import type { ApiUnitErrorInfo } from '../../../../../types'
 import { formatGroupedNumber, formatPercent } from '../../../../../utils/format'
+import type { SalesKpiColumn } from '../../../../../utils/salesKpiColumn'
 import { KO } from '../../ko'
 import styles from '../../secondary/secondaryDrawer.module.css'
-import type { SalesKpiColumn } from '../../secondary/secondaryDrawerTypes'
 
 type Props = {
-  /** 분석 구간 — 월 키를 해당 월 1일~말일(일 단위)로 표시 */
   targetPeriodDays: { start: string; end: string }
   sales: {
     channelLabel: string
@@ -23,45 +23,35 @@ type Props = {
   }
 }
 
+type MetricRow = { key: string; label: string; self: ReactNode; competitor: ReactNode; competitorUnavailable?: boolean }
+
+const primaryValue = (value: string) => <span className={styles.salesMetricPrimaryValue}>{value}</span>
+const formatRank = (rank: number | null, total: number) => (rank === null ? '-' : `${rank}/${total}${KO.rankSuffix}`)
+const rankMetric = (value: string, rank: number, total: number) => <>{primaryValue(value)} ({formatRank(rank, total)})</>
+const costMetric = (avgCost: number | null, costRatioPct: number | null) => (
+  avgCost === null || costRatioPct === null ? '-' : <>{primaryValue(formatGroupedNumber(avgCost))} ({formatPercent(costRatioPct)})</>
+)
+const rateRank = (ratePct: number | null, rank: number | null, total: number) => (
+  ratePct === null || rank === null ? '-' : <>{primaryValue(formatPercent(ratePct))} ({formatRank(rank, total)})</>
+)
+
 export function SalesMetricsCard({ targetPeriodDays, sales, selfCompanyLabel, channelFilter }: Props) {
-  const { channelLabel, self: selfCol, competitor: compCol } = sales
-  const formatRank = (rank: number | null, total: number) =>
-    rank === null ? '-' : `${rank}/${total}${KO.rankSuffix}`
-  const isRateRankUnavailable = (ratePct: number | null, rank: number | null) =>
-    ratePct === null || rank === null
-  const renderPrimaryValue = (value: string) => (
-    <span className={styles.salesMetricPrimaryValue}>{value}</span>
-  )
-  const renderRankMetric = (value: string, rank: number, total: number) => (
-    <>
-      {renderPrimaryValue(value)} ({formatRank(rank, total)})
-    </>
-  )
-  const renderRateRank = (ratePct: number | null, rank: number | null, total: number) => {
-    if (ratePct === null || rank === null) return '-'
-    return (
-      <>
-        {renderPrimaryValue(formatPercent(ratePct))} ({formatRank(rank, total)})
-      </>
-    )
-  }
-  const renderCostMetric = (avgCost: number | null, costRatioPct: number | null) => {
-    if (avgCost === null || costRatioPct === null) return '-'
-    return (
-      <>
-        {renderPrimaryValue(formatGroupedNumber(avgCost))} ({formatPercent(costRatioPct)})
-      </>
-    )
-  }
+  const { channelLabel, self, competitor } = sales
+  const rows: MetricRow[] = [
+    { key: 'avgPrice', label: KO.rowAvgPrice, self: primaryValue(formatGroupedNumber(self.avgPrice)), competitor: primaryValue(formatGroupedNumber(competitor.avgPrice)) },
+    { key: 'qtyRank', label: KO.rowQtyRank, self: rankMetric(formatGroupedNumber(self.qty), self.qtyRank, self.rankTotal), competitor: rankMetric(formatGroupedNumber(competitor.qty), competitor.qtyRank, competitor.rankTotal) },
+    { key: 'amountRank', label: KO.rowAmountRank, self: rankMetric(formatGroupedNumber(self.amount), self.amountRank, self.rankTotal), competitor: rankMetric(formatGroupedNumber(competitor.amount), competitor.amountRank, competitor.rankTotal) },
+    { key: 'avgCost', label: KO.rowAvgCost, self: costMetric(self.avgCost, self.costRatioPct), competitor: costMetric(competitor.avgCost, competitor.costRatioPct), competitorUnavailable: competitor.avgCost === null },
+    { key: 'fee', label: KO.rowFee, self: rateRank(self.feeRatePct, self.feeRank, self.rankTotal), competitor: rateRank(competitor.feeRatePct, competitor.feeRank, competitor.rankTotal), competitorUnavailable: competitor.feeRatePct === null || competitor.feeRank === null },
+    { key: 'opMargin', label: KO.rowOpMargin, self: rateRank(self.opMarginRatePct, self.opMarginRank, self.rankTotal), competitor: rateRank(competitor.opMarginRatePct, competitor.opMarginRank, competitor.rankTotal), competitorUnavailable: competitor.opMarginRatePct === null || competitor.opMarginRank === null },
+  ]
 
   return (
     <div className={`${styles.card} ${styles.gridColumnCard}`}>
       <div className={styles.salesMetricsHeader}>
         <div>
           <h3 className={styles.sectionTitle}>{KO.sectionSales}</h3>
-          <p className={styles.salesMetricsPeriodLine}>
-            {KO.salesMetricsTargetPeriod}: {targetPeriodDays.start} ~ {targetPeriodDays.end}
-          </p>
+          <p className={styles.salesMetricsPeriodLine}>{KO.salesMetricsTargetPeriod}: {targetPeriodDays.start} ~ {targetPeriodDays.end}</p>
         </div>
       </div>
       <div className={styles.cardTableScroll}>
@@ -73,14 +63,8 @@ export function SalesMetricsCard({ targetPeriodDays, sales, selfCompanyLabel, ch
               <th className={`${styles.num} ${styles.salesMetricsCompetitorHeader}`}>
                 {channelFilter ? (
                   <span className={styles.salesMetricsChannelHeaderControl}>
-                    <select
-                      aria-label={KO.labelCompetitorChannel}
-                      value={channelFilter.channelId}
-                      onChange={(e) => channelFilter.onChannelChange(e.target.value)}
-                    >
-                      {channelFilter.competitorChannels.map((ch) => (
-                        <option key={ch.id} value={ch.id}>{ch.label}</option>
-                      ))}
+                    <select aria-label={KO.labelCompetitorChannel} value={channelFilter.channelId} onChange={(event) => channelFilter.onChannelChange(event.target.value)}>
+                      {channelFilter.competitorChannels.map((channel) => <option key={channel.id} value={channel.id}>{channel.label}</option>)}
                     </select>
                     <ApiUnitErrorBadge error={channelFilter.error} />
                   </span>
@@ -89,60 +73,13 @@ export function SalesMetricsCard({ targetPeriodDays, sales, selfCompanyLabel, ch
             </tr>
           </thead>
           <tbody>
-            <tr>
-              <td>{KO.rowAvgPrice}</td>
-              <td className={styles.num}>{renderPrimaryValue(formatGroupedNumber(selfCol.avgPrice))}</td>
-              <td className={styles.num}>{renderPrimaryValue(formatGroupedNumber(compCol.avgPrice))}</td>
-            </tr>
-            <tr>
-              <td>{KO.rowQtyRank}</td>
-              <td className={styles.num}>
-                {renderRankMetric(formatGroupedNumber(selfCol.qty), selfCol.qtyRank, selfCol.rankTotal)}
-              </td>
-              <td className={styles.num}>
-                {renderRankMetric(formatGroupedNumber(compCol.qty), compCol.qtyRank, compCol.rankTotal)}
-              </td>
-            </tr>
-            <tr>
-              <td>{KO.rowAmountRank}</td>
-              <td className={styles.num}>
-                {renderRankMetric(formatGroupedNumber(selfCol.amount), selfCol.amountRank, selfCol.rankTotal)}
-              </td>
-              <td className={styles.num}>
-                {renderRankMetric(formatGroupedNumber(compCol.amount), compCol.amountRank, compCol.rankTotal)}
-              </td>
-            </tr>
-            <tr>
-              <td>{KO.rowAvgCost}</td>
-              <td className={styles.num}>{renderCostMetric(selfCol.avgCost, selfCol.costRatioPct)}</td>
-              <td
-                className={`${styles.num} ${compCol.avgCost === null ? styles.salesMetricUnavailable : ''}`}
-              >
-                {renderCostMetric(compCol.avgCost, compCol.costRatioPct)}
-              </td>
-            </tr>
-            <tr>
-              <td>{KO.rowFee}</td>
-              <td className={styles.num}>
-                {renderRateRank(selfCol.feeRatePct, selfCol.feeRank, selfCol.rankTotal)}
-              </td>
-              <td
-                className={`${styles.num} ${isRateRankUnavailable(compCol.feeRatePct, compCol.feeRank) ? styles.salesMetricUnavailable : ''}`}
-              >
-                {renderRateRank(compCol.feeRatePct, compCol.feeRank, compCol.rankTotal)}
-              </td>
-            </tr>
-            <tr>
-              <td>{KO.rowOpMargin}</td>
-              <td className={styles.num}>
-                {renderRateRank(selfCol.opMarginRatePct, selfCol.opMarginRank, selfCol.rankTotal)}
-              </td>
-              <td
-                className={`${styles.num} ${isRateRankUnavailable(compCol.opMarginRatePct, compCol.opMarginRank) ? styles.salesMetricUnavailable : ''}`}
-              >
-                {renderRateRank(compCol.opMarginRatePct, compCol.opMarginRank, compCol.rankTotal)}
-              </td>
-            </tr>
+            {rows.map((row) => (
+              <tr key={row.key}>
+                <td>{row.label}</td>
+                <td className={styles.num}>{row.self}</td>
+                <td className={`${styles.num} ${row.competitorUnavailable ? styles.salesMetricUnavailable : ''}`}>{row.competitor}</td>
+              </tr>
+            ))}
           </tbody>
         </table>
       </div>

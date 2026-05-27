@@ -22,6 +22,7 @@ import {
   removeCandidateItemsByUuid,
 } from './candidateItemLocalMutationModel'
 import { useCandidateItemsLoader } from './useCandidateItemsLoader'
+import type { CandidateItemStateUpdater } from './candidateStashDetailTypes'
 
 type Args = {
   stashUuid: string
@@ -29,8 +30,6 @@ type Args = {
   stashSummary?: CandidateStashSummary | null
   onStashesInvalidate?: () => void
 }
-
-type ItemStateUpdater = CandidateItemSummary[] | ((current: CandidateItemSummary[]) => CandidateItemSummary[])
 
 export type { InnerCandidateRow, InnerCandidateSortKey } from './candidateStashDetailTypes'
 
@@ -48,11 +47,9 @@ export function useCandidateStashDetailModal({
   const clearRecommendationItemsRef = useRef<() => void>(() => undefined)
   const confirmationOverridesRef = useRef<CandidateDetailConfirmationOverrideMap>({})
   const appliedPeriodRef = useRef<AppliedCandidateDataReferencePeriod>({ start: '', end: '' })
-  const clearRecommendationItemsFromRef = useCallback(() => {
-    clearRecommendationItemsRef.current()
-  }, [])
+  const clearRecommendationItemsFromRef = useCallback(() => clearRecommendationItemsRef.current(), [])
 
-  const setItems = useCallback((next: ItemStateUpdater) => {
+  const setItems = useCallback((next: CandidateItemStateUpdater) => {
     setItemsState((current) => {
       const resolved = typeof next === 'function' ? next(current) : next
       itemsRef.current = resolved
@@ -108,10 +105,7 @@ export function useCandidateStashDetailModal({
     closeMetricSubscription,
     loadItems,
   })
-  const {
-    dataReferencePeriodStart,
-    dataReferencePeriodEnd,
-  } = dataReferencePeriod
+  const { dataReferencePeriodStart, dataReferencePeriodEnd } = dataReferencePeriod
 
   const appendRecommendedItemsLocally = useCallback((
     candidateItems: CandidateStashItemSummary[],
@@ -135,22 +129,18 @@ export function useCandidateStashDetailModal({
     setItems,
     subscribeOrderMetrics,
   ])
-  const recommendationItemMembershipKey = useMemo(
-    () => items.map((item) => item.skuUuid).sort().join('|'),
-    [items],
-  )
-  const recommendationItemSkuUuids = useMemo(
-    () => items.map((item) => item.skuUuid),
-    [items],
-  )
+  const recommendationItemScope = useMemo(() => {
+    const skuUuids = items.map((item) => item.skuUuid)
+    return { skuUuids, membershipKey: [...skuUuids].sort().join('|') }
+  }, [items])
 
   const recommendations = useCandidateRecommendations({
     stashUuid,
     companyUuid,
     dataReferencePeriodStart,
     dataReferencePeriodEnd,
-    itemMembershipKey: recommendationItemMembershipKey,
-    itemSkuUuids: recommendationItemSkuUuids,
+    itemMembershipKey: recommendationItemScope.membershipKey,
+    itemSkuUuids: recommendationItemScope.skuUuids,
     mountedRef,
     itemsRef,
     setItems,
@@ -158,11 +148,7 @@ export function useCandidateStashDetailModal({
     refreshStashes,
     showToast,
   })
-  const {
-    clearRecommendationItems,
-    loadRecommendations,
-    recommendationLoading,
-  } = recommendations
+  const { clearRecommendationItems, loadRecommendations, recommendationLoading } = recommendations
 
   useEffect(() => {
     clearRecommendationItemsRef.current = clearRecommendationItems
@@ -175,12 +161,10 @@ export function useCandidateStashDetailModal({
   }, [candidateItemsLoadError, candidateItemsLoading, items, loadRecommendations, recommendationLoading])
 
   const table = useInnerCandidateTable(items)
-  const dataReferenceStart = dataReferencePeriodStart || undefined
-  const dataReferenceEnd = dataReferencePeriodEnd || undefined
 
   const drawer = useCandidateStashItemDrawer({
-    dataReferenceStart,
-    dataReferenceEnd,
+    dataReferenceStart: dataReferencePeriodStart || undefined,
+    dataReferenceEnd: dataReferencePeriodEnd || undefined,
     detailTarget,
     itemDeleteTargetUuid: itemDeleteTarget?.uuid ?? null,
     tableRows: table.tableRows,
@@ -230,77 +214,28 @@ export function useCandidateStashDetailModal({
   }, [actions])
 
   return {
-    drawerOpen: drawer.drawerOpen,
-    drawerClosing: drawer.drawerClosing,
+    ...drawer,
+    ...dataReferencePeriod,
+    ...table,
+    ...actions,
+    ...bulkConfirm,
+    ...recommendations,
     items,
-    recommendationItems: recommendations.recommendationItems,
-    recommendationLoading: recommendations.recommendationLoading,
-    recommendationAppendBusy: recommendations.recommendationAppendBusy,
-    recommendationError: recommendations.recommendationError,
     candidateItemsLoading,
     candidateItemsLoadError,
-    brandQuery: table.brandQuery,
-    setBrandQuery: table.setBrandQuery,
-    codeQuery: table.codeQuery,
-    setCodeQuery: table.setCodeQuery,
-    productNameQuery: table.productNameQuery,
-    setProductNameQuery: table.setProductNameQuery,
-    tableSort: table.tableSort,
-    toggleTableSort: table.toggleTableSort,
-    drawerError: drawer.drawerError,
-    openedItemUuid: drawer.openedItemUuid,
-    hydrateSnap: drawer.hydrateSnap,
-    hydrateSnapSource: drawer.hydrateSnapSource,
-    confirmedHydrateSnap: drawer.confirmedHydrateSnap,
     dataReferencePeriodStart,
     dataReferencePeriodEnd,
-    draftDataReferencePeriodStart: dataReferencePeriod.draftDataReferencePeriodStart,
-    draftDataReferencePeriodEnd: dataReferencePeriod.draftDataReferencePeriodEnd,
-    dataReferencePeriodQueryDirty: dataReferencePeriod.dataReferencePeriodQueryDirty,
-    onDataReferencePeriodStartChange: dataReferencePeriod.onDataReferencePeriodStartChange,
-    onDataReferencePeriodEndChange: dataReferencePeriod.onDataReferencePeriodEndChange,
-    applyDataReferencePeriod: dataReferencePeriod.applyDataReferencePeriod,
-    fc: drawer.fc,
-    bundle: drawer.bundle,
-    mergedSummary: drawer.mergedSummary,
-    periodStart: dataReferenceStart,
-    periodEnd: dataReferenceEnd,
+    periodStart: dataReferencePeriodStart || undefined,
+    periodEnd: dataReferencePeriodEnd || undefined,
     itemDeleteTarget,
     detailTarget,
     stashListLoadError,
-    brandOptions: table.brandOptions,
-    codeOptions: table.codeOptions,
-    productNameOptions: table.productNameOptions,
-    tableRows: table.tableRows,
-    totals: table.totals,
-    pendingOrderMetricCount: table.pendingOrderMetricCount,
-    totalExpectedOpProfitRatePct: table.totalExpectedOpProfitRatePct,
-    itemDeleteBusy: actions.itemDeleteBusy,
-    bulkConfirmBusy: bulkConfirm.bulkConfirmBusy,
-    bulkConfirmProgress: bulkConfirm.bulkConfirmProgress,
-    bulkDeleteBusy: actions.bulkDeleteBusy,
-    bulkUnconfirmBusy: actions.bulkUnconfirmBusy,
-    orderExportBusy: actions.orderExportBusy,
-    orderExportError: actions.orderExportError,
     setItemDeleteTarget,
-    openItemDrawer: drawer.openItemDrawer,
-    onRequestNavigateAdjacent: drawer.onRequestNavigateAdjacent,
-    closeDrawer: drawer.closeDrawer,
-    onDrawerForecastMonthsChange: drawer.onDrawerForecastMonthsChange,
-    saveDrawerDraftSnapshot: drawer.saveDrawerDraftSnapshot,
-    clearDrawerDraftSnapshot: drawer.clearDrawerDraftSnapshot,
     markDrawerSnapshotConfirmed,
     markDrawerSnapshotUnconfirmed,
-    restoreDrawerConfirmedSnapshot: drawer.restoreDrawerConfirmedSnapshot,
     loadItems,
     refreshStashes,
-    appendRecommendedItems: recommendations.appendRecommendedItems,
     confirmDeleteItem,
-    confirmBulkDetailItems: bulkConfirm.confirmBulkDetailItems,
-    closeBulkConfirmProgress: bulkConfirm.closeBulkConfirmProgress,
-    confirmDeleteItems: actions.confirmDeleteItems,
-    confirmUnconfirmItems: actions.confirmUnconfirmItems,
-    downloadOrderExcel: actions.downloadOrderExcel,
   }
 }
 

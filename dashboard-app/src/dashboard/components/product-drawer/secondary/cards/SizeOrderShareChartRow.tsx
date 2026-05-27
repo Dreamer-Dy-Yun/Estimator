@@ -3,13 +3,13 @@ import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'rec
 import { formatRatioDecimalKo } from '../../../../../utils/format'
 import { KO } from '../../ko'
 import styles from '../secondaryDrawer.module.css'
-import type { SizeOrderRow } from './sizeOrderCardTypes'
+import type { SecondarySizeOrderDisplayRow } from '../model/secondarySizeOrderRows'
 
 type Props = {
   tableRef: RefObject<HTMLTableElement | null>
   channelLabel: string
   selfCompanyLabel: string
-  sizeRows: SizeOrderRow[]
+  sizeRows: SecondarySizeOrderDisplayRow[]
 }
 
 export function SizeOrderShareChartRow({ tableRef, channelLabel, selfCompanyLabel, sizeRows }: Props) {

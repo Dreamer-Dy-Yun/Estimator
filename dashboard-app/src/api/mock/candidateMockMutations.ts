@@ -1,4 +1,4 @@
-﻿import type {
+import type {
   AppendCandidateItemPayload,
   AppendCandidateItemsPayload,
   AppendCandidateItemsResponse,
@@ -26,117 +26,82 @@ import { makeUuid32 } from './utils'
 
 const MOCK_EXCEL_UPLOAD_ITEM_LIMIT = 3
 
-function buildCandidateStashNameFromUploadFile(fileName: string): string {
-  const withoutExtension = fileName.replace(/\.(xlsx|xls)$/i, '').trim()
-  return withoutExtension || '후보군 업로드'
-}
-
-function getMockExcelUploadSkuGroupKeys(): string[] {
-  return Object.keys(productPrimaryBySkuGroupKey).slice(0, MOCK_EXCEL_UPLOAD_ITEM_LIMIT)
-}
-
-function getCandidateStashForMutation(
-  stashUuid: string,
-  ownerUserUuid?: string,
-  companyUuid?: string,
-): CandidateStashRecord {
+function requireCandidateStashForMutation(stashUuid: string, ownerUserUuid?: string, companyUuid?: string): CandidateStashRecord {
   const requiredCompanyUuid = getMockMutationCompanyUuid(companyUuid)
   const stash = findCandidateStashForOwner(stashUuid, ownerUserUuid, requiredCompanyUuid)
-  if (!stash || stash.companyUuid !== requiredCompanyUuid) {
-    throw new Error('후보군을 찾을 수 없습니다.')
-  }
+  if (!stash || stash.companyUuid !== requiredCompanyUuid) throw new Error('후보군을 찾을 수 없습니다.')
   return stash
 }
 
-function requireCandidateStashName(name: string): string {
+function requireStashName(name: string): string {
   const trimmed = name.trim()
   if (!trimmed) throw new Error('후보군 이름을 입력하세요.')
   return trimmed
 }
 
-function assertCandidateStashPeriod(payload: CreateCandidateStashPayload): void {
-  if (!payload.periodStart || !payload.periodEnd) {
-    throw new Error('후보군 기간을 입력하세요.')
-  }
-  if (payload.periodStart > payload.periodEnd) {
-    throw new Error('후보군 시작일은 종료일보다 늦을 수 없습니다.')
-  }
-  if (!Number.isFinite(payload.forecastMonths) || payload.forecastMonths <= 0) {
-    throw new Error('예측 개월 수는 1 이상이어야 합니다.')
-  }
+function assertCreatePayload(payload: CreateCandidateStashPayload): void {
+  if (!payload.periodStart || !payload.periodEnd) throw new Error('후보군 기간을 입력하세요.')
+  if (payload.periodStart > payload.periodEnd) throw new Error('후보군 시작일은 종료일보다 늦을 수 없습니다.')
+  if (!Number.isFinite(payload.forecastMonths) || payload.forecastMonths <= 0) throw new Error('예측 개월 수는 1 이상이어야 합니다.')
 }
 
-function requireCandidateItemUuidSet(itemUuids: string[]): Set<string> {
+function requireSkuGroupKeys(skuGroupKeys: string[]): string[] {
+  const unique = [...new Set(skuGroupKeys)]
+  if (unique.length === 0) throw new Error('추가할 상품이 없습니다.')
+  if (unique.some((skuGroupKey) => !skuGroupKey.trim())) throw new Error('추가할 상품 키가 비어 있습니다.')
+  const unknownProduct = unique.find((skuGroupKey) => !productPrimaryBySkuGroupKey[skuGroupKey])
+  if (unknownProduct) throw new Error(`상품을 찾을 수 없습니다: ${unknownProduct}`)
+  return unique
+}
+
+function requireItemUuidSet(itemUuids: string[]): Set<string> {
   if (itemUuids.length === 0) throw new Error('삭제할 후보 아이템이 없습니다.')
-  if (itemUuids.some((itemUuid) => !itemUuid.trim())) {
-    throw new Error('삭제할 후보 아이템 ID가 비어 있습니다.')
-  }
+  if (itemUuids.some((itemUuid) => !itemUuid.trim())) throw new Error('삭제할 후보 아이템 ID가 비어 있습니다.')
   return new Set(itemUuids)
 }
 
-function assertKnownProduct(skuGroupKey: string): void {
-  if (!productPrimaryBySkuGroupKey[skuGroupKey]) {
-    throw new Error(`상품을 찾을 수 없습니다: ${skuGroupKey}`)
-  }
+function createItem(stashUuid: string, skuGroupKey: string, now: string, overrides?: Partial<Pick<CandidateItemRecord, 'details' | 'isLatestLlmComment'>>) {
+  return createCandidateItemRecord(stashUuid, skuGroupKey, now, overrides)
 }
 
 export function deleteCandidateItemRecord(itemUuid: string, ownerUserUuid?: string, companyUuid?: string): void {
   const requiredCompanyUuid = getMockMutationCompanyUuid(companyUuid)
   const records = readCandidateItemRecords()
-  const index = records.findIndex((it) => it.uuid === itemUuid)
-  const row = index >= 0 ? records[index] : undefined
-  if (!row || !findCandidateStashForOwner(row.stashUuid, ownerUserUuid, requiredCompanyUuid)) {
-    throw new Error('후보 아이템을 찾을 수 없습니다.')
-  }
+  const index = records.findIndex((item) => item.uuid === itemUuid)
+  const item = records[index]
+  if (!item || !findCandidateStashForOwner(item.stashUuid, ownerUserUuid, requiredCompanyUuid)) throw new Error('후보 아이템을 찾을 수 없습니다.')
   records.splice(index, 1)
 }
 
-export function deleteCandidateItemRecords(
-  stashUuid: string,
-  itemUuids: string[],
-  ownerUserUuid?: string,
-  companyUuid?: string,
-): void {
-  getCandidateStashForMutation(stashUuid, ownerUserUuid, companyUuid)
-
-  const uuidSet = requireCandidateItemUuidSet(itemUuids)
+export function deleteCandidateItemRecords(stashUuid: string, itemUuids: string[], ownerUserUuid?: string, companyUuid?: string): void {
+  requireCandidateStashForMutation(stashUuid, ownerUserUuid, companyUuid)
+  const uuidSet = requireItemUuidSet(itemUuids)
   const records = readCandidateItemRecords()
-  for (const itemUuid of uuidSet) {
-    const item = records.find((row) => row.uuid === itemUuid)
-    if (!item || item.stashUuid !== stashUuid) {
-      throw new Error('후보군에 포함되지 않은 후보 아이템이 있습니다.')
-    }
+  if ([...uuidSet].some((itemUuid) => !records.some((row) => row.uuid === itemUuid && row.stashUuid === stashUuid))) {
+    throw new Error('후보군에 포함되지 않은 후보 아이템이 있습니다.')
   }
-
   for (let index = records.length - 1; index >= 0; index -= 1) {
-    const item = records[index]
-    if (item.stashUuid === stashUuid && uuidSet.has(item.uuid)) records.splice(index, 1)
+    if (records[index].stashUuid === stashUuid && uuidSet.has(records[index].uuid)) records.splice(index, 1)
   }
 }
 
 export function deleteCandidateStashRecord(stashUuid: string, ownerUserUuid?: string, companyUuid?: string): void {
-  const target = getCandidateStashForMutation(stashUuid, ownerUserUuid, companyUuid)
+  const target = requireCandidateStashForMutation(stashUuid, ownerUserUuid, companyUuid)
   const stashes = readCandidateStashRecords()
   const stashIndex = stashes.findIndex((row) => row.uuid === target.uuid)
   if (stashIndex >= 0) stashes.splice(stashIndex, 1)
-
   const items = readCandidateItemRecords()
   for (let index = items.length - 1; index >= 0; index -= 1) {
     if (items[index].stashUuid === target.uuid) items.splice(index, 1)
   }
 }
 
-export function createCandidateStashSummary(
-  payload: CreateCandidateStashPayload,
-  ownerUserUuid = MOCK_ADMIN_USER_UUID,
-): CandidateStashSummary {
+export function createCandidateStashSummary(payload: CreateCandidateStashPayload, ownerUserUuid = MOCK_ADMIN_USER_UUID): CandidateStashSummary {
   const now = new Date().toISOString()
-  const name = requireCandidateStashName(payload.name)
-  assertCandidateStashPeriod(payload)
-
+  assertCreatePayload(payload)
   const stash: CandidateStashRecord = {
     uuid: makeUuid32(),
-    name,
+    name: requireStashName(payload.name),
     note: payload.note?.trim() || null,
     userUuid: ownerUserUuid,
     companyUuid: getMockMutationCompanyUuid(payload),
@@ -150,166 +115,87 @@ export function createCandidateStashSummary(
   return toCandidateStashSummary(stash, 0)
 }
 
-export function updateCandidateStashSummary(
-  payload: UpdateCandidateStashPayload,
-  ownerUserUuid?: string,
-  companyUuid?: string,
-): CandidateStashSummary {
-  const items = readCandidateItemRecords()
-  const target = getCandidateStashForMutation(payload.stashUuid, ownerUserUuid, companyUuid)
-  const name = requireCandidateStashName(payload.name)
-
-  const now = new Date().toISOString()
-  target.name = name
+export function updateCandidateStashSummary(payload: UpdateCandidateStashPayload, ownerUserUuid?: string, companyUuid?: string): CandidateStashSummary {
+  const target = requireCandidateStashForMutation(payload.stashUuid, ownerUserUuid, companyUuid)
+  target.name = requireStashName(payload.name)
   target.note = payload.note?.trim() || null
-  target.dbUpdatedAt = now
-
-  let itemCount = 0
-  for (const item of items) {
-    if (item.stashUuid === target.uuid) itemCount += 1
-  }
-  return toCandidateStashSummary(target, itemCount)
+  target.dbUpdatedAt = new Date().toISOString()
+  return toCandidateStashSummary(target, readCandidateItemRecords().filter((item) => item.stashUuid === target.uuid).length)
 }
 
-export function duplicateCandidateStashRecord(
-  sourceStashUuid: string,
-  ownerUserUuid?: string,
-  companyUuid?: string,
-): void {
-  const source = getCandidateStashForMutation(sourceStashUuid, ownerUserUuid, companyUuid)
+export function duplicateCandidateStashRecord(sourceStashUuid: string, ownerUserUuid?: string, companyUuid?: string): void {
+  const source = requireCandidateStashForMutation(sourceStashUuid, ownerUserUuid, companyUuid)
   const now = new Date().toISOString()
   const duplicatedStashUuid = makeUuid32()
-  readCandidateStashRecords().push({
-    ...source,
-    uuid: duplicatedStashUuid,
-    name: `${source.name} 복사본`,
-    dbCreatedAt: now,
-    dbUpdatedAt: now,
-  })
-
-  const records = readCandidateItemRecords()
-  const sourceItems = records.filter((row) => row.stashUuid === source.uuid)
-  for (const item of sourceItems) {
-    records.push(
-      createCandidateItemRecord(duplicatedStashUuid, item.skuGroupKey, now, {
-        details: item.details,
-        isLatestLlmComment: item.isLatestLlmComment,
-      }),
-    )
-  }
+  readCandidateStashRecords().push({ ...source, uuid: duplicatedStashUuid, name: `${source.name} 복사본`, dbCreatedAt: now, dbUpdatedAt: now })
+  readCandidateItemRecords()
+    .filter((row) => row.stashUuid === source.uuid)
+    .forEach((item) => readCandidateItemRecords().push(createItem(duplicatedStashUuid, item.skuGroupKey, now, {
+      details: item.details,
+      isLatestLlmComment: item.isLatestLlmComment,
+    })))
 }
 
-export function appendCandidateItemRecord(
-  payload: AppendCandidateItemPayload,
-  ownerUserUuid?: string,
-  companyUuid?: string,
-): void {
-  getCandidateStashForMutation(payload.stashUuid, ownerUserUuid, companyUuid)
-  assertKnownProduct(payload.skuGroupKey)
+export function appendCandidateItemRecord(payload: AppendCandidateItemPayload, ownerUserUuid?: string, companyUuid?: string): void {
+  requireCandidateStashForMutation(payload.stashUuid, ownerUserUuid, companyUuid)
+  requireSkuGroupKeys([payload.skuGroupKey])
+  const records = readCandidateItemRecords()
+  if (records.some((row) => row.stashUuid === payload.stashUuid && row.skuGroupKey === payload.skuGroupKey)) throw new Error('이미 후보군에 포함된 상품입니다.')
+  records.push(createItem(payload.stashUuid, payload.skuGroupKey, new Date().toISOString(), {
+    details: payload.details,
+    isLatestLlmComment: payload.isLatestLlmComment,
+  }))
+}
 
+export function appendCandidateItemsToStash(payload: AppendCandidateItemsPayload, ownerUserUuid?: string, companyUuid?: string): AppendCandidateItemsResponse {
+  requireCandidateStashForMutation(payload.stashUuid, ownerUserUuid, companyUuid)
+  const records = readCandidateItemRecords()
+  const existingSkuSet = new Set(records.filter((row) => row.stashUuid === payload.stashUuid).map((row) => row.skuUuid))
   const now = new Date().toISOString()
-  const records = readCandidateItemRecords()
-  if (records.some((row) => row.stashUuid === payload.stashUuid && row.skuGroupKey === payload.skuGroupKey)) {
-    throw new Error('이미 후보군에 포함된 상품입니다.')
-  }
-  records.push({
-    ...createCandidateItemRecord(payload.stashUuid, payload.skuGroupKey, now, {
-      details: payload.details,
-      isLatestLlmComment: payload.isLatestLlmComment,
-    }),
-  })
+  const createdItems = requireSkuGroupKeys(payload.skuGroupKeys)
+    .filter((skuGroupKey) => !existingSkuSet.has(skuGroupKey))
+    .map((skuGroupKey) => {
+      const created = createItem(payload.stashUuid, skuGroupKey, now)
+      records.push(created)
+      existingSkuSet.add(skuGroupKey)
+      return created
+    })
+  return { candidateItems: buildCandidateStashItems(createdItems) }
 }
 
-export function appendCandidateItemsToStash(
-  payload: AppendCandidateItemsPayload,
-  ownerUserUuid?: string,
-  companyUuid?: string,
-): AppendCandidateItemsResponse {
-  getCandidateStashForMutation(payload.stashUuid, ownerUserUuid, companyUuid)
-  if (payload.skuGroupKeys.length === 0) throw new Error('추가할 상품이 없습니다.')
-  if (payload.skuGroupKeys.some((skuGroupKey) => !skuGroupKey.trim())) {
-    throw new Error('추가할 상품 키가 비어 있습니다.')
-  }
-
-  const unknownProduct = payload.skuGroupKeys.find((skuGroupKey) => !productPrimaryBySkuGroupKey[skuGroupKey])
-  if (unknownProduct) throw new Error(`상품을 찾을 수 없습니다: ${unknownProduct}`)
-
-  const records = readCandidateItemRecords()
-  const existingSkuSet = new Set<string>()
-  for (const row of records) {
-    if (row.stashUuid === payload.stashUuid) existingSkuSet.add(row.skuUuid)
-  }
-
-  const now = new Date().toISOString()
-  const createdItems: CandidateItemRecord[] = []
-  for (const skuGroupKey of [...new Set(payload.skuGroupKeys)]) {
-    if (existingSkuSet.has(skuGroupKey)) continue
-    const created = createCandidateItemRecord(payload.stashUuid, skuGroupKey, now)
-    records.push(created)
-    createdItems.push(created)
-    existingSkuSet.add(skuGroupKey)
-  }
-  return {
-    candidateItems: buildCandidateStashItems(createdItems),
-  }
-}
-
-export function updateCandidateItemRecord(
-  payload: UpdateCandidateItemPayload,
-  ownerUserUuid?: string,
-  companyUuid?: string,
-): UpdateCandidateItemResponse {
+export function updateCandidateItemRecord(payload: UpdateCandidateItemPayload, ownerUserUuid?: string, companyUuid?: string): UpdateCandidateItemResponse {
   const requiredCompanyUuid = getMockMutationCompanyUuid(companyUuid)
   const item = readCandidateItemRecords().find((row) => row.uuid === payload.itemUuid)
-  if (!item || !findCandidateStashForOwner(item.stashUuid, ownerUserUuid, requiredCompanyUuid)) {
-    throw new Error('후보 아이템을 찾을 수 없습니다.')
-  }
-
-  const now = new Date().toISOString()
+  if (!item || !findCandidateStashForOwner(item.stashUuid, ownerUserUuid, requiredCompanyUuid)) throw new Error('후보 아이템을 찾을 수 없습니다.')
   item.details = payload.details
   item.isLatestLlmComment = payload.isLatestLlmComment
-  item.dbUpdatedAt = now
+  item.dbUpdatedAt = new Date().toISOString()
   return toCandidateItemDetail(item)
 }
 
-export function uploadCandidateStashExcelFile(
-  file: File,
-  ownerUserUuid = MOCK_ADMIN_USER_UUID,
-  companyUuid?: string,
-): CandidateStashExcelUploadResult {
+export function uploadCandidateStashExcelFile(file: File, ownerUserUuid = MOCK_ADMIN_USER_UUID, companyUuid?: string): CandidateStashExcelUploadResult {
   const requiredCompanyUuid = getMockMutationCompanyUuid(companyUuid)
-
   const fileName = file.name.trim()
-  const isExcel = /\.(xlsx|xls)$/i.test(fileName)
-  if (!fileName || !isExcel) throw new Error('엑셀 파일(.xlsx, .xls)만 업로드할 수 있습니다.')
+  if (!fileName || !/\.(xlsx|xls)$/i.test(fileName)) throw new Error('엑셀 파일(.xlsx, .xls)만 업로드할 수 있습니다.')
   if (file.size <= 0) throw new Error('빈 엑셀 파일은 업로드할 수 없습니다.')
 
-  const skuGroupKeys = getMockExcelUploadSkuGroupKeys()
-  if (skuGroupKeys.length === 0) {
-    throw new Error('Mock API에 업로드 후보 상품 데이터가 없습니다.')
-  }
+  const skuGroupKeys = Object.keys(productPrimaryBySkuGroupKey).slice(0, MOCK_EXCEL_UPLOAD_ITEM_LIMIT)
+  if (skuGroupKeys.length === 0) throw new Error('Mock API에 업로드 후보 상품 데이터가 없습니다.')
 
   const now = new Date().toISOString()
   const stashUuid = makeUuid32()
-  const stashName = buildCandidateStashNameFromUploadFile(fileName)
+  const stashName = fileName.replace(/\.(xlsx|xls)$/i, '').trim() || '후보군 업로드'
   readCandidateStashRecords().push({
     uuid: stashUuid,
     name: stashName,
     note: 'Mock Excel upload result',
     userUuid: ownerUserUuid,
     companyUuid: requiredCompanyUuid,
-    periodStart: DEFAULT_CANDIDATE_STASH_CONTEXT.periodStart,
-    periodEnd: DEFAULT_CANDIDATE_STASH_CONTEXT.periodEnd,
-    forecastMonths: DEFAULT_CANDIDATE_STASH_CONTEXT.forecastMonths,
+    ...DEFAULT_CANDIDATE_STASH_CONTEXT,
     dbCreatedAt: now,
     dbUpdatedAt: now,
   })
-
-  const records = readCandidateItemRecords()
-  for (const skuGroupKey of skuGroupKeys) {
-    records.push(createCandidateItemRecord(stashUuid, skuGroupKey, now))
-  }
-
+  skuGroupKeys.forEach((skuGroupKey) => readCandidateItemRecords().push(createItem(stashUuid, skuGroupKey, now)))
   return {
     stashUuid,
     stashName,

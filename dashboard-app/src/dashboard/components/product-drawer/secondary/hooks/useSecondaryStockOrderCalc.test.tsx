@@ -11,10 +11,7 @@ const BASE_PROPS = {
   selectedStart: '2025-01',
   selectedEnd: '2025-12',
   forecastMeanPeriodEnd: '2026-08',
-  serviceLevelPct: 95,
   leadTimeDays: 30,
-  safetyStockMode: 'formula' as const,
-  manualSafetyStock: 12,
   makeApiErrorInfo: (request: string, err: unknown): ApiUnitErrorInfo => ({
     checkedAt: '2026-05-19T00:00:00.000Z',
     page: 'test',

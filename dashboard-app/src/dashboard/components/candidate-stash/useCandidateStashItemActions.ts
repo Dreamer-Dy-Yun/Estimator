@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState, type MutableRefObject } from 'react'
 import {
   deleteCandidateItem,
   deleteCandidateItems,
@@ -8,10 +8,8 @@ import {
   type CandidateItemSummary,
   type CandidateStashSummary,
 } from '../../../api'
-import {
-  createCandidateOrderExcelExport,
-  downloadBlob,
-} from '../../../utils/candidateOrderExcelExport'
+import { createCandidateOrderExcelExport, downloadBlob } from '../../../utils/candidateOrderExcelExport'
+import type { CandidateItemActionScope, CandidateShowToast } from './candidateStashDetailTypes'
 
 type Args = {
   stashUuid: string
@@ -22,17 +20,14 @@ type Args = {
   openedItemUuid: string | null
   closeDrawer: () => void
   refreshStashes: () => Promise<void>
-  showToast: (message: string, options?: { variant?: 'success' | 'info' | 'error' }) => void
+  showToast: CandidateShowToast
   onItemsDeleted?: (itemUuids: string[]) => void
   onItemsUnconfirmed?: (updatedItems: CandidateItemDetail[]) => void
 }
 
-type CandidateItemActionScope = {
-  stashUuid: string
-  companyUuid?: string
-  drawerItemUuid: string | null
-  itemTargetUuid?: string | null
-}
+type RequestRef = MutableRefObject<number>
+
+const COMPANY_REQUIRED_MESSAGE = '오더 후보군 작업은 회사 선택이 필요합니다.'
 
 export function useCandidateStashItemActions({
   stashUuid,
@@ -52,17 +47,12 @@ export function useCandidateStashItemActions({
   const [bulkUnconfirmBusy, setBulkUnconfirmBusy] = useState(false)
   const [orderExportBusy, setOrderExportBusy] = useState(false)
   const [orderExportError, setOrderExportError] = useState<string | null>(null)
-  const currentItemDeleteTargetUuid = itemDeleteTarget?.uuid ?? null
   const mountedRef = useRef(false)
-  const currentActionScopeRef = useRef<CandidateItemActionScope>({
-    stashUuid,
-    ...(companyUuid ? { companyUuid } : {}),
-    drawerItemUuid: openedItemUuid,
-    itemTargetUuid: currentItemDeleteTargetUuid,
-  })
   const itemDeleteRequestRef = useRef(0)
   const bulkDeleteRequestRef = useRef(0)
   const bulkUnconfirmRequestRef = useRef(0)
+  const currentItemDeleteTargetUuid = itemDeleteTarget?.uuid ?? null
+  const currentActionScopeRef = useRef<CandidateItemActionScope>(createScope(stashUuid, companyUuid, openedItemUuid, currentItemDeleteTargetUuid))
 
   useEffect(() => {
     mountedRef.current = true
@@ -72,58 +62,43 @@ export function useCandidateStashItemActions({
   }, [])
 
   useEffect(() => {
-    const currentScope = currentActionScopeRef.current
-    const scopeChanged = currentScope.stashUuid !== stashUuid
-      || currentScope.companyUuid !== companyUuid
-      || currentScope.drawerItemUuid !== openedItemUuid
-    const itemTargetChanged = currentScope.itemTargetUuid !== currentItemDeleteTargetUuid
-    currentActionScopeRef.current = {
-      stashUuid,
-      ...(companyUuid ? { companyUuid } : {}),
-      drawerItemUuid: openedItemUuid,
-      itemTargetUuid: currentItemDeleteTargetUuid,
-    }
+    const previous = currentActionScopeRef.current
+    const next = createScope(stashUuid, companyUuid, openedItemUuid, currentItemDeleteTargetUuid)
+    const scopeChanged = previous.stashUuid !== next.stashUuid || previous.companyUuid !== next.companyUuid || previous.drawerItemUuid !== next.drawerItemUuid
+    currentActionScopeRef.current = next
     if (scopeChanged) {
       setItemDeleteBusy(false)
       setBulkDeleteBusy(false)
       setBulkUnconfirmBusy(false)
-    } else if (itemTargetChanged) {
+    } else if (previous.itemTargetUuid !== next.itemTargetUuid) {
       setItemDeleteBusy(false)
     }
   }, [companyUuid, currentItemDeleteTargetUuid, openedItemUuid, stashUuid])
 
-  const requireCompanyUuid = useCallback((scope: CandidateItemActionScope) => {
-    if (scope.companyUuid) return scope.companyUuid
-    throw new Error('오더 후보군은 회사 선택이 필요합니다.')
-  }, [])
-
-  const createActionScope = useCallback((itemTargetUuid?: string | null): CandidateItemActionScope => {
-    const scope: CandidateItemActionScope = {
-      stashUuid,
-      ...(companyUuid ? { companyUuid } : {}),
-      drawerItemUuid: openedItemUuid,
-    }
-    if (itemTargetUuid !== undefined) scope.itemTargetUuid = itemTargetUuid
-    return scope
-  }, [companyUuid, openedItemUuid, stashUuid])
-
   const isCurrentActionScope = useCallback((scope: CandidateItemActionScope) => {
-    const currentScope = currentActionScopeRef.current
-    return currentScope.stashUuid === scope.stashUuid
-      && currentScope.companyUuid === scope.companyUuid
-      && currentScope.drawerItemUuid === scope.drawerItemUuid
-      && (
-        scope.itemTargetUuid === undefined
-        || currentScope.itemTargetUuid === scope.itemTargetUuid
-      )
+    const current = currentActionScopeRef.current
+    return current.stashUuid === scope.stashUuid
+      && current.companyUuid === scope.companyUuid
+      && current.drawerItemUuid === scope.drawerItemUuid
+      && (scope.itemTargetUuid === undefined || current.itemTargetUuid === scope.itemTargetUuid)
   }, [])
+
+  const createCanReflectAction = useCallback((scope: CandidateItemActionScope, requestRef: RequestRef, requestId: number) => () => (
+    mountedRef.current && requestRef.current === requestId && isCurrentActionScope(scope)
+  ), [isCurrentActionScope])
+
+  const beginAction = useCallback((scope: CandidateItemActionScope, requestRef: RequestRef, setBusy: (busy: boolean) => void) => {
+    requestRef.current += 1
+    const requestId = requestRef.current
+    setBusy(true)
+    return createCanReflectAction(scope, requestRef, requestId)
+  }, [createCanReflectAction])
 
   const refreshAfterMutation = useCallback(async (failureMessage: string, canReflect: () => boolean) => {
     if (!canReflect()) return false
     try {
       await refreshStashes()
-      if (!canReflect()) return false
-      return true
+      return canReflect()
     } catch {
       if (canReflect()) showToast(failureMessage, { variant: 'error' })
       return false
@@ -132,150 +107,102 @@ export function useCandidateStashItemActions({
 
   const confirmDeleteItem = useCallback(async () => {
     if (!itemDeleteTarget) return
-    const targetItem = itemDeleteTarget
-    const actionScope = createActionScope(targetItem.uuid)
-    itemDeleteRequestRef.current += 1
-    const actionRequestId = itemDeleteRequestRef.current
-    const canReflect = () => (
-      mountedRef.current
-        && itemDeleteRequestRef.current === actionRequestId
-        && isCurrentActionScope(actionScope)
-    )
-    setItemDeleteBusy(true)
+    const target = itemDeleteTarget
+    const actionScope = createScope(stashUuid, companyUuid, openedItemUuid, target.uuid)
+    const canReflect = beginAction(actionScope, itemDeleteRequestRef, setItemDeleteBusy)
     try {
       try {
-        const mutationCompanyUuid = requireCompanyUuid(actionScope)
-        await deleteCandidateItem(targetItem.uuid, { companyUuid: mutationCompanyUuid })
+        await deleteCandidateItem(target.uuid, { companyUuid: requireCompanyUuid(actionScope) })
       } catch (err) {
         if (canReflect()) showToast(getApiErrorDisplayMessage(err, '후보를 삭제하지 못했습니다.'), { variant: 'error' })
         throw err
       }
       if (!canReflect()) return
-      onItemsDeleted?.([targetItem.uuid])
-      const refreshed = await refreshAfterMutation('후보를 삭제했지만 목록을 새로고침하지 못했습니다.', canReflect)
+      onItemsDeleted?.([target.uuid])
+      const refreshed = await refreshAfterMutation('후보는 삭제했지만 목록을 새로고침하지 못했습니다.', canReflect)
       if (refreshed && canReflect()) showToast('후보를 삭제했습니다.')
-      if (canReflect() && actionScope.drawerItemUuid === targetItem.uuid) closeDrawer()
+      if (canReflect() && actionScope.drawerItemUuid === target.uuid) closeDrawer()
     } finally {
       if (canReflect()) setItemDeleteBusy(false)
     }
-  }, [isCurrentActionScope, closeDrawer, createActionScope, itemDeleteTarget, onItemsDeleted, refreshAfterMutation, requireCompanyUuid, showToast])
+  }, [beginAction, closeDrawer, companyUuid, itemDeleteTarget, onItemsDeleted, openedItemUuid, refreshAfterMutation, showToast, stashUuid])
 
   const confirmDeleteItems = useCallback(async (itemUuids: string[]) => {
-    const itemUuidsSnapshot = [...new Set(itemUuids)]
+    const itemUuidsSnapshot = uniqueUuids(itemUuids)
     if (!itemUuidsSnapshot.length) return
-    const actionScope = createActionScope()
-    bulkDeleteRequestRef.current += 1
-    const actionRequestId = bulkDeleteRequestRef.current
-    const canReflect = () => (
-      mountedRef.current
-        && bulkDeleteRequestRef.current === actionRequestId
-        && isCurrentActionScope(actionScope)
-    )
-    setBulkDeleteBusy(true)
+    const actionScope = createScope(stashUuid, companyUuid, openedItemUuid)
+    const canReflect = beginAction(actionScope, bulkDeleteRequestRef, setBulkDeleteBusy)
     try {
       try {
-        const mutationCompanyUuid = requireCompanyUuid(actionScope)
-        await deleteCandidateItems(actionScope.stashUuid, itemUuidsSnapshot, { companyUuid: mutationCompanyUuid })
+        await deleteCandidateItems(actionScope.stashUuid, itemUuidsSnapshot, { companyUuid: requireCompanyUuid(actionScope) })
       } catch (err) {
         if (canReflect()) showToast(getApiErrorDisplayMessage(err, '선택 후보를 삭제하지 못했습니다.'), { variant: 'error' })
         throw err
       }
       if (!canReflect()) return
       onItemsDeleted?.(itemUuidsSnapshot)
-      const refreshed = await refreshAfterMutation('선택 후보를 삭제했지만 목록을 새로고침하지 못했습니다.', canReflect)
+      const refreshed = await refreshAfterMutation('선택 후보는 삭제했지만 목록을 새로고침하지 못했습니다.', canReflect)
       if (refreshed && canReflect()) showToast('선택한 후보를 삭제했습니다.')
-      if (canReflect() && actionScope.drawerItemUuid && itemUuidsSnapshot.includes(actionScope.drawerItemUuid)) {
-        closeDrawer()
-      }
+      if (canReflect() && actionScope.drawerItemUuid && itemUuidsSnapshot.includes(actionScope.drawerItemUuid)) closeDrawer()
     } finally {
       if (canReflect()) setBulkDeleteBusy(false)
     }
-  }, [isCurrentActionScope, closeDrawer, createActionScope, onItemsDeleted, refreshAfterMutation, requireCompanyUuid, showToast])
+  }, [beginAction, closeDrawer, companyUuid, onItemsDeleted, openedItemUuid, refreshAfterMutation, showToast, stashUuid])
 
   const confirmUnconfirmItems = useCallback(async (itemUuids: string[]) => {
-    const itemUuidsSnapshot = [...new Set(itemUuids)]
+    const itemUuidsSnapshot = uniqueUuids(itemUuids)
     if (!itemUuidsSnapshot.length) return
-    const actionScope = createActionScope()
-    bulkUnconfirmRequestRef.current += 1
-    const actionRequestId = bulkUnconfirmRequestRef.current
-    const canReflect = () => (
-      mountedRef.current
-        && bulkUnconfirmRequestRef.current === actionRequestId
-        && isCurrentActionScope(actionScope)
-    )
-    setBulkUnconfirmBusy(true)
-    let shouldThrowBulkUnconfirmFailure = false
-    let bulkUnconfirmFailure: unknown
+    const actionScope = createScope(stashUuid, companyUuid, openedItemUuid)
+    const canReflect = beginAction(actionScope, bulkUnconfirmRequestRef, setBulkUnconfirmBusy)
+    let failureToThrow: unknown = null
     try {
-      let results: PromiseSettledResult<CandidateItemDetail>[]
-      try {
-        const mutationCompanyUuid = requireCompanyUuid(actionScope)
-        results = await Promise.allSettled(itemUuidsSnapshot.map((itemUuid) => updateCandidateItem({
-          itemUuid,
-          companyUuid: mutationCompanyUuid,
-          details: null,
-          isLatestLlmComment: false,
-        })))
-      } catch (err) {
-        if (canReflect()) showToast(getApiErrorDisplayMessage(err, '선택 후보 상세 확정을 해제하지 못했습니다.'), { variant: 'error' })
-        throw err
-      }
+      const mutationCompanyUuid = requireCompanyUuid(actionScope)
+      const results = await Promise.allSettled(itemUuidsSnapshot.map((itemUuid) => updateCandidateItem({
+        itemUuid,
+        companyUuid: mutationCompanyUuid,
+        details: null,
+        isLatestLlmComment: false,
+      })))
       if (!canReflect()) return
-      const updatedItems = results.flatMap((result) => (
-        result.status === 'fulfilled' ? [result.value] : []
-      ))
+      const updatedItems = results.flatMap((result) => result.status === 'fulfilled' ? [result.value] : [])
       const failedCount = results.length - updatedItems.length
       if (updatedItems.length) {
         const updatedItemUuidSet = new Set(updatedItems.map((item) => item.uuid))
         onItemsUnconfirmed?.(updatedItems)
-        const refreshed = await refreshAfterMutation('상세 확정 해제는 반영됐지만 목록을 새로고침하지 못했습니다.', canReflect)
+        const refreshed = await refreshAfterMutation('상세확정 해제는 반영했지만 목록을 새로고침하지 못했습니다.', canReflect)
         if (!refreshed && failedCount === 0) return
-        if (canReflect() && actionScope.drawerItemUuid && updatedItemUuidSet.has(actionScope.drawerItemUuid)) {
-          closeDrawer()
-        }
+        if (canReflect() && actionScope.drawerItemUuid && updatedItemUuidSet.has(actionScope.drawerItemUuid)) closeDrawer()
       }
       if (!canReflect()) return
-      showToast(
-        `상세 확정 해제: ${updatedItems.length}개 성공/${failedCount}개 실패했습니다.`,
-        failedCount > 0
-          ? { variant: 'error' }
-          : undefined,
-      )
+      showToast(`상세확정 해제: ${updatedItems.length}개 성공/${failedCount}개 실패했습니다.`, failedCount > 0 ? { variant: 'error' } : undefined)
       if (failedCount > 0) {
-        const rejectedResult = results.find((result) => result.status === 'rejected')
-        shouldThrowBulkUnconfirmFailure = true
-        bulkUnconfirmFailure = rejectedResult?.status === 'rejected'
-          ? rejectedResult.reason
-          : new Error('선택 후보 상세 확정 일부를 해제하지 못했습니다.')
+        const rejected = results.find((result): result is PromiseRejectedResult => result.status === 'rejected')
+        failureToThrow = rejected?.reason ?? new Error('선택 후보 상세확정 일부를 해제하지 못했습니다.')
       }
+    } catch (err) {
+      if (canReflect()) showToast(getApiErrorDisplayMessage(err, '선택 후보 상세확정을 해제하지 못했습니다.'), { variant: 'error' })
+      throw err
     } finally {
       if (canReflect()) setBulkUnconfirmBusy(false)
     }
-    if (shouldThrowBulkUnconfirmFailure) throw bulkUnconfirmFailure
-  }, [isCurrentActionScope, closeDrawer, createActionScope, onItemsUnconfirmed, refreshAfterMutation, requireCompanyUuid, showToast])
+    if (failureToThrow) throw failureToThrow
+  }, [beginAction, closeDrawer, companyUuid, onItemsUnconfirmed, openedItemUuid, refreshAfterMutation, showToast, stashUuid])
 
   const downloadOrderExcel = useCallback(async (userName: string) => {
-    if (!detailTarget) return
-    if (!items.length) return
+    if (!detailTarget || !items.length) return
     if (items.some((item) => item.orderMetricStatus !== 'loaded' || !item.orderExport)) {
-      setOrderExportError('오더 지표 계산이 완료되어야 엑셀을 다운로드할 수 있습니다.')
+      setOrderExportError('오더 지표 계산이 완료되어야 엑셀 다운로드가 가능합니다.')
       return
     }
     setOrderExportBusy(true)
     setOrderExportError(null)
     try {
-      const { blob, filename } = await createCandidateOrderExcelExport({
-        stashName: detailTarget.name,
-        userName,
-        items,
-      })
+      const { blob, filename } = await createCandidateOrderExcelExport({ stashName: detailTarget.name, userName, items })
       if (!mountedRef.current) return
       downloadBlob(blob, filename)
       showToast('엑셀 다운로드 파일을 생성했습니다.')
     } catch (err) {
-      if (!mountedRef.current) return
-      const message = getApiErrorDisplayMessage(err, '엑셀 다운로드 파일을 생성하지 못했습니다.')
-      setOrderExportError(message)
+      if (mountedRef.current) setOrderExportError(getApiErrorDisplayMessage(err, '엑셀 다운로드 파일을 생성하지 못했습니다.'))
     } finally {
       if (mountedRef.current) setOrderExportBusy(false)
     }
@@ -292,4 +219,17 @@ export function useCandidateStashItemActions({
     confirmUnconfirmItems,
     downloadOrderExcel,
   }
+}
+
+function createScope(stashUuid: string, companyUuid: string | undefined, drawerItemUuid: string | null, itemTargetUuid?: string | null): CandidateItemActionScope {
+  return { stashUuid, ...(companyUuid ? { companyUuid } : {}), drawerItemUuid, ...(itemTargetUuid !== undefined ? { itemTargetUuid } : {}) }
+}
+
+function requireCompanyUuid(scope: CandidateItemActionScope) {
+  if (scope.companyUuid) return scope.companyUuid
+  throw new Error(COMPANY_REQUIRED_MESSAGE)
+}
+
+function uniqueUuids(uuids: string[]) {
+  return [...new Set(uuids)]
 }

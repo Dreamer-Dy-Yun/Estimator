@@ -1,4 +1,4 @@
-﻿import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   getApiErrorDisplayMessage,
   startCandidateDetailBulkConfirm,
@@ -7,8 +7,7 @@ import {
   type CandidateDetailBulkConfirmSubscription,
   type CandidateItemDetail,
 } from '../../../api'
-
-type MountedRef = { current: boolean }
+import type { CandidateMountedRef, CandidateShowToast } from './candidateStashDetailTypes'
 
 export interface CandidateBulkDetailConfirmProgress {
   open: boolean
@@ -25,9 +24,9 @@ interface Args {
   companyUuid?: string
   dataReferencePeriodStart: string
   dataReferencePeriodEnd: string
-  mountedRef: MountedRef
+  mountedRef: CandidateMountedRef
   onItemsConfirmed: (updatedItems: CandidateItemDetail[]) => void
-  showToast: (message: string, options?: { variant?: 'success' | 'error' }) => void
+  showToast: CandidateShowToast
 }
 
 const CLOSE_DELAY_MS = 4000

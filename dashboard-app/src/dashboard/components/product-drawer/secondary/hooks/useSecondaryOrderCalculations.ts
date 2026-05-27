@@ -1,29 +1,18 @@
 import { useMemo } from 'react'
-import type { ProductPrimarySummary, ProductSecondaryDetail } from '../../../../../types'
-import { computeClientStockOrder } from '../model/clientStockOrderCompute'
+import type { SecondaryStockOrderCalcResult } from '../../../../../api/types'
+import type { ProductSecondaryDetail } from '../../../../../types'
 import { SecondaryOrderDraft } from '../model/SecondaryOrderDraft'
 import {
   buildDailyTrendSizeOptions,
   buildSecondarySizeOrderRows,
   buildSecondarySizeShares,
 } from '../model/secondarySizeOrderRows'
-import type { SecondaryForecastCalc } from '../secondaryDrawerTypes'
 
 type Args = {
-  primary: ProductPrimarySummary
   secondary: ProductSecondaryDetail
-  selectedStart: string
-  selectedEnd: string
-  forecastMeanPeriodEnd: string
-  leadTimeStartDate: string
-  leadTimeEndDate: string
-  leadTimeDays: number
   forecastSalesHorizonDays: number
-  serviceLevelPct: number
-  safetyStockMode: 'manual' | 'formula'
-  manualSafetyStock: number
   dailyMeanClient: number | null
-  forecastCalc: SecondaryForecastCalc | null
+  forecastCalc: SecondaryStockOrderCalcResult | null
   selfWeightPct: number
   bufferStock: number
   confirmBySize: Record<string, number>
@@ -32,18 +21,8 @@ type Args = {
 }
 
 export function useSecondaryOrderCalculations({
-  primary,
   secondary,
-  selectedStart,
-  selectedEnd,
-  forecastMeanPeriodEnd,
-  leadTimeStartDate,
-  leadTimeEndDate,
-  leadTimeDays,
   forecastSalesHorizonDays,
-  serviceLevelPct,
-  safetyStockMode,
-  manualSafetyStock,
   dailyMeanClient,
   forecastCalc,
   selfWeightPct,
@@ -52,79 +31,17 @@ export function useSecondaryOrderCalculations({
   snapshotConfirmBySize,
   useSnapshotConfirmBaseline,
 }: Args) {
-  const monthlySalesTrend = useMemo(() => primary.monthlySalesTrend ?? [], [primary.monthlySalesTrend])
-  const clientStock = useMemo(
-    () =>
-      computeClientStockOrder({
-        monthlySalesTrend,
-        periodStart: selectedStart,
-        periodEnd: selectedEnd,
-        forecastPeriodEnd: forecastMeanPeriodEnd,
-        serviceLevelPct,
-        leadTimeDays,
-        safetyStockMode,
-        manualSafetyStock: Math.max(0, Math.round(manualSafetyStock)),
-        dailyMeanClient,
-        availableStock: primary.availableStock,
-        price: primary.price,
-      }),
-    [
-      monthlySalesTrend,
-      primary.availableStock,
-      primary.price,
-      selectedStart,
-      selectedEnd,
-      forecastMeanPeriodEnd,
-      serviceLevelPct,
-      leadTimeDays,
-      safetyStockMode,
-      manualSafetyStock,
-      dailyMeanClient,
-    ],
-  )
-  const forecastInputs = useMemo(() => ({
-    trendDailyMean: forecastCalc?.trendDailyMean ?? clientStock.trendDailyMean,
-    dailyMean: dailyMeanClient ?? forecastCalc?.dailyMean ?? clientStock.forecastDailyMean,
-    sigma: forecastCalc?.sigma ?? clientStock.sigma,
-    serviceLevelPct,
-    leadTimeStartDate,
-    leadTimeEndDate,
-    leadTimeDays,
-    safetyStockMode,
-    manualSafetyStock: Math.max(0, Math.round(manualSafetyStock)),
+  const stockOrderDisplayInputs = useMemo(() => ({
+    trendDailyMean: forecastCalc?.trendDailyMean ?? 0,
+    dailyMean: dailyMeanClient ?? forecastCalc?.dailyMean ?? 0,
+    sigma: forecastCalc?.sigma ?? 0,
   }), [
+    dailyMeanClient,
     forecastCalc?.dailyMean,
     forecastCalc?.sigma,
     forecastCalc?.trendDailyMean,
-    clientStock.forecastDailyMean,
-    clientStock.sigma,
-    clientStock.trendDailyMean,
-    dailyMeanClient,
-    leadTimeDays,
-    leadTimeEndDate,
-    leadTimeStartDate,
-    manualSafetyStock,
-    safetyStockMode,
-    serviceLevelPct,
   ])
-  const forecastDerived = useMemo(() => ({
-    safetyStock: forecastCalc?.safetyStockCalc.safetyStock ?? clientStock.safetyStock,
-    recommendedOrderQty: forecastCalc?.safetyStockCalc.recommendedOrderQty ?? clientStock.safetyRecQty,
-    expectedOrderAmount: forecastCalc?.safetyStockCalc.expectedOrderAmount ?? clientStock.safetyExpectedOrderAmount,
-    expectedSalesAmount: forecastCalc?.safetyStockCalc.expectedSalesAmount ?? clientStock.safetyExpectedSalesAmount,
-    expectedOpProfit: forecastCalc?.safetyStockCalc.expectedOpProfit ?? clientStock.safetyExpectedOpProfit,
-  }), [
-    forecastCalc?.safetyStockCalc.expectedOpProfit,
-    forecastCalc?.safetyStockCalc.expectedOrderAmount,
-    forecastCalc?.safetyStockCalc.expectedSalesAmount,
-    forecastCalc?.safetyStockCalc.recommendedOrderQty,
-    forecastCalc?.safetyStockCalc.safetyStock,
-    clientStock.safetyExpectedOpProfit,
-    clientStock.safetyExpectedOrderAmount,
-    clientStock.safetyExpectedSalesAmount,
-    clientStock.safetyRecQty,
-    clientStock.safetyStock,
-  ])
+
   const orderDraft = useMemo(
     () => new SecondaryOrderDraft({
       mode: useSnapshotConfirmBaseline ? 'snapshot' : 'live',
@@ -133,11 +50,16 @@ export function useSecondaryOrderCalculations({
     }),
     [confirmBySize, snapshotConfirmBySize, useSnapshotConfirmBaseline],
   )
-  const sizeAgg = useMemo(() => buildSecondarySizeShares(primary, secondary, selfWeightPct), [primary, secondary, selfWeightPct])
+
+  const sizeShares = useMemo(
+    () => buildSecondarySizeShares(secondary, selfWeightPct),
+    [secondary, selfWeightPct],
+  )
+
   const sizeRows = useMemo(() => {
-    const dailyMeanEa = dailyMeanClient ?? forecastCalc?.dailyMean ?? clientStock.forecastMuRaw
+    const dailyMeanEa = dailyMeanClient ?? forecastCalc?.dailyMean ?? 0
     return buildSecondarySizeOrderRows({
-      shares: sizeAgg,
+      shares: sizeShares,
       dailyMeanEa,
       forecastSalesHorizonDays,
       currentStockBySize: forecastCalc?.display.currentStockQtyBySize ?? [],
@@ -147,19 +69,17 @@ export function useSecondaryOrderCalculations({
     })
   }, [
     bufferStock,
-    clientStock.forecastMuRaw,
     dailyMeanClient,
     forecastCalc,
     forecastSalesHorizonDays,
     orderDraft,
-    sizeAgg,
+    sizeShares,
   ])
 
   return {
-    forecastInputs,
-    forecastDerived,
+    stockOrderDisplayInputs,
     sizeRows,
     manualConfirmDerived: orderDraft.manualFlags(),
-    dailyTrendSizeOptions: buildDailyTrendSizeOptions(primary.sizeMix),
+    dailyTrendSizeOptions: buildDailyTrendSizeOptions(secondary.sizeRows),
   }
 }

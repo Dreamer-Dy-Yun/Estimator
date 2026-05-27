@@ -14,10 +14,7 @@ type Args = {
   selectedEnd: string
   companyUuid?: string
   forecastMeanPeriodEnd: string
-  serviceLevelPct: number
   leadTimeDays: number
-  safetyStockMode: 'manual' | 'formula'
-  manualSafetyStock: number
   dailyMeanClient: number | null
 }
 
@@ -30,10 +27,7 @@ export function useSecondaryDrawerRequests({
   selectedEnd,
   companyUuid,
   forecastMeanPeriodEnd,
-  serviceLevelPct,
   leadTimeDays,
-  safetyStockMode,
-  manualSafetyStock,
   dailyMeanClient,
 }: Args) {
   const makeApiErrorInfo = useCallback((request: string, err: unknown): ApiUnitErrorInfo => ({
@@ -58,10 +52,7 @@ export function useSecondaryDrawerRequests({
     selectedEnd,
     companyUuid,
     forecastMeanPeriodEnd,
-    serviceLevelPct,
     leadTimeDays,
-    safetyStockMode,
-    manualSafetyStock,
     dailyMeanClient,
     makeApiErrorInfo,
   })

@@ -7,7 +7,7 @@ import type { AdjacentDirection } from '../../../utils/adjacentListNavigation'
 import { normalizeMonthKey } from '../trend/trendRangeUtils'
 import { ProductPrimaryDrawer } from './primary/ProductPrimaryDrawer'
 import { ProductDrawerSecondaryPane } from './ProductDrawerSecondaryPane'
-import type { CandidateItemPanelContext } from './secondary/candidateActionCards'
+import type { CandidateItemPanelContext } from './secondary/secondaryDrawerTypes'
 import { useCompetitorChannels } from './useCompetitorChannels'
 import { useProductDrawerKeyboard } from './useProductDrawerKeyboard'
 import { useSecondaryDrawerDetail } from './secondary/useSecondaryDrawerDetail'
@@ -15,6 +15,34 @@ import type { OrderSnapshotDocumentV2 } from '../../../snapshot/orderSnapshotTyp
 import { shouldKeepDrawerOpenOnOutsideMouseDown } from '../../drawer/drawerDom'
 import { setBodyPrimaryDrawerOpen } from '../../drawer/primaryDrawerBody'
 import styles from '../common.module.css'
+
+type ProductDrawerSharedProps = {
+  onClose: () => void
+  periodStart: string
+  periodEnd: string
+  forecastMonths: number
+  selfCompanyLabel: string
+  onForecastMonthsChange: (months: number) => void
+  hydrateSnapshot?: OrderSnapshotDocumentV2 | null
+  initialExpandSecondary?: boolean
+  secondaryEnabled?: boolean
+  candidateItemContext?: CandidateItemPanelContext | null
+  onRequestNavigateAdjacent?: (direction: AdjacentDirection) => void | Promise<void>
+  disableAdjacentNavigation?: boolean
+  suppressDocumentLayoutShift?: boolean
+  closing?: boolean
+}
+
+type ProductDrawerContentProps = ProductDrawerSharedProps & {
+  summary: ProductPrimarySummary
+  companyUuid?: string
+}
+
+type ProductDrawerProps = ProductDrawerSharedProps & {
+  summary: ProductPrimarySummary | null
+  loading?: boolean
+  companyUuid?: string
+}
 
 function ProductDrawerContent({
   summary,
@@ -33,24 +61,7 @@ function ProductDrawerContent({
   disableAdjacentNavigation,
   suppressDocumentLayoutShift,
   closing = false,
-}: {
-  summary: ProductPrimarySummary
-  onClose: () => void
-  periodStart: string
-  periodEnd: string
-  companyUuid?: string
-  forecastMonths: number
-  selfCompanyLabel: string
-  onForecastMonthsChange: (months: number) => void
-  hydrateSnapshot?: OrderSnapshotDocumentV2 | null
-  initialExpandSecondary?: boolean
-  secondaryEnabled?: boolean
-  candidateItemContext?: CandidateItemPanelContext | null
-  onRequestNavigateAdjacent?: (direction: AdjacentDirection) => void | Promise<void>
-  disableAdjacentNavigation?: boolean
-  suppressDocumentLayoutShift?: boolean
-  closing?: boolean
-}) {
+}: ProductDrawerContentProps) {
   const pageName = 'ProductDrawer'
   const drawerRef = useRef<HTMLElement | null>(null)
   const [expandPaneOpenState, setExpandPaneOpen] = useState(() => !!initialExpandSecondary)
@@ -169,65 +180,21 @@ function ProductDrawerContent({
 export const ProductDrawer = ({
   summary,
   loading = false,
-  onClose,
-  periodStart,
-  periodEnd,
   companyUuid: companyUuidProp,
-  forecastMonths,
-  selfCompanyLabel,
-  onForecastMonthsChange,
-  hydrateSnapshot,
-  initialExpandSecondary,
-  secondaryEnabled,
-  candidateItemContext,
-  onRequestNavigateAdjacent,
-  disableAdjacentNavigation,
-  suppressDocumentLayoutShift,
-  closing,
-}: {
-  summary: ProductPrimarySummary | null
-  loading?: boolean
-  onClose: () => void
-  periodStart: string
-  periodEnd: string
-  companyUuid?: string
-  forecastMonths: number
-  selfCompanyLabel: string
-  onForecastMonthsChange: (months: number) => void
-  hydrateSnapshot?: OrderSnapshotDocumentV2 | null
-  initialExpandSecondary?: boolean
-  secondaryEnabled?: boolean
-  candidateItemContext?: CandidateItemPanelContext | null
-  onRequestNavigateAdjacent?: (direction: AdjacentDirection) => void | Promise<void>
-  disableAdjacentNavigation?: boolean
-  suppressDocumentLayoutShift?: boolean
-  closing?: boolean
-}) => {
+  ...contentProps
+}: ProductDrawerProps) => {
   const { selectedCompanyUuid } = useAuth()
   const companyUuid = companyUuidProp ?? getCompanyUuidForOptionalScope(selectedCompanyUuid)
 
   if (!summary) {
     if (!loading) return null
-    return <ProductDrawerLoadingPanel closing={closing} onClose={onClose} />
+    return <ProductDrawerLoadingPanel closing={contentProps.closing} onClose={contentProps.onClose} />
   }
   return (
     <ProductDrawerContent
+      {...contentProps}
       summary={summary}
-      onClose={onClose}
-      periodStart={periodStart}
-      periodEnd={periodEnd}
       companyUuid={companyUuid}
-      forecastMonths={forecastMonths}
-      selfCompanyLabel={selfCompanyLabel}
-      onForecastMonthsChange={onForecastMonthsChange}
-      hydrateSnapshot={hydrateSnapshot}
-      initialExpandSecondary={initialExpandSecondary}
-      secondaryEnabled={secondaryEnabled}
-      candidateItemContext={candidateItemContext}
-      onRequestNavigateAdjacent={onRequestNavigateAdjacent}
-      disableAdjacentNavigation={disableAdjacentNavigation}
-      suppressDocumentLayoutShift={suppressDocumentLayoutShift}
-      closing={closing}
     />
   )
 }

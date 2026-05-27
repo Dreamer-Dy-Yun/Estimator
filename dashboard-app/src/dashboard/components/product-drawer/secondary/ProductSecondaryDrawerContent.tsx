@@ -8,24 +8,19 @@ import { usePortalHelpPopover } from '../../usePortalHelpPopover'
 import { KO } from '../ko'
 import { AiCommentCard } from './cards/AiCommentCard'
 import { ProductMetaCard } from './cards/ProductMetaCard'
-import { SalesForecastCard } from './cards/SalesForecastCard'
+import {
+  SalesForecastCard,
+  type SalesForecastOrderInputActions,
+  type SalesForecastOrderInputFields,
+} from './cards/SalesForecastCard'
 import { SalesTrendDailyCard } from './cards/SalesTrendDailyCard'
 import { SizeOrderCard } from './cards/SizeOrderCard'
-import type { CandidateItemPanelContext } from './candidateActionCards'
+import type { CandidateItemPanelContext } from './secondaryDrawerTypes'
 import { SecondaryDrawerCandidateActions } from './SecondaryDrawerCandidateActions'
 import styles from './secondaryDrawer.module.css'
-import type { SecondaryHelpId } from './secondaryDrawerTypes'
+import type { SecondaryHelpId, SecondaryHelpIds } from './secondaryDrawerTypes'
 import type { useSecondaryForecastModel } from './hooks/useSecondaryForecastModel'
 
-type HelpIds = {
-  confirmOrder: string
-  forecastQtyCalc: string
-  expectedOpProfitRate: string
-  totalOrderBalance: string
-  expectedInboundOrderBalance: string
-  sizeRecQty: string
-  salesForecastSizeOrder: string
-}
 type Props = {
   pageName: string
   primary: ProductPrimarySummary
@@ -43,39 +38,10 @@ type Props = {
   selfCompanyLabel: string
   selfWeightPct: number
   onSelfWeightPctChange: (value: number) => void
-  minOrderDate: string
-  leadTimeStartDate: string
-  leadTimeEndDate: string
-  bufferStock: number
-  unitCostInput: number
-  unitPriceInput: number
-  expectedFeeRatePct: number
-  onCurrentOrderDateChange: (value: string) => void
-  onNextOrderDateChange: (value: string) => void
-  onBufferStockChange: (value: number) => void
-  onUnitCostChange: (value: number) => void
-  onUnitPriceChange: (value: number) => void
-  onExpectedFeeRatePctChange: (value: number) => void
+  orderInputFields: SalesForecastOrderInputFields
+  orderInputActions: SalesForecastOrderInputActions
   portalHelp: ReturnType<typeof usePortalHelpPopover<SecondaryHelpId>>
-  helpIds: HelpIds
-}
-const getHelpTooltipId = (helpIds: HelpIds, id: SecondaryHelpId) => {
-  switch (id) {
-    case 'confirmOrder':
-      return helpIds.confirmOrder
-    case 'forecastQtyCalc':
-      return helpIds.forecastQtyCalc
-    case 'expectedOpProfitRate':
-      return helpIds.expectedOpProfitRate
-    case 'totalOrderBalance':
-      return helpIds.totalOrderBalance
-    case 'expectedInboundOrderBalance':
-      return helpIds.expectedInboundOrderBalance
-    case 'sizeRecQty':
-      return helpIds.sizeRecQty
-    case 'salesForecastSizeOrder':
-      return helpIds.salesForecastSizeOrder
-  }
+  helpIds: SecondaryHelpIds
 }
 export function ProductSecondaryDrawerContent({
   pageName,
@@ -94,19 +60,8 @@ export function ProductSecondaryDrawerContent({
   selfCompanyLabel,
   selfWeightPct,
   onSelfWeightPctChange,
-  minOrderDate,
-  leadTimeStartDate,
-  leadTimeEndDate,
-  bufferStock,
-  unitCostInput,
-  unitPriceInput,
-  expectedFeeRatePct,
-  onCurrentOrderDateChange,
-  onNextOrderDateChange,
-  onBufferStockChange,
-  onUnitCostChange,
-  onUnitPriceChange,
-  onExpectedFeeRatePctChange,
+  orderInputFields,
+  orderInputActions,
   portalHelp,
   helpIds,
 }: Props) {
@@ -115,10 +70,10 @@ export function ProductSecondaryDrawerContent({
     salesInsightLoading,
     forecastCalcError,
     forecastCalcLoading,
-    forecastInputs,
+    stockOrderDisplayInputs,
     sizeRows,
     manualConfirmDerived,
-    stockDisplay,
+    stockOrderDisplay,
     dailyTrend,
     dailyTrendSizeOptions,
     candidateActions,
@@ -126,50 +81,13 @@ export function ProductSecondaryDrawerContent({
   } = model
   const recommendedQtyTotal = sizeRows.reduce((acc, r) => acc + Math.max(0, Math.round(r.recommendedQty)), 0)
   const confirmedQtyTotal = sizeRows.reduce((acc, r) => acc + Math.max(0, Math.round(r.confirmQty)), 0)
-  const perUnitFee = Math.round((unitPriceInput * expectedFeeRatePct) / 100)
-  const perUnitOpMargin = unitPriceInput - unitCostInput - perUnitFee
-  const forecastExpectedSales = recommendedQtyTotal * unitPriceInput
+  const { unitCost, unitPrice, expectedFeeRatePct } = orderInputFields
+  const perUnitFee = Math.round((unitPrice * expectedFeeRatePct) / 100)
+  const perUnitOpMargin = unitPrice - unitCost - perUnitFee
+  const forecastExpectedSales = recommendedQtyTotal * unitPrice
   const forecastOpProfit = recommendedQtyTotal * perUnitOpMargin
-  const confirmedExpectedSales = confirmedQtyTotal * unitPriceInput
+  const confirmedExpectedSales = confirmedQtyTotal * unitPrice
   const confirmedOpProfit = confirmedQtyTotal * perUnitOpMargin
-  const aiCommentCard = (
-    <ComponentErrorBoundary page={pageName} unit="AiCommentCard">
-      <AiCommentCard
-        comment={aiComment}
-        loading={aiCommentLoading}
-        error={aiCommentError}
-        onRequest={onRequestAiComment}
-      />
-    </ComponentErrorBoundary>
-  )
-  const sizeOrderCard = (
-    <ComponentErrorBoundary page={pageName} unit="SizeOrderCard">
-      <SizeOrderCard
-        sizeOrder={{
-          channelLabel: channel.label,
-          selfCompanyLabel,
-          selfWeightPct,
-          sizeRows,
-          totalOrderBalanceHelpId: helpIds.totalOrderBalance,
-          expectedInboundOrderBalanceHelpId: helpIds.expectedInboundOrderBalance,
-          sizeRecQtyHelpId: helpIds.sizeRecQty,
-          salesForecastHelpId: helpIds.salesForecastSizeOrder,
-          currentStockQty: stockDisplay?.currentStockQtyTotal ?? 0,
-          totalOrderBalanceQty: stockDisplay?.totalOrderBalanceTotal ?? 0,
-          expectedInboundOrderBalanceQty: stockDisplay?.expectedInboundOrderBalanceTotal ?? 0,
-          currentStockQtyBySize: stockDisplay?.currentStockQtyBySize ?? [],
-          totalOrderBalanceBySize: stockDisplay?.totalOrderBalanceBySize ?? [],
-          expectedInboundOrderBalanceBySize: stockDisplay?.expectedInboundOrderBalanceBySize ?? [],
-          manualConfirmBySize: manualConfirmDerived,
-        }}
-        actions={{
-          onSelfWeightPctChange,
-          onConfirmQtyChange: handleConfirmQtyChange,
-        }}
-        help={portalHelp}
-      />
-    </ComponentErrorBoundary>
-  )
   return (
     <div className={styles.panel}>
       <div className={styles.metaFilterRow}>
@@ -193,7 +111,7 @@ export function ProductSecondaryDrawerContent({
         <ComponentErrorBoundary page={pageName} unit="SalesForecastCard">
           <SalesForecastCard
             forecast={{
-              inputs: forecastInputs,
+              inputs: stockOrderDisplayInputs,
               loading: salesInsightLoading || forecastCalcLoading,
               error: salesInsightError ?? forecastCalcError,
               computed: {
@@ -205,23 +123,8 @@ export function ProductSecondaryDrawerContent({
                 confirmedOpProfit,
               },
             }}
-            orderSettings={{
-              currentOrderDate: leadTimeStartDate,
-              nextOrderDate: leadTimeEndDate,
-              minOrderDate,
-              bufferStock,
-              unitCost: unitCostInput,
-              unitPrice: unitPriceInput,
-              expectedFeeRatePct,
-            }}
-            actions={{
-              onCurrentOrderDateChange,
-              onNextOrderDateChange,
-              onBufferStockChange,
-              onUnitCostChange,
-              onUnitPriceChange,
-              onExpectedFeeRatePctChange,
-            }}
+            orderInputFields={orderInputFields}
+            actions={orderInputActions}
             help={{
               labelIds: {
                 forecastQtyCalc: helpIds.forecastQtyCalc,
@@ -231,7 +134,14 @@ export function ProductSecondaryDrawerContent({
             }}
           />
         </ComponentErrorBoundary>
-        {aiCommentCard}
+        <ComponentErrorBoundary page={pageName} unit="AiCommentCard">
+          <AiCommentCard
+            comment={aiComment}
+            loading={aiCommentLoading}
+            error={aiCommentError}
+            onRequest={onRequestAiComment}
+          />
+        </ComponentErrorBoundary>
       </div>
       <ComponentErrorBoundary page={pageName} unit="SalesTrendDailyCard">
         <SalesTrendDailyCard
@@ -249,11 +159,28 @@ export function ProductSecondaryDrawerContent({
           }}
         />
       </ComponentErrorBoundary>
-      {sizeOrderCard}
+      <ComponentErrorBoundary page={pageName} unit="SizeOrderCard">
+        <SizeOrderCard
+          sizeOrder={{
+            channelLabel: channel.label,
+            selfCompanyLabel,
+            selfWeightPct,
+            sizeRows,
+            helpIds,
+            stockOrderDisplay,
+            manualConfirmBySize: manualConfirmDerived,
+          }}
+          actions={{
+            onSelfWeightPctChange,
+            onConfirmQtyChange: handleConfirmQtyChange,
+          }}
+          help={portalHelp}
+        />
+      </ComponentErrorBoundary>
       <PortalHelpPopoverLayer
         help={portalHelp}
         popoverClassName={commonStyles.helpPopoverPortal}
-        getTooltipId={(hid) => getHelpTooltipId(helpIds, hid)}
+        getTooltipId={(hid) => helpIds[hid]}
       >
         {(hid) => (
           <>

@@ -1,23 +1,15 @@
 import type { ProductPrimarySummary, ProductSecondaryDetail } from '../../../../types'
 import {
-  createOrderSnapshotCompetitorSalesBasis,
+  createOrderSnapshotCompetitorBasis,
   createOrderSnapshotPrimarySummary,
-  createOrderSnapshotStockInputs,
+  createOrderSnapshotStockOrderRequest,
+  createOrderSnapshotStockOrderResult,
   ORDER_SNAPSHOT_SCHEMA_VERSION,
   type OrderSnapshotDocumentV2,
-  type OrderSnapshotStockDisplayV1,
+  type OrderSnapshotStockOrderRequestV2,
+  type OrderSnapshotStockOrderResultV2,
 } from '../../../../snapshot/orderSnapshotTypes'
-import type { SecondaryForecastInputs } from './secondaryDrawerTypes'
-
-export type SecondarySnapshotSizeRow = {
-  size: string
-  selfSharePct: number
-  competitorSharePct: number
-  blendedSharePct: number
-  forecastQty: number
-  recommendedQty: number
-  confirmQty: number
-}
+import type { SecondarySizeOrderDisplayRow } from './model/secondarySizeOrderRows'
 
 export type BuildSecondaryOrderSnapshotParams = {
   primary: ProductPrimarySummary
@@ -30,8 +22,8 @@ export type BuildSecondaryOrderSnapshotParams = {
   leadTimeDays: number
   competitorChannelId: string
   competitorChannelLabel: string
-  forecastInputs: SecondaryForecastInputs
-  stockDisplay: OrderSnapshotStockDisplayV1 | null
+  stockOrderRequest: OrderSnapshotStockOrderRequestV2
+  stockOrderResult: OrderSnapshotStockOrderResultV2 | null
   selfWeightPct: number
   bufferStock: number
   aiPrompt: string
@@ -39,7 +31,7 @@ export type BuildSecondaryOrderSnapshotParams = {
   unitPrice: number
   unitCost: number
   expectedFeeRatePct: number
-  sizeRows: SecondarySnapshotSizeRow[]
+  sizeRows: SecondarySizeOrderDisplayRow[]
 }
 
 export function buildSecondaryOrderSnapshot(params: BuildSecondaryOrderSnapshotParams): OrderSnapshotDocumentV2 {
@@ -54,8 +46,8 @@ export function buildSecondaryOrderSnapshot(params: BuildSecondaryOrderSnapshotP
     leadTimeDays,
     competitorChannelId,
     competitorChannelLabel,
-    forecastInputs,
-    stockDisplay,
+    stockOrderRequest,
+    stockOrderResult,
     selfWeightPct,
     bufferStock,
     aiPrompt,
@@ -71,15 +63,7 @@ export function buildSecondaryOrderSnapshot(params: BuildSecondaryOrderSnapshotP
   const expectedSalesAmount = orderQty * unitPrice
   const expectedOpProfit = orderQty * perUnitOpMargin
   const summary = createOrderSnapshotPrimarySummary(primary)
-  const storedStockInputs = createOrderSnapshotStockInputs(forecastInputs)
-  const storedStockDisplay = stockDisplay == null ? undefined : {
-    currentStockQtyTotal: stockDisplay.currentStockQtyTotal,
-    totalOrderBalanceTotal: stockDisplay.totalOrderBalanceTotal,
-    expectedInboundOrderBalanceTotal: stockDisplay.expectedInboundOrderBalanceTotal,
-    currentStockQtyBySize: [...stockDisplay.currentStockQtyBySize],
-    totalOrderBalanceBySize: [...stockDisplay.totalOrderBalanceBySize],
-    expectedInboundOrderBalanceBySize: [...stockDisplay.expectedInboundOrderBalanceBySize],
-  }
+  const storedStockOrderResult = createOrderSnapshotStockOrderResult(stockOrderResult)
 
   return {
     schemaVersion: ORDER_SNAPSHOT_SCHEMA_VERSION,
@@ -97,20 +81,22 @@ export function buildSecondaryOrderSnapshot(params: BuildSecondaryOrderSnapshotP
       summary,
     },
     drawer2: {
-      competitorSalesBasis: createOrderSnapshotCompetitorSalesBasis(secondary),
+      competitorBasis: createOrderSnapshotCompetitorBasis(secondary),
       competitorChannelId,
       competitorChannelLabel,
-      stockInputs: storedStockInputs,
-      orderUnitInputs: {
+      stockOrderRequest: createOrderSnapshotStockOrderRequest(stockOrderRequest),
+      ...(storedStockOrderResult == null ? {} : { stockOrderResult: storedStockOrderResult }),
+      unitEconomics: {
         unitPrice,
         unitCost,
         expectedFeeRatePct,
       },
-      ...(storedStockDisplay == null ? {} : { stockDisplay: storedStockDisplay }),
       selfWeightPct,
       bufferStock,
-      llmPrompt: aiPrompt,
-      llmAnswer: aiComment,
+      aiComment: {
+        prompt: aiPrompt,
+        answer: aiComment,
+      },
       confirmedTotals: {
         orderQty,
         expectedSalesAmount,
@@ -119,7 +105,7 @@ export function buildSecondaryOrderSnapshot(params: BuildSecondaryOrderSnapshotP
           ? (expectedOpProfit / expectedSalesAmount) * 100
           : null,
       },
-      sizeRows: sizeRows.map((row) => ({
+      sizeOrders: sizeRows.map((row) => ({
         size: row.size,
         selfSharePct: row.selfSharePct,
         competitorSharePct: row.competitorSharePct,
