@@ -43,6 +43,8 @@ Monthly trend request period is not the visible focus period. The drawer sends t
 
 1차 드로어의 판매 추이 그래프는 선형 축으로 고정한다. 자사/선택 경쟁사/채널 표시는 각 카드에서 독립적으로 관리한다. 분석 페이지의 자사/경쟁사 리스트 상태를 드로어 내부에 저장하지 않는다.
 
+실데이터 판매 정보는 `getProductSalesInsight`가 유일한 기준이다. 2차 드로어는 `self.avgCost`, `self.avgPrice`, `self.feeRatePct`가 도착한 뒤에만 통합 오더 금액/이익 계산과 snapshot 저장을 허용한다. API 실패나 값 누락 시 `ProductPrimarySummary.price`에서 원가율·수수료율을 임의 생성하지 않는다.
+
 ## 2차 드로어 API 경계
 
 | 영역 | API/모듈 |

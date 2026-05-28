@@ -13,6 +13,7 @@ import {
 import { useSecondaryForecastModel } from './hooks/useSecondaryForecastModel'
 import { useSecondaryHelpController } from './hooks/useSecondaryHelpController'
 import { useSecondaryInboundDueDates } from './hooks/useSecondaryInboundDueDates'
+import { KO } from '../ko'
 import { ProductSecondaryDrawerContent } from './ProductSecondaryDrawerContent'
 
 export type { CandidateItemPanelContext }
@@ -175,8 +176,12 @@ export function ProductSecondaryDrawer({
     requestAiComment(buildSnapshot())
   }, [buildSnapshot, markConfirmedBaselineDraftDirty, requestAiComment])
   const handleResetToLiveClick = useCallback(() => {
+    if (selfCol == null) {
+      showToast(KO.msgSalesInsightRequired, { variant: 'error' })
+      return
+    }
     handleResetToLive(selfCol)
-  }, [handleResetToLive, selfCol])
+  }, [handleResetToLive, selfCol, showToast])
   const handleCurrentOrderInboundDueDateDraftChange = useCallback((value: string) => {
     markConfirmedBaselineDraftDirty()
     handleCurrentOrderInboundDueDateChange(value)

@@ -38,14 +38,12 @@ type DraftEmissionArgs = {
 type LiveUnitDefaultsArgs = {
   prefillFromSnapshot: OrderSnapshotDocumentV2 | null
   primarySkuGroupKey: string
-  liveOrderUnitSource: LiveOrderUnitSource
+  liveOrderUnitSource: LiveOrderUnitSource | null
   applyLiveOrderUnitInputs: (source: LiveOrderUnitSource) => void
 }
 
 const DEFAULT_BUFFER_STOCK = 0
 const DEFAULT_SELF_WEIGHT_PCT = 50
-const DEFAULT_EXPECTED_FEE_RATE_PCT = 13
-const DEFAULT_UNIT_COST_PRICE_RATIO = 0.78
 
 const roundNonNegative = (value: number) => Math.max(0, Math.round(value))
 const roundFeeRatePct = (value: number) => Math.max(0, Math.round(value * 10) / 10)
@@ -66,9 +64,9 @@ export function useSecondaryDrawerSnapshotController({
 }: SnapshotControllerArgs) {
   const [dailyMeanClient, setDailyMeanClient] = useState<number | null>(null)
   const [bufferStock, setBufferStock] = useState(DEFAULT_BUFFER_STOCK)
-  const [unitCostInput, setUnitCostInput] = useState(roundNonNegative(primaryPrice * DEFAULT_UNIT_COST_PRICE_RATIO))
+  const [unitCostInput, setUnitCostInput] = useState(0)
   const [unitPriceInput, setUnitPriceInput] = useState(roundNonNegative(primaryPrice))
-  const [expectedFeeRatePct, setExpectedFeeRatePct] = useState(DEFAULT_EXPECTED_FEE_RATE_PCT)
+  const [expectedFeeRatePct, setExpectedFeeRatePct] = useState(0)
   const [selfWeightPct, setSelfWeightPct] = useState(DEFAULT_SELF_WEIGHT_PCT)
   const [confirmBySize, setConfirmBySize] = useState<Record<string, number>>({})
   const [snapshotConfirmBaselineActive, setSnapshotConfirmBaselineActive] = useState(
@@ -169,9 +167,9 @@ export function useSecondaryDrawerSnapshotController({
     setDailyMeanClient(null)
     resetInboundDueDatesToLive()
     setBufferStock(DEFAULT_BUFFER_STOCK)
-    setUnitCostInput(roundNonNegative(primaryPrice * DEFAULT_UNIT_COST_PRICE_RATIO))
+    setUnitCostInput(0)
     setUnitPriceInput(roundNonNegative(primaryPrice))
-    setExpectedFeeRatePct(DEFAULT_EXPECTED_FEE_RATE_PCT)
+    setExpectedFeeRatePct(0)
     applyLiveOrderUnitInputs(liveOrderUnitSource)
     setAiPrompt('')
     setAiComment('')
@@ -232,15 +230,19 @@ export function useSecondaryDrawerLiveUnitDefaults({
   liveOrderUnitSource,
   applyLiveOrderUnitInputs,
 }: LiveUnitDefaultsArgs) {
-  const { avgCost, avgPrice, feeRatePct } = liveOrderUnitSource
+  const avgCost = liveOrderUnitSource?.avgCost
+  const avgPrice = liveOrderUnitSource?.avgPrice
+  const feeRatePct = liveOrderUnitSource?.feeRatePct
   useEffect(() => {
     if (prefillFromSnapshot != null) return
-    applyLiveOrderUnitInputs({ avgCost, avgPrice, feeRatePct })
+    if (liveOrderUnitSource == null) return
+    applyLiveOrderUnitInputs(liveOrderUnitSource)
   }, [
     applyLiveOrderUnitInputs,
     avgCost,
     avgPrice,
     feeRatePct,
+    liveOrderUnitSource,
     prefillFromSnapshot,
     primarySkuGroupKey,
   ])

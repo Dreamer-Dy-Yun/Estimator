@@ -1,16 +1,14 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
   dashboardApi,
   type ProductSalesInsight,
   type SecondaryCompetitorChannel,
 } from '../../../../../api'
-import type { ApiUnitErrorInfo, ProductPrimarySummary, ProductSecondaryDetail } from '../../../../../types'
+import type { ApiUnitErrorInfo, ProductPrimarySummary } from '../../../../../types'
 import { monthToEndDate, monthToStartDate } from '../../../../../utils/date'
-import { buildSalesKpiColumn } from '../../../../../utils/salesKpiColumn'
 
 type Params = {
   primary: ProductPrimarySummary
-  secondary: ProductSecondaryDetail
   channel: SecondaryCompetitorChannel
   selectedStart: string
   selectedEnd: string
@@ -20,7 +18,6 @@ type Params = {
 
 export function useSecondarySalesInsight({
   primary,
-  secondary,
   channel,
   selectedStart,
   selectedEnd,
@@ -80,18 +77,9 @@ export function useSecondarySalesInsight({
     }
   }, [channel.id, companyUuid, makeApiErrorInfo, primary.skuGroupKey, selectedEnd, selectedStart])
 
-  const fallbackSelfCol = useMemo(
-    () => buildSalesKpiColumn('self', primary, secondary, channel),
-    [primary, secondary, channel],
-  )
-  const fallbackCompCol = useMemo(
-    () => buildSalesKpiColumn('competitor', primary, secondary, channel),
-    [primary, secondary, channel],
-  )
-
   return {
-    selfCol: salesInsight?.self ?? fallbackSelfCol,
-    compCol: salesInsight?.competitor ?? fallbackCompCol,
+    selfCol: salesInsight?.self ?? null,
+    compCol: salesInsight?.competitor ?? null,
     salesInsightError,
     salesInsightLoading,
   }

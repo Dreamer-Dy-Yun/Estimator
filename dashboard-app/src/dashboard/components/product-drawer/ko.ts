@@ -36,6 +36,7 @@ export const KO = {
   "helpExpectedOpProfitRateLatex": "\\text{기대 영업이익률(\\%)}=\\frac{\\left(\\text{기대 매출}\\times(1-\\text{기대 수수료율})\\right)-\\left(\\text{기대 원가}\\times\\text{주문 수량}\\right)}{\\text{기대 매출}}\\times100",
   "valueNotCalculated": "미계산",
   "msgStockOrderCalcRequired": "재고/발주 계산이 완료된 뒤 저장 또는 AI 요청을 진행할 수 있습니다.",
+  "msgSalesInsightRequired": "판매 정보가 조회된 뒤 저장 또는 AI 요청을 진행할 수 있습니다.",
   "rowCurrentStockQty": "현재 재고 수량(EA)",
   "rowTotalOrderBalance": "미입고 총 잔량(EA)",
   "helpTotalOrderBalance": "기 오더 되었으나,\n현 시점까지 입고되지 않은 수량입니다.",

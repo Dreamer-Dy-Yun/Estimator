@@ -87,7 +87,6 @@ export function useSecondaryForecastModel(args: Args) {
   const requests = useSecondaryDrawerRequests({
     pageName,
     primary,
-    secondary,
     channel,
     selectedStart,
     selectedEnd,
@@ -96,12 +95,13 @@ export function useSecondaryForecastModel(args: Args) {
     leadTimeDays,
     dailyMeanClient,
   })
-  const stockOrderCalculationReady = requests.forecastCalc != null && !requests.forecastCalcLoading
+  const salesInsightReady = requests.selfCol != null && requests.compCol != null
+  const stockOrderCalculationReady = requests.forecastCalc != null && !requests.forecastCalcLoading && salesInsightReady
   const guardStockOrderCalculation = useCallback(() => {
     if (stockOrderCalculationReady) return true
-    showToast(KO.msgStockOrderCalcRequired, { variant: 'error' })
+    showToast(salesInsightReady ? KO.msgStockOrderCalcRequired : KO.msgSalesInsightRequired, { variant: 'error' })
     return false
-  }, [showToast, stockOrderCalculationReady])
+  }, [salesInsightReady, showToast, stockOrderCalculationReady])
   const stockOrderDisplayKey = useMemo(() => {
     const d = requests.forecastCalc?.display
     if (!d) return ''
@@ -207,7 +207,7 @@ export function useSecondaryForecastModel(args: Args) {
     hasSavedSnapshot,
     candidateItemContext,
     canBuildSnapshot: stockOrderCalculationReady,
-    snapshotBlockReason: KO.msgStockOrderCalcRequired,
+    snapshotBlockReason: salesInsightReady ? KO.msgStockOrderCalcRequired : KO.msgSalesInsightRequired,
     buildSnapshot,
     showToast,
   })

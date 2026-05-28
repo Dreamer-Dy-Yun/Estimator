@@ -495,6 +495,8 @@ Request period policy: frontend sends the last 24 completed monthly buckets endi
 
 백엔드는 고객사 집계 테이블을 우선 사용하고, 필요한 보조 값만 일간 데이터에서 보강하는 것을 권장합니다.
 
+실데이터 연결 시 프론트는 `ProductSalesInsight.self.avgCost`, `feeRatePct`, `opMarginRatePct`를 상품 가격에서 임의 추정하지 않는다. 이 값이 누락되거나 API가 실패하면 2차 드로어의 통합 오더 설정, AI 코멘트 요청, 상세확정 저장은 미계산/오류 상태로 남긴다. 따라서 백엔드는 자사 컬럼의 평균 원가·수수료율·영업이익률을 실제 집계값으로 내려주거나, 계산 불가 사유를 오류/`null`로 명확히 반환해야 한다. 프론트가 `price * 0.78`, `13%` 같은 임의 비즈니스 fallback을 적용하지 않는 것이 현재 계약이다.
+
 ### 3.6 `getProductSecondaryDetail`
 
 **쿼리 (`ProductSecondaryDetailParams`)**

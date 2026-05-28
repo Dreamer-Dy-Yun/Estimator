@@ -1,6 +1,6 @@
 import { useCallback } from 'react'
 import type { SecondaryCompetitorChannel } from '../../../../../api'
-import type { ApiUnitErrorInfo, ProductPrimarySummary, ProductSecondaryDetail } from '../../../../../types'
+import type { ApiUnitErrorInfo, ProductPrimarySummary } from '../../../../../types'
 import { useSecondaryDailyTrend } from './useSecondaryDailyTrend'
 import { useSecondarySalesInsight } from './useSecondarySalesInsight'
 import { useSecondaryStockOrderCalc } from './useSecondaryStockOrderCalc'
@@ -8,7 +8,6 @@ import { useSecondaryStockOrderCalc } from './useSecondaryStockOrderCalc'
 type Args = {
   pageName: string
   primary: ProductPrimarySummary
-  secondary: ProductSecondaryDetail
   channel: SecondaryCompetitorChannel
   selectedStart: string
   selectedEnd: string
@@ -21,7 +20,6 @@ type Args = {
 export function useSecondaryDrawerRequests({
   pageName,
   primary,
-  secondary,
   channel,
   selectedStart,
   selectedEnd,
@@ -39,7 +37,6 @@ export function useSecondaryDrawerRequests({
 
   const salesInsight = useSecondarySalesInsight({
     primary,
-    secondary,
     channel,
     selectedStart,
     selectedEnd,
