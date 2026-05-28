@@ -344,7 +344,6 @@ Google Sheet 등 외부 출처에서 입고 예정일을 수집한다.
 | `skuGroupKey` | string | 상품 그룹 key. drawer와 snapshot의 연결 key |
 | `brand` | string | 브랜드 |
 | `category` | string | 카테고리 |
-| `season` | string optional | 시즌 |
 | `productName` | string | 상품명 |
 | `thumbnailUrl` | string optional | 썸네일 URL |
 | `salesAmount` | number | 조회 기간 매출 |
@@ -354,6 +353,8 @@ Google Sheet 등 외부 출처에서 입고 예정일을 수집한다.
 | `avgFeeRatePct` | number optional | 평균 수수료율 |
 | `opProfit` | number optional | 영업이익 |
 | `opMarginPct` | number optional | 영업이익률 |
+
+시즌성은 현재 `/sales/self`, `/sales/competitor`, drawer 판매 정보, 오더 계산 요청의 명시 파라미터가 아니다. 시즌 보정이 필요하면 백엔드가 조회 기간과 내부 모델을 기준으로 처리하고, 프론트로 `season`/`seasonality` 값을 임의 전달하지 않는다. 프론트에서 시즌 프로파일을 선택해야 하는 요구가 생기면 별도 요청/응답 계약을 먼저 정의한다.
 
 ### 8.3 GET `/sales/competitor`
 
