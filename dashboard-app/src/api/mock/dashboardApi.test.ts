@@ -178,6 +178,34 @@ describe('api/mock dashboardApi competitor channel behavior', () => {
     expect(sumCompetitorSales(musinsa.points)).toBeLessThan(sumCompetitorSales(kream.points))
   })
 
+  it('keeps test top monthly and size sales quantities easy to verify', async () => {
+    const params = {
+      startDate: '2025-01-01',
+      endDate: '2025-12-31',
+      forecastMonths: 8,
+      companyUuid: MOCK_COMPANY_UUID,
+    }
+    const trend = await mockDashboardApi.getProductMonthlyTrend(skuGroupKey('TEST_TOP'), {
+      ...params,
+      competitorChannelId: 'kream',
+    })
+    const stockOrder = await mockDashboardApi.getSecondaryStockOrderCalc({
+      skuGroupKey: skuGroupKey('TEST_TOP'),
+      periodStart: '2025-01-01',
+      periodEnd: '2025-12-31',
+      forecastPeriodEnd: '2026-05-31',
+      leadTimeDays: 30,
+      companyUuid: MOCK_COMPANY_UUID,
+    })
+
+    const actualPoints = trend.points.filter((point) => !point.isForecast)
+    expect(actualPoints.every((point) => point.selfSales === 100)).toBe(true)
+    expect(actualPoints.every((point) => point.competitorSales === 200)).toBe(true)
+    expect(stockOrder.display.currentStockQtyBySize).toEqual([120, 120, 120, 120, 120])
+    expect(stockOrder.display.totalOrderBalanceBySize).toEqual([40, 40, 40, 40, 40])
+    expect(stockOrder.display.expectedInboundOrderBalanceBySize).toEqual([20, 20, 20, 20, 20])
+  })
+
   it('returns secondary drawer AI comment for the requested open context', async () => {
     const result = await mockDashboardApi.getSecondaryAiComment({
       skuGroupKey: skuGroupKey('B'),

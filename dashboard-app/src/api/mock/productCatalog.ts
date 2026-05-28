@@ -1,4 +1,4 @@
-import type { ProductPrimarySummary, ProductSecondaryDetail } from '../../types'
+import type { MonthlySalesPoint, ProductPrimarySummary, ProductSecondaryDetail } from '../../types'
 import { clamp } from './utils'
 import { allKnownSkuGroupKeys, competitorBySkuGroupKey, selfBySkuGroupKey } from './salesTables'
 import { KREAM_TO_SELF_QTY_RATIO, SALES_MONTHS } from './productCatalogData'
@@ -18,6 +18,32 @@ type MockSkuMetadata = Pick<
 >
 
 export const historicalMonths = SALES_MONTHS.filter((month) => month < '2026-01')
+
+function makeFlatTrend(historySales: number, forecastSales: number): MonthlySalesPoint[] {
+  return SALES_MONTHS.map((date) => ({
+    date,
+    sales: date < '2026-01' ? historySales : forecastSales,
+    isForecast: date >= '2026-01',
+  }))
+}
+
+function buildSimpleCalcSecondary(skuGroupKey: string, competitorPrice: number, competitorQty: number): ProductSecondaryDetail {
+  const sizes = ['S', 'M', 'L', 'XL', 'XXL']
+  return {
+    skuGroupKey,
+    competitorPrice,
+    competitorQty,
+    competitorRatioBySize: Object.fromEntries(sizes.map((size) => [size, 0.2])),
+    sizeRows: sizes.map((size) => ({
+      size,
+      selfRatio: 20,
+      confirmedQty: 400,
+      avgPrice: 100000,
+      qty: 480,
+      availableStock: 240,
+    })),
+  }
+}
 
 export const skuMetadataBySkuGroupKey: Record<string, MockSkuMetadata> = Object.fromEntries(
   allKnownSkuGroupKeys.map((skuGroupKey) => [skuGroupKey, buildSkuMetadata(skuGroupKey)]),
@@ -44,6 +70,18 @@ export const { primary: productPrimaryBySkuGroupKey, secondary: productSecondary
     const seed = skuGroupKey.charCodeAt(0)
     const metadata = skuMetadataBySkuGroupKey[skuGroupKey]
     if (!metadata) throw new Error(`Missing mock SKU metadata: ${skuGroupKey}`)
+
+    if (metadata.code === 'TEST-TOP') {
+      primary[skuGroupKey] = {
+        ...metadata,
+        price: 100000,
+        qty: 2400,
+        availableStock: 1200,
+        monthlySalesTrend: makeFlatTrend(200, 200),
+      }
+      secondary[skuGroupKey] = buildSimpleCalcSecondary(skuGroupKey, 110000, 4800)
+      continue
+    }
 
     const price = s?.avgPrice ?? c?.selfAvgPrice ?? Math.round((c?.competitorAvgPrice ?? 120000) * 0.96)
     const productQty = s?.qty ?? c?.selfQty ?? Math.round((c?.competitorQty ?? 5000) * 0.85)

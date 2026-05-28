@@ -7,6 +7,7 @@ import {
 } from '../../snapshot/orderSnapshotTypes'
 import type { SecondaryOrderSnapshotPayload } from '../types/snapshot'
 import { requireMockProductPrimary, requireMockProductSecondary } from './mockProductLookup'
+import { getMockCompanyScale, scopeMockProductPrimary, scopeMockProductSecondary } from './mockCompanyScope'
 import { secondaryCompetitorChannels } from './salesTables'
 
 const koNumber = new Intl.NumberFormat('ko-KR')
@@ -67,8 +68,11 @@ export function buildMockOrderSnapshotForCandidate(
   skuGroupKey: string,
   options: MockOrderSnapshotOptions = {},
 ): SecondaryOrderSnapshotPayload {
-  const primary = requireMockProductPrimary(skuGroupKey)
-  const secondary = requireMockProductSecondary(skuGroupKey)
+  const primarySource = requireMockProductPrimary(skuGroupKey)
+  const secondarySource = requireMockProductSecondary(skuGroupKey)
+  const shouldScope = options.companyUuid ? getMockCompanyScale(options, skuGroupKey) > 0 : false
+  const primary = shouldScope ? scopeMockProductPrimary(primarySource, options) : primarySource
+  const secondary = shouldScope ? scopeMockProductSecondary(secondarySource, options) : secondarySource
   const channel = secondaryCompetitorChannels[0]!
   const selfCol = buildSalesKpiColumn('self', primary, secondary, channel)
   const summary = createOrderSnapshotPrimarySummary(primary)

@@ -156,6 +156,25 @@ export const mockDashboardApi = {
     await sleep(80)
     const primary = scopeMockProductPrimary(requireMockProductPrimary(skuGroupKey), params)
     const channel = getMockSecondaryCompetitorChannel(params.competitorChannelId)
+    if (primary.code === 'TEST-TOP') {
+      const points = makeSalesTrend(100, skuGroupKey.charCodeAt(0), params.forecastMonths ?? DEFAULT_FORECAST_MONTHS, {
+        historyStartMonth: dateToMonth(params.startDate),
+        historyEndMonth: dateToMonth(params.endDate),
+        forecastStartMonth: nextMonth(dateToMonth(params.endDate)),
+      }).map((point) => ({
+        date: point.date,
+        selfSales: 100,
+        competitorSales: point.isForecast ? null : Math.max(0, Math.round(200 * channel.qtySkew)),
+        isForecast: point.isForecast,
+      }))
+      return {
+        skuGroupKey: primary.skuGroupKey,
+        targetPeriodDays: { start: params.startDate, end: params.endDate },
+        competitorChannelId: channel.id,
+        competitorChannelLabel: channel.label,
+        points,
+      }
+    }
     return {
       skuGroupKey: primary.skuGroupKey,
       targetPeriodDays: { start: params.startDate, end: params.endDate },

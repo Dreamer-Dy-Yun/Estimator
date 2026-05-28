@@ -66,6 +66,28 @@ describe('api/mock productCatalog', () => {
     ])
   })
 
+  it('keeps test top values simple enough to verify drawer calculations by hand', () => {
+    const top = productPrimaryBySkuGroupKey[skuGroupKeyByLegacyId.TEST_TOP]
+    const secondary = productSecondaryBySkuGroupKey[skuGroupKeyByLegacyId.TEST_TOP]
+
+    expect(top).toMatchObject({
+      price: 100000,
+      qty: 2400,
+      availableStock: 1200,
+    })
+    expect(secondary?.competitorPrice).toBe(110000)
+    expect(secondary?.competitorQty).toBe(4800)
+    expect(secondary?.sizeRows).toHaveLength(5)
+    expect(secondary?.sizeRows.every((row) => (
+      row.selfRatio === 20
+      && row.confirmedQty === 400
+      && row.qty === 480
+      && row.availableStock === 240
+    ))).toBe(true)
+    expect(secondary?.sizeRows.reduce((sum, row) => sum + row.confirmedQty, 0)).toBe(2000)
+    expect(top?.monthlySalesTrend?.every((point) => point.sales === 200)).toBe(true)
+  })
+
   it('computes period weight with 0.2~1.8 clamp', () => {
     expect(estimatePeriodWeight()).toBe(1)
     expect(estimatePeriodWeight('2026-01', '2026-01')).toBeCloseTo(0.2, 6)
