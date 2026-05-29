@@ -14,6 +14,9 @@ export default defineConfig({
     exclude: [...configDefaults.exclude, 'e2e/**'],
   },
   build: {
+    // Vite 8 default OXC minifier currently breaks react-katex HTML output in production.
+    // Keep the existing react-katex path and use esbuild minification until that upstream path is safe.
+    minify: 'esbuild',
     rolldownOptions: {
       output: {
         codeSplitting: {
