@@ -3,8 +3,7 @@ import type { Dispatch, SetStateAction } from 'react'
 import type { SecondaryCompetitorChannel } from '../../../../../api'
 import type { ToastContextValue } from '../../../../../components/AppToastContext'
 import type { ProductPrimarySummary, ProductSecondaryDetail } from '../../../../../types'
-import type { OrderSnapshotDocumentV2 } from '../../../../../snapshot/orderSnapshotTypes'
-import { normalizeMonthKey } from '../../../trend/trendRangeUtils'
+import type { OrderSnapshotAiCommentV2, OrderSnapshotDocumentV2 } from '../../../../../snapshot/orderSnapshotTypes'
 import { KO } from '../../ko'
 import type { CandidateItemPanelContext } from '../secondaryDrawerTypes'
 import { SecondaryOrderDraft } from '../model/SecondaryOrderDraft'
@@ -19,6 +18,8 @@ type Args = {
   pageName: string
   periodStart: string
   periodEnd: string
+  selectedStartMonth: string
+  selectedEndMonth: string
   forecastMonths: number
   companyUuid?: string
   prefillFromSnapshot: OrderSnapshotDocumentV2 | null
@@ -38,8 +39,7 @@ type Args = {
   unitPriceInput: number
   unitCostInput: number
   expectedFeeRatePct: number
-  aiPrompt: string
-  aiComment: string
+  aiComment: OrderSnapshotAiCommentV2
   hasSavedSnapshot: boolean
   showToast: ToastContextValue['showToast']
 }
@@ -51,6 +51,8 @@ export function useSecondaryForecastModel(args: Args) {
     pageName,
     periodStart,
     periodEnd,
+    selectedStartMonth,
+    selectedEndMonth,
     forecastMonths,
     companyUuid,
     prefillFromSnapshot,
@@ -70,50 +72,51 @@ export function useSecondaryForecastModel(args: Args) {
     unitPriceInput,
     unitCostInput,
     expectedFeeRatePct,
-    aiPrompt,
     aiComment,
     hasSavedSnapshot,
     showToast,
   } = args
-  const selectedStart = normalizeMonthKey(periodStart)
-  const selectedEnd = normalizeMonthKey(periodEnd)
+  const selectedStart = selectedStartMonth
+  const selectedEnd = selectedEndMonth
   const forecastMeanPeriodEnd = nextOrderInboundDueDate.slice(0, 7)
 
   useEffect(() => {
     if (prefillFromSnapshot != null) return
     setDailyMeanClient(null)
-  }, [primary.skuGroupKey, selectedEnd, selectedStart, prefillFromSnapshot, setDailyMeanClient])
+  }, [primary.skuGroupKey, periodEnd, periodStart, prefillFromSnapshot, setDailyMeanClient])
 
   const requests = useSecondaryDrawerRequests({
     pageName,
     primary,
     channel,
-    selectedStart,
-    selectedEnd,
+    periodStart,
+    periodEnd,
+    selectedStartMonth,
+    selectedEndMonth,
     companyUuid,
     forecastMeanPeriodEnd,
     leadTimeDays,
     dailyMeanClient,
   })
+  const snapshotStockOrderResult = useSnapshotConfirmBaseline ? prefillFromSnapshot?.drawer2.stockOrderResult ?? null : null
+  const activeForecastCalc = useSnapshotConfirmBaseline ? snapshotStockOrderResult : requests.forecastCalc
   const salesInsightReady = requests.selfCol != null && requests.compCol != null
-  const stockOrderCalculationReady = requests.forecastCalc != null && !requests.forecastCalcLoading && salesInsightReady
+  const stockOrderCalculationReady = activeForecastCalc != null && (snapshotStockOrderResult != null || (!requests.forecastCalcLoading && salesInsightReady))
   const guardStockOrderCalculation = useCallback(() => {
     if (stockOrderCalculationReady) return true
     showToast(salesInsightReady ? KO.msgStockOrderCalcRequired : KO.msgSalesInsightRequired, { variant: 'error' })
     return false
   }, [salesInsightReady, showToast, stockOrderCalculationReady])
   const stockOrderDisplayKey = useMemo(() => {
-    const d = requests.forecastCalc?.display
+    const d = activeForecastCalc?.display
     if (!d) return ''
     return [
       d.currentStockQtyTotal,
       d.totalOrderBalanceTotal,
       d.expectedInboundOrderBalanceTotal,
-      ...d.currentStockQtyBySize,
-      ...d.totalOrderBalanceBySize,
-      ...d.expectedInboundOrderBalanceBySize,
+      ...d.sizeRows.map((row) => `${row.size}:${row.currentStockQty}:${row.totalOrderBalance}:${row.expectedInboundOrderBalance}`),
     ].join('|')
-  }, [requests.forecastCalc])
+  }, [activeForecastCalc])
 
   useEffect(() => {
     if (useSnapshotConfirmBaseline) return
@@ -125,6 +128,8 @@ export function useSecondaryForecastModel(args: Args) {
     nextOrderInboundDueDate,
     currentOrderInboundDueDate,
     prefillFromSnapshot,
+    periodEnd,
+    periodStart,
     primary.skuGroupKey,
     selectedEnd,
     selectedStart,
@@ -137,15 +142,16 @@ export function useSecondaryForecastModel(args: Args) {
     secondary,
     forecastSalesHorizonDays: leadTimeDays,
     dailyMeanClient,
-    forecastCalc: requests.forecastCalc,
+    forecastCalc: activeForecastCalc,
     stockOrderCalculationReady,
     selfWeightPct,
     bufferStock,
     confirmBySize,
     snapshotConfirmBySize,
     useSnapshotConfirmBaseline,
+    snapshotSizeOrders: snapshotStockOrderResult == null ? null : prefillFromSnapshot?.drawer2.sizeOrders ?? null,
   })
-  const stockOrderDisplay = stockOrderCalculationReady ? requests.forecastCalc?.display ?? null : null
+  const stockOrderDisplay = stockOrderCalculationReady ? activeForecastCalc?.display ?? null : null
 
   const buildSnapshot = useCallback((): OrderSnapshotDocumentV2 => buildSecondaryOrderSnapshot({
     primary,
@@ -164,10 +170,9 @@ export function useSecondaryForecastModel(args: Args) {
       leadTimeDays,
       ...(dailyMeanClient == null ? {} : { dailyMeanOverride: dailyMeanClient }),
     },
-    stockOrderResult: stockOrderCalculationReady ? requests.forecastCalc : null,
+    stockOrderResult: stockOrderCalculationReady ? activeForecastCalc : null,
     selfWeightPct,
     bufferStock,
-    aiPrompt,
     aiComment,
     unitPrice: unitPriceInput,
     unitCost: unitCostInput,
@@ -175,7 +180,6 @@ export function useSecondaryForecastModel(args: Args) {
     sizeRows: calculations.sizeRows,
   }), [
     aiComment,
-    aiPrompt,
     bufferStock,
     calculations.sizeRows,
     channel.id,
@@ -190,7 +194,7 @@ export function useSecondaryForecastModel(args: Args) {
     periodEnd,
     periodStart,
     primary,
-    requests.forecastCalc,
+    activeForecastCalc,
     secondary,
     selectedStart,
     selfWeightPct,

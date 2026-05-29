@@ -9,8 +9,10 @@ type Args = {
   pageName: string
   primary: ProductPrimarySummary
   channel: SecondaryCompetitorChannel
-  selectedStart: string
-  selectedEnd: string
+  periodStart: string
+  periodEnd: string
+  selectedStartMonth: string
+  selectedEndMonth: string
   companyUuid?: string
   forecastMeanPeriodEnd: string
   leadTimeDays: number
@@ -21,8 +23,10 @@ export function useSecondaryDrawerRequests({
   pageName,
   primary,
   channel,
-  selectedStart,
-  selectedEnd,
+  periodStart,
+  periodEnd,
+  selectedStartMonth,
+  selectedEndMonth,
   companyUuid,
   forecastMeanPeriodEnd,
   leadTimeDays,
@@ -38,15 +42,15 @@ export function useSecondaryDrawerRequests({
   const salesInsight = useSecondarySalesInsight({
     primary,
     channel,
-    selectedStart,
-    selectedEnd,
+    periodStart,
+    periodEnd,
     companyUuid,
     makeApiErrorInfo,
   })
   const stockOrder = useSecondaryStockOrderCalc({
     skuGroupKey: primary.skuGroupKey,
-    selectedStart,
-    selectedEnd,
+    periodStart,
+    periodEnd,
     companyUuid,
     forecastMeanPeriodEnd,
     leadTimeDays,
@@ -55,8 +59,8 @@ export function useSecondaryDrawerRequests({
   })
   const dailyTrend = useSecondaryDailyTrend({
     skuGroupKey: primary.skuGroupKey,
-    selectedStart,
-    selectedEnd,
+    selectedStart: selectedStartMonth,
+    selectedEnd: selectedEndMonth,
     companyUuid,
     leadTimeDays,
     competitorChannelId: channel.id,

@@ -1,5 +1,6 @@
 import { buildSalesKpiColumn } from '../../utils/salesKpiColumn'
 import type { SecondaryAiCommentParams } from '../types'
+import { scopeMockProductPrimary, scopeMockProductSecondary } from './mockCompanyScope'
 import { requireMockProductPrimary, requireMockProductSecondary } from './mockProductLookup'
 import { getMockSecondaryCompetitorChannel } from './salesTables'
 
@@ -13,8 +14,8 @@ function requireNumber(value: number | null | undefined, label: string) {
 }
 
 export function buildSecondaryAiComment(params: SecondaryAiCommentParams) {
-  const primary = requireMockProductPrimary(params.skuGroupKey)
-  const secondary = requireMockProductSecondary(params.skuGroupKey)
+  const primary = scopeMockProductPrimary(requireMockProductPrimary(params.skuGroupKey), params)
+  const secondary = scopeMockProductSecondary(requireMockProductSecondary(params.skuGroupKey), params)
   const channel = getMockSecondaryCompetitorChannel(params.competitorChannelId)
   const selfCol = buildSalesKpiColumn('self', primary, secondary, channel)
   const competitorCol = buildSalesKpiColumn('competitor', primary, secondary, channel)
@@ -24,12 +25,12 @@ export function buildSecondaryAiComment(params: SecondaryAiCommentParams) {
   const topSize = secondary.sizeRows.reduce((best, row) => (row.qty > best.qty ? row : best), secondary.sizeRows[0]!)
 
   return {
-    llmPrompt: [
+    prompt: [
       `${primary.brand} ${primary.productName} 2차 드로워 AI 코멘트를 작성하세요.`,
       `참조 기간 ${params.periodStart}~${params.periodEnd}, 예측 ${params.forecastMonths}개월, 경쟁 채널 ${channel.label}.`,
       params.candidateItemUuid ? `후보 아이템 UUID: ${params.candidateItemUuid}` : '후보 아이템 저장 전 live 요청입니다.',
     ].join('\n'),
-    llmAnswer: [
+    answer: [
       `${primary.productName}은(는) ${channel.label} 기준 경쟁 판매 ${formatEa(competitorQty)}, 자사 판매 ${formatEa(selfQty)}로 확인됩니다.`,
       competitorQty > selfQty
         ? `경쟁 채널 판매가 자사보다 ${formatEa(competitorQty - selfQty)} 높습니다. 입고 전 판매 속도와 잔량을 우선 확인하세요.`

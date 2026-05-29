@@ -1,8 +1,8 @@
 import { useCallback, useMemo, useState } from 'react'
 import type { ApiUnitErrorInfo } from '../../../../../types'
-import type { SecondaryCompetitorChannel } from '../../../../../api'
+import type { SecondaryAiCommentResult, SecondaryCompetitorChannel } from '../../../../../api'
 import type { CandidateItemPanelContext } from '../secondaryDrawerTypes'
-import type { OrderSnapshotDocumentV2 } from '../../../../../snapshot/orderSnapshotTypes'
+import type { OrderSnapshotAiCommentV2, OrderSnapshotDocumentV2 } from '../../../../../snapshot/orderSnapshotTypes'
 import { useSecondaryAiComment } from './useSecondaryAiComment'
 
 type Args = {
@@ -11,19 +11,20 @@ type Args = {
   periodStart: string
   periodEnd: string
   forecastMonths: number
+  companyUuid?: string
   channel: SecondaryCompetitorChannel
   candidateItemContext: CandidateItemPanelContext | null
 }
 
 type ReturnValue = {
-  aiPrompt: string
-  aiComment: string
+  aiComment: OrderSnapshotAiCommentV2
   aiCommentLoading: boolean
   aiCommentError: ApiUnitErrorInfo | null
   requestAiComment: (snapshotForAiComment?: OrderSnapshotDocumentV2 | null) => void
-  setAiPrompt: (value: string) => void
-  setAiComment: (value: string) => void
+  setAiComment: (value: OrderSnapshotAiCommentV2) => void
 }
+
+const EMPTY_AI_COMMENT: OrderSnapshotAiCommentV2 = { prompt: '', answer: '', generatedAt: null }
 
 export function useSecondaryAiCommentState({
   pageName,
@@ -31,29 +32,34 @@ export function useSecondaryAiCommentState({
   periodStart,
   periodEnd,
   forecastMonths,
+  companyUuid,
   channel,
   candidateItemContext,
 }: Args): ReturnValue {
-  const [aiPrompt, setAiPrompt] = useState('')
-  const [aiComment, setAiComment] = useState('')
+  const [aiComment, setAiComment] = useState<OrderSnapshotAiCommentV2>(EMPTY_AI_COMMENT)
   const aiCommentParams = useMemo(() => ({
     skuGroupKey,
     periodStart,
     periodEnd,
     forecastMonths,
+    companyUuid,
     competitorChannelId: channel.id,
     candidateItemUuid: candidateItemContext?.itemUuid ?? null,
   }), [
     candidateItemContext?.itemUuid,
     channel.id,
+    companyUuid,
     forecastMonths,
     periodEnd,
     periodStart,
     skuGroupKey,
   ])
-  const handleAiCommentLoaded = useCallback((result: { llmPrompt: string; llmAnswer: string }) => {
-    setAiPrompt(result.llmPrompt)
-    setAiComment(result.llmAnswer)
+  const handleAiCommentLoaded = useCallback((result: SecondaryAiCommentResult) => {
+    setAiComment({
+      prompt: result.prompt,
+      answer: result.answer,
+      generatedAt: result.generatedAt,
+    })
   }, [])
   const {
     aiCommentLoading,
@@ -74,12 +80,10 @@ export function useSecondaryAiCommentState({
   }, [aiCommentParams, request])
 
   return {
-    aiPrompt,
     aiComment,
     aiCommentLoading,
     aiCommentError,
     requestAiComment,
-    setAiPrompt,
     setAiComment,
   }
 }

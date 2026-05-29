@@ -1,37 +1,36 @@
 import { describe, expect, it } from 'vitest'
-import {
-  formatEaQuantity,
-  formatGroupedNumber,
-  formatGroupedOneDecimal,
-  formatPercent,
-  formatRatioDecimalKo,
-} from './format'
+import { DisplayNumberFormatter, displayNumber, formatPercent, formatRatioDecimalKo } from './format'
 
-describe('format utils', () => {
-  it('formats nullable grouped numbers (수량·금액 공통)', () => {
-    expect(formatGroupedNumber(null)).toBe('-')
-    expect(formatGroupedNumber(12345)).toBe('12,345')
-    expect(formatGroupedNumber(67890)).toBe('67,890')
+describe('DisplayNumberFormatter', () => {
+  it('rounds by decimal digit without changing caller data', () => {
+    const value = 1234.56
+
+    expect(displayNumber.normalize(value, 0)).toBe(1235)
+    expect(displayNumber.normalize(value, -1)).toBe(1234.6)
+    expect(value).toBe(1234.56)
   })
 
-  it('formats percent with 1 decimal place', () => {
+  it('rounds by large integer digit', () => {
+    expect(displayNumber.normalize(12345678, 4)).toBe(12350000)
+    expect(displayNumber.normalize(12345678, 7)).toBe(10000000)
+  })
+
+  it('supports explicit rounding modes', () => {
+    const formatter = new DisplayNumberFormatter()
+
+    expect(formatter.normalize(1234.56, 0, 'floor')).toBe(1234)
+    expect(formatter.normalize(1234.12, 0, 'ceil')).toBe(1235)
+    expect(formatter.normalize(-1234.56, 0, 'trunc')).toBe(-1234)
+  })
+
+  it('formats display values with shared percent policy', () => {
     expect(formatPercent(12.34)).toBe('12.3%')
-    expect(formatPercent(9.99)).toBe('10.0%')
+    expect(formatRatioDecimalKo(22.79)).toBe('22.8')
   })
 
-  it('formats grouped numbers with exactly 1 decimal place', () => {
-    expect(formatGroupedOneDecimal(null)).toBe('-')
-    expect(formatGroupedOneDecimal(1234)).toBe('1,234.0')
-    expect(formatGroupedOneDecimal(1234.25)).toBe('1,234.3')
-  })
-
-  it('formats ratio decimal string with two fraction digits (no % suffix)', () => {
-    expect(formatRatioDecimalKo(3.1)).toBe('3.10')
-    expect(formatRatioDecimalKo(1234.567)).toBe('1,234.57')
-  })
-
-  it('formats nullable EA quantity helper', () => {
-    expect(formatEaQuantity(null)).toBe('-')
-    expect(formatEaQuantity(5000)).toBe('5,000 EA')
+  it('uses fallback for missing or non-finite values', () => {
+    expect(displayNumber.format(null)).toBe('-')
+    expect(displayNumber.format(undefined)).toBe('-')
+    expect(displayNumber.format(Number.NaN)).toBe('-')
   })
 })

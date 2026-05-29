@@ -132,15 +132,17 @@ describe('api/mock dashboardApi competitor channel behavior', () => {
   it('applies selected channel to secondary daily competitor trend', async () => {
     const kream = await mockDashboardApi.getSecondaryDailyTrend({
       skuGroupKey: skuGroupKey('B'),
-      startMonth: '2025-01',
-      leadTimeDays: 0,
+      startDate: '2025-01-01',
+      endDate: '2026-05-28',
+      forecastDays: 0,
       competitorChannelId: 'kream',
       companyUuid: MOCK_COMPANY_UUID,
     })
     const musinsa = await mockDashboardApi.getSecondaryDailyTrend({
       skuGroupKey: skuGroupKey('B'),
-      startMonth: '2025-01',
-      leadTimeDays: 0,
+      startDate: '2025-01-01',
+      endDate: '2026-05-28',
+      forecastDays: 0,
       competitorChannelId: 'musinsa',
       companyUuid: MOCK_COMPANY_UUID,
     })
@@ -151,6 +153,22 @@ describe('api/mock dashboardApi competitor channel behavior', () => {
     expect(kream.length).toBeGreaterThan(0)
     expect(musinsa.length).toBe(kream.length)
     expect(sumCompetitorSales(musinsa)).toBeLessThan(sumCompetitorSales(kream))
+  })
+
+  it('keeps daily trend actual rows through endDate and appends forecastDays after it', async () => {
+    const rows = await mockDashboardApi.getSecondaryDailyTrend({
+      skuGroupKey: skuGroupKey('B'),
+      startDate: '2026-05-01',
+      endDate: '2026-05-28',
+      forecastDays: 3,
+      competitorChannelId: 'kream',
+      companyUuid: MOCK_COMPANY_UUID,
+    })
+
+    expect(rows.at(0)?.date).toBe('2026-05-01')
+    expect(rows.find((row) => row.date === '2026-05-28')?.isForecast).toBe(false)
+    expect(rows.slice(-3).map((row) => row.isForecast)).toEqual([true, true, true])
+    expect(rows.at(-1)?.date).toBe('2026-05-31')
   })
 
   it('applies selected channel to product monthly competitor trend', async () => {
@@ -201,9 +219,9 @@ describe('api/mock dashboardApi competitor channel behavior', () => {
     const actualPoints = trend.points.filter((point) => !point.isForecast)
     expect(actualPoints.every((point) => point.selfSales === 100)).toBe(true)
     expect(actualPoints.every((point) => point.competitorSales === 200)).toBe(true)
-    expect(stockOrder.display.currentStockQtyBySize).toEqual([120, 120, 120, 120, 120])
-    expect(stockOrder.display.totalOrderBalanceBySize).toEqual([40, 40, 40, 40, 40])
-    expect(stockOrder.display.expectedInboundOrderBalanceBySize).toEqual([20, 20, 20, 20, 20])
+    expect(stockOrder.display.sizeRows.map((row) => row.currentStockQty)).toEqual([120, 120, 120, 120, 120])
+    expect(stockOrder.display.sizeRows.map((row) => row.totalOrderBalance)).toEqual([40, 40, 40, 40, 40])
+    expect(stockOrder.display.sizeRows.map((row) => row.expectedInboundOrderBalance)).toEqual([20, 20, 20, 20, 20])
   })
 
   it('returns secondary drawer AI comment for the requested open context', async () => {
@@ -217,9 +235,9 @@ describe('api/mock dashboardApi competitor channel behavior', () => {
       companyUuid: MOCK_COMPANY_UUID,
     })
 
-    expect(result.llmPrompt).toContain('2025-01-01~2025-12-31')
-    expect(result.llmPrompt).toContain('candidate-item-test')
-    expect(result.llmAnswer).toContain('크림')
+    expect(result.prompt).toContain('2025-01-01~2025-12-31')
+    expect(result.prompt).toContain('candidate-item-test')
+    expect(result.answer).toContain('크림')
     expect(result.generatedAt).not.toBe('')
   })
 })

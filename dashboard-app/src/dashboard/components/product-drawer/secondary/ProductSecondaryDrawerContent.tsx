@@ -1,6 +1,7 @@
 import { BlockMath } from 'react-katex'
 import type { SecondaryCompetitorChannel } from '../../../../api'
 import { ComponentErrorBoundary } from '../../../../components/ComponentErrorBoundary'
+import type { OrderSnapshotAiCommentV2 } from '../../../../snapshot/orderSnapshotTypes'
 import type { ApiUnitErrorInfo, ProductPrimarySummary } from '../../../../types'
 import { PortalHelpPopoverLayer } from '../../PortalHelpPopover'
 import commonStyles from '../../common.module.css'
@@ -31,7 +32,7 @@ type Props = {
   onResetToLive: () => void
   onRestoreConfirmed: () => void
   model: ReturnType<typeof useSecondaryForecastModel>
-  aiComment: string
+  aiComment: OrderSnapshotAiCommentV2
   aiCommentLoading: boolean
   aiCommentError: ApiUnitErrorInfo | null
   onRequestAiComment: () => void
@@ -139,7 +140,7 @@ export function ProductSecondaryDrawerContent({
         </ComponentErrorBoundary>
         <ComponentErrorBoundary page={pageName} unit="AiCommentCard">
           <AiCommentCard
-            comment={aiComment}
+            aiComment={aiComment}
             loading={aiCommentLoading}
             error={aiCommentError}
             onRequest={stockOrderCalculationReady ? onRequestAiComment : guardStockOrderCalculation}

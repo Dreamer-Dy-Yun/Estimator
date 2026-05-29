@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { getCompetitorSales, getCompetitorSalesScatterGrid, getSecondaryCompetitorChannels } from '../../api'
 import type { ScatterSalesGridResponse, SecondaryCompetitorChannel } from '../../api/types'
 import { LoadingSpinner } from '../../components/LoadingSpinner'
@@ -14,10 +14,12 @@ import { DashboardRequestStatus } from '../components/DashboardRequestStatus'
 import styles from '../components/common.module.css'
 import { useAnalysisPageCommonState } from '../hooks/useAnalysisPageCommonState'
 import { useAnalysisPageSelection } from '../hooks/useAnalysisPageSelection'
+import { useAnalysisSalesDataGate } from '../hooks/useAnalysisSalesDataGate'
 import { useAnalysisSalesFilters, maskNonPeriodAnalysisFilterFields } from '../hooks/useAnalysisSalesFilters'
 import { useAnalysisScatterGridView } from '../hooks/useAnalysisScatterGridView'
 import { useDashboardRequest } from '../hooks/useDashboardRequest'
 import { useProductDrawerBundleState } from '../hooks/useProductDrawerBundle'
+import { buildAnalysisSalesRequestKey } from '../model/analysisSalesRequestKey'
 import type { AnalysisScatterGridPoint } from '../model/analysisScatterGridPoint'
 import type { FilterField } from '../model/filterField'
 
@@ -28,42 +30,69 @@ const ALL_COMPANY_BULK_ADD_DISABLED = '전체 선택 상태에서는 오더 후�
 
 export const CompetitorPage = () => {
   const [bulkAddOpen, setBulkAddOpen] = useState(false)
-  const [competitorChannelLabel, setCompetitorChannelLabel] = useState(ALL_CHANNEL_LABEL)
+  const [competitorChannelId, setCompetitorChannelId] = useState<string | undefined>(undefined)
   const [showRowsWithSelfSalesOnly, setShowRowsWithSelfSalesOnly] = useState(false)
   const common = useAnalysisPageCommonState()
   const filters = useAnalysisSalesFilters(common.companyUuid)
   const channelsRequest = useDashboardRequest(getSecondaryCompetitorChannels, EMPTY_COMPETITOR_CHANNELS)
   const { data: channels } = channelsRequest
-  const competitorChannelId = useMemo(
-    () => (competitorChannelLabel === ALL_CHANNEL_LABEL ? undefined : channels.find((ch) => ch.label === competitorChannelLabel)?.id),
-    [channels, competitorChannelLabel],
+  const selectedCompetitorChannel = useMemo(
+    () => competitorChannelId ? channels.find((ch) => ch.id === competitorChannelId) : undefined,
+    [channels, competitorChannelId],
   )
+  const competitorChannelLabel = selectedCompetitorChannel?.label ?? ALL_CHANNEL_LABEL
+  useEffect(() => {
+    if (competitorChannelId && !channels.some((ch) => ch.id === competitorChannelId)) {
+      setCompetitorChannelId(undefined)
+    }
+  }, [channels, competitorChannelId])
+  const onCompetitorChannelChange = useCallback((label: string) => {
+    if (label === ALL_CHANNEL_LABEL) {
+      setCompetitorChannelId(undefined)
+      return
+    }
+    setCompetitorChannelId(channels.find((ch) => ch.label === label)?.id)
+  }, [channels])
   const salesParams = useMemo(() => ({ ...filters.salesParams, competitorChannelId }), [competitorChannelId, filters.salesParams])
+  const analysisRequestKey = useMemo(() => buildAnalysisSalesRequestKey(salesParams), [salesParams])
   const loadRows = useCallback(() => getCompetitorSales(salesParams), [salesParams])
   const loadScatterGrid = useCallback(() => getCompetitorSalesScatterGrid(salesParams), [salesParams])
-  const rowsRequest = useDashboardRequest(loadRows, EMPTY_COMPETITOR_ROWS)
-  const scatterGridRequest = useDashboardRequest<ScatterSalesGridResponse | null>(loadScatterGrid, null)
-  const { data: rows, loading: rowsLoading } = rowsRequest
-  const { data: scatterGrid, loading: scatterGridLoading } = scatterGridRequest
+  const rowsRequest = useDashboardRequest(loadRows, EMPTY_COMPETITOR_ROWS, analysisRequestKey)
+  const scatterGridRequest = useDashboardRequest<ScatterSalesGridResponse | null>(loadScatterGrid, null, analysisRequestKey)
+  const analysisData = useAnalysisSalesDataGate({
+    rowsRequest,
+    scatterGridRequest,
+    requestKey: analysisRequestKey,
+    emptyRows: EMPTY_COMPETITOR_ROWS,
+  })
+  const { rows, scatterGrid } = analysisData
   const baseRows = useMemo(() => (showRowsWithSelfSalesOnly ? rows.filter((row) => row.selfQty != null) : rows), [rows, showRowsWithSelfSalesOnly])
   const selection = useAnalysisPageSelection({ rows: baseRows, scatterGrid, bulkAddOpen })
   const summaryBundleState = useProductDrawerBundleState(selection.selectedSkuGroupKey, { companyUuid: common.companyUuid })
 
   const competitorFilterFields = useMemo<FilterField[]>(() => [
     ...filters.filterFields,
-    { label: '경쟁 채널', kind: 'select', value: competitorChannelLabel, onChange: setCompetitorChannelLabel, options: [ALL_CHANNEL_LABEL, ...channels.map((ch) => ch.label)] },
-  ], [channels, competitorChannelLabel, filters.filterFields])
+    { label: '경쟁 채널', kind: 'select', value: competitorChannelLabel, onChange: onCompetitorChannelChange, options: [ALL_CHANNEL_LABEL, ...channels.map((ch) => ch.label)] },
+  ], [channels, competitorChannelLabel, filters.filterFields, onCompetitorChannelChange])
   const displayedFilterFields = useMemo(
     () => (selection.activeGridCellKey ? maskNonPeriodAnalysisFilterFields(competitorFilterFields) : competitorFilterFields),
     [competitorFilterFields, selection.activeGridCellKey],
   )
   const competitorAxisLabel = competitorChannelLabel === ALL_CHANNEL_LABEL ? '전체 경쟁사' : competitorChannelLabel
-  const kpi = useMemo(() => selection.visibleRows.reduce((acc, row) => ({
-    totalCompetitorAmount: acc.totalCompetitorAmount + row.competitorAmount,
-    totalSelfAmount: acc.totalSelfAmount + (row.selfAmount ?? 0),
-    totalCompetitorQty: acc.totalCompetitorQty + row.competitorQty,
-    totalSelfQty: acc.totalSelfQty + (row.selfQty ?? 0),
-  }), { totalCompetitorAmount: 0, totalSelfAmount: 0, totalCompetitorQty: 0, totalSelfQty: 0 }), [selection.visibleRows])
+  const kpi = useMemo(() => {
+    const rowsWithSelfAmount = selection.visibleRows.filter((row) => row.selfAmount != null)
+    const rowsWithSelfQty = selection.visibleRows.filter((row) => row.selfQty != null)
+    return {
+      totalCompetitorAmount: selection.visibleRows.reduce((sum, row) => sum + row.competitorAmount, 0),
+      totalSelfAmount: rowsWithSelfAmount.length
+        ? rowsWithSelfAmount.reduce((sum, row) => sum + row.selfAmount!, 0)
+        : null,
+      totalCompetitorQty: selection.visibleRows.reduce((sum, row) => sum + row.competitorQty, 0),
+      totalSelfQty: rowsWithSelfQty.length
+        ? rowsWithSelfQty.reduce((sum, row) => sum + row.selfQty!, 0)
+        : null,
+    }
+  }, [selection.visibleRows])
   const scatterView = useAnalysisScatterGridView({ scatterGrid, chartWidth: common.chartWidth, chartHeight: common.chartHeight })
   const renderQtyScatterTooltip = useMemo(
     () => createCompetitorSalesScatterTooltip(competitorAxisLabel, common.selfCompanyLabel),
@@ -85,8 +114,8 @@ export const CompetitorPage = () => {
         onTogglePeriodBar={() => filters.setShowPeriodBar((prev) => !prev)}
         onPeriodBarStart={filters.onPeriodBarStart}
         onPeriodBarEnd={filters.onPeriodBarEnd}
-        initialLoading={rowsLoading && !rows.length}
-        refreshing={rowsRequest.isRefreshing}
+        initialLoading={analysisData.initialLoading && !rows.length}
+        refreshing={analysisData.refreshing}
         initialLabel="경쟁사 분석 목록을 불러오는 중"
         refreshLabel="경쟁사 분석 목록을 갱신하는 중"
         endControl={(
@@ -104,7 +133,7 @@ export const CompetitorPage = () => {
         )}
         leftPanel={(
           <>
-            {rowsLoading && !rows.length ? (
+            {analysisData.initialLoading && !rows.length ? (
               <div className={styles.analysisPanelLoading}><LoadingSpinner label="분석 지표를 불러오는 중" /></div>
             ) : <CompetitorKpiGrid selfCompanyLabel={common.selfCompanyLabel} {...kpi} />}
             <AnalysisScatterChartCard<AnalysisScatterGridPoint>
@@ -114,7 +143,7 @@ export const CompetitorPage = () => {
               chartReady={common.chartReady}
               width={scatterView.scatterChartWidth}
               height={scatterView.scatterChartHeight}
-              loading={scatterGridLoading && scatterView.scatterData.length === 0}
+              loading={analysisData.initialLoading && scatterView.scatterData.length === 0}
               pointRadius={scatterView.scatterPointRadius}
               activeCellKey={selection.activeGridCellKey}
               onCellClick={selection.onScatterCellClick}
@@ -145,6 +174,7 @@ export const CompetitorPage = () => {
         periodStart={filters.appliedPeriodStartDate}
         periodEnd={filters.appliedPeriodEndDate}
         companyUuid={common.companyUuid}
+        competitorChannelId={competitorChannelId}
         forecastMonths={common.forecastMonths}
         selfCompanyLabel={common.selfCompanyLabel}
         onForecastMonthsChange={common.onForecastMonthsChange}

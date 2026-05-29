@@ -3,6 +3,7 @@ import { dashboardApi } from '../../../../../api'
 import type { SecondaryDailyTrendPoint } from '../../../../../api/types'
 import type { ApiUnitErrorInfo } from '../../../../../types'
 import { buildShadeRanges } from '../../../trend/trendRangeUtils'
+import { SecondaryDailyTrendRequestWindow } from '../model/SecondaryDailyTrendRequestWindow'
 
 type Params = {
   skuGroupKey: string
@@ -27,6 +28,13 @@ export function useSecondaryDailyTrend({
   const [dailyTrendSeries, setDailyTrendSeries] = useState<SecondaryDailyTrendPoint[]>([])
   const [dailyTrendError, setDailyTrendError] = useState<ApiUnitErrorInfo | null>(null)
   const [dailyTrendLoading, setDailyTrendLoading] = useState(true)
+  const requestWindow = useMemo(
+    () => SecondaryDailyTrendRequestWindow.fromSelectedStartMonth({
+      selectedStartMonth: selectedStart,
+      forecastDays: leadTimeDays,
+    }),
+    [leadTimeDays, selectedStart],
+  )
 
   useEffect(() => {
     let alive = true
@@ -40,8 +48,7 @@ export function useSecondaryDailyTrend({
         const params = {
           skuGroupKey,
           companyUuid,
-          startMonth: selectedStart,
-          leadTimeDays,
+          ...requestWindow.toQueryFields(),
           competitorChannelId,
         }
         const series = await dashboardApi.getSecondaryDailyTrend(params)
@@ -54,7 +61,7 @@ export function useSecondaryDailyTrend({
         setDailyTrendSeries([])
         setDailyTrendError(
           makeApiErrorInfo(
-            `getSecondaryDailyTrend(${JSON.stringify({ skuGroupKey, companyUuid, startMonth: selectedStart, leadTimeDays, competitorChannelId })})`,
+            `getSecondaryDailyTrend(${JSON.stringify({ skuGroupKey, companyUuid, ...requestWindow.toRequestLogFields(), competitorChannelId })})`,
             err,
           ),
         )
@@ -65,7 +72,7 @@ export function useSecondaryDailyTrend({
     return () => {
       alive = false
     }
-  }, [companyUuid, competitorChannelId, leadTimeDays, makeApiErrorInfo, skuGroupKey, selectedStart])
+  }, [companyUuid, competitorChannelId, makeApiErrorInfo, requestWindow, skuGroupKey])
 
   const { periodShade: dailyPeriodShade, forecastShade: dailyForecastShade } = useMemo(
     () => buildShadeRanges(

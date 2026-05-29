@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState, type Dispatch, type SetStateAction } from 'react'
-import type { OrderSnapshotDocumentV2 } from '../../../../../snapshot/orderSnapshotTypes'
+import type { OrderSnapshotAiCommentV2, OrderSnapshotDocumentV2 } from '../../../../../snapshot/orderSnapshotTypes'
 import type { CandidateItemPanelContext } from '../secondaryDrawerTypes'
 import type { InboundDueDateDefaults } from './useSecondaryInboundDueDates'
 import { useSecondarySnapshotPrefill } from './useSecondarySnapshotPrefill'
@@ -20,8 +20,7 @@ type SnapshotControllerArgs = {
   onChannelChange: (next: string) => void
   setCurrentOrderInboundDueDate: (value: string) => void
   setNextOrderInboundDueDate: (value: string) => void
-  setAiPrompt: (value: string) => void
-  setAiComment: (value: string) => void
+  setAiComment: (value: OrderSnapshotAiCommentV2) => void
   resetInboundDueDatesToLive: () => void
 }
 
@@ -58,7 +57,6 @@ export function useSecondaryDrawerSnapshotController({
   onChannelChange,
   setCurrentOrderInboundDueDate,
   setNextOrderInboundDueDate,
-  setAiPrompt,
   setAiComment,
   resetInboundDueDatesToLive,
 }: SnapshotControllerArgs) {
@@ -143,7 +141,6 @@ export function useSecondaryDrawerSnapshotController({
   useSecondarySnapshotPrefill({
     prefillFromSnapshot,
     candidateItemContext,
-    primarySkuGroupKey,
     defaultInboundDueDates,
     minOrderDate,
     prefillKey,
@@ -153,7 +150,6 @@ export function useSecondaryDrawerSnapshotController({
     setNextOrderInboundDueDate,
     setBufferStock,
     setSelfWeightPct,
-    setAiPrompt,
     setAiComment,
     setConfirmBySize,
     setSnapshotConfirmBaselineActive,
@@ -171,8 +167,7 @@ export function useSecondaryDrawerSnapshotController({
     setUnitPriceInput(roundNonNegative(primaryPrice))
     setExpectedFeeRatePct(0)
     applyLiveOrderUnitInputs(liveOrderUnitSource)
-    setAiPrompt('')
-    setAiComment('')
+    setAiComment({ prompt: '', answer: '', generatedAt: null })
     setSelfWeightPct(DEFAULT_SELF_WEIGHT_PCT)
     setConfirmBySize({})
     setSnapshotConfirmBaselineActive(false)
@@ -185,7 +180,6 @@ export function useSecondaryDrawerSnapshotController({
     primaryPrice,
     resetInboundDueDatesToLive,
     setAiComment,
-    setAiPrompt,
   ])
 
   const handleRestoreConfirmed = useCallback(() => {

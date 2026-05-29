@@ -221,12 +221,14 @@ describe('parseOrderSnapshot validation', () => {
     expect(() => parseOrderSnapshot(competitorBasisMismatch)).toThrow(/skuGroupKey/)
   })
 
-  it('throws when stockOrderResult display by-size arrays do not match sizeOrders length', () => {
+  it('throws when stockOrderResult display sizeRows do not match sizeOrders sizes', () => {
     const display = validSnapshot.drawer2.stockOrderResult.display
     const invalidDisplays = [
-      { ...display, currentStockQtyBySize: [] },
-      { ...display, totalOrderBalanceBySize: [4, 5] },
-      { ...display, expectedInboundOrderBalanceBySize: [] },
+      { ...display, sizeRows: [] },
+      { ...display, sizeRows: [{ ...display.sizeRows[0], size: '260' }] },
+      { ...display, sizeRows: [{ ...display.sizeRows[0] }, { ...display.sizeRows[0] }] },
+      { ...display, sizeRows: [{ ...display.sizeRows[0], size: '' }] },
+      { ...display, sizeRows: [{ ...display.sizeRows[0], currentStockQty: '20' }] },
     ]
     for (const invalidDisplay of invalidDisplays) {
       const broken = {
@@ -241,6 +243,72 @@ describe('parseOrderSnapshot validation', () => {
       }
       expect(() => parseOrderSnapshot(broken)).toThrow(/stockOrderResult\.display/)
     }
+  })
+
+  it('throws when stockOrderResult display totals do not match sizeRows sums', () => {
+    const broken = {
+      ...validSnapshot,
+      drawer2: {
+        ...validSnapshot.drawer2,
+        stockOrderResult: {
+          ...validSnapshot.drawer2.stockOrderResult,
+          display: {
+            ...validSnapshot.drawer2.stockOrderResult.display,
+            currentStockQtyTotal: validSnapshot.drawer2.stockOrderResult.display.currentStockQtyTotal + 1,
+          },
+        },
+      },
+    }
+
+    expect(() => parseOrderSnapshot(broken)).toThrow(/currentStockQtyTotal/)
+  })
+
+  it('requires aiComment generatedAt to be present as string or null', () => {
+    const broken = {
+      ...validSnapshot,
+      drawer2: {
+        ...validSnapshot.drawer2,
+        aiComment: {
+          prompt: 'prompt',
+          answer: 'answer',
+        },
+      },
+    }
+
+    expect(() => parseOrderSnapshot(broken)).toThrow(/aiComment\.generatedAt/)
+    expect(parseOrderSnapshot({
+      ...validSnapshot,
+      drawer2: {
+        ...validSnapshot.drawer2,
+        aiComment: {
+          ...validSnapshot.drawer2.aiComment,
+          generatedAt: null,
+        },
+      },
+    }).drawer2.aiComment.generatedAt).toBeNull()
+  })
+
+  it('throws when sizeOrders contains missing or duplicate size keys', () => {
+    const duplicate = {
+      ...validSnapshot,
+      drawer2: {
+        ...validSnapshot.drawer2,
+        sizeOrders: [
+          { ...validSnapshot.drawer2.sizeOrders[0] },
+          { ...validSnapshot.drawer2.sizeOrders[0] },
+        ],
+      },
+    }
+    const missing = {
+      ...validSnapshot,
+      drawer2: {
+        ...validSnapshot.drawer2,
+        sizeOrders: [{ ...validSnapshot.drawer2.sizeOrders[0], size: '' }],
+      },
+    }
+
+    expect(() => parseOrderSnapshot(duplicate)).toThrow(/sizeOrders/)
+    expect(() => parseOrderSnapshot(missing)).toThrow(/sizeOrders/)
   })
 
   it('preserves internally odd business values for the screen to surface', () => {

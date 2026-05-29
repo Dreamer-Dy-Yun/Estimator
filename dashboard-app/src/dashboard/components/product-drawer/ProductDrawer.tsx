@@ -121,8 +121,8 @@ function ProductDrawerContent({
     secondaryEnabled,
   })
 
-  const selectedStart = normalizeMonthKey(periodStart)
-  const selectedEnd = normalizeMonthKey(periodEnd)
+  const selectedStartMonth = normalizeMonthKey(periodStart)
+  const selectedEndMonth = normalizeMonthKey(periodEnd)
 
   return (
     <aside
@@ -136,8 +136,8 @@ function ProductDrawerContent({
         periodStart={periodStart}
         periodEnd={periodEnd}
         companyUuid={companyUuid}
-        selectedStart={selectedStart}
-        selectedEnd={selectedEnd}
+        selectedStart={selectedStartMonth}
+        selectedEnd={selectedEndMonth}
         forecastMonths={forecastMonths}
         selfCompanyLabel={selfCompanyLabel}
         onForecastMonthsChange={onForecastMonthsChange}
@@ -158,8 +158,10 @@ function ProductDrawerContent({
         <ProductDrawerSecondaryPane
           open={expandPaneOpen}
           summary={summary}
-          selectedStart={selectedStart}
-          selectedEnd={selectedEnd}
+          periodStart={periodStart}
+          periodEnd={periodEnd}
+          selectedStartMonth={selectedStartMonth}
+          selectedEndMonth={selectedEndMonth}
           forecastMonths={forecastMonths}
           companyUuid={companyUuid}
           selfCompanyLabel={selfCompanyLabel}

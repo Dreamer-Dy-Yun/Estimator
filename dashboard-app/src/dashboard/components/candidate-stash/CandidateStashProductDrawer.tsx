@@ -10,12 +10,38 @@ type Props = {
   bulkDeleteOpen: boolean
 }
 
+type DrawerPeriod = {
+  periodStart: string
+  periodEnd: string
+}
+
+function resolveCandidateDrawerPeriod(
+  model: CandidateStashDetailModalModel,
+  confirmedContext: OrderSnapshotDocumentV2['context'] | null,
+): DrawerPeriod | null {
+  if (confirmedContext != null) {
+    return {
+      periodStart: confirmedContext.periodStart,
+      periodEnd: confirmedContext.periodEnd,
+    }
+  }
+  if (!model.periodStart || !model.periodEnd) return null
+  return {
+    periodStart: model.periodStart,
+    periodEnd: model.periodEnd,
+  }
+}
+
 export function CandidateStashProductDrawer({ model, bulkDeleteOpen }: Props) {
   const selfCompanyLabel = useSelfCompanyLabel()
   const openedItem = useMemo(
     () => model.items.find((item) => item.uuid === model.openedItemUuid) ?? null,
     [model.items, model.openedItemUuid],
   )
+  const confirmedHydrateContext = model.hydrateSnapSource === 'confirmed'
+    ? model.confirmedHydrateSnap?.context ?? model.hydrateSnap?.context ?? null
+    : null
+  const drawerPeriod = resolveCandidateDrawerPeriod(model, confirmedHydrateContext)
   const candidateItemContext = useMemo(() => {
     if (!model.detailTarget || !model.openedItemUuid || !openedItem) return null
     const itemUuid = model.openedItemUuid
@@ -45,15 +71,15 @@ export function CandidateStashProductDrawer({ model, bulkDeleteOpen }: Props) {
     }
   }, [model, openedItem])
 
-  return (
+  return drawerPeriod == null ? null : (
     <ProductDrawer
       summary={model.mergedSummary}
       loading={Boolean(model.drawerOpen && model.mergedSummary == null)}
       suppressDocumentLayoutShift
       closing={model.drawerClosing}
       onClose={model.closeDrawer}
-      periodStart={model.periodStart!}
-      periodEnd={model.periodEnd!}
+      periodStart={drawerPeriod.periodStart}
+      periodEnd={drawerPeriod.periodEnd}
       forecastMonths={model.fc}
       companyUuid={model.companyUuid}
       selfCompanyLabel={selfCompanyLabel}

@@ -1,25 +1,26 @@
 ﻿import { LoadingSpinner } from '../../../../../components/LoadingSpinner'
+import type { OrderSnapshotAiCommentV2 } from '../../../../../snapshot/orderSnapshotTypes'
 import type { ApiUnitErrorInfo } from '../../../../../types'
 import { KO } from '../../ko'
 import styles from '../secondaryDrawer.module.css'
 import aiStyles from '../style-parts/cardAi.module.css'
 
 type Props = {
-  comment: string
+  aiComment: OrderSnapshotAiCommentV2
   loading: boolean
   error: ApiUnitErrorInfo | null
   onRequest: () => void
 }
 
 export function AiCommentCard({
-  comment,
+  aiComment,
   loading,
   error,
   onRequest,
 }: Props) {
   const content = error
     ? `AI 코멘트 요청 실패: ${error.error}`
-    : comment || KO.answerEmpty
+    : aiComment.answer || KO.answerEmpty
 
   return (
     <div className={`${styles.card} ${styles.gridColumnCard}`}>

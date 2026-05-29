@@ -40,6 +40,7 @@ export const validSnapshot = {
     aiComment: {
       prompt: 'prompt',
       answer: 'comment',
+      generatedAt: '2026-04-23T00:00:00.000Z',
     },
     stockOrderRequest: {
       currentOrderInboundDueDate: '2026-02-01',
@@ -55,9 +56,12 @@ export const validSnapshot = {
         currentStockQtyTotal: 20,
         totalOrderBalanceTotal: 4,
         expectedInboundOrderBalanceTotal: 2,
-        currentStockQtyBySize: [20],
-        totalOrderBalanceBySize: [4],
-        expectedInboundOrderBalanceBySize: [2],
+        sizeRows: [{
+          size: '250',
+          currentStockQty: 20,
+          totalOrderBalance: 4,
+          expectedInboundOrderBalance: 2,
+        }],
       },
       safetyStockCalc: {
         safetyStock: 12,

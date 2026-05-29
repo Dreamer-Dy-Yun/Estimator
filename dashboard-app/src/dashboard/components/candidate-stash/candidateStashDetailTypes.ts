@@ -22,12 +22,13 @@ export type CandidateItemActionScope = {
 export type AppendRecommendedItems = (
   candidateItems: CandidateStashItemSummary[],
   recommendations: CandidateReferenceItemSummary[],
-) => void
+) => number
 
 export type AppendRecommendedItemsResult =
   | { status: 'applied'; appendedCount: number }
   | { status: 'stale' }
-  | { status: 'empty' }
+  | { status: 'no-op' }
+  | { status: 'empty-selection' }
 
 export type InnerCandidateSortKey =
   | 'brand'

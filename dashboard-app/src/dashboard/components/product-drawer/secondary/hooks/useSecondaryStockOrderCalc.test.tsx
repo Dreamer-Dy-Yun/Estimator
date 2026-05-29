@@ -8,8 +8,8 @@ import { useSecondaryStockOrderCalc } from './useSecondaryStockOrderCalc'
 
 const BASE_PROPS = {
   skuGroupKey: 'sku-a',
-  selectedStart: '2025-01',
-  selectedEnd: '2025-12',
+  periodStart: '2025-01-01',
+  periodEnd: '2025-12-31',
   forecastMeanPeriodEnd: '2026-08',
   leadTimeDays: 30,
   makeApiErrorInfo: (request: string, err: unknown): ApiUnitErrorInfo => ({
@@ -29,9 +29,12 @@ function calcResult(dailyMean: number): SecondaryStockOrderCalcResult {
       currentStockQtyTotal: 1,
       totalOrderBalanceTotal: 2,
       expectedInboundOrderBalanceTotal: 3,
-      currentStockQtyBySize: [1],
-      totalOrderBalanceBySize: [2],
-      expectedInboundOrderBalanceBySize: [3],
+      sizeRows: [{
+        size: 'S',
+        currentStockQty: 1,
+        totalOrderBalance: 2,
+        expectedInboundOrderBalance: 3,
+      }],
     },
     safetyStockCalc: {
       safetyStock: 4,

@@ -78,10 +78,14 @@ export function SizeOrderCard({ sizeOrder, actions, help }: Props) {
   const tableRef = useRef<HTMLTableElement | null>(null)
   const competitorWeightPct = getCompetitorWeightPct(selfWeightPct)
   const columnTotals = useMemo(() => calculateSizeOrderColumnTotals(sizeRows), [sizeRows])
+  const stockOrderSizeRowBySize = useMemo(
+    () => new Map((stockOrderDisplay?.sizeRows ?? []).map((row) => [row.size, row])),
+    [stockOrderDisplay],
+  )
   const quantityRows: QuantityRow[] = [
-    { label: KO.rowCurrentStockQty, totalQty: stockOrderDisplay?.currentStockQtyTotal ?? null, valueForSize: (_, i) => stockOrderDisplay?.currentStockQtyBySize[i] },
-    { label: KO.rowTotalOrderBalance, totalQty: stockOrderDisplay?.totalOrderBalanceTotal ?? null, valueForSize: (_, i) => stockOrderDisplay?.totalOrderBalanceBySize[i], helpMark: { helpId: 'totalOrderBalance', labelId: helpIds.totalOrderBalance, help } },
-    { label: KO.rowExpectedInboundOrderBalance, totalQty: stockOrderDisplay?.expectedInboundOrderBalanceTotal ?? null, valueForSize: (_, i) => stockOrderDisplay?.expectedInboundOrderBalanceBySize[i], helpMark: { helpId: 'expectedInboundOrderBalance', labelId: helpIds.expectedInboundOrderBalance, help } },
+    { label: KO.rowCurrentStockQty, totalQty: stockOrderDisplay?.currentStockQtyTotal ?? null, valueForSize: (row) => stockOrderSizeRowBySize.get(row.size)?.currentStockQty },
+    { label: KO.rowTotalOrderBalance, totalQty: stockOrderDisplay?.totalOrderBalanceTotal ?? null, valueForSize: (row) => stockOrderSizeRowBySize.get(row.size)?.totalOrderBalance, helpMark: { helpId: 'totalOrderBalance', labelId: helpIds.totalOrderBalance, help } },
+    { label: KO.rowExpectedInboundOrderBalance, totalQty: stockOrderDisplay?.expectedInboundOrderBalanceTotal ?? null, valueForSize: (row) => stockOrderSizeRowBySize.get(row.size)?.expectedInboundOrderBalance, helpMark: { helpId: 'expectedInboundOrderBalance', labelId: helpIds.expectedInboundOrderBalance, help } },
     { label: KO.rowSalesForecast, totalQty: calculationReady ? columnTotals.forecast : null, valueForSize: (row) => (calculationReady ? row.forecastQty : null), helpMark: { helpId: 'salesForecastSizeOrder', labelId: helpIds.salesForecastSizeOrder, help } },
     { label: KO.thRecQty, totalQty: calculationReady ? columnTotals.rec : null, valueForSize: (row) => (calculationReady ? row.recommendedQty : null), helpMark: { helpId: 'sizeRecQty', labelId: helpIds.sizeRecQty, help } },
   ]

@@ -11,8 +11,10 @@ import type { CandidateItemPanelContext } from './secondary/secondaryDrawerTypes
 type ProductDrawerSecondaryPaneProps = {
   open: boolean
   summary: ProductPrimarySummary
-  selectedStart: string
-  selectedEnd: string
+  periodStart: string
+  periodEnd: string
+  selectedStartMonth: string
+  selectedEndMonth: string
   forecastMonths: number
   companyUuid?: string
   selfCompanyLabel: string
@@ -60,8 +62,10 @@ function SecondaryPaneStatus({
 export function ProductDrawerSecondaryPane({
   open,
   summary,
-  selectedStart,
-  selectedEnd,
+  periodStart,
+  periodEnd,
+  selectedStartMonth,
+  selectedEndMonth,
   forecastMonths,
   companyUuid,
   selfCompanyLabel,
@@ -76,6 +80,7 @@ export function ProductDrawerSecondaryPane({
 }: ProductDrawerSecondaryPaneProps) {
   const missingCompetitorRatioSizes =
     secondaryDetail == null ? [] : getMissingCompetitorRatioSizes(secondaryDetail)
+  const primaryForSecondaryPanel = hydrateForPanel?.drawer1.summary ?? summary
   let content: ReactNode = null
 
   if (open) {
@@ -104,10 +109,12 @@ export function ProductDrawerSecondaryPane({
     } else {
       content = (
         <ProductSecondaryDrawer
-          primary={summary}
+          primary={primaryForSecondaryPanel}
           secondary={secondaryDetail}
-          periodStart={selectedStart}
-          periodEnd={selectedEnd}
+          periodStart={periodStart}
+          periodEnd={periodEnd}
+          selectedStartMonth={selectedStartMonth}
+          selectedEndMonth={selectedEndMonth}
           forecastMonths={forecastMonths}
           companyUuid={companyUuid}
           selfCompanyLabel={selfCompanyLabel}

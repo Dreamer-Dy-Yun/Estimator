@@ -111,8 +111,14 @@ export function useCandidateStashDetailModal({
     candidateItems: CandidateStashItemSummary[],
     recommendationRows: CandidateReferenceItemSummary[],
   ) => {
-    if (!candidateItems.length) return
-    setItems(appendRecommendedCandidateItems(itemsRef.current, candidateItems, recommendationRows))
+    if (!candidateItems.length) return 0
+    const beforeSkuUuidSet = new Set(itemsRef.current.map((item) => item.skuUuid))
+    const nextItems = appendRecommendedCandidateItems(itemsRef.current, candidateItems, recommendationRows)
+    const appendedCount = nextItems.filter((item) => (
+      !beforeSkuUuidSet.has(item.skuUuid)
+      && candidateItems.some((candidateItem) => candidateItem.skuUuid === item.skuUuid)
+    )).length
+    setItems(nextItems)
     subscribeOrderMetrics({
       seq: getCurrentItemLoadSeq(),
       dataReferencePeriodStart,
@@ -120,6 +126,7 @@ export function useCandidateStashDetailModal({
       companyUuid,
       candidateItemUuids: candidateItems.map((item) => item.uuid),
     })
+    return appendedCount
   }, [
     companyUuid,
     dataReferencePeriodEnd,

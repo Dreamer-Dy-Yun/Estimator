@@ -22,14 +22,17 @@ function createDeferred<T>(): Deferred<T> {
 
 type ProbeProps = {
   request: () => Promise<string[]>
+  requestKey?: string
 }
 
 const INITIAL_DATA = ['initial']
 
-function Probe({ request }: ProbeProps) {
-  const state = useDashboardRequest(request, INITIAL_DATA)
+function Probe({ request, requestKey }: ProbeProps) {
+  const state = useDashboardRequest(request, INITIAL_DATA, requestKey)
   return (
     <output
+      data-key={state.dataKey ?? ''}
+      data-request-key={state.requestKey}
       data-loading={state.loading}
       data-refreshing={state.isRefreshing}
       data-error={state.error?.message ?? ''}
@@ -44,19 +47,19 @@ function Probe({ request }: ProbeProps) {
 let root: Root | null = null
 let container: HTMLDivElement | null = null
 
-function renderProbe(request: () => Promise<string[]>) {
+function renderProbe(request: () => Promise<string[]>, requestKey?: string) {
   container = document.createElement('div')
   document.body.appendChild(container)
   root = createRoot(container)
   act(() => {
-    root?.render(<Probe request={request} />)
+    root?.render(<Probe request={request} requestKey={requestKey} />)
   })
   return container.querySelector('output') as HTMLOutputElement
 }
 
-function rerenderProbe(request: () => Promise<string[]>) {
+function rerenderProbe(request: () => Promise<string[]>, requestKey?: string) {
   act(() => {
-    root?.render(<Probe request={request} />)
+    root?.render(<Probe request={request} requestKey={requestKey} />)
   })
   return container?.querySelector('output') as HTMLOutputElement
 }
@@ -85,6 +88,7 @@ describe('useDashboardRequest', () => {
 
     expect(output.textContent).toBe('loaded')
     expect(output.dataset.loading).toBe('false')
+    expect(output.dataset.key).toBe('default')
     expect(output.dataset.error).toBe('')
     expect(output.dataset.updated).not.toBe('')
   })
@@ -109,5 +113,29 @@ describe('useDashboardRequest', () => {
     expect(output.textContent).toBe('first')
     expect(output.dataset.error).toBe('network down')
     expect(output.dataset.stale).toBe('true')
+  })
+
+  it('keeps the key of the last successful response', async () => {
+    const first = createDeferred<string[]>()
+    const output = renderProbe(() => first.promise, 'query-a')
+
+    await act(async () => {
+      first.resolve(['first'])
+      await first.promise
+    })
+
+    expect(output.dataset.key).toBe('query-a')
+
+    const second = createDeferred<string[]>()
+    rerenderProbe(() => second.promise, 'query-b')
+
+    await act(async () => {
+      second.reject(new Error('network down'))
+      await second.promise.catch(() => undefined)
+    })
+
+    expect(output.textContent).toBe('first')
+    expect(output.dataset.key).toBe('query-a')
+    expect(output.dataset.requestKey).toBe('query-b')
   })
 })

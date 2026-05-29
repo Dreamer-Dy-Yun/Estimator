@@ -1,11 +1,13 @@
 import type { ProductPrimarySummary, ProductSecondaryDetail } from '../../../../types'
 import {
   createOrderSnapshotCompetitorBasis,
+  createOrderSnapshotAiComment,
   createOrderSnapshotPrimarySummary,
   createOrderSnapshotStockOrderRequest,
   createOrderSnapshotStockOrderResult,
   ORDER_SNAPSHOT_SCHEMA_VERSION,
   type OrderSnapshotConfirmedTotalsV2,
+  type OrderSnapshotAiCommentV2,
   type OrderSnapshotDocumentV2,
   type OrderSnapshotSizeOrderV2,
   type OrderSnapshotStockOrderRequestV2,
@@ -28,8 +30,7 @@ export type BuildSecondaryOrderSnapshotParams = {
   stockOrderResult: OrderSnapshotStockOrderResultV2 | null
   selfWeightPct: number
   bufferStock: number
-  aiPrompt: string
-  aiComment: string
+  aiComment: OrderSnapshotAiCommentV2
   unitPrice: number
   unitCost: number
   expectedFeeRatePct: number
@@ -59,7 +60,6 @@ export function buildSecondaryOrderSnapshot(params: BuildSecondaryOrderSnapshotP
     stockOrderResult,
     selfWeightPct,
     bufferStock,
-    aiPrompt,
     aiComment,
     unitPrice,
     unitCost,
@@ -104,10 +104,7 @@ export function buildSecondaryOrderSnapshot(params: BuildSecondaryOrderSnapshotP
       },
       selfWeightPct,
       bufferStock,
-      aiComment: {
-        prompt: aiPrompt,
-        answer: aiComment,
-      },
+      aiComment: createOrderSnapshotAiComment(aiComment),
       confirmedTotals,
       sizeOrders,
     },

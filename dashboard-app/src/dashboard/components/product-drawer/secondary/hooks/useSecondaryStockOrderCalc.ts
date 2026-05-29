@@ -7,8 +7,8 @@ const STOCK_ORDER_CALC_DEBOUNCE_MS = 1000
 
 type Params = {
   skuGroupKey: string
-  selectedStart: string
-  selectedEnd: string
+  periodStart: string
+  periodEnd: string
   companyUuid?: string
   forecastMeanPeriodEnd: string
   leadTimeDays: number
@@ -23,8 +23,8 @@ type ForecastCalcState = {
 
 export function useSecondaryStockOrderCalc({
   skuGroupKey,
-  selectedStart,
-  selectedEnd,
+  periodStart,
+  periodEnd,
   companyUuid,
   forecastMeanPeriodEnd,
   leadTimeDays,
@@ -34,8 +34,8 @@ export function useSecondaryStockOrderCalc({
   const requestKey = useMemo(() => JSON.stringify({
     skuGroupKey,
     companyUuid: companyUuid ?? '',
-    selectedStart,
-    selectedEnd,
+    periodStart,
+    periodEnd,
     forecastMeanPeriodEnd,
     leadTimeDays,
     dailyMeanClient,
@@ -44,8 +44,8 @@ export function useSecondaryStockOrderCalc({
     dailyMeanClient,
     forecastMeanPeriodEnd,
     leadTimeDays,
-    selectedEnd,
-    selectedStart,
+    periodEnd,
+    periodStart,
     skuGroupKey,
   ])
   const [forecastCalcState, setForecastCalcState] = useState<ForecastCalcState | null>(null)
@@ -67,8 +67,8 @@ export function useSecondaryStockOrderCalc({
           const params = {
             skuGroupKey,
             companyUuid,
-            periodStart: selectedStart,
-            periodEnd: selectedEnd,
+            periodStart,
+            periodEnd,
             forecastPeriodEnd: forecastMeanPeriodEnd,
             leadTimeDays,
             ...(dailyMeanClient != null ? { dailyMean: dailyMeanClient } : {}),
@@ -85,10 +85,11 @@ export function useSecondaryStockOrderCalc({
               `getSecondaryStockOrderCalc(${JSON.stringify({
                 skuGroupKey,
                 companyUuid,
-                periodStart: selectedStart,
-                periodEnd: selectedEnd,
+                periodStart,
+                periodEnd,
                 forecastPeriodEnd: forecastMeanPeriodEnd,
                 leadTimeDays,
+                ...(dailyMeanClient != null ? { dailyMean: dailyMeanClient } : {}),
               })})`,
               err,
             ),
@@ -110,8 +111,8 @@ export function useSecondaryStockOrderCalc({
     makeApiErrorInfo,
     requestKey,
     skuGroupKey,
-    selectedEnd,
-    selectedStart,
+    periodEnd,
+    periodStart,
   ])
 
   return { forecastCalc, forecastCalcError, forecastCalcLoading }

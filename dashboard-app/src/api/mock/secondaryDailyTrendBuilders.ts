@@ -1,6 +1,5 @@
 import type { MonthlySalesPoint } from '../../types'
 import type { SecondaryDailyTrendPoint } from '../types'
-import { DAILY_TREND_AS_OF_DATE } from '../dailyTrendAsOf'
 import { daysInMonth, formatIsoDateUtc, parseIsoDateUtc } from './secondaryDailyTrendDates'
 
 type MonthlyStockTrendPoint = {
@@ -49,8 +48,8 @@ function dailySales(monthTotal: number, dayIndex: number, days: number, seed: nu
   return Math.max(0, Math.round(base * (1 + wave)))
 }
 
-function appendLeadTime(points: SecondaryDailyTrendPoint[], leadTimeDays: number): void {
-  const count = Math.max(0, Math.round(leadTimeDays))
+function appendForecastDays(points: SecondaryDailyTrendPoint[], forecastDays: number): void {
+  const count = Math.max(0, Math.round(forecastDays))
   if (count <= 0 || points.length === 0) return
   let last = points[points.length - 1]!
   let date = parseIsoDateUtc(last.date)
@@ -76,16 +75,20 @@ function appendLeadTime(points: SecondaryDailyTrendPoint[], leadTimeDays: number
 export const buildSecondaryDailyTrend = (
   monthlyTrend: MonthlySalesPoint[],
   monthlyStockTrend: MonthlyStockTrendPoint[],
-  startMonth: string,
-  leadTimeDays: number,
+  startDate: string,
+  endDate: string,
+  forecastDays: number,
   competitorSalesScale = 1,
 ): SecondaryDailyTrendPoint[] => {
+  const startMonth = startDate.slice(0, 7)
+  const endMonth = endDate.slice(0, 7)
   const stockByMonth = new Map(monthlyStockTrend.map((row) => [row.date, row]))
   const scale = Number.isFinite(competitorSalesScale) ? Math.max(0, competitorSalesScale) : 1
   const points: SecondaryDailyTrendPoint[] = []
 
   monthlyTrend.forEach((monthPoint, monthIndex) => {
     if (monthPoint.date < startMonth) return
+    if (monthPoint.date > endMonth) return
     const days = daysInMonth(monthPoint.date)
     const stockRow = stockByMonth.get(monthPoint.date)
     const inboundQty = Math.max(0, Math.round(stockRow?.inboundQty ?? stockRow?.inboundExpected ?? 0))
@@ -94,7 +97,7 @@ export const buildSecondaryDailyTrend = (
 
     for (let dayIndex = 0; dayIndex < days; dayIndex += 1) {
       const date = `${monthPoint.date}-${String(dayIndex + 1).padStart(2, '0')}`
-      const isFuture = date > DAILY_TREND_AS_OF_DATE
+      if (date < startDate || date > endDate) continue
       const sales = dailySales(monthPoint.sales, dayIndex, days, seed)
       const monthProgress = (dayIndex + 1) / days
       const stockBar = Math.max(0, Math.round(endStock + inboundQty * (1 - monthProgress) - sales * (1 - monthProgress)))
@@ -104,14 +107,14 @@ export const buildSecondaryDailyTrend = (
         month: monthPoint.date,
         sales,
         stockBar,
-        inboundAccumBar: isFuture ? Math.max(0, Math.round(inboundQty * (1 - monthProgress))) : 0,
-        selfSales: monthPoint.isForecast ? null : sales,
-        competitorSales: monthPoint.isForecast ? null : Math.max(0, Math.round(sales * 10 * scale)),
-        isForecast: monthPoint.isForecast,
+        inboundAccumBar: 0,
+        selfSales: sales,
+        competitorSales: Math.max(0, Math.round(sales * 10 * scale)),
+        isForecast: false,
       })
     }
   })
 
-  appendLeadTime(points, leadTimeDays)
+  appendForecastDays(points, forecastDays)
   return points.map((point, index) => ({ ...point, idx: index }))
 }

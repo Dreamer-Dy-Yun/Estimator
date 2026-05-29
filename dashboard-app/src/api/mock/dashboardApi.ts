@@ -224,11 +224,11 @@ export const mockDashboardApi = {
     return buildSecondaryAiComment(params)
   },
 
-  getSecondaryDailyTrend: async ({ skuGroupKey, startMonth, leadTimeDays, competitorChannelId, companyUuid }: SecondaryDailyTrendParams) => {
+  getSecondaryDailyTrend: async ({ skuGroupKey, startDate, endDate, forecastDays, competitorChannelId, companyUuid }: SecondaryDailyTrendParams) => {
     await sleep(80)
     const primary = scopeMockProductPrimary(requireMockProductPrimary(skuGroupKey), { companyUuid })
     const stockTrend = scopeMockStockTrend(skuGroupKey, requireMockStockTrend(skuGroupKey), { companyUuid })
-    return buildSecondaryDailyTrend(primary.monthlySalesTrend ?? [], stockTrend, startMonth, leadTimeDays, getMockSecondaryCompetitorChannel(competitorChannelId).qtySkew)
+    return buildSecondaryDailyTrend(primary.monthlySalesTrend ?? [], stockTrend, startDate, endDate, forecastDays, getMockSecondaryCompetitorChannel(competitorChannelId).qtySkew)
   },
 
   getSecondaryCompetitorChannels: async () => {

@@ -2,12 +2,15 @@ import type { ProductSecondaryDetail, ProductSecondarySizeRow } from '../../../.
 import { mergeSecondarySizeRows } from './secondaryDrawerCalc'
 import type { SecondaryOrderDraft } from './SecondaryOrderDraft'
 
-export type SecondarySizeOrderRow = {
+export type SecondarySizeShare = {
   size: string
   selfSharePct: number
   competitorSharePct: number
   blendedSharePct: number
   avgPrice: number
+}
+
+export type SecondarySizeOrderRow = SecondarySizeShare & {
   forecastQty: number
   recommendedQty: number
   confirmQty: number
@@ -15,14 +18,18 @@ export type SecondarySizeOrderRow = {
 
 export type SecondarySizeOrderDisplayRow = Omit<SecondarySizeOrderRow, 'avgPrice'>
 
-type SecondarySizeShare = Omit<SecondarySizeOrderRow, 'forecastQty' | 'recommendedQty' | 'confirmQty'>
+export type SecondaryStockOrderSizeRow = {
+  size: string
+  currentStockQty: number
+  totalOrderBalance: number
+  expectedInboundOrderBalance: number
+}
 
 type SizeOrderRowsParams = {
   shares: SecondarySizeShare[]
   dailyMeanEa: number
   forecastSalesHorizonDays: number
-  currentStockBySize: number[]
-  expectedInboundBySize: number[]
+  stockOrderSizeRows: SecondaryStockOrderSizeRow[]
   bufferStock: number
   orderDraft: SecondaryOrderDraft
 }
@@ -61,17 +68,24 @@ export function buildSecondarySizeOrderRows({
   shares,
   dailyMeanEa,
   forecastSalesHorizonDays,
-  currentStockBySize,
-  expectedInboundBySize,
+  stockOrderSizeRows,
   bufferStock,
   orderDraft,
 }: SizeOrderRowsParams): SecondarySizeOrderRow[] {
   const totalQtyWindow = dailyMeanEa * forecastSalesHorizonDays
-  return shares.map((row, index) => {
+  const stockOrderSizeRowBySize = new Map(stockOrderSizeRows.map((row) => [row.size, row]))
+  const missingStockOrderSizes = shares
+    .map((row) => row.size)
+    .filter((size) => !stockOrderSizeRowBySize.has(size))
+  if (missingStockOrderSizes.length) {
+    throw new Error(`Missing stock order display rows for sizes: ${missingStockOrderSizes.join(', ')}`)
+  }
+  return shares.map((row) => {
     const forecastQty = Math.ceil((totalQtyWindow * row.blendedSharePct) / 100)
     const bufferQtyEa = Math.ceil((dailyMeanEa * bufferStock * row.blendedSharePct) / 100)
-    const stock = currentStockBySize[index] ?? 0
-    const inbound = expectedInboundBySize[index] ?? 0
+    const stockOrderSizeRow = stockOrderSizeRowBySize.get(row.size)
+    const stock = stockOrderSizeRow!.currentStockQty
+    const inbound = stockOrderSizeRow!.expectedInboundOrderBalance
     const recommendedQty = Math.max(0, Math.round(forecastQty - stock - inbound + bufferQtyEa))
     return {
       ...row,

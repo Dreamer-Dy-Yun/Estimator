@@ -87,7 +87,22 @@ export function useCandidateBulkDetailConfirm({
 
   const applyProgressEvent = useCallback((event: CandidateDetailBulkConfirmProgressEvent, sequence: number) => {
     if (!isCurrentSequence(sequence)) return false
-    if (event.updatedItem) onItemsConfirmed([event.updatedItem])
+    try {
+      if (event.updatedItem) onItemsConfirmed([event.updatedItem])
+    } catch (error) {
+      const message = getApiErrorDisplayMessage(error, 'Bulk detail confirm snapshot validation failed.')
+      setBulkConfirmBusy(false)
+      setProgress({
+        open: true,
+        status: 'failed',
+        totalItems: event.totalItems,
+        completedItems: Math.max(0, event.completedItems - 1),
+        currentProductName: event.currentProductName,
+        message,
+        error: message,
+      })
+      throw error
+    }
     setProgress({
       open: true,
       status: event.status,
@@ -130,8 +145,15 @@ export function useCandidateBulkDetailConfirm({
       if (!isCurrentSequence(sequence)) return
       await new Promise<void>((resolve, reject) => {
         subscriptionRef.current = subscribeCandidateDetailBulkConfirm(start.jobId, (event) => {
-          if (!applyProgressEvent(event, sequence)) {
-            resolve()
+          try {
+            if (!applyProgressEvent(event, sequence)) {
+              resolve()
+              return
+            }
+          } catch (error) {
+            closeSubscription()
+            scheduleClose(sequence)
+            reject(error)
             return
           }
           if (event.status === 'completed') {

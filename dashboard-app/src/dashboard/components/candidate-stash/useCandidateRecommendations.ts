@@ -157,7 +157,7 @@ export function useCandidateRecommendations({
     const appendScopeKey = currentPeriodKey
     const appendRecommendationKey = currentRecommendationKey
     const skuGroupKeys = [...new Set(rows.map((row) => row.skuGroupKey))]
-    if (!skuGroupKeys.length) return { status: 'empty' }
+    if (!skuGroupKeys.length) return { status: 'empty-selection' }
     if (appendBusyRef.current) return { status: 'stale' }
     if (!appendScopeKey || !appendRecommendationKey || !stashUuid || !dataReferencePeriodStart || !dataReferencePeriodEnd) {
       showToast('추천 후보 추가 기준 기간을 확인할 수 없습니다.', { variant: 'error' })
@@ -180,27 +180,24 @@ export function useCandidateRecommendations({
     try {
       const result = await appendCandidateItems({ stashUuid, companyUuid, skuGroupKeys })
       if (!canReflectAppend()) return { status: 'stale' }
-      onRecommendedItemsAppended(result.candidateItems, rows)
+      if (!result.candidateItems.length) return { status: 'no-op' }
+      const selectedRecommendationSkuUuidSet = new Set(rows.map((row) => row.uuid))
+      if (result.candidateItems.some((item) => !selectedRecommendationSkuUuidSet.has(item.skuUuid))) {
+        throw new Error('Recommendation append response does not match selected recommendations.')
+      }
       const createdSkuUuidSet = new Set(result.candidateItems.map((item) => item.skuUuid))
-      const removableKeySet = createdSkuUuidSet.size
-        ? createdSkuUuidSet
-        : new Set(skuGroupKeys)
-      const removableField = createdSkuUuidSet.size ? 'uuid' : 'skuGroupKey'
+      if (!createdSkuUuidSet.size) return { status: 'no-op' }
+      const appendedCount = onRecommendedItemsAppended(result.candidateItems, rows)
+      if (appendedCount <= 0) return { status: 'no-op' }
       setRecommendationSourceItems((current) => (
-        current.filter((row) => !removableKeySet.has(row[removableField]))
+        current.filter((row) => !createdSkuUuidSet.has(row.uuid))
       ))
       void refreshStashes().catch((err) => {
         if (!canReflectAppend()) return
         showToast(getApiErrorDisplayMessage(err, '후보군 목록 최신화에 실패했습니다.'), { variant: 'warning' })
       })
-      showToast(
-        createdSkuUuidSet.size
-          ? `추천 후보 ${createdSkuUuidSet.size}개를 후보군에 추가했습니다.`
-          : '새로 추가할 추천 후보가 없습니다.',
-      )
-      return createdSkuUuidSet.size
-        ? { status: 'applied', appendedCount: createdSkuUuidSet.size }
-        : { status: 'empty' }
+      showToast(`추천 후보 ${appendedCount}개를 후보군에 추가했습니다.`)
+      return { status: 'applied', appendedCount }
     } catch (err) {
       if (!canReflectAppend()) return { status: 'stale' }
       showToast(getApiErrorDisplayMessage(err, '추천 후보 추가에 실패했습니다.'), { variant: 'error' })
@@ -216,6 +213,7 @@ export function useCandidateRecommendations({
     currentRecommendationKey,
     dataReferencePeriodEnd,
     dataReferencePeriodStart,
+    itemsRef,
     mountedRef,
     onRecommendedItemsAppended,
     refreshStashes,

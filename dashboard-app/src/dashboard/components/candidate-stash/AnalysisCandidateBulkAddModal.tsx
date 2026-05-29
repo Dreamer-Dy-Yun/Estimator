@@ -11,6 +11,7 @@ type Props = {
   periodStart: string
   periodEnd: string
   companyUuid?: string
+  competitorChannelId?: string
   forecastMonths: number
   onClose: () => void
   onDone: () => void
@@ -18,7 +19,7 @@ type Props = {
 
 const COMPANY_REQUIRED_MESSAGE = '후보군 추가는 회사 선택이 필요합니다.'
 
-export function AnalysisCandidateBulkAddModal({ open, skuGroupKeys, periodStart, periodEnd, companyUuid, forecastMonths, onClose, onDone }: Props) {
+export function AnalysisCandidateBulkAddModal({ open, skuGroupKeys, periodStart, periodEnd, companyUuid, competitorChannelId, forecastMonths, onClose, onDone }: Props) {
   const [stashes, setStashes] = useState<CandidateStashSummary[]>([])
   const [selectedStashUuid, setSelectedStashUuid] = useState('')
   const [nameInput, setNameInput] = useState('')
@@ -26,8 +27,14 @@ export function AnalysisCandidateBulkAddModal({ open, skuGroupKeys, periodStart,
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const requestSeqRef = useRef(0)
+  const mutationSeqRef = useRef(0)
+  const currentScopeRef = useRef({ open, companyUuid, selectedStashUuid })
   const { showToast } = useAppToast()
   const uniqueSkuGroupKeys = useMemo(() => [...new Set(skuGroupKeys)], [skuGroupKeys])
+
+  useEffect(() => {
+    currentScopeRef.current = { open, companyUuid, selectedStashUuid }
+  }, [companyUuid, open, selectedStashUuid])
 
   useEffect(() => {
     if (!open) return
@@ -52,6 +59,7 @@ export function AnalysisCandidateBulkAddModal({ open, skuGroupKeys, periodStart,
     })
     return () => {
       requestSeqRef.current += 1
+      mutationSeqRef.current += 1
     }
   }, [companyUuid, open])
 
@@ -63,9 +71,27 @@ export function AnalysisCandidateBulkAddModal({ open, skuGroupKeys, periodStart,
     return null
   }
 
+  const beginMutation = () => {
+    const seq = mutationSeqRef.current + 1
+    mutationSeqRef.current = seq
+    return seq
+  }
+
+  const isCurrentMutation = (
+    seq: number,
+    snapshot: { companyUuid: string; selectedStashUuid?: string },
+  ) => {
+    const current = currentScopeRef.current
+    return current.open
+      && mutationSeqRef.current === seq
+      && current.companyUuid === snapshot.companyUuid
+      && (snapshot.selectedStashUuid == null || current.selectedStashUuid === snapshot.selectedStashUuid)
+  }
+
   const createAndSelect = async () => {
     const mutationCompanyUuid = requireCompany()
     if (!mutationCompanyUuid) return
+    const seq = beginMutation()
     setBusy(true)
     setError(null)
     try {
@@ -77,34 +103,52 @@ export function AnalysisCandidateBulkAddModal({ open, skuGroupKeys, periodStart,
         periodEnd,
         forecastMonths,
       })
+      if (!isCurrentMutation(seq, { companyUuid: mutationCompanyUuid })) return
       setStashes((prev) => [created, ...prev])
       setSelectedStashUuid(created.uuid)
       setNameInput('')
       setNoteInput('')
-      showToast('후보군을 생성했습니다.')
+      showToast('\uD6C4\uBCF4\uAD70\uC744 \uC0DD\uC131\uD588\uC2B5\uB2C8\uB2E4.')
     } catch (err) {
-      setError(errorMessage(err, '후보군 생성에 실패했습니다.'))
+      if (isCurrentMutation(seq, { companyUuid: mutationCompanyUuid })) {
+        setError(errorMessage(err, '\uD6C4\uBCF4\uAD70 \uC0DD\uC131\uC5D0 \uC2E4\uD328\uD588\uC2B5\uB2C8\uB2E4.'))
+      }
     } finally {
-      setBusy(false)
+      if (isCurrentMutation(seq, { companyUuid: mutationCompanyUuid })) setBusy(false)
     }
   }
 
   const confirm = async () => {
     const mutationCompanyUuid = requireCompany()
     if (!selectedStashUuid || !uniqueSkuGroupKeys.length || !mutationCompanyUuid) return
+    const targetStashUuid = selectedStashUuid
+    const seq = beginMutation()
     setBusy(true)
     setError(null)
     try {
-      await appendCandidateItems({ stashUuid: selectedStashUuid, companyUuid: mutationCompanyUuid, skuGroupKeys: uniqueSkuGroupKeys })
-      showToast('선택 상품을 후보군에 담았습니다.')
+      const result = await appendCandidateItems({ stashUuid: targetStashUuid, companyUuid: mutationCompanyUuid, competitorChannelId, skuGroupKeys: uniqueSkuGroupKeys })
+      if (!isCurrentMutation(seq, { companyUuid: mutationCompanyUuid, selectedStashUuid: targetStashUuid })) return
+      const appendedCount = result.candidateItems.length
+      const skippedCount = Math.max(0, uniqueSkuGroupKeys.length - appendedCount)
+      if (appendedCount <= 0) {
+        showToast('\uC120\uD0DD \uC0C1\uD488\uC740 \uC774\uBBF8 \uD6C4\uBCF4\uAD70\uC5D0 \uD3EC\uD568\uB418\uC5B4 \uC788\uC2B5\uB2C8\uB2E4.', { variant: 'warning' })
+        onDone()
+        return
+      }
+      showToast(skippedCount > 0
+        ? '\uC120\uD0DD \uC0C1\uD488 ' + appendedCount + '\uAC1C\uB97C \uD6C4\uBCF4\uAD70\uC5D0 \uB354\uD588\uC2B5\uB2C8\uB2E4. ' + skippedCount + '\uAC1C\uB294 \uC774\uBBF8 \uD3EC\uD568\uB418\uC5B4 \uAC74\uB108\uB6F0\uC5C8\uC2B5\uB2C8\uB2E4.'
+        : '\uC120\uD0DD \uC0C1\uD488 ' + appendedCount + '\uAC1C\uB97C \uD6C4\uBCF4\uAD70\uC5D0 \uB354\uD588\uC2B5\uB2C8\uB2E4.')
       onDone()
     } catch (err) {
-      setError(errorMessage(err, '선택 상품을 후보군에 담지 못했습니다.'))
+      if (isCurrentMutation(seq, { companyUuid: mutationCompanyUuid, selectedStashUuid: targetStashUuid })) {
+        setError(errorMessage(err, '\uC120\uD0DD \uC0C1\uD488\uC744 \uD6C4\uBCF4\uAD70\uC5D0 \uB354\uD558\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4.'))
+      }
     } finally {
-      setBusy(false)
+      if (isCurrentMutation(seq, { companyUuid: mutationCompanyUuid, selectedStashUuid: targetStashUuid })) {
+        setBusy(false)
+      }
     }
   }
-
   return (
     <div className={styles.modalBackdrop} role="presentation" onClick={onClose}>
       <section className={styles.modalPanel} role="dialog" aria-modal="true" aria-labelledby="analysis-candidate-bulk-title" onClick={(event) => event.stopPropagation()}>

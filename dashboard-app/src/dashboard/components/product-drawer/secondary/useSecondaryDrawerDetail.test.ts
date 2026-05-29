@@ -48,6 +48,7 @@ const snapshot: OrderSnapshotDocumentV2 = {
     aiComment: {
       prompt: '',
       answer: '',
+      generatedAt: null,
     },
     sizeOrders: [],
     confirmedTotals: {

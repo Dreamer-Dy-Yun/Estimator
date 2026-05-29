@@ -1,167 +1,40 @@
-# dashboard-app — 프론트엔드 개요·기능 상세
+# dashboard-app Frontend Overview
 
-| 항목 | 내용 |
-|------|------|
-| 작성 지시 | Yun Daeyoung |
-| 작성자 | Codex |
-| 작성일 | 2026-04-23 |
-| 최종 수정일 | 2026-05-15 |
-| 상태 | 유지 문서 |
-| 적용 범위 | `dashboard-app` 화면, 라우팅, 데이터 흐름 |
+Last updated: 2026-05-29
 
----
+## Purpose
 
-## 1. 이 문서의 목적
+The app analyzes self and competitor sales, opens product drawers for order planning, stores selected order candidates, and saves detail snapshots for candidate items.
 
-온보딩, 기획·백엔드 연동, 유지보수 시 **이 저장소에서 무엇을 하는지** 빠르게 파악하기 위한 참고 자료입니다. 구현 세부는 소스의 타입·주석·[`MD/backend-api`](../backend-api/)와 함께 보는 것을 권장합니다.
+## Main flows
 
----
+- Login loads session and company list.
+- Header company selector controls read scope.
+- Self analysis and competitor analysis pages request rows and scatter data from the same query key.
+- Product drawer loads primary summary, monthly trend, sales insight, secondary detail, daily trend, stock-order calculation, and AI comment on demand.
+- Candidate stash page manages candidate lists, recommendations, order metric SSE, detail confirmation, and Excel export.
+- Admin pages manage users, GPT keys, and Google Sheet configs.
 
-## 2. 프로젝트 목적 — **코드·UI 기반 추정**
+## Product drawer
 
-> **주의:** 공식 제품 비전·OKR 문서는 이 저장소에 없습니다. 아래는 **화면 명칭, 데이터 모델, 사용자 흐름**을 근거로 한 추정입니다. 조직에서 정의한 목적과 다르면 이 절을 수정해 주시면 됩니다.
+- Monthly trend request uses last 24 completed months and 12 forecast months.
+- Daily trend request uses selected start month first day through yesterday and lead-time forecast days.
+- AI comment is generated only when the user clicks the comment request button.
+- Reset returns the drawer to live calculated state and clears AI comment state.
+- Detail save stores `OrderSnapshotDocumentV2` in candidate item `details`.
 
-**추정 요약:**
-브랜드·카테고리·기간·채널 조건으로 **자사 판매 실적**과 **경쟁 채널 대비 지표**를 보고, SKU 단위로 **1차 요약(가격·재고·월간 추이 등)**과 **2차 심화(경쟁 비중, 일별 추이, 안전재고·발주 시뮬, 사이즈별 확정 수량, AI 코멘트)**를 한 화면 흐름에서 다룹니다. 확정한 시나리오는 **오더 스냅샷 JSON**으로 후보군 아이템 `details`에 저장하고, **오더 후보군(스태시)**에 여러 SKU 후보를 모아 비교·관리할 수 있습니다.
+## Candidate stash
 
-즉, **판매·재고 인사이트 + 발주 의사결정 보조 + 후보안 보관**을 엮은 **내부용 대시보드(프로토타입/목 중심)** 로 읽는 것이 타당합니다.
+- Candidate stash requires single-company scope.
+- All-company selection disables candidate stash entry and add-to-candidate actions.
+- Recommendation append uses `applied`, `stale`, `no-op`, `empty-selection` states.
+- Detail unconfirm clears `details` with `null`.
 
----
+## Source layout
 
-## 3. 기술 스택
-
-| 영역 | 선택 |
-|------|------|
-| 런타임 | React 19, TypeScript |
-| 빌드 | Vite 8, Rolldown code splitting |
-| 라우팅 | react-router-dom 7 |
-| 차트 | Recharts 3 |
-| 수식 표시 | KaTeX / react-katex (2차 드로워 등) |
-| 스타일 | CSS Modules (`.module.css`) |
-
-테스트는 Vitest(`npm run test:run`)로 실행합니다.
-
-프로덕션 번들은 `src/App.tsx`의 라우트 lazy import와 `vite.config.ts`의 vendor code splitting으로 분리합니다. Vite의 500KB chunk 경고가 다시 나오면 우선 라우트가 정적 import로 되돌아가지 않았는지, 새 대형 라이브러리가 어느 vendor group에 들어가야 하는지 확인합니다. Recharts처럼 내부 모듈 순서에 민감한 라이브러리는 `maxSize`로 한 패키지 안을 강제 세분화하지 않습니다.
-
----
-
-## 4. 진입·라우팅
-
-| 경로 | 화면 |
-|------|------|
-| `/login` | 로그인 |
-| `/admin` | 관리자 유저 정보 관리 |
-| `/`, `/dashboard`, `/dashboard/self` | 자사 분석 |
-| `/dashboard/competitor` | 경쟁사 분석 |
-| `/dashboard/snapshot-confirm` | 오더 후보군 |
-
-레이아웃: [`dashboard-app/src/dashboard/DashboardLayout.tsx`](../../dashboard-app/src/dashboard/DashboardLayout.tsx) — 상단 업무 탭과 우상단 사용자 정보/로그아웃 버튼. 관리자 권한 사용자는 `오더 후보군` 뒤에 관리자 전용 탭이 표시되며, 일반 탭과 같은 형태지만 별도 색상으로 강조됩니다.
-
-라우트 화면(`LoginPage`, `AdminUsersPage`, `SelfPage`, `CompetitorPage`, `SnapshotConfirmPage`)은 [`App.tsx`](../../dashboard-app/src/App.tsx)에서 lazy 로딩됩니다. 새 라우트를 추가할 때도 같은 방식으로 route chunk를 분리합니다. `/dashboard/*`는 [`RequireAuth`](../../dashboard-app/src/auth/RequireAuth.tsx)가 보호하며, `/admin`은 [`RequireAdmin`](../../dashboard-app/src/auth/RequireAdmin.tsx)이 관리자 권한을 추가로 확인한 뒤 같은 `DashboardLayout` 안에서 렌더됩니다. 세션이 없으면 `/login?redirect=...`으로 이동한 뒤 로그인 성공 시 원래 경로로 복귀합니다. 기본 배포는 `BrowserRouter`를 쓰며, 서버가 SPA fallback을 제공하면 `/dashboard/self` 같은 일반 URL로 동작합니다. GitHub Pages workflow만 `VITE_ROUTER_MODE=hash`를 주입해 `/Estimator/#/dashboard/self` 형태를 사용하고, `404.html` fallback도 함께 배포합니다.
-
-### 4.1 인증
-
-- 인증 UI와 세션 상태는 [`src/auth`](../../dashboard-app/src/auth/)가 소유합니다.
-- 로그인/세션 확인/사용자 정보 변경/비밀번호 변경/관리자 유저 관리/로그아웃 호출은 [`src/api/client.ts`](../../dashboard-app/src/api/client.ts)의 개별 인증 함수로만 접근합니다.
-- 현재 목 구현은 [`api/mock/authApi.ts`](../../dashboard-app/src/api/mock/authApi.ts)에서 로그인 입력값을 검증하지 않고 통과시키며, 세션은 런타임 메모리에만 둡니다. `mock-user` ID는 일반 사용자 권한 확인용이고, 그 외 입력은 관리자 권한으로 처리합니다. 헤더 우상단의 사용자 정보 버튼은 로그인 ID와 역할을 표시하고, 모달에서 로그인 ID와 비밀번호 변경 API를 호출합니다.
-- 권한은 `admin`과 `user`만 사용합니다. `admin`은 관리자 화면 접근이 가능하고, `user`는 일반 대시보드만 접근합니다.
-- 관리자 화면은 로그인 ID, 초기 비밀번호, 이름, 비고, 권한, 활성 상태 기반 유저 추가와 UUID 기준 제거, 로그인 ID/이름/비고/권한/활성 상태 수정, 임시 비밀번호 재설정 계약을 호출합니다. 사용자/GPT 키/구글 시트 추가는 각 패널 헤더의 추가 버튼을 눌러 동일한 모달 포맷에서 입력합니다. 세 관리 목록은 요약 행을 클릭하면 상세 모달이 열리고, 변경/삭제/키 교체/비밀번호 재설정 같은 상세 작업은 모달 안에서 처리합니다. 재설정 응답의 임시 비밀번호는 한 번만 표시하며, 값을 클릭하면 클립보드에 복사합니다. 구글 시트 설정은 서비스 계정 JSON 키 파일을 드래그앤드랍으로 받고 `client_email`을 파싱해 표시하며, 권한/접근/범위/서비스 계정 이메일을 별도 입력하지 않습니다. mock은 저장하지 않고 재조회 시 정적 seed를 돌려주며, 실제 반영은 백엔드 DB가 소유합니다. 이메일 초대 발송은 상정하지 않습니다.
-- 실제 백엔드 전환 시 우선 권장 형태는 HttpOnly cookie 기반 세션이며, 프론트 화면은 `AuthApi` 계약을 유지한 채 client 구현만 교체합니다.
-
----
-
-## 5. 화면별 기능
-
-### 5.1 자사 분석 (`SelfPage`)
-
-- **필터:** 기간(날짜·프리셋·이중 범위 슬라이더), 브랜드, 카테고리 — API [`getSelfSales`](../../dashboard-app/src/api/types/dashboard-api.ts), [`getSalesFilterMeta`](../../dashboard-app/src/api/types/dashboard-api.ts). 기간 입력은 draft로 유지하다가 `조회` 버튼을 눌렀을 때만 API 요청 기간으로 적용하며, 마지막 조회 기간과 같으면 조회 버튼은 비활성화합니다. 브랜드/카테고리/품번/색상/상품명은 기존처럼 즉시 요청 조건에 반영합니다.
-- **KPI:** 총 판매액, 평균 영업이익률 등.
-- **차트:** 판매량–영업이익률 산점도. 백엔드 격자 응답을 [`useAnalysisScatterGridView`](../../dashboard-app/src/dashboard/hooks/useAnalysisScatterGridView.ts)가 차트 point view-model로 변환합니다.
-- **목록:** `AnalysisList` + 정렬 가능한 컬럼(내부 [`PaginatedTable`](../../dashboard-app/src/dashboard/components/PaginatedTable.tsx)).
-- **상태 표시:** 목록/산점도 요청 상태는 [`useDashboardRequest`](../../dashboard-app/src/dashboard/hooks/useDashboardRequest.ts)가 `loading`, `isRefreshing`, `error`, `lastUpdatedAt`, `isStale`로 관리하고, [`DashboardRequestStatus`](../../dashboard-app/src/dashboard/components/DashboardRequestStatus.tsx)가 갱신 중·실패·이전 데이터 표시를 한 줄 배지로 보여줍니다. 갱신 실패 시 기존 데이터가 있으면 임의 대체값으로 덮지 않고 이전 데이터를 유지합니다.
-- **행 클릭:** [`ProductDrawer`](../../dashboard-app/src/dashboard/components/product-drawer/ProductDrawer.tsx) — 1차 기본 번들은 [`useProductDrawerBundle`](../../dashboard-app/src/dashboard/hooks/useProductDrawerBundle.ts)가 받고, drawer 내부의 판매 정보/월간 추이/2차 상세는 1차/2차 드로워 컨테이너가 각각 별도 API를 요청합니다.
-- **Forecast months:** stored in localStorage ([`forecastMonthsStorage`](../../dashboard-app/src/utils/forecastMonthsStorage.ts)); default 12, maximum 12.
-
-### 5.2 경쟁사 분석 (`CompetitorPage`)
-
-- 자사와 동일한 기간·브랜드·카테고리 + **경쟁 채널** 선택 — [`getCompetitorSales`](../../dashboard-app/src/api/types/dashboard-api.ts), 채널 목록 [`getSecondaryCompetitorChannels`](../../dashboard-app/src/api/types/dashboard-api.ts). 기간은 `조회` 버튼으로만 API 요청에 적용하고, 경쟁 채널/기타 필터는 기존처럼 즉시 요청 조건에 반영합니다. 경쟁 채널 마스터는 경쟁사 분석 필터와 공통 상품 드로어가 함께 쓰므로 request boundary에서 같은 in-flight/result를 공유해 중복 조회를 줄입니다.
-- KPI·차트·목록은 경쟁/자사 판매 비교 중심으로 구성합니다. 경쟁/자사 판매량 산점도도 자사 분석과 같은 `useAnalysisScatterGridView` 표시 경계를 사용합니다.
-- 채널/목록/산점도 요청 상태는 자사 분석과 같은 `DashboardRequestStatus` 규칙을 사용합니다.
-- 드로어·번들 흐름은 자사와 동일.
-
-### 5.3 오더 후보군 (`SnapshotConfirmPage` + `CandidateStashDetailModal`)
-
-- **후보군(스태시) 목록:** 이름·비고 검색, 정렬, 엑셀 업로드, 생성·이름/비고 수정·삭제·복제. 화면은 mutation 응답을 목록에 직접 삽입/제거하지 않고 항상 후보군 목록을 재조회합니다. mock은 브라우저 저장소에 후보군을 만들거나 지우지 않으며, 실제 반영은 백엔드 DB가 소유합니다. 엑셀 업로드 카드는 카드 자체가 `제목/안내문/템플릿 다운로드/드래그 영역/업로드 버튼` grid를 소유하며, 안내문은 `엑셀 업로드` 제목 옆에 두고 템플릿 다운로드는 제목 아래에 둡니다. 드래그 영역과 업로드 버튼은 데스크톱에서 두 행을 합쳐 쓰고, 좁은 화면에서만 반응형으로 줄을 접습니다. 템플릿 다운로드는 현재 `public/templates` 정적 파일을 쓰되, 화면은 `src/api/client.ts`의 다운로드 계약만 알아서 나중에 백엔드 endpoint로 옮길 수 있습니다.
-- **상세 모달:** 한 스태시에 속한 **이너 후보** 목록 — 브랜드·품번·상품명 필터([`FilterBar`](../../dashboard-app/src/dashboard/components/FilterBar.tsx) + [`FilterListCombo`](../../dashboard-app/src/dashboard/components/FilterListCombo.tsx)). 필터 카드 끝 칸에는 발주 엑셀 다운로드 버튼을 두며, 버튼 클릭 시 백엔드를 다시 호출하지 않고 이미 받은 `CandidateItemSummary.orderExport` DTO로 브라우저에서 XLSX를 생성합니다. `exceljs`는 후보군 상세 목록 데이터가 들어온 뒤 백그라운드로 미리 로드하고, 다운로드 버튼은 같은 로드 promise를 재사용합니다. 주 데이터와 메타 시트의 1행 헤더는 검은 바탕/흰 글자, `N/A` 셀은 옅은 붉은색 음영으로 표시합니다. 주 데이터 시트는 브랜드·품번·상품명·색상·배지, 자사/선택 경쟁사 기간 총 판매량, 총 오더량, 총 오더 금액, 평균 원가·판매가·수수료율·영업이익율과 후보군 전체 사이즈 동적 컬럼을 포함합니다. 자사/경쟁사 기간 총 판매량은 백엔드가 월 요약과 raw 보정을 조합해 내려준 값이며, 프론트는 이 값을 재계산하지 않습니다. 복수 배지는 한 셀 안에서 줄바꿈합니다. 상세 헤더에는 후보군명, 생성/변경일, 추천 보기, 닫기 액션을 두고, 추천 보기는 닫기 버튼 옆 우측 액션 묶음에 둡니다. 기본 후보 리스트는 `getCandidateItemsByStash`로 먼저 받고, 전체 SKU 분포가 필요한 배지와 추천 후보는 기본 후보 조회 직후 `getCandidateRecommendations`를 자동 page 조회해 가져옵니다. 추천 보기 버튼은 추가 요청 트리거가 아니라 이미 조회 흐름에서 받은 추천 목록을 여는 표시 전용 UI이며, 추천 조회가 아직 진행 중이면 추천 모달 안에서 로딩 상태를 보여줍니다. 응답의 `recommendations`는 배지가 있는 SKU 목록이며 각 row는 기간 총판매량도 포함합니다. 현재 후보군 `skuUuid`와 일치하면 기존 행 배지/기간 총판매량으로 병합하고 추천 UI에서는 숨깁니다. 추천 적용 후에는 후보군 목록을 재조회하지 않고 `appendCandidateItems` 응답의 신규 candidate item과 이미 받은 recommendation row를 매칭해 현재 리스트로 옮기며, 신규 UUID만 기존 오더 지표 SSE 계약으로 계산 요청합니다. 헤더 아래 조회 카드의 데이터 참조 기간을 바꾸면 이후 여는 이너 후보 드로어의 1차 판매 정보와 2차 계산 기준에 즉시 적용합니다. 조회 카드는 내부를 10칸 grid로 나눠 레이블 2칸, 기간 입력 6칸, 조회 버튼 2칸을 사용합니다. 선택 작업 카드에는 상세 일괄확정 자리, 상세확정 일괄해제, 일괄삭제를 두며, 조회 카드와 선택 작업 카드는 데스크톱에서 한 줄 2열로 배치합니다. 선택 작업 카드의 버튼은 동일폭 grid 칸을 사용해 이후 버튼 추가 시 grid 칸만 늘려 확장합니다. 상세 일괄확정은 아직 API 계약과 mutation 동작이 없어 비활성 상태로 둡니다. 1차 드로어가 열린 축소 상태에서도 헤더 버튼은 같은 줄에 남도록 40칸 grid를 유지하되, 후보군명과 우측 메타/액션은 열린 상태 전용 span을 사용합니다. 상세 헤더/필터/요약은 모달에 고정하고, 이너 후보 리스트 영역만 내부 스크롤합니다. 리스트 첫 칸은 선택 체크박스, 둘째 칸은 현재 표시 순서 인덱스를 1부터 보여주며 레코드에 저장하지 않습니다. 리스트 컬럼 헤더는 스크롤 중에도 상단에 남고, 브랜드·품번·상품명·색상·판매량·총 오더 지표 기준으로 정렬할 수 있습니다.
-- **상세 모달 데이터 계약:** `getCandidateItemsByStash` 기본 응답은 자사/경쟁사 기간 총판매량을 포함한다. 배지와 추천 후보만 `getCandidateRecommendations` 후속 응답으로 병합하며, 총 오더 수량/금액은 SSE로 따로 채운다.
-- **행 클릭:** 해당 아이템의 스냅샷을 불러와 드로어를 **2차까지 펼친 상태**로 표시(`initialExpandSecondary`), 스냅샷 hydrate·확정/확정해제·삭제 등 [`candidateItemContext`](../../dashboard-app/src/dashboard/components/product-drawer/secondary/candidateActionCards.tsx) 연동. 2차 드로워의 스냅샷 기준 보기 토글은 사용하지 않고, 저장 스냅샷은 최초 표시값으로만 복원한 뒤 모든 입력을 편집 가능하게 둡니다. 미확정 변경사항은 해당 후보군 상세 모달이 열려 있는 동안 itemUuid별 클라이언트 메모리 draft로 유지하고, 모달이 닫히면 폐기합니다. `초기화`는 DB 스냅샷을 조작하지 않고 현재 이너오더 조회 기간 기준 live 계산값으로 되돌리며 AI 코멘트도 다시 요청합니다. 초기화 상태에서는 버튼이 `확정값 보기`로 바뀌고, 저장된 확정값이 있을 때만 활성화됩니다. `확정 저장`은 현재 상태를 스냅샷으로 저장하고, `확정 해제`와 상세확정 일괄해제는 확인 모달 후 후보 아이템 `details`를 `null`로 업데이트합니다. 이 mutation들은 성공 응답을 열린 드로워와 이너 리스트의 기준 상태로 즉시 반영하고 후보 아이템 전체 목록을 곧바로 재조회하지 않습니다. 드로어를 닫을 때는 닫힘 전환 동안 이너 후보 모달의 왼쪽 기준 폭 보정을 유지해, 열릴 때의 역방향으로 목록 영역이 다시 넓어집니다.
-- **AI 코멘트:** 목업 후보 아이템 스냅샷은 `drawer2.aiComment.answer`에 임시 AI 코멘트를 포함해 2차 드로어의 AI 코멘트 카드에 표시됩니다.
-
----
-
-## 6. 상품 드로어 (`ProductDrawer`)
-
-- **1차 드로워:** [`product-drawer/primary`](../../dashboard-app/src/dashboard/components/product-drawer/primary/)가 소유합니다. 상품 이미지, 기간·경쟁 채널 기준 판매 정보([`getProductSalesInsight`](../../dashboard-app/src/api/types/dashboard-api.ts)), 선택 경쟁 채널 기준 월간 판매 추이([`getProductMonthlyTrend`](../../dashboard-app/src/api/types/dashboard-api.ts))를 다룹니다. 드로워는 공통 컴포넌트라 특정 페이지의 채널 state를 직접 의존하지 않고 `getSecondaryCompetitorChannels`를 API 경계로 호출하며, 중복 호출 coalescing은 [`dashboardMasterDataCache`](../../dashboard-app/src/api/requests/dashboardMasterDataCache.ts)가 맡습니다. 판매 정보 표의 주요 수치는 굵게 강조하고 기본 표 글자보다 10% 크게 표시합니다. 판매 추이 그래프는 선형 축으로 고정하고, 자사/선택 경쟁 채널(예: 크림·무신사) 표시를 각각 토글합니다. 계절성 카드는 현재 화면에서 제외하며, 프론트는 시즌성 파라미터를 별도로 요청하지 않습니다.
-- **2차 드로워:** [`product-drawer/secondary`](../../dashboard-app/src/dashboard/components/product-drawer/secondary/)가 소유합니다. 상품 메타, 후보군 저장/확정, 저장된 AI 코멘트 표시(`drawer2.aiComment.answer`, 본문 15px), 사이즈별 확정 수량 등을 다룹니다. 이너 후보에서 열린 2차 드로워는 저장 스냅샷을 편집 가능한 초기값으로만 사용하고 이후 계산은 현재 입력값 기준으로 수행합니다. 2차 상세 조회([`getProductSecondaryDetail`](../../dashboard-app/src/api/types/dashboard-api.ts)), 재고·발주 시뮬([`getSecondaryStockOrderCalc`](../../dashboard-app/src/api/types/dashboard-api.ts)), 선택 경쟁 채널 기준 일별 추이([`getSecondaryDailyTrend`](../../dashboard-app/src/api/types/dashboard-api.ts))도 이 경계 안에 둡니다. 재고·발주 시뮬 API는 입력 변경마다 즉시 호출하지 않고 최종 입력 1초 후 호출하며, 이미 stale 처리된 응답은 화면에 반영하지 않습니다.
-- **스냅샷:** [`OrderSnapshotDocumentV2`](../../dashboard-app/src/snapshot/orderSnapshotTypes.ts) 스키마 v2, 파싱 [`parseOrderSnapshot`](../../dashboard-app/src/snapshot/parseOrderSnapshot.ts). 독립 스냅샷 목록 API는 없고 후보 아이템 `details`가 저장·복원 경로입니다.
-- **키보드(2차가 열리고 2차 데이터 준비 완료 시):** `←` / `→`로 **현재 목록의 이전·다음 SKU**(또는 이너 후보의 uuid 순) 순환 — [`adjacentListNavigation`](../../dashboard-app/src/utils/adjacentListNavigation.ts). 입력·콤보 패널 포커스 시에는 무시.
-- **번들 로딩:** 자사/경쟁은 [`allowStaleWhileRevalidate`](../../dashboard-app/src/dashboard/hooks/useProductDrawerBundle.ts) 기본 `true`로 드로어 언마운트 방지(2차 접힘 방지). 이너 후보는 `false`로 스냅샷과 번들 id 정합 유지.
-
----
-
-## 7. 데이터 계층
-
-| 구분 | 설명 |
-|------|------|
-| 계약 | [`DashboardApi`](../../dashboard-app/src/api/types/dashboard-api.ts) 인터페이스 |
-| 인증 계약 | [`AuthApi`](../../dashboard-app/src/api/types/auth.ts) 인터페이스 |
-| 구현체 | [`mock.ts`](../../dashboard-app/src/api/mock.ts) — mock 구현 진입점. 인증 mock은 [`api/mock/authApi.ts`](../../dashboard-app/src/api/mock/authApi.ts), 후보군 seed는 [`api/mock/candidateSeeds.ts`](../../dashboard-app/src/api/mock/candidateSeeds.ts), 후보군 계약 stub은 [`api/mock/candidateMockApi.ts`](../../dashboard-app/src/api/mock/candidateMockApi.ts), 판매/드로어 mock은 [`api/mock/dashboardApi.ts`](../../dashboard-app/src/api/mock/dashboardApi.ts)가 소유 |
-| 진입점 | [`client.ts`](../../dashboard-app/src/api/client.ts) `dashboardApi`, 개별 `getXxx` 함수 |
-| 타입 | [`api/types/*`](../../dashboard-app/src/api/types/) — 인증 계약은 [`auth.ts`](../../dashboard-app/src/api/types/auth.ts), 후보군 계약은 [`candidate.ts`](../../dashboard-app/src/api/types/candidate.ts), 저장 스냅샷 계약은 [`snapshot.ts`](../../dashboard-app/src/api/types/snapshot.ts), 2차 드로워 계약은 [`secondary.ts`](../../dashboard-app/src/api/types/secondary.ts) |
-
-HTTP 백엔드로 교체 시 `AuthApi` / `DashboardApi` 계약과 `client.ts`만 갈아끼우고, mock 전용 record 구조는 `api/mock/*` 밖으로 새지 않게 유지합니다. REST 스펙은 [backend-api-spec.md](../backend-api/backend-api-spec.md) 참고.
-
----
-
-## 8. 소스 트리 요약
-
-```
-dashboard-app/src/
-  App.tsx                 # 라우터
-  admin/                  # 관리자 유저 관리 화면
-  api/                    # client, mock, types
-  auth/                   # 로그인 화면, 세션 provider, 보호 라우트
-  components/             # ApiUnitErrorBadge, ComponentErrorBoundary
-  dashboard/
-    DashboardLayout.tsx
-    components/           # FilterBar, ProductDrawer, AnalysisList, feature components
-      candidate-stash/    # 후보군 상세/추천/배지 UI와 후보군 상세 훅
-      product-drawer/     # 상품 drawer shell, primary/secondary 드로워
-    hooks/                # useProductDrawerBundle, usePeriodRangeFilter
-    pages/                # Self, Competitor, SnapshotConfirm route pages
-  snapshot/               # 오더 스냅샷 타입/파서
-  utils/                  # format, date, forecastMonthsStorage, adjacentListNavigation, candidateOrderExcel*
-  types.ts
-```
-
-상품 drawer 전용 UI·요청·계산은 [`product-drawer/`](../../dashboard-app/src/dashboard/components/product-drawer/) 아래에서 `primary`와 `secondary`로 나뉩니다.
-
----
-
-## 9. 알려진 제약·메모
-
-- **목록 정렬:** 방향키 네비 순서는 부모가 넘기는 `rows` / `tableRows` 배열 순입니다. 이너 후보 상세 모달은 헤더 정렬 결과를 `tableRows`에 반영해 드로어 이전·다음 순서와 화면 순서를 맞춥니다.
-- **README.md:** 패키지 루트 [`README.md`](../../dashboard-app/README.md)는 Vite 템플릿 문서가 남아 있어 제품 설명으로 쓰이지 않습니다. 제품 설명은 본 문서를 기준으로 합니다.
-
----
-
-## 10. 목적 확인 요청 (선택)
-
-조직에서의 **공식 제품명·타깃 사용자·배포 형태(내부 전용 여부)**를 알려 주시면 §2를 그에 맞게 고칠 수 있습니다. 지금은 코드 근거 추정만 기술했습니다.
-
-## 2026-05-26 snapshot v2 company scope overview
-
-- Current order snapshots use `OrderSnapshotDocumentV2` with `schemaVersion: 2`.
-- `companyUuid?: string` is an optional top-level scope field.
-- Stored snapshot hydrate is scope-safe only when the selected scope and snapshot scope match exactly: same company UUID for single-company scope, or both unscoped for all-company scope.
-- Missing `companyUuid` is not assumed to match a selected company. The drawer should use live scoped reload or an explicit unavailable state instead of inventing business values.
+- `src/api`: API facade, HTTP adapters, mock implementations, API types.
+- `src/dashboard/pages`: page orchestration.
+- `src/dashboard/components/candidate-stash`: candidate stash UI/hooks.
+- `src/dashboard/components/product-drawer`: product drawer UI/hooks.
+- `src/snapshot`: snapshot types, builder, parser, tests.
+- `src/utils`: shared pure utilities.

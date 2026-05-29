@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { dashboardApi, type SecondaryAiCommentParams } from '../../../../../api'
+import { dashboardApi, type SecondaryAiCommentParams, type SecondaryAiCommentResult } from '../../../../../api'
 import type { ApiUnitErrorInfo } from '../../../../../types'
 import { makeApiErrorInfo } from '../../apiErrorInfo'
 
@@ -7,7 +7,7 @@ type Args = {
   autoFetchEnabled: boolean
   pageName: string
   params: SecondaryAiCommentParams
-  onLoaded: (result: { llmPrompt: string; llmAnswer: string }) => void
+  onLoaded: (result: SecondaryAiCommentResult) => void
 }
 
 export function useSecondaryAiComment({
@@ -55,10 +55,7 @@ export function useSecondaryAiComment({
       try {
         const result = await dashboardApi.getSecondaryAiComment(requestParams)
         if (requestSeq.current !== currentRequest) return
-        onLoadedRef.current({
-          llmPrompt: result.llmPrompt,
-          llmAnswer: result.llmAnswer,
-        })
+        onLoadedRef.current(result)
         setError(null)
       } catch (err) {
         if (requestSeq.current !== currentRequest) return

@@ -308,7 +308,7 @@ export function useSecondaryCandidateActions({
     return runMutation(
       actionLabel,
       'item',
-      snapshotMutationInputKey(details),
+      details == null ? '' : snapshotMutationInputKey(details),
       (companyUuid) => dashboardApi.updateCandidateItem({
         itemUuid: candidateItemContext.itemUuid,
         companyUuid,

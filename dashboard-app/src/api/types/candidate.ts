@@ -200,6 +200,8 @@ export interface AppendCandidateItemPayload extends CompanyMutationScopeParams {
 
 export interface AppendCandidateItemsPayload extends CompanyMutationScopeParams {
   stashUuid: string
+  /** Competitor channel context from competitor analysis. Omitted for self analysis or all-channel competitor analysis. */
+  competitorChannelId?: string
   skuGroupKeys: string[]
 }
 

@@ -17,8 +17,9 @@ export interface SecondaryDailyTrendPoint {
 
 export interface SecondaryDailyTrendParams extends CompanyScopeParams {
   skuGroupKey: string
-  startMonth: string
-  leadTimeDays: number
+  startDate: string
+  endDate: string
+  forecastDays: number
   /** Competitor channel used for the competitor daily-sales series. */
   competitorChannelId: string
 }
@@ -40,8 +41,8 @@ export interface SecondaryAiCommentParams extends CompanyScopeParams {
 }
 
 export interface SecondaryAiCommentResult {
-  llmPrompt: string
-  llmAnswer: string
+  prompt: string
+  answer: string
   generatedAt: string
 }
 
@@ -78,6 +79,13 @@ export interface SecondaryStockForecastQtyCalcBlock extends SecondaryStockOrderA
   safetyStock: null
 }
 
+export interface SecondaryStockOrderDisplaySizeRow {
+  size: string
+  currentStockQty: number
+  totalOrderBalance: number
+  expectedInboundOrderBalance: number
+}
+
 export interface SecondaryStockOrderCalcResult {
   /** Display daily mean based on the period trend, rounded to one decimal place. */
   trendDailyMean: number
@@ -89,9 +97,7 @@ export interface SecondaryStockOrderCalcResult {
     currentStockQtyTotal: number
     totalOrderBalanceTotal: number
     expectedInboundOrderBalanceTotal: number
-    currentStockQtyBySize: number[]
-    totalOrderBalanceBySize: number[]
-    expectedInboundOrderBalanceBySize: number[]
+    sizeRows: SecondaryStockOrderDisplaySizeRow[]
   }
   safetyStockCalc: SecondaryStockSafetyCalcBlock
   forecastQtyCalc: SecondaryStockForecastQtyCalcBlock

@@ -1,12 +1,11 @@
 import { useEffect } from 'react'
-import type { OrderSnapshotDocumentV2 } from '../../../../../snapshot/orderSnapshotTypes'
+import type { OrderSnapshotAiCommentV2, OrderSnapshotDocumentV2 } from '../../../../../snapshot/orderSnapshotTypes'
 import type { CandidateItemPanelContext } from '../secondaryDrawerTypes'
 import type { InboundDueDateDefaults } from './useSecondaryInboundDueDates'
 
 type Args = {
   prefillFromSnapshot: OrderSnapshotDocumentV2 | null
   candidateItemContext: CandidateItemPanelContext | null
-  primarySkuGroupKey: string
   defaultInboundDueDates: InboundDueDateDefaults
   minOrderDate: string
   prefillKey: string | null
@@ -16,8 +15,7 @@ type Args = {
   setNextOrderInboundDueDate: (value: string) => void
   setBufferStock: (value: number) => void
   setSelfWeightPct: (value: number) => void
-  setAiPrompt: (value: string) => void
-  setAiComment: (value: string) => void
+  setAiComment: (value: OrderSnapshotAiCommentV2) => void
   setConfirmBySize: (value: Record<string, number>) => void
   setSnapshotConfirmBaselineActive: (value: boolean) => void
   setAppliedPrefillKey: (value: string | null) => void
@@ -29,7 +27,6 @@ type Args = {
 export function useSecondarySnapshotPrefill({
   prefillFromSnapshot,
   candidateItemContext,
-  primarySkuGroupKey,
   defaultInboundDueDates,
   minOrderDate,
   prefillKey,
@@ -39,7 +36,6 @@ export function useSecondarySnapshotPrefill({
   setNextOrderInboundDueDate,
   setBufferStock,
   setSelfWeightPct,
-  setAiPrompt,
   setAiComment,
   setConfirmBySize,
   setSnapshotConfirmBaselineActive,
@@ -60,8 +56,7 @@ export function useSecondarySnapshotPrefill({
         setNextOrderInboundDueDate(nextEnd)
         setBufferStock(0)
         setSelfWeightPct(50)
-        setAiPrompt('')
-        setAiComment('')
+        setAiComment({ prompt: '', answer: '', generatedAt: null })
         setConfirmBySize({})
         setSnapshotConfirmBaselineActive(false)
         setAppliedPrefillKey(null)
@@ -72,8 +67,7 @@ export function useSecondarySnapshotPrefill({
       onChannelChange(d2.competitorChannelId)
       setBufferStock(d2.bufferStock)
       setSelfWeightPct(d2.selfWeightPct)
-      setAiPrompt(d2.aiComment.prompt)
-      setAiComment(d2.aiComment.answer)
+      setAiComment(d2.aiComment)
       setCurrentOrderInboundDueDate(stockOrderRequest.currentOrderInboundDueDate)
       setNextOrderInboundDueDate(stockOrderRequest.nextOrderInboundDueDate)
       setDailyMeanClient(stockOrderRequest.dailyMeanOverride ?? d2.stockOrderResult?.dailyMean ?? null)
@@ -97,9 +91,7 @@ export function useSecondarySnapshotPrefill({
     onChannelChange,
     prefillFromSnapshot,
     prefillKey,
-    primarySkuGroupKey,
     setAiComment,
-    setAiPrompt,
     setAppliedPrefillKey,
     setBufferStock,
     setConfirmBySize,

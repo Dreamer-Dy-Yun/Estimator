@@ -59,6 +59,7 @@ export function ensureMockAiCommentForSnapshot(snapshot: SecondaryOrderSnapshotP
       aiComment: {
         prompt: prompt || buildMockAiPrompt(snapshot),
         answer: answer || buildMockAiAnswer(snapshot),
+        generatedAt: new Date().toISOString(),
       },
     },
   }
@@ -93,9 +94,13 @@ export function buildMockOrderSnapshotForCandidate(
     recommendedQty: Math.max(0, row.confirmedQty),
     confirmQty: Math.max(0, row.confirmedQty),
   }))
-  const currentStockQtyBySize = secondary.sizeRows.map((row) => Math.max(0, Math.round(row.availableStock)))
-  const totalOrderBalanceBySize = sizeOrders.map((row) => Math.max(0, Math.round(row.confirmQty * 0.4)))
-  const expectedInboundOrderBalanceBySize = sizeOrders.map((row) => Math.max(0, Math.round(row.confirmQty * 0.3)))
+  const stockBySize = new Map(secondary.sizeRows.map((row) => [row.size, Math.max(0, Math.round(row.availableStock))]))
+  const displaySizeRows = sizeOrders.map((row) => ({
+    size: row.size,
+    currentStockQty: stockBySize.get(row.size) ?? 0,
+    totalOrderBalance: Math.max(0, Math.round(row.confirmQty * 0.4)),
+    expectedInboundOrderBalance: Math.max(0, Math.round(row.confirmQty * 0.3)),
+  }))
   const orderQty = sizeOrders.reduce((sum, row) => sum + row.confirmQty, 0)
   const expectedSalesAmount = orderQty * unitPrice
   const expectedOpProfit = orderQty * (unitPrice - unitCost - feePerUnit)
@@ -128,12 +133,10 @@ export function buildMockOrderSnapshotForCandidate(
         dailyMean,
         sigma: 12,
         display: {
-          currentStockQtyTotal: currentStockQtyBySize.reduce((sum, value) => sum + value, 0),
-          totalOrderBalanceTotal: totalOrderBalanceBySize.reduce((sum, value) => sum + value, 0),
-          expectedInboundOrderBalanceTotal: expectedInboundOrderBalanceBySize.reduce((sum, value) => sum + value, 0),
-          currentStockQtyBySize,
-          totalOrderBalanceBySize,
-          expectedInboundOrderBalanceBySize,
+          currentStockQtyTotal: displaySizeRows.reduce((sum, row) => sum + row.currentStockQty, 0),
+          totalOrderBalanceTotal: displaySizeRows.reduce((sum, row) => sum + row.totalOrderBalance, 0),
+          expectedInboundOrderBalanceTotal: displaySizeRows.reduce((sum, row) => sum + row.expectedInboundOrderBalance, 0),
+          sizeRows: displaySizeRows,
         },
         safetyStockCalc: { safetyStock: orderQty, recommendedOrderQty: orderQty, expectedOrderAmount, expectedSalesAmount, expectedOpProfit },
         forecastQtyCalc: { safetyStock: null, recommendedOrderQty: orderQty, expectedOrderAmount, expectedSalesAmount, expectedOpProfit },
@@ -141,7 +144,7 @@ export function buildMockOrderSnapshotForCandidate(
       unitEconomics: { unitPrice, unitCost, expectedFeeRatePct: feeRatePct },
       selfWeightPct: 50,
       bufferStock: 0,
-      aiComment: { prompt: '', answer: '' },
+      aiComment: { prompt: '', answer: '', generatedAt: null },
       confirmedTotals: {
         orderQty,
         expectedSalesAmount,

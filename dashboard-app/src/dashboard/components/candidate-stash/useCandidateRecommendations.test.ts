@@ -4,6 +4,7 @@ import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   appendCandidateItems,
+  getCandidateRecommendations,
   type CandidateItemSummary,
   type CandidateReferenceItemSummary,
   type CandidateStashItemSummary,
@@ -18,6 +19,7 @@ vi.mock('../../../api', async () => ({
 
 type HookArgs = Parameters<typeof useCandidateRecommendations>[0]
 type AppendResult = Awaited<ReturnType<typeof appendCandidateItems>>
+type RecommendationResult = Awaited<ReturnType<typeof getCandidateRecommendations>>
 type HookResult = ReturnType<typeof useCandidateRecommendations>
 
 type HookProbeProps = {
@@ -87,7 +89,7 @@ function createArgs(overrides: Partial<HookArgs> = {}): HookArgs {
     itemSkuUuids: [],
     itemsRef: { current: [] as CandidateItemSummary[] },
     mountedRef: { current: true },
-    onRecommendedItemsAppended: vi.fn(),
+    onRecommendedItemsAppended: vi.fn((candidateItems: CandidateStashItemSummary[]) => candidateItems.length),
     refreshStashes: vi.fn().mockResolvedValue(undefined),
     setItems: vi.fn(),
     showToast: vi.fn(),
@@ -147,6 +149,7 @@ function createAppendResult(candidateItems: CandidateStashItemSummary[]): Append
 
 describe('useCandidateRecommendations', () => {
   const mockAppendCandidateItems = vi.mocked(appendCandidateItems)
+  const mockGetCandidateRecommendations = vi.mocked(getCandidateRecommendations)
 
   beforeEach(() => {
     vi.clearAllMocks()
@@ -185,6 +188,21 @@ describe('useCandidateRecommendations', () => {
     expect(args.refreshStashes).toHaveBeenCalledTimes(1)
     expect(args.showToast).toHaveBeenCalledWith('추천 후보 1개를 후보군에 추가했습니다.')
     expect(result.current.recommendationAppendBusy).toBe(false)
+  })
+
+  it('rejects append responses that do not match selected recommendations', async () => {
+    const args = createArgs()
+    const recommendation = createReferenceItem()
+    const candidateItem = createCandidateItem({ skuUuid: 'other-sku' })
+    mockAppendCandidateItems.mockResolvedValue(createAppendResult([candidateItem]))
+
+    const { result } = renderHook(() => useCandidateRecommendations(args))
+
+    await act(async () => {
+      await expect(result.current.appendRecommendedItems([recommendation])).rejects.toThrow(/does not match selected recommendations/)
+    })
+
+    expect(args.onRecommendedItemsAppended).not.toHaveBeenCalled()
   })
 
   it('returns stale for a duplicate append while the first append is busy', async () => {
@@ -288,27 +306,67 @@ describe('useCandidateRecommendations', () => {
     expect(args.showToast).not.toHaveBeenCalled()
   })
 
-  it('returns empty when append API creates no new item', async () => {
+  it('returns no-op and keeps recommendation state when append API creates no new item', async () => {
     const args = createArgs()
     const recommendation = createReferenceItem()
+    mockGetCandidateRecommendations.mockResolvedValue({
+      recommendations: [recommendation],
+      nextCursor: null,
+    } as RecommendationResult)
     mockAppendCandidateItems.mockResolvedValue(createAppendResult([]))
 
     const { result } = renderHook(() => useCandidateRecommendations(args))
+
+    await act(async () => {
+      await result.current.loadRecommendations()
+    })
 
     let appendResult: unknown
     await act(async () => {
       appendResult = await result.current.appendRecommendedItems([recommendation])
     })
 
-    expect(appendResult).toEqual({ status: 'empty' })
+    expect(appendResult).toEqual({ status: 'no-op' })
+    expect(result.current.recommendationItems).toEqual([recommendation])
     expect(mockAppendCandidateItems).toHaveBeenCalledWith({
       companyUuid: 'company-1',
       skuGroupKeys: ['sku-group-1'],
       stashUuid: 'stash-1',
     })
-    expect(args.onRecommendedItemsAppended).toHaveBeenCalledWith([], [recommendation])
-    expect(args.refreshStashes).toHaveBeenCalledTimes(1)
-    expect(args.showToast).toHaveBeenCalledWith('새로 추가할 추천 후보가 없습니다.')
+    expect(args.onRecommendedItemsAppended).not.toHaveBeenCalled()
+    expect(args.refreshStashes).not.toHaveBeenCalled()
+    expect(args.showToast).not.toHaveBeenCalled()
+    expect(result.current.recommendationAppendBusy).toBe(false)
+  })
+
+  it('returns no-op and keeps recommendation state when local append reflects no new row', async () => {
+    const args = createArgs({
+      onRecommendedItemsAppended: vi.fn(() => 0),
+    })
+    const recommendation = createReferenceItem()
+    const candidateItem = createCandidateItem()
+    mockGetCandidateRecommendations.mockResolvedValue({
+      recommendations: [recommendation],
+      nextCursor: null,
+    } as RecommendationResult)
+    mockAppendCandidateItems.mockResolvedValue(createAppendResult([candidateItem]))
+
+    const { result } = renderHook(() => useCandidateRecommendations(args))
+
+    await act(async () => {
+      await result.current.loadRecommendations()
+    })
+
+    let appendResult: unknown
+    await act(async () => {
+      appendResult = await result.current.appendRecommendedItems([recommendation])
+    })
+
+    expect(appendResult).toEqual({ status: 'no-op' })
+    expect(result.current.recommendationItems).toEqual([recommendation])
+    expect(args.onRecommendedItemsAppended).toHaveBeenCalledWith([candidateItem], [recommendation])
+    expect(args.refreshStashes).not.toHaveBeenCalled()
+    expect(args.showToast).not.toHaveBeenCalled()
     expect(result.current.recommendationAppendBusy).toBe(false)
   })
 
@@ -336,7 +394,7 @@ describe('useCandidateRecommendations', () => {
     expect(result.current.recommendationAppendBusy).toBe(false)
   })
 
-  it('returns empty without calling append API when no recommendation rows are provided', async () => {
+  it('returns empty-selection without calling append API when no recommendation rows are provided', async () => {
     const args = createArgs()
     const { result } = renderHook(() => useCandidateRecommendations(args))
 
@@ -345,7 +403,7 @@ describe('useCandidateRecommendations', () => {
       appendResult = await result.current.appendRecommendedItems([])
     })
 
-    expect(appendResult).toEqual({ status: 'empty' })
+    expect(appendResult).toEqual({ status: 'empty-selection' })
     expect(mockAppendCandidateItems).not.toHaveBeenCalled()
     expect(args.onRecommendedItemsAppended).not.toHaveBeenCalled()
     expect(args.showToast).not.toHaveBeenCalled()

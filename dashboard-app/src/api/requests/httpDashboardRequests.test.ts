@@ -57,6 +57,29 @@ describe('httpDashboardRequests company scope forwarding', () => {
       endDate: '2025-12-31',
     })
     expect(allCompanyQuery).not.toHaveProperty('companyUuid')
+
+    await httpDashboardRequests.getSecondaryDailyTrend({
+      skuGroupKey: 'SKU-054-BLK',
+      companyUuid,
+      startDate: '2025-01-01',
+      endDate: '2026-05-28',
+      forecastDays: 30,
+      competitorChannelId: 'kream',
+    })
+
+    const dailyTrendQuery = apiRequestCalls[2]?.[1]?.query
+    expect(dailyTrendQuery).toMatchObject({
+      companyUuid,
+      startDate: '2025-01-01',
+      endDate: '2026-05-28',
+      forecastDays: 30,
+      competitorChannelId: 'kream',
+    })
+    expect(httpClientMocks.apiRequest).toHaveBeenNthCalledWith(
+      3,
+      '/products/SKU-054-BLK/secondary/daily-trend',
+      expect.objectContaining({ query: dailyTrendQuery }),
+    )
   })
 
   it('forwards companyUuid through create, append, and update request bodies', async () => {

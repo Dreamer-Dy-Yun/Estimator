@@ -74,6 +74,7 @@ export function useCandidateStashItemDrawer({ dataReferenceStart, dataReferenceE
     setHydrateSnap(nextHydrate)
     setHydrateSnapSource(source)
     setConfirmedHydrateSnap(confirmed)
+    if (source === 'confirmed' && nextHydrate) setDrawerForecastMonths(clampForecastMonths(nextHydrate.context.forecastMonths))
   }, [openedItemUuid])
 
   const openItemDrawer = useCallback(async (row: InnerCandidateRow, options?: OpenItemDrawerOptions) => {
@@ -165,6 +166,7 @@ export function useCandidateStashItemDrawer({ dataReferenceStart, dataReferenceE
   }, [])
 
   const saveDrawerDraftSnapshot = useCallback((itemUuid: string, snapshot: OrderSnapshotDocumentV2, source: DrawerSnapshotSource) => {
+    if (source === 'confirmed') return
     draftSnapshotsByItemUuidRef.current[itemUuid] = { snapshot, source }
   }, [])
 

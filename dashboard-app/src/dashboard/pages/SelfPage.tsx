@@ -16,10 +16,12 @@ import { SelfAnalysisList } from '../components/SelfAnalysisList'
 import styles from '../components/common.module.css'
 import { useAnalysisPageCommonState } from '../hooks/useAnalysisPageCommonState'
 import { useAnalysisPageSelection } from '../hooks/useAnalysisPageSelection'
+import { useAnalysisSalesDataGate } from '../hooks/useAnalysisSalesDataGate'
 import { useAnalysisSalesFilters, maskNonPeriodAnalysisFilterFields } from '../hooks/useAnalysisSalesFilters'
 import { useAnalysisScatterGridView } from '../hooks/useAnalysisScatterGridView'
 import { useDashboardRequest } from '../hooks/useDashboardRequest'
 import { useProductDrawerBundleState } from '../hooks/useProductDrawerBundle'
+import { buildAnalysisSalesRequestKey } from '../model/analysisSalesRequestKey'
 import type { AnalysisScatterGridPoint } from '../model/analysisScatterGridPoint'
 
 const EMPTY_SELF_ROWS: SelfSalesRow[] = []
@@ -29,12 +31,18 @@ export const SelfPage = () => {
   const [bulkAddOpen, setBulkAddOpen] = useState(false)
   const common = useAnalysisPageCommonState()
   const filters = useAnalysisSalesFilters(common.companyUuid)
+  const analysisRequestKey = useMemo(() => buildAnalysisSalesRequestKey(filters.salesParams), [filters.salesParams])
   const loadRows = useCallback(() => getSelfSales(filters.salesParams), [filters.salesParams])
   const loadScatterGrid = useCallback(() => getSelfSalesScatterGrid(filters.salesParams), [filters.salesParams])
-  const rowsRequest = useDashboardRequest(loadRows, EMPTY_SELF_ROWS)
-  const scatterGridRequest = useDashboardRequest<ScatterSalesGridResponse | null>(loadScatterGrid, null)
-  const { data: rows, loading: rowsLoading } = rowsRequest
-  const { data: scatterGrid, loading: scatterGridLoading } = scatterGridRequest
+  const rowsRequest = useDashboardRequest(loadRows, EMPTY_SELF_ROWS, analysisRequestKey)
+  const scatterGridRequest = useDashboardRequest<ScatterSalesGridResponse | null>(loadScatterGrid, null, analysisRequestKey)
+  const analysisData = useAnalysisSalesDataGate({
+    rowsRequest,
+    scatterGridRequest,
+    requestKey: analysisRequestKey,
+    emptyRows: EMPTY_SELF_ROWS,
+  })
+  const { rows, scatterGrid } = analysisData
   const selection = useAnalysisPageSelection({ rows, scatterGrid, bulkAddOpen })
   const summaryBundleState = useProductDrawerBundleState(selection.selectedSkuGroupKey, { companyUuid: common.companyUuid })
 
@@ -74,8 +82,8 @@ export const SelfPage = () => {
         onTogglePeriodBar={() => filters.setShowPeriodBar((prev) => !prev)}
         onPeriodBarStart={filters.onPeriodBarStart}
         onPeriodBarEnd={filters.onPeriodBarEnd}
-        initialLoading={rowsLoading && !rows.length}
-        refreshing={rowsRequest.isRefreshing}
+        initialLoading={analysisData.initialLoading && !rows.length}
+        refreshing={analysisData.refreshing}
         initialLabel={`${common.selfCompanyLabel} 분석 목록을 불러오는 중`}
         refreshLabel={`${common.selfCompanyLabel} 분석 목록을 갱신하는 중`}
         endControl={(
@@ -95,7 +103,7 @@ export const SelfPage = () => {
         )}
         leftPanel={(
           <>
-            {rowsLoading && !rows.length ? (
+            {analysisData.initialLoading && !rows.length ? (
               <div className={styles.analysisPanelLoading}><LoadingSpinner label="분석 지표를 불러오는 중" /></div>
             ) : (
               <KpiGrid stacked items={[
@@ -112,7 +120,7 @@ export const SelfPage = () => {
               chartReady={common.chartReady}
               width={scatterView.scatterChartWidth}
               height={scatterView.scatterChartHeight}
-              loading={scatterGridLoading && scatterView.scatterData.length === 0}
+              loading={analysisData.initialLoading && scatterView.scatterData.length === 0}
               pointRadius={scatterView.scatterPointRadius}
               activeCellKey={selection.activeGridCellKey}
               onCellClick={selection.onScatterCellClick}

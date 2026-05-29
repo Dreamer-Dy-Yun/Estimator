@@ -28,6 +28,15 @@ type SecondaryDetailErrorState = {
   error: ApiUnitErrorInfo
 }
 
+function snapshotHydrateError(pageName: string): ApiUnitErrorInfo {
+  return {
+    checkedAt: new Date().toISOString(),
+    page: pageName,
+    request: 'hydrateOrderSnapshot',
+    error: '저장된 스냅샷이 현재 화면 복원 계약을 만족하지 않습니다.',
+  }
+}
+
 function getSecondaryDetailFromSnapshot(
   hydrateSnapshot: OrderSnapshotDocumentV2 | null,
   skuGroupKey: string,
@@ -35,19 +44,24 @@ function getSecondaryDetailFromSnapshot(
   if (hydrateSnapshot?.skuGroupKey !== skuGroupKey) return null
   const basis = hydrateSnapshot.drawer2.competitorBasis
   if (basis.skuGroupKey !== skuGroupKey) return null
+  const unitEconomics = hydrateSnapshot.drawer2.unitEconomics
+  if (unitEconomics == null) return null
   const display = hydrateSnapshot.drawer2.stockOrderResult?.display
+  if (display == null) return null
+  const displaySizeRowBySize = new Map((display?.sizeRows ?? []).map((row) => [row.size, row]))
+  if (hydrateSnapshot.drawer2.sizeOrders.some((row) => !displaySizeRowBySize.has(row.size))) return null
   return {
     skuGroupKey: basis.skuGroupKey,
     competitorPrice: basis.competitorPrice,
     competitorQty: basis.competitorQty,
     competitorRatioBySize: { ...basis.competitorRatioBySize },
-    sizeRows: hydrateSnapshot.drawer2.sizeOrders.map((row, index) => ({
+    sizeRows: hydrateSnapshot.drawer2.sizeOrders.map((row) => ({
       size: row.size,
       selfRatio: row.selfSharePct,
       confirmedQty: row.confirmQty,
-      avgPrice: hydrateSnapshot.drawer2.unitEconomics?.unitPrice ?? hydrateSnapshot.drawer1.summary.price,
+      avgPrice: unitEconomics.unitPrice,
       qty: row.forecastQty,
-      availableStock: display?.currentStockQtyBySize[index] ?? 0,
+      availableStock: displaySizeRowBySize.get(row.size)!.currentStockQty,
     })),
   }
 }
@@ -104,7 +118,7 @@ export function useSecondaryDrawerDetail({
     [companyUuid, scopeSafeHydrateSnapshot, skuGroupKey],
   )
 
-  const hydrateForPanel = scopeSafeHydrateSnapshot
+  const hydrateForPanel = secondaryFromSnapshot == null ? null : scopeSafeHydrateSnapshot
 
   useEffect(() => {
     let alive = true
@@ -119,6 +133,14 @@ export function useSecondaryDrawerDetail({
       if (secondaryFromSnapshot) {
         setSecondaryDetailState({ requestKey, detail: secondaryFromSnapshot })
         setSecondaryDetailErrorState(null)
+        return
+      }
+      if (scopeSafeHydrateSnapshot != null) {
+        setSecondaryDetailState(null)
+        setSecondaryDetailErrorState({
+          requestKey,
+          error: snapshotHydrateError(pageName),
+        })
         return
       }
       setSecondaryDetailState(null)
@@ -143,7 +165,7 @@ export function useSecondaryDrawerDetail({
     return () => {
       alive = false
     }
-  }, [companyUuid, expandPaneOpen, pageName, secondaryDetailRequestKey, secondaryFromSnapshot, skuGroupKey])
+  }, [companyUuid, expandPaneOpen, pageName, scopeSafeHydrateSnapshot, secondaryDetailRequestKey, secondaryFromSnapshot, skuGroupKey])
 
   const keyedSecondaryDetail =
     secondaryDetailState != null &&

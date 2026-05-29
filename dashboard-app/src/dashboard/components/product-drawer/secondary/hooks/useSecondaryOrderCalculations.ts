@@ -1,11 +1,13 @@
 import { useMemo } from 'react'
 import type { SecondaryStockOrderCalcResult } from '../../../../../api/types'
+import type { OrderSnapshotSizeOrderV2 } from '../../../../../snapshot/orderSnapshotTypes'
 import type { ProductSecondaryDetail } from '../../../../../types'
 import { SecondaryOrderDraft } from '../model/SecondaryOrderDraft'
 import {
   buildDailyTrendSizeOptions,
   buildSecondarySizeOrderRows,
   buildSecondarySizeShares,
+  type SecondarySizeOrderDisplayRow,
 } from '../model/secondarySizeOrderRows'
 
 type Args = {
@@ -19,6 +21,7 @@ type Args = {
   confirmBySize: Record<string, number>
   snapshotConfirmBySize: Record<string, number>
   useSnapshotConfirmBaseline: boolean
+  snapshotSizeOrders?: OrderSnapshotSizeOrderV2[] | null
 }
 
 export function useSecondaryOrderCalculations({
@@ -32,6 +35,7 @@ export function useSecondaryOrderCalculations({
   confirmBySize,
   snapshotConfirmBySize,
   useSnapshotConfirmBaseline,
+  snapshotSizeOrders,
 }: Args) {
   const calculationReady = stockOrderCalculationReady == null
     ? forecastCalc != null
@@ -70,17 +74,36 @@ export function useSecondaryOrderCalculations({
   )
 
   const sizeRows = useMemo(() => {
+    if (useSnapshotConfirmBaseline && snapshotSizeOrders != null) {
+      return snapshotSizeOrders.map<SecondarySizeOrderDisplayRow>((row) => ({
+        size: row.size,
+        selfSharePct: row.selfSharePct,
+        competitorSharePct: row.competitorSharePct,
+        blendedSharePct: row.blendedSharePct,
+        forecastQty: row.forecastQty,
+        recommendedQty: row.recommendedQty,
+        confirmQty: orderDraft.confirmQty(row.size, row.recommendedQty),
+      }))
+    }
     const readyForecastCalc = calculationReady ? forecastCalc : null
+    if (readyForecastCalc == null) {
+      return sizeShares.map<SecondarySizeOrderDisplayRow>((row) => ({
+        size: row.size,
+        selfSharePct: row.selfSharePct,
+        competitorSharePct: row.competitorSharePct,
+        blendedSharePct: row.blendedSharePct,
+        forecastQty: 0,
+        recommendedQty: 0,
+        confirmQty: 0,
+      }))
+    }
     const display = readyForecastCalc?.display ?? null
-    const dailyMeanEa = readyForecastCalc == null
-      ? 0
-      : dailyMeanClient ?? readyForecastCalc.dailyMean
+    const dailyMeanEa = dailyMeanClient ?? readyForecastCalc.dailyMean
     return buildSecondarySizeOrderRows({
       shares: sizeShares,
       dailyMeanEa,
       forecastSalesHorizonDays,
-      currentStockBySize: display?.currentStockQtyBySize ?? [],
-      expectedInboundBySize: display?.expectedInboundOrderBalanceBySize ?? [],
+      stockOrderSizeRows: display?.sizeRows ?? [],
       bufferStock,
       orderDraft,
     })
@@ -91,7 +114,9 @@ export function useSecondaryOrderCalculations({
     forecastCalc,
     forecastSalesHorizonDays,
     orderDraft,
+    snapshotSizeOrders,
     sizeShares,
+    useSnapshotConfirmBaseline,
   ])
 
   return {

@@ -1,278 +1,38 @@
-# 현재 동작 기준 QA 문서
+# QA Current Behavior
 
-| 항목 | 내용 |
-|------|------|
-| 작성 지시 | Yun Daeyoung |
-| 작성자 | Codex |
-| 작성일 | 2026-05-18 |
-| 최종 수정일 | 2026-05-22 |
-| 상태 | 유지 문서 |
-| 적용 범위 | `dashboard-app` 전체 화면, API/mock 경계, 주요 사용자 흐름 |
+Last updated: 2026-05-29
 
-## 목적
+## General
 
-이 문서는 현재 프론트엔드 동작을 기준으로 QA 확인 항목을 정의한다. 기능, API 계약, 화면 흐름, 로딩/오류 표시, 권한, 키보드 조작, 데이터 출처가 변경되면 코드와 같은 변경 단위에서 이 문서도 반드시 갱신한다.
+- API access goes through `src/api`.
+- Failures are visible and are not converted to empty success states.
+- Refresh failure preserves existing stable data and shows a failure surface.
+- Async stale responses must not overwrite current scope/period/item state.
+- No silent numeric fallback for missing business data.
 
-## QA 기본 원칙
+## Company scope
 
-공통 로딩/빈 값/실패/권한/stale 상태 기준은 [qa-state-contracts.md](./qa-state-contracts.md)를 따르고, 실패 kind와 화면별 surface는 [failure-ux-matrix.md](./failure-ux-matrix.md)를 따른다. 버튼, 패널, 리스트, 드로워, toast, tooltip의 UI 리듬은 [ui-patterns.md](./ui-patterns.md)를 따른다.
+- Read APIs may omit `companyUuid` for all-company reads.
+- Candidate stash mutation/job/SSE requires concrete `companyUuid`.
+- All-company state disables candidate stash workflows.
 
-- 화면은 mock 구현을 직접 알면 안 되고, 모든 데이터 접근은 `src/api` 계약 뒤에서 이뤄져야 한다.
-- 백엔드가 제공해야 하는 비즈니스 값은 프론트가 임의로 생성하지 않는다.
-- 로딩, 실패, stale 응답, 사용자 입력, 권한, 파일 업로드는 방어한다.
-- API 계약상 확정된 내부 값은 과도하게 정규화하지 않고 그대로 표시한다.
-- mutation 성공은 상단 자동 닫힘 toast로 알려야 한다.
-- 정상 완료 상태가 매번 화면 공간을 차지하면 안 된다. 사용자가 알아야 할 로딩/오류/이전 데이터 상태만 노출한다.
-- 실패를 보여주기 위해 새 카드를 추가해 기존 화면을 밀지 않는다. row/cell 실패는 실패 배지와 툴팁, 목록/권한/mutation/SSE 실패는 기존 surface를 기본으로 한다.
-- stale UX와 async stale guard는 구분한다. stale UX는 최신 요청 실패 시 기존 데이터를 유지하고 실패를 표시하는 화면 기준이고, async stale guard는 늦은 이전 응답이 최신 상태를 덮지 못하게 무시하는 내부 기준이다.
-- 로컬 작업 중 E2E는 사용자가 명시적으로 요청한 경우에만 실행한다.
-- CI 배포 workflow는 `npm run test:e2e`를 GitHub Pages 빌드/배포 gate로 항상 실행한다.
+## Product drawer
 
-## 공통 진입과 인증
+- Monthly trend request: last 24 completed months + 12 forecast months.
+- Daily trend request: selected start month first day through yesterday + lead-time forecast days.
+- AI comment request is manual.
+- Snapshot save uses current drawer state and `OrderSnapshotDocumentV2`.
 
-| 구분 | QA 기준 |
-|------|---------|
-| 보호 라우트 | 인증 전 보호 페이지 접근 시 `/login?redirect=...`로 이동한다. |
-| 로그인 기본값 | 목 로그인 화면은 기본 계정값이 채워져 있고 수정 없이 로그인 가능하다. |
-| 세션 | 프론트는 브라우저 저장을 운영 저장소로 간주하지 않는다. 실제 세션/만료는 백엔드 계약으로 교체될 지점이다. |
-| 권한 | `admin`과 `user`만 존재한다. 관리자 탭은 관리자에게만 보인다. |
-| 헤더 | 자사 분석, 경쟁사 분석, 오더 후보군, 관리자 탭의 기존 스타일과 선택 상태를 유지한다. 회사 selector는 로그인 후 회사 목록을 조회해 `전체`, `한아INT`, `T1글로벌`을 표시한다. |
-| 전역 액션 | `입고예정일 수집`은 주요 탭이 아닌 헤더 유틸리티 액션이며 모든 로그인 사용자에게 노출된다. 성공/실패/수집 개수만 toast로 알린다. |
-| 회사 선택 | `전체`는 read API와 read-like POST에서 `companyUuid`를 생략하는 의미다. 단일 회사 선택 시 분석, 산점도, filter meta, 후보군 조회, 상품 드로워, 2차 드로워 조회, secondary AI comment, secondary stock order calc는 선택 회사 UUID를 포함할 수 있다. secondary AI comment와 secondary stock order calc는 POST여도 DB mutation/job이 아니므로 optional scope다. 후보군 mutation payload/params, bulk detail confirm job/SSE, 후보군 LLM comment job/SSE, 오더 지표 SSE는 단일 회사 scope에서만 가능하며 `전체` 또는 누락 scope로 호출되면 안 된다. |
+## Candidate stash
 
-## 공통 요청 상태와 피드백
+- Item list, recommendations, and order metrics are separate contracts.
+- Recommendation append result states: `applied`, `stale`, `no-op`, `empty-selection`.
+- Only `applied` inserts local rows.
+- SSE transport failure marks affected order metric cells failed.
+- Detail confirm/unconfirm response is authoritative for the affected item.
 
-| 구분 | QA 기준 |
-|------|---------|
-| 요청 상태 | `DashboardRequestStatus`는 분석 데이터 요청 상태를 표시한다. 입고예정일 수집 상태가 아니다. |
-| 정상 idle | 일 단위 기본 데이터 조회가 정상 완료된 상태는 화면에 표시하지 않는다. |
-| 로딩/오류 | 조회 중, 갱신 중, 실패, 이전 데이터 표시 상태만 기간 프리셋 줄 compact 배지로 표시한다. |
-| stale UX | 최신 요청이 실패했지만 이전 데이터가 남아 있으면 리스트, 패널, row/cell을 비우지 않고 기존 데이터를 유지한 채 최신 실패 surface를 함께 표시한다. |
-| stale 응답 | 늦게 도착한 이전 요청 응답은 최신 화면 상태를 덮으면 안 된다. 이는 사용자에게 실패로 표시하는 stale UX가 아니라 조용히 무시해야 하는 async stale guard다. |
-| 데이터 폴백 금지 | API 호출 시 알 수 없는 SKU/경쟁 채널/계산 원천은 다른 상품, 첫 번째 채널, `0` 또는 최소값 `1`로 조용히 대체하지 않는다. 화면은 에러, 빈 값, 행 단위 실패를 보여야 한다. 단, mock seed가 화면 검증용 카탈로그 값을 생성하는 것은 허용한다. |
-| 스피너 | 페이지, 모달, 드로워, 버튼의 대기 상태는 공용 `LoadingSpinner` 계열 표시를 사용한다. |
-| 분석 목록 갱신 | 자사/경쟁사 분석 목록은 최초 로딩 때만 빈 리스트 스피너를 보인다. 이후 재조회 중에는 기존 리스트를 비우지 않고 목록 위에 갱신 스피너를 표시한다. |
-| toast | 후보군 생성/삭제/복제/편집, 후보 추가, 상세확정 저장/해제, 관리자 mutation, 입고예정일 수집은 완료/실패 상태를 toast로 알린다. |
-| 분석 화면 높이 | 정상 요청 상태가 숨겨져도 자사/경쟁사 분석의 KPI·차트·리스트 영역은 남은 화면 높이를 채워야 한다. 숨긴 상태바의 과거 자리 때문에 하단이 비면 안 된다. |
+## Admin
 
-## 자사 분석
-
-| 구분 | QA 기준 |
-|------|---------|
-| 기본 기간 | 종료일은 오늘, 시작일은 종료일 이전 1년이 기본이다. |
-| 필터 | 시작일, 종료일, 브랜드, 카테고리, 품번, 색상, 상품명 필터가 동작한다. 기본 `전체` 선택 시 클릭하면 전체 옵션 목록이 보인다. |
-| 기간 조회 | 시작일/종료일 변경만으로는 목록과 산점도 API를 다시 호출하지 않는다. `조회` 버튼을 눌러야 변경된 기간이 적용된다. |
-| 조회 버튼 | 마지막 조회 기간과 현재 입력 기간이 같으면 비활성화된다. 날짜를 바꾸면 활성화되고, 조회 후 다시 비활성화된다. |
-| 기간 외 필터 | 브랜드, 카테고리, 품번, 색상, 상품명은 기존처럼 변경 즉시 현재 적용 기간과 함께 조회 조건에 반영된다. |
-| 기본 정렬 | 자사 판매량 내림차순이며, 가장 많이 팔린 항목이 1위다. |
-| 순위 | 순위는 seed 고정값이 아니라 현재 렌더링 대상 rows 안에서 자사 판매량 기준으로 다시 계산한다. |
-| KPI | 총 판매액, 총 판매량, 평균 매출 이익율, 평균 영업이익율은 필터링된 rows 기준으로 계산/표시한다. 비율 평균은 판매액 가중 기준이다. |
-| 리스트 | 모바일 수준이 아닌 뷰포트에서는 불필요한 가로 스크롤이 없어야 하며, 체크박스 폭은 과도하게 줄어들면 안 된다. |
-| 산점도 | 제목은 `판매량/영업 이익률 분석`이며 x/y축 레이블을 표시한다. 격자화 계산은 백엔드 책임이고, 프론트는 받은 cell을 표시한다. |
-| 격자 선택 | 점/cell 클릭 시 이미 로드된 rows 안에서 해당 cell rows만 보여준다. 백엔드 재호출을 만들지 않는다. |
-| 선택 해제 | 격자 선택 해제 액션은 차트 안에 있고, 표시 여부가 바뀌어도 차트 UI가 흔들리면 안 된다. |
-| 후보군 담기 | 체크박스로 선택한 상품을 `선택한 물품을 후보군으로` 버튼으로 후보군에 추가한다. 스냅샷 없이 `stashUuid + skuGroupKey` 계열 식별자만 전달한다. 회사 선택이 `전체`이면 버튼은 비활성화되고 숨겨지지 않는다. |
-| 1차 드로워 | 좌 방향키로 포커스 row의 1차 드로워를 열고, 우 방향키는 닫기이다. 상/하 방향키는 현재 정렬된 리스트 순서대로 포커스를 이동한다. |
-| 2차 드로워 | 자사 분석에서는 2차 드로워를 열지 않는다. 2차 기능 코드는 유지하되 버튼과 키보드 진입은 비활성이다. |
-
-## 경쟁사 분석
-
-| 구분 | QA 기준 |
-|------|---------|
-| 기본 기간 | 종료일은 오늘, 시작일은 종료일 이전 1년이 기본이다. |
-| 필터 | 자사 분석 필터에 더해 경쟁 채널 필터가 존재한다. |
-| 기간 조회 | 시작일/종료일 변경만으로는 목록과 산점도 API를 다시 호출하지 않는다. `조회` 버튼을 눌러야 변경된 기간이 적용된다. |
-| 조회 버튼 | `선택한 물품을 후보군으로` 버튼 오른쪽에 같은 폭으로 배치한다. 마지막 조회 기간과 현재 입력 기간이 같으면 비활성화된다. |
-| 기간 외 필터 | 브랜드, 카테고리, 품번, 색상, 상품명, 경쟁 채널은 기존처럼 변경 즉시 현재 적용 기간과 함께 조회 조건에 반영된다. |
-| 경쟁 채널 전체 | 경쟁 채널이 `전체`이면 KPI와 산점도는 전체 경쟁 채널 합계를 기준으로 한다. 특정 채널 선택 시 해당 채널만 기준이다. |
-| 기본 정렬 | 경쟁사 판매량 내림차순이며, 가장 많이 팔린 항목이 1위다. |
-| 순위 | 순위는 현재 rows 안에서 경쟁사 판매량 기준으로 다시 계산한다. |
-| KPI | 총 경쟁사 판매액, 총 자사 판매액, 총 경쟁사 판매량, 총 자사 판매량은 필터링된 rows 기준이다. 금액 단위는 `원`, 수량 단위는 `EA`로 보이며 단위는 본문 숫자보다 작고 굵지 않다. |
-| 자사 판매량 토글 | `자사판매량이 존재하는 경우만 보기`는 기간 프리셋 줄 오른쪽 영역에 있다. |
-| 산점도 | x축은 자사, y축은 선택 경쟁 채널 또는 전체 경쟁사다. cell 색/명도와 반지름은 백엔드 grid meta와 cell count 기반 표시값이다. |
-| 후보군 담기 | 버튼 위치와 크기는 자사 분석과 같은 구조다. 회사 선택이 `전체`이면 버튼은 비활성화되고 숨겨지지 않는다. |
-| 드로워/키보드 | 자사 분석과 동일하게 1차 드로워만 열고, 2차 드로워는 열지 않는다. |
-
-## 상품 1차 드로워
-
-| 구분 | QA 기준 |
-|------|---------|
-| 열림 | 분석 리스트 row 선택 또는 좌 방향키로 열린다. |
-| 닫힘 | 우 방향키 또는 닫기 버튼으로 닫힌다. ESC도 닫기를 지원한다. |
-| 포커스 연동 | 드로워가 열린 뒤 상/하 이동으로 상품이 바뀌면 원본 리스트의 현재 row도 포커스와 스크롤이 함께 이동한다. |
-| 외부 버튼 우선 | 드로워가 열린 상태에서 자사/경쟁사/이너오더 화면의 버튼, 입력, 선택, 토글, 필터 콤보를 클릭하면 해당 조작이 드로워 바깥 클릭 닫힘보다 우선한다. 비상호작용 배경 클릭, ESC, 우 방향키, 닫기 버튼은 기존처럼 닫는다. |
-| 판매 정보 | 자사/경쟁사 판매 정보 표가 기간/경쟁 채널 기준으로 표시된다. 자사/경쟁사 헤더 음영은 차트 선 색상 계열과 맞춘다. |
-| 판매추이 | 월간 차트는 선형이며 자사/경쟁사 표시 토글을 둘 다 켜거나 끌 수 있다. 활성 버튼 배경은 선 색상 계열이다. |
-| 경쟁 채널 | 경쟁사 컬럼과 월간 추이의 경쟁 데이터는 선택 경쟁 채널을 따른다. |
-| 재고·발주 계산 | 2차 드로워의 재고·발주 관련 입력 변경 후 1초 동안 추가 변경이 없을 때 계산 API를 호출한다. 빠르게 연속 입력하면 마지막 입력 기준 결과만 화면에 반영된다. |
-
-## 오더 후보군 목록
-
-| 구분 | QA 기준 |
-|------|---------|
-| 접근 | `오더 후보군` 탭에서 후보군 목록을 본다. 후보군은 현재 로그인 사용자와 단일 회사 선택 기준 데이터다. `전체` 선택 상태에서는 오더 후보군 탭이 비활성화되고 후보군 API 호출이 발생하면 안 된다. 비활성 탭은 `aria-disabled="true"`와 비활성 사유를 설명하는 accessible description을 함께 제공해야 한다. |
-| 검색/정렬 | 이름 검색, 비고 검색, 정렬이 동작한다. |
-| 전체 선택 제한 | 오더 후보군 페이지가 열린 상태에서 회사 선택이 `전체`로 바뀌면 라우트에서 튕기지 않고 페이지 내부 제한 안내를 표시한다. |
-| 업로드 카드 | 후보군이 적어도 업로드 카드가 화면을 과도하게 채우지 않도록 고정 높이를 유지한다. |
-| 업로드 scope | 후보군 엑셀 업로드는 후보군 목록을 바꾸는 mutation 진입점이다. HTTP와 mock 모두 단일 회사 scope가 필요하며, `전체` 또는 누락 scope에서 기본 회사로 보정하거나 성공처럼 처리하면 안 된다. |
-| 템플릿 다운로드 | 엑셀 업로드 영역 아래에 템플릿 다운로드 버튼이 있다. 실제 템플릿 파일은 향후 백엔드 이동 가능성을 고려한다. |
-| 후보군 카드 | 카드의 `이름·비고 편집`은 좁은 뷰포트에서 `편집`으로 줄어든다. |
-| 삭제/복제 | 삭제/복제는 API 요청 성공 후 목록을 재조회하고 toast를 표시한다. |
-
-## 이너 후보군 상세 모달
-
-| 구분 | QA 기준 |
-|------|---------|
-| 최초 조회 | 상세 모달이 열리면 조회 데이터 기간 초기값인 `오늘 - 1년`부터 `오늘`까지로 `조회`가 자동 실행된다. 후보군 생성 당시 `periodStart/periodEnd`를 초기 조회값으로 쓰지 않는다. |
-| 조회 카드 | 헤더와 필터 사이에 조회 데이터 기간 카드가 있다. 기간 입력 후 `조회` 버튼을 눌러야 리스트가 갱신된다. 마지막 조회 이후 기간 값이 바뀌지 않았으면 `조회` 버튼은 비활성화된다. |
-| 작업 카드 | 조회 카드 오른쪽에는 상세확정 일괄해제와 일괄삭제 같은 작업 카드가 있다. |
-| 개별/일괄삭제 | 삭제 API 성공 후 현재 `items` 상태에서 삭제된 row만 제거한다. 후보 아이템 전체 목록은 즉시 재조회하지 않으며, 합계 오더 수량/금액 카드는 남은 row 기준으로 자동 재계산된다. |
-| 상세 일괄확정 | 선택된 상세미확정 row만 대상으로 한다. 클릭 시 백엔드 job을 시작하고 SSE 진행 팝업을 표시한다. item 완료 이벤트가 오면 해당 row는 전체 목록 재조회 없이 즉시 `상세확정`으로 바뀐다. |
-| 상세확정 일괄해제 | 클릭 시 `상세 확정을 해제하면 확정 내용을 복구할 수 없습니다.` 확인 팝업이 나오고 계속/취소를 선택한다. 계속 후 PATCH 성공 응답을 기준으로 선택 row가 즉시 `상세미확정`으로 바뀌며, 후보 아이템 전체 목록은 즉시 재조회하지 않는다. |
-| 필터 | 브랜드, 품번, 상품명 필터와 엑셀 다운로드 버튼이 있다. |
-| 리스트 높이 | 헤더를 제외한 리스트 영역만 스크롤되어야 하고, 모달 전체가 불필요하게 같이 밀리면 안 된다. |
-| 리스트 폰트 | 리스트 본문 수치와 텍스트는 배지를 제외하고 같은 기준 폰트 크기를 따른다. |
-| 상태 컬럼 | 헤더명은 `상태`이며, row 값은 스냅샷 존재 여부에 따라 `상세확정` 또는 `상세미확정`이다. |
-| 정렬 | 헤더 클릭으로 컬럼별 정렬이 가능하다. 첫 칸은 선택 체크박스, 둘째 칸은 표시 인덱스다. 표시 인덱스는 레코드 고정값이 아니라 현재 정렬된 화면 순서에서 1부터 다시 계산한다. 이너 후보 리스트 헤더는 브랜드·품번·상품명·색상처럼 문자열 식별 컬럼은 왼쪽, 상태는 중앙, 판매량과 총 오더 수량/금액 같은 숫자 컬럼은 오른쪽 정렬한다. |
-| 키보드 | 1차 드로워가 닫힌 상태에서도 상/하 방향키로 현재 정렬 순서 기준 row 포커스가 이동한다. 좌 방향키는 포커스 row의 1차 드로워를 연다. |
-
-## 이너 후보군 조회 데이터 흐름
-
-| 단계 | QA 기준 |
-|------|---------|
-| 기본 리스트 | `getCandidateItemsByStash`는 후보군에 실제 담긴 기본 행과 자사/경쟁사 기간 총판매량을 먼저 반환한다. |
-| 추천/배지 | 기본 리스트가 들어온 직후 `getCandidateRecommendations`를 cursor 기반으로 끝까지 자동 조회한다. 추천 응답은 배지와 자사/경쟁사 기간 총판매량을 함께 포함한다. 추천 보기 버튼은 이 요청을 시작하지 않고, 이미 시작된 조회 결과를 모달로 표시한다. |
-| 배지 병합 | 추천 결과 중 현재 후보군 row와 같은 `skuUuid`는 이너 리스트 배지와 기간 총판매량으로 병합한다. |
-| 추천 보기 | 추천 보기 목록에서는 이미 후보군에 있는 `skuUuid`를 숨긴다. 추천 보기 버튼은 배지 계산 시작 버튼이 아니며, 추천 조회가 아직 끝나지 않았으면 모달 내부에 로딩 상태를 표시한다. |
-| 추천 적용 | 선택 추천을 추가하면 `appendCandidateItems` 성공 응답의 신규 `candidateItems`와 이미 받은 추천 row를 매칭해 현재 리스트로 옮긴다. 후보군 전체 목록은 즉시 재조회하지 않고, 새 row의 총 오더 수량/금액만 SSE로 계산한다. 추천 visible row는 전체 추천 원본과 현재 후보 item membership에서 다시 파생한다. |
-| 추천 append 결과 | 추천 append 결과는 `applied`, `stale`, `empty`로 구분한다. `applied`만 로컬 리스트 삽입으로 이어질 수 있다. `stale`은 요청 이후 stash/company/period/item membership이 바뀐 응답이므로 사용자-visible 반영 없이 폐기하고, `empty`는 성공 삽입으로 보이지 않게 선택과 visible row를 정리할 수 있지만 로컬 item 삽입으로 이어지면 안 된다. append 응답의 신규 `CandidateStashItemSummary`가 요청 당시 recommendation 원본과 매칭되지 않으면 프론트가 임의 row를 만들거나 전체 재조회로 성공처럼 보정하지 않는다. |
-| 추천 append busy guard | append 진행 중 같은 추천 또는 같은 scope의 중복 append를 다시 시작하면 안 된다. busy guard는 중복 item 삽입과 이전 응답의 최신 목록 덮어쓰기를 막는 기준이다. |
-| 배지 실패 | 추천/배지 요청 실패 시 배지 셀은 무한 로딩이 아니라 실패 배지와 툴팁을 표시한다. |
-| 오더 지표 | 총 오더 수량, 총 오더 금액, 엑셀용 `orderExport`는 `subscribeCandidateOrderMetrics` SSE로 행별 갱신한다. |
-| 오더 지표 SSE 종료 | 요청한 모든 후보 item이 `item` 또는 `itemFailed` 이벤트를 받으면 프론트가 SSE 연결을 닫는다. `completed` 누락이나 서버 연결 종료로 동일 URL이 자동 재접속되어서는 안 된다. |
-| 오더 지표 SSE 실패 | EventSource transport 오류가 나면 기존 리스트는 유지하고 요청 대상 row의 오더 지표만 실패 배지와 툴팁으로 표시한다. |
-| 미수신 컬럼 | 아직 내려오지 않은 배지/오더 지표 컬럼은 로딩 상태를 표시한다. |
-| 기존 데이터 유지 | 기본 리스트, 추천/배지, 오더 지표의 최신 요청이 실패해도 기존 row를 즉시 비우지 않는다. 기본 리스트 실패는 리스트 error surface, 추천 실패는 배지 실패, 오더 지표 실패는 대상 row/cell 실패로 표시한다. |
-| stale 방어 | 기간 변경 또는 재조회 중 이전 기본 리스트 응답, 추천 응답, 오더 이벤트가 늦게 와도 최신 조회 결과를 덮으면 안 된다. 이 경우는 실패 UX가 아니라 무시 대상이다. |
-| append guard | 추천 append 응답 반영 전에는 현재 stash, company, 조회 period, 대상 item membership이 요청 당시와 같은지 확인한다. mismatch는 성공 반영 대상이 아니라 stale 응답이다. |
-| hook 상태 책임 | 기본 item 조회 상태는 `useCandidateItemsLoader`, 추천 목록/배지 상태는 `useCandidateRecommendations`, 상세 일괄확정 progress 상태는 `useCandidateBulkDetailConfirm`이 맡는다. 한 hook이 다른 hook의 실패나 로딩 상태를 직접 소유하도록 섞으면 안 된다. |
-| 직접 테스트 범위 | TODO-111의 `useCandidateRecommendations` 직접 테스트는 `applied/stale/empty` 판정과 busy guard를 확인한다. append 응답 매칭 계약은 `candidateItemLocalMutationModel.test.ts`에서 확인한다. 이 테스트 존재를 상세 모달 전체, SSE, 상세확정 job, 백엔드 구현의 검증 완료로 확대 해석하지 않는다. |
-
-## 이너 후보군 1차/2차 드로워
-
-| 구분 | QA 기준 |
-|------|---------|
-| 1차 드로워 | 이너 후보군에서는 좌 방향키 또는 row 선택으로 1차 드로워를 연다. |
-| 2차 드로워 | 열린 1차 드로워 안에서 좌 방향키 또는 반원 버튼으로 2차 드로워를 연다. |
-| 닫힘 순서 | ESC 한 번은 2차 드로워를 닫고, 한 번 더 누르면 1차 드로워를 닫는다. 우 방향키는 닫기 방향이다. |
-| parent dialog 접근성 | 상세 모달 접근성 보강이 들어간 경우 parent dialog가 focus trap과 close 후 focus restore를 소유한다. 하위 드로워, 추천 보기 modal, 진행 popup이 열려 있으면 parent dialog는 Escape 닫힘을 양보하고 상위 전파를 막아 가장 안쪽 overlay부터 닫히는 순서를 따라야 한다. |
-| missing-state dialog label | 회사 선택 필요, 선택 가능한 추천 없음, append `empty`처럼 사용자가 다음 행동을 알아야 하는 missing-state dialog 또는 제한 안내는 일반 성공 상태와 구분되는 title/accessibility label을 가져야 한다. label 보강은 기존 overlay 닫힘 순서와 parent dialog focus 책임을 바꾸지 않는다. |
-| 정렬 접근성 | 정렬 가능한 헤더는 아이콘만으로 상태를 전달하지 않는다. 컬럼명, 현재 정렬 direction, 다음 동작이 보조 텍스트 또는 접근성 속성으로 구분되어야 하며, 표시 인덱스 컬럼은 정렬된 화면 순서 번호로만 설명한다. |
-| AI 코멘트 | 이너 후보군을 열 때 일괄 AI 답변을 만들지 않는다. AI 코멘트는 2차 드로워가 열릴 때 요청한다. |
-| 상품 메타 | 브랜드, 카테고리, 품번, 색상, 상품명은 길어도 행바꿈하지 않고 한 줄 말줄임으로 표시한다. hover 시 전체 값이 툴팁으로 보여야 한다. |
-| 통합 오더 설정 | `일평균 판매량`과 `일평균 기대 판매량`은 계산값을 바꾸지 않고 화면에서 소수 둘째 자리 반올림, 소수 첫째 자리까지 표시한다. |
-| 상세확정 | 2차 드로워에서 스냅샷 저장 시 상세확정이 된다. 기존 스냅샷이 없으면 버튼은 `저장`, 있으면 `수정`이다. |
-| 확정 저장/해제 | PATCH 성공 후 열린 드로워와 이너 리스트는 응답 기준으로 즉시 `상세확정` 또는 `상세미확정` 상태가 된다. 개별 저장/해제와 상세확정 일괄해제 모두 후보 아이템 전체 목록을 즉시 재조회하지 않으며, 이후 stale 재조회가 도착해도 방금 mutation한 상태를 되돌리면 안 된다. 해제 실패 시에는 성공 toast, 로컬 상태 전환, drawer 저장상태 전환이 진행되면 안 되고 실패 surface/toast만 남아야 한다. |
-| 스냅샷 기준 보기 | 스냅샷이 있을 때만 활성화된다. 스냅샷 기준에서는 저장 당시 기간과 통합 오더 설정, AI 코멘트, 사이즈별 오더 값이 복원된다. 그래프는 해당 기간 기준으로 다시 조회한다. |
-| 사이즈별 오더 | 가중치 조절은 표시 방향과 실제 반영 방향이 일치해야 한다. `비중` 라인 차트의 각 점은 해당 사이즈 컬럼의 중앙에 위치해야 한다. |
-| 카드 | 2차 드로워는 판매 정보, 판매추이, 통합 오더 설정, AI 코멘트, 일별 추이, 사이즈별 오더 등 현재 계약 카드가 빠지면 안 된다. |
-
-## 엑셀 업로드/다운로드
-
-| 구분 | QA 기준 |
-|------|---------|
-| 업로드 | 엑셀 업로드는 후보군 추가 진입점이며 실제 포맷은 템플릿 계약을 따른다. |
-| 템플릿 | 템플릿 다운로드 버튼은 업로드 카드 안에 있다. |
-| 후보군 엑셀 다운로드 | 이너 후보군 필터 카드의 엑셀 다운로드는 이미 프론트가 가진 `orderExport` DTO로 생성하며 백엔드 재호출을 하지 않는다. |
-| 주 데이터 시트 | 브랜드, 품번, 상품명, 색상, 배지, 판매 지표, 총 오더량, 총 오더 금액, 평균 원가/판매가/수수료율/영업이익율, 동적 사이즈 컬럼을 포함한다. |
-| 배지 셀 | 복수 배지는 한 셀 안에서 줄바꿈한다. |
-| 사이즈 없음 | 제품에 없는 사이즈 값은 `N/A`로 표시한다. `0`과 다르다. |
-| 스타일 | 데이터 헤더와 메타 헤더는 검은 배경/흰 폰트다. `N/A` 값은 옅은 붉은색 음영이다. |
-| 메타 시트 | 오더 입고 예정일과 사용자 이름을 포함한다. |
-
-## 관리자 화면
-
-| 구분 | QA 기준 |
-|------|---------|
-| 공통 패널 | 사용자 관리, GPT 키 관리, 구글 시트 관리는 `AdminListPanel` 공통 shell을 사용한다. |
-| 스크롤 | 리스트가 많아지면 컬럼 헤더 아래 본문만 스크롤된다. |
-| 사용자 관리 | 로그인 ID, 비밀번호, 이름, 비고, 권한, 활성 여부를 관리한다. 권한은 관리자/사용자만 있다. |
-| 사용자 변경 | 저장 버튼명은 `변경`이다. |
-| 비밀번호 재설정 | 관리자는 임시 비밀번호를 발급할 수 있고, 클릭 시 클립보드 복사가 가능해야 한다. 관리자가 기존 비밀번호를 조회하지 않는다. |
-| GPT 키 관리 | 목록은 기본 식별 정보만 보인다. 상세 설정은 클릭 후 모달에서 수정/삭제/연결 테스트를 수행한다. |
-| GPT 키 원문 | 화면 목록은 마스킹 키만 표시한다. 키 원문은 생성/변경 payload에만 존재한다. |
-| GPT 활성 | 상세 모달의 활성 상태는 체크박스가 아니라 토글이다. 목록은 변경 API 성공 후 재조회된 값 기준으로 반영한다. |
-| 구글 시트 관리 | 서비스 계정 JSON은 드래그앤드랍으로 받고, 용도와 비고를 입력한다. |
-| 시트로 이동 | 구글 시트 목록의 `시트로 이동` 버튼은 이미 받은 URL/ID로 새 탭을 열며 추가 API 요청을 만들지 않는다. |
-| mock 성격 | 관리자 mock은 런타임 메모리에서 DB처럼 보이게 동작할 수 있지만, 실제 DB 저장으로 오해하면 안 된다. |
-
-## API 계약 QA
-
-| 구분 | QA 기준 |
-|------|---------|
-| API 타입 | API 타입은 `src/api/types/*`의 interface 계약을 기준으로 한다. |
-| mock 경계 | mock 데이터와 mock mutation은 `src/api/mock/*` 안에 있어야 하며 화면이 직접 import하면 안 된다. |
-| HTTP 전환 | `VITE_USE_MOCK_API=false`일 때 `src/api/requests/*` HTTP adapter 교체 지점만 바꾸면 되도록 유지한다. |
-| 후보군 조회 | 후보군 기본 리스트, 추천/배지, 오더 지표 SSE는 분리된 계약이다. |
-| 스냅샷 저장/해제 | PATCH 응답은 최신 `CandidateItemDetail` shape를 반환하는 계약으로 문서화한다. 프론트는 성공 응답을 현재 화면 기준 상태로 삼는다. |
-| 상세 일괄확정 | `startCandidateDetailBulkConfirm`과 `subscribeCandidateDetailBulkConfirm` SSE 계약을 사용한다. job start와 SSE subscribe 모두 같은 단일 `companyUuid`를 전달해야 한다. `updatedItem` 이벤트는 commit/cache 반영 이후 최신 `CandidateItemDetail`이어야 하며 프론트는 이를 로컬 확정 상태로 삼는다. |
-| 산점도 | binning과 cell 집계는 백엔드 책임이다. 프론트는 받은 `cells`와 `meta`로 표시만 한다. |
-| 회사 scope | `getCompanies` 응답은 `uuid`, `name`만 필요하다. 회사 소유 read API와 read-like POST는 단일 회사 선택 시 `companyUuid`를 포함하고, `전체` 선택 시 생략한다. secondary AI comment와 secondary stock order calc는 POST여도 optional scope다. 후보군 mutation payload/params, bulk detail confirm job/SSE, 후보군 LLM comment job/SSE, 오더 지표 SSE는 단일 회사 scope가 필요하며 `전체` 또는 누락 scope로 호출되면 안 된다. HTTP adapter 검증 대상은 query, JSON body, FormData, SSE URL/query의 `companyUuid` 전파를 모두 포함한다. mock도 `companyUuid`를 판매/후보군/오더 지표 분기와 계산에 반영해야 한다. |
-| mock upload scope | 후보군 mock upload는 API 계약을 표현하는 mutation 대체 구현체다. 단일 회사 scope 없이는 성공 응답을 만들면 안 되며, mock seed나 기본 회사로 조용히 대체하지 않는다. |
-
-## 2026-05-22 company scope / failure UX QA 기준
-
-| 구분 | QA 기준 |
-|------|---------|
-| HTTP adapter runtime guard | read API와 read-like POST는 `전체` 선택 시 `companyUuid`를 생략할 수 있다. secondary AI comment와 secondary stock order calc는 이 optional scope에 속한다. mutation/job/SSE/FormData는 단일 회사 UUID가 없으면 요청을 만들면 안 된다. 실패는 기본 회사 fallback이나 빈 성공값이 아니라 명시적 오류로 드러나야 한다. |
-| 2차 드로워 후보군 작업 | 전체 scope에서는 후보군 picker 열기, 후보군 생성, 후보군 item 저장, 상세확정 저장/해제가 진행되면 안 된다. 사용자는 toast로 회사 선택 필요 사유를 확인해야 한다. |
-| 후보군 mock upload | mock upload도 required single company scope mutation이다. `전체` 또는 누락 scope에서 성공처럼 처리하지 않고, 단일 회사 선택 필요 상태를 드러내야 한다. |
-| 추천 append guard | append 결과는 `applied`, `stale`, `empty`로 QA한다. 중복 append busy guard가 동작해야 하며, stash/company/period/item membership mismatch 응답은 사용자-visible 반영 없이 폐기되어야 한다. `empty`는 중복 또는 추가 불가 row를 성공 삽입처럼 보이지 않게 정리해야 한다. |
-| 추천 append 응답 매칭 | append 성공 응답의 신규 후보 item은 요청 당시 recommendation 원본과 매칭되어야 한다. 매칭 불가 응답, 현재 membership과 충돌하는 응답, scope/기간 불일치 응답은 로컬 item 삽입으로 이어지면 안 된다. |
-| 상세 모달 접근성 | parent dialog focus trap, Escape 처리 순서, close 후 focus restore가 유지되어야 한다. 접근성 보강이 들어가더라도 기존 1차/2차 드로워 닫힘 순서와 하위 overlay 우선 닫힘을 깨면 안 된다. |
-| 오더 후보군 목록 전체 scope | 전체 scope에서는 후보군 목록 API를 호출하지 않고 페이지 내부 제한 안내를 표시한다. 라우트에서 강제로 튕기지 않는다. 회사 전환 중 이전 회사의 늦은 목록 응답이 현재 선택 회사 화면을 덮으면 안 되며, scope mismatch 응답은 조용히 무시하는 async stale guard 대상이다. |
-| 오더 후보군 목록 load failure | 목록 로드 실패는 정상 빈 목록과 구분한다. 기존 목록이 있으면 기존 목록을 유지하고 실패 카드와 재시도 버튼을 표시한다. 기존 목록이 없으면 목록을 표시할 수 없다는 실패 빈 상태를 표시한다. |
-| 완료/보류 판단 | 위 기준은 현재 동작 문서 기준이다. TODO-065 범위에서는 테스트/빌드를 실행하지 않았으므로 하드닝 완료 또는 검증 완료로 선언하지 않는다. |
-
-## TODO-111 QA 문서 정합성 메모
-
-- `useCandidateRecommendations` 직접 테스트 추가 사실은 추천 append 상태 계약을 좁게 확인하는 근거로만 기록한다.
-- append 응답 매칭 계약은 API 응답과 프론트 상태 반영의 공동 계약이다. 백엔드 응답이 recommendation 원본과 연결 가능한 후보 item 식별자를 제공하지 않으면 프론트가 성공 삽입으로 보정하지 않는다.
-- 매칭 불가 응답은 append 실패이며, `empty` 또는 `stale`로 보정하지 않는다.
-- missing-state dialog label과 sort accessibility는 현재 QA 기준에 맞춘 보강 항목이다. 이 문서 갱신만으로 해당 UI 영역을 하드닝 완료로 선언하지 않는다.
-- TODO-111 문서 작업에서는 테스트 실행을 하지 않았다.
-
-## 검증 명령
-
-| 명령 | 기준 |
-|------|------|
-| `npm run lint` | 신규 lint 오류가 없어야 한다. |
-| `npm run check:encoding` | 한글 인코딩 문제가 없어야 한다. |
-| `npm run test:run` | Vitest 전체가 통과해야 한다. |
-| `npm run build -- --base=/Estimator/` | GitHub Pages 배포 기준 빌드가 통과해야 한다. |
-| `npm run test:e2e` | 로컬 작업 중에는 사용자가 명시적으로 요청한 경우 실행한다. 현재 기본값은 `@smoke` 태그 기반 빠른 browser smoke다. 전체 browser 회귀는 `npm run test:e2e:full`로 실행한다. Playwright 환경 이슈는 테스트 실패와 구분해 보고한다. |
-| `Dashboard E2E` workflow | GitHub Pages 배포 workflow와 분리된 수동 workflow다. `smoke`, `full`, `admin`, `candidate` 중 하나를 선택한다. 브라우저 설치 비용 때문에 모든 배포를 E2E로 막지 않는다. |
-
-## 변경 시 갱신 규칙
-
-- 화면 흐름, 버튼 위치, 키보드 계약, 로딩/오류 정책이 바뀌면 이 문서를 수정한다.
-- API 요청 순서, 응답 shape, SSE/polling 경계가 바뀌면 이 문서와 `../backend-api/backend-api-spec.md`를 함께 수정한다.
-- 컴포넌트/파일 소유권이 바뀌면 이 문서와 `source-boundary-map.md`를 함께 수정한다.
-- QA 기준과 실제 코드가 다르면 코드 또는 문서 중 하나를 같은 작업 단위에서 반드시 맞춘다.
-
-## Company selector QA criteria
-
-- Company list API 응답은 dropdown 표시와 선택 식별에 필요한 `uuid`, `name`만 요구한다.
-- `uuid`가 없거나 `name`이 표시 불가능한 응답은 정상 dropdown 항목으로 조용히 대체하지 말고 오류 또는 비활성 상태로 드러낸다.
-- `전체` 선택은 `companyUuid` 생략과 동일해야 하며, 백엔드 구현 시 회사 where 조건을 제거하는 계약과 맞아야 한다.
-- 단일 회사 선택 후 분석, 산점도, filter meta, 후보군, 상품 드로워, 2차 드로워, 오더 계산, SSE, mutation 요청은 선택 회사 `uuid`를 포함해야 한다.
-- 후보군 mutation은 `전체` scope에서 기본 회사로 fallback하면 안 되며, UI 차단과 API 검증 실패가 같은 정책을 표현해야 한다.
-- 후보군 오더 지표 hook은 부모가 DI로 넘긴 `companyUuid`를 SSE 구독 요청에 포함해야 하며, hook 내부에서 전역 AuthContext나 company selector를 직접 읽으면 안 된다.
-- 회사 변경 시 기존 async stale guard 원칙을 따른다. 회사 변경 이전 응답이 이후 전역 company 선택 상태를 덮어쓰면 안 된다.
-- 사용자별 회사 접근 권한 부여는 현재 범위가 아니다. 권한 정책이 추가되면 `/companies` 응답 범위와 403 UX를 별도 QA 항목으로 추가한다.
-
-## TODO-065 문서 정합성 메모
-
-- 이 문서는 현재 코드 계약을 반영한다. `테스트/빌드 미실행`은 TODO-065 문서 작업에서 새 검증 명령을 실행하지 않았다는 의미이며, 선행 TODO에서 반영된 코드 변경이 없었다는 뜻이 아니다.
-- product-secondary picker는 회사/sku 변경 중 in-flight 응답이 최신 picker 상태를 덮지 않아야 한다. 실패 시 picker failure control을 유지하고 후보군 mutation 성공 흐름으로 넘어가면 안 된다.
-- SnapshotConfirmPage는 company switch 중 이전 회사 목록 응답을 최신 목록으로 채택하지 않는다. `전체` scope 전환 시에는 후보군 API 호출 대신 제한 안내를 표시한다.
+- Login uses `loginId`.
+- Password reset exposes temporary password only once.
+- GPT and Google Sheet secrets are masked in responses.

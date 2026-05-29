@@ -81,9 +81,8 @@ export function CandidateStashDetailModal({ stashUuid, companyUuid, downloadUser
     if (model.recommendationAppendBusy) return
     const selectedRows = recommendationRows.filter((row) => recommendationSelection.selectedVisibleUuidSet.has(row.uuid))
     void model.appendRecommendedItems(selectedRows).then((result) => {
-      if (result.status === 'stale') return
-      recommendationSelection.clearSelection()
       if (result.status !== 'applied') return
+      recommendationSelection.clearSelection()
       itemSelection.clearSelection()
       setRecommendationOpen(false)
     }).catch(handleActionFailureAlreadyReported)

@@ -23,6 +23,8 @@ type Props = {
   secondary: ProductSecondaryDetail
   periodStart: string
   periodEnd: string
+  selectedStartMonth: string
+  selectedEndMonth: string
   forecastMonths: number
   companyUuid?: string
   selfCompanyLabel: string
@@ -41,6 +43,8 @@ export function ProductSecondaryDrawer({
   secondary,
   periodStart,
   periodEnd,
+  selectedStartMonth,
+  selectedEndMonth,
   forecastMonths,
   companyUuid,
   selfCompanyLabel,
@@ -74,12 +78,10 @@ export function ProductSecondaryDrawer({
   }, [channelId, competitorChannels])
 
   const {
-    aiPrompt,
     aiComment,
     aiCommentLoading,
     aiCommentError,
     requestAiComment,
-    setAiPrompt,
     setAiComment,
   } = useSecondaryAiCommentState({
     pageName,
@@ -87,6 +89,7 @@ export function ProductSecondaryDrawer({
     periodStart,
     periodEnd,
     forecastMonths,
+    companyUuid,
     channel,
     candidateItemContext,
   })
@@ -101,7 +104,6 @@ export function ProductSecondaryDrawer({
     onChannelChange,
     setCurrentOrderInboundDueDate,
     setNextOrderInboundDueDate,
-    setAiPrompt,
     setAiComment,
     resetInboundDueDatesToLive,
   })
@@ -138,6 +140,8 @@ export function ProductSecondaryDrawer({
     pageName,
     periodStart,
     periodEnd,
+    selectedStartMonth,
+    selectedEndMonth,
     forecastMonths,
     companyUuid,
     prefillFromSnapshot,
@@ -157,7 +161,6 @@ export function ProductSecondaryDrawer({
     unitPriceInput,
     unitCostInput,
     expectedFeeRatePct,
-    aiPrompt,
     aiComment,
     hasSavedSnapshot,
     showToast,

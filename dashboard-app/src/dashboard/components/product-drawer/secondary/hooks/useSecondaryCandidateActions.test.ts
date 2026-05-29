@@ -90,7 +90,7 @@ function makeSnapshot(overrides: Record<string, unknown> = {}) {
       unitEconomics: { unitPrice: 1000, unitCost: 700, expectedFeeRatePct: 13 },
       selfWeightPct: 50,
       bufferStock: 0,
-      aiComment: { prompt: '', answer: '' },
+      aiComment: { prompt: '', answer: '', generatedAt: null },
       confirmedTotals: {
         orderQty: 1,
         expectedSalesAmount: 1000,

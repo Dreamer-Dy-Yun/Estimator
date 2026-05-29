@@ -1,33 +1,45 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   dashboardApi,
   type ProductSalesInsight,
   type SecondaryCompetitorChannel,
 } from '../../../../../api'
 import type { ApiUnitErrorInfo, ProductPrimarySummary } from '../../../../../types'
-import { monthToEndDate, monthToStartDate } from '../../../../../utils/date'
 
 type Params = {
   primary: ProductPrimarySummary
   channel: SecondaryCompetitorChannel
-  selectedStart: string
-  selectedEnd: string
+  periodStart: string
+  periodEnd: string
   companyUuid?: string
   makeApiErrorInfo: (request: string, err: unknown) => ApiUnitErrorInfo
+}
+
+type SalesInsightState = {
+  requestKey: string
+  result: ProductSalesInsight
 }
 
 export function useSecondarySalesInsight({
   primary,
   channel,
-  selectedStart,
-  selectedEnd,
+  periodStart,
+  periodEnd,
   companyUuid,
   makeApiErrorInfo,
 }: Params) {
   const requestSeqRef = useRef(0)
-  const [salesInsight, setSalesInsight] = useState<ProductSalesInsight | null>(null)
+  const requestKey = useMemo(() => JSON.stringify({
+    skuGroupKey: primary.skuGroupKey,
+    companyUuid: companyUuid ?? '',
+    periodStart,
+    periodEnd,
+    competitorChannelId: channel.id,
+  }), [channel.id, companyUuid, periodEnd, periodStart, primary.skuGroupKey])
+  const [salesInsightState, setSalesInsightState] = useState<SalesInsightState | null>(null)
   const [salesInsightError, setSalesInsightError] = useState<ApiUnitErrorInfo | null>(null)
   const [salesInsightLoading, setSalesInsightLoading] = useState(true)
+  const salesInsight = salesInsightState?.requestKey === requestKey ? salesInsightState.result : null
 
   useEffect(() => {
     return () => {
@@ -45,23 +57,23 @@ export function useSecondarySalesInsight({
     void (async () => {
       try {
         const result = await dashboardApi.getProductSalesInsight(primary.skuGroupKey, {
-          startDate: monthToStartDate(selectedStart),
-          endDate: monthToEndDate(selectedEnd),
+          startDate: periodStart,
+          endDate: periodEnd,
           companyUuid,
           competitorChannelId: channel.id,
         })
         if (!alive || requestSeqRef.current !== reqSeq) return
-        setSalesInsight(result)
+        setSalesInsightState({ requestKey, result })
         setSalesInsightError(null)
       } catch (err) {
         if (!alive || requestSeqRef.current !== reqSeq) return
-        setSalesInsight(null)
+        setSalesInsightState(null)
         setSalesInsightError(
           makeApiErrorInfo(
             `getProductSalesInsight(${JSON.stringify({
               skuGroupKey: primary.skuGroupKey,
-              startDate: monthToStartDate(selectedStart),
-              endDate: monthToEndDate(selectedEnd),
+              startDate: periodStart,
+              endDate: periodEnd,
               companyUuid,
               competitorChannelId: channel.id,
             })})`,
@@ -75,7 +87,7 @@ export function useSecondarySalesInsight({
     return () => {
       alive = false
     }
-  }, [channel.id, companyUuid, makeApiErrorInfo, primary.skuGroupKey, selectedEnd, selectedStart])
+  }, [channel.id, companyUuid, makeApiErrorInfo, periodEnd, periodStart, primary.skuGroupKey, requestKey])
 
   return {
     selfCol: salesInsight?.self ?? null,

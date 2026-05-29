@@ -2,7 +2,7 @@ import type { ReactNode } from 'react'
 import type { SecondaryCompetitorChannel } from '../../../../../api'
 import { ApiUnitErrorBadge } from '../../../../../components/ApiUnitErrorBadge'
 import type { ApiUnitErrorInfo } from '../../../../../types'
-import { formatGroupedNumber, formatPercent } from '../../../../../utils/format'
+import { displayNumber, formatGroupedNumber, formatPercent } from '../../../../../utils/format'
 import type { SalesKpiColumn } from '../../../../../utils/salesKpiColumn'
 import { KO } from '../../ko'
 import styles from '../../secondary/secondaryDrawer.module.css'
@@ -29,7 +29,7 @@ const primaryValue = (value: string) => <span className={styles.salesMetricPrima
 const formatRank = (rank: number | null, total: number) => (rank === null ? '-' : `${rank}/${total}${KO.rankSuffix}`)
 const rankMetric = (value: string, rank: number, total: number) => <>{primaryValue(value)} ({formatRank(rank, total)})</>
 const costMetric = (avgCost: number | null, costRatioPct: number | null) => (
-  avgCost === null || costRatioPct === null ? '-' : <>{primaryValue(formatGroupedNumber(avgCost))} ({formatPercent(costRatioPct)})</>
+  avgCost === null || costRatioPct === null ? '-' : <>{primaryValue(displayNumber.money(avgCost))} ({formatPercent(costRatioPct)})</>
 )
 const rateRank = (ratePct: number | null, rank: number | null, total: number) => (
   ratePct === null || rank === null ? '-' : <>{primaryValue(formatPercent(ratePct))} ({formatRank(rank, total)})</>
@@ -38,9 +38,9 @@ const rateRank = (ratePct: number | null, rank: number | null, total: number) =>
 export function SalesMetricsCard({ targetPeriodDays, sales, selfCompanyLabel, channelFilter }: Props) {
   const { channelLabel, self, competitor } = sales
   const rows: MetricRow[] = [
-    { key: 'avgPrice', label: KO.rowAvgPrice, self: primaryValue(formatGroupedNumber(self.avgPrice)), competitor: primaryValue(formatGroupedNumber(competitor.avgPrice)) },
+    { key: 'avgPrice', label: KO.rowAvgPrice, self: primaryValue(displayNumber.money(self.avgPrice)), competitor: primaryValue(displayNumber.money(competitor.avgPrice)) },
     { key: 'qtyRank', label: KO.rowQtyRank, self: rankMetric(formatGroupedNumber(self.qty), self.qtyRank, self.rankTotal), competitor: rankMetric(formatGroupedNumber(competitor.qty), competitor.qtyRank, competitor.rankTotal) },
-    { key: 'amountRank', label: KO.rowAmountRank, self: rankMetric(formatGroupedNumber(self.amount), self.amountRank, self.rankTotal), competitor: rankMetric(formatGroupedNumber(competitor.amount), competitor.amountRank, competitor.rankTotal) },
+    { key: 'amountRank', label: KO.rowAmountRank, self: rankMetric(displayNumber.money(self.amount), self.amountRank, self.rankTotal), competitor: rankMetric(displayNumber.money(competitor.amount), competitor.amountRank, competitor.rankTotal) },
     { key: 'avgCost', label: KO.rowAvgCost, self: costMetric(self.avgCost, self.costRatioPct), competitor: costMetric(competitor.avgCost, competitor.costRatioPct), competitorUnavailable: competitor.avgCost === null },
     { key: 'fee', label: KO.rowFee, self: rateRank(self.feeRatePct, self.feeRank, self.rankTotal), competitor: rateRank(competitor.feeRatePct, competitor.feeRank, competitor.rankTotal), competitorUnavailable: competitor.feeRatePct === null || competitor.feeRank === null },
     { key: 'opMargin', label: KO.rowOpMargin, self: rateRank(self.opMarginRatePct, self.opMarginRank, self.rankTotal), competitor: rateRank(competitor.opMarginRatePct, competitor.opMarginRank, competitor.rankTotal), competitorUnavailable: competitor.opMarginRatePct === null || competitor.opMarginRank === null },

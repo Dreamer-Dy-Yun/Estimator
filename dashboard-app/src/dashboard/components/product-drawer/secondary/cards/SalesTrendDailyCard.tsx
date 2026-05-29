@@ -2,7 +2,6 @@ import { useMemo, useState } from 'react'
 import { SalesTrendChart, type TrendShade } from '../../../trend/SalesTrendChart'
 import { ApiUnitErrorBadge } from '../../../../../components/ApiUnitErrorBadge'
 import { LoadingSpinner } from '../../../../../components/LoadingSpinner'
-import { DAILY_TREND_AS_OF_DATE } from '../../../../../api'
 import type { SecondaryDailyTrendPoint } from '../../../../../api/types'
 import type { ApiUnitErrorInfo } from '../../../../../types'
 import { formatGroupedNumber } from '../../../../../utils/format'
@@ -54,17 +53,18 @@ export function SalesTrendDailyCard({ skuGroupKey, selfCompanyLabel, competitorC
     return trend.series.map((p) => ({
       ...p,
       sales: Math.max(0, Math.round(p.sales * share)),
+      selfSales: p.selfSales == null ? p.selfSales : Math.max(0, Math.round(p.selfSales * share)),
+      competitorSales: p.competitorSales == null ? p.competitorSales : Math.max(0, Math.round(p.competitorSales * share)),
       stockBar: Math.max(0, Math.round(p.stockBar * share)),
       inboundAccumBar: Math.max(0, Math.round(p.inboundAccumBar * share)),
     }))
   }, [trend.series, selectedSizeId, sizeOptions])
 
   const chartSeries = useMemo(() => {
-    const firstFutureIdx = scaledSeries.findIndex((p) => p.date > DAILY_TREND_AS_OF_DATE)
+    const firstForecastIdx = scaledSeries.findIndex((p) => p.isForecast)
     return scaledSeries.map((p, idx) => {
-      const isFuture = p.date > DAILY_TREND_AS_OF_DATE
-      const bridge = firstFutureIdx !== -1 && (idx === firstFutureIdx - 1 || isFuture)
-      return { ...p, salesActual: isFuture ? null : p.sales, salesForecast: bridge ? p.sales : null }
+      const bridge = firstForecastIdx !== -1 && (idx === firstForecastIdx - 1 || p.isForecast)
+      return { ...p, salesActual: p.isForecast ? null : p.sales, salesForecast: bridge ? p.sales : null }
     })
   }, [scaledSeries])
 

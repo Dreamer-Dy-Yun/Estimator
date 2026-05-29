@@ -171,14 +171,14 @@ export function appendCandidateItemRecord(payload: AppendCandidateItemPayload, o
 export function appendCandidateItemsToStash(payload: AppendCandidateItemsPayload, ownerUserUuid?: string, companyUuid?: string): AppendCandidateItemsResponse {
   requireCandidateStashForMutation(payload.stashUuid, ownerUserUuid, companyUuid)
   const records = readCandidateItemRecords()
-  const existingSkuSet = new Set(records.filter((row) => row.stashUuid === payload.stashUuid).map((row) => row.skuUuid))
+  const existingSkuGroupKeySet = new Set(records.filter((row) => row.stashUuid === payload.stashUuid).map((row) => row.skuGroupKey))
   const now = new Date().toISOString()
   const createdItems = requireSkuGroupKeys(payload.skuGroupKeys)
-    .filter((skuGroupKey) => !existingSkuSet.has(skuGroupKey))
+    .filter((skuGroupKey) => !existingSkuGroupKeySet.has(skuGroupKey))
     .map((skuGroupKey) => {
       const created = createItem(payload.stashUuid, skuGroupKey, now)
       records.push(created)
-      existingSkuSet.add(skuGroupKey)
+      existingSkuGroupKeySet.add(skuGroupKey)
       return created
     })
   return { candidateItems: buildCandidateStashItems(createdItems) }

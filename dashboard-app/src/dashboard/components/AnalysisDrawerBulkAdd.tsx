@@ -5,6 +5,7 @@ import { ProductDrawer } from './product-drawer/ProductDrawer'
 type ProductDrawerProps = ComponentProps<typeof ProductDrawer>
 type Props = Pick<ProductDrawerProps, 'summary' | 'loading' | 'periodStart' | 'periodEnd' | 'companyUuid' | 'forecastMonths' | 'selfCompanyLabel' | 'onForecastMonthsChange' | 'onRequestNavigateAdjacent'> & {
   openSkuGroupKeys: string[]
+  competitorChannelId?: string
   bulkAddOpen: boolean
   onCloseDrawer: () => void
   onCloseBulkAdd: () => void
@@ -22,6 +23,7 @@ export function AnalysisDrawerBulkAdd({
   onForecastMonthsChange,
   onRequestNavigateAdjacent,
   openSkuGroupKeys,
+  competitorChannelId,
   bulkAddOpen,
   onCloseDrawer,
   onCloseBulkAdd,
@@ -48,6 +50,7 @@ export function AnalysisDrawerBulkAdd({
         periodStart={periodStart}
         periodEnd={periodEnd}
         companyUuid={companyUuid}
+        competitorChannelId={competitorChannelId}
         forecastMonths={forecastMonths}
         onClose={onCloseBulkAdd}
         onDone={onBulkAddDone}

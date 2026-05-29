@@ -27,13 +27,18 @@ export interface OrderSnapshotUnitEconomicsV2 {
   expectedFeeRatePct: OrderSnapshotPercent
 }
 
+export interface OrderSnapshotStockOrderDisplaySizeRowV2 {
+  size: string
+  currentStockQty: number
+  totalOrderBalance: number
+  expectedInboundOrderBalance: number
+}
+
 export interface OrderSnapshotStockOrderDisplayV2 {
   currentStockQtyTotal: number
   totalOrderBalanceTotal: number
   expectedInboundOrderBalanceTotal: number
-  currentStockQtyBySize: number[]
-  totalOrderBalanceBySize: number[]
-  expectedInboundOrderBalanceBySize: number[]
+  sizeRows: OrderSnapshotStockOrderDisplaySizeRowV2[]
 }
 
 export interface OrderSnapshotStockOrderRequestV2 {
@@ -63,7 +68,7 @@ export interface OrderSnapshotStockOrderResultV2 {
   trendDailyMean: number
   dailyMean: number
   sigma: number
-  /** Size-array fields are copied on snapshot restore to avoid mutating cached drawer state. */
+  /** Size-keyed display rows are copied on snapshot restore to avoid mutating cached drawer state. */
   display: OrderSnapshotStockOrderDisplayV2
   safetyStockCalc: OrderSnapshotStockOrderSafetyBlockV2
   forecastQtyCalc: OrderSnapshotStockOrderForecastBlockV2
@@ -72,6 +77,7 @@ export interface OrderSnapshotStockOrderResultV2 {
 export interface OrderSnapshotAiCommentV2 {
   prompt: string
   answer: string
+  generatedAt: string | null
 }
 
 /** Explicit primary fields persisted by snapshot v2. Heavy source fields must be reloaded from the product bundle. */
@@ -123,12 +129,19 @@ export function createOrderSnapshotStockOrderResult(result: OrderSnapshotStockOr
     ...result,
     display: {
       ...display,
-      currentStockQtyBySize: [...display.currentStockQtyBySize],
-      totalOrderBalanceBySize: [...display.totalOrderBalanceBySize],
-      expectedInboundOrderBalanceBySize: [...display.expectedInboundOrderBalanceBySize],
+      sizeRows: display.sizeRows.map((row) => ({ ...row })),
     },
     safetyStockCalc: { ...result.safetyStockCalc },
     forecastQtyCalc: { ...result.forecastQtyCalc },
+  }
+}
+
+export function createOrderSnapshotAiComment(aiComment: OrderSnapshotAiCommentV2): OrderSnapshotAiCommentV2 {
+  const { prompt, answer, generatedAt } = aiComment
+  return {
+    prompt,
+    answer,
+    generatedAt,
   }
 }
 
