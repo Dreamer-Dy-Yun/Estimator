@@ -6,6 +6,9 @@ import {
 } from './forecastMonthsStorage'
 
 describe('forecastMonthsStorage', () => {
+  const storageKey = 'han.dashboard.salesTrendForecastMonths.v2'
+  const legacyStorageKey = 'han.dashboard.salesTrendForecastMonths'
+
   afterEach(() => {
     vi.unstubAllGlobals()
   })
@@ -34,7 +37,7 @@ describe('forecastMonthsStorage', () => {
         store.set(k, v)
       },
     })
-    store.set('han.dashboard.salesTrendForecastMonths', '25')
+    store.set(storageKey, '25')
     expect(readForecastMonthsFromStorage()).toBe(12)
   })
 
@@ -47,9 +50,9 @@ describe('forecastMonthsStorage', () => {
         store.set(k, v)
       },
     })
-    store.set('han.dashboard.salesTrendForecastMonths', 'abc')
+    store.set(storageKey, 'abc')
     expect(readForecastMonthsFromStorage()).toBe(12)
-    store.set('han.dashboard.salesTrendForecastMonths', '')
+    store.set(storageKey, '')
     expect(readForecastMonthsFromStorage()).toBe(12)
   })
 
@@ -62,7 +65,20 @@ describe('forecastMonthsStorage', () => {
         store.set(k, v)
       },
     })
-    store.set('han.dashboard.salesTrendForecastMonths', '12.7')
+    store.set(storageKey, '12.7')
+    expect(readForecastMonthsFromStorage()).toBe(12)
+  })
+
+  it('ignores legacy stored values so the initial monthly forecast stays 12', () => {
+    const store = new Map<string, string>()
+    vi.stubGlobal('window', {})
+    vi.stubGlobal('localStorage', {
+      getItem: (k: string) => store.get(k) ?? null,
+      setItem: (k: string, v: string) => {
+        store.set(k, v)
+      },
+    })
+    store.set(legacyStorageKey, '8')
     expect(readForecastMonthsFromStorage()).toBe(12)
   })
 
@@ -86,7 +102,7 @@ describe('forecastMonthsStorage', () => {
       },
     })
     writeForecastMonthsToStorage(25.2)
-    expect(written).toEqual([['han.dashboard.salesTrendForecastMonths', '12']])
+    expect(written).toEqual([[storageKey, '12']])
 
     vi.stubGlobal('localStorage', {
       getItem: () => null,

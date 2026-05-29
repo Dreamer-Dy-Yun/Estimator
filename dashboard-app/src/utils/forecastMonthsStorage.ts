@@ -1,4 +1,4 @@
-const STORAGE_KEY = 'han.dashboard.salesTrendForecastMonths'
+const STORAGE_KEY = 'han.dashboard.salesTrendForecastMonths.v2'
 export const DEFAULT_FORECAST_MONTHS = 12
 export const MIN_FORECAST_MONTHS = 1
 export const MAX_FORECAST_MONTHS = 12
