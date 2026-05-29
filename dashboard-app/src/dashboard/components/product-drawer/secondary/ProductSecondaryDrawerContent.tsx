@@ -191,7 +191,12 @@ export function ProductSecondaryDrawerContent({
           <>
             {hid === 'confirmOrder' && <p>{KO.hintSnapshot}</p>}
             {hid === 'forecastQtyCalc' && <p>{KO.helpForecastQtyCalc}</p>}
-            {hid === 'expectedOpProfitRate' && <BlockMath math={KO.helpExpectedOpProfitRateLatex} />}
+            {hid === 'expectedOpProfitRate' && (
+              <>
+                <BlockMath math={KO.helpExpectedOpProfitRateLatex} />
+                <p>{KO.helpExpectedOpProfitRateLegend}</p>
+              </>
+            )}
             {hid === 'totalOrderBalance' && <p>{KO.helpTotalOrderBalance}</p>}
             {hid === 'expectedInboundOrderBalance' && <p>{KO.helpExpectedInboundOrderBalance}</p>}
             {hid === 'sizeRecQty' && <p>{KO.helpSizeRecQty}</p>}
