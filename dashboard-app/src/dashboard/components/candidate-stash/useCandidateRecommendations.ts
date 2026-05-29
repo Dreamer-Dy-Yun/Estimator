@@ -213,7 +213,6 @@ export function useCandidateRecommendations({
     currentRecommendationKey,
     dataReferencePeriodEnd,
     dataReferencePeriodStart,
-    itemsRef,
     mountedRef,
     onRecommendedItemsAppended,
     refreshStashes,

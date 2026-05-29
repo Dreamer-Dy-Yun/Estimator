@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { getCompetitorSales, getCompetitorSalesScatterGrid, getSecondaryCompetitorChannels } from '../../api'
 import type { ScatterSalesGridResponse, SecondaryCompetitorChannel } from '../../api/types'
 import { LoadingSpinner } from '../../components/LoadingSpinner'
@@ -40,12 +40,8 @@ export const CompetitorPage = () => {
     () => competitorChannelId ? channels.find((ch) => ch.id === competitorChannelId) : undefined,
     [channels, competitorChannelId],
   )
+  const activeCompetitorChannelId = selectedCompetitorChannel?.id
   const competitorChannelLabel = selectedCompetitorChannel?.label ?? ALL_CHANNEL_LABEL
-  useEffect(() => {
-    if (competitorChannelId && !channels.some((ch) => ch.id === competitorChannelId)) {
-      setCompetitorChannelId(undefined)
-    }
-  }, [channels, competitorChannelId])
   const onCompetitorChannelChange = useCallback((label: string) => {
     if (label === ALL_CHANNEL_LABEL) {
       setCompetitorChannelId(undefined)
@@ -53,7 +49,7 @@ export const CompetitorPage = () => {
     }
     setCompetitorChannelId(channels.find((ch) => ch.label === label)?.id)
   }, [channels])
-  const salesParams = useMemo(() => ({ ...filters.salesParams, competitorChannelId }), [competitorChannelId, filters.salesParams])
+  const salesParams = useMemo(() => ({ ...filters.salesParams, competitorChannelId: activeCompetitorChannelId }), [activeCompetitorChannelId, filters.salesParams])
   const analysisRequestKey = useMemo(() => buildAnalysisSalesRequestKey(salesParams), [salesParams])
   const loadRows = useCallback(() => getCompetitorSales(salesParams), [salesParams])
   const loadScatterGrid = useCallback(() => getCompetitorSalesScatterGrid(salesParams), [salesParams])
@@ -174,7 +170,7 @@ export const CompetitorPage = () => {
         periodStart={filters.appliedPeriodStartDate}
         periodEnd={filters.appliedPeriodEndDate}
         companyUuid={common.companyUuid}
-        competitorChannelId={competitorChannelId}
+        competitorChannelId={activeCompetitorChannelId}
         forecastMonths={common.forecastMonths}
         selfCompanyLabel={common.selfCompanyLabel}
         onForecastMonthsChange={common.onForecastMonthsChange}
