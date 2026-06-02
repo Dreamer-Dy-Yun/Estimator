@@ -14,6 +14,7 @@ type AnalysisPeriodToolsProps = {
   onPeriodBarStart: (value: number) => void
   onPeriodBarEnd: (value: number) => void
   endControl?: ReactNode
+  hidePresetButtons?: boolean
 }
 
 export function AnalysisPeriodTools({
@@ -29,17 +30,21 @@ export function AnalysisPeriodTools({
   onPeriodBarStart,
   onPeriodBarEnd,
   endControl,
+  hidePresetButtons = false,
 }: AnalysisPeriodToolsProps) {
   return (
     <div className={styles.periodTools}>
       <div className={styles.periodPresetRow}>
-        <div className={styles.periodPresetButtonGroup}>
-          <button type="button" onClick={() => setPresetMonths(1)}>최근 1개월</button>
-          <button type="button" onClick={() => setPresetMonths(3)}>최근 3개월</button>
-          <button type="button" onClick={() => setPresetMonths(6)}>최근 6개월</button>
-          <button type="button" onClick={() => setPresetMonths(12)}>최근 1년</button>
-          <button type="button" onClick={setWholeRange}>전체</button>
-          <button type="button" onClick={onTogglePeriodBar}>
+        <div
+          className={`${styles.periodPresetButtonGroup} ${hidePresetButtons ? styles.periodPresetButtonGroupHidden : ''}`}
+          aria-hidden={hidePresetButtons || undefined}
+        >
+          <button type="button" onClick={() => setPresetMonths(1)} disabled={hidePresetButtons} tabIndex={hidePresetButtons ? -1 : undefined}>최근 1개월</button>
+          <button type="button" onClick={() => setPresetMonths(3)} disabled={hidePresetButtons} tabIndex={hidePresetButtons ? -1 : undefined}>최근 3개월</button>
+          <button type="button" onClick={() => setPresetMonths(6)} disabled={hidePresetButtons} tabIndex={hidePresetButtons ? -1 : undefined}>최근 6개월</button>
+          <button type="button" onClick={() => setPresetMonths(12)} disabled={hidePresetButtons} tabIndex={hidePresetButtons ? -1 : undefined}>최근 1년</button>
+          <button type="button" onClick={setWholeRange} disabled={hidePresetButtons} tabIndex={hidePresetButtons ? -1 : undefined}>전체</button>
+          <button type="button" onClick={onTogglePeriodBar} disabled={hidePresetButtons} tabIndex={hidePresetButtons ? -1 : undefined}>
             {showPeriodBar ? '기간 바 닫기' : '기간 바 열기'}
           </button>
         </div>

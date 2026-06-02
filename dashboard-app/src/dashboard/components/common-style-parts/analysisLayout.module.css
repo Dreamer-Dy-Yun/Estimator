@@ -119,6 +119,8 @@
     "filters filters";
   gap: 8px;
   align-items: stretch;
+  box-sizing: border-box;
+  padding-left: calc(clamp(230px, 24vw, 280px) + 12px);
 }
 
 .analysisControlCard {
@@ -147,7 +149,7 @@
   display: flex;
   align-items: stretch;
   justify-content: flex-end;
-  min-width: 188px;
+  min-width: 113px;
 }
 
 .analysisListActionCard .analysisControlActions {
@@ -335,6 +337,7 @@
       "query"
       "filters"
       "actions";
+    padding-left: 0;
   }
 
   .analysisListFilterCard > .filter,

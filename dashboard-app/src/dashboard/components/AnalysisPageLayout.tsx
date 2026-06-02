@@ -24,6 +24,7 @@ export type AnalysisPeriodFrameProps = {
   queryEndControl: ReactNode
   listFilterEndContent?: ReactNode
   listActionContent?: ReactNode
+  hidePeriodPresetButtons?: boolean
   setPresetMonths: (months: number) => void
   setWholeRange: () => void
   onResetListFilters: () => void
@@ -52,6 +53,7 @@ export function AnalysisPageLayout(props: AnalysisPeriodFrameProps) {
     queryEndControl,
     listFilterEndContent,
     listActionContent,
+    hidePeriodPresetButtons,
     setPresetMonths,
     setWholeRange,
     onResetListFilters,
@@ -78,6 +80,7 @@ export function AnalysisPageLayout(props: AnalysisPeriodFrameProps) {
             onPeriodBarStart={onPeriodBarStart}
             onPeriodBarEnd={onPeriodBarEnd}
             endControl={queryEndControl}
+            hidePresetButtons={hidePeriodPresetButtons}
           />
         </section>
         <section className={`${styles.card} ${styles.analysisControlCard} ${styles.analysisListFilterCard}`} aria-label="목록 필터">

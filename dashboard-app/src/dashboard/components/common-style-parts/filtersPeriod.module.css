@@ -120,6 +120,7 @@
 
 .analysisQueryControlCard .periodPresetRowEndGroup .analysisBulkAddButton {
   height: 100%;
+  min-width: 101px;
   min-height: 30px;
 }
 
@@ -186,6 +187,11 @@
   min-width: 0;
   padding: 0;
   box-sizing: border-box;
+}
+
+.periodPresetButtonGroupHidden {
+  visibility: hidden;
+  pointer-events: none;
 }
 
 .periodPresetRow button,
@@ -294,7 +300,7 @@
 
 .analysisBulkAddButton {
   height: 32px;
-  min-width: 168px;
+  min-width: 101px;
   padding: 5px 12px;
   box-sizing: border-box;
   white-space: nowrap;

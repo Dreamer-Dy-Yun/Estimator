@@ -135,7 +135,7 @@ export const CompetitorPage = () => {
                 checked={showRowsWithSelfSalesOnly}
                 onChange={(event) => setShowRowsWithSelfSalesOnly(event.target.checked)}
               />
-              <span title="자사 판매량이 존재하는 경우만 표시합니다.">자사 기준으로 보기</span>
+              <span title="자사 판매량이 존재하는 경우만 표시합니다.">자사기준보기</span>
             </label>
           </>
         )}
@@ -150,6 +150,7 @@ export const CompetitorPage = () => {
             후보군으로
           </button>
         )}
+        hidePeriodPresetButtons={selection.selectedSkuGroupKey != null}
         onResetListFilters={resetListFilters}
         leftPanel={(
           <>

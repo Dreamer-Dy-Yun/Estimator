@@ -105,6 +105,7 @@ export const SelfPage = () => {
             후보군으로
           </button>
         )}
+        hidePeriodPresetButtons={selection.selectedSkuGroupKey != null}
         onResetListFilters={filters.resetListFilters}
         leftPanel={(
           <>
