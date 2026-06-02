@@ -145,13 +145,13 @@
 .analysisListActionCard {
   grid-area: actions;
   display: flex;
-  align-items: flex-end;
+  align-items: stretch;
   justify-content: flex-end;
   min-width: 188px;
 }
 
 .analysisListActionCard .analysisControlActions {
-  align-items: flex-end;
+  align-items: stretch;
 }
 
 .analysisListFilterCard > .filter {
