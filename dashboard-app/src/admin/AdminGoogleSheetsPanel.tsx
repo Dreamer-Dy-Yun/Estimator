@@ -78,7 +78,7 @@ export function AdminGoogleSheetsPanel() {
         title="구글 시트"
         countLabel={`${configs.length}개`}
         headerClassName={styles.googleSheetTableHeader}
-        columns={['자사', '이름', '용도', '서비스 계정', '시트', '상태', '이동']}
+        columns={['자사', '이름', '용도', '서비스 계정', '시트', '상태', '변경일', '이동']}
         loadingLabel="구글 시트 설정 로딩 중"
         isLoading={isLoading}
         errorMessage={errorMessage}

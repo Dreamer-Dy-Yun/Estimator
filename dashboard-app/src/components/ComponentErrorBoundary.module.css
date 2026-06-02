@@ -1,0 +1,8 @@
+.fallback {
+  padding: 10px;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  background: #fff1f2;
+  color: #7f1d1d;
+  font-size: 12px;
+}

@@ -35,7 +35,6 @@ type Props<TPoint extends AnalysisScatterGridPointBase> = {
 
 const SCATTER_CHART_MARGIN = { top: 8, right: 8, bottom: 22, left: 8 }
 const AXIS_TICK_STYLE = { fontSize: 10 }
-const POINT_CURSOR_STYLE = { cursor: 'pointer' }
 const DEFAULT_AXIS_LABEL_COLOR = '#475569'
 
 export function AnalysisScatterChartCard<TPoint extends AnalysisScatterGridPointBase>({
@@ -105,7 +104,7 @@ export function AnalysisScatterChartCard<TPoint extends AnalysisScatterGridPoint
           fill={payload.color}
           stroke={isActive ? '#0f172a' : '#ffffff'}
           strokeWidth={isActive ? 1.75 : 0.75}
-          style={POINT_CURSOR_STYLE}
+          className={styles.scatterClickablePoint}
           onClick={handlePointClick}
         />
       )

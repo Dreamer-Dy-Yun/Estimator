@@ -18,6 +18,7 @@ Shared modules provide reusable UI shells, hooks, pure models, snapshot helpers,
 | `src/dashboard/components/DashboardRequestStatus.tsx` | Compact request status for stale, refreshing, and failed data. |
 | `src/dashboard/components/ConfirmModal.tsx` | Confirmation modal shell with focus management. |
 | `src/dashboard/components/useModalFocusTrap.ts` | Modal focus trap, Escape close, and focus restore helper. |
+| `src/dashboard/components/common.module.css` | Dashboard shared CSS facade. Components import this entry, not `common-style-parts/**`. |
 
 ## Shared hooks
 
@@ -53,3 +54,4 @@ Shared modules provide reusable UI shells, hooks, pure models, snapshot helpers,
 - Refresh indicators must not block user interaction unless the underlying action is destructive or modal-scoped.
 - Do not move feature-specific calculation into `src/utils`; keep it near the feature model or API contract.
 - If a shared module behavior changes, update the owning boundary document and focused tests.
+- Static visual style belongs in CSS Modules. Runtime coordinates, column widths, alignment, and data-driven colors may remain inline.

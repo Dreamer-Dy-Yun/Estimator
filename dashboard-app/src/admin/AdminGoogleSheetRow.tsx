@@ -38,23 +38,20 @@ export function AdminGoogleSheetRow({ config, onOpen }: AdminGoogleSheetRowProps
         <span>{config.companyName}</span>
         <span className={styles.gptKeyNameCell}>
           <strong>{config.name}</strong>
-          {config.note ? <small>{config.note}</small> : null}
         </span>
         <span>{getOptionLabel(GOOGLE_SHEET_PURPOSE_OPTIONS, config.purpose)}</span>
         <span className={styles.gptKeyNameCell}>
           <strong>{config.serviceAccountEmail}</strong>
-          <small>{config.maskedServiceAccountKey}</small>
         </span>
         <span className={styles.gptKeyNameCell}>
           <strong>{config.spreadsheetId}</strong>
-          <small>{config.spreadsheetUrl}</small>
         </span>
         <span className={styles.statusCell}>
           <span className={`${styles.statusPill} ${config.isActive ? styles.status_success : styles.status_failed}`}>
             {config.isActive ? '활성' : '비활성'}
           </span>
-          <small>{formatUpdatedAt(config.dbUpdatedAt)}</small>
         </span>
+        <span className={styles.updatedCell}>{formatUpdatedAt(config.dbUpdatedAt)}</span>
       </button>
       <span className={styles.actionCell}>
         <button

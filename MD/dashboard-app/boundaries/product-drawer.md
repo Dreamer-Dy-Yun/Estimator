@@ -58,3 +58,10 @@ Product drawer owns primary summary display, secondary detail display, secondary
 - Read-like drawer APIs may omit `companyUuid` for all-company reads.
 - Candidate detail drawer opened from a single-company candidate keeps the same `companyUuid` through reads and mutations.
 - Secondary mutations require concrete `companyUuid`.
+
+## Style boundaries
+
+- Primary drawer components must not import `secondary/secondaryDrawer.module.css`.
+- `primary/cards/SalesMetricsCard.module.css` owns the primary sales metrics card styles.
+- `secondary/secondaryDrawer.module.css` is the secondary drawer public style facade.
+- `secondary/style-parts/**` files are internal to the secondary facade and must not be imported directly from primary components.

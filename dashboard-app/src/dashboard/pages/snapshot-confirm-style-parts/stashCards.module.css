@@ -9,6 +9,17 @@
   align-items: center;
 }
 
+.stashCardButton {
+  display: grid;
+  gap: 6px;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+
 .stashCardActions {
   display: flex;
   align-items: center;

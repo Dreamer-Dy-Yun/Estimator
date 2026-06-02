@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import commonStyles from '../dashboard/components/common.module.css'
 import { AdminGoogleSheetsPanel } from './AdminGoogleSheetsPanel'
 import { AdminGptKeysPanel } from './AdminGptKeysPanel'
 import { AdminUsersPanel } from './AdminUsersPanel'
@@ -24,7 +23,7 @@ export function AdminPage() {
   const headerMeta = HEADER_META[activeTab]
 
   return (
-    <section className={`${commonStyles.page} ${styles.adminPage}`}>
+    <section className={styles.adminPage}>
       <header className={styles.header}>
         <div>
           <div className={styles.headerActionRow}>

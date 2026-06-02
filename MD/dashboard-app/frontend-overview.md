@@ -4,39 +4,42 @@ Last updated: 2026-06-02
 
 ## Purpose
 
-The app analyzes self and competitor sales, opens product drawers for order planning, stores selected order candidates, and saves detail snapshots for candidate items.
+이 앱은 자사/경쟁사 분석, 상품드로워 기반 주문계획, 후보군 관리, 스냅샷 저장/복원을 제공합니다.
 
 ## Main flows
 
-- Login loads session and company list.
-- Header company selector controls read scope.
-- Self analysis and competitor analysis pages request rows and scatter data from the same query key.
-- Analysis pages separate API query controls, in-list filters, and selected-row actions.
-- Analysis text filters keep `전체` available in autocomplete and show list refresh as an inline status, not a blocking overlay.
-- Product drawer loads primary summary, monthly trend, sales insight, secondary detail, daily trend, stock-order calculation, and AI comment on demand.
-- Candidate stash page manages candidate lists, recommendations, order metric SSE, detail confirmation, and Excel export.
-- Admin pages manage users, GPT keys, and Google Sheet configs.
+- 로그인 → 세션 생성 → 회사 목록 로딩
+- 회사 선택이 read scope를 결정
+- Self/Competitor 분석 페이지에서 공통 쿼리로 목록/산점도 조회
+- 분석 필터/행 선택/후보군 액션을 서로 분리
+- 상품드로워에서 요약/추세/2차 상세를 on-demand로 조회
+- 후보군 스냅샷 저장/복원 플로우
+- 관리자 화면에서 사용자/키/Google Sheet 설정 관리
 
 ## Product drawer
 
-- Monthly trend request uses last 24 completed months and 12 forecast months.
-- Daily trend request uses selected start month first day through yesterday and lead-time forecast days.
-- AI comment is generated only when the user clicks the comment request button.
-- Reset returns the drawer to live calculated state and clears AI comment state.
-- Detail save stores `OrderSnapshotDocumentV2` in candidate item `details`.
+- 월별 추세는 최근 24개월 + 12개월 예측 기반으로 구성
+- 일일 추세는 시작월의 1일 ~ 어제 구간 + 리드타임 기반 예측 반영
+- AI 코멘트는 버튼 클릭 시에만 요청
+- 초기화는 현재 계산값 기준 상태로 복귀하고 AI 코멘트 상태를 초기화
+- 상세 저장은 `OrderSnapshotDocumentV2`를 후보군 item의 `details`에 저장
 
 ## Candidate stash
 
-- Candidate stash requires single-company scope.
-- All-company selection disables candidate stash entry and add-to-candidate actions.
-- Recommendation append uses `applied`, `stale`, `no-op`, `empty-selection` states.
-- Detail unconfirm clears `details` with `null`.
+- 후보군은 단일 회사 스코프 기반으로 동작
+- 전체 스코프에서는 후보군 진입/후보군 추가 비활성화
+- 추천 상태는 `applied`, `stale`, `no-op`, `empty-selection`으로 구분
+- 상세 unconfirm은 `details = null` 처리
 
 ## Source layout
 
-- `src/api`: API facade, HTTP adapters, mock implementations, API types.
-- `src/dashboard/pages`: page orchestration.
-- `src/dashboard/components/candidate-stash`: candidate stash UI/hooks.
-- `src/dashboard/components/product-drawer`: product drawer UI/hooks.
-- `src/snapshot`: snapshot types, builder, parser, tests.
-- `src/utils`: shared pure utilities.
+- `src/api`: API facade, adapter, mock, 타입 계약
+- `src/auth`: 인증/권한
+- `src/admin`: 관리자 화면
+- `src/dashboard/pages`: 페이지 레벨 오케스트레이션
+- `src/dashboard/components/candidate-stash`: 후보군 UI/훅
+- `src/dashboard/components/product-drawer`: 드로워 UI/훅
+- `src/dashboard/components/common.module.css`: 대시보드 공용 CSS 파사드
+- `src/styles`: 전역 토큰/기본 스타일
+- `src/snapshot`: 스냅샷 계약·파서
+- `src/utils`: 공유 유틸

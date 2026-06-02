@@ -1,71 +1,55 @@
 # Repository / Runtime Boundary
 
-| 항목 | 내용 |
-|------|------|
-| 작성 지시 | Yun Daeyoung |
-| 작성자 | Codex |
-| 작성일 | 2026-05-19 |
-| 최종 수정일 | 2026-05-21 |
-| 상태 | 유지 문서 |
-| 적용 범위 | 저장소 루트, 앱 루트, 라우팅, 빌드, e2e, 배포 |
+Last updated: 2026-06-02
 
-## 핵심 원칙
+## Scope
 
-- 저장소 공통 규칙은 루트 파일이 소유하고, 앱 내부 기능 경계는 `dashboard-app/src` 하위 문서가 소유한다.
-- GitHub Pages 배포는 workflow가 hash router와 `/Estimator/` base를 주입한다.
-- `dist/`, `node_modules/`, Playwright report/test-results는 소스 경계가 아니다.
+- 런타임/배포/e2e에 걸친 실행 경계를 정리한다.
+- `dashboard-app/src` 구조를 기준으로 라우팅, 빌드, 테스트, 배포 근거 문서화가 목적이다.
 
-## 최상위 저장소
+## Core files
 
-| 경로 | 역할 | 변경 기준 |
-|------|------|-----------|
-| `.editorconfig` | 저장소 텍스트 파일의 기본 문자셋을 UTF-8로 고정한다. | 문자셋/줄바꿈 공통 규칙 변경 |
-| `.github/workflows/deploy-dashboard.yml` | `dashboard-app`을 `verify:deploy`로 lint/encoding/unit/build 검증 후 `/Estimator/` base와 `VITE_ROUTER_MODE=hash`로 빌드해 GitHub Pages에 배포한다. | CI gate, Node 버전, Pages 경로, router mode 변경 |
-| `AGENTS.md` | 작업자 지침. Git, 문서, 검증, 프론트엔드 경계 규칙을 둔다. | 프로젝트 운영 규칙 변경 |
-| `MD/` | 요구사항, API 계약, 구조 문서 보관소. | 기능/API/구조/문서 운영 기준 변경 |
-| `dashboard-app/` | React/Vite 대시보드 앱. | 프론트엔드 작업 대상 |
+| 파일 | 역할 |
+|---|---|
+| `.github/workflows/deploy-dashboard.yml` | GitHub Pages 배포 워크플로우, 배포 게이트(`verify:deploy`) |
+| `dashboard-app/package.json` | scripts, test/build/lint 명령, 배포 검증 훅 |
+| `dashboard-app/vite.config.ts` | Vite 설정, 빌드/플러그인 설정 |
+| `dashboard-app/playwright.config.ts` | e2e 실행 환경 정의 |
+| `dashboard-app/tsconfig*.json` | TypeScript compile 설정 |
+| `dashboard-app/eslint.config.js` | 린트 규칙 |
+| `dashboard-app/scripts/verify-dashboard-deploy.mjs` | 배포 검증 스크립트 |
+| `dashboard-app/scripts/check-korean-encoding.mjs` | 한글 인코딩 검사 |
+| `dashboard-app/public/*` | 정적 에셋 |
 
-## dashboard-app 루트
+## 라우팅/엔트리
 
-| 경로 | 역할 | 변경 기준 |
-|------|------|-----------|
-| `package.json` | 앱 스크립트와 의존성 선언. | 런타임/빌드/테스트/검사 스크립트 변경 |
-| `vite.config.ts` | Vite/Vitest 설정, vendor chunk 분리, 단위 테스트 범위. | 빌드 옵션, chunk 경계, 테스트 include/exclude 변경 |
-| `playwright.config.ts` | e2e 실행 설정. 로컬 Vite dev server와 Chromium 시나리오를 관리한다. | e2e 서버 포트, 브라우저, retry/report/trace 변경 |
-| `tsconfig*.json` | TypeScript 컴파일 경계. 현재 `strict: true`를 기준선으로 둔다. | TS 대상, strictness, include 경계 변경 |
-| `eslint.config.js` | 린트 규칙. 전체 `npm run lint` 통과가 기준선이다. | 린트 규칙이나 검사 대상 변경 |
-| `scripts/check-korean-encoding.mjs` | 실제 mojibake/replacement 문자 손상 여부를 점검한다. | 한국어 문자열 점검 범위 변경 |
-| `public/` | 빌드에 그대로 포함되는 정적 자산. | 직접 URL 참조 자산 변경 |
+현재 라우트 진입점은 `dashboard-app/src/App.tsx`.
 
-## 라우팅
+- `/login`
+- `/dashboard/self`
+- `/dashboard/competitor`
+- `/dashboard/snapshot-confirm`
+- `/admin`
+- 미정의 경로 fallback
 
-| 경로 | 화면 | 소유 |
-|------|------|------|
-| `/login` | 로그인 | `src/auth`, `src/App.tsx` |
-| `/admin` | 관리자 | `src/admin`, `RequireAdmin` |
-| `/`, `/dashboard`, `/dashboard/self` | 자사 분석 | `SelfPage` |
-| `/dashboard/competitor` | 경쟁사 분석 | `CompetitorPage` |
-| `/dashboard/snapshot-confirm` | 오더 후보군 | `SnapshotConfirmPage` |
+`VITE_ROUTER_MODE=hash` 환경에서 GitHub Pages 경로 이슈를 피하기 위해 hash 라우팅 모드가 배포 환경에서 사용된다.
 
-라우트 화면은 `src/App.tsx`에서 `React.lazy`로 분리한다. 기본은 `BrowserRouter`이고, GitHub Pages workflow에서만 `VITE_ROUTER_MODE=hash`를 사용한다.
+## e2e boundary
 
-공통 대시보드 shell은 `dashboard/DashboardLayout.tsx`가 소유한다. 상단 업무 탭, 사용자 정보/로그아웃, 관리자 탭, 입고예정일 수집 같은 전역 유틸리티 액션은 이 경계에서 배치한다.
+| Spec | 목적 |
+|---|---|
+| `dashboard-app/e2e/admin-google-sheets.spec.ts` | 관리자 Google Sheet 화면 흐름 |
+| `dashboard-app/e2e/admin-gpt-key.spec.ts` | 관리자 GPT 키 화면 흐름 |
+| `dashboard-app/e2e/analysis-bulk-add.spec.ts` | 분석 페이지 bulk add 동작 |
+| `dashboard-app/e2e/candidate-stash-keyboard.spec.ts` | 후보군 키보드 접근성/상호작용 |
+| `dashboard-app/e2e/candidate-stash.spec.ts` | 후보군 생성/조회/확인 주요 시나리오 |
+| `dashboard-app/e2e/inventory-arrival-collect.spec.ts` | 재고 도착/수집 동작 검증 |
+| `dashboard-app/e2e/navigation.spec.ts` | 인증/탐색 경로 및 리다이렉트 |
+| `dashboard-app/e2e/self-drawer.spec.ts` | Self 페이지 드로워 동작 |
+| `dashboard-app/e2e/helpers/app.ts` | e2e 앱 부트스트랩 공통 |
 
-## e2e
+## Validation notes
 
-| 파일/폴더 | 역할 |
-|------|------|
-| `admin-google-sheets.spec.ts` | 관리자 구글 시트 이동 액션과 상세 설정 모달 smoke |
-| `admin-gpt-key.spec.ts` | 관리자 GPT 키 상세 설정 모달 smoke |
-| `analysis-bulk-add.spec.ts` | 경쟁사 분석에서 상품 선택 후 후보군 담기 모달 열기 |
-| `candidate-stash-keyboard.spec.ts` | 후보군 상세의 키보드 이동과 드로워 조작 smoke |
-| `candidate-stash.spec.ts` | 후보군 상세의 조회 카드, 추천, 배지 자동 패치 smoke |
-| `inventory-arrival-collect.spec.ts` | 헤더의 입고예정일 수집 액션 smoke |
-| `navigation.spec.ts` | mock 로그인 후 주요 라우트와 관리자 탭 존재 확인 |
-| `self-drawer.spec.ts` | 자사 분석에서 1차 상품 드로워 열기/닫기 |
-| `helpers/app.ts` | mock 로그인 helper와 runtime error 수집 helper |
-
-## 검증 기준
-
-- 일반 프론트 변경: `npm run lint`, `npm run test:run`, `npm run check:encoding`, `npm run build -- --base=/Estimator/`.
-- 배포 workflow는 `npm run verify:deploy`를 통해 lint, encoding, unit, build를 통과해야 deploy로 진행한다. e2e는 브라우저 설치 비용 때문에 별도 `Dashboard E2E` workflow에서 수동 실행한다.
+- 기본 검증 명령: `npm run test:run`, `npm run build`, `npm run lint`, `npm run check:encoding`
+- 배포 검증: `npm run verify:deploy` + workflow `deploy-dashboard.yml`
+- 정적 리포트 폴더(`playwright-report`, `test-results`)는 실행시 생성되는 산출물로 관리

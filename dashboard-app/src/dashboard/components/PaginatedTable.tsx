@@ -211,7 +211,7 @@ export function PaginatedTable<T extends { id: string }>(props: PaginatedTablePr
           </tbody>
         </table>
         {hasMoreRows && (
-          <div ref={loadMoreRef} style={{ padding: '10px', textAlign: 'center', color: '#64748b', fontSize: '12px' }}>
+          <div ref={loadMoreRef} className={styles.loadMoreSentinel}>
             스크롤하면 더 불러옵니다.
           </div>
         )}

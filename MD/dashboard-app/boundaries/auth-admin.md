@@ -1,62 +1,47 @@
 # Auth / Admin Boundary
 
-| 항목 | 내용 |
-|------|------|
-| 작성 지시 | Yun Daeyoung |
-| 작성자 | Codex |
-| 작성일 | 2026-05-19 |
-| 최종 수정일 | 2026-05-19 |
-| 상태 | 유지 문서 |
-| 적용 범위 | `src/auth`, `src/admin`, 관리자 API 화면 |
+Last updated: 2026-06-02
 
-## 인증
+## Scope
 
-| 파일/영역 | 역할 |
-|------|------|
-| `src/auth/AuthContext.ts` | 인증 context와 `useAuth` public hook |
-| `src/auth/AuthProvider.tsx` | 세션 로딩과 API 호출 orchestration |
-| `src/auth/RequireAuth.tsx` | 일반 보호 라우트 |
-| `src/auth/RequireAdmin.tsx` | 관리자 보호 라우트 |
-| `src/auth/LoginPage.tsx` | 로그인 화면 |
-| `src/auth/UserProfileDialog.tsx` | 사용자 정보/비밀번호 변경 모달 |
+인증, 세션 부트스트랩, 권한 기반 라우트 가드, 관리자 화면의 책임 범위를 정리한다.
 
-## 인증 정책
+## Source ownership
 
-- 권한은 `admin`과 `user`만 사용한다.
-- 세션이 없으면 `/login?redirect=...`로 이동하고 로그인 성공 후 원래 경로로 복귀한다.
-- 목 로그인은 입력값을 검증하지 않고 통과시키며, `mock-user`는 일반 사용자, 그 외 입력은 관리자 권한으로 처리한다.
-- 실제 백엔드 전환 시 권장 형태는 HttpOnly cookie 기반 세션이다. 화면은 `AuthApi` 계약을 유지하고 request 구현만 교체한다.
+| 파일 | 역할 |
+|---|---|
+| `src/auth/AuthContext.ts` | 인증 context 타입/기본 인터페이스 |
+| `src/auth/AuthProvider.tsx` | 세션 초기화, 로그인/로그아웃 상태 갱신, 인증 이벤트 브로드캐스트 |
+| `src/auth/RequireAuth.tsx` | 인증 필요 라우트 가드 |
+| `src/auth/RequireAdmin.tsx` | 관리자 권한 라우트 가드 |
+| `src/auth/LoginPage.tsx` | 로그인 화면 진입 및 세션 생성 흐름 |
+| `src/auth/UserProfileDialog.tsx` | 사용자 프로필 표시/수정 UI |
+| `src/dashboard/DashboardLayout.tsx` | 헤더 공통 UI(회사 선택/프로필), 인증 경로 진입점 구성 |
+| `src/admin/AdminPage.tsx` | 관리자 페이지 오케스트레이션 |
+| `src/admin/Admin*.tsx` | 사용자/키/시트 관리 하위 UI |
 
-## 관리자 화면
+## 라우트 경계
 
-관리자 화면은 `/admin` 별도 라우트이며 같은 `DashboardLayout` 안에서 렌더된다. 관리자 권한 사용자에게만 `오더 후보군` 뒤에 관리자 전용 탭을 보여준다.
+`src/App.tsx`의 라우트 구성:
 
-| 패널 | 소유 내용 | 대표 API 타입 |
-|------|-----------|---------------|
-| 사용자 관리 | 로그인 ID, 이름, 비고, 권한, 활성 상태, 임시 비밀번호 재설정 | `admin-user.ts`, `auth.ts` |
-| GPT 키 관리 | GPT API 키 이름, 용도, 모델, 활성 상태, 메모, 연결 테스트 | `admin-gpt-key.ts` |
-| 구글 시트 관리 | 서비스 계정 JSON, 시트 주소, 용도, 비고, 시트 이동 | `admin-google-sheet.ts` |
+- `/login`: 로그인 페이지
+- `/` 및 `/v2/*`: 인증 필요 시 `/dashboard/self`로 이동
+- `/dashboard/*`: 인증 필요 영역
+  - `/dashboard/self`
+  - `/dashboard/competitor`
+  - `/dashboard/snapshot-confirm`
+  - `/dashboard/snapshot-confirm/:stashUuid`는 `/dashboard/snapshot-confirm`로 redirect
+- `/admin`: `RequireAdmin` 가드 적용
+- `*`: `/dashboard/self` fallback
 
-## 공통 관리자 UI
+## Boundary rules
 
-- 사용자/GPT/구글 시트 목록은 `AdminListPanel.tsx` 공통 shell을 사용한다.
-- 공통 shell은 패널 제목, 건수, header action, 컬럼 헤더, 로딩/오류 상태, 스크롤 본문만 소유한다.
-- 데이터 조회, 생성/상세 dialog 상태, 행 렌더링은 각 panel/row 컴포넌트가 소유한다.
-- 목록이 많아지면 컬럼 헤더 아래 본문만 스크롤한다.
+- 로그인은 `AuthProvider`를 통과한 상태에서 세션이 구성되며, UI 계층은 mock/http 구현을 직접 임포트하지 않는다.
+- API adapter mode는 `API_ADAPTER_MODE` / 환경변수 기반으로 분기되며, auth boundary는 adapter 결과만 소비한다.
+- `RequireAdmin` 실패는 로그인 상태는 유지하면서 관리자 전용 화면 진입을 막고 적절한 경로로 유도한다.
 
-## 관리자별 주의점
+## Admin data boundary
 
-- 사용자 임시 비밀번호는 재설정 응답 직후 한 번만 표시하고, 클릭 시 클립보드에 복사한다.
-- GPT 키 원문은 생성/변경 요청 payload에만 존재한다. 목록 응답은 `maskedKey`만 표시한다.
-- 구글 시트 서비스 계정 JSON 원문은 생성/변경 요청 payload에만 존재한다. 목록 응답은 `maskedServiceAccountKey`만 표시한다.
-- 구글 시트 `시트로 이동`은 이미 받은 `spreadsheetUrl` 또는 `spreadsheetId`로 새 탭을 여는 순수 프론트 액션이다.
-- 현재 mock은 DB 대체 저장소가 아니라 런타임 메모리/정적 seed로 동작한다. 실제 정합성은 백엔드 DB가 소유한다.
-
-## Header company selector boundary
-
-- Company selector는 dashboard header에서 업무 탭 영역과 유틸리티 액션 영역 사이에 배치한다.
-- selector의 책임은 company list API에서 받은 `uuid`, `name` 목록을 dropdown으로 표시하고, 사용자가 선택한 company의 `uuid`를 전역 선택 상태로 유지하는 데 한정한다.
-- `AuthContext`는 로그인 세션과 사용자 인증 상태의 책임을 유지하며, company selector의 선택 상태를 인증 성공이나 권한 성공처럼 해석하지 않는다.
-- 회사 선택은 인증 권한이 아니라 회사 소유 업무 데이터의 전역 scope다. 단일 회사 선택 시 업무 API request boundary가 `companyUuid`를 포함하고, `전체` 선택 시 생략한다.
-- 적용 범위는 분석, 산점도, filter meta, 후보군, 상품 드로워, 2차 드로워, 오더 계산, SSE, mutation이다.
-- 후보군 UI는 단일 회사 기준이므로 `전체` 선택 상태에서 탭과 후보군 추가 액션을 비활성화한다.
+- `/admin`은 `src/admin`에서 관리 데이터(사용자, GPT 키, Google Sheet) 요청/표시를 담당한다.
+- 백엔드/어댑터 계약이 바뀌면 `Admin*` 화면, API 타입, boundary 문서를 함께 갱신한다.
+- 관리자 영역은 후보군/분석/드로워의 비즈니스 의사결정 책임을 직접 확장하지 않는다.

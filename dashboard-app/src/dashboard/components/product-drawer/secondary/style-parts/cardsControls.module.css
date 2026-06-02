@@ -1,4 +1,3 @@
-/** 오른쪽 필터 카드와 높이 맞출 때 메타 블록을 카드 안에서 세로 중앙 */
 .metaCard {
   display: flex;
   flex-direction: column;
@@ -54,60 +53,4 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-
-.salesMetricsHeader {
-  margin-bottom: 8px;
-}
-
-.salesMetricsHeader > div {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-  min-width: 0;
-  flex-wrap: wrap;
-}
-
-.salesMetricsHeader .sectionTitle,
-.salesMetricsHeader .salesMetricsPeriodLine {
-  margin-bottom: 0;
-}
-
-.salesMetricsChannelHeaderControl {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 5px;
-  width: 100%;
-  min-width: 0;
-}
-
-.salesMetricsChannelHeaderControl select {
-  width: 100%;
-  min-width: 0;
-  max-width: none;
-  height: auto;
-  padding: 0 18px 0 0;
-  border: 0;
-  border-radius: 0;
-  background-color: transparent;
-  font: inherit;
-  font-size: inherit;
-  font-weight: inherit;
-  line-height: inherit;
-  color: inherit;
-  cursor: pointer;
-  text-align: center;
-  text-align-last: center;
-}
-
-.salesMetricsChannelHeaderControl select option {
-  color: #0f172a;
-  background: #ffffff;
-}
-
-.salesMetricsChannelHeaderControl select:focus-visible {
-  outline: 2px solid #2563eb;
-  outline-offset: 2px;
-  border-radius: 4px;
 }

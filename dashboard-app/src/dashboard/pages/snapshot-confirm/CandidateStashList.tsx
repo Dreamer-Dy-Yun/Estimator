@@ -1,4 +1,3 @@
-import type { CSSProperties } from 'react'
 import type { CandidateStashSummary } from '../../../api'
 import { LoadingSpinner } from '../../../components/LoadingSpinner'
 import { formatDateTimeMinute } from '../../../utils/date'
@@ -16,8 +15,6 @@ type Props = {
   onDelete: (stash: CandidateStashSummary) => void
 }
 
-const STASH_CARD_BUTTON_STYLE: CSSProperties = { width: '100%', border: 0, background: 'transparent', textAlign: 'left', padding: 0, cursor: 'pointer', display: 'grid', gap: 6 }
-
 export function CandidateStashList({ allStashesEmpty, stashes, duplicateBusyUuid, onOpenDetail, onOpenEdit, onDuplicate, onDelete }: Props) {
   if (allStashesEmpty || !stashes.length) {
     return <div className={`${styles.card} ${pageStyles.emptyStateCard}`}>{allStashesEmpty ? '저장된 오더 후보군이 없습니다.' : '검색 조건에 맞는 후보군이 없습니다.'}</div>
@@ -29,7 +26,7 @@ export function CandidateStashList({ allStashesEmpty, stashes, duplicateBusyUuid
         return (
           <div key={stash.uuid} className={`${styles.card} ${pageStyles.stashCard}`}>
             <div className={pageStyles.stashCardRow}>
-              <button type="button" onClick={() => onOpenDetail(stash.uuid)} style={STASH_CARD_BUTTON_STYLE}>
+              <button type="button" className={pageStyles.stashCardButton} onClick={() => onOpenDetail(stash.uuid)}>
                 <div className={pageStyles.stashInfoGrid}>
                   <div className={pageStyles.stashLeftTop}><strong className={pageStyles.stashName}>{stash.name}</strong><span className={pageStyles.stashMetaDot}>·</span><span className={pageStyles.stashMeta}>등록 상품 {stash.itemCount}건</span></div>
                   <span className={pageStyles.stashMetaRight}>생성일: {formatDateTimeMinute(stash.dbCreatedAt)}</span>

@@ -1,33 +1,32 @@
-# dashboard-app 문서
+# dashboard-app documentation index
 
-| 항목 | 내용 |
-|------|------|
-| 작성 지시 | Yun Daeyoung |
-| 작성자 | Codex |
-| 작성일 | 2026-04-23 |
-| 최종 수정일 | 2026-05-21 |
-| 상태 | 유지 문서 |
-| 적용 범위 | `dashboard-app` 문서 |
+Last updated: 2026-06-02
 
-## 안내
+## 문서 구조
 
-이 폴더는 [`dashboard-app`](../../dashboard-app) 프론트엔드의 제품 설명, 구조, 테스트, 경계 문서를 보관합니다.
+- [frontend-overview.md](./frontend-overview.md): 앱 기능/흐름 개요, 책임 요약
+- [source-boundary-map.md](./source-boundary-map.md): 폴더별 소유권 맵
+- [boundaries/README.md](./boundaries/README.md): boundary 문서 색인 및 갱신 규칙
+- [boundaries/repository-runtime.md](./boundaries/repository-runtime.md): 런타임, 배포, e2e 경계
+- [boundaries/api-contracts.md](./boundaries/api-contracts.md): API, mock/http 계약
+- [boundaries/auth-admin.md](./boundaries/auth-admin.md): 인증/관리자 경계
+- [boundaries/analysis-pages.md](./boundaries/analysis-pages.md): 분석 페이지 경계
+- [boundaries/candidate-stash.md](./boundaries/candidate-stash.md): 후보군 경계
+- [boundaries/product-drawer.md](./boundaries/product-drawer.md): 드로워/2차 화면/스냅샷 경계
+- [boundaries/shared-modules.md](./boundaries/shared-modules.md): 공통 모듈 경계
+- [boundaries/style-facades.md](./boundaries/style-facades.md): CSS 파사드 경계
+- [qa-state-contracts.md](./qa-state-contracts.md): 상태/계약 QA 규약
+- [qa-current-behavior.md](./qa-current-behavior.md): 현재 동작 기록
+- [failure-ux-matrix.md](./failure-ux-matrix.md): 실패 UX 매핑
+- [test-strategy.md](./test-strategy.md): 테스트 전략
+- [module-hardening.md](./module-hardening.md): 모듈 하드닝 상태
+- [deployment-hardening.md](./deployment-hardening.md): 배포 하드닝 노트
+- [e2e-strategy.md](./e2e-strategy.md): e2e 테스트 전략
+- [hardening-status.md](./hardening-status.md): 하드닝 진행 상태
+- [inner-candidate-list-sse-plan.md](./inner-candidate-list-sse-plan.md): 내부 SSE 개선 계획
 
-문서 작성·보존 기준은 [../README.md](../README.md)를 따릅니다. 날짜가 붙은 작업 이력 문서는 유지 문서에 내용이 흡수되면 [../HISTORY](../HISTORY)로 이동합니다.
+## 읽기 우선순위
 
-| 문서 | 설명 |
-|------|------|
-| [frontend-overview.md](./frontend-overview.md) | 목적, 화면, 기능, 데이터 흐름, UX 메모 |
-| [source-boundary-map.md](./source-boundary-map.md) | 소스 경계 마스터 인덱스. 어떤 기능을 보려면 어떤 boundary 문서를 열어야 하는지 안내 |
-| [boundaries/](./boundaries/README.md) | 기능별 상세 경계 문서. API, 분석 화면, 후보군, 드로워, 관리자, 공통 모듈로 분리 |
-| [module-hardening.md](./module-hardening.md) | 하드닝 완료 모듈, 공개 계약, 수정 허가 규칙 |
-| [test-strategy.md](./test-strategy.md) | Vitest 테스트 전략과 우선순위 |
-| [qa-current-behavior.md](./qa-current-behavior.md) | 현재 화면/데이터/키보드/API 동작 기준 QA 문서. 기능 변경 시 반드시 갱신 |
-| [qa-state-contracts.md](./qa-state-contracts.md) | 로딩, 빈 값, 실패, 권한, stale, 비활성 상태 표시 기준 |
-| [failure-ux-matrix.md](./failure-ux-matrix.md) | 실패 kind별 UX surface, 화면별 실패 표시 정책, 허용/금지 fallback |
-| [ui-patterns.md](./ui-patterns.md) | 버튼, 카드, 패널, 리스트, 드로워, 모달, toast, tooltip UI 패턴 기준 |
-| [inner-candidate-list-sse-plan.md](./inner-candidate-list-sse-plan.md) | 이너 후보군 조회·추천·오더 지표 SSE 분리 계획 |
-
-백엔드 API 계약은 [../backend-api/README.md](../backend-api/README.md)를 참고합니다.
-
-앱 실행 진입 README는 [`dashboard-app/README.md`](../../dashboard-app/README.md)입니다.
+1. 변경이 생기면 먼저 `source-boundary-map.md` 확인
+2. API/프론트 계약 변경이면 `boundaries/api-contracts.md` + `boundaries/repository-runtime.md`
+3. 화면 책임 변경이면 `frontend-overview.md` + 해당 영역 boundary 문서

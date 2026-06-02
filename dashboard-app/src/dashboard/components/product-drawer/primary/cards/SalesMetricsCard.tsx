@@ -5,7 +5,7 @@ import type { ApiUnitErrorInfo } from '../../../../../types'
 import { displayNumber, formatGroupedNumber, formatPercent } from '../../../../../utils/format'
 import type { SalesKpiColumn } from '../../../../../utils/salesKpiColumn'
 import { KO } from '../../ko'
-import styles from '../../secondary/secondaryDrawer.module.css'
+import styles from './SalesMetricsCard.module.css'
 
 type Props = {
   targetPeriodDays: { start: string; end: string }

@@ -1,5 +1,6 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react'
 import { ApiUnitErrorBadge } from './ApiUnitErrorBadge'
+import styles from './ComponentErrorBoundary.module.css'
 
 type Props = {
   page: string
@@ -38,16 +39,7 @@ export class ComponentErrorBoundary extends Component<Props, State> {
     if (!error) return children
 
     return (
-      <div
-        style={{
-          border: '1px solid #fecaca',
-          background: '#fff1f2',
-          borderRadius: 8,
-          padding: 10,
-          color: '#7f1d1d',
-          fontSize: 12,
-        }}
-      >
+      <div className={styles.fallback}>
         <strong>{unit}</strong>
         <ApiUnitErrorBadge
           error={{

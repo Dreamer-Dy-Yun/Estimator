@@ -1,34 +1,28 @@
-# dashboard-app boundary 문서
+# dashboard-app boundaries
 
-| 항목 | 내용 |
-|------|------|
-| 작성 지시 | Yun Daeyoung |
-| 작성자 | Codex |
-| 작성일 | 2026-05-19 |
-| 최종 수정일 | 2026-05-19 |
-| 상태 | 유지 문서 |
-| 적용 범위 | `dashboard-app` 기능별 책임 경계 상세 |
+Last updated: 2026-06-02
 
-## 목적
+## 문서 목적
 
-이 폴더는 [source-boundary-map.md](../source-boundary-map.md)가 가리키는 상세 boundary 문서를 보관한다.
+`dashboard-app`의 기능/책임 경계를 팀과 LLM이 빠르게 이해할 수 있도록 정리한 실행 규약 문서입니다.
+각 문서는 실제 코드 소유권을 기준으로 작성됩니다.
 
-마스터 문서는 탐색 지도만 맡고, 이 폴더의 각 문서는 기능별 현재 계약, 대표 소스, 변경 시 주의점을 짧게 유지한다.
+## 경계 문서 색인
 
-## 문서 목록
+| 문서 | 담당 영역 | 소스 근거 | 갱신 조건 |
+|---|---|---|---|
+| `api-contracts.md` | API/Mock 계약 | `src/api`, `src/api/types/*`, `src/api/requests/*`, `src/api/mock/*` | API 타입 변경, mock/http 어댑터 정책 변경, 에러 분류 변경 |
+| `auth-admin.md` | 인증·세션·관리자 | `src/auth`, `src/admin`, `src/App.tsx`, `src/dashboard/DashboardLayout.tsx` | 인증/권한 정책 변경, 라우트 가드 변경 |
+| `analysis-pages.md` | 분석 페이지 | `src/dashboard/pages/*`, `src/dashboard/components/*`, `src/dashboard/model/*`, `src/dashboard/hooks/*` | 분석 쿼리/필터/카드/이벤트 책임 변경 |
+| `candidate-stash.md` | 후보군 후보 관리 | `src/dashboard/components/candidate-stash/*` | 후보군 mutation, SSE, bulk add, 엑셀 export 경계 변경 |
+| `product-drawer.md` | 상품드로워/2차 화면 | `src/dashboard/components/product-drawer/*`, `src/snapshot/*` | 드로워 책임, 스냅샷 타입/파서 변경 |
+| `shared-modules.md` | 공통 모듈 | `src/components`, `src/dashboard/hooks`, `src/dashboard/model`, `src/utils` | 공용 컴포넌트/훅/모델/유틸 책임 변경 |
+| `style-facades.md` | CSS 파사드 | `*.module.css`, `*style-parts/**` | 스타일 import 경로/파사드 규칙 변경 |
+| `repository-runtime.md` | 런타임·빌드·배포·e2e | `.github`, `dashboard-app/package.json`, `dashboard-app/e2e` | 런타임 스크립트, workflow, e2e entry 변경 |
 
-| 문서 | 다루는 내용 |
-|------|------|
-| [repository-runtime.md](./repository-runtime.md) | 저장소 루트, 앱 루트, 라우팅, 빌드, e2e, CI/배포 |
-| [api-contracts.md](./api-contracts.md) | `src/api`, 타입 계약, mock/HTTP adapter, SSE/API 경계 |
-| [auth-admin.md](./auth-admin.md) | 로그인/세션, 관리자 사용자/GPT 키/구글 시트 관리 |
-| [analysis-pages.md](./analysis-pages.md) | 자사/경쟁사 분석 페이지, 필터, 리스트, 산점도, 후보군 담기 |
-| [candidate-stash.md](./candidate-stash.md) | 오더 후보군, 이너 후보군, 추천, 상세확정, 오더 지표, 엑셀 |
-| [product-drawer.md](./product-drawer.md) | 상품 1차/2차 드로워, 스냅샷, AI 코멘트, 재고·발주 계산 |
-| [shared-modules.md](./shared-modules.md) | 공통 UI, hooks/model/interaction/drawer, snapshot, styles, utils |
+## 운영 규칙
 
-## 작성 규칙
-
-- 각 문서는 현재 살아있는 계약만 둔다.
-- 과거 결정 과정이나 날짜별 작업 내역은 [../../HISTORY](../../HISTORY)로 이동한다.
-- 한 문서가 길어져 특정 기능을 찾기 어렵다면 하위 문서로 다시 나눈다.
+- 문서는 코드 변경 전제 하에 작성되며, 실제 동작 경계가 바뀌면 즉시 갱신한다.
+- 코드가 바뀌지 않았는데 문서만 갱신하지 않는 상태를 원칙으로 방치하지 않는다.
+- 모호한 책임은 “불명확 경계”로 먼저 표시하고, 범위를 최소한으로 정리한 뒤 기록한다.
+- 하드닝된 모듈(작은 공개 인터페이스, 명시적 부작용)을 임의로 수정하지 않는다.

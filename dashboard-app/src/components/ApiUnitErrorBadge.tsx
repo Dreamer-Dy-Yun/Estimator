@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import type { ApiUnitErrorInfo } from '../types'
+import styles from './ApiUnitErrorBadge.module.css'
 
 type Props = {
   error: ApiUnitErrorInfo | null
@@ -32,17 +33,7 @@ export function ApiUnitErrorBadge({ error }: Props) {
           setCopied(false)
         }
       }}
-      style={{
-        marginLeft: 8,
-        padding: '2px 6px',
-        borderRadius: 6,
-        border: '1px solid #dc2626',
-        background: '#fee2e2',
-        color: '#991b1b',
-        fontSize: 11,
-        fontWeight: 700,
-        cursor: 'pointer',
-      }}
+      className={styles.badge}
       aria-label={copied ? '에러 정보 복사됨' : '에러 정보 복사'}
     >
       {copied ? 'COPIED' : 'ERROR'}
