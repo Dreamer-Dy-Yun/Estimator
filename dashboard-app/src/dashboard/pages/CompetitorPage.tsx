@@ -135,23 +135,20 @@ export const CompetitorPage = () => {
                 checked={showRowsWithSelfSalesOnly}
                 onChange={(event) => setShowRowsWithSelfSalesOnly(event.target.checked)}
               />
-              <span>자사 판매량이 존재하는 경우만 보기</span>
+              <span>자사 판매량이<br />존재하는 경우만 보기</span>
             </label>
           </>
         )}
         listActionContent={(
-          <>
-            <span className={styles.analysisSelectedCount}>선택 {selection.bulkSelectedCount}개</span>
-            <button
-              type="button"
-              className={`${styles.actionBtn} ${styles.btnPrimary} ${styles.analysisBulkAddButton}`}
-              onClick={() => setBulkAddOpen(true)}
-              disabled={common.isAllCompanySelected || selection.bulkSelectedCount === 0}
-              title={common.isAllCompanySelected ? ALL_COMPANY_BULK_ADD_DISABLED : undefined}
-            >
-              선택한 물품을 후보군으로
-            </button>
-          </>
+          <button
+            type="button"
+            className={`${styles.actionBtn} ${styles.btnPrimary} ${styles.analysisBulkAddButton}`}
+            onClick={() => setBulkAddOpen(true)}
+            disabled={common.isAllCompanySelected || selection.bulkSelectedCount === 0}
+            title={common.isAllCompanySelected ? ALL_COMPANY_BULK_ADD_DISABLED : undefined}
+          >
+            선택한 물품을 후보군으로
+          </button>
         )}
         onResetListFilters={resetListFilters}
         leftPanel={(

@@ -129,7 +129,7 @@
 
 .analysisQueryControlCard {
   grid-area: query;
-  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: end;
   column-gap: 8px;
 }
@@ -147,7 +147,7 @@
   display: flex;
   align-items: stretch;
   justify-content: flex-end;
-  min-width: 238px;
+  min-width: 188px;
 }
 
 .analysisListActionCard .analysisControlActions {

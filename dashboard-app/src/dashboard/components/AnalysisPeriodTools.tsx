@@ -43,8 +43,8 @@ export function AnalysisPeriodTools({
             {showPeriodBar ? '기간 바 닫기' : '기간 바 열기'}
           </button>
         </div>
-        {endControl}
       </div>
+      {endControl ? <div className={styles.periodQueryAction}>{endControl}</div> : null}
       {showPeriodBar && historicalMonths.length > 1 && (
         <div className={styles.periodBarWrap}>
           <div className={styles.periodBarLabel}>

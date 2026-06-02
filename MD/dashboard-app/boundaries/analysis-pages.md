@@ -23,14 +23,14 @@ Self and competitor analysis pages own the analysis list, scatter chart, filter 
 
 ## Query, filter, and action boundary
 
-- `조회 조건` controls API request scope and is rendered as its own card. Date inputs and period/query buttons share one horizontal row on desktop widths.
+- `조회 조건` controls API request scope and is rendered as its own card. Date inputs, period presets, and query button share one horizontal row on desktop widths. Period presets and the query button are separate grid areas.
 - `조회 조건` includes start date, end date, recent-period presets, period bar open/close, period-bar range handles, competitor channel, request status, and the `조회` button.
 - Period inputs are draft values. API requests use the applied period after the user clicks `조회`.
 - Competitor channel is an API request condition. It is not a list-only filter.
 - `목록 필터` controls only the already-loaded analysis rows and is rendered as its own card. The visual section label is omitted; the section keeps an accessible label. Filter fields and reset/toggle actions share one horizontal row on desktop widths.
 - `목록 필터` includes brand, category, product code, product name, color, and competitor-page `자사 판매량이 존재하는 경우만 보기`.
 - `필터 초기화` resets only list filters. It must not change applied period, draft period, period bar state, company scope, or competitor channel.
-- `목록 액션` belongs to a separate sibling card on the right side of the list-filter card. It shows selected count and `선택한 물품을 후보군으로` without being nested inside the filter card.
+- `목록 액션` belongs to a separate sibling card on the right side of the list-filter card. It shows `선택한 물품을 후보군으로` without being nested inside the filter card.
 
 ## Text filter contract
 
