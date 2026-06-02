@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { deleteAdminGoogleSheetConfig, updateAdminGoogleSheetConfig } from '../api'
 import type { AdminGoogleSheetConfigSummary, AdminGoogleSheetPurpose } from '../api'
+import type { CompanySummary } from '../api/types/company'
 import { useAppToast } from '../components/AppToastContext'
 import { LoadingSpinner } from '../components/LoadingSpinner'
 import { AdminActiveSwitch } from './AdminActiveSwitch'
@@ -11,6 +12,7 @@ import styles from './AdminPage.module.css'
 
 interface AdminGoogleSheetDialogProps {
   config: AdminGoogleSheetConfigSummary
+  companies: CompanySummary[]
   onClose: () => void
   onChanged: () => Promise<unknown>
   onDeleted: () => Promise<void>
@@ -18,8 +20,15 @@ interface AdminGoogleSheetDialogProps {
 
 const formId = 'admin-google-sheet-detail-form'
 
-export function AdminGoogleSheetDialog({ config, onClose, onChanged, onDeleted }: AdminGoogleSheetDialogProps) {
+export function AdminGoogleSheetDialog({
+  config,
+  companies,
+  onClose,
+  onChanged,
+  onDeleted,
+}: AdminGoogleSheetDialogProps) {
   const { showToast } = useAppToast()
+  const [companyUuid, setCompanyUuid] = useState(config.companyUuid)
   const [name, setName] = useState(config.name)
   const [purpose, setPurpose] = useState<AdminGoogleSheetPurpose>(config.purpose)
   const [spreadsheetUrl, setSpreadsheetUrl] = useState(config.spreadsheetUrl)
@@ -34,7 +43,9 @@ export function AdminGoogleSheetDialog({ config, onClose, onChanged, onDeleted }
   const [isDeleting, setIsDeleting] = useState(false)
   const [deleteConfirm, setDeleteConfirm] = useState(false)
   const hasNewKey = serviceAccountKeyJson.trim().length > 0
+  const canSubmitCompany = companies.length > 0 && companyUuid.trim().length > 0
   const isDirty =
+    companyUuid !== config.companyUuid ||
     name !== config.name ||
     purpose !== config.purpose ||
     spreadsheetUrl !== config.spreadsheetUrl ||
@@ -46,11 +57,18 @@ export function AdminGoogleSheetDialog({ config, onClose, onChanged, onDeleted }
     event.preventDefault()
     setErrorMessage(null)
     setRowMessage(null)
+
+    if (!canSubmitCompany) {
+      setErrorMessage('회사를 선택해야 합니다.')
+      return
+    }
+
     setIsSaving(true)
 
     try {
       await updateAdminGoogleSheetConfig({
         uuid: config.uuid,
+        companyUuid,
         name,
         purpose,
         spreadsheetUrl,
@@ -88,7 +106,7 @@ export function AdminGoogleSheetDialog({ config, onClose, onChanged, onDeleted }
 
     setIsDeleting(true)
     try {
-      await deleteAdminGoogleSheetConfig(config.uuid)
+      await deleteAdminGoogleSheetConfig(config.uuid, { companyUuid: config.companyUuid })
       const refreshWarningMessage = await refreshAfterAdminMutation(onDeleted)
       if (refreshWarningMessage) showToast(refreshWarningMessage, { variant: 'warning' })
       onClose()
@@ -119,6 +137,17 @@ export function AdminGoogleSheetDialog({ config, onClose, onChanged, onDeleted }
         </header>
 
         <form id={formId} className={styles.gptKeyDialogForm} onSubmit={handleSubmit}>
+          <label className={styles.createField}>
+            <span>회사</span>
+            <select value={companyUuid} onChange={(event) => setCompanyUuid(event.target.value)} required>
+              {companies.length === 0 ? <option value="">선택 가능한 회사 없음</option> : null}
+              {companies.map((company) => (
+                <option key={company.uuid} value={company.uuid}>
+                  {company.name}
+                </option>
+              ))}
+            </select>
+          </label>
           <label className={styles.createField}>
             <span>이름</span>
             <input value={name} onChange={(event) => setName(event.target.value)} />
@@ -170,7 +199,7 @@ export function AdminGoogleSheetDialog({ config, onClose, onChanged, onDeleted }
           <button className={styles.dangerButton} type="button" onClick={handleDelete} disabled={isDeleting}>
             {isDeleting ? <LoadingSpinner size="inline" label="삭제 중" /> : deleteConfirm ? '삭제 확인' : '삭제'}
           </button>
-          <button className={styles.createButton} type="submit" form={formId} disabled={!isDirty || isSaving}>
+          <button className={styles.createButton} type="submit" form={formId} disabled={!canSubmitCompany || !isDirty || isSaving}>
             {isSaving ? <LoadingSpinner size="inline" label="변경 중" /> : '변경'}
           </button>
           <button className={styles.secondaryButton} type="button" onClick={onClose} disabled={isSaving || isDeleting}>

@@ -1,4 +1,8 @@
+import type { CompanyMutationScopeParams } from './company'
+
 export type InventoryArrivalCollectionStatus = 'success' | 'partial' | 'failed'
+
+export type InventoryArrivalCollectionParams = CompanyMutationScopeParams
 
 export interface InventoryArrivalCollectionResult {
   status: InventoryArrivalCollectionStatus
@@ -9,5 +13,7 @@ export interface InventoryArrivalCollectionResult {
 }
 
 export interface InventoryArrivalApi {
-  collectInventoryArrivalDates(): Promise<InventoryArrivalCollectionResult>
+  collectInventoryArrivalDates(
+    params: InventoryArrivalCollectionParams,
+  ): Promise<InventoryArrivalCollectionResult>
 }

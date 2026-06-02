@@ -20,12 +20,15 @@ const roleLabels = {
 
 const snapshotConfirmDisabledReasonId = 'snapshot-confirm-disabled-reason'
 const snapshotConfirmDisabledReason = '전체 선택 상태에서는 오더 후보군을 사용할 수 없습니다. 회사를 선택하세요.'
+const inventoryArrivalCollectDisabledReason =
+  '전체 선택 상태에서는 입고예정일 수집을 사용할 수 없습니다. 회사를 선택하세요.'
 
 export const DashboardLayout = () => {
   const navigate = useNavigate()
   const { session, logout, selectedCompanyUuid } = useAuth()
   const [isProfileOpen, setIsProfileOpen] = useState(false)
   const isAllCompanySelected = isAllCompanyUuid(selectedCompanyUuid)
+  const inventoryArrivalCompanyUuid = isAllCompanySelected ? null : selectedCompanyUuid
 
   const handleLogout = () => {
     void logout().then(() => navigate('/login', { replace: true }))
@@ -87,7 +90,10 @@ export const DashboardLayout = () => {
             </div>
           ) : null}
           <div className={styles.sessionControls}>
-            <InventoryArrivalCollectButton />
+            <InventoryArrivalCollectButton
+              companyUuid={inventoryArrivalCompanyUuid}
+              disabledReason={isAllCompanySelected ? inventoryArrivalCollectDisabledReason : undefined}
+            />
             <button className={styles.userButton} type="button" onClick={() => setIsProfileOpen(true)}>
               <span className={styles.userName}>{session?.user.loginId ?? '사용자'}</span>
               <span className={styles.roleBadge}>{session ? roleLabels[session.user.role] : '사용자'}</span>

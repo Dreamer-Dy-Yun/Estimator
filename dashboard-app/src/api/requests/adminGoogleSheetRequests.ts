@@ -1,11 +1,29 @@
 import { mockAdminGoogleSheetApi } from '../mock'
-import type { AdminGoogleSheetApi } from '../types'
+import type { AdminGoogleSheetApi, CompanyMutationScopeParams, CompanyScopeParams } from '../types'
+import {
+  getRequiredCompanyUuidForMutationScope,
+  normalizeCompanyScopeParams,
+} from '../types'
 import { apiRequest, USE_MOCK_API } from './httpClient'
+
+function toCompanyQuery(params?: CompanyScopeParams) {
+  const normalized = normalizeCompanyScopeParams(params)
+  if (!normalized?.companyUuid) return ''
+  return `?${new URLSearchParams({ companyUuid: normalized.companyUuid }).toString()}`
+}
+
+function toRequiredCompanyQuery(params: CompanyMutationScopeParams) {
+  return `?${new URLSearchParams({
+    companyUuid: getRequiredCompanyUuidForMutationScope(params.companyUuid),
+  }).toString()}`
+}
 
 /**
  * Backend contract switch point for Google Sheets integrations.
  *
  * Python backend direction:
+ * - Google Sheet configs belong to one concrete COMPANY. `companyUuid` is
+ *   required for create/update/delete and optional for list filtering.
  * - Keep the service account JSON key on the server only. The frontend may send
  *   `serviceAccountKeyJson` on create/update, but list responses must return
  *   only `maskedServiceAccountKey`.
@@ -18,7 +36,7 @@ import { apiRequest, USE_MOCK_API } from './httpClient'
  *   fields and should be persisted with the config.
  */
 const httpAdminGoogleSheetRequests: AdminGoogleSheetApi = {
-  getAdminGoogleSheetConfigs: () => apiRequest('/admin/google-sheets'),
+  getAdminGoogleSheetConfigs: (params) => apiRequest(`/admin/google-sheets${toCompanyQuery(params)}`),
   createAdminGoogleSheetConfig: (payload) =>
     apiRequest('/admin/google-sheets', { method: 'POST', body: payload }),
   updateAdminGoogleSheetConfig: (payload) =>
@@ -26,15 +44,17 @@ const httpAdminGoogleSheetRequests: AdminGoogleSheetApi = {
       method: 'PATCH',
       body: payload,
     }),
-  deleteAdminGoogleSheetConfig: (configUuid) =>
-    apiRequest(`/admin/google-sheets/${encodeURIComponent(configUuid)}`, { method: 'DELETE' }),
+  deleteAdminGoogleSheetConfig: (configUuid, params) =>
+    apiRequest(`/admin/google-sheets/${encodeURIComponent(configUuid)}${toRequiredCompanyQuery(params)}`, {
+      method: 'DELETE',
+    }),
 }
 
 const mockAdminGoogleSheetRequests: AdminGoogleSheetApi = {
-  getAdminGoogleSheetConfigs: () => mockAdminGoogleSheetApi.getAdminGoogleSheetConfigs(),
+  getAdminGoogleSheetConfigs: (params) => mockAdminGoogleSheetApi.getAdminGoogleSheetConfigs(params),
   createAdminGoogleSheetConfig: (payload) => mockAdminGoogleSheetApi.createAdminGoogleSheetConfig(payload),
   updateAdminGoogleSheetConfig: (payload) => mockAdminGoogleSheetApi.updateAdminGoogleSheetConfig(payload),
-  deleteAdminGoogleSheetConfig: (configUuid) => mockAdminGoogleSheetApi.deleteAdminGoogleSheetConfig(configUuid),
+  deleteAdminGoogleSheetConfig: (configUuid, params) => mockAdminGoogleSheetApi.deleteAdminGoogleSheetConfig(configUuid, params),
 }
 
 export const adminGoogleSheetRequests: AdminGoogleSheetApi = USE_MOCK_API

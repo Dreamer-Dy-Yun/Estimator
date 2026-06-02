@@ -1,7 +1,11 @@
+import type { CompanyMutationScopeParams, CompanyScopeParams } from './company'
+
 export type AdminGoogleSheetPurpose = 'db-schema' | 'upload-template' | 'operation-reference' | 'test'
 
 export interface AdminGoogleSheetConfigSummary {
   uuid: string
+  companyUuid: string
+  companyName: string
   name: string
   purpose: AdminGoogleSheetPurpose
   serviceAccountEmail: string
@@ -13,7 +17,7 @@ export interface AdminGoogleSheetConfigSummary {
   dbUpdatedAt: string
 }
 
-export interface CreateAdminGoogleSheetConfigPayload {
+export interface CreateAdminGoogleSheetConfigPayload extends CompanyMutationScopeParams {
   name: string
   purpose: AdminGoogleSheetPurpose
   serviceAccountKeyJson: string
@@ -22,7 +26,7 @@ export interface CreateAdminGoogleSheetConfigPayload {
   note: string | null
 }
 
-export interface UpdateAdminGoogleSheetConfigPayload {
+export interface UpdateAdminGoogleSheetConfigPayload extends CompanyMutationScopeParams {
   uuid: string
   name: string
   purpose: AdminGoogleSheetPurpose
@@ -33,12 +37,12 @@ export interface UpdateAdminGoogleSheetConfigPayload {
 }
 
 export interface AdminGoogleSheetApi {
-  getAdminGoogleSheetConfigs(): Promise<AdminGoogleSheetConfigSummary[]>
+  getAdminGoogleSheetConfigs(params?: CompanyScopeParams): Promise<AdminGoogleSheetConfigSummary[]>
   createAdminGoogleSheetConfig(
     payload: CreateAdminGoogleSheetConfigPayload,
   ): Promise<AdminGoogleSheetConfigSummary>
   updateAdminGoogleSheetConfig(
     payload: UpdateAdminGoogleSheetConfigPayload,
   ): Promise<AdminGoogleSheetConfigSummary>
-  deleteAdminGoogleSheetConfig(configUuid: string): Promise<void>
+  deleteAdminGoogleSheetConfig(configUuid: string, params: CompanyMutationScopeParams): Promise<void>
 }

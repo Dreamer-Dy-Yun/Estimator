@@ -1,5 +1,6 @@
 import { mockInventoryArrivalApi } from '../mock'
-import type { InventoryArrivalApi } from '../types'
+import type { InventoryArrivalApi, InventoryArrivalCollectionParams } from '../types'
+import { normalizeCompanyMutationScopeParams } from '../types/company'
 import { apiRequest, USE_MOCK_API } from './httpClient'
 
 /**
@@ -7,8 +8,9 @@ import { apiRequest, USE_MOCK_API } from './httpClient'
  *
  * Python backend direction:
  * - This endpoint is available to every authenticated user, not only admins.
- * - The backend chooses the active Google Sheets configuration for inbound date
- *   collection. The frontend does not pass a sheet key or raw service account key.
+ * - The frontend passes one concrete companyUuid. The backend chooses that
+ *   company's active Google Sheets configuration for inbound date collection.
+ *   The frontend does not pass a sheet key or raw service account key.
  * - The backend reads the configured spreadsheet, validates rows, and upserts
  *   inbound arrival dates in its own transaction boundary.
  * - The response must be a summary only: collected count, failed count, status,
@@ -17,13 +19,23 @@ import { apiRequest, USE_MOCK_API } from './httpClient'
  *   accepted, return an HTTP error with `{ message }`. Partial row failures can
  *   return `status: "partial"` with `failedCount > 0`.
  */
+function buildInventoryArrivalCollectionBody(params: InventoryArrivalCollectionParams) {
+  const normalizedParams = normalizeCompanyMutationScopeParams(params)
+  return {
+    companyUuid: normalizedParams.companyUuid,
+  }
+}
+
 const httpInventoryArrivalRequests: InventoryArrivalApi = {
-  collectInventoryArrivalDates: () =>
-    apiRequest('/inventory-arrival-dates/collect-from-sheet', { method: 'POST' }),
+  collectInventoryArrivalDates: (params) =>
+    apiRequest('/inventory-arrival-dates/collect-from-sheet', {
+      method: 'POST',
+      body: JSON.stringify(buildInventoryArrivalCollectionBody(params)),
+    }),
 }
 
 const mockInventoryArrivalRequests: InventoryArrivalApi = {
-  collectInventoryArrivalDates: () => mockInventoryArrivalApi.collectInventoryArrivalDates(),
+  collectInventoryArrivalDates: (params) => mockInventoryArrivalApi.collectInventoryArrivalDates(params),
 }
 
 export const inventoryArrivalRequests: InventoryArrivalApi = USE_MOCK_API

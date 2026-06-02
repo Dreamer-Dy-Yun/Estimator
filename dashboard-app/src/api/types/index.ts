@@ -120,6 +120,7 @@ export type { SecondaryOrderSnapshotPayload } from './snapshot'
 export type { DashboardApi, DashboardEventStreamErrorListener } from './dashboard-api'
 export type {
   InventoryArrivalApi,
+  InventoryArrivalCollectionParams,
   InventoryArrivalCollectionResult,
   InventoryArrivalCollectionStatus,
 } from './inventory-arrival'

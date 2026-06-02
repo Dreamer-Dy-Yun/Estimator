@@ -33,8 +33,9 @@ export function AdminGoogleSheetRow({ config, onOpen }: AdminGoogleSheetRowProps
         className={styles.googleSheetDetailButton}
         type="button"
         onClick={() => onOpen(config)}
-        aria-label={`${config.name} 상세 설정`}
+        aria-label={`${config.companyName} ${config.name} 상세 설정`}
       >
+        <span>{config.companyName}</span>
         <span className={styles.gptKeyNameCell}>
           <strong>{config.name}</strong>
           {config.note ? <small>{config.note}</small> : null}
@@ -60,7 +61,7 @@ export function AdminGoogleSheetRow({ config, onOpen }: AdminGoogleSheetRowProps
           className={styles.resetButton}
           type="button"
           onClick={handleOpenSheet}
-          aria-label={`${config.name} 시트로 이동`}
+          aria-label={`${config.companyName} ${config.name} 시트로 이동`}
         >
           시트로 이동
         </button>

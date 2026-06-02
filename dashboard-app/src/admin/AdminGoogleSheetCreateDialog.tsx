@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { createAdminGoogleSheetConfig } from '../api'
 import type { AdminGoogleSheetPurpose } from '../api'
+import type { CompanySummary } from '../api/types/company'
 import { useAppToast } from '../components/AppToastContext'
 import { AdminActiveSwitch } from './AdminActiveSwitch'
 import { AdminCreateDialogShell } from './AdminCreateDialogShell'
@@ -10,14 +11,27 @@ import { GOOGLE_SHEET_PURPOSE_OPTIONS, getErrorMessage } from './adminHelpers'
 import styles from './AdminPage.module.css'
 
 interface AdminGoogleSheetCreateDialogProps {
+  companies: CompanySummary[]
+  defaultCompanyUuid: string | null | undefined
   onClose: () => void
   onCreated: () => Promise<void>
 }
 
 const formId = 'admin-google-sheet-create-form'
 
-export function AdminGoogleSheetCreateDialog({ onClose, onCreated }: AdminGoogleSheetCreateDialogProps) {
+export function AdminGoogleSheetCreateDialog({
+  companies,
+  defaultCompanyUuid,
+  onClose,
+  onCreated,
+}: AdminGoogleSheetCreateDialogProps) {
   const { showToast } = useAppToast()
+  const initialCompanyUuid = companies.some((company) => company.uuid === defaultCompanyUuid)
+    ? defaultCompanyUuid ?? ''
+    : companies[0]?.uuid ?? ''
+  const [companyUuid, setCompanyUuid] = useState(
+    initialCompanyUuid,
+  )
   const [name, setName] = useState('')
   const [purpose, setPurpose] = useState<AdminGoogleSheetPurpose>('db-schema')
   const [serviceAccountKeyJson, setServiceAccountKeyJson] = useState('')
@@ -28,14 +42,22 @@ export function AdminGoogleSheetCreateDialog({ onClose, onCreated }: AdminGoogle
   const [note, setNote] = useState('')
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [isCreating, setIsCreating] = useState(false)
+  const canSubmitCompany = companies.length > 0 && companyUuid.trim().length > 0
 
   const handleCreate = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     setErrorMessage(null)
+
+    if (!canSubmitCompany) {
+      setErrorMessage('회사를 선택해야 합니다.')
+      return
+    }
+
     setIsCreating(true)
 
     try {
       await createAdminGoogleSheetConfig({
+        companyUuid,
         name,
         purpose,
         serviceAccountKeyJson,
@@ -66,6 +88,17 @@ export function AdminGoogleSheetCreateDialog({ onClose, onCreated }: AdminGoogle
       onClose={onClose}
       onSubmit={handleCreate}
     >
+      <label className={styles.createField}>
+        <span>회사</span>
+        <select value={companyUuid} onChange={(event) => setCompanyUuid(event.target.value)} required>
+          {companies.length === 0 ? <option value="">선택 가능한 회사 없음</option> : null}
+          {companies.map((company) => (
+            <option key={company.uuid} value={company.uuid}>
+              {company.name}
+            </option>
+          ))}
+        </select>
+      </label>
       <label className={styles.createField}>
         <span>이름</span>
         <input value={name} onChange={(event) => setName(event.target.value)} placeholder="DB 설계 시트" />
