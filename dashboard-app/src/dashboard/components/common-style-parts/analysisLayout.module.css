@@ -110,6 +110,68 @@
   align-items: flex-start;
 }
 
+.analysisControlsGrid {
+  display: grid;
+  grid-template-columns: minmax(300px, 0.85fr) minmax(480px, 1.15fr);
+  gap: 12px;
+  align-items: stretch;
+}
+
+.analysisControlCard {
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  gap: 8px;
+  min-width: 0;
+}
+
+.analysisControlHeader,
+.analysisListHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-width: 0;
+}
+
+.analysisControlTitle,
+.analysisListHeaderTitle {
+  color: #0f172a;
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.analysisControlActions,
+.analysisListHeaderActions {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  min-width: 0;
+}
+
+.analysisListColumn {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 8px;
+  min-height: 0;
+  min-width: 0;
+}
+
+.analysisListHeader {
+  min-height: 32px;
+  padding: 0 2px;
+}
+
+.analysisSelectedCount {
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
 .leftCol {
   display: grid;
   grid-template-rows: auto auto;
@@ -200,9 +262,25 @@
     grid-template-columns: 1fr;
   }
 
+  .analysisControlsGrid {
+    grid-template-columns: 1fr;
+  }
+
   .selfTwoCol {
     height: auto;
     min-height: 0;
     overflow: visible;
+  }
+
+  .analysisControlHeader,
+  .analysisListHeader {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .analysisControlActions,
+  .analysisListHeaderActions {
+    justify-content: stretch;
+    width: 100%;
   }
 }

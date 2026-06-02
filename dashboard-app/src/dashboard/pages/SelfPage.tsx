@@ -17,7 +17,7 @@ import styles from '../components/common.module.css'
 import { useAnalysisPageCommonState } from '../hooks/useAnalysisPageCommonState'
 import { useAnalysisPageSelection } from '../hooks/useAnalysisPageSelection'
 import { useAnalysisSalesDataGate } from '../hooks/useAnalysisSalesDataGate'
-import { useAnalysisSalesFilters, maskNonPeriodAnalysisFilterFields } from '../hooks/useAnalysisSalesFilters'
+import { maskAnalysisListFilterFields, useAnalysisSalesFilters } from '../hooks/useAnalysisSalesFilters'
 import { useAnalysisScatterGridView } from '../hooks/useAnalysisScatterGridView'
 import { useDashboardRequest } from '../hooks/useDashboardRequest'
 import { useProductDrawerBundleState } from '../hooks/useProductDrawerBundle'
@@ -62,15 +62,17 @@ export const SelfPage = () => {
     chartWidth: common.chartWidth,
     chartHeight: common.chartHeight,
   })
-  const displayedFilterFields = useMemo(
-    () => (selection.activeGridCellKey ? maskNonPeriodAnalysisFilterFields(filters.filterFields) : filters.filterFields),
-    [filters.filterFields, selection.activeGridCellKey],
+  const displayedListFilterFields = useMemo(
+    () => (selection.activeGridCellKey ? maskAnalysisListFilterFields(filters.listFilterFields) : filters.listFilterFields),
+    [filters.listFilterFields, selection.activeGridCellKey],
   )
 
   return (
     <section className={styles.page}>
       <AnalysisPageLayout
-        filterFields={displayedFilterFields}
+        queryFields={filters.queryFields}
+        listFilterFields={displayedListFilterFields}
+        listFilterResetDisabled={!filters.listFiltersDirty}
         historicalMonths={filters.historicalMonths}
         showPeriodBar={filters.showPeriodBar}
         periodStartIdx={filters.periodStartIdx}
@@ -86,9 +88,17 @@ export const SelfPage = () => {
         refreshing={analysisData.refreshing}
         initialLabel={`${common.selfCompanyLabel} 분석 목록을 불러오는 중`}
         refreshLabel={`${common.selfCompanyLabel} 분석 목록을 갱신하는 중`}
-        endControl={(
+        queryEndControl={(
           <div className={styles.periodPresetRowEndGroup}>
             <DashboardRequestStatus compact items={[{ label: `${common.selfCompanyLabel} 분석 목록`, state: rowsRequest }, { label: '산점도', state: scatterGridRequest }]} />
+            <AnalysisPeriodQueryButton disabled={!filters.periodQueryDirty} onClick={filters.applyPeriodQuery} />
+          </div>
+        )}
+        onResetListFilters={filters.resetListFilters}
+        listTitle={`${common.selfCompanyLabel} 상품 목록`}
+        listHeaderContent={(
+          <>
+            <span className={styles.analysisSelectedCount}>선택 {selection.bulkSelectedCount}개</span>
             <button
               type="button"
               className={`${styles.actionBtn} ${styles.btnPrimary} ${styles.analysisBulkAddButton}`}
@@ -98,8 +108,7 @@ export const SelfPage = () => {
             >
               선택한 물품을 후보군으로
             </button>
-            <AnalysisPeriodQueryButton disabled={!filters.periodQueryDirty} onClick={filters.applyPeriodQuery} />
-          </div>
+          </>
         )}
         leftPanel={(
           <>

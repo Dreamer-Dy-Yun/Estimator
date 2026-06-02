@@ -32,8 +32,8 @@ const FILTER_DEFS: Array<{ key: FilterKey; label: string }> = [
   { key: 'colorCode', label: '색상' },
 ]
 
-export function maskNonPeriodAnalysisFilterFields(fields: FilterField[]): FilterField[] {
-  return fields.map((field) => (field.inputType === 'date' ? field : { ...field, displayValue: '', disabled: true }))
+export function maskAnalysisListFilterFields(fields: FilterField[]): FilterField[] {
+  return fields.map((field) => ({ ...field, displayValue: '', disabled: true }))
 }
 
 function filterParam(value: string): string | undefined {
@@ -80,9 +80,12 @@ export function useAnalysisSalesFilters(companyUuid?: string) {
     ...(companyUuid ? { companyUuid } : {}),
   }), [appliedPeriod.endDate, appliedPeriod.startDate, companyUuid, filterValues])
 
-  const filterFields = useMemo<FilterField[]>(() => [
+  const queryFields = useMemo<FilterField[]>(() => [
     { label: '시작일', kind: 'input', inputType: 'date', value: period.periodStartDate, onChange: period.onStartDateChange },
     { label: '종료일', kind: 'input', inputType: 'date', value: period.periodEndDate, onChange: period.onEndDateChange },
+  ], [period.onEndDateChange, period.onStartDateChange, period.periodEndDate, period.periodStartDate])
+
+  const listFilterFields = useMemo<FilterField[]>(() => [
     ...FILTER_DEFS.map(({ key, label }) => ({
       label,
       kind: 'listCombo' as const,
@@ -91,7 +94,10 @@ export function useAnalysisSalesFilters(companyUuid?: string) {
       onChange: (value: string) => setFilterValue(key, value),
       options: filterOptions[key],
     })),
-  ], [filterOptions, filterValues, period.onEndDateChange, period.onStartDateChange, period.periodEndDate, period.periodStartDate, setFilterValue])
+  ], [filterOptions, filterValues, setFilterValue])
+
+  const resetListFilters = useCallback(() => setFilterValues(EMPTY_VALUES), [])
+  const listFiltersDirty = useMemo(() => FILTER_DEFS.some(({ key }) => filterValues[key] !== ALL_OPTION), [filterValues])
 
   const periodQueryDirty = period.periodStartDate !== appliedPeriod.startDate || period.periodEndDate !== appliedPeriod.endDate
   const applyPeriodQuery = useCallback(() => {
@@ -104,7 +110,10 @@ export function useAnalysisSalesFilters(companyUuid?: string) {
     appliedPeriodEndDate: appliedPeriod.endDate,
     periodQueryDirty,
     applyPeriodQuery,
-    filterFields,
+    queryFields,
+    listFilterFields,
+    listFiltersDirty,
+    resetListFilters,
     historicalMonths,
     salesParams,
     showPeriodBar,

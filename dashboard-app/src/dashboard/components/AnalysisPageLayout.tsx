@@ -1,12 +1,14 @@
 import type { ReactNode } from 'react'
-import { FilterBar } from './FilterBar'
+import { FilterFieldGrid } from './FilterBar'
 import { AnalysisListRequestFrame } from './AnalysisListRequestFrame'
 import { AnalysisPeriodTools } from './AnalysisPeriodTools'
 import styles from './common.module.css'
 import type { FilterField } from '../model/filterField'
 
 export type AnalysisPeriodFrameProps = {
-  filterFields: FilterField[]
+  queryFields: FilterField[]
+  listFilterFields: FilterField[]
+  listFilterResetDisabled: boolean
   historicalMonths: string[]
   showPeriodBar: boolean
   periodStartIdx: number
@@ -19,9 +21,13 @@ export type AnalysisPeriodFrameProps = {
   refreshLabel: string
   leftPanel: ReactNode
   listPanel: ReactNode
-  endControl: ReactNode
+  queryEndControl: ReactNode
+  listTitle: string
+  listFilterEndContent?: ReactNode
+  listHeaderContent?: ReactNode
   setPresetMonths: (months: number) => void
   setWholeRange: () => void
+  onResetListFilters: () => void
   onTogglePeriodBar: () => void
   onPeriodBarStart: (value: number) => void
   onPeriodBarEnd: (value: number) => void
@@ -29,7 +35,9 @@ export type AnalysisPeriodFrameProps = {
 
 export function AnalysisPageLayout(props: AnalysisPeriodFrameProps) {
   const {
-    filterFields,
+    queryFields,
+    listFilterFields,
+    listFilterResetDisabled,
     historicalMonths,
     showPeriodBar,
     periodStartIdx,
@@ -42,9 +50,13 @@ export function AnalysisPageLayout(props: AnalysisPeriodFrameProps) {
     refreshLabel,
     leftPanel,
     listPanel,
-    endControl,
+    queryEndControl,
+    listTitle,
+    listFilterEndContent,
+    listHeaderContent,
     setPresetMonths,
     setWholeRange,
+    onResetListFilters,
     onTogglePeriodBar,
     onPeriodBarStart,
     onPeriodBarEnd,
@@ -52,11 +64,12 @@ export function AnalysisPageLayout(props: AnalysisPeriodFrameProps) {
 
   return (
     <>
-      <FilterBar
-        title=""
-        filterClassName={styles.filterAnalysisGrid}
-        fields={filterFields}
-        extraContent={(
+      <div className={styles.analysisControlsGrid}>
+        <section className={`${styles.card} ${styles.analysisControlCard}`} aria-label="조회 조건">
+          <div className={styles.analysisControlHeader}>
+            <div className={styles.analysisControlTitle}>조회 조건</div>
+          </div>
+          <FilterFieldGrid fields={queryFields} filterClassName={styles.filterAnalysisQueryGrid} />
           <AnalysisPeriodTools
             showPeriodBar={showPeriodBar}
             historicalMonths={historicalMonths}
@@ -69,13 +82,36 @@ export function AnalysisPageLayout(props: AnalysisPeriodFrameProps) {
             onTogglePeriodBar={onTogglePeriodBar}
             onPeriodBarStart={onPeriodBarStart}
             onPeriodBarEnd={onPeriodBarEnd}
-            endControl={endControl}
+            endControl={queryEndControl}
           />
-        )}
-      />
+        </section>
+        <section className={`${styles.card} ${styles.analysisControlCard}`} aria-label="목록 필터">
+          <div className={styles.analysisControlHeader}>
+            <div className={styles.analysisControlTitle}>목록 필터</div>
+            <div className={styles.analysisControlActions}>
+              {listFilterEndContent}
+              <button
+                type="button"
+                className={styles.analysisFilterResetButton}
+                onClick={onResetListFilters}
+                disabled={listFilterResetDisabled}
+              >
+                필터 초기화
+              </button>
+            </div>
+          </div>
+          <FilterFieldGrid fields={listFilterFields} filterClassName={styles.filterAnalysisGrid} />
+        </section>
+      </div>
       <div className={`${styles.twoCol} ${styles.selfTwoCol}`}>
         <div className={`${styles.leftCol} ${styles.selfLeftCol}`}>{leftPanel}</div>
-        <AnalysisListRequestFrame initialLoading={initialLoading} refreshing={refreshing} initialLabel={initialLabel} refreshLabel={refreshLabel}>{listPanel}</AnalysisListRequestFrame>
+        <div className={styles.analysisListColumn}>
+          <div className={styles.analysisListHeader}>
+            <strong className={styles.analysisListHeaderTitle}>{listTitle}</strong>
+            {listHeaderContent ? <div className={styles.analysisListHeaderActions}>{listHeaderContent}</div> : null}
+          </div>
+          <AnalysisListRequestFrame initialLoading={initialLoading} refreshing={refreshing} initialLabel={initialLabel} refreshLabel={refreshLabel}>{listPanel}</AnalysisListRequestFrame>
+        </div>
       </div>
     </>
   )

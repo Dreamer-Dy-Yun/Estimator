@@ -13,11 +13,9 @@ type Props = {
 }
 
 const ALL_OPTION_LABEL = '전체'
-const ALL_OPTION_DISPLAY_LABEL = '전체'
 const NO_MATCH_LABEL = '검색 결과가 없습니다.'
 const isArrowOpenKey = (key: string) => key === 'ArrowDown' || key === 'ArrowUp'
 const isAllOption = (option: string) => option.trim() === ALL_OPTION_LABEL
-const displayOption = (option: string) => isAllOption(option) ? ALL_OPTION_DISPLAY_LABEL : option
 
 export function FilterListCombo({ inputId, value, onChange, options, inputType = 'text', disabled = false }: Props) {
   const wrapRef = useRef<HTMLDivElement | null>(null)
@@ -26,7 +24,6 @@ export function FilterListCombo({ inputId, value, onChange, options, inputType =
   const [panelRect, setPanelRect] = useState<PanelRect | null>(null)
   const comboOpen = open && !disabled
   const valueIsAllOption = isAllOption(value)
-  const inputValue = valueIsAllOption ? ALL_OPTION_DISPLAY_LABEL : value
   const filtered = useMemo(() => {
     if (disabled) return []
     const q = value.trim().toLowerCase()
@@ -128,7 +125,7 @@ export function FilterListCombo({ inputId, value, onChange, options, inputType =
                 onMouseEnter={() => setActiveIdx(index)}
                 onClick={() => pick(option)}
               >
-                {displayOption(option)}
+                {option}
               </button>
             </li>
           ))}
@@ -148,12 +145,12 @@ export function FilterListCombo({ inputId, value, onChange, options, inputType =
         aria-expanded={comboOpen && panelVisible}
         aria-controls={showList ? `${inputId}-listbox` : undefined}
         aria-activedescendant={showList && activeIdx >= 0 ? `${inputId}-opt-${activeIdx}` : undefined}
-        value={inputValue}
+        value={value}
         disabled={disabled}
         onChange={(event) => {
           if (disabled) return
           const nextValue = valueIsAllOption
-            ? event.target.value.replace(ALL_OPTION_DISPLAY_LABEL, '')
+            ? event.target.value.replace(ALL_OPTION_LABEL, '')
             : event.target.value
           onChange(nextValue)
           updatePanelRect()

@@ -5,17 +5,17 @@ import { LoadingSpinner } from '../../components/LoadingSpinner'
 import type { CompetitorSalesRow } from '../../types'
 import { AnalysisDrawerBulkAdd } from '../components/AnalysisDrawerBulkAdd'
 import { AnalysisPageLayout } from '../components/AnalysisPageLayout'
+import { AnalysisPeriodQueryButton } from '../components/AnalysisPeriodQueryButton'
 import { AnalysisScatterChartCard } from '../components/AnalysisScatterChartCard'
 import { createCompetitorSalesScatterTooltip } from '../components/AnalysisScatterTooltips'
 import { CompetitorAnalysisList } from '../components/CompetitorAnalysisList'
-import { CompetitorFilterEndControls } from '../components/CompetitorFilterEndControls'
 import { CompetitorKpiGrid } from '../components/CompetitorKpiGrid'
 import { DashboardRequestStatus } from '../components/DashboardRequestStatus'
 import styles from '../components/common.module.css'
 import { useAnalysisPageCommonState } from '../hooks/useAnalysisPageCommonState'
 import { useAnalysisPageSelection } from '../hooks/useAnalysisPageSelection'
 import { useAnalysisSalesDataGate } from '../hooks/useAnalysisSalesDataGate'
-import { useAnalysisSalesFilters, maskNonPeriodAnalysisFilterFields } from '../hooks/useAnalysisSalesFilters'
+import { maskAnalysisListFilterFields, useAnalysisSalesFilters } from '../hooks/useAnalysisSalesFilters'
 import { useAnalysisScatterGridView } from '../hooks/useAnalysisScatterGridView'
 import { useDashboardRequest } from '../hooks/useDashboardRequest'
 import { useProductDrawerBundleState } from '../hooks/useProductDrawerBundle'
@@ -66,14 +66,19 @@ export const CompetitorPage = () => {
   const selection = useAnalysisPageSelection({ rows: baseRows, scatterGrid, bulkAddOpen })
   const summaryBundleState = useProductDrawerBundleState(selection.selectedSkuGroupKey, { companyUuid: common.companyUuid })
 
-  const competitorFilterFields = useMemo<FilterField[]>(() => [
-    ...filters.filterFields,
+  const competitorQueryFields = useMemo<FilterField[]>(() => [
+    ...filters.queryFields,
     { label: '경쟁 채널', kind: 'select', value: competitorChannelLabel, onChange: onCompetitorChannelChange, options: [ALL_CHANNEL_LABEL, ...channels.map((ch) => ch.label)] },
-  ], [channels, competitorChannelLabel, filters.filterFields, onCompetitorChannelChange])
-  const displayedFilterFields = useMemo(
-    () => (selection.activeGridCellKey ? maskNonPeriodAnalysisFilterFields(competitorFilterFields) : competitorFilterFields),
-    [competitorFilterFields, selection.activeGridCellKey],
+  ], [channels, competitorChannelLabel, filters.queryFields, onCompetitorChannelChange])
+  const displayedListFilterFields = useMemo(
+    () => (selection.activeGridCellKey ? maskAnalysisListFilterFields(filters.listFilterFields) : filters.listFilterFields),
+    [filters.listFilterFields, selection.activeGridCellKey],
   )
+  const resetListFilters = useCallback(() => {
+    filters.resetListFilters()
+    setShowRowsWithSelfSalesOnly(false)
+  }, [filters])
+  const listFiltersDirty = filters.listFiltersDirty || showRowsWithSelfSalesOnly
   const competitorAxisLabel = competitorChannelLabel === ALL_CHANNEL_LABEL ? '전체 경쟁사' : competitorChannelLabel
   const kpi = useMemo(() => {
     const rowsWithSelfAmount = selection.visibleRows.filter((row) => row.selfAmount != null)
@@ -98,7 +103,9 @@ export const CompetitorPage = () => {
   return (
     <section className={styles.page}>
       <AnalysisPageLayout
-        filterFields={displayedFilterFields}
+        queryFields={competitorQueryFields}
+        listFilterFields={displayedListFilterFields}
+        listFilterResetDisabled={!listFiltersDirty}
         historicalMonths={filters.historicalMonths}
         showPeriodBar={filters.showPeriodBar}
         periodStartIdx={filters.periodStartIdx}
@@ -114,18 +121,37 @@ export const CompetitorPage = () => {
         refreshing={analysisData.refreshing}
         initialLabel="경쟁사 분석 목록을 불러오는 중"
         refreshLabel="경쟁사 분석 목록을 갱신하는 중"
-        endControl={(
-          <CompetitorFilterEndControls
-            selfCompanyLabel={common.selfCompanyLabel}
-            showRowsWithSelfSalesOnly={showRowsWithSelfSalesOnly}
-            bulkSelectedCount={selection.bulkSelectedCount}
-            queryDisabled={!filters.periodQueryDirty}
-            candidateAddDisabledReason={common.isAllCompanySelected ? ALL_COMPANY_BULK_ADD_DISABLED : undefined}
-            requestStatus={<DashboardRequestStatus compact items={[{ label: '경쟁 채널', state: channelsRequest }, { label: '경쟁사 분석 목록', state: rowsRequest }, { label: '산점도', state: scatterGridRequest }]} />}
-            onSelfSalesOnlyChange={setShowRowsWithSelfSalesOnly}
-            onOpenBulkAdd={() => setBulkAddOpen(true)}
-            onApplyPeriodQuery={filters.applyPeriodQuery}
-          />
+        queryEndControl={(
+          <div className={styles.periodPresetRowEndGroup}>
+            <DashboardRequestStatus compact items={[{ label: '경쟁 채널', state: channelsRequest }, { label: '경쟁사 분석 목록', state: rowsRequest }, { label: '산점도', state: scatterGridRequest }]} />
+            <AnalysisPeriodQueryButton disabled={!filters.periodQueryDirty} onClick={filters.applyPeriodQuery} />
+          </div>
+        )}
+        listFilterEndContent={(
+          <label className={styles.periodPresetRowToggle}>
+            <input
+              type="checkbox"
+              checked={showRowsWithSelfSalesOnly}
+              onChange={(event) => setShowRowsWithSelfSalesOnly(event.target.checked)}
+            />
+            <span>{common.selfCompanyLabel} 판매량이 존재하는 경우만 보기</span>
+          </label>
+        )}
+        onResetListFilters={resetListFilters}
+        listTitle="경쟁사 상품 목록"
+        listHeaderContent={(
+          <>
+            <span className={styles.analysisSelectedCount}>선택 {selection.bulkSelectedCount}개</span>
+            <button
+              type="button"
+              className={`${styles.actionBtn} ${styles.btnPrimary} ${styles.analysisBulkAddButton}`}
+              onClick={() => setBulkAddOpen(true)}
+              disabled={common.isAllCompanySelected || selection.bulkSelectedCount === 0}
+              title={common.isAllCompanySelected ? ALL_COMPANY_BULK_ADD_DISABLED : undefined}
+            >
+              선택한 물품을 후보군으로
+            </button>
+          </>
         )}
         leftPanel={(
           <>

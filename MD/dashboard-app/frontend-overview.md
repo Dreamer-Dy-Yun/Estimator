@@ -1,6 +1,6 @@
 # dashboard-app Frontend Overview
 
-Last updated: 2026-05-29
+Last updated: 2026-06-02
 
 ## Purpose
 
@@ -11,6 +11,8 @@ The app analyzes self and competitor sales, opens product drawers for order plan
 - Login loads session and company list.
 - Header company selector controls read scope.
 - Self analysis and competitor analysis pages request rows and scatter data from the same query key.
+- Analysis pages separate API query controls, in-list filters, and selected-row actions.
+- Analysis text filters keep `전체` available in autocomplete and show list refresh as an inline status, not a blocking overlay.
 - Product drawer loads primary summary, monthly trend, sales insight, secondary detail, daily trend, stock-order calculation, and AI comment on demand.
 - Candidate stash page manages candidate lists, recommendations, order metric SSE, detail confirmation, and Excel export.
 - Admin pages manage users, GPT keys, and Google Sheet configs.
