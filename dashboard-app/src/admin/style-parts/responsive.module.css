@@ -72,10 +72,6 @@
     font-weight: 900;
   }
 
-  .identityCell span {
-    display: block;
-  }
-
   .actionCell {
     justify-content: flex-start;
   }

@@ -120,7 +120,6 @@
   gap: 8px;
   align-items: stretch;
   box-sizing: border-box;
-  padding-left: calc(clamp(230px, 24vw, 280px) + 12px);
 }
 
 .analysisControlCard {
@@ -337,7 +336,6 @@
       "query"
       "filters"
       "actions";
-    padding-left: 0;
   }
 
   .analysisListFilterCard > .filter,

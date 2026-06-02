@@ -14,10 +14,6 @@ function getRoleLabel(value: AdminUserSummary['role']) {
 export function AdminUserRow({ user, onOpen }: AdminUserRowProps) {
   return (
     <button className={styles.userRow} type="button" onClick={() => onOpen(user)}>
-      <div className={styles.identityCell}>
-        <span>UUID</span>
-        <strong>{user.uuid}</strong>
-      </div>
       <span className={styles.gptKeyNameCell}>
         <strong>{user.loginId}</strong>
         <small>{user.mustChangePassword ? '비밀번호 변경 필요' : '정상'}</small>

@@ -4,8 +4,7 @@
 .gptKeyListRow {
   display: grid;
   grid-template-columns:
-    minmax(220px, 1.2fr)
-    minmax(140px, 0.82fr)
+    minmax(180px, 1.1fr)
     minmax(120px, 0.7fr)
     minmax(160px, 1fr)
     92px
@@ -119,31 +118,6 @@
   color: #64748b;
   font-size: 11px;
   font-weight: 800;
-}
-
-.identityCell {
-  min-width: 0;
-  display: grid;
-  gap: 3px;
-}
-
-.identityCell strong {
-  color: #111827;
-  font-size: 13px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.identityCell span {
-  display: none;
-  min-width: 0;
-  overflow: hidden;
-  color: #64748b;
-  font-size: 12px;
-  font-weight: 900;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .fieldCell {

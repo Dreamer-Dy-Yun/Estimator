@@ -37,7 +37,7 @@ export function AdminGoogleSheetRow({ config, onOpen }: AdminGoogleSheetRowProps
       >
         <span className={styles.gptKeyNameCell}>
           <strong>{config.name}</strong>
-          <small>{config.note ?? config.uuid}</small>
+          {config.note ? <small>{config.note}</small> : null}
         </span>
         <span>{getOptionLabel(GOOGLE_SHEET_PURPOSE_OPTIONS, config.purpose)}</span>
         <span className={styles.gptKeyNameCell}>

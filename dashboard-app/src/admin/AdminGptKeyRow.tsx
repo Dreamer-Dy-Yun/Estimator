@@ -13,7 +13,6 @@ export function AdminGptKeyRow({
     <button className={styles.gptKeyListRow} type="button" onClick={() => onOpen(gptKey)}>
       <span className={styles.gptKeyNameCell}>
         <strong>{gptKey.name}</strong>
-        <small>{gptKey.uuid}</small>
       </span>
       <span>{GPT_KEY_PURPOSE_OPTIONS.find((option) => option.value === gptKey.purpose)?.label ?? gptKey.purpose}</span>
       <span>{gptKey.model}</span>

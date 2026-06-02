@@ -100,7 +100,7 @@ export function AdminUsersPanel() {
         title="사용자"
         countLabel={`${users.length}명`}
         headerClassName={styles.tableHeader}
-        columns={['UUID', '로그인 ID', '이름', '비고', '권한', '상태', '변경일']}
+        columns={['로그인 ID', '이름', '비고', '권한', '상태', '변경일']}
         loadingLabel="사용자 목록 로딩 중"
         isLoading={isLoading}
         errorMessage={errorMessage}
