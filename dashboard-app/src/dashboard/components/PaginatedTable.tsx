@@ -1,4 +1,13 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent, type ReactNode } from 'react'
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+  type KeyboardEvent,
+  type ReactNode,
+} from 'react'
 import { compareSortValues, nextSortState, type SortState } from '../../utils/sort'
 import { drawerKeepOpenDataProps } from '../drawer/drawerDom'
 import styles from './common.module.css'
@@ -6,6 +15,7 @@ import { PaginatedTablePager } from './PaginatedTablePager'
 import type { AriaSortValue, PaginatedTableProps } from './PaginatedTableTypes'
 
 export type { PaginatedTableProps, TableColumn } from './PaginatedTableTypes'
+
 const noopPageChange = () => {}
 const isSortKey = (key: string) => key === 'Enter' || key === ' ' || key === 'Spacebar'
 
@@ -28,7 +38,19 @@ function sameOrder(a: string[], b: string[]) {
 }
 
 export function PaginatedTable<T extends { id: string }>(props: PaginatedTableProps<T>) {
-  const { columns, rows, activeRowId, getRowId, onRowClick, onRowKeyDown, onOrderedRowIdsChange, defaultSort, resetSortKey, infiniteScroll, wrapClassName } = props
+  const {
+    columns,
+    rows,
+    activeRowId,
+    getRowId,
+    onRowClick,
+    onRowKeyDown,
+    onOrderedRowIdsChange,
+    defaultSort,
+    resetSortKey,
+    infiniteScroll,
+    wrapClassName,
+  } = props
   const plain = props.paginated === false
   const tableBodyRef = useRef<HTMLDivElement | null>(null)
   const loadMoreRef = useRef<HTMLDivElement | null>(null)
@@ -62,6 +84,7 @@ export function PaginatedTable<T extends { id: string }>(props: PaginatedTablePr
     if (!plain) return sortedRows.slice(startIndex, startIndex + pageSize)
     return infiniteEnabled ? sortedRows.slice(0, visibleCount) : sortedRows
   }, [infiniteEnabled, pageSize, plain, sortedRows, startIndex, visibleCount])
+  const hasMoreRows = infiniteEnabled && pageRows.length < sortedRows.length
 
   const columnConfigs = useMemo(() => columns.map((column) => {
     const canSort = column.sortable !== false
@@ -100,19 +123,25 @@ export function PaginatedTable<T extends { id: string }>(props: PaginatedTablePr
 
   useEffect(() => {
     if (!infiniteEnabled) return
-    queueMicrotask(() => setVisibleCount(batchSize))
-  }, [rows.length, sort, infiniteEnabled, batchSize])
+    queueMicrotask(() => {
+      setVisibleCount((current) => {
+        if (sortedRows.length <= 0) return batchSize
+        return Math.min(Math.max(current, batchSize), sortedRows.length)
+      })
+    })
+  }, [rows.length, sortedRows.length, infiniteEnabled, batchSize])
 
   useEffect(() => {
     const root = tableBodyRef.current
     const target = loadMoreRef.current
-    if (!infiniteEnabled || !root || !target) return
+    if (!hasMoreRows || !root || !target) return
     const observer = new IntersectionObserver((entries) => {
-      if (entries[0]?.isIntersecting) setVisibleCount((prev) => Math.min(sortedRows.length, prev + batchSize))
+      if (!entries[0]?.isIntersecting) return
+      setVisibleCount((prev) => (prev >= sortedRows.length ? prev : Math.min(sortedRows.length, prev + batchSize)))
     }, { root, threshold: 0.1 })
     observer.observe(target)
     return () => observer.disconnect()
-  }, [infiniteEnabled, sortedRows.length, batchSize])
+  }, [batchSize, hasMoreRows, pageRows.length, sort?.dir, sort?.key, sortedRows.length, visibleCount])
 
   const onSort = useCallback((key: string, sortable: boolean) => {
     if (!sortable) return
@@ -134,8 +163,22 @@ export function PaginatedTable<T extends { id: string }>(props: PaginatedTablePr
           <thead>
             <tr>
               {columnConfigs.map(({ column, canSort, style: cellStyle, ariaSort, actionLabel }) => (
-                <th key={column.key} scope="col" style={cellStyle} className={canSort ? styles.sortableTh : undefined} onClick={canSort ? () => onSort(column.key, true) : undefined} onKeyDown={canSort ? (event) => onHeaderSortKeyDown(event, column.key) : undefined} tabIndex={canSort ? 0 : undefined} aria-sort={canSort ? ariaSort : undefined} aria-label={canSort ? actionLabel : undefined} title={canSort ? actionLabel : undefined}>
-                  <span className={styles.thInner}>{column.header}{canSort && sort?.key === column.key && <span>{sort.dir === 'asc' ? '▲' : '▼'}</span>}</span>
+                <th
+                  key={column.key}
+                  scope="col"
+                  style={cellStyle}
+                  className={canSort ? styles.sortableTh : undefined}
+                  onClick={canSort ? () => onSort(column.key, true) : undefined}
+                  onKeyDown={canSort ? (event) => onHeaderSortKeyDown(event, column.key) : undefined}
+                  tabIndex={canSort ? 0 : undefined}
+                  aria-sort={canSort ? ariaSort : undefined}
+                  aria-label={canSort ? actionLabel : undefined}
+                  title={canSort ? actionLabel : undefined}
+                >
+                  <span className={styles.thInner}>
+                    {column.header}
+                    {canSort && sort?.key === column.key && <span>{sort.dir === 'asc' ? '▲' : '▼'}</span>}
+                  </span>
                 </th>
               ))}
             </tr>
@@ -147,16 +190,43 @@ export function PaginatedTable<T extends { id: string }>(props: PaginatedTablePr
               const clickable = Boolean(onRowClick || onRowKeyDown)
               const rowClassName = `${clickable ? styles.rowClickable : ''} ${active ? styles.rowActive : ''}`.trim() || undefined
               return (
-                <tr key={rowId} ref={(node) => { if (node) rowRefs.current.set(rowId, node); else rowRefs.current.delete(rowId) }} className={rowClassName} onClick={() => onRowClick?.(row)} onKeyDown={(event) => onRowKeyDown?.(row, event)} tabIndex={clickable ? 0 : undefined} aria-current={active ? 'true' : undefined}>
-                  {columnConfigs.map(({ column, style: cellStyle }) => <td key={column.key} style={cellStyle}>{column.cell(row, startIndex + rowIndex)}</td>)}
+                <tr
+                  key={rowId}
+                  ref={(node) => {
+                    if (node) rowRefs.current.set(rowId, node)
+                    else rowRefs.current.delete(rowId)
+                  }}
+                  className={rowClassName}
+                  onClick={() => onRowClick?.(row)}
+                  onKeyDown={(event) => onRowKeyDown?.(row, event)}
+                  tabIndex={clickable ? 0 : undefined}
+                  aria-current={active ? 'true' : undefined}
+                >
+                  {columnConfigs.map(({ column, style: cellStyle }) => (
+                    <td key={column.key} style={cellStyle}>{column.cell(row, startIndex + rowIndex)}</td>
+                  ))}
                 </tr>
               )
             })}
           </tbody>
         </table>
-        {infiniteEnabled && pageRows.length < sortedRows.length && <div ref={loadMoreRef} style={{ padding: '10px', textAlign: 'center', color: '#64748b', fontSize: '12px' }}>스크롤하면 더 불러옵니다.</div>}
+        {hasMoreRows && (
+          <div ref={loadMoreRef} style={{ padding: '10px', textAlign: 'center', color: '#64748b', fontSize: '12px' }}>
+            스크롤하면 더 불러옵니다.
+          </div>
+        )}
       </div>
-      {!plain && <PaginatedTablePager totalRows={sortedRows.length} startIndex={startIndex} pageSize={pageSize} currentPage={currentPage} totalPages={totalPages} onPageChange={onPageChange} onPageSizeChange={onPageSizeChange} />}
+      {!plain && (
+        <PaginatedTablePager
+          totalRows={sortedRows.length}
+          startIndex={startIndex}
+          pageSize={pageSize}
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={onPageChange}
+          onPageSizeChange={onPageSizeChange}
+        />
+      )}
     </div>
   )
 }
