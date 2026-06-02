@@ -4,33 +4,36 @@ Last updated: 2026-06-02
 
 ## Scope
 
-Self and competitor analysis pages own the analysis list, scatter chart, filter state, period query state, product drawer entry, and candidate bulk-add entry.
+Self and competitor analysis pages own the analysis list, scatter chart, period query state, current-result facet filters, product drawer entry, and candidate bulk-add entry.
 
 ## Source ownership
 
 | Source | Responsibility |
 |---|---|
 | `src/dashboard/pages/SelfPage.tsx` | Self analysis page composition and self-sales request wiring. |
-| `src/dashboard/pages/CompetitorPage.tsx` | Competitor analysis page composition, competitor-channel filter, and competitor-sales request wiring. |
-| `src/dashboard/components/AnalysisPageLayout.tsx` | Shared analysis page frame: query controls, list filters, chart column, list header, and list frame. |
+| `src/dashboard/pages/CompetitorPage.tsx` | Competitor analysis page composition, competitor-channel query condition, and competitor-sales request wiring. |
+| `src/dashboard/components/AnalysisPageLayout.tsx` | Shared analysis page frame: query controls, list filters, chart column, list frame, and action card slots. |
 | `src/dashboard/components/AnalysisListRequestFrame.tsx` | Initial list loading and non-blocking refresh status. |
-| `src/dashboard/components/FilterBar.tsx` | Shared filter field renderer. `FilterFieldGrid` renders fields without owning a card. |
 | `src/dashboard/components/AnalysisPeriodTools.tsx` | Period presets and period-bar controls inside query controls. |
+| `src/dashboard/components/FilterBar.tsx` | Shared filter field renderer. `FilterFieldGrid` renders fields without owning a card. |
 | `src/dashboard/components/FilterListCombo.tsx` | Free-text filter input with option suggestions. |
-| `src/dashboard/hooks/useAnalysisSalesFilters.ts` | Draft/applied period state, filter values, and filter meta request. |
+| `src/dashboard/model/analysisFacetFilter.ts` | Current-result facet option calculation and row filtering engine. |
+| `src/dashboard/hooks/useAnalysisSalesFilters.ts` | Draft/applied period state and list facet filter state. It does not filter rows directly. |
 | `src/dashboard/hooks/useAnalysisSalesDataGate.ts` | Shared loading state for list and scatter-grid requests. |
-| `src/dashboard/hooks/useAnalysisPageSelection.ts` | Row selection, bulk selection, focused row, and drawer navigation state. |
+| `src/dashboard/hooks/useAnalysisPageSelection.ts` | Row selection, bulk selection, focused row, scatter-cell filtering, and drawer navigation state. |
 
 ## Query, filter, and action boundary
 
-- `조회 조건` controls API request scope and is rendered as its own card. Date inputs, period presets, and query button share one horizontal row on desktop widths. Period presets and the query button are separate grid areas.
+- `조회 조건` controls API request scope and is rendered as its own card.
 - `조회 조건` includes start date, end date, recent-period presets, period bar open/close, period-bar range handles, competitor channel, request status, and the `조회` button.
-- Period inputs are draft values. API requests use the applied period after the user clicks `조회`.
+- Period inputs are draft values. API requests use the applied period only after the user clicks `조회`.
 - Competitor channel is an API request condition. It is not a list-only filter.
-- `목록 필터` controls only the already-loaded analysis rows and is rendered as its own card. The visual section label is omitted; the section keeps an accessible label. Filter fields and reset/toggle actions share one horizontal row on desktop widths.
-- `목록 필터` includes brand, category, product code, product name, color, and competitor-page `자사 판매량이 존재하는 경우만 보기`.
+- `목록 필터` controls only the already-loaded analysis rows and is rendered as its own card.
+- `목록 필터` includes brand, category, product code, product name, color, and competitor-page `자사기준보기`.
+- Brand, category, product code, product name, and color are frontend facet filters over the current API result rows. They must not be sent as analysis-list API request params.
+- Facet options are recalculated from loaded rows after applying all other facet filters. The target field's own selected value is kept available so the user can clear or edit it.
 - `필터 초기화` resets only list filters. It must not change applied period, draft period, period bar state, company scope, or competitor channel.
-- `목록 액션` belongs to a separate sibling card on the right side of the list-filter card. It shows `선택한 물품을 후보군으로` without being nested inside the filter card.
+- `목록 액션` is a separate sibling card beside the query card. It shows `후보군으로`.
 
 ## Text filter contract
 
@@ -45,7 +48,8 @@ Self and competitor analysis pages own the analysis list, scatter chart, filter 
 ## Loading and refresh contract
 
 - Initial list load may replace the list area with a centered loading state.
-- Refresh after filters, period, company scope, or competitor channel changes must keep the current list visible.
+- Refresh after period, company scope, or competitor channel changes must keep the current list visible.
+- Local facet filter changes must not trigger API refresh or blocking overlays.
 - Refresh state is shown inside the list frame as a small inline status, not as a full overlay or popup.
 - Refresh state must not block filter input, list clicks, or keyboard operation.
 

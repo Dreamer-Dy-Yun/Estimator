@@ -26,11 +26,24 @@ function Probe() {
         data-applied-end={filters.appliedPeriodEndDate}
         data-sales-start={filters.salesParams.startDate}
         data-sales-end={filters.salesParams.endDate}
+        data-sales-brand={'brand' in filters.salesParams ? String(filters.salesParams.brand) : ''}
         data-dirty={filters.periodQueryDirty}
       />
       <button type="button" onClick={() => filters.onStartDateChange('2025-01-01')}>start</button>
       <button type="button" onClick={() => filters.onEndDateChange('2025-03-31')}>end</button>
       <button type="button" onClick={filters.applyPeriodQuery}>apply</button>
+      <button
+        type="button"
+        onClick={() => filters.buildListFilterFields({
+          brand: ['전체', '나이키'],
+          category: ['전체'],
+          code: ['전체'],
+          productName: ['전체'],
+          colorCode: ['전체'],
+        })[0]?.onChange?.('나이키')}
+      >
+        brand
+      </button>
     </section>
   )
 }
@@ -95,5 +108,13 @@ describe('useAnalysisSalesFilters', () => {
     expect(output().dataset.salesStart).toBe('2025-01-01')
     expect(output().dataset.salesEnd).toBe('2025-03-31')
     expect(output().dataset.dirty).toBe('false')
+  })
+
+  it('keeps list facet filters out of API params', async () => {
+    await renderProbe()
+
+    clickButton('brand')
+
+    expect(output().dataset.salesBrand).toBe('')
   })
 })

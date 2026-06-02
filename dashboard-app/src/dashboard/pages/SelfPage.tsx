@@ -22,6 +22,7 @@ import { useAnalysisScatterGridView } from '../hooks/useAnalysisScatterGridView'
 import { useDashboardRequest } from '../hooks/useDashboardRequest'
 import { useProductDrawerBundleState } from '../hooks/useProductDrawerBundle'
 import { buildAnalysisSalesRequestKey } from '../model/analysisSalesRequestKey'
+import { AnalysisFacetFilter, ANALYSIS_SALES_FACET_DEFINITIONS } from '../model/analysisFacetFilter'
 import type { AnalysisScatterGridPoint } from '../model/analysisScatterGridPoint'
 
 const EMPTY_SELF_ROWS: SelfSalesRow[] = []
@@ -31,6 +32,7 @@ export const SelfPage = () => {
   const [bulkAddOpen, setBulkAddOpen] = useState(false)
   const common = useAnalysisPageCommonState()
   const filters = useAnalysisSalesFilters(common.companyUuid)
+  const { buildListFilterFields, listFilterValues } = filters
   const analysisRequestKey = useMemo(() => buildAnalysisSalesRequestKey(filters.salesParams), [filters.salesParams])
   const loadRows = useCallback(() => getSelfSales(filters.salesParams), [filters.salesParams])
   const loadScatterGrid = useCallback(() => getSelfSalesScatterGrid(filters.salesParams), [filters.salesParams])
@@ -43,7 +45,16 @@ export const SelfPage = () => {
     emptyRows: EMPTY_SELF_ROWS,
   })
   const { rows, scatterGrid } = analysisData
-  const selection = useAnalysisPageSelection({ rows, scatterGrid, bulkAddOpen })
+  const facetFilter = useMemo(
+    () => new AnalysisFacetFilter(rows, ANALYSIS_SALES_FACET_DEFINITIONS, listFilterValues),
+    [listFilterValues, rows],
+  )
+  const listFilterFields = useMemo(
+    () => buildListFilterFields(facetFilter.getOptionValuesByKey()),
+    [buildListFilterFields, facetFilter],
+  )
+  const filteredRows = useMemo(() => facetFilter.getFilteredRows(), [facetFilter])
+  const selection = useAnalysisPageSelection({ rows: filteredRows, scatterGrid, bulkAddOpen })
   const summaryBundleState = useProductDrawerBundleState(selection.selectedSkuGroupKey, { companyUuid: common.companyUuid })
 
   const kpi = useMemo(() => {
@@ -63,8 +74,8 @@ export const SelfPage = () => {
     chartHeight: common.chartHeight,
   })
   const displayedListFilterFields = useMemo(
-    () => (selection.activeGridCellKey ? maskAnalysisListFilterFields(filters.listFilterFields) : filters.listFilterFields),
-    [filters.listFilterFields, selection.activeGridCellKey],
+    () => (selection.activeGridCellKey ? maskAnalysisListFilterFields(listFilterFields) : listFilterFields),
+    [listFilterFields, selection.activeGridCellKey],
   )
 
   return (

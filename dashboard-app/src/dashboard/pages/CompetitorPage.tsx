@@ -20,6 +20,7 @@ import { useAnalysisScatterGridView } from '../hooks/useAnalysisScatterGridView'
 import { useDashboardRequest } from '../hooks/useDashboardRequest'
 import { useProductDrawerBundleState } from '../hooks/useProductDrawerBundle'
 import { buildAnalysisSalesRequestKey } from '../model/analysisSalesRequestKey'
+import { AnalysisFacetFilter, ANALYSIS_SALES_FACET_DEFINITIONS } from '../model/analysisFacetFilter'
 import type { AnalysisScatterGridPoint } from '../model/analysisScatterGridPoint'
 import type { FilterField } from '../model/filterField'
 
@@ -34,6 +35,7 @@ export const CompetitorPage = () => {
   const [showRowsWithSelfSalesOnly, setShowRowsWithSelfSalesOnly] = useState(false)
   const common = useAnalysisPageCommonState()
   const filters = useAnalysisSalesFilters(common.companyUuid)
+  const { buildListFilterFields, listFilterValues } = filters
   const channelsRequest = useDashboardRequest(getSecondaryCompetitorChannels, EMPTY_COMPETITOR_CHANNELS)
   const { data: channels } = channelsRequest
   const selectedCompetitorChannel = useMemo(
@@ -63,7 +65,16 @@ export const CompetitorPage = () => {
   })
   const { rows, scatterGrid } = analysisData
   const baseRows = useMemo(() => (showRowsWithSelfSalesOnly ? rows.filter((row) => row.selfQty != null) : rows), [rows, showRowsWithSelfSalesOnly])
-  const selection = useAnalysisPageSelection({ rows: baseRows, scatterGrid, bulkAddOpen })
+  const facetFilter = useMemo(
+    () => new AnalysisFacetFilter(baseRows, ANALYSIS_SALES_FACET_DEFINITIONS, listFilterValues),
+    [baseRows, listFilterValues],
+  )
+  const listFilterFields = useMemo(
+    () => buildListFilterFields(facetFilter.getOptionValuesByKey()),
+    [buildListFilterFields, facetFilter],
+  )
+  const filteredRows = useMemo(() => facetFilter.getFilteredRows(), [facetFilter])
+  const selection = useAnalysisPageSelection({ rows: filteredRows, scatterGrid, bulkAddOpen })
   const summaryBundleState = useProductDrawerBundleState(selection.selectedSkuGroupKey, { companyUuid: common.companyUuid })
 
   const competitorQueryFields = useMemo<FilterField[]>(() => [
@@ -71,8 +82,8 @@ export const CompetitorPage = () => {
     { label: '경쟁 채널', kind: 'select', value: competitorChannelLabel, onChange: onCompetitorChannelChange, options: [ALL_CHANNEL_LABEL, ...channels.map((ch) => ch.label)] },
   ], [channels, competitorChannelLabel, filters.queryFields, onCompetitorChannelChange])
   const displayedListFilterFields = useMemo(
-    () => (selection.activeGridCellKey ? maskAnalysisListFilterFields(filters.listFilterFields) : filters.listFilterFields),
-    [filters.listFilterFields, selection.activeGridCellKey],
+    () => (selection.activeGridCellKey ? maskAnalysisListFilterFields(listFilterFields) : listFilterFields),
+    [listFilterFields, selection.activeGridCellKey],
   )
   const resetListFilters = useCallback(() => {
     filters.resetListFilters()

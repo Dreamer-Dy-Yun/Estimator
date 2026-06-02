@@ -25,7 +25,8 @@ Shared modules provide reusable UI shells, hooks, pure models, snapshot helpers,
 |---|---|
 | `src/dashboard/hooks/useDashboardRequest.ts` | Request lifecycle, stale response guard, refresh state, and error state. |
 | `src/dashboard/hooks/useProductDrawerBundle.ts` | Product drawer bundle loading and stale-while-revalidate behavior. |
-| `src/dashboard/hooks/useAnalysisSalesFilters.ts` | Analysis period draft/applied state and text filter state. |
+| `src/dashboard/hooks/useAnalysisSalesFilters.ts` | Analysis period draft/applied state and list facet filter state. |
+| `src/dashboard/model/analysisFacetFilter.ts` | Facet option and row filtering engine for current analysis result rows. |
 | `src/dashboard/hooks/useScopedCandidateStashAction.ts` | Candidate stash mutation wrapper with scoped failure handling. |
 
 ## Interaction and model helpers
