@@ -128,17 +128,18 @@ export const CompetitorPage = () => {
           </div>
         )}
         listFilterEndContent={(
-          <label className={styles.periodPresetRowToggle}>
-            <input
-              type="checkbox"
-              checked={showRowsWithSelfSalesOnly}
-              onChange={(event) => setShowRowsWithSelfSalesOnly(event.target.checked)}
-            />
-            <span>{common.selfCompanyLabel} 판매량이 존재하는 경우만 보기</span>
-          </label>
+          <>
+            <label className={styles.periodPresetRowToggle}>
+              <input
+                type="checkbox"
+                checked={showRowsWithSelfSalesOnly}
+                onChange={(event) => setShowRowsWithSelfSalesOnly(event.target.checked)}
+              />
+              <span>자사 판매량이 존재하는 경우만 보기</span>
+            </label>
+          </>
         )}
-        onResetListFilters={resetListFilters}
-        listHeaderContent={(
+        listActionContent={(
           <>
             <span className={styles.analysisSelectedCount}>선택 {selection.bulkSelectedCount}개</span>
             <button
@@ -152,6 +153,7 @@ export const CompetitorPage = () => {
             </button>
           </>
         )}
+        onResetListFilters={resetListFilters}
         leftPanel={(
           <>
             {analysisData.initialLoading && !rows.length ? (

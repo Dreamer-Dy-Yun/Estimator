@@ -94,8 +94,7 @@ export const SelfPage = () => {
             <AnalysisPeriodQueryButton disabled={!filters.periodQueryDirty} onClick={filters.applyPeriodQuery} />
           </div>
         )}
-        onResetListFilters={filters.resetListFilters}
-        listHeaderContent={(
+        listActionContent={(
           <>
             <span className={styles.analysisSelectedCount}>선택 {selection.bulkSelectedCount}개</span>
             <button
@@ -109,6 +108,7 @@ export const SelfPage = () => {
             </button>
           </>
         )}
+        onResetListFilters={filters.resetListFilters}
         leftPanel={(
           <>
             {analysisData.initialLoading && !rows.length ? (

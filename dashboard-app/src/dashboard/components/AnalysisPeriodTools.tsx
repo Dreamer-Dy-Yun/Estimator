@@ -33,14 +33,16 @@ export function AnalysisPeriodTools({
   return (
     <div className={styles.periodTools}>
       <div className={styles.periodPresetRow}>
-        <button type="button" onClick={() => setPresetMonths(1)}>최근 1개월</button>
-        <button type="button" onClick={() => setPresetMonths(3)}>최근 3개월</button>
-        <button type="button" onClick={() => setPresetMonths(6)}>최근 6개월</button>
-        <button type="button" onClick={() => setPresetMonths(12)}>최근 1년</button>
-        <button type="button" onClick={setWholeRange}>전체</button>
-        <button type="button" onClick={onTogglePeriodBar}>
-          {showPeriodBar ? '기간 바 닫기' : '기간 바 열기'}
-        </button>
+        <div className={styles.periodPresetButtonGroup}>
+          <button type="button" onClick={() => setPresetMonths(1)}>최근 1개월</button>
+          <button type="button" onClick={() => setPresetMonths(3)}>최근 3개월</button>
+          <button type="button" onClick={() => setPresetMonths(6)}>최근 6개월</button>
+          <button type="button" onClick={() => setPresetMonths(12)}>최근 1년</button>
+          <button type="button" onClick={setWholeRange}>전체</button>
+          <button type="button" onClick={onTogglePeriodBar}>
+            {showPeriodBar ? '기간 바 닫기' : '기간 바 열기'}
+          </button>
+        </div>
         {endControl}
       </div>
       {showPeriodBar && historicalMonths.length > 1 && (

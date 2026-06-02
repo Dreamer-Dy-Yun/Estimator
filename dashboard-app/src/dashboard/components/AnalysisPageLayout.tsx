@@ -23,7 +23,7 @@ export type AnalysisPeriodFrameProps = {
   listPanel: ReactNode
   queryEndControl: ReactNode
   listFilterEndContent?: ReactNode
-  listHeaderContent?: ReactNode
+  listActionContent?: ReactNode
   setPresetMonths: (months: number) => void
   setWholeRange: () => void
   onResetListFilters: () => void
@@ -51,7 +51,7 @@ export function AnalysisPageLayout(props: AnalysisPeriodFrameProps) {
     listPanel,
     queryEndControl,
     listFilterEndContent,
-    listHeaderContent,
+    listActionContent,
     setPresetMonths,
     setWholeRange,
     onResetListFilters,
@@ -63,10 +63,7 @@ export function AnalysisPageLayout(props: AnalysisPeriodFrameProps) {
   return (
     <>
       <div className={styles.analysisControlsGrid}>
-        <section className={`${styles.card} ${styles.analysisControlCard}`} aria-label="조회 조건">
-          <div className={styles.analysisControlHeader}>
-            <div className={styles.analysisControlTitle}>조회 조건</div>
-          </div>
+        <section className={`${styles.card} ${styles.analysisControlCard} ${styles.analysisQueryControlCard}`} aria-label="조회 조건">
           <FilterFieldGrid fields={queryFields} filterClassName={styles.filterAnalysisQueryGrid} />
           <AnalysisPeriodTools
             showPeriodBar={showPeriodBar}
@@ -83,32 +80,29 @@ export function AnalysisPageLayout(props: AnalysisPeriodFrameProps) {
             endControl={queryEndControl}
           />
         </section>
-        <section className={`${styles.card} ${styles.analysisControlCard}`} aria-label="목록 필터">
-          <div className={styles.analysisControlHeader}>
-            <div className={styles.analysisControlTitle}>목록 필터</div>
-            <div className={styles.analysisControlActions}>
-              {listFilterEndContent}
-              <button
-                type="button"
-                className={styles.analysisFilterResetButton}
-                onClick={onResetListFilters}
-                disabled={listFilterResetDisabled}
-              >
-                필터 초기화
-              </button>
-            </div>
+        <section className={`${styles.card} ${styles.analysisControlCard} ${styles.analysisListFilterCard}`} aria-label="목록 필터">
+          <div className={styles.analysisControlActions}>
+            {listFilterEndContent}
+            <button
+              type="button"
+              className={styles.analysisFilterResetButton}
+              onClick={onResetListFilters}
+              disabled={listFilterResetDisabled}
+            >
+              필터 초기화
+            </button>
           </div>
           <FilterFieldGrid fields={listFilterFields} filterClassName={styles.filterAnalysisGrid} />
         </section>
+        {listActionContent ? (
+          <section className={`${styles.card} ${styles.analysisListActionCard}`} aria-label="목록 액션">
+            <div className={styles.analysisControlActions}>{listActionContent}</div>
+          </section>
+        ) : null}
       </div>
       <div className={`${styles.twoCol} ${styles.selfTwoCol}`}>
         <div className={`${styles.leftCol} ${styles.selfLeftCol}`}>{leftPanel}</div>
         <div className={styles.analysisListColumn}>
-          {listHeaderContent ? (
-            <div className={styles.analysisListHeader}>
-              <div className={styles.analysisListHeaderActions}>{listHeaderContent}</div>
-            </div>
-          ) : null}
           <AnalysisListRequestFrame initialLoading={initialLoading} refreshing={refreshing} initialLabel={initialLabel} refreshLabel={refreshLabel}>{listPanel}</AnalysisListRequestFrame>
         </div>
       </div>

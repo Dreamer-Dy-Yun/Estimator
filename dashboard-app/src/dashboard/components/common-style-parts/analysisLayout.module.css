@@ -4,6 +4,7 @@
   gap: 14px;
   height: calc(100dvh - 78px);
   min-height: 0;
+  padding-top: 8px;
 }
 
 .kpiGrid {
@@ -112,7 +113,10 @@
 
 .analysisControlsGrid {
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    "query query"
+    "filters actions";
   gap: 8px;
   align-items: stretch;
 }
@@ -121,6 +125,43 @@
   display: grid;
   gap: 7px;
   min-width: 0;
+}
+
+.analysisQueryControlCard {
+  grid-area: query;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: end;
+  column-gap: 8px;
+}
+
+.analysisListFilterCard {
+  grid-area: filters;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas: "filters actions";
+  align-items: end;
+  column-gap: 8px;
+}
+
+.analysisListActionCard {
+  grid-area: actions;
+  display: flex;
+  align-items: stretch;
+  justify-content: flex-end;
+  min-width: 238px;
+}
+
+.analysisListActionCard .analysisControlActions {
+  align-items: stretch;
+}
+
+.analysisListFilterCard > .filter {
+  grid-area: filters;
+}
+
+.analysisListFilterCard > .analysisControlActions {
+  grid-area: actions;
+  align-self: stretch;
+  align-items: stretch;
 }
 
 .analysisControlHeader,
@@ -150,10 +191,13 @@
   min-width: 0;
 }
 
+.analysisControlCard > .analysisControlActions {
+  justify-self: end;
+}
+
 .analysisListColumn {
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
-  gap: 8px;
+  grid-template-rows: minmax(0, 1fr);
   min-height: 0;
   min-width: 0;
 }
@@ -272,6 +316,31 @@
   .analysisListHeader {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .analysisQueryControlCard {
+    grid-template-columns: 1fr;
+  }
+
+  .analysisListFilterCard {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "actions"
+      "filters";
+  }
+
+  .analysisControlsGrid {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "query"
+      "filters"
+      "actions";
+  }
+
+  .analysisListFilterCard > .filter,
+  .analysisListFilterCard > .analysisControlActions {
+    grid-column: auto;
+    grid-row: auto;
   }
 
   .analysisControlActions,
