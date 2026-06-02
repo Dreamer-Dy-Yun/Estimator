@@ -112,6 +112,29 @@ describe('FilterListCombo', () => {
     expect(onChange).toHaveBeenLastCalledWith('전체')
   })
 
+  it('reopens the option panel when the focused input is clicked after selecting an option', () => {
+    const { input } = renderCombo({ value: '아디다스' })
+
+    act(() => {
+      input.focus()
+    })
+
+    const pumaOption = [...document.body.querySelectorAll<HTMLButtonElement>('[role="option"]')]
+      .find((option) => option.textContent === '아디다스')
+
+    act(() => {
+      pumaOption?.click()
+    })
+
+    expect(document.body.querySelector('[role="listbox"]')).toBeNull()
+
+    act(() => {
+      input.click()
+    })
+
+    expect(optionLabels()).toEqual(['전체', '아디다스'])
+  })
+
   it('shows a no-match hint while keeping the all option available', () => {
     const { input } = renderCombo({ value: '없는값' })
 

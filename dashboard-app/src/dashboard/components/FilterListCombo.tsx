@@ -57,6 +57,12 @@ export function FilterListCombo({ inputId, value, onChange, options, inputType =
     onChange(next)
     close()
   }, [close, onChange])
+  const openOptions = useCallback(() => {
+    if (disabled) return
+    updatePanelRect()
+    setOpen(options.length > 0)
+    setActiveIdx(-1)
+  }, [disabled, options.length, updatePanelRect])
 
   useLayoutEffect(() => {
     if (!comboOpen) return
@@ -157,10 +163,9 @@ export function FilterListCombo({ inputId, value, onChange, options, inputType =
         onFocus={(event) => {
           if (disabled) return
           if (valueIsAllOption && inputType === 'text') event.currentTarget.select()
-          updatePanelRect()
-          setOpen(options.length > 0)
-          setActiveIdx(-1)
+          openOptions()
         }}
+        onClick={openOptions}
         onKeyDown={onKeyDown}
       />
       <span className={styles.comboChevron} aria-hidden>
