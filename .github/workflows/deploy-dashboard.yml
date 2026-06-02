@@ -43,19 +43,10 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Run lint
-        run: npm run lint
-
-      - name: Check Korean encoding
-        run: npm run check:encoding
-
-      - name: Run tests
-        run: npm run test:run
-
-      - name: Build
+      - name: Verify deployment gate
         env:
           VITE_ROUTER_MODE: hash
-        run: npm run build -- --base=/Estimator/
+        run: npm run verify:deploy
 
       - name: Copy SPA fallback
         run: cp dist/index.html dist/404.html

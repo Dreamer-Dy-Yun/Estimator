@@ -13,7 +13,10 @@ type Props = {
 }
 
 const ALL_OPTION_LABEL = '전체'
+const ALL_OPTION_DISPLAY_LABEL = '----전체----'
 const isArrowOpenKey = (key: string) => key === 'ArrowDown' || key === 'ArrowUp'
+const isAllOption = (option: string) => option.trim() === ALL_OPTION_LABEL
+const displayOption = (option: string) => isAllOption(option) ? ALL_OPTION_DISPLAY_LABEL : option
 
 export function FilterListCombo({ inputId, value, onChange, options, inputType = 'text', disabled = false }: Props) {
   const wrapRef = useRef<HTMLDivElement | null>(null)
@@ -21,10 +24,16 @@ export function FilterListCombo({ inputId, value, onChange, options, inputType =
   const [activeIdx, setActiveIdx] = useState(-1)
   const [panelRect, setPanelRect] = useState<PanelRect | null>(null)
   const comboOpen = open && !disabled
+  const valueIsAllOption = isAllOption(value)
+  const inputValue = valueIsAllOption ? ALL_OPTION_DISPLAY_LABEL : value
   const filtered = useMemo(() => {
     if (disabled) return []
     const q = value.trim().toLowerCase()
-    return !q || q === ALL_OPTION_LABEL.toLowerCase() ? options : options.filter((option) => option.toLowerCase().includes(q))
+    if (!q || q === ALL_OPTION_LABEL.toLowerCase()) return options
+
+    const allOptions = options.filter(isAllOption)
+    const matchedOptions = options.filter((option) => !isAllOption(option) && option.toLowerCase().includes(q))
+    return [...allOptions, ...matchedOptions]
   }, [disabled, options, value])
   const showList = comboOpen && options.length > 0 && filtered.length > 0
   const showNoMatch = comboOpen && options.length > 0 && filtered.length === 0 && value.trim() !== '' && value.trim().toLowerCase() !== ALL_OPTION_LABEL.toLowerCase()
@@ -108,7 +117,7 @@ export function FilterListCombo({ inputId, value, onChange, options, inputType =
                 onMouseEnter={() => setActiveIdx(index)}
                 onClick={() => pick(option)}
               >
-                {option}
+                {displayOption(option)}
               </button>
             </li>
           ))}
@@ -127,17 +136,21 @@ export function FilterListCombo({ inputId, value, onChange, options, inputType =
         aria-expanded={comboOpen && panelVisible}
         aria-controls={showList ? `${inputId}-listbox` : undefined}
         aria-activedescendant={showList && activeIdx >= 0 ? `${inputId}-opt-${activeIdx}` : undefined}
-        value={value}
+        value={inputValue}
         disabled={disabled}
         onChange={(event) => {
           if (disabled) return
-          onChange(event.target.value)
+          const nextValue = valueIsAllOption
+            ? event.target.value.replace(ALL_OPTION_DISPLAY_LABEL, '')
+            : event.target.value
+          onChange(nextValue)
           updatePanelRect()
           setActiveIdx(-1)
           setOpen(options.length > 0)
         }}
-        onFocus={() => {
+        onFocus={(event) => {
           if (disabled) return
+          if (valueIsAllOption && inputType === 'text') event.currentTarget.select()
           updatePanelRect()
           setOpen(options.length > 0)
           setActiveIdx(-1)

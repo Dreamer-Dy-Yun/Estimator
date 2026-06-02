@@ -20,7 +20,7 @@
 | 경로 | 역할 | 변경 기준 |
 |------|------|-----------|
 | `.editorconfig` | 저장소 텍스트 파일의 기본 문자셋을 UTF-8로 고정한다. | 문자셋/줄바꿈 공통 규칙 변경 |
-| `.github/workflows/deploy-dashboard.yml` | `dashboard-app`을 lint/encoding/unit/e2e 후 `/Estimator/` base와 `VITE_ROUTER_MODE=hash`로 빌드해 GitHub Pages에 배포한다. | CI gate, Node 버전, Pages 경로, router mode 변경 |
+| `.github/workflows/deploy-dashboard.yml` | `dashboard-app`을 `verify:deploy`로 lint/encoding/unit/build 검증 후 `/Estimator/` base와 `VITE_ROUTER_MODE=hash`로 빌드해 GitHub Pages에 배포한다. | CI gate, Node 버전, Pages 경로, router mode 변경 |
 | `AGENTS.md` | 작업자 지침. Git, 문서, 검증, 프론트엔드 경계 규칙을 둔다. | 프로젝트 운영 규칙 변경 |
 | `MD/` | 요구사항, API 계약, 구조 문서 보관소. | 기능/API/구조/문서 운영 기준 변경 |
 | `dashboard-app/` | React/Vite 대시보드 앱. | 프론트엔드 작업 대상 |
@@ -68,4 +68,4 @@
 ## 검증 기준
 
 - 일반 프론트 변경: `npm run lint`, `npm run test:run`, `npm run check:encoding`, `npm run build -- --base=/Estimator/`.
-- 배포 workflow는 lint, encoding, unit, e2e를 통과해야 build/deploy로 진행한다. e2e는 CI 배포 gate에서 항상 실행된다.
+- 배포 workflow는 `npm run verify:deploy`를 통해 lint, encoding, unit, build를 통과해야 deploy로 진행한다. e2e는 브라우저 설치 비용 때문에 별도 `Dashboard E2E` workflow에서 수동 실행한다.

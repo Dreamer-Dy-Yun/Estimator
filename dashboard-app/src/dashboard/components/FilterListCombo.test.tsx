@@ -19,13 +19,25 @@ function renderCombo(props: Partial<Parameters<typeof FilterListCombo>[0]> = {})
         inputId="brand-filter"
         value=""
         onChange={onChange}
-        options={['나이키', '푸마', '아식스']}
+        options={['전체', '나이키', '푸마', '아디다스']}
         {...props}
       />,
     )
   })
 
   return { input: container.querySelector('input')!, onChange }
+}
+
+function optionLabels() {
+  return [...document.body.querySelectorAll('[role="option"]')].map((node) => node.textContent)
+}
+
+function changeInput(input: HTMLInputElement, value: string) {
+  const valueSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')?.set
+  act(() => {
+    valueSetter?.call(input, value)
+    input.dispatchEvent(new Event('input', { bubbles: true }))
+  })
 }
 
 afterEach(() => {
@@ -46,8 +58,7 @@ describe('FilterListCombo', () => {
       input.focus()
     })
 
-    const options = [...document.body.querySelectorAll('[role="option"]')].map((node) => node.textContent)
-    expect(options).toEqual(['나이키', '푸마', '아식스'])
+    expect(optionLabels()).toEqual(['----전체----', '나이키', '푸마', '아디다스'])
   })
 
   it('does not open the option panel while disabled', () => {
@@ -58,5 +69,46 @@ describe('FilterListCombo', () => {
     })
 
     expect(document.body.querySelector('[role="listbox"]')).toBeNull()
+  })
+
+  it('renders the all filter value as a distinct display label', () => {
+    const { input } = renderCombo({ value: '전체' })
+
+    expect(input.value).toBe('----전체----')
+  })
+
+  it('replaces the all display label when the user starts typing', () => {
+    const { input, onChange } = renderCombo({ value: '전체' })
+
+    changeInput(input, '----전체----아')
+
+    expect(onChange).toHaveBeenLastCalledWith('아')
+  })
+
+  it('keeps the all option visible when the search text exactly matches another option', () => {
+    const { input } = renderCombo({ value: '아디다스' })
+
+    act(() => {
+      input.focus()
+    })
+
+    expect(optionLabels()).toEqual(['----전체----', '아디다스'])
+  })
+
+  it('passes the original all value when the all display option is selected', () => {
+    const { input, onChange } = renderCombo({ value: '아디다스' })
+
+    act(() => {
+      input.focus()
+    })
+
+    const allOption = [...document.body.querySelectorAll<HTMLButtonElement>('[role="option"]')]
+      .find((option) => option.textContent === '----전체----')
+
+    act(() => {
+      allOption?.click()
+    })
+
+    expect(onChange).toHaveBeenLastCalledWith('전체')
   })
 })

@@ -21,7 +21,7 @@ Keep browser QA useful without making every deployment wait for full Playwright 
 
 ## CI rule
 
-- GitHub Pages deployment keeps `lint`, `check:encoding`, `test:run`, and `build` as mandatory gates.
+- GitHub Pages deployment runs `npm run verify:deploy`, which keeps `lint`, `check:encoding`, `test:run`, and `build -- --base=/Estimator/` as mandatory gates.
 - Playwright runs in the separate `Dashboard E2E` workflow so browser installation cost does not block every deploy.
 - The manual workflow accepts `smoke`, `full`, `admin`, or `candidate`.
 

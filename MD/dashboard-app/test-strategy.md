@@ -123,7 +123,7 @@
 
 - 로컬 일반 작업에서는 `npm run lint`, `npm run check:encoding`, `npm run test:run`, `npm run build`를 변경 범위에 맞게 실행한다.
 - 로컬 Playwright E2E는 브라우저 구동 비용이 있으므로 사용자가 명시적으로 요청한 경우에 `npm run test:e2e`로 실행한다.
-- GitHub Actions 배포 job에서는 `lint -> check:encoding -> test:run -> Playwright Chromium 설치 -> test:e2e -> build` 순서로 항상 통과해야 Pages 배포가 진행된다.
+- GitHub Actions 배포 job에서는 `npm run verify:deploy`가 `lint -> check:encoding -> test:run -> build -- --base=/Estimator/` 순서로 통과해야 Pages 배포가 진행된다.
 - `check:encoding`이 `MD`와 `AGENTS.md`까지 검사하므로 workflow trigger path에는 `dashboard-app/**`, `MD/**`, `AGENTS.md`, workflow 파일을 포함한다.
 - 로직/API 계약 변경은 관련 Vitest를 동반한다.
 - 라우트/모달/드로워/로그인 흐름 변경은 Playwright smoke 시나리오 갱신을 검토한다.
