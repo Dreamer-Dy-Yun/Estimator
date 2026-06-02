@@ -55,7 +55,9 @@ function withSkuColor<T extends SalesRowWithSkuGroupKey>(rows: Array<Omit<T, 'co
   })
 }
 
-export const selfSalesRows: SelfSalesRow[] = withSkuColor<SelfSalesRow>([
+const ANALYSIS_MOCK_ROW_COUNT = 250
+
+const baseSelfSalesRows: SelfSalesRow[] = withSkuColor<SelfSalesRow>([
   { id: 'B', rank: 1, rankPercentile: 99.8, brand: '나이키', category: '신발', code: 'B', productName: 'BBBBB', avgPrice: 119000, qty: 11000, amount: 1309000000, avgCost: 97000, marginRate: 18.5, feeRate: 13, opMarginRate: 5.5, opMarginAmount: 71830000 },
   { id: 'D', rank: 2, rankPercentile: 99.6, brand: '아디다스', category: '의류', code: 'D', productName: 'DDDDD', avgPrice: 119000, qty: 7500, amount: 892500000, avgCost: 87000, marginRate: 26.9, feeRate: 13, opMarginRate: 13.9, opMarginAmount: 123975000 },
   { id: 'H', rank: 3, rankPercentile: 99.4, brand: '뉴발란스', category: '신발', code: 'H', productName: 'HHHHH', avgPrice: 149000, qty: 2500, amount: 372500000, avgCost: 115000, marginRate: 22.8, feeRate: 13, opMarginRate: 9.8, opMarginAmount: 36575000 },
@@ -85,7 +87,7 @@ export const selfSalesRows: SelfSalesRow[] = withSkuColor<SelfSalesRow>([
   { id: 'TEST_SHOE', rank: 27, rankPercentile: 94.6, brand: '테스트브랜드', category: '신발', code: 'TEST-SHOE', productName: '테스트 신발', avgPrice: 129000, qty: 3600, amount: 464400000, avgCost: 99000, marginRate: 23.3, feeRate: 13, opMarginRate: 10.3, opMarginAmount: 47833200 },
 ])
 
-export const competitorSalesRows: CompetitorSalesRow[] = withSkuColor<CompetitorSalesRow>([
+const baseCompetitorSalesRows: CompetitorSalesRow[] = withSkuColor<CompetitorSalesRow>([
   { id: 'A', rank: 1, rankPercentile: 99.8, brand: '아식스', category: '신발', code: 'A', productName: 'AAAAA', competitorAvgPrice: 119000, competitorQty: 10000, competitorAmount: 1190000000, selfAvgPrice: null, selfQty: null, selfAmount: null },
   { id: 'B', rank: 2, rankPercentile: 99.6, brand: '나이키', category: '신발', code: 'B', productName: 'BBBBB', competitorAvgPrice: 123000, competitorQty: 9000, competitorAmount: 1107000000, selfAvgPrice: 119000, selfQty: 11000, selfAmount: 1309000000 },
   { id: 'C', rank: 3, rankPercentile: 99.4, brand: '뉴발란스', category: '가방', code: 'C', productName: 'CCCCC', competitorAvgPrice: 142000, competitorQty: 7500, competitorAmount: 1065000000, selfAvgPrice: null, selfQty: null, selfAmount: null },
@@ -115,11 +117,120 @@ export const competitorSalesRows: CompetitorSalesRow[] = withSkuColor<Competitor
   { id: 'TEST_SHOE', rank: 27, rankPercentile: 94.6, brand: '테스트브랜드', category: '신발', code: 'TEST-SHOE', productName: '테스트 신발', competitorAvgPrice: 133000, competitorQty: 3400, competitorAmount: 452200000, selfAvgPrice: 129000, selfQty: 3600, selfAmount: 464400000 },
 ])
 
+function isFixedVerificationRow(row: { id: string }): boolean {
+  return row.id.startsWith('TEST_')
+}
+
+function rankPercentileForMockRow(index: number, total: number): number {
+  return Number(Math.max(1, 100 - (index / Math.max(1, total)) * 100).toFixed(1))
+}
+
+function mockVariantScale(index: number): number {
+  return 0.76 + (index % 17) * 0.021
+}
+
+function buildMockVariantIdentity(
+  source: SalesRowWithSkuGroupKey & { productName: string },
+  variantIndex: number,
+): SalesRowWithSkuGroupKey & { productName: string } {
+  const suffix = String(variantIndex).padStart(3, '0')
+  const id = `${source.id}_${suffix}`
+  const code = `${source.code}-${suffix}`
+  const colorCode = colorCodeForMockSku(id)
+
+  return {
+    id,
+    code,
+    productName: `${source.productName}-${suffix}`,
+    colorCode,
+    skuGroupKey: buildMockSkuGroupKey(code, colorCode),
+  }
+}
+
+function extendSelfSalesRows(baseRows: SelfSalesRow[], targetCount: number): SelfSalesRow[] {
+  const rows = [...baseRows]
+  const variantSources = baseRows.filter((row) => !isFixedVerificationRow(row))
+  let variantIndex = 1
+
+  while (rows.length < targetCount) {
+    const source = variantSources[(variantIndex - 1) % variantSources.length]!
+    const scale = mockVariantScale(variantIndex)
+    const avgPrice = Math.max(1000, Math.round(source.avgPrice * (0.9 + (variantIndex % 7) * 0.015)))
+    const avgCost = Math.max(1000, Math.round(source.avgCost * (0.88 + (variantIndex % 5) * 0.018)))
+    const qty = Math.max(1, Math.round(source.qty * scale))
+    const amount = avgPrice * qty
+    const marginRate = Number((((avgPrice - avgCost) / avgPrice) * 100).toFixed(1))
+    const opMarginRate = Number(Math.max(0, marginRate - source.feeRate).toFixed(1))
+
+    rows.push({
+      ...source,
+      ...buildMockVariantIdentity(source, variantIndex),
+      rank: rows.length + 1,
+      rankPercentile: rankPercentileForMockRow(rows.length, targetCount),
+      avgPrice,
+      qty,
+      amount,
+      avgCost,
+      marginRate,
+      opMarginRate,
+      opMarginAmount: Math.round(amount * (opMarginRate / 100)),
+    })
+    variantIndex += 1
+  }
+
+  return rows
+}
+
+function extendCompetitorSalesRows(baseRows: CompetitorSalesRow[], targetCount: number): CompetitorSalesRow[] {
+  const rows = [...baseRows]
+  const variantSources = baseRows.filter((row) => !isFixedVerificationRow(row))
+  let variantIndex = 1
+
+  while (rows.length < targetCount) {
+    const source = variantSources[(variantIndex - 1) % variantSources.length]!
+    const scale = mockVariantScale(variantIndex)
+    const competitorAvgPrice = Math.max(
+      1000,
+      Math.round(source.competitorAvgPrice * (0.91 + (variantIndex % 9) * 0.014)),
+    )
+    const competitorQty = Math.max(1, Math.round(source.competitorQty * scale))
+    const selfAvgPrice = source.selfAvgPrice == null
+      ? null
+      : Math.max(1000, Math.round(source.selfAvgPrice * (0.9 + (variantIndex % 7) * 0.015)))
+    const selfQty = source.selfQty == null ? null : Math.max(1, Math.round(source.selfQty * scale))
+
+    rows.push({
+      ...source,
+      ...buildMockVariantIdentity(source, variantIndex),
+      rank: rows.length + 1,
+      rankPercentile: rankPercentileForMockRow(rows.length, targetCount),
+      competitorAvgPrice,
+      competitorQty,
+      competitorAmount: competitorAvgPrice * competitorQty,
+      selfAvgPrice,
+      selfQty,
+      selfAmount: selfAvgPrice == null || selfQty == null ? null : selfAvgPrice * selfQty,
+    })
+    variantIndex += 1
+  }
+
+  return rows
+}
+
+export const selfSalesRows: SelfSalesRow[] = extendSelfSalesRows(baseSelfSalesRows, ANALYSIS_MOCK_ROW_COUNT)
+export const competitorSalesRows: CompetitorSalesRow[] = extendCompetitorSalesRows(
+  baseCompetitorSalesRows,
+  ANALYSIS_MOCK_ROW_COUNT,
+)
+
+const baseKnownSkuGroupKeys = [...baseSelfSalesRows, ...baseCompetitorSalesRows].map((row) => row.skuGroupKey)
+const expandedKnownSkuGroupKeys = [...selfSalesRows, ...competitorSalesRows].map((row) => row.skuGroupKey)
+
 export const skuGroupKeyByLegacyId = Object.fromEntries(
   [...selfSalesRows, ...competitorSalesRows].map((row) => [row.id, row.skuGroupKey]),
 )
 export const selfBySkuGroupKey = Object.fromEntries(selfSalesRows.map((row) => [row.skuGroupKey, row]))
 export const competitorBySkuGroupKey = Object.fromEntries(competitorSalesRows.map((row) => [row.skuGroupKey, row]))
-export const allKnownSkuGroupKeys = Array.from(new Set([...selfSalesRows, ...competitorSalesRows].map((row) => row.skuGroupKey)))
+export const allKnownSkuGroupKeys = Array.from(new Set([...baseKnownSkuGroupKeys, ...expandedKnownSkuGroupKeys]))
 export const brands = Array.from(new Set([...selfSalesRows, ...competitorSalesRows].map((row) => row.brand)))
 export const categories = Array.from(new Set([...selfSalesRows, ...competitorSalesRows].map((row) => row.category)))
