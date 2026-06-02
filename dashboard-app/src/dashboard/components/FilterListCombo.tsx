@@ -13,7 +13,8 @@ type Props = {
 }
 
 const ALL_OPTION_LABEL = '전체'
-const ALL_OPTION_DISPLAY_LABEL = '----전체----'
+const ALL_OPTION_DISPLAY_LABEL = '전체'
+const NO_MATCH_LABEL = '검색 결과가 없습니다.'
 const isArrowOpenKey = (key: string) => key === 'ArrowDown' || key === 'ArrowUp'
 const isAllOption = (option: string) => option.trim() === ALL_OPTION_LABEL
 const displayOption = (option: string) => isAllOption(option) ? ALL_OPTION_DISPLAY_LABEL : option
@@ -36,7 +37,11 @@ export function FilterListCombo({ inputId, value, onChange, options, inputType =
     return [...allOptions, ...matchedOptions]
   }, [disabled, options, value])
   const showList = comboOpen && options.length > 0 && filtered.length > 0
-  const showNoMatch = comboOpen && options.length > 0 && filtered.length === 0 && value.trim() !== '' && value.trim().toLowerCase() !== ALL_OPTION_LABEL.toLowerCase()
+  const showNoMatch = comboOpen
+    && options.length > 0
+    && value.trim() !== ''
+    && value.trim().toLowerCase() !== ALL_OPTION_LABEL.toLowerCase()
+    && filtered.every(isAllOption)
   const panelVisible = showList || showNoMatch
 
   const updatePanelRect = useCallback(() => {
@@ -112,7 +117,7 @@ export function FilterListCombo({ inputId, value, onChange, options, inputType =
                 id={`${inputId}-opt-${index}`}
                 role="option"
                 aria-selected={index === activeIdx}
-                className={`${styles.option} ${index === activeIdx ? styles.optionActive : ''}`}
+                className={`${styles.option} ${isAllOption(option) ? styles.optionAll : ''} ${index === activeIdx ? styles.optionActive : ''}`}
                 onMouseDown={(event) => event.preventDefault()}
                 onMouseEnter={() => setActiveIdx(index)}
                 onClick={() => pick(option)}
@@ -121,8 +126,9 @@ export function FilterListCombo({ inputId, value, onChange, options, inputType =
               </button>
             </li>
           ))}
+          {showNoMatch ? <li className={styles.emptyHint} role="presentation" aria-live="polite">{NO_MATCH_LABEL}</li> : null}
         </ul>
-      ) : <div className={styles.panelInner}><div className={styles.emptyHint}>목록에 일치하는 값이 없습니다.</div></div>}
+      ) : <div className={styles.panelInner}><div className={styles.emptyHint}>{NO_MATCH_LABEL}</div></div>}
     </div>
   ) : null
 

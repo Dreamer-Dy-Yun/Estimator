@@ -58,7 +58,7 @@ describe('FilterListCombo', () => {
       input.focus()
     })
 
-    expect(optionLabels()).toEqual(['----전체----', '나이키', '푸마', '아디다스'])
+    expect(optionLabels()).toEqual(['전체', '나이키', '푸마', '아디다스'])
   })
 
   it('does not open the option panel while disabled', () => {
@@ -71,16 +71,16 @@ describe('FilterListCombo', () => {
     expect(document.body.querySelector('[role="listbox"]')).toBeNull()
   })
 
-  it('renders the all filter value as a distinct display label', () => {
+  it('renders the all filter value as the plain all label', () => {
     const { input } = renderCombo({ value: '전체' })
 
-    expect(input.value).toBe('----전체----')
+    expect(input.value).toBe('전체')
   })
 
   it('replaces the all display label when the user starts typing', () => {
     const { input, onChange } = renderCombo({ value: '전체' })
 
-    changeInput(input, '----전체----아')
+    changeInput(input, '전체아')
 
     expect(onChange).toHaveBeenLastCalledWith('아')
   })
@@ -92,7 +92,7 @@ describe('FilterListCombo', () => {
       input.focus()
     })
 
-    expect(optionLabels()).toEqual(['----전체----', '아디다스'])
+    expect(optionLabels()).toEqual(['전체', '아디다스'])
   })
 
   it('passes the original all value when the all display option is selected', () => {
@@ -103,12 +103,23 @@ describe('FilterListCombo', () => {
     })
 
     const allOption = [...document.body.querySelectorAll<HTMLButtonElement>('[role="option"]')]
-      .find((option) => option.textContent === '----전체----')
+      .find((option) => option.textContent === '전체')
 
     act(() => {
       allOption?.click()
     })
 
     expect(onChange).toHaveBeenLastCalledWith('전체')
+  })
+
+  it('shows a no-match hint while keeping the all option available', () => {
+    const { input } = renderCombo({ value: '없는값' })
+
+    act(() => {
+      input.focus()
+    })
+
+    expect(optionLabels()).toEqual(['전체'])
+    expect(document.body.textContent).toContain('검색 결과가 없습니다.')
   })
 })

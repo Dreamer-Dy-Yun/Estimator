@@ -80,6 +80,10 @@
   background: #f1f5f9;
 }
 
+.optionAll {
+  font-weight: 700;
+}
+
 .option:active {
   background: #e2e8f0;
 }
