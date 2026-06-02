@@ -27,12 +27,12 @@ export function AnalysisListRequestFrame({
 
   return (
     <div className={styles.analysisListRequestFrame} aria-busy={refreshing || undefined}>
-      {children}
       {refreshing ? (
-        <div className={styles.analysisListRefreshOverlay}>
-          <LoadingSpinner label={refreshLabel} />
+        <div className={styles.analysisListRefreshStatus}>
+          <LoadingSpinner size="inline" label={refreshLabel} />
         </div>
       ) : null}
+      {children}
     </div>
   )
 }
