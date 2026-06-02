@@ -102,7 +102,7 @@ export const SelfPage = () => {
             disabled={common.isAllCompanySelected || selection.bulkSelectedCount === 0}
             title={common.isAllCompanySelected ? ALL_COMPANY_BULK_ADD_DISABLED : undefined}
           >
-            선택한 물품을 후보군으로
+            후보군으로
           </button>
         )}
         onResetListFilters={filters.resetListFilters}

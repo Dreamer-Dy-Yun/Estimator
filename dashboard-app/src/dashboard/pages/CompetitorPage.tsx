@@ -135,7 +135,7 @@ export const CompetitorPage = () => {
                 checked={showRowsWithSelfSalesOnly}
                 onChange={(event) => setShowRowsWithSelfSalesOnly(event.target.checked)}
               />
-              <span>자사 판매량이<br />존재하는 경우만 보기</span>
+              <span title="자사 판매량이 존재하는 경우만 표시합니다.">자사 기준으로 보기</span>
             </label>
           </>
         )}
@@ -147,7 +147,7 @@ export const CompetitorPage = () => {
             disabled={common.isAllCompanySelected || selection.bulkSelectedCount === 0}
             title={common.isAllCompanySelected ? ALL_COMPANY_BULK_ADD_DISABLED : undefined}
           >
-            선택한 물품을 후보군으로
+            후보군으로
           </button>
         )}
         onResetListFilters={resetListFilters}
