@@ -30,7 +30,7 @@ Self and competitor analysis pages own the analysis list, scatter chart, filter 
 - `목록 필터` controls only the already-loaded analysis rows and is rendered as its own card.
 - `목록 필터` includes brand, category, product code, product name, color, and competitor-page `자사 판매량이 존재하는 경우만 보기`.
 - `필터 초기화` resets only list filters. It must not change applied period, draft period, period bar state, company scope, or competitor channel.
-- `목록 액션` belongs to the list header. Selected count and `선택한 물품을 후보군으로` must not live inside query controls or list filters.
+- `목록 액션` belongs to the list header. The header shows selected count and `선택한 물품을 후보군으로` only; duplicate list-title labels are not rendered there.
 
 ## Text filter contract
 

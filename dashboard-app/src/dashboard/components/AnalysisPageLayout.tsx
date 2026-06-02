@@ -22,7 +22,6 @@ export type AnalysisPeriodFrameProps = {
   leftPanel: ReactNode
   listPanel: ReactNode
   queryEndControl: ReactNode
-  listTitle: string
   listFilterEndContent?: ReactNode
   listHeaderContent?: ReactNode
   setPresetMonths: (months: number) => void
@@ -51,7 +50,6 @@ export function AnalysisPageLayout(props: AnalysisPeriodFrameProps) {
     leftPanel,
     listPanel,
     queryEndControl,
-    listTitle,
     listFilterEndContent,
     listHeaderContent,
     setPresetMonths,
@@ -106,10 +104,11 @@ export function AnalysisPageLayout(props: AnalysisPeriodFrameProps) {
       <div className={`${styles.twoCol} ${styles.selfTwoCol}`}>
         <div className={`${styles.leftCol} ${styles.selfLeftCol}`}>{leftPanel}</div>
         <div className={styles.analysisListColumn}>
-          <div className={styles.analysisListHeader}>
-            <strong className={styles.analysisListHeaderTitle}>{listTitle}</strong>
-            {listHeaderContent ? <div className={styles.analysisListHeaderActions}>{listHeaderContent}</div> : null}
-          </div>
+          {listHeaderContent ? (
+            <div className={styles.analysisListHeader}>
+              <div className={styles.analysisListHeaderActions}>{listHeaderContent}</div>
+            </div>
+          ) : null}
           <AnalysisListRequestFrame initialLoading={initialLoading} refreshing={refreshing} initialLabel={initialLabel} refreshLabel={refreshLabel}>{listPanel}</AnalysisListRequestFrame>
         </div>
       </div>

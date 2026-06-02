@@ -95,7 +95,6 @@ export const SelfPage = () => {
           </div>
         )}
         onResetListFilters={filters.resetListFilters}
-        listTitle={`${common.selfCompanyLabel} 상품 목록`}
         listHeaderContent={(
           <>
             <span className={styles.analysisSelectedCount}>선택 {selection.bulkSelectedCount}개</span>

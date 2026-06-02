@@ -45,7 +45,7 @@
 
 .filterAnalysisQueryGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 190px));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr));
   gap: 6px;
   align-items: flex-end;
 }

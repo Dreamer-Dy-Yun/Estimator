@@ -138,7 +138,6 @@ export const CompetitorPage = () => {
           </label>
         )}
         onResetListFilters={resetListFilters}
-        listTitle="경쟁사 상품 목록"
         listHeaderContent={(
           <>
             <span className={styles.analysisSelectedCount}>선택 {selection.bulkSelectedCount}개</span>

@@ -112,15 +112,14 @@
 
 .analysisControlsGrid {
   display: grid;
-  grid-template-columns: minmax(300px, 0.85fr) minmax(480px, 1.15fr);
-  gap: 12px;
+  grid-template-columns: 1fr;
+  gap: 8px;
   align-items: stretch;
 }
 
 .analysisControlCard {
   display: grid;
-  grid-template-rows: auto auto minmax(0, 1fr);
-  gap: 8px;
+  gap: 7px;
   min-width: 0;
 }
 
@@ -160,6 +159,7 @@
 }
 
 .analysisListHeader {
+  justify-content: flex-end;
   min-height: 32px;
   padding: 0 2px;
 }
@@ -259,10 +259,6 @@
   }
 
   .twoCol {
-    grid-template-columns: 1fr;
-  }
-
-  .analysisControlsGrid {
     grid-template-columns: 1fr;
   }
 
