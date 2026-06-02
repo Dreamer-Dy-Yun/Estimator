@@ -112,4 +112,36 @@ describe('PaginatedTable', () => {
     expect(labelHeader.getAttribute('aria-sort')).toBe('ascending')
     expect(onOrderedRowIdsChange).toHaveBeenLastCalledWith(['a', 'b', 'c'])
   })
+
+  it('resets to default sort when the reset key changes', async () => {
+    const { onOrderedRowIdsChange } = renderTable()
+    const qtyHeader = document.querySelectorAll('th')[1] as HTMLTableCellElement
+
+    act(() => {
+      qtyHeader.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+    expect(onOrderedRowIdsChange).toHaveBeenLastCalledWith(['a', 'c', 'b'])
+
+    act(() => {
+      root?.render(
+        <PaginatedTable<Row>
+          paginated={false}
+          rows={rows}
+          columns={[
+            { key: 'label', header: 'label', cell: (row) => row.label, sortValue: (row) => row.label },
+            { key: 'qty', header: 'qty', cell: (row) => row.qty, sortValue: (row) => row.qty },
+          ]}
+          defaultSort={{ key: 'qty', dir: 'asc' }}
+          resetSortKey="query-2"
+          onOrderedRowIdsChange={onOrderedRowIdsChange}
+        />,
+      )
+    })
+    await act(async () => {
+      await Promise.resolve()
+    })
+
+    expect((document.querySelectorAll('th')[1] as HTMLTableCellElement).getAttribute('aria-sort')).toBe('ascending')
+    expect(onOrderedRowIdsChange).toHaveBeenLastCalledWith(['b', 'c', 'a'])
+  })
 })

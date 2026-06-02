@@ -134,6 +134,7 @@ export const SelfPage = () => {
         listPanel={(
           <SelfAnalysisList
             rows={selection.visibleRows}
+            resetSortKey={analysisRequestKey}
             activeSkuGroupKey={selection.activeSkuGroupKey}
             allVisibleRowsSelected={selection.allVisibleRowsSelected}
             bulkSelectedSkuGroupKeys={selection.bulkSelectedSkuGroupKeys}

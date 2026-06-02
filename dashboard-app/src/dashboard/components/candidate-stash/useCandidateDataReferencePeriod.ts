@@ -20,6 +20,7 @@ interface UseCandidateDataReferencePeriodParams {
   clearRecommendationItems: () => void
   closeMetricSubscription: () => void
   loadItems: (periodStart?: string, periodEnd?: string) => Promise<void>
+  onDataReferencePeriodApplied?: () => void
 }
 
 export function useCandidateDataReferencePeriod({
@@ -29,6 +30,7 @@ export function useCandidateDataReferencePeriod({
   clearRecommendationItems,
   closeMetricSubscription,
   loadItems,
+  onDataReferencePeriodApplied,
 }: UseCandidateDataReferencePeriodParams) {
   const [periodState, dispatchPeriodState] = useReducer(
     candidateDataReferencePeriodReducer,
@@ -48,8 +50,9 @@ export function useCandidateDataReferencePeriod({
     if (!normalized) return
     appliedPeriodRef.current = { start: normalized.start, end: normalized.end }
     dispatchPeriodState({ type: 'periodApplied', start: normalized.start, end: normalized.end })
+    onDataReferencePeriodApplied?.()
     void loadItems(normalized.start, normalized.end)
-  }, [appliedPeriodRef, loadItems])
+  }, [appliedPeriodRef, loadItems, onDataReferencePeriodApplied])
 
   useEffect(() => {
     const nextUuid = detailTarget?.uuid ?? null

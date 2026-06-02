@@ -32,6 +32,7 @@ type PaginatedTableBase<T> = {
   onRowKeyDown?: (row: T, event: KeyboardEvent<HTMLTableRowElement>) => void
   onOrderedRowIdsChange?: (rowIds: string[]) => void
   defaultSort?: SortState
+  resetSortKey?: string | number | null
   /** 루트 tableWrap에 추가할 페이지별 클래스. */
   wrapClassName?: string
   infiniteScroll?: {

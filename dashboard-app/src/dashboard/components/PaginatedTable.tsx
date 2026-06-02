@@ -28,12 +28,13 @@ function sameOrder(a: string[], b: string[]) {
 }
 
 export function PaginatedTable<T extends { id: string }>(props: PaginatedTableProps<T>) {
-  const { columns, rows, activeRowId, getRowId, onRowClick, onRowKeyDown, onOrderedRowIdsChange, defaultSort, infiniteScroll, wrapClassName } = props
+  const { columns, rows, activeRowId, getRowId, onRowClick, onRowKeyDown, onOrderedRowIdsChange, defaultSort, resetSortKey, infiniteScroll, wrapClassName } = props
   const plain = props.paginated === false
   const tableBodyRef = useRef<HTMLDivElement | null>(null)
   const loadMoreRef = useRef<HTMLDivElement | null>(null)
   const rowRefs = useRef(new Map<string, HTMLTableRowElement>())
   const reportedOrderRef = useRef<string[]>([])
+  const resetSortKeyRef = useRef(resetSortKey)
   const [sort, setSort] = useState<SortState | null>(defaultSort ?? null)
 
   const batchSize = Math.max(1, infiniteScroll?.batchSize ?? 30)
@@ -75,6 +76,15 @@ export function PaginatedTable<T extends { id: string }>(props: PaginatedTablePr
     reportedOrderRef.current = sortedRowIds
     onOrderedRowIdsChange(sortedRowIds)
   }, [onOrderedRowIdsChange, sortedRowIds])
+
+  useEffect(() => {
+    if (resetSortKeyRef.current === resetSortKey) return
+    resetSortKeyRef.current = resetSortKey
+    queueMicrotask(() => {
+      setSort(defaultSort ?? null)
+      onPageChange(1)
+    })
+  }, [defaultSort, onPageChange, resetSortKey])
 
   useEffect(() => {
     if (!activeRowId) return

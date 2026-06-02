@@ -40,6 +40,9 @@ export function useInnerCandidateTable(items: CandidateItemSummary[]) {
   const toggleTableSort = useCallback((key: InnerCandidateSortKey) => {
     setTableSort((current) => nextSortState(current, key))
   }, [])
+  const resetTableSort = useCallback(() => {
+    setTableSort(null)
+  }, [])
 
   const brandOptions = useMemo(() => uniqueSortedStrings(items.map((i) => i.brand)), [items])
   const codeOptions = useMemo(() => uniqueSortedStrings(items.map((i) => i.code)), [items])
@@ -103,6 +106,7 @@ export function useInnerCandidateTable(items: CandidateItemSummary[]) {
     setProductNameQuery,
     tableSort,
     toggleTableSort,
+    resetTableSort,
     brandOptions,
     codeOptions,
     productNameOptions,

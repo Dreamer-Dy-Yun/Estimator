@@ -153,6 +153,7 @@ export const CompetitorPage = () => {
         listPanel={(
           <CompetitorAnalysisList
             rows={selection.visibleRows}
+            resetSortKey={analysisRequestKey}
             activeSkuGroupKey={selection.activeSkuGroupKey}
             allVisibleRowsSelected={selection.allVisibleRowsSelected}
             bulkSelectedSkuGroupKeys={selection.bulkSelectedSkuGroupKeys}

@@ -13,9 +13,9 @@ import {
   type AnalysisListInteractionProps,
 } from './analysisListColumnHelpers'
 
-type Props = AnalysisListInteractionProps & { rows: CompetitorSalesRow[] }
+type Props = AnalysisListInteractionProps & { rows: CompetitorSalesRow[]; resetSortKey?: string | number | null }
 
-export function CompetitorAnalysisList({ rows, activeSkuGroupKey, onOrderedSkuGroupKeysChange, ...actions }: Props) {
+export function CompetitorAnalysisList({ rows, activeSkuGroupKey, onOrderedSkuGroupKeysChange, resetSortKey, ...actions }: Props) {
   const competitorQtyRank = useMemo(() => createDisplayRankMap(rows, getSkuGroupRowId, (row) => row.competitorQty, 'desc'), [rows])
   const columns = useMemo(() => [
     createBulkSelectColumn({ rows, ...actions }),
@@ -41,6 +41,7 @@ export function CompetitorAnalysisList({ rows, activeSkuGroupKey, onOrderedSkuGr
       getRowId={getSkuGroupRowId}
       onOrderedRowIdsChange={onOrderedSkuGroupKeysChange}
       defaultSort={{ key: 'competitorQty', dir: 'desc' }}
+      resetSortKey={resetSortKey}
       onRowClick={(row) => actions.onOpenSkuGroupKey(row.skuGroupKey)}
       onRowKeyDown={(row, event) => handleAnalysisRowKeyDown(row, event, actions.onOpenSkuGroupKey, actions.onRequestFocusAdjacent)}
     />

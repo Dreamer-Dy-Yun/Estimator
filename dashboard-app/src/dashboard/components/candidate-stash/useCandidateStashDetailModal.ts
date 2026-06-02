@@ -97,6 +97,8 @@ export function useCandidateStashDetailModal({
     void preloadCandidateOrderExcelExport().catch(() => undefined)
   }, [items.length, stashUuid])
 
+  const table = useInnerCandidateTable(items)
+
   const dataReferencePeriod = useCandidateDataReferencePeriod({
     detailTarget,
     appliedPeriodRef,
@@ -104,6 +106,7 @@ export function useCandidateStashDetailModal({
     clearRecommendationItems: clearRecommendationItemsFromRef,
     closeMetricSubscription,
     loadItems,
+    onDataReferencePeriodApplied: table.resetTableSort,
   })
   const { dataReferencePeriodStart, dataReferencePeriodEnd } = dataReferencePeriod
 
@@ -166,8 +169,6 @@ export function useCandidateStashDetailModal({
     if (!items.some((item) => item.insightStatus === 'loading')) return
     void loadRecommendations()
   }, [candidateItemsLoadError, candidateItemsLoading, items, loadRecommendations, recommendationLoading])
-
-  const table = useInnerCandidateTable(items)
 
   const drawer = useCandidateStashItemDrawer({
     dataReferenceStart: dataReferencePeriodStart || undefined,
