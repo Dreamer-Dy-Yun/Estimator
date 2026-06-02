@@ -23,12 +23,17 @@
 }
 
 .filterAnalysisGrid .field {
+  align-items: center;
+  flex-direction: row;
+  gap: 6px;
   flex: unset;
   min-width: 0;
 }
 
 .filterAnalysisGrid .field label {
   font-size: 11px;
+  line-height: 30px;
+  white-space: nowrap;
 }
 
 .filterAnalysisGrid .field input,
@@ -51,12 +56,17 @@
 }
 
 .filterAnalysisQueryGrid .field {
+  align-items: center;
+  flex-direction: row;
   flex: unset;
+  gap: 6px;
   min-width: 0;
 }
 
 .filterAnalysisQueryGrid .field label {
   font-size: 11px;
+  line-height: 30px;
+  white-space: nowrap;
 }
 
 .filterAnalysisQueryGrid .field input,
@@ -70,10 +80,15 @@
 .analysisQueryControlCard .filterAnalysisQueryGrid {
   grid-column: 1;
   grid-row: 1;
-  grid-auto-columns: 170px;
+  grid-auto-columns: max-content;
   grid-auto-flow: column;
   grid-template-columns: none;
   max-width: none;
+}
+
+.analysisQueryControlCard .filterAnalysisQueryGrid .field input,
+.analysisQueryControlCard .filterAnalysisQueryGrid .field select {
+  width: 130px;
 }
 
 .analysisQueryControlCard .periodTools {
@@ -94,7 +109,7 @@
 .analysisQueryControlCard .periodQueryAction {
   grid-column: 3;
   grid-row: 1;
-  align-self: stretch;
+  align-self: end;
   display: inline-flex;
   justify-content: flex-end;
   min-width: 128px;
@@ -119,8 +134,8 @@
 }
 
 .analysisQueryControlCard .periodPresetRowEndGroup .analysisBulkAddButton {
-  height: 100%;
-  min-height: 30px;
+  height: 30px;
+  min-height: 0;
 }
 
 .field {
@@ -236,8 +251,8 @@
 }
 
 .analysisListFilterCard .periodPresetRowToggle {
-  height: 100%;
-  min-height: 30px;
+  height: 30px;
+  min-height: 0;
 }
 
 @media (max-width: 720px) {
@@ -308,8 +323,8 @@
 }
 
 .analysisListActionCard .analysisBulkAddButton {
-  height: 100%;
-  min-height: 30px;
+  height: 30px;
+  min-height: 0;
   padding-top: 4px;
   padding-bottom: 4px;
   border-color: #0f172a;
@@ -319,8 +334,8 @@
 }
 
 .analysisFilterResetButton {
-  height: 100%;
-  min-height: 30px;
+  height: 30px;
+  min-height: 0;
   padding: 4px 10px;
   border: 1px solid #cbd5e1;
   border-radius: 8px;
