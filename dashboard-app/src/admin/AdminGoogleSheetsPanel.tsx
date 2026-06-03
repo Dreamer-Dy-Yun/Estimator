@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { getAdminGoogleSheetConfigs, getCompanyUuidForOptionalScope, isAllCompanyUuid } from '../api'
 import type { AdminGoogleSheetConfigSummary } from '../api'
 import { useAuth } from '../auth/AuthContext'
@@ -18,6 +18,8 @@ export function AdminGoogleSheetsPanel() {
   const [isLoading, setIsLoading] = useState(true)
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
   const [selectedConfigUuid, setSelectedConfigUuid] = useState<string | null>(null)
+  const mountedRef = useRef(false)
+  const loadSequenceRef = useRef(0)
 
   const concreteCompanies = useMemo(
     () => companies.filter((company) => !isAllCompanyUuid(company.uuid)),
@@ -36,38 +38,52 @@ export function AdminGoogleSheetsPanel() {
   }, [selectedListCompanyUuid])
 
   const reloadConfigs = useCallback(async () => {
-    setIsLoading(true)
-    setErrorMessage(null)
+    const loadSequence = loadSequenceRef.current + 1
+    loadSequenceRef.current = loadSequence
+    const isCurrentLoad = () => mountedRef.current && loadSequenceRef.current === loadSequence
+    if (mountedRef.current) {
+      setIsLoading(true)
+      setErrorMessage(null)
+    }
     try {
       const nextConfigs = await loadConfigs()
-      setConfigs(nextConfigs)
+      if (isCurrentLoad()) setConfigs(nextConfigs)
     } catch (error) {
+      if (!isCurrentLoad()) return
       setErrorMessage(getErrorMessage(error, '구글 시트 설정을 불러오지 못했습니다.'))
       throw error
     } finally {
-      setIsLoading(false)
+      if (isCurrentLoad()) setIsLoading(false)
     }
   }, [loadConfigs])
 
   useEffect(() => {
+    mountedRef.current = true
     let alive = true
+    const loadSequence = loadSequenceRef.current + 1
+    loadSequenceRef.current = loadSequence
+    const isCurrentLoad = () => loadSequenceRef.current === loadSequence
     loadConfigs()
       .then((nextConfigs) => {
-        if (alive) setConfigs(nextConfigs)
+        if (alive && isCurrentLoad()) setConfigs(nextConfigs)
       })
       .catch((error) => {
+        if (!isCurrentLoad()) return
         if (alive) setErrorMessage(getErrorMessage(error, '구글 시트 설정을 불러오지 못했습니다.'))
       })
       .finally(() => {
-        if (alive) setIsLoading(false)
+        if (alive && isCurrentLoad()) setIsLoading(false)
       })
     return () => {
       alive = false
+      mountedRef.current = false
+      loadSequenceRef.current += 1
     }
   }, [loadConfigs])
 
   const handleDeleted = async () => {
     await reloadConfigs()
+    if (!mountedRef.current) return
     setSelectedConfigUuid(null)
     showToast('구글 시트 설정을 삭제했습니다.')
   }

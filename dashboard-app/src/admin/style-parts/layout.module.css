@@ -113,3 +113,11 @@
   min-width: 0;
   flex-wrap: wrap;
 }
+
+@media (max-width: 640px) {
+  .adminPage {
+    height: auto;
+    min-height: 0;
+    overflow: visible;
+  }
+}

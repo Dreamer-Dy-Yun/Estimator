@@ -5,7 +5,7 @@
 | 작성 지시 | Yun Daeyoung |
 | 작성자 | Codex |
 | 작성일 | 2026-05-19 |
-| 최종 수정일 | 2026-05-22 |
+| 최종 수정일 | 2026-06-02 |
 | 상태 | 유지 문서 |
 | 적용 범위 | `dashboard-app/src/api`, mock/HTTP adapter, API 타입 계약 |
 
@@ -81,7 +81,11 @@
 
 ## 백엔드 문서 연결
 
-API 계약이 바뀌면 [../../backend-api/backend-api-spec.md](../../backend-api/backend-api-spec.md)를 같이 갱신한다.
+API 타입/계약이 바뀌면 `source-boundary-map.md`의 갱신 원칙을 기준으로 이 문서와 [../../backend-api/dashboard-api-contract-catalog.md](../../backend-api/dashboard-api-contract-catalog.md)를 같이 갱신한다.
+
+API endpoint, 요청/응답 schema, 에러 형식, 인증/세션/권한 검증 규칙이 바뀌면 [../../backend-api/backend-api-spec.md](../../backend-api/backend-api-spec.md)도 함께 갱신한다.
+
+백엔드 카탈로그는 프론트 타입/소스 책임과 백엔드 계약의 연결 지점이고, 백엔드 spec은 route, schema, error, validation의 실행 계약이다. 한쪽 변경이 다른 문서의 계약 의미를 바꾸면 같은 작업 단위에서 같이 정렬한다.
 
 백엔드는 프론트 타입 정의와 응답 JSON 필드명이 1:1로 맞아야 한다. 특히 후보군/스냅샷/SSE 계약은 프론트가 API 응답을 신뢰하고 과도하게 정규화하지 않는다는 전제로 동작한다.
 

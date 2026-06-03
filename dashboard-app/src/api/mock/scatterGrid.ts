@@ -19,7 +19,7 @@ type ScatterGridBucket = {
 }
 
 const DEFAULT_SCATTER_BUCKET_COUNT = 12
-const DEFAULT_SCATTER_BUCKET_SIZE_RATIO = 0.7
+const DEFAULT_SCATTER_BUCKET_SIZE_RATIO = 1
 
 function resolveBucketSize(span: number, requested: number | undefined): number {
   if (requested !== undefined && Number.isFinite(requested) && requested > 0) return requested

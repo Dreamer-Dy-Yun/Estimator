@@ -40,6 +40,13 @@ Last updated: 2026-06-02
 - API adapter mode는 `API_ADAPTER_MODE` / 환경변수 기반으로 분기되며, auth boundary는 adapter 결과만 소비한다.
 - `RequireAdmin` 실패는 로그인 상태는 유지하면서 관리자 전용 화면 진입을 막고 적절한 경로로 유도한다.
 
+## Mock / real login behavior
+
+- mock과 real 로그인 차이는 adapter 내부 동작 차이로만 유지한다. `LoginPage`, `AuthProvider`, route guard는 모두 `AuthApi`/`authRequests` 결과만 소비하며 `src/api/mock/authApi.ts` 또는 HTTP 구현을 직접 임포트하지 않는다.
+- `mock/authApi.ts` 로그인은 UI 검증용으로 permissive하다. 입력 `loginId`를 정규화해 mock 사용자와 매칭하고, 없으면 기본 mock 관리자 세션을 만들며, 비밀번호 검증/계정 잠금/비활성 계정 거부를 실제 backend처럼 수행하지 않는다.
+- real backend 로그인은 fallback 세션을 만들지 않는다. backend는 `password_hash`, `is_active`, `failed_login_count`/lock policy, `must_change_password`를 서버에서 검증하고, 실패를 성공 세션처럼 감추지 않아야 한다.
+- 따라서 mock/real 전환 시 UI import boundary는 바꾸지 않고 `authRequests.ts` adapter 구현과 `src/api/types/auth.ts`, 백엔드 계약 문서만 함께 정렬한다.
+
 ## Admin data boundary
 
 - `/admin`은 `src/admin`에서 관리 데이터(사용자, GPT 키, Google Sheet) 요청/표시를 담당한다.

@@ -28,5 +28,7 @@ Last updated: 2026-06-02
 ## 읽기 우선순위
 
 1. 변경이 생기면 먼저 `source-boundary-map.md` 확인
-2. API/프론트 계약 변경이면 `boundaries/api-contracts.md` + `boundaries/repository-runtime.md`
-3. 화면 책임 변경이면 `frontend-overview.md` + 해당 영역 boundary 문서
+2. API 타입/계약 변경이면 `boundaries/api-contracts.md` + `../backend-api/dashboard-api-contract-catalog.md`
+3. API endpoint, 요청/응답 schema, 에러 형식이 바뀌면 `../backend-api/backend-api-spec.md`도 함께 갱신
+4. API runtime mode, CI, e2e, 배포 규칙 변경이면 `boundaries/repository-runtime.md`
+5. 화면 책임 변경이면 `frontend-overview.md` + 해당 영역 boundary 문서

@@ -39,7 +39,12 @@ export class ComponentErrorBoundary extends Component<Props, State> {
     if (!error) return children
 
     return (
-      <div className={styles.fallback}>
+      <div
+        className={styles.fallback}
+        role="alert"
+        aria-live="assertive"
+        aria-atomic="true"
+      >
         <strong>{unit}</strong>
         <ApiUnitErrorBadge
           error={{

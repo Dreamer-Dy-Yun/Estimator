@@ -1,4 +1,4 @@
-import { useCallback, useMemo, type MouseEventHandler, type ReactNode, type RefObject } from 'react'
+import { useCallback, useMemo, type KeyboardEventHandler, type MouseEventHandler, type ReactNode, type RefObject } from 'react'
 import { CartesianGrid, Scatter, ScatterChart, Tooltip, XAxis, YAxis } from 'recharts'
 import { LoadingSpinner } from '../../components/LoadingSpinner'
 import styles from './common.module.css'
@@ -36,6 +36,35 @@ type Props<TPoint extends AnalysisScatterGridPointBase> = {
 const SCATTER_CHART_MARGIN = { top: 8, right: 8, bottom: 22, left: 8 }
 const AXIS_TICK_STYLE = { fontSize: 10 }
 const DEFAULT_AXIS_LABEL_COLOR = '#475569'
+
+type ScatterPointAccessibleMetadata = AnalysisScatterGridPointBase & Partial<{
+  count: number
+  xStart: number
+  xEnd: number
+  yStart: number
+  yEnd: number
+}>
+
+function isScatterPointActivationKey(key: string) {
+  return key === 'Enter' || key === ' ' || key === 'Spacebar'
+}
+
+function appendPointRangeLabel(labels: string[], axisLabel: string, start?: number, end?: number) {
+  if (typeof start !== 'number' || typeof end !== 'number') return
+  labels.push(`${axisLabel} ${start} to ${end}`)
+}
+
+function createScatterPointAccessibleName(
+  point: ScatterPointAccessibleMetadata,
+  xAxisLabel: string,
+  yAxisLabel: string,
+) {
+  const labels = [`Select scatter point ${point.cellKey}`]
+  appendPointRangeLabel(labels, xAxisLabel, point.xStart, point.xEnd)
+  appendPointRangeLabel(labels, yAxisLabel, point.yStart, point.yEnd)
+  if (typeof point.count === 'number') labels.push(`count ${point.count}`)
+  return labels.join(', ')
+}
 
 export function AnalysisScatterChartCard<TPoint extends AnalysisScatterGridPointBase>({
   title,
@@ -81,14 +110,29 @@ export function AnalysisScatterChartCard<TPoint extends AnalysisScatterGridPoint
     }),
     [yAxis.label, yAxis.labelColor],
   )
-  const handlePointClick = useCallback<MouseEventHandler<SVGCircleElement>>(
-    (event) => {
-      const cellKey = event.currentTarget.dataset.cellKey
+  const activatePointCell = useCallback(
+    (target: SVGCircleElement) => {
+      const cellKey = target.dataset.cellKey
       if (!cellKey) return
-      event.stopPropagation()
       onCellClick(cellKey)
     },
     [onCellClick],
+  )
+  const handlePointClick = useCallback<MouseEventHandler<SVGCircleElement>>(
+    (event) => {
+      activatePointCell(event.currentTarget)
+      event.stopPropagation()
+    },
+    [activatePointCell],
+  )
+  const handlePointKeyDown = useCallback<KeyboardEventHandler<SVGCircleElement>>(
+    (event) => {
+      if (!isScatterPointActivationKey(event.key)) return
+      activatePointCell(event.currentTarget)
+      event.preventDefault()
+      event.stopPropagation()
+    },
+    [activatePointCell],
   )
   const scatterShape = useCallback(
     (props: { cx?: number; cy?: number; payload?: TPoint }) => {
@@ -104,12 +148,17 @@ export function AnalysisScatterChartCard<TPoint extends AnalysisScatterGridPoint
           fill={payload.color}
           stroke={isActive ? '#0f172a' : '#ffffff'}
           strokeWidth={isActive ? 1.75 : 0.75}
+          role="button"
+          tabIndex={0}
+          aria-label={createScatterPointAccessibleName(payload, xAxis.label, yAxis.label)}
+          aria-pressed={isActive}
           className={styles.scatterClickablePoint}
           onClick={handlePointClick}
+          onKeyDown={handlePointKeyDown}
         />
       )
     },
-    [activeCellKey, handlePointClick, pointRadius],
+    [activeCellKey, handlePointClick, handlePointKeyDown, pointRadius, xAxis.label, yAxis.label],
   )
 
   return (
