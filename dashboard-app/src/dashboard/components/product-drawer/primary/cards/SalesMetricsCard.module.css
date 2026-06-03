@@ -75,7 +75,6 @@
 }
 
 .salesMetricsTightTable {
-  font-size: 12.6px;
   font-size: var(--primary-drawer-sales-table-font-size);
 }
 
