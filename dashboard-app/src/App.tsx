@@ -22,7 +22,7 @@ const SnapshotConfirmPage: React.LazyExoticComponent<() => React.JSX.Element> = 
 
 const routerMode: 'hash' | 'browser' = import.meta.env.VITE_ROUTER_MODE === 'hash' ? 'hash' : 'browser'
 const browserRouterBasename: string = (import.meta.env.VITE_ROUTER_BASENAME ?? import.meta.env.BASE_URL).replace(/\/$/, '') || '/'
-const dashboardScatterPointRadiusScale = 0.5 as const
+const dashboardScatterPointRadiusScale = 0.6 as const
 const dashboardDisplayPolicy: DashboardDisplayPolicy = new InjectedDashboardDisplayPolicy({
   scatterPointRadius: {
     cellSizeRatio: 0.405 * dashboardScatterPointRadiusScale,
