@@ -21,10 +21,6 @@ function getSpreadsheetOpenUrl(config: AdminGoogleSheetConfigSummary) : string {
 }
 
 export function AdminGoogleSheetRow({ config, onOpen }: AdminGoogleSheetRowProps) : React.JSX.Element {
-  const note: string | undefined = config.note?.trim()
-  const maskedServiceAccountKey: string = config.maskedServiceAccountKey?.trim()
-  const spreadsheetUrl: string = config.spreadsheetUrl.trim()
-
   const handleOpenSheet: (event: React.MouseEvent<HTMLButtonElement>) => void = (event: React.MouseEvent<HTMLButtonElement>) : void => {
     event.stopPropagation()
     window.open(getSpreadsheetOpenUrl(config), '_blank', 'noopener,noreferrer')
@@ -40,16 +36,13 @@ export function AdminGoogleSheetRow({ config, onOpen }: AdminGoogleSheetRowProps
         <span>{config.companyName}</span>
         <span className={styles.gptKeyNameCell}>
           <strong>{config.name}</strong>
-          {note ? <small>{note}</small> : null}
         </span>
         <span>{getOptionLabel(GOOGLE_SHEET_PURPOSE_OPTIONS, config.purpose)}</span>
         <span className={styles.gptKeyNameCell}>
           <strong>{config.serviceAccountEmail}</strong>
-          {maskedServiceAccountKey ? <small>{maskedServiceAccountKey}</small> : null}
         </span>
         <span className={styles.gptKeyNameCell}>
           <strong>{config.spreadsheetId}</strong>
-          {spreadsheetUrl ? <small>{spreadsheetUrl}</small> : null}
         </span>
         <span className={styles.statusCell}>
           <span className={`${styles.statusPill} ${config.isActive ? styles.status_success : styles.status_failed}`}>
