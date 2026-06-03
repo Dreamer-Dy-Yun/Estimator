@@ -234,9 +234,5 @@
 }
 
 :global(body[data-primary-drawer-open='true']) .pageContent {
-  padding-right: clamp(
-    0px,
-    calc(var(--primary-drawer-page-shift-vw) - var(--primary-drawer-layout-trim)),
-    calc(var(--primary-drawer-page-shift-max) - var(--primary-drawer-layout-trim))
-  );
+  padding-right: var(--primary-drawer-page-shift);
 }

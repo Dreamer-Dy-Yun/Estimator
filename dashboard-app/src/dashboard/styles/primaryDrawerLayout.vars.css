@@ -11,8 +11,7 @@
   --primary-drawer-expand-toggle-width: 30px;
   /** 평치기 토글 캡(반지름 ≈ 너비/2)의 절반만큼 레이아웃에서 되돌림 */
   --primary-drawer-layout-trim: calc(var(--primary-drawer-expand-toggle-width) / 4);
-  --primary-drawer-page-shift-vw: 38vw;
-  --primary-drawer-page-shift-max: 560px;
+  --primary-drawer-page-shift: calc(var(--primary-drawer-column-width) + var(--primary-drawer-edge-inset) - var(--primary-drawer-layout-trim));
   /** 이너 후보 모달: 100vw − reserve + trim */
   --primary-drawer-modal-backdrop-reserve: 600px;
 }
