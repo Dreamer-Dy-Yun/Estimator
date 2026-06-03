@@ -6,7 +6,8 @@
 :root {
   --primary-drawer-edge-inset: 10px;
   --primary-drawer-viewport-height: calc(100vh - (var(--primary-drawer-edge-inset) * 2));
-  --primary-drawer-column-width: 540px;
+  --primary-drawer-column-width: clamp(360px, 25vw, 640px);
+  --primary-drawer-sales-table-font-size: clamp(11.2px, calc(8.4px + 0.78cqw), 13.4px);
   --primary-drawer-expand-toggle-width: 30px;
   /** 평치기 토글 캡(반지름 ≈ 너비/2)의 절반만큼 레이아웃에서 되돌림 */
   --primary-drawer-layout-trim: calc(var(--primary-drawer-expand-toggle-width) / 4);

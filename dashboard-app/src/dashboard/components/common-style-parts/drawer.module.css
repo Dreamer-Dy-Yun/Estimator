@@ -44,6 +44,7 @@
   position: relative;
   flex: 0 0 var(--primary-drawer-column-width);
   width: var(--primary-drawer-column-width);
+  container-type: inline-size;
   min-height: 0;
   min-width: 0;
   display: grid;
