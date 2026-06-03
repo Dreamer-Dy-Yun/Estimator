@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest'
+import { describe, expect, it, vi , type Mock} from 'vitest';
 import type { DashboardApi, SecondaryCompetitorChannel } from '../types'
 import { withDashboardMasterDataCache } from './dashboardMasterDataCache'
 
@@ -13,12 +13,12 @@ function createAdapter(
   return { getSecondaryCompetitorChannels } as DashboardApi
 }
 
-describe('withDashboardMasterDataCache', () => {
-  it('shares one competitor channel request across multiple callers', async () => {
-    const request = vi.fn(async () => channels)
-    const api = withDashboardMasterDataCache(createAdapter(request))
+describe('withDashboardMasterDataCache', () : void => {
+  it('shares one competitor channel request across multiple callers', async () : Promise<void> => {
+    const request: Mock<() => Promise<SecondaryCompetitorChannel[]>> = vi.fn(async () : Promise<SecondaryCompetitorChannel[]> => channels)
+    const api: DashboardApi = withDashboardMasterDataCache(createAdapter(request))
 
-    const [first, second] = await Promise.all([
+    const [first, second]: [SecondaryCompetitorChannel[], SecondaryCompetitorChannel[]] = await Promise.all([
       api.getSecondaryCompetitorChannels(),
       api.getSecondaryCompetitorChannels(),
     ])
@@ -28,12 +28,12 @@ describe('withDashboardMasterDataCache', () => {
     expect(request).toHaveBeenCalledTimes(1)
   })
 
-  it('does not cache failed competitor channel requests', async () => {
-    const request = vi
+  it('does not cache failed competitor channel requests', async () : Promise<void> => {
+    const request: Mock<() => Promise<SecondaryCompetitorChannel[]>> = vi
       .fn<DashboardApi['getSecondaryCompetitorChannels']>()
       .mockRejectedValueOnce(new Error('temporary failure'))
       .mockResolvedValueOnce(channels)
-    const api = withDashboardMasterDataCache(createAdapter(request))
+    const api: DashboardApi = withDashboardMasterDataCache(createAdapter(request))
 
     await expect(api.getSecondaryCompetitorChannels()).rejects.toThrow('temporary failure')
     await expect(api.getSecondaryCompetitorChannels()).resolves.toEqual(channels)

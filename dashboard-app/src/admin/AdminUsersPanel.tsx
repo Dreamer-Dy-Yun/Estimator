@@ -10,60 +10,60 @@ import { AdminUserDialog } from './AdminUserDialog'
 import { AdminUserRow } from './AdminUserRow'
 import styles from './AdminPage.module.css'
 
-type PasswordResetNotice = ResetAdminUserPasswordResult & {
+export type PasswordResetNotice = ResetAdminUserPasswordResult & {
   loginId: string
 }
 
-export function AdminUsersPanel() {
-  const { session, refreshSession } = useAuth()
-  const { showToast } = useAppToast()
-  const [users, setUsers] = useState<AdminUserSummary[]>([])
-  const [errorMessage, setErrorMessage] = useState<string | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
-  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
-  const [selectedUserUuid, setSelectedUserUuid] = useState<string | null>(null)
-  const [passwordResetNotice, setPasswordResetNotice] = useState<PasswordResetNotice | null>(null)
-  const [passwordCopyMessage, setPasswordCopyMessage] = useState<string | null>(null)
-  const selectedUser = users.find((user) => user.uuid === selectedUserUuid) ?? null
+export function AdminUsersPanel() : React.JSX.Element {
+  const { session, refreshSession }: ReturnType<typeof useAuth> = useAuth()
+  const { showToast }: ReturnType<typeof useAppToast> = useAppToast()
+  const [users, setUsers]: [AdminUserSummary[], React.Dispatch<React.SetStateAction<AdminUserSummary[]>>] = useState<AdminUserSummary[]>([])
+  const [errorMessage, setErrorMessage]: [string | null, React.Dispatch<React.SetStateAction<string | null>>] = useState<string | null>(null)
+  const [isLoading, setIsLoading]: [boolean, React.Dispatch<React.SetStateAction<boolean>>] = useState(true)
+  const [isCreateDialogOpen, setIsCreateDialogOpen]: [boolean, React.Dispatch<React.SetStateAction<boolean>>] = useState(false)
+  const [selectedUserUuid, setSelectedUserUuid]: [string | null, React.Dispatch<React.SetStateAction<string | null>>] = useState<string | null>(null)
+  const [passwordResetNotice, setPasswordResetNotice]: [PasswordResetNotice | null, React.Dispatch<React.SetStateAction<PasswordResetNotice | null>>] = useState<PasswordResetNotice | null>(null)
+  const [passwordCopyMessage, setPasswordCopyMessage]: [string | null, React.Dispatch<React.SetStateAction<string | null>>] = useState<string | null>(null)
+  const selectedUser: AdminUserSummary | null = users.find((user: AdminUserSummary) : boolean => user.uuid === selectedUserUuid) ?? null
 
-  useEffect(() => {
-    let alive = true
+  useEffect(() : () => void => {
+    let alive: boolean = true
     getAdminUsers()
-      .then((nextUsers) => {
+      .then((nextUsers: AdminUserSummary[]) : void => {
         if (alive) setUsers(nextUsers)
       })
-      .catch((error) => {
+      .catch((error: unknown) : void => {
         if (alive) setErrorMessage(getErrorMessage(error, '사용자 목록을 불러오지 못했습니다.'))
       })
-      .finally(() => {
+      .finally(() : void => {
         if (alive) setIsLoading(false)
       })
 
-    return () => {
+    return () : void => {
       alive = false
     }
   }, [])
 
-  const reloadUsers = async () => {
-    const nextUsers = await getAdminUsers()
+  const reloadUsers: () => Promise<void> = async () : Promise<void> => {
+    const nextUsers: AdminUserSummary[] = await getAdminUsers()
     setUsers(nextUsers)
   }
 
-  const handleChanged = async () => {
+  const handleChanged: () => Promise<void> = async () : Promise<void> => {
     await reloadUsers()
     await refreshSession()
   }
 
-  const handleDeleted = async () => {
+  const handleDeleted: () => Promise<void> = async () : Promise<void> => {
     await reloadUsers()
     setSelectedUserUuid(null)
     showToast('사용자를 제거했습니다.')
   }
 
-  const handlePasswordReset = async (user: AdminUserSummary) => {
-    const result = await resetAdminUserPassword(user.uuid)
-    setUsers((currentUsers) =>
-      currentUsers.map((currentUser) =>
+  const handlePasswordReset: (user: AdminUserSummary) => Promise<void> = async (user: AdminUserSummary) : Promise<void> => {
+    const result: ResetAdminUserPasswordResult = await resetAdminUserPassword(user.uuid)
+    setUsers((currentUsers: AdminUserSummary[]) : AdminUserSummary[] =>
+      currentUsers.map((currentUser: AdminUserSummary) : AdminUserSummary =>
         currentUser.uuid === user.uuid
           ? {
               ...currentUser,
@@ -78,12 +78,12 @@ export function AdminUsersPanel() {
     showToast('임시 비밀번호를 발급했습니다.')
   }
 
-  const closePasswordResetNotice = () => {
+  const closePasswordResetNotice: () => void = () : void => {
     setPasswordResetNotice(null)
     setPasswordCopyMessage(null)
   }
 
-  const copyTemporaryPassword = async () => {
+  const copyTemporaryPassword: () => Promise<void> = async () : Promise<void> => {
     if (!passwordResetNotice) return
     try {
       await window.navigator.clipboard.writeText(passwordResetNotice.temporaryPassword)
@@ -105,25 +105,25 @@ export function AdminUsersPanel() {
         isLoading={isLoading}
         errorMessage={errorMessage}
         actions={
-          <button className={styles.createButton} type="button" onClick={() => setIsCreateDialogOpen(true)}>
+          <button className={styles.createButton} type="button" onClick={() : void => setIsCreateDialogOpen(true)}>
             사용자 추가
           </button>
         }
       >
-        {users.map((user) => (
-          <AdminUserRow key={user.uuid} user={user} onOpen={(nextUser) => setSelectedUserUuid(nextUser.uuid)} />
+        {users.map((user: AdminUserSummary) : React.JSX.Element => (
+          <AdminUserRow key={user.uuid} user={user} onOpen={(nextUser: AdminUserSummary) : void => setSelectedUserUuid(nextUser.uuid)} />
         ))}
       </AdminListPanel>
 
       {isCreateDialogOpen ? (
-        <AdminUserCreateDialog onClose={() => setIsCreateDialogOpen(false)} onCreated={reloadUsers} />
+        <AdminUserCreateDialog onClose={() : void => setIsCreateDialogOpen(false)} onCreated={reloadUsers} />
       ) : null}
       {selectedUser ? (
         <AdminUserDialog
           key={selectedUser.uuid}
           user={selectedUser}
           currentUserUuid={session?.user.uuid ?? ''}
-          onClose={() => setSelectedUserUuid(null)}
+          onClose={() : void => setSelectedUserUuid(null)}
           onChanged={handleChanged}
           onDeleted={handleDeleted}
           onPasswordReset={handlePasswordReset}
@@ -136,7 +136,7 @@ export function AdminUsersPanel() {
             className={styles.resetNoticeDialog}
             role="dialog"
             aria-modal="true"
-            onClick={(event) => event.stopPropagation()}
+            onClick={(event: React.MouseEvent<HTMLDivElement, MouseEvent>) : void => event.stopPropagation()}
           >
             <div className={styles.resetNoticeDialogHeader}>
               <strong className={styles.resetNoticeTitle}>{passwordResetNotice.loginId} 임시 비밀번호</strong>

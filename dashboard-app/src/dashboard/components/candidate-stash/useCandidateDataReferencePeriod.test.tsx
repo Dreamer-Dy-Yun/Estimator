@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { act, useRef } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi , type Mock} from 'vitest';
 import type { CandidateStashSummary } from '../../../api'
 import { useCandidateDataReferencePeriod, type AppliedCandidateDataReferencePeriod } from './useCandidateDataReferencePeriod'
 
@@ -22,18 +22,18 @@ let container: HTMLDivElement | null = null
 
 function Probe({
   loadItems,
-  onDataReferencePeriodApplied = () => undefined,
+  onDataReferencePeriodApplied = () : undefined => undefined,
 }: {
   loadItems: (periodStart?: string, periodEnd?: string) => Promise<void>
   onDataReferencePeriodApplied?: () => void
-}) {
-  const appliedPeriodRef = useRef<AppliedCandidateDataReferencePeriod>({ start: '', end: '' })
-  const model = useCandidateDataReferencePeriod({
+}) : React.JSX.Element {
+  const appliedPeriodRef: React.RefObject<AppliedCandidateDataReferencePeriod> = useRef<AppliedCandidateDataReferencePeriod>({ start: '', end: '' })
+  const model: { dataReferencePeriodStart: string; dataReferencePeriodEnd: string; draftDataReferencePeriodStart: string; draftDataReferencePeriodEnd: string; dataReferencePeriodQueryDirty: boolean; onDataReferencePeriodStartChange: (value: string) => void; onDataReferencePeriodEndChange: (value: string) => void; applyDataReferencePeriod: () => void; } = useCandidateDataReferencePeriod({
     detailTarget: DETAIL_TARGET,
     appliedPeriodRef,
-    setItems: () => undefined,
-    clearRecommendationItems: () => undefined,
-    closeMetricSubscription: () => undefined,
+    setItems: () : undefined => undefined,
+    clearRecommendationItems: () : undefined => undefined,
+    closeMetricSubscription: () : undefined => undefined,
     loadItems,
     onDataReferencePeriodApplied,
   })
@@ -44,7 +44,7 @@ function Probe({
         data-start={model.dataReferencePeriodStart}
         data-end={model.dataReferencePeriodEnd}
       />
-      <button type="button" data-testid="set-start" onClick={() => model.onDataReferencePeriodStartChange('2026-01-01')} />
+      <button type="button" data-testid="set-start" onClick={() : void => model.onDataReferencePeriodStartChange('2026-01-01')} />
       <button type="button" data-testid="apply" onClick={model.applyDataReferencePeriod} />
     </>
   )
@@ -53,18 +53,18 @@ function Probe({
 function renderProbe(
   loadItems: (periodStart?: string, periodEnd?: string) => Promise<void>,
   onDataReferencePeriodApplied?: () => void,
-) {
+) : HTMLOutputElement {
   container = document.createElement('div')
   document.body.appendChild(container)
   root = createRoot(container)
-  act(() => {
+  act(() : void => {
     root?.render(<Probe loadItems={loadItems} onDataReferencePeriodApplied={onDataReferencePeriodApplied} />)
   })
   return container.querySelector('output') as HTMLOutputElement
 }
 
-afterEach(() => {
-  act(() => {
+afterEach(() : void => {
+  act(() : void => {
     root?.unmount()
   })
   root = null
@@ -73,14 +73,14 @@ afterEach(() => {
   vi.useRealTimers()
 })
 
-describe('useCandidateDataReferencePeriod', () => {
-  it('starts with today minus one year through today, not the stash creation period', async () => {
+describe('useCandidateDataReferencePeriod', () : void => {
+  it('starts with today minus one year through today, not the stash creation period', async () : Promise<void> => {
     vi.useFakeTimers()
     vi.setSystemTime(new Date(2026, 4, 19))
-    const loadItems = vi.fn<() => Promise<void>>().mockResolvedValue(undefined)
-    const output = renderProbe(loadItems)
+    const loadItems: Mock<() => Promise<void>> = vi.fn<() => Promise<void>>().mockResolvedValue(undefined)
+    const output: HTMLOutputElement = renderProbe(loadItems)
 
-    await act(async () => {
+    await act(async () : Promise<void> => {
       await Promise.resolve()
     })
 
@@ -89,23 +89,23 @@ describe('useCandidateDataReferencePeriod', () => {
     expect(loadItems).toHaveBeenCalledWith('2025-05-19', '2026-05-19')
   })
 
-  it('notifies the caller when a query period is applied', async () => {
+  it('notifies the caller when a query period is applied', async () : Promise<void> => {
     vi.useFakeTimers()
     vi.setSystemTime(new Date(2026, 4, 19))
-    const loadItems = vi.fn<(periodStart?: string, periodEnd?: string) => Promise<void>>().mockResolvedValue(undefined)
-    const onDataReferencePeriodApplied = vi.fn()
+    const loadItems: Mock<(periodStart?: string, periodEnd?: string) => Promise<void>> = vi.fn<(periodStart?: string, periodEnd?: string) => Promise<void>>().mockResolvedValue(undefined)
+    const onDataReferencePeriodApplied: Mock<(...args: unknown[]) => unknown> = vi.fn()
     renderProbe(loadItems, onDataReferencePeriodApplied)
 
-    await act(async () => {
+    await act(async () : Promise<void> => {
       await Promise.resolve()
     })
     loadItems.mockClear()
     onDataReferencePeriodApplied.mockClear()
 
-    act(() => {
+    act(() : void => {
       container?.querySelector<HTMLButtonElement>('[data-testid="set-start"]')?.click()
     })
-    act(() => {
+    act(() : void => {
       container?.querySelector<HTMLButtonElement>('[data-testid="apply"]')?.click()
     })
 

@@ -7,7 +7,7 @@ import styles from '../../common.module.css'
 import { makeApiErrorInfo } from '../apiErrorInfo'
 import { SalesMetricsCard } from './cards/SalesMetricsCard'
 
-type Props = {
+export type Props = {
   skuGroupKey: string
   startDate: string
   endDate: string
@@ -20,7 +20,7 @@ type Props = {
   pageName: string
 }
 
-type SalesInsightState = {
+export type SalesInsightState = {
   key: string
   data: ProductSalesInsight | null
   error: ApiUnitErrorInfo | null
@@ -37,28 +37,28 @@ export function ProductSalesMetricsContainer({
   onChannelChange,
   selfCompanyLabel,
   pageName,
-}: Props) {
-  const reqSeqRef = useRef(0)
-  const [salesInsightState, setSalesInsightState] = useState<SalesInsightState | null>(null)
-  const salesInsightRequestKey = JSON.stringify({
+}: Props) : React.JSX.Element {
+  const reqSeqRef: React.RefObject<number> = useRef(0)
+  const [salesInsightState, setSalesInsightState]: [SalesInsightState | null, React.Dispatch<React.SetStateAction<SalesInsightState | null>>] = useState<SalesInsightState | null>(null)
+  const salesInsightRequestKey: string = JSON.stringify({
     skuGroupKey,
     startDate,
     endDate,
     companyUuid,
     competitorChannelId: channelId,
   })
-  const salesInsight =
+  const salesInsight: ProductSalesInsight | null =
     channelId && salesInsightState?.key === salesInsightRequestKey ? salesInsightState.data : null
-  const salesInsightError =
+  const salesInsightError: ApiUnitErrorInfo | null =
     channelId && salesInsightState?.key === salesInsightRequestKey ? salesInsightState.error : null
 
-  useEffect(() => {
+  useEffect(() : (() => void) | undefined => {
     if (!channelId) return
-    let alive = true
-    const reqSeq = ++reqSeqRef.current
-    void (async () => {
+    let alive: boolean = true
+    const reqSeq: number = ++reqSeqRef.current
+    void (async () : Promise<void> => {
       try {
-        const data = await dashboardApi.getProductSalesInsight(skuGroupKey, {
+        const data: ProductSalesInsight = await dashboardApi.getProductSalesInsight(skuGroupKey, {
           startDate,
           endDate,
           companyUuid,
@@ -79,12 +79,12 @@ export function ProductSalesMetricsContainer({
         })
       }
     })()
-    return () => {
+    return () : void => {
       alive = false
     }
   }, [channelId, companyUuid, endDate, pageName, salesInsightRequestKey, skuGroupKey, startDate])
 
-  const salesMetricsError = salesInsightError ?? channelsError
+  const salesMetricsError: ApiUnitErrorInfo | null = salesInsightError ?? channelsError
 
   if (salesMetricsError != null) {
     return (

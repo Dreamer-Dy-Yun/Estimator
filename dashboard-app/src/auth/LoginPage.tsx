@@ -1,22 +1,22 @@
-﻿import { useMemo, useState, type FormEvent } from 'react'
+﻿import { useMemo, useState } from 'react'
 import { Navigate, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { API_ADAPTER_MODE, getApiErrorDisplayMessage } from '../api'
 import { LoadingSpinner } from '../components/LoadingSpinner'
 import { useAuth } from './AuthContext'
 import styles from './LoginPage.module.css'
 
-type LoginLocationState = {
+export type LoginLocationState = {
   redirectTo?: string
 }
 
-const DEFAULT_LOGIN_ID = 'mock-admin'
-const DEFAULT_PASSWORD = 'admin'
-const AUTH_SESSION_ERROR_STORAGE_KEY = 'han-a.auth.session-error-message'
+const DEFAULT_LOGIN_ID = 'mock-admin' as const
+const DEFAULT_PASSWORD = 'admin' as const
+const AUTH_SESSION_ERROR_STORAGE_KEY = 'han-a.auth.session-error-message' as const
 
-function consumeSessionCheckErrorMessage() {
+function consumeSessionCheckErrorMessage() : string | null {
   if (typeof window === 'undefined') return null
   try {
-    const message = window.sessionStorage.getItem(AUTH_SESSION_ERROR_STORAGE_KEY)
+    const message: string | null = window.sessionStorage.getItem(AUTH_SESSION_ERROR_STORAGE_KEY)
     window.sessionStorage.removeItem(AUTH_SESSION_ERROR_STORAGE_KEY)
     return message?.trim() ? message : null
   } catch {
@@ -24,27 +24,27 @@ function consumeSessionCheckErrorMessage() {
   }
 }
 
-function getErrorMessage(error: unknown) {
+function getErrorMessage(error: unknown) : string {
   return getApiErrorDisplayMessage(error, '로그인 처리 중 오류가 발생했습니다.')
 }
 
-function getRedirectTo(queryRedirect: string | null, state: LoginLocationState | null) {
-  const redirectTo = queryRedirect || state?.redirectTo
+function getRedirectTo(queryRedirect: string | null, state: LoginLocationState | null) : string {
+  const redirectTo: string | undefined = queryRedirect || state?.redirectTo
   if (!redirectTo || redirectTo.startsWith('/login')) return '/dashboard/self'
   return redirectTo
 }
 
-export function LoginPage() {
-  const location = useLocation()
-  const navigate = useNavigate()
-  const [searchParams] = useSearchParams()
-  const { session, login } = useAuth()
-  const [loginId, setLoginId] = useState(DEFAULT_LOGIN_ID)
-  const [password, setPassword] = useState(DEFAULT_PASSWORD)
-  const [errorMessage, setErrorMessage] = useState<string | null>(() => consumeSessionCheckErrorMessage())
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const redirectTo = useMemo(
-    () => getRedirectTo(searchParams.get('redirect'), location.state as LoginLocationState | null),
+export function LoginPage() : React.JSX.Element {
+  const location: ReturnType<typeof useLocation> = useLocation()
+  const navigate: ReturnType<typeof useNavigate> = useNavigate()
+  const [searchParams]: ReturnType<typeof useSearchParams> = useSearchParams()
+  const { session, login }: ReturnType<typeof useAuth> = useAuth()
+  const [loginId, setLoginId]: [string, React.Dispatch<React.SetStateAction<string>>] = useState<string>(DEFAULT_LOGIN_ID)
+  const [password, setPassword]: [string, React.Dispatch<React.SetStateAction<string>>] = useState<string>(DEFAULT_PASSWORD)
+  const [errorMessage, setErrorMessage]: [string | null, React.Dispatch<React.SetStateAction<string | null>>] = useState<string | null>(() : string | null => consumeSessionCheckErrorMessage())
+  const [isSubmitting, setIsSubmitting]: [boolean, React.Dispatch<React.SetStateAction<boolean>>] = useState(false)
+  const redirectTo: string = useMemo(
+    () : string => getRedirectTo(searchParams.get('redirect'), location.state as LoginLocationState | null),
     [location.state, searchParams],
   )
 
@@ -52,7 +52,7 @@ export function LoginPage() {
     return <Navigate to={redirectTo} replace />
   }
 
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit: (event: React.FormEvent<HTMLFormElement>) => Promise<void> = async (event: React.FormEvent<HTMLFormElement>) : Promise<void> => {
     event.preventDefault()
     setErrorMessage(null)
     setIsSubmitting(true)
@@ -84,7 +84,7 @@ export function LoginPage() {
             <span>아이디</span>
             <input
               value={loginId}
-              onChange={(event) => setLoginId(event.target.value)}
+              onChange={(event: React.ChangeEvent<HTMLInputElement, HTMLInputElement>) : void => setLoginId(event.target.value)}
               placeholder={DEFAULT_LOGIN_ID}
               autoComplete="username"
             />
@@ -94,7 +94,7 @@ export function LoginPage() {
             <span>비밀번호</span>
             <input
               value={password}
-              onChange={(event) => setPassword(event.target.value)}
+              onChange={(event: React.ChangeEvent<HTMLInputElement, HTMLInputElement>) : void => setPassword(event.target.value)}
               placeholder={DEFAULT_PASSWORD}
               type="password"
               autoComplete="current-password"

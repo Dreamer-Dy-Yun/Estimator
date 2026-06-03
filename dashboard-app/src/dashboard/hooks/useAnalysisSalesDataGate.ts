@@ -14,11 +14,11 @@ export function useAnalysisSalesDataGate<Row>({
   scatterGridRequest,
   requestKey,
   emptyRows,
-}: AnalysisSalesDataGateOptions<Row>) {
-  return useMemo(() => {
-    const rowsCurrent = rowsRequest.dataKey === requestKey
-    const scatterCurrent = scatterGridRequest.dataKey === requestKey
-    const ready = rowsCurrent && scatterCurrent
+}: AnalysisSalesDataGateOptions<Row>) : { rows: Row[]; scatterGrid: ScatterSalesGridResponse | null; initialLoading: boolean; refreshing: boolean; ready: boolean; } {
+  return useMemo(() : { rows: Row[]; scatterGrid: ScatterSalesGridResponse | null; initialLoading: boolean; refreshing: boolean; ready: boolean; } => {
+    const rowsCurrent: boolean = rowsRequest.dataKey === requestKey
+    const scatterCurrent: boolean = scatterGridRequest.dataKey === requestKey
+    const ready: boolean = rowsCurrent && scatterCurrent
 
     return {
       rows: ready ? rowsRequest.data : emptyRows,

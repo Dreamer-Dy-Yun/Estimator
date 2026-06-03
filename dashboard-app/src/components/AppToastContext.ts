@@ -11,10 +11,10 @@ export type ToastContextValue = {
   showToast: (message: string, options?: ToastOptions) => void
 }
 
-export const ToastContext = createContext<ToastContextValue | null>(null)
+export const ToastContext: React.Context<ToastContextValue | null> = createContext<ToastContextValue | null>(null)
 
-export function useAppToast() {
-  const context = useContext(ToastContext)
+export function useAppToast() : ToastContextValue {
+  const context: ToastContextValue | null = useContext(ToastContext)
   if (!context) throw new Error('useAppToast must be used within AppToastProvider')
   return context
 }

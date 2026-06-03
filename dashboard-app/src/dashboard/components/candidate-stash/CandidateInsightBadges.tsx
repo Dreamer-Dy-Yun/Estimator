@@ -2,25 +2,25 @@ import { memo, type CSSProperties } from 'react'
 import type { CandidateBadge } from '../../../api'
 import styles from './CandidateInsightBadges.module.css'
 
-const DEFAULT_BADGE_COLOR = '#64748b'
-const badgeStyleByColor = new Map<string, CSSProperties>()
+const DEFAULT_BADGE_COLOR = '#64748b' as const
+const badgeStyleByColor: Map<string, CSSProperties> = new Map<string, CSSProperties>()
 
-type Props = {
+export type Props = {
   badges: CandidateBadge[]
   loading?: boolean
   failed?: boolean
 }
 
 function getBadgeStyle(color: string): CSSProperties {
-  const cached = badgeStyleByColor.get(color)
+  const cached: CSSProperties | undefined = badgeStyleByColor.get(color)
   if (cached) return cached
-  const style = { '--candidate-badge-color': color } as CSSProperties
+  const style: CSSProperties = { '--candidate-badge-color': color } as CSSProperties
   badgeStyleByColor.set(color, style)
   return style
 }
 
-const CandidateInsightBadgeItem = memo(function CandidateInsightBadgeItem({ badge }: { badge: CandidateBadge }) {
-  const color = badge.color || DEFAULT_BADGE_COLOR
+const CandidateInsightBadgeItem: React.MemoExoticComponent<({ badge }: { badge: CandidateBadge; }) => React.JSX.Element> = memo(function CandidateInsightBadgeItem({ badge }: { badge: CandidateBadge }) : React.JSX.Element {
+  const color: string = badge.color || DEFAULT_BADGE_COLOR
   return (
     <span
       className={styles.badge}
@@ -32,11 +32,11 @@ const CandidateInsightBadgeItem = memo(function CandidateInsightBadgeItem({ badg
   )
 })
 
-export const CandidateInsightBadges = memo(function CandidateInsightBadges({
+export const CandidateInsightBadges: React.MemoExoticComponent<({ badges, loading, failed, }: Props) => React.JSX.Element> = memo(function CandidateInsightBadges({
   badges,
   loading = false,
   failed = false,
-}: Props) {
+}: Props) : React.JSX.Element {
   if (loading) {
     return <span className={styles.pending}>로딩중...</span>
   }
@@ -51,7 +51,7 @@ export const CandidateInsightBadges = memo(function CandidateInsightBadges({
 
   return (
     <>
-      {badges.map((badge) => (
+      {badges.map((badge: CandidateBadge) : React.JSX.Element => (
         <CandidateInsightBadgeItem key={badge.name} badge={badge} />
       ))}
     </>

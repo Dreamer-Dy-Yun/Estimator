@@ -1,3 +1,4 @@
+import type { CandidateDetailConfirmationOverride } from './candidateDetailConfirmationOverrideModel'
 import { useCallback, type MutableRefObject } from 'react'
 import type { CandidateItemDetail, CandidateItemSummary } from '../../../api'
 import { parseOrderSnapshot } from '../../../snapshot/parseOrderSnapshot'
@@ -8,7 +9,7 @@ import {
 } from './candidateDetailConfirmationOverrideModel'
 import type { CandidateSetItems } from './candidateStashDetailTypes'
 
-interface DrawerSnapshotBridge {
+export interface DrawerSnapshotBridge {
   markDrawerSnapshotConfirmed: (
     itemUuid: string,
     snapshot: OrderSnapshotDocumentV2,
@@ -17,7 +18,7 @@ interface DrawerSnapshotBridge {
   markDrawerSnapshotUnconfirmed: (itemUuid: string, baseDbUpdatedAt: string | null) => void
 }
 
-interface UseCandidateDetailConfirmationMutationsParams {
+export interface UseCandidateDetailConfirmationMutationsParams {
   itemsRef: MutableRefObject<CandidateItemSummary[]>
   confirmationOverridesRef: MutableRefObject<CandidateDetailConfirmationOverrideMap>
   setItems: CandidateSetItems
@@ -40,12 +41,12 @@ function parseConfirmedUpdatedItems(
   updatedItems: CandidateItemDetail[],
 ): Array<{ item: CandidateItemDetail; snapshot: OrderSnapshotDocumentV2 }> {
   return updatedItems
-    .filter((item) => item.details)
-    .map((item) => {
+    .filter((item: CandidateItemDetail) : OrderSnapshotDocumentV2 | null => item.details)
+    .map((item: CandidateItemDetail) : { item: CandidateItemDetail; snapshot: OrderSnapshotDocumentV2; } => {
       try {
         return { item, snapshot: parseOrderSnapshot(item.details) }
       } catch (error) {
-        const message = error instanceof Error ? error.message : String(error)
+        const message: string = error instanceof Error ? error.message : String(error)
         throw new Error(`Candidate item snapshot parse failed: ${item.uuid}: ${message}`)
       }
     })
@@ -56,76 +57,76 @@ export function useCandidateDetailConfirmationMutations({
   confirmationOverridesRef,
   setItems,
   drawer,
-}: UseCandidateDetailConfirmationMutationsParams) {
-  const recordDetailConfirmationMutation = useCallback((
+}: UseCandidateDetailConfirmationMutationsParams) : { markDrawerSnapshotConfirmed: (itemUuid: string, snapshot: OrderSnapshotDocumentV2, updatedItem: CandidateItemDetail) => void; markDrawerSnapshotUnconfirmed: (itemUuid: string, updatedItem: CandidateItemDetail) => void; markItemsDetailConfirmed: (updatedItems: CandidateItemDetail[]) => void; markItemsDetailUnconfirmed: (updatedItems: CandidateItemDetail[]) => void; } {
+  const recordDetailConfirmationMutation: (itemUuid: string, isDetailConfirmed: boolean, confirmedSnapshot: OrderSnapshotDocumentV2 | null, updatedItem: CandidateItemDetail) => string | null = useCallback((
     itemUuid: string,
     isDetailConfirmed: boolean,
     confirmedSnapshot: OrderSnapshotDocumentV2 | null,
     updatedItem: CandidateItemDetail,
-  ) => {
-    const baseItem = itemsRef.current.find((item) => item.uuid === itemUuid)
+  ) : string | null => {
+    const baseItem: CandidateItemSummary | undefined = itemsRef.current.find((item: CandidateItemSummary) : boolean => item.uuid === itemUuid)
     confirmationOverridesRef.current = {
       ...confirmationOverridesRef.current,
       [itemUuid]: createCandidateDetailConfirmationOverride(baseItem, isDetailConfirmed, confirmedSnapshot),
     }
-    setItems((current) => current.map((item) => (
+    setItems((current: CandidateItemSummary[]) : CandidateItemSummary[] => current.map((item: CandidateItemSummary) : CandidateItemSummary => (
       item.uuid === itemUuid ? mergeDetailConfirmationState(item, updatedItem) : item
     )))
     return baseItem?.dbUpdatedAt ?? null
   }, [confirmationOverridesRef, itemsRef, setItems])
 
-  const markDrawerSnapshotConfirmed = useCallback((
+  const markDrawerSnapshotConfirmed: (itemUuid: string, snapshot: OrderSnapshotDocumentV2, updatedItem: CandidateItemDetail) => void = useCallback((
     itemUuid: string,
     snapshot: OrderSnapshotDocumentV2,
     updatedItem: CandidateItemDetail,
-  ) => {
-    const baseDbUpdatedAt = recordDetailConfirmationMutation(itemUuid, true, snapshot, updatedItem)
+  ) : void => {
+    const baseDbUpdatedAt: string | null = recordDetailConfirmationMutation(itemUuid, true, snapshot, updatedItem)
     drawer.markDrawerSnapshotConfirmed(itemUuid, snapshot, baseDbUpdatedAt)
   }, [drawer, recordDetailConfirmationMutation])
 
-  const markDrawerSnapshotUnconfirmed = useCallback((itemUuid: string, updatedItem: CandidateItemDetail) => {
-    const baseDbUpdatedAt = recordDetailConfirmationMutation(itemUuid, false, null, updatedItem)
+  const markDrawerSnapshotUnconfirmed: (itemUuid: string, updatedItem: CandidateItemDetail) => void = useCallback((itemUuid: string, updatedItem: CandidateItemDetail) : void => {
+    const baseDbUpdatedAt: string | null = recordDetailConfirmationMutation(itemUuid, false, null, updatedItem)
     drawer.markDrawerSnapshotUnconfirmed(itemUuid, baseDbUpdatedAt)
   }, [drawer, recordDetailConfirmationMutation])
 
-  const markItemsDetailUnconfirmed = useCallback((updatedItems: CandidateItemDetail[]) => {
-    const uniqueUuids = [...new Set(updatedItems.map((item) => item.uuid))]
+  const markItemsDetailUnconfirmed: (updatedItems: CandidateItemDetail[]) => void = useCallback((updatedItems: CandidateItemDetail[]) : void => {
+    const uniqueUuids: string[] = [...new Set(updatedItems.map((item: CandidateItemDetail) : string => item.uuid))]
     if (!uniqueUuids.length) return
-    const uuidSet = new Set(uniqueUuids)
-    const updatedItemByUuid = new Map(updatedItems.map((item) => [item.uuid, item]))
-    const itemByUuid = new Map(itemsRef.current.map((item) => [item.uuid, item]))
-    const nextOverrides = { ...confirmationOverridesRef.current }
-    uniqueUuids.forEach((itemUuid) => {
-      const baseItem = itemByUuid.get(itemUuid)
+    const uuidSet: Set<string> = new Set(uniqueUuids)
+    const updatedItemByUuid: Map<string, CandidateItemDetail> = new Map(updatedItems.map((item: CandidateItemDetail) : [string, CandidateItemDetail] => [item.uuid, item]))
+    const itemByUuid: Map<string, CandidateItemSummary> = new Map(itemsRef.current.map((item: CandidateItemSummary) : [string, CandidateItemSummary] => [item.uuid, item]))
+    const nextOverrides: { [x: string]: CandidateDetailConfirmationOverride; } = { ...confirmationOverridesRef.current }
+    uniqueUuids.forEach((itemUuid: string) : void => {
+      const baseItem: CandidateItemSummary | undefined = itemByUuid.get(itemUuid)
       nextOverrides[itemUuid] = createCandidateDetailConfirmationOverride(baseItem, false, null)
       drawer.markDrawerSnapshotUnconfirmed(itemUuid, baseItem?.dbUpdatedAt ?? null)
     })
     confirmationOverridesRef.current = nextOverrides
-    setItems((current) => current.map((item) => (
+    setItems((current: CandidateItemSummary[]) : CandidateItemSummary[] => current.map((item: CandidateItemSummary) : CandidateItemSummary => (
       uuidSet.has(item.uuid) && updatedItemByUuid.has(item.uuid)
         ? mergeDetailConfirmationState(item, updatedItemByUuid.get(item.uuid)!)
         : item
     )))
   }, [confirmationOverridesRef, drawer, itemsRef, setItems])
 
-  const markItemsDetailConfirmed = useCallback((updatedItems: CandidateItemDetail[]) => {
-    const confirmedItems = parseConfirmedUpdatedItems(updatedItems)
-    const uniqueUuids = [...new Set(confirmedItems.map(({ item }) => item.uuid))]
+  const markItemsDetailConfirmed: (updatedItems: CandidateItemDetail[]) => void = useCallback((updatedItems: CandidateItemDetail[]) : void => {
+    const confirmedItems: { item: CandidateItemDetail; snapshot: OrderSnapshotDocumentV2; }[] = parseConfirmedUpdatedItems(updatedItems)
+    const uniqueUuids: string[] = [...new Set(confirmedItems.map(({ item }: { item: CandidateItemDetail; snapshot: OrderSnapshotDocumentV2; }) : string => item.uuid))]
     if (!uniqueUuids.length) return
-    const uuidSet = new Set(uniqueUuids)
-    const confirmedItemByUuid = new Map(confirmedItems.map((entry) => [entry.item.uuid, entry]))
-    const itemByUuid = new Map(itemsRef.current.map((item) => [item.uuid, item]))
-    const nextOverrides = { ...confirmationOverridesRef.current }
-    uniqueUuids.forEach((itemUuid) => {
-      const confirmedItem = confirmedItemByUuid.get(itemUuid)
+    const uuidSet: Set<string> = new Set(uniqueUuids)
+    const confirmedItemByUuid: Map<string, { item: CandidateItemDetail; snapshot: OrderSnapshotDocumentV2; }> = new Map(confirmedItems.map((entry: { item: CandidateItemDetail; snapshot: OrderSnapshotDocumentV2; }) : [string, { item: CandidateItemDetail; snapshot: OrderSnapshotDocumentV2; }] => [entry.item.uuid, entry]))
+    const itemByUuid: Map<string, CandidateItemSummary> = new Map(itemsRef.current.map((item: CandidateItemSummary) : [string, CandidateItemSummary] => [item.uuid, item]))
+    const nextOverrides: { [x: string]: CandidateDetailConfirmationOverride; } = { ...confirmationOverridesRef.current }
+    uniqueUuids.forEach((itemUuid: string) : void => {
+      const confirmedItem: { item: CandidateItemDetail; snapshot: OrderSnapshotDocumentV2; } | undefined = confirmedItemByUuid.get(itemUuid)
       if (!confirmedItem) return
-      const baseItem = itemByUuid.get(itemUuid)
+      const baseItem: CandidateItemSummary | undefined = itemByUuid.get(itemUuid)
       nextOverrides[itemUuid] = createCandidateDetailConfirmationOverride(baseItem, true, confirmedItem.snapshot)
       drawer.markDrawerSnapshotConfirmed(itemUuid, confirmedItem.snapshot, baseItem?.dbUpdatedAt ?? null)
     })
     confirmationOverridesRef.current = nextOverrides
-    setItems((current) => current.map((item) => {
-      const updatedItem = confirmedItemByUuid.get(item.uuid)?.item
+    setItems((current: CandidateItemSummary[]) : CandidateItemSummary[] => current.map((item: CandidateItemSummary) : CandidateItemSummary => {
+      const updatedItem: CandidateItemDetail | undefined = confirmedItemByUuid.get(item.uuid)?.item
       return uuidSet.has(item.uuid) && updatedItem ? mergeDetailConfirmationState(item, updatedItem) : item
     }))
   }, [confirmationOverridesRef, drawer, itemsRef, setItems])

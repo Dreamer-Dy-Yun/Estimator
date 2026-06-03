@@ -1,3 +1,4 @@
+import type { AdminGptKeyPurpose, AdminGptKeyTestResult, CreateAdminGptKeyPayload, RotateAdminGptKeyPayload } from '..'
 import { mockAdminGptKeyApi } from '../mock'
 import type { AdminGptKeyApi, AdminGptKeySummary, UpdateAdminGptKeyPayload } from '../types'
 import { apiRequest, USE_MOCK_API } from './httpClient'
@@ -18,18 +19,18 @@ import { apiRequest, USE_MOCK_API } from './httpClient'
  * - Key storage, encryption, validation, and audit logs are backend concerns.
  * - All endpoints require an admin session.
  */
-function toMetadataPayload(payload: UpdateAdminGptKeyPayload) {
-  const { uuid, plainKey, ...metadata } = payload
+function toMetadataPayload(payload: UpdateAdminGptKeyPayload) : { name: string; purpose: AdminGptKeyPurpose; model: string; isActive: boolean; note: string | null; } {
+  const { uuid, plainKey, ...metadata }: UpdateAdminGptKeyPayload = payload
   void uuid
   void plainKey
   return metadata
 }
 
 const httpAdminGptKeyRequests: AdminGptKeyApi = {
-  getAdminGptKeys: () => apiRequest('/admin/gpt-keys'),
-  createAdminGptKey: (payload) => apiRequest('/admin/gpt-keys', { method: 'POST', body: payload }),
-  updateAdminGptKey: async (payload) => {
-    const updated = await apiRequest<AdminGptKeySummary>(`/admin/gpt-keys/${encodeURIComponent(payload.uuid)}`, {
+  getAdminGptKeys: () : Promise<AdminGptKeySummary[]> => apiRequest('/admin/gpt-keys'),
+  createAdminGptKey: (payload: CreateAdminGptKeyPayload) : Promise<AdminGptKeySummary> => apiRequest('/admin/gpt-keys', { method: 'POST', body: payload }),
+  updateAdminGptKey: async (payload: UpdateAdminGptKeyPayload) : Promise<AdminGptKeySummary> => {
+    const updated: AdminGptKeySummary = await apiRequest<AdminGptKeySummary>(`/admin/gpt-keys/${encodeURIComponent(payload.uuid)}`, {
       method: 'PATCH',
       body: toMetadataPayload(payload),
     })
@@ -39,24 +40,24 @@ const httpAdminGptKeyRequests: AdminGptKeyApi = {
       body: { plainKey: payload.plainKey },
     })
   },
-  rotateAdminGptKey: (payload) =>
+  rotateAdminGptKey: (payload: RotateAdminGptKeyPayload) : Promise<AdminGptKeySummary> =>
     apiRequest(`/admin/gpt-keys/${encodeURIComponent(payload.uuid)}/rotate`, {
       method: 'POST',
       body: { plainKey: payload.plainKey },
     }),
-  testAdminGptKey: (keyUuid) =>
+  testAdminGptKey: (keyUuid: string) : Promise<AdminGptKeyTestResult> =>
     apiRequest(`/admin/gpt-keys/${encodeURIComponent(keyUuid)}/test`, { method: 'POST' }),
-  deleteAdminGptKey: (keyUuid) =>
+  deleteAdminGptKey: (keyUuid: string) : Promise<void> =>
     apiRequest(`/admin/gpt-keys/${encodeURIComponent(keyUuid)}`, { method: 'DELETE' }),
 }
 
 const mockAdminGptKeyRequests: AdminGptKeyApi = {
-  getAdminGptKeys: () => mockAdminGptKeyApi.getAdminGptKeys(),
-  createAdminGptKey: (payload) => mockAdminGptKeyApi.createAdminGptKey(payload),
-  updateAdminGptKey: (payload) => mockAdminGptKeyApi.updateAdminGptKey(payload),
-  rotateAdminGptKey: (payload) => mockAdminGptKeyApi.rotateAdminGptKey(payload),
-  testAdminGptKey: (keyUuid) => mockAdminGptKeyApi.testAdminGptKey(keyUuid),
-  deleteAdminGptKey: (keyUuid) => mockAdminGptKeyApi.deleteAdminGptKey(keyUuid),
+  getAdminGptKeys: () : Promise<AdminGptKeySummary[]> => mockAdminGptKeyApi.getAdminGptKeys(),
+  createAdminGptKey: (payload: CreateAdminGptKeyPayload) : Promise<AdminGptKeySummary> => mockAdminGptKeyApi.createAdminGptKey(payload),
+  updateAdminGptKey: (payload: UpdateAdminGptKeyPayload) : Promise<AdminGptKeySummary> => mockAdminGptKeyApi.updateAdminGptKey(payload),
+  rotateAdminGptKey: (payload: RotateAdminGptKeyPayload) : Promise<AdminGptKeySummary> => mockAdminGptKeyApi.rotateAdminGptKey(payload),
+  testAdminGptKey: (keyUuid: string) : Promise<AdminGptKeyTestResult> => mockAdminGptKeyApi.testAdminGptKey(keyUuid),
+  deleteAdminGptKey: (keyUuid: string) : Promise<void> => mockAdminGptKeyApi.deleteAdminGptKey(keyUuid),
 }
 
 export const adminGptKeyRequests: AdminGptKeyApi = USE_MOCK_API

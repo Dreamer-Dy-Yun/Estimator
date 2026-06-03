@@ -17,9 +17,9 @@ export function adjacentIdInOrder(
   direction: AdjacentDirection,
 ): string | null {
   if (order.length === 0 || !currentId) return null
-  const i = order.indexOf(currentId)
-  const base = i >= 0 ? i : 0
-  const delta = direction === 'next' ? 1 : -1
-  const ni = (base + delta + order.length) % order.length
+  const i: number = order.indexOf(currentId)
+  const base: number = i >= 0 ? i : 0
+  const delta: 1 | -1 = direction === 'next' ? 1 : -1
+  const ni: number = (base + delta + order.length) % order.length
   return order[ni] ?? null
 }

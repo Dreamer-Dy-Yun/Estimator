@@ -1,3 +1,7 @@
+import type { MockStreamTimers } from './mockStreamTimers'
+import type { CandidateOrderMetric } from '..'
+import type { CandidateDataReferencePeriod } from './candidateItemSummaryTypes'
+import type { CandidateItemRecord } from './records'
 import type { CandidateOrderMetricEvent, CandidateOrderMetricStreamParams, CandidateOrderMetricSubscription } from '../types'
 import { buildCandidateOrderMetric } from './candidateItemSummaryBuilder'
 import { buildCandidateListParamsPeriod, readCandidateItemsForStash } from './candidateMockStore'
@@ -8,13 +12,13 @@ export function subscribeMockCandidateOrderMetrics(
   listener: (event: CandidateOrderMetricEvent) => void,
   ownerUserUuid?: string,
 ): CandidateOrderMetricSubscription {
-  const rows = readCandidateItemsForStash(params.stashUuid, ownerUserUuid, params.companyUuid)
-    .filter((row) => params.candidateItemUuids.includes(row.uuid))
-  const period = buildCandidateListParamsPeriod(params)
-  const { emit, close } = createMockStreamTimers<CandidateOrderMetricEvent>(listener)
-  let failedCount = 0
+  const rows: CandidateItemRecord[] = readCandidateItemsForStash(params.stashUuid, ownerUserUuid, params.companyUuid)
+    .filter((row: CandidateItemRecord) : boolean => params.candidateItemUuids.includes(row.uuid))
+  const period: CandidateDataReferencePeriod = buildCandidateListParamsPeriod(params)
+  const { emit, close }: MockStreamTimers<CandidateOrderMetricEvent> = createMockStreamTimers<CandidateOrderMetricEvent>(listener)
+  let failedCount: number = 0
 
-  rows.forEach((row, index) => emit(() => {
+  rows.forEach((row: CandidateItemRecord, index: number) : void => emit(() : { type: 'item'; requestId: string; itemUuid: string; skuUuid: string; metric: CandidateOrderMetric; message?: undefined; } | { type: 'itemFailed'; requestId: string; itemUuid: string; skuUuid: string; message: string; metric?: undefined; } => {
     try {
       return {
         type: 'item',
@@ -35,7 +39,7 @@ export function subscribeMockCandidateOrderMetrics(
     }
   }, 80 + index * 45))
 
-  emit(() => ({
+  emit(() : { type: 'completed'; requestId: string; processedCount: number; failedCount: number; } => ({
     type: 'completed',
     requestId: params.requestId,
     processedCount: rows.length,

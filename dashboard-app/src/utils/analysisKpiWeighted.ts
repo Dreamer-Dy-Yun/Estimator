@@ -8,15 +8,15 @@ import type { SelfSalesRow } from '../types'
  */
 /** 매출(amount) 가중 평균 비율 — 자사 KPI 등 */
 function weightedMeanRateByAmount(rows: Array<{ rate: number; amount: number }>): number {
-  const total = rows.reduce((s, r) => s + r.amount, 0)
+  const total: number = rows.reduce((s: number, r: { rate: number; amount: number; }) : number => s + r.amount, 0)
   if (total <= 0) return 0
-  return rows.reduce((s, r) => s + r.rate * r.amount, 0) / total
+  return rows.reduce((s: number, r: { rate: number; amount: number; }) : number => s + r.rate * r.amount, 0) / total
 }
 
 export function selfSalesWeightedMarginRate(rows: SelfSalesRow[]): number {
-  return weightedMeanRateByAmount(rows.map((r) => ({ rate: r.marginRate, amount: r.amount })))
+  return weightedMeanRateByAmount(rows.map((r: SelfSalesRow) : { rate: number; amount: number; } => ({ rate: r.marginRate, amount: r.amount })))
 }
 
 export function selfSalesWeightedOpMarginRate(rows: SelfSalesRow[]): number {
-  return weightedMeanRateByAmount(rows.map((r) => ({ rate: r.opMarginRate, amount: r.amount })))
+  return weightedMeanRateByAmount(rows.map((r: SelfSalesRow) : { rate: number; amount: number; } => ({ rate: r.opMarginRate, amount: r.amount })))
 }

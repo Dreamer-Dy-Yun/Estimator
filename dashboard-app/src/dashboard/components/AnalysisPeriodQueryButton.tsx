@@ -1,11 +1,11 @@
 import styles from './common.module.css'
 
-type AnalysisPeriodQueryButtonProps = {
+export type AnalysisPeriodQueryButtonProps = {
   disabled: boolean
   onClick: () => void
 }
 
-export function AnalysisPeriodQueryButton({ disabled, onClick }: AnalysisPeriodQueryButtonProps) {
+export function AnalysisPeriodQueryButton({ disabled, onClick }: AnalysisPeriodQueryButtonProps) : React.JSX.Element {
   return (
     <button
       type="button"

@@ -7,11 +7,11 @@ import {
   isInteractiveControlTarget,
 } from './interactionTarget'
 
-describe('interactionTarget', () => {
-  it('separates text editing targets from general action controls', () => {
-    const input = document.createElement('input')
-    const button = document.createElement('button')
-    const comboPanel = document.createElement('div')
+describe('interactionTarget', () : void => {
+  it('separates text editing targets from general action controls', () : void => {
+    const input: HTMLInputElement = document.createElement('input')
+    const button: HTMLButtonElement = document.createElement('button')
+    const comboPanel: HTMLDivElement = document.createElement('div')
     comboPanel.setAttribute('data-filter-combo-panel', 'true')
 
     expect(isEditingOrComboTarget(input)).toBe(true)
@@ -20,10 +20,10 @@ describe('interactionTarget', () => {
     expect(isInteractiveControlTarget(button)).toBe(true)
   })
 
-  it('recognizes nested controls and dialogs', () => {
-    const button = document.createElement('button')
-    const child = document.createElement('span')
-    const dialog = document.createElement('div')
+  it('recognizes nested controls and dialogs', () : void => {
+    const button: HTMLButtonElement = document.createElement('button')
+    const child: HTMLSpanElement = document.createElement('span')
+    const dialog: HTMLDivElement = document.createElement('div')
     button.appendChild(child)
     dialog.setAttribute('role', 'dialog')
 
@@ -32,9 +32,9 @@ describe('interactionTarget', () => {
     expect(isInteractiveControlTarget(dialog)).toBe(false)
   })
 
-  it('checks event paths without treating plain areas as controls', () => {
-    const plain = document.createElement('div')
-    const label = document.createElement('label')
+  it('checks event paths without treating plain areas as controls', () : void => {
+    const plain: HTMLDivElement = document.createElement('div')
+    const label: HTMLLabelElement = document.createElement('label')
 
     expect(eventPathContainsInteractiveControl([plain, document.body])).toBe(false)
     expect(eventPathContainsInteractiveControl([plain, label, document.body])).toBe(true)

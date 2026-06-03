@@ -1,8 +1,7 @@
-import type { FormEvent, ReactNode } from 'react'
 import { LoadingSpinner } from '../components/LoadingSpinner'
 import styles from './AdminPage.module.css'
 
-interface AdminCreateDialogShellProps {
+export interface AdminCreateDialogShellProps {
   eyebrow: string
   title: string
   formId: string
@@ -11,8 +10,8 @@ interface AdminCreateDialogShellProps {
   isSubmitting: boolean
   errorMessage: string | null
   onClose: () => void
-  onSubmit: (event: FormEvent<HTMLFormElement>) => void
-  children: ReactNode
+  onSubmit: (event: React.FormEvent<HTMLFormElement>) => void
+  children: React.ReactNode
 }
 
 export function AdminCreateDialogShell({
@@ -26,8 +25,8 @@ export function AdminCreateDialogShell({
   onClose,
   onSubmit,
   children,
-}: AdminCreateDialogShellProps) {
-  const handleClose = () => {
+}: AdminCreateDialogShellProps) : React.JSX.Element {
+  const handleClose: () => void = () : void => {
     if (!isSubmitting) onClose()
   }
 
@@ -38,7 +37,7 @@ export function AdminCreateDialogShell({
         role="dialog"
         aria-modal="true"
         aria-labelledby={`${formId}-title`}
-        onMouseDown={(event) => event.stopPropagation()}
+        onMouseDown={(event: React.MouseEvent<HTMLElement, MouseEvent>) : void => event.stopPropagation()}
       >
         <header className={styles.gptKeyDialogHeader}>
           <div>

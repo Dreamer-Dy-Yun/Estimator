@@ -1,8 +1,7 @@
-import type { ReactNode } from 'react'
 import { LoadingSpinner } from '../components/LoadingSpinner'
 import styles from './AdminPage.module.css'
 
-interface AdminListPanelProps {
+export interface AdminListPanelProps {
   title: string
   countLabel: string
   headerClassName: string
@@ -10,8 +9,8 @@ interface AdminListPanelProps {
   loadingLabel: string
   isLoading: boolean
   errorMessage: string | null
-  actions?: ReactNode
-  children: ReactNode
+  actions?: React.ReactNode
+  children: React.ReactNode
 }
 
 export function AdminListPanel({
@@ -24,7 +23,7 @@ export function AdminListPanel({
   errorMessage,
   actions,
   children,
-}: AdminListPanelProps) {
+}: AdminListPanelProps) : React.JSX.Element {
   return (
     <div className={styles.panel}>
       <div className={styles.panelHeader}>
@@ -36,7 +35,7 @@ export function AdminListPanel({
       </div>
 
       <div className={headerClassName} aria-hidden="true">
-        {columns.map((column, index) => (
+        {columns.map((column: string, index: number) : React.JSX.Element => (
           <span key={`${column}-${index}`}>{column}</span>
         ))}
       </div>

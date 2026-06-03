@@ -3,9 +3,9 @@ import { dashboardApi } from '../../../../../api'
 import type { SecondaryStockOrderCalcResult } from '../../../../../api/types'
 import type { ApiUnitErrorInfo } from '../../../../../types'
 
-const STOCK_ORDER_CALC_DEBOUNCE_MS = 1000
+const STOCK_ORDER_CALC_DEBOUNCE_MS = 1000 as const
 
-type Params = {
+export type Params = {
   skuGroupKey: string
   periodStart: string
   periodEnd: string
@@ -16,7 +16,7 @@ type Params = {
   makeApiErrorInfo: (request: string, err: unknown) => ApiUnitErrorInfo
 }
 
-type ForecastCalcState = {
+export type ForecastCalcState = {
   requestKey: string
   result: SecondaryStockOrderCalcResult
 }
@@ -30,8 +30,8 @@ export function useSecondaryStockOrderCalc({
   leadTimeDays,
   dailyMeanClient,
   makeApiErrorInfo,
-}: Params) {
-  const requestKey = useMemo(() => JSON.stringify({
+}: Params) : { forecastCalc: SecondaryStockOrderCalcResult | null; forecastCalcError: ApiUnitErrorInfo | null; forecastCalcLoading: boolean; } {
+  const requestKey: string = useMemo(() : string => JSON.stringify({
     skuGroupKey,
     companyUuid: companyUuid ?? '',
     periodStart,
@@ -48,23 +48,23 @@ export function useSecondaryStockOrderCalc({
     periodStart,
     skuGroupKey,
   ])
-  const [forecastCalcState, setForecastCalcState] = useState<ForecastCalcState | null>(null)
-  const [forecastCalcError, setForecastCalcError] = useState<ApiUnitErrorInfo | null>(null)
-  const [forecastCalcLoading, setForecastCalcLoading] = useState(true)
-  const forecastCalc = forecastCalcState?.requestKey === requestKey ? forecastCalcState.result : null
+  const [forecastCalcState, setForecastCalcState]: [ForecastCalcState | null, React.Dispatch<React.SetStateAction<ForecastCalcState | null>>] = useState<ForecastCalcState | null>(null)
+  const [forecastCalcError, setForecastCalcError]: [ApiUnitErrorInfo | null, React.Dispatch<React.SetStateAction<ApiUnitErrorInfo | null>>] = useState<ApiUnitErrorInfo | null>(null)
+  const [forecastCalcLoading, setForecastCalcLoading]: [boolean, React.Dispatch<React.SetStateAction<boolean>>] = useState(true)
+  const forecastCalc: SecondaryStockOrderCalcResult | null = forecastCalcState?.requestKey === requestKey ? forecastCalcState.result : null
 
-  useEffect(() => {
-    let alive = true
+  useEffect(() : () => void => {
+    let alive: boolean = true
     let timerId: ReturnType<typeof window.setTimeout> | null = null
-    queueMicrotask(() => {
+    queueMicrotask(() : void => {
       if (!alive) return
       setForecastCalcLoading(true)
       setForecastCalcError(null)
     })
-    timerId = window.setTimeout(() => {
-      void (async () => {
+    timerId = window.setTimeout(() : void => {
+      void (async () : Promise<void> => {
         try {
-          const params = {
+          const params: { dailyMean?: number | undefined; skuGroupKey: string; companyUuid: string | undefined; periodStart: string; periodEnd: string; forecastPeriodEnd: string; leadTimeDays: number; } = {
             skuGroupKey,
             companyUuid,
             periodStart,
@@ -73,7 +73,7 @@ export function useSecondaryStockOrderCalc({
             leadTimeDays,
             ...(dailyMeanClient != null ? { dailyMean: dailyMeanClient } : {}),
           }
-          const result = await dashboardApi.getSecondaryStockOrderCalc(params)
+          const result: SecondaryStockOrderCalcResult = await dashboardApi.getSecondaryStockOrderCalc(params)
           if (!alive) return
           setForecastCalcState({ requestKey, result })
           setForecastCalcError(null)
@@ -99,7 +99,7 @@ export function useSecondaryStockOrderCalc({
         }
       })()
     }, STOCK_ORDER_CALC_DEBOUNCE_MS)
-    return () => {
+    return () : void => {
       alive = false
       if (timerId != null) window.clearTimeout(timerId)
     }

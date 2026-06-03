@@ -1,10 +1,11 @@
+import type { ScatterGridCell } from '../../api/types'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { ScatterSalesGridResponse } from '../../api/types'
 import type { AdjacentDirection } from '../../utils/adjacentListNavigation'
 import { adjacentIdInOrder } from '../../utils/adjacentListNavigation'
 import { isDialogOrInteractiveControlTarget } from '../interaction/interactionTarget'
 
-type AnalysisSelectableRow = {
+export type AnalysisSelectableRow = {
   skuGroupKey: string
 }
 
@@ -18,7 +19,7 @@ function nextFocusableRowId(
   orderIds: readonly string[],
   currentId: string | null,
   direction: AdjacentDirection,
-) {
+) : string | null {
   if (!orderIds.length) return null
   if (!currentId) return direction === 'next' ? orderIds[0] : orderIds[orderIds.length - 1]
   return adjacentIdInOrder(orderIds, currentId, direction)
@@ -28,73 +29,73 @@ export function useAnalysisPageSelection<Row extends AnalysisSelectableRow>({
   rows,
   scatterGrid,
   bulkAddOpen,
-}: AnalysisPageSelectionOptions<Row>) {
-  const [selectedSkuGroupKeyState, setSelectedSkuGroupKey] = useState<string | null>(null)
-  const [focusedSkuGroupKeyState, setFocusedSkuGroupKey] = useState<string | null>(null)
-  const [activeGridCellKeyState, setActiveGridCellKey] = useState<string | null>(null)
-  const [bulkSelectedSkuGroupKeys, setBulkSelectedSkuGroupKeys] = useState<Set<string>>(() => new Set())
-  const [orderedSkuGroupKeys, setOrderedSkuGroupKeys] = useState<string[]>([])
+}: AnalysisPageSelectionOptions<Row>) : { activeGridCellKey: string | null; selectedSkuGroupKey: string | null; activeSkuGroupKey: string | null; bulkSelectedSkuGroupKeys: Set<string>; visibleRows: Row[]; bulkSelectedCount: number; allVisibleRowsSelected: boolean; selectedSkuGroupKeys: string[]; setSelectedSkuGroupKey: (skuGroupKey: string | null) => void; onScatterCellClick: (cellKey: string) => void; clearActiveGridCell: () => void; toggleBulkRow: (id: string) => void; toggleAllVisibleRows: () => void; clearBulkSelection: () => void; onRequestNavigateAdjacent: (direction: AdjacentDirection) => void; onRequestFocusAdjacent: (currentSkuGroupKey: string | null, direction: AdjacentDirection) => void; onOrderedSkuGroupKeysChange: React.Dispatch<React.SetStateAction<string[]>>; } {
+  const [selectedSkuGroupKeyState, setSelectedSkuGroupKey]: [string | null, React.Dispatch<React.SetStateAction<string | null>>] = useState<string | null>(null)
+  const [focusedSkuGroupKeyState, setFocusedSkuGroupKey]: [string | null, React.Dispatch<React.SetStateAction<string | null>>] = useState<string | null>(null)
+  const [activeGridCellKeyState, setActiveGridCellKey]: [string | null, React.Dispatch<React.SetStateAction<string | null>>] = useState<string | null>(null)
+  const [bulkSelectedSkuGroupKeys, setBulkSelectedSkuGroupKeys]: [Set<string>, React.Dispatch<React.SetStateAction<Set<string>>>] = useState<Set<string>>(() : Set<string> => new Set())
+  const [orderedSkuGroupKeys, setOrderedSkuGroupKeys]: [string[], React.Dispatch<React.SetStateAction<string[]>>] = useState<string[]>([])
 
-  const activeGridCellKey = useMemo(
-    () => (
-      activeGridCellKeyState && scatterGrid?.cells.some((cell) => cell.cellKey === activeGridCellKeyState)
+  const activeGridCellKey: string | null = useMemo(
+    () : string | null => (
+      activeGridCellKeyState && scatterGrid?.cells.some((cell: ScatterGridCell) : boolean => cell.cellKey === activeGridCellKeyState)
         ? activeGridCellKeyState
         : null
     ),
     [activeGridCellKeyState, scatterGrid],
   )
 
-  const activeGridCellSkuIds = useMemo(() => {
+  const activeGridCellSkuIds: Set<string> | null = useMemo(() : Set<string> | null => {
     if (!activeGridCellKey || !scatterGrid) return null
-    const target = scatterGrid.cells.find((cell) => cell.cellKey === activeGridCellKey)
+    const target: ScatterGridCell | undefined = scatterGrid.cells.find((cell: ScatterGridCell) : boolean => cell.cellKey === activeGridCellKey)
     return target ? new Set(target.skuIds) : null
   }, [activeGridCellKey, scatterGrid])
 
-  const visibleRows = useMemo(
-    () => (activeGridCellSkuIds == null
+  const visibleRows: Row[] = useMemo(
+    () : Row[] => (activeGridCellSkuIds == null
       ? rows
-      : rows.filter((row) => activeGridCellSkuIds.has(row.skuGroupKey))),
+      : rows.filter((row: Row) : boolean => activeGridCellSkuIds.has(row.skuGroupKey))),
     [activeGridCellSkuIds, rows],
   )
-  const visibleRowIds = useMemo(() => visibleRows.map((row) => row.skuGroupKey), [visibleRows])
-  const navigationOrderIds = orderedSkuGroupKeys.length ? orderedSkuGroupKeys : visibleRowIds
-  const selectedSkuGroupKey = selectedSkuGroupKeyState && visibleRowIds.includes(selectedSkuGroupKeyState)
+  const visibleRowIds: string[] = useMemo(() : string[] => visibleRows.map((row: Row) : string => row.skuGroupKey), [visibleRows])
+  const navigationOrderIds: string[] = orderedSkuGroupKeys.length ? orderedSkuGroupKeys : visibleRowIds
+  const selectedSkuGroupKey: string | null = selectedSkuGroupKeyState && visibleRowIds.includes(selectedSkuGroupKeyState)
     ? selectedSkuGroupKeyState
     : null
-  const focusedSkuGroupKey = focusedSkuGroupKeyState && visibleRowIds.includes(focusedSkuGroupKeyState)
+  const focusedSkuGroupKey: string | null = focusedSkuGroupKeyState && visibleRowIds.includes(focusedSkuGroupKeyState)
     ? focusedSkuGroupKeyState
     : null
-  const activeSkuGroupKey = selectedSkuGroupKey ?? focusedSkuGroupKey
-  const selectedSkuGroupKeys = useMemo(
-    () => visibleRowIds.filter((skuGroupKey) => bulkSelectedSkuGroupKeys.has(skuGroupKey)),
+  const activeSkuGroupKey: string | null = selectedSkuGroupKey ?? focusedSkuGroupKey
+  const selectedSkuGroupKeys: string[] = useMemo(
+    () : string[] => visibleRowIds.filter((skuGroupKey: string) : boolean => bulkSelectedSkuGroupKeys.has(skuGroupKey)),
     [bulkSelectedSkuGroupKeys, visibleRowIds],
   )
-  const bulkSelectedCount = selectedSkuGroupKeys.length
-  const allVisibleRowsSelected = visibleRows.length > 0 && bulkSelectedCount === visibleRows.length
+  const bulkSelectedCount: number = selectedSkuGroupKeys.length
+  const allVisibleRowsSelected: boolean = visibleRows.length > 0 && bulkSelectedCount === visibleRows.length
 
-  const openSkuGroupKey = useCallback((skuGroupKey: string | null) => {
+  const openSkuGroupKey: (skuGroupKey: string | null) => void = useCallback((skuGroupKey: string | null) : void => {
     setSelectedSkuGroupKey(skuGroupKey)
     if (skuGroupKey) setFocusedSkuGroupKey(skuGroupKey)
   }, [])
-  const focusSkuGroupKey = useCallback((skuGroupKey: string | null) => {
+  const focusSkuGroupKey: (skuGroupKey: string | null) => void = useCallback((skuGroupKey: string | null) : void => {
     setFocusedSkuGroupKey(skuGroupKey)
   }, [])
-  const onScatterCellClick = useCallback((cellKey: string) => {
-    setActiveGridCellKey((prev) => (prev === cellKey ? null : cellKey))
+  const onScatterCellClick: (cellKey: string) => void = useCallback((cellKey: string) : void => {
+    setActiveGridCellKey((prev: string | null) : string | null => (prev === cellKey ? null : cellKey))
   }, [])
-  const clearActiveGridCell = useCallback(() => setActiveGridCellKey(null), [])
-  const clearBulkSelection = useCallback(() => setBulkSelectedSkuGroupKeys(new Set()), [])
-  const toggleBulkRow = useCallback((id: string) => {
-    setBulkSelectedSkuGroupKeys((prev) => {
-      const next = new Set(prev)
+  const clearActiveGridCell: () => void = useCallback(() : void => setActiveGridCellKey(null), [])
+  const clearBulkSelection: () => void = useCallback(() : void => setBulkSelectedSkuGroupKeys(new Set()), [])
+  const toggleBulkRow: (id: string) => void = useCallback((id: string) : void => {
+    setBulkSelectedSkuGroupKeys((prev: Set<string>) : Set<string> => {
+      const next: Set<string> = new Set(prev)
       if (next.has(id)) next.delete(id)
       else next.add(id)
       return next
     })
   }, [])
-  const toggleAllVisibleRows = useCallback(() => {
-    setBulkSelectedSkuGroupKeys((prev) => {
-      const next = new Set(prev)
+  const toggleAllVisibleRows: () => void = useCallback(() : void => {
+    setBulkSelectedSkuGroupKeys((prev: Set<string>) : Set<string> => {
+      const next: Set<string> = new Set(prev)
       for (const id of visibleRowIds) {
         if (allVisibleRowsSelected) next.delete(id)
         else next.add(id)
@@ -102,19 +103,19 @@ export function useAnalysisPageSelection<Row extends AnalysisSelectableRow>({
       return next
     })
   }, [allVisibleRowsSelected, visibleRowIds])
-  const onRequestNavigateAdjacent = useCallback((direction: AdjacentDirection) => {
+  const onRequestNavigateAdjacent: (direction: AdjacentDirection) => void = useCallback((direction: AdjacentDirection) : void => {
     if (!selectedSkuGroupKey) return
-    const nextId = adjacentIdInOrder(navigationOrderIds, selectedSkuGroupKey, direction)
+    const nextId: string | null = adjacentIdInOrder(navigationOrderIds, selectedSkuGroupKey, direction)
     if (nextId != null && nextId !== selectedSkuGroupKey) openSkuGroupKey(nextId)
   }, [navigationOrderIds, openSkuGroupKey, selectedSkuGroupKey])
-  const onRequestFocusAdjacent = useCallback((currentSkuGroupKey: string | null, direction: AdjacentDirection) => {
-    const nextId = nextFocusableRowId(navigationOrderIds, currentSkuGroupKey, direction)
+  const onRequestFocusAdjacent: (currentSkuGroupKey: string | null, direction: AdjacentDirection) => void = useCallback((currentSkuGroupKey: string | null, direction: AdjacentDirection) : void => {
+    const nextId: string | null = nextFocusableRowId(navigationOrderIds, currentSkuGroupKey, direction)
     if (nextId) focusSkuGroupKey(nextId)
   }, [focusSkuGroupKey, navigationOrderIds])
 
-  useEffect(() => {
+  useEffect(() : (() => void) | undefined => {
     if (bulkAddOpen || selectedSkuGroupKey) return
-    const onKeyDown = (event: KeyboardEvent) => {
+    const onKeyDown: (event: KeyboardEvent) => void = (event: KeyboardEvent) : void => {
       if (!['ArrowUp', 'ArrowDown', 'ArrowLeft'].includes(event.key)) return
       if (event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return
       if (isDialogOrInteractiveControlTarget(event.target)) return
@@ -124,13 +125,13 @@ export function useAnalysisPageSelection<Row extends AnalysisSelectableRow>({
         openSkuGroupKey(activeSkuGroupKey)
         return
       }
-      const nextId = nextFocusableRowId(navigationOrderIds, activeSkuGroupKey, event.key === 'ArrowDown' ? 'next' : 'prev')
+      const nextId: string | null = nextFocusableRowId(navigationOrderIds, activeSkuGroupKey, event.key === 'ArrowDown' ? 'next' : 'prev')
       if (!nextId) return
       event.preventDefault()
       focusSkuGroupKey(nextId)
     }
     window.addEventListener('keydown', onKeyDown)
-    return () => window.removeEventListener('keydown', onKeyDown)
+    return () : void => window.removeEventListener('keydown', onKeyDown)
   }, [activeSkuGroupKey, bulkAddOpen, focusSkuGroupKey, navigationOrderIds, openSkuGroupKey, selectedSkuGroupKey])
 
   return {

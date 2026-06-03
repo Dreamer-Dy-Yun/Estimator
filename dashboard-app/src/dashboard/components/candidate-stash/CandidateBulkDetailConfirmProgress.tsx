@@ -2,14 +2,14 @@ import { LoadingSpinner } from '../../../components/LoadingSpinner'
 import type { CandidateBulkDetailConfirmProgress } from './useCandidateBulkDetailConfirm'
 import styles from './CandidateStashDetailModal.module.css'
 
-type Props = {
+export type Props = {
   progress: CandidateBulkDetailConfirmProgress | null
   onClose: () => void
 }
 
-export function CandidateBulkDetailConfirmProgress({ progress, onClose }: Props) {
+export function CandidateBulkDetailConfirmProgress({ progress, onClose }: Props) : React.JSX.Element | null {
   if (!progress?.open) return null
-  const running = progress.status === 'queued' || progress.status === 'running'
+  const running: boolean = progress.status === 'queued' || progress.status === 'running'
   return (
     <div className={styles.bulkConfirmProgressPopup} role="status" aria-live="polite">
       <div className={styles.bulkConfirmProgressHeader}>

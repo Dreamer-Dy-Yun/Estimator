@@ -2,17 +2,17 @@ import type { ProductPrimarySummary } from '../../../../../types'
 import { KO } from '../../ko'
 import styles from '../secondaryDrawer.module.css'
 
-type Props = {
+export type Props = {
   primary: ProductPrimarySummary
 }
 
-type MetaItemProps = {
+export type MetaItemProps = {
   label: string
   value: string
   className?: string
 }
 
-function MetaItem({ label, value, className }: MetaItemProps) {
+function MetaItem({ label, value, className }: MetaItemProps) : React.JSX.Element {
   return (
     <div className={className ? `${styles.metaItem} ${className}` : styles.metaItem}>
       <span className={styles.metaLabel}>{label}</span>
@@ -21,7 +21,7 @@ function MetaItem({ label, value, className }: MetaItemProps) {
   )
 }
 
-export function ProductMetaCard({ primary }: Props) {
+export function ProductMetaCard({ primary }: Props) : React.JSX.Element {
   return (
     <div className={`${styles.card} ${styles.metaCard}`}>
       <div className={styles.metaGrid}>

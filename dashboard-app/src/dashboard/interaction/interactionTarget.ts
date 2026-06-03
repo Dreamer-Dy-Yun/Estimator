@@ -1,6 +1,6 @@
-export const FILTER_COMBO_PANEL_SELECTOR = '[data-filter-combo-panel]' as const
+export const FILTER_COMBO_PANEL_SELECTOR: '[data-filter-combo-panel]' = '[data-filter-combo-panel]' as const
 
-export const EDITING_OR_COMBO_SELECTOR = [
+export const EDITING_OR_COMBO_SELECTOR: string = [
   'input',
   'textarea',
   'select',
@@ -8,7 +8,7 @@ export const EDITING_OR_COMBO_SELECTOR = [
   FILTER_COMBO_PANEL_SELECTOR,
 ].join(', ')
 
-export const INTERACTIVE_CONTROL_SELECTOR = [
+export const INTERACTIVE_CONTROL_SELECTOR: string = [
   EDITING_OR_COMBO_SELECTOR,
   'button',
   'a[href]',
@@ -22,7 +22,7 @@ export const INTERACTIVE_CONTROL_SELECTOR = [
   '[role="menuitem"]',
 ].join(', ')
 
-export const DIALOG_OR_INTERACTIVE_CONTROL_SELECTOR = [
+export const DIALOG_OR_INTERACTIVE_CONTROL_SELECTOR: string = [
   INTERACTIVE_CONTROL_SELECTOR,
   '[role="dialog"]',
 ].join(', ')

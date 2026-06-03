@@ -1,6 +1,6 @@
 import type { SecondaryOrderSnapshotPayload } from '../types/snapshot'
 
-export const DEFAULT_CANDIDATE_STASH_CONTEXT = {
+export const DEFAULT_CANDIDATE_STASH_CONTEXT: { readonly periodStart: '2025-01-01'; readonly periodEnd: '2025-12-31'; readonly forecastMonths: 8; } = {
   periodStart: '2025-01-01',
   periodEnd: '2025-12-31',
   forecastMonths: 8,

@@ -1,3 +1,4 @@
+import type { CandidateItemInsightSummary } from '../../../api/types/candidate'
 import type {
   CandidateItemSummary,
   CandidateOrderMetric,
@@ -34,8 +35,8 @@ export function markCandidateItemOrderMetricFailed(item: CandidateItemSummary): 
 
 export function markCandidateItemInsightsFailed(items: CandidateItemSummary[]): CandidateItemSummary[] {
   if (!items.length) return items
-  let changed = false
-  const failedItems = items.map((item) => {
+  let changed: boolean = false
+  const failedItems: CandidateItemSummary[] = items.map((item: CandidateItemSummary) : CandidateItemSummary => {
     if (item.insightStatus !== 'loading') return item
     changed = true
     return {
@@ -52,8 +53,8 @@ export function applyRecommendationInsightsToCandidateItems(
 ): CandidateItemSummary[] {
   if (!items.length) return items
   if (!recommendations.length) {
-    let changed = false
-    const loadedItems = items.map((item) => {
+    let changed: boolean = false
+    const loadedItems: CandidateItemSummary[] = items.map((item: CandidateItemSummary) : CandidateItemSummary => {
       if (item.insightStatus === 'loaded') return item
       changed = true
       return {
@@ -63,10 +64,10 @@ export function applyRecommendationInsightsToCandidateItems(
     })
     return changed ? loadedItems : items
   }
-  const insightBySkuUuid = new Map(recommendations.map((row) => [row.uuid, row.insight]))
-  let changed = false
-  const loadedItems = items.map((item) => {
-    const insight = insightBySkuUuid.get(item.skuUuid)
+  const insightBySkuUuid: Map<string, CandidateItemInsightSummary> = new Map(recommendations.map((row: CandidateReferenceItemSummary) : [string, CandidateItemInsightSummary] => [row.uuid, row.insight]))
+  let changed: boolean = false
+  const loadedItems: CandidateItemSummary[] = items.map((item: CandidateItemSummary) : CandidateItemSummary => {
+    const insight: CandidateItemInsightSummary | undefined = insightBySkuUuid.get(item.skuUuid)
     if (!insight) {
       if (item.insightStatus === 'loaded') return item
       changed = true

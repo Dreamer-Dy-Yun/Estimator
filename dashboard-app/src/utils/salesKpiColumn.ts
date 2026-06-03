@@ -21,7 +21,7 @@ export type SalesKpiColumn = {
   costRatioPct: number | null
 }
 
-type SalesKpiChannel = {
+export type SalesKpiChannel = {
   id: string
   label: string
   priceSkew?: number
@@ -34,22 +34,22 @@ export function buildSalesKpiColumn(
   secondary: ProductSecondaryDetail,
   channel: SalesKpiChannel,
 ): SalesKpiColumn {
-  const priceSkew = channel.priceSkew ?? 1
-  const qtySkew = channel.qtySkew ?? 1
-  const price =
+  const priceSkew: number = channel.priceSkew ?? 1
+  const qtySkew: number = channel.qtySkew ?? 1
+  const price: number =
     kind === 'self'
       ? primary.price
       : Math.round(secondary.competitorPrice * priceSkew)
-  const qty =
+  const qty: number =
     kind === 'self'
       ? primary.qty
       : Math.max(0, Math.round(secondary.competitorQty * qtySkew))
-  const amount = Math.round(price * qty)
-  const qtyRank = hashRank(`${primary.skuGroupKey}-${kind}-qty`, 28)
-  const amountRank = hashRank(`${primary.skuGroupKey}-${kind}-amt`, 28)
-  const feeRank = kind === 'self' ? hashRank(`${primary.skuGroupKey}-${kind}-fee`, 28) : null
-  const opMarginRank = kind === 'self' ? hashRank(`${primary.skuGroupKey}-${kind}-op-margin`, 28) : null
-  const rankTotal = 100
+  const amount: number = Math.round(price * qty)
+  const qtyRank: number = hashRank(`${primary.skuGroupKey}-${kind}-qty`, 28)
+  const amountRank: number = hashRank(`${primary.skuGroupKey}-${kind}-amt`, 28)
+  const feeRank: number | null = kind === 'self' ? hashRank(`${primary.skuGroupKey}-${kind}-fee`, 28) : null
+  const opMarginRank: number | null = kind === 'self' ? hashRank(`${primary.skuGroupKey}-${kind}-op-margin`, 28) : null
+  const rankTotal = 100 as const
 
   if (kind === 'competitor') {
     return {
@@ -71,13 +71,13 @@ export function buildSalesKpiColumn(
     }
   }
 
-  const avgCost = Math.round(price * 0.78)
-  const grossMarginPerUnit = price - avgCost
-  const feeRatePct = 13
-  const feePerUnit = Math.round(price * (feeRatePct / 100))
-  const opMarginPerUnit = grossMarginPerUnit - feePerUnit
-  const opMarginRatePct = price > 0 ? (opMarginPerUnit / price) * 100 : 0
-  const costRatioPct = price > 0 ? (avgCost / price) * 100 : 0
+  const avgCost: number = Math.round(price * 0.78)
+  const grossMarginPerUnit: number = price - avgCost
+  const feeRatePct = 13 as const
+  const feePerUnit: number = Math.round(price * (feeRatePct / 100))
+  const opMarginPerUnit: number = grossMarginPerUnit - feePerUnit
+  const opMarginRatePct: number = price > 0 ? (opMarginPerUnit / price) * 100 : 0
+  const costRatioPct: number = price > 0 ? (avgCost / price) * 100 : 0
   return {
     avgPrice: price,
     qty,

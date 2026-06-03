@@ -23,22 +23,22 @@ function toRequestError(error: unknown): DashboardRequestError {
 export function useDashboardRequest<T>(
   request: () => Promise<T>,
   initialData: T,
-  requestKey = 'default',
+  requestKey: string = 'default',
 ): DashboardRequestState<T> {
-  const requestSeqRef = useRef(0)
-  const hasLoadedRef = useRef(false)
-  const [data, setData] = useState<T>(initialData)
-  const [dataKey, setDataKey] = useState<string | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [isRefreshing, setIsRefreshing] = useState(false)
-  const [error, setError] = useState<DashboardRequestError | null>(null)
-  const [lastUpdatedAt, setLastUpdatedAt] = useState<string | null>(null)
+  const requestSeqRef: React.RefObject<number> = useRef(0)
+  const hasLoadedRef: React.RefObject<boolean> = useRef(false)
+  const [data, setData]: [T, React.Dispatch<React.SetStateAction<T>>] = useState<T>(initialData)
+  const [dataKey, setDataKey]: [string | null, React.Dispatch<React.SetStateAction<string | null>>] = useState<string | null>(null)
+  const [loading, setLoading]: [boolean, React.Dispatch<React.SetStateAction<boolean>>] = useState(true)
+  const [isRefreshing, setIsRefreshing]: [boolean, React.Dispatch<React.SetStateAction<boolean>>] = useState(false)
+  const [error, setError]: [DashboardRequestError | null, React.Dispatch<React.SetStateAction<DashboardRequestError | null>>] = useState<DashboardRequestError | null>(null)
+  const [lastUpdatedAt, setLastUpdatedAt]: [string | null, React.Dispatch<React.SetStateAction<string | null>>] = useState<string | null>(null)
 
-  useEffect(() => {
-    let alive = true
-    const reqSeq = ++requestSeqRef.current
+  useEffect(() : () => void => {
+    let alive: boolean = true
+    const reqSeq: number = ++requestSeqRef.current
 
-    queueMicrotask(() => {
+    queueMicrotask(() : void => {
       if (!alive || reqSeq !== requestSeqRef.current) return
       if (hasLoadedRef.current) {
         setIsRefreshing(true)
@@ -48,7 +48,7 @@ export function useDashboardRequest<T>(
     })
 
     void request()
-      .then((nextData) => {
+      .then((nextData: T) : void => {
         if (!alive || reqSeq !== requestSeqRef.current) return
         hasLoadedRef.current = true
         setData(nextData)
@@ -56,7 +56,7 @@ export function useDashboardRequest<T>(
         setError(null)
         setLastUpdatedAt(new Date().toISOString())
       })
-      .catch((nextError: unknown) => {
+      .catch((nextError: unknown) : void => {
         if (!alive || reqSeq !== requestSeqRef.current) return
         if (!hasLoadedRef.current) {
           setData(initialData)
@@ -64,13 +64,13 @@ export function useDashboardRequest<T>(
         }
         setError(toRequestError(nextError))
       })
-      .finally(() => {
+      .finally(() : void => {
         if (!alive || reqSeq !== requestSeqRef.current) return
         setLoading(false)
         setIsRefreshing(false)
       })
 
-    return () => {
+    return () : void => {
       alive = false
     }
   }, [initialData, request, requestKey])

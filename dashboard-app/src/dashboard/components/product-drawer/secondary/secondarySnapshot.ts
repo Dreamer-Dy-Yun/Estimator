@@ -1,3 +1,4 @@
+import type { OrderSnapshotPrimarySummaryV2 } from '../../../../snapshot/orderSnapshotTypes'
 import type { ProductPrimarySummary, ProductSecondaryDetail } from '../../../../types'
 import {
   createOrderSnapshotCompetitorBasis,
@@ -37,7 +38,7 @@ export type BuildSecondaryOrderSnapshotParams = {
   sizeRows: SecondarySizeOrderDisplayRow[]
 }
 
-type ConfirmedTotalsInput = {
+export type ConfirmedTotalsInput = {
   sizeOrders: OrderSnapshotSizeOrderV2[]
   unitPrice: number
   unitCost: number
@@ -65,16 +66,16 @@ export function buildSecondaryOrderSnapshot(params: BuildSecondaryOrderSnapshotP
     unitCost,
     expectedFeeRatePct,
     sizeRows,
-  } = params
-  const sizeOrders = buildCurrentSnapshotSizeOrders(sizeRows)
-  const confirmedTotals = buildCurrentConfirmedTotals({
+  }: BuildSecondaryOrderSnapshotParams = params
+  const sizeOrders: OrderSnapshotSizeOrderV2[] = buildCurrentSnapshotSizeOrders(sizeRows)
+  const confirmedTotals: OrderSnapshotConfirmedTotalsV2 = buildCurrentConfirmedTotals({
     sizeOrders,
     unitPrice,
     unitCost,
     expectedFeeRatePct,
   })
-  const summary = createOrderSnapshotPrimarySummary(primary)
-  const storedStockOrderResult = createOrderSnapshotStockOrderResult(stockOrderResult)
+  const summary: OrderSnapshotPrimarySummaryV2 = createOrderSnapshotPrimarySummary(primary)
+  const storedStockOrderResult: OrderSnapshotStockOrderResultV2 | undefined = createOrderSnapshotStockOrderResult(stockOrderResult)
 
   return {
     schemaVersion: ORDER_SNAPSHOT_SCHEMA_VERSION,
@@ -112,7 +113,7 @@ export function buildSecondaryOrderSnapshot(params: BuildSecondaryOrderSnapshotP
 }
 
 function buildCurrentSnapshotSizeOrders(sizeRows: SecondarySizeOrderDisplayRow[]): OrderSnapshotSizeOrderV2[] {
-  return sizeRows.map((row) => ({
+  return sizeRows.map((row: SecondarySizeOrderDisplayRow) : { size: string; selfSharePct: number; competitorSharePct: number; blendedSharePct: number; forecastQty: number; recommendedQty: number; confirmQty: number; } => ({
     size: row.size,
     selfSharePct: row.selfSharePct,
     competitorSharePct: row.competitorSharePct,
@@ -129,11 +130,11 @@ function buildCurrentConfirmedTotals({
   unitCost,
   expectedFeeRatePct,
 }: ConfirmedTotalsInput): OrderSnapshotConfirmedTotalsV2 {
-  const orderQty = sumCurrentSizeOrderConfirmQty(sizeOrders)
-  const perUnitFee = Math.round((unitPrice * expectedFeeRatePct) / 100)
-  const perUnitOpMargin = unitPrice - unitCost - perUnitFee
-  const expectedSalesAmount = orderQty * unitPrice
-  const expectedOpProfit = orderQty * perUnitOpMargin
+  const orderQty: number = sumCurrentSizeOrderConfirmQty(sizeOrders)
+  const perUnitFee: number = Math.round((unitPrice * expectedFeeRatePct) / 100)
+  const perUnitOpMargin: number = unitPrice - unitCost - perUnitFee
+  const expectedSalesAmount: number = orderQty * unitPrice
+  const expectedOpProfit: number = orderQty * perUnitOpMargin
 
   return {
     orderQty,
@@ -146,7 +147,7 @@ function buildCurrentConfirmedTotals({
 }
 
 function sumCurrentSizeOrderConfirmQty(sizeOrders: Pick<OrderSnapshotSizeOrderV2, 'confirmQty'>[]): number {
-  return sizeOrders.reduce((acc, row) => acc + row.confirmQty, 0)
+  return sizeOrders.reduce((acc: number, row: Pick<OrderSnapshotSizeOrderV2, 'confirmQty'>) : number => acc + row.confirmQty, 0)
 }
 
 function createSnapshotCompanyScope(companyUuid: string | undefined): Pick<OrderSnapshotDocumentV2, 'companyUuid'> | Record<string, never> {

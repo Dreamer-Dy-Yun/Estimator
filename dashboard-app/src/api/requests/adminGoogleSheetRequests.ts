@@ -1,3 +1,4 @@
+import type { AdminGoogleSheetConfigSummary, CreateAdminGoogleSheetConfigPayload, UpdateAdminGoogleSheetConfigPayload } from '..'
 import { mockAdminGoogleSheetApi } from '../mock'
 import type { AdminGoogleSheetApi, CompanyMutationScopeParams, CompanyScopeParams } from '../types'
 import {
@@ -6,13 +7,13 @@ import {
 } from '../types'
 import { apiRequest, USE_MOCK_API } from './httpClient'
 
-function toCompanyQuery(params?: CompanyScopeParams) {
-  const normalized = normalizeCompanyScopeParams(params)
+function toCompanyQuery(params?: CompanyScopeParams) : string {
+  const normalized: CompanyScopeParams | undefined = normalizeCompanyScopeParams(params)
   if (!normalized?.companyUuid) return ''
   return `?${new URLSearchParams({ companyUuid: normalized.companyUuid }).toString()}`
 }
 
-function toRequiredCompanyQuery(params: CompanyMutationScopeParams) {
+function toRequiredCompanyQuery(params: CompanyMutationScopeParams) : string {
   return `?${new URLSearchParams({
     companyUuid: getRequiredCompanyUuidForMutationScope(params.companyUuid),
   }).toString()}`
@@ -36,25 +37,25 @@ function toRequiredCompanyQuery(params: CompanyMutationScopeParams) {
  *   fields and should be persisted with the config.
  */
 const httpAdminGoogleSheetRequests: AdminGoogleSheetApi = {
-  getAdminGoogleSheetConfigs: (params) => apiRequest(`/admin/google-sheets${toCompanyQuery(params)}`),
-  createAdminGoogleSheetConfig: (payload) =>
+  getAdminGoogleSheetConfigs: (params: CompanyScopeParams | undefined) : Promise<AdminGoogleSheetConfigSummary[]> => apiRequest(`/admin/google-sheets${toCompanyQuery(params)}`),
+  createAdminGoogleSheetConfig: (payload: CreateAdminGoogleSheetConfigPayload) : Promise<AdminGoogleSheetConfigSummary> =>
     apiRequest('/admin/google-sheets', { method: 'POST', body: payload }),
-  updateAdminGoogleSheetConfig: (payload) =>
+  updateAdminGoogleSheetConfig: (payload: UpdateAdminGoogleSheetConfigPayload) : Promise<AdminGoogleSheetConfigSummary> =>
     apiRequest(`/admin/google-sheets/${encodeURIComponent(payload.uuid)}`, {
       method: 'PATCH',
       body: payload,
     }),
-  deleteAdminGoogleSheetConfig: (configUuid, params) =>
+  deleteAdminGoogleSheetConfig: (configUuid: string, params: CompanyMutationScopeParams) : Promise<void> =>
     apiRequest(`/admin/google-sheets/${encodeURIComponent(configUuid)}${toRequiredCompanyQuery(params)}`, {
       method: 'DELETE',
     }),
 }
 
 const mockAdminGoogleSheetRequests: AdminGoogleSheetApi = {
-  getAdminGoogleSheetConfigs: (params) => mockAdminGoogleSheetApi.getAdminGoogleSheetConfigs(params),
-  createAdminGoogleSheetConfig: (payload) => mockAdminGoogleSheetApi.createAdminGoogleSheetConfig(payload),
-  updateAdminGoogleSheetConfig: (payload) => mockAdminGoogleSheetApi.updateAdminGoogleSheetConfig(payload),
-  deleteAdminGoogleSheetConfig: (configUuid, params) => mockAdminGoogleSheetApi.deleteAdminGoogleSheetConfig(configUuid, params),
+  getAdminGoogleSheetConfigs: (params: CompanyScopeParams | undefined) : Promise<AdminGoogleSheetConfigSummary[]> => mockAdminGoogleSheetApi.getAdminGoogleSheetConfigs(params),
+  createAdminGoogleSheetConfig: (payload: CreateAdminGoogleSheetConfigPayload) : Promise<AdminGoogleSheetConfigSummary> => mockAdminGoogleSheetApi.createAdminGoogleSheetConfig(payload),
+  updateAdminGoogleSheetConfig: (payload: UpdateAdminGoogleSheetConfigPayload) : Promise<AdminGoogleSheetConfigSummary> => mockAdminGoogleSheetApi.updateAdminGoogleSheetConfig(payload),
+  deleteAdminGoogleSheetConfig: (configUuid: string, params: CompanyMutationScopeParams) : Promise<void> => mockAdminGoogleSheetApi.deleteAdminGoogleSheetConfig(configUuid, params),
 }
 
 export const adminGoogleSheetRequests: AdminGoogleSheetApi = USE_MOCK_API

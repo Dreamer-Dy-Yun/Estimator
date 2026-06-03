@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import { SecondaryDailyTrendRequestWindow } from './SecondaryDailyTrendRequestWindow'
 
-describe('SecondaryDailyTrendRequestWindow', () => {
-  it('uses selected month first day through yesterday and maps lead-time days to forecastDays', () => {
-    const window = SecondaryDailyTrendRequestWindow.fromSelectedStartMonth({
+describe('SecondaryDailyTrendRequestWindow', () : void => {
+  it('uses selected month first day through yesterday and maps lead-time days to forecastDays', () : void => {
+    const window: SecondaryDailyTrendRequestWindow = SecondaryDailyTrendRequestWindow.fromSelectedStartMonth({
       selectedStartMonth: '2025-01',
       forecastDays: 183.4,
       today: new Date(2026, 4, 29),
@@ -16,8 +16,8 @@ describe('SecondaryDailyTrendRequestWindow', () => {
     })
   })
 
-  it('does not allow negative forecastDays', () => {
-    const window = SecondaryDailyTrendRequestWindow.fromSelectedStartMonth({
+  it('does not allow negative forecastDays', () : void => {
+    const window: SecondaryDailyTrendRequestWindow = SecondaryDailyTrendRequestWindow.fromSelectedStartMonth({
       selectedStartMonth: '2025-01',
       forecastDays: -3,
       today: new Date(2026, 4, 29),

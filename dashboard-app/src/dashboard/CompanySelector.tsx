@@ -1,17 +1,18 @@
-﻿import { useId, type ChangeEvent } from 'react'
+﻿import type { CompanySummary } from '../api'
+import { useId } from 'react'
 import { useAuth } from '../auth/AuthContext'
 import { getCompanyOptionLabel } from './hooks/useSelfCompanyLabel'
 import styles from './companySelector.module.css'
 
-const EMPTY_LABEL = '회사 미선택'
+const EMPTY_LABEL = '회사 미선택' as const
 
-function getErrorMessage(error: string | null) {
+function getErrorMessage(error: string | null) : string {
   if (!error) return ''
   return error
 }
 
-export function CompanySelector() {
-  const selectId = useId()
+export function CompanySelector() : React.JSX.Element {
+  const selectId: string = useId()
   const {
     companies,
     selectedCompanyUuid,
@@ -19,13 +20,13 @@ export function CompanySelector() {
     isCompanyLoading,
     companyError,
     selectCompany,
-  } = useAuth()
-  const errorMessage = getErrorMessage(companyError)
-  const selectedValue = selectedCompanyUuid ?? selectedCompany?.uuid ?? ''
-  const hasInvalidCompany = companies.some((company) => !company.uuid)
+  }: ReturnType<typeof useAuth> = useAuth()
+  const errorMessage: string = getErrorMessage(companyError)
+  const selectedValue: string = selectedCompanyUuid ?? selectedCompany?.uuid ?? ''
+  const hasInvalidCompany: boolean = companies.some((company: CompanySummary) : boolean => !company.uuid)
 
-  const handleChange = (event: ChangeEvent<HTMLSelectElement>) => {
-    const nextCompanyUuid = event.target.value
+  const handleChange: (event: React.ChangeEvent<HTMLSelectElement>) => void = (event: React.ChangeEvent<HTMLSelectElement>) : void => {
+    const nextCompanyUuid: string = event.target.value
 
     if (!nextCompanyUuid || nextCompanyUuid === selectedValue) return
 
@@ -77,8 +78,8 @@ export function CompanySelector() {
   }
 
   if (companies.length === 1) {
-    const company = companies[0]
-    const companyLabel = getCompanyOptionLabel(company) || EMPTY_LABEL
+    const company: CompanySummary = companies[0]
+    const companyLabel: string = getCompanyOptionLabel(company) || EMPTY_LABEL
 
     return (
       <div className={styles.selectorShell}>
@@ -108,7 +109,7 @@ export function CompanySelector() {
               회사를 선택하세요
             </option>
           ) : null}
-          {companies.map((company) => {
+          {companies.map((company: CompanySummary) : React.JSX.Element => {
             return (
               <option key={company.uuid} value={company.uuid}>
                 {getCompanyOptionLabel(company)}

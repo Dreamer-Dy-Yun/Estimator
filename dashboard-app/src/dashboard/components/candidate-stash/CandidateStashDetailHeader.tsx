@@ -3,14 +3,14 @@ import { formatDateTimeMinute } from '../../../utils/date'
 import styles from '../common.module.css'
 import detailStyles from './CandidateStashDetailModal.module.css'
 
-type Props = {
+export type Props = {
   detailTarget: CandidateStashSummary
   canOpenRecommendations: boolean
   onOpenRecommendations: () => void
   onClose: () => void
 }
 
-export function CandidateStashDetailHeader({ detailTarget, canOpenRecommendations, onOpenRecommendations, onClose }: Props) {
+export function CandidateStashDetailHeader({ detailTarget, canOpenRecommendations, onOpenRecommendations, onClose }: Props) : React.JSX.Element {
   return (
     <div className={styles.card}>
       <div className={detailStyles.detailHeaderGrid}>

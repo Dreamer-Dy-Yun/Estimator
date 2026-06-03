@@ -16,7 +16,7 @@ export type ProductDrawerBundleCache = {
   bundle: ProductDrawerBundle
 } | null
 
-type ProductDrawerBundleRequestState = {
+export type ProductDrawerBundleRequestState = {
   skuGroupKey: string | null
   companyUuid?: string
   loading: boolean
@@ -40,47 +40,47 @@ export function pickProductDrawerBundleFromCache(
 export function useProductDrawerBundleState(
   selectedSkuGroupKey: string | null,
   options?: UseProductDrawerBundleOptions,
-) {
-  const allowStale = options?.allowStaleWhileRevalidate !== false
-  const companyUuid = options?.companyUuid
-  const [cache, setCache] = useState<ProductDrawerBundleCache>(null)
-  const [requestState, setRequestState] = useState<ProductDrawerBundleRequestState>({
+) : { bundle: ProductDrawerBundle | null; loading: boolean; } {
+  const allowStale: boolean = options?.allowStaleWhileRevalidate !== false
+  const companyUuid: string | undefined = options?.companyUuid
+  const [cache, setCache]: [ProductDrawerBundleCache, React.Dispatch<React.SetStateAction<ProductDrawerBundleCache>>] = useState<ProductDrawerBundleCache>(null)
+  const [requestState, setRequestState]: [ProductDrawerBundleRequestState, React.Dispatch<React.SetStateAction<ProductDrawerBundleRequestState>>] = useState<ProductDrawerBundleRequestState>({
     skuGroupKey: null,
     companyUuid: undefined,
     loading: false,
   })
 
-  useEffect(() => {
+  useEffect(() : (() => void) | undefined => {
     if (!selectedSkuGroupKey) {
-      queueMicrotask(() => setRequestState({ skuGroupKey: null, loading: false }))
+      queueMicrotask(() : void => setRequestState({ skuGroupKey: null, loading: false }))
       return
     }
-    let alive = true
-    queueMicrotask(() => {
+    let alive: boolean = true
+    queueMicrotask(() : void => {
       if (alive) setRequestState({ skuGroupKey: selectedSkuGroupKey, companyUuid, loading: true })
     })
     getProductDrawerBundle(selectedSkuGroupKey, { companyUuid })
-      .then((data) => {
+      .then((data: ProductDrawerBundle) : void => {
         if (alive) setCache({ skuGroupKey: selectedSkuGroupKey, companyUuid, bundle: data })
       })
-      .catch(() => {
+      .catch(() : void => {
         // 네트워크/목업 실패 시 이전 품번 캐시 오염을 막기 위해 현재 선택 품번 캐시를 비운다.
         if (alive) {
-          setCache((prev) => (
+          setCache((prev: ProductDrawerBundleCache) : ProductDrawerBundleCache => (
             prev?.skuGroupKey === selectedSkuGroupKey && prev.companyUuid === companyUuid ? null : prev
           ))
         }
       })
-      .finally(() => {
+      .finally(() : void => {
         if (alive) setRequestState({ skuGroupKey: selectedSkuGroupKey, companyUuid, loading: false })
       })
-    return () => {
+    return () : void => {
       alive = false
     }
   }, [companyUuid, selectedSkuGroupKey])
 
-  const bundle = pickProductDrawerBundleFromCache(selectedSkuGroupKey, cache, allowStale, companyUuid)
-  const loading = Boolean(
+  const bundle: ProductDrawerBundle | null = pickProductDrawerBundleFromCache(selectedSkuGroupKey, cache, allowStale, companyUuid)
+  const loading: boolean = Boolean(
     selectedSkuGroupKey &&
       requestState.skuGroupKey === selectedSkuGroupKey &&
       requestState.companyUuid === companyUuid &&
@@ -95,6 +95,6 @@ export function useProductDrawerBundleState(
 export function useProductDrawerBundle(
   selectedSkuGroupKey: string | null,
   options?: UseProductDrawerBundleOptions,
-) {
+) : ProductDrawerBundle | null {
   return useProductDrawerBundleState(selectedSkuGroupKey, options).bundle
 }

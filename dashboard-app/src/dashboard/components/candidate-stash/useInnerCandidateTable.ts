@@ -1,3 +1,4 @@
+import type { SortState } from '../../../utils/sort'
 import { useCallback, useMemo, useState } from 'react'
 import type { CandidateItemSummary } from '../../../api'
 import { compareSortValues, nextSortState, type SortValue } from '../../../utils/sort'
@@ -31,28 +32,28 @@ function candidateSortValue(row: InnerCandidateRow, key: InnerCandidateSortKey):
   }
 }
 
-export function useInnerCandidateTable(items: CandidateItemSummary[]) {
-  const [brandQuery, setBrandQuery] = useState('')
-  const [codeQuery, setCodeQuery] = useState('')
-  const [productNameQuery, setProductNameQuery] = useState('')
-  const [tableSort, setTableSort] = useState<InnerCandidateSortState | null>(null)
+export function useInnerCandidateTable(items: CandidateItemSummary[]) : { brandQuery: string; setBrandQuery: React.Dispatch<React.SetStateAction<string>>; codeQuery: string; setCodeQuery: React.Dispatch<React.SetStateAction<string>>; productNameQuery: string; setProductNameQuery: React.Dispatch<React.SetStateAction<string>>; tableSort: InnerCandidateSortState | null; toggleTableSort: (key: InnerCandidateSortKey) => void; resetTableSort: () => void; brandOptions: string[]; codeOptions: string[]; productNameOptions: string[]; tableRows: CandidateItemSummary[]; totals: { qty: number; expectedOrderAmount: number; expectedSalesAmount: number; expectedOpProfit: number; }; pendingOrderMetricCount: number; totalExpectedOpProfitRatePct: number | null; } {
+  const [brandQuery, setBrandQuery]: [string, React.Dispatch<React.SetStateAction<string>>] = useState('')
+  const [codeQuery, setCodeQuery]: [string, React.Dispatch<React.SetStateAction<string>>] = useState('')
+  const [productNameQuery, setProductNameQuery]: [string, React.Dispatch<React.SetStateAction<string>>] = useState('')
+  const [tableSort, setTableSort]: [InnerCandidateSortState | null, React.Dispatch<React.SetStateAction<InnerCandidateSortState | null>>] = useState<InnerCandidateSortState | null>(null)
 
-  const toggleTableSort = useCallback((key: InnerCandidateSortKey) => {
-    setTableSort((current) => nextSortState(current, key))
+  const toggleTableSort: (key: InnerCandidateSortKey) => void = useCallback((key: InnerCandidateSortKey) : void => {
+    setTableSort((current: InnerCandidateSortState | null) : SortState<InnerCandidateSortKey> | null => nextSortState(current, key))
   }, [])
-  const resetTableSort = useCallback(() => {
+  const resetTableSort: () => void = useCallback(() : void => {
     setTableSort(null)
   }, [])
 
-  const brandOptions = useMemo(() => uniqueSortedStrings(items.map((i) => i.brand)), [items])
-  const codeOptions = useMemo(() => uniqueSortedStrings(items.map((i) => i.code)), [items])
-  const productNameOptions = useMemo(() => uniqueSortedStrings(items.map((i) => i.productName)), [items])
+  const brandOptions: string[] = useMemo(() : string[] => uniqueSortedStrings(items.map((i: CandidateItemSummary) : string => i.brand)), [items])
+  const codeOptions: string[] = useMemo(() : string[] => uniqueSortedStrings(items.map((i: CandidateItemSummary) : string => i.code)), [items])
+  const productNameOptions: string[] = useMemo(() : string[] => uniqueSortedStrings(items.map((i: CandidateItemSummary) : string => i.productName)), [items])
 
-  const filteredItems = useMemo(() => {
-    return items.filter((item) => {
-      const bq = brandQuery.trim().toLowerCase()
-      const cq = codeQuery.trim().toLowerCase()
-      const nq = productNameQuery.trim().toLowerCase()
+  const filteredItems: CandidateItemSummary[] = useMemo(() : CandidateItemSummary[] => {
+    return items.filter((item: CandidateItemSummary) : boolean => {
+      const bq: string = brandQuery.trim().toLowerCase()
+      const cq: string = codeQuery.trim().toLowerCase()
+      const nq: string = productNameQuery.trim().toLowerCase()
       if (bq && !item.brand.toLowerCase().includes(bq)) return false
       if (cq && !item.code.toLowerCase().includes(cq)) return false
       if (nq && !item.productName.toLowerCase().includes(nq)) return false
@@ -60,12 +61,12 @@ export function useInnerCandidateTable(items: CandidateItemSummary[]) {
     })
   }, [brandQuery, codeQuery, items, productNameQuery])
 
-  const tableRows = useMemo((): InnerCandidateRow[] => {
-    const rows = filteredItems
+  const tableRows: CandidateItemSummary[] = useMemo((): InnerCandidateRow[] => {
+    const rows: CandidateItemSummary[] = filteredItems
     if (!tableSort) return rows
-    const originalIndex = new Map(rows.map((row, index) => [row.uuid, index]))
-    return [...rows].sort((a, b) => {
-      const compared = compareSortValues(
+    const originalIndex: Map<string, number> = new Map(rows.map((row: CandidateItemSummary, index: number) : [string, number] => [row.uuid, index]))
+    return [...rows].sort((a: CandidateItemSummary, b: CandidateItemSummary) : number => {
+      const compared: number = compareSortValues(
         candidateSortValue(a, tableSort.key),
         candidateSortValue(b, tableSort.key),
       )
@@ -74,9 +75,9 @@ export function useInnerCandidateTable(items: CandidateItemSummary[]) {
     })
   }, [filteredItems, tableSort])
 
-  const totals = useMemo(() => {
+  const totals: { qty: number; expectedOrderAmount: number; expectedSalesAmount: number; expectedOpProfit: number; } = useMemo(() : { qty: number; expectedOrderAmount: number; expectedSalesAmount: number; expectedOpProfit: number; } => {
     return filteredItems.reduce(
-      (acc, item) => {
+      (acc: { qty: number; expectedOrderAmount: number; expectedSalesAmount: number; expectedOpProfit: number; }, item: CandidateItemSummary) : { qty: number; expectedOrderAmount: number; expectedSalesAmount: number; expectedOpProfit: number; } => {
         acc.qty += item.qty
         acc.expectedOrderAmount += item.expectedOrderAmount
         acc.expectedSalesAmount += item.expectedSalesAmount
@@ -87,12 +88,12 @@ export function useInnerCandidateTable(items: CandidateItemSummary[]) {
     )
   }, [filteredItems])
 
-  const pendingOrderMetricCount = useMemo(
-    () => filteredItems.filter((item) => item.orderMetricStatus === 'loading').length,
+  const pendingOrderMetricCount: number = useMemo(
+    () : number => filteredItems.filter((item: CandidateItemSummary) : boolean => item.orderMetricStatus === 'loading').length,
     [filteredItems],
   )
 
-  const totalExpectedOpProfitRatePct = useMemo(() => {
+  const totalExpectedOpProfitRatePct: number | null = useMemo(() : number | null => {
     if (totals.expectedSalesAmount <= 0) return null
     return (totals.expectedOpProfit / totals.expectedSalesAmount) * 100
   }, [totals.expectedOpProfit, totals.expectedSalesAmount])

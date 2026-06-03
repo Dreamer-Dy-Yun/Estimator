@@ -3,7 +3,7 @@ export interface CompanySummary {
   name: string
 }
 
-export const ALL_COMPANY_UUID = '00000000-0000-4000-8000-000000000100'
+export const ALL_COMPANY_UUID = '00000000-0000-4000-8000-000000000100' as const
 
 export interface CompanyScopeParams {
   /**
@@ -24,7 +24,7 @@ export interface CompanyMutationScopeParams {
 export function getCompanyUuidForOptionalScope(
   companyUuid: string | null | undefined,
 ): string | undefined {
-  const normalizedCompanyUuid = companyUuid?.trim()
+  const normalizedCompanyUuid: string | undefined = companyUuid?.trim()
   if (!normalizedCompanyUuid || normalizedCompanyUuid === ALL_COMPANY_UUID) return undefined
   return normalizedCompanyUuid
 }
@@ -40,7 +40,7 @@ export function isAllCompanyUuid(companyUuid: string | null | undefined): boolea
 export function getRequiredCompanyUuidForMutationScope(
   companyUuid: string | null | undefined,
 ): string {
-  const normalizedCompanyUuid = companyUuid?.trim()
+  const normalizedCompanyUuid: string | undefined = companyUuid?.trim()
   if (!normalizedCompanyUuid || normalizedCompanyUuid === ALL_COMPANY_UUID) {
     throw new Error('Mutation, job, and SSE requests require a single company scope.')
   }
@@ -63,8 +63,8 @@ export function normalizeCompanyScopeParams<T extends CompanyScopeParams>(
   params?: T,
 ): T | undefined {
   if (!params) return undefined
-  const companyUuid = getCompanyUuidForOptionalScope(params.companyUuid)
-  const rest = { ...params }
+  const companyUuid: string | undefined = getCompanyUuidForOptionalScope(params.companyUuid)
+  const rest: T = { ...params }
   delete rest.companyUuid
   if (!companyUuid) return rest as T
   return {

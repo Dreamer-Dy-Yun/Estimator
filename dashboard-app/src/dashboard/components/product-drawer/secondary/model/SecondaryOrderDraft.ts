@@ -41,12 +41,12 @@ export class SecondaryOrderDraft {
   }
 
   nextManualConfirmBySize(size: string, nextQty: number, recommendedQty: number): Record<string, number> {
-    const roundedQty = Math.max(0, Math.round(Number.isFinite(nextQty) ? nextQty : 0))
-    const baseline = Math.max(0, Math.round(this.baselineQty(size, recommendedQty)))
+    const roundedQty: number = Math.max(0, Math.round(Number.isFinite(nextQty) ? nextQty : 0))
+    const baseline: number = Math.max(0, Math.round(this.baselineQty(size, recommendedQty)))
 
     if (roundedQty === baseline) {
       if (!(size in this.manualConfirmBySize)) return this.manualConfirmBySize
-      const { [size]: _removed, ...rest } = this.manualConfirmBySize
+      const { [size]: _removed, ...rest }: Record<string, number> = this.manualConfirmBySize
       void _removed
       return rest
     }

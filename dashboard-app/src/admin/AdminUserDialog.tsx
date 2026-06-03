@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useState } from 'react'
 import { deleteAdminUser, updateAdminUser } from '../api'
 import type { AdminUserSummary, AuthRole } from '../api'
 import { useAppToast } from '../components/AppToastContext'
@@ -8,7 +8,7 @@ import { refreshAfterAdminMutation } from './adminMutationRefresh'
 import { getErrorMessage, ROLE_OPTIONS } from './adminHelpers'
 import styles from './AdminPage.module.css'
 
-interface AdminUserDialogProps {
+export interface AdminUserDialogProps {
   user: AdminUserSummary
   currentUserUuid: string
   onClose: () => void
@@ -17,7 +17,7 @@ interface AdminUserDialogProps {
   onPasswordReset: (user: AdminUserSummary) => Promise<void>
 }
 
-const formId = 'admin-user-detail-form'
+const formId = 'admin-user-detail-form' as const
 
 export function AdminUserDialog({
   user,
@@ -26,29 +26,29 @@ export function AdminUserDialog({
   onChanged,
   onDeleted,
   onPasswordReset,
-}: AdminUserDialogProps) {
-  const { showToast } = useAppToast()
-  const [loginId, setLoginId] = useState(user.loginId)
-  const [name, setName] = useState(user.name)
-  const [note, setNote] = useState(user.note ?? '')
-  const [role, setRole] = useState<AuthRole>(user.role)
-  const [isActive, setIsActive] = useState(user.isActive)
-  const [rowMessage, setRowMessage] = useState<string | null>(null)
-  const [errorMessage, setErrorMessage] = useState<string | null>(null)
-  const [isSaving, setIsSaving] = useState(false)
-  const [isDeleting, setIsDeleting] = useState(false)
-  const [isResettingPassword, setIsResettingPassword] = useState(false)
-  const [deleteConfirm, setDeleteConfirm] = useState(false)
-  const isBusy = isSaving || isDeleting || isResettingPassword
-  const isCurrentUser = user.uuid === currentUserUuid
-  const isDirty =
+}: AdminUserDialogProps) : React.JSX.Element {
+  const { showToast }: ReturnType<typeof useAppToast> = useAppToast()
+  const [loginId, setLoginId]: [string, React.Dispatch<React.SetStateAction<string>>] = useState(user.loginId)
+  const [name, setName]: [string, React.Dispatch<React.SetStateAction<string>>] = useState(user.name)
+  const [note, setNote]: [string, React.Dispatch<React.SetStateAction<string>>] = useState(user.note ?? '')
+  const [role, setRole]: [AuthRole, React.Dispatch<React.SetStateAction<AuthRole>>] = useState<AuthRole>(user.role)
+  const [isActive, setIsActive]: [boolean, React.Dispatch<React.SetStateAction<boolean>>] = useState(user.isActive)
+  const [rowMessage, setRowMessage]: [string | null, React.Dispatch<React.SetStateAction<string | null>>] = useState<string | null>(null)
+  const [errorMessage, setErrorMessage]: [string | null, React.Dispatch<React.SetStateAction<string | null>>] = useState<string | null>(null)
+  const [isSaving, setIsSaving]: [boolean, React.Dispatch<React.SetStateAction<boolean>>] = useState(false)
+  const [isDeleting, setIsDeleting]: [boolean, React.Dispatch<React.SetStateAction<boolean>>] = useState(false)
+  const [isResettingPassword, setIsResettingPassword]: [boolean, React.Dispatch<React.SetStateAction<boolean>>] = useState(false)
+  const [deleteConfirm, setDeleteConfirm]: [boolean, React.Dispatch<React.SetStateAction<boolean>>] = useState(false)
+  const isBusy: boolean = isSaving || isDeleting || isResettingPassword
+  const isCurrentUser: boolean = user.uuid === currentUserUuid
+  const isDirty: boolean =
     loginId !== user.loginId ||
     name !== user.name ||
     note !== (user.note ?? '') ||
     role !== user.role ||
     isActive !== user.isActive
 
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit: (event: React.FormEvent<HTMLFormElement>) => Promise<void> = async (event: React.FormEvent<HTMLFormElement>) : Promise<void> => {
     event.preventDefault()
     setErrorMessage(null)
     setRowMessage(null)
@@ -56,9 +56,9 @@ export function AdminUserDialog({
 
     try {
       await updateAdminUser({ uuid: user.uuid, loginId, name, note, role, isActive })
-      const refreshWarningMessage = await refreshAfterAdminMutation(onChanged)
-      const successRowMessage = '변경됨'
-      const successToastMessage = '사용자 정보를 변경했습니다.'
+      const refreshWarningMessage: string | null = await refreshAfterAdminMutation(onChanged)
+      const successRowMessage = '변경됨' as const
+      const successToastMessage = '사용자 정보를 변경했습니다.' as const
       setRowMessage(refreshWarningMessage ? `${successRowMessage} · ${refreshWarningMessage}` : successRowMessage)
       showToast(refreshWarningMessage ?? successToastMessage, refreshWarningMessage ? { variant: 'warning' } : undefined)
       setDeleteConfirm(false)
@@ -69,8 +69,8 @@ export function AdminUserDialog({
     }
   }
 
-  const handlePasswordReset = async () => {
-    const ok = window.confirm(`${user.loginId} 계정의 임시 비밀번호를 발급할까요?`)
+  const handlePasswordReset: () => Promise<void> = async () : Promise<void> => {
+    const ok: boolean = window.confirm(`${user.loginId} 계정의 임시 비밀번호를 발급할까요?`)
     if (!ok) return
 
     setErrorMessage(null)
@@ -87,7 +87,7 @@ export function AdminUserDialog({
     }
   }
 
-  const handleDelete = async () => {
+  const handleDelete: () => Promise<void> = async () : Promise<void> => {
     if (isCurrentUser) return
     setErrorMessage(null)
     setRowMessage(null)
@@ -101,7 +101,7 @@ export function AdminUserDialog({
     setIsDeleting(true)
     try {
       await deleteAdminUser(user.uuid)
-      const refreshWarningMessage = await refreshAfterAdminMutation(onDeleted)
+      const refreshWarningMessage: string | null = await refreshAfterAdminMutation(onDeleted)
       if (refreshWarningMessage) showToast(refreshWarningMessage, { variant: 'warning' })
       onClose()
     } catch (error) {
@@ -118,7 +118,7 @@ export function AdminUserDialog({
         role="dialog"
         aria-modal="true"
         aria-labelledby="admin-user-dialog-title"
-        onMouseDown={(event) => event.stopPropagation()}
+        onMouseDown={(event: React.MouseEvent<HTMLElement, MouseEvent>) : void => event.stopPropagation()}
       >
         <header className={styles.gptKeyDialogHeader}>
           <div>
@@ -133,16 +133,16 @@ export function AdminUserDialog({
         <form id={formId} className={styles.gptKeyDialogForm} onSubmit={handleSubmit}>
           <label className={styles.createField}>
             <span>로그인 ID</span>
-            <input value={loginId} onChange={(event) => setLoginId(event.target.value)} autoComplete="username" maxLength={32} />
+            <input value={loginId} onChange={(event: React.ChangeEvent<HTMLInputElement, HTMLInputElement>) : void => setLoginId(event.target.value)} autoComplete="username" maxLength={32} />
           </label>
           <label className={styles.createField}>
             <span>이름</span>
-            <input value={name} onChange={(event) => setName(event.target.value)} autoComplete="name" maxLength={80} />
+            <input value={name} onChange={(event: React.ChangeEvent<HTMLInputElement, HTMLInputElement>) : void => setName(event.target.value)} autoComplete="name" maxLength={80} />
           </label>
           <label className={styles.createField}>
             <span>권한</span>
-            <select value={role} onChange={(event) => setRole(event.target.value as AuthRole)} disabled={isCurrentUser}>
-              {ROLE_OPTIONS.map((option) => (
+            <select value={role} onChange={(event: React.ChangeEvent<HTMLSelectElement, HTMLSelectElement>) : void => setRole(event.target.value as AuthRole)} disabled={isCurrentUser}>
+              {ROLE_OPTIONS.map((option: { value: AuthRole; label: string; }) : React.JSX.Element => (
                 <option key={option.value} value={option.value}>
                   {option.label}
                 </option>
@@ -154,7 +154,7 @@ export function AdminUserDialog({
           </div>
           <label className={`${styles.createField} ${styles.gptKeyDialogNote}`}>
             <span>비고</span>
-            <input value={note} onChange={(event) => setNote(event.target.value)} maxLength={200} />
+            <input value={note} onChange={(event: React.ChangeEvent<HTMLInputElement, HTMLInputElement>) : void => setNote(event.target.value)} maxLength={200} />
           </label>
         </form>
 

@@ -1,31 +1,33 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import type { AppendCandidateItemsResponse, CandidateOrderMetricSubscription, CandidateStashLlmCommentJobStartResult, CandidateStashSummary } from '..'
+import type { CandidateJobSubscription } from '../types/candidate'
+import { beforeEach, describe, expect, it, vi , type Mock} from 'vitest';
 import { ALL_COMPANY_UUID, type CompanyMutationScopeParams } from '../types/company'
 import type { CandidateOrderMetricStreamParams } from '../types/candidate-order-metrics'
 import { httpDashboardRequests } from './httpDashboardRequests'
 
-const httpClientMocks = vi.hoisted(() => ({
-  apiRequest: vi.fn(() => Promise.resolve(undefined)),
-  buildApiUrl: vi.fn((path: string) => `http://api.test${path}`),
-  openApiEventStream: vi.fn(() => ({ close: vi.fn() })),
+const httpClientMocks: { apiRequest: Mock<() => Promise<undefined>>; buildApiUrl: Mock<(path: string) => string>; openApiEventStream: Mock<() => { close: Mock<(...args: unknown[]) => unknown>; }>; } = vi.hoisted(() : { apiRequest: Mock<() => Promise<undefined>>; buildApiUrl: Mock<(path: string) => string>; openApiEventStream: Mock<() => { close: Mock<(...args: unknown[]) => unknown>; }>; } => ({
+  apiRequest: vi.fn(() : Promise<undefined> => Promise.resolve(undefined)),
+  buildApiUrl: vi.fn((path: string) : string => `http://api.test${path}`),
+  openApiEventStream: vi.fn(() : { close: Mock<(...args: unknown[]) => unknown>; } => ({ close: vi.fn() })),
 }))
 
-vi.mock('./httpClient', () => ({
+vi.mock('./httpClient', () : { apiRequest: Mock<() => Promise<undefined>>; buildApiUrl: Mock<(path: string) => string>; openApiEventStream: Mock<() => { close: Mock<(...args: unknown[]) => unknown>; }>; } => ({
   apiRequest: httpClientMocks.apiRequest,
   buildApiUrl: httpClientMocks.buildApiUrl,
   openApiEventStream: httpClientMocks.openApiEventStream,
 }))
 
-const companyUuid = 'company-uuid-054'
-type ApiRequestCall = [string, { query?: Record<string, unknown>; body?: unknown; method?: string }?]
+const companyUuid = 'company-uuid-054' as const
+export type ApiRequestCall = [string, { query?: Record<string, unknown>; body?: unknown; method?: string }?]
 
-beforeEach(() => {
+beforeEach(() : void => {
   httpClientMocks.apiRequest.mockClear()
   httpClientMocks.buildApiUrl.mockClear()
   httpClientMocks.openApiEventStream.mockClear()
 })
 
-describe('httpDashboardRequests company scope forwarding', () => {
-  it('forwards companyUuid through query requests and omits ALL_COMPANY_UUID', async () => {
+describe('httpDashboardRequests company scope forwarding', () : void => {
+  it('forwards companyUuid through query requests and omits ALL_COMPANY_UUID', async () : Promise<void> => {
     await httpDashboardRequests.getCandidateItemsByStash({
       stashUuid: 'stash-054',
       companyUuid,
@@ -50,8 +52,8 @@ describe('httpDashboardRequests company scope forwarding', () => {
       endDate: '2025-12-31',
     })
 
-    const apiRequestCalls = httpClientMocks.apiRequest.mock.calls as unknown as ApiRequestCall[]
-    const allCompanyQuery = apiRequestCalls[1]?.[1]?.query
+    const apiRequestCalls: ApiRequestCall[] = httpClientMocks.apiRequest.mock.calls as unknown as ApiRequestCall[]
+    const allCompanyQuery: Record<string, unknown> | undefined = apiRequestCalls[1]?.[1]?.query
     expect(allCompanyQuery).toMatchObject({
       startDate: '2025-01-01',
       endDate: '2025-12-31',
@@ -67,7 +69,7 @@ describe('httpDashboardRequests company scope forwarding', () => {
       competitorChannelId: 'kream',
     })
 
-    const dailyTrendQuery = apiRequestCalls[2]?.[1]?.query
+    const dailyTrendQuery: Record<string, unknown> | undefined = apiRequestCalls[2]?.[1]?.query
     expect(dailyTrendQuery).toMatchObject({
       companyUuid,
       startDate: '2025-01-01',
@@ -82,7 +84,7 @@ describe('httpDashboardRequests company scope forwarding', () => {
     )
   })
 
-  it('forwards companyUuid through create, append, and update request bodies', async () => {
+  it('forwards companyUuid through create, append, and update request bodies', async () : Promise<void> => {
     await httpDashboardRequests.createCandidateStash({
       companyUuid,
       name: 'Spring 2025',
@@ -129,7 +131,7 @@ describe('httpDashboardRequests company scope forwarding', () => {
     )
   })
 
-  it('preserves concrete companyUuid for secondary read-like POST bodies', async () => {
+  it('preserves concrete companyUuid for secondary read-like POST bodies', async () : Promise<void> => {
     await httpDashboardRequests.getSecondaryAiComment({
       skuGroupKey: 'SKU-054-BLK',
       companyUuid,
@@ -164,7 +166,7 @@ describe('httpDashboardRequests company scope forwarding', () => {
     )
   })
 
-  it('omits ALL, blank, and missing company scope for secondary read-like POST bodies', async () => {
+  it('omits ALL, blank, and missing company scope for secondary read-like POST bodies', async () : Promise<void> => {
     await httpDashboardRequests.getSecondaryAiComment({
       skuGroupKey: 'SKU-054-BLK',
       companyUuid: ALL_COMPANY_UUID,
@@ -195,30 +197,30 @@ describe('httpDashboardRequests company scope forwarding', () => {
       leadTimeDays: 21,
     })
 
-    const apiRequestCalls = httpClientMocks.apiRequest.mock.calls as unknown as ApiRequestCall[]
+    const apiRequestCalls: ApiRequestCall[] = httpClientMocks.apiRequest.mock.calls as unknown as ApiRequestCall[]
     expect(apiRequestCalls[0]?.[1]?.body).not.toHaveProperty('companyUuid')
     expect(apiRequestCalls[1]?.[1]?.body).not.toHaveProperty('companyUuid')
     expect(apiRequestCalls[2]?.[1]?.body).not.toHaveProperty('companyUuid')
     expect(apiRequestCalls[3]?.[1]?.body).not.toHaveProperty('companyUuid')
   })
 
-  it('forwards companyUuid through upload FormData', async () => {
-    const file = new File(['skuGroupKey\nSKU-054-BLK'], 'candidate-stash.xlsx', {
+  it('forwards companyUuid through upload FormData', async () : Promise<void> => {
+    const file: File = new File(['skuGroupKey\nSKU-054-BLK'], 'candidate-stash.xlsx', {
       type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     })
 
     await httpDashboardRequests.uploadCandidateStashExcel(file, { companyUuid })
 
-    const apiRequestCalls = httpClientMocks.apiRequest.mock.calls as unknown as ApiRequestCall[]
-    const scopedBody = apiRequestCalls[0]?.[1]?.body
+    const apiRequestCalls: ApiRequestCall[] = httpClientMocks.apiRequest.mock.calls as unknown as ApiRequestCall[]
+    const scopedBody: unknown = apiRequestCalls[0]?.[1]?.body
     expect(scopedBody).toBeInstanceOf(FormData)
     expect((scopedBody as FormData).get('file')).toBe(file)
     expect((scopedBody as FormData).get('companyUuid')).toBe(companyUuid)
   })
 
-  it('forwards companyUuid through order metrics and detail bulk confirm SSE queries', () => {
-    const listener = vi.fn()
-    const onError = vi.fn()
+  it('forwards companyUuid through order metrics and detail bulk confirm SSE queries', () : void => {
+    const listener: Mock<(...args: unknown[]) => unknown> = vi.fn()
+    const onError: Mock<(...args: unknown[]) => unknown> = vi.fn()
 
     httpDashboardRequests.subscribeCandidateOrderMetrics(
       {
@@ -259,8 +261,8 @@ describe('httpDashboardRequests company scope forwarding', () => {
     )
   })
 
-  it('hard-fails mutation and job requests before HTTP when company scope is missing or all-company', async () => {
-    expect(() =>
+  it('hard-fails mutation and job requests before HTTP when company scope is missing or all-company', async () : Promise<void> => {
+    expect(() : Promise<CandidateStashSummary> =>
       httpDashboardRequests.createCandidateStash({
         companyUuid: ALL_COMPANY_UUID,
         name: 'Spring 2025',
@@ -271,7 +273,7 @@ describe('httpDashboardRequests company scope forwarding', () => {
       }),
     ).toThrow('single company scope')
 
-    expect(() =>
+    expect(() : Promise<AppendCandidateItemsResponse> =>
       httpDashboardRequests.appendCandidateItems({
         stashUuid: 'stash-054',
         companyUuid: '   ',
@@ -279,17 +281,17 @@ describe('httpDashboardRequests company scope forwarding', () => {
       }),
     ).toThrow('single company scope')
 
-    expect(() =>
+    expect(() : Promise<CandidateStashLlmCommentJobStartResult> =>
       httpDashboardRequests.startCandidateStashLlmCommentJob('stash-054', undefined as never),
     ).toThrow('single company scope')
     expect(httpClientMocks.apiRequest).not.toHaveBeenCalled()
   })
 
-  it('hard-fails SSE subscriptions before opening a stream when company scope is missing or all-company', () => {
-    const listener = vi.fn()
-    const onError = vi.fn()
+  it('hard-fails SSE subscriptions before opening a stream when company scope is missing or all-company', () : void => {
+    const listener: Mock<(...args: unknown[]) => unknown> = vi.fn()
+    const onError: Mock<(...args: unknown[]) => unknown> = vi.fn()
 
-    expect(() =>
+    expect(() : CandidateOrderMetricSubscription =>
       httpDashboardRequests.subscribeCandidateOrderMetrics(
         {
           stashUuid: 'stash-054',
@@ -303,7 +305,7 @@ describe('httpDashboardRequests company scope forwarding', () => {
       ),
     ).toThrow('single company scope')
 
-    expect(() =>
+    expect(() : CandidateOrderMetricSubscription =>
       httpDashboardRequests.subscribeCandidateOrderMetrics(
         {
           stashUuid: 'stash-054',
@@ -318,7 +320,7 @@ describe('httpDashboardRequests company scope forwarding', () => {
       ),
     ).toThrow('single company scope')
 
-    expect(() =>
+    expect(() : CandidateJobSubscription =>
       httpDashboardRequests.subscribeCandidateDetailBulkConfirm(
         'job-054',
         listener,

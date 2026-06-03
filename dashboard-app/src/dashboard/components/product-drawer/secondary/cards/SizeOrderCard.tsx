@@ -1,3 +1,5 @@
+import type { SecondaryStockOrderDisplaySizeRow } from '../../../../../api/types/secondary'
+import type { SizeOrderColumnTotals } from './sizeOrderCardModel'
 import { useMemo, useRef } from 'react'
 import type { SecondaryStockOrderCalcResult } from '../../../../../api/types'
 import { formatGroupedNumber } from '../../../../../utils/format'
@@ -20,7 +22,7 @@ import {
   parseSelfWeightPctInput,
 } from './sizeOrderCardModel'
 
-type Props = {
+export type Props = {
   sizeOrder: {
     channelLabel: string
     selfCompanyLabel: string
@@ -38,15 +40,15 @@ type Props = {
   help: ReturnType<typeof usePortalHelpPopover<SecondaryHelpId>>
 }
 
-type HelpMark = { helpId: SecondaryHelpId; labelId: string; help: Props['help'] }
-type QuantityRow = {
+export type HelpMark = { helpId: SecondaryHelpId; labelId: string; help: Props['help'] }
+export type QuantityRow = {
   label: string
   totalQty: number | null
   valueForSize: (row: SecondarySizeOrderDisplayRow, index: number) => number | null | undefined
   helpMark?: HelpMark
 }
 
-function LabelWithHelp({ label, helpMark }: { label: string; helpMark?: HelpMark }) {
+function LabelWithHelp({ label, helpMark }: { label: string; helpMark?: HelpMark }) : string | React.JSX.Element {
   if (!helpMark) return label
   return (
     <span className={commonStyles.cardTitleWithHelp}>
@@ -56,38 +58,38 @@ function LabelWithHelp({ label, helpMark }: { label: string; helpMark?: HelpMark
   )
 }
 
-function QuantityTableRow({ row, sizeRows }: { row: QuantityRow; sizeRows: SecondarySizeOrderDisplayRow[] }) {
+function QuantityTableRow({ row, sizeRows }: { row: QuantityRow; sizeRows: SecondarySizeOrderDisplayRow[] }) : React.JSX.Element {
   return (
     <tr>
       <td><LabelWithHelp label={row.label} helpMark={row.helpMark} /></td>
       <td className={styles.num}>{formatQuantityValue(row.totalQty)}</td>
-      {sizeRows.map((sizeRow, index) => (
+      {sizeRows.map((sizeRow: SecondarySizeOrderDisplayRow, index: number) : React.JSX.Element => (
         <td key={sizeRow.size} className={styles.num}>{formatQuantityValue(row.valueForSize(sizeRow, index))}</td>
       ))}
     </tr>
   )
 }
 
-function formatQuantityValue(value: number | null | undefined) {
+function formatQuantityValue(value: number | null | undefined) : string {
   if (value == null) return KO.valueNotCalculated
   return formatOptionalGroupedNumber(value)
 }
 
-export function SizeOrderCard({ sizeOrder, actions, help }: Props) {
-  const { channelLabel, selfCompanyLabel, selfWeightPct, sizeRows, helpIds, stockOrderDisplay, calculationReady = true, manualConfirmBySize } = sizeOrder
-  const tableRef = useRef<HTMLTableElement | null>(null)
-  const competitorWeightPct = getCompetitorWeightPct(selfWeightPct)
-  const columnTotals = useMemo(() => calculateSizeOrderColumnTotals(sizeRows), [sizeRows])
-  const stockOrderSizeRowBySize = useMemo(
-    () => new Map((stockOrderDisplay?.sizeRows ?? []).map((row) => [row.size, row])),
+export function SizeOrderCard({ sizeOrder, actions, help }: Props) : React.JSX.Element {
+  const { channelLabel, selfCompanyLabel, selfWeightPct, sizeRows, helpIds, stockOrderDisplay, calculationReady = true, manualConfirmBySize }: { channelLabel: string; selfCompanyLabel: string; selfWeightPct: number; sizeRows: SecondarySizeOrderDisplayRow[]; helpIds: Pick<SecondaryHelpIds, 'totalOrderBalance' | 'expectedInboundOrderBalance' | 'sizeRecQty' | 'salesForecastSizeOrder'>; stockOrderDisplay: SecondaryStockOrderCalcResult['display'] | null; calculationReady?: boolean; manualConfirmBySize: Readonly<Record<string, true>>; } = sizeOrder
+  const tableRef: React.RefObject<HTMLTableElement | null> = useRef<HTMLTableElement | null>(null)
+  const competitorWeightPct: number = getCompetitorWeightPct(selfWeightPct)
+  const columnTotals: SizeOrderColumnTotals = useMemo(() : SizeOrderColumnTotals => calculateSizeOrderColumnTotals(sizeRows), [sizeRows])
+  const stockOrderSizeRowBySize: Map<string, SecondaryStockOrderDisplaySizeRow> = useMemo(
+    () : Map<string, SecondaryStockOrderDisplaySizeRow> => new Map((stockOrderDisplay?.sizeRows ?? []).map((row: SecondaryStockOrderDisplaySizeRow) : [string, SecondaryStockOrderDisplaySizeRow] => [row.size, row])),
     [stockOrderDisplay],
   )
   const quantityRows: QuantityRow[] = [
-    { label: KO.rowCurrentStockQty, totalQty: stockOrderDisplay?.currentStockQtyTotal ?? null, valueForSize: (row) => stockOrderSizeRowBySize.get(row.size)?.currentStockQty },
-    { label: KO.rowTotalOrderBalance, totalQty: stockOrderDisplay?.totalOrderBalanceTotal ?? null, valueForSize: (row) => stockOrderSizeRowBySize.get(row.size)?.totalOrderBalance, helpMark: { helpId: 'totalOrderBalance', labelId: helpIds.totalOrderBalance, help } },
-    { label: KO.rowExpectedInboundOrderBalance, totalQty: stockOrderDisplay?.expectedInboundOrderBalanceTotal ?? null, valueForSize: (row) => stockOrderSizeRowBySize.get(row.size)?.expectedInboundOrderBalance, helpMark: { helpId: 'expectedInboundOrderBalance', labelId: helpIds.expectedInboundOrderBalance, help } },
-    { label: KO.rowSalesForecast, totalQty: calculationReady ? columnTotals.forecast : null, valueForSize: (row) => (calculationReady ? row.forecastQty : null), helpMark: { helpId: 'salesForecastSizeOrder', labelId: helpIds.salesForecastSizeOrder, help } },
-    { label: KO.thRecQty, totalQty: calculationReady ? columnTotals.rec : null, valueForSize: (row) => (calculationReady ? row.recommendedQty : null), helpMark: { helpId: 'sizeRecQty', labelId: helpIds.sizeRecQty, help } },
+    { label: KO.rowCurrentStockQty, totalQty: stockOrderDisplay?.currentStockQtyTotal ?? null, valueForSize: (row: SecondarySizeOrderDisplayRow) : number | undefined => stockOrderSizeRowBySize.get(row.size)?.currentStockQty },
+    { label: KO.rowTotalOrderBalance, totalQty: stockOrderDisplay?.totalOrderBalanceTotal ?? null, valueForSize: (row: SecondarySizeOrderDisplayRow) : number | undefined => stockOrderSizeRowBySize.get(row.size)?.totalOrderBalance, helpMark: { helpId: 'totalOrderBalance', labelId: helpIds.totalOrderBalance, help } },
+    { label: KO.rowExpectedInboundOrderBalance, totalQty: stockOrderDisplay?.expectedInboundOrderBalanceTotal ?? null, valueForSize: (row: SecondarySizeOrderDisplayRow) : number | undefined => stockOrderSizeRowBySize.get(row.size)?.expectedInboundOrderBalance, helpMark: { helpId: 'expectedInboundOrderBalance', labelId: helpIds.expectedInboundOrderBalance, help } },
+    { label: KO.rowSalesForecast, totalQty: calculationReady ? columnTotals.forecast : null, valueForSize: (row: SecondarySizeOrderDisplayRow) : number | null => (calculationReady ? row.forecastQty : null), helpMark: { helpId: 'salesForecastSizeOrder', labelId: helpIds.salesForecastSizeOrder, help } },
+    { label: KO.thRecQty, totalQty: calculationReady ? columnTotals.rec : null, valueForSize: (row: SecondarySizeOrderDisplayRow) : number | null => (calculationReady ? row.recommendedQty : null), helpMark: { helpId: 'sizeRecQty', labelId: helpIds.sizeRecQty, help } },
   ]
 
   return (
@@ -109,8 +111,8 @@ export function SizeOrderCard({ sizeOrder, actions, help }: Props) {
               max={100}
               step={0.01}
               value={selfWeightPct}
-              onChange={(event) => {
-                const next = parseSelfWeightPctInput(event.target.value)
+              onChange={(event: React.ChangeEvent<HTMLInputElement, HTMLInputElement>) : void => {
+                const next: number | null = parseSelfWeightPctInput(event.target.value)
                 if (next != null) actions.onSelfWeightPctChange(next)
               }}
               aria-label={`${selfCompanyLabel} 가중치`}
@@ -125,7 +127,7 @@ export function SizeOrderCard({ sizeOrder, actions, help }: Props) {
           max={100}
           step={0.01}
           value={competitorWeightPct}
-          onChange={(event) => actions.onSelfWeightPctChange(getSelfWeightPctFromCompetitorInput(Number(event.target.value)))}
+          onChange={(event: React.ChangeEvent<HTMLInputElement, HTMLInputElement>) : void => actions.onSelfWeightPctChange(getSelfWeightPctFromCompetitorInput(Number(event.target.value)))}
           aria-label={`${selfCompanyLabel} 대 ${channelLabel} 가중치`}
         />
         <div className={styles.sliderCompGroup}>
@@ -137,8 +139,8 @@ export function SizeOrderCard({ sizeOrder, actions, help }: Props) {
               max={100}
               step={0.01}
               value={competitorWeightPct}
-              onChange={(event) => {
-                const next = parseSelfWeightPctFromCompetitorInput(event.target.value)
+              onChange={(event: React.ChangeEvent<HTMLInputElement, HTMLInputElement>) : void => {
+                const next: number | null = parseSelfWeightPctFromCompetitorInput(event.target.value)
                 if (next != null) actions.onSelfWeightPctChange(next)
               }}
               aria-label={`${channelLabel} ${KO.competitorWeightApprox}`}
@@ -156,7 +158,7 @@ export function SizeOrderCard({ sizeOrder, actions, help }: Props) {
             <tr>
               <th>{KO.thMetric}</th>
               <th className={styles.num}>{KO.thTotal}</th>
-              {sizeRows.map((row) => <th key={row.size} className={styles.num}>{row.size}</th>)}
+              {sizeRows.map((row: SecondarySizeOrderDisplayRow) : React.JSX.Element => <th key={row.size} className={styles.num}>{row.size}</th>)}
             </tr>
           </thead>
           <tbody>
@@ -164,14 +166,14 @@ export function SizeOrderCard({ sizeOrder, actions, help }: Props) {
             <tr data-chart-align-row="">
               <td>{KO.rowMetricAdjustReflectedSizeSharePct}</td>
               <td className={styles.num}>{formatSharePct(columnTotals.weightedPct)}</td>
-              {sizeRows.map((row) => <td key={row.size} className={styles.num} data-chart-x="">{formatSharePct(row.blendedSharePct)}</td>)}
+              {sizeRows.map((row: SecondarySizeOrderDisplayRow) : React.JSX.Element => <td key={row.size} className={styles.num} data-chart-x="">{formatSharePct(row.blendedSharePct)}</td>)}
             </tr>
-            {quantityRows.map((row) => <QuantityTableRow key={row.label} row={row} sizeRows={sizeRows} />)}
+            {quantityRows.map((row: QuantityRow) : React.JSX.Element => <QuantityTableRow key={row.label} row={row} sizeRows={sizeRows} />)}
             <tr>
               <td>{KO.thConfirmQty}</td>
               <td className={styles.num}>{calculationReady ? formatGroupedNumber(columnTotals.confirm) : KO.valueNotCalculated}</td>
-              {sizeRows.map((row) => {
-                const manual = Boolean(manualConfirmBySize[row.size])
+              {sizeRows.map((row: SecondarySizeOrderDisplayRow) : React.JSX.Element => {
+                const manual: boolean = Boolean(manualConfirmBySize[row.size])
                 return (
                   <td key={row.size} className={`${styles.num} ${styles.confirmQtyCell} ${manual ? styles.confirmQtyCellManual : ''}`}>
                     <span className={styles.confirmQtyInputWrap}>
@@ -182,8 +184,8 @@ export function SizeOrderCard({ sizeOrder, actions, help }: Props) {
                           step={1}
                           className={styles.stockNumberInput}
                           value={row.confirmQty}
-                          onChange={(event) => {
-                            const next = parseConfirmQtyInput(event.target.value)
+                          onChange={(event: React.ChangeEvent<HTMLInputElement, HTMLInputElement>) : void => {
+                            const next: number | null = parseConfirmQtyInput(event.target.value)
                             if (next != null) actions.onConfirmQtyChange(row.size, next, row.recommendedQty)
                           }}
                           aria-label={`${row.size} ${KO.thConfirmQty}`}

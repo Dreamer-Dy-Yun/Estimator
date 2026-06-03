@@ -5,7 +5,7 @@ import {
 } from '../../../api'
 import type { CandidateMountedRef } from './candidateStashDetailTypes'
 
-type Args = {
+export type Args = {
   stashUuid: string
   companyUuid?: string
   stashSummary?: CandidateStashSummary | null
@@ -24,20 +24,20 @@ export function useCandidateStashSummaries({
   stashSummary: stashSummaryProp,
   mountedRef,
   onStashesInvalidate,
-}: Args) {
-  const initialCompanyUuidRef = useRef(companyUuid)
-  const [stashes, setStashes] = useState<CandidateStashSummary[]>([])
-  const [stashListLoadError, setStashListLoadError] = useState<string | null>(null)
-  const stashLoadSeqRef = useRef(0)
+}: Args) : { detailTarget: CandidateStashSummary | null; refreshStashes: () => Promise<void>; stashListLoadError: string | null; } {
+  const initialCompanyUuidRef: React.RefObject<string | undefined> = useRef(companyUuid)
+  const [stashes, setStashes]: [CandidateStashSummary[], React.Dispatch<React.SetStateAction<CandidateStashSummary[]>>] = useState<CandidateStashSummary[]>([])
+  const [stashListLoadError, setStashListLoadError]: [string | null, React.Dispatch<React.SetStateAction<string | null>>] = useState<string | null>(null)
+  const stashLoadSeqRef: React.RefObject<number> = useRef(0)
 
-  useEffect(() => () => {
+  useEffect(() : () => void => () : void => {
     stashLoadSeqRef.current += 1
   }, [])
 
-  useEffect(() => {
-    const seq = stashLoadSeqRef.current + 1
+  useEffect(() : void => {
+    const seq: number = stashLoadSeqRef.current + 1
     stashLoadSeqRef.current = seq
-    void (async () => {
+    void (async () : Promise<void> => {
       if (initialCompanyUuidRef.current === companyUuid && stashSummaryProp && stashSummaryProp.uuid === stashUuid) {
         if (!mountedRef.current || stashLoadSeqRef.current !== seq) return
         setStashes([stashSummaryProp])
@@ -45,7 +45,7 @@ export function useCandidateStashSummaries({
         return
       }
       try {
-        const list = await getCandidateStashes({ companyUuid })
+        const list: CandidateStashSummary[] = await getCandidateStashes({ companyUuid })
         if (!mountedRef.current || stashLoadSeqRef.current !== seq) return
         setStashes(list)
         setStashListLoadError(null)
@@ -56,11 +56,11 @@ export function useCandidateStashSummaries({
     })()
   }, [companyUuid, mountedRef, stashUuid, stashSummaryProp])
 
-  const refreshStashes = useCallback(async () => {
-    const seq = stashLoadSeqRef.current + 1
+  const refreshStashes: () => Promise<void> = useCallback(async () : Promise<void> => {
+    const seq: number = stashLoadSeqRef.current + 1
     stashLoadSeqRef.current = seq
     try {
-      const list = await getCandidateStashes({ companyUuid })
+      const list: CandidateStashSummary[] = await getCandidateStashes({ companyUuid })
       if (!mountedRef.current || stashLoadSeqRef.current !== seq) return
       setStashes(list)
       setStashListLoadError(null)
@@ -72,8 +72,8 @@ export function useCandidateStashSummaries({
     }
   }, [companyUuid, mountedRef, onStashesInvalidate])
 
-  const detailTarget = useMemo(
-    () => (stashUuid ? stashes.find((s) => s.uuid === stashUuid) ?? null : null),
+  const detailTarget: CandidateStashSummary | null = useMemo(
+    () : CandidateStashSummary | null => (stashUuid ? stashes.find((s: CandidateStashSummary) : boolean => s.uuid === stashUuid) ?? null : null),
     [stashUuid, stashes],
   )
 

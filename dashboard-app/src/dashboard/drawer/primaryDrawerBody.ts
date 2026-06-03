@@ -1,5 +1,5 @@
 /** `layout.module.css` 의 `body[data-primary-drawer-open]` 과 동일 */
-const PRIMARY_DRAWER_OPEN_ATTR = 'data-primary-drawer-open' as const
+const PRIMARY_DRAWER_OPEN_ATTR: 'data-primary-drawer-open' = 'data-primary-drawer-open' as const
 
 export function setBodyPrimaryDrawerOpen(open: boolean): void {
   if (open) document.body.setAttribute(PRIMARY_DRAWER_OPEN_ATTR, 'true')

@@ -5,15 +5,15 @@ import {
   EMPTY_ANALYSIS_FACET_VALUES,
 } from './analysisFacetFilter'
 
-const rows = [
+const rows: { brand: string; category: string; code: string; productName: string; colorCode: string; }[] = [
   { brand: '나이키', category: '신발', code: 'A', productName: '러닝화', colorCode: '010' },
   { brand: '나이키', category: '의류', code: 'B', productName: '반팔', colorCode: '020' },
   { brand: '아디다스', category: '신발', code: 'C', productName: '스니커즈', colorCode: '010' },
 ]
 
-describe('AnalysisFacetFilter', () => {
-  it('filters rows by current facet values', () => {
-    const filter = new AnalysisFacetFilter(rows, ANALYSIS_SALES_FACET_DEFINITIONS, {
+describe('AnalysisFacetFilter', () : void => {
+  it('filters rows by current facet values', () : void => {
+    const filter: AnalysisFacetFilter<{ brand: string; category: string; code: string; productName: string; colorCode: string; }> = new AnalysisFacetFilter(rows, ANALYSIS_SALES_FACET_DEFINITIONS, {
       ...EMPTY_ANALYSIS_FACET_VALUES,
       brand: '나이키',
       category: '신발',
@@ -22,8 +22,8 @@ describe('AnalysisFacetFilter', () => {
     expect(filter.getFilteredRows()).toEqual([rows[0]])
   })
 
-  it('builds target options from rows filtered by other facets', () => {
-    const filter = new AnalysisFacetFilter(rows, ANALYSIS_SALES_FACET_DEFINITIONS, {
+  it('builds target options from rows filtered by other facets', () : void => {
+    const filter: AnalysisFacetFilter<{ brand: string; category: string; code: string; productName: string; colorCode: string; }> = new AnalysisFacetFilter(rows, ANALYSIS_SALES_FACET_DEFINITIONS, {
       ...EMPTY_ANALYSIS_FACET_VALUES,
       category: '신발',
     })

@@ -1,3 +1,9 @@
+import type { AnalysisScatterGridView } from '../hooks/useAnalysisScatterGridView'
+import type { ProductDrawerBundle, SelfSalesParams } from '../../api'
+import type { AdjacentDirection } from '../../utils/adjacentListNavigation'
+import type { DashboardRequestState } from '../hooks/useDashboardRequest'
+import type { AnalysisFacetOptionValues, AnalysisFacetValues } from '../model/analysisFacetFilter'
+import type { FilterField } from '../model/filterField'
 import { useCallback, useMemo, useState } from 'react'
 import { getSelfSales, getSelfSalesScatterGrid } from '../../api'
 import type { ScatterSalesGridResponse } from '../../api/types'
@@ -26,40 +32,40 @@ import { AnalysisFacetFilter, ANALYSIS_SALES_FACET_DEFINITIONS } from '../model/
 import type { AnalysisScatterGridPoint } from '../model/analysisScatterGridPoint'
 
 const EMPTY_SELF_ROWS: SelfSalesRow[] = []
-const ALL_COMPANY_BULK_ADD_DISABLED = '전체 선택 상태에서는 오더 후보군에 추가할 수 없습니다. 회사를 선택하세요.'
+const ALL_COMPANY_BULK_ADD_DISABLED = '전체 선택 상태에서는 오더 후보군에 추가할 수 없습니다. 회사를 선택하세요.' as const
 
-export const SelfPage = () => {
-  const [bulkAddOpen, setBulkAddOpen] = useState(false)
-  const common = useAnalysisPageCommonState()
-  const filters = useAnalysisSalesFilters(common.companyUuid)
-  const { buildListFilterFields, listFilterValues } = filters
-  const analysisRequestKey = useMemo(() => buildAnalysisSalesRequestKey(filters.salesParams), [filters.salesParams])
-  const loadRows = useCallback(() => getSelfSales(filters.salesParams), [filters.salesParams])
-  const loadScatterGrid = useCallback(() => getSelfSalesScatterGrid(filters.salesParams), [filters.salesParams])
-  const rowsRequest = useDashboardRequest(loadRows, EMPTY_SELF_ROWS, analysisRequestKey)
-  const scatterGridRequest = useDashboardRequest<ScatterSalesGridResponse | null>(loadScatterGrid, null, analysisRequestKey)
-  const analysisData = useAnalysisSalesDataGate({
+export const SelfPage: () => React.JSX.Element = () : React.JSX.Element => {
+  const [bulkAddOpen, setBulkAddOpen]: [boolean, React.Dispatch<React.SetStateAction<boolean>>] = useState(false)
+  const common: { selfCompanyLabel: string; companyUuid: string | undefined; isAllCompanySelected: boolean; forecastMonths: number; onForecastMonthsChange: (n: number) => void; chartBodyRef: React.RefObject<HTMLDivElement | null>; chartWidth: number; chartHeight: number; chartReady: boolean; } = useAnalysisPageCommonState()
+  const filters: { appliedPeriodStartDate: string; appliedPeriodEndDate: string; periodQueryDirty: boolean; applyPeriodQuery: () => void; queryFields: FilterField[]; listFilterValues: AnalysisFacetValues; buildListFilterFields: (filterOptions?: AnalysisFacetOptionValues) => FilterField[]; listFiltersDirty: boolean; resetListFilters: () => void; historicalMonths: string[]; salesParams: SelfSalesParams; showPeriodBar: boolean; setShowPeriodBar: React.Dispatch<React.SetStateAction<boolean>>; startDate: string; endDate: string; periodStartDate: string; periodEndDate: string; periodStartIdx: number; periodEndIdx: number; startPct: number; endPct: number; setPeriodStartDate: (value: string) => void; setPeriodEndDate: (value: string) => void; setPresetMonths: (months: number) => void; setWholeRange: () => void; onStartDateChange: (value: string) => void; onEndDateChange: (value: string) => void; onPeriodBarStart: (value: number) => void; onPeriodBarEnd: (value: number) => void; } = useAnalysisSalesFilters(common.companyUuid)
+  const { buildListFilterFields, listFilterValues }: { appliedPeriodStartDate: string; appliedPeriodEndDate: string; periodQueryDirty: boolean; applyPeriodQuery: () => void; queryFields: FilterField[]; listFilterValues: AnalysisFacetValues; buildListFilterFields: (filterOptions?: AnalysisFacetOptionValues) => FilterField[]; listFiltersDirty: boolean; resetListFilters: () => void; historicalMonths: string[]; salesParams: SelfSalesParams; showPeriodBar: boolean; setShowPeriodBar: React.Dispatch<React.SetStateAction<boolean>>; startDate: string; endDate: string; periodStartDate: string; periodEndDate: string; periodStartIdx: number; periodEndIdx: number; startPct: number; endPct: number; setPeriodStartDate: (value: string) => void; setPeriodEndDate: (value: string) => void; setPresetMonths: (months: number) => void; setWholeRange: () => void; onStartDateChange: (value: string) => void; onEndDateChange: (value: string) => void; onPeriodBarStart: (value: number) => void; onPeriodBarEnd: (value: number) => void; } = filters
+  const analysisRequestKey: string = useMemo(() : string => buildAnalysisSalesRequestKey(filters.salesParams), [filters.salesParams])
+  const loadRows: () => Promise<SelfSalesRow[]> = useCallback(() : Promise<SelfSalesRow[]> => getSelfSales(filters.salesParams), [filters.salesParams])
+  const loadScatterGrid: () => Promise<ScatterSalesGridResponse> = useCallback(() : Promise<ScatterSalesGridResponse> => getSelfSalesScatterGrid(filters.salesParams), [filters.salesParams])
+  const rowsRequest: DashboardRequestState<SelfSalesRow[]> = useDashboardRequest(loadRows, EMPTY_SELF_ROWS, analysisRequestKey)
+  const scatterGridRequest: DashboardRequestState<ScatterSalesGridResponse | null> = useDashboardRequest<ScatterSalesGridResponse | null>(loadScatterGrid, null, analysisRequestKey)
+  const analysisData: { rows: SelfSalesRow[]; scatterGrid: ScatterSalesGridResponse | null; initialLoading: boolean; refreshing: boolean; ready: boolean; } = useAnalysisSalesDataGate({
     rowsRequest,
     scatterGridRequest,
     requestKey: analysisRequestKey,
     emptyRows: EMPTY_SELF_ROWS,
   })
-  const { rows, scatterGrid } = analysisData
-  const facetFilter = useMemo(
-    () => new AnalysisFacetFilter(rows, ANALYSIS_SALES_FACET_DEFINITIONS, listFilterValues),
+  const { rows, scatterGrid }: { rows: SelfSalesRow[]; scatterGrid: ScatterSalesGridResponse | null; initialLoading: boolean; refreshing: boolean; ready: boolean; } = analysisData
+  const facetFilter: AnalysisFacetFilter<SelfSalesRow> = useMemo(
+    () : AnalysisFacetFilter<SelfSalesRow> => new AnalysisFacetFilter(rows, ANALYSIS_SALES_FACET_DEFINITIONS, listFilterValues),
     [listFilterValues, rows],
   )
-  const listFilterFields = useMemo(
-    () => buildListFilterFields(facetFilter.getOptionValuesByKey()),
+  const listFilterFields: FilterField[] = useMemo(
+    () : FilterField[] => buildListFilterFields(facetFilter.getOptionValuesByKey()),
     [buildListFilterFields, facetFilter],
   )
-  const filteredRows = useMemo(() => facetFilter.getFilteredRows(), [facetFilter])
-  const selection = useAnalysisPageSelection({ rows: filteredRows, scatterGrid, bulkAddOpen })
-  const summaryBundleState = useProductDrawerBundleState(selection.selectedSkuGroupKey, { companyUuid: common.companyUuid })
+  const filteredRows: SelfSalesRow[] = useMemo(() : SelfSalesRow[] => facetFilter.getFilteredRows(), [facetFilter])
+  const selection: { activeGridCellKey: string | null; selectedSkuGroupKey: string | null; activeSkuGroupKey: string | null; bulkSelectedSkuGroupKeys: Set<string>; visibleRows: SelfSalesRow[]; bulkSelectedCount: number; allVisibleRowsSelected: boolean; selectedSkuGroupKeys: string[]; setSelectedSkuGroupKey: (skuGroupKey: string | null) => void; onScatterCellClick: (cellKey: string) => void; clearActiveGridCell: () => void; toggleBulkRow: (id: string) => void; toggleAllVisibleRows: () => void; clearBulkSelection: () => void; onRequestNavigateAdjacent: (direction: AdjacentDirection) => void; onRequestFocusAdjacent: (currentSkuGroupKey: string | null, direction: AdjacentDirection) => void; onOrderedSkuGroupKeysChange: React.Dispatch<React.SetStateAction<string[]>>; } = useAnalysisPageSelection({ rows: filteredRows, scatterGrid, bulkAddOpen })
+  const summaryBundleState: { bundle: ProductDrawerBundle | null; loading: boolean; } = useProductDrawerBundleState(selection.selectedSkuGroupKey, { companyUuid: common.companyUuid })
 
-  const kpi = useMemo(() => {
-    const totalAmount = selection.visibleRows.reduce((acc, row) => acc + row.amount, 0)
-    const totalQty = selection.visibleRows.reduce((acc, row) => acc + row.qty, 0)
+  const kpi: { totalAmount: number; totalQty: number; avgMarginRate: number; avgOpMarginRate: number; } = useMemo(() : { totalAmount: number; totalQty: number; avgMarginRate: number; avgOpMarginRate: number; } => {
+    const totalAmount: number = selection.visibleRows.reduce((acc: number, row: SelfSalesRow) : number => acc + row.amount, 0)
+    const totalQty: number = selection.visibleRows.reduce((acc: number, row: SelfSalesRow) : number => acc + row.qty, 0)
     return {
       totalAmount,
       totalQty,
@@ -68,13 +74,13 @@ export const SelfPage = () => {
     }
   }, [selection.visibleRows])
 
-  const scatterView = useAnalysisScatterGridView({
+  const scatterView: AnalysisScatterGridView = useAnalysisScatterGridView({
     scatterGrid,
     chartWidth: common.chartWidth,
     chartHeight: common.chartHeight,
   })
-  const displayedListFilterFields = useMemo(
-    () => (selection.activeGridCellKey ? maskAnalysisListFilterFields(listFilterFields) : listFilterFields),
+  const displayedListFilterFields: FilterField[] = useMemo(
+    () : FilterField[] => (selection.activeGridCellKey ? maskAnalysisListFilterFields(listFilterFields) : listFilterFields),
     [listFilterFields, selection.activeGridCellKey],
   )
 
@@ -92,7 +98,7 @@ export const SelfPage = () => {
         endPct={filters.endPct}
         setPresetMonths={filters.setPresetMonths}
         setWholeRange={filters.setWholeRange}
-        onTogglePeriodBar={() => filters.setShowPeriodBar((prev) => !prev)}
+        onTogglePeriodBar={() : void => filters.setShowPeriodBar((prev: boolean) : boolean => !prev)}
         onPeriodBarStart={filters.onPeriodBarStart}
         onPeriodBarEnd={filters.onPeriodBarEnd}
         initialLoading={analysisData.initialLoading && !rows.length}
@@ -109,7 +115,7 @@ export const SelfPage = () => {
           <button
             type="button"
             className={`${styles.actionBtn} ${styles.btnPrimary} ${styles.analysisBulkAddButton}`}
-            onClick={() => setBulkAddOpen(true)}
+            onClick={() : void => setBulkAddOpen(true)}
             disabled={common.isAllCompanySelected || selection.bulkSelectedCount === 0}
             title={common.isAllCompanySelected ? ALL_COMPANY_BULK_ADD_DISABLED : undefined}
           >
@@ -143,7 +149,7 @@ export const SelfPage = () => {
               onCellClick={selection.onScatterCellClick}
               onClearSelection={selection.clearActiveGridCell}
               renderTooltip={renderSelfSalesScatterTooltip}
-              xAxis={{ name: '영업 이익률', label: '영업 이익률', unit: '%', tickFormatter: (value) => `${value}` }}
+              xAxis={{ name: '영업 이익률', label: '영업 이익률', unit: '%', tickFormatter: (value: number) : string => `${value}` }}
               yAxis={{ name: '판매량(EA)', label: '판매량(EA)', width: 42, tickMargin: 4 }}
             />
           </>
@@ -175,9 +181,9 @@ export const SelfPage = () => {
         onRequestNavigateAdjacent={selection.onRequestNavigateAdjacent}
         openSkuGroupKeys={selection.selectedSkuGroupKeys}
         bulkAddOpen={bulkAddOpen}
-        onCloseDrawer={() => selection.setSelectedSkuGroupKey(null)}
-        onCloseBulkAdd={() => setBulkAddOpen(false)}
-        onBulkAddDone={() => {
+        onCloseDrawer={() : void => selection.setSelectedSkuGroupKey(null)}
+        onCloseBulkAdd={() : void => setBulkAddOpen(false)}
+        onBulkAddDone={() : void => {
           setBulkAddOpen(false)
           selection.clearBulkSelection()
         }}

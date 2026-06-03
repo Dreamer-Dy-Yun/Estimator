@@ -1,3 +1,5 @@
+import type { SecondaryStockOrderDisplaySizeRow } from '../../../../../api/types/secondary'
+import type { SecondarySizeShare } from '../model/secondarySizeOrderRows'
 import { useMemo } from 'react'
 import type { SecondaryStockOrderCalcResult } from '../../../../../api/types'
 import type { OrderSnapshotSizeOrderV2 } from '../../../../../snapshot/orderSnapshotTypes'
@@ -10,7 +12,7 @@ import {
   type SecondarySizeOrderDisplayRow,
 } from '../model/secondarySizeOrderRows'
 
-type Args = {
+export type Args = {
   secondary: ProductSecondaryDetail
   forecastSalesHorizonDays: number
   dailyMeanClient: number | null
@@ -36,11 +38,11 @@ export function useSecondaryOrderCalculations({
   snapshotConfirmBySize,
   useSnapshotConfirmBaseline,
   snapshotSizeOrders,
-}: Args) {
-  const calculationReady = stockOrderCalculationReady == null
+}: Args) : { stockOrderCalculationReady: boolean; stockOrderDisplayInputs: { trendDailyMean: null; dailyMean: null; sigma: null; } | { trendDailyMean: number; dailyMean: number; sigma: number; }; sizeRows: SecondarySizeOrderDisplayRow[]; manualConfirmDerived: Record<string, true>; dailyTrendSizeOptions: { id: string; label: string; share: number; }[]; } {
+  const calculationReady: boolean = stockOrderCalculationReady == null
     ? forecastCalc != null
     : stockOrderCalculationReady && forecastCalc != null
-  const stockOrderDisplayInputs = useMemo(() => {
+  const stockOrderDisplayInputs: { trendDailyMean: null; dailyMean: null; sigma: null; } | { trendDailyMean: number; dailyMean: number; sigma: number; } = useMemo(() : { trendDailyMean: null; dailyMean: null; sigma: null; } | { trendDailyMean: number; dailyMean: number; sigma: number; } => {
     if (!calculationReady || forecastCalc == null) {
       return {
         trendDailyMean: null,
@@ -59,8 +61,8 @@ export function useSecondaryOrderCalculations({
     forecastCalc,
   ])
 
-  const orderDraft = useMemo(
-    () => new SecondaryOrderDraft({
+  const orderDraft: SecondaryOrderDraft = useMemo(
+    () : SecondaryOrderDraft => new SecondaryOrderDraft({
       mode: useSnapshotConfirmBaseline ? 'snapshot' : 'live',
       manualConfirmBySize: confirmBySize,
       snapshotConfirmBySize,
@@ -68,14 +70,14 @@ export function useSecondaryOrderCalculations({
     [confirmBySize, snapshotConfirmBySize, useSnapshotConfirmBaseline],
   )
 
-  const sizeShares = useMemo(
-    () => buildSecondarySizeShares(secondary, selfWeightPct),
+  const sizeShares: SecondarySizeShare[] = useMemo(
+    () : SecondarySizeShare[] => buildSecondarySizeShares(secondary, selfWeightPct),
     [secondary, selfWeightPct],
   )
 
-  const sizeRows = useMemo(() => {
+  const sizeRows: SecondarySizeOrderDisplayRow[] = useMemo(() : SecondarySizeOrderDisplayRow[] => {
     if (useSnapshotConfirmBaseline && snapshotSizeOrders != null) {
-      return snapshotSizeOrders.map<SecondarySizeOrderDisplayRow>((row) => ({
+      return snapshotSizeOrders.map<SecondarySizeOrderDisplayRow>((row: OrderSnapshotSizeOrderV2) : { size: string; selfSharePct: number; competitorSharePct: number; blendedSharePct: number; forecastQty: number; recommendedQty: number; confirmQty: number; } => ({
         size: row.size,
         selfSharePct: row.selfSharePct,
         competitorSharePct: row.competitorSharePct,
@@ -85,9 +87,9 @@ export function useSecondaryOrderCalculations({
         confirmQty: orderDraft.confirmQty(row.size, row.recommendedQty),
       }))
     }
-    const readyForecastCalc = calculationReady ? forecastCalc : null
+    const readyForecastCalc: SecondaryStockOrderCalcResult | null = calculationReady ? forecastCalc : null
     if (readyForecastCalc == null) {
-      return sizeShares.map<SecondarySizeOrderDisplayRow>((row) => ({
+      return sizeShares.map<SecondarySizeOrderDisplayRow>((row: SecondarySizeShare) : { size: string; selfSharePct: number; competitorSharePct: number; blendedSharePct: number; forecastQty: number; recommendedQty: number; confirmQty: number; } => ({
         size: row.size,
         selfSharePct: row.selfSharePct,
         competitorSharePct: row.competitorSharePct,
@@ -97,8 +99,8 @@ export function useSecondaryOrderCalculations({
         confirmQty: 0,
       }))
     }
-    const display = readyForecastCalc?.display ?? null
-    const dailyMeanEa = dailyMeanClient ?? readyForecastCalc.dailyMean
+    const display: { currentStockQtyTotal: number; totalOrderBalanceTotal: number; expectedInboundOrderBalanceTotal: number; sizeRows: SecondaryStockOrderDisplaySizeRow[]; } = readyForecastCalc?.display ?? null
+    const dailyMeanEa: number = dailyMeanClient ?? readyForecastCalc.dailyMean
     return buildSecondarySizeOrderRows({
       shares: sizeShares,
       dailyMeanEa,

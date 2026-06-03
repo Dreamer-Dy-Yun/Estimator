@@ -1,6 +1,6 @@
 import styles from './LoadingSpinner.module.css'
 
-type LoadingSpinnerProps = {
+export type LoadingSpinnerProps = {
   label?: string
   size?: 'inline' | 'panel' | 'page'
   showLabel?: boolean
@@ -12,9 +12,9 @@ export function LoadingSpinner({
   size = 'panel',
   showLabel = true,
   className,
-}: LoadingSpinnerProps) {
-  const rootClassName = [styles.root, styles[size], className].filter(Boolean).join(' ')
-  const statusProps = size === 'inline' ? {} : { role: 'status', 'aria-live': 'polite' as const }
+}: LoadingSpinnerProps) : React.JSX.Element {
+  const rootClassName: string = [styles.root, styles[size], className].filter(Boolean).join(' ')
+  const statusProps: { role?: undefined; 'aria-live'?: undefined; } | { role: string; 'aria-live': 'polite'; } = size === 'inline' ? {} : { role: 'status', 'aria-live': 'polite' as const }
 
   return (
     <span className={rootClassName} {...statusProps}>

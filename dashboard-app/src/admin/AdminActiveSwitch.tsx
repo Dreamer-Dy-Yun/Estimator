@@ -1,6 +1,6 @@
 import styles from './AdminPage.module.css'
 
-interface AdminActiveSwitchProps {
+export interface AdminActiveSwitchProps {
   checked: boolean
   onChange: (checked: boolean) => void
   disabled?: boolean
@@ -12,7 +12,7 @@ export function AdminActiveSwitch({
   onChange,
   disabled = false,
   label = '활성',
-}: AdminActiveSwitchProps) {
+}: AdminActiveSwitchProps) : React.JSX.Element {
   return (
     <button
       type="button"
@@ -20,7 +20,7 @@ export function AdminActiveSwitch({
       role="switch"
       aria-checked={checked}
       disabled={disabled}
-      onClick={() => onChange(!checked)}
+      onClick={() : void => onChange(!checked)}
     >
       <span className={styles.activeSwitchTrack} aria-hidden="true">
         <span className={styles.activeSwitchThumb} />

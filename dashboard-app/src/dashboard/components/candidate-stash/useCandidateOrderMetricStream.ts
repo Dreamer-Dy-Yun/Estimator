@@ -1,3 +1,4 @@
+import type { CandidateItemSummary, CandidateOrderMetricEvent } from '../../../api'
 import { useCallback, useEffect, useRef } from 'react'
 import {
   subscribeCandidateOrderMetrics,
@@ -15,14 +16,14 @@ import {
 } from './candidateOrderMetricStreamModel'
 import type { CandidateMountedRef, CandidateSetItems } from './candidateStashDetailTypes'
 
-type Args = {
+export type Args = {
   stashUuid: string
   companyUuid?: string
   mountedRef: CandidateMountedRef
   setItems: CandidateSetItems
 }
 
-type SubscribeArgs = {
+export type SubscribeArgs = {
   seq: number
   dataReferencePeriodStart: string
   dataReferencePeriodEnd: string
@@ -30,61 +31,61 @@ type SubscribeArgs = {
   candidateItemUuids: string[]
 }
 
-type ActiveMetricSubscription = {
+export type ActiveMetricSubscription = {
   signature: string
   subscription: CandidateOrderMetricSubscription
 }
 
-export function useCandidateOrderMetricStream({ stashUuid, companyUuid, mountedRef, setItems }: Args) {
-  const itemLoadSeqRef = useRef(0)
-  const metricRequestSeqRef = useRef(0)
-  const metricSubscriptionsRef = useRef(new Map<string, ActiveMetricSubscription>())
-  const metricRequestIdBySignatureRef = useRef(new Map<string, string>())
+export function useCandidateOrderMetricStream({ stashUuid, companyUuid, mountedRef, setItems }: Args) : { beginItemLoad: () => number; closeMetricSubscription: () => void; getCurrentItemLoadSeq: () => number; isCurrentItemLoad: (seq: number) => boolean; subscribeOrderMetrics: (args: SubscribeArgs) => void; } {
+  const itemLoadSeqRef: React.RefObject<number> = useRef(0)
+  const metricRequestSeqRef: React.RefObject<number> = useRef(0)
+  const metricSubscriptionsRef: React.RefObject<Map<string, ActiveMetricSubscription>> = useRef(new Map<string, ActiveMetricSubscription>())
+  const metricRequestIdBySignatureRef: React.RefObject<Map<string, string>> = useRef(new Map<string, string>())
 
-  const closeMetricSubscription = useCallback(() => {
-    metricSubscriptionsRef.current.forEach((entry) => entry.subscription.close())
+  const closeMetricSubscription: () => void = useCallback(() : void => {
+    metricSubscriptionsRef.current.forEach((entry: ActiveMetricSubscription) : void => entry.subscription.close())
     metricSubscriptionsRef.current.clear()
     metricRequestIdBySignatureRef.current.clear()
   }, [])
 
-  useEffect(() => () => {
+  useEffect(() : () => void => () : void => {
     itemLoadSeqRef.current += 1
     closeMetricSubscription()
   }, [closeMetricSubscription])
 
-  const beginItemLoad = useCallback(() => {
-    const seq = itemLoadSeqRef.current + 1
+  const beginItemLoad: () => number = useCallback(() : number => {
+    const seq: number = itemLoadSeqRef.current + 1
     itemLoadSeqRef.current = seq
     closeMetricSubscription()
     return seq
   }, [closeMetricSubscription])
 
-  const isCurrentItemLoad = useCallback((seq: number) => (
+  const isCurrentItemLoad: (seq: number) => boolean = useCallback((seq: number) : boolean => (
     mountedRef.current && itemLoadSeqRef.current === seq
   ), [mountedRef])
 
-  const getCurrentItemLoadSeq = useCallback(() => itemLoadSeqRef.current, [])
+  const getCurrentItemLoadSeq: () => number = useCallback(() : number => itemLoadSeqRef.current, [])
 
-  const subscribeOrderMetrics = useCallback(({
+  const subscribeOrderMetrics: (args: SubscribeArgs) => void = useCallback(({
     seq,
     dataReferencePeriodStart,
     dataReferencePeriodEnd,
     companyUuid: requestCompanyUuid,
     candidateItemUuids,
-  }: SubscribeArgs) => {
-    const metricCompanyUuid = requestCompanyUuid ?? companyUuid
-    const nextCandidateItemUuids = normalizeCandidateItemUuids(candidateItemUuids)
+  }: SubscribeArgs) : void => {
+    const metricCompanyUuid: string | undefined = requestCompanyUuid ?? companyUuid
+    const nextCandidateItemUuids: string[] = normalizeCandidateItemUuids(candidateItemUuids)
     if (!nextCandidateItemUuids.length) return
     if (!metricCompanyUuid) {
-      const pendingItemUuids = createPendingMetricItemUuidSet(nextCandidateItemUuids)
+      const pendingItemUuids: Set<string> = createPendingMetricItemUuidSet(nextCandidateItemUuids)
       if (isCurrentItemLoad(seq)) {
-        setItems((current) => current.map((item) => (
+        setItems((current: CandidateItemSummary[]) : CandidateItemSummary[] => current.map((item: CandidateItemSummary) : CandidateItemSummary => (
           pendingItemUuids.has(item.uuid) ? markCandidateItemOrderMetricFailed(item) : item
         )))
       }
       return
     }
-    const signature = [
+    const signature: string = [
       metricCompanyUuid,
       buildCandidateOrderMetricRequestSignature({
         stashUuid,
@@ -94,11 +95,11 @@ export function useCandidateOrderMetricStream({ stashUuid, companyUuid, mountedR
         candidateItemUuids: nextCandidateItemUuids,
       }),
     ].join(':')
-    const existingRequestId = metricRequestIdBySignatureRef.current.get(signature)
+    const existingRequestId: string | undefined = metricRequestIdBySignatureRef.current.get(signature)
     if (existingRequestId && metricSubscriptionsRef.current.has(existingRequestId)) return
 
     metricRequestSeqRef.current += 1
-    const requestId = [
+    const requestId: string = [
       stashUuid,
       metricCompanyUuid,
       dataReferencePeriodStart,
@@ -107,34 +108,34 @@ export function useCandidateOrderMetricStream({ stashUuid, companyUuid, mountedR
       metricRequestSeqRef.current,
     ].join(':')
 
-    const closeRequest = () => {
-      const entry = metricSubscriptionsRef.current.get(requestId)
+    const closeRequest: () => void = () : void => {
+      const entry: ActiveMetricSubscription | undefined = metricSubscriptionsRef.current.get(requestId)
       if (!entry) return
       entry.subscription.close()
       metricSubscriptionsRef.current.delete(requestId)
       metricRequestIdBySignatureRef.current.delete(entry.signature)
     }
 
-    const pendingItemUuids = createPendingMetricItemUuidSet(nextCandidateItemUuids)
-    const failPendingItems = () => {
+    const pendingItemUuids: Set<string> = createPendingMetricItemUuidSet(nextCandidateItemUuids)
+    const failPendingItems: () => void = () : void => {
       if (!isCurrentItemLoad(seq)) return
-      setItems((current) => current.map((item) => (
+      setItems((current: CandidateItemSummary[]) : CandidateItemSummary[] => current.map((item: CandidateItemSummary) : CandidateItemSummary => (
         pendingItemUuids.has(item.uuid) ? markCandidateItemOrderMetricFailed(item) : item
       )))
       closeRequest()
     }
-    const subscription = subscribeCandidateOrderMetrics({
+    const subscription: CandidateOrderMetricSubscription = subscribeCandidateOrderMetrics({
       stashUuid,
       companyUuid: metricCompanyUuid,
       dataReferencePeriodStart,
       dataReferencePeriodEnd,
       requestId,
       candidateItemUuids: nextCandidateItemUuids,
-    }, (event) => {
+    }, (event: CandidateOrderMetricEvent) : void => {
       if (!isCurrentItemLoad(seq)) return
       if (event.requestId !== requestId) return
       if (event.type === 'item') {
-        setItems((current) => current.map((item) => (
+        setItems((current: CandidateItemSummary[]) : CandidateItemSummary[] => current.map((item: CandidateItemSummary) : CandidateItemSummary => (
           item.uuid === event.itemUuid ? applyOrderMetricToCandidateItem(item, event.metric) : item
         )))
         if (settlePendingMetricItem(pendingItemUuids, event.itemUuid)) closeRequest()
@@ -142,9 +143,9 @@ export function useCandidateOrderMetricStream({ stashUuid, companyUuid, mountedR
       }
       if (event.type === 'completed') {
         if (pendingItemUuids.size) {
-          const remainingItemUuids = new Set(pendingItemUuids)
+          const remainingItemUuids: Set<string> = new Set(pendingItemUuids)
           pendingItemUuids.clear()
-          setItems((current) => current.map((item) => (
+          setItems((current: CandidateItemSummary[]) : CandidateItemSummary[] => current.map((item: CandidateItemSummary) : CandidateItemSummary => (
             remainingItemUuids.has(item.uuid) ? markCandidateItemOrderMetricFailed(item) : item
           )))
         }
@@ -152,7 +153,7 @@ export function useCandidateOrderMetricStream({ stashUuid, companyUuid, mountedR
         return
       }
       if (event.type === 'itemFailed') {
-        setItems((current) => current.map((item) => (
+        setItems((current: CandidateItemSummary[]) : CandidateItemSummary[] => current.map((item: CandidateItemSummary) : CandidateItemSummary => (
           item.uuid === event.itemUuid ? markCandidateItemOrderMetricFailed(item) : item
         )))
         if (settlePendingMetricItem(pendingItemUuids, event.itemUuid)) closeRequest()

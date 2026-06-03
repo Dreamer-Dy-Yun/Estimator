@@ -1,11 +1,11 @@
 import { useCallback } from 'react'
 
-type ShowToast = (message: string, options?: { variant?: 'error' | 'success' | 'warning' }) => void
-type RefreshFailure = { ok: false; error: unknown }
-type RefreshResult = void | RefreshFailure
-type RefreshFailureNotice = { message: string; error: unknown }
+export type ShowToast = (message: string, options?: { variant?: 'error' | 'success' | 'warning' }) => void
+export type RefreshFailure = { ok: false; error: unknown }
+export type RefreshResult = void | RefreshFailure
+export type RefreshFailureNotice = { message: string; error: unknown }
 
-type ScopedActionOptions<Result> = {
+export type ScopedActionOptions<Result> = {
   actionLabel: string
   successMessage?: string
   setBusy?: (busy: boolean) => void
@@ -15,7 +15,7 @@ type ScopedActionOptions<Result> = {
   onError?: (message: string) => void
 }
 
-type Args = {
+export type Args = {
   scopeKey: string
   isCurrentScope: (scopeKey: string) => boolean
   requireCompanyUuid: () => string
@@ -23,29 +23,29 @@ type Args = {
   showToast: ShowToast
 }
 
-const failureMessage = (actionLabel: string, err: unknown) => (
+const failureMessage: (actionLabel: string, err: unknown) => string = (actionLabel: string, err: unknown) : string => (
   err instanceof Error && err.message.trim() ? `${actionLabel} 실패: ${err.message}` : `${actionLabel}에 실패했습니다. 다시 시도해 주세요.`
 )
 
-const refreshFailureMessage = (actionLabel: string, err: unknown) => (
+const refreshFailureMessage: (actionLabel: string, err: unknown) => string = (actionLabel: string, err: unknown) : string => (
   err instanceof Error && err.message.trim()
     ? `${actionLabel} 작업은 완료됐지만 후보군 목록을 새로고침하지 못했습니다: ${err.message}`
     : `${actionLabel} 작업은 완료됐지만 후보군 목록을 새로고침하지 못했습니다. 목록을 다시 불러와 최신 상태를 확인해 주세요.`
 )
-const isRefreshFailure = (result: RefreshResult): result is RefreshFailure => (
+const isRefreshFailure: (result: RefreshResult) => result is RefreshFailure = (result: RefreshResult): result is RefreshFailure => (
   typeof result === 'object' && result !== null && 'ok' in result && result.ok === false
 )
 
-export function useScopedCandidateStashAction({ scopeKey, isCurrentScope, requireCompanyUuid, loadStashes, showToast }: Args) {
-  return useCallback(async <Result = void>({ actionLabel, successMessage, setBusy, mutate, afterSuccess, onRefreshError, onError }: ScopedActionOptions<Result>) => {
-    const actionScopeKey = scopeKey
+export function useScopedCandidateStashAction({ scopeKey, isCurrentScope, requireCompanyUuid, loadStashes, showToast }: Args) : <Result = void>({ actionLabel, successMessage, setBusy, mutate, afterSuccess, onRefreshError, onError }: ScopedActionOptions<Result>) => Promise<void> {
+  return useCallback(async <Result = void>({ actionLabel, successMessage, setBusy, mutate, afterSuccess, onRefreshError, onError }: ScopedActionOptions<Result>) : Promise<void> => {
+    const actionScopeKey: string = scopeKey
     setBusy?.(true)
     try {
-      const result = await mutate(requireCompanyUuid())
+      const result: Awaited<Result> = await mutate(requireCompanyUuid())
       if (!isCurrentScope(actionScopeKey)) return
       let refreshFailure: RefreshFailureNotice | null = null
       try {
-        const refreshResult = await loadStashes()
+        const refreshResult: RefreshResult = await loadStashes()
         if (!isCurrentScope(actionScopeKey)) return
         if (isRefreshFailure(refreshResult)) {
           refreshFailure = {
@@ -69,7 +69,7 @@ export function useScopedCandidateStashAction({ scopeKey, isCurrentScope, requir
       }
     } catch (err) {
       if (!isCurrentScope(actionScopeKey)) return
-      const message = failureMessage(actionLabel, err)
+      const message: string = failureMessage(actionLabel, err)
       if (onError) onError(message)
       else showToast(message, { variant: 'error' })
     } finally {

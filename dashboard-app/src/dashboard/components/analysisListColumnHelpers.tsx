@@ -1,9 +1,8 @@
-import type { KeyboardEvent } from 'react'
 import type { AdjacentDirection } from '../../utils/adjacentListNavigation'
 import { formatGroupedNumber, formatPercent } from '../../utils/format'
 import type { TableColumn } from './PaginatedTable'
 
-type SkuRow = { skuGroupKey: string; productName: string }
+export type SkuRow = { skuGroupKey: string; productName: string }
 
 export type AnalysisListInteractionProps = {
   activeSkuGroupKey: string | null
@@ -16,7 +15,7 @@ export type AnalysisListInteractionProps = {
   onOrderedSkuGroupKeysChange?: (skuGroupKeys: string[]) => void
 }
 
-export const getSkuGroupRowId = <Row extends SkuRow>(row: Row) => row.skuGroupKey
+export const getSkuGroupRowId: <Row extends SkuRow>(row: Row) => string = <Row extends SkuRow>(row: Row) : string => row.skuGroupKey
 
 export function createBulkSelectColumn<Row extends SkuRow>({
   rows,
@@ -28,13 +27,13 @@ export function createBulkSelectColumn<Row extends SkuRow>({
   return {
     key: 'bulkSelect',
     header: <input type="checkbox" checked={allVisibleRowsSelected} disabled={rows.length === 0} aria-label="전체 선택" onChange={onToggleAllVisibleRows} />,
-    cell: (row) => (
+    cell: (row: Row) : React.JSX.Element => (
       <input
         type="checkbox"
         checked={bulkSelectedSkuGroupKeys.has(row.skuGroupKey)}
         aria-label={`${row.productName} 선택`}
-        onClick={(event) => event.stopPropagation()}
-        onChange={() => onToggleBulkRow(row.skuGroupKey)}
+        onClick={(event: React.MouseEvent<HTMLInputElement, MouseEvent>) : void => event.stopPropagation()}
+        onChange={() : void => onToggleBulkRow(row.skuGroupKey)}
       />
     ),
     align: 'center',
@@ -47,10 +46,10 @@ export function createRankColumn<Row extends SkuRow>(key: string, ranks: Map<str
   return {
     key,
     header: '순위',
-    cell: (row) => ranks.get(row.skuGroupKey) ?? '-',
+    cell: (row: Row) : number | '-' => ranks.get(row.skuGroupKey) ?? '-',
     align: 'center',
     width: '58px',
-    sortValue: (row) => ranks.get(row.skuGroupKey) ?? Number.MAX_SAFE_INTEGER,
+    sortValue: (row: Row) : number => ranks.get(row.skuGroupKey) ?? Number.MAX_SAFE_INTEGER,
   }
 }
 
@@ -59,23 +58,23 @@ export function textColumn<Row>(key: string, header: string, value: (row: Row) =
 }
 
 export function numberColumn<Row>(key: string, header: string, value: (row: Row) => number): TableColumn<Row> {
-  return { key, header, cell: (row) => formatGroupedNumber(value(row)), align: 'right', sortValue: value }
+  return { key, header, cell: (row: Row) : string => formatGroupedNumber(value(row)), align: 'right', sortValue: value }
 }
 
 export function nullableNumberColumn<Row>(key: string, header: string, value: (row: Row) => number | null | undefined): TableColumn<Row> {
-  return { key, header, cell: (row) => value(row) != null ? formatGroupedNumber(value(row)!) : '-', align: 'right', sortValue: (row) => value(row) ?? 0 }
+  return { key, header, cell: (row: Row) : string => value(row) != null ? formatGroupedNumber(value(row)!) : '-', align: 'right', sortValue: (row: Row) : number => value(row) ?? 0 }
 }
 
 export function percentColumn<Row>(key: string, header: string, value: (row: Row) => number): TableColumn<Row> {
-  return { key, header, cell: (row) => formatPercent(value(row)), align: 'right', sortValue: value }
+  return { key, header, cell: (row: Row) : string => formatPercent(value(row)), align: 'right', sortValue: value }
 }
 
 export function handleAnalysisRowKeyDown<Row extends SkuRow>(
   row: Row,
-  event: KeyboardEvent<HTMLTableRowElement>,
+  event: React.KeyboardEvent<HTMLTableRowElement>,
   onOpenSkuGroupKey: (skuGroupKey: string) => void,
   onRequestFocusAdjacent: (currentSkuGroupKey: string | null, direction: AdjacentDirection) => void,
-) {
+) : void {
   if (event.key !== 'ArrowLeft' && event.key !== 'ArrowUp' && event.key !== 'ArrowDown') return
   event.preventDefault()
   event.stopPropagation()

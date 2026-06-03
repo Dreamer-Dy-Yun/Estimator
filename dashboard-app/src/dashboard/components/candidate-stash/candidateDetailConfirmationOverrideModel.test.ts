@@ -1,3 +1,4 @@
+import type { CandidateDetailConfirmationOverrideResult } from './candidateDetailConfirmationOverrideModel'
 import { describe, expect, it } from 'vitest'
 import type { CandidateItemSummary } from '../../../api'
 import type { OrderSnapshotDocumentV2 } from '../../../snapshot/orderSnapshotTypes'
@@ -7,7 +8,7 @@ import {
   type CandidateDetailConfirmationOverrideMap,
 } from './candidateDetailConfirmationOverrideModel'
 
-const snapshot = {} as OrderSnapshotDocumentV2
+const snapshot: OrderSnapshotDocumentV2 = {} as OrderSnapshotDocumentV2
 
 function item(
   uuid: string,
@@ -52,47 +53,47 @@ function item(
   }
 }
 
-describe('candidateDetailConfirmationOverrideModel', () => {
-  it('keeps a confirmed mutation over a stale unconfirmed list response', () => {
+describe('candidateDetailConfirmationOverrideModel', () : void => {
+  it('keeps a confirmed mutation over a stale unconfirmed list response', () : void => {
     const overrides: CandidateDetailConfirmationOverrideMap = {
       item1: createCandidateDetailConfirmationOverride(item('item1', false, 't1'), true, snapshot),
     }
 
-    const result = applyCandidateDetailConfirmationOverrides([item('item1', false, 't1')], overrides)
+    const result: CandidateDetailConfirmationOverrideResult = applyCandidateDetailConfirmationOverrides([item('item1', false, 't1')], overrides)
 
     expect(result.items[0]?.isDetailConfirmed).toBe(true)
     expect(result.items[0]?.isLatestLlmComment).toBe(false)
     expect(result.overrides.item1).toBeDefined()
   })
 
-  it('keeps an unconfirmed mutation over a stale confirmed list response', () => {
+  it('keeps an unconfirmed mutation over a stale confirmed list response', () : void => {
     const overrides: CandidateDetailConfirmationOverrideMap = {
       item1: createCandidateDetailConfirmationOverride(item('item1', true, 't1'), false, null),
     }
 
-    const result = applyCandidateDetailConfirmationOverrides([item('item1', true, 't1')], overrides)
+    const result: CandidateDetailConfirmationOverrideResult = applyCandidateDetailConfirmationOverrides([item('item1', true, 't1')], overrides)
 
     expect(result.items[0]?.isDetailConfirmed).toBe(false)
     expect(result.overrides.item1).toBeDefined()
   })
 
-  it('releases the override when the server returns the new state with a newer dbUpdatedAt', () => {
+  it('releases the override when the server returns the new state with a newer dbUpdatedAt', () : void => {
     const overrides: CandidateDetailConfirmationOverrideMap = {
       item1: createCandidateDetailConfirmationOverride(item('item1', false, 't1'), true, snapshot),
     }
 
-    const result = applyCandidateDetailConfirmationOverrides([item('item1', true, 't2')], overrides)
+    const result: CandidateDetailConfirmationOverrideResult = applyCandidateDetailConfirmationOverrides([item('item1', true, 't2')], overrides)
 
     expect(result.items[0]?.isDetailConfirmed).toBe(true)
     expect(result.overrides.item1).toBeUndefined()
   })
 
-  it('drops overrides for items missing from the latest list response', () => {
+  it('drops overrides for items missing from the latest list response', () : void => {
     const overrides: CandidateDetailConfirmationOverrideMap = {
       item1: createCandidateDetailConfirmationOverride(item('item1', false, 't1'), true, snapshot),
     }
 
-    const result = applyCandidateDetailConfirmationOverrides([], overrides)
+    const result: CandidateDetailConfirmationOverrideResult = applyCandidateDetailConfirmationOverrides([], overrides)
 
     expect(result.items).toEqual([])
     expect(result.overrides.item1).toBeUndefined()

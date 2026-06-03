@@ -1,28 +1,33 @@
+import type { ProductSecondaryDetail } from '..'
+import type { ProductSecondarySizeRow } from '../../types'
+import type { SalesKpiColumn } from '../../utils/salesKpiColumn'
+import type { ProductPrimarySummary } from '../types'
+import type { MockSecondaryCompetitorChannel } from './salesTables'
 import { buildSalesKpiColumn } from '../../utils/salesKpiColumn'
 import type { SecondaryAiCommentParams } from '../types'
 import { scopeMockProductPrimary, scopeMockProductSecondary } from './mockCompanyScope'
 import { requireMockProductPrimary, requireMockProductSecondary } from './mockProductLookup'
 import { getMockSecondaryCompetitorChannel } from './salesTables'
 
-const koNumber = new Intl.NumberFormat('ko-KR')
-const formatEa = (value: number) => `${koNumber.format(Math.max(0, Math.round(value)))}EA`
-const formatWon = (value: number) => `${koNumber.format(Math.max(0, Math.round(value)))}원`
+const koNumber: Intl.NumberFormat = new Intl.NumberFormat('ko-KR')
+const formatEa: (value: number) => string = (value: number) : string => `${koNumber.format(Math.max(0, Math.round(value)))}EA`
+const formatWon: (value: number) => string = (value: number) : string => `${koNumber.format(Math.max(0, Math.round(value)))}원`
 
-function requireNumber(value: number | null | undefined, label: string) {
+function requireNumber(value: number | null | undefined, label: string) : number {
   if (typeof value !== 'number' || !Number.isFinite(value)) throw new Error(`Missing mock numeric value: ${label}`)
   return value
 }
 
-export function buildSecondaryAiComment(params: SecondaryAiCommentParams) {
-  const primary = scopeMockProductPrimary(requireMockProductPrimary(params.skuGroupKey), params)
-  const secondary = scopeMockProductSecondary(requireMockProductSecondary(params.skuGroupKey), params)
-  const channel = getMockSecondaryCompetitorChannel(params.competitorChannelId)
-  const selfCol = buildSalesKpiColumn('self', primary, secondary, channel)
-  const competitorCol = buildSalesKpiColumn('competitor', primary, secondary, channel)
-  const competitorQty = Math.max(0, Math.round(competitorCol.qty))
-  const selfQty = Math.max(0, Math.round(selfCol.qty))
-  const recommendedQty = secondary.sizeRows.reduce((sum, row) => sum + Math.max(0, Math.round(row.confirmedQty)), 0)
-  const topSize = secondary.sizeRows.reduce((best, row) => (row.qty > best.qty ? row : best), secondary.sizeRows[0]!)
+export function buildSecondaryAiComment(params: SecondaryAiCommentParams) : { prompt: string; answer: string; generatedAt: string; } {
+  const primary: ProductPrimarySummary = scopeMockProductPrimary(requireMockProductPrimary(params.skuGroupKey), params)
+  const secondary: ProductSecondaryDetail = scopeMockProductSecondary(requireMockProductSecondary(params.skuGroupKey), params)
+  const channel: MockSecondaryCompetitorChannel = getMockSecondaryCompetitorChannel(params.competitorChannelId)
+  const selfCol: SalesKpiColumn = buildSalesKpiColumn('self', primary, secondary, channel)
+  const competitorCol: SalesKpiColumn = buildSalesKpiColumn('competitor', primary, secondary, channel)
+  const competitorQty: number = Math.max(0, Math.round(competitorCol.qty))
+  const selfQty: number = Math.max(0, Math.round(selfCol.qty))
+  const recommendedQty: number = secondary.sizeRows.reduce((sum: number, row: ProductSecondarySizeRow) : number => sum + Math.max(0, Math.round(row.confirmedQty)), 0)
+  const topSize: ProductSecondarySizeRow = secondary.sizeRows.reduce((best: ProductSecondarySizeRow, row: ProductSecondarySizeRow) : ProductSecondarySizeRow => (row.qty > best.qty ? row : best), secondary.sizeRows[0]!)
 
   return {
     prompt: [

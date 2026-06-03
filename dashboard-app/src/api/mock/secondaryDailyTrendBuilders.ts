@@ -9,31 +9,31 @@ type MonthlyStockTrendPoint = {
   inboundQty?: number
 }
 
-function trendSlice(trend: MonthlySalesPoint[], periodStart: string, periodEnd: string) {
-  const startMonth = periodStart.slice(0, 7)
-  const endMonth = periodEnd.slice(0, 7)
-  const inRange = trend.filter((point) => point.date >= startMonth && point.date <= endMonth)
+function trendSlice(trend: MonthlySalesPoint[], periodStart: string, periodEnd: string) : MonthlySalesPoint[] {
+  const startMonth: string = periodStart.slice(0, 7)
+  const endMonth: string = periodEnd.slice(0, 7)
+  const inRange: MonthlySalesPoint[] = trend.filter((point: MonthlySalesPoint) : boolean => point.date >= startMonth && point.date <= endMonth)
   return inRange.length ? inRange : trend.slice(-6)
 }
 
-export const dailyMeanSigma = (trend: MonthlySalesPoint[], periodStart: string, periodEnd: string) => {
-  const slice = trendSlice(trend, periodStart, periodEnd)
+export const dailyMeanSigma: (trend: MonthlySalesPoint[], periodStart: string, periodEnd: string) => { dailyMean: number; sigma: number; } = (trend: MonthlySalesPoint[], periodStart: string, periodEnd: string) : { dailyMean: number; sigma: number; } => {
+  const slice: MonthlySalesPoint[] = trendSlice(trend, periodStart, periodEnd)
   if (slice.length === 0) return { dailyMean: 0, sigma: 0 }
-  const dailyRates = slice.map((point) => point.sales / daysInMonth(point.date))
-  const mean = dailyRates.reduce((sum, value) => sum + value, 0) / dailyRates.length
-  const variance = dailyRates.reduce((sum, value) => sum + (value - mean) ** 2, 0) / dailyRates.length
+  const dailyRates: number[] = slice.map((point: MonthlySalesPoint) : number => point.sales / daysInMonth(point.date))
+  const mean: number = dailyRates.reduce((sum: number, value: number) : number => sum + value, 0) / dailyRates.length
+  const variance: number = dailyRates.reduce((sum: number, value: number) : number => sum + (value - mean) ** 2, 0) / dailyRates.length
   return { dailyMean: mean, sigma: Math.sqrt(variance) }
 }
 
-export const forecastDailyMeanFromModel = (
+export const forecastDailyMeanFromModel: (trend: MonthlySalesPoint[], periodStart: string, periodEnd: string) => number = (
   trend: MonthlySalesPoint[],
   periodStart: string,
   periodEnd: string,
 ): number => {
-  const slice = trendSlice(trend, periodStart, periodEnd)
+  const slice: MonthlySalesPoint[] = trendSlice(trend, periodStart, periodEnd)
   if (slice.length === 0) return 0
-  const weighted = slice.reduce((acc, point, index) => {
-    const weight = (index + 1) ** 1.35
+  const weighted: { sum: number; weight: number; } = slice.reduce((acc: { sum: number; weight: number; }, point: MonthlySalesPoint, index: number) : { sum: number; weight: number; } => {
+    const weight: number = (index + 1) ** 1.35
     return {
       sum: acc.sum + (point.sales / daysInMonth(point.date)) * weight,
       weight: acc.weight + weight,
@@ -43,20 +43,20 @@ export const forecastDailyMeanFromModel = (
 }
 
 function dailySales(monthTotal: number, dayIndex: number, days: number, seed: number): number {
-  const base = monthTotal / Math.max(1, days)
-  const wave = Math.sin((dayIndex + seed) * 0.9) * 0.08
+  const base: number = monthTotal / Math.max(1, days)
+  const wave: number = Math.sin((dayIndex + seed) * 0.9) * 0.08
   return Math.max(0, Math.round(base * (1 + wave)))
 }
 
 function appendForecastDays(points: SecondaryDailyTrendPoint[], forecastDays: number): void {
-  const count = Math.max(0, Math.round(forecastDays))
+  const count: number = Math.max(0, Math.round(forecastDays))
   if (count <= 0 || points.length === 0) return
-  let last = points[points.length - 1]!
-  let date = parseIsoDateUtc(last.date)
-  for (let index = 0; index < count; index += 1) {
+  let last: SecondaryDailyTrendPoint = points[points.length - 1]!
+  let date: Date = parseIsoDateUtc(last.date)
+  for (let index: number = 0; index < count; index += 1) {
     date = new Date(date.getTime() + 86_400_000)
-    const sales = Math.max(1, Math.round(last.sales * (1 + Math.sin(index) * 0.04)))
-    const stockBar = Math.max(0, last.stockBar - sales)
+    const sales: number = Math.max(1, Math.round(last.sales * (1 + Math.sin(index) * 0.04)))
+    const stockBar: number = Math.max(0, last.stockBar - sales)
     last = {
       idx: points.length,
       date: formatIsoDateUtc(date),
@@ -72,35 +72,35 @@ function appendForecastDays(points: SecondaryDailyTrendPoint[], forecastDays: nu
   }
 }
 
-export const buildSecondaryDailyTrend = (
+export const buildSecondaryDailyTrend: (monthlyTrend: MonthlySalesPoint[], monthlyStockTrend: MonthlyStockTrendPoint[], startDate: string, endDate: string, forecastDays: number, competitorSalesScale?: number) => SecondaryDailyTrendPoint[] = (
   monthlyTrend: MonthlySalesPoint[],
   monthlyStockTrend: MonthlyStockTrendPoint[],
   startDate: string,
   endDate: string,
   forecastDays: number,
-  competitorSalesScale = 1,
+  competitorSalesScale: number = 1,
 ): SecondaryDailyTrendPoint[] => {
-  const startMonth = startDate.slice(0, 7)
-  const endMonth = endDate.slice(0, 7)
-  const stockByMonth = new Map(monthlyStockTrend.map((row) => [row.date, row]))
-  const scale = Number.isFinite(competitorSalesScale) ? Math.max(0, competitorSalesScale) : 1
+  const startMonth: string = startDate.slice(0, 7)
+  const endMonth: string = endDate.slice(0, 7)
+  const stockByMonth: Map<string, MonthlyStockTrendPoint> = new Map(monthlyStockTrend.map((row: MonthlyStockTrendPoint) : [string, MonthlyStockTrendPoint] => [row.date, row]))
+  const scale: number = Number.isFinite(competitorSalesScale) ? Math.max(0, competitorSalesScale) : 1
   const points: SecondaryDailyTrendPoint[] = []
 
-  monthlyTrend.forEach((monthPoint, monthIndex) => {
+  monthlyTrend.forEach((monthPoint: MonthlySalesPoint, monthIndex: number) : void => {
     if (monthPoint.date < startMonth) return
     if (monthPoint.date > endMonth) return
-    const days = daysInMonth(monthPoint.date)
-    const stockRow = stockByMonth.get(monthPoint.date)
-    const inboundQty = Math.max(0, Math.round(stockRow?.inboundQty ?? stockRow?.inboundExpected ?? 0))
-    const endStock = Math.max(0, Math.round(stockRow?.stock ?? 0))
-    const seed = monthPoint.date.charCodeAt(5) + monthIndex
+    const days: number = daysInMonth(monthPoint.date)
+    const stockRow: MonthlyStockTrendPoint | undefined = stockByMonth.get(monthPoint.date)
+    const inboundQty: number = Math.max(0, Math.round(stockRow?.inboundQty ?? stockRow?.inboundExpected ?? 0))
+    const endStock: number = Math.max(0, Math.round(stockRow?.stock ?? 0))
+    const seed: number = monthPoint.date.charCodeAt(5) + monthIndex
 
-    for (let dayIndex = 0; dayIndex < days; dayIndex += 1) {
-      const date = `${monthPoint.date}-${String(dayIndex + 1).padStart(2, '0')}`
+    for (let dayIndex: number = 0; dayIndex < days; dayIndex += 1) {
+      const date: string = `${monthPoint.date}-${String(dayIndex + 1).padStart(2, '0')}`
       if (date < startDate || date > endDate) continue
-      const sales = dailySales(monthPoint.sales, dayIndex, days, seed)
-      const monthProgress = (dayIndex + 1) / days
-      const stockBar = Math.max(0, Math.round(endStock + inboundQty * (1 - monthProgress) - sales * (1 - monthProgress)))
+      const sales: number = dailySales(monthPoint.sales, dayIndex, days, seed)
+      const monthProgress: number = (dayIndex + 1) / days
+      const stockBar: number = Math.max(0, Math.round(endStock + inboundQty * (1 - monthProgress) - sales * (1 - monthProgress)))
       points.push({
         idx: points.length,
         date,
@@ -116,5 +116,5 @@ export const buildSecondaryDailyTrend = (
   })
 
   appendForecastDays(points, forecastDays)
-  return points.map((point, index) => ({ ...point, idx: index }))
+  return points.map((point: SecondaryDailyTrendPoint, index: number) : { idx: number; date: string; month: string; sales: number; stockBar: number; inboundAccumBar: number; selfSales: number | null; competitorSales: number | null; isForecast: boolean; } => ({ ...point, idx: index }))
 }

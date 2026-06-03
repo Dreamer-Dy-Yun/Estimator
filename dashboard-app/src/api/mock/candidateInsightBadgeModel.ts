@@ -1,7 +1,7 @@
 import type { CandidateBadge } from '../types'
 
-export const INNER_ORDER_TOP_PERCENT_THRESHOLD = 10
-export const INNER_ORDER_BOTTOM_PERCENT_THRESHOLD = 10
+export const INNER_ORDER_TOP_PERCENT_THRESHOLD = 10 as const
+export const INNER_ORDER_BOTTOM_PERCENT_THRESHOLD = 10 as const
 
 const CANDIDATE_BADGES_BY_NAME: Record<string, CandidateBadge> = {
   크림판매: {
@@ -21,17 +21,17 @@ const CANDIDATE_BADGES_BY_NAME: Record<string, CandidateBadge> = {
   },
 }
 
-export function isTopCandidatePercent(rankPercentile: number | null | undefined) {
+export function isTopCandidatePercent(rankPercentile: number | null | undefined) : boolean {
   return typeof rankPercentile === 'number' && rankPercentile >= 100 - INNER_ORDER_TOP_PERCENT_THRESHOLD
 }
 
-export function isBottomCandidatePercent(rankPercentile: number | null | undefined) {
+export function isBottomCandidatePercent(rankPercentile: number | null | undefined) : boolean {
   return typeof rankPercentile === 'number' && rankPercentile <= INNER_ORDER_BOTTOM_PERCENT_THRESHOLD
 }
 
 export function buildCandidateBadges(names: string[]): CandidateBadge[] {
-  return names.flatMap((name) => {
-    const badge = CANDIDATE_BADGES_BY_NAME[name]
+  return names.flatMap((name: string) : CandidateBadge[] => {
+    const badge: CandidateBadge = CANDIDATE_BADGES_BY_NAME[name]
     return badge ? [badge] : []
   })
 }

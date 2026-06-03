@@ -1,15 +1,16 @@
+import type { ScatterGridCell } from '../../api/types'
 import { useMemo } from 'react'
 import type { ScatterSalesGridResponse } from '../../api/types'
 import { getScatterGridCellColor, getScatterGridCellPointRadius } from '../../utils/scatterGridDisplay'
 import type { AnalysisScatterGridPoint } from '../model/analysisScatterGridPoint'
 
-interface AnalysisScatterGridViewOptions {
+export interface AnalysisScatterGridViewOptions {
   scatterGrid: ScatterSalesGridResponse | null
   chartWidth: number
   chartHeight: number
 }
 
-interface AnalysisScatterGridView {
+export interface AnalysisScatterGridView {
   scatterData: AnalysisScatterGridPoint[]
   scatterChartWidth: number
   scatterChartHeight: number
@@ -21,13 +22,13 @@ export function useAnalysisScatterGridView({
   chartWidth,
   chartHeight,
 }: AnalysisScatterGridViewOptions): AnalysisScatterGridView {
-  const maxScatterGridCount = useMemo(
-    () => Math.max(0, ...(scatterGrid?.cells ?? []).map((cell) => cell.count)),
+  const maxScatterGridCount: number = useMemo(
+    () : number => Math.max(0, ...(scatterGrid?.cells ?? []).map((cell: ScatterGridCell) : number => cell.count)),
     [scatterGrid],
   )
 
-  const scatterData = useMemo<AnalysisScatterGridPoint[]>(
-    () => (scatterGrid?.cells ?? []).map((cell) => ({
+  const scatterData: AnalysisScatterGridPoint[] = useMemo<AnalysisScatterGridPoint[]>(
+    () : { x: number; y: number; cellKey: string; count: number; xStart: number; xEnd: number; yStart: number; yEnd: number; hasMoreSkuIds: boolean; color: string; }[] => (scatterGrid?.cells ?? []).map((cell: ScatterGridCell) : { x: number; y: number; cellKey: string; count: number; xStart: number; xEnd: number; yStart: number; yEnd: number; hasMoreSkuIds: boolean; color: string; } => ({
       x: cell.representativeX,
       y: cell.representativeY,
       cellKey: cell.cellKey,
@@ -42,9 +43,9 @@ export function useAnalysisScatterGridView({
     [maxScatterGridCount, scatterGrid],
   )
 
-  const scatterChartWidth = Math.max(1, Math.floor(chartWidth))
-  const scatterChartHeight = Math.max(1, Math.floor(chartHeight))
-  const scatterPointRadius = getScatterGridCellPointRadius(
+  const scatterChartWidth: number = Math.max(1, Math.floor(chartWidth))
+  const scatterChartHeight: number = Math.max(1, Math.floor(chartHeight))
+  const scatterPointRadius: number = getScatterGridCellPointRadius(
     scatterGrid?.meta,
     scatterChartWidth,
     scatterChartHeight,

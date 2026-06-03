@@ -1,6 +1,6 @@
 import { formatIsoDateLocal, monthToStartDate } from '../../../../../utils/date'
 
-type SecondaryDailyTrendRequestWindowInput = {
+export type SecondaryDailyTrendRequestWindowInput = {
   selectedStartMonth: string
   forecastDays: number
   today?: Date
@@ -34,7 +34,7 @@ export class SecondaryDailyTrendRequestWindow {
     forecastDays,
     today = new Date(),
   }: SecondaryDailyTrendRequestWindowInput): SecondaryDailyTrendRequestWindow {
-    const end = new Date(today)
+    const end: Date = new Date(today)
     end.setDate(end.getDate() - 1)
 
     return new SecondaryDailyTrendRequestWindow({
@@ -45,7 +45,7 @@ export class SecondaryDailyTrendRequestWindow {
     })
   }
 
-  toQueryFields() {
+  toQueryFields() : { startDate: string; endDate: string; forecastDays: number; } {
     return {
       startDate: this.startDate,
       endDate: this.endDate,
@@ -53,7 +53,7 @@ export class SecondaryDailyTrendRequestWindow {
     }
   }
 
-  toRequestLogFields() {
+  toRequestLogFields() : { startDate: string; endDate: string; forecastDays: number; selectedStartMonth: string; } {
     return {
       selectedStartMonth: this.selectedStartMonth,
       ...this.toQueryFields(),

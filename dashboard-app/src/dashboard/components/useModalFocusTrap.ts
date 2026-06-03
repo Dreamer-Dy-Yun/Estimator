@@ -1,6 +1,6 @@
-import { useCallback, useEffect, type KeyboardEvent, type RefObject } from 'react'
+import { useCallback, useEffect,} from 'react'
 
-const FOCUSABLE_SELECTOR = [
+const FOCUSABLE_SELECTOR: string = [
   'button:not([disabled])',
   'input:not([disabled])',
   'select:not([disabled])',
@@ -10,19 +10,19 @@ const FOCUSABLE_SELECTOR = [
 ].join(',')
 
 type Args<T extends HTMLElement> = {
-  panelRef: RefObject<T | null>
+  panelRef: React.RefObject<T | null>
   onClose: () => void
   active?: boolean
   closeDisabled?: boolean
   trapDisabled?: boolean
-  initialFocusRef?: RefObject<HTMLElement | null>
+  initialFocusRef?: React.RefObject<HTMLElement | null>
   getInitialFocus?: () => HTMLElement | null
   onEscape?: () => boolean
 }
 
 function getFocusableElements(container: HTMLElement): HTMLElement[] {
   return Array.from(container.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR))
-    .filter((element) => !element.hasAttribute('disabled') && element.getAttribute('aria-hidden') !== 'true' && element.tabIndex !== -1)
+    .filter((element: HTMLElement) : boolean => !element.hasAttribute('disabled') && element.getAttribute('aria-hidden') !== 'true' && element.tabIndex !== -1)
 }
 
 export function useModalFocusTrap<T extends HTMLElement>({
@@ -34,24 +34,24 @@ export function useModalFocusTrap<T extends HTMLElement>({
   initialFocusRef,
   getInitialFocus,
   onEscape,
-}: Args<T>) {
-  useEffect(() => {
+}: Args<T>) : (event: React.KeyboardEvent<T>) => void {
+  useEffect(() : (() => void) | undefined => {
     if (!active) return undefined
-    const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null
-    const panel = panelRef.current
-    const preferredFocus = getInitialFocus?.() ?? initialFocusRef?.current
-    const initialFocus = preferredFocus && !preferredFocus.hasAttribute('disabled') && preferredFocus.tabIndex !== -1
+    const previousFocus: HTMLElement | null = document.activeElement instanceof HTMLElement ? document.activeElement : null
+    const panel: T | null = panelRef.current
+    const preferredFocus: HTMLElement | null | undefined = getInitialFocus?.() ?? initialFocusRef?.current
+    const initialFocus: HTMLElement | null = preferredFocus && !preferredFocus.hasAttribute('disabled') && preferredFocus.tabIndex !== -1
       ? preferredFocus
       : panel
         ? getFocusableElements(panel)[0] ?? panel
         : null
     initialFocus?.focus()
-    return () => {
+    return () : void => {
       if (previousFocus?.isConnected) previousFocus.focus()
     }
   }, [active, getInitialFocus, initialFocusRef, panelRef])
 
-  return useCallback((event: KeyboardEvent<T>) => {
+  return useCallback((event: React.KeyboardEvent<T>) : void => {
     if (!active) return
     if (event.key === 'Escape') {
       event.preventDefault()
@@ -61,16 +61,16 @@ export function useModalFocusTrap<T extends HTMLElement>({
       return
     }
     if (event.key !== 'Tab' || trapDisabled) return
-    const panel = panelRef.current
+    const panel: T | null = panelRef.current
     if (!panel) return
-    const focusableElements = getFocusableElements(panel)
+    const focusableElements: HTMLElement[] = getFocusableElements(panel)
     if (!focusableElements.length) {
       event.preventDefault()
       panel.focus()
       return
     }
-    const firstElement = focusableElements[0]
-    const lastElement = focusableElements[focusableElements.length - 1]
+    const firstElement: HTMLElement = focusableElements[0]
+    const lastElement: HTMLElement = focusableElements[focusableElements.length - 1]
     if (event.shiftKey && document.activeElement === firstElement) {
       event.preventDefault()
       lastElement.focus()

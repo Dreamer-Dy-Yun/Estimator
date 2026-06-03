@@ -1,10 +1,11 @@
+import type { CompanyMutationScopeParams } from '../types'
 import type { InventoryArrivalApi, InventoryArrivalCollectionResult } from '../types'
 import { assertMockSession } from './authApi'
 import { getMockMutationCompanyUuid } from './mockCompanyScope'
 import { sleep } from './utils'
 
 export const mockInventoryArrivalApi: InventoryArrivalApi = {
-  collectInventoryArrivalDates: async (params): Promise<InventoryArrivalCollectionResult> => {
+  collectInventoryArrivalDates: async (params: CompanyMutationScopeParams): Promise<InventoryArrivalCollectionResult> => {
     await sleep(480)
     assertMockSession()
     getMockMutationCompanyUuid(params)

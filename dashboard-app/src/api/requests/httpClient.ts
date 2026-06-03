@@ -47,12 +47,12 @@ export class ApiHttpError extends ApiClientError {
   }
 }
 
-export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8080/api/v1'
+export const API_BASE_URL: string = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8080/api/v1'
 export const API_ADAPTER_MODE: ApiAdapterMode =
   String(import.meta.env.VITE_USE_MOCK_API ?? 'true').toLowerCase() === 'false' ? 'http' : 'mock'
-export const USE_MOCK_API = API_ADAPTER_MODE === 'mock'
+export const USE_MOCK_API: boolean = API_ADAPTER_MODE === 'mock'
 
-function appendQueryParam(searchParams: URLSearchParams, key: string, value: ApiQueryValue) {
+function appendQueryParam(searchParams: URLSearchParams, key: string, value: ApiQueryValue) : void {
   if (value == null || value === '') return
   if (Array.isArray(value)) {
     for (const item of value) searchParams.append(key, String(item))
@@ -62,9 +62,9 @@ function appendQueryParam(searchParams: URLSearchParams, key: string, value: Api
 }
 
 export function buildApiUrl(path: string, query?: ApiQueryParams): string {
-  const base = `${API_BASE_URL.replace(/\/+$/, '')}/`
-  const normalizedPath = path.replace(/^\/+/, '')
-  const url = new URL(normalizedPath, base)
+  const base: string = `${API_BASE_URL.replace(/\/+$/, '')}/`
+  const normalizedPath: string = path.replace(/^\/+/, '')
+  const url: URL = new URL(normalizedPath, base)
   if (query) {
     for (const [key, value] of Object.entries(query)) {
       appendQueryParam(url.searchParams, key, value)
@@ -75,12 +75,12 @@ export function buildApiUrl(path: string, query?: ApiQueryParams): string {
 
 function readErrorName(error: unknown): string | undefined {
   if (!error || typeof error !== 'object' || !('name' in error)) return undefined
-  const name = (error as { name?: unknown }).name
+  const name: unknown = (error as { name?: unknown }).name
   return typeof name === 'string' ? name : undefined
 }
 
 function classifyTransportFailure(error: unknown): ApiFailureKind {
-  const name = readErrorName(error)
+  const name: string | undefined = readErrorName(error)
   if (name === 'AbortError' || name === 'TimeoutError') return 'timeout'
   return 'network'
 }
@@ -93,7 +93,7 @@ function createTransportFailure(
   networkCode: string,
   status?: number,
 ): ApiClientError {
-  const kind = classifyTransportFailure(error)
+  const kind: ApiFailureKind = classifyTransportFailure(error)
   return createApiClientError(kind, kind === 'timeout' ? timeoutMessage : networkMessage, kind === 'timeout' ? timeoutCode : networkCode, {
     cause: error,
     ...(status == null ? {} : { status }),
@@ -135,7 +135,7 @@ async function readResponseBody(response: Response): Promise<unknown> {
     throw createResponseReadFailure(error, response.status)
   }
   if (!text) return undefined
-  const contentType = response.headers.get('content-type') ?? ''
+  const contentType: string = response.headers.get('content-type') ?? ''
   if (!contentType.includes('application/json')) return text
   try {
     return JSON.parse(text) as unknown
@@ -154,7 +154,7 @@ function getHttpFallbackMessage(status: number, statusText: string): string {
 }
 function getErrorMessage(body: unknown, fallback: string): string {
   if (isApiErrorResponse(body)) {
-    const message = body.message.trim()
+    const message: string = body.message.trim()
     if (message) return message
   }
   if (typeof body === 'string' && body.trim()) return body
@@ -171,9 +171,9 @@ function prepareBody(body: ApiRequestOptions['body']): BodyInit | undefined {
 }
 
 function prepareHeaders(options: ApiRequestOptions): Headers {
-  const headers = new Headers(options.headers)
+  const headers: Headers = new Headers(options.headers)
   headers.set('Accept', 'application/json')
-  const body = options.body
+  const body: object | BodyInit | null | undefined = options.body
   if (body && !(body instanceof FormData) && !(body instanceof Blob) && !headers.has('Content-Type')) {
     headers.set('Content-Type', 'application/json')
   }
@@ -207,7 +207,7 @@ export async function apiRequest<T>(path: string, options: ApiRequestOptions = {
     throw createFetchFailure(error)
   }
 
-  const responseBody = await readResponseBody(response)
+  const responseBody: unknown = await readResponseBody(response)
   if (!response.ok) {
     throw new ApiHttpError(
       response.status,
@@ -242,7 +242,7 @@ export function openApiEventStream<T>(
   } catch (error) {
     throw createStreamFailure('network', '스트림 연결을 시작하지 못했습니다.', 'SSE_OPEN_FAILED', error)
   }
-  eventSource.onmessage = (message) => {
+  eventSource.onmessage = (message: MessageEvent<string>) : void => {
     if (!message.data) return
     let parsed: T
     try {
@@ -260,10 +260,10 @@ export function openApiEventStream<T>(
     }
     listener(parsed)
   }
-  eventSource.onerror = (event) => {
+  eventSource.onerror = (event: Event) : void => {
     options.onError?.(createStreamFailure('network', '스트림 연결에 실패했습니다.', 'SSE_CONNECTION_ERROR', event))
   }
   return {
-    close: () => eventSource.close(),
+    close: () : void => eventSource.close(),
   }
 }

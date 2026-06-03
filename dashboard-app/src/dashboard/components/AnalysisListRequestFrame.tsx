@@ -1,9 +1,8 @@
-import type { ReactNode } from 'react'
 import { LoadingSpinner } from '../../components/LoadingSpinner'
 import styles from './common.module.css'
 
-type AnalysisListRequestFrameProps = {
-  children: ReactNode
+export type AnalysisListRequestFrameProps = {
+  children: React.ReactNode
   initialLoading: boolean
   refreshing: boolean
   initialLabel: string
@@ -16,7 +15,7 @@ export function AnalysisListRequestFrame({
   refreshing,
   initialLabel,
   refreshLabel,
-}: AnalysisListRequestFrameProps) {
+}: AnalysisListRequestFrameProps) : React.JSX.Element {
   if (initialLoading) {
     return (
       <div className={styles.analysisListLoading}>

@@ -1,14 +1,14 @@
-import { Component, type ErrorInfo, type ReactNode } from 'react'
+import { Component, type ErrorInfo } from 'react'
 import { ApiUnitErrorBadge } from './ApiUnitErrorBadge'
 import styles from './ComponentErrorBoundary.module.css'
 
-type Props = {
+export type Props = {
   page: string
   unit: string
-  children: ReactNode
+  children: React.ReactNode
 }
 
-type State = {
+export type State = {
   error: Error | null
   checkedAt: string
 }
@@ -26,15 +26,15 @@ export class ComponentErrorBoundary extends Component<Props, State> {
     }
   }
 
-  public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+  public componentDidCatch(error: Error, errorInfo: ErrorInfo) : void {
     void error
     void errorInfo
     // noop: 화면 격리를 우선하고 로깅은 추후 연결
   }
 
-  public render() {
-    const { error, checkedAt } = this.state
-    const { page, unit, children } = this.props
+  public render(): React.ReactNode {
+    const { error, checkedAt }: State = this.state
+    const { page, unit, children }: Readonly<Props> = this.props
 
     if (!error) return children
 

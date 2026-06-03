@@ -4,7 +4,7 @@ import type { ApiUnitErrorInfo } from '../../../../../types'
 import { KO } from '../../ko'
 import styles from '../secondaryDrawer.module.css'
 
-type Props = {
+export type Props = {
   aiComment: OrderSnapshotAiCommentV2
   loading: boolean
   error: ApiUnitErrorInfo | null
@@ -16,8 +16,8 @@ export function AiCommentCard({
   loading,
   error,
   onRequest,
-}: Props) {
-  const content = error
+}: Props) : React.JSX.Element {
+  const content: string = error
     ? `AI 코멘트 요청 실패: ${error.error}`
     : aiComment.answer || KO.answerEmpty
 

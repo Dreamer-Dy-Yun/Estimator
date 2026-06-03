@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useState } from 'react'
 import { createAdminGptKey } from '../api'
 import type { AdminGptKeyPurpose } from '../api'
 import { useAppToast } from '../components/AppToastContext'
@@ -8,32 +8,32 @@ import { refreshAfterAdminMutation } from './adminMutationRefresh'
 import { GPT_KEY_PURPOSE_OPTIONS, getErrorMessage } from './adminHelpers'
 import styles from './AdminPage.module.css'
 
-interface AdminGptKeyCreateDialogProps {
+export interface AdminGptKeyCreateDialogProps {
   onClose: () => void
   onCreated: () => Promise<void>
 }
 
-const formId = 'admin-gpt-key-create-form'
+const formId = 'admin-gpt-key-create-form' as const
 
-export function AdminGptKeyCreateDialog({ onClose, onCreated }: AdminGptKeyCreateDialogProps) {
-  const { showToast } = useAppToast()
-  const [name, setName] = useState('')
-  const [purpose, setPurpose] = useState<AdminGptKeyPurpose>('ai-comment')
-  const [model, setModel] = useState('gpt-4.1-mini')
-  const [plainKey, setPlainKey] = useState('')
-  const [note, setNote] = useState('')
-  const [isActive, setIsActive] = useState(true)
-  const [errorMessage, setErrorMessage] = useState<string | null>(null)
-  const [isCreating, setIsCreating] = useState(false)
+export function AdminGptKeyCreateDialog({ onClose, onCreated }: AdminGptKeyCreateDialogProps) : React.JSX.Element {
+  const { showToast }: ReturnType<typeof useAppToast> = useAppToast()
+  const [name, setName]: [string, React.Dispatch<React.SetStateAction<string>>] = useState('')
+  const [purpose, setPurpose]: [AdminGptKeyPurpose, React.Dispatch<React.SetStateAction<AdminGptKeyPurpose>>] = useState<AdminGptKeyPurpose>('ai-comment')
+  const [model, setModel]: [string, React.Dispatch<React.SetStateAction<string>>] = useState('gpt-4.1-mini')
+  const [plainKey, setPlainKey]: [string, React.Dispatch<React.SetStateAction<string>>] = useState('')
+  const [note, setNote]: [string, React.Dispatch<React.SetStateAction<string>>] = useState('')
+  const [isActive, setIsActive]: [boolean, React.Dispatch<React.SetStateAction<boolean>>] = useState(true)
+  const [errorMessage, setErrorMessage]: [string | null, React.Dispatch<React.SetStateAction<string | null>>] = useState<string | null>(null)
+  const [isCreating, setIsCreating]: [boolean, React.Dispatch<React.SetStateAction<boolean>>] = useState(false)
 
-  const handleCreate = async (event: FormEvent<HTMLFormElement>) => {
+  const handleCreate: (event: React.FormEvent<HTMLFormElement>) => Promise<void> = async (event: React.FormEvent<HTMLFormElement>) : Promise<void> => {
     event.preventDefault()
     setErrorMessage(null)
     setIsCreating(true)
 
     try {
       await createAdminGptKey({ name, purpose, model, plainKey, isActive, note })
-      const refreshWarningMessage = await refreshAfterAdminMutation(onCreated)
+      const refreshWarningMessage: string | null = await refreshAfterAdminMutation(onCreated)
       showToast('GPT 키를 추가했습니다.')
       if (refreshWarningMessage) showToast(refreshWarningMessage, { variant: 'warning' })
       onClose()
@@ -58,12 +58,12 @@ export function AdminGptKeyCreateDialog({ onClose, onCreated }: AdminGptKeyCreat
     >
       <label className={styles.createField}>
         <span>이름</span>
-        <input value={name} onChange={(event) => setName(event.target.value)} placeholder="GPT AI 코멘트" maxLength={80} />
+        <input value={name} onChange={(event: React.ChangeEvent<HTMLInputElement, HTMLInputElement>) : void => setName(event.target.value)} placeholder="GPT AI 코멘트" maxLength={80} />
       </label>
       <label className={styles.createField}>
         <span>용도</span>
-        <select value={purpose} onChange={(event) => setPurpose(event.target.value as AdminGptKeyPurpose)}>
-          {GPT_KEY_PURPOSE_OPTIONS.map((option) => (
+        <select value={purpose} onChange={(event: React.ChangeEvent<HTMLSelectElement, HTMLSelectElement>) : void => setPurpose(event.target.value as AdminGptKeyPurpose)}>
+          {GPT_KEY_PURPOSE_OPTIONS.map((option: { value: AdminGptKeyPurpose; label: string; }) : React.JSX.Element => (
             <option key={option.value} value={option.value}>
               {option.label}
             </option>
@@ -72,18 +72,18 @@ export function AdminGptKeyCreateDialog({ onClose, onCreated }: AdminGptKeyCreat
       </label>
       <label className={styles.createField}>
         <span>모델</span>
-        <input value={model} onChange={(event) => setModel(event.target.value)} maxLength={80} />
+        <input value={model} onChange={(event: React.ChangeEvent<HTMLInputElement, HTMLInputElement>) : void => setModel(event.target.value)} maxLength={80} />
       </label>
       <div className={styles.createActiveField}>
         <AdminActiveSwitch checked={isActive} onChange={setIsActive} />
       </div>
       <label className={`${styles.createField} ${styles.gptKeyDialogNote}`}>
         <span>GPT API 키</span>
-        <input value={plainKey} onChange={(event) => setPlainKey(event.target.value)} placeholder="sk-..." autoComplete="off" />
+        <input value={plainKey} onChange={(event: React.ChangeEvent<HTMLInputElement, HTMLInputElement>) : void => setPlainKey(event.target.value)} placeholder="sk-..." autoComplete="off" />
       </label>
       <label className={`${styles.createField} ${styles.gptKeyDialogNote}`}>
         <span>메모</span>
-        <input value={note} onChange={(event) => setNote(event.target.value)} placeholder="용도나 발급 위치" maxLength={200} />
+        <input value={note} onChange={(event: React.ChangeEvent<HTMLInputElement, HTMLInputElement>) : void => setNote(event.target.value)} placeholder="용도나 발급 위치" maxLength={200} />
       </label>
     </AdminCreateDialogShell>
   )

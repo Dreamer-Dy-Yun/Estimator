@@ -23,18 +23,18 @@ export function getCandidateDataReferencePeriodQueryDirty(state: CandidateDataRe
     || state.draftDataReferencePeriodEnd !== state.dataReferencePeriodEnd
 }
 
-export function normalizeCandidateDataReferenceAppliedPeriod(start: string, end: string) {
+export function normalizeCandidateDataReferenceAppliedPeriod(start: string, end: string) : { start: string; end: string; } | null {
   return start && end ? { start, end: start > end ? start : end } : null
 }
 
-function samePeriodState(a: CandidateDataReferencePeriodState, b: CandidateDataReferencePeriodState) {
+function samePeriodState(a: CandidateDataReferencePeriodState, b: CandidateDataReferencePeriodState) : boolean {
   return a.dataReferencePeriodStart === b.dataReferencePeriodStart
     && a.dataReferencePeriodEnd === b.dataReferencePeriodEnd
     && a.draftDataReferencePeriodStart === b.draftDataReferencePeriodStart
     && a.draftDataReferencePeriodEnd === b.draftDataReferencePeriodEnd
 }
 
-function replaceIfChanged(current: CandidateDataReferencePeriodState, next: CandidateDataReferencePeriodState) {
+function replaceIfChanged(current: CandidateDataReferencePeriodState, next: CandidateDataReferencePeriodState) : CandidateDataReferencePeriodState {
   return samePeriodState(current, next) ? current : next
 }
 
@@ -44,7 +44,7 @@ export function candidateDataReferencePeriodReducer(
 ): CandidateDataReferencePeriodState {
   if (action.type === 'reset') return replaceIfChanged(state, initialCandidateDataReferencePeriodState)
   if (action.type === 'periodApplied') {
-    const next = normalizeCandidateDataReferenceAppliedPeriod(action.start, action.end)
+    const next: { start: string; end: string; } | null = normalizeCandidateDataReferenceAppliedPeriod(action.start, action.end)
     return next ? replaceIfChanged(state, {
       dataReferencePeriodStart: next.start,
       dataReferencePeriodEnd: next.end,
@@ -53,12 +53,12 @@ export function candidateDataReferencePeriodReducer(
     }) : state
   }
   if (!action.value) return state
-  const draftStart = action.type === 'draftStartChanged'
+  const draftStart: string = action.type === 'draftStartChanged'
     ? action.value
     : action.value < (state.draftDataReferencePeriodStart || action.value)
       ? action.value
       : state.draftDataReferencePeriodStart || action.value
-  const draftEnd = action.type === 'draftEndChanged'
+  const draftEnd: string = action.type === 'draftEndChanged'
     ? action.value
     : action.value > (state.draftDataReferencePeriodEnd || action.value)
       ? action.value

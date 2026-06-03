@@ -2,9 +2,9 @@ import { useEffect } from 'react'
 import type { AdjacentDirection } from '../../../utils/adjacentListNavigation'
 import { isEditingOrComboTarget } from '../../interaction/interactionTarget'
 
-const CANDIDATE_STASH_PICKER_DIALOG_SELECTOR = '[aria-labelledby="candidate-stash-picker-title"]'
+const CANDIDATE_STASH_PICKER_DIALOG_SELECTOR = '[aria-labelledby="candidate-stash-picker-title"]' as const
 
-interface ProductDrawerKeyboardOptions {
+export interface ProductDrawerKeyboardOptions {
   closing?: boolean
   expandPaneOpen?: boolean
   setExpandPaneOpen?: (open: boolean) => void
@@ -24,11 +24,11 @@ export function useProductDrawerKeyboard({
   onRequestNavigateAdjacent,
   disableAdjacentNavigation,
   disabled = false,
-}: ProductDrawerKeyboardOptions) {
-  useEffect(() => {
+}: ProductDrawerKeyboardOptions) : void {
+  useEffect(() : (() => void) | undefined => {
     if (closing || disabled) return
 
-    const onKeyDown = (e: KeyboardEvent) => {
+    const onKeyDown: (e: KeyboardEvent) => void = (e: KeyboardEvent) : void => {
       if (!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key)) return
       if (e.defaultPrevented || e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return
       if (isEditingOrComboTarget(e.target)) return
@@ -55,7 +55,7 @@ export function useProductDrawerKeyboard({
     }
 
     window.addEventListener('keydown', onKeyDown, true)
-    return () => window.removeEventListener('keydown', onKeyDown, true)
+    return () : void => window.removeEventListener('keydown', onKeyDown, true)
   }, [
     closing,
     disabled,
@@ -67,10 +67,10 @@ export function useProductDrawerKeyboard({
     setExpandPaneOpen,
   ])
 
-  useEffect(() => {
+  useEffect(() : (() => void) | undefined => {
     if (closing || disabled) return
 
-    const onKeyDown = (e: KeyboardEvent) => {
+    const onKeyDown: (e: KeyboardEvent) => void = (e: KeyboardEvent) : void => {
       if (e.key !== 'Escape') return
       if (e.defaultPrevented || e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return
       e.preventDefault()
@@ -83,10 +83,10 @@ export function useProductDrawerKeyboard({
     }
 
     window.addEventListener('keydown', onKeyDown)
-    return () => window.removeEventListener('keydown', onKeyDown)
+    return () : void => window.removeEventListener('keydown', onKeyDown)
   }, [closing, disabled, expandPaneOpen, onClose, setExpandPaneOpen])
 }
 
-function isCandidateStashPickerOpen() {
+function isCandidateStashPickerOpen() : boolean {
   return Boolean(document.querySelector(CANDIDATE_STASH_PICKER_DIALOG_SELECTOR))
 }

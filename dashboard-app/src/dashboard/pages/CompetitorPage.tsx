@@ -1,3 +1,9 @@
+import type { AnalysisScatterGridView } from '../hooks/useAnalysisScatterGridView'
+import type { ProductDrawerBundle, SelfSalesParams } from '../../api'
+import type { AdjacentDirection } from '../../utils/adjacentListNavigation'
+import type { AnalysisScatterTooltipProps } from '../components/AnalysisScatterTooltips'
+import type { DashboardRequestState } from '../hooks/useDashboardRequest'
+import type { AnalysisFacetOptionValues, AnalysisFacetValues } from '../model/analysisFacetFilter'
 import { useCallback, useMemo, useState } from 'react'
 import { getCompetitorSales, getCompetitorSalesScatterGrid, getSecondaryCompetitorChannels } from '../../api'
 import type { ScatterSalesGridResponse, SecondaryCompetitorChannel } from '../../api/types'
@@ -26,88 +32,88 @@ import type { FilterField } from '../model/filterField'
 
 const EMPTY_COMPETITOR_ROWS: CompetitorSalesRow[] = []
 const EMPTY_COMPETITOR_CHANNELS: SecondaryCompetitorChannel[] = []
-const ALL_CHANNEL_LABEL = '전체'
-const ALL_COMPANY_BULK_ADD_DISABLED = '전체 선택 상태에서는 오더 후보군에 추가할 수 없습니다. 회사를 선택하세요.'
+const ALL_CHANNEL_LABEL = '전체' as const
+const ALL_COMPANY_BULK_ADD_DISABLED = '전체 선택 상태에서는 오더 후보군에 추가할 수 없습니다. 회사를 선택하세요.' as const
 
-export const CompetitorPage = () => {
-  const [bulkAddOpen, setBulkAddOpen] = useState(false)
-  const [competitorChannelId, setCompetitorChannelId] = useState<string | undefined>(undefined)
-  const [showRowsWithSelfSalesOnly, setShowRowsWithSelfSalesOnly] = useState(false)
-  const common = useAnalysisPageCommonState()
-  const filters = useAnalysisSalesFilters(common.companyUuid)
-  const { buildListFilterFields, listFilterValues } = filters
-  const channelsRequest = useDashboardRequest(getSecondaryCompetitorChannels, EMPTY_COMPETITOR_CHANNELS)
-  const { data: channels } = channelsRequest
-  const selectedCompetitorChannel = useMemo(
-    () => competitorChannelId ? channels.find((ch) => ch.id === competitorChannelId) : undefined,
+export const CompetitorPage: () => React.JSX.Element = () : React.JSX.Element => {
+  const [bulkAddOpen, setBulkAddOpen]: [boolean, React.Dispatch<React.SetStateAction<boolean>>] = useState(false)
+  const [competitorChannelId, setCompetitorChannelId]: [string | undefined, React.Dispatch<React.SetStateAction<string | undefined>>] = useState<string | undefined>(undefined)
+  const [showRowsWithSelfSalesOnly, setShowRowsWithSelfSalesOnly]: [boolean, React.Dispatch<React.SetStateAction<boolean>>] = useState(false)
+  const common: { selfCompanyLabel: string; companyUuid: string | undefined; isAllCompanySelected: boolean; forecastMonths: number; onForecastMonthsChange: (n: number) => void; chartBodyRef: React.RefObject<HTMLDivElement | null>; chartWidth: number; chartHeight: number; chartReady: boolean; } = useAnalysisPageCommonState()
+  const filters: { appliedPeriodStartDate: string; appliedPeriodEndDate: string; periodQueryDirty: boolean; applyPeriodQuery: () => void; queryFields: FilterField[]; listFilterValues: AnalysisFacetValues; buildListFilterFields: (filterOptions?: AnalysisFacetOptionValues) => FilterField[]; listFiltersDirty: boolean; resetListFilters: () => void; historicalMonths: string[]; salesParams: SelfSalesParams; showPeriodBar: boolean; setShowPeriodBar: React.Dispatch<React.SetStateAction<boolean>>; startDate: string; endDate: string; periodStartDate: string; periodEndDate: string; periodStartIdx: number; periodEndIdx: number; startPct: number; endPct: number; setPeriodStartDate: (value: string) => void; setPeriodEndDate: (value: string) => void; setPresetMonths: (months: number) => void; setWholeRange: () => void; onStartDateChange: (value: string) => void; onEndDateChange: (value: string) => void; onPeriodBarStart: (value: number) => void; onPeriodBarEnd: (value: number) => void; } = useAnalysisSalesFilters(common.companyUuid)
+  const { buildListFilterFields, listFilterValues }: { appliedPeriodStartDate: string; appliedPeriodEndDate: string; periodQueryDirty: boolean; applyPeriodQuery: () => void; queryFields: FilterField[]; listFilterValues: AnalysisFacetValues; buildListFilterFields: (filterOptions?: AnalysisFacetOptionValues) => FilterField[]; listFiltersDirty: boolean; resetListFilters: () => void; historicalMonths: string[]; salesParams: SelfSalesParams; showPeriodBar: boolean; setShowPeriodBar: React.Dispatch<React.SetStateAction<boolean>>; startDate: string; endDate: string; periodStartDate: string; periodEndDate: string; periodStartIdx: number; periodEndIdx: number; startPct: number; endPct: number; setPeriodStartDate: (value: string) => void; setPeriodEndDate: (value: string) => void; setPresetMonths: (months: number) => void; setWholeRange: () => void; onStartDateChange: (value: string) => void; onEndDateChange: (value: string) => void; onPeriodBarStart: (value: number) => void; onPeriodBarEnd: (value: number) => void; } = filters
+  const channelsRequest: DashboardRequestState<SecondaryCompetitorChannel[]> = useDashboardRequest(getSecondaryCompetitorChannels, EMPTY_COMPETITOR_CHANNELS)
+  const { data: channels }: DashboardRequestState<SecondaryCompetitorChannel[]> = channelsRequest
+  const selectedCompetitorChannel: SecondaryCompetitorChannel | undefined = useMemo(
+    () : SecondaryCompetitorChannel | undefined => competitorChannelId ? channels.find((ch: SecondaryCompetitorChannel) : boolean => ch.id === competitorChannelId) : undefined,
     [channels, competitorChannelId],
   )
-  const activeCompetitorChannelId = selectedCompetitorChannel?.id
-  const competitorChannelLabel = selectedCompetitorChannel?.label ?? ALL_CHANNEL_LABEL
-  const onCompetitorChannelChange = useCallback((label: string) => {
+  const activeCompetitorChannelId: string | undefined = selectedCompetitorChannel?.id
+  const competitorChannelLabel: string = selectedCompetitorChannel?.label ?? ALL_CHANNEL_LABEL
+  const onCompetitorChannelChange: (label: string) => void = useCallback((label: string) : void => {
     if (label === ALL_CHANNEL_LABEL) {
       setCompetitorChannelId(undefined)
       return
     }
-    setCompetitorChannelId(channels.find((ch) => ch.label === label)?.id)
+    setCompetitorChannelId(channels.find((ch: SecondaryCompetitorChannel) : boolean => ch.label === label)?.id)
   }, [channels])
-  const salesParams = useMemo(() => ({ ...filters.salesParams, competitorChannelId: activeCompetitorChannelId }), [activeCompetitorChannelId, filters.salesParams])
-  const analysisRequestKey = useMemo(() => buildAnalysisSalesRequestKey(salesParams), [salesParams])
-  const loadRows = useCallback(() => getCompetitorSales(salesParams), [salesParams])
-  const loadScatterGrid = useCallback(() => getCompetitorSalesScatterGrid(salesParams), [salesParams])
-  const rowsRequest = useDashboardRequest(loadRows, EMPTY_COMPETITOR_ROWS, analysisRequestKey)
-  const scatterGridRequest = useDashboardRequest<ScatterSalesGridResponse | null>(loadScatterGrid, null, analysisRequestKey)
-  const analysisData = useAnalysisSalesDataGate({
+  const salesParams: { competitorChannelId: string | undefined; startDate?: string; endDate?: string; brand?: string; category?: string; codeQuery?: string; colorCode?: string; nameQuery?: string; companyUuid?: string | undefined; } = useMemo(() : { competitorChannelId: string | undefined; startDate?: string; endDate?: string; brand?: string; category?: string; codeQuery?: string; colorCode?: string; nameQuery?: string; companyUuid?: string | undefined; } => ({ ...filters.salesParams, competitorChannelId: activeCompetitorChannelId }), [activeCompetitorChannelId, filters.salesParams])
+  const analysisRequestKey: string = useMemo(() : string => buildAnalysisSalesRequestKey(salesParams), [salesParams])
+  const loadRows: () => Promise<CompetitorSalesRow[]> = useCallback(() : Promise<CompetitorSalesRow[]> => getCompetitorSales(salesParams), [salesParams])
+  const loadScatterGrid: () => Promise<ScatterSalesGridResponse> = useCallback(() : Promise<ScatterSalesGridResponse> => getCompetitorSalesScatterGrid(salesParams), [salesParams])
+  const rowsRequest: DashboardRequestState<CompetitorSalesRow[]> = useDashboardRequest(loadRows, EMPTY_COMPETITOR_ROWS, analysisRequestKey)
+  const scatterGridRequest: DashboardRequestState<ScatterSalesGridResponse | null> = useDashboardRequest<ScatterSalesGridResponse | null>(loadScatterGrid, null, analysisRequestKey)
+  const analysisData: { rows: CompetitorSalesRow[]; scatterGrid: ScatterSalesGridResponse | null; initialLoading: boolean; refreshing: boolean; ready: boolean; } = useAnalysisSalesDataGate({
     rowsRequest,
     scatterGridRequest,
     requestKey: analysisRequestKey,
     emptyRows: EMPTY_COMPETITOR_ROWS,
   })
-  const { rows, scatterGrid } = analysisData
-  const baseRows = useMemo(() => (showRowsWithSelfSalesOnly ? rows.filter((row) => row.selfQty != null) : rows), [rows, showRowsWithSelfSalesOnly])
-  const facetFilter = useMemo(
-    () => new AnalysisFacetFilter(baseRows, ANALYSIS_SALES_FACET_DEFINITIONS, listFilterValues),
+  const { rows, scatterGrid }: { rows: CompetitorSalesRow[]; scatterGrid: ScatterSalesGridResponse | null; initialLoading: boolean; refreshing: boolean; ready: boolean; } = analysisData
+  const baseRows: CompetitorSalesRow[] = useMemo(() : CompetitorSalesRow[] => (showRowsWithSelfSalesOnly ? rows.filter((row: CompetitorSalesRow) : boolean => row.selfQty != null) : rows), [rows, showRowsWithSelfSalesOnly])
+  const facetFilter: AnalysisFacetFilter<CompetitorSalesRow> = useMemo(
+    () : AnalysisFacetFilter<CompetitorSalesRow> => new AnalysisFacetFilter(baseRows, ANALYSIS_SALES_FACET_DEFINITIONS, listFilterValues),
     [baseRows, listFilterValues],
   )
-  const listFilterFields = useMemo(
-    () => buildListFilterFields(facetFilter.getOptionValuesByKey()),
+  const listFilterFields: FilterField[] = useMemo(
+    () : FilterField[] => buildListFilterFields(facetFilter.getOptionValuesByKey()),
     [buildListFilterFields, facetFilter],
   )
-  const filteredRows = useMemo(() => facetFilter.getFilteredRows(), [facetFilter])
-  const selection = useAnalysisPageSelection({ rows: filteredRows, scatterGrid, bulkAddOpen })
-  const summaryBundleState = useProductDrawerBundleState(selection.selectedSkuGroupKey, { companyUuid: common.companyUuid })
+  const filteredRows: CompetitorSalesRow[] = useMemo(() : CompetitorSalesRow[] => facetFilter.getFilteredRows(), [facetFilter])
+  const selection: { activeGridCellKey: string | null; selectedSkuGroupKey: string | null; activeSkuGroupKey: string | null; bulkSelectedSkuGroupKeys: Set<string>; visibleRows: CompetitorSalesRow[]; bulkSelectedCount: number; allVisibleRowsSelected: boolean; selectedSkuGroupKeys: string[]; setSelectedSkuGroupKey: (skuGroupKey: string | null) => void; onScatterCellClick: (cellKey: string) => void; clearActiveGridCell: () => void; toggleBulkRow: (id: string) => void; toggleAllVisibleRows: () => void; clearBulkSelection: () => void; onRequestNavigateAdjacent: (direction: AdjacentDirection) => void; onRequestFocusAdjacent: (currentSkuGroupKey: string | null, direction: AdjacentDirection) => void; onOrderedSkuGroupKeysChange: React.Dispatch<React.SetStateAction<string[]>>; } = useAnalysisPageSelection({ rows: filteredRows, scatterGrid, bulkAddOpen })
+  const summaryBundleState: { bundle: ProductDrawerBundle | null; loading: boolean; } = useProductDrawerBundleState(selection.selectedSkuGroupKey, { companyUuid: common.companyUuid })
 
-  const competitorQueryFields = useMemo<FilterField[]>(() => [
+  const competitorQueryFields: FilterField[] = useMemo<FilterField[]>(() : FilterField[] => [
     ...filters.queryFields,
-    { label: '경쟁 채널', kind: 'select', value: competitorChannelLabel, onChange: onCompetitorChannelChange, options: [ALL_CHANNEL_LABEL, ...channels.map((ch) => ch.label)] },
+    { label: '경쟁 채널', kind: 'select', value: competitorChannelLabel, onChange: onCompetitorChannelChange, options: [ALL_CHANNEL_LABEL, ...channels.map((ch: SecondaryCompetitorChannel) : string => ch.label)] },
   ], [channels, competitorChannelLabel, filters.queryFields, onCompetitorChannelChange])
-  const displayedListFilterFields = useMemo(
-    () => (selection.activeGridCellKey ? maskAnalysisListFilterFields(listFilterFields) : listFilterFields),
+  const displayedListFilterFields: FilterField[] = useMemo(
+    () : FilterField[] => (selection.activeGridCellKey ? maskAnalysisListFilterFields(listFilterFields) : listFilterFields),
     [listFilterFields, selection.activeGridCellKey],
   )
-  const resetListFilters = useCallback(() => {
+  const resetListFilters: () => void = useCallback(() : void => {
     filters.resetListFilters()
     setShowRowsWithSelfSalesOnly(false)
   }, [filters])
-  const listFiltersDirty = filters.listFiltersDirty || showRowsWithSelfSalesOnly
-  const competitorAxisLabel = competitorChannelLabel === ALL_CHANNEL_LABEL ? '전체 경쟁사' : competitorChannelLabel
-  const kpi = useMemo(() => {
-    const rowsWithSelfAmount = selection.visibleRows.filter((row) => row.selfAmount != null)
-    const rowsWithSelfQty = selection.visibleRows.filter((row) => row.selfQty != null)
+  const listFiltersDirty: boolean = filters.listFiltersDirty || showRowsWithSelfSalesOnly
+  const competitorAxisLabel: string = competitorChannelLabel === ALL_CHANNEL_LABEL ? '전체 경쟁사' : competitorChannelLabel
+  const kpi: { totalCompetitorAmount: number; totalSelfAmount: number | null; totalCompetitorQty: number; totalSelfQty: number | null; } = useMemo(() : { totalCompetitorAmount: number; totalSelfAmount: number | null; totalCompetitorQty: number; totalSelfQty: number | null; } => {
+    const rowsWithSelfAmount: CompetitorSalesRow[] = selection.visibleRows.filter((row: CompetitorSalesRow) : boolean => row.selfAmount != null)
+    const rowsWithSelfQty: CompetitorSalesRow[] = selection.visibleRows.filter((row: CompetitorSalesRow) : boolean => row.selfQty != null)
     return {
-      totalCompetitorAmount: selection.visibleRows.reduce((sum, row) => sum + row.competitorAmount, 0),
+      totalCompetitorAmount: selection.visibleRows.reduce((sum: number, row: CompetitorSalesRow) : number => sum + row.competitorAmount, 0),
       totalSelfAmount: rowsWithSelfAmount.length
-        ? rowsWithSelfAmount.reduce((sum, row) => sum + row.selfAmount!, 0)
+        ? rowsWithSelfAmount.reduce((sum: number, row: CompetitorSalesRow) : number => sum + row.selfAmount!, 0)
         : null,
-      totalCompetitorQty: selection.visibleRows.reduce((sum, row) => sum + row.competitorQty, 0),
+      totalCompetitorQty: selection.visibleRows.reduce((sum: number, row: CompetitorSalesRow) : number => sum + row.competitorQty, 0),
       totalSelfQty: rowsWithSelfQty.length
-        ? rowsWithSelfQty.reduce((sum, row) => sum + row.selfQty!, 0)
+        ? rowsWithSelfQty.reduce((sum: number, row: CompetitorSalesRow) : number => sum + row.selfQty!, 0)
         : null,
     }
   }, [selection.visibleRows])
-  const scatterView = useAnalysisScatterGridView({ scatterGrid, chartWidth: common.chartWidth, chartHeight: common.chartHeight })
-  const renderQtyScatterTooltip = useMemo(
-    () => createCompetitorSalesScatterTooltip(competitorAxisLabel, common.selfCompanyLabel),
+  const scatterView: AnalysisScatterGridView = useAnalysisScatterGridView({ scatterGrid, chartWidth: common.chartWidth, chartHeight: common.chartHeight })
+  const renderQtyScatterTooltip: ({ active, payload }: AnalysisScatterTooltipProps) => React.JSX.Element | null = useMemo(
+    () : ({ active, payload }: AnalysisScatterTooltipProps) => React.JSX.Element | null => createCompetitorSalesScatterTooltip(competitorAxisLabel, common.selfCompanyLabel),
     [common.selfCompanyLabel, competitorAxisLabel],
   )
 
@@ -125,7 +131,7 @@ export const CompetitorPage = () => {
         endPct={filters.endPct}
         setPresetMonths={filters.setPresetMonths}
         setWholeRange={filters.setWholeRange}
-        onTogglePeriodBar={() => filters.setShowPeriodBar((prev) => !prev)}
+        onTogglePeriodBar={() : void => filters.setShowPeriodBar((prev: boolean) : boolean => !prev)}
         onPeriodBarStart={filters.onPeriodBarStart}
         onPeriodBarEnd={filters.onPeriodBarEnd}
         initialLoading={analysisData.initialLoading && !rows.length}
@@ -144,7 +150,7 @@ export const CompetitorPage = () => {
               <input
                 type="checkbox"
                 checked={showRowsWithSelfSalesOnly}
-                onChange={(event) => setShowRowsWithSelfSalesOnly(event.target.checked)}
+                onChange={(event: React.ChangeEvent<HTMLInputElement, HTMLInputElement>) : void => setShowRowsWithSelfSalesOnly(event.target.checked)}
               />
               <span title="자사 판매량이 존재하는 경우만 표시합니다.">자사기준보기</span>
             </label>
@@ -154,7 +160,7 @@ export const CompetitorPage = () => {
           <button
             type="button"
             className={`${styles.actionBtn} ${styles.btnPrimary} ${styles.analysisBulkAddButton}`}
-            onClick={() => setBulkAddOpen(true)}
+            onClick={() : void => setBulkAddOpen(true)}
             disabled={common.isAllCompanySelected || selection.bulkSelectedCount === 0}
             title={common.isAllCompanySelected ? ALL_COMPANY_BULK_ADD_DISABLED : undefined}
           >
@@ -214,9 +220,9 @@ export const CompetitorPage = () => {
         onRequestNavigateAdjacent={selection.onRequestNavigateAdjacent}
         openSkuGroupKeys={selection.selectedSkuGroupKeys}
         bulkAddOpen={bulkAddOpen}
-        onCloseDrawer={() => selection.setSelectedSkuGroupKey(null)}
-        onCloseBulkAdd={() => setBulkAddOpen(false)}
-        onBulkAddDone={() => {
+        onCloseDrawer={() : void => selection.setSelectedSkuGroupKey(null)}
+        onCloseBulkAdd={() : void => setBulkAddOpen(false)}
+        onBulkAddDone={() : void => {
           setBulkAddOpen(false)
           selection.clearBulkSelection()
         }}

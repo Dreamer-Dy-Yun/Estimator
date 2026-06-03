@@ -12,43 +12,43 @@ import { AdminGptKeyRow } from './AdminGptKeyRow'
 import { AdminListPanel } from './AdminListPanel'
 import styles from './AdminPage.module.css'
 
-export function AdminGptKeysPanel() {
-  const { showToast } = useAppToast()
-  const [gptKeys, setGptKeys] = useState<AdminGptKeySummary[]>([])
-  const [errorMessage, setErrorMessage] = useState<string | null>(null)
-  const [testMessage, setTestMessage] = useState<string | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
-  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
-  const [selectedGptKeyUuid, setSelectedGptKeyUuid] = useState<string | null>(null)
-  const selectedGptKey = gptKeys.find((gptKey) => gptKey.uuid === selectedGptKeyUuid) ?? null
+export function AdminGptKeysPanel() : React.JSX.Element {
+  const { showToast }: ReturnType<typeof useAppToast> = useAppToast()
+  const [gptKeys, setGptKeys]: [AdminGptKeySummary[], React.Dispatch<React.SetStateAction<AdminGptKeySummary[]>>] = useState<AdminGptKeySummary[]>([])
+  const [errorMessage, setErrorMessage]: [string | null, React.Dispatch<React.SetStateAction<string | null>>] = useState<string | null>(null)
+  const [testMessage, setTestMessage]: [string | null, React.Dispatch<React.SetStateAction<string | null>>] = useState<string | null>(null)
+  const [isLoading, setIsLoading]: [boolean, React.Dispatch<React.SetStateAction<boolean>>] = useState(true)
+  const [isCreateDialogOpen, setIsCreateDialogOpen]: [boolean, React.Dispatch<React.SetStateAction<boolean>>] = useState(false)
+  const [selectedGptKeyUuid, setSelectedGptKeyUuid]: [string | null, React.Dispatch<React.SetStateAction<string | null>>] = useState<string | null>(null)
+  const selectedGptKey: AdminGptKeySummary | null = gptKeys.find((gptKey: AdminGptKeySummary) : boolean => gptKey.uuid === selectedGptKeyUuid) ?? null
 
-  useEffect(() => {
-    let alive = true
+  useEffect(() : () => void => {
+    let alive: boolean = true
     getAdminGptKeys()
-      .then((nextGptKeys) => {
+      .then((nextGptKeys: AdminGptKeySummary[]) : void => {
         if (alive) setGptKeys(nextGptKeys)
       })
-      .catch((error) => {
+      .catch((error: unknown) : void => {
         if (alive) setErrorMessage(getErrorMessage(error, 'GPT 키 목록을 불러오지 못했습니다.'))
       })
-      .finally(() => {
+      .finally(() : void => {
         if (alive) setIsLoading(false)
       })
 
-    return () => {
+    return () : void => {
       alive = false
     }
   }, [])
 
-  const reloadGptKeys = async () => {
-    const nextGptKeys = await getAdminGptKeys()
+  const reloadGptKeys: () => Promise<AdminGptKeySummary[]> = async () : Promise<AdminGptKeySummary[]> => {
+    const nextGptKeys: AdminGptKeySummary[] = await getAdminGptKeys()
     setGptKeys(nextGptKeys)
     return nextGptKeys
   }
 
-  const handleTested = (result: AdminGptKeyTestResult) => {
-    setGptKeys((currentGptKeys) =>
-      currentGptKeys.map((gptKey) =>
+  const handleTested: (result: AdminGptKeyTestResult) => void = (result: AdminGptKeyTestResult) : void => {
+    setGptKeys((currentGptKeys: AdminGptKeySummary[]) : AdminGptKeySummary[] =>
+      currentGptKeys.map((gptKey: AdminGptKeySummary) : AdminGptKeySummary =>
         gptKey.uuid === result.uuid
           ? {
               ...gptKey,
@@ -62,7 +62,7 @@ export function AdminGptKeysPanel() {
     setTestMessage(result.message)
   }
 
-  const handleDeleted = async () => {
+  const handleDeleted: () => Promise<void> = async () : Promise<void> => {
     await reloadGptKeys()
     setSelectedGptKeyUuid(null)
     setTestMessage('GPT 키가 삭제되었습니다.')
@@ -82,17 +82,17 @@ export function AdminGptKeysPanel() {
         actions={
           <>
             {testMessage ? <span className={styles.panelNotice}>{testMessage}</span> : null}
-            <button className={styles.createButton} type="button" onClick={() => setIsCreateDialogOpen(true)}>
+            <button className={styles.createButton} type="button" onClick={() : void => setIsCreateDialogOpen(true)}>
               GPT 키 추가
             </button>
           </>
         }
       >
-        {gptKeys.map((gptKey) => (
+        {gptKeys.map((gptKey: AdminGptKeySummary) : React.JSX.Element => (
           <AdminGptKeyRow
             key={gptKey.uuid}
             gptKey={gptKey}
-            onOpen={(nextGptKey) => setSelectedGptKeyUuid(nextGptKey.uuid)}
+            onOpen={(nextGptKey: AdminGptKeySummary) : void => setSelectedGptKeyUuid(nextGptKey.uuid)}
           />
         ))}
       </AdminListPanel>
@@ -101,7 +101,7 @@ export function AdminGptKeysPanel() {
         <AdminGptKeyDialog
           key={selectedGptKey.uuid}
           gptKey={selectedGptKey}
-          onClose={() => setSelectedGptKeyUuid(null)}
+          onClose={() : void => setSelectedGptKeyUuid(null)}
           onChanged={reloadGptKeys}
           onDeleted={handleDeleted}
           onTested={handleTested}
@@ -109,8 +109,8 @@ export function AdminGptKeysPanel() {
       ) : null}
       {isCreateDialogOpen ? (
         <AdminGptKeyCreateDialog
-          onClose={() => setIsCreateDialogOpen(false)}
-          onCreated={async () => {
+          onClose={() : void => setIsCreateDialogOpen(false)}
+          onCreated={async () : Promise<void> => {
             setTestMessage(null)
             await reloadGptKeys()
           }}

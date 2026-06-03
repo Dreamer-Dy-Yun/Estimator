@@ -4,7 +4,7 @@ export {
   forecastDailyMeanFromModel,
 } from './secondaryDailyTrendBuilders'
 
-export const zFromSafetyStockConfidencePct = (p: number): number => {
+export const zFromSafetyStockConfidencePct: (p: number) => number = (p: number): number => {
   if (p >= 99) return 2.33
   if (p >= 98) return 2.05
   if (p >= 95) return 1.65

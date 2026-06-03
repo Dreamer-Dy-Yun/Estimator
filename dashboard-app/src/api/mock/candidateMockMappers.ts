@@ -15,11 +15,11 @@ export function toCandidateItemDetail(row: CandidateItemRecord): CandidateItemDe
   }
 }
 
-export function buildCandidateItemStatsByStash(items: CandidateItemRecord[]) {
-  const stats = new Map<string, { count: number; latestItemTs: string }>()
+export function buildCandidateItemStatsByStash(items: CandidateItemRecord[]) : Map<string, { count: number; latestItemTs: string; }> {
+  const stats: Map<string, { count: number; latestItemTs: string; }> = new Map<string, { count: number; latestItemTs: string }>()
   for (const item of items) {
-    const current = stats.get(item.stashUuid)
-    const dbCreatedAt = String(item.dbCreatedAt)
+    const current: { count: number; latestItemTs: string; } | undefined = stats.get(item.stashUuid)
+    const dbCreatedAt: string = String(item.dbCreatedAt)
     if (!current) {
       stats.set(item.stashUuid, { count: 1, latestItemTs: dbCreatedAt })
       continue

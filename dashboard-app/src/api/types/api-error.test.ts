@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { ApiFailureKind } from './api-error'
 import { ApiClientError, classifyApiFailureStatus, getApiErrorDisplayMessage } from './api-error'
 
-describe('classifyApiFailureStatus', () => {
+describe('classifyApiFailureStatus', () : void => {
   const cases: Array<[number, ApiFailureKind]> = [
     [401, 'auth'],
     [403, 'permission'],
@@ -16,22 +16,22 @@ describe('classifyApiFailureStatus', () => {
     [599, 'server'],
   ]
 
-  it.each(cases)('classifies %i as %s', (status, kind) => {
+  it.each(cases)('classifies %i as %s', (status: number, kind: ApiFailureKind) : void => {
     expect(classifyApiFailureStatus(status)).toBe(kind)
   })
 
-  it('classifies other 4xx statuses as client failures', () => {
+  it('classifies other 4xx statuses as client failures', () : void => {
     expect(classifyApiFailureStatus(400)).toBe('client')
     expect(classifyApiFailureStatus(429)).toBe('client')
   })
 
-  it('classifies non-error statuses as unknown', () => {
+  it('classifies non-error statuses as unknown', () : void => {
     expect(classifyApiFailureStatus(200)).toBe('unknown')
     expect(classifyApiFailureStatus(302)).toBe('unknown')
   })
 })
 
-describe('getApiErrorDisplayMessage', () => {
+describe('getApiErrorDisplayMessage', () : void => {
   const cases: Array<[ApiFailureKind, string]> = [
     ['auth', '로그인이 필요합니다. 다시 로그인해 주세요.'],
     ['permission', '권한이 없습니다.'],
@@ -45,11 +45,11 @@ describe('getApiErrorDisplayMessage', () => {
     ['conflict', '이미 변경된 데이터입니다. 새로고침 후 다시 시도해 주세요.'],
   ]
 
-  it.each(cases)('returns the display message for %s failures', (kind, message) => {
+  it.each(cases)('returns the display message for %s failures', (kind: ApiFailureKind, message: string) : void => {
     expect(getApiErrorDisplayMessage(new ApiClientError(kind, 'raw backend message'), 'fallback')).toBe(message)
   })
 
-  it('uses the fallback for non API errors and unmapped API failure kinds', () => {
+  it('uses the fallback for non API errors and unmapped API failure kinds', () : void => {
     expect(getApiErrorDisplayMessage(new Error('raw error'), '요청을 처리하지 못했습니다.')).toBe(
       '요청을 처리하지 못했습니다.',
     )
@@ -58,7 +58,7 @@ describe('getApiErrorDisplayMessage', () => {
     )
   })
 
-  it('uses the default fallback when the provided fallback is blank', () => {
+  it('uses the default fallback when the provided fallback is blank', () : void => {
     expect(getApiErrorDisplayMessage(new Error('raw error'), '   ')).toBe('API 요청에 실패했습니다.')
   })
 })

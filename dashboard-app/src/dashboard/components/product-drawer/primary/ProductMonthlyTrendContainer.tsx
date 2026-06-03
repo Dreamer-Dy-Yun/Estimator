@@ -1,3 +1,5 @@
+import type { TrendChartPoint } from '../../trend/SalesTrendChart'
+import type { ApiUnitErrorInfo, MonthlySalesPoint } from '../../../../types'
 import { formatGroupedNumber } from '../../../../utils/format'
 import { MAX_FORECAST_MONTHS } from '../../../../utils/forecastMonthsStorage'
 import { ApiUnitErrorBadge } from '../../../../components/ApiUnitErrorBadge'
@@ -8,14 +10,14 @@ import {
   type ProductMonthlyTrendModelArgs,
 } from './useProductMonthlyTrendModel'
 
-type ProductMonthlyTrendContainerProps = ProductMonthlyTrendModelArgs & {
+export type ProductMonthlyTrendContainerProps = ProductMonthlyTrendModelArgs & {
   selfCompanyLabel: string
 }
 
 export function ProductMonthlyTrendContainer({
   selfCompanyLabel,
   ...modelProps
-}: ProductMonthlyTrendContainerProps) {
+}: ProductMonthlyTrendContainerProps) : React.JSX.Element {
   const {
     forecastMonthsLabelId,
     forecastComboRef,
@@ -34,9 +36,9 @@ export function ProductMonthlyTrendContainer({
     toggleForecastCombo,
     selectForecastMonths,
     toggleSalesTrendSeries,
-  } = useProductMonthlyTrendModel(modelProps)
-  const { forecastMonths } = modelProps
-  const seriesButtons = [
+  }: { forecastMonthsLabelId: string; forecastComboRef: React.RefObject<HTMLDivElement | null>; forecastComboOpen: boolean; monthlyTrendError: ApiUnitErrorInfo | null; salesTrendVisible: { self: boolean; competitor: boolean; }; competitorTrendLabel: string; trendWindowData: { idx: number; actual: number | null; competitorActual: number | null; forecastLink: number | null; date: string; isForecast: boolean; sales: number; competitorSales: number | null; }[]; salesTrendChartDense: boolean; salesTrendYMax: number; shiftedPeriodShade: { x1: number; x2: number; }; shiftedForecastShade: { x1: number; x2: number; } | null; onChartWheel: (event: React.WheelEvent<HTMLDivElement>) => void; onChartMouseEnter: () => void; onChartMouseLeave: () => void; toggleForecastCombo: () => void; selectForecastMonths: (months: number) => void; toggleSalesTrendSeries: (series: 'self' | 'competitor') => void; } = useProductMonthlyTrendModel(modelProps)
+  const { forecastMonths }: { skuGroupKey: string; companyUuid?: string; periodStart: string; periodEnd: string; forecastMonths: number; onForecastMonthsChange: (months: number) => void; channelId: string; fallbackChannelLabel: string; fallbackTrend: MonthlySalesPoint[]; pageName: string; } = modelProps
+  const seriesButtons: ({ key: 'self'; label: string; selectedClassName: string; } | { key: 'competitor'; label: string; selectedClassName: string; })[] = [
     {
       key: 'self' as const,
       label: selfCompanyLabel,
@@ -48,7 +50,7 @@ export function ProductMonthlyTrendContainer({
       selectedClassName: styles.trendSeriesButtonCompetitorSelected,
     },
   ]
-  const chartLines = [
+  const chartLines: ({ dataKey: string; stroke: string; strokeDasharray?: undefined; } | { dataKey: string; stroke: string; strokeDasharray: string; })[] = [
     ...(salesTrendVisible.self
       ? [
           { dataKey: 'actual', stroke: '#2563eb' },
@@ -86,15 +88,15 @@ export function ProductMonthlyTrendContainer({
                 {forecastMonths}
               </button>
               {forecastComboOpen && (
-                <ul className={styles.forecastComboList} role="listbox" aria-labelledby={forecastMonthsLabelId} onWheel={(event) => event.stopPropagation()}>
-                  {Array.from({ length: MAX_FORECAST_MONTHS }, (_, index) => index + 1).map((month) => (
+                <ul className={styles.forecastComboList} role="listbox" aria-labelledby={forecastMonthsLabelId} onWheel={(event: React.WheelEvent<HTMLUListElement>) : void => event.stopPropagation()}>
+                  {Array.from({ length: MAX_FORECAST_MONTHS }, (_: unknown, index: number) : number => index + 1).map((month: number) : React.JSX.Element => (
                     <li key={month} role="presentation">
                       <button
                         type="button"
                         role="option"
                         aria-selected={month === forecastMonths}
                         className={month === forecastMonths ? `${styles.forecastComboOption} ${styles.forecastComboOptionSelected}` : styles.forecastComboOption}
-                        onClick={() => selectForecastMonths(month)}
+                        onClick={() : void => selectForecastMonths(month)}
                       >
                         {month}
                       </button>
@@ -105,13 +107,13 @@ export function ProductMonthlyTrendContainer({
             </div>
           </div>
           <div className={styles.trendSeriesToggle} aria-label="판매추이 표시 항목">
-            {seriesButtons.map((button) => (
+            {seriesButtons.map((button: { key: 'self'; label: string; selectedClassName: string; } | { key: 'competitor'; label: string; selectedClassName: string; }) : React.JSX.Element => (
               <button
                 key={button.key}
                 type="button"
                 aria-pressed={salesTrendVisible[button.key]}
                 className={salesTrendVisible[button.key] ? `${styles.trendSeriesButton} ${styles.trendSeriesButtonSelected} ${button.selectedClassName}` : styles.trendSeriesButton}
-                onClick={() => toggleSalesTrendSeries(button.key)}
+                onClick={() : void => toggleSalesTrendSeries(button.key)}
               >
                 {button.label}
               </button>
@@ -133,9 +135,9 @@ export function ProductMonthlyTrendContainer({
             tickAngle={salesTrendChartDense ? -38 : 0}
             tickHeight={salesTrendChartDense ? 42 : undefined}
             lines={chartLines}
-            tooltipValueFormatter={(value, name) => [formatGroupedNumber(value), tooltipNames[String(name)] ?? name]}
-            tooltipLabelFormatter={(row) => String(row.date ?? '')}
-            tickFormatter={(row) => String(row.date ?? '')}
+            tooltipValueFormatter={(value: number, name: string) : [string, string] => [formatGroupedNumber(value), tooltipNames[String(name)] ?? name]}
+            tooltipLabelFormatter={(row: TrendChartPoint) : string => String(row.date ?? '')}
+            tickFormatter={(row: TrendChartPoint) : string => String(row.date ?? '')}
           />
         </div>
       </div>

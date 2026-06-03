@@ -1,3 +1,4 @@
+import type { ProductSecondarySizeRow } from '../../types'
 import type {
   CompetitorSalesRow,
   MonthlySalesPoint,
@@ -12,8 +13,8 @@ import {
   type CompanySummary,
 } from '../types'
 
-export const MOCK_HANA_COMPANY_UUID = '00000000-0000-4000-8000-000000000101'
-export const MOCK_T1_COMPANY_UUID = '00000000-0000-4000-8000-000000000102'
+export const MOCK_HANA_COMPANY_UUID = '00000000-0000-4000-8000-000000000101' as const
+export const MOCK_T1_COMPANY_UUID = '00000000-0000-4000-8000-000000000102' as const
 
 export const MOCK_COMPANIES: CompanySummary[] = [
   {
@@ -33,7 +34,7 @@ export const MOCK_COMPANIES: CompanySummary[] = [
 type CompanyScopeInput = CompanyScopeParams | string | null | undefined
 
 export const MOCK_SINGLE_COMPANY_SCOPE_REQUIRED_MESSAGE =
-  'Mock mutation requires an explicit single companyUuid.'
+  'Mock mutation requires an explicit single companyUuid.' as const
 
 function resolveCompanyUuid(input?: CompanyScopeInput): string | undefined {
   return getCompanyUuidForOptionalScope(typeof input === 'string' || input == null ? input : input.companyUuid)
@@ -44,7 +45,7 @@ function getRawCompanyUuid(input?: CompanyScopeInput): string | null | undefined
 }
 
 function skuSeed(skuGroupKey: string): number {
-  return [...skuGroupKey].reduce((sum, ch) => sum + ch.charCodeAt(0), 0)
+  return [...skuGroupKey].reduce((sum: number, ch: string) : number => sum + ch.charCodeAt(0), 0)
 }
 
 function hanaShare(skuGroupKey: string): number {
@@ -53,17 +54,17 @@ function hanaShare(skuGroupKey: string): number {
 }
 
 export function getMockCompanyScale(input: CompanyScopeInput, skuGroupKey: string): number {
-  const companyUuid = resolveCompanyUuid(input)
+  const companyUuid: string | undefined = resolveCompanyUuid(input)
   if (!companyUuid) return 1
-  const hana = hanaShare(skuGroupKey)
+  const hana: number = hanaShare(skuGroupKey)
   if (companyUuid === MOCK_HANA_COMPANY_UUID) return hana
   if (companyUuid === MOCK_T1_COMPANY_UUID) return 1 - hana
   return 0
 }
 
 export function getMockMutationCompanyUuid(input: CompanyScopeInput): string {
-  const rawCompanyUuid = getRawCompanyUuid(input)
-  const companyUuid = getCompanyUuidForOptionalScope(rawCompanyUuid)
+  const rawCompanyUuid: string | null | undefined = getRawCompanyUuid(input)
+  const companyUuid: string | undefined = getCompanyUuidForOptionalScope(rawCompanyUuid)
   if (!companyUuid) {
     throw new Error(MOCK_SINGLE_COMPANY_SCOPE_REQUIRED_MESSAGE)
   }
@@ -71,7 +72,7 @@ export function getMockMutationCompanyUuid(input: CompanyScopeInput): string {
 }
 
 export function isMockRecordInCompanyScope(recordCompanyUuid: string, input?: CompanyScopeInput): boolean {
-  const companyUuid = resolveCompanyUuid(input)
+  const companyUuid: string | undefined = resolveCompanyUuid(input)
   return !companyUuid || recordCompanyUuid === companyUuid
 }
 
@@ -87,14 +88,14 @@ function scopeMonthlySalesTrend(
   points: MonthlySalesPoint[] | undefined,
   scale: number,
 ): MonthlySalesPoint[] | undefined {
-  return points?.map((point) => ({
+  return points?.map((point: MonthlySalesPoint) : { sales: number; date: string; isForecast: boolean; } => ({
     ...point,
     sales: scaleCount(point.sales, scale),
   }))
 }
 
 export function scopeMockSelfSalesRow(row: SelfSalesRow, input?: CompanyScopeInput): SelfSalesRow | null {
-  const scale = getMockCompanyScale(input, row.skuGroupKey)
+  const scale: number = getMockCompanyScale(input, row.skuGroupKey)
   if (scale <= 0) return null
   return {
     ...row,
@@ -108,7 +109,7 @@ export function scopeMockCompetitorSalesRow(
   row: CompetitorSalesRow,
   input?: CompanyScopeInput,
 ): CompetitorSalesRow | null {
-  const scale = getMockCompanyScale(input, row.skuGroupKey)
+  const scale: number = getMockCompanyScale(input, row.skuGroupKey)
   if (scale <= 0) return null
   return {
     ...row,
@@ -124,7 +125,7 @@ export function scopeMockProductPrimary(
   primary: ProductPrimarySummary,
   input?: CompanyScopeInput,
 ): ProductPrimarySummary {
-  const scale = getMockCompanyScale(input, primary.skuGroupKey)
+  const scale: number = getMockCompanyScale(input, primary.skuGroupKey)
   if (scale <= 0) throw new Error(`Mock product is outside selected company scope: ${primary.skuGroupKey}`)
   return {
     ...primary,
@@ -138,12 +139,12 @@ export function scopeMockProductSecondary(
   secondary: ProductSecondaryDetail,
   input?: CompanyScopeInput,
 ): ProductSecondaryDetail {
-  const scale = getMockCompanyScale(input, secondary.skuGroupKey)
+  const scale: number = getMockCompanyScale(input, secondary.skuGroupKey)
   if (scale <= 0) throw new Error(`Mock secondary product is outside selected company scope: ${secondary.skuGroupKey}`)
   return {
     ...secondary,
     competitorQty: scaleCount(secondary.competitorQty, scale),
-    sizeRows: secondary.sizeRows.map((row) => ({
+    sizeRows: secondary.sizeRows.map((row: ProductSecondarySizeRow) : { confirmedQty: number; qty: number; availableStock: number; size: string; selfRatio: number; avgPrice: number; } => ({
       ...row,
       confirmedQty: scaleCount(row.confirmedQty, scale),
       qty: scaleCount(row.qty, scale),
@@ -162,9 +163,9 @@ export function scopeMockStockTrend<T extends {
   trend: T[],
   input?: CompanyScopeInput,
 ): T[] {
-  const scale = getMockCompanyScale(input, skuGroupKey)
+  const scale: number = getMockCompanyScale(input, skuGroupKey)
   if (scale <= 0) throw new Error(`Mock stock trend is outside selected company scope: ${skuGroupKey}`)
-  return trend.map((point) => ({
+  return trend.map((point: T) : T & { stock: number; inboundExpected: number; inboundQty: number; } => ({
     ...point,
     stock: scaleCount(point.stock, scale),
     inboundExpected: scaleCount(point.inboundExpected, scale),

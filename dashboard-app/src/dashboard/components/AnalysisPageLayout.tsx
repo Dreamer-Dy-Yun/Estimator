@@ -1,4 +1,3 @@
-import type { ReactNode } from 'react'
 import { FilterFieldGrid } from './FilterBar'
 import { AnalysisListRequestFrame } from './AnalysisListRequestFrame'
 import { AnalysisPeriodTools } from './AnalysisPeriodTools'
@@ -19,11 +18,11 @@ export type AnalysisPeriodFrameProps = {
   refreshing: boolean
   initialLabel: string
   refreshLabel: string
-  leftPanel: ReactNode
-  listPanel: ReactNode
-  queryEndControl: ReactNode
-  listFilterEndContent?: ReactNode
-  listActionContent?: ReactNode
+  leftPanel: React.ReactNode
+  listPanel: React.ReactNode
+  queryEndControl: React.ReactNode
+  listFilterEndContent?: React.ReactNode
+  listActionContent?: React.ReactNode
   hidePeriodPresetButtons?: boolean
   setPresetMonths: (months: number) => void
   setWholeRange: () => void
@@ -33,7 +32,7 @@ export type AnalysisPeriodFrameProps = {
   onPeriodBarEnd: (value: number) => void
 }
 
-export function AnalysisPageLayout(props: AnalysisPeriodFrameProps) {
+export function AnalysisPageLayout(props: AnalysisPeriodFrameProps) : React.JSX.Element {
   const {
     queryFields,
     listFilterFields,
@@ -60,7 +59,7 @@ export function AnalysisPageLayout(props: AnalysisPeriodFrameProps) {
     onTogglePeriodBar,
     onPeriodBarStart,
     onPeriodBarEnd,
-  } = props
+  }: AnalysisPeriodFrameProps = props
 
   return (
     <>

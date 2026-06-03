@@ -2,16 +2,16 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { ApiUnitErrorInfo } from '../types'
 import styles from './ApiUnitErrorBadge.module.css'
 
-type Props = {
+export type Props = {
   error: ApiUnitErrorInfo | null
 }
 
-export function ApiUnitErrorBadge({ error }: Props) {
-  const [copiedDetail, setCopiedDetail] = useState<string | null>(null)
-  const mountedRef = useRef(false)
-  const copySequenceRef = useRef(0)
-  const copiedResetTimerRef = useRef<number | null>(null)
-  const detail = useMemo(() => {
+export function ApiUnitErrorBadge({ error }: Props) : React.JSX.Element | null {
+  const [copiedDetail, setCopiedDetail]: [string | null, React.Dispatch<React.SetStateAction<string | null>>] = useState<string | null>(null)
+  const mountedRef: React.RefObject<boolean> = useRef(false)
+  const copySequenceRef: React.RefObject<number> = useRef(0)
+  const copiedResetTimerRef: React.RefObject<number | null> = useRef<number | null>(null)
+  const detail: string = useMemo(() : string => {
     if (!error) return ''
     return [
       `에러 확인시간: ${error.checkedAt}`,
@@ -21,34 +21,34 @@ export function ApiUnitErrorBadge({ error }: Props) {
     ].join('\n')
   }, [error])
 
-  const clearCopiedResetTimer = useCallback(() => {
+  const clearCopiedResetTimer: () => void = useCallback(() : void => {
     if (copiedResetTimerRef.current == null) return
     window.clearTimeout(copiedResetTimerRef.current)
     copiedResetTimerRef.current = null
   }, [])
 
-  useEffect(() => {
+  useEffect(() : () => void => {
     mountedRef.current = true
-    return () => {
+    return () : void => {
       mountedRef.current = false
       clearCopiedResetTimer()
     }
   }, [clearCopiedResetTimer])
 
-  useEffect(() => {
+  useEffect(() : void => {
     copySequenceRef.current += 1
     clearCopiedResetTimer()
   }, [clearCopiedResetTimer, detail])
 
-  const handleCopy = useCallback(async () => {
-    const copySequence = copySequenceRef.current + 1
+  const handleCopy: () => Promise<void> = useCallback(async () : Promise<void> => {
+    const copySequence: number = copySequenceRef.current + 1
     copySequenceRef.current = copySequence
     try {
       await navigator.clipboard.writeText(detail)
       if (!mountedRef.current || copySequenceRef.current !== copySequence) return
       clearCopiedResetTimer()
       setCopiedDetail(detail)
-      copiedResetTimerRef.current = window.setTimeout(() => {
+      copiedResetTimerRef.current = window.setTimeout(() : void => {
         copiedResetTimerRef.current = null
         if (mountedRef.current && copySequenceRef.current === copySequence) setCopiedDetail(null)
       }, 1200)
@@ -61,7 +61,7 @@ export function ApiUnitErrorBadge({ error }: Props) {
 
   if (!error) return null
 
-  const copied = copiedDetail === detail
+  const copied: boolean = copiedDetail === detail
 
   return (
     <button

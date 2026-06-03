@@ -1,9 +1,9 @@
 import styles from '../common.module.css'
 import detailStyles from './CandidateStashDetailModal.module.css'
 
-type Props = { loadError?: string | null; onClose: () => void }
+export type Props = { loadError?: string | null; onClose: () => void }
 
-export function CandidateStashMissingState({ loadError, onClose }: Props) {
+export function CandidateStashMissingState({ loadError, onClose }: Props) : React.JSX.Element {
   return (
     <>
       <h2 id="stash-detail-modal-title" className={styles.srOnly}>{loadError ? '후보군 상세 로드 실패' : '후보군 상세 없음'}</h2>

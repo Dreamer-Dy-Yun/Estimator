@@ -1,18 +1,18 @@
 import { expect, test } from '@playwright/test'
 import { collectRuntimeErrors, expectNoRuntimeErrors, loginWithDefaultMockUser } from './helpers/app'
 
-test('@candidate @keyboard candidate stash inner list keyboard focus opens drawer', async ({ page }) => {
-  const runtimeErrors = collectRuntimeErrors(page)
+test('@candidate @keyboard candidate stash inner list keyboard focus opens drawer', async ({ page }: PlaywrightTestArgs & PlaywrightTestOptions & PlaywrightWorkerArgs & PlaywrightWorkerOptions) : Promise<void> => {
+  const runtimeErrors: string[] = collectRuntimeErrors(page)
 
   await loginWithDefaultMockUser(page, '/dashboard/snapshot-confirm')
 
-  const firstStashOpenButton = page.locator('button', { hasText: '등록 상품' }).first()
+  const firstStashOpenButton: Locator = page.locator('button', { hasText: '등록 상품' }).first()
   await expect(firstStashOpenButton).toBeVisible()
   await firstStashOpenButton.click()
 
-  const detailDialog = page.getByRole('dialog')
-  const orderList = detailDialog.getByRole('list')
-  const firstRow = detailDialog.getByRole('listitem').first()
+  const detailDialog: Locator = page.getByRole('dialog')
+  const orderList: Locator = detailDialog.getByRole('list')
+  const firstRow: Locator = detailDialog.getByRole('listitem').first()
   await expect(firstRow).toBeVisible()
 
   await orderList.click({ position: { x: 8, y: 8 } })

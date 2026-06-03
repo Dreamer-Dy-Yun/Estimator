@@ -1,4 +1,5 @@
-import { memo, useCallback, useEffect, useRef, type KeyboardEvent, type ReactNode, type RefObject } from 'react'
+import type { CandidateItemSummary } from '../../../api'
+import { memo, useCallback, useEffect, useRef,} from 'react'
 import { LoadingSpinner } from '../../../components/LoadingSpinner'
 import type { AdjacentDirection } from '../../../utils/adjacentListNavigation'
 import { formatEaQuantity, formatGroupedNumber } from '../../../utils/format'
@@ -9,32 +10,32 @@ import type { InnerCandidateRow, InnerCandidateSortKey } from './candidateStashD
 import { useInnerCandidateOrderKeyboardFocus } from './useInnerCandidateOrderKeyboardFocus'
 import detailStyles from './CandidateStashDetailModal.module.css'
 
-type SortDir = 'asc' | 'desc' | null
+export type SortDir = 'asc' | 'desc' | null
 
-type SortHeader = {
+export type SortHeader = {
   label: string
   sortKey: InnerCandidateSortKey
   align?: 'center' | 'right'
 }
 
-type RowProps = {
+export type RowProps = {
   row: InnerCandidateRow
   index: number
   selected: boolean
   active: boolean
   drawerOpen: boolean
-  rowRefs: RefObject<Map<string, HTMLDivElement>>
+  rowRefs: React.RefObject<Map<string, HTMLDivElement>>
   onToggleSelectedItem: (uuid: string) => void
   onToggleItemDrawer: (row: InnerCandidateRow) => void
   onRequestFocusAdjacent: (currentUuid: string | null, direction: AdjacentDirection) => void
 }
 
-type Props = {
+export type Props = {
   rows: InnerCandidateRow[]
   visibleItemUuids: string[]
   selectedUuidSet: Set<string>
   allVisibleSelected: boolean
-  selectAllRef: RefObject<HTMLInputElement | null>
+  selectAllRef: React.RefObject<HTMLInputElement | null>
   competitorSalesQtyHeader: string
   activeSortKey: InnerCandidateSortKey | null
   activeSortDir: SortDir
@@ -48,7 +49,7 @@ type Props = {
   onSort: (key: InnerCandidateSortKey) => void
 }
 
-const sortHeaders = (competitorSalesQtyHeader: string): SortHeader[] => [
+const sortHeaders: (competitorSalesQtyHeader: string) => SortHeader[] = (competitorSalesQtyHeader: string): SortHeader[] => [
   { label: '브랜드', sortKey: 'brand' },
   { label: '품번', sortKey: 'code' },
   { label: '상품명', sortKey: 'productName' },
@@ -60,15 +61,15 @@ const sortHeaders = (competitorSalesQtyHeader: string): SortHeader[] => [
   { label: '총 오더 금액', sortKey: 'expectedOrderAmount', align: 'right' },
 ]
 
-function SortButton({ header, activeKey, activeDir, onSort }: { header: SortHeader; activeKey: InnerCandidateSortKey | null; activeDir: SortDir; onSort: (key: InnerCandidateSortKey) => void }) {
-  const active = activeKey === header.sortKey
-  const stateLabel = active ? (activeDir === 'asc' ? '오름차순 정렬 적용됨' : '내림차순 정렬 적용됨') : '정렬 적용되지 않음'
-  const nextLabel = active && activeDir === 'asc' ? '내림차순으로 정렬' : '오름차순으로 정렬'
+function SortButton({ header, activeKey, activeDir, onSort }: { header: SortHeader; activeKey: InnerCandidateSortKey | null; activeDir: SortDir; onSort: (key: InnerCandidateSortKey) => void }) : React.JSX.Element {
+  const active: boolean = activeKey === header.sortKey
+  const stateLabel: '오름차순 정렬 적용됨' | '내림차순 정렬 적용됨' | '정렬 적용되지 않음' = active ? (activeDir === 'asc' ? '오름차순 정렬 적용됨' : '내림차순 정렬 적용됨') : '정렬 적용되지 않음'
+  const nextLabel: '내림차순으로 정렬' | '오름차순으로 정렬' = active && activeDir === 'asc' ? '내림차순으로 정렬' : '오름차순으로 정렬'
   return (
     <button
       type="button"
       className={[detailStyles.innerOrderSortHeader, header.align === 'center' ? detailStyles.innerOrderSortHeaderCenter : '', header.align === 'right' ? detailStyles.innerOrderSortHeaderNum : ''].filter(Boolean).join(' ')}
-      onClick={() => onSort(header.sortKey)}
+      onClick={() : void => onSort(header.sortKey)}
       aria-label={`${header.label} 정렬. 현재 상태: ${stateLabel}. 실행 시 ${nextLabel}`}
       aria-pressed={active}
     >
@@ -78,19 +79,19 @@ function SortButton({ header, activeKey, activeDir, onSort }: { header: SortHead
   )
 }
 
-const OrderMetricCell = memo(function OrderMetricCell({ row, kind }: { row: InnerCandidateRow; kind: 'qty' | 'amount' }) {
+const OrderMetricCell: React.MemoExoticComponent<({ row, kind }: { row: InnerCandidateRow; kind: 'qty' | 'amount'; }) => React.JSX.Element> = memo(function OrderMetricCell({ row, kind }: { row: InnerCandidateRow; kind: 'qty' | 'amount' }) : React.JSX.Element {
   if (row.orderMetricStatus === 'failed') return <span className={detailStyles.innerOrderMetricState}>실패</span>
   if (row.orderMetricStatus !== 'loaded') return <LoadingSpinner size="inline" label="오더 지표 계산 중" showLabel={false} />
   return kind === 'qty' ? <>{formatGroupedNumber(row.insight.expectedSalesQty)} EA</> : <>{formatGroupedNumber(row.expectedOrderAmount)} 원</>
 })
 
-const InnerCandidateOrderRow = memo(function InnerCandidateOrderRow({ row, index, selected, active, drawerOpen, rowRefs, onToggleSelectedItem, onToggleItemDrawer, onRequestFocusAdjacent }: RowProps) {
-  const rowRefMap = rowRefs.current
-  const setRowRef = useCallback((node: HTMLDivElement | null) => {
+const InnerCandidateOrderRow: React.MemoExoticComponent<({ row, index, selected, active, drawerOpen, rowRefs, onToggleSelectedItem, onToggleItemDrawer, onRequestFocusAdjacent }: RowProps) => React.JSX.Element> = memo(function InnerCandidateOrderRow({ row, index, selected, active, drawerOpen, rowRefs, onToggleSelectedItem, onToggleItemDrawer, onRequestFocusAdjacent }: RowProps) : React.JSX.Element {
+  const rowRefMap: Map<string, HTMLDivElement> = rowRefs.current
+  const setRowRef: (node: HTMLDivElement | null) => void = useCallback((node: HTMLDivElement | null) : void => {
     if (node) rowRefMap.set(row.uuid, node)
     else rowRefMap.delete(row.uuid)
   }, [row.uuid, rowRefMap])
-  const onRowKeyDown = useCallback((event: KeyboardEvent<HTMLDivElement>) => {
+  const onRowKeyDown: (event: React.KeyboardEvent<HTMLDivElement>) => void = useCallback((event: React.KeyboardEvent<HTMLDivElement>) : void => {
     if (isInteractiveControlTarget(event.target)) return
     if (event.key === 'ArrowLeft') {
       event.preventDefault()
@@ -109,12 +110,12 @@ const InnerCandidateOrderRow = memo(function InnerCandidateOrderRow({ row, index
     event.stopPropagation()
     onToggleItemDrawer(row)
   }, [onRequestFocusAdjacent, onToggleItemDrawer, row])
-  const rankToneClass = row.insight.rankTone === 'top' ? detailStyles.innerOrderRowTop : row.insight.rankTone === 'bottom' ? detailStyles.innerOrderRowBottom : ''
+  const rankToneClass: string = row.insight.rankTone === 'top' ? detailStyles.innerOrderRowTop : row.insight.rankTone === 'bottom' ? detailStyles.innerOrderRowBottom : ''
 
   return (
-    <div ref={setRowRef} className={`${detailStyles.innerOrderRow} ${rankToneClass} ${active ? detailStyles.innerOrderRowActive : ''}`} onClick={() => onToggleItemDrawer(row)} onKeyDown={onRowKeyDown} role="listitem" tabIndex={0} aria-expanded={drawerOpen && active} aria-current={active ? 'true' : undefined}>
-      <span className={detailStyles.innerOrderCheckCell} onClick={(event) => event.stopPropagation()}>
-        <label className={detailStyles.innerOrderCheckboxTarget}><input type="checkbox" checked={selected} aria-label={`${row.productName} 선택`} onChange={() => onToggleSelectedItem(row.uuid)} /></label>
+    <div ref={setRowRef} className={`${detailStyles.innerOrderRow} ${rankToneClass} ${active ? detailStyles.innerOrderRowActive : ''}`} onClick={() : void => onToggleItemDrawer(row)} onKeyDown={onRowKeyDown} role="listitem" tabIndex={0} aria-expanded={drawerOpen && active} aria-current={active ? 'true' : undefined}>
+      <span className={detailStyles.innerOrderCheckCell} onClick={(event: React.MouseEvent<HTMLSpanElement, MouseEvent>) : void => event.stopPropagation()}>
+        <label className={detailStyles.innerOrderCheckboxTarget}><input type="checkbox" checked={selected} aria-label={`${row.productName} 선택`} onChange={() : void => onToggleSelectedItem(row.uuid)} /></label>
       </span>
       <span className={detailStyles.innerOrderIndexCell}>{index + 1}</span>
       <span className={detailStyles.innerOrderBrand}>{row.brand}</span>
@@ -148,19 +149,19 @@ export function InnerCandidateOrderList({
   onToggleSelectedItem,
   onToggleItemDrawer,
   onSort,
-}: Props) {
-  const rowRefs = useRef(new Map<string, HTMLDivElement>())
-  const { activeItemUuid, focusAdjacent } = useInnerCandidateOrderKeyboardFocus({ rows, drawerOpen, drawerClosing, openedItemUuid, disabled: keyboardNavigationDisabled, onOpenItemDrawer: onToggleItemDrawer })
-  const onListKeyDown = useCallback((event: KeyboardEvent<HTMLDivElement>) => {
+}: Props) : React.JSX.Element {
+  const rowRefs: React.RefObject<Map<string, HTMLDivElement>> = useRef(new Map<string, HTMLDivElement>())
+  const { activeItemUuid, focusAdjacent }: { activeItemUuid: string | null; focusAdjacent: (currentUuid: string | null, direction: AdjacentDirection) => void; } = useInnerCandidateOrderKeyboardFocus({ rows, drawerOpen, drawerClosing, openedItemUuid, disabled: keyboardNavigationDisabled, onOpenItemDrawer: onToggleItemDrawer })
+  const onListKeyDown: (event: React.KeyboardEvent<HTMLDivElement>) => void = useCallback((event: React.KeyboardEvent<HTMLDivElement>) : void => {
     if (event.target !== event.currentTarget || (event.key !== 'ArrowUp' && event.key !== 'ArrowDown')) return
     event.preventDefault()
     event.stopPropagation()
     focusAdjacent(activeItemUuid, event.key === 'ArrowDown' ? 'next' : 'prev')
   }, [activeItemUuid, focusAdjacent])
 
-  useEffect(() => {
+  useEffect(() : void => {
     if (!activeItemUuid) return
-    const activeRow = rowRefs.current.get(activeItemUuid)
+    const activeRow: HTMLDivElement | undefined = rowRefs.current.get(activeItemUuid)
     activeRow?.scrollIntoView({ block: 'nearest', inline: 'nearest' })
     activeRow?.focus({ preventScroll: true })
   }, [activeItemUuid, rows.length])
@@ -172,15 +173,15 @@ export function InnerCandidateOrderList({
           <label className={detailStyles.innerOrderCheckboxTarget}><input ref={selectAllRef} type="checkbox" checked={allVisibleSelected} disabled={visibleItemUuids.length === 0} aria-label="전체 선택" onChange={onToggleAllVisibleItems} /></label>
         </span>
         <span className={detailStyles.innerOrderIndexCell} aria-hidden="true" />
-        {sortHeaders(competitorSalesQtyHeader).map((header) => <SortButton key={header.sortKey} header={header} activeKey={activeSortKey} activeDir={activeSortDir} onSort={onSort} />)}
+        {sortHeaders(competitorSalesQtyHeader).map((header: SortHeader) : React.JSX.Element => <SortButton key={header.sortKey} header={header} activeKey={activeSortKey} activeDir={activeSortDir} onSort={onSort} />)}
       </div>
-      {rows.map((row, index) => (
+      {rows.map((row: CandidateItemSummary, index: number) : React.JSX.Element => (
         <InnerCandidateOrderRow key={row.uuid} row={row} index={index} selected={selectedUuidSet.has(row.uuid)} active={activeItemUuid === row.uuid} drawerOpen={drawerOpen} rowRefs={rowRefs} onToggleSelectedItem={onToggleSelectedItem} onToggleItemDrawer={onToggleItemDrawer} onRequestFocusAdjacent={focusAdjacent} />
       ))}
     </div>
   )
 }
 
-export function InnerCandidateOrderEmptyState({ children }: { children: ReactNode }) {
+export function InnerCandidateOrderEmptyState({ children }: { children: React.ReactNode }) : React.JSX.Element {
   return <div className={`${styles.card} ${detailStyles.emptyState}`}>{children}</div>
 }

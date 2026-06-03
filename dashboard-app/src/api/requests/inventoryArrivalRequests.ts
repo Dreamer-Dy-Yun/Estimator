@@ -1,3 +1,5 @@
+import type { InventoryArrivalCollectionResult } from '..'
+import type { CompanyMutationScopeParams } from '../types'
 import { mockInventoryArrivalApi } from '../mock'
 import type { InventoryArrivalApi, InventoryArrivalCollectionParams } from '../types'
 import { normalizeCompanyMutationScopeParams } from '../types/company'
@@ -19,15 +21,15 @@ import { apiRequest, USE_MOCK_API } from './httpClient'
  *   accepted, return an HTTP error with `{ message }`. Partial row failures can
  *   return `status: "partial"` with `failedCount > 0`.
  */
-function buildInventoryArrivalCollectionBody(params: InventoryArrivalCollectionParams) {
-  const normalizedParams = normalizeCompanyMutationScopeParams(params)
+function buildInventoryArrivalCollectionBody(params: InventoryArrivalCollectionParams) : { companyUuid: string; } {
+  const normalizedParams: CompanyMutationScopeParams = normalizeCompanyMutationScopeParams(params)
   return {
     companyUuid: normalizedParams.companyUuid,
   }
 }
 
 const httpInventoryArrivalRequests: InventoryArrivalApi = {
-  collectInventoryArrivalDates: (params) =>
+  collectInventoryArrivalDates: (params: CompanyMutationScopeParams) : Promise<InventoryArrivalCollectionResult> =>
     apiRequest('/inventory-arrival-dates/collect-from-sheet', {
       method: 'POST',
       body: JSON.stringify(buildInventoryArrivalCollectionBody(params)),
@@ -35,7 +37,7 @@ const httpInventoryArrivalRequests: InventoryArrivalApi = {
 }
 
 const mockInventoryArrivalRequests: InventoryArrivalApi = {
-  collectInventoryArrivalDates: (params) => mockInventoryArrivalApi.collectInventoryArrivalDates(params),
+  collectInventoryArrivalDates: (params: CompanyMutationScopeParams) : Promise<InventoryArrivalCollectionResult> => mockInventoryArrivalApi.collectInventoryArrivalDates(params),
 }
 
 export const inventoryArrivalRequests: InventoryArrivalApi = USE_MOCK_API

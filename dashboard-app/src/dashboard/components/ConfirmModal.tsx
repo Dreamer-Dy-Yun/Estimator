@@ -1,10 +1,10 @@
-import { useCallback, useId, useRef, useState, type ReactNode } from 'react'
+import { useCallback, useId, useRef, useState } from 'react'
 import { LoadingSpinner } from '../../components/LoadingSpinner'
 import { drawerKeepOpenDataProps } from '../drawer/drawerDom'
 import styles from './ConfirmModal.module.css'
 import { useModalFocusTrap } from './useModalFocusTrap'
 
-type ConfirmModalClassNames = {
+export type ConfirmModalClassNames = {
   backdrop?: string
   panel?: string
   title?: string
@@ -15,11 +15,11 @@ type ConfirmModalClassNames = {
   confirmButton?: string
 }
 
-type ConfirmModalProps = {
+export type ConfirmModalProps = {
   open: boolean
   busy?: boolean
   title: string
-  message: ReactNode
+  message: React.ReactNode
   cancelText?: string
   confirmText?: string
   confirmingText?: string
@@ -30,7 +30,7 @@ type ConfirmModalProps = {
   keepOpenAttr?: boolean
 }
 
-const getAsyncErrorMessage = (error: unknown) => {
+const getAsyncErrorMessage: (error: unknown) => string = (error: unknown) : string => {
   if (error instanceof Error && error.message.trim()) return error.message
   return '요청 처리 중 오류가 발생했습니다.'
 }
@@ -48,18 +48,18 @@ export function ConfirmModal({
   onCancel,
   onConfirm,
   keepOpenAttr = false,
-}: ConfirmModalProps) {
-  const descriptionId = useId()
-  const asyncErrorId = useId()
-  const panelRef = useRef<HTMLDivElement | null>(null)
-  const cancelButtonRef = useRef<HTMLButtonElement | null>(null)
-  const [confirmError, setConfirmError] = useState<string | null>(null)
-  const handleCancel = useCallback(() => {
+}: ConfirmModalProps) : React.JSX.Element | null {
+  const descriptionId: string = useId()
+  const asyncErrorId: string = useId()
+  const panelRef: React.RefObject<HTMLDivElement | null> = useRef<HTMLDivElement | null>(null)
+  const cancelButtonRef: React.RefObject<HTMLButtonElement | null> = useRef<HTMLButtonElement | null>(null)
+  const [confirmError, setConfirmError]: [string | null, React.Dispatch<React.SetStateAction<string | null>>] = useState<string | null>(null)
+  const handleCancel: () => void = useCallback(() : void => {
     if (busy) return
     setConfirmError(null)
     onCancel()
   }, [busy, onCancel])
-  const handleKeyDown = useModalFocusTrap({
+  const handleKeyDown: (event: React.KeyboardEvent<HTMLDivElement>) => void = useModalFocusTrap({
     panelRef,
     active: open,
     closeDisabled: busy,
@@ -69,7 +69,7 @@ export function ConfirmModal({
 
   if (!open) return null
 
-  const modalClassNames = {
+  const modalClassNames: Required<ConfirmModalClassNames> = {
     backdrop: classNames?.backdrop ?? styles.backdrop,
     panel: classNames?.panel ?? styles.panel,
     title: classNames?.title ?? styles.title,
@@ -79,8 +79,8 @@ export function ConfirmModal({
     cancelButton: classNames?.cancelButton ?? styles.cancelButton,
     confirmButton: classNames?.confirmButton ?? styles.dangerButton,
   }
-  const describedBy = confirmError ? `${descriptionId} ${asyncErrorId}` : descriptionId
-  const handleConfirm = async () => {
+  const describedBy: string = confirmError ? `${descriptionId} ${asyncErrorId}` : descriptionId
+  const handleConfirm: () => Promise<void> = async () : Promise<void> => {
     if (busy) return
     setConfirmError(null)
     try {
@@ -100,7 +100,7 @@ export function ConfirmModal({
       <div
         ref={panelRef}
         className={modalClassNames.panel}
-        onClick={(e) => e.stopPropagation()}
+        onClick={(e: React.MouseEvent<HTMLDivElement, MouseEvent>) : void => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
         aria-labelledby={dialogTitleId}
@@ -128,7 +128,7 @@ export function ConfirmModal({
             type="button"
             className={`${modalClassNames.button} ${modalClassNames.confirmButton}`}
             disabled={busy}
-            onClick={() => void handleConfirm()}
+            onClick={() : undefined => void handleConfirm()}
           >
             {busy ? <LoadingSpinner size="inline" label={confirmingText} /> : confirmText}
           </button>

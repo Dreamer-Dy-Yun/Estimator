@@ -1,7 +1,12 @@
+import type { SubscribeArgs } from './useCandidateOrderMetricStream'
+import type { AdminGoogleSheetConfigSummary, AdminGptKeySummary, AdminGptKeyTestResult, AdminUserSummary, ApiAdapterMode, ApiErrorResponse, ApiFailureKind, ApiHttpError, AppendCandidateItemsResponse, AuthSession, CandidateDetailBulkConfirmProgressEvent, CandidateDetailBulkConfirmStartPayload, CandidateDetailBulkConfirmStartResult, CandidateDetailBulkConfirmSubscription, CandidateItemDetail, CandidateItemListParams, CandidateItemListResult, CandidateRecommendationParams, CandidateRecommendationResult, CandidateStashExcelTemplateDownload, CandidateStashExcelUploadResult, CandidateStashLlmCommentJobProgressEvent, CandidateStashLlmCommentJobStartResult, CandidateStashLlmCommentJobSubscription, CandidateStashSummary, ChangePasswordPayload, CompanyScopeParams, CompanySummary, CompetitorSalesParams, CreateAdminGoogleSheetConfigPayload, CreateAdminGptKeyPayload, CreateAdminUserPayload, DashboardApi, DashboardEventStreamErrorListener, InventoryArrivalCollectionResult, LoginRequest, LoginResult, ProductDrawerBundle, ResetAdminUserPasswordResult, RotateAdminGptKeyPayload, SalesFilterMeta, SalesFilterMetaParams, SecondaryAiCommentParams, SecondaryAiCommentResult, SecondaryCompetitorChannel, SelfSalesParams, UpdateAdminGoogleSheetConfigPayload, UpdateAdminGptKeyPayload, UpdateAdminUserPayload, UpdateAuthUserPayload, UpdateCandidateItemPayload, UpdateCandidateItemResponse } from '../../../api'
+import type { AppendCandidateItemsPayload, CandidateStashLlmCommentJobParams, CompanyMutationScopeParams, CompetitorSalesGridParams, CreateCandidateStashPayload, InventoryArrivalCollectionParams, ProductDrawerBundleParams, ScatterSalesGridResponse, SelfSalesGridParams, UpdateCandidateStashPayload } from '../../../api/types'
+import type { CandidateStashListParams } from '../../../api/types/candidate'
+import type { CompetitorSalesRow, SelfSalesRow } from '../../../types'
 // @vitest-environment jsdom
 import { act, useEffect, useRef, useState } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi , type Mock} from 'vitest';
 import type {
   CandidateItemSummary,
   CandidateOrderMetric,
@@ -10,9 +15,9 @@ import type {
 } from '../../../api'
 import { useCandidateOrderMetricStream } from './useCandidateOrderMetricStream'
 
-const TEST_COMPANY_UUID = '00000000-0000-4000-8000-000000000101'
+const TEST_COMPANY_UUID = '00000000-0000-4000-8000-000000000101' as const
 
-const apiMock = vi.hoisted(() => ({
+const apiMock: { subscribeCandidateOrderMetrics: Mock<(...args: unknown[]) => unknown>; subscriptions: { params: CandidateOrderMetricStreamParams; listener: (event: CandidateOrderMetricEvent) => void; close: ReturnType<typeof vi.fn>; }[]; } = vi.hoisted(() : { subscribeCandidateOrderMetrics: Mock<(...args: unknown[]) => unknown>; subscriptions: { params: CandidateOrderMetricStreamParams; listener: (event: CandidateOrderMetricEvent) => void; close: ReturnType<typeof vi.fn>; }[]; } => ({
   subscribeCandidateOrderMetrics: vi.fn(),
   subscriptions: [] as {
     params: CandidateOrderMetricStreamParams
@@ -21,15 +26,15 @@ const apiMock = vi.hoisted(() => ({
   }[],
 }))
 
-vi.mock('../../../api', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('../../../api')>()
+vi.mock('../../../api', async (importOriginal: <T = unknown>() => Promise<T>) : Promise<{ subscribeCandidateOrderMetrics: Mock<(...args: unknown[]) => unknown>; API_ADAPTER_MODE: ApiAdapterMode; ApiHttpError: typeof ApiHttpError; USE_MOCK_API: boolean; classifyApiFailureStatus: (status: number) => ApiFailureKind; getApiErrorDisplayMessage: (error: unknown, fallback?: string) => string; isApiErrorResponse: (body: unknown) => body is ApiErrorResponse; ALL_COMPANY_UUID: '00000000-0000-4000-8000-000000000100'; getCompanyUuidForOptionalScope: (companyUuid: string | null | undefined) => string | undefined; isAllCompanyScope: (companyUuid: string | null | undefined) => boolean; isAllCompanyUuid: (companyUuid: string | null | undefined) => boolean; normalizeCompanyScopeParams: <T extends CompanyScopeParams>(params?: T) => T | undefined; DAILY_TREND_AS_OF_DATE: '2025-12-31'; changeCurrentUserPassword: (payload: ChangePasswordPayload) => Promise<void>; collectInventoryArrivalDates: (params: InventoryArrivalCollectionParams) => Promise<InventoryArrivalCollectionResult>; createAdminGptKey: (payload: CreateAdminGptKeyPayload) => Promise<AdminGptKeySummary>; createAdminGoogleSheetConfig: (payload: CreateAdminGoogleSheetConfigPayload) => Promise<AdminGoogleSheetConfigSummary>; createAdminUser: (payload: CreateAdminUserPayload) => Promise<AdminUserSummary>; createCandidateStash: (payload: CreateCandidateStashPayload) => Promise<CandidateStashSummary>; dashboardApi: DashboardApi; deleteAdminGptKey: (keyUuid: string) => Promise<void>; deleteAdminGoogleSheetConfig: (configUuid: string, params: CompanyMutationScopeParams) => Promise<void>; deleteAdminUser: (userUuid: string) => Promise<void>; getAdminGptKeys: () => Promise<AdminGptKeySummary[]>; getAdminGoogleSheetConfigs: (params?: CompanyScopeParams) => Promise<AdminGoogleSheetConfigSummary[]>; getAdminUsers: () => Promise<AdminUserSummary[]>; getCompanies: () => Promise<CompanySummary[]>; getCurrentAuthSession: () => Promise<AuthSession | null>; getCompetitorSales: (params?: CompetitorSalesParams) => Promise<CompetitorSalesRow[]>; getCompetitorSalesScatterGrid: (params?: CompetitorSalesGridParams) => Promise<ScatterSalesGridResponse>; getProductDrawerBundle: (skuGroupKey: string, params?: ProductDrawerBundleParams) => Promise<ProductDrawerBundle>; getSecondaryCompetitorChannels: () => Promise<SecondaryCompetitorChannel[]>; getSecondaryAiComment: (params: SecondaryAiCommentParams) => Promise<SecondaryAiCommentResult>; getCandidateStashes: (params?: CandidateStashListParams) => Promise<CandidateStashSummary[]>; getCandidateItemsByStash: (params: CandidateItemListParams) => Promise<CandidateItemListResult>; getCandidateRecommendations: (params: CandidateRecommendationParams) => Promise<CandidateRecommendationResult>; getCandidateItemByUuid: (itemUuid: string, params?: CompanyScopeParams) => Promise<CandidateItemDetail | null>; getCandidateStashExcelTemplateDownload: () => CandidateStashExcelTemplateDownload; deleteCandidateItem: (itemUuid: string, params: CompanyMutationScopeParams) => Promise<void>; deleteCandidateItems: (stashUuid: string, itemUuids: string[], params: CompanyMutationScopeParams) => Promise<void>; deleteCandidateStash: (stashUuid: string, params: CompanyMutationScopeParams) => Promise<void>; appendCandidateItems: (payload: AppendCandidateItemsPayload) => Promise<AppendCandidateItemsResponse>; updateCandidateItem: (payload: UpdateCandidateItemPayload) => Promise<UpdateCandidateItemResponse>; updateCandidateStash: (payload: UpdateCandidateStashPayload) => Promise<CandidateStashSummary>; duplicateCandidateStash: (stashUuid: string, params: CompanyMutationScopeParams) => Promise<void>; uploadCandidateStashExcel: (file: File, params: CompanyMutationScopeParams) => Promise<CandidateStashExcelUploadResult>; getSelfSales: (params?: SelfSalesParams) => Promise<SelfSalesRow[]>; getSelfSalesScatterGrid: (params?: SelfSalesGridParams) => Promise<ScatterSalesGridResponse>; getSalesFilterMeta: (params?: SalesFilterMetaParams) => Promise<SalesFilterMeta>; login: (payload: LoginRequest) => Promise<LoginResult>; logout: () => Promise<void>; resetAdminUserPassword: (userUuid: string) => Promise<ResetAdminUserPasswordResult>; rotateAdminGptKey: (payload: RotateAdminGptKeyPayload) => Promise<AdminGptKeySummary>; startCandidateStashLlmCommentJob: (stashUuid: string, params: CandidateStashLlmCommentJobParams) => Promise<CandidateStashLlmCommentJobStartResult>; startCandidateDetailBulkConfirm: (payload: CandidateDetailBulkConfirmStartPayload) => Promise<CandidateDetailBulkConfirmStartResult>; subscribeCandidateDetailBulkConfirm: (jobId: string, listener: (event: CandidateDetailBulkConfirmProgressEvent) => void, onError: DashboardEventStreamErrorListener | undefined, params: CompanyMutationScopeParams) => CandidateDetailBulkConfirmSubscription; subscribeCandidateStashLlmCommentJob: (jobId: string, listener: (event: CandidateStashLlmCommentJobProgressEvent) => void, onError: DashboardEventStreamErrorListener | undefined, params: CandidateStashLlmCommentJobParams) => CandidateStashLlmCommentJobSubscription; testAdminGptKey: (keyUuid: string) => Promise<AdminGptKeyTestResult>; updateAdminGptKey: (payload: UpdateAdminGptKeyPayload) => Promise<AdminGptKeySummary>; updateAdminGoogleSheetConfig: (payload: UpdateAdminGoogleSheetConfigPayload) => Promise<AdminGoogleSheetConfigSummary>; updateAdminUser: (payload: UpdateAdminUserPayload) => Promise<AdminUserSummary>; updateCurrentUser: (payload: UpdateAuthUserPayload) => Promise<AuthSession>; }> => {
+  const actual: typeof import("../../../api") = await importOriginal<typeof import('../../../api')>()
   return {
     ...actual,
     subscribeCandidateOrderMetrics: apiMock.subscribeCandidateOrderMetrics,
   }
 })
 
-const BASE_INSIGHT = {
+const BASE_INSIGHT: { competitorChannelLabel: string; competitorQty: null; competitorAmount: null; selfQty: null; selfAmount: null; expectedSalesQty: number; expectedSalesAmount: number; expectedOpProfit: number; selfOpProfitRatePct: null; rankTone: 'neutral'; topPercentThreshold: number; bottomPercentThreshold: number; badges: never[]; } = {
   competitorChannelLabel: '크림',
   competitorQty: null,
   competitorAmount: null,
@@ -94,46 +99,46 @@ function metric(itemUuid: string): CandidateOrderMetric {
   }
 }
 
-type Controls = ReturnType<typeof useCandidateOrderMetricStream>
+export type Controls = ReturnType<typeof useCandidateOrderMetricStream>
 
 let root: Root | null = null
 let container: HTMLDivElement | null = null
 let controls: Controls | null = null
 
-function Probe({ onControls }: { onControls: (nextControls: Controls) => void }) {
-  const mountedRef = useRef(true)
-  const [, setItems] = useState<CandidateItemSummary[]>([
+function Probe({ onControls }: { onControls: (nextControls: Controls) => void }) : React.JSX.Element {
+  const mountedRef: React.RefObject<boolean> = useRef(true)
+  const [, setItems]: [CandidateItemSummary[], React.Dispatch<React.SetStateAction<CandidateItemSummary[]>>] = useState<CandidateItemSummary[]>([
     candidateItem('item-1'),
     candidateItem('item-2'),
   ])
-  const nextControls = useCandidateOrderMetricStream({
+  const nextControls: { beginItemLoad: () => number; closeMetricSubscription: () => void; getCurrentItemLoadSeq: () => number; isCurrentItemLoad: (seq: number) => boolean; subscribeOrderMetrics: (args: SubscribeArgs) => void; } = useCandidateOrderMetricStream({
     stashUuid: 'stash-1',
     companyUuid: TEST_COMPANY_UUID,
     mountedRef,
     setItems,
   })
-  useEffect(() => {
+  useEffect(() : void => {
     onControls(nextControls)
   }, [nextControls, onControls])
-  useEffect(() => () => {
+  useEffect(() : () => void => () : void => {
     mountedRef.current = false
   }, [])
   return <output />
 }
 
-function renderProbe() {
+function renderProbe() : void {
   container = document.createElement('div')
   document.body.appendChild(container)
   root = createRoot(container)
-  act(() => {
-    root?.render(<Probe onControls={(nextControls) => {
+  act(() : void => {
+    root?.render(<Probe onControls={(nextControls: { beginItemLoad: () => number; closeMetricSubscription: () => void; getCurrentItemLoadSeq: () => number; isCurrentItemLoad: (seq: number) => boolean; subscribeOrderMetrics: (args: SubscribeArgs) => void; }) : void => {
       controls = nextControls
     }} />)
   })
 }
 
-afterEach(() => {
-  act(() => {
+afterEach(() : void => {
+  act(() : void => {
     root?.unmount()
   })
   root = null
@@ -144,17 +149,17 @@ afterEach(() => {
   apiMock.subscriptions = []
 })
 
-describe('useCandidateOrderMetricStream', () => {
-  it('does not reopen an identical pending stream and closes after every item settles', () => {
-    apiMock.subscribeCandidateOrderMetrics.mockImplementation((params, listener) => {
-      const close = vi.fn()
-      apiMock.subscriptions.push({ params, listener, close })
+describe('useCandidateOrderMetricStream', () : void => {
+  it('does not reopen an identical pending stream and closes after every item settles', () : void => {
+    apiMock.subscribeCandidateOrderMetrics.mockImplementation((params: unknown, listener: unknown) : { close: Mock<(...args: unknown[]) => unknown>; } => {
+      const close: Mock<(...args: unknown[]) => unknown> = vi.fn()
+      apiMock.subscriptions.push({ params: params as CandidateOrderMetricStreamParams, listener: listener as (event: CandidateOrderMetricEvent) => void, close })
       return { close }
     })
     renderProbe()
 
-    let seq = 0
-    act(() => {
+    let seq: number = 0
+    act(() : void => {
       seq = controls?.beginItemLoad() ?? 0
       controls?.subscribeOrderMetrics({
         seq,
@@ -174,7 +179,7 @@ describe('useCandidateOrderMetricStream', () => {
     expect(apiMock.subscriptions[0].params.companyUuid).toBe(TEST_COMPANY_UUID)
     expect(apiMock.subscriptions[0].params.candidateItemUuids).toEqual(['item-1', 'item-2'])
 
-    act(() => {
+    act(() : void => {
       apiMock.subscriptions[0].listener({
         type: 'item',
         requestId: apiMock.subscriptions[0].params.requestId,
@@ -185,7 +190,7 @@ describe('useCandidateOrderMetricStream', () => {
     })
     expect(apiMock.subscriptions[0].close).not.toHaveBeenCalled()
 
-    act(() => {
+    act(() : void => {
       apiMock.subscriptions[0].listener({
         type: 'item',
         requestId: apiMock.subscriptions[0].params.requestId,

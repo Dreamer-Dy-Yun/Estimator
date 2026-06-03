@@ -1,3 +1,4 @@
+import type { SecondaryCompetitorChannel } from '..'
 import type { DashboardApi } from '../types'
 
 /**
@@ -12,8 +13,8 @@ export function withDashboardMasterDataCache(adapter: DashboardApi): DashboardAp
 
   return {
     ...adapter,
-    getSecondaryCompetitorChannels: () => {
-      competitorChannelsRequest ??= adapter.getSecondaryCompetitorChannels().catch((err: unknown) => {
+    getSecondaryCompetitorChannels: () : Promise<SecondaryCompetitorChannel[]> => {
+      competitorChannelsRequest ??= adapter.getSecondaryCompetitorChannels().catch((err: unknown) : never => {
         competitorChannelsRequest = null
         throw err
       })

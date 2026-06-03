@@ -1,7 +1,10 @@
+import type { AppendCandidateItemsResponse, CandidateRecommendationParams, CandidateRecommendationResult } from '../../../api'
+import type { AppendCandidateItemsPayload } from '../../../api/types'
+import type { AppendRecommendedItemsResult } from './candidateStashDetailTypes'
 // @vitest-environment jsdom
 import { act, createElement } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi , type Mock, type MockedFunction} from 'vitest';
 import {
   appendCandidateItems,
   getCandidateRecommendations,
@@ -11,18 +14,18 @@ import {
 } from '../../../api'
 import { useCandidateRecommendations } from './useCandidateRecommendations'
 
-vi.mock('../../../api', async () => ({
+vi.mock('../../../api', async () : Promise<{ appendCandidateItems: Mock<(...args: unknown[]) => unknown>; getApiErrorDisplayMessage: Mock<(_err: unknown, fallback: string) => string>; getCandidateRecommendations: Mock<(...args: unknown[]) => unknown>; }> => ({
   appendCandidateItems: vi.fn(),
-  getApiErrorDisplayMessage: vi.fn((_err: unknown, fallback: string) => fallback),
+  getApiErrorDisplayMessage: vi.fn((_err: unknown, fallback: string) : string => fallback),
   getCandidateRecommendations: vi.fn(),
 }))
 
-type HookArgs = Parameters<typeof useCandidateRecommendations>[0]
-type AppendResult = Awaited<ReturnType<typeof appendCandidateItems>>
-type RecommendationResult = Awaited<ReturnType<typeof getCandidateRecommendations>>
-type HookResult = ReturnType<typeof useCandidateRecommendations>
+export type HookArgs = Parameters<typeof useCandidateRecommendations>[0]
+export type AppendResult = Awaited<ReturnType<typeof appendCandidateItems>>
+export type RecommendationResult = Awaited<ReturnType<typeof getCandidateRecommendations>>
+export type HookResult = ReturnType<typeof useCandidateRecommendations>
 
-type HookProbeProps = {
+export type HookProbeProps = {
   args: HookArgs
   onRender: (value: HookResult) => void
   renderHookValue: (args: HookArgs) => HookResult
@@ -31,7 +34,7 @@ type HookProbeProps = {
 let root: Root | null = null
 let container: HTMLDivElement | null = null
 
-function HookProbe({ args, onRender, renderHookValue }: HookProbeProps) {
+function HookProbe({ args, onRender, renderHookValue }: HookProbeProps) : null {
   onRender(renderHookValue(args))
   return null
 }
@@ -39,17 +42,17 @@ function HookProbe({ args, onRender, renderHookValue }: HookProbeProps) {
 function renderHook(
   renderHookValue: (args: HookArgs) => HookResult,
   options?: { initialProps: HookArgs },
-) {
-  const state = { current: null as HookResult | null }
+) : { rerender: (args: HookArgs) => void; result: { readonly current: { recommendationItems: CandidateReferenceItemSummary[]; recommendationLoading: boolean; recommendationAppendBusy: boolean; recommendationError: string | null; clearRecommendationItems: () => void; loadRecommendations: (force?: boolean) => Promise<CandidateReferenceItemSummary[]>; appendRecommendedItems: (rows: CandidateReferenceItemSummary[]) => Promise<AppendRecommendedItemsResult>; }; }; } {
+  const state: { current: HookResult | null; } = { current: null as HookResult | null }
   container = document.createElement('div')
   document.body.appendChild(container)
   root = createRoot(container)
 
-  const render = (args: HookArgs) => {
-    act(() => {
+  const render: (args: HookArgs) => void = (args: HookArgs) : void => {
+    act(() : void => {
       root?.render(createElement(HookProbe, {
         args,
-        onRender: (value) => {
+        onRender: (value: { recommendationItems: CandidateReferenceItemSummary[]; recommendationLoading: boolean; recommendationAppendBusy: boolean; recommendationError: string | null; clearRecommendationItems: () => void; loadRecommendations: (force?: boolean) => Promise<CandidateReferenceItemSummary[]>; appendRecommendedItems: (rows: CandidateReferenceItemSummary[]) => Promise<AppendRecommendedItemsResult>; }) : void => {
           state.current = value
         },
         renderHookValue,
@@ -62,7 +65,7 @@ function renderHook(
   return {
     rerender: render,
     result: {
-      get current() {
+      get current() : { recommendationItems: CandidateReferenceItemSummary[]; recommendationLoading: boolean; recommendationAppendBusy: boolean; recommendationError: string | null; clearRecommendationItems: () => void; loadRecommendations: (force?: boolean) => Promise<CandidateReferenceItemSummary[]>; appendRecommendedItems: (rows: CandidateReferenceItemSummary[]) => Promise<AppendRecommendedItemsResult>; } {
         if (!state.current) throw new Error('hook result is not rendered')
         return state.current
       },
@@ -70,10 +73,10 @@ function renderHook(
   }
 }
 
-function createDeferred<T>() {
+function createDeferred<T>() : { promise: Promise<T>; reject: (reason?: unknown) => void; resolve: (value: T) => void; } {
   let resolve!: (value: T) => void
   let reject!: (reason?: unknown) => void
-  const promise = new Promise<T>((promiseResolve, promiseReject) => {
+  const promise: Promise<T> = new Promise<T>((promiseResolve: (value: T | PromiseLike<T>) => void, promiseReject: (reason?: unknown) => void) : void => {
     resolve = promiseResolve
     reject = promiseReject
   })
@@ -89,7 +92,7 @@ function createArgs(overrides: Partial<HookArgs> = {}): HookArgs {
     itemSkuUuids: [],
     itemsRef: { current: [] as CandidateItemSummary[] },
     mountedRef: { current: true },
-    onRecommendedItemsAppended: vi.fn((candidateItems: CandidateStashItemSummary[]) => candidateItems.length),
+    onRecommendedItemsAppended: vi.fn((candidateItems: CandidateStashItemSummary[]) : number => candidateItems.length),
     refreshStashes: vi.fn().mockResolvedValue(undefined),
     setItems: vi.fn(),
     showToast: vi.fn(),
@@ -147,16 +150,16 @@ function createAppendResult(candidateItems: CandidateStashItemSummary[]): Append
   return { candidateItems } as AppendResult
 }
 
-describe('useCandidateRecommendations', () => {
-  const mockAppendCandidateItems = vi.mocked(appendCandidateItems)
-  const mockGetCandidateRecommendations = vi.mocked(getCandidateRecommendations)
+describe('useCandidateRecommendations', () : void => {
+  const mockAppendCandidateItems: MockedFunction<(payload: AppendCandidateItemsPayload) => Promise<AppendCandidateItemsResponse>> = vi.mocked(appendCandidateItems)
+  const mockGetCandidateRecommendations: MockedFunction<(params: CandidateRecommendationParams) => Promise<CandidateRecommendationResult>> = vi.mocked(getCandidateRecommendations)
 
-  beforeEach(() => {
+  beforeEach(() : void => {
     vi.clearAllMocks()
   })
 
-  afterEach(() => {
-    act(() => {
+  afterEach(() : void => {
+    act(() : void => {
       root?.unmount()
     })
     root = null
@@ -165,16 +168,16 @@ describe('useCandidateRecommendations', () => {
     document.body.innerHTML = ''
   })
 
-  it('returns applied and reflects appended recommendation items to the caller', async () => {
-    const args = createArgs()
-    const recommendation = createReferenceItem()
-    const candidateItem = createCandidateItem()
+  it('returns applied and reflects appended recommendation items to the caller', async () : Promise<void> => {
+    const args: HookArgs = createArgs()
+    const recommendation: CandidateReferenceItemSummary = createReferenceItem()
+    const candidateItem: CandidateStashItemSummary = createCandidateItem()
     mockAppendCandidateItems.mockResolvedValue(createAppendResult([candidateItem]))
 
-    const { result } = renderHook(() => useCandidateRecommendations(args))
+    const { result }: { rerender: (args: HookArgs) => void; result: { readonly current: { recommendationItems: CandidateReferenceItemSummary[]; recommendationLoading: boolean; recommendationAppendBusy: boolean; recommendationError: string | null; clearRecommendationItems: () => void; loadRecommendations: (force?: boolean) => Promise<CandidateReferenceItemSummary[]>; appendRecommendedItems: (rows: CandidateReferenceItemSummary[]) => Promise<AppendRecommendedItemsResult>; }; }; } = renderHook(() : { recommendationItems: CandidateReferenceItemSummary[]; recommendationLoading: boolean; recommendationAppendBusy: boolean; recommendationError: string | null; clearRecommendationItems: () => void; loadRecommendations: (force?: boolean) => Promise<CandidateReferenceItemSummary[]>; appendRecommendedItems: (rows: CandidateReferenceItemSummary[]) => Promise<AppendRecommendedItemsResult>; } => useCandidateRecommendations(args))
 
     let appendResult: unknown
-    await act(async () => {
+    await act(async () : Promise<void> => {
       appendResult = await result.current.appendRecommendedItems([recommendation])
     })
 
@@ -190,37 +193,37 @@ describe('useCandidateRecommendations', () => {
     expect(result.current.recommendationAppendBusy).toBe(false)
   })
 
-  it('rejects append responses that do not match selected recommendations', async () => {
-    const args = createArgs()
-    const recommendation = createReferenceItem()
-    const candidateItem = createCandidateItem({ skuUuid: 'other-sku' })
+  it('rejects append responses that do not match selected recommendations', async () : Promise<void> => {
+    const args: HookArgs = createArgs()
+    const recommendation: CandidateReferenceItemSummary = createReferenceItem()
+    const candidateItem: CandidateStashItemSummary = createCandidateItem({ skuUuid: 'other-sku' })
     mockAppendCandidateItems.mockResolvedValue(createAppendResult([candidateItem]))
 
-    const { result } = renderHook(() => useCandidateRecommendations(args))
+    const { result }: { rerender: (args: HookArgs) => void; result: { readonly current: { recommendationItems: CandidateReferenceItemSummary[]; recommendationLoading: boolean; recommendationAppendBusy: boolean; recommendationError: string | null; clearRecommendationItems: () => void; loadRecommendations: (force?: boolean) => Promise<CandidateReferenceItemSummary[]>; appendRecommendedItems: (rows: CandidateReferenceItemSummary[]) => Promise<AppendRecommendedItemsResult>; }; }; } = renderHook(() : { recommendationItems: CandidateReferenceItemSummary[]; recommendationLoading: boolean; recommendationAppendBusy: boolean; recommendationError: string | null; clearRecommendationItems: () => void; loadRecommendations: (force?: boolean) => Promise<CandidateReferenceItemSummary[]>; appendRecommendedItems: (rows: CandidateReferenceItemSummary[]) => Promise<AppendRecommendedItemsResult>; } => useCandidateRecommendations(args))
 
-    await act(async () => {
+    await act(async () : Promise<void> => {
       await expect(result.current.appendRecommendedItems([recommendation])).rejects.toThrow(/does not match selected recommendations/)
     })
 
     expect(args.onRecommendedItemsAppended).not.toHaveBeenCalled()
   })
 
-  it('returns stale for a duplicate append while the first append is busy', async () => {
-    const args = createArgs()
-    const recommendation = createReferenceItem()
-    const candidateItem = createCandidateItem()
-    const deferred = createDeferred<AppendResult>()
+  it('returns stale for a duplicate append while the first append is busy', async () : Promise<void> => {
+    const args: HookArgs = createArgs()
+    const recommendation: CandidateReferenceItemSummary = createReferenceItem()
+    const candidateItem: CandidateStashItemSummary = createCandidateItem()
+    const deferred: { promise: Promise<AppendCandidateItemsResponse>; reject: (reason?: unknown) => void; resolve: (value: AppendCandidateItemsResponse) => void; } = createDeferred<AppendResult>()
     mockAppendCandidateItems.mockReturnValue(deferred.promise)
 
-    const { result } = renderHook(() => useCandidateRecommendations(args))
+    const { result }: { rerender: (args: HookArgs) => void; result: { readonly current: { recommendationItems: CandidateReferenceItemSummary[]; recommendationLoading: boolean; recommendationAppendBusy: boolean; recommendationError: string | null; clearRecommendationItems: () => void; loadRecommendations: (force?: boolean) => Promise<CandidateReferenceItemSummary[]>; appendRecommendedItems: (rows: CandidateReferenceItemSummary[]) => Promise<AppendRecommendedItemsResult>; }; }; } = renderHook(() : { recommendationItems: CandidateReferenceItemSummary[]; recommendationLoading: boolean; recommendationAppendBusy: boolean; recommendationError: string | null; clearRecommendationItems: () => void; loadRecommendations: (force?: boolean) => Promise<CandidateReferenceItemSummary[]>; appendRecommendedItems: (rows: CandidateReferenceItemSummary[]) => Promise<AppendRecommendedItemsResult>; } => useCandidateRecommendations(args))
 
     let firstAppend!: Promise<unknown>
-    await act(async () => {
+    await act(async () : Promise<void> => {
       firstAppend = result.current.appendRecommendedItems([recommendation])
     })
 
     let duplicateResult: unknown
-    await act(async () => {
+    await act(async () : Promise<void> => {
       duplicateResult = await result.current.appendRecommendedItems([recommendation])
     })
 
@@ -229,7 +232,7 @@ describe('useCandidateRecommendations', () => {
     expect(mockAppendCandidateItems).toHaveBeenCalledTimes(1)
 
     let firstResult: unknown
-    await act(async () => {
+    await act(async () : Promise<void> => {
       deferred.resolve(createAppendResult([candidateItem]))
       firstResult = await firstAppend
     })
@@ -245,29 +248,29 @@ describe('useCandidateRecommendations', () => {
     ['period start', { dataReferencePeriodStart: '2026-02-01' }],
     ['period end', { dataReferencePeriodEnd: '2026-02-28' }],
     ['membership', { itemMembershipKey: 'membership-2' }],
-  ])('returns stale and prevents caller success reflection after %s mismatch', async (_label, overrides) => {
-    const args = createArgs()
-    const recommendation = createReferenceItem()
-    const candidateItem = createCandidateItem()
-    const deferred = createDeferred<AppendResult>()
+  ])('returns stale and prevents caller success reflection after %s mismatch', async (_label: string, overrides: { companyUuid: string; } | { companyUuid: undefined; } | { dataReferencePeriodStart: string; } | { dataReferencePeriodEnd: string; } | { itemMembershipKey: string; }) : Promise<void> => {
+    const args: HookArgs = createArgs()
+    const recommendation: CandidateReferenceItemSummary = createReferenceItem()
+    const candidateItem: CandidateStashItemSummary = createCandidateItem()
+    const deferred: { promise: Promise<AppendCandidateItemsResponse>; reject: (reason?: unknown) => void; resolve: (value: AppendCandidateItemsResponse) => void; } = createDeferred<AppendResult>()
     mockAppendCandidateItems.mockReturnValue(deferred.promise)
 
-    const { rerender, result } = renderHook(
-      (hookArgs: HookArgs) => useCandidateRecommendations(hookArgs),
+    const { rerender, result }: { rerender: (args: HookArgs) => void; result: { readonly current: { recommendationItems: CandidateReferenceItemSummary[]; recommendationLoading: boolean; recommendationAppendBusy: boolean; recommendationError: string | null; clearRecommendationItems: () => void; loadRecommendations: (force?: boolean) => Promise<CandidateReferenceItemSummary[]>; appendRecommendedItems: (rows: CandidateReferenceItemSummary[]) => Promise<AppendRecommendedItemsResult>; }; }; } = renderHook(
+      (hookArgs: HookArgs) : { recommendationItems: CandidateReferenceItemSummary[]; recommendationLoading: boolean; recommendationAppendBusy: boolean; recommendationError: string | null; clearRecommendationItems: () => void; loadRecommendations: (force?: boolean) => Promise<CandidateReferenceItemSummary[]>; appendRecommendedItems: (rows: CandidateReferenceItemSummary[]) => Promise<AppendRecommendedItemsResult>; } => useCandidateRecommendations(hookArgs),
       { initialProps: args },
     )
 
     let appendPromise!: Promise<unknown>
-    await act(async () => {
+    await act(async () : Promise<void> => {
       appendPromise = result.current.appendRecommendedItems([recommendation])
     })
 
-    await act(async () => {
+    await act(async () : Promise<void> => {
       rerender({ ...args, ...overrides })
     })
 
     let appendResult: unknown
-    await act(async () => {
+    await act(async () : Promise<void> => {
       deferred.resolve(createAppendResult([candidateItem]))
       appendResult = await appendPromise
     })
@@ -278,24 +281,24 @@ describe('useCandidateRecommendations', () => {
     expect(args.showToast).not.toHaveBeenCalled()
   })
 
-  it('returns stale without caller success reflection after unmount', async () => {
-    const args = createArgs()
-    const recommendation = createReferenceItem()
-    const candidateItem = createCandidateItem()
-    const deferred = createDeferred<AppendResult>()
+  it('returns stale without caller success reflection after unmount', async () : Promise<void> => {
+    const args: HookArgs = createArgs()
+    const recommendation: CandidateReferenceItemSummary = createReferenceItem()
+    const candidateItem: CandidateStashItemSummary = createCandidateItem()
+    const deferred: { promise: Promise<AppendCandidateItemsResponse>; reject: (reason?: unknown) => void; resolve: (value: AppendCandidateItemsResponse) => void; } = createDeferred<AppendResult>()
     mockAppendCandidateItems.mockReturnValue(deferred.promise)
 
-    const { result } = renderHook(() => useCandidateRecommendations(args))
+    const { result }: { rerender: (args: HookArgs) => void; result: { readonly current: { recommendationItems: CandidateReferenceItemSummary[]; recommendationLoading: boolean; recommendationAppendBusy: boolean; recommendationError: string | null; clearRecommendationItems: () => void; loadRecommendations: (force?: boolean) => Promise<CandidateReferenceItemSummary[]>; appendRecommendedItems: (rows: CandidateReferenceItemSummary[]) => Promise<AppendRecommendedItemsResult>; }; }; } = renderHook(() : { recommendationItems: CandidateReferenceItemSummary[]; recommendationLoading: boolean; recommendationAppendBusy: boolean; recommendationError: string | null; clearRecommendationItems: () => void; loadRecommendations: (force?: boolean) => Promise<CandidateReferenceItemSummary[]>; appendRecommendedItems: (rows: CandidateReferenceItemSummary[]) => Promise<AppendRecommendedItemsResult>; } => useCandidateRecommendations(args))
 
     let appendPromise!: Promise<unknown>
-    await act(async () => {
+    await act(async () : Promise<void> => {
       appendPromise = result.current.appendRecommendedItems([recommendation])
     })
 
     args.mountedRef.current = false
 
     let appendResult: unknown
-    await act(async () => {
+    await act(async () : Promise<void> => {
       deferred.resolve(createAppendResult([candidateItem]))
       appendResult = await appendPromise
     })
@@ -306,23 +309,23 @@ describe('useCandidateRecommendations', () => {
     expect(args.showToast).not.toHaveBeenCalled()
   })
 
-  it('returns no-op and keeps recommendation state when append API creates no new item', async () => {
-    const args = createArgs()
-    const recommendation = createReferenceItem()
+  it('returns no-op and keeps recommendation state when append API creates no new item', async () : Promise<void> => {
+    const args: HookArgs = createArgs()
+    const recommendation: CandidateReferenceItemSummary = createReferenceItem()
     mockGetCandidateRecommendations.mockResolvedValue({
       recommendations: [recommendation],
       nextCursor: null,
     } as RecommendationResult)
     mockAppendCandidateItems.mockResolvedValue(createAppendResult([]))
 
-    const { result } = renderHook(() => useCandidateRecommendations(args))
+    const { result }: { rerender: (args: HookArgs) => void; result: { readonly current: { recommendationItems: CandidateReferenceItemSummary[]; recommendationLoading: boolean; recommendationAppendBusy: boolean; recommendationError: string | null; clearRecommendationItems: () => void; loadRecommendations: (force?: boolean) => Promise<CandidateReferenceItemSummary[]>; appendRecommendedItems: (rows: CandidateReferenceItemSummary[]) => Promise<AppendRecommendedItemsResult>; }; }; } = renderHook(() : { recommendationItems: CandidateReferenceItemSummary[]; recommendationLoading: boolean; recommendationAppendBusy: boolean; recommendationError: string | null; clearRecommendationItems: () => void; loadRecommendations: (force?: boolean) => Promise<CandidateReferenceItemSummary[]>; appendRecommendedItems: (rows: CandidateReferenceItemSummary[]) => Promise<AppendRecommendedItemsResult>; } => useCandidateRecommendations(args))
 
-    await act(async () => {
+    await act(async () : Promise<void> => {
       await result.current.loadRecommendations()
     })
 
     let appendResult: unknown
-    await act(async () => {
+    await act(async () : Promise<void> => {
       appendResult = await result.current.appendRecommendedItems([recommendation])
     })
 
@@ -339,26 +342,26 @@ describe('useCandidateRecommendations', () => {
     expect(result.current.recommendationAppendBusy).toBe(false)
   })
 
-  it('returns no-op and keeps recommendation state when local append reflects no new row', async () => {
-    const args = createArgs({
-      onRecommendedItemsAppended: vi.fn(() => 0),
+  it('returns no-op and keeps recommendation state when local append reflects no new row', async () : Promise<void> => {
+    const args: HookArgs = createArgs({
+      onRecommendedItemsAppended: vi.fn(() : number => 0),
     })
-    const recommendation = createReferenceItem()
-    const candidateItem = createCandidateItem()
+    const recommendation: CandidateReferenceItemSummary = createReferenceItem()
+    const candidateItem: CandidateStashItemSummary = createCandidateItem()
     mockGetCandidateRecommendations.mockResolvedValue({
       recommendations: [recommendation],
       nextCursor: null,
     } as RecommendationResult)
     mockAppendCandidateItems.mockResolvedValue(createAppendResult([candidateItem]))
 
-    const { result } = renderHook(() => useCandidateRecommendations(args))
+    const { result }: { rerender: (args: HookArgs) => void; result: { readonly current: { recommendationItems: CandidateReferenceItemSummary[]; recommendationLoading: boolean; recommendationAppendBusy: boolean; recommendationError: string | null; clearRecommendationItems: () => void; loadRecommendations: (force?: boolean) => Promise<CandidateReferenceItemSummary[]>; appendRecommendedItems: (rows: CandidateReferenceItemSummary[]) => Promise<AppendRecommendedItemsResult>; }; }; } = renderHook(() : { recommendationItems: CandidateReferenceItemSummary[]; recommendationLoading: boolean; recommendationAppendBusy: boolean; recommendationError: string | null; clearRecommendationItems: () => void; loadRecommendations: (force?: boolean) => Promise<CandidateReferenceItemSummary[]>; appendRecommendedItems: (rows: CandidateReferenceItemSummary[]) => Promise<AppendRecommendedItemsResult>; } => useCandidateRecommendations(args))
 
-    await act(async () => {
+    await act(async () : Promise<void> => {
       await result.current.loadRecommendations()
     })
 
     let appendResult: unknown
-    await act(async () => {
+    await act(async () : Promise<void> => {
       appendResult = await result.current.appendRecommendedItems([recommendation])
     })
 
@@ -370,20 +373,20 @@ describe('useCandidateRecommendations', () => {
     expect(result.current.recommendationAppendBusy).toBe(false)
   })
 
-  it('rejects and shows failure when local append reflection fails', async () => {
-    const localAppendError = new Error('local append mismatch')
-    const args = createArgs({
-      onRecommendedItemsAppended: vi.fn(() => {
+  it('rejects and shows failure when local append reflection fails', async () : Promise<void> => {
+    const localAppendError: Error = new Error('local append mismatch')
+    const args: HookArgs = createArgs({
+      onRecommendedItemsAppended: vi.fn(() : never => {
         throw localAppendError
       }),
     })
-    const recommendation = createReferenceItem()
-    const candidateItem = createCandidateItem()
+    const recommendation: CandidateReferenceItemSummary = createReferenceItem()
+    const candidateItem: CandidateStashItemSummary = createCandidateItem()
     mockAppendCandidateItems.mockResolvedValue(createAppendResult([candidateItem]))
 
-    const { result } = renderHook(() => useCandidateRecommendations(args))
+    const { result }: { rerender: (args: HookArgs) => void; result: { readonly current: { recommendationItems: CandidateReferenceItemSummary[]; recommendationLoading: boolean; recommendationAppendBusy: boolean; recommendationError: string | null; clearRecommendationItems: () => void; loadRecommendations: (force?: boolean) => Promise<CandidateReferenceItemSummary[]>; appendRecommendedItems: (rows: CandidateReferenceItemSummary[]) => Promise<AppendRecommendedItemsResult>; }; }; } = renderHook(() : { recommendationItems: CandidateReferenceItemSummary[]; recommendationLoading: boolean; recommendationAppendBusy: boolean; recommendationError: string | null; clearRecommendationItems: () => void; loadRecommendations: (force?: boolean) => Promise<CandidateReferenceItemSummary[]>; appendRecommendedItems: (rows: CandidateReferenceItemSummary[]) => Promise<AppendRecommendedItemsResult>; } => useCandidateRecommendations(args))
 
-    await act(async () => {
+    await act(async () : Promise<void> => {
       await expect(result.current.appendRecommendedItems([recommendation])).rejects.toThrow(
         'local append mismatch',
       )
@@ -394,12 +397,12 @@ describe('useCandidateRecommendations', () => {
     expect(result.current.recommendationAppendBusy).toBe(false)
   })
 
-  it('returns empty-selection without calling append API when no recommendation rows are provided', async () => {
-    const args = createArgs()
-    const { result } = renderHook(() => useCandidateRecommendations(args))
+  it('returns empty-selection without calling append API when no recommendation rows are provided', async () : Promise<void> => {
+    const args: HookArgs = createArgs()
+    const { result }: { rerender: (args: HookArgs) => void; result: { readonly current: { recommendationItems: CandidateReferenceItemSummary[]; recommendationLoading: boolean; recommendationAppendBusy: boolean; recommendationError: string | null; clearRecommendationItems: () => void; loadRecommendations: (force?: boolean) => Promise<CandidateReferenceItemSummary[]>; appendRecommendedItems: (rows: CandidateReferenceItemSummary[]) => Promise<AppendRecommendedItemsResult>; }; }; } = renderHook(() : { recommendationItems: CandidateReferenceItemSummary[]; recommendationLoading: boolean; recommendationAppendBusy: boolean; recommendationError: string | null; clearRecommendationItems: () => void; loadRecommendations: (force?: boolean) => Promise<CandidateReferenceItemSummary[]>; appendRecommendedItems: (rows: CandidateReferenceItemSummary[]) => Promise<AppendRecommendedItemsResult>; } => useCandidateRecommendations(args))
 
     let appendResult: unknown
-    await act(async () => {
+    await act(async () : Promise<void> => {
       appendResult = await result.current.appendRecommendedItems([])
     })
 

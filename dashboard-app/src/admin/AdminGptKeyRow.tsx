@@ -1,3 +1,4 @@
+import type { AdminGptKeyPurpose } from '../api'
 import type { AdminGptKeySummary } from '../api'
 import { GPT_KEY_PURPOSE_OPTIONS, gptKeyTestStatusLabels } from './adminHelpers'
 import styles from './AdminPage.module.css'
@@ -8,13 +9,13 @@ export function AdminGptKeyRow({
 }: {
   gptKey: AdminGptKeySummary
   onOpen: (gptKey: AdminGptKeySummary) => void
-}) {
+}) : React.JSX.Element {
   return (
-    <button className={styles.gptKeyListRow} type="button" onClick={() => onOpen(gptKey)}>
+    <button className={styles.gptKeyListRow} type="button" onClick={() : void => onOpen(gptKey)}>
       <span className={styles.gptKeyNameCell}>
         <strong>{gptKey.name}</strong>
       </span>
-      <span>{GPT_KEY_PURPOSE_OPTIONS.find((option) => option.value === gptKey.purpose)?.label ?? gptKey.purpose}</span>
+      <span>{GPT_KEY_PURPOSE_OPTIONS.find((option: { value: AdminGptKeyPurpose; label: string; }) : boolean => option.value === gptKey.purpose)?.label ?? gptKey.purpose}</span>
       <span>{gptKey.model}</span>
       <span>{gptKey.maskedKey}</span>
       <span className={styles.gptKeyStatusSummary}>

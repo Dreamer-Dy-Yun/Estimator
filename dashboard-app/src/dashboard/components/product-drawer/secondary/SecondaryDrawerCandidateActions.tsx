@@ -1,3 +1,4 @@
+import type { CandidateStashPickerOption } from './CandidateStashPickerModal'
 import { useId, useState } from 'react'
 import { LoadingSpinner } from '../../../../components/LoadingSpinner'
 import { formatDateTimeMinute } from '../../../../utils/date'
@@ -10,10 +11,10 @@ import styles from './secondaryDrawer.module.css'
 import type { CandidateItemPanelContext, SecondaryHelpId } from './secondaryDrawerTypes'
 import type { useSecondaryForecastModel } from './hooks/useSecondaryForecastModel'
 
-type CandidateActions = ReturnType<typeof useSecondaryForecastModel>['candidateActions']
-type PortalHelpApi = ReturnType<typeof usePortalHelpPopover<SecondaryHelpId>>
+export type CandidateActions = ReturnType<typeof useSecondaryForecastModel>['candidateActions']
+export type PortalHelpApi = ReturnType<typeof usePortalHelpPopover<SecondaryHelpId>>
 
-type Props = {
+export type Props = {
   candidateItemContext: CandidateItemPanelContext | null
   hasSavedSnapshot: boolean
   showingConfirmedValues: boolean
@@ -24,7 +25,7 @@ type Props = {
   confirmOrderHelpId: string
 }
 
-function DisabledReason({ id, reason }: { id: string; reason?: string }) {
+function DisabledReason({ id, reason }: { id: string; reason?: string }) : React.JSX.Element | null {
   return reason ? <span id={id} className={styles.srOnly}>{reason}</span> : null
 }
 
@@ -37,15 +38,15 @@ export function SecondaryDrawerCandidateActions({
   onRestoreConfirmed,
   portalHelp,
   confirmOrderHelpId,
-}: Props) {
-  const [unconfirmOpen, setUnconfirmOpen] = useState(false)
-  const unconfirmDialogTitleId = useId()
-  const scopeReason = candidateActions.companyScopeBlocked ? candidateActions.companyScopeBlockReason : undefined
-  const selectedCandidate = candidateActions.selectedCandidate
-  const orderDisabledReason = scopeReason ?? (selectedCandidate == null ? '후보군을 먼저 선택해 주세요.' : undefined)
-  const confirmLabel = hasSavedSnapshot ? KO.btnUnconfirmCandidateDetail : KO.btnConfirmCandidateDetail
-  const resetRestoreLabel = showingConfirmedValues ? KO.btnResetCandidateDraft : KO.btnRestoreConfirmedCandidateDraft
-  const actionGridClassName = `${styles.metaFilterActionGrid} ${candidateItemContext ? styles.metaFilterActionGridCompact : ''}`
+}: Props) : React.JSX.Element {
+  const [unconfirmOpen, setUnconfirmOpen]: [boolean, React.Dispatch<React.SetStateAction<boolean>>] = useState(false)
+  const unconfirmDialogTitleId: string = useId()
+  const scopeReason: string | undefined = candidateActions.companyScopeBlocked ? candidateActions.companyScopeBlockReason : undefined
+  const selectedCandidate: CandidateStashPickerOption | null = candidateActions.selectedCandidate
+  const orderDisabledReason: string | undefined = scopeReason ?? (selectedCandidate == null ? '후보군을 먼저 선택해 주세요.' : undefined)
+  const confirmLabel: '확정 저장' | '확정 해제' = hasSavedSnapshot ? KO.btnUnconfirmCandidateDetail : KO.btnConfirmCandidateDetail
+  const resetRestoreLabel: '초기화' | '확정값 보기' = showingConfirmedValues ? KO.btnResetCandidateDraft : KO.btnRestoreConfirmedCandidateDraft
+  const actionGridClassName: string = `${styles.metaFilterActionGrid} ${candidateItemContext ? styles.metaFilterActionGridCompact : ''}`
 
   return (
     <>
@@ -63,7 +64,7 @@ export function SecondaryDrawerCandidateActions({
                 <button
                   type="button"
                   className={`${styles.btn} ${styles.btnSecondary} ${styles.innerCandidateActionBtn} ${styles.btnViewportAdaptive}`}
-                  onClick={() => void (showingConfirmedValues ? onResetToLive() : onRestoreConfirmed())}
+                  onClick={() : undefined => void (showingConfirmedValues ? onResetToLive() : onRestoreConfirmed())}
                   disabled={candidateActions.loading || (!showingConfirmedValues && !candidateItemContext.confirmedSnapshot)}
                 >
                   {resetRestoreLabel}
@@ -71,7 +72,7 @@ export function SecondaryDrawerCandidateActions({
                 <button
                   type="button"
                   className={`${styles.btn} ${styles.innerCandidateActionBtn} ${hasSavedSnapshot ? styles.innerCandidateUnconfirmBtn : ''} ${styles.btnViewportAdaptive}`}
-                  onClick={() => void (hasSavedSnapshot ? setUnconfirmOpen(true) : candidateActions.confirmCandidateItem())}
+                  onClick={() : undefined => void (hasSavedSnapshot ? setUnconfirmOpen(true) : candidateActions.confirmCandidateItem())}
                   disabled={candidateActions.loading || candidateActions.companyScopeBlocked}
                   title={scopeReason}
                   aria-describedby={scopeReason ? 'inner-candidate-confirm-disabled-reason' : undefined}
@@ -84,7 +85,7 @@ export function SecondaryDrawerCandidateActions({
                     aria-label="후보군 아이템 삭제"
                     title={KO.btnDelete}
                     disabled={candidateActions.loading}
-                    onClick={(event) => {
+                    onClick={(event: React.MouseEvent<HTMLButtonElement, MouseEvent>) : void => {
                       event.stopPropagation()
                       candidateItemContext.onRequestDeleteItem()
                     }}
@@ -102,7 +103,7 @@ export function SecondaryDrawerCandidateActions({
                 <button
                   type="button"
                   className={`${styles.btn} ${styles.btnSecondary} ${styles.btnViewportAdaptive}`}
-                  onClick={() => void candidateActions.openPicker()}
+                  onClick={() : undefined => void candidateActions.openPicker()}
                   disabled={candidateActions.loading || candidateActions.companyScopeBlocked}
                   title={scopeReason}
                   aria-describedby={scopeReason ? 'candidate-picker-disabled-reason' : undefined}
@@ -113,7 +114,7 @@ export function SecondaryDrawerCandidateActions({
                 <span
                   ref={portalHelp.setAnchor('confirmOrder')}
                   className={styles.confirmOrderHelpAnchor}
-                  onMouseEnter={() => portalHelp.open('confirmOrder', 'above')}
+                  onMouseEnter={() : void => portalHelp.open('confirmOrder', 'above')}
                   onMouseLeave={portalHelp.scheduleClose}
                 >
                   <button
@@ -122,7 +123,7 @@ export function SecondaryDrawerCandidateActions({
                     onClick={candidateActions.confirmOrder}
                     disabled={candidateActions.loading || candidateActions.companyScopeBlocked || selectedCandidate == null}
                     title={orderDisabledReason}
-                    onFocus={() => portalHelp.open('confirmOrder', 'above')}
+                    onFocus={() : void => portalHelp.open('confirmOrder', 'above')}
                     onBlur={portalHelp.scheduleClose}
                     aria-describedby={orderDisabledReason ? 'candidate-order-disabled-reason' : portalHelp.activeId === 'confirmOrder' ? confirmOrderHelpId : undefined}
                   >
@@ -144,9 +145,9 @@ export function SecondaryDrawerCandidateActions({
         confirmingText="해제 중"
         dialogTitleId={unconfirmDialogTitleId}
         keepOpenAttr
-        onCancel={() => setUnconfirmOpen(false)}
-        onConfirm={async () => {
-          const unconfirmed = await candidateActions.unconfirmCandidateItem()
+        onCancel={() : void => setUnconfirmOpen(false)}
+        onConfirm={async () : Promise<void> => {
+          const unconfirmed: boolean = await candidateActions.unconfirmCandidateItem()
           if (!unconfirmed) return
           onResetToLive()
           setUnconfirmOpen(false)
@@ -161,8 +162,8 @@ export function SecondaryDrawerCandidateActions({
           loading={candidateActions.loading}
           onNameInputChange={candidateActions.setNameInput}
           onNoteInputChange={candidateActions.setNoteInput}
-          onCreate={() => void candidateActions.createCandidate()}
-          onClose={() => candidateActions.setListOpen(false)}
+          onCreate={() : undefined => void candidateActions.createCandidate()}
+          onClose={() : void => candidateActions.setListOpen(false)}
           onSelect={candidateActions.selectCandidate}
         />
       )}

@@ -1,3 +1,4 @@
+import type { CompetitorSalesRow, SelfSalesRow } from '../../types'
 import type { MonthlySalesPoint, ProductPrimarySummary, ProductSecondaryDetail } from '../../types'
 import { clamp } from './utils'
 import { allKnownSkuGroupKeys, competitorBySkuGroupKey, selfBySkuGroupKey } from './salesTables'
@@ -12,15 +13,15 @@ import {
 
 export { makeSalesTrend } from './productCatalogBuilders'
 
-type MockSkuMetadata = Pick<
+export type MockSkuMetadata = Pick<
   ProductPrimarySummary,
   'skuGroupKey' | 'productName' | 'brand' | 'category' | 'code' | 'colorCode'
 >
 
-export const historicalMonths = SALES_MONTHS.filter((month) => month < '2026-01')
+export const historicalMonths: string[] = SALES_MONTHS.filter((month: string) : boolean => month < '2026-01')
 
 function makeFlatTrend(historySales: number, forecastSales: number): MonthlySalesPoint[] {
-  return SALES_MONTHS.map((date) => ({
+  return SALES_MONTHS.map((date: string) : { date: string; sales: number; isForecast: boolean; } => ({
     date,
     sales: date < '2026-01' ? historySales : forecastSales,
     isForecast: date >= '2026-01',
@@ -28,13 +29,13 @@ function makeFlatTrend(historySales: number, forecastSales: number): MonthlySale
 }
 
 function buildSimpleCalcSecondary(skuGroupKey: string, competitorPrice: number, competitorQty: number): ProductSecondaryDetail {
-  const sizes = ['S', 'M', 'L', 'XL', 'XXL']
+  const sizes: string[] = ['S', 'M', 'L', 'XL', 'XXL']
   return {
     skuGroupKey,
     competitorPrice,
     competitorQty,
-    competitorRatioBySize: Object.fromEntries(sizes.map((size) => [size, 0.2])),
-    sizeRows: sizes.map((size) => ({
+    competitorRatioBySize: Object.fromEntries(sizes.map((size: string) : [string, number] => [size, 0.2])),
+    sizeRows: sizes.map((size: string) : { size: string; selfRatio: number; confirmedQty: number; avgPrice: number; qty: number; availableStock: number; } => ({
       size,
       selfRatio: 20,
       confirmedQty: 400,
@@ -46,29 +47,29 @@ function buildSimpleCalcSecondary(skuGroupKey: string, competitorPrice: number, 
 }
 
 export const skuMetadataBySkuGroupKey: Record<string, MockSkuMetadata> = Object.fromEntries(
-  allKnownSkuGroupKeys.map((skuGroupKey) => [skuGroupKey, buildSkuMetadata(skuGroupKey)]),
+  allKnownSkuGroupKeys.map((skuGroupKey: string) : [string, MockSkuMetadata] => [skuGroupKey, buildSkuMetadata(skuGroupKey)]),
 )
 
-export const estimatePeriodWeight = (startDate?: string, endDate?: string) => {
+export const estimatePeriodWeight: (startDate?: string, endDate?: string) => number = (startDate?: string, endDate?: string) : number => {
   if (!startDate || !endDate) return 1
-  const toMonthIndex = (date: string) => {
-    const [y, m] = date.split('-').map(Number)
+  const toMonthIndex: (date: string) => number = (date: string) : number => {
+    const [y, m]: number[] = date.split('-').map(Number)
     return y * 12 + m
   }
-  const from = toMonthIndex(startDate)
-  const to = toMonthIndex(endDate)
-  const span = clamp(Math.abs(to - from) + 1, 1, 24)
+  const from: number = toMonthIndex(startDate)
+  const to: number = toMonthIndex(endDate)
+  const span: number = clamp(Math.abs(to - from) + 1, 1, 24)
   return clamp(span / 12, 0.2, 1.8)
 }
 
-export const { primary: productPrimaryBySkuGroupKey, secondary: productSecondaryBySkuGroupKey } = (() => {
+export const { primary: productPrimaryBySkuGroupKey, secondary: productSecondaryBySkuGroupKey }: { primary: Record<string, ProductPrimarySummary>; secondary: Record<string, ProductSecondaryDetail>; } = (() : { primary: Record<string, ProductPrimarySummary>; secondary: Record<string, ProductSecondaryDetail>; } => {
   const primary: Record<string, ProductPrimarySummary> = {}
   const secondary: Record<string, ProductSecondaryDetail> = {}
   for (const skuGroupKey of allKnownSkuGroupKeys) {
-    const s = selfBySkuGroupKey[skuGroupKey]
-    const c = competitorBySkuGroupKey[skuGroupKey]
-    const seed = skuGroupKey.charCodeAt(0)
-    const metadata = skuMetadataBySkuGroupKey[skuGroupKey]
+    const s: SelfSalesRow = selfBySkuGroupKey[skuGroupKey]
+    const c: CompetitorSalesRow = competitorBySkuGroupKey[skuGroupKey]
+    const seed: number = skuGroupKey.charCodeAt(0)
+    const metadata: MockSkuMetadata = skuMetadataBySkuGroupKey[skuGroupKey]
     if (!metadata) throw new Error(`Missing mock SKU metadata: ${skuGroupKey}`)
 
     if (metadata.code === 'TEST-TOP') {
@@ -83,16 +84,16 @@ export const { primary: productPrimaryBySkuGroupKey, secondary: productSecondary
       continue
     }
 
-    const price = s?.avgPrice ?? c?.selfAvgPrice ?? Math.round((c?.competitorAvgPrice ?? 120000) * 0.96)
-    const productQty = s?.qty ?? c?.selfQty ?? Math.round((c?.competitorQty ?? 5000) * 0.85)
-    const competitorPrice = c?.competitorAvgPrice ?? Math.round(price * 1.03)
-    const competitorQty = c?.competitorQty ?? Math.max(0, Math.round(productQty * KREAM_TO_SELF_QTY_RATIO))
-    const initialOrderQty = Math.round(productQty / 1.7)
-    const availableStock = Math.round(productQty * 0.45)
+    const price: number = s?.avgPrice ?? c?.selfAvgPrice ?? Math.round((c?.competitorAvgPrice ?? 120000) * 0.96)
+    const productQty: number = s?.qty ?? c?.selfQty ?? Math.round((c?.competitorQty ?? 5000) * 0.85)
+    const competitorPrice: number = c?.competitorAvgPrice ?? Math.round(price * 1.03)
+    const competitorQty: number = c?.competitorQty ?? Math.max(0, Math.round(productQty * KREAM_TO_SELF_QTY_RATIO))
+    const initialOrderQty: number = Math.round(productQty / 1.7)
+    const availableStock: number = Math.round(productQty * 0.45)
 
-    const monthlySalesTrend = buildSalesTrend(Math.max(800, Math.round(productQty * 0.42)), seed, 8)
-    const fullMix = makeSizeMix(initialOrderQty, productQty, price, availableStock, seed, metadata.category)
-    const { sizeRows, competitorRatioBySize } = splitSecondarySizeRows(fullMix)
+    const monthlySalesTrend: MonthlySalesPoint[] = buildSalesTrend(Math.max(800, Math.round(productQty * 0.42)), seed, 8)
+    const fullMix: { size: string; ratio: number; competitorRatio: number; confirmedQty: number; avgPrice: number; qty: number; availableStock: number; }[] = makeSizeMix(initialOrderQty, productQty, price, availableStock, seed, metadata.category)
+    const { sizeRows, competitorRatioBySize }: Pick<ProductSecondaryDetail, 'sizeRows' | 'competitorRatioBySize'> = splitSecondarySizeRows(fullMix)
 
     primary[skuGroupKey] = {
       ...metadata,
@@ -117,8 +118,8 @@ export const stockTrendBySkuGroupKey: Record<string, Array<{
   stock: number
   inboundExpected: number
   inboundQty: number
-}>> = Object.fromEntries(Object.keys(productPrimaryBySkuGroupKey).map((skuGroupKey) => {
-  const product = productPrimaryBySkuGroupKey[skuGroupKey]
+}>> = Object.fromEntries(Object.keys(productPrimaryBySkuGroupKey).map((skuGroupKey: string) : [string, { date: string; stock: number; inboundExpected: number; inboundQty: number; }[]] => {
+  const product: ProductPrimarySummary = productPrimaryBySkuGroupKey[skuGroupKey]
   if (!product) throw new Error(`Missing product primary for stock trend: ${skuGroupKey}`)
   return [skuGroupKey, makeStockTrend(skuGroupKey, product.monthlySalesTrend ?? [])]
 }))

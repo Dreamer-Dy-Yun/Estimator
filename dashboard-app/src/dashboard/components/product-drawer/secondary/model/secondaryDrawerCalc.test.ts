@@ -1,3 +1,5 @@
+import type { SalesKpiColumn } from '../../../../../utils/salesKpiColumn'
+import type { ProductSecondarySizeShareRow } from './secondaryDrawerCalc'
 import { describe, expect, it } from 'vitest'
 import type { ProductPrimarySummary, ProductSecondaryDetail } from '../../../../../types'
 import { buildSalesKpiColumn } from '../../../../../utils/salesKpiColumn'
@@ -31,16 +33,16 @@ const completeSecondary: ProductSecondaryDetail = {
   competitorRatioBySize: { '250': 0.7, '260': 0.3 },
 }
 
-const channel = {
+const channel: { id: string; label: string; priceSkew: number; qtySkew: number; } = {
   id: 'kream',
   label: '크림',
   priceSkew: 1.1,
   qtySkew: 0.5,
 }
 
-describe('mergeSecondarySizeRows', () => {
-  it('merges competitor ratio by size without fallback defaults', () => {
-    const rows = mergeSecondarySizeRows(completeSecondary)
+describe('mergeSecondarySizeRows', () : void => {
+  it('merges competitor ratio by size without fallback defaults', () : void => {
+    const rows: ProductSecondarySizeShareRow[] = mergeSecondarySizeRows(completeSecondary)
     expect(rows).toHaveLength(2)
     expect(rows[0]?.size).toBe('250')
     expect(rows[0]?.competitorRatio).toBe(0.7)
@@ -48,16 +50,16 @@ describe('mergeSecondarySizeRows', () => {
     expect(rows[1]?.competitorRatio).toBe(0.3)
   })
 
-  it('throws instead of dropping rows when competitor ratio is missing', () => {
-    expect(() => mergeSecondarySizeRows(secondary)).toThrow(
+  it('throws instead of dropping rows when competitor ratio is missing', () : void => {
+    expect(() : ProductSecondarySizeShareRow[] => mergeSecondarySizeRows(secondary)).toThrow(
       'Missing competitorRatioBySize for size "260".',
     )
   })
 })
 
-describe('buildSalesKpiColumn', () => {
-  it('builds self KPI from primary values', () => {
-    const kpi = buildSalesKpiColumn('self', primary, secondary, channel)
+describe('buildSalesKpiColumn', () : void => {
+  it('builds self KPI from primary values', () : void => {
+    const kpi: SalesKpiColumn = buildSalesKpiColumn('self', primary, secondary, channel)
     expect(kpi.avgPrice).toBe(100)
     expect(kpi.qty).toBe(200)
     expect(kpi.amount).toBe(20000)
@@ -70,17 +72,17 @@ describe('buildSalesKpiColumn', () => {
     expect(kpi.costRatioPct).toBeCloseTo(78, 6)
   })
 
-  it('builds competitor KPI with channel skew without forcing a minimum quantity', () => {
+  it('builds competitor KPI with channel skew without forcing a minimum quantity', () : void => {
     const tinyQtySecondary: ProductSecondaryDetail = {
       ...secondary,
       competitorQty: 0,
     }
-    const tinyChannel = {
+    const tinyChannel: { qtySkew: number; priceSkew: number; id: string; label: string; } = {
       ...channel,
       qtySkew: 0,
       priceSkew: 1.25,
     }
-    const kpi = buildSalesKpiColumn('competitor', primary, tinyQtySecondary, tinyChannel)
+    const kpi: SalesKpiColumn = buildSalesKpiColumn('competitor', primary, tinyQtySecondary, tinyChannel)
     expect(kpi.avgPrice).toBe(138)
     expect(kpi.qty).toBe(0)
     expect(kpi.amount).toBe(0)
@@ -91,9 +93,9 @@ describe('buildSalesKpiColumn', () => {
     expect(kpi.costRatioPct).toBeNull()
   })
 
-  it('produces stable rank range for same seed', () => {
-    const a = buildSalesKpiColumn('self', primary, secondary, channel)
-    const b = buildSalesKpiColumn('self', primary, secondary, channel)
+  it('produces stable rank range for same seed', () : void => {
+    const a: SalesKpiColumn = buildSalesKpiColumn('self', primary, secondary, channel)
+    const b: SalesKpiColumn = buildSalesKpiColumn('self', primary, secondary, channel)
     expect(a.qtyRank).toBe(b.qtyRank)
     expect(a.amountRank).toBe(b.amountRank)
     expect(a.qtyRank).toBeGreaterThanOrEqual(1)

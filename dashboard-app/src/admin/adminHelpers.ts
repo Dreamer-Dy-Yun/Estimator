@@ -7,7 +7,7 @@ import type {
 } from '../api'
 import { isApiClientError } from '../api/types/api-error'
 
-const DEFAULT_ADMIN_ERROR_MESSAGE = '관리자 정보를 처리하는 중 오류가 발생했습니다.'
+const DEFAULT_ADMIN_ERROR_MESSAGE = '관리자 정보를 처리하는 중 오류가 발생했습니다.' as const
 
 export const ROLE_OPTIONS: Array<{ value: AuthRole; label: string }> = [
   { value: 'admin', label: '관리자' },
@@ -34,14 +34,14 @@ export const GOOGLE_SHEET_PURPOSE_OPTIONS: Array<{ value: AdminGoogleSheetPurpos
   { value: 'test', label: '연결 테스트' },
 ]
 
-export function getErrorMessage(error: unknown, fallback = DEFAULT_ADMIN_ERROR_MESSAGE) {
+export function getErrorMessage(error: unknown, fallback: string = DEFAULT_ADMIN_ERROR_MESSAGE) : string {
   if (isApiClientError(error)) return getApiErrorDisplayMessage(error, fallback)
   return error instanceof Error ? error.message : fallback
 }
 
-export function formatUpdatedAt(value: string | null) {
+export function formatUpdatedAt(value: string | null) : string {
   if (!value) return '-'
-  const date = new Date(value)
+  const date: Date = new Date(value)
   if (Number.isNaN(date.getTime())) return '-'
   return new Intl.DateTimeFormat('ko-KR', {
     dateStyle: 'medium',

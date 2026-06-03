@@ -1,14 +1,14 @@
-import { Fragment, type MouseEvent } from 'react'
+import { Fragment } from 'react'
 import styles from './DeleteButton.module.css'
 
-const TrashSvg = () => (
+const TrashSvg: () => React.JSX.Element = () : React.JSX.Element => (
   <svg viewBox="0 0 24 24" focusable="false">
     <path d="M9 3.5h6a1 1 0 0 1 1 1V6h3a1 1 0 1 1 0 2h-1v11a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V8H5a1 1 0 1 1 0-2h3V4.5a1 1 0 0 1 1-1Zm1 2V6h4V5.5h-4ZM8 8v11h8V8H8Zm2 2a1 1 0 0 1 1 1v5a1 1 0 1 1-2 0v-5a1 1 0 0 1 1-1Zm4 0a1 1 0 0 1 1 1v5a1 1 0 1 1-2 0v-5a1 1 0 0 1 1-1Z" />
   </svg>
 )
 
-type DeleteButtonProps = {
-  onClick: (e: MouseEvent<HTMLButtonElement>) => void
+export type DeleteButtonProps = {
+  onClick: (e: React.MouseEvent<HTMLButtonElement>) => void
   disabled?: boolean
   label?: string
   'aria-label'?: string
@@ -17,10 +17,10 @@ type DeleteButtonProps = {
   variant?: 'list' | 'icon'
 }
 
-const splitLabelParts = (label: string) => {
-  const chars = Array.from(label)
+const splitLabelParts: (label: string) => string[] = (label: string) : string[] => {
+  const chars: string[] = Array.from(label)
   const parts: string[] = []
-  for (let i = 0; i < chars.length; i += 2) {
+  for (let i: number = 0; i < chars.length; i += 2) {
     parts.push(chars.slice(i, i + 2).join(''))
   }
   return parts
@@ -33,8 +33,8 @@ export function DeleteButton({
   'aria-label': ariaLabel,
   title,
   variant = 'list',
-}: DeleteButtonProps) {
-  const labelParts = splitLabelParts(label)
+}: DeleteButtonProps) : React.JSX.Element {
+  const labelParts: string[] = splitLabelParts(label)
 
   if (variant === 'icon') {
     return (
@@ -65,7 +65,7 @@ export function DeleteButton({
         <TrashSvg />
       </span>
       <span className={styles.label}>
-        {labelParts.map((part, index) => (
+        {labelParts.map((part: string, index: number) : React.JSX.Element => (
           <Fragment key={`${part}-${index}`}>
             <span className={styles.labelPart}>{part}</span>
             {index < labelParts.length - 1 ? <wbr /> : null}

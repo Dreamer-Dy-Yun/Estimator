@@ -2,8 +2,8 @@ import type { ComponentProps } from 'react'
 import { AnalysisCandidateBulkAddModal } from './candidate-stash/AnalysisCandidateBulkAddModal'
 import { ProductDrawer } from './product-drawer/ProductDrawer'
 
-type ProductDrawerProps = ComponentProps<typeof ProductDrawer>
-type Props = Pick<ProductDrawerProps, 'summary' | 'loading' | 'periodStart' | 'periodEnd' | 'companyUuid' | 'forecastMonths' | 'selfCompanyLabel' | 'onForecastMonthsChange' | 'onRequestNavigateAdjacent'> & {
+export type ProductDrawerProps = ComponentProps<typeof ProductDrawer>
+export type Props = Pick<ProductDrawerProps, 'summary' | 'loading' | 'periodStart' | 'periodEnd' | 'companyUuid' | 'forecastMonths' | 'selfCompanyLabel' | 'onForecastMonthsChange' | 'onRequestNavigateAdjacent'> & {
   openSkuGroupKeys: string[]
   competitorChannelId?: string
   bulkAddOpen: boolean
@@ -28,7 +28,7 @@ export function AnalysisDrawerBulkAdd({
   onCloseDrawer,
   onCloseBulkAdd,
   onBulkAddDone,
-}: Props) {
+}: Props) : React.JSX.Element {
   return (
     <>
       <ProductDrawer

@@ -1,7 +1,6 @@
-import type { ReactNode } from 'react'
 import styles from './common.module.css'
 
-type AnalysisPeriodToolsProps = {
+export type AnalysisPeriodToolsProps = {
   showPeriodBar: boolean
   historicalMonths: string[]
   periodStartIdx: number
@@ -13,7 +12,7 @@ type AnalysisPeriodToolsProps = {
   onTogglePeriodBar: () => void
   onPeriodBarStart: (value: number) => void
   onPeriodBarEnd: (value: number) => void
-  endControl?: ReactNode
+  endControl?: React.ReactNode
   hidePresetButtons?: boolean
 }
 
@@ -31,7 +30,7 @@ export function AnalysisPeriodTools({
   onPeriodBarEnd,
   endControl,
   hidePresetButtons = false,
-}: AnalysisPeriodToolsProps) {
+}: AnalysisPeriodToolsProps) : React.JSX.Element {
   return (
     <div className={styles.periodTools}>
       <div className={styles.periodPresetRow}>
@@ -39,10 +38,10 @@ export function AnalysisPeriodTools({
           className={`${styles.periodPresetButtonGroup} ${hidePresetButtons ? styles.periodPresetButtonGroupHidden : ''}`}
           aria-hidden={hidePresetButtons || undefined}
         >
-          <button type="button" onClick={() => setPresetMonths(1)} disabled={hidePresetButtons} tabIndex={hidePresetButtons ? -1 : undefined}>최근 1개월</button>
-          <button type="button" onClick={() => setPresetMonths(3)} disabled={hidePresetButtons} tabIndex={hidePresetButtons ? -1 : undefined}>최근 3개월</button>
-          <button type="button" onClick={() => setPresetMonths(6)} disabled={hidePresetButtons} tabIndex={hidePresetButtons ? -1 : undefined}>최근 6개월</button>
-          <button type="button" onClick={() => setPresetMonths(12)} disabled={hidePresetButtons} tabIndex={hidePresetButtons ? -1 : undefined}>최근 1년</button>
+          <button type="button" onClick={() : void => setPresetMonths(1)} disabled={hidePresetButtons} tabIndex={hidePresetButtons ? -1 : undefined}>최근 1개월</button>
+          <button type="button" onClick={() : void => setPresetMonths(3)} disabled={hidePresetButtons} tabIndex={hidePresetButtons ? -1 : undefined}>최근 3개월</button>
+          <button type="button" onClick={() : void => setPresetMonths(6)} disabled={hidePresetButtons} tabIndex={hidePresetButtons ? -1 : undefined}>최근 6개월</button>
+          <button type="button" onClick={() : void => setPresetMonths(12)} disabled={hidePresetButtons} tabIndex={hidePresetButtons ? -1 : undefined}>최근 1년</button>
           <button type="button" onClick={setWholeRange} disabled={hidePresetButtons} tabIndex={hidePresetButtons ? -1 : undefined}>전체</button>
           <button type="button" onClick={onTogglePeriodBar} disabled={hidePresetButtons} tabIndex={hidePresetButtons ? -1 : undefined}>
             {showPeriodBar ? '기간 바 닫기' : '기간 바 열기'}
@@ -68,7 +67,7 @@ export function AnalysisPeriodTools({
               min={0}
               max={historicalMonths.length - 1}
               value={periodStartIdx}
-              onChange={(event) => onPeriodBarStart(Number(event.target.value))}
+              onChange={(event: React.ChangeEvent<HTMLInputElement, HTMLInputElement>) : void => onPeriodBarStart(Number(event.target.value))}
             />
             <input
               className={`${styles.periodRange} ${styles.periodRangeEnd}`}
@@ -76,7 +75,7 @@ export function AnalysisPeriodTools({
               min={0}
               max={historicalMonths.length - 1}
               value={periodEndIdx}
-              onChange={(event) => onPeriodBarEnd(Number(event.target.value))}
+              onChange={(event: React.ChangeEvent<HTMLInputElement, HTMLInputElement>) : void => onPeriodBarEnd(Number(event.target.value))}
             />
           </div>
         </div>

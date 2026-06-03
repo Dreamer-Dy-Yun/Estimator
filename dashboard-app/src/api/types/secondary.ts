@@ -64,7 +64,7 @@ export interface SecondaryStockOrderCalcParams extends CompanyScopeParams {
   dailyMean?: number
 }
 
-interface SecondaryStockOrderAmountBlock {
+export interface SecondaryStockOrderAmountBlock {
   recommendedOrderQty: number
   expectedOrderAmount: number
   expectedSalesAmount: number

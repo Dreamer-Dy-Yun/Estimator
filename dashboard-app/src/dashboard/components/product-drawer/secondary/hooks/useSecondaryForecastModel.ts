@@ -1,5 +1,11 @@
+import type { CandidateStashSummary, SecondaryStockOrderCalcResult } from '../../../../../api'
+import type { ProductSalesInsightColumn, SecondaryDailyTrendPoint } from '../../../../../api/types'
+import type { SecondaryStockOrderDisplaySizeRow } from '../../../../../api/types/secondary'
+import type { OrderSnapshotStockOrderResultV2 } from '../../../../../snapshot/orderSnapshotTypes'
+import type { ApiUnitErrorInfo } from '../../../../../types'
+import type { CandidateStashPickerOption } from '../CandidateStashPickerModal'
+import type { SecondarySizeOrderDisplayRow } from '../model/secondarySizeOrderRows'
 import { useCallback, useEffect, useMemo } from 'react'
-import type { Dispatch, SetStateAction } from 'react'
 import type { SecondaryCompetitorChannel } from '../../../../../api'
 import type { ToastContextValue } from '../../../../../components/AppToastContext'
 import type { ProductPrimarySummary, ProductSecondaryDetail } from '../../../../../types'
@@ -12,7 +18,7 @@ import { useSecondaryCandidateActions } from './useSecondaryCandidateActions'
 import { useSecondaryDrawerRequests } from './useSecondaryDrawerRequests'
 import { useSecondaryOrderCalculations } from './useSecondaryOrderCalculations'
 
-type Args = {
+export type Args = {
   primary: ProductPrimarySummary
   secondary: ProductSecondaryDetail
   pageName: string
@@ -35,7 +41,7 @@ type Args = {
   selfWeightPct: number
   bufferStock: number
   confirmBySize: Record<string, number>
-  setConfirmBySize: Dispatch<SetStateAction<Record<string, number>>>
+  setConfirmBySize: React.Dispatch<React.SetStateAction<Record<string, number>>>
   unitPriceInput: number
   unitCostInput: number
   expectedFeeRatePct: number
@@ -44,7 +50,7 @@ type Args = {
   showToast: ToastContextValue['showToast']
 }
 
-export function useSecondaryForecastModel(args: Args) {
+export function useSecondaryForecastModel(args: Args) : { stockOrderDisplay: { currentStockQtyTotal: number; totalOrderBalanceTotal: number; expectedInboundOrderBalanceTotal: number; sizeRows: SecondaryStockOrderDisplaySizeRow[]; } | null; stockOrderCalculationReady: boolean; guardStockOrderCalculation: () => boolean; candidateActions: { loading: boolean; listOpen: boolean; stashes: CandidateStashPickerOption[]; selectedCandidate: CandidateStashPickerOption | null; companyScopeBlocked: boolean; companyScopeBlockReason: string; nameInput: string; noteInput: string; setNameInput: React.Dispatch<React.SetStateAction<string>>; setNoteInput: React.Dispatch<React.SetStateAction<string>>; setListOpen: React.Dispatch<React.SetStateAction<boolean>>; createCandidate: () => Promise<boolean>; confirmOrder: () => Promise<boolean>; refresh: () => Promise<CandidateStashSummary[] | null>; openPicker: () => Promise<void>; confirmCandidateItem: () => Promise<boolean>; unconfirmCandidateItem: () => Promise<boolean>; selectCandidate: (row: CandidateStashPickerOption) => void; }; buildSnapshot: () => OrderSnapshotDocumentV2; handleConfirmQtyChange: (size: string, next: number, recommendedQty: number) => void; stockOrderDisplayInputs: { trendDailyMean: null; dailyMean: null; sigma: null; } | { trendDailyMean: number; dailyMean: number; sigma: number; }; sizeRows: SecondarySizeOrderDisplayRow[]; manualConfirmDerived: Record<string, true>; dailyTrendSizeOptions: { id: string; label: string; share: number; }[]; dailyTrend: { dailyTrendSeries: SecondaryDailyTrendPoint[]; dailyTrendLoading: boolean; dailyTrendError: ApiUnitErrorInfo | null; dailyPeriodShade: { x1: number; x2: number; }; dailyForecastShade: { x1: number; x2: number; } | null; dailyTickIndices: number[]; }; forecastCalc: SecondaryStockOrderCalcResult | null; forecastCalcError: ApiUnitErrorInfo | null; forecastCalcLoading: boolean; selfCol: ProductSalesInsightColumn | null; compCol: ProductSalesInsightColumn | null; salesInsightError: ApiUnitErrorInfo | null; salesInsightLoading: boolean; selectedStart: string; selectedEnd: string; } {
   const {
     primary,
     secondary,
@@ -75,17 +81,17 @@ export function useSecondaryForecastModel(args: Args) {
     aiComment,
     hasSavedSnapshot,
     showToast,
-  } = args
-  const selectedStart = selectedStartMonth
-  const selectedEnd = selectedEndMonth
-  const forecastMeanPeriodEnd = nextOrderInboundDueDate.slice(0, 7)
+  }: Args = args
+  const selectedStart: string = selectedStartMonth
+  const selectedEnd: string = selectedEndMonth
+  const forecastMeanPeriodEnd: string = nextOrderInboundDueDate.slice(0, 7)
 
-  useEffect(() => {
+  useEffect(() : void => {
     if (prefillFromSnapshot != null) return
     setDailyMeanClient(null)
   }, [primary.skuGroupKey, periodEnd, periodStart, prefillFromSnapshot, setDailyMeanClient])
 
-  const requests = useSecondaryDrawerRequests({
+  const requests: { dailyTrend: { dailyTrendSeries: SecondaryDailyTrendPoint[]; dailyTrendLoading: boolean; dailyTrendError: ApiUnitErrorInfo | null; dailyPeriodShade: { x1: number; x2: number; }; dailyForecastShade: { x1: number; x2: number; } | null; dailyTickIndices: number[]; }; forecastCalc: SecondaryStockOrderCalcResult | null; forecastCalcError: ApiUnitErrorInfo | null; forecastCalcLoading: boolean; selfCol: ProductSalesInsightColumn | null; compCol: ProductSalesInsightColumn | null; salesInsightError: ApiUnitErrorInfo | null; salesInsightLoading: boolean; } = useSecondaryDrawerRequests({
     pageName,
     primary,
     channel,
@@ -98,27 +104,27 @@ export function useSecondaryForecastModel(args: Args) {
     leadTimeDays,
     dailyMeanClient,
   })
-  const snapshotStockOrderResult = useSnapshotConfirmBaseline ? prefillFromSnapshot?.drawer2.stockOrderResult ?? null : null
-  const activeForecastCalc = useSnapshotConfirmBaseline ? snapshotStockOrderResult : requests.forecastCalc
-  const salesInsightReady = requests.selfCol != null && requests.compCol != null
-  const stockOrderCalculationReady = activeForecastCalc != null && (snapshotStockOrderResult != null || (!requests.forecastCalcLoading && salesInsightReady))
-  const guardStockOrderCalculation = useCallback(() => {
+  const snapshotStockOrderResult: OrderSnapshotStockOrderResultV2 | null = useSnapshotConfirmBaseline ? prefillFromSnapshot?.drawer2.stockOrderResult ?? null : null
+  const activeForecastCalc: SecondaryStockOrderCalcResult | null = useSnapshotConfirmBaseline ? snapshotStockOrderResult : requests.forecastCalc
+  const salesInsightReady: boolean = requests.selfCol != null && requests.compCol != null
+  const stockOrderCalculationReady: boolean = activeForecastCalc != null && (snapshotStockOrderResult != null || (!requests.forecastCalcLoading && salesInsightReady))
+  const guardStockOrderCalculation: () => boolean = useCallback(() : boolean => {
     if (stockOrderCalculationReady) return true
     showToast(salesInsightReady ? KO.msgStockOrderCalcRequired : KO.msgSalesInsightRequired, { variant: 'error' })
     return false
   }, [salesInsightReady, showToast, stockOrderCalculationReady])
-  const stockOrderDisplayKey = useMemo(() => {
-    const d = activeForecastCalc?.display
+  const stockOrderDisplayKey: string = useMemo(() : string => {
+    const d: { currentStockQtyTotal: number; totalOrderBalanceTotal: number; expectedInboundOrderBalanceTotal: number; sizeRows: SecondaryStockOrderDisplaySizeRow[]; } | undefined = activeForecastCalc?.display
     if (!d) return ''
     return [
       d.currentStockQtyTotal,
       d.totalOrderBalanceTotal,
       d.expectedInboundOrderBalanceTotal,
-      ...d.sizeRows.map((row) => `${row.size}:${row.currentStockQty}:${row.totalOrderBalance}:${row.expectedInboundOrderBalance}`),
+      ...d.sizeRows.map((row: SecondaryStockOrderDisplaySizeRow) : string => `${row.size}:${row.currentStockQty}:${row.totalOrderBalance}:${row.expectedInboundOrderBalance}`),
     ].join('|')
   }, [activeForecastCalc])
 
-  useEffect(() => {
+  useEffect(() : void => {
     if (useSnapshotConfirmBaseline) return
     setConfirmBySize({})
   }, [
@@ -138,7 +144,7 @@ export function useSecondaryForecastModel(args: Args) {
     setConfirmBySize,
   ])
 
-  const calculations = useSecondaryOrderCalculations({
+  const calculations: { stockOrderCalculationReady: boolean; stockOrderDisplayInputs: { trendDailyMean: null; dailyMean: null; sigma: null; } | { trendDailyMean: number; dailyMean: number; sigma: number; }; sizeRows: SecondarySizeOrderDisplayRow[]; manualConfirmDerived: Record<string, true>; dailyTrendSizeOptions: { id: string; label: string; share: number; }[]; } = useSecondaryOrderCalculations({
     secondary,
     forecastSalesHorizonDays: leadTimeDays,
     dailyMeanClient,
@@ -151,9 +157,9 @@ export function useSecondaryForecastModel(args: Args) {
     useSnapshotConfirmBaseline,
     snapshotSizeOrders: snapshotStockOrderResult == null ? null : prefillFromSnapshot?.drawer2.sizeOrders ?? null,
   })
-  const stockOrderDisplay = stockOrderCalculationReady ? activeForecastCalc?.display ?? null : null
+  const stockOrderDisplay: { currentStockQtyTotal: number; totalOrderBalanceTotal: number; expectedInboundOrderBalanceTotal: number; sizeRows: SecondaryStockOrderDisplaySizeRow[]; } | null = stockOrderCalculationReady ? activeForecastCalc?.display ?? null : null
 
-  const buildSnapshot = useCallback((): OrderSnapshotDocumentV2 => buildSecondaryOrderSnapshot({
+  const buildSnapshot: () => OrderSnapshotDocumentV2 = useCallback((): OrderSnapshotDocumentV2 => buildSecondaryOrderSnapshot({
     primary,
     secondary,
     periodStart,
@@ -202,7 +208,7 @@ export function useSecondaryForecastModel(args: Args) {
     unitCostInput,
     unitPriceInput,
   ])
-  const candidateActions = useSecondaryCandidateActions({
+  const candidateActions: { loading: boolean; listOpen: boolean; stashes: CandidateStashPickerOption[]; selectedCandidate: CandidateStashPickerOption | null; companyScopeBlocked: boolean; companyScopeBlockReason: string; nameInput: string; noteInput: string; setNameInput: React.Dispatch<React.SetStateAction<string>>; setNoteInput: React.Dispatch<React.SetStateAction<string>>; setListOpen: React.Dispatch<React.SetStateAction<boolean>>; createCandidate: () => Promise<boolean>; confirmOrder: () => Promise<boolean>; refresh: () => Promise<CandidateStashSummary[] | null>; openPicker: () => Promise<void>; confirmCandidateItem: () => Promise<boolean>; unconfirmCandidateItem: () => Promise<boolean>; selectCandidate: (row: CandidateStashPickerOption) => void; } = useSecondaryCandidateActions({
     skuGroupKey: primary.skuGroupKey,
     companyUuid,
     periodStart,
@@ -215,8 +221,8 @@ export function useSecondaryForecastModel(args: Args) {
     buildSnapshot,
     showToast,
   })
-  const handleConfirmQtyChange = useCallback((size: string, next: number, recommendedQty: number) => {
-    setConfirmBySize((prev) => new SecondaryOrderDraft({
+  const handleConfirmQtyChange: (size: string, next: number, recommendedQty: number) => void = useCallback((size: string, next: number, recommendedQty: number) : void => {
+    setConfirmBySize((prev: Record<string, number>) : Record<string, number> => new SecondaryOrderDraft({
       mode: useSnapshotConfirmBaseline ? 'snapshot' : 'live',
       manualConfirmBySize: prev,
       snapshotConfirmBySize,

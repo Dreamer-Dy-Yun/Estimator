@@ -5,15 +5,15 @@ import {
   writeForecastMonthsToStorage,
 } from './forecastMonthsStorage'
 
-describe('forecastMonthsStorage', () => {
-  const storageKey = 'han.dashboard.salesTrendForecastMonths.v2'
-  const legacyStorageKey = 'han.dashboard.salesTrendForecastMonths'
+describe('forecastMonthsStorage', () : void => {
+  const storageKey = 'han.dashboard.salesTrendForecastMonths.v2' as const
+  const legacyStorageKey = 'han.dashboard.salesTrendForecastMonths' as const
 
-  afterEach(() => {
+  afterEach(() : void => {
     vi.unstubAllGlobals()
   })
 
-  it('clamps forecast months into 1..12 and rounds', () => {
+  it('clamps forecast months into 1..12 and rounds', () : void => {
     expect(clampForecastMonths(1)).toBe(1)
     expect(clampForecastMonths(12)).toBe(12)
     expect(clampForecastMonths(12.6)).toBe(12)
@@ -23,17 +23,17 @@ describe('forecastMonthsStorage', () => {
     expect(clampForecastMonths(Number.NaN)).toBe(12)
   })
 
-  it('returns default when window is undefined', () => {
+  it('returns default when window is undefined', () : void => {
     vi.stubGlobal('window', undefined)
     expect(readForecastMonthsFromStorage()).toBe(12)
   })
 
-  it('reads and clamps value from localStorage when available', () => {
-    const store = new Map<string, string>()
+  it('reads and clamps value from localStorage when available', () : void => {
+    const store: Map<string, string> = new Map<string, string>()
     vi.stubGlobal('window', {})
     vi.stubGlobal('localStorage', {
-      getItem: (k: string) => store.get(k) ?? null,
-      setItem: (k: string, v: string) => {
+      getItem: (k: string) : string | null => store.get(k) ?? null,
+      setItem: (k: string, v: string) : void => {
         store.set(k, v)
       },
     })
@@ -41,12 +41,12 @@ describe('forecastMonthsStorage', () => {
     expect(readForecastMonthsFromStorage()).toBe(12)
   })
 
-  it('returns default for non-numeric or empty storage value', () => {
-    const store = new Map<string, string>()
+  it('returns default for non-numeric or empty storage value', () : void => {
+    const store: Map<string, string> = new Map<string, string>()
     vi.stubGlobal('window', {})
     vi.stubGlobal('localStorage', {
-      getItem: (k: string) => store.get(k) ?? null,
-      setItem: (k: string, v: string) => {
+      getItem: (k: string) : string | null => store.get(k) ?? null,
+      setItem: (k: string, v: string) : void => {
         store.set(k, v)
       },
     })
@@ -56,12 +56,12 @@ describe('forecastMonthsStorage', () => {
     expect(readForecastMonthsFromStorage()).toBe(12)
   })
 
-  it('parses integer prefix from decimal-like value', () => {
-    const store = new Map<string, string>()
+  it('parses integer prefix from decimal-like value', () : void => {
+    const store: Map<string, string> = new Map<string, string>()
     vi.stubGlobal('window', {})
     vi.stubGlobal('localStorage', {
-      getItem: (k: string) => store.get(k) ?? null,
-      setItem: (k: string, v: string) => {
+      getItem: (k: string) : string | null => store.get(k) ?? null,
+      setItem: (k: string, v: string) : void => {
         store.set(k, v)
       },
     })
@@ -69,12 +69,12 @@ describe('forecastMonthsStorage', () => {
     expect(readForecastMonthsFromStorage()).toBe(12)
   })
 
-  it('ignores legacy stored values so the initial monthly forecast stays 12', () => {
-    const store = new Map<string, string>()
+  it('ignores legacy stored values so the initial monthly forecast stays 12', () : void => {
+    const store: Map<string, string> = new Map<string, string>()
     vi.stubGlobal('window', {})
     vi.stubGlobal('localStorage', {
-      getItem: (k: string) => store.get(k) ?? null,
-      setItem: (k: string, v: string) => {
+      getItem: (k: string) : string | null => store.get(k) ?? null,
+      setItem: (k: string, v: string) : void => {
         store.set(k, v)
       },
     })
@@ -82,22 +82,22 @@ describe('forecastMonthsStorage', () => {
     expect(readForecastMonthsFromStorage()).toBe(12)
   })
 
-  it('returns default when localStorage read throws', () => {
+  it('returns default when localStorage read throws', () : void => {
     vi.stubGlobal('window', {})
     vi.stubGlobal('localStorage', {
-      getItem: () => {
+      getItem: () : never => {
         throw new Error('blocked')
       },
-      setItem: () => undefined,
+      setItem: () : undefined => undefined,
     })
     expect(readForecastMonthsFromStorage()).toBe(12)
   })
 
-  it('writes clamped value and ignores write exceptions', () => {
+  it('writes clamped value and ignores write exceptions', () : void => {
     const written: Array<[string, string]> = []
     vi.stubGlobal('localStorage', {
-      getItem: () => null,
-      setItem: (k: string, v: string) => {
+      getItem: () : null => null,
+      setItem: (k: string, v: string) : void => {
         written.push([k, v])
       },
     })
@@ -105,11 +105,11 @@ describe('forecastMonthsStorage', () => {
     expect(written).toEqual([[storageKey, '12']])
 
     vi.stubGlobal('localStorage', {
-      getItem: () => null,
-      setItem: () => {
+      getItem: () : null => null,
+      setItem: () : never => {
         throw new Error('quota')
       },
     })
-    expect(() => writeForecastMonthsToStorage(5)).not.toThrow()
+    expect(() : void => writeForecastMonthsToStorage(5)).not.toThrow()
   })
 })

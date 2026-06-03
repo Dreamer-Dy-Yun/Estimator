@@ -1,3 +1,5 @@
+import type { MockSkuMetadata } from './productCatalog'
+import type { CandidateItemInsightSummary } from '../types/candidate'
 import type {
   CandidateItemSummary,
   CandidateOrderMetric,
@@ -16,18 +18,10 @@ import { skuMetadataBySkuGroupKey } from './productCatalog'
 
 export type { CandidateDataReferencePeriod } from './candidateItemSummaryTypes'
 
-function getSkuMetadata(skuGroupKey: string) {
-  const metadata = skuMetadataBySkuGroupKey[skuGroupKey]
+function getSkuMetadata(skuGroupKey: string) : MockSkuMetadata {
+  const metadata: MockSkuMetadata = skuMetadataBySkuGroupKey[skuGroupKey]
   if (!metadata) throw new Error(`Unknown mock SKU metadata: ${skuGroupKey}`)
   return metadata
-}
-
-export function buildCandidateReferenceItems(
-  skuGroupKeys: string[],
-  dataReferencePeriod?: CandidateDataReferencePeriod,
-  companyUuid?: string,
-): CandidateReferenceItemSummary[] {
-  return skuGroupKeys.map((skuGroupKey) => buildCandidateReferenceItem(skuGroupKey, dataReferencePeriod, companyUuid))
 }
 
 export function buildCandidateReferenceItem(
@@ -35,7 +29,7 @@ export function buildCandidateReferenceItem(
   dataReferencePeriod?: CandidateDataReferencePeriod,
   companyUuid?: string,
 ): CandidateReferenceItemSummary {
-  const metadata = getSkuMetadata(skuGroupKey)
+  const metadata: MockSkuMetadata = getSkuMetadata(skuGroupKey)
   return {
     uuid: skuGroupKey,
     skuGroupKey,
@@ -52,7 +46,7 @@ export function hasCandidateRecommendationBadge(skuGroupKey: string, companyUuid
 }
 
 export function buildCandidateStashItems(records: CandidateItemRecord[]): CandidateStashItemSummary[] {
-  return records.map((row) => ({
+  return records.map((row: CandidateItemRecord) : { uuid: string; stashUuid: string; skuUuid: string; skuGroupKey: string; isLatestLlmComment: boolean; hasSnapshot: boolean; snapshotUpdatedAt: string | undefined; dbCreatedAt: string; dbUpdatedAt: string; } => ({
     uuid: row.uuid,
     stashUuid: row.stashUuid,
     skuUuid: row.skuUuid,
@@ -86,13 +80,6 @@ export function applyCandidateOrderMetric(
   }
 }
 
-export function markCandidateOrderMetricFailed(item: CandidateItemSummary): CandidateItemSummary {
-  return {
-    ...item,
-    orderMetricStatus: 'failed',
-  }
-}
-
 export function buildCandidateOrderMetric(
   row: CandidateItemRecord,
   dataReferencePeriod?: CandidateDataReferencePeriod,
@@ -106,14 +93,14 @@ export function buildCandidateItemSummaries(
   dataReferencePeriod?: CandidateDataReferencePeriod,
   options: { includeOrderMetrics?: boolean; includeRecommendationInsights?: boolean; companyUuid?: string } = {},
 ): CandidateItemSummary[] {
-  const includeOrderMetrics = options.includeOrderMetrics ?? true
-  const includeRecommendationInsights = options.includeRecommendationInsights ?? true
+  const includeOrderMetrics: boolean = options.includeOrderMetrics ?? true
+  const includeRecommendationInsights: boolean = options.includeRecommendationInsights ?? true
 
   return records
-    .map((row) => {
-      const skuGroupKey = row.skuGroupKey
-      const metadata = getSkuMetadata(skuGroupKey)
-      const baseInsight = includeRecommendationInsights
+    .map((row: CandidateItemRecord) : CandidateItemSummary => {
+      const skuGroupKey: string = row.skuGroupKey
+      const metadata: MockSkuMetadata = getSkuMetadata(skuGroupKey)
+      const baseInsight: CandidateItemInsightSummary = includeRecommendationInsights
         ? buildCandidateItemInsight(skuGroupKey, 0, 0, 0, dataReferencePeriod, options.companyUuid)
         : buildCandidateItemPeriodSalesInsight(skuGroupKey, dataReferencePeriod, options.companyUuid)
       const baseItem: CandidateItemSummary = {
@@ -145,5 +132,5 @@ export function buildCandidateItemSummaries(
         options.companyUuid,
       ))
     })
-    .sort((a, b) => String(b.dbCreatedAt).localeCompare(String(a.dbCreatedAt)))
+    .sort((a: CandidateItemSummary, b: CandidateItemSummary) : number => String(b.dbCreatedAt).localeCompare(String(a.dbCreatedAt)))
 }

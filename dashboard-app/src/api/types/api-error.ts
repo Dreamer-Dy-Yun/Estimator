@@ -53,7 +53,7 @@ export function isApiClientError(error: unknown): error is ApiClientError {
   return error instanceof ApiClientError
 }
 
-const DEFAULT_API_ERROR_DISPLAY_MESSAGE = 'API 요청에 실패했습니다.'
+const DEFAULT_API_ERROR_DISPLAY_MESSAGE = 'API 요청에 실패했습니다.' as const
 
 const API_ERROR_DISPLAY_MESSAGES: Partial<Record<ApiFailureKind, string>> = {
   auth: '로그인이 필요합니다. 다시 로그인해 주세요.',
@@ -69,15 +69,15 @@ const API_ERROR_DISPLAY_MESSAGES: Partial<Record<ApiFailureKind, string>> = {
 }
 
 function normalizeFallbackMessage(fallback: string): string {
-  const normalized = fallback.trim()
+  const normalized: string = fallback.trim()
   return normalized || DEFAULT_API_ERROR_DISPLAY_MESSAGE
 }
 
 export function getApiErrorDisplayMessage(
   error: unknown,
-  fallback = DEFAULT_API_ERROR_DISPLAY_MESSAGE,
+  fallback: string = DEFAULT_API_ERROR_DISPLAY_MESSAGE,
 ): string {
-  const fallbackMessage = normalizeFallbackMessage(fallback)
+  const fallbackMessage: string = normalizeFallbackMessage(fallback)
   if (!isApiClientError(error)) return fallbackMessage
   return API_ERROR_DISPLAY_MESSAGES[error.kind] ?? fallbackMessage
 }
@@ -96,7 +96,7 @@ export function classifyApiFailureStatus(status: number): ApiFailureKind {
 
 export function readApiErrorCode(body: unknown): string | undefined {
   if (!isApiErrorResponse(body)) return undefined
-  const code = body.code
+  const code: string | undefined = body.code
   if (typeof code === 'string' && code.trim()) return code
   return undefined
 }

@@ -1,7 +1,7 @@
 import { defineConfig, devices } from '@playwright/test'
 
-const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? 'http://127.0.0.1:4175'
-const webServerCommand = process.env.PLAYWRIGHT_WEB_SERVER_COMMAND ?? 'npm run dev -- --host 127.0.0.1 --port 4175'
+const baseURL: string = process.env.PLAYWRIGHT_BASE_URL ?? 'http://127.0.0.1:4175'
+const webServerCommand: string = process.env.PLAYWRIGHT_WEB_SERVER_COMMAND ?? 'npm run dev -- --host 127.0.0.1 --port 4175'
 
 export default defineConfig({
   testDir: './e2e',

@@ -1,12 +1,13 @@
+import type { SecondaryStockOrderCalcParams } from '../../../../../api/types'
 // @vitest-environment jsdom
 import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi , type Mock} from 'vitest';
 import { dashboardApi, type SecondaryStockOrderCalcResult } from '../../../../../api'
 import type { ApiUnitErrorInfo } from '../../../../../types'
 import { useSecondaryStockOrderCalc } from './useSecondaryStockOrderCalc'
 
-const BASE_PROPS = {
+const BASE_PROPS: { skuGroupKey: string; periodStart: string; periodEnd: string; forecastMeanPeriodEnd: string; leadTimeDays: number; makeApiErrorInfo: (request: string, err: unknown) => ApiUnitErrorInfo; } = {
   skuGroupKey: 'sku-a',
   periodStart: '2025-01-01',
   periodEnd: '2025-12-31',
@@ -53,8 +54,8 @@ function calcResult(dailyMean: number): SecondaryStockOrderCalcResult {
   }
 }
 
-function Probe({ dailyMeanClient }: { dailyMeanClient: number | null }) {
-  const state = useSecondaryStockOrderCalc({
+function Probe({ dailyMeanClient }: { dailyMeanClient: number | null }) : React.JSX.Element {
+  const state: { forecastCalc: SecondaryStockOrderCalcResult | null; forecastCalcError: ApiUnitErrorInfo | null; forecastCalcLoading: boolean; } = useSecondaryStockOrderCalc({
     ...BASE_PROPS,
     dailyMeanClient,
   })
@@ -68,23 +69,23 @@ function Probe({ dailyMeanClient }: { dailyMeanClient: number | null }) {
 let root: Root | null = null
 let container: HTMLDivElement | null = null
 
-function renderProbe(dailyMeanClient: number | null) {
+function renderProbe(dailyMeanClient: number | null) : void {
   container = document.createElement('div')
   document.body.appendChild(container)
   root = createRoot(container)
-  act(() => {
+  act(() : void => {
     root?.render(<Probe dailyMeanClient={dailyMeanClient} />)
   })
 }
 
-function rerenderProbe(dailyMeanClient: number | null) {
-  act(() => {
+function rerenderProbe(dailyMeanClient: number | null) : void {
+  act(() : void => {
     root?.render(<Probe dailyMeanClient={dailyMeanClient} />)
   })
 }
 
-afterEach(() => {
-  act(() => {
+afterEach(() : void => {
+  act(() : void => {
     root?.unmount()
   })
   root = null
@@ -95,23 +96,23 @@ afterEach(() => {
   vi.restoreAllMocks()
 })
 
-describe('useSecondaryStockOrderCalc', () => {
-  it('waits for the final input before requesting stock order calculation', async () => {
+describe('useSecondaryStockOrderCalc', () : void => {
+  it('waits for the final input before requesting stock order calculation', async () : Promise<void> => {
     vi.useFakeTimers()
-    const request = vi
+    const request: Mock<(params: SecondaryStockOrderCalcParams) => Promise<SecondaryStockOrderCalcResult>> = vi
       .spyOn(dashboardApi, 'getSecondaryStockOrderCalc')
       .mockResolvedValue(calcResult(20))
 
     renderProbe(10)
 
-    await act(async () => {
+    await act(async () : Promise<void> => {
       vi.advanceTimersByTime(900)
     })
     expect(request).not.toHaveBeenCalled()
 
     rerenderProbe(20)
 
-    await act(async () => {
+    await act(async () : Promise<void> => {
       vi.advanceTimersByTime(1000)
     })
     expect(request).toHaveBeenCalledTimes(1)

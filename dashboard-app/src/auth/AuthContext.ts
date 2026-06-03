@@ -23,10 +23,10 @@ export type AuthContextValue = {
   logout(): Promise<void>
 }
 
-export const AuthContext = createContext<AuthContextValue | null>(null)
+export const AuthContext: React.Context<AuthContextValue | null> = createContext<AuthContextValue | null>(null)
 
-export function useAuth() {
-  const value = useContext(AuthContext)
+export function useAuth() : AuthContextValue {
+  const value: AuthContextValue | null = useContext(AuthContext)
   if (!value) {
     throw new Error('useAuth must be used inside AuthProvider.')
   }

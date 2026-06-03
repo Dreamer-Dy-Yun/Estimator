@@ -5,7 +5,7 @@ import { DeleteButton } from '../../components/DeleteButton'
 import styles from '../../components/common.module.css'
 import pageStyles from '../SnapshotConfirmPage.module.css'
 
-type Props = {
+export type Props = {
   allStashesEmpty: boolean
   stashes: CandidateStashSummary[]
   duplicateBusyUuid: string | null
@@ -15,18 +15,18 @@ type Props = {
   onDelete: (stash: CandidateStashSummary) => void
 }
 
-export function CandidateStashList({ allStashesEmpty, stashes, duplicateBusyUuid, onOpenDetail, onOpenEdit, onDuplicate, onDelete }: Props) {
+export function CandidateStashList({ allStashesEmpty, stashes, duplicateBusyUuid, onOpenDetail, onOpenEdit, onDuplicate, onDelete }: Props) : React.JSX.Element {
   if (allStashesEmpty || !stashes.length) {
     return <div className={`${styles.card} ${pageStyles.emptyStateCard}`}>{allStashesEmpty ? '저장된 오더 후보군이 없습니다.' : '검색 조건에 맞는 후보군이 없습니다.'}</div>
   }
   return (
     <div className={pageStyles.stashList}>
-      {stashes.map((stash) => {
-        const duplicating = duplicateBusyUuid === stash.uuid
+      {stashes.map((stash: CandidateStashSummary) : React.JSX.Element => {
+        const duplicating: boolean = duplicateBusyUuid === stash.uuid
         return (
           <div key={stash.uuid} className={`${styles.card} ${pageStyles.stashCard}`}>
             <div className={pageStyles.stashCardRow}>
-              <button type="button" className={pageStyles.stashCardButton} onClick={() => onOpenDetail(stash.uuid)}>
+              <button type="button" className={pageStyles.stashCardButton} onClick={() : void => onOpenDetail(stash.uuid)}>
                 <div className={pageStyles.stashInfoGrid}>
                   <div className={pageStyles.stashLeftTop}><strong className={pageStyles.stashName}>{stash.name}</strong><span className={pageStyles.stashMetaDot}>·</span><span className={pageStyles.stashMeta}>등록 상품 {stash.itemCount}건</span></div>
                   <span className={pageStyles.stashMetaRight}>생성일: {formatDateTimeMinute(stash.dbCreatedAt)}</span>
@@ -35,9 +35,9 @@ export function CandidateStashList({ allStashesEmpty, stashes, duplicateBusyUuid
                 </div>
               </button>
               <div className={pageStyles.stashCardActions}>
-                <button type="button" className={`${pageStyles.actionBtn} ${pageStyles.btnNeutral}`} aria-label={`${stash.name} 이름·비고 편집`} title="이름·비고 편집" onClick={() => onOpenEdit(stash)}><span className={pageStyles.editLabelFull}>이름·비고 편집</span><span className={pageStyles.editLabelCompact}>편집</span></button>
-                <button type="button" className={`${pageStyles.actionBtn} ${pageStyles.btnNeutral}`} disabled={duplicating} aria-label={`${stash.name} 복제`} title="복제" onClick={() => onDuplicate(stash)}>{duplicating ? <LoadingSpinner size="inline" label="복제 중" /> : '복제'}</button>
-                <DeleteButton aria-label={`${stash.name} 삭제`} title="삭제" onClick={() => onDelete(stash)} />
+                <button type="button" className={`${pageStyles.actionBtn} ${pageStyles.btnNeutral}`} aria-label={`${stash.name} 이름·비고 편집`} title="이름·비고 편집" onClick={() : void => onOpenEdit(stash)}><span className={pageStyles.editLabelFull}>이름·비고 편집</span><span className={pageStyles.editLabelCompact}>편집</span></button>
+                <button type="button" className={`${pageStyles.actionBtn} ${pageStyles.btnNeutral}`} disabled={duplicating} aria-label={`${stash.name} 복제`} title="복제" onClick={() : void => onDuplicate(stash)}>{duplicating ? <LoadingSpinner size="inline" label="복제 중" /> : '복제'}</button>
+                <DeleteButton aria-label={`${stash.name} 삭제`} title="삭제" onClick={() : void => onDelete(stash)} />
               </div>
             </div>
           </div>

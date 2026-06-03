@@ -6,7 +6,7 @@ import styles from '../../common.module.css'
 import { ProductMonthlyTrendContainer } from './ProductMonthlyTrendContainer'
 import { ProductSalesMetricsContainer } from './ProductSalesMetricsContainer'
 
-type Props = {
+export type Props = {
   summary: ProductPrimarySummary
   periodStart: string
   periodEnd: string
@@ -45,12 +45,12 @@ export function ProductPrimaryDrawer({
   onClose,
   channelState,
   pageName,
-}: Props) {
-  const competitorChannelLabel = useMemo(
-    () => channelState.competitorChannels.find((ch) => ch.id === channelState.channelId)?.label ?? '',
+}: Props) : React.JSX.Element {
+  const competitorChannelLabel: string = useMemo(
+    () : string => channelState.competitorChannels.find((ch: SecondaryCompetitorChannel) : boolean => ch.id === channelState.channelId)?.label ?? '',
     [channelState.channelId, channelState.competitorChannels],
   )
-  const imageUrl = `https://placehold.co/640x360?text=${encodeURIComponent(summary.productName)}`
+  const imageUrl: string = `https://placehold.co/640x360?text=${encodeURIComponent(summary.productName)}`
 
   return (
     <div className={styles.drawerColumn}>

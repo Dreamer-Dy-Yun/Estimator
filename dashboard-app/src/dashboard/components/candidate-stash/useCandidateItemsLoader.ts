@@ -1,3 +1,5 @@
+import type { CandidateItemListResult } from '../../../api'
+import type { CandidateDetailConfirmationOverrideResult } from './candidateDetailConfirmationOverrideModel'
 import { useCallback, useState, type MutableRefObject } from 'react'
 import {
   getApiErrorDisplayMessage,
@@ -12,12 +14,12 @@ import {
 import type { AppliedCandidateDataReferencePeriod } from './useCandidateDataReferencePeriod'
 import type { CandidateSetItems } from './candidateStashDetailTypes'
 
-type CandidateMetricReloadOptions = {
+export type CandidateMetricReloadOptions = {
   metricSkuGroupKeys?: readonly string[]
   preserveExistingMetrics?: boolean
 }
 
-interface SubscribeOrderMetricsArgs {
+export interface SubscribeOrderMetricsArgs {
   seq: number
   dataReferencePeriodStart: string
   dataReferencePeriodEnd: string
@@ -25,7 +27,7 @@ interface SubscribeOrderMetricsArgs {
   candidateItemUuids: string[]
 }
 
-interface UseCandidateItemsLoaderParams {
+export interface UseCandidateItemsLoaderParams {
   stashUuid: string
   companyUuid?: string
   appliedPeriodRef: MutableRefObject<AppliedCandidateDataReferencePeriod>
@@ -43,8 +45,8 @@ function selectMetricCandidateItems(
   metricSkuGroupKeys?: readonly string[],
 ): CandidateStashItemSummary[] {
   if (!metricSkuGroupKeys) return candidateItems
-  const metricSkuGroupKeySet = new Set(metricSkuGroupKeys)
-  return candidateItems.filter((item) => metricSkuGroupKeySet.has(item.skuGroupKey))
+  const metricSkuGroupKeySet: Set<string> = new Set(metricSkuGroupKeys)
+  return candidateItems.filter((item: CandidateStashItemSummary) : boolean => metricSkuGroupKeySet.has(item.skuGroupKey))
 }
 
 function preserveOrderMetricFields(
@@ -77,21 +79,21 @@ export function useCandidateItemsLoader({
   isCurrentItemLoad,
   setItems,
   subscribeOrderMetrics,
-}: UseCandidateItemsLoaderParams) {
-  const [candidateItemsLoading, setCandidateItemsLoading] = useState(false)
-  const [candidateItemsLoadError, setCandidateItemsLoadError] = useState<string | null>(null)
+}: UseCandidateItemsLoaderParams) : { candidateItemsLoading: boolean; candidateItemsLoadError: string | null; loadItems: (nextPeriodStart?: string, nextPeriodEnd?: string, options?: CandidateMetricReloadOptions) => Promise<void>; } {
+  const [candidateItemsLoading, setCandidateItemsLoading]: [boolean, React.Dispatch<React.SetStateAction<boolean>>] = useState(false)
+  const [candidateItemsLoadError, setCandidateItemsLoadError]: [string | null, React.Dispatch<React.SetStateAction<string | null>>] = useState<string | null>(null)
 
-  const loadItems = useCallback(async (
-    nextPeriodStart = appliedPeriodRef.current.start,
-    nextPeriodEnd = appliedPeriodRef.current.end,
+  const loadItems: (nextPeriodStart?: string, nextPeriodEnd?: string, options?: CandidateMetricReloadOptions) => Promise<void> = useCallback(async (
+    nextPeriodStart: string = appliedPeriodRef.current.start,
+    nextPeriodEnd: string = appliedPeriodRef.current.end,
     options: CandidateMetricReloadOptions = {},
-  ) => {
+  ) : Promise<void> => {
     if (!stashUuid || !nextPeriodStart || !nextPeriodEnd) return
-    const seq = beginItemLoad()
+    const seq: number = beginItemLoad()
     setCandidateItemsLoading(true)
     setCandidateItemsLoadError(null)
     try {
-      const result = await getCandidateItemsByStash({
+      const result: CandidateItemListResult = await getCandidateItemsByStash({
         stashUuid,
         companyUuid,
         dataReferencePeriodStart: nextPeriodStart,
@@ -99,17 +101,17 @@ export function useCandidateItemsLoader({
       })
       if (!isCurrentItemLoad(seq)) return
       clearRecommendationItems()
-      const metricCandidateItems = selectMetricCandidateItems(result.candidateItems, options.metricSkuGroupKeys)
-      const previousItemByUuid = options.preserveExistingMetrics
-        ? new Map(itemsRef.current.map((item) => [item.uuid, item]))
+      const metricCandidateItems: CandidateStashItemSummary[] = selectMetricCandidateItems(result.candidateItems, options.metricSkuGroupKeys)
+      const previousItemByUuid: Map<string, CandidateItemSummary> | null = options.preserveExistingMetrics
+        ? new Map(itemsRef.current.map((item: CandidateItemSummary) : [string, CandidateItemSummary] => [item.uuid, item]))
         : null
-      const metricItemUuidSet = new Set(metricCandidateItems.map((item) => item.uuid))
-      const nextItems = previousItemByUuid
-        ? result.items.map((item) => (
+      const metricItemUuidSet: Set<string> = new Set(metricCandidateItems.map((item: CandidateStashItemSummary) : string => item.uuid))
+      const nextItems: CandidateItemSummary[] = previousItemByUuid
+        ? result.items.map((item: CandidateItemSummary) : CandidateItemSummary => (
             metricItemUuidSet.has(item.uuid) ? item : preserveOrderMetricFields(item, previousItemByUuid.get(item.uuid))
           ))
         : result.items
-      const protectedResult = applyCandidateDetailConfirmationOverrides(nextItems, confirmationOverridesRef.current)
+      const protectedResult: CandidateDetailConfirmationOverrideResult = applyCandidateDetailConfirmationOverrides(nextItems, confirmationOverridesRef.current)
       confirmationOverridesRef.current = protectedResult.overrides
       setItems(protectedResult.items)
       setCandidateItemsLoading(false)
@@ -118,11 +120,11 @@ export function useCandidateItemsLoader({
         dataReferencePeriodStart: nextPeriodStart,
         dataReferencePeriodEnd: nextPeriodEnd,
         companyUuid,
-        candidateItemUuids: metricCandidateItems.map((item) => item.uuid),
+        candidateItemUuids: metricCandidateItems.map((item: CandidateStashItemSummary) : string => item.uuid),
       })
     } catch (err) {
       if (!isCurrentItemLoad(seq)) return
-      const message = getApiErrorDisplayMessage(err, '후보 상품 목록을 불러오지 못했습니다.')
+      const message: string = getApiErrorDisplayMessage(err, '후보 상품 목록을 불러오지 못했습니다.')
       setCandidateItemsLoadError(message)
       setCandidateItemsLoading(false)
     }

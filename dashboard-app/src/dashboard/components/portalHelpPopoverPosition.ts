@@ -1,6 +1,6 @@
-const DEFAULT_W = 260
-const DEFAULT_PAD = 8
-const DEFAULT_EST_H = 140
+const DEFAULT_W = 260 as const
+const DEFAULT_PAD = 8 as const
+const DEFAULT_EST_H = 140 as const
 
 export type PortalHelpPlacement = 'above' | 'below'
 
@@ -9,11 +9,11 @@ export function computeHelpPopoverPosition(
   placement: PortalHelpPlacement,
   options?: { width?: number; pad?: number; estHeight?: number },
 ): { top: number; left: number } {
-  const width = options?.width ?? DEFAULT_W
-  const pad = options?.pad ?? DEFAULT_PAD
-  const estH = options?.estHeight ?? DEFAULT_EST_H
+  const width: number = options?.width ?? DEFAULT_W
+  const pad: number = options?.pad ?? DEFAULT_PAD
+  const estH: number = options?.estHeight ?? DEFAULT_EST_H
 
-  let left = anchorRect.left + (anchorRect.width - width) / 2
+  let left: number = anchorRect.left + (anchorRect.width - width) / 2
   left = Math.max(pad, Math.min(left, window.innerWidth - width - pad))
 
   let top: number

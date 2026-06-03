@@ -15,7 +15,7 @@ export type CandidateStashPickerOption = {
   dbCreatedAt: string
 }
 
-type Props = {
+export type Props = {
   options: CandidateStashPickerOption[]
   selectedUuid: string | null
   nameInput: string
@@ -39,15 +39,15 @@ export function CandidateStashPickerModal({
   onCreate,
   onSelect,
   onClose,
-}: Props) {
-  const dialogRef = useRef<HTMLDivElement | null>(null)
-  const nameInputRef = useRef<HTMLInputElement | null>(null)
-  const optionFocusRef = useRef<HTMLButtonElement | null>(null)
-  const isRefreshingOptions = loading && options.length > 0
-  const refreshingStatusId = 'candidate-stash-picker-refreshing-status'
-  const preferredFocusUuid = selectedUuid ?? options[0]?.uuid ?? null
-  const getInitialFocus = useCallback(() => optionFocusRef.current ?? nameInputRef.current, [])
-  const handleKeyDown = useModalFocusTrap({
+}: Props) : React.ReactPortal {
+  const dialogRef: React.RefObject<HTMLDivElement | null> = useRef<HTMLDivElement | null>(null)
+  const nameInputRef: React.RefObject<HTMLInputElement | null> = useRef<HTMLInputElement | null>(null)
+  const optionFocusRef: React.RefObject<HTMLButtonElement | null> = useRef<HTMLButtonElement | null>(null)
+  const isRefreshingOptions: boolean = loading && options.length > 0
+  const refreshingStatusId = 'candidate-stash-picker-refreshing-status' as const
+  const preferredFocusUuid: string = selectedUuid ?? options[0]?.uuid ?? null
+  const getInitialFocus: () => HTMLInputElement | HTMLButtonElement | null = useCallback(() : HTMLInputElement | HTMLButtonElement | null => optionFocusRef.current ?? nameInputRef.current, [])
+  const handleKeyDown: (event: React.KeyboardEvent<HTMLDivElement>) => void = useModalFocusTrap({
     panelRef: dialogRef,
     onClose,
     getInitialFocus,
@@ -63,7 +63,7 @@ export function CandidateStashPickerModal({
         aria-labelledby="candidate-stash-picker-title"
         aria-describedby="candidate-stash-picker-description"
         tabIndex={-1}
-        onClick={(event) => event.stopPropagation()}
+        onClick={(event: React.MouseEvent<HTMLDivElement, MouseEvent>) : void => event.stopPropagation()}
         onKeyDown={handleKeyDown}
       >
         <div className={styles.candidatePanel}>
@@ -89,7 +89,7 @@ export function CandidateStashPickerModal({
                 className={styles.candidateTextInput}
                 placeholder={KO.labelCandidateName}
                 value={nameInput}
-                onChange={(event) => onNameInputChange(event.target.value)}
+                onChange={(event: React.ChangeEvent<HTMLInputElement, HTMLInputElement>) : void => onNameInputChange(event.target.value)}
               />
             </label>
             <label className={styles.candidateCreateField} htmlFor="candidate-note-input">
@@ -100,7 +100,7 @@ export function CandidateStashPickerModal({
                 className={styles.candidateTextInput}
                 placeholder={KO.labelCandidateNote}
                 value={noteInput}
-                onChange={(event) => onNoteInputChange(event.target.value)}
+                onChange={(event: React.ChangeEvent<HTMLInputElement, HTMLInputElement>) : void => onNoteInputChange(event.target.value)}
               />
             </label>
             <button
@@ -129,7 +129,7 @@ export function CandidateStashPickerModal({
                     후보군 목록을 갱신 중입니다. 갱신 중에는 기존 후보군을 선택할 수 없습니다.
                   </p>
                 )}
-                {options.map((row) => (
+                {options.map((row: CandidateStashPickerOption) : React.JSX.Element => (
                   <button
                     key={row.uuid}
                     ref={row.uuid === preferredFocusUuid ? optionFocusRef : undefined}
@@ -138,7 +138,7 @@ export function CandidateStashPickerModal({
                     disabled={loading}
                     aria-describedby={isRefreshingOptions ? refreshingStatusId : undefined}
                     aria-current={selectedUuid === row.uuid ? 'true' : undefined}
-                    onClick={() => onSelect(row)}
+                    onClick={() : void => onSelect(row)}
                   >
                     <div className={styles.candidateListItemTop}>
                       <span className={styles.candidateListItemName}>{row.name}</span>

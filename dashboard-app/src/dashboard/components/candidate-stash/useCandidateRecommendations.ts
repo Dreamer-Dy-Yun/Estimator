@@ -1,3 +1,4 @@
+import type { AppendCandidateItemsResponse, CandidateItemSummary, CandidateRecommendationResult, CandidateStashItemSummary } from '../../../api'
 import { useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import {
   appendCandidateItems,
@@ -18,9 +19,9 @@ import type {
   CandidateShowToast,
 } from './candidateStashDetailTypes'
 
-const RECOMMENDATION_PAGE_SIZE = 100
+const RECOMMENDATION_PAGE_SIZE = 100 as const
 
-type Args = {
+export type Args = {
   stashUuid: string
   companyUuid?: string
   dataReferencePeriodStart: string
@@ -35,9 +36,9 @@ type Args = {
   showToast: CandidateShowToast
 }
 
-const COMPANY_REQUIRED_MESSAGE = '추천 후보 추가는 회사 선택이 필요합니다.'
+const COMPANY_REQUIRED_MESSAGE = '추천 후보 추가는 회사 선택이 필요합니다.' as const
 
-type RecommendationScopeKey = {
+export type RecommendationScopeKey = {
   period: string | null
   recommendation: string | null
 }
@@ -55,32 +56,32 @@ export function useCandidateRecommendations({
   onRecommendedItemsAppended,
   refreshStashes,
   showToast,
-}: Args) {
-  const [recommendationSourceItems, setRecommendationSourceItems] = useState<CandidateReferenceItemSummary[]>([])
-  const [loadedScopeKey, setLoadedScopeKey] = useState<string | null>(null)
-  const [recommendationLoading, setRecommendationLoading] = useState(false)
-  const [recommendationAppendBusy, setRecommendationAppendBusy] = useState(false)
-  const [recommendationError, setRecommendationError] = useState<string | null>(null)
-  const requestSeqRef = useRef(0)
-  const appendSeqRef = useRef(0)
-  const appendBusyRef = useRef(false)
-  const currentKeyRef = useRef<RecommendationScopeKey>({ period: null, recommendation: null })
-  const currentPeriodKey = stashUuid && dataReferencePeriodStart && dataReferencePeriodEnd
+}: Args) : { recommendationItems: CandidateReferenceItemSummary[]; recommendationLoading: boolean; recommendationAppendBusy: boolean; recommendationError: string | null; clearRecommendationItems: () => void; loadRecommendations: (force?: boolean) => Promise<CandidateReferenceItemSummary[]>; appendRecommendedItems: (rows: CandidateReferenceItemSummary[]) => Promise<AppendRecommendedItemsResult>; } {
+  const [recommendationSourceItems, setRecommendationSourceItems]: [CandidateReferenceItemSummary[], React.Dispatch<React.SetStateAction<CandidateReferenceItemSummary[]>>] = useState<CandidateReferenceItemSummary[]>([])
+  const [loadedScopeKey, setLoadedScopeKey]: [string | null, React.Dispatch<React.SetStateAction<string | null>>] = useState<string | null>(null)
+  const [recommendationLoading, setRecommendationLoading]: [boolean, React.Dispatch<React.SetStateAction<boolean>>] = useState(false)
+  const [recommendationAppendBusy, setRecommendationAppendBusy]: [boolean, React.Dispatch<React.SetStateAction<boolean>>] = useState(false)
+  const [recommendationError, setRecommendationError]: [string | null, React.Dispatch<React.SetStateAction<string | null>>] = useState<string | null>(null)
+  const requestSeqRef: React.RefObject<number> = useRef(0)
+  const appendSeqRef: React.RefObject<number> = useRef(0)
+  const appendBusyRef: React.RefObject<boolean> = useRef(false)
+  const currentKeyRef: React.RefObject<RecommendationScopeKey> = useRef<RecommendationScopeKey>({ period: null, recommendation: null })
+  const currentPeriodKey: string | null = stashUuid && dataReferencePeriodStart && dataReferencePeriodEnd
     ? `${companyUuid ?? 'all'}:${stashUuid}:${dataReferencePeriodStart}:${dataReferencePeriodEnd}`
     : null
-  const currentRecommendationKey = currentPeriodKey ? `${currentPeriodKey}:${itemMembershipKey}` : null
+  const currentRecommendationKey: string | null = currentPeriodKey ? `${currentPeriodKey}:${itemMembershipKey}` : null
 
-  useLayoutEffect(() => {
+  useLayoutEffect(() : void => {
     currentKeyRef.current = { period: currentPeriodKey, recommendation: currentRecommendationKey }
   }, [currentPeriodKey, currentRecommendationKey])
 
-  const recommendationItems = useMemo(() => {
+  const recommendationItems: CandidateReferenceItemSummary[] = useMemo(() : CandidateReferenceItemSummary[] => {
     if (!currentPeriodKey || loadedScopeKey !== currentPeriodKey) return []
-    const candidateSkuUuidSet = new Set(itemSkuUuids)
-    return recommendationSourceItems.filter((row) => !candidateSkuUuidSet.has(row.uuid))
+    const candidateSkuUuidSet: Set<string> = new Set(itemSkuUuids)
+    return recommendationSourceItems.filter((row: CandidateReferenceItemSummary) : boolean => !candidateSkuUuidSet.has(row.uuid))
   }, [currentPeriodKey, itemSkuUuids, loadedScopeKey, recommendationSourceItems])
 
-  const clearRecommendationItems = useCallback(() => {
+  const clearRecommendationItems: () => void = useCallback(() : void => {
     requestSeqRef.current += 1
     setLoadedScopeKey(null)
     setRecommendationSourceItems([])
@@ -88,16 +89,16 @@ export function useCandidateRecommendations({
     setRecommendationError(null)
   }, [])
 
-  const loadRecommendations = useCallback(async (force = false): Promise<CandidateReferenceItemSummary[]> => {
-    const requestScopeKey = currentPeriodKey
-    const requestRecommendationKey = currentRecommendationKey
+  const loadRecommendations: (force?: boolean) => Promise<CandidateReferenceItemSummary[]> = useCallback(async (force: boolean = false): Promise<CandidateReferenceItemSummary[]> => {
+    const requestScopeKey: string | null = currentPeriodKey
+    const requestRecommendationKey: string | null = currentRecommendationKey
     if (!requestScopeKey || !requestRecommendationKey || !stashUuid || !dataReferencePeriodStart || !dataReferencePeriodEnd) {
       return []
     }
     if (!force && loadedScopeKey === requestScopeKey) return recommendationItems
-    const seq = requestSeqRef.current + 1
+    const seq: number = requestSeqRef.current + 1
     requestSeqRef.current = seq
-    const isCurrentRecommendationRequest = () => (
+    const isCurrentRecommendationRequest: () => boolean = () : boolean => (
       mountedRef.current
       && requestSeqRef.current === seq
       && currentKeyRef.current.period === requestScopeKey
@@ -109,7 +110,7 @@ export function useCandidateRecommendations({
       const allRecommendations: CandidateReferenceItemSummary[] = []
       let cursor: string | undefined
       do {
-        const result = await getCandidateRecommendations({
+        const result: CandidateRecommendationResult = await getCandidateRecommendations({
           stashUuid,
           companyUuid,
           dataReferencePeriodStart,
@@ -122,16 +123,16 @@ export function useCandidateRecommendations({
         cursor = result.nextCursor ?? undefined
       } while (cursor)
       if (!isCurrentRecommendationRequest()) return recommendationItems
-      const candidateSkuUuidSet = new Set(itemsRef.current.map((item) => item.skuUuid))
-      const recommendationRows = allRecommendations.filter((row) => !candidateSkuUuidSet.has(row.uuid))
-      setItems((current) => applyRecommendationInsightsToCandidateItems(current, allRecommendations))
+      const candidateSkuUuidSet: Set<string> = new Set(itemsRef.current.map((item: CandidateItemSummary) : string => item.skuUuid))
+      const recommendationRows: CandidateReferenceItemSummary[] = allRecommendations.filter((row: CandidateReferenceItemSummary) : boolean => !candidateSkuUuidSet.has(row.uuid))
+      setItems((current: CandidateItemSummary[]) : CandidateItemSummary[] => applyRecommendationInsightsToCandidateItems(current, allRecommendations))
       setLoadedScopeKey(requestScopeKey)
       setRecommendationSourceItems(allRecommendations)
       setRecommendationLoading(false)
       return recommendationRows
     } catch (err) {
       if (!isCurrentRecommendationRequest()) return recommendationItems
-      const message = getApiErrorDisplayMessage(err, '추천 후보 조회에 실패했습니다.')
+      const message: string = getApiErrorDisplayMessage(err, '추천 후보 조회에 실패했습니다.')
       setRecommendationError(message)
       setItems(markCandidateItemInsightsFailed)
       setRecommendationLoading(false)
@@ -151,12 +152,12 @@ export function useCandidateRecommendations({
     stashUuid,
   ])
 
-  const appendRecommendedItems = useCallback(async (
+  const appendRecommendedItems: (rows: CandidateReferenceItemSummary[]) => Promise<AppendRecommendedItemsResult> = useCallback(async (
     rows: CandidateReferenceItemSummary[],
   ): Promise<AppendRecommendedItemsResult> => {
-    const appendScopeKey = currentPeriodKey
-    const appendRecommendationKey = currentRecommendationKey
-    const skuGroupKeys = [...new Set(rows.map((row) => row.skuGroupKey))]
+    const appendScopeKey: string | null = currentPeriodKey
+    const appendRecommendationKey: string | null = currentRecommendationKey
+    const skuGroupKeys: string[] = [...new Set(rows.map((row: CandidateReferenceItemSummary) : string => row.skuGroupKey))]
     if (!skuGroupKeys.length) return { status: 'empty-selection' }
     if (appendBusyRef.current) return { status: 'stale' }
     if (!appendScopeKey || !appendRecommendationKey || !stashUuid || !dataReferencePeriodStart || !dataReferencePeriodEnd) {
@@ -167,32 +168,32 @@ export function useCandidateRecommendations({
       showToast(COMPANY_REQUIRED_MESSAGE, { variant: 'error' })
       throw new Error(COMPANY_REQUIRED_MESSAGE)
     }
-    const appendSeq = appendSeqRef.current + 1
+    const appendSeq: number = appendSeqRef.current + 1
     appendSeqRef.current = appendSeq
     appendBusyRef.current = true
     setRecommendationAppendBusy(true)
-    const canReflectAppend = () => (
+    const canReflectAppend: () => boolean = () : boolean => (
       mountedRef.current
       && appendSeqRef.current === appendSeq
       && currentKeyRef.current.period === appendScopeKey
       && currentKeyRef.current.recommendation === appendRecommendationKey
     )
     try {
-      const result = await appendCandidateItems({ stashUuid, companyUuid, skuGroupKeys })
+      const result: AppendCandidateItemsResponse = await appendCandidateItems({ stashUuid, companyUuid, skuGroupKeys })
       if (!canReflectAppend()) return { status: 'stale' }
       if (!result.candidateItems.length) return { status: 'no-op' }
-      const selectedRecommendationSkuUuidSet = new Set(rows.map((row) => row.uuid))
-      if (result.candidateItems.some((item) => !selectedRecommendationSkuUuidSet.has(item.skuUuid))) {
+      const selectedRecommendationSkuUuidSet: Set<string> = new Set(rows.map((row: CandidateReferenceItemSummary) : string => row.uuid))
+      if (result.candidateItems.some((item: CandidateStashItemSummary) : boolean => !selectedRecommendationSkuUuidSet.has(item.skuUuid))) {
         throw new Error('Recommendation append response does not match selected recommendations.')
       }
-      const createdSkuUuidSet = new Set(result.candidateItems.map((item) => item.skuUuid))
+      const createdSkuUuidSet: Set<string> = new Set(result.candidateItems.map((item: CandidateStashItemSummary) : string => item.skuUuid))
       if (!createdSkuUuidSet.size) return { status: 'no-op' }
-      const appendedCount = onRecommendedItemsAppended(result.candidateItems, rows)
+      const appendedCount: number = onRecommendedItemsAppended(result.candidateItems, rows)
       if (appendedCount <= 0) return { status: 'no-op' }
-      setRecommendationSourceItems((current) => (
-        current.filter((row) => !createdSkuUuidSet.has(row.uuid))
+      setRecommendationSourceItems((current: CandidateReferenceItemSummary[]) : CandidateReferenceItemSummary[] => (
+        current.filter((row: CandidateReferenceItemSummary) : boolean => !createdSkuUuidSet.has(row.uuid))
       ))
-      void refreshStashes().catch((err) => {
+      void refreshStashes().catch((err: unknown) : void => {
         if (!canReflectAppend()) return
         showToast(getApiErrorDisplayMessage(err, '후보군 목록 최신화에 실패했습니다.'), { variant: 'warning' })
       })

@@ -1,59 +1,62 @@
-import { useLayoutEffect, useMemo, useRef, useState, type ComponentProps, type RefObject } from 'react'
+import { useLayoutEffect, useMemo, useRef, useState, type ComponentProps } from 'react'
 import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
+import type { NameType, ValueType } from 'recharts/types/component/DefaultTooltipContent'
+import type { ContentType, TooltipContentProps } from 'recharts/types/component/Tooltip'
+import type { TooltipPayloadEntry } from 'recharts/types/state/tooltipSlice'
 import { formatRatioDecimalKo } from '../../../../../utils/format'
 import { KO } from '../../ko'
 import styles from '../secondaryDrawer.module.css'
 import type { SecondarySizeOrderDisplayRow } from '../model/secondarySizeOrderRows'
 
-type Props = {
-  tableRef: RefObject<HTMLTableElement | null>
+export type Props = {
+  tableRef: React.RefObject<HTMLTableElement | null>
   channelLabel: string
   selfCompanyLabel: string
   sizeRows: SecondarySizeOrderDisplayRow[]
 }
 
-export function SizeOrderShareChartRow({ tableRef, channelLabel, selfCompanyLabel, sizeRows }: Props) {
-  const chartCellRef = useRef<HTMLTableCellElement | null>(null)
-  const chartInnerRef = useRef<HTMLDivElement | null>(null)
-  const [xCenters, setXCenters] = useState<number[]>([])
-  const [chartWidth, setChartWidth] = useState(0)
+export function SizeOrderShareChartRow({ tableRef, channelLabel, selfCompanyLabel, sizeRows }: Props) : React.JSX.Element {
+  const chartCellRef: React.RefObject<HTMLTableCellElement | null> = useRef<HTMLTableCellElement | null>(null)
+  const chartInnerRef: React.RefObject<HTMLDivElement | null> = useRef<HTMLDivElement | null>(null)
+  const [xCenters, setXCenters]: [number[], React.Dispatch<React.SetStateAction<number[]>>] = useState<number[]>([])
+  const [chartWidth, setChartWidth]: [number, React.Dispatch<React.SetStateAction<number>>] = useState(0)
 
-  useLayoutEffect(() => {
-    const table = tableRef.current
-    const chartCell = chartCellRef.current
-    const chartInner = chartInnerRef.current
+  useLayoutEffect(() : (() => void) | undefined => {
+    const table: HTMLTableElement | null = tableRef.current
+    const chartCell: HTMLTableCellElement | null = chartCellRef.current
+    const chartInner: HTMLDivElement | null = chartInnerRef.current
     if (!table || !chartCell || !chartInner) return
 
-    const recalc = () => {
-      const chartRect = chartInner.getBoundingClientRect()
+    const recalc: () => void = () : void => {
+      const chartRect: DOMRect = chartInner.getBoundingClientRect()
       setChartWidth(chartRect.width)
-      const alignRow = table.querySelector('[data-chart-align-row]')
-      const cells = alignRow?.querySelectorAll('td[data-chart-x]')
-      const list = cells?.length
+      const alignRow: Element | null = table.querySelector('[data-chart-align-row]')
+      const cells: NodeListOf<Element> | undefined = alignRow?.querySelectorAll('td[data-chart-x]')
+      const list: Element[] = cells?.length
         ? Array.from(cells)
         : Array.from(table.querySelectorAll('thead tr th')).slice(2)
-      setXCenters(list.map((cell) => {
-        const rect = cell.getBoundingClientRect()
+      setXCenters(list.map((cell: Element) : number => {
+        const rect: DOMRect = cell.getBoundingClientRect()
         return rect.left + (rect.width / 2) - chartRect.left
       }))
     }
 
     recalc()
-    const ro = new ResizeObserver(recalc)
+    const ro: ResizeObserver = new ResizeObserver(recalc)
     ro.observe(table)
     ro.observe(chartCell)
     ro.observe(chartInner)
     window.addEventListener('resize', recalc)
-    return () => {
+    return () : void => {
       ro.disconnect()
       window.removeEventListener('resize', recalc)
     }
   }, [sizeRows.length, tableRef])
 
-  const shareLineData = useMemo(
-    () => {
-      const columnWidth = chartWidth > 0 && sizeRows.length > 0 ? chartWidth / sizeRows.length : 1
-      return sizeRows.map((r, i) => ({
+  const shareLineData: { x: number; size: string; selfPct: number; compPct: number; weightedPct: number; }[] = useMemo(
+    () : { x: number; size: string; selfPct: number; compPct: number; weightedPct: number; }[] => {
+      const columnWidth: number = chartWidth > 0 && sizeRows.length > 0 ? chartWidth / sizeRows.length : 1
+      return sizeRows.map((r: SecondarySizeOrderDisplayRow, i: number) : { x: number; size: string; selfPct: number; compPct: number; weightedPct: number; } => ({
         x: xCenters[i] ?? ((i + 0.5) * columnWidth),
         size: r.size,
         selfPct: r.selfSharePct,
@@ -63,30 +66,30 @@ export function SizeOrderShareChartRow({ tableRef, channelLabel, selfCompanyLabe
     },
     [chartWidth, sizeRows, xCenters],
   )
-  const xDomain = useMemo<[number, number]>(() => {
+  const xDomain: [number, number] = useMemo<[number, number]>(() : [number, number] => {
     if (chartWidth <= 0) return [0, Math.max(1, sizeRows.length)]
     return [0, chartWidth]
   }, [chartWidth, sizeRows.length])
-  const yDomain = useMemo<[number, number]>(() => {
-    let mx = 0
+  const yDomain: [number, number] = useMemo<[number, number]>(() : [number, number] => {
+    let mx: number = 0
     for (const r of sizeRows) mx = Math.max(mx, r.selfSharePct, r.competitorSharePct, r.blendedSharePct)
     if (mx <= 0) return [0, 10]
     return [0, Math.max(Math.ceil(Math.min(100, mx * 1.12) * 10) / 10, 0.1)]
   }, [sizeRows])
-  const renderShareTooltip = useMemo((): ComponentProps<typeof Tooltip>['content'] => {
-    const Body: NonNullable<ComponentProps<typeof Tooltip>['content']> = ({ active, payload }) => {
+  const renderShareTooltip: ContentType<ValueType, NameType> | undefined = useMemo((): ComponentProps<typeof Tooltip>['content'] => {
+    const Body: NonNullable<ComponentProps<typeof Tooltip>['content']> = ({ active, payload }: TooltipContentProps<ValueType, NameType>) : React.JSX.Element | null => {
       if (!active || !payload?.length) return null
-      const byKey = new Map(payload.map((p) => [String(p.dataKey ?? ''), p]))
-      const ordered = ['selfPct', 'compPct', 'weightedPct']
-        .map((k) => byKey.get(k))
-        .filter((p): p is NonNullable<typeof p> => Boolean(p))
-      const sizeLabel = String(payload[0]?.payload?.size ?? '-')
+      const byKey: Map<string, TooltipPayloadEntry> = new Map(payload.map((p: TooltipPayloadEntry) : [string, TooltipPayloadEntry] => [String(p.dataKey ?? ''), p]))
+      const ordered: TooltipPayloadEntry[] = ['selfPct', 'compPct', 'weightedPct']
+        .map((k: string) : TooltipPayloadEntry | undefined => byKey.get(k))
+        .filter((p: TooltipPayloadEntry | undefined): p is NonNullable<typeof p> => Boolean(p))
+      const sizeLabel: string = String(payload[0]?.payload?.size ?? '-')
       return (
         <div className={styles.sizeOrderTooltip}>
           <div className={styles.sizeOrderTooltipTitle}>{KO.thSize}: {sizeLabel}</div>
-          {ordered.map((item) => {
-            const n = typeof item.value === 'number' ? item.value : Number(item.value)
-            const valueText = Number.isFinite(n) ? `${formatRatioDecimalKo(n)}%` : String(item.value ?? '-')
+          {ordered.map((item: TooltipPayloadEntry) : React.JSX.Element => {
+            const n: number = typeof item.value === 'number' ? item.value : Number(item.value)
+            const valueText: string = Number.isFinite(n) ? `${formatRatioDecimalKo(n)}%` : String(item.value ?? '-')
             return (
               <div key={String(item.dataKey)} className={styles.sizeOrderTooltipRow}>
                 <span
@@ -132,7 +135,7 @@ export function SizeOrderShareChartRow({ tableRef, channelLabel, selfCompanyLabe
   )
 }
 
-function LegendItem({ color, label }: { color: string; label: string }) {
+function LegendItem({ color, label }: { color: string; label: string }) : React.JSX.Element {
   return (
     <div className={styles.sizeOrderShareLegendRow} role="listitem">
       <span className={styles.sizeOrderShareLegendSwatch} style={{ background: color }} aria-hidden />

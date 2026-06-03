@@ -3,7 +3,7 @@ import { dashboardApi, type SecondaryAiCommentParams, type SecondaryAiCommentRes
 import type { ApiUnitErrorInfo } from '../../../../../types'
 import { makeApiErrorInfo } from '../../apiErrorInfo'
 
-type Args = {
+export type Args = {
   autoFetchEnabled: boolean
   pageName: string
   params: SecondaryAiCommentParams
@@ -15,18 +15,18 @@ export function useSecondaryAiComment({
   pageName,
   params,
   onLoaded,
-}: Args) {
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<ApiUnitErrorInfo | null>(null)
-  const onLoadedRef = useRef(onLoaded)
-  const requestSeq = useRef(0)
+}: Args) : { aiCommentLoading: boolean; aiCommentError: ApiUnitErrorInfo | null; requestAiComment: (nextParams?: SecondaryAiCommentParams) => void; } {
+  const [loading, setLoading]: [boolean, React.Dispatch<React.SetStateAction<boolean>>] = useState(false)
+  const [error, setError]: [ApiUnitErrorInfo | null, React.Dispatch<React.SetStateAction<ApiUnitErrorInfo | null>>] = useState<ApiUnitErrorInfo | null>(null)
+  const onLoadedRef: React.RefObject<(result: SecondaryAiCommentResult) => void> = useRef(onLoaded)
+  const requestSeq: React.RefObject<number> = useRef(0)
 
-  useEffect(() => {
+  useEffect(() : void => {
     onLoadedRef.current = onLoaded
   }, [onLoaded])
 
-  const requestKey = useMemo(
-    () => [
+  const requestKey: string = useMemo(
+    () : string => [
       params.skuGroupKey,
       params.periodStart,
       params.periodEnd,
@@ -44,16 +44,16 @@ export function useSecondaryAiComment({
     ],
   )
 
-  const requestAiComment = useCallback((nextParams?: SecondaryAiCommentParams) => {
-    void (async () => {
-      const currentRequest = requestSeq.current + 1
+  const requestAiComment: (nextParams?: SecondaryAiCommentParams) => void = useCallback((nextParams?: SecondaryAiCommentParams) : void => {
+    void (async () : Promise<void> => {
+      const currentRequest: number = requestSeq.current + 1
       requestSeq.current = currentRequest
       setLoading(true)
       setError(null)
-      const requestParams = nextParams ?? params
+      const requestParams: SecondaryAiCommentParams = nextParams ?? params
 
       try {
-        const result = await dashboardApi.getSecondaryAiComment(requestParams)
+        const result: SecondaryAiCommentResult = await dashboardApi.getSecondaryAiComment(requestParams)
         if (requestSeq.current !== currentRequest) return
         onLoadedRef.current(result)
         setError(null)
@@ -68,11 +68,11 @@ export function useSecondaryAiComment({
     })()
   }, [params, pageName])
 
-  useEffect(() => {
+  useEffect(() : (() => void) | undefined => {
     if (!autoFetchEnabled) {
-      const currentRequest = requestSeq.current + 1
+      const currentRequest: number = requestSeq.current + 1
       requestSeq.current = currentRequest
-      queueMicrotask(() => {
+      queueMicrotask(() : void => {
         if (requestSeq.current !== currentRequest) return
         setLoading(false)
         setError(null)
@@ -82,7 +82,7 @@ export function useSecondaryAiComment({
 
     requestAiComment(params)
 
-    return () => {
+    return () : void => {
       requestSeq.current += 1
     }
   }, [autoFetchEnabled, params, requestKey, requestAiComment])

@@ -1,7 +1,7 @@
 import { formatGroupedNumber } from '../../utils/format'
 import { KpiGrid } from './KpiGrid'
 
-type Props = {
+export type Props = {
   selfCompanyLabel: string
   totalCompetitorAmount: number
   totalSelfAmount: number | null
@@ -9,7 +9,7 @@ type Props = {
   totalSelfQty: number | null
 }
 
-const kpiValue = (value: number | null) => (value == null ? '-' : formatGroupedNumber(value))
+const kpiValue: (value: number | null) => string = (value: number | null) : string => (value == null ? '-' : formatGroupedNumber(value))
 
 export function CompetitorKpiGrid({
   selfCompanyLabel,
@@ -17,7 +17,7 @@ export function CompetitorKpiGrid({
   totalSelfAmount,
   totalCompetitorQty,
   totalSelfQty,
-}: Props) {
+}: Props) : React.JSX.Element {
   return (
     <KpiGrid
       stacked

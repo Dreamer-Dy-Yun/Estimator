@@ -1,7 +1,7 @@
-const STORAGE_KEY = 'han.dashboard.salesTrendForecastMonths.v2'
-export const DEFAULT_FORECAST_MONTHS = 12
-export const MIN_FORECAST_MONTHS = 1
-export const MAX_FORECAST_MONTHS = 12
+const STORAGE_KEY = 'han.dashboard.salesTrendForecastMonths.v2' as const
+export const DEFAULT_FORECAST_MONTHS = 12 as const
+export const MIN_FORECAST_MONTHS = 1 as const
+export const MAX_FORECAST_MONTHS = 12 as const
 
 export function clampForecastMonths(n: number): number {
   if (!Number.isFinite(n)) return DEFAULT_FORECAST_MONTHS
@@ -12,7 +12,7 @@ export function clampForecastMonths(n: number): number {
 export function readForecastMonthsFromStorage(): number {
   if (typeof window === 'undefined') return DEFAULT_FORECAST_MONTHS
   try {
-    const raw = localStorage.getItem(STORAGE_KEY)
+    const raw: string | null = localStorage.getItem(STORAGE_KEY)
     if (raw == null) return DEFAULT_FORECAST_MONTHS
     return clampForecastMonths(Number.parseInt(raw, 10))
   } catch {

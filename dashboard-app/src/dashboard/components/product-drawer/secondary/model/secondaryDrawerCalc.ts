@@ -14,8 +14,8 @@ export type ProductSecondarySizeShareRow = ProductSecondarySizeRow & { competito
 export function mergeSecondarySizeRows(
   secondary: ProductSecondaryDetail,
 ): ProductSecondarySizeShareRow[] {
-  return secondary.sizeRows.map((row) => {
-    const competitorRatio = requireCompetitorRatio(row.size, secondary.competitorRatioBySize[row.size])
+  return secondary.sizeRows.map((row: ProductSecondarySizeRow) : { competitorRatio: number; size: string; selfRatio: number; confirmedQty: number; avgPrice: number; qty: number; availableStock: number; } => {
+    const competitorRatio: number = requireCompetitorRatio(row.size, secondary.competitorRatioBySize[row.size])
     return { ...row, competitorRatio }
   })
 }

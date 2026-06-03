@@ -1,3 +1,4 @@
+import type { CandidateBadge } from '../api'
 import type { CandidateItemOrderExport, CandidateItemSummary } from '../api/types'
 
 export type CandidateOrderExportInput = {
@@ -15,7 +16,7 @@ export type CandidateOrderWorkbookData = {
   mainColumnWidths: number[]
 }
 
-export const SIZE_NOT_APPLICABLE = 'N/A'
+export const SIZE_NOT_APPLICABLE = 'N/A' as const
 
 function getOrderExport(item: CandidateItemSummary): CandidateItemOrderExport {
   if (!item.orderExport) throw new Error('오더 지표 계산이 완료되지 않은 후보가 있습니다.')
@@ -27,12 +28,12 @@ function normalizeSize(size: string): string {
 }
 
 function collectSizeColumns(items: CandidateItemSummary[]): string[] {
-  const seen = new Set<string>()
+  const seen: Set<string> = new Set<string>()
   const sizes: string[] = []
 
   for (const item of items) {
     for (const sizeRow of getOrderExport(item).sizeOrderQty) {
-      const size = normalizeSize(sizeRow.size)
+      const size: string = normalizeSize(sizeRow.size)
       if (!size || seen.has(size)) continue
       seen.add(size)
       sizes.push(size)
@@ -43,10 +44,10 @@ function collectSizeColumns(items: CandidateItemSummary[]): string[] {
 }
 
 function getCompetitorQtyHeader(items: CandidateItemSummary[]): string {
-  const labels = [
+  const labels: string[] = [
     ...new Set(
       items
-        .map((item) => (
+        .map((item: CandidateItemSummary) : string => (
           getOrderExport(item).competitorChannelLabel || item.insight.competitorChannelLabel
         ).trim())
         .filter(Boolean),
@@ -56,11 +57,11 @@ function getCompetitorQtyHeader(items: CandidateItemSummary[]): string {
 }
 
 function getInboundExpectedDate(items: CandidateItemSummary[]): string {
-  const dates = [
+  const dates: string[] = [
     ...new Set(
       items
-        .map((item) => getOrderExport(item).inboundExpectedDate?.trim())
-        .filter((date): date is string => Boolean(date)),
+        .map((item: CandidateItemSummary) : string | undefined => getOrderExport(item).inboundExpectedDate?.trim())
+        .filter((date: string | undefined): date is string => Boolean(date)),
     ),
   ]
   return dates.join(' / ')
@@ -79,9 +80,9 @@ function rateOrDash(value: number | null | undefined): string {
 }
 
 function sizeOrderMap(item: CandidateItemSummary): Map<string, number> {
-  const map = new Map<string, number>()
+  const map: Map<string, number> = new Map<string, number>()
   for (const sizeRow of getOrderExport(item).sizeOrderQty) {
-    const size = normalizeSize(sizeRow.size)
+    const size: string = normalizeSize(sizeRow.size)
     if (!size) continue
     map.set(size, (map.get(size) ?? 0) + roundedNonNegative(sizeRow.orderQty))
   }
@@ -89,8 +90,8 @@ function sizeOrderMap(item: CandidateItemSummary): Map<string, number> {
 }
 
 function badgeCell(summary: CandidateItemSummary): string {
-  const badgeLabels = [
-    ...new Set(summary.insight.badges.map((badge) => badge.name.trim()).filter(Boolean)),
+  const badgeLabels: string[] = [
+    ...new Set(summary.insight.badges.map((badge: CandidateBadge) : string => badge.name.trim()).filter(Boolean)),
   ]
   return badgeLabels.length ? badgeLabels.join('\n') : '-'
 }
@@ -129,7 +130,7 @@ function createMainColumnWidths(sizeColumns: string[]): number[] {
     14,
     14,
     16,
-    ...sizeColumns.map(() => 10),
+    ...sizeColumns.map(() : number => 10),
   ]
 }
 
@@ -142,8 +143,8 @@ function createMetaRows(userName: string, items: CandidateItemSummary[]): ExcelC
 }
 
 function createMainRow(item: CandidateItemSummary, sizeColumns: string[]): ExcelCellValue[] {
-  const sizeQtyByName = sizeOrderMap(item)
-  const orderExport = getOrderExport(item)
+  const sizeQtyByName: Map<string, number> = sizeOrderMap(item)
+  const orderExport: CandidateItemOrderExport = getOrderExport(item)
 
   return [
     item.brand,
@@ -159,7 +160,7 @@ function createMainRow(item: CandidateItemSummary, sizeColumns: string[]): Excel
     numberOrDash(orderExport.avgPrice),
     rateOrDash(orderExport.feeRatePct),
     rateOrDash(orderExport.opMarginRatePct),
-    ...sizeColumns.map((size) => (
+    ...sizeColumns.map((size: string) : number | 'N/A' => (
       sizeQtyByName.has(size) ? (sizeQtyByName.get(size) ?? 0) : SIZE_NOT_APPLICABLE
     )),
   ]
@@ -169,14 +170,14 @@ export function createCandidateOrderWorkbookData({
   items,
   userName,
 }: CandidateOrderExportInput): CandidateOrderWorkbookData {
-  const sizeColumns = collectSizeColumns(items)
-  const mainHeader = createMainHeader(items, sizeColumns)
+  const sizeColumns: string[] = collectSizeColumns(items)
+  const mainHeader: string[] = createMainHeader(items, sizeColumns)
 
   return {
     mainHeader,
     mainRows: [
       mainHeader,
-      ...items.map((item) => createMainRow(item, sizeColumns)),
+      ...items.map((item: CandidateItemSummary) : ExcelCellValue[] => createMainRow(item, sizeColumns)),
     ],
     metaRows: createMetaRows(userName, items),
     mainColumnWidths: createMainColumnWidths(sizeColumns),

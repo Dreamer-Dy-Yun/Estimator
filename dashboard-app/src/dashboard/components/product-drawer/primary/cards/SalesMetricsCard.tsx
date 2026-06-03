@@ -1,4 +1,3 @@
-import type { ReactNode } from 'react'
 import type { SecondaryCompetitorChannel } from '../../../../../api'
 import { ApiUnitErrorBadge } from '../../../../../components/ApiUnitErrorBadge'
 import type { ApiUnitErrorInfo } from '../../../../../types'
@@ -7,7 +6,7 @@ import type { SalesKpiColumn } from '../../../../../utils/salesKpiColumn'
 import { KO } from '../../ko'
 import styles from './SalesMetricsCard.module.css'
 
-type Props = {
+export type Props = {
   targetPeriodDays: { start: string; end: string }
   sales: {
     channelLabel: string
@@ -23,20 +22,20 @@ type Props = {
   }
 }
 
-type MetricRow = { key: string; label: string; self: ReactNode; competitor: ReactNode; competitorUnavailable?: boolean }
+export type MetricRow = { key: string; label: string; self: React.ReactNode; competitor: React.ReactNode; competitorUnavailable?: boolean }
 
-const primaryValue = (value: string) => <span className={styles.salesMetricPrimaryValue}>{value}</span>
-const formatRank = (rank: number | null, total: number) => (rank === null ? '-' : `${rank}/${total}${KO.rankSuffix}`)
-const rankMetric = (value: string, rank: number, total: number) => <>{primaryValue(value)} ({formatRank(rank, total)})</>
-const costMetric = (avgCost: number | null, costRatioPct: number | null) => (
+const primaryValue: (value: string) => React.JSX.Element = (value: string) : React.JSX.Element => <span className={styles.salesMetricPrimaryValue}>{value}</span>
+const formatRank: (rank: number | null, total: number) => string = (rank: number | null, total: number) : string => (rank === null ? '-' : `${rank}/${total}${KO.rankSuffix}`)
+const rankMetric: (value: string, rank: number, total: number) => React.JSX.Element = (value: string, rank: number, total: number) : React.JSX.Element => <>{primaryValue(value)} ({formatRank(rank, total)})</>
+const costMetric: (avgCost: number | null, costRatioPct: number | null) => React.JSX.Element | '-' = (avgCost: number | null, costRatioPct: number | null) : React.JSX.Element | '-' => (
   avgCost === null || costRatioPct === null ? '-' : <>{primaryValue(displayNumber.money(avgCost))} ({formatPercent(costRatioPct)})</>
 )
-const rateRank = (ratePct: number | null, rank: number | null, total: number) => (
+const rateRank: (ratePct: number | null, rank: number | null, total: number) => React.JSX.Element | '-' = (ratePct: number | null, rank: number | null, total: number) : React.JSX.Element | '-' => (
   ratePct === null || rank === null ? '-' : <>{primaryValue(formatPercent(ratePct))} ({formatRank(rank, total)})</>
 )
 
-export function SalesMetricsCard({ targetPeriodDays, sales, selfCompanyLabel, channelFilter }: Props) {
-  const { channelLabel, self, competitor } = sales
+export function SalesMetricsCard({ targetPeriodDays, sales, selfCompanyLabel, channelFilter }: Props) : React.JSX.Element {
+  const { channelLabel, self, competitor }: { channelLabel: string; self: SalesKpiColumn; competitor: SalesKpiColumn; } = sales
   const rows: MetricRow[] = [
     { key: 'avgPrice', label: KO.rowAvgPrice, self: primaryValue(displayNumber.money(self.avgPrice)), competitor: primaryValue(displayNumber.money(competitor.avgPrice)) },
     { key: 'qtyRank', label: KO.rowQtyRank, self: rankMetric(formatGroupedNumber(self.qty), self.qtyRank, self.rankTotal), competitor: rankMetric(formatGroupedNumber(competitor.qty), competitor.qtyRank, competitor.rankTotal) },
@@ -63,8 +62,8 @@ export function SalesMetricsCard({ targetPeriodDays, sales, selfCompanyLabel, ch
               <th className={`${styles.num} ${styles.salesMetricsCompetitorHeader}`}>
                 {channelFilter ? (
                   <span className={styles.salesMetricsChannelHeaderControl}>
-                    <select aria-label={KO.labelCompetitorChannel} value={channelFilter.channelId} onChange={(event) => channelFilter.onChannelChange(event.target.value)}>
-                      {channelFilter.competitorChannels.map((channel) => <option key={channel.id} value={channel.id}>{channel.label}</option>)}
+                    <select aria-label={KO.labelCompetitorChannel} value={channelFilter.channelId} onChange={(event: React.ChangeEvent<HTMLSelectElement, HTMLSelectElement>) : void => channelFilter.onChannelChange(event.target.value)}>
+                      {channelFilter.competitorChannels.map((channel: SecondaryCompetitorChannel) : React.JSX.Element => <option key={channel.id} value={channel.id}>{channel.label}</option>)}
                     </select>
                     <ApiUnitErrorBadge error={channelFilter.error} />
                   </span>
@@ -73,7 +72,7 @@ export function SalesMetricsCard({ targetPeriodDays, sales, selfCompanyLabel, ch
             </tr>
           </thead>
           <tbody>
-            {rows.map((row) => (
+            {rows.map((row: MetricRow) : React.JSX.Element => (
               <tr key={row.key}>
                 <td>{row.label}</td>
                 <td className={styles.num}>{row.self}</td>

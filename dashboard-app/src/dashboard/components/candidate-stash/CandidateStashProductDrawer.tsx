@@ -1,3 +1,5 @@
+import type { DrawerSnapshotSource } from './useCandidateStashItemDrawer'
+import type { CandidateItemSummary } from '../../../api'
 import { useMemo } from 'react'
 import type { CandidateItemDetail } from '../../../api'
 import type { OrderSnapshotDocumentV2 } from '../../../snapshot/orderSnapshotTypes'
@@ -5,12 +7,12 @@ import { useSelfCompanyLabel } from '../../hooks/useSelfCompanyLabel'
 import { ProductDrawer } from '../product-drawer/ProductDrawer'
 import type { CandidateStashDetailModalModel } from './useCandidateStashDetailModal'
 
-type Props = {
+export type Props = {
   model: CandidateStashDetailModalModel
   bulkDeleteOpen: boolean
 }
 
-type DrawerPeriod = {
+export type DrawerPeriod = {
   periodStart: string
   periodEnd: string
 }
@@ -32,19 +34,19 @@ function resolveCandidateDrawerPeriod(
   }
 }
 
-export function CandidateStashProductDrawer({ model, bulkDeleteOpen }: Props) {
-  const selfCompanyLabel = useSelfCompanyLabel()
-  const openedItem = useMemo(
-    () => model.items.find((item) => item.uuid === model.openedItemUuid) ?? null,
+export function CandidateStashProductDrawer({ model, bulkDeleteOpen }: Props) : React.JSX.Element | null {
+  const selfCompanyLabel: string = useSelfCompanyLabel()
+  const openedItem: CandidateItemSummary | null = useMemo(
+    () : CandidateItemSummary | null => model.items.find((item: CandidateItemSummary) : boolean => item.uuid === model.openedItemUuid) ?? null,
     [model.items, model.openedItemUuid],
   )
-  const confirmedHydrateContext = model.hydrateSnapSource === 'confirmed'
+  const confirmedHydrateContext: { periodStart: string; periodEnd: string; forecastMonths: number; dailyTrendStartMonth: string; dailyTrendLeadTimeDays: number; } | null = model.hydrateSnapSource === 'confirmed'
     ? model.confirmedHydrateSnap?.context ?? model.hydrateSnap?.context ?? null
     : null
-  const drawerPeriod = resolveCandidateDrawerPeriod(model, confirmedHydrateContext)
-  const candidateItemContext = useMemo(() => {
+  const drawerPeriod: DrawerPeriod | null = resolveCandidateDrawerPeriod(model, confirmedHydrateContext)
+  const candidateItemContext: { stashName: string; stashNote: string | null; itemUuid: string; isDetailConfirmed: boolean; confirmedSnapshot: OrderSnapshotDocumentV2 | null; hydrateSnapshotSource: DrawerSnapshotSource | null; onDraftChange: (snapshot: OrderSnapshotDocumentV2, source: 'confirmed' | 'live') => void; onResetDraft: () => void; onRestoreConfirmed: () => void; onConfirmed: (snapshot: OrderSnapshotDocumentV2, updatedItem: CandidateItemDetail) => void; onUnconfirmed: (updatedItem: CandidateItemDetail) => void; onSaved: () => void; onRequestDeleteItem: () => void; } | null = useMemo(() : { stashName: string; stashNote: string | null; itemUuid: string; isDetailConfirmed: boolean; confirmedSnapshot: OrderSnapshotDocumentV2 | null; hydrateSnapshotSource: DrawerSnapshotSource | null; onDraftChange: (snapshot: OrderSnapshotDocumentV2, source: 'confirmed' | 'live') => void; onResetDraft: () => void; onRestoreConfirmed: () => void; onConfirmed: (snapshot: OrderSnapshotDocumentV2, updatedItem: CandidateItemDetail) => void; onUnconfirmed: (updatedItem: CandidateItemDetail) => void; onSaved: () => void; onRequestDeleteItem: () => void; } | null => {
     if (!model.detailTarget || !model.openedItemUuid || !openedItem) return null
-    const itemUuid = model.openedItemUuid
+    const itemUuid: string = model.openedItemUuid
     return {
       stashName: model.detailTarget.name,
       stashNote: model.detailTarget.note,
@@ -52,20 +54,20 @@ export function CandidateStashProductDrawer({ model, bulkDeleteOpen }: Props) {
       isDetailConfirmed: openedItem.isDetailConfirmed,
       confirmedSnapshot: model.confirmedHydrateSnap,
       hydrateSnapshotSource: model.hydrateSnapSource,
-      onDraftChange: (snapshot: OrderSnapshotDocumentV2, source: 'confirmed' | 'live') => (
+      onDraftChange: (snapshot: OrderSnapshotDocumentV2, source: 'confirmed' | 'live') : void => (
         model.saveDrawerDraftSnapshot(itemUuid, snapshot, source)
       ),
-      onResetDraft: () => model.clearDrawerDraftSnapshot(itemUuid),
-      onRestoreConfirmed: () => model.restoreDrawerConfirmedSnapshot(itemUuid),
-      onConfirmed: (snapshot: OrderSnapshotDocumentV2, updatedItem: CandidateItemDetail) => (
+      onResetDraft: () : void => model.clearDrawerDraftSnapshot(itemUuid),
+      onRestoreConfirmed: () : void => model.restoreDrawerConfirmedSnapshot(itemUuid),
+      onConfirmed: (snapshot: OrderSnapshotDocumentV2, updatedItem: CandidateItemDetail) : void => (
         model.markDrawerSnapshotConfirmed(itemUuid, snapshot, updatedItem)
       ),
-      onUnconfirmed: (updatedItem: CandidateItemDetail) => model.markDrawerSnapshotUnconfirmed(itemUuid, updatedItem),
-      onSaved: () => {
+      onUnconfirmed: (updatedItem: CandidateItemDetail) : void => model.markDrawerSnapshotUnconfirmed(itemUuid, updatedItem),
+      onSaved: () : void => {
         void model.refreshStashes()
       },
-      onRequestDeleteItem: () => {
-        const row = model.items.find((item) => item.uuid === itemUuid)
+      onRequestDeleteItem: () : void => {
+        const row: CandidateItemSummary | undefined = model.items.find((item: CandidateItemSummary) : boolean => item.uuid === itemUuid)
         if (row) model.setItemDeleteTarget(row)
       },
     }

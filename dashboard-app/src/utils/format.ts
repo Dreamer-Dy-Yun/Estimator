@@ -1,43 +1,43 @@
 export type DisplayNumberRoundingMode = 'round' | 'floor' | 'ceil' | 'trunc'
 
-const FALLBACK_TEXT = '-'
+const FALLBACK_TEXT = '-' as const
 
 export class DisplayNumberFormatter {
   private readonly locale: string
 
-  constructor(locale = 'ko-KR') {
+  constructor(locale: string = 'ko-KR') {
     this.locale = locale
   }
 
   normalize(value: number, digit: number, mode: DisplayNumberRoundingMode = 'round'): number {
-    const factor = 10 ** digit
-    const scaled = value / factor
-    const rounded = this.applyRounding(scaled, mode) * factor
-    const fractionDigits = Math.max(0, -digit)
+    const factor: number = 10 ** digit
+    const scaled: number = value / factor
+    const rounded: number = this.applyRounding(scaled, mode) * factor
+    const fractionDigits: number = Math.max(0, -digit)
     return fractionDigits === 0 ? rounded : Number(rounded.toFixed(fractionDigits))
   }
 
   format(
     value: number | null | undefined,
-    digit = 0,
+    digit: number = 0,
     mode: DisplayNumberRoundingMode = 'round',
-    fallback = FALLBACK_TEXT,
+    fallback: string = FALLBACK_TEXT,
   ): string {
     if (value == null || !Number.isFinite(value)) return fallback
-    const normalized = this.normalize(value, digit, mode)
-    const fractionDigits = Math.max(0, -digit)
+    const normalized: number = this.normalize(value, digit, mode)
+    const fractionDigits: number = Math.max(0, -digit)
     return normalized.toLocaleString(this.locale, {
       minimumFractionDigits: fractionDigits,
       maximumFractionDigits: fractionDigits,
     })
   }
 
-  money(value: number | null | undefined, fallback = FALLBACK_TEXT): string {
+  money(value: number | null | undefined, fallback: string = FALLBACK_TEXT): string {
     return this.format(value, 0, 'round', fallback)
   }
 
-  percent(value: number | null | undefined, fallback = FALLBACK_TEXT): string {
-    const formatted = this.format(value, -1, 'round', fallback)
+  percent(value: number | null | undefined, fallback: string = FALLBACK_TEXT): string {
+    const formatted: string = this.format(value, -1, 'round', fallback)
     return formatted === fallback ? fallback : `${formatted}%`
   }
 
@@ -55,7 +55,7 @@ export class DisplayNumberFormatter {
   }
 }
 
-export const displayNumber = new DisplayNumberFormatter()
+export const displayNumber: DisplayNumberFormatter = new DisplayNumberFormatter()
 
 export function formatGroupedNumber(value: number | null): string {
   return displayNumber.format(value, 0, 'round')

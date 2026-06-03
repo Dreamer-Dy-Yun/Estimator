@@ -1,11 +1,11 @@
-import { useCallback, useMemo, type KeyboardEventHandler, type MouseEventHandler, type ReactNode, type RefObject } from 'react'
+import { useCallback, useMemo, type KeyboardEventHandler, type MouseEventHandler,} from 'react'
 import { CartesianGrid, Scatter, ScatterChart, Tooltip, XAxis, YAxis } from 'recharts'
 import { LoadingSpinner } from '../../components/LoadingSpinner'
 import styles from './common.module.css'
 import { ChartCard } from './ChartCard'
 import type { AnalysisScatterGridPointBase } from '../model/analysisScatterGridPoint'
 
-type AxisConfig = {
+export type AxisConfig = {
   name: string
   label: string
   unit?: string
@@ -18,7 +18,7 @@ type AxisConfig = {
 type Props<TPoint extends AnalysisScatterGridPointBase> = {
   title: string
   data: TPoint[]
-  chartBodyRef: RefObject<HTMLDivElement | null>
+  chartBodyRef: React.RefObject<HTMLDivElement | null>
   chartReady: boolean
   width: number
   height: number
@@ -27,17 +27,17 @@ type Props<TPoint extends AnalysisScatterGridPointBase> = {
   activeCellKey: string | null
   onCellClick: (cellKey: string) => void
   onClearSelection: () => void
-  renderTooltip: (props: { active?: boolean; payload?: ReadonlyArray<{ payload?: TPoint }> }) => ReactNode
+  renderTooltip: (props: { active?: boolean; payload?: ReadonlyArray<{ payload?: TPoint }> }) => React.ReactNode
   xAxis: AxisConfig
   yAxis: AxisConfig
   fill?: string
 }
 
-const SCATTER_CHART_MARGIN = { top: 8, right: 8, bottom: 22, left: 8 }
-const AXIS_TICK_STYLE = { fontSize: 10 }
-const DEFAULT_AXIS_LABEL_COLOR = '#475569'
+const SCATTER_CHART_MARGIN: { top: number; right: number; bottom: number; left: number; } = { top: 8, right: 8, bottom: 22, left: 8 }
+const AXIS_TICK_STYLE: { fontSize: number; } = { fontSize: 10 }
+const DEFAULT_AXIS_LABEL_COLOR = '#475569' as const
 
-type ScatterPointAccessibleMetadata = AnalysisScatterGridPointBase & Partial<{
+export type ScatterPointAccessibleMetadata = AnalysisScatterGridPointBase & Partial<{
   count: number
   xStart: number
   xEnd: number
@@ -45,11 +45,11 @@ type ScatterPointAccessibleMetadata = AnalysisScatterGridPointBase & Partial<{
   yEnd: number
 }>
 
-function isScatterPointActivationKey(key: string) {
+function isScatterPointActivationKey(key: string) : boolean {
   return key === 'Enter' || key === ' ' || key === 'Spacebar'
 }
 
-function appendPointRangeLabel(labels: string[], axisLabel: string, start?: number, end?: number) {
+function appendPointRangeLabel(labels: string[], axisLabel: string, start?: number, end?: number) : void {
   if (typeof start !== 'number' || typeof end !== 'number') return
   labels.push(`${axisLabel} ${start} to ${end}`)
 }
@@ -58,8 +58,8 @@ function createScatterPointAccessibleName(
   point: ScatterPointAccessibleMetadata,
   xAxisLabel: string,
   yAxisLabel: string,
-) {
-  const labels = [`Select scatter point ${point.cellKey}`]
+) : string {
+  const labels: string[] = [`Select scatter point ${point.cellKey}`]
   appendPointRangeLabel(labels, xAxisLabel, point.xStart, point.xEnd)
   appendPointRangeLabel(labels, yAxisLabel, point.yStart, point.yEnd)
   if (typeof point.count === 'number') labels.push(`count ${point.count}`)
@@ -82,9 +82,9 @@ export function AnalysisScatterChartCard<TPoint extends AnalysisScatterGridPoint
   xAxis,
   yAxis,
   fill = '#f59e0b',
-}: Props<TPoint>) {
-  const xAxisLabel = useMemo(
-    () => ({
+}: Props<TPoint>) : React.JSX.Element {
+  const xAxisLabel: { value: string; position: 'insideBottom'; offset: number; style: { fill: string; fontSize: number; fontWeight: number; }; } = useMemo(
+    () : { value: string; position: 'insideBottom'; offset: number; style: { fill: string; fontSize: number; fontWeight: number; }; } => ({
       value: xAxis.label,
       position: 'insideBottom' as const,
       offset: -10,
@@ -96,8 +96,8 @@ export function AnalysisScatterChartCard<TPoint extends AnalysisScatterGridPoint
     }),
     [xAxis.label, xAxis.labelColor],
   )
-  const yAxisLabel = useMemo(
-    () => ({
+  const yAxisLabel: { value: string; angle: number; position: 'insideLeft'; offset: number; style: { fill: string; fontSize: number; fontWeight: number; }; } = useMemo(
+    () : { value: string; angle: number; position: 'insideLeft'; offset: number; style: { fill: string; fontSize: number; fontWeight: number; }; } => ({
       value: yAxis.label,
       angle: -90,
       position: 'insideLeft' as const,
@@ -110,23 +110,23 @@ export function AnalysisScatterChartCard<TPoint extends AnalysisScatterGridPoint
     }),
     [yAxis.label, yAxis.labelColor],
   )
-  const activatePointCell = useCallback(
-    (target: SVGCircleElement) => {
-      const cellKey = target.dataset.cellKey
+  const activatePointCell: (target: SVGCircleElement) => void = useCallback(
+    (target: SVGCircleElement) : void => {
+      const cellKey: string | undefined = target.dataset.cellKey
       if (!cellKey) return
       onCellClick(cellKey)
     },
     [onCellClick],
   )
-  const handlePointClick = useCallback<MouseEventHandler<SVGCircleElement>>(
-    (event) => {
+  const handlePointClick: MouseEventHandler<SVGCircleElement> = useCallback<MouseEventHandler<SVGCircleElement>>(
+    (event: React.MouseEvent<SVGCircleElement, MouseEvent>) : void => {
       activatePointCell(event.currentTarget)
       event.stopPropagation()
     },
     [activatePointCell],
   )
-  const handlePointKeyDown = useCallback<KeyboardEventHandler<SVGCircleElement>>(
-    (event) => {
+  const handlePointKeyDown: KeyboardEventHandler<SVGCircleElement> = useCallback<KeyboardEventHandler<SVGCircleElement>>(
+    (event: React.KeyboardEvent<SVGCircleElement>) : void => {
       if (!isScatterPointActivationKey(event.key)) return
       activatePointCell(event.currentTarget)
       event.preventDefault()
@@ -134,11 +134,11 @@ export function AnalysisScatterChartCard<TPoint extends AnalysisScatterGridPoint
     },
     [activatePointCell],
   )
-  const scatterShape = useCallback(
-    (props: { cx?: number; cy?: number; payload?: TPoint }) => {
-      const { cx, cy, payload } = props
+  const scatterShape: (props: { cx?: number; cy?: number; payload?: TPoint; }) => React.JSX.Element | null = useCallback(
+    (props: { cx?: number; cy?: number; payload?: TPoint }) : React.JSX.Element | null => {
+      const { cx, cy, payload }: { cx?: number; cy?: number; payload?: TPoint; } = props
       if (cx == null || cy == null || !payload) return null
-      const isActive = payload.cellKey === activeCellKey
+      const isActive: boolean = payload.cellKey === activeCellKey
       return (
         <circle
           cx={cx}

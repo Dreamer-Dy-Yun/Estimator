@@ -1,3 +1,4 @@
+import type { SecondaryAiCommentParams } from '../../../../../api'
 import { useCallback, useMemo, useState } from 'react'
 import type { ApiUnitErrorInfo } from '../../../../../types'
 import type { SecondaryAiCommentResult, SecondaryCompetitorChannel } from '../../../../../api'
@@ -5,7 +6,7 @@ import type { CandidateItemPanelContext } from '../secondaryDrawerTypes'
 import type { OrderSnapshotAiCommentV2, OrderSnapshotDocumentV2 } from '../../../../../snapshot/orderSnapshotTypes'
 import { useSecondaryAiComment } from './useSecondaryAiComment'
 
-type Args = {
+export type Args = {
   pageName: string
   skuGroupKey: string
   periodStart: string
@@ -16,7 +17,7 @@ type Args = {
   candidateItemContext: CandidateItemPanelContext | null
 }
 
-type ReturnValue = {
+export type ReturnValue = {
   aiComment: OrderSnapshotAiCommentV2
   aiCommentLoading: boolean
   aiCommentError: ApiUnitErrorInfo | null
@@ -36,8 +37,8 @@ export function useSecondaryAiCommentState({
   channel,
   candidateItemContext,
 }: Args): ReturnValue {
-  const [aiComment, setAiComment] = useState<OrderSnapshotAiCommentV2>(EMPTY_AI_COMMENT)
-  const aiCommentParams = useMemo(() => ({
+  const [aiComment, setAiComment]: [OrderSnapshotAiCommentV2, React.Dispatch<React.SetStateAction<OrderSnapshotAiCommentV2>>] = useState<OrderSnapshotAiCommentV2>(EMPTY_AI_COMMENT)
+  const aiCommentParams: { skuGroupKey: string; periodStart: string; periodEnd: string; forecastMonths: number; companyUuid: string | undefined; competitorChannelId: string; candidateItemUuid: string | null; } = useMemo(() : { skuGroupKey: string; periodStart: string; periodEnd: string; forecastMonths: number; companyUuid: string | undefined; competitorChannelId: string; candidateItemUuid: string | null; } => ({
     skuGroupKey,
     periodStart,
     periodEnd,
@@ -54,7 +55,7 @@ export function useSecondaryAiCommentState({
     periodStart,
     skuGroupKey,
   ])
-  const handleAiCommentLoaded = useCallback((result: SecondaryAiCommentResult) => {
+  const handleAiCommentLoaded: (result: SecondaryAiCommentResult) => void = useCallback((result: SecondaryAiCommentResult) : void => {
     setAiComment({
       prompt: result.prompt,
       answer: result.answer,
@@ -65,14 +66,14 @@ export function useSecondaryAiCommentState({
     aiCommentLoading,
     aiCommentError,
     requestAiComment: request,
-  } = useSecondaryAiComment({
+  }: { aiCommentLoading: boolean; aiCommentError: ApiUnitErrorInfo | null; requestAiComment: (nextParams?: SecondaryAiCommentParams) => void; } = useSecondaryAiComment({
     autoFetchEnabled: false,
     pageName,
     params: aiCommentParams,
     onLoaded: handleAiCommentLoaded,
   })
 
-  const requestAiComment = useCallback((snapshotForAiComment?: OrderSnapshotDocumentV2 | null) => {
+  const requestAiComment: (snapshotForAiComment?: OrderSnapshotDocumentV2 | null) => void = useCallback((snapshotForAiComment?: OrderSnapshotDocumentV2 | null) : void => {
     request({
       ...aiCommentParams,
       ...(snapshotForAiComment == null ? {} : { snapshotForAiComment }),

@@ -1,8 +1,8 @@
 import { expect, test } from '@playwright/test'
 import { collectRuntimeErrors, expectNoRuntimeErrors, loginWithDefaultMockUser } from './helpers/app'
 
-test('@smoke @inventory header inventory arrival collection shows summary toast', async ({ page }) => {
-  const runtimeErrors = collectRuntimeErrors(page)
+test('@smoke @inventory header inventory arrival collection shows summary toast', async ({ page }: PlaywrightTestArgs & PlaywrightTestOptions & PlaywrightWorkerArgs & PlaywrightWorkerOptions) : Promise<void> => {
+  const runtimeErrors: string[] = collectRuntimeErrors(page)
 
   await loginWithDefaultMockUser(page, '/dashboard/self')
 

@@ -1,8 +1,8 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi , type Mock} from 'vitest';
 import { ApiClientError } from '../types/api-error'
 import { API_ADAPTER_MODE, ApiHttpError, USE_MOCK_API, apiRequest, openApiEventStream } from './httpClient'
 
-const fetchMock = vi.fn()
+const fetchMock: Mock<(...args: unknown[]) => unknown> = vi.fn()
 
 class EventSourceMock {
   static instances: EventSourceMock[] = []
@@ -11,7 +11,7 @@ class EventSourceMock {
   readonly options?: EventSourceInit
   onmessage: ((event: MessageEvent) => void) | null = null
   onerror: ((event: Event) => void) | null = null
-  close = vi.fn()
+  close: Mock<(...args: unknown[]) => unknown> = vi.fn()
 
   constructor(url: string, options?: EventSourceInit) {
     this.url = url
@@ -19,35 +19,35 @@ class EventSourceMock {
     EventSourceMock.instances.push(this)
   }
 
-  emitMessage(data: string) {
+  emitMessage(data: string) : void {
     this.onmessage?.({ data } as MessageEvent)
   }
 
-  emitError(event: Event = new Event('error')) {
+  emitError(event: Event = new Event('error')) : void {
     this.onerror?.(event)
   }
 }
 
-function stubEventSource() {
+function stubEventSource() : void {
   EventSourceMock.instances = []
   vi.stubGlobal('EventSource', EventSourceMock)
 }
 
-afterEach(() => {
+afterEach(() : void => {
   vi.unstubAllGlobals()
   fetchMock.mockReset()
   EventSourceMock.instances = []
 })
 
-describe('api adapter mode contract', () => {
-  it('keeps the named adapter mode aligned with the legacy mock boolean', () => {
+describe('api adapter mode contract', () : void => {
+  it('keeps the named adapter mode aligned with the legacy mock boolean', () : void => {
     expect(['mock', 'http']).toContain(API_ADAPTER_MODE)
     expect(API_ADAPTER_MODE).toBe(USE_MOCK_API ? 'mock' : 'http')
   })
 })
 
-describe('apiRequest', () => {
-  it('preserves backend error message, code, and failure kind', async () => {
+describe('apiRequest', () : void => {
+  it('preserves backend error message, code, and failure kind', async () : Promise<void> => {
     vi.stubGlobal('fetch', fetchMock)
     fetchMock.mockResolvedValue(new Response(JSON.stringify({
       message: '권한이 없습니다.',
@@ -75,7 +75,7 @@ describe('apiRequest', () => {
     })
   })
 
-  it('classifies validation errors only for the 422 contract', async () => {
+  it('classifies validation errors only for the 422 contract', async () : Promise<void> => {
     vi.stubGlobal('fetch', fetchMock)
     fetchMock.mockResolvedValue(new Response(JSON.stringify({
       message: '요청 조건을 확인하세요.',
@@ -93,7 +93,7 @@ describe('apiRequest', () => {
     })
   })
 
-  it('uses distinct fallback messages for 401 and 403', async () => {
+  it('uses distinct fallback messages for 401 and 403', async () : Promise<void> => {
     vi.stubGlobal('fetch', fetchMock)
     fetchMock
       .mockResolvedValueOnce(new Response('', {
@@ -115,7 +115,7 @@ describe('apiRequest', () => {
     })
   })
 
-  it('normalizes fetch network failures as ApiClientError', async () => {
+  it('normalizes fetch network failures as ApiClientError', async () : Promise<void> => {
     vi.stubGlobal('fetch', fetchMock)
     fetchMock.mockRejectedValue(new TypeError('Failed to fetch'))
 
@@ -134,7 +134,7 @@ describe('apiRequest', () => {
     })
   })
 
-  it('normalizes aborted fetches as timeout failures', async () => {
+  it('normalizes aborted fetches as timeout failures', async () : Promise<void> => {
     vi.stubGlobal('fetch', fetchMock)
     fetchMock.mockRejectedValue({ name: 'AbortError' })
 
@@ -145,7 +145,7 @@ describe('apiRequest', () => {
     })
   })
 
-  it('exposes invalid JSON responses as parse failures', async () => {
+  it('exposes invalid JSON responses as parse failures', async () : Promise<void> => {
     vi.stubGlobal('fetch', fetchMock)
     fetchMock.mockResolvedValue(new Response('{invalid', {
       status: 200,
@@ -170,15 +170,15 @@ describe('apiRequest', () => {
   })
 })
 
-describe('openApiEventStream', () => {
-  it('normalizes SSE connection errors for onError', () => {
+describe('openApiEventStream', () : void => {
+  it('normalizes SSE connection errors for onError', () : void => {
     stubEventSource()
-    const onError = vi.fn()
+    const onError: Mock<(...args: unknown[]) => unknown> = vi.fn()
 
     openApiEventStream('/events', undefined, vi.fn(), { onError })
     EventSourceMock.instances[0].emitError()
 
-    const error = onError.mock.calls[0][0]
+    const error: unknown = onError.mock.calls[0][0]
     expect(error).toBeInstanceOf(ApiClientError)
     expect(error).toMatchObject({
       kind: 'network',
@@ -187,13 +187,13 @@ describe('openApiEventStream', () => {
     })
   })
 
-  it('closes malformed SSE payloads and reports stream protocol failures', () => {
+  it('closes malformed SSE payloads and reports stream protocol failures', () : void => {
     stubEventSource()
-    const listener = vi.fn()
-    const onError = vi.fn()
+    const listener: Mock<(...args: unknown[]) => unknown> = vi.fn()
+    const onError: Mock<(...args: unknown[]) => unknown> = vi.fn()
 
     openApiEventStream('/events', undefined, listener, { onError })
-    const eventSource = EventSourceMock.instances[0]
+    const eventSource: EventSourceMock = EventSourceMock.instances[0]
     eventSource.emitMessage('{invalid')
 
     expect(listener).not.toHaveBeenCalled()

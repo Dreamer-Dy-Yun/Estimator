@@ -1,24 +1,27 @@
+import type { ProductMonthlyTrend, SecondaryCompetitorChannel, SecondaryStockOrderCalcResult } from '..'
+import type { ProductMonthlyTrendPoint, SecondaryDailyTrendPoint } from '../types'
+import type { SecondaryStockOrderDisplaySizeRow } from '../types/secondary'
 import { describe, expect, it } from 'vitest'
 import { mockDashboardApi } from './dashboardApi'
 import { MOCK_HANA_COMPANY_UUID, MOCK_T1_COMPANY_UUID } from './mockCompanyScope'
 import { skuGroupKeyByLegacyId } from './salesTables'
 
-const skuGroupKey = (legacyId: string) => skuGroupKeyByLegacyId[legacyId] ?? legacyId
-const MOCK_COMPANY_UUID = MOCK_HANA_COMPANY_UUID
+const skuGroupKey: (legacyId: string) => string = (legacyId: string) : string => skuGroupKeyByLegacyId[legacyId] ?? legacyId
+const MOCK_COMPANY_UUID: '00000000-0000-4000-8000-000000000101' = MOCK_HANA_COMPANY_UUID
 
-describe('api/mock dashboardApi competitor channel behavior', () => {
-  it('returns only kream/musinsa competitor channels', async () => {
-    const channels = await mockDashboardApi.getSecondaryCompetitorChannels()
-    expect(channels.map((c) => c.id)).toEqual(['kream', 'musinsa'])
-    expect(channels.some((c) => c.id === 'naver')).toBe(false)
+describe('api/mock dashboardApi competitor channel behavior', () : void => {
+  it('returns only kream/musinsa competitor channels', async () : Promise<void> => {
+    const channels: SecondaryCompetitorChannel[] = await mockDashboardApi.getSecondaryCompetitorChannels()
+    expect(channels.map((c: SecondaryCompetitorChannel) : string => c.id)).toEqual(['kream', 'musinsa'])
+    expect(channels.some((c: SecondaryCompetitorChannel) : boolean => c.id === 'naver')).toBe(false)
   })
 
-  it('applies musinsa skew to competitor sales rows', async () => {
-    const base = await mockDashboardApi.getCompetitorSales({
+  it('applies musinsa skew to competitor sales rows', async () : Promise<void> => {
+    const base: { competitorQty: number; competitorAvgPrice: number; competitorAmount: number; selfQty: number | null; selfAmount: number | null; id: string; skuGroupKey: string; rank: number; rankPercentile: number; brand: string; category: string; code: string; productName: string; colorCode: string; selfAvgPrice: number | null; }[] = await mockDashboardApi.getCompetitorSales({
       competitorChannelId: 'kream',
       companyUuid: MOCK_COMPANY_UUID,
     })
-    const musinsa = await mockDashboardApi.getCompetitorSales({
+    const musinsa: { competitorQty: number; competitorAvgPrice: number; competitorAmount: number; selfQty: number | null; selfAmount: number | null; id: string; skuGroupKey: string; rank: number; rankPercentile: number; brand: string; category: string; code: string; productName: string; colorCode: string; selfAvgPrice: number | null; }[] = await mockDashboardApi.getCompetitorSales({
       competitorChannelId: 'musinsa',
       companyUuid: MOCK_COMPANY_UUID,
     })
@@ -26,9 +29,9 @@ describe('api/mock dashboardApi competitor channel behavior', () => {
     expect(base.length).toBeGreaterThan(0)
     expect(musinsa.length).toBe(base.length)
 
-    const baseRow = base.find((row) => row.id === 'B')
+    const baseRow: { competitorQty: number; competitorAvgPrice: number; competitorAmount: number; selfQty: number | null; selfAmount: number | null; id: string; skuGroupKey: string; rank: number; rankPercentile: number; brand: string; category: string; code: string; productName: string; colorCode: string; selfAvgPrice: number | null; } | undefined = base.find((row: { competitorQty: number; competitorAvgPrice: number; competitorAmount: number; selfQty: number | null; selfAmount: number | null; id: string; skuGroupKey: string; rank: number; rankPercentile: number; brand: string; category: string; code: string; productName: string; colorCode: string; selfAvgPrice: number | null; }) : boolean => row.id === 'B')
     if (!baseRow) throw new Error('Expected mock competitor row B')
-    const musinsaRow = musinsa.find((row) => row.id === baseRow.id)
+    const musinsaRow: { competitorQty: number; competitorAvgPrice: number; competitorAmount: number; selfQty: number | null; selfAmount: number | null; id: string; skuGroupKey: string; rank: number; rankPercentile: number; brand: string; category: string; code: string; productName: string; colorCode: string; selfAvgPrice: number | null; } | undefined = musinsa.find((row: { competitorQty: number; competitorAvgPrice: number; competitorAmount: number; selfQty: number | null; selfAmount: number | null; id: string; skuGroupKey: string; rank: number; rankPercentile: number; brand: string; category: string; code: string; productName: string; colorCode: string; selfAvgPrice: number | null; }) : boolean => row.id === baseRow.id)
 
     expect(musinsaRow).toBeDefined()
     if (!musinsaRow) throw new Error('Expected mock musinsa row B')
@@ -40,20 +43,20 @@ describe('api/mock dashboardApi competitor channel behavior', () => {
     )
   })
 
-  it('aggregates all competitor channels when no channel is selected', async () => {
-    const all = await mockDashboardApi.getCompetitorSales({ companyUuid: MOCK_COMPANY_UUID })
-    const kream = await mockDashboardApi.getCompetitorSales({
+  it('aggregates all competitor channels when no channel is selected', async () : Promise<void> => {
+    const all: { competitorQty: number; competitorAvgPrice: number; competitorAmount: number; selfQty: number | null; selfAmount: number | null; id: string; skuGroupKey: string; rank: number; rankPercentile: number; brand: string; category: string; code: string; productName: string; colorCode: string; selfAvgPrice: number | null; }[] = await mockDashboardApi.getCompetitorSales({ companyUuid: MOCK_COMPANY_UUID })
+    const kream: { competitorQty: number; competitorAvgPrice: number; competitorAmount: number; selfQty: number | null; selfAmount: number | null; id: string; skuGroupKey: string; rank: number; rankPercentile: number; brand: string; category: string; code: string; productName: string; colorCode: string; selfAvgPrice: number | null; }[] = await mockDashboardApi.getCompetitorSales({
       competitorChannelId: 'kream',
       companyUuid: MOCK_COMPANY_UUID,
     })
-    const musinsa = await mockDashboardApi.getCompetitorSales({
+    const musinsa: { competitorQty: number; competitorAvgPrice: number; competitorAmount: number; selfQty: number | null; selfAmount: number | null; id: string; skuGroupKey: string; rank: number; rankPercentile: number; brand: string; category: string; code: string; productName: string; colorCode: string; selfAvgPrice: number | null; }[] = await mockDashboardApi.getCompetitorSales({
       competitorChannelId: 'musinsa',
       companyUuid: MOCK_COMPANY_UUID,
     })
 
-    const allRow = all.find((row) => row.id === 'B')
-    const kreamRow = kream.find((row) => row.id === allRow?.id)
-    const musinsaRow = musinsa.find((row) => row.id === allRow?.id)
+    const allRow: { competitorQty: number; competitorAvgPrice: number; competitorAmount: number; selfQty: number | null; selfAmount: number | null; id: string; skuGroupKey: string; rank: number; rankPercentile: number; brand: string; category: string; code: string; productName: string; colorCode: string; selfAvgPrice: number | null; } | undefined = all.find((row: { competitorQty: number; competitorAvgPrice: number; competitorAmount: number; selfQty: number | null; selfAmount: number | null; id: string; skuGroupKey: string; rank: number; rankPercentile: number; brand: string; category: string; code: string; productName: string; colorCode: string; selfAvgPrice: number | null; }) : boolean => row.id === 'B')
+    const kreamRow: { competitorQty: number; competitorAvgPrice: number; competitorAmount: number; selfQty: number | null; selfAmount: number | null; id: string; skuGroupKey: string; rank: number; rankPercentile: number; brand: string; category: string; code: string; productName: string; colorCode: string; selfAvgPrice: number | null; } | undefined = kream.find((row: { competitorQty: number; competitorAvgPrice: number; competitorAmount: number; selfQty: number | null; selfAmount: number | null; id: string; skuGroupKey: string; rank: number; rankPercentile: number; brand: string; category: string; code: string; productName: string; colorCode: string; selfAvgPrice: number | null; }) : boolean => row.id === allRow?.id)
+    const musinsaRow: { competitorQty: number; competitorAvgPrice: number; competitorAmount: number; selfQty: number | null; selfAmount: number | null; id: string; skuGroupKey: string; rank: number; rankPercentile: number; brand: string; category: string; code: string; productName: string; colorCode: string; selfAvgPrice: number | null; } | undefined = musinsa.find((row: { competitorQty: number; competitorAvgPrice: number; competitorAmount: number; selfQty: number | null; selfAmount: number | null; id: string; skuGroupKey: string; rank: number; rankPercentile: number; brand: string; category: string; code: string; productName: string; colorCode: string; selfAvgPrice: number | null; }) : boolean => row.id === allRow?.id)
 
     expect(allRow).toBeDefined()
     expect(kreamRow).toBeDefined()
@@ -66,7 +69,7 @@ describe('api/mock dashboardApi competitor channel behavior', () => {
     expect(allRow.selfAmount).toBe(kreamRow.selfAmount)
   })
 
-  it('rejects unknown competitor channel ids instead of substituting another channel', async () => {
+  it('rejects unknown competitor channel ids instead of substituting another channel', async () : Promise<void> => {
     await expect(
       mockDashboardApi.getCompetitorSales({
         competitorChannelId: 'unknown-channel',
@@ -76,7 +79,7 @@ describe('api/mock dashboardApi competitor channel behavior', () => {
       .rejects.toThrow('Unknown mock competitor channel')
   })
 
-  it('rejects removed competitor channel ids instead of treating them as default', async () => {
+  it('rejects removed competitor channel ids instead of treating them as default', async () : Promise<void> => {
     await expect(
       mockDashboardApi.getCompetitorSales({
         competitorChannelId: 'naver',
@@ -86,25 +89,25 @@ describe('api/mock dashboardApi competitor channel behavior', () => {
       .rejects.toThrow('Unknown mock competitor channel')
   })
 
-  it('filters self and competitor sales by product code query', async () => {
-    const self = await mockDashboardApi.getSelfSales({
+  it('filters self and competitor sales by product code query', async () : Promise<void> => {
+    const self: { qty: number; amount: number; opMarginAmount: number; id: string; skuGroupKey: string; rank: number; rankPercentile: number; brand: string; category: string; code: string; productName: string; colorCode: string; avgPrice: number; avgCost: number; marginRate: number; feeRate: number; opMarginRate: number; }[] = await mockDashboardApi.getSelfSales({
       codeQuery: 'test-shoe',
       companyUuid: MOCK_COMPANY_UUID,
     })
-    const competitor = await mockDashboardApi.getCompetitorSales({
+    const competitor: { competitorQty: number; competitorAvgPrice: number; competitorAmount: number; selfQty: number | null; selfAmount: number | null; id: string; skuGroupKey: string; rank: number; rankPercentile: number; brand: string; category: string; code: string; productName: string; colorCode: string; selfAvgPrice: number | null; }[] = await mockDashboardApi.getCompetitorSales({
       codeQuery: 'test-shoe',
       companyUuid: MOCK_COMPANY_UUID,
     })
 
-    expect(self.map((row) => row.code)).toEqual(['TEST-SHOE'])
-    expect(competitor.map((row) => row.code)).toEqual(['TEST-SHOE'])
+    expect(self.map((row: { qty: number; amount: number; opMarginAmount: number; id: string; skuGroupKey: string; rank: number; rankPercentile: number; brand: string; category: string; code: string; productName: string; colorCode: string; avgPrice: number; avgCost: number; marginRate: number; feeRate: number; opMarginRate: number; }) : string => row.code)).toEqual(['TEST-SHOE'])
+    expect(competitor.map((row: { competitorQty: number; competitorAvgPrice: number; competitorAmount: number; selfQty: number | null; selfAmount: number | null; id: string; skuGroupKey: string; rank: number; rankPercentile: number; brand: string; category: string; code: string; productName: string; colorCode: string; selfAvgPrice: number | null; }) : string => row.code)).toEqual(['TEST-SHOE'])
   })
 
-  it('applies selected company scope to sales calculations instead of ignoring companyUuid', async () => {
-    const hanaSelf = await mockDashboardApi.getSelfSales({ companyUuid: MOCK_HANA_COMPANY_UUID })
-    const t1Self = await mockDashboardApi.getSelfSales({ companyUuid: MOCK_T1_COMPANY_UUID })
-    const allSelf = await mockDashboardApi.getSelfSales()
-    const sumQty = (rows: typeof hanaSelf) => rows.reduce((sum, row) => sum + row.qty, 0)
+  it('applies selected company scope to sales calculations instead of ignoring companyUuid', async () : Promise<void> => {
+    const hanaSelf: { qty: number; amount: number; opMarginAmount: number; id: string; skuGroupKey: string; rank: number; rankPercentile: number; brand: string; category: string; code: string; productName: string; colorCode: string; avgPrice: number; avgCost: number; marginRate: number; feeRate: number; opMarginRate: number; }[] = await mockDashboardApi.getSelfSales({ companyUuid: MOCK_HANA_COMPANY_UUID })
+    const t1Self: { qty: number; amount: number; opMarginAmount: number; id: string; skuGroupKey: string; rank: number; rankPercentile: number; brand: string; category: string; code: string; productName: string; colorCode: string; avgPrice: number; avgCost: number; marginRate: number; feeRate: number; opMarginRate: number; }[] = await mockDashboardApi.getSelfSales({ companyUuid: MOCK_T1_COMPANY_UUID })
+    const allSelf: { qty: number; amount: number; opMarginAmount: number; id: string; skuGroupKey: string; rank: number; rankPercentile: number; brand: string; category: string; code: string; productName: string; colorCode: string; avgPrice: number; avgCost: number; marginRate: number; feeRate: number; opMarginRate: number; }[] = await mockDashboardApi.getSelfSales()
+    const sumQty: (rows: { qty: number; amount: number; opMarginAmount: number; id: string; skuGroupKey: string; rank: number; rankPercentile: number; brand: string; category: string; code: string; productName: string; colorCode: string; avgPrice: number; avgCost: number; marginRate: number; feeRate: number; opMarginRate: number; }[]) => number = (rows: typeof hanaSelf) : number => rows.reduce((sum: number, row: { qty: number; amount: number; opMarginAmount: number; id: string; skuGroupKey: string; rank: number; rankPercentile: number; brand: string; category: string; code: string; productName: string; colorCode: string; avgPrice: number; avgCost: number; marginRate: number; feeRate: number; opMarginRate: number; }) : number => sum + row.qty, 0)
 
     expect(hanaSelf.length).toBeGreaterThan(0)
     expect(t1Self.length).toBe(hanaSelf.length)
@@ -113,24 +116,24 @@ describe('api/mock dashboardApi competitor channel behavior', () => {
     expect(sumQty(allSelf)).toBeGreaterThan(sumQty(t1Self))
   })
 
-  it('returns analysis sales rows in default sales quantity descending order', async () => {
-    const self = await mockDashboardApi.getSelfSales({ companyUuid: MOCK_COMPANY_UUID })
-    const competitor = await mockDashboardApi.getCompetitorSales({ companyUuid: MOCK_COMPANY_UUID })
+  it('returns analysis sales rows in default sales quantity descending order', async () : Promise<void> => {
+    const self: { qty: number; amount: number; opMarginAmount: number; id: string; skuGroupKey: string; rank: number; rankPercentile: number; brand: string; category: string; code: string; productName: string; colorCode: string; avgPrice: number; avgCost: number; marginRate: number; feeRate: number; opMarginRate: number; }[] = await mockDashboardApi.getSelfSales({ companyUuid: MOCK_COMPANY_UUID })
+    const competitor: { competitorQty: number; competitorAvgPrice: number; competitorAmount: number; selfQty: number | null; selfAmount: number | null; id: string; skuGroupKey: string; rank: number; rankPercentile: number; brand: string; category: string; code: string; productName: string; colorCode: string; selfAvgPrice: number | null; }[] = await mockDashboardApi.getCompetitorSales({ companyUuid: MOCK_COMPANY_UUID })
 
-    expect(self.map((row) => row.qty)).toEqual([...self.map((row) => row.qty)].sort((a, b) => b - a))
-    expect(competitor.map((row) => row.competitorQty)).toEqual(
-      [...competitor.map((row) => row.competitorQty)].sort((a, b) => b - a),
+    expect(self.map((row: { qty: number; amount: number; opMarginAmount: number; id: string; skuGroupKey: string; rank: number; rankPercentile: number; brand: string; category: string; code: string; productName: string; colorCode: string; avgPrice: number; avgCost: number; marginRate: number; feeRate: number; opMarginRate: number; }) : number => row.qty)).toEqual([...self.map((row: { qty: number; amount: number; opMarginAmount: number; id: string; skuGroupKey: string; rank: number; rankPercentile: number; brand: string; category: string; code: string; productName: string; colorCode: string; avgPrice: number; avgCost: number; marginRate: number; feeRate: number; opMarginRate: number; }) : number => row.qty)].sort((a: number, b: number) : number => b - a))
+    expect(competitor.map((row: { competitorQty: number; competitorAvgPrice: number; competitorAmount: number; selfQty: number | null; selfAmount: number | null; id: string; skuGroupKey: string; rank: number; rankPercentile: number; brand: string; category: string; code: string; productName: string; colorCode: string; selfAvgPrice: number | null; }) : number => row.competitorQty)).toEqual(
+      [...competitor.map((row: { competitorQty: number; competitorAvgPrice: number; competitorAmount: number; selfQty: number | null; selfAmount: number | null; id: string; skuGroupKey: string; rank: number; rankPercentile: number; brand: string; category: string; code: string; productName: string; colorCode: string; selfAvgPrice: number | null; }) : number => row.competitorQty)].sort((a: number, b: number) : number => b - a),
     )
   })
 
-  it('returns product code suggestions for analysis filters', async () => {
-    const meta = await mockDashboardApi.getSalesFilterMeta({ companyUuid: MOCK_COMPANY_UUID })
+  it('returns product code suggestions for analysis filters', async () : Promise<void> => {
+    const meta: { brands: string[]; categories: string[]; codes: string[]; colorCodes: string[]; productNames: string[]; historicalMonths: string[]; } = await mockDashboardApi.getSalesFilterMeta({ companyUuid: MOCK_COMPANY_UUID })
     expect(meta.codes).toContain('TEST-SHOE')
     expect(meta.codes).toContain('B')
   })
 
-  it('applies selected channel to secondary daily competitor trend', async () => {
-    const kream = await mockDashboardApi.getSecondaryDailyTrend({
+  it('applies selected channel to secondary daily competitor trend', async () : Promise<void> => {
+    const kream: SecondaryDailyTrendPoint[] = await mockDashboardApi.getSecondaryDailyTrend({
       skuGroupKey: skuGroupKey('B'),
       startDate: '2025-01-01',
       endDate: '2026-05-28',
@@ -138,7 +141,7 @@ describe('api/mock dashboardApi competitor channel behavior', () => {
       competitorChannelId: 'kream',
       companyUuid: MOCK_COMPANY_UUID,
     })
-    const musinsa = await mockDashboardApi.getSecondaryDailyTrend({
+    const musinsa: SecondaryDailyTrendPoint[] = await mockDashboardApi.getSecondaryDailyTrend({
       skuGroupKey: skuGroupKey('B'),
       startDate: '2025-01-01',
       endDate: '2026-05-28',
@@ -147,16 +150,16 @@ describe('api/mock dashboardApi competitor channel behavior', () => {
       companyUuid: MOCK_COMPANY_UUID,
     })
 
-    const sumCompetitorSales = (rows: typeof kream) =>
-      rows.reduce((sum, row) => sum + Math.max(0, row.competitorSales ?? 0), 0)
+    const sumCompetitorSales: (rows: SecondaryDailyTrendPoint[]) => number = (rows: typeof kream) : number =>
+      rows.reduce((sum: number, row: SecondaryDailyTrendPoint) : number => sum + Math.max(0, row.competitorSales ?? 0), 0)
 
     expect(kream.length).toBeGreaterThan(0)
     expect(musinsa.length).toBe(kream.length)
     expect(sumCompetitorSales(musinsa)).toBeLessThan(sumCompetitorSales(kream))
   })
 
-  it('keeps daily trend actual rows through endDate and appends forecastDays after it', async () => {
-    const rows = await mockDashboardApi.getSecondaryDailyTrend({
+  it('keeps daily trend actual rows through endDate and appends forecastDays after it', async () : Promise<void> => {
+    const rows: SecondaryDailyTrendPoint[] = await mockDashboardApi.getSecondaryDailyTrend({
       skuGroupKey: skuGroupKey('B'),
       startDate: '2026-05-01',
       endDate: '2026-05-28',
@@ -166,29 +169,29 @@ describe('api/mock dashboardApi competitor channel behavior', () => {
     })
 
     expect(rows.at(0)?.date).toBe('2026-05-01')
-    expect(rows.find((row) => row.date === '2026-05-28')?.isForecast).toBe(false)
-    expect(rows.slice(-3).map((row) => row.isForecast)).toEqual([true, true, true])
+    expect(rows.find((row: SecondaryDailyTrendPoint) : boolean => row.date === '2026-05-28')?.isForecast).toBe(false)
+    expect(rows.slice(-3).map((row: SecondaryDailyTrendPoint) : boolean => row.isForecast)).toEqual([true, true, true])
     expect(rows.at(-1)?.date).toBe('2026-05-31')
   })
 
-  it('applies selected channel to product monthly competitor trend', async () => {
-    const params = {
+  it('applies selected channel to product monthly competitor trend', async () : Promise<void> => {
+    const params: { startDate: string; endDate: string; forecastMonths: number; companyUuid: string; } = {
       startDate: '2025-01-01',
       endDate: '2025-12-31',
       forecastMonths: 8,
       companyUuid: MOCK_COMPANY_UUID,
     }
-    const kream = await mockDashboardApi.getProductMonthlyTrend(skuGroupKey('B'), {
+    const kream: ProductMonthlyTrend = await mockDashboardApi.getProductMonthlyTrend(skuGroupKey('B'), {
       ...params,
       competitorChannelId: 'kream',
     })
-    const musinsa = await mockDashboardApi.getProductMonthlyTrend(skuGroupKey('B'), {
+    const musinsa: ProductMonthlyTrend = await mockDashboardApi.getProductMonthlyTrend(skuGroupKey('B'), {
       ...params,
       competitorChannelId: 'musinsa',
     })
 
-    const sumCompetitorSales = (rows: typeof kream.points) =>
-      rows.reduce((sum, row) => sum + Math.max(0, row.competitorSales ?? 0), 0)
+    const sumCompetitorSales: (rows: ProductMonthlyTrendPoint[]) => number = (rows: typeof kream.points) : number =>
+      rows.reduce((sum: number, row: ProductMonthlyTrendPoint) : number => sum + Math.max(0, row.competitorSales ?? 0), 0)
 
     expect(kream.points.length).toBeGreaterThan(0)
     expect(musinsa.points.length).toBe(kream.points.length)
@@ -196,18 +199,18 @@ describe('api/mock dashboardApi competitor channel behavior', () => {
     expect(sumCompetitorSales(musinsa.points)).toBeLessThan(sumCompetitorSales(kream.points))
   })
 
-  it('keeps test top monthly and size sales quantities easy to verify', async () => {
-    const params = {
+  it('keeps test top monthly and size sales quantities easy to verify', async () : Promise<void> => {
+    const params: { startDate: string; endDate: string; forecastMonths: number; companyUuid: string; } = {
       startDate: '2025-01-01',
       endDate: '2025-12-31',
       forecastMonths: 8,
       companyUuid: MOCK_COMPANY_UUID,
     }
-    const trend = await mockDashboardApi.getProductMonthlyTrend(skuGroupKey('TEST_TOP'), {
+    const trend: ProductMonthlyTrend = await mockDashboardApi.getProductMonthlyTrend(skuGroupKey('TEST_TOP'), {
       ...params,
       competitorChannelId: 'kream',
     })
-    const stockOrder = await mockDashboardApi.getSecondaryStockOrderCalc({
+    const stockOrder: SecondaryStockOrderCalcResult = await mockDashboardApi.getSecondaryStockOrderCalc({
       skuGroupKey: skuGroupKey('TEST_TOP'),
       periodStart: '2025-01-01',
       periodEnd: '2025-12-31',
@@ -216,16 +219,16 @@ describe('api/mock dashboardApi competitor channel behavior', () => {
       companyUuid: MOCK_COMPANY_UUID,
     })
 
-    const actualPoints = trend.points.filter((point) => !point.isForecast)
-    expect(actualPoints.every((point) => point.selfSales === 100)).toBe(true)
-    expect(actualPoints.every((point) => point.competitorSales === 200)).toBe(true)
-    expect(stockOrder.display.sizeRows.map((row) => row.currentStockQty)).toEqual([120, 120, 120, 120, 120])
-    expect(stockOrder.display.sizeRows.map((row) => row.totalOrderBalance)).toEqual([40, 40, 40, 40, 40])
-    expect(stockOrder.display.sizeRows.map((row) => row.expectedInboundOrderBalance)).toEqual([20, 20, 20, 20, 20])
+    const actualPoints: ProductMonthlyTrendPoint[] = trend.points.filter((point: ProductMonthlyTrendPoint) : boolean => !point.isForecast)
+    expect(actualPoints.every((point: ProductMonthlyTrendPoint) : boolean => point.selfSales === 100)).toBe(true)
+    expect(actualPoints.every((point: ProductMonthlyTrendPoint) : boolean => point.competitorSales === 200)).toBe(true)
+    expect(stockOrder.display.sizeRows.map((row: SecondaryStockOrderDisplaySizeRow) : number => row.currentStockQty)).toEqual([120, 120, 120, 120, 120])
+    expect(stockOrder.display.sizeRows.map((row: SecondaryStockOrderDisplaySizeRow) : number => row.totalOrderBalance)).toEqual([40, 40, 40, 40, 40])
+    expect(stockOrder.display.sizeRows.map((row: SecondaryStockOrderDisplaySizeRow) : number => row.expectedInboundOrderBalance)).toEqual([20, 20, 20, 20, 20])
   })
 
-  it('returns secondary drawer AI comment for the requested open context', async () => {
-    const result = await mockDashboardApi.getSecondaryAiComment({
+  it('returns secondary drawer AI comment for the requested open context', async () : Promise<void> => {
+    const result: { prompt: string; answer: string; generatedAt: string; } = await mockDashboardApi.getSecondaryAiComment({
       skuGroupKey: skuGroupKey('B'),
       periodStart: '2025-01-01',
       periodEnd: '2025-12-31',

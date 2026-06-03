@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { act, type ComponentProps } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi , type Mock} from 'vitest';
 import { CandidateStashPickerModal, type CandidateStashPickerOption } from './CandidateStashPickerModal'
 
 const OPTIONS: CandidateStashPickerOption[] = [
@@ -19,7 +19,7 @@ const OPTIONS: CandidateStashPickerOption[] = [
   },
 ]
 
-type RenderResult = {
+export type RenderResult = {
   container: HTMLDivElement
   root: Root
   props: {
@@ -31,14 +31,14 @@ type RenderResult = {
   }
 }
 
-const mountedRoots = new Set<Root>()
+const mountedRoots: Set<Root> = new Set<Root>()
 
-const renderModal = (overrides: Partial<ComponentProps<typeof CandidateStashPickerModal>> = {}): RenderResult => {
-  const container = document.createElement('div')
+const renderModal: (overrides?: Partial<ComponentProps<typeof CandidateStashPickerModal>>) => RenderResult = (overrides: Partial<ComponentProps<typeof CandidateStashPickerModal>> = {}): RenderResult => {
+  const container: HTMLDivElement = document.createElement('div')
   document.body.appendChild(container)
-  const root = createRoot(container)
+  const root: Root = createRoot(container)
   mountedRoots.add(root)
-  const props = {
+  const props: { onClose: Mock<(...args: unknown[]) => unknown>; onCreate: Mock<(...args: unknown[]) => unknown>; onSelect: Mock<(...args: unknown[]) => unknown>; onNameInputChange: Mock<(...args: unknown[]) => unknown>; onNoteInputChange: Mock<(...args: unknown[]) => unknown>; } = {
     onClose: vi.fn(),
     onCreate: vi.fn(),
     onSelect: vi.fn(),
@@ -46,7 +46,7 @@ const renderModal = (overrides: Partial<ComponentProps<typeof CandidateStashPick
     onNoteInputChange: vi.fn(),
   }
 
-  act(() => {
+  act(() : void => {
     root.render(
       <CandidateStashPickerModal
         options={OPTIONS}
@@ -67,34 +67,34 @@ const renderModal = (overrides: Partial<ComponentProps<typeof CandidateStashPick
   return { container, root, props }
 }
 
-const dispatchKeyDown = (target: EventTarget, key: string, init: KeyboardEventInit = {}) => {
-  act(() => {
+const dispatchKeyDown: (target: EventTarget, key: string, init?: KeyboardEventInit) => void = (target: EventTarget, key: string, init: KeyboardEventInit = {}) : void => {
+  act(() : void => {
     target.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true, ...init }))
   })
 }
 
-afterEach(() => {
-  act(() => {
-    mountedRoots.forEach((root) => root.unmount())
+afterEach(() : void => {
+  act(() : void => {
+    mountedRoots.forEach((root: Root) : void => root.unmount())
     mountedRoots.clear()
   })
   document.body.innerHTML = ''
 })
 
-describe('CandidateStashPickerModal focus management', () => {
-  it('moves initial focus to the selected candidate option and restores the previous focus on unmount', () => {
-    const opener = document.createElement('button')
+describe('CandidateStashPickerModal focus management', () : void => {
+  it('moves initial focus to the selected candidate option and restores the previous focus on unmount', () : void => {
+    const opener: HTMLButtonElement = document.createElement('button')
     opener.type = 'button'
     opener.textContent = 'Open picker'
     document.body.appendChild(opener)
     opener.focus()
 
-    const { root, container } = renderModal()
+    const { root, container }: RenderResult = renderModal()
 
-    const selectedOption = document.querySelector<HTMLButtonElement>('button[aria-current="true"]')
+    const selectedOption: HTMLButtonElement | null = document.querySelector<HTMLButtonElement>('button[aria-current="true"]')
     expect(document.activeElement).toBe(selectedOption)
 
-    act(() => {
+    act(() : void => {
       root.unmount()
     })
     mountedRoots.delete(root)
@@ -103,12 +103,12 @@ describe('CandidateStashPickerModal focus management', () => {
     expect(document.activeElement).toBe(opener)
   })
 
-  it('keeps Tab focus inside the picker modal', () => {
+  it('keeps Tab focus inside the picker modal', () : void => {
     renderModal()
 
-    const nameInput = document.getElementById('candidate-name-input') as HTMLInputElement
-    const closeButton = document.querySelector<HTMLButtonElement>('button[aria-label="후보군 선택 닫기"]')
-    const secondOption = Array.from(document.querySelectorAll<HTMLButtonElement>('button')).find((button) =>
+    const nameInput: HTMLInputElement = document.getElementById('candidate-name-input') as HTMLInputElement
+    const closeButton: HTMLButtonElement | null = document.querySelector<HTMLButtonElement>('button[aria-label="후보군 선택 닫기"]')
+    const secondOption: HTMLButtonElement | undefined = Array.from(document.querySelectorAll<HTMLButtonElement>('button')).find((button: HTMLButtonElement) : boolean =>
       button.textContent?.includes('Candidate B'),
     )
 
@@ -126,9 +126,9 @@ describe('CandidateStashPickerModal focus management', () => {
     expect(document.activeElement).toBe(nameInput)
   })
 
-  it('closes the picker modal when Escape is pressed', () => {
-    const { props } = renderModal()
-    const nameInput = document.getElementById('candidate-name-input') as HTMLInputElement
+  it('closes the picker modal when Escape is pressed', () : void => {
+    const { props }: RenderResult = renderModal()
+    const nameInput: HTMLInputElement = document.getElementById('candidate-name-input') as HTMLInputElement
 
     dispatchKeyDown(nameInput, 'Escape')
 
@@ -136,12 +136,12 @@ describe('CandidateStashPickerModal focus management', () => {
   })
 })
 
-describe('CandidateStashPickerModal loading state', () => {
-  it('announces option refresh and exposes why existing options are disabled', () => {
+describe('CandidateStashPickerModal loading state', () : void => {
+  it('announces option refresh and exposes why existing options are disabled', () : void => {
     renderModal({ loading: true })
 
-    const status = document.querySelector<HTMLElement>('[role="status"]')
-    const optionButtons = Array.from(document.querySelectorAll<HTMLButtonElement>('button')).filter((button) =>
+    const status: HTMLElement | null = document.querySelector<HTMLElement>('[role="status"]')
+    const optionButtons: HTMLButtonElement[] = Array.from(document.querySelectorAll<HTMLButtonElement>('button')).filter((button: HTMLButtonElement) : boolean =>
       button.textContent?.includes('Candidate'),
     )
 
@@ -150,16 +150,16 @@ describe('CandidateStashPickerModal loading state', () => {
     expect(status?.getAttribute('aria-live')).toBe('polite')
     expect(status?.parentElement?.getAttribute('aria-busy')).toBe('true')
     expect(optionButtons).toHaveLength(2)
-    optionButtons.forEach((button) => {
+    optionButtons.forEach((button: HTMLButtonElement) : void => {
       expect(button.disabled).toBe(true)
       expect(button.getAttribute('aria-describedby')).toBe('candidate-stash-picker-refreshing-status')
       expect(button.getAttribute('role')).toBeNull()
     })
   })
 
-  it('keeps selection blocked while options are refreshing', () => {
-    const { props } = renderModal({ loading: true })
-    const firstOption = Array.from(document.querySelectorAll<HTMLButtonElement>('button')).find((button) =>
+  it('keeps selection blocked while options are refreshing', () : void => {
+    const { props }: RenderResult = renderModal({ loading: true })
+    const firstOption: HTMLButtonElement | undefined = Array.from(document.querySelectorAll<HTMLButtonElement>('button')).find((button: HTMLButtonElement) : boolean =>
       button.textContent?.includes('Candidate A'),
     )
 

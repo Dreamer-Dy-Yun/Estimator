@@ -1,6 +1,5 @@
 import type { TableColumn } from './PaginatedTable'
 import type { SortState } from '../../utils/sort'
-import type { KeyboardEvent } from 'react'
 import { PaginatedTable } from './PaginatedTable'
 import styles from './common.module.css'
 
@@ -10,7 +9,7 @@ type AnalysisListProps<T extends { id: string }> = {
   activeRowId?: string | null
   getRowId?: (row: T) => string
   onRowClick?: (row: T) => void
-  onRowKeyDown?: (row: T, event: KeyboardEvent<HTMLTableRowElement>) => void
+  onRowKeyDown?: (row: T, event: React.KeyboardEvent<HTMLTableRowElement>) => void
   onOrderedRowIdsChange?: (rowIds: string[]) => void
   defaultSort?: SortState
   resetSortKey?: string | number | null
@@ -30,8 +29,8 @@ export function AnalysisList<T extends { id: string }>({
   resetSortKey,
   batchSize = 30,
   wrapClassName,
-}: AnalysisListProps<T>) {
-  const analysisWrapClassName = `${styles.analysisTableWrap}${wrapClassName ? ` ${wrapClassName}` : ''}`
+}: AnalysisListProps<T>) : React.JSX.Element {
+  const analysisWrapClassName: string = `${styles.analysisTableWrap}${wrapClassName ? ` ${wrapClassName}` : ''}`
 
   return (
     <PaginatedTable<T>

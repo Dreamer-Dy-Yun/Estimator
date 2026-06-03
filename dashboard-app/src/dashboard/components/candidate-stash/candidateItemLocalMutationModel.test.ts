@@ -1,3 +1,4 @@
+import type { CandidateItemInsightSummary } from '../../../api/types/candidate'
 import { describe, expect, it } from 'vitest'
 import type {
   CandidateItemSummary,
@@ -9,7 +10,7 @@ import {
   removeCandidateItemsByUuid,
 } from './candidateItemLocalMutationModel'
 
-const item = (uuid: string): CandidateItemSummary => ({
+const item: (uuid: string) => CandidateItemSummary = (uuid: string): CandidateItemSummary => ({
   uuid,
   stashUuid: 'stash-1',
   skuUuid: `sku-${uuid}`,
@@ -46,7 +47,7 @@ const item = (uuid: string): CandidateItemSummary => ({
   dbUpdatedAt: '2026-05-19T00:00:00.000Z',
 })
 
-const recommendation = (skuUuid: string): CandidateReferenceItemSummary => ({
+const recommendation: (skuUuid: string) => CandidateReferenceItemSummary = (skuUuid: string): CandidateReferenceItemSummary => ({
   uuid: skuUuid,
   skuGroupKey: skuUuid,
   brand: '추천브랜드',
@@ -70,7 +71,7 @@ const recommendation = (skuUuid: string): CandidateReferenceItemSummary => ({
   },
 })
 
-const candidateItem = (uuid: string, skuUuid: string): CandidateStashItemSummary => ({
+const candidateItem: (uuid: string, skuUuid: string) => CandidateStashItemSummary = (uuid: string, skuUuid: string): CandidateStashItemSummary => ({
   uuid,
   stashUuid: 'stash-1',
   skuUuid,
@@ -81,30 +82,30 @@ const candidateItem = (uuid: string, skuUuid: string): CandidateStashItemSummary
   dbUpdatedAt: '2026-05-19T01:00:00.000Z',
 })
 
-describe('removeCandidateItemsByUuid', () => {
-  it('removes only matching candidate items', () => {
-    const items = [item('a'), item('b'), item('c')]
+describe('removeCandidateItemsByUuid', () : void => {
+  it('removes only matching candidate items', () : void => {
+    const items: CandidateItemSummary[] = [item('a'), item('b'), item('c')]
 
-    expect(removeCandidateItemsByUuid(items, ['b']).map((row) => row.uuid)).toEqual(['a', 'c'])
+    expect(removeCandidateItemsByUuid(items, ['b']).map((row: CandidateItemSummary) : string => row.uuid)).toEqual(['a', 'c'])
   })
 
-  it('keeps reference when no item is removed', () => {
-    const items = [item('a')]
+  it('keeps reference when no item is removed', () : void => {
+    const items: CandidateItemSummary[] = [item('a')]
 
     expect(removeCandidateItemsByUuid(items, ['x'])).toBe(items)
   })
 })
 
-describe('appendRecommendedCandidateItems', () => {
-  it('prepends newly created recommendation rows and marks order metrics as loading', () => {
-    const items = [item('a')]
-    const next = appendRecommendedCandidateItems(
+describe('appendRecommendedCandidateItems', () : void => {
+  it('prepends newly created recommendation rows and marks order metrics as loading', () : void => {
+    const items: CandidateItemSummary[] = [item('a')]
+    const next: CandidateItemSummary[] = appendRecommendedCandidateItems(
       items,
       [candidateItem('new-1', 'sku-new')],
       [recommendation('sku-new')],
     )
 
-    expect(next.map((row) => row.uuid)).toEqual(['new-1', 'a'])
+    expect(next.map((row: CandidateItemSummary) : string => row.uuid)).toEqual(['new-1', 'a'])
     expect(next[0]).toMatchObject({
       skuUuid: 'sku-new',
       brand: '추천브랜드',
@@ -117,13 +118,13 @@ describe('appendRecommendedCandidateItems', () => {
     })
   })
 
-  it('matches an appended candidate item by candidateItem.skuUuid to recommendation row uuid', () => {
-    const selectedRow = {
+  it('matches an appended candidate item by candidateItem.skuUuid to recommendation row uuid', () : void => {
+    const selectedRow: { uuid: string; skuGroupKey: string; brand: string; code: string; productName: string; colorCode: string; insight: CandidateItemInsightSummary; } = {
       ...recommendation('selected-row-uuid'),
       uuid: 'sku-target',
       skuGroupKey: 'different-group-key',
     }
-    const next = appendRecommendedCandidateItems(
+    const next: CandidateItemSummary[] = appendRecommendedCandidateItems(
       [],
       [candidateItem('new-1', 'sku-target')],
       [selectedRow],
@@ -137,14 +138,14 @@ describe('appendRecommendedCandidateItems', () => {
     })
   })
 
-  it('keeps reference when the backend returned no newly created item', () => {
-    const items = [item('a')]
+  it('keeps reference when the backend returned no newly created item', () : void => {
+    const items: CandidateItemSummary[] = [item('a')]
 
     expect(appendRecommendedCandidateItems(items, [], [recommendation('sku-new')])).toBe(items)
   })
 
-  it('does not duplicate an already visible sku item', () => {
-    const items = [item('a')]
+  it('does not duplicate an already visible sku item', () : void => {
+    const items: CandidateItemSummary[] = [item('a')]
 
     expect(appendRecommendedCandidateItems(
       items,
@@ -153,8 +154,8 @@ describe('appendRecommendedCandidateItems', () => {
     )).toBe(items)
   })
 
-  it('throws when the created candidate item has no matching recommendation row', () => {
-    expect(() => appendRecommendedCandidateItems(
+  it('throws when the created candidate item has no matching recommendation row', () : void => {
+    expect(() : CandidateItemSummary[] => appendRecommendedCandidateItems(
       [],
       [candidateItem('new-1', 'sku-missing')],
       [],
@@ -163,18 +164,18 @@ describe('appendRecommendedCandidateItems', () => {
     )
   })
 
-  it('throws instead of partially appending when only part of the append response matches selected rows', () => {
-    expect(() => appendRecommendedCandidateItems(
+  it('throws instead of partially appending when only part of the append response matches selected rows', () : void => {
+    expect(() : CandidateItemSummary[] => appendRecommendedCandidateItems(
       [],
       [candidateItem('new-1', 'sku-new'), candidateItem('new-2', 'sku-missing')],
       [recommendation('sku-new')],
     )).toThrow('candidateItem.skuUuid=sku-missing에 해당하는 추천 row가 없습니다')
   })
 
-  it('throws when a duplicate sku response cannot be matched to a selected recommendation row', () => {
-    const items = [item('a')]
+  it('throws when a duplicate sku response cannot be matched to a selected recommendation row', () : void => {
+    const items: CandidateItemSummary[] = [item('a')]
 
-    expect(() => appendRecommendedCandidateItems(
+    expect(() : CandidateItemSummary[] => appendRecommendedCandidateItems(
       items,
       [candidateItem('duplicate', items[0].skuUuid)],
       [],

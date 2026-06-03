@@ -31,8 +31,8 @@ export function applyCandidateDetailConfirmationOverrides(
   overrides: CandidateDetailConfirmationOverrideMap,
 ): CandidateDetailConfirmationOverrideResult {
   const nextOverrides: CandidateDetailConfirmationOverrideMap = {}
-  const nextItems = items.map((item) => {
-    const override = overrides[item.uuid]
+  const nextItems: CandidateItemSummary[] = items.map((item: CandidateItemSummary) : CandidateItemSummary => {
+    const override: CandidateDetailConfirmationOverride = overrides[item.uuid]
     if (!override) return item
     if (isServerConfirmationFresh(item, override)) return item
     nextOverrides[item.uuid] = override

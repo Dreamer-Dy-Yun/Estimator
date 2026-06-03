@@ -9,14 +9,14 @@ export async function copyToClipboard(text: string): Promise<boolean> {
     /* fall through */
   }
   try {
-    const ta = document.createElement('textarea')
+    const ta: HTMLTextAreaElement = document.createElement('textarea')
     ta.value = text
     ta.setAttribute('readonly', '')
     ta.style.position = 'fixed'
     ta.style.left = '-9999px'
     document.body.appendChild(ta)
     ta.select()
-    const ok = document.execCommand('copy')
+    const ok: boolean = document.execCommand('copy')
     document.body.removeChild(ta)
     return ok
   } catch {

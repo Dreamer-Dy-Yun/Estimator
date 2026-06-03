@@ -1,11 +1,12 @@
-import type { Cell, Row, Worksheet } from 'exceljs'
+import type { CandidateOrderWorkbookData } from './candidateOrderExcelData'
+import type { Cell, Row, Workbook, Worksheet } from 'exceljs'
 import {
   SIZE_NOT_APPLICABLE,
   type CandidateOrderExportInput,
   createCandidateOrderWorkbookData,
 } from './candidateOrderExcelData'
 
-type ExcelJsModule = typeof import('exceljs')
+export type ExcelJsModule = typeof import('exceljs')
 
 export type CandidateOrderExcelStyle = {
   headerFillArgb: string
@@ -16,14 +17,14 @@ export type CandidateOrderExcelStyle = {
   notApplicableFontArgb: string
 }
 
-type CandidateOrderWorkbookBuilderDeps = {
+export type CandidateOrderWorkbookBuilderDeps = {
   excelJs: ExcelJsModule
   now?: () => Date
   style?: CandidateOrderExcelStyle
 }
 
-const excelMimeType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-const invalidFilenameChars = /[\\/:*?"<>|]+/g
+const excelMimeType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' as const
+const invalidFilenameChars: RegExp = /[\\/:*?"<>|]+/g
 
 const defaultCandidateOrderExcelStyle: CandidateOrderExcelStyle = {
   headerFillArgb: 'FF000000',
@@ -39,24 +40,24 @@ function safeFilenamePart(value: string): string {
 }
 
 function compactDate(date: Date): string {
-  const y = date.getFullYear()
-  const m = String(date.getMonth() + 1).padStart(2, '0')
-  const d = String(date.getDate()).padStart(2, '0')
+  const y: number = date.getFullYear()
+  const m: string = String(date.getMonth() + 1).padStart(2, '0')
+  const d: string = String(date.getDate()).padStart(2, '0')
   return `${y}${m}${d}`
 }
 
 function columnName(index: number): string {
-  let n = index + 1
-  let name = ''
+  let n: number = index + 1
+  let name: string = ''
   while (n > 0) {
-    const rem = (n - 1) % 26
+    const rem: number = (n - 1) % 26
     name = String.fromCharCode(65 + rem) + name
     n = Math.floor((n - 1) / 26)
   }
   return name
 }
 
-function thinBorder(argb: string) {
+function thinBorder(argb: string) : { top: { style: 'thin'; color: { argb: string; }; }; left: { style: 'thin'; color: { argb: string; }; }; bottom: { style: 'thin'; color: { argb: string; }; }; right: { style: 'thin'; color: { argb: string; }; }; } {
   return {
     top: { style: 'thin' as const, color: { argb } },
     left: { style: 'thin' as const, color: { argb } },
@@ -72,7 +73,7 @@ export class CandidateOrderWorkbookBuilder {
 
   constructor({
     excelJs,
-    now = () => new Date(),
+    now = () : Date => new Date(),
     style = defaultCandidateOrderExcelStyle,
   }: CandidateOrderWorkbookBuilderDeps) {
     this.excelJs = excelJs
@@ -80,17 +81,17 @@ export class CandidateOrderWorkbookBuilder {
     this.style = style
   }
 
-  async build(input: CandidateOrderExportInput) {
-    const createdAt = this.now()
-    const { mainHeader, mainRows, metaRows, mainColumnWidths } = createCandidateOrderWorkbookData(input)
-    const workbook = new this.excelJs.Workbook()
+  async build(input: CandidateOrderExportInput) : Promise<{ blob: Blob; filename: string; }> {
+    const createdAt: Date = this.now()
+    const { mainHeader, mainRows, metaRows, mainColumnWidths }: CandidateOrderWorkbookData = createCandidateOrderWorkbookData(input)
+    const workbook: Workbook = new this.excelJs.Workbook()
     workbook.creator = 'HAN.A'
     workbook.created = createdAt
 
-    const mainSheet = workbook.addWorksheet('주 데이터', {
+    const mainSheet: Worksheet = workbook.addWorksheet('주 데이터', {
       views: [{ state: 'frozen', ySplit: 1 }],
     })
-    mainSheet.columns = mainColumnWidths.map((width) => ({ width }))
+    mainSheet.columns = mainColumnWidths.map((width: number) : { width: number; } => ({ width }))
     mainSheet.addRows(mainRows)
     mainSheet.autoFilter = {
       from: 'A1',
@@ -98,41 +99,41 @@ export class CandidateOrderWorkbookBuilder {
     }
     this.applySheetStyle(mainSheet)
 
-    const metaSheet = workbook.addWorksheet('메타')
+    const metaSheet: Worksheet = workbook.addWorksheet('메타')
     metaSheet.columns = [{ width: 20 }, { width: 28 }]
     metaSheet.addRows(metaRows)
     this.applySheetStyle(metaSheet)
 
-    const workbookBuffer = await workbook.xlsx.writeBuffer()
-    const blob = new Blob([workbookBuffer as BlobPart], { type: excelMimeType })
+    const workbookBuffer: BlobPart = await workbook.xlsx.writeBuffer() as BlobPart
+    const blob: Blob = new Blob([workbookBuffer], { type: excelMimeType })
     return {
       blob,
       filename: `${safeFilenamePart(input.stashName)}_발주_${compactDate(createdAt)}.xlsx`,
     }
   }
 
-  private applySheetStyle(sheet: Worksheet) {
+  private applySheetStyle(sheet: Worksheet) : void {
     this.applyHeaderRowStyle(sheet.getRow(1))
     this.applyBodyRowsStyle(sheet)
   }
 
-  private applyHeaderRowStyle(row: Row) {
+  private applyHeaderRowStyle(row: Row) : void {
     row.height = 24
-    row.eachCell((cell) => this.applyHeaderCellStyle(cell))
+    row.eachCell((cell: Cell) : void => this.applyHeaderCellStyle(cell))
   }
 
-  private applyHeaderCellStyle(cell: Cell) {
+  private applyHeaderCellStyle(cell: Cell) : void {
     cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: this.style.headerFillArgb } }
     cell.font = { color: { argb: this.style.headerFontArgb }, bold: true }
     cell.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true }
     cell.border = thinBorder(this.style.headerBorderArgb)
   }
 
-  private applyBodyRowsStyle(sheet: Worksheet) {
-    sheet.eachRow((row, rowNumber) => {
+  private applyBodyRowsStyle(sheet: Worksheet) : void {
+    sheet.eachRow((row: Row, rowNumber: number) : void => {
       if (rowNumber === 1) return
-      let hasLineBreak = false
-      row.eachCell((cell) => {
+      let hasLineBreak: boolean = false
+      row.eachCell((cell: Cell) : void => {
         if (typeof cell.value === 'string' && cell.value.includes('\n')) {
           hasLineBreak = true
         }
@@ -142,7 +143,7 @@ export class CandidateOrderWorkbookBuilder {
     })
   }
 
-  private applyBodyCellStyle(cell: Cell) {
+  private applyBodyCellStyle(cell: Cell) : void {
     cell.alignment = { vertical: 'middle', wrapText: true }
     cell.border = thinBorder(this.style.bodyBorderArgb)
     if (cell.value === SIZE_NOT_APPLICABLE) {

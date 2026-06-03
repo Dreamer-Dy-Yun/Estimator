@@ -1,3 +1,15 @@
+import type { CompetitorSalesRow, SelfSalesRow } from '../types'
+import type { AdminGoogleSheetConfigSummary, CreateAdminGoogleSheetConfigPayload, UpdateAdminGoogleSheetConfigPayload } from './types/admin-google-sheet'
+import type { AdminGptKeySummary, AdminGptKeyTestResult, CreateAdminGptKeyPayload, RotateAdminGptKeyPayload, UpdateAdminGptKeyPayload } from './types/admin-gpt-key'
+import type { AdminUserSummary, AuthSession, ChangePasswordPayload, CreateAdminUserPayload, LoginRequest, LoginResult, ResetAdminUserPasswordResult, UpdateAdminUserPayload, UpdateAuthUserPayload } from './types/auth'
+import type { AppendCandidateItemsPayload, AppendCandidateItemsResponse, CandidateDetailBulkConfirmProgressEvent, CandidateDetailBulkConfirmStartPayload, CandidateDetailBulkConfirmStartResult, CandidateDetailBulkConfirmSubscription, CandidateItemDetail, CandidateItemListParams, CandidateItemListResult, CandidateRecommendationParams, CandidateRecommendationResult, CandidateStashExcelTemplateDownload, CandidateStashExcelUploadResult, CandidateStashListParams, CandidateStashLlmCommentJobParams, CandidateStashLlmCommentJobProgressEvent, CandidateStashLlmCommentJobStartResult, CandidateStashLlmCommentJobSubscription, CandidateStashSummary, CreateCandidateStashPayload, UpdateCandidateItemPayload, UpdateCandidateItemResponse, UpdateCandidateStashPayload } from './types/candidate'
+import type { CandidateOrderMetricEvent, CandidateOrderMetricStreamParams, CandidateOrderMetricSubscription } from './types/candidate-order-metrics'
+import type { CompanyMutationScopeParams, CompanyScopeParams, CompanySummary } from './types/company'
+import type { DashboardApi, DashboardEventStreamErrorListener } from './types/dashboard-api'
+import type { ProductDrawerBundle, ProductDrawerBundleParams } from './types/drawer'
+import type { InventoryArrivalCollectionParams, InventoryArrivalCollectionResult } from './types/inventory-arrival'
+import type { CompetitorSalesGridParams, CompetitorSalesParams, SalesFilterMeta, SalesFilterMetaParams, ScatterSalesGridResponse, SelfSalesGridParams, SelfSalesParams } from './types/sales'
+import type { SecondaryAiCommentParams, SecondaryAiCommentResult, SecondaryCompetitorChannel } from './types/secondary'
 import {
   adminGoogleSheetRequests,
   adminGptKeyRequests,
@@ -7,59 +19,59 @@ import {
   inventoryArrivalRequests,
 } from './requests'
 
-export const getCurrentAuthSession = authRequests.getCurrentSession
-export const login = authRequests.login
-export const updateCurrentUser = authRequests.updateCurrentUser
-export const changeCurrentUserPassword = authRequests.changeCurrentUserPassword
-export const getAdminUsers = authRequests.getAdminUsers
-export const createAdminUser = authRequests.createAdminUser
-export const updateAdminUser = authRequests.updateAdminUser
-export const resetAdminUserPassword = authRequests.resetAdminUserPassword
-export const deleteAdminUser = authRequests.deleteAdminUser
-export const logout = authRequests.logout
+export const getCurrentAuthSession: () => Promise<AuthSession | null> = authRequests.getCurrentSession
+export const login: (payload: LoginRequest) => Promise<LoginResult> = authRequests.login
+export const updateCurrentUser: (payload: UpdateAuthUserPayload) => Promise<AuthSession> = authRequests.updateCurrentUser
+export const changeCurrentUserPassword: (payload: ChangePasswordPayload) => Promise<void> = authRequests.changeCurrentUserPassword
+export const getAdminUsers: () => Promise<AdminUserSummary[]> = authRequests.getAdminUsers
+export const createAdminUser: (payload: CreateAdminUserPayload) => Promise<AdminUserSummary> = authRequests.createAdminUser
+export const updateAdminUser: (payload: UpdateAdminUserPayload) => Promise<AdminUserSummary> = authRequests.updateAdminUser
+export const resetAdminUserPassword: (userUuid: string) => Promise<ResetAdminUserPasswordResult> = authRequests.resetAdminUserPassword
+export const deleteAdminUser: (userUuid: string) => Promise<void> = authRequests.deleteAdminUser
+export const logout: () => Promise<void> = authRequests.logout
 
-export const getCompanies = companyRequests.getCompanies
+export const getCompanies: () => Promise<CompanySummary[]> = companyRequests.getCompanies
 
-export const getAdminGptKeys = adminGptKeyRequests.getAdminGptKeys
-export const createAdminGptKey = adminGptKeyRequests.createAdminGptKey
-export const updateAdminGptKey = adminGptKeyRequests.updateAdminGptKey
-export const rotateAdminGptKey = adminGptKeyRequests.rotateAdminGptKey
-export const testAdminGptKey = adminGptKeyRequests.testAdminGptKey
-export const deleteAdminGptKey = adminGptKeyRequests.deleteAdminGptKey
+export const getAdminGptKeys: () => Promise<AdminGptKeySummary[]> = adminGptKeyRequests.getAdminGptKeys
+export const createAdminGptKey: (payload: CreateAdminGptKeyPayload) => Promise<AdminGptKeySummary> = adminGptKeyRequests.createAdminGptKey
+export const updateAdminGptKey: (payload: UpdateAdminGptKeyPayload) => Promise<AdminGptKeySummary> = adminGptKeyRequests.updateAdminGptKey
+export const rotateAdminGptKey: (payload: RotateAdminGptKeyPayload) => Promise<AdminGptKeySummary> = adminGptKeyRequests.rotateAdminGptKey
+export const testAdminGptKey: (keyUuid: string) => Promise<AdminGptKeyTestResult> = adminGptKeyRequests.testAdminGptKey
+export const deleteAdminGptKey: (keyUuid: string) => Promise<void> = adminGptKeyRequests.deleteAdminGptKey
 
-export const getAdminGoogleSheetConfigs = adminGoogleSheetRequests.getAdminGoogleSheetConfigs
-export const createAdminGoogleSheetConfig = adminGoogleSheetRequests.createAdminGoogleSheetConfig
-export const updateAdminGoogleSheetConfig = adminGoogleSheetRequests.updateAdminGoogleSheetConfig
-export const deleteAdminGoogleSheetConfig = adminGoogleSheetRequests.deleteAdminGoogleSheetConfig
+export const getAdminGoogleSheetConfigs: (params?: CompanyScopeParams) => Promise<AdminGoogleSheetConfigSummary[]> = adminGoogleSheetRequests.getAdminGoogleSheetConfigs
+export const createAdminGoogleSheetConfig: (payload: CreateAdminGoogleSheetConfigPayload) => Promise<AdminGoogleSheetConfigSummary> = adminGoogleSheetRequests.createAdminGoogleSheetConfig
+export const updateAdminGoogleSheetConfig: (payload: UpdateAdminGoogleSheetConfigPayload) => Promise<AdminGoogleSheetConfigSummary> = adminGoogleSheetRequests.updateAdminGoogleSheetConfig
+export const deleteAdminGoogleSheetConfig: (configUuid: string, params: CompanyMutationScopeParams) => Promise<void> = adminGoogleSheetRequests.deleteAdminGoogleSheetConfig
 
-export const collectInventoryArrivalDates = inventoryArrivalRequests.collectInventoryArrivalDates
+export const collectInventoryArrivalDates: (params: InventoryArrivalCollectionParams) => Promise<InventoryArrivalCollectionResult> = inventoryArrivalRequests.collectInventoryArrivalDates
 
-export const getSelfSales = dashboardRequests.getSelfSales
-export const getCompetitorSales = dashboardRequests.getCompetitorSales
-export const getSelfSalesScatterGrid = dashboardRequests.getSelfSalesScatterGrid
-export const getCompetitorSalesScatterGrid = dashboardRequests.getCompetitorSalesScatterGrid
-export const getSalesFilterMeta = dashboardRequests.getSalesFilterMeta
-export const getProductDrawerBundle = dashboardRequests.getProductDrawerBundle
-export const getSecondaryCompetitorChannels = dashboardRequests.getSecondaryCompetitorChannels
-export const getSecondaryAiComment = dashboardRequests.getSecondaryAiComment
-export const getCandidateStashes = dashboardRequests.getCandidateStashes
-export const getCandidateItemsByStash = dashboardRequests.getCandidateItemsByStash
-export const subscribeCandidateOrderMetrics = dashboardRequests.subscribeCandidateOrderMetrics
-export const startCandidateStashLlmCommentJob = dashboardRequests.startCandidateStashLlmCommentJob
-export const subscribeCandidateStashLlmCommentJob = dashboardRequests.subscribeCandidateStashLlmCommentJob
-export const startCandidateDetailBulkConfirm = dashboardRequests.startCandidateDetailBulkConfirm
-export const subscribeCandidateDetailBulkConfirm = dashboardRequests.subscribeCandidateDetailBulkConfirm
-export const getCandidateRecommendations = dashboardRequests.getCandidateRecommendations
-export const getCandidateItemByUuid = dashboardRequests.getCandidateItemByUuid
-export const deleteCandidateItem = dashboardRequests.deleteCandidateItem
-export const deleteCandidateItems = dashboardRequests.deleteCandidateItems
-export const deleteCandidateStash = dashboardRequests.deleteCandidateStash
-export const createCandidateStash = dashboardRequests.createCandidateStash
-export const duplicateCandidateStash = dashboardRequests.duplicateCandidateStash
-export const updateCandidateStash = dashboardRequests.updateCandidateStash
-export const appendCandidateItems = dashboardRequests.appendCandidateItems
-export const updateCandidateItem = dashboardRequests.updateCandidateItem
-export const getCandidateStashExcelTemplateDownload = dashboardRequests.getCandidateStashExcelTemplateDownload
-export const uploadCandidateStashExcel = dashboardRequests.uploadCandidateStashExcel
+export const getSelfSales: (params?: SelfSalesParams) => Promise<SelfSalesRow[]> = dashboardRequests.getSelfSales
+export const getCompetitorSales: (params?: CompetitorSalesParams) => Promise<CompetitorSalesRow[]> = dashboardRequests.getCompetitorSales
+export const getSelfSalesScatterGrid: (params?: SelfSalesGridParams) => Promise<ScatterSalesGridResponse> = dashboardRequests.getSelfSalesScatterGrid
+export const getCompetitorSalesScatterGrid: (params?: CompetitorSalesGridParams) => Promise<ScatterSalesGridResponse> = dashboardRequests.getCompetitorSalesScatterGrid
+export const getSalesFilterMeta: (params?: SalesFilterMetaParams) => Promise<SalesFilterMeta> = dashboardRequests.getSalesFilterMeta
+export const getProductDrawerBundle: (skuGroupKey: string, params?: ProductDrawerBundleParams) => Promise<ProductDrawerBundle> = dashboardRequests.getProductDrawerBundle
+export const getSecondaryCompetitorChannels: () => Promise<SecondaryCompetitorChannel[]> = dashboardRequests.getSecondaryCompetitorChannels
+export const getSecondaryAiComment: (params: SecondaryAiCommentParams) => Promise<SecondaryAiCommentResult> = dashboardRequests.getSecondaryAiComment
+export const getCandidateStashes: (params?: CandidateStashListParams) => Promise<CandidateStashSummary[]> = dashboardRequests.getCandidateStashes
+export const getCandidateItemsByStash: (params: CandidateItemListParams) => Promise<CandidateItemListResult> = dashboardRequests.getCandidateItemsByStash
+export const subscribeCandidateOrderMetrics: (params: CandidateOrderMetricStreamParams, listener: (event: CandidateOrderMetricEvent) => void, onError?: DashboardEventStreamErrorListener) => CandidateOrderMetricSubscription = dashboardRequests.subscribeCandidateOrderMetrics
+export const startCandidateStashLlmCommentJob: (stashUuid: string, params: CandidateStashLlmCommentJobParams) => Promise<CandidateStashLlmCommentJobStartResult> = dashboardRequests.startCandidateStashLlmCommentJob
+export const subscribeCandidateStashLlmCommentJob: (jobId: string, listener: (event: CandidateStashLlmCommentJobProgressEvent) => void, onError: DashboardEventStreamErrorListener | undefined, params: CandidateStashLlmCommentJobParams) => CandidateStashLlmCommentJobSubscription = dashboardRequests.subscribeCandidateStashLlmCommentJob
+export const startCandidateDetailBulkConfirm: (payload: CandidateDetailBulkConfirmStartPayload) => Promise<CandidateDetailBulkConfirmStartResult> = dashboardRequests.startCandidateDetailBulkConfirm
+export const subscribeCandidateDetailBulkConfirm: (jobId: string, listener: (event: CandidateDetailBulkConfirmProgressEvent) => void, onError: DashboardEventStreamErrorListener | undefined, params: CompanyMutationScopeParams) => CandidateDetailBulkConfirmSubscription = dashboardRequests.subscribeCandidateDetailBulkConfirm
+export const getCandidateRecommendations: (params: CandidateRecommendationParams) => Promise<CandidateRecommendationResult> = dashboardRequests.getCandidateRecommendations
+export const getCandidateItemByUuid: (itemUuid: string, params?: CompanyScopeParams) => Promise<CandidateItemDetail | null> = dashboardRequests.getCandidateItemByUuid
+export const deleteCandidateItem: (itemUuid: string, params: CompanyMutationScopeParams) => Promise<void> = dashboardRequests.deleteCandidateItem
+export const deleteCandidateItems: (stashUuid: string, itemUuids: string[], params: CompanyMutationScopeParams) => Promise<void> = dashboardRequests.deleteCandidateItems
+export const deleteCandidateStash: (stashUuid: string, params: CompanyMutationScopeParams) => Promise<void> = dashboardRequests.deleteCandidateStash
+export const createCandidateStash: (payload: CreateCandidateStashPayload) => Promise<CandidateStashSummary> = dashboardRequests.createCandidateStash
+export const duplicateCandidateStash: (stashUuid: string, params: CompanyMutationScopeParams) => Promise<void> = dashboardRequests.duplicateCandidateStash
+export const updateCandidateStash: (payload: UpdateCandidateStashPayload) => Promise<CandidateStashSummary> = dashboardRequests.updateCandidateStash
+export const appendCandidateItems: (payload: AppendCandidateItemsPayload) => Promise<AppendCandidateItemsResponse> = dashboardRequests.appendCandidateItems
+export const updateCandidateItem: (payload: UpdateCandidateItemPayload) => Promise<UpdateCandidateItemResponse> = dashboardRequests.updateCandidateItem
+export const getCandidateStashExcelTemplateDownload: () => CandidateStashExcelTemplateDownload = dashboardRequests.getCandidateStashExcelTemplateDownload
+export const uploadCandidateStashExcel: (file: File, params: CompanyMutationScopeParams) => Promise<CandidateStashExcelUploadResult> = dashboardRequests.uploadCandidateStashExcel
 
-export const dashboardApi = dashboardRequests
+export const dashboardApi: DashboardApi = dashboardRequests

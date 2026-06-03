@@ -5,7 +5,7 @@ import type { ApiUnitErrorInfo } from '../../../../../types'
 import { buildShadeRanges } from '../../../trend/trendRangeUtils'
 import { SecondaryDailyTrendRequestWindow } from '../model/SecondaryDailyTrendRequestWindow'
 
-type Params = {
+export type Params = {
   skuGroupKey: string
   selectedStart: string
   selectedEnd: string
@@ -23,35 +23,35 @@ export function useSecondaryDailyTrend({
   leadTimeDays,
   competitorChannelId,
   makeApiErrorInfo,
-}: Params) {
-  const reqSeqRef = useRef(0)
-  const [dailyTrendSeries, setDailyTrendSeries] = useState<SecondaryDailyTrendPoint[]>([])
-  const [dailyTrendError, setDailyTrendError] = useState<ApiUnitErrorInfo | null>(null)
-  const [dailyTrendLoading, setDailyTrendLoading] = useState(true)
-  const requestWindow = useMemo(
-    () => SecondaryDailyTrendRequestWindow.fromSelectedStartMonth({
+}: Params) : { dailyTrendSeries: SecondaryDailyTrendPoint[]; dailyTrendLoading: boolean; dailyTrendError: ApiUnitErrorInfo | null; dailyPeriodShade: { x1: number; x2: number; }; dailyForecastShade: { x1: number; x2: number; } | null; dailyTickIndices: number[]; } {
+  const reqSeqRef: React.RefObject<number> = useRef(0)
+  const [dailyTrendSeries, setDailyTrendSeries]: [SecondaryDailyTrendPoint[], React.Dispatch<React.SetStateAction<SecondaryDailyTrendPoint[]>>] = useState<SecondaryDailyTrendPoint[]>([])
+  const [dailyTrendError, setDailyTrendError]: [ApiUnitErrorInfo | null, React.Dispatch<React.SetStateAction<ApiUnitErrorInfo | null>>] = useState<ApiUnitErrorInfo | null>(null)
+  const [dailyTrendLoading, setDailyTrendLoading]: [boolean, React.Dispatch<React.SetStateAction<boolean>>] = useState(true)
+  const requestWindow: SecondaryDailyTrendRequestWindow = useMemo(
+    () : SecondaryDailyTrendRequestWindow => SecondaryDailyTrendRequestWindow.fromSelectedStartMonth({
       selectedStartMonth: selectedStart,
       forecastDays: leadTimeDays,
     }),
     [leadTimeDays, selectedStart],
   )
 
-  useEffect(() => {
-    let alive = true
-    const reqSeq = reqSeqRef.current + 1
+  useEffect(() : () => void => {
+    let alive: boolean = true
+    const reqSeq: number = reqSeqRef.current + 1
     reqSeqRef.current = reqSeq
-    queueMicrotask(() => {
+    queueMicrotask(() : void => {
       if (alive && reqSeqRef.current === reqSeq) setDailyTrendLoading(true)
     })
-    void (async () => {
+    void (async () : Promise<void> => {
       try {
-        const params = {
+        const params: { competitorChannelId: string; startDate: string; endDate: string; forecastDays: number; skuGroupKey: string; companyUuid: string | undefined; } = {
           skuGroupKey,
           companyUuid,
           ...requestWindow.toQueryFields(),
           competitorChannelId,
         }
-        const series = await dashboardApi.getSecondaryDailyTrend(params)
+        const series: SecondaryDailyTrendPoint[] = await dashboardApi.getSecondaryDailyTrend(params)
         if (!alive || reqSeqRef.current !== reqSeq) return
         if (!series.length) throw new Error('일별 판매추이 데이터가 비어 있습니다.')
         setDailyTrendSeries(series)
@@ -69,28 +69,28 @@ export function useSecondaryDailyTrend({
         if (alive && reqSeqRef.current === reqSeq) setDailyTrendLoading(false)
       }
     })()
-    return () => {
+    return () : void => {
       alive = false
     }
   }, [companyUuid, competitorChannelId, makeApiErrorInfo, requestWindow, skuGroupKey])
 
-  const { periodShade: dailyPeriodShade, forecastShade: dailyForecastShade } = useMemo(
-    () => buildShadeRanges(
-      dailyTrendSeries.map((p) => ({ date: p.month, isForecast: p.isForecast })),
+  const { periodShade: dailyPeriodShade, forecastShade: dailyForecastShade }: { periodStartIdx: number; periodEndIdx: number; periodShade: { x1: number; x2: number; }; forecastShade: { x1: number; x2: number; } | null; } = useMemo(
+    () : { periodStartIdx: number; periodEndIdx: number; periodShade: { x1: number; x2: number; }; forecastShade: { x1: number; x2: number; } | null; } => buildShadeRanges(
+      dailyTrendSeries.map((p: SecondaryDailyTrendPoint) : { date: string; isForecast: boolean; } => ({ date: p.month, isForecast: p.isForecast })),
       selectedStart,
       selectedEnd,
     ),
     [dailyTrendSeries, selectedEnd, selectedStart],
   )
 
-  const dailyTickIndices = useMemo(() => {
-    const n = dailyTrendSeries.length
+  const dailyTickIndices: number[] = useMemo(() : number[] => {
+    const n: number = dailyTrendSeries.length
     if (n === 0) return [] as number[]
-    const targetTicks = 26
-    const step = Math.max(1, Math.ceil(n / targetTicks))
+    const targetTicks = 26 as const
+    const step: number = Math.max(1, Math.ceil(n / targetTicks))
     const ticks: number[] = []
-    for (let i = 0; i < n; i += step) ticks.push(dailyTrendSeries[i]!.idx)
-    const last = dailyTrendSeries[n - 1]!.idx
+    for (let i: number = 0; i < n; i += step) ticks.push(dailyTrendSeries[i]!.idx)
+    const last: number = dailyTrendSeries[n - 1]!.idx
     if (ticks[ticks.length - 1] !== last) ticks.push(last)
     return ticks
   }, [dailyTrendSeries])

@@ -2,7 +2,7 @@ import { DeleteButton } from '../DeleteButton'
 import styles from '../common.module.css'
 import detailStyles from './CandidateStashDetailModal.module.css'
 
-type Props = {
+export type Props = {
   selectedVisibleCount: number
   selectedUnconfirmedCount: number
   selectedConfirmedCount: number
@@ -12,7 +12,7 @@ type Props = {
   onOpenBulkDelete: () => void
 }
 
-export function CandidateStashBulkActionCard({ selectedVisibleCount, selectedUnconfirmedCount, selectedConfirmedCount, bulkConfirmBusy, onBulkConfirm, onOpenBulkUnconfirm, onOpenBulkDelete }: Props) {
+export function CandidateStashBulkActionCard({ selectedVisibleCount, selectedUnconfirmedCount, selectedConfirmedCount, bulkConfirmBusy, onBulkConfirm, onOpenBulkUnconfirm, onOpenBulkDelete }: Props) : React.JSX.Element {
   return (
     <div className={styles.card}>
       <div className={detailStyles.bulkActionCard}>

@@ -1,4 +1,4 @@
-import { Suspense, lazy, type ReactNode } from 'react'
+import { Suspense, lazy } from 'react'
 import { BrowserRouter, HashRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { AuthProvider } from './auth/AuthProvider'
 import { AppToastProvider } from './components/AppToast'
@@ -7,20 +7,20 @@ import { RequireAuth } from './auth/RequireAuth'
 import { DashboardLayout } from './dashboard/DashboardLayout'
 import styles from './app.module.css'
 
-const AdminPage = lazy(() => import('./admin/AdminPage').then((module) => ({ default: module.AdminPage })))
-const LoginPage = lazy(() => import('./auth/LoginPage').then((module) => ({ default: module.LoginPage })))
-const SelfPage = lazy(() => import('./dashboard/pages/SelfPage').then((module) => ({ default: module.SelfPage })))
-const CompetitorPage = lazy(() =>
-  import('./dashboard/pages/CompetitorPage').then((module) => ({ default: module.CompetitorPage })),
+const AdminPage: React.LazyExoticComponent<() => React.JSX.Element> = lazy(() : Promise<{ default: never; } | { default: () => React.JSX.Element; }> => import('./admin/AdminPage').then((module: typeof import("./admin/AdminPage")) : { default: () => React.JSX.Element; } => ({ default: module.AdminPage })))
+const LoginPage: React.LazyExoticComponent<() => React.JSX.Element> = lazy(() : Promise<{ default: never; } | { default: () => React.JSX.Element; }> => import('./auth/LoginPage').then((module: typeof import("./auth/LoginPage")) : { default: () => React.JSX.Element; } => ({ default: module.LoginPage })))
+const SelfPage: React.LazyExoticComponent<() => React.JSX.Element> = lazy(() : Promise<{ default: never; } | { default: () => React.JSX.Element; }> => import('./dashboard/pages/SelfPage').then((module: typeof import("./dashboard/pages/SelfPage")) : { default: () => React.JSX.Element; } => ({ default: module.SelfPage })))
+const CompetitorPage: React.LazyExoticComponent<() => React.JSX.Element> = lazy(() : Promise<{ default: never; } | { default: () => React.JSX.Element; }> =>
+  import('./dashboard/pages/CompetitorPage').then((module: typeof import("./dashboard/pages/CompetitorPage")) : { default: () => React.JSX.Element; } => ({ default: module.CompetitorPage })),
 )
-const SnapshotConfirmPage = lazy(() =>
-  import('./dashboard/pages/SnapshotConfirmPage').then((module) => ({ default: module.SnapshotConfirmPage })),
+const SnapshotConfirmPage: React.LazyExoticComponent<() => React.JSX.Element> = lazy(() : Promise<{ default: never; } | { default: () => React.JSX.Element; }> =>
+  import('./dashboard/pages/SnapshotConfirmPage').then((module: typeof import("./dashboard/pages/SnapshotConfirmPage")) : { default: () => React.JSX.Element; } => ({ default: module.SnapshotConfirmPage })),
 )
 
-const routerMode = import.meta.env.VITE_ROUTER_MODE === 'hash' ? 'hash' : 'browser'
-const browserRouterBasename = (import.meta.env.VITE_ROUTER_BASENAME ?? import.meta.env.BASE_URL).replace(/\/$/, '') || '/'
+const routerMode: 'hash' | 'browser' = import.meta.env.VITE_ROUTER_MODE === 'hash' ? 'hash' : 'browser'
+const browserRouterBasename: string = (import.meta.env.VITE_ROUTER_BASENAME ?? import.meta.env.BASE_URL).replace(/\/$/, '') || '/'
 
-function AppRouter({ children }: { children: ReactNode }) {
+function AppRouter({ children }: { children: React.ReactNode }) : React.JSX.Element {
   if (routerMode === 'hash') {
     return <HashRouter>{children}</HashRouter>
   }
@@ -28,7 +28,7 @@ function AppRouter({ children }: { children: ReactNode }) {
   return <BrowserRouter basename={browserRouterBasename}>{children}</BrowserRouter>
 }
 
-function AppRoutes() {
+function AppRoutes() : React.JSX.Element {
   return (
     <div className={styles.app}>
       <main className={`${styles.main} ${styles.mainShell}`.trim()}>
@@ -59,7 +59,7 @@ function AppRoutes() {
   )
 }
 
-function App() {
+function App() : React.JSX.Element {
   return (
     <AppRouter>
       <AppToastProvider>

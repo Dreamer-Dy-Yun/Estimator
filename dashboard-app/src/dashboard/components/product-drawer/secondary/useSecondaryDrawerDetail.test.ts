@@ -60,18 +60,18 @@ const snapshot: OrderSnapshotDocumentV2 = {
   },
 }
 
-describe('getScopeSafeHydrateSnapshot', () => {
-  it('allows a snapshot only when skuGroupKey and companyUuid match', () => {
+describe('getScopeSafeHydrateSnapshot', () : void => {
+  it('allows a snapshot only when skuGroupKey and companyUuid match', () : void => {
     expect(getScopeSafeHydrateSnapshot(snapshot, 'SKU-001', 'company-1')).toBe(snapshot)
     expect(getScopeSafeHydrateSnapshot(snapshot, 'SKU-002', 'company-1')).toBeNull()
     expect(getScopeSafeHydrateSnapshot(snapshot, 'SKU-001', 'company-2')).toBeNull()
   })
 
-  it('does not hydrate scoped snapshots in all-company scope', () => {
+  it('does not hydrate scoped snapshots in all-company scope', () : void => {
     expect(getScopeSafeHydrateSnapshot(snapshot, 'SKU-001', undefined)).toBeNull()
   })
 
-  it('keeps unscoped snapshots only in all-company scope', () => {
+  it('keeps unscoped snapshots only in all-company scope', () : void => {
     const unscopedSnapshot: OrderSnapshotDocumentV2 = { ...snapshot }
     delete unscopedSnapshot.companyUuid
 

@@ -1,42 +1,42 @@
-import { useId, type ReactNode } from 'react'
+import { useId } from 'react'
 import type { FilterField } from '../model/filterField'
 import { FilterListCombo } from './FilterListCombo'
 import styles from './common.module.css'
 
-type FilterBarProps = {
+export type FilterBarProps = {
   title?: string
   fields: FilterField[]
-  filterEndContent?: ReactNode
-  extraContent?: ReactNode
+  filterEndContent?: React.ReactNode
+  extraContent?: React.ReactNode
   filterClassName?: string
 }
 
-type FilterFieldGridProps = {
+export type FilterFieldGridProps = {
   fields: FilterField[]
-  filterEndContent?: ReactNode
+  filterEndContent?: React.ReactNode
   filterClassName?: string
 }
 
-export function FilterFieldGrid({ fields, filterEndContent, filterClassName }: FilterFieldGridProps) {
-  const barId = useId()
+export function FilterFieldGrid({ fields, filterEndContent, filterClassName }: FilterFieldGridProps) : React.JSX.Element {
+  const barId: string = useId()
   return (
     <div className={`${styles.filter} ${filterClassName ?? styles.filterHorizontal}`}>
-      {fields.map((field, index) => {
-        const inputId = `${barId}-in-${index}`
-        const value = field.displayValue ?? field.value ?? field.defaultValue ?? ''
-        const options = field.options ?? [field.defaultValue ?? '']
-        const selectOptions = value !== '' || options.includes('') ? options : ['', ...options]
+      {fields.map((field: FilterField, index: number) : React.JSX.Element => {
+        const inputId: string = `${barId}-in-${index}`
+        const value: string = field.displayValue ?? field.value ?? field.defaultValue ?? ''
+        const options: string[] = field.options ?? [field.defaultValue ?? '']
+        const selectOptions: string[] = value !== '' || options.includes('') ? options : ['', ...options]
         return (
           <div key={field.label} className={`${styles.field} ${field.disabled ? styles.fieldDisabled : ''}`}>
             <label htmlFor={inputId}>{field.label}</label>
             {field.kind === 'select' ? (
-              <select id={inputId} value={value} disabled={field.disabled} onChange={(event) => field.onChange?.(event.target.value)}>
-                {selectOptions.map((option) => <option key={option} value={option}>{option}</option>)}
+              <select id={inputId} value={value} disabled={field.disabled} onChange={(event: React.ChangeEvent<HTMLSelectElement, HTMLSelectElement>) : void | undefined => field.onChange?.(event.target.value)}>
+                {selectOptions.map((option: string) : React.JSX.Element => <option key={option} value={option}>{option}</option>)}
               </select>
             ) : field.kind === 'listCombo' ? (
-              <FilterListCombo key={`${inputId}-${field.disabled ? 'disabled' : 'enabled'}`} inputId={inputId} value={value} onChange={(next) => field.onChange?.(next)} options={field.options ?? []} inputType={field.inputType ?? 'text'} disabled={field.disabled} />
+              <FilterListCombo key={`${inputId}-${field.disabled ? 'disabled' : 'enabled'}`} inputId={inputId} value={value} onChange={(next: string) : void | undefined => field.onChange?.(next)} options={field.options ?? []} inputType={field.inputType ?? 'text'} disabled={field.disabled} />
             ) : (
-              <input id={inputId} type={field.inputType ?? 'text'} value={value} disabled={field.disabled} onChange={(event) => field.onChange?.(event.target.value)} />
+              <input id={inputId} type={field.inputType ?? 'text'} value={value} disabled={field.disabled} onChange={(event: React.ChangeEvent<HTMLInputElement, HTMLInputElement>) : void | undefined => field.onChange?.(event.target.value)} />
             )}
           </div>
         )
@@ -46,7 +46,7 @@ export function FilterFieldGrid({ fields, filterEndContent, filterClassName }: F
   )
 }
 
-export function FilterBar({ title = '필터', fields, filterEndContent, extraContent, filterClassName }: FilterBarProps) {
+export function FilterBar({ title = '필터', fields, filterEndContent, extraContent, filterClassName }: FilterBarProps) : React.JSX.Element {
   return (
     <div className={styles.filterRow}>
       <div className={styles.card}>

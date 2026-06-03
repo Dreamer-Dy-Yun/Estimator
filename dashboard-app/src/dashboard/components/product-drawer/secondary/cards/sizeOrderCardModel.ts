@@ -10,10 +10,10 @@ export type SizeOrderColumnTotals = {
 }
 
 function parseFiniteNumberInput(rawValue: string): number | null {
-  const trimmed = rawValue.trim()
+  const trimmed: string = rawValue.trim()
   if (trimmed === '') return null
 
-  const next = Number(trimmed)
+  const next: number = Number(trimmed)
   return Number.isFinite(next) ? next : null
 }
 
@@ -30,18 +30,18 @@ export function getSelfWeightPctFromCompetitorInput(competitorWeightPct: number)
 }
 
 export function parseSelfWeightPctInput(rawValue: string): number | null {
-  const next = parseFiniteNumberInput(rawValue)
+  const next: number | null = parseFiniteNumberInput(rawValue)
   return next == null ? null : clampWeightPct(next)
 }
 
 export function parseSelfWeightPctFromCompetitorInput(rawValue: string): number | null {
-  const next = parseFiniteNumberInput(rawValue)
+  const next: number | null = parseFiniteNumberInput(rawValue)
   return next == null ? null : getSelfWeightPctFromCompetitorInput(next)
 }
 
 export function calculateSizeOrderColumnTotals(sizeRows: readonly SecondarySizeOrderDisplayRow[]): SizeOrderColumnTotals {
   return sizeRows.reduce<SizeOrderColumnTotals>(
-    (totals, row) => ({
+    (totals: SizeOrderColumnTotals, row: SecondarySizeOrderDisplayRow) : { weightedPct: number; forecast: number; rec: number; confirm: number; } => ({
       weightedPct: totals.weightedPct + row.blendedSharePct,
       forecast: totals.forecast + row.forecastQty,
       rec: totals.rec + row.recommendedQty,
@@ -52,7 +52,7 @@ export function calculateSizeOrderColumnTotals(sizeRows: readonly SecondarySizeO
 }
 
 export function parseConfirmQtyInput(rawValue: string): number | null {
-  const next = parseFiniteNumberInput(rawValue)
+  const next: number | null = parseFiniteNumberInput(rawValue)
   return next == null ? null : Math.max(0, next)
 }
 

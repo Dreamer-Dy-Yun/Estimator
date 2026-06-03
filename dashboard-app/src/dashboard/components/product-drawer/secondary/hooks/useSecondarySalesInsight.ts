@@ -1,3 +1,4 @@
+import type { ProductSalesInsightColumn } from '../../../../../api/types'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   dashboardApi,
@@ -6,7 +7,7 @@ import {
 } from '../../../../../api'
 import type { ApiUnitErrorInfo, ProductPrimarySummary } from '../../../../../types'
 
-type Params = {
+export type Params = {
   primary: ProductPrimarySummary
   channel: SecondaryCompetitorChannel
   periodStart: string
@@ -15,7 +16,7 @@ type Params = {
   makeApiErrorInfo: (request: string, err: unknown) => ApiUnitErrorInfo
 }
 
-type SalesInsightState = {
+export type SalesInsightState = {
   requestKey: string
   result: ProductSalesInsight
 }
@@ -27,36 +28,36 @@ export function useSecondarySalesInsight({
   periodEnd,
   companyUuid,
   makeApiErrorInfo,
-}: Params) {
-  const requestSeqRef = useRef(0)
-  const requestKey = useMemo(() => JSON.stringify({
+}: Params) : { selfCol: ProductSalesInsightColumn | null; compCol: ProductSalesInsightColumn | null; salesInsightError: ApiUnitErrorInfo | null; salesInsightLoading: boolean; } {
+  const requestSeqRef: React.RefObject<number> = useRef(0)
+  const requestKey: string = useMemo(() : string => JSON.stringify({
     skuGroupKey: primary.skuGroupKey,
     companyUuid: companyUuid ?? '',
     periodStart,
     periodEnd,
     competitorChannelId: channel.id,
   }), [channel.id, companyUuid, periodEnd, periodStart, primary.skuGroupKey])
-  const [salesInsightState, setSalesInsightState] = useState<SalesInsightState | null>(null)
-  const [salesInsightError, setSalesInsightError] = useState<ApiUnitErrorInfo | null>(null)
-  const [salesInsightLoading, setSalesInsightLoading] = useState(true)
-  const salesInsight = salesInsightState?.requestKey === requestKey ? salesInsightState.result : null
+  const [salesInsightState, setSalesInsightState]: [SalesInsightState | null, React.Dispatch<React.SetStateAction<SalesInsightState | null>>] = useState<SalesInsightState | null>(null)
+  const [salesInsightError, setSalesInsightError]: [ApiUnitErrorInfo | null, React.Dispatch<React.SetStateAction<ApiUnitErrorInfo | null>>] = useState<ApiUnitErrorInfo | null>(null)
+  const [salesInsightLoading, setSalesInsightLoading]: [boolean, React.Dispatch<React.SetStateAction<boolean>>] = useState(true)
+  const salesInsight: ProductSalesInsight | null = salesInsightState?.requestKey === requestKey ? salesInsightState.result : null
 
-  useEffect(() => {
-    return () => {
+  useEffect(() : () => void => {
+    return () : void => {
       requestSeqRef.current += 1
     }
   }, [])
 
-  useEffect(() => {
-    let alive = true
-    const reqSeq = requestSeqRef.current + 1
+  useEffect(() : () => void => {
+    let alive: boolean = true
+    const reqSeq: number = requestSeqRef.current + 1
     requestSeqRef.current = reqSeq
-    queueMicrotask(() => {
+    queueMicrotask(() : void => {
       if (alive && requestSeqRef.current === reqSeq) setSalesInsightLoading(true)
     })
-    void (async () => {
+    void (async () : Promise<void> => {
       try {
-        const result = await dashboardApi.getProductSalesInsight(primary.skuGroupKey, {
+        const result: ProductSalesInsight = await dashboardApi.getProductSalesInsight(primary.skuGroupKey, {
           startDate: periodStart,
           endDate: periodEnd,
           companyUuid,
@@ -84,7 +85,7 @@ export function useSecondarySalesInsight({
         if (alive && requestSeqRef.current === reqSeq) setSalesInsightLoading(false)
       }
     })()
-    return () => {
+    return () : void => {
       alive = false
     }
   }, [channel.id, companyUuid, makeApiErrorInfo, periodEnd, periodStart, primary.skuGroupKey, requestKey])

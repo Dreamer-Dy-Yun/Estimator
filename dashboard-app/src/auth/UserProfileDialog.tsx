@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useState } from 'react'
 import { getApiErrorDisplayMessage } from '../api'
 import { isApiClientError } from '../api/types/api-error'
 import { useAuth } from './AuthContext'
@@ -6,15 +6,15 @@ import { useAppToast } from '../components/AppToastContext'
 import { LoadingSpinner } from '../components/LoadingSpinner'
 import styles from './UserProfileDialog.module.css'
 
-const DEFAULT_PROFILE_ERROR_MESSAGE = '사용자 정보 저장 중 오류가 발생했습니다.'
+const DEFAULT_PROFILE_ERROR_MESSAGE = '사용자 정보 저장 중 오류가 발생했습니다.' as const
 
-const ROLE_LABELS = {
+const ROLE_LABELS: { readonly admin: '관리자'; readonly user: '사용자'; } = {
   admin: '관리자',
   user: '사용자',
 } as const
 
-function formatExpiresAt(value: string) {
-  const date = new Date(value)
+function formatExpiresAt(value: string) : string {
+  const date: Date = new Date(value)
   if (Number.isNaN(date.getTime())) return '-'
 
   return new Intl.DateTimeFormat('ko-KR', {
@@ -23,25 +23,25 @@ function formatExpiresAt(value: string) {
   }).format(date)
 }
 
-function getErrorMessage(error: unknown) {
+function getErrorMessage(error: unknown) : string {
   if (isApiClientError(error)) return getApiErrorDisplayMessage(error, DEFAULT_PROFILE_ERROR_MESSAGE)
   return error instanceof Error ? error.message : DEFAULT_PROFILE_ERROR_MESSAGE
 }
 
-export function UserProfileDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const { session, updateUser, changePassword } = useAuth()
-  const { showToast } = useAppToast()
-  const [loginId, setLoginId] = useState('')
-  const [currentPassword, setCurrentPassword] = useState('')
-  const [newPassword, setNewPassword] = useState('')
-  const [confirmPassword, setConfirmPassword] = useState('')
-  const [errorMessage, setErrorMessage] = useState<string | null>(null)
-  const [isSaving, setIsSaving] = useState(false)
+export function UserProfileDialog({ open, onClose }: { open: boolean; onClose: () => void }) : React.JSX.Element | null {
+  const { session, updateUser, changePassword }: ReturnType<typeof useAuth> = useAuth()
+  const { showToast }: ReturnType<typeof useAppToast> = useAppToast()
+  const [loginId, setLoginId]: [string, React.Dispatch<React.SetStateAction<string>>] = useState('')
+  const [currentPassword, setCurrentPassword]: [string, React.Dispatch<React.SetStateAction<string>>] = useState('')
+  const [newPassword, setNewPassword]: [string, React.Dispatch<React.SetStateAction<string>>] = useState('')
+  const [confirmPassword, setConfirmPassword]: [string, React.Dispatch<React.SetStateAction<string>>] = useState('')
+  const [errorMessage, setErrorMessage]: [string | null, React.Dispatch<React.SetStateAction<string | null>>] = useState<string | null>(null)
+  const [isSaving, setIsSaving]: [boolean, React.Dispatch<React.SetStateAction<boolean>>] = useState(false)
 
-  useEffect(() => {
+  useEffect(() : (() => void) | undefined => {
     if (!open) return
-    let alive = true
-    queueMicrotask(() => {
+    let alive: boolean = true
+    queueMicrotask(() : void => {
       if (!alive) return
       setLoginId(session?.user.loginId ?? '')
       setCurrentPassword('')
@@ -50,20 +50,20 @@ export function UserProfileDialog({ open, onClose }: { open: boolean; onClose: (
       setErrorMessage(null)
       setIsSaving(false)
     })
-    return () => {
+    return () : void => {
       alive = false
     }
   }, [open, session?.user.loginId])
 
   if (!open || !session) return null
 
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit: (event: React.FormEvent<HTMLFormElement>) => Promise<void> = async (event: React.FormEvent<HTMLFormElement>) : Promise<void> => {
     event.preventDefault()
     setErrorMessage(null)
     setIsSaving(true)
 
     try {
-      const wantsPasswordChange = Boolean(currentPassword || newPassword || confirmPassword)
+      const wantsPasswordChange: boolean = Boolean(currentPassword || newPassword || confirmPassword)
       if (wantsPasswordChange) {
         if (!currentPassword || !newPassword || !confirmPassword) {
           throw new Error('비밀번호 변경 항목을 모두 입력해 주세요.')
@@ -92,7 +92,7 @@ export function UserProfileDialog({ open, onClose }: { open: boolean; onClose: (
         role="dialog"
         aria-modal="true"
         aria-labelledby="user-profile-title"
-        onMouseDown={(event) => event.stopPropagation()}
+        onMouseDown={(event: React.MouseEvent<HTMLElement, MouseEvent>) : void => event.stopPropagation()}
       >
         <div className={styles.header}>
           <div>
@@ -124,7 +124,7 @@ export function UserProfileDialog({ open, onClose }: { open: boolean; onClose: (
             <span>로그인 ID</span>
             <input
               value={loginId}
-              onChange={(event) => setLoginId(event.target.value)}
+              onChange={(event: React.ChangeEvent<HTMLInputElement, HTMLInputElement>) : void => setLoginId(event.target.value)}
               autoComplete="username"
               maxLength={32}
             />
@@ -138,7 +138,7 @@ export function UserProfileDialog({ open, onClose }: { open: boolean; onClose: (
               <span>현재 비밀번호</span>
               <input
                 value={currentPassword}
-                onChange={(event) => setCurrentPassword(event.target.value)}
+                onChange={(event: React.ChangeEvent<HTMLInputElement, HTMLInputElement>) : void => setCurrentPassword(event.target.value)}
                 type="password"
                 autoComplete="current-password"
               />
@@ -147,7 +147,7 @@ export function UserProfileDialog({ open, onClose }: { open: boolean; onClose: (
               <span>새 비밀번호</span>
               <input
                 value={newPassword}
-                onChange={(event) => setNewPassword(event.target.value)}
+                onChange={(event: React.ChangeEvent<HTMLInputElement, HTMLInputElement>) : void => setNewPassword(event.target.value)}
                 type="password"
                 autoComplete="new-password"
               />
@@ -156,7 +156,7 @@ export function UserProfileDialog({ open, onClose }: { open: boolean; onClose: (
               <span>새 비밀번호 확인</span>
               <input
                 value={confirmPassword}
-                onChange={(event) => setConfirmPassword(event.target.value)}
+                onChange={(event: React.ChangeEvent<HTMLInputElement, HTMLInputElement>) : void => setConfirmPassword(event.target.value)}
                 type="password"
                 autoComplete="new-password"
               />

@@ -1,9 +1,10 @@
+import type { OrderSnapshotDrawer2V2, OrderSnapshotStockOrderRequestV2 } from '../../../../../snapshot/orderSnapshotTypes'
 import { useEffect } from 'react'
 import type { OrderSnapshotAiCommentV2, OrderSnapshotDocumentV2 } from '../../../../../snapshot/orderSnapshotTypes'
 import type { CandidateItemPanelContext } from '../secondaryDrawerTypes'
 import type { InboundDueDateDefaults } from './useSecondaryInboundDueDates'
 
-type Args = {
+export type Args = {
   prefillFromSnapshot: OrderSnapshotDocumentV2 | null
   candidateItemContext: CandidateItemPanelContext | null
   defaultInboundDueDates: InboundDueDateDefaults
@@ -43,14 +44,14 @@ export function useSecondarySnapshotPrefill({
   setUnitCostInput,
   setUnitPriceInput,
   setExpectedFeeRatePct,
-}: Args) {
-  useEffect(() => {
-    let alive = true
-    queueMicrotask(() => {
+}: Args) : void {
+  useEffect(() : () => void => {
+    let alive: boolean = true
+    queueMicrotask(() : void => {
       if (!alive) return
       if (prefillFromSnapshot == null) {
-        const nextStart = defaultInboundDueDates.start < minOrderDate ? minOrderDate : defaultInboundDueDates.start
-        const nextEnd = defaultInboundDueDates.end < nextStart ? nextStart : defaultInboundDueDates.end
+        const nextStart: string = defaultInboundDueDates.start < minOrderDate ? minOrderDate : defaultInboundDueDates.start
+        const nextEnd: string = defaultInboundDueDates.end < nextStart ? nextStart : defaultInboundDueDates.end
         setDailyMeanClient(null)
         setCurrentOrderInboundDueDate(nextStart)
         setNextOrderInboundDueDate(nextEnd)
@@ -62,8 +63,8 @@ export function useSecondarySnapshotPrefill({
         setAppliedPrefillKey(null)
         return
       }
-      const d2 = prefillFromSnapshot.drawer2
-      const stockOrderRequest = d2.stockOrderRequest
+      const d2: OrderSnapshotDrawer2V2 = prefillFromSnapshot.drawer2
+      const stockOrderRequest: OrderSnapshotStockOrderRequestV2 = d2.stockOrderRequest
       onChannelChange(d2.competitorChannelId)
       setBufferStock(d2.bufferStock)
       setSelfWeightPct(d2.selfWeightPct)
@@ -80,7 +81,7 @@ export function useSecondarySnapshotPrefill({
         setExpectedFeeRatePct(d2.unitEconomics.expectedFeeRatePct)
       }
     })
-    return () => {
+    return () : void => {
       alive = false
     }
   }, [

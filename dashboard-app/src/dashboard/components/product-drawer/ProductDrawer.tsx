@@ -1,3 +1,5 @@
+import type { ProductSecondaryDetail, SecondaryCompetitorChannel } from '../../../api'
+import type { ApiUnitErrorInfo } from '../../../types'
 import { useEffect, useRef, useState } from 'react'
 import { getCompanyUuidForOptionalScope } from '../../../api'
 import { useAuth } from '../../../auth/AuthContext'
@@ -16,7 +18,7 @@ import { shouldKeepDrawerOpenOnOutsideMouseDown } from '../../drawer/drawerDom'
 import { setBodyPrimaryDrawerOpen } from '../../drawer/primaryDrawerBody'
 import styles from '../common.module.css'
 
-type ProductDrawerSharedProps = {
+export type ProductDrawerSharedProps = {
   onClose: () => void
   periodStart: string
   periodEnd: string
@@ -34,12 +36,12 @@ type ProductDrawerSharedProps = {
   closing?: boolean
 }
 
-type ProductDrawerContentProps = ProductDrawerSharedProps & {
+export type ProductDrawerContentProps = ProductDrawerSharedProps & {
   summary: ProductPrimarySummary
   companyUuid?: string
 }
 
-type ProductDrawerProps = ProductDrawerSharedProps & {
+export type ProductDrawerProps = ProductDrawerSharedProps & {
   summary: ProductPrimarySummary | null
   loading?: boolean
   companyUuid?: string
@@ -63,22 +65,22 @@ function ProductDrawerContent({
   keyboardShortcutsDisabled,
   suppressDocumentLayoutShift,
   closing = false,
-}: ProductDrawerContentProps) {
-  const pageName = 'ProductDrawer'
-  const drawerRef = useRef<HTMLElement | null>(null)
-  const [expandPaneOpenState, setExpandPaneOpen] = useState(() => !!initialExpandSecondary)
-  const expandPaneOpen = secondaryEnabled && expandPaneOpenState
+}: ProductDrawerContentProps) : React.JSX.Element {
+  const pageName = 'ProductDrawer' as const
+  const drawerRef: React.RefObject<HTMLElement | null> = useRef<HTMLElement | null>(null)
+  const [expandPaneOpenState, setExpandPaneOpen]: [boolean, React.Dispatch<React.SetStateAction<boolean>>] = useState(() : boolean => !!initialExpandSecondary)
+  const expandPaneOpen: boolean = secondaryEnabled && expandPaneOpenState
   const {
     competitorChannels,
     channelId,
     setChannelId,
     channelsError,
-  } = useCompetitorChannels(pageName)
+  }: { competitorChannels: SecondaryCompetitorChannel[]; channelId: string; setChannelId: React.Dispatch<React.SetStateAction<string>>; channelsError: ApiUnitErrorInfo | null; } = useCompetitorChannels(pageName)
   const {
     secondaryDetail,
     secondaryDetailError,
     hydrateForPanel,
-  } = useSecondaryDrawerDetail({
+  }: { secondaryDetail: ProductSecondaryDetail | null; secondaryDetailError: ApiUnitErrorInfo | null; hydrateForPanel: OrderSnapshotDocumentV2 | null; } = useSecondaryDrawerDetail({
     skuGroupKey: summary.skuGroupKey,
     expandPaneOpen,
     companyUuid,
@@ -86,16 +88,16 @@ function ProductDrawerContent({
     pageName,
   })
 
-  useEffect(() => {
+  useEffect(() : (() => void) | undefined => {
     if (suppressDocumentLayoutShift) return
     setBodyPrimaryDrawerOpen(true)
-    return () => setBodyPrimaryDrawerOpen(false)
+    return () : void => setBodyPrimaryDrawerOpen(false)
   }, [suppressDocumentLayoutShift])
 
-  useEffect(() => {
-    const onDocumentMouseDown = (event: MouseEvent) => {
-      const path = event.composedPath()
-      const clickedInsideDrawer = drawerRef.current ? path.includes(drawerRef.current) : false
+  useEffect(() : () => void => {
+    const onDocumentMouseDown: (event: MouseEvent) => void = (event: MouseEvent) : void => {
+      const path: EventTarget[] = event.composedPath()
+      const clickedInsideDrawer: boolean = drawerRef.current ? path.includes(drawerRef.current) : false
       if (clickedInsideDrawer) return
 
       if (shouldKeepDrawerOpenOnOutsideMouseDown(event)) return
@@ -104,11 +106,11 @@ function ProductDrawerContent({
     }
 
     document.addEventListener('mousedown', onDocumentMouseDown)
-    return () => document.removeEventListener('mousedown', onDocumentMouseDown)
+    return () : void => document.removeEventListener('mousedown', onDocumentMouseDown)
   }, [onClose])
 
-  const selectedChannelReady = competitorChannels.some((channel) => channel.id === channelId)
-  const selectedChannelMissing = channelId !== '' && !selectedChannelReady
+  const selectedChannelReady: boolean = competitorChannels.some((channel: SecondaryCompetitorChannel) : boolean => channel.id === channelId)
+  const selectedChannelMissing: boolean = channelId !== '' && !selectedChannelReady
 
   useProductDrawerKeyboard({
     closing,
@@ -121,15 +123,15 @@ function ProductDrawerContent({
     secondaryEnabled,
   })
 
-  const selectedStartMonth = normalizeMonthKey(periodStart)
-  const selectedEndMonth = normalizeMonthKey(periodEnd)
+  const selectedStartMonth: string = normalizeMonthKey(periodStart)
+  const selectedEndMonth: string = normalizeMonthKey(periodEnd)
 
   return (
     <aside
       ref={drawerRef}
       className={`${styles.drawer} ${secondaryEnabled && expandPaneOpen ? styles.drawerWithExpandPane : ''} ${closing ? styles.drawerClosing : ''}`}
-      onMouseDown={(e) => e.stopPropagation()}
-      onClick={(e) => e.stopPropagation()}
+      onMouseDown={(e: React.MouseEvent<HTMLElement, MouseEvent>) : void => e.stopPropagation()}
+      onClick={(e: React.MouseEvent<HTMLElement, MouseEvent>) : void => e.stopPropagation()}
     >
       <ProductPrimaryDrawer
         summary={summary}
@@ -143,7 +145,7 @@ function ProductDrawerContent({
         onForecastMonthsChange={onForecastMonthsChange}
         expandPaneOpen={expandPaneOpen}
         secondaryEnabled={secondaryEnabled}
-        onToggleSecondary={() => setExpandPaneOpen((v) => !v)}
+        onToggleSecondary={() : void => setExpandPaneOpen((v: boolean) : boolean => !v)}
         onClose={onClose}
         channelState={{
           channelId,
@@ -183,14 +185,14 @@ function ProductDrawerContent({
   )
 }
 
-export const ProductDrawer = ({
+export const ProductDrawer: (props: ProductDrawerProps) => React.JSX.Element | null = ({
   summary,
   loading = false,
   companyUuid: companyUuidProp,
   ...contentProps
-}: ProductDrawerProps) => {
-  const { selectedCompanyUuid } = useAuth()
-  const companyUuid = companyUuidProp ?? getCompanyUuidForOptionalScope(selectedCompanyUuid)
+}: ProductDrawerProps) : React.JSX.Element | null => {
+  const { selectedCompanyUuid }: ReturnType<typeof useAuth> = useAuth()
+  const companyUuid: string | undefined = companyUuidProp ?? getCompanyUuidForOptionalScope(selectedCompanyUuid)
 
   if (!summary) {
     if (!loading) return null
@@ -211,7 +213,7 @@ function ProductDrawerLoadingPanel({
 }: {
   closing?: boolean
   onClose: () => void
-}) {
+}) : React.JSX.Element {
   useProductDrawerKeyboard({ closing, onClose })
   return (
     <aside className={`${styles.drawer} ${closing ? styles.drawerClosing : ''}`}>

@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import { hashRank } from './hashRank'
 
-describe('hashRank', () => {
-  it('creates deterministic rank in 1..mod range', () => {
-    const a = hashRank('seed-a', 28)
-    const b = hashRank('seed-a', 28)
-    const c = hashRank('seed-b', 28)
+describe('hashRank', () : void => {
+  it('creates deterministic rank in 1..mod range', () : void => {
+    const a: number = hashRank('seed-a', 28)
+    const b: number = hashRank('seed-a', 28)
+    const c: number = hashRank('seed-b', 28)
     expect(a).toBe(b)
     expect(a).toBeGreaterThanOrEqual(1)
     expect(a).toBeLessThanOrEqual(28)

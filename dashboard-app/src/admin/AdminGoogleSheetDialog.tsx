@@ -1,4 +1,5 @@
-import { useState, type FormEvent } from 'react'
+import type { LoadedGoogleSheetKey } from './AdminGoogleSheetKeyDropzone'
+import { useState } from 'react'
 import { deleteAdminGoogleSheetConfig, updateAdminGoogleSheetConfig } from '../api'
 import type { AdminGoogleSheetConfigSummary, AdminGoogleSheetPurpose } from '../api'
 import type { CompanySummary } from '../api/types/company'
@@ -10,7 +11,7 @@ import { refreshAfterAdminMutation } from './adminMutationRefresh'
 import { GOOGLE_SHEET_PURPOSE_OPTIONS, getErrorMessage } from './adminHelpers'
 import styles from './AdminPage.module.css'
 
-interface AdminGoogleSheetDialogProps {
+export interface AdminGoogleSheetDialogProps {
   config: AdminGoogleSheetConfigSummary
   companies: CompanySummary[]
   onClose: () => void
@@ -18,7 +19,7 @@ interface AdminGoogleSheetDialogProps {
   onDeleted: () => Promise<void>
 }
 
-const formId = 'admin-google-sheet-detail-form'
+const formId = 'admin-google-sheet-detail-form' as const
 
 export function AdminGoogleSheetDialog({
   config,
@@ -26,25 +27,25 @@ export function AdminGoogleSheetDialog({
   onClose,
   onChanged,
   onDeleted,
-}: AdminGoogleSheetDialogProps) {
-  const { showToast } = useAppToast()
-  const [companyUuid, setCompanyUuid] = useState(config.companyUuid)
-  const [name, setName] = useState(config.name)
-  const [purpose, setPurpose] = useState<AdminGoogleSheetPurpose>(config.purpose)
-  const [spreadsheetUrl, setSpreadsheetUrl] = useState(config.spreadsheetUrl)
-  const [isActive, setIsActive] = useState(config.isActive)
-  const [note, setNote] = useState(config.note ?? '')
-  const [serviceAccountKeyJson, setServiceAccountKeyJson] = useState('')
-  const [serviceAccountFileName, setServiceAccountFileName] = useState('')
-  const [serviceAccountEmail, setServiceAccountEmail] = useState('')
-  const [rowMessage, setRowMessage] = useState<string | null>(null)
-  const [errorMessage, setErrorMessage] = useState<string | null>(null)
-  const [isSaving, setIsSaving] = useState(false)
-  const [isDeleting, setIsDeleting] = useState(false)
-  const [deleteConfirm, setDeleteConfirm] = useState(false)
-  const hasNewKey = serviceAccountKeyJson.trim().length > 0
-  const canSubmitCompany = companies.length > 0 && companyUuid.trim().length > 0
-  const isDirty =
+}: AdminGoogleSheetDialogProps) : React.JSX.Element {
+  const { showToast }: ReturnType<typeof useAppToast> = useAppToast()
+  const [companyUuid, setCompanyUuid]: [string, React.Dispatch<React.SetStateAction<string>>] = useState(config.companyUuid)
+  const [name, setName]: [string, React.Dispatch<React.SetStateAction<string>>] = useState(config.name)
+  const [purpose, setPurpose]: [AdminGoogleSheetPurpose, React.Dispatch<React.SetStateAction<AdminGoogleSheetPurpose>>] = useState<AdminGoogleSheetPurpose>(config.purpose)
+  const [spreadsheetUrl, setSpreadsheetUrl]: [string, React.Dispatch<React.SetStateAction<string>>] = useState(config.spreadsheetUrl)
+  const [isActive, setIsActive]: [boolean, React.Dispatch<React.SetStateAction<boolean>>] = useState(config.isActive)
+  const [note, setNote]: [string, React.Dispatch<React.SetStateAction<string>>] = useState(config.note ?? '')
+  const [serviceAccountKeyJson, setServiceAccountKeyJson]: [string, React.Dispatch<React.SetStateAction<string>>] = useState('')
+  const [serviceAccountFileName, setServiceAccountFileName]: [string, React.Dispatch<React.SetStateAction<string>>] = useState('')
+  const [serviceAccountEmail, setServiceAccountEmail]: [string, React.Dispatch<React.SetStateAction<string>>] = useState('')
+  const [rowMessage, setRowMessage]: [string | null, React.Dispatch<React.SetStateAction<string | null>>] = useState<string | null>(null)
+  const [errorMessage, setErrorMessage]: [string | null, React.Dispatch<React.SetStateAction<string | null>>] = useState<string | null>(null)
+  const [isSaving, setIsSaving]: [boolean, React.Dispatch<React.SetStateAction<boolean>>] = useState(false)
+  const [isDeleting, setIsDeleting]: [boolean, React.Dispatch<React.SetStateAction<boolean>>] = useState(false)
+  const [deleteConfirm, setDeleteConfirm]: [boolean, React.Dispatch<React.SetStateAction<boolean>>] = useState(false)
+  const hasNewKey: boolean = serviceAccountKeyJson.trim().length > 0
+  const canSubmitCompany: boolean = companies.length > 0 && companyUuid.trim().length > 0
+  const isDirty: boolean =
     companyUuid !== config.companyUuid ||
     name !== config.name ||
     purpose !== config.purpose ||
@@ -53,7 +54,7 @@ export function AdminGoogleSheetDialog({
     note !== (config.note ?? '') ||
     hasNewKey
 
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit: (event: React.FormEvent<HTMLFormElement>) => Promise<void> = async (event: React.FormEvent<HTMLFormElement>) : Promise<void> => {
     event.preventDefault()
     setErrorMessage(null)
     setRowMessage(null)
@@ -76,14 +77,14 @@ export function AdminGoogleSheetDialog({
         note,
         serviceAccountKeyJson: hasNewKey ? serviceAccountKeyJson : undefined,
       })
-      const refreshWarningMessage = await refreshAfterAdminMutation(onChanged)
+      const refreshWarningMessage: string | null = await refreshAfterAdminMutation(onChanged)
       if (hasNewKey) {
         setServiceAccountKeyJson('')
         setServiceAccountFileName('')
         setServiceAccountEmail('')
       }
-      const successRowMessage = hasNewKey ? '변경됨 · JSON 키 교체됨' : '변경됨'
-      const successToastMessage = hasNewKey ? '구글 시트 설정과 JSON 키를 변경했습니다.' : '구글 시트 설정을 변경했습니다.'
+      const successRowMessage: '변경됨 · JSON 키 교체됨' | '변경됨' = hasNewKey ? '변경됨 · JSON 키 교체됨' : '변경됨'
+      const successToastMessage: '구글 시트 설정과 JSON 키를 변경했습니다.' | '구글 시트 설정을 변경했습니다.' = hasNewKey ? '구글 시트 설정과 JSON 키를 변경했습니다.' : '구글 시트 설정을 변경했습니다.'
       setRowMessage(refreshWarningMessage ? `${successRowMessage} · ${refreshWarningMessage}` : successRowMessage)
       showToast(refreshWarningMessage ?? successToastMessage, refreshWarningMessage ? { variant: 'warning' } : undefined)
       setDeleteConfirm(false)
@@ -94,7 +95,7 @@ export function AdminGoogleSheetDialog({
     }
   }
 
-  const handleDelete = async () => {
+  const handleDelete: () => Promise<void> = async () : Promise<void> => {
     setErrorMessage(null)
     setRowMessage(null)
 
@@ -107,7 +108,7 @@ export function AdminGoogleSheetDialog({
     setIsDeleting(true)
     try {
       await deleteAdminGoogleSheetConfig(config.uuid, { companyUuid: config.companyUuid })
-      const refreshWarningMessage = await refreshAfterAdminMutation(onDeleted)
+      const refreshWarningMessage: string | null = await refreshAfterAdminMutation(onDeleted)
       if (refreshWarningMessage) showToast(refreshWarningMessage, { variant: 'warning' })
       onClose()
     } catch (error) {
@@ -124,7 +125,7 @@ export function AdminGoogleSheetDialog({
         role="dialog"
         aria-modal="true"
         aria-labelledby="admin-google-sheet-dialog-title"
-        onMouseDown={(event) => event.stopPropagation()}
+        onMouseDown={(event: React.MouseEvent<HTMLElement, MouseEvent>) : void => event.stopPropagation()}
       >
         <header className={styles.gptKeyDialogHeader}>
           <div>
@@ -139,9 +140,9 @@ export function AdminGoogleSheetDialog({
         <form id={formId} className={styles.gptKeyDialogForm} onSubmit={handleSubmit}>
           <label className={styles.createField}>
             <span>회사</span>
-            <select value={companyUuid} onChange={(event) => setCompanyUuid(event.target.value)} required>
+            <select value={companyUuid} onChange={(event: React.ChangeEvent<HTMLSelectElement, HTMLSelectElement>) : void => setCompanyUuid(event.target.value)} required>
               {companies.length === 0 ? <option value="">선택 가능한 회사 없음</option> : null}
-              {companies.map((company) => (
+              {companies.map((company: CompanySummary) : React.JSX.Element => (
                 <option key={company.uuid} value={company.uuid}>
                   {company.name}
                 </option>
@@ -150,12 +151,12 @@ export function AdminGoogleSheetDialog({
           </label>
           <label className={styles.createField}>
             <span>이름</span>
-            <input value={name} onChange={(event) => setName(event.target.value)} />
+            <input value={name} onChange={(event: React.ChangeEvent<HTMLInputElement, HTMLInputElement>) : void => setName(event.target.value)} />
           </label>
           <label className={styles.createField}>
             <span>용도</span>
-            <select value={purpose} onChange={(event) => setPurpose(event.target.value as AdminGoogleSheetPurpose)}>
-              {GOOGLE_SHEET_PURPOSE_OPTIONS.map((option) => (
+            <select value={purpose} onChange={(event: React.ChangeEvent<HTMLSelectElement, HTMLSelectElement>) : void => setPurpose(event.target.value as AdminGoogleSheetPurpose)}>
+              {GOOGLE_SHEET_PURPOSE_OPTIONS.map((option: { value: AdminGoogleSheetPurpose; label: string; }) : React.JSX.Element => (
                 <option key={option.value} value={option.value}>
                   {option.label}
                 </option>
@@ -167,19 +168,19 @@ export function AdminGoogleSheetDialog({
           </div>
           <label className={`${styles.createField} ${styles.gptKeyDialogNote}`}>
             <span>시트 주소</span>
-            <input value={spreadsheetUrl} onChange={(event) => setSpreadsheetUrl(event.target.value)} />
+            <input value={spreadsheetUrl} onChange={(event: React.ChangeEvent<HTMLInputElement, HTMLInputElement>) : void => setSpreadsheetUrl(event.target.value)} />
           </label>
           <AdminGoogleSheetKeyDropzone
             fileName={serviceAccountFileName}
             serviceAccountEmail={serviceAccountEmail || config.serviceAccountEmail}
             disabled={isSaving}
-            onLoaded={(loaded) => {
+            onLoaded={(loaded: LoadedGoogleSheetKey) : void => {
               setServiceAccountFileName(loaded.fileName)
               setServiceAccountKeyJson(loaded.keyJson)
               setServiceAccountEmail(loaded.serviceAccountEmail)
               setErrorMessage(null)
             }}
-            onClear={() => {
+            onClear={() : void => {
               setServiceAccountFileName('')
               setServiceAccountKeyJson('')
               setServiceAccountEmail('')
@@ -188,7 +189,7 @@ export function AdminGoogleSheetDialog({
           />
           <label className={`${styles.createField} ${styles.gptKeyDialogNote}`}>
             <span>비고</span>
-            <input value={note} onChange={(event) => setNote(event.target.value)} />
+            <input value={note} onChange={(event: React.ChangeEvent<HTMLInputElement, HTMLInputElement>) : void => setNote(event.target.value)} />
           </label>
         </form>
 

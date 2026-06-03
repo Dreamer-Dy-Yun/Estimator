@@ -1,8 +1,8 @@
 import type { AdminGptKeyApi, AdminGptKeySummary, AdminGptKeyTestResult, CreateAdminGptKeyPayload, RotateAdminGptKeyPayload, UpdateAdminGptKeyPayload } from '../types'
 import { cleanMockNote, createMockUuid, runMockAdminAction, touchMockRecord } from './authApi'
 
-const MOCK_UPDATED_AT = '2026-05-06T00:00:00.000Z'
-const GPT_KEY_NOT_FOUND = 'GPT 키를 찾을 수 없습니다.'
+const MOCK_UPDATED_AT = '2026-05-06T00:00:00.000Z' as const
+const GPT_KEY_NOT_FOUND = 'GPT 키를 찾을 수 없습니다.' as const
 
 let mockAdminGptKeys: AdminGptKeySummary[] = [
   {
@@ -20,35 +20,35 @@ let mockAdminGptKeys: AdminGptKeySummary[] = [
   },
 ]
 
-function maskPlainKey(plainKey: string) {
-  const clean = plainKey.trim()
+function maskPlainKey(plainKey: string) : string {
+  const clean: string = plainKey.trim()
   if (!clean) return 'key-...empty'
-  const prefix = clean.includes('-') ? clean.slice(0, clean.indexOf('-')) : 'key'
+  const prefix: string = clean.includes('-') ? clean.slice(0, clean.indexOf('-')) : 'key'
   return `${prefix}-...${clean.slice(-4)}`
 }
 
-function requireGptKey(uuid: string) {
-  const target = mockAdminGptKeys.find((gptKey) => gptKey.uuid === uuid)
+function requireGptKey(uuid: string) : AdminGptKeySummary {
+  const target: AdminGptKeySummary | undefined = mockAdminGptKeys.find((gptKey: AdminGptKeySummary) : boolean => gptKey.uuid === uuid)
   if (!target) throw new Error(GPT_KEY_NOT_FOUND)
   return target
 }
 
-function saveGptKey(nextGptKey: AdminGptKeySummary) {
-  mockAdminGptKeys = mockAdminGptKeys.map((gptKey) => (gptKey.uuid === nextGptKey.uuid ? nextGptKey : gptKey))
+function saveGptKey(nextGptKey: AdminGptKeySummary) : AdminGptKeySummary {
+  mockAdminGptKeys = mockAdminGptKeys.map((gptKey: AdminGptKeySummary) : AdminGptKeySummary => (gptKey.uuid === nextGptKey.uuid ? nextGptKey : gptKey))
   return nextGptKey
 }
 
-const markUntested = (plainKey: string) => ({
+const markUntested: (plainKey: string) => { maskedKey: string; lastTestedAt: null; lastTestStatus: 'untested'; } = (plainKey: string) : { maskedKey: string; lastTestedAt: null; lastTestStatus: 'untested'; } => ({
   maskedKey: maskPlainKey(plainKey),
   lastTestedAt: null,
   lastTestStatus: 'untested' as const,
 })
 
 export const mockAdminGptKeyApi: AdminGptKeyApi = {
-  getAdminGptKeys: () =>
-    runMockAdminAction(80, () => [...mockAdminGptKeys].sort((a, b) => a.name.localeCompare(b.name))),
-  createAdminGptKey: (payload: CreateAdminGptKeyPayload) =>
-    runMockAdminAction(120, () => {
+  getAdminGptKeys: () : Promise<AdminGptKeySummary[]> =>
+    runMockAdminAction(80, () : AdminGptKeySummary[] => [...mockAdminGptKeys].sort((a: AdminGptKeySummary, b: AdminGptKeySummary) : number => a.name.localeCompare(b.name))),
+  createAdminGptKey: (payload: CreateAdminGptKeyPayload) : Promise<AdminGptKeySummary> =>
+    runMockAdminAction(120, () : AdminGptKeySummary => {
       const gptKey: AdminGptKeySummary = {
         uuid: createMockUuid(),
         name: payload.name.trim() || '새 GPT 키',
@@ -63,10 +63,10 @@ export const mockAdminGptKeyApi: AdminGptKeyApi = {
       mockAdminGptKeys = [...mockAdminGptKeys, gptKey]
       return gptKey
     }),
-  updateAdminGptKey: (payload: UpdateAdminGptKeyPayload) =>
-    runMockAdminAction(110, () => {
-      const target = requireGptKey(payload.uuid)
-      const plainKey = payload.plainKey?.trim()
+  updateAdminGptKey: (payload: UpdateAdminGptKeyPayload) : Promise<AdminGptKeySummary> =>
+    runMockAdminAction(110, () : AdminGptKeySummary => {
+      const target: AdminGptKeySummary = requireGptKey(payload.uuid)
+      const plainKey: string | undefined = payload.plainKey?.trim()
       return saveGptKey({
         ...target,
         name: payload.name.trim() || target.name,
@@ -78,13 +78,13 @@ export const mockAdminGptKeyApi: AdminGptKeyApi = {
         dbUpdatedAt: touchMockRecord(),
       })
     }),
-  rotateAdminGptKey: (payload: RotateAdminGptKeyPayload) =>
-    runMockAdminAction(110, () => saveGptKey({ ...requireGptKey(payload.uuid), ...markUntested(payload.plainKey), dbUpdatedAt: touchMockRecord() })),
+  rotateAdminGptKey: (payload: RotateAdminGptKeyPayload) : Promise<AdminGptKeySummary> =>
+    runMockAdminAction(110, () : AdminGptKeySummary => saveGptKey({ ...requireGptKey(payload.uuid), ...markUntested(payload.plainKey), dbUpdatedAt: touchMockRecord() })),
   testAdminGptKey: (keyUuid: string): Promise<AdminGptKeyTestResult> =>
-    runMockAdminAction(180, () => {
-      const target = requireGptKey(keyUuid)
-      const testedAt = touchMockRecord()
-      const status = target.isActive ? 'success' : 'failed'
+    runMockAdminAction(180, () : { uuid: string; status: 'success' | 'failed'; message: string; testedAt: string; } => {
+      const target: AdminGptKeySummary = requireGptKey(keyUuid)
+      const testedAt: string = touchMockRecord()
+      const status: 'success' | 'failed' = target.isActive ? 'success' : 'failed'
       saveGptKey({ ...target, lastTestedAt: testedAt, lastTestStatus: status, dbUpdatedAt: testedAt })
       return {
         uuid: keyUuid,
@@ -93,9 +93,9 @@ export const mockAdminGptKeyApi: AdminGptKeyApi = {
         testedAt,
       }
     }),
-  deleteAdminGptKey: (keyUuid: string) =>
-    runMockAdminAction(110, () => {
+  deleteAdminGptKey: (keyUuid: string) : Promise<void> =>
+    runMockAdminAction(110, () : void => {
       requireGptKey(keyUuid)
-      mockAdminGptKeys = mockAdminGptKeys.filter((gptKey) => gptKey.uuid !== keyUuid)
+      mockAdminGptKeys = mockAdminGptKeys.filter((gptKey: AdminGptKeySummary) : boolean => gptKey.uuid !== keyUuid)
     }),
 }

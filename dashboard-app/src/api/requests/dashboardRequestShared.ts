@@ -1,10 +1,10 @@
 import type { ApiQueryParams } from './httpClient'
 
-export const candidateStashExcelTemplateAsset = 'templates/candidate-stash-upload-template-v0.0.0.xlsx'
-export const candidateStashExcelTemplateFilename = '(Han.A)Template(ver.0.0.0).xlsx'
+export const candidateStashExcelTemplateAsset = 'templates/candidate-stash-upload-template-v0.0.0.xlsx' as const
+export const candidateStashExcelTemplateFilename = '(Han.A)Template(ver.0.0.0).xlsx' as const
 
 export function resolvePublicAssetUrl(path: string): string {
-  const baseUrl = import.meta.env.BASE_URL || '/'
+  const baseUrl: string = import.meta.env.BASE_URL || '/'
   return `${baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`}${path.replace(/^\/+/, '')}`
 }
 

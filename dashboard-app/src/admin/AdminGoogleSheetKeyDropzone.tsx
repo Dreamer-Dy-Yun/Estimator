@@ -1,13 +1,13 @@
-import { useRef, useState, type ChangeEvent, type DragEvent } from 'react'
+import { useRef, useState, type DragEvent } from 'react'
 import styles from './AdminPage.module.css'
 
-interface LoadedGoogleSheetKey {
+export interface LoadedGoogleSheetKey {
   fileName: string
   keyJson: string
   serviceAccountEmail: string
 }
 
-interface AdminGoogleSheetKeyDropzoneProps {
+export interface AdminGoogleSheetKeyDropzoneProps {
   fileName: string
   serviceAccountEmail: string
   disabled?: boolean
@@ -16,9 +16,9 @@ interface AdminGoogleSheetKeyDropzoneProps {
   onError: (message: string) => void
 }
 
-function extractServiceAccountEmail(keyJson: string) {
+function extractServiceAccountEmail(keyJson: string) : string {
   try {
-    const parsed = JSON.parse(keyJson) as { client_email?: unknown }
+    const parsed: { client_email?: unknown; } = JSON.parse(keyJson) as { client_email?: unknown }
     if (typeof parsed.client_email === 'string' && parsed.client_email.trim()) {
       return parsed.client_email.trim()
     }
@@ -35,18 +35,18 @@ export function AdminGoogleSheetKeyDropzone({
   onLoaded,
   onClear,
   onError,
-}: AdminGoogleSheetKeyDropzoneProps) {
-  const inputRef = useRef<HTMLInputElement | null>(null)
-  const [isDragging, setIsDragging] = useState(false)
+}: AdminGoogleSheetKeyDropzoneProps) : React.JSX.Element {
+  const inputRef: React.RefObject<HTMLInputElement | null> = useRef<HTMLInputElement | null>(null)
+  const [isDragging, setIsDragging]: [boolean, React.Dispatch<React.SetStateAction<boolean>>] = useState(false)
 
-  const loadFile = async (file: File | null | undefined) => {
+  const loadFile: (file: File | null | undefined) => Promise<void> = async (file: File | null | undefined) : Promise<void> => {
     if (!file || disabled) return
     if (!file.name.toLowerCase().endsWith('.json') && file.type !== 'application/json') {
       onError('서비스 계정 JSON 파일만 업로드할 수 있습니다.')
       return
     }
     try {
-      const keyJson = await file.text()
+      const keyJson: string = await file.text()
       onLoaded({
         fileName: file.name,
         keyJson,
@@ -60,12 +60,12 @@ export function AdminGoogleSheetKeyDropzone({
     }
   }
 
-  const handleDrop = (event: DragEvent<HTMLDivElement>) => {
+  const handleDrop: (event: DragEvent<HTMLDivElement>) => void = (event: DragEvent<HTMLDivElement>) : void => {
     event.preventDefault()
     void loadFile(event.dataTransfer.files[0])
   }
 
-  const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange: (event: React.ChangeEvent<HTMLInputElement>) => void = (event: React.ChangeEvent<HTMLInputElement>) : void => {
     void loadFile(event.target.files?.[0])
   }
 
@@ -76,21 +76,21 @@ export function AdminGoogleSheetKeyDropzone({
         className={`${styles.googleSheetKeyDropzone} ${isDragging ? styles.googleSheetKeyDropzoneActive : ''}`}
         role="button"
         tabIndex={0}
-        onClick={() => inputRef.current?.click()}
-        onDragEnter={(event) => {
+        onClick={() : void | undefined => inputRef.current?.click()}
+        onDragEnter={(event: DragEvent<HTMLDivElement>) : void => {
           event.preventDefault()
           setIsDragging(true)
         }}
-        onDragOver={(event) => {
+        onDragOver={(event: DragEvent<HTMLDivElement>) : void => {
           event.preventDefault()
           setIsDragging(true)
         }}
-        onDragLeave={(event) => {
+        onDragLeave={(event: DragEvent<HTMLDivElement>) : void => {
           event.preventDefault()
           setIsDragging(false)
         }}
         onDrop={handleDrop}
-        onKeyDown={(event) => {
+        onKeyDown={(event: React.KeyboardEvent<HTMLDivElement>) : void => {
           if (event.key === 'Enter' || event.key === ' ') {
             event.preventDefault()
             inputRef.current?.click()
@@ -115,7 +115,7 @@ export function AdminGoogleSheetKeyDropzone({
             className={styles.googleSheetKeyClearButton}
             type="button"
             disabled={disabled}
-            onClick={(event) => {
+            onClick={(event: React.MouseEvent<HTMLButtonElement, MouseEvent>) : void => {
               event.stopPropagation()
               onClear()
             }}

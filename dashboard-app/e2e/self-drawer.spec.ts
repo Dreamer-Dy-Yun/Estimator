@@ -1,11 +1,11 @@
 import { expect, test } from '@playwright/test'
 import { collectRuntimeErrors, expectNoRuntimeErrors, loginWithDefaultMockUser } from './helpers/app'
 
-test('@smoke @drawer self analysis drawer opens and closes', async ({ page }) => {
-  const runtimeErrors = collectRuntimeErrors(page)
+test('@smoke @drawer self analysis drawer opens and closes', async ({ page }: PlaywrightTestArgs & PlaywrightTestOptions & PlaywrightWorkerArgs & PlaywrightWorkerOptions) : Promise<void> => {
+  const runtimeErrors: string[] = collectRuntimeErrors(page)
 
   await loginWithDefaultMockUser(page, '/dashboard/self')
-  const firstRow = page.locator('tbody tr').first()
+  const firstRow: Locator = page.locator('tbody tr').first()
   await expect(firstRow).toBeVisible()
 
   await firstRow.click()

@@ -1,4 +1,3 @@
-import type { ReactNode } from 'react'
 import { PortalHelpMark } from '../../../PortalHelpPopover'
 import { ApiUnitErrorBadge } from '../../../../../components/ApiUnitErrorBadge'
 import { LoadingSpinner } from '../../../../../components/LoadingSpinner'
@@ -11,14 +10,14 @@ import { KO } from '../../ko'
 import styles from '../secondaryDrawer.module.css'
 import type { SecondaryHelpId, SecondaryHelpIds } from '../secondaryDrawerTypes'
 
-type SalesForecastDisplayInputs = {
+export type SalesForecastDisplayInputs = {
   trendDailyMean: number | null
   dailyMean: number | null
   sigma: number | null
 }
-type SalesForecastInboundDateFields = Pick<OrderSnapshotStockOrderRequestV2, 'currentOrderInboundDueDate' | 'nextOrderInboundDueDate'>
+export type SalesForecastInboundDateFields = Pick<OrderSnapshotStockOrderRequestV2, 'currentOrderInboundDueDate' | 'nextOrderInboundDueDate'>
 
-type SalesForecastComputedTable = {
+export type SalesForecastComputedTable = {
   recommendedOrderQtyTotal: number
   confirmedOrderQtyTotal: number
   forecastExpectedSales: number
@@ -42,20 +41,20 @@ export type SalesForecastOrderInputActions = {
   onExpectedFeeRatePctChange: (next: number) => void
 }
 
-type Props = {
+export type Props = {
   forecast: { inputs: SalesForecastDisplayInputs; loading: boolean; error: ApiUnitErrorInfo | null; calculationReady?: boolean; computed: SalesForecastComputedTable }
   orderInputFields: SalesForecastOrderInputFields
   actions: SalesForecastOrderInputActions
   help: { labelIds: Pick<SecondaryHelpIds, 'forecastQtyCalc' | 'expectedOpProfitRate'>; portal: ReturnType<typeof usePortalHelpPopover<SecondaryHelpId>> }
 }
-type HelpKey = 'forecastQtyCalc' | 'expectedOpProfitRate'
+export type HelpKey = 'forecastQtyCalc' | 'expectedOpProfitRate'
 
-type NumberFieldProps = { label: string; value: number; onChange: (next: number) => void; unit: string; max?: number; step?: number }
+export type NumberFieldProps = { label: string; value: number; onChange: (next: number) => void; unit: string; max?: number; step?: number }
 
-const toNonNegativeNumber = (value: string) => Math.max(0, Number(value) || 0)
-const rateText = (value: number | null) => displayNumber.percent(value)
+const toNonNegativeNumber: (value: string) => number = (value: string) : number => Math.max(0, Number(value) || 0)
+const rateText: (value: number | null) => string = (value: number | null) : string => displayNumber.percent(value)
 
-function FieldCell({ label, children }: { label: string; children: ReactNode }) {
+function FieldCell({ label, children }: { label: string; children: React.ReactNode }) : React.JSX.Element {
   return (
     <div className={styles.stockInputCell}>
       <span className={`${styles.inlineLabel} ${styles.stockCellLabel}`}>{label}</span>
@@ -64,24 +63,24 @@ function FieldCell({ label, children }: { label: string; children: ReactNode }) 
   )
 }
 
-function DateField({ label, value, min, onChange }: { label: string; value: string; min: string; onChange: (next: string) => void }) {
+function DateField({ label, value, min, onChange }: { label: string; value: string; min: string; onChange: (next: string) => void }) : React.JSX.Element {
   return (
     <FieldCell label={label}>
-      <input type="date" className={`${styles.stockDateInput} ${styles.stockFillInput}`} min={min} value={value} onChange={(e) => onChange(e.target.value)} aria-label={label} />
+      <input type="date" className={`${styles.stockDateInput} ${styles.stockFillInput}`} min={min} value={value} onChange={(e: React.ChangeEvent<HTMLInputElement, HTMLInputElement>) : void => onChange(e.target.value)} aria-label={label} />
     </FieldCell>
   )
 }
 
-function NumberField({ label, value, onChange, unit, max, step = 1 }: NumberFieldProps) {
+function NumberField({ label, value, onChange, unit, max, step = 1 }: NumberFieldProps) : React.JSX.Element {
   return (
     <FieldCell label={label}>
-      <input type="number" className={`${styles.stockNumberInput} ${styles.stockFillInput}`} min={0} max={max} step={step} value={value} onChange={(e) => onChange(toNonNegativeNumber(e.target.value))} aria-label={label} />
+      <input type="number" className={`${styles.stockNumberInput} ${styles.stockFillInput}`} min={0} max={max} step={step} value={value} onChange={(e: React.ChangeEvent<HTMLInputElement, HTMLInputElement>) : void => onChange(toNonNegativeNumber(e.target.value))} aria-label={label} />
       <span className={styles.inlineUnit}>{unit}</span>
     </FieldCell>
   )
 }
 
-function ComputedField({ label, value }: { label: string; value: number | null }) {
+function ComputedField({ label, value }: { label: string; value: number | null }) : React.JSX.Element {
   return (
     <FieldCell label={label}>
       <span className={`${styles.stockComputedValue} ${styles.stockFillInput}`}>{value == null ? KO.valueNotCalculated : formatGroupedOneDecimal(value)}</span>
@@ -90,7 +89,7 @@ function ComputedField({ label, value }: { label: string; value: number | null }
   )
 }
 
-function HelpLabel({ label, helpId, labelIds, portal }: { label: string; helpId: HelpKey; labelIds: Pick<SecondaryHelpIds, HelpKey>; portal: ReturnType<typeof usePortalHelpPopover<SecondaryHelpId>> }) {
+function HelpLabel({ label, helpId, labelIds, portal }: { label: string; helpId: HelpKey; labelIds: Pick<SecondaryHelpIds, HelpKey>; portal: ReturnType<typeof usePortalHelpPopover<SecondaryHelpId>> }) : React.JSX.Element {
   return (
     <span className={commonStyles.cardTitleWithHelp}>
       {label}
@@ -99,17 +98,17 @@ function HelpLabel({ label, helpId, labelIds, portal }: { label: string; helpId:
   )
 }
 
-export function SalesForecastCard({ forecast, orderInputFields, actions, help }: Props) {
-  const { inputs, error, computed } = forecast
-  const calculationReady = forecast.calculationReady ?? true
-  const { currentOrderInboundDueDate, nextOrderInboundDueDate, minOrderDate, bufferStock, unitCost, unitPrice, expectedFeeRatePct } = orderInputFields
-  const { labelIds, portal } = help
-  const calcRate = (expectedSales: number, expectedQty: number): number | null => {
+export function SalesForecastCard({ forecast, orderInputFields, actions, help }: Props) : React.JSX.Element {
+  const { inputs, error, computed }: { inputs: SalesForecastDisplayInputs; loading: boolean; error: ApiUnitErrorInfo | null; calculationReady?: boolean; computed: SalesForecastComputedTable; } = forecast
+  const calculationReady: boolean = forecast.calculationReady ?? true
+  const { currentOrderInboundDueDate, nextOrderInboundDueDate, minOrderDate, bufferStock, unitCost, unitPrice, expectedFeeRatePct }: SalesForecastOrderInputFields = orderInputFields
+  const { labelIds, portal }: { labelIds: Pick<SecondaryHelpIds, 'forecastQtyCalc' | 'expectedOpProfitRate'>; portal: ReturnType<typeof usePortalHelpPopover<SecondaryHelpId>>; } = help
+  const calcRate: (expectedSales: number, expectedQty: number) => number | null = (expectedSales: number, expectedQty: number): number | null => {
     if (!Number.isFinite(expectedSales) || expectedSales <= 0) return null
     return (((expectedSales * (1 - Math.max(0, expectedFeeRatePct) / 100)) - (unitCost * expectedQty)) / expectedSales) * 100
   }
-  const forecastRate = calculationReady ? calcRate(computed.forecastExpectedSales, computed.recommendedOrderQtyTotal) : null
-  const confirmedRate = calculationReady ? calcRate(computed.confirmedExpectedSales, computed.confirmedOrderQtyTotal) : null
+  const forecastRate: number | null = calculationReady ? calcRate(computed.forecastExpectedSales, computed.recommendedOrderQtyTotal) : null
+  const confirmedRate: number | null = calculationReady ? calcRate(computed.confirmedExpectedSales, computed.confirmedOrderQtyTotal) : null
   const metricRows: Array<{ key: string; label: string; expected: string; confirmed: string; helpId?: HelpKey }> = [
     { key: 'orderQty', label: KO.rowOrderQty, helpId: 'forecastQtyCalc', expected: calculationReady ? formatGroupedNumber(computed.recommendedOrderQtyTotal) : KO.valueNotCalculated, confirmed: calculationReady ? formatGroupedNumber(computed.confirmedOrderQtyTotal) : KO.valueNotCalculated },
     { key: 'expectedSales', label: KO.rowExpectedSales, expected: calculationReady ? displayNumber.money(computed.forecastExpectedSales) : KO.valueNotCalculated, confirmed: calculationReady ? displayNumber.money(computed.confirmedExpectedSales) : KO.valueNotCalculated },
@@ -155,7 +154,7 @@ export function SalesForecastCard({ forecast, orderInputFields, actions, help }:
               </tr>
             </thead>
             <tbody>
-              {metricRows.map((row) => (
+              {metricRows.map((row: { key: string; label: string; expected: string; confirmed: string; helpId?: HelpKey; }) : React.JSX.Element => (
                 <tr key={row.key}>
                   <td>{row.helpId ? <HelpLabel label={row.label} helpId={row.helpId} labelIds={labelIds} portal={portal} /> : row.label}</td>
                   <td className={styles.num}>{row.expected}</td>

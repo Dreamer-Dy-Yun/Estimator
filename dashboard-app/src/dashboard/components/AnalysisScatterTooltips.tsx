@@ -7,9 +7,9 @@ export type AnalysisScatterTooltipProps = {
   payload?: ReadonlyArray<{ payload?: AnalysisScatterGridPoint }>
 }
 
-export function renderSelfSalesScatterTooltip({ active, payload }: AnalysisScatterTooltipProps) {
+export function renderSelfSalesScatterTooltip({ active, payload }: AnalysisScatterTooltipProps) : React.JSX.Element | null {
   if (!active || !payload?.length) return null
-  const point = payload[0]?.payload
+  const point: AnalysisScatterGridPoint | undefined = payload[0]?.payload
   if (!point) return null
 
   return (
@@ -28,10 +28,10 @@ export function renderSelfSalesScatterTooltip({ active, payload }: AnalysisScatt
   )
 }
 
-export function createCompetitorSalesScatterTooltip(competitorAxisLabel: string, selfCompanyLabel: string) {
-  return ({ active, payload }: AnalysisScatterTooltipProps) => {
+export function createCompetitorSalesScatterTooltip(competitorAxisLabel: string, selfCompanyLabel: string) : ({ active, payload }: AnalysisScatterTooltipProps) => React.JSX.Element | null {
+  return ({ active, payload }: AnalysisScatterTooltipProps) : React.JSX.Element | null => {
     if (!active || !payload?.length) return null
-    const point = payload[0]?.payload
+    const point: AnalysisScatterGridPoint | undefined = payload[0]?.payload
     if (!point) return null
 
     return (

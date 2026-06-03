@@ -1,7 +1,7 @@
 import type { ProductPrimarySummary, ProductSecondaryDetail } from '../types'
 
 /** Persisted order snapshot schema version. */
-export const ORDER_SNAPSHOT_SCHEMA_VERSION = 2 as const
+export const ORDER_SNAPSHOT_SCHEMA_VERSION: 2 = 2 as const
 
 /** Source ratio scale saved from API data: 0..1, not a display percent. */
 export type OrderSnapshotSourceRatio = number
@@ -108,12 +108,12 @@ export interface OrderSnapshotConfirmedTotalsV2 {
 }
 
 export function createOrderSnapshotPrimarySummary(primary: ProductPrimarySummary): OrderSnapshotPrimarySummaryV2 {
-  const { skuGroupKey, productName, brand, category, code, colorCode, price, qty, availableStock } = primary
+  const { skuGroupKey, productName, brand, category, code, colorCode, price, qty, availableStock }: ProductPrimarySummary = primary
   return { skuGroupKey, productName, brand, category, code, colorCode, price, qty, availableStock }
 }
 
 export function createOrderSnapshotStockOrderRequest(stockOrderRequest: OrderSnapshotStockOrderRequestV2): OrderSnapshotStockOrderRequestV2 {
-  const { currentOrderInboundDueDate, nextOrderInboundDueDate, leadTimeDays, dailyMeanOverride } = stockOrderRequest
+  const { currentOrderInboundDueDate, nextOrderInboundDueDate, leadTimeDays, dailyMeanOverride }: OrderSnapshotStockOrderRequestV2 = stockOrderRequest
   return {
     currentOrderInboundDueDate,
     nextOrderInboundDueDate,
@@ -124,12 +124,12 @@ export function createOrderSnapshotStockOrderRequest(stockOrderRequest: OrderSna
 
 export function createOrderSnapshotStockOrderResult(result: OrderSnapshotStockOrderResultV2 | null): OrderSnapshotStockOrderResultV2 | undefined {
   if (result == null) return undefined
-  const { display } = result
+  const { display }: OrderSnapshotStockOrderResultV2 = result
   return {
     ...result,
     display: {
       ...display,
-      sizeRows: display.sizeRows.map((row) => ({ ...row })),
+      sizeRows: display.sizeRows.map((row: OrderSnapshotStockOrderDisplaySizeRowV2) : { size: string; currentStockQty: number; totalOrderBalance: number; expectedInboundOrderBalance: number; } => ({ ...row })),
     },
     safetyStockCalc: { ...result.safetyStockCalc },
     forecastQtyCalc: { ...result.forecastQtyCalc },
@@ -137,7 +137,7 @@ export function createOrderSnapshotStockOrderResult(result: OrderSnapshotStockOr
 }
 
 export function createOrderSnapshotAiComment(aiComment: OrderSnapshotAiCommentV2): OrderSnapshotAiCommentV2 {
-  const { prompt, answer, generatedAt } = aiComment
+  const { prompt, answer, generatedAt }: OrderSnapshotAiCommentV2 = aiComment
   return {
     prompt,
     answer,
@@ -156,7 +156,7 @@ export function toProductPrimarySummaryFromSnapshotSummary(base: ProductPrimaryS
 }
 
 export function createOrderSnapshotCompetitorBasis(secondary: ProductSecondaryDetail): OrderSnapshotCompetitorBasisV2 {
-  const { skuGroupKey, competitorPrice, competitorQty, competitorRatioBySize } = secondary
+  const { skuGroupKey, competitorPrice, competitorQty, competitorRatioBySize }: ProductSecondaryDetail = secondary
   return {
     skuGroupKey,
     competitorPrice,

@@ -1,3 +1,4 @@
+import type { CompanySummary } from '../api'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { getAdminGoogleSheetConfigs, getCompanyUuidForOptionalScope, isAllCompanyUuid } from '../api'
 import type { AdminGoogleSheetConfigSummary } from '../api'
@@ -10,43 +11,43 @@ import { AdminListPanel } from './AdminListPanel'
 import { getErrorMessage } from './adminHelpers'
 import styles from './AdminPage.module.css'
 
-export function AdminGoogleSheetsPanel() {
-  const { showToast } = useAppToast()
-  const { companies, selectedCompanyUuid } = useAuth()
-  const [configs, setConfigs] = useState<AdminGoogleSheetConfigSummary[]>([])
-  const [errorMessage, setErrorMessage] = useState<string | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
-  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
-  const [selectedConfigUuid, setSelectedConfigUuid] = useState<string | null>(null)
-  const mountedRef = useRef(false)
-  const loadSequenceRef = useRef(0)
+export function AdminGoogleSheetsPanel() : React.JSX.Element {
+  const { showToast }: ReturnType<typeof useAppToast> = useAppToast()
+  const { companies, selectedCompanyUuid }: ReturnType<typeof useAuth> = useAuth()
+  const [configs, setConfigs]: [AdminGoogleSheetConfigSummary[], React.Dispatch<React.SetStateAction<AdminGoogleSheetConfigSummary[]>>] = useState<AdminGoogleSheetConfigSummary[]>([])
+  const [errorMessage, setErrorMessage]: [string | null, React.Dispatch<React.SetStateAction<string | null>>] = useState<string | null>(null)
+  const [isLoading, setIsLoading]: [boolean, React.Dispatch<React.SetStateAction<boolean>>] = useState(true)
+  const [isCreateDialogOpen, setIsCreateDialogOpen]: [boolean, React.Dispatch<React.SetStateAction<boolean>>] = useState(false)
+  const [selectedConfigUuid, setSelectedConfigUuid]: [string | null, React.Dispatch<React.SetStateAction<string | null>>] = useState<string | null>(null)
+  const mountedRef: React.RefObject<boolean> = useRef(false)
+  const loadSequenceRef: React.RefObject<number> = useRef(0)
 
-  const concreteCompanies = useMemo(
-    () => companies.filter((company) => !isAllCompanyUuid(company.uuid)),
+  const concreteCompanies: CompanySummary[] = useMemo(
+    () : CompanySummary[] => companies.filter((company: CompanySummary) : boolean => !isAllCompanyUuid(company.uuid)),
     [companies],
   )
-  const selectedListCompanyUuid = useMemo(
-    () => getCompanyUuidForOptionalScope(selectedCompanyUuid),
+  const selectedListCompanyUuid: string | undefined = useMemo(
+    () : string | undefined => getCompanyUuidForOptionalScope(selectedCompanyUuid),
     [selectedCompanyUuid],
   )
-  const selectedConfig = configs.find((config) => config.uuid === selectedConfigUuid) ?? null
-  const defaultCreateCompanyUuid = selectedListCompanyUuid ?? concreteCompanies[0]?.uuid ?? ''
-  const canCreate = concreteCompanies.length > 0
+  const selectedConfig: AdminGoogleSheetConfigSummary | null = configs.find((config: AdminGoogleSheetConfigSummary) : boolean => config.uuid === selectedConfigUuid) ?? null
+  const defaultCreateCompanyUuid: string = selectedListCompanyUuid ?? concreteCompanies[0]?.uuid ?? ''
+  const canCreate: boolean = concreteCompanies.length > 0
 
-  const loadConfigs = useCallback(async () => {
+  const loadConfigs: () => Promise<AdminGoogleSheetConfigSummary[]> = useCallback(async () : Promise<AdminGoogleSheetConfigSummary[]> => {
     return getAdminGoogleSheetConfigs({ companyUuid: selectedListCompanyUuid })
   }, [selectedListCompanyUuid])
 
-  const reloadConfigs = useCallback(async () => {
-    const loadSequence = loadSequenceRef.current + 1
+  const reloadConfigs: () => Promise<void> = useCallback(async () : Promise<void> => {
+    const loadSequence: number = loadSequenceRef.current + 1
     loadSequenceRef.current = loadSequence
-    const isCurrentLoad = () => mountedRef.current && loadSequenceRef.current === loadSequence
+    const isCurrentLoad: () => boolean = () : boolean => mountedRef.current && loadSequenceRef.current === loadSequence
     if (mountedRef.current) {
       setIsLoading(true)
       setErrorMessage(null)
     }
     try {
-      const nextConfigs = await loadConfigs()
+      const nextConfigs: AdminGoogleSheetConfigSummary[] = await loadConfigs()
       if (isCurrentLoad()) setConfigs(nextConfigs)
     } catch (error) {
       if (!isCurrentLoad()) return
@@ -57,31 +58,31 @@ export function AdminGoogleSheetsPanel() {
     }
   }, [loadConfigs])
 
-  useEffect(() => {
+  useEffect(() : () => void => {
     mountedRef.current = true
-    let alive = true
-    const loadSequence = loadSequenceRef.current + 1
+    let alive: boolean = true
+    const loadSequence: number = loadSequenceRef.current + 1
     loadSequenceRef.current = loadSequence
-    const isCurrentLoad = () => loadSequenceRef.current === loadSequence
+    const isCurrentLoad: () => boolean = () : boolean => loadSequenceRef.current === loadSequence
     loadConfigs()
-      .then((nextConfigs) => {
+      .then((nextConfigs: AdminGoogleSheetConfigSummary[]) : void => {
         if (alive && isCurrentLoad()) setConfigs(nextConfigs)
       })
-      .catch((error) => {
+      .catch((error: unknown) : void => {
         if (!isCurrentLoad()) return
         if (alive) setErrorMessage(getErrorMessage(error, '구글 시트 설정을 불러오지 못했습니다.'))
       })
-      .finally(() => {
+      .finally(() : void => {
         if (alive && isCurrentLoad()) setIsLoading(false)
       })
-    return () => {
+    return () : void => {
       alive = false
       mountedRef.current = false
       loadSequenceRef.current += 1
     }
   }, [loadConfigs])
 
-  const handleDeleted = async () => {
+  const handleDeleted: () => Promise<void> = async () : Promise<void> => {
     await reloadConfigs()
     if (!mountedRef.current) return
     setSelectedConfigUuid(null)
@@ -104,17 +105,17 @@ export function AdminGoogleSheetsPanel() {
             type="button"
             disabled={!canCreate}
             title={canCreate ? undefined : '등록 가능한 회사가 없습니다.'}
-            onClick={() => setIsCreateDialogOpen(true)}
+            onClick={() : void => setIsCreateDialogOpen(true)}
           >
             구글 시트 추가
           </button>
         }
       >
-        {configs.map((config) => (
+        {configs.map((config: AdminGoogleSheetConfigSummary) : React.JSX.Element => (
           <AdminGoogleSheetRow
             key={config.uuid}
             config={config}
-            onOpen={(nextConfig) => setSelectedConfigUuid(nextConfig.uuid)}
+            onOpen={(nextConfig: AdminGoogleSheetConfigSummary) : void => setSelectedConfigUuid(nextConfig.uuid)}
           />
         ))}
       </AdminListPanel>
@@ -122,7 +123,7 @@ export function AdminGoogleSheetsPanel() {
         <AdminGoogleSheetCreateDialog
           companies={concreteCompanies}
           defaultCompanyUuid={defaultCreateCompanyUuid}
-          onClose={() => setIsCreateDialogOpen(false)}
+          onClose={() : void => setIsCreateDialogOpen(false)}
           onCreated={reloadConfigs}
         />
       ) : null}
@@ -131,7 +132,7 @@ export function AdminGoogleSheetsPanel() {
           key={selectedConfig.uuid}
           config={selectedConfig}
           companies={concreteCompanies}
-          onClose={() => setSelectedConfigUuid(null)}
+          onClose={() : void => setSelectedConfigUuid(null)}
           onChanged={reloadConfigs}
           onDeleted={handleDeleted}
         />

@@ -4,7 +4,7 @@ import { AdminGptKeysPanel } from './AdminGptKeysPanel'
 import { AdminUsersPanel } from './AdminUsersPanel'
 import styles from './AdminPage.module.css'
 
-type AdminTab = 'users' | 'gpt-keys' | 'google-sheets'
+export type AdminTab = 'users' | 'gpt-keys' | 'google-sheets'
 
 const ADMIN_TABS: Array<{ value: AdminTab; label: string }> = [
   { value: 'users', label: '사용자 관리' },
@@ -18,9 +18,9 @@ const HEADER_META: Record<AdminTab, string> = {
   'google-sheets': 'Google Sheets API 연결에 필요한 서비스 계정, 시트 주소, 용도, 비고를 관리합니다.',
 }
 
-export function AdminPage() {
-  const [activeTab, setActiveTab] = useState<AdminTab>('users')
-  const headerMeta = HEADER_META[activeTab]
+export function AdminPage() : React.JSX.Element {
+  const [activeTab, setActiveTab]: [AdminTab, React.Dispatch<React.SetStateAction<AdminTab>>] = useState<AdminTab>('users')
+  const headerMeta: string = HEADER_META[activeTab]
 
   return (
     <section className={styles.adminPage}>
@@ -28,13 +28,13 @@ export function AdminPage() {
         <div>
           <div className={styles.headerActionRow}>
             <nav className={styles.tabBar} aria-label="관리자 메뉴">
-              {ADMIN_TABS.map((tab) => (
+              {ADMIN_TABS.map((tab: { value: AdminTab; label: string; }) : React.JSX.Element => (
                 <button
                   key={tab.value}
                   type="button"
                   className={`${styles.tabButton} ${activeTab === tab.value ? styles.tabButtonSelected : ''}`.trim()}
                   aria-current={activeTab === tab.value ? 'page' : undefined}
-                  onClick={() => setActiveTab(tab.value)}
+                  onClick={() : void => setActiveTab(tab.value)}
                 >
                   {tab.label}
                 </button>

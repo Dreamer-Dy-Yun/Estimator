@@ -5,38 +5,38 @@ import {
   type PortalHelpPlacement,
 } from './portalHelpPopoverPosition'
 
-const DEFAULT_W = 260
-const DEFAULT_PAD = 8
-const DEFAULT_EST_H = 140
+const DEFAULT_W = 260 as const
+const DEFAULT_PAD = 8 as const
+const DEFAULT_EST_H = 140 as const
 
-export function usePortalHelpPopover<T extends string>(options?: PortalHelpPopoverOptions) {
-  const width = options?.width ?? DEFAULT_W
-  const pad = options?.pad ?? DEFAULT_PAD
-  const estH = options?.estHeight ?? DEFAULT_EST_H
-  const closeDelayMs = options?.closeDelayMs ?? 180
+export function usePortalHelpPopover<T extends string>(options?: PortalHelpPopoverOptions) : { activeId: T | null; activePlacement: PortalHelpPlacement; position: { top: number; left: number; }; setAnchor: (id: T) => (el: HTMLElement | null) => void; open: (id: T, placement: PortalHelpPlacement) => void; updateMeasuredBox: (measuredWidth: number, measuredHeight: number) => void; scheduleClose: () => void; cancelClose: () => void; close: () => void; } {
+  const width: number = options?.width ?? DEFAULT_W
+  const pad: number = options?.pad ?? DEFAULT_PAD
+  const estH: number = options?.estHeight ?? DEFAULT_EST_H
+  const closeDelayMs: number = options?.closeDelayMs ?? 180
 
-  const [activeId, setActiveId] = useState<T | null>(null)
-  const [activePlacement, setActivePlacement] = useState<PortalHelpPlacement>('above')
-  const [activeAnchorRect, setActiveAnchorRect] = useState<DOMRect | null>(null)
-  const [position, setPosition] = useState({ top: 0, left: 0 })
-  const anchorsRef = useRef(new Map<T, HTMLElement>())
-  const closeTimerRef = useRef<number | null>(null)
+  const [activeId, setActiveId]: [T | null, React.Dispatch<React.SetStateAction<T | null>>] = useState<T | null>(null)
+  const [activePlacement, setActivePlacement]: [PortalHelpPlacement, React.Dispatch<React.SetStateAction<PortalHelpPlacement>>] = useState<PortalHelpPlacement>('above')
+  const [activeAnchorRect, setActiveAnchorRect]: [DOMRect | null, React.Dispatch<React.SetStateAction<DOMRect | null>>] = useState<DOMRect | null>(null)
+  const [position, setPosition]: [{ top: number; left: number; }, React.Dispatch<React.SetStateAction<{ top: number; left: number; }>>] = useState({ top: 0, left: 0 })
+  const anchorsRef: React.RefObject<Map<T, HTMLElement>> = useRef(new Map<T, HTMLElement>())
+  const closeTimerRef: React.RefObject<number | null> = useRef<number | null>(null)
 
-  const setAnchor = useCallback((id: T) => (el: HTMLElement | null) => {
-    const m = anchorsRef.current
+  const setAnchor: (id: T) => (el: HTMLElement | null) => void = useCallback((id: T) : (el: HTMLElement | null) => void => (el: HTMLElement | null) : void => {
+    const m: Map<T, HTMLElement> = anchorsRef.current
     if (el) m.set(id, el)
     else m.delete(id)
   }, [])
 
-  const open = useCallback(
-    (id: T, placement: PortalHelpPlacement) => {
+  const open: (id: T, placement: PortalHelpPlacement) => void = useCallback(
+    (id: T, placement: PortalHelpPlacement) : void => {
       if (closeTimerRef.current) {
         window.clearTimeout(closeTimerRef.current)
         closeTimerRef.current = null
       }
-      const el = anchorsRef.current.get(id)
+      const el: HTMLElement | undefined = anchorsRef.current.get(id)
       if (!el) return
-      const rect = el.getBoundingClientRect()
+      const rect: DOMRect = el.getBoundingClientRect()
       setPosition(
         computeHelpPopoverPosition(rect, placement, {
           width,
@@ -51,44 +51,44 @@ export function usePortalHelpPopover<T extends string>(options?: PortalHelpPopov
     [estH, pad, width],
   )
 
-  const updateMeasuredBox = useCallback(
-    (measuredWidth: number, measuredHeight: number) => {
+  const updateMeasuredBox: (measuredWidth: number, measuredHeight: number) => void = useCallback(
+    (measuredWidth: number, measuredHeight: number) : void => {
       if (!activeAnchorRect) return
-      const w = Number.isFinite(measuredWidth) && measuredWidth > 0 ? measuredWidth : width
-      const h = Number.isFinite(measuredHeight) && measuredHeight > 0 ? measuredHeight : estH
-      const next = computeHelpPopoverPosition(activeAnchorRect, activePlacement, {
+      const w: number = Number.isFinite(measuredWidth) && measuredWidth > 0 ? measuredWidth : width
+      const h: number = Number.isFinite(measuredHeight) && measuredHeight > 0 ? measuredHeight : estH
+      const next: { top: number; left: number; } = computeHelpPopoverPosition(activeAnchorRect, activePlacement, {
         width: w,
         pad,
         estHeight: h,
       })
-      setPosition((prev) => (
+      setPosition((prev: { top: number; left: number; }) : { top: number; left: number; } => (
         prev.top === next.top && prev.left === next.left ? prev : next
       ))
     },
     [activeAnchorRect, activePlacement, estH, pad, width],
   )
 
-  const scheduleClose = useCallback(() => {
-    closeTimerRef.current = window.setTimeout(() => {
+  const scheduleClose: () => void = useCallback(() : void => {
+    closeTimerRef.current = window.setTimeout(() : void => {
       setActiveId(null)
       closeTimerRef.current = null
     }, closeDelayMs)
   }, [closeDelayMs])
 
-  const cancelClose = useCallback(() => {
+  const cancelClose: () => void = useCallback(() : void => {
     if (closeTimerRef.current) {
       window.clearTimeout(closeTimerRef.current)
       closeTimerRef.current = null
     }
   }, [])
 
-  const close = useCallback(() => {
+  const close: () => void = useCallback(() : void => {
     cancelClose()
     setActiveId(null)
   }, [cancelClose])
 
-  useEffect(() => {
-    return () => {
+  useEffect(() : () => void => {
+    return () : void => {
       if (closeTimerRef.current) {
         window.clearTimeout(closeTimerRef.current)
       }

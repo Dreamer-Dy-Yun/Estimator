@@ -1,9 +1,9 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import styles from './FilterListCombo.module.css'
 
-type PanelRect = { top: number; left: number; width: number }
-type Props = {
+export type PanelRect = { top: number; left: number; width: number }
+export type Props = {
   inputId: string
   value: string
   onChange: (next: string) => void
@@ -12,78 +12,78 @@ type Props = {
   disabled?: boolean
 }
 
-const ALL_OPTION_LABEL = '전체'
-const NO_MATCH_LABEL = '검색 결과가 없습니다.'
-const isArrowOpenKey = (key: string) => key === 'ArrowDown' || key === 'ArrowUp'
-const isAllOption = (option: string) => option.trim() === ALL_OPTION_LABEL
+const ALL_OPTION_LABEL = '전체' as const
+const NO_MATCH_LABEL = '검색 결과가 없습니다.' as const
+const isArrowOpenKey: (key: string) => key is 'ArrowDown' | 'ArrowUp' = (key: string) : key is 'ArrowDown' | 'ArrowUp' => key === 'ArrowDown' || key === 'ArrowUp'
+const isAllOption: (option: string) => boolean = (option: string) : boolean => option.trim() === ALL_OPTION_LABEL
 
-export function FilterListCombo({ inputId, value, onChange, options, inputType = 'text', disabled = false }: Props) {
-  const wrapRef = useRef<HTMLDivElement | null>(null)
-  const [open, setOpen] = useState(false)
-  const [activeIdx, setActiveIdx] = useState(-1)
-  const [panelRect, setPanelRect] = useState<PanelRect | null>(null)
-  const comboOpen = open && !disabled
-  const valueIsAllOption = isAllOption(value)
-  const filtered = useMemo(() => {
+export function FilterListCombo({ inputId, value, onChange, options, inputType = 'text', disabled = false }: Props) : React.JSX.Element {
+  const wrapRef: React.RefObject<HTMLDivElement | null> = useRef<HTMLDivElement | null>(null)
+  const [open, setOpen]: [boolean, React.Dispatch<React.SetStateAction<boolean>>] = useState(false)
+  const [activeIdx, setActiveIdx]: [number, React.Dispatch<React.SetStateAction<number>>] = useState(-1)
+  const [panelRect, setPanelRect]: [PanelRect | null, React.Dispatch<React.SetStateAction<PanelRect | null>>] = useState<PanelRect | null>(null)
+  const comboOpen: boolean = open && !disabled
+  const valueIsAllOption: boolean = isAllOption(value)
+  const filtered: string[] = useMemo(() : string[] => {
     if (disabled) return []
-    const q = value.trim().toLowerCase()
+    const q: string = value.trim().toLowerCase()
     if (!q || q === ALL_OPTION_LABEL.toLowerCase()) return options
 
-    const allOptions = options.filter(isAllOption)
-    const matchedOptions = options.filter((option) => !isAllOption(option) && option.toLowerCase().includes(q))
+    const allOptions: string[] = options.filter(isAllOption)
+    const matchedOptions: string[] = options.filter((option: string) : boolean => !isAllOption(option) && option.toLowerCase().includes(q))
     return [...allOptions, ...matchedOptions]
   }, [disabled, options, value])
-  const showList = comboOpen && options.length > 0 && filtered.length > 0
-  const showNoMatch = comboOpen
+  const showList: boolean = comboOpen && options.length > 0 && filtered.length > 0
+  const showNoMatch: boolean = comboOpen
     && options.length > 0
     && value.trim() !== ''
     && value.trim().toLowerCase() !== ALL_OPTION_LABEL.toLowerCase()
     && filtered.every(isAllOption)
-  const panelVisible = showList || showNoMatch
+  const panelVisible: boolean = showList || showNoMatch
 
-  const updatePanelRect = useCallback(() => {
-    const rect = wrapRef.current?.getBoundingClientRect()
+  const updatePanelRect: () => void = useCallback(() : void => {
+    const rect: DOMRect | undefined = wrapRef.current?.getBoundingClientRect()
     if (rect) setPanelRect({ top: rect.bottom + 4, left: rect.left, width: Math.max(160, rect.width) })
   }, [])
-  const close = useCallback(() => {
+  const close: () => void = useCallback(() : void => {
     setOpen(false)
     setActiveIdx(-1)
     setPanelRect(null)
   }, [])
-  const pick = useCallback((next: string) => {
+  const pick: (next: string) => void = useCallback((next: string) : void => {
     onChange(next)
     close()
   }, [close, onChange])
-  const openOptions = useCallback(() => {
+  const openOptions: () => void = useCallback(() : void => {
     if (disabled) return
     updatePanelRect()
     setOpen(options.length > 0)
     setActiveIdx(-1)
   }, [disabled, options.length, updatePanelRect])
 
-  useLayoutEffect(() => {
+  useLayoutEffect(() : (() => void) | undefined => {
     if (!comboOpen) return
-    const frameId = window.requestAnimationFrame(updatePanelRect)
+    const frameId: number = window.requestAnimationFrame(updatePanelRect)
     window.addEventListener('resize', updatePanelRect)
     window.addEventListener('scroll', updatePanelRect, true)
-    return () => {
+    return () : void => {
       window.cancelAnimationFrame(frameId)
       window.removeEventListener('resize', updatePanelRect)
       window.removeEventListener('scroll', updatePanelRect, true)
     }
   }, [comboOpen, filtered.length, updatePanelRect, value])
 
-  useEffect(() => {
+  useEffect(() : (() => void) | undefined => {
     if (!comboOpen) return
-    const onDocumentMouseDown = (event: MouseEvent) => {
-      const target = event.target as Node
+    const onDocumentMouseDown: (event: MouseEvent) => void = (event: MouseEvent) : void => {
+      const target: Node = event.target as Node
       if (!wrapRef.current?.contains(target) && !(event.target as HTMLElement | null)?.closest?.('[data-filter-combo-panel]')) close()
     }
     document.addEventListener('mousedown', onDocumentMouseDown)
-    return () => document.removeEventListener('mousedown', onDocumentMouseDown)
+    return () : void => document.removeEventListener('mousedown', onDocumentMouseDown)
   }, [close, comboOpen])
 
-  const onKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
+  const onKeyDown: (event: React.KeyboardEvent<HTMLInputElement>) => void = (event: React.KeyboardEvent<HTMLInputElement>) : void => {
     if (disabled) return
     if (!comboOpen && isArrowOpenKey(event.key) && filtered.length > 0) {
       updatePanelRect()
@@ -99,7 +99,7 @@ export function FilterListCombo({ inputId, value, onChange, options, inputType =
       return
     }
     if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
-      setActiveIdx((idx) => (filtered.length === 0 ? -1 : event.key === 'ArrowDown' ? (idx + 1) % filtered.length : idx <= 0 ? filtered.length - 1 : idx - 1))
+      setActiveIdx((idx: number) : number => (filtered.length === 0 ? -1 : event.key === 'ArrowDown' ? (idx + 1) % filtered.length : idx <= 0 ? filtered.length - 1 : idx - 1))
       event.preventDefault()
       return
     }
@@ -109,11 +109,11 @@ export function FilterListCombo({ inputId, value, onChange, options, inputType =
     }
   }
 
-  const panelNode = panelRect && panelVisible ? (
+  const panelNode: React.JSX.Element | null = panelRect && panelVisible ? (
     <div className={styles.panelFixed} data-filter-combo-panel style={{ top: panelRect.top, left: panelRect.left, width: panelRect.width }} role="presentation">
       {showList ? (
         <ul className={styles.panelInner} role="listbox" id={`${inputId}-listbox`}>
-          {filtered.map((option, index) => (
+          {filtered.map((option: string, index: number) : React.JSX.Element => (
             <li key={option} role="presentation">
               <button
                 type="button"
@@ -121,9 +121,9 @@ export function FilterListCombo({ inputId, value, onChange, options, inputType =
                 role="option"
                 aria-selected={index === activeIdx}
                 className={`${styles.option} ${isAllOption(option) ? styles.optionAll : ''} ${index === activeIdx ? styles.optionActive : ''}`}
-                onMouseDown={(event) => event.preventDefault()}
-                onMouseEnter={() => setActiveIdx(index)}
-                onClick={() => pick(option)}
+                onMouseDown={(event: React.MouseEvent<HTMLButtonElement, MouseEvent>) : void => event.preventDefault()}
+                onMouseEnter={() : void => setActiveIdx(index)}
+                onClick={() : void => pick(option)}
               >
                 {option}
               </button>
@@ -147,9 +147,9 @@ export function FilterListCombo({ inputId, value, onChange, options, inputType =
         aria-activedescendant={showList && activeIdx >= 0 ? `${inputId}-opt-${activeIdx}` : undefined}
         value={value}
         disabled={disabled}
-        onChange={(event) => {
+        onChange={(event: React.ChangeEvent<HTMLInputElement, HTMLInputElement>) : void => {
           if (disabled) return
-          const nextValue = valueIsAllOption
+          const nextValue: string = valueIsAllOption
             ? event.target.value.replace(ALL_OPTION_LABEL, '')
             : event.target.value
           onChange(nextValue)
@@ -157,7 +157,7 @@ export function FilterListCombo({ inputId, value, onChange, options, inputType =
           setActiveIdx(-1)
           setOpen(options.length > 0)
         }}
-        onFocus={(event) => {
+        onFocus={(event: React.FocusEvent<HTMLInputElement, Element>) : void => {
           if (disabled) return
           if (valueIsAllOption && inputType === 'text') event.currentTarget.select()
           openOptions()

@@ -1,5 +1,5 @@
 import { createPortal } from 'react-dom'
-import { useLayoutEffect, useRef, type ReactNode } from 'react'
+import { useLayoutEffect, useRef } from 'react'
 import type { PortalHelpPlacement } from './portalHelpPopoverPosition'
 import { usePortalHelpPopover } from './usePortalHelpPopover'
 
@@ -21,8 +21,8 @@ export function PortalHelpMark<T extends string>({
   markClassName,
   help,
   stopMouseDownPropagation,
-}: PortalHelpMarkProps<T>) {
-  const { activeId, setAnchor, open, scheduleClose } = help
+}: PortalHelpMarkProps<T>) : React.JSX.Element {
+  const { activeId, setAnchor, open, scheduleClose }: { activeId: T | null; activePlacement: PortalHelpPlacement; position: { top: number; left: number; }; setAnchor: (id: T) => (el: HTMLElement | null) => void; open: (id: T, placement: PortalHelpPlacement) => void; updateMeasuredBox: (measuredWidth: number, measuredHeight: number) => void; scheduleClose: () => void; cancelClose: () => void; close: () => void; } = help
   return (
     <span
       ref={setAnchor(helpId)}
@@ -30,11 +30,11 @@ export function PortalHelpMark<T extends string>({
       tabIndex={0}
       aria-describedby={activeId === helpId ? labelId : undefined}
       aria-expanded={activeId === helpId}
-      onMouseEnter={() => open(helpId, placement)}
+      onMouseEnter={() : void => open(helpId, placement)}
       onMouseLeave={scheduleClose}
-      onFocus={() => open(helpId, placement)}
+      onFocus={() : void => open(helpId, placement)}
       onBlur={scheduleClose}
-      onMouseDown={stopMouseDownPropagation ? (e) => e.stopPropagation() : undefined}
+      onMouseDown={stopMouseDownPropagation ? (e: React.MouseEvent<HTMLSpanElement, MouseEvent>) : void => e.stopPropagation() : undefined}
     >
       <span aria-hidden>?</span>
     </span>
@@ -45,7 +45,7 @@ type PortalHelpPopoverLayerProps<T extends string> = {
   help: ReturnType<typeof usePortalHelpPopover<T>>
   popoverClassName: string
   getTooltipId: (id: T) => string
-  children: (id: T) => ReactNode
+  children: (id: T) => React.ReactNode
 }
 
 export function PortalHelpPopoverLayer<T extends string>({
@@ -53,16 +53,16 @@ export function PortalHelpPopoverLayer<T extends string>({
   popoverClassName,
   getTooltipId,
   children,
-}: PortalHelpPopoverLayerProps<T>) {
-  const { activeId, position, updateMeasuredBox, scheduleClose, cancelClose } = help
-  const popRef = useRef<HTMLDivElement | null>(null)
+}: PortalHelpPopoverLayerProps<T>) : React.ReactPortal | null {
+  const { activeId, position, updateMeasuredBox, scheduleClose, cancelClose }: { activeId: T | null; activePlacement: PortalHelpPlacement; position: { top: number; left: number; }; setAnchor: (id: T) => (el: HTMLElement | null) => void; open: (id: T, placement: PortalHelpPlacement) => void; updateMeasuredBox: (measuredWidth: number, measuredHeight: number) => void; scheduleClose: () => void; cancelClose: () => void; close: () => void; } = help
+  const popRef: React.RefObject<HTMLDivElement | null> = useRef<HTMLDivElement | null>(null)
 
-  useLayoutEffect(() => {
+  useLayoutEffect(() : void => {
     if (activeId == null) return
-    const el = popRef.current
+    const el: HTMLDivElement | null = popRef.current
     if (!el) return
-    const w = el.offsetWidth
-    const h = el.offsetHeight
+    const w: number = el.offsetWidth
+    const h: number = el.offsetHeight
     if (!h || h <= 0) return
     updateMeasuredBox(w, h)
   }, [activeId, updateMeasuredBox])

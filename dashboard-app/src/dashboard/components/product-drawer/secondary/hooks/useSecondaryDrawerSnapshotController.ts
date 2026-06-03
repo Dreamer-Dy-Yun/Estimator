@@ -1,16 +1,17 @@
-import { useCallback, useEffect, useMemo, useState, type Dispatch, type SetStateAction } from 'react'
+import type { OrderSnapshotSizeOrderV2 } from '../../../../../snapshot/orderSnapshotTypes'
+import { useCallback, useEffect, useMemo, useState,} from 'react'
 import type { OrderSnapshotAiCommentV2, OrderSnapshotDocumentV2 } from '../../../../../snapshot/orderSnapshotTypes'
 import type { CandidateItemPanelContext } from '../secondaryDrawerTypes'
 import type { InboundDueDateDefaults } from './useSecondaryInboundDueDates'
 import { useSecondarySnapshotPrefill } from './useSecondarySnapshotPrefill'
 
-type LiveOrderUnitSource = {
+export type LiveOrderUnitSource = {
   avgCost?: number | null
   avgPrice: number
   feeRatePct?: number | null
 }
 
-type SnapshotControllerArgs = {
+export type SnapshotControllerArgs = {
   prefillFromSnapshot: OrderSnapshotDocumentV2 | null
   candidateItemContext: CandidateItemPanelContext | null
   primarySkuGroupKey: string
@@ -24,7 +25,7 @@ type SnapshotControllerArgs = {
   resetInboundDueDatesToLive: () => void
 }
 
-type DraftEmissionArgs = {
+export type DraftEmissionArgs = {
   candidateItemContext: CandidateItemPanelContext | null
   buildSnapshot: () => OrderSnapshotDocumentV2
   canBuildSnapshot?: boolean
@@ -34,18 +35,18 @@ type DraftEmissionArgs = {
   confirmedBaselineDraftDirty: boolean
 }
 
-type LiveUnitDefaultsArgs = {
+export type LiveUnitDefaultsArgs = {
   prefillFromSnapshot: OrderSnapshotDocumentV2 | null
   primarySkuGroupKey: string
   liveOrderUnitSource: LiveOrderUnitSource | null
   applyLiveOrderUnitInputs: (source: LiveOrderUnitSource) => void
 }
 
-const DEFAULT_BUFFER_STOCK = 0
-const DEFAULT_SELF_WEIGHT_PCT = 50
+const DEFAULT_BUFFER_STOCK = 0 as const
+const DEFAULT_SELF_WEIGHT_PCT = 50 as const
 
-const roundNonNegative = (value: number) => Math.max(0, Math.round(value))
-const roundFeeRatePct = (value: number) => Math.max(0, Math.round(value * 10) / 10)
+const roundNonNegative: (value: number) => number = (value: number) : number => Math.max(0, Math.round(value))
+const roundFeeRatePct: (value: number) => number = (value: number) : number => Math.max(0, Math.round(value * 10) / 10)
 
 export function useSecondaryDrawerSnapshotController({
   prefillFromSnapshot,
@@ -59,23 +60,23 @@ export function useSecondaryDrawerSnapshotController({
   setNextOrderInboundDueDate,
   setAiComment,
   resetInboundDueDatesToLive,
-}: SnapshotControllerArgs) {
-  const [dailyMeanClient, setDailyMeanClient] = useState<number | null>(null)
-  const [bufferStock, setBufferStock] = useState(DEFAULT_BUFFER_STOCK)
-  const [unitCostInput, setUnitCostInput] = useState(0)
-  const [unitPriceInput, setUnitPriceInput] = useState(roundNonNegative(primaryPrice))
-  const [expectedFeeRatePct, setExpectedFeeRatePct] = useState(0)
-  const [selfWeightPct, setSelfWeightPct] = useState(DEFAULT_SELF_WEIGHT_PCT)
-  const [confirmBySize, setConfirmBySize] = useState<Record<string, number>>({})
-  const [snapshotConfirmBaselineActive, setSnapshotConfirmBaselineActive] = useState(
-    () => prefillFromSnapshot != null && candidateItemContext?.hydrateSnapshotSource === 'confirmed',
+}: SnapshotControllerArgs) : { dailyMeanClient: number | null; setDailyMeanClient: (value: React.SetStateAction<number | null>) => void; bufferStock: number; setBufferStock: (value: React.SetStateAction<number>) => void; unitCostInput: number; setUnitCostInput: (value: React.SetStateAction<number>) => void; unitPriceInput: number; setUnitPriceInput: (value: React.SetStateAction<number>) => void; expectedFeeRatePct: number; setExpectedFeeRatePct: (value: React.SetStateAction<number>) => void; selfWeightPct: number; setSelfWeightPct: (value: React.SetStateAction<number>) => void; confirmBySize: Record<string, number>; setConfirmBySize: React.Dispatch<React.SetStateAction<Record<string, number>>>; hasSavedSnapshot: boolean; prefillKey: string | null; appliedPrefillKey: string | null; snapshotConfirmBySize: { [k: string]: number; }; snapshotConfirmBaselineActive: boolean; confirmedBaselineDraftDirty: boolean; markConfirmedBaselineDraftDirty: () => void; applyLiveOrderUnitInputs: (source: LiveOrderUnitSource) => void; handleResetToLive: (liveOrderUnitSource: LiveOrderUnitSource) => void; handleRestoreConfirmed: () => void; } {
+  const [dailyMeanClient, setDailyMeanClient]: [number | null, React.Dispatch<React.SetStateAction<number | null>>] = useState<number | null>(null)
+  const [bufferStock, setBufferStock]: [number, React.Dispatch<React.SetStateAction<number>>] = useState<number>(DEFAULT_BUFFER_STOCK)
+  const [unitCostInput, setUnitCostInput]: [number, React.Dispatch<React.SetStateAction<number>>] = useState(0)
+  const [unitPriceInput, setUnitPriceInput]: [number, React.Dispatch<React.SetStateAction<number>>] = useState(roundNonNegative(primaryPrice))
+  const [expectedFeeRatePct, setExpectedFeeRatePct]: [number, React.Dispatch<React.SetStateAction<number>>] = useState(0)
+  const [selfWeightPct, setSelfWeightPct]: [number, React.Dispatch<React.SetStateAction<number>>] = useState<number>(DEFAULT_SELF_WEIGHT_PCT)
+  const [confirmBySize, setConfirmBySize]: [Record<string, number>, React.Dispatch<React.SetStateAction<Record<string, number>>>] = useState<Record<string, number>>({})
+  const [snapshotConfirmBaselineActive, setSnapshotConfirmBaselineActive]: [boolean, React.Dispatch<React.SetStateAction<boolean>>] = useState(
+    () : boolean => prefillFromSnapshot != null && candidateItemContext?.hydrateSnapshotSource === 'confirmed',
   )
-  const [confirmedBaselineDraftDirty, setConfirmedBaselineDraftDirty] = useState(false)
-  const [appliedPrefillKey, setAppliedPrefillKey] = useState<string | null>(null)
+  const [confirmedBaselineDraftDirty, setConfirmedBaselineDraftDirty]: [boolean, React.Dispatch<React.SetStateAction<boolean>>] = useState(false)
+  const [appliedPrefillKey, setAppliedPrefillKey]: [string | null, React.Dispatch<React.SetStateAction<string | null>>] = useState<string | null>(null)
 
-  const hasSavedSnapshot = Boolean(candidateItemContext?.confirmedSnapshot)
-  const prefillKey = useMemo(
-    () => (prefillFromSnapshot == null
+  const hasSavedSnapshot: boolean = Boolean(candidateItemContext?.confirmedSnapshot)
+  const prefillKey: string | null = useMemo(
+    () : string | null => (prefillFromSnapshot == null
       ? null
       : [
           candidateItemContext?.itemUuid ?? primarySkuGroupKey,
@@ -85,55 +86,55 @@ export function useSecondaryDrawerSnapshotController({
         ].join('|')),
     [candidateItemContext?.itemUuid, prefillFromSnapshot, primarySkuGroupKey],
   )
-  const snapshotConfirmBySize = useMemo(
-    () => (prefillFromSnapshot == null
+  const snapshotConfirmBySize: { [k: string]: number; } = useMemo(
+    () : { [k: string]: number; } => (prefillFromSnapshot == null
       ? {}
-      : Object.fromEntries(prefillFromSnapshot.drawer2.sizeOrders.map((row) => [row.size, row.confirmQty]))),
+      : Object.fromEntries(prefillFromSnapshot.drawer2.sizeOrders.map((row: OrderSnapshotSizeOrderV2) : [string, number] => [row.size, row.confirmQty]))),
     [prefillFromSnapshot],
   )
-  const applyLiveOrderUnitInputs = useCallback((source: LiveOrderUnitSource) => {
+  const applyLiveOrderUnitInputs: (source: LiveOrderUnitSource) => void = useCallback((source: LiveOrderUnitSource) : void => {
     setUnitPriceInput(roundNonNegative(source.avgPrice))
     if (source.avgCost != null) setUnitCostInput(roundNonNegative(source.avgCost))
     if (source.feeRatePct != null) setExpectedFeeRatePct(roundFeeRatePct(source.feeRatePct))
   }, [])
-  const markConfirmedBaselineDraftDirty = useCallback(() => {
+  const markConfirmedBaselineDraftDirty: () => void = useCallback(() : void => {
     setConfirmedBaselineDraftDirty(true)
   }, [])
-  const setDraftDailyMeanClient = useCallback((value: SetStateAction<number | null>) => {
+  const setDraftDailyMeanClient: (value: React.SetStateAction<number | null>) => void = useCallback((value: React.SetStateAction<number | null>) : void => {
     markConfirmedBaselineDraftDirty()
     setDailyMeanClient(value)
   }, [markConfirmedBaselineDraftDirty])
-  const setDraftBufferStock = useCallback((value: SetStateAction<number>) => {
+  const setDraftBufferStock: (value: React.SetStateAction<number>) => void = useCallback((value: React.SetStateAction<number>) : void => {
     markConfirmedBaselineDraftDirty()
     setBufferStock(value)
   }, [markConfirmedBaselineDraftDirty])
-  const setDraftUnitCostInput = useCallback((value: SetStateAction<number>) => {
+  const setDraftUnitCostInput: (value: React.SetStateAction<number>) => void = useCallback((value: React.SetStateAction<number>) : void => {
     markConfirmedBaselineDraftDirty()
     setUnitCostInput(value)
   }, [markConfirmedBaselineDraftDirty])
-  const setDraftUnitPriceInput = useCallback((value: SetStateAction<number>) => {
+  const setDraftUnitPriceInput: (value: React.SetStateAction<number>) => void = useCallback((value: React.SetStateAction<number>) : void => {
     markConfirmedBaselineDraftDirty()
     setUnitPriceInput(value)
   }, [markConfirmedBaselineDraftDirty])
-  const setDraftExpectedFeeRatePct = useCallback((value: SetStateAction<number>) => {
+  const setDraftExpectedFeeRatePct: (value: React.SetStateAction<number>) => void = useCallback((value: React.SetStateAction<number>) : void => {
     markConfirmedBaselineDraftDirty()
     setExpectedFeeRatePct(value)
   }, [markConfirmedBaselineDraftDirty])
-  const setDraftSelfWeightPct = useCallback((value: SetStateAction<number>) => {
+  const setDraftSelfWeightPct: (value: React.SetStateAction<number>) => void = useCallback((value: React.SetStateAction<number>) : void => {
     markConfirmedBaselineDraftDirty()
     setSelfWeightPct(value)
   }, [markConfirmedBaselineDraftDirty])
-  const setDraftConfirmBySize = useCallback<Dispatch<SetStateAction<Record<string, number>>>>((value) => {
+  const setDraftConfirmBySize: React.Dispatch<React.SetStateAction<Record<string, number>>> = useCallback<React.Dispatch<React.SetStateAction<Record<string, number>>>>((value: React.SetStateAction<Record<string, number>>) : void => {
     markConfirmedBaselineDraftDirty()
     setConfirmBySize(value)
   }, [markConfirmedBaselineDraftDirty])
 
-  useEffect(() => {
-    let alive = true
-    queueMicrotask(() => {
+  useEffect(() : () => void => {
+    let alive: boolean = true
+    queueMicrotask(() : void => {
       if (alive) setConfirmedBaselineDraftDirty(false)
     })
-    return () => {
+    return () : void => {
       alive = false
     }
   }, [appliedPrefillKey, prefillKey])
@@ -159,7 +160,7 @@ export function useSecondaryDrawerSnapshotController({
     setExpectedFeeRatePct,
   })
 
-  const handleResetToLive = useCallback((liveOrderUnitSource: LiveOrderUnitSource) => {
+  const handleResetToLive: (liveOrderUnitSource: LiveOrderUnitSource) => void = useCallback((liveOrderUnitSource: LiveOrderUnitSource) : void => {
     setDailyMeanClient(null)
     resetInboundDueDatesToLive()
     setBufferStock(DEFAULT_BUFFER_STOCK)
@@ -182,7 +183,7 @@ export function useSecondaryDrawerSnapshotController({
     setAiComment,
   ])
 
-  const handleRestoreConfirmed = useCallback(() => {
+  const handleRestoreConfirmed: () => void = useCallback(() : void => {
     if (!candidateItemContext?.confirmedSnapshot) return
     setConfirmBySize({})
     setSnapshotConfirmBaselineActive(true)
@@ -223,11 +224,11 @@ export function useSecondaryDrawerLiveUnitDefaults({
   primarySkuGroupKey,
   liveOrderUnitSource,
   applyLiveOrderUnitInputs,
-}: LiveUnitDefaultsArgs) {
-  const avgCost = liveOrderUnitSource?.avgCost
-  const avgPrice = liveOrderUnitSource?.avgPrice
-  const feeRatePct = liveOrderUnitSource?.feeRatePct
-  useEffect(() => {
+}: LiveUnitDefaultsArgs) : void {
+  const avgCost: number | null | undefined = liveOrderUnitSource?.avgCost
+  const avgPrice: number | undefined = liveOrderUnitSource?.avgPrice
+  const feeRatePct: number | null | undefined = liveOrderUnitSource?.feeRatePct
+  useEffect(() : void => {
     if (prefillFromSnapshot != null) return
     if (liveOrderUnitSource == null) return
     applyLiveOrderUnitInputs(liveOrderUnitSource)
@@ -250,8 +251,8 @@ export function useSecondaryDrawerDraftEmission({
   appliedPrefillKey,
   snapshotConfirmBaselineActive,
   confirmedBaselineDraftDirty,
-}: DraftEmissionArgs) {
-  useEffect(() => {
+}: DraftEmissionArgs) : void {
+  useEffect(() : void => {
     if (candidateItemContext == null) return
     if (!canBuildSnapshot) return
     if (prefillKey != null && appliedPrefillKey !== prefillKey) return

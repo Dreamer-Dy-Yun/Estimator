@@ -1,3 +1,5 @@
+import type { MockStreamTimers } from './mockStreamTimers'
+import type { CandidateItemRecord } from './records'
 import type {
   CandidateDetailBulkConfirmProgressEvent,
   CandidateDetailBulkConfirmStartPayload,
@@ -20,30 +22,30 @@ interface CandidateDetailBulkConfirmJob {
   periodEnd: string
 }
 
-const bulkConfirmJobs = new Map<string, CandidateDetailBulkConfirmJob>()
+const bulkConfirmJobs: Map<string, CandidateDetailBulkConfirmJob> = new Map<string, CandidateDetailBulkConfirmJob>()
 
 function requireCompany(companyUuid?: string): string {
   if (!companyUuid) throw new Error(MOCK_SINGLE_COMPANY_SCOPE_REQUIRED_MESSAGE)
   return companyUuid
 }
 
-function requireReadableJob(jobId: string, ownerUserUuid?: string, companyUuid?: string) {
-  const job = bulkConfirmJobs.get(jobId)
+function requireReadableJob(jobId: string, ownerUserUuid?: string, companyUuid?: string) : CandidateDetailBulkConfirmJob | null {
+  const job: CandidateDetailBulkConfirmJob | undefined = bulkConfirmJobs.get(jobId)
   if (!job || !companyUuid || job.companyUuid !== companyUuid || (ownerUserUuid && job.ownerUserUuid !== ownerUserUuid)) {
     return null
   }
   return job
 }
 
-function assertBulkConfirmPayload(payload: CandidateDetailBulkConfirmStartPayload, ownerUserUuid: string | undefined, companyUuid: string) {
+function assertBulkConfirmPayload(payload: CandidateDetailBulkConfirmStartPayload, ownerUserUuid: string | undefined, companyUuid: string) : void {
   if (!findCandidateStashForOwner(payload.stashUuid, ownerUserUuid, companyUuid)) throw new Error('후보군을 찾을 수 없습니다.')
   if (payload.itemUuids.length === 0) throw new Error('상세확정할 후보 아이템이 없습니다.')
-  if (payload.itemUuids.some((itemUuid) => !itemUuid.trim())) throw new Error('상세확정할 후보 아이템 ID가 비어 있습니다.')
+  if (payload.itemUuids.some((itemUuid: string) : boolean => !itemUuid.trim())) throw new Error('상세확정할 후보 아이템 ID가 비어 있습니다.')
 
-  const stashItemUuids = new Set(readCandidateItemRecords()
-    .filter((row) => row.stashUuid === payload.stashUuid)
-    .map((row) => row.uuid))
-  if (payload.itemUuids.some((itemUuid) => !stashItemUuids.has(itemUuid))) {
+  const stashItemUuids: Set<string> = new Set(readCandidateItemRecords()
+    .filter((row: CandidateItemRecord) : boolean => row.stashUuid === payload.stashUuid)
+    .map((row: CandidateItemRecord) : string => row.uuid))
+  if (payload.itemUuids.some((itemUuid: string) : boolean => !stashItemUuids.has(itemUuid))) {
     throw new Error('후보군에 포함되지 않은 후보 아이템이 있습니다.')
   }
 }
@@ -54,11 +56,11 @@ export async function startMockCandidateDetailBulkConfirm(
   companyUuid?: string,
 ): Promise<CandidateDetailBulkConfirmStartResult> {
   await sleep(60)
-  const requiredCompanyUuid = requireCompany(companyUuid)
+  const requiredCompanyUuid: string = requireCompany(companyUuid)
   assertBulkConfirmPayload(payload, ownerUserUuid, requiredCompanyUuid)
 
-  const itemUuids = [...new Set(payload.itemUuids)]
-  const jobId = `mock-bulk-detail-confirm-${makeUuid32()}`
+  const itemUuids: string[] = [...new Set(payload.itemUuids)]
+  const jobId: string = `mock-bulk-detail-confirm-${makeUuid32()}`
   bulkConfirmJobs.set(jobId, {
     stashUuid: payload.stashUuid,
     ownerUserUuid,
@@ -76,16 +78,16 @@ export function subscribeMockCandidateDetailBulkConfirm(
   ownerUserUuid?: string,
   companyUuid?: string,
 ): CandidateDetailBulkConfirmSubscription {
-  const job = requireReadableJob(jobId, ownerUserUuid, companyUuid)
-  const { emit, close } = createMockStreamTimers<CandidateDetailBulkConfirmProgressEvent>(listener)
+  const job: CandidateDetailBulkConfirmJob | null = requireReadableJob(jobId, ownerUserUuid, companyUuid)
+  const { emit, close }: MockStreamTimers<CandidateDetailBulkConfirmProgressEvent> = createMockStreamTimers<CandidateDetailBulkConfirmProgressEvent>(listener)
 
   if (!job) {
-    emit(() => failureEvent(jobId, '상세 일괄확정 작업을 찾을 수 없습니다.'), 0)
+    emit(() : CandidateDetailBulkConfirmProgressEvent => failureEvent(jobId, '상세 일괄확정 작업을 찾을 수 없습니다.'), 0)
     return { close }
   }
 
-  const totalItems = job.itemUuids.length
-  emit(() => ({
+  const totalItems: number = job.itemUuids.length
+  emit(() : { jobId: string; stashUuid: string; status: 'running' | 'completed'; totalItems: number; completedItems: number; message: string; } => ({
     jobId,
     stashUuid: job.stashUuid,
     status: totalItems > 0 ? 'running' : 'completed',
@@ -94,11 +96,11 @@ export function subscribeMockCandidateDetailBulkConfirm(
     message: totalItems > 0 ? '상세 일괄확정을 시작했습니다.' : '상세확정할 후보가 없습니다.',
   }), 0)
 
-  job.itemUuids.forEach((itemUuid, index) => {
-    emit(() => confirmOneItemEvent(job, itemUuid, index + 1, totalItems, jobId), 90 + index * 90)
+  job.itemUuids.forEach((itemUuid: string, index: number) : void => {
+    emit(() : CandidateDetailBulkConfirmProgressEvent => confirmOneItemEvent(job, itemUuid, index + 1, totalItems, jobId), 90 + index * 90)
   })
   if (totalItems > 0) {
-    emit(() => ({
+    emit(() : { jobId: string; stashUuid: string; status: 'completed'; totalItems: number; completedItems: number; message: string; } => ({
       jobId,
       stashUuid: job.stashUuid,
       status: 'completed',
@@ -121,11 +123,11 @@ function confirmOneItemEvent(
   totalItems: number,
   jobId: string,
 ): CandidateDetailBulkConfirmProgressEvent {
-  const item = readCandidateItemRecords().find((row) => row.uuid === itemUuid && row.stashUuid === job.stashUuid)
+  const item: CandidateItemRecord | undefined = readCandidateItemRecords().find((row: CandidateItemRecord) : boolean => row.uuid === itemUuid && row.stashUuid === job.stashUuid)
   if (!item) {
     return { jobId, stashUuid: job.stashUuid, status: 'running', totalItems, completedItems, currentItemUuid: itemUuid, message: '후보 아이템을 찾을 수 없어 건너뛰었습니다.' }
   }
-  const now = new Date().toISOString()
+  const now: string = new Date().toISOString()
   item.details = buildMockOrderSnapshotForCandidate(item.skuGroupKey, {
     companyUuid: job.companyUuid,
     periodStart: job.periodStart,
@@ -134,7 +136,7 @@ function confirmOneItemEvent(
   item.isLatestLlmComment = false
   item.dbUpdatedAt = now
 
-  const productName = requireMockProductPrimary(item.skuGroupKey).productName
+  const productName: string = requireMockProductPrimary(item.skuGroupKey).productName
   return {
     jobId,
     stashUuid: job.stashUuid,

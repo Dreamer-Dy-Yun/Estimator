@@ -6,7 +6,7 @@ import type { CandidateReferenceItemSummary } from '../../../api'
 import { DRAWER_KEEP_OPEN_SELECTOR } from '../../drawer/drawerDom'
 import { CandidateRecommendationModal } from './CandidateRecommendationModal'
 
-const rows = [
+const rows: CandidateReferenceItemSummary[] = [
   {
     uuid: 'candidate-1',
     skuGroupKey: 'sku-1',
@@ -32,18 +32,18 @@ const rows = [
   },
 ] as CandidateReferenceItemSummary[]
 
-type ModalProps = Parameters<typeof CandidateRecommendationModal>[0]
+export type ModalProps = Parameters<typeof CandidateRecommendationModal>[0]
 
 let root: Root | null = null
 let container: HTMLDivElement | null = null
 
 function getRequiredElement<T extends HTMLElement>(selector: string): T {
-  const element = container?.querySelector<T>(selector)
+  const element: T | null | undefined = container?.querySelector<T>(selector)
   if (!element) throw new Error(`Missing element: ${selector}`)
   return element
 }
 
-function renderModal(overrides: Partial<ModalProps> = {}) {
+function renderModal(overrides: Partial<ModalProps> = {}) : { props: ModalProps; } {
   const props: ModalProps = {
     rows,
     loading: false,
@@ -60,15 +60,15 @@ function renderModal(overrides: Partial<ModalProps> = {}) {
   container = document.createElement('div')
   document.body.appendChild(container)
   root = createRoot(container)
-  act(() => {
+  act(() : void => {
     root?.render(<CandidateRecommendationModal {...props} />)
   })
 
   return { props }
 }
 
-afterEach(() => {
-  act(() => {
+afterEach(() : void => {
+  act(() : void => {
     root?.unmount()
   })
   root = null
@@ -77,9 +77,9 @@ afterEach(() => {
   document.body.innerHTML = ''
 })
 
-describe('CandidateRecommendationModal', () => {
-  it('focuses the select-all control on open and restores previous focus on close', () => {
-    const previousButton = document.createElement('button')
+describe('CandidateRecommendationModal', () : void => {
+  it('focuses the select-all control on open and restores previous focus on close', () : void => {
+    const previousButton: HTMLButtonElement = document.createElement('button')
     previousButton.textContent = '이전 포커스'
     document.body.appendChild(previousButton)
     previousButton.focus()
@@ -88,7 +88,7 @@ describe('CandidateRecommendationModal', () => {
 
     expect(document.activeElement).toBe(getRequiredElement<HTMLInputElement>('input[aria-label="추천 전체 선택"]'))
 
-    act(() => {
+    act(() : void => {
       root?.unmount()
     })
     root = null
@@ -96,38 +96,38 @@ describe('CandidateRecommendationModal', () => {
     expect(document.activeElement).toBe(previousButton)
   })
 
-  it('exposes complete table row, header, and cell semantics', () => {
+  it('exposes complete table row, header, and cell semantics', () : void => {
     renderModal()
 
-    const table = getRequiredElement<HTMLDivElement>('[role="table"]')
-    const tableRows = Array.from(table.querySelectorAll<HTMLElement>('[role="row"]'))
-    const headerCells = Array.from(tableRows[0]?.querySelectorAll<HTMLElement>('[role="columnheader"]') ?? [])
-    const dataCells = Array.from(tableRows[1]?.querySelectorAll<HTMLElement>('[role="cell"]') ?? [])
+    const table: HTMLDivElement = getRequiredElement<HTMLDivElement>('[role="table"]')
+    const tableRows: HTMLElement[] = Array.from(table.querySelectorAll<HTMLElement>('[role="row"]'))
+    const headerCells: HTMLElement[] = Array.from(tableRows[0]?.querySelectorAll<HTMLElement>('[role="columnheader"]') ?? [])
+    const dataCells: HTMLElement[] = Array.from(tableRows[1]?.querySelectorAll<HTMLElement>('[role="cell"]') ?? [])
 
     expect(tableRows).toHaveLength(2)
     expect(headerCells).toHaveLength(7)
     expect(dataCells).toHaveLength(7)
   })
 
-  it('marks the modal as drawer keep-open portal content', () => {
+  it('marks the modal as drawer keep-open portal content', () : void => {
     renderModal()
 
     expect(container?.querySelector(DRAWER_KEEP_OPEN_SELECTOR)).not.toBeNull()
   })
 
-  it('keeps non-data table states inside a spanning cell', () => {
+  it('keeps non-data table states inside a spanning cell', () : void => {
     renderModal({ rows: [], loading: true, selectedUuids: new Set() })
 
-    const statusCell = getRequiredElement<HTMLElement>('[role="row"] [role="cell"][aria-colspan="7"]')
+    const statusCell: HTMLElement = getRequiredElement<HTMLElement>('[role="row"] [role="cell"][aria-colspan="7"]')
 
     expect(statusCell.querySelector('[role="status"]')).not.toBeNull()
   })
 
-  it('blocks stale recommendation apply while an error is shown', () => {
+  it('blocks stale recommendation apply while an error is shown', () : void => {
     renderModal({ error: 'network down' })
 
-    const applyButton = Array.from(container?.querySelectorAll<HTMLButtonElement>('button') ?? [])
-      .find((button) => button.textContent?.trim() === '추천 적용')
+    const applyButton: HTMLButtonElement | undefined = Array.from(container?.querySelectorAll<HTMLButtonElement>('button') ?? [])
+      .find((button: HTMLButtonElement) : boolean => button.textContent?.trim() === '추천 적용')
     if (!applyButton) throw new Error('Missing apply button')
 
     expect(container?.textContent).not.toContain('테스트 상품')
@@ -135,13 +135,13 @@ describe('CandidateRecommendationModal', () => {
     expect(container?.textContent).toContain('추천 후보 조회 실패: network down')
   })
 
-  it('does not enable apply with only stale selections outside visible rows', () => {
+  it('does not enable apply with only stale selections outside visible rows', () : void => {
     renderModal({
       selectedUuids: new Set(['stale-candidate']),
     })
 
-    const applyButton = Array.from(container?.querySelectorAll<HTMLButtonElement>('button') ?? [])
-      .find((button) => button.textContent?.trim() === '추천 적용')
+    const applyButton: HTMLButtonElement | undefined = Array.from(container?.querySelectorAll<HTMLButtonElement>('button') ?? [])
+      .find((button: HTMLButtonElement) : boolean => button.textContent?.trim() === '추천 적용')
     if (!applyButton) throw new Error('Missing apply button')
 
     expect(container?.textContent).toContain('추천 1개 · 선택 0개')
@@ -149,18 +149,18 @@ describe('CandidateRecommendationModal', () => {
     expect(applyButton.disabled).toBe(true)
   })
 
-  it('disables recommendation selection and apply while append is busy', () => {
+  it('disables recommendation selection and apply while append is busy', () : void => {
     renderModal({ applying: true })
 
-    const checkboxes = Array.from(container?.querySelectorAll<HTMLInputElement>('input[type="checkbox"]') ?? [])
-    const buttons = Array.from(container?.querySelectorAll<HTMLButtonElement>('button') ?? [])
-    const applyButton = buttons[buttons.length - 1]
-    const closeButton = getRequiredElement<HTMLButtonElement>('button[aria-label="추천 보기 닫기"]')
-    const cancelButton = buttons.find((button) => button.textContent?.trim() === '취소')
+    const checkboxes: HTMLInputElement[] = Array.from(container?.querySelectorAll<HTMLInputElement>('input[type="checkbox"]') ?? [])
+    const buttons: HTMLButtonElement[] = Array.from(container?.querySelectorAll<HTMLButtonElement>('button') ?? [])
+    const applyButton: HTMLButtonElement = buttons[buttons.length - 1]
+    const closeButton: HTMLButtonElement = getRequiredElement<HTMLButtonElement>('button[aria-label="추천 보기 닫기"]')
+    const cancelButton: HTMLButtonElement | undefined = buttons.find((button: HTMLButtonElement) : boolean => button.textContent?.trim() === '취소')
     if (!applyButton) throw new Error('Missing apply button')
     if (!cancelButton) throw new Error('Missing cancel button')
 
-    expect(checkboxes.every((checkbox) => checkbox.disabled)).toBe(true)
+    expect(checkboxes.every((checkbox: HTMLInputElement) : boolean => checkbox.disabled)).toBe(true)
     expect(document.activeElement).toBe(getRequiredElement<HTMLDivElement>('[role="dialog"]'))
     expect(closeButton.disabled).toBe(true)
     expect(cancelButton.disabled).toBe(true)
@@ -169,40 +169,40 @@ describe('CandidateRecommendationModal', () => {
     expect(applyButton.textContent?.trim()).toBe('적용 중')
   })
 
-  it('disables visible recommendation selection while refresh is loading', () => {
+  it('disables visible recommendation selection while refresh is loading', () : void => {
     renderModal({ loading: true })
 
-    const checkboxes = Array.from(container?.querySelectorAll<HTMLInputElement>('input[type="checkbox"]') ?? [])
+    const checkboxes: HTMLInputElement[] = Array.from(container?.querySelectorAll<HTMLInputElement>('input[type="checkbox"]') ?? [])
 
-    expect(checkboxes.every((checkbox) => checkbox.disabled)).toBe(true)
+    expect(checkboxes.every((checkbox: HTMLInputElement) : boolean => checkbox.disabled)).toBe(true)
     expect(container?.textContent).toContain('추천 후보 로딩 중')
   })
 
-  it('keeps Tab and Shift+Tab focus inside the modal', () => {
+  it('keeps Tab and Shift+Tab focus inside the modal', () : void => {
     renderModal()
 
-    const closeButton = getRequiredElement<HTMLButtonElement>('button[aria-label="추천 보기 닫기"]')
-    const applyButton = Array.from(container?.querySelectorAll<HTMLButtonElement>('button') ?? [])
-      .find((button) => button.textContent?.trim() === '추천 적용')
+    const closeButton: HTMLButtonElement = getRequiredElement<HTMLButtonElement>('button[aria-label="추천 보기 닫기"]')
+    const applyButton: HTMLButtonElement | undefined = Array.from(container?.querySelectorAll<HTMLButtonElement>('button') ?? [])
+      .find((button: HTMLButtonElement) : boolean => button.textContent?.trim() === '추천 적용')
     if (!applyButton) throw new Error('Missing apply button')
 
     closeButton.focus()
-    act(() => {
+    act(() : void => {
       closeButton.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', shiftKey: true, bubbles: true }))
     })
     expect(document.activeElement).toBe(applyButton)
 
-    act(() => {
+    act(() : void => {
       applyButton.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', bubbles: true }))
     })
     expect(document.activeElement).toBe(closeButton)
   })
 
-  it('closes the modal with Escape', () => {
-    const { props } = renderModal()
-    const dialog = getRequiredElement<HTMLDivElement>('[role="dialog"]')
+  it('closes the modal with Escape', () : void => {
+    const { props }: { props: ModalProps; } = renderModal()
+    const dialog: HTMLDivElement = getRequiredElement<HTMLDivElement>('[role="dialog"]')
 
-    act(() => {
+    act(() : void => {
       dialog.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
     })
 

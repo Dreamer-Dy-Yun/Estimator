@@ -1,3 +1,5 @@
+import type { DateRange } from '../../hooks/usePeriodRangeFilter'
+import type { CandidateDataReferencePeriodAction, CandidateDataReferencePeriodState } from './candidateDataReferencePeriodModel'
 import { useCallback, useEffect, useReducer, useRef, type MutableRefObject } from 'react'
 import type { CandidateItemSummary, CandidateStashSummary } from '../../../api'
 import { buildDefaultPeriodRange } from '../../hooks/usePeriodRangeFilter'
@@ -13,7 +15,7 @@ export interface AppliedCandidateDataReferencePeriod {
   end: string
 }
 
-interface UseCandidateDataReferencePeriodParams {
+export interface UseCandidateDataReferencePeriodParams {
   detailTarget: CandidateStashSummary | null
   appliedPeriodRef: MutableRefObject<AppliedCandidateDataReferencePeriod>
   setItems: (items: CandidateItemSummary[]) => void
@@ -31,8 +33,8 @@ export function useCandidateDataReferencePeriod({
   closeMetricSubscription,
   loadItems,
   onDataReferencePeriodApplied,
-}: UseCandidateDataReferencePeriodParams) {
-  const [periodState, dispatchPeriodState] = useReducer(
+}: UseCandidateDataReferencePeriodParams) : { dataReferencePeriodStart: string; dataReferencePeriodEnd: string; draftDataReferencePeriodStart: string; draftDataReferencePeriodEnd: string; dataReferencePeriodQueryDirty: boolean; onDataReferencePeriodStartChange: (value: string) => void; onDataReferencePeriodEndChange: (value: string) => void; applyDataReferencePeriod: () => void; } {
+  const [periodState, dispatchPeriodState]: [CandidateDataReferencePeriodState, React.ActionDispatch<[action: CandidateDataReferencePeriodAction]>] = useReducer(
     candidateDataReferencePeriodReducer,
     initialCandidateDataReferencePeriodState,
   )
@@ -41,12 +43,12 @@ export function useCandidateDataReferencePeriod({
     dataReferencePeriodEnd,
     draftDataReferencePeriodStart,
     draftDataReferencePeriodEnd,
-  } = periodState
-  const initializedDetailTargetUuidRef = useRef<string | null>(null)
-  const dataReferencePeriodQueryDirty = getCandidateDataReferencePeriodQueryDirty(periodState)
+  }: CandidateDataReferencePeriodState = periodState
+  const initializedDetailTargetUuidRef: React.RefObject<string | null> = useRef<string | null>(null)
+  const dataReferencePeriodQueryDirty: boolean = getCandidateDataReferencePeriodQueryDirty(periodState)
 
-  const applyReferencePeriod = useCallback((periodStart: string, periodEnd: string) => {
-    const normalized = normalizeCandidateDataReferenceAppliedPeriod(periodStart, periodEnd)
+  const applyReferencePeriod: (periodStart: string, periodEnd: string) => void = useCallback((periodStart: string, periodEnd: string) : void => {
+    const normalized: { start: string; end: string; } | null = normalizeCandidateDataReferenceAppliedPeriod(periodStart, periodEnd)
     if (!normalized) return
     appliedPeriodRef.current = { start: normalized.start, end: normalized.end }
     dispatchPeriodState({ type: 'periodApplied', start: normalized.start, end: normalized.end })
@@ -54,13 +56,13 @@ export function useCandidateDataReferencePeriod({
     void loadItems(normalized.start, normalized.end)
   }, [appliedPeriodRef, loadItems, onDataReferencePeriodApplied])
 
-  useEffect(() => {
-    const nextUuid = detailTarget?.uuid ?? null
+  useEffect(() : (() => void) | undefined => {
+    const nextUuid: string | null = detailTarget?.uuid ?? null
     if (initializedDetailTargetUuidRef.current === nextUuid) return
     initializedDetailTargetUuidRef.current = nextUuid
 
-    let alive = true
-    queueMicrotask(() => {
+    let alive: boolean = true
+    queueMicrotask(() : void => {
       if (!alive) return
       if (!detailTarget) {
         appliedPeriodRef.current = { start: '', end: '' }
@@ -70,10 +72,10 @@ export function useCandidateDataReferencePeriod({
         closeMetricSubscription()
         return
       }
-      const initialPeriod = buildDefaultPeriodRange()
+      const initialPeriod: DateRange = buildDefaultPeriodRange()
       applyReferencePeriod(initialPeriod.startDate, initialPeriod.endDate)
     })
-    return () => {
+    return () : void => {
       alive = false
     }
   }, [
@@ -85,15 +87,15 @@ export function useCandidateDataReferencePeriod({
     setItems,
   ])
 
-  const onDataReferencePeriodStartChange = useCallback((value: string) => {
+  const onDataReferencePeriodStartChange: (value: string) => void = useCallback((value: string) : void => {
     dispatchPeriodState({ type: 'draftStartChanged', value })
   }, [])
 
-  const onDataReferencePeriodEndChange = useCallback((value: string) => {
+  const onDataReferencePeriodEndChange: (value: string) => void = useCallback((value: string) : void => {
     dispatchPeriodState({ type: 'draftEndChanged', value })
   }, [])
 
-  const applyDataReferencePeriod = useCallback(() => {
+  const applyDataReferencePeriod: () => void = useCallback(() : void => {
     applyReferencePeriod(draftDataReferencePeriodStart, draftDataReferencePeriodEnd)
   }, [applyReferencePeriod, draftDataReferencePeriodEnd, draftDataReferencePeriodStart])
 

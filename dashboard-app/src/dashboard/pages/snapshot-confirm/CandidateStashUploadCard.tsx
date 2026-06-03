@@ -1,12 +1,12 @@
-import type { DragEvent, RefObject } from 'react'
+import type { DragEvent } from 'react'
 import type { CandidateStashExcelUploadResult } from '../../../api'
 import { LoadingSpinner } from '../../../components/LoadingSpinner'
 import styles from '../../components/common.module.css'
 import pageStyles from '../SnapshotConfirmPage.module.css'
 
-type Props = {
+export type Props = {
   templateDownload: { href: string; filename: string }
-  uploadInputRef: RefObject<HTMLInputElement | null>
+  uploadInputRef: React.RefObject<HTMLInputElement | null>
   uploadFile: File | null
   uploadBusy: boolean
   uploadDragActive: boolean
@@ -28,19 +28,19 @@ export function CandidateStashUploadCard({
   onSelectFile,
   onUpload,
   onDragActiveChange,
-}: Props) {
-  const warnings = uploadResult?.warnings ?? []
-  const stashName = uploadResult?.stashName || '후보군 이름 확인 필요'
-  const resultMessage = uploadResult
+}: Props) : React.JSX.Element {
+  const warnings: string[] = uploadResult?.warnings ?? []
+  const stashName: string = uploadResult?.stashName || '후보군 이름 확인 필요'
+  const resultMessage: string | null = uploadResult
     ? typeof uploadResult.itemCount === 'number'
       ? `${stashName} 생성 완료 · 등록 상품 ${uploadResult.itemCount}건`
       : `${stashName} 생성 완료 · 등록 상품 수 확인 필요`
     : null
-  const stopDrag = (event: DragEvent) => {
+  const stopDrag: (event: DragEvent) => void = (event: DragEvent) : void => {
     event.preventDefault()
     event.stopPropagation()
   }
-  const setDragActive = (event: DragEvent, active: boolean) => {
+  const setDragActive: (event: DragEvent, active: boolean) => void = (event: DragEvent, active: boolean) : void => {
     stopDrag(event)
     if (!uploadBusy) onDragActiveChange(active)
   }
@@ -65,17 +65,17 @@ export function CandidateStashUploadCard({
           accept=".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"
           className={pageStyles.uploadInput}
           disabled={uploadBusy}
-          onChange={(event) => onSelectFile(event.target.files?.[0] ?? null)}
+          onChange={(event: React.ChangeEvent<HTMLInputElement, HTMLInputElement>) : void => onSelectFile(event.target.files?.[0] ?? null)}
         />
         <button
           type="button"
           className={`${pageStyles.uploadDropzone} ${uploadDragActive ? pageStyles.uploadDropzoneActive : ''}`}
           disabled={uploadBusy}
-          onClick={() => uploadInputRef.current?.click()}
-          onDragEnter={(event) => setDragActive(event, true)}
-          onDragOver={(event) => setDragActive(event, true)}
-          onDragLeave={(event) => setDragActive(event, false)}
-          onDrop={(event) => {
+          onClick={() : void | undefined => uploadInputRef.current?.click()}
+          onDragEnter={(event: DragEvent<HTMLButtonElement>) : void => setDragActive(event, true)}
+          onDragOver={(event: DragEvent<HTMLButtonElement>) : void => setDragActive(event, true)}
+          onDragLeave={(event: DragEvent<HTMLButtonElement>) : void => setDragActive(event, false)}
+          onDrop={(event: DragEvent<HTMLButtonElement>) : void => {
             stopDrag(event)
             onDragActiveChange(false)
             if (uploadBusy) return
@@ -104,7 +104,7 @@ export function CandidateStashUploadCard({
           {warnings.length > 0 && (
             <div className={pageStyles.uploadWarnings} aria-label="업로드 경고">
               <strong className={pageStyles.uploadWarningsTitle}>업로드 경고</strong>
-              <ul className={pageStyles.uploadWarningsList}>{warnings.map((warning, index) => <li key={`${index}-${warning}`}>{warning}</li>)}</ul>
+              <ul className={pageStyles.uploadWarningsList}>{warnings.map((warning: string, index: number) : React.JSX.Element => <li key={`${index}-${warning}`}>{warning}</li>)}</ul>
             </div>
           )}
         </div>

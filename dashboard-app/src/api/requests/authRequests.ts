@@ -1,3 +1,4 @@
+import type { AdminUserSummary, AuthSession, ChangePasswordPayload, CreateAdminUserPayload, LoginRequest, LoginResult, ResetAdminUserPasswordResult, UpdateAdminUserPayload, UpdateAuthUserPayload } from '..'
 import { mockAuthApi } from '../mock'
 import type { AuthApi } from '../types'
 import { ApiHttpError, apiRequest, USE_MOCK_API } from './httpClient'
@@ -24,7 +25,7 @@ import { ApiHttpError, apiRequest, USE_MOCK_API } from './httpClient'
  *   must not be used as a foreign key for candidate ownership.
  */
 const httpAuthRequests: AuthApi = {
-  getCurrentSession: async () => {
+  getCurrentSession: async () : Promise<AuthSession | null> => {
     try {
       return await apiRequest('/auth/session')
     } catch (error) {
@@ -32,31 +33,31 @@ const httpAuthRequests: AuthApi = {
       throw error
     }
   },
-  login: (payload) => apiRequest('/auth/login', { method: 'POST', body: payload }),
-  updateCurrentUser: (payload) => apiRequest('/auth/me', { method: 'PATCH', body: payload }),
-  changeCurrentUserPassword: (payload) => apiRequest('/auth/me/password', { method: 'POST', body: payload }),
-  getAdminUsers: () => apiRequest('/admin/users'),
-  createAdminUser: (payload) => apiRequest('/admin/users', { method: 'POST', body: payload }),
-  updateAdminUser: (payload) =>
+  login: (payload: LoginRequest) : Promise<LoginResult> => apiRequest('/auth/login', { method: 'POST', body: payload }),
+  updateCurrentUser: (payload: UpdateAuthUserPayload) : Promise<AuthSession> => apiRequest('/auth/me', { method: 'PATCH', body: payload }),
+  changeCurrentUserPassword: (payload: ChangePasswordPayload) : Promise<void> => apiRequest('/auth/me/password', { method: 'POST', body: payload }),
+  getAdminUsers: () : Promise<AdminUserSummary[]> => apiRequest('/admin/users'),
+  createAdminUser: (payload: CreateAdminUserPayload) : Promise<AdminUserSummary> => apiRequest('/admin/users', { method: 'POST', body: payload }),
+  updateAdminUser: (payload: UpdateAdminUserPayload) : Promise<AdminUserSummary> =>
     apiRequest(`/admin/users/${encodeURIComponent(payload.uuid)}`, { method: 'PATCH', body: payload }),
-  resetAdminUserPassword: (userUuid) =>
+  resetAdminUserPassword: (userUuid: string) : Promise<ResetAdminUserPasswordResult> =>
     apiRequest(`/admin/users/${encodeURIComponent(userUuid)}/password-reset`, { method: 'POST' }),
-  deleteAdminUser: (userUuid) =>
+  deleteAdminUser: (userUuid: string) : Promise<void> =>
     apiRequest(`/admin/users/${encodeURIComponent(userUuid)}`, { method: 'DELETE' }),
-  logout: () => apiRequest('/auth/logout', { method: 'POST' }),
+  logout: () : Promise<void> => apiRequest('/auth/logout', { method: 'POST' }),
 }
 
 const mockAuthRequests: AuthApi = {
-  getCurrentSession: () => mockAuthApi.getCurrentSession(),
-  login: (payload) => mockAuthApi.login(payload),
-  updateCurrentUser: (payload) => mockAuthApi.updateCurrentUser(payload),
-  changeCurrentUserPassword: (payload) => mockAuthApi.changeCurrentUserPassword(payload),
-  getAdminUsers: () => mockAuthApi.getAdminUsers(),
-  createAdminUser: (payload) => mockAuthApi.createAdminUser(payload),
-  updateAdminUser: (payload) => mockAuthApi.updateAdminUser(payload),
-  resetAdminUserPassword: (userUuid) => mockAuthApi.resetAdminUserPassword(userUuid),
-  deleteAdminUser: (userUuid) => mockAuthApi.deleteAdminUser(userUuid),
-  logout: () => mockAuthApi.logout(),
+  getCurrentSession: () : Promise<AuthSession | null> => mockAuthApi.getCurrentSession(),
+  login: (payload: LoginRequest) : Promise<LoginResult> => mockAuthApi.login(payload),
+  updateCurrentUser: (payload: UpdateAuthUserPayload) : Promise<AuthSession> => mockAuthApi.updateCurrentUser(payload),
+  changeCurrentUserPassword: (payload: ChangePasswordPayload) : Promise<void> => mockAuthApi.changeCurrentUserPassword(payload),
+  getAdminUsers: () : Promise<AdminUserSummary[]> => mockAuthApi.getAdminUsers(),
+  createAdminUser: (payload: CreateAdminUserPayload) : Promise<AdminUserSummary> => mockAuthApi.createAdminUser(payload),
+  updateAdminUser: (payload: UpdateAdminUserPayload) : Promise<AdminUserSummary> => mockAuthApi.updateAdminUser(payload),
+  resetAdminUserPassword: (userUuid: string) : Promise<ResetAdminUserPasswordResult> => mockAuthApi.resetAdminUserPassword(userUuid),
+  deleteAdminUser: (userUuid: string) : Promise<void> => mockAuthApi.deleteAdminUser(userUuid),
+  logout: () : Promise<void> => mockAuthApi.logout(),
 }
 
 export const authRequests: AuthApi = USE_MOCK_API ? mockAuthRequests : httpAuthRequests

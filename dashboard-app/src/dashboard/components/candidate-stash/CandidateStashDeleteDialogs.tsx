@@ -1,7 +1,7 @@
 import { ConfirmModal } from '../ConfirmModal'
 import type { CandidateStashDetailModalModel } from './useCandidateStashDetailModal'
 
-type Props = {
+export type Props = {
   model: CandidateStashDetailModalModel
   bulkDeleteOpen: boolean
   bulkUnconfirmOpen: boolean
@@ -23,9 +23,9 @@ export function CandidateStashDeleteDialogs({
   onCloseBulkUnconfirm,
   onBulkDeleteDone,
   onBulkUnconfirmDone,
-}: Props) {
-  const selectedVisibleCount = selectedVisibleItemUuids.length
-  const selectedConfirmedCount = selectedConfirmedItemUuids.length
+}: Props) : React.JSX.Element {
+  const selectedVisibleCount: number = selectedVisibleItemUuids.length
+  const selectedConfirmedCount: number = selectedConfirmedItemUuids.length
   return (
     <>
       <ConfirmModal
@@ -38,7 +38,7 @@ export function CandidateStashDeleteDialogs({
         dialogTitleId="bulk-item-unconfirm-dialog-title"
         keepOpenAttr
         onCancel={onCloseBulkUnconfirm}
-        onConfirm={async () => {
+        onConfirm={async () : Promise<void> => {
           await model.confirmUnconfirmItems(selectedConfirmedItemUuids)
           onBulkUnconfirmDone()
         }}
@@ -53,7 +53,7 @@ export function CandidateStashDeleteDialogs({
         dialogTitleId="bulk-item-delete-dialog-title"
         keepOpenAttr
         onCancel={onCloseBulkDelete}
-        onConfirm={async () => {
+        onConfirm={async () : Promise<void> => {
           await model.confirmDeleteItems(selectedVisibleItemUuids)
           onBulkDeleteDone()
         }}
@@ -67,8 +67,8 @@ export function CandidateStashDeleteDialogs({
         confirmingText="삭제 중..."
         dialogTitleId="item-delete-dialog-title"
         keepOpenAttr
-        onCancel={() => model.setItemDeleteTarget(null)}
-        onConfirm={async () => model.confirmDeleteItem()}
+        onCancel={() : void => model.setItemDeleteTarget(null)}
+        onConfirm={async () : Promise<void> => model.confirmDeleteItem()}
       />
     </>
   )

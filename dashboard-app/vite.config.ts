@@ -1,7 +1,7 @@
 import { configDefaults, defineConfig } from 'vitest/config'
 import react from '@vitejs/plugin-react'
 
-const fromNodePackage = (moduleId: string, packageName: string) =>
+const fromNodePackage: (moduleId: string, packageName: string) => boolean = (moduleId: string, packageName: string) : boolean =>
   moduleId.includes(`node_modules/${packageName}/`) ||
   moduleId.endsWith(`node_modules/${packageName}`) ||
   moduleId.includes(`node_modules\\${packageName}\\`) ||
@@ -23,7 +23,7 @@ export default defineConfig({
           groups: [
             {
               name: 'vendor-react',
-              test: (moduleId) =>
+              test: (moduleId: string) : boolean =>
                 fromNodePackage(moduleId, 'react') ||
                 fromNodePackage(moduleId, 'react-dom') ||
                 fromNodePackage(moduleId, 'scheduler'),
@@ -31,13 +31,13 @@ export default defineConfig({
             },
             {
               name: 'vendor-router',
-              test: (moduleId) =>
+              test: (moduleId: string) : boolean =>
                 fromNodePackage(moduleId, 'react-router') || fromNodePackage(moduleId, 'react-router-dom'),
               priority: 25,
             },
             {
               name: 'vendor-charts',
-              test: (moduleId) =>
+              test: (moduleId: string) : boolean =>
                 fromNodePackage(moduleId, 'recharts') ||
                 fromNodePackage(moduleId, 'd3-array') ||
                 fromNodePackage(moduleId, 'd3-color') ||
@@ -55,12 +55,12 @@ export default defineConfig({
             },
             {
               name: 'vendor-math',
-              test: (moduleId) => fromNodePackage(moduleId, 'katex') || fromNodePackage(moduleId, 'react-katex'),
+              test: (moduleId: string) : boolean => fromNodePackage(moduleId, 'katex') || fromNodePackage(moduleId, 'react-katex'),
               priority: 20,
             },
             {
               name: 'vendor-excel',
-              test: (moduleId) => fromNodePackage(moduleId, 'exceljs'),
+              test: (moduleId: string) : boolean => fromNodePackage(moduleId, 'exceljs'),
               priority: 20,
             },
             {

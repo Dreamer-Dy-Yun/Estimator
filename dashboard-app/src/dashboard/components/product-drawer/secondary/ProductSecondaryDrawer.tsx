@@ -1,3 +1,14 @@
+import type { ReturnValue } from './hooks/useSecondaryAiCommentState'
+import type { LiveOrderUnitSource } from './hooks/useSecondaryDrawerSnapshotController'
+import type { CandidateStashSummary, SecondaryStockOrderCalcResult } from '../../../../api'
+import type { ProductSalesInsightColumn, SecondaryDailyTrendPoint } from '../../../../api/types'
+import type { SecondaryStockOrderDisplaySizeRow } from '../../../../api/types/secondary'
+import type { ApiUnitErrorInfo } from '../../../../types'
+import type { PortalHelpPlacement } from '../../PortalHelpPopover'
+import type { CandidateStashPickerOption } from './CandidateStashPickerModal'
+import type { InboundDueDateDefaults } from './hooks/useSecondaryInboundDueDates'
+import type { SecondarySizeOrderDisplayRow } from './model/secondarySizeOrderRows'
+import type { SecondaryHelpId } from './secondaryDrawerTypes'
 import { useCallback, useMemo } from 'react'
 import type { SecondaryCompetitorChannel } from '../../../../api'
 import { useAppToast } from '../../../../components/AppToastContext'
@@ -18,7 +29,7 @@ import { ProductSecondaryDrawerContent } from './ProductSecondaryDrawerContent'
 
 export type { CandidateItemPanelContext }
 
-type Props = {
+export type Props = {
   primary: ProductPrimarySummary
   secondary: ProductSecondaryDetail
   periodStart: string
@@ -52,10 +63,10 @@ export function ProductSecondaryDrawer({
   prefillFromSnapshot = null,
   candidateItemContext = null,
   channelState,
-}: Props) {
-  const { channelId, competitorChannels, onChannelChange } = channelState
-  const { portalHelp, helpIds } = useSecondaryHelpController()
-  const { showToast } = useAppToast()
+}: Props) : React.JSX.Element {
+  const { channelId, competitorChannels, onChannelChange }: { channelId: string; competitorChannels: SecondaryCompetitorChannel[]; onChannelChange: (next: string) => void; } = channelState
+  const { portalHelp, helpIds }: { portalHelp: { activeId: SecondaryHelpId | null; activePlacement: PortalHelpPlacement; position: { top: number; left: number; }; setAnchor: (id: SecondaryHelpId) => (el: HTMLElement | null) => void; open: (id: SecondaryHelpId, placement: PortalHelpPlacement) => void; updateMeasuredBox: (measuredWidth: number, measuredHeight: number) => void; scheduleClose: () => void; cancelClose: () => void; close: () => void; }; helpIds: { confirmOrder: string; forecastQtyCalc: string; expectedOpProfitRate: string; totalOrderBalance: string; expectedInboundOrderBalance: string; sizeRecQty: string; salesForecastSizeOrder: string; }; } = useSecondaryHelpController()
+  const { showToast }: ReturnType<typeof useAppToast> = useAppToast()
   const {
     defaultInboundDueDates,
     minOrderDate,
@@ -67,10 +78,10 @@ export function ProductSecondaryDrawer({
     handleCurrentOrderInboundDueDateChange,
     handleNextOrderInboundDueDateChange,
     resetInboundDueDatesToLive,
-  } = useSecondaryInboundDueDates()
+  }: { defaultInboundDueDates: InboundDueDateDefaults; minOrderDate: string; currentOrderInboundDueDate: string; nextOrderInboundDueDate: string; leadTimeDays: number; setCurrentOrderInboundDueDate: React.Dispatch<React.SetStateAction<string>>; setNextOrderInboundDueDate: React.Dispatch<React.SetStateAction<string>>; handleCurrentOrderInboundDueDateChange: (next: string) => void; handleNextOrderInboundDueDateChange: (next: string) => void; resetInboundDueDatesToLive: () => void; } = useSecondaryInboundDueDates()
 
-  const channel = useMemo<SecondaryCompetitorChannel>(() => {
-    const selectedChannel = competitorChannels.find((ch) => ch.id === channelId)
+  const channel: SecondaryCompetitorChannel = useMemo<SecondaryCompetitorChannel>(() : SecondaryCompetitorChannel => {
+    const selectedChannel: SecondaryCompetitorChannel | undefined = competitorChannels.find((ch: SecondaryCompetitorChannel) : boolean => ch.id === channelId)
     if (selectedChannel == null) {
       throw new Error(`ProductSecondaryDrawer: channelId "${channelId}" is not available.`)
     }
@@ -83,7 +94,7 @@ export function ProductSecondaryDrawer({
     aiCommentError,
     requestAiComment,
     setAiComment,
-  } = useSecondaryAiCommentState({
+  }: ReturnValue = useSecondaryAiCommentState({
     pageName,
     skuGroupKey: primary.skuGroupKey,
     periodStart,
@@ -94,7 +105,7 @@ export function ProductSecondaryDrawer({
     candidateItemContext,
   })
 
-  const snapshotController = useSecondaryDrawerSnapshotController({
+  const snapshotController: { dailyMeanClient: number | null; setDailyMeanClient: (value: React.SetStateAction<number | null>) => void; bufferStock: number; setBufferStock: (value: React.SetStateAction<number>) => void; unitCostInput: number; setUnitCostInput: (value: React.SetStateAction<number>) => void; unitPriceInput: number; setUnitPriceInput: (value: React.SetStateAction<number>) => void; expectedFeeRatePct: number; setExpectedFeeRatePct: (value: React.SetStateAction<number>) => void; selfWeightPct: number; setSelfWeightPct: (value: React.SetStateAction<number>) => void; confirmBySize: Record<string, number>; setConfirmBySize: React.Dispatch<React.SetStateAction<Record<string, number>>>; hasSavedSnapshot: boolean; prefillKey: string | null; appliedPrefillKey: string | null; snapshotConfirmBySize: { [k: string]: number; }; snapshotConfirmBaselineActive: boolean; confirmedBaselineDraftDirty: boolean; markConfirmedBaselineDraftDirty: () => void; applyLiveOrderUnitInputs: (source: LiveOrderUnitSource) => void; handleResetToLive: (liveOrderUnitSource: LiveOrderUnitSource) => void; handleRestoreConfirmed: () => void; } = useSecondaryDrawerSnapshotController({
     prefillFromSnapshot,
     candidateItemContext,
     primarySkuGroupKey: primary.skuGroupKey,
@@ -132,9 +143,9 @@ export function ProductSecondaryDrawer({
     applyLiveOrderUnitInputs,
     handleResetToLive,
     handleRestoreConfirmed,
-  } = snapshotController
+  }: { dailyMeanClient: number | null; setDailyMeanClient: (value: React.SetStateAction<number | null>) => void; bufferStock: number; setBufferStock: (value: React.SetStateAction<number>) => void; unitCostInput: number; setUnitCostInput: (value: React.SetStateAction<number>) => void; unitPriceInput: number; setUnitPriceInput: (value: React.SetStateAction<number>) => void; expectedFeeRatePct: number; setExpectedFeeRatePct: (value: React.SetStateAction<number>) => void; selfWeightPct: number; setSelfWeightPct: (value: React.SetStateAction<number>) => void; confirmBySize: Record<string, number>; setConfirmBySize: React.Dispatch<React.SetStateAction<Record<string, number>>>; hasSavedSnapshot: boolean; prefillKey: string | null; appliedPrefillKey: string | null; snapshotConfirmBySize: { [k: string]: number; }; snapshotConfirmBaselineActive: boolean; confirmedBaselineDraftDirty: boolean; markConfirmedBaselineDraftDirty: () => void; applyLiveOrderUnitInputs: (source: LiveOrderUnitSource) => void; handleResetToLive: (liveOrderUnitSource: LiveOrderUnitSource) => void; handleRestoreConfirmed: () => void; } = snapshotController
 
-  const model = useSecondaryForecastModel({
+  const model: { stockOrderDisplay: { currentStockQtyTotal: number; totalOrderBalanceTotal: number; expectedInboundOrderBalanceTotal: number; sizeRows: SecondaryStockOrderDisplaySizeRow[]; } | null; stockOrderCalculationReady: boolean; guardStockOrderCalculation: () => boolean; candidateActions: { loading: boolean; listOpen: boolean; stashes: CandidateStashPickerOption[]; selectedCandidate: CandidateStashPickerOption | null; companyScopeBlocked: boolean; companyScopeBlockReason: string; nameInput: string; noteInput: string; setNameInput: React.Dispatch<React.SetStateAction<string>>; setNoteInput: React.Dispatch<React.SetStateAction<string>>; setListOpen: React.Dispatch<React.SetStateAction<boolean>>; createCandidate: () => Promise<boolean>; confirmOrder: () => Promise<boolean>; refresh: () => Promise<CandidateStashSummary[] | null>; openPicker: () => Promise<void>; confirmCandidateItem: () => Promise<boolean>; unconfirmCandidateItem: () => Promise<boolean>; selectCandidate: (row: CandidateStashPickerOption) => void; }; buildSnapshot: () => OrderSnapshotDocumentV2; handleConfirmQtyChange: (size: string, next: number, recommendedQty: number) => void; stockOrderDisplayInputs: { trendDailyMean: null; dailyMean: null; sigma: null; } | { trendDailyMean: number; dailyMean: number; sigma: number; }; sizeRows: SecondarySizeOrderDisplayRow[]; manualConfirmDerived: Record<string, true>; dailyTrendSizeOptions: { id: string; label: string; share: number; }[]; dailyTrend: { dailyTrendSeries: SecondaryDailyTrendPoint[]; dailyTrendLoading: boolean; dailyTrendError: ApiUnitErrorInfo | null; dailyPeriodShade: { x1: number; x2: number; }; dailyForecastShade: { x1: number; x2: number; } | null; dailyTickIndices: number[]; }; forecastCalc: SecondaryStockOrderCalcResult | null; forecastCalcError: ApiUnitErrorInfo | null; forecastCalcLoading: boolean; selfCol: ProductSalesInsightColumn | null; compCol: ProductSalesInsightColumn | null; salesInsightError: ApiUnitErrorInfo | null; salesInsightLoading: boolean; selectedStart: string; selectedEnd: string; } = useSecondaryForecastModel({
     primary,
     secondary,
     pageName,
@@ -165,7 +176,7 @@ export function ProductSecondaryDrawer({
     hasSavedSnapshot,
     showToast,
   })
-  const { selfCol, buildSnapshot } = model
+  const { selfCol, buildSnapshot }: { stockOrderDisplay: { currentStockQtyTotal: number; totalOrderBalanceTotal: number; expectedInboundOrderBalanceTotal: number; sizeRows: SecondaryStockOrderDisplaySizeRow[]; } | null; stockOrderCalculationReady: boolean; guardStockOrderCalculation: () => boolean; candidateActions: { loading: boolean; listOpen: boolean; stashes: CandidateStashPickerOption[]; selectedCandidate: CandidateStashPickerOption | null; companyScopeBlocked: boolean; companyScopeBlockReason: string; nameInput: string; noteInput: string; setNameInput: React.Dispatch<React.SetStateAction<string>>; setNoteInput: React.Dispatch<React.SetStateAction<string>>; setListOpen: React.Dispatch<React.SetStateAction<boolean>>; createCandidate: () => Promise<boolean>; confirmOrder: () => Promise<boolean>; refresh: () => Promise<CandidateStashSummary[] | null>; openPicker: () => Promise<void>; confirmCandidateItem: () => Promise<boolean>; unconfirmCandidateItem: () => Promise<boolean>; selectCandidate: (row: CandidateStashPickerOption) => void; }; buildSnapshot: () => OrderSnapshotDocumentV2; handleConfirmQtyChange: (size: string, next: number, recommendedQty: number) => void; stockOrderDisplayInputs: { trendDailyMean: null; dailyMean: null; sigma: null; } | { trendDailyMean: number; dailyMean: number; sigma: number; }; sizeRows: SecondarySizeOrderDisplayRow[]; manualConfirmDerived: Record<string, true>; dailyTrendSizeOptions: { id: string; label: string; share: number; }[]; dailyTrend: { dailyTrendSeries: SecondaryDailyTrendPoint[]; dailyTrendLoading: boolean; dailyTrendError: ApiUnitErrorInfo | null; dailyPeriodShade: { x1: number; x2: number; }; dailyForecastShade: { x1: number; x2: number; } | null; dailyTickIndices: number[]; }; forecastCalc: SecondaryStockOrderCalcResult | null; forecastCalcError: ApiUnitErrorInfo | null; forecastCalcLoading: boolean; selfCol: ProductSalesInsightColumn | null; compCol: ProductSalesInsightColumn | null; salesInsightError: ApiUnitErrorInfo | null; salesInsightLoading: boolean; selectedStart: string; selectedEnd: string; } = model
 
   useSecondaryDrawerLiveUnitDefaults({
     prefillFromSnapshot,
@@ -174,22 +185,22 @@ export function ProductSecondaryDrawer({
     applyLiveOrderUnitInputs,
   })
 
-  const handleRequestAiComment = useCallback(() => {
+  const handleRequestAiComment: () => void = useCallback(() : void => {
     markConfirmedBaselineDraftDirty()
     requestAiComment(buildSnapshot())
   }, [buildSnapshot, markConfirmedBaselineDraftDirty, requestAiComment])
-  const handleResetToLiveClick = useCallback(() => {
+  const handleResetToLiveClick: () => void = useCallback(() : void => {
     if (selfCol == null) {
       showToast(KO.msgSalesInsightRequired, { variant: 'error' })
       return
     }
     handleResetToLive(selfCol)
   }, [handleResetToLive, selfCol, showToast])
-  const handleCurrentOrderInboundDueDateDraftChange = useCallback((value: string) => {
+  const handleCurrentOrderInboundDueDateDraftChange: (value: string) => void = useCallback((value: string) : void => {
     markConfirmedBaselineDraftDirty()
     handleCurrentOrderInboundDueDateChange(value)
   }, [handleCurrentOrderInboundDueDateChange, markConfirmedBaselineDraftDirty])
-  const handleNextOrderInboundDueDateDraftChange = useCallback((value: string) => {
+  const handleNextOrderInboundDueDateDraftChange: (value: string) => void = useCallback((value: string) : void => {
     markConfirmedBaselineDraftDirty()
     handleNextOrderInboundDueDateChange(value)
   }, [handleNextOrderInboundDueDateChange, markConfirmedBaselineDraftDirty])

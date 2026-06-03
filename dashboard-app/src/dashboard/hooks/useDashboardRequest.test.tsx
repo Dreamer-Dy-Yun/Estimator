@@ -1,3 +1,4 @@
+import type { DashboardRequestState } from './useDashboardRequest'
 // @vitest-environment jsdom
 import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
@@ -13,22 +14,22 @@ type Deferred<T> = {
 function createDeferred<T>(): Deferred<T> {
   let resolve!: (value: T) => void
   let reject!: (error: unknown) => void
-  const promise = new Promise<T>((nextResolve, nextReject) => {
+  const promise: Promise<T> = new Promise<T>((nextResolve: (value: T | PromiseLike<T>) => void, nextReject: (reason?: unknown) => void) : void => {
     resolve = nextResolve
     reject = nextReject
   })
   return { promise, resolve, reject }
 }
 
-type ProbeProps = {
+export type ProbeProps = {
   request: () => Promise<string[]>
   requestKey?: string
 }
 
-const INITIAL_DATA = ['initial']
+const INITIAL_DATA: string[] = ['initial']
 
-function Probe({ request, requestKey }: ProbeProps) {
-  const state = useDashboardRequest(request, INITIAL_DATA, requestKey)
+function Probe({ request, requestKey }: ProbeProps) : React.JSX.Element {
+  const state: DashboardRequestState<string[]> = useDashboardRequest(request, INITIAL_DATA, requestKey)
   return (
     <output
       data-key={state.dataKey ?? ''}
@@ -47,25 +48,25 @@ function Probe({ request, requestKey }: ProbeProps) {
 let root: Root | null = null
 let container: HTMLDivElement | null = null
 
-function renderProbe(request: () => Promise<string[]>, requestKey?: string) {
+function renderProbe(request: () => Promise<string[]>, requestKey?: string) : HTMLOutputElement {
   container = document.createElement('div')
   document.body.appendChild(container)
   root = createRoot(container)
-  act(() => {
+  act(() : void => {
     root?.render(<Probe request={request} requestKey={requestKey} />)
   })
   return container.querySelector('output') as HTMLOutputElement
 }
 
-function rerenderProbe(request: () => Promise<string[]>, requestKey?: string) {
-  act(() => {
+function rerenderProbe(request: () => Promise<string[]>, requestKey?: string) : HTMLOutputElement {
+  act(() : void => {
     root?.render(<Probe request={request} requestKey={requestKey} />)
   })
   return container?.querySelector('output') as HTMLOutputElement
 }
 
-afterEach(() => {
-  act(() => {
+afterEach(() : void => {
+  act(() : void => {
     root?.unmount()
   })
   root = null
@@ -74,14 +75,14 @@ afterEach(() => {
   document.body.innerHTML = ''
 })
 
-describe('useDashboardRequest', () => {
-  it('stores successful data and marks the last updated time', async () => {
-    const request = createDeferred<string[]>()
-    const output = renderProbe(() => request.promise)
+describe('useDashboardRequest', () : void => {
+  it('stores successful data and marks the last updated time', async () : Promise<void> => {
+    const request: Deferred<string[]> = createDeferred<string[]>()
+    const output: HTMLOutputElement = renderProbe(() : Promise<string[]> => request.promise)
 
     expect(output.dataset.loading).toBe('true')
 
-    await act(async () => {
+    await act(async () : Promise<void> => {
       request.resolve(['loaded'])
       await request.promise
     })
@@ -93,21 +94,21 @@ describe('useDashboardRequest', () => {
     expect(output.dataset.updated).not.toBe('')
   })
 
-  it('keeps stale data visible when a refresh fails', async () => {
-    const first = createDeferred<string[]>()
-    const output = renderProbe(() => first.promise)
+  it('keeps stale data visible when a refresh fails', async () : Promise<void> => {
+    const first: Deferred<string[]> = createDeferred<string[]>()
+    const output: HTMLOutputElement = renderProbe(() : Promise<string[]> => first.promise)
 
-    await act(async () => {
+    await act(async () : Promise<void> => {
       first.resolve(['first'])
       await first.promise
     })
 
-    const second = createDeferred<string[]>()
-    rerenderProbe(() => second.promise)
+    const second: Deferred<string[]> = createDeferred<string[]>()
+    rerenderProbe(() : Promise<string[]> => second.promise)
 
-    await act(async () => {
+    await act(async () : Promise<void> => {
       second.reject(new Error('network down'))
-      await second.promise.catch(() => undefined)
+      await second.promise.catch(() : undefined => undefined)
     })
 
     expect(output.textContent).toBe('first')
@@ -115,23 +116,23 @@ describe('useDashboardRequest', () => {
     expect(output.dataset.stale).toBe('true')
   })
 
-  it('keeps the key of the last successful response', async () => {
-    const first = createDeferred<string[]>()
-    const output = renderProbe(() => first.promise, 'query-a')
+  it('keeps the key of the last successful response', async () : Promise<void> => {
+    const first: Deferred<string[]> = createDeferred<string[]>()
+    const output: HTMLOutputElement = renderProbe(() : Promise<string[]> => first.promise, 'query-a')
 
-    await act(async () => {
+    await act(async () : Promise<void> => {
       first.resolve(['first'])
       await first.promise
     })
 
     expect(output.dataset.key).toBe('query-a')
 
-    const second = createDeferred<string[]>()
-    rerenderProbe(() => second.promise, 'query-b')
+    const second: Deferred<string[]> = createDeferred<string[]>()
+    rerenderProbe(() : Promise<string[]> => second.promise, 'query-b')
 
-    await act(async () => {
+    await act(async () : Promise<void> => {
       second.reject(new Error('network down'))
-      await second.promise.catch(() => undefined)
+      await second.promise.catch(() : undefined => undefined)
     })
 
     expect(output.textContent).toBe('first')

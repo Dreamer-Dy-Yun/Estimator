@@ -1,3 +1,8 @@
+import type { CandidateStashSummary, SecondaryStockOrderCalcResult } from '../../../../api'
+import type { OrderSnapshotDocumentV2, ProductSalesInsightColumn, SecondaryDailyTrendPoint } from '../../../../api/types'
+import type { SecondaryStockOrderDisplaySizeRow } from '../../../../api/types/secondary'
+import type { CandidateStashPickerOption } from './CandidateStashPickerModal'
+import type { SecondarySizeOrderDisplayRow } from './model/secondarySizeOrderRows'
 import { BlockMath } from 'react-katex'
 import type { SecondaryCompetitorChannel } from '../../../../api'
 import { ComponentErrorBoundary } from '../../../../components/ComponentErrorBoundary'
@@ -22,7 +27,7 @@ import styles from './secondaryDrawer.module.css'
 import type { SecondaryHelpId, SecondaryHelpIds } from './secondaryDrawerTypes'
 import type { useSecondaryForecastModel } from './hooks/useSecondaryForecastModel'
 
-type Props = {
+export type Props = {
   pageName: string
   primary: ProductPrimarySummary
   channel: SecondaryCompetitorChannel
@@ -65,7 +70,7 @@ export function ProductSecondaryDrawerContent({
   orderInputActions,
   portalHelp,
   helpIds,
-}: Props) {
+}: Props) : React.JSX.Element {
   const {
     salesInsightError,
     salesInsightLoading,
@@ -81,16 +86,16 @@ export function ProductSecondaryDrawerContent({
     dailyTrendSizeOptions,
     candidateActions,
     handleConfirmQtyChange,
-  } = model
-  const recommendedQtyTotal = sizeRows.reduce((acc, r) => acc + Math.max(0, Math.round(r.recommendedQty)), 0)
-  const confirmedQtyTotal = sizeRows.reduce((acc, r) => acc + Math.max(0, Math.round(r.confirmQty)), 0)
-  const { unitCost, unitPrice, expectedFeeRatePct } = orderInputFields
-  const perUnitFee = Math.round((unitPrice * expectedFeeRatePct) / 100)
-  const perUnitOpMargin = unitPrice - unitCost - perUnitFee
-  const forecastExpectedSales = stockOrderCalculationReady ? recommendedQtyTotal * unitPrice : 0
-  const forecastOpProfit = stockOrderCalculationReady ? recommendedQtyTotal * perUnitOpMargin : 0
-  const confirmedExpectedSales = stockOrderCalculationReady ? confirmedQtyTotal * unitPrice : 0
-  const confirmedOpProfit = stockOrderCalculationReady ? confirmedQtyTotal * perUnitOpMargin : 0
+  }: { stockOrderDisplay: { currentStockQtyTotal: number; totalOrderBalanceTotal: number; expectedInboundOrderBalanceTotal: number; sizeRows: SecondaryStockOrderDisplaySizeRow[]; } | null; stockOrderCalculationReady: boolean; guardStockOrderCalculation: () => boolean; candidateActions: { loading: boolean; listOpen: boolean; stashes: CandidateStashPickerOption[]; selectedCandidate: CandidateStashPickerOption | null; companyScopeBlocked: boolean; companyScopeBlockReason: string; nameInput: string; noteInput: string; setNameInput: React.Dispatch<React.SetStateAction<string>>; setNoteInput: React.Dispatch<React.SetStateAction<string>>; setListOpen: React.Dispatch<React.SetStateAction<boolean>>; createCandidate: () => Promise<boolean>; confirmOrder: () => Promise<boolean>; refresh: () => Promise<CandidateStashSummary[] | null>; openPicker: () => Promise<void>; confirmCandidateItem: () => Promise<boolean>; unconfirmCandidateItem: () => Promise<boolean>; selectCandidate: (row: CandidateStashPickerOption) => void; }; buildSnapshot: () => OrderSnapshotDocumentV2; handleConfirmQtyChange: (size: string, next: number, recommendedQty: number) => void; stockOrderDisplayInputs: { trendDailyMean: null; dailyMean: null; sigma: null; } | { trendDailyMean: number; dailyMean: number; sigma: number; }; sizeRows: SecondarySizeOrderDisplayRow[]; manualConfirmDerived: Record<string, true>; dailyTrendSizeOptions: { id: string; label: string; share: number; }[]; dailyTrend: { dailyTrendSeries: SecondaryDailyTrendPoint[]; dailyTrendLoading: boolean; dailyTrendError: ApiUnitErrorInfo | null; dailyPeriodShade: { x1: number; x2: number; }; dailyForecastShade: { x1: number; x2: number; } | null; dailyTickIndices: number[]; }; forecastCalc: SecondaryStockOrderCalcResult | null; forecastCalcError: ApiUnitErrorInfo | null; forecastCalcLoading: boolean; selfCol: ProductSalesInsightColumn | null; compCol: ProductSalesInsightColumn | null; salesInsightError: ApiUnitErrorInfo | null; salesInsightLoading: boolean; selectedStart: string; selectedEnd: string; } = model
+  const recommendedQtyTotal: number = sizeRows.reduce((acc: number, r: SecondarySizeOrderDisplayRow) : number => acc + Math.max(0, Math.round(r.recommendedQty)), 0)
+  const confirmedQtyTotal: number = sizeRows.reduce((acc: number, r: SecondarySizeOrderDisplayRow) : number => acc + Math.max(0, Math.round(r.confirmQty)), 0)
+  const { unitCost, unitPrice, expectedFeeRatePct }: SalesForecastOrderInputFields = orderInputFields
+  const perUnitFee: number = Math.round((unitPrice * expectedFeeRatePct) / 100)
+  const perUnitOpMargin: number = unitPrice - unitCost - perUnitFee
+  const forecastExpectedSales: number = stockOrderCalculationReady ? recommendedQtyTotal * unitPrice : 0
+  const forecastOpProfit: number = stockOrderCalculationReady ? recommendedQtyTotal * perUnitOpMargin : 0
+  const confirmedExpectedSales: number = stockOrderCalculationReady ? confirmedQtyTotal * unitPrice : 0
+  const confirmedOpProfit: number = stockOrderCalculationReady ? confirmedQtyTotal * perUnitOpMargin : 0
   return (
     <div className={styles.panel}>
       <div className={styles.metaFilterRow}>
@@ -185,9 +190,9 @@ export function ProductSecondaryDrawerContent({
       <PortalHelpPopoverLayer
         help={portalHelp}
         popoverClassName={commonStyles.helpPopoverPortal}
-        getTooltipId={(hid) => helpIds[hid]}
+        getTooltipId={(hid: 'confirmOrder' | 'forecastQtyCalc' | 'expectedOpProfitRate' | 'totalOrderBalance' | 'expectedInboundOrderBalance' | 'sizeRecQty' | 'salesForecastSizeOrder') : string => helpIds[hid]}
       >
-        {(hid) => (
+        {(hid: 'confirmOrder' | 'forecastQtyCalc' | 'expectedOpProfitRate' | 'totalOrderBalance' | 'expectedInboundOrderBalance' | 'sizeRecQty' | 'salesForecastSizeOrder') : React.JSX.Element => (
           <>
             {hid === 'confirmOrder' && <p>{KO.hintSnapshot}</p>}
             {hid === 'forecastQtyCalc' && <p>{KO.helpForecastQtyCalc}</p>}

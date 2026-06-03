@@ -1,18 +1,18 @@
-const SCATTER_GRID_HUE = 217
-const SCATTER_GRID_SATURATION = 91
-const SCATTER_GRID_LOW_DENSITY_LIGHTNESS = 86
-const SCATTER_GRID_HIGH_DENSITY_LIGHTNESS = 60
-const SCATTER_GRID_POINT_RADIUS_RATIO = 0.405
-const SCATTER_GRID_POINT_RADIUS_MIN = 3.8
-const SCATTER_GRID_POINT_RADIUS_MAX = 13.5
+const SCATTER_GRID_HUE = 217 as const
+const SCATTER_GRID_SATURATION = 91 as const
+const SCATTER_GRID_LOW_DENSITY_LIGHTNESS = 86 as const
+const SCATTER_GRID_HIGH_DENSITY_LIGHTNESS = 60 as const
+const SCATTER_GRID_POINT_RADIUS_RATIO = 0.405 as const
+const SCATTER_GRID_POINT_RADIUS_MIN = 3.8 as const
+const SCATTER_GRID_POINT_RADIUS_MAX = 13.5 as const
 
-type ScatterGridAxisForDisplay = {
+export type ScatterGridAxisForDisplay = {
   min: number
   max: number
   bucketSize: number
 }
 
-type ScatterGridMetaForDisplay = {
+export type ScatterGridMetaForDisplay = {
   xAxis: ScatterGridAxisForDisplay
   yAxis: ScatterGridAxisForDisplay
 }
@@ -31,7 +31,7 @@ function hslBlue(lightness: number): string {
 }
 
 function axisBucketPixelSize(axis: ScatterGridAxisForDisplay, chartPixelSize: number): number {
-  const range = axis.max - axis.min
+  const range: number = axis.max - axis.min
   if (!Number.isFinite(range) || range <= 0) return 0
   if (!Number.isFinite(axis.bucketSize) || axis.bucketSize <= 0) return 0
   if (!Number.isFinite(chartPixelSize) || chartPixelSize <= 0) return 0
@@ -43,8 +43,8 @@ export function getScatterGridCellColor(count: number, maxCount: number): string
     return hslBlue(SCATTER_GRID_LOW_DENSITY_LIGHTNESS)
   }
 
-  const ratio = clampRatio(Math.sqrt((count - 1) / (maxCount - 1)))
-  const lightness = SCATTER_GRID_LOW_DENSITY_LIGHTNESS
+  const ratio: number = clampRatio(Math.sqrt((count - 1) / (maxCount - 1)))
+  const lightness: number = SCATTER_GRID_LOW_DENSITY_LIGHTNESS
     + (SCATTER_GRID_HIGH_DENSITY_LIGHTNESS - SCATTER_GRID_LOW_DENSITY_LIGHTNESS) * ratio
   return hslBlue(lightness)
 }
@@ -56,12 +56,12 @@ export function getScatterGridCellPointRadius(
 ): number {
   if (!meta) return SCATTER_GRID_POINT_RADIUS_MIN
 
-  const xBucketPixels = axisBucketPixelSize(meta.xAxis, chartWidth)
-  const yBucketPixels = axisBucketPixelSize(meta.yAxis, chartHeight)
-  const cellPixelSize = Math.min(xBucketPixels, yBucketPixels)
+  const xBucketPixels: number = axisBucketPixelSize(meta.xAxis, chartWidth)
+  const yBucketPixels: number = axisBucketPixelSize(meta.yAxis, chartHeight)
+  const cellPixelSize: number = Math.min(xBucketPixels, yBucketPixels)
   if (!Number.isFinite(cellPixelSize) || cellPixelSize <= 0) return SCATTER_GRID_POINT_RADIUS_MIN
 
-  const radius = clamp(
+  const radius: number = clamp(
     cellPixelSize * SCATTER_GRID_POINT_RADIUS_RATIO,
     SCATTER_GRID_POINT_RADIUS_MIN,
     SCATTER_GRID_POINT_RADIUS_MAX,

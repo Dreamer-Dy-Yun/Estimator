@@ -1,19 +1,20 @@
+import type { AuthRole } from '../api'
 import type { AdminUserSummary } from '../api'
 import { formatUpdatedAt, ROLE_OPTIONS } from './adminHelpers'
 import styles from './AdminPage.module.css'
 
-interface AdminUserRowProps {
+export interface AdminUserRowProps {
   user: AdminUserSummary
   onOpen: (user: AdminUserSummary) => void
 }
 
-function getRoleLabel(value: AdminUserSummary['role']) {
-  return ROLE_OPTIONS.find((option) => option.value === value)?.label ?? value
+function getRoleLabel(value: AdminUserSummary['role']) : string {
+  return ROLE_OPTIONS.find((option: { value: AuthRole; label: string; }) : boolean => option.value === value)?.label ?? value
 }
 
-export function AdminUserRow({ user, onOpen }: AdminUserRowProps) {
+export function AdminUserRow({ user, onOpen }: AdminUserRowProps) : React.JSX.Element {
   return (
-    <button className={styles.userRow} type="button" onClick={() => onOpen(user)}>
+    <button className={styles.userRow} type="button" onClick={() : void => onOpen(user)}>
       <span className={styles.gptKeyNameCell}>
         <strong>{user.loginId}</strong>
         <small>{user.mustChangePassword ? '비밀번호 변경 필요' : '비밀번호 변경 완료'}</small>

@@ -1,3 +1,5 @@
+import type { CandidateDetailBulkConfirmStartResult } from '../../../api'
+import type { CandidateJobSubscription } from '../../../api/types/candidate'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   getApiErrorDisplayMessage,
@@ -19,7 +21,7 @@ export interface CandidateBulkDetailConfirmProgress {
   error?: string
 }
 
-interface Args {
+export interface Args {
   stashUuid: string
   companyUuid?: string
   dataReferencePeriodStart: string
@@ -29,7 +31,7 @@ interface Args {
   showToast: CandidateShowToast
 }
 
-const CLOSE_DELAY_MS = 4000
+const CLOSE_DELAY_MS = 4000 as const
 
 function getStreamErrorMessage(error: unknown): string {
   return getApiErrorDisplayMessage(error, '상세 일괄확정 연결에 실패했습니다.')
@@ -43,54 +45,54 @@ export function useCandidateBulkDetailConfirm({
   mountedRef,
   onItemsConfirmed,
   showToast,
-}: Args) {
-  const [bulkConfirmBusy, setBulkConfirmBusy] = useState(false)
-  const [bulkConfirmProgress, setBulkConfirmProgress] = useState<CandidateBulkDetailConfirmProgress | null>(null)
-  const subscriptionRef = useRef<CandidateDetailBulkConfirmSubscription | null>(null)
-  const closeTimerRef = useRef<ReturnType<typeof window.setTimeout> | null>(null)
-  const progressRef = useRef<CandidateBulkDetailConfirmProgress | null>(null)
-  const sequenceRef = useRef(0)
+}: Args) : { bulkConfirmBusy: boolean; bulkConfirmProgress: CandidateBulkDetailConfirmProgress | null; closeBulkConfirmProgress: () => void; confirmBulkDetailItems: (itemUuids: string[]) => Promise<void>; } {
+  const [bulkConfirmBusy, setBulkConfirmBusy]: [boolean, React.Dispatch<React.SetStateAction<boolean>>] = useState(false)
+  const [bulkConfirmProgress, setBulkConfirmProgress]: [CandidateBulkDetailConfirmProgress | null, React.Dispatch<React.SetStateAction<CandidateBulkDetailConfirmProgress | null>>] = useState<CandidateBulkDetailConfirmProgress | null>(null)
+  const subscriptionRef: React.RefObject<CandidateJobSubscription | null> = useRef<CandidateDetailBulkConfirmSubscription | null>(null)
+  const closeTimerRef: React.RefObject<ReturnType<typeof setTimeout> | null> = useRef<ReturnType<typeof window.setTimeout> | null>(null)
+  const progressRef: React.RefObject<CandidateBulkDetailConfirmProgress | null> = useRef<CandidateBulkDetailConfirmProgress | null>(null)
+  const sequenceRef: React.RefObject<number> = useRef(0)
 
-  const setProgress = useCallback((next: CandidateBulkDetailConfirmProgress | null) => {
+  const setProgress: (next: CandidateBulkDetailConfirmProgress | null) => void = useCallback((next: CandidateBulkDetailConfirmProgress | null) : void => {
     progressRef.current = next
     setBulkConfirmProgress(next)
   }, [])
 
-  const isCurrentSequence = useCallback((sequence: number) => (
+  const isCurrentSequence: (sequence: number) => boolean = useCallback((sequence: number) : boolean => (
     mountedRef.current && sequenceRef.current === sequence
   ), [mountedRef])
 
-  const closeSubscription = useCallback(() => {
+  const closeSubscription: () => void = useCallback(() : void => {
     subscriptionRef.current?.close()
     subscriptionRef.current = null
   }, [])
 
-  const closeProgress = useCallback(() => {
+  const closeProgress: () => void = useCallback(() : void => {
     if (closeTimerRef.current) window.clearTimeout(closeTimerRef.current)
     closeTimerRef.current = null
     setProgress(null)
   }, [setProgress])
 
-  useEffect(() => () => {
+  useEffect(() : () => void => () : void => {
     closeSubscription()
     if (closeTimerRef.current) window.clearTimeout(closeTimerRef.current)
   }, [closeSubscription])
 
-  const scheduleClose = useCallback((sequence: number) => {
+  const scheduleClose: (sequence: number) => void = useCallback((sequence: number) : void => {
     if (closeTimerRef.current) window.clearTimeout(closeTimerRef.current)
-    closeTimerRef.current = window.setTimeout(() => {
+    closeTimerRef.current = window.setTimeout(() : void => {
       if (!isCurrentSequence(sequence)) return
       setProgress(null)
       closeTimerRef.current = null
     }, CLOSE_DELAY_MS)
   }, [isCurrentSequence, setProgress])
 
-  const applyProgressEvent = useCallback((event: CandidateDetailBulkConfirmProgressEvent, sequence: number) => {
+  const applyProgressEvent: (event: CandidateDetailBulkConfirmProgressEvent, sequence: number) => boolean = useCallback((event: CandidateDetailBulkConfirmProgressEvent, sequence: number) : boolean => {
     if (!isCurrentSequence(sequence)) return false
     try {
       if (event.updatedItem) onItemsConfirmed([event.updatedItem])
     } catch (error) {
-      const message = getApiErrorDisplayMessage(error, 'Bulk detail confirm snapshot validation failed.')
+      const message: string = getApiErrorDisplayMessage(error, 'Bulk detail confirm snapshot validation failed.')
       setBulkConfirmBusy(false)
       setProgress({
         open: true,
@@ -115,14 +117,14 @@ export function useCandidateBulkDetailConfirm({
     return true
   }, [isCurrentSequence, onItemsConfirmed, setProgress])
 
-  const confirmBulkDetailItems = useCallback(async (itemUuids: string[]) => {
-    const uniqueUuids = [...new Set(itemUuids)]
+  const confirmBulkDetailItems: (itemUuids: string[]) => Promise<void> = useCallback(async (itemUuids: string[]) : Promise<void> => {
+    const uniqueUuids: string[] = [...new Set(itemUuids)]
     if (!uniqueUuids.length || !dataReferencePeriodStart || !dataReferencePeriodEnd) return
     if (!companyUuid) {
       showToast('오더 후보군은 회사 선택이 필요합니다.', { variant: 'error' })
       return
     }
-    const sequence = sequenceRef.current + 1
+    const sequence: number = sequenceRef.current + 1
     sequenceRef.current = sequence
     setBulkConfirmBusy(true)
     closeSubscription()
@@ -135,7 +137,7 @@ export function useCandidateBulkDetailConfirm({
       message: '상세 일괄확정 작업을 요청했습니다.',
     })
     try {
-      const start = await startCandidateDetailBulkConfirm({
+      const start: CandidateDetailBulkConfirmStartResult = await startCandidateDetailBulkConfirm({
         stashUuid,
         companyUuid,
         itemUuids: uniqueUuids,
@@ -143,8 +145,8 @@ export function useCandidateBulkDetailConfirm({
         dataReferencePeriodEnd,
       })
       if (!isCurrentSequence(sequence)) return
-      await new Promise<void>((resolve, reject) => {
-        subscriptionRef.current = subscribeCandidateDetailBulkConfirm(start.jobId, (event) => {
+      await new Promise<void>((resolve: (value: void | PromiseLike<void>) => void, reject: (reason?: unknown) => void) : void => {
+        subscriptionRef.current = subscribeCandidateDetailBulkConfirm(start.jobId, (event: CandidateDetailBulkConfirmProgressEvent) : void => {
           try {
             if (!applyProgressEvent(event, sequence)) {
               resolve()
@@ -171,7 +173,7 @@ export function useCandidateBulkDetailConfirm({
             scheduleClose(sequence)
             reject(new Error(event.error ?? event.message))
           }
-        }, (error) => {
+        }, (error: unknown) : void => {
           if (!isCurrentSequence(sequence)) {
             resolve()
             return
@@ -182,11 +184,11 @@ export function useCandidateBulkDetailConfirm({
       })
     } catch (err) {
       if (!isCurrentSequence(sequence)) return
-      const previousProgress = progressRef.current
-      const failedProgressMessage = previousProgress?.status === 'failed'
+      const previousProgress: CandidateBulkDetailConfirmProgress | null = progressRef.current
+      const failedProgressMessage: string | undefined = previousProgress?.status === 'failed'
         ? previousProgress.error ?? previousProgress.message
         : undefined
-      const message = failedProgressMessage ?? getApiErrorDisplayMessage(err, '상세 일괄확정에 실패했습니다.')
+      const message: string = failedProgressMessage ?? getApiErrorDisplayMessage(err, '상세 일괄확정에 실패했습니다.')
       setBulkConfirmBusy(false)
       setProgress({
         open: true,

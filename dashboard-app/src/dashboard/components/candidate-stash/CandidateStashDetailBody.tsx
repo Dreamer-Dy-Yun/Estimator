@@ -1,17 +1,14 @@
-import type { ReactNode } from 'react'
 import { LoadingSpinner } from '../../../components/LoadingSpinner'
 import { formatGroupedNumber, formatRatioDecimalKo } from '../../../utils/format'
 import { InnerCandidateOrderEmptyState, InnerCandidateOrderList } from './InnerCandidateOrderList'
 import type { CandidateStashDetailModalModel, InnerCandidateRow, InnerCandidateSortKey } from './useCandidateStashDetailModal'
 import detailStyles from './CandidateStashDetailModal.module.css'
-import type { RefObject } from 'react'
-
-type Props = {
+export type Props = {
   model: CandidateStashDetailModalModel
   visibleItemUuids: string[]
   selectedUuidSet: Set<string>
   allVisibleSelected: boolean
-  selectAllRef: RefObject<HTMLInputElement | null>
+  selectAllRef: React.RefObject<HTMLInputElement | null>
   competitorSalesQtyHeader: string
   activeSortKey: InnerCandidateSortKey | null
   activeSortDir: 'asc' | 'desc' | null
@@ -21,7 +18,7 @@ type Props = {
   keyboardNavigationDisabled?: boolean
 }
 
-const summaryRows = [
+const summaryRows: readonly [readonly ['합계 오더 수량', 'qty', 'EA'], readonly ['합계 오더 금액', 'expectedOrderAmount', '원'], readonly ['합계 총 기대 매출', 'expectedSalesAmount', '원'], readonly ['합계 총 기대 영업 이익', 'expectedOpProfit', '원']] = [
   ['합계 오더 수량', 'qty', 'EA'],
   ['합계 오더 금액', 'expectedOrderAmount', '원'],
   ['합계 총 기대 매출', 'expectedSalesAmount', '원'],
@@ -41,11 +38,11 @@ export function CandidateStashDetailBody({
   onToggleSelectedItem,
   onToggleItemDrawer,
   keyboardNavigationDisabled = false,
-}: Props) {
-  const hasCachedItems = model.items.length > 0
-  const hasVisibleRows = model.tableRows.length > 0
-  const hasSearchQuery = Boolean(model.brandQuery.trim() || model.codeQuery.trim() || model.productNameQuery.trim())
-  const emptyMessage = model.drawerError
+}: Props) : React.JSX.Element {
+  const hasCachedItems: boolean = model.items.length > 0
+  const hasVisibleRows: boolean = model.tableRows.length > 0
+  const hasSearchQuery: boolean = Boolean(model.brandQuery.trim() || model.codeQuery.trim() || model.productNameQuery.trim())
+  const emptyMessage: string = model.drawerError
     ? `이너 후보 상세 로드 실패: ${model.drawerError}`
     : model.candidateItemsLoadError && !hasCachedItems
       ? `이너 후보 목록 로드 실패: ${model.candidateItemsLoadError}`
@@ -54,7 +51,7 @@ export function CandidateStashDetailBody({
   return (
     <div className={detailStyles.innerDrawerAwareBody}>
       <div className={detailStyles.innerSummaryGrid}>
-        {summaryRows.map(([label, key, unit]) => <SummaryCard key={key} label={label} value={formatGroupedNumber(model.totals[key])} unit={unit} />)}
+        {summaryRows.map(([label, key, unit]: readonly ['합계 오더 수량', 'qty', 'EA'] | readonly ['합계 오더 금액', 'expectedOrderAmount', '원'] | readonly ['합계 총 기대 매출', 'expectedSalesAmount', '원'] | readonly ['합계 총 기대 영업 이익', 'expectedOpProfit', '원']) : React.JSX.Element => <SummaryCard key={key} label={label} value={formatGroupedNumber(model.totals[key])} unit={unit} />)}
         <SummaryCard label="합계 총 기대 영업이익률" value={model.totalExpectedOpProfitRatePct == null ? '-' : formatRatioDecimalKo(model.totalExpectedOpProfitRatePct)} unit="%" />
       </div>
       <div className={detailStyles.innerCandidateListBlock}>
@@ -88,10 +85,10 @@ export function CandidateStashDetailBody({
   )
 }
 
-function Alert({ children }: { children: ReactNode }) {
+function Alert({ children }: { children: React.ReactNode }) : React.JSX.Element {
   return <div className={detailStyles.orderExportError} role="alert">{children}</div>
 }
 
-function SummaryCard({ label, value, unit }: { label: string; value: string; unit: string }) {
+function SummaryCard({ label, value, unit }: { label: string; value: string; unit: string }) : React.JSX.Element {
   return <div className={detailStyles.innerSummaryCard}><span className={detailStyles.innerSummaryLabel}>{label}</span><strong className={detailStyles.innerSummaryValue}>{value} <span className={detailStyles.innerSummaryUnit}>{unit}</span></strong></div>
 }

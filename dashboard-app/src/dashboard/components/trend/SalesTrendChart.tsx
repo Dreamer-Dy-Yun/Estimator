@@ -1,4 +1,5 @@
 import { Bar, CartesianGrid, ComposedChart, Line, ReferenceArea, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
+import type { NameType, ValueType } from 'recharts/types/component/DefaultTooltipContent'
 
 export type TrendShade = {
   x1: number
@@ -22,13 +23,13 @@ export type TrendBarSeries = {
   barSize?: number
 }
 
-type TrendChartPoint = {
+export type TrendChartPoint = {
   idx: number
   date: string
   [key: string]: unknown
 }
 
-type Props = {
+export type Props = {
   data: TrendChartPoint[]
   height: number
   yScale?: 'linear' | 'log'
@@ -70,37 +71,37 @@ export function SalesTrendChart({
   allowEscapeViewBox = { x: true, y: true },
   tooltipValueFormatter,
   tooltipLabelFormatter,
-}: Props) {
-  const hasSecondaryLine = lines.some((line) => line.yAxisId === 'secondary')
-  const needsSecondaryAxis = barsUseSecondaryAxis || hasSecondaryLine
-  const resolvedSecondaryYMax = (() => {
+}: Props) : React.JSX.Element {
+  const hasSecondaryLine: boolean = lines.some((line: TrendLineSeries) : boolean => line.yAxisId === 'secondary')
+  const needsSecondaryAxis: boolean = barsUseSecondaryAxis || hasSecondaryLine
+  const resolvedSecondaryYMax: number | undefined = (() : number | undefined => {
     if (typeof secondaryYMax === 'number') return secondaryYMax
     if (!needsSecondaryAxis) return undefined
-    const maxFromBars = bars.reduce((acc, bar) => {
-      const m = data.reduce((rowMax, row) => {
-        const v = Number(row[bar.dataKey])
+    const maxFromBars: number = bars.reduce((acc: number, bar: TrendBarSeries) : number => {
+      const m: number = data.reduce((rowMax: number, row: TrendChartPoint) : number => {
+        const v: number = Number(row[bar.dataKey])
         return Number.isFinite(v) ? Math.max(rowMax, v) : rowMax
       }, 0)
       return Math.max(acc, m)
     }, 0)
-    const maxFromSecondaryLines = lines
-      .filter((line) => line.yAxisId === 'secondary')
-      .reduce((acc, line) => {
-        const m = data.reduce((rowMax, row) => {
-          const v = Number(row[line.dataKey])
+    const maxFromSecondaryLines: number = lines
+      .filter((line: TrendLineSeries) : boolean => line.yAxisId === 'secondary')
+      .reduce((acc: number, line: TrendLineSeries) : number => {
+        const m: number = data.reduce((rowMax: number, row: TrendChartPoint) : number => {
+          const v: number = Number(row[line.dataKey])
           return Number.isFinite(v) ? Math.max(rowMax, v) : rowMax
         }, 0)
         return Math.max(acc, m)
       }, 0)
-    const maxFromSecondary = Math.max(maxFromBars, maxFromSecondaryLines)
+    const maxFromSecondary: number = Math.max(maxFromBars, maxFromSecondaryLines)
     return maxFromSecondary <= 0 ? 10 : Math.ceil(maxFromSecondary * 1.08)
   })()
-  const hasSecondaryAxis = needsSecondaryAxis && typeof resolvedSecondaryYMax === 'number'
-  const resolvedPrimaryYMax = (() => {
+  const hasSecondaryAxis: boolean = needsSecondaryAxis && typeof resolvedSecondaryYMax === 'number'
+  const resolvedPrimaryYMax: number = (() : number => {
     if (typeof yMax === 'number') return yMax
-    const maxFromLines = lines.reduce((acc, line) => {
-      const m = data.reduce((rowMax, row) => {
-        const v = Number(row[line.dataKey])
+    const maxFromLines: number = lines.reduce((acc: number, line: TrendLineSeries) : number => {
+      const m: number = data.reduce((rowMax: number, row: TrendChartPoint) : number => {
+        const v: number = Number(row[line.dataKey])
         return Number.isFinite(v) ? Math.max(rowMax, v) : rowMax
       }, 0)
       return Math.max(acc, m)
@@ -138,8 +139,8 @@ export function SalesTrendChart({
           dataKey="idx"
           domain={[-0.5, Math.max(0, data.length - 0.5)]}
           ticks={xTicks}
-          tickFormatter={(value) => {
-            const row = data[Math.round(Number(value))]
+          tickFormatter={(value: number | string) : string => {
+            const row: TrendChartPoint = data[Math.round(Number(value))]
             if (!row) return ''
             return tickFormatter ? tickFormatter(row) : row.date
           }}
@@ -162,7 +163,7 @@ export function SalesTrendChart({
           <YAxis
             yAxisId="secondary"
             orientation="right"
-            domain={[0, resolvedSecondaryYMax]}
+            domain={[0, resolvedSecondaryYMax ?? 10]}
             tick={{ fontSize: 9 }}
             width={40}
             tickMargin={4}
@@ -181,14 +182,14 @@ export function SalesTrendChart({
           }}
           labelStyle={{ fontSize: 11, marginBottom: 4 }}
           itemStyle={{ fontSize: 11, lineHeight: 1.3 }}
-          formatter={(value, name) => tooltipValueFormatter(Number(value), String(name))}
-          labelFormatter={(label) => {
-            const row = data[Math.round(Number(label))]
+          formatter={(value: ValueType | undefined, name: NameType | undefined) : [string, string] => tooltipValueFormatter(Number(value), String(name))}
+          labelFormatter={(label: unknown) : string => {
+            const row: TrendChartPoint = data[Math.round(Number(label))]
             if (!row) return ''
             return tooltipLabelFormatter(row)
           }}
         />
-        {bars.map((bar) => (
+        {bars.map((bar: TrendBarSeries) : React.JSX.Element => (
           <Bar
             key={bar.dataKey}
             yAxisId={hasSecondaryAxis ? 'secondary' : 'primary'}
@@ -200,7 +201,7 @@ export function SalesTrendChart({
             barSize={bar.barSize ?? 10}
           />
         ))}
-        {lines.map((line) => (
+        {lines.map((line: TrendLineSeries) : React.JSX.Element => (
           <Line
             key={line.dataKey}
             yAxisId={line.yAxisId ?? 'primary'}

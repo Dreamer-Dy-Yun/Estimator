@@ -1,6 +1,7 @@
+import type { OrderSnapshotPrimarySummaryV2 } from '../../../snapshot/orderSnapshotTypes'
+import type { ProductSecondarySizeRow } from '../../../types'
 import { ApiUnitErrorBadge } from '../../../components/ApiUnitErrorBadge'
 import { LoadingSpinner } from '../../../components/LoadingSpinner'
-import type { ReactNode } from 'react'
 import type { SecondaryCompetitorChannel } from '../../../api/types'
 import type { ApiUnitErrorInfo, ProductPrimarySummary, ProductSecondaryDetail } from '../../../types'
 import type { OrderSnapshotDocumentV2 } from '../../../snapshot/orderSnapshotTypes'
@@ -8,7 +9,7 @@ import styles from '../common.module.css'
 import { ProductSecondaryDrawer } from './secondary/ProductSecondaryDrawer'
 import type { CandidateItemPanelContext } from './secondary/secondaryDrawerTypes'
 
-type ProductDrawerSecondaryPaneProps = {
+export type ProductDrawerSecondaryPaneProps = {
   open: boolean
   summary: ProductPrimarySummary
   periodStart: string
@@ -40,17 +41,17 @@ function getMissingCompetitorRatioSizes(
   secondaryDetail: ProductSecondaryDetail,
 ): string[] {
   return secondaryDetail.sizeRows
-    .filter((row) => !isFiniteCompetitorRatio(secondaryDetail.competitorRatioBySize[row.size]))
-    .map((row) => row.size)
+    .filter((row: ProductSecondarySizeRow) : boolean => !isFiniteCompetitorRatio(secondaryDetail.competitorRatioBySize[row.size]))
+    .map((row: ProductSecondarySizeRow) : string => row.size)
 }
 
 function SecondaryPaneStatus({
   children,
   error,
 }: {
-  children: ReactNode
+  children: React.ReactNode
   error?: ApiUnitErrorInfo | null
-}) {
+}) : React.JSX.Element {
   return (
     <div className={styles.drawerSecondaryLoading}>
       {children}
@@ -77,11 +78,11 @@ export function ProductDrawerSecondaryPane({
   hydrateForPanel,
   candidateItemContext,
   channelState,
-}: ProductDrawerSecondaryPaneProps) {
-  const missingCompetitorRatioSizes =
+}: ProductDrawerSecondaryPaneProps) : React.JSX.Element {
+  const missingCompetitorRatioSizes: string[] =
     secondaryDetail == null ? [] : getMissingCompetitorRatioSizes(secondaryDetail)
-  const primaryForSecondaryPanel = hydrateForPanel?.drawer1.summary ?? summary
-  let content: ReactNode = null
+  const primaryForSecondaryPanel: OrderSnapshotPrimarySummaryV2 = hydrateForPanel?.drawer1.summary ?? summary
+  let content: React.ReactNode = null
 
   if (open) {
     if (channelsError) {
