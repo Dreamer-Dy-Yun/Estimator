@@ -182,7 +182,7 @@ export const CompetitorPage: () => React.JSX.Element = () : React.JSX.Element =>
               <div className={styles.analysisPanelLoading}><LoadingSpinner label="분석 지표를 불러오는 중" /></div>
             ) : <CompetitorKpiGrid selfCompanyLabel={common.selfCompanyLabel} {...kpi} />}
             <AnalysisScatterChartCard<AnalysisScatterGridPoint>
-              title={`경쟁사·${common.selfCompanyLabel} 판매량 비교`}
+              title="자사·경쟁사 판매량 비교"
               data={scatterView.scatterData}
               chartBodyRef={common.chartBodyRef}
               chartReady={common.chartReady}
