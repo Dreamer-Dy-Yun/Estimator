@@ -25,26 +25,26 @@ describe('getScatterGridCellPointRadius', () : void => {
     expect(getScatterGridCellPointRadius({
       xAxis: { min: 0, max: 100, bucketSize: 10 },
       yAxis: { min: 0, max: 100, bucketSize: 10 },
-    }, 200, 200)).toBe(8.1)
+    }, 200, 200)).toBe(4.1)
   })
 
   it('falls back to the minimum radius when meta or chart dimensions are invalid', () : void => {
-    expect(getScatterGridCellPointRadius(null, 200, 200)).toBe(3.8)
+    expect(getScatterGridCellPointRadius(null, 200, 200)).toBe(1.9)
     expect(getScatterGridCellPointRadius({
       xAxis: { min: 0, max: 0, bucketSize: 10 },
       yAxis: { min: 0, max: 100, bucketSize: 10 },
-    }, 200, 200)).toBe(3.8)
+    }, 200, 200)).toBe(1.9)
   })
 
   it('clamps radius to the documented display range', () : void => {
     expect(getScatterGridCellPointRadius({
       xAxis: { min: 0, max: 100, bucketSize: 1 },
       yAxis: { min: 0, max: 100, bucketSize: 1 },
-    }, 100, 100)).toBe(3.8)
+    }, 100, 100)).toBe(1.9)
 
     expect(getScatterGridCellPointRadius({
       xAxis: { min: 0, max: 100, bucketSize: 100 },
       yAxis: { min: 0, max: 100, bucketSize: 100 },
-    }, 1000, 1000)).toBe(13.5)
+    }, 1000, 1000)).toBe(6.8)
   })
 })

@@ -2,9 +2,9 @@ const SCATTER_GRID_HUE = 217 as const
 const SCATTER_GRID_SATURATION = 91 as const
 const SCATTER_GRID_LOW_DENSITY_LIGHTNESS = 86 as const
 const SCATTER_GRID_HIGH_DENSITY_LIGHTNESS = 60 as const
-const SCATTER_GRID_POINT_RADIUS_RATIO = 0.405 as const
-const SCATTER_GRID_POINT_RADIUS_MIN = 3.8 as const
-const SCATTER_GRID_POINT_RADIUS_MAX = 13.5 as const
+const SCATTER_GRID_POINT_RADIUS_RATIO = 0.2025 as const
+const SCATTER_GRID_POINT_RADIUS_MIN = 1.9 as const
+const SCATTER_GRID_POINT_RADIUS_MAX = 6.75 as const
 
 export type ScatterGridAxisForDisplay = {
   min: number
