@@ -5,6 +5,9 @@ import { AppToastProvider } from './components/AppToast'
 import { RequireAdmin } from './auth/RequireAdmin'
 import { RequireAuth } from './auth/RequireAuth'
 import { DashboardLayout } from './dashboard/DashboardLayout'
+import { InjectedDashboardDisplayPolicy } from './dashboard/policy/DashboardDisplayPolicy'
+import type { DashboardDisplayPolicy } from './dashboard/policy/DashboardDisplayPolicy'
+import { DashboardDisplayPolicyProvider } from './dashboard/policy/DashboardDisplayPolicyProvider'
 import styles from './app.module.css'
 
 const AdminPage: React.LazyExoticComponent<() => React.JSX.Element> = lazy(() : Promise<{ default: never; } | { default: () => React.JSX.Element; }> => import('./admin/AdminPage').then((module: typeof import("./admin/AdminPage")) : { default: () => React.JSX.Element; } => ({ default: module.AdminPage })))
@@ -19,6 +22,14 @@ const SnapshotConfirmPage: React.LazyExoticComponent<() => React.JSX.Element> = 
 
 const routerMode: 'hash' | 'browser' = import.meta.env.VITE_ROUTER_MODE === 'hash' ? 'hash' : 'browser'
 const browserRouterBasename: string = (import.meta.env.VITE_ROUTER_BASENAME ?? import.meta.env.BASE_URL).replace(/\/$/, '') || '/'
+const dashboardScatterPointRadiusScale = 0.5 as const
+const dashboardDisplayPolicy: DashboardDisplayPolicy = new InjectedDashboardDisplayPolicy({
+  scatterPointRadius: {
+    cellSizeRatio: 0.405 * dashboardScatterPointRadiusScale,
+    minRadius: 3.8 * dashboardScatterPointRadiusScale,
+    maxRadius: 13.5 * dashboardScatterPointRadiusScale,
+  },
+})
 
 function AppRouter({ children }: { children: React.ReactNode }) : React.JSX.Element {
   if (routerMode === 'hash') {
@@ -63,9 +74,11 @@ function App() : React.JSX.Element {
   return (
     <AppRouter>
       <AppToastProvider>
-        <AuthProvider>
-          <AppRoutes />
-        </AuthProvider>
+        <DashboardDisplayPolicyProvider policy={dashboardDisplayPolicy}>
+          <AuthProvider>
+            <AppRoutes />
+          </AuthProvider>
+        </DashboardDisplayPolicyProvider>
       </AppToastProvider>
     </AppRouter>
   )

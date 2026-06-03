@@ -28,15 +28,16 @@ import { useAnalysisScatterGridView } from '../hooks/useAnalysisScatterGridView'
 import { useDashboardRequest } from '../hooks/useDashboardRequest'
 import { useProductDrawerBundleState } from '../hooks/useProductDrawerBundle'
 import { buildAnalysisSalesRequestKey } from '../model/analysisSalesRequestKey'
-import { getAnalysisScatterPointRadius } from '../model/analysisScatterPointRadius'
 import { AnalysisFacetFilter, ANALYSIS_SALES_FACET_DEFINITIONS } from '../model/analysisFacetFilter'
 import type { AnalysisScatterGridPoint } from '../model/analysisScatterGridPoint'
+import { useDashboardDisplayPolicy } from '../policy/DashboardDisplayPolicy'
 
 const EMPTY_SELF_ROWS: SelfSalesRow[] = []
 const ALL_COMPANY_BULK_ADD_DISABLED = '전체 선택 상태에서는 오더 후보군에 추가할 수 없습니다. 회사를 선택하세요.' as const
 
 export const SelfPage: () => React.JSX.Element = () : React.JSX.Element => {
   const [bulkAddOpen, setBulkAddOpen]: [boolean, React.Dispatch<React.SetStateAction<boolean>>] = useState(false)
+  const displayPolicy: ReturnType<typeof useDashboardDisplayPolicy> = useDashboardDisplayPolicy()
   const common: { selfCompanyLabel: string; companyUuid: string | undefined; isAllCompanySelected: boolean; forecastMonths: number; onForecastMonthsChange: (n: number) => void; chartBodyRef: React.RefObject<HTMLDivElement | null>; chartWidth: number; chartHeight: number; chartReady: boolean; } = useAnalysisPageCommonState()
   const filters: { appliedPeriodStartDate: string; appliedPeriodEndDate: string; periodQueryDirty: boolean; applyPeriodQuery: () => void; queryFields: FilterField[]; listFilterValues: AnalysisFacetValues; buildListFilterFields: (filterOptions?: AnalysisFacetOptionValues) => FilterField[]; listFiltersDirty: boolean; resetListFilters: () => void; historicalMonths: string[]; salesParams: SelfSalesParams; showPeriodBar: boolean; setShowPeriodBar: React.Dispatch<React.SetStateAction<boolean>>; startDate: string; endDate: string; periodStartDate: string; periodEndDate: string; periodStartIdx: number; periodEndIdx: number; startPct: number; endPct: number; setPeriodStartDate: (value: string) => void; setPeriodEndDate: (value: string) => void; setPresetMonths: (months: number) => void; setWholeRange: () => void; onStartDateChange: (value: string) => void; onEndDateChange: (value: string) => void; onPeriodBarStart: (value: number) => void; onPeriodBarEnd: (value: number) => void; } = useAnalysisSalesFilters(common.companyUuid)
   const { buildListFilterFields, listFilterValues }: { appliedPeriodStartDate: string; appliedPeriodEndDate: string; periodQueryDirty: boolean; applyPeriodQuery: () => void; queryFields: FilterField[]; listFilterValues: AnalysisFacetValues; buildListFilterFields: (filterOptions?: AnalysisFacetOptionValues) => FilterField[]; listFiltersDirty: boolean; resetListFilters: () => void; historicalMonths: string[]; salesParams: SelfSalesParams; showPeriodBar: boolean; setShowPeriodBar: React.Dispatch<React.SetStateAction<boolean>>; startDate: string; endDate: string; periodStartDate: string; periodEndDate: string; periodStartIdx: number; periodEndIdx: number; startPct: number; endPct: number; setPeriodStartDate: (value: string) => void; setPeriodEndDate: (value: string) => void; setPresetMonths: (months: number) => void; setWholeRange: () => void; onStartDateChange: (value: string) => void; onEndDateChange: (value: string) => void; onPeriodBarStart: (value: number) => void; onPeriodBarEnd: (value: number) => void; } = filters
@@ -79,7 +80,7 @@ export const SelfPage: () => React.JSX.Element = () : React.JSX.Element => {
     scatterGrid,
     chartWidth: common.chartWidth,
     chartHeight: common.chartHeight,
-    pointRadius: getAnalysisScatterPointRadius(scatterGrid?.meta, common.chartWidth, common.chartHeight),
+    pointRadius: displayPolicy.getScatterPointRadius(scatterGrid?.meta, common.chartWidth, common.chartHeight),
   })
   const displayedListFilterFields: FilterField[] = useMemo(
     () : FilterField[] => (selection.activeGridCellKey ? maskAnalysisListFilterFields(listFilterFields) : listFilterFields),

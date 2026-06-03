@@ -26,10 +26,10 @@ import { useAnalysisScatterGridView } from '../hooks/useAnalysisScatterGridView'
 import { useDashboardRequest } from '../hooks/useDashboardRequest'
 import { useProductDrawerBundleState } from '../hooks/useProductDrawerBundle'
 import { buildAnalysisSalesRequestKey } from '../model/analysisSalesRequestKey'
-import { getAnalysisScatterPointRadius } from '../model/analysisScatterPointRadius'
 import { AnalysisFacetFilter, ANALYSIS_SALES_FACET_DEFINITIONS } from '../model/analysisFacetFilter'
 import type { AnalysisScatterGridPoint } from '../model/analysisScatterGridPoint'
 import type { FilterField } from '../model/filterField'
+import { useDashboardDisplayPolicy } from '../policy/DashboardDisplayPolicy'
 
 const EMPTY_COMPETITOR_ROWS: CompetitorSalesRow[] = []
 const EMPTY_COMPETITOR_CHANNELS: SecondaryCompetitorChannel[] = []
@@ -40,6 +40,7 @@ export const CompetitorPage: () => React.JSX.Element = () : React.JSX.Element =>
   const [bulkAddOpen, setBulkAddOpen]: [boolean, React.Dispatch<React.SetStateAction<boolean>>] = useState(false)
   const [competitorChannelId, setCompetitorChannelId]: [string | undefined, React.Dispatch<React.SetStateAction<string | undefined>>] = useState<string | undefined>(undefined)
   const [showRowsWithSelfSalesOnly, setShowRowsWithSelfSalesOnly]: [boolean, React.Dispatch<React.SetStateAction<boolean>>] = useState(false)
+  const displayPolicy: ReturnType<typeof useDashboardDisplayPolicy> = useDashboardDisplayPolicy()
   const common: { selfCompanyLabel: string; companyUuid: string | undefined; isAllCompanySelected: boolean; forecastMonths: number; onForecastMonthsChange: (n: number) => void; chartBodyRef: React.RefObject<HTMLDivElement | null>; chartWidth: number; chartHeight: number; chartReady: boolean; } = useAnalysisPageCommonState()
   const filters: { appliedPeriodStartDate: string; appliedPeriodEndDate: string; periodQueryDirty: boolean; applyPeriodQuery: () => void; queryFields: FilterField[]; listFilterValues: AnalysisFacetValues; buildListFilterFields: (filterOptions?: AnalysisFacetOptionValues) => FilterField[]; listFiltersDirty: boolean; resetListFilters: () => void; historicalMonths: string[]; salesParams: SelfSalesParams; showPeriodBar: boolean; setShowPeriodBar: React.Dispatch<React.SetStateAction<boolean>>; startDate: string; endDate: string; periodStartDate: string; periodEndDate: string; periodStartIdx: number; periodEndIdx: number; startPct: number; endPct: number; setPeriodStartDate: (value: string) => void; setPeriodEndDate: (value: string) => void; setPresetMonths: (months: number) => void; setWholeRange: () => void; onStartDateChange: (value: string) => void; onEndDateChange: (value: string) => void; onPeriodBarStart: (value: number) => void; onPeriodBarEnd: (value: number) => void; } = useAnalysisSalesFilters(common.companyUuid)
   const { buildListFilterFields, listFilterValues }: { appliedPeriodStartDate: string; appliedPeriodEndDate: string; periodQueryDirty: boolean; applyPeriodQuery: () => void; queryFields: FilterField[]; listFilterValues: AnalysisFacetValues; buildListFilterFields: (filterOptions?: AnalysisFacetOptionValues) => FilterField[]; listFiltersDirty: boolean; resetListFilters: () => void; historicalMonths: string[]; salesParams: SelfSalesParams; showPeriodBar: boolean; setShowPeriodBar: React.Dispatch<React.SetStateAction<boolean>>; startDate: string; endDate: string; periodStartDate: string; periodEndDate: string; periodStartIdx: number; periodEndIdx: number; startPct: number; endPct: number; setPeriodStartDate: (value: string) => void; setPeriodEndDate: (value: string) => void; setPresetMonths: (months: number) => void; setWholeRange: () => void; onStartDateChange: (value: string) => void; onEndDateChange: (value: string) => void; onPeriodBarStart: (value: number) => void; onPeriodBarEnd: (value: number) => void; } = filters
@@ -116,7 +117,7 @@ export const CompetitorPage: () => React.JSX.Element = () : React.JSX.Element =>
     scatterGrid,
     chartWidth: common.chartWidth,
     chartHeight: common.chartHeight,
-    pointRadius: getAnalysisScatterPointRadius(scatterGrid?.meta, common.chartWidth, common.chartHeight),
+    pointRadius: displayPolicy.getScatterPointRadius(scatterGrid?.meta, common.chartWidth, common.chartHeight),
   })
   const renderQtyScatterTooltip: ({ active, payload }: AnalysisScatterTooltipProps) => React.JSX.Element | null = useMemo(
     () : ({ active, payload }: AnalysisScatterTooltipProps) => React.JSX.Element | null => createCompetitorSalesScatterTooltip(competitorAxisLabel, common.selfCompanyLabel),
