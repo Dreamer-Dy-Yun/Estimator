@@ -13,5 +13,7 @@
   --primary-drawer-layout-trim: calc(var(--primary-drawer-expand-toggle-width) / 4);
   --primary-drawer-page-shift: calc(var(--primary-drawer-column-width) + var(--primary-drawer-edge-inset) - var(--primary-drawer-layout-trim));
   /** 이너 후보 모달: 100vw − reserve + trim */
-  --primary-drawer-modal-backdrop-reserve: 600px;
+  --primary-drawer-modal-inline-padding: 16px;
+  --primary-drawer-modal-panel-gap: 26px;
+  --primary-drawer-modal-backdrop-reserve: calc(var(--primary-drawer-column-width) + var(--primary-drawer-edge-inset) + var(--primary-drawer-modal-inline-padding) + var(--primary-drawer-layout-trim) + var(--primary-drawer-modal-panel-gap));
 }
