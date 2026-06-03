@@ -26,6 +26,7 @@ import { useAnalysisScatterGridView } from '../hooks/useAnalysisScatterGridView'
 import { useDashboardRequest } from '../hooks/useDashboardRequest'
 import { useProductDrawerBundleState } from '../hooks/useProductDrawerBundle'
 import { buildAnalysisSalesRequestKey } from '../model/analysisSalesRequestKey'
+import { getAnalysisScatterPointRadius } from '../model/analysisScatterPointRadius'
 import { AnalysisFacetFilter, ANALYSIS_SALES_FACET_DEFINITIONS } from '../model/analysisFacetFilter'
 import type { AnalysisScatterGridPoint } from '../model/analysisScatterGridPoint'
 import type { FilterField } from '../model/filterField'
@@ -111,7 +112,12 @@ export const CompetitorPage: () => React.JSX.Element = () : React.JSX.Element =>
         : null,
     }
   }, [selection.visibleRows])
-  const scatterView: AnalysisScatterGridView = useAnalysisScatterGridView({ scatterGrid, chartWidth: common.chartWidth, chartHeight: common.chartHeight })
+  const scatterView: AnalysisScatterGridView = useAnalysisScatterGridView({
+    scatterGrid,
+    chartWidth: common.chartWidth,
+    chartHeight: common.chartHeight,
+    pointRadius: getAnalysisScatterPointRadius(scatterGrid?.meta, common.chartWidth, common.chartHeight),
+  })
   const renderQtyScatterTooltip: ({ active, payload }: AnalysisScatterTooltipProps) => React.JSX.Element | null = useMemo(
     () : ({ active, payload }: AnalysisScatterTooltipProps) => React.JSX.Element | null => createCompetitorSalesScatterTooltip(competitorAxisLabel, common.selfCompanyLabel),
     [common.selfCompanyLabel, competitorAxisLabel],

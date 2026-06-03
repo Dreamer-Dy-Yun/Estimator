@@ -1,13 +1,14 @@
 import type { ScatterGridCell } from '../../api/types'
 import { useMemo } from 'react'
 import type { ScatterSalesGridResponse } from '../../api/types'
-import { getScatterGridCellColor, getScatterGridCellPointRadius } from '../../utils/scatterGridDisplay'
+import { getScatterGridCellColor } from '../../utils/scatterGridDisplay'
 import type { AnalysisScatterGridPoint } from '../model/analysisScatterGridPoint'
 
 export interface AnalysisScatterGridViewOptions {
   scatterGrid: ScatterSalesGridResponse | null
   chartWidth: number
   chartHeight: number
+  pointRadius: number
 }
 
 export interface AnalysisScatterGridView {
@@ -21,6 +22,7 @@ export function useAnalysisScatterGridView({
   scatterGrid,
   chartWidth,
   chartHeight,
+  pointRadius,
 }: AnalysisScatterGridViewOptions): AnalysisScatterGridView {
   const maxScatterGridCount: number = useMemo(
     () : number => Math.max(0, ...(scatterGrid?.cells ?? []).map((cell: ScatterGridCell) : number => cell.count)),
@@ -45,16 +47,11 @@ export function useAnalysisScatterGridView({
 
   const scatterChartWidth: number = Math.max(1, Math.floor(chartWidth))
   const scatterChartHeight: number = Math.max(1, Math.floor(chartHeight))
-  const scatterPointRadius: number = getScatterGridCellPointRadius(
-    scatterGrid?.meta,
-    scatterChartWidth,
-    scatterChartHeight,
-  )
 
   return {
     scatterData,
     scatterChartWidth,
     scatterChartHeight,
-    scatterPointRadius,
+    scatterPointRadius: pointRadius,
   }
 }

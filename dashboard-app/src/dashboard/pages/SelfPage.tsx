@@ -28,6 +28,7 @@ import { useAnalysisScatterGridView } from '../hooks/useAnalysisScatterGridView'
 import { useDashboardRequest } from '../hooks/useDashboardRequest'
 import { useProductDrawerBundleState } from '../hooks/useProductDrawerBundle'
 import { buildAnalysisSalesRequestKey } from '../model/analysisSalesRequestKey'
+import { getAnalysisScatterPointRadius } from '../model/analysisScatterPointRadius'
 import { AnalysisFacetFilter, ANALYSIS_SALES_FACET_DEFINITIONS } from '../model/analysisFacetFilter'
 import type { AnalysisScatterGridPoint } from '../model/analysisScatterGridPoint'
 
@@ -78,6 +79,7 @@ export const SelfPage: () => React.JSX.Element = () : React.JSX.Element => {
     scatterGrid,
     chartWidth: common.chartWidth,
     chartHeight: common.chartHeight,
+    pointRadius: getAnalysisScatterPointRadius(scatterGrid?.meta, common.chartWidth, common.chartHeight),
   })
   const displayedListFilterFields: FilterField[] = useMemo(
     () : FilterField[] => (selection.activeGridCellKey ? maskAnalysisListFilterFields(listFilterFields) : listFilterFields),

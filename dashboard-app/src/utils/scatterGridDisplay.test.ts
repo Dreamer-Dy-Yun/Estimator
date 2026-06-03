@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import { getScatterGridCellColor, getScatterGridCellPointRadius } from './scatterGridDisplay'
+import type { ScatterGridPointRadiusPolicy } from './scatterGridDisplay'
+
+const radiusPolicy: ScatterGridPointRadiusPolicy = {
+  cellSizeRatio: 0.2025,
+  minRadius: 1.9,
+  maxRadius: 6.75,
+}
 
 describe('getScatterGridCellColor', () : void => {
   it('uses the low-density color for empty or invalid counts', () : void => {
@@ -25,26 +32,26 @@ describe('getScatterGridCellPointRadius', () : void => {
     expect(getScatterGridCellPointRadius({
       xAxis: { min: 0, max: 100, bucketSize: 10 },
       yAxis: { min: 0, max: 100, bucketSize: 10 },
-    }, 200, 200)).toBe(4.1)
+    }, 200, 200, radiusPolicy)).toBe(4.1)
   })
 
   it('falls back to the minimum radius when meta or chart dimensions are invalid', () : void => {
-    expect(getScatterGridCellPointRadius(null, 200, 200)).toBe(1.9)
+    expect(getScatterGridCellPointRadius(null, 200, 200, radiusPolicy)).toBe(1.9)
     expect(getScatterGridCellPointRadius({
       xAxis: { min: 0, max: 0, bucketSize: 10 },
       yAxis: { min: 0, max: 100, bucketSize: 10 },
-    }, 200, 200)).toBe(1.9)
+    }, 200, 200, radiusPolicy)).toBe(1.9)
   })
 
   it('clamps radius to the documented display range', () : void => {
     expect(getScatterGridCellPointRadius({
       xAxis: { min: 0, max: 100, bucketSize: 1 },
       yAxis: { min: 0, max: 100, bucketSize: 1 },
-    }, 100, 100)).toBe(1.9)
+    }, 100, 100, radiusPolicy)).toBe(1.9)
 
     expect(getScatterGridCellPointRadius({
       xAxis: { min: 0, max: 100, bucketSize: 100 },
       yAxis: { min: 0, max: 100, bucketSize: 100 },
-    }, 1000, 1000)).toBe(6.8)
+    }, 1000, 1000, radiusPolicy)).toBe(6.8)
   })
 })

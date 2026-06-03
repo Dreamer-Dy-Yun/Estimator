@@ -2,9 +2,6 @@ const SCATTER_GRID_HUE = 217 as const
 const SCATTER_GRID_SATURATION = 91 as const
 const SCATTER_GRID_LOW_DENSITY_LIGHTNESS = 86 as const
 const SCATTER_GRID_HIGH_DENSITY_LIGHTNESS = 60 as const
-const SCATTER_GRID_POINT_RADIUS_RATIO = 0.2025 as const
-const SCATTER_GRID_POINT_RADIUS_MIN = 1.9 as const
-const SCATTER_GRID_POINT_RADIUS_MAX = 6.75 as const
 
 export type ScatterGridAxisForDisplay = {
   min: number
@@ -15,6 +12,12 @@ export type ScatterGridAxisForDisplay = {
 export type ScatterGridMetaForDisplay = {
   xAxis: ScatterGridAxisForDisplay
   yAxis: ScatterGridAxisForDisplay
+}
+
+export interface ScatterGridPointRadiusPolicy {
+  cellSizeRatio: number
+  minRadius: number
+  maxRadius: number
 }
 
 function clampRatio(value: number): number {
@@ -53,18 +56,20 @@ export function getScatterGridCellPointRadius(
   meta: ScatterGridMetaForDisplay | null | undefined,
   chartWidth: number,
   chartHeight: number,
+  radiusPolicy: ScatterGridPointRadiusPolicy,
 ): number {
-  if (!meta) return SCATTER_GRID_POINT_RADIUS_MIN
+  const fallbackRadius: number = radiusPolicy.minRadius
+  if (!meta) return fallbackRadius
 
   const xBucketPixels: number = axisBucketPixelSize(meta.xAxis, chartWidth)
   const yBucketPixels: number = axisBucketPixelSize(meta.yAxis, chartHeight)
   const cellPixelSize: number = Math.min(xBucketPixels, yBucketPixels)
-  if (!Number.isFinite(cellPixelSize) || cellPixelSize <= 0) return SCATTER_GRID_POINT_RADIUS_MIN
+  if (!Number.isFinite(cellPixelSize) || cellPixelSize <= 0) return fallbackRadius
 
   const radius: number = clamp(
-    cellPixelSize * SCATTER_GRID_POINT_RADIUS_RATIO,
-    SCATTER_GRID_POINT_RADIUS_MIN,
-    SCATTER_GRID_POINT_RADIUS_MAX,
+    cellPixelSize * radiusPolicy.cellSizeRatio,
+    radiusPolicy.minRadius,
+    radiusPolicy.maxRadius,
   )
   return Number(radius.toFixed(1))
 }
