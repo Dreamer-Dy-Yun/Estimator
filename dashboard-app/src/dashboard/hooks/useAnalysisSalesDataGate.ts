@@ -14,18 +14,20 @@ export function useAnalysisSalesDataGate<Row>({
   scatterGridRequest,
   requestKey,
   emptyRows,
-}: AnalysisSalesDataGateOptions<Row>) : { rows: Row[]; scatterGrid: ScatterSalesGridResponse | null; initialLoading: boolean; refreshing: boolean; ready: boolean; } {
-  return useMemo(() : { rows: Row[]; scatterGrid: ScatterSalesGridResponse | null; initialLoading: boolean; refreshing: boolean; ready: boolean; } => {
-    const rowsCurrent: boolean = rowsRequest.dataKey === requestKey
-    const scatterCurrent: boolean = scatterGridRequest.dataKey === requestKey
-    const ready: boolean = rowsCurrent && scatterCurrent
+}: AnalysisSalesDataGateOptions<Row>) : { rows: Row[]; scatterGrid: ScatterSalesGridResponse | null; rowsReady: boolean; scatterReady: boolean; rowsInitialLoading: boolean; rowsRefreshing: boolean; scatterInitialLoading: boolean; scatterRefreshing: boolean; } {
+  return useMemo(() : { rows: Row[]; scatterGrid: ScatterSalesGridResponse | null; rowsReady: boolean; scatterReady: boolean; rowsInitialLoading: boolean; rowsRefreshing: boolean; scatterInitialLoading: boolean; scatterRefreshing: boolean; } => {
+    const rowsReady: boolean = rowsRequest.dataKey === requestKey
+    const scatterReady: boolean = scatterGridRequest.dataKey === requestKey
 
     return {
-      rows: ready ? rowsRequest.data : emptyRows,
-      scatterGrid: ready ? scatterGridRequest.data : null,
-      initialLoading: !ready && (rowsRequest.loading || scatterGridRequest.loading),
-      refreshing: rowsRequest.isRefreshing || scatterGridRequest.isRefreshing,
-      ready,
+      rows: rowsReady ? rowsRequest.data : emptyRows,
+      scatterGrid: scatterReady ? scatterGridRequest.data : null,
+      rowsReady,
+      scatterReady,
+      rowsInitialLoading: !rowsReady && rowsRequest.loading,
+      rowsRefreshing: rowsRequest.isRefreshing,
+      scatterInitialLoading: !scatterReady && scatterGridRequest.loading,
+      scatterRefreshing: scatterGridRequest.isRefreshing,
     }
   }, [
     emptyRows,

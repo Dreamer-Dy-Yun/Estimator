@@ -16,22 +16,17 @@ export function AnalysisListRequestFrame({
   initialLabel,
   refreshLabel,
 }: AnalysisListRequestFrameProps) : React.JSX.Element {
-  if (initialLoading) {
-    return (
-      <div className={styles.analysisListLoading}>
-        <LoadingSpinner label={initialLabel} />
-      </div>
-    )
-  }
+  const loading: boolean = initialLoading || refreshing
+  const loadingLabel: string = initialLoading ? initialLabel : refreshLabel
 
   return (
-    <div className={styles.analysisListRequestFrame} aria-busy={refreshing || undefined}>
-      {refreshing ? (
-        <div className={styles.analysisListRefreshStatus}>
-          <LoadingSpinner size="inline" label={refreshLabel} />
+    <div className={styles.analysisListRequestFrame} aria-busy={loading || undefined}>
+      {initialLoading ? null : children}
+      {loading ? (
+        <div className={styles.analysisListLoadingOverlay}>
+          <LoadingSpinner label={loadingLabel} />
         </div>
       ) : null}
-      {children}
     </div>
   )
 }

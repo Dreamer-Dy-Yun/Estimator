@@ -14,8 +14,8 @@ export type AnalysisPeriodFrameProps = {
   periodEndIdx: number
   startPct: number
   endPct: number
-  initialLoading: boolean
-  refreshing: boolean
+  listInitialLoading: boolean
+  listRefreshing: boolean
   initialLabel: string
   refreshLabel: string
   leftPanel: React.ReactNode
@@ -43,8 +43,8 @@ export function AnalysisPageLayout(props: AnalysisPeriodFrameProps) : React.JSX.
     periodEndIdx,
     startPct,
     endPct,
-    initialLoading,
-    refreshing,
+    listInitialLoading,
+    listRefreshing,
     initialLabel,
     refreshLabel,
     leftPanel,
@@ -105,7 +105,7 @@ export function AnalysisPageLayout(props: AnalysisPeriodFrameProps) : React.JSX.
       <div className={`${styles.twoCol} ${styles.selfTwoCol}`}>
         <div className={`${styles.leftCol} ${styles.selfLeftCol}`}>{leftPanel}</div>
         <div className={styles.analysisListColumn}>
-          <AnalysisListRequestFrame initialLoading={initialLoading} refreshing={refreshing} initialLabel={initialLabel} refreshLabel={refreshLabel}>{listPanel}</AnalysisListRequestFrame>
+          <AnalysisListRequestFrame initialLoading={listInitialLoading} refreshing={listRefreshing} initialLabel={initialLabel} refreshLabel={refreshLabel}>{listPanel}</AnalysisListRequestFrame>
         </div>
       </div>
     </>

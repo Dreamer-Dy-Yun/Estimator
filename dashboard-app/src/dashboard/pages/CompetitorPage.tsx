@@ -65,13 +65,13 @@ export const CompetitorPage: () => React.JSX.Element = () : React.JSX.Element =>
   const loadScatterGrid: () => Promise<ScatterSalesGridResponse> = useCallback(() : Promise<ScatterSalesGridResponse> => getCompetitorSalesScatterGrid(salesParams), [salesParams])
   const rowsRequest: DashboardRequestState<CompetitorSalesRow[]> = useDashboardRequest(loadRows, EMPTY_COMPETITOR_ROWS, analysisRequestKey)
   const scatterGridRequest: DashboardRequestState<ScatterSalesGridResponse | null> = useDashboardRequest<ScatterSalesGridResponse | null>(loadScatterGrid, null, analysisRequestKey)
-  const analysisData: { rows: CompetitorSalesRow[]; scatterGrid: ScatterSalesGridResponse | null; initialLoading: boolean; refreshing: boolean; ready: boolean; } = useAnalysisSalesDataGate({
+  const analysisData: { rows: CompetitorSalesRow[]; scatterGrid: ScatterSalesGridResponse | null; rowsReady: boolean; scatterReady: boolean; rowsInitialLoading: boolean; rowsRefreshing: boolean; scatterInitialLoading: boolean; scatterRefreshing: boolean; } = useAnalysisSalesDataGate({
     rowsRequest,
     scatterGridRequest,
     requestKey: analysisRequestKey,
     emptyRows: EMPTY_COMPETITOR_ROWS,
   })
-  const { rows, scatterGrid }: { rows: CompetitorSalesRow[]; scatterGrid: ScatterSalesGridResponse | null; initialLoading: boolean; refreshing: boolean; ready: boolean; } = analysisData
+  const { rows, scatterGrid }: { rows: CompetitorSalesRow[]; scatterGrid: ScatterSalesGridResponse | null; rowsReady: boolean; scatterReady: boolean; rowsInitialLoading: boolean; rowsRefreshing: boolean; scatterInitialLoading: boolean; scatterRefreshing: boolean; } = analysisData
   const baseRows: CompetitorSalesRow[] = useMemo(() : CompetitorSalesRow[] => (showRowsWithSelfSalesOnly ? rows.filter((row: CompetitorSalesRow) : boolean => row.selfQty != null) : rows), [rows, showRowsWithSelfSalesOnly])
   const facetFilter: AnalysisFacetFilter<CompetitorSalesRow> = useMemo(
     () : AnalysisFacetFilter<CompetitorSalesRow> => new AnalysisFacetFilter(baseRows, ANALYSIS_SALES_FACET_DEFINITIONS, listFilterValues),
@@ -141,8 +141,8 @@ export const CompetitorPage: () => React.JSX.Element = () : React.JSX.Element =>
         onTogglePeriodBar={() : void => filters.setShowPeriodBar((prev: boolean) : boolean => !prev)}
         onPeriodBarStart={filters.onPeriodBarStart}
         onPeriodBarEnd={filters.onPeriodBarEnd}
-        initialLoading={analysisData.initialLoading && !rows.length}
-        refreshing={analysisData.refreshing}
+        listInitialLoading={analysisData.rowsInitialLoading && !rows.length}
+        listRefreshing={analysisData.rowsRefreshing}
         initialLabel="경쟁사 분석 목록을 불러오는 중"
         refreshLabel="경쟁사 분석 목록을 갱신하는 중"
         queryEndControl={(
@@ -178,7 +178,7 @@ export const CompetitorPage: () => React.JSX.Element = () : React.JSX.Element =>
         onResetListFilters={resetListFilters}
         leftPanel={(
           <>
-            {analysisData.initialLoading && !rows.length ? (
+            {analysisData.rowsInitialLoading && !rows.length ? (
               <div className={styles.analysisPanelLoading}><LoadingSpinner label="분석 지표를 불러오는 중" /></div>
             ) : <CompetitorKpiGrid selfCompanyLabel={common.selfCompanyLabel} {...kpi} />}
             <AnalysisScatterChartCard<AnalysisScatterGridPoint>
@@ -188,7 +188,7 @@ export const CompetitorPage: () => React.JSX.Element = () : React.JSX.Element =>
               chartReady={common.chartReady}
               width={scatterView.scatterChartWidth}
               height={scatterView.scatterChartHeight}
-              loading={analysisData.initialLoading && scatterView.scatterData.length === 0}
+              loading={(analysisData.scatterInitialLoading || analysisData.scatterRefreshing) && scatterView.scatterData.length === 0}
               pointRadius={scatterView.scatterPointRadius}
               activeCellKey={selection.activeGridCellKey}
               onCellClick={selection.onScatterCellClick}

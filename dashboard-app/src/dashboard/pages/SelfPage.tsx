@@ -46,13 +46,13 @@ export const SelfPage: () => React.JSX.Element = () : React.JSX.Element => {
   const loadScatterGrid: () => Promise<ScatterSalesGridResponse> = useCallback(() : Promise<ScatterSalesGridResponse> => getSelfSalesScatterGrid(filters.salesParams), [filters.salesParams])
   const rowsRequest: DashboardRequestState<SelfSalesRow[]> = useDashboardRequest(loadRows, EMPTY_SELF_ROWS, analysisRequestKey)
   const scatterGridRequest: DashboardRequestState<ScatterSalesGridResponse | null> = useDashboardRequest<ScatterSalesGridResponse | null>(loadScatterGrid, null, analysisRequestKey)
-  const analysisData: { rows: SelfSalesRow[]; scatterGrid: ScatterSalesGridResponse | null; initialLoading: boolean; refreshing: boolean; ready: boolean; } = useAnalysisSalesDataGate({
+  const analysisData: { rows: SelfSalesRow[]; scatterGrid: ScatterSalesGridResponse | null; rowsReady: boolean; scatterReady: boolean; rowsInitialLoading: boolean; rowsRefreshing: boolean; scatterInitialLoading: boolean; scatterRefreshing: boolean; } = useAnalysisSalesDataGate({
     rowsRequest,
     scatterGridRequest,
     requestKey: analysisRequestKey,
     emptyRows: EMPTY_SELF_ROWS,
   })
-  const { rows, scatterGrid }: { rows: SelfSalesRow[]; scatterGrid: ScatterSalesGridResponse | null; initialLoading: boolean; refreshing: boolean; ready: boolean; } = analysisData
+  const { rows, scatterGrid }: { rows: SelfSalesRow[]; scatterGrid: ScatterSalesGridResponse | null; rowsReady: boolean; scatterReady: boolean; rowsInitialLoading: boolean; rowsRefreshing: boolean; scatterInitialLoading: boolean; scatterRefreshing: boolean; } = analysisData
   const facetFilter: AnalysisFacetFilter<SelfSalesRow> = useMemo(
     () : AnalysisFacetFilter<SelfSalesRow> => new AnalysisFacetFilter(rows, ANALYSIS_SALES_FACET_DEFINITIONS, listFilterValues),
     [listFilterValues, rows],
@@ -104,8 +104,8 @@ export const SelfPage: () => React.JSX.Element = () : React.JSX.Element => {
         onTogglePeriodBar={() : void => filters.setShowPeriodBar((prev: boolean) : boolean => !prev)}
         onPeriodBarStart={filters.onPeriodBarStart}
         onPeriodBarEnd={filters.onPeriodBarEnd}
-        initialLoading={analysisData.initialLoading && !rows.length}
-        refreshing={analysisData.refreshing}
+        listInitialLoading={analysisData.rowsInitialLoading && !rows.length}
+        listRefreshing={analysisData.rowsRefreshing}
         initialLabel={`${common.selfCompanyLabel} 분석 목록을 불러오는 중`}
         refreshLabel={`${common.selfCompanyLabel} 분석 목록을 갱신하는 중`}
         queryEndControl={(
@@ -129,7 +129,7 @@ export const SelfPage: () => React.JSX.Element = () : React.JSX.Element => {
         onResetListFilters={filters.resetListFilters}
         leftPanel={(
           <>
-            {analysisData.initialLoading && !rows.length ? (
+            {analysisData.rowsInitialLoading && !rows.length ? (
               <div className={styles.analysisPanelLoading}><LoadingSpinner label="분석 지표를 불러오는 중" /></div>
             ) : (
               <KpiGrid stacked items={[
@@ -146,7 +146,7 @@ export const SelfPage: () => React.JSX.Element = () : React.JSX.Element => {
               chartReady={common.chartReady}
               width={scatterView.scatterChartWidth}
               height={scatterView.scatterChartHeight}
-              loading={analysisData.initialLoading && scatterView.scatterData.length === 0}
+              loading={(analysisData.scatterInitialLoading || analysisData.scatterRefreshing) && scatterView.scatterData.length === 0}
               pointRadius={scatterView.scatterPointRadius}
               activeCellKey={selection.activeGridCellKey}
               onCellClick={selection.onScatterCellClick}
