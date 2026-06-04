@@ -1,4 +1,6 @@
 .page {
+  --analysis-self-series-color: #2563eb;
+  --analysis-competitor-series-color: #ef4444;
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
   gap: 14px;
@@ -59,6 +61,14 @@
   color: #64748b;
   font-size: 11px;
   line-height: 1.2;
+}
+
+.analysisSelfSeriesLabel {
+  color: var(--analysis-self-series-color);
+}
+
+.analysisCompetitorSeriesLabel {
+  color: var(--analysis-competitor-series-color);
 }
 
 .kpiValue {

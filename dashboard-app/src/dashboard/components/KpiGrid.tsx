@@ -1,7 +1,8 @@
 import styles from './common.module.css'
 
 export type KpiItem = {
-  label: string
+  id?: string
+  label: React.ReactNode
   value: React.ReactNode
   unit?: React.ReactNode
 }
@@ -15,7 +16,7 @@ export function KpiGrid({ items, stacked = false }: KpiGridProps) : React.JSX.El
   return (
     <div className={`${styles.kpiGrid} ${stacked ? styles.kpiStack : ''}`.trim()}>
       {items.map((item: KpiItem) : React.JSX.Element => (
-        <div key={item.label} className={`${styles.kpi} ${styles.kpiMetricCard}`.trim()}>
+        <div key={item.id ?? String(item.label)} className={`${styles.kpi} ${styles.kpiMetricCard}`.trim()}>
           <div className={styles.kpiLabel}>{item.label}</div>
           <div className={styles.kpiValue}>
             <span className={styles.kpiValueMain}>{item.value}</span>

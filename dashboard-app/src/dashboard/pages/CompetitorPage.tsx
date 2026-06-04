@@ -180,7 +180,7 @@ export const CompetitorPage: () => React.JSX.Element = () : React.JSX.Element =>
           <>
             {analysisData.rowsInitialLoading && !rows.length ? (
               <div className={styles.analysisPanelLoading}><LoadingSpinner label="분석 지표를 불러오는 중" /></div>
-            ) : <CompetitorKpiGrid selfCompanyLabel={common.selfCompanyLabel} {...kpi} />}
+            ) : <CompetitorKpiGrid competitorLabel={competitorAxisLabel} selfCompanyLabel={common.selfCompanyLabel} {...kpi} />}
             <AnalysisScatterChartCard<AnalysisScatterGridPoint>
               title="자사·경쟁사 판매량 비교"
               data={scatterView.scatterData}
@@ -194,8 +194,8 @@ export const CompetitorPage: () => React.JSX.Element = () : React.JSX.Element =>
               onCellClick={selection.onScatterCellClick}
               onClearSelection={selection.clearActiveGridCell}
               renderTooltip={renderQtyScatterTooltip}
-              xAxis={{ name: `${common.selfCompanyLabel} 판매량(EA)`, label: common.selfCompanyLabel, labelColor: '#2563eb' }}
-              yAxis={{ name: `${competitorAxisLabel} 판매량(EA)`, label: competitorAxisLabel, labelColor: '#ef4444', width: 38, tickMargin: 4 }}
+              xAxis={{ name: `${common.selfCompanyLabel} 판매량(EA)`, label: common.selfCompanyLabel, labelColor: 'var(--analysis-self-series-color)' }}
+              yAxis={{ name: `${competitorAxisLabel} 판매량(EA)`, label: competitorAxisLabel, labelColor: 'var(--analysis-competitor-series-color)', width: 38, tickMargin: 4 }}
             />
           </>
         )}
