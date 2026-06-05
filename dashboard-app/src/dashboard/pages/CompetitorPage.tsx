@@ -5,10 +5,12 @@ import type { AnalysisScatterTooltipProps } from '../components/AnalysisScatterT
 import type { DashboardRequestState } from '../hooks/useDashboardRequest'
 import type { AnalysisFacetOptionValues, AnalysisFacetValues } from '../model/analysisFacetFilter'
 import { useCallback, useMemo, useState } from 'react'
-import { getCompetitorSales, getCompetitorSalesScatterGrid, getSecondaryCompetitorChannels } from '../../api'
-import type { ScatterSalesGridResponse, SecondaryCompetitorChannel } from '../../api/types'
+import { getCompetitorSales, getSecondaryCompetitorChannels } from '../../api'
+import type { ScatterGridCell, ScatterSalesGridResponse, SecondaryCompetitorChannel } from '../../api/types'
 import { LoadingSpinner } from '../../components/LoadingSpinner'
 import type { CompetitorSalesRow } from '../../types'
+import { formatGroupedNumber } from '../../utils/format'
+import { buildCompetitorSalesScatterGridFromRows } from '../../utils/scatterGridBuild'
 import { AnalysisDrawerBulkAdd } from '../components/AnalysisDrawerBulkAdd'
 import { AnalysisPageLayout } from '../components/AnalysisPageLayout'
 import { AnalysisPeriodQueryButton } from '../components/AnalysisPeriodQueryButton'
@@ -21,7 +23,7 @@ import styles from '../components/common.module.css'
 import { useAnalysisPageCommonState } from '../hooks/useAnalysisPageCommonState'
 import { useAnalysisPageSelection } from '../hooks/useAnalysisPageSelection'
 import { useAnalysisSalesDataGate } from '../hooks/useAnalysisSalesDataGate'
-import { maskAnalysisListFilterFields, useAnalysisSalesFilters } from '../hooks/useAnalysisSalesFilters'
+import { lockAnalysisListFilterFields, useAnalysisSalesFilters } from '../hooks/useAnalysisSalesFilters'
 import { useAnalysisScatterGridView } from '../hooks/useAnalysisScatterGridView'
 import { useDashboardRequest } from '../hooks/useDashboardRequest'
 import { useProductDrawerBundleState } from '../hooks/useProductDrawerBundle'
@@ -62,16 +64,13 @@ export const CompetitorPage: () => React.JSX.Element = () : React.JSX.Element =>
   const salesParams: { competitorChannelId: string | undefined; startDate?: string; endDate?: string; brand?: string; category?: string; codeQuery?: string; colorCode?: string; nameQuery?: string; companyUuid?: string | undefined; } = useMemo(() : { competitorChannelId: string | undefined; startDate?: string; endDate?: string; brand?: string; category?: string; codeQuery?: string; colorCode?: string; nameQuery?: string; companyUuid?: string | undefined; } => ({ ...filters.salesParams, competitorChannelId: activeCompetitorChannelId }), [activeCompetitorChannelId, filters.salesParams])
   const analysisRequestKey: string = useMemo(() : string => buildAnalysisSalesRequestKey(salesParams), [salesParams])
   const loadRows: () => Promise<CompetitorSalesRow[]> = useCallback(() : Promise<CompetitorSalesRow[]> => getCompetitorSales(salesParams), [salesParams])
-  const loadScatterGrid: () => Promise<ScatterSalesGridResponse> = useCallback(() : Promise<ScatterSalesGridResponse> => getCompetitorSalesScatterGrid(salesParams), [salesParams])
   const rowsRequest: DashboardRequestState<CompetitorSalesRow[]> = useDashboardRequest(loadRows, EMPTY_COMPETITOR_ROWS, analysisRequestKey)
-  const scatterGridRequest: DashboardRequestState<ScatterSalesGridResponse | null> = useDashboardRequest<ScatterSalesGridResponse | null>(loadScatterGrid, null, analysisRequestKey)
-  const analysisData: { rows: CompetitorSalesRow[]; scatterGrid: ScatterSalesGridResponse | null; rowsReady: boolean; scatterReady: boolean; rowsInitialLoading: boolean; rowsRefreshing: boolean; scatterInitialLoading: boolean; scatterRefreshing: boolean; } = useAnalysisSalesDataGate({
+  const analysisData: { rows: CompetitorSalesRow[]; rowsReady: boolean; rowsInitialLoading: boolean; rowsRefreshing: boolean; } = useAnalysisSalesDataGate({
     rowsRequest,
-    scatterGridRequest,
     requestKey: analysisRequestKey,
     emptyRows: EMPTY_COMPETITOR_ROWS,
   })
-  const { rows, scatterGrid }: { rows: CompetitorSalesRow[]; scatterGrid: ScatterSalesGridResponse | null; rowsReady: boolean; scatterReady: boolean; rowsInitialLoading: boolean; rowsRefreshing: boolean; scatterInitialLoading: boolean; scatterRefreshing: boolean; } = analysisData
+  const { rows }: { rows: CompetitorSalesRow[] } = analysisData
   const baseRows: CompetitorSalesRow[] = useMemo(() : CompetitorSalesRow[] => (showRowsWithSelfSalesOnly ? rows.filter((row: CompetitorSalesRow) : boolean => row.selfQty != null) : rows), [rows, showRowsWithSelfSalesOnly])
   const facetFilter: AnalysisFacetFilter<CompetitorSalesRow> = useMemo(
     () : AnalysisFacetFilter<CompetitorSalesRow> => new AnalysisFacetFilter(baseRows, ANALYSIS_SALES_FACET_DEFINITIONS, listFilterValues),
@@ -82,7 +81,11 @@ export const CompetitorPage: () => React.JSX.Element = () : React.JSX.Element =>
     [buildListFilterFields, facetFilter],
   )
   const filteredRows: CompetitorSalesRow[] = useMemo(() : CompetitorSalesRow[] => facetFilter.getFilteredRows(), [facetFilter])
-  const selection: { activeGridCellKey: string | null; selectedSkuGroupKey: string | null; activeSkuGroupKey: string | null; bulkSelectedSkuGroupKeys: Set<string>; visibleRows: CompetitorSalesRow[]; bulkSelectedCount: number; allVisibleRowsSelected: boolean; selectedSkuGroupKeys: string[]; setSelectedSkuGroupKey: (skuGroupKey: string | null) => void; onScatterCellClick: (cellKey: string) => void; clearActiveGridCell: () => void; toggleBulkRow: (id: string) => void; toggleAllVisibleRows: () => void; clearBulkSelection: () => void; onRequestNavigateAdjacent: (direction: AdjacentDirection) => void; onRequestFocusAdjacent: (currentSkuGroupKey: string | null, direction: AdjacentDirection) => void; onOrderedSkuGroupKeysChange: React.Dispatch<React.SetStateAction<string[]>>; } = useAnalysisPageSelection({ rows: filteredRows, scatterGrid, bulkAddOpen })
+  const scatterGrid: ScatterSalesGridResponse | null = useMemo(
+    () : ScatterSalesGridResponse | null => analysisData.rowsReady ? buildCompetitorSalesScatterGridFromRows(filteredRows) : null,
+    [analysisData.rowsReady, filteredRows],
+  )
+  const selection: { activeGridCell: ScatterGridCell | null; activeGridCellKey: string | null; selectedSkuGroupKey: string | null; activeSkuGroupKey: string | null; bulkSelectedSkuGroupKeys: Set<string>; visibleRows: CompetitorSalesRow[]; bulkSelectedCount: number; allVisibleRowsSelected: boolean; selectedSkuGroupKeys: string[]; setSelectedSkuGroupKey: (skuGroupKey: string | null) => void; onScatterCellClick: (cellKey: string) => void; clearActiveGridCell: () => void; toggleBulkRow: (id: string) => void; toggleAllVisibleRows: () => void; clearBulkSelection: () => void; onRequestNavigateAdjacent: (direction: AdjacentDirection) => void; onRequestFocusAdjacent: (currentSkuGroupKey: string | null, direction: AdjacentDirection) => void; onOrderedSkuGroupKeysChange: React.Dispatch<React.SetStateAction<string[]>>; } = useAnalysisPageSelection({ rows: filteredRows, scatterGrid, bulkAddOpen, resetKey: analysisRequestKey })
   const summaryBundleState: { bundle: ProductDrawerBundle | null; loading: boolean; } = useProductDrawerBundleState(selection.selectedSkuGroupKey, { companyUuid: common.companyUuid })
 
   const competitorQueryFields: FilterField[] = useMemo<FilterField[]>(() : FilterField[] => [
@@ -90,7 +93,7 @@ export const CompetitorPage: () => React.JSX.Element = () : React.JSX.Element =>
     { label: '경쟁 채널', kind: 'select', value: competitorChannelLabel, onChange: onCompetitorChannelChange, options: [ALL_CHANNEL_LABEL, ...channels.map((ch: SecondaryCompetitorChannel) : string => ch.label)] },
   ], [channels, competitorChannelLabel, filters.queryFields, onCompetitorChannelChange])
   const displayedListFilterFields: FilterField[] = useMemo(
-    () : FilterField[] => (selection.activeGridCellKey ? maskAnalysisListFilterFields(listFilterFields) : listFilterFields),
+    () : FilterField[] => (selection.activeGridCellKey ? lockAnalysisListFilterFields(listFilterFields) : listFilterFields),
     [listFilterFields, selection.activeGridCellKey],
   )
   const resetListFilters: () => void = useCallback(() : void => {
@@ -99,6 +102,10 @@ export const CompetitorPage: () => React.JSX.Element = () : React.JSX.Element =>
   }, [filters])
   const listFiltersDirty: boolean = filters.listFiltersDirty || showRowsWithSelfSalesOnly
   const competitorAxisLabel: string = competitorChannelLabel === ALL_CHANNEL_LABEL ? '전체 경쟁사' : competitorChannelLabel
+  const activeScatterCellNotice: string | null = useMemo(() : string | null => {
+    if (!selection.activeGridCell) return null
+    return `산점도 셀 선택 중: ${common.selfCompanyLabel} ${formatGroupedNumber(Math.round(selection.activeGridCell.xStart))}-${formatGroupedNumber(Math.round(selection.activeGridCell.xEnd))}EA / ${competitorAxisLabel} ${formatGroupedNumber(Math.round(selection.activeGridCell.yStart))}-${formatGroupedNumber(Math.round(selection.activeGridCell.yEnd))}EA`
+  }, [common.selfCompanyLabel, competitorAxisLabel, selection.activeGridCell])
   const kpi: { totalCompetitorAmount: number; totalSelfAmount: number | null; totalCompetitorQty: number; totalSelfQty: number | null; } = useMemo(() : { totalCompetitorAmount: number; totalSelfAmount: number | null; totalCompetitorQty: number; totalSelfQty: number | null; } => {
     const rowsWithSelfAmount: CompetitorSalesRow[] = selection.visibleRows.filter((row: CompetitorSalesRow) : boolean => row.selfAmount != null)
     const rowsWithSelfQty: CompetitorSalesRow[] = selection.visibleRows.filter((row: CompetitorSalesRow) : boolean => row.selfQty != null)
@@ -129,7 +136,7 @@ export const CompetitorPage: () => React.JSX.Element = () : React.JSX.Element =>
       <AnalysisPageLayout
         queryFields={competitorQueryFields}
         listFilterFields={displayedListFilterFields}
-        listFilterResetDisabled={!listFiltersDirty}
+        listFilterResetDisabled={!listFiltersDirty || selection.activeGridCellKey != null}
         historicalMonths={filters.historicalMonths}
         showPeriodBar={filters.showPeriodBar}
         periodStartIdx={filters.periodStartIdx}
@@ -147,7 +154,7 @@ export const CompetitorPage: () => React.JSX.Element = () : React.JSX.Element =>
         refreshLabel="경쟁사 분석 목록을 갱신하는 중"
         queryEndControl={(
           <div className={styles.periodPresetRowEndGroup}>
-            <DashboardRequestStatus compact items={[{ label: '경쟁 채널', state: channelsRequest }, { label: '경쟁사 분석 목록', state: rowsRequest }, { label: '산점도', state: scatterGridRequest }]} />
+            <DashboardRequestStatus compact items={[{ label: '경쟁 채널', state: channelsRequest }, { label: '경쟁사 분석 목록', state: rowsRequest }]} />
             <AnalysisPeriodQueryButton disabled={!filters.periodQueryDirty} onClick={filters.applyPeriodQuery} />
           </div>
         )}
@@ -157,10 +164,12 @@ export const CompetitorPage: () => React.JSX.Element = () : React.JSX.Element =>
               <input
                 type="checkbox"
                 checked={showRowsWithSelfSalesOnly}
+                disabled={selection.activeGridCellKey != null}
                 onChange={(event: React.ChangeEvent<HTMLInputElement, HTMLInputElement>) : void => setShowRowsWithSelfSalesOnly(event.target.checked)}
               />
               <span title="자사 판매량이 존재하는 경우만 표시합니다.">자사기준보기</span>
             </label>
+            {activeScatterCellNotice ? <div className={styles.analysisFilterLockNotice}>{activeScatterCellNotice}</div> : null}
           </>
         )}
         listActionContent={(
@@ -188,7 +197,7 @@ export const CompetitorPage: () => React.JSX.Element = () : React.JSX.Element =>
               chartReady={common.chartReady}
               width={scatterView.scatterChartWidth}
               height={scatterView.scatterChartHeight}
-              loading={(analysisData.scatterInitialLoading || analysisData.scatterRefreshing) && scatterView.scatterData.length === 0}
+              loading={(analysisData.rowsInitialLoading || analysisData.rowsRefreshing) && scatterView.scatterData.length === 0}
               pointRadius={scatterView.scatterPointRadius}
               activeCellKey={selection.activeGridCellKey}
               onCellClick={selection.onScatterCellClick}

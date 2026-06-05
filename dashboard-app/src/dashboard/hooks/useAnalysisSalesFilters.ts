@@ -16,8 +16,12 @@ import {
 import type { FilterField } from '../model/filterField'
 import { usePeriodRangeFilter } from './usePeriodRangeFilter'
 
-export function maskAnalysisListFilterFields(fields: FilterField[]): FilterField[] {
-  return fields.map((field: FilterField) : { displayValue: string; disabled: true; label: string; kind: 'input' | 'select' | 'listCombo'; inputType?: 'text' | 'date'; defaultValue?: string; value?: string; onChange?: (value: string) => void; options?: string[]; } => ({ ...field, displayValue: '', disabled: true }))
+export function lockAnalysisListFilterFields(fields: FilterField[]): FilterField[] {
+  return fields.map((field: FilterField) : FilterField => ({
+    ...field,
+    displayValue: field.displayValue ?? field.value ?? field.defaultValue ?? '',
+    disabled: true,
+  }))
 }
 
 export function useAnalysisSalesFilters(companyUuid?: string) : { appliedPeriodStartDate: string; appliedPeriodEndDate: string; periodQueryDirty: boolean; applyPeriodQuery: () => void; queryFields: FilterField[]; listFilterValues: AnalysisFacetValues; buildListFilterFields: (filterOptions?: AnalysisFacetOptionValues) => FilterField[]; listFiltersDirty: boolean; resetListFilters: () => void; historicalMonths: string[]; salesParams: SelfSalesParams; showPeriodBar: boolean; setShowPeriodBar: React.Dispatch<React.SetStateAction<boolean>>; startDate: string; endDate: string; periodStartDate: string; periodEndDate: string; periodStartIdx: number; periodEndIdx: number; startPct: number; endPct: number; setPeriodStartDate: (value: string) => void; setPeriodEndDate: (value: string) => void; setPresetMonths: (months: number) => void; setWholeRange: () => void; onStartDateChange: (value: string) => void; onEndDateChange: (value: string) => void; onPeriodBarStart: (value: number) => void; onPeriodBarEnd: (value: number) => void; } {

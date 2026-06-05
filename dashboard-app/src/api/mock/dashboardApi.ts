@@ -36,7 +36,7 @@ import {
   secondaryCompetitorChannels,
   selfSalesRows,
 } from './salesTables'
-import { buildScatterGridCells } from './scatterGrid'
+import { buildCompetitorSalesScatterGridFromRows, buildSelfSalesScatterGridFromRows } from '../../utils/scatterGridBuild'
 import { estimatePeriodWeight, historicalMonths, makeSalesTrend } from './productCatalog'
 import { requireMockProductPrimary, requireMockProductSecondary, requireMockStockTrend } from './mockProductLookup'
 import {
@@ -93,12 +93,7 @@ export const mockDashboardApi: { getSecondaryStockOrderCalc: (params: SecondaryS
       .sort((a: { qty: number; amount: number; opMarginAmount: number; id: string; skuGroupKey: string; rank: number; rankPercentile: number; brand: string; category: string; code: string; productName: string; colorCode: string; avgPrice: number; avgCost: number; marginRate: number; feeRate: number; opMarginRate: number; }, b: { qty: number; amount: number; opMarginAmount: number; id: string; skuGroupKey: string; rank: number; rankPercentile: number; brand: string; category: string; code: string; productName: string; colorCode: string; avgPrice: number; avgCost: number; marginRate: number; feeRate: number; opMarginRate: number; }) : number => b.qty - a.qty)
   },
 
-  getSelfSalesScatterGrid: async (params?: SelfSalesGridParams) : Promise<ScatterSalesGridResponse> => buildScatterGridCells(
-    (await mockDashboardApi.getSelfSales(params)).map((row: { qty: number; amount: number; opMarginAmount: number; id: string; skuGroupKey: string; rank: number; rankPercentile: number; brand: string; category: string; code: string; productName: string; colorCode: string; avgPrice: number; avgCost: number; marginRate: number; feeRate: number; opMarginRate: number; }) : { skuGroupKey: string; x: number; y: number; } => ({ skuGroupKey: row.skuGroupKey, x: row.opMarginRate, y: row.qty })),
-    params?.xBucketSize,
-    params?.yBucketSize,
-    params?.maxSkuIdsPerCell,
-  ),
+  getSelfSalesScatterGrid: async (params?: SelfSalesGridParams) : Promise<ScatterSalesGridResponse> => buildSelfSalesScatterGridFromRows(await mockDashboardApi.getSelfSales(params), params),
 
   getCompetitorSales: async (params?: CompetitorSalesParams) : Promise<{ competitorQty: number; competitorAvgPrice: number; competitorAmount: number; selfQty: number | null; selfAmount: number | null; id: string; skuGroupKey: string; rank: number; rankPercentile: number; brand: string; category: string; code: string; productName: string; colorCode: string; selfAvgPrice: number | null; }[]> => {
     await sleep(80)
@@ -127,14 +122,7 @@ export const mockDashboardApi: { getSecondaryStockOrderCalc: (params: SecondaryS
       .sort((a: { competitorQty: number; competitorAvgPrice: number; competitorAmount: number; selfQty: number | null; selfAmount: number | null; id: string; skuGroupKey: string; rank: number; rankPercentile: number; brand: string; category: string; code: string; productName: string; colorCode: string; selfAvgPrice: number | null; }, b: { competitorQty: number; competitorAvgPrice: number; competitorAmount: number; selfQty: number | null; selfAmount: number | null; id: string; skuGroupKey: string; rank: number; rankPercentile: number; brand: string; category: string; code: string; productName: string; colorCode: string; selfAvgPrice: number | null; }) : number => b.competitorQty - a.competitorQty)
   },
 
-  getCompetitorSalesScatterGrid: async (params?: CompetitorSalesGridParams) : Promise<ScatterSalesGridResponse> => buildScatterGridCells(
-    (await mockDashboardApi.getCompetitorSales(params))
-      .filter((row: { competitorQty: number; competitorAvgPrice: number; competitorAmount: number; selfQty: number | null; selfAmount: number | null; id: string; skuGroupKey: string; rank: number; rankPercentile: number; brand: string; category: string; code: string; productName: string; colorCode: string; selfAvgPrice: number | null; }): row is typeof row & { selfQty: number } => row.selfQty != null)
-      .map((row: { competitorQty: number; competitorAvgPrice: number; competitorAmount: number; selfQty: number | null; selfAmount: number | null; id: string; skuGroupKey: string; rank: number; rankPercentile: number; brand: string; category: string; code: string; productName: string; colorCode: string; selfAvgPrice: number | null; } & { selfQty: number; }) : { skuGroupKey: string; x: number; y: number; } => ({ skuGroupKey: row.skuGroupKey, x: row.selfQty, y: row.competitorQty })),
-    params?.xBucketSize,
-    params?.yBucketSize,
-    params?.maxSkuIdsPerCell,
-  ),
+  getCompetitorSalesScatterGrid: async (params?: CompetitorSalesGridParams) : Promise<ScatterSalesGridResponse> => buildCompetitorSalesScatterGridFromRows(await mockDashboardApi.getCompetitorSales(params), params),
 
   getSalesFilterMeta: async (params?: SalesFilterMetaParams) : Promise<{ brands: string[]; categories: string[]; codes: string[]; colorCodes: string[]; productNames: string[]; historicalMonths: string[]; }> => {
     await sleep(60)

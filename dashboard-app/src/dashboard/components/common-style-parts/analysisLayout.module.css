@@ -194,6 +194,24 @@
   justify-self: end;
 }
 
+.analysisFilterLockNotice {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  max-width: 360px;
+  padding: 0 10px;
+  border: 1px solid #bfdbfe;
+  border-radius: 999px;
+  background: #eff6ff;
+  color: #1d4ed8;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .analysisListColumn {
   display: grid;
   grid-template-rows: minmax(0, 1fr);

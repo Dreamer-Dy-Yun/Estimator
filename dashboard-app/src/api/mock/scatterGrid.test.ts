@@ -1,6 +1,6 @@
 import type { ScatterSalesGridResponse } from '../types'
 import { describe, expect, it } from 'vitest'
-import { buildScatterGridCells } from './scatterGrid'
+import { buildScatterGridCells } from '../../utils/scatterGridBuild'
 
 describe('buildScatterGridCells', () : void => {
   it('quantizes points and limits clickable sku ids per cell', () : void => {

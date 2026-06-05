@@ -1,13 +1,13 @@
-import type { ScatterGridCell } from '../types'
-import type { ScatterSalesGridResponse } from '../types'
+import type { ScatterGridBinParams, ScatterGridCell, ScatterSalesGridResponse } from '../api/types'
+import type { CompetitorSalesRow, SelfSalesRow } from '../types'
 
-type ScatterGridBuildRow = {
+export interface ScatterGridBuildRow {
   skuGroupKey: string
   x: number
   y: number
 }
 
-type ScatterGridBucket = {
+interface ScatterGridBucket {
   cellKey: string
   count: number
   skuIds: string[]
@@ -19,8 +19,16 @@ type ScatterGridBucket = {
   representativeY: number
 }
 
+type CompetitorSalesRowWithSelfQty = CompetitorSalesRow & {
+  selfQty: number
+}
+
 const DEFAULT_SCATTER_BUCKET_COUNT = 12 as const
 const DEFAULT_SCATTER_BUCKET_SIZE_RATIO = 1 as const
+
+function hasCompetitorSelfQty(row: CompetitorSalesRow): row is CompetitorSalesRowWithSelfQty {
+  return row.selfQty != null
+}
 
 function resolveBucketSize(span: number, requested: number | undefined): number {
   if (requested !== undefined && Number.isFinite(requested) && requested > 0) return requested
@@ -39,6 +47,14 @@ function toGridMetaCellKey(valueStart: number, valueEnd: number): string {
   return `${valueStart.toFixed(6)}-${valueEnd.toFixed(6)}`
 }
 
+/**
+ * 프론트 검토:
+ * - 분석 리스트 요청방식/계산 주체 변경
+ * - 현상: 프론트에서 해당 기간 리스트를 전체 확보하고 산점도에도 동일 조건을 같이 요청하면 동일 데이터 2중 요청 또는 불필요한 요청이 된다.
+ * - 원래 의도: 전체 데이터 요청 후 산점도는 프론트에서 계산한다. 수천 행 이내이므로 프론트 부담은 경미하다.
+ * - 선택: 현재 화면은 전체 rows 1회 요청을 기준으로 하고, 산점도 grid는 이 순수 계산 경계에서 만든다.
+ * - 안 2는 산점도 전체 집계와 리스트 pagination이 필요한 시점에 backend API 계약 변경으로 재검토한다.
+ */
 export function buildScatterGridCells(
   rows: ScatterGridBuildRow[],
   xBucketSize?: number,
@@ -109,7 +125,7 @@ export function buildScatterGridCells(
     }
   }
 
-  const cells: ScatterSalesGridResponse['cells'] = Array.from(cellsByKey.values()).map((row: ScatterGridBucket) : { cellKey: string; count: number; skuIds: string[]; hasMoreSkuIds: boolean; xStart: number; xEnd: number; yStart: number; yEnd: number; representativeX: number; representativeY: number; } => ({
+  const cells: ScatterSalesGridResponse['cells'] = Array.from(cellsByKey.values()).map((row: ScatterGridBucket) : ScatterGridCell => ({
     cellKey: row.cellKey,
     count: row.count,
     skuIds: row.skuIds,
@@ -131,4 +147,38 @@ export function buildScatterGridCells(
       yAxis: { min: yMin, max: yMax, bucketSize: ySize },
     },
   }
+}
+
+export function buildSelfSalesScatterGridFromRows(
+  rows: SelfSalesRow[],
+  params?: ScatterGridBinParams,
+): ScatterSalesGridResponse {
+  return buildScatterGridCells(
+    rows.map((row: SelfSalesRow) : ScatterGridBuildRow => ({
+      skuGroupKey: row.skuGroupKey,
+      x: row.opMarginRate,
+      y: row.qty,
+    })),
+    params?.xBucketSize,
+    params?.yBucketSize,
+    params?.maxSkuIdsPerCell,
+  )
+}
+
+export function buildCompetitorSalesScatterGridFromRows(
+  rows: CompetitorSalesRow[],
+  params?: ScatterGridBinParams,
+): ScatterSalesGridResponse {
+  return buildScatterGridCells(
+    rows
+      .filter(hasCompetitorSelfQty)
+      .map((row: CompetitorSalesRowWithSelfQty) : ScatterGridBuildRow => ({
+        skuGroupKey: row.skuGroupKey,
+        x: row.selfQty,
+        y: row.competitorQty,
+      })),
+    params?.xBucketSize,
+    params?.yBucketSize,
+    params?.maxSkuIdsPerCell,
+  )
 }

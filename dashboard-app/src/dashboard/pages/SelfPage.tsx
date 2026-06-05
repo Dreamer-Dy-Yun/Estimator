@@ -5,12 +5,13 @@ import type { DashboardRequestState } from '../hooks/useDashboardRequest'
 import type { AnalysisFacetOptionValues, AnalysisFacetValues } from '../model/analysisFacetFilter'
 import type { FilterField } from '../model/filterField'
 import { useCallback, useMemo, useState } from 'react'
-import { getSelfSales, getSelfSalesScatterGrid } from '../../api'
-import type { ScatterSalesGridResponse } from '../../api/types'
+import { getSelfSales } from '../../api'
+import type { ScatterGridCell, ScatterSalesGridResponse } from '../../api/types'
 import { LoadingSpinner } from '../../components/LoadingSpinner'
 import type { SelfSalesRow } from '../../types'
 import { selfSalesWeightedMarginRate, selfSalesWeightedOpMarginRate } from '../../utils/analysisKpiWeighted'
 import { formatGroupedNumber } from '../../utils/format'
+import { buildSelfSalesScatterGridFromRows } from '../../utils/scatterGridBuild'
 import { AnalysisDrawerBulkAdd } from '../components/AnalysisDrawerBulkAdd'
 import { AnalysisPageLayout } from '../components/AnalysisPageLayout'
 import { AnalysisPeriodQueryButton } from '../components/AnalysisPeriodQueryButton'
@@ -23,7 +24,7 @@ import styles from '../components/common.module.css'
 import { useAnalysisPageCommonState } from '../hooks/useAnalysisPageCommonState'
 import { useAnalysisPageSelection } from '../hooks/useAnalysisPageSelection'
 import { useAnalysisSalesDataGate } from '../hooks/useAnalysisSalesDataGate'
-import { maskAnalysisListFilterFields, useAnalysisSalesFilters } from '../hooks/useAnalysisSalesFilters'
+import { lockAnalysisListFilterFields, useAnalysisSalesFilters } from '../hooks/useAnalysisSalesFilters'
 import { useAnalysisScatterGridView } from '../hooks/useAnalysisScatterGridView'
 import { useDashboardRequest } from '../hooks/useDashboardRequest'
 import { useProductDrawerBundleState } from '../hooks/useProductDrawerBundle'
@@ -43,16 +44,13 @@ export const SelfPage: () => React.JSX.Element = () : React.JSX.Element => {
   const { buildListFilterFields, listFilterValues }: { appliedPeriodStartDate: string; appliedPeriodEndDate: string; periodQueryDirty: boolean; applyPeriodQuery: () => void; queryFields: FilterField[]; listFilterValues: AnalysisFacetValues; buildListFilterFields: (filterOptions?: AnalysisFacetOptionValues) => FilterField[]; listFiltersDirty: boolean; resetListFilters: () => void; historicalMonths: string[]; salesParams: SelfSalesParams; showPeriodBar: boolean; setShowPeriodBar: React.Dispatch<React.SetStateAction<boolean>>; startDate: string; endDate: string; periodStartDate: string; periodEndDate: string; periodStartIdx: number; periodEndIdx: number; startPct: number; endPct: number; setPeriodStartDate: (value: string) => void; setPeriodEndDate: (value: string) => void; setPresetMonths: (months: number) => void; setWholeRange: () => void; onStartDateChange: (value: string) => void; onEndDateChange: (value: string) => void; onPeriodBarStart: (value: number) => void; onPeriodBarEnd: (value: number) => void; } = filters
   const analysisRequestKey: string = useMemo(() : string => buildAnalysisSalesRequestKey(filters.salesParams), [filters.salesParams])
   const loadRows: () => Promise<SelfSalesRow[]> = useCallback(() : Promise<SelfSalesRow[]> => getSelfSales(filters.salesParams), [filters.salesParams])
-  const loadScatterGrid: () => Promise<ScatterSalesGridResponse> = useCallback(() : Promise<ScatterSalesGridResponse> => getSelfSalesScatterGrid(filters.salesParams), [filters.salesParams])
   const rowsRequest: DashboardRequestState<SelfSalesRow[]> = useDashboardRequest(loadRows, EMPTY_SELF_ROWS, analysisRequestKey)
-  const scatterGridRequest: DashboardRequestState<ScatterSalesGridResponse | null> = useDashboardRequest<ScatterSalesGridResponse | null>(loadScatterGrid, null, analysisRequestKey)
-  const analysisData: { rows: SelfSalesRow[]; scatterGrid: ScatterSalesGridResponse | null; rowsReady: boolean; scatterReady: boolean; rowsInitialLoading: boolean; rowsRefreshing: boolean; scatterInitialLoading: boolean; scatterRefreshing: boolean; } = useAnalysisSalesDataGate({
+  const analysisData: { rows: SelfSalesRow[]; rowsReady: boolean; rowsInitialLoading: boolean; rowsRefreshing: boolean; } = useAnalysisSalesDataGate({
     rowsRequest,
-    scatterGridRequest,
     requestKey: analysisRequestKey,
     emptyRows: EMPTY_SELF_ROWS,
   })
-  const { rows, scatterGrid }: { rows: SelfSalesRow[]; scatterGrid: ScatterSalesGridResponse | null; rowsReady: boolean; scatterReady: boolean; rowsInitialLoading: boolean; rowsRefreshing: boolean; scatterInitialLoading: boolean; scatterRefreshing: boolean; } = analysisData
+  const { rows }: { rows: SelfSalesRow[] } = analysisData
   const facetFilter: AnalysisFacetFilter<SelfSalesRow> = useMemo(
     () : AnalysisFacetFilter<SelfSalesRow> => new AnalysisFacetFilter(rows, ANALYSIS_SALES_FACET_DEFINITIONS, listFilterValues),
     [listFilterValues, rows],
@@ -62,7 +60,11 @@ export const SelfPage: () => React.JSX.Element = () : React.JSX.Element => {
     [buildListFilterFields, facetFilter],
   )
   const filteredRows: SelfSalesRow[] = useMemo(() : SelfSalesRow[] => facetFilter.getFilteredRows(), [facetFilter])
-  const selection: { activeGridCellKey: string | null; selectedSkuGroupKey: string | null; activeSkuGroupKey: string | null; bulkSelectedSkuGroupKeys: Set<string>; visibleRows: SelfSalesRow[]; bulkSelectedCount: number; allVisibleRowsSelected: boolean; selectedSkuGroupKeys: string[]; setSelectedSkuGroupKey: (skuGroupKey: string | null) => void; onScatterCellClick: (cellKey: string) => void; clearActiveGridCell: () => void; toggleBulkRow: (id: string) => void; toggleAllVisibleRows: () => void; clearBulkSelection: () => void; onRequestNavigateAdjacent: (direction: AdjacentDirection) => void; onRequestFocusAdjacent: (currentSkuGroupKey: string | null, direction: AdjacentDirection) => void; onOrderedSkuGroupKeysChange: React.Dispatch<React.SetStateAction<string[]>>; } = useAnalysisPageSelection({ rows: filteredRows, scatterGrid, bulkAddOpen })
+  const scatterGrid: ScatterSalesGridResponse | null = useMemo(
+    () : ScatterSalesGridResponse | null => analysisData.rowsReady ? buildSelfSalesScatterGridFromRows(filteredRows) : null,
+    [analysisData.rowsReady, filteredRows],
+  )
+  const selection: { activeGridCell: ScatterGridCell | null; activeGridCellKey: string | null; selectedSkuGroupKey: string | null; activeSkuGroupKey: string | null; bulkSelectedSkuGroupKeys: Set<string>; visibleRows: SelfSalesRow[]; bulkSelectedCount: number; allVisibleRowsSelected: boolean; selectedSkuGroupKeys: string[]; setSelectedSkuGroupKey: (skuGroupKey: string | null) => void; onScatterCellClick: (cellKey: string) => void; clearActiveGridCell: () => void; toggleBulkRow: (id: string) => void; toggleAllVisibleRows: () => void; clearBulkSelection: () => void; onRequestNavigateAdjacent: (direction: AdjacentDirection) => void; onRequestFocusAdjacent: (currentSkuGroupKey: string | null, direction: AdjacentDirection) => void; onOrderedSkuGroupKeysChange: React.Dispatch<React.SetStateAction<string[]>>; } = useAnalysisPageSelection({ rows: filteredRows, scatterGrid, bulkAddOpen, resetKey: analysisRequestKey })
   const summaryBundleState: { bundle: ProductDrawerBundle | null; loading: boolean; } = useProductDrawerBundleState(selection.selectedSkuGroupKey, { companyUuid: common.companyUuid })
 
   const kpi: { totalAmount: number; totalQty: number; avgMarginRate: number; avgOpMarginRate: number; } = useMemo(() : { totalAmount: number; totalQty: number; avgMarginRate: number; avgOpMarginRate: number; } => {
@@ -83,16 +85,20 @@ export const SelfPage: () => React.JSX.Element = () : React.JSX.Element => {
     pointRadius: displayPolicy.getScatterPointRadius(scatterGrid?.meta, common.chartWidth, common.chartHeight),
   })
   const displayedListFilterFields: FilterField[] = useMemo(
-    () : FilterField[] => (selection.activeGridCellKey ? maskAnalysisListFilterFields(listFilterFields) : listFilterFields),
+    () : FilterField[] => (selection.activeGridCellKey ? lockAnalysisListFilterFields(listFilterFields) : listFilterFields),
     [listFilterFields, selection.activeGridCellKey],
   )
+  const activeScatterCellNotice: string | null = useMemo(() : string | null => {
+    if (!selection.activeGridCell) return null
+    return `산점도 셀 선택 중: 영업 이익률 ${selection.activeGridCell.xStart.toFixed(1)}-${selection.activeGridCell.xEnd.toFixed(1)}%, 판매량 ${formatGroupedNumber(Math.round(selection.activeGridCell.yStart))}-${formatGroupedNumber(Math.round(selection.activeGridCell.yEnd))}EA`
+  }, [selection.activeGridCell])
 
   return (
     <section className={styles.page}>
       <AnalysisPageLayout
         queryFields={filters.queryFields}
         listFilterFields={displayedListFilterFields}
-        listFilterResetDisabled={!filters.listFiltersDirty}
+        listFilterResetDisabled={!filters.listFiltersDirty || selection.activeGridCellKey != null}
         historicalMonths={filters.historicalMonths}
         showPeriodBar={filters.showPeriodBar}
         periodStartIdx={filters.periodStartIdx}
@@ -110,7 +116,7 @@ export const SelfPage: () => React.JSX.Element = () : React.JSX.Element => {
         refreshLabel={`${common.selfCompanyLabel} 분석 목록을 갱신하는 중`}
         queryEndControl={(
           <div className={styles.periodPresetRowEndGroup}>
-            <DashboardRequestStatus compact items={[{ label: `${common.selfCompanyLabel} 분석 목록`, state: rowsRequest }, { label: '산점도', state: scatterGridRequest }]} />
+            <DashboardRequestStatus compact items={[{ label: `${common.selfCompanyLabel} 분석 목록`, state: rowsRequest }]} />
             <AnalysisPeriodQueryButton disabled={!filters.periodQueryDirty} onClick={filters.applyPeriodQuery} />
           </div>
         )}
@@ -127,6 +133,7 @@ export const SelfPage: () => React.JSX.Element = () : React.JSX.Element => {
         )}
         hidePeriodPresetButtons={selection.selectedSkuGroupKey != null}
         onResetListFilters={filters.resetListFilters}
+        listFilterEndContent={activeScatterCellNotice ? <div className={styles.analysisFilterLockNotice}>{activeScatterCellNotice}</div> : undefined}
         leftPanel={(
           <>
             {analysisData.rowsInitialLoading && !rows.length ? (
@@ -146,7 +153,7 @@ export const SelfPage: () => React.JSX.Element = () : React.JSX.Element => {
               chartReady={common.chartReady}
               width={scatterView.scatterChartWidth}
               height={scatterView.scatterChartHeight}
-              loading={(analysisData.scatterInitialLoading || analysisData.scatterRefreshing) && scatterView.scatterData.length === 0}
+              loading={(analysisData.rowsInitialLoading || analysisData.rowsRefreshing) && scatterView.scatterData.length === 0}
               pointRadius={scatterView.scatterPointRadius}
               activeCellKey={selection.activeGridCellKey}
               onCellClick={selection.onScatterCellClick}
