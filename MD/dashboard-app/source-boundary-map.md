@@ -7,7 +7,7 @@ Last updated: 2026-06-05
 - 분석 리스트는 기간/회사/채널/검색 조건 기준 rows를 1회 요청한다.
 - 산점도 grid는 `src/utils/scatterGridBuild.ts`에서 리스트 facet filter가 적용된 rows를 입력으로 계산한다.
 - `AnalysisScatterChartCard`는 산점도 view-model만 렌더링하며 API, mock, raw list row를 직접 호출하거나 계산하지 않는다.
-- 산점도 cell 선택은 리스트 필터를 수정하는 상태가 아니라 현재 필터 결과 위의 탐색 조건이다. cell 선택 중에는 리스트 필터와 리스트 전용 토글을 잠그고 현재 조건과 cell 범위를 표시한다.
+- 산점도 cell 선택은 리스트 필터를 수정하는 상태가 아니라 현재 필터 결과 위의 탐색 조건이다. cell 선택 중에는 리스트 필터와 리스트 전용 토글을 잠그고, 잠긴 필터 필드 자체에 현재 조건 값을 그대로 표시한다.
 - 기간/조회 조건은 리스트 필터와 다른 상위 request 조건이므로 잠그지 않는다. request key가 바뀌면 기존 산점도 cell 선택을 초기화한다.
 - backend scatter endpoint 계약은 남아 있지만 현재 분석 화면의 데이터 source 경로에서는 사용하지 않는다.
 - 추후 대용량 전환 시 산점도는 전체 조건 기준 backend aggregate, 리스트만 pagination으로 분리한다.

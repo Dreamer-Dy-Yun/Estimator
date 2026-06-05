@@ -88,10 +88,6 @@ export const SelfPage: () => React.JSX.Element = () : React.JSX.Element => {
     () : FilterField[] => (selection.activeGridCellKey ? lockAnalysisListFilterFields(listFilterFields) : listFilterFields),
     [listFilterFields, selection.activeGridCellKey],
   )
-  const activeScatterCellNotice: string | null = useMemo(() : string | null => {
-    if (!selection.activeGridCell) return null
-    return `산점도 셀 선택 중: 영업 이익률 ${selection.activeGridCell.xStart.toFixed(1)}-${selection.activeGridCell.xEnd.toFixed(1)}%, 판매량 ${formatGroupedNumber(Math.round(selection.activeGridCell.yStart))}-${formatGroupedNumber(Math.round(selection.activeGridCell.yEnd))}EA`
-  }, [selection.activeGridCell])
 
   return (
     <section className={styles.page}>
@@ -133,7 +129,6 @@ export const SelfPage: () => React.JSX.Element = () : React.JSX.Element => {
         )}
         hidePeriodPresetButtons={selection.selectedSkuGroupKey != null}
         onResetListFilters={filters.resetListFilters}
-        listFilterEndContent={activeScatterCellNotice ? <div className={styles.analysisFilterLockNotice}>{activeScatterCellNotice}</div> : undefined}
         leftPanel={(
           <>
             {analysisData.rowsInitialLoading && !rows.length ? (

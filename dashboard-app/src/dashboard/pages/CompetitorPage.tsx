@@ -9,7 +9,6 @@ import { getCompetitorSales, getSecondaryCompetitorChannels } from '../../api'
 import type { ScatterGridCell, ScatterSalesGridResponse, SecondaryCompetitorChannel } from '../../api/types'
 import { LoadingSpinner } from '../../components/LoadingSpinner'
 import type { CompetitorSalesRow } from '../../types'
-import { formatGroupedNumber } from '../../utils/format'
 import { buildCompetitorSalesScatterGridFromRows } from '../../utils/scatterGridBuild'
 import { AnalysisDrawerBulkAdd } from '../components/AnalysisDrawerBulkAdd'
 import { AnalysisPageLayout } from '../components/AnalysisPageLayout'
@@ -102,10 +101,6 @@ export const CompetitorPage: () => React.JSX.Element = () : React.JSX.Element =>
   }, [filters])
   const listFiltersDirty: boolean = filters.listFiltersDirty || showRowsWithSelfSalesOnly
   const competitorAxisLabel: string = competitorChannelLabel === ALL_CHANNEL_LABEL ? '전체 경쟁사' : competitorChannelLabel
-  const activeScatterCellNotice: string | null = useMemo(() : string | null => {
-    if (!selection.activeGridCell) return null
-    return `산점도 셀 선택 중: ${common.selfCompanyLabel} ${formatGroupedNumber(Math.round(selection.activeGridCell.xStart))}-${formatGroupedNumber(Math.round(selection.activeGridCell.xEnd))}EA / ${competitorAxisLabel} ${formatGroupedNumber(Math.round(selection.activeGridCell.yStart))}-${formatGroupedNumber(Math.round(selection.activeGridCell.yEnd))}EA`
-  }, [common.selfCompanyLabel, competitorAxisLabel, selection.activeGridCell])
   const kpi: { totalCompetitorAmount: number; totalSelfAmount: number | null; totalCompetitorQty: number; totalSelfQty: number | null; } = useMemo(() : { totalCompetitorAmount: number; totalSelfAmount: number | null; totalCompetitorQty: number; totalSelfQty: number | null; } => {
     const rowsWithSelfAmount: CompetitorSalesRow[] = selection.visibleRows.filter((row: CompetitorSalesRow) : boolean => row.selfAmount != null)
     const rowsWithSelfQty: CompetitorSalesRow[] = selection.visibleRows.filter((row: CompetitorSalesRow) : boolean => row.selfQty != null)
@@ -169,7 +164,6 @@ export const CompetitorPage: () => React.JSX.Element = () : React.JSX.Element =>
               />
               <span title="자사 판매량이 존재하는 경우만 표시합니다.">자사기준보기</span>
             </label>
-            {activeScatterCellNotice ? <div className={styles.analysisFilterLockNotice}>{activeScatterCellNotice}</div> : null}
           </>
         )}
         listActionContent={(
