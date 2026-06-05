@@ -2,6 +2,7 @@ const SCATTER_GRID_HUE = 217 as const
 const SCATTER_GRID_SATURATION = 91 as const
 const SCATTER_GRID_LOW_DENSITY_LIGHTNESS = 86 as const
 const SCATTER_GRID_HIGH_DENSITY_LIGHTNESS = 60 as const
+const SCATTER_GRID_FALLBACK_BUCKET_COUNT = 12 as const
 
 export type ScatterGridAxisForDisplay = {
   min: number
@@ -35,9 +36,10 @@ function hslBlue(lightness: number): string {
 
 function axisBucketPixelSize(axis: ScatterGridAxisForDisplay, chartPixelSize: number): number {
   const range: number = axis.max - axis.min
-  if (!Number.isFinite(range) || range <= 0) return 0
-  if (!Number.isFinite(axis.bucketSize) || axis.bucketSize <= 0) return 0
   if (!Number.isFinite(chartPixelSize) || chartPixelSize <= 0) return 0
+  if (!Number.isFinite(axis.bucketSize) || axis.bucketSize <= 0) return 0
+  if (!Number.isFinite(range)) return 0
+  if (range <= 0) return chartPixelSize / SCATTER_GRID_FALLBACK_BUCKET_COUNT
   return (axis.bucketSize / range) * chartPixelSize
 }
 

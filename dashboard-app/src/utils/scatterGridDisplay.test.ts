@@ -35,12 +35,15 @@ describe('getScatterGridCellPointRadius', () : void => {
     }, 200, 200, radiusPolicy)).toBe(4.1)
   })
 
-  it('falls back to the minimum radius when meta or chart dimensions are invalid', () : void => {
+  it('falls back to the minimum radius when meta is missing', () : void => {
     expect(getScatterGridCellPointRadius(null, 200, 200, radiusPolicy)).toBe(1.9)
+  })
+
+  it('uses the default bucket division when one axis has a single value range', () : void => {
     expect(getScatterGridCellPointRadius({
       xAxis: { min: 0, max: 0, bucketSize: 10 },
       yAxis: { min: 0, max: 100, bucketSize: 10 },
-    }, 200, 200, radiusPolicy)).toBe(1.9)
+    }, 200, 200, radiusPolicy)).toBe(3.4)
   })
 
   it('clamps radius to the documented display range', () : void => {
