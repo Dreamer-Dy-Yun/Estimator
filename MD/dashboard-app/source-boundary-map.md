@@ -1,6 +1,24 @@
 # dashboard-app Source Boundary Map
 
-Last updated: 2026-06-05
+Last updated: 2026-06-09
+
+## 0-3) 2026-06-09 primary drawer content width boundary
+
+- 1차 드로워의 기준 폭은 `--primary-drawer-column-width`가 소유한다.
+- 드로워 shell은 폭 변수를 하위에 제공하고, 하위 카드/테이블/차트는 `min-width: 0`, 내부 스크롤, 줄임표, 계산된 축 폭으로 그 폭 안에서 수축되어야 한다.
+- 1차 드로워 본문에서 가로 잘림을 숨기는 방식으로 해결하지 않는다. 각 카드가 자기 책임 영역 안에서 overflow를 처리한다.
+- 판매 정보 테이블의 최소 표시 폭은 `--primary-drawer-sales-table-min-width` 토큰이 소유하고, 카드는 내부 가로 스크롤을 맡는다.
+- 월간 추이 헤더 컨트롤은 드로워 폭이 좁을 때 줄바꿈되며, Y축 폭은 표시 숫자 자리수 기준으로 계산한다.
+- `SalesTrendChart`는 line/bar series의 축 소속을 chart series 계약으로 판단하며, secondary axis 존재 여부가 primary bar의 축을 바꾸지 않는다.
+
+## 0-2) 2026-06-09 secondary drawer AI comment scroll boundary
+
+- 2차 드로워 AI 코멘트의 긴 본문은 `AiCommentCard` 내부의 답변 영역에서만 세로 스크롤을 만든다.
+- 본문 overflow 측정과 `한번에 보기`/`접기` 토글 상태는 `AiCommentCard`가 소유한다.
+- 접힌 AI 코멘트 높이 정책은 CSS가 소유하고, TS는 DOM overflow 측정만 수행한다.
+- 상위 `ProductSecondaryDrawerContent`와 드로워 shell은 AI 코멘트 본문 높이 측정이나 스크롤 정책을 소유하지 않는다.
+- `한번에 보기` 버튼은 접힌 기준 높이를 넘는 실제 답변 내용이 있을 때만 AI 코멘트 레이블과 같은 행 우상단에 표시한다.
+- 긴 URL, 토큰, 공백 없는 문장은 AI 코멘트 본문 안에서 줄바꿈하여 카드 폭을 밀지 않게 한다.
 
 ## 0) 2026-06-05 analysis scatter/list source boundary
 
@@ -11,6 +29,14 @@ Last updated: 2026-06-05
 - 기간/조회 조건은 리스트 필터와 다른 상위 request 조건이므로 잠그지 않는다. request key가 바뀌면 기존 산점도 cell 선택을 초기화한다.
 - backend scatter endpoint 계약은 남아 있지만 현재 분석 화면의 데이터 source 경로에서는 사용하지 않는다.
 - 추후 대용량 전환 시 산점도는 전체 조건 기준 backend aggregate, 리스트만 pagination으로 분리한다.
+
+## 0-1) 2026-06-09 primary drawer monthly trend boundary
+
+- 1차 드로워 월간 판매 추이는 최근 완료월 기준 과거 24개월과 예측 최대 12개월을 기본 표시 범위로 사용한다.
+- 예측 개월 수의 페이지 초기값은 항상 12개월이다.
+- 사용자가 페이지 흐름 안에서 예측 개월 수를 바꾸면 그 페이지 state 값을 유지한다.
+- localStorage, 후보군 detail, hydrate snapshot은 1차 드로워의 예측 개월 초기값을 덮지 않는다.
+- 월간 판매 추이 Y축 숫자는 천 단위 쉼표로 표시한다.
 
 ## 1) 폴더 소유/책임
 

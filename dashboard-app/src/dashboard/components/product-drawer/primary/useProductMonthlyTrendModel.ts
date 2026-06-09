@@ -195,11 +195,8 @@ export function useProductMonthlyTrendModel({
     selectedEnd,
   )
   const periodLen: number = Math.max(1, periodEndIdx - periodStartIdx + 1)
-  const requiredSpan: number = periodStartIdx <= salesSeries.length - 1
-    ? salesSeries.length - periodStartIdx
-    : salesSeries.length
   const maxWindowSize: number = Math.min(salesSeries.length, MONTHLY_TREND_MAX_VISIBLE_MONTHS)
-  const baseWindowSize: number = Math.min(maxWindowSize, Math.max(8, periodLen * 2, requiredSpan))
+  const baseWindowSize: number = maxWindowSize
   const windowSizeKey: string = `${skuGroupKey}:${baseWindowSize}`
   const [windowSizeState, setWindowSizeState]: [{ key: string; value: number; } | null, React.Dispatch<React.SetStateAction<{ key: string; value: number; } | null>>] = useState<{ key: string; value: number } | null>(null)
   const windowSize: number = windowSizeState?.key === windowSizeKey ? windowSizeState.value : baseWindowSize

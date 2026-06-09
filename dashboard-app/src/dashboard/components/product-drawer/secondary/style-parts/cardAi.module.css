@@ -14,16 +14,40 @@
   min-width: 0;
 }
 
+.aiCommentHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.aiCommentTitle {
+  margin: 0;
+}
+
 .aiAnswer {
+  --ai-comment-collapsed-max-height: 168px;
+
   flex: 1 1 auto;
   min-height: 48px;
+  min-width: 0;
+  max-block-size: var(--ai-comment-collapsed-max-height);
+  box-sizing: border-box;
   padding: 8px;
   border: 1px solid #e2e8f0;
   border-radius: 8px;
   background: #f8fafc;
   font-size: 15px;
   white-space: pre-wrap;
-  overflow: auto;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overflow-wrap: anywhere;
+  overscroll-behavior: contain;
+}
+
+.aiAnswerExpanded {
+  max-block-size: none;
+  overflow: visible;
 }
 
 .aiCommentActions {

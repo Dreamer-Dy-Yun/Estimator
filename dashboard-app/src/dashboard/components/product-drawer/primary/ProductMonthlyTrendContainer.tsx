@@ -1,5 +1,4 @@
-import type { TrendChartPoint } from '../../trend/SalesTrendChart'
-import type { ApiUnitErrorInfo, MonthlySalesPoint } from '../../../../types'
+import type { TrendChartPoint, TrendLineSeries } from '../../trend/SalesTrendChart'
 import { formatGroupedNumber } from '../../../../utils/format'
 import { MAX_FORECAST_MONTHS } from '../../../../utils/forecastMonthsStorage'
 import { ApiUnitErrorBadge } from '../../../../components/ApiUnitErrorBadge'
@@ -12,6 +11,17 @@ import {
 
 export type ProductMonthlyTrendContainerProps = ProductMonthlyTrendModelArgs & {
   selfCompanyLabel: string
+}
+
+const PRIMARY_TREND_Y_AXIS_MIN_WIDTH_PX = 40 as const
+const PRIMARY_TREND_Y_AXIS_MAX_WIDTH_PX = 78 as const
+const PRIMARY_TREND_Y_AXIS_CHAR_WIDTH_PX = 6 as const
+const PRIMARY_TREND_Y_AXIS_PADDING_PX = 14 as const
+
+function getPrimaryTrendYAxisWidth(value: number): number {
+  const formattedValueLength: number = formatGroupedNumber(value).length
+  const calculatedWidth: number = formattedValueLength * PRIMARY_TREND_Y_AXIS_CHAR_WIDTH_PX + PRIMARY_TREND_Y_AXIS_PADDING_PX
+  return Math.max(PRIMARY_TREND_Y_AXIS_MIN_WIDTH_PX, Math.min(PRIMARY_TREND_Y_AXIS_MAX_WIDTH_PX, calculatedWidth))
 }
 
 export function ProductMonthlyTrendContainer({
@@ -36,8 +46,8 @@ export function ProductMonthlyTrendContainer({
     toggleForecastCombo,
     selectForecastMonths,
     toggleSalesTrendSeries,
-  }: { forecastMonthsLabelId: string; forecastComboRef: React.RefObject<HTMLDivElement | null>; forecastComboOpen: boolean; monthlyTrendError: ApiUnitErrorInfo | null; salesTrendVisible: { self: boolean; competitor: boolean; }; competitorTrendLabel: string; trendWindowData: { idx: number; actual: number | null; competitorActual: number | null; forecastLink: number | null; date: string; isForecast: boolean; sales: number; competitorSales: number | null; }[]; salesTrendChartDense: boolean; salesTrendYMax: number; shiftedPeriodShade: { x1: number; x2: number; }; shiftedForecastShade: { x1: number; x2: number; } | null; onChartWheel: (event: React.WheelEvent<HTMLDivElement>) => void; onChartMouseEnter: () => void; onChartMouseLeave: () => void; toggleForecastCombo: () => void; selectForecastMonths: (months: number) => void; toggleSalesTrendSeries: (series: 'self' | 'competitor') => void; } = useProductMonthlyTrendModel(modelProps)
-  const { forecastMonths }: { skuGroupKey: string; companyUuid?: string; periodStart: string; periodEnd: string; forecastMonths: number; onForecastMonthsChange: (months: number) => void; channelId: string; fallbackChannelLabel: string; fallbackTrend: MonthlySalesPoint[]; pageName: string; } = modelProps
+  }: ReturnType<typeof useProductMonthlyTrendModel> = useProductMonthlyTrendModel(modelProps)
+  const { forecastMonths }: ProductMonthlyTrendModelArgs = modelProps
   const seriesButtons: ({ key: 'self'; label: string; selectedClassName: string; } | { key: 'competitor'; label: string; selectedClassName: string; })[] = [
     {
       key: 'self' as const,
@@ -50,7 +60,7 @@ export function ProductMonthlyTrendContainer({
       selectedClassName: styles.trendSeriesButtonCompetitorSelected,
     },
   ]
-  const chartLines: ({ dataKey: string; stroke: string; strokeDasharray?: undefined; } | { dataKey: string; stroke: string; strokeDasharray: string; })[] = [
+  const chartLines: TrendLineSeries[] = [
     ...(salesTrendVisible.self
       ? [
           { dataKey: 'actual', stroke: '#2563eb' },
@@ -64,6 +74,8 @@ export function ProductMonthlyTrendContainer({
     competitorActual: `${competitorTrendLabel} 판매`,
     forecastLink: `${selfCompanyLabel} 예측`,
   }
+
+  const yAxisWidth: number = getPrimaryTrendYAxisWidth(salesTrendYMax)
 
   return (
     <div className={`${styles.card} ${styles.drawerSalesTrendCard}`}>
@@ -127,9 +139,11 @@ export function ProductMonthlyTrendContainer({
             data={trendWindowData}
             height={salesTrendChartDense ? 232 : 210}
             yMax={salesTrendYMax}
+            yAxisWidth={yAxisWidth}
             allowEscapeViewBox={{ x: false, y: false }}
             periodShade={shiftedPeriodShade}
             forecastShade={shiftedForecastShade}
+            yTickFormatter={(value: number) : string => formatGroupedNumber(value)}
             minTickGap={salesTrendChartDense ? 0 : 8}
             interval={salesTrendChartDense ? 0 : 'preserveStartEnd'}
             tickAngle={salesTrendChartDense ? -38 : 0}

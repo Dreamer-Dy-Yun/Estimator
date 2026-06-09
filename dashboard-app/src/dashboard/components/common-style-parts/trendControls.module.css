@@ -2,25 +2,37 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
   gap: 10px;
   margin-bottom: 10px;
+  min-width: 0;
 }
 
 .salesTrendTitleRow .cardTitle {
   margin-bottom: 0;
+  min-width: 0;
+  flex: 1 1 120px;
 }
 
 .salesTrendControls {
   display: inline-flex;
   align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
   gap: 8px;
-  flex-shrink: 0;
+  flex: 1 1 180px;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .trendSeriesToggle {
   display: inline-flex;
   align-items: center;
-  height: 26px;
+  min-width: 0;
+  max-width: 100%;
+  flex: 1 1 10rem;
+  min-height: 26px;
+  height: auto;
   border: 1px solid #cbd5e1;
   border-radius: 6px;
   overflow: hidden;
@@ -28,8 +40,10 @@
 }
 
 .trendSeriesButton {
-  height: 100%;
-  min-width: 40px;
+  flex: 1 1 0;
+  height: 26px;
+  min-width: 0;
+  max-width: none;
   padding: 0 8px;
   border: 0;
   border-right: 1px solid #cbd5e1;
@@ -37,6 +51,9 @@
   color: #475569;
   font-size: 12px;
   font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   cursor: pointer;
 }
 
@@ -61,7 +78,8 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  flex-shrink: 0;
+  flex: 0 1 auto;
+  min-width: 0;
   font-size: 12px;
   font-weight: 600;
   color: #475569;

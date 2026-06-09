@@ -26,7 +26,7 @@ export type Args = {
   tableRows: InnerCandidateRow[]
 }
 
-export function useCandidateStashItemDrawer({ dataReferenceStart, dataReferenceEnd, detailTarget, itemDeleteTargetUuid, tableRows }: Args) : { drawerOpen: boolean; drawerClosing: boolean; drawerError: string | null; openedItemUuid: string | null; hydrateSnap: OrderSnapshotDocumentV2 | null; hydrateSnapSource: DrawerSnapshotSource | null; confirmedHydrateSnap: OrderSnapshotDocumentV2 | null; fc: number; bundle: ProductDrawerBundle | null; mergedSummary: ProductPrimarySummary | null; openItemDrawer: (row: InnerCandidateRow, options?: OpenItemDrawerOptions) => Promise<void>; onRequestNavigateAdjacent: (direction: AdjacentDirection) => Promise<void>; closeDrawer: () => void; onDrawerForecastMonthsChange: (n: number) => void; saveDrawerDraftSnapshot: (itemUuid: string, snapshot: OrderSnapshotDocumentV2, source: DrawerSnapshotSource) => void; clearDrawerDraftSnapshot: (itemUuid: string) => void; markDrawerSnapshotConfirmed: (itemUuid: string, snapshot: OrderSnapshotDocumentV2, baseDbUpdatedAt?: string | null) => void; markDrawerSnapshotUnconfirmed: (itemUuid: string, baseDbUpdatedAt?: string | null) => void; restoreDrawerConfirmedSnapshot: (itemUuid: string) => void; } {
+export function useCandidateStashItemDrawer({ dataReferenceStart, dataReferenceEnd, itemDeleteTargetUuid, tableRows }: Args) : { drawerOpen: boolean; drawerClosing: boolean; drawerError: string | null; openedItemUuid: string | null; hydrateSnap: OrderSnapshotDocumentV2 | null; hydrateSnapSource: DrawerSnapshotSource | null; confirmedHydrateSnap: OrderSnapshotDocumentV2 | null; fc: number; bundle: ProductDrawerBundle | null; mergedSummary: ProductPrimarySummary | null; openItemDrawer: (row: InnerCandidateRow, options?: OpenItemDrawerOptions) => Promise<void>; onRequestNavigateAdjacent: (direction: AdjacentDirection) => Promise<void>; closeDrawer: () => void; onDrawerForecastMonthsChange: (n: number) => void; saveDrawerDraftSnapshot: (itemUuid: string, snapshot: OrderSnapshotDocumentV2, source: DrawerSnapshotSource) => void; clearDrawerDraftSnapshot: (itemUuid: string) => void; markDrawerSnapshotConfirmed: (itemUuid: string, snapshot: OrderSnapshotDocumentV2, baseDbUpdatedAt?: string | null) => void; markDrawerSnapshotUnconfirmed: (itemUuid: string, baseDbUpdatedAt?: string | null) => void; restoreDrawerConfirmedSnapshot: (itemUuid: string) => void; } {
   const [drawerOpen, setDrawerOpen]: [boolean, React.Dispatch<React.SetStateAction<boolean>>] = useState(false)
   const [drawerClosing, setDrawerClosing]: [boolean, React.Dispatch<React.SetStateAction<boolean>>] = useState(false)
   const [drawerError, setDrawerError]: [string | null, React.Dispatch<React.SetStateAction<string | null>>] = useState<string | null>(null)
@@ -67,8 +67,6 @@ export function useCandidateStashItemDrawer({ dataReferenceStart, dataReferenceE
     companyUuid: drawerCompanyUuid ?? undefined,
   })
   const mergedSummary: ProductPrimarySummary | null = useMemo(() : ProductPrimarySummary | null => mergePrimarySummaryFromBundleAndSnapshot(drawerSkuGroupKey, bundle, hydrateSnap), [bundle, drawerSkuGroupKey, hydrateSnap])
-  const detailForecastMonths: number = detailTarget?.forecastMonths ?? DEFAULT_FORECAST_MONTHS
-
   if (drawerOpen && (!dataReferenceStart || !dataReferenceEnd)) throw new Error('후보 상세 조회 기간 정보 누락')
 
   const applyOpenedSnapshot: (itemUuid: string, nextHydrate: OrderSnapshotDocumentV2 | null, source: DrawerSnapshotSource | null, confirmed: OrderSnapshotDocumentV2 | null) => void = useCallback((itemUuid: string, nextHydrate: OrderSnapshotDocumentV2 | null, source: DrawerSnapshotSource | null, confirmed: OrderSnapshotDocumentV2 | null) : void => {
@@ -76,7 +74,6 @@ export function useCandidateStashItemDrawer({ dataReferenceStart, dataReferenceE
     setHydrateSnap(nextHydrate)
     setHydrateSnapSource(source)
     setConfirmedHydrateSnap(confirmed)
-    if (source === 'confirmed' && nextHydrate) setDrawerForecastMonths(clampForecastMonths(nextHydrate.context.forecastMonths))
   }, [openedItemUuid])
 
   const openItemDrawer: (row: InnerCandidateRow, options?: OpenItemDrawerOptions) => Promise<void> = useCallback(async (row: InnerCandidateRow, options?: OpenItemDrawerOptions) : Promise<void> => {
@@ -120,7 +117,6 @@ export function useCandidateStashItemDrawer({ dataReferenceStart, dataReferenceE
       setHydrateSnap(nextHydrate)
       setHydrateSnapSource(nextSource)
       setConfirmedHydrateSnap(confirmedSnap)
-      setDrawerForecastMonths(clampForecastMonths(nextHydrate?.context.forecastMonths ?? detailForecastMonths))
       setDrawerSkuGroupKey(row.skuGroupKey)
       setOpenedItemUuid(row.uuid)
       setDrawerOpen(true)
@@ -128,7 +124,7 @@ export function useCandidateStashItemDrawer({ dataReferenceStart, dataReferenceE
       if (!mountedRef.current || drawerRequestSeqRef.current !== seq) return
       setDrawerError(err instanceof Error ? err.message : '후보 상세 오류를 로드하지 못했습니다.')
     }
-  }, [clearCloseTimer, detailForecastMonths])
+  }, [clearCloseTimer])
 
   const onRequestNavigateAdjacent: (direction: AdjacentDirection) => Promise<void> = useCallback(async (direction: AdjacentDirection) : Promise<void> => {
     if (!drawerOpen || itemDeleteTargetUuid || innerNavLockRef.current) return

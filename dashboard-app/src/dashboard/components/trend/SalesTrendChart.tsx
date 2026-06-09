@@ -21,6 +21,7 @@ export type TrendBarSeries = {
   fillOpacity?: number
   stackId?: string
   barSize?: number
+  yAxisId?: 'primary' | 'secondary'
 }
 
 export type TrendChartPoint = {
@@ -35,6 +36,9 @@ export type Props = {
   yScale?: 'linear' | 'log'
   yMax?: number
   secondaryYMax?: number
+  yTickFormatter?: (value: number) => string
+  yAxisWidth?: number
+  secondaryYAxisWidth?: number
   periodShade: TrendShade
   forecastShade: TrendShade | null
   lines: TrendLineSeries[]
@@ -57,6 +61,9 @@ export function SalesTrendChart({
   yScale = 'linear',
   yMax,
   secondaryYMax,
+  yTickFormatter,
+  yAxisWidth = 40,
+  secondaryYAxisWidth = 40,
   periodShade,
   forecastShade,
   lines,
@@ -73,40 +80,40 @@ export function SalesTrendChart({
   tooltipLabelFormatter,
 }: Props) : React.JSX.Element {
   const hasSecondaryLine: boolean = lines.some((line: TrendLineSeries) : boolean => line.yAxisId === 'secondary')
-  const needsSecondaryAxis: boolean = barsUseSecondaryAxis || hasSecondaryLine
+  const getBarYAxisId: (bar: TrendBarSeries) => 'primary' | 'secondary' = (bar: TrendBarSeries) : 'primary' | 'secondary' => (
+    bar.yAxisId ?? (barsUseSecondaryAxis ? 'secondary' : 'primary')
+  )
+  const getMaxForDataKey: (dataKey: string) => number = (dataKey: string) : number => (
+    data.reduce((rowMax: number, row: TrendChartPoint) : number => {
+      const v: number = Number(row[dataKey])
+      return Number.isFinite(v) ? Math.max(rowMax, v) : rowMax
+    }, 0)
+  )
+  const hasSecondaryBar: boolean = bars.some((bar: TrendBarSeries) : boolean => getBarYAxisId(bar) === 'secondary')
+  const needsSecondaryAxis: boolean = hasSecondaryBar || hasSecondaryLine
   const resolvedSecondaryYMax: number | undefined = (() : number | undefined => {
     if (typeof secondaryYMax === 'number') return secondaryYMax
     if (!needsSecondaryAxis) return undefined
-    const maxFromBars: number = bars.reduce((acc: number, bar: TrendBarSeries) : number => {
-      const m: number = data.reduce((rowMax: number, row: TrendChartPoint) : number => {
-        const v: number = Number(row[bar.dataKey])
-        return Number.isFinite(v) ? Math.max(rowMax, v) : rowMax
-      }, 0)
-      return Math.max(acc, m)
-    }, 0)
+    const maxFromBars: number = bars
+      .filter((bar: TrendBarSeries) : boolean => getBarYAxisId(bar) === 'secondary')
+      .reduce((acc: number, bar: TrendBarSeries) : number => Math.max(acc, getMaxForDataKey(bar.dataKey)), 0)
     const maxFromSecondaryLines: number = lines
       .filter((line: TrendLineSeries) : boolean => line.yAxisId === 'secondary')
-      .reduce((acc: number, line: TrendLineSeries) : number => {
-        const m: number = data.reduce((rowMax: number, row: TrendChartPoint) : number => {
-          const v: number = Number(row[line.dataKey])
-          return Number.isFinite(v) ? Math.max(rowMax, v) : rowMax
-        }, 0)
-        return Math.max(acc, m)
-      }, 0)
+      .reduce((acc: number, line: TrendLineSeries) : number => Math.max(acc, getMaxForDataKey(line.dataKey)), 0)
     const maxFromSecondary: number = Math.max(maxFromBars, maxFromSecondaryLines)
     return maxFromSecondary <= 0 ? 10 : Math.ceil(maxFromSecondary * 1.08)
   })()
   const hasSecondaryAxis: boolean = needsSecondaryAxis && typeof resolvedSecondaryYMax === 'number'
   const resolvedPrimaryYMax: number = (() : number => {
     if (typeof yMax === 'number') return yMax
-    const maxFromLines: number = lines.reduce((acc: number, line: TrendLineSeries) : number => {
-      const m: number = data.reduce((rowMax: number, row: TrendChartPoint) : number => {
-        const v: number = Number(row[line.dataKey])
-        return Number.isFinite(v) ? Math.max(rowMax, v) : rowMax
-      }, 0)
-      return Math.max(acc, m)
-    }, 0)
-    return maxFromLines <= 0 ? 10 : Math.ceil(maxFromLines * 1.12)
+    const maxFromLines: number = lines
+      .filter((line: TrendLineSeries) : boolean => (line.yAxisId ?? 'primary') === 'primary')
+      .reduce((acc: number, line: TrendLineSeries) : number => Math.max(acc, getMaxForDataKey(line.dataKey)), 0)
+    const maxFromBars: number = bars
+      .filter((bar: TrendBarSeries) : boolean => getBarYAxisId(bar) === 'primary')
+      .reduce((acc: number, bar: TrendBarSeries) : number => Math.max(acc, getMaxForDataKey(bar.dataKey)), 0)
+    const maxFromPrimary: number = Math.max(maxFromLines, maxFromBars)
+    return maxFromPrimary <= 0 ? 10 : Math.ceil(maxFromPrimary * 1.12)
   })()
   const primaryYDomain: [number | 'auto', number | 'auto'] =
     yScale === 'log' ? ['auto', 'auto'] : [0, resolvedPrimaryYMax]
@@ -155,7 +162,8 @@ export function SalesTrendChart({
           domain={primaryYDomain}
           scale={yScale}
           tick={{ fontSize: 9 }}
-          width={40}
+          tickFormatter={(value: number | string) : string => yTickFormatter ? yTickFormatter(Number(value)) : String(value)}
+          width={yAxisWidth}
           tickMargin={4}
           allowDataOverflow={yScale === 'log'}
         />
@@ -165,7 +173,8 @@ export function SalesTrendChart({
             orientation="right"
             domain={[0, resolvedSecondaryYMax ?? 10]}
             tick={{ fontSize: 9 }}
-            width={40}
+            tickFormatter={(value: number | string) : string => yTickFormatter ? yTickFormatter(Number(value)) : String(value)}
+            width={secondaryYAxisWidth}
             tickMargin={4}
           />
         )}
@@ -192,7 +201,7 @@ export function SalesTrendChart({
         {bars.map((bar: TrendBarSeries) : React.JSX.Element => (
           <Bar
             key={bar.dataKey}
-            yAxisId={hasSecondaryAxis ? 'secondary' : 'primary'}
+            yAxisId={getBarYAxisId(bar)}
             dataKey={bar.dataKey}
             name={bar.name}
             stackId={bar.stackId}
