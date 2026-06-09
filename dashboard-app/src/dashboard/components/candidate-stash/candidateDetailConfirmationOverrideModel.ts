@@ -1,9 +1,9 @@
 import type { CandidateItemSummary } from '../../../api'
-import type { OrderSnapshotDocumentV2 } from '../../../snapshot/orderSnapshotTypes'
+import type { OrderSnapshotDocument } from '../../../snapshot/orderSnapshotTypes'
 
 export interface CandidateDetailConfirmationOverride {
   isDetailConfirmed: boolean
-  confirmedSnapshot: OrderSnapshotDocumentV2 | null
+  confirmedSnapshot: OrderSnapshotDocument | null
   baseDbUpdatedAt: string | null
 }
 
@@ -17,7 +17,7 @@ export interface CandidateDetailConfirmationOverrideResult {
 export function createCandidateDetailConfirmationOverride(
   baseItem: Pick<CandidateItemSummary, 'dbUpdatedAt'> | null | undefined,
   isDetailConfirmed: boolean,
-  confirmedSnapshot: OrderSnapshotDocumentV2 | null,
+  confirmedSnapshot: OrderSnapshotDocument | null,
 ): CandidateDetailConfirmationOverride {
   return {
     isDetailConfirmed,

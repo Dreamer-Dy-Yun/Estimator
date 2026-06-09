@@ -1,18 +1,22 @@
-import type { OrderSnapshotPrimarySummaryV2 } from '../../../../snapshot/orderSnapshotTypes'
+import type { OrderSnapshotPrimarySummary } from '../../../../snapshot/orderSnapshotTypes'
 import type { ProductPrimarySummary, ProductSecondaryDetail } from '../../../../types'
 import {
-  createOrderSnapshotCompetitorBasis,
   createOrderSnapshotAiComment,
+  createOrderSnapshotBaseSubject,
+  createOrderSnapshotComparisonBasis,
+  createOrderSnapshotComparisonSubject,
   createOrderSnapshotPrimarySummary,
   createOrderSnapshotStockOrderRequest,
   createOrderSnapshotStockOrderResult,
   ORDER_SNAPSHOT_SCHEMA_VERSION,
-  type OrderSnapshotConfirmedTotalsV2,
-  type OrderSnapshotAiCommentV2,
-  type OrderSnapshotDocumentV2,
-  type OrderSnapshotSizeOrderV2,
-  type OrderSnapshotStockOrderRequestV2,
-  type OrderSnapshotStockOrderResultV2,
+  type OrderSnapshotConfirmedTotals,
+  type OrderSnapshotAiComment,
+  type OrderSnapshotDocument,
+  type OrderSnapshotSizeOrder,
+  type OrderSnapshotStockOrderRequest,
+  type OrderSnapshotStockOrderResult,
+  type OrderSnapshotBaseSubject,
+  type OrderSnapshotComparisonSubject,
 } from '../../../../snapshot/orderSnapshotTypes'
 import type { SecondarySizeOrderDisplayRow } from './model/secondarySizeOrderRows'
 
@@ -22,16 +26,15 @@ export type BuildSecondaryOrderSnapshotParams = {
   periodStart: string
   periodEnd: string
   forecastMonths: number
-  companyUuid?: string
+  baseSubject: OrderSnapshotBaseSubject
+  comparisonSubject: OrderSnapshotComparisonSubject
   selectedStart: string
   leadTimeDays: number
-  competitorChannelId: string
-  competitorChannelLabel: string
-  stockOrderRequest: OrderSnapshotStockOrderRequestV2
-  stockOrderResult: OrderSnapshotStockOrderResultV2 | null
+  stockOrderRequest: OrderSnapshotStockOrderRequest
+  stockOrderResult: OrderSnapshotStockOrderResult | null
   selfWeightPct: number
   bufferStock: number
-  aiComment: OrderSnapshotAiCommentV2
+  aiComment: OrderSnapshotAiComment
   unitPrice: number
   unitCost: number
   expectedFeeRatePct: number
@@ -39,24 +42,23 @@ export type BuildSecondaryOrderSnapshotParams = {
 }
 
 export type ConfirmedTotalsInput = {
-  sizeOrders: OrderSnapshotSizeOrderV2[]
+  sizeOrders: OrderSnapshotSizeOrder[]
   unitPrice: number
   unitCost: number
   expectedFeeRatePct: number
 }
 
-export function buildSecondaryOrderSnapshot(params: BuildSecondaryOrderSnapshotParams): OrderSnapshotDocumentV2 {
+export function buildSecondaryOrderSnapshot(params: BuildSecondaryOrderSnapshotParams): OrderSnapshotDocument {
   const {
     primary,
     secondary,
     periodStart,
     periodEnd,
     forecastMonths,
-    companyUuid,
+    baseSubject,
+    comparisonSubject,
     selectedStart,
     leadTimeDays,
-    competitorChannelId,
-    competitorChannelLabel,
     stockOrderRequest,
     stockOrderResult,
     selfWeightPct,
@@ -67,20 +69,19 @@ export function buildSecondaryOrderSnapshot(params: BuildSecondaryOrderSnapshotP
     expectedFeeRatePct,
     sizeRows,
   }: BuildSecondaryOrderSnapshotParams = params
-  const sizeOrders: OrderSnapshotSizeOrderV2[] = buildCurrentSnapshotSizeOrders(sizeRows)
-  const confirmedTotals: OrderSnapshotConfirmedTotalsV2 = buildCurrentConfirmedTotals({
+  const sizeOrders: OrderSnapshotSizeOrder[] = buildCurrentSnapshotSizeOrders(sizeRows)
+  const confirmedTotals: OrderSnapshotConfirmedTotals = buildCurrentConfirmedTotals({
     sizeOrders,
     unitPrice,
     unitCost,
     expectedFeeRatePct,
   })
-  const summary: OrderSnapshotPrimarySummaryV2 = createOrderSnapshotPrimarySummary(primary)
-  const storedStockOrderResult: OrderSnapshotStockOrderResultV2 | undefined = createOrderSnapshotStockOrderResult(stockOrderResult)
+  const summary: OrderSnapshotPrimarySummary = createOrderSnapshotPrimarySummary(primary)
+  const storedStockOrderResult: OrderSnapshotStockOrderResult | undefined = createOrderSnapshotStockOrderResult(stockOrderResult)
 
   return {
     schemaVersion: ORDER_SNAPSHOT_SCHEMA_VERSION,
     skuGroupKey: primary.skuGroupKey,
-    ...createSnapshotCompanyScope(companyUuid),
     savedAt: new Date().toISOString(),
     context: {
       periodStart,
@@ -93,9 +94,9 @@ export function buildSecondaryOrderSnapshot(params: BuildSecondaryOrderSnapshotP
       summary,
     },
     drawer2: {
-      competitorBasis: createOrderSnapshotCompetitorBasis(secondary),
-      competitorChannelId,
-      competitorChannelLabel,
+      baseSubject: createOrderSnapshotBaseSubject(baseSubject),
+      comparisonSubject: createOrderSnapshotComparisonSubject(comparisonSubject),
+      comparisonBasis: createOrderSnapshotComparisonBasis(secondary),
       stockOrderRequest: createOrderSnapshotStockOrderRequest(stockOrderRequest),
       ...(storedStockOrderResult == null ? {} : { stockOrderResult: storedStockOrderResult }),
       unitEconomics: {
@@ -112,11 +113,11 @@ export function buildSecondaryOrderSnapshot(params: BuildSecondaryOrderSnapshotP
   }
 }
 
-function buildCurrentSnapshotSizeOrders(sizeRows: SecondarySizeOrderDisplayRow[]): OrderSnapshotSizeOrderV2[] {
-  return sizeRows.map((row: SecondarySizeOrderDisplayRow) : { size: string; selfSharePct: number; competitorSharePct: number; blendedSharePct: number; forecastQty: number; recommendedQty: number; confirmQty: number; } => ({
+function buildCurrentSnapshotSizeOrders(sizeRows: SecondarySizeOrderDisplayRow[]): OrderSnapshotSizeOrder[] {
+  return sizeRows.map((row: SecondarySizeOrderDisplayRow) : OrderSnapshotSizeOrder => ({
     size: row.size,
-    selfSharePct: row.selfSharePct,
-    competitorSharePct: row.competitorSharePct,
+    baseSharePct: row.baseSharePct,
+    comparisonSharePct: row.comparisonSharePct,
     blendedSharePct: row.blendedSharePct,
     forecastQty: row.forecastQty,
     recommendedQty: row.recommendedQty,
@@ -129,7 +130,7 @@ function buildCurrentConfirmedTotals({
   unitPrice,
   unitCost,
   expectedFeeRatePct,
-}: ConfirmedTotalsInput): OrderSnapshotConfirmedTotalsV2 {
+}: ConfirmedTotalsInput): OrderSnapshotConfirmedTotals {
   const orderQty: number = sumCurrentSizeOrderConfirmQty(sizeOrders)
   const perUnitFee: number = Math.round((unitPrice * expectedFeeRatePct) / 100)
   const perUnitOpMargin: number = unitPrice - unitCost - perUnitFee
@@ -146,12 +147,6 @@ function buildCurrentConfirmedTotals({
   }
 }
 
-function sumCurrentSizeOrderConfirmQty(sizeOrders: Pick<OrderSnapshotSizeOrderV2, 'confirmQty'>[]): number {
-  return sizeOrders.reduce((acc: number, row: Pick<OrderSnapshotSizeOrderV2, 'confirmQty'>) : number => acc + row.confirmQty, 0)
-}
-
-function createSnapshotCompanyScope(companyUuid: string | undefined): Pick<OrderSnapshotDocumentV2, 'companyUuid'> | Record<string, never> {
-  if (companyUuid === undefined) return {}
-  if (!companyUuid) throw new Error('companyUuid must be a non-empty string when provided')
-  return { companyUuid }
+function sumCurrentSizeOrderConfirmQty(sizeOrders: Pick<OrderSnapshotSizeOrder, 'confirmQty'>[]): number {
+  return sizeOrders.reduce((acc: number, row: Pick<OrderSnapshotSizeOrder, 'confirmQty'>) : number => acc + row.confirmQty, 0)
 }

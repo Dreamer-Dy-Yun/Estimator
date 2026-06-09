@@ -1,22 +1,25 @@
-import type { OrderSnapshotCompetitorBasisV2, OrderSnapshotSizeOrderV2, OrderSnapshotStockOrderDisplaySizeRowV2, OrderSnapshotStockOrderDisplayV2, OrderSnapshotUnitEconomicsV2 } from '../../../../snapshot/orderSnapshotTypes'
+import type { OrderSnapshotComparisonBasis, OrderSnapshotSizeOrder, OrderSnapshotStockOrderDisplaySizeRow, OrderSnapshotStockOrderDisplay, OrderSnapshotUnitEconomics } from '../../../../snapshot/orderSnapshotTypes'
 import { useEffect, useMemo, useState } from 'react'
 import { dashboardApi } from '../../../../api'
+import type { ProductComparisonBaseSubjectRef, ProductComparisonTarget } from '../../../../api/types/drawer'
 import type { ApiUnitErrorInfo, ProductSecondaryDetail } from '../../../../types'
-import type { OrderSnapshotDocumentV2 } from '../../../../snapshot/orderSnapshotTypes'
+import type { OrderSnapshotDocument } from '../../../../snapshot/orderSnapshotTypes'
 import { makeApiErrorInfo } from '../apiErrorInfo'
 
 export type Params = {
   skuGroupKey: string
   expandPaneOpen: boolean
-  companyUuid?: string
-  hydrateSnapshot?: OrderSnapshotDocumentV2 | null
+  baseSubject: ProductComparisonBaseSubjectRef
+  comparisonTarget: ProductComparisonTarget | null
+  hydrateSnapshot?: OrderSnapshotDocument | null
   pageName: string
 }
 
 export type SecondaryDetailRequestKey = {
   skuGroupKey: string
-  companyUuid: string | null
-  hydrateSnapshot: OrderSnapshotDocumentV2 | null
+  baseSubject: ProductComparisonBaseSubjectRef
+  comparisonTarget: ProductComparisonTarget | null
+  hydrateSnapshot: OrderSnapshotDocument | null
 }
 
 export type SecondaryDetailState = {
@@ -39,26 +42,26 @@ function snapshotHydrateError(pageName: string): ApiUnitErrorInfo {
 }
 
 function getSecondaryDetailFromSnapshot(
-  hydrateSnapshot: OrderSnapshotDocumentV2 | null,
+  hydrateSnapshot: OrderSnapshotDocument | null,
   skuGroupKey: string,
 ): ProductSecondaryDetail | null {
   if (hydrateSnapshot?.skuGroupKey !== skuGroupKey) return null
-  const basis: OrderSnapshotCompetitorBasisV2 = hydrateSnapshot.drawer2.competitorBasis
+  const basis: OrderSnapshotComparisonBasis = hydrateSnapshot.drawer2.comparisonBasis
   if (basis.skuGroupKey !== skuGroupKey) return null
-  const unitEconomics: OrderSnapshotUnitEconomicsV2 | undefined = hydrateSnapshot.drawer2.unitEconomics
+  const unitEconomics: OrderSnapshotUnitEconomics | undefined = hydrateSnapshot.drawer2.unitEconomics
   if (unitEconomics == null) return null
-  const display: OrderSnapshotStockOrderDisplayV2 | undefined = hydrateSnapshot.drawer2.stockOrderResult?.display
+  const display: OrderSnapshotStockOrderDisplay | undefined = hydrateSnapshot.drawer2.stockOrderResult?.display
   if (display == null) return null
-  const displaySizeRowBySize: Map<string, OrderSnapshotStockOrderDisplaySizeRowV2> = new Map((display?.sizeRows ?? []).map((row: OrderSnapshotStockOrderDisplaySizeRowV2) : [string, OrderSnapshotStockOrderDisplaySizeRowV2] => [row.size, row]))
-  if (hydrateSnapshot.drawer2.sizeOrders.some((row: OrderSnapshotSizeOrderV2) : boolean => !displaySizeRowBySize.has(row.size))) return null
+  const displaySizeRowBySize: Map<string, OrderSnapshotStockOrderDisplaySizeRow> = new Map((display?.sizeRows ?? []).map((row: OrderSnapshotStockOrderDisplaySizeRow) : [string, OrderSnapshotStockOrderDisplaySizeRow] => [row.size, row]))
+  if (hydrateSnapshot.drawer2.sizeOrders.some((row: OrderSnapshotSizeOrder) : boolean => !displaySizeRowBySize.has(row.size))) return null
   return {
     skuGroupKey: basis.skuGroupKey,
-    competitorPrice: basis.competitorPrice,
-    competitorQty: basis.competitorQty,
-    competitorRatioBySize: { ...basis.competitorRatioBySize },
-    sizeRows: hydrateSnapshot.drawer2.sizeOrders.map((row: OrderSnapshotSizeOrderV2) : { size: string; selfRatio: number; confirmedQty: number; avgPrice: number; qty: number; availableStock: number; } => ({
+    comparisonPrice: basis.comparisonPrice,
+    comparisonQty: basis.comparisonQty,
+    comparisonRatioBySize: { ...basis.comparisonRatioBySize },
+    sizeRows: hydrateSnapshot.drawer2.sizeOrders.map((row: OrderSnapshotSizeOrder) : { size: string; selfRatio: number; confirmedQty: number; avgPrice: number; qty: number; availableStock: number; } => ({
       size: row.size,
-      selfRatio: row.selfSharePct,
+      selfRatio: row.baseSharePct,
       confirmedQty: row.confirmQty,
       avgPrice: unitEconomics.unitPrice,
       qty: row.forecastQty,
@@ -67,18 +70,39 @@ function getSecondaryDetailFromSnapshot(
   }
 }
 
+function normalizedSubjectSourceId(subject: { sourceId?: string }): string | undefined {
+  const sourceId: string | undefined = subject.sourceId?.trim()
+  return sourceId ? sourceId : undefined
+}
+
 export function getScopeSafeHydrateSnapshot(
-  hydrateSnapshot: OrderSnapshotDocumentV2 | null,
+  hydrateSnapshot: OrderSnapshotDocument | null,
   skuGroupKey: string,
-  companyUuid: string | undefined,
-): OrderSnapshotDocumentV2 | null {
+  baseSubject: ProductComparisonBaseSubjectRef,
+  comparisonTarget: ProductComparisonTarget | null,
+): OrderSnapshotDocument | null {
+  const baseScopeSafeHydrateSnapshot: OrderSnapshotDocument | null = getBaseScopeSafeHydrateSnapshot(hydrateSnapshot, skuGroupKey, baseSubject)
+  if (baseScopeSafeHydrateSnapshot == null) return null
+  if (comparisonTarget == null) return null
+
+  const snapshotComparison = baseScopeSafeHydrateSnapshot.drawer2.comparisonSubject
+  if (snapshotComparison.kind !== comparisonTarget.kind) return null
+  if (normalizedSubjectSourceId(snapshotComparison) !== normalizedSubjectSourceId(comparisonTarget)) return null
+
+  return baseScopeSafeHydrateSnapshot
+}
+
+export function getBaseScopeSafeHydrateSnapshot(
+  hydrateSnapshot: OrderSnapshotDocument | null,
+  skuGroupKey: string,
+  baseSubject: ProductComparisonBaseSubjectRef,
+): OrderSnapshotDocument | null {
   if (hydrateSnapshot == null) return null
   if (hydrateSnapshot.skuGroupKey !== skuGroupKey) return null
 
-  if (companyUuid == null) {
-    return hydrateSnapshot.companyUuid == null ? hydrateSnapshot : null
-  }
-  if (hydrateSnapshot.companyUuid !== companyUuid) return null
+  const snapshotBase = hydrateSnapshot.drawer2.baseSubject
+  if (snapshotBase.kind !== baseSubject.kind) return null
+  if (normalizedSubjectSourceId(snapshotBase) !== normalizedSubjectSourceId(baseSubject)) return null
 
   return hydrateSnapshot
 }
@@ -89,7 +113,8 @@ function isSameSecondaryDetailRequestKey(
 ): boolean {
   return (
     stateKey.skuGroupKey === currentKey.skuGroupKey &&
-    stateKey.companyUuid === currentKey.companyUuid &&
+    stateKey.baseSubject === currentKey.baseSubject &&
+    stateKey.comparisonTarget === currentKey.comparisonTarget &&
     stateKey.hydrateSnapshot === currentKey.hydrateSnapshot
   )
 }
@@ -97,33 +122,34 @@ function isSameSecondaryDetailRequestKey(
 export function useSecondaryDrawerDetail({
   skuGroupKey,
   expandPaneOpen,
-  companyUuid,
+  baseSubject,
+  comparisonTarget,
   hydrateSnapshot = null,
   pageName,
-}: Params) : { secondaryDetail: ProductSecondaryDetail | null; secondaryDetailError: ApiUnitErrorInfo | null; hydrateForPanel: OrderSnapshotDocumentV2 | null; } {
+}: Params) : { secondaryDetail: ProductSecondaryDetail | null; secondaryDetailError: ApiUnitErrorInfo | null; hydrateForPanel: OrderSnapshotDocument | null; } {
   const [secondaryDetailState, setSecondaryDetailState]: [SecondaryDetailState | null, React.Dispatch<React.SetStateAction<SecondaryDetailState | null>>] = useState<SecondaryDetailState | null>(null)
   const [secondaryDetailErrorState, setSecondaryDetailErrorState]: [SecondaryDetailErrorState | null, React.Dispatch<React.SetStateAction<SecondaryDetailErrorState | null>>] = useState<SecondaryDetailErrorState | null>(null)
 
-  const scopeSafeHydrateSnapshot: OrderSnapshotDocumentV2 | null = useMemo(
-    () : OrderSnapshotDocumentV2 | null => getScopeSafeHydrateSnapshot(hydrateSnapshot, skuGroupKey, companyUuid),
-    [companyUuid, hydrateSnapshot, skuGroupKey],
+  const baseScopeSafeHydrateSnapshot: OrderSnapshotDocument | null = useMemo(
+    () : OrderSnapshotDocument | null => getBaseScopeSafeHydrateSnapshot(hydrateSnapshot, skuGroupKey, baseSubject),
+    [baseSubject, hydrateSnapshot, skuGroupKey],
   )
 
   const secondaryFromSnapshot: ProductSecondaryDetail | null = useMemo(
-    () : ProductSecondaryDetail | null => getSecondaryDetailFromSnapshot(scopeSafeHydrateSnapshot, skuGroupKey),
-    [scopeSafeHydrateSnapshot, skuGroupKey],
+    () : ProductSecondaryDetail | null => getSecondaryDetailFromSnapshot(baseScopeSafeHydrateSnapshot, skuGroupKey),
+    [baseScopeSafeHydrateSnapshot, skuGroupKey],
   )
 
-  const secondaryDetailRequestKey: { skuGroupKey: string; companyUuid: string | null; hydrateSnapshot: OrderSnapshotDocumentV2 | null; } = useMemo(
-    () : { skuGroupKey: string; companyUuid: string | null; hydrateSnapshot: OrderSnapshotDocumentV2 | null; } => ({ skuGroupKey, companyUuid: companyUuid ?? null, hydrateSnapshot: scopeSafeHydrateSnapshot }),
-    [companyUuid, scopeSafeHydrateSnapshot, skuGroupKey],
+  const secondaryDetailRequestKey: SecondaryDetailRequestKey = useMemo(
+    () : SecondaryDetailRequestKey => ({ skuGroupKey, baseSubject, comparisonTarget, hydrateSnapshot: baseScopeSafeHydrateSnapshot }),
+    [baseScopeSafeHydrateSnapshot, baseSubject, comparisonTarget, skuGroupKey],
   )
 
-  const hydrateForPanel: OrderSnapshotDocumentV2 | null = secondaryFromSnapshot == null ? null : scopeSafeHydrateSnapshot
+  const hydrateForPanel: OrderSnapshotDocument | null = secondaryFromSnapshot == null ? null : baseScopeSafeHydrateSnapshot
 
   useEffect(() : () => void => {
     let alive: boolean = true
-    const requestKey: { skuGroupKey: string; companyUuid: string | null; hydrateSnapshot: OrderSnapshotDocumentV2 | null; } = secondaryDetailRequestKey
+    const requestKey: SecondaryDetailRequestKey = secondaryDetailRequestKey
     queueMicrotask(() : void => {
       if (!alive) return
       if (!expandPaneOpen) {
@@ -136,7 +162,7 @@ export function useSecondaryDrawerDetail({
         setSecondaryDetailErrorState(null)
         return
       }
-      if (scopeSafeHydrateSnapshot != null) {
+      if (baseScopeSafeHydrateSnapshot != null) {
         setSecondaryDetailState(null)
         setSecondaryDetailErrorState({
           requestKey,
@@ -144,11 +170,16 @@ export function useSecondaryDrawerDetail({
         })
         return
       }
+      if (comparisonTarget == null) {
+        setSecondaryDetailState(null)
+        setSecondaryDetailErrorState(null)
+        return
+      }
       setSecondaryDetailState(null)
       setSecondaryDetailErrorState(null)
       void (async () : Promise<void> => {
         try {
-          const d: ProductSecondaryDetail = await dashboardApi.getProductSecondaryDetail(skuGroupKey, { companyUuid })
+          const d: ProductSecondaryDetail = await dashboardApi.getProductSecondaryDetail(skuGroupKey, { base: baseSubject, comparison: comparisonTarget })
           if (!alive) return
           if (!d) throw new Error('Secondary detail data is empty.')
           setSecondaryDetailState({ requestKey, detail: d })
@@ -158,7 +189,7 @@ export function useSecondaryDrawerDetail({
           setSecondaryDetailState(null)
           setSecondaryDetailErrorState({
             requestKey,
-            error: makeApiErrorInfo(pageName, `getProductSecondaryDetail(${JSON.stringify({ skuGroupKey, companyUuid })})`, err),
+            error: makeApiErrorInfo(pageName, `getProductSecondaryDetail(${JSON.stringify({ skuGroupKey, base: baseSubject, comparison: comparisonTarget })})`, err),
           })
         }
       })()
@@ -166,7 +197,7 @@ export function useSecondaryDrawerDetail({
     return () : void => {
       alive = false
     }
-  }, [companyUuid, expandPaneOpen, pageName, scopeSafeHydrateSnapshot, secondaryDetailRequestKey, secondaryFromSnapshot, skuGroupKey])
+  }, [baseScopeSafeHydrateSnapshot, baseSubject, comparisonTarget, expandPaneOpen, pageName, secondaryDetailRequestKey, secondaryFromSnapshot, skuGroupKey])
 
   const keyedSecondaryDetail: ProductSecondaryDetail | null =
     secondaryDetailState != null &&

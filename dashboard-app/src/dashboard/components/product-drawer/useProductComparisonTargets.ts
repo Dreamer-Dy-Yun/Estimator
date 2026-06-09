@@ -4,7 +4,6 @@ import {
   type ProductComparisonBaseSubjectRef,
   type ProductComparisonTarget,
   type ProductComparisonTargetKind,
-  type SecondaryCompetitorChannel,
 } from '../../../api'
 import type { ApiUnitErrorInfo } from '../../../types'
 import { makeApiErrorInfo } from './apiErrorInfo'
@@ -15,13 +14,11 @@ export type ProductComparisonTargetsState = {
   comparisonTargets: ProductComparisonTarget[]
   comparisonMode: ProductComparisonTargetKind
   comparisonTarget: ProductComparisonTarget | null
-  competitorChannels: SecondaryCompetitorChannel[]
-  competitorChannelId: string
   targetsLoading: boolean
   targetsError: ApiUnitErrorInfo | null
   setComparisonMode: React.Dispatch<React.SetStateAction<ProductComparisonTargetKind>>
   setComparisonTargetId: (next: string) => void
-  setCompetitorChannelId: (next: string) => void
+  setComparisonSubject: (next: ProductComparisonTarget) => void
 }
 
 const INITIAL_TARGET_IDS: ProductComparisonTargetIds = {
@@ -46,24 +43,6 @@ function selectedTarget(
   const selectedId: string = targetIds[kind]
   if (selectedId === '') return candidates[0]!
   return candidates.find((target: ProductComparisonTarget) : boolean => target.id === selectedId) ?? null
-}
-
-function selectedCompetitorTarget(
-  targets: ProductComparisonTarget[],
-  competitorChannelId: string,
-): ProductComparisonTarget | null {
-  const candidates: ProductComparisonTarget[] = targetsByKind(targets, 'competitor-channel')
-  if (!candidates.length) return null
-  if (competitorChannelId === '') return candidates[0]!
-  return candidates.find((target: ProductComparisonTarget) : boolean => target.sourceId === competitorChannelId) ?? null
-}
-
-function competitorChannelsFromTargets(targets: ProductComparisonTarget[]): SecondaryCompetitorChannel[] {
-  return targetsByKind(targets, 'competitor-channel')
-    .map((target: ProductComparisonTarget) : SecondaryCompetitorChannel => ({
-      id: target.sourceId,
-      label: target.label,
-    }))
 }
 
 function targetIdForLoadedTargets(
@@ -98,10 +77,6 @@ export function useProductComparisonTargets({
     ProductComparisonTargetIds,
     React.Dispatch<React.SetStateAction<ProductComparisonTargetIds>>,
   ] = useState<ProductComparisonTargetIds>(INITIAL_TARGET_IDS)
-  const [selectedCompetitorChannelId, setSelectedCompetitorChannelId]: [
-    string,
-    React.Dispatch<React.SetStateAction<string>>,
-  ] = useState<string>('')
   const [targetsError, setTargetsError]: [
     ApiUnitErrorInfo | null,
     React.Dispatch<React.SetStateAction<ApiUnitErrorInfo | null>>,
@@ -118,7 +93,6 @@ export function useProductComparisonTargets({
         setTargetsLoading(true)
         setComparisonTargets([])
         setTargetIds(INITIAL_TARGET_IDS)
-        setSelectedCompetitorChannelId('')
         setLoadedBaseKey('')
         const rows: ProductComparisonTarget[] = await dashboardApi.getProductComparisonTargets({ base })
         if (!alive) return
@@ -128,14 +102,11 @@ export function useProductComparisonTargets({
           'competitor-channel': targetIdForLoadedTargets(rows, 'competitor-channel', prev),
           'self-company': targetIdForLoadedTargets(rows, 'self-company', prev),
         }))
-        setSelectedCompetitorChannelId((prev: string) : string =>
-          prev === '' ? selectedCompetitorTarget(rows, '')?.sourceId ?? '' : prev)
         setTargetsError(null)
       } catch (err) {
         if (!alive) return
         setComparisonTargets([])
         setTargetIds(INITIAL_TARGET_IDS)
-        setSelectedCompetitorChannelId('')
         setLoadedBaseKey('')
         setTargetsError(makeApiErrorInfo(pageName, 'getProductComparisonTargets()', err))
       } finally {
@@ -153,53 +124,33 @@ export function useProductComparisonTargets({
   )
   const effectiveTargetsLoading: boolean = targetsLoading || loadedBaseKey !== baseKey
   const comparisonTarget: ProductComparisonTarget | null = useMemo(
-    () : ProductComparisonTarget | null => (
-      comparisonMode === 'competitor-channel'
-        ? selectedCompetitorTarget(comparisonTargetsForBase, selectedCompetitorChannelId)
-        : selectedTarget(comparisonTargetsForBase, comparisonMode, targetIds)
-    ),
-    [comparisonMode, comparisonTargetsForBase, selectedCompetitorChannelId, targetIds],
+    () : ProductComparisonTarget | null => selectedTarget(comparisonTargetsForBase, comparisonMode, targetIds),
+    [comparisonMode, comparisonTargetsForBase, targetIds],
   )
-  const competitorChannels: SecondaryCompetitorChannel[] = useMemo(
-    () : SecondaryCompetitorChannel[] => competitorChannelsFromTargets(comparisonTargetsForBase),
-    [comparisonTargetsForBase],
-  )
-  const competitorTarget: ProductComparisonTarget | null = useMemo(
-    () : ProductComparisonTarget | null => selectedCompetitorTarget(comparisonTargetsForBase, selectedCompetitorChannelId),
-    [comparisonTargetsForBase, selectedCompetitorChannelId],
-  )
-  const competitorChannelId: string = selectedCompetitorChannelId === '' ? competitorTarget?.sourceId ?? '' : selectedCompetitorChannelId
 
   const setComparisonTargetId: (next: string) => void = (next: string) : void => {
-    if (comparisonMode === 'competitor-channel') {
-      const target: ProductComparisonTarget | undefined = comparisonTargets.find(
-        (candidate: ProductComparisonTarget) : boolean =>
-          candidate.kind === 'competitor-channel' && candidate.id === next,
-      )
-      if (target == null) return
-      setSelectedCompetitorChannelId(target.sourceId)
-      return
-    }
     setTargetIds((prev: ProductComparisonTargetIds) : ProductComparisonTargetIds => ({
       ...prev,
       [comparisonMode]: next,
     }))
   }
 
-  const setCompetitorChannelId: (next: string) => void = (next: string) : void => {
-    setSelectedCompetitorChannelId(next)
+  const setComparisonSubject: (next: ProductComparisonTarget) => void = (next: ProductComparisonTarget) : void => {
+    setComparisonMode(next.kind)
+    setTargetIds((prev: ProductComparisonTargetIds) : ProductComparisonTargetIds => ({
+      ...prev,
+      [next.kind]: next.id,
+    }))
   }
 
   return {
     comparisonTargets: comparisonTargetsForBase,
     comparisonMode,
     comparisonTarget,
-    competitorChannels,
-    competitorChannelId,
     targetsLoading: effectiveTargetsLoading,
     targetsError,
     setComparisonMode,
     setComparisonTargetId,
-    setCompetitorChannelId,
+    setComparisonSubject,
   }
 }

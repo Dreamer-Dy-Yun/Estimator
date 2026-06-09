@@ -3,6 +3,11 @@ import {
   pickProductDrawerBundleFromCache,
   type ProductDrawerBundleCache,
 } from './useProductDrawerBundle'
+import type { ProductComparisonBaseSubjectRef } from '../../api'
+
+const BASE_SUBJECT: ProductComparisonBaseSubjectRef = { role: 'base', kind: 'self-company', sourceId: 'company-1' }
+const OTHER_BASE_SUBJECT: ProductComparisonBaseSubjectRef = { role: 'base', kind: 'self-company', sourceId: 'company-2' }
+const BASE_SUBJECT_KEY = 'base:self-company:company-1' as const
 
 const bundleA: { summary: { skuGroupKey: string; productName: string; brand: string; category: string; code: string; colorCode: string; price: number; qty: number; availableStock: number; }; } = {
   summary: {
@@ -24,27 +29,32 @@ const bundleA: { summary: { skuGroupKey: string; productName: string; brand: str
 
 describe('pickProductDrawerBundleFromCache', () : void => {
   it('returns null when selected id is null', () : void => {
-    const cache: ProductDrawerBundleCache = { skuGroupKey: 'A__010', bundle: bundleA }
-    expect(pickProductDrawerBundleFromCache(null, cache, true)).toBeNull()
+    const cache: ProductDrawerBundleCache = { skuGroupKey: 'A__010', baseSubjectKey: BASE_SUBJECT_KEY, bundle: bundleA }
+    expect(pickProductDrawerBundleFromCache(null, cache, true, BASE_SUBJECT)).toBeNull()
   })
 
   it('returns null when cache is empty', () : void => {
-    expect(pickProductDrawerBundleFromCache('A__010', null, true)).toBeNull()
+    expect(pickProductDrawerBundleFromCache('A__010', null, true, BASE_SUBJECT)).toBeNull()
   })
 
   it('returns stale bundle when stale is allowed and id mismatches', () : void => {
-    const cache: ProductDrawerBundleCache = { skuGroupKey: 'A__010', bundle: bundleA }
-    expect(pickProductDrawerBundleFromCache('B__010', cache, true)).toBe(bundleA)
+    const cache: ProductDrawerBundleCache = { skuGroupKey: 'A__010', baseSubjectKey: BASE_SUBJECT_KEY, bundle: bundleA }
+    expect(pickProductDrawerBundleFromCache('B__010', cache, true, BASE_SUBJECT)).toBe(bundleA)
   })
 
   it('returns null when stale is not allowed and id mismatches', () : void => {
-    const cache: ProductDrawerBundleCache = { skuGroupKey: 'A__010', bundle: bundleA }
-    expect(pickProductDrawerBundleFromCache('B__010', cache, false)).toBeNull()
+    const cache: ProductDrawerBundleCache = { skuGroupKey: 'A__010', baseSubjectKey: BASE_SUBJECT_KEY, bundle: bundleA }
+    expect(pickProductDrawerBundleFromCache('B__010', cache, false, BASE_SUBJECT)).toBeNull()
   })
 
   it('returns cache bundle when ids match regardless of stale option', () : void => {
-    const cache: ProductDrawerBundleCache = { skuGroupKey: 'A__010', bundle: bundleA }
-    expect(pickProductDrawerBundleFromCache('A__010', cache, true)).toBe(bundleA)
-    expect(pickProductDrawerBundleFromCache('A__010', cache, false)).toBe(bundleA)
+    const cache: ProductDrawerBundleCache = { skuGroupKey: 'A__010', baseSubjectKey: BASE_SUBJECT_KEY, bundle: bundleA }
+    expect(pickProductDrawerBundleFromCache('A__010', cache, true, BASE_SUBJECT)).toBe(bundleA)
+    expect(pickProductDrawerBundleFromCache('A__010', cache, false, BASE_SUBJECT)).toBe(bundleA)
+  })
+
+  it('returns null when base subject mismatches', () : void => {
+    const cache: ProductDrawerBundleCache = { skuGroupKey: 'A__010', baseSubjectKey: BASE_SUBJECT_KEY, bundle: bundleA }
+    expect(pickProductDrawerBundleFromCache('A__010', cache, true, OTHER_BASE_SUBJECT)).toBeNull()
   })
 })

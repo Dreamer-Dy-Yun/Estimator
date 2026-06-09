@@ -1,20 +1,21 @@
 # Order Snapshot Backend Contract
 
-Last updated: 2026-05-29
+Last updated: 2026-06-09
 
-`OrderSnapshotDocumentV2` is the persisted candidate item snapshot. It is a screen-restore contract for the current product drawer state.
+`OrderSnapshotDocument` is the persisted candidate item snapshot. It is a screen-restore contract for the current product drawer state.
 
 ## Top level
 
 | Field | Required | Meaning |
 |---|:---:|---|
-| `schemaVersion` | Y | `2` |
+| `schemaVersion` | Y | `3` |
 | `skuGroupKey` | Y | Product group key |
-| `companyUuid` | N | Company scope. New single-company snapshots should include it. |
 | `savedAt` | Y | Snapshot creation timestamp |
 | `context` | Y | Restore/request basis |
 | `drawer1` | Y | Primary drawer snapshot |
 | `drawer2` | Y | Secondary drawer snapshot |
+
+Top-level `companyUuid` is not part of v3. Scoped restore data belongs in `drawer2.baseSubject.sourceId`.
 
 ## `context`
 
@@ -27,14 +28,34 @@ Fields: `skuGroupKey`, `productName`, `brand`, `category`, `code`, `colorCode`, 
 
 ## `drawer2`
 
-Required fields: `competitorBasis`, `competitorChannelId`, `competitorChannelLabel`, `stockOrderRequest`, `selfWeightPct`, `bufferStock`, `aiComment`, `confirmedTotals`, `sizeOrders`.
+Required fields: `baseSubject`, `comparisonSubject`, `comparisonBasis`, `stockOrderRequest`, `selfWeightPct`, `bufferStock`, `aiComment`, `confirmedTotals`, `sizeOrders`.
 
 Optional fields: `stockOrderResult`, `unitEconomics`.
 
-### `competitorBasis`
+### `baseSubject`
 
-Fields: `skuGroupKey`, `competitorPrice`, `competitorQty`, `competitorRatioBySize`.
-`competitorRatioBySize` values are 0..1 ratios.
+Fields: `role`, `kind`, optional `sourceId`.
+
+- `role` must be `base`.
+- `kind` currently must be `self-company`.
+- Omitted `sourceId` means all-company base scope.
+- Concrete single-company scope is stored as `sourceId`.
+
+### `comparisonSubject`
+
+Fields: `role`, `kind`, `id`, `label`, optional `sourceId`.
+
+- `role` must be `comparison`.
+- `kind` is `competitor-channel` or `self-company`.
+- `id` is an opaque comparison option id.
+- `label` is the display name stored with the snapshot.
+- `competitor-channel` requires `sourceId`.
+- `self-company` may omit `sourceId` for all-company comparison.
+
+### `comparisonBasis`
+
+Fields: `skuGroupKey`, `comparisonPrice`, `comparisonQty`, `comparisonRatioBySize`.
+`comparisonRatioBySize` values are 0..1 ratios keyed by size.
 
 ### `stockOrderRequest`
 
@@ -53,8 +74,11 @@ Fields: `trendDailyMean`, `dailyMean`, `sigma`, `display`, `safetyStockCalc`, `f
 - `skuGroupKey` is canonical at three points:
   - top-level `skuGroupKey`
   - `drawer1.summary.skuGroupKey`
-  - `drawer2.competitorBasis.skuGroupKey`
+  - `drawer2.comparisonBasis.skuGroupKey`
   All three must match exactly.
+- `drawer2.baseSubject.role` must be `base`; `drawer2.baseSubject.kind` must be `self-company`.
+- `drawer2.comparisonSubject.role` must be `comparison`; `drawer2.comparisonSubject.kind` must be `competitor-channel` or `self-company`.
+- `drawer2.comparisonSubject.sourceId` is required for `competitor-channel`.
 - `drawer2.sizeOrders[].size` values must be unique.
 - `drawer2.stockOrderResult.display.sizeRows[]` size set must match `drawer2.sizeOrders[]` size set.
 - `drawer2.confirmedTotals.orderQty` must equal `sum(drawer2.sizeOrders[].confirmQty)`.
@@ -76,7 +100,7 @@ Required fields: `orderQty`, `expectedSalesAmount`, `expectedOpProfit`, `expecte
 
 ### `sizeOrders[]`
 
-Fields: `size`, `selfSharePct`, `competitorSharePct`, `blendedSharePct`, `forecastQty`, `recommendedQty`, `confirmQty`.
+Fields: `size`, `baseSharePct`, `comparisonSharePct`, `blendedSharePct`, `forecastQty`, `recommendedQty`, `confirmQty`.
 
 ## Storage rules
 

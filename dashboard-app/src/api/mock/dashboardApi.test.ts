@@ -1,4 +1,4 @@
-import type { ProductMonthlyTrend, SecondaryCompetitorChannel, SecondaryStockOrderCalcResult } from '..'
+import type { ProductComparisonBaseSubjectRef, ProductComparisonTarget, ProductMonthlyTrend, SecondaryCompetitorChannel, SecondaryStockOrderCalcResult } from '..'
 import type { ProductMonthlyTrendPoint, SecondaryDailyTrendPoint } from '../types'
 import type { SecondaryStockOrderDisplaySizeRow } from '../types/secondary'
 import { describe, expect, it } from 'vitest'
@@ -8,6 +8,14 @@ import { skuGroupKeyByLegacyId } from './salesTables'
 
 const skuGroupKey: (legacyId: string) => string = (legacyId: string) : string => skuGroupKeyByLegacyId[legacyId] ?? legacyId
 const MOCK_COMPANY_UUID: '00000000-0000-4000-8000-000000000101' = MOCK_HANA_COMPANY_UUID
+const MOCK_BASE_SUBJECT: ProductComparisonBaseSubjectRef = { role: 'base', kind: 'self-company', sourceId: MOCK_COMPANY_UUID }
+const mockCompetitorTarget: (sourceId: string) => ProductComparisonTarget = (sourceId: string) : ProductComparisonTarget => ({
+  role: 'comparison',
+  kind: 'competitor-channel',
+  id: `comparison:competitor-channel:${sourceId}`,
+  sourceId,
+  label: sourceId,
+})
 
 describe('api/mock dashboardApi competitor channel behavior', () : void => {
   it('returns only kream/musinsa competitor channels', async () : Promise<void> => {
@@ -138,20 +146,20 @@ describe('api/mock dashboardApi competitor channel behavior', () : void => {
       startDate: '2025-01-01',
       endDate: '2026-05-28',
       forecastDays: 0,
-      competitorChannelId: 'kream',
-      companyUuid: MOCK_COMPANY_UUID,
+      base: MOCK_BASE_SUBJECT,
+      comparison: mockCompetitorTarget('kream'),
     })
     const musinsa: SecondaryDailyTrendPoint[] = await mockDashboardApi.getSecondaryDailyTrend({
       skuGroupKey: skuGroupKey('B'),
       startDate: '2025-01-01',
       endDate: '2026-05-28',
       forecastDays: 0,
-      competitorChannelId: 'musinsa',
-      companyUuid: MOCK_COMPANY_UUID,
+      base: MOCK_BASE_SUBJECT,
+      comparison: mockCompetitorTarget('musinsa'),
     })
 
     const sumCompetitorSales: (rows: SecondaryDailyTrendPoint[]) => number = (rows: typeof kream) : number =>
-      rows.reduce((sum: number, row: SecondaryDailyTrendPoint) : number => sum + Math.max(0, row.competitorSales ?? 0), 0)
+      rows.reduce((sum: number, row: SecondaryDailyTrendPoint) : number => sum + Math.max(0, row.comparisonSales ?? 0), 0)
 
     expect(kream.length).toBeGreaterThan(0)
     expect(musinsa.length).toBe(kream.length)
@@ -164,8 +172,8 @@ describe('api/mock dashboardApi competitor channel behavior', () : void => {
       startDate: '2026-05-01',
       endDate: '2026-05-28',
       forecastDays: 3,
-      competitorChannelId: 'kream',
-      companyUuid: MOCK_COMPANY_UUID,
+      base: MOCK_BASE_SUBJECT,
+      comparison: mockCompetitorTarget('kream'),
     })
 
     expect(rows.at(0)?.date).toBe('2026-05-01')
@@ -175,40 +183,40 @@ describe('api/mock dashboardApi competitor channel behavior', () : void => {
   })
 
   it('applies selected channel to product monthly competitor trend', async () : Promise<void> => {
-    const params: { startDate: string; endDate: string; forecastMonths: number; companyUuid: string; } = {
+    const params: { startDate: string; endDate: string; forecastMonths: number; base: ProductComparisonBaseSubjectRef; } = {
       startDate: '2025-01-01',
       endDate: '2025-12-31',
       forecastMonths: 8,
-      companyUuid: MOCK_COMPANY_UUID,
+      base: MOCK_BASE_SUBJECT,
     }
     const kream: ProductMonthlyTrend = await mockDashboardApi.getProductMonthlyTrend(skuGroupKey('B'), {
       ...params,
-      competitorChannelId: 'kream',
+      comparison: mockCompetitorTarget('kream'),
     })
     const musinsa: ProductMonthlyTrend = await mockDashboardApi.getProductMonthlyTrend(skuGroupKey('B'), {
       ...params,
-      competitorChannelId: 'musinsa',
+      comparison: mockCompetitorTarget('musinsa'),
     })
 
     const sumCompetitorSales: (rows: ProductMonthlyTrendPoint[]) => number = (rows: typeof kream.points) : number =>
-      rows.reduce((sum: number, row: ProductMonthlyTrendPoint) : number => sum + Math.max(0, row.competitorSales ?? 0), 0)
+      rows.reduce((sum: number, row: ProductMonthlyTrendPoint) : number => sum + Math.max(0, row.comparisonSales ?? 0), 0)
 
     expect(kream.points.length).toBeGreaterThan(0)
     expect(musinsa.points.length).toBe(kream.points.length)
-    expect(musinsa.competitorChannelId).toBe('musinsa')
+    expect(musinsa.comparison.sourceId).toBe('musinsa')
     expect(sumCompetitorSales(musinsa.points)).toBeLessThan(sumCompetitorSales(kream.points))
   })
 
   it('keeps test top monthly and size sales quantities easy to verify', async () : Promise<void> => {
-    const params: { startDate: string; endDate: string; forecastMonths: number; companyUuid: string; } = {
+    const params: { startDate: string; endDate: string; forecastMonths: number; base: ProductComparisonBaseSubjectRef; } = {
       startDate: '2025-01-01',
       endDate: '2025-12-31',
       forecastMonths: 8,
-      companyUuid: MOCK_COMPANY_UUID,
+      base: MOCK_BASE_SUBJECT,
     }
     const trend: ProductMonthlyTrend = await mockDashboardApi.getProductMonthlyTrend(skuGroupKey('TEST_TOP'), {
       ...params,
-      competitorChannelId: 'kream',
+      comparison: mockCompetitorTarget('kream'),
     })
     const stockOrder: SecondaryStockOrderCalcResult = await mockDashboardApi.getSecondaryStockOrderCalc({
       skuGroupKey: skuGroupKey('TEST_TOP'),
@@ -216,12 +224,12 @@ describe('api/mock dashboardApi competitor channel behavior', () : void => {
       periodEnd: '2025-12-31',
       forecastPeriodEnd: '2026-05-31',
       leadTimeDays: 30,
-      companyUuid: MOCK_COMPANY_UUID,
+      base: MOCK_BASE_SUBJECT,
     })
 
     const actualPoints: ProductMonthlyTrendPoint[] = trend.points.filter((point: ProductMonthlyTrendPoint) : boolean => !point.isForecast)
-    expect(actualPoints.every((point: ProductMonthlyTrendPoint) : boolean => point.selfSales === 100)).toBe(true)
-    expect(actualPoints.every((point: ProductMonthlyTrendPoint) : boolean => point.competitorSales === 200)).toBe(true)
+    expect(actualPoints.every((point: ProductMonthlyTrendPoint) : boolean => point.baseSales === 100)).toBe(true)
+    expect(actualPoints.every((point: ProductMonthlyTrendPoint) : boolean => point.comparisonSales === 200)).toBe(true)
     expect(stockOrder.display.sizeRows.map((row: SecondaryStockOrderDisplaySizeRow) : number => row.currentStockQty)).toEqual([120, 120, 120, 120, 120])
     expect(stockOrder.display.sizeRows.map((row: SecondaryStockOrderDisplaySizeRow) : number => row.totalOrderBalance)).toEqual([40, 40, 40, 40, 40])
     expect(stockOrder.display.sizeRows.map((row: SecondaryStockOrderDisplaySizeRow) : number => row.expectedInboundOrderBalance)).toEqual([20, 20, 20, 20, 20])
@@ -233,9 +241,9 @@ describe('api/mock dashboardApi competitor channel behavior', () : void => {
       periodStart: '2025-01-01',
       periodEnd: '2025-12-31',
       forecastMonths: 8,
-      competitorChannelId: 'kream',
+      base: MOCK_BASE_SUBJECT,
+      comparison: mockCompetitorTarget('kream'),
       candidateItemUuid: 'candidate-item-test',
-      companyUuid: MOCK_COMPANY_UUID,
     })
 
     expect(result.prompt).toContain('2025-01-01~2025-12-31')

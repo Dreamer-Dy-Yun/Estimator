@@ -15,16 +15,16 @@ import {
   calculateSizeOrderColumnTotals,
   formatOptionalGroupedNumber,
   formatSharePct,
-  getCompetitorWeightPct,
-  getSelfWeightPctFromCompetitorInput,
+  getComparisonWeightPct,
+  getSelfWeightPctFromComparisonInput,
   parseConfirmQtyInput,
-  parseSelfWeightPctFromCompetitorInput,
+  parseSelfWeightPctFromComparisonInput,
   parseSelfWeightPctInput,
 } from './sizeOrderCardModel'
 
 export type Props = {
   sizeOrder: {
-    channelLabel: string
+    comparisonLabel: string
     selfCompanyLabel: string
     selfWeightPct: number
     sizeRows: SecondarySizeOrderDisplayRow[]
@@ -76,9 +76,9 @@ function formatQuantityValue(value: number | null | undefined) : string {
 }
 
 export function SizeOrderCard({ sizeOrder, actions, help }: Props) : React.JSX.Element {
-  const { channelLabel, selfCompanyLabel, selfWeightPct, sizeRows, helpIds, stockOrderDisplay, calculationReady = true, manualConfirmBySize }: { channelLabel: string; selfCompanyLabel: string; selfWeightPct: number; sizeRows: SecondarySizeOrderDisplayRow[]; helpIds: Pick<SecondaryHelpIds, 'totalOrderBalance' | 'expectedInboundOrderBalance' | 'sizeRecQty' | 'salesForecastSizeOrder'>; stockOrderDisplay: SecondaryStockOrderCalcResult['display'] | null; calculationReady?: boolean; manualConfirmBySize: Readonly<Record<string, true>>; } = sizeOrder
+  const { comparisonLabel, selfCompanyLabel, selfWeightPct, sizeRows, helpIds, stockOrderDisplay, calculationReady = true, manualConfirmBySize }: { comparisonLabel: string; selfCompanyLabel: string; selfWeightPct: number; sizeRows: SecondarySizeOrderDisplayRow[]; helpIds: Pick<SecondaryHelpIds, 'totalOrderBalance' | 'expectedInboundOrderBalance' | 'sizeRecQty' | 'salesForecastSizeOrder'>; stockOrderDisplay: SecondaryStockOrderCalcResult['display'] | null; calculationReady?: boolean; manualConfirmBySize: Readonly<Record<string, true>>; } = sizeOrder
   const tableRef: React.RefObject<HTMLTableElement | null> = useRef<HTMLTableElement | null>(null)
-  const competitorWeightPct: number = getCompetitorWeightPct(selfWeightPct)
+  const comparisonWeightPct: number = getComparisonWeightPct(selfWeightPct)
   const columnTotals: SizeOrderColumnTotals = useMemo(() : SizeOrderColumnTotals => calculateSizeOrderColumnTotals(sizeRows), [sizeRows])
   const stockOrderSizeRowBySize: Map<string, SecondaryStockOrderDisplaySizeRow> = useMemo(
     () : Map<string, SecondaryStockOrderDisplaySizeRow> => new Map((stockOrderDisplay?.sizeRows ?? []).map((row: SecondaryStockOrderDisplaySizeRow) : [string, SecondaryStockOrderDisplaySizeRow] => [row.size, row])),
@@ -126,9 +126,9 @@ export function SizeOrderCard({ sizeOrder, actions, help }: Props) : React.JSX.E
           min={0}
           max={100}
           step={0.01}
-          value={competitorWeightPct}
-          onChange={(event: React.ChangeEvent<HTMLInputElement, HTMLInputElement>) : void => actions.onSelfWeightPctChange(getSelfWeightPctFromCompetitorInput(Number(event.target.value)))}
-          aria-label={`${selfCompanyLabel} 대 ${channelLabel} 가중치`}
+          value={comparisonWeightPct}
+          onChange={(event: React.ChangeEvent<HTMLInputElement, HTMLInputElement>) : void => actions.onSelfWeightPctChange(getSelfWeightPctFromComparisonInput(Number(event.target.value)))}
+          aria-label={`${selfCompanyLabel} 대 ${comparisonLabel} 가중치`}
         />
         <div className={styles.sliderCompGroup}>
           <div className={styles.sliderPctBox}>
@@ -138,17 +138,17 @@ export function SizeOrderCard({ sizeOrder, actions, help }: Props) : React.JSX.E
               min={0}
               max={100}
               step={0.01}
-              value={competitorWeightPct}
+              value={comparisonWeightPct}
               onChange={(event: React.ChangeEvent<HTMLInputElement, HTMLInputElement>) : void => {
-                const next: number | null = parseSelfWeightPctFromCompetitorInput(event.target.value)
+                const next: number | null = parseSelfWeightPctFromComparisonInput(event.target.value)
                 if (next != null) actions.onSelfWeightPctChange(next)
               }}
-              aria-label={`${channelLabel} ${KO.competitorWeightApprox}`}
+              aria-label={`${comparisonLabel} ${KO.comparisonWeightApprox}`}
             />
             <span className={styles.sliderPctSuffix}>%</span>
           </div>
-          <span className={styles.sliderRowLabel} title={`${channelLabel} ${KO.competitorWeightApprox}`}>
-            {channelLabel} {KO.competitorWeightApprox}
+          <span className={styles.sliderRowLabel} title={`${comparisonLabel} ${KO.comparisonWeightApprox}`}>
+            {comparisonLabel} {KO.comparisonWeightApprox}
           </span>
         </div>
       </div>
@@ -162,7 +162,7 @@ export function SizeOrderCard({ sizeOrder, actions, help }: Props) : React.JSX.E
             </tr>
           </thead>
           <tbody>
-            <SizeOrderShareChartRow tableRef={tableRef} channelLabel={channelLabel} selfCompanyLabel={selfCompanyLabel} sizeRows={sizeRows} />
+            <SizeOrderShareChartRow tableRef={tableRef} comparisonLabel={comparisonLabel} selfCompanyLabel={selfCompanyLabel} sizeRows={sizeRows} />
             <tr data-chart-align-row="">
               <td>{KO.rowMetricAdjustReflectedSizeSharePct}</td>
               <td className={styles.num}>{formatSharePct(columnTotals.weightedPct)}</td>

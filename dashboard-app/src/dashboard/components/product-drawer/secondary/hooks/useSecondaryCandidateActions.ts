@@ -2,7 +2,7 @@ import type { CandidateItemDetail, CandidateStashSummary } from '../../../../../
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { dashboardApi } from '../../../../../api'
 import type { ToastContextValue } from '../../../../../components/AppToastContext'
-import type { OrderSnapshotDocumentV2 } from '../../../../../snapshot/orderSnapshotTypes'
+import type { OrderSnapshotDocument } from '../../../../../snapshot/orderSnapshotTypes'
 import type { CandidateStashPickerOption } from '../CandidateStashPickerModal'
 import type { CandidateItemPanelContext } from '../secondaryDrawerTypes'
 
@@ -40,7 +40,7 @@ export type Params = {
   candidateItemContext: CandidateItemPanelContext | null
   canBuildSnapshot?: boolean
   snapshotBlockReason?: string
-  buildSnapshot: () => OrderSnapshotDocumentV2
+  buildSnapshot: () => OrderSnapshotDocument
   showToast: ToastContextValue['showToast']
 }
 
@@ -54,13 +54,14 @@ const getFailureMessage: (actionLabel: string, error: unknown) => string = (acti
   return `${actionLabel}에 실패했습니다. 다시 시도해 주세요.`
 }
 
-const snapshotMutationInputKey: (snapshot: OrderSnapshotDocumentV2 | null) => string = (snapshot: OrderSnapshotDocumentV2 | null) : string => {
+const snapshotMutationInputKey: (snapshot: OrderSnapshotDocument | null) => string = (snapshot: OrderSnapshotDocument | null) : string => {
   if (snapshot == null) return 'null'
   return JSON.stringify({
     skuGroupKey: snapshot.skuGroupKey,
-    companyUuid: snapshot.companyUuid ?? '',
     context: snapshot.context,
-    competitorChannelId: snapshot.drawer2.competitorChannelId,
+    baseSubject: snapshot.drawer2.baseSubject,
+    comparisonSubject: snapshot.drawer2.comparisonSubject,
+    comparisonBasis: snapshot.drawer2.comparisonBasis,
     stockOrderRequest: snapshot.drawer2.stockOrderRequest,
     stockOrderResult: snapshot.drawer2.stockOrderResult ?? null,
     unitEconomics: snapshot.drawer2.unitEconomics,
@@ -103,7 +104,7 @@ export function useSecondaryCandidateActions({
   const [selectedCandidate, setSelectedCandidate]: [CandidateStashPickerOption | null, React.Dispatch<React.SetStateAction<CandidateStashPickerOption | null>>] = useState<CandidateStashPickerOption | null>(null)
   const [nameInput, setNameInput]: [string, React.Dispatch<React.SetStateAction<string>>] = useState('')
   const [noteInput, setNoteInput]: [string, React.Dispatch<React.SetStateAction<string>>] = useState('')
-  const currentMutationRef: React.RefObject<{ appendTarget: string; createTarget: string; itemTarget: string; canBuildSnapshot: boolean; buildSnapshot: () => OrderSnapshotDocumentV2; }> = useRef({
+  const currentMutationRef: React.RefObject<{ appendTarget: string; createTarget: string; itemTarget: string; canBuildSnapshot: boolean; buildSnapshot: () => OrderSnapshotDocument; }> = useRef({
     appendTarget: '',
     createTarget: '',
     itemTarget: '',
@@ -165,7 +166,7 @@ export function useSecondaryCandidateActions({
   }
 
   const currentTargetIdentity: (targetKind: CandidateActionGuardSnapshot['targetKind']) => string = (targetKind: CandidateActionGuardSnapshot['targetKind']) : string => {
-    const current: { appendTarget: string; createTarget: string; itemTarget: string; canBuildSnapshot: boolean; buildSnapshot: () => OrderSnapshotDocumentV2; } = currentMutationRef.current
+    const current: { appendTarget: string; createTarget: string; itemTarget: string; canBuildSnapshot: boolean; buildSnapshot: () => OrderSnapshotDocument; } = currentMutationRef.current
     if (targetKind === 'append') return current.appendTarget
     if (targetKind === 'create') return current.createTarget
     if (targetKind === 'item') return current.itemTarget
@@ -284,7 +285,7 @@ export function useSecondaryCandidateActions({
   const confirmOrder: () => Promise<boolean> = () : Promise<boolean> => {
     if (selectedCandidate == null) return Promise.resolve(false)
     if (!guardSnapshotMutation()) return Promise.resolve(false)
-    const details: OrderSnapshotDocumentV2 = buildSnapshot()
+    const details: OrderSnapshotDocument = buildSnapshot()
     return runMutation(
       '후보군 아이템 저장',
       'append',
@@ -300,8 +301,8 @@ export function useSecondaryCandidateActions({
     )
   }
 
-  const saveCandidateItemDetails: (details: OrderSnapshotDocumentV2 | null, actionLabel: string, onSaved: (updatedItem: Awaited<ReturnType<typeof dashboardApi.updateCandidateItem>>) => void) => Promise<boolean> = (
-    details: OrderSnapshotDocumentV2 | null,
+  const saveCandidateItemDetails: (details: OrderSnapshotDocument | null, actionLabel: string, onSaved: (updatedItem: Awaited<ReturnType<typeof dashboardApi.updateCandidateItem>>) => void) => Promise<boolean> = (
+    details: OrderSnapshotDocument | null,
     actionLabel: string,
     onSaved: (updatedItem: Awaited<ReturnType<typeof dashboardApi.updateCandidateItem>>) => void,
   ) : Promise<boolean> => {
@@ -323,7 +324,7 @@ export function useSecondaryCandidateActions({
   const confirmCandidateItem: () => Promise<boolean> = () : Promise<boolean> => {
     if (candidateItemContext == null) return Promise.resolve(false)
     if (!guardSnapshotMutation()) return Promise.resolve(false)
-    const snapshot: OrderSnapshotDocumentV2 = buildSnapshot()
+    const snapshot: OrderSnapshotDocument = buildSnapshot()
     return saveCandidateItemDetails(snapshot, hasSavedSnapshot ? '상세확정 갱신' : '상세확정', (updatedItem: CandidateItemDetail) : void => {
       candidateItemContext?.onConfirmed?.(snapshot, updatedItem)
       candidateItemContext?.onSaved?.()

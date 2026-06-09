@@ -20,9 +20,9 @@ const primary: ProductPrimarySummary = {
 
 const secondary: ProductSecondaryDetail = {
   skuGroupKey: 'B__010',
-  competitorPrice: 110,
-  competitorQty: 150,
-  competitorRatioBySize: { '250': 0.7 },
+  comparisonPrice: 110,
+  comparisonQty: 150,
+  comparisonRatioBySize: { '250': 0.7 },
   sizeRows: [
     { size: '250', selfRatio: 0.5, confirmedQty: 60, avgPrice: 100, qty: 100, availableStock: 40 },
     { size: '260', selfRatio: 0.5, confirmedQty: 60, avgPrice: 100, qty: 100, availableStock: 40 },
@@ -30,7 +30,7 @@ const secondary: ProductSecondaryDetail = {
 }
 const completeSecondary: ProductSecondaryDetail = {
   ...secondary,
-  competitorRatioBySize: { '250': 0.7, '260': 0.3 },
+  comparisonRatioBySize: { '250': 0.7, '260': 0.3 },
 }
 
 const channel: { id: string; label: string; priceSkew: number; qtySkew: number; } = {
@@ -45,14 +45,14 @@ describe('mergeSecondarySizeRows', () : void => {
     const rows: ProductSecondarySizeShareRow[] = mergeSecondarySizeRows(completeSecondary)
     expect(rows).toHaveLength(2)
     expect(rows[0]?.size).toBe('250')
-    expect(rows[0]?.competitorRatio).toBe(0.7)
+    expect(rows[0]?.comparisonRatio).toBe(0.7)
     expect(rows[1]?.size).toBe('260')
-    expect(rows[1]?.competitorRatio).toBe(0.3)
+    expect(rows[1]?.comparisonRatio).toBe(0.3)
   })
 
   it('throws instead of dropping rows when competitor ratio is missing', () : void => {
     expect(() : ProductSecondarySizeShareRow[] => mergeSecondarySizeRows(secondary)).toThrow(
-      'Missing competitorRatioBySize for size "260".',
+      'Missing comparisonRatioBySize for size "260".',
     )
   })
 })
@@ -75,7 +75,7 @@ describe('buildSalesKpiColumn', () : void => {
   it('builds competitor KPI with channel skew without forcing a minimum quantity', () : void => {
     const tinyQtySecondary: ProductSecondaryDetail = {
       ...secondary,
-      competitorQty: 0,
+      comparisonQty: 0,
     }
     const tinyChannel: { qtySkew: number; priceSkew: number; id: string; label: string; } = {
       ...channel,

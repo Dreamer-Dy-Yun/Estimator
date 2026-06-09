@@ -51,7 +51,7 @@ export const getCompetitorSales: (params?: CompetitorSalesParams) => Promise<Com
 export const getSelfSalesScatterGrid: (params?: SelfSalesGridParams) => Promise<ScatterSalesGridResponse> = dashboardRequests.getSelfSalesScatterGrid
 export const getCompetitorSalesScatterGrid: (params?: CompetitorSalesGridParams) => Promise<ScatterSalesGridResponse> = dashboardRequests.getCompetitorSalesScatterGrid
 export const getSalesFilterMeta: (params?: SalesFilterMetaParams) => Promise<SalesFilterMeta> = dashboardRequests.getSalesFilterMeta
-export const getProductDrawerBundle: (skuGroupKey: string, params?: ProductDrawerBundleParams) => Promise<ProductDrawerBundle> = dashboardRequests.getProductDrawerBundle
+export const getProductDrawerBundle: (skuGroupKey: string, params: ProductDrawerBundleParams) => Promise<ProductDrawerBundle> = dashboardRequests.getProductDrawerBundle
 export const getProductComparisonTargets: (params: ProductComparisonTargetParams) => Promise<ProductComparisonTarget[]> = dashboardRequests.getProductComparisonTargets
 export const getProductSalesInsight: (skuGroupKey: string, params: ProductSalesInsightParams) => Promise<ProductSalesInsight> = dashboardRequests.getProductSalesInsight
 export const getSecondaryCompetitorChannels: () => Promise<SecondaryCompetitorChannel[]> = dashboardRequests.getSecondaryCompetitorChannels

@@ -1,5 +1,5 @@
-import type { OrderSnapshotDocumentV2 } from '../../snapshot/orderSnapshotTypes'
-import type { CompanyScopeParams } from './company'
+import type { OrderSnapshotDocument } from '../../snapshot/orderSnapshotTypes'
+import type { ProductComparisonBaseSubjectRef, ProductComparisonComparisonSubjectRef } from './drawer'
 
 export interface SecondaryDailyTrendPoint {
   idx: number
@@ -8,20 +8,20 @@ export interface SecondaryDailyTrendPoint {
   sales: number
   stockBar: number
   inboundAccumBar: number
-  /** Self-channel daily sales quantity in EA. */
-  selfSales: number | null
-  /** Competitor-channel daily sales quantity in EA. */
-  competitorSales: number | null
+  /** Base subject daily sales quantity in EA. */
+  baseSales: number | null
+  /** Comparison subject daily sales quantity in EA. */
+  comparisonSales: number | null
   isForecast: boolean
 }
 
-export interface SecondaryDailyTrendParams extends CompanyScopeParams {
+export interface SecondaryDailyTrendParams {
   skuGroupKey: string
   startDate: string
   endDate: string
   forecastDays: number
-  /** Competitor channel used for the competitor daily-sales series. */
-  competitorChannelId: string
+  base: ProductComparisonBaseSubjectRef
+  comparison: ProductComparisonComparisonSubjectRef
 }
 
 export interface SecondaryCompetitorChannel {
@@ -29,15 +29,16 @@ export interface SecondaryCompetitorChannel {
   label: string
 }
 
-export interface SecondaryAiCommentParams extends CompanyScopeParams {
+export interface SecondaryAiCommentParams {
   skuGroupKey: string
   periodStart: string
   periodEnd: string
   forecastMonths: number
-  competitorChannelId: string
+  base: ProductComparisonBaseSubjectRef
+  comparison: ProductComparisonComparisonSubjectRef
   candidateItemUuid?: string | null
   /** Full secondary snapshot used by AI generation at click time when available. */
-  snapshotForAiComment?: OrderSnapshotDocumentV2
+  snapshotForAiComment?: OrderSnapshotDocument
 }
 
 export interface SecondaryAiCommentResult {
@@ -50,12 +51,15 @@ export interface SecondaryAiCommentResult {
  * Query options for `getProductSecondaryDetail`.
  * When a value changes the same SKU panel should request a fresh response.
  */
-export interface ProductSecondaryDetailParams extends CompanyScopeParams {
+export interface ProductSecondaryDetailParams {
+  base: ProductComparisonBaseSubjectRef
+  comparison: ProductComparisonComparisonSubjectRef
   minOpMarginPct?: number | null
 }
 
-export interface SecondaryStockOrderCalcParams extends CompanyScopeParams {
+export interface SecondaryStockOrderCalcParams {
   skuGroupKey: string
+  base: ProductComparisonBaseSubjectRef
   periodStart: string
   periodEnd: string
   forecastPeriodEnd?: string

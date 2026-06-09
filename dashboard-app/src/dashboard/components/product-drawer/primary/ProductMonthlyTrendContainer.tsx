@@ -34,7 +34,7 @@ export function ProductMonthlyTrendContainer({
     forecastComboOpen,
     monthlyTrendError,
     salesTrendVisible,
-    competitorTrendLabel,
+    comparisonTrendLabel,
     trendWindowData,
     salesTrendChartDense,
     salesTrendYMax,
@@ -48,15 +48,15 @@ export function ProductMonthlyTrendContainer({
     toggleSalesTrendSeries,
   }: ReturnType<typeof useProductMonthlyTrendModel> = useProductMonthlyTrendModel(modelProps)
   const { forecastMonths }: ProductMonthlyTrendModelArgs = modelProps
-  const seriesButtons: ({ key: 'self'; label: string; selectedClassName: string; } | { key: 'competitor'; label: string; selectedClassName: string; })[] = [
+  const seriesButtons: ({ key: 'self'; label: string; selectedClassName: string; } | { key: 'comparison'; label: string; selectedClassName: string; })[] = [
     {
       key: 'self' as const,
       label: selfCompanyLabel,
       selectedClassName: styles.trendSeriesButtonSelfSelected,
     },
     {
-      key: 'competitor' as const,
-      label: competitorTrendLabel,
+      key: 'comparison' as const,
+      label: comparisonTrendLabel,
       selectedClassName: styles.trendSeriesButtonCompetitorSelected,
     },
   ]
@@ -67,11 +67,11 @@ export function ProductMonthlyTrendContainer({
           { dataKey: 'forecastLink', stroke: '#2563eb', strokeDasharray: '4 4' },
         ]
       : []),
-    ...(salesTrendVisible.competitor ? [{ dataKey: 'competitorActual', stroke: '#e11d48' }] : []),
+    ...(salesTrendVisible.comparison ? [{ dataKey: 'comparisonActual', stroke: '#e11d48' }] : []),
   ]
   const tooltipNames: Record<string, string> = {
     actual: `${selfCompanyLabel} 실적`,
-    competitorActual: `${competitorTrendLabel} 판매`,
+    comparisonActual: `${comparisonTrendLabel} 판매`,
     forecastLink: `${selfCompanyLabel} 예측`,
   }
 
@@ -119,7 +119,7 @@ export function ProductMonthlyTrendContainer({
             </div>
           </div>
           <div className={styles.trendSeriesToggle} aria-label="판매추이 표시 항목">
-            {seriesButtons.map((button: { key: 'self'; label: string; selectedClassName: string; } | { key: 'competitor'; label: string; selectedClassName: string; }) : React.JSX.Element => (
+            {seriesButtons.map((button: { key: 'self'; label: string; selectedClassName: string; } | { key: 'comparison'; label: string; selectedClassName: string; }) : React.JSX.Element => (
               <button
                 key={button.key}
                 type="button"

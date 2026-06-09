@@ -21,12 +21,12 @@ export function clampWeightPct(value: number): number {
   return Math.max(0, Math.min(100, Math.round(value * 100) / 100))
 }
 
-export function getCompetitorWeightPct(selfWeightPct: number): number {
+export function getComparisonWeightPct(selfWeightPct: number): number {
   return clampWeightPct(100 - selfWeightPct)
 }
 
-export function getSelfWeightPctFromCompetitorInput(competitorWeightPct: number): number {
-  return clampWeightPct(100 - clampWeightPct(competitorWeightPct))
+export function getSelfWeightPctFromComparisonInput(comparisonWeightPct: number): number {
+  return clampWeightPct(100 - clampWeightPct(comparisonWeightPct))
 }
 
 export function parseSelfWeightPctInput(rawValue: string): number | null {
@@ -34,9 +34,9 @@ export function parseSelfWeightPctInput(rawValue: string): number | null {
   return next == null ? null : clampWeightPct(next)
 }
 
-export function parseSelfWeightPctFromCompetitorInput(rawValue: string): number | null {
+export function parseSelfWeightPctFromComparisonInput(rawValue: string): number | null {
   const next: number | null = parseFiniteNumberInput(rawValue)
-  return next == null ? null : getSelfWeightPctFromCompetitorInput(next)
+  return next == null ? null : getSelfWeightPctFromComparisonInput(next)
 }
 
 export function calculateSizeOrderColumnTotals(sizeRows: readonly SecondarySizeOrderDisplayRow[]): SizeOrderColumnTotals {

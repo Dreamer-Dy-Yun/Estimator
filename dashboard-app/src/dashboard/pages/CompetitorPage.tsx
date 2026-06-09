@@ -1,5 +1,5 @@
 import type { AnalysisScatterGridView } from '../hooks/useAnalysisScatterGridView'
-import type { ProductDrawerBundle, SelfSalesParams } from '../../api'
+import type { ProductComparisonBaseSubjectRef, ProductDrawerBundle, SelfSalesParams } from '../../api'
 import type { AdjacentDirection } from '../../utils/adjacentListNavigation'
 import type { AnalysisScatterTooltipProps } from '../components/AnalysisScatterTooltips'
 import type { DashboardRequestState } from '../hooks/useDashboardRequest'
@@ -85,7 +85,15 @@ export const CompetitorPage: () => React.JSX.Element = () : React.JSX.Element =>
     [analysisData.rowsReady, filteredRows],
   )
   const selection: { activeGridCell: ScatterGridCell | null; activeGridCellKey: string | null; selectedSkuGroupKey: string | null; activeSkuGroupKey: string | null; bulkSelectedSkuGroupKeys: Set<string>; visibleRows: CompetitorSalesRow[]; bulkSelectedCount: number; allVisibleRowsSelected: boolean; selectedSkuGroupKeys: string[]; setSelectedSkuGroupKey: (skuGroupKey: string | null) => void; onScatterCellClick: (cellKey: string) => void; clearActiveGridCell: () => void; toggleBulkRow: (id: string) => void; toggleAllVisibleRows: () => void; clearBulkSelection: () => void; onRequestNavigateAdjacent: (direction: AdjacentDirection) => void; onRequestFocusAdjacent: (currentSkuGroupKey: string | null, direction: AdjacentDirection) => void; onOrderedSkuGroupKeysChange: React.Dispatch<React.SetStateAction<string[]>>; } = useAnalysisPageSelection({ rows: filteredRows, scatterGrid, bulkAddOpen, resetKey: analysisRequestKey })
-  const summaryBundleState: { bundle: ProductDrawerBundle | null; loading: boolean; } = useProductDrawerBundleState(selection.selectedSkuGroupKey, { companyUuid: common.companyUuid })
+  const bundleBaseSubject: ProductComparisonBaseSubjectRef = useMemo(
+    () : ProductComparisonBaseSubjectRef => ({
+      role: 'base',
+      kind: 'self-company',
+      ...(common.companyUuid == null ? {} : { sourceId: common.companyUuid }),
+    }),
+    [common.companyUuid],
+  )
+  const summaryBundleState: { bundle: ProductDrawerBundle | null; loading: boolean; } = useProductDrawerBundleState(selection.selectedSkuGroupKey, { baseSubject: bundleBaseSubject })
 
   const competitorQueryFields: FilterField[] = useMemo<FilterField[]>(() : FilterField[] => [
     ...filters.queryFields,

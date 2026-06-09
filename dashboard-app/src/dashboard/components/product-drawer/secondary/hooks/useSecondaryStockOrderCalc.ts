@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { dashboardApi } from '../../../../../api'
-import type { SecondaryStockOrderCalcResult } from '../../../../../api/types'
+import type { ProductComparisonBaseSubjectRef, SecondaryStockOrderCalcResult } from '../../../../../api/types'
 import type { ApiUnitErrorInfo } from '../../../../../types'
 
 const STOCK_ORDER_CALC_DEBOUNCE_MS = 1000 as const
@@ -9,7 +9,7 @@ export type Params = {
   skuGroupKey: string
   periodStart: string
   periodEnd: string
-  companyUuid?: string
+  baseSubject: ProductComparisonBaseSubjectRef
   forecastMeanPeriodEnd: string
   leadTimeDays: number
   dailyMeanClient: number | null
@@ -25,7 +25,7 @@ export function useSecondaryStockOrderCalc({
   skuGroupKey,
   periodStart,
   periodEnd,
-  companyUuid,
+  baseSubject,
   forecastMeanPeriodEnd,
   leadTimeDays,
   dailyMeanClient,
@@ -33,14 +33,14 @@ export function useSecondaryStockOrderCalc({
 }: Params) : { forecastCalc: SecondaryStockOrderCalcResult | null; forecastCalcError: ApiUnitErrorInfo | null; forecastCalcLoading: boolean; } {
   const requestKey: string = useMemo(() : string => JSON.stringify({
     skuGroupKey,
-    companyUuid: companyUuid ?? '',
+    base: baseSubject,
     periodStart,
     periodEnd,
     forecastMeanPeriodEnd,
     leadTimeDays,
     dailyMeanClient,
   }), [
-    companyUuid,
+    baseSubject,
     dailyMeanClient,
     forecastMeanPeriodEnd,
     leadTimeDays,
@@ -64,9 +64,9 @@ export function useSecondaryStockOrderCalc({
     timerId = window.setTimeout(() : void => {
       void (async () : Promise<void> => {
         try {
-          const params: { dailyMean?: number | undefined; skuGroupKey: string; companyUuid: string | undefined; periodStart: string; periodEnd: string; forecastPeriodEnd: string; leadTimeDays: number; } = {
+          const params: { dailyMean?: number | undefined; skuGroupKey: string; base: ProductComparisonBaseSubjectRef; periodStart: string; periodEnd: string; forecastPeriodEnd: string; leadTimeDays: number; } = {
             skuGroupKey,
-            companyUuid,
+            base: baseSubject,
             periodStart,
             periodEnd,
             forecastPeriodEnd: forecastMeanPeriodEnd,
@@ -84,7 +84,7 @@ export function useSecondaryStockOrderCalc({
             makeApiErrorInfo(
               `getSecondaryStockOrderCalc(${JSON.stringify({
                 skuGroupKey,
-                companyUuid,
+                base: baseSubject,
                 periodStart,
                 periodEnd,
                 forecastPeriodEnd: forecastMeanPeriodEnd,
@@ -105,7 +105,7 @@ export function useSecondaryStockOrderCalc({
     }
   }, [
     dailyMeanClient,
-    companyUuid,
+    baseSubject,
     forecastMeanPeriodEnd,
     leadTimeDays,
     makeApiErrorInfo,

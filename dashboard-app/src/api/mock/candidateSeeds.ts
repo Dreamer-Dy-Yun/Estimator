@@ -1,4 +1,4 @@
-import type { OrderSnapshotDocumentV2 } from '../types'
+import type { OrderSnapshotDocument } from '../types'
 import { DEFAULT_CANDIDATE_STASH_CONTEXT, type CandidateItemRecord, type CandidateStashRecord } from './records'
 import {
   buildMockOrderSnapshotForCandidate,
@@ -15,7 +15,7 @@ const skuGroupKey: (legacyId: string) => string = (legacyId: string) : string =>
   return key
 }
 
-const seedSnapshot: (legacyId: string, companyUuid: string) => OrderSnapshotDocumentV2 | null = (legacyId: string, companyUuid: string) : OrderSnapshotDocumentV2 | null => {
+const seedSnapshot: (legacyId: string, companyUuid: string) => OrderSnapshotDocument | null = (legacyId: string, companyUuid: string) : OrderSnapshotDocument | null => {
   const key: string = skuGroupKey(legacyId)
   return productSecondaryBySkuGroupKey[key] ? buildMockOrderSnapshotForCandidate(key, { companyUuid }) : null
 }
@@ -85,7 +85,7 @@ const seededCandidateItemDrafts: Array<Omit<CandidateItemRecord, 'isLatestLlmCom
       ['013', 'TEST_SHOE', '09:28:00.000Z', '09:28:30.000Z'],
       ['014', 'TEST_TOP', '09:29:00.000Z', '09:29:30.000Z'],
     ] as const
-  ).map(([suffix, pid, created, updated]: readonly ['005', 'D', '09:12:00.000Z', '09:13:00.000Z'] | readonly ['006', 'H', '09:14:00.000Z', '09:15:30.000Z'] | readonly ['007', 'J', '09:16:00.000Z', '09:16:00.000Z'] | readonly ['008', 'F', '09:18:00.000Z', '09:19:00.000Z'] | readonly ['009', 'K', '09:20:00.000Z', '09:21:00.000Z'] | readonly ['010', 'L', '09:22:00.000Z', '09:22:00.000Z'] | readonly ['011', 'M', '09:24:00.000Z', '09:25:10.000Z'] | readonly ['012', 'B', '09:26:00.000Z', '09:27:00.000Z'] | readonly ['013', 'TEST_SHOE', '09:28:00.000Z', '09:28:30.000Z'] | readonly ['014', 'TEST_TOP', '09:29:00.000Z', '09:29:30.000Z']) : { uuid: string; stashUuid: string; skuGroupKey: string; details: OrderSnapshotDocumentV2 | null; dbCreatedAt: string; dbUpdatedAt: string; } => ({
+  ).map(([suffix, pid, created, updated]: readonly ['005', 'D', '09:12:00.000Z', '09:13:00.000Z'] | readonly ['006', 'H', '09:14:00.000Z', '09:15:30.000Z'] | readonly ['007', 'J', '09:16:00.000Z', '09:16:00.000Z'] | readonly ['008', 'F', '09:18:00.000Z', '09:19:00.000Z'] | readonly ['009', 'K', '09:20:00.000Z', '09:21:00.000Z'] | readonly ['010', 'L', '09:22:00.000Z', '09:22:00.000Z'] | readonly ['011', 'M', '09:24:00.000Z', '09:25:10.000Z'] | readonly ['012', 'B', '09:26:00.000Z', '09:27:00.000Z'] | readonly ['013', 'TEST_SHOE', '09:28:00.000Z', '09:28:30.000Z'] | readonly ['014', 'TEST_TOP', '09:29:00.000Z', '09:29:30.000Z']) : { uuid: string; stashUuid: string; skuGroupKey: string; details: OrderSnapshotDocument | null; dbCreatedAt: string; dbUpdatedAt: string; } => ({
     uuid: `candidateitem000000000000000000${suffix}`,
     stashUuid: 'candidatestash00000000000000000001',
     skuGroupKey: skuGroupKey(pid),
@@ -109,7 +109,7 @@ const seededCandidateItemDrafts: Array<Omit<CandidateItemRecord, 'isLatestLlmCom
       ['innerstash02item0000000000000003', 'J', '10:41:15.000Z', '10:41:15.000Z'],
       ['innerstash02item0000000000000004', 'N', '10:41:20.000Z', '10:41:20.000Z'],
     ] as const
-  ).map(([uuid, pid, created, updated]: readonly ['innerstash02item0000000000000001', 'D', '10:41:05.000Z', '10:41:05.000Z'] | readonly ['innerstash02item0000000000000002', 'H', '10:41:10.000Z', '10:41:10.000Z'] | readonly ['innerstash02item0000000000000003', 'J', '10:41:15.000Z', '10:41:15.000Z'] | readonly ['innerstash02item0000000000000004', 'N', '10:41:20.000Z', '10:41:20.000Z']) : { uuid: 'innerstash02item0000000000000001' | 'innerstash02item0000000000000002' | 'innerstash02item0000000000000003' | 'innerstash02item0000000000000004'; stashUuid: string; skuGroupKey: string; details: OrderSnapshotDocumentV2 | null; dbCreatedAt: string; dbUpdatedAt: string; } => ({
+  ).map(([uuid, pid, created, updated]: readonly ['innerstash02item0000000000000001', 'D', '10:41:05.000Z', '10:41:05.000Z'] | readonly ['innerstash02item0000000000000002', 'H', '10:41:10.000Z', '10:41:10.000Z'] | readonly ['innerstash02item0000000000000003', 'J', '10:41:15.000Z', '10:41:15.000Z'] | readonly ['innerstash02item0000000000000004', 'N', '10:41:20.000Z', '10:41:20.000Z']) : { uuid: 'innerstash02item0000000000000001' | 'innerstash02item0000000000000002' | 'innerstash02item0000000000000003' | 'innerstash02item0000000000000004'; stashUuid: string; skuGroupKey: string; details: OrderSnapshotDocument | null; dbCreatedAt: string; dbUpdatedAt: string; } => ({
     uuid,
     stashUuid: 'candidatestash00000000000000000002',
     skuGroupKey: skuGroupKey(pid),
@@ -134,7 +134,7 @@ const seededCandidateItemDrafts: Array<Omit<CandidateItemRecord, 'isLatestLlmCom
     dbUpdatedAt: '2026-04-20T11:30:00.000Z',
   },
 ]
-export const seededCandidateItems: CandidateItemRecord[] = seededCandidateItemDrafts.map((item: Omit<CandidateItemRecord, 'isLatestLlmComment' | 'skuUuid'>) : { skuUuid: string; details: OrderSnapshotDocumentV2 | null; isLatestLlmComment: true; uuid: string; dbUpdatedAt: string; skuGroupKey: string; stashUuid: string; dbCreatedAt: string; } => ({
+export const seededCandidateItems: CandidateItemRecord[] = seededCandidateItemDrafts.map((item: Omit<CandidateItemRecord, 'isLatestLlmComment' | 'skuUuid'>) : { skuUuid: string; details: OrderSnapshotDocument | null; isLatestLlmComment: true; uuid: string; dbUpdatedAt: string; skuGroupKey: string; stashUuid: string; dbCreatedAt: string; } => ({
   ...item,
   skuUuid: item.skuGroupKey,
   details: item.details ? ensureMockAiCommentForSnapshot(item.details) : null,

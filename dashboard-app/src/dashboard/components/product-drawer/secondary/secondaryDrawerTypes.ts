@@ -1,5 +1,5 @@
 import type { CandidateItemDetail } from '../../../../api'
-import type { OrderSnapshotDocumentV2 } from '../../../../snapshot/orderSnapshotTypes'
+import type { OrderSnapshotDocument } from '../../../../snapshot/orderSnapshotTypes'
 
 export type SecondaryHelpId =
   | 'confirmOrder'
@@ -17,12 +17,12 @@ export type CandidateItemPanelContext = {
   stashNote: string | null
   itemUuid: string
   isDetailConfirmed: boolean
-  confirmedSnapshot?: OrderSnapshotDocumentV2 | null
+  confirmedSnapshot?: OrderSnapshotDocument | null
   hydrateSnapshotSource?: 'confirmed' | 'live' | null
-  onDraftChange?: (snapshot: OrderSnapshotDocumentV2, source: 'confirmed' | 'live') => void
+  onDraftChange?: (snapshot: OrderSnapshotDocument, source: 'confirmed' | 'live') => void
   onResetDraft?: () => void
   onRestoreConfirmed?: () => void
-  onConfirmed?: (snapshot: OrderSnapshotDocumentV2, updatedItem: CandidateItemDetail) => void
+  onConfirmed?: (snapshot: OrderSnapshotDocument, updatedItem: CandidateItemDetail) => void
   onUnconfirmed?: (updatedItem: CandidateItemDetail) => void
   onSaved?: () => void
   onRequestDeleteItem: () => void

@@ -41,6 +41,19 @@ export {
   normalizeCompanyScopeParams,
 } from './company'
 export type { CompanyApi, CompanyMutationScopeParams, CompanyScopeParams, CompanySummary } from './company'
+export { getComparisonSubjectKey, getComparisonSubjectSourceIdForContract } from './subject'
+export type {
+  ComparisonBaseSubject,
+  ComparisonBaseSubjectRef,
+  ComparisonComparisonSubject,
+  ComparisonComparisonSubjectRef,
+  ComparisonSubject,
+  ComparisonSubjectKind,
+  ComparisonSubjectRef,
+  ComparisonSubjectRole,
+  ComparisonTarget,
+  ComparisonTargetKind,
+} from './subject'
 export type {
   CompetitorSalesGridParams,
   CompetitorSalesParams,
@@ -137,4 +150,4 @@ export type {
 } from './inventory-arrival'
 
 export type { MonthlySalesPoint, ProductPrimarySummary, ProductSecondaryDetail } from '../../types'
-export type { OrderSnapshotDocumentV2 } from '../../snapshot/orderSnapshotTypes'
+export type { OrderSnapshotDocument } from '../../snapshot/orderSnapshotTypes'

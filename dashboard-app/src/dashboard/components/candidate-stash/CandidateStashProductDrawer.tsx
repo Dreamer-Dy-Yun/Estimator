@@ -2,7 +2,7 @@ import type { DrawerSnapshotSource } from './useCandidateStashItemDrawer'
 import type { CandidateItemSummary } from '../../../api'
 import { useMemo } from 'react'
 import type { CandidateItemDetail } from '../../../api'
-import type { OrderSnapshotDocumentV2 } from '../../../snapshot/orderSnapshotTypes'
+import type { OrderSnapshotDocument } from '../../../snapshot/orderSnapshotTypes'
 import { useSelfCompanyLabel } from '../../hooks/useSelfCompanyLabel'
 import { ProductDrawer } from '../product-drawer/ProductDrawer'
 import type { CandidateStashDetailModalModel } from './useCandidateStashDetailModal'
@@ -19,7 +19,7 @@ export type DrawerPeriod = {
 
 function resolveCandidateDrawerPeriod(
   model: CandidateStashDetailModalModel,
-  confirmedContext: OrderSnapshotDocumentV2['context'] | null,
+  confirmedContext: OrderSnapshotDocument['context'] | null,
 ): DrawerPeriod | null {
   if (confirmedContext != null) {
     return {
@@ -44,7 +44,7 @@ export function CandidateStashProductDrawer({ model, bulkDeleteOpen }: Props) : 
     ? model.confirmedHydrateSnap?.context ?? model.hydrateSnap?.context ?? null
     : null
   const drawerPeriod: DrawerPeriod | null = resolveCandidateDrawerPeriod(model, confirmedHydrateContext)
-  const candidateItemContext: { stashName: string; stashNote: string | null; itemUuid: string; isDetailConfirmed: boolean; confirmedSnapshot: OrderSnapshotDocumentV2 | null; hydrateSnapshotSource: DrawerSnapshotSource | null; onDraftChange: (snapshot: OrderSnapshotDocumentV2, source: 'confirmed' | 'live') => void; onResetDraft: () => void; onRestoreConfirmed: () => void; onConfirmed: (snapshot: OrderSnapshotDocumentV2, updatedItem: CandidateItemDetail) => void; onUnconfirmed: (updatedItem: CandidateItemDetail) => void; onSaved: () => void; onRequestDeleteItem: () => void; } | null = useMemo(() : { stashName: string; stashNote: string | null; itemUuid: string; isDetailConfirmed: boolean; confirmedSnapshot: OrderSnapshotDocumentV2 | null; hydrateSnapshotSource: DrawerSnapshotSource | null; onDraftChange: (snapshot: OrderSnapshotDocumentV2, source: 'confirmed' | 'live') => void; onResetDraft: () => void; onRestoreConfirmed: () => void; onConfirmed: (snapshot: OrderSnapshotDocumentV2, updatedItem: CandidateItemDetail) => void; onUnconfirmed: (updatedItem: CandidateItemDetail) => void; onSaved: () => void; onRequestDeleteItem: () => void; } | null => {
+  const candidateItemContext: { stashName: string; stashNote: string | null; itemUuid: string; isDetailConfirmed: boolean; confirmedSnapshot: OrderSnapshotDocument | null; hydrateSnapshotSource: DrawerSnapshotSource | null; onDraftChange: (snapshot: OrderSnapshotDocument, source: 'confirmed' | 'live') => void; onResetDraft: () => void; onRestoreConfirmed: () => void; onConfirmed: (snapshot: OrderSnapshotDocument, updatedItem: CandidateItemDetail) => void; onUnconfirmed: (updatedItem: CandidateItemDetail) => void; onSaved: () => void; onRequestDeleteItem: () => void; } | null = useMemo(() : { stashName: string; stashNote: string | null; itemUuid: string; isDetailConfirmed: boolean; confirmedSnapshot: OrderSnapshotDocument | null; hydrateSnapshotSource: DrawerSnapshotSource | null; onDraftChange: (snapshot: OrderSnapshotDocument, source: 'confirmed' | 'live') => void; onResetDraft: () => void; onRestoreConfirmed: () => void; onConfirmed: (snapshot: OrderSnapshotDocument, updatedItem: CandidateItemDetail) => void; onUnconfirmed: (updatedItem: CandidateItemDetail) => void; onSaved: () => void; onRequestDeleteItem: () => void; } | null => {
     if (!model.detailTarget || !model.openedItemUuid || !openedItem) return null
     const itemUuid: string = model.openedItemUuid
     return {
@@ -54,12 +54,12 @@ export function CandidateStashProductDrawer({ model, bulkDeleteOpen }: Props) : 
       isDetailConfirmed: openedItem.isDetailConfirmed,
       confirmedSnapshot: model.confirmedHydrateSnap,
       hydrateSnapshotSource: model.hydrateSnapSource,
-      onDraftChange: (snapshot: OrderSnapshotDocumentV2, source: 'confirmed' | 'live') : void => (
+      onDraftChange: (snapshot: OrderSnapshotDocument, source: 'confirmed' | 'live') : void => (
         model.saveDrawerDraftSnapshot(itemUuid, snapshot, source)
       ),
       onResetDraft: () : void => model.clearDrawerDraftSnapshot(itemUuid),
       onRestoreConfirmed: () : void => model.restoreDrawerConfirmedSnapshot(itemUuid),
-      onConfirmed: (snapshot: OrderSnapshotDocumentV2, updatedItem: CandidateItemDetail) : void => (
+      onConfirmed: (snapshot: OrderSnapshotDocument, updatedItem: CandidateItemDetail) : void => (
         model.markDrawerSnapshotConfirmed(itemUuid, snapshot, updatedItem)
       ),
       onUnconfirmed: (updatedItem: CandidateItemDetail) : void => model.markDrawerSnapshotUnconfirmed(itemUuid, updatedItem),

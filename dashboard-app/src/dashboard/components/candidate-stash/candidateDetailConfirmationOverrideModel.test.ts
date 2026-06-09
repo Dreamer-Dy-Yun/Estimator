@@ -1,14 +1,14 @@
 import type { CandidateDetailConfirmationOverrideResult } from './candidateDetailConfirmationOverrideModel'
 import { describe, expect, it } from 'vitest'
 import type { CandidateItemSummary } from '../../../api'
-import type { OrderSnapshotDocumentV2 } from '../../../snapshot/orderSnapshotTypes'
+import type { OrderSnapshotDocument } from '../../../snapshot/orderSnapshotTypes'
 import {
   applyCandidateDetailConfirmationOverrides,
   createCandidateDetailConfirmationOverride,
   type CandidateDetailConfirmationOverrideMap,
 } from './candidateDetailConfirmationOverrideModel'
 
-const snapshot: OrderSnapshotDocumentV2 = {} as OrderSnapshotDocumentV2
+const snapshot: OrderSnapshotDocument = {} as OrderSnapshotDocument
 
 function item(
   uuid: string,

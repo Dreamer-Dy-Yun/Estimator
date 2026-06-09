@@ -1,12 +1,11 @@
 import type { CandidateStashSummary, SecondaryStockOrderCalcResult } from '../../../../api'
-import type { OrderSnapshotDocumentV2, ProductSalesInsightColumn, SecondaryDailyTrendPoint } from '../../../../api/types'
+import type { OrderSnapshotDocument, ProductSalesInsightColumn, SecondaryDailyTrendPoint } from '../../../../api/types'
 import type { SecondaryStockOrderDisplaySizeRow } from '../../../../api/types/secondary'
 import type { CandidateStashPickerOption } from './CandidateStashPickerModal'
 import type { SecondarySizeOrderDisplayRow } from './model/secondarySizeOrderRows'
 import { BlockMath } from 'react-katex'
-import type { SecondaryCompetitorChannel } from '../../../../api'
 import { ComponentErrorBoundary } from '../../../../components/ComponentErrorBoundary'
-import type { OrderSnapshotAiCommentV2 } from '../../../../snapshot/orderSnapshotTypes'
+import type { OrderSnapshotAiComment } from '../../../../snapshot/orderSnapshotTypes'
 import type { ApiUnitErrorInfo, ProductPrimarySummary } from '../../../../types'
 import { PortalHelpPopoverLayer } from '../../PortalHelpPopover'
 import commonStyles from '../../common.module.css'
@@ -30,14 +29,14 @@ import type { useSecondaryForecastModel } from './hooks/useSecondaryForecastMode
 export type Props = {
   pageName: string
   primary: ProductPrimarySummary
-  channel: SecondaryCompetitorChannel
+  comparisonLabel: string
   candidateItemContext: CandidateItemPanelContext | null
   hasSavedSnapshot: boolean
   showingConfirmedValues: boolean
   onResetToLive: () => void
   onRestoreConfirmed: () => void
   model: ReturnType<typeof useSecondaryForecastModel>
-  aiComment: OrderSnapshotAiCommentV2
+  aiComment: OrderSnapshotAiComment
   aiCommentLoading: boolean
   aiCommentError: ApiUnitErrorInfo | null
   onRequestAiComment: () => void
@@ -52,7 +51,7 @@ export type Props = {
 export function ProductSecondaryDrawerContent({
   pageName,
   primary,
-  channel,
+  comparisonLabel,
   candidateItemContext,
   hasSavedSnapshot,
   showingConfirmedValues,
@@ -85,7 +84,7 @@ export function ProductSecondaryDrawerContent({
     dailyTrendSizeOptions,
     candidateActions,
     handleConfirmQtyChange,
-  }: { stockOrderDisplay: { currentStockQtyTotal: number; totalOrderBalanceTotal: number; expectedInboundOrderBalanceTotal: number; sizeRows: SecondaryStockOrderDisplaySizeRow[]; } | null; stockOrderCalculationReady: boolean; guardStockOrderCalculation: () => boolean; candidateActions: { loading: boolean; listOpen: boolean; stashes: CandidateStashPickerOption[]; selectedCandidate: CandidateStashPickerOption | null; companyScopeBlocked: boolean; companyScopeBlockReason: string; nameInput: string; noteInput: string; setNameInput: React.Dispatch<React.SetStateAction<string>>; setNoteInput: React.Dispatch<React.SetStateAction<string>>; setListOpen: React.Dispatch<React.SetStateAction<boolean>>; createCandidate: () => Promise<boolean>; confirmOrder: () => Promise<boolean>; refresh: () => Promise<CandidateStashSummary[] | null>; openPicker: () => Promise<void>; confirmCandidateItem: () => Promise<boolean>; unconfirmCandidateItem: () => Promise<boolean>; selectCandidate: (row: CandidateStashPickerOption) => void; }; buildSnapshot: () => OrderSnapshotDocumentV2; handleConfirmQtyChange: (size: string, next: number, recommendedQty: number) => void; stockOrderDisplayInputs: { trendDailyMean: null; dailyMean: null; sigma: null; } | { trendDailyMean: number; dailyMean: number; sigma: number; }; sizeRows: SecondarySizeOrderDisplayRow[]; manualConfirmDerived: Record<string, true>; dailyTrendSizeOptions: { id: string; label: string; share: number; }[]; dailyTrend: { dailyTrendSeries: SecondaryDailyTrendPoint[]; dailyTrendLoading: boolean; dailyTrendError: ApiUnitErrorInfo | null; dailyPeriodShade: { x1: number; x2: number; }; dailyForecastShade: { x1: number; x2: number; } | null; dailyTickIndices: number[]; }; forecastCalc: SecondaryStockOrderCalcResult | null; forecastCalcError: ApiUnitErrorInfo | null; forecastCalcLoading: boolean; selfCol: ProductSalesInsightColumn | null; compCol: ProductSalesInsightColumn | null; salesInsightError: ApiUnitErrorInfo | null; salesInsightLoading: boolean; selectedStart: string; selectedEnd: string; } = model
+  }: { stockOrderDisplay: { currentStockQtyTotal: number; totalOrderBalanceTotal: number; expectedInboundOrderBalanceTotal: number; sizeRows: SecondaryStockOrderDisplaySizeRow[]; } | null; stockOrderCalculationReady: boolean; guardStockOrderCalculation: () => boolean; candidateActions: { loading: boolean; listOpen: boolean; stashes: CandidateStashPickerOption[]; selectedCandidate: CandidateStashPickerOption | null; companyScopeBlocked: boolean; companyScopeBlockReason: string; nameInput: string; noteInput: string; setNameInput: React.Dispatch<React.SetStateAction<string>>; setNoteInput: React.Dispatch<React.SetStateAction<string>>; setListOpen: React.Dispatch<React.SetStateAction<boolean>>; createCandidate: () => Promise<boolean>; confirmOrder: () => Promise<boolean>; refresh: () => Promise<CandidateStashSummary[] | null>; openPicker: () => Promise<void>; confirmCandidateItem: () => Promise<boolean>; unconfirmCandidateItem: () => Promise<boolean>; selectCandidate: (row: CandidateStashPickerOption) => void; }; buildSnapshot: () => OrderSnapshotDocument; handleConfirmQtyChange: (size: string, next: number, recommendedQty: number) => void; stockOrderDisplayInputs: { trendDailyMean: null; dailyMean: null; sigma: null; } | { trendDailyMean: number; dailyMean: number; sigma: number; }; sizeRows: SecondarySizeOrderDisplayRow[]; manualConfirmDerived: Record<string, true>; dailyTrendSizeOptions: { id: string; label: string; share: number; }[]; dailyTrend: { dailyTrendSeries: SecondaryDailyTrendPoint[]; dailyTrendLoading: boolean; dailyTrendError: ApiUnitErrorInfo | null; dailyPeriodShade: { x1: number; x2: number; }; dailyForecastShade: { x1: number; x2: number; } | null; dailyTickIndices: number[]; }; forecastCalc: SecondaryStockOrderCalcResult | null; forecastCalcError: ApiUnitErrorInfo | null; forecastCalcLoading: boolean; selfCol: ProductSalesInsightColumn | null; compCol: ProductSalesInsightColumn | null; salesInsightError: ApiUnitErrorInfo | null; salesInsightLoading: boolean; selectedStart: string; selectedEnd: string; } = model
   const recommendedQtyTotal: number = sizeRows.reduce((acc: number, r: SecondarySizeOrderDisplayRow) : number => acc + Math.max(0, Math.round(r.recommendedQty)), 0)
   const confirmedQtyTotal: number = sizeRows.reduce((acc: number, r: SecondarySizeOrderDisplayRow) : number => acc + Math.max(0, Math.round(r.confirmQty)), 0)
   const { unitCost, unitPrice, expectedFeeRatePct }: SalesForecastOrderInputFields = orderInputFields
@@ -155,7 +154,7 @@ export function ProductSecondaryDrawerContent({
         <SalesTrendDailyCard
           skuGroupKey={primary.skuGroupKey}
           selfCompanyLabel={selfCompanyLabel}
-          competitorChannelLabel={channel.label}
+          comparisonLabel={comparisonLabel}
           sizeOptions={dailyTrendSizeOptions}
           trend={{
             series: dailyTrend.dailyTrendSeries,
@@ -170,7 +169,7 @@ export function ProductSecondaryDrawerContent({
       <ComponentErrorBoundary page={pageName} unit="SizeOrderCard">
         <SizeOrderCard
           sizeOrder={{
-            channelLabel: channel.label,
+            comparisonLabel,
             selfCompanyLabel,
             selfWeightPct,
             sizeRows,

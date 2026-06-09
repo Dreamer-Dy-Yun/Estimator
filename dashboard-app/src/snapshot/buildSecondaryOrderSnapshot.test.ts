@@ -1,4 +1,4 @@
-import type { OrderSnapshotDocumentV2 } from '../api/types'
+import type { OrderSnapshotDocument } from '../api/types'
 import { describe, expect, it } from 'vitest'
 import { buildMockOrderSnapshotForCandidate } from '../api/mock/orderSnapshotForCandidate'
 import { productPrimaryBySkuGroupKey, productSecondaryBySkuGroupKey } from '../api/mock/productCatalog'
@@ -24,24 +24,24 @@ function createBuildParams(overrides: Partial<BuildSnapshotParams> = {}): BuildS
     forecastMonths: validSnapshot.context.forecastMonths,
     selectedStart: validSnapshot.context.dailyTrendStartMonth,
     leadTimeDays: validSnapshot.context.dailyTrendLeadTimeDays,
-    competitorChannelId: validSnapshot.drawer2.competitorChannelId,
-    competitorChannelLabel: validSnapshot.drawer2.competitorChannelLabel,
+    baseSubject: validSnapshot.drawer2.baseSubject,
+    comparisonSubject: validSnapshot.drawer2.comparisonSubject,
     stockOrderRequest: validSnapshot.drawer2.stockOrderRequest,
     stockOrderResult: null,
     selfWeightPct: validSnapshot.drawer2.selfWeightPct,
     bufferStock: validSnapshot.drawer2.bufferStock,
     aiComment: validSnapshot.drawer2.aiComment,
-    unitPrice: validSnapshot.drawer2.unitEconomics.unitPrice,
-    unitCost: validSnapshot.drawer2.unitEconomics.unitCost,
-    expectedFeeRatePct: validSnapshot.drawer2.unitEconomics.expectedFeeRatePct,
-    sizeRows: validSnapshot.drawer2.sizeOrders.map((row: { readonly size: '250'; readonly selfSharePct: 40; readonly competitorSharePct: 60; readonly blendedSharePct: 50; readonly forecastQty: 10; readonly recommendedQty: 12; readonly confirmQty: 12; }) : { size: '250'; selfSharePct: 40; competitorSharePct: 60; blendedSharePct: 50; forecastQty: 10; recommendedQty: 12; confirmQty: 12; } => ({ ...row })),
+    unitPrice: validSnapshot.drawer2.unitEconomics!.unitPrice,
+    unitCost: validSnapshot.drawer2.unitEconomics!.unitCost,
+    expectedFeeRatePct: validSnapshot.drawer2.unitEconomics!.expectedFeeRatePct,
+    sizeRows: validSnapshot.drawer2.sizeOrders.map((row: BuildSnapshotParams['sizeRows'][number]) : BuildSnapshotParams['sizeRows'][number] => ({ ...row })),
     ...overrides,
   }
 }
 
 describe('buildSecondaryOrderSnapshot', () : void => {
   it('emits only current snapshot fields from the secondary snapshot builder', () : void => {
-    const snapshot: OrderSnapshotDocumentV2 = buildSecondaryOrderSnapshot(createBuildParams({
+    const snapshot: OrderSnapshotDocument = buildSecondaryOrderSnapshot(createBuildParams({
       primary: {
         ...validSnapshot.drawer1.summary,
         unknownPrimaryField: 'drop',
@@ -62,23 +62,28 @@ describe('buildSecondaryOrderSnapshot', () : void => {
     expect(snapshot.drawer2).not.toHaveProperty('stockOrderResult')
   })
 
-  it('emits top-level companyUuid from the secondary snapshot builder when provided', () : void => {
-    const snapshot: OrderSnapshotDocumentV2 = buildSecondaryOrderSnapshot(createBuildParams({
-      companyUuid: 'company-uuid-001',
-    }))
+  it('stores comparison subjects without top-level companyUuid', () : void => {
+    const snapshot: OrderSnapshotDocument = buildSecondaryOrderSnapshot(createBuildParams())
 
-    expect(snapshot.companyUuid).toBe('company-uuid-001')
+    expect(snapshot).not.toHaveProperty('companyUuid')
+    expect(snapshot.drawer2.baseSubject).toEqual(validSnapshot.drawer2.baseSubject)
+    expect(snapshot.drawer2.comparisonSubject).toEqual(validSnapshot.drawer2.comparisonSubject)
   })
 
-  it('throws instead of converting empty companyUuid to an unscoped snapshot', () : void => {
-    expect(() : OrderSnapshotDocumentV2 => buildSecondaryOrderSnapshot(createBuildParams({
-      companyUuid: '',
-    }))).toThrow(/companyUuid/)
+  it('throws when competitor comparison subject has no sourceId', () : void => {
+    expect(() : OrderSnapshotDocument => buildSecondaryOrderSnapshot(createBuildParams({
+      comparisonSubject: {
+        role: 'comparison',
+        kind: 'competitor-channel',
+        id: 'comparison:competitor-channel:missing',
+        label: 'Missing',
+      } as unknown as BuildSnapshotParams['comparisonSubject'],
+    }))).toThrow(/comparisonSubject.sourceId/)
   })
 
   it('builds confirmedTotals from current sizeOrders confirmQty', () : void => {
-    const snapshot: OrderSnapshotDocumentV2 = buildSecondaryOrderSnapshot(createBuildParams({
-      sizeRows: validSnapshot.drawer2.sizeOrders.map((row: { readonly size: '250'; readonly selfSharePct: 40; readonly competitorSharePct: 60; readonly blendedSharePct: 50; readonly forecastQty: 10; readonly recommendedQty: 12; readonly confirmQty: 12; }) : { confirmQty: number; size: '250'; selfSharePct: 40; competitorSharePct: 60; blendedSharePct: 50; forecastQty: 10; recommendedQty: 12; } => ({ ...row, confirmQty: 1.5 })),
+    const snapshot: OrderSnapshotDocument = buildSecondaryOrderSnapshot(createBuildParams({
+      sizeRows: validSnapshot.drawer2.sizeOrders.map((row: BuildSnapshotParams['sizeRows'][number]) : BuildSnapshotParams['sizeRows'][number] => ({ ...row, confirmQty: 1.5 })),
     }))
 
     expect(snapshot.drawer2.confirmedTotals?.orderQty).toBe(1.5)
@@ -94,7 +99,7 @@ describe('buildMockOrderSnapshotForCandidate', () : void => {
     )
     if (!skuGroupKey) throw new Error('No shared mock product key found')
 
-    const snapshot: OrderSnapshotDocumentV2 = buildMockOrderSnapshotForCandidate(skuGroupKey)
+    const snapshot: OrderSnapshotDocument = buildMockOrderSnapshotForCandidate(skuGroupKey)
 
     expect(sortedKeys(snapshot.drawer1.summary)).toEqual(currentPrimarySummaryKeys)
     expect(sortedKeys(snapshot.drawer2)).toEqual(currentCandidateMockDrawer2Keys)
@@ -103,17 +108,18 @@ describe('buildMockOrderSnapshotForCandidate', () : void => {
     )
   })
 
-  it('emits top-level companyUuid from the candidate mock snapshot builder when provided', () : void => {
+  it('stores company scope as baseSubject sourceId from the candidate mock snapshot builder when provided', () : void => {
     const secondaryLookup: Record<string, unknown> = productSecondaryBySkuGroupKey as Record<string, unknown>
     const skuGroupKey: string | undefined = Object.keys(productPrimaryBySkuGroupKey).find(
       (key: string) : boolean => secondaryLookup[key] != null,
     )
     if (!skuGroupKey) throw new Error('No shared mock product key found')
 
-    const snapshot: OrderSnapshotDocumentV2 = buildMockOrderSnapshotForCandidate(skuGroupKey, {
+    const snapshot: OrderSnapshotDocument = buildMockOrderSnapshotForCandidate(skuGroupKey, {
       companyUuid: 'company-uuid-001',
     })
 
-    expect(snapshot.companyUuid).toBe('company-uuid-001')
+    expect(snapshot).not.toHaveProperty('companyUuid')
+    expect(snapshot.drawer2.baseSubject.sourceId).toBe('company-uuid-001')
   })
 })

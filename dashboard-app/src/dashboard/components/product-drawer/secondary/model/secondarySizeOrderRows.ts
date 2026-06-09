@@ -5,8 +5,8 @@ import type { SecondaryOrderDraft } from './SecondaryOrderDraft'
 
 export type SecondarySizeShare = {
   size: string
-  selfSharePct: number
-  competitorSharePct: number
+  baseSharePct: number
+  comparisonSharePct: number
   blendedSharePct: number
   avgPrice: number
 }
@@ -41,25 +41,25 @@ export function buildSecondarySizeShares(
 ): SecondarySizeShare[] {
   const mix: ProductSecondarySizeShareRow[] = mergeSecondarySizeRows(secondary)
   const selfRatioSum: number = mix.reduce((acc: number, row: ProductSecondarySizeShareRow) : number => acc + row.selfRatio, 0)
-  const competitorRatioSum: number = mix.reduce((acc: number, row: ProductSecondarySizeShareRow) : number => acc + row.competitorRatio, 0)
+  const comparisonRatioSum: number = mix.reduce((acc: number, row: ProductSecondarySizeShareRow) : number => acc + row.comparisonRatio, 0)
   const selfWeight: number = selfWeightPct / 100
-  const competitorWeight: number = 1 - selfWeight
-  const raw: { size: string; selfSharePct: number; competitorSharePct: number; blendedRaw: number; avgPrice: number; }[] = mix.map((row: ProductSecondarySizeShareRow) : { size: string; selfSharePct: number; competitorSharePct: number; blendedRaw: number; avgPrice: number; } => {
-    const selfSharePct: number = selfRatioSum > 0 ? (row.selfRatio / selfRatioSum) * 100 : 0
-    const competitorSharePct: number = competitorRatioSum > 0 ? (row.competitorRatio / competitorRatioSum) * 100 : 0
+  const comparisonWeight: number = 1 - selfWeight
+  const raw: { size: string; baseSharePct: number; comparisonSharePct: number; blendedRaw: number; avgPrice: number; }[] = mix.map((row: ProductSecondarySizeShareRow) : { size: string; baseSharePct: number; comparisonSharePct: number; blendedRaw: number; avgPrice: number; } => {
+    const baseSharePct: number = selfRatioSum > 0 ? (row.selfRatio / selfRatioSum) * 100 : 0
+    const comparisonSharePct: number = comparisonRatioSum > 0 ? (row.comparisonRatio / comparisonRatioSum) * 100 : 0
     return {
       size: row.size,
-      selfSharePct,
-      competitorSharePct,
-      blendedRaw: selfSharePct * selfWeight + competitorSharePct * competitorWeight,
+      baseSharePct,
+      comparisonSharePct,
+      blendedRaw: baseSharePct * selfWeight + comparisonSharePct * comparisonWeight,
       avgPrice: row.avgPrice,
     }
   })
-  const blendedSum: number = raw.reduce((acc: number, row: { size: string; selfSharePct: number; competitorSharePct: number; blendedRaw: number; avgPrice: number; }) : number => acc + row.blendedRaw, 0) || 1
-  return raw.map((row: { size: string; selfSharePct: number; competitorSharePct: number; blendedRaw: number; avgPrice: number; }) : { size: string; selfSharePct: number; competitorSharePct: number; blendedSharePct: number; avgPrice: number; } => ({
+  const blendedSum: number = raw.reduce((acc: number, row: { size: string; baseSharePct: number; comparisonSharePct: number; blendedRaw: number; avgPrice: number; }) : number => acc + row.blendedRaw, 0) || 1
+  return raw.map((row: { size: string; baseSharePct: number; comparisonSharePct: number; blendedRaw: number; avgPrice: number; }) : { size: string; baseSharePct: number; comparisonSharePct: number; blendedSharePct: number; avgPrice: number; } => ({
     size: row.size,
-    selfSharePct: row.selfSharePct,
-    competitorSharePct: row.competitorSharePct,
+    baseSharePct: row.baseSharePct,
+    comparisonSharePct: row.comparisonSharePct,
     blendedSharePct: (row.blendedRaw / blendedSum) * 100,
     avgPrice: row.avgPrice,
   }))
@@ -81,7 +81,7 @@ export function buildSecondarySizeOrderRows({
   if (missingStockOrderSizes.length) {
     throw new Error(`Missing stock order display rows for sizes: ${missingStockOrderSizes.join(', ')}`)
   }
-  return shares.map((row: SecondarySizeShare) : { forecastQty: number; recommendedQty: number; confirmQty: number; size: string; selfSharePct: number; competitorSharePct: number; blendedSharePct: number; avgPrice: number; } => {
+  return shares.map((row: SecondarySizeShare) : { forecastQty: number; recommendedQty: number; confirmQty: number; size: string; baseSharePct: number; comparisonSharePct: number; blendedSharePct: number; avgPrice: number; } => {
     const forecastQty: number = Math.ceil((totalQtyWindow * row.blendedSharePct) / 100)
     const bufferQtyEa: number = Math.ceil((dailyMeanEa * bufferStock * row.blendedSharePct) / 100)
     const stockOrderSizeRow: SecondaryStockOrderSizeRow | undefined = stockOrderSizeRowBySize.get(row.size)

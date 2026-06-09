@@ -1,5 +1,5 @@
 ﻿import { LoadingSpinner } from '../../../../../components/LoadingSpinner'
-import type { OrderSnapshotAiCommentV2 } from '../../../../../snapshot/orderSnapshotTypes'
+import type { OrderSnapshotAiComment } from '../../../../../snapshot/orderSnapshotTypes'
 import { useCallback, useEffect, useId, useRef, useState } from 'react'
 import type { ApiUnitErrorInfo } from '../../../../../types'
 import { KO } from '../../ko'
@@ -14,7 +14,7 @@ function getAiCommentCollapsedMaxHeight(answerEl: HTMLDivElement): number {
 }
 
 export type Props = {
-  aiComment: OrderSnapshotAiCommentV2
+  aiComment: OrderSnapshotAiComment
   loading: boolean
   error: ApiUnitErrorInfo | null
   onRequest: () => void

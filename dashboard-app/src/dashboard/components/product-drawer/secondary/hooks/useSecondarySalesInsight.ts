@@ -36,11 +36,7 @@ export function useSecondarySalesInsight({
     base: baseSubject,
     periodStart,
     periodEnd,
-    comparison: comparisonTarget == null ? null : {
-      role: 'comparison',
-      kind: comparisonTarget.kind,
-      sourceId: comparisonTarget.sourceId,
-    },
+    comparison: comparisonTarget,
   }), [baseSubject, comparisonTarget, periodEnd, periodStart, primary.skuGroupKey])
   const [salesInsightState, setSalesInsightState]: [SalesInsightState | null, React.Dispatch<React.SetStateAction<SalesInsightState | null>>] = useState<SalesInsightState | null>(null)
   const [salesInsightError, setSalesInsightError]: [ApiUnitErrorInfo | null, React.Dispatch<React.SetStateAction<ApiUnitErrorInfo | null>>] = useState<ApiUnitErrorInfo | null>(null)
@@ -75,11 +71,7 @@ export function useSecondarySalesInsight({
           startDate: periodStart,
           endDate: periodEnd,
           base: baseSubject,
-          comparison: {
-            role: 'comparison',
-            kind: comparisonTarget.kind,
-            sourceId: comparisonTarget.sourceId,
-          },
+          comparison: comparisonTarget,
         })
         if (!alive || requestSeqRef.current !== reqSeq) return
         setSalesInsightState({ requestKey, result })
@@ -94,11 +86,7 @@ export function useSecondarySalesInsight({
               startDate: periodStart,
               endDate: periodEnd,
               base: baseSubject,
-              comparison: {
-                role: 'comparison',
-                kind: comparisonTarget.kind,
-                sourceId: comparisonTarget.sourceId,
-              },
+              comparison: comparisonTarget,
             })})`,
             err,
           ),

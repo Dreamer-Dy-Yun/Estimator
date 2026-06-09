@@ -98,14 +98,14 @@ export const makeSizeMix: (initialOrderQty: number, productQty: number, productP
   }))
 }
 
-export function splitSecondarySizeRows(rows: ReturnType<typeof makeSizeMix>): Pick<ProductSecondaryDetail, 'sizeRows' | 'competitorRatioBySize'> {
-  const competitorRatioBySize: Record<string, number> = {}
+export function splitSecondarySizeRows(rows: ReturnType<typeof makeSizeMix>): Pick<ProductSecondaryDetail, 'sizeRows' | 'comparisonRatioBySize'> {
+  const comparisonRatioBySize: Record<string, number> = {}
   const competitorRatioTotal: number = rows.reduce((sum: number, row: { size: string; ratio: number; competitorRatio: number; confirmedQty: number; avgPrice: number; qty: number; availableStock: number; }) : number => sum + Math.max(0, row.competitorRatio), 0)
   const sizeRows: { selfRatio: number; size: string; confirmedQty: number; avgPrice: number; qty: number; availableStock: number; }[] = rows.map(({ ratio, competitorRatio, ...row }: { size: string; ratio: number; competitorRatio: number; confirmedQty: number; avgPrice: number; qty: number; availableStock: number; }) : { selfRatio: number; size: string; confirmedQty: number; avgPrice: number; qty: number; availableStock: number; } => {
-    competitorRatioBySize[row.size] = competitorRatioTotal > 0 ? Math.max(0, competitorRatio) / competitorRatioTotal : 0
+    comparisonRatioBySize[row.size] = competitorRatioTotal > 0 ? Math.max(0, competitorRatio) / competitorRatioTotal : 0
     return { ...row, selfRatio: ratio }
   })
-  return { sizeRows, competitorRatioBySize }
+  return { sizeRows, comparisonRatioBySize }
 }
 
 export function makeStockTrend(skuGroupKey: string, monthlySalesTrend: MonthlySalesPoint[]) : { date: string; stock: number; inboundExpected: number; inboundQty: number; }[] {

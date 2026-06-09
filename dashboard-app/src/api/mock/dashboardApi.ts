@@ -29,7 +29,7 @@ import type {
   SelfSalesGridParams,
   SelfSalesParams,
 } from '../types'
-import { ALL_COMPANY_UUID, getCompanyUuidForOptionalScope } from '../types'
+import { getCompanyUuidForOptionalScope, getComparisonSubjectKey } from '../types'
 import { buildSalesKpiColumn } from '../../utils/salesKpiColumn'
 import { DEFAULT_FORECAST_MONTHS } from '../../utils/forecastMonthsStorage'
 import { uniqueSortedStrings } from '../../utils/uniqueSortedStrings'
@@ -59,6 +59,9 @@ import {
   scopeMockStockTrend,
 } from './mockCompanyScope'
 import { sleep } from './utils'
+
+const TEST_TOP_MONTHLY_BASE_SALES = 100 as const
+const TEST_TOP_MONTHLY_COMPARISON_SALES = 200 as const
 
 function queryText(value?: string) : string | undefined {
   return value?.trim().toLowerCase()
@@ -92,7 +95,7 @@ const nextMonth: (month: string) => string = (month: string) : string => {
 const SELF_ALL_COMPANIES_LABEL = '\uC790\uC0AC\uC804\uCCB4' as const
 
 function productComparisonSubjectId(subject: ProductComparisonSubjectRef): string {
-  return `${subject.role}:${subject.kind}:${subject.sourceId}`
+  return getComparisonSubjectKey(subject)
 }
 
 function competitorComparisonTarget(channel: SecondaryCompetitorChannel): ProductComparisonTarget {
@@ -105,36 +108,44 @@ function competitorComparisonTarget(channel: SecondaryCompetitorChannel): Produc
   }
 }
 
-function selfCompanyComparisonTarget(companyUuid: string, label: string): ProductComparisonTarget {
+function selfCompanyComparisonTarget(companyUuid: string | undefined, label: string): ProductComparisonTarget {
   return {
-    id: productComparisonSubjectId({ role: 'comparison', kind: 'self-company', sourceId: companyUuid }),
+    id: productComparisonSubjectId({
+      role: 'comparison',
+      kind: 'self-company',
+      ...(companyUuid == null ? {} : { sourceId: companyUuid }),
+    }),
     role: 'comparison',
     kind: 'self-company',
-    sourceId: companyUuid,
+    ...(companyUuid == null ? {} : { sourceId: companyUuid }),
     label,
   }
 }
 
-function mockCompanyComparisonTargetLabel(companyUuid: string, label: string): string {
-  return companyUuid === ALL_COMPANY_UUID ? SELF_ALL_COMPANIES_LABEL : label
+function mockCompanyComparisonTargetLabel(companyUuid: string | undefined, label: string): string {
+  return companyUuid == null ? SELF_ALL_COMPANIES_LABEL : label
 }
 
 function getMockProductComparisonTargets(params: ProductComparisonTargetParams): ProductComparisonTarget[] {
   if (params.base.role !== 'base') throw new Error(`Invalid mock base subject role: ${params.base.role}`)
   if (params.base.kind !== 'self-company') throw new Error(`Unsupported mock base subject kind: ${params.base.kind}`)
-  const currentCompanyUuid: string = params.base.sourceId
+  const currentCompanyUuid: string | undefined = getCompanyUuidForOptionalScope(params.base.sourceId)
   const competitorTargets: ProductComparisonTarget[] = secondaryCompetitorChannels.map(competitorComparisonTarget)
   const selfTargets: ProductComparisonTarget[] = MOCK_COMPANIES
-    .filter((company: { uuid: string; name: string }) : boolean => company.uuid !== currentCompanyUuid)
-    .map((company: { uuid: string; name: string }) : ProductComparisonTarget => selfCompanyComparisonTarget(
-      company.uuid,
-      mockCompanyComparisonTargetLabel(company.uuid, company.name),
+    .map((company: { uuid: string; name: string }) : { sourceId: string | undefined; name: string } => ({
+      sourceId: getCompanyUuidForOptionalScope(company.uuid),
+      name: company.name,
+    }))
+    .filter((company: { sourceId: string | undefined; name: string }) : boolean => company.sourceId !== currentCompanyUuid)
+    .map((company: { sourceId: string | undefined; name: string }) : ProductComparisonTarget => selfCompanyComparisonTarget(
+      company.sourceId,
+      mockCompanyComparisonTargetLabel(company.sourceId, company.name),
     ))
   return [...competitorTargets, ...selfTargets]
 }
 
-function mockSelfCompanySubjectLabel(sourceId: string): string {
-  if (sourceId === ALL_COMPANY_UUID) return SELF_ALL_COMPANIES_LABEL
+function mockSelfCompanySubjectLabel(sourceId: string | undefined): string {
+  if (sourceId == null) return SELF_ALL_COMPANIES_LABEL
   const company: { uuid: string; name: string } | undefined = MOCK_COMPANIES.find(
     (candidate: { uuid: string; name: string }) : boolean => candidate.uuid === sourceId,
   )
@@ -167,6 +178,59 @@ function assertMockSubjectRole(subject: ProductComparisonSubjectRef, role: Produ
 function selfCompanySubjectScope(subject: ProductComparisonSubjectRef): { companyUuid?: string } {
   if (subject.kind !== 'self-company') throw new Error(`Unsupported mock base subject kind: ${subject.kind}`)
   return getCompanyUuidForOptionalScope(subject.sourceId) == null ? {} : { companyUuid: subject.sourceId }
+}
+
+function requireMockProductComparisonTarget(target: ProductComparisonComparisonSubjectRef | null | undefined): ProductComparisonComparisonSubjectRef {
+  if (target == null) throw new Error('Product comparison target is required.')
+  if (target.kind === 'competitor-channel' && !target.sourceId) {
+    throw new Error('comparison.sourceId is required for competitor-channel.')
+  }
+  return target
+}
+
+function comparisonScaleForSubject(
+  skuGroupKey: string,
+  basePrimary: ProductPrimarySummary,
+  comparison: ProductComparisonComparisonSubjectRef,
+): number {
+  if (comparison.kind === 'competitor-channel') {
+    return 10 * getMockSecondaryCompetitorChannel(comparison.sourceId).qtySkew
+  }
+  const comparisonPrimary: ProductPrimarySummary = scopeMockProductPrimary(requireMockProductPrimary(skuGroupKey), selfCompanySubjectScope(comparison))
+  return basePrimary.qty > 0 ? Math.max(0, comparisonPrimary.qty / basePrimary.qty) : 0
+}
+
+function comparisonRatioBySizeFromRows(detail: ProductSecondaryDetail): ProductSecondaryDetail['comparisonRatioBySize'] {
+  const total: number = detail.sizeRows.reduce((sum: number, row) : number => sum + Math.max(0, row.selfRatio), 0)
+  if (total <= 0) return Object.fromEntries(detail.sizeRows.map((row) : [string, number] => [row.size, 0]))
+  return Object.fromEntries(detail.sizeRows.map((row) : [string, number] => [row.size, Math.max(0, row.selfRatio) / total]))
+}
+
+function buildMockProductSecondaryDetail(
+  skuGroupKey: string,
+  params: ProductSecondaryDetailParams,
+): ProductSecondaryDetail {
+  const baseScope: { companyUuid?: string } = selfCompanySubjectScope(params.base)
+  const baseSecondary: ProductSecondaryDetail = scopeMockProductSecondary(requireMockProductSecondary(skuGroupKey), baseScope)
+  const comparison: ProductComparisonComparisonSubjectRef = requireMockProductComparisonTarget(params.comparison)
+  if (comparison.kind === 'competitor-channel') {
+    const channel: MockSecondaryCompetitorChannel = getMockSecondaryCompetitorChannel(comparison.sourceId)
+    return {
+      ...baseSecondary,
+      comparisonPrice: Math.max(0, Math.round(baseSecondary.comparisonPrice * channel.priceSkew)),
+      comparisonQty: Math.max(0, Math.round(baseSecondary.comparisonQty * channel.qtySkew)),
+      comparisonRatioBySize: { ...baseSecondary.comparisonRatioBySize },
+    }
+  }
+  const comparisonScope: { companyUuid?: string } = selfCompanySubjectScope(comparison)
+  const comparisonPrimary: ProductPrimarySummary = scopeMockProductPrimary(requireMockProductPrimary(skuGroupKey), comparisonScope)
+  const comparisonSecondary: ProductSecondaryDetail = scopeMockProductSecondary(requireMockProductSecondary(skuGroupKey), comparisonScope)
+  return {
+    ...baseSecondary,
+    comparisonPrice: comparisonPrimary.price,
+    comparisonQty: comparisonPrimary.qty,
+    comparisonRatioBySize: comparisonRatioBySizeFromRows(comparisonSecondary),
+  }
 }
 
 export const mockDashboardApi = {
@@ -231,9 +295,11 @@ export const mockDashboardApi = {
     }
   },
 
-  getProductDrawerBundle: async (skuGroupKey: string, params?: ProductDrawerBundleParams) : Promise<{ summary: ProductPrimarySummary; }> => {
+  getProductDrawerBundle: async (skuGroupKey: string, params: ProductDrawerBundleParams) : Promise<{ summary: ProductPrimarySummary; }> => {
     await sleep(80)
-    const summary: ProductPrimarySummary = { ...scopeMockProductPrimary(requireMockProductPrimary(skuGroupKey), params) }
+    const base: ProductComparisonBaseSubjectRef = params.base
+    assertMockSubjectRole(base, 'base')
+    const summary: ProductPrimarySummary = { ...scopeMockProductPrimary(requireMockProductPrimary(skuGroupKey), selfCompanySubjectScope(base)) }
     return { summary }
   },
 
@@ -244,32 +310,36 @@ export const mockDashboardApi = {
 
   getProductMonthlyTrend: async (skuGroupKey: string, params: ProductMonthlyTrendParams): Promise<ProductMonthlyTrend> => {
     await sleep(80)
-    const primary: ProductPrimarySummary = scopeMockProductPrimary(requireMockProductPrimary(skuGroupKey), params)
-    const channel: MockSecondaryCompetitorChannel = getMockSecondaryCompetitorChannel(params.competitorChannelId)
+    assertMockSubjectRole(params.base, 'base')
+    assertMockSubjectRole(params.comparison, 'comparison')
+    const base: ProductComparisonBaseSubject = resolveMockProductSalesInsightSubject(params.base)
+    const comparison: ProductComparisonComparisonSubject = resolveMockProductSalesInsightSubject(params.comparison)
+    const primary: ProductPrimarySummary = scopeMockProductPrimary(requireMockProductPrimary(skuGroupKey), selfCompanySubjectScope(base))
+    const comparisonScale: number = comparisonScaleForSubject(skuGroupKey, primary, params.comparison)
     if (primary.code === 'TEST-TOP') {
-      const points: { date: string; selfSales: number; competitorSales: number | null; isForecast: boolean; }[] = makeSalesTrend(100, skuGroupKey.charCodeAt(0), params.forecastMonths ?? DEFAULT_FORECAST_MONTHS, {
+      const points: { date: string; baseSales: number; comparisonSales: number | null; isForecast: boolean; }[] = makeSalesTrend(100, skuGroupKey.charCodeAt(0), params.forecastMonths ?? DEFAULT_FORECAST_MONTHS, {
         historyStartMonth: dateToMonth(params.startDate),
         historyEndMonth: dateToMonth(params.endDate),
         forecastStartMonth: nextMonth(dateToMonth(params.endDate)),
-      }).map((point: MonthlySalesPoint) : { date: string; selfSales: number; competitorSales: number | null; isForecast: boolean; } => ({
+      }).map((point: MonthlySalesPoint) : { date: string; baseSales: number; comparisonSales: number | null; isForecast: boolean; } => ({
         date: point.date,
-        selfSales: 100,
-        competitorSales: point.isForecast ? null : Math.max(0, Math.round(200 * channel.qtySkew)),
+        baseSales: TEST_TOP_MONTHLY_BASE_SALES,
+        comparisonSales: point.isForecast ? null : TEST_TOP_MONTHLY_COMPARISON_SALES,
         isForecast: point.isForecast,
       }))
       return {
         skuGroupKey: primary.skuGroupKey,
         targetPeriodDays: { start: params.startDate, end: params.endDate },
-        competitorChannelId: channel.id,
-        competitorChannelLabel: channel.label,
+        base,
+        comparison,
         points,
       }
     }
     return {
       skuGroupKey: primary.skuGroupKey,
       targetPeriodDays: { start: params.startDate, end: params.endDate },
-      competitorChannelId: channel.id,
-      competitorChannelLabel: channel.label,
+      base,
+      comparison,
       points: makeSalesTrend(
         Math.max(800, Math.round(primary.qty * 0.42)),
         skuGroupKey.charCodeAt(0),
@@ -280,10 +350,10 @@ export const mockDashboardApi = {
           forecastStartMonth: nextMonth(dateToMonth(params.endDate)),
         },
       )
-        .map((point: MonthlySalesPoint, index: number) : { date: string; selfSales: number; competitorSales: number | null; isForecast: boolean; } => ({
+        .map((point: MonthlySalesPoint, index: number) : { date: string; baseSales: number; comparisonSales: number | null; isForecast: boolean; } => ({
           date: point.date,
-          selfSales: Math.max(0, Math.round(point.sales)),
-          competitorSales: point.isForecast ? null : Math.max(0, Math.round(point.sales * 10 * channel.qtySkew * (1 + Math.sin(index) * 0.06))),
+          baseSales: Math.max(0, Math.round(point.sales)),
+          comparisonSales: point.isForecast ? null : Math.max(0, Math.round(point.sales * comparisonScale * (1 + Math.sin(index) * 0.06))),
           isForecast: point.isForecast,
         })),
     }
@@ -332,9 +402,9 @@ export const mockDashboardApi = {
     }
   },
 
-  getProductSecondaryDetail: async (skuGroupKey: string, params?: ProductSecondaryDetailParams) : Promise<ProductSecondaryDetail> => {
+  getProductSecondaryDetail: async (skuGroupKey: string, params: ProductSecondaryDetailParams) : Promise<ProductSecondaryDetail> => {
     await sleep(80)
-    return scopeMockProductSecondary(requireMockProductSecondary(skuGroupKey), params)
+    return buildMockProductSecondaryDetail(skuGroupKey, params)
   },
 
   getSecondaryAiComment: async (params: SecondaryAiCommentParams) : Promise<{ prompt: string; answer: string; generatedAt: string; }> => {
@@ -342,11 +412,11 @@ export const mockDashboardApi = {
     return buildSecondaryAiComment(params)
   },
 
-  getSecondaryDailyTrend: async ({ skuGroupKey, startDate, endDate, forecastDays, competitorChannelId, companyUuid }: SecondaryDailyTrendParams) : Promise<SecondaryDailyTrendPoint[]> => {
+  getSecondaryDailyTrend: async ({ skuGroupKey, startDate, endDate, forecastDays, base, comparison }: SecondaryDailyTrendParams) : Promise<SecondaryDailyTrendPoint[]> => {
     await sleep(80)
-    const primary: ProductPrimarySummary = scopeMockProductPrimary(requireMockProductPrimary(skuGroupKey), { companyUuid })
-    const stockTrend: { date: string; stock: number; inboundExpected: number; inboundQty: number; }[] = scopeMockStockTrend(skuGroupKey, requireMockStockTrend(skuGroupKey), { companyUuid })
-    return buildSecondaryDailyTrend(primary.monthlySalesTrend ?? [], stockTrend, startDate, endDate, forecastDays, getMockSecondaryCompetitorChannel(competitorChannelId).qtySkew)
+    const primary: ProductPrimarySummary = scopeMockProductPrimary(requireMockProductPrimary(skuGroupKey), selfCompanySubjectScope(base))
+    const stockTrend: { date: string; stock: number; inboundExpected: number; inboundQty: number; }[] = scopeMockStockTrend(skuGroupKey, requireMockStockTrend(skuGroupKey), selfCompanySubjectScope(base))
+    return buildSecondaryDailyTrend(primary.monthlySalesTrend ?? [], stockTrend, startDate, endDate, forecastDays, comparisonScaleForSubject(skuGroupKey, primary, comparison))
   },
 
   getSecondaryCompetitorChannels: async () : Promise<SecondaryCompetitorChannel[]> => {

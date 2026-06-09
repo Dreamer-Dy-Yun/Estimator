@@ -78,8 +78,8 @@ describe('api/mock productCatalog', () : void => {
       qty: 2400,
       availableStock: 1200,
     })
-    expect(secondary?.competitorPrice).toBe(110000)
-    expect(secondary?.competitorQty).toBe(4800)
+    expect(secondary?.comparisonPrice).toBe(110000)
+    expect(secondary?.comparisonQty).toBe(4800)
     expect(secondary?.sizeRows).toHaveLength(5)
     expect(secondary?.sizeRows.every((row: ProductSecondarySizeRow) : boolean => (
       row.selfRatio === 20

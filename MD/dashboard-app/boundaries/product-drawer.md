@@ -42,10 +42,12 @@ Product drawer owns primary summary display, secondary detail display, secondary
 
 ## Snapshot contract
 
-- Current type: `OrderSnapshotDocumentV2`.
+- Current type: `OrderSnapshotDocument` v3.
 - Snapshot stores restore values only.
 - Parser/restore behavior enforces:
-  - top-level `skuGroupKey`, `drawer1.summary.skuGroupKey`, `drawer2.competitorBasis.skuGroupKey` must match.
+  - top-level `skuGroupKey`, `drawer1.summary.skuGroupKey`, `drawer2.comparisonBasis.skuGroupKey` must match.
+  - `drawer2.baseSubject` must be a base self-company subject.
+  - `drawer2.comparisonSubject` must be a comparison subject; competitor-channel subjects require `sourceId`.
   - `drawer2.stockOrderRequest.leadTimeDays` and `context.dailyTrendLeadTimeDays` must match.
   - size keys in `drawer2.sizeOrders` must be unique and match `drawer2.stockOrderResult.display.sizeRows` keys.
   - `drawer2.stockOrderResult.display` total rows must equal sum of each size row.
@@ -57,12 +59,13 @@ Product drawer owns primary summary display, secondary detail display, secondary
 
 ## Scope rules
 
-- Read-like drawer APIs may omit `companyUuid` for all-company reads.
-- Sales insight and comparison target APIs use base/comparison subject refs. `base.kind` is currently `self-company`; `comparison.kind` may be `competitor-channel` or `self-company`.
+- Product drawer read-like APIs use subject refs instead of top-level `companyUuid`.
+- Bundle is base-only and returns `{ summary }`.
+- Monthly trend, sales insight, secondary detail, daily trend, and AI comment use base/comparison subject refs. `base.kind` is currently `self-company`; `comparison.kind` may be `competitor-channel` or `self-company`.
 - The frontend may keep `ALL_COMPANY_UUID` in subject state for all-company reads, but HTTP requests omit `baseSourceId` or `comparisonSourceId` instead of sending the sentinel.
 - Empty comparison target lists are valid unavailable states. The drawer must not replace them with the first target, a fake target, or a generic API error.
 - Primary sales metrics keeps a stable card shell while comparison data is loading. Target clicks may update request state, but they must not replace the card with a different loading layout or resize the product image/card column.
-- Candidate detail drawer opened from a single-company candidate keeps the same `companyUuid` through reads and mutations.
+- Candidate detail drawer opened from a single-company candidate keeps the same company scope through reads and mutations.
 - Secondary mutations require concrete `companyUuid`.
 
 ## Style boundaries

@@ -1,12 +1,26 @@
 import { describe, expect, it } from 'vitest'
-import type { OrderSnapshotDocumentV2 } from '../../../../snapshot/orderSnapshotTypes'
+import type { ProductComparisonBaseSubjectRef, ProductComparisonTarget } from '../../../../api/types'
+import type { OrderSnapshotDocument } from '../../../../snapshot/orderSnapshotTypes'
 import { ORDER_SNAPSHOT_SCHEMA_VERSION } from '../../../../snapshot/orderSnapshotTypes'
-import { getScopeSafeHydrateSnapshot } from './useSecondaryDrawerDetail'
+import { getBaseScopeSafeHydrateSnapshot, getScopeSafeHydrateSnapshot } from './useSecondaryDrawerDetail'
 
-const snapshot: OrderSnapshotDocumentV2 = {
+const BASE_SUBJECT: ProductComparisonBaseSubjectRef = {
+  role: 'base',
+  kind: 'self-company',
+  sourceId: 'company-1',
+}
+
+const COMPARISON_TARGET: ProductComparisonTarget = {
+  role: 'comparison',
+  kind: 'competitor-channel',
+  id: 'comparison:competitor-channel:cream',
+  sourceId: 'cream',
+  label: 'Cream',
+}
+
+const snapshot: OrderSnapshotDocument = {
   schemaVersion: ORDER_SNAPSHOT_SCHEMA_VERSION,
   skuGroupKey: 'SKU-001',
-  companyUuid: 'company-1',
   savedAt: '2026-05-26T00:00:00.000Z',
   context: {
     periodStart: '2026-05-01',
@@ -29,14 +43,14 @@ const snapshot: OrderSnapshotDocumentV2 = {
     },
   },
   drawer2: {
-    competitorBasis: {
+    baseSubject: BASE_SUBJECT,
+    comparisonSubject: COMPARISON_TARGET,
+    comparisonBasis: {
       skuGroupKey: 'SKU-001',
-      competitorPrice: 1200,
-      competitorQty: 8,
-      competitorRatioBySize: {},
+      comparisonPrice: 1200,
+      comparisonQty: 8,
+      comparisonRatioBySize: {},
     },
-    competitorChannelId: 'cream',
-    competitorChannelLabel: 'Cream',
     stockOrderRequest: {
       currentOrderInboundDueDate: '2026-06-01',
       nextOrderInboundDueDate: '2026-06-30',
@@ -61,21 +75,47 @@ const snapshot: OrderSnapshotDocumentV2 = {
 }
 
 describe('getScopeSafeHydrateSnapshot', () : void => {
-  it('allows a snapshot only when skuGroupKey and companyUuid match', () : void => {
-    expect(getScopeSafeHydrateSnapshot(snapshot, 'SKU-001', 'company-1')).toBe(snapshot)
-    expect(getScopeSafeHydrateSnapshot(snapshot, 'SKU-002', 'company-1')).toBeNull()
-    expect(getScopeSafeHydrateSnapshot(snapshot, 'SKU-001', 'company-2')).toBeNull()
+  it('allows a snapshot only when skuGroupKey, base subject, and comparison subject match', () : void => {
+    expect(getScopeSafeHydrateSnapshot(snapshot, 'SKU-001', BASE_SUBJECT, COMPARISON_TARGET)).toBe(snapshot)
+    expect(getScopeSafeHydrateSnapshot(snapshot, 'SKU-002', BASE_SUBJECT, COMPARISON_TARGET)).toBeNull()
+    expect(getScopeSafeHydrateSnapshot(snapshot, 'SKU-001', { ...BASE_SUBJECT, sourceId: 'company-2' }, COMPARISON_TARGET)).toBeNull()
   })
 
-  it('does not hydrate scoped snapshots in all-company scope', () : void => {
-    expect(getScopeSafeHydrateSnapshot(snapshot, 'SKU-001', undefined)).toBeNull()
+  it('rejects snapshots when comparison target is absent or different', () : void => {
+    const otherComparison: ProductComparisonTarget = {
+      ...COMPARISON_TARGET,
+      sourceId: 'musinsa',
+      id: 'comparison:competitor-channel:musinsa',
+      label: 'Musinsa',
+    }
+
+    expect(getScopeSafeHydrateSnapshot(snapshot, 'SKU-001', BASE_SUBJECT, null)).toBeNull()
+    expect(getScopeSafeHydrateSnapshot(snapshot, 'SKU-001', BASE_SUBJECT, otherComparison)).toBeNull()
   })
 
-  it('keeps unscoped snapshots only in all-company scope', () : void => {
-    const unscopedSnapshot: OrderSnapshotDocumentV2 = { ...snapshot }
-    delete unscopedSnapshot.companyUuid
+  it('keeps a base-safe snapshot available before the saved comparison subject is restored', () : void => {
+    const otherComparison: ProductComparisonTarget = {
+      ...COMPARISON_TARGET,
+      sourceId: 'musinsa',
+      id: 'comparison:competitor-channel:musinsa',
+      label: 'Musinsa',
+    }
 
-    expect(getScopeSafeHydrateSnapshot(unscopedSnapshot, 'SKU-001', undefined)).toBe(unscopedSnapshot)
-    expect(getScopeSafeHydrateSnapshot(unscopedSnapshot, 'SKU-001', 'company-1')).toBeNull()
+    expect(getBaseScopeSafeHydrateSnapshot(snapshot, 'SKU-001', BASE_SUBJECT)).toBe(snapshot)
+    expect(getScopeSafeHydrateSnapshot(snapshot, 'SKU-001', BASE_SUBJECT, otherComparison)).toBeNull()
+  })
+
+  it('keeps unscoped base snapshots only in unscoped base scope', () : void => {
+    const unscopedBaseSubject: ProductComparisonBaseSubjectRef = { role: 'base', kind: 'self-company' }
+    const unscopedSnapshot: OrderSnapshotDocument = {
+      ...snapshot,
+      drawer2: {
+        ...snapshot.drawer2,
+        baseSubject: unscopedBaseSubject,
+      },
+    }
+
+    expect(getScopeSafeHydrateSnapshot(unscopedSnapshot, 'SKU-001', unscopedBaseSubject, COMPARISON_TARGET)).toBe(unscopedSnapshot)
+    expect(getScopeSafeHydrateSnapshot(unscopedSnapshot, 'SKU-001', BASE_SUBJECT, COMPARISON_TARGET)).toBeNull()
   })
 })

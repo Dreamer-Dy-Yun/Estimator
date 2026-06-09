@@ -2,7 +2,7 @@ import type { SecondaryStockOrderDisplaySizeRow } from '../../../../../api/types
 import type { SecondarySizeShare } from '../model/secondarySizeOrderRows'
 import { useMemo } from 'react'
 import type { SecondaryStockOrderCalcResult } from '../../../../../api/types'
-import type { OrderSnapshotSizeOrderV2 } from '../../../../../snapshot/orderSnapshotTypes'
+import type { OrderSnapshotSizeOrder } from '../../../../../snapshot/orderSnapshotTypes'
 import type { ProductSecondaryDetail } from '../../../../../types'
 import { SecondaryOrderDraft } from '../model/SecondaryOrderDraft'
 import {
@@ -23,7 +23,7 @@ export type Args = {
   confirmBySize: Record<string, number>
   snapshotConfirmBySize: Record<string, number>
   useSnapshotConfirmBaseline: boolean
-  snapshotSizeOrders?: OrderSnapshotSizeOrderV2[] | null
+  snapshotSizeOrders?: OrderSnapshotSizeOrder[] | null
 }
 
 export function useSecondaryOrderCalculations({
@@ -77,10 +77,10 @@ export function useSecondaryOrderCalculations({
 
   const sizeRows: SecondarySizeOrderDisplayRow[] = useMemo(() : SecondarySizeOrderDisplayRow[] => {
     if (useSnapshotConfirmBaseline && snapshotSizeOrders != null) {
-      return snapshotSizeOrders.map<SecondarySizeOrderDisplayRow>((row: OrderSnapshotSizeOrderV2) : { size: string; selfSharePct: number; competitorSharePct: number; blendedSharePct: number; forecastQty: number; recommendedQty: number; confirmQty: number; } => ({
+      return snapshotSizeOrders.map<SecondarySizeOrderDisplayRow>((row: OrderSnapshotSizeOrder) : { size: string; baseSharePct: number; comparisonSharePct: number; blendedSharePct: number; forecastQty: number; recommendedQty: number; confirmQty: number; } => ({
         size: row.size,
-        selfSharePct: row.selfSharePct,
-        competitorSharePct: row.competitorSharePct,
+        baseSharePct: row.baseSharePct,
+        comparisonSharePct: row.comparisonSharePct,
         blendedSharePct: row.blendedSharePct,
         forecastQty: row.forecastQty,
         recommendedQty: row.recommendedQty,
@@ -89,10 +89,10 @@ export function useSecondaryOrderCalculations({
     }
     const readyForecastCalc: SecondaryStockOrderCalcResult | null = calculationReady ? forecastCalc : null
     if (readyForecastCalc == null) {
-      return sizeShares.map<SecondarySizeOrderDisplayRow>((row: SecondarySizeShare) : { size: string; selfSharePct: number; competitorSharePct: number; blendedSharePct: number; forecastQty: number; recommendedQty: number; confirmQty: number; } => ({
+      return sizeShares.map<SecondarySizeOrderDisplayRow>((row: SecondarySizeShare) : { size: string; baseSharePct: number; comparisonSharePct: number; blendedSharePct: number; forecastQty: number; recommendedQty: number; confirmQty: number; } => ({
         size: row.size,
-        selfSharePct: row.selfSharePct,
-        competitorSharePct: row.competitorSharePct,
+        baseSharePct: row.baseSharePct,
+        comparisonSharePct: row.comparisonSharePct,
         blendedSharePct: row.blendedSharePct,
         forecastQty: 0,
         recommendedQty: 0,

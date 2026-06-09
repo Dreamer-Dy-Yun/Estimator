@@ -1,10 +1,10 @@
-import type { OrderSnapshotPrimarySummaryV2 } from '../../../snapshot/orderSnapshotTypes'
+import type { OrderSnapshotPrimarySummary } from '../../../snapshot/orderSnapshotTypes'
 import type { ProductSecondarySizeRow } from '../../../types'
 import { ApiUnitErrorBadge } from '../../../components/ApiUnitErrorBadge'
 import { LoadingSpinner } from '../../../components/LoadingSpinner'
-import type { ProductComparisonBaseSubjectRef, ProductComparisonTarget, SecondaryCompetitorChannel } from '../../../api/types'
+import type { ProductComparisonBaseSubjectRef, ProductComparisonTarget } from '../../../api/types'
 import type { ApiUnitErrorInfo, ProductPrimarySummary, ProductSecondaryDetail } from '../../../types'
-import type { OrderSnapshotDocumentV2 } from '../../../snapshot/orderSnapshotTypes'
+import type { OrderSnapshotDocument } from '../../../snapshot/orderSnapshotTypes'
 import styles from '../common.module.css'
 import { ProductSecondaryDrawer } from './secondary/ProductSecondaryDrawer'
 import type { CandidateItemPanelContext } from './secondary/secondaryDrawerTypes'
@@ -20,31 +20,29 @@ export type ProductDrawerSecondaryPaneProps = {
   companyUuid?: string
   baseSubject: ProductComparisonBaseSubjectRef
   selfCompanyLabel: string
-  channelsError: ApiUnitErrorInfo | null
-  channelsLoading: boolean
-  selectedChannelReady: boolean
-  selectedChannelMissing: boolean
+  targetsError: ApiUnitErrorInfo | null
+  targetsLoading: boolean
+  selectedComparisonTargetReady: boolean
+  selectedComparisonTargetMissing: boolean
   secondaryDetail: ProductSecondaryDetail | null
   secondaryDetailError: ApiUnitErrorInfo | null
-  hydrateForPanel: OrderSnapshotDocumentV2 | null
+  hydrateForPanel: OrderSnapshotDocument | null
   candidateItemContext?: CandidateItemPanelContext | null
-  channelState: {
-    competitorChannelId: string
-    competitorChannels: SecondaryCompetitorChannel[]
+  comparisonState: {
     comparisonTarget: ProductComparisonTarget | null
-    onCompetitorChannelChange: (channelId: string) => void
+    onComparisonSubjectChange: (next: ProductComparisonTarget) => void
   }
 }
 
-function isFiniteCompetitorRatio(value: number | undefined): value is number {
+function isFiniteComparisonRatio(value: number | undefined): value is number {
   return typeof value === 'number' && Number.isFinite(value)
 }
 
-function getMissingCompetitorRatioSizes(
+function getMissingComparisonRatioSizes(
   secondaryDetail: ProductSecondaryDetail,
 ): string[] {
   return secondaryDetail.sizeRows
-    .filter((row: ProductSecondarySizeRow) : boolean => !isFiniteCompetitorRatio(secondaryDetail.competitorRatioBySize[row.size]))
+    .filter((row: ProductSecondarySizeRow) : boolean => !isFiniteComparisonRatio(secondaryDetail.comparisonRatioBySize[row.size]))
     .map((row: ProductSecondarySizeRow) : string => row.size)
 }
 
@@ -74,44 +72,44 @@ export function ProductDrawerSecondaryPane({
   companyUuid,
   baseSubject,
   selfCompanyLabel,
-  channelsError,
-  channelsLoading,
-  selectedChannelReady,
-  selectedChannelMissing,
+  targetsError,
+  targetsLoading,
+  selectedComparisonTargetReady,
+  selectedComparisonTargetMissing,
   secondaryDetail,
   secondaryDetailError,
   hydrateForPanel,
   candidateItemContext,
-  channelState,
+  comparisonState,
 }: ProductDrawerSecondaryPaneProps) : React.JSX.Element {
-  const missingCompetitorRatioSizes: string[] =
-    secondaryDetail == null ? [] : getMissingCompetitorRatioSizes(secondaryDetail)
-  const primaryForSecondaryPanel: OrderSnapshotPrimarySummaryV2 = hydrateForPanel?.drawer1.summary ?? summary
+  const missingComparisonRatioSizes: string[] =
+    secondaryDetail == null ? [] : getMissingComparisonRatioSizes(secondaryDetail)
+  const primaryForSecondaryPanel: OrderSnapshotPrimarySummary = hydrateForPanel?.drawer1.summary ?? summary
   let content: React.ReactNode = null
 
   if (open) {
-    if (channelsError) {
-      content = <SecondaryPaneStatus error={channelsError}>경쟁 채널 데이터를 불러오지 못했습니다.</SecondaryPaneStatus>
-    } else if (!selectedChannelReady) {
+    if (targetsError) {
+      content = <SecondaryPaneStatus error={targetsError}>비교 대상 데이터를 불러오지 못했습니다.</SecondaryPaneStatus>
+    } else if (!selectedComparisonTargetReady) {
       content = (
         <SecondaryPaneStatus>
-          {!channelsLoading && !selectedChannelMissing
+          {!targetsLoading && !selectedComparisonTargetMissing
             ? '비교 대상이 없어 2차 드로워를 표시할 수 없습니다.'
-            : selectedChannelMissing
-            ? '선택한 경쟁 채널이 현재 채널 목록에 없습니다.'
-            : <LoadingSpinner label="경쟁 채널 데이터를 불러오는 중" />}
+            : selectedComparisonTargetMissing
+            ? '선택한 비교 대상이 현재 목록에 없습니다.'
+            : <LoadingSpinner label="비교 대상 데이터를 불러오는 중" />}
         </SecondaryPaneStatus>
       )
     } else if (secondaryDetailError) {
       content = <SecondaryPaneStatus error={secondaryDetailError}>2차 데이터를 불러오지 못했습니다.</SecondaryPaneStatus>
     } else if (!secondaryDetail) {
       content = <SecondaryPaneStatus><LoadingSpinner label="2차 데이터를 불러오는 중" /></SecondaryPaneStatus>
-    } else if (missingCompetitorRatioSizes.length > 0) {
+    } else if (missingComparisonRatioSizes.length > 0) {
       content = (
         <SecondaryPaneStatus>
-          경쟁사 사이즈 비중 데이터가 누락되어 2차 예측을 표시할 수 없습니다.
+          비교 대상 사이즈 비중 데이터가 누락되어 2차 예측을 표시할 수 없습니다.
           <br />
-          누락 사이즈: {missingCompetitorRatioSizes.join(', ')}
+          누락 사이즈: {missingComparisonRatioSizes.join(', ')}
         </SecondaryPaneStatus>
       )
     } else {
@@ -123,14 +121,14 @@ export function ProductDrawerSecondaryPane({
           periodEnd={periodEnd}
           selectedStartMonth={selectedStartMonth}
           selectedEndMonth={selectedEndMonth}
-            forecastMonths={forecastMonths}
-            companyUuid={companyUuid}
-            baseSubject={baseSubject}
+          forecastMonths={forecastMonths}
+          companyUuid={companyUuid}
+          baseSubject={baseSubject}
           selfCompanyLabel={selfCompanyLabel}
           pageName="ProductDrawer > ProductSecondaryDrawer"
           prefillFromSnapshot={hydrateForPanel}
           candidateItemContext={candidateItemContext ?? null}
-          channelState={channelState}
+          comparisonState={comparisonState}
         />
       )
     }

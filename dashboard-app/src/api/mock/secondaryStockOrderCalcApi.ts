@@ -2,6 +2,7 @@ import type { ProductSecondaryDetail } from '..'
 import type { ProductSecondarySizeRow } from '../../types'
 import type { MonthlySalesPoint, ProductPrimarySummary } from '../types'
 import type { SecondaryStockOrderCalcParams, SecondaryStockOrderCalcResult } from '../types'
+import { getCompanyUuidForOptionalScope } from '../types'
 import { scopeMockProductPrimary, scopeMockProductSecondary } from './mockCompanyScope'
 import { requireMockProductPrimary, requireMockProductSecondary } from './mockProductLookup'
 import { dailyMeanSigma, forecastDailyMeanFromModel, zFromSafetyStockConfidencePct } from './secondaryDailyTrend'
@@ -58,9 +59,10 @@ export async function getSecondaryStockOrderCalc({
   forecastPeriodEnd,
   leadTimeDays,
   dailyMean: dailyMeanParam,
-  companyUuid,
+  base,
 }: SecondaryStockOrderCalcParams): Promise<SecondaryStockOrderCalcResult> {
   await sleep(70)
+  const companyUuid: string | undefined = getCompanyUuidForOptionalScope(base.sourceId)
   const primary: ProductPrimarySummary = scopeMockProductPrimary(requireMockProductPrimary(skuGroupKey), { companyUuid })
   const secondary: ProductSecondaryDetail = scopeMockProductSecondary(requireMockProductSecondary(skuGroupKey), { companyUuid })
   const trend: MonthlySalesPoint[] = primary.monthlySalesTrend ?? []

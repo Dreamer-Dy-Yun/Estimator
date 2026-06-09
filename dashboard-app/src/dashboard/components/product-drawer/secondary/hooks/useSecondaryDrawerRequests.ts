@@ -1,7 +1,7 @@
 import type { SecondaryStockOrderCalcResult } from '../../../../../api'
 import type { ProductSalesInsightColumn, SecondaryDailyTrendPoint } from '../../../../../api/types'
 import { useCallback } from 'react'
-import type { ProductComparisonBaseSubjectRef, ProductComparisonTarget, SecondaryCompetitorChannel } from '../../../../../api'
+import type { ProductComparisonBaseSubjectRef, ProductComparisonTarget } from '../../../../../api'
 import type { ApiUnitErrorInfo, ProductPrimarySummary } from '../../../../../types'
 import { useSecondaryDailyTrend } from './useSecondaryDailyTrend'
 import { useSecondarySalesInsight } from './useSecondarySalesInsight'
@@ -10,13 +10,11 @@ import { useSecondaryStockOrderCalc } from './useSecondaryStockOrderCalc'
 export type Args = {
   pageName: string
   primary: ProductPrimarySummary
-  channel: SecondaryCompetitorChannel
-  comparisonTarget: ProductComparisonTarget | null
+  comparisonTarget: ProductComparisonTarget
   periodStart: string
   periodEnd: string
   selectedStartMonth: string
   selectedEndMonth: string
-  companyUuid?: string
   baseSubject: ProductComparisonBaseSubjectRef
   forecastMeanPeriodEnd: string
   leadTimeDays: number
@@ -26,13 +24,11 @@ export type Args = {
 export function useSecondaryDrawerRequests({
   pageName,
   primary,
-  channel,
   comparisonTarget,
   periodStart,
   periodEnd,
   selectedStartMonth,
   selectedEndMonth,
-  companyUuid,
   baseSubject,
   forecastMeanPeriodEnd,
   leadTimeDays,
@@ -57,7 +53,7 @@ export function useSecondaryDrawerRequests({
     skuGroupKey: primary.skuGroupKey,
     periodStart,
     periodEnd,
-    companyUuid,
+    baseSubject,
     forecastMeanPeriodEnd,
     leadTimeDays,
     dailyMeanClient,
@@ -67,9 +63,9 @@ export function useSecondaryDrawerRequests({
     skuGroupKey: primary.skuGroupKey,
     selectedStart: selectedStartMonth,
     selectedEnd: selectedEndMonth,
-    companyUuid,
+    baseSubject,
+    comparisonTarget,
     leadTimeDays,
-    competitorChannelId: channel.id,
     makeApiErrorInfo,
   })
 

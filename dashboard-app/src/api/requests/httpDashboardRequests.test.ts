@@ -18,6 +18,10 @@ vi.mock('./httpClient', () : { apiRequest: Mock<() => Promise<undefined>>; build
 }))
 
 const companyUuid = 'company-uuid-054' as const
+const baseSubject = { role: 'base', kind: 'self-company', sourceId: companyUuid } as const
+const unscopedBaseSubject = { role: 'base', kind: 'self-company' } as const
+const musinsaComparison = { role: 'comparison', kind: 'competitor-channel', sourceId: 'musinsa' } as const
+const kreamComparison = { role: 'comparison', kind: 'competitor-channel', sourceId: 'kream' } as const
 export type ApiRequestCall = [string, { query?: Record<string, unknown>; body?: unknown; method?: string }?]
 
 beforeEach(() : void => {
@@ -62,20 +66,24 @@ describe('httpDashboardRequests company scope forwarding', () : void => {
 
     await httpDashboardRequests.getSecondaryDailyTrend({
       skuGroupKey: 'SKU-054-BLK',
-      companyUuid,
       startDate: '2025-01-01',
       endDate: '2026-05-28',
       forecastDays: 30,
-      competitorChannelId: 'kream',
+      base: baseSubject,
+      comparison: kreamComparison,
     })
 
     const dailyTrendQuery: Record<string, unknown> | undefined = apiRequestCalls[2]?.[1]?.query
     expect(dailyTrendQuery).toMatchObject({
-      companyUuid,
+      baseRole: 'base',
+      baseKind: 'self-company',
+      baseSourceId: companyUuid,
       startDate: '2025-01-01',
       endDate: '2026-05-28',
-      forecastDays: 30,
-      competitorChannelId: 'kream',
+      forecastDays: '30',
+      comparisonRole: 'comparison',
+      comparisonKind: 'competitor-channel',
+      comparisonSourceId: 'kream',
     })
     expect(httpClientMocks.apiRequest).toHaveBeenNthCalledWith(
       3,
@@ -134,15 +142,15 @@ describe('httpDashboardRequests company scope forwarding', () : void => {
   it('preserves concrete companyUuid for secondary read-like POST bodies', async () : Promise<void> => {
     await httpDashboardRequests.getSecondaryAiComment({
       skuGroupKey: 'SKU-054-BLK',
-      companyUuid,
       periodStart: '2025-01-01',
       periodEnd: '2025-03-31',
       forecastMonths: 3,
-      competitorChannelId: 'musinsa',
+      base: baseSubject,
+      comparison: musinsaComparison,
     })
     await httpDashboardRequests.getSecondaryStockOrderCalc({
       skuGroupKey: 'SKU-054-BLK',
-      companyUuid,
+      base: baseSubject,
       periodStart: '2025-01-01',
       periodEnd: '2025-03-31',
       leadTimeDays: 21,
@@ -153,7 +161,7 @@ describe('httpDashboardRequests company scope forwarding', () : void => {
       '/products/SKU-054-BLK/secondary/ai-comment',
       expect.objectContaining({
         method: 'POST',
-        body: expect.objectContaining({ companyUuid }),
+        body: expect.objectContaining({ base: baseSubject, comparison: musinsaComparison }),
       }),
     )
     expect(httpClientMocks.apiRequest).toHaveBeenNthCalledWith(
@@ -161,7 +169,7 @@ describe('httpDashboardRequests company scope forwarding', () : void => {
       '/secondary/stock-order-calc',
       expect.objectContaining({
         method: 'POST',
-        body: expect.objectContaining({ companyUuid }),
+        body: expect.objectContaining({ base: baseSubject }),
       }),
     )
   })
@@ -169,29 +177,30 @@ describe('httpDashboardRequests company scope forwarding', () : void => {
   it('omits ALL, blank, and missing company scope for secondary read-like POST bodies', async () : Promise<void> => {
     await httpDashboardRequests.getSecondaryAiComment({
       skuGroupKey: 'SKU-054-BLK',
-      companyUuid: ALL_COMPANY_UUID,
       periodStart: '2025-01-01',
       periodEnd: '2025-03-31',
       forecastMonths: 3,
-      competitorChannelId: 'musinsa',
+      base: unscopedBaseSubject,
+      comparison: musinsaComparison,
     })
     await httpDashboardRequests.getSecondaryAiComment({
       skuGroupKey: 'SKU-054-BLK',
-      companyUuid: '   ',
       periodStart: '2025-01-01',
       periodEnd: '2025-03-31',
       forecastMonths: 3,
-      competitorChannelId: 'musinsa',
+      base: unscopedBaseSubject,
+      comparison: musinsaComparison,
     })
     await httpDashboardRequests.getSecondaryStockOrderCalc({
       skuGroupKey: 'SKU-054-BLK',
+      base: unscopedBaseSubject,
       periodStart: '2025-01-01',
       periodEnd: '2025-03-31',
       leadTimeDays: 21,
     })
     await httpDashboardRequests.getSecondaryStockOrderCalc({
       skuGroupKey: 'SKU-054-BLK',
-      companyUuid: ALL_COMPANY_UUID,
+      base: unscopedBaseSubject,
       periodStart: '2025-01-01',
       periodEnd: '2025-03-31',
       leadTimeDays: 21,

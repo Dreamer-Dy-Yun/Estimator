@@ -1,22 +1,22 @@
-import type { OrderSnapshotDrawer2V2, OrderSnapshotStockOrderRequestV2 } from '../../../../../snapshot/orderSnapshotTypes'
+import type { OrderSnapshotComparisonSubject, OrderSnapshotDrawer2, OrderSnapshotStockOrderRequest } from '../../../../../snapshot/orderSnapshotTypes'
 import { useEffect } from 'react'
-import type { OrderSnapshotAiCommentV2, OrderSnapshotDocumentV2 } from '../../../../../snapshot/orderSnapshotTypes'
+import type { OrderSnapshotAiComment, OrderSnapshotDocument } from '../../../../../snapshot/orderSnapshotTypes'
 import type { CandidateItemPanelContext } from '../secondaryDrawerTypes'
 import type { InboundDueDateDefaults } from './useSecondaryInboundDueDates'
 
 export type Args = {
-  prefillFromSnapshot: OrderSnapshotDocumentV2 | null
+  prefillFromSnapshot: OrderSnapshotDocument | null
   candidateItemContext: CandidateItemPanelContext | null
   defaultInboundDueDates: InboundDueDateDefaults
   minOrderDate: string
   prefillKey: string | null
-  onChannelChange: (next: string) => void
+  onComparisonSubjectChange: (next: OrderSnapshotComparisonSubject) => void
   setDailyMeanClient: (value: number | null) => void
   setCurrentOrderInboundDueDate: (value: string) => void
   setNextOrderInboundDueDate: (value: string) => void
   setBufferStock: (value: number) => void
   setSelfWeightPct: (value: number) => void
-  setAiComment: (value: OrderSnapshotAiCommentV2) => void
+  setAiComment: (value: OrderSnapshotAiComment) => void
   setConfirmBySize: (value: Record<string, number>) => void
   setSnapshotConfirmBaselineActive: (value: boolean) => void
   setAppliedPrefillKey: (value: string | null) => void
@@ -31,7 +31,7 @@ export function useSecondarySnapshotPrefill({
   defaultInboundDueDates,
   minOrderDate,
   prefillKey,
-  onChannelChange,
+  onComparisonSubjectChange,
   setDailyMeanClient,
   setCurrentOrderInboundDueDate,
   setNextOrderInboundDueDate,
@@ -63,9 +63,9 @@ export function useSecondarySnapshotPrefill({
         setAppliedPrefillKey(null)
         return
       }
-      const d2: OrderSnapshotDrawer2V2 = prefillFromSnapshot.drawer2
-      const stockOrderRequest: OrderSnapshotStockOrderRequestV2 = d2.stockOrderRequest
-      onChannelChange(d2.competitorChannelId)
+      const d2: OrderSnapshotDrawer2 = prefillFromSnapshot.drawer2
+      const stockOrderRequest: OrderSnapshotStockOrderRequest = d2.stockOrderRequest
+      onComparisonSubjectChange(d2.comparisonSubject)
       setBufferStock(d2.bufferStock)
       setSelfWeightPct(d2.selfWeightPct)
       setAiComment(d2.aiComment)
@@ -89,7 +89,7 @@ export function useSecondarySnapshotPrefill({
     defaultInboundDueDates.end,
     defaultInboundDueDates.start,
     minOrderDate,
-    onChannelChange,
+    onComparisonSubjectChange,
     prefillFromSnapshot,
     prefillKey,
     setAiComment,

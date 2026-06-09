@@ -1,4 +1,4 @@
-import type { AppendCandidateItemsResponse, CandidateDetailBulkConfirmProgressEvent, CandidateDetailBulkConfirmStartPayload, CandidateDetailBulkConfirmStartResult, CandidateItemDetail, CandidateItemListParams, CandidateItemListResult, CandidateOrderMetricEvent, CandidateOrderMetricStreamParams, CandidateRecommendationParams, CandidateRecommendationResult, CandidateStashExcelUploadResult, CandidateStashLlmCommentJobProgressEvent, CandidateStashLlmCommentJobStartResult, CandidateStashSummary, CompanyScopeParams, CompetitorSalesParams, DashboardEventStreamErrorListener, ProductComparisonTarget, ProductDrawerBundle, ProductMonthlyTrend, ProductMonthlyTrendParams, ProductSalesInsight, ProductSecondaryDetail, SalesFilterMeta, SecondaryAiCommentParams, SecondaryAiCommentResult, SecondaryCompetitorChannel, SecondaryStockOrderCalcResult, SelfSalesParams, UpdateCandidateItemPayload } from '..'
+import type { AppendCandidateItemsResponse, CandidateDetailBulkConfirmProgressEvent, CandidateDetailBulkConfirmStartPayload, CandidateDetailBulkConfirmStartResult, CandidateItemDetail, CandidateItemListParams, CandidateItemListResult, CandidateOrderMetricEvent, CandidateOrderMetricStreamParams, CandidateRecommendationParams, CandidateRecommendationResult, CandidateStashExcelUploadResult, CandidateStashLlmCommentJobProgressEvent, CandidateStashLlmCommentJobStartResult, CandidateStashSummary, CompanyScopeParams, CompetitorSalesParams, DashboardEventStreamErrorListener, ProductComparisonSubjectRef, ProductComparisonTarget, ProductDrawerBundle, ProductMonthlyTrend, ProductMonthlyTrendParams, ProductSalesInsight, ProductSecondaryDetail, SalesFilterMeta, SecondaryAiCommentParams, SecondaryAiCommentResult, SecondaryCompetitorChannel, SecondaryStockOrderCalcResult, SelfSalesParams, UpdateCandidateItemPayload } from '..'
 import type { CompetitorSalesRow, SelfSalesRow } from '../../types'
 import type { AppendCandidateItemPayload, AppendCandidateItemsPayload, CompanyMutationScopeParams, CompetitorSalesGridParams, CreateCandidateStashPayload, ProductComparisonTargetParams, ProductDrawerBundleParams, ProductSalesInsightParams, ProductSecondaryDetailParams, ScatterSalesGridResponse, SecondaryDailyTrendParams, SecondaryDailyTrendPoint, SecondaryStockOrderCalcParams, SelfSalesGridParams, UpdateCandidateStashPayload } from '../types'
 import type { CandidateStashListParams } from '../types/candidate'
@@ -8,7 +8,7 @@ import type {
   DashboardApi,
 } from '../types'
 import {
-  getCompanyUuidForOptionalScope,
+  getComparisonSubjectSourceIdForContract,
   getRequiredCompanyUuidForMutationScope,
   normalizeCompanyMutationScopeParams,
   normalizeCompanyScopeParams,
@@ -22,11 +22,15 @@ import {
 
 function productComparisonSubjectQueryPrefix(
   prefix: 'base' | 'comparison',
-  subject: { role: 'base' | 'comparison'; kind: 'competitor-channel' | 'self-company'; sourceId: string },
+  subject: ProductComparisonSubjectRef,
 ): Record<string, string> {
-  const sourceId: string | undefined = subject.kind === 'self-company'
-    ? getCompanyUuidForOptionalScope(subject.sourceId)
-    : subject.sourceId
+  if (subject.role !== prefix) {
+    throw new Error(`${prefix}Role mismatch: got ${subject.role}.`)
+  }
+  if (subject.kind === 'competitor-channel' && !subject.sourceId) {
+    throw new Error(`${prefix}SourceId is required for competitor-channel subjects.`)
+  }
+  const sourceId: string | undefined = getComparisonSubjectSourceIdForContract(subject)
   return {
     [`${prefix}Role`]: subject.role,
     [`${prefix}Kind`]: subject.kind,
@@ -38,10 +42,42 @@ function productComparisonTargetQuery(params: ProductComparisonTargetParams): Re
   return productComparisonSubjectQueryPrefix('base', params.base)
 }
 
+function productDrawerBundleQuery(params: ProductDrawerBundleParams): Record<string, string> {
+  return productComparisonSubjectQueryPrefix('base', params.base)
+}
+
 function productSalesInsightQuery(params: ProductSalesInsightParams): Record<string, string> {
   return {
     startDate: params.startDate,
     endDate: params.endDate,
+    ...productComparisonSubjectQueryPrefix('base', params.base),
+    ...productComparisonSubjectQueryPrefix('comparison', params.comparison),
+  }
+}
+
+function productMonthlyTrendQuery(params: ProductMonthlyTrendParams): Record<string, string> {
+  return {
+    startDate: params.startDate,
+    endDate: params.endDate,
+    forecastMonths: String(params.forecastMonths),
+    ...productComparisonSubjectQueryPrefix('base', params.base),
+    ...productComparisonSubjectQueryPrefix('comparison', params.comparison),
+  }
+}
+
+function productSecondaryDetailQuery(params: ProductSecondaryDetailParams): Record<string, string> {
+  return {
+    ...productComparisonSubjectQueryPrefix('base', params.base),
+    ...productComparisonSubjectQueryPrefix('comparison', params.comparison),
+    ...(params.minOpMarginPct == null ? {} : { minOpMarginPct: String(params.minOpMarginPct) }),
+  }
+}
+
+function secondaryDailyTrendQuery(params: Omit<SecondaryDailyTrendParams, 'skuGroupKey'>): Record<string, string> {
+  return {
+    startDate: params.startDate,
+    endDate: params.endDate,
+    forecastDays: String(params.forecastDays),
     ...productComparisonSubjectQueryPrefix('base', params.base),
     ...productComparisonSubjectQueryPrefix('comparison', params.comparison),
   }
@@ -77,9 +113,9 @@ export const httpDashboardRequests: DashboardApi = {
     apiRequest('/sales/competitor/scatter-grid', { query: queryParams(normalizeCompanyScopeParams(params)) }),
   getSalesFilterMeta: (params: CompanyScopeParams | undefined) : Promise<SalesFilterMeta> =>
     apiRequest('/sales/filter-meta', { query: queryParams(normalizeCompanyScopeParams(params)) }),
-  getProductDrawerBundle: (skuGroupKey: string, params: ProductDrawerBundleParams | undefined) : Promise<ProductDrawerBundle> =>
+  getProductDrawerBundle: (skuGroupKey: string, params: ProductDrawerBundleParams) : Promise<ProductDrawerBundle> =>
     apiRequest(`/products/${encodePathSegment(skuGroupKey)}/drawer-bundle`, {
-      query: queryParams(normalizeCompanyScopeParams(params)),
+      query: queryParams(productDrawerBundleQuery(params)),
     }),
   getProductComparisonTargets: (params: ProductComparisonTargetParams) : Promise<ProductComparisonTarget[]> =>
     apiRequest('/products/comparison-targets', {
@@ -87,24 +123,24 @@ export const httpDashboardRequests: DashboardApi = {
     }),
   getProductMonthlyTrend: (skuGroupKey: string, params: ProductMonthlyTrendParams) : Promise<ProductMonthlyTrend> =>
     apiRequest(`/products/${encodePathSegment(skuGroupKey)}/monthly-trend`, {
-      query: queryParams(normalizeCompanyScopeParams(params)),
+      query: queryParams(productMonthlyTrendQuery(params)),
     }),
   getProductSalesInsight: (skuGroupKey: string, params: ProductSalesInsightParams) : Promise<ProductSalesInsight> =>
     apiRequest(`/products/${encodePathSegment(skuGroupKey)}/sales-insight`, {
       query: queryParams(productSalesInsightQuery(params)),
     }),
-  getProductSecondaryDetail: (skuGroupKey: string, params: ProductSecondaryDetailParams | undefined) : Promise<ProductSecondaryDetail> =>
+  getProductSecondaryDetail: (skuGroupKey: string, params: ProductSecondaryDetailParams) : Promise<ProductSecondaryDetail> =>
     apiRequest(`/products/${encodePathSegment(skuGroupKey)}/secondary-detail`, {
-      query: queryParams(normalizeCompanyScopeParams(params)),
+      query: queryParams(productSecondaryDetailQuery(params)),
     }),
   getSecondaryDailyTrend: ({ skuGroupKey, ...params }: SecondaryDailyTrendParams) : Promise<SecondaryDailyTrendPoint[]> =>
     apiRequest(`/products/${encodePathSegment(skuGroupKey)}/secondary/daily-trend`, {
-      query: queryParams(normalizeCompanyScopeParams(params)),
+      query: queryParams(secondaryDailyTrendQuery(params)),
     }),
   getSecondaryAiComment: ({ skuGroupKey, ...payload }: SecondaryAiCommentParams) : Promise<SecondaryAiCommentResult> =>
     apiRequest(`/products/${encodePathSegment(skuGroupKey)}/secondary/ai-comment`, {
       method: 'POST',
-      body: normalizeCompanyScopeParams(payload),
+      body: payload,
     }),
   getSecondaryCompetitorChannels: () : Promise<SecondaryCompetitorChannel[]> => apiRequest('/secondary/competitor-channels'),
   getCandidateStashes: (params: CandidateStashListParams | undefined) : Promise<CandidateStashSummary[]> =>
@@ -208,5 +244,5 @@ export const httpDashboardRequests: DashboardApi = {
     return apiRequest('/candidate-stashes/import/excel', { method: 'POST', body: formData })
   },
   getSecondaryStockOrderCalc: (params: SecondaryStockOrderCalcParams) : Promise<SecondaryStockOrderCalcResult> =>
-    apiRequest('/secondary/stock-order-calc', { method: 'POST', body: normalizeCompanyScopeParams(params) }),
+    apiRequest('/secondary/stock-order-calc', { method: 'POST', body: params }),
 }

@@ -81,14 +81,14 @@ export interface DashboardApi {
   getSalesFilterMeta(params?: SalesFilterMetaParams): Promise<SalesFilterMeta>
   getProductDrawerBundle(
     skuGroupKey: string,
-    params?: ProductDrawerBundleParams,
+    params: ProductDrawerBundleParams,
   ): Promise<ProductDrawerBundle>
   getProductComparisonTargets(params: ProductComparisonTargetParams): Promise<ProductComparisonTarget[]>
   getProductMonthlyTrend(skuGroupKey: string, params: ProductMonthlyTrendParams): Promise<ProductMonthlyTrend>
   getProductSalesInsight(skuGroupKey: string, params: ProductSalesInsightParams): Promise<ProductSalesInsight>
   getProductSecondaryDetail(
     skuGroupKey: string,
-    params?: ProductSecondaryDetailParams,
+    params: ProductSecondaryDetailParams,
   ): Promise<ProductSecondaryDetail>
   getSecondaryDailyTrend(params: SecondaryDailyTrendParams): Promise<SecondaryDailyTrendPoint[]>
   getSecondaryAiComment(params: SecondaryAiCommentParams): Promise<SecondaryAiCommentResult>

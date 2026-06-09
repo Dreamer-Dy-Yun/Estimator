@@ -1,6 +1,6 @@
 # Backend API Spec
 
-Last updated: 2026-05-29
+Last updated: 2026-06-09
 
 Purpose: implementation notes that are not obvious from the API catalog. Current endpoint and DTO contract is `dashboard-api-contract-catalog.md`.
 
@@ -17,7 +17,7 @@ Purpose: implementation notes that are not obvious from the API catalog. Current
 - All-company reads omit `companyUuid`.
 - Single-company reads send `companyUuid`.
 - Candidate mutations, imports, jobs, and job SSE require `companyUuid`.
-- `secondary ai-comment` and `secondary stock-order-calc` are read-like POST requests; `companyUuid` is optional for all-company calculations.
+- Product drawer read-like requests use base/comparison subject refs instead of top-level `companyUuid`.
 
 ## Auth and admin
 
@@ -32,6 +32,8 @@ Purpose: implementation notes that are not obvious from the API catalog. Current
 - Sales analysis rows and scatter cells must be generated from the same filter params.
 - Competitor channel omitted means aggregate competitor channel scope.
 - Product drawer bundle returns only `summary`; monthly trend, sales insight, secondary detail, and stock-order calculation are separate endpoints.
+- Product drawer bundle is base-only: it receives `baseRole/baseKind/baseSourceId?` and does not receive a comparison subject.
+- Product drawer monthly trend, sales insight, secondary detail, daily trend, and AI comment receive both `base` and `comparison` subject refs.
 - Monthly trend request uses the last 24 completed months ending at previous month and 12 forecast months.
 - Daily trend request uses selected start month first day through yesterday plus lead-time `forecastDays`.
 - Actual/forecast split comes from API `isForecast`.
@@ -42,8 +44,8 @@ Purpose: implementation notes that are not obvious from the API catalog. Current
 - Bulk append response returns newly created `CandidateStashItemSummary[]` only.
 - If a SKU is already in the stash, backend may skip it. The frontend treats zero newly created rows as `no-op`.
 - Recommendation append response items must include `uuid`, `stashUuid`, `skuUuid`, `skuGroupKey` so the frontend can match them to recommendation source rows.
-- Singular append stores one `OrderSnapshotDocumentV2` in `details` and sends `isLatestLlmComment` explicitly.
-- Update item sends `details: OrderSnapshotDocumentV2 | null` and `isLatestLlmComment`.
+- Singular append stores one `OrderSnapshotDocument` v3 in `details` and sends `isLatestLlmComment` explicitly.
+- Update item sends `details: OrderSnapshotDocument | null` and `isLatestLlmComment`.
 
 ## AI comment
 

@@ -1,6 +1,7 @@
+import type { OrderSnapshotDocument } from './orderSnapshotTypes'
 import { ORDER_SNAPSHOT_SCHEMA_VERSION } from './orderSnapshotTypes'
 
-export const validSnapshot: { readonly schemaVersion: 2; readonly skuGroupKey: 'B'; readonly savedAt: '2026-04-23T00:00:00.000Z'; readonly context: { readonly periodStart: '2026-01-01'; readonly periodEnd: '2026-01-31'; readonly forecastMonths: 8; readonly dailyTrendStartMonth: '2026-01'; readonly dailyTrendLeadTimeDays: 30; }; readonly drawer1: { readonly summary: { readonly skuGroupKey: 'B'; readonly productName: 'Runner'; readonly brand: 'Brand'; readonly category: 'Shoes'; readonly code: 'RUN'; readonly colorCode: 'BLK'; readonly price: 100000; readonly qty: 80; readonly availableStock: 20; }; }; readonly drawer2: { readonly competitorBasis: { readonly skuGroupKey: 'B'; readonly competitorPrice: 120000; readonly competitorQty: 32; readonly competitorRatioBySize: { readonly '250': 0.6; }; }; readonly competitorChannelId: 'cream'; readonly competitorChannelLabel: 'Cream'; readonly bufferStock: 0; readonly selfWeightPct: 50; readonly aiComment: { readonly prompt: 'prompt'; readonly answer: 'comment'; readonly generatedAt: '2026-04-23T00:00:00.000Z'; }; readonly stockOrderRequest: { readonly currentOrderInboundDueDate: '2026-02-01'; readonly nextOrderInboundDueDate: '2026-02-28'; readonly leadTimeDays: 30; readonly dailyMeanOverride: 10; }; readonly stockOrderResult: { readonly trendDailyMean: 10; readonly dailyMean: 10; readonly sigma: 1; readonly display: { readonly currentStockQtyTotal: 20; readonly totalOrderBalanceTotal: 4; readonly expectedInboundOrderBalanceTotal: 2; readonly sizeRows: readonly [{ readonly size: '250'; readonly currentStockQty: 20; readonly totalOrderBalance: 4; readonly expectedInboundOrderBalance: 2; }]; }; readonly safetyStockCalc: { readonly safetyStock: 12; readonly recommendedOrderQty: 12; readonly expectedOrderAmount: 720000; readonly expectedSalesAmount: 1200000; readonly expectedOpProfit: 336000; }; readonly forecastQtyCalc: { readonly safetyStock: null; readonly recommendedOrderQty: 12; readonly expectedOrderAmount: 720000; readonly expectedSalesAmount: 1200000; readonly expectedOpProfit: 336000; }; }; readonly unitEconomics: { readonly unitPrice: 100000; readonly unitCost: 60000; readonly expectedFeeRatePct: 12; }; readonly confirmedTotals: { readonly orderQty: 12; readonly expectedSalesAmount: 1200000; readonly expectedOpProfit: 336000; readonly expectedOpProfitRatePct: 28; }; readonly sizeOrders: readonly [{ readonly size: '250'; readonly selfSharePct: 40; readonly competitorSharePct: 60; readonly blendedSharePct: 50; readonly forecastQty: 10; readonly recommendedQty: 12; readonly confirmQty: 12; }]; }; } = {
+export const validSnapshot: OrderSnapshotDocument = {
   schemaVersion: ORDER_SNAPSHOT_SCHEMA_VERSION,
   skuGroupKey: 'B',
   savedAt: '2026-04-23T00:00:00.000Z',
@@ -25,16 +26,26 @@ export const validSnapshot: { readonly schemaVersion: 2; readonly skuGroupKey: '
     },
   },
   drawer2: {
-    competitorBasis: {
+    baseSubject: {
+      role: 'base',
+      kind: 'self-company',
+      sourceId: 'company-uuid-001',
+    },
+    comparisonSubject: {
+      role: 'comparison',
+      kind: 'competitor-channel',
+      id: 'comparison:competitor-channel:cream',
+      sourceId: 'cream',
+      label: 'Cream',
+    },
+    comparisonBasis: {
       skuGroupKey: 'B',
-      competitorPrice: 120000,
-      competitorQty: 32,
-      competitorRatioBySize: {
+      comparisonPrice: 120000,
+      comparisonQty: 32,
+      comparisonRatioBySize: {
         '250': 0.6,
       },
     },
-    competitorChannelId: 'cream',
-    competitorChannelLabel: 'Cream',
     bufferStock: 0,
     selfWeightPct: 50,
     aiComment: {
@@ -92,8 +103,8 @@ export const validSnapshot: { readonly schemaVersion: 2; readonly skuGroupKey: '
     sizeOrders: [
       {
         size: '250',
-        selfSharePct: 40,
-        competitorSharePct: 60,
+        baseSharePct: 40,
+        comparisonSharePct: 60,
         blendedSharePct: 50,
         forecastQty: 10,
         recommendedQty: 12,
@@ -101,10 +112,10 @@ export const validSnapshot: { readonly schemaVersion: 2; readonly skuGroupKey: '
       },
     ],
   },
-} as const
+}
 
-export const secondaryDetailFixture: { sizeRows: { size: string; selfRatio: number; confirmedQty: number; avgPrice: number; qty: number; availableStock: number; }[]; skuGroupKey: 'B'; competitorPrice: 120000; competitorQty: 32; competitorRatioBySize: { readonly '250': 0.6; }; } = {
-  ...validSnapshot.drawer2.competitorBasis,
+export const secondaryDetailFixture = {
+  ...validSnapshot.drawer2.comparisonBasis,
   sizeRows: [{
     size: '250',
     selfRatio: 40,
@@ -136,10 +147,10 @@ export const currentStockOrderRequestKeys: string[] = [
 
 export const currentDrawer2Keys: string[] = [
   'aiComment',
+  'baseSubject',
   'bufferStock',
-  'competitorBasis',
-  'competitorChannelId',
-  'competitorChannelLabel',
+  'comparisonBasis',
+  'comparisonSubject',
   'confirmedTotals',
   'selfWeightPct',
   'sizeOrders',

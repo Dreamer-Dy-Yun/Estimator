@@ -28,13 +28,13 @@ function makeFlatTrend(historySales: number, forecastSales: number): MonthlySale
   }))
 }
 
-function buildSimpleCalcSecondary(skuGroupKey: string, competitorPrice: number, competitorQty: number): ProductSecondaryDetail {
+function buildSimpleCalcSecondary(skuGroupKey: string, comparisonPrice: number, comparisonQty: number): ProductSecondaryDetail {
   const sizes: string[] = ['S', 'M', 'L', 'XL', 'XXL']
   return {
     skuGroupKey,
-    competitorPrice,
-    competitorQty,
-    competitorRatioBySize: Object.fromEntries(sizes.map((size: string) : [string, number] => [size, 0.2])),
+    comparisonPrice,
+    comparisonQty,
+    comparisonRatioBySize: Object.fromEntries(sizes.map((size: string) : [string, number] => [size, 0.2])),
     sizeRows: sizes.map((size: string) : { size: string; selfRatio: number; confirmedQty: number; avgPrice: number; qty: number; availableStock: number; } => ({
       size,
       selfRatio: 20,
@@ -86,14 +86,14 @@ export const { primary: productPrimaryBySkuGroupKey, secondary: productSecondary
 
     const price: number = s?.avgPrice ?? c?.selfAvgPrice ?? Math.round((c?.competitorAvgPrice ?? 120000) * 0.96)
     const productQty: number = s?.qty ?? c?.selfQty ?? Math.round((c?.competitorQty ?? 5000) * 0.85)
-    const competitorPrice: number = c?.competitorAvgPrice ?? Math.round(price * 1.03)
-    const competitorQty: number = c?.competitorQty ?? Math.max(0, Math.round(productQty * KREAM_TO_SELF_QTY_RATIO))
+    const comparisonPrice: number = c?.competitorAvgPrice ?? Math.round(price * 1.03)
+    const comparisonQty: number = c?.competitorQty ?? Math.max(0, Math.round(productQty * KREAM_TO_SELF_QTY_RATIO))
     const initialOrderQty: number = Math.round(productQty / 1.7)
     const availableStock: number = Math.round(productQty * 0.45)
 
     const monthlySalesTrend: MonthlySalesPoint[] = buildSalesTrend(Math.max(800, Math.round(productQty * 0.42)), seed, 8)
     const fullMix: { size: string; ratio: number; competitorRatio: number; confirmedQty: number; avgPrice: number; qty: number; availableStock: number; }[] = makeSizeMix(initialOrderQty, productQty, price, availableStock, seed, metadata.category)
-    const { sizeRows, competitorRatioBySize }: Pick<ProductSecondaryDetail, 'sizeRows' | 'competitorRatioBySize'> = splitSecondarySizeRows(fullMix)
+    const { sizeRows, comparisonRatioBySize }: { sizeRows: ProductSecondaryDetail['sizeRows']; comparisonRatioBySize: ProductSecondaryDetail['comparisonRatioBySize']; } = splitSecondarySizeRows(fullMix)
 
     primary[skuGroupKey] = {
       ...metadata,
@@ -104,9 +104,9 @@ export const { primary: productPrimaryBySkuGroupKey, secondary: productSecondary
     }
     secondary[skuGroupKey] = {
       skuGroupKey,
-      competitorPrice,
-      competitorQty,
-      competitorRatioBySize,
+      comparisonPrice,
+      comparisonQty,
+      comparisonRatioBySize: comparisonRatioBySize,
       sizeRows,
     }
   }

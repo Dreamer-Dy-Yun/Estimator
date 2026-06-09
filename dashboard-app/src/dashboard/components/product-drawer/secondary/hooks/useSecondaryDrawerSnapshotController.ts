@@ -1,6 +1,6 @@
-import type { OrderSnapshotSizeOrderV2 } from '../../../../../snapshot/orderSnapshotTypes'
+import type { OrderSnapshotComparisonSubject, OrderSnapshotSizeOrder } from '../../../../../snapshot/orderSnapshotTypes'
 import { useCallback, useEffect, useMemo, useState,} from 'react'
-import type { OrderSnapshotAiCommentV2, OrderSnapshotDocumentV2 } from '../../../../../snapshot/orderSnapshotTypes'
+import type { OrderSnapshotAiComment, OrderSnapshotDocument } from '../../../../../snapshot/orderSnapshotTypes'
 import type { CandidateItemPanelContext } from '../secondaryDrawerTypes'
 import type { InboundDueDateDefaults } from './useSecondaryInboundDueDates'
 import { useSecondarySnapshotPrefill } from './useSecondarySnapshotPrefill'
@@ -12,22 +12,22 @@ export type LiveOrderUnitSource = {
 }
 
 export type SnapshotControllerArgs = {
-  prefillFromSnapshot: OrderSnapshotDocumentV2 | null
+  prefillFromSnapshot: OrderSnapshotDocument | null
   candidateItemContext: CandidateItemPanelContext | null
   primarySkuGroupKey: string
   primaryPrice: number
   defaultInboundDueDates: InboundDueDateDefaults
   minOrderDate: string
-  onChannelChange: (next: string) => void
+  onComparisonSubjectChange: (next: OrderSnapshotComparisonSubject) => void
   setCurrentOrderInboundDueDate: (value: string) => void
   setNextOrderInboundDueDate: (value: string) => void
-  setAiComment: (value: OrderSnapshotAiCommentV2) => void
+  setAiComment: (value: OrderSnapshotAiComment) => void
   resetInboundDueDatesToLive: () => void
 }
 
 export type DraftEmissionArgs = {
   candidateItemContext: CandidateItemPanelContext | null
-  buildSnapshot: () => OrderSnapshotDocumentV2
+  buildSnapshot: () => OrderSnapshotDocument
   canBuildSnapshot?: boolean
   prefillKey: string | null
   appliedPrefillKey: string | null
@@ -36,7 +36,7 @@ export type DraftEmissionArgs = {
 }
 
 export type LiveUnitDefaultsArgs = {
-  prefillFromSnapshot: OrderSnapshotDocumentV2 | null
+  prefillFromSnapshot: OrderSnapshotDocument | null
   primarySkuGroupKey: string
   liveOrderUnitSource: LiveOrderUnitSource | null
   applyLiveOrderUnitInputs: (source: LiveOrderUnitSource) => void
@@ -55,7 +55,7 @@ export function useSecondaryDrawerSnapshotController({
   primaryPrice,
   defaultInboundDueDates,
   minOrderDate,
-  onChannelChange,
+  onComparisonSubjectChange,
   setCurrentOrderInboundDueDate,
   setNextOrderInboundDueDate,
   setAiComment,
@@ -89,7 +89,7 @@ export function useSecondaryDrawerSnapshotController({
   const snapshotConfirmBySize: { [k: string]: number; } = useMemo(
     () : { [k: string]: number; } => (prefillFromSnapshot == null
       ? {}
-      : Object.fromEntries(prefillFromSnapshot.drawer2.sizeOrders.map((row: OrderSnapshotSizeOrderV2) : [string, number] => [row.size, row.confirmQty]))),
+      : Object.fromEntries(prefillFromSnapshot.drawer2.sizeOrders.map((row: OrderSnapshotSizeOrder) : [string, number] => [row.size, row.confirmQty]))),
     [prefillFromSnapshot],
   )
   const applyLiveOrderUnitInputs: (source: LiveOrderUnitSource) => void = useCallback((source: LiveOrderUnitSource) : void => {
@@ -145,7 +145,7 @@ export function useSecondaryDrawerSnapshotController({
     defaultInboundDueDates,
     minOrderDate,
     prefillKey,
-    onChannelChange,
+    onComparisonSubjectChange,
     setDailyMeanClient,
     setCurrentOrderInboundDueDate,
     setNextOrderInboundDueDate,

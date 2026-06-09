@@ -1,11 +1,11 @@
 import type { ProductDrawerBundle } from '../../api'
 import type {
-  OrderSnapshotDocumentV2,
-  OrderSnapshotPrimarySummaryV2,
+  OrderSnapshotDocument,
+  OrderSnapshotPrimarySummary,
 } from '../../snapshot/orderSnapshotTypes'
 import type { ProductPrimarySummary } from '../../types'
 
-export type SnapshotPrimarySummary = Partial<OrderSnapshotPrimarySummaryV2>
+export type SnapshotPrimarySummary = Partial<OrderSnapshotPrimarySummary>
 
 function withoutUndefinedPrimaryFields<T extends object>(summary: T): Partial<T> {
   return Object.fromEntries(Object.entries(summary).filter(([, value]: [string, unknown]) : boolean => value !== undefined)) as Partial<T>
@@ -29,10 +29,10 @@ function mergeBundleSummaryWithSnapshotSummary(
 export function mergePrimarySummaryFromBundleAndSnapshot(
   drawerSkuGroupKey: string | null,
   bundle: ProductDrawerBundle | null,
-  hydrateSnap: OrderSnapshotDocumentV2 | null,
+  hydrateSnap: OrderSnapshotDocument | null,
 ): ProductPrimarySummary | null {
   if (!drawerSkuGroupKey) return null
-  const snap1: Partial<OrderSnapshotPrimarySummaryV2> | undefined = hydrateSnap?.drawer1?.summary as SnapshotPrimarySummary | undefined
+  const snap1: Partial<OrderSnapshotPrimarySummary> | undefined = hydrateSnap?.drawer1?.summary as SnapshotPrimarySummary | undefined
   const snapMatches: boolean = hydrateSnap?.skuGroupKey === drawerSkuGroupKey
 
   if (bundle) {

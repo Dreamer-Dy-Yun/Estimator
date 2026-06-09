@@ -1,4 +1,4 @@
-import type { CandidateItemDetail, CandidateItemSummary, ProductDrawerBundle } from '../../../api'
+import type { CandidateItemDetail, CandidateItemSummary, ProductComparisonBaseSubjectRef, ProductDrawerBundle } from '../../../api'
 import type { ProductPrimarySummary } from '../../../types'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { getCandidateItemByUuid, isAllCompanyScope, type CandidateStashSummary } from '../../../api'
@@ -6,7 +6,7 @@ import type { AdjacentDirection } from '../../../utils/adjacentListNavigation'
 import { adjacentIdInOrder } from '../../../utils/adjacentListNavigation'
 import { clampForecastMonths, DEFAULT_FORECAST_MONTHS } from '../../../utils/forecastMonthsStorage'
 import { parseOrderSnapshot } from '../../../snapshot/parseOrderSnapshot'
-import type { OrderSnapshotDocumentV2 } from '../../../snapshot/orderSnapshotTypes'
+import type { OrderSnapshotDocument } from '../../../snapshot/orderSnapshotTypes'
 import { mergePrimarySummaryFromBundleAndSnapshot } from '../../drawer/mergePrimarySummaryFromSnapshot'
 import { useProductDrawerBundle } from '../../hooks/useProductDrawerBundle'
 import type { InnerCandidateRow } from './candidateStashDetailTypes'
@@ -14,7 +14,7 @@ import type { InnerCandidateRow } from './candidateStashDetailTypes'
 const INNER_DRAWER_CLOSE_LAYOUT_MS = 440 as const
 
 export type DrawerSnapshotSource = 'confirmed' | 'live'
-export type DraftSnapshotEntry = { snapshot: OrderSnapshotDocumentV2; source: DrawerSnapshotSource }
+export type DraftSnapshotEntry = { snapshot: OrderSnapshotDocument; source: DrawerSnapshotSource }
 export type SnapshotMutationState = { state: 'confirmed' | 'unconfirmed'; baseDbUpdatedAt: string | null }
 export type OpenItemDrawerOptions = { companyUuid?: string | null }
 
@@ -26,15 +26,15 @@ export type Args = {
   tableRows: InnerCandidateRow[]
 }
 
-export function useCandidateStashItemDrawer({ dataReferenceStart, dataReferenceEnd, itemDeleteTargetUuid, tableRows }: Args) : { drawerOpen: boolean; drawerClosing: boolean; drawerError: string | null; openedItemUuid: string | null; hydrateSnap: OrderSnapshotDocumentV2 | null; hydrateSnapSource: DrawerSnapshotSource | null; confirmedHydrateSnap: OrderSnapshotDocumentV2 | null; fc: number; bundle: ProductDrawerBundle | null; mergedSummary: ProductPrimarySummary | null; openItemDrawer: (row: InnerCandidateRow, options?: OpenItemDrawerOptions) => Promise<void>; onRequestNavigateAdjacent: (direction: AdjacentDirection) => Promise<void>; closeDrawer: () => void; onDrawerForecastMonthsChange: (n: number) => void; saveDrawerDraftSnapshot: (itemUuid: string, snapshot: OrderSnapshotDocumentV2, source: DrawerSnapshotSource) => void; clearDrawerDraftSnapshot: (itemUuid: string) => void; markDrawerSnapshotConfirmed: (itemUuid: string, snapshot: OrderSnapshotDocumentV2, baseDbUpdatedAt?: string | null) => void; markDrawerSnapshotUnconfirmed: (itemUuid: string, baseDbUpdatedAt?: string | null) => void; restoreDrawerConfirmedSnapshot: (itemUuid: string) => void; } {
+export function useCandidateStashItemDrawer({ dataReferenceStart, dataReferenceEnd, itemDeleteTargetUuid, tableRows }: Args) : { drawerOpen: boolean; drawerClosing: boolean; drawerError: string | null; openedItemUuid: string | null; hydrateSnap: OrderSnapshotDocument | null; hydrateSnapSource: DrawerSnapshotSource | null; confirmedHydrateSnap: OrderSnapshotDocument | null; fc: number; bundle: ProductDrawerBundle | null; mergedSummary: ProductPrimarySummary | null; openItemDrawer: (row: InnerCandidateRow, options?: OpenItemDrawerOptions) => Promise<void>; onRequestNavigateAdjacent: (direction: AdjacentDirection) => Promise<void>; closeDrawer: () => void; onDrawerForecastMonthsChange: (n: number) => void; saveDrawerDraftSnapshot: (itemUuid: string, snapshot: OrderSnapshotDocument, source: DrawerSnapshotSource) => void; clearDrawerDraftSnapshot: (itemUuid: string) => void; markDrawerSnapshotConfirmed: (itemUuid: string, snapshot: OrderSnapshotDocument, baseDbUpdatedAt?: string | null) => void; markDrawerSnapshotUnconfirmed: (itemUuid: string, baseDbUpdatedAt?: string | null) => void; restoreDrawerConfirmedSnapshot: (itemUuid: string) => void; } {
   const [drawerOpen, setDrawerOpen]: [boolean, React.Dispatch<React.SetStateAction<boolean>>] = useState(false)
   const [drawerClosing, setDrawerClosing]: [boolean, React.Dispatch<React.SetStateAction<boolean>>] = useState(false)
   const [drawerError, setDrawerError]: [string | null, React.Dispatch<React.SetStateAction<string | null>>] = useState<string | null>(null)
   const [drawerSkuGroupKey, setDrawerSkuGroupKey]: [string | null, React.Dispatch<React.SetStateAction<string | null>>] = useState<string | null>(null)
   const [openedItemUuid, setOpenedItemUuid]: [string | null, React.Dispatch<React.SetStateAction<string | null>>] = useState<string | null>(null)
-  const [hydrateSnap, setHydrateSnap]: [OrderSnapshotDocumentV2 | null, React.Dispatch<React.SetStateAction<OrderSnapshotDocumentV2 | null>>] = useState<OrderSnapshotDocumentV2 | null>(null)
+  const [hydrateSnap, setHydrateSnap]: [OrderSnapshotDocument | null, React.Dispatch<React.SetStateAction<OrderSnapshotDocument | null>>] = useState<OrderSnapshotDocument | null>(null)
   const [hydrateSnapSource, setHydrateSnapSource]: [DrawerSnapshotSource | null, React.Dispatch<React.SetStateAction<DrawerSnapshotSource | null>>] = useState<DrawerSnapshotSource | null>(null)
-  const [confirmedHydrateSnap, setConfirmedHydrateSnap]: [OrderSnapshotDocumentV2 | null, React.Dispatch<React.SetStateAction<OrderSnapshotDocumentV2 | null>>] = useState<OrderSnapshotDocumentV2 | null>(null)
+  const [confirmedHydrateSnap, setConfirmedHydrateSnap]: [OrderSnapshotDocument | null, React.Dispatch<React.SetStateAction<OrderSnapshotDocument | null>>] = useState<OrderSnapshotDocument | null>(null)
   const [drawerForecastMonths, setDrawerForecastMonths]: [number, React.Dispatch<React.SetStateAction<number>>] = useState<number>(DEFAULT_FORECAST_MONTHS)
   const [drawerCompanyUuid, setDrawerCompanyUuid]: [string | null, React.Dispatch<React.SetStateAction<string | null>>] = useState<string | null>(null)
   const mountedRef: React.RefObject<boolean> = useRef(false)
@@ -43,7 +43,7 @@ export function useCandidateStashItemDrawer({ dataReferenceStart, dataReferenceE
   const drawerCompanyUuidRef: React.RefObject<string | null> = useRef<string | null>(null)
   const innerNavLockRef: React.RefObject<boolean> = useRef(false)
   const draftSnapshotsByItemUuidRef: React.RefObject<Record<string, DraftSnapshotEntry>> = useRef<Record<string, DraftSnapshotEntry>>({})
-  const confirmedSnapshotsByItemUuidRef: React.RefObject<Record<string, OrderSnapshotDocumentV2>> = useRef<Record<string, OrderSnapshotDocumentV2>>({})
+  const confirmedSnapshotsByItemUuidRef: React.RefObject<Record<string, OrderSnapshotDocument>> = useRef<Record<string, OrderSnapshotDocument>>({})
   const snapshotMutationsByItemUuidRef: React.RefObject<Record<string, SnapshotMutationState>> = useRef<Record<string, SnapshotMutationState>>({})
 
   const clearCloseTimer: () => void = useCallback(() : void => {
@@ -62,14 +62,22 @@ export function useCandidateStashItemDrawer({ dataReferenceStart, dataReferenceE
   }, [clearCloseTimer])
 
   const fc: number = clampForecastMonths(drawerForecastMonths)
+  const drawerBaseSubject: ProductComparisonBaseSubjectRef = useMemo(
+    () : ProductComparisonBaseSubjectRef => ({
+      role: 'base',
+      kind: 'self-company',
+      ...(drawerCompanyUuid == null ? {} : { sourceId: drawerCompanyUuid }),
+    }),
+    [drawerCompanyUuid],
+  )
   const bundle: ProductDrawerBundle | null = useProductDrawerBundle(drawerOpen || drawerClosing ? drawerSkuGroupKey : null, {
     allowStaleWhileRevalidate: false,
-    companyUuid: drawerCompanyUuid ?? undefined,
+    baseSubject: drawerBaseSubject,
   })
   const mergedSummary: ProductPrimarySummary | null = useMemo(() : ProductPrimarySummary | null => mergePrimarySummaryFromBundleAndSnapshot(drawerSkuGroupKey, bundle, hydrateSnap), [bundle, drawerSkuGroupKey, hydrateSnap])
   if (drawerOpen && (!dataReferenceStart || !dataReferenceEnd)) throw new Error('후보 상세 조회 기간 정보 누락')
 
-  const applyOpenedSnapshot: (itemUuid: string, nextHydrate: OrderSnapshotDocumentV2 | null, source: DrawerSnapshotSource | null, confirmed: OrderSnapshotDocumentV2 | null) => void = useCallback((itemUuid: string, nextHydrate: OrderSnapshotDocumentV2 | null, source: DrawerSnapshotSource | null, confirmed: OrderSnapshotDocumentV2 | null) : void => {
+  const applyOpenedSnapshot: (itemUuid: string, nextHydrate: OrderSnapshotDocument | null, source: DrawerSnapshotSource | null, confirmed: OrderSnapshotDocument | null) => void = useCallback((itemUuid: string, nextHydrate: OrderSnapshotDocument | null, source: DrawerSnapshotSource | null, confirmed: OrderSnapshotDocument | null) : void => {
     if (openedItemUuid !== itemUuid) return
     setHydrateSnap(nextHydrate)
     setHydrateSnapSource(source)
@@ -90,12 +98,12 @@ export function useCandidateStashItemDrawer({ dataReferenceStart, dataReferenceE
       const detail: CandidateItemDetail | null = await getCandidateItemByUuid(row.uuid, { companyUuid: scopedCompanyUuid })
       if (!mountedRef.current || drawerRequestSeqRef.current !== seq) return
       if (!detail) throw new Error(`후보 상세 데이터 없음: ${row.uuid}`)
-      const parsedSnapshot: OrderSnapshotDocumentV2 | null = detail.details ? parseOrderSnapshot(detail.details) : null
+      const parsedSnapshot: OrderSnapshotDocument | null = detail.details ? parseOrderSnapshot(detail.details) : null
       if (parsedSnapshot && parsedSnapshot.skuGroupKey !== row.skuGroupKey) {
         throw new Error(`Candidate item snapshot skuGroupKey mismatch: ${row.uuid}`)
       }
-      if (parsedSnapshot && parsedSnapshot.companyUuid !== scopedCompanyUuid) {
-        throw new Error(`Candidate item snapshot companyUuid mismatch: ${row.uuid}`)
+      if (parsedSnapshot && (parsedSnapshot.drawer2.baseSubject.sourceId ?? null) !== scopedCompanyUuid) {
+        throw new Error(`Candidate item snapshot baseSubject sourceId mismatch: ${row.uuid}`)
       }
       const localMutation: SnapshotMutationState = snapshotMutationsByItemUuidRef.current[row.uuid] ?? null
       const serverCaughtUp: boolean = localMutation?.baseDbUpdatedAt != null
@@ -103,7 +111,7 @@ export function useCandidateStashItemDrawer({ dataReferenceStart, dataReferenceE
         && Boolean(parsedSnapshot) === (localMutation.state === 'confirmed')
       if (serverCaughtUp) delete snapshotMutationsByItemUuidRef.current[row.uuid]
       const effectiveMutation: SnapshotMutationState | null = serverCaughtUp ? null : localMutation
-      const confirmedSnap: OrderSnapshotDocumentV2 | null = effectiveMutation?.state === 'unconfirmed'
+      const confirmedSnap: OrderSnapshotDocument | null = effectiveMutation?.state === 'unconfirmed'
         ? null
         : effectiveMutation?.state === 'confirmed'
           ? confirmedSnapshotsByItemUuidRef.current[row.uuid] ?? parsedSnapshot
@@ -111,7 +119,7 @@ export function useCandidateStashItemDrawer({ dataReferenceStart, dataReferenceE
       if (confirmedSnap) confirmedSnapshotsByItemUuidRef.current[row.uuid] = confirmedSnap
       else delete confirmedSnapshotsByItemUuidRef.current[row.uuid]
       const draftEntry: DraftSnapshotEntry = draftSnapshotsByItemUuidRef.current[row.uuid] ?? null
-      const nextHydrate: OrderSnapshotDocumentV2 = draftEntry?.snapshot ?? confirmedSnap
+      const nextHydrate: OrderSnapshotDocument = draftEntry?.snapshot ?? confirmedSnap
       const nextSource: DrawerSnapshotSource = draftEntry?.source ?? (confirmedSnap ? 'confirmed' : null)
       if (!mountedRef.current || drawerRequestSeqRef.current !== seq) return
       setHydrateSnap(nextHydrate)
@@ -163,7 +171,7 @@ export function useCandidateStashItemDrawer({ dataReferenceStart, dataReferenceE
     setDrawerForecastMonths(clampForecastMonths(n))
   }, [])
 
-  const saveDrawerDraftSnapshot: (itemUuid: string, snapshot: OrderSnapshotDocumentV2, source: DrawerSnapshotSource) => void = useCallback((itemUuid: string, snapshot: OrderSnapshotDocumentV2, source: DrawerSnapshotSource) : void => {
+  const saveDrawerDraftSnapshot: (itemUuid: string, snapshot: OrderSnapshotDocument, source: DrawerSnapshotSource) => void = useCallback((itemUuid: string, snapshot: OrderSnapshotDocument, source: DrawerSnapshotSource) : void => {
     if (source === 'confirmed') return
     draftSnapshotsByItemUuidRef.current[itemUuid] = { snapshot, source }
   }, [])
@@ -173,7 +181,7 @@ export function useCandidateStashItemDrawer({ dataReferenceStart, dataReferenceE
     applyOpenedSnapshot(itemUuid, null, null, confirmedHydrateSnap)
   }, [applyOpenedSnapshot, confirmedHydrateSnap])
 
-  const markDrawerSnapshotConfirmed: (itemUuid: string, snapshot: OrderSnapshotDocumentV2, baseDbUpdatedAt?: string | null) => void = useCallback((itemUuid: string, snapshot: OrderSnapshotDocumentV2, baseDbUpdatedAt: string | null = null) : void => {
+  const markDrawerSnapshotConfirmed: (itemUuid: string, snapshot: OrderSnapshotDocument, baseDbUpdatedAt?: string | null) => void = useCallback((itemUuid: string, snapshot: OrderSnapshotDocument, baseDbUpdatedAt: string | null = null) : void => {
     delete draftSnapshotsByItemUuidRef.current[itemUuid]
     confirmedSnapshotsByItemUuidRef.current[itemUuid] = snapshot
     snapshotMutationsByItemUuidRef.current[itemUuid] = { state: 'confirmed', baseDbUpdatedAt }
@@ -188,7 +196,7 @@ export function useCandidateStashItemDrawer({ dataReferenceStart, dataReferenceE
   }, [applyOpenedSnapshot])
 
   const restoreDrawerConfirmedSnapshot: (itemUuid: string) => void = useCallback((itemUuid: string) : void => {
-    const snap: OrderSnapshotDocumentV2 = confirmedSnapshotsByItemUuidRef.current[itemUuid] ?? null
+    const snap: OrderSnapshotDocument = confirmedSnapshotsByItemUuidRef.current[itemUuid] ?? null
     if (!snap) return
     delete draftSnapshotsByItemUuidRef.current[itemUuid]
     applyOpenedSnapshot(itemUuid, snap, 'confirmed', snap)

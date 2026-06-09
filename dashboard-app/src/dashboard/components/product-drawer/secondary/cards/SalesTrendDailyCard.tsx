@@ -15,7 +15,7 @@ export type SizeOption = { id: string; label: string; share: number }
 export type Props = {
   skuGroupKey: string
   selfCompanyLabel: string
-  competitorChannelLabel: string
+  comparisonLabel: string
   sizeOptions: SizeOption[]
   trend: {
     series: SecondaryDailyTrendPoint[]
@@ -25,6 +25,11 @@ export type Props = {
     forecastShade: TrendShade | null
     error: ApiUnitErrorInfo | null
   }
+}
+
+type DailyTrendChartPoint = SecondaryDailyTrendPoint & {
+  selfSales: number | null
+  comparisonSales: number | null
 }
 
 const chartHeight = 240 as const
@@ -43,48 +48,49 @@ const stockTrendNameByKey: Record<string, string> = {
   inboundAccumBar: '예상 입고',
 }
 
-export function SalesTrendDailyCard({ skuGroupKey, selfCompanyLabel, competitorChannelLabel, sizeOptions, trend }: Props) : React.JSX.Element {
+export function SalesTrendDailyCard({ skuGroupKey, selfCompanyLabel, comparisonLabel, sizeOptions, trend }: Props) : React.JSX.Element {
   const [expanded, setExpanded]: [boolean, React.Dispatch<React.SetStateAction<boolean>>] = useState(false)
   const [selectedSizeState, setSelectedSizeState]: [{ skuGroupKey: string; sizeId: 'all' | string; } | null, React.Dispatch<React.SetStateAction<{ skuGroupKey: string; sizeId: 'all' | string; } | null>>] = useState<{ skuGroupKey: string; sizeId: 'all' | string } | null>(null)
   const selectedSizeId: string = selectedSizeState?.skuGroupKey === skuGroupKey ? selectedSizeState.sizeId : 'all'
 
-  const scaledSeries: SecondaryDailyTrendPoint[] = useMemo(() : SecondaryDailyTrendPoint[] => {
-    if (selectedSizeId === 'all') return trend.series
-    const share: number = sizeOptions.find((o: SizeOption) : boolean => o.id === selectedSizeId)?.share ?? 1
-    return trend.series.map((p: SecondaryDailyTrendPoint) : { sales: number; selfSales: number | null; competitorSales: number | null; stockBar: number; inboundAccumBar: number; idx: number; date: string; month: string; isForecast: boolean; } => ({
+  const scaledSeries: DailyTrendChartPoint[] = useMemo(() : DailyTrendChartPoint[] => {
+    const share: number = selectedSizeId === 'all'
+      ? 1
+      : sizeOptions.find((o: SizeOption) : boolean => o.id === selectedSizeId)?.share ?? 1
+    return trend.series.map((p: SecondaryDailyTrendPoint) : DailyTrendChartPoint => ({
       ...p,
       sales: Math.max(0, Math.round(p.sales * share)),
-      selfSales: p.selfSales == null ? p.selfSales : Math.max(0, Math.round(p.selfSales * share)),
-      competitorSales: p.competitorSales == null ? p.competitorSales : Math.max(0, Math.round(p.competitorSales * share)),
+      selfSales: p.baseSales == null ? p.baseSales : Math.max(0, Math.round(p.baseSales * share)),
+      comparisonSales: p.comparisonSales == null ? p.comparisonSales : Math.max(0, Math.round(p.comparisonSales * share)),
       stockBar: Math.max(0, Math.round(p.stockBar * share)),
       inboundAccumBar: Math.max(0, Math.round(p.inboundAccumBar * share)),
     }))
   }, [trend.series, selectedSizeId, sizeOptions])
 
-  const chartSeries: { salesActual: number | null; salesForecast: number | null; idx: number; date: string; month: string; sales: number; stockBar: number; inboundAccumBar: number; selfSales: number | null; competitorSales: number | null; isForecast: boolean; }[] = useMemo(() : { salesActual: number | null; salesForecast: number | null; idx: number; date: string; month: string; sales: number; stockBar: number; inboundAccumBar: number; selfSales: number | null; competitorSales: number | null; isForecast: boolean; }[] => {
+  const chartSeries: { salesActual: number | null; salesForecast: number | null; idx: number; date: string; month: string; sales: number; stockBar: number; inboundAccumBar: number; selfSales: number | null; comparisonSales: number | null; isForecast: boolean; }[] = useMemo(() : { salesActual: number | null; salesForecast: number | null; idx: number; date: string; month: string; sales: number; stockBar: number; inboundAccumBar: number; selfSales: number | null; comparisonSales: number | null; isForecast: boolean; }[] => {
     const firstForecastIdx: number = scaledSeries.findIndex((p: SecondaryDailyTrendPoint) : boolean => p.isForecast)
-    return scaledSeries.map((p: SecondaryDailyTrendPoint, idx: number) : { salesActual: number | null; salesForecast: number | null; idx: number; date: string; month: string; sales: number; stockBar: number; inboundAccumBar: number; selfSales: number | null; competitorSales: number | null; isForecast: boolean; } => {
+    return scaledSeries.map((p: DailyTrendChartPoint, idx: number) : { salesActual: number | null; salesForecast: number | null; idx: number; date: string; month: string; sales: number; stockBar: number; inboundAccumBar: number; selfSales: number | null; comparisonSales: number | null; isForecast: boolean; } => {
       const bridge: boolean = firstForecastIdx !== -1 && (idx === firstForecastIdx - 1 || p.isForecast)
       return { ...p, salesActual: p.isForecast ? null : p.sales, salesForecast: bridge ? p.sales : null }
     })
   }, [scaledSeries])
 
-  const salesCompareSeries: { idx: number; date: string; selfSales: number | null; competitorSales: number | null; }[] = useMemo(
-    () : { idx: number; date: string; selfSales: number | null; competitorSales: number | null; }[] => chartSeries.map((p: { salesActual: number | null; salesForecast: number | null; idx: number; date: string; month: string; sales: number; stockBar: number; inboundAccumBar: number; selfSales: number | null; competitorSales: number | null; isForecast: boolean; }) : { idx: number; date: string; selfSales: number | null; competitorSales: number | null; } => ({ idx: p.idx, date: p.date, selfSales: p.selfSales, competitorSales: p.competitorSales })),
+  const salesCompareSeries: { idx: number; date: string; selfSales: number | null; comparisonSales: number | null; }[] = useMemo(
+    () : { idx: number; date: string; selfSales: number | null; comparisonSales: number | null; }[] => chartSeries.map((p: { salesActual: number | null; salesForecast: number | null; idx: number; date: string; month: string; sales: number; stockBar: number; inboundAccumBar: number; selfSales: number | null; comparisonSales: number | null; isForecast: boolean; }) : { idx: number; date: string; selfSales: number | null; comparisonSales: number | null; } => ({ idx: p.idx, date: p.date, selfSales: p.selfSales, comparisonSales: p.comparisonSales })),
     [chartSeries],
   )
-  const [selfSalesYMax, competitorSalesYMax]: [number, number] = useMemo(() : [number, number] => {
-    const max: { self: number; competitor: number; } = salesCompareSeries.reduce((acc: { self: number; competitor: number; }, p: { idx: number; date: string; selfSales: number | null; competitorSales: number | null; }) : { self: number; competitor: number; } => ({
+  const [selfSalesYMax, comparisonSalesYMax]: [number, number] = useMemo(() : [number, number] => {
+    const max: { self: number; comparison: number; } = salesCompareSeries.reduce((acc: { self: number; comparison: number; }, p: { idx: number; date: string; selfSales: number | null; comparisonSales: number | null; }) : { self: number; comparison: number; } => ({
       self: Math.max(acc.self, Number(p.selfSales ?? 0)),
-      competitor: Math.max(acc.competitor, Number(p.competitorSales ?? 0)),
-    }), { self: 0, competitor: 0 })
-    return [max.self <= 0 ? 1 : Math.ceil(max.self * 1.05), max.competitor <= 0 ? 1 : Math.ceil(max.competitor * 1.05)]
+      comparison: Math.max(acc.comparison, Number(p.comparisonSales ?? 0)),
+    }), { self: 0, comparison: 0 })
+    return [max.self <= 0 ? 1 : Math.ceil(max.self * 1.05), max.comparison <= 0 ? 1 : Math.ceil(max.comparison * 1.05)]
   }, [salesCompareSeries])
   const showSizeSelect: boolean = expanded && sizeOptions.length > 0
-  const salesCompareNameByKey: Record<string, string> = useMemo<Record<string, string>>(() : { selfSales: string; competitorSales: string; } => ({
+  const salesCompareNameByKey: Record<string, string> = useMemo<Record<string, string>>(() : { selfSales: string; comparisonSales: string; } => ({
     selfSales: `${selfCompanyLabel} 판매량`,
-    competitorSales: `${competitorChannelLabel} 판매량`,
-  }), [competitorChannelLabel, selfCompanyLabel])
+    comparisonSales: `${comparisonLabel} 판매량`,
+  }), [comparisonLabel, selfCompanyLabel])
 
   return (
     <div className={styles.card}>
@@ -143,13 +149,13 @@ export function SalesTrendDailyCard({ skuGroupKey, selfCompanyLabel, competitorC
                 data={salesCompareSeries}
                 height={130}
                 yMax={selfSalesYMax}
-                secondaryYMax={competitorSalesYMax}
+                secondaryYMax={comparisonSalesYMax}
                 allowEscapeViewBox={{ x: false, y: false }}
                 periodShade={trend.periodShade}
                 forecastShade={trend.forecastShade}
                 lines={[
                   { dataKey: 'selfSales', stroke: '#2563eb', yAxisId: 'primary' },
-                  { dataKey: 'competitorSales', stroke: '#ef4444', yAxisId: 'secondary' },
+                  { dataKey: 'comparisonSales', stroke: '#ef4444', yAxisId: 'secondary' },
                 ]}
                 tickFormatter={(row: TrendChartPoint) : string => String(row.date ?? '')}
                 tickAngle={-45}

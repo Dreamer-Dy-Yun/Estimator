@@ -80,9 +80,9 @@ export type ProductSecondarySizeRow = {
 
 export type ProductSecondaryDetail = {
   skuGroupKey: string
-  competitorPrice: number
-  competitorQty: number
-  competitorRatioBySize: Record<string, number>
+  comparisonPrice: number
+  comparisonQty: number
+  comparisonRatioBySize: Record<string, number>
   sizeRows: ProductSecondarySizeRow[]
 }
 

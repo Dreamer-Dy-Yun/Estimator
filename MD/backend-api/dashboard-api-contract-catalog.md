@@ -102,12 +102,12 @@ Common query fields: `startDate?`, `endDate?`, `companyUuid?`, `brand?`, `catego
 
 | API | Method/path | Query/body | Response |
 |---|---|---|---|
-| `getProductDrawerBundle` | GET `/products/{skuGroupKey}/drawer-bundle` | `companyUuid?` | `{ summary: ProductPrimarySummary }` |
+| `getProductDrawerBundle` | GET `/products/{skuGroupKey}/drawer-bundle` | `baseRole`, `baseKind`, `baseSourceId?` | `{ summary: ProductPrimarySummary }` |
 | `getProductComparisonTargets` | GET `/products/comparison-targets` | `baseRole`, `baseKind`, `baseSourceId?` | `ProductComparisonTarget[]` |
-| `getProductMonthlyTrend` | GET `/products/{skuGroupKey}/monthly-trend` | `startDate`, `endDate`, `forecastMonths`, `companyUuid?`, `competitorChannelId` | `ProductMonthlyTrend` |
+| `getProductMonthlyTrend` | GET `/products/{skuGroupKey}/monthly-trend` | `startDate`, `endDate`, `forecastMonths`, `baseRole`, `baseKind`, `baseSourceId?`, `comparisonRole`, `comparisonKind`, `comparisonSourceId?` | `ProductMonthlyTrend` |
 | `getProductSalesInsight` | GET `/products/{skuGroupKey}/sales-insight` | `startDate`, `endDate`, `baseRole`, `baseKind`, `baseSourceId?`, `comparisonRole`, `comparisonKind`, `comparisonSourceId?` | `ProductSalesInsight` |
-| `getProductSecondaryDetail` | GET `/products/{skuGroupKey}/secondary-detail` | `companyUuid?`, `minOpMarginPct?` | `ProductSecondaryDetail` |
-| `getSecondaryDailyTrend` | GET `/products/{skuGroupKey}/secondary/daily-trend` | `startDate`, `endDate`, `forecastDays`, `companyUuid?`, `competitorChannelId` | `SecondaryDailyTrendPoint[]` |
+| `getProductSecondaryDetail` | GET `/products/{skuGroupKey}/secondary-detail` | `baseRole`, `baseKind`, `baseSourceId?`, `comparisonRole`, `comparisonKind`, `comparisonSourceId?`, `minOpMarginPct?` | `ProductSecondaryDetail` |
+| `getSecondaryDailyTrend` | GET `/products/{skuGroupKey}/secondary/daily-trend` | `startDate`, `endDate`, `forecastDays`, `baseRole`, `baseKind`, `baseSourceId?`, `comparisonRole`, `comparisonKind`, `comparisonSourceId?` | `SecondaryDailyTrendPoint[]` |
 | `getSecondaryAiComment` | POST `/products/{skuGroupKey}/secondary/ai-comment` | `SecondaryAiCommentParams` | `{ prompt, answer, generatedAt }` |
 | `getSecondaryStockOrderCalc` | POST `/secondary/stock-order-calc` | `SecondaryStockOrderCalcParams` | `SecondaryStockOrderCalcResult` |
 
@@ -118,6 +118,10 @@ Common query fields: `startDate?`, `endDate?`, `companyUuid?`, `brand?`, `catego
 `ProductComparisonTarget`: comparison option DTO for the target list. Fields: `id`, `role: comparison`, `kind`, `sourceId`, `label`. `id` is an opaque UI selection id and clients must not synthesize it from `kind/sourceId`. Self-company targets exclude the current `base.sourceId`; all-company self comparison may use the frontend all-company sentinel in UI state, but HTTP requests omit `comparisonSourceId` for that all-company subject. An empty target list is a valid unavailable state, not an error fallback signal; the UI should show that no comparison target is available.
 
 `ProductSalesInsight`: `skuGroupKey`, `targetPeriodDays`, `base`, `comparison`, `baseMetrics`, `comparisonMetrics`. Both `base` and `comparison` are `ProductComparisonSubject` objects with `id`, `role`, `kind`, `sourceId`, `label`. `baseMetrics` follows the base subject. `comparisonMetrics` follows the comparison subject. Competitor comparison subjects may omit self-owned cost/margin fields as `null`, while self-company comparison subjects return the same metric shape as self sales.
+
+`ProductDrawerBundle`: `{ summary }` only. It is base-only because the primary summary is not comparison-dependent. It still uses the subject query shape so the backend can resolve the base self-company source without receiving the frontend sentinel.
+
+Frontend facade hardening: `getProductDrawerBundle` and `getProductSecondaryDetail` require explicit subject params. Do not represent all-company reads by omitting the params object; send an explicit `base` subject and let the HTTP adapter omit only the matching `SourceId` query field.
 
 ### Product comparison targets breaking change: 2026-06-09
 
@@ -212,11 +216,11 @@ Backend handling:
 - Do not resolve a missing base or comparison subject to the current company, all-company, or the first available comparison target.
 - Invalid role/kind shape should be treated as validation failure. Missing or unauthorized subjects should be reported explicitly.
 
-`ProductSecondaryDetail`: `skuGroupKey`, `competitorPrice`, `competitorQty`, `competitorRatioBySize`, `sizeRows`.
+`ProductSecondaryDetail`: `skuGroupKey`, `comparisonPrice`, `comparisonQty`, `comparisonRatioBySize`, `sizeRows`.
 
 `ProductSecondarySizeRow`: `size`, `selfRatio`, `confirmedQty`, `avgPrice`, `qty`, `availableStock`.
 
-`SecondaryDailyTrendPoint`: `date`, `idx`, `month`, `sales`, `stockBar`, `inboundAccumBar`, `selfSales`, `competitorSales`, `isForecast`.
+`SecondaryDailyTrendPoint`: `date`, `idx`, `month`, `sales`, `stockBar`, `inboundAccumBar`, `baseSales`, `comparisonSales`, `isForecast`.
 
 Monthly trend request: last 24 completed months ending at previous month; `forecastMonths` is 12; chart max is 36 months.
 Daily trend request: `startDate` is selected start month first day; `endDate` is yesterday; `forecastDays` is current lead-time days.
@@ -251,11 +255,13 @@ Recommendation append results in frontend are `applied`, `stale`, `no-op`, `empt
 
 Full snapshot details are in `order-snapshot-backend-contract.md` and LLM field descriptions are in `order-snapshot-llm-field-guide.md`.
 
-`OrderSnapshotDocumentV2`: `schemaVersion`, `skuGroupKey`, `companyUuid?`, `savedAt`, `context`, `drawer1`, `drawer2`.
+`OrderSnapshotDocument`: `schemaVersion`, `skuGroupKey`, `savedAt`, `context`, `drawer1`, `drawer2`.
 
 Current snapshot rules:
 
-- `schemaVersion` is `2`.
+- `schemaVersion` is `3`.
+- top-level `companyUuid` is not part of the snapshot; company scope is represented by `drawer2.baseSubject.sourceId` when scoped.
+- `drawer2` stores `baseSubject`, `comparisonSubject`, and `comparisonBasis`.
 - `drawer2.stockOrderResult.display.sizeRows[]` is size-keyed.
 - `drawer2.confirmedTotals` is required.
 - `drawer2.aiComment` contains `prompt`, `answer`, `generatedAt`.

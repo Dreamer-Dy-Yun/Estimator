@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { dashboardApi } from '../../../../../api'
-import type { SecondaryDailyTrendPoint } from '../../../../../api/types'
+import type { ProductComparisonBaseSubjectRef, ProductComparisonTarget, SecondaryDailyTrendParams, SecondaryDailyTrendPoint } from '../../../../../api/types'
 import type { ApiUnitErrorInfo } from '../../../../../types'
 import { buildShadeRanges } from '../../../trend/trendRangeUtils'
 import { SecondaryDailyTrendRequestWindow } from '../model/SecondaryDailyTrendRequestWindow'
@@ -9,9 +9,9 @@ export type Params = {
   skuGroupKey: string
   selectedStart: string
   selectedEnd: string
-  companyUuid?: string
+  baseSubject: ProductComparisonBaseSubjectRef
+  comparisonTarget: ProductComparisonTarget
   leadTimeDays: number
-  competitorChannelId: string
   makeApiErrorInfo: (request: string, err: unknown) => ApiUnitErrorInfo
 }
 
@@ -19,9 +19,9 @@ export function useSecondaryDailyTrend({
   skuGroupKey,
   selectedStart,
   selectedEnd,
-  companyUuid,
+  baseSubject,
+  comparisonTarget,
   leadTimeDays,
-  competitorChannelId,
   makeApiErrorInfo,
 }: Params) : { dailyTrendSeries: SecondaryDailyTrendPoint[]; dailyTrendLoading: boolean; dailyTrendError: ApiUnitErrorInfo | null; dailyPeriodShade: { x1: number; x2: number; }; dailyForecastShade: { x1: number; x2: number; } | null; dailyTickIndices: number[]; } {
   const reqSeqRef: React.RefObject<number> = useRef(0)
@@ -45,11 +45,11 @@ export function useSecondaryDailyTrend({
     })
     void (async () : Promise<void> => {
       try {
-        const params: { competitorChannelId: string; startDate: string; endDate: string; forecastDays: number; skuGroupKey: string; companyUuid: string | undefined; } = {
+        const params: SecondaryDailyTrendParams = {
           skuGroupKey,
-          companyUuid,
+          base: baseSubject,
+          comparison: comparisonTarget,
           ...requestWindow.toQueryFields(),
-          competitorChannelId,
         }
         const series: SecondaryDailyTrendPoint[] = await dashboardApi.getSecondaryDailyTrend(params)
         if (!alive || reqSeqRef.current !== reqSeq) return
@@ -61,7 +61,7 @@ export function useSecondaryDailyTrend({
         setDailyTrendSeries([])
         setDailyTrendError(
           makeApiErrorInfo(
-            `getSecondaryDailyTrend(${JSON.stringify({ skuGroupKey, companyUuid, ...requestWindow.toRequestLogFields(), competitorChannelId })})`,
+            `getSecondaryDailyTrend(${JSON.stringify({ skuGroupKey, base: baseSubject, comparison: comparisonTarget, ...requestWindow.toRequestLogFields() })})`,
             err,
           ),
         )
@@ -72,7 +72,7 @@ export function useSecondaryDailyTrend({
     return () : void => {
       alive = false
     }
-  }, [companyUuid, competitorChannelId, makeApiErrorInfo, requestWindow, skuGroupKey])
+  }, [baseSubject, comparisonTarget, makeApiErrorInfo, requestWindow, skuGroupKey])
 
   const { periodShade: dailyPeriodShade, forecastShade: dailyForecastShade }: { periodStartIdx: number; periodEndIdx: number; periodShade: { x1: number; x2: number; }; forecastShade: { x1: number; x2: number; } | null; } = useMemo(
     () : { periodStartIdx: number; periodEndIdx: number; periodShade: { x1: number; x2: number; }; forecastShade: { x1: number; x2: number; } | null; } => buildShadeRanges(

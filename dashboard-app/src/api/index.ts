@@ -3,6 +3,8 @@ export type { ApiAdapterMode } from './requests/httpClient'
 export { classifyApiFailureStatus, getApiErrorDisplayMessage, isApiErrorResponse } from './types/api-error'
 export {
   ALL_COMPANY_UUID,
+  getComparisonSubjectKey,
+  getComparisonSubjectSourceIdForContract,
   getCompanyUuidForOptionalScope,
   isAllCompanyScope,
   isAllCompanyUuid,

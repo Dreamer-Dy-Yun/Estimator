@@ -1,4 +1,4 @@
-import type { SecondaryStockOrderCalcParams } from '../../../../../api/types'
+import type { ProductComparisonBaseSubjectRef, SecondaryStockOrderCalcParams } from '../../../../../api/types'
 // @vitest-environment jsdom
 import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
@@ -7,10 +7,13 @@ import { dashboardApi, type SecondaryStockOrderCalcResult } from '../../../../..
 import type { ApiUnitErrorInfo } from '../../../../../types'
 import { useSecondaryStockOrderCalc } from './useSecondaryStockOrderCalc'
 
-const BASE_PROPS: { skuGroupKey: string; periodStart: string; periodEnd: string; forecastMeanPeriodEnd: string; leadTimeDays: number; makeApiErrorInfo: (request: string, err: unknown) => ApiUnitErrorInfo; } = {
+const BASE_SUBJECT: ProductComparisonBaseSubjectRef = { role: 'base', kind: 'self-company', sourceId: 'company-1' }
+
+const BASE_PROPS: { skuGroupKey: string; periodStart: string; periodEnd: string; baseSubject: ProductComparisonBaseSubjectRef; forecastMeanPeriodEnd: string; leadTimeDays: number; makeApiErrorInfo: (request: string, err: unknown) => ApiUnitErrorInfo; } = {
   skuGroupKey: 'sku-a',
   periodStart: '2025-01-01',
   periodEnd: '2025-12-31',
+  baseSubject: BASE_SUBJECT,
   forecastMeanPeriodEnd: '2026-08',
   leadTimeDays: 30,
   makeApiErrorInfo: (request: string, err: unknown): ApiUnitErrorInfo => ({

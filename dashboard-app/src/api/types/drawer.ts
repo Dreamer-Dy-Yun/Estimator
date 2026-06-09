@@ -1,61 +1,52 @@
 import type { ProductPrimarySummary } from '../../types'
-import type { CompanyScopeParams } from './company'
+import type {
+  ComparisonBaseSubject,
+  ComparisonBaseSubjectRef,
+  ComparisonComparisonSubject,
+  ComparisonComparisonSubjectRef,
+  ComparisonSubject,
+  ComparisonSubjectKind,
+  ComparisonSubjectRef,
+  ComparisonSubjectRole,
+  ComparisonTarget,
+  ComparisonTargetKind,
+} from './subject'
 
 export interface ProductDrawerBundle {
   summary: ProductPrimarySummary
 }
 
-export interface ProductDrawerBundleParams extends CompanyScopeParams {
-  companyUuid?: CompanyScopeParams['companyUuid']
+export interface ProductDrawerBundleParams {
+  base: ProductComparisonBaseSubjectRef
 }
 
-export type ProductComparisonSubjectKind = 'competitor-channel' | 'self-company'
-export type ProductComparisonSubjectRole = 'base' | 'comparison'
-export type ProductComparisonTargetKind = ProductComparisonSubjectKind
-
-export interface ProductComparisonBaseSubjectRef {
-  role: 'base'
-  kind: 'self-company'
-  sourceId: string
-}
-
-export interface ProductComparisonComparisonSubjectRef {
-  role: 'comparison'
-  kind: ProductComparisonSubjectKind
-  sourceId: string
-}
-
-export type ProductComparisonSubjectRef = ProductComparisonBaseSubjectRef | ProductComparisonComparisonSubjectRef
-
-export type ProductComparisonSubject<TSubject extends ProductComparisonSubjectRef = ProductComparisonSubjectRef> =
-  TSubject & {
-    id: string
-    label: string
-  }
-
-export type ProductComparisonBaseSubject = ProductComparisonSubject<ProductComparisonBaseSubjectRef>
-export type ProductComparisonComparisonSubject = ProductComparisonSubject<ProductComparisonComparisonSubjectRef>
-
-export interface ProductComparisonTarget extends ProductComparisonComparisonSubjectRef {
-  id: string
-  label: string
-}
+export type ProductComparisonSubjectKind = ComparisonSubjectKind
+export type ProductComparisonSubjectRole = ComparisonSubjectRole
+export type ProductComparisonTargetKind = ComparisonTargetKind
+export type ProductComparisonBaseSubjectRef = ComparisonBaseSubjectRef
+export type ProductComparisonComparisonSubjectRef = ComparisonComparisonSubjectRef
+export type ProductComparisonSubjectRef = ComparisonSubjectRef
+export type ProductComparisonSubject<TSubject extends ProductComparisonSubjectRef = ProductComparisonSubjectRef> = ComparisonSubject<TSubject>
+export type ProductComparisonBaseSubject = ComparisonBaseSubject
+export type ProductComparisonComparisonSubject = ComparisonComparisonSubject
+export type ProductComparisonTarget = ComparisonTarget
 
 export interface ProductComparisonTargetParams {
   base: ProductComparisonBaseSubjectRef
 }
 
-export interface ProductMonthlyTrendParams extends CompanyScopeParams {
+export interface ProductMonthlyTrendParams {
   startDate: string
   endDate: string
   forecastMonths: number
-  competitorChannelId: string
+  base: ProductComparisonBaseSubjectRef
+  comparison: ProductComparisonComparisonSubjectRef
 }
 
 export interface ProductMonthlyTrendPoint {
   date: string
-  selfSales: number
-  competitorSales: number | null
+  baseSales: number
+  comparisonSales: number | null
   isForecast: boolean
 }
 
@@ -65,8 +56,8 @@ export interface ProductMonthlyTrend {
     start: string
     end: string
   }
-  competitorChannelId: string
-  competitorChannelLabel: string
+  base: ProductComparisonBaseSubject
+  comparison: ProductComparisonComparisonSubject
   points: ProductMonthlyTrendPoint[]
 }
 

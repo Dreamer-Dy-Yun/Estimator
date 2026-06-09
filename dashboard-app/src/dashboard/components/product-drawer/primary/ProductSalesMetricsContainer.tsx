@@ -60,11 +60,7 @@ export function ProductSalesMetricsContainer({
     startDate,
     endDate,
     base: baseSubject,
-    comparison: comparisonTarget == null ? null : {
-      role: 'comparison',
-      kind: comparisonTarget.kind,
-      sourceId: comparisonTarget.sourceId,
-    },
+    comparison: comparisonTarget,
   })
   const salesInsight: ProductSalesInsight | null =
     comparisonTarget != null && salesInsightState?.key === salesInsightRequestKey ? salesInsightState.data : null
@@ -121,11 +117,7 @@ export function ProductSalesMetricsContainer({
           startDate,
           endDate,
           base: baseSubject,
-          comparison: {
-            role: 'comparison',
-            kind: comparisonTarget.kind,
-            sourceId: comparisonTarget.sourceId,
-          },
+          comparison: comparisonTarget,
         })
         if (!alive || reqSeq !== reqSeqRef.current) return
         setSalesInsightState({ key: salesInsightRequestKey, data, error: null })
@@ -141,11 +133,7 @@ export function ProductSalesMetricsContainer({
               startDate,
               endDate,
               base: baseSubject,
-              comparison: {
-                role: 'comparison',
-                kind: comparisonTarget.kind,
-                sourceId: comparisonTarget.sourceId,
-              },
+              comparison: comparisonTarget,
             })})`,
             err,
           ),

@@ -1,4 +1,4 @@
-import type { ProductMonthlyTrendPoint } from '../../../../api/types'
+import type { ProductComparisonBaseSubjectRef, ProductComparisonTarget, ProductMonthlyTrendPoint } from '../../../../api/types'
 import { useEffect, useId, useRef, useState } from 'react'
 import { dashboardApi, type ProductMonthlyTrend } from '../../../../api'
 import type { ApiUnitErrorInfo, MonthlySalesPoint } from '../../../../types'
@@ -6,17 +6,16 @@ import { formatIsoDateLocal } from '../../../../utils/date'
 import { buildShadeRanges, normalizeMonthKey } from '../../trend/trendRangeUtils'
 import { makeApiErrorInfo } from '../apiErrorInfo'
 
-const COMPETITOR_CHANNEL_FALLBACK_LABEL = '경쟁사' as const
+const COMPARISON_TARGET_FALLBACK_LABEL = '비교 대상' as const
 
 export type ProductMonthlyTrendModelArgs = {
   skuGroupKey: string
-  companyUuid?: string
+  baseSubject: ProductComparisonBaseSubjectRef
+  comparisonTarget: ProductComparisonTarget | null
   periodStart: string
   periodEnd: string
   forecastMonths: number
   onForecastMonthsChange: (months: number) => void
-  channelId: string
-  fallbackChannelLabel: string
   fallbackTrend: MonthlySalesPoint[]
   pageName: string
 }
@@ -26,7 +25,7 @@ export type SalesSeriesPoint = {
   isForecast: boolean
   idx: number
   sales: number
-  competitorSales: number | null
+  comparisonSales: number | null
 }
 
 export type ShadeRange = { x1: number; x2: number }
@@ -87,16 +86,15 @@ const getViewRange: (salesSeries: SalesSeriesPoint[], periodStartIdx: number, pe
 
 export function useProductMonthlyTrendModel({
   skuGroupKey,
-  companyUuid,
+  baseSubject,
+  comparisonTarget,
   periodStart,
   periodEnd,
   forecastMonths,
   onForecastMonthsChange,
-  channelId,
-  fallbackChannelLabel,
   fallbackTrend,
   pageName,
-}: ProductMonthlyTrendModelArgs) : { forecastMonthsLabelId: string; forecastComboRef: React.RefObject<HTMLDivElement | null>; forecastComboOpen: boolean; monthlyTrendError: ApiUnitErrorInfo | null; salesTrendVisible: { self: boolean; competitor: boolean; }; competitorTrendLabel: string; trendWindowData: { idx: number; actual: number | null; competitorActual: number | null; forecastLink: number | null; date: string; isForecast: boolean; sales: number; competitorSales: number | null; }[]; salesTrendChartDense: boolean; salesTrendYMax: number; shiftedPeriodShade: { x1: number; x2: number; }; shiftedForecastShade: { x1: number; x2: number; } | null; onChartWheel: (event: React.WheelEvent<HTMLDivElement>) => void; onChartMouseEnter: () => void; onChartMouseLeave: () => void; toggleForecastCombo: () => void; selectForecastMonths: (months: number) => void; toggleSalesTrendSeries: (series: 'self' | 'competitor') => void; } {
+}: ProductMonthlyTrendModelArgs) : { forecastMonthsLabelId: string; forecastComboRef: React.RefObject<HTMLDivElement | null>; forecastComboOpen: boolean; monthlyTrendError: ApiUnitErrorInfo | null; salesTrendVisible: { self: boolean; comparison: boolean; }; comparisonTrendLabel: string; trendWindowData: { idx: number; actual: number | null; comparisonActual: number | null; forecastLink: number | null; date: string; isForecast: boolean; sales: number; comparisonSales: number | null; }[]; salesTrendChartDense: boolean; salesTrendYMax: number; shiftedPeriodShade: { x1: number; x2: number; }; shiftedForecastShade: { x1: number; x2: number; } | null; onChartWheel: (event: React.WheelEvent<HTMLDivElement>) => void; onChartMouseEnter: () => void; onChartMouseLeave: () => void; toggleForecastCombo: () => void; selectForecastMonths: (months: number) => void; toggleSalesTrendSeries: (series: 'self' | 'comparison') => void; } {
   const forecastMonthsLabelId: string = useId()
   const forecastComboRef: React.RefObject<HTMLDivElement | null> = useRef<HTMLDivElement | null>(null)
   const reqSeqRef: React.RefObject<number> = useRef(0)
@@ -105,7 +103,7 @@ export function useProductMonthlyTrendModel({
     data: ProductMonthlyTrend | null
     error: ApiUnitErrorInfo | null
   } | null>(null)
-  const [salesTrendVisible, setSalesTrendVisible]: [{ self: boolean; competitor: boolean; }, React.Dispatch<React.SetStateAction<{ self: boolean; competitor: boolean; }>>] = useState<{ self: boolean; competitor: boolean }>({ self: true, competitor: true })
+  const [salesTrendVisible, setSalesTrendVisible]: [{ self: boolean; comparison: boolean; }, React.Dispatch<React.SetStateAction<{ self: boolean; comparison: boolean; }>>] = useState<{ self: boolean; comparison: boolean }>({ self: true, comparison: true })
   const [chartHoveredSkuGroupKey, setChartHoveredSkuGroupKey]: [string | null, React.Dispatch<React.SetStateAction<string | null>>] = useState<string | null>(null)
   const forecastComboOpen: boolean = forecastComboOpenForSkuGroupKey === skuGroupKey
   const chartHovered: boolean = chartHoveredSkuGroupKey === skuGroupKey
@@ -143,13 +141,13 @@ export function useProductMonthlyTrendModel({
     queueMicrotask(() : void => {
       if (!alive || reqSeq !== reqSeqRef.current) return
       setMonthlyTrendState(null)
-      if (!channelId) return
+      if (comparisonTarget == null) return
       void dashboardApi.getProductMonthlyTrend(skuGroupKey, {
         startDate,
         endDate,
-        companyUuid,
         forecastMonths,
-        competitorChannelId: channelId,
+        base: baseSubject,
+        comparison: comparisonTarget,
       }).then(
         (data: ProductMonthlyTrend) : void => {
           if (alive && reqSeq === reqSeqRef.current) setMonthlyTrendState({ data, error: null })
@@ -160,7 +158,7 @@ export function useProductMonthlyTrendModel({
             data: null,
             error: makeApiErrorInfo(
               pageName,
-              `getProductMonthlyTrend(${JSON.stringify({ skuGroupKey, startDate, endDate, companyUuid, forecastMonths, competitorChannelId: channelId })})`,
+              `getProductMonthlyTrend(${JSON.stringify({ skuGroupKey, startDate, endDate, forecastMonths, base: baseSubject, comparison: comparisonTarget })})`,
               err,
             ),
           })
@@ -170,24 +168,24 @@ export function useProductMonthlyTrendModel({
     return () : void => {
       alive = false
     }
-  }, [channelId, companyUuid, endDate, forecastMonths, pageName, skuGroupKey, startDate])
+  }, [baseSubject, comparisonTarget, endDate, forecastMonths, pageName, skuGroupKey, startDate])
 
-  const monthlyTrend: ProductMonthlyTrend | null = channelId ? monthlyTrendState?.data ?? null : null
-  const monthlyTrendError: ApiUnitErrorInfo | null = channelId ? monthlyTrendState?.error ?? null : null
+  const monthlyTrend: ProductMonthlyTrend | null = comparisonTarget != null ? monthlyTrendState?.data ?? null : null
+  const monthlyTrendError: ApiUnitErrorInfo | null = comparisonTarget != null ? monthlyTrendState?.error ?? null : null
   const salesSeries: SalesSeriesPoint[] = monthlyTrend
-    ? monthlyTrend.points.map((point: ProductMonthlyTrendPoint, idx: number) : { date: string; isForecast: boolean; idx: number; sales: number; competitorSales: number | null; } => ({
+    ? monthlyTrend.points.map((point: ProductMonthlyTrendPoint, idx: number) : { date: string; isForecast: boolean; idx: number; sales: number; comparisonSales: number | null; } => ({
       date: point.date,
       isForecast: Boolean(point.isForecast),
       idx,
-      sales: Math.round(point.selfSales),
-      competitorSales: point.competitorSales,
+      sales: Math.round(point.baseSales),
+      comparisonSales: point.comparisonSales,
     }))
-    : fallbackTrend.map((point: MonthlySalesPoint, idx: number) : { date: string; isForecast: boolean; idx: number; sales: number; competitorSales: null; } => ({
+    : fallbackTrend.map((point: MonthlySalesPoint, idx: number) : { date: string; isForecast: boolean; idx: number; sales: number; comparisonSales: null; } => ({
       date: point.date,
       isForecast: Boolean(point.isForecast),
       idx,
       sales: Math.round(point.sales),
-      competitorSales: null,
+      comparisonSales: null,
     }))
   const { periodStartIdx, periodEndIdx, periodShade, forecastShade }: { periodStartIdx: number; periodEndIdx: number; periodShade: { x1: number; x2: number; }; forecastShade: { x1: number; x2: number; } | null; } = buildShadeRanges(
     salesSeries,
@@ -203,25 +201,25 @@ export function useProductMonthlyTrendModel({
   const { viewStart, viewEnd }: { viewEnd: number; viewStart: number; } = getViewRange(salesSeries, periodStartIdx, periodEndIdx, windowSize)
 
   const firstForecastIdx: number = salesSeries.findIndex((point: SalesSeriesPoint) : boolean => point.isForecast)
-  const chartData: { actual: number | null; competitorActual: number | null; forecastLink: number | null; date: string; isForecast: boolean; idx: number; sales: number; competitorSales: number | null; }[] = salesSeries.map((point: SalesSeriesPoint, idx: number) : { actual: number | null; competitorActual: number | null; forecastLink: number | null; date: string; isForecast: boolean; idx: number; sales: number; competitorSales: number | null; } => ({
+  const chartData: { actual: number | null; comparisonActual: number | null; forecastLink: number | null; date: string; isForecast: boolean; idx: number; sales: number; comparisonSales: number | null; }[] = salesSeries.map((point: SalesSeriesPoint, idx: number) : { actual: number | null; comparisonActual: number | null; forecastLink: number | null; date: string; isForecast: boolean; idx: number; sales: number; comparisonSales: number | null; } => ({
     ...point,
     actual: point.isForecast ? null : point.sales,
-    competitorActual: point.isForecast ? null : point.competitorSales,
+    comparisonActual: point.isForecast ? null : point.comparisonSales,
     forecastLink: firstForecastIdx !== -1 && (idx === firstForecastIdx - 1 || idx >= firstForecastIdx)
       ? point.sales
       : null,
   }))
-  const trendWindowData: { idx: number; actual: number | null; competitorActual: number | null; forecastLink: number | null; date: string; isForecast: boolean; sales: number; competitorSales: number | null; }[] = chartData.slice(viewStart, viewEnd + 1).map((row: { actual: number | null; competitorActual: number | null; forecastLink: number | null; date: string; isForecast: boolean; idx: number; sales: number; competitorSales: number | null; }, idx: number) : { idx: number; actual: number | null; competitorActual: number | null; forecastLink: number | null; date: string; isForecast: boolean; sales: number; competitorSales: number | null; } => ({ ...row, idx }))
+  const trendWindowData: { idx: number; actual: number | null; comparisonActual: number | null; forecastLink: number | null; date: string; isForecast: boolean; sales: number; comparisonSales: number | null; }[] = chartData.slice(viewStart, viewEnd + 1).map((row: { actual: number | null; comparisonActual: number | null; forecastLink: number | null; date: string; isForecast: boolean; idx: number; sales: number; comparisonSales: number | null; }, idx: number) : { idx: number; actual: number | null; comparisonActual: number | null; forecastLink: number | null; date: string; isForecast: boolean; sales: number; comparisonSales: number | null; } => ({ ...row, idx }))
   const salesTrendYMax: number = (() : number => {
     let max: number = 0
     for (let i: number = Math.max(0, viewStart); i <= Math.min(viewEnd, chartData.length - 1); i += 1) {
-      const row: { actual: number | null; competitorActual: number | null; forecastLink: number | null; date: string; isForecast: boolean; idx: number; sales: number; competitorSales: number | null; } = chartData[i]
+      const row: { actual: number | null; comparisonActual: number | null; forecastLink: number | null; date: string; isForecast: boolean; idx: number; sales: number; comparisonSales: number | null; } = chartData[i]
       if (!row) continue
       max = Math.max(
         max,
         salesTrendVisible.self ? row.actual ?? 0 : 0,
         salesTrendVisible.self ? row.forecastLink ?? 0 : 0,
-        salesTrendVisible.competitor ? row.competitorActual ?? 0 : 0,
+        salesTrendVisible.comparison ? row.comparisonActual ?? 0 : 0,
       )
     }
     return max <= 0 ? 100 : Math.ceil(max * 1.06)
@@ -244,7 +242,7 @@ export function useProductMonthlyTrendModel({
     forecastComboOpen,
     monthlyTrendError,
     salesTrendVisible,
-    competitorTrendLabel: monthlyTrend?.competitorChannelLabel ?? fallbackChannelLabel ?? COMPETITOR_CHANNEL_FALLBACK_LABEL,
+    comparisonTrendLabel: monthlyTrend?.comparison.label ?? comparisonTarget?.label ?? COMPARISON_TARGET_FALLBACK_LABEL,
     trendWindowData,
     salesTrendChartDense: trendWindowData.length >= 18,
     salesTrendYMax,
@@ -260,8 +258,8 @@ export function useProductMonthlyTrendModel({
       onForecastMonthsChange(months)
       setForecastComboOpenForSkuGroupKey(null)
     },
-    toggleSalesTrendSeries: (series: 'self' | 'competitor') : void => {
-      setSalesTrendVisible((prev: { self: boolean; competitor: boolean; }) : { self: boolean; competitor: boolean; } => ({ ...prev, [series]: !prev[series] }))
+    toggleSalesTrendSeries: (series: 'self' | 'comparison') : void => {
+      setSalesTrendVisible((prev: { self: boolean; comparison: boolean; }) : { self: boolean; comparison: boolean; } => ({ ...prev, [series]: !prev[series] }))
     },
   }
 }

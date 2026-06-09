@@ -1,6 +1,6 @@
 # Candidate Stash Boundary
 
-Last updated: 2026-05-29
+Last updated: 2026-06-09
 
 ## Responsibility
 
@@ -39,5 +39,5 @@ Candidate stash owns order candidate lists, item detail drawer entry, recommenda
 - Recommendation response items must match selected recommendation source rows.
 - Existing row data remains visible on refresh failure.
 - SSE failure marks target rows/cells failed; it does not clear the list.
-- Detail snapshot save/update uses `OrderSnapshotDocumentV2` in `details`.
+- Detail snapshot save/update uses `OrderSnapshotDocument` v3 in `details`.
 - Detail unconfirm sends `details: null`.

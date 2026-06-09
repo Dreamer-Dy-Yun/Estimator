@@ -1,7 +1,7 @@
 import { PortalHelpMark } from '../../../PortalHelpPopover'
 import { ApiUnitErrorBadge } from '../../../../../components/ApiUnitErrorBadge'
 import { LoadingSpinner } from '../../../../../components/LoadingSpinner'
-import type { OrderSnapshotStockOrderRequestV2 } from '../../../../../snapshot/orderSnapshotTypes'
+import type { OrderSnapshotStockOrderRequest } from '../../../../../snapshot/orderSnapshotTypes'
 import type { ApiUnitErrorInfo } from '../../../../../types'
 import { displayNumber, formatGroupedNumber, formatGroupedOneDecimal } from '../../../../../utils/format'
 import commonStyles from '../../../common.module.css'
@@ -15,7 +15,7 @@ export type SalesForecastDisplayInputs = {
   dailyMean: number | null
   sigma: number | null
 }
-export type SalesForecastInboundDateFields = Pick<OrderSnapshotStockOrderRequestV2, 'currentOrderInboundDueDate' | 'nextOrderInboundDueDate'>
+export type SalesForecastInboundDateFields = Pick<OrderSnapshotStockOrderRequest, 'currentOrderInboundDueDate' | 'nextOrderInboundDueDate'>
 
 export type SalesForecastComputedTable = {
   recommendedOrderQtyTotal: number

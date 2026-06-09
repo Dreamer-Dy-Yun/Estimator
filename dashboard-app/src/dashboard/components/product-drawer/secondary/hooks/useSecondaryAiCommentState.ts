@@ -1,9 +1,9 @@
 import type { SecondaryAiCommentParams } from '../../../../../api'
 import { useCallback, useMemo, useState } from 'react'
 import type { ApiUnitErrorInfo } from '../../../../../types'
-import type { SecondaryAiCommentResult, SecondaryCompetitorChannel } from '../../../../../api'
+import type { ProductComparisonBaseSubjectRef, ProductComparisonTarget, SecondaryAiCommentResult } from '../../../../../api'
 import type { CandidateItemPanelContext } from '../secondaryDrawerTypes'
-import type { OrderSnapshotAiCommentV2, OrderSnapshotDocumentV2 } from '../../../../../snapshot/orderSnapshotTypes'
+import type { OrderSnapshotAiComment, OrderSnapshotDocument } from '../../../../../snapshot/orderSnapshotTypes'
 import { useSecondaryAiComment } from './useSecondaryAiComment'
 
 export type Args = {
@@ -12,20 +12,20 @@ export type Args = {
   periodStart: string
   periodEnd: string
   forecastMonths: number
-  companyUuid?: string
-  channel: SecondaryCompetitorChannel
+  baseSubject: ProductComparisonBaseSubjectRef
+  comparisonTarget: ProductComparisonTarget
   candidateItemContext: CandidateItemPanelContext | null
 }
 
 export type ReturnValue = {
-  aiComment: OrderSnapshotAiCommentV2
+  aiComment: OrderSnapshotAiComment
   aiCommentLoading: boolean
   aiCommentError: ApiUnitErrorInfo | null
-  requestAiComment: (snapshotForAiComment?: OrderSnapshotDocumentV2 | null) => void
-  setAiComment: (value: OrderSnapshotAiCommentV2) => void
+  requestAiComment: (snapshotForAiComment?: OrderSnapshotDocument | null) => void
+  setAiComment: (value: OrderSnapshotAiComment) => void
 }
 
-const EMPTY_AI_COMMENT: OrderSnapshotAiCommentV2 = { prompt: '', answer: '', generatedAt: null }
+const EMPTY_AI_COMMENT: OrderSnapshotAiComment = { prompt: '', answer: '', generatedAt: null }
 
 export function useSecondaryAiCommentState({
   pageName,
@@ -33,23 +33,23 @@ export function useSecondaryAiCommentState({
   periodStart,
   periodEnd,
   forecastMonths,
-  companyUuid,
-  channel,
+  baseSubject,
+  comparisonTarget,
   candidateItemContext,
 }: Args): ReturnValue {
-  const [aiComment, setAiComment]: [OrderSnapshotAiCommentV2, React.Dispatch<React.SetStateAction<OrderSnapshotAiCommentV2>>] = useState<OrderSnapshotAiCommentV2>(EMPTY_AI_COMMENT)
-  const aiCommentParams: { skuGroupKey: string; periodStart: string; periodEnd: string; forecastMonths: number; companyUuid: string | undefined; competitorChannelId: string; candidateItemUuid: string | null; } = useMemo(() : { skuGroupKey: string; periodStart: string; periodEnd: string; forecastMonths: number; companyUuid: string | undefined; competitorChannelId: string; candidateItemUuid: string | null; } => ({
+  const [aiComment, setAiComment]: [OrderSnapshotAiComment, React.Dispatch<React.SetStateAction<OrderSnapshotAiComment>>] = useState<OrderSnapshotAiComment>(EMPTY_AI_COMMENT)
+  const aiCommentParams: SecondaryAiCommentParams = useMemo(() : SecondaryAiCommentParams => ({
     skuGroupKey,
     periodStart,
     periodEnd,
     forecastMonths,
-    companyUuid,
-    competitorChannelId: channel.id,
+    base: baseSubject,
+    comparison: comparisonTarget,
     candidateItemUuid: candidateItemContext?.itemUuid ?? null,
   }), [
+    baseSubject,
     candidateItemContext?.itemUuid,
-    channel.id,
-    companyUuid,
+    comparisonTarget,
     forecastMonths,
     periodEnd,
     periodStart,
@@ -73,7 +73,7 @@ export function useSecondaryAiCommentState({
     onLoaded: handleAiCommentLoaded,
   })
 
-  const requestAiComment: (snapshotForAiComment?: OrderSnapshotDocumentV2 | null) => void = useCallback((snapshotForAiComment?: OrderSnapshotDocumentV2 | null) : void => {
+  const requestAiComment: (snapshotForAiComment?: OrderSnapshotDocument | null) => void = useCallback((snapshotForAiComment?: OrderSnapshotDocument | null) : void => {
     request({
       ...aiCommentParams,
       ...(snapshotForAiComment == null ? {} : { snapshotForAiComment }),

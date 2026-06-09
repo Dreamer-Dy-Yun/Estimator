@@ -1,4 +1,4 @@
-import type { OrderSnapshotDocumentV2 } from '../types'
+import type { OrderSnapshotDocument } from '../types'
 import type {
   AppendCandidateItemPayload,
   AppendCandidateItemsPayload,
@@ -76,12 +76,12 @@ function requireCandidateDetailsSnapshot(
     throw new Error('Candidate item details are required.')
   }
 
-  const snapshot: OrderSnapshotDocumentV2 = parseOrderSnapshot(details)
+  const snapshot: OrderSnapshotDocument = parseOrderSnapshot(details)
   if (snapshot.skuGroupKey !== skuGroupKey) {
     throw new Error(`Candidate item details skuGroupKey mismatch: ${snapshot.skuGroupKey} !== ${skuGroupKey}`)
   }
-  if (snapshot.companyUuid !== options.companyUuid) {
-    throw new Error(`Candidate item details companyUuid mismatch: ${snapshot.companyUuid} !== ${options.companyUuid}`)
+  if (snapshot.drawer2.baseSubject.sourceId !== options.companyUuid) {
+    throw new Error(`Candidate item details baseSubject sourceId mismatch: ${snapshot.drawer2.baseSubject.sourceId} !== ${options.companyUuid}`)
   }
   return snapshot
 }

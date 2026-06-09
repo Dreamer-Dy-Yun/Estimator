@@ -5,6 +5,8 @@ import { act, createElement } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi , type Mock} from 'vitest';
 import { dashboardApi } from '../../../../../api'
+import type { OrderSnapshotDocument } from '../../../../../snapshot/orderSnapshotTypes'
+import { ORDER_SNAPSHOT_SCHEMA_VERSION } from '../../../../../snapshot/orderSnapshotTypes'
 import type { CandidateStashPickerOption } from '../CandidateStashPickerModal'
 import { useSecondaryCandidateActions } from './useSecondaryCandidateActions'
 
@@ -68,10 +70,11 @@ function deferred<T>() : { promise: Promise<T>; resolve: (value: T) => void; rej
   return { promise, resolve, reject }
 }
 
-function makeSnapshot(overrides: Record<string, unknown> = {}) : { schemaVersion: number; skuGroupKey: string; context: { periodStart: string; periodEnd: string; forecastMonths: number; dailyTrendStartMonth: string; dailyTrendLeadTimeDays: number; }; drawer1: { summary: Record<string, never>; }; drawer2: { competitorBasis: Record<string, never>; competitorChannelId: string; competitorChannelLabel: string; stockOrderRequest: { currentOrderInboundDueDate: string; nextOrderInboundDueDate: string; leadTimeDays: number; }; unitEconomics: { unitPrice: number; unitCost: number; expectedFeeRatePct: number; }; selfWeightPct: number; bufferStock: number; aiComment: { prompt: string; answer: string; generatedAt: null; }; confirmedTotals: { orderQty: number; expectedSalesAmount: number; expectedOpProfit: number; expectedOpProfitRatePct: number; }; sizeOrders: { size: string; selfSharePct: number; competitorSharePct: number; blendedSharePct: number; forecastQty: number; recommendedQty: number; confirmQty: number; }[]; }; } {
-  return {
-    schemaVersion: 2,
+function makeSnapshot(overrides: Partial<OrderSnapshotDocument> = {}) : OrderSnapshotDocument {
+  const snapshot: OrderSnapshotDocument = {
+    schemaVersion: ORDER_SNAPSHOT_SCHEMA_VERSION,
     skuGroupKey: 'sku-1',
+    savedAt: '2026-05-31T00:00:00.000Z',
     context: {
       periodStart: '2026-05-01',
       periodEnd: '2026-05-31',
@@ -79,11 +82,38 @@ function makeSnapshot(overrides: Record<string, unknown> = {}) : { schemaVersion
       dailyTrendStartMonth: '2026-05',
       dailyTrendLeadTimeDays: 7,
     },
-    drawer1: { summary: {} },
+    drawer1: {
+      summary: {
+        skuGroupKey: 'sku-1',
+        productName: 'Product',
+        brand: 'Brand',
+        category: 'Category',
+        code: 'P',
+        colorCode: '001',
+        price: 1000,
+        qty: 1,
+        availableStock: 1,
+      },
+    },
     drawer2: {
-      competitorBasis: {},
-      competitorChannelId: 'naver',
-      competitorChannelLabel: 'Naver',
+      baseSubject: {
+        role: 'base',
+        kind: 'self-company',
+        sourceId: 'company-1',
+      },
+      comparisonSubject: {
+        role: 'comparison',
+        kind: 'competitor-channel',
+        id: 'comparison:competitor-channel:naver',
+        sourceId: 'naver',
+        label: 'Naver',
+      },
+      comparisonBasis: {
+        skuGroupKey: 'sku-1',
+        comparisonPrice: 1200,
+        comparisonQty: 1,
+        comparisonRatioBySize: { M: 0 },
+      },
       stockOrderRequest: {
         currentOrderInboundDueDate: '2026-06-01',
         nextOrderInboundDueDate: '2026-06-15',
@@ -99,8 +129,11 @@ function makeSnapshot(overrides: Record<string, unknown> = {}) : { schemaVersion
         expectedOpProfit: 170,
         expectedOpProfitRatePct: 17,
       },
-      sizeOrders: [{ size: 'M', selfSharePct: 100, competitorSharePct: 0, blendedSharePct: 100, forecastQty: 1, recommendedQty: 1, confirmQty: 1 }],
+      sizeOrders: [{ size: 'M', baseSharePct: 100, comparisonSharePct: 0, blendedSharePct: 100, forecastQty: 1, recommendedQty: 1, confirmQty: 1 }],
     },
+  }
+  return {
+    ...snapshot,
     ...overrides,
   }
 }
@@ -130,7 +163,7 @@ describe('useSecondaryCandidateActions', () : void => {
       forecastMonths: 3,
       hasSavedSnapshot: false,
       candidateItemContext: null,
-      buildSnapshot: vi.fn(() : never => makeSnapshot() as never),
+      buildSnapshot: vi.fn(() : OrderSnapshotDocument => makeSnapshot()),
       showToast: vi.fn(),
       ...overrides,
     }
@@ -352,7 +385,7 @@ describe('useSecondaryCandidateActions', () : void => {
         onConfirmed,
         onSaved,
       } as never,
-      buildSnapshot: vi.fn(() : never => makeSnapshot() as never),
+      buildSnapshot: vi.fn(() : OrderSnapshotDocument => makeSnapshot()),
     })
 
     let confirmPromise!: Promise<boolean>
@@ -362,7 +395,7 @@ describe('useSecondaryCandidateActions', () : void => {
 
     hook.rerender({
       ...args,
-      buildSnapshot: vi.fn(() : never => makeSnapshot({
+      buildSnapshot: vi.fn(() : OrderSnapshotDocument => makeSnapshot({
         drawer2: {
           ...makeSnapshot().drawer2,
           stockOrderRequest: {
@@ -371,7 +404,7 @@ describe('useSecondaryCandidateActions', () : void => {
             leadTimeDays: 7,
           },
         },
-      }) as never),
+      })),
     })
 
     let result: boolean = true

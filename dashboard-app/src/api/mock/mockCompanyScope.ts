@@ -143,7 +143,7 @@ export function scopeMockProductSecondary(
   if (scale <= 0) throw new Error(`Mock secondary product is outside selected company scope: ${secondary.skuGroupKey}`)
   return {
     ...secondary,
-    competitorQty: scaleCount(secondary.competitorQty, scale),
+    comparisonQty: scaleCount(secondary.comparisonQty, scale),
     sizeRows: secondary.sizeRows.map((row: ProductSecondarySizeRow) : { confirmedQty: number; qty: number; availableStock: number; size: string; selfRatio: number; avgPrice: number; } => ({
       ...row,
       confirmedQty: scaleCount(row.confirmedQty, scale),

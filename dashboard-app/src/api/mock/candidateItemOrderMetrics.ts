@@ -1,6 +1,5 @@
-import type { ProductSecondaryDetail } from '..'
 import type { ProductSecondarySizeRow, SelfSalesRow } from '../../types'
-import type { ProductPrimarySummary } from '../types'
+import type { ProductPrimarySummary, ProductSecondaryDetail } from '../types'
 import type { CandidateItemInsightSummary } from '../types/candidate'
 import type { CandidateOrderMetric } from '../types'
 import type { CandidateDataReferencePeriod } from './candidateItemSummaryTypes'

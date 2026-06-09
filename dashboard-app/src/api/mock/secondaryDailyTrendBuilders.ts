@@ -64,26 +64,26 @@ function appendForecastDays(points: SecondaryDailyTrendPoint[], forecastDays: nu
       sales,
       stockBar,
       inboundAccumBar: Math.max(0, last.inboundAccumBar - sales),
-      selfSales: null,
-      competitorSales: null,
+      baseSales: null,
+      comparisonSales: null,
       isForecast: true,
     }
     points.push(last)
   }
 }
 
-export const buildSecondaryDailyTrend: (monthlyTrend: MonthlySalesPoint[], monthlyStockTrend: MonthlyStockTrendPoint[], startDate: string, endDate: string, forecastDays: number, competitorSalesScale?: number) => SecondaryDailyTrendPoint[] = (
+export const buildSecondaryDailyTrend: (monthlyTrend: MonthlySalesPoint[], monthlyStockTrend: MonthlyStockTrendPoint[], startDate: string, endDate: string, forecastDays: number, comparisonSalesScale?: number) => SecondaryDailyTrendPoint[] = (
   monthlyTrend: MonthlySalesPoint[],
   monthlyStockTrend: MonthlyStockTrendPoint[],
   startDate: string,
   endDate: string,
   forecastDays: number,
-  competitorSalesScale: number = 1,
+  comparisonSalesScale: number = 10,
 ): SecondaryDailyTrendPoint[] => {
   const startMonth: string = startDate.slice(0, 7)
   const endMonth: string = endDate.slice(0, 7)
   const stockByMonth: Map<string, MonthlyStockTrendPoint> = new Map(monthlyStockTrend.map((row: MonthlyStockTrendPoint) : [string, MonthlyStockTrendPoint] => [row.date, row]))
-  const scale: number = Number.isFinite(competitorSalesScale) ? Math.max(0, competitorSalesScale) : 1
+  const scale: number = Number.isFinite(comparisonSalesScale) ? Math.max(0, comparisonSalesScale) : 10
   const points: SecondaryDailyTrendPoint[] = []
 
   monthlyTrend.forEach((monthPoint: MonthlySalesPoint, monthIndex: number) : void => {
@@ -108,13 +108,13 @@ export const buildSecondaryDailyTrend: (monthlyTrend: MonthlySalesPoint[], month
         sales,
         stockBar,
         inboundAccumBar: 0,
-        selfSales: sales,
-        competitorSales: Math.max(0, Math.round(sales * 10 * scale)),
+        baseSales: sales,
+        comparisonSales: Math.max(0, Math.round(sales * scale)),
         isForecast: false,
       })
     }
   })
 
   appendForecastDays(points, forecastDays)
-  return points.map((point: SecondaryDailyTrendPoint, index: number) : { idx: number; date: string; month: string; sales: number; stockBar: number; inboundAccumBar: number; selfSales: number | null; competitorSales: number | null; isForecast: boolean; } => ({ ...point, idx: index }))
+  return points.map((point: SecondaryDailyTrendPoint, index: number) : { idx: number; date: string; month: string; sales: number; stockBar: number; inboundAccumBar: number; baseSales: number | null; comparisonSales: number | null; isForecast: boolean; } => ({ ...point, idx: index }))
 }

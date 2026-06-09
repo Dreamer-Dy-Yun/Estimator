@@ -1,6 +1,6 @@
 # QA Current Behavior
 
-Last updated: 2026-05-29
+Last updated: 2026-06-09
 
 ## General
 
@@ -21,7 +21,7 @@ Last updated: 2026-05-29
 - Monthly trend request: last 24 completed months + 12 forecast months.
 - Daily trend request: selected start month first day through yesterday + lead-time forecast days.
 - AI comment request is manual.
-- Snapshot save uses current drawer state and `OrderSnapshotDocumentV2`.
+- Snapshot save uses current drawer state and `OrderSnapshotDocument` v3.
 
 ## Candidate stash
 
