@@ -2,6 +2,21 @@
 
 Last updated: 2026-06-09
 
+## 0-4) 2026-06-09 product drawer comparison target boundary
+
+- 1차 드로워 판매 정보의 기준/비교 주체는 `ProductComparisonSubjectRef` 계약이 소유한다.
+- `base`와 `comparison`은 모두 `role`, `kind`, `sourceId`를 가진다. `role`은 컬럼 위치, `kind`는 backend/mock 조회 도메인, `sourceId`는 해당 도메인의 실제 id다.
+- `ProductComparisonTarget.id`는 comparison option의 UI 선택용 opaque id다. 프론트는 `kind:sourceId` 같은 id 포맷을 합성하지 않는다.
+- `getProductComparisonTargets`는 `companyUuid`가 아니라 `base` subject 기준으로 비교 후보 목록을 요청한다.
+- 1차 판매 정보 카드는 `판매 정보` 제목 행의 `자사간 비교` 토글로 비교 대상 목록을 전환한다. 토글 OFF는 경쟁사 채널, ON은 현재 자사를 제외한 자사/자사전체 target만 표시한다.
+- `getProductSalesInsight`는 더 이상 `companyUuid`, `comparisonTargetKind`, `comparisonTargetSourceId`로 요청하지 않고 `base`, `comparison` subject로 요청한다. HTTP GET query는 `baseRole/baseKind/baseSourceId/comparisonRole/comparisonKind/comparisonSourceId`로 펼친다.
+- `ProductMonthlyTrend`, `SecondaryDailyTrend`, snapshot `drawer2.competitorChannelId`는 이번 변경에서 계속 실제 경쟁사 채널 기준이다.
+- 삭제되었거나 현재 scope에 없는 비교 대상은 첫 번째 항목으로 대체하지 않는다. 선택 불가 상태를 표시하고 사용자가 유효한 대상을 다시 선택하게 한다.
+- 비교 대상 목록은 세션 장기 캐시 대상이 아니다. 관리자/회사 scope 변경 가능성을 숨기지 않기 위해 요청 계층에서 그대로 조회한다.
+- 2차 드로워의 참고지표 조회는 `ProductComparisonTarget`을 따르지만, 발주 계산 readiness는 참고지표 조회 성공 여부가 아니라 stock-order 계산 결과로만 판단한다.
+- 2차 오더의 사이즈 비중 계산은 아직 `ProductSecondaryDetail.competitorRatioBySize` 기반이다. 자사 비교 target의 사이즈 비중까지 반영하려면 별도 API 계약으로 `comparisonRatioBySize` 계열 데이터를 추가해야 하며, 현재 UI에서 라벨만 바꾸는 방식은 금지한다.
+
+
 ## 0-3) 2026-06-09 primary drawer content width boundary
 
 - 1차 드로워의 기준 폭은 `--primary-drawer-column-width`가 소유한다.

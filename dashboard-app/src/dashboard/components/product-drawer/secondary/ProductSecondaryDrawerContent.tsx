@@ -73,7 +73,6 @@ export function ProductSecondaryDrawerContent({
 }: Props) : React.JSX.Element {
   const {
     salesInsightError,
-    salesInsightLoading,
     forecastCalcError,
     forecastCalcLoading,
     stockOrderDisplayInputs,
@@ -120,8 +119,8 @@ export function ProductSecondaryDrawerContent({
           <SalesForecastCard
             forecast={{
               inputs: stockOrderDisplayInputs,
-              loading: salesInsightLoading || forecastCalcLoading,
-              error: salesInsightError ?? forecastCalcError,
+              loading: forecastCalcLoading,
+              error: forecastCalcError ?? salesInsightError,
               calculationReady: stockOrderCalculationReady,
               computed: {
                 recommendedOrderQtyTotal: recommendedQtyTotal,

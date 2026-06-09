@@ -28,14 +28,20 @@ export type SalesKpiChannel = {
   qtySkew?: number
 }
 
+export type SalesKpiColumnOptions = {
+  rankKey?: string
+}
+
 export function buildSalesKpiColumn(
   kind: 'self' | 'competitor',
   primary: ProductPrimarySummary,
   secondary: ProductSecondaryDetail,
   channel: SalesKpiChannel,
+  options: SalesKpiColumnOptions = {},
 ): SalesKpiColumn {
   const priceSkew: number = channel.priceSkew ?? 1
   const qtySkew: number = channel.qtySkew ?? 1
+  const rankKey: string = options.rankKey ?? kind
   const price: number =
     kind === 'self'
       ? primary.price
@@ -45,10 +51,10 @@ export function buildSalesKpiColumn(
       ? primary.qty
       : Math.max(0, Math.round(secondary.competitorQty * qtySkew))
   const amount: number = Math.round(price * qty)
-  const qtyRank: number = hashRank(`${primary.skuGroupKey}-${kind}-qty`, 28)
-  const amountRank: number = hashRank(`${primary.skuGroupKey}-${kind}-amt`, 28)
-  const feeRank: number | null = kind === 'self' ? hashRank(`${primary.skuGroupKey}-${kind}-fee`, 28) : null
-  const opMarginRank: number | null = kind === 'self' ? hashRank(`${primary.skuGroupKey}-${kind}-op-margin`, 28) : null
+  const qtyRank: number = hashRank(`${primary.skuGroupKey}-${rankKey}-qty`, 28)
+  const amountRank: number = hashRank(`${primary.skuGroupKey}-${rankKey}-amt`, 28)
+  const feeRank: number | null = kind === 'self' ? hashRank(`${primary.skuGroupKey}-${rankKey}-fee`, 28) : null
+  const opMarginRank: number | null = kind === 'self' ? hashRank(`${primary.skuGroupKey}-${rankKey}-op-margin`, 28) : null
   const rankTotal = 100 as const
 
   if (kind === 'competitor') {

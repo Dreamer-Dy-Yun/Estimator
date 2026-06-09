@@ -6,6 +6,8 @@ import type {
 import type {
   ProductDrawerBundle,
   ProductDrawerBundleParams,
+  ProductComparisonTarget,
+  ProductComparisonTargetParams,
   ProductMonthlyTrend,
   ProductMonthlyTrendParams,
   ProductSalesInsight,
@@ -81,6 +83,7 @@ export interface DashboardApi {
     skuGroupKey: string,
     params?: ProductDrawerBundleParams,
   ): Promise<ProductDrawerBundle>
+  getProductComparisonTargets(params: ProductComparisonTargetParams): Promise<ProductComparisonTarget[]>
   getProductMonthlyTrend(skuGroupKey: string, params: ProductMonthlyTrendParams): Promise<ProductMonthlyTrend>
   getProductSalesInsight(skuGroupKey: string, params: ProductSalesInsightParams): Promise<ProductSalesInsight>
   getProductSecondaryDetail(

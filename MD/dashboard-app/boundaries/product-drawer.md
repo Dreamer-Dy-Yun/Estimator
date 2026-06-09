@@ -1,6 +1,6 @@
 # Product Drawer Boundary
 
-Last updated: 2026-05-29
+Last updated: 2026-06-09
 
 ## Responsibility
 
@@ -11,6 +11,7 @@ Product drawer owns primary summary display, secondary detail display, secondary
 | File | Responsibility |
 |---|---|
 | `ProductDrawer.tsx` | Drawer shell and secondary pane state |
+| `useProductComparisonTargets.ts` | Base subject to comparison target list state, comparison mode, missing target state |
 | `ProductDrawerSecondaryPane.tsx` | Secondary loading/error/detail branching |
 | `secondary/ProductSecondaryDrawer.tsx` | Secondary state orchestration |
 | `secondary/hooks/useSecondaryDrawerRequests.ts` | Secondary API request wiring |
@@ -26,6 +27,7 @@ Product drawer owns primary summary display, secondary detail display, secondary
 - Primary bundle: `getProductDrawerBundle`.
 - Monthly trend: `getProductMonthlyTrend`.
 - Sales insight: `getProductSalesInsight`.
+- Comparison targets: `getProductComparisonTargets`.
 - Secondary detail: `getProductSecondaryDetail`.
 - Secondary daily trend: `getSecondaryDailyTrend`.
 - Secondary AI comment: `getSecondaryAiComment`.
@@ -56,6 +58,9 @@ Product drawer owns primary summary display, secondary detail display, secondary
 ## Scope rules
 
 - Read-like drawer APIs may omit `companyUuid` for all-company reads.
+- Sales insight and comparison target APIs use base/comparison subject refs. `base.kind` is currently `self-company`; `comparison.kind` may be `competitor-channel` or `self-company`.
+- The frontend may keep `ALL_COMPANY_UUID` in subject state for all-company reads, but HTTP requests omit `baseSourceId` or `comparisonSourceId` instead of sending the sentinel.
+- Empty comparison target lists are valid unavailable states. The drawer must not replace them with the first target, a fake target, or a generic API error.
 - Candidate detail drawer opened from a single-company candidate keeps the same `companyUuid` through reads and mutations.
 - Secondary mutations require concrete `companyUuid`.
 

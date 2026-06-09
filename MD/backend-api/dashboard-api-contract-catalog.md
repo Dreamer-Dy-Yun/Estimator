@@ -1,6 +1,6 @@
 # Dashboard API Contract Catalog
 
-Last updated: 2026-05-29
+Last updated: 2026-06-09
 
 Purpose: backend implementation contract for the current frontend. This document lists current DTO and endpoint shapes only. No previous payload shape is part of this contract.
 
@@ -103,14 +103,114 @@ Common query fields: `startDate?`, `endDate?`, `companyUuid?`, `brand?`, `catego
 | API | Method/path | Query/body | Response |
 |---|---|---|---|
 | `getProductDrawerBundle` | GET `/products/{skuGroupKey}/drawer-bundle` | `companyUuid?` | `{ summary: ProductPrimarySummary }` |
+| `getProductComparisonTargets` | GET `/products/comparison-targets` | `baseRole`, `baseKind`, `baseSourceId?` | `ProductComparisonTarget[]` |
 | `getProductMonthlyTrend` | GET `/products/{skuGroupKey}/monthly-trend` | `startDate`, `endDate`, `forecastMonths`, `companyUuid?`, `competitorChannelId` | `ProductMonthlyTrend` |
-| `getProductSalesInsight` | GET `/products/{skuGroupKey}/sales-insight` | `companyUuid?`, `competitorChannelId` | `ProductSalesInsight` |
+| `getProductSalesInsight` | GET `/products/{skuGroupKey}/sales-insight` | `startDate`, `endDate`, `baseRole`, `baseKind`, `baseSourceId?`, `comparisonRole`, `comparisonKind`, `comparisonSourceId?` | `ProductSalesInsight` |
 | `getProductSecondaryDetail` | GET `/products/{skuGroupKey}/secondary-detail` | `companyUuid?`, `minOpMarginPct?` | `ProductSecondaryDetail` |
 | `getSecondaryDailyTrend` | GET `/products/{skuGroupKey}/secondary/daily-trend` | `startDate`, `endDate`, `forecastDays`, `companyUuid?`, `competitorChannelId` | `SecondaryDailyTrendPoint[]` |
 | `getSecondaryAiComment` | POST `/products/{skuGroupKey}/secondary/ai-comment` | `SecondaryAiCommentParams` | `{ prompt, answer, generatedAt }` |
 | `getSecondaryStockOrderCalc` | POST `/secondary/stock-order-calc` | `SecondaryStockOrderCalcParams` | `SecondaryStockOrderCalcResult` |
 
 `ProductPrimarySummary`: `skuGroupKey`, `productName`, `brand`, `category`, `code`, `colorCode`, `price`, `qty`, `availableStock`, optional `monthlySalesTrend` fallback. Monthly chart source is the monthly-trend endpoint.
+
+`ProductComparisonSubjectRef`: `role: base | comparison`, `kind: competitor-channel | self-company`, `sourceId`. `role` identifies the response column position, `kind` selects the backend source table/domain, and `sourceId` is the id inside that domain. For `self-company`, frontend state may hold the internal all-company sentinel, but the HTTP adapter omits `baseSourceId` or `comparisonSourceId` for all-company reads. The backend must not receive the frontend sentinel value. For `competitor-channel`, `sourceId` is a competitor channel id and is always sent. The current product drawer supports `base.kind = self-company`; unsupported base kinds should fail validation instead of falling back.
+
+`ProductComparisonTarget`: comparison option DTO for the target list. Fields: `id`, `role: comparison`, `kind`, `sourceId`, `label`. `id` is an opaque UI selection id and clients must not synthesize it from `kind/sourceId`. Self-company targets exclude the current `base.sourceId`; all-company self comparison may use the frontend all-company sentinel in UI state, but HTTP requests omit `comparisonSourceId` for that all-company subject. An empty target list is a valid unavailable state, not an error fallback signal; the UI should show that no comparison target is available.
+
+`ProductSalesInsight`: `skuGroupKey`, `targetPeriodDays`, `base`, `comparison`, `baseMetrics`, `comparisonMetrics`. Both `base` and `comparison` are `ProductComparisonSubject` objects with `id`, `role`, `kind`, `sourceId`, `label`. `baseMetrics` follows the base subject. `comparisonMetrics` follows the comparison subject. Competitor comparison subjects may omit self-owned cost/margin fields as `null`, while self-company comparison subjects return the same metric shape as self sales.
+
+### Product comparison targets breaking change: 2026-06-09
+
+Before:
+
+```http
+GET /products/comparison-targets?companyUuid={companyUuid?}
+```
+
+After:
+
+```http
+GET /products/comparison-targets?baseRole=base&baseKind=self-company&baseSourceId={companyUuid}
+```
+
+Changed contract:
+
+- Existing `companyUuid?` is replaced by a `base` subject.
+- `baseRole` must be `base`.
+- `baseKind` currently accepts only `self-company`.
+- `baseSourceId` is a concrete self-company UUID.
+- Omit `baseSourceId` for all-company reads. The frontend internal `ALL_COMPANY_UUID` sentinel must not reach the backend.
+- Returned comparison candidates must carry `role: 'comparison'`.
+- If there is no available comparison target, return an empty array; the frontend does not synthesize a default target.
+
+Backend handling note:
+
+- The backend chooses the base reference table from `baseKind`, then returns only comparison targets available for that base.
+- The current frontend sends only self-company bases. If another base kind is added later, update `ProductComparisonBaseSubjectRef.kind` and this API document together.
+
+### Product sales insight breaking change: 2026-06-09
+
+Before:
+
+```ts
+{
+  companyUuid?: string
+  startDate: string
+  endDate: string
+  comparisonTargetKind: 'competitor-channel' | 'self-company'
+  comparisonTargetSourceId: string
+}
+```
+
+After:
+
+```ts
+{
+  startDate: string
+  endDate: string
+  base: {
+    role: 'base'
+    kind: 'self-company'
+    sourceId: string
+  }
+  comparison: {
+    role: 'comparison'
+    kind: 'competitor-channel' | 'self-company'
+    sourceId: string
+  }
+}
+```
+
+GET query fields:
+
+```txt
+startDate
+endDate
+baseRole
+baseKind
+baseSourceId?
+comparisonRole
+comparisonKind
+comparisonSourceId?
+```
+
+Response field changes:
+
+| Before | After |
+|---|---|
+| `comparisonTarget` | `comparison` |
+| `self` | `baseMetrics` |
+| `comparison` metrics column | `comparisonMetrics` |
+| no base subject object | `base` |
+
+Backend handling:
+
+- `companyUuid` is no longer part of `getProductSalesInsight`; it is represented by `base.kind/sourceId` in frontend state and by `baseKind/baseSourceId?` on the HTTP query.
+- `comparisonTargetKind` and `comparisonTargetSourceId` are no longer top-level query fields; they are represented by `comparison.kind/sourceId` in frontend state and by `comparisonKind/comparisonSourceId?` on the HTTP query.
+- For `self-company` subjects, omitted `baseSourceId` or `comparisonSourceId` means all-company read. Do not accept the frontend `ALL_COMPANY_UUID` sentinel as an API value.
+- `baseRole` must be `base`; `comparisonRole` must be `comparison`.
+- Do not resolve a missing base or comparison subject to the current company, all-company, or the first available comparison target.
+- Invalid role/kind shape should be treated as validation failure. Missing or unauthorized subjects should be reported explicitly.
 
 `ProductSecondaryDetail`: `skuGroupKey`, `competitorPrice`, `competitorQty`, `competitorRatioBySize`, `sizeRows`.
 

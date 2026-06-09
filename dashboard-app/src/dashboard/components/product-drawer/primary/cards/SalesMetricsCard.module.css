@@ -28,17 +28,37 @@
   margin-bottom: 8px;
 }
 
-.salesMetricsHeader > div {
+.salesMetricsTitleLine {
   display: flex;
   align-items: baseline;
-  gap: 8px;
+  justify-content: space-between;
+  gap: 10px;
   min-width: 0;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
 }
 
 .salesMetricsHeader .sectionTitle,
 .salesMetricsHeader .salesMetricsPeriodLine {
   margin-bottom: 0;
+}
+
+.selfComparisonToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex: 0 0 auto;
+  font-size: 11px;
+  font-weight: 700;
+  color: #334155;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.selfComparisonToggle input {
+  width: 13px;
+  height: 13px;
+  margin: 0;
+  accent-color: #2563eb;
 }
 
 .salesMetricsPeriodLine {
@@ -165,6 +185,18 @@
   outline: 2px solid #2563eb;
   outline-offset: 2px;
   border-radius: 4px;
+}
+
+.salesMetricsUnavailableNotice {
+  margin: 6px 0 0;
+  padding: 10px 12px;
+  border: 1px dashed #cbd5e1;
+  border-radius: 8px;
+  background: #f8fafc;
+  color: #475569;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.4;
 }
 
 .salesMetricPrimaryValue {

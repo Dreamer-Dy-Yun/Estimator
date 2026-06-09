@@ -1,7 +1,7 @@
 import type { SecondaryStockOrderCalcResult } from '../../../../../api'
 import type { ProductSalesInsightColumn, SecondaryDailyTrendPoint } from '../../../../../api/types'
 import { useCallback } from 'react'
-import type { SecondaryCompetitorChannel } from '../../../../../api'
+import type { ProductComparisonBaseSubjectRef, ProductComparisonTarget, SecondaryCompetitorChannel } from '../../../../../api'
 import type { ApiUnitErrorInfo, ProductPrimarySummary } from '../../../../../types'
 import { useSecondaryDailyTrend } from './useSecondaryDailyTrend'
 import { useSecondarySalesInsight } from './useSecondarySalesInsight'
@@ -11,11 +11,13 @@ export type Args = {
   pageName: string
   primary: ProductPrimarySummary
   channel: SecondaryCompetitorChannel
+  comparisonTarget: ProductComparisonTarget | null
   periodStart: string
   periodEnd: string
   selectedStartMonth: string
   selectedEndMonth: string
   companyUuid?: string
+  baseSubject: ProductComparisonBaseSubjectRef
   forecastMeanPeriodEnd: string
   leadTimeDays: number
   dailyMeanClient: number | null
@@ -25,11 +27,13 @@ export function useSecondaryDrawerRequests({
   pageName,
   primary,
   channel,
+  comparisonTarget,
   periodStart,
   periodEnd,
   selectedStartMonth,
   selectedEndMonth,
   companyUuid,
+  baseSubject,
   forecastMeanPeriodEnd,
   leadTimeDays,
   dailyMeanClient,
@@ -43,10 +47,10 @@ export function useSecondaryDrawerRequests({
 
   const salesInsight: { selfCol: ProductSalesInsightColumn | null; compCol: ProductSalesInsightColumn | null; salesInsightError: ApiUnitErrorInfo | null; salesInsightLoading: boolean; } = useSecondarySalesInsight({
     primary,
-    channel,
+    comparisonTarget,
     periodStart,
     periodEnd,
-    companyUuid,
+    baseSubject,
     makeApiErrorInfo,
   })
   const stockOrder: { forecastCalc: SecondaryStockOrderCalcResult | null; forecastCalcError: ApiUnitErrorInfo | null; forecastCalcLoading: boolean; } = useSecondaryStockOrderCalc({

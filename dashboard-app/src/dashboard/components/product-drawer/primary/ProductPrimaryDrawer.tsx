@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import type { SecondaryCompetitorChannel } from '../../../../api'
+import type { ProductComparisonBaseSubjectRef, ProductComparisonTarget, SecondaryCompetitorChannel } from '../../../../api'
 import { ComponentErrorBoundary } from '../../../../components/ComponentErrorBoundary'
 import type { ApiUnitErrorInfo, ProductPrimarySummary } from '../../../../types'
 import styles from '../../common.module.css'
@@ -11,6 +11,7 @@ export type Props = {
   periodStart: string
   periodEnd: string
   companyUuid?: string
+  baseSubject: ProductComparisonBaseSubjectRef
   selectedStart: string
   selectedEnd: string
   forecastMonths: number
@@ -21,10 +22,15 @@ export type Props = {
   onToggleSecondary: () => void
   onClose: () => void
   channelState: {
-    channelId: string
+    competitorChannelId: string
     competitorChannels: SecondaryCompetitorChannel[]
-    channelsError: ApiUnitErrorInfo | null
-    onChannelChange: (next: string) => void
+    comparisonTargets: ProductComparisonTarget[]
+    comparisonMode: ProductComparisonTarget['kind']
+    comparisonTarget: ProductComparisonTarget | null
+    targetsLoading: boolean
+    targetsError: ApiUnitErrorInfo | null
+    onComparisonModeChange: React.Dispatch<React.SetStateAction<ProductComparisonTarget['kind']>>
+    onComparisonTargetChange: (next: string) => void
   }
   pageName: string
 }
@@ -34,6 +40,7 @@ export function ProductPrimaryDrawer({
   periodStart,
   periodEnd,
   companyUuid,
+  baseSubject,
   selectedStart,
   selectedEnd,
   forecastMonths,
@@ -47,8 +54,8 @@ export function ProductPrimaryDrawer({
   pageName,
 }: Props) : React.JSX.Element {
   const competitorChannelLabel: string = useMemo(
-    () : string => channelState.competitorChannels.find((ch: SecondaryCompetitorChannel) : boolean => ch.id === channelState.channelId)?.label ?? '',
-    [channelState.channelId, channelState.competitorChannels],
+    () : string => channelState.competitorChannels.find((ch: SecondaryCompetitorChannel) : boolean => ch.id === channelState.competitorChannelId)?.label ?? '',
+    [channelState.competitorChannelId, channelState.competitorChannels],
   )
   const imageUrl: string = `https://placehold.co/640x360?text=${encodeURIComponent(summary.productName)}`
 
@@ -123,12 +130,14 @@ export function ProductPrimaryDrawer({
             skuGroupKey={summary.skuGroupKey}
             startDate={periodStart}
             endDate={periodEnd}
-            companyUuid={companyUuid}
-            channelId={channelState.channelId}
-            competitorChannels={channelState.competitorChannels}
-            channelsError={channelState.channelsError}
-            onChannelChange={channelState.onChannelChange}
-            selfCompanyLabel={selfCompanyLabel}
+            baseSubject={baseSubject}
+            comparisonTarget={channelState.comparisonTarget}
+            comparisonTargets={channelState.comparisonTargets}
+            comparisonMode={channelState.comparisonMode}
+            targetsLoading={channelState.targetsLoading}
+            targetsError={channelState.targetsError}
+            onComparisonModeChange={channelState.onComparisonModeChange}
+            onComparisonTargetChange={channelState.onComparisonTargetChange}
             pageName={pageName}
           />
         </ComponentErrorBoundary>
@@ -142,7 +151,7 @@ export function ProductPrimaryDrawer({
             forecastMonths={forecastMonths}
             selfCompanyLabel={selfCompanyLabel}
             onForecastMonthsChange={onForecastMonthsChange}
-            channelId={channelState.channelId}
+            channelId={channelState.competitorChannelId}
             fallbackChannelLabel={competitorChannelLabel}
             fallbackTrend={summary.monthlySalesTrend ?? []}
             pageName={pageName}

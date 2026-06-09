@@ -1,12 +1,22 @@
-import type { MockOwnerOrCompanyScope } from './candidateMockApi'
-import type { AppendCandidateItemsResponse, CandidateDetailBulkConfirmProgressEvent, CandidateDetailBulkConfirmStartPayload, CandidateDetailBulkConfirmStartResult, CandidateDetailBulkConfirmSubscription, CandidateItemDetail, CandidateItemListParams, CandidateItemListResult, CandidateOrderMetricEvent, CandidateOrderMetricStreamParams, CandidateOrderMetricSubscription, CandidateRecommendationParams, CandidateRecommendationResult, CandidateStashExcelUploadResult, CandidateStashLlmCommentJobProgressEvent, CandidateStashLlmCommentJobStartResult, CandidateStashLlmCommentJobSubscription, CandidateStashSummary, ProductSecondaryDetail, SecondaryCompetitorChannel, SecondaryStockOrderCalcResult, UpdateCandidateItemPayload, UpdateCandidateItemResponse } from '..'
+import type {
+  ProductComparisonBaseSubject,
+  ProductComparisonBaseSubjectRef,
+  ProductComparisonComparisonSubject,
+  ProductComparisonComparisonSubjectRef,
+  ProductComparisonSubject,
+  ProductComparisonSubjectRef,
+  ProductComparisonTarget,
+  ProductSecondaryDetail,
+  SecondaryCompetitorChannel,
+} from '..'
 import type { CompetitorSalesRow, SelfSalesRow } from '../../types'
-import type { AppendCandidateItemPayload, AppendCandidateItemsPayload, CreateCandidateStashPayload, MonthlySalesPoint, ScatterSalesGridResponse, SecondaryDailyTrendPoint, SecondaryStockOrderCalcParams, UpdateCandidateStashPayload } from '../types'
+import type { MonthlySalesPoint, ScatterSalesGridResponse, SecondaryDailyTrendPoint } from '../types'
 import type { MockSecondaryCompetitorChannel } from './salesTables'
 import type { ProductPrimarySummary } from '../../types'
 import type {
   CompetitorSalesGridParams,
   CompetitorSalesParams,
+  ProductComparisonTargetParams,
   ProductDrawerBundleParams,
   ProductMonthlyTrend,
   ProductMonthlyTrendParams,
@@ -19,6 +29,7 @@ import type {
   SelfSalesGridParams,
   SelfSalesParams,
 } from '../types'
+import { ALL_COMPANY_UUID, getCompanyUuidForOptionalScope } from '../types'
 import { buildSalesKpiColumn } from '../../utils/salesKpiColumn'
 import { DEFAULT_FORECAST_MONTHS } from '../../utils/forecastMonthsStorage'
 import { uniqueSortedStrings } from '../../utils/uniqueSortedStrings'
@@ -41,6 +52,7 @@ import { estimatePeriodWeight, historicalMonths, makeSalesTrend } from './produc
 import { requireMockProductPrimary, requireMockProductSecondary, requireMockStockTrend } from './mockProductLookup'
 import {
   scopeMockCompetitorSalesRow,
+  MOCK_COMPANIES,
   scopeMockProductPrimary,
   scopeMockProductSecondary,
   scopeMockSelfSalesRow,
@@ -77,7 +89,87 @@ const nextMonth: (month: string) => string = (month: string) : string => {
   return `${next.getFullYear()}-${String(next.getMonth() + 1).padStart(2, '0')}`
 }
 
-export const mockDashboardApi: { getSecondaryStockOrderCalc: (params: SecondaryStockOrderCalcParams) => Promise<SecondaryStockOrderCalcResult>; getCandidateStashes: (first?: MockOwnerOrCompanyScope, second?: MockOwnerOrCompanyScope) => Promise<CandidateStashSummary[]>; getCandidateItemsByStash: (params: CandidateItemListParams, ownerUserUuid?: string) => Promise<CandidateItemListResult>; getCandidateRecommendations: (params: CandidateRecommendationParams, ownerUserUuid?: string) => Promise<CandidateRecommendationResult>; getCandidateItemByUuid: (itemUuid: string, first?: MockOwnerOrCompanyScope, second?: MockOwnerOrCompanyScope) => Promise<CandidateItemDetail | null>; subscribeCandidateOrderMetrics: (params: CandidateOrderMetricStreamParams, listener: (event: CandidateOrderMetricEvent) => void, ownerUserUuid?: string) => CandidateOrderMetricSubscription; startCandidateStashLlmCommentJob: (stashUuid: string, first?: MockOwnerOrCompanyScope, second?: MockOwnerOrCompanyScope) => Promise<CandidateStashLlmCommentJobStartResult>; subscribeCandidateStashLlmCommentJob: (jobId: string, listener: (event: CandidateStashLlmCommentJobProgressEvent) => void, first?: MockOwnerOrCompanyScope, second?: MockOwnerOrCompanyScope) => CandidateStashLlmCommentJobSubscription; startCandidateDetailBulkConfirm: (payload: CandidateDetailBulkConfirmStartPayload, ownerUserUuid?: string) => Promise<CandidateDetailBulkConfirmStartResult>; subscribeCandidateDetailBulkConfirm: (jobId: string, listener: (event: CandidateDetailBulkConfirmProgressEvent) => void, first?: MockOwnerOrCompanyScope, second?: MockOwnerOrCompanyScope) => CandidateDetailBulkConfirmSubscription; deleteCandidateItem: (itemUuid: string, first?: MockOwnerOrCompanyScope, second?: MockOwnerOrCompanyScope) => Promise<void>; deleteCandidateItems: (stashUuid: string, itemUuids: string[], first?: MockOwnerOrCompanyScope, second?: MockOwnerOrCompanyScope) => Promise<void>; deleteCandidateStash: (stashUuid: string, first?: MockOwnerOrCompanyScope, second?: MockOwnerOrCompanyScope) => Promise<void>; createCandidateStash: (payload: CreateCandidateStashPayload, ownerUserUuid?: string) => Promise<CandidateStashSummary>; updateCandidateStash: (payload: UpdateCandidateStashPayload, ownerUserUuid?: string) => Promise<CandidateStashSummary>; duplicateCandidateStash: (sourceStashUuid: string, first?: MockOwnerOrCompanyScope, second?: MockOwnerOrCompanyScope) => Promise<void>; appendCandidateItem: (payload: AppendCandidateItemPayload, ownerUserUuid?: string) => Promise<void>; appendCandidateItems: (payload: AppendCandidateItemsPayload, ownerUserUuid?: string) => Promise<AppendCandidateItemsResponse>; updateCandidateItem: (payload: UpdateCandidateItemPayload, ownerUserUuid?: string) => Promise<UpdateCandidateItemResponse>; uploadCandidateStashExcel: (file: File, first?: MockOwnerOrCompanyScope, second?: MockOwnerOrCompanyScope) => Promise<CandidateStashExcelUploadResult>; getSelfSales: (params?: SelfSalesParams) => Promise<{ qty: number; amount: number; opMarginAmount: number; id: string; skuGroupKey: string; rank: number; rankPercentile: number; brand: string; category: string; code: string; productName: string; colorCode: string; avgPrice: number; avgCost: number; marginRate: number; feeRate: number; opMarginRate: number; }[]>; getSelfSalesScatterGrid: (params?: SelfSalesGridParams) => Promise<ScatterSalesGridResponse>; getCompetitorSales: (params?: CompetitorSalesParams) => Promise<{ competitorQty: number; competitorAvgPrice: number; competitorAmount: number; selfQty: number | null; selfAmount: number | null; id: string; skuGroupKey: string; rank: number; rankPercentile: number; brand: string; category: string; code: string; productName: string; colorCode: string; selfAvgPrice: number | null; }[]>; getCompetitorSalesScatterGrid: (params?: CompetitorSalesGridParams) => Promise<ScatterSalesGridResponse>; getSalesFilterMeta: (params?: SalesFilterMetaParams) => Promise<{ brands: string[]; categories: string[]; codes: string[]; colorCodes: string[]; productNames: string[]; historicalMonths: string[]; }>; getProductDrawerBundle: (skuGroupKey: string, params?: ProductDrawerBundleParams) => Promise<{ summary: ProductPrimarySummary; }>; getProductMonthlyTrend: (skuGroupKey: string, params: ProductMonthlyTrendParams) => Promise<ProductMonthlyTrend>; getProductSalesInsight: (skuGroupKey: string, params: ProductSalesInsightParams) => Promise<ProductSalesInsight>; getProductSecondaryDetail: (skuGroupKey: string, params?: ProductSecondaryDetailParams) => Promise<ProductSecondaryDetail>; getSecondaryAiComment: (params: SecondaryAiCommentParams) => Promise<{ prompt: string; answer: string; generatedAt: string; }>; getSecondaryDailyTrend: ({ skuGroupKey, startDate, endDate, forecastDays, competitorChannelId, companyUuid }: SecondaryDailyTrendParams) => Promise<SecondaryDailyTrendPoint[]>; getSecondaryCompetitorChannels: () => Promise<SecondaryCompetitorChannel[]>; } = {
+const SELF_ALL_COMPANIES_LABEL = '\uC790\uC0AC\uC804\uCCB4' as const
+
+function productComparisonSubjectId(subject: ProductComparisonSubjectRef): string {
+  return `${subject.role}:${subject.kind}:${subject.sourceId}`
+}
+
+function competitorComparisonTarget(channel: SecondaryCompetitorChannel): ProductComparisonTarget {
+  return {
+    id: productComparisonSubjectId({ role: 'comparison', kind: 'competitor-channel', sourceId: channel.id }),
+    role: 'comparison',
+    kind: 'competitor-channel',
+    sourceId: channel.id,
+    label: channel.label,
+  }
+}
+
+function selfCompanyComparisonTarget(companyUuid: string, label: string): ProductComparisonTarget {
+  return {
+    id: productComparisonSubjectId({ role: 'comparison', kind: 'self-company', sourceId: companyUuid }),
+    role: 'comparison',
+    kind: 'self-company',
+    sourceId: companyUuid,
+    label,
+  }
+}
+
+function mockCompanyComparisonTargetLabel(companyUuid: string, label: string): string {
+  return companyUuid === ALL_COMPANY_UUID ? SELF_ALL_COMPANIES_LABEL : label
+}
+
+function getMockProductComparisonTargets(params: ProductComparisonTargetParams): ProductComparisonTarget[] {
+  if (params.base.role !== 'base') throw new Error(`Invalid mock base subject role: ${params.base.role}`)
+  if (params.base.kind !== 'self-company') throw new Error(`Unsupported mock base subject kind: ${params.base.kind}`)
+  const currentCompanyUuid: string = params.base.sourceId
+  const competitorTargets: ProductComparisonTarget[] = secondaryCompetitorChannels.map(competitorComparisonTarget)
+  const selfTargets: ProductComparisonTarget[] = MOCK_COMPANIES
+    .filter((company: { uuid: string; name: string }) : boolean => company.uuid !== currentCompanyUuid)
+    .map((company: { uuid: string; name: string }) : ProductComparisonTarget => selfCompanyComparisonTarget(
+      company.uuid,
+      mockCompanyComparisonTargetLabel(company.uuid, company.name),
+    ))
+  return [...competitorTargets, ...selfTargets]
+}
+
+function mockSelfCompanySubjectLabel(sourceId: string): string {
+  if (sourceId === ALL_COMPANY_UUID) return SELF_ALL_COMPANIES_LABEL
+  const company: { uuid: string; name: string } | undefined = MOCK_COMPANIES.find(
+    (candidate: { uuid: string; name: string }) : boolean => candidate.uuid === sourceId,
+  )
+  if (company == null) throw new Error(`Unknown mock self-company subject: ${sourceId}`)
+  return company.name
+}
+
+function resolveMockProductSalesInsightSubject(subject: ProductComparisonBaseSubjectRef): ProductComparisonBaseSubject
+function resolveMockProductSalesInsightSubject(subject: ProductComparisonComparisonSubjectRef): ProductComparisonComparisonSubject
+function resolveMockProductSalesInsightSubject(subject: ProductComparisonSubjectRef): ProductComparisonSubject {
+  if (subject.kind === 'competitor-channel') {
+    const channel: MockSecondaryCompetitorChannel = getMockSecondaryCompetitorChannel(subject.sourceId)
+    return {
+      ...subject,
+      id: productComparisonSubjectId(subject),
+      label: channel.label,
+    }
+  }
+  return {
+    ...subject,
+    id: productComparisonSubjectId(subject),
+    label: mockSelfCompanySubjectLabel(subject.sourceId),
+  }
+}
+
+function assertMockSubjectRole(subject: ProductComparisonSubjectRef, role: ProductComparisonSubject['role']): void {
+  if (subject.role !== role) throw new Error(`Invalid mock product sales insight subject role: expected ${role}, got ${subject.role}`)
+}
+
+function selfCompanySubjectScope(subject: ProductComparisonSubjectRef): { companyUuid?: string } {
+  if (subject.kind !== 'self-company') throw new Error(`Unsupported mock base subject kind: ${subject.kind}`)
+  return getCompanyUuidForOptionalScope(subject.sourceId) == null ? {} : { companyUuid: subject.sourceId }
+}
+
+export const mockDashboardApi = {
   getSelfSales: async (params?: SelfSalesParams) : Promise<{ qty: number; amount: number; opMarginAmount: number; id: string; skuGroupKey: string; rank: number; rankPercentile: number; brand: string; category: string; code: string; productName: string; colorCode: string; avgPrice: number; avgCost: number; marginRate: number; feeRate: number; opMarginRate: number; }[]> => {
     await sleep(80)
     const weighted: number = periodWeight(params)
@@ -145,6 +237,11 @@ export const mockDashboardApi: { getSecondaryStockOrderCalc: (params: SecondaryS
     return { summary }
   },
 
+  getProductComparisonTargets: async (params: ProductComparisonTargetParams) : Promise<ProductComparisonTarget[]> => {
+    await sleep(40)
+    return getMockProductComparisonTargets(params)
+  },
+
   getProductMonthlyTrend: async (skuGroupKey: string, params: ProductMonthlyTrendParams): Promise<ProductMonthlyTrend> => {
     await sleep(80)
     const primary: ProductPrimarySummary = scopeMockProductPrimary(requireMockProductPrimary(skuGroupKey), params)
@@ -194,16 +291,44 @@ export const mockDashboardApi: { getSecondaryStockOrderCalc: (params: SecondaryS
 
   getProductSalesInsight: async (skuGroupKey: string, params: ProductSalesInsightParams): Promise<ProductSalesInsight> => {
     await sleep(80)
-    const primary: ProductPrimarySummary = scopeMockProductPrimary(requireMockProductPrimary(skuGroupKey), params)
-    const secondary: ProductSecondaryDetail = scopeMockProductSecondary(requireMockProductSecondary(skuGroupKey), params)
-    const channel: MockSecondaryCompetitorChannel = getMockSecondaryCompetitorChannel(params.competitorChannelId)
+    assertMockSubjectRole(params.base, 'base')
+    assertMockSubjectRole(params.comparison, 'comparison')
+    const base: ProductComparisonBaseSubject = resolveMockProductSalesInsightSubject(params.base)
+    const comparison: ProductComparisonComparisonSubject = resolveMockProductSalesInsightSubject(params.comparison)
+    const baseScope: { companyUuid?: string } = selfCompanySubjectScope(base)
+    const primary: ProductPrimarySummary = scopeMockProductPrimary(requireMockProductPrimary(skuGroupKey), baseScope)
+    const secondary: ProductSecondaryDetail = scopeMockProductSecondary(requireMockProductSecondary(skuGroupKey), baseScope)
+    const channel: MockSecondaryCompetitorChannel | null = comparison.kind === 'competitor-channel'
+      ? getMockSecondaryCompetitorChannel(comparison.sourceId)
+      : null
+    const salesKpiChannel: { id: string; label: string; priceSkew?: number; qtySkew?: number } = channel ?? {
+      id: comparison.id,
+      label: comparison.label,
+    }
+    const comparisonCompanyScope: { companyUuid?: string } = comparison.kind === 'self-company'
+      ? selfCompanySubjectScope(comparison)
+      : baseScope
+    const comparisonPrimary: ProductPrimarySummary = comparison.kind === 'self-company'
+      ? scopeMockProductPrimary(requireMockProductPrimary(skuGroupKey), comparisonCompanyScope)
+      : primary
+    const comparisonSecondary: ProductSecondaryDetail = comparison.kind === 'self-company'
+      ? scopeMockProductSecondary(requireMockProductSecondary(skuGroupKey), comparisonCompanyScope)
+      : secondary
     return {
       skuGroupKey: primary.skuGroupKey,
       targetPeriodDays: { start: params.startDate, end: params.endDate },
-      competitorChannelId: channel.id,
-      competitorChannelLabel: channel.label,
-      self: buildSalesKpiColumn('self', primary, secondary, channel),
-      competitor: buildSalesKpiColumn('competitor', primary, secondary, channel),
+      base,
+      comparison,
+      baseMetrics: buildSalesKpiColumn('self', primary, secondary, { id: base.id, label: base.label }, { rankKey: base.id }),
+      comparisonMetrics: comparison.kind === 'competitor-channel'
+        ? buildSalesKpiColumn('competitor', primary, secondary, salesKpiChannel)
+        : buildSalesKpiColumn(
+          'self',
+          comparisonPrimary,
+          comparisonSecondary,
+          { id: comparison.id, label: comparison.label },
+          { rankKey: comparison.id },
+        ),
     }
   },
 

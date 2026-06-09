@@ -1,6 +1,6 @@
-import type { AppendCandidateItemsResponse, CandidateDetailBulkConfirmProgressEvent, CandidateDetailBulkConfirmStartPayload, CandidateDetailBulkConfirmStartResult, CandidateItemDetail, CandidateItemListParams, CandidateItemListResult, CandidateOrderMetricEvent, CandidateOrderMetricStreamParams, CandidateRecommendationParams, CandidateRecommendationResult, CandidateStashExcelUploadResult, CandidateStashLlmCommentJobProgressEvent, CandidateStashLlmCommentJobStartResult, CandidateStashSummary, CompanyScopeParams, CompetitorSalesParams, DashboardEventStreamErrorListener, ProductDrawerBundle, ProductMonthlyTrend, ProductMonthlyTrendParams, ProductSalesInsight, ProductSecondaryDetail, SalesFilterMeta, SecondaryAiCommentParams, SecondaryAiCommentResult, SecondaryCompetitorChannel, SecondaryStockOrderCalcResult, SelfSalesParams, UpdateCandidateItemPayload } from '..'
+import type { AppendCandidateItemsResponse, CandidateDetailBulkConfirmProgressEvent, CandidateDetailBulkConfirmStartPayload, CandidateDetailBulkConfirmStartResult, CandidateItemDetail, CandidateItemListParams, CandidateItemListResult, CandidateOrderMetricEvent, CandidateOrderMetricStreamParams, CandidateRecommendationParams, CandidateRecommendationResult, CandidateStashExcelUploadResult, CandidateStashLlmCommentJobProgressEvent, CandidateStashLlmCommentJobStartResult, CandidateStashSummary, CompanyScopeParams, CompetitorSalesParams, DashboardEventStreamErrorListener, ProductComparisonTarget, ProductDrawerBundle, ProductMonthlyTrend, ProductMonthlyTrendParams, ProductSalesInsight, ProductSecondaryDetail, SalesFilterMeta, SecondaryAiCommentParams, SecondaryAiCommentResult, SecondaryCompetitorChannel, SecondaryStockOrderCalcResult, SelfSalesParams, UpdateCandidateItemPayload } from '..'
 import type { CompetitorSalesRow, SelfSalesRow } from '../../types'
-import type { AppendCandidateItemPayload, AppendCandidateItemsPayload, CompanyMutationScopeParams, CompetitorSalesGridParams, CreateCandidateStashPayload, ProductDrawerBundleParams, ProductSalesInsightParams, ProductSecondaryDetailParams, ScatterSalesGridResponse, SecondaryDailyTrendParams, SecondaryDailyTrendPoint, SecondaryStockOrderCalcParams, SelfSalesGridParams, UpdateCandidateStashPayload } from '../types'
+import type { AppendCandidateItemPayload, AppendCandidateItemsPayload, CompanyMutationScopeParams, CompetitorSalesGridParams, CreateCandidateStashPayload, ProductComparisonTargetParams, ProductDrawerBundleParams, ProductSalesInsightParams, ProductSecondaryDetailParams, ScatterSalesGridResponse, SecondaryDailyTrendParams, SecondaryDailyTrendPoint, SecondaryStockOrderCalcParams, SelfSalesGridParams, UpdateCandidateStashPayload } from '../types'
 import type { CandidateStashListParams } from '../types/candidate'
 import type { ApiEventStreamSubscription } from './httpClient'
 import type {
@@ -8,6 +8,7 @@ import type {
   DashboardApi,
 } from '../types'
 import {
+  getCompanyUuidForOptionalScope,
   getRequiredCompanyUuidForMutationScope,
   normalizeCompanyMutationScopeParams,
   normalizeCompanyScopeParams,
@@ -18,6 +19,33 @@ import {
   encodePathSegment,
   queryParams,
 } from './dashboardRequestShared'
+
+function productComparisonSubjectQueryPrefix(
+  prefix: 'base' | 'comparison',
+  subject: { role: 'base' | 'comparison'; kind: 'competitor-channel' | 'self-company'; sourceId: string },
+): Record<string, string> {
+  const sourceId: string | undefined = subject.kind === 'self-company'
+    ? getCompanyUuidForOptionalScope(subject.sourceId)
+    : subject.sourceId
+  return {
+    [`${prefix}Role`]: subject.role,
+    [`${prefix}Kind`]: subject.kind,
+    ...(sourceId == null ? {} : { [`${prefix}SourceId`]: sourceId }),
+  }
+}
+
+function productComparisonTargetQuery(params: ProductComparisonTargetParams): Record<string, string> {
+  return productComparisonSubjectQueryPrefix('base', params.base)
+}
+
+function productSalesInsightQuery(params: ProductSalesInsightParams): Record<string, string> {
+  return {
+    startDate: params.startDate,
+    endDate: params.endDate,
+    ...productComparisonSubjectQueryPrefix('base', params.base),
+    ...productComparisonSubjectQueryPrefix('comparison', params.comparison),
+  }
+}
 
 /**
  * HTTP implementation of DashboardApi.
@@ -53,13 +81,17 @@ export const httpDashboardRequests: DashboardApi = {
     apiRequest(`/products/${encodePathSegment(skuGroupKey)}/drawer-bundle`, {
       query: queryParams(normalizeCompanyScopeParams(params)),
     }),
+  getProductComparisonTargets: (params: ProductComparisonTargetParams) : Promise<ProductComparisonTarget[]> =>
+    apiRequest('/products/comparison-targets', {
+      query: queryParams(productComparisonTargetQuery(params)),
+    }),
   getProductMonthlyTrend: (skuGroupKey: string, params: ProductMonthlyTrendParams) : Promise<ProductMonthlyTrend> =>
     apiRequest(`/products/${encodePathSegment(skuGroupKey)}/monthly-trend`, {
       query: queryParams(normalizeCompanyScopeParams(params)),
     }),
   getProductSalesInsight: (skuGroupKey: string, params: ProductSalesInsightParams) : Promise<ProductSalesInsight> =>
     apiRequest(`/products/${encodePathSegment(skuGroupKey)}/sales-insight`, {
-      query: queryParams(normalizeCompanyScopeParams(params)),
+      query: queryParams(productSalesInsightQuery(params)),
     }),
   getProductSecondaryDetail: (skuGroupKey: string, params: ProductSecondaryDetailParams | undefined) : Promise<ProductSecondaryDetail> =>
     apiRequest(`/products/${encodePathSegment(skuGroupKey)}/secondary-detail`, {

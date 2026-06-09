@@ -10,7 +10,7 @@ import type { InboundDueDateDefaults } from './hooks/useSecondaryInboundDueDates
 import type { SecondarySizeOrderDisplayRow } from './model/secondarySizeOrderRows'
 import type { SecondaryHelpId } from './secondaryDrawerTypes'
 import { useCallback, useMemo } from 'react'
-import type { SecondaryCompetitorChannel } from '../../../../api'
+import type { ProductComparisonBaseSubjectRef, ProductComparisonTarget, SecondaryCompetitorChannel } from '../../../../api'
 import { useAppToast } from '../../../../components/AppToastContext'
 import type { ProductPrimarySummary, ProductSecondaryDetail } from '../../../../types'
 import type { OrderSnapshotDocumentV2 } from '../../../../snapshot/orderSnapshotTypes'
@@ -38,14 +38,16 @@ export type Props = {
   selectedEndMonth: string
   forecastMonths: number
   companyUuid?: string
+  baseSubject: ProductComparisonBaseSubjectRef
   selfCompanyLabel: string
   pageName?: string
   prefillFromSnapshot?: OrderSnapshotDocumentV2 | null
   candidateItemContext?: CandidateItemPanelContext | null
   channelState: {
-    channelId: string
+    competitorChannelId: string
     competitorChannels: SecondaryCompetitorChannel[]
-    onChannelChange: (next: string) => void
+    comparisonTarget: ProductComparisonTarget | null
+    onCompetitorChannelChange: (next: string) => void
   }
 }
 
@@ -58,13 +60,24 @@ export function ProductSecondaryDrawer({
   selectedEndMonth,
   forecastMonths,
   companyUuid,
+  baseSubject,
   selfCompanyLabel,
   pageName = 'ProductSecondaryDrawer',
   prefillFromSnapshot = null,
   candidateItemContext = null,
   channelState,
 }: Props) : React.JSX.Element {
-  const { channelId, competitorChannels, onChannelChange }: { channelId: string; competitorChannels: SecondaryCompetitorChannel[]; onChannelChange: (next: string) => void; } = channelState
+  const {
+    competitorChannelId,
+    competitorChannels,
+    comparisonTarget,
+    onCompetitorChannelChange,
+  }: {
+    competitorChannelId: string
+    competitorChannels: SecondaryCompetitorChannel[]
+    comparisonTarget: ProductComparisonTarget | null
+    onCompetitorChannelChange: (next: string) => void
+  } = channelState
   const { portalHelp, helpIds }: { portalHelp: { activeId: SecondaryHelpId | null; activePlacement: PortalHelpPlacement; position: { top: number; left: number; }; setAnchor: (id: SecondaryHelpId) => (el: HTMLElement | null) => void; open: (id: SecondaryHelpId, placement: PortalHelpPlacement) => void; updateMeasuredBox: (measuredWidth: number, measuredHeight: number) => void; scheduleClose: () => void; cancelClose: () => void; close: () => void; }; helpIds: { confirmOrder: string; forecastQtyCalc: string; expectedOpProfitRate: string; totalOrderBalance: string; expectedInboundOrderBalance: string; sizeRecQty: string; salesForecastSizeOrder: string; }; } = useSecondaryHelpController()
   const { showToast }: ReturnType<typeof useAppToast> = useAppToast()
   const {
@@ -81,12 +94,12 @@ export function ProductSecondaryDrawer({
   }: { defaultInboundDueDates: InboundDueDateDefaults; minOrderDate: string; currentOrderInboundDueDate: string; nextOrderInboundDueDate: string; leadTimeDays: number; setCurrentOrderInboundDueDate: React.Dispatch<React.SetStateAction<string>>; setNextOrderInboundDueDate: React.Dispatch<React.SetStateAction<string>>; handleCurrentOrderInboundDueDateChange: (next: string) => void; handleNextOrderInboundDueDateChange: (next: string) => void; resetInboundDueDatesToLive: () => void; } = useSecondaryInboundDueDates()
 
   const channel: SecondaryCompetitorChannel = useMemo<SecondaryCompetitorChannel>(() : SecondaryCompetitorChannel => {
-    const selectedChannel: SecondaryCompetitorChannel | undefined = competitorChannels.find((ch: SecondaryCompetitorChannel) : boolean => ch.id === channelId)
+    const selectedChannel: SecondaryCompetitorChannel | undefined = competitorChannels.find((ch: SecondaryCompetitorChannel) : boolean => ch.id === competitorChannelId)
     if (selectedChannel == null) {
-      throw new Error(`ProductSecondaryDrawer: channelId "${channelId}" is not available.`)
+      throw new Error(`ProductSecondaryDrawer: competitorChannelId "${competitorChannelId}" is not available.`)
     }
     return selectedChannel
-  }, [channelId, competitorChannels])
+  }, [competitorChannelId, competitorChannels])
 
   const {
     aiComment,
@@ -112,7 +125,7 @@ export function ProductSecondaryDrawer({
     primaryPrice: primary.price,
     defaultInboundDueDates,
     minOrderDate,
-    onChannelChange,
+    onChannelChange: onCompetitorChannelChange,
     setCurrentOrderInboundDueDate,
     setNextOrderInboundDueDate,
     setAiComment,
@@ -155,9 +168,11 @@ export function ProductSecondaryDrawer({
     selectedEndMonth,
     forecastMonths,
     companyUuid,
+    baseSubject,
     prefillFromSnapshot,
     candidateItemContext,
     channel,
+    comparisonTarget,
     snapshotConfirmBySize,
     useSnapshotConfirmBaseline: snapshotConfirmBaselineActive,
     dailyMeanClient,

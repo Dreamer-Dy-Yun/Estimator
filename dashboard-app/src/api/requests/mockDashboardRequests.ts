@@ -1,4 +1,4 @@
-import type { AppendCandidateItemsResponse, AuthSession, CandidateDetailBulkConfirmProgressEvent, CandidateDetailBulkConfirmStartPayload, CandidateDetailBulkConfirmStartResult, CandidateItemDetail, CandidateItemListParams, CandidateItemListResult, CandidateOrderMetricEvent, CandidateOrderMetricStreamParams, CandidateOrderMetricSubscription, CandidateRecommendationParams, CandidateRecommendationResult, CandidateStashExcelUploadResult, CandidateStashLlmCommentJobProgressEvent, CandidateStashLlmCommentJobStartResult, CandidateStashSummary, CompanyScopeParams, CompetitorSalesParams, DashboardEventStreamErrorListener, SecondaryCompetitorChannel, SelfSalesParams, UpdateCandidateItemPayload } from '..'
+import type { AppendCandidateItemsResponse, AuthSession, CandidateDetailBulkConfirmProgressEvent, CandidateDetailBulkConfirmStartPayload, CandidateDetailBulkConfirmStartResult, CandidateItemDetail, CandidateItemListParams, CandidateItemListResult, CandidateOrderMetricEvent, CandidateOrderMetricStreamParams, CandidateOrderMetricSubscription, CandidateRecommendationParams, CandidateRecommendationResult, CandidateStashExcelUploadResult, CandidateStashLlmCommentJobProgressEvent, CandidateStashLlmCommentJobStartResult, CandidateStashSummary, CompanyScopeParams, CompetitorSalesParams, DashboardEventStreamErrorListener, ProductComparisonTarget, SecondaryCompetitorChannel, SelfSalesParams, UpdateCandidateItemPayload } from '..'
 import type { AppendCandidateItemPayload, AppendCandidateItemsPayload, CompanyMutationScopeParams, CreateCandidateStashPayload, UpdateCandidateStashPayload } from '../types'
 import type { CandidateJobSubscription, CandidateStashListParams } from '../types/candidate'
 import type { CompetitorSalesRow, SelfSalesRow } from '../../types'
@@ -7,6 +7,7 @@ import type {
   CandidateStashExcelTemplateDownload,
   CompetitorSalesGridParams,
   DashboardApi,
+  ProductComparisonTargetParams,
   ProductDrawerBundle,
   ProductDrawerBundleParams,
   ProductMonthlyTrend,
@@ -71,6 +72,7 @@ export const mockDashboardRequests: DashboardApi = {
   getCompetitorSalesScatterGrid: (params: CompetitorSalesGridParams): Promise<ScatterSalesGridResponse> => mockDashboardApi.getCompetitorSalesScatterGrid(params),
   getSalesFilterMeta: (params?: SalesFilterMetaParams) : Promise<{ brands: string[]; categories: string[]; codes: string[]; colorCodes: string[]; productNames: string[]; historicalMonths: string[]; }> => mockDashboardApi.getSalesFilterMeta(params),
   getProductDrawerBundle: (skuGroupKey: string, params?: ProductDrawerBundleParams): Promise<ProductDrawerBundle> => mockDashboardApi.getProductDrawerBundle(skuGroupKey, params),
+  getProductComparisonTargets: (params: ProductComparisonTargetParams): Promise<ProductComparisonTarget[]> => mockDashboardApi.getProductComparisonTargets(params),
   getProductMonthlyTrend: (skuGroupKey: string, params: ProductMonthlyTrendParams): Promise<ProductMonthlyTrend> => mockDashboardApi.getProductMonthlyTrend(skuGroupKey, params),
   getProductSalesInsight: (skuGroupKey: string, params: ProductSalesInsightParams): Promise<ProductSalesInsight> => mockDashboardApi.getProductSalesInsight(skuGroupKey, params),
   getProductSecondaryDetail: (skuGroupKey: string, params?: ProductSecondaryDetailParams): Promise<ProductSecondaryDetail> => mockDashboardApi.getProductSecondaryDetail(skuGroupKey, params),

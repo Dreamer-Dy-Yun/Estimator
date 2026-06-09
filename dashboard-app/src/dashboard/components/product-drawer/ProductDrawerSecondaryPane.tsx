@@ -2,7 +2,7 @@ import type { OrderSnapshotPrimarySummaryV2 } from '../../../snapshot/orderSnaps
 import type { ProductSecondarySizeRow } from '../../../types'
 import { ApiUnitErrorBadge } from '../../../components/ApiUnitErrorBadge'
 import { LoadingSpinner } from '../../../components/LoadingSpinner'
-import type { SecondaryCompetitorChannel } from '../../../api/types'
+import type { ProductComparisonBaseSubjectRef, ProductComparisonTarget, SecondaryCompetitorChannel } from '../../../api/types'
 import type { ApiUnitErrorInfo, ProductPrimarySummary, ProductSecondaryDetail } from '../../../types'
 import type { OrderSnapshotDocumentV2 } from '../../../snapshot/orderSnapshotTypes'
 import styles from '../common.module.css'
@@ -18,8 +18,10 @@ export type ProductDrawerSecondaryPaneProps = {
   selectedEndMonth: string
   forecastMonths: number
   companyUuid?: string
+  baseSubject: ProductComparisonBaseSubjectRef
   selfCompanyLabel: string
   channelsError: ApiUnitErrorInfo | null
+  channelsLoading: boolean
   selectedChannelReady: boolean
   selectedChannelMissing: boolean
   secondaryDetail: ProductSecondaryDetail | null
@@ -27,9 +29,10 @@ export type ProductDrawerSecondaryPaneProps = {
   hydrateForPanel: OrderSnapshotDocumentV2 | null
   candidateItemContext?: CandidateItemPanelContext | null
   channelState: {
-    channelId: string
+    competitorChannelId: string
     competitorChannels: SecondaryCompetitorChannel[]
-    onChannelChange: (channelId: string) => void
+    comparisonTarget: ProductComparisonTarget | null
+    onCompetitorChannelChange: (channelId: string) => void
   }
 }
 
@@ -69,8 +72,10 @@ export function ProductDrawerSecondaryPane({
   selectedEndMonth,
   forecastMonths,
   companyUuid,
+  baseSubject,
   selfCompanyLabel,
   channelsError,
+  channelsLoading,
   selectedChannelReady,
   selectedChannelMissing,
   secondaryDetail,
@@ -90,7 +95,9 @@ export function ProductDrawerSecondaryPane({
     } else if (!selectedChannelReady) {
       content = (
         <SecondaryPaneStatus>
-          {selectedChannelMissing
+          {!channelsLoading && !selectedChannelMissing
+            ? '비교 대상이 없어 2차 드로워를 표시할 수 없습니다.'
+            : selectedChannelMissing
             ? '선택한 경쟁 채널이 현재 채널 목록에 없습니다.'
             : <LoadingSpinner label="경쟁 채널 데이터를 불러오는 중" />}
         </SecondaryPaneStatus>
@@ -116,8 +123,9 @@ export function ProductDrawerSecondaryPane({
           periodEnd={periodEnd}
           selectedStartMonth={selectedStartMonth}
           selectedEndMonth={selectedEndMonth}
-          forecastMonths={forecastMonths}
-          companyUuid={companyUuid}
+            forecastMonths={forecastMonths}
+            companyUuid={companyUuid}
+            baseSubject={baseSubject}
           selfCompanyLabel={selfCompanyLabel}
           pageName="ProductDrawer > ProductSecondaryDrawer"
           prefillFromSnapshot={hydrateForPanel}

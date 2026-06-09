@@ -1,7 +1,7 @@
-import type { ProductSecondaryDetail, SecondaryCompetitorChannel } from '../../../api'
+import type { ProductComparisonBaseSubjectRef, ProductComparisonTarget, ProductSecondaryDetail, SecondaryCompetitorChannel } from '../../../api'
 import type { ApiUnitErrorInfo } from '../../../types'
-import { useEffect, useRef, useState } from 'react'
-import { getCompanyUuidForOptionalScope } from '../../../api'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { ALL_COMPANY_UUID, getCompanyUuidForOptionalScope } from '../../../api'
 import { useAuth } from '../../../auth/AuthContext'
 import { LoadingSpinner } from '../../../components/LoadingSpinner'
 import type { ProductPrimarySummary } from '../../../types'
@@ -10,7 +10,7 @@ import { normalizeMonthKey } from '../trend/trendRangeUtils'
 import { ProductPrimaryDrawer } from './primary/ProductPrimaryDrawer'
 import { ProductDrawerSecondaryPane } from './ProductDrawerSecondaryPane'
 import type { CandidateItemPanelContext } from './secondary/secondaryDrawerTypes'
-import { useCompetitorChannels } from './useCompetitorChannels'
+import { useProductComparisonTargets } from './useProductComparisonTargets'
 import { useProductDrawerKeyboard } from './useProductDrawerKeyboard'
 import { useSecondaryDrawerDetail } from './secondary/useSecondaryDrawerDetail'
 import type { OrderSnapshotDocumentV2 } from '../../../snapshot/orderSnapshotTypes'
@@ -70,12 +70,37 @@ function ProductDrawerContent({
   const drawerRef: React.RefObject<HTMLElement | null> = useRef<HTMLElement | null>(null)
   const [expandPaneOpenState, setExpandPaneOpen]: [boolean, React.Dispatch<React.SetStateAction<boolean>>] = useState(() : boolean => !!initialExpandSecondary)
   const expandPaneOpen: boolean = secondaryEnabled && expandPaneOpenState
+  const baseSubject: ProductComparisonBaseSubjectRef = useMemo(
+    () : ProductComparisonBaseSubjectRef => ({
+      role: 'base',
+      kind: 'self-company',
+      sourceId: companyUuid ?? ALL_COMPANY_UUID,
+    }),
+    [companyUuid],
+  )
   const {
+    comparisonTargets,
+    comparisonMode,
+    comparisonTarget,
     competitorChannels,
-    channelId,
-    setChannelId,
-    channelsError,
-  }: { competitorChannels: SecondaryCompetitorChannel[]; channelId: string; setChannelId: React.Dispatch<React.SetStateAction<string>>; channelsError: ApiUnitErrorInfo | null; } = useCompetitorChannels(pageName)
+    competitorChannelId,
+    targetsLoading,
+    targetsError,
+    setComparisonMode,
+    setComparisonTargetId,
+    setCompetitorChannelId,
+  }: {
+    comparisonTargets: ProductComparisonTarget[]
+    comparisonMode: ProductComparisonTarget['kind']
+    comparisonTarget: ProductComparisonTarget | null
+    competitorChannels: SecondaryCompetitorChannel[]
+    competitorChannelId: string
+    targetsLoading: boolean
+    targetsError: ApiUnitErrorInfo | null
+    setComparisonMode: React.Dispatch<React.SetStateAction<ProductComparisonTarget['kind']>>
+    setComparisonTargetId: (next: string) => void
+    setCompetitorChannelId: (next: string) => void
+  } = useProductComparisonTargets({ pageName, base: baseSubject })
   const {
     secondaryDetail,
     secondaryDetailError,
@@ -109,8 +134,8 @@ function ProductDrawerContent({
     return () : void => document.removeEventListener('mousedown', onDocumentMouseDown)
   }, [onClose])
 
-  const selectedChannelReady: boolean = competitorChannels.some((channel: SecondaryCompetitorChannel) : boolean => channel.id === channelId)
-  const selectedChannelMissing: boolean = channelId !== '' && !selectedChannelReady
+  const selectedChannelReady: boolean = competitorChannels.some((channel: SecondaryCompetitorChannel) : boolean => channel.id === competitorChannelId)
+  const selectedChannelMissing: boolean = competitorChannelId !== '' && !selectedChannelReady
 
   useProductDrawerKeyboard({
     closing,
@@ -138,6 +163,7 @@ function ProductDrawerContent({
         periodStart={periodStart}
         periodEnd={periodEnd}
         companyUuid={companyUuid}
+        baseSubject={baseSubject}
         selectedStart={selectedStartMonth}
         selectedEnd={selectedEndMonth}
         forecastMonths={forecastMonths}
@@ -148,10 +174,15 @@ function ProductDrawerContent({
         onToggleSecondary={() : void => setExpandPaneOpen((v: boolean) : boolean => !v)}
         onClose={onClose}
         channelState={{
-          channelId,
+          competitorChannelId,
           competitorChannels,
-          channelsError,
-          onChannelChange: setChannelId,
+          comparisonTargets,
+          comparisonMode,
+          comparisonTarget,
+          targetsLoading,
+          targetsError,
+          onComparisonModeChange: setComparisonMode,
+          onComparisonTargetChange: setComparisonTargetId,
         }}
         pageName={pageName}
       />
@@ -165,9 +196,11 @@ function ProductDrawerContent({
           selectedStartMonth={selectedStartMonth}
           selectedEndMonth={selectedEndMonth}
           forecastMonths={forecastMonths}
-          companyUuid={companyUuid}
+            companyUuid={companyUuid}
+            baseSubject={baseSubject}
           selfCompanyLabel={selfCompanyLabel}
-          channelsError={channelsError}
+          channelsError={targetsError}
+          channelsLoading={targetsLoading}
           selectedChannelReady={selectedChannelReady}
           selectedChannelMissing={selectedChannelMissing}
           secondaryDetail={secondaryDetail}
@@ -175,9 +208,10 @@ function ProductDrawerContent({
           hydrateForPanel={hydrateForPanel}
           candidateItemContext={candidateItemContext}
           channelState={{
-            channelId,
+            competitorChannelId,
             competitorChannels,
-            onChannelChange: setChannelId,
+            comparisonTarget,
+            onCompetitorChannelChange: setCompetitorChannelId,
           }}
         />
       )}

@@ -6,7 +6,7 @@ import type { AppendCandidateItemsPayload, AppendCandidateItemsResponse, Candida
 import type { CandidateOrderMetricEvent, CandidateOrderMetricStreamParams, CandidateOrderMetricSubscription } from './types/candidate-order-metrics'
 import type { CompanyMutationScopeParams, CompanyScopeParams, CompanySummary } from './types/company'
 import type { DashboardApi, DashboardEventStreamErrorListener } from './types/dashboard-api'
-import type { ProductDrawerBundle, ProductDrawerBundleParams } from './types/drawer'
+import type { ProductComparisonTarget, ProductComparisonTargetParams, ProductDrawerBundle, ProductDrawerBundleParams, ProductSalesInsight, ProductSalesInsightParams } from './types/drawer'
 import type { InventoryArrivalCollectionParams, InventoryArrivalCollectionResult } from './types/inventory-arrival'
 import type { CompetitorSalesGridParams, CompetitorSalesParams, SalesFilterMeta, SalesFilterMetaParams, ScatterSalesGridResponse, SelfSalesGridParams, SelfSalesParams } from './types/sales'
 import type { SecondaryAiCommentParams, SecondaryAiCommentResult, SecondaryCompetitorChannel } from './types/secondary'
@@ -52,6 +52,8 @@ export const getSelfSalesScatterGrid: (params?: SelfSalesGridParams) => Promise<
 export const getCompetitorSalesScatterGrid: (params?: CompetitorSalesGridParams) => Promise<ScatterSalesGridResponse> = dashboardRequests.getCompetitorSalesScatterGrid
 export const getSalesFilterMeta: (params?: SalesFilterMetaParams) => Promise<SalesFilterMeta> = dashboardRequests.getSalesFilterMeta
 export const getProductDrawerBundle: (skuGroupKey: string, params?: ProductDrawerBundleParams) => Promise<ProductDrawerBundle> = dashboardRequests.getProductDrawerBundle
+export const getProductComparisonTargets: (params: ProductComparisonTargetParams) => Promise<ProductComparisonTarget[]> = dashboardRequests.getProductComparisonTargets
+export const getProductSalesInsight: (skuGroupKey: string, params: ProductSalesInsightParams) => Promise<ProductSalesInsight> = dashboardRequests.getProductSalesInsight
 export const getSecondaryCompetitorChannels: () => Promise<SecondaryCompetitorChannel[]> = dashboardRequests.getSecondaryCompetitorChannels
 export const getSecondaryAiComment: (params: SecondaryAiCommentParams) => Promise<SecondaryAiCommentResult> = dashboardRequests.getSecondaryAiComment
 export const getCandidateStashes: (params?: CandidateStashListParams) => Promise<CandidateStashSummary[]> = dashboardRequests.getCandidateStashes

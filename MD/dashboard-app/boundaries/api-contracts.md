@@ -5,7 +5,7 @@
 | 작성 지시 | Yun Daeyoung |
 | 작성자 | Codex |
 | 작성일 | 2026-05-19 |
-| 최종 수정일 | 2026-06-02 |
+| 최종 수정일 | 2026-06-09 |
 | 상태 | 유지 문서 |
 | 적용 범위 | `dashboard-app/src/api`, mock/HTTP adapter, API 타입 계약 |
 
@@ -41,7 +41,7 @@
 | `types/api-error.ts` | 공통 실패 응답(`ApiErrorResponse`)과 HTTP status to `ApiFailureKind` 분류 |
 | `types/candidate.ts` | 후보군, 후보 아이템, 추천, 상세확정 |
 | `types/candidate-order-metrics.ts` | 총 오더 수량/금액 SSE. 백엔드는 `completed`를 보내야 하며, 프론트는 모든 요청 item이 settle되면 자동 재접속 방지를 위해 구독을 닫는다 |
-| `types/drawer.ts` | 상품 1차 드로워 번들 |
+| `types/drawer.ts` | 상품 드로워 번들, 비교 대상 subject, 판매 정보 insight 계약 |
 | `types/sales.ts` | 자사/경쟁사 분석 요청/응답 |
 | `types/secondary.ts` | 2차 드로워 상세, 재고·발주, AI 코멘트 |
 | `types/snapshot.ts` | 저장 스냅샷 API 계약 |
@@ -71,6 +71,8 @@
 - `mockDashboardRequests.ts`는 현재 세션의 `USER_ACCOUNT.uuid`를 request boundary에서만 붙인다. 화면 내부로 사용자 UUID를 흘리지 않는다.
 - `httpDashboardRequests.ts`는 실제 백엔드 endpoint 경로를 `DashboardApi` 계약에 맞춰 연결한다.
 - 회사 소유 read adapter는 단일 회사 선택 시 `companyUuid`를 포함하고, `전체` 선택 시 생략한다. 이 scope는 분석 목록/산점도/filter meta, 상품 드로워, 2차 드로워 조회, secondary AI comment, secondary stock order calc에 적용된다. secondary AI comment와 stock order calc는 HTTP method가 POST여도 저장/수정/삭제/job 시작이 아닌 read-like 계산/생성 요청이므로 optional company scope 계약을 따른다. 생략은 백엔드가 회사 where 조건을 제거한다는 조회 계약이며, mock adapter도 같은 의미로 데이터 분기/계산을 수행한다.
+- 상품 판매 정보 비교 API는 `base`와 `comparison`을 subject 계약으로 통일한다. 프론트 내부 subject는 `role`, `kind`, `sourceId`를 갖지만, HTTP query에서는 `self-company` 전체 범위의 `sourceId`를 생략한다. `ALL_COMPANY_UUID`는 프론트 내부 sentinel이며 백엔드로 전송하지 않는다.
+- `getProductComparisonTargets`의 빈 배열은 정상 unavailable 상태다. 화면은 첫 번째 비교 대상을 임의 생성하거나 API 오류로 바꾸지 않는다.
 - 후보군 mutation, 후보군 backend job start, 후보군 job/SSE subscribe, 오더 지표 SSE, 후보군 엑셀 upload FormData는 단일 회사 scope 전용이다. `전체` 선택 상태에서는 UI에서 후보군 side-effect 진입을 막고, mock/HTTP 백엔드는 `companyUuid` 누락 요청을 검증 실패로 처리해야 한다.
 - `dashboardMasterDataCache.ts`는 page와 공통 drawer가 공유하는 master data 요청을 coalesce한다. mutation 후 무효화 대상이 아닌 master data만 캐시한다.
 - 관리자 Google Sheets mock은 서비스 계정 키를 JSON으로 parse해 `client_email`을 확인한다. 잘못된 JSON을 정규식 등으로 보정하지 않는다.

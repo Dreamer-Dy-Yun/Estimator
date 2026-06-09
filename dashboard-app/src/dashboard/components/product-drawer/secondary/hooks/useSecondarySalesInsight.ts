@@ -2,17 +2,18 @@ import type { ProductSalesInsightColumn } from '../../../../../api/types'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   dashboardApi,
+  type ProductComparisonBaseSubjectRef,
+  type ProductComparisonTarget,
   type ProductSalesInsight,
-  type SecondaryCompetitorChannel,
 } from '../../../../../api'
 import type { ApiUnitErrorInfo, ProductPrimarySummary } from '../../../../../types'
 
 export type Params = {
   primary: ProductPrimarySummary
-  channel: SecondaryCompetitorChannel
+  comparisonTarget: ProductComparisonTarget | null
   periodStart: string
   periodEnd: string
-  companyUuid?: string
+  baseSubject: ProductComparisonBaseSubjectRef
   makeApiErrorInfo: (request: string, err: unknown) => ApiUnitErrorInfo
 }
 
@@ -23,20 +24,24 @@ export type SalesInsightState = {
 
 export function useSecondarySalesInsight({
   primary,
-  channel,
+  comparisonTarget,
   periodStart,
   periodEnd,
-  companyUuid,
+  baseSubject,
   makeApiErrorInfo,
 }: Params) : { selfCol: ProductSalesInsightColumn | null; compCol: ProductSalesInsightColumn | null; salesInsightError: ApiUnitErrorInfo | null; salesInsightLoading: boolean; } {
   const requestSeqRef: React.RefObject<number> = useRef(0)
   const requestKey: string = useMemo(() : string => JSON.stringify({
     skuGroupKey: primary.skuGroupKey,
-    companyUuid: companyUuid ?? '',
+    base: baseSubject,
     periodStart,
     periodEnd,
-    competitorChannelId: channel.id,
-  }), [channel.id, companyUuid, periodEnd, periodStart, primary.skuGroupKey])
+    comparison: comparisonTarget == null ? null : {
+      role: 'comparison',
+      kind: comparisonTarget.kind,
+      sourceId: comparisonTarget.sourceId,
+    },
+  }), [baseSubject, comparisonTarget, periodEnd, periodStart, primary.skuGroupKey])
   const [salesInsightState, setSalesInsightState]: [SalesInsightState | null, React.Dispatch<React.SetStateAction<SalesInsightState | null>>] = useState<SalesInsightState | null>(null)
   const [salesInsightError, setSalesInsightError]: [ApiUnitErrorInfo | null, React.Dispatch<React.SetStateAction<ApiUnitErrorInfo | null>>] = useState<ApiUnitErrorInfo | null>(null)
   const [salesInsightLoading, setSalesInsightLoading]: [boolean, React.Dispatch<React.SetStateAction<boolean>>] = useState(true)
@@ -56,12 +61,25 @@ export function useSecondarySalesInsight({
       if (alive && requestSeqRef.current === reqSeq) setSalesInsightLoading(true)
     })
     void (async () : Promise<void> => {
+      if (comparisonTarget == null) {
+        setSalesInsightState(null)
+        setSalesInsightError(makeApiErrorInfo(
+          'getProductSalesInsight(comparisonTarget)',
+          new Error('Product comparison target is required for sales insight.'),
+        ))
+        setSalesInsightLoading(false)
+        return
+      }
       try {
         const result: ProductSalesInsight = await dashboardApi.getProductSalesInsight(primary.skuGroupKey, {
           startDate: periodStart,
           endDate: periodEnd,
-          companyUuid,
-          competitorChannelId: channel.id,
+          base: baseSubject,
+          comparison: {
+            role: 'comparison',
+            kind: comparisonTarget.kind,
+            sourceId: comparisonTarget.sourceId,
+          },
         })
         if (!alive || requestSeqRef.current !== reqSeq) return
         setSalesInsightState({ requestKey, result })
@@ -75,8 +93,12 @@ export function useSecondarySalesInsight({
               skuGroupKey: primary.skuGroupKey,
               startDate: periodStart,
               endDate: periodEnd,
-              companyUuid,
-              competitorChannelId: channel.id,
+              base: baseSubject,
+              comparison: {
+                role: 'comparison',
+                kind: comparisonTarget.kind,
+                sourceId: comparisonTarget.sourceId,
+              },
             })})`,
             err,
           ),
@@ -88,11 +110,11 @@ export function useSecondarySalesInsight({
     return () : void => {
       alive = false
     }
-  }, [channel.id, companyUuid, makeApiErrorInfo, periodEnd, periodStart, primary.skuGroupKey, requestKey])
+  }, [baseSubject, comparisonTarget, makeApiErrorInfo, periodEnd, periodStart, primary.skuGroupKey, requestKey])
 
   return {
-    selfCol: salesInsight?.self ?? null,
-    compCol: salesInsight?.competitor ?? null,
+    selfCol: salesInsight?.baseMetrics ?? null,
+    compCol: salesInsight?.comparisonMetrics ?? null,
     salesInsightError,
     salesInsightLoading,
   }

@@ -6,7 +6,7 @@ import type { ApiUnitErrorInfo } from '../../../../../types'
 import type { CandidateStashPickerOption } from '../CandidateStashPickerModal'
 import type { SecondarySizeOrderDisplayRow } from '../model/secondarySizeOrderRows'
 import { useCallback, useEffect, useMemo } from 'react'
-import type { SecondaryCompetitorChannel } from '../../../../../api'
+import type { ProductComparisonBaseSubjectRef, ProductComparisonTarget, SecondaryCompetitorChannel } from '../../../../../api'
 import type { ToastContextValue } from '../../../../../components/AppToastContext'
 import type { ProductPrimarySummary, ProductSecondaryDetail } from '../../../../../types'
 import type { OrderSnapshotAiCommentV2, OrderSnapshotDocumentV2 } from '../../../../../snapshot/orderSnapshotTypes'
@@ -28,9 +28,11 @@ export type Args = {
   selectedEndMonth: string
   forecastMonths: number
   companyUuid?: string
+  baseSubject: ProductComparisonBaseSubjectRef
   prefillFromSnapshot: OrderSnapshotDocumentV2 | null
   candidateItemContext: CandidateItemPanelContext | null
   channel: SecondaryCompetitorChannel
+  comparisonTarget: ProductComparisonTarget | null
   snapshotConfirmBySize: Record<string, number>
   useSnapshotConfirmBaseline: boolean
   dailyMeanClient: number | null
@@ -61,9 +63,11 @@ export function useSecondaryForecastModel(args: Args) : { stockOrderDisplay: { c
     selectedEndMonth,
     forecastMonths,
     companyUuid,
+    baseSubject,
     prefillFromSnapshot,
     candidateItemContext,
     channel,
+    comparisonTarget,
     snapshotConfirmBySize,
     useSnapshotConfirmBaseline,
     dailyMeanClient,
@@ -95,24 +99,30 @@ export function useSecondaryForecastModel(args: Args) : { stockOrderDisplay: { c
     pageName,
     primary,
     channel,
+    comparisonTarget,
     periodStart,
     periodEnd,
     selectedStartMonth,
     selectedEndMonth,
     companyUuid,
+    baseSubject,
     forecastMeanPeriodEnd,
     leadTimeDays,
     dailyMeanClient,
   })
   const snapshotStockOrderResult: OrderSnapshotStockOrderResultV2 | null = useSnapshotConfirmBaseline ? prefillFromSnapshot?.drawer2.stockOrderResult ?? null : null
   const activeForecastCalc: SecondaryStockOrderCalcResult | null = useSnapshotConfirmBaseline ? snapshotStockOrderResult : requests.forecastCalc
-  const salesInsightReady: boolean = requests.selfCol != null && requests.compCol != null
+  const salesInsightReady: boolean =
+    requests.selfCol != null &&
+    requests.compCol != null &&
+    !requests.salesInsightLoading &&
+    requests.salesInsightError == null
   const stockOrderCalculationReady: boolean = activeForecastCalc != null && (snapshotStockOrderResult != null || (!requests.forecastCalcLoading && salesInsightReady))
   const guardStockOrderCalculation: () => boolean = useCallback(() : boolean => {
     if (stockOrderCalculationReady) return true
-    showToast(salesInsightReady ? KO.msgStockOrderCalcRequired : KO.msgSalesInsightRequired, { variant: 'error' })
+    showToast(KO.msgStockOrderCalcRequired, { variant: 'error' })
     return false
-  }, [salesInsightReady, showToast, stockOrderCalculationReady])
+  }, [showToast, stockOrderCalculationReady])
   const stockOrderDisplayKey: string = useMemo(() : string => {
     const d: { currentStockQtyTotal: number; totalOrderBalanceTotal: number; expectedInboundOrderBalanceTotal: number; sizeRows: SecondaryStockOrderDisplaySizeRow[]; } | undefined = activeForecastCalc?.display
     if (!d) return ''
@@ -217,7 +227,7 @@ export function useSecondaryForecastModel(args: Args) : { stockOrderDisplay: { c
     hasSavedSnapshot,
     candidateItemContext,
     canBuildSnapshot: stockOrderCalculationReady,
-    snapshotBlockReason: salesInsightReady ? KO.msgStockOrderCalcRequired : KO.msgSalesInsightRequired,
+    snapshotBlockReason: KO.msgStockOrderCalcRequired,
     buildSnapshot,
     showToast,
   })

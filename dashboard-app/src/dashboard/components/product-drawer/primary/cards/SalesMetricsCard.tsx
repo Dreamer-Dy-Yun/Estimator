@@ -1,4 +1,4 @@
-import type { SecondaryCompetitorChannel } from '../../../../../api'
+import type { ProductComparisonTarget } from '../../../../../api'
 import { ApiUnitErrorBadge } from '../../../../../components/ApiUnitErrorBadge'
 import type { ApiUnitErrorInfo } from '../../../../../types'
 import { formatCompactKoreanNumber, formatPercent, type CompactKoreanNumberDisplay } from '../../../../../utils/format'
@@ -9,20 +9,23 @@ import styles from './SalesMetricsCard.module.css'
 export type Props = {
   targetPeriodDays: { start: string; end: string }
   sales: {
-    channelLabel: string
-    self: SalesKpiColumn
-    competitor: SalesKpiColumn
-  }
-  selfCompanyLabel: string
-  channelFilter?: {
-    channelId: string
-    competitorChannels: SecondaryCompetitorChannel[]
+    baseLabel: string
+    comparisonLabel: string
+    base: SalesKpiColumn
+    comparison: SalesKpiColumn
+  } | null
+  unavailableMessage?: string
+  comparisonFilter?: {
+    selfComparisonEnabled: boolean
+    targetId: string
+    targets: ProductComparisonTarget[]
     error: ApiUnitErrorInfo | null
-    onChannelChange: (next: string) => void
+    onSelfComparisonToggle: (checked: boolean) => void
+    onTargetChange: (next: string) => void
   }
 }
 
-export type MetricRow = { key: string; label: string; self: React.ReactNode; competitor: React.ReactNode; competitorUnavailable?: boolean }
+export type MetricRow = { key: string; label: string; self: React.ReactNode; comparison: React.ReactNode; comparisonUnavailable?: boolean }
 
 const SALES_METRIC_MONEY_COMPACT_AT = 10_000_000 as const
 const SALES_METRIC_QTY_COMPACT_AT = 100_000 as const
@@ -48,40 +51,78 @@ const rateRank: (ratePct: number | null, rank: number | null, total: number) => 
   ratePct === null || rank === null ? '-' : <>{primaryTextValue(formatPercent(ratePct))} ({formatRank(rank, total)})</>
 )
 
-export function SalesMetricsCard({ targetPeriodDays, sales, selfCompanyLabel, channelFilter }: Props) : React.JSX.Element {
-  const { channelLabel, self, competitor }: { channelLabel: string; self: SalesKpiColumn; competitor: SalesKpiColumn; } = sales
+function ComparisonTargetSelect({ comparisonFilter }: { comparisonFilter: NonNullable<Props['comparisonFilter']> }) : React.JSX.Element {
+  return (
+    <span className={styles.salesMetricsChannelHeaderControl}>
+      <select
+        aria-label={comparisonFilter.selfComparisonEnabled ? '\uC790\uC0AC \uBE44\uAD50 \uB300\uC0C1' : KO.labelCompetitorChannel}
+        value={comparisonFilter.targetId}
+        onChange={(event: React.ChangeEvent<HTMLSelectElement, HTMLSelectElement>) : void => comparisonFilter.onTargetChange(event.target.value)}
+      >
+        {comparisonFilter.targetId === '' && <option value="" disabled>{'\uBE44\uAD50 \uB300\uC0C1 \uC120\uD0DD'}</option>}
+        {comparisonFilter.targets.map((target: ProductComparisonTarget) : React.JSX.Element => <option key={target.id} value={target.id}>{target.label}</option>)}
+      </select>
+      <ApiUnitErrorBadge error={comparisonFilter.error} />
+    </span>
+  )
+}
+
+export function SalesMetricsCard({ targetPeriodDays, sales, unavailableMessage, comparisonFilter }: Props) : React.JSX.Element {
+  const header: React.JSX.Element = (
+    <div className={styles.salesMetricsHeader}>
+      <div className={styles.salesMetricsTitleLine}>
+        <h3 className={styles.sectionTitle}>{KO.sectionSales}</h3>
+        {comparisonFilter && (
+          <label className={styles.selfComparisonToggle}>
+            <input
+              type="checkbox"
+              checked={comparisonFilter.selfComparisonEnabled}
+              onChange={(event: React.ChangeEvent<HTMLInputElement>) : void => comparisonFilter.onSelfComparisonToggle(event.target.checked)}
+            />
+            <span>{'\uC790\uC0AC\uAC04 \uBE44\uAD50'}</span>
+          </label>
+        )}
+      </div>
+      <p className={styles.salesMetricsPeriodLine}>{KO.salesMetricsTargetPeriod}: {targetPeriodDays.start} ~ {targetPeriodDays.end}</p>
+    </div>
+  )
+
+  if (sales == null) {
+    return (
+      <div className={`${styles.card} ${styles.gridColumnCard}`}>
+        {header}
+        {comparisonFilter && comparisonFilter.targets.length > 0 && <ComparisonTargetSelect comparisonFilter={comparisonFilter} />}
+        <p className={styles.salesMetricsUnavailableNotice}>{unavailableMessage ?? '-'}</p>
+      </div>
+    )
+  }
+
+  const { baseLabel, comparisonLabel, base, comparison }: { baseLabel: string; comparisonLabel: string; base: SalesKpiColumn; comparison: SalesKpiColumn; } = sales
   const rows: MetricRow[] = [
-    { key: 'avgPrice', label: KO.rowAvgPrice, self: primaryValue(compactMoney(self.avgPrice)), competitor: primaryValue(compactMoney(competitor.avgPrice)) },
-    { key: 'qtyRank', label: KO.rowQtyRank, self: rankMetric(compactQty(self.qty), self.qtyRank, self.rankTotal), competitor: rankMetric(compactQty(competitor.qty), competitor.qtyRank, competitor.rankTotal) },
-    { key: 'amountRank', label: KO.rowAmountRank, self: rankMetric(compactMoney(self.amount), self.amountRank, self.rankTotal), competitor: rankMetric(compactMoney(competitor.amount), competitor.amountRank, competitor.rankTotal) },
-    { key: 'avgCost', label: KO.rowAvgCost, self: costMetric(self.avgCost, self.costRatioPct), competitor: costMetric(competitor.avgCost, competitor.costRatioPct), competitorUnavailable: competitor.avgCost === null },
-    { key: 'fee', label: KO.rowFee, self: rateRank(self.feeRatePct, self.feeRank, self.rankTotal), competitor: rateRank(competitor.feeRatePct, competitor.feeRank, competitor.rankTotal), competitorUnavailable: competitor.feeRatePct === null || competitor.feeRank === null },
-    { key: 'opMargin', label: KO.rowOpMargin, self: rateRank(self.opMarginRatePct, self.opMarginRank, self.rankTotal), competitor: rateRank(competitor.opMarginRatePct, competitor.opMarginRank, competitor.rankTotal), competitorUnavailable: competitor.opMarginRatePct === null || competitor.opMarginRank === null },
+    { key: 'avgPrice', label: KO.rowAvgPrice, self: primaryValue(compactMoney(base.avgPrice)), comparison: primaryValue(compactMoney(comparison.avgPrice)) },
+    { key: 'qtyRank', label: KO.rowQtyRank, self: rankMetric(compactQty(base.qty), base.qtyRank, base.rankTotal), comparison: rankMetric(compactQty(comparison.qty), comparison.qtyRank, comparison.rankTotal) },
+    { key: 'amountRank', label: KO.rowAmountRank, self: rankMetric(compactMoney(base.amount), base.amountRank, base.rankTotal), comparison: rankMetric(compactMoney(comparison.amount), comparison.amountRank, comparison.rankTotal) },
+    { key: 'avgCost', label: KO.rowAvgCost, self: costMetric(base.avgCost, base.costRatioPct), comparison: costMetric(comparison.avgCost, comparison.costRatioPct), comparisonUnavailable: comparison.avgCost === null },
+    { key: 'fee', label: KO.rowFee, self: rateRank(base.feeRatePct, base.feeRank, base.rankTotal), comparison: rateRank(comparison.feeRatePct, comparison.feeRank, comparison.rankTotal), comparisonUnavailable: comparison.feeRatePct === null || comparison.feeRank === null },
+    { key: 'opMargin', label: KO.rowOpMargin, self: rateRank(base.opMarginRatePct, base.opMarginRank, base.rankTotal), comparison: rateRank(comparison.opMarginRatePct, comparison.opMarginRank, comparison.rankTotal), comparisonUnavailable: comparison.opMarginRatePct === null || comparison.opMarginRank === null },
   ]
+  const comparisonHeaderClassName: string = comparisonFilter?.selfComparisonEnabled
+    ? styles.salesMetricsSelfHeader
+    : styles.salesMetricsCompetitorHeader
 
   return (
     <div className={`${styles.card} ${styles.gridColumnCard}`}>
-      <div className={styles.salesMetricsHeader}>
-        <div>
-          <h3 className={styles.sectionTitle}>{KO.sectionSales}</h3>
-          <p className={styles.salesMetricsPeriodLine}>{KO.salesMetricsTargetPeriod}: {targetPeriodDays.start} ~ {targetPeriodDays.end}</p>
-        </div>
-      </div>
+      {header}
       <div className={styles.cardTableScroll}>
         <table className={`${styles.table} ${styles.salesMetricsTightTable}`}>
           <thead>
             <tr>
               <th>{KO.thMetric}</th>
-              <th className={`${styles.num} ${styles.salesMetricsSelfHeader}`}>{selfCompanyLabel}</th>
-              <th className={`${styles.num} ${styles.salesMetricsCompetitorHeader}`}>
-                {channelFilter ? (
-                  <span className={styles.salesMetricsChannelHeaderControl}>
-                    <select aria-label={KO.labelCompetitorChannel} value={channelFilter.channelId} onChange={(event: React.ChangeEvent<HTMLSelectElement, HTMLSelectElement>) : void => channelFilter.onChannelChange(event.target.value)}>
-                      {channelFilter.competitorChannels.map((channel: SecondaryCompetitorChannel) : React.JSX.Element => <option key={channel.id} value={channel.id}>{channel.label}</option>)}
-                    </select>
-                    <ApiUnitErrorBadge error={channelFilter.error} />
-                  </span>
-                ) : channelLabel}
+              <th className={`${styles.num} ${styles.salesMetricsSelfHeader}`}>{baseLabel}</th>
+              <th className={`${styles.num} ${comparisonHeaderClassName}`}>
+                {comparisonFilter ? (
+                  <ComparisonTargetSelect comparisonFilter={comparisonFilter} />
+                ) : comparisonLabel}
               </th>
             </tr>
           </thead>
@@ -90,7 +131,7 @@ export function SalesMetricsCard({ targetPeriodDays, sales, selfCompanyLabel, ch
               <tr key={row.key}>
                 <td>{row.label}</td>
                 <td className={styles.num}>{row.self}</td>
-                <td className={`${styles.num} ${row.competitorUnavailable ? styles.salesMetricUnavailable : ''}`}>{row.competitor}</td>
+                <td className={`${styles.num} ${row.comparisonUnavailable ? styles.salesMetricUnavailable : ''}`}>{row.comparison}</td>
               </tr>
             ))}
           </tbody>
