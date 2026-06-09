@@ -81,10 +81,15 @@ export function useProductComparisonTargets({
   pageName: string
   base: ProductComparisonBaseSubjectRef
 }): ProductComparisonTargetsState {
+  const baseKey: string = useMemo(() : string => JSON.stringify(base), [base])
   const [comparisonTargets, setComparisonTargets]: [
     ProductComparisonTarget[],
     React.Dispatch<React.SetStateAction<ProductComparisonTarget[]>>,
   ] = useState<ProductComparisonTarget[]>([])
+  const [loadedBaseKey, setLoadedBaseKey]: [
+    string,
+    React.Dispatch<React.SetStateAction<string>>,
+  ] = useState<string>('')
   const [comparisonMode, setComparisonMode]: [
     ProductComparisonTargetKind,
     React.Dispatch<React.SetStateAction<ProductComparisonTargetKind>>,
@@ -111,9 +116,14 @@ export function useProductComparisonTargets({
     void (async () : Promise<void> => {
       try {
         setTargetsLoading(true)
+        setComparisonTargets([])
+        setTargetIds(INITIAL_TARGET_IDS)
+        setSelectedCompetitorChannelId('')
+        setLoadedBaseKey('')
         const rows: ProductComparisonTarget[] = await dashboardApi.getProductComparisonTargets({ base })
         if (!alive) return
         setComparisonTargets(rows)
+        setLoadedBaseKey(baseKey)
         setTargetIds((prev: ProductComparisonTargetIds) : ProductComparisonTargetIds => ({
           'competitor-channel': targetIdForLoadedTargets(rows, 'competitor-channel', prev),
           'self-company': targetIdForLoadedTargets(rows, 'self-company', prev),
@@ -126,6 +136,7 @@ export function useProductComparisonTargets({
         setComparisonTargets([])
         setTargetIds(INITIAL_TARGET_IDS)
         setSelectedCompetitorChannelId('')
+        setLoadedBaseKey('')
         setTargetsError(makeApiErrorInfo(pageName, 'getProductComparisonTargets()', err))
       } finally {
         if (alive) setTargetsLoading(false)
@@ -134,23 +145,28 @@ export function useProductComparisonTargets({
     return () : void => {
       alive = false
     }
-  }, [base, pageName])
+  }, [base, baseKey, pageName])
 
+  const comparisonTargetsForBase: ProductComparisonTarget[] = useMemo(
+    () : ProductComparisonTarget[] => loadedBaseKey === baseKey ? comparisonTargets : [],
+    [baseKey, comparisonTargets, loadedBaseKey],
+  )
+  const effectiveTargetsLoading: boolean = targetsLoading || loadedBaseKey !== baseKey
   const comparisonTarget: ProductComparisonTarget | null = useMemo(
     () : ProductComparisonTarget | null => (
       comparisonMode === 'competitor-channel'
-        ? selectedCompetitorTarget(comparisonTargets, selectedCompetitorChannelId)
-        : selectedTarget(comparisonTargets, comparisonMode, targetIds)
+        ? selectedCompetitorTarget(comparisonTargetsForBase, selectedCompetitorChannelId)
+        : selectedTarget(comparisonTargetsForBase, comparisonMode, targetIds)
     ),
-    [comparisonMode, comparisonTargets, selectedCompetitorChannelId, targetIds],
+    [comparisonMode, comparisonTargetsForBase, selectedCompetitorChannelId, targetIds],
   )
   const competitorChannels: SecondaryCompetitorChannel[] = useMemo(
-    () : SecondaryCompetitorChannel[] => competitorChannelsFromTargets(comparisonTargets),
-    [comparisonTargets],
+    () : SecondaryCompetitorChannel[] => competitorChannelsFromTargets(comparisonTargetsForBase),
+    [comparisonTargetsForBase],
   )
   const competitorTarget: ProductComparisonTarget | null = useMemo(
-    () : ProductComparisonTarget | null => selectedCompetitorTarget(comparisonTargets, selectedCompetitorChannelId),
-    [comparisonTargets, selectedCompetitorChannelId],
+    () : ProductComparisonTarget | null => selectedCompetitorTarget(comparisonTargetsForBase, selectedCompetitorChannelId),
+    [comparisonTargetsForBase, selectedCompetitorChannelId],
   )
   const competitorChannelId: string = selectedCompetitorChannelId === '' ? competitorTarget?.sourceId ?? '' : selectedCompetitorChannelId
 
@@ -175,12 +191,12 @@ export function useProductComparisonTargets({
   }
 
   return {
-    comparisonTargets,
+    comparisonTargets: comparisonTargetsForBase,
     comparisonMode,
     comparisonTarget,
     competitorChannels,
     competitorChannelId,
-    targetsLoading,
+    targetsLoading: effectiveTargetsLoading,
     targetsError,
     setComparisonMode,
     setComparisonTargetId,

@@ -61,6 +61,7 @@ Product drawer owns primary summary display, secondary detail display, secondary
 - Sales insight and comparison target APIs use base/comparison subject refs. `base.kind` is currently `self-company`; `comparison.kind` may be `competitor-channel` or `self-company`.
 - The frontend may keep `ALL_COMPANY_UUID` in subject state for all-company reads, but HTTP requests omit `baseSourceId` or `comparisonSourceId` instead of sending the sentinel.
 - Empty comparison target lists are valid unavailable states. The drawer must not replace them with the first target, a fake target, or a generic API error.
+- Primary sales metrics keeps a stable card shell while comparison data is loading. Target clicks may update request state, but they must not replace the card with a different loading layout or resize the product image/card column.
 - Candidate detail drawer opened from a single-company candidate keeps the same `companyUuid` through reads and mutations.
 - Secondary mutations require concrete `companyUuid`.
 

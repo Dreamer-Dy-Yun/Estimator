@@ -42,23 +42,71 @@
   margin-bottom: 0;
 }
 
-.selfComparisonToggle {
+.salesMetricsStableCard {
+  position: relative;
+  min-height: 168px;
+}
+
+.selfComparisonSwitch {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
   flex: 0 0 auto;
+  border: 1px solid #cbd5e1;
+  border-radius: 999px;
+  padding: 3px 8px 3px 4px;
+  background: #f8fafc;
   font-size: 11px;
   font-weight: 700;
   color: #334155;
   white-space: nowrap;
   cursor: pointer;
+  transition: background 140ms ease, border-color 140ms ease, color 140ms ease;
 }
 
-.selfComparisonToggle input {
-  width: 13px;
-  height: 13px;
-  margin: 0;
-  accent-color: #2563eb;
+.selfComparisonSwitch:hover {
+  border-color: #94a3b8;
+  background: #f1f5f9;
+}
+
+.selfComparisonSwitch:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+}
+
+.selfComparisonSwitchOn {
+  border-color: #93c5fd;
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.selfComparisonSwitchTrack {
+  position: relative;
+  width: 26px;
+  height: 14px;
+  border-radius: 999px;
+  background: #cbd5e1;
+  transition: background 140ms ease;
+}
+
+.selfComparisonSwitchOn .selfComparisonSwitchTrack {
+  background: #2563eb;
+}
+
+.selfComparisonSwitchThumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.25);
+  transition: transform 140ms ease;
+}
+
+.selfComparisonSwitchOn .selfComparisonSwitchThumb {
+  transform: translateX(12px);
 }
 
 .salesMetricsPeriodLine {
@@ -188,6 +236,7 @@
 }
 
 .salesMetricsUnavailableNotice {
+  flex: 1 1 auto;
   margin: 6px 0 0;
   padding: 10px 12px;
   border: 1px dashed #cbd5e1;
@@ -197,6 +246,18 @@
   font-size: 12px;
   font-weight: 700;
   line-height: 1.4;
+}
+
+.salesMetricsLoadingOverlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: inherit;
+  background: rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(1px);
+  z-index: 2;
 }
 
 .salesMetricPrimaryValue {

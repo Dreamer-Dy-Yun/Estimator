@@ -6,10 +6,7 @@ import {
   type ProductComparisonTargetKind,
   type ProductSalesInsight,
 } from '../../../../api'
-import { ApiUnitErrorBadge } from '../../../../components/ApiUnitErrorBadge'
-import { LoadingSpinner } from '../../../../components/LoadingSpinner'
 import type { ApiUnitErrorInfo } from '../../../../types'
-import styles from '../../common.module.css'
 import { makeApiErrorInfo } from '../apiErrorInfo'
 import { SalesMetricsCard } from './cards/SalesMetricsCard'
 
@@ -39,6 +36,8 @@ const NO_COMPARISON_TARGET_MESSAGE_BY_KIND: Record<ProductComparisonTargetKind, 
   'self-company': '\uC790\uC0AC\uAC04 \uBE44\uAD50 \uB300\uC0C1\uC774 \uC5C6\uC2B5\uB2C8\uB2E4.',
 }
 const SELECTED_COMPARISON_TARGET_MISSING_MESSAGE = '\uC120\uD0DD\uD55C \uBE44\uAD50 \uB300\uC0C1\uC774 \uD604\uC7AC \uBAA9\uB85D\uC5D0 \uC5C6\uC2B5\uB2C8\uB2E4.'
+const SALES_METRICS_LOADING_MESSAGE = '판매 정보를 불러오는 중'
+const SALES_METRICS_ERROR_MESSAGE = '판매 정보를 불러오지 못했습니다.'
 
 export function ProductSalesMetricsContainer({
   skuGroupKey,
@@ -71,9 +70,25 @@ export function ProductSalesMetricsContainer({
     comparisonTarget != null && salesInsightState?.key === salesInsightRequestKey ? salesInsightState.data : null
   const salesInsightError: ApiUnitErrorInfo | null =
     comparisonTarget != null && salesInsightState?.key === salesInsightRequestKey ? salesInsightState.error : null
+  const visibleSalesInsight: ProductSalesInsight | null = salesInsight ?? salesInsightState?.data ?? null
+  const salesInsightPending: boolean =
+    comparisonTarget != null &&
+    targetsError == null &&
+    salesInsightState?.key !== salesInsightRequestKey
   const activeComparisonTargets: ProductComparisonTarget[] = comparisonTargets.filter(
     (target: ProductComparisonTarget) : boolean => target.kind === comparisonMode,
   )
+  const visibleComparisonMode: ProductComparisonTargetKind = visibleSalesInsight?.comparison.kind ?? comparisonMode
+  const visibleComparisonTargets: ProductComparisonTarget[] = comparisonTargets.filter(
+    (target: ProductComparisonTarget) : boolean => target.kind === visibleComparisonMode,
+  )
+  const visibleComparisonTargetId: string = visibleSalesInsight == null
+    ? comparisonTarget?.id ?? ''
+    : visibleComparisonTargets.find(
+      (target: ProductComparisonTarget) : boolean =>
+        target.kind === visibleSalesInsight.comparison.kind &&
+        target.sourceId === visibleSalesInsight.comparison.sourceId,
+    )?.id ?? ''
   const comparisonFilter: {
     selfComparisonEnabled: boolean
     targetId: string
@@ -88,6 +103,12 @@ export function ProductSalesMetricsContainer({
     error: targetsError,
     onSelfComparisonToggle: (checked: boolean) : void => onComparisonModeChange(checked ? 'self-company' : 'competitor-channel'),
     onTargetChange: onComparisonTargetChange,
+  }
+  const visibleComparisonFilter: typeof comparisonFilter = {
+    ...comparisonFilter,
+    selfComparisonEnabled: visibleComparisonMode === 'self-company',
+    targetId: visibleComparisonTargetId,
+    targets: visibleComparisonTargets,
   }
 
   useEffect(() : (() => void) | undefined => {
@@ -138,24 +159,15 @@ export function ProductSalesMetricsContainer({
 
   const salesMetricsError: ApiUnitErrorInfo | null = salesInsightError ?? targetsError
 
-  if (salesMetricsError != null) {
-    return (
-      <div className={`${styles.card} ${styles.drawerSalesMetricsCard}`}>
-        <div className={styles.cardTitle}>
-          판매 정보
-          <ApiUnitErrorBadge error={salesMetricsError} />
-        </div>
-        <p className={styles.drawerErrorText}>판매 정보를 불러오지 못했습니다.</p>
-      </div>
-    )
-  }
-
   if (targetsLoading && comparisonTargets.length === 0) {
     return (
-      <div className={`${styles.card} ${styles.drawerSalesMetricsCard}`}>
-        <div className={styles.cardTitle}>{'\uD310\uB9E4 \uC815\uBCF4'}</div>
-        <LoadingSpinner label={'\uD310\uB9E4 \uC815\uBCF4\uB97C \uBD88\uB7EC\uC624\uB294 \uC911'} />
-      </div>
+      <SalesMetricsCard
+        targetPeriodDays={{ start: startDate, end: endDate }}
+        sales={null}
+        loading
+        unavailableMessage={SALES_METRICS_LOADING_MESSAGE}
+        comparisonFilter={comparisonFilter}
+      />
     )
   }
 
@@ -168,30 +180,37 @@ export function ProductSalesMetricsContainer({
         targetPeriodDays={{ start: startDate, end: endDate }}
         sales={null}
         unavailableMessage={unavailableMessage}
+        error={salesMetricsError}
         comparisonFilter={comparisonFilter}
       />
     )
   }
 
-  if (salesInsight == null) {
+  if (visibleSalesInsight == null) {
     return (
-      <div className={`${styles.card} ${styles.drawerSalesMetricsCard}`}>
-        <div className={styles.cardTitle}>{'\uD310\uB9E4 \uC815\uBCF4'}</div>
-        <LoadingSpinner label={'\uD310\uB9E4 \uC815\uBCF4\uB97C \uBD88\uB7EC\uC624\uB294 \uC911'} />
-      </div>
+      <SalesMetricsCard
+        targetPeriodDays={{ start: startDate, end: endDate }}
+        sales={null}
+        loading={salesMetricsError == null}
+        unavailableMessage={salesMetricsError == null ? SALES_METRICS_LOADING_MESSAGE : SALES_METRICS_ERROR_MESSAGE}
+        error={salesMetricsError}
+        comparisonFilter={comparisonFilter}
+      />
     )
   }
 
   return (
     <SalesMetricsCard
-      targetPeriodDays={salesInsight.targetPeriodDays}
+      targetPeriodDays={visibleSalesInsight.targetPeriodDays}
       sales={{
-        baseLabel: salesInsight.base.label,
-        comparisonLabel: salesInsight.comparison.label,
-        base: salesInsight.baseMetrics,
-        comparison: salesInsight.comparisonMetrics,
+        baseLabel: visibleSalesInsight.base.label,
+        comparisonLabel: visibleSalesInsight.comparison.label,
+        base: visibleSalesInsight.baseMetrics,
+        comparison: visibleSalesInsight.comparisonMetrics,
       }}
-      comparisonFilter={comparisonFilter}
+      loading={salesInsightPending}
+      error={salesMetricsError}
+      comparisonFilter={visibleComparisonFilter}
     />
   )
 }

@@ -1,5 +1,6 @@
 import type { ProductComparisonTarget } from '../../../../../api'
 import { ApiUnitErrorBadge } from '../../../../../components/ApiUnitErrorBadge'
+import { LoadingSpinner } from '../../../../../components/LoadingSpinner'
 import type { ApiUnitErrorInfo } from '../../../../../types'
 import { formatCompactKoreanNumber, formatPercent, type CompactKoreanNumberDisplay } from '../../../../../utils/format'
 import type { SalesKpiColumn } from '../../../../../utils/salesKpiColumn'
@@ -14,6 +15,8 @@ export type Props = {
     base: SalesKpiColumn
     comparison: SalesKpiColumn
   } | null
+  loading?: boolean
+  error?: ApiUnitErrorInfo | null
   unavailableMessage?: string
   comparisonFilter?: {
     selfComparisonEnabled: boolean
@@ -67,20 +70,24 @@ function ComparisonTargetSelect({ comparisonFilter }: { comparisonFilter: NonNul
   )
 }
 
-export function SalesMetricsCard({ targetPeriodDays, sales, unavailableMessage, comparisonFilter }: Props) : React.JSX.Element {
+export function SalesMetricsCard({ targetPeriodDays, sales, loading = false, error = null, unavailableMessage, comparisonFilter }: Props) : React.JSX.Element {
   const header: React.JSX.Element = (
     <div className={styles.salesMetricsHeader}>
       <div className={styles.salesMetricsTitleLine}>
-        <h3 className={styles.sectionTitle}>{KO.sectionSales}</h3>
+        <h3 className={styles.sectionTitle}>{KO.sectionSales}<ApiUnitErrorBadge error={error} /></h3>
         {comparisonFilter && (
-          <label className={styles.selfComparisonToggle}>
-            <input
-              type="checkbox"
-              checked={comparisonFilter.selfComparisonEnabled}
-              onChange={(event: React.ChangeEvent<HTMLInputElement>) : void => comparisonFilter.onSelfComparisonToggle(event.target.checked)}
-            />
+          <button
+            type="button"
+            role="switch"
+            aria-checked={comparisonFilter.selfComparisonEnabled}
+            className={`${styles.selfComparisonSwitch} ${comparisonFilter.selfComparisonEnabled ? styles.selfComparisonSwitchOn : ''}`}
+            onClick={() : void => comparisonFilter.onSelfComparisonToggle(!comparisonFilter.selfComparisonEnabled)}
+          >
+            <span className={styles.selfComparisonSwitchTrack} aria-hidden="true">
+              <span className={styles.selfComparisonSwitchThumb} />
+            </span>
             <span>{'\uC790\uC0AC\uAC04 \uBE44\uAD50'}</span>
-          </label>
+          </button>
         )}
       </div>
       <p className={styles.salesMetricsPeriodLine}>{KO.salesMetricsTargetPeriod}: {targetPeriodDays.start} ~ {targetPeriodDays.end}</p>
@@ -89,10 +96,15 @@ export function SalesMetricsCard({ targetPeriodDays, sales, unavailableMessage, 
 
   if (sales == null) {
     return (
-      <div className={`${styles.card} ${styles.gridColumnCard}`}>
+      <div className={`${styles.card} ${styles.gridColumnCard} ${styles.salesMetricsStableCard}`} aria-busy={loading}>
         {header}
         {comparisonFilter && comparisonFilter.targets.length > 0 && <ComparisonTargetSelect comparisonFilter={comparisonFilter} />}
         <p className={styles.salesMetricsUnavailableNotice}>{unavailableMessage ?? '-'}</p>
+        {loading && (
+          <div className={styles.salesMetricsLoadingOverlay}>
+            <LoadingSpinner label="판매 정보를 불러오는 중" />
+          </div>
+        )}
       </div>
     )
   }
@@ -111,7 +123,7 @@ export function SalesMetricsCard({ targetPeriodDays, sales, unavailableMessage, 
     : styles.salesMetricsCompetitorHeader
 
   return (
-    <div className={`${styles.card} ${styles.gridColumnCard}`}>
+    <div className={`${styles.card} ${styles.gridColumnCard} ${styles.salesMetricsStableCard}`} aria-busy={loading}>
       {header}
       <div className={styles.cardTableScroll}>
         <table className={`${styles.table} ${styles.salesMetricsTightTable}`}>
@@ -137,6 +149,11 @@ export function SalesMetricsCard({ targetPeriodDays, sales, unavailableMessage, 
           </tbody>
         </table>
       </div>
+      {loading && (
+        <div className={styles.salesMetricsLoadingOverlay}>
+          <LoadingSpinner label="판매 정보를 불러오는 중" />
+        </div>
+      )}
     </div>
   )
 }
