@@ -9,7 +9,8 @@ Last updated: 2026-06-09
 - 드로워 shell은 폭 변수를 하위에 제공하고, 하위 카드/테이블/차트는 `min-width: 0`, 내부 스크롤, 줄임표, 계산된 축 폭으로 그 폭 안에서 수축되어야 한다.
 - 1차 드로워 본문에서 가로 잘림을 숨기는 방식으로 해결하지 않는다. 각 카드가 자기 책임 영역 안에서 overflow를 처리한다.
 - 판매 정보 테이블은 카드 폭 `100%` 안에서 고정 레이아웃으로 맞추며, 표 내부 폰트 크기는 `--primary-drawer-sales-table-font-size` 토큰으로 균일하게 조정한다.
-- 월간 추이 헤더 컨트롤은 한 줄을 유지하며, 시리즈 선택 토글 폰트는 판매추이 카드 container width 기준으로 조정한다.
+- 판매 정보 테이블의 긴 금액/수량은 CSS 말줄임 대신 `src/utils/format.ts`의 compact Korean number display 정책으로 축약 표시하고, 원문 값은 title/aria label로 보존한다.
+- 월간 추이 헤더는 제목 30%, 컨트롤 70% grid 기준을 사용해 한 줄을 유지하며, 시리즈 선택 토글 폰트는 판매추이 카드 container width 기준으로 조정한다.
 - 월간 추이 Y축 폭은 표시 숫자 자리수 기준으로 계산한다.
 - `SalesTrendChart`는 line/bar series의 축 소속을 chart series 계약으로 판단하며, secondary axis 존재 여부가 primary bar의 축을 바꾸지 않는다.
 

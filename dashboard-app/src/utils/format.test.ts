@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { DisplayNumberFormatter, displayNumber, formatPercent, formatRatioDecimalKo } from './format'
+import { DisplayNumberFormatter, displayNumber, formatCompactKoreanNumber, formatPercent, formatRatioDecimalKo } from './format'
 
 describe('DisplayNumberFormatter', () : void => {
   it('rounds by decimal digit without changing caller data', () : void => {
@@ -32,5 +32,29 @@ describe('DisplayNumberFormatter', () : void => {
     expect(displayNumber.format(null)).toBe('-')
     expect(displayNumber.format(undefined)).toBe('-')
     expect(displayNumber.format(Number.NaN)).toBe('-')
+  })
+
+  it('formats compact Korean display values without changing the full value', () : void => {
+    expect(formatCompactKoreanNumber(123456789)).toEqual({
+      text: '1.23억',
+      fullText: '123,456,789',
+      compacted: true,
+      approximate: true,
+    })
+    expect(formatCompactKoreanNumber(9876543)).toEqual({
+      text: '987.7만',
+      fullText: '9,876,543',
+      compacted: true,
+      approximate: true,
+    })
+  })
+
+  it('keeps compact Korean display exact below the compact threshold', () : void => {
+    expect(formatCompactKoreanNumber(99999, { compactAt: 100000 })).toEqual({
+      text: '99,999',
+      fullText: '99,999',
+      compacted: false,
+      approximate: false,
+    })
   })
 })

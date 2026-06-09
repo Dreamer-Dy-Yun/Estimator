@@ -1,7 +1,7 @@
 import type { SecondaryCompetitorChannel } from '../../../../../api'
 import { ApiUnitErrorBadge } from '../../../../../components/ApiUnitErrorBadge'
 import type { ApiUnitErrorInfo } from '../../../../../types'
-import { displayNumber, formatGroupedNumber, formatPercent } from '../../../../../utils/format'
+import { formatCompactKoreanNumber, formatPercent, type CompactKoreanNumberDisplay } from '../../../../../utils/format'
 import type { SalesKpiColumn } from '../../../../../utils/salesKpiColumn'
 import { KO } from '../../ko'
 import styles from './SalesMetricsCard.module.css'
@@ -24,22 +24,36 @@ export type Props = {
 
 export type MetricRow = { key: string; label: string; self: React.ReactNode; competitor: React.ReactNode; competitorUnavailable?: boolean }
 
-const primaryValue: (value: string) => React.JSX.Element = (value: string) : React.JSX.Element => <span className={styles.salesMetricPrimaryValue}>{value}</span>
+const SALES_METRIC_MONEY_COMPACT_AT = 10_000_000 as const
+const SALES_METRIC_QTY_COMPACT_AT = 100_000 as const
+
+const primaryValue: (value: CompactKoreanNumberDisplay) => React.JSX.Element = (value: CompactKoreanNumberDisplay) : React.JSX.Element => (
+  <span
+    className={styles.salesMetricPrimaryValue}
+    title={value.compacted ? value.fullText : undefined}
+    aria-label={value.compacted ? value.fullText : undefined}
+  >
+    {value.text}
+  </span>
+)
+const primaryTextValue: (value: string) => React.JSX.Element = (value: string) : React.JSX.Element => <span className={styles.salesMetricPrimaryValue}>{value}</span>
+const compactMoney: (value: number | null) => CompactKoreanNumberDisplay = (value: number | null) : CompactKoreanNumberDisplay => formatCompactKoreanNumber(value, { compactAt: SALES_METRIC_MONEY_COMPACT_AT })
+const compactQty: (value: number | null) => CompactKoreanNumberDisplay = (value: number | null) : CompactKoreanNumberDisplay => formatCompactKoreanNumber(value, { compactAt: SALES_METRIC_QTY_COMPACT_AT })
 const formatRank: (rank: number | null, total: number) => string = (rank: number | null, total: number) : string => (rank === null ? '-' : `${rank}/${total}${KO.rankSuffix}`)
-const rankMetric: (value: string, rank: number, total: number) => React.JSX.Element = (value: string, rank: number, total: number) : React.JSX.Element => <>{primaryValue(value)} ({formatRank(rank, total)})</>
+const rankMetric: (value: CompactKoreanNumberDisplay, rank: number, total: number) => React.JSX.Element = (value: CompactKoreanNumberDisplay, rank: number, total: number) : React.JSX.Element => <>{primaryValue(value)} ({formatRank(rank, total)})</>
 const costMetric: (avgCost: number | null, costRatioPct: number | null) => React.JSX.Element | '-' = (avgCost: number | null, costRatioPct: number | null) : React.JSX.Element | '-' => (
-  avgCost === null || costRatioPct === null ? '-' : <>{primaryValue(displayNumber.money(avgCost))} ({formatPercent(costRatioPct)})</>
+  avgCost === null || costRatioPct === null ? '-' : <>{primaryValue(compactMoney(avgCost))} ({formatPercent(costRatioPct)})</>
 )
 const rateRank: (ratePct: number | null, rank: number | null, total: number) => React.JSX.Element | '-' = (ratePct: number | null, rank: number | null, total: number) : React.JSX.Element | '-' => (
-  ratePct === null || rank === null ? '-' : <>{primaryValue(formatPercent(ratePct))} ({formatRank(rank, total)})</>
+  ratePct === null || rank === null ? '-' : <>{primaryTextValue(formatPercent(ratePct))} ({formatRank(rank, total)})</>
 )
 
 export function SalesMetricsCard({ targetPeriodDays, sales, selfCompanyLabel, channelFilter }: Props) : React.JSX.Element {
   const { channelLabel, self, competitor }: { channelLabel: string; self: SalesKpiColumn; competitor: SalesKpiColumn; } = sales
   const rows: MetricRow[] = [
-    { key: 'avgPrice', label: KO.rowAvgPrice, self: primaryValue(displayNumber.money(self.avgPrice)), competitor: primaryValue(displayNumber.money(competitor.avgPrice)) },
-    { key: 'qtyRank', label: KO.rowQtyRank, self: rankMetric(formatGroupedNumber(self.qty), self.qtyRank, self.rankTotal), competitor: rankMetric(formatGroupedNumber(competitor.qty), competitor.qtyRank, competitor.rankTotal) },
-    { key: 'amountRank', label: KO.rowAmountRank, self: rankMetric(displayNumber.money(self.amount), self.amountRank, self.rankTotal), competitor: rankMetric(displayNumber.money(competitor.amount), competitor.amountRank, competitor.rankTotal) },
+    { key: 'avgPrice', label: KO.rowAvgPrice, self: primaryValue(compactMoney(self.avgPrice)), competitor: primaryValue(compactMoney(competitor.avgPrice)) },
+    { key: 'qtyRank', label: KO.rowQtyRank, self: rankMetric(compactQty(self.qty), self.qtyRank, self.rankTotal), competitor: rankMetric(compactQty(competitor.qty), competitor.qtyRank, competitor.rankTotal) },
+    { key: 'amountRank', label: KO.rowAmountRank, self: rankMetric(compactMoney(self.amount), self.amountRank, self.rankTotal), competitor: rankMetric(compactMoney(competitor.amount), competitor.amountRank, competitor.rankTotal) },
     { key: 'avgCost', label: KO.rowAvgCost, self: costMetric(self.avgCost, self.costRatioPct), competitor: costMetric(competitor.avgCost, competitor.costRatioPct), competitorUnavailable: competitor.avgCost === null },
     { key: 'fee', label: KO.rowFee, self: rateRank(self.feeRatePct, self.feeRank, self.rankTotal), competitor: rateRank(competitor.feeRatePct, competitor.feeRank, competitor.rankTotal), competitorUnavailable: competitor.feeRatePct === null || competitor.feeRank === null },
     { key: 'opMargin', label: KO.rowOpMargin, self: rateRank(self.opMarginRatePct, self.opMarginRank, self.rankTotal), competitor: rateRank(competitor.opMarginRatePct, competitor.opMarginRank, competitor.rankTotal), competitorUnavailable: competitor.opMarginRatePct === null || competitor.opMarginRank === null },

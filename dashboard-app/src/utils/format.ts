@@ -1,6 +1,25 @@
 export type DisplayNumberRoundingMode = 'round' | 'floor' | 'ceil' | 'trunc'
 
 const FALLBACK_TEXT = '-' as const
+const KOREAN_COMPACT_UNITS: readonly { readonly value: number; readonly label: string }[] = [
+  { value: 1_000_000_000_000, label: '조' },
+  { value: 100_000_000, label: '억' },
+  { value: 10_000, label: '만' },
+] as const
+
+export type CompactKoreanNumberDisplay = {
+  text: string
+  fullText: string
+  compacted: boolean
+  approximate: boolean
+}
+
+export type CompactKoreanNumberOptions = {
+  compactAt?: number
+  maximumFractionDigits?: number
+  suffix?: string
+  fallback?: string
+}
 
 export class DisplayNumberFormatter {
   private readonly locale: string
@@ -75,4 +94,67 @@ export function formatRatioDecimalKo(value: number): string {
 
 export function formatEaQuantity(value: number | null): string {
   return value == null ? FALLBACK_TEXT : `${formatGroupedNumber(value)} EA`
+}
+
+function getCompactFractionDigits(value: number, maximumFractionDigits: number): number {
+  if (value >= 1000) return 0
+  if (value >= 10) return Math.min(1, maximumFractionDigits)
+  return maximumFractionDigits
+}
+
+function formatCompactScaledNumber(value: number, fractionDigits: number): string {
+  return value.toLocaleString('ko-KR', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: fractionDigits,
+  })
+}
+
+export function formatCompactKoreanNumber(
+  value: number | null | undefined,
+  options: CompactKoreanNumberOptions = {},
+): CompactKoreanNumberDisplay {
+  const fallback: string = options.fallback ?? FALLBACK_TEXT
+  if (value == null || !Number.isFinite(value)) {
+    return {
+      text: fallback,
+      fullText: fallback,
+      compacted: false,
+      approximate: false,
+    }
+  }
+
+  const suffix: string = options.suffix ?? ''
+  const fullText: string = `${formatGroupedNumber(value)}${suffix}`
+  const compactAt: number = options.compactAt ?? 10_000
+  const maximumFractionDigits: number = options.maximumFractionDigits ?? 2
+  const absoluteValue: number = Math.abs(value)
+  if (absoluteValue < compactAt) {
+    return {
+      text: fullText,
+      fullText,
+      compacted: false,
+      approximate: false,
+    }
+  }
+
+  const unit: { readonly value: number; readonly label: string } | undefined = KOREAN_COMPACT_UNITS.find(
+    (candidate: { readonly value: number; readonly label: string }) : boolean => absoluteValue >= candidate.value,
+  )
+  if (unit == null) {
+    return {
+      text: fullText,
+      fullText,
+      compacted: false,
+      approximate: false,
+    }
+  }
+
+  const scaledValue: number = value / unit.value
+  const fractionDigits: number = getCompactFractionDigits(Math.abs(scaledValue), maximumFractionDigits)
+  return {
+    text: `${formatCompactScaledNumber(scaledValue, fractionDigits)}${unit.label}${suffix}`,
+    fullText,
+    compacted: true,
+    approximate: true,
+  }
 }
