@@ -261,6 +261,10 @@
   box-sizing: border-box;
 }
 
+.drawerSalesTrendCard {
+  container-type: inline-size;
+}
+
 .drawerSalesMetricsCard {
   display: flex;
   flex-direction: column;
