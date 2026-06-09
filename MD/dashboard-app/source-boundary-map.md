@@ -7,7 +7,7 @@ Last updated: 2026-06-09
 - 1차 드로워의 기준 폭은 `--primary-drawer-column-width`가 소유한다.
 - 드로워 shell은 폭 변수를 하위에 제공하고, 하위 카드/테이블/차트는 `min-width: 0`, 내부 스크롤, 줄임표, 계산된 축 폭으로 그 폭 안에서 수축되어야 한다.
 - 1차 드로워 본문에서 가로 잘림을 숨기는 방식으로 해결하지 않는다. 각 카드가 자기 책임 영역 안에서 overflow를 처리한다.
-- 판매 정보 테이블의 최소 표시 폭은 `--primary-drawer-sales-table-min-width` 토큰이 소유하고, 카드는 내부 가로 스크롤을 맡는다.
+- 판매 정보 테이블은 카드 폭 `100%` 안에서 고정 레이아웃으로 맞추며, 표 내부 폰트 크기는 `--primary-drawer-sales-table-font-size` 토큰으로 균일하게 조정한다.
 - 월간 추이 헤더 컨트롤은 드로워 폭이 좁을 때 줄바꿈되며, Y축 폭은 표시 숫자 자리수 기준으로 계산한다.
 - `SalesTrendChart`는 line/bar series의 축 소속을 chart series 계약으로 판단하며, secondary axis 존재 여부가 primary bar의 축을 바꾸지 않는다.
 
