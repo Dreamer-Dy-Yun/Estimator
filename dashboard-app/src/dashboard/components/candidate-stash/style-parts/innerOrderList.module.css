@@ -22,7 +22,7 @@
   display: grid;
   grid-template-columns:
     52px
-    52px
+    62px
     32px
     minmax(90px, 0.6fr)
     minmax(84px, 0.45fr)
@@ -35,7 +35,7 @@
     minmax(150px, 0.85fr);
   align-items: center;
   gap: 10px;
-  min-width: 1520px;
+  min-width: 1530px;
 }
 
 .innerOrderHeader {
@@ -70,6 +70,7 @@
   font-size: 17px;
   text-align: left;
   cursor: pointer;
+  --candidate-row-height: 62px;
   transition: border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
 }
 

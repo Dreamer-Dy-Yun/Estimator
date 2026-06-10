@@ -3,20 +3,18 @@
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  border: 1px solid #dbe3ef;
-  border-radius: 10px;
+  flex: 0 0 var(--product-thumbnail-size);
+  width: var(--product-thumbnail-size);
+  height: var(--product-thumbnail-size);
   background: #f8fafc;
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.72);
 }
 
 .analysis {
-  width: 34px;
-  height: 34px;
+  --product-thumbnail-size: calc(var(--analysis-row-height, 44px) * 0.95);
 }
 
 .candidate {
-  width: 42px;
-  height: 42px;
+  --product-thumbnail-size: calc(var(--candidate-row-height, 62px) * 0.95);
 }
 
 .image,
