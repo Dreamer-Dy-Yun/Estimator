@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi , type Mock} from 'vitest';
 import { ApiClientError } from '../types/api-error'
-import { API_ADAPTER_MODE, ApiHttpError, USE_MOCK_API, apiRequest, openApiEventStream } from './httpClient'
+import { ApiHttpError, apiRequest, openApiEventStream } from './httpClient'
 
 const fetchMock: Mock<(...args: unknown[]) => unknown> = vi.fn()
 
@@ -41,13 +41,21 @@ afterEach(() : void => {
 })
 
 describe('api adapter mode contract', () : void => {
-  it('defaults to HTTP mode unless mock mode is explicitly requested', () : void => {
-    expect(API_ADAPTER_MODE).toBe('http')
+  it('defaults to HTTP mode unless mock mode is explicitly requested', async () : Promise<void> => {
+    vi.stubEnv('VITE_USE_MOCK_API', '')
+    vi.resetModules()
+
+    const httpClient = await import('./httpClient')
+    expect(httpClient.API_ADAPTER_MODE).toBe('http')
   })
 
-  it('keeps the named adapter mode aligned with the legacy mock boolean', () : void => {
-    expect(['mock', 'http']).toContain(API_ADAPTER_MODE)
-    expect(API_ADAPTER_MODE).toBe(USE_MOCK_API ? 'mock' : 'http')
+  it('keeps the named adapter mode aligned with the legacy mock boolean', async () : Promise<void> => {
+    vi.stubEnv('VITE_USE_MOCK_API', 'true')
+    vi.resetModules()
+
+    const httpClient = await import('./httpClient')
+    expect(['mock', 'http']).toContain(httpClient.API_ADAPTER_MODE)
+    expect(httpClient.API_ADAPTER_MODE).toBe(httpClient.USE_MOCK_API ? 'mock' : 'http')
   })
 
   it('rejects invalid mock mode environment values during module initialization', async () : Promise<void> => {
