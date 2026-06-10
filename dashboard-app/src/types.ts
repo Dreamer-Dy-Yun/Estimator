@@ -14,6 +14,8 @@ export type SelfSalesRow = {
   productName: string
   /** SKU.color_code. */
   colorCode: string
+  /** Small product thumbnail URL supplied by the list API. Null means no thumbnail is stored. */
+  thumbnailUrl: string | null
   avgPrice: number
   qty: number
   amount: number
@@ -36,6 +38,8 @@ export type CompetitorSalesRow = {
   code: string
   productName: string
   colorCode: string
+  /** Small product thumbnail URL supplied by the list API. Null means no thumbnail is stored. */
+  thumbnailUrl: string | null
   competitorAvgPrice: number
   competitorQty: number
   competitorAmount: number

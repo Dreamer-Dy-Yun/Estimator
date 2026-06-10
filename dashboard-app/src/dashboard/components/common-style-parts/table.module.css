@@ -46,6 +46,13 @@
   max-width: 58px;
 }
 
+.analysisTableWrap .table th:nth-child(3),
+.analysisTableWrap .table td:nth-child(3) {
+  width: 58px;
+  min-width: 58px;
+  max-width: 58px;
+}
+
 .analysisTableWrap .table input[type='checkbox'] {
   width: 16px;
   height: 16px;
@@ -90,7 +97,9 @@
   :global(body[data-primary-drawer-open='true']) .analysisTableWrap .table th:first-child,
   :global(body[data-primary-drawer-open='true']) .analysisTableWrap .table td:first-child,
   :global(body[data-primary-drawer-open='true']) .analysisTableWrap .table th:nth-child(2),
-  :global(body[data-primary-drawer-open='true']) .analysisTableWrap .table td:nth-child(2) {
+  :global(body[data-primary-drawer-open='true']) .analysisTableWrap .table td:nth-child(2),
+  :global(body[data-primary-drawer-open='true']) .analysisTableWrap .table th:nth-child(3),
+  :global(body[data-primary-drawer-open='true']) .analysisTableWrap .table td:nth-child(3) {
     padding-right: 5px;
     padding-left: 5px;
   }

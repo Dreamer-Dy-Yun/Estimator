@@ -15,6 +15,7 @@ import {
 } from './candidateItemInsights'
 import { buildCandidateItemOrderMetric } from './candidateItemOrderMetrics'
 import { skuMetadataBySkuGroupKey } from './productCatalog'
+import { buildMockProductThumbnailUrl } from './mockProductThumbnail'
 
 export type { CandidateDataReferencePeriod } from './candidateItemSummaryTypes'
 
@@ -22,6 +23,14 @@ function getSkuMetadata(skuGroupKey: string) : MockSkuMetadata {
   const metadata: MockSkuMetadata = skuMetadataBySkuGroupKey[skuGroupKey]
   if (!metadata) throw new Error(`Unknown mock SKU metadata: ${skuGroupKey}`)
   return metadata
+}
+
+function buildThumbnailUrl(metadata: MockSkuMetadata): string {
+  return buildMockProductThumbnailUrl({
+    skuGroupKey: metadata.skuGroupKey,
+    code: metadata.code,
+    colorCode: metadata.colorCode,
+  })
 }
 
 export function buildCandidateReferenceItem(
@@ -37,6 +46,7 @@ export function buildCandidateReferenceItem(
     code: metadata.code,
     productName: metadata.productName,
     colorCode: metadata.colorCode,
+    thumbnailUrl: buildThumbnailUrl(metadata),
     insight: buildCandidateItemInsight(skuGroupKey, 0, 0, 0, dataReferencePeriod, companyUuid),
   }
 }
@@ -112,6 +122,7 @@ export function buildCandidateItemSummaries(
         code: metadata.code,
         productName: metadata.productName,
         colorCode: metadata.colorCode,
+        thumbnailUrl: buildThumbnailUrl(metadata),
         orderMetricStatus: includeOrderMetrics ? 'loaded' : 'loading',
         qty: 0,
         expectedOrderAmount: 0,

@@ -1,6 +1,15 @@
 # dashboard-app Source Boundary Map
 
-Last updated: 2026-06-09
+Last updated: 2026-06-10
+
+## 0-5) 2026-06-10 list thumbnail boundary
+
+- 분석 리스트와 이너 후보군 리스트는 체크박스 다음 열에 상품 썸네일을 표시한다.
+- 표시 입력은 row summary DTO의 `thumbnailUrl: string | null`이다. UI는 URL을 계산하거나 외부 placeholder URL을 만들지 않는다.
+- `ProductThumbnailCell`은 표시 전용 공통 컴포넌트다. 이미지가 없으면 `null` 계약을 빈 썸네일 surface로 드러내고, 비즈니스 데이터를 대체 생성하지 않는다.
+- 분석 리스트 row 계약은 `SelfSalesRow`/`CompetitorSalesRow`, 이너 후보군 계약은 `CandidateItemSummary`/`CandidateReferenceItemSummary`가 소유한다.
+- 후보군 저장 상태용 `CandidateStashItemSummary`는 썸네일을 갖지 않는다. 추천 적용 직후 로컬 row 생성 시에는 추천 row의 `thumbnailUrl`을 그대로 복사한다.
+- mock 썸네일은 `src/api/mock/mockProductThumbnail.ts`가 SKU identity 기준으로 만든다. 화면 fallback이 아니라 mock API 계약 대체 데이터다.
 
 ## 0-4) 2026-06-09 product drawer comparison target boundary
 

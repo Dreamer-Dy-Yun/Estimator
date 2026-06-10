@@ -259,31 +259,31 @@ function buildMockProductSecondaryDetail(
 }
 
 export const mockDashboardApi = {
-  getSelfSales: async (params?: SelfSalesParams) : Promise<{ qty: number; amount: number; opMarginAmount: number; id: string; skuGroupKey: string; rank: number; rankPercentile: number; brand: string; category: string; code: string; productName: string; colorCode: string; avgPrice: number; avgCost: number; marginRate: number; feeRate: number; opMarginRate: number; }[]> => {
+  getSelfSales: async (params?: SelfSalesParams) : Promise<SelfSalesRow[]> => {
     await sleep(80)
     const weighted: number = periodWeight(params)
     return selfSalesRows
       .map((row: SelfSalesRow) : SelfSalesRow | null => scopeMockSelfSalesRow(row, params))
       .filter((row: SelfSalesRow | null): row is NonNullable<typeof row> => row != null && matchesProductFilters(row, params))
-      .map((row: SelfSalesRow) : { qty: number; amount: number; opMarginAmount: number; id: string; skuGroupKey: string; rank: number; rankPercentile: number; brand: string; category: string; code: string; productName: string; colorCode: string; avgPrice: number; avgCost: number; marginRate: number; feeRate: number; opMarginRate: number; } => ({
+      .map((row: SelfSalesRow) : SelfSalesRow => ({
         ...row,
         qty: Math.max(0, Math.round(row.qty * weighted)),
         amount: Math.max(0, Math.round(row.amount * weighted)),
         opMarginAmount: Math.max(0, Math.round(row.opMarginAmount * weighted)),
       }))
-      .sort((a: { qty: number; amount: number; opMarginAmount: number; id: string; skuGroupKey: string; rank: number; rankPercentile: number; brand: string; category: string; code: string; productName: string; colorCode: string; avgPrice: number; avgCost: number; marginRate: number; feeRate: number; opMarginRate: number; }, b: { qty: number; amount: number; opMarginAmount: number; id: string; skuGroupKey: string; rank: number; rankPercentile: number; brand: string; category: string; code: string; productName: string; colorCode: string; avgPrice: number; avgCost: number; marginRate: number; feeRate: number; opMarginRate: number; }) : number => b.qty - a.qty)
+      .sort((a: SelfSalesRow, b: SelfSalesRow) : number => b.qty - a.qty)
   },
 
   getSelfSalesScatterGrid: async (params?: SelfSalesGridParams) : Promise<ScatterSalesGridResponse> => buildSelfSalesScatterGridFromRows(await mockDashboardApi.getSelfSales(params), params),
 
-  getCompetitorSales: async (params?: CompetitorSalesParams) : Promise<{ competitorQty: number; competitorAvgPrice: number; competitorAmount: number; selfQty: number | null; selfAmount: number | null; id: string; skuGroupKey: string; rank: number; rankPercentile: number; brand: string; category: string; code: string; productName: string; colorCode: string; selfAvgPrice: number | null; }[]> => {
+  getCompetitorSales: async (params?: CompetitorSalesParams) : Promise<CompetitorSalesRow[]> => {
     await sleep(80)
     const weighted: number = periodWeight(params)
     const channels: MockSecondaryCompetitorChannel[] = getMockCompetitorSalesChannels(params?.competitorChannelId)
     return competitorSalesRows
       .map((row: CompetitorSalesRow) : CompetitorSalesRow | null => scopeMockCompetitorSalesRow(row, params))
       .filter((row: CompetitorSalesRow | null): row is NonNullable<typeof row> => row != null && matchesProductFilters(row, params))
-      .map((row: CompetitorSalesRow) : { competitorQty: number; competitorAvgPrice: number; competitorAmount: number; selfQty: number | null; selfAmount: number | null; id: string; skuGroupKey: string; rank: number; rankPercentile: number; brand: string; category: string; code: string; productName: string; colorCode: string; selfAvgPrice: number | null; } => {
+      .map((row: CompetitorSalesRow) : CompetitorSalesRow => {
         const channelMetrics: { qty: number; amount: number; }[] = channels.map((channel: MockSecondaryCompetitorChannel) : { qty: number; amount: number; } => {
           const qty: number = Math.max(0, Math.round(row.competitorQty * weighted * channel.qtySkew))
           const avgPrice: number = Math.max(0, Math.round(row.competitorAvgPrice * channel.priceSkew))
@@ -300,7 +300,7 @@ export const mockDashboardApi = {
           selfAmount: row.selfAmount == null ? null : Math.max(0, Math.round(row.selfAmount * weighted)),
         }
       })
-      .sort((a: { competitorQty: number; competitorAvgPrice: number; competitorAmount: number; selfQty: number | null; selfAmount: number | null; id: string; skuGroupKey: string; rank: number; rankPercentile: number; brand: string; category: string; code: string; productName: string; colorCode: string; selfAvgPrice: number | null; }, b: { competitorQty: number; competitorAvgPrice: number; competitorAmount: number; selfQty: number | null; selfAmount: number | null; id: string; skuGroupKey: string; rank: number; rankPercentile: number; brand: string; category: string; code: string; productName: string; colorCode: string; selfAvgPrice: number | null; }) : number => b.competitorQty - a.competitorQty)
+      .sort((a: CompetitorSalesRow, b: CompetitorSalesRow) : number => b.competitorQty - a.competitorQty)
   },
 
   getCompetitorSalesScatterGrid: async (params?: CompetitorSalesGridParams) : Promise<ScatterSalesGridResponse> => buildCompetitorSalesScatterGridFromRows(await mockDashboardApi.getCompetitorSales(params), params),

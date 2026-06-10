@@ -6,6 +6,7 @@ import styles from '../common.module.css'
 import { CandidateInsightBadges } from './CandidateInsightBadges'
 import { useModalFocusTrap } from '../useModalFocusTrap'
 import { drawerKeepOpenDataProps } from '../../drawer/drawerDom'
+import { ProductThumbnailCell } from '../ProductThumbnailCell'
 import modalStyles from './CandidateRecommendationModal.module.css'
 
 export type Props = {
@@ -27,6 +28,7 @@ export type RecommendationColumn = {
 }
 
 const columns: RecommendationColumn[] = [
+  { header: '이미지', render: (row: CandidateReferenceItemSummary) : React.JSX.Element => <ProductThumbnailCell thumbnailUrl={row.thumbnailUrl} alt={row.productName} size="candidate" /> },
   { header: '번호', render: (row: CandidateReferenceItemSummary) : React.JSX.Element => <span className={modalStyles.code}>{row.code}</span> },
   { header: '상품명', render: (row: CandidateReferenceItemSummary) : React.JSX.Element => <span className={modalStyles.name}>{row.productName}</span> },
   { header: '색상', render: (row: CandidateReferenceItemSummary) : React.JSX.Element => <span className={modalStyles.colorCode}>{row.colorCode}</span> },
@@ -147,7 +149,7 @@ export function CandidateRecommendationModal({
 function StatusRow({ children, error = false }: { children: React.ReactNode; error?: boolean }) : React.JSX.Element {
   return (
     <div className={modalStyles.statusRow} role="row">
-      <span className={error ? modalStyles.errorText : undefined} role="cell" aria-colspan={7}>
+      <span className={error ? modalStyles.errorText : undefined} role="cell" aria-colspan={8}>
         <span role={error ? 'alert' : 'status'} aria-live={error ? 'assertive' : 'polite'} aria-atomic="true">{children}</span>
       </span>
     </div>

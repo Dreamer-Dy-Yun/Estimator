@@ -35,6 +35,7 @@ function toCandidateItemSummary(
     code: recommendation.code,
     productName: recommendation.productName,
     colorCode: recommendation.colorCode,
+    thumbnailUrl: recommendation.thumbnailUrl,
     orderMetricStatus: 'loading',
     qty: 0,
     expectedOrderAmount: 0,

@@ -6,6 +6,7 @@ import type { SortableTableColumn, StaticTableColumn } from './PaginatedTable'
 import {
   createBulkSelectColumn,
   createRankColumn,
+  createThumbnailColumn,
   getSkuGroupRowId,
   handleAnalysisRowKeyDown,
   numberColumn,
@@ -20,6 +21,7 @@ export function SelfAnalysisList({ rows, activeSkuGroupKey, onOrderedSkuGroupKey
   const qtyRank: Map<string, number> = useMemo(() : Map<string, number> => createDisplayRankMap(rows, getSkuGroupRowId, (row: SelfSalesRow) : number => row.qty, 'desc'), [rows])
   const columns: (SortableTableColumn<SelfSalesRow> | StaticTableColumn<SelfSalesRow>)[] = useMemo(() : (SortableTableColumn<SelfSalesRow> | StaticTableColumn<SelfSalesRow>)[] => [
     createBulkSelectColumn({ rows, ...actions }),
+    createThumbnailColumn<SelfSalesRow>(),
     createRankColumn('salesQtyRank', qtyRank),
     textColumn<SelfSalesRow>('brand', '브랜드', (row: SelfSalesRow) : string => row.brand, '8.5%'),
     textColumn<SelfSalesRow>('category', '카테고리', (row: SelfSalesRow) : string => row.category),

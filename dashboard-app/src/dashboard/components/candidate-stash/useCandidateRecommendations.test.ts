@@ -127,6 +127,7 @@ function createReferenceItem(
     skuGroupKey: 'sku-group-1',
     uuid: 'sku-1',
     ...overrides,
+    thumbnailUrl: overrides.thumbnailUrl ?? null,
   }
 }
 

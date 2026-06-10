@@ -1,8 +1,9 @@
 import type { AdjacentDirection } from '../../utils/adjacentListNavigation'
 import { formatGroupedNumber, formatPercent } from '../../utils/format'
 import type { TableColumn } from './PaginatedTable'
+import { ProductThumbnailCell } from './ProductThumbnailCell'
 
-export type SkuRow = { skuGroupKey: string; productName: string }
+export type SkuRow = { skuGroupKey: string; productName: string; thumbnailUrl: string | null }
 
 export type AnalysisListInteractionProps = {
   activeSkuGroupKey: string | null
@@ -50,6 +51,17 @@ export function createRankColumn<Row extends SkuRow>(key: string, ranks: Map<str
     align: 'center',
     width: '58px',
     sortValue: (row: Row) : number => ranks.get(row.skuGroupKey) ?? Number.MAX_SAFE_INTEGER,
+  }
+}
+
+export function createThumbnailColumn<Row extends SkuRow>(): TableColumn<Row> {
+  return {
+    key: 'thumbnail',
+    header: '이미지',
+    cell: (row: Row) : React.JSX.Element => <ProductThumbnailCell thumbnailUrl={row.thumbnailUrl} alt={row.productName} />,
+    align: 'center',
+    width: '58px',
+    sortable: false,
   }
 }
 

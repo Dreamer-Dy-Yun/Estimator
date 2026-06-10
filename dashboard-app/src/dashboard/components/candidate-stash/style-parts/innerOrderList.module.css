@@ -22,6 +22,7 @@
   display: grid;
   grid-template-columns:
     52px
+    52px
     32px
     minmax(90px, 0.6fr)
     minmax(84px, 0.45fr)
@@ -34,7 +35,7 @@
     minmax(150px, 0.85fr);
   align-items: center;
   gap: 10px;
-  min-width: 1460px;
+  min-width: 1520px;
 }
 
 .innerOrderHeader {
@@ -113,7 +114,7 @@
 }
 
 .innerOrderIndexCell {
-  grid-column: 2;
+  grid-column: 3;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -123,6 +124,17 @@
   font-weight: 800;
   line-height: 1;
   font-variant-numeric: tabular-nums;
+}
+
+.innerOrderThumbnailCell {
+  grid-column: 2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 800;
 }
 
 .innerOrderCheckboxTarget {
@@ -138,6 +150,10 @@
 .innerOrderRow .innerOrderCheckCell {
   grid-row: 1 / span 2;
   align-self: stretch;
+}
+
+.innerOrderRow .innerOrderThumbnailCell {
+  grid-row: 1 / span 2;
 }
 
 .innerOrderRow .innerOrderCheckboxTarget {
@@ -212,7 +228,7 @@
   display: flex;
   align-items: center;
   justify-content: flex-start;
-  grid-column: 3 / -1;
+  grid-column: 4 / -1;
   gap: 4px;
   min-width: 0;
   margin-top: -4px;

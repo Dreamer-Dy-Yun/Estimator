@@ -1,6 +1,6 @@
 # Dashboard API Contract Catalog
 
-Last updated: 2026-06-09
+Last updated: 2026-06-10
 
 Purpose: backend implementation contract for the current frontend. This document lists current DTO and endpoint shapes only. No previous payload shape is part of this contract.
 
@@ -92,9 +92,11 @@ Common query fields: `startDate?`, `endDate?`, `companyUuid?`, `brand?`, `catego
 | `getCompetitorScatterGrid` | GET `/sales/competitor/scatter-grid` | common + `competitorChannelId?` + bucket params | `ScatterSalesGridResponse` |
 | `getSalesFilterMeta` | GET `/sales/filter-meta` | common | filter options |
 
-`SelfSalesRow`: `id`, `skuGroupKey`, `rank`, `rankPercentile`, `brand`, `category`, `code`, `productName`, `colorCode`, `avgPrice`, `qty`, `amount`, `avgCost`, `marginRate`, `feeRate`, `opMarginRate`, `opMarginAmount`.
+`SelfSalesRow`: `id`, `skuGroupKey`, `rank`, `rankPercentile`, `brand`, `category`, `code`, `productName`, `colorCode`, `thumbnailUrl`, `avgPrice`, `qty`, `amount`, `avgCost`, `marginRate`, `feeRate`, `opMarginRate`, `opMarginAmount`.
 
-`CompetitorSalesRow`: same product identity fields plus `competitorAvgPrice`, `competitorQty`, `competitorAmount`, `selfAvgPrice`, `selfQty`, `selfAmount`.
+`CompetitorSalesRow`: same product identity fields plus `thumbnailUrl`, `competitorAvgPrice`, `competitorQty`, `competitorAmount`, `selfAvgPrice`, `selfQty`, `selfAmount`.
+
+`thumbnailUrl` is `string | null`. It is a small stored product thumbnail URL supplied with list rows. `null` means no stored thumbnail; clients must not synthesize an operational image URL from product text fields.
 
 `ScatterSalesGridResponse`: `cells`, `meta`. `cells[].skuIds` contains `skuGroupKey` values.
 
@@ -248,6 +250,8 @@ Candidate flows require single-company scope except read-like list endpoints tha
 `AppendCandidateItemPayload`: `companyUuid`, `stashUuid`, `skuGroupKey`, `details`, `isLatestLlmComment`.
 `AppendCandidateItemsPayload`: `companyUuid`, `stashUuid`, `skuGroupKeys`, optional `competitorChannelId`.
 `AppendCandidateItemsResponse`: `candidateItems: CandidateStashItemSummary[]`.
+
+`CandidateItemSummary` and `CandidateReferenceItemSummary` include product identity fields `skuGroupKey`, `brand`, `code`, `productName`, `colorCode`, and `thumbnailUrl: string | null`. `CandidateStashItemSummary` remains a slim item status DTO and does not include `thumbnailUrl`.
 
 Recommendation append results in frontend are `applied`, `stale`, `no-op`, `empty-selection`.
 

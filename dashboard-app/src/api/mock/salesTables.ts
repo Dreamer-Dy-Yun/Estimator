@@ -1,5 +1,6 @@
 import type { CompetitorSalesRow, SelfSalesRow } from '../../types'
 import type { SecondaryCompetitorChannel } from '../types'
+import { buildMockProductThumbnailUrl } from './mockProductThumbnail'
 
 export type MockSecondaryCompetitorChannel = SecondaryCompetitorChannel & {
   priceSkew: number
@@ -31,6 +32,8 @@ type SalesRowWithSkuGroupKey = {
   code: string
   colorCode: string
   skuGroupKey: string
+  productName: string
+  thumbnailUrl: string | null
 }
 
 export const colorCodeOrder: string[] = ['010', '020', '030', '100', '110', '200', '210', '300']
@@ -44,13 +47,15 @@ function colorCodeForMockSku(id: string): string {
   return colorCodeOrder[seed % colorCodeOrder.length]!
 }
 
-function withSkuColor<T extends SalesRowWithSkuGroupKey>(rows: Array<Omit<T, 'colorCode' | 'skuGroupKey'>>): T[] {
-  return rows.map((row: Omit<T, 'skuGroupKey' | 'colorCode'>) : T => {
+function withSkuColor<T extends SalesRowWithSkuGroupKey>(rows: Array<Omit<T, 'colorCode' | 'skuGroupKey' | 'thumbnailUrl'>>): T[] {
+  return rows.map((row: Omit<T, 'skuGroupKey' | 'colorCode' | 'thumbnailUrl'>) : T => {
     const colorCode: string = colorCodeForMockSku(row.id)
+    const skuGroupKey: string = buildMockSkuGroupKey(row.code, colorCode)
     return {
       ...row,
       colorCode,
-      skuGroupKey: buildMockSkuGroupKey(row.code, colorCode),
+      skuGroupKey,
+      thumbnailUrl: buildMockProductThumbnailUrl({ skuGroupKey, code: row.code, colorCode }),
     } as T
   })
 }
@@ -132,18 +137,20 @@ function mockVariantScale(index: number): number {
 function buildMockVariantIdentity(
   source: SalesRowWithSkuGroupKey & { productName: string },
   variantIndex: number,
-): SalesRowWithSkuGroupKey & { productName: string } {
+): SalesRowWithSkuGroupKey {
   const suffix: string = String(variantIndex).padStart(3, '0')
   const id: string = `${source.id}_${suffix}`
   const code: string = `${source.code}-${suffix}`
   const colorCode: string = colorCodeForMockSku(id)
+  const skuGroupKey: string = buildMockSkuGroupKey(code, colorCode)
 
   return {
     id,
     code,
     productName: `${source.productName}-${suffix}`,
     colorCode,
-    skuGroupKey: buildMockSkuGroupKey(code, colorCode),
+    skuGroupKey,
+    thumbnailUrl: buildMockProductThumbnailUrl({ skuGroupKey, code, colorCode }),
   }
 }
 

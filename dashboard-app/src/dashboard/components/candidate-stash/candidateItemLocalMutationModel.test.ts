@@ -18,6 +18,7 @@ const item: (uuid: string) => CandidateItemSummary = (uuid: string): CandidateIt
   brand: '테스트',
   code: `code-${uuid}`,
   colorCode: '010',
+    thumbnailUrl: null,
   productName: `상품 ${uuid}`,
   insightStatus: 'loaded',
   insight: {
@@ -53,6 +54,7 @@ const recommendation: (skuUuid: string) => CandidateReferenceItemSummary = (skuU
   brand: '추천브랜드',
   code: `code-${skuUuid}`,
   colorCode: '010',
+    thumbnailUrl: null,
   productName: `추천 ${skuUuid}`,
   insight: {
     competitorChannelLabel: '크림',
@@ -119,7 +121,7 @@ describe('appendRecommendedCandidateItems', () : void => {
   })
 
   it('matches an appended candidate item by candidateItem.skuUuid to recommendation row uuid', () : void => {
-    const selectedRow: { uuid: string; skuGroupKey: string; brand: string; code: string; productName: string; colorCode: string; insight: CandidateItemInsightSummary; } = {
+    const selectedRow: { uuid: string; skuGroupKey: string; brand: string; code: string; productName: string; colorCode: string; thumbnailUrl: string | null; insight: CandidateItemInsightSummary; } = {
       ...recommendation('selected-row-uuid'),
       uuid: 'sku-target',
       skuGroupKey: 'different-group-key',

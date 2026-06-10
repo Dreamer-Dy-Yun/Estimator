@@ -4,6 +4,7 @@
 .stashDetailModalBackdrop[data-inner-drawer-closing='true'] .innerOrderRow {
   grid-template-columns:
     36px
+    28px
     22px
     minmax(30px, 0.52fr)
     minmax(24px, 0.38fr)
@@ -40,6 +41,8 @@
 
 .stashDetailModalBackdrop[data-inner-drawer-open='true'] .innerOrderIndexCell,
 .stashDetailModalBackdrop[data-inner-drawer-closing='true'] .innerOrderIndexCell,
+.stashDetailModalBackdrop[data-inner-drawer-open='true'] .innerOrderThumbnailCell,
+.stashDetailModalBackdrop[data-inner-drawer-closing='true'] .innerOrderThumbnailCell,
 .stashDetailModalBackdrop[data-inner-drawer-open='true'] .innerOrderCellNum,
 .stashDetailModalBackdrop[data-inner-drawer-closing='true'] .innerOrderCellNum {
   font-size: 11.5px;

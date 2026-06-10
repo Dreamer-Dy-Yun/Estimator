@@ -59,13 +59,13 @@
 }
 
 .table {
-  min-width: 980px;
+  min-width: 1040px;
 }
 
 .headerRow,
 .row {
   display: grid;
-  grid-template-columns: 44px minmax(86px, 0.5fr) minmax(180px, 0.95fr) minmax(72px, 0.35fr) minmax(220px, 1.15fr) minmax(150px, 0.7fr) minmax(170px, 0.75fr);
+  grid-template-columns: 44px 58px minmax(86px, 0.5fr) minmax(180px, 0.95fr) minmax(72px, 0.35fr) minmax(220px, 1.15fr) minmax(150px, 0.7fr) minmax(170px, 0.75fr);
   align-items: center;
   column-gap: 10px;
 }

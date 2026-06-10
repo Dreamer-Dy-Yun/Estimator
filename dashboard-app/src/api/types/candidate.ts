@@ -26,6 +26,8 @@ export interface CandidateItemSummary {
   code: string
   productName: string
   colorCode: string
+  /** Small product thumbnail URL supplied with the list row. Null means no thumbnail is stored. */
+  thumbnailUrl: string | null
   orderMetricStatus: CandidateOrderMetricStatus
   qty: number
   expectedOrderAmount: number
@@ -69,6 +71,8 @@ export interface CandidateReferenceItemSummary {
   code: string
   productName: string
   colorCode: string
+  /** Small product thumbnail URL supplied with the recommendation row. Null means no thumbnail is stored. */
+  thumbnailUrl: string | null
   insight: CandidateItemInsightSummary
 }
 

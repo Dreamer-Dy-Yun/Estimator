@@ -13,6 +13,7 @@ function row(amount: number, marginRate: number, opMarginRate: number): SelfSale
     code: 'CODE',
     productName: '상품',
     colorCode: '010',
+    thumbnailUrl: null,
     avgPrice: 0,
     qty: 0,
     amount,

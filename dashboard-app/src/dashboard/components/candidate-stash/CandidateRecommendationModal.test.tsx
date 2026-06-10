@@ -14,6 +14,7 @@ const rows: CandidateReferenceItemSummary[] = [
     code: 'P-001',
     productName: '테스트 상품',
     colorCode: 'BLACK',
+    thumbnailUrl: null,
     insight: {
       badges: [],
       selfQty: 120,
@@ -105,8 +106,8 @@ describe('CandidateRecommendationModal', () : void => {
     const dataCells: HTMLElement[] = Array.from(tableRows[1]?.querySelectorAll<HTMLElement>('[role="cell"]') ?? [])
 
     expect(tableRows).toHaveLength(2)
-    expect(headerCells).toHaveLength(7)
-    expect(dataCells).toHaveLength(7)
+    expect(headerCells).toHaveLength(8)
+    expect(dataCells).toHaveLength(8)
   })
 
   it('marks the modal as drawer keep-open portal content', () : void => {
@@ -118,7 +119,7 @@ describe('CandidateRecommendationModal', () : void => {
   it('keeps non-data table states inside a spanning cell', () : void => {
     renderModal({ rows: [], loading: true, selectedUuids: new Set() })
 
-    const statusCell: HTMLElement = getRequiredElement<HTMLElement>('[role="row"] [role="cell"][aria-colspan="7"]')
+    const statusCell: HTMLElement = getRequiredElement<HTMLElement>('[role="row"] [role="cell"][aria-colspan="8"]')
 
     expect(statusCell.querySelector('[role="status"]')).not.toBeNull()
   })

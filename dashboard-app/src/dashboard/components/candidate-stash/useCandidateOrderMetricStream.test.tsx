@@ -60,6 +60,7 @@ function candidateItem(uuid: string): CandidateItemSummary {
     code: 'CODE',
     productName: '상품',
     colorCode: '010',
+    thumbnailUrl: null,
     orderMetricStatus: 'loading',
     qty: 0,
     expectedOrderAmount: 0,

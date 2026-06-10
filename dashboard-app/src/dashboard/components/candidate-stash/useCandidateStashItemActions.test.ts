@@ -50,6 +50,7 @@ const createCandidateItemSummary: (uuid: string) => CandidateItemSummary = (uuid
   code: `CODE-${uuid}`,
   productName: `상품 ${uuid}`,
   colorCode: 'BLACK',
+    thumbnailUrl: null,
   orderMetricStatus: 'loaded',
   qty: 0,
   expectedOrderAmount: 0,
