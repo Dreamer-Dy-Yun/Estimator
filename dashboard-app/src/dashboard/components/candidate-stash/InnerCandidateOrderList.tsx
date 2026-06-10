@@ -122,8 +122,8 @@ const InnerCandidateOrderRow: React.MemoExoticComponent<({ row, index, selected,
       <span className={detailStyles.innerOrderCheckCell} onClick={(event: React.MouseEvent<HTMLSpanElement, MouseEvent>) : void => event.stopPropagation()}>
         <label className={detailStyles.innerOrderCheckboxTarget}><input type="checkbox" checked={selected} aria-label={`${row.productName} 선택`} onChange={() : void => onToggleSelectedItem(row.uuid)} /></label>
       </span>
-      <span className={detailStyles.innerOrderThumbnailCell}><ProductThumbnailCell thumbnailUrl={row.thumbnailUrl} alt={row.productName} size="candidate" /></span>
       <span className={detailStyles.innerOrderIndexCell}>{index + 1}</span>
+      <span className={detailStyles.innerOrderThumbnailCell}><ProductThumbnailCell thumbnailUrl={row.thumbnailUrl} alt={row.productName} size="candidate" /></span>
       <span className={detailStyles.innerOrderBrand}>{row.brand}</span>
       <span className={detailStyles.innerOrderCode}>{row.code}</span>
       <span className={detailStyles.innerOrderName}>{row.productName}</span>
@@ -178,8 +178,8 @@ export function InnerCandidateOrderList({
         <span className={detailStyles.innerOrderCheckCell}>
           <label className={detailStyles.innerOrderCheckboxTarget}><input ref={selectAllRef} type="checkbox" checked={allVisibleSelected} disabled={visibleItemUuids.length === 0} aria-label="전체 선택" onChange={onToggleAllVisibleItems} /></label>
         </span>
-        <span className={detailStyles.innerOrderThumbnailCell}>이미지</span>
         <span className={detailStyles.innerOrderIndexCell} aria-hidden="true" />
+        <span className={detailStyles.innerOrderThumbnailCell}>이미지</span>
         {sortHeaders(competitorSalesQtyHeader).map((header: SortHeader) : React.JSX.Element => <SortButton key={header.sortKey} header={header} activeKey={activeSortKey} activeDir={activeSortDir} onSort={onSort} />)}
       </div>
       {rows.map((row: CandidateItemSummary, index: number) : React.JSX.Element => (
