@@ -21,8 +21,8 @@ export function CompetitorAnalysisList({ rows, activeSkuGroupKey, onOrderedSkuGr
   const competitorQtyRank: Map<string, number> = useMemo(() : Map<string, number> => createDisplayRankMap(rows, getSkuGroupRowId, (row: CompetitorSalesRow) : number => row.competitorQty, 'desc'), [rows])
   const columns: (SortableTableColumn<CompetitorSalesRow> | StaticTableColumn<CompetitorSalesRow>)[] = useMemo(() : (SortableTableColumn<CompetitorSalesRow> | StaticTableColumn<CompetitorSalesRow>)[] => [
     createBulkSelectColumn({ rows, ...actions }),
-    createThumbnailColumn<CompetitorSalesRow>(),
     createRankColumn('competitorQtyRank', competitorQtyRank),
+    createThumbnailColumn<CompetitorSalesRow>(),
     textColumn<CompetitorSalesRow>('brand', '브랜드', (row: CompetitorSalesRow) : string => row.brand, '8.5%'),
     textColumn<CompetitorSalesRow>('category', '카테고리', (row: CompetitorSalesRow) : string => row.category),
     textColumn<CompetitorSalesRow>('code', '품번', (row: CompetitorSalesRow) : string => row.code),
