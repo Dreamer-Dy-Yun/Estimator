@@ -10,6 +10,20 @@ on:
       - AGENTS.md
       - .github/workflows/deploy-dashboard.yml
   workflow_dispatch:
+    inputs:
+      deploy_api_mode:
+        description: "API mode for deploy (mock or http)"
+        required: false
+        default: mock
+        type: choice
+        options:
+          - mock
+          - http
+      dashboard_api_base_url:
+        description: "Backend base URL (required for HTTP mode)"
+        required: false
+        default: ""
+
 
 permissions:
   contents: read
@@ -43,17 +57,38 @@ jobs:
       - name: Install dependencies
         run: npm install
 
+      - name: Resolve dashboard deploy mode
+        id: deploy_mode
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            deploy_mode="${{ github.event.inputs.deploy_api_mode }}"
+            if [ "$deploy_mode" != "http" ] && [ "$deploy_mode" != "mock" ]; then
+              deploy_mode="mock"
+            fi
+            base_url="${{ github.event.inputs.dashboard_api_base_url }}"
+          else
+            base_url="${{ vars.DASHBOARD_API_BASE_URL }}"
+            if [ -n "$base_url" ]; then
+              deploy_mode="http"
+            else
+              deploy_mode="mock"
+            fi
+          fi
+          echo "deploy_mode=$deploy_mode" >> "$GITHUB_OUTPUT"
+          echo "dashboard_api_base_url=$base_url" >> "$GITHUB_OUTPUT"
+
       - name: Verify API runtime configuration
+        if: steps.deploy_mode.outputs.deploy_mode == 'http'
         env:
-          DASHBOARD_API_BASE_URL: ${{ vars.DASHBOARD_API_BASE_URL }}
+          DASHBOARD_API_BASE_URL: ${{ steps.deploy_mode.outputs.dashboard_api_base_url }}
         run: |
           test -n "$DASHBOARD_API_BASE_URL"
 
       - name: Verify deployment gate
         env:
           VITE_ROUTER_MODE: hash
-          VITE_USE_MOCK_API: "false"
-          VITE_API_BASE_URL: ${{ vars.DASHBOARD_API_BASE_URL }}
+          VITE_USE_MOCK_API: ${{ steps.deploy_mode.outputs.deploy_mode == 'mock' && 'true' || 'false' }}
+          VITE_API_BASE_URL: ${{ steps.deploy_mode.outputs.dashboard_api_base_url }}
         run: npm run verify:deploy
 
       - name: Copy SPA fallback
