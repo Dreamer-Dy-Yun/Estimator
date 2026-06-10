@@ -17,11 +17,6 @@
   height: var(--product-thumbnail-size, 42px);
 }
 
-.candidate {
-  width: auto;
-  max-width: 100%;
-}
-
 .image,
 .placeholder {
   width: 100%;

@@ -46,6 +46,14 @@
   font-size: 11.5px;
 }
 
+.stashDetailModalBackdrop[data-inner-drawer-open='true'] .innerOrderRow .innerOrderCheckCell,
+.stashDetailModalBackdrop[data-inner-drawer-closing='true'] .innerOrderRow .innerOrderCheckCell,
+.stashDetailModalBackdrop[data-inner-drawer-open='true'] .innerOrderRow .innerOrderThumbnailCell,
+.stashDetailModalBackdrop[data-inner-drawer-closing='true'] .innerOrderRow .innerOrderThumbnailCell {
+  grid-row: 1 / span 2;
+  align-self: stretch;
+}
+
 .stashDetailModalBackdrop[data-inner-drawer-open='true'] .innerOrderConfirmState,
 .stashDetailModalBackdrop[data-inner-drawer-closing='true'] .innerOrderConfirmState {
   min-height: 20px;

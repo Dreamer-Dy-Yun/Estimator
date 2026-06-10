@@ -178,7 +178,7 @@ export function InnerCandidateOrderList({
         <span className={detailStyles.innerOrderCheckCell}>
           <label className={detailStyles.innerOrderCheckboxTarget}><input ref={selectAllRef} type="checkbox" checked={allVisibleSelected} disabled={visibleItemUuids.length === 0} aria-label="전체 선택" onChange={onToggleAllVisibleItems} /></label>
         </span>
-        <span className={detailStyles.innerOrderIndexCell} aria-hidden="true" />
+        <span className={detailStyles.innerOrderIndexCell}>순위</span>
         <span className={detailStyles.innerOrderThumbnailCell}>이미지</span>
         {sortHeaders(competitorSalesQtyHeader).map((header: SortHeader) : React.JSX.Element => <SortButton key={header.sortKey} header={header} activeKey={activeSortKey} activeDir={activeSortDir} onSort={onSort} />)}
       </div>
