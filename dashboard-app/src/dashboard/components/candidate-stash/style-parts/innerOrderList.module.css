@@ -70,7 +70,6 @@
   font-size: 17px;
   text-align: left;
   cursor: pointer;
-  --candidate-row-height: 62px;
   transition: border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
 }
 
@@ -133,9 +132,6 @@
   align-items: center;
   justify-content: center;
   min-width: 0;
-  color: #64748b;
-  font-size: 12px;
-  font-weight: 800;
 }
 
 .innerOrderCheckboxTarget {
@@ -155,6 +151,7 @@
 
 .innerOrderRow .innerOrderThumbnailCell {
   grid-row: 1 / span 2;
+  align-self: stretch;
 }
 
 .innerOrderRow .innerOrderCheckboxTarget {

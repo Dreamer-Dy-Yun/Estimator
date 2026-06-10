@@ -3,18 +3,21 @@
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  flex: 0 0 var(--product-thumbnail-size);
-  width: var(--product-thumbnail-size);
-  height: var(--product-thumbnail-size);
+  flex: 0 0 auto;
+  width: auto;
+  height: 95%;
+  max-height: 100%;
+  aspect-ratio: 1 / 1;
   background: #f8fafc;
 }
 
 .analysis {
-  --product-thumbnail-size: calc(var(--analysis-row-height, 44px) * 0.95);
+  width: var(--product-thumbnail-size, 42px);
+  height: var(--product-thumbnail-size, 42px);
 }
 
 .candidate {
-  --product-thumbnail-size: calc(var(--candidate-row-height, 62px) * 0.95);
+  width: auto;
 }
 
 .image,

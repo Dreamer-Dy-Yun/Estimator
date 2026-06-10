@@ -50,14 +50,18 @@ export type Props = {
   onSort: (key: InnerCandidateSortKey) => void
 }
 
+function normalizePeriodSalesQuantityHeader(label: string): string {
+  return label.replace(' 기간 총 판매량', ' 기간/총 판매량')
+}
+
 const sortHeaders: (competitorSalesQtyHeader: string) => SortHeader[] = (competitorSalesQtyHeader: string): SortHeader[] => [
   { label: '브랜드', sortKey: 'brand' },
   { label: '품번', sortKey: 'code' },
   { label: '상품명', sortKey: 'productName' },
   { label: '색상', sortKey: 'colorCode' },
   { label: '상태', sortKey: 'isDetailConfirmed', align: 'center' },
-  { label: '자사 기간 총 판매량', sortKey: 'selfQty', align: 'right' },
-  { label: competitorSalesQtyHeader, sortKey: 'competitorQty', align: 'right' },
+  { label: '자사 기간/총 판매량', sortKey: 'selfQty', align: 'right' },
+  { label: normalizePeriodSalesQuantityHeader(competitorSalesQtyHeader), sortKey: 'competitorQty', align: 'right' },
   { label: '총 오더 수량', sortKey: 'expectedSalesQty', align: 'right' },
   { label: '총 오더 금액', sortKey: 'expectedOrderAmount', align: 'right' },
 ]
