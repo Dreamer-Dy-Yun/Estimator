@@ -2,7 +2,7 @@ import type { ProductComparisonTarget } from '../../../../../api'
 import { ApiUnitErrorBadge } from '../../../../../components/ApiUnitErrorBadge'
 import { LoadingSpinner } from '../../../../../components/LoadingSpinner'
 import type { ApiUnitErrorInfo } from '../../../../../types'
-import { formatCompactKoreanNumber, formatPercent, type CompactKoreanNumberDisplay } from '../../../../../utils/format'
+import { formatGroupedNumber, formatGroupedOneDecimal, formatPercent, type CompactKoreanNumberDisplay } from '../../../../../utils/format'
 import type { SalesKpiColumn } from '../../../../../utils/salesKpiColumn'
 import { KO } from '../../ko'
 import styles from './SalesMetricsCard.module.css'
@@ -30,8 +30,21 @@ export type Props = {
 
 export type MetricRow = { key: string; label: string; self: React.ReactNode; comparison: React.ReactNode; comparisonUnavailable?: boolean }
 
-const SALES_METRIC_MONEY_COMPACT_AT = 10_000_000 as const
-const SALES_METRIC_QTY_COMPACT_AT = 100_000 as const
+const formatMetricValue: (value: number | null) => string = (value: number | null) : string => {
+  if (value == null || !Number.isFinite(value)) return '-'
+  const rounded: number = Math.round(value * 10) / 10
+  return Number.isInteger(rounded) ? formatGroupedNumber(rounded) : formatGroupedOneDecimal(rounded)
+}
+
+const formatMetricDisplay: (value: number | null) => CompactKoreanNumberDisplay = (value: number | null) : CompactKoreanNumberDisplay => {
+  const text: string = formatMetricValue(value)
+  return {
+    text,
+    fullText: text,
+    compacted: false,
+    approximate: false,
+  }
+}
 
 const primaryValue: (value: CompactKoreanNumberDisplay) => React.JSX.Element = (value: CompactKoreanNumberDisplay) : React.JSX.Element => (
   <span
@@ -43,8 +56,8 @@ const primaryValue: (value: CompactKoreanNumberDisplay) => React.JSX.Element = (
   </span>
 )
 const primaryTextValue: (value: string) => React.JSX.Element = (value: string) : React.JSX.Element => <span className={styles.salesMetricPrimaryValue}>{value}</span>
-const compactMoney: (value: number | null) => CompactKoreanNumberDisplay = (value: number | null) : CompactKoreanNumberDisplay => formatCompactKoreanNumber(value, { compactAt: SALES_METRIC_MONEY_COMPACT_AT })
-const compactQty: (value: number | null) => CompactKoreanNumberDisplay = (value: number | null) : CompactKoreanNumberDisplay => formatCompactKoreanNumber(value, { compactAt: SALES_METRIC_QTY_COMPACT_AT })
+const compactMoney: (value: number | null) => CompactKoreanNumberDisplay = (value: number | null) : CompactKoreanNumberDisplay => formatMetricDisplay(value)
+const compactQty: (value: number | null) => CompactKoreanNumberDisplay = (value: number | null) : CompactKoreanNumberDisplay => formatMetricDisplay(value)
 const formatRank: (rank: number | null, total: number) => string = (rank: number | null, total: number) : string => (rank === null ? '-' : `${rank}/${total}${KO.rankSuffix}`)
 const rankMetric: (value: CompactKoreanNumberDisplay, rank: number, total: number) => React.JSX.Element = (value: CompactKoreanNumberDisplay, rank: number, total: number) : React.JSX.Element => <>{primaryValue(value)} ({formatRank(rank, total)})</>
 const costMetric: (avgCost: number | null, costRatioPct: number | null) => React.JSX.Element | '-' = (avgCost: number | null, costRatioPct: number | null) : React.JSX.Element | '-' => (
