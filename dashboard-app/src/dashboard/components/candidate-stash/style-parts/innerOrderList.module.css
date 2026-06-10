@@ -114,6 +114,7 @@
 }
 
 .innerOrderIndexCell {
+  grid-column: 2;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -125,7 +126,16 @@
   font-variant-numeric: tabular-nums;
 }
 
+.innerOrderHeader .innerOrderIndexCell {
+  color: inherit;
+  font: inherit;
+  font-size: inherit;
+  font-weight: inherit;
+  line-height: inherit;
+}
+
 .innerOrderThumbnailCell {
+  grid-column: 3;
   display: inline-flex;
   align-items: center;
   justify-content: center;
