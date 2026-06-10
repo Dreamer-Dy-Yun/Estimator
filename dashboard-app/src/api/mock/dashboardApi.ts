@@ -206,6 +206,31 @@ function comparisonRatioBySizeFromRows(detail: ProductSecondaryDetail): ProductS
   return Object.fromEntries(detail.sizeRows.map((row) : [string, number] => [row.size, Math.max(0, row.selfRatio) / total]))
 }
 
+function comparisonSubjectSizeSeed(subject: ProductComparisonComparisonSubjectRef): number {
+  return getComparisonSubjectKey(subject).split('').reduce((sum: number, ch: string, index: number) : number => sum + ch.charCodeAt(0) * (index + 1), 0)
+}
+
+function skewComparisonRatioBySize(
+  ratioBySize: ProductSecondaryDetail['comparisonRatioBySize'],
+  subject: ProductComparisonComparisonSubjectRef,
+): ProductSecondaryDetail['comparisonRatioBySize'] {
+  const entries: [string, number][] = Object.entries(ratioBySize)
+  if (entries.length === 0) return ratioBySize
+
+  const seed: number = comparisonSubjectSizeSeed(subject)
+  const midpoint: number = (entries.length - 1) / 2
+  const directionalSkew: number = ((seed % 7) - 3) / 12
+  const waveSkew: number = ((Math.floor(seed / 7) % 5) - 2) / 10
+  const weighted: [string, number][] = entries.map(([size, ratio]: [string, number], index: number) : [string, number] => {
+    const position: number = midpoint === 0 ? 0 : (index - midpoint) / midpoint
+    const wave: number = Math.sin(seed + index * 1.7)
+    return [size, Math.max(0, ratio) * Math.max(0.2, 1 + position * directionalSkew + wave * waveSkew)]
+  })
+  const total: number = weighted.reduce((sum: number, [, ratio]: [string, number]) : number => sum + ratio, 0)
+  if (total <= 0) return Object.fromEntries(weighted.map(([size]: [string, number]) : [string, number] => [size, 0]))
+  return Object.fromEntries(weighted.map(([size, ratio]: [string, number]) : [string, number] => [size, ratio / total]))
+}
+
 function buildMockProductSecondaryDetail(
   skuGroupKey: string,
   params: ProductSecondaryDetailParams,
@@ -219,7 +244,7 @@ function buildMockProductSecondaryDetail(
       ...baseSecondary,
       comparisonPrice: Math.max(0, Math.round(baseSecondary.comparisonPrice * channel.priceSkew)),
       comparisonQty: Math.max(0, Math.round(baseSecondary.comparisonQty * channel.qtySkew)),
-      comparisonRatioBySize: { ...baseSecondary.comparisonRatioBySize },
+      comparisonRatioBySize: skewComparisonRatioBySize(baseSecondary.comparisonRatioBySize, comparison),
     }
   }
   const comparisonScope: { companyUuid?: string } = selfCompanySubjectScope(comparison)
@@ -229,7 +254,7 @@ function buildMockProductSecondaryDetail(
     ...baseSecondary,
     comparisonPrice: comparisonPrimary.price,
     comparisonQty: comparisonPrimary.qty,
-    comparisonRatioBySize: comparisonRatioBySizeFromRows(comparisonSecondary),
+    comparisonRatioBySize: skewComparisonRatioBySize(comparisonRatioBySizeFromRows(comparisonSecondary), comparison),
   }
 }
 

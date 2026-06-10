@@ -7,12 +7,6 @@ import styles from '../secondaryDrawer.module.css'
 
 const AI_COMMENT_OVERFLOW_TOLERANCE_PX = 1 as const
 
-function getAiCommentCollapsedMaxHeight(answerEl: HTMLDivElement): number {
-  const rawValue: string = window.getComputedStyle(answerEl).getPropertyValue('--ai-comment-collapsed-max-height')
-  const parsedValue: number = Number.parseFloat(rawValue)
-  return Number.isFinite(parsedValue) ? parsedValue : answerEl.clientHeight
-}
-
 export type Props = {
   aiComment: OrderSnapshotAiComment
   loading: boolean
@@ -47,7 +41,7 @@ export function AiCommentCard({
       return
     }
 
-    setScrollable(answerEl.scrollHeight > getAiCommentCollapsedMaxHeight(answerEl) + AI_COMMENT_OVERFLOW_TOLERANCE_PX)
+    setScrollable(answerEl.scrollHeight > answerEl.clientHeight + AI_COMMENT_OVERFLOW_TOLERANCE_PX)
   }, [])
 
   useEffect(() : (() => void) | undefined => {
