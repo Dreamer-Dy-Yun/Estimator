@@ -103,6 +103,8 @@ function getHttpCandidateStashExcelTemplateDownload(): CandidateStashExcelTempla
 }
 
 export const httpDashboardRequests: DashboardApi = {
+  // Sales analysis list and scatter endpoints share the same filter contract.
+  // Backend doc: MD/backend-api/dashboard-api-contract-catalog.md section 8.
   getSelfSales: (params: SelfSalesParams | undefined) : Promise<SelfSalesRow[]> =>
     apiRequest('/sales/self', { query: queryParams(normalizeCompanyScopeParams(params)) }),
   getCompetitorSales: (params: CompetitorSalesParams | undefined) : Promise<CompetitorSalesRow[]> =>
@@ -113,6 +115,8 @@ export const httpDashboardRequests: DashboardApi = {
     apiRequest('/sales/competitor/scatter-grid', { query: queryParams(normalizeCompanyScopeParams(params)) }),
   getSalesFilterMeta: (params: CompanyScopeParams | undefined) : Promise<SalesFilterMeta> =>
     apiRequest('/sales/filter-meta', { query: queryParams(normalizeCompanyScopeParams(params)) }),
+  // Product drawer endpoints use subject query fields instead of top-level companyUuid.
+  // Backend doc: MD/backend-api/dashboard-api-contract-catalog.md section 9.
   getProductDrawerBundle: (skuGroupKey: string, params: ProductDrawerBundleParams) : Promise<ProductDrawerBundle> =>
     apiRequest(`/products/${encodePathSegment(skuGroupKey)}/drawer-bundle`, {
       query: queryParams(productDrawerBundleQuery(params)),
@@ -143,6 +147,8 @@ export const httpDashboardRequests: DashboardApi = {
       body: payload,
     }),
   getSecondaryCompetitorChannels: () : Promise<SecondaryCompetitorChannel[]> => apiRequest('/secondary/competitor-channels'),
+  // Candidate stash endpoints are session-owned workflows; mutations/jobs/SSE require concrete company scope.
+  // Backend doc: MD/backend-api/dashboard-api-contract-catalog.md sections 11 and 12.
   getCandidateStashes: (params: CandidateStashListParams | undefined) : Promise<CandidateStashSummary[]> =>
     apiRequest('/candidate-stashes', { query: queryParams(normalizeCompanyScopeParams(params)) }),
   getCandidateItemsByStash: ({ stashUuid, ...params }: CandidateItemListParams) : Promise<CandidateItemListResult> =>
@@ -243,6 +249,8 @@ export const httpDashboardRequests: DashboardApi = {
     formData.append('companyUuid', getRequiredCompanyUuidForMutationScope(params?.companyUuid))
     return apiRequest('/candidate-stashes/import/excel', { method: 'POST', body: formData })
   },
+  // Stock-order calc is a backend calculation endpoint. Do not duplicate this business calculation in UI code.
+  // Backend doc: MD/backend-api/dashboard-api-contract-catalog.md section 9.
   getSecondaryStockOrderCalc: (params: SecondaryStockOrderCalcParams) : Promise<SecondaryStockOrderCalcResult> =>
     apiRequest('/secondary/stock-order-calc', { method: 'POST', body: params }),
 }

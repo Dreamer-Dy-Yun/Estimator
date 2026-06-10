@@ -43,9 +43,17 @@ jobs:
       - name: Install dependencies
         run: npm install
 
+      - name: Verify API runtime configuration
+        env:
+          DASHBOARD_API_BASE_URL: ${{ vars.DASHBOARD_API_BASE_URL }}
+        run: |
+          test -n "$DASHBOARD_API_BASE_URL"
+
       - name: Verify deployment gate
         env:
           VITE_ROUTER_MODE: hash
+          VITE_USE_MOCK_API: "false"
+          VITE_API_BASE_URL: ${{ vars.DASHBOARD_API_BASE_URL }}
         run: npm run verify:deploy
 
       - name: Copy SPA fallback

@@ -35,18 +35,84 @@ function stubEventSource() : void {
 
 afterEach(() : void => {
   vi.unstubAllGlobals()
+  vi.unstubAllEnvs()
   fetchMock.mockReset()
   EventSourceMock.instances = []
 })
 
 describe('api adapter mode contract', () : void => {
+  it('defaults to HTTP mode unless mock mode is explicitly requested', () : void => {
+    expect(API_ADAPTER_MODE).toBe('http')
+  })
+
   it('keeps the named adapter mode aligned with the legacy mock boolean', () : void => {
     expect(['mock', 'http']).toContain(API_ADAPTER_MODE)
     expect(API_ADAPTER_MODE).toBe(USE_MOCK_API ? 'mock' : 'http')
   })
+
+  it('rejects invalid mock mode environment values during module initialization', async () : Promise<void> => {
+    vi.stubEnv('VITE_USE_MOCK_API', 'maybe')
+    vi.resetModules()
+
+    await expect(import('./httpClient')).rejects.toThrow('Invalid VITE_USE_MOCK_API')
+  })
+
+  it('rejects missing API base URL for production HTTP mode during module initialization', async () : Promise<void> => {
+    vi.stubEnv('PROD', true)
+    vi.stubEnv('VITE_USE_MOCK_API', 'false')
+    vi.stubEnv('VITE_API_BASE_URL', '')
+    vi.resetModules()
+
+    await expect(import('./httpClient')).rejects.toThrow('VITE_API_BASE_URL is required')
+  })
 })
 
 describe('apiRequest', () : void => {
+  it('serializes successful JSON requests with query, headers, credentials, and body', async () : Promise<void> => {
+    vi.stubGlobal('fetch', fetchMock)
+    fetchMock.mockResolvedValue(new Response(JSON.stringify({ ok: true }), {
+      status: 200,
+      headers: { 'content-type': 'application/json' },
+    }))
+
+    const result: { ok: boolean } = await apiRequest('/items', {
+      method: 'POST',
+      query: {
+        q: 'a b',
+        blank: '',
+        none: null,
+        arr: ['x', 2, true],
+      },
+      body: { count: 1 },
+    })
+
+    const requestUrl: string = fetchMock.mock.calls[0]?.[0] as string
+    const requestInit: RequestInit = fetchMock.mock.calls[0]?.[1] as RequestInit
+    const headers: Headers = requestInit.headers as Headers
+    expect(result).toEqual({ ok: true })
+    expect(requestUrl).toBe('http://localhost:8080/api/v1/items?q=a+b&arr=x&arr=2&arr=true')
+    expect(requestInit.credentials).toBe('include')
+    expect(requestInit.method).toBe('POST')
+    expect(requestInit.body).toBe(JSON.stringify({ count: 1 }))
+    expect(headers.get('Accept')).toBe('application/json')
+    expect(headers.get('Content-Type')).toBe('application/json')
+  })
+
+  it('preserves FormData request bodies without adding JSON content type', async () : Promise<void> => {
+    vi.stubGlobal('fetch', fetchMock)
+    fetchMock.mockResolvedValue(new Response(null, { status: 204 }))
+    const body: FormData = new FormData()
+    body.append('file', new File(['x'], 'x.txt'))
+
+    await apiRequest('/upload', { method: 'POST', body })
+
+    const requestInit: RequestInit = fetchMock.mock.calls[0]?.[1] as RequestInit
+    const headers: Headers = requestInit.headers as Headers
+    expect(requestInit.body).toBe(body)
+    expect(headers.get('Accept')).toBe('application/json')
+    expect(headers.has('Content-Type')).toBe(false)
+  })
+
   it('preserves backend error message, code, and failure kind', async () : Promise<void> => {
     vi.stubGlobal('fetch', fetchMock)
     fetchMock.mockResolvedValue(new Response(JSON.stringify({

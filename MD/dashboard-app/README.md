@@ -1,6 +1,6 @@
 # dashboard-app documentation index
 
-Last updated: 2026-06-02
+Last updated: 2026-06-10
 
 ## 문서 구조
 
@@ -23,12 +23,12 @@ Last updated: 2026-06-02
 - [deployment-hardening.md](./deployment-hardening.md): 배포 하드닝 노트
 - [e2e-strategy.md](./e2e-strategy.md): e2e 테스트 전략
 - [hardening-status.md](./hardening-status.md): 하드닝 진행 상태
-- [inner-candidate-list-sse-plan.md](./inner-candidate-list-sse-plan.md): 내부 SSE 개선 계획
+- [inner-candidate-list-sse-plan.md](./inner-candidate-list-sse-plan.md): 이너 후보군 조회/추천/SSE 현재 계약
 
 ## 읽기 우선순위
 
 1. 변경이 생기면 먼저 `source-boundary-map.md` 확인
 2. API 타입/계약 변경이면 `boundaries/api-contracts.md` + `../backend-api/dashboard-api-contract-catalog.md`
-3. API endpoint, 요청/응답 schema, 에러 형식이 바뀌면 `../backend-api/backend-api-spec.md`도 함께 갱신
+3. API endpoint, 요청/응답 schema, 에러 형식, SSE 이벤트가 바뀌면 `../backend-api/dashboard-api-contract-catalog.md`를 먼저 갱신하고 구현 주의점은 `../backend-api/backend-api-spec.md`에 반영
 4. API runtime mode, CI, e2e, 배포 규칙 변경이면 `boundaries/repository-runtime.md`
 5. 화면 책임 변경이면 `frontend-overview.md` + 해당 영역 boundary 문서

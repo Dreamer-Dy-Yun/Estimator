@@ -1,15 +1,15 @@
-import type { CompetitorSalesRow, SelfSalesRow } from '../types'
+import type { CompetitorSalesRow, ProductSecondaryDetail, SelfSalesRow } from '../types'
 import type { AdminGoogleSheetConfigSummary, CreateAdminGoogleSheetConfigPayload, UpdateAdminGoogleSheetConfigPayload } from './types/admin-google-sheet'
 import type { AdminGptKeySummary, AdminGptKeyTestResult, CreateAdminGptKeyPayload, RotateAdminGptKeyPayload, UpdateAdminGptKeyPayload } from './types/admin-gpt-key'
 import type { AdminUserSummary, AuthSession, ChangePasswordPayload, CreateAdminUserPayload, LoginRequest, LoginResult, ResetAdminUserPasswordResult, UpdateAdminUserPayload, UpdateAuthUserPayload } from './types/auth'
-import type { AppendCandidateItemsPayload, AppendCandidateItemsResponse, CandidateDetailBulkConfirmProgressEvent, CandidateDetailBulkConfirmStartPayload, CandidateDetailBulkConfirmStartResult, CandidateDetailBulkConfirmSubscription, CandidateItemDetail, CandidateItemListParams, CandidateItemListResult, CandidateRecommendationParams, CandidateRecommendationResult, CandidateStashExcelTemplateDownload, CandidateStashExcelUploadResult, CandidateStashListParams, CandidateStashLlmCommentJobParams, CandidateStashLlmCommentJobProgressEvent, CandidateStashLlmCommentJobStartResult, CandidateStashLlmCommentJobSubscription, CandidateStashSummary, CreateCandidateStashPayload, UpdateCandidateItemPayload, UpdateCandidateItemResponse, UpdateCandidateStashPayload } from './types/candidate'
+import type { AppendCandidateItemPayload, AppendCandidateItemsPayload, AppendCandidateItemsResponse, CandidateDetailBulkConfirmProgressEvent, CandidateDetailBulkConfirmStartPayload, CandidateDetailBulkConfirmStartResult, CandidateDetailBulkConfirmSubscription, CandidateItemDetail, CandidateItemListParams, CandidateItemListResult, CandidateRecommendationParams, CandidateRecommendationResult, CandidateStashExcelTemplateDownload, CandidateStashExcelUploadResult, CandidateStashListParams, CandidateStashLlmCommentJobParams, CandidateStashLlmCommentJobProgressEvent, CandidateStashLlmCommentJobStartResult, CandidateStashLlmCommentJobSubscription, CandidateStashSummary, CreateCandidateStashPayload, UpdateCandidateItemPayload, UpdateCandidateItemResponse, UpdateCandidateStashPayload } from './types/candidate'
 import type { CandidateOrderMetricEvent, CandidateOrderMetricStreamParams, CandidateOrderMetricSubscription } from './types/candidate-order-metrics'
 import type { CompanyMutationScopeParams, CompanyScopeParams, CompanySummary } from './types/company'
 import type { DashboardApi, DashboardEventStreamErrorListener } from './types/dashboard-api'
-import type { ProductComparisonTarget, ProductComparisonTargetParams, ProductDrawerBundle, ProductDrawerBundleParams, ProductSalesInsight, ProductSalesInsightParams } from './types/drawer'
+import type { ProductComparisonTarget, ProductComparisonTargetParams, ProductDrawerBundle, ProductDrawerBundleParams, ProductMonthlyTrend, ProductMonthlyTrendParams, ProductSalesInsight, ProductSalesInsightParams } from './types/drawer'
 import type { InventoryArrivalCollectionParams, InventoryArrivalCollectionResult } from './types/inventory-arrival'
 import type { CompetitorSalesGridParams, CompetitorSalesParams, SalesFilterMeta, SalesFilterMetaParams, ScatterSalesGridResponse, SelfSalesGridParams, SelfSalesParams } from './types/sales'
-import type { SecondaryAiCommentParams, SecondaryAiCommentResult, SecondaryCompetitorChannel } from './types/secondary'
+import type { ProductSecondaryDetailParams, SecondaryAiCommentParams, SecondaryAiCommentResult, SecondaryCompetitorChannel, SecondaryDailyTrendParams, SecondaryDailyTrendPoint, SecondaryStockOrderCalcParams, SecondaryStockOrderCalcResult } from './types/secondary'
 import {
   adminGoogleSheetRequests,
   adminGptKeyRequests,
@@ -53,9 +53,13 @@ export const getCompetitorSalesScatterGrid: (params?: CompetitorSalesGridParams)
 export const getSalesFilterMeta: (params?: SalesFilterMetaParams) => Promise<SalesFilterMeta> = dashboardRequests.getSalesFilterMeta
 export const getProductDrawerBundle: (skuGroupKey: string, params: ProductDrawerBundleParams) => Promise<ProductDrawerBundle> = dashboardRequests.getProductDrawerBundle
 export const getProductComparisonTargets: (params: ProductComparisonTargetParams) => Promise<ProductComparisonTarget[]> = dashboardRequests.getProductComparisonTargets
+export const getProductMonthlyTrend: (skuGroupKey: string, params: ProductMonthlyTrendParams) => Promise<ProductMonthlyTrend> = dashboardRequests.getProductMonthlyTrend
 export const getProductSalesInsight: (skuGroupKey: string, params: ProductSalesInsightParams) => Promise<ProductSalesInsight> = dashboardRequests.getProductSalesInsight
+export const getProductSecondaryDetail: (skuGroupKey: string, params: ProductSecondaryDetailParams) => Promise<ProductSecondaryDetail> = dashboardRequests.getProductSecondaryDetail
 export const getSecondaryCompetitorChannels: () => Promise<SecondaryCompetitorChannel[]> = dashboardRequests.getSecondaryCompetitorChannels
+export const getSecondaryDailyTrend: (params: SecondaryDailyTrendParams) => Promise<SecondaryDailyTrendPoint[]> = dashboardRequests.getSecondaryDailyTrend
 export const getSecondaryAiComment: (params: SecondaryAiCommentParams) => Promise<SecondaryAiCommentResult> = dashboardRequests.getSecondaryAiComment
+export const getSecondaryStockOrderCalc: (params: SecondaryStockOrderCalcParams) => Promise<SecondaryStockOrderCalcResult> = dashboardRequests.getSecondaryStockOrderCalc
 export const getCandidateStashes: (params?: CandidateStashListParams) => Promise<CandidateStashSummary[]> = dashboardRequests.getCandidateStashes
 export const getCandidateItemsByStash: (params: CandidateItemListParams) => Promise<CandidateItemListResult> = dashboardRequests.getCandidateItemsByStash
 export const subscribeCandidateOrderMetrics: (params: CandidateOrderMetricStreamParams, listener: (event: CandidateOrderMetricEvent) => void, onError?: DashboardEventStreamErrorListener) => CandidateOrderMetricSubscription = dashboardRequests.subscribeCandidateOrderMetrics
@@ -71,6 +75,7 @@ export const deleteCandidateStash: (stashUuid: string, params: CompanyMutationSc
 export const createCandidateStash: (payload: CreateCandidateStashPayload) => Promise<CandidateStashSummary> = dashboardRequests.createCandidateStash
 export const duplicateCandidateStash: (stashUuid: string, params: CompanyMutationScopeParams) => Promise<void> = dashboardRequests.duplicateCandidateStash
 export const updateCandidateStash: (payload: UpdateCandidateStashPayload) => Promise<CandidateStashSummary> = dashboardRequests.updateCandidateStash
+export const appendCandidateItem: (payload: AppendCandidateItemPayload) => Promise<void> = dashboardRequests.appendCandidateItem
 export const appendCandidateItems: (payload: AppendCandidateItemsPayload) => Promise<AppendCandidateItemsResponse> = dashboardRequests.appendCandidateItems
 export const updateCandidateItem: (payload: UpdateCandidateItemPayload) => Promise<UpdateCandidateItemResponse> = dashboardRequests.updateCandidateItem
 export const getCandidateStashExcelTemplateDownload: () => CandidateStashExcelTemplateDownload = dashboardRequests.getCandidateStashExcelTemplateDownload

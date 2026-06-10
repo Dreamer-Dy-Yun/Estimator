@@ -37,7 +37,7 @@
 
 .preview {
   position: fixed;
-  z-index: 5000;
+  z-index: 11050;
   display: flex;
   align-items: center;
   justify-content: center;

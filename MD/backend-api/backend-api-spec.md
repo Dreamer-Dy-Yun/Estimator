@@ -1,73 +1,139 @@
-# Backend API Spec
+# Backend API Implementation Notes
 
-Last updated: 2026-06-09
+Last updated: 2026-06-10
 
-Purpose: implementation notes that are not obvious from the API catalog. Current endpoint and DTO contract is `dashboard-api-contract-catalog.md`.
+Purpose: backend implementation notes for the current frontend API contract.
+
+Source of truth:
+
+- Current endpoint and DTO catalog: `dashboard-api-contract-catalog.md`
+- Frontend TypeScript contract: `dashboard-app/src/api/types/*`
+- HTTP adapter mapping: `dashboard-app/src/api/requests/*Requests.ts`
+- Historical contract docs: `OLD/2026-06-10-before-current-api-rewrite/`
 
 ## Runtime
 
-- Frontend talks to `/api/v1` through `src/api/client.ts`.
-- `VITE_USE_MOCK_API=false` switches frontend to HTTP requests.
-- Screens and hooks must not import mock implementations directly.
-- Backend should prefer session ownership from the authenticated server session over user identifiers from request bodies.
+- Base path is `/api/v1`.
+- Frontend sends `credentials: include`; backend should use session/cookie auth.
+- Frontend uses mock only when `VITE_USE_MOCK_API=true`.
+- `VITE_USE_MOCK_API=false`, omitted, or empty values select HTTP mode.
+- Production HTTP mode requires `VITE_API_BASE_URL`; deployment workflow must fail before build if the backend base URL is not configured.
+- Request and response JSON field names must match the TypeScript DTO names.
+- Do not return frontend-only sentinel values such as `ALL_COMPANY_UUID`.
+- Successful empty mutation responses may use HTTP 204.
 
-## Company scope
+## Scope and ownership
 
-- `GET /companies` returns `uuid`, `name`.
-- All-company reads omit `companyUuid`.
-- Single-company reads send `companyUuid`.
-- Candidate mutations, imports, jobs, and job SSE require `companyUuid`.
-- Product drawer read-like requests use base/comparison subject refs instead of top-level `companyUuid`.
+- Read-like company scope uses optional `companyUuid`.
+- Omitted `companyUuid` means all-company read where the endpoint explicitly allows it.
+- Company-owned mutation, import, candidate job start, and candidate job/SSE subscribe require one concrete `companyUuid`.
+- Candidate stash and candidate item ownership must be enforced from authenticated session plus company scope.
+- Product drawer read-like APIs use `base` and `comparison` subject query fields instead of top-level `companyUuid`.
 
-## Auth and admin
+## Product comparison subject contract
 
-- Login uses `loginId`, not `email`.
-- Session response is `AuthSession { user, expiresAt }`; 401 session read maps to `null` on the frontend.
-- Password reset returns a one-time `temporaryPassword` only in the reset response.
-- GPT key responses expose `maskedKey`, never the raw key.
-- Google Sheet config responses expose `maskedServiceAccountKey`, `serviceAccountEmail`, `spreadsheetUrl`, `spreadsheetId`.
+Subject query fields:
 
-## Sales and drawer aggregation
+```txt
+baseRole=base
+baseKind=self-company
+baseSourceId?={COMPANY.uuid}
+comparisonRole=comparison
+comparisonKind=competitor-channel | self-company
+comparisonSourceId?={COMPETITOR_CHANNEL.id | COMPANY.uuid}
+```
 
-- Sales analysis rows and scatter cells must be generated from the same filter params.
-- Competitor channel omitted means aggregate competitor channel scope.
-- Product drawer bundle returns only `summary`; monthly trend, sales insight, secondary detail, and stock-order calculation are separate endpoints.
-- Product drawer bundle is base-only: it receives `baseRole/baseKind/baseSourceId?` and does not receive a comparison subject.
-- Product drawer monthly trend, sales insight, secondary detail, daily trend, and AI comment receive both `base` and `comparison` subject refs.
-- Monthly trend request uses the last 24 completed months ending at previous month and 12 forecast months.
-- Daily trend request uses selected start month first day through yesterday plus lead-time `forecastDays`.
-- Actual/forecast split comes from API `isForecast`.
+Rules:
 
-## Candidate stash
+- `baseRole` must be `base`.
+- `comparisonRole` must be `comparison`.
+- Current frontend supports `baseKind=self-company`.
+- `competitor-channel` comparison requires `comparisonSourceId`.
+- `self-company` with omitted `sourceId` means all-company read.
+- Missing or unauthorized subjects must fail explicitly, not fall back to first available target.
+- Invalid role/kind shape should return validation failure, preferably 422.
 
-- Candidate item list, recommendation, order metric SSE, detail confirm, detail unconfirm, delete, upload, and jobs are single-company workflows.
-- Bulk append response returns newly created `CandidateStashItemSummary[]` only.
-- If a SKU is already in the stash, backend may skip it. The frontend treats zero newly created rows as `no-op`.
-- Recommendation append response items must include `uuid`, `stashUuid`, `skuUuid`, `skuGroupKey` so the frontend can match them to recommendation source rows.
-- Singular append stores one `OrderSnapshotDocument` v3 in `details` and sends `isLatestLlmComment` explicitly.
-- Update item sends `details: OrderSnapshotDocument | null` and `isLatestLlmComment`.
+## Sales and scatter aggregation
 
-## AI comment
+- Sales list rows and scatter cells must use the same filter params.
+- Apply filters before KPI/rank/scatter calculations.
+- Competitor sales with omitted `competitorChannelId` means one aggregate row per `skuGroupKey`, not duplicated rows per channel.
+- Current frontend can derive scatter cells from loaded list rows for small data. HTTP scatter-grid endpoints remain the backend adapter contract for larger data or server-side binning.
+- Scatter cells return occupied cells only.
+- `ScatterGridCell.skuIds` contains `skuGroupKey` values despite the legacy field name.
+- Point click filters the already loaded frontend list; it must not require another backend request.
+- Frontend renders point radius; backend only owns data binning.
 
-- AI comment is requested when the user clicks the AI comment card request button.
-- The request can include `snapshotForAiComment` built from current drawer state.
-- The request does not persist candidate item state by itself.
-- Response is `{ prompt, answer, generatedAt }`.
-- The answer is stored only when the user saves or updates the candidate item snapshot.
+## Product drawer aggregation
 
-## Failure mapping
+- `getProductDrawerBundle` returns `{ summary }` only and is base-only.
+- Monthly trend, sales insight, secondary detail, daily trend, AI comment, and stock-order calc are separate APIs.
+- Monthly trend request should cover existing max 24 completed months plus `forecastMonths` future months.
+- Current initial frontend value for `forecastMonths` is 12.
+- Actual/forecast split must be explicit through `isForecast`.
+- Do not synthesize missing cost, fee, margin, rank, stock, or order business values in frontend-compatible responses.
 
-- 401 -> `auth`.
-- 403 -> `permission`.
-- 408 or 504 -> `timeout`.
-- 404 -> `not-found`.
-- 409 -> `conflict`.
-- 422 -> `validation`.
-- Other 4xx -> `client`.
-- 5xx except 504 -> `server`.
+## Candidate stash and jobs
+
+- Candidate stash mutations are single-company workflows.
+- Bulk append may skip existing duplicate `skuGroupKey` rows and return only newly created `CandidateStashItemSummary[]`.
+- Singular append stores `details: OrderSnapshotDocument`.
+- Update may store `details: OrderSnapshotDocument` or clear it with `details: null`.
+- `updateCandidateItem` response is the authoritative post-commit `CandidateItemDetail`; frontend protects it from stale follow-up reads.
+- Detail bulk confirm job should calculate and persist secondary drawer state before emitting `updatedItem`.
+- LLM comment job updates item snapshots/comments only through backend-owned job logic.
+
+## Thumbnail contract
+
+- List rows include `thumbnailUrl: string | null`.
+- This URL is a small stored product thumbnail URL.
+- `null` means no stored thumbnail.
+- Field omission is contract mismatch.
+- Frontend displays the URL only and must not synthesize an operational image URL from product text.
 
 ## SSE
 
-- Frontend listens to the default EventSource `message` event.
-- Send JSON in `data:` lines.
-- Job subscribe must validate job visibility and company scope.
+- Use `text/event-stream`.
+- Frontend listens to default `message` events only.
+- Send one JSON object per `data:` message.
+- SSE endpoints must validate the same company scope and resource ownership as the job start/read endpoint.
+- Order metric streams include `requestId`; stale events with old request ids are ignored by frontend.
+- Completed events should be sent when all requested items are settled.
+
+## Failure mapping
+
+Standard error body:
+
+```ts
+interface ApiErrorResponse {
+  message: string
+  code?: string
+  details?: unknown
+}
+```
+
+Status mapping expected by frontend:
+
+| HTTP/status source | Frontend kind |
+|---|---|
+| 401 | `auth` |
+| 403 | `permission` |
+| 408, 504 | `timeout` |
+| 404 | `not-found` |
+| 409 | `conflict` |
+| 422 | `validation` |
+| Other 4xx | `client` |
+| 5xx except 504 | `server` |
+
+Do not hide backend failures as empty arrays or fake success states.
+
+## Backend implementation checklist
+
+- Match `dashboard-app/src/api/types/*` DTO names exactly.
+- Keep mock and HTTP contracts equivalent.
+- Validate role/kind/sourceId combinations at API boundary.
+- Validate concrete company scope for company-owned mutation/candidate job/SSE endpoints.
+- Validate candidate item ownership and stash membership before mutation.
+- Return explicit `null` for unavailable nullable business fields.
+- Return explicit failure for missing required business data.
+- Keep previous contract shapes only in `OLD/` or `CHANGELOG.md`, not in current catalog.

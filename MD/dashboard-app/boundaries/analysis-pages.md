@@ -1,6 +1,6 @@
 # Analysis Pages Boundary
 
-Last updated: 2026-06-02
+Last updated: 2026-06-10
 
 ## Scope
 
@@ -8,6 +8,9 @@ Self/Competitor 분석 페이지는 다음 책임을 갖는다.
 
 - 분석 조건(기간, 회사, 채널) 요청
 - 결과 리스트/산점도 조회 상태 제어(로딩/에러 포함)
+- 분석 리스트 컬럼은 체크박스, 판매 순위, 이미지, 상품 식별자, 지표 컬럼을 분리한다.
+- 분석 리스트 썸네일은 row summary의 `thumbnailUrl: string | null`을 `ProductThumbnailCell`로 표시한다.
+- 산점도 grid는 현재 필터링된 리스트 row에서 프론트가 계산하고, 산점도 축/tooltip의 수량 값은 `formatGroupedNumber`로 천 단위 쉼표를 표시한다.
 - 인-메모리 필터링(브랜드/카테고리/상품군/색상 등)
 - 행 선택과 drawer 진입 액션
 - bulk add 모달 진입 및 전달 데이터 구성

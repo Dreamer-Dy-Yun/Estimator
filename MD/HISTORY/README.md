@@ -13,7 +13,7 @@
 
 이 폴더는 현재 운영 기준 문서로 보기에는 오래되었지만, 당시 의사결정·요구 원문·작업 결과를 추적해야 할 수 있는 문서를 보관한다.
 
-현재 기준은 상위 `MD/README.md`, `dashboard-app/source-boundary-map.md`, `dashboard-app/frontend-overview.md`, `backend-api/backend-api-spec.md`를 우선한다. HISTORY 안의 문서는 최신 계약이 아니라 이력이다.
+현재 기준은 상위 `MD/README.md`, `dashboard-app/source-boundary-map.md`, `dashboard-app/frontend-overview.md`, `backend-api/dashboard-api-contract-catalog.md`, `backend-api/backend-api-spec.md`를 우선한다. HISTORY 안의 문서는 최신 계약이 아니라 이력이다.
 
 ## 보관 기준
 

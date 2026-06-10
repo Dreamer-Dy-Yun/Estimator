@@ -9,9 +9,9 @@ export type LoginLocationState = {
   redirectTo?: string
 }
 
-const DEFAULT_LOGIN_ID = 'mock-admin' as const
-const DEFAULT_PASSWORD = 'admin' as const
+const EMPTY_LOGIN_VALUE = '' as const
 const AUTH_SESSION_ERROR_STORAGE_KEY = 'han-a.auth.session-error-message' as const
+const LOGIN_FORM_ERROR_ID = 'login-form-error' as const
 
 function consumeSessionCheckErrorMessage() : string | null {
   if (typeof window === 'undefined') return null
@@ -39,8 +39,9 @@ export function LoginPage() : React.JSX.Element {
   const navigate: ReturnType<typeof useNavigate> = useNavigate()
   const [searchParams]: ReturnType<typeof useSearchParams> = useSearchParams()
   const { session, login }: ReturnType<typeof useAuth> = useAuth()
-  const [loginId, setLoginId]: [string, React.Dispatch<React.SetStateAction<string>>] = useState<string>(DEFAULT_LOGIN_ID)
-  const [password, setPassword]: [string, React.Dispatch<React.SetStateAction<string>>] = useState<string>(DEFAULT_PASSWORD)
+  const isMockApiMode: boolean = API_ADAPTER_MODE === 'mock'
+  const [loginId, setLoginId]: [string, React.Dispatch<React.SetStateAction<string>>] = useState<string>(EMPTY_LOGIN_VALUE)
+  const [password, setPassword]: [string, React.Dispatch<React.SetStateAction<string>>] = useState<string>(EMPTY_LOGIN_VALUE)
   const [errorMessage, setErrorMessage]: [string | null, React.Dispatch<React.SetStateAction<string | null>>] = useState<string | null>(() : string | null => consumeSessionCheckErrorMessage())
   const [isSubmitting, setIsSubmitting]: [boolean, React.Dispatch<React.SetStateAction<boolean>>] = useState(false)
   const redirectTo: string = useMemo(
@@ -79,14 +80,20 @@ export function LoginPage() : React.JSX.Element {
           </div>
         </div>
 
-        <form className={styles.form} onSubmit={handleSubmit}>
+        <form
+          className={styles.form}
+          onSubmit={handleSubmit}
+          aria-describedby={errorMessage ? LOGIN_FORM_ERROR_ID : undefined}
+        >
           <label className={styles.field}>
             <span>아이디</span>
             <input
               value={loginId}
               onChange={(event: React.ChangeEvent<HTMLInputElement, HTMLInputElement>) : void => setLoginId(event.target.value)}
-              placeholder={DEFAULT_LOGIN_ID}
+              placeholder="아이디 입력"
               autoComplete="username"
+              required
+              autoFocus
             />
           </label>
 
@@ -95,22 +102,32 @@ export function LoginPage() : React.JSX.Element {
             <input
               value={password}
               onChange={(event: React.ChangeEvent<HTMLInputElement, HTMLInputElement>) : void => setPassword(event.target.value)}
-              placeholder={DEFAULT_PASSWORD}
+              placeholder="비밀번호 입력"
               type="password"
               autoComplete="current-password"
+              required
             />
           </label>
 
-          {errorMessage ? <p className={styles.errorMessage}>{errorMessage}</p> : null}
+          {errorMessage ? (
+            <p
+              id={LOGIN_FORM_ERROR_ID}
+              className={styles.errorMessage}
+              role="alert"
+              aria-live="assertive"
+            >
+              {errorMessage}
+            </p>
+          ) : null}
 
           <button className={styles.submitButton} type="submit" disabled={isSubmitting}>
             {isSubmitting ? <LoadingSpinner size="inline" label="확인 중" /> : '로그인'}
           </button>
         </form>
         <div className={styles.environmentRow}>
-          <span>{API_ADAPTER_MODE === 'mock' ? 'Mock API Mode' : 'HTTP API Mode'}</span>
+          <span>{isMockApiMode ? 'Mock API Mode' : 'HTTP API Mode'}</span>
           <strong>
-            {API_ADAPTER_MODE === 'mock'
+            {isMockApiMode
               ? 'Mock API를 사용 중입니다.'
               : 'HTTP API를 사용 중입니다.'}
           </strong>

@@ -2,271 +2,459 @@
 
 Last updated: 2026-06-10
 
-Purpose: backend implementation contract for the current frontend. This document lists current DTO and endpoint shapes only. No previous payload shape is part of this contract.
+Purpose: current backend implementation contract for the frontend in `dashboard-app`.
+
+This catalog intentionally contains only the current API shape. Previous shapes are archived under `OLD/2026-06-10-before-current-api-rewrite/` and summarized in `CHANGELOG.md`.
 
 ## 1. Common
 
 - Base path: `/api/v1`.
-- Dates: date-only fields use `YYYY-MM-DD`; timestamps use ISO 8601 strings.
-- `companyUuid` omitted means all-company read only for read-like endpoints.
-- Mutation, import, job start, and job SSE endpoints require one concrete `companyUuid`.
-- Frontend internal sentinel `ALL_COMPANY_UUID` must never reach the backend.
+- Date-only fields: `YYYY-MM-DD`.
+- Timestamps: ISO 8601 string.
+- Auth: cookie/session with `credentials: include`.
+- Error body: `{ message: string, code?: string, details?: unknown }`.
+- Read scope: `companyUuid?`; omitted means all-company read only where listed.
+- Company-owned mutation, import, candidate job, and candidate SSE scope: `companyUuid` required.
+- Product drawer comparison scope: subject fields, not top-level `companyUuid`.
 
-### Failure kinds
+## 2. Subject DTOs
 
-| Status/source | Frontend kind | Meaning |
-|---|---|---|
-| 401 | `auth` | Missing or invalid session |
-| 403 | `permission` | No role/company/data access |
-| 408, 504 | `timeout` | Request or gateway timeout |
-| 404 | `not-found` | Resource missing in visible scope |
-| 409 | `conflict` | Duplicate or state conflict |
-| 422 | `validation` | Payload/business validation failure |
-| Other 4xx | `client` | Unclassified client request failure |
-| 5xx except 504 | `server` | Backend failure |
-| Network/parse/SSE protocol | `network`, `parse`, `stream-protocol`, `unknown` | Client-side normalization |
+Type source: `dashboard-app/src/api/types/subject.ts`.
 
-Standard error body: `{ message: string, code?: string, details?: unknown }`.
+```ts
+type ComparisonSubjectKind = 'competitor-channel' | 'self-company'
+type ComparisonSubjectRole = 'base' | 'comparison'
 
-### SSE
+interface ComparisonBaseSubjectRef {
+  role: 'base'
+  kind: 'self-company'
+  sourceId?: string
+}
 
-- Use `text/event-stream`.
-- Frontend listens to the default EventSource `message` event.
-- Send JSON in `data:` lines; do not require named `event:` listeners.
-- Job SSE must validate the same `companyUuid` scope as job start.
+type ComparisonComparisonSubjectRef =
+  | { role: 'comparison'; kind: 'competitor-channel'; sourceId: string }
+  | { role: 'comparison'; kind: 'self-company'; sourceId?: string }
 
-## 2. Auth
+type ComparisonSubject<TRef> = TRef & {
+  id: string
+  label: string
+}
+```
 
-| API | Method/path | Request | Response |
+HTTP query encoding:
+
+```http
+baseRole=base
+baseKind=self-company
+baseSourceId={COMPANY.uuid}
+comparisonRole=comparison
+comparisonKind=competitor-channel
+comparisonSourceId={COMPETITOR_CHANNEL.id}
+```
+
+All-company self-company subject omits `baseSourceId` or `comparisonSourceId`.
+
+## 3. Auth and admin user
+
+Type source: `dashboard-app/src/api/types/auth.ts`.
+
+| Frontend function | Method/path | Request | Response |
 |---|---|---|---|
-| `getCurrentSession` | GET `/auth/session` | none | `AuthSession`; 401 maps to `null` |
-| `login` | POST `/auth/login` | `{ loginId, password }` | `{ session: AuthSession }` |
-| `updateCurrentUser` | PATCH `/auth/me` | `{ loginId }` | `AuthSession` |
-| `changeCurrentUserPassword` | POST `/auth/me/password` | `{ currentPassword, newPassword }` | empty |
+| `getCurrentAuthSession` | GET `/auth/session` | none | `AuthSession`; 401 maps to `null` |
+| `login` | POST `/auth/login` | `LoginRequest` | `LoginResult` |
+| `updateCurrentUser` | PATCH `/auth/me` | `UpdateAuthUserPayload` | `AuthSession` |
+| `changeCurrentUserPassword` | POST `/auth/me/password` | `ChangePasswordPayload` | empty |
 | `logout` | POST `/auth/logout` | none | empty |
-
-`AuthUser`: `uuid`, `loginId`, `name`, `role: admin | user`, `mustChangePassword`.
-`AuthSession`: `user`, `expiresAt`.
-
-## 3. Admin
-
-### Users
-
-`AdminUserSummary`: `uuid`, `loginId`, `name`, `role`, `mustChangePassword`, `note`, `isActive`, `dbUpdatedAt`.
-
-| API | Method/path | Request | Response |
-|---|---|---|---|
 | `getAdminUsers` | GET `/admin/users` | none | `AdminUserSummary[]` |
-| `createAdminUser` | POST `/admin/users` | `{ loginId, password, name, note, role, isActive }` | `AdminUserSummary` |
-| `updateAdminUser` | PATCH `/admin/users/{uuid}` | `{ uuid, loginId, name, note, role, isActive }` | `AdminUserSummary` |
-| `resetAdminUserPassword` | POST `/admin/users/{uuid}/password-reset` | none | `{ temporaryPassword, mustChangePassword, dbUpdatedAt }` |
+| `createAdminUser` | POST `/admin/users` | `CreateAdminUserPayload` | `AdminUserSummary` |
+| `updateAdminUser` | PATCH `/admin/users/{uuid}` | `UpdateAdminUserPayload` | `AdminUserSummary` |
+| `resetAdminUserPassword` | POST `/admin/users/{uuid}/password-reset` | none | `ResetAdminUserPasswordResult` |
 | `deleteAdminUser` | DELETE `/admin/users/{uuid}` | none | empty |
 
-### GPT keys
+Key DTOs:
 
-Purpose: `ai-comment | candidate-recommendation | test | all`. Test status: `untested | success | failed`.
-`AdminGptKeySummary`: `uuid`, `name`, `purpose`, `model`, `maskedKey`, `isActive`, `note`, `lastUsedAt`, `lastTestedAt`, `lastTestStatus`, `dbUpdatedAt`.
+```ts
+interface AuthUser {
+  uuid: string
+  loginId: string
+  name: string
+  role: 'admin' | 'user'
+  mustChangePassword: boolean
+}
 
-### Google Sheet configs
+interface AuthSession {
+  user: AuthUser
+  expiresAt: string
+}
 
-Purpose: `db-schema | upload-template | operation-reference | test`.
-`AdminGoogleSheetConfigSummary`: `uuid`, `name`, `purpose`, `serviceAccountEmail`, `maskedServiceAccountKey`, `spreadsheetUrl`, `spreadsheetId`, `isActive`, `note`, `dbUpdatedAt`.
+interface AdminUserSummary extends AuthUser {
+  note: string | null
+  isActive: boolean
+  dbUpdatedAt: string
+}
 
-## 4. Company
+interface ResetAdminUserPasswordResult {
+  temporaryPassword: string
+  mustChangePassword: boolean
+  dbUpdatedAt: string
+}
+```
 
-GET `/companies` returns `CompanySummary[]`: `uuid`, `name`.
+## 4. Admin GPT key
 
-## 5. Inventory arrival
+Type source: `dashboard-app/src/api/types/admin-gpt-key.ts`.
 
-POST `/inventory-arrival-dates/collect-from-sheet` returns collected inventory arrival rows. This is authenticated-user scope, not admin-only scope.
+| Frontend function | Method/path | Request | Response |
+|---|---|---|---|
+| `getAdminGptKeys` | GET `/admin/gpt-keys` | none | `AdminGptKeySummary[]` |
+| `createAdminGptKey` | POST `/admin/gpt-keys` | `CreateAdminGptKeyPayload` | `AdminGptKeySummary` |
+| `updateAdminGptKey` | PATCH `/admin/gpt-keys/{uuid}` then optional POST `/admin/gpt-keys/{uuid}/rotate` | `UpdateAdminGptKeyPayload` | `AdminGptKeySummary` |
+| `rotateAdminGptKey` | POST `/admin/gpt-keys/{uuid}/rotate` | `{ plainKey }` | `AdminGptKeySummary` |
+| `testAdminGptKey` | POST `/admin/gpt-keys/{uuid}/test` | none | `AdminGptKeyTestResult` |
+| `deleteAdminGptKey` | DELETE `/admin/gpt-keys/{uuid}` | none | empty |
 
-## 6. Sales analysis
+Raw keys may be present only in create/update/rotate request bodies. Responses expose `maskedKey`, never raw key.
 
-Common query fields: `startDate?`, `endDate?`, `companyUuid?`, `brand?`, `category?`, `codeQuery?`, `colorCode?`, `nameQuery?`.
+## 5. Admin Google Sheet
 
-| API | Method/path | Extra query | Response |
+Type source: `dashboard-app/src/api/types/admin-google-sheet.ts`.
+
+| Frontend function | Method/path | Request | Response |
+|---|---|---|---|
+| `getAdminGoogleSheetConfigs` | GET `/admin/google-sheets?companyUuid?` | optional scope | `AdminGoogleSheetConfigSummary[]` |
+| `createAdminGoogleSheetConfig` | POST `/admin/google-sheets` | `CreateAdminGoogleSheetConfigPayload` | `AdminGoogleSheetConfigSummary` |
+| `updateAdminGoogleSheetConfig` | PATCH `/admin/google-sheets/{uuid}` | `UpdateAdminGoogleSheetConfigPayload` | `AdminGoogleSheetConfigSummary` |
+| `deleteAdminGoogleSheetConfig` | DELETE `/admin/google-sheets/{uuid}?companyUuid=...` | concrete company query | empty |
+
+Backend stores service account JSON and returns `serviceAccountEmail`, `maskedServiceAccountKey`, `spreadsheetUrl`, `spreadsheetId`.
+
+## 6. Company
+
+Type source: `dashboard-app/src/api/types/company.ts`.
+
+| Frontend function | Method/path | Request | Response |
+|---|---|---|---|
+| `getCompanies` | GET `/companies` | none | `CompanySummary[]` |
+
+`CompanySummary`: `{ uuid: string; name: string }`.
+
+The frontend owns its internal all-company sentinel. Backend should return real companies only unless a product decision explicitly changes this contract.
+
+## 7. Inventory arrival
+
+Type source: `dashboard-app/src/api/types/inventory-arrival.ts`.
+
+| Frontend function | Method/path | Request | Response |
+|---|---|---|---|
+| `collectInventoryArrivalDates` | POST `/inventory-arrival-dates/collect-from-sheet` | `{ companyUuid }` | `InventoryArrivalCollectionResult` |
+
+Response:
+
+```ts
+interface InventoryArrivalCollectionResult {
+  status: 'success' | 'partial' | 'failed'
+  collectedCount: number
+  failedCount: number
+  message: string
+  collectedAt: string
+}
+```
+
+## 8. Sales analysis
+
+Type sources: `dashboard-app/src/api/types/sales.ts`, `dashboard-app/src/types.ts`.
+
+Common query:
+
+```ts
+interface SelfSalesParams {
+  companyUuid?: string
+  startDate?: string
+  endDate?: string
+  brand?: string
+  category?: string
+  codeQuery?: string
+  colorCode?: string
+  nameQuery?: string
+}
+```
+
+| Frontend function | Method/path | Query | Response |
 |---|---|---|---|
 | `getSelfSales` | GET `/sales/self` | common | `SelfSalesRow[]` |
 | `getCompetitorSales` | GET `/sales/competitor` | common + `competitorChannelId?` | `CompetitorSalesRow[]` |
-| `getSelfScatterGrid` | GET `/sales/self/scatter-grid` | common + bucket params | `ScatterSalesGridResponse` |
-| `getCompetitorScatterGrid` | GET `/sales/competitor/scatter-grid` | common + `competitorChannelId?` + bucket params | `ScatterSalesGridResponse` |
-| `getSalesFilterMeta` | GET `/sales/filter-meta` | common | filter options |
+| `getSelfSalesScatterGrid` | GET `/sales/self/scatter-grid` | common + bucket params | `ScatterSalesGridResponse` |
+| `getCompetitorSalesScatterGrid` | GET `/sales/competitor/scatter-grid` | common + `competitorChannelId?` + bucket params | `ScatterSalesGridResponse` |
+| `getSalesFilterMeta` | GET `/sales/filter-meta` | `companyUuid?` | `SalesFilterMeta` |
 
-`SelfSalesRow`: `id`, `skuGroupKey`, `rank`, `rankPercentile`, `brand`, `category`, `code`, `productName`, `colorCode`, `thumbnailUrl`, `avgPrice`, `qty`, `amount`, `avgCost`, `marginRate`, `feeRate`, `opMarginRate`, `opMarginAmount`.
+Common row identity fields:
 
-`CompetitorSalesRow`: same product identity fields plus `thumbnailUrl`, `competitorAvgPrice`, `competitorQty`, `competitorAmount`, `selfAvgPrice`, `selfQty`, `selfAmount`.
+```ts
+id
+skuGroupKey
+brand
+category
+code
+productName
+colorCode
+thumbnailUrl: string | null
+```
 
-`thumbnailUrl` is `string | null`. It is a small stored product thumbnail URL supplied with list rows. `null` means no stored thumbnail; clients must not synthesize an operational image URL from product text fields.
+`thumbnailUrl` is a DB/API supplied small product thumbnail URL. `null` means no thumbnail.
 
-`ScatterSalesGridResponse`: `cells`, `meta`. `cells[].skuIds` contains `skuGroupKey` values.
+`ScatterSalesGridResponse`:
 
-## 7. Product drawer
+```ts
+interface ScatterSalesGridResponse {
+  cells: ScatterGridCell[]
+  meta: {
+    xAxis: { min; max; bucketSize }
+    yAxis: { min; max; bucketSize }
+  }
+}
+```
 
-| API | Method/path | Query/body | Response |
+`cells[].skuIds` contains `skuGroupKey` strings.
+
+Note: the current frontend can also build scatter cells from already loaded list rows for small data. The scatter-grid endpoints remain the HTTP adapter contract for larger data/server-side binning and must match list filters when used.
+
+## 9. Product drawer and comparison
+
+Type sources: `dashboard-app/src/api/types/drawer.ts`, `dashboard-app/src/api/types/secondary.ts`.
+
+| Frontend function | Method/path | Query/body | Response |
 |---|---|---|---|
-| `getProductDrawerBundle` | GET `/products/{skuGroupKey}/drawer-bundle` | `baseRole`, `baseKind`, `baseSourceId?` | `{ summary: ProductPrimarySummary }` |
-| `getProductComparisonTargets` | GET `/products/comparison-targets` | `baseRole`, `baseKind`, `baseSourceId?` | `ProductComparisonTarget[]` |
-| `getProductMonthlyTrend` | GET `/products/{skuGroupKey}/monthly-trend` | `startDate`, `endDate`, `forecastMonths`, `baseRole`, `baseKind`, `baseSourceId?`, `comparisonRole`, `comparisonKind`, `comparisonSourceId?` | `ProductMonthlyTrend` |
-| `getProductSalesInsight` | GET `/products/{skuGroupKey}/sales-insight` | `startDate`, `endDate`, `baseRole`, `baseKind`, `baseSourceId?`, `comparisonRole`, `comparisonKind`, `comparisonSourceId?` | `ProductSalesInsight` |
-| `getProductSecondaryDetail` | GET `/products/{skuGroupKey}/secondary-detail` | `baseRole`, `baseKind`, `baseSourceId?`, `comparisonRole`, `comparisonKind`, `comparisonSourceId?`, `minOpMarginPct?` | `ProductSecondaryDetail` |
-| `getSecondaryDailyTrend` | GET `/products/{skuGroupKey}/secondary/daily-trend` | `startDate`, `endDate`, `forecastDays`, `baseRole`, `baseKind`, `baseSourceId?`, `comparisonRole`, `comparisonKind`, `comparisonSourceId?` | `SecondaryDailyTrendPoint[]` |
-| `getSecondaryAiComment` | POST `/products/{skuGroupKey}/secondary/ai-comment` | `SecondaryAiCommentParams` | `{ prompt, answer, generatedAt }` |
+| `getProductDrawerBundle` | GET `/products/{skuGroupKey}/drawer-bundle` | base subject query | `ProductDrawerBundle` |
+| `getProductComparisonTargets` | GET `/products/comparison-targets` | base subject query | `ProductComparisonTarget[]` |
+| `getProductMonthlyTrend` | GET `/products/{skuGroupKey}/monthly-trend` | date range, `forecastMonths`, base subject, comparison subject | `ProductMonthlyTrend` |
+| `getProductSalesInsight` | GET `/products/{skuGroupKey}/sales-insight` | date range, base subject, comparison subject | `ProductSalesInsight` |
+| `getProductSecondaryDetail` | GET `/products/{skuGroupKey}/secondary-detail` | base subject, comparison subject, `minOpMarginPct?` | `ProductSecondaryDetail` |
+| `getSecondaryDailyTrend` | GET `/products/{skuGroupKey}/secondary/daily-trend` | date range, `forecastDays`, base subject, comparison subject | `SecondaryDailyTrendPoint[]` |
+| `getSecondaryAiComment` | POST `/products/{skuGroupKey}/secondary/ai-comment` | `SecondaryAiCommentParams` body without path `skuGroupKey` | `SecondaryAiCommentResult` |
 | `getSecondaryStockOrderCalc` | POST `/secondary/stock-order-calc` | `SecondaryStockOrderCalcParams` | `SecondaryStockOrderCalcResult` |
 
-`ProductPrimarySummary`: `skuGroupKey`, `productName`, `brand`, `category`, `code`, `colorCode`, `price`, `qty`, `availableStock`, optional `monthlySalesTrend` fallback. Monthly chart source is the monthly-trend endpoint.
-
-`ProductComparisonSubjectRef`: `role: base | comparison`, `kind: competitor-channel | self-company`, `sourceId`. `role` identifies the response column position, `kind` selects the backend source table/domain, and `sourceId` is the id inside that domain. For `self-company`, frontend state may hold the internal all-company sentinel, but the HTTP adapter omits `baseSourceId` or `comparisonSourceId` for all-company reads. The backend must not receive the frontend sentinel value. For `competitor-channel`, `sourceId` is a competitor channel id and is always sent. The current product drawer supports `base.kind = self-company`; unsupported base kinds should fail validation instead of falling back.
-
-`ProductComparisonTarget`: comparison option DTO for the target list. Fields: `id`, `role: comparison`, `kind`, `sourceId`, `label`. `id` is an opaque UI selection id and clients must not synthesize it from `kind/sourceId`. Self-company targets exclude the current `base.sourceId`; all-company self comparison may use the frontend all-company sentinel in UI state, but HTTP requests omit `comparisonSourceId` for that all-company subject. An empty target list is a valid unavailable state, not an error fallback signal; the UI should show that no comparison target is available.
-
-`ProductSalesInsight`: `skuGroupKey`, `targetPeriodDays`, `base`, `comparison`, `baseMetrics`, `comparisonMetrics`. Both `base` and `comparison` are `ProductComparisonSubject` objects with `id`, `role`, `kind`, `sourceId`, `label`. `baseMetrics` follows the base subject. `comparisonMetrics` follows the comparison subject. Competitor comparison subjects may omit self-owned cost/margin fields as `null`, while self-company comparison subjects return the same metric shape as self sales.
-
-`ProductDrawerBundle`: `{ summary }` only. It is base-only because the primary summary is not comparison-dependent. It still uses the subject query shape so the backend can resolve the base self-company source without receiving the frontend sentinel.
-
-Frontend facade hardening: `getProductDrawerBundle` and `getProductSecondaryDetail` require explicit subject params. Do not represent all-company reads by omitting the params object; send an explicit `base` subject and let the HTTP adapter omit only the matching `SourceId` query field.
-
-### Product comparison targets breaking change: 2026-06-09
-
-Before:
-
-```http
-GET /products/comparison-targets?companyUuid={companyUuid?}
-```
-
-After:
-
-```http
-GET /products/comparison-targets?baseRole=base&baseKind=self-company&baseSourceId={companyUuid}
-```
-
-Changed contract:
-
-- Existing `companyUuid?` is replaced by a `base` subject.
-- `baseRole` must be `base`.
-- `baseKind` currently accepts only `self-company`.
-- `baseSourceId` is a concrete self-company UUID.
-- Omit `baseSourceId` for all-company reads. The frontend internal `ALL_COMPANY_UUID` sentinel must not reach the backend.
-- Returned comparison candidates must carry `role: 'comparison'`.
-- If there is no available comparison target, return an empty array; the frontend does not synthesize a default target.
-
-Backend handling note:
-
-- The backend chooses the base reference table from `baseKind`, then returns only comparison targets available for that base.
-- The current frontend sends only self-company bases. If another base kind is added later, update `ProductComparisonBaseSubjectRef.kind` and this API document together.
-
-### Product sales insight breaking change: 2026-06-09
-
-Before:
+`SecondaryAiCommentParams` body:
 
 ```ts
-{
-  companyUuid?: string
-  startDate: string
-  endDate: string
-  comparisonTargetKind: 'competitor-channel' | 'self-company'
-  comparisonTargetSourceId: string
+interface SecondaryAiCommentParams {
+  skuGroupKey: string
+  periodStart: string
+  periodEnd: string
+  forecastMonths: number
+  base: ComparisonBaseSubjectRef
+  comparison: ComparisonComparisonSubjectRef
+  candidateItemUuid?: string | null
+  snapshotForAiComment?: OrderSnapshotDocument
 }
 ```
 
-After:
+The HTTP adapter puts `skuGroupKey` in the path and sends the remaining fields as the POST body.
 
-```ts
+Example AI comment body:
+
+```json
 {
-  startDate: string
-  endDate: string
-  base: {
-    role: 'base'
-    kind: 'self-company'
-    sourceId: string
-  }
-  comparison: {
-    role: 'comparison'
-    kind: 'competitor-channel' | 'self-company'
-    sourceId: string
-  }
+  "periodStart": "2025-01-01",
+  "periodEnd": "2025-12-31",
+  "forecastMonths": 12,
+  "base": { "role": "base", "kind": "self-company", "sourceId": "hana-company-uuid" },
+  "comparison": { "role": "comparison", "kind": "competitor-channel", "sourceId": "kream" },
+  "candidateItemUuid": "candidate-item-uuid",
+  "snapshotForAiComment": { "schemaVersion": 3 }
 }
 ```
 
-GET query fields:
+Example sales insight request:
+
+```http
+GET /api/v1/products/A-101%7C030/sales-insight
+  ?startDate=2025-06-10
+  &endDate=2026-06-10
+  &baseRole=base
+  &baseKind=self-company
+  &baseSourceId=hana-company-uuid
+  &comparisonRole=comparison
+  &comparisonKind=competitor-channel
+  &comparisonSourceId=kream
+```
+
+Example self-company comparison:
+
+```http
+GET /api/v1/products/A-101%7C030/monthly-trend
+  ?startDate=2024-06-01
+  &endDate=2026-06-30
+  &forecastMonths=12
+  &baseRole=base
+  &baseKind=self-company
+  &baseSourceId=hana-company-uuid
+  &comparisonRole=comparison
+  &comparisonKind=self-company
+  &comparisonSourceId=t1-company-uuid
+```
+
+`ProductDrawerBundle`: `{ summary: ProductPrimarySummary }`.
+
+`ProductComparisonTarget` fields:
+
+```ts
+id
+role: 'comparison'
+kind: 'competitor-channel' | 'self-company'
+sourceId?: string
+label
+```
+
+`ProductSalesInsight` fields:
+
+```ts
+skuGroupKey
+targetPeriodDays: { start; end }
+base
+comparison
+baseMetrics
+comparisonMetrics
+```
+
+## 10. Secondary competitor channels
+
+| Frontend function | Method/path | Request | Response |
+|---|---|---|---|
+| `getSecondaryCompetitorChannels` | GET `/secondary/competitor-channels` | none | `SecondaryCompetitorChannel[]` |
+
+Successful response is cached by the frontend master-data cache.
+
+## 11. Candidate stash and candidate items
+
+Type sources: `dashboard-app/src/api/types/candidate.ts`, `dashboard-app/src/api/types/candidate-order-metrics.ts`.
+
+| Frontend function | Method/path | Request | Response |
+|---|---|---|---|
+| `getCandidateStashes` | GET `/candidate-stashes?companyUuid?` | optional read scope | `CandidateStashSummary[]` |
+| `createCandidateStash` | POST `/candidate-stashes` | `CreateCandidateStashPayload` | `CandidateStashSummary` |
+| `updateCandidateStash` | PATCH `/candidate-stashes/{stashUuid}` | body without path `stashUuid` | `CandidateStashSummary` |
+| `deleteCandidateStash` | DELETE `/candidate-stashes/{stashUuid}?companyUuid=...` | concrete company query | empty |
+| `duplicateCandidateStash` | POST `/candidate-stashes/{stashUuid}/duplicate` | `CompanyMutationScopeParams` | empty |
+| `getCandidateItemsByStash` | GET `/candidate-stashes/{stashUuid}/items` | data reference period + optional company | `CandidateItemListResult` |
+| `getCandidateRecommendations` | GET `/candidate-stashes/{stashUuid}/recommendations` | data reference period, `limit?`, `cursor?`, optional company | `CandidateRecommendationResult` |
+| `appendCandidateItem` | POST `/candidate-stashes/{stashUuid}/items` | single item with snapshot | empty |
+| `appendCandidateItems` | POST `/candidate-stashes/{stashUuid}/items/bulk` | `skuGroupKeys`, optional `competitorChannelId`, company | `AppendCandidateItemsResponse` |
+| `updateCandidateItem` | PATCH `/candidate-items/{itemUuid}` | body without path `itemUuid` | `CandidateItemDetail` |
+| `getCandidateItemByUuid` | GET `/candidate-items/{itemUuid}?companyUuid?` | optional company | `CandidateItemDetail | null` |
+| `deleteCandidateItem` | DELETE `/candidate-items/{itemUuid}?companyUuid=...` | concrete company query | empty |
+| `deleteCandidateItems` | DELETE `/candidate-stashes/{stashUuid}/items` | `{ itemUuids, companyUuid }` | empty |
+| `getCandidateStashExcelTemplateDownload` | GET `/candidate-stashes/excel-template` | browser download URL | file |
+| `uploadCandidateStashExcel` | POST `/candidate-stashes/import/excel` | multipart `file`, `companyUuid` | `CandidateStashExcelUploadResult` |
+
+`CandidateItemSummary` and `CandidateReferenceItemSummary` include `thumbnailUrl: string | null`.
+
+`CandidateStashItemSummary` is a slim status DTO and does not include thumbnail.
+
+Example candidate stash create body:
+
+```json
+{
+  "companyUuid": "hana-company-uuid",
+  "name": "기본 후보군 A",
+  "note": "초기 목록 데이터",
+  "periodStart": "2025-01-01",
+  "periodEnd": "2025-12-31",
+  "forecastMonths": 12
+}
+```
+
+Example bulk append body:
+
+```json
+{
+  "companyUuid": "hana-company-uuid",
+  "skuGroupKeys": ["A-101|030", "B-152|020"],
+  "competitorChannelId": "kream"
+}
+```
+
+Example update item body:
+
+```json
+{
+  "companyUuid": "hana-company-uuid",
+  "details": { "schemaVersion": 3 },
+  "isLatestLlmComment": true
+}
+```
+
+Mutation endpoints that return no body may respond with `204 No Content`.
+
+Excel upload is multipart:
 
 ```txt
-startDate
-endDate
-baseRole
-baseKind
-baseSourceId?
-comparisonRole
-comparisonKind
-comparisonSourceId?
+POST /api/v1/candidate-stashes/import/excel
+Content-Type: multipart/form-data
+
+file=<xlsx file>
+companyUuid=hana-company-uuid
 ```
 
-Response field changes:
+## 12. Candidate SSE and jobs
 
-| Before | After |
-|---|---|
-| `comparisonTarget` | `comparison` |
-| `self` | `baseMetrics` |
-| `comparison` metrics column | `comparisonMetrics` |
-| no base subject object | `base` |
-
-Backend handling:
-
-- `companyUuid` is no longer part of `getProductSalesInsight`; it is represented by `base.kind/sourceId` in frontend state and by `baseKind/baseSourceId?` on the HTTP query.
-- `comparisonTargetKind` and `comparisonTargetSourceId` are no longer top-level query fields; they are represented by `comparison.kind/sourceId` in frontend state and by `comparisonKind/comparisonSourceId?` on the HTTP query.
-- For `self-company` subjects, omitted `baseSourceId` or `comparisonSourceId` means all-company read. Do not accept the frontend `ALL_COMPANY_UUID` sentinel as an API value.
-- `baseRole` must be `base`; `comparisonRole` must be `comparison`.
-- Do not resolve a missing base or comparison subject to the current company, all-company, or the first available comparison target.
-- Invalid role/kind shape should be treated as validation failure. Missing or unauthorized subjects should be reported explicitly.
-
-`ProductSecondaryDetail`: `skuGroupKey`, `comparisonPrice`, `comparisonQty`, `comparisonRatioBySize`, `sizeRows`.
-
-`ProductSecondarySizeRow`: `size`, `selfRatio`, `confirmedQty`, `avgPrice`, `qty`, `availableStock`.
-
-`SecondaryDailyTrendPoint`: `date`, `idx`, `month`, `sales`, `stockBar`, `inboundAccumBar`, `baseSales`, `comparisonSales`, `isForecast`.
-
-Monthly trend request: last 24 completed months ending at previous month; `forecastMonths` is 12; chart max is 36 months.
-Daily trend request: `startDate` is selected start month first day; `endDate` is yesterday; `forecastDays` is current lead-time days.
-
-## 8. Candidate stash
-
-Candidate flows require single-company scope except read-like list endpoints that explicitly allow optional scope.
-
-| API | Method/path | Scope | Notes |
+| Frontend function | Method/path | Request | Event/response |
 |---|---|---|---|
-| `getCandidateStashes` | GET `/candidate-stashes` | optional read | list |
-| `createCandidateStash` | POST `/candidate-stashes` | required | mutation |
-| `updateCandidateStash` | PATCH `/candidate-stashes/{stashUuid}` | required | mutation |
-| `deleteCandidateStash` | DELETE `/candidate-stashes/{stashUuid}` | required | mutation |
-| `duplicateCandidateStash` | POST `/candidate-stashes/{stashUuid}/duplicate` | required | mutation |
-| `getCandidateItemsByStash` | GET `/candidate-stashes/{stashUuid}/items` | required | period read |
-| `getCandidateRecommendations` | GET `/candidate-stashes/{stashUuid}/recommendations` | required | recommendation read |
-| `appendCandidateItem` | POST `/candidate-stashes/{stashUuid}/items` | required | singular append with snapshot |
-| `appendCandidateItems` | POST `/candidate-stashes/{stashUuid}/items/bulk` | required | bulk append without snapshot |
-| `updateCandidateItem` | PATCH `/candidate-items/{itemUuid}` | required | `details` or `null` |
-| `deleteCandidateItem` | DELETE `/candidate-items/{itemUuid}` | required | mutation |
-| `startCandidateDetailBulkConfirm` | POST `/candidate-detail-confirmation-jobs` | required | job start |
-| job SSE endpoints | GET `.../events` | required | default message event |
+| `subscribeCandidateOrderMetrics` | SSE `/candidate-stashes/{stashUuid}/items/order-metrics/events` | `requestId`, data reference period, repeated `candidateItemUuids`, `companyUuid` | `CandidateOrderMetricEvent` |
+| `startCandidateStashLlmCommentJob` | POST `/candidate-stashes/{stashUuid}/llm-comment-jobs` | `companyUuid` | `{ jobId, stashUuid, itemCount }` |
+| `subscribeCandidateStashLlmCommentJob` | SSE `/candidate-stash-llm-comment-jobs/{jobId}/events` | `companyUuid` | `CandidateStashLlmCommentJobProgressEvent` |
+| `startCandidateDetailBulkConfirm` | POST `/candidate-stashes/{stashUuid}/items/detail-confirmation-jobs` | item ids, data reference period, company | `{ jobId, stashUuid, itemCount }` |
+| `subscribeCandidateDetailBulkConfirm` | SSE `/candidate-item-detail-confirmation-jobs/{jobId}/events` | `companyUuid` | `CandidateDetailBulkConfirmProgressEvent` |
 
-`AppendCandidateItemPayload`: `companyUuid`, `stashUuid`, `skuGroupKey`, `details`, `isLatestLlmComment`.
-`AppendCandidateItemsPayload`: `companyUuid`, `stashUuid`, `skuGroupKeys`, optional `competitorChannelId`.
-`AppendCandidateItemsResponse`: `candidateItems: CandidateStashItemSummary[]`.
+Order metric event shape:
 
-`CandidateItemSummary` and `CandidateReferenceItemSummary` include product identity fields `skuGroupKey`, `brand`, `code`, `productName`, `colorCode`, and `thumbnailUrl: string | null`. `CandidateStashItemSummary` remains a slim item status DTO and does not include `thumbnailUrl`.
+```ts
+type CandidateOrderMetricEvent =
+  | { type: 'item'; requestId; itemUuid; skuUuid; metric }
+  | { type: 'itemFailed'; requestId; itemUuid; skuUuid; message }
+  | { type: 'completed'; requestId; processedCount; failedCount }
+```
 
-Recommendation append results in frontend are `applied`, `stale`, `no-op`, `empty-selection`.
+Wire query uses repeated query params, not bracketed keys:
 
-## 9. Order snapshot JSON
+```http
+GET /api/v1/candidate-stashes/stash-uuid/items/order-metrics/events
+  ?requestId=req-001
+  &dataReferencePeriodStart=2025-01-01
+  &dataReferencePeriodEnd=2025-12-31
+  &companyUuid=hana-company-uuid
+  &candidateItemUuids=item-1
+  &candidateItemUuids=item-2
+```
 
-Full snapshot details are in `order-snapshot-backend-contract.md` and LLM field descriptions are in `order-snapshot-llm-field-guide.md`.
+SSE message examples:
 
-`OrderSnapshotDocument`: `schemaVersion`, `skuGroupKey`, `savedAt`, `context`, `drawer1`, `drawer2`.
+```txt
+data: {"type":"item","requestId":"req-001","itemUuid":"item-1","skuUuid":"sku-1","metric":{"itemUuid":"item-1","skuUuid":"sku-1","qty":100,"expectedOrderAmount":1000000,"expectedSalesAmount":1300000,"expectedOpProfit":120000,"orderExport":{"competitorChannelLabel":"크림","selfQty":80,"competitorQty":100,"expectedSalesQty":100,"expectedOrderAmount":1000000,"avgCost":10000,"avgPrice":13000,"feeRatePct":13,"opMarginRatePct":9,"inboundExpectedDate":"2026-04-01","sizeOrderQty":[{"size":"240","orderQty":10}]}}}
 
-Current snapshot rules:
+data: {"type":"completed","requestId":"req-001","processedCount":2,"failedCount":0}
+```
 
-- `schemaVersion` is `3`.
-- top-level `companyUuid` is not part of the snapshot; company scope is represented by `drawer2.baseSubject.sourceId` when scoped.
-- `drawer2` stores `baseSubject`, `comparisonSubject`, and `comparisonBasis`.
-- `drawer2.stockOrderResult.display.sizeRows[]` is size-keyed.
-- `drawer2.confirmedTotals` is required.
-- `drawer2.aiComment` contains `prompt`, `answer`, `generatedAt`.
-- `details` and `isLatestLlmComment` are API wrapper fields, not snapshot fields.
+Standard error body example:
+
+```json
+{
+  "message": "Candidate item is not visible in the selected company scope.",
+  "code": "CANDIDATE_ITEM_FORBIDDEN",
+  "details": { "itemUuid": "item-1" }
+}
+```
+
+## 13. Order snapshot
+
+Type source:
+
+- API alias: `dashboard-app/src/api/types/snapshot.ts`
+- Actual schema: `dashboard-app/src/snapshot/orderSnapshotTypes.ts`
+
+Rules:
+
+- Candidate item `details` is `OrderSnapshotDocument | null`.
+- Current snapshot schema version is `3`.
+- `details` and `isLatestLlmComment` are wrapper API fields, not snapshot fields.
+- Snapshot v3 stores `drawer2.baseSubject`, `drawer2.comparisonSubject`, and `drawer2.comparisonBasis`.
+- Full snapshot details remain in `order-snapshot-backend-contract.md`.

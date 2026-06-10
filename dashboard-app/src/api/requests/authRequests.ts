@@ -6,7 +6,7 @@ import { ApiHttpError, apiRequest, USE_MOCK_API } from './httpClient'
 /**
  * Auth/admin-user request adapter.
  *
- * Backend switch point: replace the mock calls in this file with HTTP requests.
+ * HTTP and mock auth adapters are both implemented here.
  * The UI depends only on AuthApi, so login/session/admin-user endpoint shape should
  * be decided from src/api/types/auth.ts and documented in MD/backend-api.
  *

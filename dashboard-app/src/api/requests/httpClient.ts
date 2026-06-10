@@ -47,10 +47,25 @@ export class ApiHttpError extends ApiClientError {
   }
 }
 
-export const API_BASE_URL: string = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8080/api/v1'
-export const API_ADAPTER_MODE: ApiAdapterMode =
-  String(import.meta.env.VITE_USE_MOCK_API ?? 'true').toLowerCase() === 'false' ? 'http' : 'mock'
+function readApiAdapterMode(value: unknown): ApiAdapterMode {
+  if (value == null || String(value).trim() === '') return 'http'
+  const normalized: string = String(value).trim().toLowerCase()
+  if (normalized === 'true') return 'mock'
+  if (normalized === 'false') return 'http'
+  throw new Error('Invalid VITE_USE_MOCK_API. Use true for mock mode or false for HTTP mode.')
+}
+
+export const API_ADAPTER_MODE: ApiAdapterMode = readApiAdapterMode(import.meta.env.VITE_USE_MOCK_API)
 export const USE_MOCK_API: boolean = API_ADAPTER_MODE === 'mock'
+
+function readApiBaseUrl(mode: ApiAdapterMode, value: unknown): string {
+  const normalized: string = value == null ? '' : String(value).trim()
+  if (normalized) return normalized
+  if (mode === 'mock' || !import.meta.env.PROD) return 'http://localhost:8080/api/v1'
+  throw new Error('VITE_API_BASE_URL is required when HTTP API mode is used in production.')
+}
+
+export const API_BASE_URL: string = readApiBaseUrl(API_ADAPTER_MODE, import.meta.env.VITE_API_BASE_URL)
 
 function appendQueryParam(searchParams: URLSearchParams, key: string, value: ApiQueryValue) : void {
   if (value == null || value === '') return

@@ -1,4 +1,6 @@
-# 이너 후보군 조회·추천·오더 지표 SSE 계획
+# 이너 후보군 조회·추천·오더 지표 SSE 계약
+
+> 현재 코드 기준: 이 문서는 더 이상 미반영 계획서가 아니라 이너 후보군 조회, 추천 보기, 오더 지표 SSE의 현재 계약 문서다. 정확한 endpoint/DTO 기준은 `MD/backend-api/dashboard-api-contract-catalog.md`를 우선하고, 구현 주의점은 `MD/backend-api/backend-api-spec.md`를 따른다.
 
 | 항목 | 내용 |
 |------|------|
@@ -196,9 +198,9 @@ type CandidateOrderMetricEvent =
 
 캐시는 사용자가 조회 데이터 기간을 바꾸면 무효화되어야 한다. 후보 아이템 추가·삭제, 상세확정 일괄해제, 스냅샷 수정도 관련 캐시를 무효화한다.
 
-## 프론트 변경 계획
+## 프론트 현재 구현
 
-현재 프론트 mock/API 대체 구현은 아래 계획을 기준으로 반영되어 있다. `getCandidateItemsByStash`는 후보군에 담긴 기본 행을 먼저 반환하고, `getCandidateRecommendations`는 배지 있는 추천 SKU page를 별도 반환한다. 총 오더 수량·금액은 `subscribeCandidateOrderMetrics` SSE로 행별 갱신한다.
+현재 프론트 mock/API 대체 구현은 아래 계약을 기준으로 반영되어 있다. `getCandidateItemsByStash`는 후보군에 담긴 기본 행을 먼저 반환하고, `getCandidateRecommendations`는 배지 있는 추천 SKU page를 별도 반환한다. 총 오더 수량·금액은 `subscribeCandidateOrderMetrics` SSE로 행별 갱신한다.
 
 1. API 타입 분리
    - `CandidateReferenceItemSummary`
@@ -231,6 +233,7 @@ type CandidateOrderMetricEvent =
    - 요청한 모든 item UUID가 `item` 또는 `itemFailed`로 settle되면 즉시 SSE 닫기
    - 추천 적용 직후에는 신규 candidate item UUID만 별도 SSE 요청으로 추가한다.
 7. 문서 갱신
+   - `MD/backend-api/dashboard-api-contract-catalog.md`
    - `MD/backend-api/backend-api-spec.md`
    - `MD/dashboard-app/source-boundary-map.md`
    - 필요 시 테스트 전략 문서
@@ -241,7 +244,7 @@ type CandidateOrderMetricEvent =
    - stale SSE 무시
    - 수백 건 목록에서 Set 기반 파생 결과 확인
 
-## UI 계획
+## UI 현재 구현
 
 - 초기 조회 직후 총 오더 수량·총 오더 금액은 각 행에서 로딩 상태로 표시한다.
 - SSE로 값이 도착한 행만 숫자로 바뀐다.

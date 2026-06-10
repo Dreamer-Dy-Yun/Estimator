@@ -1,35 +1,41 @@
-# 백엔드 API 문서 (대시보드)
+# Backend API 문서
 
-| 항목 | 내용 |
-|------|------|
-| 작성 지시 | Yun Daeyoung |
-| 작성자 | Codex |
-| 작성일 | 2026-04-23 |
-| 최종 수정일 | 2026-05-07 |
-| 상태 | 유지 문서 |
-| 적용 범위 | 백엔드 API 문서 |
+Last updated: 2026-06-10
 
-## 목적
+Purpose: 백엔드가 현재 프론트엔드 API 계약을 구현하기 위한 기준 문서 묶음.
 
-프론트엔드의 `DashboardApi` 계약(`dashboard-app/src/api/types/dashboard-api.ts`)을 HTTP 백엔드로 구현할 때 참고하는 문서입니다. 구현 시 **프론트 타입 정의와 응답 JSON 필드명이 1:1로 일치**해야 합니다.
+## 읽는 순서
 
-문서 작성·보존 기준은 [../README.md](../README.md)를 따릅니다.
+| 순서 | 문서 | 역할 |
+|---|---|---|
+| 1 | [dashboard-api-contract-catalog.md](./dashboard-api-contract-catalog.md) | 현재 endpoint, request, response, DTO 계약 |
+| 2 | [backend-api-spec.md](./backend-api-spec.md) | 구현 주의점, scope, 실패 처리, SSE 규칙 |
+| 3 | [order-snapshot-backend-contract.md](./order-snapshot-backend-contract.md) | 후보군 item `details`에 저장되는 snapshot v3 계약 |
+| 4 | [order-snapshot-llm-field-guide.md](./order-snapshot-llm-field-guide.md) | LLM 코멘트용 snapshot field 해석 |
+| 5 | [CHANGELOG.md](./CHANGELOG.md) | 계약 변경 이력 |
 
-## 문서 구성
+## 코드 기준 source of truth
 
-| 파일 | 설명 |
-|------|------|
-| [backend-api-spec.md](./backend-api-spec.md) | REST 제안, 엔드포인트별 요청/응답, 모든 DTO·스냅샷 필드 의미 상세 |
+| 코드 경로 | 역할 |
+|---|---|
+| `dashboard-app/src/api/types/*` | TypeScript API DTO/interface 계약 |
+| `dashboard-app/src/api/types/dashboard-api.ts` | dashboard 업무 API 전체 인터페이스 |
+| `dashboard-app/src/api/requests/httpDashboardRequests.ts` | 실제 HTTP endpoint 매핑 |
+| `dashboard-app/src/api/requests/*Requests.ts` | 인증, 관리자, 회사, 입고일 수집 endpoint 매핑 |
+| `dashboard-app/src/api/mock/*` | mock backend 대체 구현 |
 
-## 단일 소스 (코드)
+## OLD 문서
 
-구현 전에 다음 경로를 열어 최신 타입과 주석을 확인하십시오.
+2026-06-10 이전 backend API 문서는 아래로 보관했다.
 
-- 계약 인터페이스: [`dashboard-app/src/api/types/dashboard-api.ts`](../../dashboard-app/src/api/types/dashboard-api.ts)
-- 2차·후보군·스톡 계산: [`dashboard-app/src/api/types/secondary.ts`](../../dashboard-app/src/api/types/secondary.ts)
-- 자사/경쟁 판매 파라미터: [`dashboard-app/src/api/types/sales.ts`](../../dashboard-app/src/api/types/sales.ts)
-- 1차 드로어 번들: [`dashboard-app/src/api/types/drawer.ts`](../../dashboard-app/src/api/types/drawer.ts)
-- 공통 행 타입: [`dashboard-app/src/types.ts`](../../dashboard-app/src/types.ts)
-- 오더 스냅샷 문서: [`dashboard-app/src/snapshot/orderSnapshotTypes.ts`](../../dashboard-app/src/snapshot/orderSnapshotTypes.ts)
-- 2차 예측 입력 타입: [`dashboard-app/src/dashboard/components/product-drawer/secondary/secondaryDrawerTypes.ts`](../../dashboard-app/src/dashboard/components/product-drawer/secondary/secondaryDrawerTypes.ts)
-- 2차 KPI 타입·계산 공통 유틸: [`dashboard-app/src/utils/salesKpiColumn.ts`](../../dashboard-app/src/utils/salesKpiColumn.ts)
+| 경로 | 설명 |
+|---|---|
+| [OLD/2026-06-10-before-current-api-rewrite/backend-api-spec.md](./OLD/2026-06-10-before-current-api-rewrite/backend-api-spec.md) | 이전 backend spec |
+| [OLD/2026-06-10-before-current-api-rewrite/dashboard-api-contract-catalog.md](./OLD/2026-06-10-before-current-api-rewrite/dashboard-api-contract-catalog.md) | 이전 contract catalog |
+
+## 갱신 원칙
+
+- API 타입, endpoint, request/response field, 에러 형식, SSE event가 바뀌면 `dashboard-api-contract-catalog.md`와 관련 TypeScript type을 같이 갱신한다.
+- 구현 주의점, scope 정책, failure mapping, SSE 규칙이 바뀌면 `backend-api-spec.md`를 갱신한다.
+- snapshot schema가 바뀌면 `order-snapshot-backend-contract.md`와 `dashboard-app/src/snapshot/orderSnapshotTypes.ts`를 같이 갱신한다.
+- 이전 계약은 현재 catalog 안에 섞지 말고 `CHANGELOG.md` 또는 `OLD/`에 둔다.

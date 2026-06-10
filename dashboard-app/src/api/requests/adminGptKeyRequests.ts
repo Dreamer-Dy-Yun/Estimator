@@ -6,7 +6,7 @@ import { apiRequest, USE_MOCK_API } from './httpClient'
 /**
  * Admin GPT key request adapter.
  *
- * Backend switch point: replace the mock calls in this file with HTTP requests.
+ * HTTP and mock GPT-key adapters are both implemented here.
  * This contract is intentionally GPT-only. Do not reintroduce provider/baseUrl/
  * projectId fields unless the product scope changes.
  *

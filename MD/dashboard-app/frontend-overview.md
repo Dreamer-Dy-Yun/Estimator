@@ -1,6 +1,6 @@
 # dashboard-app Frontend Overview
 
-Last updated: 2026-06-09
+Last updated: 2026-06-10
 
 ## Purpose
 
@@ -9,8 +9,10 @@ Last updated: 2026-06-09
 ## Main flows
 
 - 로그인 → 세션 생성 → 회사 목록 로딩
+- 로그인 화면은 HTTP/mock mode 모두 자격증명 기본값을 자동 채우지 않음
 - 회사 선택이 read scope를 결정
 - Self/Competitor 분석 페이지에서 공통 쿼리로 목록/산점도 조회
+- 분석 리스트는 체크박스, 판매 순위, 상품 썸네일, 상품 식별자, 지표 컬럼을 분리해 표시
 - 분석 필터/행 선택/후보군 액션을 서로 분리
 - 상품드로워에서 요약/추세/2차 상세를 on-demand로 조회
 - 후보군 스냅샷 저장/복원 플로우
@@ -30,6 +32,8 @@ Last updated: 2026-06-09
 
 - 후보군은 단일 회사 스코프 기반으로 동작
 - 전체 스코프에서는 후보군 진입/후보군 추가 비활성화
+- 이너 후보군과 추천 보기는 row summary의 `thumbnailUrl`을 `ProductThumbnailCell`로 표시하고, 썸네일 hover 미리보기를 공통 사용
+- 이너 후보군은 기본 item 목록과 추천 목록을 분리해 조회하고, 총 오더 수량/금액은 row 단위 SSE로 갱신
 - 추천 상태는 `applied`, `stale`, `no-op`, `empty-selection`으로 구분
 - 상세 unconfirm은 `details = null` 처리
 
@@ -41,6 +45,7 @@ Last updated: 2026-06-09
 - `src/dashboard/pages`: 페이지 레벨 오케스트레이션
 - `src/dashboard/components/candidate-stash`: 후보군 UI/훅
 - `src/dashboard/components/product-drawer`: 드로워 UI/훅
+- `src/dashboard/components/ProductThumbnailCell.tsx`: 분석/후보군 리스트 공용 썸네일 표시와 hover 미리보기
 - `src/dashboard/components/common.module.css`: 대시보드 공용 CSS 파사드
 - `src/styles`: 전역 토큰/기본 스타일
 - `src/snapshot`: 스냅샷 계약·파서

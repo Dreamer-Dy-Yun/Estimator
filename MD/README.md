@@ -5,7 +5,7 @@
 | 작성 지시 | Yun Daeyoung |
 | 작성자 | Codex |
 | 작성일 | 2026-05-07 |
-| 최종 수정일 | 2026-05-18 |
+| 최종 수정일 | 2026-06-10 |
 | 상태 | 유지 문서 |
 
 ## 목적
@@ -39,7 +39,7 @@
 `HISTORY` 이동 대상은 다음과 같다.
 
 - 특정 날짜의 작업 결과만 남긴 이력 문서
-- 같은 내용이 `frontend-overview.md`, `source-boundary-map.md`, `backend-api-spec.md` 같은 유지 문서에 이미 흡수된 문서
+- 같은 내용이 `frontend-overview.md`, `source-boundary-map.md`, `dashboard-api-contract-catalog.md`, `backend-api-spec.md` 같은 유지 문서에 이미 흡수된 문서
 - 목업 전환 과정의 임시 판단 기록처럼 현재 계약을 오히려 흐리게 하는 문서
 
 ## 기본 문서
@@ -53,6 +53,7 @@
 | [dashboard-app/test-strategy.md](./dashboard-app/test-strategy.md) | 테스트 전략 |
 | [dashboard-app/qa-current-behavior.md](./dashboard-app/qa-current-behavior.md) | 현재 화면/데이터/API 동작 기준 QA 문서 |
 | [backend-api/README.md](./backend-api/README.md) | 백엔드 API 문서 입구 |
-| [backend-api/backend-api-spec.md](./backend-api/backend-api-spec.md) | 백엔드 API 계약 상세 |
+| [backend-api/dashboard-api-contract-catalog.md](./backend-api/dashboard-api-contract-catalog.md) | 현재 백엔드 API endpoint, DTO, request/response 계약 |
+| [backend-api/backend-api-spec.md](./backend-api/backend-api-spec.md) | 백엔드 구현 주의점, scope, 실패 처리, SSE 규칙 |
 | [troubleshooting/README.md](./troubleshooting/README.md) | 반복 환경 문제와 검증 병목 해결 방법 |
 | [HISTORY/README.md](./HISTORY/README.md) | 날짜별 계획·완료·과거 요구사항 이력 보관 기준 |

@@ -1,10 +1,18 @@
 # Candidate Stash Boundary
 
-Last updated: 2026-06-09
+Last updated: 2026-06-10
 
 ## Responsibility
 
 Candidate stash owns order candidate lists, item detail drawer entry, recommendation rows, order metric SSE, detail confirmation, item/stash mutation, and Excel upload/download.
+
+## Current list and thumbnail contract
+
+- 이너 후보군 리스트의 표시 순서는 체크박스, 화면 순서 숫자, 이미지, 상품 식별자, 상태, 기간 판매량, 오더 지표 순서다.
+- 화면 순서 숫자는 현재 필터/정렬 결과의 표시 순서이며, 별도 비즈니스 rank가 아니다.
+- 이너 후보군 기본 row는 `CandidateItemSummary.thumbnailUrl`, 추천 보기 row는 `CandidateReferenceItemSummary.thumbnailUrl`을 표시한다.
+- `CandidateStashItemSummary`는 stash item 상태/식별자용 slim DTO이므로 썸네일을 갖지 않는다.
+- 썸네일 표시는 `ProductThumbnailCell` 공통 컴포넌트가 소유한다. 이너 후보군과 추천 보기는 같은 hover preview 동작을 공유하고, 화면은 URL fallback이나 운영용 placeholder URL을 만들지 않는다.
 
 ## Scope
 

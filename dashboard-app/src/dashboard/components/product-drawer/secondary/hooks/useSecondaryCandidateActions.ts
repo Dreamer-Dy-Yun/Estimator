@@ -1,48 +1,23 @@
 import type { CandidateItemDetail, CandidateStashSummary } from '../../../../../api'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { dashboardApi } from '../../../../../api'
-import type { ToastContextValue } from '../../../../../components/AppToastContext'
 import type { OrderSnapshotDocument } from '../../../../../snapshot/orderSnapshotTypes'
 import type { CandidateStashPickerOption } from '../CandidateStashPickerModal'
-import type { CandidateItemPanelContext } from '../secondaryDrawerTypes'
-
-export type CandidateActionGuardSnapshot = {
-  companyUuid: string
-  skuGroupKey: string
-  periodStart: string
-  periodEnd: string
-  forecastMonths: number
-  targetKind: 'append' | 'create' | 'item' | 'list'
-  targetIdentity: string
-  mutationInputKey: string
-  actionSeq: number
-}
-
-export type CandidateCreateResult = {
-  createdUuid: string
-  options: CandidateStashPickerOption[] | null
-  listReqSeq: number
-  refreshError: unknown | null
-}
-
-export type CandidateActionScope = Pick<
+import {
+  buildCandidateCreateInput,
+  findCandidateOptionByUuid,
+  snapshotMutationInputKey,
+} from './secondaryCandidateActionModel'
+import type {
   CandidateActionGuardSnapshot,
-  'companyUuid' | 'skuGroupKey' | 'periodStart' | 'periodEnd' | 'forecastMonths'
->
-
-export type Params = {
-  skuGroupKey: string
-  companyUuid?: string
-  periodStart: string
-  periodEnd: string
-  forecastMonths: number
-  hasSavedSnapshot: boolean
-  candidateItemContext: CandidateItemPanelContext | null
-  canBuildSnapshot?: boolean
-  snapshotBlockReason?: string
-  buildSnapshot: () => OrderSnapshotDocument
-  showToast: ToastContextValue['showToast']
-}
+  CandidateActionScope,
+  CandidateCreateInput,
+  CandidateCreateResult,
+  CandidateMutationState,
+  Params,
+  SecondaryCandidateActionsResult,
+} from './secondaryCandidateActionTypes'
+import { useSecondaryCandidateActionGuard } from './useSecondaryCandidateActionGuard'
 
 const COMPANY_SCOPE_REQUIRED_MESSAGE = '회사를 선택한 상태에서만 후보군 작업을 할 수 있습니다.' as const
 const CANDIDATE_CREATE_SYNC_MISS_MESSAGE = '후보군은 생성됐지만 목록에서 생성 항목을 확인하지 못했습니다. 목록을 다시 불러와 주세요.' as const
@@ -52,25 +27,6 @@ const SNAPSHOT_BLOCK_FALLBACK_MESSAGE = '재고/발주 계산이 완료된 뒤 �
 const getFailureMessage: (actionLabel: string, error: unknown) => string = (actionLabel: string, error: unknown) : string => {
   if (error instanceof Error && error.message.trim()) return `${actionLabel} 실패: ${error.message}`
   return `${actionLabel}에 실패했습니다. 다시 시도해 주세요.`
-}
-
-const snapshotMutationInputKey: (snapshot: OrderSnapshotDocument | null) => string = (snapshot: OrderSnapshotDocument | null) : string => {
-  if (snapshot == null) return 'null'
-  return JSON.stringify({
-    skuGroupKey: snapshot.skuGroupKey,
-    context: snapshot.context,
-    baseSubject: snapshot.drawer2.baseSubject,
-    comparisonSubject: snapshot.drawer2.comparisonSubject,
-    comparisonBasis: snapshot.drawer2.comparisonBasis,
-    stockOrderRequest: snapshot.drawer2.stockOrderRequest,
-    stockOrderResult: snapshot.drawer2.stockOrderResult ?? null,
-    unitEconomics: snapshot.drawer2.unitEconomics,
-    selfWeightPct: snapshot.drawer2.selfWeightPct,
-    bufferStock: snapshot.drawer2.bufferStock,
-    aiComment: snapshot.drawer2.aiComment,
-    confirmedTotals: snapshot.drawer2.confirmedTotals,
-    sizeOrders: snapshot.drawer2.sizeOrders,
-  })
 }
 
 export function useSecondaryCandidateActions({
@@ -85,45 +41,32 @@ export function useSecondaryCandidateActions({
   snapshotBlockReason = SNAPSHOT_BLOCK_FALLBACK_MESSAGE,
   buildSnapshot,
   showToast,
-}: Params) : { loading: boolean; listOpen: boolean; stashes: CandidateStashPickerOption[]; selectedCandidate: CandidateStashPickerOption | null; companyScopeBlocked: boolean; companyScopeBlockReason: string; nameInput: string; noteInput: string; setNameInput: React.Dispatch<React.SetStateAction<string>>; setNoteInput: React.Dispatch<React.SetStateAction<string>>; setListOpen: React.Dispatch<React.SetStateAction<boolean>>; createCandidate: () => Promise<boolean>; confirmOrder: () => Promise<boolean>; refresh: () => Promise<CandidateStashSummary[] | null>; openPicker: () => Promise<void>; confirmCandidateItem: () => Promise<boolean>; unconfirmCandidateItem: () => Promise<boolean>; selectCandidate: (row: CandidateStashPickerOption) => void; } {
-  const currentScope: { companyUuid: string; skuGroupKey: string; periodStart: string; periodEnd: string; forecastMonths: number; } = useMemo(() : { companyUuid: string; skuGroupKey: string; periodStart: string; periodEnd: string; forecastMonths: number; } => ({
+}: Params) : SecondaryCandidateActionsResult {
+  const currentScope: CandidateActionScope = useMemo(() : CandidateActionScope => ({
     companyUuid: companyUuid ?? '',
     skuGroupKey,
     periodStart,
     periodEnd,
     forecastMonths,
   }), [companyUuid, forecastMonths, periodEnd, periodStart, skuGroupKey])
-  const mountedRef: React.RefObject<boolean> = useRef(false)
-  const candidateListReqSeqRef: React.RefObject<number> = useRef(0)
-  const actionReqSeqRef: React.RefObject<number> = useRef(0)
-  const currentScopeRef: React.RefObject<CandidateActionScope> = useRef<CandidateActionScope>(currentScope)
-  const resetScopeRef: React.RefObject<CandidateActionScope> = useRef<CandidateActionScope>(currentScope)
   const [loading, setLoading]: [boolean, React.Dispatch<React.SetStateAction<boolean>>] = useState(false)
   const [listOpen, setListOpen]: [boolean, React.Dispatch<React.SetStateAction<boolean>>] = useState(false)
   const [stashes, setStashes]: [CandidateStashPickerOption[], React.Dispatch<React.SetStateAction<CandidateStashPickerOption[]>>] = useState<CandidateStashPickerOption[]>([])
   const [selectedCandidate, setSelectedCandidate]: [CandidateStashPickerOption | null, React.Dispatch<React.SetStateAction<CandidateStashPickerOption | null>>] = useState<CandidateStashPickerOption | null>(null)
   const [nameInput, setNameInput]: [string, React.Dispatch<React.SetStateAction<string>>] = useState('')
   const [noteInput, setNoteInput]: [string, React.Dispatch<React.SetStateAction<string>>] = useState('')
-  const currentMutationRef: React.RefObject<{ appendTarget: string; createTarget: string; itemTarget: string; canBuildSnapshot: boolean; buildSnapshot: () => OrderSnapshotDocument; }> = useRef({
+  const currentMutationRef: React.RefObject<CandidateMutationState> = useRef<CandidateMutationState>({
     appendTarget: '',
     createTarget: '',
     itemTarget: '',
     canBuildSnapshot,
     buildSnapshot,
   })
-
-  useEffect(() : () => void => {
-    mountedRef.current = true
-    return () : void => {
-      mountedRef.current = false
-      candidateListReqSeqRef.current += 1
-      actionReqSeqRef.current += 1
-    }
-  }, [])
-
-  useEffect(() : void => {
-    currentScopeRef.current = currentScope
-  }, [currentScope])
+  const actionGuard: ReturnType<typeof useSecondaryCandidateActionGuard> = useSecondaryCandidateActionGuard({
+    currentScope,
+    currentMutationRef,
+    setLoading,
+  })
 
   useEffect(() : void => {
     currentMutationRef.current = {
@@ -136,77 +79,12 @@ export function useSecondaryCandidateActions({
   }, [buildSnapshot, canBuildSnapshot, candidateItemContext?.itemUuid, nameInput, noteInput, selectedCandidate?.uuid])
 
   useEffect(() : void => {
-    const nextScope: { companyUuid: string; skuGroupKey: string; periodStart: string; periodEnd: string; forecastMonths: number; } = currentScope
-    const current: CandidateActionScope = resetScopeRef.current
-    if (
-      current.companyUuid === nextScope.companyUuid
-      && current.skuGroupKey === nextScope.skuGroupKey
-      && current.periodStart === nextScope.periodStart
-      && current.periodEnd === nextScope.periodEnd
-      && current.forecastMonths === nextScope.forecastMonths
-    ) return
-    resetScopeRef.current = nextScope
-    candidateListReqSeqRef.current += 1
-    actionReqSeqRef.current += 1
+    if (!actionGuard.consumeScopeChange()) return
     setLoading(false)
     setListOpen(false)
     setStashes([])
     setSelectedCandidate(null)
   }, [currentScope])
-
-  const isActiveActionScope: (snapshot: CandidateActionGuardSnapshot) => boolean = (snapshot: CandidateActionGuardSnapshot) : boolean => {
-    const current: CandidateActionScope = currentScopeRef.current
-    return mountedRef.current
-      && current.companyUuid === snapshot.companyUuid
-      && current.skuGroupKey === snapshot.skuGroupKey
-      && current.periodStart === snapshot.periodStart
-      && current.periodEnd === snapshot.periodEnd
-      && current.forecastMonths === snapshot.forecastMonths
-      && actionReqSeqRef.current === snapshot.actionSeq
-  }
-
-  const currentTargetIdentity: (targetKind: CandidateActionGuardSnapshot['targetKind']) => string = (targetKind: CandidateActionGuardSnapshot['targetKind']) : string => {
-    const current: { appendTarget: string; createTarget: string; itemTarget: string; canBuildSnapshot: boolean; buildSnapshot: () => OrderSnapshotDocument; } = currentMutationRef.current
-    if (targetKind === 'append') return current.appendTarget
-    if (targetKind === 'create') return current.createTarget
-    if (targetKind === 'item') return current.itemTarget
-    return ''
-  }
-  const currentSnapshotMutationInputKey: () => string | null = () : string | null => {
-    if (!currentMutationRef.current.canBuildSnapshot) return null
-    try {
-      return snapshotMutationInputKey(currentMutationRef.current.buildSnapshot())
-    } catch {
-      return null
-    }
-  }
-
-  const isActiveAction: (snapshot: CandidateActionGuardSnapshot) => boolean = (snapshot: CandidateActionGuardSnapshot) : boolean => (
-    isActiveActionScope(snapshot)
-    && currentTargetIdentity(snapshot.targetKind) === snapshot.targetIdentity
-    && (snapshot.mutationInputKey === '' || currentSnapshotMutationInputKey() === snapshot.mutationInputKey)
-  )
-
-  const beginAction: (targetKind: CandidateActionGuardSnapshot['targetKind'], mutationInputKey?: string, actionCompanyUuid?: string) => CandidateActionGuardSnapshot = (
-    targetKind: CandidateActionGuardSnapshot['targetKind'],
-    mutationInputKey: string = '',
-    actionCompanyUuid: string = companyUuid ?? '',
-  ): CandidateActionGuardSnapshot => {
-    const actionSeq: number = actionReqSeqRef.current + 1
-    actionReqSeqRef.current = actionSeq
-    setLoading(true)
-    return {
-      companyUuid: actionCompanyUuid,
-      skuGroupKey,
-      periodStart,
-      periodEnd,
-      forecastMonths,
-      targetKind,
-      targetIdentity: currentTargetIdentity(targetKind),
-      mutationInputKey,
-      actionSeq,
-    }
-  }
 
   const guardSnapshotMutation: () => boolean = () : boolean => {
     if (!canBuildSnapshot) {
@@ -227,34 +105,28 @@ export function useSecondaryCandidateActions({
       showToast(COMPANY_SCOPE_REQUIRED_MESSAGE, { variant: 'error' })
       return false
     }
-    const snapshot: CandidateActionGuardSnapshot = beginAction(targetKind, mutationInputKey, companyUuid)
+    const snapshot: CandidateActionGuardSnapshot = actionGuard.beginAction(targetKind, mutationInputKey, companyUuid)
     try {
       const result: Awaited<T> = await mutate(companyUuid)
-      if (!isActiveAction(snapshot)) return false
+      if (!actionGuard.isActiveAction(snapshot)) return false
       return reflect(result) !== false
     } catch (error) {
-      if (isActiveAction(snapshot)) showToast(getFailureMessage(actionLabel, error), { variant: 'error' })
+      if (actionGuard.isActiveAction(snapshot)) showToast(getFailureMessage(actionLabel, error), { variant: 'error' })
       return false
     } finally {
-      if (isActiveActionScope(snapshot)) setLoading(false)
+      if (actionGuard.isActiveActionScope(snapshot)) setLoading(false)
     }
   }
 
   const refresh: () => Promise<CandidateStashSummary[] | null> = async () : Promise<CandidateStashSummary[] | null> => {
-    const reqSeq: number = candidateListReqSeqRef.current + 1
-    const scope: CandidateActionScope = currentScopeRef.current
-    candidateListReqSeqRef.current = reqSeq
+    if (!companyUuid) {
+      showToast(COMPANY_SCOPE_REQUIRED_MESSAGE, { variant: 'error' })
+      return null
+    }
+    const reqSeq: number = actionGuard.beginCandidateListRequest()
+    const scope: CandidateActionScope = actionGuard.readCurrentScope()
     const rows: CandidateStashSummary[] = await dashboardApi.getCandidateStashes({ companyUuid })
-    const current: CandidateActionScope = currentScopeRef.current
-    if (
-      !mountedRef.current
-      || candidateListReqSeqRef.current !== reqSeq
-      || current.companyUuid !== scope.companyUuid
-      || current.skuGroupKey !== scope.skuGroupKey
-      || current.periodStart !== scope.periodStart
-      || current.periodEnd !== scope.periodEnd
-      || current.forecastMonths !== scope.forecastMonths
-    ) return null
+    if (!actionGuard.isActiveCandidateListRequest(reqSeq, scope)) return null
     setStashes(rows)
     return rows
   }
@@ -269,16 +141,16 @@ export function useSecondaryCandidateActions({
       return
     }
     setListOpen(true)
-    const snapshot: CandidateActionGuardSnapshot = beginAction('list', '', companyUuid)
+    const snapshot: CandidateActionGuardSnapshot = actionGuard.beginAction('list', '', companyUuid)
     try {
       await refresh()
     } catch (error) {
-      if (isActiveAction(snapshot)) {
+      if (actionGuard.isActiveAction(snapshot)) {
         setListOpen(false)
         showToast(getFailureMessage('후보군 목록 불러오기', error), { variant: 'error' })
       }
     } finally {
-      if (isActiveAction(snapshot)) setLoading(false)
+      if (actionGuard.isActiveAction(snapshot)) setLoading(false)
     }
   }
 
@@ -342,17 +214,17 @@ export function useSecondaryCandidateActions({
     '후보군 생성',
     'create',
     '',
-    async (mutationCompanyUuid: string) : Promise<{ createdUuid: string; options: CandidateStashSummary[]; listReqSeq: number; refreshError: null; } | { createdUuid: string; options: null; listReqSeq: number; refreshError: unknown; }> => {
-      const created: CandidateStashSummary = await dashboardApi.createCandidateStash({
-        name: nameInput.trim(),
-        note: noteInput.trim(),
-        companyUuid: mutationCompanyUuid,
+    async (mutationCompanyUuid: string) : Promise<CandidateCreateResult> => {
+      const createInput: CandidateCreateInput = buildCandidateCreateInput({
+        nameInput,
+        noteInput,
+        mutationCompanyUuid,
         periodStart,
         periodEnd,
         forecastMonths,
       })
-      const listReqSeq: number = candidateListReqSeqRef.current + 1
-      candidateListReqSeqRef.current = listReqSeq
+      const created: CandidateStashSummary = await dashboardApi.createCandidateStash(createInput)
+      const listReqSeq: number = actionGuard.beginCandidateListRequest()
       try {
         return {
           createdUuid: created.uuid,
@@ -378,9 +250,9 @@ export function useSecondaryCandidateActions({
         setListOpen(false)
         return true
       }
-      if (candidateListReqSeqRef.current !== listReqSeq) return false
+      if (!actionGuard.isCurrentCandidateListRequest(listReqSeq)) return false
       setStashes(options)
-      const synced: CandidateStashPickerOption | undefined = options.find((row: CandidateStashPickerOption) : boolean => row.uuid === createdUuid)
+      const synced: CandidateStashPickerOption | undefined = findCandidateOptionByUuid(options, createdUuid)
       if (!synced) {
         showToast(CANDIDATE_CREATE_SYNC_MISS_MESSAGE, { variant: 'warning' })
         return false
