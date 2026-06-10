@@ -207,6 +207,7 @@ export function AnalysisScatterChartCard<TPoint extends AnalysisScatterGridPoint
               dataKey="y"
               name={yAxis.name}
               unit={yAxis.unit}
+              tickFormatter={yAxis.tickFormatter}
               tick={AXIS_TICK_STYLE}
               width={yAxis.width ?? 38}
               tickMargin={yAxis.tickMargin ?? 4}

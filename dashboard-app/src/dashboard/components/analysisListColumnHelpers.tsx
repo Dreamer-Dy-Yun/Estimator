@@ -1,5 +1,5 @@
 import type { AdjacentDirection } from '../../utils/adjacentListNavigation'
-import { formatGroupedNumber, formatPercent } from '../../utils/format'
+import { formatCompactKoreanNumber, formatPercent, type CompactKoreanNumberDisplay } from '../../utils/format'
 import type { TableColumn } from './PaginatedTable'
 import { ProductThumbnailCell } from './ProductThumbnailCell'
 
@@ -69,12 +69,24 @@ export function textColumn<Row>(key: string, header: string, value: (row: Row) =
   return { key, header, cell: value, width, sortValue: value }
 }
 
+const ANALYSIS_LIST_NUMBER_COMPACT_AT = 100_000 as const
+
+function compactNumberCell(value: number | null | undefined): React.JSX.Element | '-' {
+  if (value == null) return '-'
+  const display: CompactKoreanNumberDisplay = formatCompactKoreanNumber(value, { compactAt: ANALYSIS_LIST_NUMBER_COMPACT_AT })
+  return (
+    <span title={display.compacted ? display.fullText : undefined} aria-label={display.compacted ? display.fullText : undefined}>
+      {display.text}
+    </span>
+  )
+}
+
 export function numberColumn<Row>(key: string, header: string, value: (row: Row) => number): TableColumn<Row> {
-  return { key, header, cell: (row: Row) : string => formatGroupedNumber(value(row)), align: 'right', sortValue: value }
+  return { key, header, cell: (row: Row) : React.JSX.Element | '-' => compactNumberCell(value(row)), align: 'right', sortValue: value }
 }
 
 export function nullableNumberColumn<Row>(key: string, header: string, value: (row: Row) => number | null | undefined): TableColumn<Row> {
-  return { key, header, cell: (row: Row) : string => value(row) != null ? formatGroupedNumber(value(row)!) : '-', align: 'right', sortValue: (row: Row) : number => value(row) ?? 0 }
+  return { key, header, cell: (row: Row) : React.JSX.Element | '-' => compactNumberCell(value(row)), align: 'right', sortValue: (row: Row) : number => value(row) ?? 0 }
 }
 
 export function percentColumn<Row>(key: string, header: string, value: (row: Row) => number): TableColumn<Row> {

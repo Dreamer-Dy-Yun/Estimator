@@ -163,7 +163,7 @@ export const SelfPage: () => React.JSX.Element = () : React.JSX.Element => {
               onClearSelection={selection.clearActiveGridCell}
               renderTooltip={renderSelfSalesScatterTooltip}
               xAxis={{ name: '영업 이익률', label: '영업 이익률', unit: '%', tickFormatter: (value: number) : string => `${value}` }}
-              yAxis={{ name: '판매량(EA)', label: '판매량(EA)', width: 42, tickMargin: 4 }}
+              yAxis={{ name: '판매량(EA)', label: '판매량(EA)', width: 42, tickMargin: 4, tickFormatter: formatGroupedNumber }}
             />
           </>
         )}

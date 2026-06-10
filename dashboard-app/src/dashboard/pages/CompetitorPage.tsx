@@ -9,6 +9,7 @@ import { getCompetitorSales, getSecondaryCompetitorChannels } from '../../api'
 import type { ScatterGridCell, ScatterSalesGridResponse, SecondaryCompetitorChannel } from '../../api/types'
 import { LoadingSpinner } from '../../components/LoadingSpinner'
 import type { CompetitorSalesRow } from '../../types'
+import { formatGroupedNumber } from '../../utils/format'
 import { buildCompetitorSalesScatterGridFromRows } from '../../utils/scatterGridBuild'
 import { AnalysisDrawerBulkAdd } from '../components/AnalysisDrawerBulkAdd'
 import { AnalysisPageLayout } from '../components/AnalysisPageLayout'
@@ -205,8 +206,8 @@ export const CompetitorPage: () => React.JSX.Element = () : React.JSX.Element =>
               onCellClick={selection.onScatterCellClick}
               onClearSelection={selection.clearActiveGridCell}
               renderTooltip={renderQtyScatterTooltip}
-              xAxis={{ name: `${common.selfCompanyLabel} 판매량(EA)`, label: common.selfCompanyLabel, labelColor: 'var(--analysis-self-series-color)' }}
-              yAxis={{ name: `${competitorAxisLabel} 판매량(EA)`, label: competitorAxisLabel, labelColor: 'var(--analysis-competitor-series-color)', width: 38, tickMargin: 4 }}
+              xAxis={{ name: `${common.selfCompanyLabel} 판매량(EA)`, label: common.selfCompanyLabel, labelColor: 'var(--analysis-self-series-color)', tickFormatter: formatGroupedNumber }}
+              yAxis={{ name: `${competitorAxisLabel} 판매량(EA)`, label: competitorAxisLabel, labelColor: 'var(--analysis-competitor-series-color)', width: 42, tickMargin: 4, tickFormatter: formatGroupedNumber }}
             />
           </>
         )}

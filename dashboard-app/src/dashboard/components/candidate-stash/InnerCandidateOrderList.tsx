@@ -1,4 +1,3 @@
-import type { CandidateItemSummary } from '../../../api'
 import { memo, useCallback, useEffect, useRef,} from 'react'
 import { LoadingSpinner } from '../../../components/LoadingSpinner'
 import type { AdjacentDirection } from '../../../utils/adjacentListNavigation'
@@ -178,11 +177,11 @@ export function InnerCandidateOrderList({
         <span className={detailStyles.innerOrderCheckCell}>
           <label className={detailStyles.innerOrderCheckboxTarget}><input ref={selectAllRef} type="checkbox" checked={allVisibleSelected} disabled={visibleItemUuids.length === 0} aria-label="전체 선택" onChange={onToggleAllVisibleItems} /></label>
         </span>
-        <span className={detailStyles.innerOrderIndexCell}>순위</span>
+        <span className={detailStyles.innerOrderIndexCell} aria-hidden="true" />
         <span className={detailStyles.innerOrderThumbnailCell}>이미지</span>
         {sortHeaders(competitorSalesQtyHeader).map((header: SortHeader) : React.JSX.Element => <SortButton key={header.sortKey} header={header} activeKey={activeSortKey} activeDir={activeSortDir} onSort={onSort} />)}
       </div>
-      {rows.map((row: CandidateItemSummary, index: number) : React.JSX.Element => (
+      {rows.map((row: InnerCandidateRow, index: number) : React.JSX.Element => (
         <InnerCandidateOrderRow key={row.uuid} row={row} index={index} selected={selectedUuidSet.has(row.uuid)} active={activeItemUuid === row.uuid} drawerOpen={drawerOpen} rowRefs={rowRefs} onToggleSelectedItem={onToggleSelectedItem} onToggleItemDrawer={onToggleItemDrawer} onRequestFocusAdjacent={focusAdjacent} />
       ))}
     </div>
