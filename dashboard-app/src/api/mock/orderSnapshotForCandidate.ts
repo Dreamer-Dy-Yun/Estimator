@@ -15,11 +15,8 @@ import {
 import type { SecondaryOrderSnapshotPayload } from '../types/snapshot'
 import { requireMockProductPrimary, requireMockProductSecondary } from './mockProductLookup'
 import { getMockCompanyScale, scopeMockProductPrimary, scopeMockProductSecondary } from './mockCompanyScope'
+import { formatNullableMockEa, formatNullableMockWon } from './mockNumberFormat'
 import { secondaryCompetitorChannels } from './salesTables'
-
-const koNumber: Intl.NumberFormat = new Intl.NumberFormat('ko-KR')
-const formatEa: (value: number | null | undefined) => string = (value: number | null | undefined) : string => value == null ? '확인 필요' : `${koNumber.format(Math.max(0, Math.round(value)))}EA`
-const formatWon: (value: number | null | undefined) => string = (value: number | null | undefined) : string => value == null ? '확인 필요' : `${koNumber.format(Math.max(0, Math.round(value)))}원`
 
 interface MockOrderSnapshotOptions {
   periodStart?: string
@@ -37,7 +34,7 @@ function buildMockAiPrompt(snapshot: SecondaryOrderSnapshotPayload) : string {
   const { comparisonSubject, confirmedTotals }: OrderSnapshotDrawer2 = snapshot.drawer2
   return [
     `${summary.brand} ${summary.productName} 후보군 AI 코멘트를 작성하세요.`,
-    `기간 ${snapshot.context.periodStart}~${snapshot.context.periodEnd}, 비교 대상 ${comparisonSubject.label}, 확정 오더 ${formatEa(confirmedTotals?.orderQty)} 기준입니다.`,
+    `기간 ${snapshot.context.periodStart}~${snapshot.context.periodEnd}, 비교 대상 ${comparisonSubject.label}, 확정 오더 ${formatNullableMockEa(confirmedTotals?.orderQty)} 기준입니다.`,
     '판매 흐름, 재고, 사이즈별 확정 수량 기준으로 사용자가 바로 확인할 코멘트를 짧게 작성하세요.',
   ].join('\n')
 }
@@ -48,10 +45,19 @@ function buildMockAiAnswer(snapshot: SecondaryOrderSnapshotPayload) : string {
   const marginRate: string = typeof confirmedTotals?.expectedOpProfitRatePct === 'number'
     ? `${confirmedTotals.expectedOpProfitRatePct.toFixed(1)}%`
     : '확인 필요'
-  return [
+  const baseLines: string[] = [
     `${summary.productName}은(는) ${comparisonSubject.label} 기준 판매 흐름을 함께 볼 후보군입니다.`,
-    `확정 오더 ${formatEa(confirmedTotals?.orderQty)}, 예상 매출 ${formatWon(confirmedTotals?.expectedSalesAmount)}, 예상 영업이익률 ${marginRate}입니다.`,
+    `확정 오더 ${formatNullableMockEa(confirmedTotals?.orderQty)}, 예상 매출 ${formatNullableMockWon(confirmedTotals?.expectedSalesAmount)}, 예상 영업이익률 ${marginRate}입니다.`,
     '추천 수량 대비 가용 재고, 입고 잔량, 사이즈별 확정 수량을 우선 확인하세요.',
+  ]
+  if (summary.code !== 'TEST-SHOE') return baseLines.join('\n')
+  return [
+    ...baseLines,
+    '이 코멘트는 AI 코멘트 카드의 세로 overflow와 한번에 보기 버튼을 확인하기 위한 장문 mock 데이터입니다.',
+    '현재 테스트 신발은 비교 대상 판매량과 자사 판매량이 비슷한 구간에 있으므로 단순히 총량만 보고 확정 수량을 늘리기보다, 사이즈별 판매 비중과 현재 재고가 동시에 맞는지를 먼저 확인해야 합니다.',
+    '특히 상위 사이즈에 확정 수량이 몰리면 예상 매출은 커 보일 수 있지만 입고 잔량과 가용 재고가 부족한 사이즈에서 품절 위험이 먼저 발생할 수 있습니다.',
+    '반대로 하위 사이즈는 판매 속도가 낮아 보이더라도 비교 대상의 비중이 높게 잡힌 경우가 있으므로, 자사 판매 실적만 기준으로 제외하면 실제 수요 검증 구간을 놓칠 수 있습니다.',
+    '따라서 이번 mock 시나리오에서는 추천 수량, 예상 매출, 영업이익률, 사이즈별 확정 수량, 재고 잔량을 한 화면 안에서 모두 확인한 뒤 코멘트를 접거나 한번에 펼쳐 보는 흐름을 검증하는 것이 목적입니다.',
   ].join('\n')
 }
 

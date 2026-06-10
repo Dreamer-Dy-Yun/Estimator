@@ -35,20 +35,19 @@ export function ProductThumbnailCell({ thumbnailUrl, alt, size = 'analysis' }: P
   const [previewPosition, setPreviewPosition]: [ThumbnailPreviewPosition | null, React.Dispatch<React.SetStateAction<ThumbnailPreviewPosition | null>>] = useState<ThumbnailPreviewPosition | null>(null)
   const className: string = [styles.thumbnailCell, styles[size]].join(' ')
   const showPreview: () => void = useCallback(() : void => {
+    if (!thumbnailUrl) return
     const element: HTMLSpanElement | null = cellRef.current
     if (!element) return
     setPreviewPosition(calculateThumbnailPreviewPosition(element.getBoundingClientRect(), window.innerWidth, window.innerHeight))
-  }, [])
+  }, [thumbnailUrl])
   const hidePreview: () => void = useCallback(() : void => setPreviewPosition(null), [])
   const previewStyle: CSSProperties | undefined = previewPosition
     ? { left: previewPosition.left, top: previewPosition.top, width: THUMBNAIL_PREVIEW_SIZE_PX, height: THUMBNAIL_PREVIEW_SIZE_PX }
     : undefined
-  const preview: React.JSX.Element | null = previewPosition
+  const preview: React.JSX.Element | null = previewPosition && thumbnailUrl
     ? (
         <span className={styles.preview} style={previewStyle} aria-hidden="true">
-          {thumbnailUrl
-            ? <img className={styles.previewImage} src={thumbnailUrl} alt="" decoding="async" />
-            : <span className={styles.previewPlaceholder} />}
+          <img className={styles.previewImage} src={thumbnailUrl} alt="" decoding="async" />
         </span>
       )
     : null

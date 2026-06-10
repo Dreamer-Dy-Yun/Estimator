@@ -17,7 +17,8 @@ Source of truth:
 - Frontend sends `credentials: include`; backend should use session/cookie auth.
 - Frontend uses mock only when `VITE_USE_MOCK_API=true`.
 - `VITE_USE_MOCK_API=false`, omitted, or empty values select HTTP mode.
-- Production HTTP mode requires `VITE_API_BASE_URL`; deployment workflow must fail before build if the backend base URL is not configured.
+- Production HTTP mode requires `VITE_API_BASE_URL`; deployment workflow must fail before build if HTTP mode is selected without the backend base URL.
+- Mock preview deployment may set `VITE_USE_MOCK_API=true` and does not require a backend base URL.
 - Request and response JSON field names must match the TypeScript DTO names.
 - Do not return frontend-only sentinel values such as `ALL_COMPANY_UUID`.
 - Successful empty mutation responses may use HTTP 204.

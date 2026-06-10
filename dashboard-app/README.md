@@ -58,18 +58,18 @@ npm run preview
 - 현재 프로젝트 지침상 전체 lint 실패가 곧 신규 회귀를 뜻하지 않을 수 있으므로, lint 결과는 touched file에 새 문제가 생겼는지 구분해서 판단한다.
 - UI 흐름, 모달, 드로어, 로그인/관리자 이동이 바뀌면 Playwright smoke 갱신 또는 실행 필요성을 함께 검토한다.
 
-## CI 검증 기준
+## CI / 배포 검증 기준
 
-문서화된 CI/배포 검증 흐름은 다음 순서를 기준으로 한다.
+배포 gate는 `npm run verify:deploy`를 기준으로 하며 다음 순서로 실행된다.
 
 1. `npm run lint`
 2. `npm run check:encoding`
 3. `npm run test:run`
-4. Playwright Chromium 준비
-5. `npm run test:e2e`
-6. `npm run build`
+4. `npm run build`
 
-CI 또는 배포 workflow 자체를 바꾸는 작업은 이 README가 아니라 해당 workflow와 `MD/dashboard-app/test-strategy.md`를 함께 갱신해야 한다.
+Playwright E2E는 배포 gate가 아니라 별도 `Dashboard E2E` workflow와 로컬 `npm run test:e2e`에서 다룬다. UI 흐름이 바뀌면 배포와 별도로 필요한 smoke/full/admin/candidate 범위를 정한다.
+
+CI 또는 배포 workflow 자체를 바꾸는 작업은 해당 workflow, `MD/dashboard-app/test-strategy.md`, `MD/dashboard-app/deployment-hardening.md`를 함께 갱신해야 한다.
 
 ## 주요 문서
 

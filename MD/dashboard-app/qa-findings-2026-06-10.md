@@ -4,12 +4,13 @@
 
 - Project: `D:\DEV\HAN.A`
 - App scope: `dashboard-app`
-- Git basis: `HEAD=61bf43a`, branch `main`, working tree dirty
+- Git basis: `HEAD=980f3a1`, branch `main`, working tree clean after deploy
 - QA mode: MulAg-assisted passes across API/runtime, auth UI, async stale safety, tests/docs, and hardening
 - Validation evidence:
   - `npm run check:encoding`: passed
   - `npm run test:run`: 63 test files / 323 tests passed
   - `npm run build`: passed
+  - GitHub Pages workflow: `Deploy dashboard to GitHub Pages` run `27261704435` passed
 
 ## Score table
 
@@ -25,7 +26,8 @@
 ## Resolved findings
 
 - Runtime mock default risk resolved: mock mode requires `VITE_USE_MOCK_API=true`; omitted/blank/false selects HTTP.
-- Production HTTP base URL risk resolved in code and deploy workflow: production HTTP mode requires `VITE_API_BASE_URL`; Pages workflow requires `DASHBOARD_API_BASE_URL`.
+- Production HTTP base URL risk resolved in code and deploy workflow: production HTTP mode requires `VITE_API_BASE_URL`; Pages HTTP deploy requires `DASHBOARD_API_BASE_URL`.
+- Mock preview deploy is explicitly allowed when no backend URL exists; this is not treated as production HTTP readiness.
 - Login mock credential exposure resolved: login values and placeholders no longer contain `mock-admin/admin`.
 - Login error accessibility resolved: visible error text is connected to the form and exposed as an ARIA live alert.
 - HTTP request contract strengthened: query serialization, JSON body/header, FormData preservation, and credentials behavior are covered.
@@ -35,8 +37,7 @@
 
 ## Remaining risks
 
-- Actual GitHub Pages deployment evidence is still external until a commit is pushed and the workflow succeeds.
-- `DASHBOARD_API_BASE_URL` must exist as a GitHub repository variable for production deploy.
+- `DASHBOARD_API_BASE_URL` must exist as a GitHub repository variable or manual input for HTTP production deploy.
 - `useSecondaryCandidateActions.ts` still owns picker state and mutation orchestration; deeper `runMutation` splitting should wait for focused hook tests.
 - Backend implementation parity is not proven by frontend tests; this QA covers frontend contracts and deployment configuration.
 
@@ -45,4 +46,4 @@
 - Usable: yes.
 - Each QA category: 90+ based on current source and validation evidence.
 - Hardening-complete: not globally; the touched high-risk seams are above the 90-point threshold, but not all modules are frozen contracts.
-- Deployable: code path is deploy-ready, but actual deploy remains blocked unless `DASHBOARD_API_BASE_URL` is configured and workflow evidence is produced.
+- Deployable: yes for mock preview deploy. HTTP production deploy remains blocked until `DASHBOARD_API_BASE_URL` is configured.

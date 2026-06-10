@@ -12,6 +12,7 @@ Last updated: 2026-06-10
 - 분석 리스트 row 계약은 `SelfSalesRow`/`CompetitorSalesRow`, 이너 후보군 계약은 `CandidateItemSummary`/`CandidateReferenceItemSummary`가 소유한다.
 - 후보군 저장 상태용 `CandidateStashItemSummary`는 썸네일을 갖지 않는다. 추천 적용 직후 로컬 row 생성 시에는 추천 row의 `thumbnailUrl`을 그대로 복사한다.
 - mock 썸네일은 `src/api/mock/mockProductThumbnail.ts`가 SKU identity 기준으로 만든다. 화면 fallback이 아니라 mock API 계약 대체 데이터다.
+- mock 문장과 스냅샷 설명의 EA/원 표시 포맷은 `src/api/mock/mockNumberFormat.ts`가 소유한다. UI 숫자 축약/표시 정책과 섞지 않는다.
 
 ## 0-4) 2026-06-09 product drawer comparison target boundary
 
