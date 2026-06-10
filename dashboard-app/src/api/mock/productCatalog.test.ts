@@ -69,7 +69,7 @@ describe('api/mock productCatalog', () : void => {
     ])
   })
 
-  it('keeps test top values simple enough to verify drawer calculations by hand', () : void => {
+  it('keeps test top values explicit enough to verify drawer calculations by hand', () : void => {
     const top: ProductPrimarySummary = productPrimaryBySkuGroupKey[skuGroupKeyByLegacyId.TEST_TOP]
     const secondary: ProductSecondaryDetail = productSecondaryBySkuGroupKey[skuGroupKeyByLegacyId.TEST_TOP]
 
@@ -81,12 +81,11 @@ describe('api/mock productCatalog', () : void => {
     expect(secondary?.comparisonPrice).toBe(110000)
     expect(secondary?.comparisonQty).toBe(4800)
     expect(secondary?.sizeRows).toHaveLength(5)
-    expect(secondary?.sizeRows.every((row: ProductSecondarySizeRow) : boolean => (
-      row.selfRatio === 20
-      && row.confirmedQty === 400
-      && row.qty === 480
-      && row.availableStock === 240
-    ))).toBe(true)
+    expect(secondary?.sizeRows.map((row: ProductSecondarySizeRow) : number => row.selfRatio)).toEqual([8, 18, 34, 26, 14])
+    expect(secondary?.sizeRows.map((row: ProductSecondarySizeRow) : number => row.confirmedQty)).toEqual([160, 360, 680, 520, 280])
+    expect(secondary?.sizeRows.map((row: ProductSecondarySizeRow) : number => row.qty)).toEqual([192, 432, 816, 624, 336])
+    expect(secondary?.sizeRows.map((row: ProductSecondarySizeRow) : number => row.availableStock)).toEqual([96, 216, 408, 312, 168])
+    expect(secondary?.sizeRows.map((row: ProductSecondarySizeRow) : number => Math.round((secondary.comparisonRatioBySize[row.size] ?? 0) * 100))).toEqual([30, 28, 22, 14, 6])
     expect(secondary?.sizeRows.reduce((sum: number, row: ProductSecondarySizeRow) : number => sum + row.confirmedQty, 0)).toBe(2000)
     expect(top?.monthlySalesTrend?.every((point: MonthlySalesPoint) : boolean => point.sales === 200)).toBe(true)
   })

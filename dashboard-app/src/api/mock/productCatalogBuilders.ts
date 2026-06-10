@@ -71,6 +71,18 @@ function allocateByWeights(total: number, weights: readonly number[]): number[] 
   return floors
 }
 
+const rotateWeights: (weights: number[], seed: number) => number[] = (weights: number[], seed: number) : number[] => {
+  const length: number = weights.length
+  const offset: number = length === 0 ? 0 : ((seed % length) + length) % length
+  return weights.map((_: number, index: number) : number => weights[(index + offset) % weights.length] ?? 1)
+}
+
+const seedAdjustedWeights: (weights: number[], seed: number, direction: number) => number[] = (weights: number[], seed: number, direction: number) : number[] => {
+  const midpoint: number = (weights.length - 1) / 2
+  const tilt: number = ((seed % 5) - 2) * direction
+  return weights.map((weight: number, index: number) : number => Math.max(1, Math.round(weight * (1 + ((index - midpoint) * tilt) / 36))))
+}
+
 export const makeSizeMix: (initialOrderQty: number, productQty: number, productPrice: number, productAvailableStock: number, seed: number, category: string) => { size: string; ratio: number; competitorRatio: number; confirmedQty: number; avgPrice: number; qty: number; availableStock: number; }[] = (
   initialOrderQty: number,
   productQty: number,
@@ -81,16 +93,19 @@ export const makeSizeMix: (initialOrderQty: number, productQty: number, productP
 ) : { size: string; ratio: number; competitorRatio: number; confirmedQty: number; avgPrice: number; qty: number; availableStock: number; }[] => {
   const isApparel: boolean = category === '의류'
   const sizes: string[] = isApparel ? ['S', 'M', 'L', 'XL', 'XXL'] : ['235', '240', '245', '250', '255', '260', '265', '270', '275', '280']
-  const baseWeights: number[] = isApparel ? [7, 12, 15, 13, 8] : [5, 7, 9, 11, 13, 14, 13, 11, 9, 7]
-  const midpoint: number = (sizes.length - 1) / 2
-  const weights: number[] = baseWeights.map((weight: number, index: number) : number => Math.max(1, Math.round(weight * (1 + ((index - midpoint) * ((seed % 5) - 2)) / 30))))
+  const selfBaseWeights: number[] = isApparel ? [8, 18, 28, 20, 10] : [4, 7, 10, 13, 16, 18, 15, 10, 5, 2]
+  const comparisonBaseWeights: number[] = isApparel ? [22, 28, 24, 14, 6] : [13, 16, 15, 12, 9, 7, 8, 9, 7, 4]
+  const weights: number[] = seedAdjustedWeights(selfBaseWeights, seed, 1)
+  const comparisonWeights: number[] = seedAdjustedWeights(rotateWeights(comparisonBaseWeights, seed % 3), seed, -1)
+  const stockWeights: number[] = seedAdjustedWeights(rotateWeights(selfBaseWeights, seed % 2), seed + 2, -1)
   const qtyAlloc: number[] = allocateByWeights(productQty, weights)
-  const stockAlloc: number[] = allocateByWeights(productAvailableStock, weights)
+  const stockAlloc: number[] = allocateByWeights(productAvailableStock, stockWeights)
   const orderAlloc: number[] = allocateByWeights(initialOrderQty, weights)
+  const midpoint: number = (sizes.length - 1) / 2
   return sizes.map((size: string, index: number) : { size: string; ratio: number; competitorRatio: number; confirmedQty: number; avgPrice: number; qty: number; availableStock: number; } => ({
     size,
     ratio: weights[index]!,
-    competitorRatio: Math.max(1, Math.round(baseWeights[index]! * (1 - ((index - midpoint) * ((seed % 3) - 1)) / 24))),
+    competitorRatio: comparisonWeights[index] ?? 1,
     confirmedQty: orderAlloc[index]!,
     avgPrice: Math.round(productPrice * (1 + (index - midpoint) * 0.004)),
     qty: qtyAlloc[index]!,

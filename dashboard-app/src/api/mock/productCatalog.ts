@@ -30,18 +30,24 @@ function makeFlatTrend(historySales: number, forecastSales: number): MonthlySale
 
 function buildSimpleCalcSecondary(skuGroupKey: string, comparisonPrice: number, comparisonQty: number): ProductSecondaryDetail {
   const sizes: string[] = ['S', 'M', 'L', 'XL', 'XXL']
+  const selfRatios: number[] = [8, 18, 34, 26, 14]
+  const comparisonRatios: number[] = [30, 28, 22, 14, 6]
+  const confirmedQtyValues: number[] = [160, 360, 680, 520, 280]
+  const salesQtyValues: number[] = [192, 432, 816, 624, 336]
+  const stockQtyValues: number[] = [96, 216, 408, 312, 168]
+  const avgPriceValues: number[] = [98000, 99000, 100000, 101000, 102000]
   return {
     skuGroupKey,
     comparisonPrice,
     comparisonQty,
-    comparisonRatioBySize: Object.fromEntries(sizes.map((size: string) : [string, number] => [size, 0.2])),
-    sizeRows: sizes.map((size: string) : { size: string; selfRatio: number; confirmedQty: number; avgPrice: number; qty: number; availableStock: number; } => ({
+    comparisonRatioBySize: Object.fromEntries(sizes.map((size: string, index: number) : [string, number] => [size, (comparisonRatios[index] ?? 0) / 100])),
+    sizeRows: sizes.map((size: string, index: number) : { size: string; selfRatio: number; confirmedQty: number; avgPrice: number; qty: number; availableStock: number; } => ({
       size,
-      selfRatio: 20,
-      confirmedQty: 400,
-      avgPrice: 100000,
-      qty: 480,
-      availableStock: 240,
+      selfRatio: selfRatios[index] ?? 0,
+      confirmedQty: confirmedQtyValues[index] ?? 0,
+      avgPrice: avgPriceValues[index] ?? 0,
+      qty: salesQtyValues[index] ?? 0,
+      availableStock: stockQtyValues[index] ?? 0,
     })),
   }
 }
