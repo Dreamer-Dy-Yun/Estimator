@@ -145,6 +145,7 @@ export function useSecondaryDrawerSnapshotController({
     defaultInboundDueDates,
     minOrderDate,
     prefillKey,
+    appliedPrefillKey,
     onComparisonSubjectChange,
     setDailyMeanClient,
     setCurrentOrderInboundDueDate,

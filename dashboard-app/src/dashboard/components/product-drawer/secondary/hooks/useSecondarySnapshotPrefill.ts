@@ -10,6 +10,7 @@ export type Args = {
   defaultInboundDueDates: InboundDueDateDefaults
   minOrderDate: string
   prefillKey: string | null
+  appliedPrefillKey: string | null
   onComparisonSubjectChange: (next: OrderSnapshotComparisonSubject) => void
   setDailyMeanClient: (value: number | null) => void
   setCurrentOrderInboundDueDate: (value: string) => void
@@ -31,6 +32,7 @@ export function useSecondarySnapshotPrefill({
   defaultInboundDueDates,
   minOrderDate,
   prefillKey,
+  appliedPrefillKey,
   onComparisonSubjectChange,
   setDailyMeanClient,
   setCurrentOrderInboundDueDate,
@@ -63,6 +65,7 @@ export function useSecondarySnapshotPrefill({
         setAppliedPrefillKey(null)
         return
       }
+      if (prefillKey != null && appliedPrefillKey === prefillKey) return
       const d2: OrderSnapshotDrawer2 = prefillFromSnapshot.drawer2
       const stockOrderRequest: OrderSnapshotStockOrderRequest = d2.stockOrderRequest
       onComparisonSubjectChange(d2.comparisonSubject)
@@ -90,6 +93,7 @@ export function useSecondarySnapshotPrefill({
     defaultInboundDueDates.start,
     minOrderDate,
     onComparisonSubjectChange,
+    appliedPrefillKey,
     prefillFromSnapshot,
     prefillKey,
     setAiComment,

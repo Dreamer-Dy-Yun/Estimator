@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   dashboardApi,
   type ProductComparisonBaseSubjectRef,
@@ -127,21 +127,36 @@ export function useProductComparisonTargets({
     () : ProductComparisonTarget | null => selectedTarget(comparisonTargetsForBase, comparisonMode, targetIds),
     [comparisonMode, comparisonTargetsForBase, targetIds],
   )
+  const comparisonModeRef: React.RefObject<ProductComparisonTargetKind> = useRef(comparisonMode)
+  const targetIdsRef: React.RefObject<ProductComparisonTargetIds> = useRef(targetIds)
+  comparisonModeRef.current = comparisonMode
+  targetIdsRef.current = targetIds
 
-  const setComparisonTargetId: (next: string) => void = (next: string) : void => {
-    setTargetIds((prev: ProductComparisonTargetIds) : ProductComparisonTargetIds => ({
-      ...prev,
-      [comparisonMode]: next,
-    }))
-  }
+  const setComparisonTargetId: (next: string) => void = useCallback((next: string) : void => {
+    const currentMode: ProductComparisonTargetKind = comparisonModeRef.current
+    if (targetIdsRef.current[currentMode] === next) return
+    setTargetIds((prev: ProductComparisonTargetIds) : ProductComparisonTargetIds => (
+      prev[currentMode] === next
+        ? prev
+        : {
+            ...prev,
+            [currentMode]: next,
+          }
+    ))
+  }, [])
 
-  const setComparisonSubject: (next: ProductComparisonTarget) => void = (next: ProductComparisonTarget) : void => {
-    setComparisonMode(next.kind)
-    setTargetIds((prev: ProductComparisonTargetIds) : ProductComparisonTargetIds => ({
-      ...prev,
-      [next.kind]: next.id,
-    }))
-  }
+  const setComparisonSubject: (next: ProductComparisonTarget) => void = useCallback((next: ProductComparisonTarget) : void => {
+    if (comparisonModeRef.current === next.kind && targetIdsRef.current[next.kind] === next.id) return
+    setComparisonMode((prev: ProductComparisonTargetKind) : ProductComparisonTargetKind => prev === next.kind ? prev : next.kind)
+    setTargetIds((prev: ProductComparisonTargetIds) : ProductComparisonTargetIds => (
+      prev[next.kind] === next.id
+        ? prev
+        : {
+            ...prev,
+            [next.kind]: next.id,
+          }
+    ))
+  }, [])
 
   return {
     comparisonTargets: comparisonTargetsForBase,
