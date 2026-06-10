@@ -118,10 +118,6 @@ export function SalesMetricsCard({ targetPeriodDays, sales, loading = false, err
     { key: 'fee', label: KO.rowFee, self: rateRank(base.feeRatePct, base.feeRank, base.rankTotal), comparison: rateRank(comparison.feeRatePct, comparison.feeRank, comparison.rankTotal), comparisonUnavailable: comparison.feeRatePct === null || comparison.feeRank === null },
     { key: 'opMargin', label: KO.rowOpMargin, self: rateRank(base.opMarginRatePct, base.opMarginRank, base.rankTotal), comparison: rateRank(comparison.opMarginRatePct, comparison.opMarginRank, comparison.rankTotal), comparisonUnavailable: comparison.opMarginRatePct === null || comparison.opMarginRank === null },
   ]
-  const comparisonHeaderClassName: string = comparisonFilter?.selfComparisonEnabled
-    ? styles.salesMetricsSelfHeader
-    : styles.salesMetricsCompetitorHeader
-
   return (
     <div className={`${styles.card} ${styles.gridColumnCard} ${styles.salesMetricsStableCard}`} aria-busy={loading}>
       {header}
@@ -131,7 +127,7 @@ export function SalesMetricsCard({ targetPeriodDays, sales, loading = false, err
             <tr>
               <th>{KO.thMetric}</th>
               <th className={`${styles.num} ${styles.salesMetricsSelfHeader}`}>{baseLabel}</th>
-              <th className={`${styles.num} ${comparisonHeaderClassName}`}>
+              <th className={`${styles.num} ${styles.salesMetricsCompetitorHeader}`}>
                 {comparisonFilter ? (
                   <ComparisonTargetSelect comparisonFilter={comparisonFilter} />
                 ) : comparisonLabel}
