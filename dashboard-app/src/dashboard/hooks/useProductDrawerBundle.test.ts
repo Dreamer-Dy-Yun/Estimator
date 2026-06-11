@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   pickProductDrawerBundleFromCache,
   type ProductDrawerBundleCache,
+  type ProductDrawerBundleFailedRequestState,
 } from './useProductDrawerBundle'
 import type { ProductComparisonBaseSubjectRef } from '../../api'
 
@@ -45,6 +46,12 @@ describe('pickProductDrawerBundleFromCache', () : void => {
   it('returns null when stale is not allowed and id mismatches', () : void => {
     const cache: ProductDrawerBundleCache = { skuGroupKey: 'A__010', baseSubjectKey: BASE_SUBJECT_KEY, bundle: bundleA }
     expect(pickProductDrawerBundleFromCache('B__010', cache, false, BASE_SUBJECT)).toBeNull()
+  })
+
+  it('returns null for previous sku cache after selected sku request fails', () : void => {
+    const cache: ProductDrawerBundleCache = { skuGroupKey: 'A__010', baseSubjectKey: BASE_SUBJECT_KEY, bundle: bundleA }
+    const failedRequestState: ProductDrawerBundleFailedRequestState = { skuGroupKey: 'B__010', baseSubjectKey: BASE_SUBJECT_KEY }
+    expect(pickProductDrawerBundleFromCache('B__010', cache, true, BASE_SUBJECT, failedRequestState)).toBeNull()
   })
 
   it('returns cache bundle when ids match regardless of stale option', () : void => {

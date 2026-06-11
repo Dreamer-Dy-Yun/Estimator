@@ -1,4 +1,5 @@
 import type { CandidateStashSummary } from '../../../api'
+import { DialogCloseButton } from '../../../components/DialogCloseButton'
 import { formatDateTimeMinute } from '../../../utils/date'
 import styles from '../common.module.css'
 import detailStyles from './CandidateStashDetailModal.module.css'
@@ -22,7 +23,7 @@ export function CandidateStashDetailHeader({ detailTarget, canOpenRecommendation
         <div className={detailStyles.detailHeaderRecommendationCell}>
           <button type="button" className={`${styles.actionBtn} ${styles.btnNeutral} ${detailStyles.detailHeaderRecommendationBtn}`} onClick={onOpenRecommendations} disabled={!canOpenRecommendations}>추천 보기</button>
         </div>
-        <button type="button" className={`${styles.actionBtn} ${styles.btnNeutral} ${detailStyles.detailHeaderCloseBtn}`} onClick={onClose} aria-label="닫기" title="닫기">×</button>
+        <DialogCloseButton className={`${styles.actionBtn} ${styles.btnNeutral} ${detailStyles.detailHeaderCloseBtn}`} onClose={onClose} />
         {detailTarget.note && <div className={detailStyles.detailNoteGridCell}>{detailTarget.note}</div>}
       </div>
     </div>

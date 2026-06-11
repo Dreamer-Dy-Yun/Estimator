@@ -1,6 +1,6 @@
 # QA Current Behavior
 
-Last updated: 2026-06-09
+Last updated: 2026-06-10
 
 ## General
 
@@ -8,6 +8,8 @@ Last updated: 2026-06-09
 - Failures are visible and are not converted to empty success states.
 - Refresh failure preserves existing stable data and shows a failure surface.
 - Async stale responses must not overwrite current scope/period/item state.
+- Auth actions are sequenced so older session responses do not overwrite newer login, logout, refresh, or profile update actions.
+- Public mock request adapters normalize raw mock failures into `ApiClientError` before screen hooks receive them.
 - No silent numeric fallback for missing business data.
 
 ## Company scope
@@ -22,6 +24,7 @@ Last updated: 2026-06-09
 - Daily trend request: selected start month first day through yesterday + lead-time forecast days.
 - AI comment request is manual.
 - Snapshot save uses current drawer state and `OrderSnapshotDocument` v3.
+- If a selected SKU drawer-bundle refresh fails, the UI may keep same-SKU stable data, but it must not show another SKU's cached bundle as the current selection.
 
 ## Candidate stash
 

@@ -31,6 +31,7 @@ import {
   candidateStashExcelTemplateFilename,
   resolvePublicAssetUrl,
 } from './dashboardRequestShared'
+import { notifyMockStreamError, withMockApiAdapterErrors } from './mockApiError'
 
 async function requireCurrentUserUuid(): Promise<string> {
   const session: AuthSession | null = await mockAuthApi.getCurrentSession()
@@ -55,7 +56,7 @@ function withCurrentUserStream<S extends { close: () => void }>(
       if (closed) subscription.close()
     })
     .catch((error: unknown) : void => {
-      if (!closed) onError?.(error)
+      if (!closed) notifyMockStreamError(onError, error)
     })
   return { close: () : void => { closed = true; subscription?.close() } } as S
 }
@@ -65,7 +66,7 @@ const getCandidateStashExcelTemplateDownload: () => CandidateStashExcelTemplateD
   filename: candidateStashExcelTemplateFilename,
 })
 
-export const mockDashboardRequests: DashboardApi = {
+export const mockDashboardRequests: DashboardApi = withMockApiAdapterErrors<DashboardApi>({
   getSelfSales: (params: SelfSalesParams | undefined): Promise<SelfSalesRow[]> => mockDashboardApi.getSelfSales(params),
   getCompetitorSales: (params: CompetitorSalesParams | undefined): Promise<CompetitorSalesRow[]> => mockDashboardApi.getCompetitorSales(params),
   getSelfSalesScatterGrid: (params: SelfSalesGridParams): Promise<ScatterSalesGridResponse> => mockDashboardApi.getSelfSalesScatterGrid(params),
@@ -112,4 +113,4 @@ export const mockDashboardRequests: DashboardApi = {
   updateCandidateItem: (payload: UpdateCandidateItemPayload) : Promise<CandidateItemDetail> => withCurrentUserUuid((userUuid: string) : Promise<CandidateItemDetail> => mockDashboardApi.updateCandidateItem(payload, userUuid)),
   uploadCandidateStashExcel: (file: File, params: CompanyMutationScopeParams) : Promise<CandidateStashExcelUploadResult> => withCurrentUserUuid((userUuid: string) : Promise<CandidateStashExcelUploadResult> => mockDashboardApi.uploadCandidateStashExcel(file, userUuid, params)),
   getCandidateStashExcelTemplateDownload,
-}
+})

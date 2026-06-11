@@ -2,6 +2,7 @@ import type { AdminUserSummary, AuthSession, ChangePasswordPayload, CreateAdminU
 import { mockAuthApi } from '../mock'
 import type { AuthApi } from '../types'
 import { ApiHttpError, apiRequest, USE_MOCK_API } from './httpClient'
+import { withMockApiAdapterErrors } from './mockApiError'
 
 /**
  * Auth/admin-user request adapter.
@@ -47,7 +48,7 @@ const httpAuthRequests: AuthApi = {
   logout: () : Promise<void> => apiRequest('/auth/logout', { method: 'POST' }),
 }
 
-const mockAuthRequests: AuthApi = {
+const mockAuthRequests: AuthApi = withMockApiAdapterErrors<AuthApi>({
   getCurrentSession: () : Promise<AuthSession | null> => mockAuthApi.getCurrentSession(),
   login: (payload: LoginRequest) : Promise<LoginResult> => mockAuthApi.login(payload),
   updateCurrentUser: (payload: UpdateAuthUserPayload) : Promise<AuthSession> => mockAuthApi.updateCurrentUser(payload),
@@ -58,6 +59,6 @@ const mockAuthRequests: AuthApi = {
   resetAdminUserPassword: (userUuid: string) : Promise<ResetAdminUserPasswordResult> => mockAuthApi.resetAdminUserPassword(userUuid),
   deleteAdminUser: (userUuid: string) : Promise<void> => mockAuthApi.deleteAdminUser(userUuid),
   logout: () : Promise<void> => mockAuthApi.logout(),
-}
+})
 
 export const authRequests: AuthApi = USE_MOCK_API ? mockAuthRequests : httpAuthRequests

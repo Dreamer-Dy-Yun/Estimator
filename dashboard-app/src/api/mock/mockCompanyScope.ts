@@ -16,11 +16,7 @@ import {
 export const MOCK_HANA_COMPANY_UUID = '00000000-0000-4000-8000-000000000101' as const
 export const MOCK_T1_COMPANY_UUID = '00000000-0000-4000-8000-000000000102' as const
 
-export const MOCK_COMPANIES: CompanySummary[] = [
-  {
-    uuid: ALL_COMPANY_UUID,
-    name: '\uC804\uCCB4',
-  },
+export const MOCK_REAL_COMPANIES: CompanySummary[] = [
   {
     uuid: MOCK_HANA_COMPANY_UUID,
     name: '\uD55C\uC544INT',
@@ -29,6 +25,14 @@ export const MOCK_COMPANIES: CompanySummary[] = [
     uuid: MOCK_T1_COMPANY_UUID,
     name: 'T1\uAE00\uB85C\uBC8C',
   },
+]
+
+export const MOCK_COMPANIES: CompanySummary[] = [
+  {
+    uuid: ALL_COMPANY_UUID,
+    name: '\uC804\uCCB4',
+  },
+  ...MOCK_REAL_COMPANIES,
 ]
 
 type CompanyScopeInput = CompanyScopeParams | string | null | undefined

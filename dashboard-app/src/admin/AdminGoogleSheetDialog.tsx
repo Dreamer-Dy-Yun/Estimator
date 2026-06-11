@@ -4,6 +4,7 @@ import { deleteAdminGoogleSheetConfig, updateAdminGoogleSheetConfig } from '../a
 import type { AdminGoogleSheetConfigSummary, AdminGoogleSheetPurpose } from '../api'
 import type { CompanySummary } from '../api/types/company'
 import { useAppToast } from '../components/AppToastContext'
+import { DialogCloseButton } from '../components/DialogCloseButton'
 import { LoadingSpinner } from '../components/LoadingSpinner'
 import { AdminActiveSwitch } from './AdminActiveSwitch'
 import { AdminGoogleSheetKeyDropzone } from './AdminGoogleSheetKeyDropzone'
@@ -132,9 +133,7 @@ export function AdminGoogleSheetDialog({
             <span>구글 시트 관리</span>
             <h3 id="admin-google-sheet-dialog-title">상세 설정</h3>
           </div>
-          <button className={styles.gptKeyDialogCloseButton} type="button" onClick={onClose} disabled={isSaving || isDeleting} aria-label="닫기">
-            x
-          </button>
+          <DialogCloseButton className={styles.gptKeyDialogCloseButton} disabled={isSaving || isDeleting} onClose={onClose} />
         </header>
 
         <form id={formId} className={styles.gptKeyDialogForm} onSubmit={handleSubmit}>

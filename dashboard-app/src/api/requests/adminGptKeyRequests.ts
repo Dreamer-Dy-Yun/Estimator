@@ -2,6 +2,7 @@ import type { AdminGptKeyPurpose, AdminGptKeyTestResult, CreateAdminGptKeyPayloa
 import { mockAdminGptKeyApi } from '../mock'
 import type { AdminGptKeyApi, AdminGptKeySummary, UpdateAdminGptKeyPayload } from '../types'
 import { apiRequest, USE_MOCK_API } from './httpClient'
+import { withMockApiAdapterErrors } from './mockApiError'
 
 /**
  * Admin GPT key request adapter.
@@ -51,14 +52,14 @@ const httpAdminGptKeyRequests: AdminGptKeyApi = {
     apiRequest(`/admin/gpt-keys/${encodeURIComponent(keyUuid)}`, { method: 'DELETE' }),
 }
 
-const mockAdminGptKeyRequests: AdminGptKeyApi = {
+const mockAdminGptKeyRequests: AdminGptKeyApi = withMockApiAdapterErrors<AdminGptKeyApi>({
   getAdminGptKeys: () : Promise<AdminGptKeySummary[]> => mockAdminGptKeyApi.getAdminGptKeys(),
   createAdminGptKey: (payload: CreateAdminGptKeyPayload) : Promise<AdminGptKeySummary> => mockAdminGptKeyApi.createAdminGptKey(payload),
   updateAdminGptKey: (payload: UpdateAdminGptKeyPayload) : Promise<AdminGptKeySummary> => mockAdminGptKeyApi.updateAdminGptKey(payload),
   rotateAdminGptKey: (payload: RotateAdminGptKeyPayload) : Promise<AdminGptKeySummary> => mockAdminGptKeyApi.rotateAdminGptKey(payload),
   testAdminGptKey: (keyUuid: string) : Promise<AdminGptKeyTestResult> => mockAdminGptKeyApi.testAdminGptKey(keyUuid),
   deleteAdminGptKey: (keyUuid: string) : Promise<void> => mockAdminGptKeyApi.deleteAdminGptKey(keyUuid),
-}
+})
 
 export const adminGptKeyRequests: AdminGptKeyApi = USE_MOCK_API
   ? mockAdminGptKeyRequests

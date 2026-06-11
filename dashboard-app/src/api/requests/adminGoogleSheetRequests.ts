@@ -6,6 +6,7 @@ import {
   normalizeCompanyScopeParams,
 } from '../types'
 import { apiRequest, USE_MOCK_API } from './httpClient'
+import { withMockApiAdapterErrors } from './mockApiError'
 
 function toCompanyQuery(params?: CompanyScopeParams) : string {
   const normalized: CompanyScopeParams | undefined = normalizeCompanyScopeParams(params)
@@ -51,12 +52,12 @@ const httpAdminGoogleSheetRequests: AdminGoogleSheetApi = {
     }),
 }
 
-const mockAdminGoogleSheetRequests: AdminGoogleSheetApi = {
+const mockAdminGoogleSheetRequests: AdminGoogleSheetApi = withMockApiAdapterErrors<AdminGoogleSheetApi>({
   getAdminGoogleSheetConfigs: (params: CompanyScopeParams | undefined) : Promise<AdminGoogleSheetConfigSummary[]> => mockAdminGoogleSheetApi.getAdminGoogleSheetConfigs(params),
   createAdminGoogleSheetConfig: (payload: CreateAdminGoogleSheetConfigPayload) : Promise<AdminGoogleSheetConfigSummary> => mockAdminGoogleSheetApi.createAdminGoogleSheetConfig(payload),
   updateAdminGoogleSheetConfig: (payload: UpdateAdminGoogleSheetConfigPayload) : Promise<AdminGoogleSheetConfigSummary> => mockAdminGoogleSheetApi.updateAdminGoogleSheetConfig(payload),
   deleteAdminGoogleSheetConfig: (configUuid: string, params: CompanyMutationScopeParams) : Promise<void> => mockAdminGoogleSheetApi.deleteAdminGoogleSheetConfig(configUuid, params),
-}
+})
 
 export const adminGoogleSheetRequests: AdminGoogleSheetApi = USE_MOCK_API
   ? mockAdminGoogleSheetRequests

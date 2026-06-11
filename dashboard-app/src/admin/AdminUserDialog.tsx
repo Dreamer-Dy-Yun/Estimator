@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { deleteAdminUser, updateAdminUser } from '../api'
 import type { AdminUserSummary, AuthRole } from '../api'
 import { useAppToast } from '../components/AppToastContext'
+import { DialogCloseButton } from '../components/DialogCloseButton'
 import { LoadingSpinner } from '../components/LoadingSpinner'
 import { AdminActiveSwitch } from './AdminActiveSwitch'
 import { refreshAfterAdminMutation } from './adminMutationRefresh'
@@ -125,9 +126,7 @@ export function AdminUserDialog({
             <span>사용자 관리</span>
             <h3 id="admin-user-dialog-title">상세 설정</h3>
           </div>
-          <button className={styles.gptKeyDialogCloseButton} type="button" onClick={onClose} disabled={isBusy} aria-label="닫기">
-            x
-          </button>
+          <DialogCloseButton className={styles.gptKeyDialogCloseButton} disabled={isBusy} onClose={onClose} />
         </header>
 
         <form id={formId} className={styles.gptKeyDialogForm} onSubmit={handleSubmit}>

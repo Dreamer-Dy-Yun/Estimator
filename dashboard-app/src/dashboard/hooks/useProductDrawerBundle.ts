@@ -24,6 +24,11 @@ export type ProductDrawerBundleRequestState = {
   loading: boolean
 }
 
+export type ProductDrawerBundleFailedRequestState = {
+  skuGroupKey: string
+  baseSubjectKey: string
+} | null
+
 
 /** Hook 외부에서도 재사용 가능한 번들 선택 규칙(순수 함수). */
 export function pickProductDrawerBundleFromCache(
@@ -31,11 +36,20 @@ export function pickProductDrawerBundleFromCache(
   cache: ProductDrawerBundleCache,
   allowStaleWhileRevalidate: boolean,
   baseSubject: ProductComparisonBaseSubjectRef,
+  failedRequestState?: ProductDrawerBundleFailedRequestState,
 ): ProductDrawerBundle | null {
   if (!selectedSkuGroupKey) return null
   if (!cache) return null
-  if (cache.baseSubjectKey !== getComparisonSubjectKey(baseSubject)) return null
-  if (!allowStaleWhileRevalidate && cache.skuGroupKey !== selectedSkuGroupKey) return null
+  const selectedBaseSubjectKey: string = getComparisonSubjectKey(baseSubject)
+  if (cache.baseSubjectKey !== selectedBaseSubjectKey) return null
+  if (cache.skuGroupKey === selectedSkuGroupKey) return cache.bundle
+  if (!allowStaleWhileRevalidate) return null
+  if (
+    failedRequestState?.skuGroupKey === selectedSkuGroupKey &&
+    failedRequestState.baseSubjectKey === selectedBaseSubjectKey
+  ) {
+    return null
+  }
   return cache.bundle
 }
 
@@ -53,26 +67,36 @@ export function useProductDrawerBundleState(
     baseSubjectKey: null,
     loading: false,
   })
+  const [failedRequestState, setFailedRequestState]: [
+    ProductDrawerBundleFailedRequestState,
+    React.Dispatch<React.SetStateAction<ProductDrawerBundleFailedRequestState>>
+  ] = useState<ProductDrawerBundleFailedRequestState>(null)
 
   useEffect(() : (() => void) | undefined => {
     if (!selectedSkuGroupKey) {
-      queueMicrotask(() : void => setRequestState({ skuGroupKey: null, baseSubjectKey: null, loading: false }))
+      queueMicrotask(() : void => {
+        setRequestState({ skuGroupKey: null, baseSubjectKey: null, loading: false })
+        setFailedRequestState(null)
+      })
       return
     }
     let alive: boolean = true
     queueMicrotask(() : void => {
-      if (alive) setRequestState({ skuGroupKey: selectedSkuGroupKey, baseSubjectKey, loading: true })
+      if (alive) {
+        setRequestState({ skuGroupKey: selectedSkuGroupKey, baseSubjectKey, loading: true })
+        setFailedRequestState(null)
+      }
     })
     getProductDrawerBundle(selectedSkuGroupKey, { base: baseSubject })
       .then((data: ProductDrawerBundle) : void => {
-        if (alive) setCache({ skuGroupKey: selectedSkuGroupKey, baseSubjectKey, bundle: data })
+        if (alive) {
+          setCache({ skuGroupKey: selectedSkuGroupKey, baseSubjectKey, bundle: data })
+          setFailedRequestState(null)
+        }
       })
       .catch(() : void => {
-        // 네트워크/목업 실패 시 이전 품번 캐시 오염을 막기 위해 현재 선택 품번 캐시를 비운다.
         if (alive) {
-          setCache((prev: ProductDrawerBundleCache) : ProductDrawerBundleCache => (
-            prev?.skuGroupKey === selectedSkuGroupKey && prev.baseSubjectKey === baseSubjectKey ? null : prev
-          ))
+          setFailedRequestState({ skuGroupKey: selectedSkuGroupKey, baseSubjectKey })
         }
       })
       .finally(() : void => {
@@ -83,7 +107,13 @@ export function useProductDrawerBundleState(
     }
   }, [baseSubject, baseSubjectKey, selectedSkuGroupKey])
 
-  const bundle: ProductDrawerBundle | null = pickProductDrawerBundleFromCache(selectedSkuGroupKey, cache, allowStale, baseSubject)
+  const bundle: ProductDrawerBundle | null = pickProductDrawerBundleFromCache(
+    selectedSkuGroupKey,
+    cache,
+    allowStale,
+    baseSubject,
+    failedRequestState,
+  )
   const loading: boolean = Boolean(
     selectedSkuGroupKey &&
       requestState.skuGroupKey === selectedSkuGroupKey &&

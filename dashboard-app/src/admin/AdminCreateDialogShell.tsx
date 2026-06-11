@@ -1,4 +1,5 @@
 import { LoadingSpinner } from '../components/LoadingSpinner'
+import { DialogCloseButton } from '../components/DialogCloseButton'
 import styles from './AdminPage.module.css'
 
 export interface AdminCreateDialogShellProps {
@@ -44,9 +45,7 @@ export function AdminCreateDialogShell({
             <span>{eyebrow}</span>
             <h3 id={`${formId}-title`}>{title}</h3>
           </div>
-          <button className={styles.gptKeyDialogCloseButton} type="button" onClick={handleClose} disabled={isSubmitting} aria-label="닫기">
-            x
-          </button>
+          <DialogCloseButton className={styles.gptKeyDialogCloseButton} disabled={isSubmitting} onClose={handleClose} />
         </header>
 
         <form id={formId} className={styles.gptKeyDialogForm} onSubmit={onSubmit}>

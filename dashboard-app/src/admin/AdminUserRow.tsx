@@ -17,7 +17,6 @@ export function AdminUserRow({ user, onOpen }: AdminUserRowProps) : React.JSX.El
     <button className={styles.userRow} type="button" onClick={() : void => onOpen(user)}>
       <span className={styles.gptKeyNameCell}>
         <strong>{user.loginId}</strong>
-        <small>{user.mustChangePassword ? '비밀번호 변경 필요' : '비밀번호 변경 완료'}</small>
       </span>
       <span>{user.name}</span>
       <span>{user.note ?? '-'}</span>

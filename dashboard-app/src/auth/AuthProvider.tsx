@@ -7,6 +7,7 @@ import {
   useState,
 } from 'react'
 import {
+  ALL_COMPANY_UUID,
   changeCurrentUserPassword,
   getCompanies,
   getCurrentAuthSession,
@@ -28,8 +29,17 @@ import { AuthContext } from './AuthContext'
 
 const AUTH_SESSION_ERROR_STORAGE_KEY = 'han-a.auth.session-error-message' as const
 const DEFAULT_COMPANY_ERROR_MESSAGE = 'Failed to load companies.' as const
+const ALL_COMPANY_OPTION: CompanySummary = {
+  uuid: ALL_COMPANY_UUID,
+  name: '\uC804\uCCB4',
+} as const
 
-function getDefaultCompanyUuid(companies: CompanySummary[]) : string {
+function getDisplayCompanies(apiCompanies: CompanySummary[]) : CompanySummary[] {
+  const realCompanies: CompanySummary[] = apiCompanies.filter((company: CompanySummary) : boolean => company.uuid !== ALL_COMPANY_UUID)
+  return [ALL_COMPANY_OPTION, ...realCompanies]
+}
+
+function getDefaultCompanyUuid(companies: CompanySummary[]) : string | null {
   return companies.find((company: CompanySummary) : string | undefined => getCompanyUuidForOptionalScope(company.uuid))?.uuid
     ?? companies[0]?.uuid
     ?? null
@@ -70,15 +80,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) : Reac
   const [isCompanyLoading, setIsCompanyLoading]: [boolean, React.Dispatch<React.SetStateAction<boolean>>] = useState(false)
   const [companyError, setCompanyError]: [string | null, React.Dispatch<React.SetStateAction<string | null>>] = useState<string | null>(null)
   const companyRequestSeq: React.RefObject<number> = useRef(0)
+  const authRequestSeq: React.RefObject<number> = useRef(0)
 
-  const applyCompanies: (nextCompanies: CompanySummary[]) => void = useCallback((nextCompanies: CompanySummary[]) : void => {
-    setCompanies(nextCompanies)
-    setSelectedCompanyUuid((currentUuid: string | null) : string => {
-      if (currentUuid && nextCompanies.some((company: CompanySummary) : boolean => company.uuid === currentUuid)) {
+  const beginAuthRequest: () => number = useCallback(() : number => {
+    const requestSeq: number = authRequestSeq.current + 1
+    authRequestSeq.current = requestSeq
+    return requestSeq
+  }, [])
+
+  const isCurrentAuthRequest: (requestSeq: number) => boolean = useCallback((requestSeq: number) : boolean => authRequestSeq.current === requestSeq, [])
+
+  const applyCompanies: (nextCompanies: CompanySummary[]) => CompanySummary[] = useCallback((nextCompanies: CompanySummary[]) : CompanySummary[] => {
+    const displayCompanies: CompanySummary[] = getDisplayCompanies(nextCompanies)
+    setCompanies(displayCompanies)
+    setSelectedCompanyUuid((currentUuid: string | null) : string | null => {
+      if (currentUuid && displayCompanies.some((company: CompanySummary) : boolean => company.uuid === currentUuid)) {
         return currentUuid
       }
-      return getDefaultCompanyUuid(nextCompanies)
+      return getDefaultCompanyUuid(displayCompanies)
     })
+    return displayCompanies
   }, [])
 
   const resetCompanyState: () => void = useCallback(() : void => {
@@ -89,27 +110,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) : Reac
     setCompanyError(null)
   }, [])
 
-  const loadCompanies: () => Promise<CompanySummary[]> = useCallback(async () : Promise<CompanySummary[]> => {
+  const loadCompanies: (authSeq?: number) => Promise<CompanySummary[]> = useCallback(async (authSeq?: number) : Promise<CompanySummary[]> => {
     const requestSeq: number = companyRequestSeq.current + 1
     companyRequestSeq.current = requestSeq
+    const canSetCompanyLoading: () => boolean = () : boolean => companyRequestSeq.current === requestSeq
+    const canApplyCompanyResponse: () => boolean = () : boolean =>
+      canSetCompanyLoading() && (authSeq === undefined || authRequestSeq.current === authSeq)
     setIsCompanyLoading(true)
     setCompanyError(null)
 
     try {
       const nextCompanies: CompanySummary[] = await getCompanies()
-      if (companyRequestSeq.current === requestSeq) {
+      if (canApplyCompanyResponse()) {
         applyCompanies(nextCompanies)
       }
       return nextCompanies
     } catch (error) {
-      if (companyRequestSeq.current === requestSeq) {
+      if (canApplyCompanyResponse()) {
         setCompanies([])
         setSelectedCompanyUuid(null)
         setCompanyError(getApiErrorDisplayMessage(error, DEFAULT_COMPANY_ERROR_MESSAGE))
       }
       return []
     } finally {
-      if (companyRequestSeq.current === requestSeq) {
+      if (canSetCompanyLoading()) {
         setIsCompanyLoading(false)
       }
     }
@@ -117,63 +141,84 @@ export function AuthProvider({ children }: { children: React.ReactNode }) : Reac
 
   useEffect(() : () => void => {
     let alive: boolean = true
+    const requestSeq: number = beginAuthRequest()
     getCurrentAuthSession()
       .then(async (nextSession: AuthSession | null) : Promise<void> => {
-        if (!alive) return
+        if (!alive || !isCurrentAuthRequest(requestSeq)) return
         setSession(nextSession)
         clearSessionCheckErrorMessage()
         if (!nextSession) {
           resetCompanyState()
           return
         }
-        await loadCompanies()
+        await loadCompanies(requestSeq)
       })
       .catch((error: unknown) : void => {
-        if (alive) {
+        if (alive && isCurrentAuthRequest(requestSeq)) {
           setSession(null)
           resetCompanyState()
           persistSessionCheckErrorMessage(error)
         }
       })
       .finally(() : void => {
-        if (alive) setIsLoading(false)
+        if (alive && isCurrentAuthRequest(requestSeq)) setIsLoading(false)
       })
 
     return () : void => {
       alive = false
+      authRequestSeq.current += 1
       companyRequestSeq.current += 1
     }
-  }, [loadCompanies, resetCompanyState])
+  }, [beginAuthRequest, isCurrentAuthRequest, loadCompanies, resetCompanyState])
 
   const refreshSession: () => Promise<AuthSession | null> = useCallback(async () : Promise<AuthSession | null> => {
-    const nextSession: AuthSession | null = await getCurrentAuthSession()
-    setSession(nextSession)
-    if (nextSession) {
-      await loadCompanies()
-    } else {
-      resetCompanyState()
+    const requestSeq: number = beginAuthRequest()
+    try {
+      const nextSession: AuthSession | null = await getCurrentAuthSession()
+      if (!isCurrentAuthRequest(requestSeq)) return nextSession
+      setSession(nextSession)
+      if (nextSession) {
+        await loadCompanies(requestSeq)
+      } else {
+        resetCompanyState()
+      }
+      return nextSession
+    } finally {
+      if (isCurrentAuthRequest(requestSeq)) setIsLoading(false)
     }
-    return nextSession
-  }, [loadCompanies, resetCompanyState])
+  }, [beginAuthRequest, isCurrentAuthRequest, loadCompanies, resetCompanyState])
 
   const login: (payload: LoginRequest) => Promise<AuthSession> = useCallback(async (payload: LoginRequest) : Promise<AuthSession> => {
-    const result: LoginResult = await requestLogin(payload)
-    setSession(result.session)
-    await loadCompanies()
-    return result.session
-  }, [loadCompanies])
+    const requestSeq: number = beginAuthRequest()
+    try {
+      const result: LoginResult = await requestLogin(payload)
+      if (!isCurrentAuthRequest(requestSeq)) return result.session
+      setSession(result.session)
+      await loadCompanies(requestSeq)
+      return result.session
+    } finally {
+      if (isCurrentAuthRequest(requestSeq)) setIsLoading(false)
+    }
+  }, [beginAuthRequest, isCurrentAuthRequest, loadCompanies])
 
   const logout: () => Promise<void> = useCallback(async () : Promise<void> => {
-    await requestLogout()
-    setSession(null)
-    resetCompanyState()
-  }, [resetCompanyState])
+    const requestSeq: number = beginAuthRequest()
+    try {
+      await requestLogout()
+      if (!isCurrentAuthRequest(requestSeq)) return
+      setSession(null)
+      resetCompanyState()
+    } finally {
+      if (isCurrentAuthRequest(requestSeq)) setIsLoading(false)
+    }
+  }, [beginAuthRequest, isCurrentAuthRequest, resetCompanyState])
 
   const updateUser: (payload: UpdateAuthUserPayload) => Promise<AuthSession> = useCallback(async (payload: UpdateAuthUserPayload) : Promise<AuthSession> => {
+    const requestSeq: number = beginAuthRequest()
     const nextSession: AuthSession = await updateCurrentUser(payload)
-    setSession(nextSession)
+    if (isCurrentAuthRequest(requestSeq)) setSession(nextSession)
     return nextSession
-  }, [])
+  }, [beginAuthRequest, isCurrentAuthRequest])
 
   const changePassword: (payload: ChangePasswordPayload) => Promise<void> = useCallback(async (payload: ChangePasswordPayload) : Promise<void> => {
     await changeCurrentUserPassword(payload)

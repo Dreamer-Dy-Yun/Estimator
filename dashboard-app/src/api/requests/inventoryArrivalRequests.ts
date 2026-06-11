@@ -4,6 +4,7 @@ import { mockInventoryArrivalApi } from '../mock'
 import type { InventoryArrivalApi, InventoryArrivalCollectionParams } from '../types'
 import { normalizeCompanyMutationScopeParams } from '../types/company'
 import { apiRequest, USE_MOCK_API } from './httpClient'
+import { withMockApiAdapterErrors } from './mockApiError'
 
 /**
  * Backend contract switch point for spreadsheet-driven inbound date collection.
@@ -36,9 +37,9 @@ const httpInventoryArrivalRequests: InventoryArrivalApi = {
     }),
 }
 
-const mockInventoryArrivalRequests: InventoryArrivalApi = {
+const mockInventoryArrivalRequests: InventoryArrivalApi = withMockApiAdapterErrors<InventoryArrivalApi>({
   collectInventoryArrivalDates: (params: CompanyMutationScopeParams) : Promise<InventoryArrivalCollectionResult> => mockInventoryArrivalApi.collectInventoryArrivalDates(params),
-}
+})
 
 export const inventoryArrivalRequests: InventoryArrivalApi = USE_MOCK_API
   ? mockInventoryArrivalRequests

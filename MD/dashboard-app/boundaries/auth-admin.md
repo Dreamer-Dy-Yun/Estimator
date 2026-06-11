@@ -36,6 +36,9 @@ Last updated: 2026-06-10
 
 ## Boundary rules
 
+- `AuthProvider` owns auth request sequencing. Initial session load, `refreshSession`, `login`, `logout`, and `updateUser` must not let an older response overwrite a newer auth action.
+- `AuthProvider` also owns the frontend-only all-company dropdown option. `/companies` adapters return real company rows only; the UI-visible `ALL_COMPANY_UUID` option is injected after the API boundary.
+
 - 로그인 오류와 세션 만료 메시지는 visible text로 표시하고, form과 연결된 ARIA live region으로도 노출한다.
 - 로그인은 `AuthProvider`를 통과한 상태에서 세션이 구성되며, UI 계층은 mock/http 구현을 직접 임포트하지 않는다.
 - API adapter mode는 `API_ADAPTER_MODE` / 환경변수 기반으로 분기되며, auth boundary는 adapter 결과만 소비한다.

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { deleteAdminGptKey, testAdminGptKey, updateAdminGptKey } from '../api'
 import type { AdminGptKeyPurpose, AdminGptKeySummary, AdminGptKeyTestResult } from '../api'
 import { useAppToast } from '../components/AppToastContext'
+import { DialogCloseButton } from '../components/DialogCloseButton'
 import { LoadingSpinner } from '../components/LoadingSpinner'
 import { AdminActiveSwitch } from './AdminActiveSwitch'
 import { refreshAfterAdminMutation } from './adminMutationRefresh'
@@ -130,9 +131,7 @@ export function AdminGptKeyDialog({
             <span>GPT 키 관리</span>
             <h3 id="admin-gpt-key-dialog-title">상세 설정</h3>
           </div>
-          <button className={styles.gptKeyDialogCloseButton} type="button" onClick={onClose} disabled={isBusy} aria-label="닫기">
-            x
-          </button>
+          <DialogCloseButton className={styles.gptKeyDialogCloseButton} disabled={isBusy} onClose={onClose} />
         </header>
 
         <form id="admin-gpt-key-detail-form" className={styles.gptKeyDialogForm} onSubmit={handleSubmit}>
