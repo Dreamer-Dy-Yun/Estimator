@@ -10,7 +10,7 @@ Product drawer owns primary summary display, secondary detail display, secondary
 
 | File | Responsibility |
 |---|---|
-| `ProductDrawer.tsx` | Drawer shell and secondary pane state |
+| `ProductDrawer.tsx` | Drawer shell, secondary pane state, and drawer-level keyboard ownership |
 | `useProductComparisonTargets.ts` | Base subject to comparison target list state, comparison mode, missing target state |
 | `ProductDrawerSecondaryPane.tsx` | Secondary loading/error/detail branching |
 | `secondary/ProductSecondaryDrawer.tsx` | Secondary state orchestration |
@@ -68,6 +68,7 @@ Product drawer owns primary summary display, secondary detail display, secondary
 - Empty comparison target lists are valid unavailable states. The drawer must not replace them with the first target, a fake target, or a generic API error.
 - A first returned API/mock target may be used only as a UI default when no saved target exists and the target list is non-empty.
 - Deleted, unauthorized, or current-scope-missing selected targets are unavailable states; they require explicit re-selection and must not be silently replaced by a fake subject.
+- Arrow key ownership belongs to the stable `ProductDrawer` shell, not content/loading child panels. While the drawer is open, `ArrowUp`/`ArrowDown` are terminal events: navigation may be ignored during an in-flight adjacent move, but the event must not leak to list focus handlers or close the secondary pane.
 - Primary sales metrics keeps a stable card shell while comparison data is loading. Target clicks may update request state, but they must not replace the card with a different loading layout or resize the product image/card column.
 - Candidate detail drawer opened from a single-company candidate keeps the same company scope through reads and mutations.
 - Secondary mutations require concrete `companyUuid`.

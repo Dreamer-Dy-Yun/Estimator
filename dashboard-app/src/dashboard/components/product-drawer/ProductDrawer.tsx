@@ -40,6 +40,8 @@ export type ProductDrawerSharedProps = {
 export type ProductDrawerContentProps = ProductDrawerSharedProps & {
   summary: ProductPrimarySummary
   companyUuid?: string
+  expandPaneOpen: boolean
+  setExpandPaneOpen: React.Dispatch<React.SetStateAction<boolean>>
 }
 
 export type ProductDrawerProps = ProductDrawerSharedProps & {
@@ -58,24 +60,15 @@ function ProductDrawerContent({
   selfCompanyLabel,
   onForecastMonthsChange,
   hydrateSnapshot,
-  initialExpandSecondary,
   secondaryEnabled = true,
   candidateItemContext,
-  onRequestNavigateAdjacent,
-  onSecondaryOpenChange,
-  disableAdjacentNavigation,
-  keyboardShortcutsDisabled,
   suppressDocumentLayoutShift,
   closing = false,
+  expandPaneOpen,
+  setExpandPaneOpen,
 }: ProductDrawerContentProps) : React.JSX.Element {
   const pageName = 'ProductDrawer' as const
   const drawerRef: React.RefObject<HTMLElement | null> = useRef<HTMLElement | null>(null)
-  const [expandPaneOpenState, setExpandPaneOpen]: [boolean, React.Dispatch<React.SetStateAction<boolean>>] = useState(() : boolean => !!initialExpandSecondary)
-  const expandPaneOpen: boolean = secondaryEnabled && expandPaneOpenState
-
-  useEffect(() : void => {
-    onSecondaryOpenChange?.(expandPaneOpen)
-  }, [expandPaneOpen, onSecondaryOpenChange])
 
   const baseSubject: ProductComparisonBaseSubjectRef = useMemo(
     () : ProductComparisonBaseSubjectRef => ({
@@ -140,17 +133,6 @@ function ProductDrawerContent({
 
   const selectedComparisonTargetReady: boolean = comparisonTarget != null
   const selectedComparisonTargetMissing: boolean = !targetsLoading && comparisonTarget == null
-
-  useProductDrawerKeyboard({
-    closing,
-    expandPaneOpen,
-    setExpandPaneOpen,
-    onClose,
-    onRequestNavigateAdjacent,
-    disableAdjacentNavigation,
-    disabled: keyboardShortcutsDisabled,
-    secondaryEnabled,
-  })
 
   const selectedStartMonth: string = normalizeMonthKey(periodStart)
   const selectedEndMonth: string = normalizeMonthKey(periodEnd)
@@ -227,19 +209,39 @@ export const ProductDrawer: (props: ProductDrawerProps) => React.JSX.Element | n
 }: ProductDrawerProps) : React.JSX.Element | null => {
   const { selectedCompanyUuid }: ReturnType<typeof useAuth> = useAuth()
   const companyUuid: string | undefined = companyUuidProp ?? getCompanyUuidForOptionalScope(selectedCompanyUuid)
+  const secondaryEnabled: boolean = contentProps.secondaryEnabled !== false
+  const initialExpandSecondary: boolean = secondaryEnabled && Boolean(contentProps.initialExpandSecondary)
+  const [expandPaneOpenState, setExpandPaneOpen]: [boolean, React.Dispatch<React.SetStateAction<boolean>>] = useState(() : boolean => initialExpandSecondary)
+  const expandPaneOpen: boolean = secondaryEnabled && expandPaneOpenState
+  const initialExpandSecondaryRef: React.RefObject<boolean> = useRef(initialExpandSecondary)
+
+  useEffect(() : void => {
+    if (initialExpandSecondaryRef.current === initialExpandSecondary) return
+    initialExpandSecondaryRef.current = initialExpandSecondary
+    queueMicrotask(() : void => setExpandPaneOpen(initialExpandSecondary))
+  }, [initialExpandSecondary])
+
+  useEffect(() : void => {
+    contentProps.onSecondaryOpenChange?.(expandPaneOpen)
+  }, [contentProps.onSecondaryOpenChange, expandPaneOpen])
+
+  useProductDrawerKeyboard({
+    closing: contentProps.closing,
+    expandPaneOpen,
+    setExpandPaneOpen,
+    secondaryEnabled,
+    onClose: contentProps.onClose,
+    onRequestNavigateAdjacent: contentProps.onRequestNavigateAdjacent,
+    disableAdjacentNavigation: contentProps.disableAdjacentNavigation,
+    disabled: contentProps.keyboardShortcutsDisabled,
+  })
 
   if (!summary) {
     if (!loading) return null
     return (
       <ProductDrawerLoadingPanel
         closing={contentProps.closing}
-        expandSecondary={contentProps.secondaryEnabled !== false && Boolean(contentProps.initialExpandSecondary)}
-        secondaryEnabled={contentProps.secondaryEnabled !== false}
-        onClose={contentProps.onClose}
-        onRequestNavigateAdjacent={contentProps.onRequestNavigateAdjacent}
-        onSecondaryOpenChange={contentProps.onSecondaryOpenChange}
-        disableAdjacentNavigation={contentProps.disableAdjacentNavigation}
-        keyboardShortcutsDisabled={contentProps.keyboardShortcutsDisabled}
+        expandSecondary={expandPaneOpen}
       />
     )
   }
@@ -248,6 +250,8 @@ export const ProductDrawer: (props: ProductDrawerProps) => React.JSX.Element | n
       {...contentProps}
       summary={summary}
       companyUuid={companyUuid}
+      expandPaneOpen={expandPaneOpen}
+      setExpandPaneOpen={setExpandPaneOpen}
     />
   )
 }
@@ -255,32 +259,10 @@ export const ProductDrawer: (props: ProductDrawerProps) => React.JSX.Element | n
 function ProductDrawerLoadingPanel({
   closing,
   expandSecondary = false,
-  secondaryEnabled = true,
-  onClose,
-  onRequestNavigateAdjacent,
-  onSecondaryOpenChange,
-  disableAdjacentNavigation,
-  keyboardShortcutsDisabled,
 }: {
   closing?: boolean
   expandSecondary?: boolean
-  secondaryEnabled?: boolean
-  onClose: () => void
-  onRequestNavigateAdjacent?: (direction: AdjacentDirection) => void | Promise<void>
-  onSecondaryOpenChange?: (open: boolean) => void
-  disableAdjacentNavigation?: boolean
-  keyboardShortcutsDisabled?: boolean
 }) : React.JSX.Element {
-  useProductDrawerKeyboard({
-    closing,
-    expandPaneOpen: expandSecondary,
-    setExpandPaneOpen: onSecondaryOpenChange,
-    secondaryEnabled,
-    onClose,
-    onRequestNavigateAdjacent,
-    disableAdjacentNavigation,
-    disabled: keyboardShortcutsDisabled,
-  })
   return (
     <aside className={`${styles.drawer} ${expandSecondary ? styles.drawerWithExpandPane : ''} ${closing ? styles.drawerClosing : ''}`}>
       <div className={styles.drawerLoadingPanel}>

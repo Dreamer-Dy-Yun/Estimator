@@ -35,6 +35,7 @@ export function useProductDrawerKeyboard({
       if (isCandidateStashPickerOpen()) return
       e.preventDefault()
       e.stopPropagation()
+      e.stopImmediatePropagation()
 
       if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
         if (onRequestNavigateAdjacent && !disableAdjacentNavigation) {
