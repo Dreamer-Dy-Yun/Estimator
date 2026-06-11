@@ -84,7 +84,7 @@ export function AiCommentCard({
 
   return (
     <>
-      <div className={`${styles.card} ${styles.gridColumnCard}`}>
+      <div className={`${styles.card} ${styles.gridColumnCard} ${styles.aiCommentCard}`}>
         <div className={styles.aiCommentHeader}>
           <h3 className={`${styles.sectionTitle} ${styles.aiCommentTitle}`}>
             {KO.sectionAi}
