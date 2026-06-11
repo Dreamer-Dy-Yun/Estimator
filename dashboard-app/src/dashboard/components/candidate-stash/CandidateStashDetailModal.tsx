@@ -46,6 +46,7 @@ export function CandidateStashDetailModal({ stashUuid, companyUuid, downloadUser
     stashSummary,
     onStashesInvalidate,
     orderMetricComparisonTarget: orderMetricComparisonTargets.comparisonTarget,
+    orderMetricComparisonTargetsLoading: orderMetricComparisonTargets.targetsLoading,
   })
   const [bulkDeleteOpen, setBulkDeleteOpen]: [boolean, React.Dispatch<React.SetStateAction<boolean>>] = useState(false)
   const [bulkUnconfirmOpen, setBulkUnconfirmOpen]: [boolean, React.Dispatch<React.SetStateAction<boolean>>] = useState(false)

@@ -8,6 +8,7 @@ Last updated: 2026-06-11
 - The selected comparison target is passed as `CandidateOrderMetricStreamParams.comparison` for each `subscribeCandidateOrderMetrics` request.
 - Snapshot-confirmed candidate items project `OrderSnapshotDocument.drawer2` values into the inner order list and do not recalculate when the comparison target changes.
 - Non-snapshot candidate items use the same secondary size/order projection helper as the product drawer, while daily trend rendering data stays out of the list metric request.
+- If comparison targets are still loading, candidate order metric subscription waits. If loading completes with no selected comparison target, the modal must not synthesize a fake default; non-snapshot order metric rows are closed as failed.
 
 ## 0-5) 2026-06-10 list thumbnail boundary
 

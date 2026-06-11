@@ -21,6 +21,13 @@ const SAVED_COMPARISON_TARGET: ProductComparisonTarget = {
   role: 'comparison',
   sourceId: 'channel-b',
 }
+const SELF_COMPARISON_TARGET: ProductComparisonTarget = {
+  id: 'self-company-2',
+  kind: 'self-company',
+  label: 'Company B',
+  role: 'comparison',
+  sourceId: 'company-2',
+}
 
 let root: Root | null = null
 let container: HTMLDivElement | null = null
@@ -124,5 +131,28 @@ describe('useProductComparisonTargets', () : void => {
     })
 
     expect(hook.renderCount).toBe(renderCountAfterFirstSelection)
+  })
+
+  it('selects the first available target when the default kind has no target', async () : Promise<void> => {
+    vi.spyOn(dashboardApi, 'getProductComparisonTargets')
+      .mockResolvedValue([SELF_COMPARISON_TARGET])
+
+    const hook: { readonly current: ProductComparisonTargetsState; readonly renderCount: number; rerender: () => void } = renderHook()
+    await flushMicrotasks()
+
+    expect(hook.current.targetsLoading).toBe(false)
+    expect(hook.current.comparisonTarget?.id).toBe(SELF_COMPARISON_TARGET.id)
+  })
+
+  it('settles loading when target loading fails', async () : Promise<void> => {
+    vi.spyOn(dashboardApi, 'getProductComparisonTargets')
+      .mockRejectedValue(new Error('target load failed'))
+
+    const hook: { readonly current: ProductComparisonTargetsState; readonly renderCount: number; rerender: () => void } = renderHook()
+    await flushMicrotasks()
+
+    expect(hook.current.targetsLoading).toBe(false)
+    expect(hook.current.comparisonTarget).toBeNull()
+    expect(hook.current.targetsError?.error).toContain('target load failed')
   })
 })

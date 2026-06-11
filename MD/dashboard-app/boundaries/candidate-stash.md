@@ -52,4 +52,5 @@ Candidate stash owns order candidate lists, item detail drawer entry, recommenda
 - Inner order metrics are snapshot-first. If `details` exists, list `qty`, order amount, sales amount, profit, inbound date, and size quantities project `OrderSnapshotDocument.drawer2`.
 - If `details` is null, order metrics request the selected size comparison subject through `subscribeCandidateOrderMetrics(params.comparison)`.
 - Candidate stash does not own a global comparison target. The detail header fetches comparison targets through `getProductComparisonTargets({ base })`, and every metric SSE request receives the selected target as a parameter.
+- While comparison targets are loading, order metric SSE may wait. If target loading completes with no available selected target, candidate stash does not call SSE with a fake default and marks non-snapshot order metric cells failed.
 - Daily trend data is not part of the inner order metric request; only the secondary order calculation basis is reused.

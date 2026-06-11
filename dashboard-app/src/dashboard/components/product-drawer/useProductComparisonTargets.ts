@@ -39,7 +39,7 @@ function selectedTarget(
   targetIds: ProductComparisonTargetIds,
 ): ProductComparisonTarget | null {
   const candidates: ProductComparisonTarget[] = targetsByKind(targets, kind)
-  if (!candidates.length) return null
+  if (!candidates.length) return targets[0] ?? null
   const selectedId: string = targetIds[kind]
   if (selectedId === '') return candidates[0]!
   return candidates.find((target: ProductComparisonTarget) : boolean => target.id === selectedId) ?? null
@@ -122,7 +122,7 @@ export function useProductComparisonTargets({
     () : ProductComparisonTarget[] => loadedBaseKey === baseKey ? comparisonTargets : [],
     [baseKey, comparisonTargets, loadedBaseKey],
   )
-  const effectiveTargetsLoading: boolean = targetsLoading || loadedBaseKey !== baseKey
+  const effectiveTargetsLoading: boolean = targetsLoading || (loadedBaseKey !== baseKey && targetsError == null)
   const comparisonTarget: ProductComparisonTarget | null = useMemo(
     () : ProductComparisonTarget | null => selectedTarget(comparisonTargetsForBase, comparisonMode, targetIds),
     [comparisonMode, comparisonTargetsForBase, targetIds],

@@ -200,7 +200,7 @@ type CandidateOrderMetricEvent =
 
 ## 프론트 현재 구현
 
-현재 프론트 mock/API 대체 구현은 아래 계약을 기준으로 반영되어 있다. `getCandidateItemsByStash`는 후보군에 담긴 기본 행을 먼저 반환하고, `getCandidateRecommendations`는 배지 있는 추천 SKU page를 별도 반환한다. 총 오더 수량·금액은 `subscribeCandidateOrderMetrics` SSE로 행별 갱신한다.
+현재 프론트 mock/API 대체 구현은 아래 계약을 기준으로 반영되어 있다. `getCandidateItemsByStash`는 후보군에 담긴 기본 행을 먼저 반환하고, `getCandidateRecommendations`는 배지 있는 추천 SKU page를 별도 반환한다. 총 오더 수량·금액은 선택된 comparison target이 있을 때만 `subscribeCandidateOrderMetrics` SSE로 행별 갱신한다. target 목록이 비었거나 로딩 실패 후 선택 가능한 target이 없으면 SSE를 열지 않고 non-snapshot metric cell을 실패 상태로 종료한다.
 
 1. API 타입 분리
    - `CandidateReferenceItemSummary`

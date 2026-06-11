@@ -78,6 +78,7 @@
 - 상품 판매 정보 비교 API는 `base`와 `comparison`을 subject 계약으로 통일한다. 프론트 내부 subject는 `role`, `kind`, `sourceId`를 갖지만, HTTP query에서는 `self-company` 전체 범위의 `sourceId`를 생략한다. `ALL_COMPANY_UUID`는 프론트 내부 sentinel이며 백엔드로 전송하지 않는다.
 - `getProductComparisonTargets`의 빈 배열은 정상 unavailable 상태다. 화면은 첫 번째 비교 대상을 임의 생성하거나 API 오류로 바꾸지 않는다.
 - 후보군 상세의 사이즈 기준 선택도 `getProductComparisonTargets({ base })`를 별도 호출해 받은 목록을 사용한다. 선택값은 전역 상태가 아니라 `subscribeCandidateOrderMetrics` 호출 인자로 전달한다.
+- 후보군 상세는 comparison target 로딩 중에는 총오더 metric SSE를 지연할 수 있다. 로딩이 끝났는데 선택 가능한 target이 없으면 가짜 default를 만들지 않고 non-snapshot metric cell을 실패 상태로 종료한다.
 - 후보군 mutation, 후보군 backend job start, 후보군 job/SSE subscribe, 오더 지표 SSE, 후보군 엑셀 upload FormData는 단일 회사 scope 전용이다. `전체` 선택 상태에서는 UI에서 후보군 side-effect 진입을 막고, mock/HTTP 백엔드는 `companyUuid` 누락 요청을 검증 실패로 처리해야 한다.
 - `dashboardMasterDataCache.ts`는 page와 공통 drawer가 공유하는 master data 요청을 coalesce한다. mutation 후 무효화 대상이 아닌 master data만 캐시한다.
 - 관리자 Google Sheets mock은 서비스 계정 키를 JSON으로 parse해 `client_email`을 확인한다. 잘못된 JSON을 정규식 등으로 보정하지 않는다.

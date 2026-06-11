@@ -51,6 +51,37 @@ export function resetCandidateItemOrderMetricLoading(item: CandidateItemSummary)
   }
 }
 
+function clearCandidateItemOrderMetricAsFailed(item: CandidateItemSummary): CandidateItemSummary {
+  return {
+    ...item,
+    orderMetricStatus: 'failed',
+    qty: 0,
+    expectedOrderAmount: 0,
+    expectedSalesAmount: 0,
+    expectedOpProfit: 0,
+    insight: {
+      ...item.insight,
+      expectedSalesQty: 0,
+      expectedSalesAmount: 0,
+      expectedOpProfit: 0,
+    },
+    orderExport: null,
+  }
+}
+
+export function markComparisonUnavailableCandidateOrderMetricsFailed(items: CandidateItemSummary[]): CandidateItemSummary[] {
+  if (!items.length) return items
+  let changed: boolean = false
+  const failedItems: CandidateItemSummary[] = items.map((item: CandidateItemSummary) : CandidateItemSummary => {
+    const targetUnavailableAffected: boolean = !item.isDetailConfirmed
+      && (item.orderMetricStatus === 'loading' || item.orderMetricStatus === 'loaded')
+    if (!targetUnavailableAffected) return item
+    changed = true
+    return clearCandidateItemOrderMetricAsFailed(item)
+  })
+  return changed ? failedItems : items
+}
+
 export function markCandidateItemInsightsFailed(items: CandidateItemSummary[]): CandidateItemSummary[] {
   if (!items.length) return items
   let changed: boolean = false

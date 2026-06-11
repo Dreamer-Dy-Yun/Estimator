@@ -32,7 +32,7 @@ import {
 } from './candidateItemLocalMutationModel'
 import { useCandidateItemsLoader } from './useCandidateItemsLoader'
 import type { CandidateItemStateUpdater } from './candidateStashDetailTypes'
-import { resetCandidateItemOrderMetricLoading } from './candidateItemMetricModel'
+import { markComparisonUnavailableCandidateOrderMetricsFailed, resetCandidateItemOrderMetricLoading } from './candidateItemMetricModel'
 
 export type Args = {
   stashUuid: string
@@ -40,6 +40,7 @@ export type Args = {
   stashSummary?: CandidateStashSummary | null
   onStashesInvalidate?: () => void
   orderMetricComparisonTarget: ProductComparisonTarget | null
+  orderMetricComparisonTargetsLoading: boolean
 }
 
 export type { InnerCandidateRow, InnerCandidateSortKey } from './candidateStashDetailTypes'
@@ -50,6 +51,7 @@ export function useCandidateStashDetailModal({
   stashSummary: stashSummaryProp,
   onStashesInvalidate,
   orderMetricComparisonTarget,
+  orderMetricComparisonTargetsLoading,
 }: Args) : { companyUuid: string | undefined; items: CandidateItemSummary[]; candidateItemsLoading: boolean; candidateItemsLoadError: string | null; dataReferencePeriodStart: string; dataReferencePeriodEnd: string; periodStart: string | undefined; periodEnd: string | undefined; itemDeleteTarget: CandidateItemSummary | null; detailTarget: CandidateStashSummary | null; stashListLoadError: string | null; setItemDeleteTarget: React.Dispatch<React.SetStateAction<CandidateItemSummary | null>>; markDrawerSnapshotConfirmed: (itemUuid: string, snapshot: OrderSnapshotDocument, updatedItem: CandidateItemDetail) => void; markDrawerSnapshotUnconfirmed: (itemUuid: string, updatedItem: CandidateItemDetail) => void; loadItems: (nextPeriodStart?: string, nextPeriodEnd?: string, options?: CandidateMetricReloadOptions) => Promise<void>; refreshStashes: () => Promise<void>; confirmDeleteItem: () => Promise<void>; recommendationItems: CandidateReferenceItemSummary[]; recommendationLoading: boolean; recommendationAppendBusy: boolean; recommendationError: string | null; clearRecommendationItems: () => void; loadRecommendations: (force?: boolean) => Promise<CandidateReferenceItemSummary[]>; appendRecommendedItems: (rows: CandidateReferenceItemSummary[]) => Promise<AppendRecommendedItemsResult>; bulkConfirmBusy: boolean; bulkConfirmProgress: CandidateBulkDetailConfirmProgress | null; closeBulkConfirmProgress: () => void; confirmBulkDetailItems: (itemUuids: string[]) => Promise<void>; itemDeleteBusy: boolean; bulkDeleteBusy: boolean; bulkUnconfirmBusy: boolean; orderExportBusy: boolean; orderExportError: string | null; confirmDeleteItems: (itemUuids: string[]) => Promise<void>; confirmUnconfirmItems: (itemUuids: string[]) => Promise<void>; downloadOrderExcel: (userName: string) => Promise<void>; brandQuery: string; setBrandQuery: React.Dispatch<React.SetStateAction<string>>; codeQuery: string; setCodeQuery: React.Dispatch<React.SetStateAction<string>>; productNameQuery: string; setProductNameQuery: React.Dispatch<React.SetStateAction<string>>; tableSort: InnerCandidateSortState | null; toggleTableSort: (key: InnerCandidateSortKey) => void; resetTableSort: () => void; brandOptions: string[]; codeOptions: string[]; productNameOptions: string[]; tableRows: CandidateItemSummary[]; totals: { qty: number; expectedOrderAmount: number; expectedSalesAmount: number; expectedOpProfit: number; }; pendingOrderMetricCount: number; totalExpectedOpProfitRatePct: number | null; draftDataReferencePeriodStart: string; draftDataReferencePeriodEnd: string; dataReferencePeriodQueryDirty: boolean; onDataReferencePeriodStartChange: (value: string) => void; onDataReferencePeriodEndChange: (value: string) => void; applyDataReferencePeriod: () => void; drawerOpen: boolean; drawerClosing: boolean; drawerError: string | null; openedItemUuid: string | null; hydrateSnap: OrderSnapshotDocument | null; hydrateSnapSource: DrawerSnapshotSource | null; confirmedHydrateSnap: OrderSnapshotDocument | null; fc: number; bundle: ProductDrawerBundle | null; mergedSummary: ProductPrimarySummary | null; openItemDrawer: (row: InnerCandidateRow, options?: OpenItemDrawerOptions) => Promise<void>; onRequestNavigateAdjacent: (direction: AdjacentDirection) => Promise<void>; closeDrawer: () => void; onDrawerForecastMonthsChange: (n: number) => void; saveDrawerDraftSnapshot: (itemUuid: string, snapshot: OrderSnapshotDocument, source: DrawerSnapshotSource) => void; clearDrawerDraftSnapshot: (itemUuid: string) => void; restoreDrawerConfirmedSnapshot: (itemUuid: string) => void; } {
   const [items, setItemsState]: [CandidateItemSummary[], React.Dispatch<React.SetStateAction<CandidateItemSummary[]>>] = useState<CandidateItemSummary[]>([])
   const [itemDeleteTarget, setItemDeleteTarget]: [CandidateItemSummary | null, React.Dispatch<React.SetStateAction<CandidateItemSummary | null>>] = useState<CandidateItemSummary | null>(null)
@@ -128,6 +130,24 @@ export function useCandidateStashDetailModal({
     if (orderMetricComparisonTarget == null) return ''
     return `${orderMetricComparisonTarget.kind}:${orderMetricComparisonTarget.sourceId ?? ''}:${orderMetricComparisonTarget.id}`
   }, [orderMetricComparisonTarget])
+  const hasComparisonUnavailableMetricRows: boolean = useMemo(() : boolean => items.some((item: CandidateItemSummary) : boolean => (
+    !item.isDetailConfirmed && (item.orderMetricStatus === 'loading' || item.orderMetricStatus === 'loaded')
+  )), [items])
+
+  useEffect(() : void => {
+    if (orderMetricComparisonTargetsLoading) return
+    if (orderMetricComparisonTarget != null) return
+    if (!hasComparisonUnavailableMetricRows) return
+    closeMetricSubscription()
+    orderMetricComparisonKeyRef.current = ''
+    setItems(markComparisonUnavailableCandidateOrderMetricsFailed)
+  }, [
+    closeMetricSubscription,
+    hasComparisonUnavailableMetricRows,
+    orderMetricComparisonTarget,
+    orderMetricComparisonTargetsLoading,
+    setItems,
+  ])
 
   useEffect(() : void => {
     if (orderMetricComparisonTarget == null) return

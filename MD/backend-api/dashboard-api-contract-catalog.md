@@ -321,6 +321,8 @@ sourceId?: string
 label
 ```
 
+If no comparison target is available for the requested base subject, return an empty array. The frontend treats that as a visible unavailable state; it does not synthesize a default comparison target.
+
 `ProductSalesInsight` fields:
 
 ```ts
@@ -452,6 +454,7 @@ Order metric calculation contract:
 - If `CANDIDATE_ITEM.details` contains an `OrderSnapshotDocument`, the metric must project the snapshot values. Use `drawer2.confirmedTotals.orderQty`, `drawer2.confirmedTotals.expectedSalesAmount`, `drawer2.confirmedTotals.expectedOpProfit`, `drawer2.unitEconomics.unitCost`, and `drawer2.sizeOrders[].confirmQty`.
 - If `CANDIDATE_ITEM.details` is null, calculate the same default secondary drawer order metric basis without daily trend rendering data. The comparison subject affects `ProductSecondaryDetail.comparisonRatioBySize`; stock-order calculation remains base-subject owned.
 - Do not use a server-global or session-global comparison basis for this SSE. The frontend sends the selected comparison subject on every request.
+- If the frontend has no selected comparison target after `getProductComparisonTargets({ base })` settles, it does not open this SSE and marks non-snapshot metric cells failed. Backend should expose unavailable comparison targets by returning an empty target list or an API error from `getProductComparisonTargets`, not by silently choosing a default target.
 
 SSE message examples:
 
