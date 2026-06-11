@@ -30,6 +30,7 @@ export type ProductDrawerSharedProps = {
   secondaryEnabled?: boolean
   candidateItemContext?: CandidateItemPanelContext | null
   onRequestNavigateAdjacent?: (direction: AdjacentDirection) => void | Promise<void>
+  onSecondaryOpenChange?: (open: boolean) => void
   disableAdjacentNavigation?: boolean
   keyboardShortcutsDisabled?: boolean
   suppressDocumentLayoutShift?: boolean
@@ -61,6 +62,7 @@ function ProductDrawerContent({
   secondaryEnabled = true,
   candidateItemContext,
   onRequestNavigateAdjacent,
+  onSecondaryOpenChange,
   disableAdjacentNavigation,
   keyboardShortcutsDisabled,
   suppressDocumentLayoutShift,
@@ -70,6 +72,10 @@ function ProductDrawerContent({
   const drawerRef: React.RefObject<HTMLElement | null> = useRef<HTMLElement | null>(null)
   const [expandPaneOpenState, setExpandPaneOpen]: [boolean, React.Dispatch<React.SetStateAction<boolean>>] = useState(() : boolean => !!initialExpandSecondary)
   const expandPaneOpen: boolean = secondaryEnabled && expandPaneOpenState
+
+  useEffect(() : void => {
+    onSecondaryOpenChange?.(expandPaneOpen)
+  }, [expandPaneOpen, onSecondaryOpenChange])
 
   const baseSubject: ProductComparisonBaseSubjectRef = useMemo(
     () : ProductComparisonBaseSubjectRef => ({

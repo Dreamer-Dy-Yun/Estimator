@@ -1,6 +1,6 @@
 import type { DrawerSnapshotSource } from './useCandidateStashItemDrawer'
 import type { CandidateItemSummary } from '../../../api'
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import type { CandidateItemDetail } from '../../../api'
 import type { OrderSnapshotDocument } from '../../../snapshot/orderSnapshotTypes'
 import { useSelfCompanyLabel } from '../../hooks/useSelfCompanyLabel'
@@ -36,6 +36,7 @@ function resolveCandidateDrawerPeriod(
 
 export function CandidateStashProductDrawer({ model, bulkDeleteOpen }: Props) : React.JSX.Element | null {
   const selfCompanyLabel: string = useSelfCompanyLabel()
+  const [secondaryPaneOpen, setSecondaryPaneOpen]: [boolean, React.Dispatch<React.SetStateAction<boolean>>] = useState(false)
   const openedItem: CandidateItemSummary | null = useMemo(
     () : CandidateItemSummary | null => model.items.find((item: CandidateItemSummary) : boolean => item.uuid === model.openedItemUuid) ?? null,
     [model.items, model.openedItemUuid],
@@ -72,6 +73,7 @@ export function CandidateStashProductDrawer({ model, bulkDeleteOpen }: Props) : 
       },
     }
   }, [model, openedItem])
+  const preserveSecondaryOnInitialOpen: boolean = model.drawerClosing && secondaryPaneOpen
 
   return drawerPeriod == null ? null : (
     <ProductDrawer
@@ -87,7 +89,8 @@ export function CandidateStashProductDrawer({ model, bulkDeleteOpen }: Props) : 
       selfCompanyLabel={selfCompanyLabel}
       onForecastMonthsChange={model.onDrawerForecastMonthsChange}
       hydrateSnapshot={model.hydrateSnap}
-          initialExpandSecondary={model.drawerClosing}
+      initialExpandSecondary={preserveSecondaryOnInitialOpen}
+      onSecondaryOpenChange={setSecondaryPaneOpen}
       onRequestNavigateAdjacent={model.onRequestNavigateAdjacent}
       disableAdjacentNavigation={Boolean(bulkDeleteOpen || model.itemDeleteTarget)}
       keyboardShortcutsDisabled={bulkDeleteOpen}
