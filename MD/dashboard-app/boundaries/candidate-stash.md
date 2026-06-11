@@ -35,6 +35,11 @@ Candidate stash owns order candidate lists, item detail drawer entry, recommenda
 | `useCandidateStashItemActions.ts` | Delete/unconfirm item actions |
 | `CandidateStashProductDrawer.tsx` | Product drawer bridge for candidate item |
 
+## Drawer navigation rule
+
+- When the secondary drawer is open, `ArrowUp`/`ArrowDown` adjacent item navigation must keep the secondary pane open across product drawer remount/loading boundaries.
+- A full drawer close resets the remembered secondary pane state, so the next normal item open does not auto-open the secondary pane.
+
 ## Recommendation append states
 
 | State | Meaning |

@@ -1,6 +1,6 @@
 import type { DrawerSnapshotSource } from './useCandidateStashItemDrawer'
 import type { CandidateItemSummary } from '../../../api'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import type { CandidateItemDetail } from '../../../api'
 import type { OrderSnapshotDocument } from '../../../snapshot/orderSnapshotTypes'
 import { useSelfCompanyLabel } from '../../hooks/useSelfCompanyLabel'
@@ -37,6 +37,10 @@ function resolveCandidateDrawerPeriod(
 export function CandidateStashProductDrawer({ model, bulkDeleteOpen }: Props) : React.JSX.Element | null {
   const selfCompanyLabel: string = useSelfCompanyLabel()
   const [secondaryPaneOpen, setSecondaryPaneOpen]: [boolean, React.Dispatch<React.SetStateAction<boolean>>] = useState(false)
+  useEffect(() : void => {
+    if (model.drawerOpen || model.drawerClosing || !secondaryPaneOpen) return
+    queueMicrotask(() : void => setSecondaryPaneOpen(false))
+  }, [model.drawerClosing, model.drawerOpen, secondaryPaneOpen])
   const openedItem: CandidateItemSummary | null = useMemo(
     () : CandidateItemSummary | null => model.items.find((item: CandidateItemSummary) : boolean => item.uuid === model.openedItemUuid) ?? null,
     [model.items, model.openedItemUuid],
@@ -73,7 +77,7 @@ export function CandidateStashProductDrawer({ model, bulkDeleteOpen }: Props) : 
       },
     }
   }, [model, openedItem])
-  const preserveSecondaryOnInitialOpen: boolean = model.drawerClosing && secondaryPaneOpen
+  const initialSecondaryPaneOpen: boolean = secondaryPaneOpen
 
   return drawerPeriod == null ? null : (
     <ProductDrawer
@@ -89,7 +93,7 @@ export function CandidateStashProductDrawer({ model, bulkDeleteOpen }: Props) : 
       selfCompanyLabel={selfCompanyLabel}
       onForecastMonthsChange={model.onDrawerForecastMonthsChange}
       hydrateSnapshot={model.hydrateSnap}
-      initialExpandSecondary={preserveSecondaryOnInitialOpen}
+      initialExpandSecondary={initialSecondaryPaneOpen}
       onSecondaryOpenChange={setSecondaryPaneOpen}
       onRequestNavigateAdjacent={model.onRequestNavigateAdjacent}
       disableAdjacentNavigation={Boolean(bulkDeleteOpen || model.itemDeleteTarget)}
