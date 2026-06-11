@@ -1,4 +1,5 @@
-﻿import { LoadingSpinner } from '../../../../../components/LoadingSpinner'
+import { DialogCloseButton } from '../../../../../components/DialogCloseButton'
+import { LoadingSpinner } from '../../../../../components/LoadingSpinner'
 import type { OrderSnapshotAiComment } from '../../../../../snapshot/orderSnapshotTypes'
 import { useCallback, useEffect, useId, useRef, useState } from 'react'
 import type { ApiUnitErrorInfo } from '../../../../../types'
@@ -72,55 +73,71 @@ export function AiCommentCard({
     }))
   }, [content])
 
+  const handleCloseExpanded: () => void = useCallback(() : void => {
+    setExpandedState((value: AiCommentExpandedState) : AiCommentExpandedState => ({
+      content: value.content,
+      expanded: false,
+    }))
+  }, [])
+
   const effectiveExpanded: boolean = expanded && scrollable
-  const answerClassName: string = effectiveExpanded
-    ? `${styles.aiAnswer} ${styles.aiAnswerExpanded}`
-    : styles.aiAnswer
 
   return (
-    <div className={`${styles.card} ${styles.gridColumnCard}`}>
-      <div className={styles.aiCommentHeader}>
-        <h3 className={`${styles.sectionTitle} ${styles.aiCommentTitle}`}>
-          {KO.sectionAi}
-        </h3>
-        {scrollable ? (
-          <button
-            type="button"
-            className={`${styles.btn} ${styles.btnSecondary} ${styles.btnViewportAdaptive}`}
-            onClick={handleToggleExpanded}
-            aria-expanded={effectiveExpanded}
-            aria-controls={answerId}
-          >
-            {effectiveExpanded ? KO.btnAiCommentCollapse : KO.btnAiCommentExpand}
-          </button>
-        ) : null}
-      </div>
-      <div className={styles.aiCardBody}>
-        <div
-          id={answerId}
-          ref={answerRef}
-          className={answerClassName}
-          aria-live="polite"
-          role={scrollable && !effectiveExpanded ? 'region' : undefined}
-          aria-label={scrollable && !effectiveExpanded ? KO.sectionAi : undefined}
-          tabIndex={scrollable && !effectiveExpanded ? 0 : undefined}
-        >
-          {content}
+    <>
+      <div className={`${styles.card} ${styles.gridColumnCard}`}>
+        <div className={styles.aiCommentHeader}>
+          <h3 className={`${styles.sectionTitle} ${styles.aiCommentTitle}`}>
+            {KO.sectionAi}
+          </h3>
+          {scrollable ? (
+            <button
+              type="button"
+              className={`${styles.btn} ${styles.btnSecondary} ${styles.btnViewportAdaptive}`}
+              onClick={handleToggleExpanded}
+              aria-expanded={effectiveExpanded}
+              aria-controls={effectiveExpanded ? `${answerId}-dialog` : answerId}
+            >
+              {KO.btnAiCommentExpand}
+            </button>
+          ) : null}
         </div>
-        <div className={styles.aiCommentActions}>
-          <button
-            type="button"
-            className={styles.btn}
-            onClick={onRequest}
-            disabled={loading}
+        <div className={styles.aiCardBody}>
+          <div
+            id={answerId}
+            ref={answerRef}
+            className={styles.aiAnswer}
+            aria-live="polite"
+            role={scrollable ? 'region' : undefined}
+            aria-label={scrollable ? KO.sectionAi : undefined}
+            tabIndex={scrollable ? 0 : undefined}
           >
-            {loading
-              ? <LoadingSpinner size="inline" label={KO.btnRequestAiComment} />
-              : KO.btnRequestAiComment}
-          </button>
+            {content}
+          </div>
+          <div className={styles.aiCommentActions}>
+            <button
+              type="button"
+              className={styles.btn}
+              onClick={onRequest}
+              disabled={loading}
+            >
+              {loading
+                ? <LoadingSpinner size="inline" label={KO.btnRequestAiComment} />
+                : KO.btnRequestAiComment}
+            </button>
+          </div>
         </div>
       </div>
-    </div>
+      {effectiveExpanded ? (
+        <div className={styles.aiCommentDialogBackdrop} role="presentation" onClick={handleCloseExpanded}>
+          <section id={`${answerId}-dialog`} className={styles.aiCommentDialog} role="dialog" aria-modal="true" aria-labelledby={`${answerId}-dialog-title`} onClick={(event: React.MouseEvent<HTMLElement, MouseEvent>) : void => event.stopPropagation()}>
+            <header className={styles.aiCommentDialogHeader}>
+              <h3 id={`${answerId}-dialog-title`} className={styles.aiCommentDialogTitle}>{KO.sectionAi}</h3>
+              <DialogCloseButton className={styles.aiCommentDialogClose} onClose={handleCloseExpanded} />
+            </header>
+            <div className={styles.aiCommentDialogBody}>{content}</div>
+          </section>
+        </div>
+      ) : null}
+    </>
   )
 }
-

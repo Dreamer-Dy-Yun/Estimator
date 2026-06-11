@@ -28,7 +28,8 @@
 
 .aiAnswer {
   flex: 1 1 auto;
-  min-height: 48px;
+  min-height: 0;
+  max-height: clamp(96px, 12vh, 156px);
   min-width: 0;
   box-sizing: border-box;
   padding: 8px;
@@ -43,15 +44,64 @@
   overscroll-behavior: contain;
 }
 
-.aiAnswerExpanded {
-  flex: 0 0 auto;
-  overflow: visible;
-}
 
 .aiCommentActions {
   display: flex;
   justify-content: flex-end;
   flex: 0 0 auto;
+}
+
+.aiCommentDialogBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 2400;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgb(15 23 42 / 0.42);
+}
+
+.aiCommentDialog {
+  width: min(760px, calc(100vw - 48px));
+  max-height: min(720px, calc(100vh - 48px));
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid #cbd5e1;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 24px 72px rgb(15 23 42 / 0.28);
+}
+
+.aiCommentDialogHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.aiCommentDialogTitle {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.aiCommentDialogClose {
+  flex: 0 0 auto;
+}
+
+.aiCommentDialogBody {
+  padding: 16px;
+  overflow: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: 15px;
+  line-height: 1.65;
+  color: #0f172a;
 }
 
 .btn {

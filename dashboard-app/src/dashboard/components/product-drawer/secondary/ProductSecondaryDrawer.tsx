@@ -161,7 +161,7 @@ export function ProductSecondaryDrawer({
     candidateItemContext,
     comparisonTarget,
     snapshotConfirmBySize,
-    useSnapshotConfirmBaseline: snapshotConfirmBaselineActive,
+    useSnapshotConfirmBaseline: snapshotConfirmBaselineActive && !confirmedBaselineDraftDirty,
     dailyMeanClient,
     setDailyMeanClient,
     currentOrderInboundDueDate,
