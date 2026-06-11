@@ -87,7 +87,7 @@ export function CandidateStashProductDrawer({ model, bulkDeleteOpen }: Props) : 
       selfCompanyLabel={selfCompanyLabel}
       onForecastMonthsChange={model.onDrawerForecastMonthsChange}
       hydrateSnapshot={model.hydrateSnap}
-      initialExpandSecondary={model.drawerOpen || model.drawerClosing}
+          initialExpandSecondary={model.drawerClosing}
       onRequestNavigateAdjacent={model.onRequestNavigateAdjacent}
       disableAdjacentNavigation={Boolean(bulkDeleteOpen || model.itemDeleteTarget)}
       keyboardShortcutsDisabled={bulkDeleteOpen}
