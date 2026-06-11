@@ -1,6 +1,6 @@
 # Backend API Implementation Notes
 
-Last updated: 2026-06-10
+Last updated: 2026-06-11
 
 Purpose: backend implementation notes for the current frontend API contract.
 
@@ -30,6 +30,14 @@ Source of truth:
 - Company-owned mutation, import, candidate job start, and candidate job/SSE subscribe require one concrete `companyUuid`.
 - Candidate stash and candidate item ownership must be enforced from authenticated session plus company scope.
 - Product drawer read-like APIs use `base` and `comparison` subject query fields instead of top-level `companyUuid`.
+
+## Auth and admin profile ownership
+
+- `PATCH /auth/me` owns the authenticated user's own `loginId` and `name`.
+- Backend must normalize `loginId` for uniqueness checks and return `409 conflict` when another user already owns the requested login id.
+- `PATCH /admin/users/{uuid}` owns only admin-control fields: `note`, `role`, and `isActive`.
+- Admin user update must not change `loginId` or `name`; those fields are profile-owned.
+- Self-disable, last-admin removal, and role demotion guard rules must be enforced server-side rather than hidden as frontend-only UI constraints.
 
 ## Product comparison subject contract
 

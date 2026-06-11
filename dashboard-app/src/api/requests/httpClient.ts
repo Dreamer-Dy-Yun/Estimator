@@ -146,7 +146,7 @@ async function readResponseBody(response: Response): Promise<unknown> {
   let text: string
   try {
     text = await response.text()
-  } catch (error) {
+  } catch (error: unknown) {
     throw createResponseReadFailure(error, response.status)
   }
   if (!text) return undefined
@@ -154,7 +154,7 @@ async function readResponseBody(response: Response): Promise<unknown> {
   if (!contentType.includes('application/json')) return text
   try {
     return JSON.parse(text) as unknown
-  } catch (error) {
+  } catch (error: unknown) {
     throw createResponseParseFailure(error, response.status, text)
   }
 }
@@ -204,7 +204,7 @@ export async function apiRequest<T>(path: string, options: ApiRequestOptions = {
     url = buildApiUrl(path, options.query)
     requestBody = prepareBody(options.body)
     headers = prepareHeaders(options)
-  } catch (error) {
+  } catch (error: unknown) {
     throw createApiClientError('client', 'API 요청을 생성하지 못했습니다.', 'REQUEST_CREATE_FAILED', {
       cause: error,
     })
@@ -218,7 +218,7 @@ export async function apiRequest<T>(path: string, options: ApiRequestOptions = {
       credentials: options.credentials ?? 'include',
       headers,
     })
-  } catch (error) {
+  } catch (error: unknown) {
     throw createFetchFailure(error)
   }
 
@@ -254,7 +254,7 @@ export function openApiEventStream<T>(
   let eventSource: EventSource
   try {
     eventSource = new EventSource(buildApiUrl(path, query), { withCredentials: true })
-  } catch (error) {
+  } catch (error: unknown) {
     throw createStreamFailure('network', '스트림 연결을 시작하지 못했습니다.', 'SSE_OPEN_FAILED', error)
   }
   eventSource.onmessage = (message: MessageEvent<string>) : void => {
@@ -262,7 +262,7 @@ export function openApiEventStream<T>(
     let parsed: T
     try {
       parsed = JSON.parse(message.data) as T
-    } catch (error) {
+    } catch (error: unknown) {
       eventSource.close()
       options.onError?.(createStreamFailure(
         'stream-protocol',

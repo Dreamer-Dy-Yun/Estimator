@@ -98,7 +98,7 @@ interface UpdateAuthUserPayload {
 
 interface UpdateAdminUserPayload {
   uuid: string
-  note: string
+  note: string | null
   role: 'admin' | 'user'
   isActive: boolean
 }

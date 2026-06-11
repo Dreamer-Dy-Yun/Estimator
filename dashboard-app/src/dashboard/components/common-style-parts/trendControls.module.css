@@ -13,21 +13,22 @@
 }
 
 .salesTrendControls {
-  display: inline-flex;
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
   align-items: center;
   justify-content: flex-end;
-  flex-wrap: nowrap;
   gap: 8px;
   min-width: 0;
   max-width: 100%;
 }
 
 .trendSeriesToggle {
-  display: inline-flex;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   align-items: center;
   min-width: 0;
+  width: 100%;
   max-width: 100%;
-  flex: 0 1 10rem;
   min-height: 26px;
   height: auto;
   border: 1px solid #cbd5e1;
@@ -37,11 +38,11 @@
 }
 
 .trendSeriesButton {
-  flex: 1 1 0;
-  height: 26px;
+  min-height: 26px;
+  height: 100%;
   min-width: 0;
   max-width: none;
-  padding: 0 8px;
+  padding: 4px 8px;
   border: 0;
   border-right: 1px solid #cbd5e1;
   background: transparent;
@@ -50,7 +51,9 @@
   font-weight: 700;
   overflow: visible;
   text-overflow: clip;
-  white-space: nowrap;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: keep-all;
   cursor: pointer;
 }
 

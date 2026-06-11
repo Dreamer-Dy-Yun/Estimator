@@ -69,7 +69,7 @@ export function AdminGptKeyDialog({
       setRowMessage(refreshWarningMessage ? `${successRowMessage} · ${refreshWarningMessage}` : successRowMessage)
       showToast(refreshWarningMessage ?? successToastMessage, refreshWarningMessage ? { variant: 'warning' } : undefined)
       setDeleteConfirm(false)
-    } catch (error) {
+    } catch (error: unknown) {
       setErrorMessage(getErrorMessage(error))
     } finally {
       setIsSaving(false)
@@ -87,7 +87,7 @@ export function AdminGptKeyDialog({
       setRowMessage(result.message)
       showToast(result.message, { variant: result.status === 'success' ? 'success' : 'error' })
       setDeleteConfirm(false)
-    } catch (error) {
+    } catch (error: unknown) {
       setErrorMessage(getErrorMessage(error))
     } finally {
       setIsTesting(false)
@@ -110,7 +110,7 @@ export function AdminGptKeyDialog({
       const refreshWarningMessage: string | null = await refreshAfterAdminMutation(onDeleted)
       if (refreshWarningMessage) showToast(refreshWarningMessage, { variant: 'warning' })
       onClose()
-    } catch (error) {
+    } catch (error: unknown) {
       setErrorMessage(getErrorMessage(error))
       setIsDeleting(false)
       setDeleteConfirm(false)

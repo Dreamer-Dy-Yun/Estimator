@@ -49,7 +49,7 @@ export function AdminGoogleSheetsPanel() : React.JSX.Element {
     try {
       const nextConfigs: AdminGoogleSheetConfigSummary[] = await loadConfigs()
       if (isCurrentLoad()) setConfigs(nextConfigs)
-    } catch (error) {
+    } catch (error: unknown) {
       if (!isCurrentLoad()) return
       setErrorMessage(getErrorMessage(error, '구글 시트 설정을 불러오지 못했습니다.'))
       throw error

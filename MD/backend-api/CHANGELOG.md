@@ -5,6 +5,7 @@
 - Archived previous backend API docs to `OLD/2026-06-10-before-current-api-rewrite/`.
 - Rewrote `dashboard-api-contract-catalog.md` as current-contract-only backend implementation catalog.
 - Kept implementation guidance in `backend-api-spec.md`.
+- Auth/profile ownership is explicit: `PATCH /auth/me` owns `loginId`/`name`, duplicate login id must return `409 conflict`, and `PATCH /admin/users/{uuid}` owns only `note`/`role`/`isActive`.
 - Comparison APIs now use the subject contract:
   - `baseRole`, `baseKind`, `baseSourceId?`
   - `comparisonRole`, `comparisonKind`, `comparisonSourceId?`

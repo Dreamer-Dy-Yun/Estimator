@@ -14,6 +14,8 @@ import { requireMockProductPrimary, requireMockProductSecondary } from './mockPr
 import { getMockSecondaryCompetitorChannel, type MockSecondaryCompetitorChannel } from './salesTables'
 import { sleep } from './utils'
 
+type ProductSecondarySizeRow = ProductSecondaryDetail['sizeRows'][number]
+
 function selfCompanySubjectScope(subject: ProductComparisonSubjectRef): { companyUuid?: string } {
   if (subject.kind !== 'self-company') throw new Error(`Unsupported mock base subject kind: ${subject.kind}`)
   return getCompanyUuidForOptionalScope(subject.sourceId) == null ? {} : { companyUuid: subject.sourceId }
@@ -28,9 +30,9 @@ function requireMockProductComparisonTarget(target: ProductComparisonComparisonS
 }
 
 function comparisonRatioBySizeFromRows(detail: ProductSecondaryDetail): ProductSecondaryDetail['comparisonRatioBySize'] {
-  const total: number = detail.sizeRows.reduce((sum: number, row) : number => sum + Math.max(0, row.selfRatio), 0)
-  if (total <= 0) return Object.fromEntries(detail.sizeRows.map((row) : [string, number] => [row.size, 0]))
-  return Object.fromEntries(detail.sizeRows.map((row) : [string, number] => [row.size, Math.max(0, row.selfRatio) / total]))
+  const total: number = detail.sizeRows.reduce((sum: number, row: ProductSecondarySizeRow) : number => sum + Math.max(0, row.selfRatio), 0)
+  if (total <= 0) return Object.fromEntries(detail.sizeRows.map((row: ProductSecondarySizeRow) : [string, number] => [row.size, 0]))
+  return Object.fromEntries(detail.sizeRows.map((row: ProductSecondarySizeRow) : [string, number] => [row.size, Math.max(0, row.selfRatio) / total]))
 }
 
 function comparisonSubjectSizeSeed(subject: ProductComparisonComparisonSubjectRef): number {

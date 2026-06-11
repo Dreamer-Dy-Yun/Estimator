@@ -61,7 +61,7 @@ export function LoginPage() : React.JSX.Element {
     try {
       await login({ loginId, password })
       navigate(redirectTo, { replace: true })
-    } catch (error) {
+    } catch (error: unknown) {
       setErrorMessage(getErrorMessage(error))
       setIsSubmitting(false)
     }

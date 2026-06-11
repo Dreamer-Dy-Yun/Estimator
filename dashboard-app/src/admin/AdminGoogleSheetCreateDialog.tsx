@@ -70,7 +70,7 @@ export function AdminGoogleSheetCreateDialog({
       showToast('구글 시트 설정을 추가했습니다.')
       if (refreshWarningMessage) showToast(refreshWarningMessage, { variant: 'warning' })
       onClose()
-    } catch (error) {
+    } catch (error: unknown) {
       setErrorMessage(getErrorMessage(error))
     } finally {
       setIsCreating(false)

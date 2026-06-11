@@ -65,7 +65,7 @@ export function withMockApiAdapterErrors<T extends object>(api: T): T {
           return result.catch((error: unknown) : never => {
             throw createMockApiError(error)
           })
-        } catch (error) {
+        } catch (error: unknown) {
           throw createMockApiError(error)
         }
       }

@@ -125,7 +125,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) : Reac
         applyCompanies(nextCompanies)
       }
       return nextCompanies
-    } catch (error) {
+    } catch (error: unknown) {
       if (canApplyCompanyResponse()) {
         setCompanies([])
         setSelectedCompanyUuid(null)

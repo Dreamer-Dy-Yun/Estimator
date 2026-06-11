@@ -1,0 +1,24 @@
+.root {
+  display: block;
+  max-width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  position: relative;
+  white-space: nowrap;
+}
+
+.visibleLabel {
+  display: block;
+  max-width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fullMeasure {
+  pointer-events: none;
+  position: absolute;
+  visibility: hidden;
+  white-space: nowrap;
+}

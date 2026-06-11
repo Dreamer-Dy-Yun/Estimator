@@ -81,7 +81,7 @@ export function UserProfileDialog({ open, onClose }: { open: boolean; onClose: (
       }
       onClose()
       showToast(wantsPasswordChange ? '사용자 정보와 비밀번호를 변경했습니다.' : '사용자 정보를 변경했습니다.')
-    } catch (error) {
+    } catch (error: unknown) {
       setErrorMessage(getErrorMessage(error))
       setIsSaving(false)
     }

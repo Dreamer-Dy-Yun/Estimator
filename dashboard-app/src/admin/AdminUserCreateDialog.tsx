@@ -37,7 +37,7 @@ export function AdminUserCreateDialog({ onClose, onCreated }: AdminUserCreateDia
       showToast('사용자를 추가했습니다.')
       if (refreshWarningMessage) showToast(refreshWarningMessage, { variant: 'warning' })
       onClose()
-    } catch (error) {
+    } catch (error: unknown) {
       setErrorMessage(getErrorMessage(error))
     } finally {
       setIsCreating(false)

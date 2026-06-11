@@ -52,7 +52,7 @@ export function AdminGoogleSheetKeyDropzone({
         keyJson,
         serviceAccountEmail: extractServiceAccountEmail(keyJson),
       })
-    } catch (error) {
+    } catch (error: unknown) {
       onError(error instanceof Error ? error.message : '서비스 계정 JSON 파일을 읽지 못했습니다.')
     } finally {
       if (inputRef.current) inputRef.current.value = ''

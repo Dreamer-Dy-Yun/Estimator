@@ -59,7 +59,7 @@ export function AdminUserDialog({
       setRowMessage(refreshWarningMessage ? `${successRowMessage} · ${refreshWarningMessage}` : successRowMessage)
       showToast(refreshWarningMessage ?? successToastMessage, refreshWarningMessage ? { variant: 'warning' } : undefined)
       setDeleteConfirm(false)
-    } catch (error) {
+    } catch (error: unknown) {
       setErrorMessage(getErrorMessage(error))
     } finally {
       setIsSaving(false)
@@ -77,7 +77,7 @@ export function AdminUserDialog({
       await onPasswordReset(user)
       setRowMessage('임시 비밀번호 발급됨')
       setDeleteConfirm(false)
-    } catch (error) {
+    } catch (error: unknown) {
       setErrorMessage(getErrorMessage(error))
     } finally {
       setIsResettingPassword(false)
@@ -101,7 +101,7 @@ export function AdminUserDialog({
       const refreshWarningMessage: string | null = await refreshAfterAdminMutation(onDeleted)
       if (refreshWarningMessage) showToast(refreshWarningMessage, { variant: 'warning' })
       onClose()
-    } catch (error) {
+    } catch (error: unknown) {
       setErrorMessage(getErrorMessage(error))
       setIsDeleting(false)
       setDeleteConfirm(false)

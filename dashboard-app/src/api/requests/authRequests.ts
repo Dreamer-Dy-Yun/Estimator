@@ -29,7 +29,7 @@ const httpAuthRequests: AuthApi = {
   getCurrentSession: async () : Promise<AuthSession | null> => {
     try {
       return await apiRequest('/auth/session')
-    } catch (error) {
+    } catch (error: unknown) {
       if (error instanceof ApiHttpError && error.status === 401) return null
       throw error
     }

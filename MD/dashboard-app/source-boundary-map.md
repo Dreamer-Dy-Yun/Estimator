@@ -13,6 +13,8 @@ Last updated: 2026-06-10
 - 후보군 저장 상태용 `CandidateStashItemSummary`는 썸네일을 갖지 않는다. 추천 적용 직후 로컬 row 생성 시에는 추천 row의 `thumbnailUrl`을 그대로 복사한다.
 - mock 썸네일은 `src/api/mock/mockProductThumbnail.ts`가 SKU identity 기준으로 만든다. 화면 fallback이 아니라 mock API 계약 대체 데이터다.
 - mock 문장과 스냅샷 설명의 EA/원 표시 포맷은 `src/api/mock/mockNumberFormat.ts`가 소유한다. UI 숫자 축약/표시 정책과 섞지 않는다.
+- 분석 리스트 숫자 셀은 기본적으로 `formatGroupedNumber` 원값을 표시한다. 셀 영역에 원값이 실제로 다 들어가지 않을 때만 `OverflowCompactLabel`이 compact Korean number를 보여주며 원값은 title/aria label로 보존한다.
+- 텍스트 overflow 측정은 셀 전용 컴포넌트가 소유한다. `PaginatedTable`/`AnalysisList` 공통 계층은 정렬, 스크롤, 행 렌더링만 담당하고 셀 표시값 측정을 하지 않는다.
 
 ## 0-4) 2026-06-09 product drawer comparison target boundary
 
@@ -39,7 +41,7 @@ Last updated: 2026-06-10
 - 1차 드로워 본문에서 가로 잘림을 숨기는 방식으로 해결하지 않는다. 각 카드가 자기 책임 영역 안에서 overflow를 처리한다.
 - 판매 정보 테이블은 카드 폭 `100%` 안에서 고정 레이아웃으로 맞추며, 표 내부 폰트 크기는 `--primary-drawer-sales-table-font-size` 토큰으로 균일하게 조정한다.
 - 판매 정보 테이블의 긴 금액/수량은 CSS 말줄임 대신 `src/utils/format.ts`의 compact Korean number display 정책으로 축약 표시하고, 원문 값은 title/aria label로 보존한다.
-- 월간 추이 헤더는 제목 30%, 컨트롤 70% grid 기준을 사용해 한 줄을 유지하며, 시리즈 선택 토글 폰트는 판매추이 카드 container width 기준으로 조정한다.
+- 월간 추이 헤더는 제목 30%, 컨트롤 70% grid 기준을 사용한다. 시리즈 선택 토글은 컨트롤 영역의 남은 폭을 사용하고, 긴 주체명은 말줄임/잘림 없이 버튼 높이를 늘려 표시한다.
 - 월간 추이 Y축 폭은 표시 숫자 자리수 기준으로 계산한다.
 - `SalesTrendChart`는 line/bar series의 축 소속을 chart series 계약으로 판단하며, secondary axis 존재 여부가 primary bar의 축을 바꾸지 않는다.
 

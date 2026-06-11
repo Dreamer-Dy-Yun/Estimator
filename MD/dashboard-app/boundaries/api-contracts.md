@@ -86,6 +86,12 @@
 - SSE 구독은 application event 실패와 transport 실패를 분리한다. `openApiEventStream`은 `onError`를 제공하고, 화면 hook은 연결 실패 시 기존 데이터를 유지하거나 요청 대상 row만 실패 상태로 전환해야 한다.
 - 성공인데 응답 본문이 없는 API는 204를 사용한다. 빈 배열/객체가 정상 데이터인 endpoint는 해당 타입 계약에 명시하고, 실패를 빈 성공값으로 숨기지 않는다.
 
+## 인증/관리자 프로필 계약
+
+- `PATCH /auth/me`는 현재 사용자 본인의 `loginId`와 `name` 수정만 소유한다.
+- `PATCH /admin/users/{uuid}`는 관리자 제어 필드인 `note`, `role`, `isActive`만 소유한다. `loginId`와 `name`은 관리자 수정 payload에 포함하지 않는다.
+- backend는 다른 사용자가 가진 normalized `loginId`로 본인 프로필을 변경하려는 경우 `409 conflict`를 반환해야 한다.
+
 ## 백엔드 문서 연결
 
 API 타입/계약이 바뀌면 `source-boundary-map.md`의 갱신 원칙을 기준으로 이 문서와 [../../backend-api/dashboard-api-contract-catalog.md](../../backend-api/dashboard-api-contract-catalog.md)를 같이 갱신한다.
