@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useCallback, useEffect, useMemo, useRef } from 'react'
 import type { Dispatch, RefObject, SetStateAction } from 'react'
 import { snapshotMutationInputKey } from './secondaryCandidateActionModel'
 import type {
@@ -60,9 +60,9 @@ export function useSecondaryCandidateActionGuard({
     currentScopeRef.current = currentScope
   }, [currentScope])
 
-  const readCurrentScope: () => CandidateActionScope = () : CandidateActionScope => currentScopeRef.current
+  const readCurrentScope: () => CandidateActionScope = useCallback(() : CandidateActionScope => currentScopeRef.current, [])
 
-  const consumeScopeChange: () => boolean = () : boolean => {
+  const consumeScopeChange: () => boolean = useCallback(() : boolean => {
     const nextScope: CandidateActionScope = currentScopeRef.current
     const current: CandidateActionScope = resetScopeRef.current
     if (areCandidateActionScopesEqual(current, nextScope)) return false
@@ -70,63 +70,63 @@ export function useSecondaryCandidateActionGuard({
     candidateListReqSeqRef.current += 1
     actionReqSeqRef.current += 1
     return true
-  }
+  }, [])
 
-  const beginCandidateListRequest: () => number = () : number => {
+  const beginCandidateListRequest: () => number = useCallback(() : number => {
     const reqSeq: number = candidateListReqSeqRef.current + 1
     candidateListReqSeqRef.current = reqSeq
     return reqSeq
-  }
+  }, [])
 
   const isActiveCandidateListRequest: (
     reqSeq: number,
     scope: CandidateActionScope,
-  ) => boolean = (reqSeq: number, scope: CandidateActionScope) : boolean => (
+  ) => boolean = useCallback((reqSeq: number, scope: CandidateActionScope) : boolean => (
     mountedRef.current
     && candidateListReqSeqRef.current === reqSeq
     && areCandidateActionScopesEqual(currentScopeRef.current, scope)
-  )
+  ), [])
 
-  const isCurrentCandidateListRequest: (reqSeq: number) => boolean = (reqSeq: number) : boolean => (
+  const isCurrentCandidateListRequest: (reqSeq: number) => boolean = useCallback((reqSeq: number) : boolean => (
     candidateListReqSeqRef.current === reqSeq
-  )
+  ), [])
 
-  const isActiveActionScope: (snapshot: CandidateActionGuardSnapshot) => boolean = (
+  const isActiveActionScope: (snapshot: CandidateActionGuardSnapshot) => boolean = useCallback((
     snapshot: CandidateActionGuardSnapshot,
   ) : boolean => (
     mountedRef.current
     && areCandidateActionScopesEqual(currentScopeRef.current, snapshot)
     && actionReqSeqRef.current === snapshot.actionSeq
-  )
+  ), [])
 
   const currentTargetIdentity: (
     targetKind: CandidateActionGuardSnapshot['targetKind'],
-  ) => string = (targetKind: CandidateActionGuardSnapshot['targetKind']) : string => {
+  ) => string = useCallback((targetKind: CandidateActionGuardSnapshot['targetKind']) : string => {
     const current: CandidateMutationState = currentMutationRef.current
     if (targetKind === 'append') return current.appendTarget
     if (targetKind === 'create') return current.createTarget
     if (targetKind === 'item') return current.itemTarget
     return ''
-  }
+  }, [currentMutationRef])
 
-  const currentSnapshotMutationInputKey: () => string | null = () : string | null => {
+  const currentSnapshotMutationInputKey: () => string | null = useCallback(() : string | null => {
     if (!currentMutationRef.current.canBuildSnapshot) return null
     try {
       return snapshotMutationInputKey(currentMutationRef.current.buildSnapshot())
     } catch {
       return null
     }
-  }
+  }, [currentMutationRef])
 
-  const isActiveAction: (snapshot: CandidateActionGuardSnapshot) => boolean = (
+  const isActiveAction: (snapshot: CandidateActionGuardSnapshot) => boolean = useCallback((
     snapshot: CandidateActionGuardSnapshot,
   ) : boolean => (
     isActiveActionScope(snapshot)
     && currentTargetIdentity(snapshot.targetKind) === snapshot.targetIdentity
     && (snapshot.mutationInputKey === '' || currentSnapshotMutationInputKey() === snapshot.mutationInputKey)
-  )
+  ), [currentSnapshotMutationInputKey, currentTargetIdentity, isActiveActionScope])
 
-  const beginAction: SecondaryCandidateActionGuard['beginAction'] = (
+  const beginAction: SecondaryCandidateActionGuard['beginAction'] = useCallback((
     targetKind: CandidateActionGuardSnapshot['targetKind'],
     mutationInputKey: string = '',
     actionCompanyUuid: string = currentScopeRef.current.companyUuid,
@@ -142,9 +142,9 @@ export function useSecondaryCandidateActionGuard({
       mutationInputKey,
       actionSeq,
     }
-  }
+  }, [currentTargetIdentity, setLoading])
 
-  return {
+  return useMemo(() : SecondaryCandidateActionGuard => ({
     readCurrentScope,
     consumeScopeChange,
     beginCandidateListRequest,
@@ -153,5 +153,14 @@ export function useSecondaryCandidateActionGuard({
     isActiveActionScope,
     isActiveAction,
     beginAction,
-  }
+  }), [
+    beginAction,
+    beginCandidateListRequest,
+    consumeScopeChange,
+    isActiveAction,
+    isActiveActionScope,
+    isActiveCandidateListRequest,
+    isCurrentCandidateListRequest,
+    readCurrentScope,
+  ])
 }

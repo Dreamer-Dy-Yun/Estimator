@@ -84,7 +84,7 @@ export function useSecondaryCandidateActions({
     setListOpen(false)
     setStashes([])
     setSelectedCandidate(null)
-  }, [currentScope])
+  }, [actionGuard, currentScope])
 
   const guardSnapshotMutation: () => boolean = () : boolean => {
     if (!canBuildSnapshot) {
