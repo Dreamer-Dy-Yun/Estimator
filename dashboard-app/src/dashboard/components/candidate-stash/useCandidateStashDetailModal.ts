@@ -132,13 +132,14 @@ export function useCandidateStashDetailModal({
   useEffect(() : void => {
     if (orderMetricComparisonTarget == null) return
     if (!dataReferencePeriodStart || !dataReferencePeriodEnd) return
+    if (!itemsRef.current.length) return
     const previousComparisonKey: string = orderMetricComparisonKeyRef.current
     const comparisonChanged: boolean = previousComparisonKey !== '' && previousComparisonKey !== orderMetricComparisonKey
-    orderMetricComparisonKeyRef.current = orderMetricComparisonKey
     const targetItems: CandidateItemSummary[] = comparisonChanged
       ? itemsRef.current.filter((item: CandidateItemSummary) : boolean => !item.isDetailConfirmed)
       : itemsRef.current.filter((item: CandidateItemSummary) : boolean => item.orderMetricStatus === 'loading')
     if (!targetItems.length) return
+    orderMetricComparisonKeyRef.current = orderMetricComparisonKey
     const targetItemUuidSet: Set<string> = new Set(targetItems.map((item: CandidateItemSummary) : string => item.uuid))
     if (comparisonChanged) {
       setItems((current: CandidateItemSummary[]) : CandidateItemSummary[] => current.map((item: CandidateItemSummary) : CandidateItemSummary => (
@@ -158,6 +159,7 @@ export function useCandidateStashDetailModal({
     dataReferencePeriodEnd,
     dataReferencePeriodStart,
     getCurrentItemLoadSeq,
+    items.length,
     orderMetricComparisonKey,
     orderMetricComparisonTarget,
     setItems,
