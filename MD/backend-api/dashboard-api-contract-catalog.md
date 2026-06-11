@@ -415,7 +415,7 @@ companyUuid=hana-company-uuid
 
 | Frontend function | Method/path | Request | Event/response |
 |---|---|---|---|
-| `subscribeCandidateOrderMetrics` | SSE `/candidate-stashes/{stashUuid}/items/order-metrics/events` | `requestId`, data reference period, repeated `candidateItemUuids`, `companyUuid` | `CandidateOrderMetricEvent` |
+| `subscribeCandidateOrderMetrics` | SSE `/candidate-stashes/{stashUuid}/items/order-metrics/events` | `requestId`, data reference period, repeated `candidateItemUuids`, `companyUuid`, comparison subject query | `CandidateOrderMetricEvent` |
 | `startCandidateStashLlmCommentJob` | POST `/candidate-stashes/{stashUuid}/llm-comment-jobs` | `companyUuid` | `{ jobId, stashUuid, itemCount }` |
 | `subscribeCandidateStashLlmCommentJob` | SSE `/candidate-stash-llm-comment-jobs/{jobId}/events` | `companyUuid` | `CandidateStashLlmCommentJobProgressEvent` |
 | `startCandidateDetailBulkConfirm` | POST `/candidate-stashes/{stashUuid}/items/detail-confirmation-jobs` | item ids, data reference period, company | `{ jobId, stashUuid, itemCount }` |
@@ -438,9 +438,20 @@ GET /api/v1/candidate-stashes/stash-uuid/items/order-metrics/events
   &dataReferencePeriodStart=2025-01-01
   &dataReferencePeriodEnd=2025-12-31
   &companyUuid=hana-company-uuid
+  &comparisonRole=comparison
+  &comparisonKind=competitor-channel
+  &comparisonSourceId=kream
   &candidateItemUuids=item-1
   &candidateItemUuids=item-2
 ```
+
+Order metric calculation contract:
+
+- `companyUuid` is required and must be a single company scope.
+- `comparisonRole=comparison`, `comparisonKind`, and optional `comparisonSourceId` are required subject fields for non-snapshot size split calculation.
+- If `CANDIDATE_ITEM.details` contains an `OrderSnapshotDocument`, the metric must project the snapshot values. Use `drawer2.confirmedTotals.orderQty`, `drawer2.confirmedTotals.expectedSalesAmount`, `drawer2.confirmedTotals.expectedOpProfit`, `drawer2.unitEconomics.unitCost`, and `drawer2.sizeOrders[].confirmQty`.
+- If `CANDIDATE_ITEM.details` is null, calculate the same default secondary drawer order metric basis without daily trend rendering data. The comparison subject affects `ProductSecondaryDetail.comparisonRatioBySize`; stock-order calculation remains base-subject owned.
+- Do not use a server-global or session-global comparison basis for this SSE. The frontend sends the selected comparison subject on every request.
 
 SSE message examples:
 

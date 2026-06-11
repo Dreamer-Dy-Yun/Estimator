@@ -2,6 +2,9 @@
 
 ## 2026-06-10 current API rewrite
 
+- Candidate order metric SSE now requires the selected comparison subject on every request:
+  - `comparisonRole`, `comparisonKind`, `comparisonSourceId?`
+  - Snapshot rows project `OrderSnapshotDocument.drawer2`; non-snapshot rows use secondary order calculation without daily trend rendering data.
 - Archived previous backend API docs to `OLD/2026-06-10-before-current-api-rewrite/`.
 - Rewrote `dashboard-api-contract-catalog.md` as current-contract-only backend implementation catalog.
 - Kept implementation guidance in `backend-api-spec.md`.

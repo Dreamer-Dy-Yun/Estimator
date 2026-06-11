@@ -136,6 +136,7 @@ export type {
   CandidateItemOrderExportSizeQty,
   CandidateOrderMetric,
   CandidateOrderMetricEvent,
+  CandidateOrderMetricSource,
   CandidateOrderMetricStatus,
   CandidateOrderMetricStreamParams,
   CandidateOrderMetricSubscription,

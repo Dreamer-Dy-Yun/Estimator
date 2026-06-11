@@ -1,6 +1,7 @@
-import type { CandidateItemSummary, CandidateOrderMetricEvent } from '../../../api'
+import type { CandidateItemSummary, CandidateOrderMetricEvent, ProductComparisonTarget } from '../../../api'
 import { useCallback, useEffect, useRef } from 'react'
 import {
+  getComparisonSubjectKey,
   subscribeCandidateOrderMetrics,
   type CandidateOrderMetricSubscription,
 } from '../../../api'
@@ -29,6 +30,7 @@ export type SubscribeArgs = {
   dataReferencePeriodEnd: string
   companyUuid?: string
   candidateItemUuids: string[]
+  comparison: ProductComparisonTarget
 }
 
 export type ActiveMetricSubscription = {
@@ -72,6 +74,7 @@ export function useCandidateOrderMetricStream({ stashUuid, companyUuid, mountedR
     dataReferencePeriodEnd,
     companyUuid: requestCompanyUuid,
     candidateItemUuids,
+    comparison,
   }: SubscribeArgs) : void => {
     const metricCompanyUuid: string | undefined = requestCompanyUuid ?? companyUuid
     const nextCandidateItemUuids: string[] = normalizeCandidateItemUuids(candidateItemUuids)
@@ -91,6 +94,7 @@ export function useCandidateOrderMetricStream({ stashUuid, companyUuid, mountedR
         stashUuid,
         dataReferencePeriodStart,
         dataReferencePeriodEnd,
+        comparisonKey: getComparisonSubjectKey(comparison),
         seq,
         candidateItemUuids: nextCandidateItemUuids,
       }),
@@ -131,6 +135,7 @@ export function useCandidateOrderMetricStream({ stashUuid, companyUuid, mountedR
       dataReferencePeriodEnd,
       requestId,
       candidateItemUuids: nextCandidateItemUuids,
+      comparison,
     }, (event: CandidateOrderMetricEvent) : void => {
       if (!isCurrentItemLoad(seq)) return
       if (event.requestId !== requestId) return

@@ -1,4 +1,5 @@
 import type { CompanyMutationScopeParams } from './company'
+import type { ProductComparisonComparisonSubjectRef } from './drawer'
 
 export interface CandidateItemOrderExportSizeQty {
   size: string
@@ -21,11 +22,15 @@ export interface CandidateItemOrderExport {
 }
 
 export type CandidateOrderMetricStatus = 'loading' | 'loaded' | 'failed'
+export type CandidateOrderMetricSource = 'snapshot' | 'secondary-calc'
 
 export interface CandidateOrderMetric {
   itemUuid: string
   /** CANDIDATE_ITEM.sku_uuid, equal to SKU.uuid in the backend contract. */
   skuUuid: string
+  /** Snapshot-backed rows must not be recalculated by the comparison selector. */
+  source: CandidateOrderMetricSource
+  /** Confirmed total order quantity used by the inner order list. */
   qty: number
   expectedOrderAmount: number
   expectedSalesAmount: number
@@ -39,6 +44,8 @@ export interface CandidateOrderMetricStreamParams extends CompanyMutationScopePa
   dataReferencePeriodEnd: string
   requestId: string
   candidateItemUuids: string[]
+  /** Size comparison basis used only for non-snapshot secondary order calculation. */
+  comparison: ProductComparisonComparisonSubjectRef
 }
 
 export type CandidateOrderMetricEvent =

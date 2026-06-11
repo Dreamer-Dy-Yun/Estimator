@@ -52,7 +52,7 @@ const buildDisplaySizeRows: (sizeLabels: string[], currentStockQtyValues: number
   expectedInboundOrderBalance: expectedInboundOrderBalanceValues[index] ?? 0,
 }))
 
-export async function getSecondaryStockOrderCalc({
+export function buildMockSecondaryStockOrderCalcResult({
   skuGroupKey,
   periodStart,
   periodEnd,
@@ -60,8 +60,7 @@ export async function getSecondaryStockOrderCalc({
   leadTimeDays,
   dailyMean: dailyMeanParam,
   base,
-}: SecondaryStockOrderCalcParams): Promise<SecondaryStockOrderCalcResult> {
-  await sleep(70)
+}: SecondaryStockOrderCalcParams): SecondaryStockOrderCalcResult {
   const companyUuid: string | undefined = getCompanyUuidForOptionalScope(base.sourceId)
   const primary: ProductPrimarySummary = scopeMockProductPrimary(requireMockProductPrimary(skuGroupKey), { companyUuid })
   const secondary: ProductSecondaryDetail = scopeMockProductSecondary(requireMockProductSecondary(skuGroupKey), { companyUuid })
@@ -111,4 +110,9 @@ export async function getSecondaryStockOrderCalc({
     safetyStockCalc: { safetyStock, recommendedOrderQty: safetyRecQty, ...amounts(safetyRecQty) },
     forecastQtyCalc: { safetyStock: null, recommendedOrderQty: forecastRecQty, ...amounts(forecastRecQty) },
   }
+}
+
+export async function getSecondaryStockOrderCalc(params: SecondaryStockOrderCalcParams): Promise<SecondaryStockOrderCalcResult> {
+  await sleep(70)
+  return buildMockSecondaryStockOrderCalcResult(params)
 }

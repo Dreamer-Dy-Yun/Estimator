@@ -62,7 +62,9 @@ function withCurrentUserStream<S extends { close: () => void }>(
 }
 
 const getCandidateStashExcelTemplateDownload: () => CandidateStashExcelTemplateDownload = (): CandidateStashExcelTemplateDownload => ({
-  href: resolvePublicAssetUrl(candidateStashExcelTemplateAsset),
+  href: candidateStashExcelTemplateAsset.startsWith('/')
+    ? candidateStashExcelTemplateAsset
+    : resolvePublicAssetUrl(candidateStashExcelTemplateAsset),
   filename: candidateStashExcelTemplateFilename,
 })
 

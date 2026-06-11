@@ -1,14 +1,9 @@
-import type { CandidateMetricReloadOptions } from './useCandidateItemsLoader'
-import type { DrawerSnapshotSource, OpenItemDrawerOptions } from './useCandidateStashItemDrawer'
-import type { CandidateItemDetail, CandidateItemSummary, CandidateReferenceItemSummary, ProductDrawerBundle } from '../../../api'
-import type { OrderSnapshotDocument } from '../../../api/types'
-import type { ProductPrimarySummary } from '../../../types'
-import type { AdjacentDirection } from '../../../utils/adjacentListNavigation'
-import type { AppendRecommendedItemsResult, InnerCandidateSortKey, InnerCandidateSortState } from './candidateStashDetailTypes'
+import type { CandidateItemSummary, CandidateReferenceItemSummary, ProductComparisonBaseSubjectRef, ProductComparisonTarget } from '../../../api'
+import type { ApiUnitErrorInfo } from '../../../types'
+import type { AppendRecommendedItemsResult } from './candidateStashDetailTypes'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { CandidateStashSummary } from '../../../api'
 import { CandidateBulkDetailConfirmProgress as CandidateBulkDetailConfirmProgressView } from './CandidateBulkDetailConfirmProgress'
-import type { CandidateBulkDetailConfirmProgress } from './useCandidateBulkDetailConfirm'
 import { CandidateRecommendationModal } from './CandidateRecommendationModal'
 import { CandidateStashBulkActionCard } from './CandidateStashBulkActionCard'
 import { CandidateStashDataReferenceCard } from './CandidateStashDataReferenceCard'
@@ -20,7 +15,8 @@ import { CandidateStashMissingState } from './CandidateStashMissingState'
 import { CandidateStashProductDrawer } from './CandidateStashProductDrawer'
 import { stashDetailModalBackdropDataProps } from '../../drawer/drawerDom'
 import { useModalFocusTrap } from '../useModalFocusTrap'
-import { useCandidateStashDetailModal, type InnerCandidateRow } from './useCandidateStashDetailModal'
+import { useProductComparisonTargets } from '../product-drawer/useProductComparisonTargets'
+import { useCandidateStashDetailModal, type CandidateStashDetailModalModel, type InnerCandidateRow } from './useCandidateStashDetailModal'
 import { useVisibleUuidSelection } from './useVisibleUuidSelection'
 import detailStyles from './CandidateStashDetailModal.module.css'
 
@@ -35,7 +31,22 @@ export type Props = {
 }
 
 export function CandidateStashDetailModal({ stashUuid, companyUuid, downloadUserName = '사용자', stashSummary, onClose, onStashesInvalidate }: Props) : React.JSX.Element {
-  const model: { companyUuid: string | undefined; items: CandidateItemSummary[]; candidateItemsLoading: boolean; candidateItemsLoadError: string | null; dataReferencePeriodStart: string; dataReferencePeriodEnd: string; periodStart: string | undefined; periodEnd: string | undefined; itemDeleteTarget: CandidateItemSummary | null; detailTarget: CandidateStashSummary | null; stashListLoadError: string | null; setItemDeleteTarget: React.Dispatch<React.SetStateAction<CandidateItemSummary | null>>; markDrawerSnapshotConfirmed: (itemUuid: string, snapshot: OrderSnapshotDocument, updatedItem: CandidateItemDetail) => void; markDrawerSnapshotUnconfirmed: (itemUuid: string, updatedItem: CandidateItemDetail) => void; loadItems: (nextPeriodStart?: string, nextPeriodEnd?: string, options?: CandidateMetricReloadOptions) => Promise<void>; refreshStashes: () => Promise<void>; confirmDeleteItem: () => Promise<void>; recommendationItems: CandidateReferenceItemSummary[]; recommendationLoading: boolean; recommendationAppendBusy: boolean; recommendationError: string | null; clearRecommendationItems: () => void; loadRecommendations: (force?: boolean) => Promise<CandidateReferenceItemSummary[]>; appendRecommendedItems: (rows: CandidateReferenceItemSummary[]) => Promise<AppendRecommendedItemsResult>; bulkConfirmBusy: boolean; bulkConfirmProgress: CandidateBulkDetailConfirmProgress | null; closeBulkConfirmProgress: () => void; confirmBulkDetailItems: (itemUuids: string[]) => Promise<void>; itemDeleteBusy: boolean; bulkDeleteBusy: boolean; bulkUnconfirmBusy: boolean; orderExportBusy: boolean; orderExportError: string | null; confirmDeleteItems: (itemUuids: string[]) => Promise<void>; confirmUnconfirmItems: (itemUuids: string[]) => Promise<void>; downloadOrderExcel: (userName: string) => Promise<void>; brandQuery: string; setBrandQuery: React.Dispatch<React.SetStateAction<string>>; codeQuery: string; setCodeQuery: React.Dispatch<React.SetStateAction<string>>; productNameQuery: string; setProductNameQuery: React.Dispatch<React.SetStateAction<string>>; tableSort: InnerCandidateSortState | null; toggleTableSort: (key: InnerCandidateSortKey) => void; resetTableSort: () => void; brandOptions: string[]; codeOptions: string[]; productNameOptions: string[]; tableRows: CandidateItemSummary[]; totals: { qty: number; expectedOrderAmount: number; expectedSalesAmount: number; expectedOpProfit: number; }; pendingOrderMetricCount: number; totalExpectedOpProfitRatePct: number | null; draftDataReferencePeriodStart: string; draftDataReferencePeriodEnd: string; dataReferencePeriodQueryDirty: boolean; onDataReferencePeriodStartChange: (value: string) => void; onDataReferencePeriodEndChange: (value: string) => void; applyDataReferencePeriod: () => void; drawerOpen: boolean; drawerClosing: boolean; drawerError: string | null; openedItemUuid: string | null; hydrateSnap: OrderSnapshotDocument | null; hydrateSnapSource: DrawerSnapshotSource | null; confirmedHydrateSnap: OrderSnapshotDocument | null; fc: number; bundle: ProductDrawerBundle | null; mergedSummary: ProductPrimarySummary | null; openItemDrawer: (row: InnerCandidateRow, options?: OpenItemDrawerOptions) => Promise<void>; onRequestNavigateAdjacent: (direction: AdjacentDirection) => Promise<void>; closeDrawer: () => void; onDrawerForecastMonthsChange: (n: number) => void; saveDrawerDraftSnapshot: (itemUuid: string, snapshot: OrderSnapshotDocument, source: DrawerSnapshotSource) => void; clearDrawerDraftSnapshot: (itemUuid: string) => void; restoreDrawerConfirmedSnapshot: (itemUuid: string) => void; } = useCandidateStashDetailModal({ stashUuid, companyUuid, stashSummary, onStashesInvalidate })
+  const orderMetricBaseSubject: ProductComparisonBaseSubjectRef = useMemo(() : ProductComparisonBaseSubjectRef => ({
+    role: 'base',
+    kind: 'self-company',
+    ...(companyUuid == null ? {} : { sourceId: companyUuid }),
+  }), [companyUuid])
+  const orderMetricComparisonTargets: { comparisonTargets: ProductComparisonTarget[]; comparisonTarget: ProductComparisonTarget | null; targetsLoading: boolean; targetsError: ApiUnitErrorInfo | null; setComparisonSubject: (next: ProductComparisonTarget) => void; } = useProductComparisonTargets({
+    pageName: 'CandidateStashDetailModal',
+    base: orderMetricBaseSubject,
+  })
+  const model: CandidateStashDetailModalModel = useCandidateStashDetailModal({
+    stashUuid,
+    companyUuid,
+    stashSummary,
+    onStashesInvalidate,
+    orderMetricComparisonTarget: orderMetricComparisonTargets.comparisonTarget,
+  })
   const [bulkDeleteOpen, setBulkDeleteOpen]: [boolean, React.Dispatch<React.SetStateAction<boolean>>] = useState(false)
   const [bulkUnconfirmOpen, setBulkUnconfirmOpen]: [boolean, React.Dispatch<React.SetStateAction<boolean>>] = useState(false)
   const [recommendationOpen, setRecommendationOpen]: [boolean, React.Dispatch<React.SetStateAction<boolean>>] = useState(false)
@@ -108,7 +119,17 @@ export function CandidateStashDetailModal({ stashUuid, companyUuid, downloadUser
             {!model.detailTarget ? <CandidateStashMissingState loadError={model.stashListLoadError} onClose={onClose} /> : (
               <>
                 {model.stashListLoadError && <div className={detailStyles.emptyState} role="alert">{model.stashListLoadError}</div>}
-                <CandidateStashDetailHeader detailTarget={model.detailTarget} canOpenRecommendations={Boolean(!recommendationsBlocked && !model.candidateItemsLoading && model.tableRows.length && model.periodStart && model.periodEnd)} onOpenRecommendations={openRecommendationModal} onClose={onClose} />
+                <CandidateStashDetailHeader
+                  detailTarget={model.detailTarget}
+                  comparisonTargets={orderMetricComparisonTargets.comparisonTargets}
+                  comparisonTarget={orderMetricComparisonTargets.comparisonTarget}
+                  comparisonTargetsLoading={orderMetricComparisonTargets.targetsLoading}
+                  comparisonTargetsError={orderMetricComparisonTargets.targetsError}
+                  canOpenRecommendations={Boolean(!recommendationsBlocked && !model.candidateItemsLoading && model.tableRows.length && model.periodStart && model.periodEnd)}
+                  onComparisonTargetChange={orderMetricComparisonTargets.setComparisonSubject}
+                  onOpenRecommendations={openRecommendationModal}
+                  onClose={onClose}
+                />
                 <div className={detailStyles.detailActionCardGrid}>
                   <CandidateStashDataReferenceCard periodStart={model.draftDataReferencePeriodStart} periodEnd={model.draftDataReferencePeriodEnd} loading={model.candidateItemsLoading} queryDirty={model.dataReferencePeriodQueryDirty} onPeriodStartChange={model.onDataReferencePeriodStartChange} onPeriodEndChange={model.onDataReferencePeriodEndChange} onSearch={model.applyDataReferencePeriod} />
                   <CandidateStashBulkActionCard selectedVisibleCount={itemSelection.selectedVisibleCount} selectedUnconfirmedCount={selectedItemUuidsByConfirmation.unconfirmed.length} selectedConfirmedCount={selectedItemUuidsByConfirmation.confirmed.length} bulkConfirmBusy={model.bulkConfirmBusy} onOpenBulkUnconfirm={() : void => setBulkUnconfirmOpen(true)} onOpenBulkDelete={() : void => setBulkDeleteOpen(true)} onBulkConfirm={() : void => {

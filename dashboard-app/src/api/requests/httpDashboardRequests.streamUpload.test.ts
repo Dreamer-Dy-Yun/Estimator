@@ -2,12 +2,19 @@ import type { CandidateOrderMetricSubscription } from '..'
 import type { CandidateJobSubscription } from '../types/candidate'
 import type { CandidateOrderMetricStreamParams } from '../types/candidate-order-metrics'
 import type { CompanyMutationScopeParams } from '../types/company'
+import type { ProductComparisonComparisonSubjectRef } from '../types/drawer'
 import { describe, expect, it, vi, type Mock } from 'vitest'
 import { ALL_COMPANY_UUID } from '../types/company'
 import { companyUuid, httpClientMocks, type ApiRequestCall } from './httpDashboardRequestsTestSetup'
 import { httpDashboardRequests } from './httpDashboardRequests'
 
 describe('httpDashboardRequests stream and upload scope contract', () : void => {
+  const comparison: ProductComparisonComparisonSubjectRef = {
+    role: 'comparison',
+    kind: 'competitor-channel',
+    sourceId: 'kream',
+  }
+
   it('forwards companyUuid through upload FormData', async () : Promise<void> => {
     const file: File = new File(['skuGroupKey\nSKU-054-BLK'], 'candidate-stash.xlsx', {
       type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
@@ -34,6 +41,7 @@ describe('httpDashboardRequests stream and upload scope contract', () : void => 
         dataReferencePeriodStart: '2025-01-01',
         dataReferencePeriodEnd: '2025-12-31',
         candidateItemUuids: ['item-054'],
+        comparison,
       },
       listener,
       onError,
@@ -50,6 +58,9 @@ describe('httpDashboardRequests stream and upload scope contract', () : void => 
       '/candidate-stashes/stash-054/items/order-metrics/events',
       expect.objectContaining({
         companyUuid,
+        comparisonKind: 'competitor-channel',
+        comparisonRole: 'comparison',
+        comparisonSourceId: 'kream',
         requestId: 'request-054',
         candidateItemUuids: ['item-054'],
       }),
@@ -77,6 +88,7 @@ describe('httpDashboardRequests stream and upload scope contract', () : void => 
           dataReferencePeriodStart: '2025-01-01',
           dataReferencePeriodEnd: '2025-12-31',
           candidateItemUuids: ['item-054'],
+          comparison,
         } as unknown as CandidateOrderMetricStreamParams,
         listener,
         onError,
@@ -92,6 +104,7 @@ describe('httpDashboardRequests stream and upload scope contract', () : void => 
           dataReferencePeriodStart: '2025-01-01',
           dataReferencePeriodEnd: '2025-12-31',
           candidateItemUuids: ['item-054'],
+          comparison,
         },
         listener,
         onError,

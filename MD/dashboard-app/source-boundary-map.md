@@ -1,6 +1,13 @@
 # dashboard-app Source Boundary Map
 
-Last updated: 2026-06-10
+Last updated: 2026-06-11
+
+## 0-6) 2026-06-11 candidate order metric comparison boundary
+
+- Candidate stash detail header fetches size comparison targets with `getProductComparisonTargets({ base })`; it does not create a global/default comparison variable outside the modal.
+- The selected comparison target is passed as `CandidateOrderMetricStreamParams.comparison` for each `subscribeCandidateOrderMetrics` request.
+- Snapshot-confirmed candidate items project `OrderSnapshotDocument.drawer2` values into the inner order list and do not recalculate when the comparison target changes.
+- Non-snapshot candidate items use the same secondary size/order projection helper as the product drawer, while daily trend rendering data stays out of the list metric request.
 
 ## 0-5) 2026-06-10 list thumbnail boundary
 
@@ -41,7 +48,7 @@ Last updated: 2026-06-10
 - 1차 드로워 본문에서 가로 잘림을 숨기는 방식으로 해결하지 않는다. 각 카드가 자기 책임 영역 안에서 overflow를 처리한다.
 - 판매 정보 테이블은 카드 폭 `100%` 안에서 고정 레이아웃으로 맞추며, 표 내부 폰트 크기는 `--primary-drawer-sales-table-font-size` 토큰으로 균일하게 조정한다.
 - 판매 정보 테이블의 긴 금액/수량은 CSS 말줄임 대신 `src/utils/format.ts`의 compact Korean number display 정책으로 축약 표시하고, 원문 값은 title/aria label로 보존한다.
-- 월간 추이 헤더는 제목 30%, 컨트롤 70% grid 기준을 사용한다. 시리즈 선택 토글은 컨트롤 영역의 남은 폭을 사용하고, 긴 주체명은 말줄임/잘림 없이 버튼 높이를 늘려 표시한다.
+- 월간 추이 헤더는 제목 30%, 컨트롤 70% grid 기준을 사용한다. 시리즈 선택 토글 버튼은 각 라벨의 내용 폭을 우선하며, 약 10자까지는 표시하고 그보다 긴 라벨만 말줄임 처리한다.
 - 월간 추이 Y축 폭은 표시 숫자 자리수 기준으로 계산한다.
 - `SalesTrendChart`는 line/bar series의 축 소속을 chart series 계약으로 판단하며, secondary axis 존재 여부가 primary bar의 축을 바꾸지 않는다.
 

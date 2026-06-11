@@ -13,9 +13,10 @@ describe('candidateOrderMetricStreamModel', () : void => {
       stashUuid: 'stash-1',
       dataReferencePeriodStart: '2026-04-01',
       dataReferencePeriodEnd: '2026-05-31',
+      comparisonKey: 'comparison:competitor-channel:kream',
       seq: 3,
       candidateItemUuids: ['b', 'a', 'b'],
-    })).toBe('stash-1:2026-04-01:2026-05-31:3:a,b')
+    })).toBe('stash-1:2026-04-01:2026-05-31:comparison:competitor-channel:kream:3:a,b')
   })
 
   it('settles a stream when every requested item has emitted a result', () : void => {

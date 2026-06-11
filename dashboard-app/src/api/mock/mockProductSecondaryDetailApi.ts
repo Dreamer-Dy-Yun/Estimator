@@ -60,7 +60,7 @@ function skewComparisonRatioBySize(
   return Object.fromEntries(weighted.map(([size, ratio]: [string, number]) : [string, number] => [size, ratio / total]))
 }
 
-function buildMockProductSecondaryDetail(
+export function buildMockProductSecondaryDetail(
   skuGroupKey: string,
   params: ProductSecondaryDetailParams,
 ): ProductSecondaryDetail {

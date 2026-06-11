@@ -1,12 +1,25 @@
 import type { CandidateBadge, CandidateItemListResult, CandidateItemSummary, CandidateOrderMetric, CandidateRecommendationResult, CandidateReferenceItemSummary, CandidateStashExcelUploadResult, CandidateStashSummary } from '..'
+import type { ProductComparisonComparisonSubjectRef } from '../types/drawer'
 import { describe, expect, it } from 'vitest'
 import { MOCK_ADMIN_USER_UUID } from './authApi'
 import { buildCandidateOrderMetric } from './candidateItemSummaryBuilder'
+import { buildMockOrderSnapshotForCandidate } from './orderSnapshotForCandidate'
 import { mockDashboardApi } from './dashboardApi'
 import { skuGroupKeyByLegacyId } from './salesTables'
 import { MOCK_COMPANY_UUID, defaultCandidateItemListParams } from './candidateMockApiTestHelpers'
 
 describe('api/mock candidate recommendation contract', () : void => {
+  const kreamComparison: ProductComparisonComparisonSubjectRef = {
+    role: 'comparison',
+    kind: 'competitor-channel',
+    sourceId: 'kream',
+  }
+  const musinsaComparison: ProductComparisonComparisonSubjectRef = {
+    role: 'comparison',
+    kind: 'competitor-channel',
+    sourceId: 'musinsa',
+  }
+
   it('returns base candidate item rows with period sales totals but without eager badges', async () : Promise<void> => {
     const result: CandidateItemListResult = await mockDashboardApi.getCandidateItemsByStash(
       defaultCandidateItemListParams('candidatestash00000000000000000001'),
@@ -88,8 +101,11 @@ describe('api/mock candidate recommendation contract', () : void => {
         start: '2025-01-01',
         end: '2025-12-31',
       },
+      MOCK_COMPANY_UUID,
+      kreamComparison,
     )
 
+    expect(metric.source).toBe('secondary-calc')
     expect(metric.qty).toBeGreaterThan(0)
     expect(metric.expectedOrderAmount).toBeGreaterThan(0)
     expect(metric.orderExport.avgPrice).toBeGreaterThan(0)
@@ -97,6 +113,82 @@ describe('api/mock candidate recommendation contract', () : void => {
     expect(metric.orderExport.feeRatePct).toBeGreaterThan(0)
     expect(metric.orderExport.selfQty).toBeNull()
     expect(metric.orderExport.competitorQty).toBeGreaterThan(0)
+  })
+
+  it('projects snapshot order metrics before applying live comparison changes', () : void => {
+    const skuGroupKey: string = skuGroupKeyByLegacyId.TEST_TOP!
+    const snapshot: ReturnType<typeof buildMockOrderSnapshotForCandidate> = buildMockOrderSnapshotForCandidate(skuGroupKey, {
+      companyUuid: MOCK_COMPANY_UUID,
+      periodStart: '2025-01-01',
+      periodEnd: '2025-12-31',
+    })
+    const metric: CandidateOrderMetric = buildCandidateOrderMetric(
+      {
+        uuid: 'candidateitem-test-snapshot-first',
+        stashUuid: 'candidatestash00000000000000000001',
+        skuUuid: skuGroupKey,
+        skuGroupKey,
+        details: snapshot,
+        isLatestLlmComment: false,
+        dbCreatedAt: '2026-04-20T09:00:00.000Z',
+        dbUpdatedAt: '2026-04-20T09:00:00.000Z',
+      },
+      {
+        start: '2025-01-01',
+        end: '2025-12-31',
+      },
+      MOCK_COMPANY_UUID,
+      musinsaComparison,
+    )
+
+    expect(metric.source).toBe('snapshot')
+    expect(metric.qty).toBe(snapshot.drawer2.confirmedTotals.orderQty)
+    expect(metric.expectedSalesAmount).toBe(snapshot.drawer2.confirmedTotals.expectedSalesAmount)
+    expect(metric.expectedOpProfit).toBe(snapshot.drawer2.confirmedTotals.expectedOpProfit)
+    expect(metric.expectedOrderAmount).toBe(snapshot.drawer2.confirmedTotals.orderQty * snapshot.drawer2.unitEconomics!.unitCost)
+    expect(metric.orderExport.competitorChannelLabel).toBe(snapshot.drawer2.comparisonSubject.label)
+    expect(metric.orderExport.sizeOrderQty).toEqual(snapshot.drawer2.sizeOrders.map((row: { size: string; confirmQty: number }) : { size: string; orderQty: number } => ({
+      size: row.size,
+      orderQty: row.confirmQty,
+    })))
+  })
+
+  it('uses the request comparison target for non-snapshot order metric size split', () : void => {
+    let differingMetrics: { kreamMetric: CandidateOrderMetric; musinsaMetric: CandidateOrderMetric } | null = null
+    for (const skuGroupKey of Object.values(skuGroupKeyByLegacyId)) {
+      const row = {
+        uuid: `candidateitem-test-live-comparison-${skuGroupKey}`,
+        stashUuid: 'candidatestash00000000000000000001',
+        skuUuid: skuGroupKey,
+        skuGroupKey,
+        details: null,
+        isLatestLlmComment: false,
+        dbCreatedAt: '2026-04-20T09:00:00.000Z',
+        dbUpdatedAt: '2026-04-20T09:00:00.000Z',
+      } as const
+      const kreamMetric: CandidateOrderMetric = buildCandidateOrderMetric(row, {
+        start: '2025-01-01',
+        end: '2025-12-31',
+      }, MOCK_COMPANY_UUID, kreamComparison)
+      const musinsaMetric: CandidateOrderMetric = buildCandidateOrderMetric(row, {
+        start: '2025-01-01',
+        end: '2025-12-31',
+      }, MOCK_COMPANY_UUID, musinsaComparison)
+      if (JSON.stringify(kreamMetric.orderExport.sizeOrderQty) !== JSON.stringify(musinsaMetric.orderExport.sizeOrderQty)) {
+        differingMetrics = { kreamMetric, musinsaMetric }
+        break
+      }
+    }
+
+    expect(differingMetrics).not.toBeNull()
+    const { kreamMetric, musinsaMetric }: { kreamMetric: CandidateOrderMetric; musinsaMetric: CandidateOrderMetric } = differingMetrics!
+
+    expect(kreamMetric.source).toBe('secondary-calc')
+    expect(musinsaMetric.source).toBe('secondary-calc')
+    expect(kreamMetric.orderExport.competitorChannelLabel).not.toBe(musinsaMetric.orderExport.competitorChannelLabel)
+    expect(kreamMetric.orderExport.sizeOrderQty).not.toEqual(musinsaMetric.orderExport.sizeOrderQty)
+    expect(kreamMetric.orderExport.sizeOrderQty.reduce((sum: number, row: { orderQty: number }) : number => sum + row.orderQty, 0)).toBe(kreamMetric.qty)
+    expect(musinsaMetric.orderExport.sizeOrderQty.reduce((sum: number, row: { orderQty: number }) : number => sum + row.orderQty, 0)).toBe(musinsaMetric.qty)
   })
 
   it('paginates candidate recommendations without changing badge-bearing row shape', async () : Promise<void> => {

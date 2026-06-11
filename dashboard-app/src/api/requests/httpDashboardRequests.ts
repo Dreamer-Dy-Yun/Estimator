@@ -162,6 +162,7 @@ export const httpDashboardRequests: DashboardApi = {
       dataReferencePeriodEnd: params.dataReferencePeriodEnd,
       candidateItemUuids: params.candidateItemUuids,
       companyUuid: getRequiredCompanyUuidForMutationScope(params.companyUuid),
+      ...productComparisonSubjectQueryPrefix('comparison', params.comparison),
     }, listener, { onError }),
   // Starts a backend job that calculates each requested item's secondary drawer state,
   // saves CANDIDATE_ITEM.details, and emits committed CandidateItemDetail rows by SSE.

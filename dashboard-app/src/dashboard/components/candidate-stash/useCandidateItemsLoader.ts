@@ -1,4 +1,4 @@
-import type { CandidateItemListResult } from '../../../api'
+import type { CandidateItemListResult, ProductComparisonTarget } from '../../../api'
 import type { CandidateDetailConfirmationOverrideResult } from './candidateDetailConfirmationOverrideModel'
 import { useCallback, useState, type MutableRefObject } from 'react'
 import {
@@ -25,6 +25,7 @@ export interface SubscribeOrderMetricsArgs {
   dataReferencePeriodEnd: string
   companyUuid?: string
   candidateItemUuids: string[]
+  comparison: ProductComparisonTarget
 }
 
 export interface UseCandidateItemsLoaderParams {
@@ -33,6 +34,7 @@ export interface UseCandidateItemsLoaderParams {
   appliedPeriodRef: MutableRefObject<AppliedCandidateDataReferencePeriod>
   itemsRef: MutableRefObject<CandidateItemSummary[]>
   confirmationOverridesRef: MutableRefObject<CandidateDetailConfirmationOverrideMap>
+  orderMetricComparisonTarget: ProductComparisonTarget | null
   clearRecommendationItems: () => void
   beginItemLoad: () => number
   isCurrentItemLoad: (seq: number) => boolean
@@ -74,6 +76,7 @@ export function useCandidateItemsLoader({
   appliedPeriodRef,
   itemsRef,
   confirmationOverridesRef,
+  orderMetricComparisonTarget,
   clearRecommendationItems,
   beginItemLoad,
   isCurrentItemLoad,
@@ -115,13 +118,16 @@ export function useCandidateItemsLoader({
       confirmationOverridesRef.current = protectedResult.overrides
       setItems(protectedResult.items)
       setCandidateItemsLoading(false)
-      subscribeOrderMetrics({
-        seq,
-        dataReferencePeriodStart: nextPeriodStart,
-        dataReferencePeriodEnd: nextPeriodEnd,
-        companyUuid,
-        candidateItemUuids: metricCandidateItems.map((item: CandidateStashItemSummary) : string => item.uuid),
-      })
+      if (orderMetricComparisonTarget != null) {
+        subscribeOrderMetrics({
+          seq,
+          dataReferencePeriodStart: nextPeriodStart,
+          dataReferencePeriodEnd: nextPeriodEnd,
+          companyUuid,
+          candidateItemUuids: metricCandidateItems.map((item: CandidateStashItemSummary) : string => item.uuid),
+          comparison: orderMetricComparisonTarget,
+        })
+      }
     } catch (err) {
       if (!isCurrentItemLoad(seq)) return
       const message: string = getApiErrorDisplayMessage(err, '후보 상품 목록을 불러오지 못했습니다.')
@@ -136,6 +142,7 @@ export function useCandidateItemsLoader({
     confirmationOverridesRef,
     isCurrentItemLoad,
     itemsRef,
+    orderMetricComparisonTarget,
     setItems,
     stashUuid,
     subscribeOrderMetrics,

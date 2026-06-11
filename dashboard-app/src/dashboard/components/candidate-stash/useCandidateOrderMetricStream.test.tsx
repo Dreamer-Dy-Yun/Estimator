@@ -12,10 +12,18 @@ import type {
   CandidateOrderMetric,
   CandidateOrderMetricEvent,
   CandidateOrderMetricStreamParams,
+  ProductComparisonTarget,
 } from '../../../api'
 import { useCandidateOrderMetricStream } from './useCandidateOrderMetricStream'
 
 const TEST_COMPANY_UUID = '00000000-0000-4000-8000-000000000101' as const
+const TEST_COMPARISON_TARGET: ProductComparisonTarget = {
+  id: 'comparison:competitor-channel:kream',
+  role: 'comparison',
+  kind: 'competitor-channel',
+  sourceId: 'kream',
+  label: '크림',
+}
 
 const apiMock: { subscribeCandidateOrderMetrics: Mock<(...args: unknown[]) => unknown>; subscriptions: { params: CandidateOrderMetricStreamParams; listener: (event: CandidateOrderMetricEvent) => void; close: ReturnType<typeof vi.fn>; }[]; } = vi.hoisted(() : { subscribeCandidateOrderMetrics: Mock<(...args: unknown[]) => unknown>; subscriptions: { params: CandidateOrderMetricStreamParams; listener: (event: CandidateOrderMetricEvent) => void; close: ReturnType<typeof vi.fn>; }[]; } => ({
   subscribeCandidateOrderMetrics: vi.fn(),
@@ -80,6 +88,7 @@ function metric(itemUuid: string): CandidateOrderMetric {
   return {
     itemUuid,
     skuUuid: `${itemUuid}-sku`,
+    source: 'secondary-calc',
     qty: 10,
     expectedOrderAmount: 1000,
     expectedSalesAmount: 1500,
@@ -167,18 +176,21 @@ describe('useCandidateOrderMetricStream', () : void => {
         dataReferencePeriodStart: '2026-04-01',
         dataReferencePeriodEnd: '2026-05-31',
         candidateItemUuids: ['item-2', 'item-1', 'item-2'],
+        comparison: TEST_COMPARISON_TARGET,
       })
       controls?.subscribeOrderMetrics({
         seq,
         dataReferencePeriodStart: '2026-04-01',
         dataReferencePeriodEnd: '2026-05-31',
         candidateItemUuids: ['item-1', 'item-2'],
+        comparison: TEST_COMPARISON_TARGET,
       })
     })
 
     expect(apiMock.subscribeCandidateOrderMetrics).toHaveBeenCalledTimes(1)
     expect(apiMock.subscriptions[0].params.companyUuid).toBe(TEST_COMPANY_UUID)
     expect(apiMock.subscriptions[0].params.candidateItemUuids).toEqual(['item-1', 'item-2'])
+    expect(apiMock.subscriptions[0].params.comparison).toEqual(TEST_COMPARISON_TARGET)
 
     act(() : void => {
       apiMock.subscriptions[0].listener({

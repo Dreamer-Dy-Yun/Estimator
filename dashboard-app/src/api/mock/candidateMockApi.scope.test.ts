@@ -1,5 +1,6 @@
 import type { CandidateItemListResult, CandidateItemSummary, CandidateOrderMetricSubscription, CandidateStashSummary } from '..'
 import type { CandidateOrderMetricStreamParams, CreateCandidateStashPayload } from '../types'
+import type { ProductComparisonComparisonSubjectRef } from '../types/drawer'
 import { describe, expect, it } from 'vitest'
 import { ALL_COMPANY_UUID } from '../types'
 import { MOCK_ADMIN_USER_UUID, MOCK_USER_UUID } from './authApi'
@@ -9,6 +10,12 @@ import { DEFAULT_CANDIDATE_STASH_CONTEXT } from './records'
 import { MOCK_COMPANY_UUID, defaultCandidateItemListParams } from './candidateMockApiTestHelpers'
 
 describe('api/mock candidate stash scope contract', () : void => {
+  const comparison: ProductComparisonComparisonSubjectRef = {
+    role: 'comparison',
+    kind: 'competitor-channel',
+    sourceId: 'kream',
+  }
+
   it('filters candidate stashes by authenticated owner uuid', async () : Promise<void> => {
     const all: CandidateStashSummary[] = await mockDashboardApi.getCandidateStashes()
     const adminOwned: CandidateStashSummary[] = await mockDashboardApi.getCandidateStashes(
@@ -180,6 +187,7 @@ describe('api/mock candidate stash scope contract', () : void => {
       dataReferencePeriodStart: DEFAULT_CANDIDATE_STASH_CONTEXT.periodStart,
       dataReferencePeriodEnd: DEFAULT_CANDIDATE_STASH_CONTEXT.periodEnd,
       candidateItemUuids: [item!.uuid],
+      comparison,
     }
 
     expect(() : CandidateOrderMetricSubscription =>

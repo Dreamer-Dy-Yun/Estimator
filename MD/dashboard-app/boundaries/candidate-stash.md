@@ -1,6 +1,6 @@
 # Candidate Stash Boundary
 
-Last updated: 2026-06-10
+Last updated: 2026-06-11
 
 ## Responsibility
 
@@ -49,3 +49,7 @@ Candidate stash owns order candidate lists, item detail drawer entry, recommenda
 - SSE failure marks target rows/cells failed; it does not clear the list.
 - Detail snapshot save/update uses `OrderSnapshotDocument` v3 in `details`.
 - Detail unconfirm sends `details: null`.
+- Inner order metrics are snapshot-first. If `details` exists, list `qty`, order amount, sales amount, profit, inbound date, and size quantities project `OrderSnapshotDocument.drawer2`.
+- If `details` is null, order metrics request the selected size comparison subject through `subscribeCandidateOrderMetrics(params.comparison)`.
+- Candidate stash does not own a global comparison target. The detail header fetches comparison targets through `getProductComparisonTargets({ base })`, and every metric SSE request receives the selected target as a parameter.
+- Daily trend data is not part of the inner order metric request; only the secondary order calculation basis is reused.

@@ -105,9 +105,9 @@ function mockSelfCompanySubjectLabel(sourceId: string | undefined): string {
   return company.name
 }
 
-function resolveMockProductSalesInsightSubject(subject: ProductComparisonBaseSubjectRef): ProductComparisonBaseSubject
-function resolveMockProductSalesInsightSubject(subject: ProductComparisonComparisonSubjectRef): ProductComparisonComparisonSubject
-function resolveMockProductSalesInsightSubject(subject: ProductComparisonSubjectRef): ProductComparisonSubject {
+export function resolveMockProductSalesInsightSubject(subject: ProductComparisonBaseSubjectRef): ProductComparisonBaseSubject
+export function resolveMockProductSalesInsightSubject(subject: ProductComparisonComparisonSubjectRef): ProductComparisonComparisonSubject
+export function resolveMockProductSalesInsightSubject(subject: ProductComparisonSubjectRef): ProductComparisonSubject {
   if (subject.kind === 'competitor-channel') {
     const channel: MockSecondaryCompetitorChannel = getMockSecondaryCompetitorChannel(subject.sourceId)
     return {

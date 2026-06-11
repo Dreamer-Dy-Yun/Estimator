@@ -25,7 +25,7 @@ export function subscribeMockCandidateOrderMetrics(
         requestId: params.requestId,
         itemUuid: row.uuid,
         skuUuid: row.skuUuid,
-        metric: buildCandidateOrderMetric(row, period, params.companyUuid),
+        metric: buildCandidateOrderMetric(row, period, params.companyUuid, params.comparison),
       }
     } catch (error) {
       failedCount += 1

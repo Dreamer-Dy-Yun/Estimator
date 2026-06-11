@@ -5,6 +5,7 @@ import type {
   CandidateOrderMetric,
   CandidateReferenceItemSummary,
   CandidateStashItemSummary,
+  ProductComparisonComparisonSubjectRef,
 } from '../types'
 import type { CandidateItemRecord } from './records'
 import type { CandidateDataReferencePeriod } from './candidateItemSummaryTypes'
@@ -94,8 +95,9 @@ export function buildCandidateOrderMetric(
   row: CandidateItemRecord,
   dataReferencePeriod?: CandidateDataReferencePeriod,
   companyUuid?: string,
+  comparison?: ProductComparisonComparisonSubjectRef,
 ): CandidateOrderMetric {
-  return buildCandidateItemOrderMetric(row, dataReferencePeriod, companyUuid)
+  return buildCandidateItemOrderMetric(row, dataReferencePeriod, companyUuid, comparison)
 }
 
 export function buildCandidateItemSummaries(
