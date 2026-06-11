@@ -1,6 +1,6 @@
 # dashboard-app Frontend Overview
 
-Last updated: 2026-06-10
+Last updated: 2026-06-11
 
 ## Purpose
 
@@ -23,8 +23,9 @@ Last updated: 2026-06-10
 - 월별 추세는 최근 24개월 + 12개월 예측 기반으로 구성
 - 일일 추세는 시작월의 1일 ~ 어제 구간 + 리드타임 기반 예측 반영
 - 상품드로워의 기준/비교 대상은 `base`/`comparison` subject 계약으로 조회
+- 비교 대상이 비어 있거나 selected target이 현재 scope에서 사라지면 explicit unavailable state로 표시하고 임의 target을 합성하지 않음
 - 1차 bundle은 기준 자사 summary만 필요하므로 base-only로 조회
-- AI 코멘트는 버튼 클릭 시에만 요청
+- AI 코멘트는 버튼 클릭 시에만 요청하며, 현재 2차 드로워 계산을 기준으로 설명해야 할 때 `snapshotForAiComment`를 함께 보냄
 - 초기화는 현재 계산값 기준 상태로 복귀하고 AI 코멘트 상태를 초기화
 - 상세 저장은 `OrderSnapshotDocument` v3를 후보군 item의 `details`에 저장
 

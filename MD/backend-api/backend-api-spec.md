@@ -61,6 +61,9 @@ Rules:
 - `self-company` with omitted `sourceId` means all-company read.
 - Missing or unauthorized subjects must fail explicitly, not fall back to first available target.
 - Invalid role/kind shape should return validation failure, preferably 422.
+- `GET /products/comparison-targets` returns `200 []` when the requested base subject has no available comparison target.
+- Non-2xx responses from `getProductComparisonTargets` are API failures, not empty states.
+- The frontend treats both an empty target list and target lookup failure as comparison unavailable and does not synthesize a default target.
 
 ## Sales and scatter aggregation
 
@@ -108,6 +111,10 @@ Rules:
 - SSE endpoints must validate the same company scope and resource ownership as the job start/read endpoint.
 - Order metric streams include `requestId`; stale events with old request ids are ignored by frontend.
 - Completed events should be sent when all requested items are settled.
+- Candidate order metric SSE requires the selected comparison subject on every request: `comparisonRole`, `comparisonKind`, and `comparisonSourceId` when required by the subject kind.
+- The backend must validate the supplied comparison subject and must not use a server-global, session-global, or first-available default comparison basis.
+- If no selected comparison target exists after `getProductComparisonTargets({ base })`, the frontend does not open the order metric SSE.
+- Snapshot rows project `CANDIDATE_ITEM.details.drawer2`; non-snapshot rows calculate from the current secondary order metric basis for the supplied base/comparison subject without daily trend rendering data.
 
 ## Failure mapping
 

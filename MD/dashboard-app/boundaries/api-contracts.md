@@ -5,12 +5,14 @@
 | 작성 지시 | Yun Daeyoung |
 | 작성자 | Codex |
 | 작성일 | 2026-05-19 |
-| 최종 수정일 | 2026-06-10 |
+| 최종 수정일 | 2026-06-11 |
 | 상태 | 유지 문서 |
 | 적용 범위 | `dashboard-app/src/api`, mock/HTTP adapter, API 타입 계약 |
 
 ## 핵심 원칙
 
+- `dashboard-app`은 현재 frontend/API-contract app으로 검증된다. Mock mode는 local/Pages preview용 backend-contract substitute이며 UI fallback이 아니다.
+- HTTP production readiness는 backend base URL과 backend parity evidence가 있어야 하며, mock preview 성공을 HTTP production parity로 보고하지 않는다.
 - 화면, 훅, 컴포넌트는 mock 파일을 직접 import하지 않는다.
 - API 타입은 `src/api/types/*`에 `interface` 우선으로 둔다.
 - mock은 임시 데이터가 아니라 백엔드 계약 대체 구현체다.
@@ -40,7 +42,7 @@
 | `types/admin-google-sheet.ts` | Google Sheets API 설정 관리 |
 | `types/api-error.ts` | 공통 실패 응답(`ApiErrorResponse`)과 HTTP status to `ApiFailureKind` 분류 |
 | `types/candidate.ts` | 후보군, 후보 아이템, 추천, 상세확정 |
-| `types/candidate-order-metrics.ts` | 총 오더 수량/금액 SSE. 요청은 단일 `companyUuid`와 선택된 `comparison` subject를 함께 보내며, 백엔드는 `completed`를 보내야 한다. 프론트는 모든 요청 item이 settle되면 자동 재접속 방지를 위해 구독을 닫는다 |
+| `types/candidate-order-metrics.ts` | 총 오더 수량/금액 SSE. 요청은 단일 `companyUuid`와 선택된 `comparison` subject를 함께 보내며, 백엔드는 `completed`를 보내야 한다. `source=snapshot`은 저장값 투영, `source=secondary-calc`은 선택된 comparison 기준 재계산이다. 선택 대상이 없으면 프론트는 SSE를 열지 않는다 |
 | `types/drawer.ts` | 상품 드로워 번들, 비교 대상 subject, 판매 정보 insight 계약 |
 | `types/sales.ts` | 자사/경쟁사 분석 요청/응답 |
 | `types/secondary.ts` | 2차 드로워 상세, 재고·발주, AI 코멘트 |
@@ -60,7 +62,7 @@
 | `mock/candidateMockApi.ts` | 후보군 mock public method orchestration과 mutation entry |
 | `mock/candidateMockStore.ts` | 후보군 seed/store 읽기와 list result 조립 |
 | `mock/candidateMockMappers.ts` | 후보 아이템 상세 DTO와 후보군별 item 통계 매핑 |
-| `mock/candidateItemSummaryBuilder.ts` | 기간 기준 후보 요약과 오더 지표 DTO 조립 |
+| `mock/candidateItemSummaryBuilder.ts` | 기간 기준 후보 요약 DTO 조립. 현재 후보 목록은 metric-light 응답을 기본으로 하고 오더 지표는 선택된 comparison target 이후 SSE에서 채운다 |
 | `mock/candidateInsightBadgeModel.ts` | 추천/배지 판정 기준과 배지 DTO 생성 |
 | `mock/candidateOrderMetricStream.ts` | 회사 scope가 반영된 총 오더 지표 SSE mock |
 | `mock/candidateDetailBulkConfirmStream.ts` | 상세 일괄확정 SSE mock |
@@ -74,11 +76,13 @@
 - `mockDashboardRequests.ts`는 현재 세션의 `USER_ACCOUNT.uuid`를 request boundary에서만 붙인다. 화면 내부로 사용자 UUID를 흘리지 않는다.
 - `httpDashboardRequests.ts`는 실제 백엔드 endpoint 경로를 `DashboardApi` 계약에 맞춰 연결한다.
 - 회사 소유 read adapter는 단일 회사 선택 시 `companyUuid`를 포함하고, `전체` 선택 시 생략한다. 이 scope는 분석 목록/산점도/filter meta와 후보군 read에 적용된다. 생략은 백엔드가 회사 where 조건을 제거한다는 조회 계약이며, mock adapter도 같은 의미로 데이터 분기/계산을 수행한다.
-- 상품드로워 read-like API는 `companyUuid?` 대신 subject 계약을 사용한다. bundle은 `base`만 받고, monthly trend/sales insight/secondary detail/daily trend/AI comment는 `base`와 `comparison`을 함께 받는다. secondary stock order calc는 comparison이 필요 없는 계산이므로 `base`만 받는다.
+- 상품드로워 read-like API는 `companyUuid?` 대신 subject 계약을 사용한다. bundle은 `base`만 받고, monthly trend/sales insight/secondary detail/daily trend는 `base`와 `comparison`을 함께 받는다. secondary stock order calc는 comparison이 필요 없는 계산이므로 `base`만 받는다.
+- AI comment는 read-like GET이 아니라 manual POST 생성 요청이다. HTTP body는 path `skuGroupKey`를 제외하고 base/comparison, 기간/예측, optional `candidateItemUuid`, optional `snapshotForAiComment`를 보낸다.
 - 상품 판매 정보 비교 API는 `base`와 `comparison`을 subject 계약으로 통일한다. 프론트 내부 subject는 `role`, `kind`, `sourceId`를 갖지만, HTTP query에서는 `self-company` 전체 범위의 `sourceId`를 생략한다. `ALL_COMPANY_UUID`는 프론트 내부 sentinel이며 백엔드로 전송하지 않는다.
 - `getProductComparisonTargets`의 빈 배열은 정상 unavailable 상태다. 화면은 첫 번째 비교 대상을 임의 생성하거나 API 오류로 바꾸지 않는다.
 - 후보군 상세의 사이즈 기준 선택도 `getProductComparisonTargets({ base })`를 별도 호출해 받은 목록을 사용한다. 선택값은 전역 상태가 아니라 `subscribeCandidateOrderMetrics` 호출 인자로 전달한다.
 - 후보군 상세는 comparison target 로딩 중에는 총오더 metric SSE를 지연할 수 있다. 로딩이 끝났는데 선택 가능한 target이 없으면 가짜 default를 만들지 않고 non-snapshot metric cell을 실패 상태로 종료한다.
+- mock live order metric builder도 선택된 comparison 없이 첫 번째 경쟁 채널을 대체 사용하지 않는다.
 - 후보군 mutation, 후보군 backend job start, 후보군 job/SSE subscribe, 오더 지표 SSE, 후보군 엑셀 upload FormData는 단일 회사 scope 전용이다. `전체` 선택 상태에서는 UI에서 후보군 side-effect 진입을 막고, mock/HTTP 백엔드는 `companyUuid` 누락 요청을 검증 실패로 처리해야 한다.
 - `dashboardMasterDataCache.ts`는 page와 공통 drawer가 공유하는 master data 요청을 coalesce한다. mutation 후 무효화 대상이 아닌 master data만 캐시한다.
 - 관리자 Google Sheets mock은 서비스 계정 키를 JSON으로 parse해 `client_email`을 확인한다. 잘못된 JSON을 정규식 등으로 보정하지 않는다.

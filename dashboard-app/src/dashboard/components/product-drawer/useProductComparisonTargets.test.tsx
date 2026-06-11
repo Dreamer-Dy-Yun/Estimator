@@ -133,7 +133,7 @@ describe('useProductComparisonTargets', () : void => {
     expect(hook.renderCount).toBe(renderCountAfterFirstSelection)
   })
 
-  it('selects the first available target when the default kind has no target', async () : Promise<void> => {
+  it('keeps the target unavailable when the active kind has no target', async () : Promise<void> => {
     vi.spyOn(dashboardApi, 'getProductComparisonTargets')
       .mockResolvedValue([SELF_COMPARISON_TARGET])
 
@@ -141,7 +141,7 @@ describe('useProductComparisonTargets', () : void => {
     await flushMicrotasks()
 
     expect(hook.current.targetsLoading).toBe(false)
-    expect(hook.current.comparisonTarget?.id).toBe(SELF_COMPARISON_TARGET.id)
+    expect(hook.current.comparisonTarget).toBeNull()
   })
 
   it('settles loading when target loading fails', async () : Promise<void> => {

@@ -29,8 +29,10 @@ export type ProductComparisonSubjectRef = ComparisonSubjectRef
 export type ProductComparisonSubject<TSubject extends ProductComparisonSubjectRef = ProductComparisonSubjectRef> = ComparisonSubject<TSubject>
 export type ProductComparisonBaseSubject = ComparisonBaseSubject
 export type ProductComparisonComparisonSubject = ComparisonComparisonSubject
+/** Backend/mock-provided comparison option. id/label are response-owned; clients pass role/kind/sourceId as the API subject. */
 export type ProductComparisonTarget = ComparisonTarget
 
+/** Query for targets available to a base subject. Empty response means unavailable, not default-target fallback. */
 export interface ProductComparisonTargetParams {
   base: ProductComparisonBaseSubjectRef
 }

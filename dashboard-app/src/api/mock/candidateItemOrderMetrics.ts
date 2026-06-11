@@ -16,7 +16,6 @@ import type { SecondarySizeOrderRow, SecondarySizeShare } from '../../utils/seco
 import { buildCandidateItemInsight } from './candidateItemInsights'
 import { productPrimaryBySkuGroupKey } from './productCatalog'
 import { scopeMockProductPrimary } from './mockCompanyScope'
-import { secondaryCompetitorChannels } from './salesTables'
 import { buildMockProductSecondaryDetail } from './mockProductSecondaryDetailApi'
 import { buildMockSecondaryStockOrderCalcResult } from './secondaryStockOrderCalcApi'
 import { resolveMockProductSalesInsightSubject } from './mockProductComparisonApi'
@@ -43,18 +42,9 @@ function baseSubjectForCompany(companyUuid?: string): ProductComparisonBaseSubje
   }
 }
 
-function defaultComparisonSubject(): ProductComparisonComparisonSubjectRef {
-  const firstChannel: { id: string; label: string } | undefined = secondaryCompetitorChannels[0]
-  if (firstChannel == null) throw new Error('Mock comparison target is required.')
-  return {
-    role: 'comparison',
-    kind: 'competitor-channel',
-    sourceId: firstChannel.id,
-  }
-}
-
 function requireComparisonSubject(comparison?: ProductComparisonComparisonSubjectRef): ProductComparisonComparisonSubjectRef {
-  return comparison ?? defaultComparisonSubject()
+  if (comparison == null) throw new Error('Mock candidate order metric comparison target is required.')
+  return comparison
 }
 
 function roundedPercent(value: number | null): number | null {

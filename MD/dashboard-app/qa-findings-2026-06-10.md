@@ -1,5 +1,8 @@
 # 2026-06-10 / Dashboard App QA Findings
 
+> Historical snapshot: this document records QA evidence for `HEAD=980f3a1` on 2026-06-10.
+> It must not be reused as the current verdict after later code/API/doc changes without a fresh current-basis QA pass.
+
 ## QA scope and basis
 
 - Project: `D:\DEV\HAN.A`
@@ -41,7 +44,7 @@
 - `useSecondaryCandidateActions.ts` still owns picker state and mutation orchestration; deeper `runMutation` splitting should wait for focused hook tests.
 - Backend implementation parity is not proven by frontend tests; this QA covers frontend contracts and deployment configuration.
 
-## Current verdict
+## Verdict at HEAD=980f3a1 on 2026-06-10
 
 - Usable: yes.
 - Each QA category: 90+ based on current source and validation evidence.

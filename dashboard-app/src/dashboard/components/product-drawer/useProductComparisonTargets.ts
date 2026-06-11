@@ -39,7 +39,7 @@ function selectedTarget(
   targetIds: ProductComparisonTargetIds,
 ): ProductComparisonTarget | null {
   const candidates: ProductComparisonTarget[] = targetsByKind(targets, kind)
-  if (!candidates.length) return targets[0] ?? null
+  if (!candidates.length) return null
   const selectedId: string = targetIds[kind]
   if (selectedId === '') return candidates[0]!
   return candidates.find((target: ProductComparisonTarget) : boolean => target.id === selectedId) ?? null

@@ -8,7 +8,9 @@ Last updated: 2026-06-11
 - The selected comparison target is passed as `CandidateOrderMetricStreamParams.comparison` for each `subscribeCandidateOrderMetrics` request.
 - Snapshot-confirmed candidate items project `OrderSnapshotDocument.drawer2` values into the inner order list and do not recalculate when the comparison target changes.
 - Non-snapshot candidate items use the same secondary size/order projection helper as the product drawer, while daily trend rendering data stays out of the list metric request.
-- If comparison targets are still loading, candidate order metric subscription waits. If loading completes with no selected comparison target, the modal must not synthesize a fake default; non-snapshot order metric rows are closed as failed.
+- If comparison targets are still loading, candidate order metric subscription waits. If loading completes with no selected comparison target, the modal must not synthesize a fake default; non-snapshot metric cells are marked failed/unavailable and snapshot rows keep stored values.
+- `candidateStashDetailModalModel.ts` owns the public args/model type for `useCandidateStashDetailModal.ts` so the hook file can remain orchestration-focused.
+- `useCandidateOrderMetricCoordinator.ts` owns comparison target availability, comparison-change reload, and appended-item metric subscription coordination.
 
 ## 0-5) 2026-06-10 list thumbnail boundary
 
@@ -26,7 +28,7 @@ Last updated: 2026-06-11
 
 ## 0-4) 2026-06-09 product drawer comparison target boundary
 
-- Product drawer API facade calls must pass explicit subject params. All-company is represented by an explicit self-company subject whose `SourceId` is omitted only at the HTTP adapter boundary.
+- Product drawer API facade calls must pass explicit subject params. All-company is represented by an explicit self-company subject whose `sourceId` is omitted only at the HTTP adapter boundary.
 - 1차 드로워 판매 정보의 기준/비교 주체는 `ProductComparisonSubjectRef` 계약이 소유한다.
 - `base`와 `comparison`은 모두 `role`, `kind`, `sourceId`를 가진다. `role`은 컬럼 위치, `kind`는 backend/mock 조회 도메인, `sourceId`는 해당 도메인의 실제 id다.
 - `ProductComparisonTarget.id`는 comparison option의 UI 선택용 opaque id다. 프론트는 `kind:sourceId` 같은 id 포맷을 합성하지 않는다.

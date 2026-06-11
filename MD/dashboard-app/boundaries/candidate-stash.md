@@ -26,7 +26,9 @@ Candidate stash owns order candidate lists, item detail drawer entry, recommenda
 |---|---|
 | `SnapshotConfirmPage.tsx` | Candidate stash page composition |
 | `useCandidateStashDetailModal.ts` | Detail modal orchestration |
+| `candidateStashDetailModalModel.ts` | Detail modal public hook args/model contract |
 | `useCandidateItemsLoader.ts` | Item list load |
+| `useCandidateOrderMetricCoordinator.ts` | Comparison target availability, comparison-change reload, and appended-item metric subscription coordination |
 | `useCandidateRecommendations.ts` | Recommendation load and append state |
 | `useCandidateOrderMetricStream.ts` | Order metric SSE |
 | `useCandidateBulkDetailConfirm.ts` | Bulk detail confirm job/SSE |
@@ -53,4 +55,5 @@ Candidate stash owns order candidate lists, item detail drawer entry, recommenda
 - If `details` is null, order metrics request the selected size comparison subject through `subscribeCandidateOrderMetrics(params.comparison)`.
 - Candidate stash does not own a global comparison target. The detail header fetches comparison targets through `getProductComparisonTargets({ base })`, and every metric SSE request receives the selected target as a parameter.
 - While comparison targets are loading, order metric SSE may wait. If target loading completes with no available selected target, candidate stash does not call SSE with a fake default and marks non-snapshot order metric cells failed.
+- If target lookup fails, returns an empty list, or the saved selected target is no longer available, snapshot rows keep stored values and only non-snapshot metric cells become failed/unavailable.
 - Daily trend data is not part of the inner order metric request; only the secondary order calculation basis is reused.

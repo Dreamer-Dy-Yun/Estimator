@@ -94,6 +94,9 @@ function secondaryDailyTrendQuery(params: Omit<SecondaryDailyTrendParams, 'skuGr
  *   do not fetch raw transaction rows just to bin/calculate in the browser.
  * - Candidate stash ownership must be enforced from the authenticated session.
  * - Candidate order metrics use SSE with requestId; frontend drops stale events.
+ * - Empty comparison target lists are valid unavailable states; adapters must not synthesize defaults.
+ * - Candidate order metric SSE requires concrete company scope and the selected comparison subject.
+ * - Snapshot/non-snapshot metric source is item-owned; this adapter only serializes request contract inputs.
  */
 function getHttpCandidateStashExcelTemplateDownload(): CandidateStashExcelTemplateDownload {
   return {
@@ -122,6 +125,7 @@ export const httpDashboardRequests: DashboardApi = {
       query: queryParams(productDrawerBundleQuery(params)),
     }),
   getProductComparisonTargets: (params: ProductComparisonTargetParams) : Promise<ProductComparisonTarget[]> =>
+    // Empty arrays are contract-level unavailable states. HTTP failures must stay failures, not fake empty targets.
     apiRequest('/products/comparison-targets', {
       query: queryParams(productComparisonTargetQuery(params)),
     }),
@@ -156,6 +160,7 @@ export const httpDashboardRequests: DashboardApi = {
       query: queryParams(normalizeCompanyScopeParams(params)),
     }),
   subscribeCandidateOrderMetrics: (params: CandidateOrderMetricStreamParams, listener: (event: CandidateOrderMetricEvent) => void, onError: DashboardEventStreamErrorListener | undefined) : ApiEventStreamSubscription =>
+    // The caller owns comparison target selection. The adapter serializes the selected subject and never chooses defaults.
     openApiEventStream(`/candidate-stashes/${encodePathSegment(params.stashUuid)}/items/order-metrics/events`, {
       requestId: params.requestId,
       dataReferencePeriodStart: params.dataReferencePeriodStart,

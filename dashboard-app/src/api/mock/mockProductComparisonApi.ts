@@ -78,6 +78,10 @@ function mockCompanyComparisonTargetLabel(companyUuid: string | undefined, label
   return companyUuid == null ? SELF_ALL_COMPANIES_LABEL : label
 }
 
+/**
+ * Mock implementation of the backend comparison-target endpoint.
+ * A non-empty array is the only source for selectable defaults; an empty array means unavailable.
+ */
 function buildMockProductComparisonTargets(params: ProductComparisonTargetParams): ProductComparisonTarget[] {
   if (params.base.role !== 'base') throw new Error(`Invalid mock base subject role: ${params.base.role}`)
   if (params.base.kind !== 'self-company') throw new Error(`Unsupported mock base subject kind: ${params.base.kind}`)

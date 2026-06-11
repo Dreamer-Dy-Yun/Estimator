@@ -1,6 +1,6 @@
 # QA Current Behavior
 
-Last updated: 2026-06-10
+Last updated: 2026-06-11
 
 ## General
 
@@ -22,7 +22,7 @@ Last updated: 2026-06-10
 
 - Monthly trend request: last 24 completed months + 12 forecast months.
 - Daily trend request: selected start month first day through yesterday + lead-time forecast days.
-- AI comment request is manual.
+- AI comment request is manual and may include `snapshotForAiComment` so the generated text follows the current secondary drawer calculation.
 - Snapshot save uses current drawer state and `OrderSnapshotDocument` v3.
 - If a selected SKU drawer-bundle refresh fails, the UI may keep same-SKU stable data, but it must not show another SKU's cached bundle as the current selection.
 
@@ -31,6 +31,7 @@ Last updated: 2026-06-10
 - Item list, recommendations, and order metrics are separate contracts.
 - Recommendation append result states: `applied`, `stale`, `no-op`, `empty-selection`.
 - Only `applied` inserts local rows.
+- Order metric SSE requires a selected comparison target. If no valid target exists before stream start, non-snapshot order metric cells fail/unavailable without opening SSE; snapshot metrics remain snapshot-projected.
 - SSE transport failure marks affected order metric cells failed.
 - Detail confirm/unconfirm response is authoritative for the affected item.
 

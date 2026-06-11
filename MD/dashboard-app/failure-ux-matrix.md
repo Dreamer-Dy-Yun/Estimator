@@ -5,7 +5,7 @@
 | 작성 지시 | Yun Daeyoung |
 | 작성자 | Codex |
 | 작성일 | 2026-05-21 |
-| 최종 수정일 | 2026-05-22 |
+| 최종 수정일 | 2026-06-11 |
 | 상태 | 유지 문서 |
 | 적용 범위 | `dashboard-app` 실패 kind, 화면별 실패 surface, stale/partial/pending/live-region 정책 |
 
@@ -63,6 +63,7 @@
 | 추천 후보 추가 | mutation 실패 | error toast + 기존 선택 유지 | 성공 toast, 선택 해제 |
 | bulk unconfirm | 일부 성공/일부 실패 | 성공분 반영 + 실패 수 error toast + modal 성공 닫힘 방지 | `Promise.all` 전체 실패 처리만 사용 |
 | order metric SSE | item event 실패 | 해당 row metric failed badge | 전체 목록 실패 처리 |
+| order metric SSE | comparison target 목록 실패, 빈 목록, 삭제된 선택값 | snapshot row는 저장값 유지, non-snapshot metric cell은 failed/unavailable badge와 tooltip | fake default, first-target fallback, 전체 목록 실패, 무한 spinner |
 | order metric SSE | completed 후 pending 남음 | pending row를 failed/not-calculated로 종료 | 무한 spinner |
 | 상세확정 SSE | item별 실패 | progress/toast + item 상태 유지 | 성공처럼 확정 상태 변경 |
 
@@ -104,7 +105,7 @@
 - 화면별 현재 동작이 바뀌면 [qa-current-behavior.md](./qa-current-behavior.md)를 함께 확인한다.
 - 하드닝 완료 모듈의 공개 계약이 바뀌면 [module-hardening.md](./module-hardening.md)에 수정 허용 범위를 기록한다.
 
-## TODO-076 failure UX policy additions
+## Additional failure UX policies
 
 ### ApiFailureKind naming
 

@@ -2,6 +2,9 @@
 
 ## 2026-06-10 current API rewrite
 
+- `getProductComparisonTargets({ base })` now has explicit empty/error semantics: `200 []` means no available target, non-2xx means API failure, and the frontend does not synthesize a default target.
+- Candidate order metric SSE is not opened when the frontend has no selected comparison target; non-snapshot metric cells are marked unavailable/failed client-side instead of asking the backend to choose a default.
+- Mock preview may run with `VITE_USE_MOCK_API=true` and no backend base URL; HTTP/production mode requires the backend base URL.
 - Candidate order metric SSE now requires the selected comparison subject on every request:
   - `comparisonRole`, `comparisonKind`, `comparisonSourceId?`
   - Snapshot rows project `OrderSnapshotDocument.drawer2`; non-snapshot rows use secondary order calculation without daily trend rendering data.

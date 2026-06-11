@@ -67,7 +67,8 @@ import type {
 
 /**
  * Dashboard data access contract.
- * Implemented by mock today; swap for HTTP client later.
+ * Implemented by HTTP and mock adapters; screens/hooks must depend on this interface only.
+ * Mock behavior is a backend-contract substitute, not a UI fallback path.
  */
 export type DashboardEventStreamErrorListener = (error: unknown) => void
 
@@ -83,6 +84,7 @@ export interface DashboardApi {
     skuGroupKey: string,
     params: ProductDrawerBundleParams,
   ): Promise<ProductDrawerBundle>
+  /** Empty target arrays are valid unavailable states; callers must not synthesize a default target. */
   getProductComparisonTargets(params: ProductComparisonTargetParams): Promise<ProductComparisonTarget[]>
   getProductMonthlyTrend(skuGroupKey: string, params: ProductMonthlyTrendParams): Promise<ProductMonthlyTrend>
   getProductSalesInsight(skuGroupKey: string, params: ProductSalesInsightParams): Promise<ProductSalesInsight>
@@ -95,6 +97,11 @@ export interface DashboardApi {
   getSecondaryCompetitorChannels(): Promise<SecondaryCompetitorChannel[]>
   getCandidateStashes(params?: CandidateStashListParams): Promise<CandidateStashSummary[]>
   getCandidateItemsByStash(params: CandidateItemListParams): Promise<CandidateItemListResult>
+  /**
+   * Streams candidate order metrics after a selected comparison target exists.
+   * Requires concrete company scope, data reference period, requestId, item UUIDs, and comparison subject.
+   * Snapshot rows project stored details; non-snapshot rows use the selected comparison for secondary calculation.
+   */
   subscribeCandidateOrderMetrics(
     params: CandidateOrderMetricStreamParams,
     listener: (event: CandidateOrderMetricEvent) => void,

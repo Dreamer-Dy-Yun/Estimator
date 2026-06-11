@@ -100,10 +100,21 @@ export function buildCandidateOrderMetric(
   return buildCandidateItemOrderMetric(row, dataReferencePeriod, companyUuid, comparison)
 }
 
+interface CandidateItemSummaryBuildOptions {
+  includeOrderMetrics?: boolean
+  includeRecommendationInsights?: boolean
+  companyUuid?: string
+  comparison?: ProductComparisonComparisonSubjectRef
+}
+
+/**
+ * Mock list DTO builder. Current candidate item list contract should use includeOrderMetrics=false;
+ * order metrics are filled by SSE after a selected comparison target exists.
+ */
 export function buildCandidateItemSummaries(
   records: CandidateItemRecord[],
   dataReferencePeriod?: CandidateDataReferencePeriod,
-  options: { includeOrderMetrics?: boolean; includeRecommendationInsights?: boolean; companyUuid?: string } = {},
+  options: CandidateItemSummaryBuildOptions = {},
 ): CandidateItemSummary[] {
   const includeOrderMetrics: boolean = options.includeOrderMetrics ?? true
   const includeRecommendationInsights: boolean = options.includeRecommendationInsights ?? true
@@ -143,6 +154,7 @@ export function buildCandidateItemSummaries(
         row,
         dataReferencePeriod,
         options.companyUuid,
+        options.comparison,
       ))
     })
     .sort((a: CandidateItemSummary, b: CandidateItemSummary) : number => String(b.dbCreatedAt).localeCompare(String(a.dbCreatedAt)))

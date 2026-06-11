@@ -246,14 +246,15 @@ Type sources: `dashboard-app/src/api/types/drawer.ts`, `dashboard-app/src/api/ty
 | `getProductSalesInsight` | GET `/products/{skuGroupKey}/sales-insight` | date range, base subject, comparison subject | `ProductSalesInsight` |
 | `getProductSecondaryDetail` | GET `/products/{skuGroupKey}/secondary-detail` | base subject, comparison subject, `minOpMarginPct?` | `ProductSecondaryDetail` |
 | `getSecondaryDailyTrend` | GET `/products/{skuGroupKey}/secondary/daily-trend` | date range, `forecastDays`, base subject, comparison subject | `SecondaryDailyTrendPoint[]` |
-| `getSecondaryAiComment` | POST `/products/{skuGroupKey}/secondary/ai-comment` | `SecondaryAiCommentParams` body without path `skuGroupKey` | `SecondaryAiCommentResult` |
+| `getSecondaryAiComment` | POST `/products/{skuGroupKey}/secondary/ai-comment` | AI comment request body without path `skuGroupKey` | `SecondaryAiCommentResult` |
 | `getSecondaryStockOrderCalc` | POST `/secondary/stock-order-calc` | `SecondaryStockOrderCalcParams` | `SecondaryStockOrderCalcResult` |
 
-`SecondaryAiCommentParams` body:
+Frontend `SecondaryAiCommentParams` includes `skuGroupKey` so the HTTP adapter can place it in the path. The POST body excludes that path field.
+
+AI comment request body:
 
 ```ts
-interface SecondaryAiCommentParams {
-  skuGroupKey: string
+interface SecondaryAiCommentRequestBody {
   periodStart: string
   periodEnd: string
   forecastMonths: number
@@ -264,7 +265,7 @@ interface SecondaryAiCommentParams {
 }
 ```
 
-The HTTP adapter puts `skuGroupKey` in the path and sends the remaining fields as the POST body.
+`snapshotForAiComment` is optional but preferred when the comment is generated from the current secondary drawer state. It lets the backend comment on the same pending calculation the user is reviewing instead of reconstructing hidden defaults.
 
 Example AI comment body:
 
@@ -322,6 +323,8 @@ label
 ```
 
 If no comparison target is available for the requested base subject, return an empty array. The frontend treats that as a visible unavailable state; it does not synthesize a default comparison target.
+
+Use `200 []` only for a successful lookup with no available comparison target. Backend lookup failures must use the standard error body and status mapping; do not hide failures as an empty array.
 
 `ProductSalesInsight` fields:
 
@@ -422,6 +425,8 @@ companyUuid=hana-company-uuid
 | `subscribeCandidateStashLlmCommentJob` | SSE `/candidate-stash-llm-comment-jobs/{jobId}/events` | `companyUuid` | `CandidateStashLlmCommentJobProgressEvent` |
 | `startCandidateDetailBulkConfirm` | POST `/candidate-stashes/{stashUuid}/items/detail-confirmation-jobs` | item ids, data reference period, company | `{ jobId, stashUuid, itemCount }` |
 | `subscribeCandidateDetailBulkConfirm` | SSE `/candidate-item-detail-confirmation-jobs/{jobId}/events` | `companyUuid` | `CandidateDetailBulkConfirmProgressEvent` |
+
+Cleanup note: bulk detail-confirm snapshots still need an explicit comparison/forecast context contract before they can be treated as equivalent to a user-opened secondary drawer confirmation. Mock implementations must not hide that gap by choosing a first competitor channel or fixed forecast month.
 
 Order metric event shape:
 

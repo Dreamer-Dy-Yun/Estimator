@@ -7,7 +7,7 @@ export interface CandidateItemOrderExportSizeQty {
 }
 
 export interface CandidateItemOrderExport {
-  /** Label for the selected competitor channel used to calculate competitorQty. */
+  /** Label for the selected comparison subject used by legacy export fields. */
   competitorChannelLabel: string
   selfQty: number | null
   competitorQty: number | null
@@ -22,6 +22,7 @@ export interface CandidateItemOrderExport {
 }
 
 export type CandidateOrderMetricStatus = 'loading' | 'loaded' | 'failed'
+/** 'snapshot' ignores current target selection; 'secondary-calc' recalculates from the selected comparison subject. */
 export type CandidateOrderMetricSource = 'snapshot' | 'secondary-calc'
 
 export interface CandidateOrderMetric {
@@ -38,6 +39,10 @@ export interface CandidateOrderMetric {
   orderExport: CandidateItemOrderExport
 }
 
+/**
+ * Order metric SSE request. Open only when company scope and selected comparison target are available.
+ * If target selection settles unavailable, callers should not open this stream.
+ */
 export interface CandidateOrderMetricStreamParams extends CompanyMutationScopeParams {
   stashUuid: string
   dataReferencePeriodStart: string

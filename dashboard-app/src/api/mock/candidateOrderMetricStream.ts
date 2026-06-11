@@ -7,6 +7,10 @@ import { buildCandidateOrderMetric } from './candidateItemSummaryBuilder'
 import { buildCandidateListParamsPeriod, readCandidateItemsForStash } from './candidateMockStore'
 import { createMockStreamTimers } from './mockStreamTimers'
 
+/**
+ * Mock SSE implementation of the backend order metric contract.
+ * Requires selected comparison and concrete company scope from the adapter; emits itemFailed instead of substituting defaults.
+ */
 export function subscribeMockCandidateOrderMetrics(
   params: CandidateOrderMetricStreamParams,
   listener: (event: CandidateOrderMetricEvent) => void,

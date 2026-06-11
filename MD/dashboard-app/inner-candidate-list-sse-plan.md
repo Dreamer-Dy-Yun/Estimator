@@ -7,7 +7,7 @@
 | 작성 지시 | Yun Daeyoung |
 | 작성자 | Codex |
 | 작성일 | 2026-05-15 |
-| 최종 수정일 | 2026-05-18 |
+| 최종 수정일 | 2026-06-11 |
 | 상태 | 구현 반영 문서 |
 | 적용 범위 | 이너 후보군 조회, 추천 보기, 이너오더 리스트, CANDIDATE_ITEM/SKU UUID 관계, 오더 지표 SSE |
 
@@ -134,10 +134,11 @@ interface CandidateRecommendationResult {
 interface CandidateOrderMetricStreamParams {
   requestId: string;
   stashUuid: string;
-  ownerUserUuid: string;
+  companyUuid: string;
   dataReferencePeriodStart: string;
   dataReferencePeriodEnd: string;
   candidateItemUuids: string[];
+  comparison: ProductComparisonComparisonSubjectRef;
 }
 
 type CandidateOrderMetricEvent =
@@ -146,8 +147,7 @@ type CandidateOrderMetricEvent =
       requestId: string;
       itemUuid: string;
       skuUuid: string;
-      totalOrderQty: number;
-      totalOrderAmount: number;
+      metric: CandidateOrderMetric;
     }
   | {
       type: 'itemFailed';
@@ -164,7 +164,9 @@ type CandidateOrderMetricEvent =
     };
 ```
 
-프론트는 `requestId`와 조회 기간을 비교해 stale SSE 이벤트를 버린다. 사용자가 조회 기간을 바꿔 다시 조회하면 이전 SSE 구독은 닫는다. 같은 조회 조건과 같은 `candidateItemUuids` 묶음이 이미 구독 중이면 중복 구독하지 않는다.
+`comparison` is required. The frontend waits while the target list is loading; if target lookup settles without a selected target, it does not open SSE and closes only non-snapshot metric cells as unavailable/failed.
+
+프론트는 `requestId`, 조회 기간, `candidateItemUuids` 묶음, 선택된 `comparison` subject를 함께 비교해 stale SSE 이벤트를 버린다. 사용자가 조회 기간 또는 comparison target을 바꿔 다시 조회하면 이전 SSE 구독은 닫는다. 같은 조회 조건, 같은 `candidateItemUuids` 묶음, 같은 comparison subject가 이미 구독 중이면 중복 구독하지 않는다.
 
 백엔드는 반드시 `completed` 이벤트를 보내는 것이 원칙이다. 다만 브라우저 `EventSource`는 서버 연결이 닫히면 같은 URL로 자동 재연결할 수 있으므로, 프론트는 요청한 모든 `candidateItemUuids`에 대해 `item` 또는 `itemFailed`를 받으면 `completed` 수신 전이라도 해당 SSE 연결을 닫는다. 이 방어는 동일한 오더 지표 SSE URL이 반복 호출되는 것을 막기 위한 클라이언트 측 안전장치다.
 
@@ -188,7 +190,7 @@ type CandidateOrderMetricEvent =
 3. `getCandidateItemsByStash`는 후보군에 담긴 기본 아이템만 반환한다.
 4. `getCandidateRecommendations`는 전체 후보 상품에 대해 배지 조건을 계산한다.
 5. 배지가 있는 추천 후보 page를 반환한다.
-6. 초기 응답이 끝난 뒤, 프론트가 SSE를 열면 후보 아이템별 총 오더 수량·총 오더 금액을 계산해 `item` 이벤트로 보낸다.
+6. 초기 응답이 끝난 뒤, 프론트가 선택된 comparison subject와 함께 SSE를 열면 후보 아이템별 오더 metric을 계산해 `item` 이벤트로 보낸다.
 
 오더 지표 계산이 무거우면 백엔드는 다음 중 하나를 선택한다.
 

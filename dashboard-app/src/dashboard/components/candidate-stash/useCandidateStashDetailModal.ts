@@ -1,12 +1,13 @@
 import type { CandidateMetricReloadOptions } from './useCandidateItemsLoader'
 import type { SubscribeArgs } from './useCandidateOrderMetricStream'
 import type { DrawerSnapshotSource, OpenItemDrawerOptions } from './useCandidateStashItemDrawer'
-import type { CandidateItemDetail, ProductComparisonTarget, ProductDrawerBundle } from '../../../api'
+import type { CandidateItemDetail, ProductDrawerBundle } from '../../../api'
 import type { OrderSnapshotDocument } from '../../../api/types'
 import type { ProductPrimarySummary } from '../../../types'
 import type { AdjacentDirection } from '../../../utils/adjacentListNavigation'
 import type { AppendRecommendedItemsResult, InnerCandidateRow, InnerCandidateSortKey, InnerCandidateSortState } from './candidateStashDetailTypes'
 import type { CandidateBulkDetailConfirmProgress } from './useCandidateBulkDetailConfirm'
+import type { CandidateStashDetailModalArgs, CandidateStashDetailModalModel as CandidateStashDetailModalModelContract } from './candidateStashDetailModalModel'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   type CandidateItemSummary,
@@ -26,22 +27,13 @@ import { useCandidateDataReferencePeriod, type AppliedCandidateDataReferencePeri
 import { useCandidateDetailConfirmationMutations } from './useCandidateDetailConfirmationMutations'
 import { useCandidateBulkDetailConfirm } from './useCandidateBulkDetailConfirm'
 import type { CandidateDetailConfirmationOverrideMap } from './candidateDetailConfirmationOverrideModel'
+import { useCandidateOrderMetricCoordinator } from './useCandidateOrderMetricCoordinator'
 import {
   appendRecommendedCandidateItems,
   removeCandidateItemsByUuid,
 } from './candidateItemLocalMutationModel'
 import { useCandidateItemsLoader } from './useCandidateItemsLoader'
 import type { CandidateItemStateUpdater } from './candidateStashDetailTypes'
-import { markComparisonUnavailableCandidateOrderMetricsFailed, resetCandidateItemOrderMetricLoading } from './candidateItemMetricModel'
-
-export type Args = {
-  stashUuid: string
-  companyUuid?: string
-  stashSummary?: CandidateStashSummary | null
-  onStashesInvalidate?: () => void
-  orderMetricComparisonTarget: ProductComparisonTarget | null
-  orderMetricComparisonTargetsLoading: boolean
-}
 
 export type { InnerCandidateRow, InnerCandidateSortKey } from './candidateStashDetailTypes'
 
@@ -52,7 +44,7 @@ export function useCandidateStashDetailModal({
   onStashesInvalidate,
   orderMetricComparisonTarget,
   orderMetricComparisonTargetsLoading,
-}: Args) : { companyUuid: string | undefined; items: CandidateItemSummary[]; candidateItemsLoading: boolean; candidateItemsLoadError: string | null; dataReferencePeriodStart: string; dataReferencePeriodEnd: string; periodStart: string | undefined; periodEnd: string | undefined; itemDeleteTarget: CandidateItemSummary | null; detailTarget: CandidateStashSummary | null; stashListLoadError: string | null; setItemDeleteTarget: React.Dispatch<React.SetStateAction<CandidateItemSummary | null>>; markDrawerSnapshotConfirmed: (itemUuid: string, snapshot: OrderSnapshotDocument, updatedItem: CandidateItemDetail) => void; markDrawerSnapshotUnconfirmed: (itemUuid: string, updatedItem: CandidateItemDetail) => void; loadItems: (nextPeriodStart?: string, nextPeriodEnd?: string, options?: CandidateMetricReloadOptions) => Promise<void>; refreshStashes: () => Promise<void>; confirmDeleteItem: () => Promise<void>; recommendationItems: CandidateReferenceItemSummary[]; recommendationLoading: boolean; recommendationAppendBusy: boolean; recommendationError: string | null; clearRecommendationItems: () => void; loadRecommendations: (force?: boolean) => Promise<CandidateReferenceItemSummary[]>; appendRecommendedItems: (rows: CandidateReferenceItemSummary[]) => Promise<AppendRecommendedItemsResult>; bulkConfirmBusy: boolean; bulkConfirmProgress: CandidateBulkDetailConfirmProgress | null; closeBulkConfirmProgress: () => void; confirmBulkDetailItems: (itemUuids: string[]) => Promise<void>; itemDeleteBusy: boolean; bulkDeleteBusy: boolean; bulkUnconfirmBusy: boolean; orderExportBusy: boolean; orderExportError: string | null; confirmDeleteItems: (itemUuids: string[]) => Promise<void>; confirmUnconfirmItems: (itemUuids: string[]) => Promise<void>; downloadOrderExcel: (userName: string) => Promise<void>; brandQuery: string; setBrandQuery: React.Dispatch<React.SetStateAction<string>>; codeQuery: string; setCodeQuery: React.Dispatch<React.SetStateAction<string>>; productNameQuery: string; setProductNameQuery: React.Dispatch<React.SetStateAction<string>>; tableSort: InnerCandidateSortState | null; toggleTableSort: (key: InnerCandidateSortKey) => void; resetTableSort: () => void; brandOptions: string[]; codeOptions: string[]; productNameOptions: string[]; tableRows: CandidateItemSummary[]; totals: { qty: number; expectedOrderAmount: number; expectedSalesAmount: number; expectedOpProfit: number; }; pendingOrderMetricCount: number; totalExpectedOpProfitRatePct: number | null; draftDataReferencePeriodStart: string; draftDataReferencePeriodEnd: string; dataReferencePeriodQueryDirty: boolean; onDataReferencePeriodStartChange: (value: string) => void; onDataReferencePeriodEndChange: (value: string) => void; applyDataReferencePeriod: () => void; drawerOpen: boolean; drawerClosing: boolean; drawerError: string | null; openedItemUuid: string | null; hydrateSnap: OrderSnapshotDocument | null; hydrateSnapSource: DrawerSnapshotSource | null; confirmedHydrateSnap: OrderSnapshotDocument | null; fc: number; bundle: ProductDrawerBundle | null; mergedSummary: ProductPrimarySummary | null; openItemDrawer: (row: InnerCandidateRow, options?: OpenItemDrawerOptions) => Promise<void>; onRequestNavigateAdjacent: (direction: AdjacentDirection) => Promise<void>; closeDrawer: () => void; onDrawerForecastMonthsChange: (n: number) => void; saveDrawerDraftSnapshot: (itemUuid: string, snapshot: OrderSnapshotDocument, source: DrawerSnapshotSource) => void; clearDrawerDraftSnapshot: (itemUuid: string) => void; restoreDrawerConfirmedSnapshot: (itemUuid: string) => void; } {
+}: CandidateStashDetailModalArgs) : CandidateStashDetailModalModelContract {
   const [items, setItemsState]: [CandidateItemSummary[], React.Dispatch<React.SetStateAction<CandidateItemSummary[]>>] = useState<CandidateItemSummary[]>([])
   const [itemDeleteTarget, setItemDeleteTarget]: [CandidateItemSummary | null, React.Dispatch<React.SetStateAction<CandidateItemSummary | null>>] = useState<CandidateItemSummary | null>(null)
   const { showToast }: ReturnType<typeof useAppToast> = useAppToast()
@@ -61,7 +53,6 @@ export function useCandidateStashDetailModal({
   const clearRecommendationItemsRef: React.RefObject<() => void> = useRef<() => void>(() : undefined => undefined)
   const confirmationOverridesRef: React.RefObject<CandidateDetailConfirmationOverrideMap> = useRef<CandidateDetailConfirmationOverrideMap>({})
   const appliedPeriodRef: React.RefObject<AppliedCandidateDataReferencePeriod> = useRef<AppliedCandidateDataReferencePeriod>({ start: '', end: '' })
-  const orderMetricComparisonKeyRef: React.RefObject<string> = useRef<string>('')
   const clearRecommendationItemsFromRef: () => void = useCallback(() : void => clearRecommendationItemsRef.current(), [])
 
   const setItems: (next: CandidateItemStateUpdater) => void = useCallback((next: CandidateItemStateUpdater) : void => {
@@ -126,65 +117,20 @@ export function useCandidateStashDetailModal({
   })
   const { dataReferencePeriodStart, dataReferencePeriodEnd }: { dataReferencePeriodStart: string; dataReferencePeriodEnd: string; draftDataReferencePeriodStart: string; draftDataReferencePeriodEnd: string; dataReferencePeriodQueryDirty: boolean; onDataReferencePeriodStartChange: (value: string) => void; onDataReferencePeriodEndChange: (value: string) => void; applyDataReferencePeriod: () => void; } = dataReferencePeriod
 
-  const orderMetricComparisonKey: string = useMemo(() : string => {
-    if (orderMetricComparisonTarget == null) return ''
-    return `${orderMetricComparisonTarget.kind}:${orderMetricComparisonTarget.sourceId ?? ''}:${orderMetricComparisonTarget.id}`
-  }, [orderMetricComparisonTarget])
-  const hasComparisonUnavailableMetricRows: boolean = useMemo(() : boolean => items.some((item: CandidateItemSummary) : boolean => (
-    !item.isDetailConfirmed && (item.orderMetricStatus === 'loading' || item.orderMetricStatus === 'loaded')
-  )), [items])
-
-  useEffect(() : void => {
-    if (orderMetricComparisonTargetsLoading) return
-    if (orderMetricComparisonTarget != null) return
-    if (!hasComparisonUnavailableMetricRows) return
-    closeMetricSubscription()
-    orderMetricComparisonKeyRef.current = ''
-    setItems(markComparisonUnavailableCandidateOrderMetricsFailed)
-  }, [
-    closeMetricSubscription,
-    hasComparisonUnavailableMetricRows,
-    orderMetricComparisonTarget,
-    orderMetricComparisonTargetsLoading,
-    setItems,
-  ])
-
-  useEffect(() : void => {
-    if (orderMetricComparisonTarget == null) return
-    if (!dataReferencePeriodStart || !dataReferencePeriodEnd) return
-    if (!itemsRef.current.length) return
-    const previousComparisonKey: string = orderMetricComparisonKeyRef.current
-    const comparisonChanged: boolean = previousComparisonKey !== '' && previousComparisonKey !== orderMetricComparisonKey
-    const targetItems: CandidateItemSummary[] = comparisonChanged
-      ? itemsRef.current.filter((item: CandidateItemSummary) : boolean => !item.isDetailConfirmed)
-      : itemsRef.current.filter((item: CandidateItemSummary) : boolean => item.orderMetricStatus === 'loading')
-    if (!targetItems.length) return
-    orderMetricComparisonKeyRef.current = orderMetricComparisonKey
-    const targetItemUuidSet: Set<string> = new Set(targetItems.map((item: CandidateItemSummary) : string => item.uuid))
-    if (comparisonChanged) {
-      setItems((current: CandidateItemSummary[]) : CandidateItemSummary[] => current.map((item: CandidateItemSummary) : CandidateItemSummary => (
-        targetItemUuidSet.has(item.uuid) ? resetCandidateItemOrderMetricLoading(item) : item
-      )))
-    }
-    subscribeOrderMetrics({
-      seq: getCurrentItemLoadSeq(),
+  const { subscribeMetricsForCandidateItems }: { subscribeMetricsForCandidateItems: (candidateItems: CandidateStashItemSummary[]) => void } =
+    useCandidateOrderMetricCoordinator({
+      companyUuid,
       dataReferencePeriodStart,
       dataReferencePeriodEnd,
-      companyUuid,
-      candidateItemUuids: targetItems.map((item: CandidateItemSummary) : string => item.uuid),
-      comparison: orderMetricComparisonTarget,
+      items,
+      itemsRef,
+      setItems,
+      orderMetricComparisonTarget,
+      orderMetricComparisonTargetsLoading,
+      closeMetricSubscription,
+      getCurrentItemLoadSeq,
+      subscribeOrderMetrics,
     })
-  }, [
-    companyUuid,
-    dataReferencePeriodEnd,
-    dataReferencePeriodStart,
-    getCurrentItemLoadSeq,
-    items.length,
-    orderMetricComparisonKey,
-    orderMetricComparisonTarget,
-    setItems,
-    subscribeOrderMetrics,
-  ])
 
   const appendRecommendedItemsLocally: (candidateItems: CandidateStashItemSummary[], recommendationRows: CandidateReferenceItemSummary[]) => number = useCallback((
     candidateItems: CandidateStashItemSummary[],
@@ -198,26 +144,12 @@ export function useCandidateStashDetailModal({
       && candidateItems.some((candidateItem: CandidateStashItemSummary) : boolean => candidateItem.skuUuid === item.skuUuid)
     )).length
     setItems(nextItems)
-    if (orderMetricComparisonTarget != null) {
-      subscribeOrderMetrics({
-        seq: getCurrentItemLoadSeq(),
-        dataReferencePeriodStart,
-        dataReferencePeriodEnd,
-        companyUuid,
-        candidateItemUuids: candidateItems.map((item: CandidateStashItemSummary) : string => item.uuid),
-        comparison: orderMetricComparisonTarget,
-      })
-    }
+    subscribeMetricsForCandidateItems(candidateItems)
     return appendedCount
   }, [
-    companyUuid,
-    dataReferencePeriodEnd,
-    dataReferencePeriodStart,
-    getCurrentItemLoadSeq,
     itemsRef,
-    orderMetricComparisonTarget,
     setItems,
-    subscribeOrderMetrics,
+    subscribeMetricsForCandidateItems,
   ])
   const recommendationItemScope: { skuUuids: string[]; membershipKey: string; } = useMemo(() : { skuUuids: string[]; membershipKey: string; } => {
     const skuUuids: string[] = items.map((item: CandidateItemSummary) : string => item.skuUuid)
@@ -328,4 +260,4 @@ export function useCandidateStashDetailModal({
   }
 }
 
-export type CandidateStashDetailModalModel = ReturnType<typeof useCandidateStashDetailModal>
+export type { CandidateStashDetailModalModel } from './candidateStashDetailModalModel'

@@ -1,6 +1,6 @@
 # Product Drawer Boundary
 
-Last updated: 2026-06-09
+Last updated: 2026-06-11
 
 ## Responsibility
 
@@ -17,7 +17,7 @@ Product drawer owns primary summary display, secondary detail display, secondary
 | `secondary/hooks/useSecondaryDrawerRequests.ts` | Secondary API request wiring |
 | `secondary/hooks/useSecondaryDailyTrend.ts` | Daily trend request |
 | `secondary/hooks/useSecondaryStockOrderCalc.ts` | Stock-order calculation request |
-| `secondary/hooks/useSecondaryAiCommentState.ts` | Manual AI comment request state |
+| `secondary/hooks/useSecondaryAiCommentState.ts` | Manual AI comment request state and optional snapshot context handoff |
 | `secondary/hooks/useSecondaryForecastModel.ts` | Snapshot and calculation model connection |
 | `secondary/secondarySnapshot.ts` | Current secondary state to snapshot |
 | `src/snapshot/*` | Snapshot type/parser/tests |
@@ -61,9 +61,12 @@ Product drawer owns primary summary display, secondary detail display, secondary
 
 - Product drawer read-like APIs use subject refs instead of top-level `companyUuid`.
 - Bundle is base-only and returns `{ summary }`.
-- Monthly trend, sales insight, secondary detail, daily trend, and AI comment use base/comparison subject refs. `base.kind` is currently `self-company`; `comparison.kind` may be `competitor-channel` or `self-company`.
+- Monthly trend, sales insight, secondary detail, and daily trend use base/comparison subject refs. `base.kind` is currently `self-company`; `comparison.kind` may be `competitor-channel` or `self-company`.
+- AI comment is a manual POST generation request. The frontend path owns `skuGroupKey`; the body sends base/comparison subject refs, period/forecast context, optional `candidateItemUuid`, and optional `snapshotForAiComment` when the current secondary drawer calculation should be the comment basis.
 - The frontend may keep `ALL_COMPANY_UUID` in subject state for all-company reads, but HTTP requests omit `baseSourceId` or `comparisonSourceId` instead of sending the sentinel.
 - Empty comparison target lists are valid unavailable states. The drawer must not replace them with the first target, a fake target, or a generic API error.
+- A first returned API/mock target may be used only as a UI default when no saved target exists and the target list is non-empty.
+- Deleted, unauthorized, or current-scope-missing selected targets are unavailable states; they require explicit re-selection and must not be silently replaced by a fake subject.
 - Primary sales metrics keeps a stable card shell while comparison data is loading. Target clicks may update request state, but they must not replace the card with a different loading layout or resize the product image/card column.
 - Candidate detail drawer opened from a single-company candidate keeps the same company scope through reads and mutations.
 - Secondary mutations require concrete `companyUuid`.
