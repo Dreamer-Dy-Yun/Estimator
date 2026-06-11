@@ -92,7 +92,7 @@ export function AiCommentCard({
           {scrollable ? (
             <button
               type="button"
-              className={`${styles.btn} ${styles.btnSecondary} ${styles.btnViewportAdaptive}`}
+              className={`${styles.btn} ${styles.btnSecondary} ${styles.aiCommentExpandBtn}`}
               onClick={handleToggleExpanded}
               aria-expanded={effectiveExpanded}
               aria-controls={effectiveExpanded ? `${answerId}-dialog` : answerId}
@@ -132,7 +132,7 @@ export function AiCommentCard({
           <section id={`${answerId}-dialog`} className={styles.aiCommentDialog} role="dialog" aria-modal="true" aria-labelledby={`${answerId}-dialog-title`} onClick={(event: React.MouseEvent<HTMLElement, MouseEvent>) : void => event.stopPropagation()}>
             <header className={styles.aiCommentDialogHeader}>
               <h3 id={`${answerId}-dialog-title`} className={styles.aiCommentDialogTitle}>{KO.sectionAi}</h3>
-              <DialogCloseButton className={styles.aiCommentDialogClose} onClose={handleCloseExpanded} />
+              <DialogCloseButton onClose={handleCloseExpanded} />
             </header>
             <div className={styles.aiCommentDialogBody}>{content}</div>
           </section>

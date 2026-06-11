@@ -70,6 +70,7 @@ function ProductDrawerContent({
   const drawerRef: React.RefObject<HTMLElement | null> = useRef<HTMLElement | null>(null)
   const [expandPaneOpenState, setExpandPaneOpen]: [boolean, React.Dispatch<React.SetStateAction<boolean>>] = useState(() : boolean => !!initialExpandSecondary)
   const expandPaneOpen: boolean = secondaryEnabled && expandPaneOpenState
+
   const baseSubject: ProductComparisonBaseSubjectRef = useMemo(
     () : ProductComparisonBaseSubjectRef => ({
       role: 'base',
@@ -223,7 +224,13 @@ export const ProductDrawer: (props: ProductDrawerProps) => React.JSX.Element | n
 
   if (!summary) {
     if (!loading) return null
-    return <ProductDrawerLoadingPanel closing={contentProps.closing} onClose={contentProps.onClose} />
+    return (
+      <ProductDrawerLoadingPanel
+        closing={contentProps.closing}
+        expandSecondary={contentProps.secondaryEnabled !== false && Boolean(contentProps.initialExpandSecondary)}
+        onClose={contentProps.onClose}
+      />
+    )
   }
   return (
     <ProductDrawerContent
@@ -236,14 +243,16 @@ export const ProductDrawer: (props: ProductDrawerProps) => React.JSX.Element | n
 
 function ProductDrawerLoadingPanel({
   closing,
+  expandSecondary = false,
   onClose,
 }: {
   closing?: boolean
+  expandSecondary?: boolean
   onClose: () => void
 }) : React.JSX.Element {
   useProductDrawerKeyboard({ closing, onClose })
   return (
-    <aside className={`${styles.drawer} ${closing ? styles.drawerClosing : ''}`}>
+    <aside className={`${styles.drawer} ${expandSecondary ? styles.drawerWithExpandPane : ''} ${closing ? styles.drawerClosing : ''}`}>
       <div className={styles.drawerLoadingPanel}>
         <LoadingSpinner label="상품 정보를 불러오는 중" />
       </div>

@@ -1,0 +1,26 @@
+.dialogCloseButton {
+  min-width: 34px;
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 0;
+  background: #ffffff;
+  color: #334155;
+  font: inherit;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.dialogCloseButton:hover:not(:disabled) {
+  border-color: #94a3b8;
+  background: #f8fafc;
+}
+
+.dialogCloseButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}

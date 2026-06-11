@@ -94,10 +94,6 @@
   color: #0f172a;
 }
 
-.aiCommentDialogClose {
-  flex: 0 0 auto;
-}
-
 .aiCommentDialogBody {
   padding: 16px;
   overflow: auto;
@@ -131,6 +127,16 @@
 .btnSecondary {
   background: #fff;
   color: #0f172a;
+}
+
+.aiCommentExpandBtn {
+  min-height: 24px;
+  padding: 3px 8px;
+  border-color: #cbd5e1;
+  border-radius: 999px;
+  font-size: 11px;
+  line-height: 1.2;
+  white-space: nowrap;
 }
 
 .btnViewportAdaptive {
