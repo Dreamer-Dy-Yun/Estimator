@@ -32,6 +32,7 @@ export function UserProfileDialog({ open, onClose }: { open: boolean; onClose: (
   const { session, updateUser, changePassword }: ReturnType<typeof useAuth> = useAuth()
   const { showToast }: ReturnType<typeof useAppToast> = useAppToast()
   const [loginId, setLoginId]: [string, React.Dispatch<React.SetStateAction<string>>] = useState('')
+  const [name, setName]: [string, React.Dispatch<React.SetStateAction<string>>] = useState('')
   const [currentPassword, setCurrentPassword]: [string, React.Dispatch<React.SetStateAction<string>>] = useState('')
   const [newPassword, setNewPassword]: [string, React.Dispatch<React.SetStateAction<string>>] = useState('')
   const [confirmPassword, setConfirmPassword]: [string, React.Dispatch<React.SetStateAction<string>>] = useState('')
@@ -44,6 +45,7 @@ export function UserProfileDialog({ open, onClose }: { open: boolean; onClose: (
     queueMicrotask(() : void => {
       if (!alive) return
       setLoginId(session?.user.loginId ?? '')
+      setName(session?.user.name ?? '')
       setCurrentPassword('')
       setNewPassword('')
       setConfirmPassword('')
@@ -53,7 +55,7 @@ export function UserProfileDialog({ open, onClose }: { open: boolean; onClose: (
     return () : void => {
       alive = false
     }
-  }, [open, session?.user.loginId])
+  }, [open, session?.user.loginId, session?.user.name])
 
   if (!open || !session) return null
 
@@ -73,7 +75,7 @@ export function UserProfileDialog({ open, onClose }: { open: boolean; onClose: (
         }
       }
 
-      await updateUser({ loginId })
+      await updateUser({ loginId, name })
       if (wantsPasswordChange) {
         await changePassword({ currentPassword, newPassword })
       }
@@ -127,6 +129,16 @@ export function UserProfileDialog({ open, onClose }: { open: boolean; onClose: (
               onChange={(event: React.ChangeEvent<HTMLInputElement, HTMLInputElement>) : void => setLoginId(event.target.value)}
               autoComplete="username"
               maxLength={32}
+            />
+          </label>
+
+          <label className={styles.field}>
+            <span>이름</span>
+            <input
+              value={name}
+              onChange={(event: React.ChangeEvent<HTMLInputElement, HTMLInputElement>) : void => setName(event.target.value)}
+              autoComplete="name"
+              maxLength={80}
             />
           </label>
 

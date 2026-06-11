@@ -55,6 +55,9 @@ Last updated: 2026-06-10
 
 ## Admin data boundary
 
+- Admin user detail edit owns only admin-control fields: `role`, `isActive`, `note`, password reset, and delete. `loginId` and `name` are displayed read-only in admin detail and must not be sent by `updateAdminUser`.
+- User profile edit owns the current user's `loginId` and `name`. Duplicate `loginId` is a backend/API conflict, not a frontend-only uniqueness guess.
+
 - `/admin`은 `src/admin`에서 관리 데이터(사용자, GPT 키, Google Sheet) 요청/표시를 담당한다.
 - 백엔드/어댑터 계약이 바뀌면 `Admin*` 화면, API 타입, boundary 문서를 함께 갱신한다.
 - 관리자 영역은 후보군/분석/드로워의 비즈니스 의사결정 책임을 직접 확장하지 않는다.

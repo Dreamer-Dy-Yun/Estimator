@@ -35,6 +35,7 @@ const httpAuthRequests: AuthApi = {
     }
   },
   login: (payload: LoginRequest) : Promise<LoginResult> => apiRequest('/auth/login', { method: 'POST', body: payload }),
+  // Self profile update. Backend owns normalized loginId uniqueness and returns 409 conflict on duplicate loginId.
   updateCurrentUser: (payload: UpdateAuthUserPayload) : Promise<AuthSession> => apiRequest('/auth/me', { method: 'PATCH', body: payload }),
   changeCurrentUserPassword: (payload: ChangePasswordPayload) : Promise<void> => apiRequest('/auth/me/password', { method: 'POST', body: payload }),
   getAdminUsers: () : Promise<AdminUserSummary[]> => apiRequest('/admin/users'),

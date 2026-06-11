@@ -7,6 +7,7 @@ export type AuthRole = 'admin' | 'user'
 
 export interface UpdateAuthUserPayload {
   loginId: string
+  name: string
 }
 
 export interface ChangePasswordPayload {
@@ -39,8 +40,6 @@ export interface CreateAdminUserPayload {
 
 export interface UpdateAdminUserPayload {
   uuid: string
-  loginId: string
-  name: string
   note: string | null
   role: AuthRole
   isActive: boolean

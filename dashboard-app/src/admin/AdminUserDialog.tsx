@@ -29,8 +29,6 @@ export function AdminUserDialog({
   onPasswordReset,
 }: AdminUserDialogProps) : React.JSX.Element {
   const { showToast }: ReturnType<typeof useAppToast> = useAppToast()
-  const [loginId, setLoginId]: [string, React.Dispatch<React.SetStateAction<string>>] = useState(user.loginId)
-  const [name, setName]: [string, React.Dispatch<React.SetStateAction<string>>] = useState(user.name)
   const [note, setNote]: [string, React.Dispatch<React.SetStateAction<string>>] = useState(user.note ?? '')
   const [role, setRole]: [AuthRole, React.Dispatch<React.SetStateAction<AuthRole>>] = useState<AuthRole>(user.role)
   const [isActive, setIsActive]: [boolean, React.Dispatch<React.SetStateAction<boolean>>] = useState(user.isActive)
@@ -43,8 +41,6 @@ export function AdminUserDialog({
   const isBusy: boolean = isSaving || isDeleting || isResettingPassword
   const isCurrentUser: boolean = user.uuid === currentUserUuid
   const isDirty: boolean =
-    loginId !== user.loginId ||
-    name !== user.name ||
     note !== (user.note ?? '') ||
     role !== user.role ||
     isActive !== user.isActive
@@ -56,7 +52,7 @@ export function AdminUserDialog({
     setIsSaving(true)
 
     try {
-      await updateAdminUser({ uuid: user.uuid, loginId, name, note, role, isActive })
+      await updateAdminUser({ uuid: user.uuid, note, role, isActive })
       const refreshWarningMessage: string | null = await refreshAfterAdminMutation(onChanged)
       const successRowMessage = '변경됨' as const
       const successToastMessage = '사용자 정보를 변경했습니다.' as const
@@ -130,14 +126,14 @@ export function AdminUserDialog({
         </header>
 
         <form id={formId} className={styles.gptKeyDialogForm} onSubmit={handleSubmit}>
-          <label className={styles.createField}>
-            <span>로그인 ID</span>
-            <input value={loginId} onChange={(event: React.ChangeEvent<HTMLInputElement, HTMLInputElement>) : void => setLoginId(event.target.value)} autoComplete="username" maxLength={32} />
-          </label>
-          <label className={styles.createField}>
-            <span>이름</span>
-            <input value={name} onChange={(event: React.ChangeEvent<HTMLInputElement, HTMLInputElement>) : void => setName(event.target.value)} autoComplete="name" maxLength={80} />
-          </label>
+          <div className={styles.createField}>
+            <span>{'\uB85C\uADF8\uC778 ID'}</span>
+            <strong className={styles.readonlyFieldValue}>{user.loginId}</strong>
+          </div>
+          <div className={styles.createField}>
+            <span>{'\uC774\uB984'}</span>
+            <strong className={styles.readonlyFieldValue}>{user.name}</strong>
+          </div>
           <label className={styles.createField}>
             <span>권한</span>
             <select value={role} onChange={(event: React.ChangeEvent<HTMLSelectElement, HTMLSelectElement>) : void => setRole(event.target.value as AuthRole)} disabled={isCurrentUser}>

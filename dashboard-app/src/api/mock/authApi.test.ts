@@ -24,7 +24,25 @@ describe('api/mock authApi behavior', () : void => {
   it('applies auth mutation mock state without browser persistence', async () : Promise<void> => {
     await mockAuthApi.login({ loginId: 'tester', password: 'anything' })
 
-    await expect(mockAuthApi.updateCurrentUser({ loginId: '' })).resolves.toBeDefined()
+    const originalSession = await mockAuthApi.getCurrentSession()
+    const updatedProfile = await mockAuthApi.updateCurrentUser({
+      loginId: originalSession?.user.loginId ?? 'mock-admin',
+      name: '프로필 이름',
+    })
+    expect(updatedProfile.user).toMatchObject({
+      loginId: 'mock-admin',
+      name: '프로필 이름',
+    })
+    await expect(
+      mockAuthApi.updateCurrentUser({
+        loginId: 'mock-user',
+        name: '프로필 이름',
+      }),
+    ).rejects.toThrow('이미 같은 로그인 ID')
+    await mockAuthApi.updateCurrentUser({
+      loginId: originalSession?.user.loginId ?? 'mock-admin',
+      name: originalSession?.user.name ?? '관리자',
+    })
     await expect(mockAuthApi.changeCurrentUserPassword({ currentPassword: '', newPassword: '' })).resolves.toBeUndefined()
 
     const created: AdminUserSummary = await mockAuthApi.createAdminUser({
@@ -45,15 +63,13 @@ describe('api/mock authApi behavior', () : void => {
 
     await expect(mockAuthApi.updateAdminUser({
       uuid: created.uuid,
-      loginId: 'mock-updated-user',
-      name: '수정 사용자',
       note: '수정 메모',
       role: 'admin',
       isActive: false,
     })).resolves.toMatchObject({
       uuid: created.uuid,
-      loginId: 'mock-updated-user',
-      name: '수정 사용자',
+      loginId: created.loginId,
+      name: created.name,
       note: '수정 메모',
       role: 'admin',
       isActive: false,

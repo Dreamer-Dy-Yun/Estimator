@@ -130,8 +130,41 @@ export const mockAuthApi: AuthApi = {
   updateCurrentUser: async (payload: UpdateAuthUserPayload): Promise<AuthSession> => {
     await sleep(80)
     const session: AuthSession = assertLoggedInSession()
-    void payload
-    return session
+    const target: StoredAuthUser | null = findUserByUuid(session.user.uuid)
+    if (!target) {
+      throw new Error('로그인이 필요합니다.')
+    }
+
+    const nextLoginId: string = payload.loginId.trim()
+    const nextName: string = payload.name.trim()
+    if (nextLoginId.length === 0) {
+      throw new Error('로그인 ID를 입력하세요.')
+    }
+    if (nextName.length === 0) {
+      throw new Error('이름을 입력하세요.')
+    }
+
+    const normalizedLoginId: string = normalizeLoginId(nextLoginId)
+    const duplicatedUser: StoredAuthUser | undefined = mockAuthUsers.find(
+      (user: StoredAuthUser): boolean =>
+        user.uuid !== target.uuid && normalizeLoginId(user.loginId) === normalizedLoginId,
+    )
+    if (duplicatedUser) {
+      throw new Error('이미 같은 로그인 ID가 있습니다. 다른 로그인 ID를 입력하세요.')
+    }
+
+    const nextUser: StoredAuthUser = {
+      ...target,
+      loginId: nextLoginId,
+      name: nextName,
+      dbUpdatedAt: touchMockRecord(),
+    }
+    replaceUser(nextUser)
+    currentSession = {
+      ...session,
+      user: toAuthUser(nextUser),
+    }
+    return currentSession
   },
   changeCurrentUserPassword: async (payload: ChangePasswordPayload): Promise<void> => {
     await sleep(90)
@@ -162,8 +195,6 @@ export const mockAuthApi: AuthApi = {
       const target: StoredAuthUser = requireAdminTarget(payload.uuid)
       return replaceUser({
         ...target,
-        loginId: payload.loginId.trim() || target.loginId,
-        name: payload.name.trim() || target.name,
         note: cleanMockNote(payload.note),
         role: payload.role,
         isActive: payload.isActive,

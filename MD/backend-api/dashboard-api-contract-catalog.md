@@ -1,6 +1,6 @@
 # Dashboard API Contract Catalog
 
-Last updated: 2026-06-10
+Last updated: 2026-06-11
 
 Purpose: current backend implementation contract for the frontend in `dashboard-app`.
 
@@ -71,6 +71,10 @@ Type source: `dashboard-app/src/api/types/auth.ts`.
 | `resetAdminUserPassword` | POST `/admin/users/{uuid}/password-reset` | none | `ResetAdminUserPasswordResult` |
 | `deleteAdminUser` | DELETE `/admin/users/{uuid}` | none | empty |
 
+`UpdateAdminUserPayload` is admin-owned account control only: `{ uuid, note, role, isActive }`. Admin update must not change `loginId` or `name`; those identity/profile fields belong to the user's own profile flow.
+
+`UpdateAuthUserPayload` is self-profile only: `{ loginId, name }`. `PATCH /auth/me` must reject a duplicate normalized `loginId` owned by another user with `409 conflict` and a user-facing message such as `이미 같은 로그인 ID가 있습니다. 다른 로그인 ID를 입력하세요.`
+
 Key DTOs:
 
 ```ts
@@ -85,6 +89,18 @@ interface AuthUser {
 interface AuthSession {
   user: AuthUser
   expiresAt: string
+}
+
+interface UpdateAuthUserPayload {
+  loginId: string
+  name: string
+}
+
+interface UpdateAdminUserPayload {
+  uuid: string
+  note: string
+  role: 'admin' | 'user'
+  isActive: boolean
 }
 
 interface AdminUserSummary extends AuthUser {
