@@ -205,12 +205,27 @@ export const ProductDrawer: (props: ProductDrawerProps) => React.JSX.Element | n
   summary,
   loading = false,
   companyUuid: companyUuidProp,
-  ...contentProps
+  onClose,
+  periodStart,
+  periodEnd,
+  forecastMonths,
+  selfCompanyLabel,
+  onForecastMonthsChange,
+  hydrateSnapshot,
+  initialExpandSecondary: initialExpandSecondaryProp,
+  secondaryEnabled: secondaryEnabledProp = true,
+  candidateItemContext,
+  onRequestNavigateAdjacent,
+  onSecondaryOpenChange,
+  disableAdjacentNavigation,
+  keyboardShortcutsDisabled,
+  suppressDocumentLayoutShift,
+  closing = false,
 }: ProductDrawerProps) : React.JSX.Element | null => {
   const { selectedCompanyUuid }: ReturnType<typeof useAuth> = useAuth()
   const companyUuid: string | undefined = companyUuidProp ?? getCompanyUuidForOptionalScope(selectedCompanyUuid)
-  const secondaryEnabled: boolean = contentProps.secondaryEnabled !== false
-  const initialExpandSecondary: boolean = secondaryEnabled && Boolean(contentProps.initialExpandSecondary)
+  const secondaryEnabled: boolean = secondaryEnabledProp !== false
+  const initialExpandSecondary: boolean = secondaryEnabled && Boolean(initialExpandSecondaryProp)
   const [expandPaneOpenState, setExpandPaneOpen]: [boolean, React.Dispatch<React.SetStateAction<boolean>>] = useState(() : boolean => initialExpandSecondary)
   const expandPaneOpen: boolean = secondaryEnabled && expandPaneOpenState
   const initialExpandSecondaryRef: React.RefObject<boolean> = useRef(initialExpandSecondary)
@@ -222,34 +237,44 @@ export const ProductDrawer: (props: ProductDrawerProps) => React.JSX.Element | n
   }, [initialExpandSecondary])
 
   useEffect(() : void => {
-    contentProps.onSecondaryOpenChange?.(expandPaneOpen)
-  }, [contentProps.onSecondaryOpenChange, expandPaneOpen])
+    onSecondaryOpenChange?.(expandPaneOpen)
+  }, [onSecondaryOpenChange, expandPaneOpen])
 
   useProductDrawerKeyboard({
-    closing: contentProps.closing,
+    closing,
     expandPaneOpen,
     setExpandPaneOpen,
     secondaryEnabled,
-    onClose: contentProps.onClose,
-    onRequestNavigateAdjacent: contentProps.onRequestNavigateAdjacent,
-    disableAdjacentNavigation: contentProps.disableAdjacentNavigation,
-    disabled: contentProps.keyboardShortcutsDisabled,
+    onClose,
+    onRequestNavigateAdjacent,
+    disableAdjacentNavigation,
+    disabled: keyboardShortcutsDisabled,
   })
 
   if (!summary) {
     if (!loading) return null
     return (
       <ProductDrawerLoadingPanel
-        closing={contentProps.closing}
+        closing={closing}
         expandSecondary={expandPaneOpen}
       />
     )
   }
   return (
     <ProductDrawerContent
-      {...contentProps}
       summary={summary}
       companyUuid={companyUuid}
+      onClose={onClose}
+      periodStart={periodStart}
+      periodEnd={periodEnd}
+      forecastMonths={forecastMonths}
+      selfCompanyLabel={selfCompanyLabel}
+      onForecastMonthsChange={onForecastMonthsChange}
+      hydrateSnapshot={hydrateSnapshot}
+      secondaryEnabled={secondaryEnabled}
+      candidateItemContext={candidateItemContext}
+      suppressDocumentLayoutShift={suppressDocumentLayoutShift}
+      closing={closing}
       expandPaneOpen={expandPaneOpen}
       setExpandPaneOpen={setExpandPaneOpen}
     />
