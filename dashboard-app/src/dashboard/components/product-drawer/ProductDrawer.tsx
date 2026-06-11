@@ -234,7 +234,12 @@ export const ProductDrawer: (props: ProductDrawerProps) => React.JSX.Element | n
       <ProductDrawerLoadingPanel
         closing={contentProps.closing}
         expandSecondary={contentProps.secondaryEnabled !== false && Boolean(contentProps.initialExpandSecondary)}
+        secondaryEnabled={contentProps.secondaryEnabled !== false}
         onClose={contentProps.onClose}
+        onRequestNavigateAdjacent={contentProps.onRequestNavigateAdjacent}
+        onSecondaryOpenChange={contentProps.onSecondaryOpenChange}
+        disableAdjacentNavigation={contentProps.disableAdjacentNavigation}
+        keyboardShortcutsDisabled={contentProps.keyboardShortcutsDisabled}
       />
     )
   }
@@ -250,13 +255,32 @@ export const ProductDrawer: (props: ProductDrawerProps) => React.JSX.Element | n
 function ProductDrawerLoadingPanel({
   closing,
   expandSecondary = false,
+  secondaryEnabled = true,
   onClose,
+  onRequestNavigateAdjacent,
+  onSecondaryOpenChange,
+  disableAdjacentNavigation,
+  keyboardShortcutsDisabled,
 }: {
   closing?: boolean
   expandSecondary?: boolean
+  secondaryEnabled?: boolean
   onClose: () => void
+  onRequestNavigateAdjacent?: (direction: AdjacentDirection) => void | Promise<void>
+  onSecondaryOpenChange?: (open: boolean) => void
+  disableAdjacentNavigation?: boolean
+  keyboardShortcutsDisabled?: boolean
 }) : React.JSX.Element {
-  useProductDrawerKeyboard({ closing, onClose })
+  useProductDrawerKeyboard({
+    closing,
+    expandPaneOpen: expandSecondary,
+    setExpandPaneOpen: onSecondaryOpenChange,
+    secondaryEnabled,
+    onClose,
+    onRequestNavigateAdjacent,
+    disableAdjacentNavigation,
+    disabled: keyboardShortcutsDisabled,
+  })
   return (
     <aside className={`${styles.drawer} ${expandSecondary ? styles.drawerWithExpandPane : ''} ${closing ? styles.drawerClosing : ''}`}>
       <div className={styles.drawerLoadingPanel}>

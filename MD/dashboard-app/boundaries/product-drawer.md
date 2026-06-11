@@ -32,6 +32,7 @@ Product drawer owns primary summary display, secondary detail display, secondary
 - Secondary daily trend: `getSecondaryDailyTrend`.
 - Secondary AI comment: `getSecondaryAiComment`.
 - Stock-order calculation: `getSecondaryStockOrderCalc`.
+- API access is owned by `src/api/client.ts` and `src/api/requests/*`; product mock behavior is owned by `src/api/mock/dashboardApi.ts`, `mockProductComparisonApi.ts`, `mockProductSecondaryDetailApi.ts`, and request adapters. Drawer UI/components must not import mock modules directly.
 
 ## Trend request policy
 

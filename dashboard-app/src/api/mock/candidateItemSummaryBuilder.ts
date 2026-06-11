@@ -116,7 +116,7 @@ export function buildCandidateItemSummaries(
   dataReferencePeriod?: CandidateDataReferencePeriod,
   options: CandidateItemSummaryBuildOptions = {},
 ): CandidateItemSummary[] {
-  const includeOrderMetrics: boolean = options.includeOrderMetrics ?? true
+  const includeOrderMetrics: boolean = options.includeOrderMetrics ?? false
   const includeRecommendationInsights: boolean = options.includeRecommendationInsights ?? true
 
   return records

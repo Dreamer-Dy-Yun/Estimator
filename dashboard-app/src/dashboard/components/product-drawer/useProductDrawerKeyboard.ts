@@ -36,9 +36,11 @@ export function useProductDrawerKeyboard({
       e.preventDefault()
       e.stopPropagation()
 
-      if ((e.key === 'ArrowUp' || e.key === 'ArrowDown') && onRequestNavigateAdjacent && !disableAdjacentNavigation) {
-        const direction: AdjacentDirection = e.key === 'ArrowDown' ? 'next' : 'prev'
-        void Promise.resolve(onRequestNavigateAdjacent(direction))
+      if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+        if (onRequestNavigateAdjacent && !disableAdjacentNavigation) {
+          const direction: AdjacentDirection = e.key === 'ArrowDown' ? 'next' : 'prev'
+          void Promise.resolve(onRequestNavigateAdjacent(direction))
+        }
         return
       }
 

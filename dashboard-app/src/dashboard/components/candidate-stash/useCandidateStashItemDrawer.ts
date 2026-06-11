@@ -88,7 +88,8 @@ export function useCandidateStashItemDrawer({ dataReferenceStart, dataReferenceE
     if (!drawerOpen && !drawerClosing) stableMergedSummaryRef.current = null
   }, [drawerClosing, drawerOpen, mergedSummaryCandidate])
 
-  const mergedSummary: ProductPrimarySummary | null = mergedSummaryCandidate ?? ((drawerOpen || drawerClosing) && drawerBundleLoading ? stableMergedSummaryRef.current : null)
+  const stableMergedSummary: ProductPrimarySummary | null = stableMergedSummaryRef.current?.skuGroupKey === drawerSkuGroupKey ? stableMergedSummaryRef.current : null
+  const mergedSummary: ProductPrimarySummary | null = mergedSummaryCandidate ?? ((drawerOpen || drawerClosing) && drawerBundleLoading ? stableMergedSummary : null)
   if (drawerOpen && (!dataReferenceStart || !dataReferenceEnd)) throw new Error('후보 상세 조회 기간 정보 누락')
 
   const applyOpenedSnapshot: (itemUuid: string, nextHydrate: OrderSnapshotDocument | null, source: DrawerSnapshotSource | null, confirmed: OrderSnapshotDocument | null) => void = useCallback((itemUuid: string, nextHydrate: OrderSnapshotDocument | null, source: DrawerSnapshotSource | null, confirmed: OrderSnapshotDocument | null) : void => {
@@ -133,8 +134,8 @@ export function useCandidateStashItemDrawer({ dataReferenceStart, dataReferenceE
       if (confirmedSnap) confirmedSnapshotsByItemUuidRef.current[row.uuid] = confirmedSnap
       else delete confirmedSnapshotsByItemUuidRef.current[row.uuid]
       const draftEntry: DraftSnapshotEntry = draftSnapshotsByItemUuidRef.current[row.uuid] ?? null
-      const nextHydrate: OrderSnapshotDocument = draftEntry?.snapshot ?? confirmedSnap
-      const nextSource: DrawerSnapshotSource = draftEntry?.source ?? (confirmedSnap ? 'confirmed' : null)
+      const nextHydrate: OrderSnapshotDocument | null = draftEntry?.snapshot ?? confirmedSnap
+      const nextSource: DrawerSnapshotSource | null = draftEntry?.source ?? (confirmedSnap ? 'confirmed' : null)
       if (!mountedRef.current || drawerRequestSeqRef.current !== seq) return
       setHydrateSnap(nextHydrate)
       setHydrateSnapSource(nextSource)
@@ -210,7 +211,7 @@ export function useCandidateStashItemDrawer({ dataReferenceStart, dataReferenceE
   }, [applyOpenedSnapshot])
 
   const restoreDrawerConfirmedSnapshot: (itemUuid: string) => void = useCallback((itemUuid: string) : void => {
-    const snap: OrderSnapshotDocument = confirmedSnapshotsByItemUuidRef.current[itemUuid] ?? null
+    const snap: OrderSnapshotDocument | null = confirmedSnapshotsByItemUuidRef.current[itemUuid] ?? null
     if (!snap) return
     delete draftSnapshotsByItemUuidRef.current[itemUuid]
     applyOpenedSnapshot(itemUuid, snap, 'confirmed', snap)
