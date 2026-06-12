@@ -131,6 +131,7 @@ export function ProductSecondaryDrawerContent({
               },
             }}
             orderInputFields={orderInputFields}
+            sizeRows={sizeRows}
             actions={orderInputActions}
             help={{
               labelIds: {

@@ -40,6 +40,7 @@ Last updated: 2026-06-11
 - 비교 대상 목록은 세션 장기 캐시 대상이 아니다. 관리자/회사 scope 변경 가능성을 숨기지 않기 위해 요청 계층에서 그대로 조회한다.
 - 2차 드로워의 참고지표 조회는 `ProductComparisonTarget`을 따르지만, 발주 계산 readiness는 참고지표 조회 성공 여부가 아니라 stock-order 계산 결과로만 판단한다.
 - 2차 오더의 사이즈 비중 계산은 `ProductSecondaryDetail.comparisonRatioBySize` 기반이다. 비교 대상이 경쟁사 채널이든 자사 target이든 backend/mock이 해당 comparison subject 기준 비중을 제공해야 하며, UI가 라벨만 바꾸어 데이터를 위장하지 않는다.
+- 2차 드로워 분할 입고 설정은 현재 `SalesForecastCard`의 draft UI와 `InboundSplitScheduleDialog`가 소유한다. 계산/API/snapshot 반영은 별도 계약 확장 전까지 금지한다.
 - mock API에서 판매 리스트 facade는 `src/api/mock/dashboardApi.ts`, 상품 비교/추이 mock은 `src/api/mock/mockProductComparisonApi.ts`, 2차 상세 mock builder는 `src/api/mock/mockProductSecondaryDetailApi.ts`가 각각 소유한다.
 
 

@@ -1,0 +1,189 @@
+.inboundSplitControls {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.inboundSplitCountLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: #475569;
+  font-size: 11px;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.inboundSplitCountSelect {
+  min-height: 26px;
+  padding: 3px 24px 3px 8px;
+  border: 1px solid #cbd5e1;
+  border-radius: 999px;
+  background: #fff;
+  color: #0f172a;
+  font: inherit;
+  font-size: 11px;
+  line-height: 1.2;
+}
+
+.inboundSplitButton {
+  min-height: 26px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 11px;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.inboundSplitDialogBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 2500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgb(15 23 42 / 0.42);
+}
+
+.inboundSplitDialog {
+  width: min(1040px, calc(100vw - 48px));
+  max-height: min(760px, calc(100vh - 48px));
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid #cbd5e1;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 24px 72px rgb(15 23 42 / 0.28);
+}
+
+.inboundSplitDialogHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 14px 16px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.inboundSplitDialogTitle {
+  margin: 0;
+  color: #0f172a;
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.inboundSplitDialogHint {
+  margin: 4px 0 0;
+  color: #64748b;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.inboundSplitDialogToolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 16px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.inboundSplitSummary {
+  color: #334155;
+  font-size: 12px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.inboundSplitTableWrap {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.inboundSplitTable {
+  width: max-content;
+  min-width: 100%;
+  font-size: 13px;
+}
+
+.inboundSplitTable th,
+.inboundSplitTable td {
+  white-space: nowrap;
+  background: #fff;
+}
+
+.inboundSplitTable thead th {
+  position: sticky;
+  top: 0;
+  z-index: 4;
+  background: #f8fafc;
+}
+
+.inboundSplitStickyRound,
+.inboundSplitStickyDate,
+.inboundSplitStickyTotal {
+  position: sticky;
+  background: inherit;
+  box-shadow: 4px 0 8px -5px rgba(15, 23, 42, 0.22);
+}
+
+.inboundSplitStickyRound {
+  left: 0;
+  z-index: 3;
+  min-width: 64px;
+}
+
+.inboundSplitStickyDate {
+  left: 64px;
+  z-index: 3;
+  min-width: 132px;
+}
+
+.inboundSplitStickyTotal {
+  left: 196px;
+  z-index: 3;
+  min-width: 112px;
+}
+
+.inboundSplitTable thead .inboundSplitStickyRound,
+.inboundSplitTable thead .inboundSplitStickyDate,
+.inboundSplitTable thead .inboundSplitStickyTotal {
+  z-index: 5;
+}
+
+.inboundSplitQtyInput {
+  width: 5.4rem;
+}
+
+.inboundSplitDialogActions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 12px 16px;
+  border-top: 1px solid #e2e8f0;
+  background: #f8fafc;
+}
+
+@media (max-width: 720px) {
+  .inboundSplitDialogBackdrop {
+    padding: 12px;
+  }
+
+  .inboundSplitDialog {
+    width: calc(100vw - 24px);
+    max-height: calc(100vh - 24px);
+  }
+
+  .inboundSplitDialogToolbar {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
