@@ -13,6 +13,7 @@
 @import './style-parts/tablesSizeOrder.module.css';
 @import './style-parts/stockInputs.module.css';
 @import './style-parts/cardAi.module.css';
+@import './style-parts/inboundSplitSchedule.module.css';
 @import './style-parts/slider.module.css';
 
 .dailyTrendClipWrap {

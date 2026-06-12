@@ -20,6 +20,8 @@ Product drawer owns primary summary display, secondary detail display, secondary
 | `secondary/hooks/useSecondaryAiCommentState.ts` | Manual AI comment request state and optional snapshot context handoff |
 | `secondary/hooks/useSecondaryForecastModel.ts` | Snapshot and calculation model connection |
 | `secondary/secondarySnapshot.ts` | Current secondary state to snapshot |
+| `secondary/cards/InboundSplitScheduleDialog.tsx` | Split inbound schedule draft dialog UI |
+| `secondary/cards/inboundSplitScheduleModel.ts` | Split inbound schedule draft row/quantity table model |
 | `src/snapshot/*` | Snapshot type/parser/tests |
 
 ## API boundaries
@@ -70,6 +72,7 @@ Product drawer owns primary summary display, secondary detail display, secondary
 - Deleted, unauthorized, or current-scope-missing selected targets are unavailable states; they require explicit re-selection and must not be silently replaced by a fake subject.
 - Arrow key ownership belongs to the stable `ProductDrawer` shell, not content/loading child panels. While the drawer is open, `ArrowUp`/`ArrowDown` are terminal events: navigation may be ignored during an in-flight adjacent move, but the event must not leak to list focus handlers or close the secondary pane.
 - Primary sales metrics keeps a stable card shell while comparison data is loading. Target clicks may update request state, but they must not replace the card with a different loading layout or resize the product image/card column.
+- Split inbound schedule is currently a secondary-drawer draft UI only. It may edit round count, inbound dates, total rows, and size quantities in a fixed-header/fixed-column dialog, but it must not change stock-order calculation, API payloads, or snapshot schema until the backend/calculation contract is explicitly extended.
 - Candidate detail drawer opened from a single-company candidate keeps the same company scope through reads and mutations.
 - Secondary mutations require concrete `companyUuid`.
 
