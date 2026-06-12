@@ -131,7 +131,6 @@ export function ProductSecondaryDrawerContent({
               },
             }}
             orderInputFields={orderInputFields}
-            sizeRows={sizeRows}
             actions={orderInputActions}
             help={{
               labelIds: {
@@ -151,6 +150,27 @@ export function ProductSecondaryDrawerContent({
           />
         </ComponentErrorBoundary>
       </div>
+      <ComponentErrorBoundary page={pageName} unit="SizeOrderCard">
+        <SizeOrderCard
+          sizeOrder={{
+            comparisonLabel,
+            selfCompanyLabel,
+            selfWeightPct,
+            sizeRows,
+            helpIds,
+            stockOrderDisplay,
+            calculationReady: stockOrderCalculationReady,
+            manualConfirmBySize: manualConfirmDerived,
+            currentOrderInboundDueDate: orderInputFields.currentOrderInboundDueDate,
+            nextOrderInboundDueDate: orderInputFields.nextOrderInboundDueDate,
+          }}
+          actions={{
+            onSelfWeightPctChange,
+            onConfirmQtyChange: handleConfirmQtyChange,
+          }}
+          help={portalHelp}
+        />
+      </ComponentErrorBoundary>
       <ComponentErrorBoundary page={pageName} unit="SalesTrendDailyCard">
         <SalesTrendDailyCard
           skuGroupKey={primary.skuGroupKey}
@@ -165,25 +185,6 @@ export function ProductSecondaryDrawerContent({
             forecastShade: dailyTrend.dailyForecastShade,
             error: dailyTrend.dailyTrendError,
           }}
-        />
-      </ComponentErrorBoundary>
-      <ComponentErrorBoundary page={pageName} unit="SizeOrderCard">
-        <SizeOrderCard
-          sizeOrder={{
-            comparisonLabel,
-            selfCompanyLabel,
-            selfWeightPct,
-            sizeRows,
-            helpIds,
-            stockOrderDisplay,
-            calculationReady: stockOrderCalculationReady,
-            manualConfirmBySize: manualConfirmDerived,
-          }}
-          actions={{
-            onSelfWeightPctChange,
-            onConfirmQtyChange: handleConfirmQtyChange,
-          }}
-          help={portalHelp}
         />
       </ComponentErrorBoundary>
       <PortalHelpPopoverLayer

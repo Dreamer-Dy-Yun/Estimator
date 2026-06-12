@@ -8,6 +8,20 @@
   font-size: 13.8px;
 }
 
+.salesForecastTable {
+  table-layout: fixed;
+}
+
+.salesForecastTable th:first-child,
+.salesForecastTable td:first-child {
+  width: 34%;
+}
+
+.salesForecastTable th.num,
+.salesForecastTable td.num {
+  width: 33%;
+}
+
 .table th,
 .table td {
   border: 1px solid #e2e8f0;
