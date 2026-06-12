@@ -1,6 +1,6 @@
 import type { SecondaryStockOrderDisplaySizeRow } from '../../../../../api/types/secondary'
 import type { SizeOrderColumnTotals } from './sizeOrderCardModel'
-import { useMemo, useRef } from 'react'
+import { useCallback, useMemo, useRef, useState } from 'react'
 import type { SecondaryStockOrderCalcResult } from '../../../../../api/types'
 import { formatGroupedNumber } from '../../../../../utils/format'
 import { PortalHelpMark } from '../../../PortalHelpPopover'
@@ -10,7 +10,17 @@ import { KO } from '../../ko'
 import styles from '../secondaryDrawer.module.css'
 import type { SecondaryHelpId, SecondaryHelpIds } from '../secondaryDrawerTypes'
 import type { SecondarySizeOrderDisplayRow } from '../model/secondarySizeOrderRows'
+import { InboundSplitScheduleDialog } from './InboundSplitScheduleDialog'
 import { SizeOrderShareChartRow } from './SizeOrderShareChartRow'
+import {
+  MIN_INBOUND_SPLIT_COUNT,
+  buildInboundSplitScheduleRows,
+  clampInboundSplitCount,
+  getInboundSplitSizeColumns,
+  reconcileInboundSplitScheduleRows,
+  type InboundSplitScheduleRow,
+  type InboundSplitSizeColumn,
+} from './inboundSplitScheduleModel'
 import {
   calculateSizeOrderColumnTotals,
   formatOptionalGroupedNumber,
@@ -32,6 +42,8 @@ export type Props = {
     stockOrderDisplay: SecondaryStockOrderCalcResult['display'] | null
     calculationReady?: boolean
     manualConfirmBySize: Readonly<Record<string, true>>
+    currentOrderInboundDueDate: string
+    nextOrderInboundDueDate: string
   }
   actions: {
     onSelfWeightPctChange: (next: number) => void
@@ -76,10 +88,30 @@ function formatQuantityValue(value: number | null | undefined) : string {
 }
 
 export function SizeOrderCard({ sizeOrder, actions, help }: Props) : React.JSX.Element {
-  const { comparisonLabel, selfCompanyLabel, selfWeightPct, sizeRows, helpIds, stockOrderDisplay, calculationReady = true, manualConfirmBySize }: { comparisonLabel: string; selfCompanyLabel: string; selfWeightPct: number; sizeRows: SecondarySizeOrderDisplayRow[]; helpIds: Pick<SecondaryHelpIds, 'totalOrderBalance' | 'expectedInboundOrderBalance' | 'sizeRecQty' | 'salesForecastSizeOrder'>; stockOrderDisplay: SecondaryStockOrderCalcResult['display'] | null; calculationReady?: boolean; manualConfirmBySize: Readonly<Record<string, true>>; } = sizeOrder
+  const { comparisonLabel, selfCompanyLabel, selfWeightPct, sizeRows, helpIds, stockOrderDisplay, calculationReady = true, manualConfirmBySize, currentOrderInboundDueDate, nextOrderInboundDueDate }: { comparisonLabel: string; selfCompanyLabel: string; selfWeightPct: number; sizeRows: SecondarySizeOrderDisplayRow[]; helpIds: Pick<SecondaryHelpIds, 'totalOrderBalance' | 'expectedInboundOrderBalance' | 'sizeRecQty' | 'salesForecastSizeOrder'>; stockOrderDisplay: SecondaryStockOrderCalcResult['display'] | null; calculationReady?: boolean; manualConfirmBySize: Readonly<Record<string, true>>; currentOrderInboundDueDate: string; nextOrderInboundDueDate: string; } = sizeOrder
   const tableRef: React.RefObject<HTMLTableElement | null> = useRef<HTMLTableElement | null>(null)
   const comparisonWeightPct: number = getComparisonWeightPct(selfWeightPct)
   const columnTotals: SizeOrderColumnTotals = useMemo(() : SizeOrderColumnTotals => calculateSizeOrderColumnTotals(sizeRows), [sizeRows])
+  const splitSizeColumns: InboundSplitSizeColumn[] = useMemo(() : InboundSplitSizeColumn[] => getInboundSplitSizeColumns(sizeRows), [sizeRows])
+  const splitDateRangeKey: string = `${currentOrderInboundDueDate}|${nextOrderInboundDueDate}`
+  const [splitCount, setSplitCount]: [number, React.Dispatch<React.SetStateAction<number>>] = useState<number>(MIN_INBOUND_SPLIT_COUNT)
+  const [splitDialogOpen, setSplitDialogOpen]: [boolean, React.Dispatch<React.SetStateAction<boolean>>] = useState<boolean>(false)
+  const [splitRows, setSplitRows]: [InboundSplitScheduleRow[], React.Dispatch<React.SetStateAction<InboundSplitScheduleRow[]>>] = useState<InboundSplitScheduleRow[]>(() : InboundSplitScheduleRow[] => buildInboundSplitScheduleRows([], MIN_INBOUND_SPLIT_COUNT, '', ''))
+  const [splitRowsRangeKey, setSplitRowsRangeKey]: [string, React.Dispatch<React.SetStateAction<string>>] = useState<string>('')
+  const updateSplitCount: (next: number) => void = useCallback((next: number) : void => {
+    const safeCount: number = clampInboundSplitCount(next)
+    setSplitCount(safeCount)
+    setSplitRows((currentRows: InboundSplitScheduleRow[]) : InboundSplitScheduleRow[] => reconcileInboundSplitScheduleRows(splitRowsRangeKey === splitDateRangeKey ? currentRows : [], splitSizeColumns, safeCount, currentOrderInboundDueDate, nextOrderInboundDueDate))
+    setSplitRowsRangeKey(splitDateRangeKey)
+  }, [currentOrderInboundDueDate, nextOrderInboundDueDate, splitDateRangeKey, splitRowsRangeKey, splitSizeColumns])
+  const openSplitDialog: () => void = useCallback(() : void => {
+    setSplitRows((currentRows: InboundSplitScheduleRow[]) : InboundSplitScheduleRow[] => reconcileInboundSplitScheduleRows(splitRowsRangeKey === splitDateRangeKey ? currentRows : [], splitSizeColumns, splitCount, currentOrderInboundDueDate, nextOrderInboundDueDate))
+    setSplitRowsRangeKey(splitDateRangeKey)
+    setSplitDialogOpen(true)
+  }, [currentOrderInboundDueDate, nextOrderInboundDueDate, splitCount, splitDateRangeKey, splitRowsRangeKey, splitSizeColumns])
+  const closeSplitDialog: () => void = useCallback(() : void => {
+    setSplitDialogOpen(false)
+  }, [])
   const stockOrderSizeRowBySize: Map<string, SecondaryStockOrderDisplaySizeRow> = useMemo(
     () : Map<string, SecondaryStockOrderDisplaySizeRow> => new Map((stockOrderDisplay?.sizeRows ?? []).map((row: SecondaryStockOrderDisplaySizeRow) : [string, SecondaryStockOrderDisplaySizeRow] => [row.size, row])),
     [stockOrderDisplay],
@@ -93,8 +125,20 @@ export function SizeOrderCard({ sizeOrder, actions, help }: Props) : React.JSX.E
   ]
 
   return (
+    <>
     <div className={styles.card}>
-      <h3 className={styles.sectionTitle}>{KO.sectionSizeOrder}</h3>
+      <div className={styles.stockTitleRow}>
+        <h3 className={styles.sectionTitle}>{KO.sectionSizeOrder}</h3>
+        <div className={styles.inboundSplitControls}>
+          <span className={styles.inboundSplitCountLabel} aria-label={KO.ariaInboundSplitCount}>
+            <span>{KO.labelInboundSplitCount}</span>
+            <strong className={styles.inboundSplitCountValue}>{splitCount} {KO.unitInboundSplitCount}</strong>
+          </span>
+          <button type="button" className={`${styles.btn} ${styles.btnSecondary} ${styles.inboundSplitButton}`} onClick={openSplitDialog}>
+            {KO.btnInboundSplitSchedule}
+          </button>
+        </div>
+      </div>
       {!calculationReady && (
         <p className={styles.metaFilterActionHint} role="status" aria-live="polite">
           {KO.msgStockOrderCalcRequired}
@@ -202,5 +246,15 @@ export function SizeOrderCard({ sizeOrder, actions, help }: Props) : React.JSX.E
         </table>
       </div>
     </div>
+    <InboundSplitScheduleDialog
+      open={splitDialogOpen}
+      count={splitCount}
+      rows={splitRows}
+      columns={splitSizeColumns}
+      onCountChange={updateSplitCount}
+      onRowsChange={setSplitRows}
+      onClose={closeSplitDialog}
+    />
+    </>
   )
 }

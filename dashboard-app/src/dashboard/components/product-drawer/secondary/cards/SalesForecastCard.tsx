@@ -3,24 +3,13 @@ import { ApiUnitErrorBadge } from '../../../../../components/ApiUnitErrorBadge'
 import { LoadingSpinner } from '../../../../../components/LoadingSpinner'
 import type { OrderSnapshotStockOrderRequest } from '../../../../../snapshot/orderSnapshotTypes'
 import type { ApiUnitErrorInfo } from '../../../../../types'
-import { useCallback, useMemo, useState } from 'react'
+import type React from 'react'
 import { displayNumber, formatGroupedNumber, formatGroupedOneDecimal } from '../../../../../utils/format'
 import commonStyles from '../../../common.module.css'
 import { usePortalHelpPopover } from '../../../usePortalHelpPopover'
 import { KO } from '../../ko'
 import styles from '../secondaryDrawer.module.css'
 import type { SecondaryHelpId, SecondaryHelpIds } from '../secondaryDrawerTypes'
-import type { SecondarySizeOrderDisplayRow } from '../model/secondarySizeOrderRows'
-import { InboundSplitScheduleDialog } from './InboundSplitScheduleDialog'
-import {
-  MIN_INBOUND_SPLIT_COUNT,
-  buildInboundSplitScheduleRows,
-  clampInboundSplitCount,
-  getInboundSplitSizeColumns,
-  reconcileInboundSplitScheduleRows,
-  type InboundSplitScheduleRow,
-  type InboundSplitSizeColumn,
-} from './inboundSplitScheduleModel'
 
 export type SalesForecastDisplayInputs = {
   trendDailyMean: number | null
@@ -56,7 +45,6 @@ export type SalesForecastOrderInputActions = {
 export type Props = {
   forecast: { inputs: SalesForecastDisplayInputs; loading: boolean; error: ApiUnitErrorInfo | null; calculationReady?: boolean; computed: SalesForecastComputedTable }
   orderInputFields: SalesForecastOrderInputFields
-  sizeRows: SecondarySizeOrderDisplayRow[]
   actions: SalesForecastOrderInputActions
   help: { labelIds: Pick<SecondaryHelpIds, 'forecastQtyCalc' | 'expectedOpProfitRate'>; portal: ReturnType<typeof usePortalHelpPopover<SecondaryHelpId>> }
 }
@@ -111,59 +99,29 @@ function HelpLabel({ label, helpId, labelIds, portal }: { label: string; helpId:
   )
 }
 
-export function SalesForecastCard({ forecast, orderInputFields, sizeRows, actions, help }: Props) : React.JSX.Element {
+export function SalesForecastCard({ forecast, orderInputFields, actions, help }: Props) : React.JSX.Element {
   const { inputs, error, computed }: { inputs: SalesForecastDisplayInputs; loading: boolean; error: ApiUnitErrorInfo | null; calculationReady?: boolean; computed: SalesForecastComputedTable; } = forecast
   const calculationReady: boolean = forecast.calculationReady ?? true
   const { currentOrderInboundDueDate, nextOrderInboundDueDate, minOrderDate, bufferStock, unitCost, unitPrice, expectedFeeRatePct }: SalesForecastOrderInputFields = orderInputFields
   const { labelIds, portal }: { labelIds: Pick<SecondaryHelpIds, 'forecastQtyCalc' | 'expectedOpProfitRate'>; portal: ReturnType<typeof usePortalHelpPopover<SecondaryHelpId>>; } = help
-  const splitSizeColumns: InboundSplitSizeColumn[] = useMemo(() : InboundSplitSizeColumn[] => getInboundSplitSizeColumns(sizeRows), [sizeRows])
-  const splitDateRangeKey: string = `${currentOrderInboundDueDate}|${nextOrderInboundDueDate}`
-  const [splitCount, setSplitCount]: [number, React.Dispatch<React.SetStateAction<number>>] = useState<number>(MIN_INBOUND_SPLIT_COUNT)
-  const [splitDialogOpen, setSplitDialogOpen]: [boolean, React.Dispatch<React.SetStateAction<boolean>>] = useState<boolean>(false)
-  const [splitRows, setSplitRows]: [InboundSplitScheduleRow[], React.Dispatch<React.SetStateAction<InboundSplitScheduleRow[]>>] = useState<InboundSplitScheduleRow[]>(() : InboundSplitScheduleRow[] => buildInboundSplitScheduleRows([], MIN_INBOUND_SPLIT_COUNT, '', ''))
-  const [splitRowsRangeKey, setSplitRowsRangeKey]: [string, React.Dispatch<React.SetStateAction<string>>] = useState<string>('')
-  const updateSplitCount: (next: number) => void = useCallback((next: number) : void => {
-    const safeCount: number = clampInboundSplitCount(next)
-    setSplitCount(safeCount)
-    setSplitRows((currentRows: InboundSplitScheduleRow[]) : InboundSplitScheduleRow[] => reconcileInboundSplitScheduleRows(splitRowsRangeKey === splitDateRangeKey ? currentRows : [], splitSizeColumns, safeCount, currentOrderInboundDueDate, nextOrderInboundDueDate))
-    setSplitRowsRangeKey(splitDateRangeKey)
-  }, [currentOrderInboundDueDate, nextOrderInboundDueDate, splitDateRangeKey, splitRowsRangeKey, splitSizeColumns])
-  const openSplitDialog: () => void = useCallback(() : void => {
-    setSplitRows((currentRows: InboundSplitScheduleRow[]) : InboundSplitScheduleRow[] => reconcileInboundSplitScheduleRows(splitRowsRangeKey === splitDateRangeKey ? currentRows : [], splitSizeColumns, splitCount, currentOrderInboundDueDate, nextOrderInboundDueDate))
-    setSplitRowsRangeKey(splitDateRangeKey)
-    setSplitDialogOpen(true)
-  }, [currentOrderInboundDueDate, nextOrderInboundDueDate, splitCount, splitDateRangeKey, splitRowsRangeKey, splitSizeColumns])
-  const closeSplitDialog: () => void = useCallback(() : void => {
-    setSplitDialogOpen(false)
-  }, [])
   const calcRate: (expectedSales: number, expectedQty: number) => number | null = (expectedSales: number, expectedQty: number): number | null => {
     if (!Number.isFinite(expectedSales) || expectedSales <= 0) return null
     return (((expectedSales * (1 - Math.max(0, expectedFeeRatePct) / 100)) - (unitCost * expectedQty)) / expectedSales) * 100
   }
   const forecastRate: number | null = calculationReady ? calcRate(computed.forecastExpectedSales, computed.recommendedOrderQtyTotal) : null
   const confirmedRate: number | null = calculationReady ? calcRate(computed.confirmedExpectedSales, computed.confirmedOrderQtyTotal) : null
+  const profitWithRateText: (profit: number, rate: number | null) => string = (profit: number, rate: number | null) : string => `${formatGroupedNumber(profit)}(${rateText(rate)})`
   const metricRows: Array<{ key: string; label: string; expected: string; confirmed: string; helpId?: HelpKey }> = [
     { key: 'orderQty', label: KO.rowOrderQty, helpId: 'forecastQtyCalc', expected: calculationReady ? formatGroupedNumber(computed.recommendedOrderQtyTotal) : KO.valueNotCalculated, confirmed: calculationReady ? formatGroupedNumber(computed.confirmedOrderQtyTotal) : KO.valueNotCalculated },
     { key: 'expectedSales', label: KO.rowExpectedSales, expected: calculationReady ? displayNumber.money(computed.forecastExpectedSales) : KO.valueNotCalculated, confirmed: calculationReady ? displayNumber.money(computed.confirmedExpectedSales) : KO.valueNotCalculated },
-    { key: 'expectedOpProfit', label: KO.rowExpectedOpProfit, expected: calculationReady ? displayNumber.money(computed.forecastOpProfit) : KO.valueNotCalculated, confirmed: calculationReady ? displayNumber.money(computed.confirmedOpProfit) : KO.valueNotCalculated },
-    { key: 'expectedOpProfitRate', label: KO.rowExpectedOpProfitRate, helpId: 'expectedOpProfitRate', expected: calculationReady ? rateText(forecastRate) : KO.valueNotCalculated, confirmed: calculationReady ? rateText(confirmedRate) : KO.valueNotCalculated },
+    { key: 'expectedOpProfit', label: KO.rowExpectedOpProfit, helpId: 'expectedOpProfitRate', expected: calculationReady ? profitWithRateText(computed.forecastOpProfit, forecastRate) : KO.valueNotCalculated, confirmed: calculationReady ? profitWithRateText(computed.confirmedOpProfit, confirmedRate) : KO.valueNotCalculated },
   ]
 
   return (
-    <>
-      <div className={`${styles.card} ${styles.gridColumnCard}`}>
-        <div className={styles.stockTitleRow}>
-          <h3 className={styles.sectionTitle}>{KO.sectionSalesForecastIntegrated}<ApiUnitErrorBadge error={error} /></h3>
-          <div className={styles.inboundSplitControls}>
-            <span className={styles.inboundSplitCountLabel} aria-label={KO.ariaInboundSplitCount}>
-              <span>{KO.labelInboundSplitCount}</span>
-              <strong className={styles.inboundSplitCountValue}>{splitCount} {KO.unitInboundSplitCount}</strong>
-            </span>
-            <button type="button" className={`${styles.btn} ${styles.btnSecondary} ${styles.inboundSplitButton}`} onClick={openSplitDialog}>
-              {KO.btnInboundSplitSchedule}
-            </button>
-          </div>
-        </div>
+    <div className={`${styles.card} ${styles.gridColumnCard}`}>
+      <div className={styles.stockTitleRow}>
+        <h3 className={styles.sectionTitle}>{KO.sectionSalesForecastIntegrated}<ApiUnitErrorBadge error={error} /></h3>
+      </div>
       {!calculationReady && !error && (
         <p className={styles.metaFilterActionHint} role="status" aria-live="polite">
           {KO.msgStockOrderCalcRequired}
@@ -208,16 +166,6 @@ export function SalesForecastCard({ forecast, orderInputFields, sizeRows, action
           </table>
         </div>
       )}
-      </div>
-      <InboundSplitScheduleDialog
-        open={splitDialogOpen}
-        count={splitCount}
-        rows={splitRows}
-        columns={splitSizeColumns}
-        onCountChange={updateSplitCount}
-        onRowsChange={setSplitRows}
-        onClose={closeSplitDialog}
-      />
-    </>
+    </div>
   )
 }
