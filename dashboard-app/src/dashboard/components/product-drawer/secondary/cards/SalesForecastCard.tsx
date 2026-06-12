@@ -13,7 +13,6 @@ import type { SecondaryHelpId, SecondaryHelpIds } from '../secondaryDrawerTypes'
 import type { SecondarySizeOrderDisplayRow } from '../model/secondarySizeOrderRows'
 import { InboundSplitScheduleDialog } from './InboundSplitScheduleDialog'
 import {
-  MAX_INBOUND_SPLIT_COUNT,
   MIN_INBOUND_SPLIT_COUNT,
   buildInboundSplitScheduleRows,
   clampInboundSplitCount,
@@ -152,19 +151,10 @@ export function SalesForecastCard({ forecast, orderInputFields, sizeRows, action
         <div className={styles.stockTitleRow}>
           <h3 className={styles.sectionTitle}>{KO.sectionSalesForecastIntegrated}<ApiUnitErrorBadge error={error} /></h3>
           <div className={styles.inboundSplitControls}>
-            <label className={styles.inboundSplitCountLabel}>
+            <span className={styles.inboundSplitCountLabel} aria-label={KO.ariaInboundSplitCount}>
               <span>{KO.labelInboundSplitCount}</span>
-              <select
-                className={styles.inboundSplitCountSelect}
-                value={splitCount}
-                onChange={(event: React.ChangeEvent<HTMLSelectElement, HTMLSelectElement>) : void => updateSplitCount(clampInboundSplitCount(Number(event.target.value)))}
-                aria-label={KO.ariaInboundSplitCount}
-              >
-                {Array.from({ length: MAX_INBOUND_SPLIT_COUNT - MIN_INBOUND_SPLIT_COUNT + 1 }, (_: unknown, index: number): number => MIN_INBOUND_SPLIT_COUNT + index).map((option: number): React.JSX.Element => (
-                  <option key={option} value={option}>{option}{KO.optionInboundSplitRoundSuffix}</option>
-                ))}
-              </select>
-            </label>
+              <strong className={styles.inboundSplitCountValue}>{splitCount} {KO.unitInboundSplitCount}</strong>
+            </span>
             <button type="button" className={`${styles.btn} ${styles.btnSecondary} ${styles.inboundSplitButton}`} onClick={openSplitDialog}>
               {KO.btnInboundSplitSchedule}
             </button>

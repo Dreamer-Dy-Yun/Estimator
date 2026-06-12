@@ -1,7 +1,7 @@
 import type { SecondarySizeOrderDisplayRow } from '../model/secondarySizeOrderRows'
 
 export const MIN_INBOUND_SPLIT_COUNT = 1 as const
-export const MAX_INBOUND_SPLIT_COUNT = 6 as const
+export const MAX_INBOUND_SPLIT_COUNT = 10 as const
 
 export interface InboundSplitSizeColumn {
   size: string

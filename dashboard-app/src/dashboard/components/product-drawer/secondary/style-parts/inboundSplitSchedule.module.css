@@ -29,6 +29,13 @@
   line-height: 1.2;
 }
 
+.inboundSplitCountValue {
+  color: #0f172a;
+  font-size: 12px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
 .inboundSplitButton {
   min-height: 26px;
   padding: 3px 9px;
@@ -50,8 +57,9 @@
 }
 
 .inboundSplitDialog {
-  width: min(1040px, calc(100vw - 48px));
-  max-height: min(760px, calc(100vh - 48px));
+  width: 80vw;
+  height: 60vh;
+  max-height: 60vh;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -102,15 +110,40 @@
 
 .inboundSplitTableWrap {
   flex: 1 1 auto;
+  display: flex;
   min-height: 0;
-  overflow: auto;
+  overflow-x: hidden;
+  overflow-y: auto;
   -webkit-overflow-scrolling: touch;
 }
 
 .inboundSplitTable {
+  font-size: 13px;
+}
+
+.inboundSplitFixedPane {
+  flex: 0 0 auto;
+  overflow: hidden;
+  border-right: 1px solid #dbe5f0;
+  background: #fff;
+}
+
+.inboundSplitSizePane {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+}
+
+.inboundSplitFixedTable {
+  width: 308px;
+  min-width: 308px;
+}
+
+.inboundSplitSizeTable {
   width: max-content;
   min-width: 100%;
-  font-size: 13px;
 }
 
 .inboundSplitTable th,
@@ -126,36 +159,19 @@
   background: #f8fafc;
 }
 
-.inboundSplitStickyRound,
-.inboundSplitStickyDate,
-.inboundSplitStickyTotal {
-  position: sticky;
-  background: inherit;
-  box-shadow: 4px 0 8px -5px rgba(15, 23, 42, 0.22);
-}
-
-.inboundSplitStickyRound {
-  left: 0;
-  z-index: 3;
+.inboundSplitRoundCell {
+  width: 64px;
   min-width: 64px;
 }
 
-.inboundSplitStickyDate {
-  left: 64px;
-  z-index: 3;
+.inboundSplitDateCell {
+  width: 132px;
   min-width: 132px;
 }
 
-.inboundSplitStickyTotal {
-  left: 196px;
-  z-index: 3;
+.inboundSplitTotalCell {
+  width: 112px;
   min-width: 112px;
-}
-
-.inboundSplitTable thead .inboundSplitStickyRound,
-.inboundSplitTable thead .inboundSplitStickyDate,
-.inboundSplitTable thead .inboundSplitStickyTotal {
-  z-index: 5;
 }
 
 .inboundSplitQtyInput {
@@ -179,6 +195,7 @@
 
   .inboundSplitDialog {
     width: calc(100vw - 24px);
+    height: calc(100vh - 24px);
     max-height: calc(100vh - 24px);
   }
 

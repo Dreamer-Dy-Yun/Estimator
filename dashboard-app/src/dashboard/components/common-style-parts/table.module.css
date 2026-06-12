@@ -155,6 +155,7 @@
   background: #f8fafc;
   position: sticky;
   top: 0;
+  z-index: 2;
 }
 
 .sortableTh {
