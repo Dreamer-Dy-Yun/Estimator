@@ -103,48 +103,64 @@ export function InboundSplitScheduleDialog({
           </span>
         </div>
         <div className={styles.inboundSplitTableWrap}>
-          <table className={`${styles.table} ${styles.inboundSplitTable}`}>
-            <thead>
-              <tr>
-                <th className={styles.inboundSplitStickyRound}>{KO.thInboundSplitRound}</th>
-                <th className={styles.inboundSplitStickyDate}>{KO.thInboundSplitInboundDate}</th>
-                <th className={`${styles.num} ${styles.inboundSplitStickyTotal}`}>{KO.thInboundSplitTotalQty}</th>
-                {columns.map((column: InboundSplitSizeColumn): React.JSX.Element => (
-                  <th key={column.size} className={styles.num}>{column.size}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((row: InboundSplitScheduleRow, rowIndex: number): React.JSX.Element => (
-                <tr key={row.id}>
-                  <td className={styles.inboundSplitStickyRound}>{row.round}{KO.optionInboundSplitRoundSuffix}</td>
-                  <td className={styles.inboundSplitStickyDate}>
-                    <input
-                      type="date"
-                      className={styles.stockDateInput}
-                      value={row.inboundDate}
-                      onChange={(event: React.ChangeEvent<HTMLInputElement, HTMLInputElement>): void => handleDateChange(rowIndex, event.target.value)}
-                      aria-label={`${row.round}${KO.optionInboundSplitRoundSuffix} ${KO.thInboundSplitInboundDate}`}
-                    />
-                  </td>
-                  <td className={`${styles.num} ${styles.inboundSplitStickyTotal}`}>{formatGroupedNumber(getInboundSplitTotalQty(row, columns))}</td>
-                  {columns.map((column: InboundSplitSizeColumn): React.JSX.Element => (
-                    <td key={column.size} className={styles.num}>
+          <div className={styles.inboundSplitFixedPane}>
+            <table className={`${styles.table} ${styles.inboundSplitTable} ${styles.inboundSplitFixedTable}`}>
+              <thead>
+                <tr>
+                  <th className={styles.inboundSplitRoundCell}>{KO.thInboundSplitRound}</th>
+                  <th className={styles.inboundSplitDateCell}>{KO.thInboundSplitInboundDate}</th>
+                  <th className={`${styles.num} ${styles.inboundSplitTotalCell}`}>{KO.thInboundSplitTotalQty}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((row: InboundSplitScheduleRow): React.JSX.Element => (
+                  <tr key={row.id}>
+                    <td className={styles.inboundSplitRoundCell}>{row.round}{KO.optionInboundSplitRoundSuffix}</td>
+                    <td className={styles.inboundSplitDateCell}>
                       <input
-                        type="number"
-                        className={`${styles.stockNumberInput} ${styles.inboundSplitQtyInput}`}
-                        min={0}
-                        step={1}
-                        value={row.quantitiesBySize[column.size] ?? 0}
-                        onChange={(event: React.ChangeEvent<HTMLInputElement, HTMLInputElement>): void => handleQtyChange(rowIndex, column.size, event.target.value)}
-                        aria-label={`${row.round}${KO.optionInboundSplitRoundSuffix} ${column.size} ${KO.thConfirmQty}`}
+                        type="date"
+                        className={styles.stockDateInput}
+                        value={row.inboundDate}
+                        onChange={(event: React.ChangeEvent<HTMLInputElement, HTMLInputElement>): void => handleDateChange(rowIndex, event.target.value)}
+                        aria-label={`${row.round}${KO.optionInboundSplitRoundSuffix} ${KO.thInboundSplitInboundDate}`}
                       />
                     </td>
+                    <td className={`${styles.num} ${styles.inboundSplitTotalCell}`}>{formatGroupedNumber(getInboundSplitTotalQty(row, columns))}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div className={styles.inboundSplitSizePane}>
+            <table className={`${styles.table} ${styles.inboundSplitTable} ${styles.inboundSplitSizeTable}`}>
+              <thead>
+                <tr>
+                  {columns.map((column: InboundSplitSizeColumn): React.JSX.Element => (
+                    <th key={column.size} className={styles.num}>{column.size}</th>
                   ))}
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {rows.map((row: InboundSplitScheduleRow, rowIndex: number): React.JSX.Element => (
+                  <tr key={row.id}>
+                    {columns.map((column: InboundSplitSizeColumn): React.JSX.Element => (
+                      <td key={column.size} className={styles.num}>
+                        <input
+                          type="number"
+                          className={`${styles.stockNumberInput} ${styles.inboundSplitQtyInput}`}
+                          min={0}
+                          step={1}
+                          value={row.quantitiesBySize[column.size] ?? 0}
+                          onChange={(event: React.ChangeEvent<HTMLInputElement, HTMLInputElement>): void => handleQtyChange(rowIndex, column.size, event.target.value)}
+                          aria-label={`${row.round}${KO.optionInboundSplitRoundSuffix} ${column.size} ${KO.thConfirmQty}`}
+                        />
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
         <footer className={styles.inboundSplitDialogActions}>
           <button type="button" className={`${styles.btn} ${styles.btnSecondary}`} onClick={onClose}>{KO.btnCloseInboundSplitDialog}</button>
