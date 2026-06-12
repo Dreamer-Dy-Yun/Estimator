@@ -13,7 +13,6 @@ import type { SecondaryHelpId, SecondaryHelpIds } from '../secondaryDrawerTypes'
 import type { SecondarySizeOrderDisplayRow } from '../model/secondarySizeOrderRows'
 import { InboundSplitScheduleDialog } from './InboundSplitScheduleDialog'
 import {
-  MAX_INBOUND_SPLIT_COUNT,
   MIN_INBOUND_SPLIT_COUNT,
   buildInboundSplitScheduleRows,
   clampInboundSplitCount,

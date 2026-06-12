@@ -113,7 +113,7 @@ export function InboundSplitScheduleDialog({
                 </tr>
               </thead>
               <tbody>
-                {rows.map((row: InboundSplitScheduleRow): React.JSX.Element => (
+                {rows.map((row: InboundSplitScheduleRow, rowIndex: number): React.JSX.Element => (
                   <tr key={row.id}>
                     <td className={styles.inboundSplitRoundCell}>{row.round}{KO.optionInboundSplitRoundSuffix}</td>
                     <td className={styles.inboundSplitDateCell}>
