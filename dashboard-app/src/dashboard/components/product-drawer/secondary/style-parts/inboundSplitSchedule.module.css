@@ -119,6 +119,8 @@
 
 .inboundSplitTable {
   font-size: 13px;
+  --inbound-split-header-height: 32px;
+  --inbound-split-row-height: 34px;
 }
 
 .inboundSplitFixedPane {
@@ -148,6 +150,11 @@
 
 .inboundSplitTable th,
 .inboundSplitTable td {
+  box-sizing: border-box;
+  height: var(--inbound-split-row-height);
+  padding-top: 4px;
+  padding-bottom: 4px;
+  vertical-align: middle;
   white-space: nowrap;
   background: #fff;
 }
@@ -156,7 +163,17 @@
   position: sticky;
   top: 0;
   z-index: 4;
+  height: var(--inbound-split-header-height);
   background: #f8fafc;
+}
+
+.inboundSplitTable .stockDateInput,
+.inboundSplitTable .stockNumberInput {
+  box-sizing: border-box;
+  min-height: 24px;
+  height: 24px;
+  padding-top: 2px;
+  padding-bottom: 2px;
 }
 
 .inboundSplitRoundCell {

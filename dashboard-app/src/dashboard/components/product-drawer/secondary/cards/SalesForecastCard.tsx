@@ -117,18 +117,22 @@ export function SalesForecastCard({ forecast, orderInputFields, sizeRows, action
   const { currentOrderInboundDueDate, nextOrderInboundDueDate, minOrderDate, bufferStock, unitCost, unitPrice, expectedFeeRatePct }: SalesForecastOrderInputFields = orderInputFields
   const { labelIds, portal }: { labelIds: Pick<SecondaryHelpIds, 'forecastQtyCalc' | 'expectedOpProfitRate'>; portal: ReturnType<typeof usePortalHelpPopover<SecondaryHelpId>>; } = help
   const splitSizeColumns: InboundSplitSizeColumn[] = useMemo(() : InboundSplitSizeColumn[] => getInboundSplitSizeColumns(sizeRows), [sizeRows])
+  const splitDateRangeKey: string = `${currentOrderInboundDueDate}|${nextOrderInboundDueDate}`
   const [splitCount, setSplitCount]: [number, React.Dispatch<React.SetStateAction<number>>] = useState<number>(MIN_INBOUND_SPLIT_COUNT)
   const [splitDialogOpen, setSplitDialogOpen]: [boolean, React.Dispatch<React.SetStateAction<boolean>>] = useState<boolean>(false)
-  const [splitRows, setSplitRows]: [InboundSplitScheduleRow[], React.Dispatch<React.SetStateAction<InboundSplitScheduleRow[]>>] = useState<InboundSplitScheduleRow[]>(() : InboundSplitScheduleRow[] => buildInboundSplitScheduleRows([], MIN_INBOUND_SPLIT_COUNT, ''))
+  const [splitRows, setSplitRows]: [InboundSplitScheduleRow[], React.Dispatch<React.SetStateAction<InboundSplitScheduleRow[]>>] = useState<InboundSplitScheduleRow[]>(() : InboundSplitScheduleRow[] => buildInboundSplitScheduleRows([], MIN_INBOUND_SPLIT_COUNT, '', ''))
+  const [splitRowsRangeKey, setSplitRowsRangeKey]: [string, React.Dispatch<React.SetStateAction<string>>] = useState<string>('')
   const updateSplitCount: (next: number) => void = useCallback((next: number) : void => {
     const safeCount: number = clampInboundSplitCount(next)
     setSplitCount(safeCount)
-    setSplitRows((currentRows: InboundSplitScheduleRow[]) : InboundSplitScheduleRow[] => reconcileInboundSplitScheduleRows(currentRows, splitSizeColumns, safeCount, currentOrderInboundDueDate))
-  }, [currentOrderInboundDueDate, splitSizeColumns])
+    setSplitRows((currentRows: InboundSplitScheduleRow[]) : InboundSplitScheduleRow[] => reconcileInboundSplitScheduleRows(splitRowsRangeKey === splitDateRangeKey ? currentRows : [], splitSizeColumns, safeCount, currentOrderInboundDueDate, nextOrderInboundDueDate))
+    setSplitRowsRangeKey(splitDateRangeKey)
+  }, [currentOrderInboundDueDate, nextOrderInboundDueDate, splitDateRangeKey, splitRowsRangeKey, splitSizeColumns])
   const openSplitDialog: () => void = useCallback(() : void => {
-    setSplitRows((currentRows: InboundSplitScheduleRow[]) : InboundSplitScheduleRow[] => reconcileInboundSplitScheduleRows(currentRows, splitSizeColumns, splitCount, currentOrderInboundDueDate))
+    setSplitRows((currentRows: InboundSplitScheduleRow[]) : InboundSplitScheduleRow[] => reconcileInboundSplitScheduleRows(splitRowsRangeKey === splitDateRangeKey ? currentRows : [], splitSizeColumns, splitCount, currentOrderInboundDueDate, nextOrderInboundDueDate))
+    setSplitRowsRangeKey(splitDateRangeKey)
     setSplitDialogOpen(true)
-  }, [currentOrderInboundDueDate, splitCount, splitSizeColumns])
+  }, [currentOrderInboundDueDate, nextOrderInboundDueDate, splitCount, splitDateRangeKey, splitRowsRangeKey, splitSizeColumns])
   const closeSplitDialog: () => void = useCallback(() : void => {
     setSplitDialogOpen(false)
   }, [])
