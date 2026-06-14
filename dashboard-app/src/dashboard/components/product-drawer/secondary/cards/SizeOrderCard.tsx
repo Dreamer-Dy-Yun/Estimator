@@ -5,27 +5,30 @@ import { useCallback, useMemo, useRef, useState } from 'react'
 import type { SecondaryStockOrderCalcResult } from '../../../../../api/types'
 import type { ApiUnitErrorInfo } from '../../../../../types'
 import { formatGroupedNumber } from '../../../../../utils/format'
-import { PortalHelpMark } from '../../../PortalHelpPopover'
-import commonStyles from '../../../common.module.css'
 import { usePortalHelpPopover } from '../../../usePortalHelpPopover'
 import { KO } from '../../ko'
 import styles from '../secondaryDrawer.module.css'
 import type { SecondaryHelpId, SecondaryHelpIds } from '../secondaryDrawerTypes'
 import type { SecondarySizeOrderDisplayRow } from '../model/secondarySizeOrderRows'
 import { InboundSplitScheduleDialog } from './InboundSplitScheduleDialog'
+import { SizeOrderQuantityRows, type QuantityRow } from './SizeOrderQuantityRows'
 import { SizeOrderShareChartRow } from './SizeOrderShareChartRow'
+import { SizeOrderWeightControls } from './SizeOrderWeightControls'
 import {
   MIN_INBOUND_SPLIT_COUNT,
   clampInboundSplitCount,
+  cloneInboundSplitRows,
+  confirmedRoundsToInboundSplitRows,
   getInboundSplitTotalQty,
   getInboundSplitSizeColumns,
+  inboundSplitRowsToConfirmedRounds,
   reconcileInboundSplitScheduleRows,
+  sumInboundSplitConfirmedBySize,
   type InboundSplitScheduleRow,
   type InboundSplitSizeColumn,
 } from './inboundSplitScheduleModel'
 import {
   calculateSizeOrderColumnTotals,
-  formatOptionalGroupedNumber,
   formatSharePct,
   getComparisonWeightPct,
   getSelfWeightPctFromComparisonInput,
@@ -57,86 +60,6 @@ export type Props = {
     onConfirmedRoundsChange: (next: OrderSnapshotConfirmedRound[]) => void
   }
   help: ReturnType<typeof usePortalHelpPopover<SecondaryHelpId>>
-}
-
-export type HelpMark = { helpId: SecondaryHelpId; labelId: string; help: Props['help'] }
-export type QuantityRow = {
-  label: string
-  totalQty: number | null
-  valueForSize: (row: SecondarySizeOrderDisplayRow, index: number) => number | null | undefined
-  helpMark?: HelpMark
-}
-
-function LabelWithHelp({ label, helpMark }: { label: string; helpMark?: HelpMark }) : string | React.JSX.Element {
-  if (!helpMark) return label
-  return (
-    <span className={commonStyles.cardTitleWithHelp}>
-      {label}
-      <PortalHelpMark helpId={helpMark.helpId} placement="above" labelId={helpMark.labelId} markClassName={commonStyles.helpMark} help={helpMark.help} />
-    </span>
-  )
-}
-
-function QuantityTableRow({ row, sizeRows }: { row: QuantityRow; sizeRows: SecondarySizeOrderDisplayRow[] }) : React.JSX.Element {
-  return (
-    <tr>
-      <td><LabelWithHelp label={row.label} helpMark={row.helpMark} /></td>
-      <td className={styles.num}>{formatQuantityValue(row.totalQty)}</td>
-      {sizeRows.map((sizeRow: SecondarySizeOrderDisplayRow, index: number) : React.JSX.Element => (
-        <td key={sizeRow.size} className={styles.num}>{formatQuantityValue(row.valueForSize(sizeRow, index))}</td>
-      ))}
-    </tr>
-  )
-}
-
-function formatQuantityValue(value: number | null | undefined) : string {
-  if (value == null) return KO.valueNotCalculated
-  return formatOptionalGroupedNumber(value)
-}
-
-function cloneInboundSplitRows(rows: readonly InboundSplitScheduleRow[]): InboundSplitScheduleRow[] {
-  return rows.map((row: InboundSplitScheduleRow): InboundSplitScheduleRow => ({
-    ...row,
-    suggestedQuantitiesBySize: { ...row.suggestedQuantitiesBySize },
-    quantitiesBySize: { ...row.quantitiesBySize },
-  }))
-}
-
-function sumInboundSplitConfirmedBySize(rows: readonly InboundSplitScheduleRow[], columns: readonly InboundSplitSizeColumn[]): Record<string, number> {
-  const totals: Record<string, number> = {}
-  columns.forEach((column: InboundSplitSizeColumn): void => {
-    totals[column.size] = rows.reduce((sum: number, row: InboundSplitScheduleRow): number => sum + Math.max(0, Math.round(row.quantitiesBySize[column.size] ?? 0)), 0)
-  })
-  return totals
-}
-
-function confirmedRoundsToInboundSplitRows(rounds: readonly OrderSnapshotConfirmedRound[], columns: readonly InboundSplitSizeColumn[]): InboundSplitScheduleRow[] {
-  return rounds.map((round: OrderSnapshotConfirmedRound, index: number): InboundSplitScheduleRow => {
-    const quantitiesBySize: Record<string, number> = {}
-    columns.forEach((column: InboundSplitSizeColumn): void => {
-      quantitiesBySize[column.size] = Math.max(0, Math.round(round.qtyBySize[column.size] ?? 0))
-    })
-    return {
-      id: `confirmed-round-${index + 1}`,
-      round: index + 1,
-      inboundDate: round.date,
-      suggestedQuantitiesBySize: {},
-      quantitiesBySize,
-    }
-  })
-}
-
-function inboundSplitRowsToConfirmedRounds(rows: readonly InboundSplitScheduleRow[], columns: readonly InboundSplitSizeColumn[]): OrderSnapshotConfirmedRound[] {
-  return rows.map((row: InboundSplitScheduleRow): OrderSnapshotConfirmedRound => {
-    const qtyBySize: Record<string, number> = {}
-    columns.forEach((column: InboundSplitSizeColumn): void => {
-      qtyBySize[column.size] = Math.max(0, Math.round(row.quantitiesBySize[column.size] ?? 0))
-    })
-    return {
-      date: row.inboundDate,
-      qtyBySize,
-    }
-  })
 }
 
 export function SizeOrderCard({ sizeOrder, actions, help }: Props) : React.JSX.Element {
@@ -231,6 +154,17 @@ export function SizeOrderCard({ sizeOrder, actions, help }: Props) : React.JSX.E
     { label: KO.rowSalesForecast, totalQty: calculationReady ? columnTotals.forecast : null, valueForSize: (row: SecondarySizeOrderDisplayRow) : number | null => (calculationReady ? row.forecastQty : null), helpMark: { helpId: 'salesForecastSizeOrder', labelId: helpIds.salesForecastSizeOrder, help } },
     { label: KO.thRecQty, totalQty: calculationReady ? columnTotals.rec : null, valueForSize: (row: SecondarySizeOrderDisplayRow) : number | null => (calculationReady ? row.recommendedQty : null), helpMark: { helpId: 'sizeRecQty', labelId: helpIds.sizeRecQty, help } },
   ]
+  const handleSelfWeightInputChange: (rawValue: string) => void = useCallback((rawValue: string): void => {
+    const next: number | null = parseSelfWeightPctInput(rawValue)
+    if (next != null) actions.onSelfWeightPctChange(next)
+  }, [actions])
+  const handleComparisonWeightRangeChange: (rawValue: string) => void = useCallback((rawValue: string): void => {
+    actions.onSelfWeightPctChange(getSelfWeightPctFromComparisonInput(Number(rawValue)))
+  }, [actions])
+  const handleComparisonWeightInputChange: (rawValue: string) => void = useCallback((rawValue: string): void => {
+    const next: number | null = parseSelfWeightPctFromComparisonInput(rawValue)
+    if (next != null) actions.onSelfWeightPctChange(next)
+  }, [actions])
 
   return (
     <>
@@ -252,58 +186,15 @@ export function SizeOrderCard({ sizeOrder, actions, help }: Props) : React.JSX.E
           {KO.msgStockOrderCalcRequired}
         </p>
       )}
-      <div className={styles.sliderRow}>
-        <div className={styles.sliderSelfGroup}>
-          <span className={styles.sliderRowLabel}>{selfCompanyLabel} 가중치</span>
-          <div className={styles.sliderPctBox}>
-            <input
-              type="number"
-              className={styles.sliderPctInput}
-              min={0}
-              max={100}
-              step={0.01}
-              value={selfWeightPct}
-              onChange={(event: React.ChangeEvent<HTMLInputElement, HTMLInputElement>) : void => {
-                const next: number | null = parseSelfWeightPctInput(event.target.value)
-                if (next != null) actions.onSelfWeightPctChange(next)
-              }}
-              aria-label={`${selfCompanyLabel} 가중치`}
-            />
-            <span className={styles.sliderPctSuffix}>%</span>
-          </div>
-        </div>
-        <input
-          type="range"
-          className={`${styles.sliderRowRange} ${styles.sliderWeightRange}`}
-          min={0}
-          max={100}
-          step={0.01}
-          value={comparisonWeightPct}
-          onChange={(event: React.ChangeEvent<HTMLInputElement, HTMLInputElement>) : void => actions.onSelfWeightPctChange(getSelfWeightPctFromComparisonInput(Number(event.target.value)))}
-          aria-label={`${selfCompanyLabel} 대 ${comparisonLabel} 가중치`}
-        />
-        <div className={styles.sliderCompGroup}>
-          <div className={styles.sliderPctBox}>
-            <input
-              type="number"
-              className={styles.sliderPctInput}
-              min={0}
-              max={100}
-              step={0.01}
-              value={comparisonWeightPct}
-              onChange={(event: React.ChangeEvent<HTMLInputElement, HTMLInputElement>) : void => {
-                const next: number | null = parseSelfWeightPctFromComparisonInput(event.target.value)
-                if (next != null) actions.onSelfWeightPctChange(next)
-              }}
-              aria-label={`${comparisonLabel} ${KO.comparisonWeightApprox}`}
-            />
-            <span className={styles.sliderPctSuffix}>%</span>
-          </div>
-          <span className={styles.sliderRowLabel} title={`${comparisonLabel} ${KO.comparisonWeightApprox}`}>
-            {comparisonLabel} {KO.comparisonWeightApprox}
-          </span>
-        </div>
-      </div>
+      <SizeOrderWeightControls
+        selfCompanyLabel={selfCompanyLabel}
+        comparisonLabel={comparisonLabel}
+        selfWeightPct={selfWeightPct}
+        comparisonWeightPct={comparisonWeightPct}
+        onSelfWeightInputChange={handleSelfWeightInputChange}
+        onComparisonWeightRangeChange={handleComparisonWeightRangeChange}
+        onComparisonWeightInputChange={handleComparisonWeightInputChange}
+      />
       <div className={styles.sizeOrderTableWrap}>
         <table ref={tableRef} className={`${styles.table} ${styles.sizeOrderTable} ${styles.sizeOrderLargeTable}`}>
           <thead>
@@ -320,7 +211,7 @@ export function SizeOrderCard({ sizeOrder, actions, help }: Props) : React.JSX.E
               <td className={styles.num}>{formatSharePct(columnTotals.weightedPct)}</td>
               {sizeRows.map((row: SecondarySizeOrderDisplayRow) : React.JSX.Element => <td key={row.size} className={styles.num} data-chart-x="">{formatSharePct(row.blendedSharePct)}</td>)}
             </tr>
-            {quantityRows.map((row: QuantityRow) : React.JSX.Element => <QuantityTableRow key={row.label} row={row} sizeRows={sizeRows} />)}
+            <SizeOrderQuantityRows rows={quantityRows} sizeRows={sizeRows} />
             <tr>
               <td>{KO.thConfirmQty}</td>
               <td className={styles.num}>{calculationReady ? formatGroupedNumber(splitConfirmLocked ? appliedSplitConfirmTotal : columnTotals.confirm) : KO.valueNotCalculated}</td>
