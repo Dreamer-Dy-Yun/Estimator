@@ -1,5 +1,6 @@
 export {
   buildSecondaryDailyTrend,
+  buildSecondaryDailyTrendSource,
   dailyMeanSigma,
   forecastDailyMeanFromModel,
 } from './secondaryDailyTrendBuilders'

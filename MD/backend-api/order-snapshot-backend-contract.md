@@ -1,6 +1,6 @@
 # Order Snapshot Backend Contract
 
-Last updated: 2026-06-09
+Last updated: 2026-06-14
 
 `OrderSnapshotDocument` is the persisted candidate item snapshot. It is a screen-restore contract for the current product drawer state.
 
@@ -8,14 +8,14 @@ Last updated: 2026-06-09
 
 | Field | Required | Meaning |
 |---|:---:|---|
-| `schemaVersion` | Y | `3` |
+| `schemaVersion` | Y | `4` |
 | `skuGroupKey` | Y | Product group key |
 | `savedAt` | Y | Snapshot creation timestamp |
 | `context` | Y | Restore/request basis |
 | `drawer1` | Y | Primary drawer snapshot |
 | `drawer2` | Y | Secondary drawer snapshot |
 
-Top-level `companyUuid` is not part of v3. Scoped restore data belongs in `drawer2.baseSubject.sourceId`.
+Top-level `companyUuid` is not part of v4. Scoped restore data belongs in `drawer2.baseSubject.sourceId`.
 
 ## `context`
 
@@ -28,7 +28,7 @@ Fields: `skuGroupKey`, `productName`, `brand`, `category`, `code`, `colorCode`, 
 
 ## `drawer2`
 
-Required fields: `baseSubject`, `comparisonSubject`, `comparisonBasis`, `stockOrderRequest`, `selfWeightPct`, `bufferStock`, `aiComment`, `confirmedTotals`, `sizeOrders`.
+Required fields: `baseSubject`, `comparisonSubject`, `comparisonBasis`, `stockOrderRequest`, `selfWeightPct`, `bufferStock`, `aiComment`, `confirmed`, `sizeOrders`.
 
 Optional fields: `stockOrderResult`, `unitEconomics`.
 
@@ -81,7 +81,7 @@ Fields: `trendDailyMean`, `dailyMean`, `sigma`, `display`, `safetyStockCalc`, `f
 - `drawer2.comparisonSubject.sourceId` is required for `competitor-channel`.
 - `drawer2.sizeOrders[].size` values must be unique.
 - `drawer2.stockOrderResult.display.sizeRows[]` size set must match `drawer2.sizeOrders[]` size set.
-- `drawer2.confirmedTotals.orderQty` must equal `sum(drawer2.sizeOrders[].confirmQty)`.
+- `drawer2.confirmed.rounds[].qtyBySize` size keys must match `drawer2.sizeOrders[].size`.
 - `drawer2.stockOrderResult.display` total fields must equal sums of each size row field.
 - `context.dailyTrendLeadTimeDays` must equal `drawer2.stockOrderRequest.leadTimeDays`.
 
@@ -93,14 +93,19 @@ Fields: `unitPrice`, `unitCost`, `expectedFeeRatePct`.
 
 Fields: `prompt`, `answer`, `generatedAt`. `generatedAt` can be `null`.
 
-### `confirmedTotals`
+### `confirmed`
 
-Required fields: `orderQty`, `expectedSalesAmount`, `expectedOpProfit`, `expectedOpProfitRatePct`.
-`orderQty` must equal the sum of `sizeOrders[].confirmQty`.
+Required fields: `rounds`.
+`rounds[]` fields: `date`, `qtyBySize`.
+`qtyBySize` is keyed by `sizeOrders[].size`.
+Round numbers are not stored. The frontend/backend derives `1차`, `2차`, ... from the array order.
+Total quantity is not stored. Consumers derive it from `sum(confirmed.rounds[].qtyBySize)`.
 
 ### `sizeOrders[]`
 
-Fields: `size`, `baseSharePct`, `comparisonSharePct`, `blendedSharePct`, `forecastQty`, `recommendedQty`, `confirmQty`.
+Fields: `size`, `baseSharePct`, `comparisonSharePct`, `blendedSharePct`, `forecastQty`, `recommendedQty`.
+
+`sizeOrders[]` owns share/recommendation rows only. Confirmed quantities are stored only in `drawer2.confirmed.rounds`.
 
 ## Storage rules
 

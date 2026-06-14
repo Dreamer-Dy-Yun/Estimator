@@ -6,13 +6,33 @@ export interface SecondaryDailyTrendPoint {
   date: string
   month: string
   sales: number
-  stockBar: number
-  inboundAccumBar: number
+  stockBar: number | null
+  inboundAccumBar: number | null
   /** Base subject daily sales quantity in EA. */
   baseSales: number | null
   /** Comparison subject daily sales quantity in EA. */
   comparisonSales: number | null
   isForecast: boolean
+}
+
+export interface SecondaryDailyTrendSubjectFlow {
+  sale: number
+  inbound: number | null
+}
+
+export interface SecondaryDailyTrendFlowCell {
+  base: SecondaryDailyTrendSubjectFlow
+  comparison: SecondaryDailyTrendSubjectFlow
+}
+
+export interface SecondaryDailyTrendSource {
+  productId: string
+  dateStart: string
+  dateEnd: string
+  forecastStartDate: string
+  baseStockAtStart: number | null
+  comparisonStockAtStart: number | null
+  flowByDate: Record<string, SecondaryDailyTrendFlowCell>
 }
 
 export interface SecondaryDailyTrendParams {
@@ -22,6 +42,26 @@ export interface SecondaryDailyTrendParams {
   forecastDays: number
   base: ProductComparisonBaseSubjectRef
   comparison: ProductComparisonComparisonSubjectRef
+}
+
+export interface SecondaryInboundSplitExpectationCell {
+  sale: number
+  inbound: number
+}
+
+export interface SecondaryInboundSplitSource {
+  productId: string
+  dateStart: string
+  dateEnd: string
+  stockBySize: Record<string, number>
+  expectationByDate: Record<string, Record<string, SecondaryInboundSplitExpectationCell>>
+}
+
+export interface SecondaryInboundSplitSourceParams {
+  skuGroupKey: string
+  dateStart: string
+  dateEnd: string
+  base: ProductComparisonBaseSubjectRef
 }
 
 export interface SecondaryCompetitorChannel {

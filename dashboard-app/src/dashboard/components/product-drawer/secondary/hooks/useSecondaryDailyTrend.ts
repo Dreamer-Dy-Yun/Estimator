@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { dashboardApi } from '../../../../../api'
-import type { ProductComparisonBaseSubjectRef, ProductComparisonTarget, SecondaryDailyTrendParams, SecondaryDailyTrendPoint } from '../../../../../api/types'
+import type { ProductComparisonBaseSubjectRef, ProductComparisonTarget, SecondaryDailyTrendParams, SecondaryDailyTrendPoint, SecondaryDailyTrendSource } from '../../../../../api/types'
 import type { ApiUnitErrorInfo } from '../../../../../types'
 import { buildShadeRanges } from '../../../trend/trendRangeUtils'
 import { SecondaryDailyTrendRequestWindow } from '../model/SecondaryDailyTrendRequestWindow'
+import { buildSecondaryDailyTrendPoints } from '../model/secondaryDailyTrendSourceModel'
 
 export type Params = {
   skuGroupKey: string
@@ -51,7 +52,8 @@ export function useSecondaryDailyTrend({
           comparison: comparisonTarget,
           ...requestWindow.toQueryFields(),
         }
-        const series: SecondaryDailyTrendPoint[] = await dashboardApi.getSecondaryDailyTrend(params)
+        const source: SecondaryDailyTrendSource = await dashboardApi.getSecondaryDailyTrend(params)
+        const series: SecondaryDailyTrendPoint[] = buildSecondaryDailyTrendPoints(source)
         if (!alive || reqSeqRef.current !== reqSeq) return
         if (!series.length) throw new Error('일별 판매추이 데이터가 비어 있습니다.')
         setDailyTrendSeries(series)
@@ -76,7 +78,7 @@ export function useSecondaryDailyTrend({
 
   const { periodShade: dailyPeriodShade, forecastShade: dailyForecastShade }: { periodStartIdx: number; periodEndIdx: number; periodShade: { x1: number; x2: number; }; forecastShade: { x1: number; x2: number; } | null; } = useMemo(
     () : { periodStartIdx: number; periodEndIdx: number; periodShade: { x1: number; x2: number; }; forecastShade: { x1: number; x2: number; } | null; } => buildShadeRanges(
-      dailyTrendSeries.map((p: SecondaryDailyTrendPoint) : { date: string; isForecast: boolean; } => ({ date: p.month, isForecast: p.isForecast })),
+      dailyTrendSeries.map((p: SecondaryDailyTrendPoint) : { date: string; isForecast: boolean; } => ({ date: p.date, isForecast: p.isForecast })),
       selectedStart,
       selectedEnd,
     ),

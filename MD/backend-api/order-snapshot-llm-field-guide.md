@@ -1,8 +1,8 @@
 # Order Snapshot LLM Field Guide
 
-Last updated: 2026-06-09
+Last updated: 2026-06-14
 
-Use this guide when converting `OrderSnapshotDocument` v3 into an LLM prompt.
+Use this guide when converting `OrderSnapshotDocument` v4 into an LLM prompt.
 
 ## Prompt rules
 
@@ -31,13 +31,14 @@ Use this guide when converting `OrderSnapshotDocument` v3 into an LLM prompt.
 | `drawer2.stockOrderResult` | Calculated stock/order recommendation basis. |
 | `drawer2.unitEconomics` | Unit price, cost, and fee rate. |
 | `drawer2.aiComment` | Stored AI prompt/answer metadata. |
-| `drawer2.confirmedTotals` | Totals derived from current confirmed quantities. |
-| `drawer2.sizeOrders[]` | Size-level forecast, recommendation, and confirmed quantity rows. |
+| `drawer2.confirmed.rounds[]` | Confirmed inbound rounds. Quantities are keyed by size. |
+| `drawer2.sizeOrders[]` | Size-level share, forecast, and recommendation rows. |
 
 ## Comment basis
 
 - If `aiComment.answer` is empty, no saved comment exists.
 - If `generatedAt` is `null`, the comment has not been generated for this snapshot.
 - Use `baseSubject` and `comparisonSubject` to name the compared parties.
-- Use `confirmedTotals` and `sizeOrders[]` together when discussing order quantities.
+- Use `confirmed.rounds[]` for confirmed order quantities.
+- Use `sizeOrders[]` only for share, forecast, and recommendation context.
 - Use `unitEconomics` with calculated amounts when discussing margin or profit.

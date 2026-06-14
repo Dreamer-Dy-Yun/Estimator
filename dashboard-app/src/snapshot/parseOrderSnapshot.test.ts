@@ -9,7 +9,7 @@ function cloneValidSnapshot(): OrderSnapshotDocument {
 }
 
 describe('parseOrderSnapshot', () : void => {
-  it('returns current v3 snapshot when required fields are valid', () : void => {
+  it('returns current v4 snapshot when required fields are valid', () : void => {
     const parsed: OrderSnapshotDocument = parseOrderSnapshot(validSnapshot)
 
     expect(parsed).toEqual(validSnapshot)
@@ -28,7 +28,7 @@ describe('parseOrderSnapshot', () : void => {
     expect(parsed.drawer2.baseSubject.sourceId).toBe('company-uuid-001')
   })
 
-  it('strips fields that are not part of the current v3 snapshot contract', () : void => {
+  it('strips fields that are not part of the current v4 snapshot contract', () : void => {
     const source: OrderSnapshotDocument = cloneValidSnapshot()
     const withExtra: Record<string, unknown> = {
       ...source,

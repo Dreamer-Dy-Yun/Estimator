@@ -54,7 +54,7 @@ Candidate stash owns order candidate lists, item detail drawer entry, recommenda
 - Recommendation response items must match selected recommendation source rows.
 - Existing row data remains visible on refresh failure.
 - SSE failure marks target rows/cells failed; it does not clear the list.
-- Detail snapshot save/update uses `OrderSnapshotDocument` v3 in `details`.
+- Detail snapshot save/update uses `OrderSnapshotDocument` v4 in `details`.
 - Detail unconfirm sends `details: null`.
 - Inner order metrics are snapshot-first. If `details` exists, list `qty`, order amount, sales amount, profit, inbound date, and size quantities project `OrderSnapshotDocument.drawer2`.
 - If `details` is null, order metrics request the selected size comparison subject through `subscribeCandidateOrderMetrics(params.comparison)`.

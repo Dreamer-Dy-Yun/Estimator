@@ -1,9 +1,10 @@
 import type { SecondaryStockOrderCalcResult } from '../../../../../api'
-import type { ProductSalesInsightColumn, SecondaryDailyTrendPoint } from '../../../../../api/types'
+import type { ProductSalesInsightColumn, SecondaryDailyTrendPoint, SecondaryInboundSplitSource } from '../../../../../api/types'
 import { useCallback } from 'react'
 import type { ProductComparisonBaseSubjectRef, ProductComparisonTarget } from '../../../../../api'
 import type { ApiUnitErrorInfo, ProductPrimarySummary } from '../../../../../types'
 import { useSecondaryDailyTrend } from './useSecondaryDailyTrend'
+import { useSecondaryInboundSplitSource } from './useSecondaryInboundSplitSource'
 import { useSecondarySalesInsight } from './useSecondarySalesInsight'
 import { useSecondaryStockOrderCalc } from './useSecondaryStockOrderCalc'
 
@@ -19,6 +20,8 @@ export type Args = {
   forecastMeanPeriodEnd: string
   leadTimeDays: number
   dailyMeanClient: number | null
+  currentOrderInboundDueDate: string
+  nextOrderInboundDueDate: string
 }
 
 export function useSecondaryDrawerRequests({
@@ -33,7 +36,9 @@ export function useSecondaryDrawerRequests({
   forecastMeanPeriodEnd,
   leadTimeDays,
   dailyMeanClient,
-}: Args) : { dailyTrend: { dailyTrendSeries: SecondaryDailyTrendPoint[]; dailyTrendLoading: boolean; dailyTrendError: ApiUnitErrorInfo | null; dailyPeriodShade: { x1: number; x2: number; }; dailyForecastShade: { x1: number; x2: number; } | null; dailyTickIndices: number[]; }; forecastCalc: SecondaryStockOrderCalcResult | null; forecastCalcError: ApiUnitErrorInfo | null; forecastCalcLoading: boolean; selfCol: ProductSalesInsightColumn | null; compCol: ProductSalesInsightColumn | null; salesInsightError: ApiUnitErrorInfo | null; salesInsightLoading: boolean; } {
+  currentOrderInboundDueDate,
+  nextOrderInboundDueDate,
+}: Args) : { dailyTrend: { dailyTrendSeries: SecondaryDailyTrendPoint[]; dailyTrendLoading: boolean; dailyTrendError: ApiUnitErrorInfo | null; dailyPeriodShade: { x1: number; x2: number; }; dailyForecastShade: { x1: number; x2: number; } | null; dailyTickIndices: number[]; }; inboundSplitSource: SecondaryInboundSplitSource | null; inboundSplitSourceLoading: boolean; inboundSplitSourceError: ApiUnitErrorInfo | null; forecastCalc: SecondaryStockOrderCalcResult | null; forecastCalcError: ApiUnitErrorInfo | null; forecastCalcLoading: boolean; selfCol: ProductSalesInsightColumn | null; compCol: ProductSalesInsightColumn | null; salesInsightError: ApiUnitErrorInfo | null; salesInsightLoading: boolean; } {
   const makeApiErrorInfo: (request: string, err: unknown) => ApiUnitErrorInfo = useCallback((request: string, err: unknown): ApiUnitErrorInfo => ({
     checkedAt: new Date().toISOString(),
     page: pageName,
@@ -68,10 +73,18 @@ export function useSecondaryDrawerRequests({
     leadTimeDays,
     makeApiErrorInfo,
   })
+  const inboundSplitSource: { inboundSplitSource: SecondaryInboundSplitSource | null; inboundSplitSourceLoading: boolean; inboundSplitSourceError: ApiUnitErrorInfo | null; } = useSecondaryInboundSplitSource({
+    skuGroupKey: primary.skuGroupKey,
+    dateStart: currentOrderInboundDueDate,
+    dateEnd: nextOrderInboundDueDate,
+    baseSubject,
+    makeApiErrorInfo,
+  })
 
   return {
     ...salesInsight,
     ...stockOrder,
+    ...inboundSplitSource,
     dailyTrend,
   }
 }

@@ -1,7 +1,7 @@
 import type { ComparisonBaseSubjectRef, ComparisonComparisonSubject } from '../api/types/subject'
 import type { ProductPrimarySummary, ProductSecondaryDetail } from '../types'
 
-export const ORDER_SNAPSHOT_SCHEMA_VERSION: 3 = 3 as const
+export const ORDER_SNAPSHOT_SCHEMA_VERSION: 4 = 4 as const
 
 export type OrderSnapshotSourceRatio = number
 export type OrderSnapshotPercent = number
@@ -16,7 +16,15 @@ export type OrderSnapshotSizeOrder = {
   blendedSharePct: OrderSnapshotPercent
   forecastQty: number
   recommendedQty: number
-  confirmQty: number
+}
+
+export interface OrderSnapshotConfirmedRound {
+  date: string
+  qtyBySize: Record<string, number>
+}
+
+export interface OrderSnapshotConfirmed {
+  rounds: OrderSnapshotConfirmedRound[]
 }
 
 export interface OrderSnapshotUnitEconomics {
@@ -92,13 +100,6 @@ export interface OrderSnapshotComparisonBasis {
   comparisonRatioBySize: OrderSnapshotComparisonRatioBySize
 }
 
-export interface OrderSnapshotConfirmedTotals {
-  orderQty: number
-  expectedSalesAmount: number
-  expectedOpProfit: number
-  expectedOpProfitRatePct: number | null
-}
-
 export type OrderSnapshotDrawer2 = {
   baseSubject: OrderSnapshotBaseSubject
   comparisonSubject: OrderSnapshotComparisonSubject
@@ -109,7 +110,7 @@ export type OrderSnapshotDrawer2 = {
   selfWeightPct: OrderSnapshotPercent
   bufferStock: number
   aiComment: OrderSnapshotAiComment
-  confirmedTotals: OrderSnapshotConfirmedTotals
+  confirmed: OrderSnapshotConfirmed
   sizeOrders: OrderSnapshotSizeOrder[]
 }
 
@@ -181,6 +182,29 @@ export function createOrderSnapshotStockOrderResult(result: OrderSnapshotStockOr
 export function createOrderSnapshotAiComment(aiComment: OrderSnapshotAiComment): OrderSnapshotAiComment {
   const { prompt, answer, generatedAt }: OrderSnapshotAiComment = aiComment
   return { prompt, answer, generatedAt }
+}
+
+export function createOrderSnapshotConfirmed(confirmed: OrderSnapshotConfirmed): OrderSnapshotConfirmed {
+  return {
+    rounds: confirmed.rounds.map((round: OrderSnapshotConfirmedRound): OrderSnapshotConfirmedRound => ({
+      date: round.date,
+      qtyBySize: { ...round.qtyBySize },
+    })),
+  }
+}
+
+export function getOrderSnapshotConfirmedQtyBySize(confirmed: OrderSnapshotConfirmed): Record<string, number> {
+  const totals: Record<string, number> = {}
+  confirmed.rounds.forEach((round: OrderSnapshotConfirmedRound): void => {
+    Object.entries(round.qtyBySize).forEach(([size, qty]: [string, number]): void => {
+      totals[size] = (totals[size] ?? 0) + qty
+    })
+  })
+  return totals
+}
+
+export function getOrderSnapshotConfirmedTotalQty(confirmed: OrderSnapshotConfirmed): number {
+  return Object.values(getOrderSnapshotConfirmedQtyBySize(confirmed)).reduce((sum: number, qty: number): number => sum + qty, 0)
 }
 
 export function createOrderSnapshotComparisonRatioBySize(

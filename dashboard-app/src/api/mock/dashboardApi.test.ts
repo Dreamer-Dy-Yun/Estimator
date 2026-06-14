@@ -1,5 +1,5 @@
 import type { ProductComparisonBaseSubjectRef, ProductComparisonTarget, ProductMonthlyTrend, SecondaryCompetitorChannel, SecondaryStockOrderCalcResult } from '..'
-import type { ProductMonthlyTrendPoint, SecondaryDailyTrendPoint } from '../types'
+import type { ProductMonthlyTrendPoint, SecondaryDailyTrendFlowCell, SecondaryDailyTrendSource } from '../types'
 import type { SecondaryStockOrderDisplaySizeRow } from '../types/secondary'
 import { describe, expect, it } from 'vitest'
 import { mockDashboardApi } from './dashboardApi'
@@ -141,7 +141,7 @@ describe('api/mock dashboardApi competitor channel behavior', () : void => {
   })
 
   it('applies selected channel to secondary daily competitor trend', async () : Promise<void> => {
-    const kream: SecondaryDailyTrendPoint[] = await mockDashboardApi.getSecondaryDailyTrend({
+    const kream: SecondaryDailyTrendSource = await mockDashboardApi.getSecondaryDailyTrend({
       skuGroupKey: skuGroupKey('B'),
       startDate: '2025-01-01',
       endDate: '2026-05-28',
@@ -149,7 +149,7 @@ describe('api/mock dashboardApi competitor channel behavior', () : void => {
       base: MOCK_BASE_SUBJECT,
       comparison: mockCompetitorTarget('kream'),
     })
-    const musinsa: SecondaryDailyTrendPoint[] = await mockDashboardApi.getSecondaryDailyTrend({
+    const musinsa: SecondaryDailyTrendSource = await mockDashboardApi.getSecondaryDailyTrend({
       skuGroupKey: skuGroupKey('B'),
       startDate: '2025-01-01',
       endDate: '2026-05-28',
@@ -158,16 +158,16 @@ describe('api/mock dashboardApi competitor channel behavior', () : void => {
       comparison: mockCompetitorTarget('musinsa'),
     })
 
-    const sumCompetitorSales: (rows: SecondaryDailyTrendPoint[]) => number = (rows: typeof kream) : number =>
-      rows.reduce((sum: number, row: SecondaryDailyTrendPoint) : number => sum + Math.max(0, row.comparisonSales ?? 0), 0)
+    const sumCompetitorSales: (source: SecondaryDailyTrendSource) => number = (source: SecondaryDailyTrendSource) : number =>
+      Object.values(source.flowByDate).reduce((sum: number, row: SecondaryDailyTrendFlowCell) : number => sum + Math.max(0, row.comparison.sale), 0)
 
-    expect(kream.length).toBeGreaterThan(0)
-    expect(musinsa.length).toBe(kream.length)
+    expect(Object.keys(kream.flowByDate).length).toBeGreaterThan(0)
+    expect(Object.keys(musinsa.flowByDate).length).toBe(Object.keys(kream.flowByDate).length)
     expect(sumCompetitorSales(musinsa)).toBeLessThan(sumCompetitorSales(kream))
   })
 
   it('keeps daily trend actual rows through endDate and appends forecastDays after it', async () : Promise<void> => {
-    const rows: SecondaryDailyTrendPoint[] = await mockDashboardApi.getSecondaryDailyTrend({
+    const source: SecondaryDailyTrendSource = await mockDashboardApi.getSecondaryDailyTrend({
       skuGroupKey: skuGroupKey('B'),
       startDate: '2026-05-01',
       endDate: '2026-05-28',
@@ -176,10 +176,11 @@ describe('api/mock dashboardApi competitor channel behavior', () : void => {
       comparison: mockCompetitorTarget('kream'),
     })
 
-    expect(rows.at(0)?.date).toBe('2026-05-01')
-    expect(rows.find((row: SecondaryDailyTrendPoint) : boolean => row.date === '2026-05-28')?.isForecast).toBe(false)
-    expect(rows.slice(-3).map((row: SecondaryDailyTrendPoint) : boolean => row.isForecast)).toEqual([true, true, true])
-    expect(rows.at(-1)?.date).toBe('2026-05-31')
+    expect(source.dateStart).toBe('2026-05-01')
+    expect(source.forecastStartDate).toBe('2026-05-29')
+    expect(source.flowByDate['2026-05-28']).toBeDefined()
+    expect(Object.keys(source.flowByDate).filter((date: string) : boolean => date >= source.forecastStartDate)).toEqual(['2026-05-29', '2026-05-30', '2026-05-31'])
+    expect(source.dateEnd).toBe('2026-05-31')
   })
 
   it('applies selected channel to product monthly competitor trend', async () : Promise<void> => {

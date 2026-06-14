@@ -2,7 +2,8 @@ import type {
   OrderSnapshotBaseSubject,
   OrderSnapshotComparisonBasis,
   OrderSnapshotComparisonSubject,
-  OrderSnapshotConfirmedTotals,
+  OrderSnapshotConfirmed,
+  OrderSnapshotConfirmedRound,
   OrderSnapshotDocument,
   OrderSnapshotDrawer1,
   OrderSnapshotDrawer2,
@@ -26,9 +27,8 @@ const STOCK_DISPLAY_TOTAL_KEYS = ['currentStockQtyTotal', 'totalOrderBalanceTota
 const STOCK_DISPLAY_SIZE_ROW_QUANTITY_KEYS = ['currentStockQty', 'totalOrderBalance', 'expectedInboundOrderBalance'] as const
 export type StockOrderDisplaySizeRowQuantityKey = typeof STOCK_DISPLAY_SIZE_ROW_QUANTITY_KEYS[number]
 const STOCK_ORDER_AMOUNT_KEYS = ['recommendedOrderQty', 'expectedOrderAmount', 'expectedSalesAmount', 'expectedOpProfit'] as const
-const CONFIRMED_TOTAL_KEYS = ['orderQty', 'expectedSalesAmount', 'expectedOpProfit'] as const
 const SIZE_ORDER_SHARE_PCT_KEYS = ['baseSharePct', 'comparisonSharePct', 'blendedSharePct'] as const
-const SIZE_ORDER_QUANTITY_KEYS = ['forecastQty', 'recommendedQty', 'confirmQty'] as const
+const SIZE_ORDER_QUANTITY_KEYS = ['forecastQty', 'recommendedQty'] as const
 
 export function parseOrderSnapshot(details: unknown): OrderSnapshotDocument {
   const d: Obj = expectRecord(details, 'snapshot')
@@ -73,8 +73,7 @@ function normalizeDrawer2Structure(drawer2: Obj): OrderSnapshotDocument['drawer2
   const sizeOrders: OrderSnapshotSizeOrder[] = normalizeSizeOrders(drawer2.sizeOrders)
   const stockOrderResult: OrderSnapshotStockOrderResult | undefined = normalizeOptionalStockOrderResult(drawer2.stockOrderResult, sizeOrders)
   const unitEconomics: OrderSnapshotUnitEconomics | undefined = normalizeOptionalUnitEconomics(drawer2.unitEconomics)
-  const confirmedTotals: OrderSnapshotConfirmedTotals = normalizeConfirmedTotals(drawer2.confirmedTotals)
-  expectConfirmedTotalsMatchSizeOrders(confirmedTotals, sizeOrders)
+  const confirmed: OrderSnapshotConfirmed = normalizeConfirmed(drawer2.confirmed, sizeOrders)
   return {
     baseSubject: normalizeBaseSubject(expectRecord(drawer2.baseSubject, 'drawer2.baseSubject')),
     comparisonSubject: normalizeComparisonSubject(expectRecord(drawer2.comparisonSubject, 'drawer2.comparisonSubject')),
@@ -85,7 +84,7 @@ function normalizeDrawer2Structure(drawer2: Obj): OrderSnapshotDocument['drawer2
     selfWeightPct: expectNumberInRange(drawer2.selfWeightPct, 'drawer2.selfWeightPct', 0, 100),
     bufferStock: expectNumber(drawer2.bufferStock, 'drawer2.bufferStock'),
     aiComment: normalizeAiComment(drawer2.aiComment),
-    confirmedTotals,
+    confirmed,
     sizeOrders,
   }
 }
@@ -213,13 +212,30 @@ function normalizeStockOrderAmountBlock<K extends 'safetyStockCalc' | 'forecastQ
   } as StockOrderResult[K]
 }
 
-function normalizeConfirmedTotals(value: unknown): OrderSnapshotDocument['drawer2']['confirmedTotals'] {
-  const label = 'drawer2.confirmedTotals' as const
+function normalizeConfirmed(value: unknown, sizeOrders: OrderSnapshotDocument['drawer2']['sizeOrders']): OrderSnapshotConfirmed {
+  const label = 'drawer2.confirmed' as const
   const source: Obj = expectRecord(value, label)
-  return {
-    ...normalizeNumberFields(source, label, CONFIRMED_TOTAL_KEYS),
-    expectedOpProfitRatePct: expectNumberOrNull(source.expectedOpProfitRatePct, label + '.expectedOpProfitRatePct'),
-  }
+  const sizeOrderSizes: Set<string> = new Set(sizeOrders.map((row: OrderSnapshotSizeOrder): string => row.size))
+  const rounds: OrderSnapshotConfirmedRound[] = expectArray(source.rounds, label + '.rounds').map((row: unknown, index: number): OrderSnapshotConfirmedRound => {
+    const rowLabel: string = label + '.rounds[' + index + ']'
+    const round: Obj = expectRecord(row, rowLabel)
+    return {
+      date: expectNonEmptyString(round.date, rowLabel + '.date'),
+      qtyBySize: normalizeConfirmedQtyBySize(round.qtyBySize, rowLabel + '.qtyBySize', sizeOrderSizes),
+    }
+  })
+  if (sizeOrders.length > 0 && rounds.length === 0) throw new Error(label + '.rounds must not be empty when drawer2.sizeOrders is not empty')
+  return { rounds }
+}
+
+function normalizeConfirmedQtyBySize(value: unknown, label: string, expectedSizes: Set<string>): Record<string, number> {
+  const source: Obj = expectRecord(value, label)
+  const rows: Array<{ size: string }> = Object.keys(source).map((size: string): { size: string } => ({ size }))
+  expectSameSizeSet(rows, expectedSizes, label, 'drawer2.sizeOrders')
+  return Object.fromEntries(Object.entries(source).map(([size, qty]: [string, unknown]): [string, number] => [
+    size,
+    expectNumberInRange(qty, label + '.' + size, 0, Number.MAX_SAFE_INTEGER),
+  ]))
 }
 
 function normalizeSizeOrders(value: unknown): OrderSnapshotDocument['drawer2']['sizeOrders'] {
@@ -234,11 +250,6 @@ function normalizeSizeOrders(value: unknown): OrderSnapshotDocument['drawer2']['
   })
   expectUniqueSizes(rows, 'drawer2.sizeOrders')
   return rows
-}
-
-function expectConfirmedTotalsMatchSizeOrders(confirmedTotals: OrderSnapshotDocument['drawer2']['confirmedTotals'], sizeOrders: OrderSnapshotDocument['drawer2']['sizeOrders']): void {
-  const expectedOrderQty: number = sizeOrders.reduce((sum: number, row: OrderSnapshotSizeOrder) : number => sum + row.confirmQty, 0)
-  expectMatchingNumbers(confirmedTotals.orderQty, expectedOrderQty, 'drawer2.confirmedTotals.orderQty', 'sum(drawer2.sizeOrders[].confirmQty)')
 }
 
 function expectStockOrderDisplayTotalsMatchRows(display: StockOrderResult['display'], label: string): void {
@@ -324,10 +335,6 @@ function expectMatchingNumbers(left: number, right: number, leftLabel: string, r
 
 function expectMatchingStrings(left: string, right: string, leftLabel: string, rightLabel: string): void {
   if (left !== right) throw new Error(leftLabel + ' must match ' + rightLabel)
-}
-
-function expectNumberOrNull(value: unknown, label: string): number | null {
-  return value === null ? null : expectNumber(value, label)
 }
 
 function expectStringOrNull(value: unknown, label: string): string | null {

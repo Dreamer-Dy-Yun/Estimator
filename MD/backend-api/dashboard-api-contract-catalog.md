@@ -245,11 +245,43 @@ Type sources: `dashboard-app/src/api/types/drawer.ts`, `dashboard-app/src/api/ty
 | `getProductMonthlyTrend` | GET `/products/{skuGroupKey}/monthly-trend` | date range, `forecastMonths`, base subject, comparison subject | `ProductMonthlyTrend` |
 | `getProductSalesInsight` | GET `/products/{skuGroupKey}/sales-insight` | date range, base subject, comparison subject | `ProductSalesInsight` |
 | `getProductSecondaryDetail` | GET `/products/{skuGroupKey}/secondary-detail` | base subject, comparison subject, `minOpMarginPct?` | `ProductSecondaryDetail` |
-| `getSecondaryDailyTrend` | GET `/products/{skuGroupKey}/secondary/daily-trend` | date range, `forecastDays`, base subject, comparison subject | `SecondaryDailyTrendPoint[]` |
+| `getSecondaryDailyTrend` | GET `/products/{skuGroupKey}/secondary/daily-trend` | date range, `forecastDays`, base subject, comparison subject | `SecondaryDailyTrendSource` |
 | `getSecondaryAiComment` | POST `/products/{skuGroupKey}/secondary/ai-comment` | AI comment request body without path `skuGroupKey` | `SecondaryAiCommentResult` |
 | `getSecondaryStockOrderCalc` | POST `/secondary/stock-order-calc` | `SecondaryStockOrderCalcParams` | `SecondaryStockOrderCalcResult` |
 
 Frontend `SecondaryAiCommentParams` includes `skuGroupKey` so the HTTP adapter can place it in the path. The POST body excludes that path field.
+
+Daily trend source response:
+
+```ts
+interface SecondaryDailyTrendSubjectFlow {
+  sale: number
+  inbound: number | null
+}
+
+interface SecondaryDailyTrendFlowCell {
+  base: SecondaryDailyTrendSubjectFlow
+  comparison: SecondaryDailyTrendSubjectFlow
+}
+
+interface SecondaryDailyTrendSource {
+  productId: string
+  dateStart: string
+  dateEnd: string
+  forecastStartDate: string
+  baseStockAtStart: number | null
+  comparisonStockAtStart: number | null
+  flowByDate: Record<string, SecondaryDailyTrendFlowCell>
+}
+```
+
+Rules:
+
+- `flowByDate` is aggregate daily flow, not size-level flow.
+- `base` and `comparison` use the same `{ sale, inbound }` shape. `inbound` is nullable because comparison inbound can be unavailable.
+- The frontend derives chart-only fields such as `idx`, `month`, `isForecast`, `stockBar`, and line split fields from this source.
+- `forecastStartDate` is the only forecast boundary field. Backend must not send per-row `isForecast`.
+- Size-level source for split inbound suggestions is a separate contract: `getSecondaryInboundSplitSource`.
 
 AI comment request body:
 
@@ -277,7 +309,7 @@ Example AI comment body:
   "base": { "role": "base", "kind": "self-company", "sourceId": "hana-company-uuid" },
   "comparison": { "role": "comparison", "kind": "competitor-channel", "sourceId": "kream" },
   "candidateItemUuid": "candidate-item-uuid",
-  "snapshotForAiComment": { "schemaVersion": 3 }
+  "snapshotForAiComment": { "schemaVersion": 4 }
 }
 ```
 
@@ -399,7 +431,7 @@ Example update item body:
 ```json
 {
   "companyUuid": "hana-company-uuid",
-  "details": { "schemaVersion": 3 },
+  "details": { "schemaVersion": 4 },
   "isLatestLlmComment": true
 }
 ```
@@ -456,7 +488,7 @@ Order metric calculation contract:
 
 - `companyUuid` is required and must be a single company scope.
 - `comparisonRole=comparison`, `comparisonKind`, and optional `comparisonSourceId` are required subject fields for non-snapshot size split calculation.
-- If `CANDIDATE_ITEM.details` contains an `OrderSnapshotDocument`, the metric must project the snapshot values. Use `drawer2.confirmedTotals.orderQty`, `drawer2.confirmedTotals.expectedSalesAmount`, `drawer2.confirmedTotals.expectedOpProfit`, `drawer2.unitEconomics.unitCost`, and `drawer2.sizeOrders[].confirmQty`.
+- If `CANDIDATE_ITEM.details` contains an `OrderSnapshotDocument`, the metric must project the snapshot values. Use `drawer2.confirmed.rounds[]` for confirmed quantity by size and total quantity, and use `drawer2.unitEconomics` to derive expected order amount, sales amount, fee, and operating profit.
 - If `CANDIDATE_ITEM.details` is null, calculate the same default secondary drawer order metric basis without daily trend rendering data. The comparison subject affects `ProductSecondaryDetail.comparisonRatioBySize`; stock-order calculation remains base-subject owned.
 - Do not use a server-global or session-global comparison basis for this SSE. The frontend sends the selected comparison subject on every request.
 - If the frontend has no selected comparison target after `getProductComparisonTargets({ base })` settles, it does not open this SSE and marks non-snapshot metric cells failed. Backend should expose unavailable comparison targets by returning an empty target list or an API error from `getProductComparisonTargets`, not by silently choosing a default target.
@@ -489,7 +521,49 @@ Type source:
 Rules:
 
 - Candidate item `details` is `OrderSnapshotDocument | null`.
-- Current snapshot schema version is `3`.
+- Current snapshot schema version is `4`.
 - `details` and `isLatestLlmComment` are wrapper API fields, not snapshot fields.
-- Snapshot v3 stores `drawer2.baseSubject`, `drawer2.comparisonSubject`, and `drawer2.comparisonBasis`.
+- Snapshot v4 stores `drawer2.baseSubject`, `drawer2.comparisonSubject`, `drawer2.comparisonBasis`, and `drawer2.confirmed.rounds`.
+- `drawer2.sizeOrders[]` stores share/forecast/recommendation rows only; confirmed quantities are not stored there.
 - Full snapshot details remain in `order-snapshot-backend-contract.md`.
+
+## 14. Secondary inbound split source
+
+Frontend function:
+
+| Function | Method/path | Request | Response |
+|---|---|---|---|
+| `getSecondaryInboundSplitSource` | GET `/products/{skuGroupKey}/secondary/inbound-split-source` | `dateStart`, `dateEnd`, base subject query | `SecondaryInboundSplitSource` |
+
+Request query:
+
+- `dateStart`: current order inbound date. Inclusive date in `YYYY-MM-DD`.
+- `dateEnd`: next order inbound date. Exclusive date in `YYYY-MM-DD`.
+- `baseRole=base`, `baseKind=self-company`, optional `baseSourceId`: same product drawer base subject contract used by secondary stock order calculation.
+
+Response contract:
+
+```ts
+interface SecondaryInboundSplitExpectationCell {
+  sale: number
+  inbound: number
+}
+
+interface SecondaryInboundSplitSource {
+  productId: string
+  dateStart: string
+  dateEnd: string
+  stockBySize: Record<string, number>
+  expectationByDate: Record<string, Record<string, SecondaryInboundSplitExpectationCell>>
+}
+```
+
+Rules:
+
+- The backend returns source data only. It does not receive or calculate `splitInboundDates`, `splitCount`, or `totalOrderQtyBySize`.
+- `stockBySize` is stock at `dateStart`.
+- `expectationByDate` is keyed by date for `dateStart <= date < dateEnd`.
+- `sale` is expected sales quantity for that date and size.
+- `inbound` is already-known inbound quantity for that date and size. It excludes the current split inbound draft being edited in the frontend popup.
+- The frontend owns split count, split dates, and editable confirmed quantities as screen draft state. It uses this source plus current confirmed order quantity by size to produce read-only suggested quantities.
+- `stockBySize` and `expectationByDate[date][size]` cells required by visible size rows are required source fields. If a size has zero sale or zero inbound on a date, send explicit `0`.

@@ -1,6 +1,6 @@
 import type { AppendCandidateItemsResponse, CandidateDetailBulkConfirmProgressEvent, CandidateDetailBulkConfirmStartPayload, CandidateDetailBulkConfirmStartResult, CandidateItemDetail, CandidateItemListParams, CandidateItemListResult, CandidateOrderMetricEvent, CandidateOrderMetricStreamParams, CandidateRecommendationParams, CandidateRecommendationResult, CandidateStashExcelUploadResult, CandidateStashLlmCommentJobProgressEvent, CandidateStashLlmCommentJobStartResult, CandidateStashSummary, CompanyScopeParams, CompetitorSalesParams, DashboardEventStreamErrorListener, ProductComparisonSubjectRef, ProductComparisonTarget, ProductDrawerBundle, ProductMonthlyTrend, ProductMonthlyTrendParams, ProductSalesInsight, ProductSecondaryDetail, SalesFilterMeta, SecondaryAiCommentParams, SecondaryAiCommentResult, SecondaryCompetitorChannel, SecondaryStockOrderCalcResult, SelfSalesParams, UpdateCandidateItemPayload } from '..'
 import type { CompetitorSalesRow, SelfSalesRow } from '../../types'
-import type { AppendCandidateItemPayload, AppendCandidateItemsPayload, CompanyMutationScopeParams, CompetitorSalesGridParams, CreateCandidateStashPayload, ProductComparisonTargetParams, ProductDrawerBundleParams, ProductSalesInsightParams, ProductSecondaryDetailParams, ScatterSalesGridResponse, SecondaryDailyTrendParams, SecondaryDailyTrendPoint, SecondaryStockOrderCalcParams, SelfSalesGridParams, UpdateCandidateStashPayload } from '../types'
+import type { AppendCandidateItemPayload, AppendCandidateItemsPayload, CompanyMutationScopeParams, CompetitorSalesGridParams, CreateCandidateStashPayload, ProductComparisonTargetParams, ProductDrawerBundleParams, ProductSalesInsightParams, ProductSecondaryDetailParams, ScatterSalesGridResponse, SecondaryDailyTrendParams, SecondaryDailyTrendSource, SecondaryInboundSplitSource, SecondaryInboundSplitSourceParams, SecondaryStockOrderCalcParams, SelfSalesGridParams, UpdateCandidateStashPayload } from '../types'
 import type { CandidateStashListParams } from '../types/candidate'
 import type { ApiEventStreamSubscription } from './httpClient'
 import type {
@@ -83,6 +83,14 @@ function secondaryDailyTrendQuery(params: Omit<SecondaryDailyTrendParams, 'skuGr
   }
 }
 
+function secondaryInboundSplitSourceQuery(params: Omit<SecondaryInboundSplitSourceParams, 'skuGroupKey'>): Record<string, string> {
+  return {
+    dateStart: params.dateStart,
+    dateEnd: params.dateEnd,
+    ...productComparisonSubjectQueryPrefix('base', params.base),
+  }
+}
+
 /**
  * HTTP implementation of DashboardApi.
  *
@@ -141,9 +149,13 @@ export const httpDashboardRequests: DashboardApi = {
     apiRequest(`/products/${encodePathSegment(skuGroupKey)}/secondary-detail`, {
       query: queryParams(productSecondaryDetailQuery(params)),
     }),
-  getSecondaryDailyTrend: ({ skuGroupKey, ...params }: SecondaryDailyTrendParams) : Promise<SecondaryDailyTrendPoint[]> =>
+  getSecondaryDailyTrend: ({ skuGroupKey, ...params }: SecondaryDailyTrendParams) : Promise<SecondaryDailyTrendSource> =>
     apiRequest(`/products/${encodePathSegment(skuGroupKey)}/secondary/daily-trend`, {
       query: queryParams(secondaryDailyTrendQuery(params)),
+    }),
+  getSecondaryInboundSplitSource: ({ skuGroupKey, ...params }: SecondaryInboundSplitSourceParams) : Promise<SecondaryInboundSplitSource> =>
+    apiRequest(`/products/${encodePathSegment(skuGroupKey)}/secondary/inbound-split-source`, {
+      query: queryParams(secondaryInboundSplitSourceQuery(params)),
     }),
   getSecondaryAiComment: ({ skuGroupKey, ...payload }: SecondaryAiCommentParams) : Promise<SecondaryAiCommentResult> =>
     apiRequest(`/products/${encodePathSegment(skuGroupKey)}/secondary/ai-comment`, {

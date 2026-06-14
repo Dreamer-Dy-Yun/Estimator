@@ -11,7 +11,8 @@ import type { CandidateItemInsightSummary } from '../types/candidate'
 import type { CandidateItemOrderExportSizeQty, CandidateOrderMetric } from '../types'
 import type { CandidateDataReferencePeriod } from './candidateItemSummaryTypes'
 import type { CandidateItemRecord } from './records'
-import type { OrderSnapshotConfirmedTotals, OrderSnapshotDocument, OrderSnapshotSizeOrder, OrderSnapshotUnitEconomics } from '../../snapshot/orderSnapshotTypes'
+import type { OrderSnapshotDocument, OrderSnapshotUnitEconomics } from '../../snapshot/orderSnapshotTypes'
+import { getOrderSnapshotConfirmedQtyBySize, getOrderSnapshotConfirmedTotalQty } from '../../snapshot/orderSnapshotTypes'
 import type { SecondarySizeOrderRow, SecondarySizeShare } from '../../utils/secondaryOrderProjection'
 import { buildCandidateItemInsight } from './candidateItemInsights'
 import { productPrimaryBySkuGroupKey } from './productCatalog'
@@ -51,10 +52,11 @@ function roundedPercent(value: number | null): number | null {
   return value == null ? null : Math.round(value * 10) / 10
 }
 
-function orderExportSizeQtyFromSnapshot(sizeOrders: OrderSnapshotSizeOrder[]): CandidateItemOrderExportSizeQty[] {
-  return sizeOrders.map((row: OrderSnapshotSizeOrder) : CandidateItemOrderExportSizeQty => ({
+function orderExportSizeQtyFromSnapshot(snapshot: OrderSnapshotDocument): CandidateItemOrderExportSizeQty[] {
+  const confirmedQtyBySize: Record<string, number> = getOrderSnapshotConfirmedQtyBySize(snapshot.drawer2.confirmed)
+  return snapshot.drawer2.sizeOrders.map((row: { size: string }) : CandidateItemOrderExportSizeQty => ({
     size: row.size,
-    orderQty: Math.max(0, Math.round(row.confirmQty)),
+    orderQty: Math.max(0, Math.round(confirmedQtyBySize[row.size] ?? 0)),
   }))
 }
 
@@ -77,12 +79,13 @@ function buildSnapshotOrderMetric(
   dataReferencePeriod: CandidateDataReferencePeriod | undefined,
   companyUuid: string | undefined,
 ): CandidateOrderMetric {
-  const totals: OrderSnapshotConfirmedTotals = snapshot.drawer2.confirmedTotals
   const unitEconomics: OrderSnapshotUnitEconomics = requireSnapshotUnitEconomics(snapshot)
-  const qty: number = Math.max(0, Math.round(totals.orderQty))
+  const qty: number = Math.max(0, Math.round(getOrderSnapshotConfirmedTotalQty(snapshot.drawer2.confirmed)))
   const expectedOrderAmount: number = qty * Math.max(0, Math.round(unitEconomics.unitCost))
-  const expectedSalesAmount: number = Math.max(0, Math.round(totals.expectedSalesAmount))
-  const expectedOpProfit: number = Math.round(totals.expectedOpProfit)
+  const expectedSalesAmount: number = qty * Math.max(0, Math.round(unitEconomics.unitPrice))
+  const expectedFeeAmount: number = Math.round((unitEconomics.unitPrice * unitEconomics.expectedFeeRatePct) / 100)
+  const expectedOpProfit: number = qty * Math.round(unitEconomics.unitPrice - unitEconomics.unitCost - expectedFeeAmount)
+  const opMarginRatePct: number | null = expectedSalesAmount > 0 ? (expectedOpProfit / expectedSalesAmount) * 100 : null
   const insight: CandidateItemInsightSummary = buildCandidateItemInsight(
     row.skuGroupKey,
     qty,
@@ -109,9 +112,9 @@ function buildSnapshotOrderMetric(
       avgCost: Math.max(0, Math.round(unitEconomics.unitCost)),
       avgPrice: Math.max(0, Math.round(unitEconomics.unitPrice)),
       feeRatePct: roundedPercent(unitEconomics.expectedFeeRatePct),
-      opMarginRatePct: roundedPercent(totals.expectedOpProfitRatePct),
+      opMarginRatePct: roundedPercent(opMarginRatePct),
       inboundExpectedDate: snapshot.drawer2.stockOrderRequest.nextOrderInboundDueDate,
-      sizeOrderQty: orderExportSizeQtyFromSnapshot(snapshot.drawer2.sizeOrders),
+      sizeOrderQty: orderExportSizeQtyFromSnapshot(snapshot),
     },
   }
 }

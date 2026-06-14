@@ -5,11 +5,13 @@ import {
   createOrderSnapshotBaseSubject,
   createOrderSnapshotComparisonBasis,
   createOrderSnapshotComparisonSubject,
+  createOrderSnapshotConfirmed,
   createOrderSnapshotPrimarySummary,
   createOrderSnapshotStockOrderRequest,
   createOrderSnapshotStockOrderResult,
   ORDER_SNAPSHOT_SCHEMA_VERSION,
-  type OrderSnapshotConfirmedTotals,
+  type OrderSnapshotConfirmed,
+  type OrderSnapshotConfirmedRound,
   type OrderSnapshotAiComment,
   type OrderSnapshotDocument,
   type OrderSnapshotSizeOrder,
@@ -39,13 +41,7 @@ export type BuildSecondaryOrderSnapshotParams = {
   unitCost: number
   expectedFeeRatePct: number
   sizeRows: SecondarySizeOrderDisplayRow[]
-}
-
-export type ConfirmedTotalsInput = {
-  sizeOrders: OrderSnapshotSizeOrder[]
-  unitPrice: number
-  unitCost: number
-  expectedFeeRatePct: number
+  confirmedRounds?: OrderSnapshotConfirmedRound[]
 }
 
 export function buildSecondaryOrderSnapshot(params: BuildSecondaryOrderSnapshotParams): OrderSnapshotDocument {
@@ -68,14 +64,10 @@ export function buildSecondaryOrderSnapshot(params: BuildSecondaryOrderSnapshotP
     unitCost,
     expectedFeeRatePct,
     sizeRows,
+    confirmedRounds = [],
   }: BuildSecondaryOrderSnapshotParams = params
   const sizeOrders: OrderSnapshotSizeOrder[] = buildCurrentSnapshotSizeOrders(sizeRows)
-  const confirmedTotals: OrderSnapshotConfirmedTotals = buildCurrentConfirmedTotals({
-    sizeOrders,
-    unitPrice,
-    unitCost,
-    expectedFeeRatePct,
-  })
+  const confirmed: OrderSnapshotConfirmed = buildCurrentConfirmed(confirmedRounds, sizeRows, stockOrderRequest.currentOrderInboundDueDate)
   const summary: OrderSnapshotPrimarySummary = createOrderSnapshotPrimarySummary(primary)
   const storedStockOrderResult: OrderSnapshotStockOrderResult | undefined = createOrderSnapshotStockOrderResult(stockOrderResult)
 
@@ -107,7 +99,7 @@ export function buildSecondaryOrderSnapshot(params: BuildSecondaryOrderSnapshotP
       selfWeightPct,
       bufferStock,
       aiComment: createOrderSnapshotAiComment(aiComment),
-      confirmedTotals,
+      confirmed,
       sizeOrders,
     },
   }
@@ -121,32 +113,16 @@ function buildCurrentSnapshotSizeOrders(sizeRows: SecondarySizeOrderDisplayRow[]
     blendedSharePct: row.blendedSharePct,
     forecastQty: row.forecastQty,
     recommendedQty: row.recommendedQty,
-    confirmQty: row.confirmQty,
   }))
 }
 
-function buildCurrentConfirmedTotals({
-  sizeOrders,
-  unitPrice,
-  unitCost,
-  expectedFeeRatePct,
-}: ConfirmedTotalsInput): OrderSnapshotConfirmedTotals {
-  const orderQty: number = sumCurrentSizeOrderConfirmQty(sizeOrders)
-  const perUnitFee: number = Math.round((unitPrice * expectedFeeRatePct) / 100)
-  const perUnitOpMargin: number = unitPrice - unitCost - perUnitFee
-  const expectedSalesAmount: number = orderQty * unitPrice
-  const expectedOpProfit: number = orderQty * perUnitOpMargin
-
-  return {
-    orderQty,
-    expectedSalesAmount,
-    expectedOpProfit,
-    expectedOpProfitRatePct: expectedSalesAmount > 0
-      ? (expectedOpProfit / expectedSalesAmount) * 100
-      : null,
-  }
-}
-
-function sumCurrentSizeOrderConfirmQty(sizeOrders: Pick<OrderSnapshotSizeOrder, 'confirmQty'>[]): number {
-  return sizeOrders.reduce((acc: number, row: Pick<OrderSnapshotSizeOrder, 'confirmQty'>) : number => acc + row.confirmQty, 0)
+function buildCurrentConfirmed(confirmedRounds: OrderSnapshotConfirmedRound[], sizeRows: SecondarySizeOrderDisplayRow[], defaultDate: string): OrderSnapshotConfirmed {
+  if (confirmedRounds.length > 0) return createOrderSnapshotConfirmed({ rounds: confirmedRounds })
+  if (sizeRows.length === 0) return { rounds: [] }
+  return createOrderSnapshotConfirmed({
+    rounds: [{
+      date: defaultDate,
+      qtyBySize: Object.fromEntries(sizeRows.map((row: SecondarySizeOrderDisplayRow): [string, number] => [row.size, row.confirmQty])),
+    }],
+  })
 }

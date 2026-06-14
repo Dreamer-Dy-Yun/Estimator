@@ -10,6 +10,7 @@ import {
   createOrderSnapshotComparisonSubject,
   createOrderSnapshotPrimarySummary,
   createOrderSnapshotStockOrderRequest,
+  getOrderSnapshotConfirmedTotalQty,
   ORDER_SNAPSHOT_SCHEMA_VERSION,
 } from '../../snapshot/orderSnapshotTypes'
 import type { SecondaryOrderSnapshotPayload } from '../types/snapshot'
@@ -31,23 +32,28 @@ function requireNumber(value: number | null | undefined, label: string) : number
 
 function buildMockAiPrompt(snapshot: SecondaryOrderSnapshotPayload) : string {
   const { summary }: OrderSnapshotDrawer1 = snapshot.drawer1
-  const { comparisonSubject, confirmedTotals }: OrderSnapshotDrawer2 = snapshot.drawer2
+  const { comparisonSubject, confirmed }: OrderSnapshotDrawer2 = snapshot.drawer2
+  const orderQty: number = getOrderSnapshotConfirmedTotalQty(confirmed)
   return [
     `${summary.brand} ${summary.productName} 후보군 AI 코멘트를 작성하세요.`,
-    `기간 ${snapshot.context.periodStart}~${snapshot.context.periodEnd}, 비교 대상 ${comparisonSubject.label}, 확정 오더 ${formatNullableMockEa(confirmedTotals?.orderQty)} 기준입니다.`,
+    `기간 ${snapshot.context.periodStart}~${snapshot.context.periodEnd}, 비교 대상 ${comparisonSubject.label}, 확정 오더 ${formatNullableMockEa(orderQty)} 기준입니다.`,
     '판매 흐름, 재고, 사이즈별 확정 수량 기준으로 사용자가 바로 확인할 코멘트를 짧게 작성하세요.',
   ].join('\n')
 }
 
 function buildMockAiAnswer(snapshot: SecondaryOrderSnapshotPayload) : string {
   const { summary }: OrderSnapshotDrawer1 = snapshot.drawer1
-  const { comparisonSubject, confirmedTotals }: OrderSnapshotDrawer2 = snapshot.drawer2
-  const marginRate: string = typeof confirmedTotals?.expectedOpProfitRatePct === 'number'
-    ? `${confirmedTotals.expectedOpProfitRatePct.toFixed(1)}%`
+  const { comparisonSubject, confirmed, unitEconomics }: OrderSnapshotDrawer2 = snapshot.drawer2
+  const orderQty: number = getOrderSnapshotConfirmedTotalQty(confirmed)
+  const expectedSalesAmount: number | null = unitEconomics == null ? null : orderQty * unitEconomics.unitPrice
+  const expectedFeeAmount: number | null = unitEconomics == null ? null : Math.round((unitEconomics.unitPrice * unitEconomics.expectedFeeRatePct) / 100)
+  const expectedOpProfit: number | null = unitEconomics == null || expectedFeeAmount == null ? null : orderQty * Math.round(unitEconomics.unitPrice - unitEconomics.unitCost - expectedFeeAmount)
+  const marginRate: string = expectedSalesAmount != null && expectedSalesAmount > 0 && expectedOpProfit != null
+    ? `${((expectedOpProfit / expectedSalesAmount) * 100).toFixed(1)}%`
     : '확인 필요'
   const baseLines: string[] = [
     `${summary.productName}은(는) ${comparisonSubject.label} 기준 판매 흐름을 함께 볼 후보군입니다.`,
-    `확정 오더 ${formatNullableMockEa(confirmedTotals?.orderQty)}, 예상 매출 ${formatNullableMockWon(confirmedTotals?.expectedSalesAmount)}, 예상 영업이익률 ${marginRate}입니다.`,
+    `확정 오더 ${formatNullableMockEa(orderQty)}, 예상 매출 ${formatNullableMockWon(expectedSalesAmount)}, 예상 영업이익률 ${marginRate}입니다.`,
     '추천 수량 대비 가용 재고, 입고 잔량, 사이즈별 확정 수량을 우선 확인하세요.',
   ]
   if (summary.code !== 'TEST-SHOE') return baseLines.join('\n')
@@ -110,23 +116,23 @@ export function buildMockOrderSnapshotForCandidate(
   const dailyMean: number = Math.max(0.1, Math.round((primary.qty / 365) * 10) / 10)
   const selfQtyTotal: number = secondary.sizeRows.reduce((sum: number, row: ProductSecondarySizeRow) : number => sum + Math.max(0, row.qty), 0)
   const sharePct: (value: number, total: number) => number = (value: number, total: number) : number => total > 0 ? (Math.max(0, value) / total) * 100 : 0
-  const sizeOrders: { size: string; baseSharePct: number; comparisonSharePct: number; blendedSharePct: number; forecastQty: number; recommendedQty: number; confirmQty: number; }[] = secondary.sizeRows.map((row: ProductSecondarySizeRow) : { size: string; baseSharePct: number; comparisonSharePct: number; blendedSharePct: number; forecastQty: number; recommendedQty: number; confirmQty: number; } => ({
+  const sizeOrders: { size: string; baseSharePct: number; comparisonSharePct: number; blendedSharePct: number; forecastQty: number; recommendedQty: number; }[] = secondary.sizeRows.map((row: ProductSecondarySizeRow) : { size: string; baseSharePct: number; comparisonSharePct: number; blendedSharePct: number; forecastQty: number; recommendedQty: number; } => ({
     size: row.size,
     baseSharePct: sharePct(row.qty, selfQtyTotal),
     comparisonSharePct: (secondary.comparisonRatioBySize[row.size] ?? 0) * 100,
     blendedSharePct: (sharePct(row.qty, selfQtyTotal) + (secondary.comparisonRatioBySize[row.size] ?? 0) * 100) / 2,
     forecastQty: Math.max(0, Math.round(row.qty * 0.12)),
     recommendedQty: Math.max(0, row.confirmedQty),
-    confirmQty: Math.max(0, row.confirmedQty),
   }))
+  const confirmedQtyBySize: Record<string, number> = Object.fromEntries(secondary.sizeRows.map((row: ProductSecondarySizeRow): [string, number] => [row.size, Math.max(0, row.confirmedQty)]))
   const stockBySize: Map<string, number> = new Map(secondary.sizeRows.map((row: ProductSecondarySizeRow) : [string, number] => [row.size, Math.max(0, Math.round(row.availableStock))]))
-  const displaySizeRows: { size: string; currentStockQty: number; totalOrderBalance: number; expectedInboundOrderBalance: number; }[] = sizeOrders.map((row: { size: string; baseSharePct: number; comparisonSharePct: number; blendedSharePct: number; forecastQty: number; recommendedQty: number; confirmQty: number; }) : { size: string; currentStockQty: number; totalOrderBalance: number; expectedInboundOrderBalance: number; } => ({
+  const displaySizeRows: { size: string; currentStockQty: number; totalOrderBalance: number; expectedInboundOrderBalance: number; }[] = sizeOrders.map((row: { size: string; baseSharePct: number; comparisonSharePct: number; blendedSharePct: number; forecastQty: number; recommendedQty: number; }) : { size: string; currentStockQty: number; totalOrderBalance: number; expectedInboundOrderBalance: number; } => ({
     size: row.size,
     currentStockQty: stockBySize.get(row.size) ?? 0,
-    totalOrderBalance: Math.max(0, Math.round(row.confirmQty * 0.4)),
-    expectedInboundOrderBalance: Math.max(0, Math.round(row.confirmQty * 0.3)),
+    totalOrderBalance: Math.max(0, Math.round((confirmedQtyBySize[row.size] ?? 0) * 0.4)),
+    expectedInboundOrderBalance: Math.max(0, Math.round((confirmedQtyBySize[row.size] ?? 0) * 0.3)),
   }))
-  const orderQty: number = sizeOrders.reduce((sum: number, row: { size: string; baseSharePct: number; comparisonSharePct: number; blendedSharePct: number; forecastQty: number; recommendedQty: number; confirmQty: number; }) : number => sum + row.confirmQty, 0)
+  const orderQty: number = Object.values(confirmedQtyBySize).reduce((sum: number, qty: number): number => sum + qty, 0)
   const expectedSalesAmount: number = orderQty * unitPrice
   const expectedOpProfit: number = orderQty * (unitPrice - unitCost - feePerUnit)
   const expectedOrderAmount: number = orderQty * unitCost
@@ -169,11 +175,11 @@ export function buildMockOrderSnapshotForCandidate(
       selfWeightPct: 50,
       bufferStock: 0,
       aiComment: { prompt: '', answer: '', generatedAt: null },
-      confirmedTotals: {
-        orderQty,
-        expectedSalesAmount,
-        expectedOpProfit,
-        expectedOpProfitRatePct: expectedSalesAmount > 0 ? (expectedOpProfit / expectedSalesAmount) * 100 : null,
+      confirmed: {
+        rounds: [{
+          date: '2026-04-01',
+          qtyBySize: confirmedQtyBySize,
+        }],
       },
       sizeOrders,
     },

@@ -32,6 +32,10 @@ type DailyTrendChartPoint = SecondaryDailyTrendPoint & {
   comparisonSales: number | null
 }
 
+function scaleNullableQuantity(value: number | null, share: number): number | null {
+  return value == null ? null : Math.max(0, Math.round(value * share))
+}
+
 const chartHeight = 240 as const
 const stockBars: { dataKey: string; name: string; fill: string; fillOpacity: number; barSize: number; stackId: string; }[] = [
   { dataKey: 'stockBar', name: '현재고', fill: '#149632', fillOpacity: 0.58, barSize: 7, stackId: 'stockInbound' },
@@ -62,21 +66,21 @@ export function SalesTrendDailyCard({ skuGroupKey, selfCompanyLabel, comparisonL
       sales: Math.max(0, Math.round(p.sales * share)),
       selfSales: p.baseSales == null ? p.baseSales : Math.max(0, Math.round(p.baseSales * share)),
       comparisonSales: p.comparisonSales == null ? p.comparisonSales : Math.max(0, Math.round(p.comparisonSales * share)),
-      stockBar: Math.max(0, Math.round(p.stockBar * share)),
-      inboundAccumBar: Math.max(0, Math.round(p.inboundAccumBar * share)),
+      stockBar: scaleNullableQuantity(p.stockBar, share),
+      inboundAccumBar: scaleNullableQuantity(p.inboundAccumBar, share),
     }))
   }, [trend.series, selectedSizeId, sizeOptions])
 
-  const chartSeries: { salesActual: number | null; salesForecast: number | null; idx: number; date: string; month: string; sales: number; stockBar: number; inboundAccumBar: number; selfSales: number | null; comparisonSales: number | null; isForecast: boolean; }[] = useMemo(() : { salesActual: number | null; salesForecast: number | null; idx: number; date: string; month: string; sales: number; stockBar: number; inboundAccumBar: number; selfSales: number | null; comparisonSales: number | null; isForecast: boolean; }[] => {
+  const chartSeries: { salesActual: number | null; salesForecast: number | null; idx: number; date: string; month: string; sales: number; stockBar: number | null; inboundAccumBar: number | null; selfSales: number | null; comparisonSales: number | null; isForecast: boolean; }[] = useMemo(() : { salesActual: number | null; salesForecast: number | null; idx: number; date: string; month: string; sales: number; stockBar: number | null; inboundAccumBar: number | null; selfSales: number | null; comparisonSales: number | null; isForecast: boolean; }[] => {
     const firstForecastIdx: number = scaledSeries.findIndex((p: SecondaryDailyTrendPoint) : boolean => p.isForecast)
-    return scaledSeries.map((p: DailyTrendChartPoint, idx: number) : { salesActual: number | null; salesForecast: number | null; idx: number; date: string; month: string; sales: number; stockBar: number; inboundAccumBar: number; selfSales: number | null; comparisonSales: number | null; isForecast: boolean; } => {
+    return scaledSeries.map((p: DailyTrendChartPoint, idx: number) : { salesActual: number | null; salesForecast: number | null; idx: number; date: string; month: string; sales: number; stockBar: number | null; inboundAccumBar: number | null; selfSales: number | null; comparisonSales: number | null; isForecast: boolean; } => {
       const bridge: boolean = firstForecastIdx !== -1 && (idx === firstForecastIdx - 1 || p.isForecast)
       return { ...p, salesActual: p.isForecast ? null : p.sales, salesForecast: bridge ? p.sales : null }
     })
   }, [scaledSeries])
 
   const salesCompareSeries: { idx: number; date: string; selfSales: number | null; comparisonSales: number | null; }[] = useMemo(
-    () : { idx: number; date: string; selfSales: number | null; comparisonSales: number | null; }[] => chartSeries.map((p: { salesActual: number | null; salesForecast: number | null; idx: number; date: string; month: string; sales: number; stockBar: number; inboundAccumBar: number; selfSales: number | null; comparisonSales: number | null; isForecast: boolean; }) : { idx: number; date: string; selfSales: number | null; comparisonSales: number | null; } => ({ idx: p.idx, date: p.date, selfSales: p.selfSales, comparisonSales: p.comparisonSales })),
+    () : { idx: number; date: string; selfSales: number | null; comparisonSales: number | null; }[] => chartSeries.map((p: { salesActual: number | null; salesForecast: number | null; idx: number; date: string; month: string; sales: number; stockBar: number | null; inboundAccumBar: number | null; selfSales: number | null; comparisonSales: number | null; isForecast: boolean; }) : { idx: number; date: string; selfSales: number | null; comparisonSales: number | null; } => ({ idx: p.idx, date: p.date, selfSales: p.selfSales, comparisonSales: p.comparisonSales })),
     [chartSeries],
   )
   const [selfSalesYMax, comparisonSalesYMax]: [number, number] = useMemo(() : [number, number] => {

@@ -27,7 +27,7 @@ export const snapshotMutationInputKey: (snapshot: OrderSnapshotDocument | null) 
     selfWeightPct: snapshot.drawer2.selfWeightPct,
     bufferStock: snapshot.drawer2.bufferStock,
     aiComment: snapshot.drawer2.aiComment,
-    confirmedTotals: snapshot.drawer2.confirmedTotals,
+    confirmed: snapshot.drawer2.confirmed,
     sizeOrders: snapshot.drawer2.sizeOrders,
   })
 }

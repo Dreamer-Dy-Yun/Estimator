@@ -82,7 +82,7 @@ Rules:
 - Monthly trend, sales insight, secondary detail, daily trend, AI comment, and stock-order calc are separate APIs.
 - Monthly trend request should cover existing max 24 completed months plus `forecastMonths` future months.
 - Current initial frontend value for `forecastMonths` is 12.
-- Actual/forecast split must be explicit through `isForecast`.
+- Daily trend actual/forecast split uses `forecastStartDate`; backend must not send per-row `isForecast`.
 - Do not synthesize missing cost, fee, margin, rank, stock, or order business values in frontend-compatible responses.
 
 ## Candidate stash and jobs
@@ -115,6 +115,97 @@ Rules:
 - The backend must validate the supplied comparison subject and must not use a server-global, session-global, or first-available default comparison basis.
 - If no selected comparison target exists after `getProductComparisonTargets({ base })`, the frontend does not open the order metric SSE.
 - Snapshot rows project `CANDIDATE_ITEM.details.drawer2`; non-snapshot rows calculate from the current secondary order metric basis for the supplied base/comparison subject without daily trend rendering data.
+
+## Secondary daily trend source
+
+Endpoint:
+
+```http
+GET /api/v1/products/{skuGroupKey}/secondary/daily-trend
+```
+
+Query:
+
+- `startDate`: inclusive start date, `YYYY-MM-DD`.
+- `endDate`: inclusive actual-data end date, `YYYY-MM-DD`.
+- `forecastDays`: number of forecast days appended after `endDate`.
+- `baseRole`, `baseKind`, optional `baseSourceId`.
+- `comparisonRole`, `comparisonKind`, optional `comparisonSourceId`.
+
+Response:
+
+```ts
+interface SecondaryDailyTrendSubjectFlow {
+  sale: number
+  inbound: number | null
+}
+
+interface SecondaryDailyTrendFlowCell {
+  base: SecondaryDailyTrendSubjectFlow
+  comparison: SecondaryDailyTrendSubjectFlow
+}
+
+interface SecondaryDailyTrendSource {
+  productId: string
+  dateStart: string
+  dateEnd: string
+  forecastStartDate: string
+  baseStockAtStart: number | null
+  comparisonStockAtStart: number | null
+  flowByDate: Record<string, SecondaryDailyTrendFlowCell>
+}
+```
+
+Rules:
+
+- `flowByDate` is aggregate daily flow. Do not send size-level rows for this endpoint.
+- `dateEnd` is the final date included in `flowByDate`, including forecast days when `forecastDays > 0`.
+- `forecastStartDate` is normally `endDate + 1 day` from the actual-data query boundary.
+- Backend sends explicit numeric `0` for known zero sale/inbound. `null` means the subject's inbound is unavailable or not meaningful.
+- Backend must not send chart-only fields such as `idx`, `month`, `isForecast`, `stockBar`, or `inboundAccumBar`.
+- The frontend derives chart points from this source.
+
+## Secondary inbound split source
+
+Endpoint:
+
+```http
+GET /api/v1/products/{skuGroupKey}/secondary/inbound-split-source
+```
+
+Query:
+
+- `dateStart`: inclusive current inbound date, `YYYY-MM-DD`.
+- `dateEnd`: exclusive next inbound date, `YYYY-MM-DD`.
+- `baseRole=base`.
+- `baseKind=self-company`.
+- `baseSourceId`: optional concrete self-company source id. Omit for all-company read semantics when the frontend subject allows it.
+
+Response:
+
+```ts
+interface SecondaryInboundSplitExpectationCell {
+  sale: number
+  inbound: number
+}
+
+interface SecondaryInboundSplitSource {
+  productId: string
+  dateStart: string
+  dateEnd: string
+  stockBySize: Record<string, number>
+  expectationByDate: Record<string, Record<string, SecondaryInboundSplitExpectationCell>>
+}
+```
+
+Rules:
+
+- This endpoint returns source data, not split result rows.
+- Backend must not require `splitCount`, `splitInboundDates`, or `totalOrderQtyBySize`.
+- `stockBySize` is stock at `dateStart`.
+- `expectationByDate` covers `dateStart <= date < dateEnd`.
+- `inbound` is known inbound unrelated to the current popup draft.
+- The frontend combines this response with current confirmed order quantity by size and screen-owned split dates.
 
 ## Failure mapping
 

@@ -35,12 +35,12 @@ Last updated: 2026-06-11
 - `getProductComparisonTargets`는 `companyUuid`가 아니라 `base` subject 기준으로 비교 후보 목록을 요청한다.
 - 1차 판매 정보 카드는 `판매 정보` 제목 행의 `자사간 비교` 토글로 비교 대상 목록을 전환한다. 토글 OFF는 경쟁사 채널, ON은 현재 자사를 제외한 자사/자사전체 target만 표시한다.
 - `getProductSalesInsight`는 `base`, `comparison` subject 계약으로 요청한다. HTTP GET query는 `baseRole/baseKind/baseSourceId/comparisonRole/comparisonKind/comparisonSourceId`로 펼친다.
-- `ProductMonthlyTrend`, `SecondaryDailyTrend`, snapshot은 `base`/`comparison` subject 기준으로 정렬한다. snapshot은 `drawer2.baseSubject`, `drawer2.comparisonSubject`, `drawer2.comparisonBasis`를 저장한다.
+- `ProductMonthlyTrend`, `SecondaryDailyTrend`, snapshot은 `base`/`comparison` subject 기준으로 정렬한다. snapshot은 `drawer2.baseSubject`, `drawer2.comparisonSubject`, `drawer2.comparisonBasis`, `drawer2.confirmed.rounds`를 저장한다.
 - 삭제되었거나 현재 scope에 없는 비교 대상은 첫 번째 항목으로 대체하지 않는다. 선택 불가 상태를 표시하고 사용자가 유효한 대상을 다시 선택하게 한다.
 - 비교 대상 목록은 세션 장기 캐시 대상이 아니다. 관리자/회사 scope 변경 가능성을 숨기지 않기 위해 요청 계층에서 그대로 조회한다.
 - 2차 드로워의 참고지표 조회는 `ProductComparisonTarget`을 따르지만, 발주 계산 readiness는 참고지표 조회 성공 여부가 아니라 stock-order 계산 결과로만 판단한다.
 - 2차 오더의 사이즈 비중 계산은 `ProductSecondaryDetail.comparisonRatioBySize` 기반이다. 비교 대상이 경쟁사 채널이든 자사 target이든 backend/mock이 해당 comparison subject 기준 비중을 제공해야 하며, UI가 라벨만 바꾸어 데이터를 위장하지 않는다.
-- 2차 드로워 분할 입고 설정은 현재 `SalesForecastCard`의 draft UI와 `InboundSplitScheduleDialog`가 소유한다. 계산/API/snapshot 반영은 별도 계약 확장 전까지 금지한다.
+- 2차 드로워 분할 입고 설정은 `SizeOrderCard`, `InboundSplitScheduleDialog`, `inboundSplitScheduleModel`이 소유한다. 모델은 차수/입고일/제안 수량/확정 수량/정수 배분 계약을 담당하고, 다이얼로그는 draft 편집만 담당한다. 적용된 확정 수량은 `OrderSnapshotDocument.drawer2.confirmed.rounds`로 저장하며, 추천/비율 행인 `sizeOrders`에는 확정 수량을 중복 저장하지 않는다.
 - mock API에서 판매 리스트 facade는 `src/api/mock/dashboardApi.ts`, 상품 비교/추이 mock은 `src/api/mock/mockProductComparisonApi.ts`, 2차 상세 mock builder는 `src/api/mock/mockProductSecondaryDetailApi.ts`가 각각 소유한다.
 
 
@@ -131,3 +131,15 @@ Last updated: 2026-06-11
 - 스타일 파사드 규칙 변경 → `boundaries/style-facades.md` 선행 갱신
 - 런타임/CI/e2e 규칙 변경 → `boundaries/repository-runtime.md`, 배포/테스트 노트 갱신
 - 큰 변경은 `project-cleanup-YYYY-MM-DD.md` 형태로 결과 기록
+
+## 4) 2026-06-14 secondary inbound split source boundary
+
+- 2차 드로워 일간 판매추이는 API source와 chart point를 분리한다.
+- `getSecondaryDailyTrend`는 합계 일자 flow와 `forecastStartDate`를 제공하고, `useSecondaryDailyTrend`/`secondaryDailyTrendSourceModel.ts`가 chart point를 파생한다.
+- 일간 판매추이는 합계 단위 source만 소유하며, 사이즈별 flow를 받지 않는다.
+- 2차 드로워 분할 입고 제안은 API source와 화면 draft를 분리한다.
+- `getSecondaryInboundSplitSource`는 `dateStart`, `dateEnd`, `stockBySize`, `expectationByDate[date][size].sale/inbound`만 제공한다.
+- 차수 수, 차수별 입고일, 현재 확정 수량, 차수별 확정 수량은 `SizeOrderCard`/`InboundSplitScheduleDialog`가 소유하는 화면 draft다.
+- API source를 차수별 제안 수량으로 변환하는 책임은 `secondary/cards/inboundSplitSuggestionModel.ts`가 소유한다.
+- 분할 행 생성, 확정 수량 합계, 정수 배분, 기존 draft 보존은 `secondary/cards/inboundSplitScheduleModel.ts`가 소유한다.
+- 컴포넌트는 source와 draft를 전달하고 렌더링만 하며, mock 데이터나 backend shape를 직접 계산하지 않는다.

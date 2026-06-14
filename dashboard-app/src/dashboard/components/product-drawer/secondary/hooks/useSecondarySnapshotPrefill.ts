@@ -1,4 +1,4 @@
-import type { OrderSnapshotComparisonSubject, OrderSnapshotDrawer2, OrderSnapshotStockOrderRequest } from '../../../../../snapshot/orderSnapshotTypes'
+import type { OrderSnapshotComparisonSubject, OrderSnapshotConfirmedRound, OrderSnapshotDrawer2, OrderSnapshotStockOrderRequest } from '../../../../../snapshot/orderSnapshotTypes'
 import { useEffect } from 'react'
 import type { OrderSnapshotAiComment, OrderSnapshotDocument } from '../../../../../snapshot/orderSnapshotTypes'
 import type { CandidateItemPanelContext } from '../secondaryDrawerTypes'
@@ -19,6 +19,7 @@ export type Args = {
   setSelfWeightPct: (value: number) => void
   setAiComment: (value: OrderSnapshotAiComment) => void
   setConfirmBySize: (value: Record<string, number>) => void
+  setConfirmedRounds: (value: OrderSnapshotConfirmedRound[]) => void
   setSnapshotConfirmBaselineActive: (value: boolean) => void
   setAppliedPrefillKey: (value: string | null) => void
   setUnitCostInput: (value: number) => void
@@ -41,6 +42,7 @@ export function useSecondarySnapshotPrefill({
   setSelfWeightPct,
   setAiComment,
   setConfirmBySize,
+  setConfirmedRounds,
   setSnapshotConfirmBaselineActive,
   setAppliedPrefillKey,
   setUnitCostInput,
@@ -61,6 +63,7 @@ export function useSecondarySnapshotPrefill({
         setSelfWeightPct(50)
         setAiComment({ prompt: '', answer: '', generatedAt: null })
         setConfirmBySize({})
+        setConfirmedRounds([])
         setSnapshotConfirmBaselineActive(false)
         setAppliedPrefillKey(null)
         return
@@ -76,6 +79,7 @@ export function useSecondarySnapshotPrefill({
       setNextOrderInboundDueDate(stockOrderRequest.nextOrderInboundDueDate)
       setDailyMeanClient(stockOrderRequest.dailyMeanOverride ?? d2.stockOrderResult?.dailyMean ?? null)
       setConfirmBySize({})
+      setConfirmedRounds(d2.confirmed.rounds)
       setSnapshotConfirmBaselineActive(candidateItemContext?.hydrateSnapshotSource === 'confirmed')
       setAppliedPrefillKey(prefillKey)
       if (d2.unitEconomics != null) {
@@ -100,6 +104,7 @@ export function useSecondarySnapshotPrefill({
     setAppliedPrefillKey,
     setBufferStock,
     setConfirmBySize,
+    setConfirmedRounds,
     setDailyMeanClient,
     setExpectedFeeRatePct,
     setNextOrderInboundDueDate,

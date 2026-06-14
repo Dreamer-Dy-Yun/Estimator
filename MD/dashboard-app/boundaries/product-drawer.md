@@ -1,6 +1,6 @@
 # Product Drawer Boundary
 
-Last updated: 2026-06-11
+Last updated: 2026-06-14
 
 ## Responsibility
 
@@ -22,6 +22,7 @@ Product drawer owns primary summary display, secondary detail display, secondary
 | `secondary/secondarySnapshot.ts` | Current secondary state to snapshot |
 | `secondary/cards/InboundSplitScheduleDialog.tsx` | Split inbound schedule draft dialog UI |
 | `secondary/cards/inboundSplitScheduleModel.ts` | Split inbound schedule draft row/quantity table model |
+| `secondary/cards/inboundSplitSuggestionModel.ts` | Source-based split inbound suggested quantity calculation |
 | `src/snapshot/*` | Snapshot type/parser/tests |
 
 ## API boundaries
@@ -32,6 +33,7 @@ Product drawer owns primary summary display, secondary detail display, secondary
 - Comparison targets: `getProductComparisonTargets`.
 - Secondary detail: `getProductSecondaryDetail`.
 - Secondary daily trend: `getSecondaryDailyTrend`.
+- Secondary inbound split source: `getSecondaryInboundSplitSource`.
 - Secondary AI comment: `getSecondaryAiComment`.
 - Stock-order calculation: `getSecondaryStockOrderCalc`.
 - API access is owned by `src/api/client.ts` and `src/api/requests/*`; product mock behavior is owned by `src/api/mock/dashboardApi.ts`, `mockProductComparisonApi.ts`, `mockProductSecondaryDetailApi.ts`, and request adapters. Drawer UI/components must not import mock modules directly.
@@ -39,13 +41,13 @@ Product drawer owns primary summary display, secondary detail display, secondary
 ## Trend request policy
 
 - Monthly trend: last 24 completed months ending at previous month; 12 forecast months; 36 visible months max.
-- Daily trend: selected start month first day through yesterday; forecast rows use current lead-time days.
-- Actual/forecast split comes from API `isForecast`.
+- Daily trend: selected start month first day through yesterday plus current lead-time forecast days.
+- Daily trend API returns aggregate source flow and `forecastStartDate`; frontend derives chart point fields such as `idx`, `month`, `isForecast`, `stockBar`, and line split values.
 - `periodShade` and `forecastShade` are UI chart ranges, not API fields.
 
 ## Snapshot contract
 
-- Current type: `OrderSnapshotDocument` v3.
+- Current type: `OrderSnapshotDocument` v4.
 - Snapshot stores restore values only.
 - Parser/restore behavior enforces:
   - top-level `skuGroupKey`, `drawer1.summary.skuGroupKey`, `drawer2.comparisonBasis.skuGroupKey` must match.
@@ -54,10 +56,11 @@ Product drawer owns primary summary display, secondary detail display, secondary
   - `drawer2.stockOrderRequest.leadTimeDays` and `context.dailyTrendLeadTimeDays` must match.
   - size keys in `drawer2.sizeOrders` must be unique and match `drawer2.stockOrderResult.display.sizeRows` keys.
   - `drawer2.stockOrderResult.display` total rows must equal sum of each size row.
-  - `drawer2.confirmedTotals.orderQty` must match `sum(drawer2.sizeOrders[].confirmQty)`.
+  - `drawer2.confirmed.rounds[].qtyBySize` size keys must match `drawer2.sizeOrders[].size`.
 - `drawer2.stockOrderResult.display.sizeRows[]` is size-keyed.
 - `drawer2.aiComment` has `prompt`, `answer`, `generatedAt`.
-- `drawer2.confirmedTotals` is required.
+- `drawer2.confirmed.rounds[]` is the confirmed quantity source of truth.
+- `drawer2.sizeOrders[]` stores share/forecast/recommendation rows only; it does not store confirmed quantity.
 - Daily chart series are re-fetched, not stored.
 
 ## Scope rules
@@ -72,7 +75,7 @@ Product drawer owns primary summary display, secondary detail display, secondary
 - Deleted, unauthorized, or current-scope-missing selected targets are unavailable states; they require explicit re-selection and must not be silently replaced by a fake subject.
 - Arrow key ownership belongs to the stable `ProductDrawer` shell, not content/loading child panels. While the drawer is open, `ArrowUp`/`ArrowDown` are terminal events: navigation may be ignored during an in-flight adjacent move, but the event must not leak to list focus handlers or close the secondary pane.
 - Primary sales metrics keeps a stable card shell while comparison data is loading. Target clicks may update request state, but they must not replace the card with a different loading layout or resize the product image/card column.
-- Split inbound schedule is currently a secondary-drawer draft UI only. It may edit round count, inbound dates, total rows, and size quantities in a fixed-header/fixed-column dialog, but it must not change stock-order calculation, API payloads, or snapshot schema until the backend/calculation contract is explicitly extended.
+- Split inbound schedule is secondary-drawer state and is persisted in `drawer2.confirmed.rounds`. It may edit round count, inbound dates, per-round confirmed quantity, and per-size confirmed quantity in a fixed-header/fixed-column dialog. Overall confirmed totals are computed from editable round/size values and are not direct inputs. Suggested quantities are read-only model output built from `getSecondaryInboundSplitSource`, current confirmed quantity by size, and the screen-owned split dates. The API source contains only `dateStart`, `dateEnd`, `stockBySize`, and per-date/per-size expected `sale`/known `inbound`; it does not receive split count or split result rows. If applied split rows are 2 rounds or more, the order-detail confirmed quantity row displays the split confirmed sum and becomes read-only; if the split is 1 round or not applied, the existing direct confirmed-quantity input remains available. Integer redistribution is owned by `inboundSplitScheduleModel.ts` and source-based suggestion policy is owned by `inboundSplitSuggestionModel.ts`, so later allocation-policy changes stay inside those models.
 - Candidate detail drawer opened from a single-company candidate keeps the same company scope through reads and mutations.
 - Secondary mutations require concrete `companyUuid`.
 

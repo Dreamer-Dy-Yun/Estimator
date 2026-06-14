@@ -27,7 +27,7 @@ Last updated: 2026-06-11
 - 1차 bundle은 기준 자사 summary만 필요하므로 base-only로 조회
 - AI 코멘트는 버튼 클릭 시에만 요청하며, 현재 2차 드로워 계산을 기준으로 설명해야 할 때 `snapshotForAiComment`를 함께 보냄
 - 초기화는 현재 계산값 기준 상태로 복귀하고 AI 코멘트 상태를 초기화
-- 상세 저장은 `OrderSnapshotDocument` v3를 후보군 item의 `details`에 저장
+- 상세 저장은 `OrderSnapshotDocument` v4를 후보군 item의 `details`에 저장
 
 ## Candidate stash
 
