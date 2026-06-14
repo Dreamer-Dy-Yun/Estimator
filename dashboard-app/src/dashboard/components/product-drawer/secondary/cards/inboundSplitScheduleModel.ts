@@ -1,4 +1,5 @@
 import type { SecondaryInboundSplitSource } from '../../../../../api/types/secondary'
+import type { OrderSnapshotConfirmedRound } from '../../../../../snapshot/orderSnapshotTypes'
 import type { SecondarySizeOrderDisplayRow } from '../model/secondarySizeOrderRows'
 import { buildInboundSplitSuggestedQuantitiesByRow } from './inboundSplitSuggestionModel'
 
@@ -61,6 +62,51 @@ export function getInboundSplitSizeColumns(sizeRows: SecondarySizeOrderDisplayRo
 
 export function getInboundSplitTotalQty(row: InboundSplitScheduleRow, columns: InboundSplitSizeColumn[]): number {
   return columns.reduce((sum: number, column: InboundSplitSizeColumn): number => sum + Math.max(0, Math.round(row.quantitiesBySize[column.size] ?? 0)), 0)
+}
+
+export function cloneInboundSplitRows(rows: readonly InboundSplitScheduleRow[]): InboundSplitScheduleRow[] {
+  return rows.map((row: InboundSplitScheduleRow): InboundSplitScheduleRow => ({
+    ...row,
+    suggestedQuantitiesBySize: { ...row.suggestedQuantitiesBySize },
+    quantitiesBySize: { ...row.quantitiesBySize },
+  }))
+}
+
+export function sumInboundSplitConfirmedBySize(rows: readonly InboundSplitScheduleRow[], columns: readonly InboundSplitSizeColumn[]): Record<string, number> {
+  const totals: Record<string, number> = {}
+  columns.forEach((column: InboundSplitSizeColumn): void => {
+    totals[column.size] = rows.reduce((sum: number, row: InboundSplitScheduleRow): number => sum + Math.max(0, Math.round(row.quantitiesBySize[column.size] ?? 0)), 0)
+  })
+  return totals
+}
+
+export function confirmedRoundsToInboundSplitRows(rounds: readonly OrderSnapshotConfirmedRound[], columns: readonly InboundSplitSizeColumn[]): InboundSplitScheduleRow[] {
+  return rounds.map((round: OrderSnapshotConfirmedRound, index: number): InboundSplitScheduleRow => {
+    const quantitiesBySize: Record<string, number> = {}
+    columns.forEach((column: InboundSplitSizeColumn): void => {
+      quantitiesBySize[column.size] = Math.max(0, Math.round(round.qtyBySize[column.size] ?? 0))
+    })
+    return {
+      id: `confirmed-round-${index + 1}`,
+      round: index + 1,
+      inboundDate: round.date,
+      suggestedQuantitiesBySize: {},
+      quantitiesBySize,
+    }
+  })
+}
+
+export function inboundSplitRowsToConfirmedRounds(rows: readonly InboundSplitScheduleRow[], columns: readonly InboundSplitSizeColumn[]): OrderSnapshotConfirmedRound[] {
+  return rows.map((row: InboundSplitScheduleRow): OrderSnapshotConfirmedRound => {
+    const qtyBySize: Record<string, number> = {}
+    columns.forEach((column: InboundSplitSizeColumn): void => {
+      qtyBySize[column.size] = Math.max(0, Math.round(row.quantitiesBySize[column.size] ?? 0))
+    })
+    return {
+      date: row.inboundDate,
+      qtyBySize,
+    }
+  })
 }
 
 export function getInboundSplitSuggestedTotalQty(row: InboundSplitScheduleRow, columns: InboundSplitSizeColumn[]): number {
