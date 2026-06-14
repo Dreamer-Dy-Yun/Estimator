@@ -1,4 +1,6 @@
+import type { SecondaryInboundSplitSource } from '../../../../../api/types/secondary'
 import type { SecondarySizeOrderDisplayRow } from '../model/secondarySizeOrderRows'
+import { buildInboundSplitSuggestedQuantitiesByRow } from './inboundSplitSuggestionModel'
 
 export const MIN_INBOUND_SPLIT_COUNT = 1 as const
 export const MAX_INBOUND_SPLIT_COUNT = 10 as const
@@ -12,6 +14,7 @@ export interface InboundSplitScheduleRow {
   id: string
   round: number
   inboundDate: string
+  suggestedQuantitiesBySize: Record<string, number>
   quantitiesBySize: Record<string, number>
 }
 
@@ -19,6 +22,29 @@ type ParsedIsoDate = {
   year: number
   monthIndex: number
   day: number
+}
+
+export interface InboundSplitIntegerAllocationInput {
+  /**
+   * Integer target quantity to distribute. Non-finite or negative values are normalized to 0.
+   */
+  total: number
+  /**
+   * Distribution weights by target bucket. The returned `values` array preserves this order.
+   * If every weight is 0 or invalid, the function falls back to equal weights.
+   */
+  weights: readonly number[]
+}
+
+export interface InboundSplitIntegerAllocationResult {
+  /**
+   * Distributed non-negative integer quantities. The sum always equals `normalizedTotal`.
+   */
+  values: number[]
+  /**
+   * Normalized non-negative integer target used by the allocator.
+   */
+  normalizedTotal: number
 }
 
 export function clampInboundSplitCount(value: number): number {
@@ -35,6 +61,34 @@ export function getInboundSplitSizeColumns(sizeRows: SecondarySizeOrderDisplayRo
 
 export function getInboundSplitTotalQty(row: InboundSplitScheduleRow, columns: InboundSplitSizeColumn[]): number {
   return columns.reduce((sum: number, column: InboundSplitSizeColumn): number => sum + Math.max(0, Math.round(row.quantitiesBySize[column.size] ?? 0)), 0)
+}
+
+export function getInboundSplitSuggestedTotalQty(row: InboundSplitScheduleRow, columns: InboundSplitSizeColumn[]): number {
+  return columns.reduce((sum: number, column: InboundSplitSizeColumn): number => sum + Math.max(0, Math.round(row.suggestedQuantitiesBySize[column.size] ?? 0)), 0)
+}
+
+export function allocateInboundSplitIntegerTotal({ total, weights }: InboundSplitIntegerAllocationInput): InboundSplitIntegerAllocationResult {
+  const normalizedTotal: number = Number.isFinite(total) ? Math.max(0, Math.round(total)) : 0
+  if (!weights.length) return { values: [], normalizedTotal }
+
+  const normalizedWeights: number[] = weights.map((weight: number): number => (Number.isFinite(weight) ? Math.max(0, weight) : 0))
+  const weightSum: number = normalizedWeights.reduce((sum: number, weight: number): number => sum + weight, 0)
+  const effectiveWeights: number[] = weightSum > 0 ? normalizedWeights : normalizedWeights.map((): number => 1)
+  const effectiveWeightSum: number = weightSum > 0 ? weightSum : effectiveWeights.length
+  const exactValues: number[] = effectiveWeights.map((weight: number): number => (normalizedTotal * weight) / effectiveWeightSum)
+  const values: number[] = exactValues.map((value: number): number => Math.floor(value))
+  let remainder: number = normalizedTotal - values.reduce((sum: number, value: number): number => sum + value, 0)
+
+  exactValues
+    .map((value: number, index: number): { index: number; fraction: number } => ({ index, fraction: value - Math.floor(value) }))
+    .sort((a: { index: number; fraction: number }, b: { index: number; fraction: number }): number => (b.fraction - a.fraction) || (a.index - b.index))
+    .forEach(({ index }: { index: number; fraction: number }): void => {
+      if (remainder <= 0) return
+      values[index] += 1
+      remainder -= 1
+    })
+
+  return { values, normalizedTotal }
 }
 
 function parseIsoDate(value: string): ParsedIsoDate | null {
@@ -93,21 +147,25 @@ export function buildInboundSplitScheduleRows(
   count: number,
   inboundDate: string,
   nextInboundDate: string,
+  source: SecondaryInboundSplitSource,
 ): InboundSplitScheduleRow[] {
   const safeCount: number = clampInboundSplitCount(count)
   const inboundDates: string[] = buildInboundSplitDates(safeCount, inboundDate, nextInboundDate)
+  const suggestedRows: Record<string, number>[] = buildInboundSplitSuggestedQuantitiesByRow(columns, inboundDates, nextInboundDate, source)
   return Array.from({ length: safeCount }, (_: unknown, rowIndex: number): InboundSplitScheduleRow => {
     const round: number = rowIndex + 1
+    const suggestedQuantitiesBySize: Record<string, number> = {}
     const quantitiesBySize: Record<string, number> = {}
     columns.forEach((column: InboundSplitSizeColumn): void => {
-      const baseQty: number = Math.floor(column.confirmedQty / safeCount)
-      const remainder: number = column.confirmedQty % safeCount
-      quantitiesBySize[column.size] = baseQty + (rowIndex < remainder ? 1 : 0)
+      const qty: number = Math.max(0, Math.round(suggestedRows[rowIndex]?.[column.size] ?? 0))
+      suggestedQuantitiesBySize[column.size] = qty
+      quantitiesBySize[column.size] = qty
     })
     return {
       id: `inbound-split-${round}`,
       round,
       inboundDate: inboundDates[rowIndex] ?? inboundDate,
+      suggestedQuantitiesBySize,
       quantitiesBySize,
     }
   })
@@ -119,8 +177,9 @@ export function reconcileInboundSplitScheduleRows(
   count: number,
   inboundDate: string,
   nextInboundDate: string,
+  source: SecondaryInboundSplitSource,
 ): InboundSplitScheduleRow[] {
-  const fallbackRows: InboundSplitScheduleRow[] = buildInboundSplitScheduleRows(columns, count, inboundDate, nextInboundDate)
+  const fallbackRows: InboundSplitScheduleRow[] = buildInboundSplitScheduleRows(columns, count, inboundDate, nextInboundDate, source)
   if (!currentRows.length) return fallbackRows
 
   const preserveCurrentValues: boolean = currentRows.length === fallbackRows.length
@@ -128,8 +187,10 @@ export function reconcileInboundSplitScheduleRows(
     const currentRow: InboundSplitScheduleRow | undefined = currentRows[index]
     if (!currentRow || !preserveCurrentValues) return fallbackRow
 
+    const suggestedQuantitiesBySize: Record<string, number> = {}
     const quantitiesBySize: Record<string, number> = {}
     columns.forEach((column: InboundSplitSizeColumn): void => {
+      suggestedQuantitiesBySize[column.size] = Math.max(0, Math.round(fallbackRow.suggestedQuantitiesBySize[column.size] ?? 0))
       quantitiesBySize[column.size] = Math.max(0, Math.round(currentRow.quantitiesBySize[column.size] ?? fallbackRow.quantitiesBySize[column.size] ?? 0))
     })
 
@@ -137,6 +198,7 @@ export function reconcileInboundSplitScheduleRows(
       id: fallbackRow.id,
       round: fallbackRow.round,
       inboundDate: currentRow.inboundDate || fallbackRow.inboundDate,
+      suggestedQuantitiesBySize,
       quantitiesBySize,
     }
   })

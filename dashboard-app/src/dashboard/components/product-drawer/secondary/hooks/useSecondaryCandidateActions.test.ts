@@ -123,13 +123,13 @@ function makeSnapshot(overrides: Partial<OrderSnapshotDocument> = {}) : OrderSna
       selfWeightPct: 50,
       bufferStock: 0,
       aiComment: { prompt: '', answer: '', generatedAt: null },
-      confirmedTotals: {
-        orderQty: 1,
-        expectedSalesAmount: 1000,
-        expectedOpProfit: 170,
-        expectedOpProfitRatePct: 17,
+      confirmed: {
+        rounds: [{
+          date: '2026-06-01',
+          qtyBySize: { M: 1 },
+        }],
       },
-      sizeOrders: [{ size: 'M', baseSharePct: 100, comparisonSharePct: 0, blendedSharePct: 100, forecastQty: 1, recommendedQty: 1, confirmQty: 1 }],
+      sizeOrders: [{ size: 'M', baseSharePct: 100, comparisonSharePct: 0, blendedSharePct: 100, forecastQty: 1, recommendedQty: 1 }],
     },
   }
   return {

@@ -11,7 +11,7 @@ function expectInvalidSnapshot(snapshot: unknown, message: RegExp): void {
   expect(() : OrderSnapshotDocument => parseOrderSnapshot(snapshot)).toThrow(message)
 }
 
-describe('parseOrderSnapshot v3 validation', () : void => {
+describe('parseOrderSnapshot v4 validation', () : void => {
   it('validates base subject role, kind, and sourceId', () : void => {
     const wrongRole: OrderSnapshotDocument = cloneValidSnapshot()
     const wrongKind: OrderSnapshotDocument = cloneValidSnapshot()
@@ -74,18 +74,18 @@ describe('parseOrderSnapshot v3 validation', () : void => {
     expectInvalidSnapshot(badRatio, /comparisonRatioBySize/)
   })
 
-  it('validates size orders and confirmed totals consistency', () : void => {
+  it('validates size orders and confirmed round quantities', () : void => {
     const duplicateSize: OrderSnapshotDocument = cloneValidSnapshot()
     const badShare: OrderSnapshotDocument = cloneValidSnapshot()
-    const mismatchedTotals: OrderSnapshotDocument = cloneValidSnapshot()
+    const badConfirmedSize: OrderSnapshotDocument = cloneValidSnapshot()
 
     duplicateSize.drawer2.sizeOrders.push({ ...duplicateSize.drawer2.sizeOrders[0] })
     badShare.drawer2.sizeOrders[0].baseSharePct = 101
-    mismatchedTotals.drawer2.confirmedTotals.orderQty += 1
+    badConfirmedSize.drawer2.confirmed.rounds[0]!.qtyBySize['999'] = 1
 
     expectInvalidSnapshot(duplicateSize, /duplicate size/)
     expectInvalidSnapshot(badShare, /baseSharePct/)
-    expectInvalidSnapshot(mismatchedTotals, /confirmedTotals\.orderQty/)
+    expectInvalidSnapshot(badConfirmedSize, /confirmed\.rounds/)
   })
 
   it('validates stock order result display rows against size orders', () : void => {

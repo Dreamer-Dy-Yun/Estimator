@@ -34,7 +34,11 @@ function createBuildParams(overrides: Partial<BuildSnapshotParams> = {}): BuildS
     unitPrice: validSnapshot.drawer2.unitEconomics!.unitPrice,
     unitCost: validSnapshot.drawer2.unitEconomics!.unitCost,
     expectedFeeRatePct: validSnapshot.drawer2.unitEconomics!.expectedFeeRatePct,
-    sizeRows: validSnapshot.drawer2.sizeOrders.map((row: BuildSnapshotParams['sizeRows'][number]) : BuildSnapshotParams['sizeRows'][number] => ({ ...row })),
+    sizeRows: validSnapshot.drawer2.sizeOrders.map((row) : BuildSnapshotParams['sizeRows'][number] => ({
+      ...row,
+      confirmQty: validSnapshot.drawer2.confirmed.rounds[0]?.qtyBySize[row.size] ?? 0,
+    })),
+    confirmedRounds: validSnapshot.drawer2.confirmed.rounds,
     ...overrides,
   }
 }
@@ -81,13 +85,14 @@ describe('buildSecondaryOrderSnapshot', () : void => {
     }))).toThrow(/comparisonSubject.sourceId/)
   })
 
-  it('builds confirmedTotals from current sizeOrders confirmQty', () : void => {
+  it('stores confirmed quantities in confirmed rounds, not sizeOrders', () : void => {
     const snapshot: OrderSnapshotDocument = buildSecondaryOrderSnapshot(createBuildParams({
-      sizeRows: validSnapshot.drawer2.sizeOrders.map((row: BuildSnapshotParams['sizeRows'][number]) : BuildSnapshotParams['sizeRows'][number] => ({ ...row, confirmQty: 1.5 })),
+      sizeRows: validSnapshot.drawer2.sizeOrders.map((row) : BuildSnapshotParams['sizeRows'][number] => ({ ...row, confirmQty: 1.5 })),
+      confirmedRounds: [],
     }))
 
-    expect(snapshot.drawer2.confirmedTotals?.orderQty).toBe(1.5)
-    expect(snapshot.drawer2.sizeOrders[0].confirmQty).toBe(1.5)
+    expect(snapshot.drawer2.confirmed.rounds[0]?.qtyBySize['250']).toBe(1.5)
+    expect(snapshot.drawer2.sizeOrders[0]).not.toHaveProperty('confirmQty')
   })
 })
 

@@ -4,6 +4,7 @@ import { dashboardApi } from '../../../../api'
 import type { ProductComparisonBaseSubjectRef, ProductComparisonTarget } from '../../../../api/types/drawer'
 import type { ApiUnitErrorInfo, ProductSecondaryDetail } from '../../../../types'
 import type { OrderSnapshotDocument } from '../../../../snapshot/orderSnapshotTypes'
+import { getOrderSnapshotConfirmedQtyBySize } from '../../../../snapshot/orderSnapshotTypes'
 import { makeApiErrorInfo } from '../apiErrorInfo'
 
 export type Params = {
@@ -54,6 +55,7 @@ function getSecondaryDetailFromSnapshot(
   if (display == null) return null
   const displaySizeRowBySize: Map<string, OrderSnapshotStockOrderDisplaySizeRow> = new Map((display?.sizeRows ?? []).map((row: OrderSnapshotStockOrderDisplaySizeRow) : [string, OrderSnapshotStockOrderDisplaySizeRow] => [row.size, row]))
   if (hydrateSnapshot.drawer2.sizeOrders.some((row: OrderSnapshotSizeOrder) : boolean => !displaySizeRowBySize.has(row.size))) return null
+  const confirmedQtyBySize: Record<string, number> = getOrderSnapshotConfirmedQtyBySize(hydrateSnapshot.drawer2.confirmed)
   return {
     skuGroupKey: basis.skuGroupKey,
     comparisonPrice: basis.comparisonPrice,
@@ -62,7 +64,7 @@ function getSecondaryDetailFromSnapshot(
     sizeRows: hydrateSnapshot.drawer2.sizeOrders.map((row: OrderSnapshotSizeOrder) : { size: string; selfRatio: number; confirmedQty: number; avgPrice: number; qty: number; availableStock: number; } => ({
       size: row.size,
       selfRatio: row.baseSharePct,
-      confirmedQty: row.confirmQty,
+      confirmedQty: confirmedQtyBySize[row.size] ?? 0,
       avgPrice: unitEconomics.unitPrice,
       qty: row.forecastQty,
       availableStock: displaySizeRowBySize.get(row.size)!.currentStockQty,

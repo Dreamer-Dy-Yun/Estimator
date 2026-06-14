@@ -108,44 +108,31 @@
   font-variant-numeric: tabular-nums;
 }
 
-.inboundSplitTableWrap {
+.inboundSplitTableFrame {
   flex: 1 1 auto;
   display: flex;
+  flex-direction: column;
   min-height: 0;
-  overflow-x: hidden;
-  overflow-y: auto;
+  margin: 0 16px;
+  overflow: hidden;
+  border: 1px solid #dbe5f0;
+  border-radius: 0;
+  background: #fff;
+}
+
+.inboundSplitTableWrap {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
   -webkit-overflow-scrolling: touch;
 }
 
 .inboundSplitTable {
+  width: max-content;
+  min-width: 100%;
   font-size: 13px;
   --inbound-split-header-height: 32px;
   --inbound-split-row-height: 34px;
-}
-
-.inboundSplitFixedPane {
-  flex: 0 0 auto;
-  overflow: hidden;
-  border-right: 1px solid #dbe5f0;
-  background: #fff;
-}
-
-.inboundSplitSizePane {
-  flex: 1 1 auto;
-  min-width: 0;
-  overflow-x: auto;
-  overflow-y: hidden;
-  -webkit-overflow-scrolling: touch;
-}
-
-.inboundSplitFixedTable {
-  width: 308px;
-  min-width: 308px;
-}
-
-.inboundSplitSizeTable {
-  width: max-content;
-  min-width: 100%;
 }
 
 .inboundSplitTable th,
@@ -167,6 +154,107 @@
   background: #f8fafc;
 }
 
+.inboundSplitTable th:not(.inboundSplitStickyCol),
+.inboundSplitTable td:not(.inboundSplitStickyCol) {
+  min-width: 112px;
+}
+
+.inboundSplitStickyCol {
+  position: sticky;
+  z-index: 5;
+}
+
+.inboundSplitTable thead .inboundSplitStickyCol {
+  z-index: 9;
+}
+
+.inboundSplitStickyColRound {
+  left: 0;
+}
+
+.inboundSplitStickyColDate {
+  left: 64px;
+}
+
+.inboundSplitStickyColKind {
+  left: 196px;
+}
+
+.inboundSplitStickyColTotal {
+  left: 264px;
+  box-shadow: 1px 0 0 #dbe5f0;
+}
+
+.inboundSplitSummaryRow td {
+  position: sticky;
+  top: var(--inbound-split-header-height);
+  z-index: 7;
+  background: #eef7ff;
+  font-weight: 800;
+  border-bottom-color: transparent;
+}
+
+.inboundSplitSummaryRow .inboundSplitStickyCol {
+  z-index: 8;
+}
+
+.inboundSplitSuggestedRow td {
+  background: #f1f7ff;
+  color: #2563eb;
+  font-weight: 700;
+  border-bottom-color: transparent;
+}
+
+.inboundSplitConfirmedRow td {
+  background: #fff;
+  color: #0f172a;
+  border-top-color: transparent;
+}
+
+.inboundSplitSummaryRow td,
+.inboundSplitSuggestedRow td,
+.inboundSplitConfirmedRow td {
+  height: 30px;
+}
+
+.inboundSplitSummaryRow:not(.inboundSplitSummaryRowEnd) td,
+.inboundSplitSuggestedRow td {
+  padding-bottom: 1px;
+}
+
+.inboundSplitSummaryRowEnd td,
+.inboundSplitConfirmedRow td {
+  padding-top: 1px;
+}
+
+.inboundSplitRoundEndRow td {
+  border-bottom-color: #dbe5f0;
+}
+
+.inboundSplitRoundSpanCell {
+  background: #fff;
+  color: #334155;
+  font-weight: 800;
+  vertical-align: middle;
+}
+
+.inboundSplitSummaryRowEnd td {
+  top: calc(var(--inbound-split-header-height) + 30px);
+  border-bottom-color: #b7d5f5;
+}
+
+.inboundSplitSummarySpanCell {
+  border-bottom-color: #b7d5f5;
+}
+
+.inboundSplitSuggestedRow .inboundSplitRoundSpanCell {
+  border-bottom-color: #dbe5f0;
+}
+
+.inboundSplitSummaryRow .inboundSplitSummarySpanCell {
+  border-bottom-color: #b7d5f5;
+}
+
 .inboundSplitTable .stockDateInput,
 .inboundSplitTable .stockNumberInput {
   box-sizing: border-box;
@@ -186,6 +274,12 @@
   min-width: 132px;
 }
 
+.inboundSplitKindCell {
+  width: 68px;
+  min-width: 68px;
+  text-align: center;
+}
+
 .inboundSplitTotalCell {
   width: 112px;
   min-width: 112px;
@@ -193,6 +287,13 @@
 
 .inboundSplitQtyInput {
   width: 5.4rem;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.inboundSplitTable .stockDateInput {
+  font-size: 12px;
+  font-weight: 800;
 }
 
 .inboundSplitDialogActions {

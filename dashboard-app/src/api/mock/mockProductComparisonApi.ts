@@ -17,12 +17,15 @@ import type {
   ProductSecondaryDetail,
   SecondaryCompetitorChannel,
   SecondaryDailyTrendParams,
-  SecondaryDailyTrendPoint,
+  SecondaryDailyTrendSource,
+  SecondaryInboundSplitExpectationCell,
+  SecondaryInboundSplitSource,
+  SecondaryInboundSplitSourceParams,
 } from '../types'
 import { getCompanyUuidForOptionalScope, getComparisonSubjectKey } from '../types'
 import { DEFAULT_FORECAST_MONTHS } from '../../utils/forecastMonthsStorage'
 import { buildSalesKpiColumn } from '../../utils/salesKpiColumn'
-import { buildSecondaryDailyTrend } from './secondaryDailyTrend'
+import { buildSecondaryDailyTrendSource } from './secondaryDailyTrend'
 import {
   MOCK_COMPANIES,
   scopeMockProductPrimary,
@@ -39,6 +42,7 @@ const TEST_TOP_MONTHLY_COMPARISON_SALES = 200 as const
 const SELF_ALL_COMPANIES_LABEL = '\uC790\uC0AC\uC804\uCCB4' as const
 
 const dateToMonth: (date: string) => string = (date: string) : string => date.slice(0, 7)
+const DAY_MS = 86_400_000 as const
 
 const nextMonth: (month: string) => string = (month: string) : string => {
   const [year, monthNo]: number[] = month.split('-').map(Number)
@@ -146,6 +150,46 @@ function comparisonScaleForSubject(
   }
   const comparisonPrimary: ProductPrimarySummary = scopeMockProductPrimary(requireMockProductPrimary(skuGroupKey), selfCompanySubjectScope(comparison))
   return basePrimary.qty > 0 ? Math.max(0, comparisonPrimary.qty / basePrimary.qty) : 0
+}
+
+function daysInMonthKey(month: string): number {
+  const [year, monthNo]: number[] = month.split('-').map(Number)
+  return new Date(Date.UTC(year, monthNo, 0)).getUTCDate()
+}
+
+function formatIsoDate(date: Date): string {
+  return date.toISOString().slice(0, 10)
+}
+
+function parseIsoDate(date: string): Date {
+  return new Date(`${date}T00:00:00.000Z`)
+}
+
+function allocateMockIntegerTotal(total: number, weights: readonly number[]): number[] {
+  const safeTotal: number = Number.isFinite(total) ? Math.max(0, Math.round(total)) : 0
+  if (!weights.length) return []
+  const normalizedWeights: number[] = weights.map((weight: number): number => Number.isFinite(weight) ? Math.max(0, weight) : 0)
+  const weightSum: number = normalizedWeights.reduce((sum: number, weight: number): number => sum + weight, 0)
+  const effectiveWeights: number[] = weightSum > 0 ? normalizedWeights : normalizedWeights.map((): number => 1)
+  const effectiveSum: number = weightSum > 0 ? weightSum : effectiveWeights.length
+  const exactValues: number[] = effectiveWeights.map((weight: number): number => (safeTotal * weight) / effectiveSum)
+  const values: number[] = exactValues.map((value: number): number => Math.floor(value))
+  let remainder: number = safeTotal - values.reduce((sum: number, value: number): number => sum + value, 0)
+  exactValues
+    .map((value: number, index: number): { index: number; fraction: number } => ({ index, fraction: value - Math.floor(value) }))
+    .sort((a: { index: number; fraction: number }, b: { index: number; fraction: number }): number => (b.fraction - a.fraction) || (a.index - b.index))
+    .forEach(({ index }: { index: number; fraction: number }): void => {
+      if (remainder <= 0) return
+      values[index] += 1
+      remainder -= 1
+    })
+  return values
+}
+
+function mockDailySaleTotal(monthSales: number, dayIndex: number, days: number, seed: number): number {
+  const base: number = monthSales / Math.max(1, days)
+  const wave: number = Math.sin((dayIndex + seed) * 0.9) * 0.08
+  return Math.max(0, Math.round(base * (1 + wave)))
 }
 
 export async function getMockProductDrawerBundle(skuGroupKey: string, params: ProductDrawerBundleParams): Promise<{ summary: ProductPrimarySummary; }> {
@@ -256,9 +300,61 @@ export async function getMockSecondaryDailyTrend({
   forecastDays,
   base,
   comparison,
-}: SecondaryDailyTrendParams): Promise<SecondaryDailyTrendPoint[]> {
+}: SecondaryDailyTrendParams): Promise<SecondaryDailyTrendSource> {
   await sleep(80)
   const primary: ProductPrimarySummary = scopeMockProductPrimary(requireMockProductPrimary(skuGroupKey), selfCompanySubjectScope(base))
   const stockTrend: { date: string; stock: number; inboundExpected: number; inboundQty: number; }[] = scopeMockStockTrend(skuGroupKey, requireMockStockTrend(skuGroupKey), selfCompanySubjectScope(base))
-  return buildSecondaryDailyTrend(primary.monthlySalesTrend ?? [], stockTrend, startDate, endDate, forecastDays, comparisonScaleForSubject(skuGroupKey, primary, comparison))
+  return buildSecondaryDailyTrendSource(skuGroupKey, primary.monthlySalesTrend ?? [], stockTrend, startDate, endDate, forecastDays, comparisonScaleForSubject(skuGroupKey, primary, comparison))
+}
+
+export async function getMockSecondaryInboundSplitSource({
+  skuGroupKey,
+  dateStart,
+  dateEnd,
+  base,
+}: SecondaryInboundSplitSourceParams): Promise<SecondaryInboundSplitSource> {
+  await sleep(80)
+  assertMockSubjectRole(base, 'base')
+  const baseScope: { companyUuid?: string } = selfCompanySubjectScope(base)
+  const primary: ProductPrimarySummary = scopeMockProductPrimary(requireMockProductPrimary(skuGroupKey), baseScope)
+  const secondary: ProductSecondaryDetail = scopeMockProductSecondary(requireMockProductSecondary(skuGroupKey), baseScope)
+  const stockTrend: { date: string; stock: number; inboundExpected: number; inboundQty: number; }[] = scopeMockStockTrend(skuGroupKey, requireMockStockTrend(skuGroupKey), baseScope)
+  const monthlySalesByMonth: Map<string, MonthlySalesPoint> = new Map((primary.monthlySalesTrend ?? []).map((point: MonthlySalesPoint): [string, MonthlySalesPoint] => [point.date, point]))
+  const stockTrendByMonth: Map<string, { date: string; stock: number; inboundExpected: number; inboundQty: number; }> = new Map(stockTrend.map((point: { date: string; stock: number; inboundExpected: number; inboundQty: number; }): [string, { date: string; stock: number; inboundExpected: number; inboundQty: number; }] => [point.date, point]))
+  const sizeRows: ProductSecondaryDetail['sizeRows'] = secondary.sizeRows
+  const sizes: string[] = sizeRows.map((row: ProductSecondaryDetail['sizeRows'][number]): string => row.size)
+  const weights: number[] = sizeRows.map((row: ProductSecondaryDetail['sizeRows'][number]): number => row.selfRatio > 0 ? row.selfRatio : row.confirmedQty)
+  const stockBySize: Record<string, number> = {}
+  sizeRows.forEach((row: ProductSecondaryDetail['sizeRows'][number]): void => {
+    stockBySize[row.size] = Math.max(0, Math.round(row.availableStock))
+  })
+
+  const expectationByDate: Record<string, Record<string, SecondaryInboundSplitExpectationCell>> = {}
+  const start: Date = parseIsoDate(dateStart)
+  const end: Date = parseIsoDate(dateEnd)
+  for (let time: number = start.getTime(); time < end.getTime(); time += DAY_MS) {
+    const date: string = formatIsoDate(new Date(time))
+    const month: string = date.slice(0, 7)
+    const dayIndex: number = Number(date.slice(8, 10)) - 1
+    const monthSales: number = Math.max(0, Math.round(monthlySalesByMonth.get(month)?.sales ?? 0))
+    const days: number = daysInMonthKey(month)
+    const saleTotal: number = mockDailySaleTotal(monthSales, dayIndex, days, skuGroupKey.charCodeAt(0))
+    const inboundTotal: number = date.endsWith('-01')
+      ? Math.max(0, Math.round(stockTrendByMonth.get(month)?.inboundQty ?? stockTrendByMonth.get(month)?.inboundExpected ?? 0))
+      : 0
+    const saleBySize: number[] = allocateMockIntegerTotal(saleTotal, weights)
+    const inboundBySize: number[] = allocateMockIntegerTotal(inboundTotal, weights)
+    expectationByDate[date] = Object.fromEntries(sizes.map((size: string, index: number): [string, SecondaryInboundSplitExpectationCell] => [size, {
+      sale: saleBySize[index] ?? 0,
+      inbound: inboundBySize[index] ?? 0,
+    }]))
+  }
+
+  return {
+    productId: skuGroupKey,
+    dateStart,
+    dateEnd,
+    stockBySize,
+    expectationByDate,
+  }
 }

@@ -1,6 +1,7 @@
-import type { OrderSnapshotComparisonSubject, OrderSnapshotSizeOrder } from '../../../../../snapshot/orderSnapshotTypes'
+import type { OrderSnapshotComparisonSubject, OrderSnapshotConfirmedRound } from '../../../../../snapshot/orderSnapshotTypes'
 import { useCallback, useEffect, useMemo, useState,} from 'react'
 import type { OrderSnapshotAiComment, OrderSnapshotDocument } from '../../../../../snapshot/orderSnapshotTypes'
+import { getOrderSnapshotConfirmedQtyBySize } from '../../../../../snapshot/orderSnapshotTypes'
 import type { CandidateItemPanelContext } from '../secondaryDrawerTypes'
 import type { InboundDueDateDefaults } from './useSecondaryInboundDueDates'
 import { useSecondarySnapshotPrefill } from './useSecondarySnapshotPrefill'
@@ -60,7 +61,7 @@ export function useSecondaryDrawerSnapshotController({
   setNextOrderInboundDueDate,
   setAiComment,
   resetInboundDueDatesToLive,
-}: SnapshotControllerArgs) : { dailyMeanClient: number | null; setDailyMeanClient: (value: React.SetStateAction<number | null>) => void; bufferStock: number; setBufferStock: (value: React.SetStateAction<number>) => void; unitCostInput: number; setUnitCostInput: (value: React.SetStateAction<number>) => void; unitPriceInput: number; setUnitPriceInput: (value: React.SetStateAction<number>) => void; expectedFeeRatePct: number; setExpectedFeeRatePct: (value: React.SetStateAction<number>) => void; selfWeightPct: number; setSelfWeightPct: (value: React.SetStateAction<number>) => void; confirmBySize: Record<string, number>; setConfirmBySize: React.Dispatch<React.SetStateAction<Record<string, number>>>; hasSavedSnapshot: boolean; prefillKey: string | null; appliedPrefillKey: string | null; snapshotConfirmBySize: { [k: string]: number; }; snapshotConfirmBaselineActive: boolean; confirmedBaselineDraftDirty: boolean; markConfirmedBaselineDraftDirty: () => void; applyLiveOrderUnitInputs: (source: LiveOrderUnitSource) => void; handleResetToLive: (liveOrderUnitSource: LiveOrderUnitSource) => void; handleRestoreConfirmed: () => void; } {
+}: SnapshotControllerArgs) : { dailyMeanClient: number | null; setDailyMeanClient: (value: React.SetStateAction<number | null>) => void; bufferStock: number; setBufferStock: (value: React.SetStateAction<number>) => void; unitCostInput: number; setUnitCostInput: (value: React.SetStateAction<number>) => void; unitPriceInput: number; setUnitPriceInput: (value: React.SetStateAction<number>) => void; expectedFeeRatePct: number; setExpectedFeeRatePct: (value: React.SetStateAction<number>) => void; selfWeightPct: number; setSelfWeightPct: (value: React.SetStateAction<number>) => void; confirmBySize: Record<string, number>; setConfirmBySize: React.Dispatch<React.SetStateAction<Record<string, number>>>; confirmedRounds: OrderSnapshotConfirmedRound[]; setConfirmedRounds: React.Dispatch<React.SetStateAction<OrderSnapshotConfirmedRound[]>>; hasSavedSnapshot: boolean; prefillKey: string | null; appliedPrefillKey: string | null; snapshotConfirmBySize: { [k: string]: number; }; snapshotConfirmBaselineActive: boolean; confirmedBaselineDraftDirty: boolean; markConfirmedBaselineDraftDirty: () => void; applyLiveOrderUnitInputs: (source: LiveOrderUnitSource) => void; handleResetToLive: (liveOrderUnitSource: LiveOrderUnitSource) => void; handleRestoreConfirmed: () => void; } {
   const [dailyMeanClient, setDailyMeanClient]: [number | null, React.Dispatch<React.SetStateAction<number | null>>] = useState<number | null>(null)
   const [bufferStock, setBufferStock]: [number, React.Dispatch<React.SetStateAction<number>>] = useState<number>(DEFAULT_BUFFER_STOCK)
   const [unitCostInput, setUnitCostInput]: [number, React.Dispatch<React.SetStateAction<number>>] = useState(0)
@@ -68,6 +69,7 @@ export function useSecondaryDrawerSnapshotController({
   const [expectedFeeRatePct, setExpectedFeeRatePct]: [number, React.Dispatch<React.SetStateAction<number>>] = useState(0)
   const [selfWeightPct, setSelfWeightPct]: [number, React.Dispatch<React.SetStateAction<number>>] = useState<number>(DEFAULT_SELF_WEIGHT_PCT)
   const [confirmBySize, setConfirmBySize]: [Record<string, number>, React.Dispatch<React.SetStateAction<Record<string, number>>>] = useState<Record<string, number>>({})
+  const [confirmedRounds, setConfirmedRounds]: [OrderSnapshotConfirmedRound[], React.Dispatch<React.SetStateAction<OrderSnapshotConfirmedRound[]>>] = useState<OrderSnapshotConfirmedRound[]>([])
   const [snapshotConfirmBaselineActive, setSnapshotConfirmBaselineActive]: [boolean, React.Dispatch<React.SetStateAction<boolean>>] = useState(
     () : boolean => prefillFromSnapshot != null && candidateItemContext?.hydrateSnapshotSource === 'confirmed',
   )
@@ -89,7 +91,7 @@ export function useSecondaryDrawerSnapshotController({
   const snapshotConfirmBySize: { [k: string]: number; } = useMemo(
     () : { [k: string]: number; } => (prefillFromSnapshot == null
       ? {}
-      : Object.fromEntries(prefillFromSnapshot.drawer2.sizeOrders.map((row: OrderSnapshotSizeOrder) : [string, number] => [row.size, row.confirmQty]))),
+      : getOrderSnapshotConfirmedQtyBySize(prefillFromSnapshot.drawer2.confirmed)),
     [prefillFromSnapshot],
   )
   const applyLiveOrderUnitInputs: (source: LiveOrderUnitSource) => void = useCallback((source: LiveOrderUnitSource) : void => {
@@ -128,6 +130,10 @@ export function useSecondaryDrawerSnapshotController({
     markConfirmedBaselineDraftDirty()
     setConfirmBySize(value)
   }, [markConfirmedBaselineDraftDirty])
+  const setDraftConfirmedRounds: React.Dispatch<React.SetStateAction<OrderSnapshotConfirmedRound[]>> = useCallback<React.Dispatch<React.SetStateAction<OrderSnapshotConfirmedRound[]>>>((value: React.SetStateAction<OrderSnapshotConfirmedRound[]>) : void => {
+    markConfirmedBaselineDraftDirty()
+    setConfirmedRounds(value)
+  }, [markConfirmedBaselineDraftDirty])
 
   useEffect(() : () => void => {
     let alive: boolean = true
@@ -154,6 +160,7 @@ export function useSecondaryDrawerSnapshotController({
     setSelfWeightPct,
     setAiComment,
     setConfirmBySize,
+    setConfirmedRounds,
     setSnapshotConfirmBaselineActive,
     setAppliedPrefillKey,
     setUnitCostInput,
@@ -172,6 +179,7 @@ export function useSecondaryDrawerSnapshotController({
     setAiComment({ prompt: '', answer: '', generatedAt: null })
     setSelfWeightPct(DEFAULT_SELF_WEIGHT_PCT)
     setConfirmBySize({})
+    setConfirmedRounds([])
     setSnapshotConfirmBaselineActive(false)
     setConfirmedBaselineDraftDirty(false)
     setAppliedPrefillKey(null)
@@ -187,6 +195,7 @@ export function useSecondaryDrawerSnapshotController({
   const handleRestoreConfirmed: () => void = useCallback(() : void => {
     if (!candidateItemContext?.confirmedSnapshot) return
     setConfirmBySize({})
+    setConfirmedRounds(candidateItemContext.confirmedSnapshot.drawer2.confirmed.rounds)
     setSnapshotConfirmBaselineActive(true)
     setConfirmedBaselineDraftDirty(false)
     candidateItemContext.onRestoreConfirmed?.()
@@ -207,6 +216,8 @@ export function useSecondaryDrawerSnapshotController({
     setSelfWeightPct: setDraftSelfWeightPct,
     confirmBySize,
     setConfirmBySize: setDraftConfirmBySize,
+    confirmedRounds,
+    setConfirmedRounds: setDraftConfirmedRounds,
     hasSavedSnapshot,
     prefillKey,
     appliedPrefillKey,

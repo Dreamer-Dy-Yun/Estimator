@@ -94,11 +94,13 @@ export const validSnapshot: OrderSnapshotDocument = {
       unitCost: 60000,
       expectedFeeRatePct: 12,
     },
-    confirmedTotals: {
-      orderQty: 12,
-      expectedSalesAmount: 1200000,
-      expectedOpProfit: 336000,
-      expectedOpProfitRatePct: 28,
+    confirmed: {
+      rounds: [{
+        date: '2026-02-01',
+        qtyBySize: {
+          '250': 12,
+        },
+      }],
     },
     sizeOrders: [
       {
@@ -108,7 +110,6 @@ export const validSnapshot: OrderSnapshotDocument = {
         blendedSharePct: 50,
         forecastQty: 10,
         recommendedQty: 12,
-        confirmQty: 12,
       },
     ],
   },
@@ -151,7 +152,7 @@ export const currentDrawer2Keys: string[] = [
   'bufferStock',
   'comparisonBasis',
   'comparisonSubject',
-  'confirmedTotals',
+  'confirmed',
   'selfWeightPct',
   'sizeOrders',
   'stockOrderRequest',

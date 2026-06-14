@@ -7,6 +7,7 @@ import { buildMockOrderSnapshotForCandidate } from './orderSnapshotForCandidate'
 import { mockDashboardApi } from './dashboardApi'
 import { skuGroupKeyByLegacyId } from './salesTables'
 import { MOCK_COMPANY_UUID, defaultCandidateItemListParams } from './candidateMockApiTestHelpers'
+import { getOrderSnapshotConfirmedQtyBySize, getOrderSnapshotConfirmedTotalQty } from '../../snapshot/orderSnapshotTypes'
 
 describe('api/mock candidate recommendation contract', () : void => {
   const kreamComparison: ProductComparisonComparisonSubjectRef = {
@@ -141,15 +142,21 @@ describe('api/mock candidate recommendation contract', () : void => {
       musinsaComparison,
     )
 
+    const snapshotQty: number = getOrderSnapshotConfirmedTotalQty(snapshot.drawer2.confirmed)
+    const snapshotExpectedSalesAmount: number = snapshotQty * snapshot.drawer2.unitEconomics!.unitPrice
+    const snapshotFeeAmount: number = Math.round((snapshot.drawer2.unitEconomics!.unitPrice * snapshot.drawer2.unitEconomics!.expectedFeeRatePct) / 100)
+    const snapshotExpectedOpProfit: number = snapshotQty * Math.round(snapshot.drawer2.unitEconomics!.unitPrice - snapshot.drawer2.unitEconomics!.unitCost - snapshotFeeAmount)
+    const confirmedQtyBySize: Record<string, number> = getOrderSnapshotConfirmedQtyBySize(snapshot.drawer2.confirmed)
+
     expect(metric.source).toBe('snapshot')
-    expect(metric.qty).toBe(snapshot.drawer2.confirmedTotals.orderQty)
-    expect(metric.expectedSalesAmount).toBe(snapshot.drawer2.confirmedTotals.expectedSalesAmount)
-    expect(metric.expectedOpProfit).toBe(snapshot.drawer2.confirmedTotals.expectedOpProfit)
-    expect(metric.expectedOrderAmount).toBe(snapshot.drawer2.confirmedTotals.orderQty * snapshot.drawer2.unitEconomics!.unitCost)
+    expect(metric.qty).toBe(snapshotQty)
+    expect(metric.expectedSalesAmount).toBe(snapshotExpectedSalesAmount)
+    expect(metric.expectedOpProfit).toBe(snapshotExpectedOpProfit)
+    expect(metric.expectedOrderAmount).toBe(snapshotQty * snapshot.drawer2.unitEconomics!.unitCost)
     expect(metric.orderExport.competitorChannelLabel).toBe(snapshot.drawer2.comparisonSubject.label)
-    expect(metric.orderExport.sizeOrderQty).toEqual(snapshot.drawer2.sizeOrders.map((row: { size: string; confirmQty: number }) : { size: string; orderQty: number } => ({
+    expect(metric.orderExport.sizeOrderQty).toEqual(snapshot.drawer2.sizeOrders.map((row: { size: string }) : { size: string; orderQty: number } => ({
       size: row.size,
-      orderQty: row.confirmQty,
+      orderQty: confirmedQtyBySize[row.size] ?? 0,
     })))
   })
 

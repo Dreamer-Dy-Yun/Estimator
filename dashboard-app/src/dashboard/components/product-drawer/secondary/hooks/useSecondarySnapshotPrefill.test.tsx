@@ -40,6 +40,12 @@ const SNAPSHOT: OrderSnapshotDocument = ({
     bufferStock: 7,
     comparisonBasis: {} as OrderSnapshotDocument['drawer2']['comparisonBasis'],
     comparisonSubject: COMPARISON_SUBJECT,
+    confirmed: {
+      rounds: [{
+        date: '2026-07-01',
+        qtyBySize: {},
+      }],
+    },
     selfWeightPct: 60,
     sizeOrders: [],
     stockOrderRequest: {
@@ -58,7 +64,7 @@ const SNAPSHOT: OrderSnapshotDocument = ({
     },
   },
   savedAt: '2026-06-10T00:00:00.000Z',
-  schemaVersion: 3,
+  schemaVersion: 4,
   skuGroupKey: 'sku-a',
 }) as unknown as OrderSnapshotDocument
 
@@ -78,6 +84,7 @@ function createArgs(overrides: Partial<Args> = {}) : Args {
     setAppliedPrefillKey: vi.fn(),
     setBufferStock: vi.fn(),
     setConfirmBySize: vi.fn(),
+    setConfirmedRounds: vi.fn(),
     setCurrentOrderInboundDueDate: vi.fn(),
     setDailyMeanClient: vi.fn(),
     setExpectedFeeRatePct: vi.fn(),

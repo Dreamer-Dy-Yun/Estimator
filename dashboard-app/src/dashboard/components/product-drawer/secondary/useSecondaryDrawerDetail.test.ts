@@ -65,11 +65,8 @@ const snapshot: OrderSnapshotDocument = {
       generatedAt: null,
     },
     sizeOrders: [],
-    confirmedTotals: {
-      orderQty: 0,
-      expectedSalesAmount: 0,
-      expectedOpProfit: 0,
-      expectedOpProfitRatePct: null,
+    confirmed: {
+      rounds: [],
     },
   },
 }
