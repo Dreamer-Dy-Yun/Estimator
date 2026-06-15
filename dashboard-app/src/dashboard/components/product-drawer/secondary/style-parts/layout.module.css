@@ -5,6 +5,17 @@
   min-width: 0;
 }
 
+.stickyMetaHeader {
+  position: sticky;
+  top: -10px;
+  z-index: 20;
+  margin: -10px -14px 0 -28px;
+  padding: 10px 14px 8px 28px;
+  background: #fff;
+  border-bottom: 1px solid #e2e8f0;
+  box-shadow: 0 8px 14px rgba(15, 23, 42, 0.06);
+}
+
 .salesStockAiRow {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);

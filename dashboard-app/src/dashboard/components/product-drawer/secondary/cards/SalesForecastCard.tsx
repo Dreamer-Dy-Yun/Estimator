@@ -50,9 +50,9 @@ export type Props = {
 }
 export type HelpKey = 'forecastQtyCalc' | 'expectedOpProfitRate'
 
-export type NumberFieldProps = { label: string; value: number; onChange: (next: number) => void; unit: string; max?: number; step?: number }
+export type NumberFieldProps = { label: string; value: number; onChange: (next: number) => void; unit: string; max?: number; step?: number; grouped?: boolean }
 
-const toNonNegativeNumber: (value: string) => number = (value: string) : number => Math.max(0, Number(value) || 0)
+const toNonNegativeNumber: (value: string) => number = (value: string) : number => Math.max(0, Number(value.replace(/,/g, '')) || 0)
 const rateText: (value: number | null) => string = (value: number | null) : string => displayNumber.percent(value)
 
 function FieldCell({ label, children }: { label: string; children: React.ReactNode }) : React.JSX.Element {
@@ -72,10 +72,21 @@ function DateField({ label, value, min, onChange }: { label: string; value: stri
   )
 }
 
-function NumberField({ label, value, onChange, unit, max, step = 1 }: NumberFieldProps) : React.JSX.Element {
+function NumberField({ label, value, onChange, unit, max, step = 1, grouped = false }: NumberFieldProps) : React.JSX.Element {
+  const inputValue: string | number = grouped ? formatGroupedNumber(value) : value
   return (
     <FieldCell label={label}>
-      <input type="number" className={`${styles.stockNumberInput} ${styles.stockFillInput}`} min={0} max={max} step={step} value={value} onChange={(e: React.ChangeEvent<HTMLInputElement, HTMLInputElement>) : void => onChange(toNonNegativeNumber(e.target.value))} aria-label={label} />
+      <input
+        type={grouped ? 'text' : 'number'}
+        className={`${styles.stockNumberInput} ${styles.stockFillInput}`}
+        inputMode={grouped ? 'numeric' : 'decimal'}
+        min={grouped ? undefined : 0}
+        max={grouped ? undefined : max}
+        step={grouped ? undefined : step}
+        value={inputValue}
+        onChange={(e: React.ChangeEvent<HTMLInputElement, HTMLInputElement>) : void => onChange(toNonNegativeNumber(e.target.value))}
+        aria-label={label}
+      />
       <span className={styles.inlineUnit}>{unit}</span>
     </FieldCell>
   )
@@ -130,9 +141,9 @@ export function SalesForecastCard({ forecast, orderInputFields, actions, help }:
       <div className={`${styles.stockInputList} ${styles.salesForecastInputList}`}>
         <DateField label={KO.labelCurrentOrderInboundDueDate} min={minOrderDate} value={currentOrderInboundDueDate} onChange={actions.onCurrentOrderInboundDueDateChange} />
         <DateField label={KO.labelNextOrderInboundDueDate} min={currentOrderInboundDueDate >= minOrderDate ? currentOrderInboundDueDate : minOrderDate} value={nextOrderInboundDueDate} onChange={actions.onNextOrderInboundDueDateChange} />
-        <NumberField label={KO.labelBufferStock} value={bufferStock} onChange={actions.onBufferStockChange} unit={KO.unitBufferStockDays} />
-        <NumberField label={KO.labelUnitCost} value={unitCost} onChange={actions.onUnitCostChange} unit={KO.unitWonPerEa} />
-        <NumberField label={KO.labelUnitPrice} value={unitPrice} onChange={actions.onUnitPriceChange} unit={KO.unitWonPerEa} />
+        <NumberField label={KO.labelBufferStock} value={bufferStock} onChange={actions.onBufferStockChange} unit={KO.unitBufferStockDays} grouped />
+        <NumberField label={KO.labelUnitCost} value={unitCost} onChange={actions.onUnitCostChange} unit={KO.unitWonPerEa} grouped />
+        <NumberField label={KO.labelUnitPrice} value={unitPrice} onChange={actions.onUnitPriceChange} unit={KO.unitWonPerEa} grouped />
         <NumberField label={KO.labelExpectedFeeRate} value={expectedFeeRatePct} onChange={actions.onExpectedFeeRatePctChange} unit="%" max={100} step={0.1} />
         <ComputedField label={KO.labelDailyMeanSales} value={inputs.trendDailyMean} />
         <ComputedField label={KO.labelDailyMeanExpectedSales} value={inputs.dailyMean} />
