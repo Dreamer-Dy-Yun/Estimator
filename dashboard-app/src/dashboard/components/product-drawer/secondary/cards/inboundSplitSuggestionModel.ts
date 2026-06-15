@@ -20,8 +20,12 @@ function formatIsoDate(dateMs: number): string {
   return new Date(dateMs).toISOString().slice(0, 10)
 }
 
-function normalizeQuantity(value: number): number {
+function normalizeOrderQuantity(value: number): number {
   return Math.max(0, Math.round(value))
+}
+
+function normalizeSourceQuantity(value: number): number {
+  return Math.round(value)
 }
 
 function requireFiniteQuantity(value: number | undefined, field: string): number {
@@ -62,7 +66,7 @@ function sumIntervalNetDemand(source: SecondaryInboundSplitSource, size: string,
   let totalDemand: number = 0
   for (let cursorMs: number = startMs; cursorMs < endMs; cursorMs += DAY_MS) {
     const cell: SecondaryInboundSplitExpectationCell = getExpectationCell(source, formatIsoDate(cursorMs), size)
-    totalDemand += Math.max(0, cell.sale) - Math.max(0, cell.inbound)
+    totalDemand += cell.sale - cell.inbound
   }
 
   return totalDemand
@@ -74,13 +78,13 @@ function suggestSizeSplit(
   totalQty: number,
   intervals: readonly SplitInterval[],
 ): number[] {
-  const normalizedTotal: number = normalizeQuantity(totalQty)
+  const normalizedTotal: number = normalizeOrderQuantity(totalQty)
   if (normalizedTotal <= 0 || intervals.length === 0) {
     return intervals.map((): number => 0)
   }
 
   let remainingOrderQty: number = normalizedTotal
-  let projectedStock: number = normalizeQuantity(requireFiniteQuantity(source.stockBySize[size], `stockBySize.${size}`))
+  let projectedStock: number = normalizeSourceQuantity(requireFiniteQuantity(source.stockBySize[size], `stockBySize.${size}`))
   const allocated: number[] = intervals.map((interval: SplitInterval, index: number): number => {
     const netDemand: number = sumIntervalNetDemand(source, size, interval)
     const requiredQty: number = Math.max(0, Math.ceil(netDemand - projectedStock))

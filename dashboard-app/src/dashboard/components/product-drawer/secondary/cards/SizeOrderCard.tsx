@@ -2,6 +2,7 @@ import type { SecondaryInboundSplitSource, SecondaryStockOrderDisplaySizeRow } f
 import type { OrderSnapshotConfirmedRound } from '../../../../../snapshot/orderSnapshotTypes'
 import type { SizeOrderColumnTotals } from './sizeOrderCardModel'
 import { useCallback, useMemo, useRef, useState } from 'react'
+import { ApiUnitErrorBadge } from '../../../../../components/ApiUnitErrorBadge'
 import type { SecondaryStockOrderCalcResult } from '../../../../../api/types'
 import type { ApiUnitErrorInfo } from '../../../../../types'
 import { formatGroupedNumber } from '../../../../../utils/format'
@@ -16,12 +17,14 @@ import { SizeOrderShareChartRow } from './SizeOrderShareChartRow'
 import { SizeOrderWeightControls } from './SizeOrderWeightControls'
 import {
   MIN_INBOUND_SPLIT_COUNT,
+  buildInboundSplitScheduleRows,
   clampInboundSplitCount,
   cloneInboundSplitRows,
   confirmedRoundsToInboundSplitRows,
   getInboundSplitTotalQty,
   getInboundSplitSizeColumns,
   inboundSplitRowsToConfirmedRounds,
+  recalculateInboundSplitScheduleRows,
   reconcileInboundSplitScheduleRows,
   sumInboundSplitConfirmedBySize,
   type InboundSplitScheduleRow,
@@ -36,6 +39,20 @@ import {
   parseSelfWeightPctFromComparisonInput,
   parseSelfWeightPctInput,
 } from './sizeOrderCardModel'
+
+type SplitRowsBuildResult = {
+  rows: InboundSplitScheduleRow[]
+  error: ApiUnitErrorInfo | null
+}
+
+function makeInboundSplitDraftErrorInfo(request: string, err: unknown): ApiUnitErrorInfo {
+  return {
+    checkedAt: new Date().toISOString(),
+    page: 'ProductSecondaryDrawer',
+    request,
+    error: err instanceof Error ? err.message : String(err),
+  }
+}
 
 export type Props = {
   sizeOrder: {
@@ -68,58 +85,65 @@ export function SizeOrderCard({ sizeOrder, actions, help }: Props) : React.JSX.E
   const comparisonWeightPct: number = getComparisonWeightPct(selfWeightPct)
   const columnTotals: SizeOrderColumnTotals = useMemo(() : SizeOrderColumnTotals => calculateSizeOrderColumnTotals(sizeRows), [sizeRows])
   const splitSizeColumns: InboundSplitSizeColumn[] = useMemo(() : InboundSplitSizeColumn[] => getInboundSplitSizeColumns(sizeRows), [sizeRows])
-  const splitDateRangeKey: string = `${currentOrderInboundDueDate}|${nextOrderInboundDueDate}`
-  const splitDraftInputKey: string = useMemo(
-    () : string => `${splitDateRangeKey}|${splitSizeColumns.map((column: InboundSplitSizeColumn): string => `${column.size}:${column.confirmedQty}`).join('|')}`,
-    [splitDateRangeKey, splitSizeColumns],
-  )
   const inboundSplitSourceReady: boolean = inboundSplitSource != null && !inboundSplitSourceLoading && inboundSplitSourceError == null
   const [splitCount, setSplitCount]: [number, React.Dispatch<React.SetStateAction<number>>] = useState<number>(MIN_INBOUND_SPLIT_COUNT)
   const [splitDialogOpen, setSplitDialogOpen]: [boolean, React.Dispatch<React.SetStateAction<boolean>>] = useState<boolean>(false)
-  const [splitRows, setSplitRows]: [InboundSplitScheduleRow[], React.Dispatch<React.SetStateAction<InboundSplitScheduleRow[]>>] = useState<InboundSplitScheduleRow[]>([])
-  const [splitRowsRangeKey, setSplitRowsRangeKey]: [string, React.Dispatch<React.SetStateAction<string>>] = useState<string>('')
+  const [splitDialogSessionId, setSplitDialogSessionId]: [number, React.Dispatch<React.SetStateAction<number>>] = useState<number>(0)
+  const [inboundSplitDraftError, setInboundSplitDraftError]: [ApiUnitErrorInfo | null, React.Dispatch<React.SetStateAction<ApiUnitErrorInfo | null>>] = useState<ApiUnitErrorInfo | null>(null)
   const appliedSplitRows: InboundSplitScheduleRow[] = useMemo(
     (): InboundSplitScheduleRow[] => confirmedRounds.length > 1 ? confirmedRoundsToInboundSplitRows(confirmedRounds, splitSizeColumns) : [],
     [confirmedRounds, splitSizeColumns],
   )
   const splitConfirmLocked: boolean = appliedSplitRows.length > 1
   const displaySplitCount: number = splitConfirmLocked ? appliedSplitRows.length : splitCount
-  const updateSplitCount: (next: number) => void = useCallback((next: number) : void => {
-    if (inboundSplitSource == null) {
-      setSplitRows([])
-      setSplitRowsRangeKey('')
-      return
-    }
-    const safeCount: number = clampInboundSplitCount(next)
-    setSplitCount(safeCount)
-    setSplitRows((currentRows: InboundSplitScheduleRow[]) : InboundSplitScheduleRow[] => reconcileInboundSplitScheduleRows(splitRowsRangeKey === splitDraftInputKey ? currentRows : appliedSplitRows, splitSizeColumns, safeCount, currentOrderInboundDueDate, nextOrderInboundDueDate, inboundSplitSource))
-    setSplitRowsRangeKey(splitDraftInputKey)
-  }, [appliedSplitRows, currentOrderInboundDueDate, inboundSplitSource, nextOrderInboundDueDate, splitDraftInputKey, splitRowsRangeKey, splitSizeColumns])
   const openSplitDialog: () => void = useCallback(() : void => {
     if (inboundSplitSource == null) {
-      setSplitRows([])
-      setSplitRowsRangeKey('')
       return
     }
-    const nextSplitCount: number = splitConfirmLocked ? appliedSplitRows.length : splitCount
-    setSplitCount(nextSplitCount)
-    setSplitRows((currentRows: InboundSplitScheduleRow[]) : InboundSplitScheduleRow[] => reconcileInboundSplitScheduleRows(splitRowsRangeKey === splitDraftInputKey ? currentRows : appliedSplitRows, splitSizeColumns, nextSplitCount, currentOrderInboundDueDate, nextOrderInboundDueDate, inboundSplitSource))
-    setSplitRowsRangeKey(splitDraftInputKey)
+    setInboundSplitDraftError(null)
+    setSplitDialogSessionId((currentId: number): number => currentId + 1)
     setSplitDialogOpen(true)
-  }, [appliedSplitRows, currentOrderInboundDueDate, inboundSplitSource, nextOrderInboundDueDate, splitConfirmLocked, splitCount, splitDraftInputKey, splitRowsRangeKey, splitSizeColumns])
-  const splitDialogRows: InboundSplitScheduleRow[] = useMemo(() : InboundSplitScheduleRow[] => {
+  }, [inboundSplitSource])
+  const buildSplitRowsForCount: (next: number) => InboundSplitScheduleRow[] = useCallback((next: number): InboundSplitScheduleRow[] => {
     if (inboundSplitSource == null) return []
-    return reconcileInboundSplitScheduleRows(splitRowsRangeKey === splitDraftInputKey ? splitRows : appliedSplitRows, splitSizeColumns, splitCount, currentOrderInboundDueDate, nextOrderInboundDueDate, inboundSplitSource)
-  }, [appliedSplitRows, currentOrderInboundDueDate, inboundSplitSource, nextOrderInboundDueDate, splitCount, splitDraftInputKey, splitRows, splitRowsRangeKey, splitSizeColumns])
-  const handleSplitRowsChange: (nextRows: InboundSplitScheduleRow[]) => void = useCallback((nextRows: InboundSplitScheduleRow[]): void => {
-    setSplitRows(nextRows)
-    setSplitRowsRangeKey(splitDraftInputKey)
-  }, [splitDraftInputKey])
+    return buildInboundSplitScheduleRows(splitSizeColumns, clampInboundSplitCount(next), currentOrderInboundDueDate, nextOrderInboundDueDate, inboundSplitSource)
+  }, [currentOrderInboundDueDate, inboundSplitSource, nextOrderInboundDueDate, splitSizeColumns])
+  const recalculateSplitRows: (rows: InboundSplitScheduleRow[]) => InboundSplitScheduleRow[] = useCallback((rows: InboundSplitScheduleRow[]): InboundSplitScheduleRow[] => {
+    if (inboundSplitSource == null) return rows
+    return recalculateInboundSplitScheduleRows(rows, splitSizeColumns, nextOrderInboundDueDate, inboundSplitSource)
+  }, [inboundSplitSource, nextOrderInboundDueDate, splitSizeColumns])
+  const handleInboundSplitDraftError: (err: unknown | null, request: string) => void = useCallback((err: unknown | null, request: string): void => {
+    setInboundSplitDraftError(err == null ? null : makeInboundSplitDraftErrorInfo(request, err))
+  }, [])
+  const splitDialogInitialCount: number = splitConfirmLocked ? appliedSplitRows.length : splitCount
+  const splitDialogBuildResult: SplitRowsBuildResult = useMemo(() : SplitRowsBuildResult => {
+    if (!splitDialogOpen || inboundSplitSource == null) return { rows: [], error: null }
+    try {
+      if (splitConfirmLocked) {
+        return {
+          rows: reconcileInboundSplitScheduleRows(appliedSplitRows, splitSizeColumns, splitDialogInitialCount, currentOrderInboundDueDate, nextOrderInboundDueDate, inboundSplitSource),
+          error: null,
+        }
+      }
+      return {
+        rows: buildSplitRowsForCount(splitDialogInitialCount),
+        error: null,
+      }
+    } catch (err: unknown) {
+      return {
+        rows: [],
+        error: makeInboundSplitDraftErrorInfo('buildInboundSplitScheduleRows', err),
+      }
+    }
+  }, [appliedSplitRows, buildSplitRowsForCount, currentOrderInboundDueDate, inboundSplitSource, nextOrderInboundDueDate, splitConfirmLocked, splitDialogInitialCount, splitDialogOpen, splitSizeColumns])
+  const splitDialogRows: InboundSplitScheduleRow[] = splitDialogBuildResult.rows
+  const inboundSplitVisibleError: ApiUnitErrorInfo | null = inboundSplitSourceError ?? inboundSplitDraftError
   const closeSplitDialog: () => void = useCallback(() : void => {
     setSplitDialogOpen(false)
   }, [])
   const applySplitDialog: (rows: InboundSplitScheduleRow[]) => void = useCallback((rows: InboundSplitScheduleRow[]): void => {
     const nextRows: InboundSplitScheduleRow[] = cloneInboundSplitRows(rows)
+    setSplitCount(clampInboundSplitCount(nextRows.length))
     const nextConfirmBySize: Record<string, number> = sumInboundSplitConfirmedBySize(nextRows, splitSizeColumns)
     if (nextRows.length <= 1) {
       actions.onConfirmedRoundsChange([])
@@ -181,6 +205,12 @@ export function SizeOrderCard({ sizeOrder, actions, help }: Props) : React.JSX.E
           </button>
         </div>
       </div>
+      {inboundSplitVisibleError && (
+        <p className={styles.inboundSplitSourceError} role="alert">
+          {inboundSplitVisibleError.error}
+          <ApiUnitErrorBadge error={inboundSplitVisibleError} />
+        </p>
+      )}
       {!calculationReady && (
         <p className={styles.metaFilterActionHint} role="status" aria-live="polite">
           {KO.msgStockOrderCalcRequired}
@@ -261,12 +291,15 @@ export function SizeOrderCard({ sizeOrder, actions, help }: Props) : React.JSX.E
       </div>
     </div>
     <InboundSplitScheduleDialog
+      key={splitDialogSessionId}
       open={splitDialogOpen && inboundSplitSourceReady}
-      count={splitCount}
-      rows={splitDialogRows}
+      initialCount={splitDialogInitialCount}
+      initialRows={splitDialogRows}
       columns={splitSizeColumns}
-      onCountChange={updateSplitCount}
-      onRowsChange={handleSplitRowsChange}
+      buildRowsForCount={buildSplitRowsForCount}
+      recalculateRows={recalculateSplitRows}
+      draftError={inboundSplitDraftError ?? splitDialogBuildResult.error}
+      onDraftError={handleInboundSplitDraftError}
       onApply={applySplitDialog}
       onClose={closeSplitDialog}
     />

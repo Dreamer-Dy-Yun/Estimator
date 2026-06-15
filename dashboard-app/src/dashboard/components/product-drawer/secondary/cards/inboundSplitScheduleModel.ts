@@ -217,6 +217,31 @@ export function buildInboundSplitScheduleRows(
   })
 }
 
+export function recalculateInboundSplitScheduleRows(
+  currentRows: readonly InboundSplitScheduleRow[],
+  columns: readonly InboundSplitSizeColumn[],
+  nextInboundDate: string,
+  source: SecondaryInboundSplitSource,
+): InboundSplitScheduleRow[] {
+  const inboundDates: string[] = currentRows.map((row: InboundSplitScheduleRow): string => row.inboundDate)
+  const suggestedRows: Record<string, number>[] = buildInboundSplitSuggestedQuantitiesByRow(columns, inboundDates, nextInboundDate, source)
+
+  return currentRows.map((row: InboundSplitScheduleRow, rowIndex: number): InboundSplitScheduleRow => {
+    const suggestedQuantitiesBySize: Record<string, number> = {}
+    const quantitiesBySize: Record<string, number> = {}
+    columns.forEach((column: InboundSplitSizeColumn): void => {
+      suggestedQuantitiesBySize[column.size] = Math.max(0, Math.round(suggestedRows[rowIndex]?.[column.size] ?? 0))
+      quantitiesBySize[column.size] = Math.max(0, Math.round(row.quantitiesBySize[column.size] ?? 0))
+    })
+
+    return {
+      ...row,
+      suggestedQuantitiesBySize,
+      quantitiesBySize,
+    }
+  })
+}
+
 export function reconcileInboundSplitScheduleRows(
   currentRows: InboundSplitScheduleRow[],
   columns: InboundSplitSizeColumn[],
@@ -229,14 +254,26 @@ export function reconcileInboundSplitScheduleRows(
   if (!currentRows.length) return fallbackRows
 
   const preserveCurrentValues: boolean = currentRows.length === fallbackRows.length
+  const suggestedBaseRows: InboundSplitScheduleRow[] = preserveCurrentValues
+    ? recalculateInboundSplitScheduleRows(
+      fallbackRows.map((fallbackRow: InboundSplitScheduleRow, index: number): InboundSplitScheduleRow => ({
+        ...fallbackRow,
+        inboundDate: currentRows[index]?.inboundDate || fallbackRow.inboundDate,
+      })),
+      columns,
+      nextInboundDate,
+      source,
+    )
+    : fallbackRows
   return fallbackRows.map((fallbackRow: InboundSplitScheduleRow, index: number): InboundSplitScheduleRow => {
     const currentRow: InboundSplitScheduleRow | undefined = currentRows[index]
     if (!currentRow || !preserveCurrentValues) return fallbackRow
+    const suggestedBaseRow: InboundSplitScheduleRow = suggestedBaseRows[index] ?? fallbackRow
 
     const suggestedQuantitiesBySize: Record<string, number> = {}
     const quantitiesBySize: Record<string, number> = {}
     columns.forEach((column: InboundSplitSizeColumn): void => {
-      suggestedQuantitiesBySize[column.size] = Math.max(0, Math.round(fallbackRow.suggestedQuantitiesBySize[column.size] ?? 0))
+      suggestedQuantitiesBySize[column.size] = Math.max(0, Math.round(suggestedBaseRow.suggestedQuantitiesBySize[column.size] ?? 0))
       quantitiesBySize[column.size] = Math.max(0, Math.round(currentRow.quantitiesBySize[column.size] ?? fallbackRow.quantitiesBySize[column.size] ?? 0))
     })
 

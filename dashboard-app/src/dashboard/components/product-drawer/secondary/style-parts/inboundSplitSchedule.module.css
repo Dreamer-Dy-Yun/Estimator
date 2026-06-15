@@ -108,6 +108,17 @@
   font-variant-numeric: tabular-nums;
 }
 
+.inboundSplitSourceError {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: -2px 0 8px;
+  color: #b91c1c;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
 .inboundSplitTableFrame {
   flex: 1 1 auto;
   display: flex;
@@ -282,6 +293,16 @@
 .inboundSplitSummaryRow .inboundSplitSummarySpanCell {
   background: #eef2f7;
   color: #334155;
+}
+
+.inboundSplitSummaryRow .inboundSplitConfirmedDiff,
+.inboundSplitConfirmedRow .inboundSplitConfirmedDiff,
+.inboundSplitConfirmedRow .inboundSplitStickyCol.inboundSplitConfirmedDiff {
+  color: #b91c1c;
+}
+
+.inboundSplitTable .stockNumberInput.inboundSplitConfirmedDiff {
+  color: #b91c1c;
 }
 
 .inboundSplitTable .stockDateInput,
