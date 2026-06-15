@@ -127,13 +127,11 @@ export function useSecondaryDrawerSnapshotController({
     setSelfWeightPct(value)
   }, [markConfirmedBaselineDraftDirty])
   const setDraftConfirmBySize: React.Dispatch<React.SetStateAction<Record<string, number>>> = useCallback<React.Dispatch<React.SetStateAction<Record<string, number>>>>((value: React.SetStateAction<Record<string, number>>) : void => {
-    markConfirmedBaselineDraftDirty()
     setConfirmBySize(value)
-  }, [markConfirmedBaselineDraftDirty])
+  }, [])
   const setDraftConfirmedRounds: React.Dispatch<React.SetStateAction<OrderSnapshotConfirmedRound[]>> = useCallback<React.Dispatch<React.SetStateAction<OrderSnapshotConfirmedRound[]>>>((value: React.SetStateAction<OrderSnapshotConfirmedRound[]>) : void => {
-    markConfirmedBaselineDraftDirty()
     setConfirmedRounds(value)
-  }, [markConfirmedBaselineDraftDirty])
+  }, [])
 
   useEffect(() : () => void => {
     let alive: boolean = true

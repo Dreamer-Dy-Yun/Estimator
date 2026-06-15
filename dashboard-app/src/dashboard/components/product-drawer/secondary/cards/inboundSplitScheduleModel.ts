@@ -9,6 +9,7 @@ export const MAX_INBOUND_SPLIT_COUNT = 10 as const
 export interface InboundSplitSizeColumn {
   size: string
   confirmedQty: number
+  recommendedQty: number
 }
 
 export interface InboundSplitScheduleRow {
@@ -57,6 +58,7 @@ export function getInboundSplitSizeColumns(sizeRows: SecondarySizeOrderDisplayRo
   return sizeRows.map((row: SecondarySizeOrderDisplayRow): InboundSplitSizeColumn => ({
     size: row.size,
     confirmedQty: Math.max(0, Math.round(row.confirmQty)),
+    recommendedQty: Math.max(0, Math.round(row.recommendedQty)),
   }))
 }
 

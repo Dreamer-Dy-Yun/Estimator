@@ -120,7 +120,7 @@ export function buildInboundSplitSuggestedQuantitiesByRow(
   const rows: Record<string, number>[] = inboundDates.map((): Record<string, number> => ({}))
 
   for (const column of columns) {
-    const split: number[] = suggestSizeSplit(source, column.size, column.confirmedQty, intervals)
+    const split: number[] = suggestSizeSplit(source, column.size, column.recommendedQty, intervals)
     split.forEach((qty: number, rowIndex: number): void => {
       rows[rowIndex][column.size] = qty
     })

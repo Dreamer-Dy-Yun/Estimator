@@ -9,8 +9,8 @@ import type { InboundSplitScheduleRow, InboundSplitSizeColumn } from './inboundS
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
 
 const COLUMNS: InboundSplitSizeColumn[] = [
-  { size: 'S', confirmedQty: 10 },
-  { size: 'M', confirmedQty: 5 },
+  { size: 'S', confirmedQty: 10, recommendedQty: 10 },
+  { size: 'M', confirmedQty: 5, recommendedQty: 5 },
 ]
 
 function row(

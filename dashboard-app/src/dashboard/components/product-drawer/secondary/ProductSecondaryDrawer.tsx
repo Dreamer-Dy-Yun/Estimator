@@ -205,9 +205,8 @@ export function ProductSecondaryDrawer({
     handleNextOrderInboundDueDateChange(value)
   }, [handleNextOrderInboundDueDateChange, markConfirmedBaselineDraftDirty, setConfirmedRounds])
   const handleConfirmedRoundsChange: (next: OrderSnapshotConfirmedRound[]) => void = useCallback((next: OrderSnapshotConfirmedRound[]) : void => {
-    markConfirmedBaselineDraftDirty()
     setConfirmedRounds(next)
-  }, [markConfirmedBaselineDraftDirty, setConfirmedRounds])
+  }, [setConfirmedRounds])
 
   useSecondaryDrawerDraftEmission({
     appliedPrefillKey,

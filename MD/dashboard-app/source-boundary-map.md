@@ -2,13 +2,21 @@
 
 Last updated: 2026-06-15
 
+## 0-8) 2026-06-15 secondary inbound split recommendation baseline
+
+- Split inbound suggestions use the immutable size recommendation baseline (`recommendedQty`), not the mutable user confirmation value (`confirmQty` / `confirmedQty`).
+- `InboundSplitSizeColumn.confirmedQty` remains display and confirmation-total state; `InboundSplitSizeColumn.recommendedQty` is the cap used by `inboundSplitSuggestionModel.ts`.
+- Applying split inbound rows updates `drawer2.confirmed.rounds` and the current confirmation inputs only. It must not convert a confirmed-snapshot drawer to the live calculation baseline by itself.
+- Changing calculation inputs such as inbound dates, weight, buffer stock, unit economics, or forecast inputs may still mark the confirmed snapshot baseline dirty and switch the drawer to live calculation.
+- Regression coverage lives in `useSecondaryDrawerSnapshotController.test.tsx` and `inboundSplitSuggestionModel.test.ts`.
+
 ## 0-7) 2026-06-15 secondary inbound split fixture boundary
 
 - `dashboard-app/public/mock/secondaryInboundSplitSourceFixtures/*.json` are the scope-sharded mock backend substitute sources for split inbound tests and Pages preview.
 - `src/api/mock/secondaryInboundSplitSourceFixture.ts` owns runtime fetching/caching of that static fixture, scope/SKU lookup, and slicing it to the requested date range; UI and hooks still call only `getSecondaryInboundSplitSource`.
 - `dashboard-app/scripts/generateSecondaryInboundSplitSourceFixtures.ts` regenerates the fixture for the `2026-01-01 <= dateStart < dateEnd <= 2027-06-15` coverage window, covering saved 2026-04 snapshot requests and the 2026-06-15 live default inbound range.
 - Static deployment relies on host-level HTTP gzip/brotli compression for the large fixture payload. Do not move this data into UI components or duplicate it as fallback state.
-- `inboundSplitSuggestionModel.ts` is shortage-only: projected stock plus known inbound must cover demand before any suggested order quantity appears. It must not allocate leftover confirmed quantity just to match the confirmed total.
+- `inboundSplitSuggestionModel.ts` is shortage-only: projected stock plus known inbound must cover demand before any suggested order quantity appears. It must not allocate leftover confirmed quantity just to match the confirmed total, and it must not use the mutable confirmed quantity as the recommendation baseline.
 
 ## 0-6) 2026-06-11 candidate order metric comparison boundary
 

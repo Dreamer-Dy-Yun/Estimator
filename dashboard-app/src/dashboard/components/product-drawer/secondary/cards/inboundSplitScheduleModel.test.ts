@@ -8,7 +8,7 @@ import {
   type InboundSplitSizeColumn,
 } from './inboundSplitScheduleModel'
 
-const COLUMNS: InboundSplitSizeColumn[] = [{ size: 'S', confirmedQty: 10 }]
+const COLUMNS: InboundSplitSizeColumn[] = [{ size: 'S', confirmedQty: 10, recommendedQty: 10 }]
 
 function makeSource(dailySalesByDate: Record<string, number>): SecondaryInboundSplitSource {
   const expectationByDate: SecondaryInboundSplitSource['expectationByDate'] = {}

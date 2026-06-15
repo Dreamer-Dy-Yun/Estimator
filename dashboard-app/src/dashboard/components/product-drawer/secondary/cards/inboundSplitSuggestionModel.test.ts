@@ -3,7 +3,7 @@ import type { SecondaryInboundSplitSource } from '../../../../../api/types/secon
 import type { InboundSplitSizeColumn } from './inboundSplitScheduleModel'
 import { buildInboundSplitSuggestedQuantitiesByRow } from './inboundSplitSuggestionModel'
 
-const COLUMNS: InboundSplitSizeColumn[] = [{ size: 'S', confirmedQty: 10 }]
+const COLUMNS: InboundSplitSizeColumn[] = [{ size: 'S', confirmedQty: 10, recommendedQty: 10 }]
 
 function makeSource(
   stock: number,
@@ -34,6 +34,24 @@ describe('buildInboundSplitSuggestedQuantitiesByRow', () : void => {
 
     const rows: Record<string, number>[] = buildInboundSplitSuggestedQuantitiesByRow(
       COLUMNS,
+      ['2026-04-01', '2026-04-03'],
+      '2026-04-05',
+      source,
+    )
+
+    expect(rows).toEqual([{ S: 8 }, { S: 2 }])
+  })
+
+  it('keeps suggestion based on recommended quantity after confirmed quantity diverges', () : void => {
+    const source: SecondaryInboundSplitSource = makeSource(-2, {
+      '2026-04-01': { sale: 3, inbound: 0 },
+      '2026-04-02': { sale: 3, inbound: 0 },
+      '2026-04-03': { sale: 2, inbound: -1 },
+      '2026-04-04': { sale: 0, inbound: 0 },
+    })
+
+    const rows: Record<string, number>[] = buildInboundSplitSuggestedQuantitiesByRow(
+      [{ size: 'S', confirmedQty: 0, recommendedQty: 10 }],
       ['2026-04-01', '2026-04-03'],
       '2026-04-05',
       source,
