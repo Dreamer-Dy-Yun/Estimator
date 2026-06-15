@@ -1,6 +1,7 @@
-import { Fragment, useCallback, useId, useMemo, useRef } from 'react'
+import { Fragment, useCallback, useId, useMemo, useRef, useState } from 'react'
 import { DialogCloseButton } from '../../../../../components/DialogCloseButton'
 import { useModalFocusTrap } from '../../../useModalFocusTrap'
+import type { ApiUnitErrorInfo } from '../../../../../types'
 import { formatGroupedNumber } from '../../../../../utils/format'
 import { KO } from '../../ko'
 import styles from '../secondaryDrawer.module.css'
@@ -9,6 +10,7 @@ import {
   MIN_INBOUND_SPLIT_COUNT,
   allocateInboundSplitIntegerTotal,
   clampInboundSplitCount,
+  cloneInboundSplitRows,
   getInboundSplitSuggestedTotalQty,
   getInboundSplitTotalQty,
   type InboundSplitScheduleRow,
@@ -17,11 +19,13 @@ import {
 
 export interface InboundSplitScheduleDialogProps {
   open: boolean
-  count: number
-  rows: InboundSplitScheduleRow[]
+  initialCount: number
+  initialRows: InboundSplitScheduleRow[]
   columns: InboundSplitSizeColumn[]
-  onCountChange: (next: number) => void
-  onRowsChange: (next: InboundSplitScheduleRow[]) => void
+  buildRowsForCount: (next: number) => InboundSplitScheduleRow[]
+  recalculateRows: (rows: InboundSplitScheduleRow[]) => InboundSplitScheduleRow[]
+  draftError?: ApiUnitErrorInfo | null
+  onDraftError?: (err: unknown | null, request: string) => void
   onApply: (rows: InboundSplitScheduleRow[]) => void
   onClose: () => void
 }
@@ -32,16 +36,21 @@ function toNonNegativeInteger(value: string): number {
 
 export function InboundSplitScheduleDialog({
   open,
-  count,
-  rows,
+  initialCount,
+  initialRows = [],
   columns,
-  onCountChange,
-  onRowsChange,
+  buildRowsForCount,
+  recalculateRows,
+  draftError = null,
+  onDraftError,
   onApply,
   onClose,
 }: InboundSplitScheduleDialogProps): React.JSX.Element | null {
   const titleId: string = useId()
+  const descriptionId: string = useId()
   const panelRef: React.RefObject<HTMLElement | null> = useRef<HTMLElement | null>(null)
+  const [count, setCount]: [number, React.Dispatch<React.SetStateAction<number>>] = useState<number>(initialCount)
+  const [rows, setRows]: [InboundSplitScheduleRow[], React.Dispatch<React.SetStateAction<InboundSplitScheduleRow[]>>] = useState<InboundSplitScheduleRow[]>((): InboundSplitScheduleRow[] => cloneInboundSplitRows(initialRows))
   const countOptions: number[] = useMemo(
     (): number[] => Array.from({ length: MAX_INBOUND_SPLIT_COUNT - MIN_INBOUND_SPLIT_COUNT + 1 }, (_: unknown, index: number): number => MIN_INBOUND_SPLIT_COUNT + index),
     [],
@@ -53,10 +62,32 @@ export function InboundSplitScheduleDialog({
   })
 
   const handleDateChange: (rowIndex: number, value: string) => void = useCallback((rowIndex: number, value: string): void => {
-    onRowsChange(rows.map((row: InboundSplitScheduleRow, index: number): InboundSplitScheduleRow => (
-      index === rowIndex ? { ...row, inboundDate: value } : row
-    )))
-  }, [onRowsChange, rows])
+    setRows((currentRows: InboundSplitScheduleRow[]): InboundSplitScheduleRow[] => {
+      const nextRows: InboundSplitScheduleRow[] = currentRows.map((row: InboundSplitScheduleRow, index: number): InboundSplitScheduleRow => (
+        index === rowIndex ? { ...row, inboundDate: value } : row
+      ))
+      try {
+        const recalculatedRows: InboundSplitScheduleRow[] = recalculateRows(nextRows)
+        onDraftError?.(null, 'recalculateInboundSplitScheduleRows')
+        return recalculatedRows
+      } catch (err: unknown) {
+        onDraftError?.(err, 'recalculateInboundSplitScheduleRows')
+        return currentRows
+      }
+    })
+  }, [onDraftError, recalculateRows])
+
+  const handleCountChange: (value: string) => void = useCallback((value: string): void => {
+    const nextCount: number = clampInboundSplitCount(Number(value))
+    try {
+      const nextRows: InboundSplitScheduleRow[] = buildRowsForCount(nextCount)
+      setCount(nextCount)
+      setRows(nextRows)
+      onDraftError?.(null, 'buildInboundSplitScheduleRows')
+    } catch (err: unknown) {
+      onDraftError?.(err, 'buildInboundSplitScheduleRows')
+    }
+  }, [buildRowsForCount, onDraftError])
 
   const suggestedSizeTotals: Record<string, number> = useMemo((): Record<string, number> => {
     const totals: Record<string, number> = {}
@@ -84,31 +115,37 @@ export function InboundSplitScheduleDialog({
   )
 
   const handleRowTotalChange: (rowIndex: number, value: string) => void = useCallback((rowIndex: number, value: string): void => {
-    const currentRow: InboundSplitScheduleRow | undefined = rows[rowIndex]
-    if (!currentRow) return
+    setRows((currentRows: InboundSplitScheduleRow[]): InboundSplitScheduleRow[] => {
+      const currentRow: InboundSplitScheduleRow | undefined = currentRows[rowIndex]
+      if (!currentRow) return currentRows
 
-    const distributed: number[] = allocateInboundSplitIntegerTotal({
-      total: toNonNegativeInteger(value),
-      weights: columns.map((column: InboundSplitSizeColumn): number => currentRow.suggestedQuantitiesBySize[column.size] ?? currentRow.quantitiesBySize[column.size] ?? 0),
-    }).values
-    onRowsChange(rows.map((row: InboundSplitScheduleRow, index: number): InboundSplitScheduleRow => {
-      if (index !== rowIndex) return row
-      const quantitiesBySize: Record<string, number> = { ...row.quantitiesBySize }
-      columns.forEach((column: InboundSplitSizeColumn, columnIndex: number): void => {
-        quantitiesBySize[column.size] = distributed[columnIndex] ?? 0
+      const distributed: number[] = allocateInboundSplitIntegerTotal({
+        total: toNonNegativeInteger(value),
+        weights: columns.map((column: InboundSplitSizeColumn): number => currentRow.suggestedQuantitiesBySize[column.size] ?? currentRow.quantitiesBySize[column.size] ?? 0),
+      }).values
+      return currentRows.map((row: InboundSplitScheduleRow, index: number): InboundSplitScheduleRow => {
+        if (index !== rowIndex) return row
+        const quantitiesBySize: Record<string, number> = { ...row.quantitiesBySize }
+        columns.forEach((column: InboundSplitSizeColumn, columnIndex: number): void => {
+          quantitiesBySize[column.size] = distributed[columnIndex] ?? 0
+        })
+        return { ...row, quantitiesBySize }
       })
-      return { ...row, quantitiesBySize }
-    }))
-  }, [columns, onRowsChange, rows])
+    })
+  }, [columns])
 
   const handleQtyChange: (rowIndex: number, size: string, value: string) => void = useCallback((rowIndex: number, size: string, value: string): void => {
     const nextQty: number = toNonNegativeInteger(value)
-    onRowsChange(rows.map((row: InboundSplitScheduleRow, index: number): InboundSplitScheduleRow => (
+    setRows((currentRows: InboundSplitScheduleRow[]): InboundSplitScheduleRow[] => currentRows.map((row: InboundSplitScheduleRow, index: number): InboundSplitScheduleRow => (
       index === rowIndex
         ? { ...row, quantitiesBySize: { ...row.quantitiesBySize, [size]: nextQty } }
         : row
     )))
-  }, [onRowsChange, rows])
+  }, [])
+
+  const diffClass: (confirmed: number, suggested: number) => string = useCallback((confirmed: number, suggested: number): string => (
+    Math.max(0, Math.round(confirmed)) === Math.max(0, Math.round(suggested)) ? '' : styles.inboundSplitConfirmedDiff
+  ), [])
 
   if (!open) return null
 
@@ -120,6 +157,7 @@ export function InboundSplitScheduleDialog({
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
+        aria-describedby={descriptionId}
         tabIndex={-1}
         onClick={(event: React.MouseEvent<HTMLElement, MouseEvent>): void => event.stopPropagation()}
         onKeyDown={handleKeyDown}
@@ -127,7 +165,7 @@ export function InboundSplitScheduleDialog({
         <header className={styles.inboundSplitDialogHeader}>
           <div>
             <h3 id={titleId} className={styles.inboundSplitDialogTitle}>{KO.dialogInboundSplitTitle}</h3>
-            <p className={styles.inboundSplitDialogHint}>{KO.msgInboundSplitDraftOnly}</p>
+            <p id={descriptionId} className={styles.inboundSplitDialogHint}>{KO.msgInboundSplitDraftOnly}</p>
           </div>
           <DialogCloseButton onClose={onClose} />
         </header>
@@ -137,7 +175,7 @@ export function InboundSplitScheduleDialog({
             <select
               className={styles.inboundSplitCountSelect}
               value={count}
-              onChange={(event: React.ChangeEvent<HTMLSelectElement>): void => onCountChange(clampInboundSplitCount(Number(event.target.value)))}
+              onChange={(event: React.ChangeEvent<HTMLSelectElement>): void => handleCountChange(event.target.value)}
               aria-label={KO.ariaInboundSplitCount}
             >
               {countOptions.map((option: number): React.JSX.Element => (
@@ -149,6 +187,11 @@ export function InboundSplitScheduleDialog({
             {KO.thTotal} {formatGroupedNumber(columns.reduce((sum: number, column: InboundSplitSizeColumn): number => sum + column.confirmedQty, 0))} EA
           </span>
         </div>
+        {draftError && (
+          <p className={styles.inboundSplitSourceError} role="alert">
+            {draftError.error}
+          </p>
+        )}
         <div className={styles.inboundSplitTableFrame}>
           <div className={styles.inboundSplitTableWrap}>
             <table className={`${styles.table} ${styles.inboundSplitTable}`}>
@@ -175,12 +218,17 @@ export function InboundSplitScheduleDialog({
               </tr>
               <tr className={`${styles.inboundSplitSummaryRow} ${styles.inboundSplitSummaryRowEnd}`}>
                 <td className={`${styles.inboundSplitKindCell} ${styles.inboundSplitStickyCol} ${styles.inboundSplitStickyColKind}`}>{KO.rowInboundSplitConfirmedQty}</td>
-                <td className={`${styles.num} ${styles.inboundSplitTotalCell} ${styles.inboundSplitStickyCol} ${styles.inboundSplitStickyColTotal}`}>{formatGroupedNumber(confirmedGrandTotal)}</td>
+                <td className={`${styles.num} ${styles.inboundSplitTotalCell} ${styles.inboundSplitStickyCol} ${styles.inboundSplitStickyColTotal} ${diffClass(confirmedGrandTotal, suggestedGrandTotal)}`}>{formatGroupedNumber(confirmedGrandTotal)}</td>
                 {columns.map((column: InboundSplitSizeColumn): React.JSX.Element => (
-                  <td key={column.size} className={styles.num}>{formatGroupedNumber(confirmedSizeTotals[column.size] ?? 0)}</td>
+                  <td key={column.size} className={`${styles.num} ${diffClass(confirmedSizeTotals[column.size] ?? 0, suggestedSizeTotals[column.size] ?? 0)}`}>{formatGroupedNumber(confirmedSizeTotals[column.size] ?? 0)}</td>
                 ))}
               </tr>
-              {rows.map((row: InboundSplitScheduleRow, rowIndex: number): React.JSX.Element => (
+              {rows.map((row: InboundSplitScheduleRow, rowIndex: number): React.JSX.Element => {
+                const suggestedTotalQty: number = getInboundSplitSuggestedTotalQty(row, columns)
+                const confirmedTotalQty: number = getInboundSplitTotalQty(row, columns)
+                const totalDiffClass: string = diffClass(confirmedTotalQty, suggestedTotalQty)
+
+                return (
                 <Fragment key={row.id}>
                   <tr className={styles.inboundSplitSuggestedRow}>
                     <td className={`${styles.inboundSplitRoundCell} ${styles.inboundSplitStickyCol} ${styles.inboundSplitStickyColRound} ${styles.inboundSplitRoundSpanCell}`} rowSpan={2}>{row.round}{KO.optionInboundSplitRoundSuffix}</td>
@@ -194,47 +242,53 @@ export function InboundSplitScheduleDialog({
                       />
                     </td>
                     <td className={`${styles.inboundSplitKindCell} ${styles.inboundSplitStickyCol} ${styles.inboundSplitStickyColKind}`}>{KO.rowInboundSplitSuggestedQty}</td>
-                    <td className={`${styles.num} ${styles.inboundSplitTotalCell} ${styles.inboundSplitStickyCol} ${styles.inboundSplitStickyColTotal}`}>{formatGroupedNumber(getInboundSplitSuggestedTotalQty(row, columns))}</td>
+                    <td className={`${styles.num} ${styles.inboundSplitTotalCell} ${styles.inboundSplitStickyCol} ${styles.inboundSplitStickyColTotal}`}>{formatGroupedNumber(suggestedTotalQty)}</td>
                     {columns.map((column: InboundSplitSizeColumn): React.JSX.Element => (
                       <td key={column.size} className={styles.num}>{formatGroupedNumber(row.suggestedQuantitiesBySize[column.size] ?? 0)}</td>
                     ))}
                   </tr>
                   <tr className={`${styles.inboundSplitConfirmedRow} ${styles.inboundSplitRoundEndRow}`}>
                     <td className={`${styles.inboundSplitKindCell} ${styles.inboundSplitStickyCol} ${styles.inboundSplitStickyColKind}`}>{KO.rowInboundSplitConfirmedQty}</td>
-                    <td className={`${styles.num} ${styles.inboundSplitTotalCell} ${styles.inboundSplitStickyCol} ${styles.inboundSplitStickyColTotal}`}>
+                    <td className={`${styles.num} ${styles.inboundSplitTotalCell} ${styles.inboundSplitStickyCol} ${styles.inboundSplitStickyColTotal} ${totalDiffClass}`}>
                       <input
                         type="number"
-                        className={`${styles.stockNumberInput} ${styles.inboundSplitQtyInput}`}
+                        className={`${styles.stockNumberInput} ${styles.inboundSplitQtyInput} ${totalDiffClass}`}
                         min={0}
                         step={1}
-                        value={getInboundSplitTotalQty(row, columns)}
+                        value={confirmedTotalQty}
                         onChange={(event: React.ChangeEvent<HTMLInputElement>): void => handleRowTotalChange(rowIndex, event.target.value)}
                         aria-label={`${row.round}${KO.optionInboundSplitRoundSuffix} ${KO.thInboundSplitTotalQty} ${KO.rowInboundSplitConfirmedQty}`}
                       />
                     </td>
-                    {columns.map((column: InboundSplitSizeColumn): React.JSX.Element => (
-                      <td key={column.size} className={styles.num}>
+                    {columns.map((column: InboundSplitSizeColumn): React.JSX.Element => {
+                      const confirmedQty: number = row.quantitiesBySize[column.size] ?? 0
+                      const suggestedQty: number = row.suggestedQuantitiesBySize[column.size] ?? 0
+                      const sizeDiffClass: string = diffClass(confirmedQty, suggestedQty)
+                      return (
+                      <td key={column.size} className={`${styles.num} ${sizeDiffClass}`}>
                         <input
                           type="number"
-                          className={`${styles.stockNumberInput} ${styles.inboundSplitQtyInput}`}
+                          className={`${styles.stockNumberInput} ${styles.inboundSplitQtyInput} ${sizeDiffClass}`}
                           min={0}
                           step={1}
-                          value={row.quantitiesBySize[column.size] ?? 0}
+                          value={confirmedQty}
                           onChange={(event: React.ChangeEvent<HTMLInputElement>): void => handleQtyChange(rowIndex, column.size, event.target.value)}
                           aria-label={`${row.round}${KO.optionInboundSplitRoundSuffix} ${column.size} ${KO.rowInboundSplitConfirmedQty}`}
                         />
                       </td>
-                    ))}
+                      )
+                    })}
                   </tr>
                 </Fragment>
-              ))}
+                )
+              })}
             </tbody>
             </table>
           </div>
         </div>
         <footer className={styles.inboundSplitDialogActions}>
           <button type="button" className={`${styles.btn} ${styles.btnSecondary}`} onClick={onClose}>{KO.btnCloseInboundSplitDialog}</button>
-          <button type="button" className={styles.btn} onClick={(): void => onApply(rows)}>{KO.btnApplyInboundSplitSchedule}</button>
+          <button type="button" className={styles.btn} onClick={(): void => onApply(cloneInboundSplitRows(rows))}>{KO.btnApplyInboundSplitSchedule}</button>
         </footer>
       </section>
     </div>
