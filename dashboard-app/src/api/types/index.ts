@@ -93,6 +93,8 @@ export type {
   SecondaryAiCommentResult,
   ProductSecondaryDetailParams,
   SecondaryCompetitorChannel,
+  SecondaryDailyTrendBaseFlow,
+  SecondaryDailyTrendComparisonFlow,
   SecondaryDailyTrendFlowCell,
   SecondaryDailyTrendParams,
   SecondaryDailyTrendPoint,

@@ -1,6 +1,6 @@
 # Style Facades Boundary
 
-Last updated: 2026-06-02
+Last updated: 2026-06-15
 
 ## Responsibility
 
@@ -25,6 +25,14 @@ CSS facade files are public import entries for TS/TSX. `style-parts` files are i
 | `src/admin/style-parts/**` | Imported by `AdminPage.module.css` only. |
 | `src/dashboard/components/product-drawer/secondary/style-parts/**` | Imported by `secondaryDrawer.module.css` only. |
 | `src/dashboard/pages/snapshot-confirm-style-parts/**` | Imported by `SnapshotConfirmPage.module.css` only. |
+
+## Secondary Split-Inbound Style Parts
+
+- `inboundSplitDialogShell.module.css` owns the split-inbound modal frame, footer actions, table frame, and shared CSS variables for the split-inbound palette and table dimensions.
+- `inboundSplitTable.module.css` owns the split table base layout, header, horizontal sticky columns, fixed column offsets, and width policy: fixed minimum content columns, fill spare frame width, and keep scroll on overflow.
+- `inboundSplitRows.module.css` owns row states: total summary, same-round suggested/confirmed rows without an internal divider, round dividers, changed-confirmation text color, sticky body-cell widths, and input sizing.
+- `inboundSplitControls.module.css` owns the split count display/select/button controls used from the size-order card and dialog toolbar.
+- `inboundSplitResponsive.module.css` owns media-query-only overrides for the split-inbound dialog.
 
 ## Inline style policy
 

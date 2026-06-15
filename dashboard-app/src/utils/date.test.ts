@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  addIsoDays,
   calendarDaysInMonth,
   dateToMonth,
   daysInclusiveBetween,
@@ -31,6 +32,12 @@ describe('date utils', () : void => {
     expect(daysInclusiveBetween('2026-01-01', '2026-01-31')).toBe(31)
     expect(daysInclusiveBetween('2026-01-31', '2026-01-01')).toBe(0)
     expect(daysInclusiveBetween('invalid', '2026-01-01')).toBe(0)
+  })
+
+  it('adds ISO days with UTC date rollover', () : void => {
+    expect(addIsoDays('2026-01-31', 1)).toBe('2026-02-01')
+    expect(addIsoDays('2024-02-28', 1)).toBe('2024-02-29')
+    expect(addIsoDays('bad-input', 1)).toBe('bad-input')
   })
 
   it('formats ISO datetime to YYYY-MM-DD HH:mm or returns original string', () : void => {

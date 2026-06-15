@@ -3,12 +3,6 @@
     padding: 12px;
   }
 
-  .inboundSplitDialog {
-    width: 85vw;
-    height: 70vh;
-    max-height: 70vh;
-  }
-
   .inboundSplitDialogToolbar {
     align-items: flex-start;
     flex-direction: column;

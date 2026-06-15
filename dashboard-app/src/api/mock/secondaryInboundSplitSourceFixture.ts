@@ -133,7 +133,9 @@ export function slicePrecomputedSecondaryInboundSplitExpectation(
       `Secondary inbound split source precomputed date range supports ${fixture.rangeStart} <= dateStart < dateEnd <= ${fixture.rangeEnd}.`,
     )
   }
-  if (end <= start) return {}
+  if (end <= start) {
+    throw new Error('Secondary inbound split source date range must satisfy dateStart < dateEnd.')
+  }
 
   const expectationByDate: Record<string, Record<string, SecondaryInboundSplitExpectationCell>> = {}
   for (let time: number = start; time < end; time += DAY_MS) {

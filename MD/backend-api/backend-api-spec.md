@@ -1,6 +1,6 @@
 # Backend API Implementation Notes
 
-Last updated: 2026-06-11
+Last updated: 2026-06-15
 
 Purpose: backend implementation notes for the current frontend API contract.
 
@@ -79,7 +79,7 @@ Rules:
 ## Product drawer aggregation
 
 - `getProductDrawerBundle` returns `{ summary }` only and is base-only.
-- Monthly trend, sales insight, secondary detail, daily trend, AI comment, and stock-order calc are separate APIs.
+- Monthly trend, sales insight, secondary detail, daily trend, inbound split source, AI comment, and stock-order calc are separate APIs.
 - Monthly trend request should cover existing max 24 completed months plus `forecastMonths` future months.
 - Current initial frontend value for `forecastMonths` is 12.
 - Daily trend actual/forecast split uses `forecastStartDate`; backend must not send per-row `isForecast`.
@@ -135,14 +135,19 @@ Query:
 Response:
 
 ```ts
-interface SecondaryDailyTrendSubjectFlow {
+interface SecondaryDailyTrendBaseFlow {
+  sale: number
+  inbound: number
+}
+
+interface SecondaryDailyTrendComparisonFlow {
   sale: number
   inbound: number | null
 }
 
 interface SecondaryDailyTrendFlowCell {
-  base: SecondaryDailyTrendSubjectFlow
-  comparison: SecondaryDailyTrendSubjectFlow
+  base: SecondaryDailyTrendBaseFlow
+  comparison: SecondaryDailyTrendComparisonFlow
 }
 
 interface SecondaryDailyTrendSource {
@@ -159,9 +164,17 @@ interface SecondaryDailyTrendSource {
 Rules:
 
 - `flowByDate` is aggregate daily flow. Do not send size-level rows for this endpoint.
+- This is the current frontend contract replacing the older chart-ready `SecondaryDailyTrendPoint[]` response. Do not keep returning `stockBar`, `inboundAccumBar`, `idx`, `month`, or per-row `isForecast` for this endpoint.
+- `flowByDate` must contain every date from `dateStart` through inclusive `dateEnd`.
+- `baseStockAtStart` is opening stock immediately before `dateStart`; the frontend derives each stock bar by applying that date's inbound and sale.
+- `flowByDate[date].base.inbound` is required numeric known inbound for that date, not an accumulated chart bar. Send explicit `0` for known zero. Do not send `null` for base inbound.
+- `flowByDate[date].comparison.inbound` may be `null` because the current frontend does not render comparison inbound/stock bars.
 - `dateEnd` is the final date included in `flowByDate`, including forecast days when `forecastDays > 0`.
 - `forecastStartDate` is normally `endDate + 1 day` from the actual-data query boundary.
-- Backend sends explicit numeric `0` for known zero sale/inbound. `null` means the subject's inbound is unavailable or not meaningful.
+- The frontend validates `productId`, `dateStart`, `dateEnd`, and `forecastStartDate` against the request. For a request with `endDate` and `forecastDays`, response `dateEnd` must equal `endDate + forecastDays`, and `forecastStartDate` must equal `endDate + 1 day`.
+- If `baseStockAtStart` is `null`, the frontend treats base stock bars as unavailable. If it is numeric `0`, the frontend will display a real zero-stock series after applying sales and inbound, so backend must send the true opening stock when stock bars should be visible.
+- `comparisonStockAtStart` is reserved for comparison stock. The current frontend does not render comparison stock bars and accepts `null`.
+- Backend sends explicit numeric `0` for known zero sale/inbound. `null` is allowed only for fields documented as nullable.
 - Backend must not send chart-only fields such as `idx`, `month`, `isForecast`, `stockBar`, or `inboundAccumBar`.
 - The frontend derives chart points from this source.
 
@@ -175,8 +188,8 @@ GET /api/v1/products/{skuGroupKey}/secondary/inbound-split-source
 
 Query:
 
-- `dateStart`: inclusive current inbound date, `YYYY-MM-DD`.
-- `dateEnd`: exclusive next inbound date, `YYYY-MM-DD`.
+- `dateStart`: inclusive source-window start date, `YYYY-MM-DD`.
+- `dateEnd`: exclusive source-window end date, `YYYY-MM-DD`.
 - `baseRole=base`.
 - `baseKind=self-company`.
 - `baseSourceId`: optional concrete self-company source id. Omit for all-company read semantics when the frontend subject allows it.
@@ -201,10 +214,13 @@ interface SecondaryInboundSplitSource {
 Rules:
 
 - This endpoint returns source data, not split result rows.
+- This endpoint is separate from stock-order calculation and daily trend. It exists only to support the split-inbound popup's shortage suggestion model.
 - Backend must not require `splitCount`, `splitInboundDates`, or `totalOrderQtyBySize`.
 - `stockBySize` is stock at `dateStart`.
 - `expectationByDate` covers `dateStart <= date < dateEnd`.
+- `dateStart < dateEnd` is required. Invalid ranges should return 422 validation failure, not a successful empty source.
 - `inbound` is known inbound unrelated to the current popup draft.
+- Every visible size and every date in the requested range must have an explicit `sale` and `inbound` cell. Send numeric `0` for known zero values instead of omitting cells.
 - The frontend combines this response with current confirmed order quantity by size and screen-owned split dates.
 
 ## Failure mapping

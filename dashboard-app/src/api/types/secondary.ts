@@ -15,23 +15,40 @@ export interface SecondaryDailyTrendPoint {
   isForecast: boolean
 }
 
-export interface SecondaryDailyTrendSubjectFlow {
+export interface SecondaryDailyTrendBaseFlow {
+  /** Daily sale quantity for one aggregate subject. */
   sale: number
+  /** Known base inbound quantity for the same date. Use explicit 0 for known zero. */
+  inbound: number
+}
+
+export interface SecondaryDailyTrendComparisonFlow {
+  /** Daily sale quantity for one aggregate subject. */
+  sale: number
+  /** Comparison inbound is not rendered by the current UI. Null means unavailable for that subject. */
   inbound: number | null
 }
 
+export type SecondaryDailyTrendSubjectFlow = SecondaryDailyTrendComparisonFlow
+
 export interface SecondaryDailyTrendFlowCell {
-  base: SecondaryDailyTrendSubjectFlow
-  comparison: SecondaryDailyTrendSubjectFlow
+  base: SecondaryDailyTrendBaseFlow
+  comparison: SecondaryDailyTrendComparisonFlow
 }
 
 export interface SecondaryDailyTrendSource {
   productId: string
+  /** Inclusive first date in flowByDate. */
   dateStart: string
+  /** Inclusive final date in flowByDate. Includes forecast days when forecastDays > 0. */
   dateEnd: string
+  /** First forecast date; normally request endDate + 1 day. */
   forecastStartDate: string
+  /** Opening stock immediately before dateStart is applied. */
   baseStockAtStart: number | null
+  /** Reserved for comparison stock. Current UI does not render comparison stock bars. */
   comparisonStockAtStart: number | null
+  /** Aggregate per-date flow. Keys must cover every date from dateStart through dateEnd. */
   flowByDate: Record<string, SecondaryDailyTrendFlowCell>
 }
 
@@ -45,15 +62,21 @@ export interface SecondaryDailyTrendParams {
 }
 
 export interface SecondaryInboundSplitExpectationCell {
+  /** Expected sale quantity for this date and size. */
   sale: number
+  /** Already-known inbound quantity for this date and size, excluding the draft being edited. */
   inbound: number
 }
 
 export interface SecondaryInboundSplitSource {
   productId: string
+  /** Inclusive first date in the requested expectation source window. */
   dateStart: string
+  /** Exclusive end date; expectationByDate covers dateStart <= date < dateEnd. */
   dateEnd: string
+  /** Size-keyed stock at dateStart. */
   stockBySize: Record<string, number>
+  /** Date-keyed, size-keyed expected sale and known inbound cells. */
   expectationByDate: Record<string, Record<string, SecondaryInboundSplitExpectationCell>>
 }
 

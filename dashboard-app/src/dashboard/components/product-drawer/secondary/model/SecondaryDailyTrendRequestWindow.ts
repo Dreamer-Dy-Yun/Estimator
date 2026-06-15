@@ -1,4 +1,5 @@
-import { formatIsoDateLocal, monthToStartDate } from '../../../../../utils/date'
+import { addIsoDays, formatIsoDateLocal, monthToStartDate } from '../../../../../utils/date'
+import type { SecondaryDailyTrendSourceExpectation } from './secondaryDailyTrendSourceModel'
 
 export type SecondaryDailyTrendRequestWindowInput = {
   selectedStartMonth: string
@@ -57,6 +58,15 @@ export class SecondaryDailyTrendRequestWindow {
     return {
       selectedStartMonth: this.selectedStartMonth,
       ...this.toQueryFields(),
+    }
+  }
+
+  toSourceExpectation(productId: string): SecondaryDailyTrendSourceExpectation {
+    return {
+      productId,
+      dateStart: this.startDate,
+      dateEnd: addIsoDays(this.endDate, this.forecastDays),
+      forecastStartDate: addIsoDays(this.endDate, 1),
     }
   }
 }

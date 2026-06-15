@@ -1,8 +1,9 @@
 import type {
+  SecondaryDailyTrendBaseFlow,
+  SecondaryDailyTrendComparisonFlow,
   SecondaryDailyTrendFlowCell,
   SecondaryDailyTrendPoint,
   SecondaryDailyTrendSource,
-  SecondaryDailyTrendSubjectFlow,
 } from '../../../../../api/types'
 
 const DAY_MS: number = 86_400_000
@@ -36,6 +37,29 @@ function requireNullableQuantity(value: number | null, field: string): number | 
   return Math.max(0, Math.round(value))
 }
 
+export interface SecondaryDailyTrendSourceExpectation {
+  productId: string
+  dateStart: string
+  dateEnd: string
+  forecastStartDate: string
+}
+
+export function validateSecondaryDailyTrendSource(source: SecondaryDailyTrendSource, expected: SecondaryDailyTrendSourceExpectation): SecondaryDailyTrendSource {
+  if (source.productId !== expected.productId) {
+    throw new Error(`Daily trend source productId mismatch: expected ${expected.productId}, got ${source.productId}.`)
+  }
+  if (source.dateStart !== expected.dateStart) {
+    throw new Error(`Daily trend source dateStart mismatch: expected ${expected.dateStart}, got ${source.dateStart}.`)
+  }
+  if (source.dateEnd !== expected.dateEnd) {
+    throw new Error(`Daily trend source dateEnd mismatch: expected ${expected.dateEnd}, got ${source.dateEnd}.`)
+  }
+  if (source.forecastStartDate !== expected.forecastStartDate) {
+    throw new Error(`Daily trend source forecastStartDate mismatch: expected ${expected.forecastStartDate}, got ${source.forecastStartDate}.`)
+  }
+  return source
+}
+
 function getFlowCell(source: SecondaryDailyTrendSource, date: string): SecondaryDailyTrendFlowCell {
   const cell: SecondaryDailyTrendFlowCell | undefined = source.flowByDate[date]
   if (cell == null) {
@@ -44,7 +68,14 @@ function getFlowCell(source: SecondaryDailyTrendSource, date: string): Secondary
   return cell
 }
 
-function normalizeSubjectFlow(flow: SecondaryDailyTrendSubjectFlow, field: string): SecondaryDailyTrendSubjectFlow {
+function normalizeBaseFlow(flow: SecondaryDailyTrendBaseFlow, field: string): SecondaryDailyTrendBaseFlow {
+  return {
+    sale: requireQuantity(flow.sale, `${field}.sale`),
+    inbound: requireQuantity(flow.inbound, `${field}.inbound`),
+  }
+}
+
+function normalizeComparisonFlow(flow: SecondaryDailyTrendComparisonFlow, field: string): SecondaryDailyTrendComparisonFlow {
   return {
     sale: requireQuantity(flow.sale, `${field}.sale`),
     inbound: requireNullableQuantity(flow.inbound, `${field}.inbound`),
@@ -65,9 +96,9 @@ export function buildSecondaryDailyTrendPoints(source: SecondaryDailyTrendSource
   for (let cursorMs: number = startMs; cursorMs <= endMs; cursorMs += DAY_MS) {
     const date: string = formatIsoDate(cursorMs)
     const cell: SecondaryDailyTrendFlowCell = getFlowCell(source, date)
-    const base: SecondaryDailyTrendSubjectFlow = normalizeSubjectFlow(cell.base, `${date}.base`)
-    const comparison: SecondaryDailyTrendSubjectFlow = normalizeSubjectFlow(cell.comparison, `${date}.comparison`)
-    const baseInbound: number = base.inbound ?? 0
+    const base: SecondaryDailyTrendBaseFlow = normalizeBaseFlow(cell.base, `${date}.base`)
+    const comparison: SecondaryDailyTrendComparisonFlow = normalizeComparisonFlow(cell.comparison, `${date}.comparison`)
+    const baseInbound: number = base.inbound
 
     if (runningBaseStock != null) {
       runningBaseStock = Math.max(0, runningBaseStock + baseInbound - base.sale)

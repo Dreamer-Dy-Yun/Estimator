@@ -167,6 +167,7 @@ export function ProductSecondaryDrawer({
     confirmBySize,
     setConfirmBySize,
     confirmedRounds,
+    setConfirmedRounds,
     unitPriceInput,
     unitCostInput,
     expectedFeeRatePct,

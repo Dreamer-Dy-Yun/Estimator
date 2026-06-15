@@ -44,6 +44,7 @@ export type Args = {
   confirmBySize: Record<string, number>
   setConfirmBySize: React.Dispatch<React.SetStateAction<Record<string, number>>>
   confirmedRounds: OrderSnapshotConfirmedRound[]
+  setConfirmedRounds: React.Dispatch<React.SetStateAction<OrderSnapshotConfirmedRound[]>>
   unitPriceInput: number
   unitCostInput: number
   expectedFeeRatePct: number
@@ -79,6 +80,7 @@ export function useSecondaryForecastModel(args: Args) : { stockOrderDisplay: { c
     confirmBySize,
     setConfirmBySize,
     confirmedRounds,
+    setConfirmedRounds,
     unitPriceInput,
     unitCostInput,
     expectedFeeRatePct,
@@ -137,6 +139,7 @@ export function useSecondaryForecastModel(args: Args) : { stockOrderDisplay: { c
   useEffect(() : void => {
     if (useSnapshotConfirmBaseline) return
     setConfirmBySize({})
+    setConfirmedRounds([])
   }, [
     useSnapshotConfirmBaseline,
     bufferStock,
@@ -151,6 +154,7 @@ export function useSecondaryForecastModel(args: Args) : { stockOrderDisplay: { c
     selectedStart,
     selfWeightPct,
     stockOrderDisplayKey,
+    setConfirmedRounds,
     setConfirmBySize,
   ])
 

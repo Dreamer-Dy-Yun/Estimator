@@ -1,5 +1,15 @@
 # Backend API Changelog
 
+## 2026-06-15 secondary daily trend and split-inbound source clarification
+
+- `getSecondaryDailyTrend` current contract is `SecondaryDailyTrendSource`, not the old chart-ready `SecondaryDailyTrendPoint[]`.
+- Backend must send `baseStockAtStart` as opening stock immediately before `dateStart` and `flowByDate[date].base.inbound` as required numeric per-date base inbound. The frontend derives `stockBar`, `inboundAccumBar`, `idx`, `month`, and `isForecast`.
+- Returning old chart-only fields does not make current frontend stock bars visible. Stock bars depend on `baseStockAtStart` plus daily `base.inbound` and `base.sale`.
+- `flowByDate` must cover every date from `dateStart` through inclusive `dateEnd`. `comparisonStockAtStart` is reserved; the current frontend accepts `null` and does not render comparison stock bars.
+- `flowByDate[date].comparison.inbound` may be `null`; `flowByDate[date].base.inbound` must not be `null`. The frontend now rejects daily-trend response identity mismatches for `productId`, `dateStart`, `dateEnd`, or `forecastStartDate`.
+- `getSecondaryInboundSplitSource` is source-only for split-inbound shortage suggestions. It does not receive split count, selected split dates, current popup draft quantities, or split result rows.
+- `getSecondaryInboundSplitSource.dateEnd` is exclusive and `dateStart < dateEnd` is required; required date/size cells must send explicit numeric `0` for known zero `sale` or `inbound`.
+
 ## 2026-06-10 current API rewrite
 
 - `getProductComparisonTargets({ base })` now has explicit empty/error semantics: `200 []` means no available target, non-2xx means API failure, and the frontend does not synthesize a default target.

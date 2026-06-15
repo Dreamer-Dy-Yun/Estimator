@@ -1,21 +1,14 @@
 ﻿.inboundSplitTable {
   width: max-content;
   min-width: 100%;
+  table-layout: fixed;
   font-size: 13px;
-  --inbound-split-header-height: 32px;
-  --inbound-split-row-height: 34px;
-  --inbound-split-qty-col-width: 90px;
-  --inbound-split-header-bg: #d4ecaf;
-  --inbound-split-sticky-bg: #e3f5bf;
-  --inbound-split-border: #7fc55a;
-  --inbound-split-divider: #6aa84f;
-  --inbound-split-shadow: rgb(42 99 15 / 0.45);
 }
 
 .inboundSplitTable th,
 .inboundSplitTable td {
   box-sizing: border-box;
-  height: var(--inbound-split-row-height);
+  height: var(--inbound-split-body-row-height);
   padding-top: 4px;
   padding-bottom: 4px;
   vertical-align: middle;
@@ -29,6 +22,7 @@
   z-index: 4;
   height: var(--inbound-split-header-height);
   background: var(--inbound-split-header-bg);
+  color: #fff;
   border-bottom-color: var(--inbound-split-border);
   box-shadow: 0 1px 0 var(--inbound-split-border);
 }
@@ -47,6 +41,7 @@
 
 .inboundSplitTable thead .inboundSplitStickyCol {
   z-index: 9;
+  background: var(--inbound-split-header-bg);
 }
 
 .inboundSplitStickyColRound {
@@ -54,14 +49,14 @@
 }
 
 .inboundSplitStickyColDate {
-  left: 64px;
+  left: var(--inbound-split-round-col-width);
 }
 
 .inboundSplitStickyColKind {
-  left: 196px;
+  left: calc(var(--inbound-split-round-col-width) + var(--inbound-split-date-col-width));
 }
 
 .inboundSplitStickyColTotal {
-  left: 264px;
+  left: calc(var(--inbound-split-round-col-width) + var(--inbound-split-date-col-width) + var(--inbound-split-kind-col-width));
   box-shadow: 2px 0 0 var(--inbound-split-divider), 14px 0 18px -14px var(--inbound-split-shadow);
 }

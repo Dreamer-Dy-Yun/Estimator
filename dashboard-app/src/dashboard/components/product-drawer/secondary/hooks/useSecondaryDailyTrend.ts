@@ -4,7 +4,7 @@ import type { ProductComparisonBaseSubjectRef, ProductComparisonTarget, Secondar
 import type { ApiUnitErrorInfo } from '../../../../../types'
 import { buildShadeRanges } from '../../../trend/trendRangeUtils'
 import { SecondaryDailyTrendRequestWindow } from '../model/SecondaryDailyTrendRequestWindow'
-import { buildSecondaryDailyTrendPoints } from '../model/secondaryDailyTrendSourceModel'
+import { buildSecondaryDailyTrendPoints, validateSecondaryDailyTrendSource } from '../model/secondaryDailyTrendSourceModel'
 
 export type Params = {
   skuGroupKey: string
@@ -53,7 +53,7 @@ export function useSecondaryDailyTrend({
           ...requestWindow.toQueryFields(),
         }
         const source: SecondaryDailyTrendSource = await dashboardApi.getSecondaryDailyTrend(params)
-        const series: SecondaryDailyTrendPoint[] = buildSecondaryDailyTrendPoints(source)
+        const series: SecondaryDailyTrendPoint[] = buildSecondaryDailyTrendPoints(validateSecondaryDailyTrendSource(source, requestWindow.toSourceExpectation(skuGroupKey)))
         if (!alive || reqSeqRef.current !== reqSeq) return
         if (!series.length) throw new Error('일별 판매추이 데이터가 비어 있습니다.')
         setDailyTrendSeries(series)

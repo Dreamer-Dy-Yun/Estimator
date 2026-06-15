@@ -1,6 +1,6 @@
 # Dashboard API Contract Catalog
 
-Last updated: 2026-06-11
+Last updated: 2026-06-15
 
 Purpose: current backend implementation contract for the frontend in `dashboard-app`.
 
@@ -246,6 +246,7 @@ Type sources: `dashboard-app/src/api/types/drawer.ts`, `dashboard-app/src/api/ty
 | `getProductSalesInsight` | GET `/products/{skuGroupKey}/sales-insight` | date range, base subject, comparison subject | `ProductSalesInsight` |
 | `getProductSecondaryDetail` | GET `/products/{skuGroupKey}/secondary-detail` | base subject, comparison subject, `minOpMarginPct?` | `ProductSecondaryDetail` |
 | `getSecondaryDailyTrend` | GET `/products/{skuGroupKey}/secondary/daily-trend` | date range, `forecastDays`, base subject, comparison subject | `SecondaryDailyTrendSource` |
+| `getSecondaryInboundSplitSource` | GET `/products/{skuGroupKey}/secondary/inbound-split-source` | `dateStart`, `dateEnd`, base subject query | `SecondaryInboundSplitSource` |
 | `getSecondaryAiComment` | POST `/products/{skuGroupKey}/secondary/ai-comment` | AI comment request body without path `skuGroupKey` | `SecondaryAiCommentResult` |
 | `getSecondaryStockOrderCalc` | POST `/secondary/stock-order-calc` | `SecondaryStockOrderCalcParams` | `SecondaryStockOrderCalcResult` |
 
@@ -254,14 +255,19 @@ Frontend `SecondaryAiCommentParams` includes `skuGroupKey` so the HTTP adapter c
 Daily trend source response:
 
 ```ts
-interface SecondaryDailyTrendSubjectFlow {
+interface SecondaryDailyTrendBaseFlow {
+  sale: number
+  inbound: number
+}
+
+interface SecondaryDailyTrendComparisonFlow {
   sale: number
   inbound: number | null
 }
 
 interface SecondaryDailyTrendFlowCell {
-  base: SecondaryDailyTrendSubjectFlow
-  comparison: SecondaryDailyTrendSubjectFlow
+  base: SecondaryDailyTrendBaseFlow
+  comparison: SecondaryDailyTrendComparisonFlow
 }
 
 interface SecondaryDailyTrendSource {
@@ -278,9 +284,16 @@ interface SecondaryDailyTrendSource {
 Rules:
 
 - `flowByDate` is aggregate daily flow, not size-level flow.
-- `base` and `comparison` use the same `{ sale, inbound }` shape. `inbound` is nullable because comparison inbound can be unavailable.
+- This is the current frontend contract replacing the older chart-ready `SecondaryDailyTrendPoint[]` response. Backend must not return chart-only fields such as `stockBar`, `inboundAccumBar`, row `idx`, row `month`, or row `isForecast`.
+- `flowByDate` must contain every date from `dateStart` through inclusive `dateEnd`.
+- `baseStockAtStart` is opening stock immediately before `dateStart`; the frontend derives each stock bar by applying that date's inbound and sale.
+- `flowByDate[date].base.inbound` is required numeric known inbound for that date, not an accumulated chart bar. Send explicit `0` for known zero. Do not send `null` for base inbound.
+- `flowByDate[date].comparison.inbound` may be `null` because comparison inbound/stock is not rendered by the current frontend.
+- Numeric `0` means known zero. `null` means unavailable or not meaningful; for `baseStockAtStart`, `null` hides stock bars while `0` displays a real zero-stock series.
+- `comparisonStockAtStart` is reserved for comparison stock. The current frontend does not render comparison stock bars and accepts `null`.
 - The frontend derives chart-only fields such as `idx`, `month`, `isForecast`, `stockBar`, and line split fields from this source.
 - `forecastStartDate` is the only forecast boundary field. Backend must not send per-row `isForecast`.
+- The frontend validates response identity against the request: `productId`, `dateStart`, inclusive response `dateEnd`, and `forecastStartDate` must match the requested window. For request `endDate` plus `forecastDays`, response `dateEnd` must equal `endDate + forecastDays`, and `forecastStartDate` must equal `endDate + 1 day`.
 - Size-level source for split inbound suggestions is a separate contract: `getSecondaryInboundSplitSource`.
 
 AI comment request body:
@@ -537,8 +550,8 @@ Frontend function:
 
 Request query:
 
-- `dateStart`: current order inbound date. Inclusive date in `YYYY-MM-DD`.
-- `dateEnd`: next order inbound date. Exclusive date in `YYYY-MM-DD`.
+- `dateStart`: source-window start date. Inclusive date in `YYYY-MM-DD`.
+- `dateEnd`: source-window end date. Exclusive date in `YYYY-MM-DD`.
 - `baseRole=base`, `baseKind=self-company`, optional `baseSourceId`: same product drawer base subject contract used by secondary stock order calculation.
 
 Response contract:
@@ -561,8 +574,10 @@ interface SecondaryInboundSplitSource {
 Rules:
 
 - The backend returns source data only. It does not receive or calculate `splitInboundDates`, `splitCount`, or `totalOrderQtyBySize`.
+- This API is not the stock-order calculation result and not the daily trend source. It is the source for the split-inbound popup's shortage suggestions.
 - `stockBySize` is stock at `dateStart`.
 - `expectationByDate` is keyed by date for `dateStart <= date < dateEnd`.
+- `dateStart < dateEnd` is required. Invalid ranges should return 422 validation failure, not a successful empty source.
 - `sale` is expected sales quantity for that date and size.
 - `inbound` is already-known inbound quantity for that date and size. It excludes the current split inbound draft being edited in the frontend popup.
 - The frontend owns split count, split dates, and editable confirmed quantities as screen draft state. It uses this source plus current confirmed order quantity by size to produce read-only suggested quantities.

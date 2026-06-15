@@ -13,10 +13,34 @@
   width: 85vw;
   height: 70vh;
   max-height: 70vh;
+  --inbound-split-header-height: 32px;
+  --inbound-split-body-row-height: 30px;
+  --inbound-split-qty-col-width: 90px;
+  --inbound-split-round-col-width: 64px;
+  --inbound-split-date-col-width: 132px;
+  --inbound-split-kind-col-width: 68px;
+  --inbound-split-header-bg: #185c37;
+  --inbound-split-summary-bg: #6a8f74;
+  --inbound-split-round-sticky-bg: #a8bea6;
+  --inbound-split-sticky-bg: #f2f6ee;
+  --inbound-split-round-row-bg: #e3eddc;
+  --inbound-split-suggested-row-text: #1f4e2d;
+  --inbound-split-cell-text: #0f172a;
+  --inbound-split-border: #adc2a3;
+  --inbound-split-divider: #9cb38f;
+  --inbound-split-section-divider: #164a2e;
+  --inbound-split-round-divider: #5f7f56;
+  --inbound-split-diff-text: #b91c1c;
+  --inbound-split-shadow: rgb(72 94 66 / 0.18);
+  --inbound-split-dialog-surface: #f4faf2;
+  --inbound-split-dialog-surface-muted: #f8fbf5;
+  --inbound-split-dialog-border: #c6d8bd;
+  --inbound-split-dialog-title: #164a2e;
+  --inbound-split-dialog-muted-text: #4f6f56;
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  border: 1px solid #cbd5e1;
+  border: 1px solid var(--inbound-split-dialog-border);
   border-radius: 14px;
   background: #fff;
   box-shadow: 0 24px 72px rgb(15 23 42 / 0.28);
@@ -28,19 +52,20 @@
   justify-content: space-between;
   gap: 14px;
   padding: 14px 16px;
-  border-bottom: 1px solid #e2e8f0;
+  border-bottom: 1px solid var(--inbound-split-dialog-border);
+  background: var(--inbound-split-dialog-surface);
 }
 
 .inboundSplitDialogTitle {
   margin: 0;
-  color: #0f172a;
+  color: var(--inbound-split-dialog-title);
   font-size: 16px;
   font-weight: 800;
 }
 
 .inboundSplitDialogHint {
   margin: 4px 0 0;
-  color: #64748b;
+  color: var(--inbound-split-dialog-muted-text);
   font-size: 12px;
   line-height: 1.45;
 }
@@ -51,22 +76,23 @@
   justify-content: space-between;
   gap: 12px;
   padding: 10px 16px;
-  border-bottom: 1px solid #e2e8f0;
+  border-bottom: 1px solid var(--inbound-split-dialog-border);
+  background: var(--inbound-split-dialog-surface-muted);
 }
 
 .inboundSplitSummary {
-  color: #334155;
+  color: var(--inbound-split-dialog-title);
   font-size: 12px;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
 
-.inboundSplitSourceError {
+.inboundSplitError {
   display: flex;
   align-items: center;
   gap: 6px;
   margin: -2px 0 8px;
-  color: #b91c1c;
+  color: var(--inbound-split-diff-text, #b91c1c);
   font-size: 11px;
   font-weight: 700;
   line-height: 1.35;
@@ -79,7 +105,7 @@
   min-height: 0;
   margin: 0 16px;
   overflow: hidden;
-  border: 1px solid #dbe5f0;
+  border: 1px solid var(--inbound-split-dialog-border);
   border-radius: 0;
   background: #fff;
 }
@@ -89,4 +115,14 @@
   min-height: 0;
   overflow: auto;
   -webkit-overflow-scrolling: touch;
+}
+
+.inboundSplitDialogActions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 12px 16px;
+  border-top: 1px solid var(--inbound-split-dialog-border);
+  background: var(--inbound-split-dialog-surface-muted);
 }

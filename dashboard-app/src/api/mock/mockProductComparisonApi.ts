@@ -266,6 +266,8 @@ export async function getMockSecondaryDailyTrend({
   comparison,
 }: SecondaryDailyTrendParams): Promise<SecondaryDailyTrendSource> {
   await sleep(80)
+  assertMockSubjectRole(base, 'base')
+  assertMockSubjectRole(comparison, 'comparison')
   const primary: ProductPrimarySummary = scopeMockProductPrimary(requireMockProductPrimary(skuGroupKey), selfCompanySubjectScope(base))
   const stockTrend: { date: string; stock: number; inboundExpected: number; inboundQty: number; }[] = scopeMockStockTrend(skuGroupKey, requireMockStockTrend(skuGroupKey), selfCompanySubjectScope(base))
   return buildSecondaryDailyTrendSource(skuGroupKey, primary.monthlySalesTrend ?? [], stockTrend, startDate, endDate, forecastDays, comparisonScaleForSubject(skuGroupKey, primary, comparison))

@@ -119,7 +119,7 @@ export function SizeOrderShareChartRow({ tableRef, comparisonLabel, selfCompanyL
       </td>
       <td ref={chartCellRef} className={styles.sizeOrderShareChartCell} colSpan={sizeRows.length}>
         <div ref={chartInnerRef} className={styles.sizeOrderShareChartInner}>
-          <ResponsiveContainer width="100%" height="100%">
+          <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1} initialDimension={{ width: 1, height: 84 }}>
             <LineChart data={shareLineData} margin={{ top: 4, right: 0, left: 0, bottom: 0 }}>
               <XAxis type="number" dataKey="x" domain={xDomain} hide allowDataOverflow />
               <YAxis domain={yDomain} hide />

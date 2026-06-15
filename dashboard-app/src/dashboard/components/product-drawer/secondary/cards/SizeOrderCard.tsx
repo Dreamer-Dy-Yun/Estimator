@@ -1,7 +1,7 @@
 import type { SecondaryInboundSplitSource, SecondaryStockOrderDisplaySizeRow } from '../../../../../api/types/secondary'
 import type { OrderSnapshotConfirmedRound } from '../../../../../snapshot/orderSnapshotTypes'
 import type { SizeOrderColumnTotals } from './sizeOrderCardModel'
-import { useCallback, useMemo, useRef, useState } from 'react'
+import { useCallback, useMemo, useRef } from 'react'
 import { ApiUnitErrorBadge } from '../../../../../components/ApiUnitErrorBadge'
 import type { SecondaryStockOrderCalcResult } from '../../../../../api/types'
 import type { ApiUnitErrorInfo } from '../../../../../types'
@@ -10,25 +10,11 @@ import { KO } from '../../ko'
 import styles from '../secondaryDrawer.module.css'
 import type { SecondaryHelpId, SecondaryHelpIds } from '../secondaryDrawerTypes'
 import type { SecondarySizeOrderDisplayRow } from '../model/secondarySizeOrderRows'
-import { SizeOrderConfirmQuantityRows } from './SizeOrderConfirmQuantityRow'
-import { InboundSplitScheduleDialog, type InboundSplitDraftRequest } from './InboundSplitScheduleDialog'
+import { SizeOrderConfirmQuantityRows } from './SizeOrderConfirmQuantityRows'
+import { InboundSplitScheduleDialog } from './InboundSplitScheduleDialog'
 import { SizeOrderQuantityRows, type QuantityRow } from './SizeOrderQuantityRows'
 import { SizeOrderShareChartRow } from './SizeOrderShareChartRow'
 import { SizeOrderWeightControls } from './SizeOrderWeightControls'
-import {
-  MIN_INBOUND_SPLIT_COUNT,
-  buildInboundSplitScheduleRows,
-  clampInboundSplitCount,
-  cloneInboundSplitRows,
-  confirmedRoundsToInboundSplitRows,
-  getInboundSplitSizeColumns,
-  inboundSplitRowsToConfirmedRounds,
-  recalculateInboundSplitScheduleRows,
-  reconcileInboundSplitScheduleRows,
-  sumInboundSplitConfirmedBySize,
-  type InboundSplitScheduleRow,
-  type InboundSplitSizeColumn,
-} from './inboundSplitScheduleModel'
 import {
   calculateSizeOrderColumnTotals,
   formatSharePct,
@@ -37,20 +23,7 @@ import {
   parseSelfWeightPctFromComparisonInput,
   parseSelfWeightPctInput,
 } from './sizeOrderCardModel'
-
-type SplitRowsBuildResult = {
-  rows: InboundSplitScheduleRow[]
-  error: ApiUnitErrorInfo | null
-}
-
-function makeInboundSplitDraftErrorInfo(request: InboundSplitDraftRequest, err: unknown): ApiUnitErrorInfo {
-  return {
-    checkedAt: new Date().toISOString(),
-    page: 'ProductSecondaryDrawer',
-    request,
-    error: err instanceof Error ? err.message : String(err),
-  }
-}
+import { useInboundSplitScheduleController, type UseInboundSplitScheduleControllerResult } from './useInboundSplitScheduleController'
 
 export type Props = {
   sizeOrder: {
@@ -78,104 +51,25 @@ export type Props = {
 }
 
 export function SizeOrderCard({ sizeOrder, actions, help }: Props) : React.JSX.Element {
-  const { comparisonLabel, selfCompanyLabel, selfWeightPct, sizeRows, helpIds, stockOrderDisplay, calculationReady = true, manualConfirmBySize, currentOrderInboundDueDate, nextOrderInboundDueDate, inboundSplitSource, inboundSplitSourceLoading, inboundSplitSourceError, confirmedRounds }: { comparisonLabel: string; selfCompanyLabel: string; selfWeightPct: number; sizeRows: SecondarySizeOrderDisplayRow[]; helpIds: Pick<SecondaryHelpIds, 'totalOrderBalance' | 'expectedInboundOrderBalance' | 'sizeRecQty' | 'salesForecastSizeOrder'>; stockOrderDisplay: SecondaryStockOrderCalcResult['display'] | null; calculationReady?: boolean; manualConfirmBySize: Readonly<Record<string, true>>; currentOrderInboundDueDate: string; nextOrderInboundDueDate: string; inboundSplitSource: SecondaryInboundSplitSource | null; inboundSplitSourceLoading: boolean; inboundSplitSourceError: ApiUnitErrorInfo | null; confirmedRounds: OrderSnapshotConfirmedRound[]; } = sizeOrder
+  const { comparisonLabel, selfCompanyLabel, selfWeightPct, sizeRows, helpIds, stockOrderDisplay, calculationReady = true, manualConfirmBySize, currentOrderInboundDueDate, nextOrderInboundDueDate, inboundSplitSource, inboundSplitSourceLoading, inboundSplitSourceError, confirmedRounds }: Props['sizeOrder'] = sizeOrder
   const tableRef: React.RefObject<HTMLTableElement | null> = useRef<HTMLTableElement | null>(null)
   const comparisonWeightPct: number = getComparisonWeightPct(selfWeightPct)
   const columnTotals: SizeOrderColumnTotals = useMemo(() : SizeOrderColumnTotals => calculateSizeOrderColumnTotals(sizeRows), [sizeRows])
-  const splitSizeColumns: InboundSplitSizeColumn[] = useMemo(() : InboundSplitSizeColumn[] => getInboundSplitSizeColumns(sizeRows), [sizeRows])
-  const inboundSplitSourceReady: boolean = inboundSplitSource != null && !inboundSplitSourceLoading && inboundSplitSourceError == null
-  const [splitCount, setSplitCount]: [number, React.Dispatch<React.SetStateAction<number>>] = useState<number>(MIN_INBOUND_SPLIT_COUNT)
-  const [splitDialogOpen, setSplitDialogOpen]: [boolean, React.Dispatch<React.SetStateAction<boolean>>] = useState<boolean>(false)
-  const [splitDialogSessionId, setSplitDialogSessionId]: [number, React.Dispatch<React.SetStateAction<number>>] = useState<number>(0)
-  const [inboundSplitDraftError, setInboundSplitDraftError]: [ApiUnitErrorInfo | null, React.Dispatch<React.SetStateAction<ApiUnitErrorInfo | null>>] = useState<ApiUnitErrorInfo | null>(null)
-  const appliedSplitRows: InboundSplitScheduleRow[] = useMemo(
-    (): InboundSplitScheduleRow[] => confirmedRounds.length > 1 ? confirmedRoundsToInboundSplitRows(confirmedRounds, splitSizeColumns) : [],
-    [confirmedRounds, splitSizeColumns],
-  )
-  const splitConfirmLocked: boolean = appliedSplitRows.length > 1
-  const displaySplitCount: number = splitConfirmLocked ? appliedSplitRows.length : splitCount
-  const openSplitDialog: () => void = useCallback(() : void => {
-    if (inboundSplitSource == null) {
-      return
-    }
-    setInboundSplitDraftError(null)
-    setSplitDialogSessionId((currentId: number): number => currentId + 1)
-    setSplitDialogOpen(true)
-  }, [inboundSplitSource])
-  const buildSplitRowsForCount: (next: number) => InboundSplitScheduleRow[] = useCallback((next: number): InboundSplitScheduleRow[] => {
-    if (inboundSplitSource == null) return []
-    return buildInboundSplitScheduleRows(splitSizeColumns, clampInboundSplitCount(next), currentOrderInboundDueDate, nextOrderInboundDueDate, inboundSplitSource)
-  }, [currentOrderInboundDueDate, inboundSplitSource, nextOrderInboundDueDate, splitSizeColumns])
-  const recalculateSplitRows: (rows: InboundSplitScheduleRow[]) => InboundSplitScheduleRow[] = useCallback((rows: InboundSplitScheduleRow[]): InboundSplitScheduleRow[] => {
-    if (inboundSplitSource == null) return rows
-    return recalculateInboundSplitScheduleRows(rows, splitSizeColumns, nextOrderInboundDueDate, inboundSplitSource)
-  }, [inboundSplitSource, nextOrderInboundDueDate, splitSizeColumns])
-  const handleInboundSplitDraftError: (err: unknown | null, request: InboundSplitDraftRequest) => void = useCallback((err: unknown | null, request: InboundSplitDraftRequest): void => {
-    setInboundSplitDraftError(err == null ? null : makeInboundSplitDraftErrorInfo(request, err))
-  }, [])
-  const splitDialogInitialCount: number = splitConfirmLocked ? appliedSplitRows.length : splitCount
-  const splitDialogBuildResult: SplitRowsBuildResult = useMemo(() : SplitRowsBuildResult => {
-    if (!splitDialogOpen || inboundSplitSource == null) return { rows: [], error: null }
-    try {
-      if (splitConfirmLocked) {
-        return {
-          rows: reconcileInboundSplitScheduleRows(appliedSplitRows, splitSizeColumns, splitDialogInitialCount, currentOrderInboundDueDate, nextOrderInboundDueDate, inboundSplitSource),
-          error: null,
-        }
-      }
-      return {
-        rows: buildSplitRowsForCount(splitDialogInitialCount),
-        error: null,
-      }
-    } catch (err: unknown) {
-      return {
-        rows: [],
-        error: makeInboundSplitDraftErrorInfo('buildInboundSplitScheduleRows', err),
-      }
-    }
-  }, [appliedSplitRows, buildSplitRowsForCount, currentOrderInboundDueDate, inboundSplitSource, nextOrderInboundDueDate, splitConfirmLocked, splitDialogInitialCount, splitDialogOpen, splitSizeColumns])
-  const splitDialogRows: InboundSplitScheduleRow[] = splitDialogBuildResult.rows
-  const splitDialogError: ApiUnitErrorInfo | null = inboundSplitDraftError ?? splitDialogBuildResult.error
-  const inboundSplitVisibleError: ApiUnitErrorInfo | null = inboundSplitSourceError ?? splitDialogError
-  const closeSplitDialog: () => void = useCallback(() : void => {
-    setInboundSplitDraftError(null)
-    setSplitDialogOpen(false)
-  }, [])
-  const clearConfirmedRounds: () => void = useCallback((): void => {
-    actions.onConfirmedRoundsChange([])
-  }, [actions])
-  const applySplitDialog: (rows: InboundSplitScheduleRow[]) => void = useCallback((rows: InboundSplitScheduleRow[]): void => {
-    if (rows.length === 0) {
-      return
-    }
-    const nextRows: InboundSplitScheduleRow[] = cloneInboundSplitRows(rows)
-    setSplitCount(clampInboundSplitCount(nextRows.length))
-    const nextConfirmBySize: Record<string, number> = sumInboundSplitConfirmedBySize(nextRows, splitSizeColumns)
-    if (nextRows.length <= 1) {
-      clearConfirmedRounds()
-      sizeRows.forEach((row: SecondarySizeOrderDisplayRow): void => {
-        actions.onConfirmQtyChange(row.size, nextConfirmBySize[row.size] ?? row.confirmQty, row.recommendedQty)
-      })
-      setSplitDialogOpen(false)
-      return
-    }
-    actions.onConfirmedRoundsChange(inboundSplitRowsToConfirmedRounds(nextRows, splitSizeColumns))
-    sizeRows.forEach((row: SecondarySizeOrderDisplayRow): void => {
-      actions.onConfirmQtyChange(row.size, nextConfirmBySize[row.size] ?? 0, row.recommendedQty)
-    })
-    setSplitDialogOpen(false)
-  }, [actions, clearConfirmedRounds, sizeRows, splitSizeColumns])
+  const inboundSplitSchedule: UseInboundSplitScheduleControllerResult = useInboundSplitScheduleController({
+    sizeRows,
+    currentOrderInboundDueDate,
+    nextOrderInboundDueDate,
+    inboundSplitSource,
+    inboundSplitSourceLoading,
+    inboundSplitSourceError,
+    calculationReady,
+    confirmedRounds,
+    onConfirmQtyChange: actions.onConfirmQtyChange,
+    onConfirmedRoundsChange: actions.onConfirmedRoundsChange,
+  })
   const stockOrderSizeRowBySize: Map<string, SecondaryStockOrderDisplaySizeRow> = useMemo(
     () : Map<string, SecondaryStockOrderDisplaySizeRow> => new Map((stockOrderDisplay?.sizeRows ?? []).map((row: SecondaryStockOrderDisplaySizeRow) : [string, SecondaryStockOrderDisplaySizeRow] => [row.size, row])),
     [stockOrderDisplay],
-  )
-  const appliedSplitConfirmBySize: Record<string, number> = useMemo(
-    (): Record<string, number> => sumInboundSplitConfirmedBySize(appliedSplitRows, splitSizeColumns),
-    [appliedSplitRows, splitSizeColumns],
-  )
-  const appliedSplitConfirmTotal: number = useMemo(
-    (): number => splitSizeColumns.reduce((sum: number, column: InboundSplitSizeColumn): number => sum + (appliedSplitConfirmBySize[column.size] ?? 0), 0),
-    [appliedSplitConfirmBySize, splitSizeColumns],
   )
   const quantityRows: QuantityRow[] = [
     { label: KO.rowCurrentStockQty, totalQty: stockOrderDisplay?.currentStockQtyTotal ?? null, valueForSize: (row: SecondarySizeOrderDisplayRow) : number | undefined => stockOrderSizeRowBySize.get(row.size)?.currentStockQty },
@@ -204,17 +98,17 @@ export function SizeOrderCard({ sizeOrder, actions, help }: Props) : React.JSX.E
         <div className={styles.inboundSplitControls}>
           <span className={styles.inboundSplitCountLabel} aria-label={KO.ariaInboundSplitCount}>
             <span>{KO.labelInboundSplitCount}</span>
-            <strong className={styles.inboundSplitCountValue}>{displaySplitCount} {KO.unitInboundSplitCount}</strong>
+            <strong className={styles.inboundSplitCountValue}>{inboundSplitSchedule.displayCount} {KO.unitInboundSplitCount}</strong>
           </span>
-          <button type="button" className={`${styles.btn} ${styles.btnSecondary} ${styles.inboundSplitButton}`} onClick={openSplitDialog} disabled={!inboundSplitSourceReady} title={inboundSplitSourceError?.error}>
+          <button type="button" className={`${styles.btn} ${styles.btnSecondary} ${styles.inboundSplitButton}`} onClick={inboundSplitSchedule.openDialog} disabled={!inboundSplitSchedule.scheduleReady} title={!calculationReady ? KO.msgStockOrderCalcRequired : inboundSplitSchedule.sourceErrorTitle}>
             {KO.btnInboundSplitSchedule}
           </button>
         </div>
       </div>
-      {inboundSplitVisibleError && (
-        <p className={styles.inboundSplitSourceError} role="alert">
-          {inboundSplitVisibleError.error}
-          <ApiUnitErrorBadge error={inboundSplitVisibleError} />
+      {inboundSplitSchedule.visibleError && (
+        <p className={styles.inboundSplitError} role="alert">
+          {inboundSplitSchedule.visibleError.error}
+          <ApiUnitErrorBadge error={inboundSplitSchedule.visibleError} />
         </p>
       )}
       {!calculationReady && (
@@ -250,15 +144,15 @@ export function SizeOrderCard({ sizeOrder, actions, help }: Props) : React.JSX.E
             <SizeOrderQuantityRows rows={quantityRows} sizeRows={sizeRows} />
             <SizeOrderConfirmQuantityRows
               calculationReady={calculationReady}
-              splitConfirmLocked={splitConfirmLocked}
+              inboundSplitConfirmedRoundsLocked={inboundSplitSchedule.confirmedRoundsLocked}
               columnConfirmTotal={columnTotals.confirm}
-              appliedSplitConfirmTotal={appliedSplitConfirmTotal}
+              appliedInboundSplitConfirmTotal={inboundSplitSchedule.appliedConfirmTotal}
               sizeRows={sizeRows}
               manualConfirmBySize={manualConfirmBySize}
-              appliedSplitConfirmBySize={appliedSplitConfirmBySize}
-              appliedSplitRows={appliedSplitRows}
-              splitSizeColumns={splitSizeColumns}
-              onClearConfirmedRounds={clearConfirmedRounds}
+              appliedInboundSplitConfirmBySize={inboundSplitSchedule.appliedConfirmBySize}
+              appliedInboundSplitRows={inboundSplitSchedule.appliedRows}
+              inboundSplitColumns={inboundSplitSchedule.columns}
+              onClearConfirmedRounds={inboundSplitSchedule.clearConfirmedRounds}
               onConfirmQtyChange={actions.onConfirmQtyChange}
             />
           </tbody>
@@ -266,17 +160,9 @@ export function SizeOrderCard({ sizeOrder, actions, help }: Props) : React.JSX.E
       </div>
     </div>
     <InboundSplitScheduleDialog
-      key={splitDialogSessionId}
-      open={splitDialogOpen && inboundSplitSourceReady}
-      initialCount={splitDialogInitialCount}
-      initialRows={splitDialogRows}
-      columns={splitSizeColumns}
-      buildRowsForCount={buildSplitRowsForCount}
-      recalculateRows={recalculateSplitRows}
-      draftError={splitDialogError}
-      onDraftError={handleInboundSplitDraftError}
-      onApply={applySplitDialog}
-      onClose={closeSplitDialog}
+      key={inboundSplitSchedule.dialogKey}
+      open={inboundSplitSchedule.dialogOpen}
+      {...inboundSplitSchedule.dialogProps}
     />
     </>
   )

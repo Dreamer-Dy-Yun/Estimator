@@ -112,6 +112,19 @@ describe('getMockSecondaryInboundSplitSource', (): void => {
     expect(result.expectationByDate['2027-06-14']?.['210']).toEqual({ sale: 1, inbound: 0 })
   })
 
+  it('rejects an empty or reversed date range instead of returning an empty source', async (): Promise<void> => {
+    stubFixtureFetch()
+
+    await expect(
+      getMockSecondaryInboundSplitSource({
+        skuGroupKey: TEST_SHOE_SKU_GROUP_KEY,
+        dateStart: '2026-04-03',
+        dateEnd: '2026-04-03',
+        base: MOCK_BASE_SUBJECT,
+      }),
+    ).rejects.toThrow('dateStart < dateEnd')
+  })
+
   it('clears the fixture cache after a failed static asset request', async (): Promise<void> => {
     const failedFetch = vi.fn(async (): Promise<MockFetchResponse> => ({
       ok: false,

@@ -118,7 +118,7 @@ export function SalesTrendChart({
   const primaryYDomain: [number | 'auto', number | 'auto'] =
     yScale === 'log' ? ['auto', 'auto'] : [0, resolvedPrimaryYMax]
   return (
-    <ResponsiveContainer width="100%" height={height}>
+    <ResponsiveContainer width="100%" height={height} minWidth={1} minHeight={1} initialDimension={{ width: 1, height }}>
       <ComposedChart data={data} margin={{ top: 4, right: hasSecondaryAxis ? 18 : 12, bottom: 4, left: 4 }}>
         <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
         <ReferenceArea

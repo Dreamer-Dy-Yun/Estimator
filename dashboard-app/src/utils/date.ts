@@ -17,6 +17,13 @@ export function formatIsoDateLocal(date: Date): string {
   return `${y}-${m}-${d}`
 }
 
+export function addIsoDays(dateText: string, days: number): string {
+  const date: Date = new Date(`${dateText}T00:00:00.000Z`)
+  if (Number.isNaN(date.getTime())) return dateText
+  date.setUTCDate(date.getUTCDate() + days)
+  return date.toISOString().slice(0, 10)
+}
+
 /** `YYYY-MM` 달의 실제 일수(달력). */
 export function calendarDaysInMonth(yyyyMm: string): number {
   const [y, m]: number[] = yyyyMm.split('-').map(Number)

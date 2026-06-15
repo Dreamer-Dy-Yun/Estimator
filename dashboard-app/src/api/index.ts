@@ -58,6 +58,8 @@ export type {
   ProductSecondaryDetailParams,
   SecondaryAiCommentParams,
   SecondaryAiCommentResult,
+  SecondaryDailyTrendBaseFlow,
+  SecondaryDailyTrendComparisonFlow,
   SecondaryDailyTrendFlowCell,
   SecondaryDailyTrendParams,
   SecondaryDailyTrendPoint,

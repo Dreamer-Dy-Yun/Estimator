@@ -1,7 +1,8 @@
 import type { ProductComparisonBaseSubjectRef, ProductComparisonTarget, ProductMonthlyTrend, SecondaryCompetitorChannel, SecondaryStockOrderCalcResult } from '..'
-import type { ProductMonthlyTrendPoint, SecondaryDailyTrendFlowCell, SecondaryDailyTrendSource } from '../types'
+import type { ProductMonthlyTrendPoint, SecondaryDailyTrendFlowCell, SecondaryDailyTrendPoint, SecondaryDailyTrendSource } from '../types'
 import type { SecondaryStockOrderDisplaySizeRow } from '../types/secondary'
 import { describe, expect, it } from 'vitest'
+import { buildSecondaryDailyTrendPoints } from '../../dashboard/components/product-drawer/secondary/model/secondaryDailyTrendSourceModel'
 import { mockDashboardApi } from './dashboardApi'
 import { MOCK_HANA_COMPANY_UUID, MOCK_T1_COMPANY_UUID } from './mockCompanyScope'
 import { skuGroupKeyByLegacyId } from './salesTables'
@@ -166,6 +167,26 @@ describe('api/mock dashboardApi competitor channel behavior', () : void => {
     expect(sumCompetitorSales(musinsa)).toBeLessThan(sumCompetitorSales(kream))
   })
 
+  it('rejects secondary daily trend subject role mismatches like the HTTP adapter', async () : Promise<void> => {
+    await expect(mockDashboardApi.getSecondaryDailyTrend({
+      skuGroupKey: skuGroupKey('B'),
+      startDate: '2025-01-01',
+      endDate: '2026-05-28',
+      forecastDays: 0,
+      base: { ...MOCK_BASE_SUBJECT, role: 'comparison' } as unknown as ProductComparisonBaseSubjectRef,
+      comparison: mockCompetitorTarget('kream'),
+    })).rejects.toThrow('expected base')
+
+    await expect(mockDashboardApi.getSecondaryDailyTrend({
+      skuGroupKey: skuGroupKey('B'),
+      startDate: '2025-01-01',
+      endDate: '2026-05-28',
+      forecastDays: 0,
+      base: MOCK_BASE_SUBJECT,
+      comparison: { ...mockCompetitorTarget('kream'), role: 'base' } as unknown as ProductComparisonTarget,
+    })).rejects.toThrow('expected comparison')
+  })
+
   it('keeps daily trend actual rows through endDate and appends forecastDays after it', async () : Promise<void> => {
     const source: SecondaryDailyTrendSource = await mockDashboardApi.getSecondaryDailyTrend({
       skuGroupKey: skuGroupKey('B'),
@@ -181,6 +202,21 @@ describe('api/mock dashboardApi competitor channel behavior', () : void => {
     expect(source.flowByDate['2026-05-28']).toBeDefined()
     expect(Object.keys(source.flowByDate).filter((date: string) : boolean => date >= source.forecastStartDate)).toEqual(['2026-05-29', '2026-05-30', '2026-05-31'])
     expect(source.dateEnd).toBe('2026-05-31')
+  })
+
+  it('returns secondary daily trend source that rebuilds visible stock bars', async () : Promise<void> => {
+    const source: SecondaryDailyTrendSource = await mockDashboardApi.getSecondaryDailyTrend({
+      skuGroupKey: skuGroupKey('B'),
+      startDate: '2026-04-01',
+      endDate: '2026-05-28',
+      forecastDays: 0,
+      base: MOCK_BASE_SUBJECT,
+      comparison: mockCompetitorTarget('kream'),
+    })
+    const points: SecondaryDailyTrendPoint[] = buildSecondaryDailyTrendPoints(source)
+
+    expect(source.baseStockAtStart).not.toBeNull()
+    expect(points.some((point: SecondaryDailyTrendPoint) : boolean => (point.stockBar ?? 0) > 0)).toBe(true)
   })
 
   it('applies selected channel to product monthly competitor trend', async () : Promise<void> => {

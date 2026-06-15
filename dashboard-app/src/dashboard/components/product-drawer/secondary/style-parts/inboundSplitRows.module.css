@@ -1,8 +1,9 @@
-﻿.inboundSplitSummaryRow td {
+.inboundSplitSummaryRow td {
   position: sticky;
   top: var(--inbound-split-header-height);
   z-index: 7;
-  background: #d7f2a8;
+  background: var(--inbound-split-summary-bg);
+  color: #fff;
   font-weight: 400;
   border-bottom-color: transparent;
 }
@@ -12,22 +13,24 @@
 }
 
 .inboundSplitSuggestedRow td {
-  background: #ebf8be;
-  color: #115b28;
+  background: var(--inbound-split-round-row-bg);
+  color: var(--inbound-split-suggested-row-text);
+  border-bottom-width: 0;
   border-bottom-color: transparent;
 }
 
 .inboundSplitConfirmedRow td {
-  background: #f9fff0;
-  color: #0f172a;
+  background: var(--inbound-split-round-row-bg);
+  color: var(--inbound-split-cell-text);
   font-weight: 700;
+  border-top-width: 0;
   border-top-color: transparent;
 }
 
 .inboundSplitSummaryRow td,
 .inboundSplitSuggestedRow td,
 .inboundSplitConfirmedRow td {
-  height: 30px;
+  height: var(--inbound-split-body-row-height);
 }
 
 .inboundSplitSummaryRow:not(.inboundSplitSummaryRowEnd) td,
@@ -41,20 +44,21 @@
 }
 
 .inboundSplitRoundEndRow td {
-  border-bottom-color: #c9ea91;
+  border-bottom: 2px solid var(--inbound-split-round-divider);
+  box-shadow: inset 0 -1px 0 var(--inbound-split-round-divider);
 }
 
-.inboundSplitRoundSpanCell {
-  background: #fff;
-  color: #334155;
+.inboundSplitRowSpanCell {
   font-weight: 800;
   vertical-align: middle;
 }
 
 .inboundSplitSummaryRowEnd td {
-  top: calc(var(--inbound-split-header-height) + 30px);
-  border-bottom-color: #84c54f;
-  box-shadow: 0 2px 0 var(--inbound-split-divider), 0 12px 18px -18px var(--inbound-split-shadow);
+  top: calc(var(--inbound-split-header-height) + var(--inbound-split-body-row-height));
+  border-top-width: 0;
+  border-top-color: transparent;
+  border-bottom-color: var(--inbound-split-section-divider);
+  box-shadow: inset 0 -3px 0 var(--inbound-split-section-divider), 0 12px 18px -18px var(--inbound-split-shadow);
   font-weight: 700;
 }
 
@@ -62,46 +66,30 @@
   border-bottom-color: var(--inbound-split-border);
 }
 
-.inboundSplitSuggestedRow .inboundSplitRoundSpanCell {
-  border-bottom-color: #d7f2a8;
+.inboundSplitSuggestedRow .inboundSplitRowSpanCell {
+  border-bottom: 2px solid var(--inbound-split-round-divider);
+  box-shadow: inset 0 -1px 0 var(--inbound-split-round-divider);
 }
 
 .inboundSplitSummaryRow .inboundSplitSummarySpanCell {
-  border-bottom-color: var(--inbound-split-border);
+  border-bottom-color: var(--inbound-split-section-divider);
+  box-shadow: inset 0 -3px 0 var(--inbound-split-section-divider), 0 12px 18px -18px var(--inbound-split-shadow);
 }
 
-.inboundSplitTable thead .inboundSplitStickyCol {
-  background: #d7f2a8;
-}
-
-.inboundSplitSummaryRow .inboundSplitStickyCol {
-  background: #cbeb8f;
-}
-
-.inboundSplitSuggestedRow .inboundSplitStickyCol {
-  background: #e1f6ae;
-  color: #0f4c22;
-}
-
+.inboundSplitSuggestedRow .inboundSplitStickyCol,
 .inboundSplitConfirmedRow .inboundSplitStickyCol {
-  background: #f6fde2;
-  color: #0f172a;
-}
-
-.inboundSplitSuggestedRow .inboundSplitRoundSpanCell,
-.inboundSplitSummaryRow .inboundSplitSummarySpanCell {
-  background: var(--inbound-split-sticky-bg);
-  color: #334155;
+  background: var(--inbound-split-round-sticky-bg);
+  color: var(--inbound-split-cell-text);
 }
 
 .inboundSplitSummaryRow .inboundSplitConfirmedDiff,
 .inboundSplitConfirmedRow .inboundSplitConfirmedDiff,
 .inboundSplitConfirmedRow .inboundSplitStickyCol.inboundSplitConfirmedDiff {
-  color: #b91c1c;
+  color: var(--inbound-split-diff-text);
 }
 
 .inboundSplitTable .stockNumberInput.inboundSplitConfirmedDiff {
-  color: #b91c1c;
+  color: var(--inbound-split-diff-text);
 }
 
 .inboundSplitTable .stockDateInput,
@@ -114,18 +102,18 @@
 }
 
 .inboundSplitRoundCell {
-  width: 64px;
-  min-width: 64px;
+  width: var(--inbound-split-round-col-width);
+  min-width: var(--inbound-split-round-col-width);
 }
 
 .inboundSplitDateCell {
-  width: 132px;
-  min-width: 132px;
+  width: var(--inbound-split-date-col-width);
+  min-width: var(--inbound-split-date-col-width);
 }
 
 .inboundSplitKindCell {
-  width: 68px;
-  min-width: 68px;
+  width: var(--inbound-split-kind-col-width);
+  min-width: var(--inbound-split-kind-col-width);
   text-align: center;
 }
 
@@ -149,14 +137,4 @@
 .inboundSplitTable .stockDateInput {
   font-size: 12px;
   font-weight: 800;
-}
-
-.inboundSplitDialogActions {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 8px;
-  padding: 12px 16px;
-  border-top: 1px solid #e2e8f0;
-  background: #f8fafc;
 }

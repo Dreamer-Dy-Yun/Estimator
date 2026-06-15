@@ -4,6 +4,7 @@ import { LoadingSpinner } from '../../../../../components/LoadingSpinner'
 import type { OrderSnapshotStockOrderRequest } from '../../../../../snapshot/orderSnapshotTypes'
 import type { ApiUnitErrorInfo } from '../../../../../types'
 import type React from 'react'
+import { addIsoDays } from '../../../../../utils/date'
 import { displayNumber, formatGroupedNumber, formatGroupedOneDecimal } from '../../../../../utils/format'
 import commonStyles from '../../../common.module.css'
 import { usePortalHelpPopover } from '../../../usePortalHelpPopover'
@@ -114,6 +115,7 @@ export function SalesForecastCard({ forecast, orderInputFields, actions, help }:
   const { inputs, error, computed }: { inputs: SalesForecastDisplayInputs; loading: boolean; error: ApiUnitErrorInfo | null; calculationReady?: boolean; computed: SalesForecastComputedTable; } = forecast
   const calculationReady: boolean = forecast.calculationReady ?? true
   const { currentOrderInboundDueDate, nextOrderInboundDueDate, minOrderDate, bufferStock, unitCost, unitPrice, expectedFeeRatePct }: SalesForecastOrderInputFields = orderInputFields
+  const minNextOrderInboundDueDate: string = addIsoDays(currentOrderInboundDueDate >= minOrderDate ? currentOrderInboundDueDate : minOrderDate, 1)
   const { labelIds, portal }: { labelIds: Pick<SecondaryHelpIds, 'forecastQtyCalc' | 'expectedOpProfitRate'>; portal: ReturnType<typeof usePortalHelpPopover<SecondaryHelpId>>; } = help
   const calcRate: (expectedSales: number, expectedQty: number) => number | null = (expectedSales: number, expectedQty: number): number | null => {
     if (!Number.isFinite(expectedSales) || expectedSales <= 0) return null
@@ -140,7 +142,7 @@ export function SalesForecastCard({ forecast, orderInputFields, actions, help }:
       )}
       <div className={`${styles.stockInputList} ${styles.salesForecastInputList}`}>
         <DateField label={KO.labelCurrentOrderInboundDueDate} min={minOrderDate} value={currentOrderInboundDueDate} onChange={actions.onCurrentOrderInboundDueDateChange} />
-        <DateField label={KO.labelNextOrderInboundDueDate} min={currentOrderInboundDueDate >= minOrderDate ? currentOrderInboundDueDate : minOrderDate} value={nextOrderInboundDueDate} onChange={actions.onNextOrderInboundDueDateChange} />
+        <DateField label={KO.labelNextOrderInboundDueDate} min={minNextOrderInboundDueDate} value={nextOrderInboundDueDate} onChange={actions.onNextOrderInboundDueDateChange} />
         <NumberField label={KO.labelBufferStock} value={bufferStock} onChange={actions.onBufferStockChange} unit={KO.unitBufferStockDays} grouped />
         <NumberField label={KO.labelUnitCost} value={unitCost} onChange={actions.onUnitCostChange} unit={KO.unitWonPerEa} grouped />
         <NumberField label={KO.labelUnitPrice} value={unitPrice} onChange={actions.onUnitPriceChange} unit={KO.unitWonPerEa} grouped />

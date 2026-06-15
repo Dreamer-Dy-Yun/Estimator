@@ -1,5 +1,5 @@
 import type { MonthlySalesPoint } from '../../types'
-import type { SecondaryDailyTrendPoint, SecondaryDailyTrendSource, SecondaryDailyTrendSubjectFlow } from '../types'
+import type { SecondaryDailyTrendBaseFlow, SecondaryDailyTrendComparisonFlow, SecondaryDailyTrendPoint, SecondaryDailyTrendSource } from '../types'
 import { daysInMonth, formatIsoDateUtc, parseIsoDateUtc } from './secondaryDailyTrendDates'
 
 type MonthlyStockTrendPoint = {
@@ -73,6 +73,7 @@ function appendForecastDays(points: SecondaryDailyTrendPoint[], forecastDays: nu
   for (let index: number = 0; index < count; index += 1) {
     date = new Date(date.getTime() + 86_400_000)
     const sales: number = Math.max(1, Math.round(last.sales * (1 + Math.sin(index) * 0.04)))
+    const comparisonSales: number = Math.max(0, Math.round((last.comparisonSales ?? sales) * (1 + Math.sin(index) * 0.04)))
     const stockBar: number | null = last.stockBar == null ? null : Math.max(0, last.stockBar - sales)
     last = {
       idx: points.length,
@@ -82,7 +83,7 @@ function appendForecastDays(points: SecondaryDailyTrendPoint[], forecastDays: nu
       stockBar,
       inboundAccumBar: last.inboundAccumBar == null ? null : Math.max(0, last.inboundAccumBar - sales),
       baseSales: null,
-      comparisonSales: null,
+      comparisonSales,
       isForecast: true,
     }
     points.push(last)
@@ -95,11 +96,64 @@ function addDays(dateText: string, days: number): string {
   return formatIsoDateUtc(date)
 }
 
-function emptySubjectFlow(sale: number, inbound: number | null): SecondaryDailyTrendSubjectFlow {
+function makeBaseSubjectFlow(sale: number, inbound: number): SecondaryDailyTrendBaseFlow {
+  return {
+    sale: Math.max(0, Math.round(sale)),
+    inbound: Math.max(0, Math.round(inbound)),
+  }
+}
+
+function makeComparisonSubjectFlow(sale: number, inbound: number | null): SecondaryDailyTrendComparisonFlow {
   return {
     sale: Math.max(0, Math.round(sale)),
     inbound: inbound == null ? null : Math.max(0, Math.round(inbound)),
   }
+}
+
+function pointBaseSale(point: SecondaryDailyTrendPoint): number {
+  return Math.max(0, Math.round(point.baseSales ?? point.sales))
+}
+
+function pointComparisonSale(point: SecondaryDailyTrendPoint): number {
+  return Math.max(0, Math.round(point.comparisonSales ?? 0))
+}
+
+function pointStock(point: SecondaryDailyTrendPoint): number | null {
+  return point.stockBar == null ? null : Math.max(0, Math.round(point.stockBar))
+}
+
+function deriveBaseStockAtStart(points: SecondaryDailyTrendPoint[]): number | null {
+  const first: SecondaryDailyTrendPoint | undefined = points[0]
+  const firstStock: number | null = first == null ? null : pointStock(first)
+  if (first == null || firstStock == null) return null
+  return Math.max(0, Math.round(firstStock + pointBaseSale(first)))
+}
+
+function deriveDailyInbound(point: SecondaryDailyTrendPoint, previousStock: number | null): number | null {
+  const stock: number | null = pointStock(point)
+  if (stock == null || previousStock == null) return null
+  return Math.max(0, Math.round(stock - previousStock + pointBaseSale(point)))
+}
+
+function buildFlowByDate(
+  points: SecondaryDailyTrendPoint[],
+  baseStockAtStart: number | null,
+): SecondaryDailyTrendSource['flowByDate'] {
+  let runningStock: number | null = baseStockAtStart
+  return Object.fromEntries(points.map((point: SecondaryDailyTrendPoint): [string, SecondaryDailyTrendSource['flowByDate'][string]] => {
+    const sale: number = pointBaseSale(point)
+    const inbound: number = deriveDailyInbound(point, runningStock) ?? 0
+    if (runningStock != null) {
+      runningStock = Math.max(0, Math.round(runningStock + inbound - sale))
+    }
+    return [
+      point.date,
+      {
+        base: makeBaseSubjectFlow(sale, inbound),
+        comparison: makeComparisonSubjectFlow(pointComparisonSale(point), null),
+      },
+    ]
+  }))
 }
 
 export const buildSecondaryDailyTrendSource: (
@@ -120,24 +174,16 @@ export const buildSecondaryDailyTrendSource: (
   comparisonSalesScale: number = 10,
 ): SecondaryDailyTrendSource => {
   const points: SecondaryDailyTrendPoint[] = buildSecondaryDailyTrend(monthlyTrend, monthlyStockTrend, startDate, endDate, forecastDays, comparisonSalesScale)
-  const startMonth: string = startDate.slice(0, 7)
-  const stockByMonth: Map<string, MonthlyStockTrendPoint> = new Map(monthlyStockTrend.map((row: MonthlyStockTrendPoint): [string, MonthlyStockTrendPoint] => [row.date, row]))
-  const firstStock: MonthlyStockTrendPoint | undefined = findStockTrendForMonth(stockByMonth, startMonth)
   const forecastStartDate: string = addDays(endDate, 1)
+  const baseStockAtStart: number | null = deriveBaseStockAtStart(points)
   return {
     productId,
     dateStart: startDate,
     dateEnd: points[points.length - 1]?.date ?? endDate,
     forecastStartDate,
-    baseStockAtStart: firstStock == null ? null : Math.max(0, Math.round(firstStock.stock)),
+    baseStockAtStart,
     comparisonStockAtStart: null,
-    flowByDate: Object.fromEntries(points.map((point: SecondaryDailyTrendPoint): [string, { base: SecondaryDailyTrendSubjectFlow; comparison: SecondaryDailyTrendSubjectFlow; }] => [
-      point.date,
-      {
-        base: emptySubjectFlow(point.baseSales ?? point.sales, point.inboundAccumBar),
-        comparison: emptySubjectFlow(point.comparisonSales ?? 0, null),
-      },
-    ])),
+    flowByDate: buildFlowByDate(points, baseStockAtStart),
   }
 }
 

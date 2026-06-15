@@ -2,13 +2,23 @@
 
 Last updated: 2026-06-15
 
+## 0-9) 2026-06-15 secondary inbound split UI/style boundary
+
+- Split inbound UI ownership is layered by responsibility. `SizeOrderCard.tsx` composes the card, `useInboundSplitScheduleController.ts` owns parent state transfer and applied split rows, `InboundSplitScheduleDialog.tsx` owns modal shell behavior, `useInboundSplitScheduleDraft.ts` owns local draft edits/totals, `InboundSplitScheduleTable.tsx` owns row/table rendering, `inboundSplitScheduleTableClasses.ts` owns table class/diff-label helpers, and `inboundSplitScheduleTypes.ts` owns shared UI aliases.
+- Split inbound visual ownership stays inside `secondary/secondaryDrawer.module.css`; components must not import the `style-parts` files directly.
+- `inboundSplitDialogShell.module.css` is the root for split-inbound modal structure and shared CSS variables. Palette, row heights, fixed quantity width, sticky shadow, and dialog surface tokens are inherited by the table and row style parts from the dialog root.
+- `inboundSplitTable.module.css` owns only table geometry: base table sizing, header style, horizontal sticky columns, sticky left offsets, fill-spare-width behavior, and overflow scroll preservation.
+- `inboundSplitRows.module.css` owns only row state styling: summary and round row colors, no-divider styling between suggested and confirmed rows in the same round, section/round dividers, changed-confirmation text color, sticky body-cell widths, and input dimensions.
+- Source data, shortage recommendation logic, row rebuilding, and Apply/Close state transfer remain in the existing TS/TSX/model owners; CSS cleanup must not move API/mock source behavior into UI styles or components.
+
 ## 0-8) 2026-06-15 secondary inbound split recommendation baseline
 
 - Split inbound suggestions use the immutable size recommendation baseline (`recommendedQty`), not the mutable user confirmation value (`confirmQty` / `confirmedQty`).
 - `InboundSplitSizeColumn.confirmedQty` remains display and confirmation-total state; `InboundSplitSizeColumn.recommendedQty` is the cap used by `inboundSplitSuggestionModel.ts`.
 - Applying split inbound rows updates `drawer2.confirmed.rounds` and the current confirmation inputs only. It must not convert a confirmed-snapshot drawer to the live calculation baseline by itself.
-- Changing calculation inputs such as inbound dates, weight, buffer stock, unit economics, or forecast inputs may still mark the confirmed snapshot baseline dirty and switch the drawer to live calculation.
-- Regression coverage lives in `useSecondaryDrawerSnapshotController.test.tsx` and `inboundSplitSuggestionModel.test.ts`.
+- Opening or applying split inbound rows requires both a valid split source and completed stock-order calculation. If readiness drops while the dialog is open, the controller closes and remounts the dialog to discard stale draft state.
+- Changing live calculation inputs such as inbound dates, weight, buffer stock, unit economics, forecast inputs, or stock-order result basis clears `drawer2.confirmed.rounds` together with direct confirmed quantities.
+- Regression coverage lives in `useSecondaryDrawerSnapshotController.test.tsx`, `useSecondaryForecastModel.test.tsx`, `useInboundSplitScheduleController.test.tsx`, and `inboundSplitSuggestionModel.test.ts`.
 
 ## 0-7) 2026-06-15 secondary inbound split fixture boundary
 
@@ -56,7 +66,7 @@ Last updated: 2026-06-15
 - 비교 대상 목록은 세션 장기 캐시 대상이 아니다. 관리자/회사 scope 변경 가능성을 숨기지 않기 위해 요청 계층에서 그대로 조회한다.
 - 2차 드로워의 참고지표 조회는 `ProductComparisonTarget`을 따르지만, 발주 계산 readiness는 참고지표 조회 성공 여부가 아니라 stock-order 계산 결과로만 판단한다.
 - 2차 오더의 사이즈 비중 계산은 `ProductSecondaryDetail.comparisonRatioBySize` 기반이다. 비교 대상이 경쟁사 채널이든 자사 target이든 backend/mock이 해당 comparison subject 기준 비중을 제공해야 하며, UI가 라벨만 바꾸어 데이터를 위장하지 않는다.
-- 2차 드로워 분할 입고 설정은 `SizeOrderCard`, `InboundSplitScheduleDialog`, `SizeOrderConfirmQuantityRow`, `inboundSplitScheduleModel`이 소유한다. `useSecondaryInboundSplitSource`는 API source의 date range, size stock, date/size별 sale/inbound 완전성을 요청 성공 직후 검증한다. 모델은 차수/입고일/제안 수량/확정 수량/정수 배분 계약을 담당하고, 다이얼로그는 draft 편집만 담당한다. `SizeOrderConfirmQuantityRow`는 확정 수량 행과 적용된 분할 입고 행 렌더링만 담당한다. 적용된 확정 수량은 `OrderSnapshotDocument.drawer2.confirmed.rounds`로 저장하며, 추천/비율 행인 `sizeOrders`에는 확정 수량을 중복 저장하지 않는다.
+- 2차 드로워 분할 입고 설정은 `SizeOrderCard`, `useInboundSplitScheduleController`, `InboundSplitScheduleDialog`, `useInboundSplitScheduleDraft`, `InboundSplitScheduleTable`, `SizeOrderConfirmQuantityRows`, `inboundSplitScheduleModel`, `inboundSplitSuggestionModel`이 책임별로 나눠 소유한다. `useSecondaryInboundSplitSource`는 API source의 date range, size stock, date/size별 sale/inbound 완전성을 요청 성공 직후 검증한다. 모델은 차수/입고일/제안 수량/확정 수량/정수 배분 계약을 담당하고, 다이얼로그는 shell과 draft 편집 진입만 담당한다. `SizeOrderConfirmQuantityRows`는 확정 수량 행과 적용된 분할 입고 행 렌더링만 담당한다. 적용된 확정 수량은 `OrderSnapshotDocument.drawer2.confirmed.rounds`로 저장하며, 추천/비율 행인 `sizeOrders`에는 확정 수량을 중복 저장하지 않는다.
 - mock API에서 판매 리스트 facade는 `src/api/mock/dashboardApi.ts`, 상품 비교/추이 mock은 `src/api/mock/mockProductComparisonApi.ts`, 2차 상세 mock builder는 `src/api/mock/mockProductSecondaryDetailApi.ts`가 각각 소유한다.
 
 
@@ -148,7 +158,13 @@ Last updated: 2026-06-15
 - 런타임/CI/e2e 규칙 변경 → `boundaries/repository-runtime.md`, 배포/테스트 노트 갱신
 - 큰 변경은 `project-cleanup-YYYY-MM-DD.md` 형태로 결과 기록
 
-## 4) 2026-06-14 secondary inbound split source boundary
+## 4) 2026-06-14 secondary daily and inbound split source boundary
+
+- Secondary daily trend source owns opening stock plus aggregate per-date flow. `baseStockAtStart` is the stock just before `dateStart`, and `flowByDate[date].base.inbound` is required numeric per-date base inbound rather than a chart-ready accumulated bar.
+- Backend-facing daily trend compatibility depends on this source shape. Returning old chart-ready `stockBar`/`inboundAccumBar` fields does not restore stock bars; the frontend recomputes stock from `baseStockAtStart`, daily `base.inbound`, and daily `base.sale`.
+- Daily trend `flowByDate` must cover every date from `dateStart` through inclusive `dateEnd`. Known zero sale/inbound values are numeric `0`; `null` is reserved for `comparison.inbound`, `baseStockAtStart`, and reserved stock fields.
+- `useSecondaryDailyTrend` validates response `productId`, `dateStart`, inclusive `dateEnd`, and `forecastStartDate` against the request before building chart points.
+- Split inbound source uses a separate exclusive date window: `dateStart <= date < dateEnd`, and invalid `dateEnd <= dateStart` should be treated as validation failure instead of a successful empty source.
 
 - 2차 드로워 일간 판매추이는 API source와 chart point를 분리한다.
 - `getSecondaryDailyTrend`는 합계 일자 flow와 `forecastStartDate`를 제공하고, `useSecondaryDailyTrend`/`secondaryDailyTrendSourceModel.ts`가 chart point를 파생한다.

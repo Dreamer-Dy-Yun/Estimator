@@ -1,9 +1,13 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { daysInclusiveBetween, formatIsoDateLocal } from '../../../../../utils/date'
+import { addIsoDays, daysInclusiveBetween, formatIsoDateLocal } from '../../../../../utils/date'
 
 export type InboundDueDateDefaults = {
   start: string
   end: string
+}
+
+function nextInboundDateAfter(dateText: string): string {
+  return addIsoDays(dateText, 1)
 }
 
 function buildDefaultInboundDueDates(): InboundDueDateDefaults {
@@ -38,7 +42,7 @@ export function useSecondaryInboundDueDates() : { defaultInboundDueDates: Inboun
   useEffect(() : () => void => {
     let alive: boolean = true
     queueMicrotask(() : void => {
-      if (alive) setNextOrderInboundDueDate((e: string) : string => (e < currentOrderInboundDueDate ? currentOrderInboundDueDate : e))
+      if (alive) setNextOrderInboundDueDate((e: string) : string => (e <= currentOrderInboundDueDate ? nextInboundDateAfter(currentOrderInboundDueDate) : e))
     })
     return () : void => {
       alive = false
@@ -53,18 +57,18 @@ export function useSecondaryInboundDueDates() : { defaultInboundDueDates: Inboun
   const handleCurrentOrderInboundDueDateChange: (next: string) => void = useCallback((next: string) : void => {
     const v: string = next < minOrderDate ? minOrderDate : next
     setCurrentOrderInboundDueDate(v)
-    setNextOrderInboundDueDate((e: string) : string => (e < v ? v : e))
+    setNextOrderInboundDueDate((e: string) : string => (e <= v ? nextInboundDateAfter(v) : e))
   }, [minOrderDate])
 
   const handleNextOrderInboundDueDateChange: (next: string) => void = useCallback((next: string) : void => {
     let v: string = next < minOrderDate ? minOrderDate : next
-    if (v < currentOrderInboundDueDate) v = currentOrderInboundDueDate
+    if (v <= currentOrderInboundDueDate) v = nextInboundDateAfter(currentOrderInboundDueDate)
     setNextOrderInboundDueDate(v)
   }, [currentOrderInboundDueDate, minOrderDate])
 
   const resetInboundDueDatesToLive: () => void = useCallback(() : void => {
     const nextStart: string = defaultInboundDueDates.start < minOrderDate ? minOrderDate : defaultInboundDueDates.start
-    const nextEnd: string = defaultInboundDueDates.end < nextStart ? nextStart : defaultInboundDueDates.end
+    const nextEnd: string = defaultInboundDueDates.end <= nextStart ? nextInboundDateAfter(nextStart) : defaultInboundDueDates.end
     setCurrentOrderInboundDueDate(nextStart)
     setNextOrderInboundDueDate(nextEnd)
   }, [defaultInboundDueDates.end, defaultInboundDueDates.start, minOrderDate])

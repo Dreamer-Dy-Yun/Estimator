@@ -25,4 +25,19 @@ describe('SecondaryDailyTrendRequestWindow', () : void => {
 
     expect(window.forecastDays).toBe(0)
   })
+
+  it('derives the expected source response window', () : void => {
+    const window: SecondaryDailyTrendRequestWindow = SecondaryDailyTrendRequestWindow.fromSelectedStartMonth({
+      selectedStartMonth: '2025-01',
+      forecastDays: 3,
+      today: new Date(2026, 4, 29),
+    })
+
+    expect(window.toSourceExpectation('sku-a')).toEqual({
+      productId: 'sku-a',
+      dateStart: '2025-01-01',
+      dateEnd: '2026-05-31',
+      forecastStartDate: '2026-05-29',
+    })
+  })
 })
