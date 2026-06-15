@@ -151,7 +151,9 @@
   top: 0;
   z-index: 4;
   height: var(--inbound-split-header-height);
-  background: #f8fafc;
+  background: #e8eef6;
+  border-bottom-color: #cbd5e1;
+  box-shadow: 0 1px 0 #cbd5e1;
 }
 
 .inboundSplitTable th:not(.inboundSplitStickyCol),
@@ -162,6 +164,7 @@
 .inboundSplitStickyCol {
   position: sticky;
   z-index: 5;
+  background: #eef2f7;
 }
 
 .inboundSplitTable thead .inboundSplitStickyCol {
@@ -182,14 +185,14 @@
 
 .inboundSplitStickyColTotal {
   left: 264px;
-  box-shadow: 1px 0 0 #dbe5f0;
+  box-shadow: 2px 0 0 #94a3b8, 14px 0 18px -14px rgb(15 23 42 / 0.62);
 }
 
 .inboundSplitSummaryRow td {
   position: sticky;
   top: var(--inbound-split-header-height);
   z-index: 7;
-  background: #eef7ff;
+  background: #e2edf8;
   font-weight: 800;
   border-bottom-color: transparent;
 }
@@ -240,7 +243,9 @@
 
 .inboundSplitSummaryRowEnd td {
   top: calc(var(--inbound-split-header-height) + 30px);
-  border-bottom-color: #b7d5f5;
+  border-bottom-color: #94a3b8;
+  box-shadow: 0 2px 0 #94a3b8, 0 12px 18px -18px rgb(15 23 42 / 0.55);
+  font-weight: 500;
 }
 
 .inboundSplitSummarySpanCell {
@@ -253,6 +258,30 @@
 
 .inboundSplitSummaryRow .inboundSplitSummarySpanCell {
   border-bottom-color: #b7d5f5;
+}
+
+.inboundSplitTable thead .inboundSplitStickyCol {
+  background: #e2e8f0;
+}
+
+.inboundSplitSummaryRow .inboundSplitStickyCol {
+  background: #dce8f3;
+}
+
+.inboundSplitSuggestedRow .inboundSplitStickyCol {
+  background: #e6edf6;
+  color: #1e40af;
+}
+
+.inboundSplitConfirmedRow .inboundSplitStickyCol {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+.inboundSplitSuggestedRow .inboundSplitRoundSpanCell,
+.inboundSplitSummaryRow .inboundSplitSummarySpanCell {
+  background: #eef2f7;
+  color: #334155;
 }
 
 .inboundSplitTable .stockDateInput,
