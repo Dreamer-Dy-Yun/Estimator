@@ -9,6 +9,23 @@ type MonthlyStockTrendPoint = {
   inboundQty?: number
 }
 
+function sortedStockMonthKeys(stockByMonth: Map<string, MonthlyStockTrendPoint>): string[] {
+  return Array.from(stockByMonth.keys()).sort()
+}
+
+function findStockTrendForMonth(stockByMonth: Map<string, MonthlyStockTrendPoint>, month: string): MonthlyStockTrendPoint | undefined {
+  const exact: MonthlyStockTrendPoint | undefined = stockByMonth.get(month)
+  if (exact != null) return exact
+
+  const keys: string[] = sortedStockMonthKeys(stockByMonth)
+  for (let i: number = keys.length - 1; i >= 0; i -= 1) {
+    const prevMonth: string = keys[i] ?? ''
+    if (!prevMonth || prevMonth <= month) return stockByMonth.get(prevMonth)
+  }
+  const first: string | undefined = keys[0]
+  return first == null ? undefined : stockByMonth.get(first)
+}
+
 function trendSlice(trend: MonthlySalesPoint[], periodStart: string, periodEnd: string) : MonthlySalesPoint[] {
   const startMonth: string = periodStart.slice(0, 7)
   const endMonth: string = periodEnd.slice(0, 7)
@@ -105,7 +122,7 @@ export const buildSecondaryDailyTrendSource: (
   const points: SecondaryDailyTrendPoint[] = buildSecondaryDailyTrend(monthlyTrend, monthlyStockTrend, startDate, endDate, forecastDays, comparisonSalesScale)
   const startMonth: string = startDate.slice(0, 7)
   const stockByMonth: Map<string, MonthlyStockTrendPoint> = new Map(monthlyStockTrend.map((row: MonthlyStockTrendPoint): [string, MonthlyStockTrendPoint] => [row.date, row]))
-  const firstStock: MonthlyStockTrendPoint | undefined = stockByMonth.get(startMonth)
+  const firstStock: MonthlyStockTrendPoint | undefined = findStockTrendForMonth(stockByMonth, startMonth)
   const forecastStartDate: string = addDays(endDate, 1)
   return {
     productId,
@@ -137,14 +154,17 @@ export const buildSecondaryDailyTrend: (monthlyTrend: MonthlySalesPoint[], month
   const stockByMonth: Map<string, MonthlyStockTrendPoint> = new Map(monthlyStockTrend.map((row: MonthlyStockTrendPoint) : [string, MonthlyStockTrendPoint] => [row.date, row]))
   const scale: number = Number.isFinite(comparisonSalesScale) ? Math.max(0, comparisonSalesScale) : 10
   const points: SecondaryDailyTrendPoint[] = []
+  let priorStockRow: MonthlyStockTrendPoint | undefined = findStockTrendForMonth(stockByMonth, startMonth)
 
   monthlyTrend.forEach((monthPoint: MonthlySalesPoint, monthIndex: number) : void => {
     if (monthPoint.date < startMonth) return
     if (monthPoint.date > endMonth) return
     const days: number = daysInMonth(monthPoint.date)
-    const stockRow: MonthlyStockTrendPoint | undefined = stockByMonth.get(monthPoint.date)
-    const inboundQty: number = Math.max(0, Math.round(stockRow?.inboundQty ?? stockRow?.inboundExpected ?? 0))
-    const endStock: number = Math.max(0, Math.round(stockRow?.stock ?? 0))
+    const monthStockRow: MonthlyStockTrendPoint | undefined = stockByMonth.get(monthPoint.date)
+    if (monthStockRow != null) priorStockRow = monthStockRow
+    const resolvedStockRow: MonthlyStockTrendPoint | undefined = priorStockRow
+    const inboundQty: number = Math.max(0, Math.round(resolvedStockRow?.inboundQty ?? resolvedStockRow?.inboundExpected ?? 0))
+    const endStock: number = Math.max(0, Math.round(resolvedStockRow?.stock ?? 0))
     const seed: number = monthPoint.date.charCodeAt(5) + monthIndex
 
     for (let dayIndex: number = 0; dayIndex < days; dayIndex += 1) {

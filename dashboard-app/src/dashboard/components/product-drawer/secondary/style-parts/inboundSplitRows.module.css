@@ -2,8 +2,8 @@
   position: sticky;
   top: var(--inbound-split-header-height);
   z-index: 7;
-  background: #e2edf8;
-  font-weight: 800;
+  background: #d7f2a8;
+  font-weight: 400;
   border-bottom-color: transparent;
 }
 
@@ -12,13 +12,13 @@
 }
 
 .inboundSplitSuggestedRow td {
-  background: #f1f7ff;
-  color: #2563eb;
+  background: #ebf8be;
+  color: #115b28;
   border-bottom-color: transparent;
 }
 
 .inboundSplitConfirmedRow td {
-  background: #fff;
+  background: #f9fff0;
   color: #0f172a;
   font-weight: 700;
   border-top-color: transparent;
@@ -41,7 +41,7 @@
 }
 
 .inboundSplitRoundEndRow td {
-  border-bottom-color: #dbe5f0;
+  border-bottom-color: #c9ea91;
 }
 
 .inboundSplitRoundSpanCell {
@@ -53,44 +53,44 @@
 
 .inboundSplitSummaryRowEnd td {
   top: calc(var(--inbound-split-header-height) + 30px);
-  border-bottom-color: #94a3b8;
-  box-shadow: 0 2px 0 #94a3b8, 0 12px 18px -18px rgb(15 23 42 / 0.55);
-  font-weight: 500;
+  border-bottom-color: #84c54f;
+  box-shadow: 0 2px 0 var(--inbound-split-divider), 0 12px 18px -18px var(--inbound-split-shadow);
+  font-weight: 700;
 }
 
 .inboundSplitSummarySpanCell {
-  border-bottom-color: #b7d5f5;
+  border-bottom-color: var(--inbound-split-border);
 }
 
 .inboundSplitSuggestedRow .inboundSplitRoundSpanCell {
-  border-bottom-color: #dbe5f0;
+  border-bottom-color: #d7f2a8;
 }
 
 .inboundSplitSummaryRow .inboundSplitSummarySpanCell {
-  border-bottom-color: #b7d5f5;
+  border-bottom-color: var(--inbound-split-border);
 }
 
 .inboundSplitTable thead .inboundSplitStickyCol {
-  background: #e2e8f0;
+  background: #d7f2a8;
 }
 
 .inboundSplitSummaryRow .inboundSplitStickyCol {
-  background: #dce8f3;
+  background: #cbeb8f;
 }
 
 .inboundSplitSuggestedRow .inboundSplitStickyCol {
-  background: #e6edf6;
-  color: #1e40af;
+  background: #e1f6ae;
+  color: #0f4c22;
 }
 
 .inboundSplitConfirmedRow .inboundSplitStickyCol {
-  background: #f1f5f9;
+  background: #f6fde2;
   color: #0f172a;
 }
 
 .inboundSplitSuggestedRow .inboundSplitRoundSpanCell,
 .inboundSplitSummaryRow .inboundSplitSummarySpanCell {
-  background: #eef2f7;
+  background: var(--inbound-split-sticky-bg);
   color: #334155;
 }
 
@@ -130,8 +130,8 @@
 }
 
 .inboundSplitTotalCell {
-  width: 112px;
-  min-width: 112px;
+  width: var(--inbound-split-qty-col-width);
+  min-width: var(--inbound-split-qty-col-width);
 }
 
 .inboundSplitQtyInput {

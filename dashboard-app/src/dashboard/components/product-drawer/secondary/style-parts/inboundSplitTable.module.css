@@ -4,6 +4,12 @@
   font-size: 13px;
   --inbound-split-header-height: 32px;
   --inbound-split-row-height: 34px;
+  --inbound-split-qty-col-width: 90px;
+  --inbound-split-header-bg: #d4ecaf;
+  --inbound-split-sticky-bg: #e3f5bf;
+  --inbound-split-border: #7fc55a;
+  --inbound-split-divider: #6aa84f;
+  --inbound-split-shadow: rgb(42 99 15 / 0.45);
 }
 
 .inboundSplitTable th,
@@ -22,20 +28,21 @@
   top: 0;
   z-index: 4;
   height: var(--inbound-split-header-height);
-  background: #e8eef6;
-  border-bottom-color: #cbd5e1;
-  box-shadow: 0 1px 0 #cbd5e1;
+  background: var(--inbound-split-header-bg);
+  border-bottom-color: var(--inbound-split-border);
+  box-shadow: 0 1px 0 var(--inbound-split-border);
 }
 
 .inboundSplitTable th:not(.inboundSplitStickyCol),
 .inboundSplitTable td:not(.inboundSplitStickyCol) {
-  min-width: 112px;
+  width: var(--inbound-split-qty-col-width);
+  min-width: var(--inbound-split-qty-col-width);
 }
 
 .inboundSplitStickyCol {
   position: sticky;
   z-index: 5;
-  background: #eef2f7;
+  background: var(--inbound-split-sticky-bg);
 }
 
 .inboundSplitTable thead .inboundSplitStickyCol {
@@ -56,5 +63,5 @@
 
 .inboundSplitStickyColTotal {
   left: 264px;
-  box-shadow: 2px 0 0 #94a3b8, 14px 0 18px -14px rgb(15 23 42 / 0.62);
+  box-shadow: 2px 0 0 var(--inbound-split-divider), 14px 0 18px -14px var(--inbound-split-shadow);
 }
