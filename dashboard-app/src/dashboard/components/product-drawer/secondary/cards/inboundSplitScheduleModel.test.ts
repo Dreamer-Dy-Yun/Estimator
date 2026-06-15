@@ -95,4 +95,18 @@ describe('inbound split schedule recalculation', () : void => {
     expect(rebuiltRows).toEqual(directRows)
     expect(rebuiltRows[0].quantitiesBySize.S).not.toBe(777)
   })
+
+  it('throws when split schedule dates cannot define a forward interval', () : void => {
+    const source: SecondaryInboundSplitSource = makeSource({
+      '2026-04-01': 1,
+    })
+
+    expect((): InboundSplitScheduleRow[] => buildInboundSplitScheduleRows(
+      COLUMNS,
+      2,
+      '2026-04-01',
+      '2026-04-01',
+      source,
+    )).toThrow('Inbound split next date must be after the start date.')
+  })
 })

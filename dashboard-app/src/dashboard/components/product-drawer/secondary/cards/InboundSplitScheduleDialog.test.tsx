@@ -2,7 +2,8 @@
 import { act, type ComponentProps } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, describe, expect, it, vi, type Mock } from 'vitest'
-import { InboundSplitScheduleDialog } from './InboundSplitScheduleDialog'
+import { KO } from '../../ko'
+import { InboundSplitScheduleDialog, type InboundSplitDraftRequest } from './InboundSplitScheduleDialog'
 import type { InboundSplitScheduleRow, InboundSplitSizeColumn } from './inboundSplitScheduleModel'
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
@@ -49,7 +50,7 @@ type RenderResult = {
     recalculateRows: Mock<(rows: InboundSplitScheduleRow[]) => InboundSplitScheduleRow[]>
     onApply: Mock<(rows: InboundSplitScheduleRow[]) => void>
     onClose: Mock<() => void>
-    onDraftError: Mock<(err: unknown | null, request: string) => void>
+    onDraftError: Mock<(err: unknown | null, request: InboundSplitDraftRequest) => void>
   }
 }
 
@@ -131,6 +132,7 @@ describe('InboundSplitScheduleDialog event flow', () : void => {
     changeValue(firstTotalInput, '20')
 
     expect(firstTotalInput.className).toContain('inboundSplitConfirmedDiff')
+    expect(firstTotalInput.getAttribute('aria-label')).toContain(KO.ariaInboundSplitConfirmedDiff)
     const actionButtons: HTMLButtonElement[] = Array.from(document.querySelectorAll<HTMLButtonElement>('footer button'))
     act(() : void => {
       actionButtons[1].click()
@@ -151,6 +153,24 @@ describe('InboundSplitScheduleDialog event flow', () : void => {
     })
 
     expect(props.onClose).toHaveBeenCalledTimes(1)
+    expect(props.onApply).not.toHaveBeenCalled()
+  })
+
+  it('disables apply while a draft error is visible', () : void => {
+    const { props }: RenderResult = renderDialog({
+      draftError: {
+        checkedAt: '2026-06-15T00:00:00.000Z',
+        page: 'ProductSecondaryDrawer',
+        request: 'buildInboundSplitScheduleRows',
+        error: 'missing source cell',
+      },
+    })
+    const actionButtons: HTMLButtonElement[] = Array.from(document.querySelectorAll<HTMLButtonElement>('footer button'))
+
+    expect(actionButtons[1].disabled).toBe(true)
+    act(() : void => {
+      actionButtons[1].click()
+    })
     expect(props.onApply).not.toHaveBeenCalled()
   })
 

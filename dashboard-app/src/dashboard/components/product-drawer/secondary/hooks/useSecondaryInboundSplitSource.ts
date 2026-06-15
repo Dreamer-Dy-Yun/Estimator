@@ -3,6 +3,8 @@ import { dashboardApi } from '../../../../../api'
 import type { ProductComparisonBaseSubjectRef, SecondaryInboundSplitSource, SecondaryInboundSplitSourceParams } from '../../../../../api/types'
 import type { ApiUnitErrorInfo } from '../../../../../types'
 
+const DAY_MS: number = 86_400_000
+
 export interface UseSecondaryInboundSplitSourceParams {
   skuGroupKey: string
   dateStart: string
@@ -17,6 +19,30 @@ export interface UseSecondaryInboundSplitSourceResult {
   inboundSplitSourceError: ApiUnitErrorInfo | null
 }
 
+function parseIsoDateMs(value: string, field: string): number {
+  const match: RegExpMatchArray | null = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value)
+  if (!match) throw new Error(`Secondary inbound split source ${field} must be a valid ISO date.`)
+
+  const year: number = Number(match[1])
+  const monthIndex: number = Number(match[2]) - 1
+  const day: number = Number(match[3])
+  const parsed: Date = new Date(Date.UTC(year, monthIndex, day))
+  if (parsed.getUTCFullYear() !== year || parsed.getUTCMonth() !== monthIndex || parsed.getUTCDate() !== day) {
+    throw new Error(`Secondary inbound split source ${field} must be a valid ISO date.`)
+  }
+  return parsed.getTime()
+}
+
+function formatIsoDate(dateMs: number): string {
+  return new Date(dateMs).toISOString().slice(0, 10)
+}
+
+function assertFiniteQuantity(value: number | undefined, field: string): void {
+  if (value == null || !Number.isFinite(value)) {
+    throw new Error(`Secondary inbound split source ${field} must be finite.`)
+  }
+}
+
 function assertInboundSplitSource(source: SecondaryInboundSplitSource, dateStart: string, dateEnd: string): void {
   if (!source.productId) {
     throw new Error('Secondary inbound split source productId is required.')
@@ -29,6 +55,34 @@ function assertInboundSplitSource(source: SecondaryInboundSplitSource, dateStart
   }
   if (source.expectationByDate == null || typeof source.expectationByDate !== 'object') {
     throw new Error('Secondary inbound split source expectationByDate is required.')
+  }
+
+  const startMs: number = parseIsoDateMs(source.dateStart, 'dateStart')
+  const endMs: number = parseIsoDateMs(source.dateEnd, 'dateEnd')
+  if (endMs <= startMs) {
+    throw new Error('Secondary inbound split source dateEnd must be after dateStart.')
+  }
+
+  const sizes: string[] = Object.keys(source.stockBySize)
+  if (sizes.length === 0) {
+    throw new Error('Secondary inbound split source stockBySize must include at least one size.')
+  }
+  sizes.forEach((size: string): void => assertFiniteQuantity(source.stockBySize[size], `stockBySize.${size}`))
+
+  for (let cursorMs: number = startMs; cursorMs < endMs; cursorMs += DAY_MS) {
+    const date: string = formatIsoDate(cursorMs)
+    const cellsBySize: SecondaryInboundSplitSource['expectationByDate'][string] | undefined = source.expectationByDate[date]
+    if (cellsBySize == null || typeof cellsBySize !== 'object') {
+      throw new Error(`Secondary inbound split source expectationByDate.${date} is required.`)
+    }
+    sizes.forEach((size: string): void => {
+      const cell: SecondaryInboundSplitSource['expectationByDate'][string][string] | undefined = cellsBySize[size]
+      if (cell == null) {
+        throw new Error(`Secondary inbound split source expectationByDate.${date}.${size} is required.`)
+      }
+      assertFiniteQuantity(cell.sale, `expectationByDate.${date}.${size}.sale`)
+      assertFiniteQuantity(cell.inbound, `expectationByDate.${date}.${size}.inbound`)
+    })
   }
 }
 

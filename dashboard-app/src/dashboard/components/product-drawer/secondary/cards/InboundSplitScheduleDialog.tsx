@@ -17,6 +17,8 @@ import {
   type InboundSplitSizeColumn,
 } from './inboundSplitScheduleModel'
 
+export type InboundSplitDraftRequest = 'buildInboundSplitScheduleRows' | 'recalculateInboundSplitScheduleRows'
+
 export interface InboundSplitScheduleDialogProps {
   open: boolean
   initialCount: number
@@ -25,14 +27,14 @@ export interface InboundSplitScheduleDialogProps {
   buildRowsForCount: (next: number) => InboundSplitScheduleRow[]
   recalculateRows: (rows: InboundSplitScheduleRow[]) => InboundSplitScheduleRow[]
   draftError?: ApiUnitErrorInfo | null
-  onDraftError?: (err: unknown | null, request: string) => void
+  onDraftError?: (err: unknown | null, request: InboundSplitDraftRequest) => void
   onApply: (rows: InboundSplitScheduleRow[]) => void
   onClose: () => void
 }
 
-function toNonNegativeInteger(value: string): number {
-  return Math.max(0, Math.round(Number(value) || 0))
-}
+function toNonNegativeInteger(value: string): number { return Math.max(0, Math.round(Number(value) || 0)) }
+
+function ariaDiffLabel(label: string, diffClassName: string): string { return diffClassName ? `${label} ${KO.ariaInboundSplitConfirmedDiff}` : label }
 
 export function InboundSplitScheduleDialog({
   open,
@@ -113,6 +115,7 @@ export function InboundSplitScheduleDialog({
     (): number => columns.reduce((sum: number, column: InboundSplitSizeColumn): number => sum + (confirmedSizeTotals[column.size] ?? 0), 0),
     [columns, confirmedSizeTotals],
   )
+  const applyDisabled: boolean = draftError != null || rows.length === 0
 
   const handleRowTotalChange: (rowIndex: number, value: string) => void = useCallback((rowIndex: number, value: string): void => {
     setRows((currentRows: InboundSplitScheduleRow[]): InboundSplitScheduleRow[] => {
@@ -218,9 +221,9 @@ export function InboundSplitScheduleDialog({
               </tr>
               <tr className={`${styles.inboundSplitSummaryRow} ${styles.inboundSplitSummaryRowEnd}`}>
                 <td className={`${styles.inboundSplitKindCell} ${styles.inboundSplitStickyCol} ${styles.inboundSplitStickyColKind}`}>{KO.rowInboundSplitConfirmedQty}</td>
-                <td className={`${styles.num} ${styles.inboundSplitTotalCell} ${styles.inboundSplitStickyCol} ${styles.inboundSplitStickyColTotal} ${diffClass(confirmedGrandTotal, suggestedGrandTotal)}`}>{formatGroupedNumber(confirmedGrandTotal)}</td>
+                <td className={`${styles.num} ${styles.inboundSplitTotalCell} ${styles.inboundSplitStickyCol} ${styles.inboundSplitStickyColTotal} ${diffClass(confirmedGrandTotal, suggestedGrandTotal)}`} aria-label={ariaDiffLabel(formatGroupedNumber(confirmedGrandTotal), diffClass(confirmedGrandTotal, suggestedGrandTotal))}>{formatGroupedNumber(confirmedGrandTotal)}</td>
                 {columns.map((column: InboundSplitSizeColumn): React.JSX.Element => (
-                  <td key={column.size} className={`${styles.num} ${diffClass(confirmedSizeTotals[column.size] ?? 0, suggestedSizeTotals[column.size] ?? 0)}`}>{formatGroupedNumber(confirmedSizeTotals[column.size] ?? 0)}</td>
+                  <td key={column.size} className={`${styles.num} ${diffClass(confirmedSizeTotals[column.size] ?? 0, suggestedSizeTotals[column.size] ?? 0)}`} aria-label={ariaDiffLabel(formatGroupedNumber(confirmedSizeTotals[column.size] ?? 0), diffClass(confirmedSizeTotals[column.size] ?? 0, suggestedSizeTotals[column.size] ?? 0))}>{formatGroupedNumber(confirmedSizeTotals[column.size] ?? 0)}</td>
                 ))}
               </tr>
               {rows.map((row: InboundSplitScheduleRow, rowIndex: number): React.JSX.Element => {
@@ -257,7 +260,7 @@ export function InboundSplitScheduleDialog({
                         step={1}
                         value={confirmedTotalQty}
                         onChange={(event: React.ChangeEvent<HTMLInputElement>): void => handleRowTotalChange(rowIndex, event.target.value)}
-                        aria-label={`${row.round}${KO.optionInboundSplitRoundSuffix} ${KO.thInboundSplitTotalQty} ${KO.rowInboundSplitConfirmedQty}`}
+                        aria-label={ariaDiffLabel(`${row.round}${KO.optionInboundSplitRoundSuffix} ${KO.thInboundSplitTotalQty} ${KO.rowInboundSplitConfirmedQty}`, totalDiffClass)}
                       />
                     </td>
                     {columns.map((column: InboundSplitSizeColumn): React.JSX.Element => {
@@ -273,7 +276,7 @@ export function InboundSplitScheduleDialog({
                           step={1}
                           value={confirmedQty}
                           onChange={(event: React.ChangeEvent<HTMLInputElement>): void => handleQtyChange(rowIndex, column.size, event.target.value)}
-                          aria-label={`${row.round}${KO.optionInboundSplitRoundSuffix} ${column.size} ${KO.rowInboundSplitConfirmedQty}`}
+                          aria-label={ariaDiffLabel(`${row.round}${KO.optionInboundSplitRoundSuffix} ${column.size} ${KO.rowInboundSplitConfirmedQty}`, sizeDiffClass)}
                         />
                       </td>
                       )
@@ -288,7 +291,7 @@ export function InboundSplitScheduleDialog({
         </div>
         <footer className={styles.inboundSplitDialogActions}>
           <button type="button" className={`${styles.btn} ${styles.btnSecondary}`} onClick={onClose}>{KO.btnCloseInboundSplitDialog}</button>
-          <button type="button" className={styles.btn} onClick={(): void => onApply(cloneInboundSplitRows(rows))}>{KO.btnApplyInboundSplitSchedule}</button>
+          <button type="button" className={styles.btn} onClick={(): void => onApply(cloneInboundSplitRows(rows))} disabled={applyDisabled}>{KO.btnApplyInboundSplitSchedule}</button>
         </footer>
       </section>
     </div>

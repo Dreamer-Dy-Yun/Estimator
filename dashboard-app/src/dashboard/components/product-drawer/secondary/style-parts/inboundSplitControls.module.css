@@ -1,0 +1,46 @@
+﻿.inboundSplitControls {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.inboundSplitCountLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: #475569;
+  font-size: 11px;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.inboundSplitCountSelect {
+  min-height: 26px;
+  padding: 3px 24px 3px 8px;
+  border: 1px solid #cbd5e1;
+  border-radius: 999px;
+  background: #fff;
+  color: #0f172a;
+  font: inherit;
+  font-size: 11px;
+  line-height: 1.2;
+}
+
+.inboundSplitCountValue {
+  color: #0f172a;
+  font-size: 12px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.inboundSplitButton {
+  min-height: 26px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 11px;
+  line-height: 1.2;
+  white-space: nowrap;
+}
