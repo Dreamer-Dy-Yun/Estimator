@@ -1,4 +1,4 @@
-import { writeFileSync } from 'node:fs'
+import { mkdirSync, rmSync, writeFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -19,18 +19,17 @@ type FixtureEntry = {
   expectationByDate: Record<string, Record<string, SecondaryInboundSplitExpectationCell>>
 }
 
-type FixtureByScope = Record<string, Record<string, FixtureEntry>>
-
-type Fixture = {
-  schema: 'secondary-inbound-split-source:v1'
+type ScopeFixture = {
+  schema: 'secondary-inbound-split-source:scope:v1'
+  scopeKey: string
   rangeStart: string
   rangeEnd: string
-  byScope: FixtureByScope
+  entries: Record<string, FixtureEntry>
 }
 
 const INBOUND_SPLIT_SCOPE_ALL_KEY = '__mock-all-company__'
 const INBOUND_SPLIT_SOURCE_RANGE_START = '2026-01-01'
-const INBOUND_SPLIT_SOURCE_RANGE_END = '2027-01-01'
+const INBOUND_SPLIT_SOURCE_RANGE_END = '2027-06-15'
 const DAY_MS = 86_400_000
 const TARGET_ORDER_MULTIPLIER_BY_SIZE = 1 as const
 const MIN_ANNUAL_TARGET_QTY = 1 as const
@@ -168,28 +167,32 @@ function buildFixtureEntry(skuGroupKey: string, baseScope: { companyUuid?: strin
   return { stockBySize, expectationByDate }
 }
 
-const fixtures: Fixture = {
-  schema: 'secondary-inbound-split-source:v1',
-  rangeStart: INBOUND_SPLIT_SOURCE_RANGE_START,
-  rangeEnd: INBOUND_SPLIT_SOURCE_RANGE_END,
-  byScope: {},
-}
-
 const scopeEntries: Array<{ key: string; companyUuid: string | undefined }> = [
   { key: INBOUND_SPLIT_SCOPE_ALL_KEY, companyUuid: undefined },
   { key: MOCK_HANA_COMPANY_UUID, companyUuid: MOCK_HANA_COMPANY_UUID },
   { key: MOCK_T1_COMPANY_UUID, companyUuid: MOCK_T1_COMPANY_UUID },
 ]
 
+const scriptDir = dirname(fileURLToPath(import.meta.url))
+const outDir = resolve(scriptDir, '../public/mock/secondaryInboundSplitSourceFixtures')
+const legacyOut = resolve(scriptDir, '../public/mock/secondaryInboundSplitSourceFixtures.json')
+rmSync(legacyOut, { force: true })
+rmSync(outDir, { recursive: true, force: true })
+mkdirSync(outDir, { recursive: true })
+
 for (const scope of scopeEntries) {
   const skuByScope: Record<string, FixtureEntry> = {}
   for (const skuGroupKey of allKnownSkuGroupKeys) {
     skuByScope[skuGroupKey] = buildFixtureEntry(skuGroupKey, { companyUuid: scope.companyUuid })
   }
-  fixtures.byScope[scope.key] = skuByScope
+  const scopeFixture: ScopeFixture = {
+    schema: 'secondary-inbound-split-source:scope:v1',
+    scopeKey: scope.key,
+    rangeStart: INBOUND_SPLIT_SOURCE_RANGE_START,
+    rangeEnd: INBOUND_SPLIT_SOURCE_RANGE_END,
+    entries: skuByScope,
+  }
+  writeFileSync(resolve(outDir, `${encodeURIComponent(scope.key)}.json`), `${JSON.stringify(scopeFixture)}\n`)
 }
 
-const scriptDir = dirname(fileURLToPath(import.meta.url))
-const out = resolve(scriptDir, '../src/api/mock/secondaryInboundSplitSourceFixtures.json')
-writeFileSync(out, `${JSON.stringify(fixtures)}\n`)
 console.log(`Generated fixture: ${allKnownSkuGroupKeys.length} sku x ${scopeEntries.length} scope entries`)

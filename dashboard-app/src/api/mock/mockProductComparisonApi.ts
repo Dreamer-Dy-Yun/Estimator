@@ -35,37 +35,19 @@ import {
 import { requireMockProductPrimary, requireMockProductSecondary, requireMockStockTrend } from './mockProductLookup'
 import { makeSalesTrend } from './productCatalog'
 import { getMockSecondaryCompetitorChannel, secondaryCompetitorChannels, type MockSecondaryCompetitorChannel } from './salesTables'
-import secondaryInboundSplitSourceFixturesRaw from './secondaryInboundSplitSourceFixtures.json?raw'
+import {
+  getSecondaryInboundSplitSourceFixtureEntry,
+  getSecondaryInboundSplitSourceFixtureScopeKey,
+  loadSecondaryInboundSplitSourceFixture,
+  slicePrecomputedSecondaryInboundSplitExpectation,
+  type SecondaryInboundSplitSourceFixture,
+  type SecondaryInboundSplitSourceFixtureEntry,
+} from './secondaryInboundSplitSourceFixture'
 import { sleep } from './utils'
-
 const TEST_TOP_MONTHLY_BASE_SALES = 100 as const
 const TEST_TOP_MONTHLY_COMPARISON_SALES = 200 as const
 const SELF_ALL_COMPANIES_LABEL = '\uC790\uC0AC\uC804\uCCB4' as const
-const INBOUND_SPLIT_SCOPE_ALL_KEY = '__mock-all-company__' as const
-
 const dateToMonth: (date: string) => string = (date: string) : string => date.slice(0, 7)
-const DAY_MS = 86_400_000 as const
-
-type SecondaryInboundSplitSourceFixtureCell = {
-  sale: number
-  inbound: number
-}
-
-type SecondaryInboundSplitSourceFixtureEntry = {
-  stockBySize: Record<string, number>
-  expectationByDate: Record<string, Record<string, SecondaryInboundSplitSourceFixtureCell>>
-}
-
-type SecondaryInboundSplitSourceFixture = {
-  schema: 'secondary-inbound-split-source:v1'
-  rangeStart: string
-  rangeEnd: string
-  byScope: Record<string, Record<string, SecondaryInboundSplitSourceFixtureEntry>>
-}
-
-const secondaryInboundSplitSourceFixtures: SecondaryInboundSplitSourceFixture =
-  JSON.parse(secondaryInboundSplitSourceFixturesRaw) as SecondaryInboundSplitSourceFixture
-
 const nextMonth: (month: string) => string = (month: string) : string => {
   const [year, monthNo]: number[] = month.split('-').map(Number)
   const next: Date = new Date(year, monthNo, 1)
@@ -172,76 +154,6 @@ function comparisonScaleForSubject(
   }
   const comparisonPrimary: ProductPrimarySummary = scopeMockProductPrimary(requireMockProductPrimary(skuGroupKey), selfCompanySubjectScope(comparison))
   return basePrimary.qty > 0 ? Math.max(0, comparisonPrimary.qty / basePrimary.qty) : 0
-}
-
-function formatIsoDate(date: Date): string {
-  return date.toISOString().slice(0, 10)
-}
-
-function parseIsoDateStart(value: string, field: string): number {
-  const match: RegExpMatchArray | null = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value)
-  if (!match) throw new Error(`Secondary inbound split source ${field} must be a valid ISO date.`)
-  const year: number = Number(match[1])
-  const monthIndex: number = Number(match[2]) - 1
-  const day: number = Number(match[3])
-  const parsed: Date = new Date(Date.UTC(year, monthIndex, day))
-  if (parsed.getUTCFullYear() !== year || parsed.getUTCMonth() !== monthIndex || parsed.getUTCDate() !== day) {
-    throw new Error(`Secondary inbound split source ${field} must be a valid ISO date.`)
-  }
-  return parsed.getTime()
-}
-
-function cacheScopeKey(baseScope: { companyUuid?: string; }): string {
-  return baseScope.companyUuid == null ? INBOUND_SPLIT_SCOPE_ALL_KEY : baseScope.companyUuid
-}
-
-function getFixtureScope(baseScope: { companyUuid?: string; }): Record<string, SecondaryInboundSplitSourceFixtureEntry> {
-  const scopeKey: string = cacheScopeKey(baseScope)
-  const scopeSource: Record<string, SecondaryInboundSplitSourceFixtureEntry> | undefined = secondaryInboundSplitSourceFixtures.byScope[scopeKey]
-  if (scopeSource == null) {
-    throw new Error(`Missing secondary inbound split fixture scope: ${scopeKey}`)
-  }
-  return scopeSource
-}
-
-function getCachedFixtureForSku(
-  baseScope: { companyUuid?: string; },
-  skuGroupKey: string,
-): SecondaryInboundSplitSourceFixtureEntry {
-  const scopeSource: Record<string, SecondaryInboundSplitSourceFixtureEntry> = getFixtureScope(baseScope)
-  const cached: SecondaryInboundSplitSourceFixtureEntry | undefined = scopeSource[skuGroupKey]
-  if (cached == null) {
-    throw new Error(`Missing secondary inbound split fixture for sku: ${skuGroupKey}`)
-  }
-  return cached
-}
-
-function slicePrecomputedSecondaryInboundSplitExpectation(
-  cached: SecondaryInboundSplitSourceFixtureEntry,
-  dateStart: string,
-  dateEnd: string,
-): Record<string, Record<string, SecondaryInboundSplitExpectationCell>> {
-  const start: number = parseIsoDateStart(dateStart, 'dateStart')
-  const end: number = parseIsoDateStart(dateEnd, 'dateEnd')
-  const precomputedStart: number = parseIsoDateStart(secondaryInboundSplitSourceFixtures.rangeStart, 'rangeStart')
-  const precomputedEnd: number = parseIsoDateStart(secondaryInboundSplitSourceFixtures.rangeEnd, 'rangeEnd')
-  if (start < precomputedStart || end > precomputedEnd) {
-    throw new Error(
-      `Secondary inbound split source precomputed date range supports ${secondaryInboundSplitSourceFixtures.rangeStart} <= dateStart < dateEnd <= ${secondaryInboundSplitSourceFixtures.rangeEnd}.`,
-    )
-  }
-  if (end <= start) return {}
-
-  const expectationByDate: Record<string, Record<string, SecondaryInboundSplitExpectationCell>> = {}
-  for (let time: number = start; time < end; time += DAY_MS) {
-    const date: string = formatIsoDate(new Date(time))
-    const row: Record<string, SecondaryInboundSplitExpectationCell> | undefined = cached.expectationByDate[date]
-    if (row == null) {
-      throw new Error(`Secondary inbound split source precomputed data missing for date ${date}.`)
-    }
-    expectationByDate[date] = { ...row }
-  }
-  return expectationByDate
 }
 
 export async function getMockProductDrawerBundle(skuGroupKey: string, params: ProductDrawerBundleParams): Promise<{ summary: ProductPrimarySummary; }> {
@@ -368,8 +280,11 @@ export async function getMockSecondaryInboundSplitSource({
   await sleep(80)
   assertMockSubjectRole(base, 'base')
   const baseScope: { companyUuid?: string } = selfCompanySubjectScope(base)
-  const cached: SecondaryInboundSplitSourceFixtureEntry = getCachedFixtureForSku(baseScope, skuGroupKey)
+  const scopeKey: string = getSecondaryInboundSplitSourceFixtureScopeKey(baseScope)
+  const fixture: SecondaryInboundSplitSourceFixture = await loadSecondaryInboundSplitSourceFixture(scopeKey)
+  const cached: SecondaryInboundSplitSourceFixtureEntry = getSecondaryInboundSplitSourceFixtureEntry(fixture, skuGroupKey)
   const expectationByDate: Record<string, Record<string, SecondaryInboundSplitExpectationCell>> = slicePrecomputedSecondaryInboundSplitExpectation(
+    fixture,
     cached,
     dateStart,
     dateEnd,

@@ -59,11 +59,6 @@ export const candidateStashExcelTemplate: CandidateStashExcelTemplateAsset = res
 export const candidateStashExcelTemplateAsset: string = candidateStashExcelTemplate.asset
 export const candidateStashExcelTemplateFilename: string = candidateStashExcelTemplate.filename
 
-export function resolvePublicAssetUrl(path: string): string {
-  const baseUrl: string = import.meta.env.BASE_URL || '/'
-  return `${baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`}${path.replace(/^\/+/, '')}`
-}
-
 export function encodePathSegment(value: string): string {
   return encodeURIComponent(value)
 }

@@ -31,8 +31,8 @@ import type {
 import {
   candidateStashExcelTemplateAsset,
   candidateStashExcelTemplateFilename,
-  resolvePublicAssetUrl,
 } from './dashboardRequestShared'
+import { resolvePublicAssetUrl } from '../publicAsset'
 import { notifyMockStreamError, withMockApiAdapterErrors } from './mockApiError'
 
 async function requireCurrentUserUuid(): Promise<string> {

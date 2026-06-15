@@ -1,6 +1,11 @@
 # Repository / Runtime Boundary
 
-Last updated: 2026-06-02
+Last updated: 2026-06-15
+
+## 2026-06-15 Static Mock Fixture
+
+- `dashboard-app/public/mock/secondaryInboundSplitSourceFixtures/*.json` are the mock mode secondary inbound split static fixture shards.
+- Source modules must not import these files. The mock API fetches and caches only the requested company scope shard at runtime, and static hosting transfer compression handles gzip/brotli delivery.
 
 ## Scope
 
