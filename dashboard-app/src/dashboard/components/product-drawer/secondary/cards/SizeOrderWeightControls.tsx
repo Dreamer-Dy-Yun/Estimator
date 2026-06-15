@@ -34,7 +34,7 @@ export function SizeOrderWeightControls({
             className={styles.sliderPctInput}
             min={0}
             max={100}
-            step={1}
+            step={0.01}
             value={selfWeightPct}
             onChange={(event: React.ChangeEvent<HTMLInputElement, HTMLInputElement>): void => onSelfWeightInputChange(event.target.value)}
             aria-label={selfWeightLabel}
@@ -59,7 +59,7 @@ export function SizeOrderWeightControls({
             className={styles.sliderPctInput}
             min={0}
             max={100}
-            step={1}
+            step={0.01}
             value={comparisonWeightPct}
             onChange={(event: React.ChangeEvent<HTMLInputElement, HTMLInputElement>): void => onComparisonWeightInputChange(event.target.value)}
             aria-label={comparisonWeightLabel}
