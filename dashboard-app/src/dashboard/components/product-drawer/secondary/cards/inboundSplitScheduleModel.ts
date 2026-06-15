@@ -60,7 +60,7 @@ export function getInboundSplitSizeColumns(sizeRows: SecondarySizeOrderDisplayRo
   }))
 }
 
-export function getInboundSplitTotalQty(row: InboundSplitScheduleRow, columns: InboundSplitSizeColumn[]): number {
+export function getInboundSplitTotalQty(row: InboundSplitScheduleRow, columns: readonly InboundSplitSizeColumn[]): number {
   return columns.reduce((sum: number, column: InboundSplitSizeColumn): number => sum + Math.max(0, Math.round(row.quantitiesBySize[column.size] ?? 0)), 0)
 }
 
@@ -109,7 +109,7 @@ export function inboundSplitRowsToConfirmedRounds(rows: readonly InboundSplitSch
   })
 }
 
-export function getInboundSplitSuggestedTotalQty(row: InboundSplitScheduleRow, columns: InboundSplitSizeColumn[]): number {
+export function getInboundSplitSuggestedTotalQty(row: InboundSplitScheduleRow, columns: readonly InboundSplitSizeColumn[]): number {
   return columns.reduce((sum: number, column: InboundSplitSizeColumn): number => sum + Math.max(0, Math.round(row.suggestedQuantitiesBySize[column.size] ?? 0)), 0)
 }
 
@@ -169,11 +169,12 @@ function buildInboundSplitDates(count: number, startDate: string, nextDate: stri
   const safeCount: number = clampInboundSplitCount(count)
   const start: ParsedIsoDate | null = parseIsoDate(startDate)
   const next: ParsedIsoDate | null = parseIsoDate(nextDate)
-  if (!start || !next) return Array.from({ length: safeCount }, (): string => startDate)
+  if (!start) throw new Error('Invalid inbound split start date.')
+  if (!next) throw new Error('Invalid inbound split next date.')
 
   const startMs: number = Date.UTC(start.year, start.monthIndex, start.day)
   const nextMs: number = Date.UTC(next.year, next.monthIndex, next.day)
-  if (nextMs <= startMs) return Array.from({ length: safeCount }, (): string => startDate)
+  if (nextMs <= startMs) throw new Error('Inbound split next date must be after the start date.')
 
   const monthDiff: number = (next.year - start.year) * 12 + (next.monthIndex - start.monthIndex)
   if (start.day === next.day && monthDiff >= safeCount && monthDiff % safeCount === 0) {

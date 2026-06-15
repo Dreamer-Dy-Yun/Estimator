@@ -11,9 +11,20 @@ interface SplitInterval {
   readonly endDate: string
 }
 
-function parseIsoDateMs(value: string): number {
-  const parsed: number = Date.parse(`${value}T00:00:00.000Z`)
-  return Number.isFinite(parsed) ? parsed : 0
+function parseIsoDateMs(value: string, field: string): number {
+  const match: RegExpMatchArray | null = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value)
+  if (!match) {
+    throw new Error(`Invalid inbound split source date: ${field}`)
+  }
+
+  const year: number = Number(match[1])
+  const monthIndex: number = Number(match[2]) - 1
+  const day: number = Number(match[3])
+  const parsed: Date = new Date(Date.UTC(year, monthIndex, day))
+  if (parsed.getUTCFullYear() !== year || parsed.getUTCMonth() !== monthIndex || parsed.getUTCDate() !== day) {
+    throw new Error(`Invalid inbound split source date: ${field}`)
+  }
+  return parsed.getTime()
 }
 
 function formatIsoDate(dateMs: number): string {
@@ -57,8 +68,8 @@ function getExpectationCell(
 }
 
 function sumIntervalNetDemand(source: SecondaryInboundSplitSource, size: string, interval: SplitInterval): number {
-  const startMs: number = Math.max(parseIsoDateMs(interval.startDate), parseIsoDateMs(source.dateStart))
-  const endMs: number = Math.min(parseIsoDateMs(interval.endDate), parseIsoDateMs(source.dateEnd))
+  const startMs: number = Math.max(parseIsoDateMs(interval.startDate, 'interval.startDate'), parseIsoDateMs(source.dateStart, 'source.dateStart'))
+  const endMs: number = Math.min(parseIsoDateMs(interval.endDate, 'interval.endDate'), parseIsoDateMs(source.dateEnd, 'source.dateEnd'))
   if (endMs <= startMs) {
     return 0
   }

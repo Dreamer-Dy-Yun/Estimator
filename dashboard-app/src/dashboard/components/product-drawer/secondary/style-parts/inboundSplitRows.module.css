@@ -1,0 +1,156 @@
+﻿.inboundSplitSummaryRow td {
+  position: sticky;
+  top: var(--inbound-split-header-height);
+  z-index: 7;
+  background: #e2edf8;
+  font-weight: 800;
+  border-bottom-color: transparent;
+}
+
+.inboundSplitSummaryRow .inboundSplitStickyCol {
+  z-index: 8;
+}
+
+.inboundSplitSuggestedRow td {
+  background: #f1f7ff;
+  color: #2563eb;
+  font-weight: 700;
+  border-bottom-color: transparent;
+}
+
+.inboundSplitConfirmedRow td {
+  background: #fff;
+  color: #0f172a;
+  border-top-color: transparent;
+}
+
+.inboundSplitSummaryRow td,
+.inboundSplitSuggestedRow td,
+.inboundSplitConfirmedRow td {
+  height: 30px;
+}
+
+.inboundSplitSummaryRow:not(.inboundSplitSummaryRowEnd) td,
+.inboundSplitSuggestedRow td {
+  padding-bottom: 1px;
+}
+
+.inboundSplitSummaryRowEnd td,
+.inboundSplitConfirmedRow td {
+  padding-top: 1px;
+}
+
+.inboundSplitRoundEndRow td {
+  border-bottom-color: #dbe5f0;
+}
+
+.inboundSplitRoundSpanCell {
+  background: #fff;
+  color: #334155;
+  font-weight: 800;
+  vertical-align: middle;
+}
+
+.inboundSplitSummaryRowEnd td {
+  top: calc(var(--inbound-split-header-height) + 30px);
+  border-bottom-color: #94a3b8;
+  box-shadow: 0 2px 0 #94a3b8, 0 12px 18px -18px rgb(15 23 42 / 0.55);
+  font-weight: 500;
+}
+
+.inboundSplitSummarySpanCell {
+  border-bottom-color: #b7d5f5;
+}
+
+.inboundSplitSuggestedRow .inboundSplitRoundSpanCell {
+  border-bottom-color: #dbe5f0;
+}
+
+.inboundSplitSummaryRow .inboundSplitSummarySpanCell {
+  border-bottom-color: #b7d5f5;
+}
+
+.inboundSplitTable thead .inboundSplitStickyCol {
+  background: #e2e8f0;
+}
+
+.inboundSplitSummaryRow .inboundSplitStickyCol {
+  background: #dce8f3;
+}
+
+.inboundSplitSuggestedRow .inboundSplitStickyCol {
+  background: #e6edf6;
+  color: #1e40af;
+}
+
+.inboundSplitConfirmedRow .inboundSplitStickyCol {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+.inboundSplitSuggestedRow .inboundSplitRoundSpanCell,
+.inboundSplitSummaryRow .inboundSplitSummarySpanCell {
+  background: #eef2f7;
+  color: #334155;
+}
+
+.inboundSplitSummaryRow .inboundSplitConfirmedDiff,
+.inboundSplitConfirmedRow .inboundSplitConfirmedDiff,
+.inboundSplitConfirmedRow .inboundSplitStickyCol.inboundSplitConfirmedDiff {
+  color: #b91c1c;
+}
+
+.inboundSplitTable .stockNumberInput.inboundSplitConfirmedDiff {
+  color: #b91c1c;
+}
+
+.inboundSplitTable .stockDateInput,
+.inboundSplitTable .stockNumberInput {
+  box-sizing: border-box;
+  min-height: 24px;
+  height: 24px;
+  padding-top: 2px;
+  padding-bottom: 2px;
+}
+
+.inboundSplitRoundCell {
+  width: 64px;
+  min-width: 64px;
+}
+
+.inboundSplitDateCell {
+  width: 132px;
+  min-width: 132px;
+}
+
+.inboundSplitKindCell {
+  width: 68px;
+  min-width: 68px;
+  text-align: center;
+}
+
+.inboundSplitTotalCell {
+  width: 112px;
+  min-width: 112px;
+}
+
+.inboundSplitQtyInput {
+  width: 5.4rem;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.inboundSplitTable .stockDateInput {
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.inboundSplitDialogActions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 12px 16px;
+  border-top: 1px solid #e2e8f0;
+  background: #f8fafc;
+}

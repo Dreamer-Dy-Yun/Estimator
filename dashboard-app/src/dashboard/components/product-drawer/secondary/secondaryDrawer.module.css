@@ -3,7 +3,7 @@
  * 조각은 ./style-parts/에 두며 직접 import하지 않는다. 순서 변경 시 캐스케이드에 주의한다.
  *
  * layout, headers, metaFilterCandidate, cardsControls, tablesSizeOrder,
- * stockInputs, cardAi, slider
+ * stockInputs, cardAi, inboundSplit*, slider
  */
 @import './style-parts/layout.module.css';
 @import './style-parts/headers.module.css';
@@ -13,7 +13,11 @@
 @import './style-parts/tablesSizeOrder.module.css';
 @import './style-parts/stockInputs.module.css';
 @import './style-parts/cardAi.module.css';
-@import './style-parts/inboundSplitSchedule.module.css';
+@import './style-parts/inboundSplitControls.module.css';
+@import './style-parts/inboundSplitDialogShell.module.css';
+@import './style-parts/inboundSplitTable.module.css';
+@import './style-parts/inboundSplitRows.module.css';
+@import './style-parts/inboundSplitResponsive.module.css';
 @import './style-parts/slider.module.css';
 
 .dailyTrendClipWrap {

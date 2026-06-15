@@ -1,0 +1,60 @@
+﻿.inboundSplitTable {
+  width: max-content;
+  min-width: 100%;
+  font-size: 13px;
+  --inbound-split-header-height: 32px;
+  --inbound-split-row-height: 34px;
+}
+
+.inboundSplitTable th,
+.inboundSplitTable td {
+  box-sizing: border-box;
+  height: var(--inbound-split-row-height);
+  padding-top: 4px;
+  padding-bottom: 4px;
+  vertical-align: middle;
+  white-space: nowrap;
+  background: #fff;
+}
+
+.inboundSplitTable thead th {
+  position: sticky;
+  top: 0;
+  z-index: 4;
+  height: var(--inbound-split-header-height);
+  background: #e8eef6;
+  border-bottom-color: #cbd5e1;
+  box-shadow: 0 1px 0 #cbd5e1;
+}
+
+.inboundSplitTable th:not(.inboundSplitStickyCol),
+.inboundSplitTable td:not(.inboundSplitStickyCol) {
+  min-width: 112px;
+}
+
+.inboundSplitStickyCol {
+  position: sticky;
+  z-index: 5;
+  background: #eef2f7;
+}
+
+.inboundSplitTable thead .inboundSplitStickyCol {
+  z-index: 9;
+}
+
+.inboundSplitStickyColRound {
+  left: 0;
+}
+
+.inboundSplitStickyColDate {
+  left: 64px;
+}
+
+.inboundSplitStickyColKind {
+  left: 196px;
+}
+
+.inboundSplitStickyColTotal {
+  left: 264px;
+  box-shadow: 2px 0 0 #94a3b8, 14px 0 18px -14px rgb(15 23 42 / 0.62);
+}

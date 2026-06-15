@@ -61,4 +61,17 @@ describe('buildInboundSplitSuggestedQuantitiesByRow', () : void => {
     expect(rows[0].S).toBe(0)
     expect(rows[1].S).toBe(10)
   })
+
+  it('throws instead of silently folding invalid interval dates to zero', () : void => {
+    const source: SecondaryInboundSplitSource = makeSource(0, {
+      '2026-04-01': { sale: 1, inbound: 0 },
+    })
+
+    expect((): Record<string, number>[] => buildInboundSplitSuggestedQuantitiesByRow(
+      COLUMNS,
+      ['not-a-date'],
+      '2026-04-05',
+      source,
+    )).toThrow('Invalid inbound split source date')
+  })
 })

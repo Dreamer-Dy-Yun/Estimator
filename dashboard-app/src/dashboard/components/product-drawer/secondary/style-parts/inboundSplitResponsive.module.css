@@ -1,0 +1,16 @@
+﻿@media (max-width: 720px) {
+  .inboundSplitDialogBackdrop {
+    padding: 12px;
+  }
+
+  .inboundSplitDialog {
+    width: calc(100vw - 24px);
+    height: calc(100vh - 24px);
+    max-height: calc(100vh - 24px);
+  }
+
+  .inboundSplitDialogToolbar {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
