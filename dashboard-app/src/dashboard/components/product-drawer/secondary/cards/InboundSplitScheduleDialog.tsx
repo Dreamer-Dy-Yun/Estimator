@@ -14,6 +14,7 @@ export type { InboundSplitDraftRequest } from './inboundSplitScheduleTypes'
 
 export interface InboundSplitScheduleDialogProps {
   open: boolean
+  workDate: string
   initialCount: number
   initialRows: InboundSplitScheduleRow[]
   columns: InboundSplitSizeColumn[]
@@ -27,6 +28,7 @@ export interface InboundSplitScheduleDialogProps {
 
 export function InboundSplitScheduleDialog({
   open,
+  workDate,
   initialCount,
   initialRows = [],
   columns,
@@ -104,6 +106,7 @@ export function InboundSplitScheduleDialog({
         <div className={styles.inboundSplitTableFrame}>
           <div className={styles.inboundSplitTableWrap}>
             <InboundSplitScheduleTable
+              workDate={workDate}
               rows={draft.rows}
               columns={columns}
               suggestedSizeTotals={draft.suggestedSizeTotals}

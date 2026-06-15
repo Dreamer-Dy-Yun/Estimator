@@ -35,6 +35,7 @@ export type Props = {
     stockOrderDisplay: SecondaryStockOrderCalcResult['display'] | null
     calculationReady?: boolean
     manualConfirmBySize: Readonly<Record<string, true>>
+    inboundSplitWorkDate: string
     currentOrderInboundDueDate: string
     nextOrderInboundDueDate: string
     inboundSplitSource: SecondaryInboundSplitSource | null
@@ -51,12 +52,13 @@ export type Props = {
 }
 
 export function SizeOrderCard({ sizeOrder, actions, help }: Props) : React.JSX.Element {
-  const { comparisonLabel, selfCompanyLabel, selfWeightPct, sizeRows, helpIds, stockOrderDisplay, calculationReady = true, manualConfirmBySize, currentOrderInboundDueDate, nextOrderInboundDueDate, inboundSplitSource, inboundSplitSourceLoading, inboundSplitSourceError, confirmedRounds }: Props['sizeOrder'] = sizeOrder
+  const { comparisonLabel, selfCompanyLabel, selfWeightPct, sizeRows, helpIds, stockOrderDisplay, calculationReady = true, manualConfirmBySize, inboundSplitWorkDate, currentOrderInboundDueDate, nextOrderInboundDueDate, inboundSplitSource, inboundSplitSourceLoading, inboundSplitSourceError, confirmedRounds }: Props['sizeOrder'] = sizeOrder
   const tableRef: React.RefObject<HTMLTableElement | null> = useRef<HTMLTableElement | null>(null)
   const comparisonWeightPct: number = getComparisonWeightPct(selfWeightPct)
   const columnTotals: SizeOrderColumnTotals = useMemo(() : SizeOrderColumnTotals => calculateSizeOrderColumnTotals(sizeRows), [sizeRows])
   const inboundSplitSchedule: UseInboundSplitScheduleControllerResult = useInboundSplitScheduleController({
     sizeRows,
+    workDate: inboundSplitWorkDate,
     currentOrderInboundDueDate,
     nextOrderInboundDueDate,
     inboundSplitSource,

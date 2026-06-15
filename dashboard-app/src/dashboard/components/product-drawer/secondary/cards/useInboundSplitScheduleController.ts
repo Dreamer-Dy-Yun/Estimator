@@ -26,6 +26,7 @@ interface InboundSplitRowsBuildResult {
 
 export interface UseInboundSplitScheduleControllerArgs {
   sizeRows: SecondarySizeOrderDisplayRow[]
+  workDate: string
   currentOrderInboundDueDate: string
   nextOrderInboundDueDate: string
   inboundSplitSource: SecondaryInboundSplitSource | null
@@ -56,6 +57,7 @@ export interface UseInboundSplitScheduleControllerResult {
 }
 
 export interface InboundSplitScheduleDialogBinding {
+  workDate: string
   initialCount: number
   initialRows: InboundSplitScheduleRow[]
   columns: InboundSplitSizeColumn[]
@@ -78,6 +80,7 @@ function makeInboundSplitDraftErrorInfo(request: InboundSplitDraftRequest, err: 
 
 export function useInboundSplitScheduleController({
   sizeRows,
+  workDate,
   currentOrderInboundDueDate,
   nextOrderInboundDueDate,
   inboundSplitSource,
@@ -208,6 +211,7 @@ export function useInboundSplitScheduleController({
     dialogKey,
     dialogOpen: dialogOpen && scheduleReady,
     dialogProps: {
+      workDate,
       initialCount,
       initialRows: dialogBuildResult.rows,
       columns,

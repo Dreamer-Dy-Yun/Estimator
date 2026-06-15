@@ -1,4 +1,5 @@
 import { Fragment } from 'react'
+import { daysBetweenIsoDates } from '../../../../../utils/date'
 import { formatGroupedNumber } from '../../../../../utils/format'
 import { KO } from '../../ko'
 import styles from '../secondaryDrawer.module.css'
@@ -6,6 +7,7 @@ import { getInboundSplitSuggestedTotalQty, getInboundSplitTotalQty, type Inbound
 import { ariaDiffLabel, cx, diffClass, qtyInputClassName, stickyDateClassName, stickyKindClassName, stickyRoundClassName, stickyTotalClassName } from './inboundSplitScheduleTableClasses'
 
 export interface InboundSplitScheduleTableProps {
+  workDate: string
   rows: InboundSplitScheduleRow[]
   columns: InboundSplitSizeColumn[]
   suggestedSizeTotals: Record<string, number>
@@ -17,7 +19,14 @@ export interface InboundSplitScheduleTableProps {
   onQtyChange: (rowIndex: number, size: string, value: string) => void
 }
 
+function formatInboundDateInterval(startDate: string, endDate: string): string {
+  const days: number | null = daysBetweenIsoDates(startDate, endDate)
+  if (days == null) return '-'
+  return `${days >= 0 ? '+' : ''}${formatGroupedNumber(days)}${KO.unitDays}`
+}
+
 export function InboundSplitScheduleTable({
+  workDate,
   rows,
   columns,
   suggestedSizeTotals,
@@ -68,19 +77,29 @@ export function InboundSplitScheduleTable({
           const suggestedTotalQty: number = getInboundSplitSuggestedTotalQty(row, columns)
           const confirmedTotalQty: number = getInboundSplitTotalQty(row, columns)
           const totalDiffClass: string = diffClass(confirmedTotalQty, suggestedTotalQty)
+          const previousInboundDate: string = rowIndex === 0 ? workDate : (rows[rowIndex - 1]?.inboundDate ?? workDate)
+          const inboundDateInterval: string = formatInboundDateInterval(previousInboundDate, row.inboundDate)
 
           return (
             <Fragment key={row.id}>
               <tr className={styles.inboundSplitSuggestedRow}>
                 <td className={cx(stickyRoundClassName, styles.inboundSplitRowSpanCell)} rowSpan={2}>{row.round}{KO.optionInboundSplitRoundSuffix}</td>
                 <td className={cx(stickyDateClassName, styles.inboundSplitRowSpanCell)} rowSpan={2}>
-                  <input
-                    type="date"
-                    className={styles.stockDateInput}
-                    value={row.inboundDate}
-                    onChange={(event: React.ChangeEvent<HTMLInputElement>): void => onDateChange(rowIndex, event.target.value)}
-                    aria-label={`${row.round}${KO.optionInboundSplitRoundSuffix} ${KO.thInboundSplitInboundDate}`}
-                  />
+                  <div className={styles.inboundSplitDateStack}>
+                    <input
+                      type="date"
+                      className={styles.stockDateInput}
+                      value={row.inboundDate}
+                      onChange={(event: React.ChangeEvent<HTMLInputElement>): void => onDateChange(rowIndex, event.target.value)}
+                      aria-label={`${row.round}${KO.optionInboundSplitRoundSuffix} ${KO.thInboundSplitInboundDate}`}
+                    />
+                    <span
+                      className={styles.inboundSplitDateInterval}
+                      aria-label={`${row.round}${KO.optionInboundSplitRoundSuffix} ${KO.labelInboundSplitDateInterval} ${inboundDateInterval}`}
+                    >
+                      {inboundDateInterval}
+                    </span>
+                  </div>
                 </td>
                 <td className={stickyKindClassName}>{KO.rowInboundSplitSuggestedQty}</td>
                 <td className={stickyTotalClassName}>{formatGroupedNumber(suggestedTotalQty)}</td>

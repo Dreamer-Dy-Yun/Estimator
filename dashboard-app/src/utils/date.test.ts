@@ -3,6 +3,7 @@ import {
   addIsoDays,
   calendarDaysInMonth,
   dateToMonth,
+  daysBetweenIsoDates,
   daysInclusiveBetween,
   formatDateTimeMinute,
   monthToEndDate,
@@ -32,6 +33,14 @@ describe('date utils', () : void => {
     expect(daysInclusiveBetween('2026-01-01', '2026-01-31')).toBe(31)
     expect(daysInclusiveBetween('2026-01-31', '2026-01-01')).toBe(0)
     expect(daysInclusiveBetween('invalid', '2026-01-01')).toBe(0)
+  })
+
+  it('computes exclusive ISO date distance for interval labels', () : void => {
+    expect(daysBetweenIsoDates('2026-01-01', '2026-01-10')).toBe(9)
+    expect(daysBetweenIsoDates('2026-01-10', '2026-01-01')).toBe(-9)
+    expect(daysBetweenIsoDates('2026-01-01', '2026-01-01')).toBe(0)
+    expect(daysBetweenIsoDates('invalid', '2026-01-01')).toBeNull()
+    expect(daysBetweenIsoDates('2026-02-31', '2026-03-01')).toBeNull()
   })
 
   it('adds ISO days with UTC date rollover', () : void => {

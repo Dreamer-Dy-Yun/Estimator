@@ -73,6 +73,7 @@ function renderDialog(overrides: Partial<ComponentProps<typeof InboundSplitSched
     root.render(
       <InboundSplitScheduleDialog
         open
+        workDate="2026-03-31"
         initialCount={2}
         initialRows={INITIAL_ROWS}
         columns={COLUMNS}

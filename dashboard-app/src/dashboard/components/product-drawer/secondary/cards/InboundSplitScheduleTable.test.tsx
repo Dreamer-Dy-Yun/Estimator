@@ -20,6 +20,17 @@ const ROWS: InboundSplitScheduleRow[] = [{
   quantitiesBySize: { S: 3, M: 5 },
 }]
 
+const TWO_ROUND_ROWS: InboundSplitScheduleRow[] = [
+  ROWS[0],
+  {
+    id: 'r2',
+    round: 2,
+    inboundDate: '2026-04-10',
+    suggestedQuantitiesBySize: { S: 1, M: 2 },
+    quantitiesBySize: { S: 1, M: 2 },
+  },
+]
+
 let root: Root | null = null
 let container: HTMLDivElement | null = null
 
@@ -38,6 +49,7 @@ function renderTable(overrides: Partial<InboundSplitScheduleTableProps> = {}): R
     onQtyChange: vi.fn(),
   }
   const props: InboundSplitScheduleTableProps = {
+    workDate: '2026-03-31',
     rows: ROWS,
     columns: COLUMNS,
     suggestedSizeTotals: { S: 2, M: 6 },
@@ -73,6 +85,16 @@ describe('InboundSplitScheduleTable', (): void => {
 
     expect(document.body.textContent).toContain('8')
     expect(document.querySelector('[aria-label*="제안 수량과 다름"]')).not.toBeNull()
+  })
+
+  it('renders inbound date intervals from the work date and previous round date', (): void => {
+    renderTable({
+      workDate: '2026-03-31',
+      rows: TWO_ROUND_ROWS,
+    })
+
+    expect(document.body.textContent).toContain('+1\uC77C')
+    expect(document.body.textContent).toContain('+9\uC77C')
   })
 
   it('emits date, row total, and size quantity changes with row and size identity', (): void => {

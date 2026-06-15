@@ -1,10 +1,11 @@
 # dashboard-app Source Boundary Map
 
-Last updated: 2026-06-15
+Last updated: 2026-06-16
 
 ## 0-9) 2026-06-15 secondary inbound split UI/style boundary
 
 - Split inbound UI ownership is layered by responsibility. `SizeOrderCard.tsx` composes the card, `useInboundSplitScheduleController.ts` owns parent state transfer and applied split rows, `InboundSplitScheduleDialog.tsx` owns modal shell behavior, `useInboundSplitScheduleDraft.ts` owns local draft edits/totals, `InboundSplitScheduleTable.tsx` owns row/table rendering, `inboundSplitScheduleTableClasses.ts` owns table class/diff-label helpers, and `inboundSplitScheduleTypes.ts` owns shared UI aliases.
+- Split inbound date interval labels are derived in the UI only. The parent passes the current work date as `inboundSplitWorkDate`; the table compares round 1 against that value and each later round against the previous round date. The split table must not create its own `today` value.
 - Split inbound visual ownership stays inside `secondary/secondaryDrawer.module.css`; components must not import the `style-parts` files directly.
 - `inboundSplitDialogShell.module.css` is the root for split-inbound modal structure and shared CSS variables. Palette, row heights, fixed quantity width, sticky shadow, and dialog surface tokens are inherited by the table and row style parts from the dialog root.
 - `inboundSplitTable.module.css` owns only table geometry: base table sizing, header style, horizontal sticky columns, sticky left offsets, fill-spare-width behavior, and overflow scroll preservation.

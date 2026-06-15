@@ -24,6 +24,25 @@ export function addIsoDays(dateText: string, days: number): string {
   return date.toISOString().slice(0, 10)
 }
 
+function isoDateToUtcTime(dateText: string): number | null {
+  const match: RegExpMatchArray | null = dateText.match(/^(\d{4})-(\d{2})-(\d{2})$/)
+  if (match == null) return null
+  const year: number = Number(match[1])
+  const month: number = Number(match[2])
+  const day: number = Number(match[3])
+  const time: number = Date.UTC(year, month - 1, day)
+  const date: Date = new Date(time)
+  if (date.getUTCFullYear() !== year || date.getUTCMonth() !== month - 1 || date.getUTCDate() !== day) return null
+  return time
+}
+
+export function daysBetweenIsoDates(start: string, end: string): number | null {
+  const startTime: number | null = isoDateToUtcTime(start)
+  const endTime: number | null = isoDateToUtcTime(end)
+  if (startTime == null || endTime == null) return null
+  return Math.round((endTime - startTime) / 86400000)
+}
+
 /** `YYYY-MM` 달의 실제 일수(달력). */
 export function calendarDaysInMonth(yyyyMm: string): number {
   const [y, m]: number[] = yyyyMm.split('-').map(Number)

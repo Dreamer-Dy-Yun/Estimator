@@ -166,6 +166,7 @@ export function ProductSecondaryDrawerContent({
             stockOrderDisplay,
             calculationReady: stockOrderCalculationReady,
             manualConfirmBySize: manualConfirmDerived,
+            inboundSplitWorkDate: orderInputFields.minOrderDate,
             currentOrderInboundDueDate: orderInputFields.currentOrderInboundDueDate,
             nextOrderInboundDueDate: orderInputFields.nextOrderInboundDueDate,
             inboundSplitSource,
