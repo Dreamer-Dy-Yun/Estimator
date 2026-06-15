@@ -42,7 +42,7 @@ describe('buildInboundSplitSuggestedQuantitiesByRow', () : void => {
     expect(rows).toEqual([{ S: 8 }, { S: 2 }])
   })
 
-  it('preserves the full confirmed quantity even when early demand is lower than the order total', () : void => {
+  it('keeps suggested quantity at zero when projected stock covers the interval demand', () : void => {
     const source: SecondaryInboundSplitSource = makeSource(20, {
       '2026-04-01': { sale: 1, inbound: 0 },
       '2026-04-02': { sale: 1, inbound: 0 },
@@ -57,9 +57,9 @@ describe('buildInboundSplitSuggestedQuantitiesByRow', () : void => {
       source,
     )
 
-    expect(rows.reduce((sum: number, row: Record<string, number>): number => sum + row.S, 0)).toBe(10)
+    expect(rows.reduce((sum: number, row: Record<string, number>): number => sum + row.S, 0)).toBe(0)
     expect(rows[0].S).toBe(0)
-    expect(rows[1].S).toBe(10)
+    expect(rows[1].S).toBe(0)
   })
 
   it('throws instead of silently folding invalid interval dates to zero', () : void => {

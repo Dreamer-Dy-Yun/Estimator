@@ -96,21 +96,14 @@ function suggestSizeSplit(
 
   let remainingOrderQty: number = normalizedTotal
   let projectedStock: number = normalizeSourceQuantity(requireFiniteQuantity(source.stockBySize[size], `stockBySize.${size}`))
-  const allocated: number[] = intervals.map((interval: SplitInterval, index: number): number => {
+  return intervals.map((interval: SplitInterval): number => {
     const netDemand: number = sumIntervalNetDemand(source, size, interval)
     const requiredQty: number = Math.max(0, Math.ceil(netDemand - projectedStock))
-    const qty: number = index === intervals.length - 1 ? remainingOrderQty : Math.min(remainingOrderQty, requiredQty)
-    remainingOrderQty -= qty
+    const qty: number = Math.min(remainingOrderQty, requiredQty)
     projectedStock += qty - netDemand
+    remainingOrderQty -= qty
     return qty
   })
-  const allocatedTotal: number = allocated.reduce((sum: number, value: number): number => sum + value, 0)
-
-  if (allocatedTotal !== normalizedTotal && allocated.length > 0) {
-    allocated[allocated.length - 1] += normalizedTotal - allocatedTotal
-  }
-
-  return allocated
 }
 
 export function buildInboundSplitSuggestedQuantitiesByRow(

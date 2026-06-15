@@ -35,25 +35,36 @@ import {
 import { requireMockProductPrimary, requireMockProductSecondary, requireMockStockTrend } from './mockProductLookup'
 import { makeSalesTrend } from './productCatalog'
 import { getMockSecondaryCompetitorChannel, secondaryCompetitorChannels, type MockSecondaryCompetitorChannel } from './salesTables'
+import secondaryInboundSplitSourceFixturesRaw from './secondaryInboundSplitSourceFixtures.json?raw'
 import { sleep } from './utils'
 
 const TEST_TOP_MONTHLY_BASE_SALES = 100 as const
 const TEST_TOP_MONTHLY_COMPARISON_SALES = 200 as const
 const SELF_ALL_COMPANIES_LABEL = '\uC790\uC0AC\uC804\uCCB4' as const
+const INBOUND_SPLIT_SCOPE_ALL_KEY = '__mock-all-company__' as const
 
 const dateToMonth: (date: string) => string = (date: string) : string => date.slice(0, 7)
 const DAY_MS = 86_400_000 as const
 
-const INBOUND_SPLIT_SOURCE_RANGE_START: string = '2024-01-01'
-const INBOUND_SPLIT_SOURCE_RANGE_END: string = '2028-01-01'
-const INBOUND_SPLIT_SCOPE_ALL_KEY: string = '__mock-all-company__'
-
-type SecondaryInboundSplitSourceCacheEntry = {
-  stockBySize: Record<string, number>
-  expectationByDate: Record<string, Record<string, SecondaryInboundSplitExpectationCell>>
+type SecondaryInboundSplitSourceFixtureCell = {
+  sale: number
+  inbound: number
 }
 
-const secondaryInboundSplitSourceCacheByScope: Map<string, Map<string, SecondaryInboundSplitSourceCacheEntry>> = new Map()
+type SecondaryInboundSplitSourceFixtureEntry = {
+  stockBySize: Record<string, number>
+  expectationByDate: Record<string, Record<string, SecondaryInboundSplitSourceFixtureCell>>
+}
+
+type SecondaryInboundSplitSourceFixture = {
+  schema: 'secondary-inbound-split-source:v1'
+  rangeStart: string
+  rangeEnd: string
+  byScope: Record<string, Record<string, SecondaryInboundSplitSourceFixtureEntry>>
+}
+
+const secondaryInboundSplitSourceFixtures: SecondaryInboundSplitSourceFixture =
+  JSON.parse(secondaryInboundSplitSourceFixturesRaw) as SecondaryInboundSplitSourceFixture
 
 const nextMonth: (month: string) => string = (month: string) : string => {
   const [year, monthNo]: number[] = month.split('-').map(Number)
@@ -163,40 +174,8 @@ function comparisonScaleForSubject(
   return basePrimary.qty > 0 ? Math.max(0, comparisonPrimary.qty / basePrimary.qty) : 0
 }
 
-function daysInMonthKey(month: string): number {
-  const [year, monthNo]: number[] = month.split('-').map(Number)
-  return new Date(Date.UTC(year, monthNo, 0)).getUTCDate()
-}
-
 function formatIsoDate(date: Date): string {
   return date.toISOString().slice(0, 10)
-}
-
-function allocateMockIntegerTotal(total: number, weights: readonly number[]): number[] {
-  const safeTotal: number = Number.isFinite(total) ? Math.max(0, Math.round(total)) : 0
-  if (!weights.length) return []
-  const normalizedWeights: number[] = weights.map((weight: number): number => Number.isFinite(weight) ? Math.max(0, weight) : 0)
-  const weightSum: number = normalizedWeights.reduce((sum: number, weight: number): number => sum + weight, 0)
-  const effectiveWeights: number[] = weightSum > 0 ? normalizedWeights : normalizedWeights.map((): number => 1)
-  const effectiveSum: number = weightSum > 0 ? weightSum : effectiveWeights.length
-  const exactValues: number[] = effectiveWeights.map((weight: number): number => (safeTotal * weight) / effectiveSum)
-  const values: number[] = exactValues.map((value: number): number => Math.floor(value))
-  let remainder: number = safeTotal - values.reduce((sum: number, value: number): number => sum + value, 0)
-  exactValues
-    .map((value: number, index: number): { index: number; fraction: number } => ({ index, fraction: value - Math.floor(value) }))
-    .sort((a: { index: number; fraction: number }, b: { index: number; fraction: number }): number => (b.fraction - a.fraction) || (a.index - b.index))
-    .forEach(({ index }: { index: number; fraction: number }): void => {
-      if (remainder <= 0) return
-      values[index] += 1
-      remainder -= 1
-    })
-  return values
-}
-
-function mockDailySaleTotal(monthSales: number, dayIndex: number, days: number, seed: number): number {
-  const base: number = monthSales / Math.max(1, days)
-  const wave: number = Math.sin((dayIndex + seed) * 0.9) * 0.08
-  return Math.max(0, Math.round(base * (1 + wave)))
 }
 
 function parseIsoDateStart(value: string, field: string): number {
@@ -216,80 +195,40 @@ function cacheScopeKey(baseScope: { companyUuid?: string; }): string {
   return baseScope.companyUuid == null ? INBOUND_SPLIT_SCOPE_ALL_KEY : baseScope.companyUuid
 }
 
-function buildPrecomputedSecondaryInboundSplitSourceForSku(
-  skuGroupKey: string,
-  baseScope: { companyUuid?: string; },
-): SecondaryInboundSplitSourceCacheEntry {
-  const primary: ProductPrimarySummary = scopeMockProductPrimary(requireMockProductPrimary(skuGroupKey), baseScope)
-  const secondary: ProductSecondaryDetail = scopeMockProductSecondary(requireMockProductSecondary(skuGroupKey), baseScope)
-  const stockTrend: { date: string; stock: number; inboundExpected: number; inboundQty: number; }[] = scopeMockStockTrend(skuGroupKey, requireMockStockTrend(skuGroupKey), baseScope)
-  const monthlySalesByMonth: Map<string, MonthlySalesPoint> = new Map((primary.monthlySalesTrend ?? []).map((point: MonthlySalesPoint): [string, MonthlySalesPoint] => [point.date, point]))
-  const stockTrendByMonth: Map<string, { date: string; stock: number; inboundExpected: number; inboundQty: number; }> = new Map(stockTrend.map((point: { date: string; stock: number; inboundExpected: number; inboundQty: number; }): [string, { date: string; stock: number; inboundExpected: number; inboundQty: number; }] => [point.date, point]))
-  const sizeRows: ProductSecondaryDetail['sizeRows'] = secondary.sizeRows
-  const sizes: string[] = sizeRows.map((row: ProductSecondaryDetail['sizeRows'][number]): string => row.size)
-  const weights: number[] = sizeRows.map((row: ProductSecondaryDetail['sizeRows'][number]): number => row.selfRatio > 0 ? row.selfRatio : row.confirmedQty)
-  const stockBySize: Record<string, number> = {}
-  sizeRows.forEach((row: ProductSecondaryDetail['sizeRows'][number]): void => {
-    stockBySize[row.size] = Math.max(0, Math.round(row.availableStock))
-  })
-
-  const expectationByDate: Record<string, Record<string, SecondaryInboundSplitExpectationCell>> = {}
-  const start: number = parseIsoDateStart(INBOUND_SPLIT_SOURCE_RANGE_START, 'rangeStart')
-  const end: number = parseIsoDateStart(INBOUND_SPLIT_SOURCE_RANGE_END, 'rangeEnd')
-
-  for (let time: number = start; time < end; time += DAY_MS) {
-    const date: string = formatIsoDate(new Date(time))
-    const month: string = date.slice(0, 7)
-    const dayIndex: number = Number(date.slice(8, 10)) - 1
-    const monthSales: number = Math.max(0, Math.round(monthlySalesByMonth.get(month)?.sales ?? 0))
-    const days: number = daysInMonthKey(month)
-    const saleTotal: number = mockDailySaleTotal(monthSales, dayIndex, days, skuGroupKey.charCodeAt(0))
-    const inboundTotal: number = date.endsWith('-01')
-      ? Math.max(0, Math.round(stockTrendByMonth.get(month)?.inboundQty ?? stockTrendByMonth.get(month)?.inboundExpected ?? 0))
-      : 0
-    const saleBySize: number[] = allocateMockIntegerTotal(saleTotal, weights)
-    const inboundBySize: number[] = allocateMockIntegerTotal(inboundTotal, weights)
-    expectationByDate[date] = Object.fromEntries(sizes.map((size: string, index: number): [string, SecondaryInboundSplitExpectationCell] => [size, {
-      sale: saleBySize[index] ?? 0,
-      inbound: inboundBySize[index] ?? 0,
-    }]))
+function getFixtureScope(baseScope: { companyUuid?: string; }): Record<string, SecondaryInboundSplitSourceFixtureEntry> {
+  const scopeKey: string = cacheScopeKey(baseScope)
+  const scopeSource: Record<string, SecondaryInboundSplitSourceFixtureEntry> | undefined = secondaryInboundSplitSourceFixtures.byScope[scopeKey]
+  if (scopeSource == null) {
+    throw new Error(`Missing secondary inbound split fixture scope: ${scopeKey}`)
   }
-
-  return { stockBySize, expectationByDate }
+  return scopeSource
 }
 
-function getPrecomputedSecondaryInboundSplitSourceForSku(
-  skuGroupKey: string,
+function getCachedFixtureForSku(
   baseScope: { companyUuid?: string; },
-): SecondaryInboundSplitSourceCacheEntry {
-  const scopeKey: string = cacheScopeKey(baseScope)
-  const scopeCache: Map<string, SecondaryInboundSplitSourceCacheEntry> = (() : Map<string, SecondaryInboundSplitSourceCacheEntry> => {
-    const existing: Map<string, SecondaryInboundSplitSourceCacheEntry> | undefined = secondaryInboundSplitSourceCacheByScope.get(scopeKey)
-    if (existing != null) return existing
-    const next: Map<string, SecondaryInboundSplitSourceCacheEntry> = new Map()
-    secondaryInboundSplitSourceCacheByScope.set(scopeKey, next)
-    return next
-  })()
-
-  const cached: SecondaryInboundSplitSourceCacheEntry | undefined = scopeCache.get(skuGroupKey)
-  if (cached != null) return cached
-
-  const built: SecondaryInboundSplitSourceCacheEntry = buildPrecomputedSecondaryInboundSplitSourceForSku(skuGroupKey, baseScope)
-  scopeCache.set(skuGroupKey, built)
-  return built
+  skuGroupKey: string,
+): SecondaryInboundSplitSourceFixtureEntry {
+  const scopeSource: Record<string, SecondaryInboundSplitSourceFixtureEntry> = getFixtureScope(baseScope)
+  const cached: SecondaryInboundSplitSourceFixtureEntry | undefined = scopeSource[skuGroupKey]
+  if (cached == null) {
+    throw new Error(`Missing secondary inbound split fixture for sku: ${skuGroupKey}`)
+  }
+  return cached
 }
 
 function slicePrecomputedSecondaryInboundSplitExpectation(
-  cached: SecondaryInboundSplitSourceCacheEntry,
+  cached: SecondaryInboundSplitSourceFixtureEntry,
   dateStart: string,
   dateEnd: string,
 ): Record<string, Record<string, SecondaryInboundSplitExpectationCell>> {
   const start: number = parseIsoDateStart(dateStart, 'dateStart')
   const end: number = parseIsoDateStart(dateEnd, 'dateEnd')
-  const precomputedStart: number = parseIsoDateStart(INBOUND_SPLIT_SOURCE_RANGE_START, 'rangeStart')
-  const precomputedEnd: number = parseIsoDateStart(INBOUND_SPLIT_SOURCE_RANGE_END, 'rangeEnd')
+  const precomputedStart: number = parseIsoDateStart(secondaryInboundSplitSourceFixtures.rangeStart, 'rangeStart')
+  const precomputedEnd: number = parseIsoDateStart(secondaryInboundSplitSourceFixtures.rangeEnd, 'rangeEnd')
   if (start < precomputedStart || end > precomputedEnd) {
-    throw new Error(`Secondary inbound split source precomputed date range supports ${INBOUND_SPLIT_SOURCE_RANGE_START} <= dateStart < dateEnd <= ${INBOUND_SPLIT_SOURCE_RANGE_END}.`)
+    throw new Error(
+      `Secondary inbound split source precomputed date range supports ${secondaryInboundSplitSourceFixtures.rangeStart} <= dateStart < dateEnd <= ${secondaryInboundSplitSourceFixtures.rangeEnd}.`,
+    )
   }
   if (end <= start) return {}
 
@@ -429,7 +368,7 @@ export async function getMockSecondaryInboundSplitSource({
   await sleep(80)
   assertMockSubjectRole(base, 'base')
   const baseScope: { companyUuid?: string } = selfCompanySubjectScope(base)
-  const cached: SecondaryInboundSplitSourceCacheEntry = getPrecomputedSecondaryInboundSplitSourceForSku(skuGroupKey, baseScope)
+  const cached: SecondaryInboundSplitSourceFixtureEntry = getCachedFixtureForSku(baseScope, skuGroupKey)
   const expectationByDate: Record<string, Record<string, SecondaryInboundSplitExpectationCell>> = slicePrecomputedSecondaryInboundSplitExpectation(
     cached,
     dateStart,

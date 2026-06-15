@@ -53,7 +53,7 @@ describe('inbound split schedule recalculation', () : void => {
       source,
     )
 
-    expect(rows.map((result: InboundSplitScheduleRow): number => result.suggestedQuantitiesBySize.S)).toEqual([6, 4])
+    expect(rows.map((result: InboundSplitScheduleRow): number => result.suggestedQuantitiesBySize.S)).toEqual([6, 2])
     expect(rows.map((result: InboundSplitScheduleRow): number => result.quantitiesBySize.S)).toEqual([123, 456])
   })
 

@@ -2,6 +2,14 @@
 
 Last updated: 2026-06-15
 
+## 0-7) 2026-06-15 secondary inbound split fixture boundary
+
+- `src/api/mock/secondaryInboundSplitSourceFixtures.json` is the mock backend substitute source for split inbound tests and Pages preview.
+- `src/api/mock/mockProductComparisonApi.ts` owns loading that fixture and slicing it to the requested date range; UI and hooks still call only `getSecondaryInboundSplitSource`.
+- `dashboard-app/scripts/generateSecondaryInboundSplitSourceFixtures.ts` regenerates the fixture for the default `2026-12-15 <= date < 2027-06-15` coverage window.
+- Static deployment relies on host-level HTTP gzip/brotli compression for the large fixture payload. Do not move this data into UI components or duplicate it as fallback state.
+- `inboundSplitSuggestionModel.ts` is shortage-only: projected stock plus known inbound must cover demand before any suggested order quantity appears. It must not allocate leftover confirmed quantity just to match the confirmed total.
+
 ## 0-6) 2026-06-11 candidate order metric comparison boundary
 
 - Candidate stash detail header fetches size comparison targets with `getProductComparisonTargets({ base })`; it does not create a global/default comparison variable outside the modal.
