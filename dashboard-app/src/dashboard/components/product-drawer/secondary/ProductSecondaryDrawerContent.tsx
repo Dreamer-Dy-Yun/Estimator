@@ -99,22 +99,24 @@ export function ProductSecondaryDrawerContent({
   const confirmedOpProfit: number = stockOrderCalculationReady ? confirmedQtyTotal * perUnitOpMargin : 0
   return (
     <div className={styles.panel}>
-      <div className={styles.metaFilterRow}>
-        <div className={styles.metaFilterMetaBlock}>
-          <ComponentErrorBoundary page={pageName} unit="ProductMetaCard">
-            <ProductMetaCard primary={primary} />
-          </ComponentErrorBoundary>
+      <div className={styles.stickyMetaHeader}>
+        <div className={styles.metaFilterRow}>
+          <div className={styles.metaFilterMetaBlock}>
+            <ComponentErrorBoundary page={pageName} unit="ProductMetaCard">
+              <ProductMetaCard primary={primary} />
+            </ComponentErrorBoundary>
+          </div>
+          <SecondaryDrawerCandidateActions
+            candidateItemContext={candidateItemContext}
+            hasSavedSnapshot={hasSavedSnapshot}
+            showingConfirmedValues={showingConfirmedValues}
+            candidateActions={candidateActions}
+            onResetToLive={onResetToLive}
+            onRestoreConfirmed={onRestoreConfirmed}
+            portalHelp={portalHelp}
+            confirmOrderHelpId={helpIds.confirmOrder}
+          />
         </div>
-        <SecondaryDrawerCandidateActions
-          candidateItemContext={candidateItemContext}
-          hasSavedSnapshot={hasSavedSnapshot}
-          showingConfirmedValues={showingConfirmedValues}
-          candidateActions={candidateActions}
-          onResetToLive={onResetToLive}
-          onRestoreConfirmed={onRestoreConfirmed}
-          portalHelp={portalHelp}
-          confirmOrderHelpId={helpIds.confirmOrder}
-        />
       </div>
       <div className={styles.salesStockAiRow}>
         <ComponentErrorBoundary page={pageName} unit="SalesForecastCard">

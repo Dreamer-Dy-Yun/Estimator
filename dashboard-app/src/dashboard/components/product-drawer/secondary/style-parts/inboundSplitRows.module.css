@@ -14,13 +14,13 @@
 .inboundSplitSuggestedRow td {
   background: #f1f7ff;
   color: #2563eb;
-  font-weight: 700;
   border-bottom-color: transparent;
 }
 
 .inboundSplitConfirmedRow td {
   background: #fff;
   color: #0f172a;
+  font-weight: 700;
   border-top-color: transparent;
 }
 
@@ -138,6 +138,12 @@
   width: 5.4rem;
   font-size: 13px;
   font-weight: 500;
+}
+
+.inboundSplitConfirmedRow .stockNumberInput.inboundSplitQtyInput {
+  width: calc(5.4rem * 0.85);
+  padding-left: 2px;
+  padding-right: 2px;
 }
 
 .inboundSplitTable .stockDateInput {
