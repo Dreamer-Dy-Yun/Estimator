@@ -42,11 +42,11 @@ function makeFixture(): unknown {
     schema: 'secondary-inbound-split-source:scope:v1',
     scopeKey: MOCK_HANA_COMPANY_UUID,
     rangeStart: '2026-01-01',
-    rangeEnd: '2027-06-15',
+    rangeEnd: '2029-01-01',
     entries: {
       [TEST_SHOE_SKU_GROUP_KEY]: {
         stockBySize: { '210': 7 },
-        expectationByDate: buildExpectationByDate('2026-04-01', '2027-06-15'),
+        expectationByDate: buildExpectationByDate('2026-04-01', '2029-01-01'),
       },
     },
   }
@@ -96,20 +96,21 @@ describe('getMockSecondaryInboundSplitSource', (): void => {
     expect(Object.keys(secondResult.expectationByDate)).toEqual(['2026-04-02'])
   })
 
-  it('accepts the current live default inbound date range through 2027-06-15', async (): Promise<void> => {
+  it('accepts the current live default inbound date range when dateEnd is exclusive', async (): Promise<void> => {
     stubFixtureFetch()
 
     const result = await getMockSecondaryInboundSplitSource({
       skuGroupKey: TEST_SHOE_SKU_GROUP_KEY,
-      dateStart: '2026-12-15',
-      dateEnd: '2027-06-15',
+      dateStart: '2026-12-16',
+      dateEnd: '2027-06-16',
       base: MOCK_BASE_SUBJECT,
     })
 
-    expect(result.dateStart).toBe('2026-12-15')
-    expect(result.dateEnd).toBe('2027-06-15')
-    expect(result.expectationByDate['2026-12-15']?.['210']).toEqual({ sale: 1, inbound: 0 })
-    expect(result.expectationByDate['2027-06-14']?.['210']).toEqual({ sale: 1, inbound: 0 })
+    expect(result.dateStart).toBe('2026-12-16')
+    expect(result.dateEnd).toBe('2027-06-16')
+    expect(result.expectationByDate['2026-12-16']?.['210']).toEqual({ sale: 1, inbound: 0 })
+    expect(result.expectationByDate['2027-06-15']?.['210']).toEqual({ sale: 1, inbound: 0 })
+    expect(result.expectationByDate['2027-06-16']).toBeUndefined()
   })
 
   it('rejects an empty or reversed date range instead of returning an empty source', async (): Promise<void> => {

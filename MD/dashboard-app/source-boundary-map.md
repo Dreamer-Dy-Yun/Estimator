@@ -25,7 +25,7 @@ Last updated: 2026-06-16
 
 - `dashboard-app/public/mock/secondaryInboundSplitSourceFixtures/*.json` are the scope-sharded mock backend substitute sources for split inbound tests and Pages preview.
 - `src/api/mock/secondaryInboundSplitSourceFixture.ts` owns runtime fetching/caching of that static fixture, scope/SKU lookup, and slicing it to the requested date range; UI and hooks still call only `getSecondaryInboundSplitSource`.
-- `dashboard-app/scripts/generateSecondaryInboundSplitSourceFixtures.ts` regenerates the fixture for the `2026-01-01 <= dateStart < dateEnd <= 2027-06-15` coverage window, covering saved 2026-04 snapshot requests and the 2026-06-15 live default inbound range.
+- `dashboard-app/scripts/generateSecondaryInboundSplitSourceFixtures.ts` regenerates the fixture for the `2026-01-01 <= dateStart < dateEnd <= 2029-01-01` coverage window, covering saved 2026-04 snapshot requests and dateEnd-exclusive requests through 2028-12-31.
 - Static deployment relies on host-level HTTP gzip/brotli compression for the large fixture payload. Do not move this data into UI components or duplicate it as fallback state.
 - `inboundSplitSuggestionModel.ts` is shortage-only: projected stock plus known inbound must cover demand before any suggested order quantity appears. It must not allocate leftover confirmed quantity just to match the confirmed total, and it must not use the mutable confirmed quantity as the recommendation baseline.
 

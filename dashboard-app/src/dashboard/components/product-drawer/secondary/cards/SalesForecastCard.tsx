@@ -141,7 +141,6 @@ export function SalesForecastCard({ forecast, orderInputFields, actions, help }:
             min={minOrderDate}
             onChange={actions.onCurrentOrderInboundDueDateChange}
             inputClassName={`${styles.stockDateInput} ${styles.stockFillInput}`}
-            showWeekday={false}
           />
         </FieldCell>
         <FieldCell label={KO.labelNextOrderInboundDueDate}>
@@ -151,7 +150,6 @@ export function SalesForecastCard({ forecast, orderInputFields, actions, help }:
             min={minNextOrderInboundDueDate}
             onChange={actions.onNextOrderInboundDueDateChange}
             inputClassName={`${styles.stockDateInput} ${styles.stockFillInput}`}
-            showWeekday={false}
           />
         </FieldCell>
         <NumberField label={KO.labelBufferStock} value={bufferStock} onChange={actions.onBufferStockChange} unit={KO.unitBufferStockDays} grouped />
