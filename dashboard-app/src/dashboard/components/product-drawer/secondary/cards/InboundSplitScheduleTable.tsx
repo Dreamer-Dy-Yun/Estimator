@@ -1,51 +1,39 @@
 import { Fragment } from 'react'
-import { daysBetweenIsoDates } from '../../../../../utils/date'
 import { formatGroupedNumber } from '../../../../../utils/format'
 import { KO } from '../../ko'
 import { DateInputWithWeekday } from '../../../../../components/DateInputWithWeekday'
 import styles from '../secondaryDrawer.module.css'
 import { getInboundSplitSuggestedTotalQty, getInboundSplitTotalQty, type InboundSplitScheduleRow, type InboundSplitSizeColumn } from './inboundSplitScheduleModel'
+import { getInboundSplitDateInterval, type InboundSplitDateInterval } from './inboundSplitScheduleDatePolicy'
+import { sumInboundSplitColumnTotals, sumInboundSplitConfirmedBySize, sumInboundSplitSuggestedBySize } from './inboundSplitScheduleTotals'
 import { ariaDiffLabel, cx, diffClass, qtyInputClassName, stickyDateClassName, stickyKindClassName, stickyRoundClassName, stickyTotalClassName } from './inboundSplitScheduleTableClasses'
 
 export interface InboundSplitScheduleTableProps {
   workDate: string
   rows: InboundSplitScheduleRow[]
   columns: InboundSplitSizeColumn[]
-  suggestedSizeTotals: Record<string, number>
-  confirmedSizeTotals: Record<string, number>
-  suggestedGrandTotal: number
-  confirmedGrandTotal: number
   onDateChange: (rowIndex: number, value: string) => void
   onRowTotalChange: (rowIndex: number, value: string) => void
   onQtyChange: (rowIndex: number, size: string, value: string) => void
 }
 
-interface InboundSplitDateInterval {
-  inboundDateInterval: string
-  invalidDateOrder: boolean
-}
-
-function buildInboundSplitDateInterval(startDate: string, endDate: string): InboundSplitDateInterval {
-  const days: number | null = daysBetweenIsoDates(startDate, endDate)
-  if (days == null) return { inboundDateInterval: '-', invalidDateOrder: false }
-  return {
-    inboundDateInterval: `${days >= 0 ? '+' : ''}${formatGroupedNumber(days)}${KO.unitDays}`,
-    invalidDateOrder: days <= 0,
-  }
+function formatInboundSplitDateInterval(interval: InboundSplitDateInterval): string {
+  if (interval.days == null) return '-'
+  return `${interval.days >= 0 ? '+' : ''}${formatGroupedNumber(interval.days)}${KO.unitDays}`
 }
 
 export function InboundSplitScheduleTable({
   workDate,
   rows,
   columns,
-  suggestedSizeTotals,
-  confirmedSizeTotals,
-  suggestedGrandTotal,
-  confirmedGrandTotal,
   onDateChange,
   onRowTotalChange,
   onQtyChange,
 }: InboundSplitScheduleTableProps): React.JSX.Element {
+  const suggestedSizeTotals: Record<string, number> = sumInboundSplitSuggestedBySize(rows, columns)
+  const confirmedSizeTotals: Record<string, number> = sumInboundSplitConfirmedBySize(rows, columns)
+  const suggestedGrandTotal: number = sumInboundSplitColumnTotals(columns, suggestedSizeTotals)
+  const confirmedGrandTotal: number = sumInboundSplitColumnTotals(columns, confirmedSizeTotals)
   const summaryDiffClass: string = diffClass(confirmedGrandTotal, suggestedGrandTotal)
   const formattedConfirmedGrandTotal: string = formatGroupedNumber(confirmedGrandTotal)
 
@@ -87,7 +75,9 @@ export function InboundSplitScheduleTable({
           const confirmedTotalQty: number = getInboundSplitTotalQty(row, columns)
           const totalDiffClass: string = diffClass(confirmedTotalQty, suggestedTotalQty)
           const previousInboundDate: string = rowIndex === 0 ? workDate : (rows[rowIndex - 1]?.inboundDate ?? workDate)
-          const dateInterval: InboundSplitDateInterval = buildInboundSplitDateInterval(previousInboundDate, row.inboundDate)
+          const dateInterval: InboundSplitDateInterval = getInboundSplitDateInterval(previousInboundDate, row.inboundDate)
+          const dateIntervalText: string = formatInboundSplitDateInterval(dateInterval)
+          const dateIntervalId: string = `inbound-split-date-interval-${rowIndex}`
 
           return (
             <Fragment key={row.id}>
@@ -100,12 +90,15 @@ export function InboundSplitScheduleTable({
                       value={row.inboundDate}
                       onChange={(value: string): void => onDateChange(rowIndex, value)}
                       inputClassName={styles.stockDateInput}
+                      ariaDescribedBy={dateIntervalId}
+                      ariaInvalid={dateInterval.invalidDateOrder ? true : undefined}
                     />
                     <span
+                      id={dateIntervalId}
                       className={cx(styles.inboundSplitDateInterval, dateInterval.invalidDateOrder ? styles.inboundSplitDateIntervalInvalid : null)}
-                      aria-label={`${row.round}${KO.optionInboundSplitRoundSuffix} ${KO.labelInboundSplitDateInterval} ${dateInterval.inboundDateInterval}`}
+                      aria-label={`${row.round}${KO.optionInboundSplitRoundSuffix} ${KO.labelInboundSplitDateInterval} ${dateIntervalText}`}
                     >
-                      {dateInterval.inboundDateInterval}
+                      {dateIntervalText}
                     </span>
                   </div>
                 </td>

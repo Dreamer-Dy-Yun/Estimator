@@ -163,6 +163,21 @@ describe('useInboundSplitScheduleController', (): void => {
     expect(controller.args.onConfirmQtyChange).toHaveBeenNthCalledWith(2, 'M', 5, 5)
   })
 
+  it('rejects non-increasing rows even when apply is called directly', (): void => {
+    const controller: ReturnType<typeof renderController> = renderController()
+
+    act((): void => {
+      controller.current.dialogProps.onApply([
+        row('r1', 1, '2026-04-01', 3, 2),
+        row('r2', 2, '2026-04-01', 4, 3),
+      ])
+    })
+
+    expect(controller.args.onConfirmedRoundsChange).not.toHaveBeenCalled()
+    expect(controller.args.onConfirmQtyChange).not.toHaveBeenCalled()
+    expect(controller.current.visibleError?.request).toBe('validateInboundSplitScheduleRows')
+  })
+
   it('collapses a one-round schedule to direct quantities without preserving missing stale size values', (): void => {
     const onConfirmQtyChange: Mock<(size: string, next: number, recommendedQty: number) => void> = vi.fn()
     const controller: ReturnType<typeof renderController> = renderController({ onConfirmQtyChange })

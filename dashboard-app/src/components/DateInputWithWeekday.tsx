@@ -1,8 +1,17 @@
-import { useLayoutEffect, useMemo, useRef, useState, type ChangeEvent } from 'react'
+import { useLayoutEffect, useMemo, useRef, useState, type AriaAttributes, type ChangeEvent } from 'react'
 import styles from './DateInputWithWeekday.module.css'
 
-export type DateInputWithWeekdayProps = {
+const DEFAULT_FONT_SIZE = 11.9
+const MIN_FONT_SIZE = 11.44
+const MAX_FONT_SIZE = 13.09
+const MIN_WIDTH_FOR_FONT = 112
+const MAX_WIDTH_FOR_FONT = 170
+
+export interface DateInputWithWeekdayProps {
   ariaLabel: string
+  ariaDescribedBy?: string
+  ariaInvalid?: AriaAttributes['aria-invalid']
+  ariaLabelledBy?: string
   value: string
   onChange: (next: string) => void
   min?: string
@@ -13,21 +22,16 @@ export type DateInputWithWeekdayProps = {
   className?: string
   inputClassName?: string
   weekdayClassName?: string
-  weekdayLocale?: WeekdayLocale
+  weekdayLocale?: Intl.LocalesArgument
   showWeekday?: boolean
+  colorWeekends?: boolean
 }
 
-export type WeekdayLocale = 'ko-KR' | 'en-US'
-
 function clampFontSizeByWidth(width: number): number {
-  const minFont: number = 11.44
-  const maxFont: number = 13.09
-  const minWidth: number = 112
-  const maxWidth: number = 170
-  if (width >= maxWidth) return maxFont
-  if (width <= minWidth) return minFont
-  const ratio: number = (width - minWidth) / (maxWidth - minWidth)
-  return Number((minFont + (maxFont - minFont) * ratio).toFixed(2))
+  if (width >= MAX_WIDTH_FOR_FONT) return MAX_FONT_SIZE
+  if (width <= MIN_WIDTH_FOR_FONT) return MIN_FONT_SIZE
+  const ratio: number = (width - MIN_WIDTH_FOR_FONT) / (MAX_WIDTH_FOR_FONT - MIN_WIDTH_FOR_FONT)
+  return Number((MIN_FONT_SIZE + (MAX_FONT_SIZE - MIN_FONT_SIZE) * ratio).toFixed(2))
 }
 
 function parseIsoDate(value: string): Date | null {
@@ -44,7 +48,7 @@ function parseIsoDate(value: string): Date | null {
   return parsed
 }
 
-function buildWeekdayText(value: string, locale: WeekdayLocale): string | null {
+function buildWeekdayText(value: string, locale: Intl.LocalesArgument): string | null {
   const d: Date | null = parseIsoDate(value)
   if (d == null) return null
   if (Number.isNaN(d.getTime())) return null
@@ -65,8 +69,12 @@ function cx(classes: Array<string | undefined>): string {
   return classes.filter((item: string | undefined) : boolean => Boolean(item)).join(' ')
 }
 
+// Invalid or empty controlled values remain visible as-is; caller-owned validation decides whether to mark or reject them.
 export function DateInputWithWeekday({
   ariaLabel,
+  ariaDescribedBy,
+  ariaInvalid,
+  ariaLabelledBy,
   value,
   onChange,
   min,
@@ -79,16 +87,18 @@ export function DateInputWithWeekday({
   weekdayClassName,
   weekdayLocale = 'ko-KR',
   showWeekday = true,
+  colorWeekends = true,
 }: DateInputWithWeekdayProps): React.JSX.Element {
   const weekdayText: string | null = useMemo(() : string | null => buildWeekdayText(value, weekdayLocale), [value, weekdayLocale])
   const weekdayClass: string = useMemo(() : string => {
     if (value.length === 0) return styles.dateWeekday
-    return cx([weekdayColorClass(value), weekdayClassName])
-  }, [value, weekdayClassName])
+    const baseWeekdayClass: string = colorWeekends ? weekdayColorClass(value) : styles.dateWeekday
+    return cx([baseWeekdayClass, weekdayClassName])
+  }, [colorWeekends, value, weekdayClassName])
   const mergedInputClassName: string = inputClassName ?? ''
   const nativeInputClassName: string = cx([styles.dateInputNative, mergedInputClassName])
   const wrapperRef = useRef<HTMLSpanElement>(null)
-  const [fontSize, setFontSize] = useState<number>(11.9)
+  const [fontSize, setFontSize] = useState<number>(DEFAULT_FONT_SIZE)
 
   useLayoutEffect(() => {
     const wrapper: HTMLSpanElement | null = wrapperRef.current
@@ -136,9 +146,12 @@ export function DateInputWithWeekday({
         disabled={disabled}
         required={required}
         aria-label={ariaLabel}
+        aria-describedby={ariaDescribedBy}
+        aria-invalid={ariaInvalid}
+        aria-labelledby={ariaLabelledBy}
         style={{ fontSize: `${fontSize}px`, lineHeight: '1.2' }}
       />
-      <span className={styles.dateInputDisplayOverlay} style={{ fontSize: `${fontSize}px`, lineHeight: '1.2' }}>
+      <span className={styles.dateInputDisplayOverlay} style={{ fontSize: `${fontSize}px`, lineHeight: '1.2' }} aria-hidden="true">
         {value}
         {(showWeekday && weekdayText != null) ? <span className={weekdayClass}>&nbsp;{weekdayText}</span> : null}
       </span>

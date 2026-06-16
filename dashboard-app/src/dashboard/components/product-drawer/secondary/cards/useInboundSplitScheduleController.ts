@@ -13,10 +13,11 @@ import {
   inboundSplitRowsToConfirmedRounds,
   recalculateInboundSplitScheduleRows,
   reconcileInboundSplitScheduleRows,
-  sumInboundSplitConfirmedBySize,
   type InboundSplitScheduleRow,
   type InboundSplitSizeColumn,
 } from './inboundSplitScheduleModel'
+import { assertInboundSplitDateOrder } from './inboundSplitScheduleDatePolicy'
+import { sumInboundSplitConfirmedBySize } from './inboundSplitScheduleTotals'
 import type { InboundSplitDraftRequest } from './inboundSplitScheduleTypes'
 
 interface InboundSplitRowsBuildResult {
@@ -143,10 +144,17 @@ export function useInboundSplitScheduleController({
   const applyDialogRows: (rows: InboundSplitScheduleRow[]) => void = useCallback((rows: InboundSplitScheduleRow[]): void => {
     if (!scheduleReady) return
     if (rows.length === 0) return
+    try {
+      assertInboundSplitDateOrder(workDate, rows)
+    } catch (err: unknown) {
+      setDraftError(makeInboundSplitDraftErrorInfo('validateInboundSplitScheduleRows', err))
+      return
+    }
 
     const nextRows: InboundSplitScheduleRow[] = cloneInboundSplitRows(rows)
     const nextConfirmBySize: Record<string, number> = sumInboundSplitConfirmedBySize(nextRows, columns)
     setSplitCount(clampInboundSplitCount(nextRows.length))
+    setDraftError(null)
 
     if (nextRows.length <= 1) {
       clearConfirmedRounds()
@@ -162,7 +170,7 @@ export function useInboundSplitScheduleController({
       onConfirmQtyChange(row.size, nextConfirmBySize[row.size] ?? 0, row.recommendedQty)
     })
     setDialogOpen(false)
-  }, [clearConfirmedRounds, columns, onConfirmQtyChange, onConfirmedRoundsChange, scheduleReady, sizeRows])
+  }, [clearConfirmedRounds, columns, onConfirmQtyChange, onConfirmedRoundsChange, scheduleReady, sizeRows, workDate])
 
   const handleDraftError: (err: unknown | null, request: InboundSplitDraftRequest) => void = useCallback((err: unknown | null, request: InboundSplitDraftRequest): void => {
     setDraftError(err == null ? null : makeInboundSplitDraftErrorInfo(request, err))

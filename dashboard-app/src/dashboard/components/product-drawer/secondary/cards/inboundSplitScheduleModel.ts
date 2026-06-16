@@ -74,14 +74,6 @@ export function cloneInboundSplitRows(rows: readonly InboundSplitScheduleRow[]):
   }))
 }
 
-export function sumInboundSplitConfirmedBySize(rows: readonly InboundSplitScheduleRow[], columns: readonly InboundSplitSizeColumn[]): Record<string, number> {
-  const totals: Record<string, number> = {}
-  columns.forEach((column: InboundSplitSizeColumn): void => {
-    totals[column.size] = rows.reduce((sum: number, row: InboundSplitScheduleRow): number => sum + Math.max(0, Math.round(row.quantitiesBySize[column.size] ?? 0)), 0)
-  })
-  return totals
-}
-
 export function confirmedRoundsToInboundSplitRows(rounds: readonly OrderSnapshotConfirmedRound[], columns: readonly InboundSplitSizeColumn[]): InboundSplitScheduleRow[] {
   return rounds.map((round: OrderSnapshotConfirmedRound, index: number): InboundSplitScheduleRow => {
     const quantitiesBySize: Record<string, number> = {}

@@ -11,7 +11,7 @@ Shared modules provide reusable UI shells, hooks, pure models, snapshot helpers,
 | Source | Responsibility |
 |---|---|
 | `src/components/AppToast.tsx` | Global toast surface for success, warning, and error messages. |
-| `src/components/DateInputWithWeekday.tsx` | Shared native date input wrapper with an optional weekday overlay. It owns only date input display/accessibility mechanics; feature-specific interval, min/max policy, and validation messaging stay in the caller. |
+| `src/components/DateInputWithWeekday.tsx` | Shared native date input wrapper with an optional weekday overlay. It owns only date input display/accessibility mechanics, native input aria pass-through, and raw controlled-value display. Feature-specific interval, min/max policy, and validation messaging stay in the caller. Invalid date strings remain visible but do not derive weekday text. |
 | `src/components/DialogCloseButton.tsx` | Shared close button semantics for modal/dialog/drawer headers. Feature modules provide their own className so visual rhythm stays local. |
 | `src/components/LoadingSpinner.tsx` | Loading indicator for page, inline, drawer, modal, and button states. |
 | `src/dashboard/components/FilterBar.tsx` | Shared filter card wrapper and `FilterFieldGrid` field renderer. Feature pages decide query/filter/action boundaries. |

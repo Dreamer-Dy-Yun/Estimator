@@ -2,22 +2,14 @@ import { useCallback, useMemo, useState } from 'react'
 import {
   MAX_INBOUND_SPLIT_COUNT,
   MIN_INBOUND_SPLIT_COUNT,
-  allocateInboundSplitIntegerTotal,
   clampInboundSplitCount,
   cloneInboundSplitRows,
   type InboundSplitScheduleRow,
   type InboundSplitSizeColumn,
 } from './inboundSplitScheduleModel'
+import { redistributeInboundSplitRowTotalByScheduleSuggestion, toInboundSplitDraftInteger } from './inboundSplitDraftQuantityModel'
+import { sumInboundSplitColumnTotals, sumInboundSplitConfirmedBySize, sumInboundSplitSuggestedBySize } from './inboundSplitScheduleTotals'
 import type { InboundSplitDraftRequest } from './inboundSplitScheduleTypes'
-
-function toNonNegativeInteger(value: string): number { return Math.max(0, Math.round(Number(value) || 0)) }
-function getSuggestedSizeTotals(rows: readonly InboundSplitScheduleRow[], columns: readonly InboundSplitSizeColumn[]): Record<string, number> {
-  const totals: Record<string, number> = {}
-  columns.forEach((column: InboundSplitSizeColumn): void => {
-    totals[column.size] = rows.reduce((sum: number, row: InboundSplitScheduleRow): number => sum + Math.max(0, Math.round(row.suggestedQuantitiesBySize[column.size] ?? 0)), 0)
-  })
-  return totals
-}
 
 export interface UseInboundSplitScheduleDraftArgs {
   initialCount: number
@@ -84,27 +76,13 @@ export function useInboundSplitScheduleDraft({
 
   const changeRowTotal: (rowIndex: number, value: string) => void = useCallback((rowIndex: number, value: string): void => {
     setRows((currentRows: InboundSplitScheduleRow[]): InboundSplitScheduleRow[] => {
-      const currentRow: InboundSplitScheduleRow | undefined = currentRows[rowIndex]
-      if (!currentRow) return currentRows
-
-      const suggestedTotals: Record<string, number> = getSuggestedSizeTotals(currentRows, columns)
-      const distributed: number[] = allocateInboundSplitIntegerTotal({
-        total: toNonNegativeInteger(value),
-        weights: columns.map((column: InboundSplitSizeColumn): number => suggestedTotals[column.size] ?? 0),
-      }).values
-      return currentRows.map((row: InboundSplitScheduleRow, index: number): InboundSplitScheduleRow => {
-        if (index !== rowIndex) return row
-        const quantitiesBySize: Record<string, number> = { ...row.quantitiesBySize }
-        columns.forEach((column: InboundSplitSizeColumn, columnIndex: number): void => {
-          quantitiesBySize[column.size] = distributed[columnIndex] ?? 0
-        })
-        return { ...row, quantitiesBySize }
-      })
+      const nextRows: InboundSplitScheduleRow[] = redistributeInboundSplitRowTotalByScheduleSuggestion(currentRows, columns, rowIndex, value)
+      return nextRows.length === currentRows.length ? nextRows : currentRows
     })
   }, [columns])
 
   const changeQty: (rowIndex: number, size: string, value: string) => void = useCallback((rowIndex: number, size: string, value: string): void => {
-    const nextQty: number = toNonNegativeInteger(value)
+    const nextQty: number = toInboundSplitDraftInteger(value)
     setRows((currentRows: InboundSplitScheduleRow[]): InboundSplitScheduleRow[] => currentRows.map((row: InboundSplitScheduleRow, index: number): InboundSplitScheduleRow => (
       index === rowIndex
         ? { ...row, quantitiesBySize: { ...row.quantitiesBySize, [size]: nextQty } }
@@ -112,28 +90,15 @@ export function useInboundSplitScheduleDraft({
     )))
   }, [])
 
-  const suggestedSizeTotals: Record<string, number> = useMemo((): Record<string, number> => {
-    const totals: Record<string, number> = {}
-    columns.forEach((column: InboundSplitSizeColumn): void => {
-      totals[column.size] = rows.reduce((sum: number, row: InboundSplitScheduleRow): number => sum + Math.max(0, Math.round(row.suggestedQuantitiesBySize[column.size] ?? 0)), 0)
-    })
-    return totals
-  }, [columns, rows])
-
-  const confirmedSizeTotals: Record<string, number> = useMemo((): Record<string, number> => {
-    const totals: Record<string, number> = {}
-    columns.forEach((column: InboundSplitSizeColumn): void => {
-      totals[column.size] = rows.reduce((sum: number, row: InboundSplitScheduleRow): number => sum + Math.max(0, Math.round(row.quantitiesBySize[column.size] ?? 0)), 0)
-    })
-    return totals
-  }, [columns, rows])
+  const suggestedSizeTotals: Record<string, number> = useMemo((): Record<string, number> => sumInboundSplitSuggestedBySize(rows, columns), [columns, rows])
+  const confirmedSizeTotals: Record<string, number> = useMemo((): Record<string, number> => sumInboundSplitConfirmedBySize(rows, columns), [columns, rows])
 
   const suggestedGrandTotal: number = useMemo(
-    (): number => columns.reduce((sum: number, column: InboundSplitSizeColumn): number => sum + (suggestedSizeTotals[column.size] ?? 0), 0),
+    (): number => sumInboundSplitColumnTotals(columns, suggestedSizeTotals),
     [columns, suggestedSizeTotals],
   )
   const confirmedGrandTotal: number = useMemo(
-    (): number => columns.reduce((sum: number, column: InboundSplitSizeColumn): number => sum + (confirmedSizeTotals[column.size] ?? 0), 0),
+    (): number => sumInboundSplitColumnTotals(columns, confirmedSizeTotals),
     [columns, confirmedSizeTotals],
   )
 

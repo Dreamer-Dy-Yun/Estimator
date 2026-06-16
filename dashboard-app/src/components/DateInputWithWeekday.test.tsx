@@ -3,6 +3,7 @@ import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, describe, expect, it, vi, type Mock } from 'vitest'
 import { DateInputWithWeekday, type DateInputWithWeekdayProps } from './DateInputWithWeekday'
+import styles from './DateInputWithWeekday.module.css'
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
 
@@ -76,5 +77,52 @@ describe('DateInputWithWeekday', (): void => {
     changeValue(input, '2026-04-10')
 
     expect(onChange).toHaveBeenCalledWith('2026-04-10')
+  })
+
+  it('passes native input and accessibility props through without exposing the visual overlay', (): void => {
+    renderDateInput({
+      ariaDescribedBy: 'date-help',
+      ariaInvalid: true,
+      ariaLabelledBy: 'date-label',
+      id: 'date-field',
+      min: '2026-04-01',
+      max: '2026-04-30',
+      disabled: true,
+      required: true,
+      className: 'outer-date-class',
+      inputClassName: 'inner-date-class',
+      weekdayClassName: 'weekday-extra-class',
+    })
+
+    const wrapper: HTMLSpanElement = document.querySelector<HTMLSpanElement>('span.outer-date-class') as HTMLSpanElement
+    const input: HTMLInputElement = document.querySelector<HTMLInputElement>('#date-field') as HTMLInputElement
+    const overlay: HTMLSpanElement = wrapper.querySelector<HTMLSpanElement>(`.${styles.dateInputDisplayOverlay}`) as HTMLSpanElement
+    const weekday: HTMLSpanElement = overlay.querySelector<HTMLSpanElement>('span') as HTMLSpanElement
+
+    expect(input.min).toBe('2026-04-01')
+    expect(input.max).toBe('2026-04-30')
+    expect(input.disabled).toBe(true)
+    expect(input.required).toBe(true)
+    expect(input.className).toContain('inner-date-class')
+    expect(input.getAttribute('aria-describedby')).toBe('date-help')
+    expect(input.getAttribute('aria-invalid')).toBe('true')
+    expect(input.getAttribute('aria-labelledby')).toBe('date-label')
+    expect(overlay.getAttribute('aria-hidden')).toBe('true')
+    expect(weekday.className).toContain('weekday-extra-class')
+  })
+
+  it('keeps malformed values visible while omitting derived weekday text', (): void => {
+    renderDateInput({ value: '2026-02-31' })
+
+    expect(document.body.textContent).toContain('2026-02-31')
+    expect(document.body.textContent).not.toContain('(')
+  })
+
+  it('can render weekdays without weekend color policy', (): void => {
+    renderDateInput({ value: '2026-04-05', colorWeekends: false })
+
+    const weekday: HTMLSpanElement = document.querySelector<HTMLSpanElement>(`.${styles.dateWeekday}`) as HTMLSpanElement
+    expect(weekday.textContent).toContain('일')
+    expect(weekday.className).not.toContain(styles.dateWeekdaySunday)
   })
 })

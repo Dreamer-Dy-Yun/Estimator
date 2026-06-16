@@ -1,1 +1,4 @@
-export type InboundSplitDraftRequest = 'buildInboundSplitScheduleRows' | 'recalculateInboundSplitScheduleRows'
+export type InboundSplitDraftRequest =
+  | 'buildInboundSplitScheduleRows'
+  | 'recalculateInboundSplitScheduleRows'
+  | 'validateInboundSplitScheduleRows'

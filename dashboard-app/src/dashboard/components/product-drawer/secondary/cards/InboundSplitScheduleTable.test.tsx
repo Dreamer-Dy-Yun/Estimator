@@ -53,10 +53,6 @@ function renderTable(overrides: Partial<InboundSplitScheduleTableProps> = {}): R
     workDate: '2026-03-31',
     rows: ROWS,
     columns: COLUMNS,
-    suggestedSizeTotals: { S: 2, M: 6 },
-    confirmedSizeTotals: { S: 3, M: 5 },
-    suggestedGrandTotal: 8,
-    confirmedGrandTotal: 8,
     ...callbacks,
     ...overrides,
   }
@@ -119,6 +115,9 @@ describe('InboundSplitScheduleTable', (): void => {
 
     expect(intervalNode).not.toBeUndefined()
     expect(intervalNode?.className).toContain(styles.inboundSplitDateIntervalInvalid)
+    const dateInputs: HTMLInputElement[] = Array.from(document.querySelectorAll<HTMLInputElement>('input[type="date"]'))
+    expect(dateInputs[1]?.getAttribute('aria-invalid')).toBe('true')
+    expect(dateInputs[1]?.getAttribute('aria-describedby')).toBe(intervalNode?.id)
   })
 
   it('emits date, row total, and size quantity changes with row and size identity', (): void => {

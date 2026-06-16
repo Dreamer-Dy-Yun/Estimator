@@ -93,6 +93,33 @@ describe('useInboundSplitScheduleDraft', (): void => {
     expect(draft.current.confirmedGrandTotal).toBe(8)
   })
 
+  it('uses whole-schedule suggested size totals when editing one row total', (): void => {
+    const draft: ReturnType<typeof renderDraft> = renderDraft({
+      initialRows: [
+        row('r1', 1, '2026-04-01', 10, 0),
+        row('r2', 2, '2026-04-04', 0, 10),
+      ],
+    })
+
+    act((): void => {
+      draft.current.changeRowTotal(0, '10')
+    })
+
+    expect(draft.current.rows[0]?.quantitiesBySize).toEqual({ S: 5, M: 5 })
+    expect(draft.current.rows[1]?.quantitiesBySize).toEqual({ S: 0, M: 10 })
+  })
+
+  it('normalizes direct quantity edits as non-negative integers', (): void => {
+    const draft: ReturnType<typeof renderDraft> = renderDraft()
+
+    act((): void => {
+      draft.current.changeQty(0, 'S', '2.6')
+      draft.current.changeQty(0, 'M', '-4')
+    })
+
+    expect(draft.current.rows[0]?.quantitiesBySize).toEqual({ S: 3, M: 0 })
+  })
+
   it('keeps current rows and reports an error when date recalculation fails', (): void => {
     const sourceError: Error = new Error('missing source cell')
     const draft: ReturnType<typeof renderDraft> = renderDraft({

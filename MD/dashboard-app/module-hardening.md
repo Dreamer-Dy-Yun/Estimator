@@ -1,6 +1,6 @@
 # Module Hardening
 
-Last updated: 2026-06-10
+Last updated: 2026-06-16
 
 ## Definition
 
@@ -18,6 +18,10 @@ A hardened module has a clear responsibility, documented inputs/outputs, control
 | `useCandidateBulkDetailConfirm.ts` | Bulk detail confirm job/SSE state. |
 | `useSecondaryStockOrderCalc.ts` | Debounced stock-order calculation and stale response guard. |
 | `SecondaryDailyTrendRequestWindow.ts` | Daily trend request window calculation. |
+| `src/components/DateInputWithWeekday.tsx` | Shared native date input display/accessibility wrapper. Caller owns min/max policy, validation messaging, and business meaning. Invalid controlled date strings stay visible and do not derive weekday text. |
+| `inboundSplitScheduleDatePolicy.ts` | Split inbound date interval and strictly-increasing date-order contract shared by table display, dialog Apply state, and controller persistence guard. |
+| `inboundSplitDraftQuantityModel.ts` | Split inbound draft quantity input normalization and row-total redistribution by whole-schedule suggested size mix. |
+| `inboundSplitScheduleTotals.ts` | Split inbound row-derived suggested/confirmed summary aggregation. |
 
 ## Required maintenance rule
 
@@ -32,5 +36,6 @@ A hardened module has a clear responsibility, documented inputs/outputs, control
 | `src/api/mock/dashboardApi.ts` | Split, not hardened | Reduced to dashboard mock facade plus sales list/filter methods. Product comparison and secondary detail mock logic moved out. |
 | `src/api/mock/mockProductComparisonApi.ts` | Candidate | Owns product comparison subject resolution, target list, monthly trend, sales insight, and secondary daily trend mock behavior. |
 | `src/api/mock/mockProductSecondaryDetailApi.ts` | Candidate | Owns secondary detail and comparison size-ratio mock behavior. |
+| `InboundSplitScheduleTable.tsx` / `InboundSplitScheduleDialog.tsx` / `useInboundSplitScheduleController.ts` | Hardened contracts used, UI still candidate | They now depend on shared date/totals/draft-quantity contracts, but remain UI orchestration surfaces. Future visual or event-flow changes still need focused tests. |
 | `useSecondaryCandidateActions.ts` | Guarded orchestration | Action types, pure candidate input/snapshot-key helpers, and mounted/scope/sequence guard ownership are separated. Public refresh/mutation paths require a concrete company scope. The hook still owns picker state and candidate mutation orchestration; split `runMutation` only with focused hook tests. |
 | `src/api/mock/candidateMockApi*.test.ts` | Split test contract | Candidate mock tests are separated by scope, recommendation, job, and mutation responsibilities. Keep new candidate mock tests in the matching file instead of growing a single omnibus test file. |
