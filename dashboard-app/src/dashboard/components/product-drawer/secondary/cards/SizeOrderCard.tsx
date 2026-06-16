@@ -129,6 +129,11 @@ export function SizeOrderCard({ sizeOrder, actions, help }: Props) : React.JSX.E
       />
       <div className={styles.sizeOrderTableWrap}>
         <table ref={tableRef} className={`${styles.table} ${styles.sizeOrderTable} ${styles.sizeOrderLargeTable}`}>
+          <colgroup>
+            <col className={styles.sizeOrderMetricCol} />
+            <col className={styles.sizeOrderTotalCol} />
+            {sizeRows.map((row: SecondarySizeOrderDisplayRow) : React.JSX.Element => <col key={row.size} className={styles.sizeOrderSizeCol} />)}
+          </colgroup>
           <thead>
             <tr>
               <th>{KO.thMetric}</th>

@@ -59,19 +59,35 @@
 
 .sizeOrderTable {
   --size-order-sticky-metric-width: 10rem;
-  --size-order-sticky-total-width: 7rem;
+  --size-order-sticky-total-width: 12rem;
+  --size-order-size-column-width: 5.5rem;
   width: max-content;
   min-width: 100%;
+}
+
+.sizeOrderMetricCol {
+  width: var(--size-order-sticky-metric-width);
+}
+
+.sizeOrderTotalCol {
+  width: var(--size-order-sticky-total-width);
+}
+
+.sizeOrderSizeCol {
+  width: var(--size-order-size-column-width);
 }
 
 .sizeOrderTable th:first-child,
 .sizeOrderTable td:first-child {
   width: var(--size-order-sticky-metric-width);
   min-width: var(--size-order-sticky-metric-width);
+  max-width: var(--size-order-sticky-metric-width);
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   position: sticky;
   left: 0;
-  z-index: 1;
+  z-index: 2;
   background: #fff;
 }
 
@@ -79,10 +95,11 @@
 .sizeOrderTable td:nth-child(2) {
   width: var(--size-order-sticky-total-width);
   min-width: var(--size-order-sticky-total-width);
+  max-width: var(--size-order-sticky-total-width);
   white-space: nowrap;
   position: sticky;
   left: var(--size-order-sticky-metric-width);
-  z-index: 1;
+  z-index: 2;
   background: #fff;
   box-shadow: 4px 0 8px -4px rgba(15, 23, 42, 0.12);
 }
@@ -90,7 +107,7 @@
 .sizeOrderTable thead th:first-child,
 .sizeOrderTable thead th:nth-child(2) {
   background: #f8fafc;
-  z-index: 2;
+  z-index: 3;
 }
 
 .sizeOrderShareChartCell {
