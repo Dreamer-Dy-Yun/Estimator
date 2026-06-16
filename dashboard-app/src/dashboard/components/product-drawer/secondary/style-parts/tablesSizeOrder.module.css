@@ -58,9 +58,12 @@
 }
 
 .sizeOrderTable {
-  --size-order-sticky-metric-width: 10rem;
-  --size-order-sticky-total-width: 12rem;
+  --size-order-sticky-metric-width: 15rem;
+  --size-order-sticky-total-width: 8rem;
+  --size-order-sticky-total-max-width: 9rem;
   --size-order-size-column-width: 5.5rem;
+  --size-order-sticky-divider-color: #cbd5e1;
+  --size-order-metric-divider-offset: -1px;
   width: max-content;
   min-width: 100%;
 }
@@ -71,6 +74,7 @@
 
 .sizeOrderTotalCol {
   width: var(--size-order-sticky-total-width);
+  max-width: var(--size-order-sticky-total-max-width);
 }
 
 .sizeOrderSizeCol {
@@ -82,9 +86,8 @@
   width: var(--size-order-sticky-metric-width);
   min-width: var(--size-order-sticky-metric-width);
   max-width: var(--size-order-sticky-metric-width);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  white-space: normal;
+  word-break: keep-all;
   position: sticky;
   left: 0;
   z-index: 2;
@@ -95,13 +98,39 @@
 .sizeOrderTable td:nth-child(2) {
   width: var(--size-order-sticky-total-width);
   min-width: var(--size-order-sticky-total-width);
-  max-width: var(--size-order-sticky-total-width);
+  max-width: var(--size-order-sticky-total-max-width);
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   position: sticky;
   left: var(--size-order-sticky-metric-width);
   z-index: 2;
   background: #fff;
   box-shadow: 4px 0 8px -4px rgba(15, 23, 42, 0.12);
+}
+
+.sizeOrderTable th:first-child::after,
+.sizeOrderTable td:first-child::after,
+.sizeOrderTable th:nth-child(2)::after,
+.sizeOrderTable td:nth-child(2)::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--size-order-sticky-divider-color);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.sizeOrderTable th:first-child::after,
+.sizeOrderTable td:first-child::after {
+  right: var(--size-order-metric-divider-offset);
+}
+
+.sizeOrderTable th:nth-child(2)::after,
+.sizeOrderTable td:nth-child(2)::after {
+  right: 0;
 }
 
 .sizeOrderTable thead th:first-child,
@@ -132,12 +161,24 @@
   flex-direction: column;
   align-items: flex-end;
   gap: 4px;
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .sizeOrderShareLegendRow {
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.sizeOrderShareLegendRow > span:last-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .sizeOrderShareLegendSwatch {
