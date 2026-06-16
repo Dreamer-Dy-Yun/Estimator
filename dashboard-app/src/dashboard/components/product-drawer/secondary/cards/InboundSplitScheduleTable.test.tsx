@@ -4,6 +4,7 @@ import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, describe, expect, it, vi, type Mock } from 'vitest'
 import type { InboundSplitScheduleRow, InboundSplitSizeColumn } from './inboundSplitScheduleModel'
 import { InboundSplitScheduleTable, type InboundSplitScheduleTableProps } from './InboundSplitScheduleTable'
+import styles from '../secondaryDrawer.module.css'
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
 
@@ -95,6 +96,29 @@ describe('InboundSplitScheduleTable', (): void => {
 
     expect(document.body.textContent).toContain('+1\uC77C')
     expect(document.body.textContent).toContain('+9\uC77C')
+  })
+
+  it('marks intervals with 0-or-less days in red style', (): void => {
+    renderTable({
+      workDate: '2026-04-01',
+      rows: [
+        ROWS[0],
+        {
+          id: 'r2',
+          round: 2,
+          inboundDate: '2026-03-31',
+          suggestedQuantitiesBySize: { S: 1, M: 2 },
+          quantitiesBySize: { S: 1, M: 2 },
+        },
+      ],
+    })
+
+    const intervalNode: HTMLSpanElement | undefined = Array.from(document.querySelectorAll('span'))
+      .filter((node: HTMLSpanElement): boolean => node.className.includes(styles.inboundSplitDateInterval))
+      .find((node: HTMLSpanElement): boolean => node.textContent === '-1일')
+
+    expect(intervalNode).not.toBeUndefined()
+    expect(intervalNode?.className).toContain(styles.inboundSplitDateIntervalInvalid)
   })
 
   it('emits date, row total, and size quantity changes with row and size identity', (): void => {

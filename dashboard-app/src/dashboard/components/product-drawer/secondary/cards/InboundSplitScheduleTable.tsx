@@ -19,10 +19,18 @@ export interface InboundSplitScheduleTableProps {
   onQtyChange: (rowIndex: number, size: string, value: string) => void
 }
 
-function formatInboundDateInterval(startDate: string, endDate: string): string {
+interface InboundSplitDateInterval {
+  inboundDateInterval: string
+  invalidDateOrder: boolean
+}
+
+function buildInboundSplitDateInterval(startDate: string, endDate: string): InboundSplitDateInterval {
   const days: number | null = daysBetweenIsoDates(startDate, endDate)
-  if (days == null) return '-'
-  return `${days >= 0 ? '+' : ''}${formatGroupedNumber(days)}${KO.unitDays}`
+  if (days == null) return { inboundDateInterval: '-', invalidDateOrder: false }
+  return {
+    inboundDateInterval: `${days >= 0 ? '+' : ''}${formatGroupedNumber(days)}${KO.unitDays}`,
+    invalidDateOrder: days <= 0,
+  }
 }
 
 export function InboundSplitScheduleTable({
@@ -78,7 +86,7 @@ export function InboundSplitScheduleTable({
           const confirmedTotalQty: number = getInboundSplitTotalQty(row, columns)
           const totalDiffClass: string = diffClass(confirmedTotalQty, suggestedTotalQty)
           const previousInboundDate: string = rowIndex === 0 ? workDate : (rows[rowIndex - 1]?.inboundDate ?? workDate)
-          const inboundDateInterval: string = formatInboundDateInterval(previousInboundDate, row.inboundDate)
+          const dateInterval: InboundSplitDateInterval = buildInboundSplitDateInterval(previousInboundDate, row.inboundDate)
 
           return (
             <Fragment key={row.id}>
@@ -94,10 +102,10 @@ export function InboundSplitScheduleTable({
                       aria-label={`${row.round}${KO.optionInboundSplitRoundSuffix} ${KO.thInboundSplitInboundDate}`}
                     />
                     <span
-                      className={styles.inboundSplitDateInterval}
-                      aria-label={`${row.round}${KO.optionInboundSplitRoundSuffix} ${KO.labelInboundSplitDateInterval} ${inboundDateInterval}`}
+                      className={cx(styles.inboundSplitDateInterval, dateInterval.invalidDateOrder ? styles.inboundSplitDateIntervalInvalid : null)}
+                      aria-label={`${row.round}${KO.optionInboundSplitRoundSuffix} ${KO.labelInboundSplitDateInterval} ${dateInterval.inboundDateInterval}`}
                     >
-                      {inboundDateInterval}
+                      {dateInterval.inboundDateInterval}
                     </span>
                   </div>
                 </td>

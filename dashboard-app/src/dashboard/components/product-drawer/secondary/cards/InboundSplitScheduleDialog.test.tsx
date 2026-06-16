@@ -175,6 +175,25 @@ describe('InboundSplitScheduleDialog event flow', () : void => {
     expect(props.onApply).not.toHaveBeenCalled()
   })
 
+  it('disables apply and shows reason when inbound dates are not strictly increasing', () : void => {
+    const { props }: RenderResult = renderDialog({
+      initialCount: 2,
+      workDate: '2026-04-01',
+      initialRows: [
+        row('initial-1', 1, '2026-04-04', 5, 2, 5, 2),
+        row('initial-2', 2, '2026-04-03', 5, 3, 5, 3),
+      ],
+    })
+    const actionButtons: HTMLButtonElement[] = Array.from(document.querySelectorAll<HTMLButtonElement>('footer button'))
+
+    expect(actionButtons[1].disabled).toBe(true)
+    expect(document.body.textContent).toContain('입고일 간격이 0일 이하입니다.')
+    act(() : void => {
+      actionButtons[1].click()
+    })
+    expect(props.onApply).not.toHaveBeenCalled()
+  })
+
   it('keeps the current draft and reports the source error when count rebuild fails', () : void => {
     const sourceError: Error = new Error('missing source cell')
     const { props }: RenderResult = renderDialog({

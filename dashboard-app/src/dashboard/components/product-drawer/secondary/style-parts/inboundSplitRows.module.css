@@ -156,3 +156,8 @@
   line-height: 1;
   font-variant-numeric: tabular-nums;
 }
+
+.inboundSplitDateIntervalInvalid {
+  color: var(--inbound-split-diff-text);
+  font-weight: 800;
+}

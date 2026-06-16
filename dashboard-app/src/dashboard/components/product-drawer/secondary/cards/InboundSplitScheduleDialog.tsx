@@ -3,6 +3,7 @@ import { DialogCloseButton } from '../../../../../components/DialogCloseButton'
 import { useModalFocusTrap } from '../../../useModalFocusTrap'
 import type { ApiUnitErrorInfo } from '../../../../../types'
 import { formatGroupedNumber } from '../../../../../utils/format'
+import { daysBetweenIsoDates } from '../../../../../utils/date'
 import { KO } from '../../ko'
 import styles from '../secondaryDrawer.module.css'
 import { cloneInboundSplitRows, type InboundSplitScheduleRow, type InboundSplitSizeColumn } from './inboundSplitScheduleModel'
@@ -11,6 +12,14 @@ import { InboundSplitScheduleTable } from './InboundSplitScheduleTable'
 import { useInboundSplitScheduleDraft, type UseInboundSplitScheduleDraftResult } from './useInboundSplitScheduleDraft'
 
 export type { InboundSplitDraftRequest } from './inboundSplitScheduleTypes'
+
+function hasInvalidInboundDateOrder(workDate: string, rows: readonly InboundSplitScheduleRow[]): boolean {
+  return rows.some((row: InboundSplitScheduleRow, index: number): boolean => {
+    const previousInboundDate: string = index === 0 ? workDate : (rows[index - 1]?.inboundDate ?? workDate)
+    const days: number | null = daysBetweenIsoDates(previousInboundDate, row.inboundDate)
+    return days != null && days <= 0
+  })
+}
 
 export interface InboundSplitScheduleDialogProps {
   open: boolean
@@ -56,7 +65,11 @@ export function InboundSplitScheduleDialog({
     onDraftError,
   })
   const confirmedSourceTotal: number = columns.reduce((sum: number, column: InboundSplitSizeColumn): number => sum + column.confirmedQty, 0)
-  const applyDisabled: boolean = draftError != null || draft.rows.length === 0
+  const hasInvalidDateOrder: boolean = hasInvalidInboundDateOrder(workDate, draft.rows)
+  const applyDisabled: boolean = draftError != null || draft.rows.length === 0 || hasInvalidDateOrder
+  const dateOrderErrorMessage: string = hasInvalidDateOrder
+    ? `${KO.labelInboundSplitDateInterval}이 0일 이하입니다. 이전 차수보다 빠르거나 같은 입고일은 사용할 수 없습니다.`
+    : ''
 
   if (!open) return null
 
@@ -81,19 +94,22 @@ export function InboundSplitScheduleDialog({
           <DialogCloseButton onClose={onClose} />
         </header>
         <div className={styles.inboundSplitDialogToolbar}>
-          <label className={styles.inboundSplitCountLabel}>
-            <span>{KO.labelInboundSplitCount}</span>
-            <select
-              className={styles.inboundSplitCountSelect}
-              value={draft.count}
-              onChange={(event: React.ChangeEvent<HTMLSelectElement>): void => draft.changeCount(event.target.value)}
-              aria-label={KO.ariaInboundSplitCount}
-            >
-              {draft.countOptions.map((option: number): React.JSX.Element => (
-                <option key={option} value={option}>{option}{KO.optionInboundSplitRoundSuffix}</option>
-              ))}
-            </select>
-          </label>
+          <div className={styles.inboundSplitCountPanel}>
+            <label className={styles.inboundSplitCountLabel}>
+              <span>{KO.labelInboundSplitCount}</span>
+              <select
+                className={styles.inboundSplitCountSelect}
+                value={draft.count}
+                onChange={(event: React.ChangeEvent<HTMLSelectElement>): void => draft.changeCount(event.target.value)}
+                aria-label={KO.ariaInboundSplitCount}
+              >
+                {draft.countOptions.map((option: number): React.JSX.Element => (
+                  <option key={option} value={option}>{option}{KO.optionInboundSplitRoundSuffix}</option>
+                ))}
+              </select>
+            </label>
+            {hasInvalidDateOrder && <span className={styles.inboundSplitCountValidation}>{dateOrderErrorMessage}</span>}
+          </div>
           <span className={styles.inboundSplitSummary}>
             {KO.thTotal} {formatGroupedNumber(confirmedSourceTotal)} EA
           </span>
