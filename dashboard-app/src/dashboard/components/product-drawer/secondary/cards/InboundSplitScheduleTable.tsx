@@ -2,6 +2,7 @@ import { Fragment } from 'react'
 import { daysBetweenIsoDates } from '../../../../../utils/date'
 import { formatGroupedNumber } from '../../../../../utils/format'
 import { KO } from '../../ko'
+import { DateInputWithWeekday } from '../../../../../components/DateInputWithWeekday'
 import styles from '../secondaryDrawer.module.css'
 import { getInboundSplitSuggestedTotalQty, getInboundSplitTotalQty, type InboundSplitScheduleRow, type InboundSplitSizeColumn } from './inboundSplitScheduleModel'
 import { ariaDiffLabel, cx, diffClass, qtyInputClassName, stickyDateClassName, stickyKindClassName, stickyRoundClassName, stickyTotalClassName } from './inboundSplitScheduleTableClasses'
@@ -94,12 +95,11 @@ export function InboundSplitScheduleTable({
                 <td className={cx(stickyRoundClassName, styles.inboundSplitRowSpanCell)} rowSpan={2}>{row.round}{KO.optionInboundSplitRoundSuffix}</td>
                 <td className={cx(stickyDateClassName, styles.inboundSplitRowSpanCell)} rowSpan={2}>
                   <div className={styles.inboundSplitDateStack}>
-                    <input
-                      type="date"
-                      className={styles.stockDateInput}
+                    <DateInputWithWeekday
+                      ariaLabel={`${row.round}${KO.optionInboundSplitRoundSuffix} ${KO.thInboundSplitInboundDate}`}
                       value={row.inboundDate}
-                      onChange={(event: React.ChangeEvent<HTMLInputElement>): void => onDateChange(rowIndex, event.target.value)}
-                      aria-label={`${row.round}${KO.optionInboundSplitRoundSuffix} ${KO.thInboundSplitInboundDate}`}
+                      onChange={(value: string): void => onDateChange(rowIndex, value)}
+                      inputClassName={styles.stockDateInput}
                     />
                     <span
                       className={cx(styles.inboundSplitDateInterval, dateInterval.invalidDateOrder ? styles.inboundSplitDateIntervalInvalid : null)}

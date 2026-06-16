@@ -11,6 +11,13 @@ import {
 import type { InboundSplitDraftRequest } from './inboundSplitScheduleTypes'
 
 function toNonNegativeInteger(value: string): number { return Math.max(0, Math.round(Number(value) || 0)) }
+function getSuggestedSizeTotals(rows: readonly InboundSplitScheduleRow[], columns: readonly InboundSplitSizeColumn[]): Record<string, number> {
+  const totals: Record<string, number> = {}
+  columns.forEach((column: InboundSplitSizeColumn): void => {
+    totals[column.size] = rows.reduce((sum: number, row: InboundSplitScheduleRow): number => sum + Math.max(0, Math.round(row.suggestedQuantitiesBySize[column.size] ?? 0)), 0)
+  })
+  return totals
+}
 
 export interface UseInboundSplitScheduleDraftArgs {
   initialCount: number
@@ -80,9 +87,10 @@ export function useInboundSplitScheduleDraft({
       const currentRow: InboundSplitScheduleRow | undefined = currentRows[rowIndex]
       if (!currentRow) return currentRows
 
+      const suggestedTotals: Record<string, number> = getSuggestedSizeTotals(currentRows, columns)
       const distributed: number[] = allocateInboundSplitIntegerTotal({
         total: toNonNegativeInteger(value),
-        weights: columns.map((column: InboundSplitSizeColumn): number => currentRow.suggestedQuantitiesBySize[column.size] ?? currentRow.quantitiesBySize[column.size] ?? 0),
+        weights: columns.map((column: InboundSplitSizeColumn): number => suggestedTotals[column.size] ?? 0),
       }).values
       return currentRows.map((row: InboundSplitScheduleRow, index: number): InboundSplitScheduleRow => {
         if (index !== rowIndex) return row

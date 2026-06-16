@@ -1,6 +1,7 @@
 import { PortalHelpMark } from '../../../PortalHelpPopover'
 import { ApiUnitErrorBadge } from '../../../../../components/ApiUnitErrorBadge'
 import { LoadingSpinner } from '../../../../../components/LoadingSpinner'
+import { DateInputWithWeekday } from '../../../../../components/DateInputWithWeekday'
 import type { OrderSnapshotStockOrderRequest } from '../../../../../snapshot/orderSnapshotTypes'
 import type { ApiUnitErrorInfo } from '../../../../../types'
 import type React from 'react'
@@ -65,14 +66,6 @@ function FieldCell({ label, children }: { label: string; children: React.ReactNo
   )
 }
 
-function DateField({ label, value, min, onChange }: { label: string; value: string; min: string; onChange: (next: string) => void }) : React.JSX.Element {
-  return (
-    <FieldCell label={label}>
-      <input type="date" className={`${styles.stockDateInput} ${styles.stockFillInput}`} min={min} value={value} onChange={(e: React.ChangeEvent<HTMLInputElement, HTMLInputElement>) : void => onChange(e.target.value)} aria-label={label} />
-    </FieldCell>
-  )
-}
-
 function NumberField({ label, value, onChange, unit, max, step = 1, grouped = false }: NumberFieldProps) : React.JSX.Element {
   const inputValue: string | number = grouped ? formatGroupedNumber(value) : value
   return (
@@ -123,7 +116,7 @@ export function SalesForecastCard({ forecast, orderInputFields, actions, help }:
   }
   const forecastRate: number | null = calculationReady ? calcRate(computed.forecastExpectedSales, computed.recommendedOrderQtyTotal) : null
   const confirmedRate: number | null = calculationReady ? calcRate(computed.confirmedExpectedSales, computed.confirmedOrderQtyTotal) : null
-  const profitWithRateText: (profit: number, rate: number | null) => string = (profit: number, rate: number | null) : string => `${formatGroupedNumber(profit)}(${rateText(rate)})`
+  const profitWithRateText: (profit: number, rate: number | null) => string = (profit: number, rate: number | null) : string => `${formatGroupedNumber(profit)}\u00A0\u00A0(${rateText(rate)})`
   const metricRows: Array<{ key: string; label: string; expected: string; confirmed: string; helpId?: HelpKey }> = [
     { key: 'orderQty', label: KO.rowOrderQty, helpId: 'forecastQtyCalc', expected: calculationReady ? formatGroupedNumber(computed.recommendedOrderQtyTotal) : KO.valueNotCalculated, confirmed: calculationReady ? formatGroupedNumber(computed.confirmedOrderQtyTotal) : KO.valueNotCalculated },
     { key: 'expectedSales', label: KO.rowExpectedSales, expected: calculationReady ? displayNumber.money(computed.forecastExpectedSales) : KO.valueNotCalculated, confirmed: calculationReady ? displayNumber.money(computed.confirmedExpectedSales) : KO.valueNotCalculated },
@@ -141,8 +134,26 @@ export function SalesForecastCard({ forecast, orderInputFields, actions, help }:
         </p>
       )}
       <div className={`${styles.stockInputList} ${styles.salesForecastInputList}`}>
-        <DateField label={KO.labelCurrentOrderInboundDueDate} min={minOrderDate} value={currentOrderInboundDueDate} onChange={actions.onCurrentOrderInboundDueDateChange} />
-        <DateField label={KO.labelNextOrderInboundDueDate} min={minNextOrderInboundDueDate} value={nextOrderInboundDueDate} onChange={actions.onNextOrderInboundDueDateChange} />
+        <FieldCell label={KO.labelCurrentOrderInboundDueDate}>
+          <DateInputWithWeekday
+            ariaLabel={KO.labelCurrentOrderInboundDueDate}
+            value={currentOrderInboundDueDate}
+            min={minOrderDate}
+            onChange={actions.onCurrentOrderInboundDueDateChange}
+            inputClassName={`${styles.stockDateInput} ${styles.stockFillInput}`}
+            showWeekday={false}
+          />
+        </FieldCell>
+        <FieldCell label={KO.labelNextOrderInboundDueDate}>
+          <DateInputWithWeekday
+            ariaLabel={KO.labelNextOrderInboundDueDate}
+            value={nextOrderInboundDueDate}
+            min={minNextOrderInboundDueDate}
+            onChange={actions.onNextOrderInboundDueDateChange}
+            inputClassName={`${styles.stockDateInput} ${styles.stockFillInput}`}
+            showWeekday={false}
+          />
+        </FieldCell>
         <NumberField label={KO.labelBufferStock} value={bufferStock} onChange={actions.onBufferStockChange} unit={KO.unitBufferStockDays} grouped />
         <NumberField label={KO.labelUnitCost} value={unitCost} onChange={actions.onUnitCostChange} unit={KO.unitWonPerEa} grouped />
         <NumberField label={KO.labelUnitPrice} value={unitPrice} onChange={actions.onUnitPriceChange} unit={KO.unitWonPerEa} grouped />
