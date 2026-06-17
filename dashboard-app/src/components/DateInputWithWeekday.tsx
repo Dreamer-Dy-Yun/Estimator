@@ -1,4 +1,4 @@
-import { useLayoutEffect, useMemo, useRef, useState, type AriaAttributes, type ChangeEvent } from 'react'
+import { useLayoutEffect, useMemo, useRef, useState, type AriaAttributes, type ChangeEvent, type CSSProperties } from 'react'
 import styles from './DateInputWithWeekday.module.css'
 
 const DEFAULT_FONT_SIZE = 11.9
@@ -25,6 +25,8 @@ export interface DateInputWithWeekdayProps {
   weekdayLocale?: Intl.LocalesArgument
   showWeekday?: boolean
   colorWeekends?: boolean
+  inputBackgroundColor?: string
+  inputBackgroundOpacity?: number
 }
 
 function clampFontSizeByWidth(width: number): number {
@@ -69,6 +71,11 @@ function cx(classes: Array<string | undefined>): string {
   return classes.filter((item: string | undefined) : boolean => Boolean(item)).join(' ')
 }
 
+function normalizeOpacity(value: number): number {
+  if (!Number.isFinite(value)) return 1
+  return Math.min(1, Math.max(0, value))
+}
+
 // Invalid or empty controlled values remain visible as-is; caller-owned validation decides whether to mark or reject them.
 export function DateInputWithWeekday({
   ariaLabel,
@@ -88,6 +95,8 @@ export function DateInputWithWeekday({
   weekdayLocale = 'ko-KR',
   showWeekday = true,
   colorWeekends = true,
+  inputBackgroundColor = '#fff',
+  inputBackgroundOpacity = 1,
 }: DateInputWithWeekdayProps): React.JSX.Element {
   const weekdayText: string | null = useMemo(() : string | null => buildWeekdayText(value, weekdayLocale), [value, weekdayLocale])
   const weekdayClass: string = useMemo(() : string => {
@@ -99,6 +108,11 @@ export function DateInputWithWeekday({
   const nativeInputClassName: string = cx([styles.dateInputNative, mergedInputClassName])
   const wrapperRef = useRef<HTMLSpanElement>(null)
   const [fontSize, setFontSize] = useState<number>(DEFAULT_FONT_SIZE)
+  const wrapperStyle: CSSProperties = {
+    fontSize: `${fontSize}px`,
+    '--date-input-bg-color': inputBackgroundColor,
+    '--date-input-bg-opacity': String(normalizeOpacity(inputBackgroundOpacity)),
+  } as CSSProperties
 
   useLayoutEffect(() => {
     const wrapper: HTMLSpanElement | null = wrapperRef.current
@@ -133,7 +147,7 @@ export function DateInputWithWeekday({
     <span
       ref={wrapperRef}
       className={cx([styles.dateInputWithWeekday, className])}
-      style={{ fontSize: `${fontSize}px` }}
+      style={wrapperStyle}
     >
       <input
         id={id}

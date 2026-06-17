@@ -8,6 +8,8 @@ import { getInboundSplitDateInterval, type InboundSplitDateInterval } from './in
 import { sumInboundSplitColumnTotals, sumInboundSplitConfirmedBySize, sumInboundSplitSuggestedBySize } from './inboundSplitScheduleTotals'
 import { ariaDiffLabel, cx, diffClass, qtyInputClassName, stickyDateClassName, stickyKindClassName, stickyRoundClassName, stickyTotalClassName } from './inboundSplitScheduleTableClasses'
 
+const INBOUND_SPLIT_SUMMARY_LABEL = '\uC804\uCCB4' as const
+
 export interface InboundSplitScheduleTableProps {
   workDate: string
   rows: InboundSplitScheduleRow[]
@@ -52,7 +54,7 @@ export function InboundSplitScheduleTable({
       </thead>
       <tbody>
         <tr className={styles.inboundSplitSummaryRow}>
-          <td className={cx(stickyRoundClassName, styles.inboundSplitSummarySpanCell)} rowSpan={2}>{KO.thInboundSplitTotalQty}</td>
+          <td className={cx(stickyRoundClassName, styles.inboundSplitSummarySpanCell)} rowSpan={2}>{INBOUND_SPLIT_SUMMARY_LABEL}</td>
           <td className={cx(stickyDateClassName, styles.inboundSplitSummarySpanCell)} rowSpan={2}>-</td>
           <td className={stickyKindClassName}>{KO.rowInboundSplitSuggestedQty}</td>
           <td className={stickyTotalClassName}>{formatGroupedNumber(suggestedGrandTotal)}</td>

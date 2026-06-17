@@ -1,9 +1,22 @@
 .dateInputWithWeekday {
+  --date-input-bg-color: #fff;
+  --date-input-bg-opacity: 1;
   position: relative;
   display: inline-block;
   width: 100%;
   min-width: 0;
   min-height: 24px;
+}
+
+.dateInputWithWeekday::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: 6px;
+  background: var(--date-input-bg-color);
+  opacity: var(--date-input-bg-opacity);
+  pointer-events: none;
 }
 
 .dateWeekday {
@@ -29,6 +42,7 @@
   background: transparent;
   -webkit-text-fill-color: transparent;
   position: relative;
+  z-index: 1;
   border: 1px solid #cbd5e1;
   border-radius: 6px;
   cursor: pointer;
@@ -37,6 +51,7 @@
 .dateInputDisplayOverlay {
   position: absolute;
   inset: 0;
+  z-index: 2;
   display: flex;
   align-items: center;
   justify-content: flex-start;

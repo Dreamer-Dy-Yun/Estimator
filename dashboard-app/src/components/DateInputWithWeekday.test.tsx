@@ -51,8 +51,11 @@ describe('DateInputWithWeekday', (): void => {
     renderDateInput()
 
     const input: HTMLInputElement | null = document.querySelector('input[type="date"]')
+    const wrapper: HTMLSpanElement | null = document.querySelector(`.${styles.dateInputWithWeekday}`)
     expect(input?.value).toBe('2026-04-01')
     expect(input?.getAttribute('aria-label')).toBe('date input')
+    expect(wrapper?.style.getPropertyValue('--date-input-bg-color')).toBe('#fff')
+    expect(wrapper?.style.getPropertyValue('--date-input-bg-opacity')).toBe('1')
     expect(document.body.textContent).toContain('2026-04-01')
     expect(document.body.textContent).toContain('(\uC218)')
   })
@@ -68,6 +71,18 @@ describe('DateInputWithWeekday', (): void => {
 
     expect(document.body.textContent).toContain('2026-04-01')
     expect(document.body.textContent).not.toContain('(')
+  })
+
+  it('allows caller overrides for input background color and opacity', (): void => {
+    renderDateInput({
+      className: 'date-background-probe',
+      inputBackgroundColor: '#f8fafc',
+      inputBackgroundOpacity: 0.72,
+    })
+
+    const wrapper: HTMLSpanElement = document.querySelector<HTMLSpanElement>('span.date-background-probe') as HTMLSpanElement
+    expect(wrapper.style.getPropertyValue('--date-input-bg-color')).toBe('#f8fafc')
+    expect(wrapper.style.getPropertyValue('--date-input-bg-opacity')).toBe('0.72')
   })
 
   it('emits native date input changes', (): void => {
