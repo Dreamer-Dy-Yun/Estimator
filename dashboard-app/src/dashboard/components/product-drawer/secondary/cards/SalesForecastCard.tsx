@@ -2,7 +2,6 @@ import { PortalHelpMark } from '../../../PortalHelpPopover'
 import { ApiUnitErrorBadge } from '../../../../../components/ApiUnitErrorBadge'
 import { LoadingSpinner } from '../../../../../components/LoadingSpinner'
 import { DateInputWithWeekday } from '../../../../../components/DateInputWithWeekday'
-import type { OrderSnapshotStockOrderRequest } from '../../../../../snapshot/orderSnapshotTypes'
 import type { ApiUnitErrorInfo } from '../../../../../types'
 import type React from 'react'
 import { addIsoDays } from '../../../../../utils/date'
@@ -10,16 +9,17 @@ import { displayNumber, formatGroupedNumber, formatGroupedOneDecimal } from '../
 import commonStyles from '../../../common.module.css'
 import { usePortalHelpPopover } from '../../../usePortalHelpPopover'
 import { KO } from '../../ko'
+import type { SalesForecastInboundDateFields, SalesForecastOrderInputFields } from '../model/salesForecastOrderInputModel'
 import styles from '../secondaryDrawer.module.css'
 import type { SecondaryHelpId, SecondaryHelpIds } from '../secondaryDrawerTypes'
+
+export type { SalesForecastInboundDateFields, SalesForecastOrderInputFields }
 
 export type SalesForecastDisplayInputs = {
   trendDailyMean: number | null
   dailyMean: number | null
   sigma: number | null
 }
-export type SalesForecastInboundDateFields = Pick<OrderSnapshotStockOrderRequest, 'currentOrderInboundDueDate' | 'nextOrderInboundDueDate'>
-
 export type SalesForecastComputedTable = {
   recommendedOrderQtyTotal: number
   confirmedOrderQtyTotal: number
@@ -27,13 +27,6 @@ export type SalesForecastComputedTable = {
   forecastOpProfit: number
   confirmedExpectedSales: number
   confirmedOpProfit: number
-}
-export type SalesForecastOrderInputFields = SalesForecastInboundDateFields & {
-  minOrderDate: string
-  bufferStock: number
-  unitCost: number
-  unitPrice: number
-  expectedFeeRatePct: number
 }
 export type SalesForecastOrderInputActions = {
   onCurrentOrderInboundDueDateChange: (next: string) => void
@@ -48,9 +41,9 @@ export type Props = {
   forecast: { inputs: SalesForecastDisplayInputs; loading: boolean; error: ApiUnitErrorInfo | null; calculationReady?: boolean; computed: SalesForecastComputedTable }
   orderInputFields: SalesForecastOrderInputFields
   actions: SalesForecastOrderInputActions
-  help: { labelIds: Pick<SecondaryHelpIds, 'forecastQtyCalc' | 'expectedOpProfitRate'>; portal: ReturnType<typeof usePortalHelpPopover<SecondaryHelpId>> }
+  help: { labelIds: Pick<SecondaryHelpIds, 'orderQtyCalc' | 'expectedOpProfitRate'>; portal: ReturnType<typeof usePortalHelpPopover<SecondaryHelpId>> }
 }
-export type HelpKey = 'forecastQtyCalc' | 'expectedOpProfitRate'
+export type HelpKey = 'orderQtyCalc' | 'expectedOpProfitRate'
 
 export type NumberFieldProps = { label: string; value: number; onChange: (next: number) => void; unit: string; max?: number; step?: number; grouped?: boolean }
 
@@ -109,7 +102,7 @@ export function SalesForecastCard({ forecast, orderInputFields, actions, help }:
   const calculationReady: boolean = forecast.calculationReady ?? true
   const { currentOrderInboundDueDate, nextOrderInboundDueDate, minOrderDate, bufferStock, unitCost, unitPrice, expectedFeeRatePct }: SalesForecastOrderInputFields = orderInputFields
   const minNextOrderInboundDueDate: string = addIsoDays(currentOrderInboundDueDate >= minOrderDate ? currentOrderInboundDueDate : minOrderDate, 1)
-  const { labelIds, portal }: { labelIds: Pick<SecondaryHelpIds, 'forecastQtyCalc' | 'expectedOpProfitRate'>; portal: ReturnType<typeof usePortalHelpPopover<SecondaryHelpId>>; } = help
+  const { labelIds, portal }: { labelIds: Pick<SecondaryHelpIds, 'orderQtyCalc' | 'expectedOpProfitRate'>; portal: ReturnType<typeof usePortalHelpPopover<SecondaryHelpId>>; } = help
   const calcRate: (expectedSales: number, expectedQty: number) => number | null = (expectedSales: number, expectedQty: number): number | null => {
     if (!Number.isFinite(expectedSales) || expectedSales <= 0) return null
     return (((expectedSales * (1 - Math.max(0, expectedFeeRatePct) / 100)) - (unitCost * expectedQty)) / expectedSales) * 100
@@ -118,7 +111,7 @@ export function SalesForecastCard({ forecast, orderInputFields, actions, help }:
   const confirmedRate: number | null = calculationReady ? calcRate(computed.confirmedExpectedSales, computed.confirmedOrderQtyTotal) : null
   const profitWithRateText: (profit: number, rate: number | null) => string = (profit: number, rate: number | null) : string => `${formatGroupedNumber(profit)}\u00A0\u00A0(${rateText(rate)})`
   const metricRows: Array<{ key: string; label: string; expected: string; confirmed: string; helpId?: HelpKey }> = [
-    { key: 'orderQty', label: KO.rowOrderQty, helpId: 'forecastQtyCalc', expected: calculationReady ? formatGroupedNumber(computed.recommendedOrderQtyTotal) : KO.valueNotCalculated, confirmed: calculationReady ? formatGroupedNumber(computed.confirmedOrderQtyTotal) : KO.valueNotCalculated },
+    { key: 'orderQty', label: KO.rowOrderQty, helpId: 'orderQtyCalc', expected: calculationReady ? formatGroupedNumber(computed.recommendedOrderQtyTotal) : KO.valueNotCalculated, confirmed: calculationReady ? formatGroupedNumber(computed.confirmedOrderQtyTotal) : KO.valueNotCalculated },
     { key: 'expectedSales', label: KO.rowExpectedSales, expected: calculationReady ? displayNumber.money(computed.forecastExpectedSales) : KO.valueNotCalculated, confirmed: calculationReady ? displayNumber.money(computed.confirmedExpectedSales) : KO.valueNotCalculated },
     { key: 'expectedOpProfit', label: KO.rowExpectedOpProfit, helpId: 'expectedOpProfitRate', expected: calculationReady ? profitWithRateText(computed.forecastOpProfit, forecastRate) : KO.valueNotCalculated, confirmed: calculationReady ? profitWithRateText(computed.confirmedOpProfit, confirmedRate) : KO.valueNotCalculated },
   ]
@@ -170,7 +163,7 @@ export function SalesForecastCard({ forecast, orderInputFields, actions, help }:
                 <th className={styles.num}>
                   <span className={`${commonStyles.cardTitleWithHelp} ${styles.forecastColumnHeaderWithRadio}`}>
                     {KO.thSizeIntegratedColExpected}
-                    <PortalHelpMark helpId="forecastQtyCalc" placement="above" labelId={labelIds.forecastQtyCalc} markClassName={commonStyles.helpMark} help={portal} />
+                    <PortalHelpMark helpId="orderQtyCalc" placement="above" labelId={labelIds.orderQtyCalc} markClassName={commonStyles.helpMark} help={portal} />
                   </span>
                 </th>
                 <th className={styles.num}><span className={`${commonStyles.cardTitleWithHelp} ${styles.forecastColumnHeaderWithRadio}`}>{KO.thSizeIntegratedColConfirm}</span></th>

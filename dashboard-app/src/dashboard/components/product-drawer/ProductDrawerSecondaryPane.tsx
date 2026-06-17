@@ -1,11 +1,11 @@
-import type { OrderSnapshotPrimarySummary } from '../../../snapshot/orderSnapshotTypes'
+import type { OrderSnapshotDocument, OrderSnapshotPrimarySummary } from '../../../snapshot/orderSnapshotTypes'
 import type { ProductSecondarySizeRow } from '../../../types'
 import { ApiUnitErrorBadge } from '../../../components/ApiUnitErrorBadge'
 import { LoadingSpinner } from '../../../components/LoadingSpinner'
 import type { ProductComparisonBaseSubjectRef, ProductComparisonTarget } from '../../../api/types'
 import type { ApiUnitErrorInfo, ProductPrimarySummary, ProductSecondaryDetail } from '../../../types'
-import type { OrderSnapshotDocument } from '../../../snapshot/orderSnapshotTypes'
 import styles from '../common.module.css'
+import type { ProductMonthlyTrendChartPoint } from './primary/monthlyTrendChartModel'
 import { ProductSecondaryDrawer } from './secondary/ProductSecondaryDrawer'
 import type { CandidateItemPanelContext } from './secondary/secondaryDrawerTypes'
 
@@ -17,6 +17,7 @@ export type ProductDrawerSecondaryPaneProps = {
   selectedStartMonth: string
   selectedEndMonth: string
   forecastMonths: number
+  monthlySalesTrend: ProductMonthlyTrendChartPoint[] | null
   companyUuid?: string
   baseSubject: ProductComparisonBaseSubjectRef
   selfCompanyLabel: string
@@ -69,6 +70,7 @@ export function ProductDrawerSecondaryPane({
   selectedStartMonth,
   selectedEndMonth,
   forecastMonths,
+  monthlySalesTrend,
   companyUuid,
   baseSubject,
   selfCompanyLabel,
@@ -122,6 +124,7 @@ export function ProductDrawerSecondaryPane({
           selectedStartMonth={selectedStartMonth}
           selectedEndMonth={selectedEndMonth}
           forecastMonths={forecastMonths}
+          monthlySalesTrend={monthlySalesTrend}
           companyUuid={companyUuid}
           baseSubject={baseSubject}
           selfCompanyLabel={selfCompanyLabel}

@@ -6,8 +6,10 @@ import { useCallback } from 'react'
 import type { ProductComparisonBaseSubjectRef, ProductComparisonTarget } from '../../../../api'
 import { useAppToast } from '../../../../components/AppToastContext'
 import type { ProductPrimarySummary, ProductSecondaryDetail } from '../../../../types'
-import type { OrderSnapshotConfirmedRound, OrderSnapshotDocument } from '../../../../snapshot/orderSnapshotTypes'
+import type { OrderSnapshotDocument } from '../../../../snapshot/orderSnapshotTypes'
+import type { ProductMonthlyTrendChartPoint } from '../primary/monthlyTrendChartModel'
 import type { CandidateItemPanelContext } from './secondaryDrawerTypes'
+import type { SecondaryConfirmedRound } from './model/secondaryConfirmedRoundModel'
 import { useSecondaryAiCommentState } from './hooks/useSecondaryAiCommentState'
 import {
   useSecondaryDrawerDraftEmission,
@@ -30,6 +32,7 @@ export type Props = {
   selectedStartMonth: string
   selectedEndMonth: string
   forecastMonths: number
+  monthlySalesTrend: ProductMonthlyTrendChartPoint[] | null
   companyUuid?: string
   baseSubject: ProductComparisonBaseSubjectRef
   selfCompanyLabel: string
@@ -50,6 +53,7 @@ export function ProductSecondaryDrawer({
   selectedStartMonth,
   selectedEndMonth,
   forecastMonths,
+  monthlySalesTrend,
   companyUuid,
   baseSubject,
   selfCompanyLabel,
@@ -65,7 +69,7 @@ export function ProductSecondaryDrawer({
     comparisonTarget: ProductComparisonTarget | null
     onComparisonSubjectChange: (next: ProductComparisonTarget) => void
   } = comparisonState
-  const { portalHelp, helpIds }: { portalHelp: { activeId: SecondaryHelpId | null; activePlacement: PortalHelpPlacement; position: { top: number; left: number; }; setAnchor: (id: SecondaryHelpId) => (el: HTMLElement | null) => void; open: (id: SecondaryHelpId, placement: PortalHelpPlacement) => void; updateMeasuredBox: (measuredWidth: number, measuredHeight: number) => void; scheduleClose: () => void; cancelClose: () => void; close: () => void; }; helpIds: { confirmOrder: string; forecastQtyCalc: string; expectedOpProfitRate: string; totalOrderBalance: string; expectedInboundOrderBalance: string; sizeRecQty: string; salesForecastSizeOrder: string; }; } = useSecondaryHelpController()
+  const { portalHelp, helpIds }: { portalHelp: { activeId: SecondaryHelpId | null; activePlacement: PortalHelpPlacement; position: { top: number; left: number; }; setAnchor: (id: SecondaryHelpId) => (el: HTMLElement | null) => void; open: (id: SecondaryHelpId, placement: PortalHelpPlacement) => void; updateMeasuredBox: (measuredWidth: number, measuredHeight: number) => void; scheduleClose: () => void; cancelClose: () => void; close: () => void; }; helpIds: { confirmOrder: string; orderQtyCalc: string; expectedOpProfitRate: string; totalOrderBalance: string; expectedInboundOrderBalance: string; sizeRecQty: string; salesForecastSizeOrder: string; }; } = useSecondaryHelpController()
   const { showToast }: ReturnType<typeof useAppToast> = useAppToast()
   const {
     defaultInboundDueDates,
@@ -150,6 +154,7 @@ export function ProductSecondaryDrawer({
     selectedStartMonth,
     selectedEndMonth,
     forecastMonths,
+    monthlySalesTrend,
     companyUuid,
     baseSubject,
     prefillFromSnapshot,
@@ -185,9 +190,13 @@ export function ProductSecondaryDrawer({
   })
 
   const handleRequestAiComment: () => void = useCallback(() : void => {
+    if (!model.snapshotReady) {
+      showToast(KO.msgStockOrderCalcRequired, { variant: 'error' })
+      return
+    }
     markConfirmedBaselineDraftDirty()
     requestAiComment(buildSnapshot())
-  }, [buildSnapshot, markConfirmedBaselineDraftDirty, requestAiComment])
+  }, [buildSnapshot, markConfirmedBaselineDraftDirty, model.snapshotReady, requestAiComment, showToast])
   const handleResetToLiveClick: () => void = useCallback(() : void => {
     if (selfCol == null) {
       showToast(KO.msgSalesInsightRequired, { variant: 'error' })
@@ -205,13 +214,13 @@ export function ProductSecondaryDrawer({
     setConfirmedRounds([])
     handleNextOrderInboundDueDateChange(value)
   }, [handleNextOrderInboundDueDateChange, markConfirmedBaselineDraftDirty, setConfirmedRounds])
-  const handleConfirmedRoundsChange: (next: OrderSnapshotConfirmedRound[]) => void = useCallback((next: OrderSnapshotConfirmedRound[]) : void => {
+  const handleConfirmedRoundsChange: (next: SecondaryConfirmedRound[]) => void = useCallback((next: SecondaryConfirmedRound[]) : void => {
     setConfirmedRounds(next)
   }, [setConfirmedRounds])
 
   useSecondaryDrawerDraftEmission({
     appliedPrefillKey,
-    canBuildSnapshot: model.stockOrderCalculationReady,
+    canBuildSnapshot: model.snapshotReady,
     candidateItemContext,
     buildSnapshot,
     prefillKey,

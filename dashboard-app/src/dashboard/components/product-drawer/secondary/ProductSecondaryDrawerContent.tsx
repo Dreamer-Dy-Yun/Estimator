@@ -1,7 +1,6 @@
 import type { SecondarySizeOrderDisplayRow } from './model/secondarySizeOrderRows'
 import { BlockMath } from 'react-katex'
 import { ComponentErrorBoundary } from '../../../../components/ComponentErrorBoundary'
-import type { OrderSnapshotAiComment, OrderSnapshotConfirmedRound } from '../../../../snapshot/orderSnapshotTypes'
 import type { ApiUnitErrorInfo, ProductPrimarySummary } from '../../../../types'
 import { PortalHelpPopoverLayer } from '../../PortalHelpPopover'
 import commonStyles from '../../common.module.css'
@@ -16,6 +15,8 @@ import {
 } from './cards/SalesForecastCard'
 import { SalesTrendDailyCard } from './cards/SalesTrendDailyCard'
 import { SizeOrderCard } from './cards/SizeOrderCard'
+import type { SecondaryAiCommentView } from './model/secondaryAiCommentModel'
+import type { SecondaryConfirmedRound } from './model/secondaryConfirmedRoundModel'
 import type { CandidateItemPanelContext } from './secondaryDrawerTypes'
 import { SecondaryDrawerCandidateActions } from './SecondaryDrawerCandidateActions'
 import styles from './secondaryDrawer.module.css'
@@ -32,7 +33,7 @@ export type Props = {
   onResetToLive: () => void
   onRestoreConfirmed: () => void
   model: ReturnType<typeof useSecondaryForecastModel>
-  aiComment: OrderSnapshotAiComment
+  aiComment: SecondaryAiCommentView
   aiCommentLoading: boolean
   aiCommentError: ApiUnitErrorInfo | null
   onRequestAiComment: () => void
@@ -41,8 +42,8 @@ export type Props = {
   onSelfWeightPctChange: (value: number) => void
   orderInputFields: SalesForecastOrderInputFields
   orderInputActions: SalesForecastOrderInputActions
-  confirmedRounds: OrderSnapshotConfirmedRound[]
-  onConfirmedRoundsChange: (next: OrderSnapshotConfirmedRound[]) => void
+  confirmedRounds: SecondaryConfirmedRound[]
+  onConfirmedRoundsChange: (next: SecondaryConfirmedRound[]) => void
   portalHelp: ReturnType<typeof usePortalHelpPopover<SecondaryHelpId>>
   helpIds: SecondaryHelpIds
 }
@@ -139,7 +140,7 @@ export function ProductSecondaryDrawerContent({
             actions={orderInputActions}
             help={{
               labelIds: {
-                forecastQtyCalc: helpIds.forecastQtyCalc,
+                orderQtyCalc: helpIds.orderQtyCalc,
                 expectedOpProfitRate: helpIds.expectedOpProfitRate,
               },
               portal: portalHelp,
@@ -201,12 +202,12 @@ export function ProductSecondaryDrawerContent({
       <PortalHelpPopoverLayer
         help={portalHelp}
         popoverClassName={commonStyles.helpPopoverPortal}
-        getTooltipId={(hid: 'confirmOrder' | 'forecastQtyCalc' | 'expectedOpProfitRate' | 'totalOrderBalance' | 'expectedInboundOrderBalance' | 'sizeRecQty' | 'salesForecastSizeOrder') : string => helpIds[hid]}
+        getTooltipId={(hid: 'confirmOrder' | 'orderQtyCalc' | 'expectedOpProfitRate' | 'totalOrderBalance' | 'expectedInboundOrderBalance' | 'sizeRecQty' | 'salesForecastSizeOrder') : string => helpIds[hid]}
       >
-        {(hid: 'confirmOrder' | 'forecastQtyCalc' | 'expectedOpProfitRate' | 'totalOrderBalance' | 'expectedInboundOrderBalance' | 'sizeRecQty' | 'salesForecastSizeOrder') : React.JSX.Element => (
+        {(hid: 'confirmOrder' | 'orderQtyCalc' | 'expectedOpProfitRate' | 'totalOrderBalance' | 'expectedInboundOrderBalance' | 'sizeRecQty' | 'salesForecastSizeOrder') : React.JSX.Element => (
           <>
             {hid === 'confirmOrder' && <p>{KO.hintSnapshot}</p>}
-            {hid === 'forecastQtyCalc' && <p>{KO.helpForecastQtyCalc}</p>}
+            {hid === 'orderQtyCalc' && <p>{KO.helpForecastQtyCalc}</p>}
             {hid === 'expectedOpProfitRate' && <BlockMath math={KO.helpExpectedOpProfitRateLatex} />}
             {hid === 'totalOrderBalance' && <p>{KO.helpTotalOrderBalance}</p>}
             {hid === 'expectedInboundOrderBalance' && <p>{KO.helpExpectedInboundOrderBalance}</p>}

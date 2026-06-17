@@ -1,4 +1,10 @@
+import type { SecondaryStockOrderCalcResult } from '../api/types'
 import type { ComparisonBaseSubjectRef, ComparisonComparisonSubject } from '../api/types/subject'
+import type { ProductMonthlyTrendChartPoint } from '../dashboard/components/product-drawer/primary/monthlyTrendChartModel'
+import type { SalesForecastInboundDateFields, SalesForecastUnitEconomicsFields } from '../dashboard/components/product-drawer/secondary/model/salesForecastOrderInputModel'
+import type { SecondaryAiCommentView } from '../dashboard/components/product-drawer/secondary/model/secondaryAiCommentModel'
+import type { SecondaryConfirmedRound, SecondaryConfirmedRounds } from '../dashboard/components/product-drawer/secondary/model/secondaryConfirmedRoundModel'
+import type { SecondarySizeOrderRestoreRow } from '../dashboard/components/product-drawer/secondary/model/secondarySizeOrderRows'
 import type { ProductPrimarySummary, ProductSecondaryDetail } from '../types'
 
 export const ORDER_SNAPSHOT_SCHEMA_VERSION: 4 = 4 as const
@@ -9,80 +15,24 @@ export type OrderSnapshotComparisonRatioBySize = Record<string, OrderSnapshotSou
 export type OrderSnapshotBaseSubject = ComparisonBaseSubjectRef
 export type OrderSnapshotComparisonSubject = ComparisonComparisonSubject
 
-export type OrderSnapshotSizeOrder = {
-  size: string
-  baseSharePct: OrderSnapshotPercent
-  comparisonSharePct: OrderSnapshotPercent
-  blendedSharePct: OrderSnapshotPercent
-  forecastQty: number
-  recommendedQty: number
-}
+export type OrderSnapshotSizeOrder = SecondarySizeOrderRestoreRow
 
-export interface OrderSnapshotConfirmedRound {
-  date: string
-  qtyBySize: Record<string, number>
-}
+export type OrderSnapshotConfirmedRound = SecondaryConfirmedRound
+export type OrderSnapshotConfirmed = SecondaryConfirmedRounds
 
-export interface OrderSnapshotConfirmed {
-  rounds: OrderSnapshotConfirmedRound[]
-}
+export type OrderSnapshotUnitEconomics = SalesForecastUnitEconomicsFields
 
-export interface OrderSnapshotUnitEconomics {
-  unitPrice: number
-  unitCost: number
-  expectedFeeRatePct: OrderSnapshotPercent
-}
+export type OrderSnapshotStockOrderDisplay = SecondaryStockOrderCalcResult['display']
+export type OrderSnapshotStockOrderDisplaySizeRow = OrderSnapshotStockOrderDisplay['sizeRows'][number]
 
-export interface OrderSnapshotStockOrderDisplaySizeRow {
-  size: string
-  currentStockQty: number
-  totalOrderBalance: number
-  expectedInboundOrderBalance: number
-}
-
-export interface OrderSnapshotStockOrderDisplay {
-  currentStockQtyTotal: number
-  totalOrderBalanceTotal: number
-  expectedInboundOrderBalanceTotal: number
-  sizeRows: OrderSnapshotStockOrderDisplaySizeRow[]
-}
-
-export interface OrderSnapshotStockOrderRequest {
-  currentOrderInboundDueDate: string
-  nextOrderInboundDueDate: string
+export type OrderSnapshotStockOrderRequest = SalesForecastInboundDateFields & {
   leadTimeDays: number
   dailyMeanOverride?: number
 }
 
-export interface OrderSnapshotStockOrderAmountBlock {
-  recommendedOrderQty: number
-  expectedOrderAmount: number
-  expectedSalesAmount: number
-  expectedOpProfit: number
-}
+export type OrderSnapshotStockOrderResult = SecondaryStockOrderCalcResult
 
-export interface OrderSnapshotStockOrderSafetyBlock extends OrderSnapshotStockOrderAmountBlock {
-  safetyStock: number
-}
-
-export interface OrderSnapshotStockOrderForecastBlock extends OrderSnapshotStockOrderAmountBlock {
-  safetyStock: null
-}
-
-export interface OrderSnapshotStockOrderResult {
-  trendDailyMean: number
-  dailyMean: number
-  sigma: number
-  display: OrderSnapshotStockOrderDisplay
-  safetyStockCalc: OrderSnapshotStockOrderSafetyBlock
-  forecastQtyCalc: OrderSnapshotStockOrderForecastBlock
-}
-
-export interface OrderSnapshotAiComment {
-  prompt: string
-  answer: string
-  generatedAt: string | null
-}
+export type OrderSnapshotAiComment = SecondaryAiCommentView
 
 export type OrderSnapshotPrimarySummary = Pick<
   ProductPrimarySummary,
@@ -91,7 +41,10 @@ export type OrderSnapshotPrimarySummary = Pick<
 
 export type OrderSnapshotDrawer1 = {
   summary: OrderSnapshotPrimarySummary
+  monthlySalesTrend: OrderSnapshotMonthlySalesTrendPoint[]
 }
+
+export type OrderSnapshotMonthlySalesTrendPoint = ProductMonthlyTrendChartPoint
 
 export interface OrderSnapshotComparisonBasis {
   skuGroupKey: ProductSecondaryDetail['skuGroupKey']
@@ -134,6 +87,10 @@ export function createOrderSnapshotPrimarySummary(primary: ProductPrimarySummary
   return { skuGroupKey, productName, brand, category, code, colorCode, price, qty, availableStock }
 }
 
+export function createOrderSnapshotMonthlySalesTrend(monthlySalesTrend: OrderSnapshotMonthlySalesTrendPoint[]): OrderSnapshotMonthlySalesTrendPoint[] {
+  return monthlySalesTrend.map((point: OrderSnapshotMonthlySalesTrendPoint): OrderSnapshotMonthlySalesTrendPoint => ({ ...point }))
+}
+
 export function createOrderSnapshotBaseSubject(subject: OrderSnapshotBaseSubject): OrderSnapshotBaseSubject {
   return {
     role: 'base',
@@ -174,8 +131,6 @@ export function createOrderSnapshotStockOrderResult(result: OrderSnapshotStockOr
       ...display,
       sizeRows: display.sizeRows.map((row: OrderSnapshotStockOrderDisplaySizeRow) : OrderSnapshotStockOrderDisplaySizeRow => ({ ...row })),
     },
-    safetyStockCalc: { ...result.safetyStockCalc },
-    forecastQtyCalc: { ...result.forecastQtyCalc },
   }
 }
 

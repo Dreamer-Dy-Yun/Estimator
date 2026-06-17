@@ -1,6 +1,6 @@
 import type { ProductSecondaryDetail, SecondaryCompetitorChannel } from '..'
-import type { OrderSnapshotBaseSubject, OrderSnapshotComparisonSubject, OrderSnapshotDrawer1, OrderSnapshotDrawer2, OrderSnapshotPrimarySummary } from '../../snapshot/orderSnapshotTypes'
-import type { ProductSecondarySizeRow } from '../../types'
+import type { OrderSnapshotBaseSubject, OrderSnapshotComparisonSubject, OrderSnapshotDrawer1, OrderSnapshotDrawer2, OrderSnapshotMonthlySalesTrendPoint, OrderSnapshotPrimarySummary } from '../../snapshot/orderSnapshotTypes'
+import type { MonthlySalesPoint, ProductSecondarySizeRow } from '../../types'
 import type { SalesKpiColumn } from '../../utils/salesKpiColumn'
 import type { ProductPrimarySummary } from '../types'
 import { buildSalesKpiColumn } from '../../utils/salesKpiColumn'
@@ -8,6 +8,7 @@ import {
   createOrderSnapshotBaseSubject,
   createOrderSnapshotComparisonBasis,
   createOrderSnapshotComparisonSubject,
+  createOrderSnapshotMonthlySalesTrend,
   createOrderSnapshotPrimarySummary,
   createOrderSnapshotStockOrderRequest,
   getOrderSnapshotConfirmedTotalQty,
@@ -111,9 +112,24 @@ export function buildMockOrderSnapshotForCandidate(
   const leadTimeDays = 30 as const
   const unitPrice: number = Math.max(0, Math.round(summary.price ?? primary.price))
   const unitCost: number = Math.max(0, Math.round(requireNumber(selfCol.avgCost, 'self avgCost')))
-  const feePerUnit: number = Math.max(0, Math.round(requireNumber(selfCol.feePerUnit, 'self feePerUnit')))
   const feeRatePct: number = requireNumber(selfCol.feeRatePct, 'self feeRatePct')
   const dailyMean: number = Math.max(0.1, Math.round((primary.qty / 365) * 10) / 10)
+  const monthlyTrendSeed: MonthlySalesPoint[] = primary.monthlySalesTrend ?? []
+  const firstForecastIndex: number = monthlyTrendSeed.findIndex((point: MonthlySalesPoint): boolean => point.isForecast)
+  const monthlySalesTrend: OrderSnapshotMonthlySalesTrendPoint[] = monthlyTrendSeed.map((point: MonthlySalesPoint, index: number): OrderSnapshotMonthlySalesTrendPoint => {
+    const sales: number = Math.max(0, Math.round(point.sales))
+    const comparisonSales: number | null = point.isForecast ? null : Math.max(0, Math.round(point.sales * 1.12))
+    return {
+      idx: index,
+      date: point.date,
+      isForecast: point.isForecast,
+      sales,
+      comparisonSales,
+      actual: point.isForecast ? null : sales,
+      comparisonActual: point.isForecast ? null : comparisonSales,
+      forecastLink: firstForecastIndex !== -1 && (index === firstForecastIndex - 1 || index >= firstForecastIndex) ? sales : null,
+    }
+  })
   const selfQtyTotal: number = secondary.sizeRows.reduce((sum: number, row: ProductSecondarySizeRow) : number => sum + Math.max(0, row.qty), 0)
   const sharePct: (value: number, total: number) => number = (value: number, total: number) : number => total > 0 ? (Math.max(0, value) / total) * 100 : 0
   const sizeOrders: { size: string; baseSharePct: number; comparisonSharePct: number; blendedSharePct: number; forecastQty: number; recommendedQty: number; }[] = secondary.sizeRows.map((row: ProductSecondarySizeRow) : { size: string; baseSharePct: number; comparisonSharePct: number; blendedSharePct: number; forecastQty: number; recommendedQty: number; } => ({
@@ -132,11 +148,6 @@ export function buildMockOrderSnapshotForCandidate(
     totalOrderBalance: Math.max(0, Math.round((confirmedQtyBySize[row.size] ?? 0) * 0.4)),
     expectedInboundOrderBalance: Math.max(0, Math.round((confirmedQtyBySize[row.size] ?? 0) * 0.3)),
   }))
-  const orderQty: number = Object.values(confirmedQtyBySize).reduce((sum: number, qty: number): number => sum + qty, 0)
-  const expectedSalesAmount: number = orderQty * unitPrice
-  const expectedOpProfit: number = orderQty * (unitPrice - unitCost - feePerUnit)
-  const expectedOrderAmount: number = orderQty * unitCost
-
   return ensureMockAiCommentForSnapshot({
     schemaVersion: ORDER_SNAPSHOT_SCHEMA_VERSION,
     skuGroupKey,
@@ -148,7 +159,10 @@ export function buildMockOrderSnapshotForCandidate(
       dailyTrendStartMonth: '2025-01',
       dailyTrendLeadTimeDays: leadTimeDays,
     },
-    drawer1: { summary },
+    drawer1: {
+      summary,
+      monthlySalesTrend: createOrderSnapshotMonthlySalesTrend(monthlySalesTrend),
+    },
     drawer2: {
       baseSubject,
       comparisonSubject,
@@ -168,8 +182,6 @@ export function buildMockOrderSnapshotForCandidate(
           expectedInboundOrderBalanceTotal: displaySizeRows.reduce((sum: number, row: { size: string; currentStockQty: number; totalOrderBalance: number; expectedInboundOrderBalance: number; }) : number => sum + row.expectedInboundOrderBalance, 0),
           sizeRows: displaySizeRows,
         },
-        safetyStockCalc: { safetyStock: orderQty, recommendedOrderQty: orderQty, expectedOrderAmount, expectedSalesAmount, expectedOpProfit },
-        forecastQtyCalc: { safetyStock: null, recommendedOrderQty: orderQty, expectedOrderAmount, expectedSalesAmount, expectedOpProfit },
       },
       unitEconomics: { unitPrice, unitCost, expectedFeeRatePct: feeRatePct },
       selfWeightPct: 50,

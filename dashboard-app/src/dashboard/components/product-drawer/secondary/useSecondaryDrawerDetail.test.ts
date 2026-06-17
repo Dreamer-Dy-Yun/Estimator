@@ -41,6 +41,7 @@ const snapshot: OrderSnapshotDocument = {
       qty: 10,
       availableStock: 5,
     },
+    monthlySalesTrend: [{ idx: 0, date: '2026-05', actual: 10, comparisonActual: 8, forecastLink: null, isForecast: false, sales: 10, comparisonSales: 8 }],
   },
   drawer2: {
     baseSubject: BASE_SUBJECT,

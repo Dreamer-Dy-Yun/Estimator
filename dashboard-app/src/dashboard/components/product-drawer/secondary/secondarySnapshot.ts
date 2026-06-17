@@ -1,29 +1,32 @@
 import type { OrderSnapshotPrimarySummary } from '../../../../snapshot/orderSnapshotTypes'
+import type { SecondaryStockOrderCalcResult } from '../../../../api/types'
 import type { ProductPrimarySummary, ProductSecondaryDetail } from '../../../../types'
 import {
   createOrderSnapshotAiComment,
   createOrderSnapshotBaseSubject,
   createOrderSnapshotComparisonBasis,
   createOrderSnapshotComparisonSubject,
+  createOrderSnapshotMonthlySalesTrend,
   createOrderSnapshotConfirmed,
   createOrderSnapshotPrimarySummary,
   createOrderSnapshotStockOrderRequest,
   createOrderSnapshotStockOrderResult,
   ORDER_SNAPSHOT_SCHEMA_VERSION,
   type OrderSnapshotConfirmed,
-  type OrderSnapshotConfirmedRound,
-  type OrderSnapshotAiComment,
   type OrderSnapshotDocument,
+  type OrderSnapshotMonthlySalesTrendPoint,
   type OrderSnapshotSizeOrder,
   type OrderSnapshotStockOrderRequest,
-  type OrderSnapshotStockOrderResult,
   type OrderSnapshotBaseSubject,
   type OrderSnapshotComparisonSubject,
 } from '../../../../snapshot/orderSnapshotTypes'
+import type { SecondaryAiCommentView } from './model/secondaryAiCommentModel'
+import type { SecondaryConfirmedRound } from './model/secondaryConfirmedRoundModel'
 import type { SecondarySizeOrderDisplayRow } from './model/secondarySizeOrderRows'
 
 export type BuildSecondaryOrderSnapshotParams = {
   primary: ProductPrimarySummary
+  monthlySalesTrend: OrderSnapshotMonthlySalesTrendPoint[]
   secondary: ProductSecondaryDetail
   periodStart: string
   periodEnd: string
@@ -33,20 +36,21 @@ export type BuildSecondaryOrderSnapshotParams = {
   selectedStart: string
   leadTimeDays: number
   stockOrderRequest: OrderSnapshotStockOrderRequest
-  stockOrderResult: OrderSnapshotStockOrderResult | null
+  stockOrderResult: SecondaryStockOrderCalcResult | null
   selfWeightPct: number
   bufferStock: number
-  aiComment: OrderSnapshotAiComment
+  aiComment: SecondaryAiCommentView
   unitPrice: number
   unitCost: number
   expectedFeeRatePct: number
   sizeRows: SecondarySizeOrderDisplayRow[]
-  confirmedRounds?: OrderSnapshotConfirmedRound[]
+  confirmedRounds?: SecondaryConfirmedRound[]
 }
 
 export function buildSecondaryOrderSnapshot(params: BuildSecondaryOrderSnapshotParams): OrderSnapshotDocument {
   const {
     primary,
+    monthlySalesTrend,
     secondary,
     periodStart,
     periodEnd,
@@ -69,7 +73,7 @@ export function buildSecondaryOrderSnapshot(params: BuildSecondaryOrderSnapshotP
   const sizeOrders: OrderSnapshotSizeOrder[] = buildCurrentSnapshotSizeOrders(sizeRows)
   const confirmed: OrderSnapshotConfirmed = buildCurrentConfirmed(confirmedRounds, sizeRows, stockOrderRequest.currentOrderInboundDueDate)
   const summary: OrderSnapshotPrimarySummary = createOrderSnapshotPrimarySummary(primary)
-  const storedStockOrderResult: OrderSnapshotStockOrderResult | undefined = createOrderSnapshotStockOrderResult(stockOrderResult)
+  const storedStockOrderResult: SecondaryStockOrderCalcResult | undefined = createOrderSnapshotStockOrderResult(stockOrderResult)
 
   return {
     schemaVersion: ORDER_SNAPSHOT_SCHEMA_VERSION,
@@ -84,6 +88,7 @@ export function buildSecondaryOrderSnapshot(params: BuildSecondaryOrderSnapshotP
     },
     drawer1: {
       summary,
+      monthlySalesTrend: createOrderSnapshotMonthlySalesTrend(monthlySalesTrend),
     },
     drawer2: {
       baseSubject: createOrderSnapshotBaseSubject(baseSubject),
@@ -116,7 +121,7 @@ function buildCurrentSnapshotSizeOrders(sizeRows: SecondarySizeOrderDisplayRow[]
   }))
 }
 
-function buildCurrentConfirmed(confirmedRounds: OrderSnapshotConfirmedRound[], sizeRows: SecondarySizeOrderDisplayRow[], defaultDate: string): OrderSnapshotConfirmed {
+function buildCurrentConfirmed(confirmedRounds: SecondaryConfirmedRound[], sizeRows: SecondarySizeOrderDisplayRow[], defaultDate: string): OrderSnapshotConfirmed {
   if (confirmedRounds.length > 0) return createOrderSnapshotConfirmed({ rounds: confirmedRounds })
   if (sizeRows.length === 0) return { rounds: [] }
   return createOrderSnapshotConfirmed({

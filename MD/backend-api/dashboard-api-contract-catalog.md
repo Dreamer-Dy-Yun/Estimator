@@ -252,6 +252,15 @@ Type sources: `dashboard-app/src/api/types/drawer.ts`, `dashboard-app/src/api/ty
 
 Frontend `SecondaryAiCommentParams` includes `skuGroupKey` so the HTTP adapter can place it in the path. The POST body excludes that path field.
 
+Current snapshot/storage notes:
+
+- `OrderSnapshotDocument.drawer1.monthlySalesTrend[]` stores the `ProductMonthlyTrendChartPoint[]` display model used directly by the primary drawer monthly trend card. Backend snapshot producers should persist one chart point per displayed month, not the `ProductMonthlyTrend` API source object.
+- Monthly snapshot points currently use `idx`, `date`, `actual`, `comparisonActual`, `forecastLink`, `isForecast`, `sales`, `comparisonSales`.
+- `drawer2.sizeOrders[]` stores `SecondarySizeOrderRestoreRow[]`: the rendered size-order row shape minus `confirmQty`. Confirmed quantities stay in `drawer2.confirmed.rounds[]`.
+- `drawer2.stockOrderResult` stores `SecondaryStockOrderCalcResult`; backend producers should not add UI-unused safety/forecast amount blocks.
+- `drawer2.stockOrderRequest`, `drawer2.unitEconomics`, `drawer2.aiComment`, and `drawer2.confirmed.rounds[]` align with the frontend input/state models `SalesForecastInboundDateFields`, `SalesForecastUnitEconomicsFields`, `SecondaryAiCommentView`, and `SecondaryConfirmedRound`.
+- `SecondaryStockOrderCalcResult` currently contains only `trendDailyMean`, `dailyMean`, `sigma`, and `display`. Removed response fields: `safetyStockCalc`, `forecastQtyCalc`.
+
 Daily trend source response:
 
 ```ts

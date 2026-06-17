@@ -18,6 +18,7 @@ export type BuildSnapshotParams = Parameters<typeof buildSecondaryOrderSnapshot>
 function createBuildParams(overrides: Partial<BuildSnapshotParams> = {}): BuildSnapshotParams {
   return {
     primary: validSnapshot.drawer1.summary as BuildSnapshotParams['primary'],
+    monthlySalesTrend: validSnapshot.drawer1.monthlySalesTrend,
     secondary: secondaryDetailFixture as BuildSnapshotParams['secondary'],
     periodStart: validSnapshot.context.periodStart,
     periodEnd: validSnapshot.context.periodEnd,
@@ -61,6 +62,7 @@ describe('buildSecondaryOrderSnapshot', () : void => {
     }))
 
     expect(sortedKeys(snapshot.drawer1.summary)).toEqual(currentPrimarySummaryKeys)
+    expect(snapshot.drawer1.monthlySalesTrend).toEqual(validSnapshot.drawer1.monthlySalesTrend)
     expect(sortedKeys(snapshot.drawer2)).toEqual(currentDrawer2Keys.filter((key: string) : boolean => key !== 'stockOrderResult'))
     expect(sortedKeys(snapshot.drawer2.stockOrderRequest)).toEqual(currentStockOrderRequestKeys)
     expect(snapshot.drawer2).not.toHaveProperty('stockOrderResult')

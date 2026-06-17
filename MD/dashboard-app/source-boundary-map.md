@@ -55,6 +55,7 @@ Last updated: 2026-06-16
 
 ## 0-4) 2026-06-09 product drawer comparison target boundary
 
+- 2026-06-17 snapshot update: snapshot restore fields now alias the render/input state models they restore. `drawer1.monthlySalesTrend[]` stores `ProductMonthlyTrendChartPoint[]`; `drawer2.sizeOrders[]` stores `SecondarySizeOrderRestoreRow[]`; `drawer2.stockOrderResult` stores `SecondaryStockOrderCalcResult`; AI comment, split confirmed rounds, and sales forecast unit economics follow their frontend render/input models. Removed stock-order calc blocks such as `safetyStockCalc` and `forecastQtyCalc` are not part of the current snapshot contract.
 - Product drawer API facade calls must pass explicit subject params. All-company is represented by an explicit self-company subject whose `sourceId` is omitted only at the HTTP adapter boundary.
 - 1차 드로워 판매 정보의 기준/비교 주체는 `ProductComparisonSubjectRef` 계약이 소유한다.
 - `base`와 `comparison`은 모두 `role`, `kind`, `sourceId`를 가진다. `role`은 컬럼 위치, `kind`는 backend/mock 조회 도메인, `sourceId`는 해당 도메인의 실제 id다.

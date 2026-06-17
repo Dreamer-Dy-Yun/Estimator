@@ -131,21 +131,6 @@ export interface SecondaryStockOrderCalcParams {
   dailyMean?: number
 }
 
-export interface SecondaryStockOrderAmountBlock {
-  recommendedOrderQty: number
-  expectedOrderAmount: number
-  expectedSalesAmount: number
-  expectedOpProfit: number
-}
-
-export interface SecondaryStockSafetyCalcBlock extends SecondaryStockOrderAmountBlock {
-  safetyStock: number
-}
-
-export interface SecondaryStockForecastQtyCalcBlock extends SecondaryStockOrderAmountBlock {
-  safetyStock: null
-}
-
 export interface SecondaryStockOrderDisplaySizeRow {
   size: string
   currentStockQty: number
@@ -166,6 +151,4 @@ export interface SecondaryStockOrderCalcResult {
     expectedInboundOrderBalanceTotal: number
     sizeRows: SecondaryStockOrderDisplaySizeRow[]
   }
-  safetyStockCalc: SecondaryStockSafetyCalcBlock
-  forecastQtyCalc: SecondaryStockForecastQtyCalcBlock
 }

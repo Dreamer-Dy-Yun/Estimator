@@ -1,5 +1,5 @@
 import type { SecondaryInboundSplitSource } from '../../../../../api/types/secondary'
-import type { OrderSnapshotConfirmedRound } from '../../../../../snapshot/orderSnapshotTypes'
+import type { SecondaryConfirmedRound } from '../model/secondaryConfirmedRoundModel'
 import type { SecondarySizeOrderDisplayRow } from '../model/secondarySizeOrderRows'
 import { buildInboundSplitSuggestedQuantitiesByRow } from './inboundSplitSuggestionModel'
 
@@ -74,8 +74,8 @@ export function cloneInboundSplitRows(rows: readonly InboundSplitScheduleRow[]):
   }))
 }
 
-export function confirmedRoundsToInboundSplitRows(rounds: readonly OrderSnapshotConfirmedRound[], columns: readonly InboundSplitSizeColumn[]): InboundSplitScheduleRow[] {
-  return rounds.map((round: OrderSnapshotConfirmedRound, index: number): InboundSplitScheduleRow => {
+export function confirmedRoundsToInboundSplitRows(rounds: readonly SecondaryConfirmedRound[], columns: readonly InboundSplitSizeColumn[]): InboundSplitScheduleRow[] {
+  return rounds.map((round: SecondaryConfirmedRound, index: number): InboundSplitScheduleRow => {
     const quantitiesBySize: Record<string, number> = {}
     columns.forEach((column: InboundSplitSizeColumn): void => {
       quantitiesBySize[column.size] = Math.max(0, Math.round(round.qtyBySize[column.size] ?? 0))
@@ -90,8 +90,8 @@ export function confirmedRoundsToInboundSplitRows(rounds: readonly OrderSnapshot
   })
 }
 
-export function inboundSplitRowsToConfirmedRounds(rows: readonly InboundSplitScheduleRow[], columns: readonly InboundSplitSizeColumn[]): OrderSnapshotConfirmedRound[] {
-  return rows.map((row: InboundSplitScheduleRow): OrderSnapshotConfirmedRound => {
+export function inboundSplitRowsToConfirmedRounds(rows: readonly InboundSplitScheduleRow[], columns: readonly InboundSplitSizeColumn[]): SecondaryConfirmedRound[] {
+  return rows.map((row: InboundSplitScheduleRow): SecondaryConfirmedRound => {
     const qtyBySize: Record<string, number> = {}
     columns.forEach((column: InboundSplitSizeColumn): void => {
       qtyBySize[column.size] = Math.max(0, Math.round(row.quantitiesBySize[column.size] ?? 0))

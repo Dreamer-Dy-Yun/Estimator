@@ -1,11 +1,14 @@
-import type { OrderSnapshotComparisonBasis, OrderSnapshotSizeOrder, OrderSnapshotStockOrderDisplaySizeRow, OrderSnapshotStockOrderDisplay, OrderSnapshotUnitEconomics } from '../../../../snapshot/orderSnapshotTypes'
+import type { OrderSnapshotComparisonBasis } from '../../../../snapshot/orderSnapshotTypes'
 import { useEffect, useMemo, useState } from 'react'
 import { dashboardApi } from '../../../../api'
 import type { ProductComparisonBaseSubjectRef, ProductComparisonTarget } from '../../../../api/types/drawer'
+import type { SecondaryStockOrderCalcResult } from '../../../../api/types'
 import type { ApiUnitErrorInfo, ProductSecondaryDetail } from '../../../../types'
 import type { OrderSnapshotDocument } from '../../../../snapshot/orderSnapshotTypes'
 import { getOrderSnapshotConfirmedQtyBySize } from '../../../../snapshot/orderSnapshotTypes'
 import { makeApiErrorInfo } from '../apiErrorInfo'
+import type { SalesForecastUnitEconomicsFields } from './model/salesForecastOrderInputModel'
+import type { SecondarySizeOrderRestoreRow } from './model/secondarySizeOrderRows'
 
 export type Params = {
   skuGroupKey: string
@@ -49,19 +52,19 @@ function getSecondaryDetailFromSnapshot(
   if (hydrateSnapshot?.skuGroupKey !== skuGroupKey) return null
   const basis: OrderSnapshotComparisonBasis = hydrateSnapshot.drawer2.comparisonBasis
   if (basis.skuGroupKey !== skuGroupKey) return null
-  const unitEconomics: OrderSnapshotUnitEconomics | undefined = hydrateSnapshot.drawer2.unitEconomics
+  const unitEconomics: SalesForecastUnitEconomicsFields | undefined = hydrateSnapshot.drawer2.unitEconomics
   if (unitEconomics == null) return null
-  const display: OrderSnapshotStockOrderDisplay | undefined = hydrateSnapshot.drawer2.stockOrderResult?.display
+  const display: SecondaryStockOrderCalcResult['display'] | undefined = hydrateSnapshot.drawer2.stockOrderResult?.display
   if (display == null) return null
-  const displaySizeRowBySize: Map<string, OrderSnapshotStockOrderDisplaySizeRow> = new Map((display?.sizeRows ?? []).map((row: OrderSnapshotStockOrderDisplaySizeRow) : [string, OrderSnapshotStockOrderDisplaySizeRow] => [row.size, row]))
-  if (hydrateSnapshot.drawer2.sizeOrders.some((row: OrderSnapshotSizeOrder) : boolean => !displaySizeRowBySize.has(row.size))) return null
+  const displaySizeRowBySize: Map<string, SecondaryStockOrderCalcResult['display']['sizeRows'][number]> = new Map((display?.sizeRows ?? []).map((row: SecondaryStockOrderCalcResult['display']['sizeRows'][number]) : [string, SecondaryStockOrderCalcResult['display']['sizeRows'][number]] => [row.size, row]))
+  if (hydrateSnapshot.drawer2.sizeOrders.some((row: SecondarySizeOrderRestoreRow) : boolean => !displaySizeRowBySize.has(row.size))) return null
   const confirmedQtyBySize: Record<string, number> = getOrderSnapshotConfirmedQtyBySize(hydrateSnapshot.drawer2.confirmed)
   return {
     skuGroupKey: basis.skuGroupKey,
     comparisonPrice: basis.comparisonPrice,
     comparisonQty: basis.comparisonQty,
     comparisonRatioBySize: { ...basis.comparisonRatioBySize },
-    sizeRows: hydrateSnapshot.drawer2.sizeOrders.map((row: OrderSnapshotSizeOrder) : { size: string; selfRatio: number; confirmedQty: number; avgPrice: number; qty: number; availableStock: number; } => ({
+    sizeRows: hydrateSnapshot.drawer2.sizeOrders.map((row: SecondarySizeOrderRestoreRow) : { size: string; selfRatio: number; confirmedQty: number; avgPrice: number; qty: number; availableStock: number; } => ({
       size: row.size,
       selfRatio: row.baseSharePct,
       confirmedQty: confirmedQtyBySize[row.size] ?? 0,

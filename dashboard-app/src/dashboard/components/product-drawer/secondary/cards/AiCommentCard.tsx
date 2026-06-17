@@ -1,15 +1,15 @@
 import { DialogCloseButton } from '../../../../../components/DialogCloseButton'
 import { LoadingSpinner } from '../../../../../components/LoadingSpinner'
-import type { OrderSnapshotAiComment } from '../../../../../snapshot/orderSnapshotTypes'
 import { useCallback, useEffect, useId, useRef, useState } from 'react'
 import type { ApiUnitErrorInfo } from '../../../../../types'
 import { KO } from '../../ko'
+import type { SecondaryAiCommentView } from '../model/secondaryAiCommentModel'
 import styles from '../secondaryDrawer.module.css'
 
 const AI_COMMENT_OVERFLOW_TOLERANCE_PX = 1 as const
 
 export type Props = {
-  aiComment: OrderSnapshotAiComment
+  aiComment: SecondaryAiCommentView
   loading: boolean
   error: ApiUnitErrorInfo | null
   onRequest: () => void

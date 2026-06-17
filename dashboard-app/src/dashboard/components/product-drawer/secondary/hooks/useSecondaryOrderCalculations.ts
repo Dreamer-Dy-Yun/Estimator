@@ -2,7 +2,6 @@ import type { SecondaryStockOrderDisplaySizeRow } from '../../../../../api/types
 import type { SecondarySizeShare } from '../model/secondarySizeOrderRows'
 import { useMemo } from 'react'
 import type { SecondaryStockOrderCalcResult } from '../../../../../api/types'
-import type { OrderSnapshotSizeOrder } from '../../../../../snapshot/orderSnapshotTypes'
 import type { ProductSecondaryDetail } from '../../../../../types'
 import { SecondaryOrderDraft } from '../model/SecondaryOrderDraft'
 import {
@@ -10,6 +9,7 @@ import {
   buildSecondarySizeOrderRows,
   buildSecondarySizeShares,
   type SecondarySizeOrderDisplayRow,
+  type SecondarySizeOrderRestoreRow,
 } from '../model/secondarySizeOrderRows'
 
 export type Args = {
@@ -23,7 +23,7 @@ export type Args = {
   confirmBySize: Record<string, number>
   snapshotConfirmBySize: Record<string, number>
   useSnapshotConfirmBaseline: boolean
-  snapshotSizeOrders?: OrderSnapshotSizeOrder[] | null
+  snapshotSizeOrders?: SecondarySizeOrderRestoreRow[] | null
 }
 
 export function useSecondaryOrderCalculations({
@@ -77,7 +77,7 @@ export function useSecondaryOrderCalculations({
 
   const sizeRows: SecondarySizeOrderDisplayRow[] = useMemo(() : SecondarySizeOrderDisplayRow[] => {
     if (useSnapshotConfirmBaseline && snapshotSizeOrders != null) {
-      return snapshotSizeOrders.map<SecondarySizeOrderDisplayRow>((row: OrderSnapshotSizeOrder) : { size: string; baseSharePct: number; comparisonSharePct: number; blendedSharePct: number; forecastQty: number; recommendedQty: number; confirmQty: number; } => ({
+      return snapshotSizeOrders.map<SecondarySizeOrderDisplayRow>((row: SecondarySizeOrderRestoreRow) : { size: string; baseSharePct: number; comparisonSharePct: number; blendedSharePct: number; forecastQty: number; recommendedQty: number; confirmQty: number; } => ({
         size: row.size,
         baseSharePct: row.baseSharePct,
         comparisonSharePct: row.comparisonSharePct,

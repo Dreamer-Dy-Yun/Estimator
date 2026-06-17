@@ -1,3 +1,5 @@
+import type { SecondarySizeOrderDisplayRow } from '../../../../../utils/secondaryOrderProjection'
+
 export {
   buildDailyTrendSizeOptions,
   buildSecondarySizeOrderRows,
@@ -10,3 +12,8 @@ export type {
   SecondaryStockOrderSizeRow,
   SizeOrderRowsParams,
 } from '../../../../../utils/secondaryOrderProjection'
+
+export type SecondarySizeOrderRestoreRow = Pick<
+  SecondarySizeOrderDisplayRow,
+  'size' | 'baseSharePct' | 'comparisonSharePct' | 'blendedSharePct' | 'forecastQty' | 'recommendedQty'
+>

@@ -1,7 +1,9 @@
-import type { OrderSnapshotComparisonSubject, OrderSnapshotConfirmedRound, OrderSnapshotDrawer2, OrderSnapshotStockOrderRequest } from '../../../../../snapshot/orderSnapshotTypes'
+import type { OrderSnapshotComparisonSubject, OrderSnapshotDrawer2, OrderSnapshotStockOrderRequest } from '../../../../../snapshot/orderSnapshotTypes'
 import { useEffect } from 'react'
-import type { OrderSnapshotAiComment, OrderSnapshotDocument } from '../../../../../snapshot/orderSnapshotTypes'
+import type { OrderSnapshotDocument } from '../../../../../snapshot/orderSnapshotTypes'
 import type { CandidateItemPanelContext } from '../secondaryDrawerTypes'
+import type { SecondaryAiCommentView } from '../model/secondaryAiCommentModel'
+import type { SecondaryConfirmedRound } from '../model/secondaryConfirmedRoundModel'
 import type { InboundDueDateDefaults } from './useSecondaryInboundDueDates'
 
 export type Args = {
@@ -17,9 +19,9 @@ export type Args = {
   setNextOrderInboundDueDate: (value: string) => void
   setBufferStock: (value: number) => void
   setSelfWeightPct: (value: number) => void
-  setAiComment: (value: OrderSnapshotAiComment) => void
+  setAiComment: (value: SecondaryAiCommentView) => void
   setConfirmBySize: (value: Record<string, number>) => void
-  setConfirmedRounds: (value: OrderSnapshotConfirmedRound[]) => void
+  setConfirmedRounds: (value: SecondaryConfirmedRound[]) => void
   setSnapshotConfirmBaselineActive: (value: boolean) => void
   setAppliedPrefillKey: (value: string | null) => void
   setUnitCostInput: (value: number) => void

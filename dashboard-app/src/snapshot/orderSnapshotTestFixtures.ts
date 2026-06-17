@@ -24,6 +24,28 @@ export const validSnapshot: OrderSnapshotDocument = {
       qty: 80,
       availableStock: 20,
     },
+    monthlySalesTrend: [
+      {
+        idx: 0,
+        date: '2026-01',
+        actual: 80,
+        comparisonActual: 32,
+        forecastLink: null,
+        isForecast: false,
+        sales: 80,
+        comparisonSales: 32,
+      },
+      {
+        idx: 1,
+        date: '2026-02',
+        actual: null,
+        comparisonActual: null,
+        forecastLink: 90,
+        isForecast: true,
+        sales: 90,
+        comparisonSales: null,
+      },
+    ],
   },
   drawer2: {
     baseSubject: {
@@ -73,20 +95,6 @@ export const validSnapshot: OrderSnapshotDocument = {
           totalOrderBalance: 4,
           expectedInboundOrderBalance: 2,
         }],
-      },
-      safetyStockCalc: {
-        safetyStock: 12,
-        recommendedOrderQty: 12,
-        expectedOrderAmount: 720000,
-        expectedSalesAmount: 1200000,
-        expectedOpProfit: 336000,
-      },
-      forecastQtyCalc: {
-        safetyStock: null,
-        recommendedOrderQty: 12,
-        expectedOrderAmount: 720000,
-        expectedSalesAmount: 1200000,
-        expectedOpProfit: 336000,
       },
     },
     unitEconomics: {

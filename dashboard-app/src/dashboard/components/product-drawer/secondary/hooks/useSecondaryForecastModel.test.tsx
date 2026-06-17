@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import type { SecondaryStockOrderCalcResult } from '../../../../../api'
+import type { ProductMonthlyTrendChartPoint } from '../../primary/monthlyTrendChartModel'
 import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, describe, expect, it, vi, type Mock } from 'vitest'
@@ -43,21 +44,11 @@ const STOCK_ORDER_CALC: SecondaryStockOrderCalcResult = {
     expectedInboundOrderBalanceTotal: 3,
     sizeRows: [{ size: 'S', currentStockQty: 1, totalOrderBalance: 2, expectedInboundOrderBalance: 3 }],
   },
-  safetyStockCalc: {
-    safetyStock: 1,
-    recommendedOrderQty: 2,
-    expectedOrderAmount: 3,
-    expectedSalesAmount: 4,
-    expectedOpProfit: 5,
-  },
-  forecastQtyCalc: {
-    safetyStock: null,
-    recommendedOrderQty: 2,
-    expectedOrderAmount: 3,
-    expectedSalesAmount: 4,
-    expectedOpProfit: 5,
-  },
 }
+
+const MONTHLY_SALES_TREND: ProductMonthlyTrendChartPoint[] = [
+  { idx: 0, date: '2025-01', actual: 10, comparisonActual: 9, forecastLink: null, isForecast: false, sales: 10, comparisonSales: 9 },
+]
 
 let root: Root | null = null
 let container: HTMLDivElement | null = null
@@ -126,6 +117,7 @@ function createArgs(overrides: Partial<HookArgs> = {}): HookArgs {
     selectedStartMonth: '2025-01',
     selectedEndMonth: '2025-12',
     forecastMonths: 12,
+    monthlySalesTrend: MONTHLY_SALES_TREND,
     companyUuid: 'company-1',
     baseSubject: { role: 'base', kind: 'self-company', sourceId: 'company-1' },
     prefillFromSnapshot: null,

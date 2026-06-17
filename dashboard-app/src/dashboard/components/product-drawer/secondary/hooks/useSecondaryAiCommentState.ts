@@ -3,7 +3,8 @@ import { useCallback, useMemo, useState } from 'react'
 import type { ApiUnitErrorInfo } from '../../../../../types'
 import type { ProductComparisonBaseSubjectRef, ProductComparisonTarget, SecondaryAiCommentResult } from '../../../../../api'
 import type { CandidateItemPanelContext } from '../secondaryDrawerTypes'
-import type { OrderSnapshotAiComment, OrderSnapshotDocument } from '../../../../../snapshot/orderSnapshotTypes'
+import type { OrderSnapshotDocument } from '../../../../../snapshot/orderSnapshotTypes'
+import type { SecondaryAiCommentView } from '../model/secondaryAiCommentModel'
 import { useSecondaryAiComment } from './useSecondaryAiComment'
 
 export type Args = {
@@ -18,14 +19,14 @@ export type Args = {
 }
 
 export type ReturnValue = {
-  aiComment: OrderSnapshotAiComment
+  aiComment: SecondaryAiCommentView
   aiCommentLoading: boolean
   aiCommentError: ApiUnitErrorInfo | null
   requestAiComment: (snapshotForAiComment?: OrderSnapshotDocument | null) => void
-  setAiComment: (value: OrderSnapshotAiComment) => void
+  setAiComment: (value: SecondaryAiCommentView) => void
 }
 
-const EMPTY_AI_COMMENT: OrderSnapshotAiComment = { prompt: '', answer: '', generatedAt: null }
+const EMPTY_AI_COMMENT: SecondaryAiCommentView = { prompt: '', answer: '', generatedAt: null }
 
 export function useSecondaryAiCommentState({
   pageName,
@@ -37,7 +38,7 @@ export function useSecondaryAiCommentState({
   comparisonTarget,
   candidateItemContext,
 }: Args): ReturnValue {
-  const [aiComment, setAiComment]: [OrderSnapshotAiComment, React.Dispatch<React.SetStateAction<OrderSnapshotAiComment>>] = useState<OrderSnapshotAiComment>(EMPTY_AI_COMMENT)
+  const [aiComment, setAiComment]: [SecondaryAiCommentView, React.Dispatch<React.SetStateAction<SecondaryAiCommentView>>] = useState<SecondaryAiCommentView>(EMPTY_AI_COMMENT)
   const aiCommentParams: SecondaryAiCommentParams = useMemo(() : SecondaryAiCommentParams => ({
     skuGroupKey,
     periodStart,

@@ -7,6 +7,7 @@ import type {
   OrderSnapshotDocument,
   OrderSnapshotDrawer1,
   OrderSnapshotDrawer2,
+  OrderSnapshotMonthlySalesTrendPoint,
   OrderSnapshotPrimarySummary,
   OrderSnapshotSizeOrder,
   OrderSnapshotStockOrderDisplaySizeRow,
@@ -26,7 +27,6 @@ const STOCK_RESULT_KEYS = ['trendDailyMean', 'dailyMean', 'sigma'] as const
 const STOCK_DISPLAY_TOTAL_KEYS = ['currentStockQtyTotal', 'totalOrderBalanceTotal', 'expectedInboundOrderBalanceTotal'] as const
 const STOCK_DISPLAY_SIZE_ROW_QUANTITY_KEYS = ['currentStockQty', 'totalOrderBalance', 'expectedInboundOrderBalance'] as const
 export type StockOrderDisplaySizeRowQuantityKey = typeof STOCK_DISPLAY_SIZE_ROW_QUANTITY_KEYS[number]
-const STOCK_ORDER_AMOUNT_KEYS = ['recommendedOrderQty', 'expectedOrderAmount', 'expectedSalesAmount', 'expectedOpProfit'] as const
 const SIZE_ORDER_SHARE_PCT_KEYS = ['baseSharePct', 'comparisonSharePct', 'blendedSharePct'] as const
 const SIZE_ORDER_QUANTITY_KEYS = ['forecastQty', 'recommendedQty'] as const
 
@@ -66,7 +66,28 @@ function normalizeDrawer1Structure(drawer1: Obj): OrderSnapshotDocument['drawer1
     ...normalizeStringFields(source, 'drawer1.summary', PRIMARY_STRING_KEYS),
     ...normalizeNumberFields(source, 'drawer1.summary', PRIMARY_NUMBER_KEYS),
   }
-  return { summary }
+  return {
+    summary,
+    monthlySalesTrend: normalizeMonthlySalesTrend(drawer1.monthlySalesTrend),
+  }
+}
+
+function normalizeMonthlySalesTrend(value: unknown): OrderSnapshotMonthlySalesTrendPoint[] {
+  const label = 'drawer1.monthlySalesTrend' as const
+  return expectArray(value, label).map((point: unknown, index: number): OrderSnapshotMonthlySalesTrendPoint => {
+    const pointLabel: string = label + '[' + index + ']'
+    const pointSource: Obj = expectRecord(point, pointLabel)
+    return {
+      idx: expectNumber(pointSource.idx, pointLabel + '.idx'),
+      actual: expectNumberOrNull(pointSource.actual, pointLabel + '.actual'),
+      comparisonActual: expectNumberOrNull(pointSource.comparisonActual, pointLabel + '.comparisonActual'),
+      forecastLink: expectNumberOrNull(pointSource.forecastLink, pointLabel + '.forecastLink'),
+      date: expectNonEmptyString(pointSource.date, pointLabel + '.date'),
+      isForecast: expectBoolean(pointSource.isForecast, pointLabel + '.isForecast'),
+      sales: expectNumber(pointSource.sales, pointLabel + '.sales'),
+      comparisonSales: expectNumberOrNull(pointSource.comparisonSales, pointLabel + '.comparisonSales'),
+    }
+  })
 }
 
 function normalizeDrawer2Structure(drawer2: Obj): OrderSnapshotDocument['drawer2'] {
@@ -102,17 +123,21 @@ function normalizeBaseSubject(subject: Obj): OrderSnapshotBaseSubject {
 }
 
 function normalizeComparisonSubject(subject: Obj): OrderSnapshotComparisonSubject {
-  const role: string = expectString(subject.role, 'drawer2.comparisonSubject.role')
-  const kind: string = expectString(subject.kind, 'drawer2.comparisonSubject.kind')
-  if (role !== 'comparison') throw new Error('drawer2.comparisonSubject.role must be comparison')
-  if (kind !== 'self-company' && kind !== 'competitor-channel') throw new Error('drawer2.comparisonSubject.kind is invalid')
-  const sourceId: string | undefined = expectOptionalNonEmptyString(subject.sourceId, 'drawer2.comparisonSubject.sourceId')
-  if (kind === 'competitor-channel' && sourceId == null) throw new Error('drawer2.comparisonSubject.sourceId is required')
+  return normalizeComparisonSubjectWithLabel(subject, 'drawer2.comparisonSubject')
+}
+
+function normalizeComparisonSubjectWithLabel(subject: Obj, label: string): OrderSnapshotComparisonSubject {
+  const role: string = expectString(subject.role, label + '.role')
+  const kind: string = expectString(subject.kind, label + '.kind')
+  if (role !== 'comparison') throw new Error(label + '.role must be comparison')
+  if (kind !== 'self-company' && kind !== 'competitor-channel') throw new Error(label + '.kind is invalid')
+  const sourceId: string | undefined = expectOptionalNonEmptyString(subject.sourceId, label + '.sourceId')
+  if (kind === 'competitor-channel' && sourceId == null) throw new Error(label + '.sourceId is required')
   return {
     role: 'comparison',
     kind,
-    id: expectNonEmptyString(subject.id, 'drawer2.comparisonSubject.id'),
-    label: expectNonEmptyString(subject.label, 'drawer2.comparisonSubject.label'),
+    id: expectNonEmptyString(subject.id, label + '.id'),
+    label: expectNonEmptyString(subject.label, label + '.label'),
     ...optionalField('sourceId', sourceId),
   } as OrderSnapshotComparisonSubject
 }
@@ -169,8 +194,6 @@ function normalizeOptionalStockOrderResult(value: unknown, sizeOrders: OrderSnap
   return {
     ...normalizeNumberFields(source, 'drawer2.stockOrderResult', STOCK_RESULT_KEYS),
     display: normalizeStockOrderDisplay(source.display, sizeOrders),
-    safetyStockCalc: normalizeStockOrderAmountBlock(source.safetyStockCalc, 'safetyStockCalc', false),
-    forecastQtyCalc: normalizeStockOrderAmountBlock(source.forecastQtyCalc, 'forecastQtyCalc', true),
   }
 }
 
@@ -200,16 +223,6 @@ function normalizeStockOrderDisplaySizeRows(value: unknown, sizeOrders: OrderSna
   expectUniqueSizes(rows, label)
   expectSameSizeSet(rows, sizeOrderSizes, label, 'drawer2.sizeOrders')
   return rows
-}
-
-function normalizeStockOrderAmountBlock<K extends 'safetyStockCalc' | 'forecastQtyCalc'>(value: unknown, key: K, nullableSafetyStock: boolean): StockOrderResult[K] {
-  const label: string = 'drawer2.stockOrderResult.' + key
-  const source: Obj = expectRecord(value, label)
-  if (nullableSafetyStock && source.safetyStock !== null) throw new Error(label + '.safetyStock must be null')
-  return {
-    safetyStock: nullableSafetyStock ? null : expectNumber(source.safetyStock, label + '.safetyStock'),
-    ...normalizeNumberFields(source, label, STOCK_ORDER_AMOUNT_KEYS),
-  } as StockOrderResult[K]
 }
 
 function normalizeConfirmed(value: unknown, sizeOrders: OrderSnapshotDocument['drawer2']['sizeOrders']): OrderSnapshotConfirmed {
@@ -320,6 +333,15 @@ function expectOptionalNonEmptyString(value: unknown, label: string): string | u
 
 function expectNumber(value: unknown, label: string): number {
   if (typeof value !== 'number' || !Number.isFinite(value)) throw new Error(label + ' must be a finite number')
+  return value
+}
+
+function expectNumberOrNull(value: unknown, label: string): number | null {
+  return value === null ? null : expectNumber(value, label)
+}
+
+function expectBoolean(value: unknown, label: string): boolean {
+  if (typeof value !== 'boolean') throw new Error(label + ' must be a boolean')
   return value
 }
 

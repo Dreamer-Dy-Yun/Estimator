@@ -56,6 +56,10 @@ Product drawer owns primary summary display, secondary detail display, secondary
 
 - Current type: `OrderSnapshotDocument` v4.
 - Snapshot stores restore values only.
+- `drawer1.monthlySalesTrend[]` stores the `ProductMonthlyTrendChartPoint[]` display model used by the primary monthly sales trend chart. It is required because monthly trend is part of the drawer restore contract.
+- `drawer2.sizeOrders[]` stores `SecondarySizeOrderRestoreRow[]`, the rendered size-order row without `confirmQty`.
+- `drawer2.stockOrderResult` stores `SecondaryStockOrderCalcResult` so saved snapshots restore the same calculation/display object used by the size-order card.
+- `drawer2.stockOrderRequest`, `drawer2.unitEconomics`, `drawer2.aiComment`, and `drawer2.confirmed.rounds[]` use the corresponding frontend input/state models instead of snapshot-owned duplicate shapes.
 - Parser/restore behavior enforces:
   - top-level `skuGroupKey`, `drawer1.summary.skuGroupKey`, `drawer2.comparisonBasis.skuGroupKey` must match.
   - `drawer2.baseSubject` must be a base self-company subject.
@@ -65,6 +69,7 @@ Product drawer owns primary summary display, secondary detail display, secondary
   - `drawer2.stockOrderResult.display` total rows must equal sum of each size row.
   - `drawer2.confirmed.rounds[].qtyBySize` size keys must match `drawer2.sizeOrders[].size`.
 - `drawer2.stockOrderResult.display.sizeRows[]` is size-keyed.
+- `drawer2.stockOrderResult` no longer stores `safetyStockCalc` or `forecastQtyCalc`; recommendation rows are stored in `drawer2.sizeOrders[]`.
 - `drawer2.aiComment` has `prompt`, `answer`, `generatedAt`.
 - `drawer2.confirmed.rounds[]` is the confirmed quantity source of truth.
 - `drawer2.sizeOrders[]` stores share/forecast/recommendation rows only; it does not store confirmed quantity.

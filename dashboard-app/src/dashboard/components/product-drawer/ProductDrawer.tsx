@@ -8,6 +8,7 @@ import type { ProductPrimarySummary } from '../../../types'
 import type { AdjacentDirection } from '../../../utils/adjacentListNavigation'
 import { normalizeMonthKey } from '../trend/trendRangeUtils'
 import { ProductPrimaryDrawer } from './primary/ProductPrimaryDrawer'
+import type { ProductMonthlyTrendChartPoint } from './primary/monthlyTrendChartModel'
 import { ProductDrawerSecondaryPane } from './ProductDrawerSecondaryPane'
 import type { CandidateItemPanelContext } from './secondary/secondaryDrawerTypes'
 import { useProductComparisonTargets } from './useProductComparisonTargets'
@@ -109,6 +110,17 @@ function ProductDrawerContent({
     hydrateSnapshot,
     pageName,
   })
+  const [monthlySalesTrend, setMonthlySalesTrend]: [ProductMonthlyTrendChartPoint[] | null, React.Dispatch<React.SetStateAction<ProductMonthlyTrendChartPoint[] | null>>] = useState<ProductMonthlyTrendChartPoint[] | null>(() => hydrateForPanel?.drawer1.monthlySalesTrend ?? null)
+
+  useEffect(() : () => void => {
+    let alive: boolean = true
+    queueMicrotask(() : void => {
+      if (alive) setMonthlySalesTrend(hydrateForPanel?.drawer1.monthlySalesTrend ?? null)
+    })
+    return () : void => {
+      alive = false
+    }
+  }, [hydrateForPanel?.drawer1.monthlySalesTrend, summary.skuGroupKey])
 
   useEffect(() : (() => void) | undefined => {
     if (suppressDocumentLayoutShift) return
@@ -155,6 +167,7 @@ function ProductDrawerContent({
         forecastMonths={forecastMonths}
         selfCompanyLabel={selfCompanyLabel}
         onForecastMonthsChange={onForecastMonthsChange}
+        onMonthlyTrendChange={setMonthlySalesTrend}
         expandPaneOpen={expandPaneOpen}
         secondaryEnabled={secondaryEnabled}
         onToggleSecondary={() : void => setExpandPaneOpen((v: boolean) : boolean => !v)}
@@ -180,6 +193,7 @@ function ProductDrawerContent({
           selectedStartMonth={selectedStartMonth}
           selectedEndMonth={selectedEndMonth}
           forecastMonths={forecastMonths}
+          monthlySalesTrend={monthlySalesTrend}
             companyUuid={companyUuid}
             baseSubject={baseSubject}
           selfCompanyLabel={selfCompanyLabel}

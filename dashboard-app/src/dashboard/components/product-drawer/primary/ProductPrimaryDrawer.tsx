@@ -2,6 +2,7 @@ import type { ProductComparisonBaseSubjectRef, ProductComparisonTarget } from '.
 import { ComponentErrorBoundary } from '../../../../components/ComponentErrorBoundary'
 import type { ApiUnitErrorInfo, ProductPrimarySummary } from '../../../../types'
 import styles from '../../common.module.css'
+import type { ProductMonthlyTrendChartPoint } from './monthlyTrendChartModel'
 import { ProductMonthlyTrendContainer } from './ProductMonthlyTrendContainer'
 import { ProductSalesMetricsContainer } from './ProductSalesMetricsContainer'
 
@@ -16,6 +17,7 @@ export type Props = {
   forecastMonths: number
   selfCompanyLabel: string
   onForecastMonthsChange: (months: number) => void
+  onMonthlyTrendChange: (monthlyTrend: ProductMonthlyTrendChartPoint[] | null) => void
   expandPaneOpen: boolean
   secondaryEnabled?: boolean
   onToggleSecondary: () => void
@@ -43,6 +45,7 @@ export function ProductPrimaryDrawer({
   forecastMonths,
   selfCompanyLabel,
   onForecastMonthsChange,
+  onMonthlyTrendChange,
   expandPaneOpen,
   secondaryEnabled = true,
   onToggleSecondary,
@@ -145,6 +148,7 @@ export function ProductPrimaryDrawer({
             forecastMonths={forecastMonths}
             selfCompanyLabel={selfCompanyLabel}
             onForecastMonthsChange={onForecastMonthsChange}
+            onMonthlyTrendChange={onMonthlyTrendChange}
             fallbackTrend={summary.monthlySalesTrend ?? []}
             pageName={pageName}
           />

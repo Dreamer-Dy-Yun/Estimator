@@ -94,6 +94,7 @@ function makeSnapshot(overrides: Partial<OrderSnapshotDocument> = {}) : OrderSna
         qty: 1,
         availableStock: 1,
       },
+      monthlySalesTrend: [{ idx: 0, date: '2026-05', actual: 1, comparisonActual: 1, forecastLink: null, isForecast: false, sales: 1, comparisonSales: 1 }],
     },
     drawer2: {
       baseSubject: {

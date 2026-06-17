@@ -1,5 +1,4 @@
 import type { SecondaryInboundSplitSource, SecondaryStockOrderDisplaySizeRow } from '../../../../../api/types/secondary'
-import type { OrderSnapshotConfirmedRound } from '../../../../../snapshot/orderSnapshotTypes'
 import type { SizeOrderColumnTotals } from './sizeOrderCardModel'
 import { useCallback, useMemo, useRef } from 'react'
 import { ApiUnitErrorBadge } from '../../../../../components/ApiUnitErrorBadge'
@@ -9,6 +8,7 @@ import { usePortalHelpPopover } from '../../../usePortalHelpPopover'
 import { KO } from '../../ko'
 import styles from '../secondaryDrawer.module.css'
 import type { SecondaryHelpId, SecondaryHelpIds } from '../secondaryDrawerTypes'
+import type { SecondaryConfirmedRound } from '../model/secondaryConfirmedRoundModel'
 import type { SecondarySizeOrderDisplayRow } from '../model/secondarySizeOrderRows'
 import { SizeOrderConfirmQuantityRows } from './SizeOrderConfirmQuantityRows'
 import { InboundSplitScheduleDialog } from './InboundSplitScheduleDialog'
@@ -41,12 +41,12 @@ export type Props = {
     inboundSplitSource: SecondaryInboundSplitSource | null
     inboundSplitSourceLoading: boolean
     inboundSplitSourceError: ApiUnitErrorInfo | null
-    confirmedRounds: OrderSnapshotConfirmedRound[]
+    confirmedRounds: SecondaryConfirmedRound[]
   }
   actions: {
     onSelfWeightPctChange: (next: number) => void
     onConfirmQtyChange: (size: string, next: number, recommendedQty: number) => void
-    onConfirmedRoundsChange: (next: OrderSnapshotConfirmedRound[]) => void
+    onConfirmedRoundsChange: (next: SecondaryConfirmedRound[]) => void
   }
   help: ReturnType<typeof usePortalHelpPopover<SecondaryHelpId>>
 }

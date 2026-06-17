@@ -1,6 +1,6 @@
 # Order Snapshot Backend Contract
 
-Last updated: 2026-06-14
+Last updated: 2026-06-17
 
 `OrderSnapshotDocument` is the persisted candidate item snapshot. It is a screen-restore contract for the current product drawer state.
 
@@ -22,9 +22,15 @@ Top-level `companyUuid` is not part of v4. Scoped restore data belongs in `drawe
 Fields: `periodStart`, `periodEnd`, `forecastMonths`, `dailyTrendStartMonth`, `dailyTrendLeadTimeDays`.
 `dailyTrendLeadTimeDays` must equal `drawer2.stockOrderRequest.leadTimeDays` after parse/validate.
 
-## `drawer1.summary`
+## `drawer1`
 
-Fields: `skuGroupKey`, `productName`, `brand`, `category`, `code`, `colorCode`, `price`, `qty`, `availableStock`.
+Required fields: `summary`, `monthlySalesTrend`.
+
+`summary` fields: `skuGroupKey`, `productName`, `brand`, `category`, `code`, `colorCode`, `price`, `qty`, `availableStock`.
+
+`monthlySalesTrend[]` stores the `ProductMonthlyTrendChartPoint[]` display model used directly by the primary monthly sales trend chart. It is not the `ProductMonthlyTrend` API source object, not a reshaped backend source object, and not wrapped in a separate `points` field.
+
+Each point: `idx`, `date`, `actual`, `comparisonActual`, `forecastLink`, `isForecast`, `sales`, `comparisonSales`.
 
 ## `drawer2`
 
@@ -60,14 +66,18 @@ Fields: `skuGroupKey`, `comparisonPrice`, `comparisonQty`, `comparisonRatioBySiz
 ### `stockOrderRequest`
 
 Fields: `currentOrderInboundDueDate`, `nextOrderInboundDueDate`, `leadTimeDays`, optional `dailyMeanOverride`.
+The two inbound date fields follow the integrated sales forecast card input model `SalesForecastInboundDateFields`.
 
 ### `stockOrderResult`
 
-Fields: `trendDailyMean`, `dailyMean`, `sigma`, `display`, `safetyStockCalc`, `forecastQtyCalc`.
+Fields: `trendDailyMean`, `dailyMean`, `sigma`, `display`.
+This block follows the frontend render/calc result type `SecondaryStockOrderCalcResult`.
 
 `display`: `currentStockQtyTotal`, `totalOrderBalanceTotal`, `expectedInboundOrderBalanceTotal`, `sizeRows[]`.
 `sizeRows[]`: `size`, `currentStockQty`, `totalOrderBalance`, `expectedInboundOrderBalance`.
 `sizeRows[].size` must match the `sizeOrders[].size` set. Totals must equal row sums.
+
+Removed fields: `safetyStockCalc`, `forecastQtyCalc`. The current frontend does not use those blocks for recommendation or restore. Recommendation basis lives in `drawer2.sizeOrders[]`, `drawer2.bufferStock`, `drawer2.stockOrderRequest`, and `drawer2.stockOrderResult.display`.
 
 ### Consistency checks enforced by snapshot parser
 
@@ -88,16 +98,19 @@ Fields: `trendDailyMean`, `dailyMean`, `sigma`, `display`, `safetyStockCalc`, `f
 ### `unitEconomics`
 
 Fields: `unitPrice`, `unitCost`, `expectedFeeRatePct`.
+This block follows the integrated sales forecast card input model `SalesForecastUnitEconomicsFields`.
 
 ### `aiComment`
 
 Fields: `prompt`, `answer`, `generatedAt`. `generatedAt` can be `null`.
+This block follows the AI comment render model `SecondaryAiCommentView`.
 
 ### `confirmed`
 
 Required fields: `rounds`.
 `rounds[]` fields: `date`, `qtyBySize`.
 `qtyBySize` is keyed by `sizeOrders[].size`.
+Each round follows the split inbound schedule state model `SecondaryConfirmedRound`.
 Round numbers are not stored. The frontend/backend derives `1차`, `2차`, ... from the array order.
 Total quantity is not stored. Consumers derive it from `sum(confirmed.rounds[].qtyBySize)`.
 
@@ -105,7 +118,7 @@ Total quantity is not stored. Consumers derive it from `sum(confirmed.rounds[].q
 
 Fields: `size`, `baseSharePct`, `comparisonSharePct`, `blendedSharePct`, `forecastQty`, `recommendedQty`.
 
-`sizeOrders[]` owns share/recommendation rows only. Confirmed quantities are stored only in `drawer2.confirmed.rounds`.
+`sizeOrders[]` follows `SecondarySizeOrderRestoreRow`, which is the render row `SecondarySizeOrderDisplayRow` without `confirmQty`. It owns share/recommendation rows only. Confirmed quantities are stored only in `drawer2.confirmed.rounds`.
 
 ## Storage rules
 

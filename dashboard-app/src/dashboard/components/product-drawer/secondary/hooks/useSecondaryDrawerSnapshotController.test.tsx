@@ -1,5 +1,7 @@
 // @vitest-environment jsdom
-import type { OrderSnapshotAiComment, OrderSnapshotComparisonSubject, OrderSnapshotDocument, OrderSnapshotConfirmedRound } from '../../../../../snapshot/orderSnapshotTypes'
+import type { OrderSnapshotComparisonSubject, OrderSnapshotDocument } from '../../../../../snapshot/orderSnapshotTypes'
+import type { SecondaryAiCommentView } from '../model/secondaryAiCommentModel'
+import type { SecondaryConfirmedRound } from '../model/secondaryConfirmedRoundModel'
 import { act, useEffect } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -15,13 +17,13 @@ const COMPARISON_SUBJECT: OrderSnapshotComparisonSubject = {
   sourceId: 'channel-a',
 }
 
-const AI_COMMENT: OrderSnapshotAiComment = {
+const AI_COMMENT: SecondaryAiCommentView = {
   answer: 'saved answer',
   generatedAt: '2026-06-10T00:00:00.000Z',
   prompt: 'saved prompt',
 }
 
-const SAVED_ROUNDS: OrderSnapshotConfirmedRound[] = [{
+const SAVED_ROUNDS: SecondaryConfirmedRound[] = [{
   date: '2026-07-01',
   qtyBySize: { M: 12 },
 }]

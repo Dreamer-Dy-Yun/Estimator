@@ -1,8 +1,10 @@
-import type { OrderSnapshotComparisonSubject, OrderSnapshotConfirmedRound } from '../../../../../snapshot/orderSnapshotTypes'
+import type { OrderSnapshotComparisonSubject } from '../../../../../snapshot/orderSnapshotTypes'
 import { useCallback, useEffect, useMemo, useState,} from 'react'
-import type { OrderSnapshotAiComment, OrderSnapshotDocument } from '../../../../../snapshot/orderSnapshotTypes'
+import type { OrderSnapshotDocument } from '../../../../../snapshot/orderSnapshotTypes'
 import { getOrderSnapshotConfirmedQtyBySize } from '../../../../../snapshot/orderSnapshotTypes'
 import type { CandidateItemPanelContext } from '../secondaryDrawerTypes'
+import type { SecondaryAiCommentView } from '../model/secondaryAiCommentModel'
+import type { SecondaryConfirmedRound } from '../model/secondaryConfirmedRoundModel'
 import type { InboundDueDateDefaults } from './useSecondaryInboundDueDates'
 import { useSecondarySnapshotPrefill } from './useSecondarySnapshotPrefill'
 
@@ -22,7 +24,7 @@ export type SnapshotControllerArgs = {
   onComparisonSubjectChange: (next: OrderSnapshotComparisonSubject) => void
   setCurrentOrderInboundDueDate: (value: string) => void
   setNextOrderInboundDueDate: (value: string) => void
-  setAiComment: (value: OrderSnapshotAiComment) => void
+  setAiComment: (value: SecondaryAiCommentView) => void
   resetInboundDueDatesToLive: () => void
 }
 
@@ -61,7 +63,7 @@ export function useSecondaryDrawerSnapshotController({
   setNextOrderInboundDueDate,
   setAiComment,
   resetInboundDueDatesToLive,
-}: SnapshotControllerArgs) : { dailyMeanClient: number | null; setDailyMeanClient: (value: React.SetStateAction<number | null>) => void; bufferStock: number; setBufferStock: (value: React.SetStateAction<number>) => void; unitCostInput: number; setUnitCostInput: (value: React.SetStateAction<number>) => void; unitPriceInput: number; setUnitPriceInput: (value: React.SetStateAction<number>) => void; expectedFeeRatePct: number; setExpectedFeeRatePct: (value: React.SetStateAction<number>) => void; selfWeightPct: number; setSelfWeightPct: (value: React.SetStateAction<number>) => void; confirmBySize: Record<string, number>; setConfirmBySize: React.Dispatch<React.SetStateAction<Record<string, number>>>; confirmedRounds: OrderSnapshotConfirmedRound[]; setConfirmedRounds: React.Dispatch<React.SetStateAction<OrderSnapshotConfirmedRound[]>>; hasSavedSnapshot: boolean; prefillKey: string | null; appliedPrefillKey: string | null; snapshotConfirmBySize: { [k: string]: number; }; snapshotConfirmBaselineActive: boolean; confirmedBaselineDraftDirty: boolean; markConfirmedBaselineDraftDirty: () => void; applyLiveOrderUnitInputs: (source: LiveOrderUnitSource) => void; handleResetToLive: (liveOrderUnitSource: LiveOrderUnitSource) => void; handleRestoreConfirmed: () => void; } {
+}: SnapshotControllerArgs) : { dailyMeanClient: number | null; setDailyMeanClient: (value: React.SetStateAction<number | null>) => void; bufferStock: number; setBufferStock: (value: React.SetStateAction<number>) => void; unitCostInput: number; setUnitCostInput: (value: React.SetStateAction<number>) => void; unitPriceInput: number; setUnitPriceInput: (value: React.SetStateAction<number>) => void; expectedFeeRatePct: number; setExpectedFeeRatePct: (value: React.SetStateAction<number>) => void; selfWeightPct: number; setSelfWeightPct: (value: React.SetStateAction<number>) => void; confirmBySize: Record<string, number>; setConfirmBySize: React.Dispatch<React.SetStateAction<Record<string, number>>>; confirmedRounds: SecondaryConfirmedRound[]; setConfirmedRounds: React.Dispatch<React.SetStateAction<SecondaryConfirmedRound[]>>; hasSavedSnapshot: boolean; prefillKey: string | null; appliedPrefillKey: string | null; snapshotConfirmBySize: { [k: string]: number; }; snapshotConfirmBaselineActive: boolean; confirmedBaselineDraftDirty: boolean; markConfirmedBaselineDraftDirty: () => void; applyLiveOrderUnitInputs: (source: LiveOrderUnitSource) => void; handleResetToLive: (liveOrderUnitSource: LiveOrderUnitSource) => void; handleRestoreConfirmed: () => void; } {
   const [dailyMeanClient, setDailyMeanClient]: [number | null, React.Dispatch<React.SetStateAction<number | null>>] = useState<number | null>(null)
   const [bufferStock, setBufferStock]: [number, React.Dispatch<React.SetStateAction<number>>] = useState<number>(DEFAULT_BUFFER_STOCK)
   const [unitCostInput, setUnitCostInput]: [number, React.Dispatch<React.SetStateAction<number>>] = useState(0)
@@ -69,7 +71,7 @@ export function useSecondaryDrawerSnapshotController({
   const [expectedFeeRatePct, setExpectedFeeRatePct]: [number, React.Dispatch<React.SetStateAction<number>>] = useState(0)
   const [selfWeightPct, setSelfWeightPct]: [number, React.Dispatch<React.SetStateAction<number>>] = useState<number>(DEFAULT_SELF_WEIGHT_PCT)
   const [confirmBySize, setConfirmBySize]: [Record<string, number>, React.Dispatch<React.SetStateAction<Record<string, number>>>] = useState<Record<string, number>>({})
-  const [confirmedRounds, setConfirmedRounds]: [OrderSnapshotConfirmedRound[], React.Dispatch<React.SetStateAction<OrderSnapshotConfirmedRound[]>>] = useState<OrderSnapshotConfirmedRound[]>([])
+  const [confirmedRounds, setConfirmedRounds]: [SecondaryConfirmedRound[], React.Dispatch<React.SetStateAction<SecondaryConfirmedRound[]>>] = useState<SecondaryConfirmedRound[]>([])
   const [snapshotConfirmBaselineActive, setSnapshotConfirmBaselineActive]: [boolean, React.Dispatch<React.SetStateAction<boolean>>] = useState(
     () : boolean => prefillFromSnapshot != null && candidateItemContext?.hydrateSnapshotSource === 'confirmed',
   )
@@ -129,7 +131,7 @@ export function useSecondaryDrawerSnapshotController({
   const setDraftConfirmBySize: React.Dispatch<React.SetStateAction<Record<string, number>>> = useCallback<React.Dispatch<React.SetStateAction<Record<string, number>>>>((value: React.SetStateAction<Record<string, number>>) : void => {
     setConfirmBySize(value)
   }, [])
-  const setDraftConfirmedRounds: React.Dispatch<React.SetStateAction<OrderSnapshotConfirmedRound[]>> = useCallback<React.Dispatch<React.SetStateAction<OrderSnapshotConfirmedRound[]>>>((value: React.SetStateAction<OrderSnapshotConfirmedRound[]>) : void => {
+  const setDraftConfirmedRounds: React.Dispatch<React.SetStateAction<SecondaryConfirmedRound[]>> = useCallback<React.Dispatch<React.SetStateAction<SecondaryConfirmedRound[]>>>((value: React.SetStateAction<SecondaryConfirmedRound[]>) : void => {
     setConfirmedRounds(value)
   }, [])
 

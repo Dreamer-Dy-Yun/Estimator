@@ -3,7 +3,7 @@ import type { OrderSnapshotDocument } from '../../../../snapshot/orderSnapshotTy
 
 export type SecondaryHelpId =
   | 'confirmOrder'
-  | 'forecastQtyCalc'
+  | 'orderQtyCalc'
   | 'expectedOpProfitRate'
   | 'totalOrderBalance'
   | 'expectedInboundOrderBalance'

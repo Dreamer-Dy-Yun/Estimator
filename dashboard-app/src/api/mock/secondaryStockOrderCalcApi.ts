@@ -5,10 +5,9 @@ import type { SecondaryStockOrderCalcParams, SecondaryStockOrderCalcResult } fro
 import { getCompanyUuidForOptionalScope } from '../types'
 import { scopeMockProductPrimary, scopeMockProductSecondary } from './mockCompanyScope'
 import { requireMockProductPrimary, requireMockProductSecondary } from './mockProductLookup'
-import { dailyMeanSigma, forecastDailyMeanFromModel, zFromSafetyStockConfidencePct } from './secondaryDailyTrend'
+import { dailyMeanSigma, forecastDailyMeanFromModel } from './secondaryDailyTrend'
 import { sleep } from './utils'
 
-const DEFAULT_SAFETY_STOCK_CONFIDENCE_PCT = 95 as const
 const DEFAULT_SIZE_COUNT = 10 as const
 
 const distributeTotal: (total: number, weights: number[]) => number[] = (total: number, weights: number[]) : number[] => {
@@ -57,7 +56,6 @@ export function buildMockSecondaryStockOrderCalcResult({
   periodStart,
   periodEnd,
   forecastPeriodEnd,
-  leadTimeDays,
   dailyMean: dailyMeanParam,
   base,
 }: SecondaryStockOrderCalcParams): SecondaryStockOrderCalcResult {
@@ -69,17 +67,6 @@ export function buildMockSecondaryStockOrderCalcResult({
   const forecastMuRaw: number = dailyMeanParam !== undefined && Number.isFinite(dailyMeanParam)
     ? Math.max(0, dailyMeanParam)
     : forecastDailyMeanFromModel(trend, periodStart, forecastPeriodEnd ?? periodEnd)
-  const leadDays: number = Math.max(0, Math.round(leadTimeDays))
-  const safetyStock: number = Math.max(0, Math.round(zFromSafetyStockConfidencePct(DEFAULT_SAFETY_STOCK_CONFIDENCE_PCT) * sigma * Math.sqrt(leadDays) + trendMuRaw * leadDays))
-  const safetyRecQty: number = Math.max(0, Math.round(safetyStock - primary.availableStock + trendMuRaw * leadDays))
-  const forecastRecQty: number = Math.max(0, Math.round(forecastMuRaw * leadDays * 1.05))
-  const avgCost: number = Math.round(primary.price * 0.78)
-  const opMarginPerUnit: number = primary.price - avgCost - Math.round(primary.price * 0.13)
-  const amounts: (qty: number) => { expectedOrderAmount: number; expectedSalesAmount: number; expectedOpProfit: number; } = (qty: number) : { expectedOrderAmount: number; expectedSalesAmount: number; expectedOpProfit: number; } => ({
-    expectedOrderAmount: qty * avgCost,
-    expectedSalesAmount: qty * primary.price,
-    expectedOpProfit: qty * opMarginPerUnit,
-  })
   const isSimpleCalcSku: boolean = primary.code === 'TEST-TOP'
   const sizeLabels: string[] = secondary.sizeRows.map((row: ProductSecondarySizeRow) : string => row.size)
   const sizeCount: number = isSimpleCalcSku ? sizeLabels.length : Math.max(sizeLabels.length, DEFAULT_SIZE_COUNT)
@@ -107,8 +94,6 @@ export function buildMockSecondaryStockOrderCalcResult({
         expectedInboundOrderBalanceValues,
       ),
     },
-    safetyStockCalc: { safetyStock, recommendedOrderQty: safetyRecQty, ...amounts(safetyRecQty) },
-    forecastQtyCalc: { safetyStock: null, recommendedOrderQty: forecastRecQty, ...amounts(forecastRecQty) },
   }
 }
 

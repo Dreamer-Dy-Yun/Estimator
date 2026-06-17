@@ -40,20 +40,6 @@ function calcResult(dailyMean: number): SecondaryStockOrderCalcResult {
         expectedInboundOrderBalance: 3,
       }],
     },
-    safetyStockCalc: {
-      safetyStock: 4,
-      recommendedOrderQty: 5,
-      expectedOrderAmount: 6,
-      expectedSalesAmount: 7,
-      expectedOpProfit: 8,
-    },
-    forecastQtyCalc: {
-      safetyStock: null,
-      recommendedOrderQty: 9,
-      expectedOrderAmount: 10,
-      expectedSalesAmount: 11,
-      expectedOpProfit: 12,
-    },
   }
 }
 

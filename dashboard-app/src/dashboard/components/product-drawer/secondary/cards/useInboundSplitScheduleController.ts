@@ -1,7 +1,7 @@
 import type { SecondaryInboundSplitSource } from '../../../../../api/types/secondary'
-import type { OrderSnapshotConfirmedRound } from '../../../../../snapshot/orderSnapshotTypes'
 import type { ApiUnitErrorInfo } from '../../../../../types'
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import type { SecondaryConfirmedRound } from '../model/secondaryConfirmedRoundModel'
 import type { SecondarySizeOrderDisplayRow } from '../model/secondarySizeOrderRows'
 import {
   MIN_INBOUND_SPLIT_COUNT,
@@ -34,9 +34,9 @@ export interface UseInboundSplitScheduleControllerArgs {
   inboundSplitSourceLoading: boolean
   inboundSplitSourceError: ApiUnitErrorInfo | null
   calculationReady: boolean
-  confirmedRounds: OrderSnapshotConfirmedRound[]
+  confirmedRounds: SecondaryConfirmedRound[]
   onConfirmQtyChange: (size: string, next: number, recommendedQty: number) => void
-  onConfirmedRoundsChange: (next: OrderSnapshotConfirmedRound[]) => void
+  onConfirmedRoundsChange: (next: SecondaryConfirmedRound[]) => void
 }
 
 export interface UseInboundSplitScheduleControllerResult {

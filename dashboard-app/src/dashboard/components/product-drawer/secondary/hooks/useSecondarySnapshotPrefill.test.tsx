@@ -1,4 +1,5 @@
-import type { OrderSnapshotAiComment, OrderSnapshotComparisonSubject, OrderSnapshotDocument } from '../../../../../snapshot/orderSnapshotTypes'
+import type { OrderSnapshotComparisonSubject, OrderSnapshotDocument } from '../../../../../snapshot/orderSnapshotTypes'
+import type { SecondaryAiCommentView } from '../model/secondaryAiCommentModel'
 // @vitest-environment jsdom
 import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
@@ -13,7 +14,7 @@ const COMPARISON_SUBJECT: OrderSnapshotComparisonSubject = {
   sourceId: 'channel-a',
 }
 
-const AI_COMMENT: OrderSnapshotAiComment = {
+const AI_COMMENT: SecondaryAiCommentView = {
   answer: 'snapshot answer',
   generatedAt: '2026-06-10T00:00:00.000Z',
   prompt: 'snapshot prompt',

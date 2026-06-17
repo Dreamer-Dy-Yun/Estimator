@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import type { SecondaryInboundSplitSource } from '../../../../../api/types'
-import type { OrderSnapshotConfirmedRound } from '../../../../../snapshot/orderSnapshotTypes'
+import type { SecondaryConfirmedRound } from '../model/secondaryConfirmedRoundModel'
 import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, describe, expect, it, vi, type Mock } from 'vitest'
@@ -158,7 +158,7 @@ describe('useInboundSplitScheduleController', (): void => {
     expect(controller.args.onConfirmedRoundsChange).toHaveBeenCalledWith([
       { date: '2026-04-01', qtyBySize: { S: 3, M: 2 } },
       { date: '2026-04-04', qtyBySize: { S: 4, M: 3 } },
-    ] satisfies OrderSnapshotConfirmedRound[])
+    ] satisfies SecondaryConfirmedRound[])
     expect(controller.args.onConfirmQtyChange).toHaveBeenNthCalledWith(1, 'S', 7, 10)
     expect(controller.args.onConfirmQtyChange).toHaveBeenNthCalledWith(2, 'M', 5, 5)
   })

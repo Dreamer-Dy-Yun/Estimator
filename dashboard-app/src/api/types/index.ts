@@ -103,10 +103,8 @@ export type {
   SecondaryInboundSplitExpectationCell,
   SecondaryInboundSplitSource,
   SecondaryInboundSplitSourceParams,
-  SecondaryStockForecastQtyCalcBlock,
   SecondaryStockOrderCalcParams,
   SecondaryStockOrderCalcResult,
-  SecondaryStockSafetyCalcBlock,
 } from './secondary'
 export type {
   CandidateBadge,

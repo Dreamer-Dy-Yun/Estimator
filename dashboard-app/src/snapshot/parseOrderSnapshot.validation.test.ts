@@ -91,17 +91,24 @@ describe('parseOrderSnapshot v4 validation', () : void => {
   it('validates stock order result display rows against size orders', () : void => {
     const missingDisplaySize: OrderSnapshotDocument = cloneValidSnapshot()
     const duplicateDisplaySize: OrderSnapshotDocument = cloneValidSnapshot()
-    const forecastSafetyStock: OrderSnapshotDocument = cloneValidSnapshot()
 
     missingDisplaySize.drawer2.stockOrderResult!.display.sizeRows[0].size = '999'
     duplicateDisplaySize.drawer2.stockOrderResult!.display.sizeRows.push({
       ...duplicateDisplaySize.drawer2.stockOrderResult!.display.sizeRows[0],
     })
-    forecastSafetyStock.drawer2.stockOrderResult!.forecastQtyCalc.safetyStock = 1 as unknown as null
 
     expectInvalidSnapshot(missingDisplaySize, /display\.sizeRows/)
     expectInvalidSnapshot(duplicateDisplaySize, /duplicate size/)
-    expectInvalidSnapshot(forecastSafetyStock, /forecastQtyCalc\.safetyStock/)
+  })
+
+  it('validates drawer1 monthly sales trend shape and product key', () : void => {
+    const missingTrend: Record<string, unknown> = cloneValidSnapshot() as unknown as Record<string, unknown>
+    const invalidPoint: OrderSnapshotDocument = cloneValidSnapshot()
+    delete (missingTrend.drawer1 as Record<string, unknown>).monthlySalesTrend
+    ;(invalidPoint.drawer1.monthlySalesTrend[0] as unknown as Record<string, unknown>).actual = '80'
+
+    expectInvalidSnapshot(missingTrend, /monthlySalesTrend/)
+    expectInvalidSnapshot(invalidPoint, /monthlySalesTrend\[0\]\.actual/)
   })
 
   it('validates unit economics and ai comment shapes', () : void => {
