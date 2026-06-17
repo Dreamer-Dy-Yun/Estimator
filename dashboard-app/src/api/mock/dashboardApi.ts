@@ -1,5 +1,5 @@
 import type { CompetitorSalesRow, SelfSalesRow } from '../../types'
-import type { ScatterSalesGridResponse, SecondaryAiCommentParams, SecondaryCompetitorChannel } from '../types'
+import type { DashboardRuntimeConfig, ScatterSalesGridResponse, SecondaryAiCommentParams, SecondaryCompetitorChannel } from '../types'
 import type { MockSecondaryCompetitorChannel } from './salesTables'
 import type {
   CompetitorSalesGridParams,
@@ -28,6 +28,7 @@ import {
   scopeMockSelfSalesRow,
 } from './mockCompanyScope'
 import {
+  getMockCandidateOrderMetricComparisonTarget,
   getMockProductComparisonTargets,
   getMockProductDrawerBundle,
   getMockProductMonthlyTrend,
@@ -60,6 +61,11 @@ function periodWeight(params?: { startDate?: string; endDate?: string }) : numbe
 }
 
 export const mockDashboardApi = {
+  getDashboardRuntimeConfig: async () : Promise<DashboardRuntimeConfig> => {
+    await sleep(40)
+    return { candidateOrderMetricComparison: getMockCandidateOrderMetricComparisonTarget() }
+  },
+
   getSelfSales: async (params?: SelfSalesParams) : Promise<SelfSalesRow[]> => {
     await sleep(80)
     const weighted: number = periodWeight(params)

@@ -6,6 +6,7 @@ import type { AppendCandidateItemPayload, AppendCandidateItemsPayload, AppendCan
 import type { CandidateOrderMetricEvent, CandidateOrderMetricStreamParams, CandidateOrderMetricSubscription } from './types/candidate-order-metrics'
 import type { CompanyMutationScopeParams, CompanyScopeParams, CompanySummary } from './types/company'
 import type { DashboardApi, DashboardEventStreamErrorListener } from './types/dashboard-api'
+import type { DashboardRuntimeConfig } from './types/dashboard-runtime'
 import type { ProductComparisonTarget, ProductComparisonTargetParams, ProductDrawerBundle, ProductDrawerBundleParams, ProductMonthlyTrend, ProductMonthlyTrendParams, ProductSalesInsight, ProductSalesInsightParams } from './types/drawer'
 import type { InventoryArrivalCollectionParams, InventoryArrivalCollectionResult } from './types/inventory-arrival'
 import type { CompetitorSalesGridParams, CompetitorSalesParams, SalesFilterMeta, SalesFilterMetaParams, ScatterSalesGridResponse, SelfSalesGridParams, SelfSalesParams } from './types/sales'
@@ -46,6 +47,7 @@ export const deleteAdminGoogleSheetConfig: (configUuid: string, params: CompanyM
 
 export const collectInventoryArrivalDates: (params: InventoryArrivalCollectionParams) => Promise<InventoryArrivalCollectionResult> = inventoryArrivalRequests.collectInventoryArrivalDates
 
+export const getDashboardRuntimeConfig: () => Promise<DashboardRuntimeConfig> = dashboardRequests.getDashboardRuntimeConfig
 export const getSelfSales: (params?: SelfSalesParams) => Promise<SelfSalesRow[]> = dashboardRequests.getSelfSales
 export const getCompetitorSales: (params?: CompetitorSalesParams) => Promise<CompetitorSalesRow[]> = dashboardRequests.getCompetitorSales
 export const getSelfSalesScatterGrid: (params?: SelfSalesGridParams) => Promise<ScatterSalesGridResponse> = dashboardRequests.getSelfSalesScatterGrid

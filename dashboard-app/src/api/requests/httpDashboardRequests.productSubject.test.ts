@@ -3,6 +3,12 @@ import { allCompanyBaseSubject, baseSubject, companyUuid, httpClientMocks, kream
 import { httpDashboardRequests } from './httpDashboardRequests'
 
 describe('httpDashboardRequests product comparison subject contract', () : void => {
+  it('requests dashboard runtime config without synthesizing query params', async () : Promise<void> => {
+    await httpDashboardRequests.getDashboardRuntimeConfig()
+
+    expect(httpClientMocks.apiRequest).toHaveBeenCalledWith('/dashboard/runtime-config')
+  })
+
   it('preserves concrete companyUuid for secondary read-like POST bodies', async () : Promise<void> => {
     await httpDashboardRequests.getSecondaryAiComment({
       skuGroupKey: 'SKU-054-BLK',

@@ -1,4 +1,4 @@
-import type { AppendCandidateItemsResponse, AuthSession, CandidateDetailBulkConfirmProgressEvent, CandidateDetailBulkConfirmStartPayload, CandidateDetailBulkConfirmStartResult, CandidateItemDetail, CandidateItemListParams, CandidateItemListResult, CandidateOrderMetricEvent, CandidateOrderMetricStreamParams, CandidateOrderMetricSubscription, CandidateRecommendationParams, CandidateRecommendationResult, CandidateStashExcelUploadResult, CandidateStashLlmCommentJobProgressEvent, CandidateStashLlmCommentJobStartResult, CandidateStashSummary, CompanyScopeParams, CompetitorSalesParams, DashboardEventStreamErrorListener, ProductComparisonTarget, SecondaryCompetitorChannel, SelfSalesParams, UpdateCandidateItemPayload } from '..'
+import type { AppendCandidateItemsResponse, AuthSession, CandidateDetailBulkConfirmProgressEvent, CandidateDetailBulkConfirmStartPayload, CandidateDetailBulkConfirmStartResult, CandidateItemDetail, CandidateItemListParams, CandidateItemListResult, CandidateOrderMetricEvent, CandidateOrderMetricStreamParams, CandidateOrderMetricSubscription, CandidateRecommendationParams, CandidateRecommendationResult, CandidateStashExcelUploadResult, CandidateStashLlmCommentJobProgressEvent, CandidateStashLlmCommentJobStartResult, CandidateStashSummary, CompanyScopeParams, CompetitorSalesParams, DashboardEventStreamErrorListener, DashboardRuntimeConfig, ProductComparisonTarget, SecondaryCompetitorChannel, SelfSalesParams, UpdateCandidateItemPayload } from '..'
 import type { AppendCandidateItemPayload, AppendCandidateItemsPayload, CompanyMutationScopeParams, CreateCandidateStashPayload, UpdateCandidateStashPayload } from '../types'
 import type { CandidateJobSubscription, CandidateStashListParams } from '../types/candidate'
 import type { CompetitorSalesRow, SelfSalesRow } from '../../types'
@@ -71,6 +71,7 @@ const getCandidateStashExcelTemplateDownload: () => CandidateStashExcelTemplateD
 })
 
 export const mockDashboardRequests: DashboardApi = withMockApiAdapterErrors<DashboardApi>({
+  getDashboardRuntimeConfig: (): Promise<DashboardRuntimeConfig> => mockDashboardApi.getDashboardRuntimeConfig(),
   getSelfSales: (params: SelfSalesParams | undefined): Promise<SelfSalesRow[]> => mockDashboardApi.getSelfSales(params),
   getCompetitorSales: (params: CompetitorSalesParams | undefined): Promise<CompetitorSalesRow[]> => mockDashboardApi.getCompetitorSales(params),
   getSelfSalesScatterGrid: (params: SelfSalesGridParams): Promise<ScatterSalesGridResponse> => mockDashboardApi.getSelfSalesScatterGrid(params),

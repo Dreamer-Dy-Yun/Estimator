@@ -1,4 +1,4 @@
-import type { CandidateStashExcelTemplateDownload } from '../../api'
+import type { CandidateStashExcelTemplateDownload, DashboardRuntimeConfig } from '../../api'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { deleteCandidateStash, duplicateCandidateStash, getCandidateStashExcelTemplateDownload, getCandidateStashes, getCompanyUuidForOptionalScope, isAllCompanyUuid, updateCandidateStash, uploadCandidateStashExcel, type CandidateStashExcelUploadResult, type CandidateStashSummary } from '../../api'
 import { useAuth } from '../../auth/AuthContext'
@@ -18,6 +18,10 @@ export type StashSortKey = 'createdDesc' | 'createdAsc' | 'updatedDesc' | 'updat
 export type EditState = { target: CandidateStashSummary | null; name: string; note: string; busy: boolean }
 export type UploadState = { file: File | null; busy: boolean; error: string | null; result: CandidateStashExcelUploadResult | null; dragActive: boolean }
 export type StashListState = { scopeKey: string; rows: CandidateStashSummary[] }
+export type SnapshotConfirmPageProps = {
+  dashboardRuntimeConfig: DashboardRuntimeConfig | null
+  dashboardRuntimeConfigLoading: boolean
+}
 
 const SORT_LABEL_BY_KEY: Record<StashSortKey, string> = {
   createdDesc: '생성일 최신순',
@@ -41,7 +45,10 @@ const sortKeyFromLabel: (label: string) => StashSortKey = (label: string): Stash
   (Object.entries(SORT_LABEL_BY_KEY).find(([, nextLabel]: [string, string]) : boolean => nextLabel === label)?.[0] as StashSortKey | undefined) ?? 'createdDesc'
 )
 
-export const SnapshotConfirmPage: () => React.JSX.Element = () : React.JSX.Element => {
+export const SnapshotConfirmPage: (props: SnapshotConfirmPageProps) => React.JSX.Element = ({
+  dashboardRuntimeConfig,
+  dashboardRuntimeConfigLoading,
+}: SnapshotConfirmPageProps) : React.JSX.Element => {
   const { showToast }: ReturnType<typeof useAppToast> = useAppToast()
   const { session, selectedCompanyUuid }: ReturnType<typeof useAuth> = useAuth()
   const companyUuid: string | undefined = useMemo(() : string | undefined => getCompanyUuidForOptionalScope(selectedCompanyUuid), [selectedCompanyUuid])
@@ -246,7 +253,7 @@ export const SnapshotConfirmPage: () => React.JSX.Element = () : React.JSX.Eleme
         <CandidateStashList allStashesEmpty={!stashes.length} stashes={filteredStashes} duplicateBusyUuid={duplicateBusyUuid} onOpenDetail={setOpenDetailStashUuid} onOpenEdit={openEditDialog} onDuplicate={(stash: CandidateStashSummary) : undefined => void duplicateStash(stash)} onDelete={setDeleteTarget} />
       )}
       <CandidateStashEditDialog editTarget={edit.target} editName={edit.name} editNote={edit.note} editBusy={edit.busy} onNameChange={(name: string) : void => patchEdit({ name })} onNoteChange={(note: string) : void => patchEdit({ note })} onClose={() : void => setEdit(EMPTY_EDIT)} onSave={saveEditDialog} />
-      {openDetailStashUuid && <CandidateStashDetailModal stashUuid={openDetailStashUuid} companyUuid={companyUuid} downloadUserName={downloadUserName} stashSummary={selectedDetailStash} onClose={() : void => setOpenDetailStashUuid(null)} onStashesInvalidate={loadStashes} />}
+      {openDetailStashUuid && <CandidateStashDetailModal stashUuid={openDetailStashUuid} companyUuid={companyUuid} downloadUserName={downloadUserName} stashSummary={selectedDetailStash} orderMetricComparisonTarget={dashboardRuntimeConfig?.candidateOrderMetricComparison ?? null} orderMetricComparisonLoading={dashboardRuntimeConfigLoading} onClose={() : void => setOpenDetailStashUuid(null)} onStashesInvalidate={loadStashes} />}
       <ConfirmModal open={Boolean(deleteTarget)} busy={deleteBusy} title="삭제 확인" message={deleteTarget ? <><b>{deleteTarget.name}</b> 후보군을 삭제할까요?</> : null} confirmText="삭제" confirmingText="삭제 중" dialogTitleId="stash-list-delete-dialog-title" onCancel={() : void => setDeleteTarget(null)} onConfirm={deleteStash} />
     </section>
   )

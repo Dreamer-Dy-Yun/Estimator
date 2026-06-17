@@ -1,6 +1,6 @@
 # Backend API Implementation Notes
 
-Last updated: 2026-06-15
+Last updated: 2026-06-17
 
 Purpose: backend implementation notes for the current frontend API contract.
 
@@ -30,6 +30,7 @@ Source of truth:
 - Company-owned mutation, import, candidate job start, and candidate job/SSE subscribe require one concrete `companyUuid`.
 - Candidate stash and candidate item ownership must be enforced from authenticated session plus company scope.
 - Product drawer read-like APIs use `base` and `comparison` subject query fields instead of top-level `companyUuid`.
+- `GET /dashboard/runtime-config` returns backend-owned app settings read once after authentication. Current field: `candidateOrderMetricComparison: ProductComparisonTarget | null`.
 
 ## Auth and admin profile ownership
 
@@ -63,7 +64,8 @@ Rules:
 - Invalid role/kind shape should return validation failure, preferably 422.
 - `GET /products/comparison-targets` returns `200 []` when the requested base subject has no available comparison target.
 - Non-2xx responses from `getProductComparisonTargets` are API failures, not empty states.
-- The frontend treats both an empty target list and target lookup failure as comparison unavailable and does not synthesize a default target.
+- The product drawer frontend treats both an empty target list and target lookup failure as comparison unavailable and does not synthesize a default target.
+- Candidate order metric comparison does not use `getProductComparisonTargets`; it uses `candidateOrderMetricComparison` from `GET /dashboard/runtime-config`, passed back as the SSE comparison subject.
 
 ## Sales and scatter aggregation
 
@@ -112,8 +114,8 @@ Rules:
 - Order metric streams include `requestId`; stale events with old request ids are ignored by frontend.
 - Completed events should be sent when all requested items are settled.
 - Candidate order metric SSE requires the selected comparison subject on every request: `comparisonRole`, `comparisonKind`, and `comparisonSourceId` when required by the subject kind.
-- The backend must validate the supplied comparison subject and must not use a server-global, session-global, or first-available default comparison basis.
-- If no selected comparison target exists after `getProductComparisonTargets({ base })`, the frontend does not open the order metric SSE.
+- The backend must validate the supplied comparison subject and must not choose an implicit first-available default comparison basis inside the SSE.
+- If no `candidateOrderMetricComparison` exists after `GET /dashboard/runtime-config`, the frontend does not open the order metric SSE.
 - Snapshot rows project `CANDIDATE_ITEM.details.drawer2`; non-snapshot rows calculate from the current secondary order metric basis for the supplied base/comparison subject without daily trend rendering data.
 
 ## Secondary daily trend source

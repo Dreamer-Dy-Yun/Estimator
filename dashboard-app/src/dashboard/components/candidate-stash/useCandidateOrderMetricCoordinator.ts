@@ -16,7 +16,7 @@ interface CandidateOrderMetricCoordinatorArgs {
   itemsRef: RefObject<CandidateItemSummary[]>
   setItems: (next: CandidateItemStateUpdater) => void
   orderMetricComparisonTarget: ProductComparisonTarget | null
-  orderMetricComparisonTargetsLoading: boolean
+  orderMetricComparisonLoading: boolean
   closeMetricSubscription: () => void
   getCurrentItemLoadSeq: () => number
   subscribeOrderMetrics: (args: SubscribeArgs) => void
@@ -34,7 +34,7 @@ export function useCandidateOrderMetricCoordinator({
   itemsRef,
   setItems,
   orderMetricComparisonTarget,
-  orderMetricComparisonTargetsLoading,
+  orderMetricComparisonLoading,
   closeMetricSubscription,
   getCurrentItemLoadSeq,
   subscribeOrderMetrics,
@@ -49,7 +49,7 @@ export function useCandidateOrderMetricCoordinator({
   )), [items])
 
   useEffect(() : void => {
-    if (orderMetricComparisonTargetsLoading) return
+    if (orderMetricComparisonLoading) return
     if (orderMetricComparisonTarget != null) return
     if (!hasComparisonUnavailableMetricRows) return
     closeMetricSubscription()
@@ -58,8 +58,8 @@ export function useCandidateOrderMetricCoordinator({
   }, [
     closeMetricSubscription,
     hasComparisonUnavailableMetricRows,
+    orderMetricComparisonLoading,
     orderMetricComparisonTarget,
-    orderMetricComparisonTargetsLoading,
     setItems,
   ])
 

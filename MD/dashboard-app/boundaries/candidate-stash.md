@@ -1,6 +1,6 @@
 # Candidate Stash Boundary
 
-Last updated: 2026-06-11
+Last updated: 2026-06-17
 
 ## Responsibility
 
@@ -28,7 +28,7 @@ Candidate stash owns order candidate lists, item detail drawer entry, recommenda
 | `useCandidateStashDetailModal.ts` | Detail modal orchestration |
 | `candidateStashDetailModalModel.ts` | Detail modal public hook args/model contract |
 | `useCandidateItemsLoader.ts` | Item list load |
-| `useCandidateOrderMetricCoordinator.ts` | Comparison target availability, comparison-change reload, and appended-item metric subscription coordination |
+| `useCandidateOrderMetricCoordinator.ts` | Runtime comparison availability and appended-item metric subscription coordination |
 | `useCandidateRecommendations.ts` | Recommendation load and append state |
 | `useCandidateOrderMetricStream.ts` | Order metric SSE |
 | `useCandidateBulkDetailConfirm.ts` | Bulk detail confirm job/SSE |
@@ -57,8 +57,8 @@ Candidate stash owns order candidate lists, item detail drawer entry, recommenda
 - Detail snapshot save/update uses `OrderSnapshotDocument` v4 in `details`.
 - Detail unconfirm sends `details: null`.
 - Inner order metrics are snapshot-first. If `details` exists, list `qty`, order amount, sales amount, profit, inbound date, and size quantities project `OrderSnapshotDocument.drawer2`.
-- If `details` is null, order metrics request the selected size comparison subject through `subscribeCandidateOrderMetrics(params.comparison)`.
-- Candidate stash does not own a global comparison target. The detail header fetches comparison targets through `getProductComparisonTargets({ base })`, and every metric SSE request receives the selected target as a parameter.
-- While comparison targets are loading, order metric SSE may wait. If target loading completes with no available selected target, candidate stash does not call SSE with a fake default and marks non-snapshot order metric cells failed.
-- If target lookup fails, returns an empty list, or the saved selected target is no longer available, snapshot rows keep stored values and only non-snapshot metric cells become failed/unavailable.
+- If `details` is null, order metrics request the runtime-configured size comparison subject through `subscribeCandidateOrderMetrics(params.comparison)`.
+- Candidate stash does not own a frontend global comparison target. `AppRoutes` reads `getDashboardRuntimeConfig()` once after auth, passes `candidateOrderMetricComparison` to `SnapshotConfirmPage`, and the page passes it as modal/hook parameters.
+- While runtime config is loading, order metric SSE may wait. If loading completes with no configured comparison target, candidate stash does not call SSE with a fake default and marks non-snapshot order metric cells failed.
+- If runtime config lookup fails or returns `candidateOrderMetricComparison: null`, snapshot rows keep stored values and only non-snapshot metric cells become failed/unavailable.
 - Daily trend data is not part of the inner order metric request; only the secondary order calculation basis is reused.

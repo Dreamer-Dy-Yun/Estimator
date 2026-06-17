@@ -54,6 +54,7 @@ import type {
   CandidateOrderMetricStreamParams,
   CandidateOrderMetricSubscription,
 } from './candidate-order-metrics'
+import type { DashboardRuntimeConfig } from './dashboard-runtime'
 import type {
   SecondaryAiCommentParams,
   SecondaryAiCommentResult,
@@ -75,6 +76,7 @@ import type {
 export type DashboardEventStreamErrorListener = (error: unknown) => void
 
 export interface DashboardApi {
+  getDashboardRuntimeConfig(): Promise<DashboardRuntimeConfig>
   getSelfSales(params?: SelfSalesParams): Promise<SelfSalesRow[]>
   getCompetitorSales(params?: CompetitorSalesParams): Promise<CompetitorSalesRow[]>
   getSelfSalesScatterGrid(params?: SelfSalesGridParams): Promise<ScatterSalesGridResponse>

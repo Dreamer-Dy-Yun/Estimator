@@ -7,7 +7,7 @@
 }
 
 .detailHeaderTitleArea {
-  grid-column: 1 / span 22;
+  grid-column: 1 / span 28;
   grid-row: 1;
   min-width: 0;
 }
@@ -22,7 +22,7 @@
 }
 
 .detailMetaStack {
-  grid-column: 23 / span 5;
+  grid-column: 29 / span 5;
   grid-row: 1;
   display: flex;
   flex-direction: column;
@@ -35,75 +35,6 @@
 
 .detailMetaLine {
   white-space: nowrap;
-}
-
-.detailHeaderComparisonCell {
-  grid-column: 28 / span 6;
-  grid-row: 1;
-  position: relative;
-  min-width: 0;
-  align-self: stretch;
-  display: flex;
-  flex-direction: column;
-}
-
-.detailHeaderComparisonBtn {
-  width: 100%;
-  min-width: 0;
-  height: 100%;
-  min-height: 32px;
-  padding-inline: 6px;
-  font-size: 12px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.detailHeaderComparisonMenu {
-  position: absolute;
-  top: calc(100% + 6px);
-  right: 0;
-  z-index: 20;
-  min-width: 160px;
-  max-width: 240px;
-  padding: 6px;
-  display: grid;
-  gap: 4px;
-  background: #ffffff;
-  border: 1px solid #cbd5e1;
-  border-radius: 10px;
-  box-shadow: 0 14px 30px rgba(15, 23, 42, 0.18);
-}
-
-.detailHeaderComparisonOption,
-.detailHeaderComparisonOptionActive {
-  width: 100%;
-  border: 0;
-  border-radius: 7px;
-  padding: 7px 9px;
-  text-align: left;
-  font-size: 12px;
-  font-weight: 700;
-  color: #334155;
-  background: transparent;
-  cursor: pointer;
-}
-
-.detailHeaderComparisonOption:hover,
-.detailHeaderComparisonOptionActive {
-  color: #0f172a;
-  background: #e0f2fe;
-}
-
-.detailHeaderComparisonError {
-  position: absolute;
-  top: calc(100% + 4px);
-  right: 0;
-  width: max-content;
-  max-width: 220px;
-  font-size: 11px;
-  font-weight: 700;
-  color: #b91c1c;
 }
 
 .detailHeaderRecommendationCell {

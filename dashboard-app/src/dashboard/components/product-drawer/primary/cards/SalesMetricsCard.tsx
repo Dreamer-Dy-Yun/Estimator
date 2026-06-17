@@ -2,7 +2,7 @@ import type { ProductComparisonTarget } from '../../../../../api'
 import { ApiUnitErrorBadge } from '../../../../../components/ApiUnitErrorBadge'
 import { LoadingSpinner } from '../../../../../components/LoadingSpinner'
 import type { ApiUnitErrorInfo } from '../../../../../types'
-import { formatGroupedNumber, formatGroupedOneDecimal, formatPercent, type CompactKoreanNumberDisplay } from '../../../../../utils/format'
+import { formatGroupedNumber, formatPercent, type CompactKoreanNumberDisplay } from '../../../../../utils/format'
 import type { SalesKpiColumn } from '../../../../../utils/salesKpiColumn'
 import { KO } from '../../ko'
 import styles from './SalesMetricsCard.module.css'
@@ -32,8 +32,7 @@ export type MetricRow = { key: string; label: string; self: React.ReactNode; com
 
 const formatMetricValue: (value: number | null) => string = (value: number | null) : string => {
   if (value == null || !Number.isFinite(value)) return '-'
-  const rounded: number = Math.round(value * 10) / 10
-  return Number.isInteger(rounded) ? formatGroupedNumber(rounded) : formatGroupedOneDecimal(rounded)
+  return formatGroupedNumber(value)
 }
 
 const formatMetricDisplay: (value: number | null) => CompactKoreanNumberDisplay = (value: number | null) : CompactKoreanNumberDisplay => {

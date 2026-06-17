@@ -68,6 +68,11 @@ function competitorComparisonTarget(channel: SecondaryCompetitorChannel): Produc
   }
 }
 
+export function getMockCandidateOrderMetricComparisonTarget(): ProductComparisonTarget | null {
+  const configuredChannel: SecondaryCompetitorChannel | undefined = secondaryCompetitorChannels[0]
+  return configuredChannel == null ? null : competitorComparisonTarget(configuredChannel)
+}
+
 function selfCompanyComparisonTarget(companyUuid: string | undefined, label: string): ProductComparisonTarget {
   return {
     id: productComparisonSubjectId({

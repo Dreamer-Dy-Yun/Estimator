@@ -1,5 +1,4 @@
-import type { CandidateItemSummary, CandidateReferenceItemSummary, ProductComparisonBaseSubjectRef, ProductComparisonTarget } from '../../../api'
-import type { ApiUnitErrorInfo } from '../../../types'
+import type { CandidateItemSummary, CandidateReferenceItemSummary, ProductComparisonTarget } from '../../../api'
 import type { AppendRecommendedItemsResult } from './candidateStashDetailTypes'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { CandidateStashSummary } from '../../../api'
@@ -15,7 +14,6 @@ import { CandidateStashMissingState } from './CandidateStashMissingState'
 import { CandidateStashProductDrawer } from './CandidateStashProductDrawer'
 import { stashDetailModalBackdropDataProps } from '../../drawer/drawerDom'
 import { useModalFocusTrap } from '../useModalFocusTrap'
-import { useProductComparisonTargets } from '../product-drawer/useProductComparisonTargets'
 import { useCandidateStashDetailModal, type CandidateStashDetailModalModel, type InnerCandidateRow } from './useCandidateStashDetailModal'
 import { useVisibleUuidSelection } from './useVisibleUuidSelection'
 import detailStyles from './CandidateStashDetailModal.module.css'
@@ -26,27 +24,29 @@ export type Props = {
   downloadUserName?: string
   /** Passing the list summary avoids one extra candidate-stash list request. */
   stashSummary?: CandidateStashSummary | null
+  orderMetricComparisonTarget: ProductComparisonTarget | null
+  orderMetricComparisonLoading: boolean
   onClose: () => void
   onStashesInvalidate?: () => void
 }
 
-export function CandidateStashDetailModal({ stashUuid, companyUuid, downloadUserName = '사용자', stashSummary, onClose, onStashesInvalidate }: Props) : React.JSX.Element {
-  const orderMetricBaseSubject: ProductComparisonBaseSubjectRef = useMemo(() : ProductComparisonBaseSubjectRef => ({
-    role: 'base',
-    kind: 'self-company',
-    ...(companyUuid == null ? {} : { sourceId: companyUuid }),
-  }), [companyUuid])
-  const orderMetricComparisonTargets: { comparisonTargets: ProductComparisonTarget[]; comparisonTarget: ProductComparisonTarget | null; targetsLoading: boolean; targetsError: ApiUnitErrorInfo | null; setComparisonSubject: (next: ProductComparisonTarget) => void; } = useProductComparisonTargets({
-    pageName: 'CandidateStashDetailModal',
-    base: orderMetricBaseSubject,
-  })
+export function CandidateStashDetailModal({
+  stashUuid,
+  companyUuid,
+  downloadUserName = '사용자',
+  stashSummary,
+  orderMetricComparisonTarget,
+  orderMetricComparisonLoading,
+  onClose,
+  onStashesInvalidate,
+}: Props) : React.JSX.Element {
   const model: CandidateStashDetailModalModel = useCandidateStashDetailModal({
     stashUuid,
     companyUuid,
     stashSummary,
     onStashesInvalidate,
-    orderMetricComparisonTarget: orderMetricComparisonTargets.comparisonTarget,
-    orderMetricComparisonTargetsLoading: orderMetricComparisonTargets.targetsLoading,
+    orderMetricComparisonTarget,
+    orderMetricComparisonLoading,
   })
   const [bulkDeleteOpen, setBulkDeleteOpen]: [boolean, React.Dispatch<React.SetStateAction<boolean>>] = useState(false)
   const [bulkUnconfirmOpen, setBulkUnconfirmOpen]: [boolean, React.Dispatch<React.SetStateAction<boolean>>] = useState(false)
@@ -122,12 +122,7 @@ export function CandidateStashDetailModal({ stashUuid, companyUuid, downloadUser
                 {model.stashListLoadError && <div className={detailStyles.emptyState} role="alert">{model.stashListLoadError}</div>}
                 <CandidateStashDetailHeader
                   detailTarget={model.detailTarget}
-                  comparisonTargets={orderMetricComparisonTargets.comparisonTargets}
-                  comparisonTarget={orderMetricComparisonTargets.comparisonTarget}
-                  comparisonTargetsLoading={orderMetricComparisonTargets.targetsLoading}
-                  comparisonTargetsError={orderMetricComparisonTargets.targetsError}
                   canOpenRecommendations={Boolean(!recommendationsBlocked && !model.candidateItemsLoading && model.tableRows.length && model.periodStart && model.periodEnd)}
-                  onComparisonTargetChange={orderMetricComparisonTargets.setComparisonSubject}
                   onOpenRecommendations={openRecommendationModal}
                   onClose={onClose}
                 />

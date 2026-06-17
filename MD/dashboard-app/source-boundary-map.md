@@ -29,15 +29,15 @@ Last updated: 2026-06-16
 - Static deployment relies on host-level HTTP gzip/brotli compression for the large fixture payload. Do not move this data into UI components or duplicate it as fallback state.
 - `inboundSplitSuggestionModel.ts` is shortage-only: projected stock plus known inbound must cover demand before any suggested order quantity appears. It must not allocate leftover confirmed quantity just to match the confirmed total, and it must not use the mutable confirmed quantity as the recommendation baseline.
 
-## 0-6) 2026-06-11 candidate order metric comparison boundary
+## 0-6) 2026-06-17 candidate order metric runtime comparison boundary
 
-- Candidate stash detail header fetches size comparison targets with `getProductComparisonTargets({ base })`; it does not create a global/default comparison variable outside the modal.
-- The selected comparison target is passed as `CandidateOrderMetricStreamParams.comparison` for each `subscribeCandidateOrderMetrics` request.
+- `AppRoutes` reads `getDashboardRuntimeConfig()` once after authentication and passes `candidateOrderMetricComparison` down through `SnapshotConfirmPage` and `CandidateStashDetailModal` props. Candidate stash detail does not use a frontend global variable or local comparison selector.
+- The runtime-configured comparison target is passed as `CandidateOrderMetricStreamParams.comparison` for each `subscribeCandidateOrderMetrics` request.
 - Snapshot-confirmed candidate items project `OrderSnapshotDocument.drawer2` values into the inner order list and do not recalculate when the comparison target changes.
 - Non-snapshot candidate items use the same secondary size/order projection helper as the product drawer, while daily trend rendering data stays out of the list metric request.
-- If comparison targets are still loading, candidate order metric subscription waits. If loading completes with no selected comparison target, the modal must not synthesize a fake default; non-snapshot metric cells are marked failed/unavailable and snapshot rows keep stored values.
+- If runtime config is still loading, candidate order metric subscription waits. If loading completes with no configured comparison target, the modal must not synthesize a fake default; non-snapshot metric cells are marked failed/unavailable and snapshot rows keep stored values.
 - `candidateStashDetailModalModel.ts` owns the public args/model type for `useCandidateStashDetailModal.ts` so the hook file can remain orchestration-focused.
-- `useCandidateOrderMetricCoordinator.ts` owns comparison target availability, comparison-change reload, and appended-item metric subscription coordination.
+- `useCandidateOrderMetricCoordinator.ts` owns runtime comparison availability and appended-item metric subscription coordination.
 
 ## 0-5) 2026-06-10 list thumbnail boundary
 

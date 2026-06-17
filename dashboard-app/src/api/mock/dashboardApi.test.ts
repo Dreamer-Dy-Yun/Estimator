@@ -19,6 +19,14 @@ const mockCompetitorTarget: (sourceId: string) => ProductComparisonTarget = (sou
 })
 
 describe('api/mock dashboardApi competitor channel behavior', () : void => {
+  it('returns runtime config with candidate order metric comparison', async () : Promise<void> => {
+    const config = await mockDashboardApi.getDashboardRuntimeConfig()
+
+    expect(config.candidateOrderMetricComparison?.role).toBe('comparison')
+    expect(config.candidateOrderMetricComparison?.kind).toBe('competitor-channel')
+    expect(config.candidateOrderMetricComparison?.sourceId).toBe('kream')
+  })
+
   it('returns only kream/musinsa competitor channels', async () : Promise<void> => {
     const channels: SecondaryCompetitorChannel[] = await mockDashboardApi.getSecondaryCompetitorChannels()
     expect(channels.map((c: SecondaryCompetitorChannel) : string => c.id)).toEqual(['kream', 'musinsa'])

@@ -5,7 +5,7 @@
 | 작성 지시 | Yun Daeyoung |
 | 작성자 | Codex |
 | 작성일 | 2026-05-19 |
-| 최종 수정일 | 2026-06-15 |
+| 최종 수정일 | 2026-06-17 |
 | 상태 | 유지 문서 |
 | 적용 범위 | `dashboard-app/src/api`, mock/HTTP adapter, API 타입 계약 |
 
@@ -36,6 +36,7 @@
 | 파일 | 소유 계약 |
 |------|-----------|
 | `types/dashboard-api.ts` | `DashboardApi` 전체 인터페이스 |
+| `types/dashboard-runtime.ts` | 앱 진입 시 읽는 대시보드 런타임 설정 |
 | `types/auth.ts` | 로그인, 세션, 사용자 정보, 비밀번호 변경 |
 | `types/company.ts` | 회사 목록, `전체` sentinel, 업무 API company scope helper |
 | `types/admin-gpt-key.ts` | GPT 키 관리 |
@@ -76,13 +77,14 @@
 - `dashboardRequests.ts`는 `API_ADAPTER_MODE`에 따라 mock/HTTP dashboard adapter를 선택하고 master data cache decorator를 적용하는 얇은 진입점이다.
 - `mockDashboardRequests.ts`는 현재 세션의 `USER_ACCOUNT.uuid`를 request boundary에서만 붙인다. 화면 내부로 사용자 UUID를 흘리지 않는다.
 - `httpDashboardRequests.ts`는 실제 백엔드 endpoint 경로를 `DashboardApi` 계약에 맞춰 연결한다.
+- `getDashboardRuntimeConfig`는 인증된 앱 진입부에서 읽는 backend-owned 설정이다. 현재 응답의 `candidateOrderMetricComparison`은 후보군 총오더 지표 SSE에 넘길 comparison subject이며, 후보군 상세 화면이 비교대상 목록을 직접 고르거나 기본값을 합성하지 않는다.
 - 회사 소유 read adapter는 단일 회사 선택 시 `companyUuid`를 포함하고, `전체` 선택 시 생략한다. 이 scope는 분석 목록/산점도/filter meta와 후보군 read에 적용된다. 생략은 백엔드가 회사 where 조건을 제거한다는 조회 계약이며, mock adapter도 같은 의미로 데이터 분기/계산을 수행한다.
 - 상품드로워 read-like API는 `companyUuid?` 대신 subject 계약을 사용한다. bundle은 `base`만 받고, monthly trend/sales insight/secondary detail/daily trend는 `base`와 `comparison`을 함께 받는다. secondary inbound split source와 secondary stock order calc는 comparison이 필요 없는 계산이므로 `base`만 받는다.
 - AI comment는 read-like GET이 아니라 manual POST 생성 요청이다. HTTP body는 path `skuGroupKey`를 제외하고 base/comparison, 기간/예측, optional `candidateItemUuid`, optional `snapshotForAiComment`를 보낸다.
 - 상품 판매 정보 비교 API는 `base`와 `comparison`을 subject 계약으로 통일한다. 프론트 내부 subject는 `role`, `kind`, `sourceId`를 갖지만, HTTP query에서는 `self-company` 전체 범위의 `sourceId`를 생략한다. `ALL_COMPANY_UUID`는 프론트 내부 sentinel이며 백엔드로 전송하지 않는다.
 - `getProductComparisonTargets`의 빈 배열은 정상 unavailable 상태다. 화면은 첫 번째 비교 대상을 임의 생성하거나 API 오류로 바꾸지 않는다.
-- 후보군 상세의 사이즈 기준 선택도 `getProductComparisonTargets({ base })`를 별도 호출해 받은 목록을 사용한다. 선택값은 전역 상태가 아니라 `subscribeCandidateOrderMetrics` 호출 인자로 전달한다.
-- 후보군 상세는 comparison target 로딩 중에는 총오더 metric SSE를 지연할 수 있다. 로딩이 끝났는데 선택 가능한 target이 없으면 가짜 default를 만들지 않고 non-snapshot metric cell을 실패 상태로 종료한다.
+- 후보군 상세의 총오더 지표 comparison은 앱 진입부가 `getDashboardRuntimeConfig()`로 받은 `candidateOrderMetricComparison`을 prop/매개변수로 전달해 사용한다. 선택 UI나 프론트 전역 변수는 두지 않는다.
+- 후보군 상세는 runtime config 로딩 중에는 총오더 metric SSE를 지연할 수 있다. 로딩이 끝났는데 `candidateOrderMetricComparison`이 없으면 가짜 default를 만들지 않고 non-snapshot metric cell을 실패 상태로 종료한다.
 - mock live order metric builder도 선택된 comparison 없이 첫 번째 경쟁 채널을 대체 사용하지 않는다.
 - 후보군 mutation, 후보군 backend job start, 후보군 job/SSE subscribe, 오더 지표 SSE, 후보군 엑셀 upload FormData는 단일 회사 scope 전용이다. `전체` 선택 상태에서는 UI에서 후보군 side-effect 진입을 막고, mock/HTTP 백엔드는 `companyUuid` 누락 요청을 검증 실패로 처리해야 한다.
 - `dashboardMasterDataCache.ts`는 page와 공통 drawer가 공유하는 master data 요청을 coalesce한다. mutation 후 무효화 대상이 아닌 master data만 캐시한다.

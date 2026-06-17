@@ -21,7 +21,7 @@ export interface CandidateStashDetailModalArgs {
   stashSummary?: CandidateStashSummary | null
   onStashesInvalidate?: () => void
   orderMetricComparisonTarget: ProductComparisonTarget | null
-  orderMetricComparisonTargetsLoading: boolean
+  orderMetricComparisonLoading: boolean
 }
 
 export interface CandidateStashDetailTotals {

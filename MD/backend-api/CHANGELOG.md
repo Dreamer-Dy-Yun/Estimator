@@ -1,5 +1,13 @@
 # Backend API Changelog
 
+## 2026-06-17 dashboard runtime config for candidate order metrics
+
+- Added `GET /dashboard/runtime-config`.
+- Response includes `candidateOrderMetricComparison: ProductComparisonTarget | null`.
+- Candidate stash order metric SSE no longer depends on the detail header calling `getProductComparisonTargets({ base })`.
+- The frontend reads runtime config once after auth and passes the configured comparison subject into each `subscribeCandidateOrderMetrics` request.
+- `candidateOrderMetricComparison: null` means candidate order metrics are unavailable; frontend does not synthesize a first channel/default target.
+
 ## 2026-06-15 secondary daily trend and split-inbound source clarification
 
 - `getSecondaryDailyTrend` current contract is `SecondaryDailyTrendSource`, not the old chart-ready `SecondaryDailyTrendPoint[]`.

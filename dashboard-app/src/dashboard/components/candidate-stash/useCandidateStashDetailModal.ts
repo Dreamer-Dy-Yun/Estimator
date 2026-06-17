@@ -43,7 +43,7 @@ export function useCandidateStashDetailModal({
   stashSummary: stashSummaryProp,
   onStashesInvalidate,
   orderMetricComparisonTarget,
-  orderMetricComparisonTargetsLoading,
+  orderMetricComparisonLoading,
 }: CandidateStashDetailModalArgs) : CandidateStashDetailModalModelContract {
   const [items, setItemsState]: [CandidateItemSummary[], React.Dispatch<React.SetStateAction<CandidateItemSummary[]>>] = useState<CandidateItemSummary[]>([])
   const [itemDeleteTarget, setItemDeleteTarget]: [CandidateItemSummary | null, React.Dispatch<React.SetStateAction<CandidateItemSummary | null>>] = useState<CandidateItemSummary | null>(null)
@@ -126,7 +126,7 @@ export function useCandidateStashDetailModal({
       itemsRef,
       setItems,
       orderMetricComparisonTarget,
-      orderMetricComparisonTargetsLoading,
+      orderMetricComparisonLoading,
       closeMetricSubscription,
       getCurrentItemLoadSeq,
       subscribeOrderMetrics,
