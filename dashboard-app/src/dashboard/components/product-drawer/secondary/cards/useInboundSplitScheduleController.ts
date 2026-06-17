@@ -137,6 +137,13 @@ export function useInboundSplitScheduleController({
     setDialogOpen(false)
   }, [])
 
+  const applySplitQuantitiesToConfirmState: (rows: readonly InboundSplitScheduleRow[]) => void = useCallback((rows: readonly InboundSplitScheduleRow[]) => {
+    const nextConfirmBySize: Record<string, number> = sumInboundSplitConfirmedBySize(rows, columns)
+    sizeRows.forEach((row: SecondarySizeOrderDisplayRow): void => {
+      onConfirmQtyChange(row.size, nextConfirmBySize[row.size] ?? 0, row.recommendedQty)
+    })
+  }, [columns, onConfirmQtyChange, sizeRows])
+
   const clearConfirmedRounds: () => void = useCallback((): void => {
     onConfirmedRoundsChange([])
   }, [onConfirmedRoundsChange])
@@ -152,25 +159,20 @@ export function useInboundSplitScheduleController({
     }
 
     const nextRows: InboundSplitScheduleRow[] = cloneInboundSplitRows(rows)
-    const nextConfirmBySize: Record<string, number> = sumInboundSplitConfirmedBySize(nextRows, columns)
     setSplitCount(clampInboundSplitCount(nextRows.length))
     setDraftError(null)
 
     if (nextRows.length <= 1) {
       clearConfirmedRounds()
-      sizeRows.forEach((row: SecondarySizeOrderDisplayRow): void => {
-        onConfirmQtyChange(row.size, nextConfirmBySize[row.size] ?? 0, row.recommendedQty)
-      })
+      applySplitQuantitiesToConfirmState(nextRows)
       setDialogOpen(false)
       return
     }
 
     onConfirmedRoundsChange(inboundSplitRowsToConfirmedRounds(nextRows, columns))
-    sizeRows.forEach((row: SecondarySizeOrderDisplayRow): void => {
-      onConfirmQtyChange(row.size, nextConfirmBySize[row.size] ?? 0, row.recommendedQty)
-    })
+    applySplitQuantitiesToConfirmState(nextRows)
     setDialogOpen(false)
-  }, [clearConfirmedRounds, columns, onConfirmQtyChange, onConfirmedRoundsChange, scheduleReady, sizeRows, workDate])
+  }, [applySplitQuantitiesToConfirmState, clearConfirmedRounds, columns, onConfirmedRoundsChange, scheduleReady, workDate])
 
   const handleDraftError: (err: unknown | null, request: InboundSplitDraftRequest) => void = useCallback((err: unknown | null, request: InboundSplitDraftRequest): void => {
     setDraftError(err == null ? null : makeInboundSplitDraftErrorInfo(request, err))

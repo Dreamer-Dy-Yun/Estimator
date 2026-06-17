@@ -92,4 +92,43 @@ describe('buildInboundSplitSuggestedQuantitiesByRow', () : void => {
       source,
     )).toThrow('Invalid inbound split source date')
   })
+
+  it('allocates each round total by size mix, not by size-by-size demand', () : void => {
+    const source: SecondaryInboundSplitSource = {
+      productId: 'product-a',
+      dateStart: '2026-04-01',
+      dateEnd: '2026-04-05',
+      stockBySize: { S: 0, M: 0 },
+      expectationByDate: {
+        '2026-04-01': {
+          S: { sale: 2, inbound: 0 },
+          M: { sale: 0, inbound: 0 },
+        },
+        '2026-04-02': {
+          S: { sale: 2, inbound: 0 },
+          M: { sale: 0, inbound: 0 },
+        },
+        '2026-04-03': {
+          S: { sale: 1, inbound: 0 },
+          M: { sale: 3, inbound: 0 },
+        },
+        '2026-04-04': {
+          S: { sale: 1, inbound: 0 },
+          M: { sale: 1, inbound: 0 },
+        },
+      },
+    }
+
+    const rows: Record<string, number>[] = buildInboundSplitSuggestedQuantitiesByRow(
+      [
+        { size: 'S', confirmedQty: 10, recommendedQty: 10 },
+        { size: 'M', confirmedQty: 10, recommendedQty: 10 },
+      ],
+      ['2026-04-01', '2026-04-03'],
+      '2026-04-05',
+      source,
+    )
+
+    expect(rows).toEqual([{ S: 2, M: 2 }, { S: 3, M: 3 }])
+  })
 })
