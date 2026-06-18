@@ -2,7 +2,6 @@ import { useId, useRef } from 'react'
 import { DialogCloseButton } from '../../../../../components/DialogCloseButton'
 import { useModalFocusTrap } from '../../../useModalFocusTrap'
 import type { ApiUnitErrorInfo } from '../../../../../types'
-import { formatGroupedNumber } from '../../../../../utils/format'
 import { KO } from '../../ko'
 import styles from '../secondaryDrawer.module.css'
 import { cloneInboundSplitRows, type InboundSplitScheduleRow, type InboundSplitSizeColumn } from './inboundSplitScheduleModel'
@@ -58,7 +57,6 @@ export function InboundSplitScheduleDialog({
     recalculateRows,
     onDraftError,
   })
-  const currentConfirmedTotal: number = columns.reduce((sum: number, column: InboundSplitSizeColumn): number => sum + column.confirmedQty, 0)
   const hasInvalidDatePolicy: boolean = findInboundSplitDatePolicyIssue(currentOrderInboundDueDate, nextOrderInboundDueDate, draft.rows) != null
   const applyDisabled: boolean = draftError != null || draft.rows.length === 0 || hasInvalidDatePolicy
   const dateOrderErrorMessage: string = hasInvalidDatePolicy
@@ -104,17 +102,6 @@ export function InboundSplitScheduleDialog({
             </label>
             {hasInvalidDatePolicy && <span className={styles.inboundSplitCountValidation}>{dateOrderErrorMessage}</span>}
           </div>
-          <label className={styles.inboundSplitIgnoreExistingOrderInboundAll}>
-            <input
-              type="checkbox"
-              checked={draft.ignoreExistingOrderInboundAll}
-              onChange={(event: React.ChangeEvent<HTMLInputElement>): void => draft.changeIgnoreExistingOrderInboundAll(event.target.checked)}
-            />
-            <span>{KO.labelInboundSplitIgnoreExistingOrderInbound}</span>
-          </label>
-          <span className={styles.inboundSplitSummary}>
-            {KO.thTotal} {formatGroupedNumber(currentConfirmedTotal)} EA
-          </span>
         </div>
         {draftError && (
           <p className={styles.inboundSplitError} role="alert">
@@ -128,6 +115,8 @@ export function InboundSplitScheduleDialog({
               nextOrderInboundDueDate={nextOrderInboundDueDate}
               rows={draft.rows}
               columns={columns}
+              ignoreExistingOrderInboundAll={draft.ignoreExistingOrderInboundAll}
+              onIgnoreExistingOrderInboundAllChange={draft.changeIgnoreExistingOrderInboundAll}
               onDateChange={draft.changeDate}
               onRowTotalChange={draft.changeRowTotal}
               onQtyChange={draft.changeQty}

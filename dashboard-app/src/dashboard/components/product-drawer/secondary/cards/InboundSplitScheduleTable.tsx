@@ -15,6 +15,8 @@ export interface InboundSplitScheduleTableProps {
   nextOrderInboundDueDate: string
   rows: InboundSplitScheduleRow[]
   columns: InboundSplitSizeColumn[]
+  ignoreExistingOrderInboundAll: boolean
+  onIgnoreExistingOrderInboundAllChange: (checked: boolean) => void
   onDateChange: (rowIndex: number, value: string) => void
   onRowTotalChange: (rowIndex: number, value: string) => void
   onQtyChange: (rowIndex: number, size: string, value: string) => void
@@ -30,6 +32,8 @@ export function InboundSplitScheduleTable({
   nextOrderInboundDueDate,
   rows,
   columns,
+  ignoreExistingOrderInboundAll,
+  onIgnoreExistingOrderInboundAllChange,
   onDateChange,
   onRowTotalChange,
   onQtyChange,
@@ -59,7 +63,19 @@ export function InboundSplitScheduleTable({
           <td className={cx(stickyRoundClassName, styles.inboundSplitSummarySpanCell)} rowSpan={2}>{INBOUND_SPLIT_SUMMARY_LABEL}</td>
           <td className={cx(stickyDateClassName, styles.inboundSplitSummarySpanCell)} rowSpan={2}>-</td>
           <td className={stickyKindClassName}>{KO.rowInboundSplitSuggestedQty}</td>
-          <td className={stickyTotalClassName}>{formatGroupedNumber(suggestedGrandTotal)}</td>
+          <td className={stickyTotalClassName}>
+            <div className={styles.inboundSplitSummaryTotalCell}>
+              <span>{formatGroupedNumber(suggestedGrandTotal)}</span>
+              <label className={styles.inboundSplitIgnoreExistingOrderInboundSummary}>
+                <input
+                  type="checkbox"
+                  checked={ignoreExistingOrderInboundAll}
+                  onChange={(event: React.ChangeEvent<HTMLInputElement>): void => onIgnoreExistingOrderInboundAllChange(event.target.checked)}
+                />
+                <span>{KO.labelInboundSplitIgnoreExistingOrderInbound}</span>
+              </label>
+            </div>
+          </td>
           {columns.map((column: InboundSplitSizeColumn): React.JSX.Element => (
             <td key={column.size} className={styles.num}>{formatGroupedNumber(suggestedSizeTotals[column.size] ?? 0)}</td>
           ))}
