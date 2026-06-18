@@ -9,6 +9,13 @@ import { dailyMeanSigma, forecastDailyMeanFromModel } from './secondaryDailyTren
 import { sleep } from './utils'
 
 const DEFAULT_SIZE_COUNT = 10 as const
+const INBOUND_SPLIT_VERIFICATION_SKU_GROUP_KEY = 'TEST-SHOE__210' as const
+const INBOUND_SPLIT_VERIFICATION_CURRENT_STOCK_BY_SIZE: Record<string, number> = {
+  '230': 87,
+  '240': 29,
+  '250': 0,
+  '260': 11,
+}
 
 const distributeTotal: (total: number, weights: number[]) => number[] = (total: number, weights: number[]) : number[] => {
   const target: number = Math.max(0, Math.round(total))
@@ -81,6 +88,69 @@ function displayTotalBySize(
   return sizeLabels.map((size: string): number => Math.round(sumSupply(supplyBySize[size] ?? [], beforeDate)))
 }
 
+function buildInboundSplitVerificationSupplyBySize(
+  currentOrderInboundDueDate: string,
+  orderCoverageDays: number,
+): SecondaryExistingOrderInboundSupplyBySize {
+  const earlySupplyDate: string = addIsoDays(currentOrderInboundDueDate, Math.max(1, Math.round(orderCoverageDays * 0.154)))
+  const firstSplitBoundarySupplyDate: string = addIsoDays(currentOrderInboundDueDate, Math.max(2, Math.round(orderCoverageDays * 0.341)))
+  const splitBoundarySupplyDate: string = addIsoDays(currentOrderInboundDueDate, Math.max(3, Math.round(orderCoverageDays * 0.495)))
+  const middleSupplyDate: string = addIsoDays(currentOrderInboundDueDate, Math.max(4, Math.round(orderCoverageDays * 0.648)))
+  const lateSupplyDate: string = addIsoDays(currentOrderInboundDueDate, Math.max(5, Math.round(orderCoverageDays * 0.786)))
+  return {
+    '230': [
+      { date: firstSplitBoundarySupplyDate, qty: 31 },
+      { date: lateSupplyDate, qty: 19 },
+    ],
+    '240': [
+      { date: earlySupplyDate, qty: 43 },
+      { date: splitBoundarySupplyDate, qty: 37 },
+    ],
+    '250': [
+      { date: firstSplitBoundarySupplyDate, qty: 23 },
+      { date: middleSupplyDate, qty: 79 },
+    ],
+    '260': [
+      { date: earlySupplyDate, qty: 17 },
+      { date: lateSupplyDate, qty: 41 },
+    ],
+  }
+}
+
+function buildInboundSplitVerificationStockOrderCalcResult(
+  productIdentity: SecondaryStockOrderCalcParams['productIdentity'],
+  currentOrderInboundDueDate: string,
+  orderCoverageDays: number,
+): SecondaryStockOrderCalcResult {
+  const displaySizeLabels: string[] = Object.keys(INBOUND_SPLIT_VERIFICATION_CURRENT_STOCK_BY_SIZE)
+  const currentStockQtyValues: number[] = displaySizeLabels.map((size: string): number => INBOUND_SPLIT_VERIFICATION_CURRENT_STOCK_BY_SIZE[size] ?? 0)
+  const existingOrderInboundSupplyBySize: SecondaryExistingOrderInboundSupplyBySize = buildInboundSplitVerificationSupplyBySize(
+    currentOrderInboundDueDate,
+    orderCoverageDays,
+  )
+  const totalOrderBalanceValues: number[] = displayTotalBySize(displaySizeLabels, existingOrderInboundSupplyBySize)
+  const expectedInboundOrderBalanceValues: number[] = displayTotalBySize(displaySizeLabels, existingOrderInboundSupplyBySize, currentOrderInboundDueDate)
+
+  return {
+    productIdentity,
+    existingOrderInboundSupplyBySize,
+    trendDailyMean: 6.9,
+    dailyMean: 6.9,
+    sigma: 2.7,
+    display: {
+      currentStockQtyTotal: currentStockQtyValues.reduce((sum: number, value: number): number => sum + value, 0),
+      totalOrderBalanceTotal: totalOrderBalanceValues.reduce((sum: number, value: number): number => sum + value, 0),
+      expectedInboundOrderBalanceTotal: expectedInboundOrderBalanceValues.reduce((sum: number, value: number): number => sum + value, 0),
+      sizeRows: buildDisplaySizeRows(
+        displaySizeLabels,
+        currentStockQtyValues,
+        totalOrderBalanceValues,
+        expectedInboundOrderBalanceValues,
+      ),
+    },
+  }
+}
+
 const buildDisplaySizeRows: (sizeLabels: string[], currentStockQtyValues: number[], totalOrderBalanceValues: number[], expectedInboundOrderBalanceValues: number[]) => { size: string; currentStockQty: number; totalOrderBalance: number; expectedInboundOrderBalance: number; }[] = (
   sizeLabels: string[],
   currentStockQtyValues: number[],
@@ -109,6 +179,9 @@ export function buildMockSecondaryStockOrderCalcResult({
   const companyUuid: string | undefined = getCompanyUuidForOptionalScope(base.sourceId)
   const primary: ProductPrimarySummary = scopeMockProductPrimary(requireMockProductPrimary(skuGroupKey), { companyUuid })
   const secondary: ProductSecondaryDetail = scopeMockProductSecondary(requireMockProductSecondary(skuGroupKey), { companyUuid })
+  if (skuGroupKey === INBOUND_SPLIT_VERIFICATION_SKU_GROUP_KEY) {
+    return buildInboundSplitVerificationStockOrderCalcResult(productIdentity, currentOrderInboundDueDate, orderCoverageDays)
+  }
   const trend: MonthlySalesPoint[] = primary.monthlySalesTrend ?? []
   const { dailyMean: trendMuRaw, sigma }: { dailyMean: number; sigma: number; } = dailyMeanSigma(trend, periodStart, periodEnd)
   const forecastMuRaw: number = dailyMeanParam !== undefined && Number.isFinite(dailyMeanParam)

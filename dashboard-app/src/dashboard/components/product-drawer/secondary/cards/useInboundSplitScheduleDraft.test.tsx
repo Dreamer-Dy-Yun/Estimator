@@ -90,8 +90,9 @@ describe('useInboundSplitScheduleDraft', (): void => {
       draft.current.changeRowTotal(0, '8')
     })
 
-    expect(draft.current.rows[0]?.quantitiesBySize).toEqual({ S: 2, M: 6 })
-    expect(draft.current.confirmedGrandTotal).toBe(8)
+    const firstRow: InboundSplitScheduleRow | undefined = draft.current.rows[0]
+    expect(firstRow?.quantitiesBySize).toEqual({ S: 2, M: 6 })
+    expect((firstRow?.quantitiesBySize.S ?? 0) + (firstRow?.quantitiesBySize.M ?? 0)).toBe(8)
   })
 
   it('uses whole-schedule suggested size totals when editing one row total', (): void => {
@@ -212,5 +213,13 @@ describe('useInboundSplitScheduleDraft', (): void => {
     })
 
     expect(draft.current.ignoreExistingOrderInboundAll).toBe(true)
+  })
+
+  it('does not enable the global ignore flag for an empty initial draft', (): void => {
+    const draft: ReturnType<typeof renderDraft> = renderDraft({
+      initialRows: [],
+    })
+
+    expect(draft.current.ignoreExistingOrderInboundAll).toBe(false)
   })
 })

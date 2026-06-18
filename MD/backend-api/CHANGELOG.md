@@ -26,7 +26,7 @@
 - `flowByDate[date].comparison.inbound` may be `null`; `flowByDate[date].base.inbound` must not be `null`. The frontend now rejects daily-trend response identity mismatches for `productId`, `dateStart`, `dateEnd`, or `forecastStartDate`.
 - `getSecondaryInboundSplitSource` is source-only for split-inbound shortage suggestions. It does not receive split count, selected split dates, current popup draft quantities, or split result rows.
 - `getSecondaryInboundSplitSource` now uses `calculationBaseDate`, `coverageStartDate`, and exclusive `coverageEndDate`. `supplyBySize[size][]` contains current stock on `calculationBaseDate` and existing-order inbound supply points. `salesForecastByDate[date][size]` contains sales forecast only; existing-order inbound is no longer mixed into the daily sales cell.
-- Split inbound confirmed rounds now store `ignoreExistingOrderInbound`. When true for a round, existing-order inbound supply points inside that round interval are excluded from the shortage suggestion flow.
+- Split inbound confirmed rounds now store `ignoreExistingOrderInbound`. The current UI exposes this as one schedule-level toggle and writes the same value to all rounds on apply.
 
 ## 2026-06-10 current API rewrite
 

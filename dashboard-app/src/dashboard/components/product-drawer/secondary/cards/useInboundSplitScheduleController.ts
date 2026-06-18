@@ -79,6 +79,11 @@ function makeInboundSplitDraftErrorInfo(request: InboundSplitDraftRequest, err: 
   }
 }
 
+function requireInboundSplitSource(source: SecondaryInboundSplitSource | null): SecondaryInboundSplitSource {
+  if (source == null) throw new Error('Inbound split source is required before building split rows.')
+  return source
+}
+
 export function useInboundSplitScheduleController({
   sizeRows,
   currentOrderInboundDueDate,
@@ -107,13 +112,13 @@ export function useInboundSplitScheduleController({
   const initialCount: number = splitRoundsControlDirectConfirm ? splitRoundRows.length : splitCount
 
   const buildRowsForCount: (next: number) => InboundSplitScheduleRow[] = useCallback((next: number): InboundSplitScheduleRow[] => {
-    if (inboundSplitSource == null) return []
-    return buildInboundSplitScheduleRows(columns, clampInboundSplitCount(next), currentOrderInboundDueDate, nextOrderInboundDueDate, inboundSplitSource)
+    const source: SecondaryInboundSplitSource = requireInboundSplitSource(inboundSplitSource)
+    return buildInboundSplitScheduleRows(columns, clampInboundSplitCount(next), currentOrderInboundDueDate, nextOrderInboundDueDate, source)
   }, [columns, currentOrderInboundDueDate, inboundSplitSource, nextOrderInboundDueDate])
 
   const recalculateRows: (rows: InboundSplitScheduleRow[]) => InboundSplitScheduleRow[] = useCallback((rows: InboundSplitScheduleRow[]): InboundSplitScheduleRow[] => {
-    if (inboundSplitSource == null) return rows
-    return recalculateInboundSplitScheduleRows(rows, columns, nextOrderInboundDueDate, inboundSplitSource)
+    const source: SecondaryInboundSplitSource = requireInboundSplitSource(inboundSplitSource)
+    return recalculateInboundSplitScheduleRows(rows, columns, nextOrderInboundDueDate, source)
   }, [columns, inboundSplitSource, nextOrderInboundDueDate])
 
   const dialogBuildResult: InboundSplitRowsBuildResult = useMemo((): InboundSplitRowsBuildResult => {

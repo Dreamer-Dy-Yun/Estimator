@@ -80,11 +80,12 @@ Last updated: 2026-06-18
 | `getProductSalesInsight` | GET | `/products/{skuGroupKey}/sales-insight` | `skuGroupKey` | `startDate`, `endDate`, base subject fields, comparison subject fields | none | `ProductSalesInsight` |
 | `getProductSecondaryDetail` | GET | `/products/{skuGroupKey}/secondary-detail` | `skuGroupKey` | base subject fields, comparison subject fields, `minOpMarginPct?` | none | `ProductSecondaryDetail` |
 | `getSecondaryDailyTrend` | GET | `/products/{skuGroupKey}/secondary/daily-trend` | `skuGroupKey` | `startDate`, `endDate`, `forecastDays`, base subject fields, comparison subject fields | none | `SecondaryDailyTrendSource` |
-| `getSecondaryInboundSplitSource` | GET | `/products/{skuGroupKey}/secondary/inbound-split-source` | `skuGroupKey` | `productIdentity` fields, `calculationBaseDate`, `coverageStartDate`, `coverageEndDate`, base subject fields | none | `SecondaryInboundSplitSource` |
+| `getSecondaryInboundSplitSource` | GET | `/products/{skuGroupKey}/secondary/inbound-split-source` | `skuGroupKey` | `productSkuGroupKey`, `productUuid?`, `productBrand`, `productCode`, `productColorCode`, `calculationBaseDate`, `coverageStartDate`, `coverageEndDate`, base subject fields | none | `SecondaryInboundSplitSource` |
 | `getSecondaryAiComment` | POST | `/products/{skuGroupKey}/secondary/ai-comment` | `skuGroupKey` | none | `SecondaryAiCommentParams` without `skuGroupKey` | `SecondaryAiCommentResult` |
 | `getSecondaryCompetitorChannels` | GET | `/secondary/competitor-channels` | none | none | none | `SecondaryCompetitorChannel[]` |
 | `getSecondaryStockOrderCalc` | POST | `/secondary/stock-order-calc` | none | none | `SecondaryStockOrderCalcParams` | `SecondaryStockOrderCalcResult` |
 `SecondaryProductIdentity`: `productUuid?`, `skuGroupKey`, `brand`, `code`, `colorCode`.
+For `getSecondaryInboundSplitSource`, the frontend flattens this identity into query keys: `productSkuGroupKey`, `productUuid?`, `productBrand`, `productCode`, `productColorCode`.
 `SecondaryStockOrderCalcParams`: `skuGroupKey`, `productIdentity`, `base`, `periodStart`, `periodEnd`, `calculationBaseDate`, `currentOrderInboundDueDate`, `forecastPeriodEndMonth?`, `orderCoverageDays`, `dailyMean?`.
 `forecastPeriodEndMonth` uses `YYYY-MM` and represents the month containing the final included coverage date (`nextOrderInboundDueDate - 1 day` for the current split/order window). `orderCoverageDays` is the order coverage day count.
 
@@ -110,6 +111,23 @@ Last updated: 2026-06-18
 - `salesForecastByDate: Record<date, Record<size, number>>`
 
 `supplyBySize[size][]` uses the same point shape as A. The `calculationBaseDate` point is current stock, and later points are existing-order inbound quantities unrelated to the draft/current order. `salesForecastByDate` contains sales forecast only and must not mix inbound quantities.
+
+Example query:
+
+```text
+GET /api/v1/products/TEST-SHOE__210/secondary/inbound-split-source
+  ?productSkuGroupKey=TEST-SHOE__210
+  &productUuid=sku-uuid
+  &productBrand=Brand
+  &productCode=TEST-SHOE
+  &productColorCode=210
+  &calculationBaseDate=2026-06-18
+  &coverageStartDate=2026-12-17
+  &coverageEndDate=2027-06-17
+  &baseRole=base
+  &baseKind=self-company
+  &baseSourceId=company-uuid
+```
 
 ## 8. Candidate stash / item
 

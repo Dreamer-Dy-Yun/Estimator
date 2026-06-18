@@ -55,13 +55,13 @@ function calcResult(dailyMean: number): SecondaryStockOrderCalcResult {
 }
 
 function Probe({ dailyMeanClient }: { dailyMeanClient: number | null }) : React.JSX.Element {
-  const state: { forecastCalc: SecondaryStockOrderCalcResult | null; forecastCalcError: ApiUnitErrorInfo | null; forecastCalcLoading: boolean; } = useSecondaryStockOrderCalc({
+  const state: { stockOrderCalc: SecondaryStockOrderCalcResult | null; stockOrderCalcError: ApiUnitErrorInfo | null; stockOrderCalcLoading: boolean; } = useSecondaryStockOrderCalc({
     ...BASE_PROPS,
     dailyMeanClient,
   })
   return (
-    <output data-loading={state.forecastCalcLoading}>
-      {state.forecastCalc?.dailyMean ?? ''}
+    <output data-loading={state.stockOrderCalcLoading}>
+      {state.stockOrderCalc?.dailyMean ?? ''}
     </output>
   )
 }

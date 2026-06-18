@@ -89,7 +89,7 @@ const baseSelfSalesRows: SelfSalesRow[] = withSkuColor<SelfSalesRow>([
   { id: 'AD', rank: 24, rankPercentile: 95.2, brand: '아디다스', category: '가방', code: 'AD', productName: 'ADDDD', avgPrice: 116000, qty: 4400, amount: 510400000, avgCost: 90000, marginRate: 22.4, feeRate: 13, opMarginRate: 9.4, opMarginAmount: 47977600 },
   { id: 'AE', rank: 25, rankPercentile: 95.0, brand: '뉴발란스', category: '신발', code: 'AE', productName: 'AEEEE', avgPrice: 141000, qty: 3000, amount: 423000000, avgCost: 110000, marginRate: 22.0, feeRate: 13, opMarginRate: 9.0, opMarginAmount: 38070000 },
   { id: 'TEST_TOP', rank: 26, rankPercentile: 94.8, brand: '테스트브랜드', category: '의류', code: 'TEST-TOP', productName: '테스트 상의', avgPrice: 100000, qty: 2400, amount: 240000000, avgCost: 60000, marginRate: 40, feeRate: 10, opMarginRate: 30, opMarginAmount: 72000000 },
-  { id: 'TEST_SHOE', rank: 27, rankPercentile: 94.6, brand: '테스트브랜드', category: '신발', code: 'TEST-SHOE', productName: '테스트 신발', avgPrice: 129000, qty: 3600, amount: 464400000, avgCost: 99000, marginRate: 23.3, feeRate: 13, opMarginRate: 10.3, opMarginAmount: 47833200 },
+  { id: 'TEST_SHOE', rank: 27, rankPercentile: 94.6, brand: '입고분할검증', category: '신발', code: 'TEST-SHOE', productName: '예상입고/기존재고 분할설정 적용 테스트', avgPrice: 129000, qty: 1259, amount: 162411000, avgCost: 99000, marginRate: 23.3, feeRate: 13, opMarginRate: 10.3, opMarginAmount: 16728333 },
 ])
 
 const baseCompetitorSalesRows: CompetitorSalesRow[] = withSkuColor<CompetitorSalesRow>([
@@ -119,7 +119,7 @@ const baseCompetitorSalesRows: CompetitorSalesRow[] = withSkuColor<CompetitorSal
   { id: 'AD', rank: 24, rankPercentile: 95.2, brand: '아디다스', category: '가방', code: 'AD', productName: 'ADDDD', competitorAvgPrice: 119000, competitorQty: 4200, competitorAmount: 499800000, selfAvgPrice: 116000, selfQty: 4400, selfAmount: 510400000 },
   { id: 'AE', rank: 25, rankPercentile: 95.0, brand: '뉴발란스', category: '신발', code: 'AE', productName: 'AEEEE', competitorAvgPrice: 145000, competitorQty: 2800, competitorAmount: 406000000, selfAvgPrice: 141000, selfQty: 3000, selfAmount: 423000000 },
   { id: 'TEST_TOP', rank: 26, rankPercentile: 94.8, brand: '테스트브랜드', category: '의류', code: 'TEST-TOP', productName: '테스트 상의', competitorAvgPrice: 110000, competitorQty: 4800, competitorAmount: 528000000, selfAvgPrice: 100000, selfQty: 2400, selfAmount: 240000000 },
-  { id: 'TEST_SHOE', rank: 27, rankPercentile: 94.6, brand: '테스트브랜드', category: '신발', code: 'TEST-SHOE', productName: '테스트 신발', competitorAvgPrice: 133000, competitorQty: 3400, competitorAmount: 452200000, selfAvgPrice: 129000, selfQty: 3600, selfAmount: 464400000 },
+  { id: 'TEST_SHOE', rank: 27, rankPercentile: 94.6, brand: '입고분할검증', category: '신발', code: 'TEST-SHOE', productName: '예상입고/기존재고 분할설정 적용 테스트', competitorAvgPrice: 133000, competitorQty: 1391, competitorAmount: 185003000, selfAvgPrice: 129000, selfQty: 1259, selfAmount: 162411000 },
 ])
 
 function isFixedVerificationRow(row: { id: string }): boolean {

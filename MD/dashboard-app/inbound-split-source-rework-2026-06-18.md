@@ -24,8 +24,8 @@
 
 `getSecondaryInboundSplitSource` request:
 
-- path/query: `skuGroupKey`
-- query/body params: `productIdentity`, `calculationBaseDate`, `coverageStartDate`, `coverageEndDate`, `base`
+- path: `skuGroupKey`
+- query params: `productSkuGroupKey`, `productUuid?`, `productBrand`, `productCode`, `productColorCode`, `calculationBaseDate`, `coverageStartDate`, `coverageEndDate`, `baseRole`, `baseKind`, `baseSourceId?`
 
 `getSecondaryInboundSplitSource` response:
 

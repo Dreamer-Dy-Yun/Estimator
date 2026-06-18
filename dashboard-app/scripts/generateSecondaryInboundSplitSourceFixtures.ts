@@ -31,6 +31,33 @@ const INBOUND_SPLIT_SCOPE_ALL_KEY = '__mock-all-company__'
 const INBOUND_SPLIT_SOURCE_RANGE_START = '2026-01-01'
 const INBOUND_SPLIT_SOURCE_RANGE_END = '2029-01-01'
 const DAY_MS = 86_400_000
+const INBOUND_SPLIT_VERIFICATION_SKU_GROUP_KEY = 'TEST-SHOE__210' as const
+const INBOUND_SPLIT_VERIFICATION_STOCK_BY_SIZE: Record<string, number> = {
+  '230': 87,
+  '240': 29,
+  '250': 0,
+  '260': 11,
+}
+const INBOUND_SPLIT_VERIFICATION_INBOUND_BY_DATE: Record<string, Record<string, number>> = {
+  '2027-01-15': { '240': 43, '260': 17 },
+  '2027-02-18': { '230': 31, '250': 23 },
+  '2027-03-18': { '240': 37 },
+  '2027-04-15': { '250': 79 },
+  '2027-05-10': { '230': 19, '260': 41 },
+}
+const INBOUND_SPLIT_VERIFICATION_SALES_PROFILE: Array<{
+  start: string
+  end: string
+  dailySaleBySize: Record<string, number>
+}> = [
+  { start: '2026-12-18', end: '2027-01-15', dailySaleBySize: { '230': 0.72, '240': 1.28, '250': 1.95, '260': 0.88 } },
+  { start: '2027-01-15', end: '2027-02-18', dailySaleBySize: { '230': 1.05, '240': 1.72, '250': 2.35, '260': 1.26 } },
+  { start: '2027-02-18', end: '2027-03-18', dailySaleBySize: { '230': 1.38, '240': 2.18, '250': 3.1, '260': 0.96 } },
+  { start: '2027-03-18', end: '2027-04-15', dailySaleBySize: { '230': 0.84, '240': 1.36, '250': 2.05, '260': 1.74 } },
+  { start: '2027-04-15', end: '2027-05-10', dailySaleBySize: { '230': 1.62, '240': 2.45, '250': 3.55, '260': 1.22 } },
+  { start: '2027-05-10', end: '2027-06-18', dailySaleBySize: { '230': 1.14, '240': 1.88, '250': 2.7, '260': 2.08 } },
+  { start: '2027-06-18', end: INBOUND_SPLIT_SOURCE_RANGE_END, dailySaleBySize: { '230': 1.1, '240': 1.6, '250': 2.2, '260': 1.3 } },
+]
 const TARGET_ORDER_MULTIPLIER_BY_SIZE = 1 as const
 const MIN_ANNUAL_TARGET_QTY = 1 as const
 const INBOUND_RATIO = 0.22
@@ -111,7 +138,45 @@ function buildDailyProfile(monthTotal: number, month: string, seed: number): num
   return allocateInteger(monthTotal, dayWeights)
 }
 
+function verificationDailySaleForSize(date: string, cursorMs: number, size: string): number {
+  const profile = INBOUND_SPLIT_VERIFICATION_SALES_PROFILE.find((candidate: { start: string; end: string; dailySaleBySize: Record<string, number> }): boolean => {
+    const startMs: number = parseIsoDateStart(candidate.start, 'verificationSalesProfile.start')
+    const endMs: number = parseIsoDateStart(candidate.end, 'verificationSalesProfile.end')
+    return cursorMs >= startMs && cursorMs < endMs
+  })
+  if (profile == null) return 0
+  const baseSale: number = profile.dailySaleBySize[size] ?? 0
+  return Math.round(baseSale * 100) / 100
+}
+
+function buildVerificationFixtureEntry(): FixtureEntry {
+  const sizes: string[] = Object.keys(INBOUND_SPLIT_VERIFICATION_STOCK_BY_SIZE)
+  const expectationByDate: Record<string, Record<string, SecondaryInboundSplitExpectationCell>> = {}
+  const startMs: number = parseIsoDateStart(INBOUND_SPLIT_SOURCE_RANGE_START, 'rangeStart')
+  const endMs: number = parseIsoDateStart(INBOUND_SPLIT_SOURCE_RANGE_END, 'rangeEnd')
+  for (let cursorMs: number = startMs; cursorMs < endMs; cursorMs += DAY_MS) {
+    const date: string = formatIsoDate(new Date(cursorMs))
+    const inboundBySize: Record<string, number> = INBOUND_SPLIT_VERIFICATION_INBOUND_BY_DATE[date] ?? {}
+    expectationByDate[date] = Object.fromEntries(
+      sizes.map((size: string): [string, SecondaryInboundSplitExpectationCell] => [
+        size,
+        {
+          sale: verificationDailySaleForSize(date, cursorMs, size),
+          inbound: inboundBySize[size] ?? 0,
+        },
+      ]),
+    )
+  }
+
+  return {
+    stockBySize: { ...INBOUND_SPLIT_VERIFICATION_STOCK_BY_SIZE },
+    expectationByDate,
+  }
+}
+
 function buildFixtureEntry(skuGroupKey: string, baseScope: { companyUuid?: string }): FixtureEntry {
+  if (skuGroupKey === INBOUND_SPLIT_VERIFICATION_SKU_GROUP_KEY) return buildVerificationFixtureEntry()
+
   const secondary: ProductSecondaryDetail = scopeMockProductSecondary(productSecondaryBySkuGroupKey[skuGroupKey], baseScope)
   const sizeRows: ProductSecondaryDetail['sizeRows'] = secondary.sizeRows
   const sizes: string[] = sizeRows.map((row: ProductSecondaryDetail['sizeRows'][number]): string => row.size)

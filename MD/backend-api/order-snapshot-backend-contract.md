@@ -114,7 +114,7 @@ This block follows the AI comment render model `SecondaryAiCommentView`.
 Required fields: `rounds`.
 `rounds[]` fields: `date`, `ignoreExistingOrderInbound`, `qtyBySize`.
 `qtyBySize` is keyed by `sizeOrders[].size`.
-Each round follows the split inbound schedule state model `SecondaryConfirmedRound`. `ignoreExistingOrderInbound=true` means the frontend excluded existing-order inbound supply points inside that round interval when deriving the suggestion.
+Each round follows the split inbound schedule state model `SecondaryConfirmedRound`. The current UI exposes one schedule-level toggle and writes the same `ignoreExistingOrderInbound` value to every round on apply. `ignoreExistingOrderInbound=true` means existing-order inbound supply points inside the affected split interval were excluded when deriving the suggestion.
 Round numbers are not stored. The frontend/backend derives `1차`, `2차`, ... from the array order.
 Total quantity is not stored. Consumers derive it from `sum(confirmed.rounds[].qtyBySize)`.
 

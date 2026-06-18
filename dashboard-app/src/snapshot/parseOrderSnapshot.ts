@@ -34,18 +34,20 @@ const SIZE_ORDER_QUANTITY_KEYS = ['forecastQty', 'recommendedQty'] as const
 
 export function parseOrderSnapshot(snapshotInput: unknown): OrderSnapshotDocument {
   const d: Obj = expectRecord(snapshotInput, 'snapshot')
+  const isLegacySnapshot: boolean =
+    d.schemaVersion === LEGACY_SCHEMA_VERSION_6 ||
+    d.schemaVersion === LEGACY_SCHEMA_VERSION_5 ||
+    d.schemaVersion === LEGACY_SCHEMA_VERSION_4
   if (
     d.schemaVersion !== ORDER_SNAPSHOT_SCHEMA_VERSION &&
-    d.schemaVersion !== LEGACY_SCHEMA_VERSION_6 &&
-    d.schemaVersion !== LEGACY_SCHEMA_VERSION_5 &&
-    d.schemaVersion !== LEGACY_SCHEMA_VERSION_4
+    !isLegacySnapshot
   ) {
     throw new Error('snapshot schemaVersion mismatch: ' + String(d.schemaVersion))
   }
   const skuGroupKey: string = expectNonEmptyString(d.skuGroupKey, 'snapshot.skuGroupKey')
   const context: OrderSnapshotDocument['context'] = normalizeContext(expectRecord(d.context, 'context'))
   const drawer1: OrderSnapshotDrawer1 = normalizeDrawer1Structure(expectRecord(d.drawer1, 'drawer1'))
-  const drawer2: OrderSnapshotDrawer2 = normalizeDrawer2Structure(expectRecord(d.drawer2, 'drawer2'), drawer1.summary)
+  const drawer2: OrderSnapshotDrawer2 = normalizeDrawer2Structure(expectRecord(d.drawer2, 'drawer2'), drawer1.summary, isLegacySnapshot)
   expectMatchingNumbers(context.dailyTrendForecastDays, drawer2.stockOrderRequest.orderCoverageDays, 'context.dailyTrendForecastDays', 'drawer2.stockOrderRequest.orderCoverageDays')
   expectMatchingStrings(skuGroupKey, drawer1.summary.skuGroupKey, 'snapshot.skuGroupKey', 'drawer1.summary.skuGroupKey')
   expectMatchingStrings(skuGroupKey, drawer2.comparisonBasis.skuGroupKey, 'snapshot.skuGroupKey', 'drawer2.comparisonBasis.skuGroupKey')
@@ -105,10 +107,10 @@ function normalizeMonthlySalesTrend(value: unknown): OrderSnapshotMonthlySalesTr
   })
 }
 
-function normalizeDrawer2Structure(drawer2: Obj, primarySummary: OrderSnapshotPrimarySummary): OrderSnapshotDocument['drawer2'] {
+function normalizeDrawer2Structure(drawer2: Obj, primarySummary: OrderSnapshotPrimarySummary, isLegacySnapshot: boolean): OrderSnapshotDocument['drawer2'] {
   const sizeOrders: OrderSnapshotSizeOrder[] = normalizeSizeOrders(drawer2.sizeOrders)
   const stockOrderRequest: OrderSnapshotDocument['drawer2']['stockOrderRequest'] = normalizeStockOrderRequest(drawer2.stockOrderRequest)
-  const stockOrderResult: OrderSnapshotStockOrderResult = normalizeStockOrderResult(drawer2.stockOrderResult, sizeOrders, stockOrderRequest, primarySummary)
+  const stockOrderResult: OrderSnapshotStockOrderResult = normalizeStockOrderResult(drawer2.stockOrderResult, sizeOrders, stockOrderRequest, primarySummary, isLegacySnapshot)
   const unitEconomics: OrderSnapshotUnitEconomics = normalizeUnitEconomics(drawer2.unitEconomics)
   const confirmed: OrderSnapshotConfirmed = normalizeConfirmed(drawer2.confirmed, sizeOrders)
   return {
@@ -209,19 +211,21 @@ function normalizeStockOrderResult(
   sizeOrders: OrderSnapshotDocument['drawer2']['sizeOrders'],
   stockOrderRequest: OrderSnapshotDocument['drawer2']['stockOrderRequest'],
   primarySummary: OrderSnapshotPrimarySummary,
+  isLegacySnapshot: boolean,
 ): OrderSnapshotDocument['drawer2']['stockOrderResult'] {
   const source: Obj = expectRecord(value, 'drawer2.stockOrderResult')
   const display: StockOrderResult['display'] = normalizeStockOrderDisplay(source.display, sizeOrders)
   return {
-    productIdentity: normalizeProductIdentity(source.productIdentity, primarySummary),
-    existingOrderInboundSupplyBySize: normalizeExistingOrderInboundSupplyBySize(source.existingOrderInboundSupplyBySize, sizeOrders, stockOrderRequest, display),
+    productIdentity: normalizeProductIdentity(source.productIdentity, primarySummary, isLegacySnapshot),
+    existingOrderInboundSupplyBySize: normalizeExistingOrderInboundSupplyBySize(source.existingOrderInboundSupplyBySize, sizeOrders, stockOrderRequest, display, isLegacySnapshot),
     ...normalizeNumberFields(source, 'drawer2.stockOrderResult', STOCK_RESULT_KEYS),
     display,
   }
 }
 
-function normalizeProductIdentity(value: unknown, primarySummary: OrderSnapshotPrimarySummary): StockOrderResult['productIdentity'] {
+function normalizeProductIdentity(value: unknown, primarySummary: OrderSnapshotPrimarySummary, isLegacySnapshot: boolean): StockOrderResult['productIdentity'] {
   if (value == null) {
+    if (!isLegacySnapshot) throw new Error('drawer2.stockOrderResult.productIdentity is required')
     return {
       ...(primarySummary.productUuid == null ? {} : { productUuid: primarySummary.productUuid }),
       skuGroupKey: primarySummary.skuGroupKey,
@@ -245,8 +249,12 @@ function normalizeExistingOrderInboundSupplyBySize(
   sizeOrders: OrderSnapshotDocument['drawer2']['sizeOrders'],
   stockOrderRequest: OrderSnapshotDocument['drawer2']['stockOrderRequest'],
   display: StockOrderResult['display'],
+  isLegacySnapshot: boolean,
 ): StockOrderResult['existingOrderInboundSupplyBySize'] {
-  if (value == null) return buildLegacyExistingOrderInboundSupplyBySize(display, stockOrderRequest)
+  if (value == null) {
+    if (!isLegacySnapshot) throw new Error('drawer2.stockOrderResult.existingOrderInboundSupplyBySize is required')
+    return buildLegacyExistingOrderInboundSupplyBySize(display, stockOrderRequest)
+  }
   const source: Obj = expectRecord(value, 'drawer2.stockOrderResult.existingOrderInboundSupplyBySize')
   const sizeOrderSizes: Set<string> = new Set(sizeOrders.map((row: OrderSnapshotSizeOrder): string => row.size))
   const rows: Array<{ size: string }> = Object.keys(source).map((size: string): { size: string } => ({ size }))

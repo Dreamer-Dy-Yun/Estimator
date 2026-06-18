@@ -8,7 +8,6 @@ import {
   type InboundSplitSizeColumn,
 } from './inboundSplitScheduleModel'
 import { redistributeInboundSplitRowTotalBySuggestedSizeMix, toInboundSplitDraftInteger } from './inboundSplitDraftQuantityModel'
-import { sumInboundSplitColumnTotals, sumInboundSplitConfirmedBySize, sumInboundSplitSuggestedBySize } from './inboundSplitScheduleTotals'
 import type { InboundSplitDraftRequest } from './inboundSplitScheduleTypes'
 
 export interface UseInboundSplitScheduleDraftArgs {
@@ -25,15 +24,21 @@ export interface UseInboundSplitScheduleDraftResult {
   rows: InboundSplitScheduleRow[]
   countOptions: number[]
   ignoreExistingOrderInboundAll: boolean
-  suggestedSizeTotals: Record<string, number>
-  confirmedSizeTotals: Record<string, number>
-  suggestedGrandTotal: number
-  confirmedGrandTotal: number
   changeCount: (value: string) => void
   changeDate: (rowIndex: number, value: string) => void
   changeIgnoreExistingOrderInboundAll: (checked: boolean) => void
   changeRowTotal: (rowIndex: number, value: string) => void
   changeQty: (rowIndex: number, size: string, value: string) => void
+}
+
+function syncIgnoreExistingOrderInbound(
+  targetRows: readonly InboundSplitScheduleRow[],
+  checked: boolean,
+): InboundSplitScheduleRow[] {
+  return targetRows.map((row: InboundSplitScheduleRow): InboundSplitScheduleRow => ({
+    ...row,
+    ignoreExistingOrderInbound: checked,
+  }))
 }
 
 export function useInboundSplitScheduleDraft({
@@ -46,18 +51,10 @@ export function useInboundSplitScheduleDraft({
 }: UseInboundSplitScheduleDraftArgs): UseInboundSplitScheduleDraftResult {
   const [count, setCount]: [number, React.Dispatch<React.SetStateAction<number>>] = useState<number>(initialCount)
   const [ignoreExistingOrderInboundAll, setIgnoreExistingOrderInboundAll]: [boolean, React.Dispatch<React.SetStateAction<boolean>>] = useState<boolean>(
-    initialRows.every((row: InboundSplitScheduleRow): boolean => row.ignoreExistingOrderInbound),
+    initialRows.length > 0 && initialRows.every((row: InboundSplitScheduleRow): boolean => row.ignoreExistingOrderInbound),
   )
   const [rows, setRows]: [InboundSplitScheduleRow[], React.Dispatch<React.SetStateAction<InboundSplitScheduleRow[]>>] = useState<InboundSplitScheduleRow[]>((): InboundSplitScheduleRow[] => cloneInboundSplitRows(initialRows))
   const countOptions: number[] = useMemo((): number[] => Array.from({ length: MAX_INBOUND_SPLIT_COUNT - MIN_INBOUND_SPLIT_COUNT + 1 }, (_: unknown, index: number): number => MIN_INBOUND_SPLIT_COUNT + index), [])
-
-  const cloneRowsByIgnoreExistingOrderInboundAll: (targetRows: readonly InboundSplitScheduleRow[], checked: boolean) => InboundSplitScheduleRow[] = (
-    targetRows: readonly InboundSplitScheduleRow[],
-    checked: boolean,
-  ): InboundSplitScheduleRow[] => targetRows.map((row: InboundSplitScheduleRow): InboundSplitScheduleRow => ({
-    ...row,
-    ignoreExistingOrderInbound: checked,
-  }))
 
   const changeDate: (rowIndex: number, value: string) => void = useCallback((rowIndex: number, value: string): void => {
     setRows((currentRows: InboundSplitScheduleRow[]): InboundSplitScheduleRow[] => {
@@ -78,7 +75,7 @@ export function useInboundSplitScheduleDraft({
   const changeCount: (value: string) => void = useCallback((value: string): void => {
     const nextCount: number = clampInboundSplitCount(Number(value))
     try {
-      const builtRows: InboundSplitScheduleRow[] = cloneRowsByIgnoreExistingOrderInboundAll(
+      const builtRows: InboundSplitScheduleRow[] = syncIgnoreExistingOrderInbound(
         buildRowsForCount(nextCount),
         ignoreExistingOrderInboundAll,
       )
@@ -100,7 +97,7 @@ export function useInboundSplitScheduleDraft({
   const changeIgnoreExistingOrderInboundAll: (checked: boolean) => void = useCallback((checked: boolean): void => {
     setIgnoreExistingOrderInboundAll(checked)
     setRows((currentRows: InboundSplitScheduleRow[]): InboundSplitScheduleRow[] => {
-      const nextRows: InboundSplitScheduleRow[] = cloneRowsByIgnoreExistingOrderInboundAll(currentRows, checked)
+      const nextRows: InboundSplitScheduleRow[] = syncIgnoreExistingOrderInbound(currentRows, checked)
       try {
         const recalculatedRows: InboundSplitScheduleRow[] = recalculateRows(nextRows)
         onDraftError?.(null, 'recalculateInboundSplitScheduleRows')
@@ -128,27 +125,11 @@ export function useInboundSplitScheduleDraft({
     )))
   }, [])
 
-  const suggestedSizeTotals: Record<string, number> = useMemo((): Record<string, number> => sumInboundSplitSuggestedBySize(rows, columns), [columns, rows])
-  const confirmedSizeTotals: Record<string, number> = useMemo((): Record<string, number> => sumInboundSplitConfirmedBySize(rows, columns), [columns, rows])
-
-  const suggestedGrandTotal: number = useMemo(
-    (): number => sumInboundSplitColumnTotals(columns, suggestedSizeTotals),
-    [columns, suggestedSizeTotals],
-  )
-  const confirmedGrandTotal: number = useMemo(
-    (): number => sumInboundSplitColumnTotals(columns, confirmedSizeTotals),
-    [columns, confirmedSizeTotals],
-  )
-
   return {
     count,
     rows,
     countOptions,
     ignoreExistingOrderInboundAll,
-    suggestedSizeTotals,
-    confirmedSizeTotals,
-    suggestedGrandTotal,
-    confirmedGrandTotal,
     changeCount,
     changeDate,
     changeIgnoreExistingOrderInboundAll,

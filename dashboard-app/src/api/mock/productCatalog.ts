@@ -52,6 +52,30 @@ function buildSimpleCalcSecondary(skuGroupKey: string, comparisonPrice: number, 
   }
 }
 
+function buildInboundSplitVerificationSecondary(skuGroupKey: string): ProductSecondaryDetail {
+  const sizes: string[] = ['230', '240', '250', '260']
+  const selfRatios: number[] = [11, 23, 31, 17]
+  const comparisonRatios: number[] = [19, 13, 41, 27]
+  const comparisonRatioTotal: number = comparisonRatios.reduce((sum: number, ratio: number): number => sum + ratio, 0)
+  const confirmedQtyValues: number[] = [137, 221, 358, 149]
+  const salesQtyValues: number[] = [203, 328, 473, 255]
+  const stockQtyValues: number[] = [87, 29, 0, 11]
+  return {
+    skuGroupKey,
+    comparisonPrice: 129000,
+    comparisonQty: 1391,
+    comparisonRatioBySize: Object.fromEntries(sizes.map((size: string, index: number): [string, number] => [size, (comparisonRatios[index] ?? 0) / comparisonRatioTotal])),
+    sizeRows: sizes.map((size: string, index: number): ProductSecondaryDetail['sizeRows'][number] => ({
+      size,
+      selfRatio: selfRatios[index] ?? 0,
+      confirmedQty: confirmedQtyValues[index] ?? 0,
+      avgPrice: 129000,
+      qty: salesQtyValues[index] ?? 0,
+      availableStock: stockQtyValues[index] ?? 0,
+    })),
+  }
+}
+
 export const skuMetadataBySkuGroupKey: Record<string, MockSkuMetadata> = Object.fromEntries(
   allKnownSkuGroupKeys.map((skuGroupKey: string) : [string, MockSkuMetadata] => [skuGroupKey, buildSkuMetadata(skuGroupKey)]),
 )
@@ -87,6 +111,21 @@ export const { primary: productPrimaryBySkuGroupKey, secondary: productSecondary
         monthlySalesTrend: makeFlatTrend(200, 200),
       }
       secondary[skuGroupKey] = buildSimpleCalcSecondary(skuGroupKey, 110000, 4800)
+      continue
+    }
+
+    if (metadata.code === 'TEST-SHOE') {
+      primary[skuGroupKey] = {
+        ...metadata,
+        productName: '예상입고/기존재고 분할설정 적용 테스트',
+        brand: '입고분할검증',
+        category: '신발',
+        price: 129000,
+        qty: 1259,
+        availableStock: 127,
+        monthlySalesTrend: makeFlatTrend(0, 210),
+      }
+      secondary[skuGroupKey] = buildInboundSplitVerificationSecondary(skuGroupKey)
       continue
     }
 

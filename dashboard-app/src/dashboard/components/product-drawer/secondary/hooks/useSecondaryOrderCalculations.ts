@@ -16,7 +16,7 @@ export type Args = {
   secondary: ProductSecondaryDetail
   forecastSalesHorizonDays: number
   dailyMeanClient: number | null
-  forecastCalc: SecondaryStockOrderCalcResult | null
+  stockOrderCalc: SecondaryStockOrderCalcResult | null
   stockOrderCalculationReady?: boolean
   selfWeightPct: number
   bufferStock: number
@@ -30,7 +30,7 @@ export function useSecondaryOrderCalculations({
   secondary,
   forecastSalesHorizonDays,
   dailyMeanClient,
-  forecastCalc,
+  stockOrderCalc,
   stockOrderCalculationReady,
   selfWeightPct,
   bufferStock,
@@ -40,10 +40,10 @@ export function useSecondaryOrderCalculations({
   snapshotSizeOrders,
 }: Args) : { stockOrderCalculationReady: boolean; stockOrderDisplayInputs: { trendDailyMean: null; dailyMean: null; sigma: null; } | { trendDailyMean: number; dailyMean: number; sigma: number; }; sizeRows: SecondarySizeOrderDisplayRow[]; manualConfirmDerived: Record<string, true>; dailyTrendSizeOptions: { id: string; label: string; share: number; }[]; } {
   const calculationReady: boolean = stockOrderCalculationReady == null
-    ? forecastCalc != null
-    : stockOrderCalculationReady && forecastCalc != null
+    ? stockOrderCalc != null
+    : stockOrderCalculationReady && stockOrderCalc != null
   const stockOrderDisplayInputs: { trendDailyMean: null; dailyMean: null; sigma: null; } | { trendDailyMean: number; dailyMean: number; sigma: number; } = useMemo(() : { trendDailyMean: null; dailyMean: null; sigma: null; } | { trendDailyMean: number; dailyMean: number; sigma: number; } => {
-    if (!calculationReady || forecastCalc == null) {
+    if (!calculationReady || stockOrderCalc == null) {
       return {
         trendDailyMean: null,
         dailyMean: null,
@@ -51,14 +51,14 @@ export function useSecondaryOrderCalculations({
       }
     }
     return {
-      trendDailyMean: forecastCalc.trendDailyMean,
-      dailyMean: dailyMeanClient ?? forecastCalc.dailyMean,
-      sigma: forecastCalc.sigma,
+      trendDailyMean: stockOrderCalc.trendDailyMean,
+      dailyMean: dailyMeanClient ?? stockOrderCalc.dailyMean,
+      sigma: stockOrderCalc.sigma,
     }
   }, [
     calculationReady,
     dailyMeanClient,
-    forecastCalc,
+    stockOrderCalc,
   ])
 
   const orderDraft: SecondaryOrderDraft = useMemo(
@@ -87,8 +87,8 @@ export function useSecondaryOrderCalculations({
         confirmQty: orderDraft.confirmQty(row.size, row.recommendedQty),
       }))
     }
-    const readyForecastCalc: SecondaryStockOrderCalcResult | null = calculationReady ? forecastCalc : null
-    if (readyForecastCalc == null) {
+    const readyStockOrderCalc: SecondaryStockOrderCalcResult | null = calculationReady ? stockOrderCalc : null
+    if (readyStockOrderCalc == null) {
       return sizeShares.map<SecondarySizeOrderDisplayRow>((row: SecondarySizeShare) : { size: string; baseSharePct: number; comparisonSharePct: number; blendedSharePct: number; forecastQty: number; recommendedQty: number; confirmQty: number; } => ({
         size: row.size,
         baseSharePct: row.baseSharePct,
@@ -99,8 +99,8 @@ export function useSecondaryOrderCalculations({
         confirmQty: 0,
       }))
     }
-    const display: { currentStockQtyTotal: number; totalOrderBalanceTotal: number; expectedInboundOrderBalanceTotal: number; sizeRows: SecondaryStockOrderDisplaySizeRow[]; } = readyForecastCalc?.display ?? null
-    const dailyMeanEa: number = dailyMeanClient ?? readyForecastCalc.dailyMean
+    const display: { currentStockQtyTotal: number; totalOrderBalanceTotal: number; expectedInboundOrderBalanceTotal: number; sizeRows: SecondaryStockOrderDisplaySizeRow[]; } = readyStockOrderCalc?.display ?? null
+    const dailyMeanEa: number = dailyMeanClient ?? readyStockOrderCalc.dailyMean
     return buildSecondarySizeOrderRows({
       shares: sizeShares,
       dailyMeanEa,
@@ -113,7 +113,7 @@ export function useSecondaryOrderCalculations({
     bufferStock,
     calculationReady,
     dailyMeanClient,
-    forecastCalc,
+    stockOrderCalc,
     forecastSalesHorizonDays,
     orderDraft,
     snapshotSizeOrders,

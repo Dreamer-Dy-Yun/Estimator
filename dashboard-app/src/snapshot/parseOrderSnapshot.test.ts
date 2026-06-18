@@ -129,4 +129,14 @@ describe('parseOrderSnapshot', () : void => {
 
     expect(() : OrderSnapshotDocument => parseOrderSnapshot(mismatch)).toThrow(/dailyTrendForecastDays/)
   })
+
+  it('throws when current schema stock-order identity fields are missing', () : void => {
+    const missingProductIdentity: Record<string, unknown> = cloneValidSnapshot()
+    const missingSupply: Record<string, unknown> = cloneValidSnapshot()
+    delete (((missingProductIdentity['drawer2'] as Record<string, unknown>)['stockOrderResult'] as Record<string, unknown>)['productIdentity'])
+    delete (((missingSupply['drawer2'] as Record<string, unknown>)['stockOrderResult'] as Record<string, unknown>)['existingOrderInboundSupplyBySize'])
+
+    expect((): OrderSnapshotDocument => parseOrderSnapshot(missingProductIdentity)).toThrow(/productIdentity/)
+    expect((): OrderSnapshotDocument => parseOrderSnapshot(missingSupply)).toThrow(/existingOrderInboundSupplyBySize/)
+  })
 })

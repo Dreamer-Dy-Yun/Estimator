@@ -1,12 +1,14 @@
 import { useEffect, useMemo, useState } from 'react'
 import { dashboardApi } from '../../../../../api'
 import type { ProductComparisonBaseSubjectRef, SecondaryInboundSplitSupplyPoint, SecondaryProductIdentity, SecondaryStockOrderCalcResult } from '../../../../../api/types'
+import { assertSecondaryProductIdentityMatches, parseSecondaryIsoDateMs, requireFiniteSecondaryQuantity } from '../../../../../api/types/secondaryContractGuards'
 import type { ApiUnitErrorInfo } from '../../../../../types'
 
 const STOCK_ORDER_CALC_DEBOUNCE_MS = 1000 as const
-const ISO_DATE_RE: RegExp = /^\d{4}-\d{2}-\d{2}$/
+const STOCK_ORDER_DATE_ERROR = 'Invalid stock-order existing inbound supply date'
+const STOCK_ORDER_QUANTITY_ERROR = 'Invalid stock-order existing inbound supply quantity'
 
-export type Params = {
+export type UseSecondaryStockOrderCalcParams = {
   skuGroupKey: string
   productIdentity: SecondaryProductIdentity
   periodStart: string
@@ -20,24 +22,15 @@ export type Params = {
   makeApiErrorInfo: (request: string, err: unknown) => ApiUnitErrorInfo
 }
 
-export type ForecastCalcState = {
+export type StockOrderCalcState = {
   requestKey: string
   result: SecondaryStockOrderCalcResult
 }
 
-function assertProductIdentityMatches(expected: SecondaryProductIdentity, actual: SecondaryProductIdentity): void {
-  if (actual == null || typeof actual !== 'object') throw new Error('Stock order productIdentity is required.')
-  if (actual.skuGroupKey !== expected.skuGroupKey) throw new Error(`Stock order product skuGroupKey mismatch: expected ${expected.skuGroupKey}, got ${actual.skuGroupKey}.`)
-  if ((actual.productUuid ?? null) !== (expected.productUuid ?? null)) throw new Error('Stock order productUuid mismatch.')
-  if (actual.brand !== expected.brand) throw new Error(`Stock order product brand mismatch: expected ${expected.brand}, got ${actual.brand}.`)
-  if (actual.code !== expected.code) throw new Error(`Stock order product code mismatch: expected ${expected.code}, got ${actual.code}.`)
-  if (actual.colorCode !== expected.colorCode) throw new Error(`Stock order product colorCode mismatch: expected ${expected.colorCode}, got ${actual.colorCode}.`)
-}
-
 function sumSupplyPoints(points: readonly SecondaryInboundSplitSupplyPoint[], beforeDate?: string): number {
   return points.reduce((sum: number, point: SecondaryInboundSplitSupplyPoint): number => {
-    if (!ISO_DATE_RE.test(point.date)) throw new Error(`Stock order existing inbound supply date is invalid: ${point.date}.`)
-    if (!Number.isFinite(point.qty)) throw new Error(`Stock order existing inbound supply qty is invalid for ${point.date}.`)
+    parseSecondaryIsoDateMs(point.date, point.date, STOCK_ORDER_DATE_ERROR)
+    requireFiniteSecondaryQuantity(point.qty, point.date, STOCK_ORDER_QUANTITY_ERROR)
     if (beforeDate != null && point.date >= beforeDate) return sum
     return sum + point.qty
   }, 0)
@@ -70,7 +63,7 @@ function assertStockOrderCalcResult(
   productIdentity: SecondaryProductIdentity,
   currentOrderInboundDueDate: string,
 ): void {
-  assertProductIdentityMatches(productIdentity, result.productIdentity)
+  assertSecondaryProductIdentityMatches('Stock order', productIdentity, result.productIdentity)
   assertExistingOrderInboundSupplyMatchesDisplay(result, currentOrderInboundDueDate)
 }
 
@@ -86,7 +79,7 @@ export function useSecondaryStockOrderCalc({
   orderCoverageDays,
   dailyMeanClient,
   makeApiErrorInfo,
-}: Params) : { forecastCalc: SecondaryStockOrderCalcResult | null; forecastCalcError: ApiUnitErrorInfo | null; forecastCalcLoading: boolean; } {
+}: UseSecondaryStockOrderCalcParams) : { stockOrderCalc: SecondaryStockOrderCalcResult | null; stockOrderCalcError: ApiUnitErrorInfo | null; stockOrderCalcLoading: boolean; } {
   const requestKey: string = useMemo(() : string => JSON.stringify({
     skuGroupKey,
     productIdentity,
@@ -110,18 +103,18 @@ export function useSecondaryStockOrderCalc({
     periodStart,
     skuGroupKey,
   ])
-  const [forecastCalcState, setForecastCalcState]: [ForecastCalcState | null, React.Dispatch<React.SetStateAction<ForecastCalcState | null>>] = useState<ForecastCalcState | null>(null)
-  const [forecastCalcError, setForecastCalcError]: [ApiUnitErrorInfo | null, React.Dispatch<React.SetStateAction<ApiUnitErrorInfo | null>>] = useState<ApiUnitErrorInfo | null>(null)
-  const [forecastCalcLoading, setForecastCalcLoading]: [boolean, React.Dispatch<React.SetStateAction<boolean>>] = useState(true)
-  const forecastCalc: SecondaryStockOrderCalcResult | null = forecastCalcState?.requestKey === requestKey ? forecastCalcState.result : null
+  const [stockOrderCalcState, setStockOrderCalcState]: [StockOrderCalcState | null, React.Dispatch<React.SetStateAction<StockOrderCalcState | null>>] = useState<StockOrderCalcState | null>(null)
+  const [stockOrderCalcError, setStockOrderCalcError]: [ApiUnitErrorInfo | null, React.Dispatch<React.SetStateAction<ApiUnitErrorInfo | null>>] = useState<ApiUnitErrorInfo | null>(null)
+  const [stockOrderCalcLoading, setStockOrderCalcLoading]: [boolean, React.Dispatch<React.SetStateAction<boolean>>] = useState(true)
+  const stockOrderCalc: SecondaryStockOrderCalcResult | null = stockOrderCalcState?.requestKey === requestKey ? stockOrderCalcState.result : null
 
   useEffect(() : () => void => {
     let alive: boolean = true
     let timerId: ReturnType<typeof window.setTimeout> | null = null
     queueMicrotask(() : void => {
       if (!alive) return
-      setForecastCalcLoading(true)
-      setForecastCalcError(null)
+      setStockOrderCalcLoading(true)
+      setStockOrderCalcError(null)
     })
     timerId = window.setTimeout(() : void => {
       void (async () : Promise<void> => {
@@ -141,12 +134,12 @@ export function useSecondaryStockOrderCalc({
           const result: SecondaryStockOrderCalcResult = await dashboardApi.getSecondaryStockOrderCalc(params)
           assertStockOrderCalcResult(result, productIdentity, currentOrderInboundDueDate)
           if (!alive) return
-          setForecastCalcState({ requestKey, result })
-          setForecastCalcError(null)
+          setStockOrderCalcState({ requestKey, result })
+          setStockOrderCalcError(null)
         } catch (err) {
           if (!alive) return
-          setForecastCalcState(null)
-          setForecastCalcError(
+          setStockOrderCalcState(null)
+          setStockOrderCalcError(
             makeApiErrorInfo(
               `getSecondaryStockOrderCalc(${JSON.stringify({
                 skuGroupKey,
@@ -164,7 +157,7 @@ export function useSecondaryStockOrderCalc({
             ),
           )
         } finally {
-          if (alive) setForecastCalcLoading(false)
+          if (alive) setStockOrderCalcLoading(false)
         }
       })()
     }, STOCK_ORDER_CALC_DEBOUNCE_MS)
@@ -187,5 +180,5 @@ export function useSecondaryStockOrderCalc({
     periodStart,
   ])
 
-  return { forecastCalc, forecastCalcError, forecastCalcLoading }
+  return { stockOrderCalc, stockOrderCalcError, stockOrderCalcLoading }
 }

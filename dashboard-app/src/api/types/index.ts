@@ -107,6 +107,12 @@ export type {
   SecondaryStockOrderCalcParams,
   SecondaryStockOrderCalcResult,
 } from './secondary'
+export {
+  assertSecondaryProductIdentityMatches,
+  formatSecondaryIsoDate,
+  parseSecondaryIsoDateMs,
+  requireFiniteSecondaryQuantity,
+} from './secondaryContractGuards'
 export type {
   CandidateBadge,
   CandidateDetailBulkConfirmProgressEvent,

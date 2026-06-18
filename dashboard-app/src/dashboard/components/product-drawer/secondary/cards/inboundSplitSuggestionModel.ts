@@ -2,9 +2,12 @@ import type {
   SecondaryInboundSplitSource,
   SecondaryInboundSplitSupplyPoint,
 } from '../../../../../api/types/secondary'
+import { formatSecondaryIsoDate, parseSecondaryIsoDateMs, requireFiniteSecondaryQuantity } from '../../../../../api/types/secondaryContractGuards'
 import type { InboundSplitSizeColumn } from './inboundSplitScheduleModel'
 
 const DAY_MS: number = 86_400_000
+const INBOUND_SPLIT_DATE_ERROR = 'Invalid inbound split source date'
+const INBOUND_SPLIT_QUANTITY_ERROR = 'Missing inbound split source field'
 
 interface SplitInterval {
   readonly startDate: string
@@ -17,29 +20,8 @@ export interface InboundSplitSuggestionRowInput {
   readonly ignoreExistingOrderInbound: boolean
 }
 
-function parseIsoDateMs(value: string, field: string): number {
-  const match: RegExpMatchArray | null = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value)
-  if (!match) throw new Error(`Invalid inbound split source date: ${field}`)
-
-  const year: number = Number(match[1])
-  const monthIndex: number = Number(match[2]) - 1
-  const day: number = Number(match[3])
-  const parsed: Date = new Date(Date.UTC(year, monthIndex, day))
-  if (parsed.getUTCFullYear() !== year || parsed.getUTCMonth() !== monthIndex || parsed.getUTCDate() !== day) {
-    throw new Error(`Invalid inbound split source date: ${field}`)
-  }
-  return parsed.getTime()
-}
-
-function formatIsoDate(dateMs: number): string {
-  return new Date(dateMs).toISOString().slice(0, 10)
-}
-
 function requireFiniteQuantity(value: number | undefined, field: string): number {
-  if (value == null || !Number.isFinite(value)) {
-    throw new Error(`Missing inbound split source field: ${field}`)
-  }
-  return value
+  return requireFiniteSecondaryQuantity(value, field, INBOUND_SPLIT_QUANTITY_ERROR)
 }
 
 function normalizeSuggestedQuantity(value: number): number {
@@ -96,12 +78,12 @@ function advanceStockThroughInterval(
   interval: SplitInterval | null,
 ): Record<string, number> {
   const nextStockBySize: Record<string, number> = cloneProjectedStockBySize(columns, projectedStockBySize)
-  const startMs: number = parseIsoDateMs(startDate, 'interval.startDate')
-  const endMs: number = parseIsoDateMs(endDate, 'interval.endDate')
+  const startMs: number = parseSecondaryIsoDateMs(startDate, 'interval.startDate', INBOUND_SPLIT_DATE_ERROR)
+  const endMs: number = parseSecondaryIsoDateMs(endDate, 'interval.endDate', INBOUND_SPLIT_DATE_ERROR)
   if (endMs <= startMs) return nextStockBySize
 
   for (let cursorMs: number = startMs; cursorMs < endMs; cursorMs += DAY_MS) {
-    const date: string = formatIsoDate(cursorMs)
+    const date: string = formatSecondaryIsoDate(cursorMs)
     columns.forEach((column: InboundSplitSizeColumn): void => {
       const size: string = column.size
       nextStockBySize[size] = (nextStockBySize[size] ?? 0) +
@@ -119,8 +101,8 @@ function calculateIntervalSuggestedBySize(
   interval: SplitInterval,
 ): Record<string, number> {
   const suggestedBySize: Record<string, number> = {}
-  const startMs: number = parseIsoDateMs(interval.startDate, 'interval.startDate')
-  const endMs: number = parseIsoDateMs(interval.endDate, 'interval.endDate')
+  const startMs: number = parseSecondaryIsoDateMs(interval.startDate, 'interval.startDate', INBOUND_SPLIT_DATE_ERROR)
+  const endMs: number = parseSecondaryIsoDateMs(interval.endDate, 'interval.endDate', INBOUND_SPLIT_DATE_ERROR)
   if (endMs <= startMs) {
     columns.forEach((column: InboundSplitSizeColumn): void => {
       suggestedBySize[column.size] = 0
@@ -133,7 +115,7 @@ function calculateIntervalSuggestedBySize(
     let projectedStock: number = projectedStockBySize[size] ?? 0
     let maxShortage: number = 0
     for (let cursorMs: number = startMs; cursorMs < endMs; cursorMs += DAY_MS) {
-      const date: string = formatIsoDate(cursorMs)
+      const date: string = formatSecondaryIsoDate(cursorMs)
       projectedStock += getSupplyForDate(source, size, date, interval)
       projectedStock -= getSalesForecast(source, date, size)
       if (projectedStock < 0) maxShortage = Math.max(maxShortage, -projectedStock)

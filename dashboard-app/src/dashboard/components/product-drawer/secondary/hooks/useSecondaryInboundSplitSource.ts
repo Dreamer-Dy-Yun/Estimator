@@ -1,9 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
 import { dashboardApi } from '../../../../../api'
 import type { ProductComparisonBaseSubjectRef, SecondaryInboundSplitSource, SecondaryInboundSplitSourceParams, SecondaryProductIdentity } from '../../../../../api/types'
+import { assertSecondaryProductIdentityMatches, formatSecondaryIsoDate, parseSecondaryIsoDateMs, requireFiniteSecondaryQuantity } from '../../../../../api/types/secondaryContractGuards'
 import type { ApiUnitErrorInfo } from '../../../../../types'
 
 const DAY_MS: number = 86_400_000
+const INBOUND_SPLIT_SOURCE_DATE_ERROR = 'Invalid secondary inbound split source date'
+const INBOUND_SPLIT_SOURCE_QUANTITY_ERROR = 'Invalid secondary inbound split source quantity'
 
 export interface UseSecondaryInboundSplitSourceParams {
   skuGroupKey: string
@@ -21,39 +24,6 @@ export interface UseSecondaryInboundSplitSourceResult {
   inboundSplitSourceError: ApiUnitErrorInfo | null
 }
 
-function parseIsoDateMs(value: string, field: string): number {
-  const match: RegExpMatchArray | null = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value)
-  if (!match) throw new Error(`Secondary inbound split source ${field} must be a valid ISO date.`)
-
-  const year: number = Number(match[1])
-  const monthIndex: number = Number(match[2]) - 1
-  const day: number = Number(match[3])
-  const parsed: Date = new Date(Date.UTC(year, monthIndex, day))
-  if (parsed.getUTCFullYear() !== year || parsed.getUTCMonth() !== monthIndex || parsed.getUTCDate() !== day) {
-    throw new Error(`Secondary inbound split source ${field} must be a valid ISO date.`)
-  }
-  return parsed.getTime()
-}
-
-function formatIsoDate(dateMs: number): string {
-  return new Date(dateMs).toISOString().slice(0, 10)
-}
-
-function assertFiniteQuantity(value: number | undefined, field: string): void {
-  if (value == null || !Number.isFinite(value)) {
-    throw new Error(`Secondary inbound split source ${field} must be finite.`)
-  }
-}
-
-function assertProductIdentityMatches(expected: SecondaryProductIdentity, actual: SecondaryProductIdentity): void {
-  if (actual == null || typeof actual !== 'object') throw new Error('Secondary inbound split source productIdentity is required.')
-  if (actual.skuGroupKey !== expected.skuGroupKey) throw new Error(`Secondary inbound split source skuGroupKey mismatch: expected ${expected.skuGroupKey}, got ${actual.skuGroupKey}.`)
-  if ((actual.productUuid ?? null) !== (expected.productUuid ?? null)) throw new Error('Secondary inbound split source productUuid mismatch.')
-  if (actual.brand !== expected.brand) throw new Error(`Secondary inbound split source brand mismatch: expected ${expected.brand}, got ${actual.brand}.`)
-  if (actual.code !== expected.code) throw new Error(`Secondary inbound split source code mismatch: expected ${expected.code}, got ${actual.code}.`)
-  if (actual.colorCode !== expected.colorCode) throw new Error(`Secondary inbound split source colorCode mismatch: expected ${expected.colorCode}, got ${actual.colorCode}.`)
-}
-
 function assertInboundSplitSource(
   source: SecondaryInboundSplitSource,
   productIdentity: SecondaryProductIdentity,
@@ -64,7 +34,7 @@ function assertInboundSplitSource(
   if (!source.productId) {
     throw new Error('Secondary inbound split source productId is required.')
   }
-  assertProductIdentityMatches(productIdentity, source.productIdentity)
+  assertSecondaryProductIdentityMatches('Secondary inbound split source', productIdentity, source.productIdentity)
   if (
     source.calculationBaseDate !== calculationBaseDate ||
     source.coverageStartDate !== coverageStartDate ||
@@ -79,9 +49,9 @@ function assertInboundSplitSource(
     throw new Error('Secondary inbound split source salesForecastByDate is required.')
   }
 
-  const baseMs: number = parseIsoDateMs(source.calculationBaseDate, 'calculationBaseDate')
-  const coverageStartMs: number = parseIsoDateMs(source.coverageStartDate, 'coverageStartDate')
-  const coverageEndMs: number = parseIsoDateMs(source.coverageEndDate, 'coverageEndDate')
+  const baseMs: number = parseSecondaryIsoDateMs(source.calculationBaseDate, 'calculationBaseDate', INBOUND_SPLIT_SOURCE_DATE_ERROR)
+  const coverageStartMs: number = parseSecondaryIsoDateMs(source.coverageStartDate, 'coverageStartDate', INBOUND_SPLIT_SOURCE_DATE_ERROR)
+  const coverageEndMs: number = parseSecondaryIsoDateMs(source.coverageEndDate, 'coverageEndDate', INBOUND_SPLIT_SOURCE_DATE_ERROR)
   if (coverageStartMs < baseMs) {
     throw new Error('Secondary inbound split source coverageStartDate must be on or after calculationBaseDate.')
   }
@@ -100,11 +70,11 @@ function assertInboundSplitSource(
     }
     let hasBaseStockPoint: boolean = false
     supplyPoints.forEach((point: SecondaryInboundSplitSource['supplyBySize'][string][number], index: number): void => {
-      const pointMs: number = parseIsoDateMs(point.date, `supplyBySize.${size}[${index}].date`)
+      const pointMs: number = parseSecondaryIsoDateMs(point.date, `supplyBySize.${size}[${index}].date`, INBOUND_SPLIT_SOURCE_DATE_ERROR)
       if (pointMs < baseMs || pointMs >= coverageEndMs) {
         throw new Error(`Secondary inbound split source supplyBySize.${size}[${index}].date is outside the source window.`)
       }
-      assertFiniteQuantity(point.qty, `supplyBySize.${size}[${index}].qty`)
+      requireFiniteSecondaryQuantity(point.qty, `supplyBySize.${size}[${index}].qty`, INBOUND_SPLIT_SOURCE_QUANTITY_ERROR)
       if (point.date === source.calculationBaseDate) hasBaseStockPoint = true
     })
     if (!hasBaseStockPoint) {
@@ -113,13 +83,13 @@ function assertInboundSplitSource(
   })
 
   for (let cursorMs: number = baseMs; cursorMs < coverageEndMs; cursorMs += DAY_MS) {
-    const date: string = formatIsoDate(cursorMs)
+    const date: string = formatSecondaryIsoDate(cursorMs)
     const cellsBySize: SecondaryInboundSplitSource['salesForecastByDate'][string] | undefined = source.salesForecastByDate[date]
     if (cellsBySize == null || typeof cellsBySize !== 'object') {
       throw new Error(`Secondary inbound split source salesForecastByDate.${date} is required.`)
     }
     sizes.forEach((size: string): void => {
-      assertFiniteQuantity(cellsBySize[size], `salesForecastByDate.${date}.${size}`)
+      requireFiniteSecondaryQuantity(cellsBySize[size], `salesForecastByDate.${date}.${size}`, INBOUND_SPLIT_SOURCE_QUANTITY_ERROR)
     })
   }
 }

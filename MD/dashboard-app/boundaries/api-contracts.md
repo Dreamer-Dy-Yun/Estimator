@@ -73,7 +73,7 @@ Last updated: 2026-06-18
 | `getSecondaryInboundSplitSource` | 입고 분할 원천 소스 |
 | `getSecondaryStockOrderCalc` | 백엔드 단일 주문 계산점 |
 
-`getSecondaryStockOrderCalc`는 `productIdentity`, `calculationBaseDate`, `currentOrderInboundDueDate`를 body로 받으며, A 원천인 `existingOrderInboundSupplyBySize`와 그 집계 표시값을 반환한다. `getSecondaryInboundSplitSource`는 적용된 분할 rows를 반환하지 않는다. 요청 query는 `productIdentity`, `calculationBaseDate`, `coverageStartDate`, `coverageEndDate`, base subject이고, 응답은 `supplyBySize`와 `salesForecastByDate`를 제공한다. 적용된 분할 결과와 `ignoreExistingOrderInbound` 옵션은 `OrderSnapshotDocument.drawer2.confirmed.rounds`에 저장된다.
+`getSecondaryStockOrderCalc`는 `productIdentity`, `calculationBaseDate`, `currentOrderInboundDueDate`를 body로 받으며, A 원천인 `existingOrderInboundSupplyBySize`와 그 집계 표시값을 반환한다. `getSecondaryInboundSplitSource`는 적용된 분할 rows를 반환하지 않는다. 요청 query는 flattened product identity(`productSkuGroupKey`, `productUuid?`, `productBrand`, `productCode`, `productColorCode`), `calculationBaseDate`, `coverageStartDate`, `coverageEndDate`, base subject이고, 응답은 `supplyBySize`와 `salesForecastByDate`를 제공한다. 적용된 분할 결과와 `ignoreExistingOrderInbound` 옵션은 `OrderSnapshotDocument.drawer2.confirmed.rounds`에 저장된다.
 
 ## 7. Candidate 계약
 
