@@ -8,7 +8,7 @@ Stabilize the product secondary drawer and candidate snapshot flow around the cu
 
 - Inbound split date validation.
 - Candidate detail snapshot consistency.
-- Order snapshot v7 restore contract.
+- Order snapshot v8 restore contract.
 - Mock stock-order calculation parity with the current API request.
 - Documentation alignment for frontend and backend contracts.
 
@@ -23,7 +23,7 @@ Stabilize the product secondary drawer and candidate snapshot flow around the cu
 
 - Split round dates are validated against the current inbound date and next inbound exclusive boundary.
 - The first split round can use the current inbound date; later rounds must increase.
-- `stockOrderResult` and `unitEconomics` are required in `OrderSnapshotDocument` v7.
+- `stockOrderResult` and `unitEconomics` are required in `OrderSnapshotDocument` v8.
 - v4 snapshot inputs with `dailyTrendLeadTimeDays` and `leadTimeDays` are migrated into the current coverage field names during parse.
 - Candidate detail responses now fail fast when `hasConfirmedOrderSnapshot` disagrees with `confirmedOrderSnapshot`.
 - Mock stock-order calculation now reads `orderCoverageDays` instead of ignoring the request field.

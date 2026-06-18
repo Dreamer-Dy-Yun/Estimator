@@ -9,6 +9,7 @@ export type SecondaryHelpId =
   | 'expectedInboundOrderBalance'
   | 'sizeRecQty'
   | 'salesForecastSizeOrder'
+  | 'inboundSplitSchedule'
 
 export type SecondaryHelpIds = Record<SecondaryHelpId, string>
 

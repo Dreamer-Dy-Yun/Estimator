@@ -34,7 +34,6 @@ import {
   getMockProductMonthlyTrend,
   getMockProductSalesInsight,
   getMockSecondaryDailyTrend,
-  getMockSecondaryInboundSplitSource,
 } from './mockProductComparisonApi'
 import { getMockProductSecondaryDetail } from './mockProductSecondaryDetailApi'
 import { sleep } from './utils'
@@ -139,7 +138,6 @@ export const mockDashboardApi = {
   },
 
   getSecondaryDailyTrend: getMockSecondaryDailyTrend,
-  getSecondaryInboundSplitSource: getMockSecondaryInboundSplitSource,
 
   getSecondaryCompetitorChannels: async () : Promise<SecondaryCompetitorChannel[]> => {
     await sleep(40)

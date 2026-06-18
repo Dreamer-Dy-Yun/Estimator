@@ -128,6 +128,25 @@ function makeSnapshot(overrides: Partial<OrderSnapshotDocument> = {}) : OrderSna
           code: 'CODE',
           colorCode: 'BLK',
         },
+        inboundSplitSource: {
+          productId: 'sku-1',
+          productIdentity: {
+            productUuid: null,
+            skuGroupKey: 'sku-1',
+            brand: 'Brand',
+            code: 'CODE',
+            colorCode: 'BLK',
+          },
+          calculationBaseDate: '2026-06-01',
+          coverageStartDate: '2026-06-01',
+          coverageEndDate: '2026-06-15',
+          supplyBySize: {
+            M: [{ date: '2026-06-01', qty: 1 }],
+          },
+          salesForecastByDate: {
+            '2026-06-01': { M: 1 },
+          },
+        },
         existingOrderInboundSupplyBySize: {
           M: [],
         },

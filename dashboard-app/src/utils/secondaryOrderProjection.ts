@@ -1,4 +1,10 @@
+import type { SecondaryInboundSplitSource } from '../api/types/secondary'
 import type { ProductSecondaryDetail, ProductSecondarySizeRow } from '../types'
+import {
+  buildSecondaryPlanningSuggestedQuantitiesByRow,
+  sumSecondaryPlanningSalesForecastBySize,
+  type SecondaryPlanningSizeColumn,
+} from './secondaryInboundSplitPlanning'
 
 export type ProductSecondarySizeShareRow = ProductSecondarySizeRow & { comparisonRatio: number }
 
@@ -14,6 +20,7 @@ export type SecondarySizeOrderRow = SecondarySizeShare & {
   forecastQty: number
   recommendedQty: number
   confirmQty: number
+  bufferQty?: number
 }
 
 export type SecondarySizeOrderDisplayRow = Omit<SecondarySizeOrderRow, 'avgPrice'>
@@ -32,7 +39,9 @@ export type SecondaryOrderDraftLike = {
 export type SizeOrderRowsParams = {
   shares: SecondarySizeShare[]
   dailyMeanEa: number
-  forecastSalesHorizonDays: number
+  currentOrderInboundDueDate: string
+  nextOrderInboundDueDate: string
+  inboundSplitSource: SecondaryInboundSplitSource
   stockOrderSizeRows: SecondaryStockOrderSizeRow[]
   bufferStock: number
   orderDraft: SecondaryOrderDraftLike
@@ -89,12 +98,13 @@ export function buildSecondarySizeShares(
 export function buildSecondarySizeOrderRows({
   shares,
   dailyMeanEa,
-  forecastSalesHorizonDays,
+  currentOrderInboundDueDate,
+  nextOrderInboundDueDate,
+  inboundSplitSource,
   stockOrderSizeRows,
   bufferStock,
   orderDraft,
 }: SizeOrderRowsParams): SecondarySizeOrderRow[] {
-  const totalQtyWindow: number = dailyMeanEa * forecastSalesHorizonDays
   const stockOrderSizeRowBySize: Map<string, SecondaryStockOrderSizeRow> = new Map(stockOrderSizeRows.map((row: SecondaryStockOrderSizeRow) : [string, SecondaryStockOrderSizeRow] => [row.size, row]))
   const missingStockOrderSizes: string[] = shares
     .map((row: SecondarySizeShare) : string => row.size)
@@ -102,17 +112,33 @@ export function buildSecondarySizeOrderRows({
   if (missingStockOrderSizes.length) {
     throw new Error(`Missing stock order display rows for sizes: ${missingStockOrderSizes.join(', ')}`)
   }
+
+  const planningColumns: SecondaryPlanningSizeColumn[] = shares.map((row: SecondarySizeShare): SecondaryPlanningSizeColumn => ({
+    size: row.size,
+    targetEndingStockQty: Math.ceil((dailyMeanEa * bufferStock * row.blendedSharePct) / 100),
+  }))
+  const forecastQtyBySize: Record<string, number> = sumSecondaryPlanningSalesForecastBySize(
+    inboundSplitSource,
+    planningColumns,
+    currentOrderInboundDueDate,
+    nextOrderInboundDueDate,
+  )
+  const suggestedQtyBySize: Record<string, number> = buildSecondaryPlanningSuggestedQuantitiesByRow(
+    planningColumns,
+    [{ inboundDate: currentOrderInboundDueDate, ignoreExistingOrderInbound: false }],
+    nextOrderInboundDueDate,
+    inboundSplitSource,
+  )[0] ?? {}
+
   return shares.map((row: SecondarySizeShare) : SecondarySizeOrderRow => {
-    const forecastQty: number = Math.ceil((totalQtyWindow * row.blendedSharePct) / 100)
     const bufferQtyEa: number = Math.ceil((dailyMeanEa * bufferStock * row.blendedSharePct) / 100)
-    const stockOrderSizeRow: SecondaryStockOrderSizeRow | undefined = stockOrderSizeRowBySize.get(row.size)
-    const stock: number = stockOrderSizeRow!.currentStockQty
-    const inbound: number = stockOrderSizeRow!.expectedInboundOrderBalance
-    const recommendedQty: number = Math.max(0, Math.round(forecastQty - stock - inbound + bufferQtyEa))
+    const forecastQty: number = Math.max(0, Math.ceil(forecastQtyBySize[row.size] ?? 0))
+    const recommendedQty: number = Math.max(0, Math.round(suggestedQtyBySize[row.size] ?? 0))
     return {
       ...row,
       forecastQty,
       recommendedQty,
+      bufferQty: bufferQtyEa,
       confirmQty: orderDraft.confirmQty(row.size, recommendedQty),
     }
   })

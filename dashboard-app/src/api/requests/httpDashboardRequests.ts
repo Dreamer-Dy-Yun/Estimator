@@ -1,6 +1,6 @@
 import type { AppendCandidateItemsResponse, CandidateDetailBulkConfirmProgressEvent, CandidateDetailBulkConfirmStartPayload, CandidateDetailBulkConfirmStartResult, CandidateItemDetail, CandidateItemListParams, CandidateItemListResult, CandidateOrderMetricEvent, CandidateOrderMetricStreamParams, CandidateRecommendationParams, CandidateRecommendationResult, CandidateStashExcelUploadResult, CandidateStashLlmCommentJobProgressEvent, CandidateStashLlmCommentJobStartResult, CandidateStashSummary, CompanyScopeParams, CompetitorSalesParams, DashboardEventStreamErrorListener, DashboardRuntimeConfig, ProductComparisonSubjectRef, ProductComparisonTarget, ProductDrawerBundle, ProductMonthlyTrend, ProductMonthlyTrendParams, ProductSalesInsight, ProductSecondaryDetail, SalesFilterMeta, SecondaryAiCommentParams, SecondaryAiCommentResult, SecondaryCompetitorChannel, SecondaryStockOrderCalcResult, SelfSalesParams, UpdateCandidateItemPayload } from '..'
 import type { CompetitorSalesRow, SelfSalesRow } from '../../types'
-import type { AppendCandidateItemPayload, AppendCandidateItemsPayload, CompanyMutationScopeParams, CompetitorSalesGridParams, CreateCandidateStashPayload, ProductComparisonTargetParams, ProductDrawerBundleParams, ProductSalesInsightParams, ProductSecondaryDetailParams, ScatterSalesGridResponse, SecondaryDailyTrendParams, SecondaryDailyTrendSource, SecondaryInboundSplitSource, SecondaryInboundSplitSourceParams, SecondaryStockOrderCalcParams, SelfSalesGridParams, UpdateCandidateStashPayload } from '../types'
+import type { AppendCandidateItemPayload, AppendCandidateItemsPayload, CompanyMutationScopeParams, CompetitorSalesGridParams, CreateCandidateStashPayload, ProductComparisonTargetParams, ProductDrawerBundleParams, ProductSalesInsightParams, ProductSecondaryDetailParams, ScatterSalesGridResponse, SecondaryDailyTrendParams, SecondaryDailyTrendSource, SecondaryStockOrderCalcParams, SelfSalesGridParams, UpdateCandidateStashPayload } from '../types'
 import type { CandidateStashListParams } from '../types/candidate'
 import type { ApiEventStreamSubscription } from './httpClient'
 import type {
@@ -83,20 +83,6 @@ function secondaryDailyTrendQuery(params: Omit<SecondaryDailyTrendParams, 'skuGr
   }
 }
 
-function secondaryInboundSplitSourceQuery(params: Omit<SecondaryInboundSplitSourceParams, 'skuGroupKey'>): Record<string, string> {
-  return {
-    calculationBaseDate: params.calculationBaseDate,
-    coverageStartDate: params.coverageStartDate,
-    coverageEndDate: params.coverageEndDate,
-    productSkuGroupKey: params.productIdentity.skuGroupKey,
-    ...(params.productIdentity.productUuid ? { productUuid: params.productIdentity.productUuid } : {}),
-    productBrand: params.productIdentity.brand,
-    productCode: params.productIdentity.code,
-    productColorCode: params.productIdentity.colorCode,
-    ...productComparisonSubjectQueryPrefix('base', params.base),
-  }
-}
-
 /**
  * HTTP implementation of DashboardApi.
  *
@@ -171,11 +157,6 @@ export const httpDashboardRequests: DashboardApi = {
   getSecondaryDailyTrend: ({ skuGroupKey, ...params }: SecondaryDailyTrendParams) : Promise<SecondaryDailyTrendSource> =>
     apiRequest(`/products/${encodePathSegment(skuGroupKey)}/secondary/daily-trend`, {
       query: queryParams(secondaryDailyTrendQuery(params)),
-    }),
-  // GET /products/{skuGroupKey}/secondary/inbound-split-source: 입고 분할 소스 조회.
-  getSecondaryInboundSplitSource: ({ skuGroupKey, ...params }: SecondaryInboundSplitSourceParams) : Promise<SecondaryInboundSplitSource> =>
-    apiRequest(`/products/${encodePathSegment(skuGroupKey)}/secondary/inbound-split-source`, {
-      query: queryParams(secondaryInboundSplitSourceQuery(params)),
     }),
   // POST /products/{skuGroupKey}/secondary/ai-comment: secondary AI 코멘트 생성.
   getSecondaryAiComment: ({ skuGroupKey, ...payload }: SecondaryAiCommentParams) : Promise<SecondaryAiCommentResult> =>
@@ -310,7 +291,7 @@ export const httpDashboardRequests: DashboardApi = {
     return apiRequest('/candidate-stashes/import/excel', { method: 'POST', body: formData })
   },
   // POST /secondary/stock-order-calc: 주문량 계산(백엔드 단일 계산점).
-  // Stock-order calc is a backend calculation endpoint. Do not duplicate this business calculation in UI code.
+  // Stock-order calc is the single planning source for detailed recommendations and split-inbound suggestions.
   // Backend doc: MD/backend-api/dashboard-api-contract-catalog.md section 9.
   getSecondaryStockOrderCalc: (params: SecondaryStockOrderCalcParams) : Promise<SecondaryStockOrderCalcResult> =>
     apiRequest('/secondary/stock-order-calc', { method: 'POST', body: params }),

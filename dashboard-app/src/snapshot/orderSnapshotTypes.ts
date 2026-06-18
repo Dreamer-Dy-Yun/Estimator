@@ -7,7 +7,7 @@ import type { SecondaryConfirmedRound, SecondaryConfirmedRounds } from '../dashb
 import type { SecondarySizeOrderRestoreRow } from '../dashboard/components/product-drawer/secondary/model/secondarySizeOrderRows'
 import type { ProductPrimarySummary, ProductSecondaryDetail } from '../types'
 
-export const ORDER_SNAPSHOT_SCHEMA_VERSION: 7 = 7 as const
+export const ORDER_SNAPSHOT_SCHEMA_VERSION: 8 = 8 as const
 
 export type OrderSnapshotSourceRatio = number
 export type OrderSnapshotPercent = number
@@ -127,6 +127,22 @@ export function createOrderSnapshotStockOrderResult(result: OrderSnapshotStockOr
   return {
     ...result,
     productIdentity: { ...result.productIdentity },
+    inboundSplitSource: {
+      ...result.inboundSplitSource,
+      productIdentity: { ...result.inboundSplitSource.productIdentity },
+      supplyBySize: Object.fromEntries(
+        Object.entries(result.inboundSplitSource.supplyBySize).map(([size, points]: [string, OrderSnapshotStockOrderResult['inboundSplitSource']['supplyBySize'][string]]): [string, OrderSnapshotStockOrderResult['inboundSplitSource']['supplyBySize'][string]] => [
+          size,
+          points.map((point: OrderSnapshotStockOrderResult['inboundSplitSource']['supplyBySize'][string][number]): OrderSnapshotStockOrderResult['inboundSplitSource']['supplyBySize'][string][number] => ({ ...point })),
+        ]),
+      ),
+      salesForecastByDate: Object.fromEntries(
+        Object.entries(result.inboundSplitSource.salesForecastByDate).map(([date, row]: [string, OrderSnapshotStockOrderResult['inboundSplitSource']['salesForecastByDate'][string]]): [string, OrderSnapshotStockOrderResult['inboundSplitSource']['salesForecastByDate'][string]] => [
+          date,
+          { ...row },
+        ]),
+      ),
+    },
     existingOrderInboundSupplyBySize: Object.fromEntries(
       Object.entries(result.existingOrderInboundSupplyBySize).map(([size, points]: [string, OrderSnapshotStockOrderResult['existingOrderInboundSupplyBySize'][string]]): [string, OrderSnapshotStockOrderResult['existingOrderInboundSupplyBySize'][string]] => [
         size,

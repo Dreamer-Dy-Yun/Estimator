@@ -87,21 +87,27 @@ describe('httpDashboardRequests company read scope contract', () : void => {
       skuGroupKey: 'SKU-054-BLK',
       productIdentity,
       base: unscopedBaseSubject,
+      comparison: musinsaComparison,
       periodStart: '2025-01-01',
       periodEnd: '2025-03-31',
       calculationBaseDate: '2026-01-01',
       currentOrderInboundDueDate: '2026-02-01',
+      nextOrderInboundDueDate: '2026-02-22',
       orderCoverageDays: 21,
+      selfWeightPct: 50,
     })
     await httpDashboardRequests.getSecondaryStockOrderCalc({
       skuGroupKey: 'SKU-054-BLK',
       productIdentity,
       base: unscopedBaseSubject,
+      comparison: musinsaComparison,
       periodStart: '2025-01-01',
       periodEnd: '2025-03-31',
       calculationBaseDate: '2026-01-01',
       currentOrderInboundDueDate: '2026-02-01',
+      nextOrderInboundDueDate: '2026-02-22',
       orderCoverageDays: 21,
+      selfWeightPct: 50,
     })
 
     const apiRequestCalls: ApiRequestCall[] = httpClientMocks.apiRequest.mock.calls as unknown as ApiRequestCall[]

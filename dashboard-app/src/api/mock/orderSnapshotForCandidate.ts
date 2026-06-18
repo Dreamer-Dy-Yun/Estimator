@@ -1,4 +1,4 @@
-import type { ProductSecondaryDetail, SecondaryCompetitorChannel } from '..'
+import type { ProductSecondaryDetail, SecondaryCompetitorChannel, SecondaryInboundSplitSource } from '..'
 import type { OrderSnapshotBaseSubject, OrderSnapshotComparisonSubject, OrderSnapshotDrawer1, OrderSnapshotDrawer2, OrderSnapshotMonthlySalesTrendPoint, OrderSnapshotPrimarySummary } from '../../snapshot/orderSnapshotTypes'
 import type { MonthlySalesPoint, ProductSecondarySizeRow } from '../../types'
 import type { SalesKpiColumn } from '../../utils/salesKpiColumn'
@@ -26,9 +26,67 @@ interface MockOrderSnapshotOptions {
   companyUuid?: string
 }
 
+const MOCK_INBOUND_SPLIT_CALCULATION_BASE_DATE = '2026-04-01' as const
+const MOCK_INBOUND_SPLIT_COVERAGE_END_DATE = '2026-05-01' as const
+const MOCK_DAY_MS = 86_400_000 as const
+
 function requireNumber(value: number | null | undefined, label: string) : number {
   if (typeof value !== 'number' || !Number.isFinite(value)) throw new Error(`Missing mock numeric value: ${label}`)
   return value
+}
+
+function addMockIsoDays(date: string, days: number): string {
+  const parsed: number = Date.parse(`${date}T00:00:00.000Z`)
+  if (!Number.isFinite(parsed)) throw new Error(`Invalid mock date: ${date}`)
+  return new Date(parsed + days * MOCK_DAY_MS).toISOString().slice(0, 10)
+}
+
+function buildMockOrderSnapshotInboundSplitSource({
+  summary,
+  sizeOrders,
+  displaySizeRows,
+  existingOrderInboundSupplyBySize,
+  dailyMean,
+}: {
+  summary: OrderSnapshotPrimarySummary
+  sizeOrders: { size: string; blendedSharePct: number }[]
+  displaySizeRows: { size: string; currentStockQty: number }[]
+  existingOrderInboundSupplyBySize: Record<string, { date: string; qty: number }[]>
+  dailyMean: number
+}): SecondaryInboundSplitSource {
+  const displayRowBySize: Map<string, { size: string; currentStockQty: number }> = new Map(displaySizeRows.map((row: { size: string; currentStockQty: number }): [string, { size: string; currentStockQty: number }] => [row.size, row]))
+  const supplyBySize: SecondaryInboundSplitSource['supplyBySize'] = Object.fromEntries(sizeOrders.map((row: { size: string; blendedSharePct: number }): [string, SecondaryInboundSplitSource['supplyBySize'][string]] => {
+    const sourcePoints: SecondaryInboundSplitSource['supplyBySize'][string] = [
+      { date: MOCK_INBOUND_SPLIT_CALCULATION_BASE_DATE, qty: displayRowBySize.get(row.size)?.currentStockQty ?? 0 },
+      ...(existingOrderInboundSupplyBySize[row.size] ?? []).filter((point: { date: string; qty: number }): boolean =>
+        point.date >= MOCK_INBOUND_SPLIT_CALCULATION_BASE_DATE && point.date < MOCK_INBOUND_SPLIT_COVERAGE_END_DATE),
+    ]
+    return [row.size, sourcePoints]
+  }))
+  const salesForecastByDate: SecondaryInboundSplitSource['salesForecastByDate'] = {}
+  for (let offset = 0; ; offset += 1) {
+    const date: string = addMockIsoDays(MOCK_INBOUND_SPLIT_CALCULATION_BASE_DATE, offset)
+    if (date >= MOCK_INBOUND_SPLIT_COVERAGE_END_DATE) break
+    salesForecastByDate[date] = Object.fromEntries(sizeOrders.map((row: { size: string; blendedSharePct: number }): [string, number] => [
+      row.size,
+      Math.max(0, dailyMean * row.blendedSharePct / 100),
+    ]))
+  }
+  return {
+    productId: summary.skuGroupKey,
+    productIdentity: {
+      productUuid: summary.productUuid ?? null,
+      skuGroupKey: summary.skuGroupKey,
+      brand: summary.brand,
+      code: summary.code,
+      colorCode: summary.colorCode,
+    },
+    calculationBaseDate: MOCK_INBOUND_SPLIT_CALCULATION_BASE_DATE,
+    coverageStartDate: MOCK_INBOUND_SPLIT_CALCULATION_BASE_DATE,
+    coverageEndDate: MOCK_INBOUND_SPLIT_COVERAGE_END_DATE,
+    supplyBySize,
+    salesForecastByDate,
+  }
 }
 
 function buildMockAiPrompt(snapshot: OrderSnapshotDocument) : string {
@@ -188,6 +246,13 @@ export function buildMockOrderSnapshotForCandidate(
           code: summary.code,
           colorCode: summary.colorCode,
         },
+        inboundSplitSource: buildMockOrderSnapshotInboundSplitSource({
+          summary,
+          sizeOrders,
+          displaySizeRows,
+          existingOrderInboundSupplyBySize,
+          dailyMean,
+        }),
         existingOrderInboundSupplyBySize,
         trendDailyMean: dailyMean,
         dailyMean,

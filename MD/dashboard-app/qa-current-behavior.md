@@ -23,7 +23,7 @@ Last updated: 2026-06-11
 - Monthly trend request: last 24 completed months + 12 forecast months.
 - Daily trend request: selected start month first day through yesterday + lead-time forecast days.
 - AI comment request is manual and may include `snapshotForAiComment` so the generated text follows the current secondary drawer calculation.
-- Snapshot save uses current drawer state and `OrderSnapshotDocument` v7.
+- Snapshot save uses current drawer state and `OrderSnapshotDocument` v8.
 - If a selected SKU drawer-bundle refresh fails, the UI may keep same-SKU stable data, but it must not show another SKU's cached bundle as the current selection.
 
 ## Candidate stash

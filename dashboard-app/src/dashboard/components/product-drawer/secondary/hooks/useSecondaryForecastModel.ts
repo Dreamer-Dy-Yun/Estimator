@@ -113,6 +113,7 @@ export function useSecondaryForecastModel(args: Args) : { stockOrderDisplay: { c
     baseSubject,
     forecastPeriodEndMonth,
     orderCoverageDays,
+    selfWeightPct,
     dailyMeanClient,
     currentOrderInboundDueDate,
     nextOrderInboundDueDate,
@@ -165,7 +166,8 @@ export function useSecondaryForecastModel(args: Args) : { stockOrderDisplay: { c
 
   const calculations: { stockOrderCalculationReady: boolean; stockOrderDisplayInputs: { trendDailyMean: null; dailyMean: null; sigma: null; } | { trendDailyMean: number; dailyMean: number; sigma: number; }; sizeRows: SecondarySizeOrderDisplayRow[]; manualConfirmDerived: Record<string, true>; dailyTrendSizeOptions: { id: string; label: string; share: number; }[]; } = useSecondaryOrderCalculations({
     secondary,
-    forecastSalesHorizonDays: orderCoverageDays,
+    currentOrderInboundDueDate,
+    nextOrderInboundDueDate,
     dailyMeanClient,
     stockOrderCalc: activeStockOrderCalc,
     stockOrderCalculationReady,

@@ -22,7 +22,7 @@ Last updated: 2026-06-18
 | `src/api/requests/httpDashboardRequests.ts` | 실제 HTTP path/query/body 직렬화 기준 |
 | `src/api/requests/mockDashboardRequests.ts` | 계약형 mock 구현 |
 | `src/api/requests/dashboardMasterDataCache.ts` | master data 캐시 래퍼 |
-| `src/snapshot/orderSnapshotTypes.ts` | 후보 상세 저장 스냅샷 v7 타입 |
+| `src/snapshot/orderSnapshotTypes.ts` | 후보 상세 저장 스냅샷 v8 타입 |
 | `src/snapshot/parseOrderSnapshot.ts` | 스냅샷 파싱/검증 |
 
 ## 3. 요청 직렬화 기준
@@ -70,10 +70,10 @@ Last updated: 2026-06-18
 | `getProductSalesInsight` | 기간/비교 주체 민감 인사이트 |
 | `getProductSecondaryDetail` | secondary 오더 상세 |
 | `getSecondaryDailyTrend` | 일별 예측 소스 |
-| `getSecondaryInboundSplitSource` | 입고 분할 원천 소스 |
+| `getSecondaryStockOrderCalc().inboundSplitSource` | Split-inbound planning source. Detail recommended quantity rows and split-inbound suggestions must use the same source. |
 | `getSecondaryStockOrderCalc` | 백엔드 단일 주문 계산점 |
 
-`getSecondaryStockOrderCalc`는 `productIdentity`, `calculationBaseDate`, `currentOrderInboundDueDate`를 body로 받으며, A 원천인 `existingOrderInboundSupplyBySize`와 그 집계 표시값을 반환한다. `getSecondaryInboundSplitSource`는 적용된 분할 rows를 반환하지 않는다. 요청 query는 flattened product identity(`productSkuGroupKey`, `productUuid?`, `productBrand`, `productCode`, `productColorCode`), `calculationBaseDate`, `coverageStartDate`, `coverageEndDate`, base subject이고, 응답은 `supplyBySize`와 `salesForecastByDate`를 제공한다. 적용된 분할 결과와 `ignoreExistingOrderInbound` 옵션은 `OrderSnapshotDocument.drawer2.confirmed.rounds`에 저장된다.
+`getSecondaryStockOrderCalc` receives `productIdentity`, `base`, `comparison`, `calculationBaseDate`, `currentOrderInboundDueDate`, `nextOrderInboundDueDate`, and `selfWeightPct` in the body. The response returns A as `existingOrderInboundSupplyBySize`, aggregate display values, and `inboundSplitSource`. Applied split rows and `ignoreExistingOrderInbound` are stored in `OrderSnapshotDocument.drawer2.confirmed.rounds`.
 
 ## 7. Candidate 계약
 

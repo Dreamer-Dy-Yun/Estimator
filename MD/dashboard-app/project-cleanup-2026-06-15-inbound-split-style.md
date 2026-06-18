@@ -18,7 +18,7 @@ Clean up the secondary drawer split-inbound schedule UI by feature responsibilit
 - `secondary/cards/inboundSplitScheduleTypes.ts`
 - `src/api/types/secondary.ts`
 - `src/api/mock/secondaryDailyTrendBuilders.ts`
-- `src/api/mock/secondaryInboundSplitSourceFixture.ts`
+- `src/api/mock/secondaryStockOrderCalcApi.ts`
 - `secondary/style-parts/inboundSplit*.module.css`
 - Boundary notes under `MD/dashboard-app`
 - Backend-facing contract notes under `MD/backend-api`
@@ -69,7 +69,7 @@ Clean up the secondary drawer split-inbound schedule UI by feature responsibilit
 
 - `getSecondaryDailyTrend` expects `SecondaryDailyTrendSource`, not chart-ready `SecondaryDailyTrendPoint[]`. Backend must provide `baseStockAtStart` as opening stock immediately before `dateStart`, and `flowByDate[date].base.inbound` as per-date base inbound rather than accumulated chart bars.
 - `getSecondaryDailyTrend.flowByDate` must cover every date from `dateStart` through inclusive `dateEnd`. `comparisonStockAtStart` is reserved; the current frontend accepts `null` and does not render comparison stock bars.
-- `getSecondaryInboundSplitSource`는 source-only API이며 query는 `skuGroupKey`, `calculationBaseDate`, `coverageStartDate`, `coverageEndDate`, `base`를 사용하고 response는 `supplyBySize`, `salesForecastByDate`를 반환한다.
+- `getSecondaryStockOrderCalc().inboundSplitSource`는 stock-order-calc response field이며 query는 `skuGroupKey`, `calculationBaseDate`, `coverageStartDate`, `coverageEndDate`, `base`를 사용하고 response는 `supplyBySize`, `salesForecastByDate`를 반환한다.
 
 ## 2026-06-16 hardening update
 

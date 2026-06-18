@@ -6,7 +6,7 @@
 
 ## Scope
 
-- `getSecondaryInboundSplitSource` 계약을 분할입고 계산 전용 source API로 정리한다.
+- `getSecondaryStockOrderCalc().inboundSplitSource` 계약을 분할입고 계산 전용 source API로 정리한다.
 - 분할입고 제안 계산은 각 차수 기간의 판매 예측을 먼저 집계한 뒤, 계산 기준일 재고와 기존 오더 입고 예정량을 차감한다.
 - 차수별로 기존 오더 중간 입고량 반영 여부를 사용자가 선택할 수 있게 한다.
 - 선택값은 확정 차수 정보와 주문 스냅샷에 저장한다.
@@ -22,12 +22,12 @@
 
 ## API Contract
 
-`getSecondaryInboundSplitSource` request:
+`getSecondaryStockOrderCalc().inboundSplitSource` request:
 
 - path: `skuGroupKey`
 - query params: `productSkuGroupKey`, `productUuid?`, `productBrand`, `productCode`, `productColorCode`, `calculationBaseDate`, `coverageStartDate`, `coverageEndDate`, `baseRole`, `baseKind`, `baseSourceId?`
 
-`getSecondaryInboundSplitSource` response:
+`getSecondaryStockOrderCalc().inboundSplitSource` response:
 
 - `productId`
 - `productIdentity`
@@ -63,7 +63,7 @@
 
 - 분할 차수 수나 차수 날짜가 바뀌면 각 기간의 담당 수요가 달라지므로 제안 수량도 함께 바뀐다.
 - 현재 재고와 기존 오더 입고 예정량은 동일한 `supplyBySize` 구조로 계산에 들어간다.
-- `ignoreExistingOrderInbound`는 차수별 확정 정보와 주문 스냅샷 v7에 보존된다.
+- `ignoreExistingOrderInbound`는 차수별 확정 정보와 주문 스냅샷 v8에 보존된다.
 - API 문서와 프론트 경계 문서는 신규 계약 기준으로 갱신한다.
 
 ## Non-goals and Follow-up Candidates

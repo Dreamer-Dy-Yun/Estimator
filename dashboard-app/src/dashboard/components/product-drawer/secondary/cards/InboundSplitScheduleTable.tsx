@@ -15,8 +15,6 @@ export interface InboundSplitScheduleTableProps {
   nextOrderInboundDueDate: string
   rows: InboundSplitScheduleRow[]
   columns: InboundSplitSizeColumn[]
-  ignoreExistingOrderInboundAll: boolean
-  onIgnoreExistingOrderInboundAllChange: (checked: boolean) => void
   onDateChange: (rowIndex: number, value: string) => void
   onRowTotalChange: (rowIndex: number, value: string) => void
   onQtyChange: (rowIndex: number, size: string, value: string) => void
@@ -32,8 +30,6 @@ export function InboundSplitScheduleTable({
   nextOrderInboundDueDate,
   rows,
   columns,
-  ignoreExistingOrderInboundAll,
-  onIgnoreExistingOrderInboundAllChange,
   onDateChange,
   onRowTotalChange,
   onQtyChange,
@@ -66,14 +62,6 @@ export function InboundSplitScheduleTable({
           <td className={stickyTotalClassName}>
             <div className={styles.inboundSplitSummaryTotalCell}>
               <span>{formatGroupedNumber(suggestedGrandTotal)}</span>
-              <label className={styles.inboundSplitIgnoreExistingOrderInboundSummary}>
-                <input
-                  type="checkbox"
-                  checked={ignoreExistingOrderInboundAll}
-                  onChange={(event: React.ChangeEvent<HTMLInputElement>): void => onIgnoreExistingOrderInboundAllChange(event.target.checked)}
-                />
-                <span>{KO.labelInboundSplitIgnoreExistingOrderInbound}</span>
-              </label>
             </div>
           </td>
           {columns.map((column: InboundSplitSizeColumn): React.JSX.Element => (

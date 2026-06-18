@@ -28,7 +28,7 @@
 | [backend-api/README.md](./backend-api/README.md) | 백엔드 API 문서 진입점 |
 | [backend-api/dashboard-api-contract-catalog.md](./backend-api/dashboard-api-contract-catalog.md) | 백엔드가 구현할 endpoint, request, response catalog |
 | [backend-api/backend-api-spec.md](./backend-api/backend-api-spec.md) | 인증, scope, error, SSE, 구현 주의사항 |
-| [backend-api/order-snapshot-backend-contract.md](./backend-api/order-snapshot-backend-contract.md) | `OrderSnapshotDocument` v7 저장 계약 |
+| [backend-api/order-snapshot-backend-contract.md](./backend-api/order-snapshot-backend-contract.md) | `OrderSnapshotDocument` v8 저장 계약 |
 | [troubleshooting/README.md](./troubleshooting/README.md) | 반복 환경 문제와 판별법 |
 | [HISTORY/README.md](./HISTORY/README.md) | 과거 계획, 완료 기록, 이전 요구사항 보관 기준 |
 

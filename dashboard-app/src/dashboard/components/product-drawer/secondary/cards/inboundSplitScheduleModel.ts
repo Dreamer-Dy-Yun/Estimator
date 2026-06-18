@@ -10,6 +10,7 @@ export interface InboundSplitSizeColumn {
   size: string
   confirmedQty: number
   recommendedQty: number
+  targetEndingStockQty?: number
 }
 
 export interface InboundSplitScheduleRow {
@@ -60,6 +61,7 @@ export function getInboundSplitSizeColumns(sizeRows: SecondarySizeOrderDisplayRo
     size: row.size,
     confirmedQty: Math.max(0, Math.round(row.confirmQty)),
     recommendedQty: Math.max(0, Math.round(row.recommendedQty)),
+    targetEndingStockQty: Math.max(0, Math.round(row.bufferQty ?? 0)),
   }))
 }
 

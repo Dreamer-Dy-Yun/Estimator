@@ -51,14 +51,11 @@ function renderTable(overrides: Partial<InboundSplitScheduleTableProps> = {}): R
     onRowTotalChange: vi.fn(),
     onQtyChange: vi.fn(),
   }
-  const noopBool: (checked: boolean) => void = vi.fn()
   const props: InboundSplitScheduleTableProps = {
     currentOrderInboundDueDate: '2026-03-31',
     nextOrderInboundDueDate: '2026-05-01',
     rows: ROWS,
     columns: COLUMNS,
-    ignoreExistingOrderInboundAll: false,
-    onIgnoreExistingOrderInboundAllChange: noopBool,
     ...callbacks,
     ...overrides,
   }

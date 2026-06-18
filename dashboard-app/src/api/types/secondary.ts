@@ -94,15 +94,6 @@ export interface SecondaryInboundSplitSource {
   salesForecastByDate: Record<string, Record<string, number>>
 }
 
-export interface SecondaryInboundSplitSourceParams {
-  skuGroupKey: string
-  productIdentity: SecondaryProductIdentity
-  calculationBaseDate: string
-  coverageStartDate: string
-  coverageEndDate: string
-  base: ProductComparisonBaseSubjectRef
-}
-
 export interface SecondaryCompetitorChannel {
   id: string
   label: string
@@ -140,14 +131,19 @@ export interface SecondaryStockOrderCalcParams {
   skuGroupKey: string
   productIdentity: SecondaryProductIdentity
   base: ProductComparisonBaseSubjectRef
+  comparison: ProductComparisonComparisonSubjectRef
   periodStart: string
   periodEnd: string
   /** Inventory calculation base date. Existing-order inbound supply is interpreted from this date. */
   calculationBaseDate: string
   /** Current order inbound date. Existing-order inbound before this date is displayed as pre-current-order inbound balance. */
   currentOrderInboundDueDate: string
+  /** Exclusive next-order inbound date; stock-order recommendation and split-inbound planning cover dates before this day. */
+  nextOrderInboundDueDate: string
   forecastPeriodEndMonth?: string
   orderCoverageDays: number
+  /** Size mix weight used by both detailed recommendation rows and split-inbound source generation. */
+  selfWeightPct: number
   /** Optional demand mean supplied by the frontend; backend computes it when omitted. */
   dailyMean?: number
 }
@@ -162,6 +158,8 @@ export interface SecondaryStockOrderDisplaySizeRow {
 export interface SecondaryStockOrderCalcResult {
   /** Echoed product identity used to reject mismatched stock-order responses. */
   productIdentity: SecondaryProductIdentity
+  /** Single source used by both detailed recommendation rows and split-inbound planning. */
+  inboundSplitSource: SecondaryInboundSplitSource
   /** Existing ordered but not-yet-inbound quantities, keyed by size and expected inbound date. */
   existingOrderInboundSupplyBySize: SecondaryExistingOrderInboundSupplyBySize
   /** Display daily mean based on the period trend, rounded to one decimal place. */

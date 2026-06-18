@@ -22,8 +22,6 @@ import type {
   SecondaryAiCommentResult,
   SecondaryDailyTrendParams,
   SecondaryDailyTrendSource,
-  SecondaryInboundSplitSource,
-  SecondaryInboundSplitSourceParams,
   SecondaryStockOrderCalcParams,
   SecondaryStockOrderCalcResult,
   SelfSalesGridParams,
@@ -95,8 +93,6 @@ export const mockDashboardRequests: DashboardApi = withMockApiAdapterErrors<Dash
   getProductSecondaryDetail: (skuGroupKey: string, params: ProductSecondaryDetailParams): Promise<ProductSecondaryDetail> => mockDashboardApi.getProductSecondaryDetail(skuGroupKey, params),
   // GET /products/{skuGroupKey}/secondary/daily-trend: 일별 추세 조회.
   getSecondaryDailyTrend: (params: SecondaryDailyTrendParams): Promise<SecondaryDailyTrendSource> => mockDashboardApi.getSecondaryDailyTrend(params),
-  // GET /products/{skuGroupKey}/secondary/inbound-split-source: 입고 분할 소스 조회.
-  getSecondaryInboundSplitSource: (params: SecondaryInboundSplitSourceParams): Promise<SecondaryInboundSplitSource> => mockDashboardApi.getSecondaryInboundSplitSource(params),
   // POST /products/{skuGroupKey}/secondary/ai-comment: secondary AI 코멘트 생성.
   getSecondaryAiComment: (params: SecondaryAiCommentParams): Promise<SecondaryAiCommentResult> => mockDashboardApi.getSecondaryAiComment(params),
   // GET /secondary/competitor-channels: 비교 채널 목록 조회.

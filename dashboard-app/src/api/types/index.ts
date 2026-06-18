@@ -100,7 +100,6 @@ export type {
   SecondaryDailyTrendPoint,
   SecondaryDailyTrendSource,
   SecondaryInboundSplitSource,
-  SecondaryInboundSplitSourceParams,
   SecondaryInboundSplitSupplyPoint,
   SecondaryExistingOrderInboundSupplyBySize,
   SecondaryProductIdentity,

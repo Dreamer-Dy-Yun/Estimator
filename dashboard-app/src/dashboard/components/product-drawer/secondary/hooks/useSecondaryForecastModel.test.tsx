@@ -37,6 +37,19 @@ type HookResult = ReturnType<typeof useSecondaryForecastModel>
 const PRODUCT_IDENTITY: SecondaryProductIdentity = { productUuid: null, skuGroupKey: 'sku-a', brand: 'Brand', code: 'CODE', colorCode: 'BLK' }
 const STOCK_ORDER_CALC: SecondaryStockOrderCalcResult = {
   productIdentity: PRODUCT_IDENTITY,
+  inboundSplitSource: {
+    productId: PRODUCT_IDENTITY.skuGroupKey,
+    productIdentity: PRODUCT_IDENTITY,
+    calculationBaseDate: '2026-04-01',
+    coverageStartDate: '2026-04-01',
+    coverageEndDate: '2026-05-01',
+    supplyBySize: {
+      S: [{ date: '2026-04-01', qty: 1 }],
+    },
+    salesForecastByDate: {
+      '2026-04-01': { S: 10 },
+    },
+  },
   existingOrderInboundSupplyBySize: {
     S: [
       { date: '2026-01-15', qty: 2 },
@@ -94,7 +107,7 @@ function setupMocks(): void {
       dailyForecastShade: null,
       dailyTickIndices: [],
     },
-    inboundSplitSource: null,
+    inboundSplitSource: STOCK_ORDER_CALC.inboundSplitSource,
     inboundSplitSourceLoading: false,
     inboundSplitSourceError: null,
     stockOrderCalc: STOCK_ORDER_CALC,

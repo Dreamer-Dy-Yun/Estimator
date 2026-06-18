@@ -19,11 +19,11 @@ Apply a MulAg-assisted cleanup pass for variable and function names whose meanin
 - Renamed interval demand helper to `sumIntervalTotalNetDemand`.
 - Renamed dialog total helper to `currentConfirmedTotal`.
 - Updated docs that still referred to `inboundSplitWorkDate` as the active current name.
-- Corrected backend changelog snapshot schema wording so the current contract points to `OrderSnapshotDocument` v7.
-- Rewrote current README/API/boundary documents so they point to the current `DashboardApi`, HTTP request serialization, product drawer boundary, source-only inbound split API, and `OrderSnapshotDocument` v7 contract.
+- Corrected backend changelog snapshot schema wording so the current contract points to `OrderSnapshotDocument` v8.
+- Rewrote current README/API/boundary documents so they point to the current `DashboardApi`, HTTP request serialization, product drawer boundary, source-only inbound split API, and `OrderSnapshotDocument` v8 contract.
 - Clarified that Korean text appearing broken in PowerShell output is not by itself file corruption; UTF-8 decoding and encoding checks are the verification basis.
 - Follow-up MulAg pass after the 5.3 cleanup/deploy found and fixed `forecastCalc` naming in secondary drawer internals, empty split-draft global toggle defaulting, duplicated secondary API response guards, and current-schema snapshot fallback leakage.
-- Backend/API docs now spell out the actual flattened `getSecondaryInboundSplitSource` query identity fields and the schedule-level UI toggle vs per-round snapshot storage rule.
+- Backend/API docs now spell out the actual flattened `getSecondaryStockOrderCalc().inboundSplitSource` query identity fields and the schedule-level UI toggle vs per-round snapshot storage rule.
 
 ## Deferred
 

@@ -31,7 +31,7 @@ export type Props = {
     selfCompanyLabel: string
     selfWeightPct: number
     sizeRows: SecondarySizeOrderDisplayRow[]
-    helpIds: Pick<SecondaryHelpIds, 'totalOrderBalance' | 'expectedInboundOrderBalance' | 'sizeRecQty' | 'salesForecastSizeOrder'>
+    helpIds: Pick<SecondaryHelpIds, 'totalOrderBalance' | 'expectedInboundOrderBalance' | 'sizeRecQty' | 'salesForecastSizeOrder' | 'inboundSplitSchedule'>
     stockOrderDisplay: SecondaryStockOrderCalcResult['display'] | null
     calculationReady?: boolean
     manualConfirmBySize: Readonly<Record<string, true>>
@@ -167,6 +167,7 @@ export function SizeOrderCard({ sizeOrder, actions, help }: Props) : React.JSX.E
     <InboundSplitScheduleDialog
       key={inboundSplitSchedule.dialogKey}
       open={inboundSplitSchedule.dialogOpen}
+      help={{ labelId: helpIds.inboundSplitSchedule, portal: help }}
       {...inboundSplitSchedule.dialogProps}
     />
     </>

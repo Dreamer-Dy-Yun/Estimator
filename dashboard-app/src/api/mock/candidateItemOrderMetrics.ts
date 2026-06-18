@@ -31,6 +31,7 @@ const DEFAULT_SELF_WEIGHT_PCT = 50 as const
 const DEFAULT_BUFFER_STOCK = 0 as const
 const DEFAULT_CALCULATION_BASE_DATE = '2026-01-01' as const
 const DEFAULT_CURRENT_ORDER_INBOUND_DUE_DATE = '2026-02-01' as const
+const DEFAULT_NEXT_ORDER_INBOUND_DUE_DATE = '2026-03-03' as const
 
 function getProductPrimary(skuGroupKey: string) : ProductPrimarySummary {
   const primary: ProductPrimarySummary = productPrimaryBySkuGroupKey[skuGroupKey]
@@ -149,12 +150,15 @@ function buildLiveSizeRows({
     skuGroupKey: row.skuGroupKey,
     productIdentity: productIdentityFromPrimary(getProductPrimary(row.skuGroupKey)),
     base,
+    comparison,
     periodStart,
     periodEnd,
     calculationBaseDate: DEFAULT_CALCULATION_BASE_DATE,
     currentOrderInboundDueDate: DEFAULT_CURRENT_ORDER_INBOUND_DUE_DATE,
+    nextOrderInboundDueDate: DEFAULT_NEXT_ORDER_INBOUND_DUE_DATE,
     forecastPeriodEndMonth: periodEnd.slice(0, 7),
     orderCoverageDays: DEFAULT_ORDER_COVERAGE_DAYS,
+    selfWeightPct: DEFAULT_SELF_WEIGHT_PCT,
   }
   const secondary: ProductSecondaryDetail = buildMockProductSecondaryDetail(row.skuGroupKey, {
     base,
@@ -165,7 +169,9 @@ function buildLiveSizeRows({
   const sizeRows: SecondarySizeOrderRow[] = buildSecondarySizeOrderRows({
     shares,
     dailyMeanEa: stockCalc.dailyMean,
-    forecastSalesHorizonDays: DEFAULT_ORDER_COVERAGE_DAYS,
+    currentOrderInboundDueDate: DEFAULT_CURRENT_ORDER_INBOUND_DUE_DATE,
+    nextOrderInboundDueDate: DEFAULT_NEXT_ORDER_INBOUND_DUE_DATE,
+    inboundSplitSource: stockCalc.inboundSplitSource,
     stockOrderSizeRows: stockCalc.display.sizeRows,
     bufferStock: DEFAULT_BUFFER_STOCK,
     orderDraft: {

@@ -4,7 +4,6 @@ import { useCallback, useMemo } from 'react'
 import type { ProductComparisonBaseSubjectRef, ProductComparisonTarget } from '../../../../../api'
 import type { ApiUnitErrorInfo, ProductPrimarySummary } from '../../../../../types'
 import { useSecondaryDailyTrend } from './useSecondaryDailyTrend'
-import { useSecondaryInboundSplitSource } from './useSecondaryInboundSplitSource'
 import { useSecondarySalesInsight } from './useSecondarySalesInsight'
 import { useSecondaryStockOrderCalc } from './useSecondaryStockOrderCalc'
 
@@ -19,6 +18,7 @@ export type Args = {
   baseSubject: ProductComparisonBaseSubjectRef
   forecastPeriodEndMonth: string
   orderCoverageDays: number
+  selfWeightPct: number
   dailyMeanClient: number | null
   currentOrderInboundDueDate: string
   nextOrderInboundDueDate: string
@@ -53,6 +53,7 @@ export function useSecondaryDrawerRequests({
   baseSubject,
   forecastPeriodEndMonth,
   orderCoverageDays,
+  selfWeightPct,
   dailyMeanClient,
   currentOrderInboundDueDate,
   nextOrderInboundDueDate,
@@ -83,10 +84,13 @@ export function useSecondaryDrawerRequests({
     periodStart,
     periodEnd,
     baseSubject,
+    comparisonSubject: comparisonTarget,
     calculationBaseDate,
     currentOrderInboundDueDate,
+    nextOrderInboundDueDate,
     forecastPeriodEndMonth,
     orderCoverageDays,
+    selfWeightPct,
     dailyMeanClient,
     makeApiErrorInfo,
   })
@@ -99,15 +103,11 @@ export function useSecondaryDrawerRequests({
     orderCoverageDays,
     makeApiErrorInfo,
   })
-  const inboundSplitSource: { inboundSplitSource: SecondaryInboundSplitSource | null; inboundSplitSourceLoading: boolean; inboundSplitSourceError: ApiUnitErrorInfo | null; } = useSecondaryInboundSplitSource({
-    skuGroupKey: primary.skuGroupKey,
-    productIdentity,
-    calculationBaseDate,
-    coverageStartDate: currentOrderInboundDueDate,
-    coverageEndDate: nextOrderInboundDueDate,
-    baseSubject,
-    makeApiErrorInfo,
-  })
+  const inboundSplitSource: { inboundSplitSource: SecondaryInboundSplitSource | null; inboundSplitSourceLoading: boolean; inboundSplitSourceError: ApiUnitErrorInfo | null; } = {
+    inboundSplitSource: stockOrder.stockOrderCalc?.inboundSplitSource ?? null,
+    inboundSplitSourceLoading: stockOrder.stockOrderCalcLoading,
+    inboundSplitSourceError: stockOrder.stockOrderCalcError,
+  }
 
   return {
     ...salesInsight,

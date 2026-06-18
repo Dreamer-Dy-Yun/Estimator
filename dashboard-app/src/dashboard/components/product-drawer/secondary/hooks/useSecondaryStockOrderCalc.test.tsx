@@ -1,4 +1,4 @@
-import type { ProductComparisonBaseSubjectRef, SecondaryProductIdentity, SecondaryStockOrderCalcParams } from '../../../../../api/types'
+import type { ProductComparisonBaseSubjectRef, ProductComparisonComparisonSubjectRef, SecondaryInboundSplitSource, SecondaryProductIdentity, SecondaryStockOrderCalcParams } from '../../../../../api/types'
 // @vitest-environment jsdom
 import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
@@ -8,18 +8,22 @@ import type { ApiUnitErrorInfo } from '../../../../../types'
 import { useSecondaryStockOrderCalc } from './useSecondaryStockOrderCalc'
 
 const BASE_SUBJECT: ProductComparisonBaseSubjectRef = { role: 'base', kind: 'self-company', sourceId: 'company-1' }
+const COMPARISON_SUBJECT: ProductComparisonComparisonSubjectRef = { role: 'comparison', kind: 'competitor-channel', sourceId: 'kream' }
 const PRODUCT_IDENTITY: SecondaryProductIdentity = { productUuid: null, skuGroupKey: 'sku-a', brand: 'Brand', code: 'CODE', colorCode: 'BLK' }
 
-const BASE_PROPS: { skuGroupKey: string; productIdentity: SecondaryProductIdentity; periodStart: string; periodEnd: string; baseSubject: ProductComparisonBaseSubjectRef; calculationBaseDate: string; currentOrderInboundDueDate: string; forecastPeriodEndMonth: string; orderCoverageDays: number; makeApiErrorInfo: (request: string, err: unknown) => ApiUnitErrorInfo; } = {
+const BASE_PROPS: { skuGroupKey: string; productIdentity: SecondaryProductIdentity; periodStart: string; periodEnd: string; baseSubject: ProductComparisonBaseSubjectRef; comparisonSubject: ProductComparisonComparisonSubjectRef; calculationBaseDate: string; currentOrderInboundDueDate: string; nextOrderInboundDueDate: string; forecastPeriodEndMonth: string; orderCoverageDays: number; selfWeightPct: number; makeApiErrorInfo: (request: string, err: unknown) => ApiUnitErrorInfo; } = {
   skuGroupKey: 'sku-a',
   productIdentity: PRODUCT_IDENTITY,
   periodStart: '2025-01-01',
   periodEnd: '2025-12-31',
   baseSubject: BASE_SUBJECT,
-  calculationBaseDate: '2026-01-01',
+  comparisonSubject: COMPARISON_SUBJECT,
+  calculationBaseDate: '2026-02-01',
   currentOrderInboundDueDate: '2026-02-01',
+  nextOrderInboundDueDate: '2026-02-03',
   forecastPeriodEndMonth: '2026-08',
-  orderCoverageDays: 30,
+  orderCoverageDays: 2,
+  selfWeightPct: 50,
   makeApiErrorInfo: (request: string, err: unknown): ApiUnitErrorInfo => ({
     checkedAt: '2026-05-19T00:00:00.000Z',
     page: 'test',
@@ -28,13 +32,32 @@ const BASE_PROPS: { skuGroupKey: string; productIdentity: SecondaryProductIdenti
   }),
 }
 
+const INBOUND_SPLIT_SOURCE: SecondaryInboundSplitSource = {
+  productId: PRODUCT_IDENTITY.skuGroupKey,
+  productIdentity: PRODUCT_IDENTITY,
+  calculationBaseDate: BASE_PROPS.calculationBaseDate,
+  coverageStartDate: BASE_PROPS.currentOrderInboundDueDate,
+  coverageEndDate: BASE_PROPS.nextOrderInboundDueDate,
+  supplyBySize: {
+    S: [
+      { date: '2026-02-01', qty: 1 },
+      { date: '2026-02-02', qty: 1 },
+    ],
+  },
+  salesForecastByDate: {
+    '2026-02-01': { S: 10 },
+    '2026-02-02': { S: 10 },
+  },
+}
+
 function calcResult(dailyMean: number): SecondaryStockOrderCalcResult {
   return {
     productIdentity: PRODUCT_IDENTITY,
+    inboundSplitSource: INBOUND_SPLIT_SOURCE,
     existingOrderInboundSupplyBySize: {
       S: [
         { date: '2026-01-15', qty: 2 },
-        { date: '2026-02-01', qty: 1 },
+        { date: '2026-02-02', qty: 1 },
       ],
     },
     trendDailyMean: dailyMean,

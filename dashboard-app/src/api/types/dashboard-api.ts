@@ -62,8 +62,6 @@ import type {
   SecondaryCompetitorChannel,
   SecondaryDailyTrendParams,
   SecondaryDailyTrendSource,
-  SecondaryInboundSplitSource,
-  SecondaryInboundSplitSourceParams,
   SecondaryStockOrderCalcParams,
   SecondaryStockOrderCalcResult,
 } from './secondary'
@@ -97,7 +95,6 @@ export interface DashboardApi {
     params: ProductSecondaryDetailParams,
   ): Promise<ProductSecondaryDetail>
   getSecondaryDailyTrend(params: SecondaryDailyTrendParams): Promise<SecondaryDailyTrendSource>
-  getSecondaryInboundSplitSource(params: SecondaryInboundSplitSourceParams): Promise<SecondaryInboundSplitSource>
   getSecondaryAiComment(params: SecondaryAiCommentParams): Promise<SecondaryAiCommentResult>
   getSecondaryCompetitorChannels(): Promise<SecondaryCompetitorChannel[]>
   getCandidateStashes(params?: CandidateStashListParams): Promise<CandidateStashSummary[]>

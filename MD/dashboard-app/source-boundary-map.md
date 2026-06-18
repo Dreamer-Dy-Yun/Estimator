@@ -13,7 +13,7 @@ Last updated: 2026-06-18
 | 인증/회사 컨텍스트 | `src/auth`, `src/company` | 로그인 세션, 회사 선택, 전체 회사 스코프 표현을 관리한다. |
 | 대시보드 화면 | `src/dashboard` | 판매 목록, 산점도, 상품 드로어, 후보 풀 UI를 담당한다. |
 | 후보 풀 | `src/dashboard/pages/snapshot-confirm`, `src/dashboard/pages/SnapshotConfirmPage.tsx`, `src/dashboard/components/candidate-stash` | 후보 풀 목록/상세/추천/확정 작업 흐름을 담당한다. |
-| 스냅샷 | `src/snapshot` | `OrderSnapshotDocument` v7의 저장/파싱/검증 계약을 담당한다. |
+| 스냅샷 | `src/snapshot` | `OrderSnapshotDocument` v8의 저장/파싱/검증 계약을 담당한다. |
 | 공통 UI | `src/components`, `src/styles` | 재사용 UI와 스타일 토큰을 제공한다. |
 
 ## 2. API 접근 경계
@@ -33,7 +33,7 @@ API 문서는 다음 문서를 함께 갱신한다.
 |---|---|
 | `MD/backend-api/backend-api-spec.md` | 백엔드 구현자가 보는 행위/정책 중심 사양이다. |
 | `MD/backend-api/dashboard-api-contract-catalog.md` | endpoint별 path/query/body/response 빠른 참조표이다. |
-| `MD/backend-api/order-snapshot-backend-contract.md` | 후보 상세 저장 스냅샷 v7 계약이다. |
+| `MD/backend-api/order-snapshot-backend-contract.md` | 후보 상세 저장 스냅샷 v8 계약이다. |
 
 ## 3. 상품 드로어 경계
 
@@ -47,9 +47,11 @@ API 문서는 다음 문서를 함께 갱신한다.
 | 판매 인사이트 | `getProductSalesInsight` | 기간/채널 민감 인사이트를 별도 계약으로 수신한다. |
 | Secondary 상세 | `getProductSecondaryDetail` | 오더 계산, 확정값, 사이즈 제안, AI 코멘트 입력 컨텍스트를 수신한다. |
 | 일별 추세 | `getSecondaryDailyTrend` | 일별 예측 그래프와 분할 검토의 일 단위 수요 소스를 수신한다. |
-| 입고 분할 소스 | `getSecondaryInboundSplitSource` | 입고 분할 계산에 필요한 계산 기준일, 커버리지, 사이즈/일 단위 판매예측, 날짜별 공급 포인트만 수신한다. |
+| Split inbound planning source | `getSecondaryStockOrderCalc().inboundSplitSource` | Single planning source for detailed recommendation rows and split-inbound planning. It contains calculation base date, coverage dates, size/date sales forecasts, and supply points. |
 
-`getSecondaryInboundSplitSource`는 분할 결과를 주지 않는다. 분할 차수, 차수별 일자, 차수별 확정 수량, `ignoreExistingOrderInbound` 옵션은 UI 상태와 사용자의 적용 동작이 소유한다.
+`inboundSplitSource` is returned inside `getSecondaryStockOrderCalc`; split count, split dates, confirmed quantities, and `ignoreExistingOrderInbound` remain UI/snapshot state.
+
+Detail recommended quantities and split-inbound suggested quantities must both be derived from `stockOrderCalc.inboundSplitSource`; a one-round split must not use a different source from the order detail recommendation.
 
 ## 4. Secondary 오더/입고 분할 경계
 
@@ -67,13 +69,13 @@ Secondary 드로어의 주요 값은 다음 기준을 따른다.
 
 ## 5. 스냅샷 경계
 
-`OrderSnapshotDocument`의 현재 스키마 버전은 7이다.
+`OrderSnapshotDocument`의 현재 스키마 버전은 8이다.
 
 `stockOrderResult.existingOrderInboundSupplyBySize`는 A(기 주문 오더 입고 예정량)의 날짜별 원천이다. `display.totalOrderBalance*`는 A 전체 집계이고, `display.expectedInboundOrderBalance*`는 `date < currentOrderInboundDueDate`인 A 집계이다.
 
 | 필드 | 의미 |
 |---|---|
-| `schemaVersion` | 반드시 `7`이다. |
+| `schemaVersion` | 반드시 `8`이다. |
 | `context` | 분석 기간, 예측 개월, 일별 추세 기준을 보관한다. |
 | `drawer1.summary` | 상품 기본 요약과 현재 가용 재고를 보관한다. |
 | `drawer2.baseSubject` | 기준 주체이다. 현재는 자사 기준이다. |

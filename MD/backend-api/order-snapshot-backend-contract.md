@@ -8,14 +8,14 @@ Last updated: 2026-06-18
 
 | Field | Required | Meaning |
 |---|:---:|---|
-| `schemaVersion` | Y | `7` |
+| `schemaVersion` | Y | `8` |
 | `skuGroupKey` | Y | Product group key |
 | `savedAt` | Y | Snapshot creation timestamp |
 | `context` | Y | Restore/request basis |
 | `drawer1` | Y | Primary drawer snapshot |
 | `drawer2` | Y | Secondary drawer snapshot |
 
-Top-level `companyUuid` is not part of v7. Scoped restore data belongs in `drawer2.baseSubject.sourceId`.
+Top-level `companyUuid` is not part of v8. Scoped restore data belongs in `drawer2.baseSubject.sourceId`.
 
 ## `context`
 
@@ -70,11 +70,12 @@ The two inbound date fields follow the integrated sales forecast card input mode
 
 ### `stockOrderResult`
 
-Fields: `productIdentity`, `existingOrderInboundSupplyBySize`, `trendDailyMean`, `dailyMean`, `sigma`, `display`.
+Fields: `productIdentity`, `inboundSplitSource`, `existingOrderInboundSupplyBySize`, `trendDailyMean`, `dailyMean`, `sigma`, `display`.
 This block follows the frontend render/calc result type `SecondaryStockOrderCalcResult`.
 
 `productIdentity`: `productUuid?`, `skuGroupKey`, `brand`, `code`, `colorCode`.
 `existingOrderInboundSupplyBySize`: A, keyed by size. Each point is `{ date, qty }` and represents existing ordered but not-yet-inbound quantity from backend-managed Google Sheet staging data. It must not include the draft/current order quantities being edited in the drawer.
+`inboundSplitSource`: shared source used by detailed recommended quantity rows and split-inbound planning. It contains `productId`, `productIdentity`, `calculationBaseDate`, `coverageStartDate`, `coverageEndDate`, `supplyBySize`, and `salesForecastByDate`. `coverageStartDate` is `stockOrderRequest.currentOrderInboundDueDate`; `coverageEndDate` is `stockOrderRequest.nextOrderInboundDueDate` and is exclusive.
 
 `display`: `currentStockQtyTotal`, `totalOrderBalanceTotal`, `expectedInboundOrderBalanceTotal`, `sizeRows[]`.
 `sizeRows[]`: `size`, `currentStockQty`, `totalOrderBalance`, `expectedInboundOrderBalance`.
@@ -95,6 +96,7 @@ Recommendation basis lives in `drawer2.sizeOrders[]`, `drawer2.bufferStock`, `dr
 - `drawer2.comparisonSubject.sourceId` is required for `competitor-channel`.
 - `drawer2.sizeOrders[].size` values must be unique.
 - `drawer2.stockOrderResult.display.sizeRows[]` size set must match `drawer2.sizeOrders[]` size set.
+- `drawer2.stockOrderResult.inboundSplitSource.supplyBySize` size set and each `salesForecastByDate[date]` size set must match `drawer2.sizeOrders[]`.
 - `drawer2.confirmed.rounds[].qtyBySize` size keys must match `drawer2.sizeOrders[].size`.
 - `drawer2.stockOrderResult.display` total fields must equal sums of each size row field.
 - `context.dailyTrendForecastDays` must equal `drawer2.stockOrderRequest.orderCoverageDays`.

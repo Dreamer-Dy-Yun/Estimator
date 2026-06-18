@@ -10,7 +10,7 @@ import type { DashboardRuntimeConfig } from './types/dashboard-runtime'
 import type { ProductComparisonTarget, ProductComparisonTargetParams, ProductDrawerBundle, ProductDrawerBundleParams, ProductMonthlyTrend, ProductMonthlyTrendParams, ProductSalesInsight, ProductSalesInsightParams } from './types/drawer'
 import type { InventoryArrivalCollectionParams, InventoryArrivalCollectionResult } from './types/inventory-arrival'
 import type { CompetitorSalesGridParams, CompetitorSalesParams, SalesFilterMeta, SalesFilterMetaParams, ScatterSalesGridResponse, SelfSalesGridParams, SelfSalesParams } from './types/sales'
-import type { ProductSecondaryDetailParams, SecondaryAiCommentParams, SecondaryAiCommentResult, SecondaryCompetitorChannel, SecondaryDailyTrendParams, SecondaryDailyTrendSource, SecondaryInboundSplitSource, SecondaryInboundSplitSourceParams, SecondaryStockOrderCalcParams, SecondaryStockOrderCalcResult } from './types/secondary'
+import type { ProductSecondaryDetailParams, SecondaryAiCommentParams, SecondaryAiCommentResult, SecondaryCompetitorChannel, SecondaryDailyTrendParams, SecondaryDailyTrendSource, SecondaryStockOrderCalcParams, SecondaryStockOrderCalcResult } from './types/secondary'
 import {
   adminGoogleSheetRequests,
   adminGptKeyRequests,
@@ -60,7 +60,6 @@ export const getProductSalesInsight: (skuGroupKey: string, params: ProductSalesI
 export const getProductSecondaryDetail: (skuGroupKey: string, params: ProductSecondaryDetailParams) => Promise<ProductSecondaryDetail> = dashboardRequests.getProductSecondaryDetail
 export const getSecondaryCompetitorChannels: () => Promise<SecondaryCompetitorChannel[]> = dashboardRequests.getSecondaryCompetitorChannels
 export const getSecondaryDailyTrend: (params: SecondaryDailyTrendParams) => Promise<SecondaryDailyTrendSource> = dashboardRequests.getSecondaryDailyTrend
-export const getSecondaryInboundSplitSource: (params: SecondaryInboundSplitSourceParams) => Promise<SecondaryInboundSplitSource> = dashboardRequests.getSecondaryInboundSplitSource
 export const getSecondaryAiComment: (params: SecondaryAiCommentParams) => Promise<SecondaryAiCommentResult> = dashboardRequests.getSecondaryAiComment
 export const getSecondaryStockOrderCalc: (params: SecondaryStockOrderCalcParams) => Promise<SecondaryStockOrderCalcResult> = dashboardRequests.getSecondaryStockOrderCalc
 export const getCandidateStashes: (params?: CandidateStashListParams) => Promise<CandidateStashSummary[]> = dashboardRequests.getCandidateStashes

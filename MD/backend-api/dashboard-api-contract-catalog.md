@@ -80,13 +80,11 @@ Last updated: 2026-06-18
 | `getProductSalesInsight` | GET | `/products/{skuGroupKey}/sales-insight` | `skuGroupKey` | `startDate`, `endDate`, base subject fields, comparison subject fields | none | `ProductSalesInsight` |
 | `getProductSecondaryDetail` | GET | `/products/{skuGroupKey}/secondary-detail` | `skuGroupKey` | base subject fields, comparison subject fields, `minOpMarginPct?` | none | `ProductSecondaryDetail` |
 | `getSecondaryDailyTrend` | GET | `/products/{skuGroupKey}/secondary/daily-trend` | `skuGroupKey` | `startDate`, `endDate`, `forecastDays`, base subject fields, comparison subject fields | none | `SecondaryDailyTrendSource` |
-| `getSecondaryInboundSplitSource` | GET | `/products/{skuGroupKey}/secondary/inbound-split-source` | `skuGroupKey` | `productSkuGroupKey`, `productUuid?`, `productBrand`, `productCode`, `productColorCode`, `calculationBaseDate`, `coverageStartDate`, `coverageEndDate`, base subject fields | none | `SecondaryInboundSplitSource` |
 | `getSecondaryAiComment` | POST | `/products/{skuGroupKey}/secondary/ai-comment` | `skuGroupKey` | none | `SecondaryAiCommentParams` without `skuGroupKey` | `SecondaryAiCommentResult` |
 | `getSecondaryCompetitorChannels` | GET | `/secondary/competitor-channels` | none | none | none | `SecondaryCompetitorChannel[]` |
 | `getSecondaryStockOrderCalc` | POST | `/secondary/stock-order-calc` | none | none | `SecondaryStockOrderCalcParams` | `SecondaryStockOrderCalcResult` |
 `SecondaryProductIdentity`: `productUuid?`, `skuGroupKey`, `brand`, `code`, `colorCode`.
-For `getSecondaryInboundSplitSource`, the frontend flattens this identity into query keys: `productSkuGroupKey`, `productUuid?`, `productBrand`, `productCode`, `productColorCode`.
-`SecondaryStockOrderCalcParams`: `skuGroupKey`, `productIdentity`, `base`, `periodStart`, `periodEnd`, `calculationBaseDate`, `currentOrderInboundDueDate`, `forecastPeriodEndMonth?`, `orderCoverageDays`, `dailyMean?`.
+`SecondaryStockOrderCalcParams`: `skuGroupKey`, `productIdentity`, `base`, `comparison`, `periodStart`, `periodEnd`, `calculationBaseDate`, `currentOrderInboundDueDate`, `nextOrderInboundDueDate`, `forecastPeriodEndMonth?`, `orderCoverageDays`, `selfWeightPct`, `dailyMean?`.
 `forecastPeriodEndMonth` uses `YYYY-MM` and represents the month containing the final included coverage date (`nextOrderInboundDueDate - 1 day` for the current split/order window). `orderCoverageDays` is the order coverage day count.
 
 `SecondaryStockOrderCalcResult` response:
@@ -96,11 +94,11 @@ For `getSecondaryInboundSplitSource`, the frontend flattens this identity into q
 - `display.totalOrderBalance*`: aggregate of all A points.
 - `display.expectedInboundOrderBalance*`: aggregate of A points with `date < currentOrderInboundDueDate`.
 - `display.currentStockQty*`: current stock as of `calculationBaseDate`.
+- `inboundSplitSource`: single source for detailed recommended quantities and split-inbound planning, included in `SecondaryStockOrderCalcResult`.
 
 
-`getSecondaryInboundSplitSource`는 입고 분할 원천 소스만 반환한다. 적용된 분할 결과는 `OrderSnapshotDocument.drawer2.confirmed.rounds`에 저장된다.
 
-`SecondaryInboundSplitSource` response:
+`SecondaryStockOrderCalcResult.inboundSplitSource` response fragment:
 
 - `productId`
 - `productIdentity`
@@ -110,23 +108,32 @@ For `getSecondaryInboundSplitSource`, the frontend flattens this identity into q
 - `supplyBySize: Record<size, { date, qty }[]>`
 - `salesForecastByDate: Record<date, Record<size, number>>`
 
-`supplyBySize[size][]` uses the same point shape as A. The `calculationBaseDate` point is current stock, and later points are existing-order inbound quantities unrelated to the draft/current order. `salesForecastByDate` contains sales forecast only and must not mix inbound quantities.
+`supplyBySize[size][]` uses the same point shape as A. The `calculationBaseDate` point is current stock, and later points are existing-order inbound quantities unrelated to the draft/current order. `salesForecastByDate` contains sales forecast only and must not mix inbound quantities. This source is part of `getSecondaryStockOrderCalc`; it is not requested through a separate endpoint.
 
-Example query:
+Example stock-order-calc request body:
 
-```text
-GET /api/v1/products/TEST-SHOE__210/secondary/inbound-split-source
-  ?productSkuGroupKey=TEST-SHOE__210
-  &productUuid=sku-uuid
-  &productBrand=Brand
-  &productCode=TEST-SHOE
-  &productColorCode=210
-  &calculationBaseDate=2026-06-18
-  &coverageStartDate=2026-12-17
-  &coverageEndDate=2027-06-17
-  &baseRole=base
-  &baseKind=self-company
-  &baseSourceId=company-uuid
+```json
+{
+  "skuGroupKey": "TEST-SHOE__210",
+  "productIdentity": {
+    "productUuid": "sku-uuid",
+    "skuGroupKey": "TEST-SHOE__210",
+    "brand": "Brand",
+    "code": "TEST-SHOE",
+    "colorCode": "210"
+  },
+  "base": { "role": "base", "kind": "self-company", "sourceId": "company-uuid" },
+  "comparison": { "role": "comparison", "kind": "competitor-channel", "id": "comparison:competitor-channel:kream", "label": "Kream", "sourceId": "kream" },
+  "periodStart": "2025-01-01",
+  "periodEnd": "2025-12-31",
+  "calculationBaseDate": "2026-06-18",
+  "currentOrderInboundDueDate": "2026-12-17",
+  "nextOrderInboundDueDate": "2027-06-17",
+  "forecastPeriodEndMonth": "2027-06",
+  "orderCoverageDays": 182,
+  "selfWeightPct": 50,
+  "dailyMean": 1.4
+}
 ```
 
 ## 8. Candidate stash / item

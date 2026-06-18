@@ -29,8 +29,7 @@
 
 .inboundSplitTable th:not(.inboundSplitStickyCol),
 .inboundSplitTable td:not(.inboundSplitStickyCol) {
-  width: var(--inbound-split-qty-col-width);
-  min-width: var(--inbound-split-qty-col-width);
+  min-width: var(--inbound-split-size-col-min-width);
 }
 
 .inboundSplitStickyCol {

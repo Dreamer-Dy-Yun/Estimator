@@ -12,8 +12,8 @@
   - `dashboard-app/src/api/mock/salesTables.ts`
   - `dashboard-app/src/api/mock/productCatalog.ts`
   - `dashboard-app/src/api/mock/secondaryStockOrderCalcApi.ts`
-  - `dashboard-app/scripts/generateSecondaryInboundSplitSourceFixtures.ts`
-  - `dashboard-app/public/mock/secondaryInboundSplitSourceFixtures/*.json`
+  - `dashboard-app/src/api/mock/secondaryStockOrderCalcApi.ts`
+  - `dashboard-app/src/api/mock/secondaryStockOrderCalcApi.ts generated inboundSplitSource`
 
 ## Data profile
 

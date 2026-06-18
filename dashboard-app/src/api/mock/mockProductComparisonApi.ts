@@ -18,8 +18,6 @@ import type {
   SecondaryCompetitorChannel,
   SecondaryDailyTrendParams,
   SecondaryDailyTrendSource,
-  SecondaryInboundSplitSource,
-  SecondaryInboundSplitSourceParams,
 } from '../types'
 import { getCompanyUuidForOptionalScope, getComparisonSubjectKey } from '../types'
 import { DEFAULT_FORECAST_MONTHS } from '../../utils/forecastMonthsStorage'
@@ -34,14 +32,6 @@ import {
 import { requireMockProductPrimary, requireMockProductSecondary, requireMockStockTrend } from './mockProductLookup'
 import { makeSalesTrend } from './productCatalog'
 import { getMockSecondaryCompetitorChannel, secondaryCompetitorChannels, type MockSecondaryCompetitorChannel } from './salesTables'
-import {
-  getSecondaryInboundSplitSourceFixtureEntry,
-  getSecondaryInboundSplitSourceFixtureScopeKey,
-  buildSecondaryInboundSplitSourceData,
-  loadSecondaryInboundSplitSourceFixture,
-  type SecondaryInboundSplitSourceFixture,
-  type SecondaryInboundSplitSourceFixtureEntry,
-} from './secondaryInboundSplitSourceFixture'
 import { sleep } from './utils'
 const TEST_TOP_MONTHLY_BASE_SALES = 100 as const
 const TEST_TOP_MONTHLY_COMPARISON_SALES = 200 as const
@@ -275,35 +265,4 @@ export async function getMockSecondaryDailyTrend({
   const primary: ProductPrimarySummary = scopeMockProductPrimary(requireMockProductPrimary(skuGroupKey), selfCompanySubjectScope(base))
   const stockTrend: { date: string; stock: number; inboundExpected: number; inboundQty: number; }[] = scopeMockStockTrend(skuGroupKey, requireMockStockTrend(skuGroupKey), selfCompanySubjectScope(base))
   return buildSecondaryDailyTrendSource(skuGroupKey, primary.monthlySalesTrend ?? [], stockTrend, startDate, endDate, forecastDays, comparisonScaleForSubject(skuGroupKey, primary, comparison))
-}
-
-export async function getMockSecondaryInboundSplitSource({
-  skuGroupKey,
-  productIdentity,
-  calculationBaseDate,
-  coverageStartDate,
-  coverageEndDate,
-  base,
-}: SecondaryInboundSplitSourceParams): Promise<SecondaryInboundSplitSource> {
-  await sleep(80)
-  assertMockSubjectRole(base, 'base')
-  const baseScope: { companyUuid?: string } = selfCompanySubjectScope(base)
-  const scopeKey: string = getSecondaryInboundSplitSourceFixtureScopeKey(baseScope)
-  const fixture: SecondaryInboundSplitSourceFixture = await loadSecondaryInboundSplitSourceFixture(scopeKey)
-  const cached: SecondaryInboundSplitSourceFixtureEntry = getSecondaryInboundSplitSourceFixtureEntry(fixture, skuGroupKey)
-  const sourceData: Pick<SecondaryInboundSplitSource, 'supplyBySize' | 'salesForecastByDate'> = buildSecondaryInboundSplitSourceData(
-    fixture,
-    cached,
-    calculationBaseDate,
-    coverageEndDate,
-  )
-
-  return {
-    productId: skuGroupKey,
-    productIdentity,
-    calculationBaseDate,
-    coverageStartDate,
-    coverageEndDate,
-    ...sourceData,
-  }
 }

@@ -76,7 +76,7 @@ describe('parseOrderSnapshot', () : void => {
   })
 
   it('throws when schemaVersion is neither current nor migratable', () : void => {
-    const wrongVersion: Record<string, unknown> = { ...cloneValidSnapshot(), schemaVersion: ORDER_SNAPSHOT_SCHEMA_VERSION - 4 }
+    const wrongVersion: Record<string, unknown> = { ...cloneValidSnapshot(), schemaVersion: ORDER_SNAPSHOT_SCHEMA_VERSION + 1 }
     const wrongTypeVersion: Record<string, unknown> = { ...cloneValidSnapshot(), schemaVersion: String(ORDER_SNAPSHOT_SCHEMA_VERSION) }
 
     expect(() : OrderSnapshotDocument => parseOrderSnapshot(wrongVersion)).toThrow(/schemaVersion/)

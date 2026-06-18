@@ -2,7 +2,7 @@
 
 Last updated: 2026-06-18
 
-Use this guide when converting `OrderSnapshotDocument` v7 into an LLM prompt.
+Use this guide when converting `OrderSnapshotDocument` v8 into an LLM prompt.
 
 ## Prompt rules
 
@@ -10,6 +10,7 @@ Use this guide when converting `OrderSnapshotDocument` v7 into an LLM prompt.
 - Do not infer stock/order values by array position.
 - Read stock/order display rows from `drawer2.stockOrderResult.display.sizeRows[]` by `size`.
 - Treat `drawer2.stockOrderResult.existingOrderInboundSupplyBySize` as the date-level source for existing-order inbound supply.
+- Treat `drawer2.stockOrderResult.inboundSplitSource` as the shared planning source behind detailed recommendation rows and split-inbound planning.
 - Treat `totalOrderBalance` and `expectedInboundOrderBalance` as display aggregates, not as date-level supply rows.
 - Do not describe `confirmedOrderSnapshot` or `isLatestLlmComment` as snapshot fields.
 - Daily trend chart points are not stored in the snapshot.
@@ -31,6 +32,7 @@ Use this guide when converting `OrderSnapshotDocument` v7 into an LLM prompt.
 | `drawer2.comparisonBasis` | Comparison baseline price, quantity, and size ratio. |
 | `drawer2.stockOrderRequest` | User/order input dates and coverage days. |
 | `drawer2.stockOrderResult.productIdentity` | Product identity echoed by stock-order-calc so the UI can reject mismatched results. |
+| `drawer2.stockOrderResult.inboundSplitSource` | Shared planning source returned by stock-order-calc. Contains calculation base date, coverage dates, size/date sales forecasts, and supply points. |
 | `drawer2.stockOrderResult.existingOrderInboundSupplyBySize` | Existing-order inbound supply by size and date. This excludes the current order being planned. |
 | `drawer2.stockOrderResult.display.totalOrderBalanceTotal` | Total unreceived existing-order balance aggregate. |
 | `drawer2.stockOrderResult.display.expectedInboundOrderBalanceTotal` | Existing-order inbound aggregate with `date < stockOrderRequest.currentOrderInboundDueDate`. |

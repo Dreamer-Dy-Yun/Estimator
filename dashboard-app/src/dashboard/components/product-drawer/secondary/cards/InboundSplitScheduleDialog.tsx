@@ -1,8 +1,12 @@
 import { useId, useRef } from 'react'
 import { DialogCloseButton } from '../../../../../components/DialogCloseButton'
+import { PortalHelpMark } from '../../../PortalHelpPopover'
+import type { usePortalHelpPopover } from '../../../usePortalHelpPopover'
+import commonStyles from '../../../common.module.css'
 import { useModalFocusTrap } from '../../../useModalFocusTrap'
 import type { ApiUnitErrorInfo } from '../../../../../types'
 import { KO } from '../../ko'
+import type { SecondaryHelpId } from '../secondaryDrawerTypes'
 import styles from '../secondaryDrawer.module.css'
 import { cloneInboundSplitRows, type InboundSplitScheduleRow, type InboundSplitSizeColumn } from './inboundSplitScheduleModel'
 import { findInboundSplitDatePolicyIssue } from './inboundSplitScheduleDatePolicy'
@@ -22,6 +26,10 @@ export interface InboundSplitScheduleDialogProps {
   buildRowsForCount: (next: number) => InboundSplitScheduleRow[]
   recalculateRows: (rows: InboundSplitScheduleRow[]) => InboundSplitScheduleRow[]
   draftError?: ApiUnitErrorInfo | null
+  help?: {
+    labelId: string
+    portal: ReturnType<typeof usePortalHelpPopover<SecondaryHelpId>>
+  }
   onDraftError?: (err: unknown | null, request: InboundSplitDraftRequest) => void
   onApply: (rows: InboundSplitScheduleRow[]) => void
   onClose: () => void
@@ -37,6 +45,7 @@ export function InboundSplitScheduleDialog({
   buildRowsForCount,
   recalculateRows,
   draftError = null,
+  help,
   onDraftError,
   onApply,
   onClose,
@@ -44,10 +53,12 @@ export function InboundSplitScheduleDialog({
   const titleId: string = useId()
   const descriptionId: string = useId()
   const panelRef: React.RefObject<HTMLElement | null> = useRef<HTMLElement | null>(null)
+  const countSelectRef: React.RefObject<HTMLSelectElement | null> = useRef<HTMLSelectElement | null>(null)
   const handleKeyDown: (event: React.KeyboardEvent<HTMLElement>) => void = useModalFocusTrap({
     panelRef,
     active: open,
     onClose,
+    initialFocusRef: countSelectRef,
   })
   const draft: UseInboundSplitScheduleDraftResult = useInboundSplitScheduleDraft({
     initialCount,
@@ -80,7 +91,10 @@ export function InboundSplitScheduleDialog({
       >
         <header className={styles.inboundSplitDialogHeader}>
           <div>
-            <h3 id={titleId} className={styles.inboundSplitDialogTitle}>{KO.dialogInboundSplitTitle}</h3>
+            <div className={commonStyles.cardTitleWithHelp}>
+              <h3 id={titleId} className={styles.inboundSplitDialogTitle}>{KO.dialogInboundSplitTitle}</h3>
+              {help ? <PortalHelpMark helpId="inboundSplitSchedule" placement="below" labelId={help.labelId} markClassName={commonStyles.helpMark} help={help.portal} stopMouseDownPropagation /> : null}
+            </div>
             <p id={descriptionId} className={styles.inboundSplitDialogHint}>{KO.msgInboundSplitDraftOnly}</p>
           </div>
           <DialogCloseButton onClose={onClose} />
@@ -90,6 +104,7 @@ export function InboundSplitScheduleDialog({
             <label className={styles.inboundSplitCountLabel}>
               <span>{KO.labelInboundSplitCount}</span>
               <select
+                ref={countSelectRef}
                 className={styles.inboundSplitCountSelect}
                 value={draft.count}
                 onChange={(event: React.ChangeEvent<HTMLSelectElement>): void => draft.changeCount(event.target.value)}
@@ -102,6 +117,14 @@ export function InboundSplitScheduleDialog({
             </label>
             {hasInvalidDatePolicy && <span className={styles.inboundSplitCountValidation}>{dateOrderErrorMessage}</span>}
           </div>
+          <label className={styles.inboundSplitToolbarToggle}>
+            <input
+              type="checkbox"
+              checked={draft.ignoreExistingOrderInboundAll}
+              onChange={(event: React.ChangeEvent<HTMLInputElement>): void => draft.changeIgnoreExistingOrderInboundAll(event.target.checked)}
+            />
+            <span>{KO.labelInboundSplitIgnoreExistingOrderInbound}</span>
+          </label>
         </div>
         {draftError && (
           <p className={styles.inboundSplitError} role="alert">
@@ -115,8 +138,6 @@ export function InboundSplitScheduleDialog({
               nextOrderInboundDueDate={nextOrderInboundDueDate}
               rows={draft.rows}
               columns={columns}
-              ignoreExistingOrderInboundAll={draft.ignoreExistingOrderInboundAll}
-              onIgnoreExistingOrderInboundAllChange={draft.changeIgnoreExistingOrderInboundAll}
               onDateChange={draft.changeDate}
               onRowTotalChange={draft.changeRowTotal}
               onQtyChange={draft.changeQty}

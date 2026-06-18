@@ -14,7 +14,8 @@ import {
 
 export type Args = {
   secondary: ProductSecondaryDetail
-  forecastSalesHorizonDays: number
+  currentOrderInboundDueDate: string
+  nextOrderInboundDueDate: string
   dailyMeanClient: number | null
   stockOrderCalc: SecondaryStockOrderCalcResult | null
   stockOrderCalculationReady?: boolean
@@ -28,7 +29,8 @@ export type Args = {
 
 export function useSecondaryOrderCalculations({
   secondary,
-  forecastSalesHorizonDays,
+  currentOrderInboundDueDate,
+  nextOrderInboundDueDate,
   dailyMeanClient,
   stockOrderCalc,
   stockOrderCalculationReady,
@@ -104,7 +106,9 @@ export function useSecondaryOrderCalculations({
     return buildSecondarySizeOrderRows({
       shares: sizeShares,
       dailyMeanEa,
-      forecastSalesHorizonDays,
+      currentOrderInboundDueDate,
+      nextOrderInboundDueDate,
+      inboundSplitSource: readyStockOrderCalc.inboundSplitSource,
       stockOrderSizeRows: display?.sizeRows ?? [],
       bufferStock,
       orderDraft,
@@ -112,9 +116,10 @@ export function useSecondaryOrderCalculations({
   }, [
     bufferStock,
     calculationReady,
+    currentOrderInboundDueDate,
     dailyMeanClient,
     stockOrderCalc,
-    forecastSalesHorizonDays,
+    nextOrderInboundDueDate,
     orderDraft,
     snapshotSizeOrders,
     sizeShares,
