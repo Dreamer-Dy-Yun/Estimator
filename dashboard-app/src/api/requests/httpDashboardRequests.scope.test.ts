@@ -82,18 +82,25 @@ describe('httpDashboardRequests company read scope contract', () : void => {
       base: unscopedBaseSubject,
       comparison: musinsaComparison,
     })
+    const productIdentity = { productUuid: null, skuGroupKey: 'SKU-054-BLK', brand: 'Brand', code: 'SKU-054', colorCode: 'BLK' } as const
     await httpDashboardRequests.getSecondaryStockOrderCalc({
       skuGroupKey: 'SKU-054-BLK',
+      productIdentity,
       base: unscopedBaseSubject,
       periodStart: '2025-01-01',
       periodEnd: '2025-03-31',
+      calculationBaseDate: '2026-01-01',
+      currentOrderInboundDueDate: '2026-02-01',
       orderCoverageDays: 21,
     })
     await httpDashboardRequests.getSecondaryStockOrderCalc({
       skuGroupKey: 'SKU-054-BLK',
+      productIdentity,
       base: unscopedBaseSubject,
       periodStart: '2025-01-01',
       periodEnd: '2025-03-31',
+      calculationBaseDate: '2026-01-01',
+      currentOrderInboundDueDate: '2026-02-01',
       orderCoverageDays: 21,
     })
 

@@ -80,15 +80,36 @@ Last updated: 2026-06-18
 | `getProductSalesInsight` | GET | `/products/{skuGroupKey}/sales-insight` | `skuGroupKey` | `startDate`, `endDate`, base subject fields, comparison subject fields | none | `ProductSalesInsight` |
 | `getProductSecondaryDetail` | GET | `/products/{skuGroupKey}/secondary-detail` | `skuGroupKey` | base subject fields, comparison subject fields, `minOpMarginPct?` | none | `ProductSecondaryDetail` |
 | `getSecondaryDailyTrend` | GET | `/products/{skuGroupKey}/secondary/daily-trend` | `skuGroupKey` | `startDate`, `endDate`, `forecastDays`, base subject fields, comparison subject fields | none | `SecondaryDailyTrendSource` |
-| `getSecondaryInboundSplitSource` | GET | `/products/{skuGroupKey}/secondary/inbound-split-source` | `skuGroupKey` | `dateStart`, `dateEnd`, base subject fields | none | `SecondaryInboundSplitSource` |
+| `getSecondaryInboundSplitSource` | GET | `/products/{skuGroupKey}/secondary/inbound-split-source` | `skuGroupKey` | `productIdentity` fields, `calculationBaseDate`, `coverageStartDate`, `coverageEndDate`, base subject fields | none | `SecondaryInboundSplitSource` |
 | `getSecondaryAiComment` | POST | `/products/{skuGroupKey}/secondary/ai-comment` | `skuGroupKey` | none | `SecondaryAiCommentParams` without `skuGroupKey` | `SecondaryAiCommentResult` |
 | `getSecondaryCompetitorChannels` | GET | `/secondary/competitor-channels` | none | none | none | `SecondaryCompetitorChannel[]` |
 | `getSecondaryStockOrderCalc` | POST | `/secondary/stock-order-calc` | none | none | `SecondaryStockOrderCalcParams` | `SecondaryStockOrderCalcResult` |
-`SecondaryStockOrderCalcParams`: `skuGroupKey`, `base`, `periodStart`, `periodEnd`, `forecastPeriodEndMonth?`, `orderCoverageDays`, `dailyMean?`.
+`SecondaryProductIdentity`: `productUuid?`, `skuGroupKey`, `brand`, `code`, `colorCode`.
+`SecondaryStockOrderCalcParams`: `skuGroupKey`, `productIdentity`, `base`, `periodStart`, `periodEnd`, `calculationBaseDate`, `currentOrderInboundDueDate`, `forecastPeriodEndMonth?`, `orderCoverageDays`, `dailyMean?`.
 `forecastPeriodEndMonth` uses `YYYY-MM` and represents the month containing the final included coverage date (`nextOrderInboundDueDate - 1 day` for the current split/order window). `orderCoverageDays` is the order coverage day count.
+
+`SecondaryStockOrderCalcResult` response:
+
+- `productIdentity`: echo of the requested product identity.
+- `existingOrderInboundSupplyBySize`: A. `Record<size, { date, qty }[]>` for existing ordered but not-yet-inbound quantities collected from backend-managed Google Sheet staging data.
+- `display.totalOrderBalance*`: aggregate of all A points.
+- `display.expectedInboundOrderBalance*`: aggregate of A points with `date < currentOrderInboundDueDate`.
+- `display.currentStockQty*`: current stock as of `calculationBaseDate`.
 
 
 `getSecondaryInboundSplitSource`는 입고 분할 원천 소스만 반환한다. 적용된 분할 결과는 `OrderSnapshotDocument.drawer2.confirmed.rounds`에 저장된다.
+
+`SecondaryInboundSplitSource` response:
+
+- `productId`
+- `productIdentity`
+- `calculationBaseDate`
+- `coverageStartDate`
+- `coverageEndDate`
+- `supplyBySize: Record<size, { date, qty }[]>`
+- `salesForecastByDate: Record<date, Record<size, number>>`
+
+`supplyBySize[size][]` uses the same point shape as A. The `calculationBaseDate` point is current stock, and later points are existing-order inbound quantities unrelated to the draft/current order. `salesForecastByDate` contains sales forecast only and must not mix inbound quantities.
 
 ## 8. Candidate stash / item
 

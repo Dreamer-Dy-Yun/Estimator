@@ -11,17 +11,19 @@ import {
 const COLUMNS: InboundSplitSizeColumn[] = [{ size: 'S', confirmedQty: 10, recommendedQty: 10 }]
 
 function makeSource(dailySalesByDate: Record<string, number>): SecondaryInboundSplitSource {
-  const expectationByDate: SecondaryInboundSplitSource['expectationByDate'] = {}
+  const salesForecastByDate: SecondaryInboundSplitSource['salesForecastByDate'] = {}
   Object.entries(dailySalesByDate).forEach(([date, sale]: [string, number]): void => {
-    expectationByDate[date] = { S: { sale, inbound: 0 } }
+    salesForecastByDate[date] = { S: sale }
   })
 
   return {
     productId: 'product-a',
-    dateStart: '2026-04-01',
-    dateEnd: '2026-04-07',
-    stockBySize: { S: 0 },
-    expectationByDate,
+    productIdentity: { productUuid: null, skuGroupKey: 'product-a', brand: 'Brand', code: 'CODE', colorCode: 'BLK' },
+    calculationBaseDate: '2026-04-01',
+    coverageStartDate: '2026-04-01',
+    coverageEndDate: '2026-04-07',
+    supplyBySize: { S: [{ date: '2026-04-01', qty: 0 }] },
+    salesForecastByDate,
   }
 }
 
@@ -30,6 +32,7 @@ function row(id: string, round: number, inboundDate: string, quantity: number): 
     id,
     round,
     inboundDate,
+    ignoreExistingOrderInbound: false,
     suggestedQuantitiesBySize: { S: 99 },
     quantitiesBySize: { S: quantity },
   }
@@ -38,7 +41,7 @@ function row(id: string, round: number, inboundDate: string, quantity: number): 
 describe('inbound split schedule recalculation', () : void => {
   it('recalculates suggestions from current row dates while preserving confirmed quantities', () : void => {
     const source: SecondaryInboundSplitSource = makeSource({
-      '2026-04-01': 9,
+      '2026-04-01': 0,
       '2026-04-02': 2,
       '2026-04-03': 2,
       '2026-04-04': 2,

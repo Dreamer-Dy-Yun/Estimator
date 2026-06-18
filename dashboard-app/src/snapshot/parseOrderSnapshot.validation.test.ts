@@ -11,7 +11,7 @@ function expectInvalidSnapshot(snapshot: unknown, message: RegExp): void {
   expect(() : OrderSnapshotDocument => parseOrderSnapshot(snapshot)).toThrow(message)
 }
 
-describe('parseOrderSnapshot v5 validation', () : void => {
+describe('parseOrderSnapshot validation', () : void => {
   it('validates base subject role, kind, and sourceId', () : void => {
     const wrongRole: OrderSnapshotDocument = cloneValidSnapshot()
     const wrongKind: OrderSnapshotDocument = cloneValidSnapshot()

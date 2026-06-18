@@ -30,6 +30,7 @@ export interface UseInboundSplitScheduleDraftResult {
   confirmedGrandTotal: number
   changeCount: (value: string) => void
   changeDate: (rowIndex: number, value: string) => void
+  changeIgnoreExistingOrderInbound: (rowIndex: number, checked: boolean) => void
   changeRowTotal: (rowIndex: number, value: string) => void
   changeQty: (rowIndex: number, size: string, value: string) => void
 }
@@ -74,6 +75,22 @@ export function useInboundSplitScheduleDraft({
     }
   }, [buildRowsForCount, onDraftError])
 
+  const changeIgnoreExistingOrderInbound: (rowIndex: number, checked: boolean) => void = useCallback((rowIndex: number, checked: boolean): void => {
+    setRows((currentRows: InboundSplitScheduleRow[]): InboundSplitScheduleRow[] => {
+      const nextRows: InboundSplitScheduleRow[] = currentRows.map((row: InboundSplitScheduleRow, index: number): InboundSplitScheduleRow => (
+        index === rowIndex ? { ...row, ignoreExistingOrderInbound: checked } : row
+      ))
+      try {
+        const recalculatedRows: InboundSplitScheduleRow[] = recalculateRows(nextRows)
+        onDraftError?.(null, 'recalculateInboundSplitScheduleRows')
+        return recalculatedRows
+      } catch (err: unknown) {
+        onDraftError?.(err, 'recalculateInboundSplitScheduleRows')
+        return currentRows
+      }
+    })
+  }, [onDraftError, recalculateRows])
+
   const changeRowTotal: (rowIndex: number, value: string) => void = useCallback((rowIndex: number, value: string): void => {
     setRows((currentRows: InboundSplitScheduleRow[]): InboundSplitScheduleRow[] => {
       const nextRows: InboundSplitScheduleRow[] = redistributeInboundSplitRowTotalBySuggestedSizeMix(currentRows, columns, rowIndex, value)
@@ -112,6 +129,7 @@ export function useInboundSplitScheduleDraft({
     confirmedGrandTotal,
     changeCount,
     changeDate,
+    changeIgnoreExistingOrderInbound,
     changeRowTotal,
     changeQty,
   }

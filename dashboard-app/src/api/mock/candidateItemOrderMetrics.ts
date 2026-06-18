@@ -4,6 +4,7 @@ import type {
   ProductComparisonComparisonSubjectRef,
   ProductPrimarySummary,
   ProductSecondaryDetail,
+  SecondaryProductIdentity,
   SecondaryStockOrderCalcParams,
   SecondaryStockOrderCalcResult,
 } from '../types'
@@ -28,11 +29,23 @@ import {
 const DEFAULT_ORDER_COVERAGE_DAYS = 30 as const
 const DEFAULT_SELF_WEIGHT_PCT = 50 as const
 const DEFAULT_BUFFER_STOCK = 0 as const
+const DEFAULT_CALCULATION_BASE_DATE = '2026-01-01' as const
+const DEFAULT_CURRENT_ORDER_INBOUND_DUE_DATE = '2026-02-01' as const
 
 function getProductPrimary(skuGroupKey: string) : ProductPrimarySummary {
   const primary: ProductPrimarySummary = productPrimaryBySkuGroupKey[skuGroupKey]
   if (!primary) throw new Error(`Unknown mock SKU group: ${skuGroupKey}`)
   return primary
+}
+
+function productIdentityFromPrimary(primary: ProductPrimarySummary): SecondaryProductIdentity {
+  return {
+    productUuid: primary.productUuid ?? null,
+    skuGroupKey: primary.skuGroupKey,
+    brand: primary.brand,
+    code: primary.code,
+    colorCode: primary.colorCode,
+  }
 }
 
 function baseSubjectForCompany(companyUuid?: string): ProductComparisonBaseSubjectRef {
@@ -134,9 +147,12 @@ function buildLiveSizeRows({
   const periodEnd: string = dataReferencePeriod?.end ?? '2025-12-31'
   const stockCalcParams: SecondaryStockOrderCalcParams = {
     skuGroupKey: row.skuGroupKey,
+    productIdentity: productIdentityFromPrimary(getProductPrimary(row.skuGroupKey)),
     base,
     periodStart,
     periodEnd,
+    calculationBaseDate: DEFAULT_CALCULATION_BASE_DATE,
+    currentOrderInboundDueDate: DEFAULT_CURRENT_ORDER_INBOUND_DUE_DATE,
     forecastPeriodEndMonth: periodEnd.slice(0, 7),
     orderCoverageDays: DEFAULT_ORDER_COVERAGE_DAYS,
   }

@@ -85,8 +85,14 @@ function secondaryDailyTrendQuery(params: Omit<SecondaryDailyTrendParams, 'skuGr
 
 function secondaryInboundSplitSourceQuery(params: Omit<SecondaryInboundSplitSourceParams, 'skuGroupKey'>): Record<string, string> {
   return {
-    dateStart: params.dateStart,
-    dateEnd: params.dateEnd,
+    calculationBaseDate: params.calculationBaseDate,
+    coverageStartDate: params.coverageStartDate,
+    coverageEndDate: params.coverageEndDate,
+    productSkuGroupKey: params.productIdentity.skuGroupKey,
+    ...(params.productIdentity.productUuid ? { productUuid: params.productIdentity.productUuid } : {}),
+    productBrand: params.productIdentity.brand,
+    productCode: params.productIdentity.code,
+    productColorCode: params.productIdentity.colorCode,
     ...productComparisonSubjectQueryPrefix('base', params.base),
   }
 }

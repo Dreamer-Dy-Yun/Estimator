@@ -18,6 +18,7 @@ function row(id: string, round: number, inboundDate: string, s: number, m: numbe
     id,
     round,
     inboundDate,
+    ignoreExistingOrderInbound: false,
     suggestedQuantitiesBySize: { S: s, M: m },
     quantitiesBySize: { S: s, M: m },
   }

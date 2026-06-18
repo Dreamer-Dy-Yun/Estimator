@@ -26,6 +26,7 @@ function row(
     id,
     round,
     inboundDate,
+    ignoreExistingOrderInbound: false,
     suggestedQuantitiesBySize: { S: suggestedS, M: suggestedM },
     quantitiesBySize: { S: confirmedS, M: confirmedM },
   }

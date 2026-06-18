@@ -131,7 +131,7 @@ Admin endpoint는 관리자 세션을 요구한다.
 | `getProductSalesInsight` | GET | `/products/{skuGroupKey}/sales-insight` | path `skuGroupKey`, query period/base/comparison | `ProductSalesInsight` |
 | `getProductSecondaryDetail` | GET | `/products/{skuGroupKey}/secondary-detail` | path `skuGroupKey`, query base/comparison/`minOpMarginPct?` | `ProductSecondaryDetail` |
 | `getSecondaryDailyTrend` | GET | `/products/{skuGroupKey}/secondary/daily-trend` | path `skuGroupKey`, query period/forecast/base/comparison | `SecondaryDailyTrendSource` |
-| `getSecondaryInboundSplitSource` | GET | `/products/{skuGroupKey}/secondary/inbound-split-source` | path `skuGroupKey`, query `dateStart`, `dateEnd`, base subject | `SecondaryInboundSplitSource` |
+| `getSecondaryInboundSplitSource` | GET | `/products/{skuGroupKey}/secondary/inbound-split-source` | path `skuGroupKey`, query `productIdentity`, `calculationBaseDate`, `coverageStartDate`, `coverageEndDate`, base subject | `SecondaryInboundSplitSource` |
 | `getSecondaryAiComment` | POST | `/products/{skuGroupKey}/secondary/ai-comment` | path `skuGroupKey`, body params without `skuGroupKey` | `SecondaryAiCommentResult` |
 | `getSecondaryCompetitorChannels` | GET | `/secondary/competitor-channels` | none | `SecondaryCompetitorChannel[]` |
 | `getSecondaryStockOrderCalc` | POST | `/secondary/stock-order-calc` | body `SecondaryStockOrderCalcParams` | `SecondaryStockOrderCalcResult` |
@@ -142,8 +142,30 @@ Secondary 주요 규칙:
 - `/secondary/daily-trend`는 일별 예측 소스이다.
 - `/secondary/inbound-split-source`는 입고 분할 원천값만 반환한다.
 
-`SecondaryStockOrderCalcParams` body fields: `skuGroupKey`, `base`, `periodStart`, `periodEnd`, `forecastPeriodEndMonth?`, `orderCoverageDays`, `dailyMean?`.
+`SecondaryProductIdentity` fields: `productUuid?`, `skuGroupKey`, `brand`, `code`, `colorCode`. Backend should echo this identity in stock-order and inbound-split responses so the frontend can reject mismatched product data. `productUuid` is optional only for legacy/mock data; when the backend has a SKU/product UUID, include it.
+
+`SecondaryStockOrderCalcParams` body fields: `skuGroupKey`, `productIdentity`, `base`, `periodStart`, `periodEnd`, `calculationBaseDate`, `currentOrderInboundDueDate`, `forecastPeriodEndMonth?`, `orderCoverageDays`, `dailyMean?`.
 `forecastPeriodEndMonth` is the `YYYY-MM` month key that contains the final included coverage date. With `[currentOrderInboundDueDate, nextOrderInboundDueDate)`, this is normally the month of `nextOrderInboundDueDate - 1 day`. `orderCoverageDays` is the coverage day count used by the order calculation and snapshot context.
+
+`SecondaryStockOrderCalcResult` response fields:
+
+- `productIdentity`: same identity as requested.
+- `existingOrderInboundSupplyBySize`: `Record<size, { date, qty }[]>`. This is A, the existing ordered but not-yet-inbound quantity schedule collected from the backend-managed Google Sheet staging data. It must not include the draft/current order quantities being edited in the drawer.
+- `display.totalOrderBalanceTotal` and `display.sizeRows[].totalOrderBalance`: aggregate of all `existingOrderInboundSupplyBySize[size][]` points by size.
+- `display.expectedInboundOrderBalanceTotal` and `display.sizeRows[].expectedInboundOrderBalance`: aggregate of `existingOrderInboundSupplyBySize[size][]` points with `date < currentOrderInboundDueDate`.
+- `display.currentStockQtyTotal` and `display.sizeRows[].currentStockQty`: current stock by size as of `calculationBaseDate`.
+
+`SecondaryInboundSplitSource` response fields:
+
+- `productId`: same product key as the path `skuGroupKey`.
+- `productIdentity`: same identity as requested.
+- `calculationBaseDate`: inventory simulation base date. The frontend sends today as this value.
+- `coverageStartDate`: current order inbound date. Split round dates must be on or after this date.
+- `coverageEndDate`: next order inbound date, exclusive. The final covered sales date is `coverageEndDate - 1 day`.
+- `supplyBySize`: `Record<size, { date, qty }[]>`. A point on `calculationBaseDate` is current stock. Later points are existing-order inbound quantities from A and are unrelated to the draft/current order being split.
+- `salesForecastByDate`: `Record<date, Record<size, number>>`, covering every date where `calculationBaseDate <= date < coverageEndDate`.
+
+The API remains source-only. It does not receive split count, selected split dates, draft row quantities, or `ignoreExistingOrderInbound`; those are UI/snapshot state used by the frontend suggestion model.
 - 적용된 차수별 분할 결과는 API source가 아니라 `OrderSnapshotDocument.drawer2.confirmed.rounds`에 저장된다.
 - 비교 대상이 없으면 빈 배열을 반환할 수 있으며, 이는 정상적인 사용 불가 상태이다.
 
@@ -190,7 +212,7 @@ SSE endpoint는 권한, company scope, request/job id를 검증한다. 프론트
 
 ## 10. Snapshot boundary
 
-후보 상세 저장 payload는 `OrderSnapshotDocument` v5이다. 현재 타입과 parser는 다음 파일이 기준이다.
+후보 상세 저장 payload는 `OrderSnapshotDocument` v7이다. 현재 타입과 parser는 다음 파일이 기준이다.
 
 - `dashboard-app/src/snapshot/orderSnapshotTypes.ts`
 - `dashboard-app/src/snapshot/parseOrderSnapshot.ts`

@@ -19,6 +19,8 @@ import { ORDER_SNAPSHOT_SCHEMA_VERSION } from './orderSnapshotTypes'
 export type Obj = Record<string, unknown>
 export type StockOrderResult = OrderSnapshotDocument['drawer2']['stockOrderResult']
 const LEGACY_SCHEMA_VERSION_4 = 4 as const
+const LEGACY_SCHEMA_VERSION_5 = 5 as const
+const LEGACY_SCHEMA_VERSION_6 = 6 as const
 
 const PRIMARY_STRING_KEYS = ['productName', 'brand', 'category', 'code', 'colorCode'] as const
 const PRIMARY_NUMBER_KEYS = ['price', 'qty', 'availableStock'] as const
@@ -32,13 +34,18 @@ const SIZE_ORDER_QUANTITY_KEYS = ['forecastQty', 'recommendedQty'] as const
 
 export function parseOrderSnapshot(snapshotInput: unknown): OrderSnapshotDocument {
   const d: Obj = expectRecord(snapshotInput, 'snapshot')
-  if (d.schemaVersion !== ORDER_SNAPSHOT_SCHEMA_VERSION && d.schemaVersion !== LEGACY_SCHEMA_VERSION_4) {
+  if (
+    d.schemaVersion !== ORDER_SNAPSHOT_SCHEMA_VERSION &&
+    d.schemaVersion !== LEGACY_SCHEMA_VERSION_6 &&
+    d.schemaVersion !== LEGACY_SCHEMA_VERSION_5 &&
+    d.schemaVersion !== LEGACY_SCHEMA_VERSION_4
+  ) {
     throw new Error('snapshot schemaVersion mismatch: ' + String(d.schemaVersion))
   }
   const skuGroupKey: string = expectNonEmptyString(d.skuGroupKey, 'snapshot.skuGroupKey')
   const context: OrderSnapshotDocument['context'] = normalizeContext(expectRecord(d.context, 'context'))
   const drawer1: OrderSnapshotDrawer1 = normalizeDrawer1Structure(expectRecord(d.drawer1, 'drawer1'))
-  const drawer2: OrderSnapshotDrawer2 = normalizeDrawer2Structure(expectRecord(d.drawer2, 'drawer2'))
+  const drawer2: OrderSnapshotDrawer2 = normalizeDrawer2Structure(expectRecord(d.drawer2, 'drawer2'), drawer1.summary)
   expectMatchingNumbers(context.dailyTrendForecastDays, drawer2.stockOrderRequest.orderCoverageDays, 'context.dailyTrendForecastDays', 'drawer2.stockOrderRequest.orderCoverageDays')
   expectMatchingStrings(skuGroupKey, drawer1.summary.skuGroupKey, 'snapshot.skuGroupKey', 'drawer1.summary.skuGroupKey')
   expectMatchingStrings(skuGroupKey, drawer2.comparisonBasis.skuGroupKey, 'snapshot.skuGroupKey', 'drawer2.comparisonBasis.skuGroupKey')
@@ -70,6 +77,7 @@ function normalizeDrawer1Structure(drawer1: Obj): OrderSnapshotDocument['drawer1
   const source: Obj = expectRecord(drawer1.summary, 'drawer1.summary')
   const summary: OrderSnapshotPrimarySummary = {
     skuGroupKey: expectNonEmptyString(source.skuGroupKey, 'drawer1.summary.skuGroupKey'),
+    ...(source.productUuid == null ? {} : { productUuid: expectNonEmptyString(source.productUuid, 'drawer1.summary.productUuid') }),
     ...normalizeStringFields(source, 'drawer1.summary', PRIMARY_STRING_KEYS),
     ...normalizeNumberFields(source, 'drawer1.summary', PRIMARY_NUMBER_KEYS),
   }
@@ -97,16 +105,17 @@ function normalizeMonthlySalesTrend(value: unknown): OrderSnapshotMonthlySalesTr
   })
 }
 
-function normalizeDrawer2Structure(drawer2: Obj): OrderSnapshotDocument['drawer2'] {
+function normalizeDrawer2Structure(drawer2: Obj, primarySummary: OrderSnapshotPrimarySummary): OrderSnapshotDocument['drawer2'] {
   const sizeOrders: OrderSnapshotSizeOrder[] = normalizeSizeOrders(drawer2.sizeOrders)
-  const stockOrderResult: OrderSnapshotStockOrderResult = normalizeStockOrderResult(drawer2.stockOrderResult, sizeOrders)
+  const stockOrderRequest: OrderSnapshotDocument['drawer2']['stockOrderRequest'] = normalizeStockOrderRequest(drawer2.stockOrderRequest)
+  const stockOrderResult: OrderSnapshotStockOrderResult = normalizeStockOrderResult(drawer2.stockOrderResult, sizeOrders, stockOrderRequest, primarySummary)
   const unitEconomics: OrderSnapshotUnitEconomics = normalizeUnitEconomics(drawer2.unitEconomics)
   const confirmed: OrderSnapshotConfirmed = normalizeConfirmed(drawer2.confirmed, sizeOrders)
   return {
     baseSubject: normalizeBaseSubject(expectRecord(drawer2.baseSubject, 'drawer2.baseSubject')),
     comparisonSubject: normalizeComparisonSubject(expectRecord(drawer2.comparisonSubject, 'drawer2.comparisonSubject')),
     comparisonBasis: normalizeComparisonBasis(expectRecord(drawer2.comparisonBasis, 'drawer2.comparisonBasis')),
-    stockOrderRequest: normalizeStockOrderRequest(drawer2.stockOrderRequest),
+    stockOrderRequest,
     stockOrderResult,
     unitEconomics,
     selfWeightPct: expectNumberInRange(drawer2.selfWeightPct, 'drawer2.selfWeightPct', 0, 100),
@@ -195,12 +204,86 @@ function normalizeAiComment(value: unknown): OrderSnapshotDocument['drawer2']['a
   }
 }
 
-function normalizeStockOrderResult(value: unknown, sizeOrders: OrderSnapshotDocument['drawer2']['sizeOrders']): OrderSnapshotDocument['drawer2']['stockOrderResult'] {
+function normalizeStockOrderResult(
+  value: unknown,
+  sizeOrders: OrderSnapshotDocument['drawer2']['sizeOrders'],
+  stockOrderRequest: OrderSnapshotDocument['drawer2']['stockOrderRequest'],
+  primarySummary: OrderSnapshotPrimarySummary,
+): OrderSnapshotDocument['drawer2']['stockOrderResult'] {
   const source: Obj = expectRecord(value, 'drawer2.stockOrderResult')
+  const display: StockOrderResult['display'] = normalizeStockOrderDisplay(source.display, sizeOrders)
   return {
+    productIdentity: normalizeProductIdentity(source.productIdentity, primarySummary),
+    existingOrderInboundSupplyBySize: normalizeExistingOrderInboundSupplyBySize(source.existingOrderInboundSupplyBySize, sizeOrders, stockOrderRequest, display),
     ...normalizeNumberFields(source, 'drawer2.stockOrderResult', STOCK_RESULT_KEYS),
-    display: normalizeStockOrderDisplay(source.display, sizeOrders),
+    display,
   }
+}
+
+function normalizeProductIdentity(value: unknown, primarySummary: OrderSnapshotPrimarySummary): StockOrderResult['productIdentity'] {
+  if (value == null) {
+    return {
+      ...(primarySummary.productUuid == null ? {} : { productUuid: primarySummary.productUuid }),
+      skuGroupKey: primarySummary.skuGroupKey,
+      brand: primarySummary.brand,
+      code: primarySummary.code,
+      colorCode: primarySummary.colorCode,
+    }
+  }
+  const source: Obj = expectRecord(value, 'drawer2.stockOrderResult.productIdentity')
+  return {
+    ...(source.productUuid == null ? {} : { productUuid: expectNonEmptyString(source.productUuid, 'drawer2.stockOrderResult.productIdentity.productUuid') }),
+    skuGroupKey: expectNonEmptyString(source.skuGroupKey, 'drawer2.stockOrderResult.productIdentity.skuGroupKey'),
+    brand: expectNonEmptyString(source.brand, 'drawer2.stockOrderResult.productIdentity.brand'),
+    code: expectNonEmptyString(source.code, 'drawer2.stockOrderResult.productIdentity.code'),
+    colorCode: expectNonEmptyString(source.colorCode, 'drawer2.stockOrderResult.productIdentity.colorCode'),
+  }
+}
+
+function normalizeExistingOrderInboundSupplyBySize(
+  value: unknown,
+  sizeOrders: OrderSnapshotDocument['drawer2']['sizeOrders'],
+  stockOrderRequest: OrderSnapshotDocument['drawer2']['stockOrderRequest'],
+  display: StockOrderResult['display'],
+): StockOrderResult['existingOrderInboundSupplyBySize'] {
+  if (value == null) return buildLegacyExistingOrderInboundSupplyBySize(display, stockOrderRequest)
+  const source: Obj = expectRecord(value, 'drawer2.stockOrderResult.existingOrderInboundSupplyBySize')
+  const sizeOrderSizes: Set<string> = new Set(sizeOrders.map((row: OrderSnapshotSizeOrder): string => row.size))
+  const rows: Array<{ size: string }> = Object.keys(source).map((size: string): { size: string } => ({ size }))
+  expectSameSizeSet(rows, sizeOrderSizes, 'drawer2.stockOrderResult.existingOrderInboundSupplyBySize', 'drawer2.sizeOrders')
+  return Object.fromEntries(Object.entries(source).map(([size, points]: [string, unknown]): [string, StockOrderResult['existingOrderInboundSupplyBySize'][string]] => [
+    size,
+    expectArray(points, `drawer2.stockOrderResult.existingOrderInboundSupplyBySize.${size}`).map((point: unknown, index: number): StockOrderResult['existingOrderInboundSupplyBySize'][string][number] => {
+      const label: string = `drawer2.stockOrderResult.existingOrderInboundSupplyBySize.${size}[${index}]`
+      const pointSource: Obj = expectRecord(point, label)
+      return {
+        date: expectNonEmptyString(pointSource.date, label + '.date'),
+        qty: expectNumberInRange(pointSource.qty, label + '.qty', 0, Number.MAX_SAFE_INTEGER),
+      }
+    }),
+  ]))
+}
+
+function buildLegacyExistingOrderInboundSupplyBySize(
+  display: StockOrderResult['display'],
+  stockOrderRequest: OrderSnapshotDocument['drawer2']['stockOrderRequest'],
+): StockOrderResult['existingOrderInboundSupplyBySize'] {
+  const beforeCurrentOrderInboundDate: string = addIsoDays(stockOrderRequest.currentOrderInboundDueDate, -1)
+  const currentOrderInboundDate: string = stockOrderRequest.currentOrderInboundDueDate
+  return Object.fromEntries(display.sizeRows.map((row: OrderSnapshotStockOrderDisplaySizeRow): [string, StockOrderResult['existingOrderInboundSupplyBySize'][string]] => {
+    const expectedInboundOrderBalance: number = Math.min(row.totalOrderBalance, row.expectedInboundOrderBalance)
+    const remainingOrderBalance: number = Math.max(0, row.totalOrderBalance - expectedInboundOrderBalance)
+    const points: StockOrderResult['existingOrderInboundSupplyBySize'][string] = []
+    if (expectedInboundOrderBalance > 0) points.push({ date: beforeCurrentOrderInboundDate, qty: expectedInboundOrderBalance })
+    if (remainingOrderBalance > 0) points.push({ date: currentOrderInboundDate, qty: remainingOrderBalance })
+    return [row.size, points]
+  }))
+}
+
+function addIsoDays(date: string, days: number): string {
+  const parsed: Date = new Date(`${date}T00:00:00.000Z`)
+  parsed.setUTCDate(parsed.getUTCDate() + days)
+  return parsed.toISOString().slice(0, 10)
 }
 
 function normalizeStockOrderDisplay(value: unknown, sizeOrders: OrderSnapshotDocument['drawer2']['sizeOrders']): StockOrderResult['display'] {
@@ -240,6 +323,9 @@ function normalizeConfirmed(value: unknown, sizeOrders: OrderSnapshotDocument['d
     const round: Obj = expectRecord(row, rowLabel)
     return {
       date: expectNonEmptyString(round.date, rowLabel + '.date'),
+      ignoreExistingOrderInbound: round.ignoreExistingOrderInbound === undefined
+        ? false
+        : expectBoolean(round.ignoreExistingOrderInbound, rowLabel + '.ignoreExistingOrderInbound'),
       qtyBySize: normalizeConfirmedQtyBySize(round.qtyBySize, rowLabel + '.qtyBySize', sizeOrderSizes),
     }
   })

@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import type { SecondaryStockOrderCalcResult } from '../../../../../api'
+import type { SecondaryProductIdentity, SecondaryStockOrderCalcResult } from '../../../../../api'
 import type { ProductMonthlyTrendChartPoint } from '../../primary/monthlyTrendChartModel'
 import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
@@ -34,15 +34,23 @@ import { useSecondaryForecastModel } from './useSecondaryForecastModel'
 type HookArgs = Parameters<typeof useSecondaryForecastModel>[0]
 type HookResult = ReturnType<typeof useSecondaryForecastModel>
 
+const PRODUCT_IDENTITY: SecondaryProductIdentity = { productUuid: null, skuGroupKey: 'sku-a', brand: 'Brand', code: 'CODE', colorCode: 'BLK' }
 const STOCK_ORDER_CALC: SecondaryStockOrderCalcResult = {
+  productIdentity: PRODUCT_IDENTITY,
+  existingOrderInboundSupplyBySize: {
+    S: [
+      { date: '2026-01-15', qty: 2 },
+      { date: '2026-02-01', qty: 1 },
+    ],
+  },
   trendDailyMean: 10,
   dailyMean: 10,
   sigma: 1,
   display: {
     currentStockQtyTotal: 1,
-    totalOrderBalanceTotal: 2,
-    expectedInboundOrderBalanceTotal: 3,
-    sizeRows: [{ size: 'S', currentStockQty: 1, totalOrderBalance: 2, expectedInboundOrderBalance: 3 }],
+    totalOrderBalanceTotal: 3,
+    expectedInboundOrderBalanceTotal: 2,
+    sizeRows: [{ size: 'S', currentStockQty: 1, totalOrderBalance: 3, expectedInboundOrderBalance: 2 }],
   },
 }
 
@@ -134,7 +142,7 @@ function createArgs(overrides: Partial<HookArgs> = {}): HookArgs {
     bufferStock: 0,
     confirmBySize: {},
     setConfirmBySize: vi.fn(),
-    confirmedRounds: [{ date: '2026-04-01', qtyBySize: { S: 3 } }],
+    confirmedRounds: [{ date: '2026-04-01', ignoreExistingOrderInbound: false, qtyBySize: { S: 3 } }],
     setConfirmedRounds: vi.fn(),
     unitPriceInput: 1000,
     unitCostInput: 700,

@@ -1,4 +1,4 @@
-import type { SecondaryInboundSplitExpectationCell } from '../types'
+import type { SecondaryInboundSplitSupplyPoint } from '../types'
 import { resolvePublicAssetUrl } from '../publicAsset'
 
 const SECONDARY_INBOUND_SPLIT_SOURCE_FIXTURE_DIR = 'mock/secondaryInboundSplitSourceFixtures' as const
@@ -118,33 +118,50 @@ export function getSecondaryInboundSplitSourceFixtureEntry(
   return cached
 }
 
-export function slicePrecomputedSecondaryInboundSplitExpectation(
+export function buildSecondaryInboundSplitSourceData(
   fixture: SecondaryInboundSplitSourceFixture,
   cached: SecondaryInboundSplitSourceFixtureEntry,
-  dateStart: string,
-  dateEnd: string,
-): Record<string, Record<string, SecondaryInboundSplitExpectationCell>> {
-  const start: number = parseIsoDateStart(dateStart, 'dateStart')
-  const end: number = parseIsoDateStart(dateEnd, 'dateEnd')
+  calculationBaseDate: string,
+  coverageEndDate: string,
+): {
+  supplyBySize: Record<string, SecondaryInboundSplitSupplyPoint[]>
+  salesForecastByDate: Record<string, Record<string, number>>
+} {
+  const start: number = parseIsoDateStart(calculationBaseDate, 'calculationBaseDate')
+  const end: number = parseIsoDateStart(coverageEndDate, 'coverageEndDate')
   const precomputedStart: number = parseIsoDateStart(fixture.rangeStart, 'rangeStart')
   const precomputedEnd: number = parseIsoDateStart(fixture.rangeEnd, 'rangeEnd')
   if (start < precomputedStart || end > precomputedEnd) {
     throw new Error(
-      `Secondary inbound split source precomputed date range supports ${fixture.rangeStart} <= dateStart < dateEnd <= ${fixture.rangeEnd}.`,
+      `Secondary inbound split source precomputed date range supports ${fixture.rangeStart} <= calculationBaseDate < coverageEndDate <= ${fixture.rangeEnd}.`,
     )
   }
   if (end <= start) {
-    throw new Error('Secondary inbound split source date range must satisfy dateStart < dateEnd.')
+    throw new Error('Secondary inbound split source date range must satisfy calculationBaseDate < coverageEndDate.')
   }
 
-  const expectationByDate: Record<string, Record<string, SecondaryInboundSplitExpectationCell>> = {}
+  const supplyBySize: Record<string, SecondaryInboundSplitSupplyPoint[]> = Object.fromEntries(
+    Object.entries(cached.stockBySize).map(([size, qty]: [string, number]): [string, SecondaryInboundSplitSupplyPoint[]] => [
+      size,
+      [{ date: calculationBaseDate, qty }],
+    ]),
+  )
+  const salesForecastByDate: Record<string, Record<string, number>> = {}
   for (let time: number = start; time < end; time += DAY_MS) {
     const date: string = formatIsoDate(new Date(time))
-    const row: Record<string, SecondaryInboundSplitExpectationCell> | undefined = cached.expectationByDate[date]
+    const row: Record<string, SecondaryInboundSplitSourceFixtureCell> | undefined = cached.expectationByDate[date]
     if (row == null) {
       throw new Error(`Secondary inbound split source precomputed data missing for date ${date}.`)
     }
-    expectationByDate[date] = { ...row }
+    salesForecastByDate[date] = {}
+    Object.entries(row).forEach(([size, cell]: [string, SecondaryInboundSplitSourceFixtureCell]): void => {
+      salesForecastByDate[date][size] = cell.sale
+      if (cell.inbound > 0) {
+        const points: SecondaryInboundSplitSupplyPoint[] = supplyBySize[size] ?? []
+        points.push({ date, qty: cell.inbound })
+        supplyBySize[size] = points
+      }
+    })
   }
-  return expectationByDate
+  return { supplyBySize, salesForecastByDate }
 }

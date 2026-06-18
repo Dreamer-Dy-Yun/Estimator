@@ -16,6 +16,7 @@ export interface InboundSplitScheduleRow {
   id: string
   round: number
   inboundDate: string
+  ignoreExistingOrderInbound: boolean
   suggestedQuantitiesBySize: Record<string, number>
   quantitiesBySize: Record<string, number>
 }
@@ -84,6 +85,7 @@ export function confirmedRoundsToInboundSplitRows(rounds: readonly SecondaryConf
       id: `confirmed-round-${index + 1}`,
       round: index + 1,
       inboundDate: round.date,
+      ignoreExistingOrderInbound: round.ignoreExistingOrderInbound,
       suggestedQuantitiesBySize: {},
       quantitiesBySize,
     }
@@ -98,6 +100,7 @@ export function inboundSplitRowsToConfirmedRounds(rows: readonly InboundSplitSch
     })
     return {
       date: row.inboundDate,
+      ignoreExistingOrderInbound: row.ignoreExistingOrderInbound,
       qtyBySize,
     }
   })
@@ -192,7 +195,11 @@ export function buildInboundSplitScheduleRows(
 ): InboundSplitScheduleRow[] {
   const safeCount: number = clampInboundSplitCount(count)
   const inboundDates: string[] = buildInboundSplitDates(safeCount, inboundDate, nextInboundDate)
-  const suggestedRows: Record<string, number>[] = buildInboundSplitSuggestedQuantitiesByRow(columns, inboundDates, nextInboundDate, source)
+  const rowInputs: Array<{ inboundDate: string; ignoreExistingOrderInbound: boolean }> = inboundDates.map((date: string): { inboundDate: string; ignoreExistingOrderInbound: boolean } => ({
+    inboundDate: date,
+    ignoreExistingOrderInbound: false,
+  }))
+  const suggestedRows: Record<string, number>[] = buildInboundSplitSuggestedQuantitiesByRow(columns, rowInputs, nextInboundDate, source)
   return Array.from({ length: safeCount }, (_: unknown, rowIndex: number): InboundSplitScheduleRow => {
     const round: number = rowIndex + 1
     const suggestedQuantitiesBySize: Record<string, number> = {}
@@ -206,6 +213,7 @@ export function buildInboundSplitScheduleRows(
       id: `inbound-split-${round}`,
       round,
       inboundDate: inboundDates[rowIndex] ?? inboundDate,
+      ignoreExistingOrderInbound: false,
       suggestedQuantitiesBySize,
       quantitiesBySize,
     }
@@ -218,8 +226,11 @@ export function recalculateInboundSplitScheduleRows(
   nextInboundDate: string,
   source: SecondaryInboundSplitSource,
 ): InboundSplitScheduleRow[] {
-  const inboundDates: string[] = currentRows.map((row: InboundSplitScheduleRow): string => row.inboundDate)
-  const suggestedRows: Record<string, number>[] = buildInboundSplitSuggestedQuantitiesByRow(columns, inboundDates, nextInboundDate, source)
+  const rowInputs: Array<{ inboundDate: string; ignoreExistingOrderInbound: boolean }> = currentRows.map((row: InboundSplitScheduleRow): { inboundDate: string; ignoreExistingOrderInbound: boolean } => ({
+    inboundDate: row.inboundDate,
+    ignoreExistingOrderInbound: row.ignoreExistingOrderInbound,
+  }))
+  const suggestedRows: Record<string, number>[] = buildInboundSplitSuggestedQuantitiesByRow(columns, rowInputs, nextInboundDate, source)
 
   return currentRows.map((row: InboundSplitScheduleRow, rowIndex: number): InboundSplitScheduleRow => {
     const suggestedQuantitiesBySize: Record<string, number> = {}
@@ -254,6 +265,7 @@ export function reconcileInboundSplitScheduleRows(
       fallbackRows.map((fallbackRow: InboundSplitScheduleRow, index: number): InboundSplitScheduleRow => ({
         ...fallbackRow,
         inboundDate: currentRows[index]?.inboundDate || fallbackRow.inboundDate,
+        ignoreExistingOrderInbound: currentRows[index]?.ignoreExistingOrderInbound ?? fallbackRow.ignoreExistingOrderInbound,
       })),
       columns,
       nextInboundDate,
@@ -276,6 +288,7 @@ export function reconcileInboundSplitScheduleRows(
       id: fallbackRow.id,
       round: fallbackRow.round,
       inboundDate: currentRow.inboundDate || fallbackRow.inboundDate,
+      ignoreExistingOrderInbound: currentRow.ignoreExistingOrderInbound,
       suggestedQuantitiesBySize,
       quantitiesBySize,
     }

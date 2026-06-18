@@ -1,5 +1,14 @@
 # Backend API Changelog
 
+## 2026-06-18 existing-order inbound supply source
+
+- Added `SecondaryProductIdentity` to stock-order and inbound-split source requests/responses. Fields: `productUuid?`, `skuGroupKey`, `brand`, `code`, `colorCode`.
+- `getSecondaryStockOrderCalc` body now includes `productIdentity`, `calculationBaseDate`, and `currentOrderInboundDueDate`.
+- `SecondaryStockOrderCalcResult` now returns `existingOrderInboundSupplyBySize`, the A source: existing ordered but not-yet-inbound quantities keyed by size and expected inbound date.
+- `display.totalOrderBalance*` is the aggregate of all A points. `display.expectedInboundOrderBalance*` is the aggregate of A points with `date < currentOrderInboundDueDate`.
+- `getSecondaryInboundSplitSource` query now includes product identity fields. `supplyBySize` keeps the same point shape: current stock on `calculationBaseDate`, then existing-order inbound supply points from A.
+- `OrderSnapshotDocument` schema is now v7 and persists `stockOrderResult.productIdentity` plus `stockOrderResult.existingOrderInboundSupplyBySize`. v4/v5/v6 snapshots remain parseable as legacy inputs.
+
 ## 2026-06-17 dashboard runtime config for candidate order metrics
 
 - Added `GET /dashboard/runtime-config`.
@@ -16,7 +25,8 @@
 - `flowByDate` must cover every date from `dateStart` through inclusive `dateEnd`. `comparisonStockAtStart` is reserved; the current frontend accepts `null` and does not render comparison stock bars.
 - `flowByDate[date].comparison.inbound` may be `null`; `flowByDate[date].base.inbound` must not be `null`. The frontend now rejects daily-trend response identity mismatches for `productId`, `dateStart`, `dateEnd`, or `forecastStartDate`.
 - `getSecondaryInboundSplitSource` is source-only for split-inbound shortage suggestions. It does not receive split count, selected split dates, current popup draft quantities, or split result rows.
-- `getSecondaryInboundSplitSource.dateEnd` is exclusive and `dateStart < dateEnd` is required; required date/size cells must send explicit numeric `0` for known zero `sale` or `inbound`.
+- `getSecondaryInboundSplitSource` now uses `calculationBaseDate`, `coverageStartDate`, and exclusive `coverageEndDate`. `supplyBySize[size][]` contains current stock on `calculationBaseDate` and existing-order inbound supply points. `salesForecastByDate[date][size]` contains sales forecast only; existing-order inbound is no longer mixed into the daily sales cell.
+- Split inbound confirmed rounds now store `ignoreExistingOrderInbound`. When true for a round, existing-order inbound supply points inside that round interval are excluded from the shortage suggestion flow.
 
 ## 2026-06-10 current API rewrite
 
@@ -36,7 +46,7 @@
 - Product drawer bundle is base-only and returns `{ summary }`.
 - Product monthly trend, sales insight, secondary detail, daily trend, AI comment, and stock-order calc are separate endpoints.
 - Analysis list and candidate list row summaries include `thumbnailUrl: string | null`.
-- Candidate item `confirmedOrderSnapshot` remains `OrderSnapshotDocument | null`; current snapshot schema is version `5`.
+- Candidate item `confirmedOrderSnapshot` remains `OrderSnapshotDocument | null`; current snapshot schema is version `7`.
 - Candidate order metric SSE uses `requestId` and emits `item`, `itemFailed`, and `completed`.
 
 ## Previous docs

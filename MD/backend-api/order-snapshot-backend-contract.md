@@ -1,6 +1,6 @@
-# Order Snapshot Backend Contract
+﻿# Order Snapshot Backend Contract
 
-Last updated: 2026-06-17
+Last updated: 2026-06-18
 
 `OrderSnapshotDocument` is the persisted candidate item snapshot. It is a screen-restore contract for the current product drawer state.
 
@@ -8,14 +8,14 @@ Last updated: 2026-06-17
 
 | Field | Required | Meaning |
 |---|:---:|---|
-| `schemaVersion` | Y | `5` |
+| `schemaVersion` | Y | `7` |
 | `skuGroupKey` | Y | Product group key |
 | `savedAt` | Y | Snapshot creation timestamp |
 | `context` | Y | Restore/request basis |
 | `drawer1` | Y | Primary drawer snapshot |
 | `drawer2` | Y | Secondary drawer snapshot |
 
-Top-level `companyUuid` is not part of v5. Scoped restore data belongs in `drawer2.baseSubject.sourceId`.
+Top-level `companyUuid` is not part of v7. Scoped restore data belongs in `drawer2.baseSubject.sourceId`.
 
 ## `context`
 
@@ -26,7 +26,7 @@ Fields: `periodStart`, `periodEnd`, `forecastMonths`, `dailyTrendStartMonth`, `d
 
 Required fields: `summary`, `monthlySalesTrend`.
 
-`summary` fields: `skuGroupKey`, `productName`, `brand`, `category`, `code`, `colorCode`, `price`, `qty`, `availableStock`.
+`summary` fields: `skuGroupKey`, optional `productUuid`, `productName`, `brand`, `category`, `code`, `colorCode`, `price`, `qty`, `availableStock`.
 
 `monthlySalesTrend[]` stores the `ProductMonthlyTrendChartPoint[]` display model used directly by the primary monthly sales trend chart. It is not the `ProductMonthlyTrend` API source object, not a reshaped backend source object, and not wrapped in a separate `points` field.
 
@@ -70,12 +70,16 @@ The two inbound date fields follow the integrated sales forecast card input mode
 
 ### `stockOrderResult`
 
-Fields: `trendDailyMean`, `dailyMean`, `sigma`, `display`.
+Fields: `productIdentity`, `existingOrderInboundSupplyBySize`, `trendDailyMean`, `dailyMean`, `sigma`, `display`.
 This block follows the frontend render/calc result type `SecondaryStockOrderCalcResult`.
+
+`productIdentity`: `productUuid?`, `skuGroupKey`, `brand`, `code`, `colorCode`.
+`existingOrderInboundSupplyBySize`: A, keyed by size. Each point is `{ date, qty }` and represents existing ordered but not-yet-inbound quantity from backend-managed Google Sheet staging data. It must not include the draft/current order quantities being edited in the drawer.
 
 `display`: `currentStockQtyTotal`, `totalOrderBalanceTotal`, `expectedInboundOrderBalanceTotal`, `sizeRows[]`.
 `sizeRows[]`: `size`, `currentStockQty`, `totalOrderBalance`, `expectedInboundOrderBalance`.
 `sizeRows[].size` must match the `sizeOrders[].size` set. Totals must equal row sums.
+`totalOrderBalance` is the aggregate of all A points for that size. `expectedInboundOrderBalance` is the aggregate of A points with `date < stockOrderRequest.currentOrderInboundDueDate`.
 
 Recommendation basis lives in `drawer2.sizeOrders[]`, `drawer2.bufferStock`, `drawer2.stockOrderRequest`, and `drawer2.stockOrderResult.display`. Amount/profit projections are outside the current snapshot restore contract unless a separate API contract adds them.
 
@@ -108,9 +112,9 @@ This block follows the AI comment render model `SecondaryAiCommentView`.
 ### `confirmed`
 
 Required fields: `rounds`.
-`rounds[]` fields: `date`, `qtyBySize`.
+`rounds[]` fields: `date`, `ignoreExistingOrderInbound`, `qtyBySize`.
 `qtyBySize` is keyed by `sizeOrders[].size`.
-Each round follows the split inbound schedule state model `SecondaryConfirmedRound`.
+Each round follows the split inbound schedule state model `SecondaryConfirmedRound`. `ignoreExistingOrderInbound=true` means the frontend excluded existing-order inbound supply points inside that round interval when deriving the suggestion.
 Round numbers are not stored. The frontend/backend derives `1차`, `2차`, ... from the array order.
 Total quantity is not stored. Consumers derive it from `sum(confirmed.rounds[].qtyBySize)`.
 

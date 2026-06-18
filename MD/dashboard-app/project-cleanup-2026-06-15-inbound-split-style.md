@@ -69,7 +69,7 @@ Clean up the secondary drawer split-inbound schedule UI by feature responsibilit
 
 - `getSecondaryDailyTrend` expects `SecondaryDailyTrendSource`, not chart-ready `SecondaryDailyTrendPoint[]`. Backend must provide `baseStockAtStart` as opening stock immediately before `dateStart`, and `flowByDate[date].base.inbound` as per-date base inbound rather than accumulated chart bars.
 - `getSecondaryDailyTrend.flowByDate` must cover every date from `dateStart` through inclusive `dateEnd`. `comparisonStockAtStart` is reserved; the current frontend accepts `null` and does not render comparison stock bars.
-- `getSecondaryInboundSplitSource` is source-only for the split-inbound popup. Backend must not require split count, selected split dates, or split result rows; `dateEnd` is exclusive, `dateStart < dateEnd` is required, and required date/size cells must send numeric `0` for known zero values.
+- `getSecondaryInboundSplitSource`는 source-only API이며 query는 `skuGroupKey`, `calculationBaseDate`, `coverageStartDate`, `coverageEndDate`, `base`를 사용하고 response는 `supplyBySize`, `salesForecastByDate`를 반환한다.
 
 ## 2026-06-16 hardening update
 

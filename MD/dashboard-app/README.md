@@ -44,7 +44,7 @@ API endpoint, request, response, error, SSE 계약은 `MD/backend-api`가 백엔
 | [../backend-api/README.md](../backend-api/README.md) | 백엔드 API 문서 진입점 |
 | [../backend-api/dashboard-api-contract-catalog.md](../backend-api/dashboard-api-contract-catalog.md) | endpoint catalog와 DTO mapping |
 | [../backend-api/backend-api-spec.md](../backend-api/backend-api-spec.md) | 인증, scope, validation, error, SSE 구현 규칙 |
-| [../backend-api/order-snapshot-backend-contract.md](../backend-api/order-snapshot-backend-contract.md) | `OrderSnapshotDocument` v5 저장 계약 |
+| [../backend-api/order-snapshot-backend-contract.md](../backend-api/order-snapshot-backend-contract.md) | `OrderSnapshotDocument` v7 저장 계약 |
 
 ## 현재 중요 경계
 
@@ -52,10 +52,10 @@ API endpoint, request, response, error, SSE 계약은 `MD/backend-api`가 백엔
 - mock은 UI fallback이 아니라 API 계약의 대체 구현이다.
 - 상품 드로어는 `base`/`comparison` subject 계약을 사용한다. all-company sentinel은 HTTP boundary에서 sourceId 생략으로 표현한다.
 - secondary daily trend는 chart-ready row가 아니라 `SecondaryDailyTrendSource`를 받는다. 화면은 source에서 chart point를 파생한다.
-- secondary inbound split source는 source-only API다. split count, selected split dates, confirmed rows는 UI draft/state이며 API request/response가 아니다.
+- secondary inbound split source는 source-only API다. split count, selected split dates, confirmed rows, `ignoreExistingOrderInbound`는 UI draft/state이며 API request/response가 아니다.
 - 분할 입고 확정은 2차수 이상일 때 `drawer2.confirmed.rounds`로 저장되고, 1차수는 직접 확정 수량으로 접힌다.
 - 후보군 order metric은 runtime config의 `candidateOrderMetricComparison`을 사용한다. 화면이 임의 comparison default를 만들지 않는다.
-- snapshot 저장 계약은 `OrderSnapshotDocument` v5다.
+- snapshot 저장 계약은 `OrderSnapshotDocument` v7다.
 
 ## 갱신 규칙
 

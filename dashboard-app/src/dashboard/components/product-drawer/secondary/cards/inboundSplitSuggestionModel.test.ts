@@ -9,22 +9,28 @@ function makeSource(
   stock: number,
   cells: Record<string, { sale: number; inbound: number }>,
 ): SecondaryInboundSplitSource {
-  const expectationByDate: SecondaryInboundSplitSource['expectationByDate'] = {}
+  const supplyBySize: SecondaryInboundSplitSource['supplyBySize'] = {
+    S: [{ date: '2026-04-01', qty: stock }],
+  }
+  const salesForecastByDate: SecondaryInboundSplitSource['salesForecastByDate'] = {}
   Object.entries(cells).forEach(([date, cell]: [string, { sale: number; inbound: number }]): void => {
-    expectationByDate[date] = { S: cell }
+    salesForecastByDate[date] = { S: cell.sale }
+    if (cell.inbound > 0) supplyBySize.S.push({ date, qty: cell.inbound })
   })
 
   return {
     productId: 'product-a',
-    dateStart: '2026-04-01',
-    dateEnd: '2026-04-05',
-    stockBySize: { S: stock },
-    expectationByDate,
+    productIdentity: { productUuid: null, skuGroupKey: 'product-a', brand: 'Brand', code: 'CODE', colorCode: 'BLK' },
+    calculationBaseDate: '2026-04-01',
+    coverageStartDate: '2026-04-01',
+    coverageEndDate: '2026-04-05',
+    supplyBySize,
+    salesForecastByDate,
   }
 }
 
 describe('buildInboundSplitSuggestedQuantitiesByRow', () : void => {
-  it('uses signed source stock and sale minus inbound for interval net demand', () : void => {
+  it('uses source stock and existing-order inbound supply for interval shortage', () : void => {
     const source: SecondaryInboundSplitSource = makeSource(-2, {
       '2026-04-01': { sale: 3, inbound: 0 },
       '2026-04-02': { sale: 3, inbound: 0 },
@@ -34,7 +40,10 @@ describe('buildInboundSplitSuggestedQuantitiesByRow', () : void => {
 
     const rows: Record<string, number>[] = buildInboundSplitSuggestedQuantitiesByRow(
       COLUMNS,
-      ['2026-04-01', '2026-04-03'],
+      [
+        { inboundDate: '2026-04-01', ignoreExistingOrderInbound: false },
+        { inboundDate: '2026-04-03', ignoreExistingOrderInbound: false },
+      ],
       '2026-04-05',
       source,
     )
@@ -52,7 +61,10 @@ describe('buildInboundSplitSuggestedQuantitiesByRow', () : void => {
 
     const rows: Record<string, number>[] = buildInboundSplitSuggestedQuantitiesByRow(
       [{ size: 'S', confirmedQty: 0, recommendedQty: 10 }],
-      ['2026-04-01', '2026-04-03'],
+      [
+        { inboundDate: '2026-04-01', ignoreExistingOrderInbound: false },
+        { inboundDate: '2026-04-03', ignoreExistingOrderInbound: false },
+      ],
       '2026-04-05',
       source,
     )
@@ -70,7 +82,10 @@ describe('buildInboundSplitSuggestedQuantitiesByRow', () : void => {
 
     const rows: Record<string, number>[] = buildInboundSplitSuggestedQuantitiesByRow(
       COLUMNS,
-      ['2026-04-01', '2026-04-03'],
+      [
+        { inboundDate: '2026-04-01', ignoreExistingOrderInbound: false },
+        { inboundDate: '2026-04-03', ignoreExistingOrderInbound: false },
+      ],
       '2026-04-05',
       source,
     )
@@ -87,35 +102,28 @@ describe('buildInboundSplitSuggestedQuantitiesByRow', () : void => {
 
     expect((): Record<string, number>[] => buildInboundSplitSuggestedQuantitiesByRow(
       COLUMNS,
-      ['not-a-date'],
+      [{ inboundDate: 'not-a-date', ignoreExistingOrderInbound: false }],
       '2026-04-05',
       source,
     )).toThrow('Invalid inbound split source date')
   })
 
-  it('allocates each round total by size mix, not by size-by-size demand', () : void => {
+  it('suggests each size from its own interval stock and sales flow', () : void => {
     const source: SecondaryInboundSplitSource = {
       productId: 'product-a',
-      dateStart: '2026-04-01',
-      dateEnd: '2026-04-05',
-      stockBySize: { S: 0, M: 0 },
-      expectationByDate: {
-        '2026-04-01': {
-          S: { sale: 2, inbound: 0 },
-          M: { sale: 0, inbound: 0 },
-        },
-        '2026-04-02': {
-          S: { sale: 2, inbound: 0 },
-          M: { sale: 0, inbound: 0 },
-        },
-        '2026-04-03': {
-          S: { sale: 1, inbound: 0 },
-          M: { sale: 3, inbound: 0 },
-        },
-        '2026-04-04': {
-          S: { sale: 1, inbound: 0 },
-          M: { sale: 1, inbound: 0 },
-        },
+      productIdentity: { productUuid: null, skuGroupKey: 'product-a', brand: 'Brand', code: 'CODE', colorCode: 'BLK' },
+      calculationBaseDate: '2026-04-01',
+      coverageStartDate: '2026-04-01',
+      coverageEndDate: '2026-04-05',
+      supplyBySize: {
+        S: [{ date: '2026-04-01', qty: 0 }],
+        M: [{ date: '2026-04-01', qty: 0 }],
+      },
+      salesForecastByDate: {
+        '2026-04-01': { S: 2, M: 0 },
+        '2026-04-02': { S: 2, M: 0 },
+        '2026-04-03': { S: 1, M: 3 },
+        '2026-04-04': { S: 1, M: 1 },
       },
     }
 
@@ -124,11 +132,14 @@ describe('buildInboundSplitSuggestedQuantitiesByRow', () : void => {
         { size: 'S', confirmedQty: 10, recommendedQty: 10 },
         { size: 'M', confirmedQty: 10, recommendedQty: 10 },
       ],
-      ['2026-04-01', '2026-04-03'],
+      [
+        { inboundDate: '2026-04-01', ignoreExistingOrderInbound: false },
+        { inboundDate: '2026-04-03', ignoreExistingOrderInbound: false },
+      ],
       '2026-04-05',
       source,
     )
 
-    expect(rows).toEqual([{ S: 2, M: 2 }, { S: 3, M: 3 }])
+    expect(rows).toEqual([{ S: 4, M: 0 }, { S: 2, M: 4 }])
   })
 })

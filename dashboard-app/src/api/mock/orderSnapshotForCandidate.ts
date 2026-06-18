@@ -148,6 +148,14 @@ export function buildMockOrderSnapshotForCandidate(
     totalOrderBalance: Math.max(0, Math.round((confirmedQtyBySize[row.size] ?? 0) * 0.4)),
     expectedInboundOrderBalance: Math.max(0, Math.round((confirmedQtyBySize[row.size] ?? 0) * 0.3)),
   }))
+  const existingOrderInboundSupplyBySize: Record<string, { date: string; qty: number }[]> = Object.fromEntries(displaySizeRows.map((row: { size: string; currentStockQty: number; totalOrderBalance: number; expectedInboundOrderBalance: number; }): [string, { date: string; qty: number }[]] => {
+    const preCurrentOrderQty: number = Math.min(row.totalOrderBalance, row.expectedInboundOrderBalance)
+    const postCurrentOrderQty: number = Math.max(0, row.totalOrderBalance - preCurrentOrderQty)
+    const points: { date: string; qty: number }[] = []
+    if (preCurrentOrderQty > 0) points.push({ date: '2026-03-31', qty: preCurrentOrderQty })
+    if (postCurrentOrderQty > 0) points.push({ date: '2026-04-01', qty: postCurrentOrderQty })
+    return [row.size, points]
+  }))
   return ensureMockAiCommentForSnapshot({
     schemaVersion: ORDER_SNAPSHOT_SCHEMA_VERSION,
     skuGroupKey,
@@ -173,6 +181,14 @@ export function buildMockOrderSnapshotForCandidate(
         orderCoverageDays,
       }),
       stockOrderResult: {
+        productIdentity: {
+          productUuid: summary.productUuid ?? null,
+          skuGroupKey: summary.skuGroupKey,
+          brand: summary.brand,
+          code: summary.code,
+          colorCode: summary.colorCode,
+        },
+        existingOrderInboundSupplyBySize,
         trendDailyMean: dailyMean,
         dailyMean,
         sigma: 12,
@@ -190,6 +206,7 @@ export function buildMockOrderSnapshotForCandidate(
       confirmed: {
         rounds: [{
           date: '2026-04-01',
+          ignoreExistingOrderInbound: false,
           qtyBySize: confirmedQtyBySize,
         }],
       },

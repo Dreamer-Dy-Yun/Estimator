@@ -1,4 +1,4 @@
-import type { ProductComparisonBaseSubjectRef, SecondaryStockOrderCalcParams } from '../../../../../api/types'
+import type { ProductComparisonBaseSubjectRef, SecondaryProductIdentity, SecondaryStockOrderCalcParams } from '../../../../../api/types'
 // @vitest-environment jsdom
 import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
@@ -8,12 +8,16 @@ import type { ApiUnitErrorInfo } from '../../../../../types'
 import { useSecondaryStockOrderCalc } from './useSecondaryStockOrderCalc'
 
 const BASE_SUBJECT: ProductComparisonBaseSubjectRef = { role: 'base', kind: 'self-company', sourceId: 'company-1' }
+const PRODUCT_IDENTITY: SecondaryProductIdentity = { productUuid: null, skuGroupKey: 'sku-a', brand: 'Brand', code: 'CODE', colorCode: 'BLK' }
 
-const BASE_PROPS: { skuGroupKey: string; periodStart: string; periodEnd: string; baseSubject: ProductComparisonBaseSubjectRef; forecastPeriodEndMonth: string; orderCoverageDays: number; makeApiErrorInfo: (request: string, err: unknown) => ApiUnitErrorInfo; } = {
+const BASE_PROPS: { skuGroupKey: string; productIdentity: SecondaryProductIdentity; periodStart: string; periodEnd: string; baseSubject: ProductComparisonBaseSubjectRef; calculationBaseDate: string; currentOrderInboundDueDate: string; forecastPeriodEndMonth: string; orderCoverageDays: number; makeApiErrorInfo: (request: string, err: unknown) => ApiUnitErrorInfo; } = {
   skuGroupKey: 'sku-a',
+  productIdentity: PRODUCT_IDENTITY,
   periodStart: '2025-01-01',
   periodEnd: '2025-12-31',
   baseSubject: BASE_SUBJECT,
+  calculationBaseDate: '2026-01-01',
+  currentOrderInboundDueDate: '2026-02-01',
   forecastPeriodEndMonth: '2026-08',
   orderCoverageDays: 30,
   makeApiErrorInfo: (request: string, err: unknown): ApiUnitErrorInfo => ({
@@ -26,18 +30,25 @@ const BASE_PROPS: { skuGroupKey: string; periodStart: string; periodEnd: string;
 
 function calcResult(dailyMean: number): SecondaryStockOrderCalcResult {
   return {
+    productIdentity: PRODUCT_IDENTITY,
+    existingOrderInboundSupplyBySize: {
+      S: [
+        { date: '2026-01-15', qty: 2 },
+        { date: '2026-02-01', qty: 1 },
+      ],
+    },
     trendDailyMean: dailyMean,
     dailyMean,
     sigma: 1,
     display: {
       currentStockQtyTotal: 1,
-      totalOrderBalanceTotal: 2,
-      expectedInboundOrderBalanceTotal: 3,
+      totalOrderBalanceTotal: 3,
+      expectedInboundOrderBalanceTotal: 2,
       sizeRows: [{
         size: 'S',
         currentStockQty: 1,
-        totalOrderBalance: 2,
-        expectedInboundOrderBalance: 3,
+        totalOrderBalance: 3,
+        expectedInboundOrderBalance: 2,
       }],
     },
   }

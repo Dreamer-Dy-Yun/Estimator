@@ -16,6 +16,7 @@ export interface InboundSplitScheduleTableProps {
   rows: InboundSplitScheduleRow[]
   columns: InboundSplitSizeColumn[]
   onDateChange: (rowIndex: number, value: string) => void
+  onIgnoreExistingOrderInboundChange: (rowIndex: number, checked: boolean) => void
   onRowTotalChange: (rowIndex: number, value: string) => void
   onQtyChange: (rowIndex: number, size: string, value: string) => void
 }
@@ -31,6 +32,7 @@ export function InboundSplitScheduleTable({
   rows,
   columns,
   onDateChange,
+  onIgnoreExistingOrderInboundChange,
   onRowTotalChange,
   onQtyChange,
 }: InboundSplitScheduleTableProps): React.JSX.Element {
@@ -105,6 +107,14 @@ export function InboundSplitScheduleTable({
                     >
                       {dateIntervalText}
                     </span>
+                    <label className={styles.inboundSplitInlineCheck}>
+                      <input
+                        type="checkbox"
+                        checked={row.ignoreExistingOrderInbound}
+                        onChange={(event: React.ChangeEvent<HTMLInputElement>): void => onIgnoreExistingOrderInboundChange(rowIndex, event.target.checked)}
+                      />
+                      <span>{KO.labelInboundSplitIgnoreExistingOrderInbound}</span>
+                    </label>
                   </div>
                 </td>
                 <td className={stickyKindClassName}>{KO.rowInboundSplitSuggestedQty}</td>

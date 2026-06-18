@@ -20,7 +20,7 @@ Apply a MulAg-assisted cleanup pass for variable and function names whose meanin
 - Renamed dialog total helper to `currentConfirmedTotal`.
 - Updated docs that still referred to `inboundSplitWorkDate` as the active current name.
 - Corrected backend changelog snapshot schema wording from version `3` to version `5`.
-- Rewrote current README/API/boundary documents so they point to the current `DashboardApi`, HTTP request serialization, product drawer boundary, source-only inbound split API, and `OrderSnapshotDocument` v5 contract.
+- Rewrote current README/API/boundary documents so they point to the current `DashboardApi`, HTTP request serialization, product drawer boundary, source-only inbound split API, and `OrderSnapshotDocument` v7 contract.
 - Clarified that Korean text appearing broken in PowerShell output is not by itself file corruption; UTF-8 decoding and encoding checks are the verification basis.
 
 ## Deferred

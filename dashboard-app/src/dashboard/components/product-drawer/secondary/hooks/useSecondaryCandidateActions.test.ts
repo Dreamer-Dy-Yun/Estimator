@@ -121,6 +121,16 @@ function makeSnapshot(overrides: Partial<OrderSnapshotDocument> = {}) : OrderSna
         orderCoverageDays: 7,
       },
       stockOrderResult: {
+        productIdentity: {
+          productUuid: null,
+          skuGroupKey: 'sku-1',
+          brand: 'Brand',
+          code: 'CODE',
+          colorCode: 'BLK',
+        },
+        existingOrderInboundSupplyBySize: {
+          M: [],
+        },
         trendDailyMean: 1,
         dailyMean: 1,
         sigma: 0,
@@ -143,6 +153,7 @@ function makeSnapshot(overrides: Partial<OrderSnapshotDocument> = {}) : OrderSna
       confirmed: {
         rounds: [{
           date: '2026-06-01',
+          ignoreExistingOrderInbound: false,
           qtyBySize: { M: 1 },
         }],
       },

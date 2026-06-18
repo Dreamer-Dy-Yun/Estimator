@@ -24,7 +24,7 @@ Last updated: 2026-06-18
 - `src/api/client.ts`는 화면 public API facade다. 화면과 hook은 mock/HTTP 구현을 직접 import하지 않는다.
 - 상품 드로어 read-like API는 `companyUuid` 대신 `base`/`comparison` subject 계약을 사용한다.
 - secondary daily trend는 source contract를 받고 chart point는 프론트에서 파생한다.
-- secondary inbound split source는 source-only API다. split count/date/result row는 화면 state다.
+- secondary inbound split source는 source-only API다. split count/date/result row와 `ignoreExistingOrderInbound`는 화면 state다.
 - 2차수 이상 분할 입고 확정은 `drawer2.confirmed.rounds`에 저장한다.
 - 후보군 order metric SSE는 runtime config의 `candidateOrderMetricComparison`을 사용한다.
 - CSS `style-parts/**`는 각 facade CSS module만 import한다.

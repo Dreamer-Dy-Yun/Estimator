@@ -9,7 +9,7 @@ function cloneValidSnapshot(): OrderSnapshotDocument {
 }
 
 describe('parseOrderSnapshot', () : void => {
-  it('returns current v5 snapshot when required fields are valid', () : void => {
+  it('returns current snapshot when required fields are valid', () : void => {
     const parsed: OrderSnapshotDocument = parseOrderSnapshot(validSnapshot)
 
     expect(parsed).toEqual(validSnapshot)
@@ -28,7 +28,7 @@ describe('parseOrderSnapshot', () : void => {
     expect(parsed.drawer2.baseSubject.sourceId).toBe('company-uuid-001')
   })
 
-  it('strips fields that are not part of the current v5 snapshot contract', () : void => {
+  it('strips fields that are not part of the current snapshot contract', () : void => {
     const source: OrderSnapshotDocument = cloneValidSnapshot()
     const withExtra: Record<string, unknown> = {
       ...source,
@@ -76,14 +76,14 @@ describe('parseOrderSnapshot', () : void => {
   })
 
   it('throws when schemaVersion is neither current nor migratable', () : void => {
-    const wrongVersion: Record<string, unknown> = { ...cloneValidSnapshot(), schemaVersion: ORDER_SNAPSHOT_SCHEMA_VERSION - 2 }
+    const wrongVersion: Record<string, unknown> = { ...cloneValidSnapshot(), schemaVersion: ORDER_SNAPSHOT_SCHEMA_VERSION - 4 }
     const wrongTypeVersion: Record<string, unknown> = { ...cloneValidSnapshot(), schemaVersion: String(ORDER_SNAPSHOT_SCHEMA_VERSION) }
 
     expect(() : OrderSnapshotDocument => parseOrderSnapshot(wrongVersion)).toThrow(/schemaVersion/)
     expect(() : OrderSnapshotDocument => parseOrderSnapshot(wrongTypeVersion)).toThrow(/schemaVersion/)
   })
 
-  it('migrates v4 renamed coverage day fields into the current v5 snapshot contract', () : void => {
+  it('migrates v4 renamed coverage day fields into the current snapshot contract', () : void => {
     const legacyVersion: Record<string, unknown> = { ...cloneValidSnapshot() }
     const legacyContext: Record<string, unknown> = { ...(legacyVersion.context as Record<string, unknown>) }
     const legacyDrawer2: Record<string, unknown> = { ...(legacyVersion.drawer2 as Record<string, unknown>) }

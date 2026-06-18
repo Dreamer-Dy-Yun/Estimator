@@ -1,7 +1,7 @@
 import type { ProductSecondaryDetail } from '..'
 import type { ProductSecondarySizeRow } from '../../types'
 import type { MonthlySalesPoint, ProductPrimarySummary } from '../types'
-import type { SecondaryStockOrderCalcParams, SecondaryStockOrderCalcResult } from '../types'
+import type { SecondaryExistingOrderInboundSupplyBySize, SecondaryInboundSplitSupplyPoint, SecondaryStockOrderCalcParams, SecondaryStockOrderCalcResult } from '../types'
 import { getCompanyUuidForOptionalScope } from '../types'
 import { scopeMockProductPrimary, scopeMockProductSecondary } from './mockCompanyScope'
 import { requireMockProductPrimary, requireMockProductSecondary } from './mockProductLookup'
@@ -39,6 +39,48 @@ const splitDisplayTotal: (total: number, count: number, even: boolean) => number
   even ? splitEvenTotal(total, count) : splitTotal(total, count)
 )
 
+function addIsoDays(date: string, days: number): string {
+  const parsed: Date = new Date(`${date}T00:00:00.000Z`)
+  parsed.setUTCDate(parsed.getUTCDate() + days)
+  return parsed.toISOString().slice(0, 10)
+}
+
+function buildExistingOrderInboundSupplyBySize(
+  sizeLabels: string[],
+  totalOrderBalanceValues: number[],
+  expectedInboundOrderBalanceValues: number[],
+  calculationBaseDate: string,
+  currentOrderInboundDueDate: string,
+): SecondaryExistingOrderInboundSupplyBySize {
+  const preCurrentOrderInboundDate: string = addIsoDays(currentOrderInboundDueDate, -1)
+  const postCurrentOrderInboundDate: string = currentOrderInboundDueDate
+  return Object.fromEntries(sizeLabels.map((size: string, index: number): [string, SecondaryInboundSplitSupplyPoint[]] => {
+    const totalOrderBalance: number = Math.max(0, totalOrderBalanceValues[index] ?? 0)
+    const requestedPreCurrentOrderQty: number = Math.max(0, Math.min(totalOrderBalance, expectedInboundOrderBalanceValues[index] ?? 0))
+    const preCurrentOrderQty: number = preCurrentOrderInboundDate >= calculationBaseDate ? requestedPreCurrentOrderQty : 0
+    const postCurrentOrderQty: number = Math.max(0, totalOrderBalance - preCurrentOrderQty)
+    const points: SecondaryInboundSplitSupplyPoint[] = []
+    if (preCurrentOrderQty > 0) points.push({ date: preCurrentOrderInboundDate, qty: preCurrentOrderQty })
+    if (postCurrentOrderQty > 0) points.push({ date: postCurrentOrderInboundDate, qty: postCurrentOrderQty })
+    return [size, points]
+  }))
+}
+
+function sumSupply(points: readonly SecondaryInboundSplitSupplyPoint[], beforeDate?: string): number {
+  return points.reduce((sum: number, point: SecondaryInboundSplitSupplyPoint): number => {
+    if (beforeDate != null && point.date >= beforeDate) return sum
+    return sum + point.qty
+  }, 0)
+}
+
+function displayTotalBySize(
+  sizeLabels: string[],
+  supplyBySize: SecondaryExistingOrderInboundSupplyBySize,
+  beforeDate?: string,
+): number[] {
+  return sizeLabels.map((size: string): number => Math.round(sumSupply(supplyBySize[size] ?? [], beforeDate)))
+}
+
 const buildDisplaySizeRows: (sizeLabels: string[], currentStockQtyValues: number[], totalOrderBalanceValues: number[], expectedInboundOrderBalanceValues: number[]) => { size: string; currentStockQty: number; totalOrderBalance: number; expectedInboundOrderBalance: number; }[] = (
   sizeLabels: string[],
   currentStockQtyValues: number[],
@@ -53,8 +95,11 @@ const buildDisplaySizeRows: (sizeLabels: string[], currentStockQtyValues: number
 
 export function buildMockSecondaryStockOrderCalcResult({
   skuGroupKey,
+  productIdentity,
   periodStart,
   periodEnd,
+  calculationBaseDate,
+  currentOrderInboundDueDate,
   forecastPeriodEndMonth,
   orderCoverageDays,
   dailyMean: dailyMeanParam,
@@ -80,20 +125,31 @@ export function buildMockSecondaryStockOrderCalcResult({
     : Array.from({ length: sizeCount }, (_: unknown, index: number) : string => String(index + 1))
   const currentStockQtyValues: number[] = splitDisplayTotal(primary.availableStock, displaySizeLabels.length, isSimpleCalcSku)
   const totalOrderBalanceValues: number[] = splitDisplayTotal(totalOrderBalanceTotal, displaySizeLabels.length, isSimpleCalcSku)
-  const expectedInboundOrderBalanceValues: number[] = splitDisplayTotal(expectedInboundOrderBalanceTotal, displaySizeLabels.length, isSimpleCalcSku)
+  const expectedInboundOrderBalanceSeedValues: number[] = splitDisplayTotal(expectedInboundOrderBalanceTotal, displaySizeLabels.length, isSimpleCalcSku)
+  const existingOrderInboundSupplyBySize: SecondaryExistingOrderInboundSupplyBySize = buildExistingOrderInboundSupplyBySize(
+    displaySizeLabels,
+    totalOrderBalanceValues,
+    expectedInboundOrderBalanceSeedValues,
+    calculationBaseDate,
+    currentOrderInboundDueDate,
+  )
+  const expectedInboundOrderBalanceValues: number[] = displayTotalBySize(displaySizeLabels, existingOrderInboundSupplyBySize, currentOrderInboundDueDate)
+  const resolvedTotalOrderBalanceValues: number[] = displayTotalBySize(displaySizeLabels, existingOrderInboundSupplyBySize)
 
   return {
+    productIdentity,
+    existingOrderInboundSupplyBySize,
     trendDailyMean: Math.round(trendMuRaw * 10) / 10,
     dailyMean: Math.round(forecastMuRaw * 10) / 10,
     sigma,
     display: {
       currentStockQtyTotal: primary.availableStock,
-      totalOrderBalanceTotal,
-      expectedInboundOrderBalanceTotal,
+      totalOrderBalanceTotal: resolvedTotalOrderBalanceValues.reduce((sum: number, value: number): number => sum + value, 0),
+      expectedInboundOrderBalanceTotal: expectedInboundOrderBalanceValues.reduce((sum: number, value: number): number => sum + value, 0),
       sizeRows: buildDisplaySizeRows(
         displaySizeLabels,
         currentStockQtyValues,
-        totalOrderBalanceValues,
+        resolvedTotalOrderBalanceValues,
         expectedInboundOrderBalanceValues,
       ),
     },

@@ -59,6 +59,8 @@ export type MonthlySalesPoint = {
 export type ProductPrimarySummary = {
   /** Frontend/backend grouping key for SKU.code + SKU.color_code. It is not SKU.uuid. */
   skuGroupKey: string
+  /** Optional backend product/SKU UUID. Mock and legacy responses may omit it. */
+  productUuid?: string | null
   productName: string
   brand: string
   category: string

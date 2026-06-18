@@ -18,7 +18,6 @@ import type {
   SecondaryCompetitorChannel,
   SecondaryDailyTrendParams,
   SecondaryDailyTrendSource,
-  SecondaryInboundSplitExpectationCell,
   SecondaryInboundSplitSource,
   SecondaryInboundSplitSourceParams,
 } from '../types'
@@ -38,8 +37,8 @@ import { getMockSecondaryCompetitorChannel, secondaryCompetitorChannels, type Mo
 import {
   getSecondaryInboundSplitSourceFixtureEntry,
   getSecondaryInboundSplitSourceFixtureScopeKey,
+  buildSecondaryInboundSplitSourceData,
   loadSecondaryInboundSplitSourceFixture,
-  slicePrecomputedSecondaryInboundSplitExpectation,
   type SecondaryInboundSplitSourceFixture,
   type SecondaryInboundSplitSourceFixtureEntry,
 } from './secondaryInboundSplitSourceFixture'
@@ -280,8 +279,10 @@ export async function getMockSecondaryDailyTrend({
 
 export async function getMockSecondaryInboundSplitSource({
   skuGroupKey,
-  dateStart,
-  dateEnd,
+  productIdentity,
+  calculationBaseDate,
+  coverageStartDate,
+  coverageEndDate,
   base,
 }: SecondaryInboundSplitSourceParams): Promise<SecondaryInboundSplitSource> {
   await sleep(80)
@@ -290,18 +291,19 @@ export async function getMockSecondaryInboundSplitSource({
   const scopeKey: string = getSecondaryInboundSplitSourceFixtureScopeKey(baseScope)
   const fixture: SecondaryInboundSplitSourceFixture = await loadSecondaryInboundSplitSourceFixture(scopeKey)
   const cached: SecondaryInboundSplitSourceFixtureEntry = getSecondaryInboundSplitSourceFixtureEntry(fixture, skuGroupKey)
-  const expectationByDate: Record<string, Record<string, SecondaryInboundSplitExpectationCell>> = slicePrecomputedSecondaryInboundSplitExpectation(
+  const sourceData: Pick<SecondaryInboundSplitSource, 'supplyBySize' | 'salesForecastByDate'> = buildSecondaryInboundSplitSourceData(
     fixture,
     cached,
-    dateStart,
-    dateEnd,
+    calculationBaseDate,
+    coverageEndDate,
   )
 
   return {
     productId: skuGroupKey,
-    dateStart,
-    dateEnd,
-    stockBySize: { ...cached.stockBySize },
-    expectationByDate,
+    productIdentity,
+    calculationBaseDate,
+    coverageStartDate,
+    coverageEndDate,
+    ...sourceData,
   }
 }

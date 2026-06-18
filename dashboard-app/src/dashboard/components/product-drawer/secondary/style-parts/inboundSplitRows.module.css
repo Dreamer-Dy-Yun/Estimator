@@ -162,3 +162,21 @@
   color: var(--inbound-split-diff-text);
   font-weight: 800;
 }
+
+.inboundSplitInlineCheck {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  color: var(--inbound-split-suggested-row-text);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.1;
+  white-space: normal;
+}
+
+.inboundSplitInlineCheck input {
+  width: 12px;
+  height: 12px;
+  margin: 0;
+}

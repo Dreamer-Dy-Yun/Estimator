@@ -121,6 +121,7 @@ export function InboundSplitScheduleDialog({
               rows={draft.rows}
               columns={columns}
               onDateChange={draft.changeDate}
+              onIgnoreExistingOrderInboundChange={draft.changeIgnoreExistingOrderInbound}
               onRowTotalChange={draft.changeRowTotal}
               onQtyChange={draft.changeQty}
             />

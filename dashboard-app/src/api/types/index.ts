@@ -99,9 +99,11 @@ export type {
   SecondaryDailyTrendParams,
   SecondaryDailyTrendPoint,
   SecondaryDailyTrendSource,
-  SecondaryInboundSplitExpectationCell,
   SecondaryInboundSplitSource,
   SecondaryInboundSplitSourceParams,
+  SecondaryInboundSplitSupplyPoint,
+  SecondaryExistingOrderInboundSupplyBySize,
+  SecondaryProductIdentity,
   SecondaryStockOrderCalcParams,
   SecondaryStockOrderCalcResult,
 } from './secondary'

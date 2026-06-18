@@ -44,6 +44,7 @@ const SNAPSHOT: OrderSnapshotDocument = ({
     confirmed: {
       rounds: [{
         date: '2026-07-01',
+        ignoreExistingOrderInbound: false,
         qtyBySize: {},
       }],
     },
@@ -56,8 +57,38 @@ const SNAPSHOT: OrderSnapshotDocument = ({
       nextOrderInboundDueDate: '2026-08-01',
     },
     stockOrderResult: {
+      productIdentity: {
+        productUuid: null,
+        skuGroupKey: 'sku-a',
+        brand: 'Brand',
+        code: 'CODE',
+        colorCode: 'BLK',
+      },
+      existingOrderInboundSupplyBySize: {},
+      trendDailyMean: 12,
       dailyMean: 12,
-    } as OrderSnapshotDocument['drawer2']['stockOrderResult'],
+      sigma: 0,
+      display: {
+        currentStockQtyTotal: 0,
+        totalOrderBalanceTotal: 0,
+        expectedInboundOrderBalanceTotal: 0,
+        sizeRows: [],
+      },
+      safetyStockCalc: {
+        safetyStock: 0,
+        recommendedOrderQty: 0,
+        expectedOrderAmount: 0,
+        expectedSalesAmount: 0,
+        expectedOpProfit: 0,
+      },
+      forecastQtyCalc: {
+        safetyStock: null,
+        recommendedOrderQty: 0,
+        expectedOrderAmount: 0,
+        expectedSalesAmount: 0,
+        expectedOpProfit: 0,
+      },
+    },
     unitEconomics: {
       expectedFeeRatePct: 13,
       unitCost: 1000,
@@ -65,7 +96,7 @@ const SNAPSHOT: OrderSnapshotDocument = ({
     },
   },
   savedAt: '2026-06-10T00:00:00.000Z',
-  schemaVersion: 5,
+  schemaVersion: 7,
   skuGroupKey: 'sku-a',
 }) as unknown as OrderSnapshotDocument
 

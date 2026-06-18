@@ -1,14 +1,16 @@
 import { useEffect, useRef, useState } from 'react'
 import { dashboardApi } from '../../../../../api'
-import type { ProductComparisonBaseSubjectRef, SecondaryInboundSplitSource, SecondaryInboundSplitSourceParams } from '../../../../../api/types'
+import type { ProductComparisonBaseSubjectRef, SecondaryInboundSplitSource, SecondaryInboundSplitSourceParams, SecondaryProductIdentity } from '../../../../../api/types'
 import type { ApiUnitErrorInfo } from '../../../../../types'
 
 const DAY_MS: number = 86_400_000
 
 export interface UseSecondaryInboundSplitSourceParams {
   skuGroupKey: string
-  dateStart: string
-  dateEnd: string
+  productIdentity: SecondaryProductIdentity
+  calculationBaseDate: string
+  coverageStartDate: string
+  coverageEndDate: string
   baseSubject: ProductComparisonBaseSubjectRef
   makeApiErrorInfo: (request: string, err: unknown) => ApiUnitErrorInfo
 }
@@ -43,53 +45,91 @@ function assertFiniteQuantity(value: number | undefined, field: string): void {
   }
 }
 
-function assertInboundSplitSource(source: SecondaryInboundSplitSource, dateStart: string, dateEnd: string): void {
+function assertProductIdentityMatches(expected: SecondaryProductIdentity, actual: SecondaryProductIdentity): void {
+  if (actual == null || typeof actual !== 'object') throw new Error('Secondary inbound split source productIdentity is required.')
+  if (actual.skuGroupKey !== expected.skuGroupKey) throw new Error(`Secondary inbound split source skuGroupKey mismatch: expected ${expected.skuGroupKey}, got ${actual.skuGroupKey}.`)
+  if ((actual.productUuid ?? null) !== (expected.productUuid ?? null)) throw new Error('Secondary inbound split source productUuid mismatch.')
+  if (actual.brand !== expected.brand) throw new Error(`Secondary inbound split source brand mismatch: expected ${expected.brand}, got ${actual.brand}.`)
+  if (actual.code !== expected.code) throw new Error(`Secondary inbound split source code mismatch: expected ${expected.code}, got ${actual.code}.`)
+  if (actual.colorCode !== expected.colorCode) throw new Error(`Secondary inbound split source colorCode mismatch: expected ${expected.colorCode}, got ${actual.colorCode}.`)
+}
+
+function assertInboundSplitSource(
+  source: SecondaryInboundSplitSource,
+  productIdentity: SecondaryProductIdentity,
+  calculationBaseDate: string,
+  coverageStartDate: string,
+  coverageEndDate: string,
+): void {
   if (!source.productId) {
     throw new Error('Secondary inbound split source productId is required.')
   }
-  if (source.dateStart !== dateStart || source.dateEnd !== dateEnd) {
+  assertProductIdentityMatches(productIdentity, source.productIdentity)
+  if (
+    source.calculationBaseDate !== calculationBaseDate ||
+    source.coverageStartDate !== coverageStartDate ||
+    source.coverageEndDate !== coverageEndDate
+  ) {
     throw new Error('Secondary inbound split source date range does not match the request.')
   }
-  if (source.stockBySize == null || typeof source.stockBySize !== 'object') {
-    throw new Error('Secondary inbound split source stockBySize is required.')
+  if (source.supplyBySize == null || typeof source.supplyBySize !== 'object') {
+    throw new Error('Secondary inbound split source supplyBySize is required.')
   }
-  if (source.expectationByDate == null || typeof source.expectationByDate !== 'object') {
-    throw new Error('Secondary inbound split source expectationByDate is required.')
-  }
-
-  const startMs: number = parseIsoDateMs(source.dateStart, 'dateStart')
-  const endMs: number = parseIsoDateMs(source.dateEnd, 'dateEnd')
-  if (endMs <= startMs) {
-    throw new Error('Secondary inbound split source dateEnd must be after dateStart.')
+  if (source.salesForecastByDate == null || typeof source.salesForecastByDate !== 'object') {
+    throw new Error('Secondary inbound split source salesForecastByDate is required.')
   }
 
-  const sizes: string[] = Object.keys(source.stockBySize)
+  const baseMs: number = parseIsoDateMs(source.calculationBaseDate, 'calculationBaseDate')
+  const coverageStartMs: number = parseIsoDateMs(source.coverageStartDate, 'coverageStartDate')
+  const coverageEndMs: number = parseIsoDateMs(source.coverageEndDate, 'coverageEndDate')
+  if (coverageStartMs < baseMs) {
+    throw new Error('Secondary inbound split source coverageStartDate must be on or after calculationBaseDate.')
+  }
+  if (coverageEndMs <= coverageStartMs) {
+    throw new Error('Secondary inbound split source coverageEndDate must be after coverageStartDate.')
+  }
+
+  const sizes: string[] = Object.keys(source.supplyBySize)
   if (sizes.length === 0) {
-    throw new Error('Secondary inbound split source stockBySize must include at least one size.')
+    throw new Error('Secondary inbound split source supplyBySize must include at least one size.')
   }
-  sizes.forEach((size: string): void => assertFiniteQuantity(source.stockBySize[size], `stockBySize.${size}`))
+  sizes.forEach((size: string): void => {
+    const supplyPoints: SecondaryInboundSplitSource['supplyBySize'][string] | undefined = source.supplyBySize[size]
+    if (!Array.isArray(supplyPoints)) {
+      throw new Error(`Secondary inbound split source supplyBySize.${size} must be an array.`)
+    }
+    let hasBaseStockPoint: boolean = false
+    supplyPoints.forEach((point: SecondaryInboundSplitSource['supplyBySize'][string][number], index: number): void => {
+      const pointMs: number = parseIsoDateMs(point.date, `supplyBySize.${size}[${index}].date`)
+      if (pointMs < baseMs || pointMs >= coverageEndMs) {
+        throw new Error(`Secondary inbound split source supplyBySize.${size}[${index}].date is outside the source window.`)
+      }
+      assertFiniteQuantity(point.qty, `supplyBySize.${size}[${index}].qty`)
+      if (point.date === source.calculationBaseDate) hasBaseStockPoint = true
+    })
+    if (!hasBaseStockPoint) {
+      throw new Error(`Secondary inbound split source supplyBySize.${size} must include calculationBaseDate stock.`)
+    }
+  })
 
-  for (let cursorMs: number = startMs; cursorMs < endMs; cursorMs += DAY_MS) {
+  for (let cursorMs: number = baseMs; cursorMs < coverageEndMs; cursorMs += DAY_MS) {
     const date: string = formatIsoDate(cursorMs)
-    const cellsBySize: SecondaryInboundSplitSource['expectationByDate'][string] | undefined = source.expectationByDate[date]
+    const cellsBySize: SecondaryInboundSplitSource['salesForecastByDate'][string] | undefined = source.salesForecastByDate[date]
     if (cellsBySize == null || typeof cellsBySize !== 'object') {
-      throw new Error(`Secondary inbound split source expectationByDate.${date} is required.`)
+      throw new Error(`Secondary inbound split source salesForecastByDate.${date} is required.`)
     }
     sizes.forEach((size: string): void => {
-      const cell: SecondaryInboundSplitSource['expectationByDate'][string][string] | undefined = cellsBySize[size]
-      if (cell == null) {
-        throw new Error(`Secondary inbound split source expectationByDate.${date}.${size} is required.`)
-      }
-      assertFiniteQuantity(cell.sale, `expectationByDate.${date}.${size}.sale`)
-      assertFiniteQuantity(cell.inbound, `expectationByDate.${date}.${size}.inbound`)
+      assertFiniteQuantity(cellsBySize[size], `salesForecastByDate.${date}.${size}`)
     })
   }
 }
 
 export function useSecondaryInboundSplitSource({
   skuGroupKey,
-  dateStart,
-  dateEnd,
+  productIdentity,
+  calculationBaseDate,
+  coverageStartDate,
+  coverageEndDate,
   baseSubject,
   makeApiErrorInfo,
 }: UseSecondaryInboundSplitSourceParams): UseSecondaryInboundSplitSourceResult {
@@ -109,12 +149,14 @@ export function useSecondaryInboundSplitSource({
       try {
         const params: SecondaryInboundSplitSourceParams = {
           skuGroupKey,
-          dateStart,
-          dateEnd,
+          productIdentity,
+          calculationBaseDate,
+          coverageStartDate,
+          coverageEndDate,
           base: baseSubject,
         }
         const source: SecondaryInboundSplitSource = await dashboardApi.getSecondaryInboundSplitSource(params)
-        assertInboundSplitSource(source, dateStart, dateEnd)
+        assertInboundSplitSource(source, productIdentity, calculationBaseDate, coverageStartDate, coverageEndDate)
         if (!alive || reqSeqRef.current !== reqSeq) return
         setInboundSplitSource(source)
         setInboundSplitSourceError(null)
@@ -123,7 +165,7 @@ export function useSecondaryInboundSplitSource({
         setInboundSplitSource(null)
         setInboundSplitSourceError(
           makeApiErrorInfo(
-            `getSecondaryInboundSplitSource(${JSON.stringify({ skuGroupKey, dateStart, dateEnd, base: baseSubject })})`,
+            `getSecondaryInboundSplitSource(${JSON.stringify({ skuGroupKey, productIdentity, calculationBaseDate, coverageStartDate, coverageEndDate, base: baseSubject })})`,
             err,
           ),
         )
@@ -134,7 +176,7 @@ export function useSecondaryInboundSplitSource({
     return (): void => {
       alive = false
     }
-  }, [baseSubject, dateEnd, dateStart, makeApiErrorInfo, skuGroupKey])
+  }, [baseSubject, calculationBaseDate, coverageEndDate, coverageStartDate, makeApiErrorInfo, productIdentity, skuGroupKey])
 
   return {
     inboundSplitSource,

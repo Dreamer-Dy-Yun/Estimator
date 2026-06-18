@@ -59,29 +59,47 @@ export interface SecondaryDailyTrendParams {
   comparison: ProductComparisonComparisonSubjectRef
 }
 
-export interface SecondaryInboundSplitExpectationCell {
-  /** Expected sale quantity for this date and size. */
-  sale: number
-  /** Already-known inbound quantity for this date and size, excluding the draft being edited. */
-  inbound: number
+export interface SecondaryInboundSplitSupplyPoint {
+  /** Date when this quantity becomes available for split-inbound simulation. */
+  date: string
+  /** Quantity that increases available stock on `date`. */
+  qty: number
 }
+
+export interface SecondaryProductIdentity {
+  /** Backend product/SKU UUID when available. */
+  productUuid?: string | null
+  /** Frontend/backend grouping key for SKU.code + SKU.color_code. */
+  skuGroupKey: string
+  brand: string
+  code: string
+  colorCode: string
+}
+
+export type SecondaryExistingOrderInboundSupplyBySize = Record<string, SecondaryInboundSplitSupplyPoint[]>
 
 export interface SecondaryInboundSplitSource {
   productId: string
-  /** Inclusive first date in the requested expectation source window. */
-  dateStart: string
-  /** Exclusive end date; expectationByDate covers dateStart <= date < dateEnd. */
-  dateEnd: string
-  /** Size-keyed stock at dateStart. */
-  stockBySize: Record<string, number>
-  /** Date-keyed, size-keyed expected sale and known inbound cells. */
-  expectationByDate: Record<string, Record<string, SecondaryInboundSplitExpectationCell>>
+  /** Echoed product identity used to reject mismatched inbound-source responses. */
+  productIdentity: SecondaryProductIdentity
+  /** Inventory simulation base date. Supply points on this date represent current stock. */
+  calculationBaseDate: string
+  /** Inclusive first date covered by the current order split rounds. */
+  coverageStartDate: string
+  /** Exclusive next-order inbound date; split coverage ends at coverageEndDate - 1 day. */
+  coverageEndDate: string
+  /** Size-keyed current stock and existing-order inbound quantities by available date. */
+  supplyBySize: Record<string, SecondaryInboundSplitSupplyPoint[]>
+  /** Date-keyed, size-keyed sales forecast from calculationBaseDate <= date < coverageEndDate. */
+  salesForecastByDate: Record<string, Record<string, number>>
 }
 
 export interface SecondaryInboundSplitSourceParams {
   skuGroupKey: string
-  dateStart: string
-  dateEnd: string
+  productIdentity: SecondaryProductIdentity
+  calculationBaseDate: string
+  coverageStartDate: string
+  coverageEndDate: string
   base: ProductComparisonBaseSubjectRef
 }
 
@@ -120,9 +138,14 @@ export interface ProductSecondaryDetailParams {
 
 export interface SecondaryStockOrderCalcParams {
   skuGroupKey: string
+  productIdentity: SecondaryProductIdentity
   base: ProductComparisonBaseSubjectRef
   periodStart: string
   periodEnd: string
+  /** Inventory calculation base date. Existing-order inbound supply is interpreted from this date. */
+  calculationBaseDate: string
+  /** Current order inbound date. Existing-order inbound before this date is displayed as pre-current-order inbound balance. */
+  currentOrderInboundDueDate: string
   forecastPeriodEndMonth?: string
   orderCoverageDays: number
   /** Optional demand mean supplied by the frontend; backend computes it when omitted. */
@@ -137,6 +160,10 @@ export interface SecondaryStockOrderDisplaySizeRow {
 }
 
 export interface SecondaryStockOrderCalcResult {
+  /** Echoed product identity used to reject mismatched stock-order responses. */
+  productIdentity: SecondaryProductIdentity
+  /** Existing ordered but not-yet-inbound quantities, keyed by size and expected inbound date. */
+  existingOrderInboundSupplyBySize: SecondaryExistingOrderInboundSupplyBySize
   /** Display daily mean based on the period trend, rounded to one decimal place. */
   trendDailyMean: number
   /** Demand mean actually used for calculation. */

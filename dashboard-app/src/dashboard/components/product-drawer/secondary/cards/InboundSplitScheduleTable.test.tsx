@@ -17,6 +17,7 @@ const ROWS: InboundSplitScheduleRow[] = [{
   id: 'r1',
   round: 1,
   inboundDate: '2026-04-01',
+  ignoreExistingOrderInbound: false,
   suggestedQuantitiesBySize: { S: 2, M: 6 },
   quantitiesBySize: { S: 3, M: 5 },
 }]
@@ -27,6 +28,7 @@ const TWO_ROUND_ROWS: InboundSplitScheduleRow[] = [
     id: 'r2',
     round: 2,
     inboundDate: '2026-04-10',
+    ignoreExistingOrderInbound: false,
     suggestedQuantitiesBySize: { S: 1, M: 2 },
     quantitiesBySize: { S: 1, M: 2 },
   },
@@ -43,9 +45,10 @@ function changeValue(input: HTMLInputElement, value: string): void {
   })
 }
 
-function renderTable(overrides: Partial<InboundSplitScheduleTableProps> = {}): Required<Pick<InboundSplitScheduleTableProps, 'onDateChange' | 'onRowTotalChange' | 'onQtyChange'>> {
-  const callbacks: Required<Pick<InboundSplitScheduleTableProps, 'onDateChange' | 'onRowTotalChange' | 'onQtyChange'>> = {
+function renderTable(overrides: Partial<InboundSplitScheduleTableProps> = {}): Required<Pick<InboundSplitScheduleTableProps, 'onDateChange' | 'onIgnoreExistingOrderInboundChange' | 'onRowTotalChange' | 'onQtyChange'>> {
+  const callbacks: Required<Pick<InboundSplitScheduleTableProps, 'onDateChange' | 'onIgnoreExistingOrderInboundChange' | 'onRowTotalChange' | 'onQtyChange'>> = {
     onDateChange: vi.fn(),
+    onIgnoreExistingOrderInboundChange: vi.fn(),
     onRowTotalChange: vi.fn(),
     onQtyChange: vi.fn(),
   }
@@ -104,6 +107,7 @@ describe('InboundSplitScheduleTable', (): void => {
           id: 'r2',
           round: 2,
           inboundDate: '2026-03-31',
+          ignoreExistingOrderInbound: false,
           suggestedQuantitiesBySize: { S: 1, M: 2 },
           quantitiesBySize: { S: 1, M: 2 },
         },
@@ -122,12 +126,13 @@ describe('InboundSplitScheduleTable', (): void => {
   })
 
   it('emits date, row total, and size quantity changes with row and size identity', (): void => {
-    const callbacks: Required<Pick<InboundSplitScheduleTableProps, 'onDateChange' | 'onRowTotalChange' | 'onQtyChange'>> = renderTable()
-    const inputs: HTMLInputElement[] = Array.from(document.querySelectorAll<HTMLInputElement>('input'))
+    const callbacks: Required<Pick<InboundSplitScheduleTableProps, 'onDateChange' | 'onIgnoreExistingOrderInboundChange' | 'onRowTotalChange' | 'onQtyChange'>> = renderTable()
+    const dateInputs: HTMLInputElement[] = Array.from(document.querySelectorAll<HTMLInputElement>('input[type="date"]'))
+    const numberInputs: HTMLInputElement[] = Array.from(document.querySelectorAll<HTMLInputElement>('input[type="number"]'))
 
-    changeValue(inputs[0]!, '2026-04-03')
-    changeValue(inputs[1]!, '9')
-    changeValue(inputs[3]!, '7')
+    changeValue(dateInputs[0]!, '2026-04-03')
+    changeValue(numberInputs[0]!, '9')
+    changeValue(numberInputs[2]!, '7')
 
     expect(callbacks.onDateChange as Mock).toHaveBeenCalledWith(0, '2026-04-03')
     expect(callbacks.onRowTotalChange as Mock).toHaveBeenCalledWith(0, '9')

@@ -265,8 +265,11 @@ describe('api/mock dashboardApi competitor channel behavior', () : void => {
     })
     const stockOrder: SecondaryStockOrderCalcResult = await mockDashboardApi.getSecondaryStockOrderCalc({
       skuGroupKey: skuGroupKey('TEST_TOP'),
+      productIdentity: { productUuid: null, skuGroupKey: skuGroupKey('TEST_TOP'), brand: 'Test', code: 'TEST-TOP', colorCode: 'BLK' },
       periodStart: '2025-01-01',
       periodEnd: '2025-12-31',
+      calculationBaseDate: '2026-01-01',
+      currentOrderInboundDueDate: '2026-05-01',
       forecastPeriodEndMonth: '2026-05',
       orderCoverageDays: 30,
       base: MOCK_BASE_SUBJECT,

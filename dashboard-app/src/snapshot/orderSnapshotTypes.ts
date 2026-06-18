@@ -7,7 +7,7 @@ import type { SecondaryConfirmedRound, SecondaryConfirmedRounds } from '../dashb
 import type { SecondarySizeOrderRestoreRow } from '../dashboard/components/product-drawer/secondary/model/secondarySizeOrderRows'
 import type { ProductPrimarySummary, ProductSecondaryDetail } from '../types'
 
-export const ORDER_SNAPSHOT_SCHEMA_VERSION: 5 = 5 as const
+export const ORDER_SNAPSHOT_SCHEMA_VERSION: 7 = 7 as const
 
 export type OrderSnapshotSourceRatio = number
 export type OrderSnapshotPercent = number
@@ -36,7 +36,7 @@ export type OrderSnapshotAiComment = SecondaryAiCommentView
 
 export type OrderSnapshotPrimarySummary = Pick<
   ProductPrimarySummary,
-  'skuGroupKey' | 'productName' | 'brand' | 'category' | 'code' | 'colorCode' | 'price' | 'qty' | 'availableStock'
+  'skuGroupKey' | 'productUuid' | 'productName' | 'brand' | 'category' | 'code' | 'colorCode' | 'price' | 'qty' | 'availableStock'
 >
 
 export type OrderSnapshotDrawer1 = {
@@ -83,8 +83,8 @@ export type OrderSnapshotDocument = {
 }
 
 export function createOrderSnapshotPrimarySummary(primary: ProductPrimarySummary): OrderSnapshotPrimarySummary {
-  const { skuGroupKey, productName, brand, category, code, colorCode, price, qty, availableStock }: ProductPrimarySummary = primary
-  return { skuGroupKey, productName, brand, category, code, colorCode, price, qty, availableStock }
+  const { skuGroupKey, productUuid, productName, brand, category, code, colorCode, price, qty, availableStock }: ProductPrimarySummary = primary
+  return { skuGroupKey, ...(productUuid == null ? {} : { productUuid }), productName, brand, category, code, colorCode, price, qty, availableStock }
 }
 
 export function createOrderSnapshotMonthlySalesTrend(monthlySalesTrend: OrderSnapshotMonthlySalesTrendPoint[]): OrderSnapshotMonthlySalesTrendPoint[] {
@@ -126,6 +126,13 @@ export function createOrderSnapshotStockOrderResult(result: OrderSnapshotStockOr
   const { display }: OrderSnapshotStockOrderResult = result
   return {
     ...result,
+    productIdentity: { ...result.productIdentity },
+    existingOrderInboundSupplyBySize: Object.fromEntries(
+      Object.entries(result.existingOrderInboundSupplyBySize).map(([size, points]: [string, OrderSnapshotStockOrderResult['existingOrderInboundSupplyBySize'][string]]): [string, OrderSnapshotStockOrderResult['existingOrderInboundSupplyBySize'][string]] => [
+        size,
+        points.map((point: OrderSnapshotStockOrderResult['existingOrderInboundSupplyBySize'][string][number]): OrderSnapshotStockOrderResult['existingOrderInboundSupplyBySize'][string][number] => ({ ...point })),
+      ]),
+    ),
     display: {
       ...display,
       sizeRows: display.sizeRows.map((row: OrderSnapshotStockOrderDisplaySizeRow) : OrderSnapshotStockOrderDisplaySizeRow => ({ ...row })),
@@ -142,6 +149,7 @@ export function createOrderSnapshotConfirmed(confirmed: OrderSnapshotConfirmed):
   return {
     rounds: confirmed.rounds.map((round: OrderSnapshotConfirmedRound): OrderSnapshotConfirmedRound => ({
       date: round.date,
+      ignoreExistingOrderInbound: round.ignoreExistingOrderInbound,
       qtyBySize: { ...round.qtyBySize },
     })),
   }

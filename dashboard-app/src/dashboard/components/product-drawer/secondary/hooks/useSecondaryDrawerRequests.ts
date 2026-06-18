@@ -1,6 +1,6 @@
 import type { SecondaryStockOrderCalcResult } from '../../../../../api'
-import type { ProductSalesInsightColumn, SecondaryDailyTrendPoint, SecondaryInboundSplitSource } from '../../../../../api/types'
-import { useCallback } from 'react'
+import type { ProductSalesInsightColumn, SecondaryDailyTrendPoint, SecondaryInboundSplitSource, SecondaryProductIdentity } from '../../../../../api/types'
+import { useCallback, useMemo } from 'react'
 import type { ProductComparisonBaseSubjectRef, ProductComparisonTarget } from '../../../../../api'
 import type { ApiUnitErrorInfo, ProductPrimarySummary } from '../../../../../types'
 import { useSecondaryDailyTrend } from './useSecondaryDailyTrend'
@@ -24,6 +24,24 @@ export type Args = {
   nextOrderInboundDueDate: string
 }
 
+function getLocalTodayIsoDate(): string {
+  const now: Date = new Date()
+  const year: number = now.getFullYear()
+  const month: string = String(now.getMonth() + 1).padStart(2, '0')
+  const day: string = String(now.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+function getSecondaryProductIdentity(primary: ProductPrimarySummary): SecondaryProductIdentity {
+  return {
+    productUuid: primary.productUuid ?? null,
+    skuGroupKey: primary.skuGroupKey,
+    brand: primary.brand,
+    code: primary.code,
+    colorCode: primary.colorCode,
+  }
+}
+
 export function useSecondaryDrawerRequests({
   pageName,
   primary,
@@ -39,6 +57,11 @@ export function useSecondaryDrawerRequests({
   currentOrderInboundDueDate,
   nextOrderInboundDueDate,
 }: Args) : { dailyTrend: { dailyTrendSeries: SecondaryDailyTrendPoint[]; dailyTrendLoading: boolean; dailyTrendError: ApiUnitErrorInfo | null; dailyPeriodShade: { x1: number; x2: number; }; dailyForecastShade: { x1: number; x2: number; } | null; dailyTickIndices: number[]; }; inboundSplitSource: SecondaryInboundSplitSource | null; inboundSplitSourceLoading: boolean; inboundSplitSourceError: ApiUnitErrorInfo | null; forecastCalc: SecondaryStockOrderCalcResult | null; forecastCalcError: ApiUnitErrorInfo | null; forecastCalcLoading: boolean; selfCol: ProductSalesInsightColumn | null; compCol: ProductSalesInsightColumn | null; salesInsightError: ApiUnitErrorInfo | null; salesInsightLoading: boolean; } {
+  const calculationBaseDate: string = getLocalTodayIsoDate()
+  const productIdentity: SecondaryProductIdentity = useMemo(
+    (): SecondaryProductIdentity => getSecondaryProductIdentity(primary),
+    [primary],
+  )
   const makeApiErrorInfo: (request: string, err: unknown) => ApiUnitErrorInfo = useCallback((request: string, err: unknown): ApiUnitErrorInfo => ({
     checkedAt: new Date().toISOString(),
     page: pageName,
@@ -56,9 +79,12 @@ export function useSecondaryDrawerRequests({
   })
   const stockOrder: { forecastCalc: SecondaryStockOrderCalcResult | null; forecastCalcError: ApiUnitErrorInfo | null; forecastCalcLoading: boolean; } = useSecondaryStockOrderCalc({
     skuGroupKey: primary.skuGroupKey,
+    productIdentity,
     periodStart,
     periodEnd,
     baseSubject,
+    calculationBaseDate,
+    currentOrderInboundDueDate,
     forecastPeriodEndMonth,
     orderCoverageDays,
     dailyMeanClient,
@@ -75,8 +101,10 @@ export function useSecondaryDrawerRequests({
   })
   const inboundSplitSource: { inboundSplitSource: SecondaryInboundSplitSource | null; inboundSplitSourceLoading: boolean; inboundSplitSourceError: ApiUnitErrorInfo | null; } = useSecondaryInboundSplitSource({
     skuGroupKey: primary.skuGroupKey,
-    dateStart: currentOrderInboundDueDate,
-    dateEnd: nextOrderInboundDueDate,
+    productIdentity,
+    calculationBaseDate,
+    coverageStartDate: currentOrderInboundDueDate,
+    coverageEndDate: nextOrderInboundDueDate,
     baseSubject,
     makeApiErrorInfo,
   })

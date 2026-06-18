@@ -1,8 +1,7 @@
 import type {
-  SecondaryInboundSplitExpectationCell,
   SecondaryInboundSplitSource,
+  SecondaryInboundSplitSupplyPoint,
 } from '../../../../../api/types/secondary'
-import { allocateInboundSplitIntegerTotal } from './inboundSplitScheduleModel'
 import type { InboundSplitSizeColumn } from './inboundSplitScheduleModel'
 
 const DAY_MS: number = 86_400_000
@@ -10,13 +9,17 @@ const DAY_MS: number = 86_400_000
 interface SplitInterval {
   readonly startDate: string
   readonly endDate: string
+  readonly ignoreExistingOrderInbound: boolean
+}
+
+export interface InboundSplitSuggestionRowInput {
+  readonly inboundDate: string
+  readonly ignoreExistingOrderInbound: boolean
 }
 
 function parseIsoDateMs(value: string, field: string): number {
   const match: RegExpMatchArray | null = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value)
-  if (!match) {
-    throw new Error(`Invalid inbound split source date: ${field}`)
-  }
+  if (!match) throw new Error(`Invalid inbound split source date: ${field}`)
 
   const year: number = Number(match[1])
   const monthIndex: number = Number(match[2]) - 1
@@ -32,10 +35,6 @@ function formatIsoDate(dateMs: number): string {
   return new Date(dateMs).toISOString().slice(0, 10)
 }
 
-function normalizeOrderQuantity(value: number): number {
-  return Math.max(0, Math.round(value))
-}
-
 function requireFiniteQuantity(value: number | undefined, field: string): number {
   if (value == null || !Number.isFinite(value)) {
     throw new Error(`Missing inbound split source field: ${field}`)
@@ -43,101 +42,153 @@ function requireFiniteQuantity(value: number | undefined, field: string): number
   return value
 }
 
-function buildIntervals(inboundDates: readonly string[], dateEnd: string): SplitInterval[] {
-  return inboundDates.map((startDate: string, index: number): SplitInterval => ({
-    startDate,
-    endDate: inboundDates[index + 1] ?? dateEnd,
+function normalizeSuggestedQuantity(value: number): number {
+  return Math.max(0, Math.ceil(value))
+}
+
+function buildIntervals(rows: readonly InboundSplitSuggestionRowInput[], dateEnd: string): SplitInterval[] {
+  return rows.map((row: InboundSplitSuggestionRowInput, index: number): SplitInterval => ({
+    startDate: row.inboundDate,
+    endDate: rows[index + 1]?.inboundDate ?? dateEnd,
+    ignoreExistingOrderInbound: row.ignoreExistingOrderInbound,
   }))
 }
 
-function getExpectationCell(
-  source: SecondaryInboundSplitSource,
-  date: string,
-  size: string,
-): SecondaryInboundSplitExpectationCell {
-  const cell: SecondaryInboundSplitExpectationCell | undefined = source.expectationByDate[date]?.[size]
-  if (cell == null) {
-    throw new Error(`Missing inbound split source cell: ${date}/${size}`)
-  }
-  requireFiniteQuantity(cell.sale, `${date}/${size}.sale`)
-  requireFiniteQuantity(cell.inbound, `${date}/${size}.inbound`)
-  return cell
+function getSalesForecast(source: SecondaryInboundSplitSource, date: string, size: string): number {
+  return requireFiniteQuantity(source.salesForecastByDate[date]?.[size], `salesForecastByDate.${date}.${size}`)
 }
 
-function sumIntervalTotalNetDemand(source: SecondaryInboundSplitSource, interval: SplitInterval): number {
-  const startMs: number = Math.max(parseIsoDateMs(interval.startDate, 'interval.startDate'), parseIsoDateMs(source.dateStart, 'source.dateStart'))
-  const endMs: number = Math.min(parseIsoDateMs(interval.endDate, 'interval.endDate'), parseIsoDateMs(source.dateEnd, 'source.dateEnd'))
-  if (endMs <= startMs) {
-    return 0
-  }
+function shouldIgnoreSupplyPoint(source: SecondaryInboundSplitSource, interval: SplitInterval | null, pointDate: string): boolean {
+  if (interval == null || !interval.ignoreExistingOrderInbound) return false
+  if (pointDate === source.calculationBaseDate) return false
+  return pointDate >= interval.startDate && pointDate < interval.endDate
+}
 
-  let totalDemand: number = 0
+function getSupplyForDate(
+  source: SecondaryInboundSplitSource,
+  size: string,
+  date: string,
+  interval: SplitInterval | null,
+): number {
+  const points: SecondaryInboundSplitSupplyPoint[] | undefined = source.supplyBySize[size]
+  if (points == null) throw new Error(`Missing inbound split source supplyBySize.${size}`)
+  return points.reduce((sum: number, point: SecondaryInboundSplitSupplyPoint): number => {
+    if (point.date !== date) return sum
+    if (shouldIgnoreSupplyPoint(source, interval, point.date)) return sum
+    return sum + requireFiniteQuantity(point.qty, `supplyBySize.${size}.${date}.qty`)
+  }, 0)
+}
+
+function cloneProjectedStockBySize(columns: readonly InboundSplitSizeColumn[], projectedStockBySize: Record<string, number>): Record<string, number> {
+  const clone: Record<string, number> = {}
+  columns.forEach((column: InboundSplitSizeColumn): void => {
+    clone[column.size] = projectedStockBySize[column.size] ?? 0
+  })
+  return clone
+}
+
+function advanceStockThroughInterval(
+  source: SecondaryInboundSplitSource,
+  columns: readonly InboundSplitSizeColumn[],
+  projectedStockBySize: Record<string, number>,
+  startDate: string,
+  endDate: string,
+  interval: SplitInterval | null,
+): Record<string, number> {
+  const nextStockBySize: Record<string, number> = cloneProjectedStockBySize(columns, projectedStockBySize)
+  const startMs: number = parseIsoDateMs(startDate, 'interval.startDate')
+  const endMs: number = parseIsoDateMs(endDate, 'interval.endDate')
+  if (endMs <= startMs) return nextStockBySize
+
   for (let cursorMs: number = startMs; cursorMs < endMs; cursorMs += DAY_MS) {
     const date: string = formatIsoDate(cursorMs)
-    const row: SecondaryInboundSplitSource['expectationByDate'][string] | undefined = source.expectationByDate[date]
-    if (row == null) {
-      throw new Error(`Missing inbound split source cell: ${date}`)
-    }
-    for (const size of Object.keys(source.stockBySize)) {
-      const cell: SecondaryInboundSplitExpectationCell = getExpectationCell(source, date, size)
-      totalDemand += cell.sale - cell.inbound
-    }
+    columns.forEach((column: InboundSplitSizeColumn): void => {
+      const size: string = column.size
+      nextStockBySize[size] = (nextStockBySize[size] ?? 0) +
+        getSupplyForDate(source, size, date, interval) -
+        getSalesForecast(source, date, size)
+    })
   }
-
-  return totalDemand
+  return nextStockBySize
 }
 
-function suggestRoundSplit(
+function calculateIntervalSuggestedBySize(
   source: SecondaryInboundSplitSource,
-  totalQty: number,
-  intervals: readonly SplitInterval[],
   columns: readonly InboundSplitSizeColumn[],
-): number[] {
-  const normalizedTotal: number = normalizeOrderQuantity(totalQty)
-  if (normalizedTotal <= 0 || intervals.length === 0 || columns.length === 0) {
-    return intervals.map((): number => 0)
+  projectedStockBySize: Record<string, number>,
+  interval: SplitInterval,
+): Record<string, number> {
+  const suggestedBySize: Record<string, number> = {}
+  const startMs: number = parseIsoDateMs(interval.startDate, 'interval.startDate')
+  const endMs: number = parseIsoDateMs(interval.endDate, 'interval.endDate')
+  if (endMs <= startMs) {
+    columns.forEach((column: InboundSplitSizeColumn): void => {
+      suggestedBySize[column.size] = 0
+    })
+    return suggestedBySize
   }
 
-  let remainingOrderQty: number = normalizedTotal
-  let projectedStock: number = Object.keys(source.stockBySize).reduce((sum: number, size: string): number => (
-    sum + requireFiniteQuantity(source.stockBySize[size], `stockBySize.${size}`)
-  ), 0)
-  return intervals.map((interval: SplitInterval): number => {
-    const intervalNetDemand: number = sumIntervalTotalNetDemand(source, interval)
-    const requiredQty: number = Math.max(0, Math.ceil(intervalNetDemand - projectedStock))
-    const qty: number = Math.min(remainingOrderQty, requiredQty)
-    projectedStock += qty - intervalNetDemand
-    remainingOrderQty -= qty
-    return qty
+  columns.forEach((column: InboundSplitSizeColumn): void => {
+    const size: string = column.size
+    let projectedStock: number = projectedStockBySize[size] ?? 0
+    let maxShortage: number = 0
+    for (let cursorMs: number = startMs; cursorMs < endMs; cursorMs += DAY_MS) {
+      const date: string = formatIsoDate(cursorMs)
+      projectedStock += getSupplyForDate(source, size, date, interval)
+      projectedStock -= getSalesForecast(source, date, size)
+      if (projectedStock < 0) maxShortage = Math.max(maxShortage, -projectedStock)
+    }
+    suggestedBySize[size] = normalizeSuggestedQuantity(maxShortage)
   })
+  return suggestedBySize
+}
+
+function addSuggestedInbound(
+  columns: readonly InboundSplitSizeColumn[],
+  projectedStockBySize: Record<string, number>,
+  suggestedBySize: Record<string, number>,
+): Record<string, number> {
+  const nextStockBySize: Record<string, number> = cloneProjectedStockBySize(columns, projectedStockBySize)
+  columns.forEach((column: InboundSplitSizeColumn): void => {
+    nextStockBySize[column.size] = (nextStockBySize[column.size] ?? 0) + (suggestedBySize[column.size] ?? 0)
+  })
+  return nextStockBySize
 }
 
 export function buildInboundSplitSuggestedQuantitiesByRow(
   columns: readonly InboundSplitSizeColumn[],
-  inboundDates: readonly string[],
+  rows: readonly InboundSplitSuggestionRowInput[],
   dateEnd: string,
   source: SecondaryInboundSplitSource,
 ): Record<string, number>[] {
-  if (inboundDates.length === 0) {
-    return []
-  }
+  if (rows.length === 0) return []
+  if (columns.length === 0) return rows.map((): Record<string, number> => ({}))
 
-  const intervals: SplitInterval[] = buildIntervals(inboundDates, dateEnd)
-  const totalRecommendedQty: number = columns.reduce((sum: number, column: InboundSplitSizeColumn): number => sum + normalizeOrderQuantity(column.recommendedQty), 0)
-  const roundTotals: number[] = suggestRoundSplit(source, totalRecommendedQty, intervals, columns)
-  const columnWeights: number[] = columns.map((column: InboundSplitSizeColumn): number => column.recommendedQty)
-  const rows: Record<string, number>[] = inboundDates.map((): Record<string, number> => ({}))
+  const intervals: SplitInterval[] = buildIntervals(rows, dateEnd)
+  let projectedStockBySize: Record<string, number> = {}
+  columns.forEach((column: InboundSplitSizeColumn): void => {
+    projectedStockBySize[column.size] = 0
+  })
+  projectedStockBySize = advanceStockThroughInterval(
+    source,
+    columns,
+    projectedStockBySize,
+    source.calculationBaseDate,
+    intervals[0]?.startDate ?? source.coverageStartDate,
+    null,
+  )
 
-  for (let rowIndex: number = 0; rowIndex < roundTotals.length; rowIndex += 1) {
-    const roundQty: number = roundTotals[rowIndex] ?? 0
-    const split: number[] = allocateInboundSplitIntegerTotal({
-      total: roundQty,
-      weights: columnWeights,
-    }).values
-    columns.forEach((column: InboundSplitSizeColumn, columnIndex: number): void => {
-      rows[rowIndex][column.size] = split[columnIndex] ?? 0
-    })
-  }
-
-  return rows
+  return intervals.map((interval: SplitInterval): Record<string, number> => {
+    const suggestedBySize: Record<string, number> = calculateIntervalSuggestedBySize(source, columns, projectedStockBySize, interval)
+    projectedStockBySize = addSuggestedInbound(columns, projectedStockBySize, suggestedBySize)
+    projectedStockBySize = advanceStockThroughInterval(
+      source,
+      columns,
+      projectedStockBySize,
+      interval.startDate,
+      interval.endDate,
+      interval,
+    )
+    return suggestedBySize
+  })
 }

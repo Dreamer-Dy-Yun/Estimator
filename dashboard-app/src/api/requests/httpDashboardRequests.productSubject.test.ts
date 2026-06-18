@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest'
 import { allCompanyBaseSubject, baseSubject, companyUuid, httpClientMocks, kreamComparison, missingSourceComparison, musinsaComparison, roleMismatchBase } from './httpDashboardRequestsTestSetup'
 import { httpDashboardRequests } from './httpDashboardRequests'
 
+const PRODUCT_IDENTITY = { productUuid: null, skuGroupKey: 'SKU-054-BLK', brand: 'Brand', code: 'SKU-054', colorCode: 'BLK' } as const
+
 describe('httpDashboardRequests product comparison subject contract', () : void => {
   it('requests dashboard runtime config without synthesizing query params', async () : Promise<void> => {
     await httpDashboardRequests.getDashboardRuntimeConfig()
@@ -20,9 +22,12 @@ describe('httpDashboardRequests product comparison subject contract', () : void 
     })
     await httpDashboardRequests.getSecondaryStockOrderCalc({
       skuGroupKey: 'SKU-054-BLK',
+      productIdentity: PRODUCT_IDENTITY,
       base: baseSubject,
       periodStart: '2025-01-01',
       periodEnd: '2025-03-31',
+      calculationBaseDate: '2026-01-01',
+      currentOrderInboundDueDate: '2026-02-01',
       orderCoverageDays: 21,
     })
 

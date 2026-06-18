@@ -59,6 +59,14 @@ const snapshot: OrderSnapshotDocument = {
       dailyMeanOverride: 1,
     },
     stockOrderResult: {
+      productIdentity: {
+        productUuid: null,
+        skuGroupKey: 'SKU-001',
+        brand: 'Brand',
+        code: 'CODE',
+        colorCode: 'BLK',
+      },
+      existingOrderInboundSupplyBySize: {},
       trendDailyMean: 1,
       dailyMean: 1,
       sigma: 0,

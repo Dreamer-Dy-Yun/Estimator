@@ -1,10 +1,11 @@
-import type { ProductComparisonBaseSubjectRef } from '../types'
+import type { ProductComparisonBaseSubjectRef, SecondaryProductIdentity } from '../types'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { getMockSecondaryInboundSplitSource } from './mockProductComparisonApi'
 import { MOCK_HANA_COMPANY_UUID } from './mockCompanyScope'
 import { resetSecondaryInboundSplitSourceFixtureCacheForTest } from './secondaryInboundSplitSourceFixture'
 
 const TEST_SHOE_SKU_GROUP_KEY = 'TEST-SHOE__210' as const
+const PRODUCT_IDENTITY: SecondaryProductIdentity = { productUuid: null, skuGroupKey: TEST_SHOE_SKU_GROUP_KEY, brand: 'Test', code: 'TEST-SHOE', colorCode: '210' }
 const MOCK_BASE_SUBJECT: ProductComparisonBaseSubjectRef = {
   role: 'base',
   kind: 'self-company',
@@ -75,14 +76,18 @@ describe('getMockSecondaryInboundSplitSource', (): void => {
 
     const result = await getMockSecondaryInboundSplitSource({
       skuGroupKey: TEST_SHOE_SKU_GROUP_KEY,
-      dateStart: '2026-04-01',
-      dateEnd: '2026-04-03',
+      productIdentity: PRODUCT_IDENTITY,
+      calculationBaseDate: '2026-04-01',
+      coverageStartDate: '2026-04-01',
+      coverageEndDate: '2026-04-03',
       base: MOCK_BASE_SUBJECT,
     })
     const secondResult = await getMockSecondaryInboundSplitSource({
       skuGroupKey: TEST_SHOE_SKU_GROUP_KEY,
-      dateStart: '2026-04-02',
-      dateEnd: '2026-04-03',
+      productIdentity: PRODUCT_IDENTITY,
+      calculationBaseDate: '2026-04-02',
+      coverageStartDate: '2026-04-02',
+      coverageEndDate: '2026-04-03',
       base: MOCK_BASE_SUBJECT,
     })
 
@@ -90,10 +95,10 @@ describe('getMockSecondaryInboundSplitSource', (): void => {
     expect(fetchMock.mock.calls[0]?.[0]).toBe(
       '/mock/secondaryInboundSplitSourceFixtures/00000000-0000-4000-8000-000000000101.json',
     )
-    expect(result.stockBySize).toEqual({ '210': 7 })
-    expect(result.expectationByDate['2026-04-01']?.['210']).toEqual({ sale: 2, inbound: 1 })
-    expect(Object.keys(result.expectationByDate)).toEqual(['2026-04-01', '2026-04-02'])
-    expect(Object.keys(secondResult.expectationByDate)).toEqual(['2026-04-02'])
+    expect(result.supplyBySize['210']).toEqual([{ date: '2026-04-01', qty: 7 }, { date: '2026-04-01', qty: 1 }])
+    expect(result.salesForecastByDate['2026-04-01']?.['210']).toBe(2)
+    expect(Object.keys(result.salesForecastByDate)).toEqual(['2026-04-01', '2026-04-02'])
+    expect(Object.keys(secondResult.salesForecastByDate)).toEqual(['2026-04-02'])
   })
 
   it('accepts the current live default inbound date range when dateEnd is exclusive', async (): Promise<void> => {
@@ -101,16 +106,18 @@ describe('getMockSecondaryInboundSplitSource', (): void => {
 
     const result = await getMockSecondaryInboundSplitSource({
       skuGroupKey: TEST_SHOE_SKU_GROUP_KEY,
-      dateStart: '2026-12-16',
-      dateEnd: '2027-06-16',
+      productIdentity: PRODUCT_IDENTITY,
+      calculationBaseDate: '2026-12-16',
+      coverageStartDate: '2026-12-17',
+      coverageEndDate: '2027-06-17',
       base: MOCK_BASE_SUBJECT,
     })
 
-    expect(result.dateStart).toBe('2026-12-16')
-    expect(result.dateEnd).toBe('2027-06-16')
-    expect(result.expectationByDate['2026-12-16']?.['210']).toEqual({ sale: 1, inbound: 0 })
-    expect(result.expectationByDate['2027-06-15']?.['210']).toEqual({ sale: 1, inbound: 0 })
-    expect(result.expectationByDate['2027-06-16']).toBeUndefined()
+    expect(result.calculationBaseDate).toBe('2026-12-16')
+    expect(result.coverageEndDate).toBe('2027-06-17')
+    expect(result.salesForecastByDate['2026-12-16']?.['210']).toBe(1)
+    expect(result.salesForecastByDate['2027-06-16']?.['210']).toBe(1)
+    expect(result.salesForecastByDate['2027-06-17']).toBeUndefined()
   })
 
   it('rejects an empty or reversed date range instead of returning an empty source', async (): Promise<void> => {
@@ -119,11 +126,13 @@ describe('getMockSecondaryInboundSplitSource', (): void => {
     await expect(
       getMockSecondaryInboundSplitSource({
         skuGroupKey: TEST_SHOE_SKU_GROUP_KEY,
-        dateStart: '2026-04-03',
-        dateEnd: '2026-04-03',
+      productIdentity: PRODUCT_IDENTITY,
+        calculationBaseDate: '2026-04-03',
+        coverageStartDate: '2026-04-03',
+        coverageEndDate: '2026-04-03',
         base: MOCK_BASE_SUBJECT,
       }),
-    ).rejects.toThrow('dateStart < dateEnd')
+    ).rejects.toThrow('calculationBaseDate < coverageEndDate')
   })
 
   it('clears the fixture cache after a failed static asset request', async (): Promise<void> => {
@@ -138,8 +147,10 @@ describe('getMockSecondaryInboundSplitSource', (): void => {
     await expect(
       getMockSecondaryInboundSplitSource({
         skuGroupKey: TEST_SHOE_SKU_GROUP_KEY,
-        dateStart: '2026-04-01',
-        dateEnd: '2026-04-03',
+      productIdentity: PRODUCT_IDENTITY,
+        calculationBaseDate: '2026-04-01',
+        coverageStartDate: '2026-04-01',
+        coverageEndDate: '2026-04-03',
         base: MOCK_BASE_SUBJECT,
       }),
     ).rejects.toThrow('Secondary inbound split source fixture request failed')
@@ -147,12 +158,14 @@ describe('getMockSecondaryInboundSplitSource', (): void => {
     const fetchMock: ReturnType<typeof vi.fn> = stubFixtureFetch()
     const result = await getMockSecondaryInboundSplitSource({
       skuGroupKey: TEST_SHOE_SKU_GROUP_KEY,
-      dateStart: '2026-04-01',
-      dateEnd: '2026-04-03',
+      productIdentity: PRODUCT_IDENTITY,
+      calculationBaseDate: '2026-04-01',
+      coverageStartDate: '2026-04-01',
+      coverageEndDate: '2026-04-03',
       base: MOCK_BASE_SUBJECT,
     })
 
     expect(fetchMock).toHaveBeenCalledTimes(1)
-    expect(result.expectationByDate['2026-04-01']?.['210']).toEqual({ sale: 2, inbound: 1 })
+    expect(result.salesForecastByDate['2026-04-01']?.['210']).toBe(2)
   })
 })

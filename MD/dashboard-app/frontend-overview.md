@@ -15,7 +15,7 @@ Last updated: 2026-06-18
 - secondary 드로어에서 입고일, 버퍼, 단가/원가/수수료, 자사/비교 가중치, 사이즈별 확정 수량을 조정한다.
 - 분할 입고 다이얼로그는 API source를 기반으로 차수별 제안 수량을 계산하고, 사용자가 차수/사이즈 확정 수량을 조정한다.
 - 후보군은 선택 회사 기준으로 stash, item, 추천, 상세확정, order metric SSE, Excel upload/download를 처리한다.
-- 저장된 후보 item의 `confirmedOrderSnapshot`는 `OrderSnapshotDocument` v5이며, snapshot row는 저장값을 우선 표시한다.
+- 저장된 후보 item의 `confirmedOrderSnapshot`는 `OrderSnapshotDocument` v7이며, snapshot row는 저장값을 우선 표시한다.
 - 관리자 화면은 사용자, GPT key, Google Sheets 설정을 관리한다.
 
 ## Source Layout
@@ -59,17 +59,18 @@ Last updated: 2026-06-18
 - 월간 추세, sales insight, secondary detail, daily trend는 `base`/`comparison` subject 계약을 사용한다.
 - comparison target이 없거나 현재 scope에서 유효하지 않으면 unavailable 상태로 표시한다. 화면이 fake target이나 첫 번째 target을 무조건 합성하지 않는다.
 - AI comment는 수동 POST 요청이다. 필요하면 현재 계산 상태를 `snapshotForAiComment`로 함께 보낸다.
-- snapshot 저장 계약은 `OrderSnapshotDocument` v5다. `drawer2.sizeOrders[]`는 share/forecast/recommendation row를 저장하고, 확정 수량은 `drawer2.confirmed.rounds[]`에 저장한다.
+- snapshot 저장 계약은 `OrderSnapshotDocument` v7다. `drawer2.sizeOrders[]`는 share/forecast/recommendation row를 저장하고, 확정 수량은 `drawer2.confirmed.rounds[]`에 저장한다.
 
 ## Secondary Daily / Inbound Split
 
 - daily trend API는 `SecondaryDailyTrendSource`를 반환한다. chart-ready `stockBar`, `inboundAccumBar`, `idx`, `month`, `isForecast`는 프론트에서 파생한다.
 - `baseStockAtStart`는 `dateStart` 직전 재고이고, `flowByDate[date].base.inbound`는 해당 일자의 입고 수량이다.
-- inbound split source API는 `dateStart <= date < dateEnd` 구간의 `stockBySize`와 `expectationByDate[date][size].sale/inbound`만 제공한다.
+- stock-order calc API는 A 원천인 `existingOrderInboundSupplyBySize[size][]`를 반환한다. `미입고 총 잔량(EA)`은 A 전체 집계이고, `현오더 입고전 미입고잔량(EA)`은 `date < currentOrderInboundDueDate`인 A 집계이다.
+- inbound split source API는 `calculationBaseDate <= date < coverageEndDate` 구간의 `salesForecastByDate[date][size]`와 날짜별 공급 포인트 `supplyBySize[size][]`를 제공한다. `supplyBySize`의 `calculationBaseDate` point는 현재 재고이고 이후 point는 기 주문 입고 예정 수량(A)이다.
 - split count, selected split dates, row totals, per-size confirmed quantities는 화면 draft state다.
 - 입고 분할 차수 날짜는 `currentOrderInboundDueDate <= date < nextOrderInboundDueDate` 범위로 검증한다. 첫 차수는 금번 입고일과 같은 날짜를 허용한다.
 - 2차수 이상으로 Apply하면 `drawer2.confirmed.rounds`와 직접 확정 수량이 함께 갱신된다. 1차수 Apply는 rounds를 비우고 직접 확정 수량으로 접는다.
-- 분할 입고 제안은 shortage-only다. projected stock과 known inbound가 interval demand를 커버하면 제안 수량은 `0`이다.
+- 분할 입고 제안은 날짜 순서의 shortage-only 계산이다. 먼저 차수별 gross 판매예측 구간을 만들고, 현재 재고와 기 주문 입고 예정량을 사이즈별로 이월 차감해 각 차수의 부족분을 제안한다. 차수 row의 `ignoreExistingOrderInbound`가 true이면 해당 차수 구간의 기 주문 입고 예정량은 공급으로 반영하지 않는다.
 
 ## Candidate Stash
 

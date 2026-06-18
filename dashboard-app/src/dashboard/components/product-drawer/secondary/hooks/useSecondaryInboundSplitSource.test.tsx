@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import type { ProductComparisonBaseSubjectRef, SecondaryInboundSplitSource, SecondaryInboundSplitSourceParams } from '../../../../../api/types'
+import type { ProductComparisonBaseSubjectRef, SecondaryInboundSplitSource, SecondaryInboundSplitSourceParams, SecondaryProductIdentity } from '../../../../../api/types'
 import type { ApiUnitErrorInfo } from '../../../../../types'
 import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
@@ -10,17 +10,22 @@ import { useSecondaryInboundSplitSource, type UseSecondaryInboundSplitSourcePara
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
 
 const BASE_SUBJECT: ProductComparisonBaseSubjectRef = { role: 'base', kind: 'self-company', sourceId: 'company-1' }
+const PRODUCT_IDENTITY: SecondaryProductIdentity = { productUuid: null, skuGroupKey: 'sku-a', brand: 'Brand', code: 'CODE', colorCode: 'BLK' }
 
-function makeSource(dateStart: string, dateEnd: string, productId = 'product-a'): SecondaryInboundSplitSource {
+function makeSource(calculationBaseDate: string, coverageEndDate: string, productId = 'product-a'): SecondaryInboundSplitSource {
   return {
     productId,
-    dateStart,
-    dateEnd,
-    stockBySize: { S: 0 },
-    expectationByDate: {
-      [dateStart]: { S: { sale: 1, inbound: 0 } },
-      '2026-04-02': { S: { sale: 1, inbound: 0 } },
-      '2026-04-03': { S: { sale: 1, inbound: 0 } },
+    productIdentity: PRODUCT_IDENTITY,
+    calculationBaseDate,
+    coverageStartDate: calculationBaseDate,
+    coverageEndDate,
+    supplyBySize: {
+      S: [{ date: calculationBaseDate, qty: 0 }],
+    },
+    salesForecastByDate: {
+      [calculationBaseDate]: { S: 1 },
+      '2026-04-02': { S: 1 },
+      '2026-04-03': { S: 1 },
     },
   }
 }
@@ -107,15 +112,17 @@ afterEach((): void => {
 describe('useSecondaryInboundSplitSource', (): void => {
   const DEFAULT_PROPS: UseSecondaryInboundSplitSourceParams = {
     skuGroupKey: 'sku-a',
-    dateStart: '2026-04-01',
-    dateEnd: '2026-04-03',
+    productIdentity: PRODUCT_IDENTITY,
+    calculationBaseDate: '2026-04-01',
+    coverageStartDate: '2026-04-01',
+    coverageEndDate: '2026-04-03',
     baseSubject: BASE_SUBJECT,
     makeApiErrorInfo,
   }
 
   it('rejects incomplete source cells at the API boundary', async (): Promise<void> => {
     const incompleteSource: SecondaryInboundSplitSource = makeSource('2026-04-01', '2026-04-03')
-    delete incompleteSource.expectationByDate['2026-04-02']
+    delete incompleteSource.salesForecastByDate['2026-04-02']
     vi.spyOn(dashboardApi, 'getSecondaryInboundSplitSource').mockResolvedValue(incompleteSource)
 
     const hook: { readonly current: UseSecondaryInboundSplitSourceResult; rerender: (nextProps: UseSecondaryInboundSplitSourceParams) => void } = renderHook(DEFAULT_PROPS)
@@ -123,7 +130,7 @@ describe('useSecondaryInboundSplitSource', (): void => {
 
     expect(hook.current.inboundSplitSource).toBeNull()
     expect(hook.current.inboundSplitSourceLoading).toBe(false)
-    expect(hook.current.inboundSplitSourceError?.error).toContain('expectationByDate.2026-04-02')
+    expect(hook.current.inboundSplitSourceError?.error).toContain('salesForecastByDate.2026-04-02')
   })
 
   it('keeps stale inbound split source responses from overwriting the latest request', async (): Promise<void> => {
@@ -135,7 +142,12 @@ describe('useSecondaryInboundSplitSource', (): void => {
       .mockReturnValueOnce(second.promise)
 
     const hook: { readonly current: UseSecondaryInboundSplitSourceResult; rerender: (nextProps: UseSecondaryInboundSplitSourceParams) => void } = renderHook(DEFAULT_PROPS)
-    hook.rerender({ ...DEFAULT_PROPS, dateStart: '2026-04-02', dateEnd: '2026-04-04' })
+    hook.rerender({
+      ...DEFAULT_PROPS,
+      calculationBaseDate: '2026-04-02',
+      coverageStartDate: '2026-04-02',
+      coverageEndDate: '2026-04-04',
+    })
     await flushMicrotasks()
 
     second.resolve(makeSource('2026-04-02', '2026-04-04', 'latest-product'))

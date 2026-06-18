@@ -17,14 +17,19 @@ const SIZE_ROWS: SecondarySizeOrderDisplayRow[] = [
 
 const SPLIT_SOURCE: SecondaryInboundSplitSource = {
   productId: 'sku-a',
-  dateStart: '2026-04-01',
-  dateEnd: '2026-04-05',
-  stockBySize: { S: 0, M: 0 },
-  expectationByDate: {
-    '2026-04-01': { S: { sale: 1, inbound: 0 }, M: { sale: 1, inbound: 0 } },
-    '2026-04-02': { S: { sale: 1, inbound: 0 }, M: { sale: 1, inbound: 0 } },
-    '2026-04-03': { S: { sale: 1, inbound: 0 }, M: { sale: 1, inbound: 0 } },
-    '2026-04-04': { S: { sale: 1, inbound: 0 }, M: { sale: 1, inbound: 0 } },
+  productIdentity: { productUuid: null, skuGroupKey: 'sku-a', brand: 'Brand', code: 'CODE', colorCode: 'BLK' },
+  calculationBaseDate: '2026-04-01',
+  coverageStartDate: '2026-04-01',
+  coverageEndDate: '2026-04-05',
+  supplyBySize: {
+    S: [{ date: '2026-04-01', qty: 0 }],
+    M: [{ date: '2026-04-01', qty: 0 }],
+  },
+  salesForecastByDate: {
+    '2026-04-01': { S: 1, M: 1 },
+    '2026-04-02': { S: 1, M: 1 },
+    '2026-04-03': { S: 1, M: 1 },
+    '2026-04-04': { S: 1, M: 1 },
   },
 }
 
@@ -33,6 +38,7 @@ function row(id: string, round: number, inboundDate: string, s: number, m?: numb
     id,
     round,
     inboundDate,
+    ignoreExistingOrderInbound: false,
     suggestedQuantitiesBySize: { S: s, ...(m == null ? {} : { M: m }) },
     quantitiesBySize: { S: s, ...(m == null ? {} : { M: m }) },
   }
@@ -155,8 +161,8 @@ describe('useInboundSplitScheduleController', (): void => {
     })
 
     expect(controller.args.onConfirmedRoundsChange).toHaveBeenCalledWith([
-      { date: '2026-04-01', qtyBySize: { S: 3, M: 2 } },
-      { date: '2026-04-04', qtyBySize: { S: 4, M: 3 } },
+      { date: '2026-04-01', ignoreExistingOrderInbound: false, qtyBySize: { S: 3, M: 2 } },
+      { date: '2026-04-04', ignoreExistingOrderInbound: false, qtyBySize: { S: 4, M: 3 } },
     ] satisfies SecondaryConfirmedRound[])
     expect(controller.args.onConfirmQtyChange).toHaveBeenNthCalledWith(1, 'S', 7, 10)
     expect(controller.args.onConfirmQtyChange).toHaveBeenNthCalledWith(2, 'M', 5, 5)

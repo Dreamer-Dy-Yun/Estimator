@@ -82,6 +82,18 @@ export const validSnapshot: OrderSnapshotDocument = {
       dailyMeanOverride: 10,
     },
     stockOrderResult: {
+      productIdentity: {
+        skuGroupKey: 'B',
+        brand: 'Brand',
+        code: 'RUN',
+        colorCode: 'BLK',
+      },
+      existingOrderInboundSupplyBySize: {
+        '250': [
+          { date: '2026-01-31', qty: 2 },
+          { date: '2026-02-01', qty: 2 },
+        ],
+      },
       trendDailyMean: 10,
       dailyMean: 10,
       sigma: 1,
@@ -105,6 +117,7 @@ export const validSnapshot: OrderSnapshotDocument = {
     confirmed: {
       rounds: [{
         date: '2026-02-01',
+        ignoreExistingOrderInbound: false,
         qtyBySize: {
           '250': 12,
         },
