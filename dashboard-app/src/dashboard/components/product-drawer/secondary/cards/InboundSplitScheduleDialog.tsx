@@ -104,6 +104,14 @@ export function InboundSplitScheduleDialog({
             </label>
             {hasInvalidDatePolicy && <span className={styles.inboundSplitCountValidation}>{dateOrderErrorMessage}</span>}
           </div>
+          <label className={styles.inboundSplitIgnoreExistingOrderInboundAll}>
+            <input
+              type="checkbox"
+              checked={draft.ignoreExistingOrderInboundAll}
+              onChange={(event: React.ChangeEvent<HTMLInputElement>): void => draft.changeIgnoreExistingOrderInboundAll(event.target.checked)}
+            />
+            <span>{KO.labelInboundSplitIgnoreExistingOrderInbound}</span>
+          </label>
           <span className={styles.inboundSplitSummary}>
             {KO.thTotal} {formatGroupedNumber(currentConfirmedTotal)} EA
           </span>
@@ -121,7 +129,6 @@ export function InboundSplitScheduleDialog({
               rows={draft.rows}
               columns={columns}
               onDateChange={draft.changeDate}
-              onIgnoreExistingOrderInboundChange={draft.changeIgnoreExistingOrderInbound}
               onRowTotalChange={draft.changeRowTotal}
               onQtyChange={draft.changeQty}
             />

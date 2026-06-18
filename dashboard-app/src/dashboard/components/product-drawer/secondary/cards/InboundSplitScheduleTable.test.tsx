@@ -45,10 +45,9 @@ function changeValue(input: HTMLInputElement, value: string): void {
   })
 }
 
-function renderTable(overrides: Partial<InboundSplitScheduleTableProps> = {}): Required<Pick<InboundSplitScheduleTableProps, 'onDateChange' | 'onIgnoreExistingOrderInboundChange' | 'onRowTotalChange' | 'onQtyChange'>> {
-  const callbacks: Required<Pick<InboundSplitScheduleTableProps, 'onDateChange' | 'onIgnoreExistingOrderInboundChange' | 'onRowTotalChange' | 'onQtyChange'>> = {
+function renderTable(overrides: Partial<InboundSplitScheduleTableProps> = {}): Required<Pick<InboundSplitScheduleTableProps, 'onDateChange' | 'onRowTotalChange' | 'onQtyChange'>> {
+  const callbacks: Required<Pick<InboundSplitScheduleTableProps, 'onDateChange' | 'onRowTotalChange' | 'onQtyChange'>> = {
     onDateChange: vi.fn(),
-    onIgnoreExistingOrderInboundChange: vi.fn(),
     onRowTotalChange: vi.fn(),
     onQtyChange: vi.fn(),
   }
@@ -126,7 +125,7 @@ describe('InboundSplitScheduleTable', (): void => {
   })
 
   it('emits date, row total, and size quantity changes with row and size identity', (): void => {
-    const callbacks: Required<Pick<InboundSplitScheduleTableProps, 'onDateChange' | 'onIgnoreExistingOrderInboundChange' | 'onRowTotalChange' | 'onQtyChange'>> = renderTable()
+    const callbacks: Required<Pick<InboundSplitScheduleTableProps, 'onDateChange' | 'onRowTotalChange' | 'onQtyChange'>> = renderTable()
     const dateInputs: HTMLInputElement[] = Array.from(document.querySelectorAll<HTMLInputElement>('input[type="date"]'))
     const numberInputs: HTMLInputElement[] = Array.from(document.querySelectorAll<HTMLInputElement>('input[type="number"]'))
 

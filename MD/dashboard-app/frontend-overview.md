@@ -70,7 +70,7 @@ Last updated: 2026-06-18
 - split count, selected split dates, row totals, per-size confirmed quantities는 화면 draft state다.
 - 입고 분할 차수 날짜는 `currentOrderInboundDueDate <= date < nextOrderInboundDueDate` 범위로 검증한다. 첫 차수는 금번 입고일과 같은 날짜를 허용한다.
 - 2차수 이상으로 Apply하면 `drawer2.confirmed.rounds`와 직접 확정 수량이 함께 갱신된다. 1차수 Apply는 rounds를 비우고 직접 확정 수량으로 접는다.
-- 분할 입고 제안은 날짜 순서의 shortage-only 계산이다. 먼저 차수별 gross 판매예측 구간을 만들고, 현재 재고와 기 주문 입고 예정량을 사이즈별로 이월 차감해 각 차수의 부족분을 제안한다. 차수 row의 `ignoreExistingOrderInbound`가 true이면 해당 차수 구간의 기 주문 입고 예정량은 공급으로 반영하지 않는다.
+- 분할 입고 제안은 날짜 순서의 shortage-only 계산이다. 먼저 차수별 gross 판매예측 구간을 만들고, 현재 재고와 기 주문 입고 예정량을 사이즈별로 이월 차감해 각 차수의 부족분을 제안한다. 분할 다이얼로그에서 `ignoreExistingOrderInbound`를 활성화하면 모든 차수 구간의 기 주문 입고 예정량이 공급에서 제외되어 재계산된다.
 
 ## Candidate Stash
 

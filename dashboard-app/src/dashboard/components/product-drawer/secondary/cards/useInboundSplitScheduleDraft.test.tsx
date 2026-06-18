@@ -148,4 +148,69 @@ describe('useInboundSplitScheduleDraft', (): void => {
     expect(draft.current.rows).toHaveLength(10)
     expect(draft.onDraftError).toHaveBeenCalledWith(null, 'buildInboundSplitScheduleRows')
   })
+
+  it('recalculates split suggestions when count changes with global ignore enabled', (): void => {
+    const onRecalculateRows: Mock<(rows: InboundSplitScheduleRow[]) => InboundSplitScheduleRow[]> = vi.fn((rows: InboundSplitScheduleRow[]): InboundSplitScheduleRow[] => rows.map((row: InboundSplitScheduleRow, rowIndex: number): InboundSplitScheduleRow => ({
+      ...row,
+      suggestedQuantitiesBySize: {
+        S: rowIndex + 10,
+        M: rowIndex + 20,
+      },
+    })))
+    const draft: ReturnType<typeof renderDraft> = renderDraft({
+      initialRows: [row('r1', 1, '2026-04-01', 2, 6)],
+      recalculateRows: onRecalculateRows,
+      buildRowsForCount: vi.fn((next: number): InboundSplitScheduleRow[] => (
+        Array.from({ length: next }, (_: unknown, index: number): InboundSplitScheduleRow => row(`r${index + 1}`, index + 1, '2026-04-01', 1, 1))
+      )),
+    })
+
+    act((): void => {
+      draft.current.changeIgnoreExistingOrderInboundAll(true)
+    })
+    act((): void => {
+      draft.current.changeCount('2')
+    })
+
+    expect(draft.current.rows).toHaveLength(2)
+    expect(onRecalculateRows).toHaveBeenCalled()
+    expect(draft.current.rows.every((rowItem: InboundSplitScheduleRow): boolean => rowItem.ignoreExistingOrderInbound)).toBe(true)
+    expect(draft.current.rows[0]?.suggestedQuantitiesBySize).toEqual({ S: 10, M: 20 })
+    expect(draft.current.rows[1]?.suggestedQuantitiesBySize).toEqual({ S: 11, M: 21 })
+  })
+
+  it('synchronizes ignoreExistingOrderInbound across all rows when global toggle changes', (): void => {
+    const draft: ReturnType<typeof renderDraft> = renderDraft({
+      initialRows: [
+        row('r1', 1, '2026-04-01', 2, 6),
+        row('r2', 2, '2026-04-04', 1, 1),
+      ],
+    })
+
+    act((): void => {
+      draft.current.changeIgnoreExistingOrderInboundAll(true)
+    })
+
+    expect(draft.current.ignoreExistingOrderInboundAll).toBe(true)
+    expect(draft.current.rows.every((row: InboundSplitScheduleRow): boolean => row.ignoreExistingOrderInbound)).toBe(true)
+    expect(draft.onDraftError).toHaveBeenCalledWith(null, 'recalculateInboundSplitScheduleRows')
+
+    act((): void => {
+      draft.current.changeIgnoreExistingOrderInboundAll(false)
+    })
+
+    expect(draft.current.ignoreExistingOrderInboundAll).toBe(false)
+    expect(draft.current.rows.every((row: InboundSplitScheduleRow): boolean => row.ignoreExistingOrderInbound)).toBe(false)
+  })
+
+  it('initializes the global ignore flag from initial rows when all rows are true', (): void => {
+    const draft: ReturnType<typeof renderDraft> = renderDraft({
+      initialRows: [
+        { ...row('r1', 1, '2026-04-01', 2, 6), ignoreExistingOrderInbound: true },
+        { ...row('r2', 2, '2026-04-04', 1, 1), ignoreExistingOrderInbound: true },
+      ],
+    })
+
+    expect(draft.current.ignoreExistingOrderInboundAll).toBe(true)
+  })
 })

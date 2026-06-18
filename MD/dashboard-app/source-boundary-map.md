@@ -63,7 +63,7 @@ Secondary 드로어의 주요 값은 다음 기준을 따른다.
 | `sizeOrders` | 사이즈별 제안/추천/비중 표시값이다. | API/계산 결과 |
 | 입고 분할 차수 날짜 범위 | 각 차수 입고일은 `currentOrderInboundDueDate <= date < nextOrderInboundDueDate` 범위 안에서 검증한다. 첫 차수는 금번 입고일과 같은 날짜를 허용한다. | UI 상태/API 계약 |
 
-입고 분할 제안은 차수 날짜가 만든 구간별 gross 판매예측을 먼저 나누고, 현재 재고와 기 주문 입고 예정량을 날짜 순서대로 이월 차감해 산정한다. 차수 row의 `ignoreExistingOrderInbound`가 true이면 해당 차수 구간 안의 기 주문 입고 예정량은 공급으로 반영하지 않는다.
+입고 분할 제안은 차수 날짜가 만든 구간별 gross 판매예측을 먼저 나누고, 현재 재고와 기 주문 입고 예정량을 날짜 순서대로 이월 차감해 산정한다. `ignoreExistingOrderInbound`는 UI에서 하나의 전역 토글로 관리되며, 적용 시 모든 row에 일괄 반영된 값으로 차수별 제안을 계산한다.
 
 ## 5. 스냅샷 경계
 
