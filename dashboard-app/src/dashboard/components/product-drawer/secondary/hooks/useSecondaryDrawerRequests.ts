@@ -17,8 +17,8 @@ export type Args = {
   selectedStartMonth: string
   selectedEndMonth: string
   baseSubject: ProductComparisonBaseSubjectRef
-  forecastMeanPeriodEnd: string
-  leadTimeDays: number
+  forecastPeriodEndMonth: string
+  orderCoverageDays: number
   dailyMeanClient: number | null
   currentOrderInboundDueDate: string
   nextOrderInboundDueDate: string
@@ -33,8 +33,8 @@ export function useSecondaryDrawerRequests({
   selectedStartMonth,
   selectedEndMonth,
   baseSubject,
-  forecastMeanPeriodEnd,
-  leadTimeDays,
+  forecastPeriodEndMonth,
+  orderCoverageDays,
   dailyMeanClient,
   currentOrderInboundDueDate,
   nextOrderInboundDueDate,
@@ -59,8 +59,8 @@ export function useSecondaryDrawerRequests({
     periodStart,
     periodEnd,
     baseSubject,
-    forecastMeanPeriodEnd,
-    leadTimeDays,
+    forecastPeriodEndMonth,
+    orderCoverageDays,
     dailyMeanClient,
     makeApiErrorInfo,
   })
@@ -70,7 +70,7 @@ export function useSecondaryDrawerRequests({
     selectedEnd: selectedEndMonth,
     baseSubject,
     comparisonTarget,
-    leadTimeDays,
+    orderCoverageDays,
     makeApiErrorInfo,
   })
   const inboundSplitSource: { inboundSplitSource: SecondaryInboundSplitSource | null; inboundSplitSourceLoading: boolean; inboundSplitSourceError: ApiUnitErrorInfo | null; } = useSecondaryInboundSplitSource({

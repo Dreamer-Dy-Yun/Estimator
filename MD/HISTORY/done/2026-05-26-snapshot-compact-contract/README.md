@@ -4,7 +4,7 @@ Status: completed and validated. This note records PLAN-116 and TODO-112 through
 
 ## Goal
 
-Compact the product drawer order snapshot contract so new candidate item details do not store hidden legacy fields or broad UI/API objects. The snapshot must keep only the fields needed for restore and AI judgment, and the frontend docs plus backend API docs must describe the same contract.
+Compact the product drawer order snapshot contract so new candidate item confirmedOrderSnapshot do not store hidden legacy fields or broad UI/API objects. The snapshot must keep only the fields needed for restore and AI judgment, and the frontend docs plus backend API docs must describe the same contract.
 
 ## Scope
 
@@ -54,7 +54,7 @@ Compact the product drawer order snapshot contract so new candidate item details
 
 ## Follow-up candidates
 
-- Coordinate backend persistence and frontend runtime rollout so new snapshots consistently include `companyUuid` for single-company details.
+- Coordinate backend persistence and frontend runtime rollout so new snapshots consistently include `companyUuid` for single-company confirmedOrderSnapshot.
 
 ## Non-goals
 

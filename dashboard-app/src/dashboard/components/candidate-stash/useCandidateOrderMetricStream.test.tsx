@@ -42,8 +42,8 @@ vi.mock('../../../api', async (importOriginal: <T = unknown>() => Promise<T>) : 
   }
 })
 
-const BASE_INSIGHT: { competitorChannelLabel: string; competitorQty: null; competitorAmount: null; selfQty: null; selfAmount: null; expectedSalesQty: number; expectedSalesAmount: number; expectedOpProfit: number; selfOpProfitRatePct: null; rankTone: 'neutral'; topPercentThreshold: number; bottomPercentThreshold: number; badges: never[]; } = {
-  competitorChannelLabel: '크림',
+const BASE_INSIGHT: { competitorSalesSourceLabel: string; competitorQty: null; competitorAmount: null; selfQty: null; selfAmount: null; expectedSalesQty: number; expectedSalesAmount: number; expectedOpProfit: number; selfOpProfitRatePct: null; rankTone: 'neutral'; topPercentThreshold: number; bottomPercentThreshold: number; badges: never[]; } = {
+  competitorSalesSourceLabel: '크림',
   competitorQty: null,
   competitorAmount: null,
   selfQty: null,
@@ -77,7 +77,7 @@ function candidateItem(uuid: string): CandidateItemSummary {
     insightStatus: 'loading',
     insight: BASE_INSIGHT,
     isLatestLlmComment: false,
-    isDetailConfirmed: false,
+    hasConfirmedOrderSnapshot: false,
     orderExport: null,
     dbCreatedAt: '2026-05-19T00:00:00.000Z',
     dbUpdatedAt: '2026-05-19T00:00:00.000Z',
@@ -94,7 +94,7 @@ function metric(itemUuid: string): CandidateOrderMetric {
     expectedSalesAmount: 1500,
     expectedOpProfit: 200,
     orderExport: {
-      competitorChannelLabel: '크림',
+      comparisonSubjectLabel: '크림',
       selfQty: null,
       competitorQty: null,
       expectedSalesQty: 10,

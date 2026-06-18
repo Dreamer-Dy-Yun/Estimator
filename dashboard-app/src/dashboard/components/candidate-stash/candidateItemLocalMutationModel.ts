@@ -44,7 +44,7 @@ function toCandidateItemSummary(
     insightStatus: 'loaded',
     insight: recommendation.insight,
     isLatestLlmComment: item.isLatestLlmComment,
-    isDetailConfirmed: item.hasSnapshot,
+    hasConfirmedOrderSnapshot: item.hasConfirmedOrderSnapshot,
     orderExport: null,
     dbCreatedAt: item.dbCreatedAt,
     dbUpdatedAt: item.dbUpdatedAt,

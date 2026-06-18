@@ -54,6 +54,8 @@
 
 - For larger changes, add or update an `MD` plan/result note.
 - When frontend feature behavior, source ownership, folder boundaries, API contracts, or major UI responsibilities change, update `MD/dashboard-app/source-boundary-map.md`.
+- When backend API request/response contracts change, update both `MD/backend-api/backend-api-spec.md` and `MD/backend-api/dashboard-api-contract-catalog.md`. The catalog must distinguish path params, query, body, and response so backend endpoint implementation is not forced to infer request serialization from TypeScript parameter names.
+- When candidate order snapshot fields change, update `MD/backend-api/order-snapshot-backend-contract.md` together with `dashboard-app/src/snapshot/orderSnapshotTypes.ts` and `dashboard-app/src/snapshot/parseOrderSnapshot.ts`.
 - Preferred note shape:
   - Goal
   - Scope
@@ -62,7 +64,7 @@
   - Result
   - Non-goals or follow-up candidates
 - Avoid heavy documentation for tiny edits.
-- If backend API contracts change, update `MD/backend-api/backend-api-spec.md` or add a relevant plan note.
+- If backend API contracts change, add or update a relevant plan/result note in `MD`.
 
 ## Validation
 

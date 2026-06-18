@@ -267,8 +267,8 @@ describe('api/mock dashboardApi competitor channel behavior', () : void => {
       skuGroupKey: skuGroupKey('TEST_TOP'),
       periodStart: '2025-01-01',
       periodEnd: '2025-12-31',
-      forecastPeriodEnd: '2026-05-31',
-      leadTimeDays: 30,
+      forecastPeriodEndMonth: '2026-05',
+      orderCoverageDays: 30,
       base: MOCK_BASE_SUBJECT,
     })
 

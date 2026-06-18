@@ -7,8 +7,8 @@ export interface CandidateItemOrderExportSizeQty {
 }
 
 export interface CandidateItemOrderExport {
-  /** Label for the selected comparison subject used by legacy export fields. */
-  competitorChannelLabel: string
+  /** Label for the selected comparison subject used by order metric and export fields. */
+  comparisonSubjectLabel: string
   selfQty: number | null
   competitorQty: number | null
   expectedSalesQty: number

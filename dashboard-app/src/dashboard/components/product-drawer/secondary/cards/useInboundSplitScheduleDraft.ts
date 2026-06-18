@@ -7,7 +7,7 @@ import {
   type InboundSplitScheduleRow,
   type InboundSplitSizeColumn,
 } from './inboundSplitScheduleModel'
-import { redistributeInboundSplitRowTotalByScheduleSuggestion, toInboundSplitDraftInteger } from './inboundSplitDraftQuantityModel'
+import { redistributeInboundSplitRowTotalBySuggestedSizeMix, toInboundSplitDraftInteger } from './inboundSplitDraftQuantityModel'
 import { sumInboundSplitColumnTotals, sumInboundSplitConfirmedBySize, sumInboundSplitSuggestedBySize } from './inboundSplitScheduleTotals'
 import type { InboundSplitDraftRequest } from './inboundSplitScheduleTypes'
 
@@ -76,7 +76,7 @@ export function useInboundSplitScheduleDraft({
 
   const changeRowTotal: (rowIndex: number, value: string) => void = useCallback((rowIndex: number, value: string): void => {
     setRows((currentRows: InboundSplitScheduleRow[]): InboundSplitScheduleRow[] => {
-      const nextRows: InboundSplitScheduleRow[] = redistributeInboundSplitRowTotalByScheduleSuggestion(currentRows, columns, rowIndex, value)
+      const nextRows: InboundSplitScheduleRow[] = redistributeInboundSplitRowTotalBySuggestedSizeMix(currentRows, columns, rowIndex, value)
       return nextRows.length === currentRows.length ? nextRows : currentRows
     })
   }, [columns])

@@ -58,7 +58,7 @@ const sortHeaders: (competitorSalesQtyHeader: string) => SortHeader[] = (competi
   { label: '품번', sortKey: 'code' },
   { label: '상품명', sortKey: 'productName' },
   { label: '색상', sortKey: 'colorCode' },
-  { label: '상태', sortKey: 'isDetailConfirmed', align: 'center' },
+  { label: '상태', sortKey: 'hasConfirmedOrderSnapshot', align: 'center' },
   { label: '자사 기간/총 판매량', sortKey: 'selfQty', align: 'right' },
   { label: normalizePeriodSalesQuantityHeader(competitorSalesQtyHeader), sortKey: 'competitorQty', align: 'right' },
   { label: '총 오더 수량', sortKey: 'expectedSalesQty', align: 'right' },
@@ -127,7 +127,7 @@ const InnerCandidateOrderRow: React.MemoExoticComponent<({ row, index, selected,
       <span className={detailStyles.innerOrderCode}>{row.code}</span>
       <span className={detailStyles.innerOrderName}>{row.productName}</span>
       <span className={detailStyles.innerOrderColor}>{row.colorCode}</span>
-      <span className={detailStyles.innerOrderConfirmState}>{row.isDetailConfirmed ? '상세확정' : '상세미확정'}</span>
+      <span className={detailStyles.innerOrderConfirmState}>{row.hasConfirmedOrderSnapshot ? '상세확정' : '상세미확정'}</span>
       <span className={detailStyles.innerOrderCellNum}>{formatEaQuantity(row.insight.selfQty)}</span>
       <span className={detailStyles.innerOrderCellNum}>{formatEaQuantity(row.insight.competitorQty)}</span>
       <span className={detailStyles.innerOrderCellNum}><OrderMetricCell row={row} kind="qty" /></span>

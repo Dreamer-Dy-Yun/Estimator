@@ -73,7 +73,7 @@ export function markComparisonUnavailableCandidateOrderMetricsFailed(items: Cand
   if (!items.length) return items
   let changed: boolean = false
   const failedItems: CandidateItemSummary[] = items.map((item: CandidateItemSummary) : CandidateItemSummary => {
-    const targetUnavailableAffected: boolean = !item.isDetailConfirmed
+    const targetUnavailableAffected: boolean = !item.hasConfirmedOrderSnapshot
       && (item.orderMetricStatus === 'loading' || item.orderMetricStatus === 'loaded')
     if (!targetUnavailableAffected) return item
     changed = true

@@ -41,7 +41,7 @@ export async function startMockCandidateStashLlmCommentJob(
   const requiredCompanyUuid: string = requireCompany(companyUuid)
   if (!findCandidateStashForOwner(stashUuid, ownerUserUuid, requiredCompanyUuid)) throw new Error('후보군을 찾을 수 없습니다.')
   const itemUuids: string[] = readCandidateItemsForStash(stashUuid, ownerUserUuid, requiredCompanyUuid)
-    .filter((row: CandidateItemRecord) : boolean => row.details != null)
+    .filter((row: CandidateItemRecord) : boolean => row.confirmedOrderSnapshot != null)
     .map((row: CandidateItemRecord) : string => row.uuid)
   const jobId: string = `mock-llm-comment-${makeUuid32()}`
   jobs.set(jobId, { stashUuid, ownerUserUuid, companyUuid: requiredCompanyUuid, itemUuids })

@@ -34,9 +34,9 @@ export type BuildSecondaryOrderSnapshotParams = {
   baseSubject: OrderSnapshotBaseSubject
   comparisonSubject: OrderSnapshotComparisonSubject
   selectedStart: string
-  leadTimeDays: number
+  orderCoverageDays: number
   stockOrderRequest: OrderSnapshotStockOrderRequest
-  stockOrderResult: SecondaryStockOrderCalcResult | null
+  stockOrderResult: SecondaryStockOrderCalcResult
   selfWeightPct: number
   bufferStock: number
   aiComment: SecondaryAiCommentView
@@ -58,7 +58,7 @@ export function buildSecondaryOrderSnapshot(params: BuildSecondaryOrderSnapshotP
     baseSubject,
     comparisonSubject,
     selectedStart,
-    leadTimeDays,
+    orderCoverageDays,
     stockOrderRequest,
     stockOrderResult,
     selfWeightPct,
@@ -73,7 +73,6 @@ export function buildSecondaryOrderSnapshot(params: BuildSecondaryOrderSnapshotP
   const sizeOrders: OrderSnapshotSizeOrder[] = buildCurrentSnapshotSizeOrders(sizeRows)
   const confirmed: OrderSnapshotConfirmed = buildCurrentConfirmed(confirmedRounds, sizeRows, stockOrderRequest.currentOrderInboundDueDate)
   const summary: OrderSnapshotPrimarySummary = createOrderSnapshotPrimarySummary(primary)
-  const storedStockOrderResult: SecondaryStockOrderCalcResult | undefined = createOrderSnapshotStockOrderResult(stockOrderResult)
 
   return {
     schemaVersion: ORDER_SNAPSHOT_SCHEMA_VERSION,
@@ -84,7 +83,7 @@ export function buildSecondaryOrderSnapshot(params: BuildSecondaryOrderSnapshotP
       periodEnd,
       forecastMonths,
       dailyTrendStartMonth: selectedStart,
-      dailyTrendLeadTimeDays: leadTimeDays,
+      dailyTrendForecastDays: orderCoverageDays,
     },
     drawer1: {
       summary,
@@ -95,7 +94,7 @@ export function buildSecondaryOrderSnapshot(params: BuildSecondaryOrderSnapshotP
       comparisonSubject: createOrderSnapshotComparisonSubject(comparisonSubject),
       comparisonBasis: createOrderSnapshotComparisonBasis(secondary),
       stockOrderRequest: createOrderSnapshotStockOrderRequest(stockOrderRequest),
-      ...(storedStockOrderResult == null ? {} : { stockOrderResult: storedStockOrderResult }),
+      stockOrderResult: createOrderSnapshotStockOrderResult(stockOrderResult),
       unitEconomics: {
         unitPrice,
         unitCost,

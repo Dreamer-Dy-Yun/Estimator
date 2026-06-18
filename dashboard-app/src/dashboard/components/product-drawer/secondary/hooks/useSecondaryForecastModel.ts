@@ -13,6 +13,7 @@ import type { ToastContextValue } from '../../../../../components/AppToastContex
 import type { ProductPrimarySummary, ProductSecondaryDetail } from '../../../../../types'
 import type { OrderSnapshotDocument } from '../../../../../snapshot/orderSnapshotTypes'
 import { KO } from '../../ko'
+import { addIsoDays } from '../../../../../utils/date'
 import type { CandidateItemPanelContext } from '../secondaryDrawerTypes'
 import { SecondaryOrderDraft } from '../model/SecondaryOrderDraft'
 import { buildSecondaryOrderSnapshot } from '../secondarySnapshot'
@@ -41,7 +42,7 @@ export type Args = {
   setDailyMeanClient: (value: number | null) => void
   currentOrderInboundDueDate: string
   nextOrderInboundDueDate: string
-  leadTimeDays: number
+  orderCoverageDays: number
   selfWeightPct: number
   bufferStock: number
   confirmBySize: Record<string, number>
@@ -78,7 +79,7 @@ export function useSecondaryForecastModel(args: Args) : { stockOrderDisplay: { c
     setDailyMeanClient,
     currentOrderInboundDueDate,
     nextOrderInboundDueDate,
-    leadTimeDays,
+    orderCoverageDays,
     selfWeightPct,
     bufferStock,
     confirmBySize,
@@ -94,7 +95,7 @@ export function useSecondaryForecastModel(args: Args) : { stockOrderDisplay: { c
   }: Args = args
   const selectedStart: string = selectedStartMonth
   const selectedEnd: string = selectedEndMonth
-  const forecastMeanPeriodEnd: string = nextOrderInboundDueDate.slice(0, 7)
+  const forecastPeriodEndMonth: string = addIsoDays(nextOrderInboundDueDate, -1).slice(0, 7)
 
   useEffect(() : void => {
     if (prefillFromSnapshot != null) return
@@ -110,8 +111,8 @@ export function useSecondaryForecastModel(args: Args) : { stockOrderDisplay: { c
     selectedStartMonth,
     selectedEndMonth,
     baseSubject,
-    forecastMeanPeriodEnd,
-    leadTimeDays,
+    forecastPeriodEndMonth,
+    orderCoverageDays,
     dailyMeanClient,
     currentOrderInboundDueDate,
     nextOrderInboundDueDate,
@@ -164,7 +165,7 @@ export function useSecondaryForecastModel(args: Args) : { stockOrderDisplay: { c
 
   const calculations: { stockOrderCalculationReady: boolean; stockOrderDisplayInputs: { trendDailyMean: null; dailyMean: null; sigma: null; } | { trendDailyMean: number; dailyMean: number; sigma: number; }; sizeRows: SecondarySizeOrderDisplayRow[]; manualConfirmDerived: Record<string, true>; dailyTrendSizeOptions: { id: string; label: string; share: number; }[]; } = useSecondaryOrderCalculations({
     secondary,
-    forecastSalesHorizonDays: leadTimeDays,
+    forecastSalesHorizonDays: orderCoverageDays,
     dailyMeanClient,
     forecastCalc: activeForecastCalc,
     stockOrderCalculationReady,
@@ -180,6 +181,7 @@ export function useSecondaryForecastModel(args: Args) : { stockOrderDisplay: { c
 
   const buildSnapshot: () => OrderSnapshotDocument = useCallback((): OrderSnapshotDocument => {
     if (monthlySalesTrend == null) throw new Error('monthlySalesTrend is required to build order snapshot')
+    if (!stockOrderCalculationReady || activeForecastCalc == null) throw new Error('stockOrderResult is required to build order snapshot')
     return buildSecondaryOrderSnapshot({
       primary,
       monthlySalesTrend,
@@ -190,14 +192,14 @@ export function useSecondaryForecastModel(args: Args) : { stockOrderDisplay: { c
       baseSubject,
       comparisonSubject: comparisonTarget,
       selectedStart,
-      leadTimeDays,
+      orderCoverageDays,
       stockOrderRequest: {
         currentOrderInboundDueDate,
         nextOrderInboundDueDate,
-        leadTimeDays,
+        orderCoverageDays,
         ...(dailyMeanClient == null ? {} : { dailyMeanOverride: dailyMeanClient }),
       },
-      stockOrderResult: stockOrderCalculationReady ? activeForecastCalc : null,
+      stockOrderResult: activeForecastCalc,
       selfWeightPct,
       bufferStock,
       aiComment,
@@ -218,7 +220,7 @@ export function useSecondaryForecastModel(args: Args) : { stockOrderDisplay: { c
     dailyMeanClient,
     expectedFeeRatePct,
     forecastMonths,
-    leadTimeDays,
+    orderCoverageDays,
     monthlySalesTrend,
     nextOrderInboundDueDate,
     periodEnd,

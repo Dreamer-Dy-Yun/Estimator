@@ -8,19 +8,19 @@ Last updated: 2026-06-17
 
 | Field | Required | Meaning |
 |---|:---:|---|
-| `schemaVersion` | Y | `4` |
+| `schemaVersion` | Y | `5` |
 | `skuGroupKey` | Y | Product group key |
 | `savedAt` | Y | Snapshot creation timestamp |
 | `context` | Y | Restore/request basis |
 | `drawer1` | Y | Primary drawer snapshot |
 | `drawer2` | Y | Secondary drawer snapshot |
 
-Top-level `companyUuid` is not part of v4. Scoped restore data belongs in `drawer2.baseSubject.sourceId`.
+Top-level `companyUuid` is not part of v5. Scoped restore data belongs in `drawer2.baseSubject.sourceId`.
 
 ## `context`
 
-Fields: `periodStart`, `periodEnd`, `forecastMonths`, `dailyTrendStartMonth`, `dailyTrendLeadTimeDays`.
-`dailyTrendLeadTimeDays` must equal `drawer2.stockOrderRequest.leadTimeDays` after parse/validate.
+Fields: `periodStart`, `periodEnd`, `forecastMonths`, `dailyTrendStartMonth`, `dailyTrendForecastDays`.
+`dailyTrendForecastDays` must equal `drawer2.stockOrderRequest.orderCoverageDays` after parse/validate.
 
 ## `drawer1`
 
@@ -36,7 +36,7 @@ Each point: `idx`, `date`, `actual`, `comparisonActual`, `forecastLink`, `isFore
 
 Required fields: `baseSubject`, `comparisonSubject`, `comparisonBasis`, `stockOrderRequest`, `selfWeightPct`, `bufferStock`, `aiComment`, `confirmed`, `sizeOrders`.
 
-Optional fields: `stockOrderResult`, `unitEconomics`.
+Required restore fields: `stockOrderResult`, `unitEconomics`.
 
 ### `baseSubject`
 
@@ -65,7 +65,7 @@ Fields: `skuGroupKey`, `comparisonPrice`, `comparisonQty`, `comparisonRatioBySiz
 
 ### `stockOrderRequest`
 
-Fields: `currentOrderInboundDueDate`, `nextOrderInboundDueDate`, `leadTimeDays`, optional `dailyMeanOverride`.
+Fields: `currentOrderInboundDueDate`, `nextOrderInboundDueDate`, `orderCoverageDays`, optional `dailyMeanOverride`.
 The two inbound date fields follow the integrated sales forecast card input model `SalesForecastInboundDateFields`.
 
 ### `stockOrderResult`
@@ -77,7 +77,7 @@ This block follows the frontend render/calc result type `SecondaryStockOrderCalc
 `sizeRows[]`: `size`, `currentStockQty`, `totalOrderBalance`, `expectedInboundOrderBalance`.
 `sizeRows[].size` must match the `sizeOrders[].size` set. Totals must equal row sums.
 
-Removed fields: `safetyStockCalc`, `forecastQtyCalc`. The current frontend does not use those blocks for recommendation or restore. Recommendation basis lives in `drawer2.sizeOrders[]`, `drawer2.bufferStock`, `drawer2.stockOrderRequest`, and `drawer2.stockOrderResult.display`.
+Recommendation basis lives in `drawer2.sizeOrders[]`, `drawer2.bufferStock`, `drawer2.stockOrderRequest`, and `drawer2.stockOrderResult.display`. Amount/profit projections are outside the current snapshot restore contract unless a separate API contract adds them.
 
 ### Consistency checks enforced by snapshot parser
 
@@ -93,7 +93,7 @@ Removed fields: `safetyStockCalc`, `forecastQtyCalc`. The current frontend does 
 - `drawer2.stockOrderResult.display.sizeRows[]` size set must match `drawer2.sizeOrders[]` size set.
 - `drawer2.confirmed.rounds[].qtyBySize` size keys must match `drawer2.sizeOrders[].size`.
 - `drawer2.stockOrderResult.display` total fields must equal sums of each size row field.
-- `context.dailyTrendLeadTimeDays` must equal `drawer2.stockOrderRequest.leadTimeDays`.
+- `context.dailyTrendForecastDays` must equal `drawer2.stockOrderRequest.orderCoverageDays`.
 
 ### `unitEconomics`
 
@@ -122,7 +122,7 @@ Fields: `size`, `baseSharePct`, `comparisonSharePct`, `blendedSharePct`, `foreca
 
 ## Storage rules
 
-- Store snapshot JSON in candidate item `details`.
+- Store snapshot JSON in candidate item `confirmedOrderSnapshot`.
 - Do not store API wrapper fields inside the snapshot document.
 - `isLatestLlmComment` is item metadata, not a snapshot field.
 - Reject values that cannot be validated against this contract.

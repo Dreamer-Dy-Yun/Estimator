@@ -105,7 +105,7 @@ export interface DashboardApi {
   /**
    * Streams candidate order metrics after a selected comparison target exists.
    * Requires concrete company scope, data reference period, requestId, item UUIDs, and comparison subject.
-   * Snapshot rows project stored details; non-snapshot rows use the selected comparison for secondary calculation.
+   * Snapshot rows project stored confirmedOrderSnapshot; non-snapshot rows use the selected comparison for secondary calculation.
    */
   subscribeCandidateOrderMetrics(
     params: CandidateOrderMetricStreamParams,

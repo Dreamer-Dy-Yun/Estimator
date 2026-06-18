@@ -112,7 +112,7 @@ function createReferenceItem(
       badges: [],
       bottomPercentThreshold: 10,
       competitorAmount: 2000,
-      competitorChannelLabel: '크림',
+      competitorSalesSourceLabel: '크림',
       competitorQty: 20,
       expectedOpProfit: 400,
       expectedSalesAmount: 3000,
@@ -137,7 +137,7 @@ function createCandidateItem(
   return {
     dbCreatedAt: '2026-05-19T01:00:00.000Z',
     dbUpdatedAt: '2026-05-19T01:00:00.000Z',
-    hasSnapshot: false,
+    hasConfirmedOrderSnapshot: false,
     isLatestLlmComment: false,
     skuGroupKey: 'sku-group-1',
     skuUuid: 'sku-1',

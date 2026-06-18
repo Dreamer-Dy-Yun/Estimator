@@ -22,7 +22,7 @@ const AI_COMMENT: SecondaryAiCommentView = {
 
 const SNAPSHOT: OrderSnapshotDocument = ({
   context: {
-    dailyTrendLeadTimeDays: 30,
+    dailyTrendForecastDays: 30,
     dailyTrendStartMonth: '2026-01',
     forecastMonths: 12,
     periodEnd: '2026-12-31',
@@ -52,7 +52,7 @@ const SNAPSHOT: OrderSnapshotDocument = ({
     stockOrderRequest: {
       currentOrderInboundDueDate: '2026-07-01',
       dailyMeanOverride: 11,
-      leadTimeDays: 30,
+      orderCoverageDays: 30,
       nextOrderInboundDueDate: '2026-08-01',
     },
     stockOrderResult: {
@@ -65,7 +65,7 @@ const SNAPSHOT: OrderSnapshotDocument = ({
     },
   },
   savedAt: '2026-06-10T00:00:00.000Z',
-  schemaVersion: 4,
+  schemaVersion: 5,
   skuGroupKey: 'sku-a',
 }) as unknown as OrderSnapshotDocument
 

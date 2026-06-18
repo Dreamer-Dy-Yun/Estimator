@@ -58,7 +58,7 @@ const createCandidateItemSummary: (uuid: string) => CandidateItemSummary = (uuid
   expectedOpProfit: 0,
   insightStatus: 'loaded',
   insight: {
-    competitorChannelLabel: '경쟁사',
+    competitorSalesSourceLabel: '경쟁사',
     competitorQty: null,
     competitorAmount: null,
     selfQty: null,
@@ -73,7 +73,7 @@ const createCandidateItemSummary: (uuid: string) => CandidateItemSummary = (uuid
     badges: [],
   },
   isLatestLlmComment: false,
-  isDetailConfirmed: false,
+  hasConfirmedOrderSnapshot: false,
   orderExport: null,
   dbCreatedAt: '2026-05-01T00:00:00.000Z',
   dbUpdatedAt: '2026-05-01T00:00:00.000Z',

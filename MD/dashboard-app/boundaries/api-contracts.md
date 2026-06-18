@@ -1,188 +1,117 @@
-﻿# API / Mock Boundary
+# Dashboard API Boundary
 
-| 항목 | 내용 |
-|------|------|
-| 작성 지시 | Yun Daeyoung |
-| 작성자 | Codex |
-| 작성일 | 2026-05-19 |
-| 최종 수정일 | 2026-06-17 |
-| 상태 | 유지 문서 |
-| 적용 범위 | `dashboard-app/src/api`, mock/HTTP adapter, API 타입 계약 |
+Last updated: 2026-06-18
 
-## 핵심 원칙
+이 문서는 `dashboard-app`에서 API 계약을 어떻게 소유하고 사용하는지 정리한다. 백엔드 endpoint의 상세 구현 기준은 `MD/backend-api/backend-api-spec.md`와 `MD/backend-api/dashboard-api-contract-catalog.md`를 따른다.
 
-- `dashboard-app`은 현재 frontend/API-contract app으로 검증된다. Mock mode는 local/Pages preview용 backend-contract substitute이며 UI fallback이 아니다.
-- HTTP production readiness는 backend base URL과 backend parity evidence가 있어야 하며, mock preview 성공을 HTTP production parity로 보고하지 않는다.
-- 화면, 훅, 컴포넌트는 mock 파일을 직접 import하지 않는다.
-- API 타입은 `src/api/types/*`에 `interface` 우선으로 둔다.
-- mock은 임시 데이터가 아니라 백엔드 계약 대체 구현체다.
-- mock은 `companyUuid`를 실제 데이터 분기와 계산에 반영한다. 회사 scope를 받기만 하고 무시하는 구현은 계약 대체 구현체가 아니다.
-- 백엔드가 제공해야 하는 비즈니스 값은 프론트에서 임의로 생성하지 않는다.
-- mock/HTTP adapter는 요청 처리 중 모르는 SKU나 경쟁 채널을 다른 상품이나 기본 채널로 대체하지 않는다. 계약상 필수 원천이 없으면 에러, `null`, 또는 행 단위 실패 상태로 드러낸다. 단, mock seed가 화면 검증용 카탈로그 값을 생성하는 것은 별도 mock 데이터 생성 책임으로 허용한다.
+## 1. API 계층 원칙
 
-## public 진입점
+- 화면, 훅, 컴포넌트는 `src/api` 밖의 mock 구현을 직접 호출하지 않는다.
+- API 타입은 `src/api/types/*`에 interface 중심으로 정의한다.
+- HTTP와 mock은 같은 `DashboardApi` 인터페이스를 구현한다.
+- 백엔드가 제공하지 않는 값을 프론트에서 임의 생성하지 않는다.
+- 누락/실패/빈 상태는 UI에서 드러내고, 성공처럼 감추지 않는다.
 
-| 경로 | 역할 |
-|------|------|
-| `api/client.ts` | 화면에서 호출하는 API 함수와 `dashboardApi` 객체를 노출하는 facade |
-| `api/index.ts` | API public export |
-| `api/requests/*` | mock/HTTP adapter 선택과 실제 요청 경계 |
-| `api/requests/companyRequests.ts` | 로그인 직후 header company selector가 사용하는 회사 목록 adapter |
-| `api/requests/httpClient.ts` | `VITE_API_BASE_URL`, JSON/FormData 요청, `ApiHttpError` 생성, EventSource SSE 구독 |
-| `api/mock.ts` | request adapter가 사용하는 mock API 진입 파일. 화면은 import하지 않는다 |
+## 2. 주요 파일
 
-## 타입 계약
+| 파일 | 책임 |
+|---|---|
+| `src/api/types/index.ts` | API 타입 export 진입점 |
+| `src/api/types/dashboard-api.ts` | `DashboardApi` 인터페이스 |
+| `src/api/requests/dashboardRequests.ts` | HTTP/mock 어댑터 선택점 |
+| `src/api/requests/httpDashboardRequests.ts` | 실제 HTTP path/query/body 직렬화 기준 |
+| `src/api/requests/mockDashboardRequests.ts` | 계약형 mock 구현 |
+| `src/api/requests/dashboardMasterDataCache.ts` | master data 캐시 래퍼 |
+| `src/snapshot/orderSnapshotTypes.ts` | 후보 상세 저장 스냅샷 v5 타입 |
+| `src/snapshot/parseOrderSnapshot.ts` | 스냅샷 파싱/검증 |
 
-| 파일 | 소유 계약 |
-|------|-----------|
-| `types/dashboard-api.ts` | `DashboardApi` 전체 인터페이스 |
-| `types/dashboard-runtime.ts` | 앱 진입 시 읽는 대시보드 런타임 설정 |
-| `types/auth.ts` | 로그인, 세션, 사용자 정보, 비밀번호 변경 |
-| `types/company.ts` | 회사 목록, `전체` sentinel, 업무 API company scope helper |
-| `types/admin-gpt-key.ts` | GPT 키 관리 |
-| `types/admin-google-sheet.ts` | Google Sheets API 설정 관리 |
-| `types/api-error.ts` | 공통 실패 응답(`ApiErrorResponse`)과 HTTP status to `ApiFailureKind` 분류 |
-| `types/candidate.ts` | 후보군, 후보 아이템, 추천, 상세확정 |
-| `types/candidate-order-metrics.ts` | 총 오더 수량/금액 SSE. 요청은 단일 `companyUuid`와 선택된 `comparison` subject를 함께 보내며, 백엔드는 `completed`를 보내야 한다. `source=snapshot`은 저장값 투영, `source=secondary-calc`은 선택된 comparison 기준 재계산이다. 선택 대상이 없으면 프론트는 SSE를 열지 않는다 |
-| `types/drawer.ts` | 상품 드로워 번들, 비교 대상 subject, 판매 정보 insight 계약 |
-| `types/sales.ts` | 자사/경쟁사 분석 요청/응답 |
-| `types/secondary.ts` | 2차 드로워 상세, 일간 추이 source, 분할 입고 source, 재고·발주, AI 코멘트 |
-| `types/snapshot.ts` | 저장 스냅샷 API 계약 |
+## 3. 요청 직렬화 기준
 
-## mock 경계
+백엔드 구현자는 타입 이름만 보지 말고 `httpDashboardRequests.ts`의 실제 직렬화 기준을 확인해야 한다.
 
-| 파일/영역 | 역할 |
-|------|------|
-| `mock/authApi.ts` | 런타임 메모리 기반 인증 mock |
-| `mock/admin*Api.ts` | 관리자 사용자/GPT/구글 시트 mock |
-| `mock/dashboardApi.ts` | 판매 mock public 조립과 mock dashboard facade |
-| `mock/mockProductComparisonApi.ts` | 상품 비교 target, 월간 추이, 판매 정보, 2차 일간 추이, 분할 입고 source mock |
-| `public/mock/secondaryInboundSplitSourceFixtures/*.json` | 분할 입고 source fixture. 회사 scope별 shard로 Mock mode 배포 산출물에 포함하며 정적 호스팅 HTTP gzip/brotli 압축을 전제로 둔다 |
-| `mock/mockProductSecondaryDetailApi.ts` | 2차 상세/사이즈 비중 mock builder |
-| `mock/secondaryAiComment.ts` | 2차 드로워 AI 코멘트 mock 문장 생성 |
-| `mock/mockNumberFormat.ts` | mock 문장/스냅샷 설명에 쓰는 수량·금액 표시 포맷 |
-| `mock/candidateMockApi.ts` | 후보군 mock public method orchestration과 mutation entry |
-| `mock/candidateMockStore.ts` | 후보군 seed/store 읽기와 list result 조립 |
-| `mock/candidateMockMappers.ts` | 후보 아이템 상세 DTO와 후보군별 item 통계 매핑 |
-| `mock/candidateItemSummaryBuilder.ts` | 기간 기준 후보 요약 DTO 조립. 현재 후보 목록은 metric-light 응답을 기본으로 하고 오더 지표는 선택된 comparison target 이후 SSE에서 채운다 |
-| `mock/candidateInsightBadgeModel.ts` | 추천/배지 판정 기준과 배지 DTO 생성 |
-| `mock/candidateOrderMetricStream.ts` | 회사 scope가 반영된 총 오더 지표 SSE mock |
-| `mock/candidateDetailBulkConfirmStream.ts` | 상세 일괄확정 SSE mock |
-| `mock/candidateStashLlmCommentJobStream.ts` | 후보군 LLM 코멘트 SSE mock |
-| `mock/scatterGrid.ts` | 산점도 격자화 mock 계산. 운영에서는 백엔드 책임 |
-| `mock/secondaryStockOrderCalcApi.ts` | 2차 재고·발주 계산 mock |
+| 구분 | 기준 |
+|---|---|
+| path param | `skuGroupKey`, `stashUuid`, `itemUuid`, `jobId` 등은 URL path에 들어간다. |
+| query | GET filter, subject query, DELETE 단건 scope 일부가 들어간다. |
+| body | POST/PATCH payload와 bulk DELETE payload가 들어간다. |
+| SSE query | SSE 구독은 query string으로 requestId/companyUuid/subject를 전달한다. |
+| multipart | 엑셀 업로드는 `FormData`로 `file`과 `companyUuid`를 전달한다. |
 
-## request adapter 주의점
+예를 들어 `SecondaryAiCommentParams` 타입에는 `skuGroupKey`가 포함되지만, HTTP body에는 `skuGroupKey`가 들어가지 않는다. `skuGroupKey`는 `/products/{skuGroupKey}/secondary/ai-comment` path param으로 직렬화된다.
 
-- `dashboardRequests.ts`는 `API_ADAPTER_MODE`에 따라 mock/HTTP dashboard adapter를 선택하고 master data cache decorator를 적용하는 얇은 진입점이다.
-- `mockDashboardRequests.ts`는 현재 세션의 `USER_ACCOUNT.uuid`를 request boundary에서만 붙인다. 화면 내부로 사용자 UUID를 흘리지 않는다.
-- `httpDashboardRequests.ts`는 실제 백엔드 endpoint 경로를 `DashboardApi` 계약에 맞춰 연결한다.
-- `getDashboardRuntimeConfig`는 인증된 앱 진입부에서 읽는 backend-owned 설정이다. 현재 응답의 `candidateOrderMetricComparison`은 후보군 총오더 지표 SSE에 넘길 comparison subject이며, 후보군 상세 화면이 비교대상 목록을 직접 고르거나 기본값을 합성하지 않는다.
-- 회사 소유 read adapter는 단일 회사 선택 시 `companyUuid`를 포함하고, `전체` 선택 시 생략한다. 이 scope는 분석 목록/산점도/filter meta와 후보군 read에 적용된다. 생략은 백엔드가 회사 where 조건을 제거한다는 조회 계약이며, mock adapter도 같은 의미로 데이터 분기/계산을 수행한다.
-- 상품드로워 read-like API는 `companyUuid?` 대신 subject 계약을 사용한다. bundle은 `base`만 받고, monthly trend/sales insight/secondary detail/daily trend는 `base`와 `comparison`을 함께 받는다. secondary inbound split source와 secondary stock order calc는 comparison이 필요 없는 계산이므로 `base`만 받는다.
-- AI comment는 read-like GET이 아니라 manual POST 생성 요청이다. HTTP body는 path `skuGroupKey`를 제외하고 base/comparison, 기간/예측, optional `candidateItemUuid`, optional `snapshotForAiComment`를 보낸다.
-- 상품 판매 정보 비교 API는 `base`와 `comparison`을 subject 계약으로 통일한다. 프론트 내부 subject는 `role`, `kind`, `sourceId`를 갖지만, HTTP query에서는 `self-company` 전체 범위의 `sourceId`를 생략한다. `ALL_COMPANY_UUID`는 프론트 내부 sentinel이며 백엔드로 전송하지 않는다.
-- `getProductComparisonTargets`의 빈 배열은 정상 unavailable 상태다. 화면은 첫 번째 비교 대상을 임의 생성하거나 API 오류로 바꾸지 않는다.
-- 후보군 상세의 총오더 지표 comparison은 앱 진입부가 `getDashboardRuntimeConfig()`로 받은 `candidateOrderMetricComparison`을 prop/매개변수로 전달해 사용한다. 선택 UI나 프론트 전역 변수는 두지 않는다.
-- 후보군 상세는 runtime config 로딩 중에는 총오더 metric SSE를 지연할 수 있다. 로딩이 끝났는데 `candidateOrderMetricComparison`이 없으면 가짜 default를 만들지 않고 non-snapshot metric cell을 실패 상태로 종료한다.
-- mock live order metric builder도 선택된 comparison 없이 첫 번째 경쟁 채널을 대체 사용하지 않는다.
-- 후보군 mutation, 후보군 backend job start, 후보군 job/SSE subscribe, 오더 지표 SSE, 후보군 엑셀 upload FormData는 단일 회사 scope 전용이다. `전체` 선택 상태에서는 UI에서 후보군 side-effect 진입을 막고, mock/HTTP 백엔드는 `companyUuid` 누락 요청을 검증 실패로 처리해야 한다.
-- `dashboardMasterDataCache.ts`는 page와 공통 drawer가 공유하는 master data 요청을 coalesce한다. mutation 후 무효화 대상이 아닌 master data만 캐시한다.
-- 관리자 Google Sheets mock은 서비스 계정 키를 JSON으로 parse해 `client_email`을 확인한다. 잘못된 JSON을 정규식 등으로 보정하지 않는다.
-- HTTP 실패는 `httpClient.ts`에서 `ApiHttpError`로 변환한다. 기존 화면은 `error.message`만 읽어도 동작해야 하며, 새 호출부는 필요할 때 `status`, `kind`, `code`, `body`를 참조한다.
-- mock request adapter 실패도 `requests/mockApiError.ts`에서 `ApiClientError`로 정규화한다. mock 내부 구현은 일반 `Error`를 던질 수 있지만, 화면과 hook이 받는 public API 실패 shape는 HTTP adapter와 같은 계열이어야 한다.
-- 상태 분류 기준은 `401=auth`, `403=permission`, `408/504=timeout`, `404=not-found`, `409=conflict`, `422=validation`, `504를 제외한 5xx=server`, 그 외 `4xx=client`다.
-- SSE 구독은 application event 실패와 transport 실패를 분리한다. `openApiEventStream`은 `onError`를 제공하고, 화면 hook은 연결 실패 시 기존 데이터를 유지하거나 요청 대상 row만 실패 상태로 전환해야 한다.
-- 성공인데 응답 본문이 없는 API는 204를 사용한다. 빈 배열/객체가 정상 데이터인 endpoint는 해당 타입 계약에 명시하고, 실패를 빈 성공값으로 숨기지 않는다.
+## 4. 회사 스코프
 
-## 인증/관리자 프로필 계약
+| 작업 | `companyUuid` 처리 |
+|---|---|
+| 읽기/list | 선택값이다. 전체 회사 스코프가 허용되는 API는 생략될 수 있다. |
+| mutation/import/job | 필수값이다. 프론트 helper가 구체 회사 UUID를 요구한다. |
+| 전체 회사 | `ALL_COMPANY_UUID`는 백엔드로 그대로 보내지 않고 생략하거나 구체 scope를 요구한다. |
 
-- `PATCH /auth/me`는 현재 사용자 본인의 `loginId`와 `name` 수정만 소유한다.
-- `PATCH /admin/users/{uuid}`는 관리자 제어 필드인 `note`, `role`, `isActive`만 소유한다. `loginId`와 `name`은 관리자 수정 payload에 포함하지 않는다.
-- backend는 다른 사용자가 가진 normalized `loginId`로 본인 프로필을 변경하려는 경우 `409 conflict`를 반환해야 한다.
+`normalizeCompanyScopeParams`, `normalizeCompanyMutationScopeParams`, `getRequiredCompanyUuidForMutationScope`가 이 경계를 담당한다.
 
-## 백엔드 문서 연결
+## 5. 상품 비교 subject
 
-API 타입/계약이 바뀌면 `source-boundary-map.md`의 갱신 원칙을 기준으로 이 문서와 [../../backend-api/dashboard-api-contract-catalog.md](../../backend-api/dashboard-api-contract-catalog.md)를 같이 갱신한다.
+상품 API는 다음 query field를 사용한다.
 
-API endpoint, 요청/응답 schema, 에러 형식, 인증/세션/권한 검증 규칙이 바뀌면 [../../backend-api/backend-api-spec.md](../../backend-api/backend-api-spec.md)도 함께 갱신한다.
+| subject | fields |
+|---|---|
+| base | `baseRole`, `baseKind`, `baseSourceId?` |
+| comparison | `comparisonRole`, `comparisonKind`, `comparisonSourceId?` |
 
-이전 계약은 현재 catalog 안에 섞지 않고 [../../backend-api/CHANGELOG.md](../../backend-api/CHANGELOG.md) 또는 `MD/backend-api/OLD/`에 보관한다.
+`comparisonKind=competitor-channel`이면 `comparisonSourceId`가 필수이다. 프론트는 비교 대상을 API 결과 밖에서 임의 생성하지 않는다.
 
-백엔드 카탈로그는 프론트 타입/소스 책임과 백엔드 계약의 연결 지점이고, 백엔드 spec은 route, schema, error, validation의 실행 계약이다. 한쪽 변경이 다른 문서의 계약 의미를 바꾸면 같은 작업 단위에서 같이 정렬한다.
+## 6. Product/Secondary 계약
 
-백엔드는 프론트 타입 정의와 응답 JSON 필드명이 1:1로 맞아야 한다. 특히 후보군/스냅샷/SSE 계약은 프론트가 API 응답을 신뢰하고 과도하게 정규화하지 않는다는 전제로 동작한다.
+| API | 역할 |
+|---|---|
+| `getProductDrawerBundle` | 기본 상품 드로어 번들 |
+| `getProductComparisonTargets` | 비교 대상 목록 |
+| `getProductMonthlyTrend` | 월간 추세 |
+| `getProductSalesInsight` | 기간/비교 주체 민감 인사이트 |
+| `getProductSecondaryDetail` | secondary 오더 상세 |
+| `getSecondaryDailyTrend` | 일별 예측 소스 |
+| `getSecondaryInboundSplitSource` | 입고 분할 원천 소스 |
+| `getSecondaryStockOrderCalc` | 백엔드 단일 주문 계산점 |
 
-## 2026-06-10 list thumbnail contract
+`getSecondaryInboundSplitSource`는 적용된 분할 rows를 반환하지 않는다. 적용된 분할 결과는 `OrderSnapshotDocument.drawer2.confirmed.rounds`에 저장된다.
 
-- 분석 리스트 `SelfSalesRow`/`CompetitorSalesRow`와 후보군 리스트 `CandidateItemSummary`/`CandidateReferenceItemSummary`는 `thumbnailUrl: string | null`을 row summary 계약에 포함한다.
-- 썸네일은 DB/API가 제공하는 작은 이미지 URL이다. 화면 컴포넌트는 이 값을 표시만 하며 `productName`, `code`, `colorCode`로 운영용 이미지 URL을 합성하지 않는다.
-- `null`은 저장된 썸네일 없음이다. 필드 누락은 계약 불일치로 보고 mock/HTTP 응답을 수정해야 한다.
-- `CandidateStashItemSummary`는 후보 item 상태/식별자용 slim DTO이므로 썸네일을 소유하지 않는다. 실제 표시는 `CandidateItemSummary` 또는 `CandidateReferenceItemSummary`에서 처리한다.
-- mock 썸네일은 `src/api/mock/mockProductThumbnail.ts`가 API mock 데이터로 생성한다. 이는 화면 fallback이 아니라 mock backend 대체 구현 책임이다.
-- 화면 표시는 `src/dashboard/components/ProductThumbnailCell.tsx`가 공통 소유한다. 분석 리스트, 이너 후보군, 추천 보기에서 같은 컴포넌트를 사용하고, hover 미리보기는 화면 데이터가 아니라 동일 `thumbnailUrl`의 표시 확장이다.
+## 7. Candidate 계약
 
-## 2026-05-21 API 런타임과 실패 상태 경계
+| 흐름 | API |
+|---|---|
+| 후보 풀 목록 | `getCandidateStashes` |
+| 후보 항목 목록 | `getCandidateItemsByStash` |
+| 추천 후보 조회 | `getCandidateRecommendations` |
+| 후보 상세 확정 배치 | `startCandidateDetailBulkConfirm`, `subscribeCandidateDetailBulkConfirm` |
+| 후보 LLM 코멘트 배치 | `startCandidateStashLlmCommentJob`, `subscribeCandidateStashLlmCommentJob` |
+| 주문 지표 SSE | `subscribeCandidateOrderMetrics` |
+| 후보 항목 저장 | `updateCandidateItem` |
 
-- API 런타임 모드의 기준 이름은 `API_ADAPTER_MODE`다. UI 표시는 Mock API Mode / HTTP API Mode로 연결한다.
-- 런타임 모드는 `mock` 또는 `http`이며, 화면은 mock 구현을 직접 import하지 않는다.
-- `VITE_USE_MOCK_API=true`만 mock mode다. `false`, 미설정, 빈 값은 HTTP mode로 처리한다. 배포 workflow는 resolved deploy mode를 기준으로 `VITE_USE_MOCK_API`를 명시한다.
-- GitHub Pages workflow는 현재 프로젝트 단계에서 mock preview 배포를 허용한다. HTTP mode를 선택한 경우에만 `VITE_API_BASE_URL`/`DASHBOARD_API_BASE_URL`이 필수다.
-- HTTP production mode는 `VITE_API_BASE_URL`이 필수다. 개발/test 환경에서는 로컬 기본 URL을 허용하되, 운영/Pages 배포에서 backend base URL 누락을 localhost fallback으로 숨기지 않는다.
-- API 실패는 `ApiClientError` 또는 `ApiHttpError`로 정규화하고, 호출부는 필요하면 `kind`를 기준으로 UX 정책을 나눈다.
-- 후보군 상세 기본 목록 실패는 `candidateItemsLoadError`로 유지한다. detail error가 있으면 기존 후보 목록을 비우지 않고 최신화 실패를 드러낸다.
-- 실패를 정상 빈 목록으로 감추지 않는다. 정상 빈 목록과 실패 상태는 API 계약과 화면 surface에서 구분한다.
+`updateCandidateItem` 응답은 저장 후 최신 `CandidateItemDetail` 기준이다. 프론트는 이 응답을 저장 성공 상태로 반영하고 오래된 후속 GET이 이를 덮지 못하게 해야 한다.
 
-## Company selector and company scope boundary
+## 8. DELETE 요청 차이
 
-- Company list API는 header company selector dropdown을 위한 최소 목록 계약이다.
-- 프론트 dropdown에 필요한 응답 필드는 `uuid`, `name`뿐이다.
-- 실제 백엔드와 mock `/companies`는 COMPANY 테이블의 실제 회사 row만 내려준다. 현재 mock 응답은 `한아INT`, `T1글로벌`이고, dropdown 표시용 `전체` option은 `AuthProvider`가 프론트 내부 sentinel로 합성한다.
-- `전체` 선택은 업무 API 요청에서 `companyUuid`를 생략하는 의미다. 백엔드는 `companyUuid`가 없으면 회사 where 조건을 적용하지 않는다.
-- 단일 회사 선택 시 회사 소유 업무 데이터 요청은 `companyUuid`를 포함한다. 적용 범위는 자사/경쟁사 분석 API, 산점도 API, filter meta, 후보군 조회, 후보군 mutation/job/SSE이다. 상품드로워 계열은 같은 회사 의미를 `baseSubject.sourceId`로 표현한다. 후보군 mutation/job/SSE는 required single company scope다.
-- mock의 `한아INT`와 `T1글로벌` scope는 같은 seed를 단순 반환하지 않는다. 판매량/금액, 후보군 stash/item 접근, 오더 지표 SSE 계산은 선택 회사 UUID를 실제 입력으로 사용한다.
-- 오더 후보군은 단일 회사 기준 업무 흐름이므로 `전체` 선택 상태에서는 오더 후보군 탭과 후보군 추가 액션을 비활성화하고 후보군 mutation API를 호출하지 않는다.
-- 프론트는 dropdown 표시나 선택 상태 유지를 위해 존재하지 않는 company scope, 권한, 집계 값, business flag를 임의로 생성하지 않는다.
-- 문서상 최소 응답 shape는 `Array<{ uuid: string; name: string }>`이며, API 타입은 interface 우선 원칙을 따른다.
-- 사용자별 회사 접근 권한 부여는 현재 범위가 아니며, 권한 정책 추가 시 `/companies` 응답 범위와 업무 API 403 기준을 같이 갱신한다.
+DELETE 요청은 모두 같은 형태가 아니다.
 
-## 2026-05-22 company scope / failure UX hardening status
+| API | path | query | body |
+|---|---|---|---|
+| `deleteCandidateStash` | `stashUuid` | `companyUuid` | none |
+| `deleteCandidateItem` | `itemUuid` | `companyUuid` | none |
+| `deleteCandidateItems` | `stashUuid` | none | `itemUuids`, `companyUuid` |
 
-### 완료로 문서화할 수 있는 경계
+백엔드 문서와 구현은 이 차이를 명확히 반영해야 한다.
 
-- `types/company.ts`는 read API용 optional scope와 mutation/job/SSE용 required scope를 분리한다. `getCompanyUuidForOptionalScope`는 `전체` sentinel, 빈 문자열, 누락 값을 read API의 `companyUuid` 생략으로 정규화한다.
-- `getRequiredCompanyUuidForMutationScope`와 `normalizeCompanyMutationScopeParams`는 mutation, backend job, SSE subscribe가 단일 회사 scope 없이 실행되지 않도록 런타임에서 실패시킨다.
-- `httpDashboardRequests.ts`는 상품드로워 계열 API에 subject 계약을 그대로 전달한다. 후보군 mutation, 상세 일괄확정 job/SSE, 후보군 LLM comment job/SSE, 오더 지표 SSE, 엑셀 upload FormData에는 required single company scope 검증을 적용한다.
-- `httpDashboardRequests.ts`의 read API와 read-like POST는 `normalizeCompanyScopeParams`를 통해 `전체` 선택 시 `companyUuid`를 query/body에서 생략하고, 단일 회사 선택 시 포함한다.
+## 9. 인증 세션
 
-### 하드닝 후보
+`GET /auth/session`은 인증되지 않은 경우 `401`을 세션 없음으로 해석해 `null`을 반환할 수 있다. 따라서 프론트 타입/문서는 `AuthSession | null`을 기준으로 맞춘다.
 
-- `dashboard-app/src/api/types/company.ts`: public helper 계약이 작고 명확하므로 단위 테스트와 문서화된 공개 함수 목록을 보강한 뒤 하드닝 완료 후보로 볼 수 있다.
-- `dashboard-app/src/api/requests/httpDashboardRequests.ts`: company scope runtime guard, product subject query, mutation endpoint mapping, SSE query, FormData upload scope가 책임별 테스트 파일로 고정되어 있다. endpoint 추가 시 matching request test와 backend API 문서를 함께 갱신한다.
+## 10. 문서 갱신 규칙
 
-### 보류 항목
+API 계약이 바뀌면 다음을 같은 변경 단위에서 맞춘다.
 
-- 2026-06-10 기준 `npm run check:encoding`, `npm run test:run`, `npm run build` 통과 상태에서 문서와 request 계약을 정렬했다. 실제 backend 권한 정책과 배포 run 증빙은 별도 운영 증거로 관리한다.
-- backend 권한 정책, 회사별 접근 가능 목록, 403 UX는 아직 현재 scope 밖이다. 해당 정책이 추가되면 `/companies` 응답 범위, 업무 API 403 기준, `failure-ux-matrix.md`를 함께 갱신해야 한다.
-
-## 2026-06-14 secondary daily/inbound flow source contract
-
-- `getSecondaryDailyTrend` now returns `SecondaryDailyTrendSource`, not chart-ready `SecondaryDailyTrendPoint[]`.
-- Daily trend source is aggregate per date. `flowByDate[date].base.inbound` is required numeric known base inbound. `flowByDate[date].comparison.inbound` may be `null` because comparison inbound/stock is not rendered by the current frontend.
-- `baseStockAtStart` is the opening stock immediately before `dateStart`. `flowByDate[date].base.inbound` is that date's inbound quantity, not chart-ready `stockBar` or `inboundAccumBar`.
-- `flowByDate` must cover every date from `dateStart` through inclusive `dateEnd`. Known zero `sale`/`inbound` values are numeric `0`; omitted keys or omitted cells are contract mismatches.
-- `comparisonStockAtStart` is reserved for a future comparison stock bar. Current UI does not render comparison stock bars, so backend may send `null`.
-- `useSecondaryDailyTrend` validates `productId`, request `dateStart`, response inclusive `dateEnd`, and `forecastStartDate` before chart conversion. Mismatches surface as a daily-trend unit error instead of rendering stale or unrelated data.
-- Backend-facing change: old chart-ready fields are ignored by the current frontend contract. Stock visibility depends on `baseStockAtStart` plus per-date `base.inbound` and `base.sale`.
-- `forecastStartDate` is the forecast boundary. The frontend derives per-row `isForecast`, `idx`, `month`, stock bar values, and chart line split values.
-- Size-level flow is not part of the daily trend source. Size-level flow belongs to `getSecondaryInboundSplitSource`.
-- `src/api/types/secondary.ts` owns `SecondaryInboundSplitSource`, `SecondaryInboundSplitExpectationCell`, and `SecondaryInboundSplitSourceParams`.
-- `getSecondaryInboundSplitSource` is exposed through `src/api/client.ts` and adapter implementations, not through UI-to-mock direct imports.
-- The API provides only the source needed to suggest split inbound quantities: product id, date range, stock at `dateStart`, and per-date/per-size expected sale plus already-known inbound.
-- Backend-facing change: split count, selected split dates, and confirmed split result rows are not request/response fields. `dateEnd` is exclusive, `dateStart < dateEnd` is required, and required source cells must be explicit numeric `0` when values are known zero.
-- Daily trend mock builders may derive source values from monthly seed data, but must output the same source contract the backend owns: opening stock plus per-date flow. They must not pass monthly closing stock as opening stock when current-period inbound is what keeps the chart stock visible.
-- `SecondaryStockOrderCalcResult` owns demand/statistics plus stock-order display rows only. Removed safety/forecast amount blocks are not frontend restore inputs.
-- Split count, split dates, current confirmed order quantity by size, and editable confirmed split quantities are frontend draft state. They are not request fields for this API.
-- `mockProductComparisonApi.ts` implements the same source contract for mock mode. `public/mock/secondaryInboundSplitSourceFixtures/*.json` are the mock backend substitute data sources for split inbound tests and Pages preview; `secondaryInboundSplitSourceFixture.ts` loads only the requested scope shard lazily as a static asset instead of importing fixture data into the source module graph.
-- The secondary drawer uses `inboundSplitSuggestionModel.ts` to convert source data into read-only suggested quantities. Required visible size rows and dates must have explicit source cells; zero sale or zero inbound must be sent as numeric `0`, not omitted.
-- The split-inbound dialog opens and applies only when both the source contract is ready and stock-order calculation is ready. Live calculation-input changes clear `confirmed.rounds` together with direct confirmed quantities so applied split rows cannot survive on a stale recommendation basis.
+- `src/api/types/*`
+- `src/api/requests/httpDashboardRequests.ts`
+- `src/api/requests/mockDashboardRequests.ts`
+- `MD/backend-api/backend-api-spec.md`
+- `MD/backend-api/dashboard-api-contract-catalog.md`
+- 관련 boundary 문서

@@ -22,7 +22,7 @@ const rows: CandidateReferenceItemSummary[] = [
       selfOpProfitRatePct: 9,
       competitorQty: 80,
       competitorAmount: 80000,
-      competitorChannelLabel: '경쟁사',
+      competitorSalesSourceLabel: '경쟁사',
       expectedSalesQty: 100,
       expectedSalesAmount: 100000,
       expectedOpProfit: 9000,

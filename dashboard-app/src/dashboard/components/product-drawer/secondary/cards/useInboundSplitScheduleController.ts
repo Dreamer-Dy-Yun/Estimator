@@ -16,7 +16,7 @@ import {
   type InboundSplitScheduleRow,
   type InboundSplitSizeColumn,
 } from './inboundSplitScheduleModel'
-import { assertInboundSplitDateOrder } from './inboundSplitScheduleDatePolicy'
+import { assertInboundSplitDatePolicy } from './inboundSplitScheduleDatePolicy'
 import { sumInboundSplitConfirmedBySize } from './inboundSplitScheduleTotals'
 import type { InboundSplitDraftRequest } from './inboundSplitScheduleTypes'
 
@@ -27,7 +27,6 @@ interface InboundSplitRowsBuildResult {
 
 export interface UseInboundSplitScheduleControllerArgs {
   sizeRows: SecondarySizeOrderDisplayRow[]
-  workDate: string
   currentOrderInboundDueDate: string
   nextOrderInboundDueDate: string
   inboundSplitSource: SecondaryInboundSplitSource | null
@@ -45,10 +44,10 @@ export interface UseInboundSplitScheduleControllerResult {
   scheduleReady: boolean
   sourceErrorTitle: string | undefined
   displayCount: number
-  confirmedRoundsLocked: boolean
-  appliedRows: InboundSplitScheduleRow[]
-  appliedConfirmBySize: Record<string, number>
-  appliedConfirmTotal: number
+  splitRoundsControlDirectConfirm: boolean
+  splitRoundRows: InboundSplitScheduleRow[]
+  splitRoundConfirmBySize: Record<string, number>
+  splitRoundConfirmTotal: number
   visibleError: ApiUnitErrorInfo | null
   openDialog: () => void
   clearConfirmedRounds: () => void
@@ -58,7 +57,8 @@ export interface UseInboundSplitScheduleControllerResult {
 }
 
 export interface InboundSplitScheduleDialogBinding {
-  workDate: string
+  currentOrderInboundDueDate: string
+  nextOrderInboundDueDate: string
   initialCount: number
   initialRows: InboundSplitScheduleRow[]
   columns: InboundSplitSizeColumn[]
@@ -81,7 +81,6 @@ function makeInboundSplitDraftErrorInfo(request: InboundSplitDraftRequest, err: 
 
 export function useInboundSplitScheduleController({
   sizeRows,
-  workDate,
   currentOrderInboundDueDate,
   nextOrderInboundDueDate,
   inboundSplitSource,
@@ -99,13 +98,13 @@ export function useInboundSplitScheduleController({
   const [dialogOpen, setDialogOpen]: [boolean, React.Dispatch<React.SetStateAction<boolean>>] = useState<boolean>(false)
   const [dialogKey, setDialogKey]: [number, React.Dispatch<React.SetStateAction<number>>] = useState<number>(0)
   const [draftError, setDraftError]: [ApiUnitErrorInfo | null, React.Dispatch<React.SetStateAction<ApiUnitErrorInfo | null>>] = useState<ApiUnitErrorInfo | null>(null)
-  const appliedRows: InboundSplitScheduleRow[] = useMemo(
+  const splitRoundRows: InboundSplitScheduleRow[] = useMemo(
     (): InboundSplitScheduleRow[] => confirmedRounds.length > 1 ? confirmedRoundsToInboundSplitRows(confirmedRounds, columns) : [],
     [columns, confirmedRounds],
   )
-  const confirmedRoundsLocked: boolean = calculationReady && appliedRows.length > 1
-  const displayCount: number = confirmedRoundsLocked ? appliedRows.length : splitCount
-  const initialCount: number = confirmedRoundsLocked ? appliedRows.length : splitCount
+  const splitRoundsControlDirectConfirm: boolean = calculationReady && splitRoundRows.length > 1
+  const displayCount: number = splitRoundsControlDirectConfirm ? splitRoundRows.length : splitCount
+  const initialCount: number = splitRoundsControlDirectConfirm ? splitRoundRows.length : splitCount
 
   const buildRowsForCount: (next: number) => InboundSplitScheduleRow[] = useCallback((next: number): InboundSplitScheduleRow[] => {
     if (inboundSplitSource == null) return []
@@ -120,9 +119,9 @@ export function useInboundSplitScheduleController({
   const dialogBuildResult: InboundSplitRowsBuildResult = useMemo((): InboundSplitRowsBuildResult => {
     if (!dialogOpen || !scheduleReady || inboundSplitSource == null) return { rows: [], error: null }
     try {
-      if (confirmedRoundsLocked) {
+      if (splitRoundsControlDirectConfirm) {
         return {
-          rows: reconcileInboundSplitScheduleRows(appliedRows, columns, initialCount, currentOrderInboundDueDate, nextOrderInboundDueDate, inboundSplitSource),
+          rows: reconcileInboundSplitScheduleRows(splitRoundRows, columns, initialCount, currentOrderInboundDueDate, nextOrderInboundDueDate, inboundSplitSource),
           error: null,
         }
       }
@@ -130,7 +129,7 @@ export function useInboundSplitScheduleController({
     } catch (err: unknown) {
       return { rows: [], error: makeInboundSplitDraftErrorInfo('buildInboundSplitScheduleRows', err) }
     }
-  }, [appliedRows, buildRowsForCount, columns, confirmedRoundsLocked, currentOrderInboundDueDate, dialogOpen, inboundSplitSource, initialCount, nextOrderInboundDueDate, scheduleReady])
+  }, [buildRowsForCount, columns, currentOrderInboundDueDate, dialogOpen, inboundSplitSource, initialCount, nextOrderInboundDueDate, scheduleReady, splitRoundRows, splitRoundsControlDirectConfirm])
 
   const closeDialog: () => void = useCallback((): void => {
     setDraftError(null)
@@ -152,7 +151,7 @@ export function useInboundSplitScheduleController({
     if (!scheduleReady) return
     if (rows.length === 0) return
     try {
-      assertInboundSplitDateOrder(workDate, rows)
+      assertInboundSplitDatePolicy(currentOrderInboundDueDate, nextOrderInboundDueDate, rows)
     } catch (err: unknown) {
       setDraftError(makeInboundSplitDraftErrorInfo('validateInboundSplitScheduleRows', err))
       return
@@ -172,7 +171,7 @@ export function useInboundSplitScheduleController({
     onConfirmedRoundsChange(inboundSplitRowsToConfirmedRounds(nextRows, columns))
     applySplitQuantitiesToConfirmState(nextRows)
     setDialogOpen(false)
-  }, [applySplitQuantitiesToConfirmState, clearConfirmedRounds, columns, onConfirmedRoundsChange, scheduleReady, workDate])
+  }, [applySplitQuantitiesToConfirmState, clearConfirmedRounds, columns, currentOrderInboundDueDate, nextOrderInboundDueDate, onConfirmedRoundsChange, scheduleReady])
 
   const handleDraftError: (err: unknown | null, request: InboundSplitDraftRequest) => void = useCallback((err: unknown | null, request: InboundSplitDraftRequest): void => {
     setDraftError(err == null ? null : makeInboundSplitDraftErrorInfo(request, err))
@@ -195,13 +194,13 @@ export function useInboundSplitScheduleController({
     return (): void => window.clearTimeout(closeTimer)
   }, [dialogOpen, scheduleReady])
 
-  const appliedConfirmBySize: Record<string, number> = useMemo(
-    (): Record<string, number> => sumInboundSplitConfirmedBySize(appliedRows, columns),
-    [appliedRows, columns],
+  const splitRoundConfirmBySize: Record<string, number> = useMemo(
+    (): Record<string, number> => sumInboundSplitConfirmedBySize(splitRoundRows, columns),
+    [columns, splitRoundRows],
   )
-  const appliedConfirmTotal: number = useMemo(
-    (): number => columns.reduce((sum: number, column: InboundSplitSizeColumn): number => sum + (appliedConfirmBySize[column.size] ?? 0), 0),
-    [appliedConfirmBySize, columns],
+  const splitRoundConfirmTotal: number = useMemo(
+    (): number => columns.reduce((sum: number, column: InboundSplitSizeColumn): number => sum + (splitRoundConfirmBySize[column.size] ?? 0), 0),
+    [columns, splitRoundConfirmBySize],
   )
   const dialogError: ApiUnitErrorInfo | null = draftError ?? dialogBuildResult.error
 
@@ -211,17 +210,18 @@ export function useInboundSplitScheduleController({
     scheduleReady,
     sourceErrorTitle: calculationReady ? inboundSplitSourceError?.error : undefined,
     displayCount,
-    confirmedRoundsLocked,
-    appliedRows,
-    appliedConfirmBySize,
-    appliedConfirmTotal,
+    splitRoundsControlDirectConfirm,
+    splitRoundRows,
+    splitRoundConfirmBySize,
+    splitRoundConfirmTotal,
     visibleError: inboundSplitSourceError ?? dialogError,
     openDialog,
     clearConfirmedRounds,
     dialogKey,
     dialogOpen: dialogOpen && scheduleReady,
     dialogProps: {
-      workDate,
+      currentOrderInboundDueDate,
+      nextOrderInboundDueDate,
       initialCount,
       initialRows: dialogBuildResult.rows,
       columns,

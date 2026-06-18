@@ -12,7 +12,7 @@ export type Params = {
   selectedEnd: string
   baseSubject: ProductComparisonBaseSubjectRef
   comparisonTarget: ProductComparisonTarget
-  leadTimeDays: number
+  orderCoverageDays: number
   makeApiErrorInfo: (request: string, err: unknown) => ApiUnitErrorInfo
 }
 
@@ -22,7 +22,7 @@ export function useSecondaryDailyTrend({
   selectedEnd,
   baseSubject,
   comparisonTarget,
-  leadTimeDays,
+  orderCoverageDays,
   makeApiErrorInfo,
 }: Params) : { dailyTrendSeries: SecondaryDailyTrendPoint[]; dailyTrendLoading: boolean; dailyTrendError: ApiUnitErrorInfo | null; dailyPeriodShade: { x1: number; x2: number; }; dailyForecastShade: { x1: number; x2: number; } | null; dailyTickIndices: number[]; } {
   const reqSeqRef: React.RefObject<number> = useRef(0)
@@ -32,9 +32,9 @@ export function useSecondaryDailyTrend({
   const requestWindow: SecondaryDailyTrendRequestWindow = useMemo(
     () : SecondaryDailyTrendRequestWindow => SecondaryDailyTrendRequestWindow.fromSelectedStartMonth({
       selectedStartMonth: selectedStart,
-      forecastDays: leadTimeDays,
+      forecastDays: orderCoverageDays,
     }),
-    [leadTimeDays, selectedStart],
+    [orderCoverageDays, selectedStart],
   )
 
   useEffect(() : () => void => {

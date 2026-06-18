@@ -50,7 +50,8 @@ function renderTable(overrides: Partial<InboundSplitScheduleTableProps> = {}): R
     onQtyChange: vi.fn(),
   }
   const props: InboundSplitScheduleTableProps = {
-    workDate: '2026-03-31',
+    currentOrderInboundDueDate: '2026-03-31',
+    nextOrderInboundDueDate: '2026-05-01',
     rows: ROWS,
     columns: COLUMNS,
     ...callbacks,
@@ -86,7 +87,7 @@ describe('InboundSplitScheduleTable', (): void => {
 
   it('renders inbound date intervals from the work date and previous round date', (): void => {
     renderTable({
-      workDate: '2026-03-31',
+      currentOrderInboundDueDate: '2026-03-31',
       rows: TWO_ROUND_ROWS,
     })
 
@@ -96,7 +97,7 @@ describe('InboundSplitScheduleTable', (): void => {
 
   it('marks intervals with 0-or-less days in red style', (): void => {
     renderTable({
-      workDate: '2026-04-01',
+      currentOrderInboundDueDate: '2026-04-01',
       rows: [
         ROWS[0],
         {

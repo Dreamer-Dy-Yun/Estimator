@@ -4,14 +4,15 @@ import { KO } from '../../ko'
 import { DateInputWithWeekday } from '../../../../../components/DateInputWithWeekday'
 import styles from '../secondaryDrawer.module.css'
 import { getInboundSplitSuggestedTotalQty, getInboundSplitTotalQty, type InboundSplitScheduleRow, type InboundSplitSizeColumn } from './inboundSplitScheduleModel'
-import { getInboundSplitDateInterval, type InboundSplitDateInterval } from './inboundSplitScheduleDatePolicy'
+import { getInboundSplitDateInterval, isInboundSplitDateOutsideCoverage, type InboundSplitDateInterval } from './inboundSplitScheduleDatePolicy'
 import { sumInboundSplitColumnTotals, sumInboundSplitConfirmedBySize, sumInboundSplitSuggestedBySize } from './inboundSplitScheduleTotals'
 import { ariaDiffLabel, cx, diffClass, qtyInputClassName, stickyDateClassName, stickyKindClassName, stickyRoundClassName, stickyTotalClassName } from './inboundSplitScheduleTableClasses'
 
 const INBOUND_SPLIT_SUMMARY_LABEL = '\uC804\uCCB4' as const
 
 export interface InboundSplitScheduleTableProps {
-  workDate: string
+  currentOrderInboundDueDate: string
+  nextOrderInboundDueDate: string
   rows: InboundSplitScheduleRow[]
   columns: InboundSplitSizeColumn[]
   onDateChange: (rowIndex: number, value: string) => void
@@ -25,7 +26,8 @@ function formatInboundSplitDateInterval(interval: InboundSplitDateInterval): str
 }
 
 export function InboundSplitScheduleTable({
-  workDate,
+  currentOrderInboundDueDate,
+  nextOrderInboundDueDate,
   rows,
   columns,
   onDateChange,
@@ -76,8 +78,9 @@ export function InboundSplitScheduleTable({
           const suggestedTotalQty: number = getInboundSplitSuggestedTotalQty(row, columns)
           const confirmedTotalQty: number = getInboundSplitTotalQty(row, columns)
           const totalDiffClass: string = diffClass(confirmedTotalQty, suggestedTotalQty)
-          const previousInboundDate: string = rowIndex === 0 ? workDate : (rows[rowIndex - 1]?.inboundDate ?? workDate)
-          const dateInterval: InboundSplitDateInterval = getInboundSplitDateInterval(previousInboundDate, row.inboundDate)
+          const previousInboundDate: string = rowIndex === 0 ? currentOrderInboundDueDate : (rows[rowIndex - 1]?.inboundDate ?? currentOrderInboundDueDate)
+          const dateInterval: InboundSplitDateInterval = getInboundSplitDateInterval(previousInboundDate, row.inboundDate, { allowSameDate: rowIndex === 0 })
+          const invalidDatePolicy: boolean = dateInterval.invalidDateOrder || isInboundSplitDateOutsideCoverage(currentOrderInboundDueDate, nextOrderInboundDueDate, row.inboundDate)
           const dateIntervalText: string = formatInboundSplitDateInterval(dateInterval)
           const dateIntervalId: string = `inbound-split-date-interval-${rowIndex}`
 
@@ -93,11 +96,11 @@ export function InboundSplitScheduleTable({
                       onChange={(value: string): void => onDateChange(rowIndex, value)}
                       inputClassName={styles.stockDateInput}
                       ariaDescribedBy={dateIntervalId}
-                      ariaInvalid={dateInterval.invalidDateOrder ? true : undefined}
+                      ariaInvalid={invalidDatePolicy ? true : undefined}
                     />
                     <span
                       id={dateIntervalId}
-                      className={cx(styles.inboundSplitDateInterval, dateInterval.invalidDateOrder ? styles.inboundSplitDateIntervalInvalid : null)}
+                      className={cx(styles.inboundSplitDateInterval, invalidDatePolicy ? styles.inboundSplitDateIntervalInvalid : null)}
                       aria-label={`${row.round}${KO.optionInboundSplitRoundSuffix} ${KO.labelInboundSplitDateInterval} ${dateIntervalText}`}
                     >
                       {dateIntervalText}

@@ -114,65 +114,82 @@ function getHttpCandidateStashExcelTemplateDownload(): CandidateStashExcelTempla
 }
 
 export const httpDashboardRequests: DashboardApi = {
+  // GET /dashboard/runtime-config: 런타임 설정 조회.
   getDashboardRuntimeConfig: () : Promise<DashboardRuntimeConfig> =>
     apiRequest('/dashboard/runtime-config'),
-  // Sales analysis list and scatter endpoints share the same filter contract.
+  // GET /sales/self: 자사 판매 리스트 조회.
   // Backend doc: MD/backend-api/dashboard-api-contract-catalog.md section 8.
   getSelfSales: (params: SelfSalesParams | undefined) : Promise<SelfSalesRow[]> =>
     apiRequest('/sales/self', { query: queryParams(normalizeCompanyScopeParams(params)) }),
+  // GET /sales/competitor: 경쟁사 판매 리스트 조회.
   getCompetitorSales: (params: CompetitorSalesParams | undefined) : Promise<CompetitorSalesRow[]> =>
     apiRequest('/sales/competitor', { query: queryParams(normalizeCompanyScopeParams(params)) }),
+  // GET /sales/self/scatter-grid: 자사 판매 산점도 집계 조회.
   getSelfSalesScatterGrid: (params: SelfSalesGridParams | undefined) : Promise<ScatterSalesGridResponse> =>
     apiRequest('/sales/self/scatter-grid', { query: queryParams(normalizeCompanyScopeParams(params)) }),
+  // GET /sales/competitor/scatter-grid: 경쟁사 판매 산점도 집계 조회.
   getCompetitorSalesScatterGrid: (params: CompetitorSalesGridParams | undefined) : Promise<ScatterSalesGridResponse> =>
     apiRequest('/sales/competitor/scatter-grid', { query: queryParams(normalizeCompanyScopeParams(params)) }),
+  // GET /sales/filter-meta: 판매 필터 메타 조회.
   getSalesFilterMeta: (params: CompanyScopeParams | undefined) : Promise<SalesFilterMeta> =>
     apiRequest('/sales/filter-meta', { query: queryParams(normalizeCompanyScopeParams(params)) }),
+  // GET /products/{skuGroupKey}/drawer-bundle: 상품 드로어 기본 번들 조회.
   // Product drawer endpoints use subject query fields instead of top-level companyUuid.
   // Backend doc: MD/backend-api/dashboard-api-contract-catalog.md section 9.
   getProductDrawerBundle: (skuGroupKey: string, params: ProductDrawerBundleParams) : Promise<ProductDrawerBundle> =>
     apiRequest(`/products/${encodePathSegment(skuGroupKey)}/drawer-bundle`, {
       query: queryParams(productDrawerBundleQuery(params)),
     }),
+  // GET /products/comparison-targets: 비교 대상 목록 조회.
   getProductComparisonTargets: (params: ProductComparisonTargetParams) : Promise<ProductComparisonTarget[]> =>
     // Empty arrays are contract-level unavailable states. HTTP failures must stay failures, not fake empty targets.
     apiRequest('/products/comparison-targets', {
       query: queryParams(productComparisonTargetQuery(params)),
     }),
+  // GET /products/{skuGroupKey}/monthly-trend: 월간 추세 조회.
   getProductMonthlyTrend: (skuGroupKey: string, params: ProductMonthlyTrendParams) : Promise<ProductMonthlyTrend> =>
     apiRequest(`/products/${encodePathSegment(skuGroupKey)}/monthly-trend`, {
       query: queryParams(productMonthlyTrendQuery(params)),
     }),
+  // GET /products/{skuGroupKey}/sales-insight: 상품 판매 인사이트 조회.
   getProductSalesInsight: (skuGroupKey: string, params: ProductSalesInsightParams) : Promise<ProductSalesInsight> =>
     apiRequest(`/products/${encodePathSegment(skuGroupKey)}/sales-insight`, {
       query: queryParams(productSalesInsightQuery(params)),
     }),
+  // GET /products/{skuGroupKey}/secondary-detail: secondary 상세 조회.
   getProductSecondaryDetail: (skuGroupKey: string, params: ProductSecondaryDetailParams) : Promise<ProductSecondaryDetail> =>
     apiRequest(`/products/${encodePathSegment(skuGroupKey)}/secondary-detail`, {
       query: queryParams(productSecondaryDetailQuery(params)),
     }),
+  // GET /products/{skuGroupKey}/secondary/daily-trend: 일별 추세 조회.
   getSecondaryDailyTrend: ({ skuGroupKey, ...params }: SecondaryDailyTrendParams) : Promise<SecondaryDailyTrendSource> =>
     apiRequest(`/products/${encodePathSegment(skuGroupKey)}/secondary/daily-trend`, {
       query: queryParams(secondaryDailyTrendQuery(params)),
     }),
+  // GET /products/{skuGroupKey}/secondary/inbound-split-source: 입고 분할 소스 조회.
   getSecondaryInboundSplitSource: ({ skuGroupKey, ...params }: SecondaryInboundSplitSourceParams) : Promise<SecondaryInboundSplitSource> =>
     apiRequest(`/products/${encodePathSegment(skuGroupKey)}/secondary/inbound-split-source`, {
       query: queryParams(secondaryInboundSplitSourceQuery(params)),
     }),
+  // POST /products/{skuGroupKey}/secondary/ai-comment: secondary AI 코멘트 생성.
   getSecondaryAiComment: ({ skuGroupKey, ...payload }: SecondaryAiCommentParams) : Promise<SecondaryAiCommentResult> =>
     apiRequest(`/products/${encodePathSegment(skuGroupKey)}/secondary/ai-comment`, {
       method: 'POST',
       body: payload,
     }),
+  // GET /secondary/competitor-channels: 비교 채널 목록 조회.
   getSecondaryCompetitorChannels: () : Promise<SecondaryCompetitorChannel[]> => apiRequest('/secondary/competitor-channels'),
+  // GET /candidate-stashes: 후보 풀 목록 조회.
   // Candidate stash endpoints are session-owned workflows; mutations/jobs/SSE require concrete company scope.
   // Backend doc: MD/backend-api/dashboard-api-contract-catalog.md sections 11 and 12.
   getCandidateStashes: (params: CandidateStashListParams | undefined) : Promise<CandidateStashSummary[]> =>
     apiRequest('/candidate-stashes', { query: queryParams(normalizeCompanyScopeParams(params)) }),
+  // GET /candidate-stashes/{stashUuid}/items: 후보 항목 목록 조회.
   getCandidateItemsByStash: ({ stashUuid, ...params }: CandidateItemListParams) : Promise<CandidateItemListResult> =>
     apiRequest(`/candidate-stashes/${encodePathSegment(stashUuid)}/items`, {
       query: queryParams(normalizeCompanyScopeParams(params)),
     }),
+  // GET /candidate-stashes/{stashUuid}/items/order-metrics/events: 주문 지표 SSE 구독.
   subscribeCandidateOrderMetrics: (params: CandidateOrderMetricStreamParams, listener: (event: CandidateOrderMetricEvent) => void, onError: DashboardEventStreamErrorListener | undefined) : ApiEventStreamSubscription =>
     // The caller owns comparison target selection. The adapter serializes the selected subject and never chooses defaults.
     openApiEventStream(`/candidate-stashes/${encodePathSegment(params.stashUuid)}/items/order-metrics/events`, {
@@ -183,13 +200,15 @@ export const httpDashboardRequests: DashboardApi = {
       companyUuid: getRequiredCompanyUuidForMutationScope(params.companyUuid),
       ...productComparisonSubjectQueryPrefix('comparison', params.comparison),
     }, listener, { onError }),
+  // POST /candidate-stashes/{stashUuid}/items/detail-confirmation-jobs: 후보 상세 확정 배치 시작.
   // Starts a backend job that calculates each requested item's secondary drawer state,
-  // saves CANDIDATE_ITEM.details, and emits committed CandidateItemDetail rows by SSE.
+  // saves CANDIDATE_ITEM.confirmedOrderSnapshot, and emits committed CandidateItemDetail rows by SSE.
   startCandidateDetailBulkConfirm: ({ stashUuid, ...payload }: CandidateDetailBulkConfirmStartPayload) : Promise<CandidateDetailBulkConfirmStartResult> =>
     apiRequest(`/candidate-stashes/${encodePathSegment(stashUuid)}/items/detail-confirmation-jobs`, {
       method: 'POST',
       body: normalizeCompanyMutationScopeParams(payload),
     }),
+  // GET /candidate-item-detail-confirmation-jobs/{jobId}/events: 후보 상세 확정 SSE 구독.
   subscribeCandidateDetailBulkConfirm: (jobId: string, listener: (event: CandidateDetailBulkConfirmProgressEvent) => void, onError: DashboardEventStreamErrorListener | undefined, params: CompanyMutationScopeParams) : ApiEventStreamSubscription =>
     openApiEventStream(
       `/candidate-item-detail-confirmation-jobs/${encodePathSegment(jobId)}/events`,
@@ -197,11 +216,13 @@ export const httpDashboardRequests: DashboardApi = {
       listener,
       { onError },
     ),
+  // POST /candidate-stashes/{stashUuid}/llm-comment-jobs: 후보 LLM 코멘트 배치 시작.
   startCandidateStashLlmCommentJob: (stashUuid: string, params: CompanyMutationScopeParams) : Promise<CandidateStashLlmCommentJobStartResult> =>
     apiRequest(`/candidate-stashes/${encodePathSegment(stashUuid)}/llm-comment-jobs`, {
       method: 'POST',
       body: normalizeCompanyMutationScopeParams(params),
     }),
+  // GET /candidate-stash-llm-comment-jobs/{jobId}/events: 후보 LLM 코멘트 SSE 구독.
   subscribeCandidateStashLlmCommentJob: (jobId: string, listener: (event: CandidateStashLlmCommentJobProgressEvent) => void, onError: DashboardEventStreamErrorListener | undefined, params: CompanyMutationScopeParams) : ApiEventStreamSubscription =>
     openApiEventStream(
       `/candidate-stash-llm-comment-jobs/${encodePathSegment(jobId)}/events`,
@@ -209,66 +230,80 @@ export const httpDashboardRequests: DashboardApi = {
       listener,
       { onError },
     ),
+  // GET /candidate-stashes/{stashUuid}/recommendations: 추천 항목 조회.
   getCandidateRecommendations: ({ stashUuid, ...params }: CandidateRecommendationParams) : Promise<CandidateRecommendationResult> =>
     apiRequest(`/candidate-stashes/${encodePathSegment(stashUuid)}/recommendations`, {
       query: queryParams(normalizeCompanyScopeParams(params)),
     }),
+  // GET /candidate-items/{itemUuid}: 후보 항목 단건 조회.
   getCandidateItemByUuid: (itemUuid: string, params: CompanyScopeParams | undefined) : Promise<CandidateItemDetail | null> =>
     apiRequest(`/candidate-items/${encodePathSegment(itemUuid)}`, {
       query: queryParams(normalizeCompanyScopeParams(params)),
     }),
+  // DELETE /candidate-items/{itemUuid}: 후보 항목 삭제.
   deleteCandidateItem: (itemUuid: string, params: CompanyMutationScopeParams) : Promise<void> =>
     apiRequest(`/candidate-items/${encodePathSegment(itemUuid)}`, {
       method: 'DELETE',
       query: queryParams(normalizeCompanyMutationScopeParams(params)),
     }),
+  // DELETE /candidate-stashes/{stashUuid}/items: 후보 항목 벌크 삭제.
   deleteCandidateItems: (stashUuid: string, itemUuids: string[], params: CompanyMutationScopeParams) : Promise<void> =>
     apiRequest(`/candidate-stashes/${encodePathSegment(stashUuid)}/items`, {
       method: 'DELETE',
       body: normalizeCompanyMutationScopeParams({ itemUuids, companyUuid: params?.companyUuid }),
     }),
+  // DELETE /candidate-stashes/{stashUuid}: 후보 풀 삭제.
   deleteCandidateStash: (stashUuid: string, params: CompanyMutationScopeParams) : Promise<void> =>
     apiRequest(`/candidate-stashes/${encodePathSegment(stashUuid)}`, {
       method: 'DELETE',
       query: queryParams(normalizeCompanyMutationScopeParams(params)),
     }),
+  // POST /candidate-stashes: 후보 풀 생성.
   createCandidateStash: (payload: CreateCandidateStashPayload) : Promise<CandidateStashSummary> =>
     apiRequest('/candidate-stashes', { method: 'POST', body: normalizeCompanyMutationScopeParams(payload) }),
+  // PATCH /candidate-stashes/{stashUuid}: 후보 풀 수정.
   updateCandidateStash: ({ stashUuid, ...payload }: UpdateCandidateStashPayload) : Promise<CandidateStashSummary> =>
     apiRequest(`/candidate-stashes/${encodePathSegment(stashUuid)}`, {
       method: 'PATCH',
       body: normalizeCompanyMutationScopeParams(payload),
     }),
+  // POST /candidate-stashes/{stashUuid}/duplicate: 후보 풀 복제.
   duplicateCandidateStash: (stashUuid: string, params: CompanyMutationScopeParams) : Promise<void> =>
     apiRequest(`/candidate-stashes/${encodePathSegment(stashUuid)}/duplicate`, {
       method: 'POST',
       body: normalizeCompanyMutationScopeParams(params),
     }),
+  // POST /candidate-stashes/{stashUuid}/items: 후보 항목 단건 추가.
   appendCandidateItem: ({ stashUuid, ...payload }: AppendCandidateItemPayload) : Promise<void> =>
     apiRequest(`/candidate-stashes/${encodePathSegment(stashUuid)}/items`, {
       method: 'POST',
       body: normalizeCompanyMutationScopeParams(payload),
     }),
+  // POST /candidate-stashes/{stashUuid}/items/bulk: 후보 항목 벌크 추가.
   appendCandidateItems: ({ stashUuid, ...payload }: AppendCandidateItemsPayload) : Promise<AppendCandidateItemsResponse> =>
     apiRequest(`/candidate-stashes/${encodePathSegment(stashUuid)}/items/bulk`, {
       method: 'POST',
       body: normalizeCompanyMutationScopeParams(payload),
     }),
+  // PATCH /candidate-items/{itemUuid}: 후보 항목 수정.
   // Response contract: latest CandidateItemDetail after DB commit/cache invalidation.
-  // The frontend uses isDetailConfirmed/isLatestLlmComment/dbUpdatedAt from this response
+  // The frontend uses hasConfirmedOrderSnapshot/isLatestLlmComment/dbUpdatedAt from this response
   // as the authoritative post-mutation state and protects it from stale follow-up GETs.
   updateCandidateItem: ({ itemUuid, ...payload }: UpdateCandidateItemPayload) : Promise<CandidateItemDetail> =>
     apiRequest(`/candidate-items/${encodePathSegment(itemUuid)}`, {
       method: 'PATCH',
       body: normalizeCompanyMutationScopeParams(payload),
     }),
+  // GET /candidate-stashes/excel-template: 엑셀 템플릿 다운로드 링크 조회.
   getCandidateStashExcelTemplateDownload: getHttpCandidateStashExcelTemplateDownload,
+  // POST /candidate-stashes/import/excel: 엑셀 업로드 처리.
   uploadCandidateStashExcel: (file: File, params: CompanyMutationScopeParams) : Promise<CandidateStashExcelUploadResult> => {
     const formData: FormData = new FormData()
     formData.append('file', file)
     formData.append('companyUuid', getRequiredCompanyUuidForMutationScope(params?.companyUuid))
     return apiRequest('/candidate-stashes/import/excel', { method: 'POST', body: formData })
   },
+  // POST /secondary/stock-order-calc: 주문량 계산(백엔드 단일 계산점).
   // Stock-order calc is a backend calculation endpoint. Do not duplicate this business calculation in UI code.
   // Backend doc: MD/backend-api/dashboard-api-contract-catalog.md section 9.
   getSecondaryStockOrderCalc: (params: SecondaryStockOrderCalcParams) : Promise<SecondaryStockOrderCalcResult> =>

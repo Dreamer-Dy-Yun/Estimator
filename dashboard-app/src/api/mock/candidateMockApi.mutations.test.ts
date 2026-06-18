@@ -49,7 +49,7 @@ describe('api/mock candidate mutation contract', () : void => {
     expect(item).toBeDefined()
     const detail: CandidateItemDetail | null = await mockDashboardApi.getCandidateItemByUuid(item!.uuid, { companyUuid: MOCK_COMPANY_UUID })
     expect(detail).toBeDefined()
-    expect(detail!.details).toBeDefined()
+    expect(detail!.confirmedOrderSnapshot).toBeDefined()
 
     await mockDashboardApi.deleteCandidateItem(item!.uuid, { companyUuid: MOCK_COMPANY_UUID })
     const afterDelete: CandidateItemListResult = await mockDashboardApi.getCandidateItemsByStash(defaultCandidateItemListParams(source!.uuid))
@@ -59,7 +59,7 @@ describe('api/mock candidate mutation contract', () : void => {
       stashUuid: source!.uuid,
       skuGroupKey: item!.skuGroupKey,
       companyUuid: MOCK_COMPANY_UUID,
-      details: detail!.details!,
+      confirmedOrderSnapshot: detail!.confirmedOrderSnapshot!,
       isLatestLlmComment: false,
     })
 
@@ -68,38 +68,38 @@ describe('api/mock candidate mutation contract', () : void => {
     expect(after.items.some((row: CandidateItemSummary) : boolean => row.skuUuid === item!.skuUuid)).toBe(true)
   })
 
-  it('clears candidate detail confirmation when updating details to null', async () : Promise<void> => {
+  it('clears candidate detail confirmation when updating confirmedOrderSnapshot to null', async () : Promise<void> => {
     const stashes: CandidateStashSummary[] = await mockDashboardApi.getCandidateStashes({ companyUuid: MOCK_COMPANY_UUID })
     const source: CandidateStashSummary | undefined = stashes.find((row: CandidateStashSummary) : boolean => row.itemCount > 0)
     expect(source).toBeDefined()
     const before: CandidateItemListResult = await mockDashboardApi.getCandidateItemsByStash(defaultCandidateItemListParams(source!.uuid))
-    const item: CandidateItemSummary | undefined = before.items.find((row: CandidateItemSummary) : boolean => row.isDetailConfirmed)
+    const item: CandidateItemSummary | undefined = before.items.find((row: CandidateItemSummary) : boolean => row.hasConfirmedOrderSnapshot)
     expect(item).toBeDefined()
     const detail: CandidateItemDetail | null = await mockDashboardApi.getCandidateItemByUuid(item!.uuid, { companyUuid: MOCK_COMPANY_UUID })
-    expect(detail?.details).toBeDefined()
+    expect(detail?.confirmedOrderSnapshot).toBeDefined()
 
     const cleared: CandidateItemDetail = await mockDashboardApi.updateCandidateItem({
       itemUuid: item!.uuid,
       companyUuid: MOCK_COMPANY_UUID,
-      details: null,
+      confirmedOrderSnapshot: null,
       isLatestLlmComment: false,
     })
     expect(cleared.uuid).toBe(item!.uuid)
-    expect(cleared.details).toBeNull()
-    expect(cleared.isDetailConfirmed).toBe(false)
+    expect(cleared.confirmedOrderSnapshot).toBeNull()
+    expect(cleared.hasConfirmedOrderSnapshot).toBe(false)
     expect(cleared.isLatestLlmComment).toBe(false)
     const afterClear: CandidateItemListResult = await mockDashboardApi.getCandidateItemsByStash(defaultCandidateItemListParams(source!.uuid))
-    expect(afterClear.items.find((row: CandidateItemSummary) : boolean => row.uuid === item!.uuid)?.isDetailConfirmed).toBe(false)
+    expect(afterClear.items.find((row: CandidateItemSummary) : boolean => row.uuid === item!.uuid)?.hasConfirmedOrderSnapshot).toBe(false)
 
     const restored: CandidateItemDetail = await mockDashboardApi.updateCandidateItem({
       itemUuid: item!.uuid,
       companyUuid: MOCK_COMPANY_UUID,
-      details: detail!.details,
+      confirmedOrderSnapshot: detail!.confirmedOrderSnapshot,
       isLatestLlmComment: detail!.isLatestLlmComment,
     })
     expect(restored.uuid).toBe(item!.uuid)
-    expect(restored.details).toEqual(detail!.details)
-    expect(restored.isDetailConfirmed).toBe(true)
+    expect(restored.confirmedOrderSnapshot).toEqual(detail!.confirmedOrderSnapshot)
+    expect(restored.hasConfirmedOrderSnapshot).toBe(true)
   })
 
   it('hydrates seeded candidate drawer snapshots with mock AI comments', async () : Promise<void> => {
@@ -112,7 +112,7 @@ describe('api/mock candidate mutation contract', () : void => {
       companyUuid: MOCK_COMPANY_UUID,
     })
 
-    expect(detail?.details?.drawer2.aiComment.prompt.trim()).not.toBe('')
-    expect(detail?.details?.drawer2.aiComment.answer.trim()).not.toBe('')
+    expect(detail?.confirmedOrderSnapshot?.drawer2.aiComment.prompt.trim()).not.toBe('')
+    expect(detail?.confirmedOrderSnapshot?.drawer2.aiComment.answer.trim()).not.toBe('')
   })
 })

@@ -7,7 +7,7 @@ import type { SecondaryConfirmedRound, SecondaryConfirmedRounds } from '../dashb
 import type { SecondarySizeOrderRestoreRow } from '../dashboard/components/product-drawer/secondary/model/secondarySizeOrderRows'
 import type { ProductPrimarySummary, ProductSecondaryDetail } from '../types'
 
-export const ORDER_SNAPSHOT_SCHEMA_VERSION: 4 = 4 as const
+export const ORDER_SNAPSHOT_SCHEMA_VERSION: 5 = 5 as const
 
 export type OrderSnapshotSourceRatio = number
 export type OrderSnapshotPercent = number
@@ -26,7 +26,7 @@ export type OrderSnapshotStockOrderDisplay = SecondaryStockOrderCalcResult['disp
 export type OrderSnapshotStockOrderDisplaySizeRow = OrderSnapshotStockOrderDisplay['sizeRows'][number]
 
 export type OrderSnapshotStockOrderRequest = SalesForecastInboundDateFields & {
-  leadTimeDays: number
+  orderCoverageDays: number
   dailyMeanOverride?: number
 }
 
@@ -58,8 +58,8 @@ export type OrderSnapshotDrawer2 = {
   comparisonSubject: OrderSnapshotComparisonSubject
   comparisonBasis: OrderSnapshotComparisonBasis
   stockOrderRequest: OrderSnapshotStockOrderRequest
-  stockOrderResult?: OrderSnapshotStockOrderResult
-  unitEconomics?: OrderSnapshotUnitEconomics
+  stockOrderResult: OrderSnapshotStockOrderResult
+  unitEconomics: OrderSnapshotUnitEconomics
   selfWeightPct: OrderSnapshotPercent
   bufferStock: number
   aiComment: OrderSnapshotAiComment
@@ -76,7 +76,7 @@ export type OrderSnapshotDocument = {
     periodEnd: string
     forecastMonths: number
     dailyTrendStartMonth: string
-    dailyTrendLeadTimeDays: number
+    dailyTrendForecastDays: number
   }
   drawer1: OrderSnapshotDrawer1
   drawer2: OrderSnapshotDrawer2
@@ -113,17 +113,16 @@ export function createOrderSnapshotComparisonSubject(subject: OrderSnapshotCompa
 }
 
 export function createOrderSnapshotStockOrderRequest(stockOrderRequest: OrderSnapshotStockOrderRequest): OrderSnapshotStockOrderRequest {
-  const { currentOrderInboundDueDate, nextOrderInboundDueDate, leadTimeDays, dailyMeanOverride }: OrderSnapshotStockOrderRequest = stockOrderRequest
+  const { currentOrderInboundDueDate, nextOrderInboundDueDate, orderCoverageDays, dailyMeanOverride }: OrderSnapshotStockOrderRequest = stockOrderRequest
   return {
     currentOrderInboundDueDate,
     nextOrderInboundDueDate,
-    leadTimeDays,
+    orderCoverageDays,
     ...(dailyMeanOverride == null ? {} : { dailyMeanOverride }),
   }
 }
 
-export function createOrderSnapshotStockOrderResult(result: OrderSnapshotStockOrderResult | null): OrderSnapshotStockOrderResult | undefined {
-  if (result == null) return undefined
+export function createOrderSnapshotStockOrderResult(result: OrderSnapshotStockOrderResult): OrderSnapshotStockOrderResult {
   const { display }: OrderSnapshotStockOrderResult = result
   return {
     ...result,

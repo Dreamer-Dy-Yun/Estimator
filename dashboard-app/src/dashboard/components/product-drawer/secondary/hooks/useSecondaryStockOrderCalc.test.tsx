@@ -9,13 +9,13 @@ import { useSecondaryStockOrderCalc } from './useSecondaryStockOrderCalc'
 
 const BASE_SUBJECT: ProductComparisonBaseSubjectRef = { role: 'base', kind: 'self-company', sourceId: 'company-1' }
 
-const BASE_PROPS: { skuGroupKey: string; periodStart: string; periodEnd: string; baseSubject: ProductComparisonBaseSubjectRef; forecastMeanPeriodEnd: string; leadTimeDays: number; makeApiErrorInfo: (request: string, err: unknown) => ApiUnitErrorInfo; } = {
+const BASE_PROPS: { skuGroupKey: string; periodStart: string; periodEnd: string; baseSubject: ProductComparisonBaseSubjectRef; forecastPeriodEndMonth: string; orderCoverageDays: number; makeApiErrorInfo: (request: string, err: unknown) => ApiUnitErrorInfo; } = {
   skuGroupKey: 'sku-a',
   periodStart: '2025-01-01',
   periodEnd: '2025-12-31',
   baseSubject: BASE_SUBJECT,
-  forecastMeanPeriodEnd: '2026-08',
-  leadTimeDays: 30,
+  forecastPeriodEndMonth: '2026-08',
+  orderCoverageDays: 30,
   makeApiErrorInfo: (request: string, err: unknown): ApiUnitErrorInfo => ({
     checkedAt: '2026-05-19T00:00:00.000Z',
     page: 'test',

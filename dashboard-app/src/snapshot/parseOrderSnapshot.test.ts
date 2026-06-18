@@ -9,7 +9,7 @@ function cloneValidSnapshot(): OrderSnapshotDocument {
 }
 
 describe('parseOrderSnapshot', () : void => {
-  it('returns current v4 snapshot when required fields are valid', () : void => {
+  it('returns current v5 snapshot when required fields are valid', () : void => {
     const parsed: OrderSnapshotDocument = parseOrderSnapshot(validSnapshot)
 
     expect(parsed).toEqual(validSnapshot)
@@ -28,7 +28,7 @@ describe('parseOrderSnapshot', () : void => {
     expect(parsed.drawer2.baseSubject.sourceId).toBe('company-uuid-001')
   })
 
-  it('strips fields that are not part of the current v4 snapshot contract', () : void => {
+  it('strips fields that are not part of the current v5 snapshot contract', () : void => {
     const source: OrderSnapshotDocument = cloneValidSnapshot()
     const withExtra: Record<string, unknown> = {
       ...source,
@@ -75,12 +75,35 @@ describe('parseOrderSnapshot', () : void => {
     expect(() : OrderSnapshotDocument => parseOrderSnapshot({})).toThrow()
   })
 
-  it('throws when schemaVersion does not match current version', () : void => {
-    const wrongVersion: Record<string, unknown> = { ...cloneValidSnapshot(), schemaVersion: ORDER_SNAPSHOT_SCHEMA_VERSION - 1 }
+  it('throws when schemaVersion is neither current nor migratable', () : void => {
+    const wrongVersion: Record<string, unknown> = { ...cloneValidSnapshot(), schemaVersion: ORDER_SNAPSHOT_SCHEMA_VERSION - 2 }
     const wrongTypeVersion: Record<string, unknown> = { ...cloneValidSnapshot(), schemaVersion: String(ORDER_SNAPSHOT_SCHEMA_VERSION) }
 
     expect(() : OrderSnapshotDocument => parseOrderSnapshot(wrongVersion)).toThrow(/schemaVersion/)
     expect(() : OrderSnapshotDocument => parseOrderSnapshot(wrongTypeVersion)).toThrow(/schemaVersion/)
+  })
+
+  it('migrates v4 renamed coverage day fields into the current v5 snapshot contract', () : void => {
+    const legacyVersion: Record<string, unknown> = { ...cloneValidSnapshot() }
+    const legacyContext: Record<string, unknown> = { ...(legacyVersion.context as Record<string, unknown>) }
+    const legacyDrawer2: Record<string, unknown> = { ...(legacyVersion.drawer2 as Record<string, unknown>) }
+    const legacyStockOrderRequest: Record<string, unknown> = { ...(legacyDrawer2.stockOrderRequest as Record<string, unknown>) }
+    legacyVersion.schemaVersion = 4
+    legacyContext.dailyTrendLeadTimeDays = legacyContext.dailyTrendForecastDays
+    delete legacyContext.dailyTrendForecastDays
+    legacyStockOrderRequest.leadTimeDays = legacyStockOrderRequest.orderCoverageDays
+    delete legacyStockOrderRequest.orderCoverageDays
+    legacyVersion.context = legacyContext
+    legacyDrawer2.stockOrderRequest = legacyStockOrderRequest
+    legacyVersion.drawer2 = legacyDrawer2
+
+    const parsed: OrderSnapshotDocument = parseOrderSnapshot(legacyVersion)
+
+    expect(parsed.schemaVersion).toBe(ORDER_SNAPSHOT_SCHEMA_VERSION)
+    expect(parsed.context.dailyTrendForecastDays).toBe(validSnapshot.context.dailyTrendForecastDays)
+    expect(parsed.drawer2.stockOrderRequest.orderCoverageDays).toBe(validSnapshot.drawer2.stockOrderRequest.orderCoverageDays)
+    expect(parsed.context).not.toHaveProperty('dailyTrendLeadTimeDays')
+    expect(parsed.drawer2.stockOrderRequest).not.toHaveProperty('leadTimeDays')
   })
 
   it('throws when drawer blocks are missing', () : void => {
@@ -100,10 +123,10 @@ describe('parseOrderSnapshot', () : void => {
     expect(() : OrderSnapshotDocument => parseOrderSnapshot(mismatchComparison)).toThrow(/skuGroupKey/)
   })
 
-  it('throws when context lead time and request lead time diverge', () : void => {
+  it('throws when context forecast days and request coverage days diverge', () : void => {
     const mismatch: OrderSnapshotDocument = cloneValidSnapshot()
-    mismatch.context.dailyTrendLeadTimeDays = mismatch.drawer2.stockOrderRequest.leadTimeDays + 1
+    mismatch.context.dailyTrendForecastDays = mismatch.drawer2.stockOrderRequest.orderCoverageDays + 1
 
-    expect(() : OrderSnapshotDocument => parseOrderSnapshot(mismatch)).toThrow(/dailyTrendLeadTimeDays/)
+    expect(() : OrderSnapshotDocument => parseOrderSnapshot(mismatch)).toThrow(/dailyTrendForecastDays/)
   })
 })

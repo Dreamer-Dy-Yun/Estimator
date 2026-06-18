@@ -12,7 +12,7 @@ const snapshot: OrderSnapshotDocument = {} as OrderSnapshotDocument
 
 function item(
   uuid: string,
-  isDetailConfirmed: boolean,
+  hasConfirmedOrderSnapshot: boolean,
   dbUpdatedAt: string,
 ): CandidateItemSummary {
   return {
@@ -32,7 +32,7 @@ function item(
     expectedOpProfit: 0,
     insightStatus: 'loading',
     insight: {
-      competitorChannelLabel: '크림',
+      competitorSalesSourceLabel: '크림',
       competitorQty: null,
       competitorAmount: null,
       selfQty: null,
@@ -47,7 +47,7 @@ function item(
       badges: [],
     },
     isLatestLlmComment: true,
-    isDetailConfirmed,
+    hasConfirmedOrderSnapshot,
     orderExport: null,
     dbCreatedAt: '2026-05-18T00:00:00.000Z',
     dbUpdatedAt,
@@ -62,7 +62,7 @@ describe('candidateDetailConfirmationOverrideModel', () : void => {
 
     const result: CandidateDetailConfirmationOverrideResult = applyCandidateDetailConfirmationOverrides([item('item1', false, 't1')], overrides)
 
-    expect(result.items[0]?.isDetailConfirmed).toBe(true)
+    expect(result.items[0]?.hasConfirmedOrderSnapshot).toBe(true)
     expect(result.items[0]?.isLatestLlmComment).toBe(false)
     expect(result.overrides.item1).toBeDefined()
   })
@@ -74,7 +74,7 @@ describe('candidateDetailConfirmationOverrideModel', () : void => {
 
     const result: CandidateDetailConfirmationOverrideResult = applyCandidateDetailConfirmationOverrides([item('item1', true, 't1')], overrides)
 
-    expect(result.items[0]?.isDetailConfirmed).toBe(false)
+    expect(result.items[0]?.hasConfirmedOrderSnapshot).toBe(false)
     expect(result.overrides.item1).toBeDefined()
   })
 
@@ -85,7 +85,7 @@ describe('candidateDetailConfirmationOverrideModel', () : void => {
 
     const result: CandidateDetailConfirmationOverrideResult = applyCandidateDetailConfirmationOverrides([item('item1', true, 't2')], overrides)
 
-    expect(result.items[0]?.isDetailConfirmed).toBe(true)
+    expect(result.items[0]?.hasConfirmedOrderSnapshot).toBe(true)
     expect(result.overrides.item1).toBeUndefined()
   })
 

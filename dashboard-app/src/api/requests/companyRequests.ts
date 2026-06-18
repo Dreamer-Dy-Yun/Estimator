@@ -11,10 +11,12 @@ import { withMockApiAdapterErrors } from './mockApiError'
  * The frontend owns the all-company sentinel; backend should return real company rows.
  */
 const httpCompanyRequests: CompanyApi = {
+  // GET /companies: 회사 목록 조회.
   getCompanies: () : Promise<CompanySummary[]> => apiRequest('/companies'),
 }
 
 const mockCompanyRequests: CompanyApi = withMockApiAdapterErrors<CompanyApi>({
+  // GET /companies: 회사 목록 조회(목데이터).
   getCompanies: () : Promise<CompanySummary[]> => mockCompanyApi.getCompanies(),
 })
 

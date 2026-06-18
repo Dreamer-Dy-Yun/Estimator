@@ -23,7 +23,7 @@ describe('httpDashboardRequests product comparison subject contract', () : void 
       base: baseSubject,
       periodStart: '2025-01-01',
       periodEnd: '2025-03-31',
-      leadTimeDays: 21,
+      orderCoverageDays: 21,
     })
 
     expect(httpClientMocks.apiRequest).toHaveBeenNthCalledWith(

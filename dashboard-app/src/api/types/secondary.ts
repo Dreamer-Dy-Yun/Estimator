@@ -29,8 +29,6 @@ export interface SecondaryDailyTrendComparisonFlow {
   inbound: number | null
 }
 
-export type SecondaryDailyTrendSubjectFlow = SecondaryDailyTrendComparisonFlow
-
 export interface SecondaryDailyTrendFlowCell {
   base: SecondaryDailyTrendBaseFlow
   comparison: SecondaryDailyTrendComparisonFlow
@@ -125,8 +123,8 @@ export interface SecondaryStockOrderCalcParams {
   base: ProductComparisonBaseSubjectRef
   periodStart: string
   periodEnd: string
-  forecastPeriodEnd?: string
-  leadTimeDays: number
+  forecastPeriodEndMonth?: string
+  orderCoverageDays: number
   /** Optional demand mean supplied by the frontend; backend computes it when omitted. */
   dailyMean?: number
 }

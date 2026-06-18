@@ -22,7 +22,7 @@ const item: (uuid: string) => CandidateItemSummary = (uuid: string): CandidateIt
   productName: `상품 ${uuid}`,
   insightStatus: 'loaded',
   insight: {
-    competitorChannelLabel: '크림',
+    competitorSalesSourceLabel: '크림',
     selfQty: 0,
     selfAmount: 0,
     competitorQty: 0,
@@ -42,7 +42,7 @@ const item: (uuid: string) => CandidateItemSummary = (uuid: string): CandidateIt
   expectedSalesAmount: 0,
   expectedOpProfit: 0,
   orderExport: null,
-  isDetailConfirmed: false,
+  hasConfirmedOrderSnapshot: false,
   isLatestLlmComment: false,
   dbCreatedAt: '2026-05-19T00:00:00.000Z',
   dbUpdatedAt: '2026-05-19T00:00:00.000Z',
@@ -57,7 +57,7 @@ const recommendation: (skuUuid: string) => CandidateReferenceItemSummary = (skuU
     thumbnailUrl: null,
   productName: `추천 ${skuUuid}`,
   insight: {
-    competitorChannelLabel: '크림',
+    competitorSalesSourceLabel: '크림',
     selfQty: 10,
     selfAmount: 1000,
     competitorQty: 20,
@@ -79,7 +79,7 @@ const candidateItem: (uuid: string, skuUuid: string) => CandidateStashItemSummar
   skuUuid,
   skuGroupKey: skuUuid,
   isLatestLlmComment: false,
-  hasSnapshot: false,
+  hasConfirmedOrderSnapshot: false,
   dbCreatedAt: '2026-05-19T01:00:00.000Z',
   dbUpdatedAt: '2026-05-19T01:00:00.000Z',
 })
@@ -116,7 +116,7 @@ describe('appendRecommendedCandidateItems', () : void => {
       qty: 0,
       expectedOrderAmount: 0,
       insightStatus: 'loaded',
-      isDetailConfirmed: false,
+      hasConfirmedOrderSnapshot: false,
     })
   })
 

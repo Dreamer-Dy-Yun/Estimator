@@ -19,8 +19,8 @@ function candidateSortValue(row: InnerCandidateRow, key: InnerCandidateSortKey):
       return row.productName
     case 'colorCode':
       return row.colorCode
-    case 'isDetailConfirmed':
-      return row.isDetailConfirmed ? 1 : 0
+    case 'hasConfirmedOrderSnapshot':
+      return row.hasConfirmedOrderSnapshot ? 1 : 0
     case 'selfQty':
       return row.insight.selfQty
     case 'competitorQty':

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { InboundSplitScheduleRow, InboundSplitSizeColumn } from './inboundSplitScheduleModel'
-import { redistributeInboundSplitRowTotalByScheduleSuggestion, toInboundSplitDraftInteger } from './inboundSplitDraftQuantityModel'
+import { redistributeInboundSplitRowTotalBySuggestedSizeMix, toInboundSplitDraftInteger } from './inboundSplitDraftQuantityModel'
 
 const COLUMNS: InboundSplitSizeColumn[] = [
   { size: 'S', confirmedQty: 0, recommendedQty: 0 },
@@ -30,7 +30,7 @@ describe('inboundSplitDraftQuantityModel', (): void => {
       row('r2', 2, 0, 10),
     ]
 
-    const nextRows: InboundSplitScheduleRow[] = redistributeInboundSplitRowTotalByScheduleSuggestion(rows, COLUMNS, 0, '10')
+    const nextRows: InboundSplitScheduleRow[] = redistributeInboundSplitRowTotalBySuggestedSizeMix(rows, COLUMNS, 0, '10')
 
     expect(nextRows[0]?.quantitiesBySize).toEqual({ S: 5, M: 5 })
     expect(nextRows[1]).toBe(rows[1])

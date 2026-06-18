@@ -93,7 +93,7 @@ describe('api/mock candidate recommendation contract', () : void => {
         stashUuid: 'candidatestash00000000000000000001',
         skuUuid: skuGroupKey,
         skuGroupKey,
-        details: null,
+        confirmedOrderSnapshot: null,
         isLatestLlmComment: false,
         dbCreatedAt: '2026-04-20T09:00:00.000Z',
         dbUpdatedAt: '2026-04-20T09:00:00.000Z',
@@ -129,7 +129,7 @@ describe('api/mock candidate recommendation contract', () : void => {
         stashUuid: 'candidatestash00000000000000000001',
         skuUuid: skuGroupKey,
         skuGroupKey,
-        details: snapshot,
+        confirmedOrderSnapshot: snapshot,
         isLatestLlmComment: false,
         dbCreatedAt: '2026-04-20T09:00:00.000Z',
         dbUpdatedAt: '2026-04-20T09:00:00.000Z',
@@ -153,7 +153,7 @@ describe('api/mock candidate recommendation contract', () : void => {
     expect(metric.expectedSalesAmount).toBe(snapshotExpectedSalesAmount)
     expect(metric.expectedOpProfit).toBe(snapshotExpectedOpProfit)
     expect(metric.expectedOrderAmount).toBe(snapshotQty * snapshot.drawer2.unitEconomics!.unitCost)
-    expect(metric.orderExport.competitorChannelLabel).toBe(snapshot.drawer2.comparisonSubject.label)
+    expect(metric.orderExport.comparisonSubjectLabel).toBe(snapshot.drawer2.comparisonSubject.label)
     expect(metric.orderExport.sizeOrderQty).toEqual(snapshot.drawer2.sizeOrders.map((row: { size: string }) : { size: string; orderQty: number } => ({
       size: row.size,
       orderQty: confirmedQtyBySize[row.size] ?? 0,
@@ -168,7 +168,7 @@ describe('api/mock candidate recommendation contract', () : void => {
         stashUuid: 'candidatestash00000000000000000001',
         skuUuid: skuGroupKey,
         skuGroupKey,
-        details: null,
+        confirmedOrderSnapshot: null,
         isLatestLlmComment: false,
         dbCreatedAt: '2026-04-20T09:00:00.000Z',
         dbUpdatedAt: '2026-04-20T09:00:00.000Z',
@@ -192,7 +192,7 @@ describe('api/mock candidate recommendation contract', () : void => {
 
     expect(kreamMetric.source).toBe('secondary-calc')
     expect(musinsaMetric.source).toBe('secondary-calc')
-    expect(kreamMetric.orderExport.competitorChannelLabel).not.toBe(musinsaMetric.orderExport.competitorChannelLabel)
+    expect(kreamMetric.orderExport.comparisonSubjectLabel).not.toBe(musinsaMetric.orderExport.comparisonSubjectLabel)
     expect(kreamMetric.orderExport.sizeOrderQty).not.toEqual(musinsaMetric.orderExport.sizeOrderQty)
     expect(kreamMetric.orderExport.sizeOrderQty.reduce((sum: number, row: { orderQty: number }) : number => sum + row.orderQty, 0)).toBe(kreamMetric.qty)
     expect(musinsaMetric.orderExport.sizeOrderQty.reduce((sum: number, row: { orderQty: number }) : number => sum + row.orderQty, 0)).toBe(musinsaMetric.qty)
@@ -255,7 +255,7 @@ describe('api/mock candidate recommendation contract', () : void => {
       MOCK_ADMIN_USER_UUID,
     )
     expect(items.candidateItems).toHaveLength(uploaded.itemCount)
-    expect(items.items.every((item: CandidateItemSummary) : boolean => item.isDetailConfirmed === false)).toBe(true)
+    expect(items.items.every((item: CandidateItemSummary) : boolean => item.hasConfirmedOrderSnapshot === false)).toBe(true)
 
     await mockDashboardApi.deleteCandidateStash(uploaded.stashUuid, { companyUuid: MOCK_COMPANY_UUID })
   })

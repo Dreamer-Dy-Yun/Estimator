@@ -129,7 +129,7 @@ function createArgs(overrides: Partial<HookArgs> = {}): HookArgs {
     setDailyMeanClient: vi.fn(),
     currentOrderInboundDueDate: '2026-04-01',
     nextOrderInboundDueDate: '2026-05-01',
-    leadTimeDays: 30,
+    orderCoverageDays: 30,
     selfWeightPct: 50,
     bufferStock: 0,
     confirmBySize: {},

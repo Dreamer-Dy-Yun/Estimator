@@ -2,7 +2,7 @@ import type { CandidateItemSummary } from '../../../api'
 import type { OrderSnapshotDocument } from '../../../snapshot/orderSnapshotTypes'
 
 export interface CandidateDetailConfirmationOverride {
-  isDetailConfirmed: boolean
+  hasConfirmedOrderSnapshot: boolean
   confirmedSnapshot: OrderSnapshotDocument | null
   baseDbUpdatedAt: string | null
 }
@@ -16,11 +16,11 @@ export interface CandidateDetailConfirmationOverrideResult {
 
 export function createCandidateDetailConfirmationOverride(
   baseItem: Pick<CandidateItemSummary, 'dbUpdatedAt'> | null | undefined,
-  isDetailConfirmed: boolean,
+  hasConfirmedOrderSnapshot: boolean,
   confirmedSnapshot: OrderSnapshotDocument | null,
 ): CandidateDetailConfirmationOverride {
   return {
-    isDetailConfirmed,
+    hasConfirmedOrderSnapshot,
     confirmedSnapshot,
     baseDbUpdatedAt: baseItem?.dbUpdatedAt ?? null,
   }
@@ -38,7 +38,7 @@ export function applyCandidateDetailConfirmationOverrides(
     nextOverrides[item.uuid] = override
     return {
       ...item,
-      isDetailConfirmed: override.isDetailConfirmed,
+      hasConfirmedOrderSnapshot: override.hasConfirmedOrderSnapshot,
       isLatestLlmComment: false,
     }
   })
@@ -51,5 +51,5 @@ function isServerConfirmationFresh(
   override: CandidateDetailConfirmationOverride,
 ): boolean {
   if (override.baseDbUpdatedAt == null) return false
-  return item.dbUpdatedAt !== override.baseDbUpdatedAt && item.isDetailConfirmed === override.isDetailConfirmed
+  return item.dbUpdatedAt !== override.baseDbUpdatedAt && item.hasConfirmedOrderSnapshot === override.hasConfirmedOrderSnapshot
 }

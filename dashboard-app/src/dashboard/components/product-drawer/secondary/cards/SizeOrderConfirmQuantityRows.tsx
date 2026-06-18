@@ -11,13 +11,13 @@ import { parseConfirmQtyInput } from './sizeOrderCardModel'
 
 interface SizeOrderConfirmQuantityRowsProps {
   calculationReady: boolean
-  inboundSplitConfirmedRoundsLocked: boolean
+  splitRoundsControlDirectConfirm: boolean
   columnConfirmTotal: number
-  appliedInboundSplitConfirmTotal: number
+  splitRoundConfirmTotal: number
   sizeRows: SecondarySizeOrderDisplayRow[]
   manualConfirmBySize: Readonly<Record<string, true>>
-  appliedInboundSplitConfirmBySize: Readonly<Record<string, number>>
-  appliedInboundSplitRows: readonly InboundSplitScheduleRow[]
+  splitRoundConfirmBySize: Readonly<Record<string, number>>
+  splitRoundRows: readonly InboundSplitScheduleRow[]
   inboundSplitColumns: readonly InboundSplitSizeColumn[]
   onClearConfirmedRounds: () => void
   onConfirmQtyChange: (size: string, next: number, recommendedQty: number) => void
@@ -25,13 +25,13 @@ interface SizeOrderConfirmQuantityRowsProps {
 
 export function SizeOrderConfirmQuantityRows({
   calculationReady,
-  inboundSplitConfirmedRoundsLocked,
+  splitRoundsControlDirectConfirm,
   columnConfirmTotal,
-  appliedInboundSplitConfirmTotal,
+  splitRoundConfirmTotal,
   sizeRows,
   manualConfirmBySize,
-  appliedInboundSplitConfirmBySize,
-  appliedInboundSplitRows,
+  splitRoundConfirmBySize,
+  splitRoundRows,
   inboundSplitColumns,
   onClearConfirmedRounds,
   onConfirmQtyChange,
@@ -40,14 +40,14 @@ export function SizeOrderConfirmQuantityRows({
     <>
       <tr>
         <td>{KO.thConfirmQty}</td>
-        <td className={styles.num}>{calculationReady ? formatGroupedNumber(inboundSplitConfirmedRoundsLocked ? appliedInboundSplitConfirmTotal : columnConfirmTotal) : KO.valueNotCalculated}</td>
+        <td className={styles.num}>{calculationReady ? formatGroupedNumber(splitRoundsControlDirectConfirm ? splitRoundConfirmTotal : columnConfirmTotal) : KO.valueNotCalculated}</td>
         {sizeRows.map((row: SecondarySizeOrderDisplayRow): React.JSX.Element => {
           const manual: boolean = Boolean(manualConfirmBySize[row.size])
-          const lockedConfirmQty: number = appliedInboundSplitConfirmBySize[row.size] ?? 0
+          const lockedConfirmQty: number = splitRoundConfirmBySize[row.size] ?? 0
           return (
-            <td key={row.size} className={`${styles.num} ${styles.confirmQtyCell} ${manual && !inboundSplitConfirmedRoundsLocked ? styles.confirmQtyCellManual : ''}`}>
+            <td key={row.size} className={`${styles.num} ${styles.confirmQtyCell} ${manual && !splitRoundsControlDirectConfirm ? styles.confirmQtyCellManual : ''}`}>
               <span className={styles.confirmQtyInputWrap}>
-                {calculationReady && inboundSplitConfirmedRoundsLocked ? (
+                {calculationReady && splitRoundsControlDirectConfirm ? (
                   <span className={styles.stockComputedValue}>{formatGroupedNumber(lockedConfirmQty)}</span>
                 ) : calculationReady ? (
                   <input
@@ -73,7 +73,7 @@ export function SizeOrderConfirmQuantityRows({
           )
         })}
       </tr>
-      {calculationReady && appliedInboundSplitRows.map((row: InboundSplitScheduleRow): React.JSX.Element => (
+      {calculationReady && splitRoundRows.map((row: InboundSplitScheduleRow): React.JSX.Element => (
         <tr key={`applied-${row.id}`}>
           <td>{row.round}{KO.optionInboundSplitRoundSuffix} ({row.inboundDate} {KO.labelInboundSplitArrival}) (EA)</td>
           <td className={styles.num}>{formatGroupedNumber(getInboundSplitTotalQty(row, inboundSplitColumns))}</td>

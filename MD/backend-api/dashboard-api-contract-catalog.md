@@ -1,614 +1,137 @@
 # Dashboard API Contract Catalog
 
-Last updated: 2026-06-17
-
-Purpose: current backend implementation contract for the frontend in `dashboard-app`.
-
-This catalog intentionally contains only the current API shape. Previous shapes are archived under `OLD/2026-06-10-before-current-api-rewrite/` and summarized in `CHANGELOG.md`.
-
-## 1. Common
-
-- Base path: `/api/v1`.
-- Date-only fields: `YYYY-MM-DD`.
-- Timestamps: ISO 8601 string.
-- Auth: cookie/session with `credentials: include`.
-- Error body: `{ message: string, code?: string, details?: unknown }`.
-- Read scope: `companyUuid?`; omitted means all-company read only where listed.
-- Company-owned mutation, import, candidate job, and candidate SSE scope: `companyUuid` required.
-- Product drawer comparison scope: subject fields, not top-level `companyUuid`.
-
-## 1-1. Dashboard runtime config
-
-Type source: `dashboard-app/src/api/types/dashboard-runtime.ts`.
-
-| Frontend function | Method/path | Request | Response |
-|---|---|---|---|
-| `getDashboardRuntimeConfig` | GET `/dashboard/runtime-config` | none | `DashboardRuntimeConfig` |
-
-```ts
-interface DashboardRuntimeConfig {
-  candidateOrderMetricComparison: ProductComparisonTarget | null
-}
-```
-
-Rules:
-
-- This is a backend-owned app runtime setting. The frontend reads it once after authentication and passes the value down as props/parameters.
-- `candidateOrderMetricComparison` is the comparison subject used by candidate order metric SSE for non-snapshot rows.
-- `null` means candidate order metrics are unavailable; the frontend must not synthesize a first channel/default target.
-- Product drawer comparison target selection still uses `getProductComparisonTargets({ base })`; this runtime config only owns the candidate order metric default comparison.
-
-## 2. Subject DTOs
-
-Type source: `dashboard-app/src/api/types/subject.ts`.
-
-```ts
-type ComparisonSubjectKind = 'competitor-channel' | 'self-company'
-type ComparisonSubjectRole = 'base' | 'comparison'
-
-interface ComparisonBaseSubjectRef {
-  role: 'base'
-  kind: 'self-company'
-  sourceId?: string
-}
-
-type ComparisonComparisonSubjectRef =
-  | { role: 'comparison'; kind: 'competitor-channel'; sourceId: string }
-  | { role: 'comparison'; kind: 'self-company'; sourceId?: string }
-
-type ComparisonSubject<TRef> = TRef & {
-  id: string
-  label: string
-}
-```
-
-HTTP query encoding:
-
-```http
-baseRole=base
-baseKind=self-company
-baseSourceId={COMPANY.uuid}
-comparisonRole=comparison
-comparisonKind=competitor-channel
-comparisonSourceId={COMPETITOR_CHANNEL.id}
-```
-
-All-company self-company subject omits `baseSourceId` or `comparisonSourceId`.
-
-## 3. Auth and admin user
-
-Type source: `dashboard-app/src/api/types/auth.ts`.
-
-| Frontend function | Method/path | Request | Response |
-|---|---|---|---|
-| `getCurrentAuthSession` | GET `/auth/session` | none | `AuthSession`; 401 maps to `null` |
-| `login` | POST `/auth/login` | `LoginRequest` | `LoginResult` |
-| `updateCurrentUser` | PATCH `/auth/me` | `UpdateAuthUserPayload` | `AuthSession` |
-| `changeCurrentUserPassword` | POST `/auth/me/password` | `ChangePasswordPayload` | empty |
-| `logout` | POST `/auth/logout` | none | empty |
-| `getAdminUsers` | GET `/admin/users` | none | `AdminUserSummary[]` |
-| `createAdminUser` | POST `/admin/users` | `CreateAdminUserPayload` | `AdminUserSummary` |
-| `updateAdminUser` | PATCH `/admin/users/{uuid}` | `UpdateAdminUserPayload` | `AdminUserSummary` |
-| `resetAdminUserPassword` | POST `/admin/users/{uuid}/password-reset` | none | `ResetAdminUserPasswordResult` |
-| `deleteAdminUser` | DELETE `/admin/users/{uuid}` | none | empty |
-
-`UpdateAdminUserPayload` is admin-owned account control only: `{ uuid, note, role, isActive }`. Admin update must not change `loginId` or `name`; those identity/profile fields belong to the user's own profile flow.
-
-`UpdateAuthUserPayload` is self-profile only: `{ loginId, name }`. `PATCH /auth/me` must reject a duplicate normalized `loginId` owned by another user with `409 conflict` and a user-facing message such as `이미 같은 로그인 ID가 있습니다. 다른 로그인 ID를 입력하세요.`
-
-Key DTOs:
-
-```ts
-interface AuthUser {
-  uuid: string
-  loginId: string
-  name: string
-  role: 'admin' | 'user'
-  mustChangePassword: boolean
-}
-
-interface AuthSession {
-  user: AuthUser
-  expiresAt: string
-}
-
-interface UpdateAuthUserPayload {
-  loginId: string
-  name: string
-}
-
-interface UpdateAdminUserPayload {
-  uuid: string
-  note: string | null
-  role: 'admin' | 'user'
-  isActive: boolean
-}
-
-interface AdminUserSummary extends AuthUser {
-  note: string | null
-  isActive: boolean
-  dbUpdatedAt: string
-}
-
-interface ResetAdminUserPasswordResult {
-  temporaryPassword: string
-  mustChangePassword: boolean
-  dbUpdatedAt: string
-}
-```
-
-## 4. Admin GPT key
-
-Type source: `dashboard-app/src/api/types/admin-gpt-key.ts`.
-
-| Frontend function | Method/path | Request | Response |
-|---|---|---|---|
-| `getAdminGptKeys` | GET `/admin/gpt-keys` | none | `AdminGptKeySummary[]` |
-| `createAdminGptKey` | POST `/admin/gpt-keys` | `CreateAdminGptKeyPayload` | `AdminGptKeySummary` |
-| `updateAdminGptKey` | PATCH `/admin/gpt-keys/{uuid}` then optional POST `/admin/gpt-keys/{uuid}/rotate` | `UpdateAdminGptKeyPayload` | `AdminGptKeySummary` |
-| `rotateAdminGptKey` | POST `/admin/gpt-keys/{uuid}/rotate` | `{ plainKey }` | `AdminGptKeySummary` |
-| `testAdminGptKey` | POST `/admin/gpt-keys/{uuid}/test` | none | `AdminGptKeyTestResult` |
-| `deleteAdminGptKey` | DELETE `/admin/gpt-keys/{uuid}` | none | empty |
-
-Raw keys may be present only in create/update/rotate request bodies. Responses expose `maskedKey`, never raw key.
-
-## 5. Admin Google Sheet
-
-Type source: `dashboard-app/src/api/types/admin-google-sheet.ts`.
-
-| Frontend function | Method/path | Request | Response |
-|---|---|---|---|
-| `getAdminGoogleSheetConfigs` | GET `/admin/google-sheets?companyUuid?` | optional scope | `AdminGoogleSheetConfigSummary[]` |
-| `createAdminGoogleSheetConfig` | POST `/admin/google-sheets` | `CreateAdminGoogleSheetConfigPayload` | `AdminGoogleSheetConfigSummary` |
-| `updateAdminGoogleSheetConfig` | PATCH `/admin/google-sheets/{uuid}` | `UpdateAdminGoogleSheetConfigPayload` | `AdminGoogleSheetConfigSummary` |
-| `deleteAdminGoogleSheetConfig` | DELETE `/admin/google-sheets/{uuid}?companyUuid=...` | concrete company query | empty |
-
-Backend stores service account JSON and returns `serviceAccountEmail`, `maskedServiceAccountKey`, `spreadsheetUrl`, `spreadsheetId`.
-
-## 6. Company
-
-Type source: `dashboard-app/src/api/types/company.ts`.
-
-| Frontend function | Method/path | Request | Response |
-|---|---|---|---|
-| `getCompanies` | GET `/companies` | none | `CompanySummary[]` |
-
-`CompanySummary`: `{ uuid: string; name: string }`.
-
-The frontend owns its internal all-company sentinel. Backend should return real companies only unless a product decision explicitly changes this contract.
-
-## 7. Inventory arrival
-
-Type source: `dashboard-app/src/api/types/inventory-arrival.ts`.
-
-| Frontend function | Method/path | Request | Response |
-|---|---|---|---|
-| `collectInventoryArrivalDates` | POST `/inventory-arrival-dates/collect-from-sheet` | `{ companyUuid }` | `InventoryArrivalCollectionResult` |
-
-Response:
-
-```ts
-interface InventoryArrivalCollectionResult {
-  status: 'success' | 'partial' | 'failed'
-  collectedCount: number
-  failedCount: number
-  message: string
-  collectedAt: string
-}
-```
-
-## 8. Sales analysis
-
-Type sources: `dashboard-app/src/api/types/sales.ts`, `dashboard-app/src/types.ts`.
-
-Common query:
-
-```ts
-interface SelfSalesParams {
-  companyUuid?: string
-  startDate?: string
-  endDate?: string
-  brand?: string
-  category?: string
-  codeQuery?: string
-  colorCode?: string
-  nameQuery?: string
-}
-```
-
-| Frontend function | Method/path | Query | Response |
-|---|---|---|---|
-| `getSelfSales` | GET `/sales/self` | common | `SelfSalesRow[]` |
-| `getCompetitorSales` | GET `/sales/competitor` | common + `competitorChannelId?` | `CompetitorSalesRow[]` |
-| `getSelfSalesScatterGrid` | GET `/sales/self/scatter-grid` | common + bucket params | `ScatterSalesGridResponse` |
-| `getCompetitorSalesScatterGrid` | GET `/sales/competitor/scatter-grid` | common + `competitorChannelId?` + bucket params | `ScatterSalesGridResponse` |
-| `getSalesFilterMeta` | GET `/sales/filter-meta` | `companyUuid?` | `SalesFilterMeta` |
-
-Common row identity fields:
-
-```ts
-id
-skuGroupKey
-brand
-category
-code
-productName
-colorCode
-thumbnailUrl: string | null
-```
-
-`thumbnailUrl` is a DB/API supplied small product thumbnail URL. `null` means no thumbnail.
-
-`ScatterSalesGridResponse`:
-
-```ts
-interface ScatterSalesGridResponse {
-  cells: ScatterGridCell[]
-  meta: {
-    xAxis: { min; max; bucketSize }
-    yAxis: { min; max; bucketSize }
-  }
-}
-```
-
-`cells[].skuIds` contains `skuGroupKey` strings.
-
-Note: the current frontend can also build scatter cells from already loaded list rows for small data. The scatter-grid endpoints remain the HTTP adapter contract for larger data/server-side binning and must match list filters when used.
-
-## 9. Product drawer and comparison
-
-Type sources: `dashboard-app/src/api/types/drawer.ts`, `dashboard-app/src/api/types/secondary.ts`.
-
-| Frontend function | Method/path | Query/body | Response |
-|---|---|---|---|
-| `getProductDrawerBundle` | GET `/products/{skuGroupKey}/drawer-bundle` | base subject query | `ProductDrawerBundle` |
-| `getProductComparisonTargets` | GET `/products/comparison-targets` | base subject query | `ProductComparisonTarget[]` |
-| `getProductMonthlyTrend` | GET `/products/{skuGroupKey}/monthly-trend` | date range, `forecastMonths`, base subject, comparison subject | `ProductMonthlyTrend` |
-| `getProductSalesInsight` | GET `/products/{skuGroupKey}/sales-insight` | date range, base subject, comparison subject | `ProductSalesInsight` |
-| `getProductSecondaryDetail` | GET `/products/{skuGroupKey}/secondary-detail` | base subject, comparison subject, `minOpMarginPct?` | `ProductSecondaryDetail` |
-| `getSecondaryDailyTrend` | GET `/products/{skuGroupKey}/secondary/daily-trend` | date range, `forecastDays`, base subject, comparison subject | `SecondaryDailyTrendSource` |
-| `getSecondaryInboundSplitSource` | GET `/products/{skuGroupKey}/secondary/inbound-split-source` | `dateStart`, `dateEnd`, base subject query | `SecondaryInboundSplitSource` |
-| `getSecondaryAiComment` | POST `/products/{skuGroupKey}/secondary/ai-comment` | AI comment request body without path `skuGroupKey` | `SecondaryAiCommentResult` |
-| `getSecondaryStockOrderCalc` | POST `/secondary/stock-order-calc` | `SecondaryStockOrderCalcParams` | `SecondaryStockOrderCalcResult` |
-
-Frontend `SecondaryAiCommentParams` includes `skuGroupKey` so the HTTP adapter can place it in the path. The POST body excludes that path field.
-
-Current snapshot/storage notes:
-
-- `OrderSnapshotDocument.drawer1.monthlySalesTrend[]` stores the `ProductMonthlyTrendChartPoint[]` display model used directly by the primary drawer monthly trend card. Backend snapshot producers should persist one chart point per displayed month, not the `ProductMonthlyTrend` API source object.
-- Monthly snapshot points currently use `idx`, `date`, `actual`, `comparisonActual`, `forecastLink`, `isForecast`, `sales`, `comparisonSales`.
-- `drawer2.sizeOrders[]` stores `SecondarySizeOrderRestoreRow[]`: the rendered size-order row shape minus `confirmQty`. Confirmed quantities stay in `drawer2.confirmed.rounds[]`.
-- `drawer2.stockOrderResult` stores `SecondaryStockOrderCalcResult`; backend producers should not add UI-unused safety/forecast amount blocks.
-- `drawer2.stockOrderRequest`, `drawer2.unitEconomics`, `drawer2.aiComment`, and `drawer2.confirmed.rounds[]` align with the frontend input/state models `SalesForecastInboundDateFields`, `SalesForecastUnitEconomicsFields`, `SecondaryAiCommentView`, and `SecondaryConfirmedRound`.
-- `SecondaryStockOrderCalcResult` currently contains only `trendDailyMean`, `dailyMean`, `sigma`, and `display`. Removed response fields: `safetyStockCalc`, `forecastQtyCalc`.
-
-Daily trend source response:
-
-```ts
-interface SecondaryDailyTrendBaseFlow {
-  sale: number
-  inbound: number
-}
-
-interface SecondaryDailyTrendComparisonFlow {
-  sale: number
-  inbound: number | null
-}
-
-interface SecondaryDailyTrendFlowCell {
-  base: SecondaryDailyTrendBaseFlow
-  comparison: SecondaryDailyTrendComparisonFlow
-}
-
-interface SecondaryDailyTrendSource {
-  productId: string
-  dateStart: string
-  dateEnd: string
-  forecastStartDate: string
-  baseStockAtStart: number | null
-  comparisonStockAtStart: number | null
-  flowByDate: Record<string, SecondaryDailyTrendFlowCell>
-}
-```
-
-Rules:
-
-- `flowByDate` is aggregate daily flow, not size-level flow.
-- This is the current frontend contract replacing the older chart-ready `SecondaryDailyTrendPoint[]` response. Backend must not return chart-only fields such as `stockBar`, `inboundAccumBar`, row `idx`, row `month`, or row `isForecast`.
-- `flowByDate` must contain every date from `dateStart` through inclusive `dateEnd`.
-- `baseStockAtStart` is opening stock immediately before `dateStart`; the frontend derives each stock bar by applying that date's inbound and sale.
-- `flowByDate[date].base.inbound` is required numeric known inbound for that date, not an accumulated chart bar. Send explicit `0` for known zero. Do not send `null` for base inbound.
-- `flowByDate[date].comparison.inbound` may be `null` because comparison inbound/stock is not rendered by the current frontend.
-- Numeric `0` means known zero. `null` means unavailable or not meaningful; for `baseStockAtStart`, `null` hides stock bars while `0` displays a real zero-stock series.
-- `comparisonStockAtStart` is reserved for comparison stock. The current frontend does not render comparison stock bars and accepts `null`.
-- The frontend derives chart-only fields such as `idx`, `month`, `isForecast`, `stockBar`, and line split fields from this source.
-- `forecastStartDate` is the only forecast boundary field. Backend must not send per-row `isForecast`.
-- The frontend validates response identity against the request: `productId`, `dateStart`, inclusive response `dateEnd`, and `forecastStartDate` must match the requested window. For request `endDate` plus `forecastDays`, response `dateEnd` must equal `endDate + forecastDays`, and `forecastStartDate` must equal `endDate + 1 day`.
-- Size-level source for split inbound suggestions is a separate contract: `getSecondaryInboundSplitSource`.
-
-AI comment request body:
-
-```ts
-interface SecondaryAiCommentRequestBody {
-  periodStart: string
-  periodEnd: string
-  forecastMonths: number
-  base: ComparisonBaseSubjectRef
-  comparison: ComparisonComparisonSubjectRef
-  candidateItemUuid?: string | null
-  snapshotForAiComment?: OrderSnapshotDocument
-}
-```
-
-`snapshotForAiComment` is optional but preferred when the comment is generated from the current secondary drawer state. It lets the backend comment on the same pending calculation the user is reviewing instead of reconstructing hidden defaults.
-
-Example AI comment body:
-
-```json
-{
-  "periodStart": "2025-01-01",
-  "periodEnd": "2025-12-31",
-  "forecastMonths": 12,
-  "base": { "role": "base", "kind": "self-company", "sourceId": "hana-company-uuid" },
-  "comparison": { "role": "comparison", "kind": "competitor-channel", "sourceId": "kream" },
-  "candidateItemUuid": "candidate-item-uuid",
-  "snapshotForAiComment": { "schemaVersion": 4 }
-}
-```
-
-Example sales insight request:
-
-```http
-GET /api/v1/products/A-101%7C030/sales-insight
-  ?startDate=2025-06-10
-  &endDate=2026-06-10
-  &baseRole=base
-  &baseKind=self-company
-  &baseSourceId=hana-company-uuid
-  &comparisonRole=comparison
-  &comparisonKind=competitor-channel
-  &comparisonSourceId=kream
-```
-
-Example self-company comparison:
-
-```http
-GET /api/v1/products/A-101%7C030/monthly-trend
-  ?startDate=2024-06-01
-  &endDate=2026-06-30
-  &forecastMonths=12
-  &baseRole=base
-  &baseKind=self-company
-  &baseSourceId=hana-company-uuid
-  &comparisonRole=comparison
-  &comparisonKind=self-company
-  &comparisonSourceId=t1-company-uuid
-```
-
-`ProductDrawerBundle`: `{ summary: ProductPrimarySummary }`.
-
-`ProductComparisonTarget` fields:
-
-```ts
-id
-role: 'comparison'
-kind: 'competitor-channel' | 'self-company'
-sourceId?: string
-label
-```
-
-If no comparison target is available for the requested base subject, return an empty array. The frontend treats that as a visible unavailable state; it does not synthesize a default comparison target.
-
-Use `200 []` only for a successful lookup with no available comparison target. Backend lookup failures must use the standard error body and status mapping; do not hide failures as an empty array.
-
-`ProductSalesInsight` fields:
-
-```ts
-skuGroupKey
-targetPeriodDays: { start; end }
-base
-comparison
-baseMetrics
-comparisonMetrics
-```
-
-## 10. Secondary competitor channels
-
-| Frontend function | Method/path | Request | Response |
-|---|---|---|---|
-| `getSecondaryCompetitorChannels` | GET `/secondary/competitor-channels` | none | `SecondaryCompetitorChannel[]` |
-
-Successful response is cached by the frontend master-data cache.
-
-## 11. Candidate stash and candidate items
-
-Type sources: `dashboard-app/src/api/types/candidate.ts`, `dashboard-app/src/api/types/candidate-order-metrics.ts`.
-
-| Frontend function | Method/path | Request | Response |
-|---|---|---|---|
-| `getCandidateStashes` | GET `/candidate-stashes?companyUuid?` | optional read scope | `CandidateStashSummary[]` |
-| `createCandidateStash` | POST `/candidate-stashes` | `CreateCandidateStashPayload` | `CandidateStashSummary` |
-| `updateCandidateStash` | PATCH `/candidate-stashes/{stashUuid}` | body without path `stashUuid` | `CandidateStashSummary` |
-| `deleteCandidateStash` | DELETE `/candidate-stashes/{stashUuid}?companyUuid=...` | concrete company query | empty |
-| `duplicateCandidateStash` | POST `/candidate-stashes/{stashUuid}/duplicate` | `CompanyMutationScopeParams` | empty |
-| `getCandidateItemsByStash` | GET `/candidate-stashes/{stashUuid}/items` | data reference period + optional company | `CandidateItemListResult` |
-| `getCandidateRecommendations` | GET `/candidate-stashes/{stashUuid}/recommendations` | data reference period, `limit?`, `cursor?`, optional company | `CandidateRecommendationResult` |
-| `appendCandidateItem` | POST `/candidate-stashes/{stashUuid}/items` | single item with snapshot | empty |
-| `appendCandidateItems` | POST `/candidate-stashes/{stashUuid}/items/bulk` | `skuGroupKeys`, optional `competitorChannelId`, company | `AppendCandidateItemsResponse` |
-| `updateCandidateItem` | PATCH `/candidate-items/{itemUuid}` | body without path `itemUuid` | `CandidateItemDetail` |
-| `getCandidateItemByUuid` | GET `/candidate-items/{itemUuid}?companyUuid?` | optional company | `CandidateItemDetail | null` |
-| `deleteCandidateItem` | DELETE `/candidate-items/{itemUuid}?companyUuid=...` | concrete company query | empty |
-| `deleteCandidateItems` | DELETE `/candidate-stashes/{stashUuid}/items` | `{ itemUuids, companyUuid }` | empty |
-| `getCandidateStashExcelTemplateDownload` | GET `/candidate-stashes/excel-template` | browser download URL | file |
-| `uploadCandidateStashExcel` | POST `/candidate-stashes/import/excel` | multipart `file`, `companyUuid` | `CandidateStashExcelUploadResult` |
-
-`CandidateItemSummary` and `CandidateReferenceItemSummary` include `thumbnailUrl: string | null`.
-
-`CandidateStashItemSummary` is a slim status DTO and does not include thumbnail.
-
-Example candidate stash create body:
-
-```json
-{
-  "companyUuid": "hana-company-uuid",
-  "name": "기본 후보군 A",
-  "note": "초기 목록 데이터",
-  "periodStart": "2025-01-01",
-  "periodEnd": "2025-12-31",
-  "forecastMonths": 12
-}
-```
-
-Example bulk append body:
-
-```json
-{
-  "companyUuid": "hana-company-uuid",
-  "skuGroupKeys": ["A-101|030", "B-152|020"],
-  "competitorChannelId": "kream"
-}
-```
-
-Example update item body:
-
-```json
-{
-  "companyUuid": "hana-company-uuid",
-  "details": { "schemaVersion": 4 },
-  "isLatestLlmComment": true
-}
-```
-
-Mutation endpoints that return no body may respond with `204 No Content`.
-
-Excel upload is multipart:
-
-```txt
-POST /api/v1/candidate-stashes/import/excel
-Content-Type: multipart/form-data
-
-file=<xlsx file>
-companyUuid=hana-company-uuid
-```
-
-## 12. Candidate SSE and jobs
-
-| Frontend function | Method/path | Request | Event/response |
-|---|---|---|---|
-| `subscribeCandidateOrderMetrics` | SSE `/candidate-stashes/{stashUuid}/items/order-metrics/events` | `requestId`, data reference period, repeated `candidateItemUuids`, `companyUuid`, comparison subject query | `CandidateOrderMetricEvent` |
-| `startCandidateStashLlmCommentJob` | POST `/candidate-stashes/{stashUuid}/llm-comment-jobs` | `companyUuid` | `{ jobId, stashUuid, itemCount }` |
-| `subscribeCandidateStashLlmCommentJob` | SSE `/candidate-stash-llm-comment-jobs/{jobId}/events` | `companyUuid` | `CandidateStashLlmCommentJobProgressEvent` |
-| `startCandidateDetailBulkConfirm` | POST `/candidate-stashes/{stashUuid}/items/detail-confirmation-jobs` | item ids, data reference period, company | `{ jobId, stashUuid, itemCount }` |
-| `subscribeCandidateDetailBulkConfirm` | SSE `/candidate-item-detail-confirmation-jobs/{jobId}/events` | `companyUuid` | `CandidateDetailBulkConfirmProgressEvent` |
-
-Cleanup note: bulk detail-confirm snapshots still need an explicit comparison/forecast context contract before they can be treated as equivalent to a user-opened secondary drawer confirmation. Mock implementations must not hide that gap by choosing a first competitor channel or fixed forecast month.
-
-Order metric event shape:
-
-```ts
-type CandidateOrderMetricEvent =
-  | { type: 'item'; requestId; itemUuid; skuUuid; metric }
-  | { type: 'itemFailed'; requestId; itemUuid; skuUuid; message }
-  | { type: 'completed'; requestId; processedCount; failedCount }
-```
-
-Wire query uses repeated query params, not bracketed keys:
-
-```http
-GET /api/v1/candidate-stashes/stash-uuid/items/order-metrics/events
-  ?requestId=req-001
-  &dataReferencePeriodStart=2025-01-01
-  &dataReferencePeriodEnd=2025-12-31
-  &companyUuid=hana-company-uuid
-  &comparisonRole=comparison
-  &comparisonKind=competitor-channel
-  &comparisonSourceId=kream
-  &candidateItemUuids=item-1
-  &candidateItemUuids=item-2
-```
-
-Order metric calculation contract:
-
-- `companyUuid` is required and must be a single company scope.
-- `comparisonRole=comparison`, `comparisonKind`, and optional `comparisonSourceId` are required subject fields for non-snapshot size split calculation.
-- If `CANDIDATE_ITEM.details` contains an `OrderSnapshotDocument`, the metric must project the snapshot values. Use `drawer2.confirmed.rounds[]` for confirmed quantity by size and total quantity, and use `drawer2.unitEconomics` to derive expected order amount, sales amount, fee, and operating profit.
-- If `CANDIDATE_ITEM.details` is null, calculate the same default secondary drawer order metric basis without daily trend rendering data. The comparison subject affects `ProductSecondaryDetail.comparisonRatioBySize`; stock-order calculation remains base-subject owned.
-- Do not choose an implicit comparison basis inside this SSE. The frontend sends the runtime-configured comparison subject on every request.
-- If the frontend has no `candidateOrderMetricComparison` after `getDashboardRuntimeConfig` settles, it does not open this SSE and marks non-snapshot metric cells failed. Backend should expose unavailable candidate order metric comparison by returning `candidateOrderMetricComparison: null` or an API error from `getDashboardRuntimeConfig`, not by silently choosing a default target inside the SSE.
-
-SSE message examples:
-
-```txt
-data: {"type":"item","requestId":"req-001","itemUuid":"item-1","skuUuid":"sku-1","metric":{"itemUuid":"item-1","skuUuid":"sku-1","qty":100,"expectedOrderAmount":1000000,"expectedSalesAmount":1300000,"expectedOpProfit":120000,"orderExport":{"competitorChannelLabel":"크림","selfQty":80,"competitorQty":100,"expectedSalesQty":100,"expectedOrderAmount":1000000,"avgCost":10000,"avgPrice":13000,"feeRatePct":13,"opMarginRatePct":9,"inboundExpectedDate":"2026-04-01","sizeOrderQty":[{"size":"240","orderQty":10}]}}}
-
-data: {"type":"completed","requestId":"req-001","processedCount":2,"failedCount":0}
-```
-
-Standard error body example:
-
-```json
-{
-  "message": "Candidate item is not visible in the selected company scope.",
-  "code": "CANDIDATE_ITEM_FORBIDDEN",
-  "details": { "itemUuid": "item-1" }
-}
-```
-
-## 13. Order snapshot
-
-Type source:
-
-- API alias: `dashboard-app/src/api/types/snapshot.ts`
-- Actual schema: `dashboard-app/src/snapshot/orderSnapshotTypes.ts`
-
-Rules:
-
-- Candidate item `details` is `OrderSnapshotDocument | null`.
-- Current snapshot schema version is `4`.
-- `details` and `isLatestLlmComment` are wrapper API fields, not snapshot fields.
-- Snapshot v4 stores `drawer2.baseSubject`, `drawer2.comparisonSubject`, `drawer2.comparisonBasis`, and `drawer2.confirmed.rounds`.
-- `drawer2.sizeOrders[]` stores share/forecast/recommendation rows only; confirmed quantities are not stored there.
-- Full snapshot details remain in `order-snapshot-backend-contract.md`.
-
-## 14. Secondary inbound split source
-
-Frontend function:
-
-| Function | Method/path | Request | Response |
-|---|---|---|---|
-| `getSecondaryInboundSplitSource` | GET `/products/{skuGroupKey}/secondary/inbound-split-source` | `dateStart`, `dateEnd`, base subject query | `SecondaryInboundSplitSource` |
-
-Request query:
-
-- `dateStart`: source-window start date. Inclusive date in `YYYY-MM-DD`.
-- `dateEnd`: source-window end date. Exclusive date in `YYYY-MM-DD`.
-- `baseRole=base`, `baseKind=self-company`, optional `baseSourceId`: same product drawer base subject contract used by secondary stock order calculation.
-
-Response contract:
-
-```ts
-interface SecondaryInboundSplitExpectationCell {
-  sale: number
-  inbound: number
-}
-
-interface SecondaryInboundSplitSource {
-  productId: string
-  dateStart: string
-  dateEnd: string
-  stockBySize: Record<string, number>
-  expectationByDate: Record<string, Record<string, SecondaryInboundSplitExpectationCell>>
-}
-```
-
-Rules:
-
-- The backend returns source data only. It does not receive or calculate `splitInboundDates`, `splitCount`, or `totalOrderQtyBySize`.
-- This API is not the stock-order calculation result and not the daily trend source. It is the source for the split-inbound popup's shortage suggestions.
-- `stockBySize` is stock at `dateStart`.
-- `expectationByDate` is keyed by date for `dateStart <= date < dateEnd`.
-- `dateStart < dateEnd` is required. Invalid ranges should return 422 validation failure, not a successful empty source.
-- `sale` is expected sales quantity for that date and size.
-- `inbound` is already-known inbound quantity for that date and size. It excludes the current split inbound draft being edited in the frontend popup.
-- The frontend owns split count, split dates, and editable confirmed quantities as screen draft state. It uses this source plus current confirmed order quantity by size to produce read-only suggested quantities.
-- `stockBySize` and `expectationByDate[date][size]` cells required by visible size rows are required source fields. If a size has zero sale or zero inbound on a date, send explicit `0`.
+Last updated: 2026-06-18
+
+이 문서는 백엔드 endpoint 작성자가 빠르게 참조할 수 있도록 현재 `dashboard-app`의 API 요청을 path/query/body/response 기준으로 정리한다. 실제 프론트 요청 직렬화 기준은 `dashboard-app/src/api/requests/httpDashboardRequests.ts`이다.
+
+## 1. 공통 규칙
+
+- Base path: `/api/v1`
+- 인증: cookie 기반 세션, `credentials: include`
+- 에러 응답: `{ message: string, code?: string, details?: unknown }`
+- 읽기 API의 `companyUuid`는 선택값일 수 있다.
+- mutation/import/job API의 `companyUuid`는 필수이다.
+- 상품 API의 비교 주체는 subject query field를 사용한다.
+
+## 2. Subject query fields
+
+| subject | query fields | 규칙 |
+|---|---|---|
+| base | `baseRole`, `baseKind`, `baseSourceId?` | `baseRole=base`, 기본 `baseKind=self-company` |
+| comparison | `comparisonRole`, `comparisonKind`, `comparisonSourceId?` | `comparisonRole=comparison` |
+
+`competitor-channel` subject는 `sourceId`가 필수이다.
+
+## 3. Auth / Admin
+
+| API | Method | Path | Path params | Query | Body | Response |
+|---|---|---|---|---|---|---|
+| `getCurrentAuthSession` | GET | `/auth/session` | none | none | none | `AuthSession | null` |
+| `login` | POST | `/auth/login` | none | none | `LoginRequest` | `LoginResult` |
+| `updateCurrentUser` | PATCH | `/auth/me` | none | none | `UpdateAuthUserPayload` | `AuthSession` |
+| `changeCurrentUserPassword` | POST | `/auth/me/password` | none | none | `ChangePasswordPayload` | none |
+| `logout` | POST | `/auth/logout` | none | none | none | none |
+| `getAdminUsers` | GET | `/admin/users` | none | none | none | `AdminUserSummary[]` |
+| `createAdminUser` | POST | `/admin/users` | none | none | `CreateAdminUserPayload` | `AdminUserSummary` |
+| `updateAdminUser` | PATCH | `/admin/users/{uuid}` | `uuid` | none | `UpdateAdminUserPayload` | `AdminUserSummary` |
+| `resetAdminUserPassword` | POST | `/admin/users/{uuid}/password-reset` | `uuid` | none | none | `ResetAdminUserPasswordResult` |
+| `deleteAdminUser` | DELETE | `/admin/users/{uuid}` | `uuid` | none | none | none |
+
+## 4. Admin configuration
+
+| API | Method | Path | Path params | Query | Body | Response |
+|---|---|---|---|---|---|---|
+| `getAdminGptKeys` | GET | `/admin/gpt-keys` | none | none | none | `AdminGptKeySummary[]` |
+| `createAdminGptKey` | POST | `/admin/gpt-keys` | none | none | `CreateAdminGptKeyPayload` | `AdminGptKeySummary` |
+| `updateAdminGptKey` | PATCH | `/admin/gpt-keys/{uuid}` | `uuid` | none | `UpdateAdminGptKeyPayload` | `AdminGptKeySummary` |
+| `rotateAdminGptKey` | POST | `/admin/gpt-keys/{uuid}/rotate` | `uuid` | none | `{ plainKey: string }` | `AdminGptKeySummary` |
+| `testAdminGptKey` | POST | `/admin/gpt-keys/{uuid}/test` | `uuid` | none | none | `AdminGptKeyTestResult` |
+| `deleteAdminGptKey` | DELETE | `/admin/gpt-keys/{uuid}` | `uuid` | none | none | none |
+| `getAdminGoogleSheetConfigs` | GET | `/admin/google-sheets` | none | `companyUuid?` | none | `AdminGoogleSheetConfigSummary[]` |
+| `createAdminGoogleSheetConfig` | POST | `/admin/google-sheets` | none | none | `CreateAdminGoogleSheetConfigPayload` | `AdminGoogleSheetConfigSummary` |
+| `updateAdminGoogleSheetConfig` | PATCH | `/admin/google-sheets/{uuid}` | `uuid` | none | `UpdateAdminGoogleSheetConfigPayload` | `AdminGoogleSheetConfigSummary` |
+| `deleteAdminGoogleSheetConfig` | DELETE | `/admin/google-sheets/{uuid}` | `uuid` | `companyUuid` | none | none |
+
+## 5. System / Runtime
+
+| API | Method | Path | Path params | Query | Body | Response |
+|---|---|---|---|---|---|---|
+| `getCompanies` | GET | `/companies` | none | none | none | `CompanySummary[]` |
+| `collectInventoryArrivalDates` | POST | `/inventory-arrival-dates/collect-from-sheet` | none | none | `{ companyUuid }` | `InventoryArrivalCollectionResult` |
+| `getDashboardRuntimeConfig` | GET | `/dashboard/runtime-config` | none | none | none | `DashboardRuntimeConfig` |
+
+## 6. Sales
+
+| API | Method | Path | Path params | Query | Body | Response |
+|---|---|---|---|---|---|---|
+| `getSelfSales` | GET | `/sales/self` | none | `startDate?`, `endDate?`, `brand?`, `category?`, `codeQuery?`, `colorCode?`, `nameQuery?`, `companyUuid?` | none | `SelfSalesRow[]` |
+| `getCompetitorSales` | GET | `/sales/competitor` | none | sales filter + `competitorChannelId?` | none | `CompetitorSalesRow[]` |
+| `getSelfSalesScatterGrid` | GET | `/sales/self/scatter-grid` | none | sales grid filter + `companyUuid?` | none | `ScatterSalesGridResponse` |
+| `getCompetitorSalesScatterGrid` | GET | `/sales/competitor/scatter-grid` | none | sales grid filter + `competitorChannelId?` | none | `ScatterSalesGridResponse` |
+| `getSalesFilterMeta` | GET | `/sales/filter-meta` | none | `companyUuid?` | none | `SalesFilterMeta` |
+
+## 7. Product drawer / Secondary
+
+| API | Method | Path | Path params | Query | Body | Response |
+|---|---|---|---|---|---|---|
+| `getProductDrawerBundle` | GET | `/products/{skuGroupKey}/drawer-bundle` | `skuGroupKey` | base subject fields | none | `ProductDrawerBundle` |
+| `getProductComparisonTargets` | GET | `/products/comparison-targets` | none | base subject fields | none | `ProductComparisonTarget[]` |
+| `getProductMonthlyTrend` | GET | `/products/{skuGroupKey}/monthly-trend` | `skuGroupKey` | `startDate`, `endDate`, `forecastMonths`, base subject fields, comparison subject fields | none | `ProductMonthlyTrend` |
+| `getProductSalesInsight` | GET | `/products/{skuGroupKey}/sales-insight` | `skuGroupKey` | `startDate`, `endDate`, base subject fields, comparison subject fields | none | `ProductSalesInsight` |
+| `getProductSecondaryDetail` | GET | `/products/{skuGroupKey}/secondary-detail` | `skuGroupKey` | base subject fields, comparison subject fields, `minOpMarginPct?` | none | `ProductSecondaryDetail` |
+| `getSecondaryDailyTrend` | GET | `/products/{skuGroupKey}/secondary/daily-trend` | `skuGroupKey` | `startDate`, `endDate`, `forecastDays`, base subject fields, comparison subject fields | none | `SecondaryDailyTrendSource` |
+| `getSecondaryInboundSplitSource` | GET | `/products/{skuGroupKey}/secondary/inbound-split-source` | `skuGroupKey` | `dateStart`, `dateEnd`, base subject fields | none | `SecondaryInboundSplitSource` |
+| `getSecondaryAiComment` | POST | `/products/{skuGroupKey}/secondary/ai-comment` | `skuGroupKey` | none | `SecondaryAiCommentParams` without `skuGroupKey` | `SecondaryAiCommentResult` |
+| `getSecondaryCompetitorChannels` | GET | `/secondary/competitor-channels` | none | none | none | `SecondaryCompetitorChannel[]` |
+| `getSecondaryStockOrderCalc` | POST | `/secondary/stock-order-calc` | none | none | `SecondaryStockOrderCalcParams` | `SecondaryStockOrderCalcResult` |
+`SecondaryStockOrderCalcParams`: `skuGroupKey`, `base`, `periodStart`, `periodEnd`, `forecastPeriodEndMonth?`, `orderCoverageDays`, `dailyMean?`.
+`forecastPeriodEndMonth` uses `YYYY-MM` and represents the month containing the final included coverage date (`nextOrderInboundDueDate - 1 day` for the current split/order window). `orderCoverageDays` is the order coverage day count.
+
+
+`getSecondaryInboundSplitSource`는 입고 분할 원천 소스만 반환한다. 적용된 분할 결과는 `OrderSnapshotDocument.drawer2.confirmed.rounds`에 저장된다.
+
+## 8. Candidate stash / item
+
+| API | Method | Path | Path params | Query | Body | Response |
+|---|---|---|---|---|---|---|
+| `getCandidateStashes` | GET | `/candidate-stashes` | none | `companyUuid?` | none | `CandidateStashSummary[]` |
+| `getCandidateItemsByStash` | GET | `/candidate-stashes/{stashUuid}/items` | `stashUuid` | `dataReferencePeriodStart`, `dataReferencePeriodEnd`, `companyUuid?` | none | `CandidateItemListResult` |
+| `getCandidateRecommendations` | GET | `/candidate-stashes/{stashUuid}/recommendations` | `stashUuid` | `dataReferencePeriodStart`, `dataReferencePeriodEnd`, `limit?`, `cursor?`, `companyUuid?` | none | `CandidateRecommendationResult` |
+| `createCandidateStash` | POST | `/candidate-stashes` | none | none | `name`, `note?`, `periodStart`, `periodEnd`, `forecastMonths`, `companyUuid` | `CandidateStashSummary` |
+| `updateCandidateStash` | PATCH | `/candidate-stashes/{stashUuid}` | `stashUuid` | none | `name`, `note?`, `companyUuid` | `CandidateStashSummary` |
+| `deleteCandidateStash` | DELETE | `/candidate-stashes/{stashUuid}` | `stashUuid` | `companyUuid` | none | none |
+| `duplicateCandidateStash` | POST | `/candidate-stashes/{stashUuid}/duplicate` | `stashUuid` | none | `companyUuid` | none |
+| `appendCandidateItem` | POST | `/candidate-stashes/{stashUuid}/items` | `stashUuid` | none | `skuGroupKey`, `confirmedOrderSnapshot`, `isLatestLlmComment`, `companyUuid` | none |
+| `appendCandidateItems` | POST | `/candidate-stashes/{stashUuid}/items/bulk` | `stashUuid` | none | `competitorChannelId?`, `skuGroupKeys`, `companyUuid` | `AppendCandidateItemsResponse` |
+| `getCandidateItemByUuid` | GET | `/candidate-items/{itemUuid}` | `itemUuid` | `companyUuid?` | none | `CandidateItemDetail | null` |
+| `updateCandidateItem` | PATCH | `/candidate-items/{itemUuid}` | `itemUuid` | none | `confirmedOrderSnapshot`, `isLatestLlmComment`, `companyUuid` | `CandidateItemDetail` |
+| `deleteCandidateItem` | DELETE | `/candidate-items/{itemUuid}` | `itemUuid` | `companyUuid` | none | none |
+| `deleteCandidateItems` | DELETE | `/candidate-stashes/{stashUuid}/items` | `stashUuid` | none | `itemUuids`, `companyUuid` | none |
+| `getCandidateStashExcelTemplateDownload` | GET | `/candidate-stashes/excel-template` | none | none | none | `CandidateStashExcelTemplateDownload` |
+| `uploadCandidateStashExcel` | POST | `/candidate-stashes/import/excel` | none | none | multipart `file`, `companyUuid` | `CandidateStashExcelUploadResult` |
+
+
+Candidate DTO fields:
+
+- `CandidateItemDetail.confirmedOrderSnapshot`: saved `OrderSnapshotDocument | null`.
+- `CandidateItemSummary.hasConfirmedOrderSnapshot`: saved snapshot existence flag.
+- `CandidateItemInsightSummary.competitorSalesSourceLabel`: sales insight source label.
+- `CandidateItemOrderExport.comparisonSubjectLabel`: order metric/export comparison subject label.
+## 9. Job / SSE
+
+| API | Method | Path | Path params | Query | Body | Response / Transport |
+|---|---|---|---|---|---|---|
+| `subscribeCandidateOrderMetrics` | GET | `/candidate-stashes/{stashUuid}/items/order-metrics/events` | `stashUuid` | `requestId`, `dataReferencePeriodStart`, `dataReferencePeriodEnd`, `candidateItemUuids`, `companyUuid`, comparison subject fields | none | SSE |
+| `startCandidateDetailBulkConfirm` | POST | `/candidate-stashes/{stashUuid}/items/detail-confirmation-jobs` | `stashUuid` | none | `candidateItemUuids`, `dataReferencePeriodStart`, `dataReferencePeriodEnd`, `companyUuid` | `CandidateDetailBulkConfirmStartResult` |
+| `subscribeCandidateDetailBulkConfirm` | GET | `/candidate-item-detail-confirmation-jobs/{jobId}/events` | `jobId` | `companyUuid` | none | SSE |
+| `startCandidateStashLlmCommentJob` | POST | `/candidate-stashes/{stashUuid}/llm-comment-jobs` | `stashUuid` | none | `companyUuid` | `CandidateStashLlmCommentJobStartResult` |
+| `subscribeCandidateStashLlmCommentJob` | GET | `/candidate-stash-llm-comment-jobs/{jobId}/events` | `jobId` | `companyUuid` | none | SSE |
+
+SSE는 `text/event-stream`을 사용한다. 프론트는 `requestId` 또는 job id 기준으로 stale event를 버린다.
+
+## 10. Reference
+
+- HTTP adapter: `dashboard-app/src/api/requests/httpDashboardRequests.ts`
+- API types: `dashboard-app/src/api/types/*`
+- Snapshot type: `dashboard-app/src/snapshot/orderSnapshotTypes.ts`
+- Snapshot parser: `dashboard-app/src/snapshot/parseOrderSnapshot.ts`

@@ -136,14 +136,14 @@ export function createCandidateItemRecord(
   stashUuid: string,
   skuGroupKey: string,
   now: string,
-  overrides: Partial<Pick<CandidateItemRecord, 'details' | 'isLatestLlmComment'>> = {},
+  overrides: Partial<Pick<CandidateItemRecord, 'confirmedOrderSnapshot' | 'isLatestLlmComment'>> = {},
 ): CandidateItemRecord {
   return {
     uuid: makeUuid32(),
     stashUuid,
     skuUuid: skuGroupKey,
     skuGroupKey,
-    details: overrides.details ?? null,
+    confirmedOrderSnapshot: overrides.confirmedOrderSnapshot ?? null,
     isLatestLlmComment: overrides.isLatestLlmComment ?? false,
     dbCreatedAt: now,
     dbUpdatedAt: now,

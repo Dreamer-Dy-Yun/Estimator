@@ -57,14 +57,14 @@ export function hasCandidateRecommendationBadge(skuGroupKey: string, companyUuid
 }
 
 export function buildCandidateStashItems(records: CandidateItemRecord[]): CandidateStashItemSummary[] {
-  return records.map((row: CandidateItemRecord) : { uuid: string; stashUuid: string; skuUuid: string; skuGroupKey: string; isLatestLlmComment: boolean; hasSnapshot: boolean; snapshotUpdatedAt: string | undefined; dbCreatedAt: string; dbUpdatedAt: string; } => ({
+  return records.map((row: CandidateItemRecord) : { uuid: string; stashUuid: string; skuUuid: string; skuGroupKey: string; isLatestLlmComment: boolean; hasConfirmedOrderSnapshot: boolean; confirmedOrderSnapshotUpdatedAt: string | undefined; dbCreatedAt: string; dbUpdatedAt: string; } => ({
     uuid: row.uuid,
     stashUuid: row.stashUuid,
     skuUuid: row.skuUuid,
     skuGroupKey: row.skuGroupKey,
     isLatestLlmComment: row.isLatestLlmComment,
-    hasSnapshot: row.details != null,
-    snapshotUpdatedAt: row.details ? row.dbUpdatedAt ?? row.dbCreatedAt : undefined,
+    hasConfirmedOrderSnapshot: row.confirmedOrderSnapshot != null,
+    confirmedOrderSnapshotUpdatedAt: row.confirmedOrderSnapshot ? row.dbUpdatedAt ?? row.dbCreatedAt : undefined,
     dbCreatedAt: row.dbCreatedAt,
     dbUpdatedAt: row.dbUpdatedAt ?? row.dbCreatedAt,
   }))
@@ -144,7 +144,7 @@ export function buildCandidateItemSummaries(
         insightStatus: includeRecommendationInsights ? 'loaded' : 'loading',
         insight: baseInsight,
         isLatestLlmComment: row.isLatestLlmComment,
-        isDetailConfirmed: row.details != null,
+        hasConfirmedOrderSnapshot: row.confirmedOrderSnapshot != null,
         orderExport: null,
         dbCreatedAt: row.dbCreatedAt,
         dbUpdatedAt: row.dbUpdatedAt ?? row.dbCreatedAt,

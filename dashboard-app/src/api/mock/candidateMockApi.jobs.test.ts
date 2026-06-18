@@ -99,16 +99,16 @@ describe('api/mock candidate job contract', () : void => {
     expect(source).toBeDefined()
 
     const before: CandidateItemListResult = await mockDashboardApi.getCandidateItemsByStash(defaultCandidateItemListParams(source!.uuid))
-    const confirmedItem: CandidateItemSummary | undefined = before.items.find((row: CandidateItemSummary) : boolean => row.isDetailConfirmed)
+    const confirmedItem: CandidateItemSummary | undefined = before.items.find((row: CandidateItemSummary) : boolean => row.hasConfirmedOrderSnapshot)
     expect(confirmedItem).toBeDefined()
     const detail: CandidateItemDetail | null = await mockDashboardApi.getCandidateItemByUuid(confirmedItem!.uuid, {
       companyUuid: MOCK_COMPANY_UUID,
     })
-    expect(detail?.details).toBeDefined()
+    expect(detail?.confirmedOrderSnapshot).toBeDefined()
     await mockDashboardApi.updateCandidateItem({
       itemUuid: confirmedItem!.uuid,
       companyUuid: MOCK_COMPANY_UUID,
-      details: detail!.details,
+      confirmedOrderSnapshot: detail!.confirmedOrderSnapshot,
       isLatestLlmComment: true,
     })
     expect(
@@ -193,16 +193,16 @@ describe('api/mock candidate job contract', () : void => {
     expect(source).toBeDefined()
 
     const before: CandidateItemListResult = await mockDashboardApi.getCandidateItemsByStash(defaultCandidateItemListParams(source!.uuid))
-    const confirmedItem: CandidateItemSummary | undefined = before.items.find((row: CandidateItemSummary) : boolean => row.isDetailConfirmed)
+    const confirmedItem: CandidateItemSummary | undefined = before.items.find((row: CandidateItemSummary) : boolean => row.hasConfirmedOrderSnapshot)
     expect(confirmedItem).toBeDefined()
     const detail: CandidateItemDetail | null = await mockDashboardApi.getCandidateItemByUuid(confirmedItem!.uuid, {
       companyUuid: MOCK_COMPANY_UUID,
     })
-    expect(detail?.details).toBeDefined()
+    expect(detail?.confirmedOrderSnapshot).toBeDefined()
     await mockDashboardApi.updateCandidateItem({
       itemUuid: confirmedItem!.uuid,
       companyUuid: MOCK_COMPANY_UUID,
-      details: detail!.details,
+      confirmedOrderSnapshot: detail!.confirmedOrderSnapshot,
       isLatestLlmComment: false,
     })
 

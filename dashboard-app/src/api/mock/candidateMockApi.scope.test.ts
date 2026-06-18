@@ -125,7 +125,7 @@ describe('api/mock candidate stash scope contract', () : void => {
         stashUuid: source!.uuid,
         skuGroupKey: item!.skuGroupKey,
         companyUuid: ALL_COMPANY_UUID,
-        details: null!,
+        confirmedOrderSnapshot: null!,
         isLatestLlmComment: false,
       }),
     ).rejects.toThrow(mutationError)
@@ -133,7 +133,7 @@ describe('api/mock candidate stash scope contract', () : void => {
       mockDashboardApi.updateCandidateItem({
         itemUuid: item!.uuid,
         companyUuid: ' ',
-        details: null,
+        confirmedOrderSnapshot: null,
         isLatestLlmComment: false,
       }),
     ).rejects.toThrow(mutationError)

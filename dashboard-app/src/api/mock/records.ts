@@ -1,4 +1,4 @@
-import type { SecondaryOrderSnapshotPayload } from '../types/snapshot'
+import type { OrderSnapshotDocument } from '../../snapshot/orderSnapshotTypes'
 
 export const DEFAULT_CANDIDATE_STASH_CONTEXT: { readonly periodStart: '2025-01-01'; readonly periodEnd: '2025-12-31'; readonly forecastMonths: 8; } = {
   periodStart: '2025-01-01',
@@ -25,7 +25,7 @@ export type CandidateItemRecord = {
   /** CANDIDATE_ITEM.sku_uuid. Mock uses skuGroupKey as the stand-in SKU.uuid. */
   skuUuid: string
   skuGroupKey: string
-  details: SecondaryOrderSnapshotPayload | null
+  confirmedOrderSnapshot: OrderSnapshotDocument | null
   isLatestLlmComment: boolean
   dbCreatedAt: string
   dbUpdatedAt: string

@@ -55,7 +55,7 @@ export function buildCandidateItemInsight(
   )
 
   return {
-    competitorChannelLabel: channelLabel,
+    competitorSalesSourceLabel: channelLabel,
     competitorQty: weightedSalesValue(competitor?.competitorQty, periodWeight),
     competitorAmount: weightedSalesValue(competitor?.competitorAmount, periodWeight),
     selfQty: weightedSalesValue(self?.qty, periodWeight),

@@ -24,17 +24,17 @@ function createBuildParams(overrides: Partial<BuildSnapshotParams> = {}): BuildS
     periodEnd: validSnapshot.context.periodEnd,
     forecastMonths: validSnapshot.context.forecastMonths,
     selectedStart: validSnapshot.context.dailyTrendStartMonth,
-    leadTimeDays: validSnapshot.context.dailyTrendLeadTimeDays,
+    orderCoverageDays: validSnapshot.context.dailyTrendForecastDays,
     baseSubject: validSnapshot.drawer2.baseSubject,
     comparisonSubject: validSnapshot.drawer2.comparisonSubject,
     stockOrderRequest: validSnapshot.drawer2.stockOrderRequest,
-    stockOrderResult: null,
+    stockOrderResult: validSnapshot.drawer2.stockOrderResult,
     selfWeightPct: validSnapshot.drawer2.selfWeightPct,
     bufferStock: validSnapshot.drawer2.bufferStock,
     aiComment: validSnapshot.drawer2.aiComment,
-    unitPrice: validSnapshot.drawer2.unitEconomics!.unitPrice,
-    unitCost: validSnapshot.drawer2.unitEconomics!.unitCost,
-    expectedFeeRatePct: validSnapshot.drawer2.unitEconomics!.expectedFeeRatePct,
+    unitPrice: validSnapshot.drawer2.unitEconomics.unitPrice,
+    unitCost: validSnapshot.drawer2.unitEconomics.unitCost,
+    expectedFeeRatePct: validSnapshot.drawer2.unitEconomics.expectedFeeRatePct,
     sizeRows: validSnapshot.drawer2.sizeOrders.map((row) : BuildSnapshotParams['sizeRows'][number] => ({
       ...row,
       confirmQty: validSnapshot.drawer2.confirmed.rounds[0]?.qtyBySize[row.size] ?? 0,
@@ -63,9 +63,9 @@ describe('buildSecondaryOrderSnapshot', () : void => {
 
     expect(sortedKeys(snapshot.drawer1.summary)).toEqual(currentPrimarySummaryKeys)
     expect(snapshot.drawer1.monthlySalesTrend).toEqual(validSnapshot.drawer1.monthlySalesTrend)
-    expect(sortedKeys(snapshot.drawer2)).toEqual(currentDrawer2Keys.filter((key: string) : boolean => key !== 'stockOrderResult'))
+    expect(sortedKeys(snapshot.drawer2)).toEqual(currentDrawer2Keys)
     expect(sortedKeys(snapshot.drawer2.stockOrderRequest)).toEqual(currentStockOrderRequestKeys)
-    expect(snapshot.drawer2).not.toHaveProperty('stockOrderResult')
+    expect(snapshot.drawer2.stockOrderResult).toEqual(validSnapshot.drawer2.stockOrderResult)
   })
 
   it('stores comparison subjects without top-level companyUuid', () : void => {

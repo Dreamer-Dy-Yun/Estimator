@@ -95,7 +95,7 @@ describe('useSecondaryDailyTrend', (): void => {
       selectedEnd: '2026-06',
       baseSubject: BASE_SUBJECT,
       comparisonTarget: COMPARISON,
-      leadTimeDays: 0,
+      orderCoverageDays: 0,
       makeApiErrorInfo,
     })
     await flushMicrotasks()

@@ -99,7 +99,6 @@ export type {
   SecondaryDailyTrendParams,
   SecondaryDailyTrendPoint,
   SecondaryDailyTrendSource,
-  SecondaryDailyTrendSubjectFlow,
   SecondaryInboundSplitExpectationCell,
   SecondaryInboundSplitSource,
   SecondaryInboundSplitSourceParams,
@@ -147,7 +146,6 @@ export type {
   CandidateOrderMetricStreamParams,
   CandidateOrderMetricSubscription,
 } from './candidate-order-metrics'
-export type { SecondaryOrderSnapshotPayload } from './snapshot'
 export type { DashboardApi, DashboardEventStreamErrorListener } from './dashboard-api'
 export type { DashboardRuntimeConfig } from './dashboard-runtime'
 export type {

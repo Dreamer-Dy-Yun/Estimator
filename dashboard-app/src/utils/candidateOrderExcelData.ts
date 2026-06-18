@@ -47,9 +47,7 @@ function getCompetitorQtyHeader(items: CandidateItemSummary[]): string {
   const labels: string[] = [
     ...new Set(
       items
-        .map((item: CandidateItemSummary) : string => (
-          getOrderExport(item).competitorChannelLabel || item.insight.competitorChannelLabel
-        ).trim())
+        .map((item: CandidateItemSummary) : string => getOrderExport(item).comparisonSubjectLabel.trim())
         .filter(Boolean),
     ),
   ]

@@ -62,26 +62,26 @@ function requireItemUuidSet(itemUuids: string[]): Set<string> {
   return new Set(itemUuids)
 }
 
-function createItem(stashUuid: string, skuGroupKey: string, now: string, overrides?: Partial<Pick<CandidateItemRecord, 'details' | 'isLatestLlmComment'>>) : CandidateItemRecord {
+function createItem(stashUuid: string, skuGroupKey: string, now: string, overrides?: Partial<Pick<CandidateItemRecord, 'confirmedOrderSnapshot' | 'isLatestLlmComment'>>) : CandidateItemRecord {
   return createCandidateItemRecord(stashUuid, skuGroupKey, now, overrides)
 }
 
-function requireCandidateDetailsSnapshot(
-  details: CandidateItemRecord['details'] | undefined,
+function requireCandidateConfirmedOrderSnapshot(
+  confirmedOrderSnapshot: CandidateItemRecord['confirmedOrderSnapshot'] | undefined,
   skuGroupKey: string,
   options: { allowNull: boolean; companyUuid: string },
-): CandidateItemRecord['details'] {
-  if (!details) {
+): CandidateItemRecord['confirmedOrderSnapshot'] {
+  if (!confirmedOrderSnapshot) {
     if (options.allowNull) return null
-    throw new Error('Candidate item details are required.')
+    throw new Error('Candidate item confirmedOrderSnapshot is required.')
   }
 
-  const snapshot: OrderSnapshotDocument = parseOrderSnapshot(details)
+  const snapshot: OrderSnapshotDocument = parseOrderSnapshot(confirmedOrderSnapshot)
   if (snapshot.skuGroupKey !== skuGroupKey) {
-    throw new Error(`Candidate item details skuGroupKey mismatch: ${snapshot.skuGroupKey} !== ${skuGroupKey}`)
+    throw new Error(`Candidate item confirmedOrderSnapshot skuGroupKey mismatch: ${snapshot.skuGroupKey} !== ${skuGroupKey}`)
   }
   if (snapshot.drawer2.baseSubject.sourceId !== options.companyUuid) {
-    throw new Error(`Candidate item details baseSubject sourceId mismatch: ${snapshot.drawer2.baseSubject.sourceId} !== ${options.companyUuid}`)
+    throw new Error(`Candidate item confirmedOrderSnapshot baseSubject sourceId mismatch: ${snapshot.drawer2.baseSubject.sourceId} !== ${options.companyUuid}`)
   }
   return snapshot
 }
@@ -153,7 +153,7 @@ export function duplicateCandidateStashRecord(sourceStashUuid: string, ownerUser
   readCandidateItemRecords()
     .filter((row: CandidateItemRecord) : boolean => row.stashUuid === source.uuid)
     .forEach((item: CandidateItemRecord) : number => readCandidateItemRecords().push(createItem(duplicatedStashUuid, item.skuGroupKey, now, {
-      details: item.details,
+      confirmedOrderSnapshot: item.confirmedOrderSnapshot,
       isLatestLlmComment: item.isLatestLlmComment,
     })))
 }
@@ -164,7 +164,7 @@ export function appendCandidateItemRecord(payload: AppendCandidateItemPayload, o
   const records: CandidateItemRecord[] = readCandidateItemRecords()
   if (records.some((row: CandidateItemRecord) : boolean => row.stashUuid === payload.stashUuid && row.skuGroupKey === payload.skuGroupKey)) throw new Error('이미 후보군에 포함된 상품입니다.')
   records.push(createItem(payload.stashUuid, payload.skuGroupKey, new Date().toISOString(), {
-    details: requireCandidateDetailsSnapshot(payload.details, payload.skuGroupKey, { allowNull: false, companyUuid: stash.companyUuid }),
+    confirmedOrderSnapshot: requireCandidateConfirmedOrderSnapshot(payload.confirmedOrderSnapshot, payload.skuGroupKey, { allowNull: false, companyUuid: stash.companyUuid }),
     isLatestLlmComment: payload.isLatestLlmComment,
   }))
 }
@@ -189,7 +189,7 @@ export function updateCandidateItemRecord(payload: UpdateCandidateItemPayload, o
   const requiredCompanyUuid: string = getMockMutationCompanyUuid(companyUuid)
   const item: CandidateItemRecord | undefined = readCandidateItemRecords().find((row: CandidateItemRecord) : boolean => row.uuid === payload.itemUuid)
   if (!item || !findCandidateStashForOwner(item.stashUuid, ownerUserUuid, requiredCompanyUuid)) throw new Error('후보 아이템을 찾을 수 없습니다.')
-  item.details = requireCandidateDetailsSnapshot(payload.details, item.skuGroupKey, { allowNull: true, companyUuid: requiredCompanyUuid })
+  item.confirmedOrderSnapshot = requireCandidateConfirmedOrderSnapshot(payload.confirmedOrderSnapshot, item.skuGroupKey, { allowNull: true, companyUuid: requiredCompanyUuid })
   item.isLatestLlmComment = payload.isLatestLlmComment
   item.dbUpdatedAt = new Date().toISOString()
   return toCandidateItemDetail(item)

@@ -64,7 +64,7 @@ function getExpectationCell(
   return cell
 }
 
-function sumIntervalNetDemand(source: SecondaryInboundSplitSource, interval: SplitInterval): number {
+function sumIntervalTotalNetDemand(source: SecondaryInboundSplitSource, interval: SplitInterval): number {
   const startMs: number = Math.max(parseIsoDateMs(interval.startDate, 'interval.startDate'), parseIsoDateMs(source.dateStart, 'source.dateStart'))
   const endMs: number = Math.min(parseIsoDateMs(interval.endDate, 'interval.endDate'), parseIsoDateMs(source.dateEnd, 'source.dateEnd'))
   if (endMs <= startMs) {
@@ -103,7 +103,7 @@ function suggestRoundSplit(
     sum + requireFiniteQuantity(source.stockBySize[size], `stockBySize.${size}`)
   ), 0)
   return intervals.map((interval: SplitInterval): number => {
-    const intervalNetDemand: number = sumIntervalNetDemand(source, interval)
+    const intervalNetDemand: number = sumIntervalTotalNetDemand(source, interval)
     const requiredQty: number = Math.max(0, Math.ceil(intervalNetDemand - projectedStock))
     const qty: number = Math.min(remainingOrderQty, requiredQty)
     projectedStock += qty - intervalNetDemand

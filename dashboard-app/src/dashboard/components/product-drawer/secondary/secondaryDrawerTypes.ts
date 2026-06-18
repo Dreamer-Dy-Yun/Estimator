@@ -16,7 +16,7 @@ export type CandidateItemPanelContext = {
   stashName: string
   stashNote: string | null
   itemUuid: string
-  isDetailConfirmed: boolean
+  hasConfirmedOrderSnapshot: boolean
   confirmedSnapshot?: OrderSnapshotDocument | null
   hydrateSnapshotSource?: 'confirmed' | 'live' | null
   onDraftChange?: (snapshot: OrderSnapshotDocument, source: 'confirmed' | 'live') => void

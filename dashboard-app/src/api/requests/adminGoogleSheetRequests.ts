@@ -38,14 +38,18 @@ function toRequiredCompanyQuery(params: CompanyMutationScopeParams) : string {
  *   fields and should be persisted with the config.
  */
 const httpAdminGoogleSheetRequests: AdminGoogleSheetApi = {
+  // GET /admin/google-sheets: 구글시트 설정 목록 조회.
   getAdminGoogleSheetConfigs: (params: CompanyScopeParams | undefined) : Promise<AdminGoogleSheetConfigSummary[]> => apiRequest(`/admin/google-sheets${toCompanyQuery(params)}`),
+  // POST /admin/google-sheets: 구글시트 설정 생성.
   createAdminGoogleSheetConfig: (payload: CreateAdminGoogleSheetConfigPayload) : Promise<AdminGoogleSheetConfigSummary> =>
     apiRequest('/admin/google-sheets', { method: 'POST', body: payload }),
+  // PATCH /admin/google-sheets/{uuid}: 구글시트 설정 수정.
   updateAdminGoogleSheetConfig: (payload: UpdateAdminGoogleSheetConfigPayload) : Promise<AdminGoogleSheetConfigSummary> =>
     apiRequest(`/admin/google-sheets/${encodeURIComponent(payload.uuid)}`, {
       method: 'PATCH',
       body: payload,
     }),
+  // DELETE /admin/google-sheets/{uuid}: 구글시트 설정 삭제.
   deleteAdminGoogleSheetConfig: (configUuid: string, params: CompanyMutationScopeParams) : Promise<void> =>
     apiRequest(`/admin/google-sheets/${encodeURIComponent(configUuid)}${toRequiredCompanyQuery(params)}`, {
       method: 'DELETE',
@@ -53,9 +57,13 @@ const httpAdminGoogleSheetRequests: AdminGoogleSheetApi = {
 }
 
 const mockAdminGoogleSheetRequests: AdminGoogleSheetApi = withMockApiAdapterErrors<AdminGoogleSheetApi>({
+  // GET /admin/google-sheets: 구글시트 설정 목록 조회(목데이터).
   getAdminGoogleSheetConfigs: (params: CompanyScopeParams | undefined) : Promise<AdminGoogleSheetConfigSummary[]> => mockAdminGoogleSheetApi.getAdminGoogleSheetConfigs(params),
+  // POST /admin/google-sheets: 구글시트 설정 생성(목데이터).
   createAdminGoogleSheetConfig: (payload: CreateAdminGoogleSheetConfigPayload) : Promise<AdminGoogleSheetConfigSummary> => mockAdminGoogleSheetApi.createAdminGoogleSheetConfig(payload),
+  // PATCH /admin/google-sheets/{uuid}: 구글시트 설정 수정(목데이터).
   updateAdminGoogleSheetConfig: (payload: UpdateAdminGoogleSheetConfigPayload) : Promise<AdminGoogleSheetConfigSummary> => mockAdminGoogleSheetApi.updateAdminGoogleSheetConfig(payload),
+  // DELETE /admin/google-sheets/{uuid}: 구글시트 설정 삭제(목데이터).
   deleteAdminGoogleSheetConfig: (configUuid: string, params: CompanyMutationScopeParams) : Promise<void> => mockAdminGoogleSheetApi.deleteAdminGoogleSheetConfig(configUuid, params),
 })
 

@@ -1,5 +1,7 @@
 # Inbound Split Schedule Cleanup
 
+> Current-contract note: this is a dated cleanup result note. For the current product-drawer boundary, API request contract, and snapshot contract, use `MD/dashboard-app/source-boundary-map.md`, `MD/dashboard-app/boundaries/product-drawer.md`, `MD/dashboard-app/boundaries/api-contracts.md`, `MD/backend-api/backend-api-spec.md`, `MD/backend-api/dashboard-api-contract-catalog.md`, and `MD/backend-api/order-snapshot-backend-contract.md`.
+
 ## Goal
 
 Clean up the secondary drawer split-inbound schedule UI by feature responsibility without changing the API/mock source contract or shortage recommendation behavior.
@@ -72,7 +74,7 @@ Clean up the secondary drawer split-inbound schedule UI by feature responsibilit
 ## 2026-06-16 hardening update
 
 - Split-inbound Open/Apply now requires both a valid source and completed stock-order calculation. If source/calculation readiness drops while the dialog is open, the controller closes and remounts the dialog.
-- Live calculation-input changes clear `drawer2.confirmed.rounds` together with direct confirmed quantities so applied split rows cannot persist on a stale recommendation basis.
+- Live calculation-input changes clear `drawer2.confirmed.rounds` together with direct confirmed quantities so confirmed split rounds cannot persist on a stale recommendation basis.
 - `getSecondaryDailyTrend.flowByDate[date].base.inbound` is now a required numeric field. `comparison.inbound` remains nullable. The frontend validates `productId`, inclusive response `dateEnd`, `dateStart`, and `forecastStartDate` before deriving chart points.
 - Regression coverage was added for split controller readiness/apply paths, daily-trend source validation, daily-trend hook error surfacing, inbound-date equality prevention, mock role parity, and forecast-model split reset.
 

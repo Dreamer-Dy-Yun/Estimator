@@ -87,14 +87,14 @@ describe('httpDashboardRequests company read scope contract', () : void => {
       base: unscopedBaseSubject,
       periodStart: '2025-01-01',
       periodEnd: '2025-03-31',
-      leadTimeDays: 21,
+      orderCoverageDays: 21,
     })
     await httpDashboardRequests.getSecondaryStockOrderCalc({
       skuGroupKey: 'SKU-054-BLK',
       base: unscopedBaseSubject,
       periodStart: '2025-01-01',
       periodEnd: '2025-03-31',
-      leadTimeDays: 21,
+      orderCoverageDays: 21,
     })
 
     const apiRequestCalls: ApiRequestCall[] = httpClientMocks.apiRequest.mock.calls as unknown as ApiRequestCall[]

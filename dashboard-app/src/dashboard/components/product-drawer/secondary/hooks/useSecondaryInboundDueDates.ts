@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { addIsoDays, daysInclusiveBetween, formatIsoDateLocal } from '../../../../../utils/date'
+import { addIsoDays, daysBetweenIsoDates, formatIsoDateLocal } from '../../../../../utils/date'
 
 export type InboundDueDateDefaults = {
   start: string
@@ -22,7 +22,7 @@ function buildDefaultInboundDueDates(): InboundDueDateDefaults {
   }
 }
 
-export function useSecondaryInboundDueDates() : { defaultInboundDueDates: InboundDueDateDefaults; minOrderDate: string; currentOrderInboundDueDate: string; nextOrderInboundDueDate: string; leadTimeDays: number; setCurrentOrderInboundDueDate: React.Dispatch<React.SetStateAction<string>>; setNextOrderInboundDueDate: React.Dispatch<React.SetStateAction<string>>; handleCurrentOrderInboundDueDateChange: (next: string) => void; handleNextOrderInboundDueDateChange: (next: string) => void; resetInboundDueDatesToLive: () => void; } {
+export function useSecondaryInboundDueDates() : { defaultInboundDueDates: InboundDueDateDefaults; minOrderDate: string; currentOrderInboundDueDate: string; nextOrderInboundDueDate: string; orderCoverageDays: number; setCurrentOrderInboundDueDate: React.Dispatch<React.SetStateAction<string>>; setNextOrderInboundDueDate: React.Dispatch<React.SetStateAction<string>>; handleCurrentOrderInboundDueDateChange: (next: string) => void; handleNextOrderInboundDueDateChange: (next: string) => void; resetInboundDueDatesToLive: () => void; } {
   const defaultInboundDueDates: InboundDueDateDefaults = useMemo(() : InboundDueDateDefaults => buildDefaultInboundDueDates(), [])
   const [currentOrderInboundDueDate, setCurrentOrderInboundDueDate]: [string, React.Dispatch<React.SetStateAction<string>>] = useState(defaultInboundDueDates.start)
   const [nextOrderInboundDueDate, setNextOrderInboundDueDate]: [string, React.Dispatch<React.SetStateAction<string>>] = useState(defaultInboundDueDates.end)
@@ -49,8 +49,8 @@ export function useSecondaryInboundDueDates() : { defaultInboundDueDates: Inboun
     }
   }, [currentOrderInboundDueDate])
 
-  const leadTimeDays: number = useMemo(
-    () : number => daysInclusiveBetween(currentOrderInboundDueDate, nextOrderInboundDueDate),
+  const orderCoverageDays: number = useMemo(
+    () : number => Math.max(0, daysBetweenIsoDates(currentOrderInboundDueDate, nextOrderInboundDueDate) ?? 0),
     [nextOrderInboundDueDate, currentOrderInboundDueDate],
   )
 
@@ -78,7 +78,7 @@ export function useSecondaryInboundDueDates() : { defaultInboundDueDates: Inboun
     minOrderDate,
     currentOrderInboundDueDate,
     nextOrderInboundDueDate,
-    leadTimeDays,
+    orderCoverageDays,
     setCurrentOrderInboundDueDate,
     setNextOrderInboundDueDate,
     handleCurrentOrderInboundDueDateChange,

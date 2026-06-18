@@ -5,7 +5,7 @@ export function toInboundSplitDraftInteger(value: string): number {
   return Math.max(0, Math.round(Number(value) || 0))
 }
 
-export function redistributeInboundSplitRowTotalByScheduleSuggestion(
+export function redistributeInboundSplitRowTotalBySuggestedSizeMix(
   rows: readonly InboundSplitScheduleRow[],
   columns: readonly InboundSplitSizeColumn[],
   rowIndex: number,
@@ -15,6 +15,9 @@ export function redistributeInboundSplitRowTotalByScheduleSuggestion(
   if (currentRow == null) return [...rows]
 
   const suggestedTotals: Record<string, number> = sumInboundSplitSuggestedBySize(rows, columns)
+  const suggestedWeightTotal: number = columns.reduce((sum: number, column: InboundSplitSizeColumn): number => sum + Math.max(0, suggestedTotals[column.size] ?? 0), 0)
+  if (suggestedWeightTotal <= 0) return [...rows]
+
   const distributed: number[] = allocateInboundSplitIntegerTotal({
     total: toInboundSplitDraftInteger(value),
     weights: columns.map((column: InboundSplitSizeColumn): number => suggestedTotals[column.size] ?? 0),

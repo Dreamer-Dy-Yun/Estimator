@@ -7,6 +7,7 @@ import {
   createCandidateDetailConfirmationOverride,
   type CandidateDetailConfirmationOverrideMap,
 } from './candidateDetailConfirmationOverrideModel'
+import { assertCandidateItemDetailSnapshotFlag, assertCandidateItemDetailSnapshotFlags } from './candidateItemDetailContract'
 import type { CandidateSetItems } from './candidateStashDetailTypes'
 
 export interface DrawerSnapshotBridge {
@@ -31,7 +32,7 @@ function mergeDetailConfirmationState(
 ): CandidateItemSummary {
   return {
     ...item,
-    isDetailConfirmed: updatedItem.isDetailConfirmed,
+    hasConfirmedOrderSnapshot: updatedItem.hasConfirmedOrderSnapshot,
     isLatestLlmComment: updatedItem.isLatestLlmComment,
     dbUpdatedAt: updatedItem.dbUpdatedAt,
   }
@@ -40,11 +41,12 @@ function mergeDetailConfirmationState(
 function parseConfirmedUpdatedItems(
   updatedItems: CandidateItemDetail[],
 ): Array<{ item: CandidateItemDetail; snapshot: OrderSnapshotDocument }> {
+  assertCandidateItemDetailSnapshotFlags(updatedItems)
   return updatedItems
-    .filter((item: CandidateItemDetail) : OrderSnapshotDocument | null => item.details)
+    .filter((item: CandidateItemDetail) : boolean => item.hasConfirmedOrderSnapshot)
     .map((item: CandidateItemDetail) : { item: CandidateItemDetail; snapshot: OrderSnapshotDocument; } => {
       try {
-        return { item, snapshot: parseOrderSnapshot(item.details) }
+        return { item, snapshot: parseOrderSnapshot(item.confirmedOrderSnapshot) }
       } catch (error) {
         const message: string = error instanceof Error ? error.message : String(error)
         throw new Error(`Candidate item snapshot parse failed: ${item.uuid}: ${message}`)
@@ -58,16 +60,20 @@ export function useCandidateDetailConfirmationMutations({
   setItems,
   drawer,
 }: UseCandidateDetailConfirmationMutationsParams) : { markDrawerSnapshotConfirmed: (itemUuid: string, snapshot: OrderSnapshotDocument, updatedItem: CandidateItemDetail) => void; markDrawerSnapshotUnconfirmed: (itemUuid: string, updatedItem: CandidateItemDetail) => void; markItemsDetailConfirmed: (updatedItems: CandidateItemDetail[]) => void; markItemsDetailUnconfirmed: (updatedItems: CandidateItemDetail[]) => void; } {
-  const recordDetailConfirmationMutation: (itemUuid: string, isDetailConfirmed: boolean, confirmedSnapshot: OrderSnapshotDocument | null, updatedItem: CandidateItemDetail) => string | null = useCallback((
+  const recordDetailConfirmationMutation: (itemUuid: string, hasConfirmedOrderSnapshot: boolean, confirmedSnapshot: OrderSnapshotDocument | null, updatedItem: CandidateItemDetail) => string | null = useCallback((
     itemUuid: string,
-    isDetailConfirmed: boolean,
+    hasConfirmedOrderSnapshot: boolean,
     confirmedSnapshot: OrderSnapshotDocument | null,
     updatedItem: CandidateItemDetail,
   ) : string | null => {
+    assertCandidateItemDetailSnapshotFlag(updatedItem)
+    if (updatedItem.hasConfirmedOrderSnapshot !== hasConfirmedOrderSnapshot) {
+      throw new Error(`Candidate item confirmation state mismatch: ${itemUuid}`)
+    }
     const baseItem: CandidateItemSummary | undefined = itemsRef.current.find((item: CandidateItemSummary) : boolean => item.uuid === itemUuid)
     confirmationOverridesRef.current = {
       ...confirmationOverridesRef.current,
-      [itemUuid]: createCandidateDetailConfirmationOverride(baseItem, isDetailConfirmed, confirmedSnapshot),
+      [itemUuid]: createCandidateDetailConfirmationOverride(baseItem, hasConfirmedOrderSnapshot, confirmedSnapshot),
     }
     setItems((current: CandidateItemSummary[]) : CandidateItemSummary[] => current.map((item: CandidateItemSummary) : CandidateItemSummary => (
       item.uuid === itemUuid ? mergeDetailConfirmationState(item, updatedItem) : item
@@ -90,6 +96,9 @@ export function useCandidateDetailConfirmationMutations({
   }, [drawer, recordDetailConfirmationMutation])
 
   const markItemsDetailUnconfirmed: (updatedItems: CandidateItemDetail[]) => void = useCallback((updatedItems: CandidateItemDetail[]) : void => {
+    assertCandidateItemDetailSnapshotFlags(updatedItems)
+    const stillConfirmedItem: CandidateItemDetail | undefined = updatedItems.find((item: CandidateItemDetail) : boolean => item.hasConfirmedOrderSnapshot)
+    if (stillConfirmedItem) throw new Error(`Candidate item unconfirm response still has a snapshot: ${stillConfirmedItem.uuid}`)
     const uniqueUuids: string[] = [...new Set(updatedItems.map((item: CandidateItemDetail) : string => item.uuid))]
     if (!uniqueUuids.length) return
     const uuidSet: Set<string> = new Set(uniqueUuids)

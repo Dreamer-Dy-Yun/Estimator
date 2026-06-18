@@ -128,7 +128,7 @@ function confirmOneItemEvent(
     return { jobId, stashUuid: job.stashUuid, status: 'running', totalItems, completedItems, currentItemUuid: itemUuid, message: '후보 아이템을 찾을 수 없어 건너뛰었습니다.' }
   }
   const now: string = new Date().toISOString()
-  item.details = buildMockOrderSnapshotForCandidate(item.skuGroupKey, {
+  item.confirmedOrderSnapshot = buildMockOrderSnapshotForCandidate(item.skuGroupKey, {
     companyUuid: job.companyUuid,
     periodStart: job.periodStart,
     periodEnd: job.periodEnd,
@@ -150,8 +150,8 @@ function confirmOneItemEvent(
       stashUuid: item.stashUuid,
       skuUuid: item.skuUuid,
       skuGroupKey: item.skuGroupKey,
-      details: item.details,
-      isDetailConfirmed: true,
+      confirmedOrderSnapshot: item.confirmedOrderSnapshot,
+      hasConfirmedOrderSnapshot: true,
       isLatestLlmComment: item.isLatestLlmComment,
       dbCreatedAt: item.dbCreatedAt,
       dbUpdatedAt: now,

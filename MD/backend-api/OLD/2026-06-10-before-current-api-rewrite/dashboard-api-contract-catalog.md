@@ -248,12 +248,12 @@ Candidate flows require single-company scope except read-like list endpoints tha
 | `getCandidateRecommendations` | GET `/candidate-stashes/{stashUuid}/recommendations` | required | recommendation read |
 | `appendCandidateItem` | POST `/candidate-stashes/{stashUuid}/items` | required | singular append with snapshot |
 | `appendCandidateItems` | POST `/candidate-stashes/{stashUuid}/items/bulk` | required | bulk append without snapshot |
-| `updateCandidateItem` | PATCH `/candidate-items/{itemUuid}` | required | `details` or `null` |
+| `updateCandidateItem` | PATCH `/candidate-items/{itemUuid}` | required | `confirmedOrderSnapshot` or `null` |
 | `deleteCandidateItem` | DELETE `/candidate-items/{itemUuid}` | required | mutation |
 | `startCandidateDetailBulkConfirm` | POST `/candidate-detail-confirmation-jobs` | required | job start |
 | job SSE endpoints | GET `.../events` | required | default message event |
 
-`AppendCandidateItemPayload`: `companyUuid`, `stashUuid`, `skuGroupKey`, `details`, `isLatestLlmComment`.
+`AppendCandidateItemPayload`: `companyUuid`, `stashUuid`, `skuGroupKey`, `confirmedOrderSnapshot`, `isLatestLlmComment`.
 `AppendCandidateItemsPayload`: `companyUuid`, `stashUuid`, `skuGroupKeys`, optional `competitorChannelId`.
 `AppendCandidateItemsResponse`: `candidateItems: CandidateStashItemSummary[]`.
 
@@ -275,4 +275,4 @@ Current snapshot rules:
 - `drawer2.stockOrderResult.display.sizeRows[]` is size-keyed.
 - `drawer2.confirmedTotals` is required.
 - `drawer2.aiComment` contains `prompt`, `answer`, `generatedAt`.
-- `details` and `isLatestLlmComment` are API wrapper fields, not snapshot fields.
+- `confirmedOrderSnapshot` and `isLatestLlmComment` are API wrapper fields, not snapshot fields.

@@ -28,36 +28,49 @@ function toMetadataPayload(payload: UpdateAdminGptKeyPayload) : { name: string; 
 }
 
 const httpAdminGptKeyRequests: AdminGptKeyApi = {
+  // GET /admin/gpt-keys: GPT 키 목록 조회.
   getAdminGptKeys: () : Promise<AdminGptKeySummary[]> => apiRequest('/admin/gpt-keys'),
+  // POST /admin/gpt-keys: GPT 키 생성.
   createAdminGptKey: (payload: CreateAdminGptKeyPayload) : Promise<AdminGptKeySummary> => apiRequest('/admin/gpt-keys', { method: 'POST', body: payload }),
+  // PATCH /admin/gpt-keys/{uuid}: GPT 키 메타데이터 갱신.
   updateAdminGptKey: async (payload: UpdateAdminGptKeyPayload) : Promise<AdminGptKeySummary> => {
     const updated: AdminGptKeySummary = await apiRequest<AdminGptKeySummary>(`/admin/gpt-keys/${encodeURIComponent(payload.uuid)}`, {
       method: 'PATCH',
       body: toMetadataPayload(payload),
     })
     if (!payload.plainKey?.trim()) return updated
+    // POST /admin/gpt-keys/{uuid}/rotate: GPT 키 회전.
     return apiRequest(`/admin/gpt-keys/${encodeURIComponent(payload.uuid)}/rotate`, {
       method: 'POST',
       body: { plainKey: payload.plainKey },
     })
   },
+  // POST /admin/gpt-keys/{uuid}/rotate: GPT 키 회전(명시 호출).
   rotateAdminGptKey: (payload: RotateAdminGptKeyPayload) : Promise<AdminGptKeySummary> =>
     apiRequest(`/admin/gpt-keys/${encodeURIComponent(payload.uuid)}/rotate`, {
       method: 'POST',
       body: { plainKey: payload.plainKey },
     }),
+  // POST /admin/gpt-keys/{uuid}/test: GPT 키 테스트.
   testAdminGptKey: (keyUuid: string) : Promise<AdminGptKeyTestResult> =>
     apiRequest(`/admin/gpt-keys/${encodeURIComponent(keyUuid)}/test`, { method: 'POST' }),
+  // DELETE /admin/gpt-keys/{uuid}: GPT 키 삭제.
   deleteAdminGptKey: (keyUuid: string) : Promise<void> =>
     apiRequest(`/admin/gpt-keys/${encodeURIComponent(keyUuid)}`, { method: 'DELETE' }),
 }
 
 const mockAdminGptKeyRequests: AdminGptKeyApi = withMockApiAdapterErrors<AdminGptKeyApi>({
+  // GET /admin/gpt-keys: GPT 키 목록 조회(목데이터).
   getAdminGptKeys: () : Promise<AdminGptKeySummary[]> => mockAdminGptKeyApi.getAdminGptKeys(),
+  // POST /admin/gpt-keys: GPT 키 생성(목데이터).
   createAdminGptKey: (payload: CreateAdminGptKeyPayload) : Promise<AdminGptKeySummary> => mockAdminGptKeyApi.createAdminGptKey(payload),
+  // PATCH /admin/gpt-keys/{uuid}: GPT 키 수정(목데이터).
   updateAdminGptKey: (payload: UpdateAdminGptKeyPayload) : Promise<AdminGptKeySummary> => mockAdminGptKeyApi.updateAdminGptKey(payload),
+  // POST /admin/gpt-keys/{uuid}/rotate: GPT 키 회전(목데이터).
   rotateAdminGptKey: (payload: RotateAdminGptKeyPayload) : Promise<AdminGptKeySummary> => mockAdminGptKeyApi.rotateAdminGptKey(payload),
+  // POST /admin/gpt-keys/{uuid}/test: GPT 키 테스트(목데이터).
   testAdminGptKey: (keyUuid: string) : Promise<AdminGptKeyTestResult> => mockAdminGptKeyApi.testAdminGptKey(keyUuid),
+  // DELETE /admin/gpt-keys/{uuid}: GPT 키 삭제(목데이터).
   deleteAdminGptKey: (keyUuid: string) : Promise<void> => mockAdminGptKeyApi.deleteAdminGptKey(keyUuid),
 })
 

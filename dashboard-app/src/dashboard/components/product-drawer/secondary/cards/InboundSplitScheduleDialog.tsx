@@ -6,7 +6,7 @@ import { formatGroupedNumber } from '../../../../../utils/format'
 import { KO } from '../../ko'
 import styles from '../secondaryDrawer.module.css'
 import { cloneInboundSplitRows, type InboundSplitScheduleRow, type InboundSplitSizeColumn } from './inboundSplitScheduleModel'
-import { findInboundSplitDateOrderIssue } from './inboundSplitScheduleDatePolicy'
+import { findInboundSplitDatePolicyIssue } from './inboundSplitScheduleDatePolicy'
 import type { InboundSplitDraftRequest } from './inboundSplitScheduleTypes'
 import { InboundSplitScheduleTable } from './InboundSplitScheduleTable'
 import { useInboundSplitScheduleDraft, type UseInboundSplitScheduleDraftResult } from './useInboundSplitScheduleDraft'
@@ -15,7 +15,8 @@ export type { InboundSplitDraftRequest } from './inboundSplitScheduleTypes'
 
 export interface InboundSplitScheduleDialogProps {
   open: boolean
-  workDate: string
+  currentOrderInboundDueDate: string
+  nextOrderInboundDueDate: string
   initialCount: number
   initialRows: InboundSplitScheduleRow[]
   columns: InboundSplitSizeColumn[]
@@ -29,7 +30,8 @@ export interface InboundSplitScheduleDialogProps {
 
 export function InboundSplitScheduleDialog({
   open,
-  workDate,
+  currentOrderInboundDueDate,
+  nextOrderInboundDueDate,
   initialCount,
   initialRows = [],
   columns,
@@ -56,10 +58,10 @@ export function InboundSplitScheduleDialog({
     recalculateRows,
     onDraftError,
   })
-  const confirmedSourceTotal: number = columns.reduce((sum: number, column: InboundSplitSizeColumn): number => sum + column.confirmedQty, 0)
-  const hasInvalidDateOrder: boolean = findInboundSplitDateOrderIssue(workDate, draft.rows) != null
-  const applyDisabled: boolean = draftError != null || draft.rows.length === 0 || hasInvalidDateOrder
-  const dateOrderErrorMessage: string = hasInvalidDateOrder
+  const currentConfirmedTotal: number = columns.reduce((sum: number, column: InboundSplitSizeColumn): number => sum + column.confirmedQty, 0)
+  const hasInvalidDatePolicy: boolean = findInboundSplitDatePolicyIssue(currentOrderInboundDueDate, nextOrderInboundDueDate, draft.rows) != null
+  const applyDisabled: boolean = draftError != null || draft.rows.length === 0 || hasInvalidDatePolicy
+  const dateOrderErrorMessage: string = hasInvalidDatePolicy
     ? `${KO.labelInboundSplitDateInterval}이 0일 이하입니다. 이전 차수보다 빠르거나 같은 입고일은 사용할 수 없습니다.`
     : ''
 
@@ -100,10 +102,10 @@ export function InboundSplitScheduleDialog({
                 ))}
               </select>
             </label>
-            {hasInvalidDateOrder && <span className={styles.inboundSplitCountValidation}>{dateOrderErrorMessage}</span>}
+            {hasInvalidDatePolicy && <span className={styles.inboundSplitCountValidation}>{dateOrderErrorMessage}</span>}
           </div>
           <span className={styles.inboundSplitSummary}>
-            {KO.thTotal} {formatGroupedNumber(confirmedSourceTotal)} EA
+            {KO.thTotal} {formatGroupedNumber(currentConfirmedTotal)} EA
           </span>
         </div>
         {draftError && (
@@ -114,7 +116,8 @@ export function InboundSplitScheduleDialog({
         <div className={styles.inboundSplitTableFrame}>
           <div className={styles.inboundSplitTableWrap}>
             <InboundSplitScheduleTable
-              workDate={workDate}
+              currentOrderInboundDueDate={currentOrderInboundDueDate}
+              nextOrderInboundDueDate={nextOrderInboundDueDate}
               rows={draft.rows}
               columns={columns}
               onDateChange={draft.changeDate}

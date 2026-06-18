@@ -80,7 +80,7 @@ function makeSnapshot(overrides: Partial<OrderSnapshotDocument> = {}) : OrderSna
       periodEnd: '2026-05-31',
       forecastMonths: 3,
       dailyTrendStartMonth: '2026-05',
-      dailyTrendLeadTimeDays: 7,
+      dailyTrendForecastDays: 7,
     },
     drawer1: {
       summary: {
@@ -118,7 +118,23 @@ function makeSnapshot(overrides: Partial<OrderSnapshotDocument> = {}) : OrderSna
       stockOrderRequest: {
         currentOrderInboundDueDate: '2026-06-01',
         nextOrderInboundDueDate: '2026-06-15',
-        leadTimeDays: 7,
+        orderCoverageDays: 7,
+      },
+      stockOrderResult: {
+        trendDailyMean: 1,
+        dailyMean: 1,
+        sigma: 0,
+        display: {
+          currentStockQtyTotal: 1,
+          totalOrderBalanceTotal: 0,
+          expectedInboundOrderBalanceTotal: 0,
+          sizeRows: [{
+            size: 'M',
+            currentStockQty: 1,
+            totalOrderBalance: 0,
+            expectedInboundOrderBalance: 0,
+          }],
+        },
       },
       unitEconomics: { unitPrice: 1000, unitCost: 700, expectedFeeRatePct: 13 },
       selfWeightPct: 50,
@@ -402,7 +418,7 @@ describe('useSecondaryCandidateActions', () : void => {
           stockOrderRequest: {
             currentOrderInboundDueDate: '2026-06-15',
             nextOrderInboundDueDate: '2026-06-30',
-            leadTimeDays: 7,
+            orderCoverageDays: 7,
           },
         },
       })),

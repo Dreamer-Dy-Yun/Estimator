@@ -1,28 +1,37 @@
 # dashboard-app boundaries
 
-Last updated: 2026-06-02
+Last updated: 2026-06-18
 
-## 문서 목적
+## 목적
 
-`dashboard-app`의 기능/책임 경계를 팀과 LLM이 빠르게 이해할 수 있도록 정리한 실행 규약 문서입니다.
-각 문서는 실제 코드 소유권을 기준으로 작성됩니다.
+이 폴더는 `dashboard-app`의 기능 책임과 source ownership을 기능별로 나눈 기준 문서다. 변경할 파일을 고르기 전에 해당 boundary를 먼저 확인한다. 문서가 실제 코드 흐름과 어긋나면 코드 변경과 같은 작업 단위에서 갱신한다.
 
-## 경계 문서 색인
+## Boundary 문서
 
-| 문서 | 담당 영역 | 소스 근거 | 갱신 조건 |
-|---|---|---|---|
-| `api-contracts.md` | API/Mock 계약 | `src/api`, `src/api/types/*`, `src/api/requests/*`, `src/api/mock/*` | API 타입 변경, mock/http 어댑터 정책 변경, 에러 분류 변경 |
-| `auth-admin.md` | 인증·세션·관리자 | `src/auth`, `src/admin`, `src/App.tsx`, `src/dashboard/DashboardLayout.tsx` | 인증/권한 정책 변경, 라우트 가드 변경 |
-| `analysis-pages.md` | 분석 페이지 | `src/dashboard/pages/*`, `src/dashboard/components/*`, `src/dashboard/model/*`, `src/dashboard/hooks/*` | 분석 쿼리/필터/카드/이벤트 책임 변경 |
-| `candidate-stash.md` | 후보군 후보 관리 | `src/dashboard/components/candidate-stash/*` | 후보군 mutation, SSE, bulk add, 엑셀 export 경계 변경 |
-| `product-drawer.md` | 상품드로워/2차 화면 | `src/dashboard/components/product-drawer/*`, `src/snapshot/*` | 드로워 책임, 스냅샷 타입/파서 변경 |
-| `shared-modules.md` | 공통 모듈 | `src/components`, `src/dashboard/hooks`, `src/dashboard/model`, `src/utils` | 공용 컴포넌트/훅/모델/유틸 책임 변경 |
-| `style-facades.md` | CSS 파사드 | `*.module.css`, `*style-parts/**` | 스타일 import 경로/파사드 규칙 변경 |
-| `repository-runtime.md` | 런타임·빌드·배포·e2e | `.github`, `dashboard-app/package.json`, `dashboard-app/e2e` | 런타임 스크립트, workflow, e2e entry 변경 |
+| 문서 | 영역 | 주요 근거 파일 | 갱신 조건 |
+|------|------|----------------|-----------|
+| [api-contracts.md](./api-contracts.md) | API facade, HTTP/mock adapter, DTO, 실패 정규화 | `src/api/**` | endpoint, request/response, mock/http 선택, error/SSE 계약 변경 |
+| [auth-admin.md](./auth-admin.md) | 인증, 세션, 권한 가드, 관리자 화면 | `src/auth/**`, `src/admin/**`, `src/App.tsx` | 로그인/세션/권한/관리자 API 또는 화면 책임 변경 |
+| [analysis-pages.md](./analysis-pages.md) | 자사/경쟁사 분석 페이지 | `src/dashboard/pages/**`, analysis components/hooks/model | 분석 조건, 필터, list/scatter, bulk add 진입 변경 |
+| [candidate-stash.md](./candidate-stash.md) | 후보군, 추천, 상세확정, order metric SSE | `src/dashboard/components/candidate-stash/**` | stash/item mutation, recommendation, SSE, Excel, snapshot item 표시 변경 |
+| [product-drawer.md](./product-drawer.md) | 상품 드로어, secondary 주문 계산, 분할 입고, snapshot | `src/dashboard/components/product-drawer/**`, `src/snapshot/**` | 드로어 요청, 계산, AI comment, snapshot, split inbound 흐름 변경 |
+| [shared-modules.md](./shared-modules.md) | 공통 UI, hook, model, utility | `src/components`, `src/dashboard/hooks`, `src/dashboard/model`, `src/utils` | 공통 module의 public 책임 또는 사용 규칙 변경 |
+| [style-facades.md](./style-facades.md) | CSS Modules facade와 style-parts | `*.module.css`, `*style-parts/**` | CSS import 경로, facade ownership, style-parts 분리 변경 |
+| [repository-runtime.md](./repository-runtime.md) | build, deploy, e2e, runtime 환경 | `.github`, `package.json`, `vite.config.ts`, `e2e/**` | script, workflow, deploy, Playwright, runtime env 변경 |
+
+## 현재 주의 경계
+
+- `src/api/client.ts`는 화면 public API facade다. 화면과 hook은 mock/HTTP 구현을 직접 import하지 않는다.
+- 상품 드로어 read-like API는 `companyUuid` 대신 `base`/`comparison` subject 계약을 사용한다.
+- secondary daily trend는 source contract를 받고 chart point는 프론트에서 파생한다.
+- secondary inbound split source는 source-only API다. split count/date/result row는 화면 state다.
+- 2차수 이상 분할 입고 확정은 `drawer2.confirmed.rounds`에 저장한다.
+- 후보군 order metric SSE는 runtime config의 `candidateOrderMetricComparison`을 사용한다.
+- CSS `style-parts/**`는 각 facade CSS module만 import한다.
 
 ## 운영 규칙
 
-- 문서는 코드 변경 전제 하에 작성되며, 실제 동작 경계가 바뀌면 즉시 갱신한다.
-- 코드가 바뀌지 않았는데 문서만 갱신하지 않는 상태를 원칙으로 방치하지 않는다.
-- 모호한 책임은 “불명확 경계”로 먼저 표시하고, 범위를 최소한으로 정리한 뒤 기록한다.
-- 하드닝된 모듈(작은 공개 인터페이스, 명시적 부작용)을 임의로 수정하지 않는다.
+- boundary 문서는 과거 작업 기록이 아니라 현재 코드 기준이다.
+- 책임이 모호하면 먼저 “어느 계층이 소유하는가”를 정리한 뒤 코드 변경 범위를 잡는다.
+- API 계약 변경은 `MD/backend-api` 문서와 함께 갱신한다.
+- 하드닝 완료 모듈은 [../module-hardening.md](../module-hardening.md)를 확인하고, 필요 시 사용자 허가를 받는다.

@@ -21,12 +21,19 @@
 
 ## API / mock 경계
 
-- 화면, 훅, 컴포넌트는 API 또는 mock을 직접 호출하지 않고 `src/api/client.ts`를 통해 데이터에 접근한다.
-- API 타입은 `src/api/types/*`에 두고, 실제 요청 어댑터는 `src/api/requests/*`에서 관리한다.
-- mock 동작과 mock 데이터는 `src/api/mock/*` 아래에 둔다.
-- mock은 단순 임시 데이터가 아니라 백엔드가 아직 없거나 로컬에서 재현해야 하는 API 계약의 대체 구현체로 취급한다.
+- 화면, 훅, 컴포넌트는 API 또는 mock을 직접 호출하지 않고 `src/api` 계층을 통해 데이터에 접근한다.
+- 대시보드 요청의 현재 선택점은 `src/api/requests/dashboardRequests.ts`이며, HTTP 직렬화 기준은 `src/api/requests/httpDashboardRequests.ts`이다.
+- API 타입은 `src/api/types/*`에 두고, HTTP/mock 어댑터는 같은 `DashboardApi` 인터페이스를 구현한다.
+- mock 동작과 mock 데이터는 `src/api/mock/*`와 `src/api/requests/mockDashboardRequests.ts` 아래에서 계약형 대체 구현체로 관리한다.
 - HTTP 연결은 API 계층에서 처리하며, 화면 계층은 mock/HTTP 전환 방식을 알 필요가 없어야 한다.
 - 필수 비즈니스 데이터가 없으면 프론트에서 조용히 숫자나 성공 상태를 만들어내지 말고, API 계약 또는 오류/빈 상태로 드러낸다.
+
+## 현재 핵심 계약
+
+- 상품 드로어 API는 base/comparison subject query를 사용한다.
+- Secondary 입고 분할 소스 API는 source-only 계약이다. 적용된 분할 결과는 `OrderSnapshotDocument.drawer2.confirmed.rounds`에 저장된다.
+- 후보 상세 스냅샷의 현재 schemaVersion은 `5`이다.
+- 백엔드 endpoint 구현 시 타입 이름만 보지 말고 path/query/body 배치를 함께 확인해야 한다.
 
 ## 주요 명령
 
@@ -81,5 +88,8 @@ CI 또는 배포 workflow 자체를 바꾸는 작업은 해당 workflow, `MD/das
 | [프론트엔드 개요](../MD/dashboard-app/frontend-overview.md) | 화면, 기능, 데이터 흐름 개요 |
 | [기능별 경계 문서](../MD/dashboard-app/boundaries/README.md) | API, 분석 화면, 후보군, 관리자, 공통 모듈 경계 |
 | [모듈 하드닝](../MD/dashboard-app/module-hardening.md) | 하드닝 완료 모듈과 수정 제한 기준 |
+| [백엔드 API 사양](../MD/backend-api/backend-api-spec.md) | 백엔드 구현 기준이 되는 API 행위 사양 |
+| [API 계약 카탈로그](../MD/backend-api/dashboard-api-contract-catalog.md) | endpoint별 path/query/body/response 참조 |
+| [스냅샷 백엔드 계약](../MD/backend-api/order-snapshot-backend-contract.md) | `OrderSnapshotDocument` v5 저장 계약 |
 
 기능, API 계약, 폴더/파일 책임, 모듈 경계가 바뀌면 관련 `MD/dashboard-app` 문서도 함께 갱신한다.

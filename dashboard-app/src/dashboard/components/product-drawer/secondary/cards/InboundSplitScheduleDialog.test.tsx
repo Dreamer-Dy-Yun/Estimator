@@ -73,7 +73,8 @@ function renderDialog(overrides: Partial<ComponentProps<typeof InboundSplitSched
     root.render(
       <InboundSplitScheduleDialog
         open
-        workDate="2026-03-31"
+        currentOrderInboundDueDate="2026-03-31"
+        nextOrderInboundDueDate="2026-05-01"
         initialCount={2}
         initialRows={INITIAL_ROWS}
         columns={COLUMNS}
@@ -139,8 +140,8 @@ describe('InboundSplitScheduleDialog event flow', () : void => {
       actionButtons[1].click()
     })
 
-    const appliedRows: InboundSplitScheduleRow[] = props.onApply.mock.calls[0][0]
-    expect(appliedRows[0].quantitiesBySize.S + appliedRows[0].quantitiesBySize.M).toBe(20)
+    const submittedRows: InboundSplitScheduleRow[] = props.onApply.mock.calls[0][0]
+    expect(submittedRows[0].quantitiesBySize.S + submittedRows[0].quantitiesBySize.M).toBe(20)
   })
 
   it('does not apply local draft changes when the dialog is closed', () : void => {
@@ -178,7 +179,7 @@ describe('InboundSplitScheduleDialog event flow', () : void => {
   it('disables apply and shows reason when inbound dates are not strictly increasing', () : void => {
     const { props }: RenderResult = renderDialog({
       initialCount: 2,
-      workDate: '2026-04-01',
+      currentOrderInboundDueDate: '2026-04-01',
       initialRows: [
         row('initial-1', 1, '2026-04-04', 5, 2, 5, 2),
         row('initial-2', 2, '2026-04-03', 5, 3, 5, 3),
@@ -210,7 +211,7 @@ describe('InboundSplitScheduleDialog event flow', () : void => {
     })
 
     expect(props.onDraftError).toHaveBeenCalledWith(sourceError, 'buildInboundSplitScheduleRows')
-    const appliedRows: InboundSplitScheduleRow[] = props.onApply.mock.calls[0][0]
-    expect(appliedRows).toEqual(INITIAL_ROWS)
+    const submittedRows: InboundSplitScheduleRow[] = props.onApply.mock.calls[0][0]
+    expect(submittedRows).toEqual(INITIAL_ROWS)
   })
 })

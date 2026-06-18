@@ -50,8 +50,8 @@ Purpose: implementation notes that are not obvious from the API catalog. Current
 - Bulk append response returns newly created `CandidateStashItemSummary[]` only.
 - If a SKU is already in the stash, backend may skip it. The frontend treats zero newly created rows as `no-op`.
 - Recommendation append response items must include `uuid`, `stashUuid`, `skuUuid`, `skuGroupKey` so the frontend can match them to recommendation source rows.
-- Singular append stores one `OrderSnapshotDocument` v3 in `details` and sends `isLatestLlmComment` explicitly.
-- Update item sends `details: OrderSnapshotDocument | null` and `isLatestLlmComment`.
+- Singular append stores one `OrderSnapshotDocument` v3 in `confirmedOrderSnapshot` and sends `isLatestLlmComment` explicitly.
+- Update item sends `confirmedOrderSnapshot: OrderSnapshotDocument | null` and `isLatestLlmComment`.
 
 ## AI comment
 

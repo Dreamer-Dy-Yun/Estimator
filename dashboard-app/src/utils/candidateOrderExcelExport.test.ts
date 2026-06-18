@@ -24,7 +24,7 @@ function candidateItem(uuid: string, size: string): CandidateItemSummary {
     expectedOpProfit: 20000,
     insightStatus: 'loaded',
     insight: {
-      competitorChannelLabel: '크림',
+      competitorSalesSourceLabel: '크림',
       competitorQty: 8,
       competitorAmount: 120000,
       selfQty: 10,
@@ -43,9 +43,9 @@ function candidateItem(uuid: string, size: string): CandidateItemSummary {
       }],
     },
     isLatestLlmComment: true,
-    isDetailConfirmed: true,
+    hasConfirmedOrderSnapshot: true,
     orderExport: {
-      competitorChannelLabel: '크림',
+      comparisonSubjectLabel: '크림',
       selfQty: 10,
       competitorQty: 8,
       expectedSalesQty: 10,

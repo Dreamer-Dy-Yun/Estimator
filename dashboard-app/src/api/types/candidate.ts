@@ -1,4 +1,4 @@
-import type { SecondaryOrderSnapshotPayload } from './snapshot'
+import type { OrderSnapshotDocument } from '../../snapshot/orderSnapshotTypes'
 import type {
   CandidateItemOrderExport,
   CandidateOrderMetricStatus,
@@ -36,7 +36,7 @@ export interface CandidateItemSummary {
   insightStatus: 'loading' | 'loaded' | 'failed'
   insight: CandidateItemInsightSummary
   isLatestLlmComment: boolean
-  isDetailConfirmed: boolean
+  hasConfirmedOrderSnapshot: boolean
   orderExport: CandidateItemOrderExport | null
   dbCreatedAt: string
   dbUpdatedAt: string
@@ -49,7 +49,7 @@ export interface CandidateBadge {
 }
 
 export interface CandidateItemInsightSummary {
-  competitorChannelLabel: string
+  competitorSalesSourceLabel: string
   competitorQty: number | null
   competitorAmount: number | null
   selfQty: number | null
@@ -82,8 +82,8 @@ export interface CandidateStashItemSummary {
   skuUuid: string
   skuGroupKey: string
   isLatestLlmComment: boolean
-  hasSnapshot: boolean
-  snapshotUpdatedAt?: string
+  hasConfirmedOrderSnapshot: boolean
+  confirmedOrderSnapshotUpdatedAt?: string
   dbCreatedAt: string
   dbUpdatedAt: string
 }
@@ -173,8 +173,8 @@ export interface CandidateItemDetail {
   skuUuid: string
   skuGroupKey: string
   /** Persisted order snapshot payload. Null means the backend has no stored snapshot for this candidate item. */
-  details: SecondaryOrderSnapshotPayload | null
-  isDetailConfirmed: boolean
+  confirmedOrderSnapshot: OrderSnapshotDocument | null
+  hasConfirmedOrderSnapshot: boolean
   isLatestLlmComment: boolean
   dbCreatedAt: string
   dbUpdatedAt: string
@@ -198,7 +198,7 @@ export interface AppendCandidateItemPayload extends CompanyMutationScopeParams {
   stashUuid: string
   skuGroupKey: string
   /** Snapshot document captured from the secondary drawer; callers must not synthesize missing business values. */
-  details: SecondaryOrderSnapshotPayload
+  confirmedOrderSnapshot: OrderSnapshotDocument
   isLatestLlmComment: boolean
 }
 
@@ -216,7 +216,7 @@ export interface AppendCandidateItemsResponse {
 export interface UpdateCandidateItemPayload extends CompanyMutationScopeParams {
   itemUuid: string
   /** Null clears the stored snapshot; non-null values must already satisfy the snapshot API contract. */
-  details: SecondaryOrderSnapshotPayload | null
+  confirmedOrderSnapshot: OrderSnapshotDocument | null
   isLatestLlmComment: boolean
 }
 

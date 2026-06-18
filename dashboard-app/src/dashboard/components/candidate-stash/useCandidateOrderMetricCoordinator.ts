@@ -45,7 +45,7 @@ export function useCandidateOrderMetricCoordinator({
     return `${orderMetricComparisonTarget.kind}:${orderMetricComparisonTarget.sourceId ?? ''}:${orderMetricComparisonTarget.id}`
   }, [orderMetricComparisonTarget])
   const hasComparisonUnavailableMetricRows: boolean = useMemo(() : boolean => items.some((item: CandidateItemSummary) : boolean => (
-    !item.isDetailConfirmed && (item.orderMetricStatus === 'loading' || item.orderMetricStatus === 'loaded')
+    !item.hasConfirmedOrderSnapshot && (item.orderMetricStatus === 'loading' || item.orderMetricStatus === 'loaded')
   )), [items])
 
   useEffect(() : void => {
@@ -70,7 +70,7 @@ export function useCandidateOrderMetricCoordinator({
     const previousComparisonKey: string = orderMetricComparisonKeyRef.current
     const comparisonChanged: boolean = previousComparisonKey !== '' && previousComparisonKey !== orderMetricComparisonKey
     const targetItems: CandidateItemSummary[] = comparisonChanged
-      ? itemsRef.current.filter((item: CandidateItemSummary) : boolean => !item.isDetailConfirmed)
+      ? itemsRef.current.filter((item: CandidateItemSummary) : boolean => !item.hasConfirmedOrderSnapshot)
       : itemsRef.current.filter((item: CandidateItemSummary) : boolean => item.orderMetricStatus === 'loading')
     if (!targetItems.length) return
     orderMetricComparisonKeyRef.current = orderMetricComparisonKey

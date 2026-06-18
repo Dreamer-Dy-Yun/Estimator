@@ -76,13 +76,13 @@ export function ProductSecondaryDrawer({
     minOrderDate,
     currentOrderInboundDueDate,
     nextOrderInboundDueDate,
-    leadTimeDays,
+    orderCoverageDays,
     setCurrentOrderInboundDueDate,
     setNextOrderInboundDueDate,
     handleCurrentOrderInboundDueDateChange,
     handleNextOrderInboundDueDateChange,
     resetInboundDueDatesToLive,
-  }: { defaultInboundDueDates: InboundDueDateDefaults; minOrderDate: string; currentOrderInboundDueDate: string; nextOrderInboundDueDate: string; leadTimeDays: number; setCurrentOrderInboundDueDate: React.Dispatch<React.SetStateAction<string>>; setNextOrderInboundDueDate: React.Dispatch<React.SetStateAction<string>>; handleCurrentOrderInboundDueDateChange: (next: string) => void; handleNextOrderInboundDueDateChange: (next: string) => void; resetInboundDueDatesToLive: () => void; } = useSecondaryInboundDueDates()
+  }: { defaultInboundDueDates: InboundDueDateDefaults; minOrderDate: string; currentOrderInboundDueDate: string; nextOrderInboundDueDate: string; orderCoverageDays: number; setCurrentOrderInboundDueDate: React.Dispatch<React.SetStateAction<string>>; setNextOrderInboundDueDate: React.Dispatch<React.SetStateAction<string>>; handleCurrentOrderInboundDueDateChange: (next: string) => void; handleNextOrderInboundDueDateChange: (next: string) => void; resetInboundDueDatesToLive: () => void; } = useSecondaryInboundDueDates()
 
   if (comparisonTarget == null) throw new Error('ProductSecondaryDrawer: comparisonTarget is required.')
 
@@ -166,7 +166,7 @@ export function ProductSecondaryDrawer({
     setDailyMeanClient,
     currentOrderInboundDueDate,
     nextOrderInboundDueDate,
-    leadTimeDays,
+    orderCoverageDays,
     selfWeightPct,
     bufferStock,
     confirmBySize,

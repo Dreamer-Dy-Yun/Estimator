@@ -10,8 +10,8 @@ export type Params = {
   periodStart: string
   periodEnd: string
   baseSubject: ProductComparisonBaseSubjectRef
-  forecastMeanPeriodEnd: string
-  leadTimeDays: number
+  forecastPeriodEndMonth: string
+  orderCoverageDays: number
   dailyMeanClient: number | null
   makeApiErrorInfo: (request: string, err: unknown) => ApiUnitErrorInfo
 }
@@ -26,8 +26,8 @@ export function useSecondaryStockOrderCalc({
   periodStart,
   periodEnd,
   baseSubject,
-  forecastMeanPeriodEnd,
-  leadTimeDays,
+  forecastPeriodEndMonth,
+  orderCoverageDays,
   dailyMeanClient,
   makeApiErrorInfo,
 }: Params) : { forecastCalc: SecondaryStockOrderCalcResult | null; forecastCalcError: ApiUnitErrorInfo | null; forecastCalcLoading: boolean; } {
@@ -36,14 +36,14 @@ export function useSecondaryStockOrderCalc({
     base: baseSubject,
     periodStart,
     periodEnd,
-    forecastMeanPeriodEnd,
-    leadTimeDays,
+    forecastPeriodEndMonth,
+    orderCoverageDays,
     dailyMeanClient,
   }), [
     baseSubject,
     dailyMeanClient,
-    forecastMeanPeriodEnd,
-    leadTimeDays,
+    forecastPeriodEndMonth,
+    orderCoverageDays,
     periodEnd,
     periodStart,
     skuGroupKey,
@@ -64,13 +64,13 @@ export function useSecondaryStockOrderCalc({
     timerId = window.setTimeout(() : void => {
       void (async () : Promise<void> => {
         try {
-          const params: { dailyMean?: number | undefined; skuGroupKey: string; base: ProductComparisonBaseSubjectRef; periodStart: string; periodEnd: string; forecastPeriodEnd: string; leadTimeDays: number; } = {
+          const params: { dailyMean?: number | undefined; skuGroupKey: string; base: ProductComparisonBaseSubjectRef; periodStart: string; periodEnd: string; forecastPeriodEndMonth: string; orderCoverageDays: number; } = {
             skuGroupKey,
             base: baseSubject,
             periodStart,
             periodEnd,
-            forecastPeriodEnd: forecastMeanPeriodEnd,
-            leadTimeDays,
+            forecastPeriodEndMonth: forecastPeriodEndMonth,
+            orderCoverageDays,
             ...(dailyMeanClient != null ? { dailyMean: dailyMeanClient } : {}),
           }
           const result: SecondaryStockOrderCalcResult = await dashboardApi.getSecondaryStockOrderCalc(params)
@@ -87,8 +87,8 @@ export function useSecondaryStockOrderCalc({
                 base: baseSubject,
                 periodStart,
                 periodEnd,
-                forecastPeriodEnd: forecastMeanPeriodEnd,
-                leadTimeDays,
+                forecastPeriodEndMonth: forecastPeriodEndMonth,
+                orderCoverageDays,
                 ...(dailyMeanClient != null ? { dailyMean: dailyMeanClient } : {}),
               })})`,
               err,
@@ -106,8 +106,8 @@ export function useSecondaryStockOrderCalc({
   }, [
     dailyMeanClient,
     baseSubject,
-    forecastMeanPeriodEnd,
-    leadTimeDays,
+    forecastPeriodEndMonth,
+    orderCoverageDays,
     makeApiErrorInfo,
     requestKey,
     skuGroupKey,

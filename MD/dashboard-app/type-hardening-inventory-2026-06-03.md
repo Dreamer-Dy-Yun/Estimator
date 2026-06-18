@@ -127,7 +127,7 @@
 | `dashboard-app/src/api/types/inventory-arrival.ts` | 0 | 0 | 0 | 0 | 0 |
 | `dashboard-app/src/api/types/sales.ts` | 0 | 0 | 0 | 0 | 0 |
 | `dashboard-app/src/api/types/secondary.ts` | 0 | 0 | 0 | 0 | 0 |
-| `dashboard-app/src/api/types/snapshot.ts` | 0 | 0 | 0 | 0 | 0 |
+| `dashboard-app/src/snapshot/orderSnapshotTypes.ts` | 0 | 0 | 0 | 0 | 0 |
 | `dashboard-app/src/App.tsx` | 25 | 7 | 5 | 13 | 0 |
 | `dashboard-app/src/auth/AuthContext.ts` | 3 | 2 | 0 | 1 | 0 |
 | `dashboard-app/src/auth/AuthProvider.tsx` | 63 | 28 | 8 | 27 | 0 |

@@ -10,7 +10,7 @@ export const validSnapshot: OrderSnapshotDocument = {
     periodEnd: '2026-01-31',
     forecastMonths: 8,
     dailyTrendStartMonth: '2026-01',
-    dailyTrendLeadTimeDays: 30,
+    dailyTrendForecastDays: 30,
   },
   drawer1: {
     summary: {
@@ -78,7 +78,7 @@ export const validSnapshot: OrderSnapshotDocument = {
     stockOrderRequest: {
       currentOrderInboundDueDate: '2026-02-01',
       nextOrderInboundDueDate: '2026-02-28',
-      leadTimeDays: 30,
+      orderCoverageDays: 30,
       dailyMeanOverride: 10,
     },
     stockOrderResult: {
@@ -150,8 +150,8 @@ export const currentPrimarySummaryKeys: string[] = [
 export const currentStockOrderRequestKeys: string[] = [
   'currentOrderInboundDueDate',
   'dailyMeanOverride',
-  'leadTimeDays',
   'nextOrderInboundDueDate',
+  'orderCoverageDays',
 ]
 
 export const currentDrawer2Keys: string[] = [

@@ -28,9 +28,9 @@
 
 1. `src/api/types/candidate.ts`에 bulk detail confirmation job 타입을 추가한다.
 2. `DashboardApi`, `client.ts`, `index.ts`, HTTP/mock request adapter를 갱신한다.
-3. mock SSE job은 선택 item별로 mock 2차 스냅샷을 생성해 `details`에 저장하고 `CandidateItemDetail`을 event에 담는다.
+3. mock SSE job은 선택 item별로 mock 2차 스냅샷을 생성해 `confirmedOrderSnapshot`에 저장하고 `CandidateItemDetail`을 event에 담는다.
 4. 후보군 상세 모달은 선택된 상세미확정 item만 job에 보내고 진행 팝업을 표시한다.
-5. SSE item 이벤트마다 `isDetailConfirmed`, `dbUpdatedAt`, drawer snapshot cache를 로컬 반영한다.
+5. SSE item 이벤트마다 `hasConfirmedOrderSnapshot`, `dbUpdatedAt`, drawer snapshot cache를 로컬 반영한다.
 6. API 문서와 source boundary map을 갱신한다.
 
 ## Non-goals
@@ -46,4 +46,4 @@
 - mock adapter는 item별 mock 스냅샷을 저장하고 최신 `CandidateItemDetail`을 SSE event로 내려준다.
 - 후보군 상세 UI는 선택된 상세미확정 row만 일괄확정 대상으로 삼고, 진행 팝업을 표시한다.
 - item 완료 event마다 전체 목록 재조회 없이 로컬 리스트와 drawer snapshot cache를 상세확정으로 갱신한다.
-- 백엔드 API 문서에 `updatedItem.details`가 `SecondaryOrderSnapshotPayload` / `OrderSnapshotDocumentV2` 스키마를 따라야 한다는 점을 명시했다.
+- 백엔드 API 문서에 `updatedItem.confirmedOrderSnapshot`가 `OrderSnapshotDocument` / `OrderSnapshotDocumentV2` 스키마를 따라야 한다는 점을 명시했다.

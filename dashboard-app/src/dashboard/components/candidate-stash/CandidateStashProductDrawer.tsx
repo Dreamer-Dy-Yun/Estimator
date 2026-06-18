@@ -45,18 +45,18 @@ export function CandidateStashProductDrawer({ model, bulkDeleteOpen }: Props) : 
     () : CandidateItemSummary | null => model.items.find((item: CandidateItemSummary) : boolean => item.uuid === model.openedItemUuid) ?? null,
     [model.items, model.openedItemUuid],
   )
-  const confirmedHydrateContext: { periodStart: string; periodEnd: string; forecastMonths: number; dailyTrendStartMonth: string; dailyTrendLeadTimeDays: number; } | null = model.hydrateSnapSource === 'confirmed'
+  const confirmedHydrateContext: { periodStart: string; periodEnd: string; forecastMonths: number; dailyTrendStartMonth: string; dailyTrendForecastDays: number; } | null = model.hydrateSnapSource === 'confirmed'
     ? model.confirmedHydrateSnap?.context ?? model.hydrateSnap?.context ?? null
     : null
   const drawerPeriod: DrawerPeriod | null = resolveCandidateDrawerPeriod(model, confirmedHydrateContext)
-  const candidateItemContext: { stashName: string; stashNote: string | null; itemUuid: string; isDetailConfirmed: boolean; confirmedSnapshot: OrderSnapshotDocument | null; hydrateSnapshotSource: DrawerSnapshotSource | null; onDraftChange: (snapshot: OrderSnapshotDocument, source: 'confirmed' | 'live') => void; onResetDraft: () => void; onRestoreConfirmed: () => void; onConfirmed: (snapshot: OrderSnapshotDocument, updatedItem: CandidateItemDetail) => void; onUnconfirmed: (updatedItem: CandidateItemDetail) => void; onSaved: () => void; onRequestDeleteItem: () => void; } | null = useMemo(() : { stashName: string; stashNote: string | null; itemUuid: string; isDetailConfirmed: boolean; confirmedSnapshot: OrderSnapshotDocument | null; hydrateSnapshotSource: DrawerSnapshotSource | null; onDraftChange: (snapshot: OrderSnapshotDocument, source: 'confirmed' | 'live') => void; onResetDraft: () => void; onRestoreConfirmed: () => void; onConfirmed: (snapshot: OrderSnapshotDocument, updatedItem: CandidateItemDetail) => void; onUnconfirmed: (updatedItem: CandidateItemDetail) => void; onSaved: () => void; onRequestDeleteItem: () => void; } | null => {
+  const candidateItemContext: { stashName: string; stashNote: string | null; itemUuid: string; hasConfirmedOrderSnapshot: boolean; confirmedSnapshot: OrderSnapshotDocument | null; hydrateSnapshotSource: DrawerSnapshotSource | null; onDraftChange: (snapshot: OrderSnapshotDocument, source: 'confirmed' | 'live') => void; onResetDraft: () => void; onRestoreConfirmed: () => void; onConfirmed: (snapshot: OrderSnapshotDocument, updatedItem: CandidateItemDetail) => void; onUnconfirmed: (updatedItem: CandidateItemDetail) => void; onSaved: () => void; onRequestDeleteItem: () => void; } | null = useMemo(() : { stashName: string; stashNote: string | null; itemUuid: string; hasConfirmedOrderSnapshot: boolean; confirmedSnapshot: OrderSnapshotDocument | null; hydrateSnapshotSource: DrawerSnapshotSource | null; onDraftChange: (snapshot: OrderSnapshotDocument, source: 'confirmed' | 'live') => void; onResetDraft: () => void; onRestoreConfirmed: () => void; onConfirmed: (snapshot: OrderSnapshotDocument, updatedItem: CandidateItemDetail) => void; onUnconfirmed: (updatedItem: CandidateItemDetail) => void; onSaved: () => void; onRequestDeleteItem: () => void; } | null => {
     if (!model.detailTarget || !model.openedItemUuid || !openedItem) return null
     const itemUuid: string = model.openedItemUuid
     return {
       stashName: model.detailTarget.name,
       stashNote: model.detailTarget.note,
       itemUuid,
-      isDetailConfirmed: openedItem.isDetailConfirmed,
+      hasConfirmedOrderSnapshot: openedItem.hasConfirmedOrderSnapshot,
       confirmedSnapshot: model.confirmedHydrateSnap,
       hydrateSnapshotSource: model.hydrateSnapSource,
       onDraftChange: (snapshot: OrderSnapshotDocument, source: 'confirmed' | 'live') : void => (

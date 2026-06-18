@@ -14,7 +14,7 @@ import {
   getOrderSnapshotConfirmedTotalQty,
   ORDER_SNAPSHOT_SCHEMA_VERSION,
 } from '../../snapshot/orderSnapshotTypes'
-import type { SecondaryOrderSnapshotPayload } from '../types/snapshot'
+import type { OrderSnapshotDocument } from '../../snapshot/orderSnapshotTypes'
 import { requireMockProductPrimary, requireMockProductSecondary } from './mockProductLookup'
 import { getMockCompanyScale, scopeMockProductPrimary, scopeMockProductSecondary } from './mockCompanyScope'
 import { formatNullableMockEa, formatNullableMockWon } from './mockNumberFormat'
@@ -31,7 +31,7 @@ function requireNumber(value: number | null | undefined, label: string) : number
   return value
 }
 
-function buildMockAiPrompt(snapshot: SecondaryOrderSnapshotPayload) : string {
+function buildMockAiPrompt(snapshot: OrderSnapshotDocument) : string {
   const { summary }: OrderSnapshotDrawer1 = snapshot.drawer1
   const { comparisonSubject, confirmed }: OrderSnapshotDrawer2 = snapshot.drawer2
   const orderQty: number = getOrderSnapshotConfirmedTotalQty(confirmed)
@@ -42,7 +42,7 @@ function buildMockAiPrompt(snapshot: SecondaryOrderSnapshotPayload) : string {
   ].join('\n')
 }
 
-function buildMockAiAnswer(snapshot: SecondaryOrderSnapshotPayload) : string {
+function buildMockAiAnswer(snapshot: OrderSnapshotDocument) : string {
   const { summary }: OrderSnapshotDrawer1 = snapshot.drawer1
   const { comparisonSubject, confirmed, unitEconomics }: OrderSnapshotDrawer2 = snapshot.drawer2
   const orderQty: number = getOrderSnapshotConfirmedTotalQty(confirmed)
@@ -68,7 +68,7 @@ function buildMockAiAnswer(snapshot: SecondaryOrderSnapshotPayload) : string {
   ].join('\n')
 }
 
-export function ensureMockAiCommentForSnapshot(snapshot: SecondaryOrderSnapshotPayload): SecondaryOrderSnapshotPayload {
+export function ensureMockAiCommentForSnapshot(snapshot: OrderSnapshotDocument): OrderSnapshotDocument {
   const prompt: string = snapshot.drawer2.aiComment.prompt.trim()
   const answer: string = snapshot.drawer2.aiComment.answer.trim()
   if (prompt && answer) return snapshot
@@ -88,7 +88,7 @@ export function ensureMockAiCommentForSnapshot(snapshot: SecondaryOrderSnapshotP
 export function buildMockOrderSnapshotForCandidate(
   skuGroupKey: string,
   options: MockOrderSnapshotOptions = {},
-): SecondaryOrderSnapshotPayload {
+): OrderSnapshotDocument {
   const primarySource: ProductPrimarySummary = requireMockProductPrimary(skuGroupKey)
   const secondarySource: ProductSecondaryDetail = requireMockProductSecondary(skuGroupKey)
   const shouldScope: boolean = options.companyUuid ? getMockCompanyScale(options, skuGroupKey) > 0 : false
@@ -109,7 +109,7 @@ export function buildMockOrderSnapshotForCandidate(
   })
   const selfCol: SalesKpiColumn = buildSalesKpiColumn('self', primary, secondary, channel)
   const summary: OrderSnapshotPrimarySummary = createOrderSnapshotPrimarySummary(primary)
-  const leadTimeDays = 30 as const
+  const orderCoverageDays = 30 as const
   const unitPrice: number = Math.max(0, Math.round(summary.price ?? primary.price))
   const unitCost: number = Math.max(0, Math.round(requireNumber(selfCol.avgCost, 'self avgCost')))
   const feeRatePct: number = requireNumber(selfCol.feeRatePct, 'self feeRatePct')
@@ -157,7 +157,7 @@ export function buildMockOrderSnapshotForCandidate(
       periodEnd: options.periodEnd ?? '2025-12-31',
       forecastMonths: 8,
       dailyTrendStartMonth: '2025-01',
-      dailyTrendLeadTimeDays: leadTimeDays,
+      dailyTrendForecastDays: orderCoverageDays,
     },
     drawer1: {
       summary,
@@ -170,7 +170,7 @@ export function buildMockOrderSnapshotForCandidate(
       stockOrderRequest: createOrderSnapshotStockOrderRequest({
         currentOrderInboundDueDate: '2026-04-01',
         nextOrderInboundDueDate: '2026-05-01',
-        leadTimeDays,
+        orderCoverageDays,
       }),
       stockOrderResult: {
         trendDailyMean: dailyMean,

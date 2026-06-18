@@ -62,12 +62,12 @@ export function CandidateStashDetailModal({
   const selectedItemUuidsByConfirmation: { confirmed: string[]; unconfirmed: string[]; } = useMemo(() : { confirmed: string[]; unconfirmed: string[]; } => {
     const selected: Set<string> = itemSelection.selectedVisibleUuidSet
     return model.tableRows.reduce((acc: { confirmed: string[]; unconfirmed: string[]; }, row: CandidateItemSummary) : { confirmed: string[]; unconfirmed: string[]; } => {
-      if (selected.has(row.uuid)) acc[row.isDetailConfirmed ? 'confirmed' : 'unconfirmed'].push(row.uuid)
+      if (selected.has(row.uuid)) acc[row.hasConfirmedOrderSnapshot ? 'confirmed' : 'unconfirmed'].push(row.uuid)
       return acc
     }, { confirmed: [] as string[], unconfirmed: [] as string[] })
   }, [itemSelection.selectedVisibleUuidSet, model.tableRows])
   const competitorSalesQtyHeader: string = useMemo(() : string => {
-    const uniqueLabels: string[] = [...new Set(model.tableRows.map((row: CandidateItemSummary) : string => row.insight.competitorChannelLabel.trim()).filter(Boolean))]
+    const uniqueLabels: string[] = [...new Set(model.tableRows.map((row: CandidateItemSummary) : string => row.insight.competitorSalesSourceLabel.trim()).filter(Boolean))]
     return uniqueLabels.length === 1 ? `${uniqueLabels[0]} 기간 총 판매량` : '경쟁사 기간 총 판매량'
   }, [model.tableRows])
   const nestedModalOpen: boolean = Boolean(recommendationOpen || bulkDeleteOpen || bulkUnconfirmOpen || model.drawerOpen || model.drawerClosing || model.itemDeleteTarget || model.bulkConfirmProgress)

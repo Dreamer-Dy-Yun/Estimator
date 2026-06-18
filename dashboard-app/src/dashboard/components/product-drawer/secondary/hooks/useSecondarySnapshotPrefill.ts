@@ -79,7 +79,7 @@ export function useSecondarySnapshotPrefill({
       setAiComment(d2.aiComment)
       setCurrentOrderInboundDueDate(stockOrderRequest.currentOrderInboundDueDate)
       setNextOrderInboundDueDate(stockOrderRequest.nextOrderInboundDueDate)
-      setDailyMeanClient(stockOrderRequest.dailyMeanOverride ?? d2.stockOrderResult?.dailyMean ?? null)
+      setDailyMeanClient(stockOrderRequest.dailyMeanOverride ?? d2.stockOrderResult.dailyMean)
       setConfirmBySize({})
       setConfirmedRounds(d2.confirmed.rounds)
       setSnapshotConfirmBaselineActive(candidateItemContext?.hydrateSnapshotSource === 'confirmed')

@@ -60,7 +60,7 @@ describe('httpDashboardRequests mutation scope contract', () : void => {
     await httpDashboardRequests.updateCandidateItem({
       itemUuid: 'item-054',
       companyUuid,
-      details: null,
+      confirmedOrderSnapshot: null,
       isLatestLlmComment: false,
     })
     await httpDashboardRequests.startCandidateDetailBulkConfirm({
@@ -108,7 +108,7 @@ describe('httpDashboardRequests mutation scope contract', () : void => {
       '/candidate-items/item-054',
       expect.objectContaining({
         method: 'PATCH',
-        body: { companyUuid, details: null, isLatestLlmComment: false },
+        body: { companyUuid, confirmedOrderSnapshot: null, isLatestLlmComment: false },
       }),
     )
     expect(httpClientMocks.apiRequest).toHaveBeenNthCalledWith(

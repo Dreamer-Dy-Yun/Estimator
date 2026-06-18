@@ -17,12 +17,12 @@ import type {
 import { ORDER_SNAPSHOT_SCHEMA_VERSION } from './orderSnapshotTypes'
 
 export type Obj = Record<string, unknown>
-export type StockOrderResult = NonNullable<OrderSnapshotDocument['drawer2']['stockOrderResult']>
+export type StockOrderResult = OrderSnapshotDocument['drawer2']['stockOrderResult']
+const LEGACY_SCHEMA_VERSION_4 = 4 as const
 
 const PRIMARY_STRING_KEYS = ['productName', 'brand', 'category', 'code', 'colorCode'] as const
 const PRIMARY_NUMBER_KEYS = ['price', 'qty', 'availableStock'] as const
 const CONTEXT_STRING_KEYS = ['periodStart', 'periodEnd', 'dailyTrendStartMonth'] as const
-const CONTEXT_NUMBER_KEYS = ['forecastMonths', 'dailyTrendLeadTimeDays'] as const
 const STOCK_RESULT_KEYS = ['trendDailyMean', 'dailyMean', 'sigma'] as const
 const STOCK_DISPLAY_TOTAL_KEYS = ['currentStockQtyTotal', 'totalOrderBalanceTotal', 'expectedInboundOrderBalanceTotal'] as const
 const STOCK_DISPLAY_SIZE_ROW_QUANTITY_KEYS = ['currentStockQty', 'totalOrderBalance', 'expectedInboundOrderBalance'] as const
@@ -30,16 +30,16 @@ export type StockOrderDisplaySizeRowQuantityKey = typeof STOCK_DISPLAY_SIZE_ROW_
 const SIZE_ORDER_SHARE_PCT_KEYS = ['baseSharePct', 'comparisonSharePct', 'blendedSharePct'] as const
 const SIZE_ORDER_QUANTITY_KEYS = ['forecastQty', 'recommendedQty'] as const
 
-export function parseOrderSnapshot(details: unknown): OrderSnapshotDocument {
-  const d: Obj = expectRecord(details, 'snapshot')
-  if (d.schemaVersion !== ORDER_SNAPSHOT_SCHEMA_VERSION) {
+export function parseOrderSnapshot(snapshotInput: unknown): OrderSnapshotDocument {
+  const d: Obj = expectRecord(snapshotInput, 'snapshot')
+  if (d.schemaVersion !== ORDER_SNAPSHOT_SCHEMA_VERSION && d.schemaVersion !== LEGACY_SCHEMA_VERSION_4) {
     throw new Error('snapshot schemaVersion mismatch: ' + String(d.schemaVersion))
   }
   const skuGroupKey: string = expectNonEmptyString(d.skuGroupKey, 'snapshot.skuGroupKey')
   const context: OrderSnapshotDocument['context'] = normalizeContext(expectRecord(d.context, 'context'))
   const drawer1: OrderSnapshotDrawer1 = normalizeDrawer1Structure(expectRecord(d.drawer1, 'drawer1'))
   const drawer2: OrderSnapshotDrawer2 = normalizeDrawer2Structure(expectRecord(d.drawer2, 'drawer2'))
-  expectMatchingNumbers(context.dailyTrendLeadTimeDays, drawer2.stockOrderRequest.leadTimeDays, 'context.dailyTrendLeadTimeDays', 'drawer2.stockOrderRequest.leadTimeDays')
+  expectMatchingNumbers(context.dailyTrendForecastDays, drawer2.stockOrderRequest.orderCoverageDays, 'context.dailyTrendForecastDays', 'drawer2.stockOrderRequest.orderCoverageDays')
   expectMatchingStrings(skuGroupKey, drawer1.summary.skuGroupKey, 'snapshot.skuGroupKey', 'drawer1.summary.skuGroupKey')
   expectMatchingStrings(skuGroupKey, drawer2.comparisonBasis.skuGroupKey, 'snapshot.skuGroupKey', 'drawer2.comparisonBasis.skuGroupKey')
   return {
@@ -53,9 +53,16 @@ export function parseOrderSnapshot(details: unknown): OrderSnapshotDocument {
 }
 
 function normalizeContext(context: Obj): OrderSnapshotDocument['context'] {
+  const dailyTrendForecastDays: number = normalizeRenamedNumberField(
+    context,
+    'context',
+    'dailyTrendForecastDays',
+    'dailyTrendLeadTimeDays',
+  )
   return {
     ...normalizeStringFields(context, 'context', CONTEXT_STRING_KEYS),
-    ...normalizeNumberFields(context, 'context', CONTEXT_NUMBER_KEYS),
+    forecastMonths: expectNumber(context.forecastMonths, 'context.forecastMonths'),
+    dailyTrendForecastDays,
   }
 }
 
@@ -92,16 +99,16 @@ function normalizeMonthlySalesTrend(value: unknown): OrderSnapshotMonthlySalesTr
 
 function normalizeDrawer2Structure(drawer2: Obj): OrderSnapshotDocument['drawer2'] {
   const sizeOrders: OrderSnapshotSizeOrder[] = normalizeSizeOrders(drawer2.sizeOrders)
-  const stockOrderResult: OrderSnapshotStockOrderResult | undefined = normalizeOptionalStockOrderResult(drawer2.stockOrderResult, sizeOrders)
-  const unitEconomics: OrderSnapshotUnitEconomics | undefined = normalizeOptionalUnitEconomics(drawer2.unitEconomics)
+  const stockOrderResult: OrderSnapshotStockOrderResult = normalizeStockOrderResult(drawer2.stockOrderResult, sizeOrders)
+  const unitEconomics: OrderSnapshotUnitEconomics = normalizeUnitEconomics(drawer2.unitEconomics)
   const confirmed: OrderSnapshotConfirmed = normalizeConfirmed(drawer2.confirmed, sizeOrders)
   return {
     baseSubject: normalizeBaseSubject(expectRecord(drawer2.baseSubject, 'drawer2.baseSubject')),
     comparisonSubject: normalizeComparisonSubject(expectRecord(drawer2.comparisonSubject, 'drawer2.comparisonSubject')),
     comparisonBasis: normalizeComparisonBasis(expectRecord(drawer2.comparisonBasis, 'drawer2.comparisonBasis')),
     stockOrderRequest: normalizeStockOrderRequest(drawer2.stockOrderRequest),
-    ...optionalField('stockOrderResult', stockOrderResult),
-    ...optionalField('unitEconomics', unitEconomics),
+    stockOrderResult,
+    unitEconomics,
     selfWeightPct: expectNumberInRange(drawer2.selfWeightPct, 'drawer2.selfWeightPct', 0, 100),
     bufferStock: expectNumber(drawer2.bufferStock, 'drawer2.bufferStock'),
     aiComment: normalizeAiComment(drawer2.aiComment),
@@ -162,15 +169,15 @@ function normalizeComparisonRatioBySize(value: unknown): OrderSnapshotComparison
 function normalizeStockOrderRequest(value: unknown): OrderSnapshotDocument['drawer2']['stockOrderRequest'] {
   const label = 'drawer2.stockOrderRequest' as const
   const source: Obj = expectRecord(value, label)
+  const orderCoverageDays: number = normalizeRenamedNumberField(source, label, 'orderCoverageDays', 'leadTimeDays')
   return {
     ...normalizeStringFields(source, label, ['currentOrderInboundDueDate', 'nextOrderInboundDueDate'] as const),
-    leadTimeDays: expectNumber(source.leadTimeDays, label + '.leadTimeDays'),
+    orderCoverageDays,
     ...(source.dailyMeanOverride === undefined ? {} : { dailyMeanOverride: expectNumber(source.dailyMeanOverride, label + '.dailyMeanOverride') }),
   }
 }
 
-function normalizeOptionalUnitEconomics(value: unknown): OrderSnapshotDocument['drawer2']['unitEconomics'] {
-  if (value === undefined) return undefined
+function normalizeUnitEconomics(value: unknown): OrderSnapshotDocument['drawer2']['unitEconomics'] {
   const label = 'drawer2.unitEconomics' as const
   const source: Obj = expectRecord(value, label)
   return {
@@ -188,8 +195,7 @@ function normalizeAiComment(value: unknown): OrderSnapshotDocument['drawer2']['a
   }
 }
 
-function normalizeOptionalStockOrderResult(value: unknown, sizeOrders: OrderSnapshotDocument['drawer2']['sizeOrders']): OrderSnapshotDocument['drawer2']['stockOrderResult'] {
-  if (value === undefined) return undefined
+function normalizeStockOrderResult(value: unknown, sizeOrders: OrderSnapshotDocument['drawer2']['sizeOrders']): OrderSnapshotDocument['drawer2']['stockOrderResult'] {
   const source: Obj = expectRecord(value, 'drawer2.stockOrderResult')
   return {
     ...normalizeNumberFields(source, 'drawer2.stockOrderResult', STOCK_RESULT_KEYS),
@@ -277,6 +283,17 @@ function sumStockOrderDisplayRows(rows: StockOrderResult['display']['sizeRows'],
 
 function normalizeStringFields<K extends string>(source: Obj, label: string, keys: readonly K[]): Record<K, string> {
   return Object.fromEntries(keys.map((key: K) : [K, string] => [key, expectString(source[key], label + '.' + key)])) as Record<K, string>
+}
+
+function normalizeRenamedNumberField(source: Obj, label: string, currentKey: string, legacyKey: string): number {
+  const hasCurrent: boolean = source[currentKey] !== undefined
+  const hasLegacy: boolean = source[legacyKey] !== undefined
+  if (!hasCurrent && !hasLegacy) return expectNumber(undefined, label + '.' + currentKey)
+  const value: number = expectNumber(hasCurrent ? source[currentKey] : source[legacyKey], label + '.' + currentKey)
+  if (hasCurrent && hasLegacy) {
+    expectMatchingNumbers(value, expectNumber(source[legacyKey], label + '.' + legacyKey), label + '.' + currentKey, label + '.' + legacyKey)
+  }
+  return value
 }
 
 function optionalField<K extends string, V>(key: K, value: V | undefined): Partial<Record<K, V>> {

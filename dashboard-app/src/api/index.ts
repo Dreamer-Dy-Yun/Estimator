@@ -65,7 +65,6 @@ export type {
   SecondaryDailyTrendParams,
   SecondaryDailyTrendPoint,
   SecondaryDailyTrendSource,
-  SecondaryDailyTrendSubjectFlow,
   SecondaryInboundSplitExpectationCell,
   SecondaryInboundSplitSource,
   SecondaryInboundSplitSourceParams,

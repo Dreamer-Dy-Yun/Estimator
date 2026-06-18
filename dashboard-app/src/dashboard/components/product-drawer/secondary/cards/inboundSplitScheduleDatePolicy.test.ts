@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { InboundSplitScheduleRow } from './inboundSplitScheduleModel'
-import { assertInboundSplitDateOrder, findInboundSplitDateOrderIssue, getInboundSplitDateInterval } from './inboundSplitScheduleDatePolicy'
+import { assertInboundSplitDatePolicy, findInboundSplitDatePolicyIssue, getInboundSplitDateInterval } from './inboundSplitScheduleDatePolicy'
 
 function row(round: number, inboundDate: string): InboundSplitScheduleRow {
   return {
@@ -22,26 +22,35 @@ describe('inboundSplitScheduleDatePolicy', (): void => {
       days: 0,
       invalidDateOrder: true,
     })
-  })
-
-  it('finds the first non-increasing round against work date and previous round', (): void => {
-    const issue = findInboundSplitDateOrderIssue('2026-04-01', [
-      row(1, '2026-04-03'),
-      row(2, '2026-04-02'),
-      row(3, '2026-04-05'),
-    ])
-
-    expect(issue).toMatchObject({
-      rowIndex: 1,
-      round: 2,
-      previousInboundDate: '2026-04-03',
-      inboundDate: '2026-04-02',
-      days: -1,
+    expect(getInboundSplitDateInterval('2026-04-10', '2026-04-10', { allowSameDate: true })).toEqual({
+      days: 0,
+      invalidDateOrder: false,
     })
   })
 
-  it('throws for invalid schedule rows before persistence', (): void => {
-    expect((): void => assertInboundSplitDateOrder('2026-04-01', [row(1, '2026-04-01')]))
-      .toThrow('Inbound split dates must be strictly increasing.')
+  it('finds the first non-increasing round after the first current-inbound round', (): void => {
+    const issue = findInboundSplitDatePolicyIssue('2026-04-01', '2026-05-01', [
+      row(1, '2026-04-01'),
+      row(2, '2026-04-02'),
+      row(3, '2026-04-02'),
+    ])
+
+    expect(issue).toMatchObject({
+      rowIndex: 2,
+      round: 3,
+      previousInboundDate: '2026-04-02',
+      inboundDate: '2026-04-02',
+      days: 0,
+      issue: 'non-increasing',
+    })
+  })
+
+  it('enforces current-inclusive and next-exclusive coverage before persistence', (): void => {
+    expect((): void => assertInboundSplitDatePolicy('2026-04-01', '2026-05-01', [row(1, '2026-04-01')]))
+      .not.toThrow()
+    expect((): void => assertInboundSplitDatePolicy('2026-04-01', '2026-05-01', [row(1, '2026-03-31')]))
+      .toThrow('currentOrderInboundDueDate')
+    expect((): void => assertInboundSplitDatePolicy('2026-04-01', '2026-05-01', [row(1, '2026-05-01')]))
+      .toThrow('nextOrderInboundDueDate')
   })
 })

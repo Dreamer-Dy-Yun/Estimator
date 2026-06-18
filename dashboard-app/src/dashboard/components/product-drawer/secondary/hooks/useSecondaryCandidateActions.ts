@@ -157,24 +157,24 @@ export function useSecondaryCandidateActions({
   const confirmOrder: () => Promise<boolean> = () : Promise<boolean> => {
     if (selectedCandidate == null) return Promise.resolve(false)
     if (!guardSnapshotMutation()) return Promise.resolve(false)
-    const details: OrderSnapshotDocument = buildSnapshot()
+    const confirmedOrderSnapshot: OrderSnapshotDocument = buildSnapshot()
     return runMutation(
       '후보군 아이템 저장',
       'append',
-      snapshotMutationInputKey(details),
+      snapshotMutationInputKey(confirmedOrderSnapshot),
       (companyUuid: string) : Promise<void> => dashboardApi.appendCandidateItem({
         stashUuid: selectedCandidate.uuid,
         skuGroupKey,
         companyUuid,
-        details,
+        confirmedOrderSnapshot,
         isLatestLlmComment: false,
       }),
       () : void => showToast('후보군에 아이템을 저장했습니다.'),
     )
   }
 
-  const saveCandidateItemDetails: (details: OrderSnapshotDocument | null, actionLabel: string, onSaved: (updatedItem: Awaited<ReturnType<typeof dashboardApi.updateCandidateItem>>) => void) => Promise<boolean> = (
-    details: OrderSnapshotDocument | null,
+  const saveCandidateItemDetails: (confirmedOrderSnapshot: OrderSnapshotDocument | null, actionLabel: string, onSaved: (updatedItem: Awaited<ReturnType<typeof dashboardApi.updateCandidateItem>>) => void) => Promise<boolean> = (
+    confirmedOrderSnapshot: OrderSnapshotDocument | null,
     actionLabel: string,
     onSaved: (updatedItem: Awaited<ReturnType<typeof dashboardApi.updateCandidateItem>>) => void,
   ) : Promise<boolean> => {
@@ -182,11 +182,11 @@ export function useSecondaryCandidateActions({
     return runMutation(
       actionLabel,
       'item',
-      details == null ? '' : snapshotMutationInputKey(details),
+      confirmedOrderSnapshot == null ? '' : snapshotMutationInputKey(confirmedOrderSnapshot),
       (companyUuid: string) : Promise<CandidateItemDetail> => dashboardApi.updateCandidateItem({
         itemUuid: candidateItemContext.itemUuid,
         companyUuid,
-        details,
+        confirmedOrderSnapshot,
         isLatestLlmComment: false,
       }),
       onSaved,

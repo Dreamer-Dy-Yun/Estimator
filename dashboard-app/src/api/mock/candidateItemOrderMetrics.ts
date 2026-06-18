@@ -25,7 +25,7 @@ import {
   buildSecondarySizeShares,
 } from '../../utils/secondaryOrderProjection'
 
-const DEFAULT_LEAD_TIME_DAYS = 30 as const
+const DEFAULT_ORDER_COVERAGE_DAYS = 30 as const
 const DEFAULT_SELF_WEIGHT_PCT = 50 as const
 const DEFAULT_BUFFER_STOCK = 0 as const
 
@@ -104,7 +104,7 @@ function buildSnapshotOrderMetric(
     expectedSalesAmount,
     expectedOpProfit,
     orderExport: {
-      competitorChannelLabel: snapshot.drawer2.comparisonSubject.label,
+      comparisonSubjectLabel: snapshot.drawer2.comparisonSubject.label,
       selfQty: insight.selfQty,
       competitorQty: insight.competitorQty,
       expectedSalesQty: qty,
@@ -137,8 +137,8 @@ function buildLiveSizeRows({
     base,
     periodStart,
     periodEnd,
-    forecastPeriodEnd: periodEnd.slice(0, 7),
-    leadTimeDays: DEFAULT_LEAD_TIME_DAYS,
+    forecastPeriodEndMonth: periodEnd.slice(0, 7),
+    orderCoverageDays: DEFAULT_ORDER_COVERAGE_DAYS,
   }
   const secondary: ProductSecondaryDetail = buildMockProductSecondaryDetail(row.skuGroupKey, {
     base,
@@ -149,7 +149,7 @@ function buildLiveSizeRows({
   const sizeRows: SecondarySizeOrderRow[] = buildSecondarySizeOrderRows({
     shares,
     dailyMeanEa: stockCalc.dailyMean,
-    forecastSalesHorizonDays: DEFAULT_LEAD_TIME_DAYS,
+    forecastSalesHorizonDays: DEFAULT_ORDER_COVERAGE_DAYS,
     stockOrderSizeRows: stockCalc.display.sizeRows,
     bufferStock: DEFAULT_BUFFER_STOCK,
     orderDraft: {
@@ -200,7 +200,7 @@ function buildLiveOrderMetric(
     expectedSalesAmount,
     expectedOpProfit,
     orderExport: {
-      competitorChannelLabel: resolvedComparison.label,
+      comparisonSubjectLabel: resolvedComparison.label,
       selfQty: insight.selfQty,
       competitorQty: insight.competitorQty,
       expectedSalesQty: qty,
@@ -221,8 +221,8 @@ export function buildCandidateItemOrderMetric(
   companyUuid?: string,
   comparison?: ProductComparisonComparisonSubjectRef,
 ): CandidateOrderMetric {
-  if (row.details != null) {
-    return buildSnapshotOrderMetric(row, row.details as OrderSnapshotDocument, dataReferencePeriod, companyUuid)
+  if (row.confirmedOrderSnapshot != null) {
+    return buildSnapshotOrderMetric(row, row.confirmedOrderSnapshot as OrderSnapshotDocument, dataReferencePeriod, companyUuid)
   }
   return buildLiveOrderMetric(row, dataReferencePeriod, companyUuid, requireComparisonSubject(comparison))
 }

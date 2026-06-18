@@ -1,106 +1,115 @@
-﻿# Product Drawer Boundary
+# Product Drawer Boundary
 
-Last updated: 2026-06-16
+Last updated: 2026-06-18
 
-## Responsibility
+상품 드로어는 판매 목록에서 선택한 상품의 상세 분석, 오더 제안, 확정 수량, 후보 스냅샷 저장을 연결한다. 이 문서는 화면 책임과 API/계산/저장 경계를 구분한다.
 
-Product drawer owns primary summary display, secondary detail display, secondary calculations, AI comment request, and snapshot creation/restore. It does not own analysis page filters, candidate stash storage, or backend persistence.
+## 1. 드로어 구성
 
-## Main files
-
-| File | Responsibility |
+| 영역 | 책임 |
 |---|---|
-| `ProductDrawer.tsx` | Drawer shell, secondary pane state, and drawer-level keyboard ownership |
-| `useProductComparisonTargets.ts` | Base subject to comparison target list state, comparison mode, missing target state |
-| `ProductDrawerSecondaryPane.tsx` | Secondary loading/error/detail branching |
-| `secondary/ProductSecondaryDrawer.tsx` | Secondary state orchestration |
-| `secondary/hooks/useSecondaryDrawerRequests.ts` | Secondary API request wiring |
-| `secondary/hooks/useSecondaryDailyTrend.ts` | Daily trend request |
-| `secondary/hooks/useSecondaryStockOrderCalc.ts` | Stock-order calculation request |
-| `secondary/hooks/useSecondaryAiCommentState.ts` | Manual AI comment request state and optional snapshot context handoff |
-| `secondary/hooks/useSecondaryForecastModel.ts` | Snapshot and calculation model connection |
-| `secondary/secondarySnapshot.ts` | Current secondary state to snapshot |
-| `secondary/cards/SizeOrderCard.tsx` | Size-order card composition and split-inbound controller/dialog wiring |
-| `secondary/cards/useInboundSplitScheduleController.ts` | Parent-level split-inbound state transfer, source readiness, applied rows, and Apply/Close integration |
-| `secondary/cards/InboundSplitScheduleDialog.tsx` | Split-inbound dialog shell, focus trap, toolbar, error, and footer actions |
-| `secondary/cards/useInboundSplitScheduleDraft.ts` | Open dialog draft state, count/date/quantity edits, and draft totals |
-| `secondary/cards/InboundSplitScheduleTable.tsx` | Split-inbound fixed-header/fixed-column table rendering |
-| `secondary/cards/inboundSplitScheduleTableClasses.ts` | Split-inbound table class composition, changed-confirmation class, and aria diff label helpers |
-| `secondary/cards/inboundSplitScheduleTypes.ts` | Split-inbound UI event/request type aliases shared across dialog/controller/tests |
-| `secondary/cards/SizeOrderConfirmQuantityRows.tsx` | Size-order confirmed quantity and applied split rows renderer |
-| `secondary/cards/inboundSplitScheduleModel.ts` | Split inbound schedule draft row/quantity table model |
-| `secondary/cards/inboundSplitSuggestionModel.ts` | Source-based split inbound suggested quantity calculation |
-| `src/snapshot/*` | Snapshot type/parser/tests |
+| Primary drawer | 상품 요약, 월간 추세, 판매 인사이트, 기본 재고/판매 정보를 표시한다. |
+| Secondary drawer | 오더 수량 산정, 사이즈별 추천/확정, AI 코멘트, 입고 분할을 처리한다. |
+| Candidate snapshot | 후보 항목에 저장되는 `OrderSnapshotDocument` v5를 생성/파싱한다. |
 
-## API boundaries
+드로어 UI는 API 응답을 표시하고 사용자 결정을 저장한다. 백엔드 계산값을 화면에서 임의 보정해 계약 불일치를 숨기지 않는다.
 
-- Primary bundle: `getProductDrawerBundle`.
-- Monthly trend: `getProductMonthlyTrend`.
-- Sales insight: `getProductSalesInsight`.
-- Comparison targets: `getProductComparisonTargets`.
-- Secondary detail: `getProductSecondaryDetail`.
-- Secondary daily trend: `getSecondaryDailyTrend`.
-- Secondary inbound split source: `getSecondaryInboundSplitSource`.
-- Secondary AI comment: `getSecondaryAiComment`.
-- Stock-order calculation: `getSecondaryStockOrderCalc`.
-- API access is owned by `src/api/client.ts` and `src/api/requests/*`; product mock behavior is owned by `src/api/mock/dashboardApi.ts`, `mockProductComparisonApi.ts`, `mockProductSecondaryDetailApi.ts`, and request adapters. Drawer UI/components must not import mock modules directly.
+## 2. 데이터 로딩 경계
 
-## Trend request policy
+| 데이터 | API | 비고 |
+|---|---|---|
+| 기본 번들 | `getProductDrawerBundle` | 상품 요약, 재고, 기본 상세값 |
+| 비교 대상 | `getProductComparisonTargets` | 비교 채널/자사 비교 대상 목록 |
+| 월간 추세 | `getProductMonthlyTrend` | 기간/비교 주체 기반 월간 추세 |
+| 판매 인사이트 | `getProductSalesInsight` | 기간/채널 민감 분석 데이터 |
+| Secondary 상세 | `getProductSecondaryDetail` | 오더 계산 입력/결과, 사이즈 제안, AI 코멘트 |
+| 일별 추세 | `getSecondaryDailyTrend` | 일 단위 예측 흐름 |
+| 입고 분할 소스 | `getSecondaryInboundSplitSource` | 일자/사이즈별 분할 계산 소스 |
 
-- Monthly trend: last 24 completed months ending at previous month; 12 forecast months; 36 visible months max.
-- Daily trend: selected start month first day through yesterday plus current lead-time forecast days.
-- Daily trend API returns aggregate source flow and `forecastStartDate`; frontend validates response identity against the requested SKU/window, then derives chart point fields such as `idx`, `month`, `isForecast`, `stockBar`, and line split values.
-- `periodShade` and `forecastShade` are UI chart ranges, not API fields.
+`getProductDrawerBundle`에 모든 데이터를 과적재하지 않는다. 기간 또는 비교 주체에 민감한 데이터는 별도 API로 둔다.
 
-## Snapshot contract
+## 3. 비교 주체 계약
 
-- Current type: `OrderSnapshotDocument` v4.
-- Snapshot stores restore values only.
-- `drawer1.monthlySalesTrend[]` stores the `ProductMonthlyTrendChartPoint[]` display model used by the primary monthly sales trend chart. It is required because monthly trend is part of the drawer restore contract.
-- `drawer2.sizeOrders[]` stores `SecondarySizeOrderRestoreRow[]`, the rendered size-order row without `confirmQty`.
-- `drawer2.stockOrderResult` stores `SecondaryStockOrderCalcResult` so saved snapshots restore the same calculation/display object used by the size-order card.
-- `drawer2.stockOrderRequest`, `drawer2.unitEconomics`, `drawer2.aiComment`, and `drawer2.confirmed.rounds[]` use the corresponding frontend input/state models instead of snapshot-owned duplicate shapes.
-- Parser/restore behavior enforces:
-  - top-level `skuGroupKey`, `drawer1.summary.skuGroupKey`, `drawer2.comparisonBasis.skuGroupKey` must match.
-  - `drawer2.baseSubject` must be a base self-company subject.
-  - `drawer2.comparisonSubject` must be a comparison subject; competitor-channel subjects require `sourceId`.
-  - `drawer2.stockOrderRequest.leadTimeDays` and `context.dailyTrendLeadTimeDays` must match.
-  - size keys in `drawer2.sizeOrders` must be unique and match `drawer2.stockOrderResult.display.sizeRows` keys.
-  - `drawer2.stockOrderResult.display` total rows must equal sum of each size row.
-  - `drawer2.confirmed.rounds[].qtyBySize` size keys must match `drawer2.sizeOrders[].size`.
-- `drawer2.stockOrderResult.display.sizeRows[]` is size-keyed.
-- `drawer2.stockOrderResult` no longer stores `safetyStockCalc` or `forecastQtyCalc`; recommendation rows are stored in `drawer2.sizeOrders[]`.
-- `drawer2.aiComment` has `prompt`, `answer`, `generatedAt`.
-- `drawer2.confirmed.rounds[]` is the confirmed quantity source of truth.
-- `drawer2.sizeOrders[]` stores share/forecast/recommendation rows only; it does not store confirmed quantity.
-- Daily chart series are re-fetched, not stored.
+상품 드로어 API는 `companyUuid` 단독 기준이 아니라 subject query를 사용한다.
 
-## Scope rules
+| subject | 필드 | 의미 |
+|---|---|---|
+| base | `baseRole`, `baseKind`, `baseSourceId?` | 기준 주체. 현재 기본값은 자사이다. |
+| comparison | `comparisonRole`, `comparisonKind`, `comparisonSourceId?` | 비교 주체. 경쟁 채널 또는 자사 비교가 가능하다. |
 
-- Product drawer read-like APIs use subject refs instead of top-level `companyUuid`.
-- Bundle is base-only and returns `{ summary }`.
-- Monthly trend, sales insight, secondary detail, and daily trend use base/comparison subject refs. `base.kind` is currently `self-company`; `comparison.kind` may be `competitor-channel` or `self-company`.
-- Secondary inbound split source and secondary stock-order calculation are base-only product drawer APIs.
-- AI comment is a manual POST generation request. The frontend path owns `skuGroupKey`; the body sends base/comparison subject refs, period/forecast context, optional `candidateItemUuid`, and optional `snapshotForAiComment` when the current secondary drawer calculation should be the comment basis.
-- The frontend may keep `ALL_COMPANY_UUID` in subject state for all-company reads, but HTTP requests omit `baseSourceId` or `comparisonSourceId` instead of sending the sentinel.
-- Empty comparison target lists are valid unavailable states. The drawer must not replace them with the first target, a fake target, or a generic API error.
-- A first returned API/mock target may be used only as a UI default when no saved target exists and the target list is non-empty.
-- Deleted, unauthorized, or current-scope-missing selected targets are unavailable states; they require explicit re-selection and must not be silently replaced by a fake subject.
-- Arrow key ownership belongs to the stable `ProductDrawer` shell, not content/loading child panels. While the drawer is open, `ArrowUp`/`ArrowDown` are terminal events: navigation may be ignored during an in-flight adjacent move, but the event must not leak to list focus handlers or close the secondary pane.
-- Primary sales metrics keeps a stable card shell while comparison data is loading. Target clicks may update request state, but they must not replace the card with a different loading layout or resize the product image/card column.
-- Split inbound schedule is secondary-drawer state and is persisted in `drawer2.confirmed.rounds`. It may edit round count, inbound dates, per-round confirmed quantity, and per-size confirmed quantity in a fixed-header/fixed-column dialog. The table keeps current column minimums, expands to fill the table frame when there is spare width, and keeps horizontal scrolling when the minimum width overflows. The dialog owns only a local draft while open; Close discards the draft, and Apply passes cloned rows to `useInboundSplitScheduleController`, which updates `confirmed.rounds` and confirmation quantities through callbacks supplied by `SizeOrderCard`. Open/Apply require both a valid split source, completed stock-order calculation, and strictly increasing inbound dates; if readiness drops while open, the dialog is closed and remounted rather than reusing stale draft state. Overall confirmed totals are computed from editable round/size values and may exceed suggested quantities. Suggested quantities are read-only model output built from `getSecondaryInboundSplitSource`, immutable recommended quantity by size, and the screen-owned split dates. Suggestions must represent shortage only: if projected stock plus known inbound covers interval demand, the suggested quantity is `0`; the model must not force leftover confirmed quantity into later rounds. The API source contains only `dateStart`, `dateEnd`, `stockBySize`, and per-date/per-size expected `sale`/known `inbound`; it does not receive split count or split result rows. `useSecondaryInboundSplitSource` validates the returned date range, stock sizes, and every date/size `sale`/`inbound` cell before exposing the source to the UI. Invalid source shape, invalid date order, or draft recalculation failure is surfaced as an inline split-source error instead of being converted to empty rows, and Apply is disabled while a draft error is visible. If applied split rows are 2 rounds or more, `SizeOrderConfirmQuantityRows.tsx` displays the split confirmed sum and read-only per-size values; if the split is 1 round or not applied, it keeps the existing direct confirmed-quantity input available. Split/confirmed quantity edits do not by themselves mark the confirmed snapshot baseline dirty; live calculation-input edits such as inbound dates, weights, buffer stock, unit economics, forecast inputs, or stock-order result changes clear both direct confirmed quantities and applied split rounds. Integer allocation stays in `inboundSplitScheduleModel.ts`, source-based suggestion policy stays in `inboundSplitSuggestionModel.ts`, draft quantity input/row-total redistribution stays in `inboundSplitDraftQuantityModel.ts`, and date interval/order validity stays in `inboundSplitScheduleDatePolicy.ts`.
-- Split inbound date interval labels are view-only UI derived from the schedule draft. `ProductSecondaryDrawerContent` passes `orderInputFields.minOrderDate` as `inboundSplitWorkDate`, `useInboundSplitScheduleController` forwards it to the dialog, and `InboundSplitScheduleTable` displays the first round interval from that work date and later round intervals from the previous round date. The split table must not construct `today` internally. The same date policy is reused by the dialog Apply guard and controller persistence guard, so button state and saved rows cannot diverge. The date input itself is the shared `src/components/DateInputWithWeekday.tsx`; the split table owns only the split-specific interval label and invalid-order styling.
-- Split inbound UI responsibilities are separated by feature layer: `useInboundSplitScheduleController.ts` owns parent state transfer and applied rows, `useInboundSplitScheduleDraft.ts` owns open-dialog draft editing, `InboundSplitScheduleDialog.tsx` owns modal shell behavior, `InboundSplitScheduleTable.tsx` owns table rendering and row-derived summary totals, `inboundSplitScheduleDatePolicy.ts` owns date validity, `inboundSplitDraftQuantityModel.ts` owns draft quantity normalization/redistribution, `inboundSplitScheduleTotals.ts` owns row summary aggregation, `inboundSplitScheduleTableClasses.ts` owns class/diff-label helpers, and `inboundSplitScheduleTypes.ts` owns shared aliases.
-- Integrated order numeric inputs keep numeric state and snapshot values unchanged. SalesForecastCard may format quantity/price text inputs with thousands separators, then strip separators before emitting numeric changes; percentage inputs keep decimal-friendly numeric editing.
-- Candidate detail drawer opened from a single-company candidate keeps the same company scope through reads and mutations.
-- Secondary mutations require concrete `companyUuid`.
+`competitor-channel` 비교는 `sourceId`가 필수이다. 프론트는 비교 대상을 임의 생성하지 않고, 대상 목록 API가 준 값만 선택지로 사용한다.
 
-## Style boundaries
+## 4. Secondary 오더 수량 경계
 
-- Primary drawer components must not import `secondary/secondaryDrawer.module.css`.
-- `primary/cards/SalesMetricsCard.module.css` owns the primary sales metrics card styles.
-- `secondary/secondaryDrawer.module.css` is the secondary drawer public style facade.
-- `secondary/style-parts/**` files are internal to the secondary facade and must not be imported directly from primary components.
-- Split inbound styles stay behind the secondary facade. `inboundSplitDialogShell.module.css` owns the modal shell and shared split-inbound CSS variables, `inboundSplitTable.module.css` owns table/sticky-column geometry, sticky offsets, and fill/scroll width behavior, `inboundSplitRows.module.css` owns summary/round row states, same-round no-divider styling, round dividers, changed-confirmation text color, sticky body-cell widths, split input sizing, and inbound-date interval text, `inboundSplitControls.module.css` owns the card/dialog count controls, and `inboundSplitResponsive.module.css` owns only media-query overrides.
-- The secondary drawer top meta/action row stays in the secondary scroll container as a sticky header. Product metadata and candidate action buttons remain visible while the secondary pane scrolls vertically; the sticky behavior is owned by the secondary layout style part, not by shared drawer shell CSS.
+| 값 | 설명 |
+|---|---|
+| 추천 수량 | 오더 상세에서 제안되는 수량이다. 계산 결과 또는 현재 추천 합계가 기준이다. |
+| 확정 수량 | 사용자가 최종 적용한 수량이다. 오더 상세과 입고 분할 설정이 같은 값을 참조해야 한다. |
+| 수동 확정 변경 | 사용자가 오더 상세에서 확정 수량을 바꾸면 이후 표시와 분할 기준은 그 값을 따라야 한다. |
 
+추천 수량과 확정 수량은 같은 값이 아니다. 추천은 계산/제안이고, 확정은 사용자의 현재 결정이다.
+
+## 5. 입고 분할 경계
+
+입고 분할은 차수별 입고일과 차수별 확정 수량을 사용자가 조정하는 UI이다.
+
+| 개념 | 기준 |
+|---|---|
+| 첫 차수 기준일 | `currentOrderInboundDueDate`를 사용한다. |
+| 다음 입고 기준 | `nextOrderInboundDueDate`를 사용한다. |
+| 일예측 합산 구간 | 각 차수의 입고일부터 다음 차수 입고일 전일까지이다. 마지막 차수는 다음 오더 입고일 전일까지이다. |
+| 적용 결과 | `drawer2.confirmed.rounds`에 차수별 `date`, `qtyBySize`로 저장된다. |
+
+분할 계산은 현재 다음 원칙을 따른다.
+
+- 차수별 전체 확정 수량을 먼저 산정한다.
+- 해당 차수 총량을 사이즈별 제안 비율에 따라 배분한다.
+- 사이즈별 총합 보존을 위해 차수별 총량을 바꾸지 않는다.
+- 반올림 잔여는 차수 내부에서 조정한다.
+
+이 방식은 차수 분할과 수동 확정 변경의 배분 기준을 하나로 맞추기 위한 것이다.
+
+## 6. 입고 분할 소스 API
+
+`getSecondaryInboundSplitSource`는 source-only API이다.
+
+| 제공값 | 용도 |
+|---|---|
+| 일자별 예측 수요 | 차수별 기간 수요 합산 |
+| 사이즈별 기준 비중/수량 | 차수 총량을 사이즈로 배분할 때 사용하는 기준 |
+| 기준 상품/재고 관련 값 | UI 표시와 계산 보조 |
+
+이 API는 사용자가 적용한 분할 rows를 저장하거나 반환하지 않는다. 저장된 분할 결과는 후보 스냅샷의 `drawer2.confirmed.rounds`가 소유한다.
+
+## 7. 스냅샷 경계
+
+현재 저장 스냅샷은 `OrderSnapshotDocument` v5이다.
+
+| 영역 | 저장 의미 |
+|---|---|
+| `drawer1.summary` | 상품 기본 정보와 가용 재고 |
+| `drawer2.stockOrderRequest` | 오더 계산에 사용한 입고일/오더 커버리지 일수/수요 override |
+| `drawer2.stockOrderResult` | 계산 결과. 선택 필드 |
+| `drawer2.sizeOrders` | 사이즈별 제안/추천 |
+| `drawer2.confirmed.rounds` | 사용자가 확정한 차수별 수량 |
+| `drawer2.aiComment` | AI 코멘트 프롬프트/응답/생성 시점 |
+
+후보 항목에서 드로어를 열 때 저장 스냅샷이 있으면 해당 값이 우선이다. API 최신값은 사용자가 재계산/재적용할 때 반영한다.
+
+## 8. UI 문구 경계
+
+Secondary 상품 드로어의 한국어 UI 문구는 `product-secondary/ko.ts`를 우선 사용한다. 문구만 바꾸는 작업도 의미가 바뀌면 관련 문서와 테스트 기대값을 함께 검토한다.
+
+현재 입고 분할 적용 경고 문구는 다음 의미를 가져야 한다.
+
+> 입고 분할 변경 시, 각 사이즈의 전체 확정 수량에 변동이 생길 수 있습니다.
+
+이는 차수별 총량 우선 배분으로 인해 사이즈별 전체 합계가 최초 확정값과 달라질 수 있음을 사용자에게 알리는 문구이다.
+
+## 9. 변경 시 확인 항목
+
+- 오더 상세의 추천/확정 수량 출처가 분리되어 있는가
+- 수동 확정 변경이 입고 분할 기준에 반영되는가
+- 차수별 합계와 사이즈별 표시가 같은 배분 규칙을 사용하는가
+- `confirmed.rounds`가 저장 스냅샷에 정확히 반영되는가
+- API/mock/문서의 field 이름이 현재 타입과 일치하는가

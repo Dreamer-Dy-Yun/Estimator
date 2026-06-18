@@ -83,8 +83,8 @@ interface CandidateStashQueryParams {
 interface CandidateStashItemSummary {
   uuid: string;
   skuUuid: string;
-  hasSnapshot: boolean;
-  snapshotUpdatedAt?: string;
+  hasConfirmedOrderSnapshot: boolean;
+  confirmedOrderSnapshotUpdatedAt?: string;
 }
 
 interface CandidateItemListResult {
@@ -101,7 +101,7 @@ interface CandidateItemListResult {
 
 - 이너오더 리스트: `items`를 먼저 표시한다.
 - 배지 컬럼: `insightStatus === 'loading'`이면 `로딩중...`을 표시한다.
-- 상태 컬럼: `hasSnapshot === true`이면 `상세확정`, 아니면 `상세미확정`.
+- 상태 컬럼: `hasConfirmedOrderSnapshot === true`이면 `상세확정`, 아니면 `상세미확정`.
 
 ### 2. 배지·추천 조회
 
@@ -225,7 +225,7 @@ type CandidateOrderMetricEvent =
    - `appendCandidateItems` 응답의 신규 `candidateItems`와 이미 받은 recommendation row를 매칭해 로컬 리스트로 옮긴다.
 5. 이너오더 리스트 표시
    - 기본 정보는 조인된 reference item에서 표시한다.
-   - 상세확정 상태는 candidate item의 `hasSnapshot`만 본다.
+   - 상세확정 상태는 candidate item의 `hasConfirmedOrderSnapshot`만 본다.
    - 총 오더 수량·총 오더 금액은 SSE metric map에서 표시한다.
 6. SSE 상태 처리
    - 조회 시작 시 기존 SSE 구독 종료

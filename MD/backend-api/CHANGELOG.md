@@ -36,7 +36,7 @@
 - Product drawer bundle is base-only and returns `{ summary }`.
 - Product monthly trend, sales insight, secondary detail, daily trend, AI comment, and stock-order calc are separate endpoints.
 - Analysis list and candidate list row summaries include `thumbnailUrl: string | null`.
-- Candidate item `details` remains `OrderSnapshotDocument | null`; current snapshot schema is version `3`.
+- Candidate item `confirmedOrderSnapshot` remains `OrderSnapshotDocument | null`; current snapshot schema is version `5`.
 - Candidate order metric SSE uses `requestId` and emits `item`, `itemFailed`, and `completed`.
 
 ## Previous docs

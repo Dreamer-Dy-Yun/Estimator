@@ -53,7 +53,7 @@ export const CompetitorPage: () => React.JSX.Element = () : React.JSX.Element =>
     [channels, competitorChannelId],
   )
   const activeCompetitorChannelId: string | undefined = selectedCompetitorChannel?.id
-  const competitorChannelLabel: string = selectedCompetitorChannel?.label ?? ALL_CHANNEL_LABEL
+  const selectedCompetitorChannelLabel: string = selectedCompetitorChannel?.label ?? ALL_CHANNEL_LABEL
   const onCompetitorChannelChange: (label: string) => void = useCallback((label: string) : void => {
     if (label === ALL_CHANNEL_LABEL) {
       setCompetitorChannelId(undefined)
@@ -98,8 +98,8 @@ export const CompetitorPage: () => React.JSX.Element = () : React.JSX.Element =>
 
   const competitorQueryFields: FilterField[] = useMemo<FilterField[]>(() : FilterField[] => [
     ...filters.queryFields,
-    { label: '경쟁 채널', kind: 'select', value: competitorChannelLabel, onChange: onCompetitorChannelChange, options: [ALL_CHANNEL_LABEL, ...channels.map((ch: SecondaryCompetitorChannel) : string => ch.label)] },
-  ], [channels, competitorChannelLabel, filters.queryFields, onCompetitorChannelChange])
+    { label: '경쟁 채널', kind: 'select', value: selectedCompetitorChannelLabel, onChange: onCompetitorChannelChange, options: [ALL_CHANNEL_LABEL, ...channels.map((ch: SecondaryCompetitorChannel) : string => ch.label)] },
+  ], [channels, selectedCompetitorChannelLabel, filters.queryFields, onCompetitorChannelChange])
   const displayedListFilterFields: FilterField[] = useMemo(
     () : FilterField[] => (selection.activeGridCellKey ? lockAnalysisListFilterFields(listFilterFields) : listFilterFields),
     [listFilterFields, selection.activeGridCellKey],
@@ -109,7 +109,7 @@ export const CompetitorPage: () => React.JSX.Element = () : React.JSX.Element =>
     setShowRowsWithSelfSalesOnly(false)
   }, [filters])
   const listFiltersDirty: boolean = filters.listFiltersDirty || showRowsWithSelfSalesOnly
-  const competitorAxisLabel: string = competitorChannelLabel === ALL_CHANNEL_LABEL ? '전체 경쟁사' : competitorChannelLabel
+  const competitorAxisLabel: string = selectedCompetitorChannelLabel === ALL_CHANNEL_LABEL ? '전체 경쟁사' : selectedCompetitorChannelLabel
   const kpi: { totalCompetitorAmount: number; totalSelfAmount: number | null; totalCompetitorQty: number; totalSelfQty: number | null; } = useMemo(() : { totalCompetitorAmount: number; totalSelfAmount: number | null; totalCompetitorQty: number; totalSelfQty: number | null; } => {
     const rowsWithSelfAmount: CompetitorSalesRow[] = selection.visibleRows.filter((row: CompetitorSalesRow) : boolean => row.selfAmount != null)
     const rowsWithSelfQty: CompetitorSalesRow[] = selection.visibleRows.filter((row: CompetitorSalesRow) : boolean => row.selfQty != null)

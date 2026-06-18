@@ -30,6 +30,7 @@ function buildInventoryArrivalCollectionBody(params: InventoryArrivalCollectionP
 }
 
 const httpInventoryArrivalRequests: InventoryArrivalApi = {
+  // POST /inventory-arrival-dates/collect-from-sheet: 구글시트에서 입고일 수집.
   collectInventoryArrivalDates: (params: CompanyMutationScopeParams) : Promise<InventoryArrivalCollectionResult> =>
     apiRequest('/inventory-arrival-dates/collect-from-sheet', {
       method: 'POST',
@@ -38,6 +39,7 @@ const httpInventoryArrivalRequests: InventoryArrivalApi = {
 }
 
 const mockInventoryArrivalRequests: InventoryArrivalApi = withMockApiAdapterErrors<InventoryArrivalApi>({
+  // POST /inventory-arrival-dates/collect-from-sheet: 구글시트에서 입고일 수집(목데이터).
   collectInventoryArrivalDates: (params: CompanyMutationScopeParams) : Promise<InventoryArrivalCollectionResult> => mockInventoryArrivalApi.collectInventoryArrivalDates(params),
 })
 

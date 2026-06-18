@@ -27,7 +27,7 @@ const snapshot: OrderSnapshotDocument = {
     periodEnd: '2026-05-31',
     forecastMonths: 8,
     dailyTrendStartMonth: '2026-05',
-    dailyTrendLeadTimeDays: 30,
+    dailyTrendForecastDays: 30,
   },
   drawer1: {
     summary: {
@@ -55,8 +55,24 @@ const snapshot: OrderSnapshotDocument = {
     stockOrderRequest: {
       currentOrderInboundDueDate: '2026-06-01',
       nextOrderInboundDueDate: '2026-06-30',
-      leadTimeDays: 30,
+      orderCoverageDays: 30,
       dailyMeanOverride: 1,
+    },
+    stockOrderResult: {
+      trendDailyMean: 1,
+      dailyMean: 1,
+      sigma: 0,
+      display: {
+        currentStockQtyTotal: 0,
+        totalOrderBalanceTotal: 0,
+        expectedInboundOrderBalanceTotal: 0,
+        sizeRows: [],
+      },
+    },
+    unitEconomics: {
+      unitPrice: 1000,
+      unitCost: 700,
+      expectedFeeRatePct: 13,
     },
     selfWeightPct: 50,
     bufferStock: 0,

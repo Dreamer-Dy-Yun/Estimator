@@ -9,6 +9,7 @@ import { parseOrderSnapshot } from '../../../snapshot/parseOrderSnapshot'
 import type { OrderSnapshotDocument } from '../../../snapshot/orderSnapshotTypes'
 import { mergePrimarySummaryFromBundleAndSnapshot } from '../../drawer/mergePrimarySummaryFromSnapshot'
 import { useProductDrawerBundleState } from '../../hooks/useProductDrawerBundle'
+import { assertCandidateItemDetailSnapshotFlag } from './candidateItemDetailContract'
 import type { InnerCandidateRow } from './candidateStashDetailTypes'
 
 const INNER_DRAWER_CLOSE_LAYOUT_MS = 440 as const
@@ -113,7 +114,8 @@ export function useCandidateStashItemDrawer({ dataReferenceStart, dataReferenceE
       const detail: CandidateItemDetail | null = await getCandidateItemByUuid(row.uuid, { companyUuid: scopedCompanyUuid })
       if (!mountedRef.current || drawerRequestSeqRef.current !== seq) return
       if (!detail) throw new Error(`후보 상세 데이터 없음: ${row.uuid}`)
-      const parsedSnapshot: OrderSnapshotDocument | null = detail.details ? parseOrderSnapshot(detail.details) : null
+      assertCandidateItemDetailSnapshotFlag(detail)
+      const parsedSnapshot: OrderSnapshotDocument | null = detail.confirmedOrderSnapshot ? parseOrderSnapshot(detail.confirmedOrderSnapshot) : null
       if (parsedSnapshot && parsedSnapshot.skuGroupKey !== row.skuGroupKey) {
         throw new Error(`Candidate item snapshot skuGroupKey mismatch: ${row.uuid}`)
       }

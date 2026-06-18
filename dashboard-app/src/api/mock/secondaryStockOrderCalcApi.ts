@@ -55,10 +55,12 @@ export function buildMockSecondaryStockOrderCalcResult({
   skuGroupKey,
   periodStart,
   periodEnd,
-  forecastPeriodEnd,
+  forecastPeriodEndMonth,
+  orderCoverageDays,
   dailyMean: dailyMeanParam,
   base,
 }: SecondaryStockOrderCalcParams): SecondaryStockOrderCalcResult {
+  if (!Number.isFinite(orderCoverageDays) || orderCoverageDays < 0) throw new Error('orderCoverageDays must be a non-negative finite number')
   const companyUuid: string | undefined = getCompanyUuidForOptionalScope(base.sourceId)
   const primary: ProductPrimarySummary = scopeMockProductPrimary(requireMockProductPrimary(skuGroupKey), { companyUuid })
   const secondary: ProductSecondaryDetail = scopeMockProductSecondary(requireMockProductSecondary(skuGroupKey), { companyUuid })
@@ -66,12 +68,13 @@ export function buildMockSecondaryStockOrderCalcResult({
   const { dailyMean: trendMuRaw, sigma }: { dailyMean: number; sigma: number; } = dailyMeanSigma(trend, periodStart, periodEnd)
   const forecastMuRaw: number = dailyMeanParam !== undefined && Number.isFinite(dailyMeanParam)
     ? Math.max(0, dailyMeanParam)
-    : forecastDailyMeanFromModel(trend, periodStart, forecastPeriodEnd ?? periodEnd)
+    : forecastDailyMeanFromModel(trend, periodStart, forecastPeriodEndMonth ?? periodEnd)
   const isSimpleCalcSku: boolean = primary.code === 'TEST-TOP'
   const sizeLabels: string[] = secondary.sizeRows.map((row: ProductSecondarySizeRow) : string => row.size)
   const sizeCount: number = isSimpleCalcSku ? sizeLabels.length : Math.max(sizeLabels.length, DEFAULT_SIZE_COUNT)
   const totalOrderBalanceTotal: number = isSimpleCalcSku ? 200 : Math.round(primary.availableStock * 0.39)
-  const expectedInboundOrderBalanceTotal: number = isSimpleCalcSku ? 100 : Math.round(primary.availableStock * 0.17)
+  const coverageScale: number = orderCoverageDays / 30
+  const expectedInboundOrderBalanceTotal: number = isSimpleCalcSku ? Math.round(100 * coverageScale) : Math.round(primary.availableStock * 0.17 * coverageScale)
   const displaySizeLabels: string[] = sizeLabels.length > 0
     ? sizeLabels
     : Array.from({ length: sizeCount }, (_: unknown, index: number) : string => String(index + 1))

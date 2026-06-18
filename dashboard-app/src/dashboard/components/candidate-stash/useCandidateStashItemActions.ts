@@ -159,7 +159,7 @@ export function useCandidateStashItemActions({
       const results: PromiseSettledResult<CandidateItemDetail>[] = await Promise.allSettled(itemUuidsSnapshot.map((itemUuid: string) : Promise<CandidateItemDetail> => updateCandidateItem({
         itemUuid,
         companyUuid: mutationCompanyUuid,
-        details: null,
+        confirmedOrderSnapshot: null,
         isLatestLlmComment: false,
       })))
       if (!canReflect()) return

@@ -54,7 +54,7 @@ function getSecondaryDetailFromSnapshot(
   if (basis.skuGroupKey !== skuGroupKey) return null
   const unitEconomics: SalesForecastUnitEconomicsFields | undefined = hydrateSnapshot.drawer2.unitEconomics
   if (unitEconomics == null) return null
-  const display: SecondaryStockOrderCalcResult['display'] | undefined = hydrateSnapshot.drawer2.stockOrderResult?.display
+  const display: SecondaryStockOrderCalcResult['display'] = hydrateSnapshot.drawer2.stockOrderResult.display
   if (display == null) return null
   const displaySizeRowBySize: Map<string, SecondaryStockOrderCalcResult['display']['sizeRows'][number]> = new Map((display?.sizeRows ?? []).map((row: SecondaryStockOrderCalcResult['display']['sizeRows'][number]) : [string, SecondaryStockOrderCalcResult['display']['sizeRows'][number]] => [row.size, row]))
   if (hydrateSnapshot.drawer2.sizeOrders.some((row: SecondarySizeOrderRestoreRow) : boolean => !displaySizeRowBySize.has(row.size))) return null

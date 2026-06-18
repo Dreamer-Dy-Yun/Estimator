@@ -35,7 +35,7 @@ export type InnerCandidateSortKey =
   | 'code'
   | 'productName'
   | 'colorCode'
-  | 'isDetailConfirmed'
+  | 'hasConfirmedOrderSnapshot'
   | 'selfQty'
   | 'competitorQty'
   | 'expectedSalesQty'
