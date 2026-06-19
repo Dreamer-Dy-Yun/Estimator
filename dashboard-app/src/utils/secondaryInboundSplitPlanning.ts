@@ -103,6 +103,12 @@ function getSizeSalesRate(source: SecondaryInboundSplitSource, size: string): nu
   return requireFiniteQuantity(source.sizeInfo[size]?.salesRate, `sizeInfo.${size}.salesRate`)
 }
 
+function getExpectationPoints(source: SecondaryInboundSplitSource, size: string): SecondaryInboundSplitSource['expectation'][string] {
+  const points: SecondaryInboundSplitSource['expectation'][string] | undefined = source.expectation?.[size]
+  if (!Array.isArray(points)) throw new Error(`Missing inbound split source field: expectation.${size}`)
+  return points
+}
+
 function sumWholeProductSalesForecast(source: SecondaryInboundSplitSource, startDate: string, endDate: string): number {
   let total = 0
   iterateDates(startDate, endDate, (date: string): void => {
@@ -138,8 +144,9 @@ function sumExpectedInboundInInterval(
   size: string,
   interval: SplitInterval,
 ): number {
+  const expectationPoints: SecondaryInboundSplitSource['expectation'][string] = getExpectationPoints(source, size)
   if (interval.ignoreExistingOrderInbound) return 0
-  return (source.expectation[size] ?? []).reduce((sum: number, point: SecondaryInboundSplitSource['expectation'][string][number]): number => {
+  return expectationPoints.reduce((sum: number, point: SecondaryInboundSplitSource['expectation'][string][number]): number => {
     if (point.date < interval.expectedInboundStartDate || point.date >= interval.expectedInboundEndDate) return sum
     return sum + normalizeQuantity(requireFiniteQuantity(point.inbound, `expectation.${size}.${point.date}`))
   }, 0)

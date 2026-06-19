@@ -71,4 +71,65 @@ describe('secondaryDailyTrendBuilders', () : void => {
 
     expect(source.data.comparison['2026-04-03']?.sale).toBeGreaterThan(0)
   })
+
+  it('keeps missing stock rows unknown instead of converting them to zero', () : void => {
+    const monthlyTrend: MonthlySalesPoint[] = [
+      { date: '2026-04', sales: 300, isForecast: false },
+    ]
+
+    const points: SecondaryDailyTrendPoint[] = buildSecondaryDailyTrend(
+      monthlyTrend,
+      [],
+      '2026-04-01',
+      '2026-04-02',
+      0,
+      1,
+    )
+
+    expect(points.map((point: SecondaryDailyTrendPoint): number | null => point.stockBar)).toEqual([null, null])
+    expect(points.map((point: SecondaryDailyTrendPoint): number | null => point.inboundAccumBar)).toEqual([null, null])
+    expect((): void => {
+      buildSecondaryDailyTrendSource(
+        null,
+        monthlyTrend,
+        [],
+        '2026-04-01',
+        '2026-04-02',
+        0,
+        1,
+      )
+    }).toThrow('without stock source')
+  })
+
+  it('keeps explicit zero stock and inbound as zero', () : void => {
+    const monthlyTrend: MonthlySalesPoint[] = [
+      { date: '2026-04', sales: 0, isForecast: false },
+    ]
+    const monthlyStockTrend: { date: string; stock: number; inboundExpected: number; }[] = [
+      { date: '2026-04', stock: 0, inboundExpected: 0 },
+    ]
+
+    const points: SecondaryDailyTrendPoint[] = buildSecondaryDailyTrend(
+      monthlyTrend,
+      monthlyStockTrend,
+      '2026-04-01',
+      '2026-04-01',
+      0,
+      1,
+    )
+    const source: SecondaryDailyTrendSource = buildSecondaryDailyTrendSource(
+      null,
+      monthlyTrend,
+      monthlyStockTrend,
+      '2026-04-01',
+      '2026-04-01',
+      0,
+      1,
+    )
+
+    expect(points[0]?.stockBar).toBe(0)
+    expect(points[0]?.inboundAccumBar).toBe(0)
+    expect(source.baseStock).toBe(0)
+    expect(source.data.base['2026-04-01']?.inbound).toBe(0)
+  })
 })

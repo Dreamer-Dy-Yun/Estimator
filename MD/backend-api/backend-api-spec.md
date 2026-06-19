@@ -111,6 +111,7 @@ interface SecondaryDailyTrendParams {
 
 - `skuGroupKey`는 path param이다.
 - `startDate`, `endDate`, `forecastDays`, `size?`는 query이다.
+- `endDate`는 historical 기준 종료일이고, forecast 구간은 `forecastDays`로 확장한다.
 - `base`와 `comparison`은 subject query로 풀어서 보낸다.
 - `size`를 생략하거나 `null`이면 전체 사이즈 aggregate이다.
 - 이 endpoint에는 `currentOrderInboundDueDate`, `nextOrderInboundDueDate`, `selfWeightPct`, `bufferStock` 같은 stock-order 전용 값을 보내지 않는다.
@@ -136,7 +137,7 @@ interface SecondaryDailyTrendSource {
 - `data.base[date].inbound`는 해당 날짜의 기준 subject 입고량이다. 알려진 0은 `0`으로 보낸다.
 - `data.comparison[date].sale`은 비교 subject의 일 판매량이다.
 - `data.comparison[date].inbound`는 현재 UI에서 비교 입고를 쓰지 않으므로 없으면 `null`이다.
-- `data.base`와 `data.comparison`은 `startDate`부터 `endDate`까지 화면에 필요한 날짜를 빠짐없이 제공해야 한다.
+- `data.base`와 `data.comparison`은 `startDate <= date <= endDate + forecastDays` 범위의 화면 필요 날짜를 빠짐없이 제공해야 한다. `forecastDays=0`이면 `endDate`까지 포함한다.
 
 ### `getSecondaryStockOrderCalc`
 
@@ -185,6 +186,7 @@ interface SecondaryStockOrderCalcParams {
 - 오더 계산 범위는 `[currentOrderInboundDueDate, nextOrderInboundDueDate)`이다.
 - `forecastPeriodEndMonth`는 보통 `nextOrderInboundDueDate - 1 day`가 속한 `YYYY-MM`이다.
 - `orderCoverageDays`는 위 exclusive 범위의 커버 일수이다.
+- `currentOrderInboundDueDate`, `nextOrderInboundDueDate`, `orderCoverageDays`는 현재 serialized API 계약명이다. backend endpoint 구현 시 legacy 별칭으로 치환하지 않고 이 body 필드명을 유지한다.
 - `selfWeightPct`는 자사/비교 size mix blending에 쓰인다.
 - `dailyMean`이 있으면 frontend override demand mean이고, 없으면 backend가 계산한다.
 

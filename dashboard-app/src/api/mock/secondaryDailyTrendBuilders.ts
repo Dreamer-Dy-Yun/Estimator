@@ -4,26 +4,28 @@ import { daysInMonth, formatIsoDateUtc, parseIsoDateUtc } from './secondaryDaily
 
 type MonthlyStockTrendPoint = {
   date: string
-  stock: number
-  inboundExpected: number
+  stock?: number
+  inboundExpected?: number
   inboundQty?: number
 }
 
-function sortedStockMonthKeys(stockByMonth: Map<string, MonthlyStockTrendPoint>): string[] {
-  return Array.from(stockByMonth.keys()).sort()
+type MonthlyStockState = {
+  stock: number
+  inboundQty: number
 }
 
-function findStockTrendForMonth(stockByMonth: Map<string, MonthlyStockTrendPoint>, month: string): MonthlyStockTrendPoint | undefined {
-  const exact: MonthlyStockTrendPoint | undefined = stockByMonth.get(month)
-  if (exact != null) return exact
+function isFiniteMockQuantity(value: number | undefined): value is number {
+  return typeof value === 'number' && Number.isFinite(value)
+}
 
-  const keys: string[] = sortedStockMonthKeys(stockByMonth)
-  for (let i: number = keys.length - 1; i >= 0; i -= 1) {
-    const prevMonth: string = keys[i] ?? ''
-    if (!prevMonth || prevMonth <= month) return stockByMonth.get(prevMonth)
+function resolveMonthlyStockState(row: MonthlyStockTrendPoint | undefined): MonthlyStockState | null {
+  if (row == null) return null
+  const inboundSource: number | undefined = row.inboundQty ?? row.inboundExpected
+  if (!isFiniteMockQuantity(row.stock) || !isFiniteMockQuantity(inboundSource)) return null
+  return {
+    stock: Math.max(0, Math.round(row.stock)),
+    inboundQty: Math.max(0, Math.round(inboundSource)),
   }
-  const first: string | undefined = keys[0]
-  return first == null ? undefined : stockByMonth.get(first)
 }
 
 function trendSlice(trend: MonthlySalesPoint[], periodStart: string, periodEnd: string) : MonthlySalesPoint[] {
@@ -138,7 +140,8 @@ function buildFlowByDate(
   const comparison: Record<string, SecondaryDailyTrendComparisonFlow> = {}
   points.forEach((point: SecondaryDailyTrendPoint): void => {
     const sale: number = pointBaseSale(point)
-    const inbound: number = deriveDailyInbound(point, runningStock) ?? 0
+    const inbound: number | null = deriveDailyInbound(point, runningStock)
+    if (inbound == null) throw new Error(`Cannot derive mock daily inbound for ${point.date} without stock source.`)
     if (runningStock != null) {
       runningStock = Math.max(0, Math.round(runningStock + inbound - sale))
     }
@@ -187,17 +190,12 @@ export const buildSecondaryDailyTrend: (monthlyTrend: MonthlySalesPoint[], month
   const stockByMonth: Map<string, MonthlyStockTrendPoint> = new Map(monthlyStockTrend.map((row: MonthlyStockTrendPoint) : [string, MonthlyStockTrendPoint] => [row.date, row]))
   const scale: number = Number.isFinite(comparisonSalesScale) ? Math.max(0, comparisonSalesScale) : 10
   const points: SecondaryDailyTrendPoint[] = []
-  let priorStockRow: MonthlyStockTrendPoint | undefined = findStockTrendForMonth(stockByMonth, startMonth)
 
   monthlyTrend.forEach((monthPoint: MonthlySalesPoint, monthIndex: number) : void => {
     if (monthPoint.date < startMonth) return
     if (monthPoint.date > endMonth) return
     const days: number = daysInMonth(monthPoint.date)
-    const monthStockRow: MonthlyStockTrendPoint | undefined = stockByMonth.get(monthPoint.date)
-    if (monthStockRow != null) priorStockRow = monthStockRow
-    const resolvedStockRow: MonthlyStockTrendPoint | undefined = priorStockRow
-    const inboundQty: number = Math.max(0, Math.round(resolvedStockRow?.inboundQty ?? resolvedStockRow?.inboundExpected ?? 0))
-    const endStock: number = Math.max(0, Math.round(resolvedStockRow?.stock ?? 0))
+    const stockState: MonthlyStockState | null = resolveMonthlyStockState(stockByMonth.get(monthPoint.date))
     const seed: number = monthPoint.date.charCodeAt(5) + monthIndex
 
     for (let dayIndex: number = 0; dayIndex < days; dayIndex += 1) {
@@ -205,14 +203,16 @@ export const buildSecondaryDailyTrend: (monthlyTrend: MonthlySalesPoint[], month
       if (date < startDate || date > endDate) continue
       const sales: number = dailySales(monthPoint.sales, dayIndex, days, seed)
       const monthProgress: number = (dayIndex + 1) / days
-      const stockBar: number = Math.max(0, Math.round(endStock + inboundQty * (1 - monthProgress) - sales * (1 - monthProgress)))
+      const stockBar: number | null = stockState == null
+        ? null
+        : Math.max(0, Math.round(stockState.stock + stockState.inboundQty * (1 - monthProgress) - sales * (1 - monthProgress)))
       points.push({
         idx: points.length,
         date,
         month: monthPoint.date,
         sales,
         stockBar,
-        inboundAccumBar: 0,
+        inboundAccumBar: stockState == null ? null : 0,
         baseSales: sales,
         comparisonSales: Math.max(0, Math.round(sales * scale)),
         isForecast: false,

@@ -109,7 +109,6 @@ function assertInboundSplitSourceMatchesStockOrder(
     requireFiniteSecondaryQuantity(sizeInfo.baseStock, `sizeInfo.${row.size}.baseStock`, STOCK_ORDER_SPLIT_SOURCE_QUANTITY_ERROR)
     if (sizeInfo.salesRate < 0) throw new Error(`Stock order inboundSplitSource sizeInfo.${row.size}.salesRate must be non-negative.`)
     if (sizeInfo.salesRate > 1) throw new Error(`Stock order inboundSplitSource sizeInfo.${row.size}.salesRate must be at most 1.`)
-    if (Math.round(sizeInfo.baseStock) !== Math.round(row.currentStockQty)) throw new Error(`Stock order inboundSplitSource current stock mismatch for size ${row.size}.`)
 
     const expectationPoints: SecondaryInboundSplitSource['expectation'][string] | undefined = source.expectation[row.size]
     if (!Array.isArray(expectationPoints)) throw new Error(`Stock order inboundSplitSource expectation is missing for size ${row.size}.`)

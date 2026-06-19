@@ -41,7 +41,7 @@ const INBOUND_SPLIT_SOURCE: SecondaryInboundSplitSource = {
     },
   },
   sizeInfo: {
-    S: { salesRate: 1, baseStock: 1 },
+    S: { salesRate: 1, baseStock: 9 },
   },
   expectation: {
     S: [{ date: '2026-02-02', inbound: 1 }],

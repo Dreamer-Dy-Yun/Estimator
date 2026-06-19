@@ -112,6 +112,8 @@ interface SecondaryDailyTrendSource {
 Rules:
 
 - `size` omitted/null means all-size aggregate.
+- `endDate` is the historical baseline end date; `forecastDays` extends the returned date range after `endDate`.
+- `data.base` and `data.comparison` must cover every display date where `startDate <= date <= endDate + forecastDays`.
 - `size` is the only size-specific query addition.
 - Do not add stock-order-only query values such as inbound dates or `selfWeightPct`.
 - `data.base[date].inbound` is daily inbound, not accumulated inbound.
@@ -182,6 +184,7 @@ Rules:
 - `sizeInfo[size].baseStock` is opening/current stock and may be negative.
 - `expectation[size][]` is existing-order future inbound and excludes the draft/current order.
 - Split count, split dates, applied rows, `bufferStock`, and `ignoreExistingOrderInbound` are not request fields.
+- Request body field names `currentOrderInboundDueDate`, `nextOrderInboundDueDate`, and `orderCoverageDays` are the current serialized API contract and must be preserved as-is for this endpoint.
 
 Example request body:
 

@@ -1,5 +1,5 @@
 import type { TrendChartPoint } from '../../../trend/SalesTrendChart'
-import { useMemo, useState } from 'react'
+import { useId, useMemo, useState } from 'react'
 import { SalesTrendChart, type TrendShade } from '../../../trend/SalesTrendChart'
 import { ApiUnitErrorBadge } from '../../../../../components/ApiUnitErrorBadge'
 import { LoadingSpinner } from '../../../../../components/LoadingSpinner'
@@ -47,6 +47,7 @@ const stockTrendNameByKey: Record<string, string> = {
 
 export function SalesTrendDailyCard({ selfCompanyLabel, comparisonLabel, sizeOptions, selectedSizeId, onSizeChange, trend }: Props) : React.JSX.Element {
   const [expanded, setExpanded]: [boolean, React.Dispatch<React.SetStateAction<boolean>>] = useState(false)
+  const chartPanelId: string = useId()
 
   const chartSeries: { salesActual: number | null; salesForecast: number | null; idx: number; date: string; month: string; sales: number; stockBar: number | null; inboundAccumBar: number | null; selfSales: number | null; comparisonSales: number | null; isForecast: boolean; }[] = useMemo(() : { salesActual: number | null; salesForecast: number | null; idx: number; date: string; month: string; sales: number; stockBar: number | null; inboundAccumBar: number | null; selfSales: number | null; comparisonSales: number | null; isForecast: boolean; }[] => {
     const firstForecastIdx: number = trend.series.findIndex((p: SecondaryDailyTrendPoint) : boolean => p.isForecast)
@@ -96,14 +97,15 @@ export function SalesTrendDailyCard({ selfCompanyLabel, comparisonLabel, sizeOpt
             type="button"
             className={styles.dailyTrendSizeToggle}
             onClick={() : void => setExpanded((prev: boolean) : boolean => !prev)}
-            aria-pressed={expanded}
+            aria-expanded={expanded}
+            aria-controls={chartPanelId}
           >
             {expanded ? KO.btnTrendSizeDefault : KO.btnTrendSizeExpand}
           </button>
         </div>
       </div>
       {expanded && (
-        <div className={`${commonStyles.chartClipWrap} ${styles.dailyTrendClipWrap}`}>
+        <div id={chartPanelId} className={`${commonStyles.chartClipWrap} ${styles.dailyTrendClipWrap}`}>
           {trend.loading ? (
             <LoadingSpinner label="일간 판매추이를 불러오는 중" />
           ) : (

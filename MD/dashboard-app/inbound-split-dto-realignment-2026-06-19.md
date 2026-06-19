@@ -36,7 +36,7 @@
 - 기존 오더 입고 예정 포인트 타입은 분할입고 source가 아니라 A 데이터임이 드러나도록 명칭을 정리했다.
 - 분할입고 1차 제안 총합은 오더 상세 추천 총량과 같은 planning 함수에서 나온다. `total.suggestion`은 backend source 집계값으로만 둔다.
 - `ignoreExistingOrderInbound` 활성 상태에서도 차수 수만 바뀌어 제안 총합이 크게 달라지면 안 된다. 다만 차수별 정수화 때문에 소량 차이는 발생할 수 있다.
-- 수동 row total 재배분은 사이즈별 추천 합계가 아니라 `sizeInfo.salesRate` 기준으로 정렬했다.
+- 수동 row total 재배분은 `sizeInfo.salesRate`가 아니라 현재 화면 rows에 계산되어 있는 size별 suggested total 합계를 기준으로 맞췄다.
 - backend API spec, catalog, snapshot contract, frontend overview, source boundary, product drawer boundary, API boundary 문서를 갱신했다.
 
 ## Non-goals / Follow-up
