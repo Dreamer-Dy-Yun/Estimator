@@ -140,6 +140,22 @@
   z-index: 3;
 }
 
+.sizeOrderTable th.sizeOrderHoverRowCell,
+.sizeOrderTable td.sizeOrderHoverRowCell {
+  background: #eef2f7;
+}
+
+.sizeOrderTable th.sizeOrderHoverColumnCell,
+.sizeOrderTable td.sizeOrderHoverColumnCell {
+  background: #dbeafe;
+}
+
+.sizeOrderTable th.sizeOrderHoverActiveCell,
+.sizeOrderTable td.sizeOrderHoverActiveCell {
+  background: #bfdbfe;
+  box-shadow: inset 0 0 0 1px rgba(37, 99, 235, 0.36);
+}
+
 .sizeOrderShareChartCell {
   padding: 8px 10px;
   vertical-align: middle;
@@ -243,6 +259,10 @@
   max-width: 100%;
   min-width: 0;
   flex: 0 0 auto;
+}
+
+.confirmQtyPlainComputedValue {
+  font-weight: 400;
 }
 
 .confirmQtyCellManual .stockNumberInput {

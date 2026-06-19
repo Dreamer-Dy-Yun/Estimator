@@ -19,6 +19,8 @@ interface SizeOrderConfirmQuantityRowsProps {
   splitRoundConfirmBySize: Readonly<Record<string, number>>
   splitRoundRows: readonly InboundSplitScheduleRow[]
   inboundSplitColumns: readonly InboundSplitSizeColumn[]
+  getCellClassName: (rowKey: string, columnKey: string, baseClassName?: string) => string
+  onCellMouseEnter: (rowKey: string, columnKey: string) => void
   onClearConfirmedRounds: () => void
   onConfirmQtyChange: (size: string, next: number, recommendedQty: number) => void
 }
@@ -33,22 +35,25 @@ export function SizeOrderConfirmQuantityRows({
   splitRoundConfirmBySize,
   splitRoundRows,
   inboundSplitColumns,
+  getCellClassName,
+  onCellMouseEnter,
   onClearConfirmedRounds,
   onConfirmQtyChange,
 }: SizeOrderConfirmQuantityRowsProps): React.JSX.Element {
+  const confirmRowKey: string = 'confirm'
   return (
     <>
       <tr>
-        <td>{KO.thConfirmQty}</td>
-        <td className={styles.num}>{calculationReady ? formatGroupedNumber(splitRoundsControlDirectConfirm ? splitRoundConfirmTotal : columnConfirmTotal) : KO.valueNotCalculated}</td>
+        <td className={getCellClassName(confirmRowKey, 'metric')} onMouseEnter={(): void => onCellMouseEnter(confirmRowKey, 'metric')}>{KO.thConfirmQty}</td>
+        <td className={getCellClassName(confirmRowKey, 'total', styles.num)} onMouseEnter={(): void => onCellMouseEnter(confirmRowKey, 'total')}>{calculationReady ? formatGroupedNumber(splitRoundsControlDirectConfirm ? splitRoundConfirmTotal : columnConfirmTotal) : KO.valueNotCalculated}</td>
         {sizeRows.map((row: SecondarySizeOrderDisplayRow): React.JSX.Element => {
           const manual: boolean = Boolean(manualConfirmBySize[row.size])
           const lockedConfirmQty: number = splitRoundConfirmBySize[row.size] ?? 0
           return (
-            <td key={row.size} className={`${styles.num} ${styles.confirmQtyCell} ${manual && !splitRoundsControlDirectConfirm ? styles.confirmQtyCellManual : ''}`}>
+            <td key={row.size} className={getCellClassName(confirmRowKey, `size:${row.size}`, `${styles.num} ${styles.confirmQtyCell} ${manual && !splitRoundsControlDirectConfirm ? styles.confirmQtyCellManual : ''}`)} onMouseEnter={(): void => onCellMouseEnter(confirmRowKey, `size:${row.size}`)}>
               <span className={styles.confirmQtyInputWrap}>
                 {calculationReady && splitRoundsControlDirectConfirm ? (
-                  <span className={styles.stockComputedValue}>{formatGroupedNumber(lockedConfirmQty)}</span>
+                  <span className={`${styles.stockComputedValue} ${styles.confirmQtyPlainComputedValue}`}>{formatGroupedNumber(lockedConfirmQty)}</span>
                 ) : calculationReady ? (
                   <input
                     type="number"
@@ -73,19 +78,22 @@ export function SizeOrderConfirmQuantityRows({
           )
         })}
       </tr>
-      {calculationReady && splitRoundRows.map((row: InboundSplitScheduleRow): React.JSX.Element => (
+      {calculationReady && splitRoundRows.map((row: InboundSplitScheduleRow): React.JSX.Element => {
+        const rowKey: string = `split:${row.id}`
+        return (
         <tr key={`applied-${row.id}`}>
-          <td>
+          <td className={getCellClassName(rowKey, 'metric')} onMouseEnter={(): void => onCellMouseEnter(rowKey, 'metric')}>
             <span className={styles.sizeOrderSplitRoundLabel}>
               {row.round}{KO.optionInboundSplitRoundSuffix} ({row.inboundDate} {KO.labelInboundSplitArrival}) ({KO.unitEa})
             </span>
           </td>
-          <td className={styles.num}>{formatGroupedNumber(getInboundSplitTotalQty(row, inboundSplitColumns))}</td>
+          <td className={getCellClassName(rowKey, 'total', styles.num)} onMouseEnter={(): void => onCellMouseEnter(rowKey, 'total')}>{formatGroupedNumber(getInboundSplitTotalQty(row, inboundSplitColumns))}</td>
           {sizeRows.map((sizeRow: SecondarySizeOrderDisplayRow): React.JSX.Element => (
-            <td key={sizeRow.size} className={styles.num}>{formatGroupedNumber(row.quantitiesBySize[sizeRow.size] ?? 0)}</td>
+            <td key={sizeRow.size} className={getCellClassName(rowKey, `size:${sizeRow.size}`, styles.num)} onMouseEnter={(): void => onCellMouseEnter(rowKey, `size:${sizeRow.size}`)}>{formatGroupedNumber(row.quantitiesBySize[sizeRow.size] ?? 0)}</td>
           ))}
         </tr>
-      ))}
+        )
+      })}
     </>
   )
 }

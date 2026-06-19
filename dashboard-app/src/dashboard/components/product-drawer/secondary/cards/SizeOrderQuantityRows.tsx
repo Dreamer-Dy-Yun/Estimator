@@ -24,6 +24,8 @@ export type QuantityRow = {
 export type SizeOrderQuantityRowsProps = {
   rows: QuantityRow[]
   sizeRows: SecondarySizeOrderDisplayRow[]
+  getCellClassName: (rowKey: string, columnKey: string, baseClassName?: string) => string
+  onCellMouseEnter: (rowKey: string, columnKey: string) => void
 }
 
 function LabelWithHelp({ label, helpMark }: { label: string; helpMark?: HelpMark }): string | React.JSX.Element {
@@ -41,23 +43,24 @@ function formatQuantityValue(value: number | null | undefined): string {
   return formatOptionalGroupedNumber(value)
 }
 
-function QuantityTableRow({ row, sizeRows }: { row: QuantityRow; sizeRows: SecondarySizeOrderDisplayRow[] }): React.JSX.Element {
+function QuantityTableRow({ row, sizeRows, getCellClassName, onCellMouseEnter }: { row: QuantityRow; sizeRows: SecondarySizeOrderDisplayRow[]; getCellClassName: (rowKey: string, columnKey: string, baseClassName?: string) => string; onCellMouseEnter: (rowKey: string, columnKey: string) => void }): React.JSX.Element {
+  const rowKey: string = `quantity:${row.label}`
   return (
     <tr>
-      <td><LabelWithHelp label={row.label} helpMark={row.helpMark} /></td>
-      <td className={styles.num}>{formatQuantityValue(row.totalQty)}</td>
+      <td className={getCellClassName(rowKey, 'metric')} onMouseEnter={(): void => onCellMouseEnter(rowKey, 'metric')}><LabelWithHelp label={row.label} helpMark={row.helpMark} /></td>
+      <td className={getCellClassName(rowKey, 'total', styles.num)} onMouseEnter={(): void => onCellMouseEnter(rowKey, 'total')}>{formatQuantityValue(row.totalQty)}</td>
       {sizeRows.map((sizeRow: SecondarySizeOrderDisplayRow, index: number): React.JSX.Element => (
-        <td key={sizeRow.size} className={styles.num}>{formatQuantityValue(row.valueForSize(sizeRow, index))}</td>
+        <td key={sizeRow.size} className={getCellClassName(rowKey, `size:${sizeRow.size}`, styles.num)} onMouseEnter={(): void => onCellMouseEnter(rowKey, `size:${sizeRow.size}`)}>{formatQuantityValue(row.valueForSize(sizeRow, index))}</td>
       ))}
     </tr>
   )
 }
 
-export function SizeOrderQuantityRows({ rows, sizeRows }: SizeOrderQuantityRowsProps): React.JSX.Element {
+export function SizeOrderQuantityRows({ rows, sizeRows, getCellClassName, onCellMouseEnter }: SizeOrderQuantityRowsProps): React.JSX.Element {
   return (
     <>
       {rows.map((row: QuantityRow): React.JSX.Element => (
-        <QuantityTableRow key={row.label} row={row} sizeRows={sizeRows} />
+        <QuantityTableRow key={row.label} row={row} sizeRows={sizeRows} getCellClassName={getCellClassName} onCellMouseEnter={onCellMouseEnter} />
       ))}
     </>
   )

@@ -1,6 +1,6 @@
 import type { SecondaryInboundSplitSource, SecondaryStockOrderDisplaySizeRow } from '../../../../../api/types/secondary'
 import type { SizeOrderColumnTotals } from './sizeOrderCardModel'
-import { useCallback, useMemo, useRef } from 'react'
+import { useCallback, useMemo, useRef, useState } from 'react'
 import { USE_MOCK_API } from '../../../../../api'
 import { ApiUnitErrorBadge } from '../../../../../components/ApiUnitErrorBadge'
 import type { SecondaryStockOrderCalcResult } from '../../../../../api/types'
@@ -51,6 +51,11 @@ export type Props = {
   help: ReturnType<typeof usePortalHelpPopover<SecondaryHelpId>>
 }
 
+type SizeOrderHoverCell = {
+  readonly rowKey: string
+  readonly columnKey: string
+} | null
+
 function sumInboundSplitExpectationBeforeDate(
   source: SecondaryInboundSplitSource | null,
   size: string,
@@ -67,6 +72,7 @@ function sumInboundSplitExpectationBeforeDate(
 export function SizeOrderCard({ sizeOrder, actions, help }: Props) : React.JSX.Element {
   const { comparisonLabel, selfCompanyLabel, selfWeightPct, sizeRows, helpIds, stockOrderDisplay, calculationReady = true, manualConfirmBySize, currentOrderInboundDueDate, nextOrderInboundDueDate, inboundSplitSource, inboundSplitSourceLoading, inboundSplitSourceError, confirmedRounds }: Props['sizeOrder'] = sizeOrder
   const tableRef: React.RefObject<HTMLTableElement | null> = useRef<HTMLTableElement | null>(null)
+  const [hoveredCell, setHoveredCell]: [SizeOrderHoverCell, React.Dispatch<React.SetStateAction<SizeOrderHoverCell>>] = useState<SizeOrderHoverCell>(null)
   const comparisonWeightPct: number = getComparisonWeightPct(selfWeightPct)
   const columnTotals: SizeOrderColumnTotals = useMemo(() : SizeOrderColumnTotals => calculateSizeOrderColumnTotals(sizeRows), [sizeRows])
   const inboundSplitDebugSourcePayload: unknown = useMemo((): unknown => (
@@ -123,6 +129,23 @@ export function SizeOrderCard({ sizeOrder, actions, help }: Props) : React.JSX.E
     const next: number | null = parseSelfWeightPctFromComparisonInput(rawValue)
     if (next != null) actions.onSelfWeightPctChange(next)
   }, [actions])
+  const handleSizeOrderCellMouseEnter: (rowKey: string, columnKey: string) => void = useCallback((rowKey: string, columnKey: string): void => {
+    setHoveredCell((current: SizeOrderHoverCell): SizeOrderHoverCell => (
+      current?.rowKey === rowKey && current.columnKey === columnKey ? current : { rowKey, columnKey }
+    ))
+  }, [])
+  const handleSizeOrderTableMouseLeave: () => void = useCallback((): void => {
+    setHoveredCell(null)
+  }, [])
+  const getSizeOrderCellClassName: (rowKey: string, columnKey: string, baseClassName?: string) => string = useCallback((rowKey: string, columnKey: string, baseClassName: string = ''): string => {
+    const classNames: string[] = baseClassName ? [baseClassName] : []
+    const rowHovered: boolean = hoveredCell?.rowKey === rowKey
+    const columnHovered: boolean = hoveredCell?.columnKey === columnKey
+    if (rowHovered) classNames.push(styles.sizeOrderHoverRowCell)
+    if (columnHovered) classNames.push(styles.sizeOrderHoverColumnCell)
+    if (rowHovered && columnHovered) classNames.push(styles.sizeOrderHoverActiveCell)
+    return classNames.join(' ')
+  }, [hoveredCell])
 
   return (
     <>
@@ -152,7 +175,7 @@ export function SizeOrderCard({ sizeOrder, actions, help }: Props) : React.JSX.E
         onComparisonWeightInputChange={handleComparisonWeightInputChange}
       />
       <div className={styles.sizeOrderTableWrap}>
-        <table ref={tableRef} className={`${styles.table} ${styles.sizeOrderTable} ${styles.sizeOrderLargeTable}`}>
+        <table ref={tableRef} className={`${styles.table} ${styles.sizeOrderTable} ${styles.sizeOrderLargeTable}`} onMouseLeave={handleSizeOrderTableMouseLeave}>
           <colgroup>
             <col className={styles.sizeOrderMetricCol} />
             <col className={styles.sizeOrderTotalCol} />
@@ -160,19 +183,19 @@ export function SizeOrderCard({ sizeOrder, actions, help }: Props) : React.JSX.E
           </colgroup>
           <thead>
             <tr>
-              <th>{KO.thMetric}</th>
-              <th className={styles.num}>{KO.thTotal}</th>
-              {sizeRows.map((row: SecondarySizeOrderDisplayRow) : React.JSX.Element => <th key={row.size} className={styles.num}>{row.size}</th>)}
+              <th className={getSizeOrderCellClassName('header', 'metric')} onMouseEnter={(): void => handleSizeOrderCellMouseEnter('header', 'metric')}>{KO.thMetric}</th>
+              <th className={getSizeOrderCellClassName('header', 'total', styles.num)} onMouseEnter={(): void => handleSizeOrderCellMouseEnter('header', 'total')}>{KO.thTotal}</th>
+              {sizeRows.map((row: SecondarySizeOrderDisplayRow) : React.JSX.Element => <th key={row.size} className={getSizeOrderCellClassName('header', `size:${row.size}`, styles.num)} onMouseEnter={(): void => handleSizeOrderCellMouseEnter('header', `size:${row.size}`)}>{row.size}</th>)}
             </tr>
           </thead>
           <tbody>
-            <SizeOrderShareChartRow tableRef={tableRef} comparisonLabel={comparisonLabel} selfCompanyLabel={selfCompanyLabel} sizeRows={sizeRows} />
+            <SizeOrderShareChartRow tableRef={tableRef} comparisonLabel={comparisonLabel} selfCompanyLabel={selfCompanyLabel} sizeRows={sizeRows} getCellClassName={getSizeOrderCellClassName} onCellMouseEnter={handleSizeOrderCellMouseEnter} />
             <tr data-chart-align-row="">
-              <td>{KO.rowMetricAdjustReflectedSizeSharePct}</td>
-              <td className={styles.num}>{formatSharePct(columnTotals.weightedPct)}</td>
-              {sizeRows.map((row: SecondarySizeOrderDisplayRow) : React.JSX.Element => <td key={row.size} className={styles.num} data-chart-x="">{formatSharePct(row.blendedSharePct)}</td>)}
+              <td className={getSizeOrderCellClassName('share-pct', 'metric')} onMouseEnter={(): void => handleSizeOrderCellMouseEnter('share-pct', 'metric')}>{KO.rowMetricAdjustReflectedSizeSharePct}</td>
+              <td className={getSizeOrderCellClassName('share-pct', 'total', styles.num)} onMouseEnter={(): void => handleSizeOrderCellMouseEnter('share-pct', 'total')}>{formatSharePct(columnTotals.weightedPct)}</td>
+              {sizeRows.map((row: SecondarySizeOrderDisplayRow) : React.JSX.Element => <td key={row.size} className={getSizeOrderCellClassName('share-pct', `size:${row.size}`, styles.num)} data-chart-x="" onMouseEnter={(): void => handleSizeOrderCellMouseEnter('share-pct', `size:${row.size}`)}>{formatSharePct(row.blendedSharePct)}</td>)}
             </tr>
-            <SizeOrderQuantityRows rows={quantityRows} sizeRows={sizeRows} />
+            <SizeOrderQuantityRows rows={quantityRows} sizeRows={sizeRows} getCellClassName={getSizeOrderCellClassName} onCellMouseEnter={handleSizeOrderCellMouseEnter} />
             <SizeOrderConfirmQuantityRows
               calculationReady={calculationReady}
               splitRoundsControlDirectConfirm={inboundSplitSchedule.splitRoundsControlDirectConfirm}
@@ -183,6 +206,8 @@ export function SizeOrderCard({ sizeOrder, actions, help }: Props) : React.JSX.E
               splitRoundConfirmBySize={inboundSplitSchedule.splitRoundConfirmBySize}
               splitRoundRows={inboundSplitSchedule.splitRoundRows}
               inboundSplitColumns={inboundSplitSchedule.columns}
+              getCellClassName={getSizeOrderCellClassName}
+              onCellMouseEnter={handleSizeOrderCellMouseEnter}
               onClearConfirmedRounds={inboundSplitSchedule.clearConfirmedRounds}
               onConfirmQtyChange={actions.onConfirmQtyChange}
             />

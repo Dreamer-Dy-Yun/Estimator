@@ -13,9 +13,11 @@ export type Props = {
   comparisonLabel: string
   selfCompanyLabel: string
   sizeRows: SecondarySizeOrderDisplayRow[]
+  getCellClassName: (rowKey: string, columnKey: string, baseClassName?: string) => string
+  onCellMouseEnter: (rowKey: string, columnKey: string) => void
 }
 
-export function SizeOrderShareChartRow({ tableRef, comparisonLabel, selfCompanyLabel, sizeRows }: Props) : React.JSX.Element {
+export function SizeOrderShareChartRow({ tableRef, comparisonLabel, selfCompanyLabel, sizeRows, getCellClassName, onCellMouseEnter }: Props) : React.JSX.Element {
   const chartCellRef: React.RefObject<HTMLTableCellElement | null> = useRef<HTMLTableCellElement | null>(null)
   const chartInnerRef: React.RefObject<HTMLDivElement | null> = useRef<HTMLDivElement | null>(null)
   const [xCenters, setXCenters]: [number[], React.Dispatch<React.SetStateAction<number[]>>] = useState<number[]>([])
@@ -106,18 +108,19 @@ export function SizeOrderShareChartRow({ tableRef, comparisonLabel, selfCompanyL
     }
     return Body
   }, [])
+  const rowKey: string = 'share-chart'
 
   return (
     <tr>
-      <td>{KO.rowShareMixLineChart}</td>
-      <td className={`${styles.num} ${styles.sizeOrderShareLegendCell}`}>
+      <td className={getCellClassName(rowKey, 'metric')} onMouseEnter={(): void => onCellMouseEnter(rowKey, 'metric')}>{KO.rowShareMixLineChart}</td>
+      <td className={getCellClassName(rowKey, 'total', `${styles.num} ${styles.sizeOrderShareLegendCell}`)} onMouseEnter={(): void => onCellMouseEnter(rowKey, 'total')}>
         <div className={styles.sizeOrderShareLegend} role="list" aria-label={KO.rowShareMixLineChart}>
           <LegendItem color="#2563eb" label={selfCompanyLabel} />
           <LegendItem color="#e11d48" label={comparisonLabel} />
           <LegendItem color="#a78bfa" label={KO.rowChartAdjustReflectedSharePct} />
         </div>
       </td>
-      <td ref={chartCellRef} className={styles.sizeOrderShareChartCell} colSpan={sizeRows.length}>
+      <td ref={chartCellRef} className={getCellClassName(rowKey, 'chart', styles.sizeOrderShareChartCell)} colSpan={sizeRows.length} onMouseEnter={(): void => onCellMouseEnter(rowKey, 'chart')}>
         <div ref={chartInnerRef} className={styles.sizeOrderShareChartInner}>
           <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1} initialDimension={{ width: 1, height: 84 }}>
             <LineChart data={shareLineData} margin={{ top: 4, right: 0, left: 0, bottom: 0 }}>
