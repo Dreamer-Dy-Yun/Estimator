@@ -58,14 +58,15 @@
 }
 
 .sizeOrderTable {
-  --size-order-sticky-metric-width: 15rem;
-  --size-order-sticky-total-width: 8rem;
-  --size-order-sticky-total-max-width: 9rem;
-  --size-order-size-column-width: 5.5rem;
+  --size-order-sticky-metric-width: 13.915rem;
+  --size-order-sticky-total-width: 6.75rem;
+  --size-order-sticky-total-max-width: 6.75rem;
+  --size-order-size-column-width: 1fr;
   --size-order-sticky-divider-color: #cbd5e1;
   --size-order-metric-divider-offset: -1px;
-  width: max-content;
+  width: 100%;
   min-width: 100%;
+  table-layout: fixed;
 }
 
 .sizeOrderMetricCol {
@@ -78,7 +79,7 @@
 }
 
 .sizeOrderSizeCol {
-  width: var(--size-order-size-column-width);
+  width: auto;
 }
 
 .sizeOrderTable th:first-child,
@@ -253,4 +254,11 @@
 .confirmQtyCellManual .stockNumberInput:focus-visible {
   outline: 2px solid #d97706;
   outline-offset: 0;
+}
+
+.sizeOrderSplitRoundLabel {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 14px;
+  color: #334155;
 }

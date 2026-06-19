@@ -1,6 +1,6 @@
 # dashboard-app documentation index
 
-Last updated: 2026-06-18
+Last updated: 2026-06-19
 
 ## 목적
 
@@ -21,6 +21,7 @@ Last updated: 2026-06-18
 | [boundaries/repository-runtime.md](./boundaries/repository-runtime.md) | build, deploy, e2e, runtime 환경 경계 |
 | [boundaries/style-facades.md](./boundaries/style-facades.md) | CSS Modules facade와 style-parts import 규칙 |
 | [boundaries/shared-modules.md](./boundaries/shared-modules.md) | 공통 UI, hook, model, utility 경계 |
+| [inbound-split-dto-realignment-2026-06-19.md](./inbound-split-dto-realignment-2026-06-19.md) | current inbound split and daily trend DTO realignment result note |
 | [inbound-split-stock-order-source-unification-2026-06-18.md](./inbound-split-stock-order-source-unification-2026-06-18.md) | stock-order-calc and split-inbound planning source unification result note |
 
 ## 검증/운영 문서
@@ -52,8 +53,8 @@ API endpoint, request, response, error, SSE 계약은 `MD/backend-api`가 백엔
 - 화면/훅/컴포넌트는 mock이나 HTTP 구현을 직접 import하지 않고 `src/api/client.ts`를 통해 접근한다.
 - mock은 UI fallback이 아니라 API 계약의 대체 구현이다.
 - 상품 드로어는 `base`/`comparison` subject 계약을 사용한다. all-company sentinel은 HTTP boundary에서 sourceId 생략으로 표현한다.
-- secondary daily trend는 chart-ready row가 아니라 `SecondaryDailyTrendSource`를 받는다. 화면은 source에서 chart point를 파생한다.
-- secondary inbound split source is `getSecondaryStockOrderCalc().inboundSplitSource`. Split count/date/result rows and `ignoreExistingOrderInbound` are UI/snapshot state, not stock-order-calc request fields.
+- secondary daily trend는 `{ size, baseStock, data: { base, comparison } }` 형태의 `SecondaryDailyTrendSource`를 받는다. 화면은 source에서 chart point를 파생한다.
+- secondary inbound split source is `getSecondaryStockOrderCalc().inboundSplitSource` with `{ total, sizeInfo, expectation, confirmed }`. Split count/date/result rows and `ignoreExistingOrderInbound` are UI/snapshot state, not stock-order-calc request fields.
 - 분할 입고 확정은 2차수 이상일 때 `drawer2.confirmed.rounds`로 저장되고, 1차수는 직접 확정 수량으로 접힌다.
 - 후보군 order metric은 runtime config의 `candidateOrderMetricComparison`을 사용한다. 화면이 임의 comparison default를 만들지 않는다.
 - snapshot 저장 계약은 `OrderSnapshotDocument` v8다.

@@ -128,20 +128,30 @@ export function createOrderSnapshotStockOrderResult(result: OrderSnapshotStockOr
     ...result,
     productIdentity: { ...result.productIdentity },
     inboundSplitSource: {
-      ...result.inboundSplitSource,
-      productIdentity: { ...result.inboundSplitSource.productIdentity },
-      supplyBySize: Object.fromEntries(
-        Object.entries(result.inboundSplitSource.supplyBySize).map(([size, points]: [string, OrderSnapshotStockOrderResult['inboundSplitSource']['supplyBySize'][string]]): [string, OrderSnapshotStockOrderResult['inboundSplitSource']['supplyBySize'][string]] => [
+      total: {
+        suggestion: result.inboundSplitSource.total.suggestion,
+        sales: { ...result.inboundSplitSource.total.sales },
+      },
+      sizeInfo: Object.fromEntries(
+        Object.entries(result.inboundSplitSource.sizeInfo).map(([size, info]: [string, OrderSnapshotStockOrderResult['inboundSplitSource']['sizeInfo'][string]]): [string, OrderSnapshotStockOrderResult['inboundSplitSource']['sizeInfo'][string]] => [
           size,
-          points.map((point: OrderSnapshotStockOrderResult['inboundSplitSource']['supplyBySize'][string][number]): OrderSnapshotStockOrderResult['inboundSplitSource']['supplyBySize'][string][number] => ({ ...point })),
+          { ...info },
         ]),
       ),
-      salesForecastByDate: Object.fromEntries(
-        Object.entries(result.inboundSplitSource.salesForecastByDate).map(([date, row]: [string, OrderSnapshotStockOrderResult['inboundSplitSource']['salesForecastByDate'][string]]): [string, OrderSnapshotStockOrderResult['inboundSplitSource']['salesForecastByDate'][string]] => [
-          date,
-          { ...row },
+      expectation: Object.fromEntries(
+        Object.entries(result.inboundSplitSource.expectation).map(([size, points]: [string, OrderSnapshotStockOrderResult['inboundSplitSource']['expectation'][string]]): [string, OrderSnapshotStockOrderResult['inboundSplitSource']['expectation'][string]] => [
+          size,
+          points.map((point: OrderSnapshotStockOrderResult['inboundSplitSource']['expectation'][string][number]): OrderSnapshotStockOrderResult['inboundSplitSource']['expectation'][string][number] => ({ ...point })),
         ]),
       ),
+      confirmed: {
+        total_phase: result.inboundSplitSource.confirmed.total_phase,
+        data: result.inboundSplitSource.confirmed.data.map((phase: OrderSnapshotStockOrderResult['inboundSplitSource']['confirmed']['data'][number]): OrderSnapshotStockOrderResult['inboundSplitSource']['confirmed']['data'][number] => ({
+          phase: phase.phase,
+          inbound_date: phase.inbound_date,
+          quantity: { ...phase.quantity },
+        })),
+      },
     },
     existingOrderInboundSupplyBySize: Object.fromEntries(
       Object.entries(result.existingOrderInboundSupplyBySize).map(([size, points]: [string, OrderSnapshotStockOrderResult['existingOrderInboundSupplyBySize'][string]]): [string, OrderSnapshotStockOrderResult['existingOrderInboundSupplyBySize'][string]] => [

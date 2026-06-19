@@ -35,6 +35,8 @@ import { getMockSecondaryCompetitorChannel, secondaryCompetitorChannels, type Mo
 import { sleep } from './utils'
 const TEST_TOP_MONTHLY_BASE_SALES = 100 as const
 const TEST_TOP_MONTHLY_COMPARISON_SALES = 200 as const
+const INBOUND_SPLIT_VERIFICATION_CODE = 'TEST-SHOE' as const
+const INBOUND_SPLIT_VERIFICATION_DAILY_INBOUND_QTY_PER_SIZE = 1 as const
 const SELF_ALL_COMPANIES_LABEL = '\uC790\uC0AC\uC804\uCCB4' as const
 const dateToMonth: (date: string) => string = (date: string) : string => date.slice(0, 7)
 const nextMonth: (month: string) => string = (month: string) : string => {
@@ -150,6 +152,51 @@ function comparisonScaleForSubject(
   return basePrimary.qty > 0 ? Math.max(0, comparisonPrimary.qty / basePrimary.qty) : 0
 }
 
+function splitVerificationOpeningStock(size: string | null, secondary: ProductSecondaryDetail, fallback: number | null): number | null {
+  if (size == null) {
+    return secondary.sizeRows.reduce((sum: number, row: ProductSecondaryDetail['sizeRows'][number]): number => sum + Math.max(0, Math.round(row.availableStock)), 0)
+  }
+  const row: ProductSecondaryDetail['sizeRows'][number] | undefined = secondary.sizeRows.find((candidate: ProductSecondaryDetail['sizeRows'][number]): boolean => candidate.size === size)
+  return row == null ? fallback : Math.max(0, Math.round(row.availableStock))
+}
+
+function splitVerificationDailyInbound(size: string | null, secondary: ProductSecondaryDetail): number {
+  if (size == null) {
+    return secondary.sizeRows.length * INBOUND_SPLIT_VERIFICATION_DAILY_INBOUND_QTY_PER_SIZE
+  }
+  return secondary.sizeRows.some((row: ProductSecondaryDetail['sizeRows'][number]): boolean => row.size === size)
+    ? INBOUND_SPLIT_VERIFICATION_DAILY_INBOUND_QTY_PER_SIZE
+    : 0
+}
+
+function alignDailyTrendWithInboundSplitVerification(
+  source: SecondaryDailyTrendSource,
+  size: string | null,
+  secondary: ProductSecondaryDetail,
+): SecondaryDailyTrendSource {
+  const openingStock: number | null = splitVerificationOpeningStock(size, secondary, source.baseStock)
+  const dailyInbound: number = splitVerificationDailyInbound(size, secondary)
+  const dates: string[] = Object.keys(source.data.base).sort()
+  const base: SecondaryDailyTrendSource['data']['base'] = Object.fromEntries(dates.map((date: string, index: number): [string, SecondaryDailyTrendSource['data']['base'][string]] => {
+    const cell: SecondaryDailyTrendSource['data']['base'][string] = source.data.base[date]!
+    return [
+      date,
+      {
+        ...cell,
+        inbound: index === 0 ? 0 : dailyInbound,
+      },
+    ]
+  }))
+  return {
+    ...source,
+    baseStock: openingStock,
+    data: {
+      ...source.data,
+      base,
+    },
+  }
+}
+
 export async function getMockProductDrawerBundle(skuGroupKey: string, params: ProductDrawerBundleParams): Promise<{ summary: ProductPrimarySummary; }> {
   await sleep(80)
   const base: ProductComparisonBaseSubjectRef = params.base
@@ -256,13 +303,18 @@ export async function getMockSecondaryDailyTrend({
   startDate,
   endDate,
   forecastDays,
+  size = null,
   base,
   comparison,
 }: SecondaryDailyTrendParams): Promise<SecondaryDailyTrendSource> {
   await sleep(80)
   assertMockSubjectRole(base, 'base')
   assertMockSubjectRole(comparison, 'comparison')
-  const primary: ProductPrimarySummary = scopeMockProductPrimary(requireMockProductPrimary(skuGroupKey), selfCompanySubjectScope(base))
-  const stockTrend: { date: string; stock: number; inboundExpected: number; inboundQty: number; }[] = scopeMockStockTrend(skuGroupKey, requireMockStockTrend(skuGroupKey), selfCompanySubjectScope(base))
-  return buildSecondaryDailyTrendSource(skuGroupKey, primary.monthlySalesTrend ?? [], stockTrend, startDate, endDate, forecastDays, comparisonScaleForSubject(skuGroupKey, primary, comparison))
+  const baseScope: { companyUuid?: string } = selfCompanySubjectScope(base)
+  const primary: ProductPrimarySummary = scopeMockProductPrimary(requireMockProductPrimary(skuGroupKey), baseScope)
+  const stockTrend: { date: string; stock: number; inboundExpected: number; inboundQty: number; }[] = scopeMockStockTrend(skuGroupKey, requireMockStockTrend(skuGroupKey), baseScope)
+  const source: SecondaryDailyTrendSource = buildSecondaryDailyTrendSource(size, primary.monthlySalesTrend ?? [], stockTrend, startDate, endDate, forecastDays, comparisonScaleForSubject(skuGroupKey, primary, comparison))
+  if (primary.code !== INBOUND_SPLIT_VERIFICATION_CODE) return source
+  const secondary: ProductSecondaryDetail = scopeMockProductSecondary(requireMockProductSecondary(skuGroupKey), baseScope)
+  return alignDailyTrendWithInboundSplitVerification(source, size, secondary)
 }

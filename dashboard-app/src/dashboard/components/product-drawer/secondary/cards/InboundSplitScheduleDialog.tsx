@@ -1,5 +1,7 @@
-import { useId, useRef } from 'react'
+import { useId, useRef, useState } from 'react'
+import { ApiUnitErrorBadge } from '../../../../../components/ApiUnitErrorBadge'
 import { DialogCloseButton } from '../../../../../components/DialogCloseButton'
+import { copyToClipboard } from '../../../../../utils/copyToClipboard'
 import { PortalHelpMark } from '../../../PortalHelpPopover'
 import type { usePortalHelpPopover } from '../../../usePortalHelpPopover'
 import commonStyles from '../../../common.module.css'
@@ -30,6 +32,7 @@ export interface InboundSplitScheduleDialogProps {
     labelId: string
     portal: ReturnType<typeof usePortalHelpPopover<SecondaryHelpId>>
   }
+  debugSourcePayload?: unknown
   onDraftError?: (err: unknown | null, request: InboundSplitDraftRequest) => void
   onApply: (rows: InboundSplitScheduleRow[]) => void
   onClose: () => void
@@ -46,6 +49,7 @@ export function InboundSplitScheduleDialog({
   recalculateRows,
   draftError = null,
   help,
+  debugSourcePayload,
   onDraftError,
   onApply,
   onClose,
@@ -54,6 +58,7 @@ export function InboundSplitScheduleDialog({
   const descriptionId: string = useId()
   const panelRef: React.RefObject<HTMLElement | null> = useRef<HTMLElement | null>(null)
   const countSelectRef: React.RefObject<HTMLSelectElement | null> = useRef<HTMLSelectElement | null>(null)
+  const [debugCopyState, setDebugCopyState]: [string, React.Dispatch<React.SetStateAction<string>>] = useState<string>('')
   const handleKeyDown: (event: React.KeyboardEvent<HTMLElement>) => void = useModalFocusTrap({
     panelRef,
     active: open,
@@ -71,8 +76,13 @@ export function InboundSplitScheduleDialog({
   const hasInvalidDatePolicy: boolean = findInboundSplitDatePolicyIssue(currentOrderInboundDueDate, nextOrderInboundDueDate, draft.rows) != null
   const applyDisabled: boolean = draftError != null || draft.rows.length === 0 || hasInvalidDatePolicy
   const dateOrderErrorMessage: string = hasInvalidDatePolicy
-    ? `${KO.labelInboundSplitDateInterval}이 0일 이하입니다. 이전 차수보다 빠르거나 같은 입고일은 사용할 수 없습니다.`
+    ? KO.msgInboundSplitInvalidDatePolicy
     : ''
+  const handleCopyDebugSourcePayload: () => Promise<void> = async (): Promise<void> => {
+    const debugText: string = JSON.stringify(debugSourcePayload ?? null, null, 2) ?? 'null'
+    const copied: boolean = await copyToClipboard(debugText)
+    setDebugCopyState(copied ? KO.msgInboundSplitDebugSourceCopied : KO.msgInboundSplitDebugSourceCopyFailed)
+  }
 
   if (!open) return null
 
@@ -97,7 +107,19 @@ export function InboundSplitScheduleDialog({
             </div>
             <p id={descriptionId} className={styles.inboundSplitDialogHint}>{KO.msgInboundSplitDraftOnly}</p>
           </div>
-          <DialogCloseButton onClose={onClose} />
+          <div className={styles.inboundSplitDialogHeaderActions}>
+            {debugSourcePayload != null ? (
+              <button
+                type="button"
+                className={`${styles.btn} ${styles.btnSecondary} ${styles.inboundSplitDebugCopyButton}`}
+                onClick={handleCopyDebugSourcePayload}
+                title={debugCopyState}
+              >
+                {debugCopyState || KO.btnInboundSplitDebugCopySource}
+              </button>
+            ) : null}
+            <DialogCloseButton onClose={onClose} />
+          </div>
         </header>
         <div className={styles.inboundSplitDialogToolbar}>
           <div className={styles.inboundSplitCountPanel}>
@@ -128,7 +150,7 @@ export function InboundSplitScheduleDialog({
         </div>
         {draftError && (
           <p className={styles.inboundSplitError} role="alert">
-            {draftError.error}
+            <ApiUnitErrorBadge error={draftError} />
           </p>
         )}
         <div className={styles.inboundSplitTableFrame}>

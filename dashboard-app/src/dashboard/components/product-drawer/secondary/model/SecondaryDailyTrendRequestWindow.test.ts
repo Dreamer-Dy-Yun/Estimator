@@ -33,8 +33,8 @@ describe('SecondaryDailyTrendRequestWindow', () : void => {
       today: new Date(2026, 4, 29),
     })
 
-    expect(window.toSourceExpectation('sku-a')).toEqual({
-      productId: 'sku-a',
+    expect(window.toSourceExpectation()).toEqual({
+      size: null,
       dateStart: '2025-01-01',
       dateEnd: '2026-05-31',
       forecastStartDate: '2026-05-29',

@@ -22,7 +22,7 @@ describe('secondaryDailyTrendBuilders', () : void => {
       1,
     )
     const source: SecondaryDailyTrendSource = buildSecondaryDailyTrendSource(
-      'test-product',
+      null,
       monthlyTrend,
       monthlyStockTrend,
       '2026-04-01',
@@ -30,18 +30,23 @@ describe('secondaryDailyTrendBuilders', () : void => {
       0,
       1,
     )
-    const rebuiltPoints: SecondaryDailyTrendPoint[] = buildSecondaryDailyTrendPoints(source)
+    const rebuiltPoints: SecondaryDailyTrendPoint[] = buildSecondaryDailyTrendPoints(source, {
+      size: null,
+      dateStart: '2026-04-01',
+      dateEnd: '2026-04-03',
+      forecastStartDate: '2026-04-04',
+    })
     const firstLegacyStock: number | null | undefined = legacyPoints[0]?.stockBar
     const firstRebuiltStock: number | null | undefined = rebuiltPoints[0]?.stockBar
-    const baseStockAtStart: number | null = source.baseStockAtStart
+    const baseStock: number | null = source.baseStock
 
-    if (firstLegacyStock == null || firstRebuiltStock == null || baseStockAtStart == null) {
+    if (firstLegacyStock == null || firstRebuiltStock == null || baseStock == null) {
       throw new Error('Expected mock source to include stock state.')
     }
 
     expect(firstLegacyStock).toBeGreaterThan(0)
-    expect(baseStockAtStart).toBeGreaterThan(0)
-    expect(source.flowByDate['2026-04-01']?.base.inbound).toBe(0)
+    expect(baseStock).toBeGreaterThan(0)
+    expect(source.data.base['2026-04-01']?.inbound).toBe(0)
     expect(firstRebuiltStock).toBe(firstLegacyStock)
     expect(rebuiltPoints.some((point: SecondaryDailyTrendPoint) : boolean => (point.stockBar ?? 0) > 0)).toBe(true)
   })
@@ -55,7 +60,7 @@ describe('secondaryDailyTrendBuilders', () : void => {
     ]
 
     const source: SecondaryDailyTrendSource = buildSecondaryDailyTrendSource(
-      'test-product',
+      null,
       monthlyTrend,
       monthlyStockTrend,
       '2026-04-01',
@@ -64,6 +69,6 @@ describe('secondaryDailyTrendBuilders', () : void => {
       2,
     )
 
-    expect(source.flowByDate[source.forecastStartDate]?.comparison.sale).toBeGreaterThan(0)
+    expect(source.data.comparison['2026-04-03']?.sale).toBeGreaterThan(0)
   })
 })

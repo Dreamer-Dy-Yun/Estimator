@@ -89,21 +89,21 @@ export const validSnapshot: OrderSnapshotDocument = {
         colorCode: 'BLK',
       },
       inboundSplitSource: {
-        productId: 'B',
-        productIdentity: {
-          skuGroupKey: 'B',
-          brand: 'Brand',
-          code: 'RUN',
-          colorCode: 'BLK',
+        total: {
+          suggestion: 12,
+          sales: {
+            '2026-02-01': 10,
+          },
         },
-        calculationBaseDate: '2026-02-01',
-        coverageStartDate: '2026-02-01',
-        coverageEndDate: '2026-02-28',
-        supplyBySize: {
-          '250': [{ date: '2026-02-01', qty: 20 }],
+        sizeInfo: {
+          '250': { salesRate: 0.5, baseStock: 20 },
         },
-        salesForecastByDate: {
-          '2026-02-01': { '250': 10 },
+        expectation: {
+          '250': [{ date: '2026-02-01', inbound: 2 }],
+        },
+        confirmed: {
+          total_phase: 0,
+          data: [],
         },
       },
       existingOrderInboundSupplyBySize: {

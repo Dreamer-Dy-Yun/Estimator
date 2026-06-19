@@ -1,7 +1,8 @@
-// @vitest-environment jsdom
+﻿// @vitest-environment jsdom
 import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, describe, expect, it, vi, type Mock } from 'vitest'
+import { KO } from '../../ko'
 import type { InboundSplitScheduleRow, InboundSplitSizeColumn } from './inboundSplitScheduleModel'
 import { InboundSplitScheduleTable, type InboundSplitScheduleTableProps } from './InboundSplitScheduleTable'
 import styles from '../secondaryDrawer.module.css'
@@ -84,7 +85,7 @@ describe('InboundSplitScheduleTable', (): void => {
     renderTable()
 
     expect(document.body.textContent).toContain('8')
-    expect(document.querySelector('[aria-label*="제안 수량과 다름"]')).not.toBeNull()
+    expect(document.querySelector(`[aria-label*="${KO.ariaInboundSplitConfirmedDiff}"]`)).not.toBeNull()
   })
 
   it('renders inbound date intervals from the work date and previous round date', (): void => {
@@ -115,7 +116,7 @@ describe('InboundSplitScheduleTable', (): void => {
 
     const intervalNode: HTMLSpanElement | undefined = Array.from(document.querySelectorAll('span'))
       .filter((node: HTMLSpanElement): boolean => node.className.includes(styles.inboundSplitDateInterval))
-      .find((node: HTMLSpanElement): boolean => node.textContent === '-1일')
+      .find((node: HTMLSpanElement): boolean => node.textContent === `-1${KO.unitDays}`)
 
     expect(intervalNode).not.toBeUndefined()
     expect(intervalNode?.className).toContain(styles.inboundSplitDateIntervalInvalid)

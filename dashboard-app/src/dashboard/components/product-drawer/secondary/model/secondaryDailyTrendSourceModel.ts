@@ -38,34 +38,26 @@ function requireNullableQuantity(value: number | null, field: string): number | 
 }
 
 export interface SecondaryDailyTrendSourceExpectation {
-  productId: string
+  size: string | null
   dateStart: string
   dateEnd: string
   forecastStartDate: string
 }
 
 export function validateSecondaryDailyTrendSource(source: SecondaryDailyTrendSource, expected: SecondaryDailyTrendSourceExpectation): SecondaryDailyTrendSource {
-  if (source.productId !== expected.productId) {
-    throw new Error(`Daily trend source productId mismatch: expected ${expected.productId}, got ${source.productId}.`)
-  }
-  if (source.dateStart !== expected.dateStart) {
-    throw new Error(`Daily trend source dateStart mismatch: expected ${expected.dateStart}, got ${source.dateStart}.`)
-  }
-  if (source.dateEnd !== expected.dateEnd) {
-    throw new Error(`Daily trend source dateEnd mismatch: expected ${expected.dateEnd}, got ${source.dateEnd}.`)
-  }
-  if (source.forecastStartDate !== expected.forecastStartDate) {
-    throw new Error(`Daily trend source forecastStartDate mismatch: expected ${expected.forecastStartDate}, got ${source.forecastStartDate}.`)
+  if (source.size !== expected.size) {
+    throw new Error(`Daily trend source size mismatch: expected ${expected.size ?? 'all'}, got ${source.size ?? 'all'}.`)
   }
   return source
 }
 
 function getFlowCell(source: SecondaryDailyTrendSource, date: string): SecondaryDailyTrendFlowCell {
-  const cell: SecondaryDailyTrendFlowCell | undefined = source.flowByDate[date]
-  if (cell == null) {
+  const base: SecondaryDailyTrendBaseFlow | undefined = source.data.base[date]
+  const comparison: SecondaryDailyTrendComparisonFlow | undefined = source.data.comparison[date]
+  if (base == null || comparison == null) {
     throw new Error(`Missing daily trend source date: ${date}`)
   }
-  return cell
+  return { base, comparison }
 }
 
 function normalizeBaseFlow(flow: SecondaryDailyTrendBaseFlow, field: string): SecondaryDailyTrendBaseFlow {
@@ -82,15 +74,15 @@ function normalizeComparisonFlow(flow: SecondaryDailyTrendComparisonFlow, field:
   }
 }
 
-export function buildSecondaryDailyTrendPoints(source: SecondaryDailyTrendSource): SecondaryDailyTrendPoint[] {
-  const startMs: number = parseIsoDateMs(source.dateStart)
-  const endMs: number = parseIsoDateMs(source.dateEnd)
-  const forecastStartMs: number = parseIsoDateMs(source.forecastStartDate)
+export function buildSecondaryDailyTrendPoints(source: SecondaryDailyTrendSource, expected: SecondaryDailyTrendSourceExpectation): SecondaryDailyTrendPoint[] {
+  const startMs: number = parseIsoDateMs(expected.dateStart)
+  const endMs: number = parseIsoDateMs(expected.dateEnd)
+  const forecastStartMs: number = parseIsoDateMs(expected.forecastStartDate)
   if (endMs < startMs) {
     throw new Error('Daily trend source dateEnd must be greater than or equal to dateStart.')
   }
 
-  let runningBaseStock: number | null = requireNullableQuantity(source.baseStockAtStart, 'baseStockAtStart')
+  let runningBaseStock: number | null = requireNullableQuantity(source.baseStock, 'baseStock')
   const points: SecondaryDailyTrendPoint[] = []
 
   for (let cursorMs: number = startMs; cursorMs <= endMs; cursorMs += DAY_MS) {

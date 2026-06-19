@@ -3,6 +3,7 @@ import type { OrderSnapshotBaseSubject, OrderSnapshotComparisonSubject, OrderSna
 import type { MonthlySalesPoint, ProductSecondarySizeRow } from '../../types'
 import type { SalesKpiColumn } from '../../utils/salesKpiColumn'
 import type { ProductPrimarySummary } from '../types'
+import { buildSecondaryPlanningSuggestedQuantitiesByRow, type SecondaryPlanningSizeColumn } from '../../utils/secondaryInboundSplitPlanning'
 import { buildSalesKpiColumn } from '../../utils/salesKpiColumn'
 import {
   createOrderSnapshotBaseSubject,
@@ -42,50 +43,75 @@ function addMockIsoDays(date: string, days: number): string {
 }
 
 function buildMockOrderSnapshotInboundSplitSource({
-  summary,
   sizeOrders,
   displaySizeRows,
   existingOrderInboundSupplyBySize,
   dailyMean,
 }: {
-  summary: OrderSnapshotPrimarySummary
   sizeOrders: { size: string; blendedSharePct: number }[]
-  displaySizeRows: { size: string; currentStockQty: number }[]
+  displaySizeRows: { size: string; currentStockQty: number; expectedInboundOrderBalance: number }[]
   existingOrderInboundSupplyBySize: Record<string, { date: string; qty: number }[]>
   dailyMean: number
 }): SecondaryInboundSplitSource {
-  const displayRowBySize: Map<string, { size: string; currentStockQty: number }> = new Map(displaySizeRows.map((row: { size: string; currentStockQty: number }): [string, { size: string; currentStockQty: number }] => [row.size, row]))
-  const supplyBySize: SecondaryInboundSplitSource['supplyBySize'] = Object.fromEntries(sizeOrders.map((row: { size: string; blendedSharePct: number }): [string, SecondaryInboundSplitSource['supplyBySize'][string]] => {
-    const sourcePoints: SecondaryInboundSplitSource['supplyBySize'][string] = [
-      { date: MOCK_INBOUND_SPLIT_CALCULATION_BASE_DATE, qty: displayRowBySize.get(row.size)?.currentStockQty ?? 0 },
-      ...(existingOrderInboundSupplyBySize[row.size] ?? []).filter((point: { date: string; qty: number }): boolean =>
-        point.date >= MOCK_INBOUND_SPLIT_CALCULATION_BASE_DATE && point.date < MOCK_INBOUND_SPLIT_COVERAGE_END_DATE),
-    ]
+  const displayRowBySize: Map<string, { size: string; currentStockQty: number; expectedInboundOrderBalance: number }> = new Map(displaySizeRows.map((row: { size: string; currentStockQty: number; expectedInboundOrderBalance: number }): [string, { size: string; currentStockQty: number; expectedInboundOrderBalance: number }] => [row.size, row]))
+  const requireDisplayRow: (size: string) => { size: string; currentStockQty: number; expectedInboundOrderBalance: number } = (size: string): { size: string; currentStockQty: number; expectedInboundOrderBalance: number } => {
+    const displayRow: { size: string; currentStockQty: number; expectedInboundOrderBalance: number } | undefined = displayRowBySize.get(size)
+    if (displayRow == null) throw new Error(`Missing mock snapshot display row for size ${size}.`)
+    return displayRow
+  }
+  const sizeInfo: SecondaryInboundSplitSource['sizeInfo'] = Object.fromEntries(sizeOrders.map((row: { size: string; blendedSharePct: number }): [string, SecondaryInboundSplitSource['sizeInfo'][string]] => [
+    row.size,
+    {
+      salesRate: Math.max(0, row.blendedSharePct) / 100,
+      baseStock: requireDisplayRow(row.size).currentStockQty,
+    },
+  ]))
+  const expectation: SecondaryInboundSplitSource['expectation'] = Object.fromEntries(sizeOrders.map((row: { size: string; blendedSharePct: number }): [string, SecondaryInboundSplitSource['expectation'][string]] => {
+    const sourcePoints: SecondaryInboundSplitSource['expectation'][string] = (existingOrderInboundSupplyBySize[row.size] ?? [])
+      .filter((point: { date: string; qty: number }): boolean => point.date >= MOCK_INBOUND_SPLIT_CALCULATION_BASE_DATE && point.date < MOCK_INBOUND_SPLIT_COVERAGE_END_DATE)
+      .map((point: { date: string; qty: number }): SecondaryInboundSplitSource['expectation'][string][number] => ({
+        date: point.date,
+        inbound: point.qty,
+      }))
     return [row.size, sourcePoints]
   }))
-  const salesForecastByDate: SecondaryInboundSplitSource['salesForecastByDate'] = {}
+  const sales: SecondaryInboundSplitSource['total']['sales'] = {}
   for (let offset = 0; ; offset += 1) {
     const date: string = addMockIsoDays(MOCK_INBOUND_SPLIT_CALCULATION_BASE_DATE, offset)
     if (date >= MOCK_INBOUND_SPLIT_COVERAGE_END_DATE) break
-    salesForecastByDate[date] = Object.fromEntries(sizeOrders.map((row: { size: string; blendedSharePct: number }): [string, number] => [
-      row.size,
-      Math.max(0, dailyMean * row.blendedSharePct / 100),
-    ]))
+    sales[date] = Math.max(0, dailyMean)
   }
-  return {
-    productId: summary.skuGroupKey,
-    productIdentity: {
-      productUuid: summary.productUuid ?? null,
-      skuGroupKey: summary.skuGroupKey,
-      brand: summary.brand,
-      code: summary.code,
-      colorCode: summary.colorCode,
+  const sourceWithoutSuggestion: SecondaryInboundSplitSource = {
+    total: {
+      suggestion: 0,
+      sales,
     },
-    calculationBaseDate: MOCK_INBOUND_SPLIT_CALCULATION_BASE_DATE,
-    coverageStartDate: MOCK_INBOUND_SPLIT_CALCULATION_BASE_DATE,
-    coverageEndDate: MOCK_INBOUND_SPLIT_COVERAGE_END_DATE,
-    supplyBySize,
-    salesForecastByDate,
+    sizeInfo,
+    expectation,
+    confirmed: {
+      total_phase: 0,
+      data: [],
+    },
+  }
+  const planningColumns: SecondaryPlanningSizeColumn[] = sizeOrders.map((row: { size: string; blendedSharePct: number }): SecondaryPlanningSizeColumn => ({
+    size: row.size,
+    expectedInboundBeforeCurrentOrderQty: Math.max(0, Math.round(requireDisplayRow(row.size).expectedInboundOrderBalance)),
+    targetEndingStockQty: 0,
+  }))
+  const suggestedRows: Record<string, number>[] = buildSecondaryPlanningSuggestedQuantitiesByRow(
+    planningColumns,
+    [{ inboundDate: MOCK_INBOUND_SPLIT_CALCULATION_BASE_DATE, ignoreExistingOrderInbound: false }],
+    MOCK_INBOUND_SPLIT_COVERAGE_END_DATE,
+    sourceWithoutSuggestion,
+  )
+  const suggestedBySize: Record<string, number> | undefined = suggestedRows[0]
+  if (suggestedBySize == null) throw new Error('Mock snapshot planning did not return a suggestion row.')
+  return {
+    ...sourceWithoutSuggestion,
+    total: {
+      ...sourceWithoutSuggestion.total,
+      suggestion: Object.values(suggestedBySize).reduce((sum: number, qty: number): number => sum + Math.max(0, Math.round(qty)), 0),
+    },
   }
 }
 
@@ -247,7 +273,6 @@ export function buildMockOrderSnapshotForCandidate(
           colorCode: summary.colorCode,
         },
         inboundSplitSource: buildMockOrderSnapshotInboundSplitSource({
-          summary,
           sizeOrders,
           displaySizeRows,
           existingOrderInboundSupplyBySize,

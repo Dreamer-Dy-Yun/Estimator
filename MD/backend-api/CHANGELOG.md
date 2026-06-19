@@ -1,12 +1,21 @@
 # Backend API Changelog
 
+## 2026-06-19 inbound split and daily trend DTO realignment
+
+- `getSecondaryDailyTrend` now returns `{ size, baseStock, data: { base, comparison } }`. The only size-specific query addition is `size?`.
+- `getSecondaryStockOrderCalc().inboundSplitSource` now uses `{ total, sizeInfo, expectation, confirmed }`.
+- `total.suggestion` is a backend-provided source recommendation aggregate. Frontend final recommendations may differ when UI-only planning inputs such as buffer stock apply.
+- `total.sales` is the whole-product daily sales forecast over `[currentOrderInboundDueDate, nextOrderInboundDueDate)`.
+- `sizeInfo[size].baseStock` is current/opening stock; `expectation[size][]` is existing-order future inbound and excludes the draft/current order.
+- The previous supply-point source shape is no longer the current API contract.
+
 ## 2026-06-18 existing-order inbound supply source
 
 - Added `SecondaryProductIdentity` to stock-order and inbound-split source requests/responses. Fields: `productUuid?`, `skuGroupKey`, `brand`, `code`, `colorCode`.
 - `getSecondaryStockOrderCalc` body now includes `productIdentity`, `calculationBaseDate`, and `currentOrderInboundDueDate`.
 - `SecondaryStockOrderCalcResult` now returns `existingOrderInboundSupplyBySize`, the A source: existing ordered but not-yet-inbound quantities keyed by size and expected inbound date.
 - `display.totalOrderBalance*` is the aggregate of all A points. `display.expectedInboundOrderBalance*` is the aggregate of A points with `date < currentOrderInboundDueDate`.
-- `getSecondaryStockOrderCalc().inboundSplitSource` query now includes product identity fields. `supplyBySize` keeps the same point shape: current stock on `calculationBaseDate`, then existing-order inbound supply points from A.
+- `getSecondaryStockOrderCalc().inboundSplitSource` is returned inside stock-order-calc and is the shared source for order detail recommendation and split inbound planning.
 - `OrderSnapshotDocument` schema is now v8 and persists `stockOrderResult.productIdentity`, `stockOrderResult.existingOrderInboundSupplyBySize`, and `stockOrderResult.inboundSplitSource`. v4/v5/v6/v7 snapshots remain parseable as legacy inputs.
 
 ## 2026-06-17 dashboard runtime config for candidate order metrics
@@ -20,13 +29,11 @@
 ## 2026-06-15 secondary daily trend and split-inbound source clarification
 
 - `getSecondaryDailyTrend` current contract is `SecondaryDailyTrendSource`, not the old chart-ready `SecondaryDailyTrendPoint[]`.
-- Backend must send `baseStockAtStart` as opening stock immediately before `dateStart` and `flowByDate[date].base.inbound` as required numeric per-date base inbound. The frontend derives `stockBar`, `inboundAccumBar`, `idx`, `month`, and `isForecast`.
-- Returning old chart-only fields does not make current frontend stock bars visible. Stock bars depend on `baseStockAtStart` plus daily `base.inbound` and `base.sale`.
-- `flowByDate` must cover every date from `dateStart` through inclusive `dateEnd`. `comparisonStockAtStart` is reserved; the current frontend accepts `null` and does not render comparison stock bars.
-- `flowByDate[date].comparison.inbound` may be `null`; `flowByDate[date].base.inbound` must not be `null`. The frontend now rejects daily-trend response identity mismatches for `productId`, `dateStart`, `dateEnd`, or `forecastStartDate`.
+- Current daily trend source shape is now `{ size, baseStock, data: { base, comparison } }`; older field names from this dated clarification are superseded.
 - `getSecondaryStockOrderCalc().inboundSplitSource` is source-only for split-inbound shortage suggestions. It does not receive split count, selected split dates, current popup draft quantities, or split result rows.
-- `getSecondaryStockOrderCalc().inboundSplitSource` now uses `calculationBaseDate`, `coverageStartDate`, and exclusive `coverageEndDate`. `supplyBySize[size][]` contains current stock on `calculationBaseDate` and existing-order inbound supply points. `salesForecastByDate[date][size]` contains sales forecast only; existing-order inbound is no longer mixed into the daily sales cell.
+- Current inbound split source shape is now `{ total, sizeInfo, expectation, confirmed }`; older supply-point field names from this dated clarification are superseded.
 - Split inbound confirmed rounds now store `ignoreExistingOrderInbound`. The current UI exposes this as one schedule-level toggle and writes the same value to all rounds on apply.
+- Current planning semantics after the split-inbound cleanup: demand uses `[round n inbound date, round n+1 inbound date)`, existing-order inbound for round n uses `[round n-1 inbound date, round n inbound date)`, and round 1 is not affected by `ignoreExistingOrderInbound`.
 
 ## 2026-06-10 current API rewrite
 

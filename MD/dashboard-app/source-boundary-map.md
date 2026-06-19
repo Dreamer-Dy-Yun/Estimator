@@ -1,6 +1,6 @@
 # Dashboard App Source Boundary Map
 
-Last updated: 2026-06-18
+Last updated: 2026-06-19
 
 이 문서는 `dashboard-app`의 현재 책임 경계와 데이터 출처를 정리한다. 화면, API 계약, 계산 책임, 저장된 사용자 결정이 섞이지 않도록 하는 기준 문서이다.
 
@@ -46,12 +46,12 @@ API 문서는 다음 문서를 함께 갱신한다.
 | 월간 추세 | `getProductMonthlyTrend` | 월간 추세/예측 표시용 데이터를 수신한다. |
 | 판매 인사이트 | `getProductSalesInsight` | 기간/채널 민감 인사이트를 별도 계약으로 수신한다. |
 | Secondary 상세 | `getProductSecondaryDetail` | 오더 계산, 확정값, 사이즈 제안, AI 코멘트 입력 컨텍스트를 수신한다. |
-| 일별 추세 | `getSecondaryDailyTrend` | 일별 예측 그래프와 분할 검토의 일 단위 수요 소스를 수신한다. |
-| Split inbound planning source | `getSecondaryStockOrderCalc().inboundSplitSource` | Single planning source for detailed recommendation rows and split-inbound planning. It contains calculation base date, coverage dates, size/date sales forecasts, and supply points. |
+| 일별 추세 | `getSecondaryDailyTrend` | 일별 예측 그래프 소스를 수신한다. `size` query가 있으면 해당 사이즈 기준, 없으면 전체 기준이다. 분할입고 계획 소스는 `getSecondaryStockOrderCalc().inboundSplitSource`를 사용한다. |
+| Split inbound planning source | `getSecondaryStockOrderCalc().inboundSplitSource` | Single planning source for detailed recommendation rows and split-inbound planning. It contains `total`, `sizeInfo`, `expectation`, and `confirmed`. |
 
 `inboundSplitSource` is returned inside `getSecondaryStockOrderCalc`; split count, split dates, confirmed quantities, and `ignoreExistingOrderInbound` remain UI/snapshot state.
 
-Detail recommended quantities and split-inbound suggested quantities must both be derived from `stockOrderCalc.inboundSplitSource`; a one-round split must not use a different source from the order detail recommendation.
+Detail recommended quantities and split-inbound suggested quantities must both be derived from `stockOrderCalc.inboundSplitSource` through the same planning function. They must use `total.sales`, `sizeInfo`, `expectation`, opening stock, existing inbound before the current order, and UI target ending stock instead of a separate `total.suggestion` shortcut. Round demand uses `[round n inbound date, round n+1 inbound date)`, while existing-order inbound for round n uses `[round n-1 inbound date, round n inbound date)`.
 
 ## 4. Secondary 오더/입고 분할 경계
 
@@ -65,13 +65,13 @@ Secondary 드로어의 주요 값은 다음 기준을 따른다.
 | `sizeOrders` | 사이즈별 제안/추천/비중 표시값이다. | API/계산 결과 |
 | 입고 분할 차수 날짜 범위 | 각 차수 입고일은 `currentOrderInboundDueDate <= date < nextOrderInboundDueDate` 범위 안에서 검증한다. 첫 차수는 금번 입고일과 같은 날짜를 허용한다. | UI 상태/API 계약 |
 
-입고 분할 제안은 차수 날짜가 만든 구간별 gross 판매예측을 먼저 나누고, 현재 재고와 기 주문 입고 예정량을 날짜 순서대로 이월 차감해 산정한다. `ignoreExistingOrderInbound`는 UI에서 하나의 전역 토글로 관리되며, 적용 시 모든 row에 일괄 반영된 값으로 차수별 제안을 계산한다.
+입고 분할 제안은 각 차수 구간의 `total.sales` 수요, `sizeInfo[size].salesRate`, `sizeInfo[size].baseStock`, `expectation[size][]`, 현오더 입고 전 기존 입고예정량, UI 여유재고 목표를 같은 planning 함수로 반영해 계산한다. 수요 구간은 `[n차 입고일, n+1차 입고일)`이고, n차에 반영되는 기오더 입고 예정량은 `[n-1차 입고일, n차 입고일)`이다. 1차는 이전 차수 구간이 없으므로 `ignoreExistingOrderInbound` 여부와 무관하게 현오더 입고 전 기존 입고예정량만 반영된다. `total.suggestion`은 백엔드가 제공한 source 집계값이며, UI 여유재고가 적용된 최종 추천 총량을 대체하지 않는다.
 
 ## 5. 스냅샷 경계
 
 `OrderSnapshotDocument`의 현재 스키마 버전은 8이다.
 
-`stockOrderResult.existingOrderInboundSupplyBySize`는 A(기 주문 오더 입고 예정량)의 날짜별 원천이다. `display.totalOrderBalance*`는 A 전체 집계이고, `display.expectedInboundOrderBalance*`는 `date < currentOrderInboundDueDate`인 A 집계이다.
+`stockOrderResult.existingOrderInboundSupplyBySize`는 A(기 주문 오더 입고 예정량)의 날짜별 원천이다. `stockOrderResult.inboundSplitSource.expectation`도 같은 의미의 분할입고 계산용 A 일정이며, 현재 재고는 `inboundSplitSource.sizeInfo[size].baseStock`에 둔다. `display.totalOrderBalance*`는 A 전체 집계이고, `display.expectedInboundOrderBalance*`는 `date < currentOrderInboundDueDate`인 A 집계이다.
 
 | 필드 | 의미 |
 |---|---|

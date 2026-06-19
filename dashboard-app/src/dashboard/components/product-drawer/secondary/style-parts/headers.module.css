@@ -76,6 +76,14 @@
   margin: 0;
 }
 
+.stockTitleInlineHint {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.35;
+  color: #475569;
+  text-align: right;
+}
+
 .forecastColumnHeaderWithRadio {
   justify-content: flex-end;
 }

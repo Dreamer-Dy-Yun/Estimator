@@ -2,7 +2,7 @@
  * 2차 드로어 공용 CSS 모듈. TS/TSX에서는 이 파일만 import한다.
  * 조각은 ./style-parts/에 두며 직접 import하지 않는다. 순서 변경 시 캐스케이드에 주의한다.
  *
- * layout, headers, metaFilterCandidate, cardsControls, tablesSizeOrder,
+ * layout, headers, metaFilterCandidate, candidateSelection, cardsControls, tablesSizeOrder,
  * stockInputs, cardAi, inboundSplit*, slider
  */
 @import './style-parts/layout.module.css';

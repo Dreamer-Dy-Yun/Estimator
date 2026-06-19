@@ -61,9 +61,9 @@ export class SecondaryDailyTrendRequestWindow {
     }
   }
 
-  toSourceExpectation(productId: string): SecondaryDailyTrendSourceExpectation {
+  toSourceExpectation(size: string | null = null): SecondaryDailyTrendSourceExpectation {
     return {
-      productId,
+      size,
       dateStart: this.startDate,
       dateEnd: addIsoDays(this.endDate, this.forecastDays),
       forecastStartDate: addIsoDays(this.endDate, 1),

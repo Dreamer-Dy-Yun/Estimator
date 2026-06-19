@@ -75,7 +75,11 @@ export function SizeOrderConfirmQuantityRows({
       </tr>
       {calculationReady && splitRoundRows.map((row: InboundSplitScheduleRow): React.JSX.Element => (
         <tr key={`applied-${row.id}`}>
-          <td>{row.round}{KO.optionInboundSplitRoundSuffix} ({row.inboundDate} {KO.labelInboundSplitArrival}) (EA)</td>
+          <td>
+            <span className={styles.sizeOrderSplitRoundLabel}>
+              {row.round}{KO.optionInboundSplitRoundSuffix} ({row.inboundDate} {KO.labelInboundSplitArrival}) ({KO.unitEa})
+            </span>
+          </td>
           <td className={styles.num}>{formatGroupedNumber(getInboundSplitTotalQty(row, inboundSplitColumns))}</td>
           {sizeRows.map((sizeRow: SecondarySizeOrderDisplayRow): React.JSX.Element => (
             <td key={sizeRow.size} className={styles.num}>{formatGroupedNumber(row.quantitiesBySize[sizeRow.size] ?? 0)}</td>

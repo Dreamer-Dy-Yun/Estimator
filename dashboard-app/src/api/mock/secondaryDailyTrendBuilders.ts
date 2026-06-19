@@ -90,12 +90,6 @@ function appendForecastDays(points: SecondaryDailyTrendPoint[], forecastDays: nu
   }
 }
 
-function addDays(dateText: string, days: number): string {
-  const date: Date = parseIsoDateUtc(dateText)
-  date.setUTCDate(date.getUTCDate() + days)
-  return formatIsoDateUtc(date)
-}
-
 function makeBaseSubjectFlow(sale: number, inbound: number): SecondaryDailyTrendBaseFlow {
   return {
     sale: Math.max(0, Math.round(sale)),
@@ -137,27 +131,25 @@ function deriveDailyInbound(point: SecondaryDailyTrendPoint, previousStock: numb
 
 function buildFlowByDate(
   points: SecondaryDailyTrendPoint[],
-  baseStockAtStart: number | null,
-): SecondaryDailyTrendSource['flowByDate'] {
-  let runningStock: number | null = baseStockAtStart
-  return Object.fromEntries(points.map((point: SecondaryDailyTrendPoint): [string, SecondaryDailyTrendSource['flowByDate'][string]] => {
+  baseStock: number | null,
+): SecondaryDailyTrendSource['data'] {
+  let runningStock: number | null = baseStock
+  const base: Record<string, SecondaryDailyTrendBaseFlow> = {}
+  const comparison: Record<string, SecondaryDailyTrendComparisonFlow> = {}
+  points.forEach((point: SecondaryDailyTrendPoint): void => {
     const sale: number = pointBaseSale(point)
     const inbound: number = deriveDailyInbound(point, runningStock) ?? 0
     if (runningStock != null) {
       runningStock = Math.max(0, Math.round(runningStock + inbound - sale))
     }
-    return [
-      point.date,
-      {
-        base: makeBaseSubjectFlow(sale, inbound),
-        comparison: makeComparisonSubjectFlow(pointComparisonSale(point), null),
-      },
-    ]
-  }))
+    base[point.date] = makeBaseSubjectFlow(sale, inbound)
+    comparison[point.date] = makeComparisonSubjectFlow(pointComparisonSale(point), null)
+  })
+  return { base, comparison }
 }
 
 export const buildSecondaryDailyTrendSource: (
-  productId: string,
+  size: string | null,
   monthlyTrend: MonthlySalesPoint[],
   monthlyStockTrend: MonthlyStockTrendPoint[],
   startDate: string,
@@ -165,7 +157,7 @@ export const buildSecondaryDailyTrendSource: (
   forecastDays: number,
   comparisonSalesScale?: number,
 ) => SecondaryDailyTrendSource = (
-  productId: string,
+  size: string | null,
   monthlyTrend: MonthlySalesPoint[],
   monthlyStockTrend: MonthlyStockTrendPoint[],
   startDate: string,
@@ -174,16 +166,11 @@ export const buildSecondaryDailyTrendSource: (
   comparisonSalesScale: number = 10,
 ): SecondaryDailyTrendSource => {
   const points: SecondaryDailyTrendPoint[] = buildSecondaryDailyTrend(monthlyTrend, monthlyStockTrend, startDate, endDate, forecastDays, comparisonSalesScale)
-  const forecastStartDate: string = addDays(endDate, 1)
-  const baseStockAtStart: number | null = deriveBaseStockAtStart(points)
+  const baseStock: number | null = deriveBaseStockAtStart(points)
   return {
-    productId,
-    dateStart: startDate,
-    dateEnd: points[points.length - 1]?.date ?? endDate,
-    forecastStartDate,
-    baseStockAtStart,
-    comparisonStockAtStart: null,
-    flowByDate: buildFlowByDate(points, baseStockAtStart),
+    size,
+    baseStock,
+    data: buildFlowByDate(points, baseStock),
   }
 }
 

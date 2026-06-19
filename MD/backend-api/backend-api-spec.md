@@ -1,16 +1,19 @@
 # Backend API Specification
 
-Last updated: 2026-06-18
+Last updated: 2026-06-19
 
-이 문서는 `dashboard-app`이 현재 소비하는 백엔드 API의 행위 기준을 정의한다. endpoint별 빠른 표는 `dashboard-api-contract-catalog.md`를 함께 본다.
+이 문서는 `dashboard-app`이 현재 사용하는 백엔드 API의 구현 기준이다.
+endpoint별 path/query/body/response 목록은 [dashboard-api-contract-catalog.md](./dashboard-api-contract-catalog.md)를 함께 본다.
 
 ## 1. Global contract
 
 - Base path: `/api/v1`
-- 인증은 cookie 기반 세션을 사용한다.
-- 프론트 HTTP client는 `credentials: include`로 요청한다.
-- 요청/응답 field 이름은 TypeScript DTO와 1:1로 맞춘다.
-- 타입 이름은 참고값이고, 실제 path/query/body 배치는 `httpDashboardRequests.ts`의 직렬화 기준을 따른다.
+- 인증: cookie 기반 session
+- Frontend HTTP client: `credentials: include`
+- JSON field명은 TypeScript DTO field명과 1:1로 맞춘다.
+- TypeScript 타입에 포함된 field가 항상 HTTP body에 들어가는 것은 아니다. 실제 path/query/body 배치는 `httpDashboardRequests.ts`와 contract catalog를 따른다.
+- 백엔드는 존재하지 않는 business 값을 임의 기본값으로 채워 성공처럼 반환하지 않는다.
+- 필수값 누락, scope 오류, subject 오류, stale/mismatched product identity는 4xx 오류로 드러낸다.
 
 ### Success
 
@@ -30,7 +33,7 @@ interface ApiErrorResponse {
 }
 ```
 
-| HTTP | ApiFailureKind |
+| HTTP | Frontend failure kind |
 |---|---|
 | 401 | auth |
 | 403 | permission |
@@ -52,197 +55,265 @@ interface ApiErrorResponse {
 | `changeCurrentUserPassword` | POST | `/auth/me/password` | body `ChangePasswordPayload` | none |
 | `logout` | POST | `/auth/logout` | none | none |
 
-`GET /auth/session`은 미인증 상태에서 401을 반환할 수 있고, 프론트 어댑터는 이를 세션 없음으로 처리해 `null`로 노출한다. 서버가 `200 null`을 택해도 되지만, 프론트 계약의 의미는 `AuthSession | null`이다.
+`GET /auth/session`은 미인증 상태를 `AuthSession | null` 기준으로 처리한다. 서버가 401을 반환하면 frontend는 session 없음으로 해석할 수 있다.
 
-## 3. Admin
-
-Admin endpoint는 관리자 세션을 요구한다.
-
-| API | Method | Path | Request | Response |
-|---|---|---|---|---|
-| `getAdminUsers` | GET | `/admin/users` | none | `AdminUserSummary[]` |
-| `createAdminUser` | POST | `/admin/users` | body `CreateAdminUserPayload` | `AdminUserSummary` |
-| `updateAdminUser` | PATCH | `/admin/users/{uuid}` | path `uuid`, body `UpdateAdminUserPayload` | `AdminUserSummary` |
-| `resetAdminUserPassword` | POST | `/admin/users/{uuid}/password-reset` | path `uuid` | `ResetAdminUserPasswordResult` |
-| `deleteAdminUser` | DELETE | `/admin/users/{uuid}` | path `uuid` | none |
-| `getAdminGptKeys` | GET | `/admin/gpt-keys` | none | `AdminGptKeySummary[]` |
-| `createAdminGptKey` | POST | `/admin/gpt-keys` | body `CreateAdminGptKeyPayload` | `AdminGptKeySummary` |
-| `updateAdminGptKey` | PATCH | `/admin/gpt-keys/{uuid}` | path `uuid`, body `UpdateAdminGptKeyPayload` | `AdminGptKeySummary` |
-| `rotateAdminGptKey` | POST | `/admin/gpt-keys/{uuid}/rotate` | path `uuid`, body `{ plainKey: string }` | `AdminGptKeySummary` |
-| `testAdminGptKey` | POST | `/admin/gpt-keys/{uuid}/test` | path `uuid` | `AdminGptKeyTestResult` |
-| `deleteAdminGptKey` | DELETE | `/admin/gpt-keys/{uuid}` | path `uuid` | none |
-| `getAdminGoogleSheetConfigs` | GET | `/admin/google-sheets` | query `companyUuid?` | `AdminGoogleSheetConfigSummary[]` |
-| `createAdminGoogleSheetConfig` | POST | `/admin/google-sheets` | body `CreateAdminGoogleSheetConfigPayload` | `AdminGoogleSheetConfigSummary` |
-| `updateAdminGoogleSheetConfig` | PATCH | `/admin/google-sheets/{uuid}` | path `uuid`, body `UpdateAdminGoogleSheetConfigPayload` | `AdminGoogleSheetConfigSummary` |
-| `deleteAdminGoogleSheetConfig` | DELETE | `/admin/google-sheets/{uuid}` | path `uuid`, query `companyUuid` | none |
-
-비밀키 원문은 생성/회전 요청에서만 전달된다. 목록/조회 응답은 마스킹된 메타데이터만 반환한다.
-
-## 4. Scope
+## 3. Scope
 
 ### companyUuid
 
 | 작업 | 규칙 |
 |---|---|
-| read/list | `companyUuid` 생략 가능 API가 있다. 생략은 전체 회사 조회 의미로 사용될 수 있다. |
-| mutation/import/job | 구체 `companyUuid` 필수이다. |
-| 전체 회사 sentinel | 프론트의 `ALL_COMPANY_UUID`는 서버 계약값이 아니다. mutation에는 사용할 수 없다. |
+| read/list | API에 따라 `companyUuid?` 생략 가능 |
+| mutation/import/job/SSE | concrete `companyUuid` 필요 |
+| all-company sentinel | frontend 내부 `ALL_COMPANY_UUID`를 mutation/job에 그대로 보내지 않는다 |
 
 ### Product comparison subject
 
-상품 API는 회사 UUID 대신 subject query를 사용한다.
+상품/secondary API는 top-level `companyUuid` 대신 subject query를 사용한다.
 
-| subject | fields |
-|---|---|
-| base | `baseRole`, `baseKind`, `baseSourceId?` |
-| comparison | `comparisonRole`, `comparisonKind`, `comparisonSourceId?` |
+| subject | query fields | 규칙 |
+|---|---|---|
+| base | `baseRole`, `baseKind`, `baseSourceId?` | `baseRole=base`, 현재 기본 `baseKind=self-company` |
+| comparison | `comparisonRole`, `comparisonKind`, `comparisonSourceId?` | `comparisonRole=comparison` |
 
-`role`은 각각 `base`, `comparison`으로 고정한다. `kind=competitor-channel`이면 `sourceId`가 필수이다. 잘못된 조합은 명시적 4xx로 실패해야 하며, 서버가 임의 기본값으로 대체하지 않는다.
+- `kind=competitor-channel`이면 `sourceId`가 필수이다.
+- `comparison.kind`는 `competitor-channel` 또는 `self-company`가 가능하다.
+- backend는 잘못된 role/kind/source 조합을 임의 기본값으로 대체하지 말고 실패시켜야 한다.
 
-## 5. System/runtime
+## 4. Product drawer / Secondary 핵심 계약
 
-| API | Method | Path | Request | Response |
-|---|---|---|---|---|
-| `getCompanies` | GET | `/companies` | none | `CompanySummary[]` |
-| `collectInventoryArrivalDates` | POST | `/inventory-arrival-dates/collect-from-sheet` | body `{ companyUuid }` | `InventoryArrivalCollectionResult` |
-| `getDashboardRuntimeConfig` | GET | `/dashboard/runtime-config` | none | `DashboardRuntimeConfig` |
+### `getSecondaryDailyTrend`
 
-`DashboardRuntimeConfig`는 인증 후 읽는 런타임 설정이다. 비교 채널 기본값 등을 서버에서 통제해야 하는 경우 이 계약으로 제공한다.
+Endpoint:
 
-## 6. Sales
+- Method: `GET`
+- Path: `/products/{skuGroupKey}/secondary/daily-trend`
+- Path params: `skuGroupKey`
+- Query: `startDate`, `endDate`, `forecastDays`, `size?`, base subject fields, comparison subject fields
+- Body: none
+- Response: `SecondaryDailyTrendSource`
 
-| API | Method | Path | Request | Response |
-|---|---|---|---|---|
-| `getSelfSales` | GET | `/sales/self` | query sales filter + `companyUuid?` | `SelfSalesRow[]` |
-| `getCompetitorSales` | GET | `/sales/competitor` | query sales filter + `competitorChannelId?`, `companyUuid?` | `CompetitorSalesRow[]` |
-| `getSelfSalesScatterGrid` | GET | `/sales/self/scatter-grid` | query grid filter + `companyUuid?` | `ScatterSalesGridResponse` |
-| `getCompetitorSalesScatterGrid` | GET | `/sales/competitor/scatter-grid` | query grid filter + `competitorChannelId?`, `companyUuid?` | `ScatterSalesGridResponse` |
-| `getSalesFilterMeta` | GET | `/sales/filter-meta` | query `companyUuid?` | `SalesFilterMeta` |
+`SecondaryDailyTrendParams`:
 
-필터는 KPI, rank, chart, list 계산 전에 적용한다. `competitorChannelId` 생략은 경쟁 채널 전체를 `skuGroupKey` 기준으로 집계한다는 뜻이다.
+```ts
+interface SecondaryDailyTrendParams {
+  skuGroupKey: string
+  startDate: string
+  endDate: string
+  forecastDays: number
+  size?: string | null
+  base: ProductComparisonBaseSubjectRef
+  comparison: ProductComparisonComparisonSubjectRef
+}
+```
 
-## 7. Product drawer / Secondary
+직렬화 규칙:
 
-| API | Method | Path | Request | Response |
-|---|---|---|---|---|
-| `getProductDrawerBundle` | GET | `/products/{skuGroupKey}/drawer-bundle` | path `skuGroupKey`, query base subject | `ProductDrawerBundle` |
-| `getProductComparisonTargets` | GET | `/products/comparison-targets` | query base subject | `ProductComparisonTarget[]` |
-| `getProductMonthlyTrend` | GET | `/products/{skuGroupKey}/monthly-trend` | path `skuGroupKey`, query period/forecast/base/comparison | `ProductMonthlyTrend` |
-| `getProductSalesInsight` | GET | `/products/{skuGroupKey}/sales-insight` | path `skuGroupKey`, query period/base/comparison | `ProductSalesInsight` |
-| `getProductSecondaryDetail` | GET | `/products/{skuGroupKey}/secondary-detail` | path `skuGroupKey`, query base/comparison/`minOpMarginPct?` | `ProductSecondaryDetail` |
-| `getSecondaryDailyTrend` | GET | `/products/{skuGroupKey}/secondary/daily-trend` | path `skuGroupKey`, query period/forecast/base/comparison | `SecondaryDailyTrendSource` |
-| `getSecondaryAiComment` | POST | `/products/{skuGroupKey}/secondary/ai-comment` | path `skuGroupKey`, body params without `skuGroupKey` | `SecondaryAiCommentResult` |
-| `getSecondaryCompetitorChannels` | GET | `/secondary/competitor-channels` | none | `SecondaryCompetitorChannel[]` |
-| `getSecondaryStockOrderCalc` | POST | `/secondary/stock-order-calc` | body `SecondaryStockOrderCalcParams` | `SecondaryStockOrderCalcResult` |
+- `skuGroupKey`는 path param이다.
+- `startDate`, `endDate`, `forecastDays`, `size?`는 query이다.
+- `base`와 `comparison`은 subject query로 풀어서 보낸다.
+- `size`를 생략하거나 `null`이면 전체 사이즈 aggregate이다.
+- 이 endpoint에는 `currentOrderInboundDueDate`, `nextOrderInboundDueDate`, `selfWeightPct`, `bufferStock` 같은 stock-order 전용 값을 보내지 않는다.
 
-Secondary 주요 규칙:
+`SecondaryDailyTrendSource`:
 
-- `/secondary/stock-order-calc`는 주문량 계산의 백엔드 단일 계산점이다.
-- `/secondary/daily-trend`는 일별 예측 소스이다.
-
-`SecondaryProductIdentity` fields: `productUuid?`, `skuGroupKey`, `brand`, `code`, `colorCode`. Backend should echo this identity in stock-order responses and in `SecondaryStockOrderCalcResult.inboundSplitSource.productIdentity` so the frontend can reject mismatched product data. `productUuid` is optional only for legacy/mock data; when the backend has a SKU/product UUID, include it.
-
-
-`SecondaryStockOrderCalcParams` body fields: `skuGroupKey`, `productIdentity`, `base`, `comparison`, `periodStart`, `periodEnd`, `calculationBaseDate`, `currentOrderInboundDueDate`, `nextOrderInboundDueDate`, `forecastPeriodEndMonth?`, `orderCoverageDays`, `selfWeightPct`, `dailyMean?`.
-`forecastPeriodEndMonth` is the `YYYY-MM` month key that contains the final included coverage date. With `[currentOrderInboundDueDate, nextOrderInboundDueDate)`, this is normally the month of `nextOrderInboundDueDate - 1 day`. `orderCoverageDays` is the coverage day count used by the order calculation and snapshot context.
-
-`SecondaryStockOrderCalcResult` response fields:
-
-- `productIdentity`: same identity as requested.
-- `existingOrderInboundSupplyBySize`: `Record<size, { date, qty }[]>`. This is A, the existing ordered but not-yet-inbound quantity schedule collected from the backend-managed Google Sheet staging data. It must not include the draft/current order quantities being edited in the drawer.
-- `display.totalOrderBalanceTotal` and `display.sizeRows[].totalOrderBalance`: aggregate of all `existingOrderInboundSupplyBySize[size][]` points by size.
-- `display.expectedInboundOrderBalanceTotal` and `display.sizeRows[].expectedInboundOrderBalance`: aggregate of `existingOrderInboundSupplyBySize[size][]` points with `date < currentOrderInboundDueDate`.
-- `display.currentStockQtyTotal` and `display.sizeRows[].currentStockQty`: current stock by size as of `calculationBaseDate`.
-- `inboundSplitSource`: single planning source used by both detailed recommendation rows and split-inbound planning. It is returned inside `SecondaryStockOrderCalcResult`; there is no separate inbound-split-source endpoint.
-
-`SecondaryStockOrderCalcResult.inboundSplitSource` fields:
-
-- `productId`: same product key as the path `skuGroupKey`.
-- `productIdentity`: same identity as requested.
-- `calculationBaseDate`: inventory simulation base date. The frontend sends today as this value.
-- `coverageStartDate`: current order inbound date. Split round dates must be on or after this date.
-- `coverageEndDate`: next order inbound date, exclusive. The final covered sales date is `coverageEndDate - 1 day`.
-- `supplyBySize`: `Record<size, { date, qty }[]>`. A point on `calculationBaseDate` is current stock. Later points are existing-order inbound quantities from A and are unrelated to the draft/current order being split.
-- `salesForecastByDate`: `Record<date, Record<size, number>>`, covering every date where `calculationBaseDate <= date < coverageEndDate`.
-
-`inboundSplitSource` remains source-only. `getSecondaryStockOrderCalc` does not receive split count, selected split dates, draft row quantities, or `ignoreExistingOrderInbound`; those are UI/snapshot state used by the frontend suggestion model.
-- 적용된 차수별 분할 결과는 API source가 아니라 `OrderSnapshotDocument.drawer2.confirmed.rounds`에 저장된다.
-- 비교 대상이 없으면 빈 배열을 반환할 수 있으며, 이는 정상적인 사용 불가 상태이다.
-
-Compact stock-order-calc inboundSplitSource response fragment:
-
-```json
-{
-  "productId": "TEST-SHOE__210",
-  "productIdentity": { "productUuid": "sku-uuid", "skuGroupKey": "TEST-SHOE__210", "brand": "Brand", "code": "TEST-SHOE", "colorCode": "210" },
-  "calculationBaseDate": "2026-06-18",
-  "coverageStartDate": "2026-12-17",
-  "coverageEndDate": "2027-06-17",
-  "supplyBySize": {
-    "230": [
-      { "date": "2026-06-18", "qty": 12 },
-      { "date": "2027-01-12", "qty": 20 }
-    ]
-  },
-  "salesForecastByDate": {
-    "2026-12-17": { "230": 1.4 }
+```ts
+interface SecondaryDailyTrendSource {
+  size: string | null
+  baseStock: number | null
+  data: {
+    base: Record<string, { sale: number; inbound: number }>
+    comparison: Record<string, { sale: number; inbound: number | null }>
   }
 }
 ```
 
-## 8. Candidate stash/item
+응답 규칙:
 
-| API | Method | Path | Request | Response |
-|---|---|---|---|---|
-| `getCandidateStashes` | GET | `/candidate-stashes` | query `companyUuid?` | `CandidateStashSummary[]` |
-| `getCandidateItemsByStash` | GET | `/candidate-stashes/{stashUuid}/items` | path `stashUuid`, query period/company | `CandidateItemListResult` |
-| `getCandidateRecommendations` | GET | `/candidate-stashes/{stashUuid}/recommendations` | path `stashUuid`, query period/paging/company | `CandidateRecommendationResult` |
-| `createCandidateStash` | POST | `/candidate-stashes` | body payload + `companyUuid` | `CandidateStashSummary` |
-| `updateCandidateStash` | PATCH | `/candidate-stashes/{stashUuid}` | path `stashUuid`, body payload + `companyUuid` | `CandidateStashSummary` |
-| `deleteCandidateStash` | DELETE | `/candidate-stashes/{stashUuid}` | path `stashUuid`, query `companyUuid` | none |
-| `duplicateCandidateStash` | POST | `/candidate-stashes/{stashUuid}/duplicate` | path `stashUuid`, body `companyUuid` | none |
-| `appendCandidateItem` | POST | `/candidate-stashes/{stashUuid}/items` | path `stashUuid`, body payload + `companyUuid` | none |
-| `appendCandidateItems` | POST | `/candidate-stashes/{stashUuid}/items/bulk` | path `stashUuid`, body payload + `companyUuid` | `AppendCandidateItemsResponse` |
-| `getCandidateItemByUuid` | GET | `/candidate-items/{itemUuid}` | path `itemUuid`, query `companyUuid?` | `CandidateItemDetail | null` |
-| `updateCandidateItem` | PATCH | `/candidate-items/{itemUuid}` | path `itemUuid`, body payload + `companyUuid` | `CandidateItemDetail` |
-| `deleteCandidateItem` | DELETE | `/candidate-items/{itemUuid}` | path `itemUuid`, query `companyUuid` | none |
-| `deleteCandidateItems` | DELETE | `/candidate-stashes/{stashUuid}/items` | path `stashUuid`, body `itemUuids`, `companyUuid` | none |
-| `getCandidateStashExcelTemplateDownload` | GET | `/candidate-stashes/excel-template` | none | download descriptor |
-| `uploadCandidateStashExcel` | POST | `/candidate-stashes/import/excel` | multipart `file`, `companyUuid` | `CandidateStashExcelUploadResult` |
+- `size`는 요청 size echo이다. 전체 aggregate이면 `null`이다.
+- `baseStock`은 첫 응답일 전의 기초 재고이다. 첫 날짜의 inbound로 중복 표현하지 않는다.
+- `data.base[date].sale`은 기준 subject의 일 판매량이다.
+- `data.base[date].inbound`는 해당 날짜의 기준 subject 입고량이다. 알려진 0은 `0`으로 보낸다.
+- `data.comparison[date].sale`은 비교 subject의 일 판매량이다.
+- `data.comparison[date].inbound`는 현재 UI에서 비교 입고를 쓰지 않으므로 없으면 `null`이다.
+- `data.base`와 `data.comparison`은 `startDate`부터 `endDate`까지 화면에 필요한 날짜를 빠짐없이 제공해야 한다.
 
+### `getSecondaryStockOrderCalc`
 
-Candidate DTO field ownership:
+Endpoint:
 
-- `CandidateItemDetail.confirmedOrderSnapshot` is the saved `OrderSnapshotDocument | null`.
-- `CandidateItemSummary.hasConfirmedOrderSnapshot` is the saved snapshot existence flag.
-- `CandidateItemInsightSummary.competitorSalesSourceLabel` is the sales insight source label.
-- `CandidateItemOrderExport.comparisonSubjectLabel` is the comparison subject label actually used for order metric/export.
-Mutation은 stash/item 소유권과 company scope를 검증해야 한다. `updateCandidateItem` 응답은 DB commit/cache invalidation 이후의 최신 `CandidateItemDetail`이어야 한다.
+- Method: `POST`
+- Path: `/secondary/stock-order-calc`
+- Path params: none
+- Query: none
+- Body: `SecondaryStockOrderCalcParams`
+- Response: `SecondaryStockOrderCalcResult`
 
-## 9. Job/SSE
+`SecondaryStockOrderCalcParams`:
 
-| API | Method | Path | Request | Transport |
-|---|---|---|---|---|
-| `subscribeCandidateOrderMetrics` | GET | `/candidate-stashes/{stashUuid}/items/order-metrics/events` | path `stashUuid`, query `requestId`, period, item UUID list, `companyUuid`, comparison subject | SSE |
-| `startCandidateDetailBulkConfirm` | POST | `/candidate-stashes/{stashUuid}/items/detail-confirmation-jobs` | path `stashUuid`, body item UUID list, period, `companyUuid` | JSON |
-| `subscribeCandidateDetailBulkConfirm` | GET | `/candidate-item-detail-confirmation-jobs/{jobId}/events` | path `jobId`, query `companyUuid` | SSE |
-| `startCandidateStashLlmCommentJob` | POST | `/candidate-stashes/{stashUuid}/llm-comment-jobs` | path `stashUuid`, body `companyUuid` | JSON |
-| `subscribeCandidateStashLlmCommentJob` | GET | `/candidate-stash-llm-comment-jobs/{jobId}/events` | path `jobId`, query `companyUuid` | SSE |
+```ts
+interface SecondaryStockOrderCalcParams {
+  skuGroupKey: string
+  productIdentity: {
+    productUuid?: string | null
+    skuGroupKey: string
+    brand: string
+    code: string
+    colorCode: string
+  }
+  base: ProductComparisonBaseSubjectRef
+  comparison: ProductComparisonComparisonSubjectRef
+  periodStart: string
+  periodEnd: string
+  calculationBaseDate: string
+  currentOrderInboundDueDate: string
+  nextOrderInboundDueDate: string
+  forecastPeriodEndMonth?: string
+  orderCoverageDays: number
+  selfWeightPct: number
+  dailyMean?: number
+}
+```
 
-SSE endpoint는 권한, company scope, request/job id를 검증한다. 프론트는 stale requestId/job event를 반영하지 않는다.
+요청 의미:
 
-## 10. Snapshot boundary
+- `productIdentity`는 백엔드가 응답에서 echo해야 하며, frontend는 mismatched product data를 거부한다.
+- `productUuid`는 backend가 안정 UUID를 갖고 있으면 포함한다. legacy/mock에서는 `null`일 수 있다.
+- `calculationBaseDate`는 재고/기존 오더 입고 예정량을 해석하는 기준일이다.
+- `currentOrderInboundDueDate`는 금번 오더 입고일이다.
+- `nextOrderInboundDueDate`는 차기 오더 입고일이며 exclusive end이다.
+- 오더 계산 범위는 `[currentOrderInboundDueDate, nextOrderInboundDueDate)`이다.
+- `forecastPeriodEndMonth`는 보통 `nextOrderInboundDueDate - 1 day`가 속한 `YYYY-MM`이다.
+- `orderCoverageDays`는 위 exclusive 범위의 커버 일수이다.
+- `selfWeightPct`는 자사/비교 size mix blending에 쓰인다.
+- `dailyMean`이 있으면 frontend override demand mean이고, 없으면 backend가 계산한다.
 
-후보 상세 저장 payload는 `OrderSnapshotDocument` v8이다. 현재 타입과 parser는 다음 파일이 기준이다.
+`SecondaryStockOrderCalcResult`:
 
-- `dashboard-app/src/snapshot/orderSnapshotTypes.ts`
-- `dashboard-app/src/snapshot/parseOrderSnapshot.ts`
+```ts
+interface SecondaryStockOrderCalcResult {
+  productIdentity: SecondaryProductIdentity
+  inboundSplitSource: SecondaryInboundSplitSource
+  existingOrderInboundSupplyBySize: Record<string, { date: string; qty: number }[]>
+  trendDailyMean: number
+  dailyMean: number
+  sigma: number
+  display: {
+    currentStockQtyTotal: number
+    totalOrderBalanceTotal: number
+    expectedInboundOrderBalanceTotal: number
+    sizeRows: {
+      size: string
+      currentStockQty: number
+      totalOrderBalance: number
+      expectedInboundOrderBalance: number
+    }[]
+  }
+}
+```
 
-스냅샷은 후보 항목에 저장된 사용자 결정이다. API 최신값을 가져왔다고 해서 저장 스냅샷을 자동으로 덮지 않는다.
+응답 의미:
 
-## 11. Documentation policy
+- `productIdentity`는 요청 identity echo이다.
+- `existingOrderInboundSupplyBySize`는 A, 즉 기존에 주문했지만 아직 입고되지 않은 수량의 날짜별 원천이다. 현재 드로어에서 편집 중인 금번/분할 오더 수량을 포함하지 않는다.
+- `display.currentStockQty*`는 `calculationBaseDate` 기준 현재 재고이다.
+- `display.totalOrderBalance*`는 A 전체 집계이다.
+- `display.expectedInboundOrderBalance*`는 A 중 `date < currentOrderInboundDueDate`인 집계이다.
+- `trendDailyMean`, `dailyMean`, `sigma`는 주문량 계산에 쓰는 수요 지표이다.
+- `inboundSplitSource`는 오더 상세 추천과 분할입고 제안이 공유하는 단일 planning source이다.
 
-API 계약 변경 시 다음을 같은 변경 단위로 맞춘다.
+### `SecondaryInboundSplitSource`
+
+```ts
+interface SecondaryInboundSplitSource {
+  total: {
+    suggestion: number
+    sales: Record<string, number>
+  }
+  sizeInfo: Record<string, {
+    salesRate: number
+    baseStock: number
+  }>
+  expectation: Record<string, {
+    date: string
+    inbound: number
+  }[]>
+  confirmed: {
+    total_phase: number
+    data: {
+      phase: number
+      inbound_date: string
+      quantity: Record<string, number>
+    }[]
+  }
+}
+```
+
+필드 의미:
+
+- `total.suggestion`은 backend가 제공하는 source 추천 집계값이다.
+- frontend는 `total.suggestion`을 UI 최종 추천 총량으로 직접 쓰지 않는다. UI 여유재고(`bufferStock`)와 split 옵션이 반영된 최종 추천은 같은 planning 함수에서 별도 산정한다.
+- `total.sales`는 전체 상품 기준 일 판매 예측이며 `[currentOrderInboundDueDate, nextOrderInboundDueDate)` 모든 날짜를 포함해야 한다.
+- `sizeInfo[size].salesRate`는 0..1 size sales/share ratio이다.
+- `sizeInfo[size].baseStock`은 분할입고 planning의 size별 기초 재고이다. 음수도 허용한다.
+- `expectation[size][]`는 기존 오더의 미래 입고 예정량이다. 현재 드로어에서 편집 중인 금번/분할 오더는 포함하지 않는다.
+- `confirmed`는 backend가 초기 확정 phase를 제공할 때의 source이다. 사용자가 적용한 현재 UI split rows의 저장 주체는 snapshot이다.
+
+분할입고 planning 규칙:
+
+- `/secondary/stock-order-calc`는 split count, split dates, draft row quantities, `bufferStock`, `ignoreExistingOrderInbound`를 요청으로 받지 않는다.
+- 상세 추천 row와 분할입고 제안 row는 모두 `inboundSplitSource`와 같은 frontend planning 함수를 사용해야 한다.
+- 수요 구간은 `[round n inbound date, round n+1 inbound date)`이다. 마지막 round의 다음 기준일은 `nextOrderInboundDueDate`이다.
+- n차에 반영되는 기존 오더 입고 예정량은 `[round n-1 inbound date, round n inbound date)`이다.
+- 1차는 이전 차수 구간이 없으므로 `ignoreExistingOrderInbound` 여부와 무관하다.
+- `expectedInboundOrderBalance`처럼 `currentOrderInboundDueDate` 전 입고 예정 집계는 opening stock 성격으로 항상 반영된다.
+- `ignoreExistingOrderInbound=true`는 각 round의 previous-to-current inbound window에 있는 기존 오더 입고 예정량만 무시한다.
+- 차수별 재고 이월과 정수화 때문에 2차 이상에서는 총합이 소폭 달라질 수 있다. 큰 총량 차이는 계산 오류로 본다.
+
+Compact response fragment:
+
+```json
+{
+  "total": {
+    "suggestion": 1224,
+    "sales": {
+      "2026-12-17": 123,
+      "2026-12-18": 35
+    }
+  },
+  "sizeInfo": {
+    "230": { "salesRate": 0.072, "baseStock": 520 },
+    "240": { "salesRate": 0.102, "baseStock": 123 }
+  },
+  "expectation": {
+    "230": [
+      { "date": "2027-01-12", "inbound": 20 }
+    ],
+    "240": []
+  },
+  "confirmed": {
+    "total_phase": 0,
+    "data": []
+  }
+}
+```
+
+## 5. Candidate snapshot boundary
+
+- 후보 item의 `confirmedOrderSnapshot`은 `OrderSnapshotDocument | null`이다.
+- 현재 snapshot schema version은 `8`이다.
+- snapshot은 화면 복원 계약이다. 최신 API 값을 자동으로 재계산해서 덮어쓰는 계약이 아니다.
+- snapshot 상세 계약은 [order-snapshot-backend-contract.md](./order-snapshot-backend-contract.md)를 따른다.
+
+## 6. SSE
+
+- SSE endpoint는 `text/event-stream`을 사용한다.
+- frontend는 `requestId` 또는 job id 기준으로 stale event를 버린다.
+- SSE endpoint도 company scope와 권한을 검증해야 한다.
+
+## 7. Documentation policy
+
+API 계약 변경 시 함께 갱신해야 하는 대상:
 
 - `dashboard-app/src/api/types/*`
 - `dashboard-app/src/api/requests/httpDashboardRequests.ts`

@@ -1,11 +1,10 @@
 import { allocateInboundSplitIntegerTotal, type InboundSplitScheduleRow, type InboundSplitSizeColumn } from './inboundSplitScheduleModel'
-import { sumInboundSplitSuggestedBySize } from './inboundSplitScheduleTotals'
 
 export function toInboundSplitDraftInteger(value: string): number {
   return Math.max(0, Math.round(Number(value) || 0))
 }
 
-export function redistributeInboundSplitRowTotalBySuggestedSizeMix(
+export function redistributeInboundSplitRowTotalBySuggestedTotals(
   rows: readonly InboundSplitScheduleRow[],
   columns: readonly InboundSplitSizeColumn[],
   rowIndex: number,
@@ -14,13 +13,11 @@ export function redistributeInboundSplitRowTotalBySuggestedSizeMix(
   const currentRow: InboundSplitScheduleRow | undefined = rows[rowIndex]
   if (currentRow == null) return [...rows]
 
-  const suggestedTotals: Record<string, number> = sumInboundSplitSuggestedBySize(rows, columns)
-  const suggestedWeightTotal: number = columns.reduce((sum: number, column: InboundSplitSizeColumn): number => sum + Math.max(0, suggestedTotals[column.size] ?? 0), 0)
-  if (suggestedWeightTotal <= 0) return [...rows]
-
   const distributed: number[] = allocateInboundSplitIntegerTotal({
     total: toInboundSplitDraftInteger(value),
-    weights: columns.map((column: InboundSplitSizeColumn): number => suggestedTotals[column.size] ?? 0),
+    weights: columns.map((column: InboundSplitSizeColumn): number => rows.reduce((sum: number, row: InboundSplitScheduleRow): number => (
+      sum + Math.max(0, Math.round(row.suggestedQuantitiesBySize[column.size] ?? 0))
+    ), 0)),
   }).values
 
   return rows.map((row: InboundSplitScheduleRow, index: number): InboundSplitScheduleRow => {

@@ -10,6 +10,7 @@ export type Params = {
   skuGroupKey: string
   selectedStart: string
   selectedEnd: string
+  size?: string | null
   baseSubject: ProductComparisonBaseSubjectRef
   comparisonTarget: ProductComparisonTarget
   orderCoverageDays: number
@@ -20,6 +21,7 @@ export function useSecondaryDailyTrend({
   skuGroupKey,
   selectedStart,
   selectedEnd,
+  size = null,
   baseSubject,
   comparisonTarget,
   orderCoverageDays,
@@ -51,9 +53,11 @@ export function useSecondaryDailyTrend({
           base: baseSubject,
           comparison: comparisonTarget,
           ...requestWindow.toQueryFields(),
+          ...(size == null ? {} : { size }),
         }
         const source: SecondaryDailyTrendSource = await dashboardApi.getSecondaryDailyTrend(params)
-        const series: SecondaryDailyTrendPoint[] = buildSecondaryDailyTrendPoints(validateSecondaryDailyTrendSource(source, requestWindow.toSourceExpectation(skuGroupKey)))
+        const expectation = requestWindow.toSourceExpectation(size)
+        const series: SecondaryDailyTrendPoint[] = buildSecondaryDailyTrendPoints(validateSecondaryDailyTrendSource(source, expectation), expectation)
         if (!alive || reqSeqRef.current !== reqSeq) return
         if (!series.length) throw new Error('일별 판매추이 데이터가 비어 있습니다.')
         setDailyTrendSeries(series)
@@ -63,7 +67,7 @@ export function useSecondaryDailyTrend({
         setDailyTrendSeries([])
         setDailyTrendError(
           makeApiErrorInfo(
-            `getSecondaryDailyTrend(${JSON.stringify({ skuGroupKey, base: baseSubject, comparison: comparisonTarget, ...requestWindow.toRequestLogFields() })})`,
+            `getSecondaryDailyTrend(${JSON.stringify({ skuGroupKey, size, base: baseSubject, comparison: comparisonTarget, ...requestWindow.toRequestLogFields() })})`,
             err,
           ),
         )
@@ -74,7 +78,7 @@ export function useSecondaryDailyTrend({
     return () : void => {
       alive = false
     }
-  }, [baseSubject, comparisonTarget, makeApiErrorInfo, requestWindow, skuGroupKey])
+  }, [baseSubject, comparisonTarget, makeApiErrorInfo, requestWindow, size, skuGroupKey])
 
   const { periodShade: dailyPeriodShade, forecastShade: dailyForecastShade }: { periodStartIdx: number; periodEndIdx: number; periodShade: { x1: number; x2: number; }; forecastShade: { x1: number; x2: number; } | null; } = useMemo(
     () : { periodStartIdx: number; periodEndIdx: number; periodShade: { x1: number; x2: number; }; forecastShade: { x1: number; x2: number; } | null; } => buildShadeRanges(

@@ -16,21 +16,21 @@ const SIZE_ROWS: SecondarySizeOrderDisplayRow[] = [
 ]
 
 const SPLIT_SOURCE: SecondaryInboundSplitSource = {
-  productId: 'sku-a',
-  productIdentity: { productUuid: null, skuGroupKey: 'sku-a', brand: 'Brand', code: 'CODE', colorCode: 'BLK' },
-  calculationBaseDate: '2026-04-01',
-  coverageStartDate: '2026-04-01',
-  coverageEndDate: '2026-04-05',
-  supplyBySize: {
-    S: [{ date: '2026-04-01', qty: 0 }],
-    M: [{ date: '2026-04-01', qty: 0 }],
+  total: {
+    suggestion: 8,
+    sales: {
+      '2026-04-01': 2,
+      '2026-04-02': 2,
+      '2026-04-03': 2,
+      '2026-04-04': 2,
+    },
   },
-  salesForecastByDate: {
-    '2026-04-01': { S: 1, M: 1 },
-    '2026-04-02': { S: 1, M: 1 },
-    '2026-04-03': { S: 1, M: 1 },
-    '2026-04-04': { S: 1, M: 1 },
+  sizeInfo: {
+    S: { salesRate: 0.5, baseStock: 0 },
+    M: { salesRate: 0.5, baseStock: 0 },
   },
+  expectation: { S: [], M: [] },
+  confirmed: { total_phase: 0, data: [] },
 }
 
 function row(id: string, round: number, inboundDate: string, s: number, m?: number): InboundSplitScheduleRow {
@@ -68,6 +68,7 @@ function renderController(overrides: Partial<UseInboundSplitScheduleControllerAr
     current: null,
     args: {
       sizeRows: SIZE_ROWS,
+      stockOrderDisplay: null,
       currentOrderInboundDueDate: '2026-04-01',
       nextOrderInboundDueDate: '2026-04-05',
       inboundSplitSource: SPLIT_SOURCE,
@@ -119,7 +120,6 @@ describe('useInboundSplitScheduleController', (): void => {
   it('blocks open and apply until stock-order calculation is ready', (): void => {
     const controller: ReturnType<typeof renderController> = renderController({ calculationReady: false })
 
-    expect(controller.current.sourceReady).toBe(true)
     expect(controller.current.scheduleReady).toBe(false)
     act((): void => {
       controller.current.openDialog()

@@ -15,8 +15,8 @@
 
 - 같은 조건이면 1차 분할 제안 총합과 오더 상세 추천 수량 총합이 같은 원천에서 산정되어야 한다.
 - 분할 차수, 차수별 날짜, 확정 수량, `ignoreExistingOrderInbound`는 API 요청 값이 아니라 UI/snapshot 상태다.
-- `inboundSplitSource.supplyBySize`의 계산 기준일 point는 현재 재고이고, 이후 point는 기 주문 입고 예정 수량(A)이다.
-- `salesForecastByDate`는 판매예측만 담고 입고 수량을 섞지 않는다.
+- `inboundSplitSource.sizeInfo[size].baseStock`은 현재/기초 재고이고, `expectation[size][]`는 기 주문 입고 예정 수량(A)이다.
+- `total.sales`는 전체 판매예측만 담고 입고 수량을 섞지 않는다.
 
 ## Plan
 
@@ -31,8 +31,8 @@
 
 - legacy separate inbound split source 경로는 제거했다.
 - `useSecondaryDrawerRequests`는 분할 source를 별도 요청하지 않고 `stockOrderCalc.inboundSplitSource`에서 얻는다.
-- `buildSecondarySizeOrderRows`는 `inboundSplitSource`를 사용해 사이즈별 `forecastQty`와 `recommendedQty`를 만든다.
-- 분할 입고 다이얼로그는 같은 source로 차수별 판매예측과 공급 포인트를 이월 차감한다.
+- `buildSecondarySizeOrderRows`는 `inboundSplitSource.total`, `sizeInfo`, `expectation`를 사용해 사이즈별 `forecastQty`와 `recommendedQty`를 만든다.
+- 분할 입고 다이얼로그는 같은 source와 같은 planning 함수로 차수별 판매예측, 사이즈 비중, 시작 재고, 기존 주문 입고예정량, UI 여유재고 목표를 반영한다.
 - backend API spec, contract catalog, product drawer boundary, source boundary, snapshot contract 문서를 현행 v8 기준으로 갱신했다.
 
 ## Non-goals / Follow-up

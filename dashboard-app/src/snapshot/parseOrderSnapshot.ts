@@ -219,7 +219,7 @@ function normalizeStockOrderResult(
   const display: StockOrderResult['display'] = normalizeStockOrderDisplay(source.display, sizeOrders)
   return {
     productIdentity: normalizeProductIdentity(source.productIdentity, primarySummary, isLegacySnapshot),
-    inboundSplitSource: normalizeInboundSplitSource(source.inboundSplitSource, sizeOrders, stockOrderRequest, display, primarySummary, isLegacySnapshot),
+    inboundSplitSource: normalizeInboundSplitSource(source.inboundSplitSource, sizeOrders, stockOrderRequest, display, isLegacySnapshot),
     existingOrderInboundSupplyBySize: normalizeExistingOrderInboundSupplyBySize(source.existingOrderInboundSupplyBySize, sizeOrders, stockOrderRequest, display, isLegacySnapshot),
     ...normalizeNumberFields(source, 'drawer2.stockOrderResult', STOCK_RESULT_KEYS),
     display,
@@ -231,99 +231,119 @@ function normalizeInboundSplitSource(
   sizeOrders: OrderSnapshotDocument['drawer2']['sizeOrders'],
   stockOrderRequest: OrderSnapshotDocument['drawer2']['stockOrderRequest'],
   display: StockOrderResult['display'],
-  primarySummary: OrderSnapshotPrimarySummary,
   isLegacySnapshot: boolean,
 ): StockOrderResult['inboundSplitSource'] {
   if (value == null) {
     if (!isLegacySnapshot) throw new Error('drawer2.stockOrderResult.inboundSplitSource is required')
-    return buildLegacyInboundSplitSource(sizeOrders, stockOrderRequest, display, primarySummary)
+    return buildLegacyInboundSplitSource(sizeOrders, stockOrderRequest, display)
   }
 
   const source: Obj = expectRecord(value, 'drawer2.stockOrderResult.inboundSplitSource')
-  const productIdentity = normalizeProductIdentity(source.productIdentity, primarySummary, isLegacySnapshot)
   const sizeOrderSizes: Set<string> = new Set(sizeOrders.map((row: OrderSnapshotSizeOrder): string => row.size))
   return {
-    productId: expectNonEmptyString(source.productId, 'drawer2.stockOrderResult.inboundSplitSource.productId'),
-    productIdentity,
-    ...normalizeStringFields(source, 'drawer2.stockOrderResult.inboundSplitSource', ['calculationBaseDate', 'coverageStartDate', 'coverageEndDate'] as const),
-    supplyBySize: normalizeInboundSplitSourceSupplyBySize(source.supplyBySize, sizeOrderSizes),
-    salesForecastByDate: normalizeInboundSplitSourceSalesForecastByDate(source.salesForecastByDate, sizeOrderSizes),
+    total: normalizeInboundSplitSourceTotal(source.total),
+    sizeInfo: normalizeInboundSplitSourceSizeInfo(source.sizeInfo, sizeOrderSizes),
+    expectation: normalizeInboundSplitSourceExpectation(source.expectation, sizeOrderSizes),
+    confirmed: normalizeInboundSplitSourceConfirmed(source.confirmed, sizeOrderSizes),
   }
 }
 
-function normalizeInboundSplitSourceSupplyBySize(value: unknown, expectedSizes: Set<string>): StockOrderResult['inboundSplitSource']['supplyBySize'] {
-  const source: Obj = expectRecord(value, 'drawer2.stockOrderResult.inboundSplitSource.supplyBySize')
+function normalizeInboundSplitSourceTotal(value: unknown): StockOrderResult['inboundSplitSource']['total'] {
+  const source: Obj = expectRecord(value, 'drawer2.stockOrderResult.inboundSplitSource.total')
+  const salesSource: Obj = expectRecord(source.sales, 'drawer2.stockOrderResult.inboundSplitSource.total.sales')
+  return {
+    suggestion: expectNumberInRange(source.suggestion, 'drawer2.stockOrderResult.inboundSplitSource.total.suggestion', 0, Number.MAX_SAFE_INTEGER),
+    sales: Object.fromEntries(Object.entries(salesSource).map(([date, value]: [string, unknown]): [string, number] => [
+      date,
+      expectNumberInRange(value, `drawer2.stockOrderResult.inboundSplitSource.total.sales.${date}`, 0, Number.MAX_SAFE_INTEGER),
+    ])),
+  }
+}
+
+function normalizeInboundSplitSourceSizeInfo(value: unknown, expectedSizes: Set<string>): StockOrderResult['inboundSplitSource']['sizeInfo'] {
+  const source: Obj = expectRecord(value, 'drawer2.stockOrderResult.inboundSplitSource.sizeInfo')
   const rows: Array<{ size: string }> = Object.keys(source).map((size: string): { size: string } => ({ size }))
-  expectSameSizeSet(rows, expectedSizes, 'drawer2.stockOrderResult.inboundSplitSource.supplyBySize', 'drawer2.sizeOrders')
-  return Object.fromEntries(Object.entries(source).map(([size, points]: [string, unknown]): [string, StockOrderResult['inboundSplitSource']['supplyBySize'][string]] => [
+  expectSameSizeSet(rows, expectedSizes, 'drawer2.stockOrderResult.inboundSplitSource.sizeInfo', 'drawer2.sizeOrders')
+  return Object.fromEntries(Object.entries(source).map(([size, value]: [string, unknown]): [string, StockOrderResult['inboundSplitSource']['sizeInfo'][string]] => {
+    const row: Obj = expectRecord(value, `drawer2.stockOrderResult.inboundSplitSource.sizeInfo.${size}`)
+    return [
+      size,
+      {
+        salesRate: expectNumberInRange(row.salesRate, `drawer2.stockOrderResult.inboundSplitSource.sizeInfo.${size}.salesRate`, 0, 1),
+        baseStock: expectNumber(row.baseStock, `drawer2.stockOrderResult.inboundSplitSource.sizeInfo.${size}.baseStock`),
+      },
+    ]
+  }))
+}
+
+function normalizeInboundSplitSourceExpectation(value: unknown, expectedSizes: Set<string>): StockOrderResult['inboundSplitSource']['expectation'] {
+  const source: Obj = expectRecord(value, 'drawer2.stockOrderResult.inboundSplitSource.expectation')
+  const rows: Array<{ size: string }> = Object.keys(source).map((size: string): { size: string } => ({ size }))
+  expectSameSizeSet(rows, expectedSizes, 'drawer2.stockOrderResult.inboundSplitSource.expectation', 'drawer2.sizeOrders')
+  return Object.fromEntries(Object.entries(source).map(([size, points]: [string, unknown]): [string, StockOrderResult['inboundSplitSource']['expectation'][string]] => [
     size,
-    expectArray(points, `drawer2.stockOrderResult.inboundSplitSource.supplyBySize.${size}`).map((point: unknown, index: number): StockOrderResult['inboundSplitSource']['supplyBySize'][string][number] => {
-      const label: string = `drawer2.stockOrderResult.inboundSplitSource.supplyBySize.${size}[${index}]`
-      const pointSource: Obj = expectRecord(point, label)
+    expectArray(points, `drawer2.stockOrderResult.inboundSplitSource.expectation.${size}`).map((point: unknown, index: number): StockOrderResult['inboundSplitSource']['expectation'][string][number] => {
+      const label: string = `drawer2.stockOrderResult.inboundSplitSource.expectation.${size}[${index}]`
+      const sourcePoint: Obj = expectRecord(point, label)
       return {
-        date: expectNonEmptyString(pointSource.date, label + '.date'),
-        qty: expectNumber(pointSource.qty, label + '.qty'),
+        date: expectNonEmptyString(sourcePoint.date, label + '.date'),
+        inbound: expectNumberInRange(sourcePoint.inbound, label + '.inbound', 0, Number.MAX_SAFE_INTEGER),
       }
     }),
   ]))
 }
 
-function normalizeInboundSplitSourceSalesForecastByDate(value: unknown, expectedSizes: Set<string>): StockOrderResult['inboundSplitSource']['salesForecastByDate'] {
-  const source: Obj = expectRecord(value, 'drawer2.stockOrderResult.inboundSplitSource.salesForecastByDate')
-  return Object.fromEntries(Object.entries(source).map(([date, row]: [string, unknown]): [string, StockOrderResult['inboundSplitSource']['salesForecastByDate'][string]] => {
-    const rowSource: Obj = expectRecord(row, `drawer2.stockOrderResult.inboundSplitSource.salesForecastByDate.${date}`)
-    const rows: Array<{ size: string }> = Object.keys(rowSource).map((size: string): { size: string } => ({ size }))
-    expectSameSizeSet(rows, expectedSizes, `drawer2.stockOrderResult.inboundSplitSource.salesForecastByDate.${date}`, 'drawer2.sizeOrders')
-    return [
-      date,
-      Object.fromEntries(Object.entries(rowSource).map(([size, qty]: [string, unknown]): [string, number] => [
-        size,
-        expectNumber(qty, `drawer2.stockOrderResult.inboundSplitSource.salesForecastByDate.${date}.${size}`),
-      ])),
-    ]
-  }))
+function normalizeInboundSplitSourceConfirmed(value: unknown, expectedSizes: Set<string>): StockOrderResult['inboundSplitSource']['confirmed'] {
+  const source: Obj = expectRecord(value, 'drawer2.stockOrderResult.inboundSplitSource.confirmed')
+  const data: StockOrderResult['inboundSplitSource']['confirmed']['data'] = expectArray(source.data, 'drawer2.stockOrderResult.inboundSplitSource.confirmed.data').map((phase: unknown, index: number): StockOrderResult['inboundSplitSource']['confirmed']['data'][number] => {
+    const label: string = `drawer2.stockOrderResult.inboundSplitSource.confirmed.data[${index}]`
+    const phaseSource: Obj = expectRecord(phase, label)
+    return {
+      phase: expectNumberInRange(phaseSource.phase, label + '.phase', 1, Number.MAX_SAFE_INTEGER),
+      inbound_date: expectNonEmptyString(phaseSource.inbound_date, label + '.inbound_date'),
+      quantity: normalizeConfirmedQtyBySize(phaseSource.quantity, label + '.quantity', expectedSizes),
+    }
+  })
+  const totalPhase: number = expectNumberInRange(source.total_phase, 'drawer2.stockOrderResult.inboundSplitSource.confirmed.total_phase', 0, Number.MAX_SAFE_INTEGER)
+  expectMatchingNumbers(Math.round(totalPhase), data.length, 'drawer2.stockOrderResult.inboundSplitSource.confirmed.total_phase', 'drawer2.stockOrderResult.inboundSplitSource.confirmed.data.length')
+  return { total_phase: totalPhase, data }
 }
 
 function buildLegacyInboundSplitSource(
   sizeOrders: OrderSnapshotDocument['drawer2']['sizeOrders'],
   stockOrderRequest: OrderSnapshotDocument['drawer2']['stockOrderRequest'],
   display: StockOrderResult['display'],
-  primarySummary: OrderSnapshotPrimarySummary,
 ): StockOrderResult['inboundSplitSource'] {
-  const calculationBaseDate: string = stockOrderRequest.currentOrderInboundDueDate
-  const coverageEndDate: string = stockOrderRequest.nextOrderInboundDueDate
+  const currentOrderInboundDate: string = stockOrderRequest.currentOrderInboundDueDate
+  const nextOrderInboundDate: string = stockOrderRequest.nextOrderInboundDueDate
   const displayRowBySize: Map<string, OrderSnapshotStockOrderDisplaySizeRow> = new Map(display.sizeRows.map((row: OrderSnapshotStockOrderDisplaySizeRow): [string, OrderSnapshotStockOrderDisplaySizeRow] => [row.size, row]))
-  const supplyBySize: StockOrderResult['inboundSplitSource']['supplyBySize'] = Object.fromEntries(sizeOrders.map((row: OrderSnapshotSizeOrder): [string, StockOrderResult['inboundSplitSource']['supplyBySize'][string]] => [
-    row.size,
-    [{ date: calculationBaseDate, qty: displayRowBySize.get(row.size)?.currentStockQty ?? 0 }],
-  ]))
-  const salesForecastByDate: StockOrderResult['inboundSplitSource']['salesForecastByDate'] = {}
   const days: number = Math.max(1, stockOrderRequest.orderCoverageDays)
+  const sales: StockOrderResult['inboundSplitSource']['total']['sales'] = {}
+  const dailyTotalSales: number = sizeOrders.reduce((sum: number, row: OrderSnapshotSizeOrder): number => sum + Math.max(0, row.forecastQty / days), 0)
   for (let offset: number = 0; ; offset += 1) {
-    const date: string = addIsoDays(calculationBaseDate, offset)
-    if (date >= coverageEndDate) break
-    salesForecastByDate[date] = Object.fromEntries(sizeOrders.map((row: OrderSnapshotSizeOrder): [string, number] => [
-      row.size,
-      Math.max(0, row.forecastQty / days),
-    ]))
+    const date: string = addIsoDays(currentOrderInboundDate, offset)
+    if (date >= nextOrderInboundDate) break
+    sales[date] = dailyTotalSales
   }
   return {
-    productId: primarySummary.skuGroupKey,
-    productIdentity: {
-      ...(primarySummary.productUuid == null ? {} : { productUuid: primarySummary.productUuid }),
-      skuGroupKey: primarySummary.skuGroupKey,
-      brand: primarySummary.brand,
-      code: primarySummary.code,
-      colorCode: primarySummary.colorCode,
+    total: {
+      suggestion: sizeOrders.reduce((sum: number, row: OrderSnapshotSizeOrder): number => sum + Math.max(0, row.recommendedQty), 0),
+      sales,
     },
-    calculationBaseDate,
-    coverageStartDate: stockOrderRequest.currentOrderInboundDueDate,
-    coverageEndDate,
-    supplyBySize,
-    salesForecastByDate,
+    sizeInfo: Object.fromEntries(sizeOrders.map((row: OrderSnapshotSizeOrder): [string, StockOrderResult['inboundSplitSource']['sizeInfo'][string]] => [
+      row.size,
+      {
+        salesRate: Math.max(0, row.blendedSharePct) / 100,
+        baseStock: displayRowBySize.get(row.size)?.currentStockQty ?? 0,
+      },
+    ])),
+    expectation: Object.fromEntries(sizeOrders.map((row: OrderSnapshotSizeOrder): [string, StockOrderResult['inboundSplitSource']['expectation'][string]] => [row.size, []])),
+    confirmed: {
+      total_phase: 0,
+      data: [],
+    },
   }
 }
-
 function normalizeProductIdentity(value: unknown, primarySummary: OrderSnapshotPrimarySummary, isLegacySnapshot: boolean): StockOrderResult['productIdentity'] {
   if (value == null) {
     if (!isLegacySnapshot) throw new Error('drawer2.stockOrderResult.productIdentity is required')

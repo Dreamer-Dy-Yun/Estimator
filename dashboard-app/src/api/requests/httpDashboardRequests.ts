@@ -78,6 +78,7 @@ function secondaryDailyTrendQuery(params: Omit<SecondaryDailyTrendParams, 'skuGr
     startDate: params.startDate,
     endDate: params.endDate,
     forecastDays: String(params.forecastDays),
+    ...(params.size == null ? {} : { size: params.size }),
     ...productComparisonSubjectQueryPrefix('base', params.base),
     ...productComparisonSubjectQueryPrefix('comparison', params.comparison),
   }

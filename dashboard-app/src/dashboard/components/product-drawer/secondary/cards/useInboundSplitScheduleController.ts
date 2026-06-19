@@ -1,4 +1,4 @@
-import type { SecondaryInboundSplitSource } from '../../../../../api/types/secondary'
+import type { SecondaryInboundSplitSource, SecondaryStockOrderCalcResult } from '../../../../../api/types/secondary'
 import type { ApiUnitErrorInfo } from '../../../../../types'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { SecondaryConfirmedRound } from '../model/secondaryConfirmedRoundModel'
@@ -27,6 +27,7 @@ interface InboundSplitRowsBuildResult {
 
 export interface UseInboundSplitScheduleControllerArgs {
   sizeRows: SecondarySizeOrderDisplayRow[]
+  stockOrderDisplay: SecondaryStockOrderCalcResult['display'] | null
   currentOrderInboundDueDate: string
   nextOrderInboundDueDate: string
   inboundSplitSource: SecondaryInboundSplitSource | null
@@ -40,7 +41,6 @@ export interface UseInboundSplitScheduleControllerArgs {
 
 export interface UseInboundSplitScheduleControllerResult {
   columns: InboundSplitSizeColumn[]
-  sourceReady: boolean
   scheduleReady: boolean
   sourceErrorTitle: string | undefined
   displayCount: number
@@ -86,6 +86,7 @@ function requireInboundSplitSource(source: SecondaryInboundSplitSource | null): 
 
 export function useInboundSplitScheduleController({
   sizeRows,
+  stockOrderDisplay,
   currentOrderInboundDueDate,
   nextOrderInboundDueDate,
   inboundSplitSource,
@@ -96,7 +97,7 @@ export function useInboundSplitScheduleController({
   onConfirmQtyChange,
   onConfirmedRoundsChange,
 }: UseInboundSplitScheduleControllerArgs): UseInboundSplitScheduleControllerResult {
-  const columns: InboundSplitSizeColumn[] = useMemo((): InboundSplitSizeColumn[] => getInboundSplitSizeColumns(sizeRows), [sizeRows])
+  const columns: InboundSplitSizeColumn[] = useMemo((): InboundSplitSizeColumn[] => getInboundSplitSizeColumns(sizeRows, stockOrderDisplay), [sizeRows, stockOrderDisplay])
   const sourceReady: boolean = inboundSplitSource != null && !inboundSplitSourceLoading && inboundSplitSourceError == null
   const scheduleReady: boolean = calculationReady && sourceReady
   const [splitCount, setSplitCount]: [number, React.Dispatch<React.SetStateAction<number>>] = useState<number>(MIN_INBOUND_SPLIT_COUNT)
@@ -211,7 +212,6 @@ export function useInboundSplitScheduleController({
 
   return {
     columns,
-    sourceReady,
     scheduleReady,
     sourceErrorTitle: calculationReady ? inboundSplitSourceError?.error : undefined,
     displayCount,

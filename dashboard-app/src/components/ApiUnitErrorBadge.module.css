@@ -1,3 +1,10 @@
+.wrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  vertical-align: middle;
+}
+
 .badge {
   margin-left: 8px;
   padding: 2px 6px;
@@ -8,4 +15,77 @@
   font-size: 11px;
   font-weight: 700;
   cursor: pointer;
+}
+
+.tooltip {
+  position: absolute;
+  top: calc(100% + 7px);
+  left: 8px;
+  z-index: 80;
+  min-width: 280px;
+  max-width: min(520px, calc(100vw - 32px));
+  padding: 10px 12px;
+  border: 1px solid rgba(15, 23, 42, 0.18);
+  border-radius: 10px;
+  background: #0f172a;
+  box-shadow: 0 14px 32px rgba(15, 23, 42, 0.24);
+  color: #e5e7eb;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.45;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-2px);
+  transition: opacity 120ms ease, transform 120ms ease, visibility 120ms ease;
+  visibility: hidden;
+  white-space: normal;
+}
+
+.tooltip::before {
+  position: absolute;
+  top: -5px;
+  left: 14px;
+  width: 10px;
+  height: 10px;
+  background: #0f172a;
+  border-top: 1px solid rgba(15, 23, 42, 0.18);
+  border-left: 1px solid rgba(15, 23, 42, 0.18);
+  content: "";
+  transform: rotate(45deg);
+}
+
+.wrapper:hover .tooltip,
+.wrapper:focus-within .tooltip {
+  opacity: 1;
+  transform: translateY(0);
+  visibility: visible;
+}
+
+.tooltipActionHint {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 7px;
+  color: #dbeafe;
+  font-weight: 700;
+}
+
+.tooltipIcon {
+  display: inline-flex;
+  width: 16px;
+  height: 16px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(219, 234, 254, 0.82);
+  border-radius: 999px;
+  color: #dbeafe;
+  font-size: 10px;
+  line-height: 1;
+}
+
+.tooltipDetail {
+  display: block;
+  color: #f8fafc;
+  font-family: "Noto Sans KR", sans-serif;
+  white-space: pre-wrap;
 }

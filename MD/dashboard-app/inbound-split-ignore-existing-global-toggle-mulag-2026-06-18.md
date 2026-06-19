@@ -1,5 +1,7 @@
 # MulAg Run: Inbound split `ignoreExistingOrderInbound` global toggle
 
+Current rule note: this historical run remains useful for the schedule-level UI ownership decision, but current planning semantics refine the toggle scope. Demand uses `[round n inbound date, round n+1 inbound date)`, existing-order inbound for round n uses `[round n-1 inbound date, round n inbound date)`, and round 1 is not affected by `ignoreExistingOrderInbound`.
+
 ## Goal
 
 Align inbound split behavior so `ignoreExistingOrderInbound` is treated as a schedule-level option, not a per-round control, and keep split row behavior consistent with that contract from UI interaction through persistence.

@@ -7,7 +7,7 @@ import {
   type InboundSplitScheduleRow,
   type InboundSplitSizeColumn,
 } from './inboundSplitScheduleModel'
-import { redistributeInboundSplitRowTotalBySuggestedSizeMix, toInboundSplitDraftInteger } from './inboundSplitDraftQuantityModel'
+import { redistributeInboundSplitRowTotalBySuggestedTotals, toInboundSplitDraftInteger } from './inboundSplitDraftQuantityModel'
 import type { InboundSplitDraftRequest } from './inboundSplitScheduleTypes'
 
 export interface UseInboundSplitScheduleDraftArgs {
@@ -39,6 +39,22 @@ function syncIgnoreExistingOrderInbound(
     ...row,
     ignoreExistingOrderInbound: checked,
   }))
+}
+
+function syncQuantitiesToSuggested(
+  targetRows: readonly InboundSplitScheduleRow[],
+  columns: readonly InboundSplitSizeColumn[],
+): InboundSplitScheduleRow[] {
+  return targetRows.map((row: InboundSplitScheduleRow): InboundSplitScheduleRow => {
+    const quantitiesBySize: Record<string, number> = {}
+    columns.forEach((column: InboundSplitSizeColumn): void => {
+      quantitiesBySize[column.size] = Math.max(0, Math.round(row.suggestedQuantitiesBySize[column.size] ?? 0))
+    })
+    return {
+      ...row,
+      quantitiesBySize,
+    }
+  })
 }
 
 export function useInboundSplitScheduleDraft({
@@ -82,17 +98,17 @@ export function useInboundSplitScheduleDraft({
       try {
         const nextRows: InboundSplitScheduleRow[] = recalculateRows(builtRows)
         setCount(nextCount)
-        setRows(nextRows)
+        setRows(syncQuantitiesToSuggested(nextRows, columns))
         onDraftError?.(null, 'buildInboundSplitScheduleRows')
       } catch (err: unknown) {
         setCount(nextCount)
-        setRows(builtRows)
+        setRows(syncQuantitiesToSuggested(builtRows, columns))
         onDraftError?.(err, 'recalculateInboundSplitScheduleRows')
       }
     } catch (err: unknown) {
       onDraftError?.(err, 'buildInboundSplitScheduleRows')
     }
-  }, [buildRowsForCount, ignoreExistingOrderInboundAll, onDraftError, recalculateRows])
+  }, [buildRowsForCount, columns, ignoreExistingOrderInboundAll, onDraftError, recalculateRows])
 
   const changeIgnoreExistingOrderInboundAll: (checked: boolean) => void = useCallback((checked: boolean): void => {
     setIgnoreExistingOrderInboundAll(checked)
@@ -101,17 +117,17 @@ export function useInboundSplitScheduleDraft({
       try {
         const recalculatedRows: InboundSplitScheduleRow[] = recalculateRows(nextRows)
         onDraftError?.(null, 'recalculateInboundSplitScheduleRows')
-        return recalculatedRows
+        return syncQuantitiesToSuggested(recalculatedRows, columns)
       } catch (err: unknown) {
         onDraftError?.(err, 'recalculateInboundSplitScheduleRows')
-        return nextRows
+        return syncQuantitiesToSuggested(nextRows, columns)
       }
     })
-  }, [onDraftError, recalculateRows])
+  }, [columns, onDraftError, recalculateRows])
 
   const changeRowTotal: (rowIndex: number, value: string) => void = useCallback((rowIndex: number, value: string): void => {
     setRows((currentRows: InboundSplitScheduleRow[]): InboundSplitScheduleRow[] => {
-      const nextRows: InboundSplitScheduleRow[] = redistributeInboundSplitRowTotalBySuggestedSizeMix(currentRows, columns, rowIndex, value)
+      const nextRows: InboundSplitScheduleRow[] = redistributeInboundSplitRowTotalBySuggestedTotals(currentRows, columns, rowIndex, value)
       return nextRows.length === currentRows.length ? nextRows : currentRows
     })
   }, [columns])

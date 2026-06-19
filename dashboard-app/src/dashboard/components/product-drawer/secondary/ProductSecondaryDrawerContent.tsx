@@ -188,6 +188,8 @@ export function ProductSecondaryDrawerContent({
           selfCompanyLabel={selfCompanyLabel}
           comparisonLabel={comparisonLabel}
           sizeOptions={dailyTrendSizeOptions}
+          selectedSizeId={dailyTrend.selectedSizeId}
+          onSizeChange={dailyTrend.onSelectedSizeChange}
           trend={{
             series: dailyTrend.dailyTrendSeries,
             loading: dailyTrend.dailyTrendLoading,

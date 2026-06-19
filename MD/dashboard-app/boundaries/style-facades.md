@@ -31,8 +31,10 @@ CSS facade files are public import entries for TS/TSX. `style-parts` files are i
 - `inboundSplitDialogShell.module.css` owns the split-inbound modal frame, footer actions, table frame, and shared CSS variables for the split-inbound palette and table dimensions.
 - `inboundSplitTable.module.css` owns the split table base layout, header, horizontal sticky columns, fixed column offsets, and width policy: fixed minimum content columns, fill spare frame width, and keep scroll on overflow.
 - `inboundSplitRows.module.css` owns row states: total summary, same-round suggested/confirmed rows without an internal divider, round dividers, changed-confirmation text color, sticky body-cell widths, and input sizing.
+- `inboundSplitRows.module.css` also owns the split-inbound suggestion-basis tooltip. Because it is rendered inside the scrollable table, z-index and clipping changes must be checked against sticky header/column behavior before changing selectors.
 - `inboundSplitControls.module.css` owns the split count display/select/button controls used from the size-order card and dialog toolbar.
 - `inboundSplitResponsive.module.css` owns media-query-only overrides for the split-inbound dialog.
+- Some shared secondary drawer selectors still live in `cardAi.module.css` for historical reasons, including generic button/card selectors. Do not rename or move them without a separate visual regression pass.
 
 ## Inline style policy
 

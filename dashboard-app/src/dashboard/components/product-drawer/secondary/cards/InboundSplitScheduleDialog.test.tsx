@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+﻿// @vitest-environment jsdom
 import { act, type ComponentProps } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, describe, expect, it, vi, type Mock } from 'vitest'
@@ -28,6 +28,7 @@ function row(
     inboundDate,
     ignoreExistingOrderInbound: false,
     suggestedQuantitiesBySize: { S: suggestedS, M: suggestedM },
+    suggestionBasisBySize: {},
     quantitiesBySize: { S: confirmedS, M: confirmedM },
   }
 }
@@ -207,7 +208,7 @@ describe('InboundSplitScheduleDialog event flow', () : void => {
     const actionButtons: HTMLButtonElement[] = Array.from(document.querySelectorAll<HTMLButtonElement>('footer button'))
 
     expect(actionButtons[1].disabled).toBe(true)
-    expect(document.body.textContent).toContain('입고일 간격이 0일 이하입니다.')
+    expect(document.body.textContent).toContain(KO.msgInboundSplitInvalidDatePolicy)
     act(() : void => {
       actionButtons[1].click()
     })

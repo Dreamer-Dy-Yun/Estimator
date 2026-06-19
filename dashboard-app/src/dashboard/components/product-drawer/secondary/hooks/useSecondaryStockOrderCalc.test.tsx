@@ -33,21 +33,20 @@ const BASE_PROPS: { skuGroupKey: string; productIdentity: SecondaryProductIdenti
 }
 
 const INBOUND_SPLIT_SOURCE: SecondaryInboundSplitSource = {
-  productId: PRODUCT_IDENTITY.skuGroupKey,
-  productIdentity: PRODUCT_IDENTITY,
-  calculationBaseDate: BASE_PROPS.calculationBaseDate,
-  coverageStartDate: BASE_PROPS.currentOrderInboundDueDate,
-  coverageEndDate: BASE_PROPS.nextOrderInboundDueDate,
-  supplyBySize: {
-    S: [
-      { date: '2026-02-01', qty: 1 },
-      { date: '2026-02-02', qty: 1 },
-    ],
+  total: {
+    suggestion: 20,
+    sales: {
+      '2026-02-01': 10,
+      '2026-02-02': 10,
+    },
   },
-  salesForecastByDate: {
-    '2026-02-01': { S: 10 },
-    '2026-02-02': { S: 10 },
+  sizeInfo: {
+    S: { salesRate: 1, baseStock: 1 },
   },
+  expectation: {
+    S: [{ date: '2026-02-02', inbound: 1 }],
+  },
+  confirmed: { total_phase: 0, data: [] },
 }
 
 function calcResult(dailyMean: number): SecondaryStockOrderCalcResult {

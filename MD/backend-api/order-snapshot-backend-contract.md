@@ -1,6 +1,6 @@
 ﻿# Order Snapshot Backend Contract
 
-Last updated: 2026-06-18
+Last updated: 2026-06-19
 
 `OrderSnapshotDocument` is the persisted candidate item snapshot. It is a screen-restore contract for the current product drawer state.
 
@@ -75,7 +75,11 @@ This block follows the frontend render/calc result type `SecondaryStockOrderCalc
 
 `productIdentity`: `productUuid?`, `skuGroupKey`, `brand`, `code`, `colorCode`.
 `existingOrderInboundSupplyBySize`: A, keyed by size. Each point is `{ date, qty }` and represents existing ordered but not-yet-inbound quantity from backend-managed Google Sheet staging data. It must not include the draft/current order quantities being edited in the drawer.
-`inboundSplitSource`: shared source used by detailed recommended quantity rows and split-inbound planning. It contains `productId`, `productIdentity`, `calculationBaseDate`, `coverageStartDate`, `coverageEndDate`, `supplyBySize`, and `salesForecastByDate`. `coverageStartDate` is `stockOrderRequest.currentOrderInboundDueDate`; `coverageEndDate` is `stockOrderRequest.nextOrderInboundDueDate` and is exclusive.
+`inboundSplitSource`: shared source used by detailed recommended quantity rows and split-inbound planning. It contains `total`, `sizeInfo`, `expectation`, and `confirmed`.
+
+`inboundSplitSource.total.suggestion` is the backend-provided source recommendation aggregate. Frontend order-detail and split-inbound suggestions may differ when UI-only inputs such as `bufferStock` or split-row options apply. `inboundSplitSource.total.sales` is whole-product daily sales forecast for `[stockOrderRequest.currentOrderInboundDueDate, stockOrderRequest.nextOrderInboundDueDate)`.
+
+`inboundSplitSource.sizeInfo[size].salesRate` is the size sales/share ratio as a 0..1 number. `inboundSplitSource.sizeInfo[size].baseStock` is opening stock by size and may be negative. `inboundSplitSource.expectation[size][]` is the existing-order future inbound schedule and excludes the draft/current order. `inboundSplitSource.confirmed` is an initial confirmed-phase payload, if the backend has one.
 
 `display`: `currentStockQtyTotal`, `totalOrderBalanceTotal`, `expectedInboundOrderBalanceTotal`, `sizeRows[]`.
 `sizeRows[]`: `size`, `currentStockQty`, `totalOrderBalance`, `expectedInboundOrderBalance`.
@@ -96,7 +100,8 @@ Recommendation basis lives in `drawer2.sizeOrders[]`, `drawer2.bufferStock`, `dr
 - `drawer2.comparisonSubject.sourceId` is required for `competitor-channel`.
 - `drawer2.sizeOrders[].size` values must be unique.
 - `drawer2.stockOrderResult.display.sizeRows[]` size set must match `drawer2.sizeOrders[]` size set.
-- `drawer2.stockOrderResult.inboundSplitSource.supplyBySize` size set and each `salesForecastByDate[date]` size set must match `drawer2.sizeOrders[]`.
+- `drawer2.stockOrderResult.inboundSplitSource.sizeInfo`, `expectation`, and each `confirmed.data[].quantity` size set must match `drawer2.sizeOrders[]`.
+- `drawer2.stockOrderResult.inboundSplitSource.confirmed.total_phase` must equal `confirmed.data.length`.
 - `drawer2.confirmed.rounds[].qtyBySize` size keys must match `drawer2.sizeOrders[].size`.
 - `drawer2.stockOrderResult.display` total fields must equal sums of each size row field.
 - `context.dailyTrendForecastDays` must equal `drawer2.stockOrderRequest.orderCoverageDays`.
@@ -116,7 +121,7 @@ This block follows the AI comment render model `SecondaryAiCommentView`.
 Required fields: `rounds`.
 `rounds[]` fields: `date`, `ignoreExistingOrderInbound`, `qtyBySize`.
 `qtyBySize` is keyed by `sizeOrders[].size`.
-Each round follows the split inbound schedule state model `SecondaryConfirmedRound`. The current UI exposes one schedule-level toggle and writes the same `ignoreExistingOrderInbound` value to every round on apply. `ignoreExistingOrderInbound=true` means existing-order inbound supply points inside the affected split interval were excluded when deriving the suggestion.
+Each round follows the split inbound schedule state model `SecondaryConfirmedRound`. The current UI exposes one schedule-level toggle and writes the same `ignoreExistingOrderInbound` value to every round on apply. `ignoreExistingOrderInbound=true` means the schedule ignores existing-order inbound in each round's previous-to-current inbound window; round 1 has no previous-to-current window, so the flag does not change round 1. Opening stock and the existing-order inbound aggregate before `stockOrderRequest.currentOrderInboundDueDate` remain applied.
 Round numbers are not stored. The frontend/backend derives `1차`, `2차`, ... from the array order.
 Total quantity is not stored. Consumers derive it from `sum(confirmed.rounds[].qtyBySize)`.
 

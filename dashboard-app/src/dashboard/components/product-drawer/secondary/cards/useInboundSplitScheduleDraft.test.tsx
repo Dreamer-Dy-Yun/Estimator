@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+﻿// @vitest-environment jsdom
 import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, describe, expect, it, vi, type Mock } from 'vitest'
@@ -20,6 +20,7 @@ function row(id: string, round: number, inboundDate: string, s: number, m: numbe
     inboundDate,
     ignoreExistingOrderInbound: false,
     suggestedQuantitiesBySize: { S: s, M: m },
+    suggestionBasisBySize: {},
     quantitiesBySize: { S: s, M: m },
   }
 }

@@ -35,19 +35,15 @@ export interface SecondaryDailyTrendFlowCell {
 }
 
 export interface SecondaryDailyTrendSource {
-  productId: string
-  /** Inclusive first date in flowByDate. */
-  dateStart: string
-  /** Inclusive final date in flowByDate. Includes forecast days when forecastDays > 0. */
-  dateEnd: string
-  /** First forecast date; normally request endDate + 1 day. */
-  forecastStartDate: string
-  /** Opening stock immediately before dateStart is applied. */
-  baseStockAtStart: number | null
-  /** Reserved for comparison stock. Current UI does not render comparison stock bars. */
-  comparisonStockAtStart: number | null
-  /** Aggregate per-date flow. Keys must cover every date from dateStart through dateEnd. */
-  flowByDate: Record<string, SecondaryDailyTrendFlowCell>
+  /** Echoed size filter. Null means all-size aggregate. */
+  size: string | null
+  /** Opening stock before the first returned date. */
+  baseStock: number | null
+  /** Date-keyed base/comparison daily sale and inbound flow. */
+  data: {
+    base: Record<string, SecondaryDailyTrendBaseFlow>
+    comparison: Record<string, SecondaryDailyTrendComparisonFlow>
+  }
 }
 
 export interface SecondaryDailyTrendParams {
@@ -55,15 +51,42 @@ export interface SecondaryDailyTrendParams {
   startDate: string
   endDate: string
   forecastDays: number
+  /** Optional size filter. Omit or null for all sizes. */
+  size?: string | null
   base: ProductComparisonBaseSubjectRef
   comparison: ProductComparisonComparisonSubjectRef
 }
 
-export interface SecondaryInboundSplitSupplyPoint {
+export interface SecondaryExistingOrderInboundPoint {
   /** Date when this quantity becomes available for split-inbound simulation. */
   date: string
   /** Quantity that increases available stock on `date`. */
   qty: number
+}
+
+export interface SecondaryInboundSplitExpectationPoint {
+  /** Date when an already-ordered inbound quantity becomes available. */
+  date: string
+  /** Existing-order inbound quantity. This is unrelated to the current split order. */
+  inbound: number
+}
+
+export interface SecondaryInboundSplitSizeInfo {
+  /** Size sales mix ratio. 0.072 means 7.2%. */
+  salesRate: number
+  /** Opening stock used by split-inbound planning. */
+  baseStock: number
+}
+
+export interface SecondaryInboundSplitConfirmedPhase {
+  phase: number
+  inbound_date: string
+  quantity: Record<string, number>
+}
+
+export interface SecondaryInboundSplitConfirmed {
+  total_phase: number
+  data: SecondaryInboundSplitConfirmedPhase[]
 }
 
 export interface SecondaryProductIdentity {
@@ -76,22 +99,20 @@ export interface SecondaryProductIdentity {
   colorCode: string
 }
 
-export type SecondaryExistingOrderInboundSupplyBySize = Record<string, SecondaryInboundSplitSupplyPoint[]>
+export type SecondaryExistingOrderInboundSupplyBySize = Record<string, SecondaryExistingOrderInboundPoint[]>
 
 export interface SecondaryInboundSplitSource {
-  productId: string
-  /** Echoed product identity used to reject mismatched inbound-source responses. */
-  productIdentity: SecondaryProductIdentity
-  /** Inventory simulation base date. Supply points on this date represent current stock. */
-  calculationBaseDate: string
-  /** Inclusive first date covered by the current order split rounds. */
-  coverageStartDate: string
-  /** Exclusive next-order inbound date; split coverage ends at coverageEndDate - 1 day. */
-  coverageEndDate: string
-  /** Size-keyed current stock and existing-order inbound quantities by available date. */
-  supplyBySize: Record<string, SecondaryInboundSplitSupplyPoint[]>
-  /** Date-keyed, size-keyed sales forecast from calculationBaseDate <= date < coverageEndDate. */
-  salesForecastByDate: Record<string, Record<string, number>>
+  /** Aggregate recommendation and daily whole-product sales forecast. */
+  total: {
+    suggestion: number
+    sales: Record<string, number>
+  }
+  /** Size-keyed sales ratio and opening stock. */
+  sizeInfo: Record<string, SecondaryInboundSplitSizeInfo>
+  /** Existing already-ordered inbound quantities by size. */
+  expectation: Record<string, SecondaryInboundSplitExpectationPoint[]>
+  /** Initial confirmed split rows, when supplied by a saved snapshot/API response. */
+  confirmed: SecondaryInboundSplitConfirmed
 }
 
 export interface SecondaryCompetitorChannel {

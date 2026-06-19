@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+﻿import { describe, expect, it } from 'vitest'
 import type { SecondaryInboundSplitSource } from '../../../../../api/types/secondary'
 import {
   buildInboundSplitScheduleRows,
@@ -11,19 +11,14 @@ import {
 const COLUMNS: InboundSplitSizeColumn[] = [{ size: 'S', confirmedQty: 10, recommendedQty: 10 }]
 
 function makeSource(dailySalesByDate: Record<string, number>): SecondaryInboundSplitSource {
-  const salesForecastByDate: SecondaryInboundSplitSource['salesForecastByDate'] = {}
-  Object.entries(dailySalesByDate).forEach(([date, sale]: [string, number]): void => {
-    salesForecastByDate[date] = { S: sale }
-  })
-
   return {
-    productId: 'product-a',
-    productIdentity: { productUuid: null, skuGroupKey: 'product-a', brand: 'Brand', code: 'CODE', colorCode: 'BLK' },
-    calculationBaseDate: '2026-04-01',
-    coverageStartDate: '2026-04-01',
-    coverageEndDate: '2026-04-07',
-    supplyBySize: { S: [{ date: '2026-04-01', qty: 0 }] },
-    salesForecastByDate,
+    total: {
+      suggestion: Object.values(dailySalesByDate).reduce((sum: number, sale: number): number => sum + sale, 0),
+      sales: { ...dailySalesByDate },
+    },
+    sizeInfo: { S: { salesRate: 1, baseStock: 0 } },
+    expectation: { S: [] },
+    confirmed: { total_phase: 0, data: [] },
   }
 }
 

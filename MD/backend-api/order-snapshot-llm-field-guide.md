@@ -1,6 +1,6 @@
 # Order Snapshot LLM Field Guide
 
-Last updated: 2026-06-18
+Last updated: 2026-06-19
 
 Use this guide when converting `OrderSnapshotDocument` v8 into an LLM prompt.
 
@@ -32,14 +32,14 @@ Use this guide when converting `OrderSnapshotDocument` v8 into an LLM prompt.
 | `drawer2.comparisonBasis` | Comparison baseline price, quantity, and size ratio. |
 | `drawer2.stockOrderRequest` | User/order input dates and coverage days. |
 | `drawer2.stockOrderResult.productIdentity` | Product identity echoed by stock-order-calc so the UI can reject mismatched results. |
-| `drawer2.stockOrderResult.inboundSplitSource` | Shared planning source returned by stock-order-calc. Contains calculation base date, coverage dates, size/date sales forecasts, and supply points. |
+| `drawer2.stockOrderResult.inboundSplitSource` | Shared planning source returned by stock-order-calc. Contains `total`, `sizeInfo`, `expectation`, and `confirmed`. |
 | `drawer2.stockOrderResult.existingOrderInboundSupplyBySize` | Existing-order inbound supply by size and date. This excludes the current order being planned. |
 | `drawer2.stockOrderResult.display.totalOrderBalanceTotal` | Total unreceived existing-order balance aggregate. |
 | `drawer2.stockOrderResult.display.expectedInboundOrderBalanceTotal` | Existing-order inbound aggregate with `date < stockOrderRequest.currentOrderInboundDueDate`. |
 | `drawer2.stockOrderResult` | Calculated stock/order recommendation basis. |
 | `drawer2.unitEconomics` | Unit price, cost, and fee rate. |
 | `drawer2.aiComment` | Stored AI prompt/answer metadata. |
-| `drawer2.confirmed.rounds[]` | Confirmed inbound rounds. Quantities are keyed by size. The current UI writes the same `ignoreExistingOrderInbound` value to all rounds from one schedule-level toggle. |
+| `drawer2.confirmed.rounds[]` | Confirmed inbound rounds. Quantities are keyed by size. The current UI writes the same `ignoreExistingOrderInbound` value to all rounds from one schedule-level toggle. The toggle ignores existing-order inbound only in each round's previous-to-current inbound window; round 1 has no such window. |
 | `drawer2.sizeOrders[]` | Size-level share, forecast, and recommendation rows. |
 
 ## Comment basis
@@ -50,5 +50,8 @@ Use this guide when converting `OrderSnapshotDocument` v8 into an LLM prompt.
 - Use `confirmed.rounds[]` for confirmed order quantities.
 - Use `sizeOrders[]` only for share, forecast, and recommendation context.
 - Use `existingOrderInboundSupplyBySize` when the comment needs date-level existing-order inbound context.
+- Treat `inboundSplitSource.total.suggestion` as a backend source aggregate, not as the final frontend recommendation when UI-only buffer or split options apply. Use `inboundSplitSource.total.sales` for the daily whole-product sales forecast over the current order window.
+- Use `inboundSplitSource.sizeInfo[size].salesRate` and `baseStock` when explaining size allocation and opening stock.
+- Use `inboundSplitSource.expectation` only for existing-order future inbound quantities; do not describe it as current stock.
 - Use `display.totalOrderBalanceTotal`, `display.expectedInboundOrderBalanceTotal`, and `display.sizeRows[]` when the comment only needs current table totals.
 - Use `unitEconomics` with calculated amounts when discussing margin or profit.

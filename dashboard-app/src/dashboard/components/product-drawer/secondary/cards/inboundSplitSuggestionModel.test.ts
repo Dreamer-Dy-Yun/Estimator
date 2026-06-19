@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+﻿import { describe, expect, it } from 'vitest'
 import type { SecondaryInboundSplitSource } from '../../../../../api/types/secondary'
 import type { InboundSplitSizeColumn } from './inboundSplitScheduleModel'
 import { buildInboundSplitSuggestedQuantitiesByRow } from './inboundSplitSuggestionModel'
@@ -9,23 +9,23 @@ function makeSource(
   stock: number,
   cells: Record<string, { sale: number; inbound: number }>,
 ): SecondaryInboundSplitSource {
-  const supplyBySize: SecondaryInboundSplitSource['supplyBySize'] = {
-    S: [{ date: '2026-04-01', qty: stock }],
-  }
-  const salesForecastByDate: SecondaryInboundSplitSource['salesForecastByDate'] = {}
+  const sales: SecondaryInboundSplitSource['total']['sales'] = {}
+  const expectation: SecondaryInboundSplitSource['expectation']['S'] = []
   Object.entries(cells).forEach(([date, cell]: [string, { sale: number; inbound: number }]): void => {
-    salesForecastByDate[date] = { S: cell.sale }
-    if (cell.inbound > 0) supplyBySize.S.push({ date, qty: cell.inbound })
+    sales[date] = cell.sale
+    if (cell.inbound > 0) expectation.push({ date, inbound: cell.inbound })
   })
 
   return {
-    productId: 'product-a',
-    productIdentity: { productUuid: null, skuGroupKey: 'product-a', brand: 'Brand', code: 'CODE', colorCode: 'BLK' },
-    calculationBaseDate: '2026-04-01',
-    coverageStartDate: '2026-04-01',
-    coverageEndDate: '2026-04-05',
-    supplyBySize,
-    salesForecastByDate,
+    total: {
+      suggestion: Math.max(0, Object.values(sales).reduce((sum: number, sale: number): number => sum + sale, 0)),
+      sales,
+    },
+    sizeInfo: {
+      S: { salesRate: 1, baseStock: stock },
+    },
+    expectation: { S: expectation },
+    confirmed: { total_phase: 0, data: [] },
   }
 }
 
@@ -110,21 +110,21 @@ describe('buildInboundSplitSuggestedQuantitiesByRow', () : void => {
 
   it('suggests each size from its own interval stock and sales flow', () : void => {
     const source: SecondaryInboundSplitSource = {
-      productId: 'product-a',
-      productIdentity: { productUuid: null, skuGroupKey: 'product-a', brand: 'Brand', code: 'CODE', colorCode: 'BLK' },
-      calculationBaseDate: '2026-04-01',
-      coverageStartDate: '2026-04-01',
-      coverageEndDate: '2026-04-05',
-      supplyBySize: {
-        S: [{ date: '2026-04-01', qty: 0 }],
-        M: [{ date: '2026-04-01', qty: 0 }],
+      total: {
+        suggestion: 10,
+        sales: {
+          '2026-04-01': 2,
+          '2026-04-02': 2,
+          '2026-04-03': 4,
+          '2026-04-04': 2,
+        },
       },
-      salesForecastByDate: {
-        '2026-04-01': { S: 2, M: 0 },
-        '2026-04-02': { S: 2, M: 0 },
-        '2026-04-03': { S: 1, M: 3 },
-        '2026-04-04': { S: 1, M: 1 },
+      sizeInfo: {
+        S: { salesRate: 0.6, baseStock: 0 },
+        M: { salesRate: 0.4, baseStock: 0 },
       },
+      expectation: { S: [], M: [] },
+      confirmed: { total_phase: 0, data: [] },
     }
 
     const rows: Record<string, number>[] = buildInboundSplitSuggestedQuantitiesByRow(
@@ -140,6 +140,6 @@ describe('buildInboundSplitSuggestedQuantitiesByRow', () : void => {
       source,
     )
 
-    expect(rows).toEqual([{ S: 4, M: 0 }, { S: 2, M: 4 }])
+    expect(rows).toEqual([{ S: 2, M: 2 }, { S: 4, M: 2 }])
   })
 })

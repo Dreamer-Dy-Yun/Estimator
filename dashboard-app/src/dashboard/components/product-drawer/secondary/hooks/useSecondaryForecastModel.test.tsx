@@ -38,17 +38,17 @@ const PRODUCT_IDENTITY: SecondaryProductIdentity = { productUuid: null, skuGroup
 const STOCK_ORDER_CALC: SecondaryStockOrderCalcResult = {
   productIdentity: PRODUCT_IDENTITY,
   inboundSplitSource: {
-    productId: PRODUCT_IDENTITY.skuGroupKey,
-    productIdentity: PRODUCT_IDENTITY,
-    calculationBaseDate: '2026-04-01',
-    coverageStartDate: '2026-04-01',
-    coverageEndDate: '2026-05-01',
-    supplyBySize: {
-      S: [{ date: '2026-04-01', qty: 1 }],
+    total: {
+      suggestion: 10,
+      sales: {
+        '2026-04-01': 10,
+      },
     },
-    salesForecastByDate: {
-      '2026-04-01': { S: 10 },
+    sizeInfo: {
+      S: { salesRate: 1, baseStock: 1 },
     },
+    expectation: { S: [] },
+    confirmed: { total_phase: 0, data: [] },
   },
   existingOrderInboundSupplyBySize: {
     S: [

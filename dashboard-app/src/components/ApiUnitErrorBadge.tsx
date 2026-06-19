@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
 import type { ApiUnitErrorInfo } from '../types'
+import { copyToClipboard } from '../utils/copyToClipboard'
 import styles from './ApiUnitErrorBadge.module.css'
 
 export type Props = {
@@ -8,6 +9,7 @@ export type Props = {
 
 export function ApiUnitErrorBadge({ error }: Props) : React.JSX.Element | null {
   const [copiedDetail, setCopiedDetail]: [string | null, React.Dispatch<React.SetStateAction<string | null>>] = useState<string | null>(null)
+  const tooltipId: string = useId()
   const mountedRef: React.RefObject<boolean> = useRef(false)
   const copySequenceRef: React.RefObject<number> = useRef(0)
   const copiedResetTimerRef: React.RefObject<number | null> = useRef<number | null>(null)
@@ -43,20 +45,20 @@ export function ApiUnitErrorBadge({ error }: Props) : React.JSX.Element | null {
   const handleCopy: () => Promise<void> = useCallback(async () : Promise<void> => {
     const copySequence: number = copySequenceRef.current + 1
     copySequenceRef.current = copySequence
-    try {
-      await navigator.clipboard.writeText(detail)
-      if (!mountedRef.current || copySequenceRef.current !== copySequence) return
-      clearCopiedResetTimer()
-      setCopiedDetail(detail)
-      copiedResetTimerRef.current = window.setTimeout(() : void => {
-        copiedResetTimerRef.current = null
-        if (mountedRef.current && copySequenceRef.current === copySequence) setCopiedDetail(null)
-      }, 1200)
-    } catch {
+    const copied: boolean = await copyToClipboard(detail)
+    if (!copied) {
       if (!mountedRef.current || copySequenceRef.current !== copySequence) return
       clearCopiedResetTimer()
       setCopiedDetail(null)
+      return
     }
+    if (!mountedRef.current || copySequenceRef.current !== copySequence) return
+    clearCopiedResetTimer()
+    setCopiedDetail(detail)
+    copiedResetTimerRef.current = window.setTimeout(() : void => {
+      copiedResetTimerRef.current = null
+      if (mountedRef.current && copySequenceRef.current === copySequence) setCopiedDetail(null)
+    }, 1200)
   }, [clearCopiedResetTimer, detail])
 
   if (!error) return null
@@ -64,14 +66,23 @@ export function ApiUnitErrorBadge({ error }: Props) : React.JSX.Element | null {
   const copied: boolean = copiedDetail === detail
 
   return (
-    <button
-      type="button"
-      title={detail}
-      onClick={handleCopy}
-      className={styles.badge}
-      aria-label={copied ? '에러 정보 복사됨' : '에러 정보 복사'}
-    >
-      {copied ? 'COPIED' : 'ERROR'}
-    </button>
+    <span className={styles.wrapper}>
+      <button
+        type="button"
+        onClick={handleCopy}
+        className={styles.badge}
+        aria-label={copied ? '에러 정보 복사됨' : '에러 정보 복사'}
+        aria-describedby={tooltipId}
+      >
+        {copied ? 'COPIED' : 'ERROR'}
+      </button>
+      <span id={tooltipId} className={styles.tooltip} role="tooltip">
+        <span className={styles.tooltipActionHint}>
+          <span className={styles.tooltipIcon} aria-hidden="true">i</span>
+          <span>클릭하면 복사됩니다.</span>
+        </span>
+        <span className={styles.tooltipDetail}>{detail}</span>
+      </span>
+    </span>
   )
 }

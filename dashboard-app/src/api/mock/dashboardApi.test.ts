@@ -1,5 +1,5 @@
 import type { ProductComparisonBaseSubjectRef, ProductComparisonTarget, ProductMonthlyTrend, SecondaryCompetitorChannel, SecondaryStockOrderCalcResult } from '..'
-import type { ProductMonthlyTrendPoint, SecondaryDailyTrendFlowCell, SecondaryDailyTrendPoint, SecondaryDailyTrendSource } from '../types'
+import type { ProductMonthlyTrendPoint, SecondaryDailyTrendComparisonFlow, SecondaryDailyTrendPoint, SecondaryDailyTrendSource } from '../types'
 import type { SecondaryStockOrderDisplaySizeRow } from '../types/secondary'
 import { describe, expect, it } from 'vitest'
 import { buildSecondaryDailyTrendPoints } from '../../dashboard/components/product-drawer/secondary/model/secondaryDailyTrendSourceModel'
@@ -168,10 +168,10 @@ describe('api/mock dashboardApi competitor channel behavior', () : void => {
     })
 
     const sumCompetitorSales: (source: SecondaryDailyTrendSource) => number = (source: SecondaryDailyTrendSource) : number =>
-      Object.values(source.flowByDate).reduce((sum: number, row: SecondaryDailyTrendFlowCell) : number => sum + Math.max(0, row.comparison.sale), 0)
+      Object.values(source.data.comparison).reduce((sum: number, row: SecondaryDailyTrendComparisonFlow) : number => sum + Math.max(0, row.sale), 0)
 
-    expect(Object.keys(kream.flowByDate).length).toBeGreaterThan(0)
-    expect(Object.keys(musinsa.flowByDate).length).toBe(Object.keys(kream.flowByDate).length)
+    expect(Object.keys(kream.data.base).length).toBeGreaterThan(0)
+    expect(Object.keys(musinsa.data.base).length).toBe(Object.keys(kream.data.base).length)
     expect(sumCompetitorSales(musinsa)).toBeLessThan(sumCompetitorSales(kream))
   })
 
@@ -205,11 +205,8 @@ describe('api/mock dashboardApi competitor channel behavior', () : void => {
       comparison: mockCompetitorTarget('kream'),
     })
 
-    expect(source.dateStart).toBe('2026-05-01')
-    expect(source.forecastStartDate).toBe('2026-05-29')
-    expect(source.flowByDate['2026-05-28']).toBeDefined()
-    expect(Object.keys(source.flowByDate).filter((date: string) : boolean => date >= source.forecastStartDate)).toEqual(['2026-05-29', '2026-05-30', '2026-05-31'])
-    expect(source.dateEnd).toBe('2026-05-31')
+    expect(source.data.base['2026-05-28']).toBeDefined()
+    expect(Object.keys(source.data.base).filter((date: string) : boolean => date >= '2026-05-29')).toEqual(['2026-05-29', '2026-05-30', '2026-05-31'])
   })
 
   it('returns secondary daily trend source that rebuilds visible stock bars', async () : Promise<void> => {
@@ -221,9 +218,14 @@ describe('api/mock dashboardApi competitor channel behavior', () : void => {
       base: MOCK_BASE_SUBJECT,
       comparison: mockCompetitorTarget('kream'),
     })
-    const points: SecondaryDailyTrendPoint[] = buildSecondaryDailyTrendPoints(source)
+    const points: SecondaryDailyTrendPoint[] = buildSecondaryDailyTrendPoints(source, {
+      size: null,
+      dateStart: '2026-04-01',
+      dateEnd: '2026-05-28',
+      forecastStartDate: '2026-05-29',
+    })
 
-    expect(source.baseStockAtStart).not.toBeNull()
+    expect(source.baseStock).not.toBeNull()
     expect(points.some((point: SecondaryDailyTrendPoint) : boolean => (point.stockBar ?? 0) > 0)).toBe(true)
   })
 

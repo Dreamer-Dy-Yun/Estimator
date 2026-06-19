@@ -23,13 +23,12 @@ function makeApiErrorInfo(request: string, err: unknown): ApiUnitErrorInfo {
 
 function makeSource(overrides: Partial<SecondaryDailyTrendSource> = {}): SecondaryDailyTrendSource {
   return {
-    productId: 'sku-a',
-    dateStart: '2026-06-01',
-    dateEnd: '2026-06-15',
-    forecastStartDate: '2026-06-16',
-    baseStockAtStart: 10,
-    comparisonStockAtStart: null,
-    flowByDate: {},
+    size: null,
+    baseStock: 10,
+    data: {
+      base: {},
+      comparison: {},
+    },
     ...overrides,
   }
 }
@@ -82,12 +81,12 @@ afterEach((): void => {
 })
 
 describe('useSecondaryDailyTrend', (): void => {
-  it('surfaces response identity mismatches as daily trend errors', async (): Promise<void> => {
+  it('surfaces response size mismatches as daily trend errors', async (): Promise<void> => {
     vi.useFakeTimers()
     vi.setSystemTime(new Date(2026, 5, 16))
     const request: Mock<(params: SecondaryDailyTrendParams) => Promise<SecondaryDailyTrendSource>> = vi
       .spyOn(dashboardApi, 'getSecondaryDailyTrend')
-      .mockResolvedValue(makeSource({ productId: 'other-sku' }))
+      .mockResolvedValue(makeSource({ size: 'M' }))
 
     const hook: { readonly current: ReturnType<typeof useSecondaryDailyTrend> } = renderHook({
       skuGroupKey: 'sku-a',
@@ -107,6 +106,6 @@ describe('useSecondaryDailyTrend', (): void => {
       forecastDays: 0,
     }))
     expect(hook.current.dailyTrendSeries).toEqual([])
-    expect(hook.current.dailyTrendError?.error).toContain('productId mismatch')
+    expect(hook.current.dailyTrendError?.error).toContain('size mismatch')
   })
 })

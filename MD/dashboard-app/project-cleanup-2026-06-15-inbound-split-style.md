@@ -61,21 +61,21 @@ Clean up the secondary drawer split-inbound schedule UI by feature responsibilit
 - Split table width keeps current column minimums, fills spare frame width when there are few size columns, and preserves horizontal scrolling when the minimum width overflows.
 - Suggested and confirmed rows inside the same round share one background and no internal divider. Round boundaries and the total-summary boundary keep explicit darker green dividers.
 - Initial cleanup did not change split-inbound API source, mock fixture loading, shortage suggestion logic, or Apply/Close state transfer behavior.
-- Secondary daily trend mock source conversion was fixed separately in this cleanup window so mock `baseStockAtStart` and per-date inbound match the current `SecondaryDailyTrendSource` contract.
+- Secondary daily trend mock source conversion was fixed separately in this cleanup window so mock `baseStock` and per-date inbound match the current `SecondaryDailyTrendSource` contract.
 - Forecast daily trend mock comparison sales now remains numeric in forecast rows so the source contract does not silently turn unavailable comparison sales into zero.
 - Split-inbound fixture slicing now rejects `dateEnd <= dateStart` instead of returning a successful empty source.
 
 ## Backend-facing API Notes
 
-- `getSecondaryDailyTrend` expects `SecondaryDailyTrendSource`, not chart-ready `SecondaryDailyTrendPoint[]`. Backend must provide `baseStockAtStart` as opening stock immediately before `dateStart`, and `flowByDate[date].base.inbound` as per-date base inbound rather than accumulated chart bars.
-- `getSecondaryDailyTrend.flowByDate` must cover every date from `dateStart` through inclusive `dateEnd`. `comparisonStockAtStart` is reserved; the current frontend accepts `null` and does not render comparison stock bars.
-- `getSecondaryStockOrderCalc().inboundSplitSource`는 stock-order-calc response field이며 query는 `skuGroupKey`, `calculationBaseDate`, `coverageStartDate`, `coverageEndDate`, `base`를 사용하고 response는 `supplyBySize`, `salesForecastByDate`를 반환한다.
+- `getSecondaryDailyTrend` expects `SecondaryDailyTrendSource`, not chart-ready `SecondaryDailyTrendPoint[]`. Backend must provide `{ size, baseStock, data: { base, comparison } }`; `data.base[date].inbound` is per-date base inbound rather than an accumulated chart bar.
+- `getSecondaryDailyTrend.data.base` must cover every date from `startDate` through inclusive `endDate`. `data.comparison[date].inbound` may be `null`.
+- `getSecondaryStockOrderCalc().inboundSplitSource`는 stock-order-calc response field이며 response는 `{ total, sizeInfo, expectation, confirmed }`를 반환한다.
 
 ## 2026-06-16 hardening update
 
 - Split-inbound Open/Apply now requires both a valid source and completed stock-order calculation. If source/calculation readiness drops while the dialog is open, the controller closes and remounts the dialog.
 - Live calculation-input changes clear `drawer2.confirmed.rounds` together with direct confirmed quantities so confirmed split rounds cannot persist on a stale recommendation basis.
-- `getSecondaryDailyTrend.flowByDate[date].base.inbound` is now a required numeric field. `comparison.inbound` remains nullable. The frontend validates `productId`, inclusive response `dateEnd`, `dateStart`, and `forecastStartDate` before deriving chart points.
+- `getSecondaryDailyTrend.data.base[date].inbound` is now a required numeric field. `data.comparison[date].inbound` remains nullable. The frontend validates the requested `size` before deriving chart points.
 - Regression coverage was added for split controller readiness/apply paths, daily-trend source validation, daily-trend hook error surfacing, inbound-date equality prevention, mock role parity, and forecast-model split reset.
 
 ## Verification

@@ -15,6 +15,7 @@ export type Args = {
   periodEnd: string
   selectedStartMonth: string
   selectedEndMonth: string
+  dailyTrendSize: string | null
   baseSubject: ProductComparisonBaseSubjectRef
   forecastPeriodEndMonth: string
   orderCoverageDays: number
@@ -50,6 +51,7 @@ export function useSecondaryDrawerRequests({
   periodEnd,
   selectedStartMonth,
   selectedEndMonth,
+  dailyTrendSize,
   baseSubject,
   forecastPeriodEndMonth,
   orderCoverageDays,
@@ -98,6 +100,7 @@ export function useSecondaryDrawerRequests({
     skuGroupKey: primary.skuGroupKey,
     selectedStart: selectedStartMonth,
     selectedEnd: selectedEndMonth,
+    size: dailyTrendSize,
     baseSubject,
     comparisonTarget,
     orderCoverageDays,

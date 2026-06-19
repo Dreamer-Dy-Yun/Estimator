@@ -120,12 +120,12 @@ export function SalesForecastCard({ forecast, orderInputFields, actions, help }:
     <div className={`${styles.card} ${styles.gridColumnCard}`}>
       <div className={styles.stockTitleRow}>
         <h3 className={styles.sectionTitle}>{KO.sectionSalesForecastIntegrated}<ApiUnitErrorBadge error={error} /></h3>
+        {!calculationReady && !error && (
+          <p className={styles.stockTitleInlineHint} role="status" aria-live="polite">
+            {KO.msgStockOrderCalcRequired}
+          </p>
+        )}
       </div>
-      {!calculationReady && !error && (
-        <p className={styles.metaFilterActionHint} role="status" aria-live="polite">
-          {KO.msgStockOrderCalcRequired}
-        </p>
-      )}
       <div className={`${styles.stockInputList} ${styles.salesForecastInputList}`}>
         <FieldCell label={KO.labelCurrentOrderInboundDueDate}>
           <DateInputWithWeekday

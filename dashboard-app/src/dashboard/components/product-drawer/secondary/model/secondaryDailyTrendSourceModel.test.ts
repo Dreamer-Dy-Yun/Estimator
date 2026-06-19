@@ -2,22 +2,25 @@ import type { SecondaryDailyTrendSource } from '../../../../../api/types'
 import { describe, expect, it } from 'vitest'
 import { buildSecondaryDailyTrendPoints, validateSecondaryDailyTrendSource } from './secondaryDailyTrendSourceModel'
 
+const EXPECTATION = {
+  size: null,
+  dateStart: '2026-04-01',
+  dateEnd: '2026-04-02',
+  forecastStartDate: '2026-04-03',
+} as const
+
 function makeSource(overrides: Partial<SecondaryDailyTrendSource> = {}): SecondaryDailyTrendSource {
   return {
-    productId: 'sku-a',
-    dateStart: '2026-04-01',
-    dateEnd: '2026-04-02',
-    forecastStartDate: '2026-04-03',
-    baseStockAtStart: 10,
-    comparisonStockAtStart: null,
-    flowByDate: {
-      '2026-04-01': {
-        base: { sale: 3, inbound: 2 },
-        comparison: { sale: 5, inbound: null },
+    size: null,
+    baseStock: 10,
+    data: {
+      base: {
+        '2026-04-01': { sale: 3, inbound: 2 },
+        '2026-04-02': { sale: 4, inbound: 0 },
       },
-      '2026-04-02': {
-        base: { sale: 4, inbound: 0 },
-        comparison: { sale: 6, inbound: null },
+      comparison: {
+        '2026-04-01': { sale: 5, inbound: null },
+        '2026-04-02': { sale: 6, inbound: null },
       },
     },
     ...overrides,
@@ -26,7 +29,7 @@ function makeSource(overrides: Partial<SecondaryDailyTrendSource> = {}): Seconda
 
 describe('secondaryDailyTrendSourceModel', (): void => {
   it('builds inclusive daily points from opening stock and numeric base inbound flow', (): void => {
-    const points = buildSecondaryDailyTrendPoints(makeSource())
+    const points = buildSecondaryDailyTrendPoints(makeSource(), EXPECTATION)
 
     expect(points.map((point) => ({ date: point.date, stockBar: point.stockBar, inboundAccumBar: point.inboundAccumBar }))).toEqual([
       { date: '2026-04-01', stockBar: 9, inboundAccumBar: 2 },
@@ -37,7 +40,7 @@ describe('secondaryDailyTrendSourceModel', (): void => {
   })
 
   it('keeps stock bars unavailable when opening stock is unavailable', (): void => {
-    const points = buildSecondaryDailyTrendPoints(makeSource({ baseStockAtStart: null }))
+    const points = buildSecondaryDailyTrendPoints(makeSource({ baseStock: null }), EXPECTATION)
 
     expect(points.map((point) => point.stockBar)).toEqual([null, null])
     expect(points.map((point) => point.inboundAccumBar)).toEqual([2, 0])
@@ -45,58 +48,52 @@ describe('secondaryDailyTrendSourceModel', (): void => {
 
   it('rejects null base inbound while accepting nullable comparison inbound', (): void => {
     const source: SecondaryDailyTrendSource = makeSource({
-      flowByDate: {
-        '2026-04-01': {
-          base: { sale: 3, inbound: null } as unknown as SecondaryDailyTrendSource['flowByDate'][string]['base'],
-          comparison: { sale: 5, inbound: null },
+      data: {
+        base: {
+          '2026-04-01': { sale: 3, inbound: null } as unknown as SecondaryDailyTrendSource['data']['base'][string],
+          '2026-04-02': { sale: 4, inbound: 0 },
         },
-        '2026-04-02': {
-          base: { sale: 4, inbound: 0 },
-          comparison: { sale: 6, inbound: null },
+        comparison: {
+          '2026-04-01': { sale: 5, inbound: null },
+          '2026-04-02': { sale: 6, inbound: null },
         },
       },
     })
 
-    expect(() => buildSecondaryDailyTrendPoints(source)).toThrow('2026-04-01.base.inbound')
+    expect(() => buildSecondaryDailyTrendPoints(source, EXPECTATION)).toThrow('2026-04-01.base.inbound')
   })
 
-  it('throws when flowByDate misses an inclusive date', (): void => {
+  it('throws when daily trend data misses an inclusive date', (): void => {
     const source: SecondaryDailyTrendSource = makeSource({
-      flowByDate: {
-        '2026-04-01': {
-          base: { sale: 3, inbound: 0 },
-          comparison: { sale: 5, inbound: null },
+      data: {
+        base: {
+          '2026-04-01': { sale: 3, inbound: 0 },
+        },
+        comparison: {
+          '2026-04-01': { sale: 5, inbound: null },
         },
       },
     })
 
-    expect(() => buildSecondaryDailyTrendPoints(source)).toThrow('Missing daily trend source date: 2026-04-02')
+    expect(() => buildSecondaryDailyTrendPoints(source, EXPECTATION)).toThrow('Missing daily trend source date: 2026-04-02')
   })
 
   it('throws when dateEnd is before dateStart', (): void => {
-    expect(() => buildSecondaryDailyTrendPoints(makeSource({ dateEnd: '2026-03-31' }))).toThrow('dateEnd')
+    expect(() => buildSecondaryDailyTrendPoints(makeSource(), { ...EXPECTATION, dateEnd: '2026-03-31' })).toThrow('dateEnd')
   })
 
   it('validates response identity against the request window', (): void => {
     const source: SecondaryDailyTrendSource = makeSource()
 
-    expect(validateSecondaryDailyTrendSource(source, {
-      productId: 'sku-a',
-      dateStart: '2026-04-01',
-      dateEnd: '2026-04-02',
-      forecastStartDate: '2026-04-03',
-    })).toBe(source)
+    expect(validateSecondaryDailyTrendSource(source, EXPECTATION)).toBe(source)
     expect(() => validateSecondaryDailyTrendSource(source, {
-      productId: 'other-sku',
-      dateStart: '2026-04-01',
-      dateEnd: '2026-04-02',
-      forecastStartDate: '2026-04-03',
-    })).toThrow('productId mismatch')
-    expect(() => validateSecondaryDailyTrendSource(source, {
-      productId: 'sku-a',
+      ...EXPECTATION,
+      size: 'M',
+    })).toThrow('size mismatch')
+    expect(() => buildSecondaryDailyTrendPoints(source, {
+      ...EXPECTATION,
       dateStart: '2026-04-01',
       dateEnd: '2026-04-05',
-      forecastStartDate: '2026-04-03',
-    })).toThrow('dateEnd mismatch')
+    })).toThrow('Missing daily trend source date: 2026-04-03')
   })
 })
