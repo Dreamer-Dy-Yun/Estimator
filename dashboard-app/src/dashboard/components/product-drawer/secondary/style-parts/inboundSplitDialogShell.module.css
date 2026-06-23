@@ -16,6 +16,8 @@
   --inbound-split-header-height: 32px;
   --inbound-split-body-row-height: 30px;
   --inbound-split-size-col-min-width: 78px;
+  --inbound-split-size-col-max-width: 128px;
+  --inbound-split-size-col-count: 0;
   --inbound-split-total-col-width: 111px;
   --inbound-split-round-col-width: 46px;
   --inbound-split-date-col-width: 141px;
@@ -29,6 +31,9 @@
   --inbound-split-cell-text: #0f172a;
   --inbound-split-border: #adc2a3;
   --inbound-split-divider: #9cb38f;
+  --inbound-split-row-inner-divider: #fff;
+  --inbound-split-sticky-inner-divider-offset: -1px;
+  --inbound-split-sticky-edge-divider-offset: -1px;
   --inbound-split-section-divider: #164a2e;
   --inbound-split-round-divider: #5f7f56;
   --inbound-split-diff-text: #b91c1c;

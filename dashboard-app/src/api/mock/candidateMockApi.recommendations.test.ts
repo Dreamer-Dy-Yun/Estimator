@@ -222,7 +222,7 @@ describe('api/mock candidate recommendation contract', () : void => {
     expect(second.recommendations[0]?.skuGroupKey).not.toBe(first.recommendations[0]?.skuGroupKey)
   })
 
-  it('seeds mixed test top and test shoe products in the default candidate stash', async () : Promise<void> => {
+  it('seeds named verification products in the default candidate stash', async () : Promise<void> => {
     const result: CandidateItemListResult = await mockDashboardApi.getCandidateItemsByStash(
       defaultCandidateItemListParams('candidatestash00000000000000000001'),
       MOCK_ADMIN_USER_UUID,
@@ -230,7 +230,12 @@ describe('api/mock candidate recommendation contract', () : void => {
     const names: string[] = result.items.map((item: CandidateItemSummary) : string => item.productName)
     expect(names).toContain('테스트 상의')
     expect(names).toContain('예상입고/기존재고 분할설정 적용 테스트')
-    expect(names.some((name: string) : boolean => name !== '테스트 상의' && name !== '예상입고/기존재고 분할설정 적용 테스트')).toBe(true)
+    expect(names).toContain('오더상세 20사이즈 스크롤 테스트')
+    expect(names.some((name: string) : boolean => ![
+      '테스트 상의',
+      '예상입고/기존재고 분할설정 적용 테스트',
+      '오더상세 20사이즈 스크롤 테스트',
+    ].includes(name))).toBe(true)
   })
 
   it('creates a mock candidate stash from a valid Excel upload with explicit mock warnings', async () : Promise<void> => {

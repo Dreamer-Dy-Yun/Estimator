@@ -1,6 +1,6 @@
 import type { SecondaryInboundSplitSource, SecondaryStockOrderDisplaySizeRow } from '../../../../../api/types/secondary'
 import type { SizeOrderColumnTotals } from './sizeOrderCardModel'
-import { useCallback, useMemo, useRef, useState } from 'react'
+import { useCallback, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { USE_MOCK_API } from '../../../../../api'
 import { ApiUnitErrorBadge } from '../../../../../components/ApiUnitErrorBadge'
 import type { SecondaryStockOrderCalcResult } from '../../../../../api/types'
@@ -56,6 +56,10 @@ type SizeOrderHoverCell = {
   readonly columnKey: string
 } | null
 
+type SizeOrderTableStyle = CSSProperties & {
+  '--size-order-size-column-count': number
+}
+
 function sumInboundSplitExpectationBeforeDate(
   source: SecondaryInboundSplitSource | null,
   size: string,
@@ -73,6 +77,9 @@ export function SizeOrderCard({ sizeOrder, actions, help }: Props) : React.JSX.E
   const { comparisonLabel, selfCompanyLabel, selfWeightPct, sizeRows, helpIds, stockOrderDisplay, calculationReady = true, manualConfirmBySize, currentOrderInboundDueDate, nextOrderInboundDueDate, inboundSplitSource, inboundSplitSourceLoading, inboundSplitSourceError, confirmedRounds }: Props['sizeOrder'] = sizeOrder
   const tableRef: React.RefObject<HTMLTableElement | null> = useRef<HTMLTableElement | null>(null)
   const [hoveredCell, setHoveredCell]: [SizeOrderHoverCell, React.Dispatch<React.SetStateAction<SizeOrderHoverCell>>] = useState<SizeOrderHoverCell>(null)
+  const tableStyle: SizeOrderTableStyle = {
+    '--size-order-size-column-count': sizeRows.length,
+  }
   const comparisonWeightPct: number = getComparisonWeightPct(selfWeightPct)
   const columnTotals: SizeOrderColumnTotals = useMemo(() : SizeOrderColumnTotals => calculateSizeOrderColumnTotals(sizeRows), [sizeRows])
   const inboundSplitDebugSourcePayload: unknown = useMemo((): unknown => (
@@ -175,7 +182,7 @@ export function SizeOrderCard({ sizeOrder, actions, help }: Props) : React.JSX.E
         onComparisonWeightInputChange={handleComparisonWeightInputChange}
       />
       <div className={styles.sizeOrderTableWrap}>
-        <table ref={tableRef} className={`${styles.table} ${styles.sizeOrderTable} ${styles.sizeOrderLargeTable}`} onMouseLeave={handleSizeOrderTableMouseLeave}>
+        <table ref={tableRef} className={`${styles.table} ${styles.sizeOrderTable} ${styles.sizeOrderLargeTable}`} style={tableStyle} onMouseLeave={handleSizeOrderTableMouseLeave}>
           <colgroup>
             <col className={styles.sizeOrderMetricCol} />
             <col className={styles.sizeOrderTotalCol} />

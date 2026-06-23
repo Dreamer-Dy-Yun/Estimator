@@ -6,7 +6,7 @@
   color: #fff;
   font-size: 1.2em;
   font-weight: 400;
-  border-bottom-color: transparent;
+  border-bottom-color: var(--inbound-split-row-inner-divider);
 }
 
 .inboundSplitSummaryTotalCell {
@@ -42,11 +42,16 @@
   z-index: 8;
 }
 
+.inboundSplitSummaryRowEnd .inboundSplitStickyCol {
+  border-top-width: 1px;
+  border-top-color: var(--inbound-split-row-inner-divider);
+}
+
 .inboundSplitSuggestedRow td {
   background: var(--inbound-split-round-row-bg);
   color: var(--inbound-split-suggested-row-text);
   border-bottom-width: 0;
-  border-bottom-color: transparent;
+  border-bottom-color: var(--inbound-split-row-inner-divider);
 }
 
 .inboundSplitSuggestedBasisCell {
@@ -98,7 +103,7 @@
   color: var(--inbound-split-cell-text);
   font-weight: 700;
   border-top-width: 0;
-  border-top-color: transparent;
+  border-top-color: var(--inbound-split-row-inner-divider);
 }
 
 .inboundSplitSummaryRow td,
@@ -130,7 +135,7 @@
 .inboundSplitSummaryRowEnd td {
   top: calc(var(--inbound-split-header-height) + var(--inbound-split-body-row-height));
   border-top-width: 0;
-  border-top-color: transparent;
+  border-top-color: var(--inbound-split-row-inner-divider);
   border-bottom-color: var(--inbound-split-section-divider);
   box-shadow: inset 0 -3px 0 var(--inbound-split-section-divider), 0 12px 18px -18px var(--inbound-split-shadow);
   font-weight: 700;
@@ -154,6 +159,16 @@
 .inboundSplitConfirmedRow .inboundSplitStickyCol {
   background: var(--inbound-split-round-sticky-bg);
   color: var(--inbound-split-cell-text);
+}
+
+.inboundSplitSuggestedRow .inboundSplitStickyCol:not(.inboundSplitRowSpanCell) {
+  border-bottom-width: 1px;
+  border-bottom-color: var(--inbound-split-row-inner-divider);
+}
+
+.inboundSplitConfirmedRow .inboundSplitStickyCol {
+  border-top-width: 1px;
+  border-top-color: var(--inbound-split-row-inner-divider);
 }
 
 .inboundSplitSummaryRow .inboundSplitConfirmedDiff,

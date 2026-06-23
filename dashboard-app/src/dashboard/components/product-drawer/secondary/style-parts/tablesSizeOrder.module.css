@@ -61,11 +61,17 @@
   --size-order-sticky-metric-width: 13.915rem;
   --size-order-sticky-total-width: 6.75rem;
   --size-order-sticky-total-max-width: 6.75rem;
-  --size-order-size-column-width: 1fr;
+  --size-order-size-column-min-width: 5.25rem;
+  --size-order-size-column-count: 0;
+  --size-order-table-min-width: calc(
+    var(--size-order-sticky-metric-width)
+    + var(--size-order-sticky-total-width)
+    + (var(--size-order-size-column-count) * var(--size-order-size-column-min-width))
+  );
   --size-order-sticky-divider-color: #cbd5e1;
   --size-order-metric-divider-offset: -1px;
-  width: 100%;
-  min-width: 100%;
+  width: max(100%, var(--size-order-table-min-width));
+  min-width: max(100%, var(--size-order-table-min-width));
   table-layout: fixed;
 }
 
@@ -79,7 +85,7 @@
 }
 
 .sizeOrderSizeCol {
-  width: auto;
+  width: var(--size-order-size-column-min-width);
 }
 
 .sizeOrderTable th:first-child,

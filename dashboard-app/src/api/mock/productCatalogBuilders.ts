@@ -61,7 +61,7 @@ export const makeSalesTrend: (base: number, seed: number, forecastMonths: number
     }))
 }
 
-function allocateByWeights(total: number, weights: readonly number[]): number[] {
+export function allocateByWeights(total: number, weights: readonly number[]): number[] {
   const sum: number = weights.reduce((acc: number, value: number) : number => acc + value, 0)
   const floors: number[] = weights.map((weight: number) : number => Math.floor((total * weight) / Math.max(1, sum)))
   let remain: number = total - floors.reduce((acc: number, value: number) : number => acc + value, 0)

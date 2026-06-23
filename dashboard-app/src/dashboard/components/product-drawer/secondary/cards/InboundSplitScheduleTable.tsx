@@ -1,4 +1,4 @@
-import { Fragment } from 'react'
+import { Fragment, type CSSProperties } from 'react'
 import { formatGroupedNumber } from '../../../../../utils/format'
 import { KO } from '../../ko'
 import { DateInputWithWeekday } from '../../../../../components/DateInputWithWeekday'
@@ -21,6 +21,10 @@ export interface InboundSplitScheduleTableProps {
   onDateChange: (rowIndex: number, value: string) => void
   onRowTotalChange: (rowIndex: number, value: string) => void
   onQtyChange: (rowIndex: number, size: string, value: string) => void
+}
+
+type InboundSplitTableStyle = CSSProperties & {
+  '--inbound-split-size-col-count': number
 }
 
 function formatInboundSplitDateInterval(interval: InboundSplitDateInterval): string {
@@ -110,9 +114,12 @@ export function InboundSplitScheduleTable({
   const confirmedGrandTotal: number = sumInboundSplitColumnTotals(columns, confirmedSizeTotals)
   const summaryDiffClass: string = diffClass(confirmedGrandTotal, suggestedGrandTotal)
   const formattedConfirmedGrandTotal: string = formatGroupedNumber(confirmedGrandTotal)
+  const tableStyle: InboundSplitTableStyle = {
+    '--inbound-split-size-col-count': columns.length,
+  }
 
   return (
-    <table className={`${styles.table} ${styles.inboundSplitTable}`}>
+    <table className={`${styles.table} ${styles.inboundSplitTable}`} style={tableStyle}>
       <thead>
         <tr>
           <th className={stickyRoundClassName}>{KO.thInboundSplitRound}</th>

@@ -84,8 +84,9 @@ const seededCandidateItemDrafts: Array<Omit<CandidateItemRecord, 'isLatestLlmCom
       ['012', 'B', '09:26:00.000Z', '09:27:00.000Z'],
       ['013', 'TEST_SHOE', '09:28:00.000Z', '09:28:30.000Z'],
       ['014', 'TEST_TOP', '09:29:00.000Z', '09:29:30.000Z'],
+      ['015', 'TEST_SIZE_20', '09:30:00.000Z', '09:30:30.000Z'],
     ] as const
-  ).map(([suffix, pid, created, updated]: readonly ['005', 'D', '09:12:00.000Z', '09:13:00.000Z'] | readonly ['006', 'H', '09:14:00.000Z', '09:15:30.000Z'] | readonly ['007', 'J', '09:16:00.000Z', '09:16:00.000Z'] | readonly ['008', 'F', '09:18:00.000Z', '09:19:00.000Z'] | readonly ['009', 'K', '09:20:00.000Z', '09:21:00.000Z'] | readonly ['010', 'L', '09:22:00.000Z', '09:22:00.000Z'] | readonly ['011', 'M', '09:24:00.000Z', '09:25:10.000Z'] | readonly ['012', 'B', '09:26:00.000Z', '09:27:00.000Z'] | readonly ['013', 'TEST_SHOE', '09:28:00.000Z', '09:28:30.000Z'] | readonly ['014', 'TEST_TOP', '09:29:00.000Z', '09:29:30.000Z']) : { uuid: string; stashUuid: string; skuGroupKey: string; confirmedOrderSnapshot: OrderSnapshotDocument | null; dbCreatedAt: string; dbUpdatedAt: string; } => ({
+  ).map(([suffix, pid, created, updated]) : { uuid: string; stashUuid: string; skuGroupKey: string; confirmedOrderSnapshot: OrderSnapshotDocument | null; dbCreatedAt: string; dbUpdatedAt: string; } => ({
     uuid: `candidateitem000000000000000000${suffix}`,
     stashUuid: 'candidatestash00000000000000000001',
     skuGroupKey: skuGroupKey(pid),

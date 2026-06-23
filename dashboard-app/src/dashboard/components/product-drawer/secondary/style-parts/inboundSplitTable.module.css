@@ -1,6 +1,20 @@
 ﻿.inboundSplitTable {
-  width: max-content;
-  min-width: 100%;
+  --inbound-split-sticky-cols-width: calc(
+    var(--inbound-split-round-col-width)
+    + var(--inbound-split-date-col-width)
+    + var(--inbound-split-kind-col-width)
+    + var(--inbound-split-total-col-width)
+  );
+  --inbound-split-table-min-width: calc(
+    var(--inbound-split-sticky-cols-width)
+    + (var(--inbound-split-size-col-count) * var(--inbound-split-size-col-min-width))
+  );
+  --inbound-split-table-max-width: calc(
+    var(--inbound-split-sticky-cols-width)
+    + (var(--inbound-split-size-col-count) * var(--inbound-split-size-col-max-width))
+  );
+  width: clamp(var(--inbound-split-table-min-width), 100%, var(--inbound-split-table-max-width));
+  min-width: var(--inbound-split-table-min-width);
   table-layout: fixed;
   font-size: 13px;
 }
@@ -55,7 +69,33 @@
   left: calc(var(--inbound-split-round-col-width) + var(--inbound-split-date-col-width));
 }
 
+.inboundSplitStickyColDate::before,
+.inboundSplitStickyColKind::before,
+.inboundSplitStickyColTotal::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: var(--inbound-split-sticky-inner-divider-offset);
+  bottom: 0;
+  width: 1px;
+  background: var(--inbound-split-row-inner-divider);
+  pointer-events: none;
+  z-index: 2;
+}
+
 .inboundSplitStickyColTotal {
   left: calc(var(--inbound-split-round-col-width) + var(--inbound-split-date-col-width) + var(--inbound-split-kind-col-width));
-  box-shadow: 2px 0 0 var(--inbound-split-divider), 14px 0 18px -14px var(--inbound-split-shadow);
+  box-shadow: 14px 0 18px -14px var(--inbound-split-shadow);
+}
+
+.inboundSplitStickyColTotal::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: var(--inbound-split-sticky-edge-divider-offset);
+  bottom: 0;
+  width: 1px;
+  background: var(--inbound-split-divider);
+  pointer-events: none;
+  z-index: 1;
 }

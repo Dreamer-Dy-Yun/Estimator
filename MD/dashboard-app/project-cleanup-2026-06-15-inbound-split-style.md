@@ -78,6 +78,12 @@ Clean up the secondary drawer split-inbound schedule UI by feature responsibilit
 - `getSecondaryDailyTrend.data.base[date].inbound` is now a required numeric field. `data.comparison[date].inbound` remains nullable. The frontend validates the requested `size` before deriving chart points.
 - Regression coverage was added for split controller readiness/apply paths, daily-trend source validation, daily-trend hook error surfacing, inbound-date equality prevention, mock role parity, and forecast-model split reset.
 
+## 2026-06-23 cleanup update
+
+- Size-order and split-inbound tables now derive their minimum table width from the number of size columns. Few-size products still fill the available frame; many-size products keep readable column minimums and use horizontal scrolling.
+- Split-inbound sticky divider colors and offsets are owned by dialog-level CSS variables. The approved `-1px` sticky divider offsets remain unchanged, but the values are no longer hidden as repeated magic literals.
+- Mock catalog now includes `TEST_SIZE_20`, a dedicated 20-size scroll verification product. It stays behind `src/api/mock` and is covered by mock API/catalog tests, so UI components do not import test data directly.
+
 ## Verification
 
 - `npm run check:encoding`

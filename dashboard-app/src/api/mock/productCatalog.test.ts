@@ -48,9 +48,10 @@ describe('api/mock productCatalog', () : void => {
     expect(Math.min(...trend.map((p: MonthlySalesPoint) : number => p.sales))).toBeGreaterThanOrEqual(80)
   })
 
-  it('uses apparel sizes for test top and verification sizes for test shoe', () : void => {
+  it('uses dedicated sizes for test top, split verification, and 20-size scroll verification products', () : void => {
     const top: ProductPrimarySummary = productPrimaryBySkuGroupKey[skuGroupKeyByLegacyId.TEST_TOP]
     const shoe: ProductPrimarySummary = productPrimaryBySkuGroupKey[skuGroupKeyByLegacyId.TEST_SHOE]
+    const size20: ProductPrimarySummary = productPrimaryBySkuGroupKey[skuGroupKeyByLegacyId.TEST_SIZE_20]
 
     expect(top?.productName).toBe('테스트 상의')
     expect(productSecondaryBySkuGroupKey[skuGroupKeyByLegacyId.TEST_TOP]?.sizeRows.map((row: ProductSecondarySizeRow) : string => row.size)).toEqual(['S', 'M', 'L', 'XL', 'XXL'])
@@ -60,6 +61,29 @@ describe('api/mock productCatalog', () : void => {
       '240',
       '250',
       '260',
+    ])
+    expect(size20?.productName).toBe('오더상세 20사이즈 스크롤 테스트')
+    expect(productSecondaryBySkuGroupKey[skuGroupKeyByLegacyId.TEST_SIZE_20]?.sizeRows.map((row: ProductSecondarySizeRow) : string => row.size)).toEqual([
+      '200',
+      '205',
+      '210',
+      '215',
+      '220',
+      '225',
+      '230',
+      '235',
+      '240',
+      '245',
+      '250',
+      '255',
+      '260',
+      '265',
+      '270',
+      '275',
+      '280',
+      '285',
+      '290',
+      '295',
     ])
   })
 

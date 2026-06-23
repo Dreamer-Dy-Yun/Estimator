@@ -288,6 +288,31 @@ describe('api/mock dashboardApi competitor channel behavior', () : void => {
     expect(stockOrder.display.sizeRows.map((row: SecondaryStockOrderDisplaySizeRow) : number => row.expectedInboundOrderBalance)).toEqual([20, 20, 20, 20, 20])
   })
 
+  it('keeps the 20-size scroll verification product through stock order and split-inbound source results', async () : Promise<void> => {
+    const targetSkuGroupKey: string = skuGroupKey('TEST_SIZE_20')
+    const stockOrder: SecondaryStockOrderCalcResult = await mockDashboardApi.getSecondaryStockOrderCalc({
+      skuGroupKey: targetSkuGroupKey,
+      productIdentity: { productUuid: null, skuGroupKey: targetSkuGroupKey, brand: '20사이즈검증', code: 'TEST-SIZE20', colorCode: '100' },
+      comparison: mockCompetitorTarget('kream'),
+      periodStart: '2025-01-01',
+      periodEnd: '2025-12-31',
+      calculationBaseDate: '2026-01-01',
+      currentOrderInboundDueDate: '2026-05-01',
+      nextOrderInboundDueDate: '2026-05-31',
+      forecastPeriodEndMonth: '2026-05',
+      orderCoverageDays: 30,
+      selfWeightPct: 50,
+      base: MOCK_BASE_SUBJECT,
+    })
+
+    const sizeKeys: string[] = stockOrder.display.sizeRows.map((row: SecondaryStockOrderDisplaySizeRow): string => row.size)
+    expect(sizeKeys).toHaveLength(20)
+    expect(sizeKeys[0]).toBe('200')
+    expect(sizeKeys.at(-1)).toBe('295')
+    expect(Object.keys(stockOrder.inboundSplitSource.sizeInfo)).toEqual(sizeKeys)
+    expect(Object.keys(stockOrder.inboundSplitSource.expectation)).toEqual(sizeKeys)
+  })
+
   it('returns secondary drawer AI comment for the requested open context', async () : Promise<void> => {
     const result: { prompt: string; answer: string; generatedAt: string; } = await mockDashboardApi.getSecondaryAiComment({
       skuGroupKey: skuGroupKey('B'),

@@ -4,6 +4,7 @@ import { clamp } from './utils'
 import { allKnownSkuGroupKeys, competitorBySkuGroupKey, selfBySkuGroupKey } from './salesTables'
 import { KREAM_TO_SELF_QTY_RATIO, SALES_MONTHS } from './productCatalogData'
 import {
+  allocateByWeights,
   buildSkuMetadata,
   makeSalesTrend as buildSalesTrend,
   makeSizeMix,
@@ -17,6 +18,16 @@ export type MockSkuMetadata = Pick<
   ProductPrimarySummary,
   'skuGroupKey' | 'productName' | 'brand' | 'category' | 'code' | 'colorCode'
 >
+
+const TWENTY_SIZE_SCROLL_TEST_SIZE_COUNT = 20 as const
+const TWENTY_SIZE_SCROLL_TEST_MIN_SIZE = 200 as const
+const TWENTY_SIZE_SCROLL_TEST_STEP = 5 as const
+const TWENTY_SIZE_SCROLL_TEST_SIZES: readonly string[] = Array.from(
+  { length: TWENTY_SIZE_SCROLL_TEST_SIZE_COUNT },
+  (_: unknown, index: number): string => String(TWENTY_SIZE_SCROLL_TEST_MIN_SIZE + index * TWENTY_SIZE_SCROLL_TEST_STEP),
+)
+const TWENTY_SIZE_SCROLL_TEST_SELF_WEIGHTS: readonly number[] = [2, 3, 4, 5, 6, 7, 8, 9, 10, 10, 9, 8, 7, 5, 3, 2, 1.5, 1.2, 1, 0.8]
+const TWENTY_SIZE_SCROLL_TEST_COMPARISON_WEIGHTS: readonly number[] = [1, 1.4, 2, 3, 4, 5, 7, 8, 9, 10, 10, 9, 8, 7, 5, 4, 3, 2, 1.4, 1]
 
 export const historicalMonths: string[] = SALES_MONTHS.filter((month: string) : boolean => month < '2026-01')
 
@@ -76,6 +87,40 @@ function buildInboundSplitVerificationSecondary(skuGroupKey: string): ProductSec
   }
 }
 
+function buildTwentySizeScrollTestSecondary(
+  skuGroupKey: string,
+  price: number,
+  comparisonPrice: number,
+  comparisonQty: number,
+  productQty: number,
+  availableStock: number,
+): ProductSecondaryDetail {
+  const orderQty: number = Math.max(0, Math.round(productQty * 0.76))
+  const confirmedQtyValues: number[] = allocateByWeights(orderQty, TWENTY_SIZE_SCROLL_TEST_SELF_WEIGHTS)
+  const salesQtyValues: number[] = allocateByWeights(productQty, TWENTY_SIZE_SCROLL_TEST_SELF_WEIGHTS)
+  const stockQtyValues: number[] = allocateByWeights(availableStock, TWENTY_SIZE_SCROLL_TEST_COMPARISON_WEIGHTS)
+  const comparisonRatioTotal: number = TWENTY_SIZE_SCROLL_TEST_COMPARISON_WEIGHTS.reduce((sum: number, ratio: number): number => sum + ratio, 0)
+  const midpoint: number = (TWENTY_SIZE_SCROLL_TEST_SIZES.length - 1) / 2
+
+  return {
+    skuGroupKey,
+    comparisonPrice,
+    comparisonQty,
+    comparisonRatioBySize: Object.fromEntries(TWENTY_SIZE_SCROLL_TEST_SIZES.map((size: string, index: number): [string, number] => [
+      size,
+      (TWENTY_SIZE_SCROLL_TEST_COMPARISON_WEIGHTS[index] ?? 0) / comparisonRatioTotal,
+    ])),
+    sizeRows: TWENTY_SIZE_SCROLL_TEST_SIZES.map((size: string, index: number): ProductSecondaryDetail['sizeRows'][number] => ({
+      size,
+      selfRatio: TWENTY_SIZE_SCROLL_TEST_SELF_WEIGHTS[index] ?? 0,
+      confirmedQty: confirmedQtyValues[index] ?? 0,
+      avgPrice: Math.round(price * (1 + (index - midpoint) * 0.0025)),
+      qty: salesQtyValues[index] ?? 0,
+      availableStock: stockQtyValues[index] ?? 0,
+    })),
+  }
+}
+
 export const skuMetadataBySkuGroupKey: Record<string, MockSkuMetadata> = Object.fromEntries(
   allKnownSkuGroupKeys.map((skuGroupKey: string) : [string, MockSkuMetadata] => [skuGroupKey, buildSkuMetadata(skuGroupKey)]),
 )
@@ -126,6 +171,31 @@ export const { primary: productPrimaryBySkuGroupKey, secondary: productSecondary
         monthlySalesTrend: makeFlatTrend(0, 210),
       }
       secondary[skuGroupKey] = buildInboundSplitVerificationSecondary(skuGroupKey)
+      continue
+    }
+
+    if (metadata.code === 'TEST-SIZE20') {
+      const price: number = s?.avgPrice ?? c?.selfAvgPrice ?? 137000
+      const productQty: number = s?.qty ?? c?.selfQty ?? 4200
+      const comparisonPrice: number = c?.competitorAvgPrice ?? Math.round(price * 1.03)
+      const comparisonQty: number = c?.competitorQty ?? Math.round(productQty * 1.08)
+      const availableStock: number = Math.round(productQty * 0.4)
+
+      primary[skuGroupKey] = {
+        ...metadata,
+        price,
+        qty: productQty,
+        availableStock,
+        monthlySalesTrend: buildSalesTrend(Math.max(800, Math.round(productQty * 0.42)), seed, 8),
+      }
+      secondary[skuGroupKey] = buildTwentySizeScrollTestSecondary(
+        skuGroupKey,
+        price,
+        comparisonPrice,
+        comparisonQty,
+        productQty,
+        availableStock,
+      )
       continue
     }
 
