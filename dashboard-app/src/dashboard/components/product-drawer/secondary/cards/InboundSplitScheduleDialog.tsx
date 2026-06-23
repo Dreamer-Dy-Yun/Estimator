@@ -80,7 +80,7 @@ export function InboundSplitScheduleDialog({
     onDraftError,
   })
   const hasInvalidDatePolicy: boolean = findInboundSplitDatePolicyIssue(currentOrderInboundDueDate, nextOrderInboundDueDate, draft.rows) != null
-  const applyDisabled: boolean = draftError != null || draft.rows.length === 0 || hasInvalidDatePolicy
+  const applyDisabled: boolean = draftError != null || draft.rows.length === 0 || hasInvalidDatePolicy || !draft.datesLocked
   const dateWarningMessage: string = draftError == null
     ? (draft.draftWarning ?? (hasInvalidDatePolicy ? KO.msgInboundSplitInvalidDatePolicy : ''))
     : ''
@@ -135,6 +135,7 @@ export function InboundSplitScheduleDialog({
                 ref={countSelectRef}
                 className={styles.inboundSplitCountSelect}
                 value={draft.count}
+                disabled={draft.datesLocked}
                 onChange={(event: React.ChangeEvent<HTMLSelectElement>): void => draft.changeCount(event.target.value)}
                 aria-label={KO.ariaInboundSplitCount}
               >
@@ -150,14 +151,24 @@ export function InboundSplitScheduleDialog({
               </span>
             )}
           </div>
-          <label className={styles.inboundSplitToolbarToggle}>
-            <input
-              type="checkbox"
-              checked={draft.ignoreExistingOrderInboundAll}
-              onChange={(event: React.ChangeEvent<HTMLInputElement>): void => draft.changeIgnoreExistingOrderInboundAll(event.target.checked)}
-            />
-            <span>{KO.labelInboundSplitIgnoreExistingOrderInbound}</span>
-          </label>
+          <div className={styles.inboundSplitToolbarActions}>
+            <button
+              type="button"
+              className={`${styles.btn} ${styles.btnSecondary} ${styles.inboundSplitResetConfirmButton}`}
+              onClick={draft.resetConfirmedToSuggested}
+              disabled={!draft.datesLocked}
+            >
+              {KO.btnInboundSplitResetConfirmed}
+            </button>
+            <label className={styles.inboundSplitToolbarToggle}>
+              <input
+                type="checkbox"
+                checked={draft.ignoreExistingOrderInboundAll}
+                onChange={(event: React.ChangeEvent<HTMLInputElement>): void => draft.changeIgnoreExistingOrderInboundAll(event.target.checked)}
+              />
+              <span>{KO.labelInboundSplitIgnoreExistingOrderInbound}</span>
+            </label>
+          </div>
         </div>
         <div className={styles.inboundSplitTableFrame}>
           <div className={styles.inboundSplitTableWrap}>
@@ -166,6 +177,8 @@ export function InboundSplitScheduleDialog({
               nextOrderInboundDueDate={nextOrderInboundDueDate}
               rows={draft.rows}
               columns={columns}
+              datesLocked={draft.datesLocked}
+              onDatesLockedToggle={draft.toggleDatesLocked}
               onDateChange={draft.changeDate}
               onRowTotalChange={draft.changeRowTotal}
               onQtyChange={draft.changeQty}

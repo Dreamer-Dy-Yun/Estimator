@@ -88,6 +88,9 @@ describe('useInboundSplitScheduleDraft', (): void => {
     const draft: ReturnType<typeof renderDraft> = renderDraft()
 
     act((): void => {
+      draft.current.toggleDatesLocked()
+    })
+    act((): void => {
       draft.current.changeRowTotal(0, '8')
     })
 
@@ -105,6 +108,9 @@ describe('useInboundSplitScheduleDraft', (): void => {
     })
 
     act((): void => {
+      draft.current.toggleDatesLocked()
+    })
+    act((): void => {
       draft.current.changeRowTotal(0, '10')
     })
 
@@ -116,11 +122,51 @@ describe('useInboundSplitScheduleDraft', (): void => {
     const draft: ReturnType<typeof renderDraft> = renderDraft()
 
     act((): void => {
+      draft.current.toggleDatesLocked()
+    })
+    act((): void => {
       draft.current.changeQty(0, 'S', '2.6')
       draft.current.changeQty(0, 'M', '-4')
     })
 
     expect(draft.current.rows[0]?.quantitiesBySize).toEqual({ S: 3, M: 0 })
+  })
+
+  it('keeps date and quantity edit phases separate', (): void => {
+    const draft: ReturnType<typeof renderDraft> = renderDraft()
+
+    act((): void => {
+      draft.current.changeQty(0, 'S', '9')
+    })
+    expect(draft.current.rows[0]?.quantitiesBySize.S).toBe(2)
+
+    act((): void => {
+      draft.current.toggleDatesLocked()
+    })
+    act((): void => {
+      draft.current.changeQty(0, 'S', '9')
+      draft.current.changeDate(0, '2026-04-03')
+    })
+
+    expect(draft.current.datesLocked).toBe(true)
+    expect(draft.current.rows[0]?.quantitiesBySize.S).toBe(9)
+    expect(draft.current.rows[0]?.inboundDate).toBe('2026-04-01')
+  })
+
+  it('resets confirmed quantities to current suggestions after dates are locked', (): void => {
+    const draft: ReturnType<typeof renderDraft> = renderDraft()
+
+    act((): void => {
+      draft.current.toggleDatesLocked()
+    })
+    act((): void => {
+      draft.current.changeQty(0, 'S', '9')
+    })
+    act((): void => {
+      draft.current.resetConfirmedToSuggested()
+    })
+
+    expect(draft.current.rows[0]?.quantitiesBySize).toEqual({ S: 2, M: 6 })
   })
 
   it('keeps current rows and reports an error when date recalculation fails', (): void => {
@@ -174,6 +220,7 @@ describe('useInboundSplitScheduleDraft', (): void => {
     })
 
     expect(draft.current.rows[0]?.inboundDate).toBe('2026-04-03')
+    expect(draft.current.rows[0]?.quantitiesBySize).toEqual(draft.current.rows[0]?.suggestedQuantitiesBySize)
     expect(draft.current.draftWarning).toBeNull()
   })
 

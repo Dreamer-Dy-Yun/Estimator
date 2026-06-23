@@ -46,8 +46,9 @@ function changeValue(input: HTMLInputElement, value: string): void {
   })
 }
 
-function renderTable(overrides: Partial<InboundSplitScheduleTableProps> = {}): Required<Pick<InboundSplitScheduleTableProps, 'onDateChange' | 'onRowTotalChange' | 'onQtyChange'>> {
-  const callbacks: Required<Pick<InboundSplitScheduleTableProps, 'onDateChange' | 'onRowTotalChange' | 'onQtyChange'>> = {
+function renderTable(overrides: Partial<InboundSplitScheduleTableProps> = {}): Required<Pick<InboundSplitScheduleTableProps, 'onDatesLockedToggle' | 'onDateChange' | 'onRowTotalChange' | 'onQtyChange'>> {
+  const callbacks: Required<Pick<InboundSplitScheduleTableProps, 'onDatesLockedToggle' | 'onDateChange' | 'onRowTotalChange' | 'onQtyChange'>> = {
+    onDatesLockedToggle: vi.fn(),
     onDateChange: vi.fn(),
     onRowTotalChange: vi.fn(),
     onQtyChange: vi.fn(),
@@ -57,6 +58,7 @@ function renderTable(overrides: Partial<InboundSplitScheduleTableProps> = {}): R
     nextOrderInboundDueDate: '2026-05-01',
     rows: ROWS,
     columns: COLUMNS,
+    datesLocked: false,
     ...callbacks,
     ...overrides,
   }
@@ -86,6 +88,18 @@ describe('InboundSplitScheduleTable', (): void => {
 
     expect(document.body.textContent).toContain('8')
     expect(document.querySelector(`[aria-label*="${KO.ariaInboundSplitConfirmedDiff}"]`)).not.toBeNull()
+  })
+
+  it('renders the summary date-lock toggle and emits lock changes', (): void => {
+    const callbacks: Required<Pick<InboundSplitScheduleTableProps, 'onDatesLockedToggle' | 'onDateChange' | 'onRowTotalChange' | 'onQtyChange'>> = renderTable()
+    const lockButton: HTMLButtonElement = document.querySelector<HTMLButtonElement>('button[aria-pressed="false"]') as HTMLButtonElement
+
+    expect(lockButton.textContent).toBe(KO.btnInboundSplitLockDates)
+    act((): void => {
+      lockButton.click()
+    })
+
+    expect(callbacks.onDatesLockedToggle as Mock).toHaveBeenCalledTimes(1)
   })
 
   it('renders inbound date intervals from the work date and previous round date', (): void => {
@@ -125,16 +139,29 @@ describe('InboundSplitScheduleTable', (): void => {
     expect(dateInputs[1]?.getAttribute('aria-describedby')).toBe(intervalNode?.id)
   })
 
-  it('emits date, row total, and size quantity changes with row and size identity', (): void => {
-    const callbacks: Required<Pick<InboundSplitScheduleTableProps, 'onDateChange' | 'onRowTotalChange' | 'onQtyChange'>> = renderTable()
+  it('emits date changes while dates are unlocked', (): void => {
+    const callbacks: Required<Pick<InboundSplitScheduleTableProps, 'onDatesLockedToggle' | 'onDateChange' | 'onRowTotalChange' | 'onQtyChange'>> = renderTable()
+    const dateInputs: HTMLInputElement[] = Array.from(document.querySelectorAll<HTMLInputElement>('input[type="date"]'))
+
+    changeValue(dateInputs[0]!, '2026-04-03')
+
+    expect(callbacks.onDateChange as Mock).toHaveBeenCalledWith(0, '2026-04-03')
+  })
+
+  it('locks date inputs and enables quantity edits when dates are confirmed', (): void => {
+    const callbacks: Required<Pick<InboundSplitScheduleTableProps, 'onDatesLockedToggle' | 'onDateChange' | 'onRowTotalChange' | 'onQtyChange'>> = renderTable({
+      datesLocked: true,
+    })
+    const lockButton: HTMLButtonElement = document.querySelector<HTMLButtonElement>('button[aria-pressed="true"]') as HTMLButtonElement
     const dateInputs: HTMLInputElement[] = Array.from(document.querySelectorAll<HTMLInputElement>('input[type="date"]'))
     const numberInputs: HTMLInputElement[] = Array.from(document.querySelectorAll<HTMLInputElement>('input[type="number"]'))
 
-    changeValue(dateInputs[0]!, '2026-04-03')
+    expect(lockButton.textContent).toBe(KO.btnInboundSplitUnlockDates)
+    expect(dateInputs[0]?.disabled).toBe(true)
+    expect(numberInputs[0]?.disabled).toBe(false)
     changeValue(numberInputs[0]!, '9')
     changeValue(numberInputs[2]!, '7')
 
-    expect(callbacks.onDateChange as Mock).toHaveBeenCalledWith(0, '2026-04-03')
     expect(callbacks.onRowTotalChange as Mock).toHaveBeenCalledWith(0, '9')
     expect(callbacks.onQtyChange as Mock).toHaveBeenCalledWith(0, 'M', '7')
   })

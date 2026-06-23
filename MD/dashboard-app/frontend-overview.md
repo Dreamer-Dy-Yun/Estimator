@@ -13,7 +13,7 @@ Last updated: 2026-06-19
 - 자사/경쟁사 분석 페이지는 기간, 회사, 채널, 필터 조건으로 판매 목록과 scatter/list UI를 조회한다.
 - 분석 목록에서 상품 드로어를 열어 summary, 월간 추세, sales insight, secondary 주문 계산을 본다.
 - secondary 드로어에서 입고일, 버퍼, 단가/원가/수수료, 자사/비교 가중치, 사이즈별 확정 수량을 조정한다.
-- 분할 입고 다이얼로그는 API source를 기반으로 차수별 제안 수량을 계산하고, 사용자가 차수/사이즈 확정 수량을 조정한다.
+- 분할 입고 다이얼로그는 API source를 기반으로 차수별 제안 수량을 계산하고, 사용자가 차수/사이즈 확정 수량을 조정한다. Dialog draft is split into a date phase and a quantity phase: before date lock, split count/date edits are allowed and confirmed quantities follow suggestions; after date lock, dates are disabled and confirmed total/size quantity edits plus reset-to-suggested are enabled.
 - 후보군은 선택 회사 기준으로 stash, item, 추천, 상세확정, order metric SSE, Excel upload/download를 처리한다.
 - 저장된 후보 item의 `confirmedOrderSnapshot`는 `OrderSnapshotDocument` v8이며, snapshot row는 저장값을 우선 표시한다.
 - 관리자 화면은 사용자, GPT key, Google Sheets 설정을 관리한다.

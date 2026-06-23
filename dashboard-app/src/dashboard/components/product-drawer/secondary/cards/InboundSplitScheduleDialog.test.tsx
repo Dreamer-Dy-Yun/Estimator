@@ -105,6 +105,14 @@ function changeValue(input: HTMLInputElement | HTMLSelectElement, value: string)
   })
 }
 
+function clickDateLockButton(): void {
+  const button: HTMLButtonElement = Array.from(document.querySelectorAll<HTMLButtonElement>('button'))
+    .find((candidate: HTMLButtonElement): boolean => candidate.textContent === KO.btnInboundSplitLockDates || candidate.textContent === KO.btnInboundSplitUnlockDates) as HTMLButtonElement
+  act(() : void => {
+    button.click()
+  })
+}
+
 afterEach(() : void => {
   act(() : void => {
     mountedRoots.forEach((root: Root): void => root.unmount())
@@ -120,6 +128,7 @@ describe('InboundSplitScheduleDialog event flow', () : void => {
     const select: HTMLSelectElement = document.querySelector('select') as HTMLSelectElement
 
     changeValue(select, '3')
+    clickDateLockButton()
     const actionButtons: HTMLButtonElement[] = Array.from(document.querySelectorAll<HTMLButtonElement>('footer button'))
     act(() : void => {
       actionButtons[1].click()
@@ -138,6 +147,7 @@ describe('InboundSplitScheduleDialog event flow', () : void => {
     act(() : void => {
       globalCheckbox?.click()
     })
+    clickDateLockButton()
     const actionButtons: HTMLButtonElement[] = Array.from(document.querySelectorAll<HTMLButtonElement>('footer button'))
     act(() : void => {
       actionButtons[1].click()
@@ -149,6 +159,7 @@ describe('InboundSplitScheduleDialog event flow', () : void => {
 
   it('allows confirmed overage and marks confirmed fields when they differ from suggestions', () : void => {
     const { props }: RenderResult = renderDialog()
+    clickDateLockButton()
     const firstTotalInput: HTMLInputElement = document.querySelector<HTMLInputElement>('input[type="number"]') as HTMLInputElement
 
     changeValue(firstTotalInput, '20')
@@ -162,6 +173,26 @@ describe('InboundSplitScheduleDialog event flow', () : void => {
 
     const submittedRows: InboundSplitScheduleRow[] = props.onApply.mock.calls[0][0]
     expect(submittedRows[0].quantitiesBySize.S + submittedRows[0].quantitiesBySize.M).toBe(20)
+  })
+
+  it('resets confirmed quantities to suggestions after inbound dates are locked', () : void => {
+    const { props }: RenderResult = renderDialog()
+    clickDateLockButton()
+    const resetButton: HTMLButtonElement = Array.from(document.querySelectorAll<HTMLButtonElement>('button'))
+      .find((button: HTMLButtonElement): boolean => button.textContent === KO.btnInboundSplitResetConfirmed) as HTMLButtonElement
+    const numberInputs: HTMLInputElement[] = Array.from(document.querySelectorAll<HTMLInputElement>('input[type="number"]'))
+
+    changeValue(numberInputs[0]!, '20')
+    act(() : void => {
+      resetButton.click()
+    })
+    const actionButtons: HTMLButtonElement[] = Array.from(document.querySelectorAll<HTMLButtonElement>('footer button'))
+    act(() : void => {
+      actionButtons[1].click()
+    })
+
+    const submittedRows: InboundSplitScheduleRow[] = props.onApply.mock.calls[0][0]
+    expect(submittedRows[0].quantitiesBySize).toEqual(submittedRows[0].suggestedQuantitiesBySize)
   })
 
   it('does not apply local draft changes when the dialog is closed', () : void => {
@@ -262,6 +293,7 @@ describe('InboundSplitScheduleDialog event flow', () : void => {
     const select: HTMLSelectElement = document.querySelector('select') as HTMLSelectElement
 
     changeValue(select, '3')
+    clickDateLockButton()
     const actionButtons: HTMLButtonElement[] = Array.from(document.querySelectorAll<HTMLButtonElement>('footer button'))
     act(() : void => {
       actionButtons[1].click()

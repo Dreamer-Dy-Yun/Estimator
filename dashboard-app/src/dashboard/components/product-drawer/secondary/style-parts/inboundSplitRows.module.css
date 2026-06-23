@@ -13,6 +13,31 @@
   text-align: right;
 }
 
+.inboundSplitDateLockButton {
+  width: 100%;
+  min-height: 24px;
+  padding: 3px 8px;
+  border: 1px solid rgb(255 255 255 / 0.55);
+  border-radius: 999px;
+  background: rgb(255 255 255 / 0.16);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1.2;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.inboundSplitDateLockButton:hover {
+  background: rgb(255 255 255 / 0.24);
+}
+
+.inboundSplitDateLockButton[aria-pressed="true"] {
+  border-color: #d9f99d;
+  background: #eaf8d8;
+  color: var(--inbound-split-dialog-title);
+}
+
 .inboundSplitSummaryRow .inboundSplitStickyCol {
   z-index: 8;
 }
@@ -191,6 +216,12 @@
   width: 100%;
   font-size: 12px;
   font-weight: 800;
+}
+
+.inboundSplitTable .stockDateInput:disabled,
+.inboundSplitTable .stockNumberInput:disabled {
+  opacity: 0.72;
+  cursor: not-allowed;
 }
 
 .inboundSplitDateStack {

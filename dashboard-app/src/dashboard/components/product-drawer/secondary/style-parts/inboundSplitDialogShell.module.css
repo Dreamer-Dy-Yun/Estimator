@@ -111,6 +111,22 @@
   min-width: 0;
 }
 
+.inboundSplitToolbarActions {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  min-width: 0;
+}
+
+.inboundSplitResetConfirmButton {
+  min-height: 28px;
+  padding: 5px 9px;
+  font-size: 11px;
+  line-height: 1.25;
+  white-space: nowrap;
+}
+
 .inboundSplitToolbarToggle {
   display: inline-grid;
   grid-template-columns: auto 1fr;

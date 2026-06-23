@@ -16,6 +16,8 @@ export interface InboundSplitScheduleTableProps {
   nextOrderInboundDueDate: string
   rows: InboundSplitScheduleRow[]
   columns: InboundSplitSizeColumn[]
+  datesLocked: boolean
+  onDatesLockedToggle: () => void
   onDateChange: (rowIndex: number, value: string) => void
   onRowTotalChange: (rowIndex: number, value: string) => void
   onQtyChange: (rowIndex: number, size: string, value: string) => void
@@ -96,6 +98,8 @@ export function InboundSplitScheduleTable({
   nextOrderInboundDueDate,
   rows,
   columns,
+  datesLocked,
+  onDatesLockedToggle,
   onDateChange,
   onRowTotalChange,
   onQtyChange,
@@ -123,7 +127,16 @@ export function InboundSplitScheduleTable({
       <tbody>
         <tr className={styles.inboundSplitSummaryRow}>
           <td className={cx(stickyRoundClassName, styles.inboundSplitSummarySpanCell)} rowSpan={2}>{KO.labelAll}</td>
-          <td className={cx(stickyDateClassName, styles.inboundSplitSummarySpanCell)} rowSpan={2}>-</td>
+          <td className={cx(stickyDateClassName, styles.inboundSplitSummarySpanCell)} rowSpan={2}>
+            <button
+              type="button"
+              className={styles.inboundSplitDateLockButton}
+              aria-pressed={datesLocked}
+              onClick={onDatesLockedToggle}
+            >
+              {datesLocked ? KO.btnInboundSplitUnlockDates : KO.btnInboundSplitLockDates}
+            </button>
+          </td>
           <td className={stickyKindClassName}>{KO.rowInboundSplitSuggestedQty}</td>
           <td className={stickyTotalClassName}>
             <div className={styles.inboundSplitSummaryTotalCell}>
@@ -166,6 +179,7 @@ export function InboundSplitScheduleTable({
                       value={row.inboundDate}
                       onChange={(value: string): void => onDateChange(rowIndex, value)}
                       inputClassName={styles.stockDateInput}
+                      disabled={datesLocked}
                       ariaDescribedBy={dateIntervalId}
                       ariaInvalid={invalidDatePolicy ? true : undefined}
                     />
@@ -204,6 +218,7 @@ export function InboundSplitScheduleTable({
                     min={0}
                     step={1}
                     value={confirmedTotalQty}
+                    disabled={!datesLocked}
                     onChange={(event: React.ChangeEvent<HTMLInputElement>): void => onRowTotalChange(rowIndex, event.target.value)}
                     aria-label={ariaDiffLabel(`${row.round}${KO.optionInboundSplitRoundSuffix} ${KO.thInboundSplitTotalQty} ${KO.rowInboundSplitConfirmedQty}`, totalDiffClass)}
                   />
@@ -220,6 +235,7 @@ export function InboundSplitScheduleTable({
                         min={0}
                         step={1}
                         value={confirmedQty}
+                        disabled={!datesLocked}
                         onChange={(event: React.ChangeEvent<HTMLInputElement>): void => onQtyChange(rowIndex, column.size, event.target.value)}
                         aria-label={ariaDiffLabel(`${row.round}${KO.optionInboundSplitRoundSuffix} ${column.size} ${KO.rowInboundSplitConfirmedQty}`, sizeDiffClass)}
                       />

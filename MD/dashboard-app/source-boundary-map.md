@@ -1,6 +1,6 @@
 # Dashboard App Source Boundary Map
 
-Last updated: 2026-06-19
+Last updated: 2026-06-23
 
 이 문서는 `dashboard-app`의 현재 책임 경계와 데이터 출처를 정리한다. 화면, API 계약, 계산 책임, 저장된 사용자 결정이 섞이지 않도록 하는 기준 문서이다.
 
@@ -52,6 +52,8 @@ API 문서는 다음 문서를 함께 갱신한다.
 `inboundSplitSource` is returned inside `getSecondaryStockOrderCalc`; split count, split dates, confirmed quantities, and `ignoreExistingOrderInbound` remain UI/snapshot state.
 
 Detail recommended quantities and split-inbound suggested quantities must both be derived from `stockOrderCalc.inboundSplitSource` through the same planning function. They must use `total.sales`, `sizeInfo`, `expectation`, opening stock, existing inbound before the current order, and UI target ending stock instead of a separate `total.suggestion` shortcut. Round demand uses `[round n inbound date, round n+1 inbound date)`, while existing-order inbound for round n uses `[round n-1 inbound date, round n inbound date)`.
+
+Split inbound dialog draft editing has two UI-owned phases. Before inbound dates are locked, users may change split count and dates; confirmed quantities mirror the recalculated suggestions. The summary inbound-date cell owns the date-lock toggle. After dates are locked, split count/date inputs are disabled and confirmed total/size quantity inputs plus reset-to-suggested are enabled. This phase state is dialog-local UI state and does not change API or snapshot contracts.
 
 ## 4. Secondary 오더/입고 분할 경계
 
