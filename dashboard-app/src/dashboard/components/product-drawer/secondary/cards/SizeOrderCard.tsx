@@ -58,6 +58,7 @@ type SizeOrderHoverCell = {
 
 type SizeOrderTableStyle = CSSProperties & {
   '--size-order-size-column-count': number
+  '--size-order-size-column-divisor': number
 }
 
 function sumInboundSplitExpectationBeforeDate(
@@ -79,6 +80,7 @@ export function SizeOrderCard({ sizeOrder, actions, help }: Props) : React.JSX.E
   const [hoveredCell, setHoveredCell]: [SizeOrderHoverCell, React.Dispatch<React.SetStateAction<SizeOrderHoverCell>>] = useState<SizeOrderHoverCell>(null)
   const tableStyle: SizeOrderTableStyle = {
     '--size-order-size-column-count': sizeRows.length,
+    '--size-order-size-column-divisor': Math.max(sizeRows.length, 1),
   }
   const comparisonWeightPct: number = getComparisonWeightPct(selfWeightPct)
   const columnTotals: SizeOrderColumnTotals = useMemo(() : SizeOrderColumnTotals => calculateSizeOrderColumnTotals(sizeRows), [sizeRows])

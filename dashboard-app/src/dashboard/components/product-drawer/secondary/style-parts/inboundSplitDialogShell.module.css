@@ -16,8 +16,8 @@
   --inbound-split-header-height: 32px;
   --inbound-split-body-row-height: 30px;
   --inbound-split-size-col-min-width: 78px;
-  --inbound-split-size-col-max-width: 128px;
   --inbound-split-size-col-count: 0;
+  --inbound-split-size-col-divisor: 1;
   --inbound-split-total-col-width: 111px;
   --inbound-split-round-col-width: 46px;
   --inbound-split-date-col-width: 141px;

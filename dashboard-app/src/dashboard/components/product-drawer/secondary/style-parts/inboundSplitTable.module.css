@@ -9,11 +9,11 @@
     var(--inbound-split-sticky-cols-width)
     + (var(--inbound-split-size-col-count) * var(--inbound-split-size-col-min-width))
   );
-  --inbound-split-table-max-width: calc(
-    var(--inbound-split-sticky-cols-width)
-    + (var(--inbound-split-size-col-count) * var(--inbound-split-size-col-max-width))
+  --inbound-split-size-col-width: max(
+    var(--inbound-split-size-col-min-width),
+    calc((100% - var(--inbound-split-sticky-cols-width)) / var(--inbound-split-size-col-divisor))
   );
-  width: clamp(var(--inbound-split-table-min-width), 100%, var(--inbound-split-table-max-width));
+  width: max(100%, var(--inbound-split-table-min-width));
   min-width: var(--inbound-split-table-min-width);
   table-layout: fixed;
   font-size: 13px;
@@ -44,6 +44,7 @@
 .inboundSplitTable th:not(.inboundSplitStickyCol),
 .inboundSplitTable td:not(.inboundSplitStickyCol) {
   min-width: var(--inbound-split-size-col-min-width);
+  width: var(--inbound-split-size-col-width);
 }
 
 .inboundSplitStickyCol {

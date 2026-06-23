@@ -63,6 +63,14 @@
   --size-order-sticky-total-max-width: 6.75rem;
   --size-order-size-column-min-width: 5.25rem;
   --size-order-size-column-count: 0;
+  --size-order-size-column-divisor: 1;
+  --size-order-size-column-width: max(
+    var(--size-order-size-column-min-width),
+    calc(
+      (100% - var(--size-order-sticky-metric-width) - var(--size-order-sticky-total-width))
+      / var(--size-order-size-column-divisor)
+    )
+  );
   --size-order-table-min-width: calc(
     var(--size-order-sticky-metric-width)
     + var(--size-order-sticky-total-width)
@@ -71,7 +79,7 @@
   --size-order-sticky-divider-color: #cbd5e1;
   --size-order-metric-divider-offset: -1px;
   width: max(100%, var(--size-order-table-min-width));
-  min-width: max(100%, var(--size-order-table-min-width));
+  min-width: var(--size-order-table-min-width);
   table-layout: fixed;
 }
 
@@ -85,7 +93,8 @@
 }
 
 .sizeOrderSizeCol {
-  width: var(--size-order-size-column-min-width);
+  width: var(--size-order-size-column-width);
+  min-width: var(--size-order-size-column-min-width);
 }
 
 .sizeOrderTable th:first-child,

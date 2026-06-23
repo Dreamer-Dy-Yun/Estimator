@@ -25,6 +25,7 @@ export interface InboundSplitScheduleTableProps {
 
 type InboundSplitTableStyle = CSSProperties & {
   '--inbound-split-size-col-count': number
+  '--inbound-split-size-col-divisor': number
 }
 
 function formatInboundSplitDateInterval(interval: InboundSplitDateInterval): string {
@@ -116,6 +117,7 @@ export function InboundSplitScheduleTable({
   const formattedConfirmedGrandTotal: string = formatGroupedNumber(confirmedGrandTotal)
   const tableStyle: InboundSplitTableStyle = {
     '--inbound-split-size-col-count': columns.length,
+    '--inbound-split-size-col-divisor': Math.max(columns.length, 1),
   }
 
   return (
