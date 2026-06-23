@@ -196,6 +196,43 @@ describe('InboundSplitScheduleDialog event flow', () : void => {
     expect(props.onApply).not.toHaveBeenCalled()
   })
 
+  it('renders draft error badges next to the split count selector', () : void => {
+    renderDialog({
+      draftError: {
+        checkedAt: '2026-06-15T00:00:00.000Z',
+        page: 'ProductSecondaryDrawer',
+        request: 'buildInboundSplitScheduleRows',
+        error: 'missing source cell',
+      },
+    })
+    const select: HTMLSelectElement = document.querySelector('select') as HTMLSelectElement
+    const countPanel: HTMLDivElement | null = select.closest('div')
+
+    expect(countPanel?.textContent).toContain('ERROR')
+  })
+
+  it('rejects invalid date edits with a warning next to the split count selector', () : void => {
+    const { props }: RenderResult = renderDialog({
+      currentOrderInboundDueDate: '2026-04-01',
+      nextOrderInboundDueDate: '2026-05-01',
+      initialRows: [
+        row('initial-1', 1, '2026-04-01', 5, 2, 5, 2),
+        row('initial-2', 2, '2026-04-04', 5, 3, 5, 3),
+      ],
+    })
+    const firstDateInput: HTMLInputElement = document.querySelector<HTMLInputElement>('input[type="date"]') as HTMLInputElement
+    const select: HTMLSelectElement = document.querySelector('select') as HTMLSelectElement
+    const countPanel: HTMLDivElement | null = select.closest('div')
+
+    changeValue(firstDateInput, '2026-03-30')
+
+    expect(firstDateInput.value).toBe('2026-04-01')
+    expect(props.recalculateRows).not.toHaveBeenCalled()
+    expect(props.onDraftError).toHaveBeenCalledWith(null, 'validateInboundSplitScheduleRows')
+    expect(countPanel?.textContent).toContain(KO.msgInboundSplitInvalidDatePolicy)
+    expect(countPanel?.textContent).not.toContain('ERROR')
+  })
+
   it('disables apply and shows reason when inbound dates are not strictly increasing', () : void => {
     const { props }: RenderResult = renderDialog({
       initialCount: 2,

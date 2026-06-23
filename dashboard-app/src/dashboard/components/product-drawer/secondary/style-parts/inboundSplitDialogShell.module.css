@@ -18,7 +18,7 @@
   --inbound-split-size-col-min-width: 78px;
   --inbound-split-total-col-width: 111px;
   --inbound-split-round-col-width: 46px;
-  --inbound-split-date-col-width: 128px;
+  --inbound-split-date-col-width: 141px;
   --inbound-split-kind-col-width: 54px;
   --inbound-split-header-bg: #185c37;
   --inbound-split-summary-bg: #6a8f74;
@@ -101,6 +101,14 @@
   display: flex;
   align-items: center;
   gap: 10px;
+  min-width: 0;
+}
+
+.inboundSplitCountFeedback {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
 }
 
 .inboundSplitToolbarToggle {
@@ -127,24 +135,17 @@
   accent-color: var(--inbound-split-header-bg);
 }
 
-.inboundSplitCountValidation {
+.inboundSplitCountWarning {
   max-width: 520px;
-  color: var(--inbound-split-diff-text);
+  padding: 4px 8px;
+  border: 1px solid #f2c97d;
+  border-radius: 999px;
+  background: #fff7df;
+  color: #7c4a03;
   font-size: 11px;
   font-weight: 700;
   line-height: 1.3;
   white-space: normal;
-}
-
-.inboundSplitError {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin: -2px 0 8px;
-  color: var(--inbound-split-diff-text, #b91c1c);
-  font-size: 11px;
-  font-weight: 700;
-  line-height: 1.35;
 }
 
 .inboundSplitTableFrame {

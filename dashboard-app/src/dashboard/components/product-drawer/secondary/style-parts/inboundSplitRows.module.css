@@ -166,6 +166,10 @@
   text-align: center;
 }
 
+.inboundSplitTable .inboundSplitKindCell {
+  text-align: center;
+}
+
 .inboundSplitTotalCell {
   width: var(--inbound-split-total-col-width);
   min-width: var(--inbound-split-total-col-width);

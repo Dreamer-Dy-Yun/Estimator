@@ -137,6 +137,44 @@ describe('useInboundSplitScheduleDraft', (): void => {
 
     expect(draft.current.rows).toEqual(INITIAL_ROWS)
     expect(draft.onDraftError).toHaveBeenCalledWith(sourceError, 'recalculateInboundSplitScheduleRows')
+    expect(draft.current.draftWarning).toBeNull()
+  })
+
+  it('rejects invalid date edits as a draft warning before recalculation', (): void => {
+    const onRecalculateRows: Mock<(rows: InboundSplitScheduleRow[]) => InboundSplitScheduleRow[]> = vi.fn((rows: InboundSplitScheduleRow[]): InboundSplitScheduleRow[] => rows)
+    const draft: ReturnType<typeof renderDraft> = renderDraft({
+      recalculateRows: onRecalculateRows,
+      validateRows: vi.fn((): string | null => 'invalid date range'),
+    })
+
+    act((): void => {
+      draft.current.changeDate(0, '2026-03-30')
+    })
+
+    expect(draft.current.rows).toEqual(INITIAL_ROWS)
+    expect(draft.current.draftWarning).toBe('invalid date range')
+    expect(onRecalculateRows).not.toHaveBeenCalled()
+    expect(draft.onDraftError).toHaveBeenCalledWith(null, 'validateInboundSplitScheduleRows')
+  })
+
+  it('clears a date warning after the next accepted edit', (): void => {
+    let invalid: boolean = true
+    const draft: ReturnType<typeof renderDraft> = renderDraft({
+      validateRows: vi.fn((): string | null => invalid ? 'invalid date range' : null),
+    })
+
+    act((): void => {
+      draft.current.changeDate(0, '2026-03-30')
+    })
+    expect(draft.current.draftWarning).toBe('invalid date range')
+
+    invalid = false
+    act((): void => {
+      draft.current.changeDate(0, '2026-04-03')
+    })
+
+    expect(draft.current.rows[0]?.inboundDate).toBe('2026-04-03')
+    expect(draft.current.draftWarning).toBeNull()
   })
 
   it('clamps count changes through the count builder', (): void => {

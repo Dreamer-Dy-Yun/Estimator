@@ -1,4 +1,4 @@
-import { useId, useRef, useState } from 'react'
+import { useCallback, useId, useRef, useState } from 'react'
 import { ApiUnitErrorBadge } from '../../../../../components/ApiUnitErrorBadge'
 import { DialogCloseButton } from '../../../../../components/DialogCloseButton'
 import { copyToClipboard } from '../../../../../utils/copyToClipboard'
@@ -65,18 +65,24 @@ export function InboundSplitScheduleDialog({
     onClose,
     initialFocusRef: countSelectRef,
   })
+  const validateDraftRows: (rows: readonly InboundSplitScheduleRow[]) => string | null = useCallback((rows: readonly InboundSplitScheduleRow[]): string | null => (
+    findInboundSplitDatePolicyIssue(currentOrderInboundDueDate, nextOrderInboundDueDate, rows) == null
+      ? null
+      : KO.msgInboundSplitInvalidDatePolicy
+  ), [currentOrderInboundDueDate, nextOrderInboundDueDate])
   const draft: UseInboundSplitScheduleDraftResult = useInboundSplitScheduleDraft({
     initialCount,
     initialRows,
     columns,
     buildRowsForCount,
     recalculateRows,
+    validateRows: validateDraftRows,
     onDraftError,
   })
   const hasInvalidDatePolicy: boolean = findInboundSplitDatePolicyIssue(currentOrderInboundDueDate, nextOrderInboundDueDate, draft.rows) != null
   const applyDisabled: boolean = draftError != null || draft.rows.length === 0 || hasInvalidDatePolicy
-  const dateOrderErrorMessage: string = hasInvalidDatePolicy
-    ? KO.msgInboundSplitInvalidDatePolicy
+  const dateWarningMessage: string = draftError == null
+    ? (draft.draftWarning ?? (hasInvalidDatePolicy ? KO.msgInboundSplitInvalidDatePolicy : ''))
     : ''
   const handleCopyDebugSourcePayload: () => Promise<void> = async (): Promise<void> => {
     const debugText: string = JSON.stringify(debugSourcePayload ?? null, null, 2) ?? 'null'
@@ -137,7 +143,12 @@ export function InboundSplitScheduleDialog({
                 ))}
               </select>
             </label>
-            {hasInvalidDatePolicy && <span className={styles.inboundSplitCountValidation}>{dateOrderErrorMessage}</span>}
+            {(dateWarningMessage || draftError) && (
+              <span className={styles.inboundSplitCountFeedback} role={draftError ? 'alert' : 'status'}>
+                {dateWarningMessage && <span className={styles.inboundSplitCountWarning}>{dateWarningMessage}</span>}
+                <ApiUnitErrorBadge error={draftError} />
+              </span>
+            )}
           </div>
           <label className={styles.inboundSplitToolbarToggle}>
             <input
@@ -148,11 +159,6 @@ export function InboundSplitScheduleDialog({
             <span>{KO.labelInboundSplitIgnoreExistingOrderInbound}</span>
           </label>
         </div>
-        {draftError && (
-          <p className={styles.inboundSplitError} role="alert">
-            <ApiUnitErrorBadge error={draftError} />
-          </p>
-        )}
         <div className={styles.inboundSplitTableFrame}>
           <div className={styles.inboundSplitTableWrap}>
             <InboundSplitScheduleTable
