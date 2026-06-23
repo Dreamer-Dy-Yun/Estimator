@@ -92,12 +92,15 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+  height: 49px;
   padding: 10px 16px;
   border-bottom: 1px solid var(--inbound-split-dialog-border);
   background: var(--inbound-split-dialog-surface-muted);
+  box-sizing: border-box;
 }
 
 .inboundSplitCountPanel {
+  flex: 1 1 auto;
   display: flex;
   align-items: center;
   gap: 10px;
@@ -105,13 +108,16 @@
 }
 
 .inboundSplitCountFeedback {
+  flex: 1 1 auto;
   display: inline-flex;
   align-items: center;
   gap: 8px;
   min-width: 0;
+  overflow: hidden;
 }
 
 .inboundSplitToolbarActions {
+  flex: 0 0 auto;
   display: inline-flex;
   align-items: center;
   justify-content: flex-end;
@@ -152,8 +158,11 @@
 }
 
 .inboundSplitCountWarning {
-  max-width: 520px;
+  display: -webkit-box;
+  max-width: min(820px, 100%);
+  min-width: 0;
   padding: 4px 8px;
+  overflow: hidden;
   border: 1px solid #f2c97d;
   border-radius: 999px;
   background: #fff7df;
@@ -161,6 +170,9 @@
   font-size: 11px;
   font-weight: 700;
   line-height: 1.3;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  text-overflow: ellipsis;
   white-space: normal;
 }
 

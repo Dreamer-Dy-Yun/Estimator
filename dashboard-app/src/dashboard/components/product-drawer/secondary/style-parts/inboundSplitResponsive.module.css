@@ -6,6 +6,12 @@
   .inboundSplitDialogToolbar {
     align-items: flex-start;
     flex-direction: column;
+    height: 78px;
+  }
+
+  .inboundSplitCountPanel,
+  .inboundSplitToolbarActions {
+    width: 100%;
   }
 
   .inboundSplitToolbarToggle {
