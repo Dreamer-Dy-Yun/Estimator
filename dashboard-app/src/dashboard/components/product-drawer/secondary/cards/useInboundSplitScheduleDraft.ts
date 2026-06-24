@@ -107,13 +107,13 @@ export function useInboundSplitScheduleDraft({
       onDraftError?.(null, 'validateInboundSplitScheduleRows')
       return true
     })
-  }, [getRowsWarning, onDraftError, rows])
+  }, [getRowsWarning, onDraftError, rows, setDatesLocked, setDraftWarning])
 
   const resetConfirmedToSuggested: () => void = useCallback((): void => {
     if (!datesLocked) return
     setDraftWarning(null)
     setRows((currentRows: InboundSplitScheduleRow[]): InboundSplitScheduleRow[] => syncQuantitiesToSuggested(currentRows, columns))
-  }, [columns, datesLocked])
+  }, [columns, datesLocked, setDraftWarning, setRows])
 
   const changeDate: (rowIndex: number, value: string) => void = useCallback((rowIndex: number, value: string): void => {
     if (datesLocked) return
@@ -138,7 +138,7 @@ export function useInboundSplitScheduleDraft({
         return currentRows
       }
     })
-  }, [columns, datesLocked, getRowsWarning, onDraftError, recalculateRows])
+  }, [columns, datesLocked, getRowsWarning, onDraftError, recalculateRows, setDraftWarning, setRows])
 
   const changeCount: (value: string) => void = useCallback((value: string): void => {
     if (datesLocked) return
@@ -162,7 +162,7 @@ export function useInboundSplitScheduleDraft({
     } catch (err: unknown) {
       onDraftError?.(err, 'buildInboundSplitScheduleRows')
     }
-  }, [buildRowsForCount, columns, datesLocked, ignoreExistingOrderInboundAll, onDraftError, recalculateRows])
+  }, [buildRowsForCount, columns, datesLocked, ignoreExistingOrderInboundAll, onDraftError, recalculateRows, setCount, setDraftWarning, setRows])
 
   const changeIgnoreExistingOrderInboundAll: (checked: boolean) => void = useCallback((checked: boolean): void => {
     setIgnoreExistingOrderInboundAll(checked)
@@ -179,7 +179,7 @@ export function useInboundSplitScheduleDraft({
         return syncQuantitiesToSuggested(nextRows, columns)
       }
     })
-  }, [columns, onDraftError, recalculateRows])
+  }, [columns, onDraftError, recalculateRows, setDraftWarning, setIgnoreExistingOrderInboundAll, setRows])
 
   const changeRowTotal: (rowIndex: number, value: string) => void = useCallback((rowIndex: number, value: string): void => {
     if (!datesLocked) return
@@ -188,7 +188,7 @@ export function useInboundSplitScheduleDraft({
       const nextRows: InboundSplitScheduleRow[] = redistributeInboundSplitRowTotalBySuggestedTotals(currentRows, columns, rowIndex, value)
       return nextRows.length === currentRows.length ? nextRows : currentRows
     })
-  }, [columns, datesLocked])
+  }, [columns, datesLocked, setDraftWarning, setRows])
 
   const changeQty: (rowIndex: number, size: string, value: string) => void = useCallback((rowIndex: number, size: string, value: string): void => {
     if (!datesLocked) return
@@ -199,7 +199,7 @@ export function useInboundSplitScheduleDraft({
         ? { ...row, quantitiesBySize: { ...row.quantitiesBySize, [size]: nextQty } }
         : row
     )))
-  }, [datesLocked])
+  }, [datesLocked, setDraftWarning, setRows])
 
   return {
     count,
