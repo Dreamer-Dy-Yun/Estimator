@@ -11,6 +11,43 @@ const STOCK_ORDER_QUANTITY_ERROR = 'Invalid stock-order existing inbound supply 
 const STOCK_ORDER_SPLIT_SOURCE_DATE_ERROR = 'Invalid stock-order inbound split source date'
 const STOCK_ORDER_SPLIT_SOURCE_QUANTITY_ERROR = 'Invalid stock-order inbound split source quantity'
 
+function trimSecondaryInboundSplitSourceToWindow(
+  source: SecondaryInboundSplitSource,
+  calculationBaseDate: string,
+  nextOrderInboundDueDate: string,
+): SecondaryInboundSplitSource {
+  const startMs: number = parseSecondaryIsoDateMs(calculationBaseDate, 'calculationBaseDate', STOCK_ORDER_SPLIT_SOURCE_DATE_ERROR)
+  const endMs: number = parseSecondaryIsoDateMs(nextOrderInboundDueDate, 'nextOrderInboundDueDate', STOCK_ORDER_SPLIT_SOURCE_DATE_ERROR)
+
+  const trimmedTotalSales: Record<string, number> = Object.fromEntries(
+    Object.entries(source.total.sales).filter(([date]): boolean => {
+      const dateMs: number = parseSecondaryIsoDateMs(date, date, STOCK_ORDER_SPLIT_SOURCE_DATE_ERROR)
+      return dateMs >= startMs && dateMs < endMs
+    }),
+  )
+
+  const trimmedExpectation: SecondaryInboundSplitSource['expectation'] = Object.fromEntries(
+    Object.entries(source.expectation).map((
+      [size, points]: [string, SecondaryInboundSplitSource['expectation'][string]],
+    ): [string, SecondaryInboundSplitSource['expectation'][string]] => {
+      const filteredPoints: SecondaryInboundSplitSource['expectation'][string] = points.filter((point: SecondaryInboundSplitSource['expectation'][string][number]): boolean => {
+        const pointMs: number = parseSecondaryIsoDateMs(point.date, point.date, STOCK_ORDER_SPLIT_SOURCE_DATE_ERROR)
+        return pointMs >= startMs && pointMs < endMs
+      })
+      return [size, filteredPoints]
+    }),
+  )
+
+  return {
+    ...source,
+    total: {
+      ...source.total,
+      sales: trimmedTotalSales,
+    },
+    expectation: trimmedExpectation,
+  }
+}
+
 export type UseSecondaryStockOrderCalcParams = {
   skuGroupKey: string
   productIdentity: SecondaryProductIdentity
@@ -74,15 +111,18 @@ function assertExistingOrderInboundSupplyMatchesDisplay(result: SecondaryStockOr
 
 function assertInboundSplitSourceMatchesStockOrder(
   result: SecondaryStockOrderCalcResult,
+  calculationBaseDate: string,
   currentOrderInboundDueDate: string,
   nextOrderInboundDueDate: string,
 ): void {
   const source: SecondaryInboundSplitSource = result.inboundSplitSource
   const displayRows: SecondaryStockOrderCalcResult['display']['sizeRows'] = result.display.sizeRows
   const displaySizeSet: Set<string> = new Set(displayRows.map((row: SecondaryStockOrderCalcResult['display']['sizeRows'][number]): string => row.size))
+  const expectationStartMs: number = parseSecondaryIsoDateMs(calculationBaseDate, 'calculationBaseDate', STOCK_ORDER_SPLIT_SOURCE_DATE_ERROR)
   const startMs: number = parseSecondaryIsoDateMs(currentOrderInboundDueDate, 'currentOrderInboundDueDate', STOCK_ORDER_SPLIT_SOURCE_DATE_ERROR)
   const endMs: number = parseSecondaryIsoDateMs(nextOrderInboundDueDate, 'nextOrderInboundDueDate', STOCK_ORDER_SPLIT_SOURCE_DATE_ERROR)
   if (endMs <= startMs) throw new Error('Stock order inboundSplitSource next inbound date must be after current inbound date.')
+  if (endMs <= expectationStartMs) throw new Error('Stock order inboundSplitSource next inbound date must be after calculation base date.')
 
   if (source.total == null || typeof source.total !== 'object') throw new Error('Stock order inboundSplitSource total is required.')
   requireFiniteSecondaryQuantity(source.total.suggestion, 'total.suggestion', STOCK_ORDER_SPLIT_SOURCE_QUANTITY_ERROR)
@@ -114,7 +154,7 @@ function assertInboundSplitSourceMatchesStockOrder(
     if (!Array.isArray(expectationPoints)) throw new Error(`Stock order inboundSplitSource expectation is missing for size ${row.size}.`)
     expectationPoints.forEach((point: SecondaryInboundSplitSource['expectation'][string][number], index: number): void => {
       const pointMs: number = parseSecondaryIsoDateMs(point.date, point.date, STOCK_ORDER_SPLIT_SOURCE_DATE_ERROR)
-      if (pointMs < startMs || pointMs >= endMs) throw new Error(`Stock order inboundSplitSource expectation.${row.size}[${index}].date is outside the source window.`)
+      if (pointMs < expectationStartMs || pointMs >= endMs) throw new Error(`Stock order inboundSplitSource expectation.${row.size}[${index}].date is outside the expectation window.`)
       requireFiniteSecondaryQuantity(point.inbound, point.date, STOCK_ORDER_SPLIT_SOURCE_QUANTITY_ERROR)
     })
   })
@@ -135,12 +175,13 @@ function assertInboundSplitSourceMatchesStockOrder(
 function assertStockOrderCalcResult(
   result: SecondaryStockOrderCalcResult,
   productIdentity: SecondaryProductIdentity,
+  calculationBaseDate: string,
   currentOrderInboundDueDate: string,
   nextOrderInboundDueDate: string,
 ): void {
   assertSecondaryProductIdentityMatches('Stock order', productIdentity, result.productIdentity)
   assertExistingOrderInboundSupplyMatchesDisplay(result, currentOrderInboundDueDate)
-  assertInboundSplitSourceMatchesStockOrder(result, currentOrderInboundDueDate, nextOrderInboundDueDate)
+  assertInboundSplitSourceMatchesStockOrder(result, calculationBaseDate, currentOrderInboundDueDate, nextOrderInboundDueDate)
 }
 
 export function useSecondaryStockOrderCalc({
@@ -220,9 +261,13 @@ export function useSecondaryStockOrderCalc({
             ...(dailyMeanClient != null ? { dailyMean: dailyMeanClient } : {}),
           }
           const result: SecondaryStockOrderCalcResult = await dashboardApi.getSecondaryStockOrderCalc(params)
-          assertStockOrderCalcResult(result, productIdentity, currentOrderInboundDueDate, nextOrderInboundDueDate)
+          const normalizedResult: SecondaryStockOrderCalcResult = {
+            ...result,
+            inboundSplitSource: trimSecondaryInboundSplitSourceToWindow(result.inboundSplitSource, calculationBaseDate, nextOrderInboundDueDate),
+          }
+          assertStockOrderCalcResult(normalizedResult, productIdentity, calculationBaseDate, currentOrderInboundDueDate, nextOrderInboundDueDate)
           if (!alive) return
-          setStockOrderCalcState({ requestKey, result })
+          setStockOrderCalcState({ requestKey, result: normalizedResult })
           setStockOrderCalcError(null)
         } catch (err) {
           if (!alive) return

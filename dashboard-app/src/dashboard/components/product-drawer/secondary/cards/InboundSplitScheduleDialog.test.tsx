@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it, vi, type Mock } from 'vitest'
 import { KO } from '../../ko'
 import { InboundSplitScheduleDialog, type InboundSplitDraftRequest } from './InboundSplitScheduleDialog'
 import type { InboundSplitScheduleRow, InboundSplitSizeColumn } from './inboundSplitScheduleModel'
+import type { SecondaryInboundSplitSource } from '../../../../../api/types/secondary'
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
 
@@ -44,6 +45,25 @@ const THREE_ROWS: InboundSplitScheduleRow[] = [
   row('rebuilt-3', 3, '2026-04-05', 4, 2, 4, 2),
 ]
 
+const SOURCE_WITH_POINT: SecondaryInboundSplitSource = {
+  total: {
+    suggestion: 0,
+    sales: {},
+  },
+  sizeInfo: {
+    S: { salesRate: 1, baseStock: 100 },
+    M: { salesRate: 1, baseStock: 100 },
+  },
+  expectation: {
+    S: [{ date: '2026-06-27', inbound: 10 }],
+    M: [{ date: '2026-06-27', inbound: 5 }],
+  },
+  confirmed: {
+    total_phase: 0,
+    data: [],
+  },
+}
+
 type RenderResult = {
   container: HTMLDivElement
   root: Root
@@ -64,8 +84,8 @@ function renderDialog(overrides: Partial<ComponentProps<typeof InboundSplitSched
   const root: Root = createRoot(container)
   mountedRoots.add(root)
   const props: RenderResult['props'] = {
-    buildRowsForCount: vi.fn((next: number): InboundSplitScheduleRow[] => (next === 3 ? THREE_ROWS : INITIAL_ROWS)),
-    recalculateRows: vi.fn((rows: InboundSplitScheduleRow[]): InboundSplitScheduleRow[] => rows),
+    buildRowsForCount: vi.fn((next: number) => (next === 3 ? THREE_ROWS : INITIAL_ROWS)),
+    recalculateRows: vi.fn((rows: InboundSplitScheduleRow[]) => rows),
     onApply: vi.fn(),
     onClose: vi.fn(),
     onDraftError: vi.fn(),
@@ -77,6 +97,7 @@ function renderDialog(overrides: Partial<ComponentProps<typeof InboundSplitSched
         open
         currentOrderInboundDueDate="2026-03-31"
         nextOrderInboundDueDate="2026-05-01"
+        calculationBaseDate="2026-03-01"
         initialCount={2}
         initialRows={INITIAL_ROWS}
         columns={COLUMNS}
@@ -123,6 +144,43 @@ afterEach(() : void => {
 })
 
 describe('InboundSplitScheduleDialog event flow', () : void => {
+  it('updates inbound source summary when split count changes', () : void => {
+    const buildRowsForCountByChange = vi.fn((next: number): InboundSplitScheduleRow[] => {
+      if (next === 2) {
+        return [
+          row('rebuilt-1', 1, '2026-06-24', 3, 2, 3, 2),
+          row('rebuilt-2', 2, '2026-06-30', 4, 3, 4, 3),
+        ]
+      }
+      if (next === 3) {
+        return [
+          row('rebuilt-1', 1, '2026-06-24', 3, 2, 3, 2),
+          row('rebuilt-2', 2, '2026-06-27', 4, 3, 4, 3),
+          row('rebuilt-3', 3, '2026-06-30', 4, 3, 4, 3),
+        ]
+      }
+      return [row('initial-1', 1, '2026-06-24', 3, 2, 3, 2)]
+    })
+
+    renderDialog({
+      inboundSplitSource: SOURCE_WITH_POINT,
+      currentOrderInboundDueDate: '2026-06-01',
+      nextOrderInboundDueDate: '2026-07-01',
+      initialCount: 1,
+      initialRows: [row('initial-1', 1, '2026-06-24', 3, 2, 3, 2)],
+      buildRowsForCount: buildRowsForCountByChange,
+      recalculateRows: vi.fn((rows) => rows),
+    })
+
+    expect(document.body.textContent).not.toContain('2026-06-27')
+
+    const select: HTMLSelectElement = document.querySelector('select') as HTMLSelectElement
+    changeValue(select, '3')
+
+    expect(buildRowsForCountByChange).toHaveBeenCalledWith(3)
+    expect(document.body.textContent).toContain('2026-06-27')
+  })
+
   it('rebuilds rows from the count builder before applying a changed split count', () : void => {
     const { props }: RenderResult = renderDialog()
     const select: HTMLSelectElement = document.querySelector('select') as HTMLSelectElement

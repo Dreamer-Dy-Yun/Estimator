@@ -19,8 +19,8 @@ const BASE_PROPS: { skuGroupKey: string; productIdentity: SecondaryProductIdenti
   baseSubject: BASE_SUBJECT,
   comparisonSubject: COMPARISON_SUBJECT,
   calculationBaseDate: '2026-02-01',
-  currentOrderInboundDueDate: '2026-02-01',
-  nextOrderInboundDueDate: '2026-02-03',
+  currentOrderInboundDueDate: '2026-02-02',
+  nextOrderInboundDueDate: '2026-02-04',
   forecastPeriodEndMonth: '2026-08',
   orderCoverageDays: 2,
   selfWeightPct: 50,
@@ -36,15 +36,18 @@ const INBOUND_SPLIT_SOURCE: SecondaryInboundSplitSource = {
   total: {
     suggestion: 20,
     sales: {
-      '2026-02-01': 10,
       '2026-02-02': 10,
+      '2026-02-03': 10,
     },
   },
   sizeInfo: {
     S: { salesRate: 1, baseStock: 9 },
   },
   expectation: {
-    S: [{ date: '2026-02-02', inbound: 1 }],
+    S: [
+      { date: '2026-02-01', inbound: 2 },
+      { date: '2026-02-03', inbound: 1 },
+    ],
   },
   confirmed: { total_phase: 0, data: [] },
 }
@@ -55,8 +58,8 @@ function calcResult(dailyMean: number): SecondaryStockOrderCalcResult {
     inboundSplitSource: INBOUND_SPLIT_SOURCE,
     existingOrderInboundSupplyBySize: {
       S: [
-        { date: '2026-01-15', qty: 2 },
-        { date: '2026-02-02', qty: 1 },
+        { date: '2026-02-01', qty: 2 },
+        { date: '2026-02-03', qty: 1 },
       ],
     },
     trendDailyMean: dailyMean,

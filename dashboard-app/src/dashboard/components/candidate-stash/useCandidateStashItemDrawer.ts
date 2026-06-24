@@ -38,12 +38,12 @@ export function useCandidateStashItemDrawer({ dataReferenceStart, dataReferenceE
   const [confirmedHydrateSnap, setConfirmedHydrateSnap]: [OrderSnapshotDocument | null, React.Dispatch<React.SetStateAction<OrderSnapshotDocument | null>>] = useState<OrderSnapshotDocument | null>(null)
   const [drawerForecastMonths, setDrawerForecastMonths]: [number, React.Dispatch<React.SetStateAction<number>>] = useState<number>(DEFAULT_FORECAST_MONTHS)
   const [drawerCompanyUuid, setDrawerCompanyUuid]: [string | null, React.Dispatch<React.SetStateAction<string | null>>] = useState<string | null>(null)
+  const [stableMergedSummary, setStableMergedSummary]: [ProductPrimarySummary | null, React.Dispatch<React.SetStateAction<ProductPrimarySummary | null>>] = useState<ProductPrimarySummary | null>(null)
   const mountedRef: React.RefObject<boolean> = useRef(false)
   const drawerRequestSeqRef: React.RefObject<number> = useRef(0)
   const drawerCloseTimerRef: React.RefObject<ReturnType<typeof setTimeout> | null> = useRef<ReturnType<typeof window.setTimeout> | null>(null)
   const drawerCompanyUuidRef: React.RefObject<string | null> = useRef<string | null>(null)
   const innerNavLockRef: React.RefObject<boolean> = useRef(false)
-  const stableMergedSummaryRef: React.RefObject<ProductPrimarySummary | null> = useRef<ProductPrimarySummary | null>(null)
   const draftSnapshotsByItemUuidRef: React.RefObject<Record<string, DraftSnapshotEntry>> = useRef<Record<string, DraftSnapshotEntry>>({})
   const confirmedSnapshotsByItemUuidRef: React.RefObject<Record<string, OrderSnapshotDocument>> = useRef<Record<string, OrderSnapshotDocument>>({})
   const snapshotMutationsByItemUuidRef: React.RefObject<Record<string, SnapshotMutationState>> = useRef<Record<string, SnapshotMutationState>>({})
@@ -82,15 +82,17 @@ export function useCandidateStashItemDrawer({ dataReferenceStart, dataReferenceE
   const mergedSummaryCandidate: ProductPrimarySummary | null = useMemo(() : ProductPrimarySummary | null => mergePrimarySummaryFromBundleAndSnapshot(drawerSkuGroupKey, bundle, hydrateSnap), [bundle, drawerSkuGroupKey, hydrateSnap])
 
   useEffect(() : void => {
-    if (mergedSummaryCandidate != null) {
-      stableMergedSummaryRef.current = mergedSummaryCandidate
-      return
-    }
-    if (!drawerOpen && !drawerClosing) stableMergedSummaryRef.current = null
+    queueMicrotask(() : void => {
+      setStableMergedSummary((prev: ProductPrimarySummary | null): ProductPrimarySummary | null => {
+        if (mergedSummaryCandidate != null) return mergedSummaryCandidate
+        if (!drawerOpen && !drawerClosing) return null
+        return prev
+      })
+    })
   }, [drawerClosing, drawerOpen, mergedSummaryCandidate])
 
-  const stableMergedSummary: ProductPrimarySummary | null = stableMergedSummaryRef.current?.skuGroupKey === drawerSkuGroupKey ? stableMergedSummaryRef.current : null
-  const mergedSummary: ProductPrimarySummary | null = mergedSummaryCandidate ?? ((drawerOpen || drawerClosing) && drawerBundleLoading ? stableMergedSummary : null)
+  const matchingStableMergedSummary: ProductPrimarySummary | null = stableMergedSummary?.skuGroupKey === drawerSkuGroupKey ? stableMergedSummary : null
+  const mergedSummary: ProductPrimarySummary | null = mergedSummaryCandidate ?? ((drawerOpen || drawerClosing) && drawerBundleLoading ? matchingStableMergedSummary : null)
   if (drawerOpen && (!dataReferenceStart || !dataReferenceEnd)) throw new Error('후보 상세 조회 기간 정보 누락')
 
   const applyOpenedSnapshot: (itemUuid: string, nextHydrate: OrderSnapshotDocument | null, source: DrawerSnapshotSource | null, confirmed: OrderSnapshotDocument | null) => void = useCallback((itemUuid: string, nextHydrate: OrderSnapshotDocument | null, source: DrawerSnapshotSource | null, confirmed: OrderSnapshotDocument | null) : void => {

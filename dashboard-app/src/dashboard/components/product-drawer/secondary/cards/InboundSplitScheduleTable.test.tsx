@@ -139,6 +139,35 @@ describe('InboundSplitScheduleTable', (): void => {
     expect(dateInputs[1]?.getAttribute('aria-describedby')).toBe(intervalNode?.id)
   })
 
+  it('renders only rows before next order inbound due date', (): void => {
+    renderTable({
+      rows: [
+        ROWS[0],
+        {
+          id: 'r2',
+          round: 2,
+          inboundDate: '2026-04-10',
+          ignoreExistingOrderInbound: false,
+          suggestedQuantitiesBySize: { S: 1, M: 2 },
+          quantitiesBySize: { S: 1, M: 2 },
+        },
+        {
+          id: 'r3',
+          round: 3,
+          inboundDate: '2026-05-01',
+          ignoreExistingOrderInbound: false,
+          suggestedQuantitiesBySize: { S: 5, M: 5 },
+          quantitiesBySize: { S: 5, M: 5 },
+        },
+      ],
+    })
+
+    const dateInputs: HTMLInputElement[] = Array.from(document.querySelectorAll<HTMLInputElement>('input[type="date"]'))
+    expect(dateInputs).toHaveLength(2)
+    expect(document.querySelector('input[type="date"][value="2026-05-01"]')).toBeNull()
+    expect(document.querySelector(`.${styles.inboundSplitSummaryTotalCell} > span`)?.textContent).toBe('11')
+  })
+
   it('emits date changes while dates are unlocked', (): void => {
     const callbacks: Required<Pick<InboundSplitScheduleTableProps, 'onDatesLockedToggle' | 'onDateChange' | 'onRowTotalChange' | 'onQtyChange'>> = renderTable()
     const dateInputs: HTMLInputElement[] = Array.from(document.querySelectorAll<HTMLInputElement>('input[type="date"]'))

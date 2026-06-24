@@ -100,3 +100,109 @@
   pointer-events: none;
   z-index: 1;
 }
+
+.inboundSplitSourceSummaryTable {
+  --inbound-split-source-date-col-width: calc(
+    var(--inbound-split-round-col-width)
+    + var(--inbound-split-date-col-width)
+    + var(--inbound-split-kind-col-width)
+  );
+  --inbound-split-sticky-cols-width: calc(
+    var(--inbound-split-source-date-col-width)
+    + var(--inbound-split-total-col-width)
+  );
+  margin-bottom: 0;
+}
+
+.inboundSplitSourceSummaryTable thead th {
+  top: 0;
+  z-index: 12;
+}
+
+.inboundSplitSourceSummaryTable thead .inboundSplitStickyCol {
+  z-index: 14;
+}
+
+.inboundSplitSourceDateCell {
+  width: var(--inbound-split-source-date-col-width);
+  min-width: var(--inbound-split-source-date-col-width);
+}
+
+.inboundSplitSourceTotalCell {
+  width: var(--inbound-split-total-col-width);
+  min-width: var(--inbound-split-total-col-width);
+}
+
+.inboundSplitStickyColSourceDate {
+  left: 0;
+}
+
+.inboundSplitStickyColSourceTotal {
+  left: var(--inbound-split-source-date-col-width);
+  box-shadow: 14px 0 18px -14px var(--inbound-split-shadow);
+}
+
+.inboundSplitStickyColSourceTotal::before,
+.inboundSplitStickyColSourceTotal::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  pointer-events: none;
+}
+
+.inboundSplitStickyColSourceTotal::before {
+  left: var(--inbound-split-sticky-inner-divider-offset);
+  z-index: 2;
+  background: var(--inbound-split-row-inner-divider);
+}
+
+.inboundSplitStickyColSourceTotal::after {
+  right: var(--inbound-split-sticky-edge-divider-offset);
+  z-index: 1;
+  background: var(--inbound-split-divider);
+}
+
+.inboundSplitSourceSummaryRow td {
+  background: #e8f2e3;
+  color: var(--inbound-split-cell-text);
+  border-bottom-color: var(--inbound-split-row-inner-divider);
+  font-weight: 600;
+}
+
+.inboundSplitSourceOpeningStockRow td {
+  position: sticky;
+  top: var(--inbound-split-header-height);
+  z-index: 10;
+  background: var(--inbound-split-summary-bg);
+  color: #fff;
+  border-bottom: 1px solid var(--inbound-split-row-inner-divider);
+}
+
+.inboundSplitSourcePeriodInboundTotalRow td {
+  position: sticky;
+  top: calc(var(--inbound-split-header-height) + var(--inbound-split-body-row-height));
+  z-index: 10;
+  background: var(--inbound-split-summary-bg);
+  color: #fff;
+  border-bottom: 2px solid var(--inbound-split-section-divider);
+  box-shadow: inset 0 -1px 0 var(--inbound-split-section-divider), 0 10px 14px -14px var(--inbound-split-shadow);
+}
+
+.inboundSplitSourceSummaryRow .inboundSplitStickyCol {
+  background: #a8bea6;
+}
+
+.inboundSplitSourceOpeningStockRow .inboundSplitStickyCol,
+.inboundSplitSourcePeriodInboundTotalRow .inboundSplitStickyCol {
+  z-index: 11;
+}
+
+.inboundSplitSourceOpeningStockRow .inboundSplitStickyCol {
+  background: var(--inbound-split-summary-bg);
+}
+
+.inboundSplitSourcePeriodInboundTotalRow .inboundSplitStickyCol {
+  background: var(--inbound-split-summary-bg);
+}

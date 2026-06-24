@@ -84,6 +84,51 @@ Clean up the secondary drawer split-inbound schedule UI by feature responsibilit
 - Split-inbound sticky divider colors and offsets are owned by dialog-level CSS variables. The approved `-1px` sticky divider offsets remain unchanged, but the values are no longer hidden as repeated magic literals.
 - Mock catalog now includes `TEST_SIZE_20`, a dedicated 20-size scroll verification product. It stays behind `src/api/mock` and is covered by mock API/catalog tests, so UI components do not import test data directly.
 
+## 2026-06-24 variant preparation update
+
+- Split-inbound dialog/table entry files are now stable facades. Current UI lives in `InboundSplitScheduleDialogV0` and `InboundSplitScheduleTableV0`.
+- `InboundSplitScheduleDialogV1` and `InboundSplitScheduleTableV1` start as V0 copies for UI-only iteration.
+- Variant props are centralized in `inboundSplitScheduleVariantTypes.ts`; DTOs, calculation policy, draft state, Apply/Close transfer, and API/mock contracts remain shared.
+
+## 2026-06-24 V1 source-summary update
+
+- V1 was the active split-inbound presentation variant during this update. It is now retained as the source-summary experiment behind the mock-only variant selector.
+- The V1 dialog height is expanded to `90vh`.
+- V1 renders a source-summary table above the editable split table from the existing `inboundSplitSource`.
+- The source-summary table uses `inboundSplitSource.sizeInfo[size].baseStock` for the opening-stock row and `inboundSplitSource.expectation[size][]` for existing-order inbound rows.
+- The source-summary table and editable split table share the same size-column width calculation and synchronize horizontal scroll position.
+- The source-summary table has a capped vertical viewport, so many existing-order inbound dates scroll inside the source section instead of consuming the editable split-table area.
+- The V1 source-summary viewport shows up to `header + 8 body rows`; inside it, the header and opening-stock row remain vertically sticky while later inbound-date rows scroll.
+- The source-summary sticky width maps `입고일 + 수량합` to the editable table's `차수 + 입고일 + 지표 + 수량합` width so both size sections start at the same x position.
+
+## 2026-06-24 variant cleanup update
+
+- V0/V1 detailed ownership moved to `MD/dashboard-app/boundaries/inbound-split-variants.md`.
+- `source-boundary-map.md` now keeps only the product-drawer boundary summary and points to the variant document for UI-version details.
+- V1 source summary row styling moved from `inboundSplitRows.module.css` to `inboundSplitTable.module.css`, where the source summary table geometry already lives.
+- `inboundSplitRows.module.css` is again scoped to the editable split table row states.
+
+## 2026-06-24 V2 preparation update
+
+- V2 was added as a V0-based copy for the next split-inbound UI experiment.
+- `InboundSplitScheduleDialogV2.tsx` and `InboundSplitScheduleTableV2.tsx` start from the V0 implementation.
+- `InboundSplitScheduleVariant` now accepts `v2`; this was later promoted to the default presentation in the V2 active detail update below.
+
+## 2026-06-24 V2 active detail update
+
+- V2 is now the default split-inbound dialog variant.
+- V2 keeps the same DTO, draft hook, planning model, and Apply/Close contract as V0/V1.
+- `InboundSplitScheduleDialogV2.tsx` owns expand-all/collapse-all UI state.
+- `InboundSplitScheduleTableV2.tsx` renders editable suggested/confirmed rows and delegates expanded source-detail rows to `InboundSplitScheduleDetailRowsV2.tsx`.
+- `inboundSplitScheduleDetailRows.ts` builds 0-zone and round-zone display rows from `calculationBaseDate`, `inboundSplitSource.sizeInfo`, and `inboundSplitSource.expectation`.
+
+## 2026-06-24 V2 UI final cleanup update
+
+- Mock API mode now exposes a V0/V1/V2 selector below the `분할 입고 설정` button. HTTP API mode does not render this selector and stays fixed to V2.
+- V2 detail row styles moved to `inboundSplitDetailRows.module.css`; `inboundSplitRows.module.css` is again limited to editable summary/suggested/confirmed row states.
+- V2 detail total rows now merge the date and metric cells into `기간 내 입고 예정`, matching the opening stock row's merged label pattern.
+- The toolbar's whole-table expand/collapse controls are a single toggle button.
+
 ## Verification
 
 - `npm run check:encoding`

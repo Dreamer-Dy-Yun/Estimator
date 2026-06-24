@@ -19,9 +19,9 @@
   --inbound-split-size-col-count: 0;
   --inbound-split-size-col-divisor: 1;
   --inbound-split-total-col-width: 111px;
-  --inbound-split-round-col-width: 46px;
+  --inbound-split-round-col-width: 69px;
   --inbound-split-date-col-width: 141px;
-  --inbound-split-kind-col-width: 54px;
+  --inbound-split-kind-col-width: 65px;
   --inbound-split-header-bg: #185c37;
   --inbound-split-summary-bg: #6a8f74;
   --inbound-split-round-sticky-bg: #a8bea6;
@@ -50,6 +50,16 @@
   border-radius: 14px;
   background: #fff;
   box-shadow: 0 24px 72px rgb(15 23 42 / 0.28);
+}
+
+.inboundSplitDialogV1 {
+  height: 90vh;
+  max-height: 90vh;
+}
+
+.inboundSplitDialogV2 {
+  height: 90vh;
+  max-height: 90vh;
 }
 
 .inboundSplitDialogHeader {
@@ -185,12 +195,35 @@
   flex: 1 1 auto;
   display: flex;
   flex-direction: column;
+  gap: 8px;
   min-height: 0;
   margin: 0 16px;
   overflow: hidden;
   border: 1px solid var(--inbound-split-dialog-border);
   border-radius: 0;
   background: #fff;
+}
+
+.inboundSplitSourceSummaryViewport {
+  flex: 0 0 auto;
+  max-height: calc((var(--inbound-split-header-height) * 0.7) + (var(--inbound-split-body-row-height) * 5.6));
+  overflow: auto;
+  border-bottom: 1px solid var(--inbound-split-dialog-border);
+  background: #fff;
+  scrollbar-gutter: stable;
+  -webkit-overflow-scrolling: touch;
+}
+
+.inboundSplitSourceSummaryViewport::-webkit-scrollbar:horizontal {
+  height: 0;
+}
+
+.inboundSplitScheduleTableViewport {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  background: #fff;
+  -webkit-overflow-scrolling: touch;
 }
 
 .inboundSplitTableWrap {

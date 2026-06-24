@@ -14,6 +14,10 @@ import { sleep } from './utils'
 const DEFAULT_SIZE_COUNT = 10 as const
 const DAY_MS = 86_400_000 as const
 const INBOUND_SPLIT_VERIFICATION_SKU_GROUP_KEY = 'TEST-SHOE__210' as const
+const EXISTING_ORDER_INBOUND_POINT_SPACING_DAYS = 14 as const
+const EXISTING_ORDER_INBOUND_MIN_POST_CURRENT_SHARE = 0.35 as const
+const EXISTING_ORDER_INBOUND_AFTER_NEXT_DAYS = 45 as const
+const EXISTING_ORDER_INBOUND_AFTER_NEXT_SHARE = 0.15 as const
 const INBOUND_SPLIT_VERIFICATION_CURRENT_STOCK_BY_SIZE: Record<string, number> = {
   '230': 87,
   '240': 29,
@@ -70,19 +74,75 @@ function buildExistingOrderInboundSupplyBySize(
   expectedInboundOrderBalanceValues: number[],
   calculationBaseDate: string,
   currentOrderInboundDueDate: string,
+  nextOrderInboundDueDate: string,
 ): SecondaryExistingOrderInboundSupplyBySize {
-  const preCurrentOrderInboundDate: string = addIsoDays(currentOrderInboundDueDate, -1)
-  const postCurrentOrderInboundDate: string = currentOrderInboundDueDate
   return Object.fromEntries(sizeLabels.map((size: string, index: number): [string, SecondaryExistingOrderInboundPoint[]] => {
-    const totalOrderBalance: number = Math.max(0, totalOrderBalanceValues[index] ?? 0)
-    const requestedPreCurrentOrderQty: number = Math.max(0, Math.min(totalOrderBalance, expectedInboundOrderBalanceValues[index] ?? 0))
-    const preCurrentOrderQty: number = preCurrentOrderInboundDate >= calculationBaseDate ? requestedPreCurrentOrderQty : 0
-    const postCurrentOrderQty: number = Math.max(0, totalOrderBalance - preCurrentOrderQty)
-    const points: SecondaryExistingOrderInboundPoint[] = []
-    if (preCurrentOrderQty > 0) points.push({ date: preCurrentOrderInboundDate, qty: preCurrentOrderQty })
-    if (postCurrentOrderQty > 0) points.push({ date: postCurrentOrderInboundDate, qty: postCurrentOrderQty })
-    return [size, points]
+    const totalOrderBalance: number = Math.max(0, Math.round(totalOrderBalanceValues[index] ?? 0))
+    const requestedExpectedInboundBeforeCurrentOrder: number = Math.max(0, Math.min(totalOrderBalance, Math.round(expectedInboundOrderBalanceValues[index] ?? 0)))
+    const minPostCurrentInboundQty: number = totalOrderBalance >= 3
+      ? Math.min(totalOrderBalance, Math.max(1, Math.round(totalOrderBalance * EXISTING_ORDER_INBOUND_MIN_POST_CURRENT_SHARE)))
+      : 0
+    const expectedInboundBeforeCurrentOrder: number = Math.max(0, Math.min(requestedExpectedInboundBeforeCurrentOrder, totalOrderBalance - minPostCurrentInboundQty))
+    const remainingInboundFromCurrentOrder: number = Math.max(0, totalOrderBalance - expectedInboundBeforeCurrentOrder)
+    const afterNextInboundQty: number = remainingInboundFromCurrentOrder >= 6
+      ? Math.min(remainingInboundFromCurrentOrder, Math.max(1, Math.round(remainingInboundFromCurrentOrder * EXISTING_ORDER_INBOUND_AFTER_NEXT_SHARE)))
+      : 0
+    const currentToNextInboundQty: number = Math.max(0, remainingInboundFromCurrentOrder - afterNextInboundQty)
+    return [size, [
+      ...buildExistingOrderInboundPointsInWindow(
+        expectedInboundBeforeCurrentOrder,
+        calculationBaseDate,
+        currentOrderInboundDueDate,
+        getExistingOrderInboundDateCount(calculationBaseDate, currentOrderInboundDueDate),
+        index,
+      ),
+      ...buildExistingOrderInboundPointsInWindow(
+        currentToNextInboundQty,
+        currentOrderInboundDueDate,
+        nextOrderInboundDueDate,
+        getExistingOrderInboundDateCount(currentOrderInboundDueDate, nextOrderInboundDueDate),
+        index,
+      ),
+      ...buildExistingOrderInboundPointsInWindow(
+        afterNextInboundQty,
+        nextOrderInboundDueDate,
+        addIsoDays(nextOrderInboundDueDate, EXISTING_ORDER_INBOUND_AFTER_NEXT_DAYS),
+        getExistingOrderInboundDateCount(nextOrderInboundDueDate, addIsoDays(nextOrderInboundDueDate, EXISTING_ORDER_INBOUND_AFTER_NEXT_DAYS)),
+        index,
+      ),
+    ]]
   }))
+}
+
+function getExistingOrderInboundDateCount(startDateInclusive: string, endDateExclusive: string): number {
+  const sourceDays: number = Math.max(0, Math.floor((parseIsoDateMs(endDateExclusive) - parseIsoDateMs(startDateInclusive)) / DAY_MS))
+  return Math.min(sourceDays, Math.max(1, Math.ceil(sourceDays / EXISTING_ORDER_INBOUND_POINT_SPACING_DAYS)))
+}
+
+function buildExistingOrderInboundPointsInWindow(
+  total: number,
+  startDateInclusive: string,
+  endDateExclusive: string,
+  maxDateCount: number,
+  dateOffsetSeed = 0,
+): SecondaryExistingOrderInboundPoint[] {
+  const sourceStartMs: number = parseIsoDateMs(startDateInclusive)
+  const sourceEndMs: number = parseIsoDateMs(endDateExclusive)
+  const sourceDays: number = Math.max(0, Math.floor((sourceEndMs - sourceStartMs) / DAY_MS))
+  const dateCount: number = Math.min(Math.max(0, maxDateCount), sourceDays)
+  if (dateCount <= 0 || total <= 0) return []
+
+  const dates: string[] = Array.from({ length: dateCount }, (_: unknown, index: number): string => (
+    addIsoDays(startDateInclusive, (Math.floor((sourceDays * index) / dateCount) + dateOffsetSeed) % sourceDays)
+  ))
+  const quantities: number[] = splitEvenTotal(Math.max(0, Math.round(total)), dateCount)
+  return quantities
+    .map((qty: number, pointIndex: number): SecondaryExistingOrderInboundPoint | null => {
+      const date: string | undefined = dates[pointIndex]
+      if (date == null || qty <= 0) return null
+      return { date, qty }
+    })
+    .filter((point: SecondaryExistingOrderInboundPoint | null): point is SecondaryExistingOrderInboundPoint => point != null)
 }
 
 function sumExistingOrderInbound(points: readonly SecondaryExistingOrderInboundPoint[], beforeDate?: string): number {
@@ -155,6 +215,7 @@ function buildInboundSplitVerificationStockOrderCalcResult(
   return {
     productIdentity,
     inboundSplitSource: buildStockOrderInboundSplitSource({
+      calculationBaseDate: currentOrderInboundDueDate,
       currentOrderInboundDueDate,
       nextOrderInboundDueDate,
       dailyMean,
@@ -244,6 +305,7 @@ function buildSuggestionFromPlanning(
 }
 
 function buildStockOrderInboundSplitSource({
+  calculationBaseDate,
   currentOrderInboundDueDate,
   nextOrderInboundDueDate,
   dailyMean,
@@ -252,6 +314,7 @@ function buildStockOrderInboundSplitSource({
   shares,
   salesProfileWeight,
 }: {
+  calculationBaseDate: string
   currentOrderInboundDueDate: string
   nextOrderInboundDueDate: string
   dailyMean: number
@@ -265,7 +328,7 @@ function buildStockOrderInboundSplitSource({
   const shareBySize: Map<string, number> = new Map(shares.map((row: SecondarySizeShare): [string, number] => [row.size, Math.max(0, row.blendedSharePct)]))
   const expectation: SecondaryInboundSplitSource['expectation'] = Object.fromEntries(displaySizeRows.map((row: { size: string; currentStockQty: number }): [string, SecondaryInboundSplitExpectationPoint[]] => {
     const existingPoints: SecondaryInboundSplitExpectationPoint[] = (existingOrderInboundSupplyBySize[row.size] ?? [])
-      .filter((point: SecondaryExistingOrderInboundPoint): boolean => point.date >= currentOrderInboundDueDate && point.date < nextOrderInboundDueDate)
+      .filter((point: SecondaryExistingOrderInboundPoint): boolean => point.date >= calculationBaseDate && point.date < nextOrderInboundDueDate)
       .map((point: SecondaryExistingOrderInboundPoint): SecondaryInboundSplitExpectationPoint => ({ date: point.date, inbound: point.qty }))
     return [row.size, existingPoints]
   }))
@@ -342,6 +405,7 @@ export function buildMockSecondaryStockOrderCalcResult({
     expectedInboundOrderBalanceSeedValues,
     calculationBaseDate,
     currentOrderInboundDueDate,
+    nextOrderInboundDueDate,
   )
   const expectedInboundOrderBalanceValues: number[] = displayTotalBySize(displaySizeLabels, existingOrderInboundSupplyBySize, currentOrderInboundDueDate)
   const resolvedTotalOrderBalanceValues: number[] = displayTotalBySize(displaySizeLabels, existingOrderInboundSupplyBySize)
@@ -356,6 +420,7 @@ export function buildMockSecondaryStockOrderCalcResult({
   return {
     productIdentity,
     inboundSplitSource: buildStockOrderInboundSplitSource({
+      calculationBaseDate,
       currentOrderInboundDueDate,
       nextOrderInboundDueDate,
       dailyMean,

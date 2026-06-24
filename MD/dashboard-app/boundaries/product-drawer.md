@@ -1,6 +1,6 @@
 # Product Drawer Boundary
 
-Last updated: 2026-06-19
+Last updated: 2026-06-24
 
 상품 드로어는 판매 목록에서 선택한 상품의 상세 분석, secondary 오더 제안, 확정 수량, 후보 snapshot 저장을 연결한다.
 이 문서는 화면 책임과 API/계산/저장 경계를 구분한다.
@@ -127,7 +127,18 @@ Last updated: 2026-06-19
 - 1차는 previous-to-current window가 없으므로 `ignoreExistingOrderInbound` 여부와 무관하다.
 - 2차 이상은 재고 이월과 정수화 때문에 총합이 소폭 달라질 수 있다.
 
-## 9. Snapshot 경계
+## 9. 분할입고 UI variant 경계
+
+분할입고 설정 화면은 frontend 내부에서 V0/V1/V2 variant로 나뉜다. Variant는 UI presentation만 다루며 API DTO, 계산 모델, draft 상태, snapshot 저장 계약을 나누지 않는다.
+
+- 현재 기본 활성 화면은 V2이다.
+- V0는 원형 화면 보존용이다.
+- V1은 `inboundSplitSource.sizeInfo`와 `expectation`을 read-only source summary table로 표시하는 UI 실험본이다.
+- V2는 전체/차수별 제안·확정 row 아래에 해당 구간의 기 오더 입고예정 상세를 펼쳐 보여준다.
+- V0/V1/V2 선택 UI는 mock API 모드에서만 `분할 입고 설정` 버튼 아래에 노출된다. 실제 HTTP API 모드에서는 V2로 고정한다.
+- Variant별 파일 책임과 CSS 책임은 `MD/dashboard-app/boundaries/inbound-split-variants.md`에서 관리한다.
+
+## 10. Snapshot 경계
 
 현재 저장 snapshot은 `OrderSnapshotDocument` v8이다.
 
@@ -143,7 +154,7 @@ Last updated: 2026-06-19
 
 후보 item에서 드로어를 열 때 저장 snapshot이 있으면 해당 값이 우선이다. API 최신값은 사용자의 저장 결정을 자동으로 덮어쓰지 않는다.
 
-## 10. UI 문구 경계
+## 11. UI 문구 경계
 
 Secondary 상품 드로어의 한국어 UI 문구는 `dashboard-app/src/dashboard/components/product-drawer/ko.ts`를 우선 사용한다.
 입고 분할 적용 경고 문구는 다음 의미를 유지해야 한다.
@@ -152,10 +163,12 @@ Secondary 상품 드로어의 한국어 UI 문구는 `dashboard-app/src/dashboar
 
 이는 차수별 총량 우선 배분과 size별 정수화 때문에 size 총합이 초기 확정값과 달라질 수 있음을 사용자에게 알리는 문구이다.
 
-## 11. 변경 시 확인 항목
+## 12. 변경 시 확인 항목
 
 - 오더 상세 추천과 분할입고 제안이 같은 source/planning 함수를 쓰는가.
 - 수동 확정 변경이 분할입고 기준과 snapshot 저장에 반영되는가.
 - daily trend source와 stock-order planning source를 섞어 쓰지 않는가.
 - `ignoreExistingOrderInbound`가 1차에는 영향을 주지 않는가.
+- UI variant 변경이 API DTO, planning model, snapshot contract를 임의 변경하지 않는가.
+- mock 전용 variant 선택 UI가 실제 API 모드에 노출되지 않는가.
 - API/mock/문서의 field 이름과 의미가 현재 타입과 일치하는가.

@@ -30,6 +30,7 @@ export interface UseInboundSplitScheduleControllerArgs {
   stockOrderDisplay: SecondaryStockOrderCalcResult['display'] | null
   currentOrderInboundDueDate: string
   nextOrderInboundDueDate: string
+  calculationBaseDate: string
   inboundSplitSource: SecondaryInboundSplitSource | null
   inboundSplitSourceLoading: boolean
   inboundSplitSourceError: ApiUnitErrorInfo | null
@@ -59,9 +60,11 @@ export interface UseInboundSplitScheduleControllerResult {
 export interface InboundSplitScheduleDialogBinding {
   currentOrderInboundDueDate: string
   nextOrderInboundDueDate: string
+  calculationBaseDate: string
   initialCount: number
   initialRows: InboundSplitScheduleRow[]
   columns: InboundSplitSizeColumn[]
+  inboundSplitSource: SecondaryInboundSplitSource | null
   buildRowsForCount: (next: number) => InboundSplitScheduleRow[]
   recalculateRows: (rows: InboundSplitScheduleRow[]) => InboundSplitScheduleRow[]
   draftError: ApiUnitErrorInfo | null
@@ -89,6 +92,7 @@ export function useInboundSplitScheduleController({
   stockOrderDisplay,
   currentOrderInboundDueDate,
   nextOrderInboundDueDate,
+  calculationBaseDate,
   inboundSplitSource,
   inboundSplitSourceLoading,
   inboundSplitSourceError,
@@ -227,9 +231,11 @@ export function useInboundSplitScheduleController({
     dialogProps: {
       currentOrderInboundDueDate,
       nextOrderInboundDueDate,
+      calculationBaseDate,
       initialCount,
       initialRows: dialogBuildResult.rows,
       columns,
+      inboundSplitSource,
       buildRowsForCount,
       recalculateRows,
       draftError: dialogError,

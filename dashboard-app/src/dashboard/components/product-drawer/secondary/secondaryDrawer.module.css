@@ -17,6 +17,7 @@
 @import './style-parts/inboundSplitDialogShell.module.css';
 @import './style-parts/inboundSplitTable.module.css';
 @import './style-parts/inboundSplitRows.module.css';
+@import './style-parts/inboundSplitDetailRows.module.css';
 @import './style-parts/inboundSplitResponsive.module.css';
 @import './style-parts/slider.module.css';
 

@@ -71,6 +71,7 @@ function renderController(overrides: Partial<UseInboundSplitScheduleControllerAr
       stockOrderDisplay: null,
       currentOrderInboundDueDate: '2026-04-01',
       nextOrderInboundDueDate: '2026-04-05',
+      calculationBaseDate: '2026-03-30',
       inboundSplitSource: SPLIT_SOURCE,
       inboundSplitSourceLoading: false,
       inboundSplitSourceError: null,

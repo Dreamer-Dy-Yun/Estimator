@@ -12,7 +12,7 @@ import type { SecondaryHelpId, SecondaryHelpIds } from '../secondaryDrawerTypes'
 import type { SecondaryConfirmedRound } from '../model/secondaryConfirmedRoundModel'
 import type { SecondarySizeOrderDisplayRow } from '../model/secondarySizeOrderRows'
 import { SizeOrderConfirmQuantityRows } from './SizeOrderConfirmQuantityRows'
-import { InboundSplitScheduleDialog } from './InboundSplitScheduleDialog'
+import { InboundSplitScheduleDialog, type InboundSplitScheduleVariant } from './InboundSplitScheduleDialog'
 import { SizeOrderQuantityRows, type QuantityRow } from './SizeOrderQuantityRows'
 import { SizeOrderShareChartRow } from './SizeOrderShareChartRow'
 import { SizeOrderWeightControls } from './SizeOrderWeightControls'
@@ -38,6 +38,7 @@ export type Props = {
     manualConfirmBySize: Readonly<Record<string, true>>
     currentOrderInboundDueDate: string
     nextOrderInboundDueDate: string
+    calculationBaseDate: string
     inboundSplitSource: SecondaryInboundSplitSource | null
     inboundSplitSourceLoading: boolean
     inboundSplitSourceError: ApiUnitErrorInfo | null
@@ -61,6 +62,17 @@ type SizeOrderTableStyle = CSSProperties & {
   '--size-order-size-column-divisor': number
 }
 
+interface InboundSplitScheduleVariantOption {
+  value: InboundSplitScheduleVariant
+  label: string
+}
+
+const INBOUND_SPLIT_SCHEDULE_VARIANT_OPTIONS: InboundSplitScheduleVariantOption[] = [
+  { value: 'v0', label: 'V0' },
+  { value: 'v1', label: 'V1' },
+  { value: 'v2', label: 'V2' },
+]
+
 function sumInboundSplitExpectationBeforeDate(
   source: SecondaryInboundSplitSource | null,
   size: string,
@@ -75,9 +87,10 @@ function sumInboundSplitExpectationBeforeDate(
 }
 
 export function SizeOrderCard({ sizeOrder, actions, help }: Props) : React.JSX.Element {
-  const { comparisonLabel, selfCompanyLabel, selfWeightPct, sizeRows, helpIds, stockOrderDisplay, calculationReady = true, manualConfirmBySize, currentOrderInboundDueDate, nextOrderInboundDueDate, inboundSplitSource, inboundSplitSourceLoading, inboundSplitSourceError, confirmedRounds }: Props['sizeOrder'] = sizeOrder
+  const { comparisonLabel, selfCompanyLabel, selfWeightPct, sizeRows, helpIds, stockOrderDisplay, calculationReady = true, manualConfirmBySize, currentOrderInboundDueDate, nextOrderInboundDueDate, calculationBaseDate, inboundSplitSource, inboundSplitSourceLoading, inboundSplitSourceError, confirmedRounds }: Props['sizeOrder'] = sizeOrder
   const tableRef: React.RefObject<HTMLTableElement | null> = useRef<HTMLTableElement | null>(null)
   const [hoveredCell, setHoveredCell]: [SizeOrderHoverCell, React.Dispatch<React.SetStateAction<SizeOrderHoverCell>>] = useState<SizeOrderHoverCell>(null)
+  const [inboundSplitScheduleVariant, setInboundSplitScheduleVariant]: [InboundSplitScheduleVariant, React.Dispatch<React.SetStateAction<InboundSplitScheduleVariant>>] = useState<InboundSplitScheduleVariant>('v2')
   const tableStyle: SizeOrderTableStyle = {
     '--size-order-size-column-count': sizeRows.length,
     '--size-order-size-column-divisor': Math.max(sizeRows.length, 1),
@@ -92,6 +105,7 @@ export function SizeOrderCard({ sizeOrder, actions, help }: Props) : React.JSX.E
     stockOrderDisplay,
     currentOrderInboundDueDate,
     nextOrderInboundDueDate,
+    calculationBaseDate,
     inboundSplitSource,
     inboundSplitSourceLoading,
     inboundSplitSourceError,
@@ -158,79 +172,95 @@ export function SizeOrderCard({ sizeOrder, actions, help }: Props) : React.JSX.E
 
   return (
     <>
-    <div className={styles.card}>
-      <div className={styles.stockTitleRow}>
-        <h3 className={styles.sectionTitle}>
-          {KO.sectionSizeOrder}
-          <ApiUnitErrorBadge error={inboundSplitSchedule.visibleError} />
-        </h3>
-        <div className={styles.inboundSplitControls}>
-          <span className={styles.inboundSplitCountLabel} aria-label={KO.ariaInboundSplitCount}>
-            <span>{KO.labelInboundSplitCount}</span>
-            <strong className={styles.inboundSplitCountValue}>{inboundSplitSchedule.displayCount} {KO.unitInboundSplitCount}</strong>
-          </span>
-          <button type="button" className={`${styles.btn} ${styles.btnSecondary} ${styles.inboundSplitButton}`} onClick={inboundSplitSchedule.openDialog} disabled={!inboundSplitSchedule.scheduleReady} title={!calculationReady ? KO.msgStockOrderCalcRequired : inboundSplitSchedule.sourceErrorTitle}>
-            {KO.btnInboundSplitSchedule}
-          </button>
+      <div className={styles.card}>
+        <div className={styles.stockTitleRow}>
+          <h3 className={styles.sectionTitle}>
+            {KO.sectionSizeOrder}
+            <ApiUnitErrorBadge error={inboundSplitSchedule.visibleError} />
+          </h3>
+          <div className={styles.inboundSplitControls}>
+            <span className={styles.inboundSplitCountLabel} aria-label={KO.ariaInboundSplitCount}>
+              <span>{KO.labelInboundSplitCount}</span>
+              <strong className={styles.inboundSplitCountValue}>{inboundSplitSchedule.displayCount} {KO.unitInboundSplitCount}</strong>
+            </span>
+            <button type="button" className={`${styles.btn} ${styles.btnSecondary} ${styles.inboundSplitButton}`} onClick={inboundSplitSchedule.openDialog} disabled={!inboundSplitSchedule.scheduleReady} title={!calculationReady ? KO.msgStockOrderCalcRequired : inboundSplitSchedule.sourceErrorTitle}>
+              {KO.btnInboundSplitSchedule}
+            </button>
+          </div>
+        </div>
+        <SizeOrderWeightControls
+          selfCompanyLabel={selfCompanyLabel}
+          comparisonLabel={comparisonLabel}
+          selfWeightPct={selfWeightPct}
+          comparisonWeightPct={comparisonWeightPct}
+          onSelfWeightInputChange={handleSelfWeightInputChange}
+          onComparisonWeightRangeChange={handleComparisonWeightRangeChange}
+          onComparisonWeightInputChange={handleComparisonWeightInputChange}
+          endSlot={USE_MOCK_API ? (
+            <label className={styles.inboundSplitVariantLabel}>
+              <span>{KO.labelInboundSplitScheduleVariant}</span>
+              <select
+                className={styles.inboundSplitVariantSelect}
+                value={inboundSplitScheduleVariant}
+                onChange={(event: React.ChangeEvent<HTMLSelectElement>): void => setInboundSplitScheduleVariant(event.target.value as InboundSplitScheduleVariant)}
+                aria-label={KO.ariaInboundSplitScheduleVariant}
+              >
+                {INBOUND_SPLIT_SCHEDULE_VARIANT_OPTIONS.map((option: InboundSplitScheduleVariantOption): React.JSX.Element => (
+                  <option key={option.value} value={option.value}>{option.label}</option>
+                ))}
+              </select>
+            </label>
+          ) : null}
+        />
+        <div className={styles.sizeOrderTableWrap}>
+          <table ref={tableRef} className={`${styles.table} ${styles.sizeOrderTable} ${styles.sizeOrderLargeTable}`} style={tableStyle} onMouseLeave={handleSizeOrderTableMouseLeave}>
+            <colgroup>
+              <col className={styles.sizeOrderMetricCol} />
+              <col className={styles.sizeOrderTotalCol} />
+              {sizeRows.map((row: SecondarySizeOrderDisplayRow) : React.JSX.Element => <col key={row.size} className={styles.sizeOrderSizeCol} />)}
+            </colgroup>
+            <thead>
+              <tr>
+                <th className={getSizeOrderCellClassName('header', 'metric')} onMouseEnter={(): void => handleSizeOrderCellMouseEnter('header', 'metric')}>{KO.thMetric}</th>
+                <th className={getSizeOrderCellClassName('header', 'total', styles.num)} onMouseEnter={(): void => handleSizeOrderCellMouseEnter('header', 'total')}>{KO.thTotal}</th>
+                {sizeRows.map((row: SecondarySizeOrderDisplayRow) : React.JSX.Element => <th key={row.size} className={getSizeOrderCellClassName('header', `size:${row.size}`, styles.num)} onMouseEnter={(): void => handleSizeOrderCellMouseEnter('header', `size:${row.size}`)}>{row.size}</th>)}
+              </tr>
+            </thead>
+            <tbody>
+              <SizeOrderShareChartRow tableRef={tableRef} comparisonLabel={comparisonLabel} selfCompanyLabel={selfCompanyLabel} sizeRows={sizeRows} getCellClassName={getSizeOrderCellClassName} onCellMouseEnter={handleSizeOrderCellMouseEnter} />
+              <tr data-chart-align-row="">
+                <td className={getSizeOrderCellClassName('share-pct', 'metric')} onMouseEnter={(): void => handleSizeOrderCellMouseEnter('share-pct', 'metric')}>{KO.rowMetricAdjustReflectedSizeSharePct}</td>
+                <td className={getSizeOrderCellClassName('share-pct', 'total', styles.num)} onMouseEnter={(): void => handleSizeOrderCellMouseEnter('share-pct', 'total')}>{formatSharePct(columnTotals.weightedPct)}</td>
+                {sizeRows.map((row: SecondarySizeOrderDisplayRow) : React.JSX.Element => <td key={row.size} className={getSizeOrderCellClassName('share-pct', `size:${row.size}`, styles.num)} data-chart-x="" onMouseEnter={(): void => handleSizeOrderCellMouseEnter('share-pct', `size:${row.size}`)}>{formatSharePct(row.blendedSharePct)}</td>)}
+              </tr>
+              <SizeOrderQuantityRows rows={quantityRows} sizeRows={sizeRows} getCellClassName={getSizeOrderCellClassName} onCellMouseEnter={handleSizeOrderCellMouseEnter} />
+              <SizeOrderConfirmQuantityRows
+                calculationReady={calculationReady}
+                splitRoundsControlDirectConfirm={inboundSplitSchedule.splitRoundsControlDirectConfirm}
+                columnConfirmTotal={columnTotals.confirm}
+                splitRoundConfirmTotal={inboundSplitSchedule.splitRoundConfirmTotal}
+                sizeRows={sizeRows}
+                manualConfirmBySize={manualConfirmBySize}
+                splitRoundConfirmBySize={inboundSplitSchedule.splitRoundConfirmBySize}
+                splitRoundRows={inboundSplitSchedule.splitRoundRows}
+                inboundSplitColumns={inboundSplitSchedule.columns}
+                getCellClassName={getSizeOrderCellClassName}
+                onCellMouseEnter={handleSizeOrderCellMouseEnter}
+                onClearConfirmedRounds={inboundSplitSchedule.clearConfirmedRounds}
+                onConfirmQtyChange={actions.onConfirmQtyChange}
+              />
+            </tbody>
+          </table>
         </div>
       </div>
-      <SizeOrderWeightControls
-        selfCompanyLabel={selfCompanyLabel}
-        comparisonLabel={comparisonLabel}
-        selfWeightPct={selfWeightPct}
-        comparisonWeightPct={comparisonWeightPct}
-        onSelfWeightInputChange={handleSelfWeightInputChange}
-        onComparisonWeightRangeChange={handleComparisonWeightRangeChange}
-        onComparisonWeightInputChange={handleComparisonWeightInputChange}
+      <InboundSplitScheduleDialog
+        key={inboundSplitSchedule.dialogKey}
+        open={inboundSplitSchedule.dialogOpen}
+        variant={USE_MOCK_API ? inboundSplitScheduleVariant : 'v2'}
+        help={{ labelId: helpIds.inboundSplitSchedule, portal: help }}
+        debugSourcePayload={inboundSplitDebugSourcePayload}
+        {...inboundSplitSchedule.dialogProps}
       />
-      <div className={styles.sizeOrderTableWrap}>
-        <table ref={tableRef} className={`${styles.table} ${styles.sizeOrderTable} ${styles.sizeOrderLargeTable}`} style={tableStyle} onMouseLeave={handleSizeOrderTableMouseLeave}>
-          <colgroup>
-            <col className={styles.sizeOrderMetricCol} />
-            <col className={styles.sizeOrderTotalCol} />
-            {sizeRows.map((row: SecondarySizeOrderDisplayRow) : React.JSX.Element => <col key={row.size} className={styles.sizeOrderSizeCol} />)}
-          </colgroup>
-          <thead>
-            <tr>
-              <th className={getSizeOrderCellClassName('header', 'metric')} onMouseEnter={(): void => handleSizeOrderCellMouseEnter('header', 'metric')}>{KO.thMetric}</th>
-              <th className={getSizeOrderCellClassName('header', 'total', styles.num)} onMouseEnter={(): void => handleSizeOrderCellMouseEnter('header', 'total')}>{KO.thTotal}</th>
-              {sizeRows.map((row: SecondarySizeOrderDisplayRow) : React.JSX.Element => <th key={row.size} className={getSizeOrderCellClassName('header', `size:${row.size}`, styles.num)} onMouseEnter={(): void => handleSizeOrderCellMouseEnter('header', `size:${row.size}`)}>{row.size}</th>)}
-            </tr>
-          </thead>
-          <tbody>
-            <SizeOrderShareChartRow tableRef={tableRef} comparisonLabel={comparisonLabel} selfCompanyLabel={selfCompanyLabel} sizeRows={sizeRows} getCellClassName={getSizeOrderCellClassName} onCellMouseEnter={handleSizeOrderCellMouseEnter} />
-            <tr data-chart-align-row="">
-              <td className={getSizeOrderCellClassName('share-pct', 'metric')} onMouseEnter={(): void => handleSizeOrderCellMouseEnter('share-pct', 'metric')}>{KO.rowMetricAdjustReflectedSizeSharePct}</td>
-              <td className={getSizeOrderCellClassName('share-pct', 'total', styles.num)} onMouseEnter={(): void => handleSizeOrderCellMouseEnter('share-pct', 'total')}>{formatSharePct(columnTotals.weightedPct)}</td>
-              {sizeRows.map((row: SecondarySizeOrderDisplayRow) : React.JSX.Element => <td key={row.size} className={getSizeOrderCellClassName('share-pct', `size:${row.size}`, styles.num)} data-chart-x="" onMouseEnter={(): void => handleSizeOrderCellMouseEnter('share-pct', `size:${row.size}`)}>{formatSharePct(row.blendedSharePct)}</td>)}
-            </tr>
-            <SizeOrderQuantityRows rows={quantityRows} sizeRows={sizeRows} getCellClassName={getSizeOrderCellClassName} onCellMouseEnter={handleSizeOrderCellMouseEnter} />
-            <SizeOrderConfirmQuantityRows
-              calculationReady={calculationReady}
-              splitRoundsControlDirectConfirm={inboundSplitSchedule.splitRoundsControlDirectConfirm}
-              columnConfirmTotal={columnTotals.confirm}
-              splitRoundConfirmTotal={inboundSplitSchedule.splitRoundConfirmTotal}
-              sizeRows={sizeRows}
-              manualConfirmBySize={manualConfirmBySize}
-              splitRoundConfirmBySize={inboundSplitSchedule.splitRoundConfirmBySize}
-              splitRoundRows={inboundSplitSchedule.splitRoundRows}
-              inboundSplitColumns={inboundSplitSchedule.columns}
-              getCellClassName={getSizeOrderCellClassName}
-              onCellMouseEnter={handleSizeOrderCellMouseEnter}
-              onClearConfirmedRounds={inboundSplitSchedule.clearConfirmedRounds}
-              onConfirmQtyChange={actions.onConfirmQtyChange}
-            />
-          </tbody>
-        </table>
-      </div>
-    </div>
-    <InboundSplitScheduleDialog
-      key={inboundSplitSchedule.dialogKey}
-      open={inboundSplitSchedule.dialogOpen}
-      help={{ labelId: helpIds.inboundSplitSchedule, portal: help }}
-      debugSourcePayload={inboundSplitDebugSourcePayload}
-      {...inboundSplitSchedule.dialogProps}
-    />
     </>
   )
 }

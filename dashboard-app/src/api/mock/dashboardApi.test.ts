@@ -1,5 +1,5 @@
 import type { ProductComparisonBaseSubjectRef, ProductComparisonTarget, ProductMonthlyTrend, SecondaryCompetitorChannel, SecondaryStockOrderCalcResult } from '..'
-import type { ProductMonthlyTrendPoint, SecondaryDailyTrendComparisonFlow, SecondaryDailyTrendPoint, SecondaryDailyTrendSource } from '../types'
+import type { ProductMonthlyTrendPoint, SecondaryDailyTrendComparisonFlow, SecondaryDailyTrendPoint, SecondaryDailyTrendSource, SecondaryExistingOrderInboundPoint, SecondaryInboundSplitExpectationPoint } from '../types'
 import type { SecondaryStockOrderDisplaySizeRow } from '../types/secondary'
 import { describe, expect, it } from 'vitest'
 import { buildSecondaryDailyTrendPoints } from '../../dashboard/components/product-drawer/secondary/model/secondaryDailyTrendSourceModel'
@@ -296,11 +296,11 @@ describe('api/mock dashboardApi competitor channel behavior', () : void => {
       comparison: mockCompetitorTarget('kream'),
       periodStart: '2025-01-01',
       periodEnd: '2025-12-31',
-      calculationBaseDate: '2026-01-01',
-      currentOrderInboundDueDate: '2026-05-01',
-      nextOrderInboundDueDate: '2026-05-31',
-      forecastPeriodEndMonth: '2026-05',
-      orderCoverageDays: 30,
+      calculationBaseDate: '2026-06-24',
+      currentOrderInboundDueDate: '2026-12-24',
+      nextOrderInboundDueDate: '2027-06-24',
+      forecastPeriodEndMonth: '2027-06',
+      orderCoverageDays: 182,
       selfWeightPct: 50,
       base: MOCK_BASE_SUBJECT,
     })
@@ -311,6 +311,26 @@ describe('api/mock dashboardApi competitor channel behavior', () : void => {
     expect(sizeKeys.at(-1)).toBe('295')
     expect(Object.keys(stockOrder.inboundSplitSource.sizeInfo)).toEqual(sizeKeys)
     expect(Object.keys(stockOrder.inboundSplitSource.expectation)).toEqual(sizeKeys)
+    expect(stockOrder.display.expectedInboundOrderBalanceTotal).toBeGreaterThan(0)
+    expect(stockOrder.display.sizeRows.every((row: SecondaryStockOrderDisplaySizeRow): boolean => row.expectedInboundOrderBalance > 0)).toBe(true)
+
+    const existingOrderInboundDates: Set<string> = new Set(Object.values(stockOrder.existingOrderInboundSupplyBySize)
+      .flatMap((points: SecondaryExistingOrderInboundPoint[]): string[] => points.map((point: SecondaryExistingOrderInboundPoint): string => point.date)))
+    const beforeCurrentInboundDates: string[] = [...existingOrderInboundDates].filter((date: string): boolean => date >= '2026-06-24' && date < '2026-12-24')
+    expect(beforeCurrentInboundDates.length).toBeGreaterThanOrEqual(10)
+    const currentToNextExistingInboundDates: string[] = [...existingOrderInboundDates].filter((date: string): boolean => date >= '2026-12-24' && date < '2027-06-24')
+    expect(currentToNextExistingInboundDates.length).toBeGreaterThanOrEqual(10)
+    const afterNextExistingInboundDates: string[] = [...existingOrderInboundDates].filter((date: string): boolean => date >= '2027-06-24')
+    expect(afterNextExistingInboundDates.length).toBeGreaterThan(0)
+
+    const expectationDates: Set<string> = new Set(Object.values(stockOrder.inboundSplitSource.expectation)
+      .flatMap((points: SecondaryInboundSplitExpectationPoint[]): string[] => points.map((point: SecondaryInboundSplitExpectationPoint): string => point.date)))
+    expect(expectationDates.size).toBeGreaterThanOrEqual(20)
+    const expectationBeforeCurrentDates: string[] = [...expectationDates].filter((date: string): boolean => date >= '2026-06-24' && date < '2026-12-24')
+    const expectationCurrentToNextDates: string[] = [...expectationDates].filter((date: string): boolean => date >= '2026-12-24' && date < '2027-06-24')
+    expect(expectationBeforeCurrentDates.length).toBeGreaterThanOrEqual(10)
+    expect(expectationCurrentToNextDates.length).toBeGreaterThanOrEqual(20)
+    expect([...expectationDates].every((date: string): boolean => date >= '2026-06-24' && date < '2027-06-24')).toBe(true)
   })
 
   it('returns secondary drawer AI comment for the requested open context', async () : Promise<void> => {

@@ -1,6 +1,6 @@
 # Dashboard App Source Boundary Map
 
-Last updated: 2026-06-23
+Last updated: 2026-06-24
 
 이 문서는 `dashboard-app`의 현재 책임 경계와 데이터 출처를 정리한다. 화면, API 계약, 계산 책임, 저장된 사용자 결정이 섞이지 않도록 하는 기준 문서이다.
 
@@ -34,6 +34,7 @@ API 문서는 다음 문서를 함께 갱신한다.
 | `MD/backend-api/backend-api-spec.md` | 백엔드 구현자가 보는 행위/정책 중심 사양이다. |
 | `MD/backend-api/dashboard-api-contract-catalog.md` | endpoint별 path/query/body/response 빠른 참조표이다. |
 | `MD/backend-api/order-snapshot-backend-contract.md` | 후보 상세 저장 스냅샷 v8 계약이다. |
+| `MD/dashboard-app/boundaries/inbound-split-variants.md` | 분할입고 설정 V0/V1/V2 UI variant 책임 문서이다. |
 
 ## 3. 상품 드로어 경계
 
@@ -54,6 +55,8 @@ API 문서는 다음 문서를 함께 갱신한다.
 Detail recommended quantities and split-inbound suggested quantities must both be derived from `stockOrderCalc.inboundSplitSource` through the same planning function. They must use `total.sales`, `sizeInfo`, `expectation`, opening stock, existing inbound before the current order, and UI target ending stock instead of a separate `total.suggestion` shortcut. Round demand uses `[round n inbound date, round n+1 inbound date)`, while existing-order inbound for round n uses `[round n-1 inbound date, round n inbound date)`.
 
 Split inbound dialog draft editing has two UI-owned phases. Before inbound dates are locked, users may change split count and dates; confirmed quantities mirror the recalculated suggestions. The summary inbound-date cell owns the date-lock toggle. After dates are locked, split count/date inputs are disabled and confirmed total/size quantity inputs plus reset-to-suggested are enabled. This phase state is dialog-local UI state and does not change API or snapshot contracts.
+
+Split inbound dialog presentation is variant-gated inside the frontend. `InboundSplitScheduleDialog.tsx` remains the stable dialog facade; `V0` preserves the original UI, `V1` preserves the source-summary experiment, and `V2` is the active UI iteration with section-level inbound detail expansion. Mock API mode exposes a V0/V1/V2 selector under the split-inbound button for UI verification; HTTP API mode stays fixed to V2. Variant별 파일 책임과 source/detail summary table의 표시 범위/CSS 책임은 `MD/dashboard-app/boundaries/inbound-split-variants.md`에서 관리한다.
 
 ## 4. Secondary 오더/입고 분할 경계
 

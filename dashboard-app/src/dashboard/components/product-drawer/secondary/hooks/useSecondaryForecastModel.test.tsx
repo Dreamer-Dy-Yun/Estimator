@@ -99,6 +99,7 @@ function createCandidateActions(): HookResult['candidateActions'] {
 
 function setupMocks(): void {
   hookMocks.useSecondaryDrawerRequests.mockReturnValue({
+    calculationBaseDate: '2026-03-30',
     dailyTrend: {
       dailyTrendSeries: [],
       dailyTrendLoading: false,
@@ -173,18 +174,25 @@ function Probe({ args, onRender }: { args: HookArgs; onRender: (result: HookResu
   return null
 }
 
-function renderModel(initialArgs: HookArgs): { rerender: (nextArgs: HookArgs) => void } {
+function renderModel(initialArgs: HookArgs): { readonly current: HookResult; rerender: (nextArgs: HookArgs) => void } {
   container = document.createElement('div')
   document.body.appendChild(container)
   root = createRoot(container)
   let currentArgs: HookArgs = initialArgs
+  let currentResult: HookResult | null = null
   const render: () => void = (): void => {
     act((): void => {
-      root?.render(<Probe args={currentArgs} onRender={(): void => {}} />)
+      root?.render(<Probe args={currentArgs} onRender={(result: HookResult): void => {
+        currentResult = result
+      }} />)
     })
   }
   render()
   return {
+    get current(): HookResult {
+      if (currentResult == null) throw new Error('model result is not rendered')
+      return currentResult
+    },
     rerender: (nextArgs: HookArgs): void => {
       currentArgs = nextArgs
       render()
@@ -233,5 +241,22 @@ describe('useSecondaryForecastModel split confirmation scope', (): void => {
 
     expect(setConfirmBySize).not.toHaveBeenCalled()
     expect(setConfirmedRounds).not.toHaveBeenCalled()
+  })
+
+  it('uses the snapshot saved date as the calculation base date while the saved snapshot baseline is active', (): void => {
+    setupMocks()
+    const args: HookArgs = createArgs({
+      useSnapshotConfirmBaseline: true,
+      prefillFromSnapshot: {
+        savedAt: '2026-02-03T10:20:30.000Z',
+        drawer2: {
+          stockOrderResult: STOCK_ORDER_CALC,
+          sizeOrders: [],
+        },
+      } as unknown as HookArgs['prefillFromSnapshot'],
+    })
+    const view: { readonly current: HookResult; rerender: (nextArgs: HookArgs) => void } = renderModel(args)
+
+    expect(view.current.calculationBaseDate).toBe('2026-02-03')
   })
 })

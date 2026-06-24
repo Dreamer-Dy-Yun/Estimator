@@ -40,9 +40,10 @@ function syncIgnoreExistingOrderInbound(
   targetRows: readonly InboundSplitScheduleRow[],
   checked: boolean,
 ): InboundSplitScheduleRow[] {
+  const canIgnoreExistingOrderInbound: boolean = targetRows.length > 1
   return targetRows.map((row: InboundSplitScheduleRow): InboundSplitScheduleRow => ({
     ...row,
-    ignoreExistingOrderInbound: checked,
+    ignoreExistingOrderInbound: canIgnoreExistingOrderInbound && checked,
   }))
 }
 
@@ -75,9 +76,14 @@ export function useInboundSplitScheduleDraft({
   const [draftWarning, setDraftWarning]: [string | null, React.Dispatch<React.SetStateAction<string | null>>] = useState<string | null>(null)
   const [datesLocked, setDatesLocked]: [boolean, React.Dispatch<React.SetStateAction<boolean>>] = useState<boolean>(false)
   const [ignoreExistingOrderInboundAll, setIgnoreExistingOrderInboundAll]: [boolean, React.Dispatch<React.SetStateAction<boolean>>] = useState<boolean>(
-    initialRows.length > 0 && initialRows.every((row: InboundSplitScheduleRow): boolean => row.ignoreExistingOrderInbound),
+    initialRows.length > 1 && initialRows.every((row: InboundSplitScheduleRow): boolean => row.ignoreExistingOrderInbound),
   )
-  const [rows, setRows]: [InboundSplitScheduleRow[], React.Dispatch<React.SetStateAction<InboundSplitScheduleRow[]>>] = useState<InboundSplitScheduleRow[]>((): InboundSplitScheduleRow[] => cloneInboundSplitRows(initialRows))
+  const normalizedInitialRows: InboundSplitScheduleRow[] = initialRows.length > 1
+    ? cloneInboundSplitRows(initialRows)
+    : cloneInboundSplitRows(initialRows.map((row: InboundSplitScheduleRow): InboundSplitScheduleRow => ({ ...row, ignoreExistingOrderInbound: false })))
+  const [rows, setRows]: [InboundSplitScheduleRow[], React.Dispatch<React.SetStateAction<InboundSplitScheduleRow[]>>] = useState<InboundSplitScheduleRow[]>((): InboundSplitScheduleRow[] => (
+    cloneInboundSplitRows(normalizedInitialRows)
+  ))
   const countOptions: number[] = useMemo((): number[] => Array.from({ length: MAX_INBOUND_SPLIT_COUNT - MIN_INBOUND_SPLIT_COUNT + 1 }, (_: unknown, index: number): number => MIN_INBOUND_SPLIT_COUNT + index), [])
 
   const getRowsWarning: (targetRows: readonly InboundSplitScheduleRow[]) => string | null = useCallback((targetRows: readonly InboundSplitScheduleRow[]): string | null => (
@@ -141,7 +147,7 @@ export function useInboundSplitScheduleDraft({
     try {
       const builtRows: InboundSplitScheduleRow[] = syncIgnoreExistingOrderInbound(
         buildRowsForCount(nextCount),
-        ignoreExistingOrderInboundAll,
+        ignoreExistingOrderInboundAll && nextCount > 1,
       )
       try {
         const nextRows: InboundSplitScheduleRow[] = recalculateRows(builtRows)

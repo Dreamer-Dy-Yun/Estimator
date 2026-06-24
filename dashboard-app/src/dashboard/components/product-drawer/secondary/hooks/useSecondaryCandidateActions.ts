@@ -80,10 +80,12 @@ export function useSecondaryCandidateActions({
 
   useEffect(() : void => {
     if (!actionGuard.consumeScopeChange()) return
-    setLoading(false)
-    setListOpen(false)
-    setStashes([])
-    setSelectedCandidate(null)
+    queueMicrotask(() : void => {
+      setLoading(false)
+      setListOpen(false)
+      setStashes([])
+      setSelectedCandidate(null)
+    })
   }, [actionGuard, currentScope])
 
   const guardSnapshotMutation: () => boolean = () : boolean => {

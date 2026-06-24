@@ -129,8 +129,11 @@ export function useProductComparisonTargets({
   )
   const comparisonModeRef: React.RefObject<ProductComparisonTargetKind> = useRef(comparisonMode)
   const targetIdsRef: React.RefObject<ProductComparisonTargetIds> = useRef(targetIds)
-  comparisonModeRef.current = comparisonMode
-  targetIdsRef.current = targetIds
+
+  useEffect(() : void => {
+    comparisonModeRef.current = comparisonMode
+    targetIdsRef.current = targetIds
+  }, [comparisonMode, targetIds])
 
   const setComparisonTargetId: (next: string) => void = useCallback((next: string) : void => {
     const currentMode: ProductComparisonTargetKind = comparisonModeRef.current

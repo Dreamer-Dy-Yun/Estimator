@@ -36,6 +36,14 @@
   min-width: 0;
 }
 
+.sliderRowActions {
+  grid-column: 17 / -1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  min-width: 0;
+}
+
 @media (max-width: 640px) {
   .sliderRow {
     grid-template-columns: 1fr;
@@ -44,7 +52,8 @@
 
   .sliderSelfGroup,
   .sliderWeightRange,
-  .sliderCompGroup {
+  .sliderCompGroup,
+  .sliderRowActions {
     grid-column: auto;
   }
 }

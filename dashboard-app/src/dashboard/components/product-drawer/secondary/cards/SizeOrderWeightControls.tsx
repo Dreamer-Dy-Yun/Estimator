@@ -10,6 +10,7 @@ export type SizeOrderWeightControlsProps = {
   onSelfWeightInputChange: (rawValue: string) => void
   onComparisonWeightRangeChange: (rawValue: string) => void
   onComparisonWeightInputChange: (rawValue: string) => void
+  endSlot?: React.ReactNode
 }
 
 export function SizeOrderWeightControls({
@@ -20,6 +21,7 @@ export function SizeOrderWeightControls({
   onSelfWeightInputChange,
   onComparisonWeightRangeChange,
   onComparisonWeightInputChange,
+  endSlot = null,
 }: SizeOrderWeightControlsProps): React.JSX.Element {
   const selfWeightLabel: string = `${selfCompanyLabel} ${KO.comparisonWeightApprox}`
   const comparisonWeightLabel: string = `${comparisonLabel} ${KO.comparisonWeightApprox}`
@@ -70,6 +72,7 @@ export function SizeOrderWeightControls({
           {comparisonWeightLabel}
         </span>
       </div>
+      {endSlot != null ? <div className={styles.sliderRowActions}>{endSlot}</div> : null}
     </div>
   )
 }

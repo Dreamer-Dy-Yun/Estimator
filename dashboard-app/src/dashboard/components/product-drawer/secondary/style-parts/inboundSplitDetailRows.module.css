@@ -1,0 +1,76 @@
+.inboundSplitSectionToggleStackV2 {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-width: 0;
+}
+
+.inboundSplitDetailToggleButtonV2 {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 18px;
+  padding: 0;
+  border: 1px solid rgb(255 255 255 / 0.6);
+  border-radius: 4px;
+  background: rgb(255 255 255 / 0.18);
+  color: currentColor;
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.inboundSplitDetailToggleButtonV2:hover {
+  background: rgb(255 255 255 / 0.28);
+}
+
+.inboundSplitDetailToggleButtonV2:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.inboundSplitRoundHasDetailV2 td {
+  border-bottom: 1px solid var(--inbound-split-row-inner-divider);
+  box-shadow: none;
+}
+
+.inboundSplitDetailRowV2 td {
+  background: #f6fbf3;
+  color: var(--inbound-split-cell-text);
+  border-bottom-color: var(--inbound-split-row-inner-divider);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.inboundSplitDetailRowV2 .inboundSplitStickyCol {
+  background: #d9ead3;
+}
+
+.inboundSplitDetailRoundBlankCellV2 {
+  background: #cfe4c8;
+}
+
+.inboundSplitDetailMergedLabelCellV2 {
+  width: calc(var(--inbound-split-date-col-width) + var(--inbound-split-kind-col-width));
+  min-width: calc(var(--inbound-split-date-col-width) + var(--inbound-split-kind-col-width));
+  text-align: center;
+  font-weight: 700;
+}
+
+.inboundSplitDetailTotalRowV2 td {
+  background: #e6f2df;
+  font-weight: 700;
+}
+
+.inboundSplitDetailTotalRowV2 .inboundSplitStickyCol {
+  background: #c7ddbf;
+}
+
+.inboundSplitDetailLastRowV2 td {
+  border-bottom: 2px solid var(--inbound-split-round-divider);
+  box-shadow: inset 0 -1px 0 var(--inbound-split-round-divider);
+}
