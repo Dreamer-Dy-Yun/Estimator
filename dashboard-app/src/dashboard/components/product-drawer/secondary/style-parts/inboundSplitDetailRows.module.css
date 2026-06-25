@@ -38,6 +38,11 @@
   box-shadow: none;
 }
 
+.inboundSplitRoundHasDetailStartV2 .inboundSplitRowSpanCell {
+  border-bottom: 1px solid var(--inbound-split-row-inner-divider);
+  box-shadow: none;
+}
+
 .inboundSplitDetailRowV2 td {
   background: #f6fbf3;
   color: var(--inbound-split-cell-text);

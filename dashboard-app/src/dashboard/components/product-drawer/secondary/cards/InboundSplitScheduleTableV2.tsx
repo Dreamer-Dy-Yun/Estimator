@@ -64,6 +64,7 @@ export function InboundSplitScheduleTableV2({
     endDate: visibleRows[0]?.row.inboundDate ?? nextOrderInboundDueDate,
     openingStockDate: calculationBaseDate,
     includeOpeningStock: true,
+    includePeriodInbound: false,
     excludeScheduledInbound: false,
   })
   const zeroExpanded: boolean = zeroSection != null && expandedSectionKeys.has(INBOUND_SPLIT_ZERO_SECTION_KEY)
@@ -137,6 +138,7 @@ export function InboundSplitScheduleTableV2({
           const row: InboundSplitScheduleRow = entry.row
           const rowIndex: number = entry.index
           const previousInboundDate: string = visibleRowIndex === 0 ? currentOrderInboundDueDate : (visibleRows[visibleRowIndex - 1]?.row.inboundDate ?? currentOrderInboundDueDate)
+          const detailStartDate: string = visibleRowIndex === 0 ? calculationBaseDate : previousInboundDate
           const suggestedTotalQty: number = getInboundSplitSuggestedTotalQty(row, columns)
           const confirmedTotalQty: number = getInboundSplitTotalQty(row, columns)
           const totalDiffClass: string = diffClass(confirmedTotalQty, suggestedTotalQty)
@@ -150,8 +152,9 @@ export function InboundSplitScheduleTableV2({
             key: detailSectionKey,
             source: inboundSplitSource,
             columns,
-            startDate: row.inboundDate,
-            endDate: visibleRows[visibleRowIndex + 1]?.row.inboundDate ?? nextOrderInboundDueDate,
+            startDate: detailStartDate,
+            endDate: row.inboundDate,
+            periodInboundSummaryLabel: `${row.round}${KO.optionInboundSplitRoundSuffix} ${KO.labelInboundSplitBeforeRoundAdditionalInbound}`,
             includeOpeningStock: false,
             excludeScheduledInbound: row.ignoreExistingOrderInbound,
           })
@@ -159,7 +162,10 @@ export function InboundSplitScheduleTableV2({
 
           return (
             <Fragment key={row.id}>
-              <tr className={styles.inboundSplitSuggestedRow}>
+              <tr className={cx(
+                styles.inboundSplitSuggestedRow,
+                detailExpanded ? styles.inboundSplitRoundHasDetailStartV2 : null,
+              )}>
                 <td className={cx(stickyRoundClassName, styles.inboundSplitRowSpanCell)} rowSpan={2}>
                   <div className={styles.inboundSplitSectionToggleStackV2}>
                     <span>{row.round}{KO.optionInboundSplitRoundSuffix}</span>

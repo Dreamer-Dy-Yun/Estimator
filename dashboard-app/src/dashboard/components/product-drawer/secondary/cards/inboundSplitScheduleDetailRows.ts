@@ -16,6 +16,7 @@ export interface InboundSplitDetailRow {
 
 export interface InboundSplitDetailSection {
   key: string
+  periodInboundSummaryLabel?: string
   rows: InboundSplitDetailRow[]
 }
 
@@ -26,7 +27,9 @@ interface BuildDetailSectionArgs {
   startDate: string
   endDate: string
   openingStockDate?: string
+  periodInboundSummaryLabel?: string
   includeOpeningStock: boolean
+  includePeriodInbound?: boolean
   excludeScheduledInbound: boolean
 }
 
@@ -67,7 +70,9 @@ export function buildInboundSplitDetailSection({
   startDate,
   endDate,
   openingStockDate,
+  periodInboundSummaryLabel,
   includeOpeningStock,
+  includePeriodInbound = true,
   excludeScheduledInbound,
 }: BuildDetailSectionArgs): InboundSplitDetailSection {
   const rows: InboundSplitDetailRow[] = []
@@ -89,7 +94,7 @@ export function buildInboundSplitDetailSection({
     })
   }
 
-  if (!excludeScheduledInbound && startDate < endDate) {
+  if (includePeriodInbound && !excludeScheduledInbound && startDate < endDate) {
     columns.forEach((column: InboundSplitSizeColumn): void => {
       const expectationPoints: SecondaryInboundSplitExpectationPoint[] = source.expectation[column.size] ?? []
       expectationPoints.forEach((point: SecondaryInboundSplitExpectationPoint): void => {
@@ -104,27 +109,29 @@ export function buildInboundSplitDetailSection({
     })
   }
 
-  rows.push({
-    key: `${key}:period-total`,
-    kind: 'period-inbound-total',
-    date: null,
-    startDate,
-    endDate,
-    qtyBySize: periodInboundQtyBySize,
-  })
-
-  Array.from(inboundQtyByDate.entries())
-    .sort(([leftDate]: [string, Record<string, number>], [rightDate]: [string, Record<string, number>]): number => leftDate.localeCompare(rightDate))
-    .forEach(([date, qtyBySize]: [string, Record<string, number>]): void => {
-      rows.push({
-        key: `${key}:scheduled:${date}`,
-        kind: 'scheduled-inbound',
-        date,
-        startDate,
-        endDate,
-        qtyBySize,
-      })
+  if (includePeriodInbound) {
+    rows.push({
+      key: `${key}:period-total`,
+      kind: 'period-inbound-total',
+      date: null,
+      startDate,
+      endDate,
+      qtyBySize: periodInboundQtyBySize,
     })
 
-  return { key, rows }
+    Array.from(inboundQtyByDate.entries())
+      .sort(([leftDate]: [string, Record<string, number>], [rightDate]: [string, Record<string, number>]): number => leftDate.localeCompare(rightDate))
+      .forEach(([date, qtyBySize]: [string, Record<string, number>]): void => {
+        rows.push({
+          key: `${key}:scheduled:${date}`,
+          kind: 'scheduled-inbound',
+          date,
+          startDate,
+          endDate,
+          qtyBySize,
+        })
+      })
+  }
+
+  return { key, periodInboundSummaryLabel, rows }
 }

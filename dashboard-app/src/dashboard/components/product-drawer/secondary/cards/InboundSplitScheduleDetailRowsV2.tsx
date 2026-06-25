@@ -48,7 +48,7 @@ export function InboundSplitScheduleDetailRowsV2({
         const mergedLabel: string | null = isOpeningStock
           ? KO.rowInboundSplitOpeningStock
           : isTotal
-            ? KO.rowInboundSplitPeriodInboundSummary
+            ? section.periodInboundSummaryLabel ?? KO.rowInboundSplitPeriodInboundSummary
             : null
         return (
           <tr

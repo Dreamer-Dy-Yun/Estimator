@@ -92,6 +92,11 @@ function renderTable(
   })
 }
 
+function findRowByText(text: string): HTMLTableRowElement | undefined {
+  return Array.from(document.querySelectorAll<HTMLTableRowElement>('tr'))
+    .find((row: HTMLTableRowElement): boolean => row.textContent?.includes(text) ?? false)
+}
+
 afterEach((): void => {
   act((): void => {
     root?.unmount()
@@ -104,7 +109,7 @@ afterEach((): void => {
 })
 
 describe('InboundSplitScheduleTableV2', (): void => {
-  it('renders zero-zone opening stock and inbound details before the first round', (): void => {
+  it('renders only opening stock in the zero-zone detail', (): void => {
     renderTable(new Set<string>([INBOUND_SPLIT_ZERO_SECTION_KEY]))
 
     const summaryRoundCell: HTMLTableCellElement | undefined = Array.from(document.querySelectorAll<HTMLTableCellElement>('td'))
@@ -117,25 +122,39 @@ describe('InboundSplitScheduleTableV2', (): void => {
     expect(openingStockRow?.children[1]?.getAttribute('colspan')).toBe('2')
     expect(openingStockRow?.children[1]?.textContent).toBe(KO.rowInboundSplitOpeningStock)
     expect(document.body.textContent).toContain(KO.rowInboundSplitOpeningStock)
-    expect(document.body.textContent).toContain(KO.rowInboundSplitPeriodInboundSummary)
-    expect(document.body.textContent).toContain('2026-04-05')
+    expect(document.body.textContent).not.toContain(KO.rowInboundSplitPeriodInboundSummary)
+    expect(document.body.textContent).not.toContain('2026-04-05')
     expect(document.body.textContent).not.toContain('2026-04-12')
   })
 
-  it('renders each round detail from that round date to the next round date', (): void => {
+  it('renders the first round detail from the calculation base date to that round date', (): void => {
     renderTable(new Set<string>([getInboundSplitRoundDetailKey(ROWS[0]!)]))
 
-    expect(document.body.textContent).toContain(KO.rowInboundSplitPeriodInboundSummary)
+    expect(document.body.textContent).toContain(`1${KO.optionInboundSplitRoundSuffix} ${KO.labelInboundSplitBeforeRoundAdditionalInbound}`)
+    expect(document.body.textContent).not.toContain(KO.rowInboundSplitPeriodInboundSummary)
+    expect(document.body.textContent).toContain('2026-04-05')
+    expect(document.body.textContent).not.toContain('2026-04-12')
+    expect(document.body.textContent).not.toContain('2026-04-18')
+    expect(findRowByText(`1${KO.optionInboundSplitRoundSuffix} ${KO.labelInboundSplitBeforeRoundAdditionalInbound}`)?.children[2]?.textContent).toBe('3')
+  })
+
+  it('renders later round details from the previous round date to that round date', (): void => {
+    renderTable(new Set<string>([getInboundSplitRoundDetailKey(ROWS[1]!)]))
+
+    expect(document.body.textContent).toContain(`2${KO.optionInboundSplitRoundSuffix} ${KO.labelInboundSplitBeforeRoundAdditionalInbound}`)
+    expect(document.body.textContent).not.toContain(KO.rowInboundSplitPeriodInboundSummary)
+    expect(document.body.textContent).not.toContain('2026-04-05')
     expect(document.body.textContent).toContain('2026-04-12')
     expect(document.body.textContent).toContain('2026-04-18')
     expect(document.body.textContent).not.toContain('2026-04-22')
+    expect(findRowByText(`2${KO.optionInboundSplitRoundSuffix} ${KO.labelInboundSplitBeforeRoundAdditionalInbound}`)?.children[2]?.textContent).toBe('7')
   })
 
   it('keeps the inbound total detail row even when a round has no visible inbound dates', (): void => {
     const ignoredRows: InboundSplitScheduleRow[] = [{ ...ROWS[0]!, ignoreExistingOrderInbound: true }]
     renderTable(new Set<string>([getInboundSplitRoundDetailKey(ignoredRows[0]!)]), ignoredRows)
 
-    expect(document.body.textContent).toContain(KO.rowInboundSplitPeriodInboundSummary)
+    expect(document.body.textContent).toContain(`1${KO.optionInboundSplitRoundSuffix} ${KO.labelInboundSplitBeforeRoundAdditionalInbound}`)
     expect(document.body.textContent).not.toContain('2026-04-12')
   })
 })
