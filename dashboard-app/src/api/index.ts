@@ -100,6 +100,7 @@ export type {
   CandidateStashLlmCommentJobStatus,
   CandidateStashLlmCommentJobSubscription,
   CandidateItemOrderExport,
+  CandidateItemOrderExportInboundRound,
   CandidateItemOrderExportSizeQty,
   CandidateItemSummary,
   CandidateReferenceItemSummary,

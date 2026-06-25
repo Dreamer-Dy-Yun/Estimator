@@ -26,23 +26,23 @@ export interface UseInboundSplitScheduleDraftResult {
   draftWarning: string | null
   datesLocked: boolean
   countOptions: number[]
-  excludePeriodExistingOrderInboundAll: boolean
+  excludeSegmentExistingOrderInboundAll: boolean
   toggleDatesLocked: () => void
   resetConfirmedToSuggested: () => void
   changeCount: (value: string) => void
   changeDate: (rowIndex: number, value: string) => void
-  changeExcludePeriodExistingOrderInboundAll: (checked: boolean) => void
+  changeExcludeSegmentExistingOrderInboundAll: (checked: boolean) => void
   changeRowTotal: (rowIndex: number, value: string) => void
   changeQty: (rowIndex: number, size: string, value: string) => void
 }
 
-function syncExcludePeriodExistingOrderInbound(
+function syncExcludeSegmentExistingOrderInbound(
   targetRows: readonly InboundSplitScheduleRow[],
   checked: boolean,
 ): InboundSplitScheduleRow[] {
   return targetRows.map((row: InboundSplitScheduleRow): InboundSplitScheduleRow => ({
     ...row,
-    excludePeriodExistingOrderInbound: checked,
+    excludeSegmentExistingOrderInbound: checked,
   }))
 }
 
@@ -74,8 +74,8 @@ export function useInboundSplitScheduleDraft({
   const [count, setCount]: [number, React.Dispatch<React.SetStateAction<number>>] = useState<number>(initialCount)
   const [draftWarning, setDraftWarning]: [string | null, React.Dispatch<React.SetStateAction<string | null>>] = useState<string | null>(null)
   const [datesLocked, setDatesLocked]: [boolean, React.Dispatch<React.SetStateAction<boolean>>] = useState<boolean>(false)
-  const [excludePeriodExistingOrderInboundAll, setExcludePeriodExistingOrderInboundAll]: [boolean, React.Dispatch<React.SetStateAction<boolean>>] = useState<boolean>(
-    initialRows.length > 0 && initialRows.every((row: InboundSplitScheduleRow): boolean => row.excludePeriodExistingOrderInbound),
+  const [excludeSegmentExistingOrderInboundAll, setExcludeSegmentExistingOrderInboundAll]: [boolean, React.Dispatch<React.SetStateAction<boolean>>] = useState<boolean>(
+    initialRows.length > 0 && initialRows.every((row: InboundSplitScheduleRow): boolean => row.excludeSegmentExistingOrderInbound),
   )
   const normalizedInitialRows: InboundSplitScheduleRow[] = cloneInboundSplitRows(initialRows)
   const [rows, setRows]: [InboundSplitScheduleRow[], React.Dispatch<React.SetStateAction<InboundSplitScheduleRow[]>>] = useState<InboundSplitScheduleRow[]>((): InboundSplitScheduleRow[] => (
@@ -142,9 +142,9 @@ export function useInboundSplitScheduleDraft({
     const nextCount: number = clampInboundSplitCount(Number(value))
     setDraftWarning(null)
     try {
-      const builtRows: InboundSplitScheduleRow[] = syncExcludePeriodExistingOrderInbound(
+      const builtRows: InboundSplitScheduleRow[] = syncExcludeSegmentExistingOrderInbound(
         buildRowsForCount(nextCount),
-        excludePeriodExistingOrderInboundAll,
+        excludeSegmentExistingOrderInboundAll,
       )
       try {
         const nextRows: InboundSplitScheduleRow[] = recalculateRows(builtRows)
@@ -159,12 +159,12 @@ export function useInboundSplitScheduleDraft({
     } catch (err: unknown) {
       onDraftError?.(err, 'buildInboundSplitScheduleRows')
     }
-  }, [buildRowsForCount, columns, datesLocked, excludePeriodExistingOrderInboundAll, onDraftError, recalculateRows, setCount, setDraftWarning, setRows])
+  }, [buildRowsForCount, columns, datesLocked, excludeSegmentExistingOrderInboundAll, onDraftError, recalculateRows, setCount, setDraftWarning, setRows])
 
-  const changeExcludePeriodExistingOrderInboundAll: (checked: boolean) => void = useCallback((checked: boolean): void => {
-    setExcludePeriodExistingOrderInboundAll(checked)
+  const changeExcludeSegmentExistingOrderInboundAll: (checked: boolean) => void = useCallback((checked: boolean): void => {
+    setExcludeSegmentExistingOrderInboundAll(checked)
     setRows((currentRows: InboundSplitScheduleRow[]): InboundSplitScheduleRow[] => {
-      const nextRows: InboundSplitScheduleRow[] = syncExcludePeriodExistingOrderInbound(currentRows, checked)
+      const nextRows: InboundSplitScheduleRow[] = syncExcludeSegmentExistingOrderInbound(currentRows, checked)
       try {
         const recalculatedRows: InboundSplitScheduleRow[] = recalculateRows(nextRows)
         setDraftWarning(null)
@@ -176,7 +176,7 @@ export function useInboundSplitScheduleDraft({
         return syncQuantitiesToSuggested(nextRows, columns)
       }
     })
-  }, [columns, onDraftError, recalculateRows, setDraftWarning, setExcludePeriodExistingOrderInboundAll, setRows])
+  }, [columns, onDraftError, recalculateRows, setDraftWarning, setExcludeSegmentExistingOrderInboundAll, setRows])
 
   const changeRowTotal: (rowIndex: number, value: string) => void = useCallback((rowIndex: number, value: string): void => {
     if (!datesLocked) return
@@ -204,12 +204,12 @@ export function useInboundSplitScheduleDraft({
     draftWarning,
     datesLocked,
     countOptions,
-    excludePeriodExistingOrderInboundAll,
+    excludeSegmentExistingOrderInboundAll,
     toggleDatesLocked,
     resetConfirmedToSuggested,
     changeCount,
     changeDate,
-    changeExcludePeriodExistingOrderInboundAll,
+    changeExcludeSegmentExistingOrderInboundAll,
     changeRowTotal,
     changeQty,
   }

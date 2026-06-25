@@ -16,7 +16,7 @@ export { makeSalesTrend } from './productCatalogBuilders'
 
 export type MockSkuMetadata = Pick<
   ProductPrimarySummary,
-  'skuGroupKey' | 'productName' | 'brand' | 'category' | 'code' | 'colorCode'
+  'skuGroupKey' | 'productName' | 'brand' | 'category' | 'code' | 'colorCode' | 'imageUrl'
 >
 
 const TWENTY_SIZE_SCROLL_TEST_SIZE_COUNT = 20 as const

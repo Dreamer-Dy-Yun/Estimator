@@ -1,4 +1,4 @@
-import type { OrderSnapshotDocument, OrderSnapshotPrimarySummary } from '../../../snapshot/orderSnapshotTypes'
+import type { OrderSnapshotDocument } from '../../../snapshot/orderSnapshotTypes'
 import type { ProductSecondarySizeRow } from '../../../types'
 import { ApiUnitErrorBadge } from '../../../components/ApiUnitErrorBadge'
 import { LoadingSpinner } from '../../../components/LoadingSpinner'
@@ -86,7 +86,9 @@ export function ProductDrawerSecondaryPane({
 }: ProductDrawerSecondaryPaneProps) : React.JSX.Element {
   const missingComparisonRatioSizes: string[] =
     secondaryDetail == null ? [] : getMissingComparisonRatioSizes(secondaryDetail)
-  const primaryForSecondaryPanel: OrderSnapshotPrimarySummary = hydrateForPanel?.drawer1.summary ?? summary
+  const primaryForSecondaryPanel: ProductPrimarySummary = hydrateForPanel?.drawer1.summary
+    ? { ...summary, ...hydrateForPanel.drawer1.summary }
+    : summary
   let content: React.ReactNode = null
 
   if (open) {

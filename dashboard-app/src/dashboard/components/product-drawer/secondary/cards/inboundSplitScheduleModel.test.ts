@@ -27,7 +27,7 @@ function row(id: string, round: number, inboundDate: string, quantity: number): 
     id,
     round,
     inboundDate,
-    excludePeriodExistingOrderInbound: false,
+    excludeSegmentExistingOrderInbound: false,
     suggestedQuantitiesBySize: { S: 99 },
     quantitiesBySize: { S: quantity },
   }

@@ -7,87 +7,12 @@ import { getInboundSplitSuggestedTotalQty, getInboundSplitTotalQty, type Inbound
 import { getInboundSplitDateInterval, isInboundSplitDateOutsideCoverage, type InboundSplitDateInterval } from './inboundSplitScheduleDatePolicy'
 import { sumInboundSplitColumnTotals, sumInboundSplitConfirmedBySize, sumInboundSplitSuggestedBySize } from './inboundSplitScheduleTotals'
 import { ariaDiffLabel, cx, diffClass, qtyInputClassName, stickyDateClassName, stickyKindClassName, stickyRoundClassName, stickyTotalClassName } from './inboundSplitScheduleTableClasses'
-import type { InboundSplitSuggestionBasis } from './inboundSplitSuggestionModel'
+import { aggregateInboundSplitSuggestionBasisBySize, formatInboundSplitDateInterval, formatInboundSplitSuggestionBasisTooltip } from './inboundSplitScheduleTableDisplay'
 import type { InboundSplitScheduleTableProps } from './inboundSplitScheduleVariantTypes'
-
-const DAY_MS = 86_400_000 as const
 
 type InboundSplitTableStyle = CSSProperties & {
   '--inbound-split-size-col-count': number
   '--inbound-split-size-col-divisor': number
-}
-
-function formatInboundSplitDateInterval(interval: InboundSplitDateInterval): string {
-  if (interval.days == null) return '-'
-  return `${interval.days >= 0 ? '+' : ''}${formatGroupedNumber(interval.days)}${KO.unitDays}`
-}
-
-function formatTooltipQty(value: number): string {
-  return `${formatGroupedNumber(Math.round(value))}${KO.unitEa}`
-}
-
-function formatExclusiveEndDate(endDate: string): string {
-  const endMs: number = Date.parse(`${endDate}T00:00:00.000Z`)
-  if (!Number.isFinite(endMs)) return `${endDate} ${KO.labelPreviousDay}`
-  return new Date(endMs - DAY_MS).toISOString().slice(0, 10)
-}
-
-function formatSuggestedBasisTooltip(basis: InboundSplitSuggestionBasis | null): string | undefined {
-  if (!basis) return undefined
-  const periodText: string = `${basis.intervalStartDate}~${formatExclusiveEndDate(basis.intervalEndDate)}`
-  const expectedInboundPeriodText: string = basis.expectedInboundStartDate < basis.expectedInboundEndDate
-    ? ` (${basis.expectedInboundStartDate}~${formatExclusiveEndDate(basis.expectedInboundEndDate)})`
-    : ''
-  const expectedInboundText: string = basis.excludePeriodExistingOrderInbound && expectedInboundPeriodText
-    ? KO.valueNotApplicable
-    : formatTooltipQty(basis.expectedInboundQty)
-  const lines: string[] = [
-    `${KO.labelInboundSplitSuggestionBasis} (${periodText})`,
-    `${KO.labelInboundSplitBasisSalesForecast}: ${formatTooltipQty(basis.salesForecastQty)}`,
-    `${KO.labelInboundSplitBasisExpectedInbound}${expectedInboundPeriodText}: ${expectedInboundText}`,
-    `${KO.labelInboundSplitBasisCarriedStock}: ${formatTooltipQty(basis.carriedStockQty)}`,
-    `${KO.labelInboundSplitBasisMinimumStock}: ${formatTooltipQty(basis.minimumStockQty)}`,
-  ]
-  if (basis.targetEndingStockQty > 0) {
-    lines.push(`${KO.labelInboundSplitBasisTargetEndingStock}: ${formatTooltipQty(basis.targetEndingStockQty)}`)
-  }
-  lines.push(`${KO.rowInboundSplitSuggestedQty}: ${formatTooltipQty(basis.suggestedQty)}`)
-  return lines.join('\n')
-}
-
-function aggregateSuggestedBasis(row: InboundSplitScheduleRow, columns: readonly InboundSplitSizeColumn[]): InboundSplitSuggestionBasis | null {
-  const bases: InboundSplitSuggestionBasis[] = columns
-    .map((column: InboundSplitSizeColumn): InboundSplitSuggestionBasis | undefined => row.suggestionBasisBySize?.[column.size])
-    .filter((basis: InboundSplitSuggestionBasis | undefined): basis is InboundSplitSuggestionBasis => basis != null)
-  if (!bases.length) return null
-  const first: InboundSplitSuggestionBasis = bases[0]
-  return bases.reduce((sum: InboundSplitSuggestionBasis, basis: InboundSplitSuggestionBasis): InboundSplitSuggestionBasis => ({
-    intervalStartDate: sum.intervalStartDate,
-    intervalEndDate: sum.intervalEndDate,
-    expectedInboundStartDate: sum.expectedInboundStartDate,
-    expectedInboundEndDate: sum.expectedInboundEndDate,
-    excludePeriodExistingOrderInbound: sum.excludePeriodExistingOrderInbound,
-    salesForecastQty: sum.salesForecastQty + basis.salesForecastQty,
-    expectedInboundQty: sum.expectedInboundQty + basis.expectedInboundQty,
-    carriedStockQty: sum.carriedStockQty + basis.carriedStockQty,
-    minimumStockQty: sum.minimumStockQty + basis.minimumStockQty,
-    targetEndingStockQty: sum.targetEndingStockQty + basis.targetEndingStockQty,
-    suggestedQty: sum.suggestedQty + basis.suggestedQty,
-    endingStockQty: sum.endingStockQty + basis.endingStockQty,
-  }), {
-    intervalStartDate: first.intervalStartDate,
-    intervalEndDate: first.intervalEndDate,
-    expectedInboundStartDate: first.expectedInboundStartDate,
-    expectedInboundEndDate: first.expectedInboundEndDate,
-    excludePeriodExistingOrderInbound: first.excludePeriodExistingOrderInbound,
-    salesForecastQty: 0,
-    expectedInboundQty: 0,
-    carriedStockQty: 0,
-    minimumStockQty: 0,
-    targetEndingStockQty: 0,
-    suggestedQty: 0,
-    endingStockQty: 0,
-  })
 }
 
 export function InboundSplitScheduleTableV0({
@@ -174,7 +99,7 @@ export function InboundSplitScheduleTableV0({
           const invalidDatePolicy: boolean = dateInterval.invalidDateOrder || isInboundSplitDateOutsideCoverage(currentOrderInboundDueDate, nextOrderInboundDueDate, row.inboundDate)
           const dateIntervalText: string = formatInboundSplitDateInterval(dateInterval)
           const dateIntervalId: string = `inbound-split-date-interval-${rowIndex}`
-          const suggestedTotalBasisTooltip: string | undefined = formatSuggestedBasisTooltip(aggregateSuggestedBasis(row, columns))
+          const suggestedTotalBasisTooltip: string | undefined = formatInboundSplitSuggestionBasisTooltip(aggregateInboundSplitSuggestionBasisBySize(row, columns))
 
           return (
             <Fragment key={row.id}>
@@ -207,7 +132,7 @@ export function InboundSplitScheduleTableV0({
                   </span>
                 </td>
                 {columns.map((column: InboundSplitSizeColumn): React.JSX.Element => {
-                  const suggestedBasisTooltip: string | undefined = formatSuggestedBasisTooltip(row.suggestionBasisBySize?.[column.size] ?? null)
+                  const suggestedBasisTooltip: string | undefined = formatInboundSplitSuggestionBasisTooltip(row.suggestionBasisBySize?.[column.size] ?? null)
                   return (
                     <td key={column.size} className={styles.num}>
                       <span className={suggestedBasisTooltip ? styles.inboundSplitSuggestedBasisCell : undefined} data-tooltip={suggestedBasisTooltip} tabIndex={suggestedBasisTooltip ? 0 : undefined}>

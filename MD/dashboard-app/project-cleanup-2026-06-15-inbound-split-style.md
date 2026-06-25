@@ -144,6 +144,12 @@ Clean up the secondary drawer split-inbound schedule UI by feature responsibilit
 - V1 source summary now displays existing-order inbound balances from `existingOrderInboundSupplyBySize`: total, before current order inbound date, in period, and after next order inbound date. The three section rows expand to date-level rows.
 - V1 footer Apply/Close buttons use a compact height; V0/V2 footer sizing is unchanged.
 
+## 2026-06-25 V2 detail-row toggle update
+
+- V2 round detail sections keep the period inbound total row visible.
+- The period inbound total row now owns an inline toggle that collapses or expands only the date-level scheduled inbound rows below it.
+- The default state is expanded to preserve the previous V2 detail behavior when a round section is opened.
+
 ## Verification
 
 - `npm run check:encoding`

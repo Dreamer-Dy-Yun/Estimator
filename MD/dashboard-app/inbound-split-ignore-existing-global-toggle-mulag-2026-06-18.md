@@ -1,10 +1,10 @@
-# MulAg Run: Inbound split `excludePeriodExistingOrderInbound` global toggle
+# MulAg Run: Inbound split `excludeSegmentExistingOrderInbound` global toggle
 
-Current rule note: this historical run remains useful for the schedule-level UI ownership decision, but current v4 planning semantics refine the toggle scope. Demand uses `[round n inbound date, round n+1 inbound date)`, existing-order inbound from the same interval is applied on its actual inbound date, and `excludePeriodExistingOrderInbound` excludes that same-round inbound interval.
+Current rule note: this historical run remains useful for the schedule-level UI ownership decision, but current v4 planning semantics refine the toggle scope. Demand uses `[round n inbound date, round n+1 inbound date)`, existing-order inbound from the same interval is applied on its actual inbound date, and `excludeSegmentExistingOrderInbound` excludes that same-round inbound interval.
 
 ## Goal
 
-Align inbound split behavior so `excludePeriodExistingOrderInbound` is treated as a schedule-level option, not a per-round control, and keep split row behavior consistent with that contract from UI interaction through persistence.
+Align inbound split behavior so `excludeSegmentExistingOrderInbound` is treated as a schedule-level option, not a per-round control, and keep split row behavior consistent with that contract from UI interaction through persistence.
 
 ## Scope
 
@@ -43,10 +43,10 @@ Align inbound split behavior so `excludePeriodExistingOrderInbound` is treated a
 
 ## Result
 
-- row-level `excludePeriodExistingOrderInbound` 핸들러가 테이블에서 제거되고, 다이얼로그 상단의 단일 토글만 남았습니다.
+- row-level `excludeSegmentExistingOrderInbound` 핸들러가 테이블에서 제거되고, 다이얼로그 상단의 단일 토글만 남았습니다.
 - 다이얼로그에서 토글 변경 시 `useInboundSplitScheduleDraft`가 모든 round row에 동일 값 반영 후 재계산 경로를 통과합니다.
 - 다이얼로그/훅 테스트는 global 토글 반영을 검증하도록 갱신했습니다.
-- 경계 문서 3건에서 `excludePeriodExistingOrderInbound`의 소유/적용 범위를 전역 토글로 정합시켰습니다.
+- 경계 문서 3건에서 `excludeSegmentExistingOrderInbound`의 소유/적용 범위를 전역 토글로 정합시켰습니다.
 
 ## Non-goals / Follow-up
 

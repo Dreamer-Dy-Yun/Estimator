@@ -30,7 +30,6 @@ export function InboundSplitScheduleDialogV0({
   onClose,
 }: InboundSplitScheduleDialogProps): React.JSX.Element | null {
   const titleId: string = useId()
-  const descriptionId: string = useId()
   const panelRef: React.RefObject<HTMLElement | null> = useRef<HTMLElement | null>(null)
   const countSelectRef: React.RefObject<HTMLSelectElement | null> = useRef<HTMLSelectElement | null>(null)
   const [debugCopyState, setDebugCopyState]: [string, React.Dispatch<React.SetStateAction<string>>] = useState<string>('')
@@ -75,7 +74,6 @@ export function InboundSplitScheduleDialogV0({
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
-        aria-describedby={descriptionId}
         tabIndex={-1}
         onClick={(event: React.MouseEvent<HTMLElement, MouseEvent>): void => event.stopPropagation()}
         onKeyDown={handleKeyDown}
@@ -86,7 +84,6 @@ export function InboundSplitScheduleDialogV0({
               <h3 id={titleId} className={styles.inboundSplitDialogTitle}>{KO.dialogInboundSplitTitle}</h3>
               {help ? <PortalHelpMark helpId="inboundSplitSchedule" placement="below" labelId={help.labelId} markClassName={commonStyles.helpMark} help={help.portal} stopMouseDownPropagation /> : null}
             </div>
-            <p id={descriptionId} className={styles.inboundSplitDialogHint}>{KO.msgInboundSplitDraftOnly}</p>
           </div>
           <div className={styles.inboundSplitDialogHeaderActions}>
             {debugSourcePayload != null ? (
@@ -138,10 +135,10 @@ export function InboundSplitScheduleDialogV0({
             <label className={styles.inboundSplitToolbarToggle}>
               <input
                 type="checkbox"
-                checked={draft.excludePeriodExistingOrderInboundAll}
-                onChange={(event: React.ChangeEvent<HTMLInputElement>): void => draft.changeExcludePeriodExistingOrderInboundAll(event.target.checked)}
+                checked={draft.excludeSegmentExistingOrderInboundAll}
+                onChange={(event: React.ChangeEvent<HTMLInputElement>): void => draft.changeExcludeSegmentExistingOrderInboundAll(event.target.checked)}
               />
-              <span>{KO.labelInboundSplitExcludePeriodExistingOrderInbound}</span>
+              <span>{KO.labelInboundSplitExcludeSegmentExistingOrderInbound}</span>
             </label>
           </div>
         </div>

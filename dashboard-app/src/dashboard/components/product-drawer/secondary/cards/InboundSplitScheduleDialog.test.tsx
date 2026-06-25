@@ -27,7 +27,7 @@ function row(
     id,
     round,
     inboundDate,
-    excludePeriodExistingOrderInbound: false,
+    excludeSegmentExistingOrderInbound: false,
     suggestedQuantitiesBySize: { S: suggestedS, M: suggestedM },
     suggestionBasisBySize: {},
     quantitiesBySize: { S: confirmedS, M: confirmedM },
@@ -212,7 +212,7 @@ describe('InboundSplitScheduleDialog event flow', () : void => {
     })
 
     const submittedRows: InboundSplitScheduleRow[] = props.onApply.mock.calls[0][0]
-    expect(submittedRows.every((row: InboundSplitScheduleRow): boolean => row.excludePeriodExistingOrderInbound)).toBe(true)
+    expect(submittedRows.every((row: InboundSplitScheduleRow): boolean => row.excludeSegmentExistingOrderInbound)).toBe(true)
   })
 
   it('allows confirmed overage and marks confirmed fields when they differ from suggestions', () : void => {

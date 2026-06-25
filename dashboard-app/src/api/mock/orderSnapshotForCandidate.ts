@@ -95,12 +95,12 @@ function buildMockOrderSnapshotInboundSplitSource({
   }
   const planningColumns: SecondaryPlanningSizeColumn[] = sizeOrders.map((row: { size: string; blendedSharePct: number }): SecondaryPlanningSizeColumn => ({
     size: row.size,
-    expectedInboundBeforeCurrentOrderQty: Math.max(0, Math.round(requireDisplayRow(row.size).expectedInboundOrderBalance)),
+    existingOrderInboundBeforeCurrentOrderQty: Math.max(0, Math.round(requireDisplayRow(row.size).expectedInboundOrderBalance)),
     targetEndingStockQty: 0,
   }))
   const suggestedRows: Record<string, number>[] = buildSecondaryPlanningSuggestedQuantitiesByRow(
     planningColumns,
-    [{ inboundDate: MOCK_INBOUND_SPLIT_CALCULATION_BASE_DATE, excludePeriodExistingOrderInbound: false }],
+    [{ inboundDate: MOCK_INBOUND_SPLIT_CALCULATION_BASE_DATE, excludeSegmentExistingOrderInbound: false }],
     MOCK_INBOUND_SPLIT_COVERAGE_END_DATE,
     sourceWithoutSuggestion,
   )
@@ -296,7 +296,7 @@ export function buildMockOrderSnapshotForCandidate(
       confirmed: {
         rounds: [{
           date: '2026-04-01',
-          excludePeriodExistingOrderInbound: false,
+          excludeSegmentExistingOrderInbound: false,
           qtyBySize: confirmedQtyBySize,
         }],
       },

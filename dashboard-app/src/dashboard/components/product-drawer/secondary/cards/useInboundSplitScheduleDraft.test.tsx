@@ -18,7 +18,7 @@ function row(id: string, round: number, inboundDate: string, s: number, m: numbe
     id,
     round,
     inboundDate,
-    excludePeriodExistingOrderInbound: false,
+    excludeSegmentExistingOrderInbound: false,
     suggestedQuantitiesBySize: { S: s, M: m },
     suggestionBasisBySize: {},
     quantitiesBySize: { S: s, M: m },
@@ -253,7 +253,7 @@ describe('useInboundSplitScheduleDraft', (): void => {
     })
 
     act((): void => {
-      draft.current.changeExcludePeriodExistingOrderInboundAll(true)
+      draft.current.changeExcludeSegmentExistingOrderInboundAll(true)
     })
     act((): void => {
       draft.current.changeCount('2')
@@ -261,12 +261,12 @@ describe('useInboundSplitScheduleDraft', (): void => {
 
     expect(draft.current.rows).toHaveLength(2)
     expect(onRecalculateRows).toHaveBeenCalled()
-    expect(draft.current.rows.every((rowItem: InboundSplitScheduleRow): boolean => rowItem.excludePeriodExistingOrderInbound)).toBe(true)
+    expect(draft.current.rows.every((rowItem: InboundSplitScheduleRow): boolean => rowItem.excludeSegmentExistingOrderInbound)).toBe(true)
     expect(draft.current.rows[0]?.suggestedQuantitiesBySize).toEqual({ S: 10, M: 20 })
     expect(draft.current.rows[1]?.suggestedQuantitiesBySize).toEqual({ S: 11, M: 21 })
   })
 
-  it('synchronizes excludePeriodExistingOrderInbound across all rows when global toggle changes', (): void => {
+  it('synchronizes excludeSegmentExistingOrderInbound across all rows when global toggle changes', (): void => {
     const draft: ReturnType<typeof renderDraft> = renderDraft({
       initialRows: [
         row('r1', 1, '2026-04-01', 2, 6),
@@ -275,30 +275,30 @@ describe('useInboundSplitScheduleDraft', (): void => {
     })
 
     act((): void => {
-      draft.current.changeExcludePeriodExistingOrderInboundAll(true)
+      draft.current.changeExcludeSegmentExistingOrderInboundAll(true)
     })
 
-    expect(draft.current.excludePeriodExistingOrderInboundAll).toBe(true)
-    expect(draft.current.rows.every((row: InboundSplitScheduleRow): boolean => row.excludePeriodExistingOrderInbound)).toBe(true)
+    expect(draft.current.excludeSegmentExistingOrderInboundAll).toBe(true)
+    expect(draft.current.rows.every((row: InboundSplitScheduleRow): boolean => row.excludeSegmentExistingOrderInbound)).toBe(true)
     expect(draft.onDraftError).toHaveBeenCalledWith(null, 'recalculateInboundSplitScheduleRows')
 
     act((): void => {
-      draft.current.changeExcludePeriodExistingOrderInboundAll(false)
+      draft.current.changeExcludeSegmentExistingOrderInboundAll(false)
     })
 
-    expect(draft.current.excludePeriodExistingOrderInboundAll).toBe(false)
-    expect(draft.current.rows.every((row: InboundSplitScheduleRow): boolean => row.excludePeriodExistingOrderInbound)).toBe(false)
+    expect(draft.current.excludeSegmentExistingOrderInboundAll).toBe(false)
+    expect(draft.current.rows.every((row: InboundSplitScheduleRow): boolean => row.excludeSegmentExistingOrderInbound)).toBe(false)
   })
 
   it('initializes the global period inbound exclusion flag from initial rows when all rows are true', (): void => {
     const draft: ReturnType<typeof renderDraft> = renderDraft({
       initialRows: [
-        { ...row('r1', 1, '2026-04-01', 2, 6), excludePeriodExistingOrderInbound: true },
-        { ...row('r2', 2, '2026-04-04', 1, 1), excludePeriodExistingOrderInbound: true },
+        { ...row('r1', 1, '2026-04-01', 2, 6), excludeSegmentExistingOrderInbound: true },
+        { ...row('r2', 2, '2026-04-04', 1, 1), excludeSegmentExistingOrderInbound: true },
       ],
     })
 
-    expect(draft.current.excludePeriodExistingOrderInboundAll).toBe(true)
+    expect(draft.current.excludeSegmentExistingOrderInboundAll).toBe(true)
   })
 
   it('does not enable the global period inbound exclusion flag for an empty initial draft', (): void => {
@@ -306,6 +306,6 @@ describe('useInboundSplitScheduleDraft', (): void => {
       initialRows: [],
     })
 
-    expect(draft.current.excludePeriodExistingOrderInboundAll).toBe(false)
+    expect(draft.current.excludeSegmentExistingOrderInboundAll).toBe(false)
   })
 })

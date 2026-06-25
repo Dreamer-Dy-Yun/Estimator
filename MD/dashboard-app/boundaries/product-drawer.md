@@ -28,6 +28,7 @@ Last updated: 2026-06-24
 | Stock order calc | `getSecondaryStockOrderCalc` | 오더 상세 추천과 분할입고 planning source |
 
 `getProductDrawerBundle`이 모든 데이터를 과적재하지 않는다. 기간 또는 비교 subject에 민감한 데이터는 별도 API로 읽는다.
+1차 드로워 큰 상품 이미지는 `ProductDrawerBundle.summary.imageUrl`을 사용한다. 이 값은 리스트/후보군 썸네일인 `thumbnailUrl`과 별도 계약이며, 화면은 운영 이미지 URL이나 placeholder URL을 합성하지 않는다.
 
 ## 3. 비교 subject 계약
 
@@ -102,7 +103,7 @@ Last updated: 2026-06-24
 | `expectation[size][]` | 기존 오더 미래 입고 예정량 |
 | `confirmed` | backend가 제공할 수 있는 초기 phase source |
 
-이 API는 사용자가 적용한 분할 rows를 저장하거나 반환하는 endpoint가 아니다. 저장된 분할 결과와 `excludePeriodExistingOrderInbound` 옵션은 후보 snapshot의 `drawer2.confirmed.rounds`가 소유한다.
+이 API는 사용자가 적용한 분할 rows를 저장하거나 반환하는 endpoint가 아니다. 저장된 분할 결과와 `excludeSegmentExistingOrderInbound` 옵션은 후보 snapshot의 `drawer2.confirmed.rounds`가 소유한다.
 
 ## 8. 분할입고 계산 규칙
 
@@ -126,7 +127,7 @@ Last updated: 2026-06-24
 - 기존 오더 입고 예정량은 같은 차수 구간의 `expectation[size][]`에서 오며, 실제 입고일에 더한 뒤 일별 판매예측을 차감한다.
 - `display.expectedInboundOrderBalance*`처럼 `currentOrderInboundDueDate` 전 입고 예정 집계는 opening stock 성격으로 항상 반영된다.
 - 제안 수량은 구간 중 최저 예상 재고가 UI 재고 하한보다 낮아지는 만큼이다.
-- `excludePeriodExistingOrderInbound=true`는 같은 차수 구간의 기존 오더 입고 예정량만 무시한다.
+- `excludeSegmentExistingOrderInbound=true`는 같은 차수 구간의 기존 오더 입고 예정량만 무시한다.
 - 2차 이상은 재고 이월과 정수화 때문에 총합이 소폭 달라질 수 있다.
 
 ## 9. 분할입고 UI variant 경계
@@ -151,7 +152,7 @@ Last updated: 2026-06-24
 | `drawer2.stockOrderRequest` | 입고일, 커버 일수, 수요 override |
 | `drawer2.stockOrderResult` | stock-order-calc 응답 기반 계산/복원 source |
 | `drawer2.sizeOrders` | size별 share/forecast/recommendation row |
-| `drawer2.confirmed.rounds` | 사용자가 확정한 차수별 수량과 `excludePeriodExistingOrderInbound` |
+| `drawer2.confirmed.rounds` | 사용자가 확정한 차수별 수량과 `excludeSegmentExistingOrderInbound` |
 | `drawer2.aiComment` | AI prompt/answer/generation metadata |
 
 후보 item에서 드로어를 열 때 저장 snapshot이 있으면 해당 값이 우선이다. API 최신값은 사용자의 저장 결정을 자동으로 덮어쓰지 않는다.
@@ -170,7 +171,7 @@ Secondary 상품 드로어의 한국어 UI 문구는 `dashboard-app/src/dashboar
 - 오더 상세 추천과 분할입고 제안이 같은 source/planning 함수를 쓰는가.
 - 수동 확정 변경이 분할입고 기준과 snapshot 저장에 반영되는가.
 - daily trend source와 stock-order planning source를 섞어 쓰지 않는가.
-- `excludePeriodExistingOrderInbound`가 같은 차수 구간의 `expectation`만 제외하는가.
+- `excludeSegmentExistingOrderInbound`가 같은 차수 구간의 `expectation`만 제외하는가.
 - UI variant 변경이 API DTO, planning model, snapshot contract를 임의 변경하지 않는가.
 - mock 전용 variant 선택 UI가 실제 API 모드에 노출되지 않는가.
 - API/mock/문서의 field 이름과 의미가 현재 타입과 일치하는가.

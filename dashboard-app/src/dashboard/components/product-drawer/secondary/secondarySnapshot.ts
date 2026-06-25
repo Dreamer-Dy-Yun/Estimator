@@ -126,7 +126,7 @@ function buildCurrentConfirmed(confirmedRounds: SecondaryConfirmedRound[], sizeR
   return createOrderSnapshotConfirmed({
     rounds: [{
       date: defaultDate,
-      excludePeriodExistingOrderInbound: false,
+      excludeSegmentExistingOrderInbound: false,
       qtyBySize: Object.fromEntries(sizeRows.map((row: SecondarySizeOrderDisplayRow): [string, number] => [row.size, row.confirmQty])),
     }],
   })

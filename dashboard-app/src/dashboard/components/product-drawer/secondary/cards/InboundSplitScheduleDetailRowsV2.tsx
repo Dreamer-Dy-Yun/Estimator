@@ -1,3 +1,4 @@
+import { useState, type Dispatch, type SetStateAction } from 'react'
 import { formatGroupedNumber } from '../../../../../utils/format'
 import { KO } from '../../ko'
 import styles from '../secondaryDrawer.module.css'
@@ -39,10 +40,16 @@ export function InboundSplitScheduleDetailRowsV2({
   section: InboundSplitDetailSection
   columns: readonly InboundSplitSizeColumn[]
 }): React.JSX.Element {
+  const [scheduledInboundExpanded, setScheduledInboundExpanded]: [boolean, Dispatch<SetStateAction<boolean>>] = useState<boolean>(true)
+  const hasScheduledInboundRows: boolean = section.rows.some((row: InboundSplitDetailRow): boolean => row.kind === 'scheduled-inbound')
+  const visibleRows: InboundSplitDetailRow[] = scheduledInboundExpanded
+    ? section.rows
+    : section.rows.filter((row: InboundSplitDetailRow): boolean => row.kind !== 'scheduled-inbound')
+
   return (
     <>
-      {section.rows.map((row: InboundSplitDetailRow, rowIndex: number): React.JSX.Element => {
-        const isLast: boolean = rowIndex === section.rows.length - 1
+      {visibleRows.map((row: InboundSplitDetailRow, rowIndex: number): React.JSX.Element => {
+        const isLast: boolean = rowIndex === visibleRows.length - 1
         const isTotal: boolean = row.kind === 'period-inbound-total'
         const isOpeningStock: boolean = row.kind === 'opening-stock'
         const mergedLabel: string | null = isOpeningStock
@@ -61,7 +68,23 @@ export function InboundSplitScheduleDetailRowsV2({
           >
             <td className={cx(stickyRoundClassName, styles.inboundSplitDetailRoundBlankCellV2)} aria-hidden="true" />
             {mergedLabel != null ? (
-              <td className={cx(stickyDateClassName, styles.inboundSplitDetailMergedLabelCellV2)} colSpan={2}>{mergedLabel}</td>
+              <td className={cx(stickyDateClassName, styles.inboundSplitDetailMergedLabelCellV2)} colSpan={2}>
+                <span className={styles.inboundSplitDetailMergedLabelInnerV2}>
+                  {isTotal ? (
+                    <button
+                      type="button"
+                      className={styles.inboundSplitDetailInlineToggleButtonV2}
+                      disabled={!hasScheduledInboundRows}
+                      aria-expanded={scheduledInboundExpanded}
+                      aria-label={`${mergedLabel} ${scheduledInboundExpanded ? KO.btnInboundSplitCollapseDetail : KO.btnInboundSplitExpandDetail}`}
+                      onClick={(): void => setScheduledInboundExpanded((current: boolean): boolean => !current)}
+                    >
+                      {scheduledInboundExpanded ? '-' : '+'}
+                    </button>
+                  ) : null}
+                  <span>{mergedLabel}</span>
+                </span>
+              </td>
             ) : (
               <>
                 <td className={stickyDateClassName}>{getDetailDateLabel(row)}</td>

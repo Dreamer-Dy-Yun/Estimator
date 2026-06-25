@@ -29,7 +29,7 @@ describe('secondaryInboundSplitPlanning', () : void => {
   it('requires enough suggested quantity for the lowest stock point when existing inbound arrives late', () : void => {
     const rows: SecondaryPlanningSuggestionRow[] = buildSecondaryPlanningSuggestionRows(
       [{ size: 'S' }],
-      [{ inboundDate: '2026-02-01', excludePeriodExistingOrderInbound: false }],
+      [{ inboundDate: '2026-02-01', excludeSegmentExistingOrderInbound: false }],
       '2026-02-04',
       makeSource({
         baseStock: 0,
@@ -44,13 +44,13 @@ describe('secondaryInboundSplitPlanning', () : void => {
 
     expect(rows[0].suggestedQuantitiesBySize.S).toBe(20)
     expect(rows[0].suggestionBasisBySize.S.minimumStockQty).toBe(-20)
-    expect(rows[0].suggestionBasisBySize.S.expectedInboundQty).toBe(20)
+    expect(rows[0].suggestionBasisBySize.S.existingOrderInboundQty).toBe(20)
   })
 
   it('uses the target stock quantity as the stock-flow floor', () : void => {
     const rows: SecondaryPlanningSuggestionRow[] = buildSecondaryPlanningSuggestionRows(
       [{ size: 'S', targetEndingStockQty: 7 }],
-      [{ inboundDate: '2026-02-01', excludePeriodExistingOrderInbound: false }],
+      [{ inboundDate: '2026-02-01', excludeSegmentExistingOrderInbound: false }],
       '2026-02-03',
       makeSource({
         baseStock: 10,
@@ -68,7 +68,7 @@ describe('secondaryInboundSplitPlanning', () : void => {
   it('excludes in-period existing inbound from stock flow when the row option is enabled', () : void => {
     const rows: SecondaryPlanningSuggestionRow[] = buildSecondaryPlanningSuggestionRows(
       [{ size: 'S' }],
-      [{ inboundDate: '2026-02-01', excludePeriodExistingOrderInbound: true }],
+      [{ inboundDate: '2026-02-01', excludeSegmentExistingOrderInbound: true }],
       '2026-02-03',
       makeSource({
         baseStock: 0,
@@ -81,7 +81,7 @@ describe('secondaryInboundSplitPlanning', () : void => {
     )
 
     expect(rows[0].suggestedQuantitiesBySize.S).toBe(20)
-    expect(rows[0].suggestionBasisBySize.S.expectedInboundQty).toBe(0)
+    expect(rows[0].suggestionBasisBySize.S.existingOrderInboundQty).toBe(0)
   })
 
   it('throws when a source expectation entry is missing for a planned size', () : void => {
@@ -103,7 +103,7 @@ describe('secondaryInboundSplitPlanning', () : void => {
     expect(() : void => {
       buildSecondaryPlanningSuggestionRows(
         [{ size: 'S' }],
-        [{ inboundDate: '2026-02-01', excludePeriodExistingOrderInbound: true }],
+        [{ inboundDate: '2026-02-01', excludeSegmentExistingOrderInbound: true }],
         '2026-02-03',
         source,
       )

@@ -6,6 +6,11 @@ export interface CandidateItemOrderExportSizeQty {
   orderQty: number
 }
 
+export interface CandidateItemOrderExportInboundRound {
+  round: number
+  inboundDate: string
+}
+
 export interface CandidateItemOrderExport {
   /** Label for the selected comparison subject used by order metric and export fields. */
   comparisonSubjectLabel: string
@@ -18,6 +23,7 @@ export interface CandidateItemOrderExport {
   feeRatePct: number | null
   opMarginRatePct: number | null
   inboundExpectedDate: string | null
+  inboundRounds: CandidateItemOrderExportInboundRound[]
   sizeOrderQty: CandidateItemOrderExportSizeQty[]
 }
 

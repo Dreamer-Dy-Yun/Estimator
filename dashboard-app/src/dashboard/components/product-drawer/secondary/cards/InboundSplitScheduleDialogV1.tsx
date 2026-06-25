@@ -144,10 +144,10 @@ export function InboundSplitScheduleDialogV1({
                 <label className={styles.inboundSplitToolbarToggle}>
                   <input
                     type="checkbox"
-                    checked={draft.excludePeriodExistingOrderInboundAll}
-                    onChange={(event: React.ChangeEvent<HTMLInputElement>): void => draft.changeExcludePeriodExistingOrderInboundAll(event.target.checked)}
+                    checked={draft.excludeSegmentExistingOrderInboundAll}
+                    onChange={(event: React.ChangeEvent<HTMLInputElement>): void => draft.changeExcludeSegmentExistingOrderInboundAll(event.target.checked)}
                   />
-                  <span>{KO.labelInboundSplitExcludePeriodExistingOrderInbound}</span>
+                  <span>{KO.labelInboundSplitExcludeSegmentExistingOrderInbound}</span>
                 </label>
               </div>
             </div>
@@ -191,9 +191,9 @@ export function InboundSplitScheduleDialogV1({
             />
           </div>
         </div>
-        <footer className={`${styles.inboundSplitDialogActions} ${styles.inboundSplitDialogActionsCompactV1}`}>
-          <button type="button" className={`${styles.btn} ${styles.btnSecondary} ${styles.inboundSplitFooterButtonCompactV1}`} onClick={onClose}>{KO.btnCloseInboundSplitDialog}</button>
-          <button type="button" className={`${styles.btn} ${styles.inboundSplitFooterButtonCompactV1}`} onClick={(): void => onApply(cloneInboundSplitRows(draft.rows))} disabled={applyDisabled}>{KO.btnApplyInboundSplitSchedule}</button>
+        <footer className={styles.inboundSplitDialogActions}>
+          <button type="button" className={`${styles.btn} ${styles.btnSecondary}`} onClick={onClose}>{KO.btnCloseInboundSplitDialog}</button>
+          <button type="button" className={styles.btn} onClick={(): void => onApply(cloneInboundSplitRows(draft.rows))} disabled={applyDisabled}>{KO.btnApplyInboundSplitSchedule}</button>
         </footer>
       </section>
     </div>

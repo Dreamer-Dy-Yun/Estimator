@@ -10,7 +10,7 @@ const BASE_SUBJECT: ProductComparisonBaseSubjectRef = { role: 'base', kind: 'sel
 const OTHER_BASE_SUBJECT: ProductComparisonBaseSubjectRef = { role: 'base', kind: 'self-company', sourceId: 'company-2' }
 const BASE_SUBJECT_KEY = 'base:self-company:company-1' as const
 
-const bundleA: { summary: { skuGroupKey: string; productName: string; brand: string; category: string; code: string; colorCode: string; price: number; qty: number; availableStock: number; }; } = {
+const bundleA: { summary: { skuGroupKey: string; productName: string; brand: string; category: string; code: string; colorCode: string; imageUrl: string | null; price: number; qty: number; availableStock: number; }; } = {
   summary: {
     skuGroupKey: 'A__010',
     productName: 'A',
@@ -18,6 +18,7 @@ const bundleA: { summary: { skuGroupKey: string; productName: string; brand: str
     category: 'c',
     code: 'A',
     colorCode: '010',
+    imageUrl: null,
     price: 100,
     qty: 10,
     availableStock: 5,

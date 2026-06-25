@@ -38,7 +38,7 @@ function row(id: string, round: number, inboundDate: string, s: number, m?: numb
     id,
     round,
     inboundDate,
-    excludePeriodExistingOrderInbound: false,
+    excludeSegmentExistingOrderInbound: false,
     suggestedQuantitiesBySize: { S: s, ...(m == null ? {} : { M: m }) },
     quantitiesBySize: { S: s, ...(m == null ? {} : { M: m }) },
   }
@@ -162,8 +162,8 @@ describe('useInboundSplitScheduleController', (): void => {
     })
 
     expect(controller.args.onConfirmedRoundsChange).toHaveBeenCalledWith([
-      { date: '2026-04-01', excludePeriodExistingOrderInbound: false, qtyBySize: { S: 3, M: 2 } },
-      { date: '2026-04-04', excludePeriodExistingOrderInbound: false, qtyBySize: { S: 4, M: 3 } },
+      { date: '2026-04-01', excludeSegmentExistingOrderInbound: false, qtyBySize: { S: 3, M: 2 } },
+      { date: '2026-04-04', excludeSegmentExistingOrderInbound: false, qtyBySize: { S: 4, M: 3 } },
     ] satisfies SecondaryConfirmedRound[])
     expect(controller.args.onConfirmQtyChange).toHaveBeenNthCalledWith(1, 'S', 7, 10)
     expect(controller.args.onConfirmQtyChange).toHaveBeenNthCalledWith(2, 'M', 5, 5)
