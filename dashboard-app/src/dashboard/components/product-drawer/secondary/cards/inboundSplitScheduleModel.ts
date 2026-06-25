@@ -10,7 +10,7 @@ export interface InboundSplitSizeColumn {
   size: string
   confirmedQty: number
   recommendedQty: number
-  expectedInboundBeforeCurrentOrderQty?: number
+  existingOrderInboundBeforeCurrentOrderQty?: number
   targetEndingStockQty?: number
 }
 
@@ -18,7 +18,7 @@ export interface InboundSplitScheduleRow {
   id: string
   round: number
   inboundDate: string
-  ignoreExistingOrderInbound: boolean
+  excludeSegmentExistingOrderInbound: boolean
   suggestedQuantitiesBySize: Record<string, number>
   suggestionBasisBySize?: Record<string, InboundSplitSuggestionBasis>
   quantitiesBySize: Record<string, number>
@@ -64,7 +64,7 @@ export function getInboundSplitSizeColumns(sizeRows: SecondarySizeOrderDisplayRo
     size: row.size,
     confirmedQty: Math.max(0, Math.round(row.confirmQty)),
     recommendedQty: Math.max(0, Math.round(row.recommendedQty)),
-    expectedInboundBeforeCurrentOrderQty: Math.max(0, Math.round(stockOrderRowBySize.get(row.size)?.expectedInboundOrderBalance ?? 0)),
+    existingOrderInboundBeforeCurrentOrderQty: Math.max(0, Math.round(stockOrderRowBySize.get(row.size)?.expectedInboundOrderBalance ?? 0)),
     targetEndingStockQty: Math.max(0, Math.round(row.bufferQty ?? 0)),
   }))
 }
@@ -92,7 +92,7 @@ export function confirmedRoundsToInboundSplitRows(rounds: readonly SecondaryConf
       id: `confirmed-round-${index + 1}`,
       round: index + 1,
       inboundDate: round.date,
-      ignoreExistingOrderInbound: round.ignoreExistingOrderInbound,
+      excludeSegmentExistingOrderInbound: round.excludeSegmentExistingOrderInbound,
       suggestedQuantitiesBySize: {},
       suggestionBasisBySize: {},
       quantitiesBySize,
@@ -108,7 +108,7 @@ export function inboundSplitRowsToConfirmedRounds(rows: readonly InboundSplitSch
     })
     return {
       date: row.inboundDate,
-      ignoreExistingOrderInbound: row.ignoreExistingOrderInbound,
+      excludeSegmentExistingOrderInbound: row.excludeSegmentExistingOrderInbound,
       qtyBySize,
     }
   })
@@ -203,9 +203,9 @@ export function buildInboundSplitScheduleRows(
 ): InboundSplitScheduleRow[] {
   const safeCount: number = clampInboundSplitCount(count)
   const inboundDates: string[] = buildInboundSplitDates(safeCount, inboundDate, nextInboundDate)
-  const rowInputs: Array<{ inboundDate: string; ignoreExistingOrderInbound: boolean }> = inboundDates.map((date: string): { inboundDate: string; ignoreExistingOrderInbound: boolean } => ({
+  const rowInputs: Array<{ inboundDate: string; excludeSegmentExistingOrderInbound: boolean }> = inboundDates.map((date: string): { inboundDate: string; excludeSegmentExistingOrderInbound: boolean } => ({
     inboundDate: date,
-    ignoreExistingOrderInbound: false,
+    excludeSegmentExistingOrderInbound: false,
   }))
   const suggestedRows: InboundSplitSuggestionRow[] = buildInboundSplitSuggestionRows(columns, rowInputs, nextInboundDate, source)
   return Array.from({ length: safeCount }, (_: unknown, rowIndex: number): InboundSplitScheduleRow => {
@@ -224,7 +224,7 @@ export function buildInboundSplitScheduleRows(
       id: `inbound-split-${round}`,
       round,
       inboundDate: inboundDates[rowIndex] ?? inboundDate,
-      ignoreExistingOrderInbound: false,
+      excludeSegmentExistingOrderInbound: false,
       suggestedQuantitiesBySize,
       suggestionBasisBySize,
       quantitiesBySize,
@@ -238,9 +238,9 @@ export function recalculateInboundSplitScheduleRows(
   nextInboundDate: string,
   source: SecondaryInboundSplitSource,
 ): InboundSplitScheduleRow[] {
-  const rowInputs: Array<{ inboundDate: string; ignoreExistingOrderInbound: boolean }> = currentRows.map((row: InboundSplitScheduleRow): { inboundDate: string; ignoreExistingOrderInbound: boolean } => ({
+  const rowInputs: Array<{ inboundDate: string; excludeSegmentExistingOrderInbound: boolean }> = currentRows.map((row: InboundSplitScheduleRow): { inboundDate: string; excludeSegmentExistingOrderInbound: boolean } => ({
     inboundDate: row.inboundDate,
-    ignoreExistingOrderInbound: row.ignoreExistingOrderInbound,
+    excludeSegmentExistingOrderInbound: row.excludeSegmentExistingOrderInbound,
   }))
   const suggestedRows: InboundSplitSuggestionRow[] = buildInboundSplitSuggestionRows(columns, rowInputs, nextInboundDate, source)
 
@@ -281,7 +281,7 @@ export function reconcileInboundSplitScheduleRows(
       baseRows.map((baseRow: InboundSplitScheduleRow, index: number): InboundSplitScheduleRow => ({
         ...baseRow,
         inboundDate: currentRows[index]?.inboundDate || baseRow.inboundDate,
-        ignoreExistingOrderInbound: currentRows[index]?.ignoreExistingOrderInbound ?? baseRow.ignoreExistingOrderInbound,
+        excludeSegmentExistingOrderInbound: currentRows[index]?.excludeSegmentExistingOrderInbound ?? baseRow.excludeSegmentExistingOrderInbound,
       })),
       columns,
       nextInboundDate,
@@ -307,7 +307,7 @@ export function reconcileInboundSplitScheduleRows(
       id: baseRow.id,
       round: baseRow.round,
       inboundDate: currentRow.inboundDate || baseRow.inboundDate,
-      ignoreExistingOrderInbound: currentRow.ignoreExistingOrderInbound,
+      excludeSegmentExistingOrderInbound: currentRow.excludeSegmentExistingOrderInbound,
       suggestedQuantitiesBySize,
       suggestionBasisBySize,
       quantitiesBySize,

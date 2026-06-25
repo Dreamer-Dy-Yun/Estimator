@@ -82,6 +82,8 @@ interface ApiErrorResponse {
 
 ## 4. Product drawer / Secondary 핵심 계약
 
+`getProductDrawerBundle`의 `ProductPrimarySummary.imageUrl`은 1차 드로워 큰 상품 이미지 URL이다. 리스트/후보군의 `thumbnailUrl`과 별도 필드이며, 값이 없으면 `null`을 반환한다.
+
 ### `getSecondaryDailyTrend`
 
 Endpoint:
@@ -264,13 +266,13 @@ interface SecondaryInboundSplitSource {
 
 분할입고 planning 규칙:
 
-- `/secondary/stock-order-calc`는 split count, split dates, draft row quantities, `bufferStock`, `ignoreExistingOrderInbound`를 요청으로 받지 않는다.
+- `/secondary/stock-order-calc`는 split count, split dates, draft row quantities, `bufferStock`, `excludeSegmentExistingOrderInbound`를 요청으로 받지 않는다.
 - 상세 추천 row와 분할입고 제안 row는 모두 `inboundSplitSource`와 같은 frontend planning 함수를 사용해야 한다.
 - 수요 구간은 `[round n inbound date, round n+1 inbound date)`이다. 마지막 round의 다음 기준일은 `nextOrderInboundDueDate`이다.
 - n차에 반영되는 기존 오더 입고 예정량은 같은 구간 `[round n inbound date, round n+1 inbound date)`의 `expectation`이며, 실제 입고일에 더해 날짜순 재고 흐름에 반영한다.
 - `expectedInboundOrderBalance`처럼 `currentOrderInboundDueDate` 전 입고 예정 집계는 opening stock 성격으로 항상 반영된다.
 - 추천 수량은 구간 중 최저 예상 재고가 UI 재고 하한보다 낮아지는 만큼이다.
-- `ignoreExistingOrderInbound=true`는 각 round의 같은 구간에 있는 기존 오더 입고 예정량만 무시한다.
+- `excludeSegmentExistingOrderInbound=true`는 각 round의 같은 구간에 있는 기존 오더 입고 예정량만 무시한다.
 - 차수별 재고 이월과 정수화 때문에 2차 이상에서는 총합이 소폭 달라질 수 있다. 큰 총량 차이는 계산 오류로 본다.
 
 Compact response fragment:
@@ -307,6 +309,10 @@ Compact response fragment:
 - 현재 snapshot schema version은 `8`이다.
 - snapshot은 화면 복원 계약이다. 최신 API 값을 자동으로 재계산해서 덮어쓰는 계약이 아니다.
 - snapshot 상세 계약은 [order-snapshot-backend-contract.md](./order-snapshot-backend-contract.md)를 따른다.
+- 후보군 오더 엑셀 다운로드는 이미 받은 `CandidateItemSummary.orderExport` 또는 order metric SSE의 `CandidateOrderMetric.orderExport`로 생성한다. 별도 엑셀용 상세 fetch를 두지 않는다.
+- `CandidateItemOrderExport.inboundRounds[]`는 `{ round: number, inboundDate: YYYY-MM-DD, sizeOrderQty[] }` 형태의 입고 차수/입고 예정일/차수별 사이즈 수량 목록이다. snapshot item은 `OrderSnapshotDocument.drawer2.confirmed.rounds[]` 순서를 기준으로 채우며, `sizeOrderQty[]`는 해당 차수의 `qtyBySize`를 사용한다.
+- 후보군 엑셀은 `inboundRounds[]`를 동적 컬럼으로 펼치지 않는다. `차수`, `입고 예정일` 고정 컬럼을 두고 차수별로 행을 확장한다. 사이즈 컬럼은 사이즈별 고정 컬럼을 유지하고, 각 행에는 해당 차수의 사이즈 수량을 표시한다.
+- `CandidateItemOrderExport.inboundExpectedDate`는 기존 단일 날짜 표시/구형 fallback 필드로 유지한다. 신규 구현은 `inboundRounds[]`를 우선 제공해야 한다.
 
 ## 6. SSE
 

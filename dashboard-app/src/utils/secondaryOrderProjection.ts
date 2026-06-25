@@ -115,7 +115,7 @@ export function buildSecondarySizeOrderRows({
 
   const planningColumns: SecondaryPlanningSizeColumn[] = shares.map((row: SecondarySizeShare): SecondaryPlanningSizeColumn => ({
     size: row.size,
-    expectedInboundBeforeCurrentOrderQty: Math.max(0, Math.round(stockOrderSizeRowBySize.get(row.size)?.expectedInboundOrderBalance ?? 0)),
+    existingOrderInboundBeforeCurrentOrderQty: Math.max(0, Math.round(stockOrderSizeRowBySize.get(row.size)?.expectedInboundOrderBalance ?? 0)),
     targetEndingStockQty: Math.ceil((dailyMeanEa * bufferStock * row.blendedSharePct) / 100),
   }))
   const forecastQtyBySize: Record<string, number> = sumSecondaryPlanningSalesForecastBySize(
@@ -126,7 +126,7 @@ export function buildSecondarySizeOrderRows({
   )
   const suggestedRows: Record<string, number>[] = buildSecondaryPlanningSuggestedQuantitiesByRow(
     planningColumns,
-    [{ inboundDate: currentOrderInboundDueDate, ignoreExistingOrderInbound: false }],
+    [{ inboundDate: currentOrderInboundDueDate, excludeSegmentExistingOrderInbound: false }],
     nextOrderInboundDueDate,
     inboundSplitSource,
   )

@@ -7,23 +7,23 @@ const INBOUND_SPLIT_QUANTITY_ERROR = 'Missing inbound split source field'
 
 export interface SecondaryPlanningSizeColumn {
   readonly size: string
-  readonly expectedInboundBeforeCurrentOrderQty?: number
+  readonly existingOrderInboundBeforeCurrentOrderQty?: number
   readonly targetEndingStockQty?: number
 }
 
 export interface SecondaryPlanningIntervalInput {
   readonly inboundDate: string
-  readonly ignoreExistingOrderInbound: boolean
+  readonly excludeSegmentExistingOrderInbound: boolean
 }
 
 export interface SecondaryPlanningSuggestionBasis {
   readonly intervalStartDate: string
   readonly intervalEndDate: string
-  readonly expectedInboundStartDate: string
-  readonly expectedInboundEndDate: string
-  readonly ignoreExistingOrderInbound: boolean
+  readonly existingOrderInboundStartDate: string
+  readonly existingOrderInboundEndDate: string
+  readonly excludeSegmentExistingOrderInbound: boolean
   readonly salesForecastQty: number
-  readonly expectedInboundQty: number
+  readonly existingOrderInboundQty: number
   readonly carriedStockQty: number
   readonly minimumStockQty: number
   readonly targetEndingStockQty: number
@@ -39,9 +39,9 @@ export interface SecondaryPlanningSuggestionRow {
 interface SplitInterval {
   readonly salesStartDate: string
   readonly salesEndDate: string
-  readonly expectedInboundStartDate: string
-  readonly expectedInboundEndDate: string
-  readonly ignoreExistingOrderInbound: boolean
+  readonly existingOrderInboundStartDate: string
+  readonly existingOrderInboundEndDate: string
+  readonly excludeSegmentExistingOrderInbound: boolean
 }
 
 function requireFiniteQuantity(value: number | undefined, field: string): number {
@@ -60,9 +60,9 @@ function buildIntervals(rows: readonly SecondaryPlanningIntervalInput[], dateEnd
   return rows.map((row: SecondaryPlanningIntervalInput, index: number): SplitInterval => ({
     salesStartDate: row.inboundDate,
     salesEndDate: rows[index + 1]?.inboundDate ?? dateEnd,
-    expectedInboundStartDate: row.inboundDate,
-    expectedInboundEndDate: rows[index + 1]?.inboundDate ?? dateEnd,
-    ignoreExistingOrderInbound: row.ignoreExistingOrderInbound,
+    existingOrderInboundStartDate: row.inboundDate,
+    existingOrderInboundEndDate: rows[index + 1]?.inboundDate ?? dateEnd,
+    excludeSegmentExistingOrderInbound: row.excludeSegmentExistingOrderInbound,
   }))
 }
 
@@ -110,7 +110,7 @@ function sumWholeProductSalesForecast(source: SecondaryInboundSplitSource, start
 
 function getOpeningStock(source: SecondaryInboundSplitSource, column: SecondaryPlanningSizeColumn): number {
   return Math.round(requireFiniteQuantity(source.sizeInfo[column.size]?.baseStock, `sizeInfo.${column.size}.baseStock`))
-    + normalizeQuantity(column.expectedInboundBeforeCurrentOrderQty ?? 0)
+    + normalizeQuantity(column.existingOrderInboundBeforeCurrentOrderQty ?? 0)
 }
 
 function getTargetEndingStock(column: SecondaryPlanningSizeColumn): number {
@@ -122,7 +122,7 @@ interface SalesForecastFlow {
   readonly byDate: Record<string, Record<string, number>>
 }
 
-interface ExpectedInboundFlow {
+interface ExistingOrderInboundFlow {
   readonly totalQty: number
   readonly byDate: ReadonlyMap<string, number>
 }
@@ -151,18 +151,18 @@ function buildSalesForecastFlow(
   return { totalBySize, byDate }
 }
 
-function buildExpectedInboundFlow(
+function buildExistingOrderInboundFlow(
   source: SecondaryInboundSplitSource,
   size: string,
   interval: SplitInterval,
-): ExpectedInboundFlow {
+): ExistingOrderInboundFlow {
   const expectationPoints: SecondaryInboundSplitSource['expectation'][string] = getExpectationPoints(source, size)
   const byDate: Map<string, number> = new Map()
   let totalQty = 0
-  if (interval.ignoreExistingOrderInbound) return { totalQty, byDate }
+  if (interval.excludeSegmentExistingOrderInbound) return { totalQty, byDate }
 
   expectationPoints.forEach((point: SecondaryInboundSplitSource['expectation'][string][number]): void => {
-    if (point.date < interval.expectedInboundStartDate || point.date >= interval.expectedInboundEndDate) return
+    if (point.date < interval.existingOrderInboundStartDate || point.date >= interval.existingOrderInboundEndDate) return
     const qty: number = normalizeQuantity(requireFiniteQuantity(point.inbound, `expectation.${size}.${point.date}`))
     totalQty += qty
     byDate.set(point.date, (byDate.get(point.date) ?? 0) + qty)
@@ -214,12 +214,12 @@ export function buildSecondaryPlanningSuggestionRows(
     columns.forEach((column: SecondaryPlanningSizeColumn): void => {
       const size: string = column.size
       const openingStock: number = stockBySize[size] ?? 0
-      const expectedInboundFlow: ExpectedInboundFlow = buildExpectedInboundFlow(source, size, interval)
+      const existingOrderInboundFlow: ExistingOrderInboundFlow = buildExistingOrderInboundFlow(source, size, interval)
       let projectedStock: number = openingStock
       let minimumStockQty: number = openingStock
 
       iterateDates(interval.salesStartDate, interval.salesEndDate, (date: string): void => {
-        projectedStock += expectedInboundFlow.byDate.get(date) ?? 0
+        projectedStock += existingOrderInboundFlow.byDate.get(date) ?? 0
         projectedStock -= salesForecastFlow.byDate[date]?.[size] ?? 0
         minimumStockQty = Math.min(minimumStockQty, projectedStock)
       })
@@ -233,11 +233,11 @@ export function buildSecondaryPlanningSuggestionRows(
       suggestionBasisBySize[size] = {
         intervalStartDate: interval.salesStartDate,
         intervalEndDate: interval.salesEndDate,
-        expectedInboundStartDate: interval.expectedInboundStartDate,
-        expectedInboundEndDate: interval.expectedInboundEndDate,
-        ignoreExistingOrderInbound: interval.ignoreExistingOrderInbound,
+        existingOrderInboundStartDate: interval.existingOrderInboundStartDate,
+        existingOrderInboundEndDate: interval.existingOrderInboundEndDate,
+        excludeSegmentExistingOrderInbound: interval.excludeSegmentExistingOrderInbound,
         salesForecastQty: demandQty,
-        expectedInboundQty: expectedInboundFlow.totalQty,
+        existingOrderInboundQty: existingOrderInboundFlow.totalQty,
         carriedStockQty: openingStock,
         minimumStockQty,
         targetEndingStockQty: targetEndingStock,

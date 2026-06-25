@@ -18,7 +18,7 @@ function row(id: string, round: number, inboundDate: string, s: number, m: numbe
     id,
     round,
     inboundDate,
-    ignoreExistingOrderInbound: false,
+    excludeSegmentExistingOrderInbound: false,
     suggestedQuantitiesBySize: { S: s, M: m },
     suggestionBasisBySize: {},
     quantitiesBySize: { S: s, M: m },
@@ -236,7 +236,7 @@ describe('useInboundSplitScheduleDraft', (): void => {
     expect(draft.onDraftError).toHaveBeenCalledWith(null, 'buildInboundSplitScheduleRows')
   })
 
-  it('recalculates split suggestions when count changes with global ignore enabled', (): void => {
+  it('recalculates split suggestions when count changes with period inbound exclusion enabled', (): void => {
     const onRecalculateRows: Mock<(rows: InboundSplitScheduleRow[]) => InboundSplitScheduleRow[]> = vi.fn((rows: InboundSplitScheduleRow[]): InboundSplitScheduleRow[] => rows.map((row: InboundSplitScheduleRow, rowIndex: number): InboundSplitScheduleRow => ({
       ...row,
       suggestedQuantitiesBySize: {
@@ -253,7 +253,7 @@ describe('useInboundSplitScheduleDraft', (): void => {
     })
 
     act((): void => {
-      draft.current.changeIgnoreExistingOrderInboundAll(true)
+      draft.current.changeExcludeSegmentExistingOrderInboundAll(true)
     })
     act((): void => {
       draft.current.changeCount('2')
@@ -261,12 +261,12 @@ describe('useInboundSplitScheduleDraft', (): void => {
 
     expect(draft.current.rows).toHaveLength(2)
     expect(onRecalculateRows).toHaveBeenCalled()
-    expect(draft.current.rows.every((rowItem: InboundSplitScheduleRow): boolean => rowItem.ignoreExistingOrderInbound)).toBe(true)
+    expect(draft.current.rows.every((rowItem: InboundSplitScheduleRow): boolean => rowItem.excludeSegmentExistingOrderInbound)).toBe(true)
     expect(draft.current.rows[0]?.suggestedQuantitiesBySize).toEqual({ S: 10, M: 20 })
     expect(draft.current.rows[1]?.suggestedQuantitiesBySize).toEqual({ S: 11, M: 21 })
   })
 
-  it('synchronizes ignoreExistingOrderInbound across all rows when global toggle changes', (): void => {
+  it('synchronizes excludeSegmentExistingOrderInbound across all rows when global toggle changes', (): void => {
     const draft: ReturnType<typeof renderDraft> = renderDraft({
       initialRows: [
         row('r1', 1, '2026-04-01', 2, 6),
@@ -275,37 +275,37 @@ describe('useInboundSplitScheduleDraft', (): void => {
     })
 
     act((): void => {
-      draft.current.changeIgnoreExistingOrderInboundAll(true)
+      draft.current.changeExcludeSegmentExistingOrderInboundAll(true)
     })
 
-    expect(draft.current.ignoreExistingOrderInboundAll).toBe(true)
-    expect(draft.current.rows.every((row: InboundSplitScheduleRow): boolean => row.ignoreExistingOrderInbound)).toBe(true)
+    expect(draft.current.excludeSegmentExistingOrderInboundAll).toBe(true)
+    expect(draft.current.rows.every((row: InboundSplitScheduleRow): boolean => row.excludeSegmentExistingOrderInbound)).toBe(true)
     expect(draft.onDraftError).toHaveBeenCalledWith(null, 'recalculateInboundSplitScheduleRows')
 
     act((): void => {
-      draft.current.changeIgnoreExistingOrderInboundAll(false)
+      draft.current.changeExcludeSegmentExistingOrderInboundAll(false)
     })
 
-    expect(draft.current.ignoreExistingOrderInboundAll).toBe(false)
-    expect(draft.current.rows.every((row: InboundSplitScheduleRow): boolean => row.ignoreExistingOrderInbound)).toBe(false)
+    expect(draft.current.excludeSegmentExistingOrderInboundAll).toBe(false)
+    expect(draft.current.rows.every((row: InboundSplitScheduleRow): boolean => row.excludeSegmentExistingOrderInbound)).toBe(false)
   })
 
-  it('initializes the global ignore flag from initial rows when all rows are true', (): void => {
+  it('initializes the global period inbound exclusion flag from initial rows when all rows are true', (): void => {
     const draft: ReturnType<typeof renderDraft> = renderDraft({
       initialRows: [
-        { ...row('r1', 1, '2026-04-01', 2, 6), ignoreExistingOrderInbound: true },
-        { ...row('r2', 2, '2026-04-04', 1, 1), ignoreExistingOrderInbound: true },
+        { ...row('r1', 1, '2026-04-01', 2, 6), excludeSegmentExistingOrderInbound: true },
+        { ...row('r2', 2, '2026-04-04', 1, 1), excludeSegmentExistingOrderInbound: true },
       ],
     })
 
-    expect(draft.current.ignoreExistingOrderInboundAll).toBe(true)
+    expect(draft.current.excludeSegmentExistingOrderInboundAll).toBe(true)
   })
 
-  it('does not enable the global ignore flag for an empty initial draft', (): void => {
+  it('does not enable the global period inbound exclusion flag for an empty initial draft', (): void => {
     const draft: ReturnType<typeof renderDraft> = renderDraft({
       initialRows: [],
     })
 
-    expect(draft.current.ignoreExistingOrderInboundAll).toBe(false)
+    expect(draft.current.excludeSegmentExistingOrderInboundAll).toBe(false)
   })
 })

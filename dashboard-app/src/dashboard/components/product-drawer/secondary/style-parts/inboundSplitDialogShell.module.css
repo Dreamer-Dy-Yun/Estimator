@@ -53,8 +53,8 @@
 }
 
 .inboundSplitDialogV1 {
-  height: 90vh;
-  max-height: 90vh;
+  height: 95vh;
+  max-height: 95vh;
 }
 
 .inboundSplitDialogV2 {
@@ -72,6 +72,16 @@
   background: var(--inbound-split-dialog-surface);
 }
 
+.inboundSplitDialogHeaderV1 {
+  align-items: center;
+  padding: 9px 12px;
+}
+
+.inboundSplitDialogHeaderMain {
+  flex: 0 0 auto;
+  min-width: 0;
+}
+
 .inboundSplitDialogTitle {
   margin: 0;
   color: var(--inbound-split-dialog-title);
@@ -87,19 +97,27 @@
   margin-left: auto;
 }
 
+.inboundSplitDialogHeaderActionsV1 {
+  flex: 1 1 auto;
+  gap: 8px;
+  min-width: 0;
+}
+
+.inboundSplitHeaderControlsV1 {
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  min-width: 0;
+}
+
 .inboundSplitDebugCopyButton {
   min-height: 28px;
   padding: 4px 8px;
   font-size: 11px;
   line-height: 1.2;
   white-space: nowrap;
-}
-
-.inboundSplitDialogHint {
-  margin: 4px 0 0;
-  color: var(--inbound-split-dialog-muted-text);
-  font-size: 12px;
-  line-height: 1.45;
 }
 
 .inboundSplitDialogToolbar {
@@ -214,6 +232,12 @@
   -webkit-overflow-scrolling: touch;
 }
 
+.inboundSplitDialogV1 .inboundSplitSourceSummaryViewport {
+  flex: 4 1 0;
+  max-height: none;
+  min-height: 0;
+}
+
 .inboundSplitSourceSummaryViewport::-webkit-scrollbar:horizontal {
   height: 0;
 }
@@ -224,6 +248,10 @@
   overflow: auto;
   background: #fff;
   -webkit-overflow-scrolling: touch;
+}
+
+.inboundSplitDialogV1 .inboundSplitScheduleTableViewport {
+  flex: 6 1 0;
 }
 
 .inboundSplitTableWrap {

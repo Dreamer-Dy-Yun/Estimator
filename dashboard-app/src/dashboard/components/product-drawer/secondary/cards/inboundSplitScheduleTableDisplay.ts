@@ -21,20 +21,20 @@ function formatExclusiveEndDate(endDate: string): string {
   return new Date(endMs - DAY_MS).toISOString().slice(0, 10)
 }
 
-export function formatSuggestedBasisTooltip(basis: InboundSplitSuggestionBasis | null): string | undefined {
+export function formatInboundSplitSuggestionBasisTooltip(basis: InboundSplitSuggestionBasis | null): string | undefined {
   if (!basis) return undefined
-  const periodText: string = `${basis.intervalStartDate}~${formatExclusiveEndDate(basis.intervalEndDate)}`
-  const expectedInboundPeriodText: string = basis.expectedInboundStartDate < basis.expectedInboundEndDate
-    ? ` (${basis.expectedInboundStartDate}~${formatExclusiveEndDate(basis.expectedInboundEndDate)})`
+  const salesIntervalText: string = `${basis.intervalStartDate}~${formatExclusiveEndDate(basis.intervalEndDate)}`
+  const existingOrderInboundPeriodText: string = basis.existingOrderInboundStartDate < basis.existingOrderInboundEndDate
+    ? ` (${basis.existingOrderInboundStartDate}~${formatExclusiveEndDate(basis.existingOrderInboundEndDate)})`
     : ''
-  const expectedInboundText: string = basis.ignoreExistingOrderInbound && expectedInboundPeriodText
+  const existingOrderInboundText: string = basis.excludeSegmentExistingOrderInbound && existingOrderInboundPeriodText
     ? KO.valueNotApplicable
-    : formatTooltipQty(basis.expectedInboundQty)
+    : formatTooltipQty(basis.existingOrderInboundQty)
   const lines: string[] = [
-    `${KO.labelInboundSplitSuggestionBasis} (${periodText})`,
+    `${KO.labelInboundSplitSuggestionBasis} (${salesIntervalText})`,
     `${KO.labelInboundSplitBasisSalesForecast}: ${formatTooltipQty(basis.salesForecastQty)}`,
-    `${KO.labelInboundSplitBasisExpectedInbound}${expectedInboundPeriodText}: ${expectedInboundText}`,
-    `${KO.labelInboundSplitBasisCarriedStock}: ${formatTooltipQty(basis.carriedStockQty)}`,
+    `${KO.labelInboundSplitBasisExistingOrderInbound}${existingOrderInboundPeriodText}: ${existingOrderInboundText}`,
+    `${KO.labelInboundSplitBasisOpeningStock}: ${formatTooltipQty(basis.carriedStockQty)}`,
     `${KO.labelInboundSplitBasisMinimumStock}: ${formatTooltipQty(basis.minimumStockQty)}`,
   ]
   if (basis.targetEndingStockQty > 0) {
@@ -44,7 +44,7 @@ export function formatSuggestedBasisTooltip(basis: InboundSplitSuggestionBasis |
   return lines.join('\n')
 }
 
-export function aggregateSuggestedBasis(row: InboundSplitScheduleRow, columns: readonly InboundSplitSizeColumn[]): InboundSplitSuggestionBasis | null {
+export function aggregateInboundSplitSuggestionBasisBySize(row: InboundSplitScheduleRow, columns: readonly InboundSplitSizeColumn[]): InboundSplitSuggestionBasis | null {
   const bases: InboundSplitSuggestionBasis[] = columns
     .map((column: InboundSplitSizeColumn): InboundSplitSuggestionBasis | undefined => row.suggestionBasisBySize?.[column.size])
     .filter((basis: InboundSplitSuggestionBasis | undefined): basis is InboundSplitSuggestionBasis => basis != null)
@@ -53,11 +53,11 @@ export function aggregateSuggestedBasis(row: InboundSplitScheduleRow, columns: r
   return bases.reduce((sum: InboundSplitSuggestionBasis, basis: InboundSplitSuggestionBasis): InboundSplitSuggestionBasis => ({
     intervalStartDate: sum.intervalStartDate,
     intervalEndDate: sum.intervalEndDate,
-    expectedInboundStartDate: sum.expectedInboundStartDate,
-    expectedInboundEndDate: sum.expectedInboundEndDate,
-    ignoreExistingOrderInbound: sum.ignoreExistingOrderInbound,
+    existingOrderInboundStartDate: sum.existingOrderInboundStartDate,
+    existingOrderInboundEndDate: sum.existingOrderInboundEndDate,
+    excludeSegmentExistingOrderInbound: sum.excludeSegmentExistingOrderInbound,
     salesForecastQty: sum.salesForecastQty + basis.salesForecastQty,
-    expectedInboundQty: sum.expectedInboundQty + basis.expectedInboundQty,
+    existingOrderInboundQty: sum.existingOrderInboundQty + basis.existingOrderInboundQty,
     carriedStockQty: sum.carriedStockQty + basis.carriedStockQty,
     minimumStockQty: sum.minimumStockQty + basis.minimumStockQty,
     targetEndingStockQty: sum.targetEndingStockQty + basis.targetEndingStockQty,
@@ -66,11 +66,11 @@ export function aggregateSuggestedBasis(row: InboundSplitScheduleRow, columns: r
   }), {
     intervalStartDate: first.intervalStartDate,
     intervalEndDate: first.intervalEndDate,
-    expectedInboundStartDate: first.expectedInboundStartDate,
-    expectedInboundEndDate: first.expectedInboundEndDate,
-    ignoreExistingOrderInbound: first.ignoreExistingOrderInbound,
+    existingOrderInboundStartDate: first.existingOrderInboundStartDate,
+    existingOrderInboundEndDate: first.existingOrderInboundEndDate,
+    excludeSegmentExistingOrderInbound: first.excludeSegmentExistingOrderInbound,
     salesForecastQty: 0,
-    expectedInboundQty: 0,
+    existingOrderInboundQty: 0,
     carriedStockQty: 0,
     minimumStockQty: 0,
     targetEndingStockQty: 0,

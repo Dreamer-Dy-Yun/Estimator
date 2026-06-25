@@ -197,8 +197,9 @@ export function useCandidateStashItemDrawer({ dataReferenceStart, dataReferenceE
 
   const clearDrawerDraftSnapshot: (itemUuid: string) => void = useCallback((itemUuid: string) : void => {
     delete draftSnapshotsByItemUuidRef.current[itemUuid]
-    applyOpenedSnapshot(itemUuid, null, null, confirmedHydrateSnap)
-  }, [applyOpenedSnapshot, confirmedHydrateSnap])
+    const confirmedSnapshot: OrderSnapshotDocument | null = confirmedSnapshotsByItemUuidRef.current[itemUuid] ?? null
+    applyOpenedSnapshot(itemUuid, null, null, confirmedSnapshot)
+  }, [applyOpenedSnapshot])
 
   const markDrawerSnapshotConfirmed: (itemUuid: string, snapshot: OrderSnapshotDocument, baseDbUpdatedAt?: string | null) => void = useCallback((itemUuid: string, snapshot: OrderSnapshotDocument, baseDbUpdatedAt: string | null = null) : void => {
     delete draftSnapshotsByItemUuidRef.current[itemUuid]

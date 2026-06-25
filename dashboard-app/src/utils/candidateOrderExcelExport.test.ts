@@ -1,12 +1,21 @@
 import { describe, expect, it } from 'vitest'
 import type { Cell, Workbook, Worksheet } from 'exceljs'
-import type { CandidateItemSummary } from '../api/types'
+import type { CandidateItemOrderExportInboundRound, CandidateItemSummary } from '../api/types'
+import { createCandidateOrderWorkbookData } from './candidateOrderExcelData'
 import {
   CandidateOrderWorkbookBuilder,
   createCandidateOrderExcelExport,
 } from './candidateOrderExcelExport'
 
-function candidateItem(uuid: string, size: string): CandidateItemSummary {
+function candidateItem(
+  uuid: string,
+  size: string,
+  inboundRounds: CandidateItemOrderExportInboundRound[] = [{
+    round: 1,
+    inboundDate: '2026-06-01',
+    sizeOrderQty: [{ size, orderQty: 10 }],
+  }],
+): CandidateItemSummary {
   return {
     uuid,
     stashUuid: 'stash-1',
@@ -55,6 +64,7 @@ function candidateItem(uuid: string, size: string): CandidateItemSummary {
       feeRatePct: 13,
       opMarginRatePct: 9,
       inboundExpectedDate: '2026-06-01',
+      inboundRounds,
       sizeOrderQty: [{ size, orderQty: 10 }],
     },
     dbCreatedAt: '2026-05-08T00:00:00.000Z',
@@ -63,6 +73,31 @@ function candidateItem(uuid: string, size: string): CandidateItemSummary {
 }
 
 describe('createCandidateOrderExcelExport', () : void => {
+  it('expands inbound split rounds as main sheet rows', () : void => {
+    const workbookData = createCandidateOrderWorkbookData({
+      stashName: '테스트',
+      userName: 'mock-admin',
+      items: [
+        candidateItem('1', 'M', [
+          { round: 1, inboundDate: '2026-06-01', sizeOrderQty: [{ size: 'M', orderQty: 4 }] },
+          { round: 2, inboundDate: '2026-07-01', sizeOrderQty: [{ size: 'M', orderQty: 6 }] },
+        ]),
+        candidateItem('2', 'L'),
+      ],
+    })
+
+    expect(workbookData.mainHeader.slice(7, 10)).toEqual([
+      '총 오더량',
+      '차수',
+      '입고 예정일',
+    ])
+    expect(workbookData.mainRows).toHaveLength(4)
+    expect(workbookData.mainRows[1]?.slice(7, 10)).toEqual([10, 1, '2026-06-01'])
+    expect(workbookData.mainRows[2]?.slice(7, 10)).toEqual([10, 2, '2026-07-01'])
+    expect(workbookData.mainRows[1]?.slice(15, 17)).toEqual([4, 'N/A'])
+    expect(workbookData.mainRows[2]?.slice(15, 17)).toEqual([6, 'N/A'])
+  })
+
   it('uses injected clock when building the download filename', async () : Promise<void> => {
     const ExcelJS: typeof import('exceljs') = await import('exceljs')
     const builder: CandidateOrderWorkbookBuilder = new CandidateOrderWorkbookBuilder({
@@ -96,7 +131,7 @@ describe('createCandidateOrderExcelExport', () : void => {
     expect((header.fill as { fgColor?: { argb?: string } }).fgColor?.argb).toBe('FF000000')
     expect(header.font.color?.argb).toBe('FFFFFFFF')
 
-    const missingSizeCell: Cell = mainSheet!.getCell('O2')
+    const missingSizeCell: Cell = mainSheet!.getCell('Q2')
     expect(missingSizeCell.value).toBe('N/A')
     expect((missingSizeCell.fill as { fgColor?: { argb?: string } }).fgColor?.argb).toBe('FFFFE4E6')
 

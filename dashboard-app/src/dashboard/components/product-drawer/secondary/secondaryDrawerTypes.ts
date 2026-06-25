@@ -6,7 +6,6 @@ export type SecondaryHelpId =
   | 'orderQtyCalc'
   | 'expectedOpProfitRate'
   | 'totalOrderBalance'
-  | 'expectedInboundOrderBalance'
   | 'sizeRecQty'
   | 'salesForecastSizeOrder'
   | 'inboundSplitSchedule'

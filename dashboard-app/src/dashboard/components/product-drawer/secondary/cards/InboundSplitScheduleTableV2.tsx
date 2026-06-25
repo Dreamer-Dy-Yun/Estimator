@@ -15,7 +15,7 @@ import {
 import { getInboundSplitDateInterval, isInboundSplitDateOutsideCoverage, type InboundSplitDateInterval } from './inboundSplitScheduleDatePolicy'
 import { sumInboundSplitColumnTotals, sumInboundSplitConfirmedBySize, sumInboundSplitSuggestedBySize } from './inboundSplitScheduleTotals'
 import { ariaDiffLabel, cx, diffClass, qtyInputClassName, stickyDateClassName, stickyKindClassName, stickyRoundClassName, stickyTotalClassName } from './inboundSplitScheduleTableClasses'
-import { aggregateSuggestedBasis, formatInboundSplitDateInterval, formatSuggestedBasisTooltip } from './inboundSplitScheduleTableDisplay'
+import { aggregateInboundSplitSuggestionBasisBySize, formatInboundSplitDateInterval, formatInboundSplitSuggestionBasisTooltip } from './inboundSplitScheduleTableDisplay'
 import type { InboundSplitScheduleTableProps } from './inboundSplitScheduleVariantTypes'
 
 type InboundSplitTableStyle = CSSProperties & {
@@ -147,7 +147,7 @@ export function InboundSplitScheduleTableV2({
           const invalidDatePolicy: boolean = dateInterval.invalidDateOrder || isInboundSplitDateOutsideCoverage(currentOrderInboundDueDate, nextOrderInboundDueDate, row.inboundDate)
           const dateIntervalText: string = formatInboundSplitDateInterval(dateInterval)
           const dateIntervalId: string = `inbound-split-date-interval-${rowIndex}`
-          const suggestedTotalBasisTooltip: string | undefined = formatSuggestedBasisTooltip(aggregateSuggestedBasis(row, columns))
+          const suggestedTotalBasisTooltip: string | undefined = formatInboundSplitSuggestionBasisTooltip(aggregateInboundSplitSuggestionBasisBySize(row, columns))
           const detailSectionKey: string = getInboundSplitRoundDetailKey(row)
           const detailSection: InboundSplitDetailSection | null = inboundSplitSource == null ? null : buildInboundSplitDetailSection({
             key: detailSectionKey,
@@ -157,7 +157,7 @@ export function InboundSplitScheduleTableV2({
             endDate: detailEndDate,
             periodInboundSummaryLabel: `${row.round}${KO.optionInboundSplitRoundSuffix} ${KO.labelInboundSplitBeforeRoundAdditionalInbound}`,
             includeOpeningStock: false,
-            excludeScheduledInbound: row.ignoreExistingOrderInbound,
+            excludeScheduledInbound: row.excludeSegmentExistingOrderInbound,
           })
           const detailExpanded: boolean = detailSection != null && expandedSectionKeys.has(detailSectionKey)
 
@@ -209,7 +209,7 @@ export function InboundSplitScheduleTableV2({
                   </span>
                 </td>
                 {columns.map((column: InboundSplitSizeColumn): React.JSX.Element => {
-                  const suggestedBasisTooltip: string | undefined = formatSuggestedBasisTooltip(row.suggestionBasisBySize?.[column.size] ?? null)
+                  const suggestedBasisTooltip: string | undefined = formatInboundSplitSuggestionBasisTooltip(row.suggestionBasisBySize?.[column.size] ?? null)
                   return (
                     <td key={column.size} className={styles.num}>
                       <span className={suggestedBasisTooltip ? styles.inboundSplitSuggestedBasisCell : undefined} data-tooltip={suggestedBasisTooltip} tabIndex={suggestedBasisTooltip ? 0 : undefined}>

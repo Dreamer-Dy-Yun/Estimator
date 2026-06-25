@@ -85,6 +85,33 @@ Last updated: 2026-06-19
 | `getSecondaryCompetitorChannels` | GET | `/secondary/competitor-channels` | none | none | none | `SecondaryCompetitorChannel[]` |
 | `getSecondaryStockOrderCalc` | POST | `/secondary/stock-order-calc` | none | none | `SecondaryStockOrderCalcParams` | `SecondaryStockOrderCalcResult` |
 
+### `ProductDrawerBundle`
+
+Response:
+
+```ts
+interface ProductDrawerBundle {
+  summary: ProductPrimarySummary
+}
+
+interface ProductPrimarySummary {
+  skuGroupKey: string
+  productUuid?: string | null
+  productName: string
+  brand: string
+  category: string
+  code: string
+  colorCode: string
+  imageUrl: string | null
+  price: number
+  qty: number
+  availableStock: number
+  monthlySalesTrend?: MonthlySalesPoint[]
+}
+```
+
+`imageUrl` is the primary drawer product image URL. It is separate from list/candidate `thumbnailUrl`; clients must not synthesize it from product text fields.
+
 ### `getSecondaryDailyTrend`
 
 Query fields:
@@ -185,8 +212,8 @@ Rules:
 - `sizeInfo[size].baseStock` is opening/current stock and may be negative.
 - `expectation[size][]` is existing-order future inbound and excludes the draft/current order.
 - Frontend final recommendations simulate stock flow by round. For round n, demand uses `[round n inbound date, round n+1 inbound date)` and existing-order inbound from the same interval is added on its actual inbound date before daily sales are subtracted.
-- The suggested quantity is the amount required to keep the interval's lowest projected stock at or above the UI stock floor. `ignoreExistingOrderInbound=true` excludes only the same-round `expectation` interval from that flow.
-- Split count, split dates, applied rows, `bufferStock`, and `ignoreExistingOrderInbound` are not request fields.
+- The suggested quantity is the amount required to keep the interval's lowest projected stock at or above the UI stock floor. `excludeSegmentExistingOrderInbound=true` excludes only the same-round `expectation` interval from that flow.
+- Split count, split dates, applied rows, `bufferStock`, and `excludeSegmentExistingOrderInbound` are not request fields.
 - Request body field names `currentOrderInboundDueDate`, `nextOrderInboundDueDate`, and `orderCoverageDays` are the current serialized API contract and must be preserved as-is for this endpoint.
 
 Example request body:
@@ -247,6 +274,8 @@ Candidate DTO notes:
 - `CandidateItemSummary.hasConfirmedOrderSnapshot`: saved snapshot existence flag.
 - `CandidateItemInsightSummary.competitorSalesSourceLabel`: sales insight source label.
 - `CandidateItemOrderExport.comparisonSubjectLabel`: comparison subject label used for order metric/export.
+- `CandidateItemOrderExport.inboundRounds[]`: order export inbound schedule, one row per confirmed inbound round. Shape: `{ round: number, inboundDate: YYYY-MM-DD, sizeOrderQty: { size: string, orderQty: number }[] }`. Snapshot-backed items should map this from `confirmed.rounds[]` and fill `sizeOrderQty[]` from each round `qtyBySize`; non-snapshot live calculation may return an empty array when no confirmed inbound schedule exists.
+- `CandidateItemOrderExport.inboundExpectedDate`: legacy/fallback single date field. Excel export uses `inboundRounds[]` first, expands rows by round, and keeps only fixed `차수` and `입고 예정일` columns instead of dynamic round-date columns.
 
 ## 9. Job / SSE
 

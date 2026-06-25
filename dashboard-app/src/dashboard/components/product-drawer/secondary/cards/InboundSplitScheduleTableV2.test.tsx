@@ -20,7 +20,7 @@ const ROWS: InboundSplitScheduleRow[] = [
     id: 'r1',
     round: 1,
     inboundDate: '2026-04-10',
-    ignoreExistingOrderInbound: false,
+    excludeSegmentExistingOrderInbound: false,
     suggestedQuantitiesBySize: { S: 4, M: 3 },
     quantitiesBySize: { S: 4, M: 3 },
   },
@@ -28,7 +28,7 @@ const ROWS: InboundSplitScheduleRow[] = [
     id: 'r2',
     round: 2,
     inboundDate: '2026-04-20',
-    ignoreExistingOrderInbound: false,
+    excludeSegmentExistingOrderInbound: false,
     suggestedQuantitiesBySize: { S: 5, M: 2 },
     quantitiesBySize: { S: 5, M: 2 },
   },
@@ -140,6 +140,36 @@ describe('InboundSplitScheduleTableV2', (): void => {
     expect(findRowByText(`1${KO.optionInboundSplitRoundSuffix} ${KO.labelInboundSplitBeforeRoundAdditionalInbound}`)?.children[2]?.textContent).toBe('7')
   })
 
+  it('toggles scheduled inbound date rows inside a round detail section', (): void => {
+    renderTable(new Set<string>([getInboundSplitRoundDetailKey(ROWS[0]!)]))
+
+    const summaryLabel: string = `1${KO.optionInboundSplitRoundSuffix} ${KO.labelInboundSplitBeforeRoundAdditionalInbound}`
+    const summaryRow: HTMLTableRowElement | undefined = findRowByText(summaryLabel)
+    const toggleButton: HTMLButtonElement | null | undefined = summaryRow?.querySelector<HTMLButtonElement>('button')
+
+    expect(toggleButton).toBeTruthy()
+    expect(toggleButton?.getAttribute('aria-expanded')).toBe('true')
+    expect(document.body.textContent).toContain('2026-04-12')
+    expect(document.body.textContent).toContain('2026-04-18')
+
+    act((): void => {
+      toggleButton?.click()
+    })
+
+    expect(toggleButton?.getAttribute('aria-expanded')).toBe('false')
+    expect(document.body.textContent).toContain(summaryLabel)
+    expect(document.body.textContent).not.toContain('2026-04-12')
+    expect(document.body.textContent).not.toContain('2026-04-18')
+
+    act((): void => {
+      toggleButton?.click()
+    })
+
+    expect(toggleButton?.getAttribute('aria-expanded')).toBe('true')
+    expect(document.body.textContent).toContain('2026-04-12')
+    expect(document.body.textContent).toContain('2026-04-18')
+  })
+
   it('renders later round details from that round date to the next order inbound date', (): void => {
     renderTable(new Set<string>([getInboundSplitRoundDetailKey(ROWS[1]!)]))
 
@@ -154,7 +184,7 @@ describe('InboundSplitScheduleTableV2', (): void => {
   })
 
   it('keeps the inbound total detail row even when a round has no visible inbound dates', (): void => {
-    const ignoredRows: InboundSplitScheduleRow[] = [{ ...ROWS[0]!, ignoreExistingOrderInbound: true }]
+    const ignoredRows: InboundSplitScheduleRow[] = [{ ...ROWS[0]!, excludeSegmentExistingOrderInbound: true }]
     renderTable(new Set<string>([getInboundSplitRoundDetailKey(ignoredRows[0]!)]), ignoredRows)
 
     expect(document.body.textContent).toContain(`1${KO.optionInboundSplitRoundSuffix} ${KO.labelInboundSplitBeforeRoundAdditionalInbound}`)

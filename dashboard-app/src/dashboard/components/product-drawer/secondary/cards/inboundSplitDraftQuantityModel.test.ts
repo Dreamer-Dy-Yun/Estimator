@@ -12,7 +12,7 @@ function row(id: string, round: number, suggestedS: number, suggestedM: number):
     id,
     round,
     inboundDate: '2026-04-01',
-    ignoreExistingOrderInbound: false,
+    excludeSegmentExistingOrderInbound: false,
     suggestedQuantitiesBySize: { S: suggestedS, M: suggestedM },
     quantitiesBySize: { S: suggestedS, M: suggestedM },
   }

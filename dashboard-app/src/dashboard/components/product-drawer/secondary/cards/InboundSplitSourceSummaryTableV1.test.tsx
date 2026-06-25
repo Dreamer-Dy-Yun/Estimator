@@ -4,7 +4,8 @@ import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, describe, expect, it } from 'vitest'
 import type { InboundSplitSizeColumn } from './inboundSplitScheduleModel'
 import { InboundSplitSourceSummaryTableV1 } from './InboundSplitSourceSummaryTableV1'
-import type { SecondaryInboundSplitSource } from '../../../../../api/types/secondary'
+import type { SecondaryExistingOrderInboundSupplyBySize, SecondaryInboundSplitSource } from '../../../../../api/types/secondary'
+import { KO } from '../../ko'
 
 let root: Root | null = null
 let container: HTMLDivElement | null = null
@@ -23,11 +24,7 @@ const SOURCE: SecondaryInboundSplitSource = {
     },
   },
   expectation: {
-    S: [
-      { date: '2026-06-10', inbound: 7 },
-      { date: '2026-07-02', inbound: 3 },
-      { date: '2026-07-01', inbound: 5 },
-    ],
+    S: [{ date: '2026-06-15', inbound: 7 }],
   },
   confirmed: {
     total_phase: 0,
@@ -35,9 +32,15 @@ const SOURCE: SecondaryInboundSplitSource = {
   },
 }
 
-function renderTable(overrides: {
-  splitSourceWindowEndDate?: string
-} = {}): void {
+const EXISTING_SUPPLY: SecondaryExistingOrderInboundSupplyBySize = {
+  S: [
+    { date: '2026-05-30', qty: 2 },
+    { date: '2026-06-10', qty: 7 },
+    { date: '2026-07-02', qty: 3 },
+  ],
+}
+
+function renderTable(): void {
   container = document.createElement('div')
   document.body.appendChild(container)
   root = createRoot(container)
@@ -46,11 +49,10 @@ function renderTable(overrides: {
       <InboundSplitSourceSummaryTableV1
         source={SOURCE}
         columns={COLUMNS}
+        existingOrderInboundSupplyBySize={EXISTING_SUPPLY}
         calculationBaseDate="2026-06-01"
         currentOrderInboundDueDate="2026-06-01"
         nextOrderInboundDueDate="2026-07-01"
-        splitSourceWindowEndDate={overrides.splitSourceWindowEndDate ?? '2026-07-01'}
-        excludeCurrentToNextExistingOrderInbound={false}
       />,
     )
   })
@@ -67,21 +69,31 @@ afterEach((): void => {
 })
 
 describe('InboundSplitSourceSummaryTableV1', (): void => {
-  it('hides expectation dates that fall on/after source window end date when using source expectation', (): void => {
+  it('renders stock and existing-order inbound balance summary rows', (): void => {
     renderTable()
 
-    expect(document.body.textContent).toContain('2026-06-10')
     expect(document.body.textContent).toContain('기존 재고 (2026-06-01)')
-    expect(document.body.textContent).not.toContain('2026-07-01')
-    expect(document.body.textContent).not.toContain('2026-07-02')
-    expect(document.querySelector('tbody')?.children).toHaveLength(3)
+    expect(document.body.textContent).toContain(KO.rowTotalOrderBalance)
+    expect(document.body.textContent).toContain(KO.rowTotalOrderBalanceBeforeCurrent)
+    expect(document.body.textContent).toContain(KO.rowTotalOrderBalanceInPeriod)
+    expect(document.body.textContent).toContain(KO.rowTotalOrderBalanceAfterNext)
+    expect(document.body.textContent).not.toContain(KO.rowInboundSplitPeriodInboundTotal)
+    expect(document.body.textContent).not.toContain('2026-06-15')
+    expect(document.querySelector('tbody')?.children).toHaveLength(5)
   })
 
-  it('hides dates after the supplied source window end date', (): void => {
-    renderTable({ splitSourceWindowEndDate: '2026-07-01' })
+  it('expands section rows into date rows', (): void => {
+    renderTable()
+
+    expect(document.body.textContent).not.toContain('2026-06-10')
+    const toggleButtons: HTMLButtonElement[] = Array.from(document.querySelectorAll<HTMLButtonElement>('tbody button'))
+    act((): void => {
+      toggleButtons[1]?.click()
+    })
 
     expect(document.body.textContent).toContain('2026-06-10')
+    expect(document.body.textContent).not.toContain('2026-05-30')
     expect(document.body.textContent).not.toContain('2026-07-02')
-    expect(document.querySelector('tbody')?.children).toHaveLength(3)
+    expect(document.querySelector('tbody')?.children).toHaveLength(6)
   })
 })

@@ -27,7 +27,7 @@ function row(
     id,
     round,
     inboundDate,
-    ignoreExistingOrderInbound: false,
+    excludeSegmentExistingOrderInbound: false,
     suggestedQuantitiesBySize: { S: suggestedS, M: suggestedM },
     suggestionBasisBySize: {},
     quantitiesBySize: { S: confirmedS, M: confirmedM },
@@ -196,7 +196,7 @@ describe('InboundSplitScheduleDialog event flow', () : void => {
     expect(props.onApply).toHaveBeenCalledWith(THREE_ROWS)
   })
 
-  it('applies the global ignore-existing-order flag to all rows on apply', () : void => {
+  it('applies the period existing-order inbound exclusion flag to all rows on apply', () : void => {
     const { props }: RenderResult = renderDialog()
     const checkboxes: NodeListOf<HTMLInputElement> = document.querySelectorAll('input[type="checkbox"]')
     expect(checkboxes.length).toBe(1)
@@ -212,7 +212,7 @@ describe('InboundSplitScheduleDialog event flow', () : void => {
     })
 
     const submittedRows: InboundSplitScheduleRow[] = props.onApply.mock.calls[0][0]
-    expect(submittedRows.every((row: InboundSplitScheduleRow): boolean => row.ignoreExistingOrderInbound)).toBe(true)
+    expect(submittedRows.every((row: InboundSplitScheduleRow): boolean => row.excludeSegmentExistingOrderInbound)).toBe(true)
   })
 
   it('allows confirmed overage and marks confirmed fields when they differ from suggestions', () : void => {

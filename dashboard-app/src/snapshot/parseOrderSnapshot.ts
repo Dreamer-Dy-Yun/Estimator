@@ -450,11 +450,16 @@ function normalizeConfirmed(value: unknown, sizeOrders: OrderSnapshotDocument['d
   const rounds: OrderSnapshotConfirmedRound[] = expectArray(source.rounds, label + '.rounds').map((row: unknown, index: number): OrderSnapshotConfirmedRound => {
     const rowLabel: string = label + '.rounds[' + index + ']'
     const round: Obj = expectRecord(row, rowLabel)
+    const excludeSegmentExistingOrderInbound: boolean = round.excludeSegmentExistingOrderInbound === undefined
+      ? round['excludePeriodExistingOrderInbound'] === undefined
+        ? round.ignoreExistingOrderInbound === undefined
+          ? false
+          : expectBoolean(round.ignoreExistingOrderInbound, rowLabel + '.ignoreExistingOrderInbound')
+        : expectBoolean(round['excludePeriodExistingOrderInbound'], rowLabel + '.excludePeriodExistingOrderInbound')
+      : expectBoolean(round.excludeSegmentExistingOrderInbound, rowLabel + '.excludeSegmentExistingOrderInbound')
     return {
       date: expectNonEmptyString(round.date, rowLabel + '.date'),
-      ignoreExistingOrderInbound: round.ignoreExistingOrderInbound === undefined
-        ? false
-        : expectBoolean(round.ignoreExistingOrderInbound, rowLabel + '.ignoreExistingOrderInbound'),
+      excludeSegmentExistingOrderInbound,
       qtyBySize: normalizeConfirmedQtyBySize(round.qtyBySize, rowLabel + '.qtyBySize', sizeOrderSizes),
     }
   })

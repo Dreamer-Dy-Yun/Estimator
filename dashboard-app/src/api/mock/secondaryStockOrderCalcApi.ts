@@ -290,12 +290,12 @@ function buildSuggestionFromPlanning(
 ): number {
   const columns: SecondaryPlanningSizeColumn[] = displaySizeRows.map((row: { size: string; expectedInboundOrderBalance: number }): SecondaryPlanningSizeColumn => ({
     size: row.size,
-    expectedInboundBeforeCurrentOrderQty: row.expectedInboundOrderBalance,
+    existingOrderInboundBeforeCurrentOrderQty: row.expectedInboundOrderBalance,
     targetEndingStockQty: 0,
   }))
   const suggestedRows: Record<string, number>[] = buildSecondaryPlanningSuggestedQuantitiesByRow(
     columns,
-    [{ inboundDate: currentOrderInboundDueDate, ignoreExistingOrderInbound: false }],
+    [{ inboundDate: currentOrderInboundDueDate, excludeSegmentExistingOrderInbound: false }],
     nextOrderInboundDueDate,
     source,
   )

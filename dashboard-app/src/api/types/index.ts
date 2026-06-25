@@ -149,6 +149,7 @@ export type {
 } from './candidate'
 export type {
   CandidateItemOrderExport,
+  CandidateItemOrderExportInboundRound,
   CandidateItemOrderExportSizeQty,
   CandidateOrderMetric,
   CandidateOrderMetricEvent,

@@ -39,7 +39,7 @@ Use this guide when converting `OrderSnapshotDocument` v8 into an LLM prompt.
 | `drawer2.stockOrderResult` | Calculated stock/order recommendation basis. |
 | `drawer2.unitEconomics` | Unit price, cost, and fee rate. |
 | `drawer2.aiComment` | Stored AI prompt/answer metadata. |
-| `drawer2.confirmed.rounds[]` | Confirmed inbound rounds. Quantities are keyed by size. The current UI writes the same `ignoreExistingOrderInbound` value to all rounds from one schedule-level toggle. The toggle excludes existing-order inbound from each round's `[round n inbound date, round n+1 inbound date)` stock-flow interval. |
+| `drawer2.confirmed.rounds[]` | Confirmed inbound rounds. Quantities are keyed by size. The current UI writes the same `excludeSegmentExistingOrderInbound` value to all rounds from one schedule-level toggle. The toggle excludes existing-order inbound from each round's `[round n inbound date, round n+1 inbound date)` stock-flow interval. |
 | `drawer2.sizeOrders[]` | Size-level share, forecast, and recommendation rows. |
 
 ## Comment basis

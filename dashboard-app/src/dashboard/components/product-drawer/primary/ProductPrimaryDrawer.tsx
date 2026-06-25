@@ -53,8 +53,6 @@ export function ProductPrimaryDrawer({
   comparisonState,
   pageName,
 }: Props) : React.JSX.Element {
-  const imageUrl: string = `https://placehold.co/640x360?text=${encodeURIComponent(summary.productName)}`
-
   return (
     <div className={styles.drawerColumn}>
       {secondaryEnabled && (
@@ -116,7 +114,9 @@ export function ProductPrimaryDrawer({
               <span className={styles.metaChip}>{summary.productName}</span>
             </div>
             <div className={styles.productImageWrap}>
-              <img className={styles.productImage} src={imageUrl} alt={summary.productName} />
+              {summary.imageUrl
+                ? <img className={styles.productImage} src={summary.imageUrl} alt={summary.productName} />
+                : <span className={styles.productImagePlaceholder} role="img" aria-label="이미지 없음" />}
             </div>
           </div>
         </ComponentErrorBoundary>

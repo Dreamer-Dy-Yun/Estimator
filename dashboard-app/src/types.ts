@@ -66,6 +66,8 @@ export type ProductPrimarySummary = {
   category: string
   code: string
   colorCode: string
+  /** Primary drawer product image URL supplied by the drawer bundle API. Null means no stored image. */
+  imageUrl: string | null
   /** Selling price in the self-company channel. */
   price: number
   qty: number

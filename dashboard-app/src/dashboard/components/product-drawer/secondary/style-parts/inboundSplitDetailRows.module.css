@@ -66,6 +66,42 @@
   font-weight: 700;
 }
 
+.inboundSplitDetailMergedLabelInnerV2 {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.inboundSplitDetailInlineToggleButtonV2 {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: 1px solid #9fb693;
+  border-radius: 4px;
+  background: #fff;
+  color: #234226;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.inboundSplitDetailInlineToggleButtonV2:hover {
+  border-color: #5f7f56;
+}
+
+.inboundSplitDetailInlineToggleButtonV2:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
 .inboundSplitDetailTotalRowV2 td {
   background: #e6f2df;
   font-weight: 700;

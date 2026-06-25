@@ -43,20 +43,22 @@ API 문서는 다음 문서를 함께 갱신한다.
 | 데이터 | API | 프론트 책임 |
 |---|---|---|
 | 기본 드로어 번들 | `getProductDrawerBundle` | 기본 상품 요약, 재고, 기본 표시값을 수신한다. |
+| 1차 드로어 상품 이미지 | `ProductDrawerBundle.summary.imageUrl` | 큰 상품 이미지 URL을 수신한다. 리스트/후보군 `thumbnailUrl`과 분리하고 프론트에서 URL을 합성하지 않는다. |
 | 비교 대상 | `getProductComparisonTargets` | 사용 가능한 비교 대상 목록을 표시한다. 빈 배열은 사용 불가 상태이다. |
 | 월간 추세 | `getProductMonthlyTrend` | 월간 추세/예측 표시용 데이터를 수신한다. |
 | 판매 인사이트 | `getProductSalesInsight` | 기간/채널 민감 인사이트를 별도 계약으로 수신한다. |
 | Secondary 상세 | `getProductSecondaryDetail` | 오더 계산, 확정값, 사이즈 제안, AI 코멘트 입력 컨텍스트를 수신한다. |
 | 일별 추세 | `getSecondaryDailyTrend` | 일별 예측 그래프 소스를 수신한다. `size` query가 있으면 해당 사이즈 기준, 없으면 전체 기준이다. 분할입고 계획 소스는 `getSecondaryStockOrderCalc().inboundSplitSource`를 사용한다. |
 | Split inbound planning source | `getSecondaryStockOrderCalc().inboundSplitSource` | Single planning source for detailed recommendation rows and split-inbound planning. It contains `total`, `sizeInfo`, `expectation`, and `confirmed`. |
+| 후보군 오더 엑셀 데이터 | `CandidateItemSummary.orderExport`, `CandidateOrderMetric.orderExport` | 후보군 엑셀은 이미 수신한 `orderExport` DTO로 생성한다. `inboundRounds[]`는 동적 컬럼으로 펼치지 않고, `차수`/`입고 예정일` 고정 컬럼에 차수별 행으로 확장한다. 사이즈 컬럼은 사이즈 기준으로만 유지하며 추가 상세 fetch를 하지 않는다. |
 
-`inboundSplitSource` is returned inside `getSecondaryStockOrderCalc`; split count, split dates, confirmed quantities, and `ignoreExistingOrderInbound` remain UI/snapshot state.
+`inboundSplitSource` is returned inside `getSecondaryStockOrderCalc`; split count, split dates, confirmed quantities, and `excludeSegmentExistingOrderInbound` remain UI/snapshot state.
 
 Detail recommended quantities and split-inbound suggested quantities must both be derived from `stockOrderCalc.inboundSplitSource` through the same planning function. They must use `total.sales`, `sizeInfo`, `expectation`, opening stock, existing inbound before the current order, and UI target stock floor instead of a separate `total.suggestion` shortcut. Round demand uses `[round n inbound date, round n+1 inbound date)`, and existing-order inbound inside that same interval is applied on its actual inbound date in the stock-flow simulation.
 
 Split inbound dialog draft editing has two UI-owned phases. Before inbound dates are locked, users may change split count and dates; confirmed quantities mirror the recalculated suggestions. The summary inbound-date cell owns the date-lock toggle. After dates are locked, split count/date inputs are disabled and confirmed total/size quantity inputs plus reset-to-suggested are enabled. This phase state is dialog-local UI state and does not change API or snapshot contracts.
 
-Split inbound dialog presentation is variant-gated inside the frontend. `InboundSplitScheduleDialog.tsx` remains the stable dialog facade; `V0` preserves the original UI, `V1` preserves the source-summary experiment, and `V2` is the active UI iteration with section-level inbound detail expansion. Mock API mode exposes a V0/V1/V2 selector under the split-inbound button for UI verification; HTTP API mode stays fixed to V2. Variant별 파일 책임과 source/detail summary table의 표시 범위/CSS 책임은 `MD/dashboard-app/boundaries/inbound-split-variants.md`에서 관리한다.
+Split inbound dialog presentation is variant-gated inside the frontend. `InboundSplitScheduleDialog.tsx` remains the stable dialog facade; `V0` preserves the original UI, `V1` is the default source-summary UI, and `V2` remains the section-level inbound detail expansion iteration. Mock API mode exposes a V0/V1/V2 selector under the split-inbound button for UI verification; HTTP API mode stays fixed to V1. Variant별 파일 책임과 source/detail summary table의 표시 범위/CSS 책임은 `MD/dashboard-app/boundaries/inbound-split-variants.md`에서 관리한다.
 
 ## 4. Secondary 오더/입고 분할 경계
 
@@ -70,7 +72,7 @@ Secondary 드로어의 주요 값은 다음 기준을 따른다.
 | `sizeOrders` | 사이즈별 제안/추천/비중 표시값이다. | API/계산 결과 |
 | 입고 분할 차수 날짜 범위 | 각 차수 입고일은 `currentOrderInboundDueDate <= date < nextOrderInboundDueDate` 범위 안에서 검증한다. 첫 차수는 금번 입고일과 같은 날짜를 허용한다. | UI 상태/API 계약 |
 
-입고 분할 제안은 각 차수 구간의 `total.sales` 수요, `sizeInfo[size].salesRate`, `sizeInfo[size].baseStock`, `expectation[size][]`, 현오더 입고 전 기존 입고예정량, UI 재고 하한을 같은 planning 함수로 반영해 계산한다. 구간은 `[n차 입고일, n+1차 입고일)`이며, 해당 구간의 기오더 입고 예정량도 같은 구간 안에서 실제 입고일에 더한 뒤 일별 판매예측을 차감한다. 제안 수량은 구간 중 최저 예상 재고가 UI 재고 하한보다 낮아지는 만큼이다. `ignoreExistingOrderInbound`는 해당 구간의 `expectation`만 제외한다. `total.suggestion`은 백엔드가 제공한 source 집계값이며, UI 여유재고가 적용된 최종 추천 총량을 대체하지 않는다.
+입고 분할 제안은 각 차수 구간의 `total.sales` 수요, `sizeInfo[size].salesRate`, `sizeInfo[size].baseStock`, `expectation[size][]`, 현오더 입고 전 기존 입고예정량, UI 재고 하한을 같은 planning 함수로 반영해 계산한다. 구간은 `[n차 입고일, n+1차 입고일)`이며, 해당 구간의 기오더 입고 예정량도 같은 구간 안에서 실제 입고일에 더한 뒤 일별 판매예측을 차감한다. 제안 수량은 구간 중 최저 예상 재고가 UI 재고 하한보다 낮아지는 만큼이다. `excludeSegmentExistingOrderInbound`는 해당 구간의 `expectation`만 제외한다. `total.suggestion`은 백엔드가 제공한 source 집계값이며, UI 여유재고가 적용된 최종 추천 총량을 대체하지 않는다.
 
 ## 5. 스냅샷 경계
 

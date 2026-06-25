@@ -69,7 +69,7 @@ export function ProductSecondaryDrawer({
     comparisonTarget: ProductComparisonTarget | null
     onComparisonSubjectChange: (next: ProductComparisonTarget) => void
   } = comparisonState
-  const { portalHelp, helpIds }: { portalHelp: { activeId: SecondaryHelpId | null; activePlacement: PortalHelpPlacement; position: { top: number; left: number; }; setAnchor: (id: SecondaryHelpId) => (el: HTMLElement | null) => void; open: (id: SecondaryHelpId, placement: PortalHelpPlacement) => void; updateMeasuredBox: (measuredWidth: number, measuredHeight: number) => void; scheduleClose: () => void; cancelClose: () => void; close: () => void; }; helpIds: { confirmOrder: string; orderQtyCalc: string; expectedOpProfitRate: string; totalOrderBalance: string; expectedInboundOrderBalance: string; sizeRecQty: string; salesForecastSizeOrder: string; inboundSplitSchedule: string; }; } = useSecondaryHelpController()
+  const { portalHelp, helpIds }: { portalHelp: { activeId: SecondaryHelpId | null; activePlacement: PortalHelpPlacement; position: { top: number; left: number; }; setAnchor: (id: SecondaryHelpId) => (el: HTMLElement | null) => void; open: (id: SecondaryHelpId, placement: PortalHelpPlacement) => void; updateMeasuredBox: (measuredWidth: number, measuredHeight: number) => void; scheduleClose: () => void; cancelClose: () => void; close: () => void; }; helpIds: { confirmOrder: string; orderQtyCalc: string; expectedOpProfitRate: string; totalOrderBalance: string; sizeRecQty: string; salesForecastSizeOrder: string; inboundSplitSchedule: string; }; } = useSecondaryHelpController()
   const { showToast }: ReturnType<typeof useAppToast> = useAppToast()
   const {
     defaultInboundDueDates,
