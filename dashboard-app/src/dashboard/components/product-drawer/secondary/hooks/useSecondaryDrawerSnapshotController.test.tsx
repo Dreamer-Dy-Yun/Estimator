@@ -25,7 +25,7 @@ const AI_COMMENT: SecondaryAiCommentView = {
 
 const SAVED_ROUNDS: SecondaryConfirmedRound[] = [{
   date: '2026-07-01',
-  ignoreExistingOrderInbound: false,
+  excludePeriodExistingOrderInbound: false,
   qtyBySize: { M: 12 },
 }]
 
@@ -168,7 +168,7 @@ describe('useSecondaryDrawerSnapshotController', (): void => {
     expect(latest?.confirmedBaselineDraftDirty).toBe(false)
 
     act((): void => {
-      latest?.setConfirmedRounds([{ date: '2026-07-01', ignoreExistingOrderInbound: false, qtyBySize: { M: 3 } }])
+      latest?.setConfirmedRounds([{ date: '2026-07-01', excludePeriodExistingOrderInbound: false, qtyBySize: { M: 3 } }])
     })
     expect(latest?.confirmedBaselineDraftDirty).toBe(false)
   })

@@ -1,5 +1,5 @@
 import type { usePortalHelpPopover } from '../../../usePortalHelpPopover'
-import type { SecondaryInboundSplitSource } from '../../../../../api/types/secondary'
+import type { SecondaryExistingOrderInboundSupplyBySize, SecondaryInboundSplitSource } from '../../../../../api/types/secondary'
 import type { ApiUnitErrorInfo } from '../../../../../types'
 import type { SecondaryHelpId } from '../secondaryDrawerTypes'
 import type { InboundSplitScheduleRow, InboundSplitSizeColumn } from './inboundSplitScheduleModel'
@@ -17,6 +17,7 @@ export interface InboundSplitScheduleDialogProps {
   initialRows: InboundSplitScheduleRow[]
   columns: InboundSplitSizeColumn[]
   inboundSplitSource?: SecondaryInboundSplitSource | null
+  existingOrderInboundSupplyBySize?: SecondaryExistingOrderInboundSupplyBySize | null
   buildRowsForCount: (next: number) => InboundSplitScheduleRow[]
   recalculateRows: (rows: InboundSplitScheduleRow[]) => InboundSplitScheduleRow[]
   draftError?: ApiUnitErrorInfo | null

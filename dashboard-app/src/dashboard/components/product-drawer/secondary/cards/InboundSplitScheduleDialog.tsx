@@ -17,5 +17,5 @@ export function InboundSplitScheduleDialog(props: InboundSplitScheduleDialogProp
     return <InboundSplitScheduleDialogV1 {...props} />
   }
 
-  return <InboundSplitScheduleDialogV2 {...props} />
+  return <InboundSplitScheduleDialogV1 {...props} />
 }

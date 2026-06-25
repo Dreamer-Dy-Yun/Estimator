@@ -295,7 +295,7 @@ function buildSuggestionFromPlanning(
   }))
   const suggestedRows: Record<string, number>[] = buildSecondaryPlanningSuggestedQuantitiesByRow(
     columns,
-    [{ inboundDate: currentOrderInboundDueDate, ignoreExistingOrderInbound: false }],
+    [{ inboundDate: currentOrderInboundDueDate, excludePeriodExistingOrderInbound: false }],
     nextOrderInboundDueDate,
     source,
   )

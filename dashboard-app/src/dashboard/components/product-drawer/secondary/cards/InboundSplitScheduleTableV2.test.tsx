@@ -20,7 +20,7 @@ const ROWS: InboundSplitScheduleRow[] = [
     id: 'r1',
     round: 1,
     inboundDate: '2026-04-10',
-    ignoreExistingOrderInbound: false,
+    excludePeriodExistingOrderInbound: false,
     suggestedQuantitiesBySize: { S: 4, M: 3 },
     quantitiesBySize: { S: 4, M: 3 },
   },
@@ -28,7 +28,7 @@ const ROWS: InboundSplitScheduleRow[] = [
     id: 'r2',
     round: 2,
     inboundDate: '2026-04-20',
-    ignoreExistingOrderInbound: false,
+    excludePeriodExistingOrderInbound: false,
     suggestedQuantitiesBySize: { S: 5, M: 2 },
     quantitiesBySize: { S: 5, M: 2 },
   },
@@ -154,7 +154,7 @@ describe('InboundSplitScheduleTableV2', (): void => {
   })
 
   it('keeps the inbound total detail row even when a round has no visible inbound dates', (): void => {
-    const ignoredRows: InboundSplitScheduleRow[] = [{ ...ROWS[0]!, ignoreExistingOrderInbound: true }]
+    const ignoredRows: InboundSplitScheduleRow[] = [{ ...ROWS[0]!, excludePeriodExistingOrderInbound: true }]
     renderTable(new Set<string>([getInboundSplitRoundDetailKey(ignoredRows[0]!)]), ignoredRows)
 
     expect(document.body.textContent).toContain(`1${KO.optionInboundSplitRoundSuffix} ${KO.labelInboundSplitBeforeRoundAdditionalInbound}`)

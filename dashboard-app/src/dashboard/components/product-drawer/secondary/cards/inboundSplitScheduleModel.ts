@@ -18,7 +18,7 @@ export interface InboundSplitScheduleRow {
   id: string
   round: number
   inboundDate: string
-  ignoreExistingOrderInbound: boolean
+  excludePeriodExistingOrderInbound: boolean
   suggestedQuantitiesBySize: Record<string, number>
   suggestionBasisBySize?: Record<string, InboundSplitSuggestionBasis>
   quantitiesBySize: Record<string, number>
@@ -92,7 +92,7 @@ export function confirmedRoundsToInboundSplitRows(rounds: readonly SecondaryConf
       id: `confirmed-round-${index + 1}`,
       round: index + 1,
       inboundDate: round.date,
-      ignoreExistingOrderInbound: round.ignoreExistingOrderInbound,
+      excludePeriodExistingOrderInbound: round.excludePeriodExistingOrderInbound,
       suggestedQuantitiesBySize: {},
       suggestionBasisBySize: {},
       quantitiesBySize,
@@ -108,7 +108,7 @@ export function inboundSplitRowsToConfirmedRounds(rows: readonly InboundSplitSch
     })
     return {
       date: row.inboundDate,
-      ignoreExistingOrderInbound: row.ignoreExistingOrderInbound,
+      excludePeriodExistingOrderInbound: row.excludePeriodExistingOrderInbound,
       qtyBySize,
     }
   })
@@ -203,9 +203,9 @@ export function buildInboundSplitScheduleRows(
 ): InboundSplitScheduleRow[] {
   const safeCount: number = clampInboundSplitCount(count)
   const inboundDates: string[] = buildInboundSplitDates(safeCount, inboundDate, nextInboundDate)
-  const rowInputs: Array<{ inboundDate: string; ignoreExistingOrderInbound: boolean }> = inboundDates.map((date: string): { inboundDate: string; ignoreExistingOrderInbound: boolean } => ({
+  const rowInputs: Array<{ inboundDate: string; excludePeriodExistingOrderInbound: boolean }> = inboundDates.map((date: string): { inboundDate: string; excludePeriodExistingOrderInbound: boolean } => ({
     inboundDate: date,
-    ignoreExistingOrderInbound: false,
+    excludePeriodExistingOrderInbound: false,
   }))
   const suggestedRows: InboundSplitSuggestionRow[] = buildInboundSplitSuggestionRows(columns, rowInputs, nextInboundDate, source)
   return Array.from({ length: safeCount }, (_: unknown, rowIndex: number): InboundSplitScheduleRow => {
@@ -224,7 +224,7 @@ export function buildInboundSplitScheduleRows(
       id: `inbound-split-${round}`,
       round,
       inboundDate: inboundDates[rowIndex] ?? inboundDate,
-      ignoreExistingOrderInbound: false,
+      excludePeriodExistingOrderInbound: false,
       suggestedQuantitiesBySize,
       suggestionBasisBySize,
       quantitiesBySize,
@@ -238,9 +238,9 @@ export function recalculateInboundSplitScheduleRows(
   nextInboundDate: string,
   source: SecondaryInboundSplitSource,
 ): InboundSplitScheduleRow[] {
-  const rowInputs: Array<{ inboundDate: string; ignoreExistingOrderInbound: boolean }> = currentRows.map((row: InboundSplitScheduleRow): { inboundDate: string; ignoreExistingOrderInbound: boolean } => ({
+  const rowInputs: Array<{ inboundDate: string; excludePeriodExistingOrderInbound: boolean }> = currentRows.map((row: InboundSplitScheduleRow): { inboundDate: string; excludePeriodExistingOrderInbound: boolean } => ({
     inboundDate: row.inboundDate,
-    ignoreExistingOrderInbound: row.ignoreExistingOrderInbound,
+    excludePeriodExistingOrderInbound: row.excludePeriodExistingOrderInbound,
   }))
   const suggestedRows: InboundSplitSuggestionRow[] = buildInboundSplitSuggestionRows(columns, rowInputs, nextInboundDate, source)
 
@@ -281,7 +281,7 @@ export function reconcileInboundSplitScheduleRows(
       baseRows.map((baseRow: InboundSplitScheduleRow, index: number): InboundSplitScheduleRow => ({
         ...baseRow,
         inboundDate: currentRows[index]?.inboundDate || baseRow.inboundDate,
-        ignoreExistingOrderInbound: currentRows[index]?.ignoreExistingOrderInbound ?? baseRow.ignoreExistingOrderInbound,
+        excludePeriodExistingOrderInbound: currentRows[index]?.excludePeriodExistingOrderInbound ?? baseRow.excludePeriodExistingOrderInbound,
       })),
       columns,
       nextInboundDate,
@@ -307,7 +307,7 @@ export function reconcileInboundSplitScheduleRows(
       id: baseRow.id,
       round: baseRow.round,
       inboundDate: currentRow.inboundDate || baseRow.inboundDate,
-      ignoreExistingOrderInbound: currentRow.ignoreExistingOrderInbound,
+      excludePeriodExistingOrderInbound: currentRow.excludePeriodExistingOrderInbound,
       suggestedQuantitiesBySize,
       suggestionBasisBySize,
       quantitiesBySize,

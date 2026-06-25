@@ -7,7 +7,7 @@ function row(round: number, inboundDate: string): InboundSplitScheduleRow {
     id: `r${round}`,
     round,
     inboundDate,
-    ignoreExistingOrderInbound: false,
+    excludePeriodExistingOrderInbound: false,
     suggestedQuantitiesBySize: { S: 1 },
     quantitiesBySize: { S: 1 },
   }

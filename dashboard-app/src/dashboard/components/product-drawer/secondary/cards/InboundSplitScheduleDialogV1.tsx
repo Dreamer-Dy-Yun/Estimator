@@ -1,4 +1,4 @@
-import { useCallback, useId, useMemo, useRef, useState } from 'react'
+import { useCallback, useId, useRef, useState } from 'react'
 import { ApiUnitErrorBadge } from '../../../../../components/ApiUnitErrorBadge'
 import { DialogCloseButton } from '../../../../../components/DialogCloseButton'
 import { copyToClipboard } from '../../../../../utils/copyToClipboard'
@@ -9,7 +9,6 @@ import { KO } from '../../ko'
 import styles from '../secondaryDrawer.module.css'
 import { cloneInboundSplitRows, type InboundSplitScheduleRow } from './inboundSplitScheduleModel'
 import { findInboundSplitDatePolicyIssue } from './inboundSplitScheduleDatePolicy'
-import { resolveSplitSourceWindowEndDate } from './inboundSplitSourceWindow'
 import { InboundSplitScheduleTableV1 } from './InboundSplitScheduleTableV1'
 import { InboundSplitSourceSummaryTableV1 } from './InboundSplitSourceSummaryTableV1'
 import type { InboundSplitScheduleDialogProps } from './inboundSplitScheduleVariantTypes'
@@ -24,6 +23,7 @@ export function InboundSplitScheduleDialogV1({
   initialRows = [],
   columns,
   inboundSplitSource,
+  existingOrderInboundSupplyBySize,
   buildRowsForCount,
   recalculateRows,
   draftError = null,
@@ -34,7 +34,6 @@ export function InboundSplitScheduleDialogV1({
   onClose,
 }: InboundSplitScheduleDialogProps): React.JSX.Element | null {
   const titleId: string = useId()
-  const descriptionId: string = useId()
   const panelRef: React.RefObject<HTMLElement | null> = useRef<HTMLElement | null>(null)
   const countSelectRef: React.RefObject<HTMLSelectElement | null> = useRef<HTMLSelectElement | null>(null)
   const sourceTableScrollRef: React.RefObject<HTMLDivElement | null> = useRef<HTMLDivElement | null>(null)
@@ -63,9 +62,6 @@ export function InboundSplitScheduleDialogV1({
   })
   const hasInvalidDatePolicy: boolean = findInboundSplitDatePolicyIssue(currentOrderInboundDueDate, nextOrderInboundDueDate, draft.rows) != null
   const applyDisabled: boolean = draftError != null || draft.rows.length === 0 || hasInvalidDatePolicy || !draft.datesLocked
-  const splitSourceWindowEndDate: string = useMemo((): string => (
-    resolveSplitSourceWindowEndDate(draft.rows, nextOrderInboundDueDate)
-  ), [draft.rows, nextOrderInboundDueDate])
   const dateWarningMessage: string = draftError == null
     ? (draft.draftWarning ?? (hasInvalidDatePolicy ? KO.msgInboundSplitInvalidDatePolicy : ''))
     : ''
@@ -100,20 +96,61 @@ export function InboundSplitScheduleDialogV1({
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
-        aria-describedby={descriptionId}
         tabIndex={-1}
         onClick={(event: React.MouseEvent<HTMLElement, MouseEvent>): void => event.stopPropagation()}
         onKeyDown={handleKeyDown}
       >
-        <header className={styles.inboundSplitDialogHeader}>
-          <div>
+        <header className={`${styles.inboundSplitDialogHeader} ${styles.inboundSplitDialogHeaderV1}`}>
+          <div className={styles.inboundSplitDialogHeaderMain}>
             <div className={commonStyles.cardTitleWithHelp}>
               <h3 id={titleId} className={styles.inboundSplitDialogTitle}>{KO.dialogInboundSplitTitle}</h3>
               {help ? <PortalHelpMark helpId="inboundSplitSchedule" placement="below" labelId={help.labelId} markClassName={commonStyles.helpMark} help={help.portal} stopMouseDownPropagation /> : null}
             </div>
-            <p id={descriptionId} className={styles.inboundSplitDialogHint}>{KO.msgInboundSplitDraftOnly}</p>
           </div>
-          <div className={styles.inboundSplitDialogHeaderActions}>
+          <div className={`${styles.inboundSplitDialogHeaderActions} ${styles.inboundSplitDialogHeaderActionsV1}`}>
+            <div className={styles.inboundSplitHeaderControlsV1}>
+              <div className={styles.inboundSplitCountPanel}>
+                <label className={styles.inboundSplitCountLabel}>
+                  <span>{KO.labelInboundSplitCount}</span>
+                  <select
+                    ref={countSelectRef}
+                    className={styles.inboundSplitCountSelect}
+                    value={draft.count}
+                    disabled={draft.datesLocked}
+                    onChange={(event: React.ChangeEvent<HTMLSelectElement>): void => draft.changeCount(event.target.value)}
+                    aria-label={KO.ariaInboundSplitCount}
+                  >
+                    {draft.countOptions.map((option: number): React.JSX.Element => (
+                      <option key={option} value={option}>{option}{KO.optionInboundSplitRoundSuffix}</option>
+                    ))}
+                  </select>
+                </label>
+                {(dateWarningMessage || draftError) && (
+                  <span className={styles.inboundSplitCountFeedback} role={draftError ? 'alert' : 'status'}>
+                    {dateWarningMessage && <span className={styles.inboundSplitCountWarning}>{dateWarningMessage}</span>}
+                    <ApiUnitErrorBadge error={draftError} />
+                  </span>
+                )}
+              </div>
+              <div className={styles.inboundSplitToolbarActions}>
+                <button
+                  type="button"
+                  className={`${styles.btn} ${styles.btnSecondary} ${styles.inboundSplitResetConfirmButton}`}
+                  onClick={draft.resetConfirmedToSuggested}
+                  disabled={!draft.datesLocked}
+                >
+                  {KO.btnInboundSplitResetConfirmed}
+                </button>
+                <label className={styles.inboundSplitToolbarToggle}>
+                  <input
+                    type="checkbox"
+                    checked={draft.excludePeriodExistingOrderInboundAll}
+                    onChange={(event: React.ChangeEvent<HTMLInputElement>): void => draft.changeExcludePeriodExistingOrderInboundAll(event.target.checked)}
+                  />
+                  <span>{KO.labelInboundSplitExcludePeriodExistingOrderInbound}</span>
+                </label>
+              </div>
+            </div>
             {debugSourcePayload != null ? (
               <button
                 type="button"
@@ -127,60 +164,16 @@ export function InboundSplitScheduleDialogV1({
             <DialogCloseButton onClose={onClose} />
           </div>
         </header>
-        <div className={styles.inboundSplitDialogToolbar}>
-          <div className={styles.inboundSplitCountPanel}>
-            <label className={styles.inboundSplitCountLabel}>
-              <span>{KO.labelInboundSplitCount}</span>
-              <select
-                ref={countSelectRef}
-                className={styles.inboundSplitCountSelect}
-                value={draft.count}
-                disabled={draft.datesLocked}
-                onChange={(event: React.ChangeEvent<HTMLSelectElement>): void => draft.changeCount(event.target.value)}
-                aria-label={KO.ariaInboundSplitCount}
-              >
-                {draft.countOptions.map((option: number): React.JSX.Element => (
-                  <option key={option} value={option}>{option}{KO.optionInboundSplitRoundSuffix}</option>
-                ))}
-              </select>
-            </label>
-            {(dateWarningMessage || draftError) && (
-              <span className={styles.inboundSplitCountFeedback} role={draftError ? 'alert' : 'status'}>
-                {dateWarningMessage && <span className={styles.inboundSplitCountWarning}>{dateWarningMessage}</span>}
-                <ApiUnitErrorBadge error={draftError} />
-              </span>
-            )}
-          </div>
-          <div className={styles.inboundSplitToolbarActions}>
-            <button
-              type="button"
-              className={`${styles.btn} ${styles.btnSecondary} ${styles.inboundSplitResetConfirmButton}`}
-              onClick={draft.resetConfirmedToSuggested}
-              disabled={!draft.datesLocked}
-            >
-              {KO.btnInboundSplitResetConfirmed}
-            </button>
-            <label className={styles.inboundSplitToolbarToggle}>
-              <input
-                type="checkbox"
-                checked={draft.ignoreExistingOrderInboundAll}
-                onChange={(event: React.ChangeEvent<HTMLInputElement>): void => draft.changeIgnoreExistingOrderInboundAll(event.target.checked)}
-              />
-              <span>{KO.labelInboundSplitIgnoreExistingOrderInbound}</span>
-            </label>
-          </div>
-        </div>
         <div className={styles.inboundSplitTableFrame}>
           {inboundSplitSource ? (
             <div ref={sourceTableScrollRef} className={styles.inboundSplitSourceSummaryViewport} onScroll={handleSourceTableScroll}>
               <InboundSplitSourceSummaryTableV1
                 source={inboundSplitSource}
                 columns={columns}
+                existingOrderInboundSupplyBySize={existingOrderInboundSupplyBySize}
                 calculationBaseDate={calculationBaseDate}
                 currentOrderInboundDueDate={currentOrderInboundDueDate}
                 nextOrderInboundDueDate={nextOrderInboundDueDate}
-                splitSourceWindowEndDate={splitSourceWindowEndDate}
-                excludeCurrentToNextExistingOrderInbound={draft.ignoreExistingOrderInboundAll && draft.rows.length > 1}
               />
             </div>
           ) : null}
@@ -198,9 +191,9 @@ export function InboundSplitScheduleDialogV1({
             />
           </div>
         </div>
-        <footer className={styles.inboundSplitDialogActions}>
-          <button type="button" className={`${styles.btn} ${styles.btnSecondary}`} onClick={onClose}>{KO.btnCloseInboundSplitDialog}</button>
-          <button type="button" className={styles.btn} onClick={(): void => onApply(cloneInboundSplitRows(draft.rows))} disabled={applyDisabled}>{KO.btnApplyInboundSplitSchedule}</button>
+        <footer className={`${styles.inboundSplitDialogActions} ${styles.inboundSplitDialogActionsCompactV1}`}>
+          <button type="button" className={`${styles.btn} ${styles.btnSecondary} ${styles.inboundSplitFooterButtonCompactV1}`} onClick={onClose}>{KO.btnCloseInboundSplitDialog}</button>
+          <button type="button" className={`${styles.btn} ${styles.inboundSplitFooterButtonCompactV1}`} onClick={(): void => onApply(cloneInboundSplitRows(draft.rows))} disabled={applyDisabled}>{KO.btnApplyInboundSplitSchedule}</button>
         </footer>
       </section>
     </div>

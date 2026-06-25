@@ -14,7 +14,7 @@
 ## Principles
 
 - 같은 조건이면 1차 분할 제안 총합과 오더 상세 추천 수량 총합이 같은 원천에서 산정되어야 한다.
-- 분할 차수, 차수별 날짜, 확정 수량, `ignoreExistingOrderInbound`는 API 요청 값이 아니라 UI/snapshot 상태다.
+- 분할 차수, 차수별 날짜, 확정 수량, `excludePeriodExistingOrderInbound`는 API 요청 값이 아니라 UI/snapshot 상태다.
 - `inboundSplitSource.sizeInfo[size].baseStock`은 현재/기초 재고이고, `expectation[size][]`는 기 주문 입고 예정 수량(A)이다.
 - `total.sales`는 전체 판매예측만 담고 입고 수량을 섞지 않는다.
 

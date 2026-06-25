@@ -157,9 +157,9 @@ Last updated: 2026-06-19
 
 분할입고 UI 상태:
 
-- split count, split dates, draft row quantities, `bufferStock`, `ignoreExistingOrderInbound`는 `getSecondaryStockOrderCalc` 요청 필드가 아니다.
+- split count, split dates, draft row quantities, `bufferStock`, `excludePeriodExistingOrderInbound`는 `getSecondaryStockOrderCalc` 요청 필드가 아니다.
 - 사용자가 적용한 분할 rows는 `OrderSnapshotDocument.drawer2.confirmed.rounds`가 저장한다.
-- 현재 UI의 `ignoreExistingOrderInbound`는 dialog 전체 toggle이고, apply 시 모든 `confirmed.rounds[]`에 같은 값으로 저장된다.
+- 현재 UI의 `excludePeriodExistingOrderInbound`는 dialog 전체 toggle이고, apply 시 모든 `confirmed.rounds[]`에 같은 값으로 저장된다.
 
 ## 8. Planning 규칙
 
@@ -169,7 +169,7 @@ Last updated: 2026-06-19
 - n차에 반영되는 기존 오더 입고 예정량은 같은 구간 `[round n inbound date, round n+1 inbound date)`의 `expectation`이며, 실제 입고일에 더해 날짜순 재고 흐름에 반영한다.
 - `expectedInboundOrderBalance`처럼 `currentOrderInboundDueDate` 전 입고 예정 집계는 opening stock 성격으로 항상 반영된다.
 - 추천 수량은 구간 중 최저 예상 재고가 UI 재고 하한보다 낮아지는 만큼이다.
-- `ignoreExistingOrderInbound=true`는 같은 구간의 기존 오더 입고 예정량만 무시한다.
+- `excludePeriodExistingOrderInbound=true`는 같은 구간의 기존 오더 입고 예정량만 무시한다.
 - 2차 이상은 구간별 재고 이월과 정수화 때문에 총합이 소폭 흔들릴 수 있다.
 
 ## 9. Snapshot 경계

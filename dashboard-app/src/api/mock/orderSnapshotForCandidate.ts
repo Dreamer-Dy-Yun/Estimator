@@ -100,7 +100,7 @@ function buildMockOrderSnapshotInboundSplitSource({
   }))
   const suggestedRows: Record<string, number>[] = buildSecondaryPlanningSuggestedQuantitiesByRow(
     planningColumns,
-    [{ inboundDate: MOCK_INBOUND_SPLIT_CALCULATION_BASE_DATE, ignoreExistingOrderInbound: false }],
+    [{ inboundDate: MOCK_INBOUND_SPLIT_CALCULATION_BASE_DATE, excludePeriodExistingOrderInbound: false }],
     MOCK_INBOUND_SPLIT_COVERAGE_END_DATE,
     sourceWithoutSuggestion,
   )
@@ -296,7 +296,7 @@ export function buildMockOrderSnapshotForCandidate(
       confirmed: {
         rounds: [{
           date: '2026-04-01',
-          ignoreExistingOrderInbound: false,
+          excludePeriodExistingOrderInbound: false,
           qtyBySize: confirmedQtyBySize,
         }],
       },

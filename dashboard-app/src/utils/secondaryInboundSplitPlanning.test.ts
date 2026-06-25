@@ -29,7 +29,7 @@ describe('secondaryInboundSplitPlanning', () : void => {
   it('requires enough suggested quantity for the lowest stock point when existing inbound arrives late', () : void => {
     const rows: SecondaryPlanningSuggestionRow[] = buildSecondaryPlanningSuggestionRows(
       [{ size: 'S' }],
-      [{ inboundDate: '2026-02-01', ignoreExistingOrderInbound: false }],
+      [{ inboundDate: '2026-02-01', excludePeriodExistingOrderInbound: false }],
       '2026-02-04',
       makeSource({
         baseStock: 0,
@@ -50,7 +50,7 @@ describe('secondaryInboundSplitPlanning', () : void => {
   it('uses the target stock quantity as the stock-flow floor', () : void => {
     const rows: SecondaryPlanningSuggestionRow[] = buildSecondaryPlanningSuggestionRows(
       [{ size: 'S', targetEndingStockQty: 7 }],
-      [{ inboundDate: '2026-02-01', ignoreExistingOrderInbound: false }],
+      [{ inboundDate: '2026-02-01', excludePeriodExistingOrderInbound: false }],
       '2026-02-03',
       makeSource({
         baseStock: 10,
@@ -68,7 +68,7 @@ describe('secondaryInboundSplitPlanning', () : void => {
   it('excludes in-period existing inbound from stock flow when the row option is enabled', () : void => {
     const rows: SecondaryPlanningSuggestionRow[] = buildSecondaryPlanningSuggestionRows(
       [{ size: 'S' }],
-      [{ inboundDate: '2026-02-01', ignoreExistingOrderInbound: true }],
+      [{ inboundDate: '2026-02-01', excludePeriodExistingOrderInbound: true }],
       '2026-02-03',
       makeSource({
         baseStock: 0,
@@ -103,7 +103,7 @@ describe('secondaryInboundSplitPlanning', () : void => {
     expect(() : void => {
       buildSecondaryPlanningSuggestionRows(
         [{ size: 'S' }],
-        [{ inboundDate: '2026-02-01', ignoreExistingOrderInbound: true }],
+        [{ inboundDate: '2026-02-01', excludePeriodExistingOrderInbound: true }],
         '2026-02-03',
         source,
       )

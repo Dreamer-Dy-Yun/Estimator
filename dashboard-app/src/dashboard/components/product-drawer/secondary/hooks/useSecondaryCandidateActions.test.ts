@@ -166,7 +166,7 @@ function makeSnapshot(overrides: Partial<OrderSnapshotDocument> = {}) : OrderSna
       confirmed: {
         rounds: [{
           date: '2026-06-01',
-          ignoreExistingOrderInbound: false,
+          excludePeriodExistingOrderInbound: false,
           qtyBySize: { M: 1 },
         }],
       },

@@ -13,7 +13,7 @@ export interface SecondaryPlanningSizeColumn {
 
 export interface SecondaryPlanningIntervalInput {
   readonly inboundDate: string
-  readonly ignoreExistingOrderInbound: boolean
+  readonly excludePeriodExistingOrderInbound: boolean
 }
 
 export interface SecondaryPlanningSuggestionBasis {
@@ -21,7 +21,7 @@ export interface SecondaryPlanningSuggestionBasis {
   readonly intervalEndDate: string
   readonly expectedInboundStartDate: string
   readonly expectedInboundEndDate: string
-  readonly ignoreExistingOrderInbound: boolean
+  readonly excludePeriodExistingOrderInbound: boolean
   readonly salesForecastQty: number
   readonly expectedInboundQty: number
   readonly carriedStockQty: number
@@ -41,7 +41,7 @@ interface SplitInterval {
   readonly salesEndDate: string
   readonly expectedInboundStartDate: string
   readonly expectedInboundEndDate: string
-  readonly ignoreExistingOrderInbound: boolean
+  readonly excludePeriodExistingOrderInbound: boolean
 }
 
 function requireFiniteQuantity(value: number | undefined, field: string): number {
@@ -62,7 +62,7 @@ function buildIntervals(rows: readonly SecondaryPlanningIntervalInput[], dateEnd
     salesEndDate: rows[index + 1]?.inboundDate ?? dateEnd,
     expectedInboundStartDate: row.inboundDate,
     expectedInboundEndDate: rows[index + 1]?.inboundDate ?? dateEnd,
-    ignoreExistingOrderInbound: row.ignoreExistingOrderInbound,
+    excludePeriodExistingOrderInbound: row.excludePeriodExistingOrderInbound,
   }))
 }
 
@@ -159,7 +159,7 @@ function buildExpectedInboundFlow(
   const expectationPoints: SecondaryInboundSplitSource['expectation'][string] = getExpectationPoints(source, size)
   const byDate: Map<string, number> = new Map()
   let totalQty = 0
-  if (interval.ignoreExistingOrderInbound) return { totalQty, byDate }
+  if (interval.excludePeriodExistingOrderInbound) return { totalQty, byDate }
 
   expectationPoints.forEach((point: SecondaryInboundSplitSource['expectation'][string][number]): void => {
     if (point.date < interval.expectedInboundStartDate || point.date >= interval.expectedInboundEndDate) return
@@ -235,7 +235,7 @@ export function buildSecondaryPlanningSuggestionRows(
         intervalEndDate: interval.salesEndDate,
         expectedInboundStartDate: interval.expectedInboundStartDate,
         expectedInboundEndDate: interval.expectedInboundEndDate,
-        ignoreExistingOrderInbound: interval.ignoreExistingOrderInbound,
+        excludePeriodExistingOrderInbound: interval.excludePeriodExistingOrderInbound,
         salesForecastQty: demandQty,
         expectedInboundQty: expectedInboundFlow.totalQty,
         carriedStockQty: openingStock,
