@@ -52,7 +52,7 @@ API 문서는 다음 문서를 함께 갱신한다.
 
 `inboundSplitSource` is returned inside `getSecondaryStockOrderCalc`; split count, split dates, confirmed quantities, and `ignoreExistingOrderInbound` remain UI/snapshot state.
 
-Detail recommended quantities and split-inbound suggested quantities must both be derived from `stockOrderCalc.inboundSplitSource` through the same planning function. They must use `total.sales`, `sizeInfo`, `expectation`, opening stock, existing inbound before the current order, and UI target ending stock instead of a separate `total.suggestion` shortcut. Round demand uses `[round n inbound date, round n+1 inbound date)`, while existing-order inbound for round n uses `[round n-1 inbound date, round n inbound date)`.
+Detail recommended quantities and split-inbound suggested quantities must both be derived from `stockOrderCalc.inboundSplitSource` through the same planning function. They must use `total.sales`, `sizeInfo`, `expectation`, opening stock, existing inbound before the current order, and UI target stock floor instead of a separate `total.suggestion` shortcut. Round demand uses `[round n inbound date, round n+1 inbound date)`, and existing-order inbound inside that same interval is applied on its actual inbound date in the stock-flow simulation.
 
 Split inbound dialog draft editing has two UI-owned phases. Before inbound dates are locked, users may change split count and dates; confirmed quantities mirror the recalculated suggestions. The summary inbound-date cell owns the date-lock toggle. After dates are locked, split count/date inputs are disabled and confirmed total/size quantity inputs plus reset-to-suggested are enabled. This phase state is dialog-local UI state and does not change API or snapshot contracts.
 
@@ -70,13 +70,13 @@ Secondary 드로어의 주요 값은 다음 기준을 따른다.
 | `sizeOrders` | 사이즈별 제안/추천/비중 표시값이다. | API/계산 결과 |
 | 입고 분할 차수 날짜 범위 | 각 차수 입고일은 `currentOrderInboundDueDate <= date < nextOrderInboundDueDate` 범위 안에서 검증한다. 첫 차수는 금번 입고일과 같은 날짜를 허용한다. | UI 상태/API 계약 |
 
-입고 분할 제안은 각 차수 구간의 `total.sales` 수요, `sizeInfo[size].salesRate`, `sizeInfo[size].baseStock`, `expectation[size][]`, 현오더 입고 전 기존 입고예정량, UI 여유재고 목표를 같은 planning 함수로 반영해 계산한다. 수요 구간은 `[n차 입고일, n+1차 입고일)`이고, n차에 반영되는 기오더 입고 예정량은 `[n-1차 입고일, n차 입고일)`이다. 1차는 이전 차수 구간이 없으므로 `ignoreExistingOrderInbound` 여부와 무관하게 현오더 입고 전 기존 입고예정량만 반영된다. `total.suggestion`은 백엔드가 제공한 source 집계값이며, UI 여유재고가 적용된 최종 추천 총량을 대체하지 않는다.
+입고 분할 제안은 각 차수 구간의 `total.sales` 수요, `sizeInfo[size].salesRate`, `sizeInfo[size].baseStock`, `expectation[size][]`, 현오더 입고 전 기존 입고예정량, UI 재고 하한을 같은 planning 함수로 반영해 계산한다. 구간은 `[n차 입고일, n+1차 입고일)`이며, 해당 구간의 기오더 입고 예정량도 같은 구간 안에서 실제 입고일에 더한 뒤 일별 판매예측을 차감한다. 제안 수량은 구간 중 최저 예상 재고가 UI 재고 하한보다 낮아지는 만큼이다. `ignoreExistingOrderInbound`는 해당 구간의 `expectation`만 제외한다. `total.suggestion`은 백엔드가 제공한 source 집계값이며, UI 여유재고가 적용된 최종 추천 총량을 대체하지 않는다.
 
 ## 5. 스냅샷 경계
 
 `OrderSnapshotDocument`의 현재 스키마 버전은 8이다.
 
-`stockOrderResult.existingOrderInboundSupplyBySize`는 A(기 주문 오더 입고 예정량)의 날짜별 원천이다. `stockOrderResult.inboundSplitSource.expectation`도 같은 의미의 분할입고 계산용 A 일정이며, 현재 재고는 `inboundSplitSource.sizeInfo[size].baseStock`에 둔다. `display.totalOrderBalance*`는 A 전체 집계이고, `display.expectedInboundOrderBalance*`는 `date < currentOrderInboundDueDate`인 A 집계이다.
+`stockOrderResult.existingOrderInboundSupplyBySize`는 A(기 주문 오더 입고 예정량)의 날짜별 원천이다. 오더 상세의 `미입고 총 잔량(EA)` 펼침은 이 원천을 `date < currentOrderInboundDueDate`, `currentOrderInboundDueDate <= date < nextOrderInboundDueDate`, `date >= nextOrderInboundDueDate`로 나눠 표시한다. `stockOrderResult.inboundSplitSource.expectation`도 같은 의미의 분할입고 계산용 A 일정이며, 현재 재고는 `inboundSplitSource.sizeInfo[size].baseStock`에 둔다. `display.totalOrderBalance*`는 A 전체 집계이고, `display.expectedInboundOrderBalance*`는 `date < currentOrderInboundDueDate`인 A 집계이다.
 
 | 필드 | 의미 |
 |---|---|

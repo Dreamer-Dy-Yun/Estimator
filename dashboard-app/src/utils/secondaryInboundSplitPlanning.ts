@@ -25,6 +25,7 @@ export interface SecondaryPlanningSuggestionBasis {
   readonly salesForecastQty: number
   readonly expectedInboundQty: number
   readonly carriedStockQty: number
+  readonly minimumStockQty: number
   readonly targetEndingStockQty: number
   readonly suggestedQty: number
   readonly endingStockQty: number
@@ -51,12 +52,16 @@ function normalizeQuantity(value: number): number {
   return Math.max(0, Math.round(value))
 }
 
+function normalizeRequiredQuantity(value: number): number {
+  return Math.max(0, Math.ceil(value - 1e-9))
+}
+
 function buildIntervals(rows: readonly SecondaryPlanningIntervalInput[], dateEnd: string): SplitInterval[] {
   return rows.map((row: SecondaryPlanningIntervalInput, index: number): SplitInterval => ({
     salesStartDate: row.inboundDate,
     salesEndDate: rows[index + 1]?.inboundDate ?? dateEnd,
-    expectedInboundStartDate: rows[index - 1]?.inboundDate ?? row.inboundDate,
-    expectedInboundEndDate: row.inboundDate,
+    expectedInboundStartDate: row.inboundDate,
+    expectedInboundEndDate: rows[index + 1]?.inboundDate ?? dateEnd,
     ignoreExistingOrderInbound: row.ignoreExistingOrderInbound,
   }))
 }
@@ -71,36 +76,22 @@ function iterateDates(startDate: string, endDate: string, onDate: (date: string)
   }
 }
 
-function allocateIntegerTotal(total: number, weights: readonly number[]): number[] {
-  const normalizedTotal = normalizeQuantity(total)
-  if (!weights.length) return []
-
-  const normalizedWeights = weights.map((weight: number): number => Number.isFinite(weight) ? Math.max(0, weight) : 0)
-  const weightSum = normalizedWeights.reduce((sum: number, weight: number): number => sum + weight, 0)
-  const effectiveWeights = weightSum > 0 ? normalizedWeights : normalizedWeights.map((): number => 1)
-  const effectiveWeightSum = weightSum > 0 ? weightSum : effectiveWeights.length
-  const exactValues = effectiveWeights.map((weight: number): number => (normalizedTotal * weight) / effectiveWeightSum)
-  const values = exactValues.map((value: number): number => Math.floor(value))
-  let remainder = normalizedTotal - values.reduce((sum: number, value: number): number => sum + value, 0)
-
-  exactValues
-    .map((value: number, index: number): { index: number; fraction: number } => ({ index, fraction: value - Math.floor(value) }))
-    .sort((a: { index: number; fraction: number }, b: { index: number; fraction: number }): number => (b.fraction - a.fraction) || (a.index - b.index))
-    .forEach(({ index }: { index: number; fraction: number }): void => {
-      if (remainder <= 0) return
-      values[index] += 1
-      remainder -= 1
-    })
-
-  return values
-}
-
 function getWholeProductSalesForecast(source: SecondaryInboundSplitSource, date: string): number {
   return requireFiniteQuantity(source.total.sales[date], `total.sales.${date}`)
 }
 
 function getSizeSalesRate(source: SecondaryInboundSplitSource, size: string): number {
   return requireFiniteQuantity(source.sizeInfo[size]?.salesRate, `sizeInfo.${size}.salesRate`)
+}
+
+function getNormalizedSizeSalesRates(
+  source: SecondaryInboundSplitSource,
+  columns: readonly SecondaryPlanningSizeColumn[],
+): number[] {
+  const rawRates: number[] = columns.map((column: SecondaryPlanningSizeColumn): number => Math.max(0, getSizeSalesRate(source, column.size)))
+  const sum: number = rawRates.reduce((total: number, rate: number): number => total + rate, 0)
+  if (sum > 0) return rawRates.map((rate: number): number => rate / sum)
+  return columns.map((): number => 1 / columns.length)
 }
 
 function getExpectationPoints(source: SecondaryInboundSplitSource, size: string): SecondaryInboundSplitSource['expectation'][string] {
@@ -117,19 +108,6 @@ function sumWholeProductSalesForecast(source: SecondaryInboundSplitSource, start
   return total
 }
 
-function distributeIntervalTotalBySize(
-  source: SecondaryInboundSplitSource,
-  columns: readonly SecondaryPlanningSizeColumn[],
-  intervalTotal: number,
-): Record<string, number> {
-  const allocated = allocateIntegerTotal(intervalTotal, columns.map((column: SecondaryPlanningSizeColumn): number => getSizeSalesRate(source, column.size)))
-  const result: Record<string, number> = {}
-  columns.forEach((column: SecondaryPlanningSizeColumn, index: number): void => {
-    result[column.size] = allocated[index] ?? 0
-  })
-  return result
-}
-
 function getOpeningStock(source: SecondaryInboundSplitSource, column: SecondaryPlanningSizeColumn): number {
   return Math.round(requireFiniteQuantity(source.sizeInfo[column.size]?.baseStock, `sizeInfo.${column.size}.baseStock`))
     + normalizeQuantity(column.expectedInboundBeforeCurrentOrderQty ?? 0)
@@ -139,17 +117,58 @@ function getTargetEndingStock(column: SecondaryPlanningSizeColumn): number {
   return normalizeQuantity(column.targetEndingStockQty ?? 0)
 }
 
-function sumExpectedInboundInInterval(
+interface SalesForecastFlow {
+  readonly totalBySize: Record<string, number>
+  readonly byDate: Record<string, Record<string, number>>
+}
+
+interface ExpectedInboundFlow {
+  readonly totalQty: number
+  readonly byDate: ReadonlyMap<string, number>
+}
+
+function buildSalesForecastFlow(
+  source: SecondaryInboundSplitSource,
+  columns: readonly SecondaryPlanningSizeColumn[],
+  startDate: string,
+  endDate: string,
+): SalesForecastFlow {
+  const salesRates: number[] = getNormalizedSizeSalesRates(source, columns)
+  const totalBySize: Record<string, number> = Object.fromEntries(columns.map((column: SecondaryPlanningSizeColumn): [string, number] => [column.size, 0]))
+  const byDate: Record<string, Record<string, number>> = {}
+
+  iterateDates(startDate, endDate, (date: string): void => {
+    const dailyTotal: number = getWholeProductSalesForecast(source, date)
+    const dailyBySize: Record<string, number> = {}
+    columns.forEach((column: SecondaryPlanningSizeColumn, index: number): void => {
+      const qty: number = dailyTotal * (salesRates[index] ?? 0)
+      dailyBySize[column.size] = qty
+      totalBySize[column.size] = (totalBySize[column.size] ?? 0) + qty
+    })
+    byDate[date] = dailyBySize
+  })
+
+  return { totalBySize, byDate }
+}
+
+function buildExpectedInboundFlow(
   source: SecondaryInboundSplitSource,
   size: string,
   interval: SplitInterval,
-): number {
+): ExpectedInboundFlow {
   const expectationPoints: SecondaryInboundSplitSource['expectation'][string] = getExpectationPoints(source, size)
-  if (interval.ignoreExistingOrderInbound) return 0
-  return expectationPoints.reduce((sum: number, point: SecondaryInboundSplitSource['expectation'][string][number]): number => {
-    if (point.date < interval.expectedInboundStartDate || point.date >= interval.expectedInboundEndDate) return sum
-    return sum + normalizeQuantity(requireFiniteQuantity(point.inbound, `expectation.${size}.${point.date}`))
-  }, 0)
+  const byDate: Map<string, number> = new Map()
+  let totalQty = 0
+  if (interval.ignoreExistingOrderInbound) return { totalQty, byDate }
+
+  expectationPoints.forEach((point: SecondaryInboundSplitSource['expectation'][string][number]): void => {
+    if (point.date < interval.expectedInboundStartDate || point.date >= interval.expectedInboundEndDate) return
+    const qty: number = normalizeQuantity(requireFiniteQuantity(point.inbound, `expectation.${size}.${point.date}`))
+    totalQty += qty
+    byDate.set(point.date, (byDate.get(point.date) ?? 0) + qty)
+  })
+
+  return { totalQty, byDate }
 }
 
 export function sumSecondaryPlanningSalesForecastBySize(
@@ -159,9 +178,10 @@ export function sumSecondaryPlanningSalesForecastBySize(
   endDate: string,
 ): Record<string, number> {
   const wholeProductSales = sumWholeProductSalesForecast(source, startDate, endDate)
+  const salesRates: number[] = getNormalizedSizeSalesRates(source, columns)
   const result: Record<string, number> = {}
-  columns.forEach((column: SecondaryPlanningSizeColumn): void => {
-    result[column.size] = wholeProductSales * getSizeSalesRate(source, column.size)
+  columns.forEach((column: SecondaryPlanningSizeColumn, index: number): void => {
+    result[column.size] = wholeProductSales * (salesRates[index] ?? 0)
   })
   return result
 }
@@ -187,20 +207,27 @@ export function buildSecondaryPlanningSuggestionRows(
   ]))
 
   return intervals.map((interval: SplitInterval): SecondaryPlanningSuggestionRow => {
-    const intervalSalesTotal: number = sumWholeProductSalesForecast(source, interval.salesStartDate, interval.salesEndDate)
-    const intervalDemandBySize: Record<string, number> = distributeIntervalTotalBySize(source, columns, intervalSalesTotal)
+    const salesForecastFlow: SalesForecastFlow = buildSalesForecastFlow(source, columns, interval.salesStartDate, interval.salesEndDate)
     const suggestedBySize: Record<string, number> = {}
     const suggestionBasisBySize: Record<string, SecondaryPlanningSuggestionBasis> = {}
 
     columns.forEach((column: SecondaryPlanningSizeColumn): void => {
       const size: string = column.size
       const openingStock: number = stockBySize[size] ?? 0
-      const expectedInbound: number = sumExpectedInboundInInterval(source, size, interval)
-      const availableStock: number = openingStock + expectedInbound
-      const demandQty: number = normalizeQuantity(intervalDemandBySize[size] ?? 0)
+      const expectedInboundFlow: ExpectedInboundFlow = buildExpectedInboundFlow(source, size, interval)
+      let projectedStock: number = openingStock
+      let minimumStockQty: number = openingStock
+
+      iterateDates(interval.salesStartDate, interval.salesEndDate, (date: string): void => {
+        projectedStock += expectedInboundFlow.byDate.get(date) ?? 0
+        projectedStock -= salesForecastFlow.byDate[date]?.[size] ?? 0
+        minimumStockQty = Math.min(minimumStockQty, projectedStock)
+      })
+
+      const demandQty: number = normalizeQuantity(salesForecastFlow.totalBySize[size] ?? 0)
       const targetEndingStock: number = getTargetEndingStock(column)
-      const suggestedQty: number = normalizeQuantity(Math.max(0, demandQty + targetEndingStock - availableStock))
-      const endingStockQty: number = Math.max(0, availableStock + suggestedQty - demandQty)
+      const suggestedQty: number = normalizeRequiredQuantity(Math.max(0, targetEndingStock - minimumStockQty))
+      const endingStockQty: number = Math.max(0, projectedStock + suggestedQty)
 
       suggestedBySize[size] = suggestedQty
       suggestionBasisBySize[size] = {
@@ -210,8 +237,9 @@ export function buildSecondaryPlanningSuggestionRows(
         expectedInboundEndDate: interval.expectedInboundEndDate,
         ignoreExistingOrderInbound: interval.ignoreExistingOrderInbound,
         salesForecastQty: demandQty,
-        expectedInboundQty: expectedInbound,
+        expectedInboundQty: expectedInboundFlow.totalQty,
         carriedStockQty: openingStock,
+        minimumStockQty,
         targetEndingStockQty: targetEndingStock,
         suggestedQty,
         endingStockQty,

@@ -59,8 +59,8 @@ Last updated: 2026-06-19
 1. Whole order coverage is `[currentOrderInboundDueDate, nextOrderInboundDueDate)`.
 2. Round demand uses `[round n inbound date, round n+1 inbound date)`.
 3. The last round's next date is `nextOrderInboundDueDate`.
-4. Existing-order inbound for round n uses `[round n-1 inbound date, round n inbound date)`.
-5. Round 1 has no previous-to-current inbound window, so `ignoreExistingOrderInbound` does not affect round 1.
+4. Current v4 stock-flow semantics use `[round n inbound date, round n+1 inbound date)` for both demand and existing-order inbound application; inbound is added on its actual date before daily sales are subtracted.
+5. `ignoreExistingOrderInbound` excludes the same-round inbound interval from that stock flow.
 6. Existing inbound before `currentOrderInboundDueDate` remains applied as opening-stock-side supply.
 7. Split count, split dates, draft row quantities, `bufferStock`, and `ignoreExistingOrderInbound` are UI/snapshot state, not stock-order-calc request fields.
 8. 2+ rounds may create small integer-rounding differences because stock is carried between round intervals.

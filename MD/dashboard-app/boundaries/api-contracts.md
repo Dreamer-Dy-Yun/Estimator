@@ -125,6 +125,7 @@ Last updated: 2026-06-19
 - `inboundSplitSource`: 오더 상세 추천과 분할입고 제안이 공유하는 source.
 
 `existingOrderInboundSupplyBySize`와 `inboundSplitSource.expectation`은 현재 드로어에서 편집 중인 금번/분할 오더 수량을 포함하지 않는다.
+오더 상세의 `미입고 총 잔량(EA)` 펼침은 `existingOrderInboundSupplyBySize`를 `date < currentOrderInboundDueDate`, `currentOrderInboundDueDate <= date < nextOrderInboundDueDate`, `date >= nextOrderInboundDueDate`로 나눈 표시 전용 파생값이다.
 
 ## 7. Split inbound source 계약
 
@@ -163,12 +164,12 @@ Last updated: 2026-06-19
 ## 8. Planning 규칙
 
 - 오더 상세 추천 row와 분할입고 제안 row는 같은 planning 함수를 사용한다.
-- 한 차수의 수요는 `[round n inbound date, round n+1 inbound date)`에서 `total.sales`를 합산한다.
+- 한 차수의 수요는 `[round n inbound date, round n+1 inbound date)`에서 `total.sales`를 사용한다.
 - 마지막 차수의 다음 기준일은 `nextOrderInboundDueDate`이다.
-- n차에 반영되는 기존 오더 입고 예정량은 `[round n-1 inbound date, round n inbound date)`이다.
-- 1차는 이전 차수 구간이 없으므로 `ignoreExistingOrderInbound` 여부와 무관하다.
+- n차에 반영되는 기존 오더 입고 예정량은 같은 구간 `[round n inbound date, round n+1 inbound date)`의 `expectation`이며, 실제 입고일에 더해 날짜순 재고 흐름에 반영한다.
 - `expectedInboundOrderBalance`처럼 `currentOrderInboundDueDate` 전 입고 예정 집계는 opening stock 성격으로 항상 반영된다.
-- `ignoreExistingOrderInbound=true`는 previous-to-current window의 기존 오더 입고 예정량만 무시한다.
+- 추천 수량은 구간 중 최저 예상 재고가 UI 재고 하한보다 낮아지는 만큼이다.
+- `ignoreExistingOrderInbound=true`는 같은 구간의 기존 오더 입고 예정량만 무시한다.
 - 2차 이상은 구간별 재고 이월과 정수화 때문에 총합이 소폭 흔들릴 수 있다.
 
 ## 9. Snapshot 경계

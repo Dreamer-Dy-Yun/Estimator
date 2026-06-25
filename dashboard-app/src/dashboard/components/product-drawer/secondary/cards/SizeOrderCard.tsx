@@ -1,5 +1,5 @@
-import type { SecondaryInboundSplitSource, SecondaryStockOrderDisplaySizeRow } from '../../../../../api/types/secondary'
-import type { SizeOrderColumnTotals } from './sizeOrderCardModel'
+import type { SecondaryExistingOrderInboundSupplyBySize, SecondaryInboundSplitSource, SecondaryStockOrderDisplaySizeRow } from '../../../../../api/types/secondary'
+import type { ExistingOrderInboundBalanceBreakdownKey, ExistingOrderInboundBalanceBreakdownRow, SizeOrderColumnTotals } from './sizeOrderCardModel'
 import { useCallback, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { USE_MOCK_API } from '../../../../../api'
 import { ApiUnitErrorBadge } from '../../../../../components/ApiUnitErrorBadge'
@@ -18,6 +18,7 @@ import { SizeOrderShareChartRow } from './SizeOrderShareChartRow'
 import { SizeOrderWeightControls } from './SizeOrderWeightControls'
 import {
   calculateSizeOrderColumnTotals,
+  buildExistingOrderInboundBalanceBreakdown,
   formatSharePct,
   getComparisonWeightPct,
   getSelfWeightPctFromComparisonInput,
@@ -34,6 +35,7 @@ export type Props = {
     sizeRows: SecondarySizeOrderDisplayRow[]
     helpIds: Pick<SecondaryHelpIds, 'totalOrderBalance' | 'expectedInboundOrderBalance' | 'sizeRecQty' | 'salesForecastSizeOrder' | 'inboundSplitSchedule'>
     stockOrderDisplay: SecondaryStockOrderCalcResult['display'] | null
+    existingOrderInboundSupplyBySize: SecondaryExistingOrderInboundSupplyBySize | null
     calculationReady?: boolean
     manualConfirmBySize: Readonly<Record<string, true>>
     currentOrderInboundDueDate: string
@@ -73,6 +75,12 @@ const INBOUND_SPLIT_SCHEDULE_VARIANT_OPTIONS: InboundSplitScheduleVariantOption[
   { value: 'v2', label: 'V2' },
 ]
 
+const EXISTING_ORDER_INBOUND_BREAKDOWN_LABELS: Record<ExistingOrderInboundBalanceBreakdownKey, string> = {
+  beforeCurrent: KO.rowTotalOrderBalanceBeforeCurrent,
+  inPeriod: KO.rowTotalOrderBalanceInPeriod,
+  afterNext: KO.rowTotalOrderBalanceAfterNext,
+}
+
 function sumInboundSplitExpectationBeforeDate(
   source: SecondaryInboundSplitSource | null,
   size: string,
@@ -87,10 +95,11 @@ function sumInboundSplitExpectationBeforeDate(
 }
 
 export function SizeOrderCard({ sizeOrder, actions, help }: Props) : React.JSX.Element {
-  const { comparisonLabel, selfCompanyLabel, selfWeightPct, sizeRows, helpIds, stockOrderDisplay, calculationReady = true, manualConfirmBySize, currentOrderInboundDueDate, nextOrderInboundDueDate, calculationBaseDate, inboundSplitSource, inboundSplitSourceLoading, inboundSplitSourceError, confirmedRounds }: Props['sizeOrder'] = sizeOrder
+  const { comparisonLabel, selfCompanyLabel, selfWeightPct, sizeRows, helpIds, stockOrderDisplay, existingOrderInboundSupplyBySize, calculationReady = true, manualConfirmBySize, currentOrderInboundDueDate, nextOrderInboundDueDate, calculationBaseDate, inboundSplitSource, inboundSplitSourceLoading, inboundSplitSourceError, confirmedRounds }: Props['sizeOrder'] = sizeOrder
   const tableRef: React.RefObject<HTMLTableElement | null> = useRef<HTMLTableElement | null>(null)
   const [hoveredCell, setHoveredCell]: [SizeOrderHoverCell, React.Dispatch<React.SetStateAction<SizeOrderHoverCell>>] = useState<SizeOrderHoverCell>(null)
   const [inboundSplitScheduleVariant, setInboundSplitScheduleVariant]: [InboundSplitScheduleVariant, React.Dispatch<React.SetStateAction<InboundSplitScheduleVariant>>] = useState<InboundSplitScheduleVariant>('v2')
+  const [totalOrderBalanceExpanded, setTotalOrderBalanceExpanded]: [boolean, React.Dispatch<React.SetStateAction<boolean>>] = useState<boolean>(false)
   const tableStyle: SizeOrderTableStyle = {
     '--size-order-size-column-count': sizeRows.length,
     '--size-order-size-column-divisor': Math.max(sizeRows.length, 1),
@@ -134,9 +143,25 @@ export function SizeOrderCard({ sizeOrder, actions, help }: Props) : React.JSX.E
   const expectedInboundOrderBalanceTotal: number | null = stockOrderDisplay == null
     ? null
     : sizeRows.reduce((sum: number, row: SecondarySizeOrderDisplayRow): number => sum + (expectedInboundOrderBalanceBySize.get(row.size) ?? 0), 0)
+  const existingOrderInboundBreakdownRows: ExistingOrderInboundBalanceBreakdownRow[] = useMemo((): ExistingOrderInboundBalanceBreakdownRow[] => buildExistingOrderInboundBalanceBreakdown(
+    sizeRows,
+    existingOrderInboundSupplyBySize,
+    currentOrderInboundDueDate,
+    nextOrderInboundDueDate,
+  ), [currentOrderInboundDueDate, existingOrderInboundSupplyBySize, nextOrderInboundDueDate, sizeRows])
+  const handleTotalOrderBalanceToggle: () => void = useCallback((): void => {
+    setTotalOrderBalanceExpanded((current: boolean): boolean => !current)
+  }, [])
   const quantityRows: QuantityRow[] = [
     { label: KO.rowCurrentStockQty, totalQty: stockOrderDisplay?.currentStockQtyTotal ?? null, valueForSize: (row: SecondarySizeOrderDisplayRow) : number | undefined => stockOrderSizeRowBySize.get(row.size)?.currentStockQty },
-    { label: KO.rowTotalOrderBalance, totalQty: stockOrderDisplay?.totalOrderBalanceTotal ?? null, valueForSize: (row: SecondarySizeOrderDisplayRow) : number | undefined => stockOrderSizeRowBySize.get(row.size)?.totalOrderBalance, helpMark: { helpId: 'totalOrderBalance', labelId: helpIds.totalOrderBalance, help } },
+    { keyId: 'total-order-balance', label: KO.rowTotalOrderBalance, totalQty: stockOrderDisplay?.totalOrderBalanceTotal ?? null, valueForSize: (row: SecondarySizeOrderDisplayRow) : number | undefined => stockOrderSizeRowBySize.get(row.size)?.totalOrderBalance, strongValues: true, toggle: { expanded: totalOrderBalanceExpanded, ariaLabel: KO.ariaTotalOrderBalanceBreakdownToggle, onToggle: handleTotalOrderBalanceToggle }, helpMark: { helpId: 'totalOrderBalance', labelId: helpIds.totalOrderBalance, help } },
+    ...(totalOrderBalanceExpanded ? existingOrderInboundBreakdownRows.map((breakdown: ExistingOrderInboundBalanceBreakdownRow): QuantityRow => ({
+      keyId: `total-order-balance:${breakdown.key}`,
+      label: EXISTING_ORDER_INBOUND_BREAKDOWN_LABELS[breakdown.key],
+      totalQty: breakdown.totalQty,
+      valueForSize: (row: SecondarySizeOrderDisplayRow): number => breakdown.qtyBySize[row.size] ?? 0,
+      indent: true,
+    })) : []),
     { label: expectedInboundOrderBalanceLabel, totalQty: expectedInboundOrderBalanceTotal, valueForSize: (row: SecondarySizeOrderDisplayRow) : number | undefined => expectedInboundOrderBalanceBySize.get(row.size), helpMark: { helpId: 'expectedInboundOrderBalance', labelId: helpIds.expectedInboundOrderBalance, help } },
     { label: KO.rowSalesForecast, totalQty: calculationReady ? columnTotals.forecast : null, valueForSize: (row: SecondarySizeOrderDisplayRow) : number | null => (calculationReady ? row.forecastQty : null), helpMark: { helpId: 'salesForecastSizeOrder', labelId: helpIds.salesForecastSizeOrder, help } },
     { label: KO.thRecQty, totalQty: calculationReady ? columnTotals.rec : null, valueForSize: (row: SecondarySizeOrderDisplayRow) : number | null => (calculationReady ? row.recommendedQty : null), helpMark: { helpId: 'sizeRecQty', labelId: helpIds.sizeRecQty, help } },

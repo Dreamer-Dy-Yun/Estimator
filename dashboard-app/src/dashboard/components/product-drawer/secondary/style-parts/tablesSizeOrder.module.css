@@ -171,6 +171,45 @@
   box-shadow: inset 0 0 0 1px rgba(37, 99, 235, 0.36);
 }
 
+.sizeOrderQuantityLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.sizeOrderQuantityLabelIndented {
+  padding-left: 18px;
+  color: #475569;
+}
+
+.sizeOrderQuantityToggleButton {
+  width: 18px;
+  height: 18px;
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+  background: #fff;
+  color: #334155;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.sizeOrderQuantityToggleButton:hover {
+  border-color: #64748b;
+}
+
+.sizeOrderStrongValueCell {
+  font-weight: 700;
+}
+
+.sizeOrderStrongValueCell .stockNumberInput,
+.sizeOrderStrongValueCell .stockComputedValue {
+  font-weight: 700;
+}
+
 .sizeOrderShareChartCell {
   padding: 8px 10px;
   vertical-align: middle;

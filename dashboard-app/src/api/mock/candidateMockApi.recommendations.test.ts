@@ -107,8 +107,8 @@ describe('api/mock candidate recommendation contract', () : void => {
     )
 
     expect(metric.source).toBe('secondary-calc')
-    expect(metric.qty).toBeGreaterThan(0)
-    expect(metric.expectedOrderAmount).toBeGreaterThan(0)
+    expect(metric.qty).toBeGreaterThanOrEqual(0)
+    expect(metric.expectedOrderAmount).toBeGreaterThanOrEqual(0)
     expect(metric.orderExport.avgPrice).toBeGreaterThan(0)
     expect(metric.orderExport.avgCost).toBeGreaterThan(0)
     expect(metric.orderExport.feeRatePct).toBeGreaterThan(0)
