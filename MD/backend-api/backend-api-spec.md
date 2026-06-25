@@ -221,6 +221,7 @@ interface SecondaryStockOrderCalcResult {
 - `display.currentStockQty*`는 `calculationBaseDate` 기준 현재 재고이다.
 - `display.totalOrderBalance*`는 A 전체 집계이다.
 - `display.expectedInboundOrderBalance*`는 A 중 `date < currentOrderInboundDueDate`인 집계이다.
+- frontend는 오더 상세의 `미입고 총 잔량(EA)` 펼침에서 `existingOrderInboundSupplyBySize`를 `date < currentOrderInboundDueDate`, `currentOrderInboundDueDate <= date < nextOrderInboundDueDate`, `date >= nextOrderInboundDueDate`로 나눠 표시한다.
 - `trendDailyMean`, `dailyMean`, `sigma`는 주문량 계산에 쓰는 수요 지표이다.
 - `inboundSplitSource`는 오더 상세 추천과 분할입고 제안이 공유하는 단일 planning source이다.
 
@@ -266,10 +267,10 @@ interface SecondaryInboundSplitSource {
 - `/secondary/stock-order-calc`는 split count, split dates, draft row quantities, `bufferStock`, `ignoreExistingOrderInbound`를 요청으로 받지 않는다.
 - 상세 추천 row와 분할입고 제안 row는 모두 `inboundSplitSource`와 같은 frontend planning 함수를 사용해야 한다.
 - 수요 구간은 `[round n inbound date, round n+1 inbound date)`이다. 마지막 round의 다음 기준일은 `nextOrderInboundDueDate`이다.
-- n차에 반영되는 기존 오더 입고 예정량은 `[round n-1 inbound date, round n inbound date)`이다.
-- 1차는 이전 차수 구간이 없으므로 `ignoreExistingOrderInbound` 여부와 무관하다.
+- n차에 반영되는 기존 오더 입고 예정량은 같은 구간 `[round n inbound date, round n+1 inbound date)`의 `expectation`이며, 실제 입고일에 더해 날짜순 재고 흐름에 반영한다.
 - `expectedInboundOrderBalance`처럼 `currentOrderInboundDueDate` 전 입고 예정 집계는 opening stock 성격으로 항상 반영된다.
-- `ignoreExistingOrderInbound=true`는 각 round의 previous-to-current inbound window에 있는 기존 오더 입고 예정량만 무시한다.
+- 추천 수량은 구간 중 최저 예상 재고가 UI 재고 하한보다 낮아지는 만큼이다.
+- `ignoreExistingOrderInbound=true`는 각 round의 같은 구간에 있는 기존 오더 입고 예정량만 무시한다.
 - 차수별 재고 이월과 정수화 때문에 2차 이상에서는 총합이 소폭 달라질 수 있다. 큰 총량 차이는 계산 오류로 본다.
 
 Compact response fragment:

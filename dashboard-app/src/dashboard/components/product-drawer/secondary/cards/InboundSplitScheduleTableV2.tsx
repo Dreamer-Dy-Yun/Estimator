@@ -63,8 +63,9 @@ export function InboundSplitScheduleTableV2({
     startDate: calculationBaseDate,
     endDate: visibleRows[0]?.row.inboundDate ?? nextOrderInboundDueDate,
     openingStockDate: calculationBaseDate,
+    periodInboundSummaryLabel: KO.labelInboundSplitBeforeFirstRoundInbound,
     includeOpeningStock: true,
-    includePeriodInbound: false,
+    includePeriodInbound: true,
     excludeScheduledInbound: false,
   })
   const zeroExpanded: boolean = zeroSection != null && expandedSectionKeys.has(INBOUND_SPLIT_ZERO_SECTION_KEY)
@@ -138,7 +139,7 @@ export function InboundSplitScheduleTableV2({
           const row: InboundSplitScheduleRow = entry.row
           const rowIndex: number = entry.index
           const previousInboundDate: string = visibleRowIndex === 0 ? currentOrderInboundDueDate : (visibleRows[visibleRowIndex - 1]?.row.inboundDate ?? currentOrderInboundDueDate)
-          const detailStartDate: string = visibleRowIndex === 0 ? calculationBaseDate : previousInboundDate
+          const detailEndDate: string = visibleRows[visibleRowIndex + 1]?.row.inboundDate ?? nextOrderInboundDueDate
           const suggestedTotalQty: number = getInboundSplitSuggestedTotalQty(row, columns)
           const confirmedTotalQty: number = getInboundSplitTotalQty(row, columns)
           const totalDiffClass: string = diffClass(confirmedTotalQty, suggestedTotalQty)
@@ -152,8 +153,8 @@ export function InboundSplitScheduleTableV2({
             key: detailSectionKey,
             source: inboundSplitSource,
             columns,
-            startDate: detailStartDate,
-            endDate: row.inboundDate,
+            startDate: row.inboundDate,
+            endDate: detailEndDate,
             periodInboundSummaryLabel: `${row.round}${KO.optionInboundSplitRoundSuffix} ${KO.labelInboundSplitBeforeRoundAdditionalInbound}`,
             includeOpeningStock: false,
             excludeScheduledInbound: row.ignoreExistingOrderInbound,

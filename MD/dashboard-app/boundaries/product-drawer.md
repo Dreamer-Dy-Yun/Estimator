@@ -64,6 +64,8 @@ Last updated: 2026-06-24
 - `inboundSplitSource`: 오더 상세 추천과 분할입고 제안의 공유 planning source.
 
 `existingOrderInboundSupplyBySize`와 `inboundSplitSource.expectation`은 현재 드로어에서 편집 중인 금번/분할 오더를 포함하지 않는다.
+오더 상세의 `미입고 총 잔량(EA)` 펼침은 `existingOrderInboundSupplyBySize`를 금번 오더 입고일 전, 금번~차기 오더 입고일 사이, 차기 오더 입고일 이후로 나눈 표시 전용 파생값이다.
+오더 상세의 `확정 수량(EA)` 행은 메인 합계/사이즈 값을 기본 표시하고, 분할입고가 적용된 차수별 확정 상세 행만 접기/펼치기 대상으로 둔다. 기본 상태는 펼침이다.
 
 ## 6. 일간 추세 source
 
@@ -113,18 +115,18 @@ Last updated: 2026-06-24
 | 전체 주문 계산 범위 | `[currentOrderInboundDueDate, nextOrderInboundDueDate)` |
 | 차수별 수요 | `[round n inbound date, round n+1 inbound date)` |
 | 마지막 차수의 다음 기준일 | `nextOrderInboundDueDate` |
-| n차 기존 오더 입고 예정량 | `[round n-1 inbound date, round n inbound date)` |
+| n차 기존 오더 입고 예정량 | `[round n inbound date, round n+1 inbound date)` 안의 실제 입고일별 `expectation` |
 
 세부 규칙:
 
 - 오더 상세 추천 row와 분할입고 제안 row는 같은 planning 함수를 사용한다.
-- 한 차수의 전체 수요는 `total.sales`로 계산한다.
+- 한 차수의 수요는 `total.sales`를 날짜순 재고 흐름의 판매 차감값으로 사용한다.
 - size 배분은 `sizeInfo[size].salesRate`를 사용한다.
 - size별 재고는 `sizeInfo[size].baseStock`에서 시작해 차수 간 이월된다.
-- 기존 오더 입고 예정량은 `expectation[size][]`에서 온다.
+- 기존 오더 입고 예정량은 같은 차수 구간의 `expectation[size][]`에서 오며, 실제 입고일에 더한 뒤 일별 판매예측을 차감한다.
 - `display.expectedInboundOrderBalance*`처럼 `currentOrderInboundDueDate` 전 입고 예정 집계는 opening stock 성격으로 항상 반영된다.
-- `ignoreExistingOrderInbound=true`는 각 차수의 previous-to-current window에 있는 기존 오더 입고 예정량만 무시한다.
-- 1차는 previous-to-current window가 없으므로 `ignoreExistingOrderInbound` 여부와 무관하다.
+- 제안 수량은 구간 중 최저 예상 재고가 UI 재고 하한보다 낮아지는 만큼이다.
+- `ignoreExistingOrderInbound=true`는 같은 차수 구간의 기존 오더 입고 예정량만 무시한다.
 - 2차 이상은 재고 이월과 정수화 때문에 총합이 소폭 달라질 수 있다.
 
 ## 9. 분할입고 UI variant 경계
@@ -134,7 +136,7 @@ Last updated: 2026-06-24
 - 현재 기본 활성 화면은 V2이다.
 - V0는 원형 화면 보존용이다.
 - V1은 `inboundSplitSource.sizeInfo`와 `expectation`을 read-only source summary table로 표시하는 UI 실험본이다.
-- V2는 전체/차수별 제안·확정 row 아래에 상세를 펼쳐 보여준다. 전체 상세는 `calculationBaseDate` 기준 기존 재고만 표시하고, 차수 상세의 기 오더 입고예정은 `[이전 기준일, 현재 차수 입고일)` 기준으로 표시한다.
+- V2는 전체/차수별 제안·확정 row 아래에 상세를 펼쳐 보여준다. 전체 상세는 `calculationBaseDate` 기준 기존 재고와 `[calculationBaseDate, 1차 입고일)` 기 오더 입고예정을 표시하고, 차수 상세의 기 오더 입고예정은 `[현재 차수 입고일, 다음 차수 입고일)` 기준으로 표시한다.
 - V0/V1/V2 선택 UI는 mock API 모드에서만 `분할 입고 설정` 버튼 아래에 노출된다. 실제 HTTP API 모드에서는 V2로 고정한다.
 - Variant별 파일 책임과 CSS 책임은 `MD/dashboard-app/boundaries/inbound-split-variants.md`에서 관리한다.
 
@@ -168,7 +170,7 @@ Secondary 상품 드로어의 한국어 UI 문구는 `dashboard-app/src/dashboar
 - 오더 상세 추천과 분할입고 제안이 같은 source/planning 함수를 쓰는가.
 - 수동 확정 변경이 분할입고 기준과 snapshot 저장에 반영되는가.
 - daily trend source와 stock-order planning source를 섞어 쓰지 않는가.
-- `ignoreExistingOrderInbound`가 1차에는 영향을 주지 않는가.
+- `ignoreExistingOrderInbound`가 같은 차수 구간의 `expectation`만 제외하는가.
 - UI variant 변경이 API DTO, planning model, snapshot contract를 임의 변경하지 않는가.
 - mock 전용 variant 선택 UI가 실제 API 모드에 노출되지 않는가.
 - API/mock/문서의 field 이름과 의미가 현재 타입과 일치하는가.

@@ -1,4 +1,5 @@
 import type { SecondarySizeOrderDisplayRow } from '../model/secondarySizeOrderRows'
+import { useState } from 'react'
 import { formatGroupedNumber } from '../../../../../utils/format'
 import { KO } from '../../ko'
 import styles from '../secondaryDrawer.module.css'
@@ -40,17 +41,34 @@ export function SizeOrderConfirmQuantityRows({
   onClearConfirmedRounds,
   onConfirmQtyChange,
 }: SizeOrderConfirmQuantityRowsProps): React.JSX.Element {
+  const [confirmDetailsExpanded, setConfirmDetailsExpanded]: [boolean, React.Dispatch<React.SetStateAction<boolean>>] = useState<boolean>(true)
   const confirmRowKey: string = 'confirm'
+  const confirmDetailsToggleVisible: boolean = calculationReady && splitRoundRows.length > 0
   return (
     <>
       <tr>
-        <td className={getCellClassName(confirmRowKey, 'metric')} onMouseEnter={(): void => onCellMouseEnter(confirmRowKey, 'metric')}>{KO.thConfirmQty}</td>
-        <td className={getCellClassName(confirmRowKey, 'total', styles.num)} onMouseEnter={(): void => onCellMouseEnter(confirmRowKey, 'total')}>{calculationReady ? formatGroupedNumber(splitRoundsControlDirectConfirm ? splitRoundConfirmTotal : columnConfirmTotal) : KO.valueNotCalculated}</td>
+        <td className={getCellClassName(confirmRowKey, 'metric')} onMouseEnter={(): void => onCellMouseEnter(confirmRowKey, 'metric')}>
+          <span className={styles.sizeOrderQuantityLabel}>
+            {confirmDetailsToggleVisible ? (
+              <button
+                type="button"
+                className={styles.sizeOrderQuantityToggleButton}
+                aria-label={KO.ariaConfirmQtyBreakdownToggle}
+                aria-expanded={confirmDetailsExpanded}
+                onClick={(): void => setConfirmDetailsExpanded((current: boolean): boolean => !current)}
+              >
+                {confirmDetailsExpanded ? '-' : '+'}
+              </button>
+            ) : null}
+            <span>{KO.thConfirmQty}</span>
+          </span>
+        </td>
+        <td className={getCellClassName(confirmRowKey, 'total', `${styles.num} ${styles.sizeOrderStrongValueCell}`)} onMouseEnter={(): void => onCellMouseEnter(confirmRowKey, 'total')}>{calculationReady ? formatGroupedNumber(splitRoundsControlDirectConfirm ? splitRoundConfirmTotal : columnConfirmTotal) : KO.valueNotCalculated}</td>
         {sizeRows.map((row: SecondarySizeOrderDisplayRow): React.JSX.Element => {
           const manual: boolean = Boolean(manualConfirmBySize[row.size])
           const lockedConfirmQty: number = splitRoundConfirmBySize[row.size] ?? 0
           return (
-            <td key={row.size} className={getCellClassName(confirmRowKey, `size:${row.size}`, `${styles.num} ${styles.confirmQtyCell} ${manual && !splitRoundsControlDirectConfirm ? styles.confirmQtyCellManual : ''}`)} onMouseEnter={(): void => onCellMouseEnter(confirmRowKey, `size:${row.size}`)}>
+            <td key={row.size} className={getCellClassName(confirmRowKey, `size:${row.size}`, `${styles.num} ${styles.sizeOrderStrongValueCell} ${styles.confirmQtyCell} ${manual && !splitRoundsControlDirectConfirm ? styles.confirmQtyCellManual : ''}`)} onMouseEnter={(): void => onCellMouseEnter(confirmRowKey, `size:${row.size}`)}>
               <span className={styles.confirmQtyInputWrap}>
                 {calculationReady && splitRoundsControlDirectConfirm ? (
                   <span className={`${styles.stockComputedValue} ${styles.confirmQtyPlainComputedValue}`}>{formatGroupedNumber(lockedConfirmQty)}</span>
@@ -78,7 +96,7 @@ export function SizeOrderConfirmQuantityRows({
           )
         })}
       </tr>
-      {calculationReady && splitRoundRows.map((row: InboundSplitScheduleRow): React.JSX.Element => {
+      {calculationReady && confirmDetailsExpanded && splitRoundRows.map((row: InboundSplitScheduleRow): React.JSX.Element => {
         const rowKey: string = `split:${row.id}`
         return (
         <tr key={`applied-${row.id}`}>

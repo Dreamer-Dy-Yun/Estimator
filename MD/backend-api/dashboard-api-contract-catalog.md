@@ -179,10 +179,13 @@ Rules:
 - `existingOrderInboundSupplyBySize` is A, the existing ordered but not-yet-inbound schedule. It excludes the draft/current order.
 - `display.totalOrderBalance*` is the aggregate of all A points.
 - `display.expectedInboundOrderBalance*` is the aggregate of A points with `date < currentOrderInboundDueDate`.
+- The frontend order-detail table derives the expandable `미입고 총 잔량(EA)` breakdown from `existingOrderInboundSupplyBySize` by `date < currentOrderInboundDueDate`, `currentOrderInboundDueDate <= date < nextOrderInboundDueDate`, and `date >= nextOrderInboundDueDate`.
 - `total.sales` covers `[currentOrderInboundDueDate, nextOrderInboundDueDate)`.
 - `total.suggestion` is backend source aggregate, not necessarily frontend final recommendation.
 - `sizeInfo[size].baseStock` is opening/current stock and may be negative.
 - `expectation[size][]` is existing-order future inbound and excludes the draft/current order.
+- Frontend final recommendations simulate stock flow by round. For round n, demand uses `[round n inbound date, round n+1 inbound date)` and existing-order inbound from the same interval is added on its actual inbound date before daily sales are subtracted.
+- The suggested quantity is the amount required to keep the interval's lowest projected stock at or above the UI stock floor. `ignoreExistingOrderInbound=true` excludes only the same-round `expectation` interval from that flow.
 - Split count, split dates, applied rows, `bufferStock`, and `ignoreExistingOrderInbound` are not request fields.
 - Request body field names `currentOrderInboundDueDate`, `nextOrderInboundDueDate`, and `orderCoverageDays` are the current serialized API contract and must be preserved as-is for this endpoint.
 

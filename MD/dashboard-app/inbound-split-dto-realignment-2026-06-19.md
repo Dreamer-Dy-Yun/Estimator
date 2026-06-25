@@ -16,9 +16,9 @@
 - 일간 추이 API에는 `size?`만 추가한다. 입고일, 가중치, 오더 계산 전용 필드는 넘기지 않는다.
 - 분할입고 범위는 `[currentOrderInboundDueDate, nextOrderInboundDueDate)`이다.
 - 1차 분할 제안 총합은 오더 상세 추천 총량과 같은 planning 함수에서 산정되어야 한다.
-- 2차 이상에서는 각 차수 구간의 `total.sales` 수요, `sizeInfo[size].salesRate`, `sizeInfo[size].baseStock`, `expectation[size][]`, 현오더 입고 전 기존 입고예정량, UI 여유재고 목표를 반영한다. 수요는 `[n차 입고일, n+1차 입고일)`, n차에 반영되는 기오더 입고 예정량은 `[n-1차 입고일, n차 입고일)` 기준이다.
+- 현재 v4 산식에서는 각 차수 구간의 `total.sales` 수요, `sizeInfo[size].salesRate`, `sizeInfo[size].baseStock`, `expectation[size][]`, 현오더 입고 전 기존 입고예정량, UI 재고 하한을 반영한다. 수요와 기오더 입고 예정량은 모두 `[n차 입고일, n+1차 입고일)` 기준이며, 입고 예정량은 실제 입고일에 더한 뒤 일별 판매예측을 차감한다.
 - 현재 재고는 `sizeInfo[size].baseStock`이다. 기존 오더 입고 예정량은 `expectation[size][]`이다.
-- `ignoreExistingOrderInbound`는 n차에 반영되는 `[n-1차 입고일, n차 입고일)` 기존 주문 입고예정량 반영 여부를 제어한다. 시작 재고와 현오더 입고 전 기존 입고예정량은 항상 적용한다.
+- `ignoreExistingOrderInbound`는 n차에 반영되는 `[n차 입고일, n+1차 입고일)` 기존 주문 입고예정량 반영 여부를 제어한다. 시작 재고와 현오더 입고 전 기존 입고예정량은 항상 적용한다.
 
 ## Plan
 

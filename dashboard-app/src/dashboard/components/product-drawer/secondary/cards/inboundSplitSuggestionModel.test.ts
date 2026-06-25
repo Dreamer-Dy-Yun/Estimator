@@ -140,6 +140,6 @@ describe('buildInboundSplitSuggestedQuantitiesByRow', () : void => {
       source,
     )
 
-    expect(rows).toEqual([{ S: 2, M: 2 }, { S: 4, M: 2 }])
+    expect(rows).toEqual([{ S: 3, M: 2 }, { S: 3, M: 2 }])
   })
 })

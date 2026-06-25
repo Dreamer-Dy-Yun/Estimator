@@ -65,12 +65,12 @@ Last updated: 2026-06-19
 
 - daily trend API는 `SecondaryDailyTrendSource`를 반환한다. chart-ready `stockBar`, `inboundAccumBar`, `idx`, `month`, `isForecast`는 프론트에서 파생한다.
 - `SecondaryDailyTrendSource.baseStock`은 선택 size 또는 전체 기준의 기초 재고이고, `data.base[date].inbound`는 해당 일자의 입고 수량이다. `size` query가 없으면 전체 기준, 있으면 해당 사이즈 기준이다.
-- stock-order calc API는 A 원천인 `existingOrderInboundSupplyBySize[size][]`를 반환한다. `미입고 총 잔량(EA)`은 A 전체 집계이고, `현오더 입고전 미입고잔량(EA)`은 `date < currentOrderInboundDueDate`인 A 집계이다.
+- stock-order calc API는 A 원천인 `existingOrderInboundSupplyBySize[size][]`를 반환한다. `미입고 총 잔량(EA)`은 A 전체 집계이고, 펼침 행은 `date < currentOrderInboundDueDate`, `currentOrderInboundDueDate <= date < nextOrderInboundDueDate`, `date >= nextOrderInboundDueDate`로 나눈 A 집계이다. `현오더 입고전 미입고잔량(EA)`은 `date < currentOrderInboundDueDate`인 A 집계이다.
 - `getSecondaryStockOrderCalc().inboundSplitSource`는 `total.suggestion`, `total.sales`, `sizeInfo`, `expectation`, `confirmed`를 제공한다. 현재 재고는 `sizeInfo[size].baseStock`, 기 주문 입고 예정 수량(A)은 `expectation[size][]`로 분리한다.
 - split count, selected split dates, row totals, per-size confirmed quantities는 화면 draft state다.
 - 입고 분할 차수 날짜는 `currentOrderInboundDueDate <= date < nextOrderInboundDueDate` 범위로 검증한다. 첫 차수는 금번 입고일과 같은 날짜를 허용한다.
 - 2차수 이상으로 Apply하면 `drawer2.confirmed.rounds`와 직접 확정 수량이 함께 갱신된다. 1차수 Apply는 rounds를 비우고 직접 확정 수량으로 접는다.
-- 분할 입고 제안은 오더 상세 추천과 같은 planning 함수로 계산한다. 각 차수 구간의 `total.sales` 수요, `sizeInfo[size].salesRate`, `sizeInfo[size].baseStock`, `expectation[size][]`, 현오더 입고 전 기존 입고예정량, UI 여유재고 목표를 반영한다. 수요 구간은 `[n차 입고일, n+1차 입고일)`이고, n차에 반영되는 기오더 입고 예정량은 `[n-1차 입고일, n차 입고일)`이다. 1차는 이전 차수 구간이 없으므로 `ignoreExistingOrderInbound` 여부와 무관하게 현오더 입고 전 기존 입고예정량만 반영된다. `total.suggestion`은 백엔드 source 집계값이며 UI 여유재고가 적용된 최종 추천 총량을 대체하지 않는다.
+- 분할 입고 제안은 오더 상세 추천과 같은 planning 함수로 계산한다. 각 차수 구간의 `total.sales` 수요, `sizeInfo[size].salesRate`, `sizeInfo[size].baseStock`, `expectation[size][]`, 현오더 입고 전 기존 입고예정량, UI 재고 하한을 반영한다. 구간은 `[n차 입고일, n+1차 입고일)`이고, 같은 구간의 `expectation`은 실제 입고일에 더한 뒤 일별 판매예측을 차감한다. 제안 수량은 구간 중 최저 예상 재고가 UI 재고 하한보다 낮아지는 만큼이다. `ignoreExistingOrderInbound`는 해당 구간의 `expectation`만 제외한다. `total.suggestion`은 백엔드 source 집계값이며 UI 여유재고가 적용된 최종 추천 총량을 대체하지 않는다.
 
 ## Candidate Stash
 

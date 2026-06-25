@@ -81,9 +81,9 @@ V2는 현재 기본 분할입고 설정 UI이다.
 | `inboundSplitScheduleDetailRows.ts` | 0구간 기존재고와 차수별 입고예정 표시 row 생성 |
 | `inboundSplitScheduleTableDisplay.ts` | V2 table 표시 포맷과 제안 근거 tooltip helper |
 
-V2는 API DTO, draft hook, planning model, date policy, apply/close contract를 V0/V1과 공유한다. UI만 다르며, 전체 구간 상세는 `calculationBaseDate` 기준 기존 재고만 보여준다. 각 차수 상세의 기 오더 입고예정은 연산 basis와 동일하게 `[이전 기준일, 현재 차수 입고일)` 범위를 펼쳐 보여준다. 1차의 이전 기준일은 `calculationBaseDate`이고, 2차 이후는 이전 차수 입고일이다. 구간별 입고예정 합 row는 입고 예정일이 없어도 항상 표시한다.
+V2는 API DTO, draft hook, planning model, date policy, apply/close contract를 V0/V1과 공유한다. UI만 다르며, 전체 행 상세는 `calculationBaseDate` 기준 기존 재고와 `[calculationBaseDate, 1차 입고일)`의 기 오더 입고예정을 보여준다. 각 차수 상세의 기 오더 입고예정은 연산 basis와 동일하게 `[현재 차수 입고일, 다음 차수 입고일)` 범위를 펼쳐 보여준다. 마지막 차수의 다음 기준일은 `nextOrderInboundDueDate`이다. 구간별 입고예정 합 row는 입고 예정일이 없어도 항상 표시한다.
 
-V2의 전체/차수 펼침은 차수 셀의 `+/-` 버튼과 dialog toolbar의 전체 펼치기/접기 토글 버튼이 담당한다. 전체 행의 상세에는 기존 재고만 표시한다. 차수 상세의 입고예정 합 row는 `n차 이전 추가 입고예정` 라벨로 날짜+지표 칸을 병합해 표시한다.
+V2의 전체/차수 펼침은 차수 셀의 `+/-` 버튼과 dialog toolbar의 전체 펼치기/접기 토글 버튼이 담당한다. 전체 행의 상세에는 기존 재고와 `1차 이전 구간 입고예정`을 표시한다. 차수 상세의 입고예정 합 row는 `n차 구간 입고예정` 라벨로 날짜+지표 칸을 병합해 표시한다.
 
 ## 6. V1 Source Summary 범위
 

@@ -33,7 +33,7 @@
 - `getSecondaryStockOrderCalc().inboundSplitSource` is source-only for split-inbound shortage suggestions. It does not receive split count, selected split dates, current popup draft quantities, or split result rows.
 - Current inbound split source shape is now `{ total, sizeInfo, expectation, confirmed }`; older supply-point field names from this dated clarification are superseded.
 - Split inbound confirmed rounds now store `ignoreExistingOrderInbound`. The current UI exposes this as one schedule-level toggle and writes the same value to all rounds on apply.
-- Current planning semantics after the split-inbound cleanup: demand uses `[round n inbound date, round n+1 inbound date)`, existing-order inbound for round n uses `[round n-1 inbound date, round n inbound date)`, and round 1 is not affected by `ignoreExistingOrderInbound`.
+- Current planning semantics after v4 stock-flow update: demand uses `[round n inbound date, round n+1 inbound date)`, existing-order inbound from the same interval is applied on its actual inbound date, and `ignoreExistingOrderInbound` excludes that same-round inbound interval.
 
 ## 2026-06-10 current API rewrite
 

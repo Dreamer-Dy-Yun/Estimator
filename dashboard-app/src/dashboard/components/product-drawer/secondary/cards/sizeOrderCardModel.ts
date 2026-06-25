@@ -1,5 +1,6 @@
 import { formatGroupedNumber, formatRatioDecimalKo } from '../../../../../utils/format'
 
+import type { SecondaryExistingOrderInboundSupplyBySize } from '../../../../../api/types/secondary'
 import type { SecondarySizeOrderDisplayRow } from '../model/secondarySizeOrderRows'
 
 export type SizeOrderColumnTotals = {
@@ -7,6 +8,14 @@ export type SizeOrderColumnTotals = {
   forecast: number
   rec: number
   confirm: number
+}
+
+export type ExistingOrderInboundBalanceBreakdownKey = 'beforeCurrent' | 'inPeriod' | 'afterNext'
+
+export interface ExistingOrderInboundBalanceBreakdownRow {
+  readonly key: ExistingOrderInboundBalanceBreakdownKey
+  readonly totalQty: number
+  readonly qtyBySize: Readonly<Record<string, number>>
 }
 
 function parseFiniteNumberInput(rawValue: string): number | null {
@@ -49,6 +58,44 @@ export function calculateSizeOrderColumnTotals(sizeRows: readonly SecondarySizeO
     }),
     { weightedPct: 0, forecast: 0, rec: 0, confirm: 0 },
   )
+}
+
+function sumExistingOrderInboundSupply(
+  supply: SecondaryExistingOrderInboundSupplyBySize,
+  size: string,
+  inRange: (date: string) => boolean,
+): number {
+  return (supply[size] ?? []).reduce((sum: number, point: SecondaryExistingOrderInboundSupplyBySize[string][number]): number => {
+    if (!inRange(point.date)) return sum
+    return sum + Math.max(0, Math.round(point.qty))
+  }, 0)
+}
+
+export function buildExistingOrderInboundBalanceBreakdown(
+  sizeRows: readonly SecondarySizeOrderDisplayRow[],
+  supply: SecondaryExistingOrderInboundSupplyBySize | null,
+  currentOrderInboundDueDate: string,
+  nextOrderInboundDueDate: string,
+): ExistingOrderInboundBalanceBreakdownRow[] {
+  if (supply == null) return []
+
+  const ranges: Array<{ key: ExistingOrderInboundBalanceBreakdownKey; inRange: (date: string) => boolean }> = [
+    { key: 'beforeCurrent', inRange: (date: string): boolean => date < currentOrderInboundDueDate },
+    { key: 'inPeriod', inRange: (date: string): boolean => date >= currentOrderInboundDueDate && date < nextOrderInboundDueDate },
+    { key: 'afterNext', inRange: (date: string): boolean => date >= nextOrderInboundDueDate },
+  ]
+
+  return ranges.map(({ key, inRange }: { key: ExistingOrderInboundBalanceBreakdownKey; inRange: (date: string) => boolean }): ExistingOrderInboundBalanceBreakdownRow => {
+    const qtyBySize: Record<string, number> = {}
+    sizeRows.forEach((row: SecondarySizeOrderDisplayRow): void => {
+      qtyBySize[row.size] = sumExistingOrderInboundSupply(supply, row.size, inRange)
+    })
+    return {
+      key,
+      totalQty: Object.values(qtyBySize).reduce((sum: number, qty: number): number => sum + qty, 0),
+      qtyBySize,
+    }
+  })
 }
 
 export function parseConfirmQtyInput(rawValue: string): number | null {

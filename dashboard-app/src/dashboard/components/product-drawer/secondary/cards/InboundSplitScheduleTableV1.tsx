@@ -46,6 +46,7 @@ function formatSuggestedBasisTooltip(basis: InboundSplitSuggestionBasis | null):
     `${KO.labelInboundSplitBasisSalesForecast}: ${formatTooltipQty(basis.salesForecastQty)}`,
     `${KO.labelInboundSplitBasisExpectedInbound}${expectedInboundPeriodText}: ${expectedInboundText}`,
     `${KO.labelInboundSplitBasisCarriedStock}: ${formatTooltipQty(basis.carriedStockQty)}`,
+    `${KO.labelInboundSplitBasisMinimumStock}: ${formatTooltipQty(basis.minimumStockQty)}`,
   ]
   if (basis.targetEndingStockQty > 0) {
     lines.push(`${KO.labelInboundSplitBasisTargetEndingStock}: ${formatTooltipQty(basis.targetEndingStockQty)}`)
@@ -69,6 +70,7 @@ function aggregateSuggestedBasis(row: InboundSplitScheduleRow, columns: readonly
     salesForecastQty: sum.salesForecastQty + basis.salesForecastQty,
     expectedInboundQty: sum.expectedInboundQty + basis.expectedInboundQty,
     carriedStockQty: sum.carriedStockQty + basis.carriedStockQty,
+    minimumStockQty: sum.minimumStockQty + basis.minimumStockQty,
     targetEndingStockQty: sum.targetEndingStockQty + basis.targetEndingStockQty,
     suggestedQty: sum.suggestedQty + basis.suggestedQty,
     endingStockQty: sum.endingStockQty + basis.endingStockQty,
@@ -81,6 +83,7 @@ function aggregateSuggestedBasis(row: InboundSplitScheduleRow, columns: readonly
     salesForecastQty: 0,
     expectedInboundQty: 0,
     carriedStockQty: 0,
+    minimumStockQty: 0,
     targetEndingStockQty: 0,
     suggestedQty: 0,
     endingStockQty: 0,

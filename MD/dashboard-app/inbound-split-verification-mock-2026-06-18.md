@@ -1,6 +1,6 @@
 # 분할입고 검증용 목데이터
 
-Current rule note: this historical mock note is superseded where it says the ignore-existing-order-inbound option excludes the whole split window or that split-count-only changes must never change totals. Current behavior uses `[round n-1 inbound date, round n inbound date)` for existing-order inbound, round 1 is not affected by the toggle, and small integer-rounding total differences can occur.
+Current rule note: this historical mock note is superseded where it says the ignore-existing-order-inbound option excludes the whole split window or that split-count-only changes must never change totals. Current v4 behavior uses `[round n inbound date, round n+1 inbound date)` for existing-order inbound, applies inbound on its actual date in the stock flow, and small stock-flow/integer total differences can occur.
 
 ## Goal
 
@@ -56,7 +56,7 @@ Current rule note: this historical mock note is superseded where it says the ign
 - 1차만 둘 때는 오더 상세 추천 총량과 같은 planning 함수 결과가 제안량이 된다.
 - 2차로 나누면 기본 날짜는 `2026-12-18`, `2027-03-18`이 되며 `2027-03-18`의 입고예정은 2차에 들어가야 한다.
 - 3차로 나누면 기본 날짜는 `2026-12-18`, `2027-02-18`, `2027-04-18`이 되며 `2027-02-18`의 입고예정은 2차에 들어가야 한다.
-- `기오더 입고전 미입고량 제외` 옵션을 켜면 n차에 반영되는 `[n-1차 입고일, n차 입고일)` 기존 주문 입고예정량을 반영하지 않는다. 1차는 이전 차수 구간이 없으므로 옵션 여부와 무관하게 동일하게 계산된다. 2차 이상은 구간별 재고 이월과 정수화 때문에 총합이 소폭 달라질 수 있으나, 차수 수 변경만으로 큰 차이가 나면 계산 오류로 본다.
+- `기오더 입고전 미입고량 제외` 옵션을 켜면 n차에 반영되는 `[n차 입고일, n+1차 입고일)` 기존 주문 입고예정량을 반영하지 않는다. 구간별 날짜순 재고 흐름과 정수화 때문에 총합이 소폭 달라질 수 있으나, 차수 수 변경만으로 큰 차이가 나면 계산 오류로 본다.
 - `240`, `250`, `260`은 옵션 ON/OFF에 따른 제안량 차이가 크게 보이도록 입고예정량을 크게 배치했다.
 - 모든 값은 일부러 비균일하게 두었다. 균일 일판매 또는 둥근 입고량으로 인해 기간 경계, 반올림, 총량 고정 오류가 숨는 것을 피하기 위함이다.
 
