@@ -41,8 +41,8 @@ describe('buildInboundSplitSuggestedQuantitiesByRow', () : void => {
     const rows: Record<string, number>[] = buildInboundSplitSuggestedQuantitiesByRow(
       COLUMNS,
       [
-        { inboundDate: '2026-04-01', excludePeriodExistingOrderInbound: false },
-        { inboundDate: '2026-04-03', excludePeriodExistingOrderInbound: false },
+        { inboundDate: '2026-04-01', excludeSegmentExistingOrderInbound: false },
+        { inboundDate: '2026-04-03', excludeSegmentExistingOrderInbound: false },
       ],
       '2026-04-05',
       source,
@@ -62,8 +62,8 @@ describe('buildInboundSplitSuggestedQuantitiesByRow', () : void => {
     const rows: Record<string, number>[] = buildInboundSplitSuggestedQuantitiesByRow(
       [{ size: 'S', confirmedQty: 0, recommendedQty: 10 }],
       [
-        { inboundDate: '2026-04-01', excludePeriodExistingOrderInbound: false },
-        { inboundDate: '2026-04-03', excludePeriodExistingOrderInbound: false },
+        { inboundDate: '2026-04-01', excludeSegmentExistingOrderInbound: false },
+        { inboundDate: '2026-04-03', excludeSegmentExistingOrderInbound: false },
       ],
       '2026-04-05',
       source,
@@ -83,8 +83,8 @@ describe('buildInboundSplitSuggestedQuantitiesByRow', () : void => {
     const rows: Record<string, number>[] = buildInboundSplitSuggestedQuantitiesByRow(
       COLUMNS,
       [
-        { inboundDate: '2026-04-01', excludePeriodExistingOrderInbound: false },
-        { inboundDate: '2026-04-03', excludePeriodExistingOrderInbound: false },
+        { inboundDate: '2026-04-01', excludeSegmentExistingOrderInbound: false },
+        { inboundDate: '2026-04-03', excludeSegmentExistingOrderInbound: false },
       ],
       '2026-04-05',
       source,
@@ -102,7 +102,7 @@ describe('buildInboundSplitSuggestedQuantitiesByRow', () : void => {
 
     expect((): Record<string, number>[] => buildInboundSplitSuggestedQuantitiesByRow(
       COLUMNS,
-      [{ inboundDate: 'not-a-date', excludePeriodExistingOrderInbound: false }],
+      [{ inboundDate: 'not-a-date', excludeSegmentExistingOrderInbound: false }],
       '2026-04-05',
       source,
     )).toThrow('Invalid inbound split source date')
@@ -133,8 +133,8 @@ describe('buildInboundSplitSuggestedQuantitiesByRow', () : void => {
         { size: 'M', confirmedQty: 10, recommendedQty: 10 },
       ],
       [
-        { inboundDate: '2026-04-01', excludePeriodExistingOrderInbound: false },
-        { inboundDate: '2026-04-03', excludePeriodExistingOrderInbound: false },
+        { inboundDate: '2026-04-01', excludeSegmentExistingOrderInbound: false },
+        { inboundDate: '2026-04-03', excludeSegmentExistingOrderInbound: false },
       ],
       '2026-04-05',
       source,

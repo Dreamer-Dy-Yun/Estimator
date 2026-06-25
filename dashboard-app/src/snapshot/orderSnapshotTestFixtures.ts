@@ -135,7 +135,7 @@ export const validSnapshot: OrderSnapshotDocument = {
     confirmed: {
       rounds: [{
         date: '2026-02-01',
-        excludePeriodExistingOrderInbound: false,
+        excludeSegmentExistingOrderInbound: false,
         qtyBySize: {
           '250': 12,
         },

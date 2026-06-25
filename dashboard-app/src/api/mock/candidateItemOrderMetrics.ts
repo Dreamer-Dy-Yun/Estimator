@@ -9,7 +9,7 @@ import type {
   SecondaryStockOrderCalcResult,
 } from '../types'
 import type { CandidateItemInsightSummary } from '../types/candidate'
-import type { CandidateItemOrderExportSizeQty, CandidateOrderMetric } from '../types'
+import type { CandidateItemOrderExportInboundRound, CandidateItemOrderExportSizeQty, CandidateOrderMetric } from '../types'
 import type { CandidateDataReferencePeriod } from './candidateItemSummaryTypes'
 import type { CandidateItemRecord } from './records'
 import type { OrderSnapshotDocument, OrderSnapshotUnitEconomics } from '../../snapshot/orderSnapshotTypes'
@@ -81,6 +81,19 @@ function orderExportSizeQtyFromRows(sizeRows: SecondarySizeOrderRow[]): Candidat
   }))
 }
 
+function orderExportInboundRoundsFromSnapshot(snapshot: OrderSnapshotDocument): CandidateItemOrderExportInboundRound[] {
+  if (snapshot.drawer2.confirmed.rounds.length > 0) {
+    return snapshot.drawer2.confirmed.rounds.map((round, index: number): CandidateItemOrderExportInboundRound => ({
+      round: index + 1,
+      inboundDate: round.date,
+    }))
+  }
+  return [{
+    round: 1,
+    inboundDate: snapshot.drawer2.stockOrderRequest.currentOrderInboundDueDate,
+  }]
+}
+
 function requireSnapshotUnitEconomics(snapshot: OrderSnapshotDocument): OrderSnapshotUnitEconomics {
   const unitEconomics: OrderSnapshotUnitEconomics | undefined = snapshot.drawer2.unitEconomics
   if (unitEconomics == null) throw new Error('Candidate snapshot is missing unitEconomics.')
@@ -108,6 +121,7 @@ function buildSnapshotOrderMetric(
     dataReferencePeriod,
     companyUuid,
   )
+  const inboundRounds: CandidateItemOrderExportInboundRound[] = orderExportInboundRoundsFromSnapshot(snapshot)
 
   return {
     itemUuid: row.uuid,
@@ -127,7 +141,8 @@ function buildSnapshotOrderMetric(
       avgPrice: Math.max(0, Math.round(unitEconomics.unitPrice)),
       feeRatePct: roundedPercent(unitEconomics.expectedFeeRatePct),
       opMarginRatePct: roundedPercent(opMarginRatePct),
-      inboundExpectedDate: snapshot.drawer2.stockOrderRequest.nextOrderInboundDueDate,
+      inboundExpectedDate: inboundRounds[0]?.inboundDate ?? snapshot.drawer2.stockOrderRequest.currentOrderInboundDueDate,
+      inboundRounds,
       sizeOrderQty: orderExportSizeQtyFromSnapshot(snapshot),
     },
   }
@@ -232,6 +247,7 @@ function buildLiveOrderMetric(
       feeRatePct,
       opMarginRatePct,
       inboundExpectedDate: null,
+      inboundRounds: [],
       sizeOrderQty: orderExportSizeQtyFromRows(sizeRows),
     },
   }

@@ -12,6 +12,7 @@ const primary: ProductPrimarySummary = {
   category: '신발',
   code: 'B',
   colorCode: '010',
+  imageUrl: null,
   price: 100,
   qty: 200,
   availableStock: 80,

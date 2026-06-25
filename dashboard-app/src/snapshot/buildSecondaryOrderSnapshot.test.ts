@@ -17,7 +17,7 @@ export type BuildSnapshotParams = Parameters<typeof buildSecondaryOrderSnapshot>
 
 function createBuildParams(overrides: Partial<BuildSnapshotParams> = {}): BuildSnapshotParams {
   return {
-    primary: validSnapshot.drawer1.summary as BuildSnapshotParams['primary'],
+    primary: { ...validSnapshot.drawer1.summary, imageUrl: null } as BuildSnapshotParams['primary'],
     monthlySalesTrend: validSnapshot.drawer1.monthlySalesTrend,
     secondary: secondaryDetailFixture as BuildSnapshotParams['secondary'],
     periodStart: validSnapshot.context.periodStart,
@@ -49,6 +49,7 @@ describe('buildSecondaryOrderSnapshot', () : void => {
     const snapshot: OrderSnapshotDocument = buildSecondaryOrderSnapshot(createBuildParams({
       primary: {
         ...validSnapshot.drawer1.summary,
+        imageUrl: null,
         unknownPrimaryField: 'drop',
       } as BuildSnapshotParams['primary'],
       secondary: {

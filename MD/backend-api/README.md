@@ -41,7 +41,7 @@ Last updated: 2026-06-19
 - `getSecondaryDailyTrend`의 size-specific 요청 추가값은 `size?`뿐이다. 입고일, `selfWeightPct` 같은 stock-order 전용 값은 보내지 않는다.
 - `getSecondaryStockOrderCalc` 응답의 `inboundSplitSource`는 오더 상세 추천과 분할입고 제안이 공유하는 planning source이다.
 - `inboundSplitSource` 형태는 `{ total, sizeInfo, expectation, confirmed }`이다.
-- 분할 차수, 분할 입고일, 적용된 확정 수량, `ignoreExistingOrderInbound`는 `/secondary/stock-order-calc` 요청 필드가 아니라 UI/snapshot 상태이다.
+- 분할 차수, 분할 입고일, 적용된 확정 수량, `excludeSegmentExistingOrderInbound`는 `/secondary/stock-order-calc` 요청 필드가 아니라 UI/snapshot 상태이다.
 - 후보 item `confirmedOrderSnapshot`은 `OrderSnapshotDocument | null`이고 현재 schema version은 `8`이다.
 
 ## 갱신 원칙

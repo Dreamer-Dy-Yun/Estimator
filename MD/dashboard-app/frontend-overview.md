@@ -56,6 +56,7 @@ Last updated: 2026-06-19
 
 - product drawer는 primary summary, 월간 추세, sales insight, secondary detail, AI comment, 주문 계산, snapshot 저장/복원을 소유한다.
 - bundle은 base-only summary를 받는다.
+- 1차 드로워 상품 이미지는 `ProductDrawerBundle.summary.imageUrl: string | null`을 표시한다. 리스트/후보군의 `thumbnailUrl`과 다른 필드이며, UI가 상품명이나 품번으로 placeholder URL을 합성하지 않는다.
 - 월간 추세, sales insight, secondary detail, daily trend는 `base`/`comparison` subject 계약을 사용한다.
 - comparison target이 없거나 현재 scope에서 유효하지 않으면 unavailable 상태로 표시한다. 화면이 fake target이나 첫 번째 target을 무조건 합성하지 않는다.
 - AI comment는 수동 POST 요청이다. 필요하면 현재 계산 상태를 `snapshotForAiComment`로 함께 보낸다.
@@ -70,7 +71,7 @@ Last updated: 2026-06-19
 - split count, selected split dates, row totals, per-size confirmed quantities는 화면 draft state다.
 - 입고 분할 차수 날짜는 `currentOrderInboundDueDate <= date < nextOrderInboundDueDate` 범위로 검증한다. 첫 차수는 금번 입고일과 같은 날짜를 허용한다.
 - 2차수 이상으로 Apply하면 `drawer2.confirmed.rounds`와 직접 확정 수량이 함께 갱신된다. 1차수 Apply는 rounds를 비우고 직접 확정 수량으로 접는다.
-- 분할 입고 제안은 오더 상세 추천과 같은 planning 함수로 계산한다. 각 차수 구간의 `total.sales` 수요, `sizeInfo[size].salesRate`, `sizeInfo[size].baseStock`, `expectation[size][]`, 현오더 입고 전 기존 입고예정량, UI 재고 하한을 반영한다. 구간은 `[n차 입고일, n+1차 입고일)`이고, 같은 구간의 `expectation`은 실제 입고일에 더한 뒤 일별 판매예측을 차감한다. 제안 수량은 구간 중 최저 예상 재고가 UI 재고 하한보다 낮아지는 만큼이다. `excludePeriodExistingOrderInbound`는 해당 구간의 `expectation`만 제외한다. `total.suggestion`은 백엔드 source 집계값이며 UI 여유재고가 적용된 최종 추천 총량을 대체하지 않는다.
+- 분할 입고 제안은 오더 상세 추천과 같은 planning 함수로 계산한다. 각 차수 구간의 `total.sales` 수요, `sizeInfo[size].salesRate`, `sizeInfo[size].baseStock`, `expectation[size][]`, 현오더 입고 전 기존 입고예정량, UI 재고 하한을 반영한다. 구간은 `[n차 입고일, n+1차 입고일)`이고, 같은 구간의 `expectation`은 실제 입고일에 더한 뒤 일별 판매예측을 차감한다. 제안 수량은 구간 중 최저 예상 재고가 UI 재고 하한보다 낮아지는 만큼이다. `excludeSegmentExistingOrderInbound`는 해당 구간의 `expectation`만 제외한다. `total.suggestion`은 백엔드 source 집계값이며 UI 여유재고가 적용된 최종 추천 총량을 대체하지 않는다.
 
 ## Candidate Stash
 
@@ -79,6 +80,7 @@ Last updated: 2026-06-19
 - 추천 append 상태는 `applied`, `stale`, `no-op`, `empty-selection`으로 구분한다.
 - order metric SSE는 runtime config가 제공한 `candidateOrderMetricComparison`을 사용한다.
 - snapshot item은 저장된 `OrderSnapshotDocument.drawer2` 값을 투영하고, non-snapshot item은 선택된 comparison 기준으로 secondary order calculation을 재사용한다.
+- 후보군 오더 엑셀은 item/order metric의 `orderExport` DTO만 사용한다. `inboundRounds[]`는 `입고 차수`, `n차 입고 예정일` 컬럼으로 펼치며 별도 상세 조회를 만들지 않는다.
 - SSE 실패는 대상 row/cell의 실패 상태로 표시하고 기존 목록을 비우지 않는다.
 
 ## 관리자

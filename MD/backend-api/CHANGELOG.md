@@ -1,5 +1,16 @@
 # Backend API Changelog
 
+## 2026-06-25 candidate order export inbound rounds
+
+- `CandidateItemOrderExport` now includes `inboundRounds[]`.
+- Each round has `{ round, inboundDate }`; the frontend Excel download uses this DTO to add `입고 차수` and `n차 입고 예정일` columns without a separate export endpoint.
+- `inboundExpectedDate` remains as a legacy/fallback summary field. Backends should fill `inboundRounds` from saved snapshot confirmed rounds when a candidate item has a confirmed order snapshot.
+
+## 2026-06-25 primary drawer image contract
+
+- `ProductDrawerBundle.summary` now includes `imageUrl: string | null` for the large primary drawer product image.
+- `imageUrl` is separate from list/candidate `thumbnailUrl`; clients must not synthesize it from product text fields.
+
 ## 2026-06-19 inbound split and daily trend DTO realignment
 
 - `getSecondaryDailyTrend` now returns `{ size, baseStock, data: { base, comparison } }`. The only size-specific query addition is `size?`.
@@ -32,8 +43,8 @@
 - Current daily trend source shape is now `{ size, baseStock, data: { base, comparison } }`; older field names from this dated clarification are superseded.
 - `getSecondaryStockOrderCalc().inboundSplitSource` is source-only for split-inbound shortage suggestions. It does not receive split count, selected split dates, current popup draft quantities, or split result rows.
 - Current inbound split source shape is now `{ total, sizeInfo, expectation, confirmed }`; older supply-point field names from this dated clarification are superseded.
-- Split inbound confirmed rounds now store `ignoreExistingOrderInbound`. The current UI exposes this as one schedule-level toggle and writes the same value to all rounds on apply.
-- Current planning semantics after v4 stock-flow update: demand uses `[round n inbound date, round n+1 inbound date)`, existing-order inbound from the same interval is applied on its actual inbound date, and `ignoreExistingOrderInbound` excludes that same-round inbound interval.
+- Split inbound confirmed rounds now store `excludeSegmentExistingOrderInbound`. The current UI exposes this as one schedule-level toggle and writes the same value to all rounds on apply.
+- Current planning semantics after v4 stock-flow update: demand uses `[round n inbound date, round n+1 inbound date)`, existing-order inbound from the same interval is applied on its actual inbound date, and `excludeSegmentExistingOrderInbound` excludes that same-round inbound interval.
 
 ## 2026-06-10 current API rewrite
 

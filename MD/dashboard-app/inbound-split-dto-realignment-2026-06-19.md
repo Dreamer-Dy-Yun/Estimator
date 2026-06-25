@@ -18,7 +18,7 @@
 - 1차 분할 제안 총합은 오더 상세 추천 총량과 같은 planning 함수에서 산정되어야 한다.
 - 현재 v4 산식에서는 각 차수 구간의 `total.sales` 수요, `sizeInfo[size].salesRate`, `sizeInfo[size].baseStock`, `expectation[size][]`, 현오더 입고 전 기존 입고예정량, UI 재고 하한을 반영한다. 수요와 기오더 입고 예정량은 모두 `[n차 입고일, n+1차 입고일)` 기준이며, 입고 예정량은 실제 입고일에 더한 뒤 일별 판매예측을 차감한다.
 - 현재 재고는 `sizeInfo[size].baseStock`이다. 기존 오더 입고 예정량은 `expectation[size][]`이다.
-- `excludePeriodExistingOrderInbound`는 n차에 반영되는 `[n차 입고일, n+1차 입고일)` 기존 주문 입고예정량 반영 여부를 제어한다. 시작 재고와 현오더 입고 전 기존 입고예정량은 항상 적용한다.
+- `excludeSegmentExistingOrderInbound`는 n차에 반영되는 `[n차 입고일, n+1차 입고일)` 기존 주문 입고예정량 반영 여부를 제어한다. 시작 재고와 현오더 입고 전 기존 입고예정량은 항상 적용한다.
 
 ## Plan
 
@@ -35,7 +35,7 @@
 - `inboundSplitSource`에서 이전 공급점 형태를 제거하고 `total`, `sizeInfo`, `expectation`, `confirmed`로 통일했다.
 - 기존 오더 입고 예정 포인트 타입은 분할입고 source가 아니라 A 데이터임이 드러나도록 명칭을 정리했다.
 - 분할입고 1차 제안 총합은 오더 상세 추천 총량과 같은 planning 함수에서 나온다. `total.suggestion`은 backend source 집계값으로만 둔다.
-- `excludePeriodExistingOrderInbound` 활성 상태에서도 차수 수만 바뀌어 제안 총합이 크게 달라지면 안 된다. 다만 차수별 정수화 때문에 소량 차이는 발생할 수 있다.
+- `excludeSegmentExistingOrderInbound` 활성 상태에서도 차수 수만 바뀌어 제안 총합이 크게 달라지면 안 된다. 다만 차수별 정수화 때문에 소량 차이는 발생할 수 있다.
 - 수동 row total 재배분은 `sizeInfo.salesRate`가 아니라 현재 화면 rows에 계산되어 있는 size별 suggested total 합계를 기준으로 맞췄다.
 - backend API spec, catalog, snapshot contract, frontend overview, source boundary, product drawer boundary, API boundary 문서를 갱신했다.
 

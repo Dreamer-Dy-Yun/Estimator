@@ -104,6 +104,7 @@ function metric(itemUuid: string): CandidateOrderMetric {
       feeRatePct: null,
       opMarginRatePct: null,
       inboundExpectedDate: null,
+      inboundRounds: [],
       sizeOrderQty: [],
     },
   }

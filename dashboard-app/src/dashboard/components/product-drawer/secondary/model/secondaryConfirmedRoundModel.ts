@@ -1,6 +1,6 @@
 export interface SecondaryConfirmedRound {
   date: string
-  excludePeriodExistingOrderInbound: boolean
+  excludeSegmentExistingOrderInbound: boolean
   qtyBySize: Record<string, number>
 }
 

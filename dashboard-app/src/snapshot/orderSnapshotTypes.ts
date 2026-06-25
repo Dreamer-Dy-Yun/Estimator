@@ -175,7 +175,7 @@ export function createOrderSnapshotConfirmed(confirmed: OrderSnapshotConfirmed):
   return {
     rounds: confirmed.rounds.map((round: OrderSnapshotConfirmedRound): OrderSnapshotConfirmedRound => ({
       date: round.date,
-      excludePeriodExistingOrderInbound: round.excludePeriodExistingOrderInbound,
+      excludeSegmentExistingOrderInbound: round.excludeSegmentExistingOrderInbound,
       qtyBySize: { ...round.qtyBySize },
     })),
   }

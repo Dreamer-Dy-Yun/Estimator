@@ -3,8 +3,9 @@ import type { MonthlySalesPoint, ProductPrimarySummary, ProductSecondaryDetail }
 import { MAX_FORECAST_MONTHS } from '../../utils/forecastMonthsStorage'
 import { competitorBySkuGroupKey, selfBySkuGroupKey } from './salesTables'
 import { FORECAST_START_MONTH, SALES_MONTHS } from './productCatalogData'
+import { buildMockProductImageUrl } from './mockProductImage'
 
-export type MockSkuMetadata = Pick<ProductPrimarySummary, 'skuGroupKey' | 'productName' | 'brand' | 'category' | 'code' | 'colorCode'>
+export type MockSkuMetadata = Pick<ProductPrimarySummary, 'skuGroupKey' | 'productName' | 'brand' | 'category' | 'code' | 'colorCode' | 'imageUrl'>
 type MakeSalesTrendOptions = {
   historyStartMonth?: string
   historyEndMonth?: string
@@ -38,6 +39,12 @@ export function buildSkuMetadata(skuGroupKey: string): MockSkuMetadata {
     category: source.category,
     code: source.code,
     colorCode: source.colorCode,
+    imageUrl: buildMockProductImageUrl({
+      skuGroupKey,
+      code: source.code,
+      colorCode: source.colorCode,
+      productName: source.productName,
+    }),
   }
 }
 

@@ -156,7 +156,7 @@ function createArgs(overrides: Partial<HookArgs> = {}): HookArgs {
     bufferStock: 0,
     confirmBySize: {},
     setConfirmBySize: vi.fn(),
-    confirmedRounds: [{ date: '2026-04-01', excludePeriodExistingOrderInbound: false, qtyBySize: { S: 3 } }],
+    confirmedRounds: [{ date: '2026-04-01', excludeSegmentExistingOrderInbound: false, qtyBySize: { S: 3 } }],
     setConfirmedRounds: vi.fn(),
     unitPriceInput: 1000,
     unitCostInput: 700,

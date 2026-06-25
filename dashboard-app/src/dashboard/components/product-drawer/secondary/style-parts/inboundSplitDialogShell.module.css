@@ -120,13 +120,6 @@
   white-space: nowrap;
 }
 
-.inboundSplitDialogHint {
-  margin: 4px 0 0;
-  color: var(--inbound-split-dialog-muted-text);
-  font-size: 12px;
-  line-height: 1.45;
-}
-
 .inboundSplitDialogToolbar {
   display: flex;
   align-items: center;
@@ -277,17 +270,4 @@
   padding: 6px 16px;
   border-top: 1px solid var(--inbound-split-dialog-border);
   background: var(--inbound-split-dialog-surface-muted);
-}
-
-.inboundSplitDialogActionsCompactV1 {
-  padding-top: 3px;
-  padding-bottom: 3px;
-}
-
-.inboundSplitFooterButtonCompactV1 {
-  min-height: 18px;
-  padding: 2px 8px;
-  border-radius: 6px;
-  font-size: 11px;
-  line-height: 1.1;
 }

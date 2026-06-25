@@ -1,6 +1,6 @@
 ﻿# Order Snapshot Backend Contract
 
-Last updated: 2026-06-19
+Last updated: 2026-06-25
 
 `OrderSnapshotDocument` is the persisted candidate item snapshot. It is a screen-restore contract for the current product drawer state.
 
@@ -119,11 +119,13 @@ This block follows the AI comment render model `SecondaryAiCommentView`.
 ### `confirmed`
 
 Required fields: `rounds`.
-`rounds[]` fields: `date`, `ignoreExistingOrderInbound`, `qtyBySize`.
+`rounds[]` fields: `date`, `excludeSegmentExistingOrderInbound`, `qtyBySize`.
 `qtyBySize` is keyed by `sizeOrders[].size`.
-Each round follows the split inbound schedule state model `SecondaryConfirmedRound`. The current UI exposes one schedule-level toggle and writes the same `ignoreExistingOrderInbound` value to every round on apply. `ignoreExistingOrderInbound=true` means the schedule excludes existing-order inbound in each round's `[round n inbound date, round n+1 inbound date)` stock-flow interval. Opening stock and the existing-order inbound aggregate before `stockOrderRequest.currentOrderInboundDueDate` remain applied.
+Each round follows the split inbound schedule state model `SecondaryConfirmedRound`. The current UI exposes one schedule-level toggle and writes the same `excludeSegmentExistingOrderInbound` value to every round on apply. `excludeSegmentExistingOrderInbound=true` means the schedule excludes existing-order inbound in each round's `[round n inbound date, round n+1 inbound date)` stock-flow interval. Opening stock and the existing-order inbound aggregate before `stockOrderRequest.currentOrderInboundDueDate` remain applied.
 Round numbers are not stored. The frontend/backend derives `1차`, `2차`, ... from the array order.
 Total quantity is not stored. Consumers derive it from `sum(confirmed.rounds[].qtyBySize)`.
+
+Parser compatibility: the frontend parser still accepts legacy `excludePeriodExistingOrderInbound` and `ignoreExistingOrderInbound` fields when reading older stored snapshots, but newly emitted snapshots use only `excludeSegmentExistingOrderInbound`.
 
 ### `sizeOrders[]`
 
