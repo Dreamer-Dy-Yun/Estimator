@@ -1,10 +1,10 @@
-# MulAg Run: Inbound split `ignoreExistingOrderInbound` global toggle
+# MulAg Run: Inbound split `excludePeriodExistingOrderInbound` global toggle
 
-Current rule note: this historical run remains useful for the schedule-level UI ownership decision, but current v4 planning semantics refine the toggle scope. Demand uses `[round n inbound date, round n+1 inbound date)`, existing-order inbound from the same interval is applied on its actual inbound date, and `ignoreExistingOrderInbound` excludes that same-round inbound interval.
+Current rule note: this historical run remains useful for the schedule-level UI ownership decision, but current v4 planning semantics refine the toggle scope. Demand uses `[round n inbound date, round n+1 inbound date)`, existing-order inbound from the same interval is applied on its actual inbound date, and `excludePeriodExistingOrderInbound` excludes that same-round inbound interval.
 
 ## Goal
 
-Align inbound split behavior so `ignoreExistingOrderInbound` is treated as a schedule-level option, not a per-round control, and keep split row behavior consistent with that contract from UI interaction through persistence.
+Align inbound split behavior so `excludePeriodExistingOrderInbound` is treated as a schedule-level option, not a per-round control, and keep split row behavior consistent with that contract from UI interaction through persistence.
 
 ## Scope
 
@@ -17,7 +17,7 @@ Align inbound split behavior so `ignoreExistingOrderInbound` is treated as a sch
 
 - 기능 경계 우선: 계산 로직/요청/표시가 서로 다른 용어를 쓰지 않게 정렬
 - 제어 경계 단일화: 분할 다이얼로그에서 하나의 토글만 노출하고, 내부 rows는 적용 시 동기화
-- 회귀 방지: 기존 `onIgnoreExistingOrderInboundChange` path를 제거하고 테스트에서 인터페이스 정합성 확보
+- 회귀 방지: 기존 `onExcludePeriodExistingOrderInboundChange` path를 제거하고 테스트에서 인터페이스 정합성 확보
 - 설명 가능성: boundary 문서에 계약 변경을 즉시 반영
 
 ## Plan
@@ -43,10 +43,10 @@ Align inbound split behavior so `ignoreExistingOrderInbound` is treated as a sch
 
 ## Result
 
-- row-level `ignoreExistingOrderInbound` 핸들러가 테이블에서 제거되고, 다이얼로그 상단의 단일 토글만 남았습니다.
+- row-level `excludePeriodExistingOrderInbound` 핸들러가 테이블에서 제거되고, 다이얼로그 상단의 단일 토글만 남았습니다.
 - 다이얼로그에서 토글 변경 시 `useInboundSplitScheduleDraft`가 모든 round row에 동일 값 반영 후 재계산 경로를 통과합니다.
 - 다이얼로그/훅 테스트는 global 토글 반영을 검증하도록 갱신했습니다.
-- 경계 문서 3건에서 `ignoreExistingOrderInbound`의 소유/적용 범위를 전역 토글로 정합시켰습니다.
+- 경계 문서 3건에서 `excludePeriodExistingOrderInbound`의 소유/적용 범위를 전역 토글로 정합시켰습니다.
 
 ## Non-goals / Follow-up
 

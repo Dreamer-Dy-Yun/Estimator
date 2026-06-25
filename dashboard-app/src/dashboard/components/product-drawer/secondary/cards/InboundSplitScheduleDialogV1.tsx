@@ -163,10 +163,10 @@ export function InboundSplitScheduleDialogV1({
             <label className={styles.inboundSplitToolbarToggle}>
               <input
                 type="checkbox"
-                checked={draft.ignoreExistingOrderInboundAll}
-                onChange={(event: React.ChangeEvent<HTMLInputElement>): void => draft.changeIgnoreExistingOrderInboundAll(event.target.checked)}
+                checked={draft.excludePeriodExistingOrderInboundAll}
+                onChange={(event: React.ChangeEvent<HTMLInputElement>): void => draft.changeExcludePeriodExistingOrderInboundAll(event.target.checked)}
               />
-              <span>{KO.labelInboundSplitIgnoreExistingOrderInbound}</span>
+              <span>{KO.labelInboundSplitExcludePeriodExistingOrderInbound}</span>
             </label>
           </div>
         </div>
@@ -180,7 +180,7 @@ export function InboundSplitScheduleDialogV1({
                 currentOrderInboundDueDate={currentOrderInboundDueDate}
                 nextOrderInboundDueDate={nextOrderInboundDueDate}
                 splitSourceWindowEndDate={splitSourceWindowEndDate}
-                excludeCurrentToNextExistingOrderInbound={draft.ignoreExistingOrderInboundAll && draft.rows.length > 1}
+                excludePeriodExistingOrderInbound={draft.excludePeriodExistingOrderInboundAll}
               />
             </div>
           ) : null}

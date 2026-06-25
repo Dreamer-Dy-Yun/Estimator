@@ -50,7 +50,7 @@ function renderTable(overrides: {
         currentOrderInboundDueDate="2026-06-01"
         nextOrderInboundDueDate="2026-07-01"
         splitSourceWindowEndDate={overrides.splitSourceWindowEndDate ?? '2026-07-01'}
-        excludeCurrentToNextExistingOrderInbound={false}
+        excludePeriodExistingOrderInbound={false}
       />,
     )
   })

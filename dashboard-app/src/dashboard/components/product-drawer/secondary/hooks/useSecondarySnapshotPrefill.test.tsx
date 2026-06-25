@@ -44,7 +44,7 @@ const SNAPSHOT: OrderSnapshotDocument = ({
     confirmed: {
       rounds: [{
         date: '2026-07-01',
-        ignoreExistingOrderInbound: false,
+        excludePeriodExistingOrderInbound: false,
         qtyBySize: {},
       }],
     },

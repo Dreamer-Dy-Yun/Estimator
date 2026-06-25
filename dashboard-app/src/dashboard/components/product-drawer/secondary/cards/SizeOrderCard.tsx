@@ -33,7 +33,7 @@ export type Props = {
     selfCompanyLabel: string
     selfWeightPct: number
     sizeRows: SecondarySizeOrderDisplayRow[]
-    helpIds: Pick<SecondaryHelpIds, 'totalOrderBalance' | 'expectedInboundOrderBalance' | 'sizeRecQty' | 'salesForecastSizeOrder' | 'inboundSplitSchedule'>
+    helpIds: Pick<SecondaryHelpIds, 'totalOrderBalance' | 'sizeRecQty' | 'salesForecastSizeOrder' | 'inboundSplitSchedule'>
     stockOrderDisplay: SecondaryStockOrderCalcResult['display'] | null
     existingOrderInboundSupplyBySize: SecondaryExistingOrderInboundSupplyBySize | null
     calculationReady?: boolean
@@ -75,30 +75,19 @@ const INBOUND_SPLIT_SCHEDULE_VARIANT_OPTIONS: InboundSplitScheduleVariantOption[
   { value: 'v2', label: 'V2' },
 ]
 
+const DEFAULT_INBOUND_SPLIT_SCHEDULE_VARIANT: InboundSplitScheduleVariant = 'v1'
+
 const EXISTING_ORDER_INBOUND_BREAKDOWN_LABELS: Record<ExistingOrderInboundBalanceBreakdownKey, string> = {
   beforeCurrent: KO.rowTotalOrderBalanceBeforeCurrent,
   inPeriod: KO.rowTotalOrderBalanceInPeriod,
   afterNext: KO.rowTotalOrderBalanceAfterNext,
 }
 
-function sumInboundSplitExpectationBeforeDate(
-  source: SecondaryInboundSplitSource | null,
-  size: string,
-  startDateInclusive: string,
-  endDateExclusive: string | null,
-): number {
-  if (source == null || endDateExclusive == null) return 0
-  return (source.expectation[size] ?? []).reduce((sum: number, point: SecondaryInboundSplitSource['expectation'][string][number]): number => {
-    if (point.date < startDateInclusive || point.date >= endDateExclusive) return sum
-    return sum + Math.max(0, Math.round(point.inbound))
-  }, 0)
-}
-
 export function SizeOrderCard({ sizeOrder, actions, help }: Props) : React.JSX.Element {
   const { comparisonLabel, selfCompanyLabel, selfWeightPct, sizeRows, helpIds, stockOrderDisplay, existingOrderInboundSupplyBySize, calculationReady = true, manualConfirmBySize, currentOrderInboundDueDate, nextOrderInboundDueDate, calculationBaseDate, inboundSplitSource, inboundSplitSourceLoading, inboundSplitSourceError, confirmedRounds }: Props['sizeOrder'] = sizeOrder
   const tableRef: React.RefObject<HTMLTableElement | null> = useRef<HTMLTableElement | null>(null)
   const [hoveredCell, setHoveredCell]: [SizeOrderHoverCell, React.Dispatch<React.SetStateAction<SizeOrderHoverCell>>] = useState<SizeOrderHoverCell>(null)
-  const [inboundSplitScheduleVariant, setInboundSplitScheduleVariant]: [InboundSplitScheduleVariant, React.Dispatch<React.SetStateAction<InboundSplitScheduleVariant>>] = useState<InboundSplitScheduleVariant>('v2')
+  const [inboundSplitScheduleVariant, setInboundSplitScheduleVariant]: [InboundSplitScheduleVariant, React.Dispatch<React.SetStateAction<InboundSplitScheduleVariant>>] = useState<InboundSplitScheduleVariant>(DEFAULT_INBOUND_SPLIT_SCHEDULE_VARIANT)
   const [totalOrderBalanceExpanded, setTotalOrderBalanceExpanded]: [boolean, React.Dispatch<React.SetStateAction<boolean>>] = useState<boolean>(false)
   const tableStyle: SizeOrderTableStyle = {
     '--size-order-size-column-count': sizeRows.length,
@@ -127,22 +116,6 @@ export function SizeOrderCard({ sizeOrder, actions, help }: Props) : React.JSX.E
     () : Map<string, SecondaryStockOrderDisplaySizeRow> => new Map((stockOrderDisplay?.sizeRows ?? []).map((row: SecondaryStockOrderDisplaySizeRow) : [string, SecondaryStockOrderDisplaySizeRow] => [row.size, row])),
     [stockOrderDisplay],
   )
-  const expectedInboundOrderBalanceLabel: string = inboundSplitSchedule.displayCount > 1
-    ? KO.rowLastInboundExpectedInboundOrderBalance
-    : KO.rowExpectedInboundOrderBalance
-  const lastSplitInboundDate: string | null = inboundSplitSchedule.splitRoundRows.length > 1
-    ? inboundSplitSchedule.splitRoundRows[inboundSplitSchedule.splitRoundRows.length - 1]?.inboundDate ?? null
-    : null
-  const expectedInboundOrderBalanceBySize: Map<string, number> = useMemo((): Map<string, number> => {
-    return new Map(sizeRows.map((row: SecondarySizeOrderDisplayRow): [string, number] => {
-      const displayQty: number = Math.max(0, Math.round(stockOrderSizeRowBySize.get(row.size)?.expectedInboundOrderBalance ?? 0))
-      const splitSourceQty: number = sumInboundSplitExpectationBeforeDate(inboundSplitSource, row.size, currentOrderInboundDueDate, lastSplitInboundDate)
-      return [row.size, displayQty + splitSourceQty]
-    }))
-  }, [currentOrderInboundDueDate, inboundSplitSource, lastSplitInboundDate, sizeRows, stockOrderSizeRowBySize])
-  const expectedInboundOrderBalanceTotal: number | null = stockOrderDisplay == null
-    ? null
-    : sizeRows.reduce((sum: number, row: SecondarySizeOrderDisplayRow): number => sum + (expectedInboundOrderBalanceBySize.get(row.size) ?? 0), 0)
   const existingOrderInboundBreakdownRows: ExistingOrderInboundBalanceBreakdownRow[] = useMemo((): ExistingOrderInboundBalanceBreakdownRow[] => buildExistingOrderInboundBalanceBreakdown(
     sizeRows,
     existingOrderInboundSupplyBySize,
@@ -162,7 +135,6 @@ export function SizeOrderCard({ sizeOrder, actions, help }: Props) : React.JSX.E
       valueForSize: (row: SecondarySizeOrderDisplayRow): number => breakdown.qtyBySize[row.size] ?? 0,
       indent: true,
     })) : []),
-    { label: expectedInboundOrderBalanceLabel, totalQty: expectedInboundOrderBalanceTotal, valueForSize: (row: SecondarySizeOrderDisplayRow) : number | undefined => expectedInboundOrderBalanceBySize.get(row.size), helpMark: { helpId: 'expectedInboundOrderBalance', labelId: helpIds.expectedInboundOrderBalance, help } },
     { label: KO.rowSalesForecast, totalQty: calculationReady ? columnTotals.forecast : null, valueForSize: (row: SecondarySizeOrderDisplayRow) : number | null => (calculationReady ? row.forecastQty : null), helpMark: { helpId: 'salesForecastSizeOrder', labelId: helpIds.salesForecastSizeOrder, help } },
     { label: KO.thRecQty, totalQty: calculationReady ? columnTotals.rec : null, valueForSize: (row: SecondarySizeOrderDisplayRow) : number | null => (calculationReady ? row.recommendedQty : null), helpMark: { helpId: 'sizeRecQty', labelId: helpIds.sizeRecQty, help } },
   ]
@@ -281,7 +253,7 @@ export function SizeOrderCard({ sizeOrder, actions, help }: Props) : React.JSX.E
       <InboundSplitScheduleDialog
         key={inboundSplitSchedule.dialogKey}
         open={inboundSplitSchedule.dialogOpen}
-        variant={USE_MOCK_API ? inboundSplitScheduleVariant : 'v2'}
+        variant={USE_MOCK_API ? inboundSplitScheduleVariant : DEFAULT_INBOUND_SPLIT_SCHEDULE_VARIANT}
         help={{ labelId: helpIds.inboundSplitSchedule, portal: help }}
         debugSourcePayload={inboundSplitDebugSourcePayload}
         {...inboundSplitSchedule.dialogProps}

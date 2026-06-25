@@ -157,7 +157,7 @@ export function InboundSplitScheduleTableV2({
             endDate: detailEndDate,
             periodInboundSummaryLabel: `${row.round}${KO.optionInboundSplitRoundSuffix} ${KO.labelInboundSplitBeforeRoundAdditionalInbound}`,
             includeOpeningStock: false,
-            excludeScheduledInbound: row.ignoreExistingOrderInbound,
+            excludeScheduledInbound: row.excludePeriodExistingOrderInbound,
           })
           const detailExpanded: boolean = detailSection != null && expandedSectionKeys.has(detailSectionKey)
 

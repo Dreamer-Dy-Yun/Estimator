@@ -126,7 +126,7 @@ export function buildSecondarySizeOrderRows({
   )
   const suggestedRows: Record<string, number>[] = buildSecondaryPlanningSuggestedQuantitiesByRow(
     planningColumns,
-    [{ inboundDate: currentOrderInboundDueDate, ignoreExistingOrderInbound: false }],
+    [{ inboundDate: currentOrderInboundDueDate, excludePeriodExistingOrderInbound: false }],
     nextOrderInboundDueDate,
     inboundSplitSource,
   )

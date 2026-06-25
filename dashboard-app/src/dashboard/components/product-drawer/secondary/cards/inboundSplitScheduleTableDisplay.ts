@@ -27,7 +27,7 @@ export function formatSuggestedBasisTooltip(basis: InboundSplitSuggestionBasis |
   const expectedInboundPeriodText: string = basis.expectedInboundStartDate < basis.expectedInboundEndDate
     ? ` (${basis.expectedInboundStartDate}~${formatExclusiveEndDate(basis.expectedInboundEndDate)})`
     : ''
-  const expectedInboundText: string = basis.ignoreExistingOrderInbound && expectedInboundPeriodText
+  const expectedInboundText: string = basis.excludePeriodExistingOrderInbound && expectedInboundPeriodText
     ? KO.valueNotApplicable
     : formatTooltipQty(basis.expectedInboundQty)
   const lines: string[] = [
@@ -55,7 +55,7 @@ export function aggregateSuggestedBasis(row: InboundSplitScheduleRow, columns: r
     intervalEndDate: sum.intervalEndDate,
     expectedInboundStartDate: sum.expectedInboundStartDate,
     expectedInboundEndDate: sum.expectedInboundEndDate,
-    ignoreExistingOrderInbound: sum.ignoreExistingOrderInbound,
+    excludePeriodExistingOrderInbound: sum.excludePeriodExistingOrderInbound,
     salesForecastQty: sum.salesForecastQty + basis.salesForecastQty,
     expectedInboundQty: sum.expectedInboundQty + basis.expectedInboundQty,
     carriedStockQty: sum.carriedStockQty + basis.carriedStockQty,
@@ -68,7 +68,7 @@ export function aggregateSuggestedBasis(row: InboundSplitScheduleRow, columns: r
     intervalEndDate: first.intervalEndDate,
     expectedInboundStartDate: first.expectedInboundStartDate,
     expectedInboundEndDate: first.expectedInboundEndDate,
-    ignoreExistingOrderInbound: first.ignoreExistingOrderInbound,
+    excludePeriodExistingOrderInbound: first.excludePeriodExistingOrderInbound,
     salesForecastQty: 0,
     expectedInboundQty: 0,
     carriedStockQty: 0,

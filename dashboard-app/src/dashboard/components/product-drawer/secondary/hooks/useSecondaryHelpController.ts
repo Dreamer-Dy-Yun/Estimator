@@ -11,7 +11,6 @@ export function useSecondaryHelpController() : { portalHelp: { activeId: Seconda
       orderQtyCalc: useId(),
       expectedOpProfitRate: useId(),
       totalOrderBalance: useId(),
-      expectedInboundOrderBalance: useId(),
       sizeRecQty: useId(),
       salesForecastSizeOrder: useId(),
       inboundSplitSchedule: useId(),

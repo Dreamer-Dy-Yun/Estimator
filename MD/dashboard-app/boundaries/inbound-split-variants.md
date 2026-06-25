@@ -26,7 +26,7 @@ Variant는 화면 배치와 presentation만 바꿀 수 있다. 다음 항목은 
 - 차수별 추천 계산식
 - 날짜 정책
 - Apply/Close 동작
-- `ignoreExistingOrderInbound` 의미
+- `excludePeriodExistingOrderInbound` 의미
 - snapshot 저장 필드
 
 ## 2. Facade 규칙
@@ -36,13 +36,13 @@ Variant는 화면 배치와 presentation만 바꿀 수 있다. 다음 항목은 
 - `variant === 'v0'`: `InboundSplitScheduleDialogV0`
 - `variant === 'v2'`: `InboundSplitScheduleDialogV2`
 - `variant === 'v1'`: `InboundSplitScheduleDialogV1`
-- 그 외 기본값: `InboundSplitScheduleDialogV2`
+- 그 외 기본값: `InboundSplitScheduleDialogV1`
 
 `InboundSplitScheduleTable.tsx`는 기존 import 호환을 위한 table facade이다. 새 화면 variant를 추가할 때는 facade와 variant type을 먼저 맞춘 뒤, caller에서 variant를 명시적으로 선택한다.
 
 ### Runtime selection
 
-- 실제 HTTP API 모드에서는 `SizeOrderCard.tsx`가 dialog variant를 V2로 고정한다.
+- 실제 HTTP API 모드에서는 `SizeOrderCard.tsx`가 dialog variant를 V1로 고정한다.
 - mock API 모드에서는 `분할 입고 설정` 버튼 아래에 V0/V1/V2 선택 UI를 노출한다.
 - 이 선택 UI는 화면 검증용 presentation switch이며 API DTO, mock fixture, 계산 모델, snapshot 계약을 변경하지 않는다.
 
@@ -59,7 +59,7 @@ V0는 상단 source summary table을 렌더링하지 않는다. V0 변경은 기
 
 ## 4. V1
 
-V1은 source summary를 검토하기 위한 UI iteration이다. 현재 기본 활성 화면은 V2이며, V1은 mock API 모드의 variant selector로 전환해 검증한다.
+V1은 source summary를 검토하기 위한 UI iteration이며 현재 기본 활성 화면이다. V0/V2는 mock API 모드의 variant selector로 전환해 검증한다.
 
 | 파일 | 책임 |
 |---|---|
@@ -71,7 +71,7 @@ V1 source summary table은 API 계약이 아니다. 이미 받은 `inboundSplitS
 
 ## 5. V2
 
-V2는 현재 기본 분할입고 설정 UI이다.
+V2는 차수별 상세 펼침을 검토하기 위한 UI iteration이다. 현재 기본 활성 화면은 V1이다.
 
 | 파일 | 책임 |
 |---|---|

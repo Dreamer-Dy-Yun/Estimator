@@ -13,7 +13,7 @@ interface InboundSplitSourceSummaryTableV1Props {
   currentOrderInboundDueDate: string
   nextOrderInboundDueDate: string
   splitSourceWindowEndDate: string
-  excludeCurrentToNextExistingOrderInbound: boolean
+  excludePeriodExistingOrderInbound: boolean
 }
 
 interface SourceSummaryRow {
@@ -57,7 +57,7 @@ function buildSourceSummaryRows(
   currentOrderInboundDueDate: string,
   nextOrderInboundDueDate: string,
   splitSourceWindowEndDate: string,
-  excludeCurrentToNextExistingOrderInbound: boolean,
+  excludePeriodExistingOrderInbound: boolean,
 ): SourceSummaryRow[] {
   const openingQtyBySize: Record<string, number | null> = {}
   const periodInboundQtyBySize: Record<string, number> = {}
@@ -73,7 +73,7 @@ function buildSourceSummaryRows(
       splitSourceWindowEndDate,
     )
     expectationPoints.forEach((point: SecondaryInboundSplitExpectationPoint): void => {
-      if (excludeCurrentToNextExistingOrderInbound && point.date >= currentOrderInboundDueDate && point.date < nextOrderInboundDueDate) return
+      if (excludePeriodExistingOrderInbound && point.date >= currentOrderInboundDueDate && point.date < nextOrderInboundDueDate) return
       const inboundQty: number | null = normalizeQty(point.inbound)
       if (inboundQty == null || inboundQty <= 0) return
       periodInboundQtyBySize[column.size] = (periodInboundQtyBySize[column.size] ?? 0) + inboundQty
@@ -118,7 +118,7 @@ export function InboundSplitSourceSummaryTableV1({
   currentOrderInboundDueDate,
   nextOrderInboundDueDate,
   splitSourceWindowEndDate,
-  excludeCurrentToNextExistingOrderInbound,
+  excludePeriodExistingOrderInbound,
 }: InboundSplitSourceSummaryTableV1Props): React.JSX.Element {
   const rows: SourceSummaryRow[] = buildSourceSummaryRows(
     source,
@@ -127,7 +127,7 @@ export function InboundSplitSourceSummaryTableV1({
     currentOrderInboundDueDate,
     nextOrderInboundDueDate,
     splitSourceWindowEndDate,
-    excludeCurrentToNextExistingOrderInbound,
+    excludePeriodExistingOrderInbound,
   )
   const tableStyle: SourceSummaryTableStyle = {
     '--inbound-split-size-col-count': columns.length,

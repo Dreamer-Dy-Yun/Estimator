@@ -112,11 +112,11 @@ Clean up the secondary drawer split-inbound schedule UI by feature responsibilit
 
 - V2 was added as a V0-based copy for the next split-inbound UI experiment.
 - `InboundSplitScheduleDialogV2.tsx` and `InboundSplitScheduleTableV2.tsx` start from the V0 implementation.
-- `InboundSplitScheduleVariant` now accepts `v2`; this was later promoted to the default presentation in the V2 active detail update below.
+- `InboundSplitScheduleVariant` now accepts `v2`; it remains selectable for UI verification but is no longer the default presentation.
 
 ## 2026-06-24 V2 active detail update
 
-- V2 is now the default split-inbound dialog variant.
+- V2 was added as the split-inbound detail-expansion dialog variant.
 - V2 keeps the same DTO, draft hook, planning model, and Apply/Close contract as V0/V1.
 - `InboundSplitScheduleDialogV2.tsx` owns expand-all/collapse-all UI state.
 - `InboundSplitScheduleTableV2.tsx` renders editable suggested/confirmed rows and delegates expanded source-detail rows to `InboundSplitScheduleDetailRowsV2.tsx`.
@@ -124,10 +124,16 @@ Clean up the secondary drawer split-inbound schedule UI by feature responsibilit
 
 ## 2026-06-24 V2 UI final cleanup update
 
-- Mock API mode now exposes a V0/V1/V2 selector below the `분할 입고 설정` button. HTTP API mode does not render this selector and stays fixed to V2.
+- Mock API mode now exposes a V0/V1/V2 selector below the `분할 입고 설정` button. HTTP API mode does not render this selector and stays fixed to V1.
 - V2 detail row styles moved to `inboundSplitDetailRows.module.css`; `inboundSplitRows.module.css` is again limited to editable summary/suggested/confirmed row states.
 - V2 detail total rows now merge the date and metric cells into `기간 내 입고 예정`, matching the opening stock row's merged label pattern.
 - The toolbar's whole-table expand/collapse controls are a single toggle button.
+
+## 2026-06-25 V1 default update
+
+- The default split-inbound dialog variant is now V1.
+- Mock API mode still exposes V0/V1/V2 selector for UI comparison, initialized to V1.
+- HTTP API mode does not render the selector and opens the V1 dialog directly.
 
 ## Verification
 

@@ -8,7 +8,7 @@ import type { InboundSplitSizeColumn } from './inboundSplitScheduleModel'
 
 export interface InboundSplitSuggestionRowInput {
   readonly inboundDate: string
-  readonly ignoreExistingOrderInbound: boolean
+  readonly excludePeriodExistingOrderInbound: boolean
 }
 
 export type InboundSplitSuggestionBasis = SecondaryPlanningSuggestionBasis

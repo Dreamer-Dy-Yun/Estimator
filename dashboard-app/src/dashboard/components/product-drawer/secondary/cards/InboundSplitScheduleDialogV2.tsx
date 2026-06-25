@@ -180,10 +180,10 @@ export function InboundSplitScheduleDialogV2({
             <label className={styles.inboundSplitToolbarToggle}>
               <input
                 type="checkbox"
-                checked={draft.ignoreExistingOrderInboundAll}
-                onChange={(event: React.ChangeEvent<HTMLInputElement>): void => draft.changeIgnoreExistingOrderInboundAll(event.target.checked)}
+                checked={draft.excludePeriodExistingOrderInboundAll}
+                onChange={(event: React.ChangeEvent<HTMLInputElement>): void => draft.changeExcludePeriodExistingOrderInboundAll(event.target.checked)}
               />
-              <span>{KO.labelInboundSplitIgnoreExistingOrderInbound}</span>
+              <span>{KO.labelInboundSplitExcludePeriodExistingOrderInbound}</span>
             </label>
           </div>
         </div>

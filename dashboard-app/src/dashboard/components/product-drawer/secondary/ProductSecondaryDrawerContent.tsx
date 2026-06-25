@@ -207,16 +207,15 @@ export function ProductSecondaryDrawerContent({
       <PortalHelpPopoverLayer
         help={portalHelp}
         popoverClassName={commonStyles.helpPopoverPortal}
-        getTooltipId={(hid: 'confirmOrder' | 'orderQtyCalc' | 'expectedOpProfitRate' | 'totalOrderBalance' | 'expectedInboundOrderBalance' | 'sizeRecQty' | 'salesForecastSizeOrder' | 'inboundSplitSchedule') : string => helpIds[hid]}
+        getTooltipId={(hid: 'confirmOrder' | 'orderQtyCalc' | 'expectedOpProfitRate' | 'totalOrderBalance' | 'sizeRecQty' | 'salesForecastSizeOrder' | 'inboundSplitSchedule') : string => helpIds[hid]}
       >
-        {(hid: 'confirmOrder' | 'orderQtyCalc' | 'expectedOpProfitRate' | 'totalOrderBalance' | 'expectedInboundOrderBalance' | 'sizeRecQty' | 'salesForecastSizeOrder' | 'inboundSplitSchedule') : React.JSX.Element => (
+        {(hid: 'confirmOrder' | 'orderQtyCalc' | 'expectedOpProfitRate' | 'totalOrderBalance' | 'sizeRecQty' | 'salesForecastSizeOrder' | 'inboundSplitSchedule') : React.JSX.Element => (
           <>
             {hid === 'confirmOrder' && <p>{KO.hintSnapshot}</p>}
             {hid === 'inboundSplitSchedule' && <p>{KO.helpInboundSplitSchedule}</p>}
             {hid === 'orderQtyCalc' && <p>{KO.helpForecastQtyCalc}</p>}
             {hid === 'expectedOpProfitRate' && <BlockMath math={KO.helpExpectedOpProfitRateLatex} />}
             {hid === 'totalOrderBalance' && <p>{KO.helpTotalOrderBalance}</p>}
-            {hid === 'expectedInboundOrderBalance' && <p>{KO.helpExpectedInboundOrderBalance}</p>}
             {hid === 'sizeRecQty' && <p>{KO.helpSizeRecQty}</p>}
             {hid === 'salesForecastSizeOrder' && <p>{KO.helpSalesForecastSizeOrder}</p>}
           </>
