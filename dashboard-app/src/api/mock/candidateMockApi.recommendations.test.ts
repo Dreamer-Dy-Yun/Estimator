@@ -155,9 +155,17 @@ describe('api/mock candidate recommendation contract', () : void => {
     expect(metric.expectedOpProfit).toBe(snapshotExpectedOpProfit)
     expect(metric.expectedOrderAmount).toBe(snapshotQty * snapshot.drawer2.unitEconomics!.unitCost)
     expect(metric.orderExport.comparisonSubjectLabel).toBe(snapshot.drawer2.comparisonSubject.label)
-    expect(metric.orderExport.inboundRounds).toEqual(snapshot.drawer2.confirmed.rounds.map((round, index: number) : { round: number; inboundDate: string } => ({
+    expect(metric.orderExport.inboundRounds).toEqual(snapshot.drawer2.confirmed.rounds.map((round, index: number) : {
+      round: number
+      inboundDate: string
+      sizeOrderQty: { size: string; orderQty: number }[]
+    } => ({
       round: index + 1,
       inboundDate: round.date,
+      sizeOrderQty: snapshot.drawer2.sizeOrders.map((row: { size: string }) : { size: string; orderQty: number } => ({
+        size: row.size,
+        orderQty: round.qtyBySize[row.size] ?? 0,
+      })),
     })))
     expect(metric.orderExport.inboundExpectedDate).toBe(metric.orderExport.inboundRounds[0]?.inboundDate)
     expect(metric.orderExport.sizeOrderQty).toEqual(snapshot.drawer2.sizeOrders.map((row: { size: string }) : { size: string; orderQty: number } => ({

@@ -1,5 +1,5 @@
 import type { CandidateBadge } from '../api'
-import type { CandidateItemOrderExport, CandidateItemOrderExportInboundRound, CandidateItemSummary } from '../api/types'
+import type { CandidateItemOrderExport, CandidateItemOrderExportInboundRound, CandidateItemOrderExportSizeQty, CandidateItemSummary } from '../api/types'
 
 export type CandidateOrderExportInput = {
   stashName: string
@@ -18,6 +18,12 @@ export type CandidateOrderWorkbookData = {
 
 export const SIZE_NOT_APPLICABLE = 'N/A' as const
 
+type CandidateOrderExcelInboundRoundRow = {
+  round: number | '-'
+  inboundDate: string
+  sizeOrderQty: CandidateItemOrderExportSizeQty[]
+}
+
 function getOrderExport(item: CandidateItemSummary): CandidateItemOrderExport {
   if (!item.orderExport) throw new Error('오더 지표 계산이 완료되지 않은 후보가 있습니다.')
   return item.orderExport
@@ -32,7 +38,14 @@ function collectSizeColumns(items: CandidateItemSummary[]): string[] {
   const sizes: string[] = []
 
   for (const item of items) {
-    for (const sizeRow of getOrderExport(item).sizeOrderQty) {
+    const orderExport: CandidateItemOrderExport = getOrderExport(item)
+    const sizeRows: CandidateItemOrderExportSizeQty[] = [
+      ...orderExport.sizeOrderQty,
+      ...orderExport.inboundRounds.flatMap((round: CandidateItemOrderExportInboundRound): CandidateItemOrderExportSizeQty[] => (
+        Array.isArray(round.sizeOrderQty) ? round.sizeOrderQty : []
+      )),
+    ]
+    for (const sizeRow of sizeRows) {
       const size: string = normalizeSize(sizeRow.size)
       if (!size || seen.has(size)) continue
       seen.add(size)
@@ -72,16 +85,6 @@ function getInboundExpectedDate(items: CandidateItemSummary[]): string {
   return dates.join(' / ')
 }
 
-function collectInboundRoundColumns(items: CandidateItemSummary[]): number[] {
-  const maxRound: number = items.reduce((max: number, item: CandidateItemSummary): number => {
-    const itemMaxRound: number = getOrderExport(item).inboundRounds.reduce((roundMax: number, round: CandidateItemOrderExportInboundRound): number => (
-      Math.max(roundMax, Math.max(0, Math.round(round.round)))
-    ), 0)
-    return Math.max(max, itemMaxRound)
-  }, 0)
-  return Array.from({ length: maxRound }, (_: unknown, index: number): number => index + 1)
-}
-
 function numberOrDash(value: number | null | undefined): number | '-' {
   return value == null ? '-' : value
 }
@@ -94,9 +97,9 @@ function rateOrDash(value: number | null | undefined): string {
   return value == null ? '-' : `${value.toFixed(1)}%`
 }
 
-function sizeOrderMap(item: CandidateItemSummary): Map<string, number> {
+function sizeOrderMap(sizeOrderQty: readonly CandidateItemOrderExportSizeQty[]): Map<string, number> {
   const map: Map<string, number> = new Map<string, number>()
-  for (const sizeRow of getOrderExport(item).sizeOrderQty) {
+  for (const sizeRow of sizeOrderQty) {
     const size: string = normalizeSize(sizeRow.size)
     if (!size) continue
     map.set(size, (map.get(size) ?? 0) + roundedNonNegative(sizeRow.orderQty))
@@ -111,7 +114,7 @@ function badgeCell(summary: CandidateItemSummary): string {
   return badgeLabels.length ? badgeLabels.join('\n') : '-'
 }
 
-function createMainHeader(items: CandidateItemSummary[], inboundRoundColumns: readonly number[], sizeColumns: string[]): string[] {
+function createMainHeader(items: CandidateItemSummary[], sizeColumns: string[]): string[] {
   return [
     '브랜드',
     '품번',
@@ -121,8 +124,8 @@ function createMainHeader(items: CandidateItemSummary[], inboundRoundColumns: re
     '자사 기간 총 판매량',
     getCompetitorQtyHeader(items),
     '총 오더량',
-    '입고 차수',
-    ...inboundRoundColumns.map((round: number): string => `${round}차 입고 예정일`),
+    '차수',
+    '입고 예정일',
     '총 오더 금액',
     '평균 원가',
     '평균 판매가',
@@ -132,7 +135,7 @@ function createMainHeader(items: CandidateItemSummary[], inboundRoundColumns: re
   ]
 }
 
-function createMainColumnWidths(inboundRoundColumns: readonly number[], sizeColumns: string[]): number[] {
+function createMainColumnWidths(sizeColumns: string[]): number[] {
   return [
     18,
     18,
@@ -143,7 +146,7 @@ function createMainColumnWidths(inboundRoundColumns: readonly number[], sizeColu
     18,
     18,
     10,
-    ...inboundRoundColumns.map((): number => 16),
+    16,
     18,
     14,
     14,
@@ -161,20 +164,34 @@ function createMetaRows(userName: string, items: CandidateItemSummary[]): ExcelC
   ]
 }
 
-function inboundRoundDateByRound(item: CandidateItemSummary): Map<number, string> {
-  const map: Map<number, string> = new Map<number, string>()
-  getOrderExport(item).inboundRounds.forEach((round: CandidateItemOrderExportInboundRound): void => {
-    const roundNumber: number = Math.max(0, Math.round(round.round))
-    const inboundDate: string = round.inboundDate.trim()
-    if (roundNumber > 0 && inboundDate) map.set(roundNumber, inboundDate)
-  })
-  return map
+function createInboundRoundExportRows(item: CandidateItemSummary): CandidateOrderExcelInboundRoundRow[] {
+  const orderExport: CandidateItemOrderExport = getOrderExport(item)
+  const rows: CandidateOrderExcelInboundRoundRow[] = orderExport.inboundRounds
+    .map((round: CandidateItemOrderExportInboundRound): CandidateOrderExcelInboundRoundRow => ({
+      round: Math.max(0, Math.round(round.round)),
+      inboundDate: round.inboundDate.trim(),
+      sizeOrderQty: Array.isArray(round.sizeOrderQty) ? round.sizeOrderQty : [],
+    }))
+    .filter((roundRow: CandidateOrderExcelInboundRoundRow): boolean => (
+      roundRow.round !== '-' && roundRow.round > 0 && Boolean(roundRow.inboundDate)
+    ))
+    .sort((left: CandidateOrderExcelInboundRoundRow, right: CandidateOrderExcelInboundRoundRow): number => (
+      Number(left.round) - Number(right.round)
+    ))
+
+  if (rows.length > 0) return rows
+
+  const fallbackDate: string | undefined = orderExport.inboundExpectedDate?.trim()
+  return [{
+    round: '-',
+    inboundDate: fallbackDate || '-',
+    sizeOrderQty: orderExport.sizeOrderQty,
+  }]
 }
 
-function createMainRow(item: CandidateItemSummary, inboundRoundColumns: readonly number[], sizeColumns: string[]): ExcelCellValue[] {
-  const sizeQtyByName: Map<string, number> = sizeOrderMap(item)
+function createMainRow(item: CandidateItemSummary, roundRow: CandidateOrderExcelInboundRoundRow, sizeColumns: string[]): ExcelCellValue[] {
+  const sizeQtyByName: Map<string, number> = sizeOrderMap(roundRow.sizeOrderQty)
   const orderExport: CandidateItemOrderExport = getOrderExport(item)
-  const inboundDateByRound: Map<number, string> = inboundRoundDateByRound(item)
 
   return [
     item.brand,
@@ -185,8 +202,8 @@ function createMainRow(item: CandidateItemSummary, inboundRoundColumns: readonly
     numberOrDash(orderExport.selfQty),
     numberOrDash(orderExport.competitorQty),
     numberOrDash(orderExport.expectedSalesQty),
-    inboundDateByRound.size ? `${Math.max(...inboundDateByRound.keys())}차` : '-',
-    ...inboundRoundColumns.map((round: number): string => inboundDateByRound.get(round) ?? '-'),
+    roundRow.round,
+    roundRow.inboundDate,
     numberOrDash(orderExport.expectedOrderAmount),
     numberOrDash(orderExport.avgCost),
     numberOrDash(orderExport.avgPrice),
@@ -202,17 +219,18 @@ export function createCandidateOrderWorkbookData({
   items,
   userName,
 }: CandidateOrderExportInput): CandidateOrderWorkbookData {
-  const inboundRoundColumns: number[] = collectInboundRoundColumns(items)
   const sizeColumns: string[] = collectSizeColumns(items)
-  const mainHeader: string[] = createMainHeader(items, inboundRoundColumns, sizeColumns)
+  const mainHeader: string[] = createMainHeader(items, sizeColumns)
 
   return {
     mainHeader,
     mainRows: [
       mainHeader,
-      ...items.map((item: CandidateItemSummary) : ExcelCellValue[] => createMainRow(item, inboundRoundColumns, sizeColumns)),
+      ...items.flatMap((item: CandidateItemSummary) : ExcelCellValue[][] => (
+        createInboundRoundExportRows(item).map((roundRow: CandidateOrderExcelInboundRoundRow): ExcelCellValue[] => createMainRow(item, roundRow, sizeColumns))
+      )),
     ],
     metaRows: createMetaRows(userName, items),
-    mainColumnWidths: createMainColumnWidths(inboundRoundColumns, sizeColumns),
+    mainColumnWidths: createMainColumnWidths(sizeColumns),
   }
 }

@@ -86,11 +86,16 @@ function orderExportInboundRoundsFromSnapshot(snapshot: OrderSnapshotDocument): 
     return snapshot.drawer2.confirmed.rounds.map((round, index: number): CandidateItemOrderExportInboundRound => ({
       round: index + 1,
       inboundDate: round.date,
+      sizeOrderQty: snapshot.drawer2.sizeOrders.map((row: { size: string }) : CandidateItemOrderExportSizeQty => ({
+        size: row.size,
+        orderQty: Math.max(0, Math.round(round.qtyBySize[row.size] ?? 0)),
+      })),
     }))
   }
   return [{
     round: 1,
     inboundDate: snapshot.drawer2.stockOrderRequest.currentOrderInboundDueDate,
+    sizeOrderQty: orderExportSizeQtyFromSnapshot(snapshot),
   }]
 }
 

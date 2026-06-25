@@ -3,7 +3,7 @@
 ## 2026-06-25 candidate order export inbound rounds
 
 - `CandidateItemOrderExport` now includes `inboundRounds[]`.
-- Each round has `{ round, inboundDate }`; the frontend Excel download uses this DTO to add `입고 차수` and `n차 입고 예정일` columns without a separate export endpoint.
+- Each round has `{ round, inboundDate, sizeOrderQty[] }`; the frontend Excel download uses this DTO to expand rows by round with fixed `차수` and `입고 예정일` columns without a separate export endpoint.
 - `inboundExpectedDate` remains as a legacy/fallback summary field. Backends should fill `inboundRounds` from saved snapshot confirmed rounds when a candidate item has a confirmed order snapshot.
 
 ## 2026-06-25 primary drawer image contract

@@ -310,7 +310,8 @@ Compact response fragment:
 - snapshot은 화면 복원 계약이다. 최신 API 값을 자동으로 재계산해서 덮어쓰는 계약이 아니다.
 - snapshot 상세 계약은 [order-snapshot-backend-contract.md](./order-snapshot-backend-contract.md)를 따른다.
 - 후보군 오더 엑셀 다운로드는 이미 받은 `CandidateItemSummary.orderExport` 또는 order metric SSE의 `CandidateOrderMetric.orderExport`로 생성한다. 별도 엑셀용 상세 fetch를 두지 않는다.
-- `CandidateItemOrderExport.inboundRounds[]`는 `{ round: number, inboundDate: YYYY-MM-DD }` 형태의 입고 차수/입고 예정일 목록이다. snapshot item은 `OrderSnapshotDocument.drawer2.confirmed.rounds[]` 순서를 기준으로 채운다.
+- `CandidateItemOrderExport.inboundRounds[]`는 `{ round: number, inboundDate: YYYY-MM-DD, sizeOrderQty[] }` 형태의 입고 차수/입고 예정일/차수별 사이즈 수량 목록이다. snapshot item은 `OrderSnapshotDocument.drawer2.confirmed.rounds[]` 순서를 기준으로 채우며, `sizeOrderQty[]`는 해당 차수의 `qtyBySize`를 사용한다.
+- 후보군 엑셀은 `inboundRounds[]`를 동적 컬럼으로 펼치지 않는다. `차수`, `입고 예정일` 고정 컬럼을 두고 차수별로 행을 확장한다. 사이즈 컬럼은 사이즈별 고정 컬럼을 유지하고, 각 행에는 해당 차수의 사이즈 수량을 표시한다.
 - `CandidateItemOrderExport.inboundExpectedDate`는 기존 단일 날짜 표시/구형 fallback 필드로 유지한다. 신규 구현은 `inboundRounds[]`를 우선 제공해야 한다.
 
 ## 6. SSE

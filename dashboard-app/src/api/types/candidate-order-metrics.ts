@@ -9,6 +9,7 @@ export interface CandidateItemOrderExportSizeQty {
 export interface CandidateItemOrderExportInboundRound {
   round: number
   inboundDate: string
+  sizeOrderQty: CandidateItemOrderExportSizeQty[]
 }
 
 export interface CandidateItemOrderExport {

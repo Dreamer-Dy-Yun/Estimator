@@ -274,8 +274,8 @@ Candidate DTO notes:
 - `CandidateItemSummary.hasConfirmedOrderSnapshot`: saved snapshot existence flag.
 - `CandidateItemInsightSummary.competitorSalesSourceLabel`: sales insight source label.
 - `CandidateItemOrderExport.comparisonSubjectLabel`: comparison subject label used for order metric/export.
-- `CandidateItemOrderExport.inboundRounds[]`: order export inbound schedule, one row per confirmed inbound round. Shape: `{ round: number, inboundDate: YYYY-MM-DD }`. Snapshot-backed items should map this from `confirmed.rounds[]`; non-snapshot live calculation may return an empty array when no confirmed inbound schedule exists.
-- `CandidateItemOrderExport.inboundExpectedDate`: legacy/fallback single date field. Excel export uses `inboundRounds[]` first.
+- `CandidateItemOrderExport.inboundRounds[]`: order export inbound schedule, one row per confirmed inbound round. Shape: `{ round: number, inboundDate: YYYY-MM-DD, sizeOrderQty: { size: string, orderQty: number }[] }`. Snapshot-backed items should map this from `confirmed.rounds[]` and fill `sizeOrderQty[]` from each round `qtyBySize`; non-snapshot live calculation may return an empty array when no confirmed inbound schedule exists.
+- `CandidateItemOrderExport.inboundExpectedDate`: legacy/fallback single date field. Excel export uses `inboundRounds[]` first, expands rows by round, and keeps only fixed `차수` and `입고 예정일` columns instead of dynamic round-date columns.
 
 ## 9. Job / SSE
 

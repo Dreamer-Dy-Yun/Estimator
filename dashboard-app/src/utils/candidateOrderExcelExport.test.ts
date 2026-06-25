@@ -10,7 +10,11 @@ import {
 function candidateItem(
   uuid: string,
   size: string,
-  inboundRounds: CandidateItemOrderExportInboundRound[] = [{ round: 1, inboundDate: '2026-06-01' }],
+  inboundRounds: CandidateItemOrderExportInboundRound[] = [{
+    round: 1,
+    inboundDate: '2026-06-01',
+    sizeOrderQty: [{ size, orderQty: 10 }],
+  }],
 ): CandidateItemSummary {
   return {
     uuid,
@@ -69,27 +73,29 @@ function candidateItem(
 }
 
 describe('createCandidateOrderExcelExport', () : void => {
-  it('adds inbound split round columns to the main sheet data', () : void => {
+  it('expands inbound split rounds as main sheet rows', () : void => {
     const workbookData = createCandidateOrderWorkbookData({
       stashName: '테스트',
       userName: 'mock-admin',
       items: [
-        candidateItem('1', 'M', [{ round: 1, inboundDate: '2026-06-01' }]),
-        candidateItem('2', 'L', [
-          { round: 1, inboundDate: '2026-06-10' },
-          { round: 2, inboundDate: '2026-07-10' },
+        candidateItem('1', 'M', [
+          { round: 1, inboundDate: '2026-06-01', sizeOrderQty: [{ size: 'M', orderQty: 4 }] },
+          { round: 2, inboundDate: '2026-07-01', sizeOrderQty: [{ size: 'M', orderQty: 6 }] },
         ]),
+        candidateItem('2', 'L'),
       ],
     })
 
-    expect(workbookData.mainHeader.slice(7, 11)).toEqual([
+    expect(workbookData.mainHeader.slice(7, 10)).toEqual([
       '총 오더량',
-      '입고 차수',
-      '1차 입고 예정일',
-      '2차 입고 예정일',
+      '차수',
+      '입고 예정일',
     ])
-    expect(workbookData.mainRows[1]?.slice(7, 11)).toEqual([10, '1차', '2026-06-01', '-'])
-    expect(workbookData.mainRows[2]?.slice(7, 11)).toEqual([10, '2차', '2026-06-10', '2026-07-10'])
+    expect(workbookData.mainRows).toHaveLength(4)
+    expect(workbookData.mainRows[1]?.slice(7, 10)).toEqual([10, 1, '2026-06-01'])
+    expect(workbookData.mainRows[2]?.slice(7, 10)).toEqual([10, 2, '2026-07-01'])
+    expect(workbookData.mainRows[1]?.slice(15, 17)).toEqual([4, 'N/A'])
+    expect(workbookData.mainRows[2]?.slice(15, 17)).toEqual([6, 'N/A'])
   })
 
   it('uses injected clock when building the download filename', async () : Promise<void> => {

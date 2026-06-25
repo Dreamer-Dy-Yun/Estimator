@@ -50,7 +50,7 @@ API 문서는 다음 문서를 함께 갱신한다.
 | Secondary 상세 | `getProductSecondaryDetail` | 오더 계산, 확정값, 사이즈 제안, AI 코멘트 입력 컨텍스트를 수신한다. |
 | 일별 추세 | `getSecondaryDailyTrend` | 일별 예측 그래프 소스를 수신한다. `size` query가 있으면 해당 사이즈 기준, 없으면 전체 기준이다. 분할입고 계획 소스는 `getSecondaryStockOrderCalc().inboundSplitSource`를 사용한다. |
 | Split inbound planning source | `getSecondaryStockOrderCalc().inboundSplitSource` | Single planning source for detailed recommendation rows and split-inbound planning. It contains `total`, `sizeInfo`, `expectation`, and `confirmed`. |
-| 후보군 오더 엑셀 데이터 | `CandidateItemSummary.orderExport`, `CandidateOrderMetric.orderExport` | 후보군 엑셀은 이미 수신한 `orderExport` DTO로 생성한다. `inboundRounds[]`의 차수/입고 예정일을 동적 컬럼으로 펼치며, 추가 상세 fetch를 하지 않는다. |
+| 후보군 오더 엑셀 데이터 | `CandidateItemSummary.orderExport`, `CandidateOrderMetric.orderExport` | 후보군 엑셀은 이미 수신한 `orderExport` DTO로 생성한다. `inboundRounds[]`는 동적 컬럼으로 펼치지 않고, `차수`/`입고 예정일` 고정 컬럼에 차수별 행으로 확장한다. 사이즈 컬럼은 사이즈 기준으로만 유지하며 추가 상세 fetch를 하지 않는다. |
 
 `inboundSplitSource` is returned inside `getSecondaryStockOrderCalc`; split count, split dates, confirmed quantities, and `excludeSegmentExistingOrderInbound` remain UI/snapshot state.
 
