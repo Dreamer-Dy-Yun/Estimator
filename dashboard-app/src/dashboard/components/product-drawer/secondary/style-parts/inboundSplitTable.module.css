@@ -190,16 +190,69 @@
   box-shadow: inset 0 -1px 0 var(--inbound-split-section-divider), 0 10px 14px -14px var(--inbound-split-shadow);
 }
 
+.inboundSplitSourceBalanceTotalRow td {
+  position: sticky;
+  top: calc(var(--inbound-split-header-height) + var(--inbound-split-body-row-height));
+  z-index: 10;
+  background: var(--inbound-split-summary-bg);
+  color: #fff;
+  border-bottom: 1px solid var(--inbound-split-row-inner-divider);
+}
+
+.inboundSplitSourceBalanceSectionRow td {
+  background: #dcebd3;
+  color: var(--inbound-split-cell-text);
+  font-weight: 700;
+}
+
+.inboundSplitSourceBalanceDetailRow td {
+  background: #f1f7ee;
+  color: var(--inbound-split-cell-text);
+  font-weight: 500;
+}
+
+.inboundSplitSourceRowLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.inboundSplitSourceRowLabelIndented {
+  padding-left: 22px;
+  color: #334155;
+}
+
+.inboundSplitSourceToggleButton {
+  width: 18px;
+  height: 18px;
+  border: 1px solid #9fb693;
+  border-radius: 4px;
+  background: #fff;
+  color: #234226;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.inboundSplitSourceToggleButton:hover {
+  border-color: #5f7f56;
+}
+
 .inboundSplitSourceSummaryRow .inboundSplitStickyCol {
   background: #a8bea6;
 }
 
 .inboundSplitSourceOpeningStockRow .inboundSplitStickyCol,
-.inboundSplitSourcePeriodInboundTotalRow .inboundSplitStickyCol {
+.inboundSplitSourcePeriodInboundTotalRow .inboundSplitStickyCol,
+.inboundSplitSourceBalanceTotalRow .inboundSplitStickyCol {
   z-index: 11;
 }
 
-.inboundSplitSourceOpeningStockRow .inboundSplitStickyCol {
+.inboundSplitSourceOpeningStockRow .inboundSplitStickyCol,
+.inboundSplitSourceBalanceTotalRow .inboundSplitStickyCol {
   background: var(--inbound-split-summary-bg);
 }
 

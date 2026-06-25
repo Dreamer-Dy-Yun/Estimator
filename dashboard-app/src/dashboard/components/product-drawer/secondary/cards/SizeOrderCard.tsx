@@ -256,6 +256,7 @@ export function SizeOrderCard({ sizeOrder, actions, help }: Props) : React.JSX.E
         variant={USE_MOCK_API ? inboundSplitScheduleVariant : DEFAULT_INBOUND_SPLIT_SCHEDULE_VARIANT}
         help={{ labelId: helpIds.inboundSplitSchedule, portal: help }}
         debugSourcePayload={inboundSplitDebugSourcePayload}
+        existingOrderInboundSupplyBySize={existingOrderInboundSupplyBySize}
         {...inboundSplitSchedule.dialogProps}
       />
     </>

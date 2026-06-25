@@ -135,6 +135,15 @@ Clean up the secondary drawer split-inbound schedule UI by feature responsibilit
 - Mock API mode still exposes V0/V1/V2 selector for UI comparison, initialized to V1.
 - HTTP API mode does not render the selector and opens the V1 dialog directly.
 
+## 2026-06-25 V1 stock-summary update
+
+- The V1 dialog height is expanded to `95vh`.
+- V1 header now owns split count, reset-confirmed, and period existing-order inbound exclusion controls; the draft warning text under the title is no longer rendered in V1.
+- V1 source-summary viewport and editable schedule viewport use a `4:6` vertical ratio.
+- V1 source summary no longer renders the `기간내 입고 예정 합` row from `inboundSplitSource.expectation`.
+- V1 source summary now displays existing-order inbound balances from `existingOrderInboundSupplyBySize`: total, before current order inbound date, in period, and after next order inbound date. The three section rows expand to date-level rows.
+- V1 footer Apply/Close buttons use a compact height; V0/V2 footer sizing is unchanged.
+
 ## Verification
 
 - `npm run check:encoding`

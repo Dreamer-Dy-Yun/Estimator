@@ -135,7 +135,7 @@ Last updated: 2026-06-24
 
 - 현재 기본 활성 화면은 V1이다.
 - V0는 원형 화면 보존용이다.
-- V1은 `inboundSplitSource.sizeInfo`와 `expectation`을 read-only source summary table로 표시하는 UI 실험본이다.
+- V1은 `inboundSplitSource.sizeInfo`와 `existingOrderInboundSupplyBySize`를 read-only source summary table로 표시하는 기본 화면이다. 재고표는 기존 재고, 미입고 총 잔량, 금번 오더 입고일 전/기간 내/차기 오더 입고일 후 미입고 잔량을 보여주며 3개 구간은 날짜별 행으로 펼칠 수 있다.
 - V2는 전체/차수별 제안·확정 row 아래에 상세를 펼쳐 보여준다. 전체 상세는 `calculationBaseDate` 기준 기존 재고와 `[calculationBaseDate, 1차 입고일)` 기 오더 입고예정을 표시하고, 차수 상세의 기 오더 입고예정은 `[현재 차수 입고일, 다음 차수 입고일)` 기준으로 표시한다.
 - V0/V1/V2 선택 UI는 mock API 모드에서만 `분할 입고 설정` 버튼 아래에 노출된다. 실제 HTTP API 모드에서는 V1로 고정한다.
 - Variant별 파일 책임과 CSS 책임은 `MD/dashboard-app/boundaries/inbound-split-variants.md`에서 관리한다.

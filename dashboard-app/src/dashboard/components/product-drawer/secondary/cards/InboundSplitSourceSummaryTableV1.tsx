@@ -1,27 +1,26 @@
-import type { CSSProperties } from 'react'
-import type { SecondaryInboundSplitExpectationPoint, SecondaryInboundSplitSource } from '../../../../../api/types/secondary'
+import { useState, type CSSProperties } from 'react'
+import type { SecondaryExistingOrderInboundSupplyBySize, SecondaryInboundSplitSource } from '../../../../../api/types/secondary'
 import { formatGroupedNumber } from '../../../../../utils/format'
 import { KO } from '../../ko'
 import styles from '../secondaryDrawer.module.css'
 import type { InboundSplitSizeColumn } from './inboundSplitScheduleModel'
 import { cx } from './inboundSplitScheduleTableClasses'
+import {
+  EMPTY_INBOUND_SPLIT_SOURCE_SUMMARY_EXPANDED_SECTIONS,
+  buildInboundSplitSourceSummaryRowsV1,
+  getInboundSplitSourceSummaryRowTotal,
+  type InboundSplitExistingInboundSectionKey,
+  type InboundSplitSourceSummaryExpandedSections,
+  type InboundSplitSourceSummaryRowV1,
+} from './inboundSplitSourceSummaryV1Model'
 
 interface InboundSplitSourceSummaryTableV1Props {
   source: SecondaryInboundSplitSource
   columns: InboundSplitSizeColumn[]
+  existingOrderInboundSupplyBySize?: SecondaryExistingOrderInboundSupplyBySize | null
   calculationBaseDate: string
   currentOrderInboundDueDate: string
   nextOrderInboundDueDate: string
-  splitSourceWindowEndDate: string
-  excludePeriodExistingOrderInbound: boolean
-}
-
-interface SourceSummaryRow {
-  key: string
-  label: string
-  qtyBySize: Record<string, number | null>
-  openingStock?: boolean
-  periodInboundTotal?: boolean
 }
 
 type SourceSummaryTableStyle = CSSProperties & {
@@ -32,106 +31,54 @@ type SourceSummaryTableStyle = CSSProperties & {
 const sourceDateClassName: string = cx(styles.inboundSplitSourceDateCell, styles.inboundSplitStickyCol, styles.inboundSplitStickyColSourceDate)
 const sourceTotalClassName: string = cx(styles.num, styles.inboundSplitSourceTotalCell, styles.inboundSplitStickyCol, styles.inboundSplitStickyColSourceTotal)
 
-function normalizeQty(value: number | null | undefined): number | null {
-  if (value == null || !Number.isFinite(value)) return null
-  return Math.max(0, Math.round(value))
-}
-
-function getRowTotal(row: SourceSummaryRow, columns: readonly InboundSplitSizeColumn[]): number {
-  return columns.reduce((sum: number, column: InboundSplitSizeColumn): number => sum + (row.qtyBySize[column.size] ?? 0), 0)
-}
-
-function getExpectationPoints(
-  source: SecondaryInboundSplitSource,
-  size: string,
-  splitSourceWindowEndDate: string,
-): SecondaryInboundSplitExpectationPoint[] {
-  return (source.expectation[size] ?? [])
-    .filter((point: SecondaryInboundSplitExpectationPoint): boolean => point.date < splitSourceWindowEndDate)
-}
-
-function buildSourceSummaryRows(
-  source: SecondaryInboundSplitSource,
-  columns: readonly InboundSplitSizeColumn[],
-  calculationBaseDate: string,
-  currentOrderInboundDueDate: string,
-  nextOrderInboundDueDate: string,
-  splitSourceWindowEndDate: string,
-  excludePeriodExistingOrderInbound: boolean,
-): SourceSummaryRow[] {
-  const openingQtyBySize: Record<string, number | null> = {}
-  const periodInboundQtyBySize: Record<string, number> = {}
-  const inboundQtyByDate: Map<string, Record<string, number>> = new Map<string, Record<string, number>>()
-
-  columns.forEach((column: InboundSplitSizeColumn): void => {
-    openingQtyBySize[column.size] = normalizeQty(source.sizeInfo[column.size]?.baseStock)
-    periodInboundQtyBySize[column.size] = 0
-
-    const expectationPoints: SecondaryInboundSplitExpectationPoint[] = getExpectationPoints(
-      source,
-      column.size,
-      splitSourceWindowEndDate,
-    )
-    expectationPoints.forEach((point: SecondaryInboundSplitExpectationPoint): void => {
-      if (excludePeriodExistingOrderInbound && point.date >= currentOrderInboundDueDate && point.date < nextOrderInboundDueDate) return
-      const inboundQty: number | null = normalizeQty(point.inbound)
-      if (inboundQty == null || inboundQty <= 0) return
-      periodInboundQtyBySize[column.size] = (periodInboundQtyBySize[column.size] ?? 0) + inboundQty
-      const dateRow: Record<string, number> = inboundQtyByDate.get(point.date) ?? {}
-      dateRow[column.size] = (dateRow[column.size] ?? 0) + inboundQty
-      inboundQtyByDate.set(point.date, dateRow)
-    })
-  })
-
-  const inboundRows: SourceSummaryRow[] = Array.from(inboundQtyByDate.entries())
-    .sort(([leftDate]: [string, Record<string, number>], [rightDate]: [string, Record<string, number>]): number => leftDate.localeCompare(rightDate))
-    .map(([date, qtyBySize]: [string, Record<string, number>]): SourceSummaryRow => ({
-      key: `inbound-${date}`,
-      label: date,
-      qtyBySize,
-    }))
-
-  const openingStockRow: SourceSummaryRow = {
-    key: 'opening-stock',
-    label: `${KO.rowInboundSplitOpeningStock} (${calculationBaseDate})`,
-    qtyBySize: openingQtyBySize,
-    openingStock: true,
-  }
-
-  return [openingStockRow, {
-    key: 'period-inbound-total',
-    label: KO.rowInboundSplitPeriodInboundTotal,
-    qtyBySize: periodInboundQtyBySize,
-    periodInboundTotal: true,
-  }, ...inboundRows]
-}
-
 function formatQty(value: number | null | undefined): string {
   if (value == null) return '-'
   return formatGroupedNumber(value)
 }
 
+const SECTION_LABELS: Record<InboundSplitExistingInboundSectionKey, string> = {
+  beforeCurrent: KO.rowTotalOrderBalanceBeforeCurrent,
+  inPeriod: KO.rowTotalOrderBalanceInPeriod,
+  afterNext: KO.rowTotalOrderBalanceAfterNext,
+}
+
+function getRowLabel(row: InboundSplitSourceSummaryRowV1): string {
+  if (row.kind === 'opening-stock') return `${KO.rowInboundSplitOpeningStock} (${row.date ?? '-'})`
+  if (row.kind === 'balance-total') return KO.rowTotalOrderBalance
+  if (row.kind === 'balance-section' && row.sectionKey) return SECTION_LABELS[row.sectionKey]
+  if (row.kind === 'balance-detail') return row.date ?? '-'
+  return '-'
+}
+
 export function InboundSplitSourceSummaryTableV1({
   source,
   columns,
+  existingOrderInboundSupplyBySize,
   calculationBaseDate,
   currentOrderInboundDueDate,
   nextOrderInboundDueDate,
-  splitSourceWindowEndDate,
-  excludePeriodExistingOrderInbound,
 }: InboundSplitSourceSummaryTableV1Props): React.JSX.Element {
-  const rows: SourceSummaryRow[] = buildSourceSummaryRows(
+  const [expandedSections, setExpandedSections] = useState<InboundSplitSourceSummaryExpandedSections>(
+    EMPTY_INBOUND_SPLIT_SOURCE_SUMMARY_EXPANDED_SECTIONS,
+  )
+  const rows: InboundSplitSourceSummaryRowV1[] = buildInboundSplitSourceSummaryRowsV1(
     source,
     columns,
+    existingOrderInboundSupplyBySize,
     calculationBaseDate,
     currentOrderInboundDueDate,
     nextOrderInboundDueDate,
-    splitSourceWindowEndDate,
-    excludePeriodExistingOrderInbound,
+    expandedSections,
   )
   const tableStyle: SourceSummaryTableStyle = {
     '--inbound-split-size-col-count': columns.length,
     '--inbound-split-size-col-divisor': Math.max(columns.length, 1),
+  }
+  const toggleSection: (sectionKey: InboundSplitExistingInboundSectionKey) => void = (sectionKey: InboundSplitExistingInboundSectionKey): void => {
+    setExpandedSections((current: InboundSplitSourceSummaryExpandedSections): InboundSplitSourceSummaryExpandedSections => ({
+      ...current,
+      [sectionKey]: !current[sectionKey],
+    }))
   }
 
   return (
@@ -146,19 +93,35 @@ export function InboundSplitSourceSummaryTableV1({
         </tr>
       </thead>
       <tbody>
-        {rows.map((row: SourceSummaryRow): React.JSX.Element => (
+        {rows.map((row: InboundSplitSourceSummaryRowV1): React.JSX.Element => (
           <tr
             key={row.key}
             className={cx(
               styles.inboundSplitSourceSummaryRow,
-              row.openingStock ? styles.inboundSplitSourceOpeningStockRow : null,
-              row.periodInboundTotal ? styles.inboundSplitSourcePeriodInboundTotalRow : null,
+              row.kind === 'opening-stock' ? styles.inboundSplitSourceOpeningStockRow : null,
+              row.kind === 'balance-total' ? styles.inboundSplitSourceBalanceTotalRow : null,
+              row.kind === 'balance-section' ? styles.inboundSplitSourceBalanceSectionRow : null,
+              row.kind === 'balance-detail' ? styles.inboundSplitSourceBalanceDetailRow : null,
             )}
           >
-            <td className={sourceDateClassName}>{row.label}</td>
-            <td className={sourceTotalClassName}>{formatGroupedNumber(getRowTotal(row, columns))}</td>
+            <td className={sourceDateClassName}>
+              <span className={cx(styles.inboundSplitSourceRowLabel, row.kind === 'balance-detail' ? styles.inboundSplitSourceRowLabelIndented : null)}>
+                {row.kind === 'balance-section' && row.sectionKey ? (
+                  <button
+                    type="button"
+                    className={styles.inboundSplitSourceToggleButton}
+                    aria-expanded={expandedSections[row.sectionKey]}
+                    onClick={(): void => toggleSection(row.sectionKey!)}
+                  >
+                    {expandedSections[row.sectionKey] ? '-' : '+'}
+                  </button>
+                ) : null}
+                <span>{getRowLabel(row)}</span>
+              </span>
+            </td>
+            <td className={sourceTotalClassName}>{formatGroupedNumber(getInboundSplitSourceSummaryRowTotal(row, columns))}</td>
             {columns.map((column: InboundSplitSizeColumn): React.JSX.Element => {
-              const qty: number | null | undefined = row.openingStock ? row.qtyBySize[column.size] : (row.qtyBySize[column.size] ?? 0)
+              const qty: number | null | undefined = row.kind === 'opening-stock' ? row.qtyBySize[column.size] : (row.qtyBySize[column.size] ?? 0)
               return <td key={column.size} className={styles.num}>{formatQty(qty)}</td>
             })}
           </tr>
