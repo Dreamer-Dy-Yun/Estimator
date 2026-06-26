@@ -23,7 +23,7 @@ export type Args = {
   bufferStock: number
   confirmBySize: Record<string, number>
   snapshotConfirmBySize: Record<string, number>
-  useSnapshotConfirmBaseline: boolean
+  useSnapshotDataBaseline: boolean
   snapshotSizeOrders?: SecondarySizeOrderRestoreRow[] | null
 }
 
@@ -38,7 +38,7 @@ export function useSecondaryOrderCalculations({
   bufferStock,
   confirmBySize,
   snapshotConfirmBySize,
-  useSnapshotConfirmBaseline,
+  useSnapshotDataBaseline,
   snapshotSizeOrders,
 }: Args) : { stockOrderCalculationReady: boolean; stockOrderDisplayInputs: { trendDailyMean: null; dailyMean: null; sigma: null; } | { trendDailyMean: number; dailyMean: number; sigma: number; }; sizeRows: SecondarySizeOrderDisplayRow[]; manualConfirmDerived: Record<string, true>; dailyTrendSizeOptions: { id: string; label: string; share: number; }[]; } {
   const calculationReady: boolean = stockOrderCalculationReady == null
@@ -65,11 +65,11 @@ export function useSecondaryOrderCalculations({
 
   const orderDraft: SecondaryOrderDraft = useMemo(
     () : SecondaryOrderDraft => new SecondaryOrderDraft({
-      mode: useSnapshotConfirmBaseline ? 'snapshot' : 'live',
+      mode: useSnapshotDataBaseline ? 'snapshot' : 'live',
       manualConfirmBySize: confirmBySize,
       snapshotConfirmBySize,
     }),
-    [confirmBySize, snapshotConfirmBySize, useSnapshotConfirmBaseline],
+    [confirmBySize, snapshotConfirmBySize, useSnapshotDataBaseline],
   )
 
   const sizeShares: SecondarySizeShare[] = useMemo(
@@ -78,7 +78,7 @@ export function useSecondaryOrderCalculations({
   )
 
   const sizeRows: SecondarySizeOrderDisplayRow[] = useMemo(() : SecondarySizeOrderDisplayRow[] => {
-    if (useSnapshotConfirmBaseline && snapshotSizeOrders != null) {
+    if (useSnapshotDataBaseline && snapshotSizeOrders != null) {
       return snapshotSizeOrders.map<SecondarySizeOrderDisplayRow>((row: SecondarySizeOrderRestoreRow) : { size: string; baseSharePct: number; comparisonSharePct: number; blendedSharePct: number; forecastQty: number; recommendedQty: number; confirmQty: number; } => ({
         size: row.size,
         baseSharePct: row.baseSharePct,
@@ -123,7 +123,7 @@ export function useSecondaryOrderCalculations({
     orderDraft,
     snapshotSizeOrders,
     sizeShares,
-    useSnapshotConfirmBaseline,
+    useSnapshotDataBaseline,
   ])
 
   return {

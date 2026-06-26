@@ -1,6 +1,6 @@
 # Backend API Specification
 
-Last updated: 2026-06-19
+Last updated: 2026-06-26
 
 이 문서는 `dashboard-app`이 현재 사용하는 백엔드 API의 구현 기준이다.
 endpoint별 path/query/body/response 목록은 [dashboard-api-contract-catalog.md](./dashboard-api-contract-catalog.md)를 함께 본다.
@@ -311,7 +311,7 @@ Compact response fragment:
 - snapshot 상세 계약은 [order-snapshot-backend-contract.md](./order-snapshot-backend-contract.md)를 따른다.
 - 후보군 오더 엑셀 다운로드는 이미 받은 `CandidateItemSummary.orderExport` 또는 order metric SSE의 `CandidateOrderMetric.orderExport`로 생성한다. 별도 엑셀용 상세 fetch를 두지 않는다.
 - `CandidateItemOrderExport.inboundRounds[]`는 `{ round: number, inboundDate: YYYY-MM-DD, sizeOrderQty[] }` 형태의 입고 차수/입고 예정일/차수별 사이즈 수량 목록이다. snapshot item은 `OrderSnapshotDocument.drawer2.confirmed.rounds[]` 순서를 기준으로 채우며, `sizeOrderQty[]`는 해당 차수의 `qtyBySize`를 사용한다.
-- 후보군 엑셀은 `inboundRounds[]`를 동적 컬럼으로 펼치지 않는다. `차수`, `입고 예정일` 고정 컬럼을 두고 차수별로 행을 확장한다. 사이즈 컬럼은 사이즈별 고정 컬럼을 유지하고, 각 행에는 해당 차수의 사이즈 수량을 표시한다.
+- 후보군 엑셀은 `inboundRounds[]`를 동적 컬럼으로 펼치지 않는다. `차수`, `입고 예정일` 고정 컬럼을 두고 차수별로 행을 확장한다. 사이즈 컬럼은 사이즈별 고정 컬럼을 유지하고, 각 행에는 해당 차수의 사이즈 수량을 표시한다. 차수 행의 `총 오더량`은 해당 차수 `sizeOrderQty[]` 합계이고, `총 오더 금액`은 차수 수량 기준으로 계산한다.
 - `CandidateItemOrderExport.inboundExpectedDate`는 기존 단일 날짜 표시/구형 fallback 필드로 유지한다. 신규 구현은 `inboundRounds[]`를 우선 제공해야 한다.
 
 ## 6. SSE

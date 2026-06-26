@@ -107,6 +107,17 @@ function sizeOrderMap(sizeOrderQty: readonly CandidateItemOrderExportSizeQty[]):
   return map
 }
 
+function totalSizeOrderQty(sizeQtyByName: Map<string, number>): number {
+  return [...sizeQtyByName.values()].reduce((sum: number, qty: number): number => sum + roundedNonNegative(qty), 0)
+}
+
+function roundExpectedOrderAmount(orderExport: CandidateItemOrderExport, roundOrderQty: number): number {
+  if (orderExport.avgCost != null) return roundOrderQty * Math.max(0, Math.round(orderExport.avgCost))
+  const totalOrderQty: number = Math.max(0, Math.round(orderExport.expectedSalesQty))
+  if (totalOrderQty <= 0) return 0
+  return Math.round(orderExport.expectedOrderAmount * (roundOrderQty / totalOrderQty))
+}
+
 function badgeCell(summary: CandidateItemSummary): string {
   const badgeLabels: string[] = [
     ...new Set(summary.insight.badges.map((badge: CandidateBadge) : string => badge.name.trim()).filter(Boolean)),
@@ -191,6 +202,7 @@ function createInboundRoundExportRows(item: CandidateItemSummary): CandidateOrde
 
 function createMainRow(item: CandidateItemSummary, roundRow: CandidateOrderExcelInboundRoundRow, sizeColumns: string[]): ExcelCellValue[] {
   const sizeQtyByName: Map<string, number> = sizeOrderMap(roundRow.sizeOrderQty)
+  const roundOrderQty: number = totalSizeOrderQty(sizeQtyByName)
   const orderExport: CandidateItemOrderExport = getOrderExport(item)
 
   return [
@@ -201,10 +213,10 @@ function createMainRow(item: CandidateItemSummary, roundRow: CandidateOrderExcel
     badgeCell(item),
     numberOrDash(orderExport.selfQty),
     numberOrDash(orderExport.competitorQty),
-    numberOrDash(orderExport.expectedSalesQty),
+    roundOrderQty,
     roundRow.round,
     roundRow.inboundDate,
-    numberOrDash(orderExport.expectedOrderAmount),
+    roundExpectedOrderAmount(orderExport, roundOrderQty),
     numberOrDash(orderExport.avgCost),
     numberOrDash(orderExport.avgPrice),
     rateOrDash(orderExport.feeRatePct),

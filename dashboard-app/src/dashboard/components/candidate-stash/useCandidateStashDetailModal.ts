@@ -34,6 +34,7 @@ import {
 } from './candidateItemLocalMutationModel'
 import { useCandidateItemsLoader } from './useCandidateItemsLoader'
 import type { CandidateItemStateUpdater } from './candidateStashDetailTypes'
+import { resetCandidateOrderMetricsLoadingByUuid } from './candidateItemMetricModel'
 
 export type { InnerCandidateRow, InnerCandidateSortKey } from './candidateStashDetailTypes'
 
@@ -132,6 +133,22 @@ export function useCandidateStashDetailModal({
       subscribeOrderMetrics,
     })
 
+  const invalidateOrderMetricsForItems: (itemUuids: string[]) => void = useCallback((itemUuids: string[]) : void => {
+    const itemUuidSet: Set<string> = new Set(itemUuids)
+    if (!itemUuidSet.size) return
+    const targetItems: CandidateItemSummary[] = itemsRef.current.filter((item: CandidateItemSummary) : boolean => itemUuidSet.has(item.uuid))
+    if (!targetItems.length) return
+    setItems((current: CandidateItemSummary[]) : CandidateItemSummary[] => resetCandidateOrderMetricsLoadingByUuid(current, itemUuids))
+    if (!orderMetricComparisonTarget || !dataReferencePeriodStart || !dataReferencePeriodEnd) return
+    subscribeMetricsForCandidateItems(targetItems)
+  }, [
+    dataReferencePeriodEnd,
+    dataReferencePeriodStart,
+    orderMetricComparisonTarget,
+    setItems,
+    subscribeMetricsForCandidateItems,
+  ])
+
   const appendRecommendedItemsLocally: (candidateItems: CandidateStashItemSummary[], recommendationRows: CandidateReferenceItemSummary[]) => number = useCallback((
     candidateItems: CandidateStashItemSummary[],
     recommendationRows: CandidateReferenceItemSummary[],
@@ -200,6 +217,7 @@ export function useCandidateStashDetailModal({
       confirmationOverridesRef,
       setItems,
       drawer,
+      onOrderMetricsInvalidated: invalidateOrderMetricsForItems,
     })
   const bulkConfirm: { bulkConfirmBusy: boolean; bulkConfirmProgress: CandidateBulkDetailConfirmProgress | null; closeBulkConfirmProgress: () => void; confirmBulkDetailItems: (itemUuids: string[]) => Promise<void>; } = useCandidateBulkDetailConfirm({
     stashUuid,

@@ -92,8 +92,8 @@ describe('createCandidateOrderExcelExport', () : void => {
       '입고 예정일',
     ])
     expect(workbookData.mainRows).toHaveLength(4)
-    expect(workbookData.mainRows[1]?.slice(7, 10)).toEqual([10, 1, '2026-06-01'])
-    expect(workbookData.mainRows[2]?.slice(7, 10)).toEqual([10, 2, '2026-07-01'])
+    expect(workbookData.mainRows[1]?.slice(7, 11)).toEqual([4, 1, '2026-06-01', 280000])
+    expect(workbookData.mainRows[2]?.slice(7, 11)).toEqual([6, 2, '2026-07-01', 420000])
     expect(workbookData.mainRows[1]?.slice(15, 17)).toEqual([4, 'N/A'])
     expect(workbookData.mainRows[2]?.slice(15, 17)).toEqual([6, 'N/A'])
   })

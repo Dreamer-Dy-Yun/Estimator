@@ -209,11 +209,17 @@ export function useCandidateStashItemDrawer({ dataReferenceStart, dataReferenceE
   }, [applyOpenedSnapshot])
 
   const markDrawerSnapshotUnconfirmed: (itemUuid: string, baseDbUpdatedAt?: string | null) => void = useCallback((itemUuid: string, baseDbUpdatedAt: string | null = null) : void => {
-    delete draftSnapshotsByItemUuidRef.current[itemUuid]
+    const liveSnapshot: OrderSnapshotDocument | null =
+      draftSnapshotsByItemUuidRef.current[itemUuid]?.snapshot ??
+      (openedItemUuid === itemUuid ? hydrateSnap : null) ??
+      confirmedSnapshotsByItemUuidRef.current[itemUuid] ??
+      null
+    if (liveSnapshot) draftSnapshotsByItemUuidRef.current[itemUuid] = { snapshot: liveSnapshot, source: 'live' }
+    else delete draftSnapshotsByItemUuidRef.current[itemUuid]
     delete confirmedSnapshotsByItemUuidRef.current[itemUuid]
     snapshotMutationsByItemUuidRef.current[itemUuid] = { state: 'unconfirmed', baseDbUpdatedAt }
-    applyOpenedSnapshot(itemUuid, null, null, null)
-  }, [applyOpenedSnapshot])
+    applyOpenedSnapshot(itemUuid, liveSnapshot, liveSnapshot ? 'live' : null, null)
+  }, [applyOpenedSnapshot, hydrateSnap, openedItemUuid])
 
   const restoreDrawerConfirmedSnapshot: (itemUuid: string) => void = useCallback((itemUuid: string) : void => {
     const snap: OrderSnapshotDocument | null = confirmedSnapshotsByItemUuidRef.current[itemUuid] ?? null

@@ -1,6 +1,6 @@
 # dashboard-app Frontend Overview
 
-Last updated: 2026-06-19
+Last updated: 2026-06-26
 
 ## 목적
 
@@ -80,7 +80,7 @@ Last updated: 2026-06-19
 - 추천 append 상태는 `applied`, `stale`, `no-op`, `empty-selection`으로 구분한다.
 - order metric SSE는 runtime config가 제공한 `candidateOrderMetricComparison`을 사용한다.
 - snapshot item은 저장된 `OrderSnapshotDocument.drawer2` 값을 투영하고, non-snapshot item은 선택된 comparison 기준으로 secondary order calculation을 재사용한다.
-- 후보군 오더 엑셀은 item/order metric의 `orderExport` DTO만 사용한다. `inboundRounds[]`는 동적 컬럼이 아니라 `차수`, `입고 예정일` 고정 컬럼으로 행 확장하며 별도 상세 조회를 만들지 않는다.
+- 후보군 오더 엑셀은 item/order metric의 `orderExport` DTO만 사용한다. `inboundRounds[]`는 동적 컬럼이 아니라 `차수`, `입고 예정일` 고정 컬럼으로 행 확장하며 별도 상세 조회를 만들지 않는다. 확장된 차수 행의 `총 오더량`은 해당 차수 `sizeOrderQty[]` 합계이고, `총 오더 금액`은 차수 수량 기준으로 계산한다.
 - SSE 실패는 대상 row/cell의 실패 상태로 표시하고 기존 목록을 비우지 않는다.
 
 ## 관리자

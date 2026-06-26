@@ -144,6 +144,12 @@ export function ProductSecondaryDrawer({
     confirmedRounds,
     setConfirmedRounds,
   } = snapshotController
+  const confirmedSnapshotBaselineActive: boolean = snapshotConfirmBaselineActive && !confirmedBaselineDraftDirty
+  const snapshotDataBaselineActive: boolean =
+    prefillFromSnapshot != null &&
+    prefillKey != null &&
+    appliedPrefillKey === prefillKey &&
+    !confirmedBaselineDraftDirty
 
   const model = useSecondaryForecastModel({
     primary,
@@ -161,7 +167,7 @@ export function ProductSecondaryDrawer({
     candidateItemContext,
     comparisonTarget,
     snapshotConfirmBySize,
-    useSnapshotConfirmBaseline: snapshotConfirmBaselineActive && !confirmedBaselineDraftDirty,
+    useSnapshotDataBaseline: snapshotDataBaselineActive,
     dailyMeanClient,
     setDailyMeanClient,
     currentOrderInboundDueDate,
@@ -235,7 +241,7 @@ export function ProductSecondaryDrawer({
       comparisonLabel={comparisonTarget.label}
       candidateItemContext={candidateItemContext}
       hasSavedSnapshot={hasSavedSnapshot}
-      showingConfirmedValues={snapshotConfirmBaselineActive && !confirmedBaselineDraftDirty}
+      showingConfirmedValues={confirmedSnapshotBaselineActive}
       onResetToLive={handleResetToLiveClick}
       onRestoreConfirmed={handleRestoreConfirmed}
       model={model}

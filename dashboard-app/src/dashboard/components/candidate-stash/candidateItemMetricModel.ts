@@ -51,6 +51,21 @@ export function resetCandidateItemOrderMetricLoading(item: CandidateItemSummary)
   }
 }
 
+export function resetCandidateOrderMetricsLoadingByUuid(
+  items: CandidateItemSummary[],
+  itemUuids: readonly string[],
+): CandidateItemSummary[] {
+  if (!items.length || !itemUuids.length) return items
+  const itemUuidSet: Set<string> = new Set(itemUuids)
+  let changed: boolean = false
+  const nextItems: CandidateItemSummary[] = items.map((item: CandidateItemSummary): CandidateItemSummary => {
+    if (!itemUuidSet.has(item.uuid)) return item
+    changed = true
+    return resetCandidateItemOrderMetricLoading(item)
+  })
+  return changed ? nextItems : items
+}
+
 function clearCandidateItemOrderMetricAsFailed(item: CandidateItemSummary): CandidateItemSummary {
   return {
     ...item,

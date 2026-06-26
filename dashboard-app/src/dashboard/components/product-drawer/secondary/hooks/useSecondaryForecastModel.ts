@@ -37,7 +37,7 @@ export type Args = {
   candidateItemContext: CandidateItemPanelContext | null
   comparisonTarget: ProductComparisonTarget
   snapshotConfirmBySize: Record<string, number>
-  useSnapshotConfirmBaseline: boolean
+  useSnapshotDataBaseline: boolean
   dailyMeanClient: number | null
   setDailyMeanClient: (value: number | null) => void
   currentOrderInboundDueDate: string
@@ -74,7 +74,7 @@ export function useSecondaryForecastModel(args: Args) : { stockOrderDisplay: { c
     candidateItemContext,
     comparisonTarget,
     snapshotConfirmBySize,
-    useSnapshotConfirmBaseline,
+    useSnapshotDataBaseline,
     dailyMeanClient,
     setDailyMeanClient,
     currentOrderInboundDueDate,
@@ -125,8 +125,8 @@ export function useSecondaryForecastModel(args: Args) : { stockOrderDisplay: { c
     currentOrderInboundDueDate,
     nextOrderInboundDueDate,
   })
-  const snapshotStockOrderResult: SecondaryStockOrderCalcResult | null = useSnapshotConfirmBaseline ? prefillFromSnapshot?.drawer2.stockOrderResult ?? null : null
-  const activeStockOrderCalc: SecondaryStockOrderCalcResult | null = useSnapshotConfirmBaseline ? snapshotStockOrderResult : requests.stockOrderCalc
+  const snapshotStockOrderResult: SecondaryStockOrderCalcResult | null = useSnapshotDataBaseline ? prefillFromSnapshot?.drawer2.stockOrderResult ?? null : null
+  const activeStockOrderCalc: SecondaryStockOrderCalcResult | null = useSnapshotDataBaseline ? snapshotStockOrderResult : requests.stockOrderCalc
   const activeInboundSplitSource: SecondaryInboundSplitSource | null = activeStockOrderCalc?.inboundSplitSource ?? null
   const activeCalculationBaseDate: string = snapshotStockOrderResult == null
     ? requests.calculationBaseDate
@@ -158,11 +158,11 @@ export function useSecondaryForecastModel(args: Args) : { stockOrderDisplay: { c
   }, [activeStockOrderCalc])
 
   useEffect(() : void => {
-    if (useSnapshotConfirmBaseline) return
+    if (useSnapshotDataBaseline) return
     setConfirmBySize({})
     setConfirmedRounds([])
   }, [
-    useSnapshotConfirmBaseline,
+    useSnapshotDataBaseline,
     bufferStock,
     dailyMeanClient,
     nextOrderInboundDueDate,
@@ -190,7 +190,7 @@ export function useSecondaryForecastModel(args: Args) : { stockOrderDisplay: { c
     bufferStock,
     confirmBySize,
     snapshotConfirmBySize,
-    useSnapshotConfirmBaseline,
+    useSnapshotDataBaseline,
     snapshotSizeOrders: snapshotStockOrderResult == null ? null : prefillFromSnapshot?.drawer2.sizeOrders ?? null,
   })
   const stockOrderDisplay: { currentStockQtyTotal: number; totalOrderBalanceTotal: number; expectedInboundOrderBalanceTotal: number; sizeRows: SecondaryStockOrderDisplaySizeRow[]; } | null = stockOrderCalculationReady ? activeStockOrderCalc?.display ?? null : null
@@ -266,11 +266,11 @@ export function useSecondaryForecastModel(args: Args) : { stockOrderDisplay: { c
   })
   const handleConfirmQtyChange: (size: string, next: number, recommendedQty: number) => void = useCallback((size: string, next: number, recommendedQty: number) : void => {
     setConfirmBySize((prev: Record<string, number>) : Record<string, number> => new SecondaryOrderDraft({
-      mode: useSnapshotConfirmBaseline ? 'snapshot' : 'live',
+      mode: useSnapshotDataBaseline ? 'snapshot' : 'live',
       manualConfirmBySize: prev,
       snapshotConfirmBySize,
     }).nextManualConfirmBySize(size, next, recommendedQty))
-  }, [setConfirmBySize, snapshotConfirmBySize, useSnapshotConfirmBaseline])
+  }, [setConfirmBySize, snapshotConfirmBySize, useSnapshotDataBaseline])
 
   return {
     selectedStart,

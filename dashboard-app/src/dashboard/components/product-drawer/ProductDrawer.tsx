@@ -111,11 +111,20 @@ function ProductDrawerContent({
     pageName,
   })
   const [monthlySalesTrend, setMonthlySalesTrend]: [ProductMonthlyTrendChartPoint[] | null, React.Dispatch<React.SetStateAction<ProductMonthlyTrendChartPoint[] | null>>] = useState<ProductMonthlyTrendChartPoint[] | null>(() => hydrateForPanel?.drawer1.monthlySalesTrend ?? null)
+  const monthlyTrendSkuGroupKeyRef: React.MutableRefObject<string> = useRef(summary.skuGroupKey)
 
   useEffect(() : () => void => {
     let alive: boolean = true
     queueMicrotask(() : void => {
-      if (alive) setMonthlySalesTrend(hydrateForPanel?.drawer1.monthlySalesTrend ?? null)
+      if (!alive) return
+      const nextMonthlySalesTrend: ProductMonthlyTrendChartPoint[] | null = hydrateForPanel?.drawer1.monthlySalesTrend ?? null
+      const skuChanged: boolean = summary.skuGroupKey !== monthlyTrendSkuGroupKeyRef.current
+      if (nextMonthlySalesTrend != null) {
+        setMonthlySalesTrend(nextMonthlySalesTrend)
+      } else if (skuChanged) {
+        setMonthlySalesTrend(null)
+      }
+      if (skuChanged) monthlyTrendSkuGroupKeyRef.current = summary.skuGroupKey
     })
     return () : void => {
       alive = false

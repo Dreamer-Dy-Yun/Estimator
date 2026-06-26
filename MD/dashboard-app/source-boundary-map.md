@@ -1,6 +1,6 @@
 # Dashboard App Source Boundary Map
 
-Last updated: 2026-06-24
+Last updated: 2026-06-26
 
 이 문서는 `dashboard-app`의 현재 책임 경계와 데이터 출처를 정리한다. 화면, API 계약, 계산 책임, 저장된 사용자 결정이 섞이지 않도록 하는 기준 문서이다.
 
@@ -50,7 +50,13 @@ API 문서는 다음 문서를 함께 갱신한다.
 | Secondary 상세 | `getProductSecondaryDetail` | 오더 계산, 확정값, 사이즈 제안, AI 코멘트 입력 컨텍스트를 수신한다. |
 | 일별 추세 | `getSecondaryDailyTrend` | 일별 예측 그래프 소스를 수신한다. `size` query가 있으면 해당 사이즈 기준, 없으면 전체 기준이다. 분할입고 계획 소스는 `getSecondaryStockOrderCalc().inboundSplitSource`를 사용한다. |
 | Split inbound planning source | `getSecondaryStockOrderCalc().inboundSplitSource` | Single planning source for detailed recommendation rows and split-inbound planning. It contains `total`, `sizeInfo`, `expectation`, and `confirmed`. |
-| 후보군 오더 엑셀 데이터 | `CandidateItemSummary.orderExport`, `CandidateOrderMetric.orderExport` | 후보군 엑셀은 이미 수신한 `orderExport` DTO로 생성한다. `inboundRounds[]`는 동적 컬럼으로 펼치지 않고, `차수`/`입고 예정일` 고정 컬럼에 차수별 행으로 확장한다. 사이즈 컬럼은 사이즈 기준으로만 유지하며 추가 상세 fetch를 하지 않는다. |
+| 후보군 오더 엑셀 데이터 | `CandidateItemSummary.orderExport`, `CandidateOrderMetric.orderExport` | 후보군 엑셀은 이미 수신한 `orderExport` DTO로 생성한다. `inboundRounds[]`는 동적 컬럼으로 펼치지 않고, `차수`/`입고 예정일` 고정 컬럼에 차수별 행으로 확장한다. 차수 행의 `총 오더량`은 해당 차수 `sizeOrderQty[]` 합계이며, `총 오더 금액`은 차수 수량 기준으로 계산한다. 사이즈 컬럼은 사이즈 기준으로만 유지하며 추가 상세 fetch를 하지 않는다. |
+
+후보 상세 확정/해제는 저장된 스냅샷 상태를 바꾸므로 해당 후보 item의 `orderExport`를 stale 데이터로 보지 않는다. 확정/해제 응답을 반영한 뒤 대상 item의 order metric을 `loading`으로 무효화하고, order metric SSE를 통해 최신 `CandidateOrderMetric.orderExport`를 다시 수신한다. 엑셀 다운로드는 `orderMetricStatus === 'loaded'`이고 `orderExport`가 있는 현재 리스트 데이터만 사용한다.
+
+후보 상세 확정 해제는 DB의 `confirmedOrderSnapshot`만 제거하는 작업이다. 현재 열려 있는 drawer working snapshot, 입력값, 월간 판매추이, 계산 결과는 화면 작업 상태로 유지하며 `live` source로 계속 저장 가능해야 한다. confirmed snapshot 참조와 live draft/hydrate state를 같은 null 처리로 묶지 않는다.
+
+후보 상세 drawer의 확정 표시 상태와 계산 기준은 분리한다. `hydrateSnapshotSource === 'confirmed'`일 때만 확정값 표시 UI를 켜며, `live` working snapshot이라도 prefill이 적용되어 있고 사용자가 입력을 변경하지 않았다면 해당 snapshot의 `stockOrderResult`를 저장 가능 계산 기준으로 사용한다.
 
 `inboundSplitSource` is returned inside `getSecondaryStockOrderCalc`; split count, split dates, confirmed quantities, and `excludeSegmentExistingOrderInbound` remain UI/snapshot state.
 

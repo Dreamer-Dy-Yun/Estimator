@@ -1,6 +1,6 @@
 # Dashboard API Contract Catalog
 
-Last updated: 2026-06-19
+Last updated: 2026-06-26
 
 이 문서는 백엔드 endpoint 작성자가 `dashboard-app`의 현재 API 요청을 빠르게 구현할 수 있도록 path params, query, body, response를 분리해서 정리한다.
 실제 frontend 직렬화 기준은 `dashboard-app/src/api/requests/httpDashboardRequests.ts`이다.
@@ -275,7 +275,7 @@ Candidate DTO notes:
 - `CandidateItemInsightSummary.competitorSalesSourceLabel`: sales insight source label.
 - `CandidateItemOrderExport.comparisonSubjectLabel`: comparison subject label used for order metric/export.
 - `CandidateItemOrderExport.inboundRounds[]`: order export inbound schedule, one row per confirmed inbound round. Shape: `{ round: number, inboundDate: YYYY-MM-DD, sizeOrderQty: { size: string, orderQty: number }[] }`. Snapshot-backed items should map this from `confirmed.rounds[]` and fill `sizeOrderQty[]` from each round `qtyBySize`; non-snapshot live calculation may return an empty array when no confirmed inbound schedule exists.
-- `CandidateItemOrderExport.inboundExpectedDate`: legacy/fallback single date field. Excel export uses `inboundRounds[]` first, expands rows by round, and keeps only fixed `차수` and `입고 예정일` columns instead of dynamic round-date columns.
+- `CandidateItemOrderExport.inboundExpectedDate`: legacy/fallback single date field. Excel export uses `inboundRounds[]` first, expands rows by round, and keeps only fixed `차수` and `입고 예정일` columns instead of dynamic round-date columns. Expanded round rows calculate `총 오더량` from that round's `sizeOrderQty[]` sum and `총 오더 금액` from the round quantity.
 
 ## 9. Job / SSE
 

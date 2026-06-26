@@ -70,7 +70,11 @@ export function useSecondarySnapshotPrefill({
         setAppliedPrefillKey(null)
         return
       }
-      if (prefillKey != null && appliedPrefillKey === prefillKey) return
+      const confirmedSourceActive: boolean = candidateItemContext?.hydrateSnapshotSource === 'confirmed'
+      if (prefillKey != null && appliedPrefillKey === prefillKey) {
+        setSnapshotConfirmBaselineActive(confirmedSourceActive)
+        return
+      }
       const d2: OrderSnapshotDrawer2 = prefillFromSnapshot.drawer2
       const stockOrderRequest: OrderSnapshotStockOrderRequest = d2.stockOrderRequest
       onComparisonSubjectChange(d2.comparisonSubject)
@@ -82,7 +86,7 @@ export function useSecondarySnapshotPrefill({
       setDailyMeanClient(stockOrderRequest.dailyMeanOverride ?? d2.stockOrderResult.dailyMean)
       setConfirmBySize({})
       setConfirmedRounds(d2.confirmed.rounds)
-      setSnapshotConfirmBaselineActive(candidateItemContext?.hydrateSnapshotSource === 'confirmed')
+      setSnapshotConfirmBaselineActive(confirmedSourceActive)
       setAppliedPrefillKey(prefillKey)
       if (d2.unitEconomics != null) {
         setUnitCostInput(d2.unitEconomics.unitCost)

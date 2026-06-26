@@ -33,7 +33,7 @@ export function formatInboundSplitSuggestionBasisTooltip(basis: InboundSplitSugg
   const lines: string[] = [
     `${KO.labelInboundSplitSuggestionBasis} (${salesIntervalText})`,
     `${KO.labelInboundSplitBasisSalesForecast}: ${formatTooltipQty(basis.salesForecastQty)}`,
-    `${KO.labelInboundSplitBasisExistingOrderInbound}${existingOrderInboundPeriodText}: ${existingOrderInboundText}`,
+    `${KO.labelInboundSplitBasisExistingOrderInbound}: ${existingOrderInboundText}`,
     `${KO.labelInboundSplitBasisOpeningStock}: ${formatTooltipQty(basis.carriedStockQty)}`,
     `${KO.labelInboundSplitBasisMinimumStock}: ${formatTooltipQty(basis.minimumStockQty)}`,
   ]

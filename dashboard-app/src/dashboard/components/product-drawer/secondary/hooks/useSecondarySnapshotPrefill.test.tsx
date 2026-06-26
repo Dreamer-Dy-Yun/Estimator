@@ -188,4 +188,36 @@ describe('useSecondarySnapshotPrefill', () : void => {
     expect(setBufferStock).toHaveBeenCalledTimes(1)
     expect(setAppliedPrefillKey).toHaveBeenCalledTimes(1)
   })
+
+  it('updates the confirmed baseline flag when only the snapshot source changes', async () : Promise<void> => {
+    const onComparisonSubjectChange: Mock<(next: OrderSnapshotComparisonSubject) => void> = vi.fn()
+    const setSnapshotConfirmBaselineActive: Mock<(value: boolean) => void> = vi.fn()
+    const setBufferStock: Mock<(value: number) => void> = vi.fn()
+    const prefillKey: string = 'item-1|2026-06-10T00:00:00.000Z|2026-01-01|2026-12-31'
+    const args: Args = createArgs({
+      appliedPrefillKey: prefillKey,
+      candidateItemContext: { hydrateSnapshotSource: 'confirmed' } as Args['candidateItemContext'],
+      onComparisonSubjectChange,
+      prefillKey,
+      setBufferStock,
+      setSnapshotConfirmBaselineActive,
+    })
+
+    renderProbe(args)
+    await flushMicrotasks()
+
+    expect(setSnapshotConfirmBaselineActive).toHaveBeenCalledWith(true)
+    expect(onComparisonSubjectChange).not.toHaveBeenCalled()
+    expect(setBufferStock).not.toHaveBeenCalled()
+
+    rerenderProbe({
+      ...args,
+      candidateItemContext: { hydrateSnapshotSource: 'live' } as Args['candidateItemContext'],
+    })
+    await flushMicrotasks()
+
+    expect(setSnapshotConfirmBaselineActive).toHaveBeenLastCalledWith(false)
+    expect(onComparisonSubjectChange).not.toHaveBeenCalled()
+    expect(setBufferStock).not.toHaveBeenCalled()
+  })
 })

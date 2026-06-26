@@ -24,6 +24,7 @@ export interface UseCandidateDetailConfirmationMutationsParams {
   confirmationOverridesRef: MutableRefObject<CandidateDetailConfirmationOverrideMap>
   setItems: CandidateSetItems
   drawer: DrawerSnapshotBridge
+  onOrderMetricsInvalidated?: (itemUuids: string[]) => void
 }
 
 function mergeDetailConfirmationState(
@@ -59,6 +60,7 @@ export function useCandidateDetailConfirmationMutations({
   confirmationOverridesRef,
   setItems,
   drawer,
+  onOrderMetricsInvalidated,
 }: UseCandidateDetailConfirmationMutationsParams) : { markDrawerSnapshotConfirmed: (itemUuid: string, snapshot: OrderSnapshotDocument, updatedItem: CandidateItemDetail) => void; markDrawerSnapshotUnconfirmed: (itemUuid: string, updatedItem: CandidateItemDetail) => void; markItemsDetailConfirmed: (updatedItems: CandidateItemDetail[]) => void; markItemsDetailUnconfirmed: (updatedItems: CandidateItemDetail[]) => void; } {
   const recordDetailConfirmationMutation: (itemUuid: string, hasConfirmedOrderSnapshot: boolean, confirmedSnapshot: OrderSnapshotDocument | null, updatedItem: CandidateItemDetail) => string | null = useCallback((
     itemUuid: string,
@@ -88,12 +90,14 @@ export function useCandidateDetailConfirmationMutations({
   ) : void => {
     const baseDbUpdatedAt: string | null = recordDetailConfirmationMutation(itemUuid, true, snapshot, updatedItem)
     drawer.markDrawerSnapshotConfirmed(itemUuid, snapshot, baseDbUpdatedAt)
-  }, [drawer, recordDetailConfirmationMutation])
+    onOrderMetricsInvalidated?.([itemUuid])
+  }, [drawer, onOrderMetricsInvalidated, recordDetailConfirmationMutation])
 
   const markDrawerSnapshotUnconfirmed: (itemUuid: string, updatedItem: CandidateItemDetail) => void = useCallback((itemUuid: string, updatedItem: CandidateItemDetail) : void => {
     const baseDbUpdatedAt: string | null = recordDetailConfirmationMutation(itemUuid, false, null, updatedItem)
     drawer.markDrawerSnapshotUnconfirmed(itemUuid, baseDbUpdatedAt)
-  }, [drawer, recordDetailConfirmationMutation])
+    onOrderMetricsInvalidated?.([itemUuid])
+  }, [drawer, onOrderMetricsInvalidated, recordDetailConfirmationMutation])
 
   const markItemsDetailUnconfirmed: (updatedItems: CandidateItemDetail[]) => void = useCallback((updatedItems: CandidateItemDetail[]) : void => {
     assertCandidateItemDetailSnapshotFlags(updatedItems)
@@ -116,7 +120,8 @@ export function useCandidateDetailConfirmationMutations({
         ? mergeDetailConfirmationState(item, updatedItemByUuid.get(item.uuid)!)
         : item
     )))
-  }, [confirmationOverridesRef, drawer, itemsRef, setItems])
+    onOrderMetricsInvalidated?.(uniqueUuids)
+  }, [confirmationOverridesRef, drawer, itemsRef, onOrderMetricsInvalidated, setItems])
 
   const markItemsDetailConfirmed: (updatedItems: CandidateItemDetail[]) => void = useCallback((updatedItems: CandidateItemDetail[]) : void => {
     const confirmedItems: { item: CandidateItemDetail; snapshot: OrderSnapshotDocument; }[] = parseConfirmedUpdatedItems(updatedItems)
@@ -138,7 +143,8 @@ export function useCandidateDetailConfirmationMutations({
       const updatedItem: CandidateItemDetail | undefined = confirmedItemByUuid.get(item.uuid)?.item
       return uuidSet.has(item.uuid) && updatedItem ? mergeDetailConfirmationState(item, updatedItem) : item
     }))
-  }, [confirmationOverridesRef, drawer, itemsRef, setItems])
+    onOrderMetricsInvalidated?.(uniqueUuids)
+  }, [confirmationOverridesRef, drawer, itemsRef, onOrderMetricsInvalidated, setItems])
 
   return {
     markDrawerSnapshotConfirmed,

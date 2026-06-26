@@ -146,7 +146,7 @@ function createArgs(overrides: Partial<HookArgs> = {}): HookArgs {
     candidateItemContext: null,
     comparisonTarget: { id: 'self', label: 'Self', role: 'comparison', kind: 'self-company', sourceId: 'company-1' },
     snapshotConfirmBySize: {},
-    useSnapshotConfirmBaseline: false,
+    useSnapshotDataBaseline: false,
     dailyMeanClient: null,
     setDailyMeanClient: vi.fn(),
     currentOrderInboundDueDate: '2026-04-01',
@@ -232,7 +232,7 @@ describe('useSecondaryForecastModel split confirmation scope', (): void => {
 
   it('keeps split confirmed rounds while the saved snapshot baseline is active', (): void => {
     setupMocks()
-    const args: HookArgs = createArgs({ useSnapshotConfirmBaseline: true })
+    const args: HookArgs = createArgs({ useSnapshotDataBaseline: true })
     const view: { rerender: (nextArgs: HookArgs) => void } = renderModel(args)
     const setConfirmBySize: Mock = args.setConfirmBySize as Mock
     const setConfirmedRounds: Mock = args.setConfirmedRounds as Mock
@@ -246,7 +246,7 @@ describe('useSecondaryForecastModel split confirmation scope', (): void => {
   it('uses the snapshot saved date as the calculation base date while the saved snapshot baseline is active', (): void => {
     setupMocks()
     const args: HookArgs = createArgs({
-      useSnapshotConfirmBaseline: true,
+      useSnapshotDataBaseline: true,
       prefillFromSnapshot: {
         savedAt: '2026-02-03T10:20:30.000Z',
         drawer2: {
@@ -258,5 +258,45 @@ describe('useSecondaryForecastModel split confirmation scope', (): void => {
     const view: { readonly current: HookResult; rerender: (nextArgs: HookArgs) => void } = renderModel(args)
 
     expect(view.current.calculationBaseDate).toBe('2026-02-03')
+  })
+
+  it('keeps snapshot save readiness from an applied live draft snapshot', (): void => {
+    setupMocks()
+    hookMocks.useSecondaryDrawerRequests.mockReturnValue({
+      calculationBaseDate: '2026-03-30',
+      dailyTrend: {
+        dailyTrendSeries: [],
+        dailyTrendLoading: false,
+        dailyTrendError: null,
+        dailyPeriodShade: { x1: 0, x2: 0 },
+        dailyForecastShade: null,
+        dailyTickIndices: [],
+      },
+      inboundSplitSource: null,
+      inboundSplitSourceLoading: true,
+      inboundSplitSourceError: null,
+      stockOrderCalc: null,
+      stockOrderCalcError: null,
+      stockOrderCalcLoading: true,
+      selfCol: null,
+      compCol: null,
+      salesInsightError: null,
+      salesInsightLoading: true,
+    })
+    const args: HookArgs = createArgs({
+      useSnapshotDataBaseline: true,
+      prefillFromSnapshot: {
+        savedAt: '2026-02-03T10:20:30.000Z',
+        drawer2: {
+          stockOrderResult: STOCK_ORDER_CALC,
+          sizeOrders: [],
+        },
+      } as unknown as HookArgs['prefillFromSnapshot'],
+    })
+    const view: { readonly current: HookResult } = renderModel(args)
+
+    expect(view.current.stockOrderCalculationReady).toBe(true)
+    expect(view.current.snapshotReady).toBe(true)
+    expect(view.current.stockOrderCalc).toBe(STOCK_ORDER_CALC)
   })
 })

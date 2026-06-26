@@ -122,7 +122,7 @@ afterEach(() : void => {
 })
 
 describe('useCandidateStashItemDrawer', () : void => {
-  it('does not restore a stale confirmed snapshot after unconfirm clears the drawer state', async () : Promise<void> => {
+  it('keeps the current drawer snapshot as live state after unconfirm clears the confirmed state', async () : Promise<void> => {
     apiMock.getCandidateItemByUuid.mockResolvedValue(candidateDetail())
     renderProbe()
 
@@ -132,15 +132,12 @@ describe('useCandidateStashItemDrawer', () : void => {
 
     expect(controls!.confirmedHydrateSnap?.savedAt).toBe(validSnapshot.savedAt)
 
-    const clearDraftBeforeUnconfirm: (itemUuid: string) => void = controls!.clearDrawerDraftSnapshot
-
     act(() : void => {
       controls!.markDrawerSnapshotUnconfirmed('item-1', '2026-06-01T00:00:00.000Z')
-      clearDraftBeforeUnconfirm('item-1')
     })
 
-    expect(controls!.hydrateSnap).toBeNull()
-    expect(controls!.hydrateSnapSource).toBeNull()
+    expect(controls!.hydrateSnap?.savedAt).toBe(validSnapshot.savedAt)
+    expect(controls!.hydrateSnapSource).toBe('live')
     expect(controls!.confirmedHydrateSnap).toBeNull()
   })
 })
